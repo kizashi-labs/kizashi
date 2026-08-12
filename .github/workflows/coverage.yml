@@ -47,7 +47,7 @@ jobs:
           --health-retries 5
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           # Need full history so we can commit the badge update back to main
           fetch-depth: 0

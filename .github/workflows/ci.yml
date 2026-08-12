@@ -53,7 +53,7 @@ jobs:
           --health-retries 5
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           # golangci-lint の --new-from-merge-base に必要（origin/main との比較）。
           fetch-depth: 0
@@ -214,7 +214,7 @@ jobs:
     name: Detection Rule Validation (Sigma + YARA)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Set up Go
         uses: actions/setup-go@v5
@@ -256,7 +256,7 @@ jobs:
             suffix: ""
             tags: ""
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Set up Go
         uses: actions/setup-go@v5
@@ -325,7 +325,7 @@ jobs:
     name: Agent Tests (Go)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Set up Go
         uses: actions/setup-go@v5
@@ -478,7 +478,7 @@ jobs:
     name: Server Vulnerability Check (govulncheck)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Set up Go
         uses: actions/setup-go@v5
@@ -517,7 +517,7 @@ jobs:
     name: Agent Vulnerability Check (govulncheck)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Set up Go
         uses: actions/setup-go@v5
@@ -541,7 +541,7 @@ jobs:
     name: Frontend Build (Next.js)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: actions/setup-node@v4
         with:
@@ -594,7 +594,7 @@ jobs:
     name: SDK Tests (Python + TypeScript)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -646,7 +646,7 @@ jobs:
           --health-retries 5
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Create test table and insert data
         run: |
@@ -700,7 +700,7 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Download all agent artifacts
         uses: actions/download-artifact@v4
