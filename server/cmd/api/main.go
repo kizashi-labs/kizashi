@@ -1967,15 +1967,6 @@ func main() {
 	slog.Info("REST APIサーバーを停止しました")
 }
 
-// alertStoreAdapter wraps *store.AlertStore to satisfy handlers.AlertQueryStore.
-type alertStoreAdapter struct {
-	store *store.AlertStore
-}
-
-func (a *alertStoreAdapter) GetAlert(ctx context.Context, id string) (interface{}, error) {
-	return a.store.GetAlert(ctx, id)
-}
-
 func mustEnv(key string) string {
 	v := os.Getenv(key)
 	if v == "" {

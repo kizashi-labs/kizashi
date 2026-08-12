@@ -1,0 +1,359 @@
+# 一般事務PC (Windows) — フリートの大多数を占める「静かな」プロファイル。
+#
+# 検知器を直接刺激する挙動はほとんど無いが、フリート全体のイベント量の大半を
+# 生むのはこの層なので、ここで1件でも誤検知が出れば 1000ホスト/日あたりでは
+# 巨大な数字になる。低頻度・高台数側の FP を捕まえるのが役割。
+
+name        = "office-pc"
+os          = "windows"
+os_version  = "Windows 11 Pro 23H2"
+description = "一般事務PC: ブラウザ・Office・Teams・SCCM管理エージェント"
+host_prefix = "wks"
+fleet_weight = 60
+subnet      = "10.20.0.0/16"
+users       = ["sato", "suzuki", "takahashi", "tanaka", "ito", "watanabe", "yamamoto", "nakamura"]
+
+[rates]
+process    = 120
+file       = 900
+network    = 700
+dns        = 250
+registry   = 150
+auth       = 4
+image_load = 300
+
+# ─── プロセス ────────────────────────────────────────────────
+
+[[processes]]
+weight   = 30
+name     = "chrome.exe"
+path     = 'C:\Program Files\Google\Chrome\Application\chrome.exe'
+parent   = "explorer.exe"
+user     = 'CORP\{{user}}'
+integrity = "Medium"
+company  = "Google LLC"
+product  = "Google Chrome"
+original_file_name = "chrome.exe"
+cmdlines = [
+  '"C:\Program Files\Google\Chrome\Application\chrome.exe" --type=renderer --field-trial-handle={{randint}} --mojo-platform-channel-handle={{randint}}',
+  '"C:\Program Files\Google\Chrome\Application\chrome.exe" --type=gpu-process --gpu-preferences=UAAAA',
+  '"C:\Program Files\Google\Chrome\Application\chrome.exe" --type=utility --utility-sub-type=network.mojom.NetworkService',
+]
+
+[[processes]]
+weight   = 16
+name     = "OUTLOOK.EXE"
+path     = 'C:\Program Files\Microsoft Office\root\Office16\OUTLOOK.EXE'
+parent   = "explorer.exe"
+user     = 'CORP\{{user}}'
+integrity = "Medium"
+company  = "Microsoft Corporation"
+product  = "Microsoft Office"
+original_file_name = "OUTLOOK.EXE"
+cmdlines = ['"C:\Program Files\Microsoft Office\root\Office16\OUTLOOK.EXE"']
+
+[[processes]]
+weight   = 12
+name     = "Teams.exe"
+path     = 'C:\Users\{{user}}\AppData\Local\Microsoft\Teams\current\Teams.exe'
+parent   = "explorer.exe"
+user     = 'CORP\{{user}}'
+integrity = "Medium"
+company  = "Microsoft Corporation"
+product  = "Microsoft Teams"
+original_file_name = "Teams.exe"
+cmdlines = ['"Teams.exe" --type=renderer --field-trial-handle={{randint}}']
+
+[[processes]]
+weight   = 10
+name     = "EXCEL.EXE"
+path     = 'C:\Program Files\Microsoft Office\root\Office16\EXCEL.EXE'
+parent   = "explorer.exe"
+user     = 'CORP\{{user}}'
+integrity = "Medium"
+company  = "Microsoft Corporation"
+product  = "Microsoft Office"
+original_file_name = "EXCEL.EXE"
+cmdlines = [
+  '"EXCEL.EXE" /dde',
+  '"EXCEL.EXE" "\\fileserver01\share\経理\月次報告_{{date}}.xlsx"',
+]
+
+# SCCM/Intune 管理エージェントによる定期実行。正規の管理経路だが
+# PowerShell + エンコード済みでないスクリプト実行という「攻撃と紛らわしい」形を取る。
+# 事務PC上で最も誤検知を出しやすい挙動なので必ず含める。
+[[processes]]
+weight   = 8
+name     = "powershell.exe"
+path     = 'C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe'
+parent   = "CcmExec.exe"
+user     = 'NT AUTHORITY\SYSTEM'
+integrity = "System"
+company  = "Microsoft Corporation"
+product  = "Microsoft® Windows® Operating System"
+original_file_name = "PowerShell.EXE"
+cmdlines = [
+  'powershell.exe -NoProfile -ExecutionPolicy Bypass -File "C:\Windows\CCM\SystemTemp\inventory-{{rand}}.ps1"',
+  'powershell.exe -NoLogo -NonInteractive -Command "Get-WmiObject -Class Win32_QuickFixEngineering"',
+  'powershell.exe -NoProfile -Command "Get-CimInstance Win32_OperatingSystem | Select-Object Caption,Version"',
+]
+
+[[processes]]
+weight   = 8
+name     = "explorer.exe"
+path     = 'C:\Windows\explorer.exe'
+parent   = "userinit.exe"
+user     = 'CORP\{{user}}'
+integrity = "Medium"
+company  = "Microsoft Corporation"
+original_file_name = "EXPLORER.EXE"
+cmdlines = ['C:\Windows\Explorer.EXE']
+
+[[processes]]
+weight   = 6
+name     = "MsMpEng.exe"
+path     = 'C:\ProgramData\Microsoft\Windows Defender\Platform\4.18.24010.7-0\MsMpEng.exe'
+parent   = "services.exe"
+user     = 'NT AUTHORITY\SYSTEM'
+integrity = "System"
+company  = "Microsoft Corporation"
+original_file_name = "MsMpEng.exe"
+cmdlines = ['"MsMpEng.exe"']
+
+[[processes]]
+weight   = 5
+name     = "OneDrive.exe"
+path     = 'C:\Users\{{user}}\AppData\Local\Microsoft\OneDrive\OneDrive.exe'
+parent   = "explorer.exe"
+user     = 'CORP\{{user}}'
+integrity = "Medium"
+company  = "Microsoft Corporation"
+original_file_name = "OneDrive.exe"
+cmdlines = ['"OneDrive.exe" /background']
+
+# ─── ファイル ────────────────────────────────────────────────
+
+[[files]]
+weight  = 30
+process = "chrome.exe"
+actions = ["create", "modify", "delete"]
+size_range = [1024, 4194304]
+paths = [
+  'C:\Users\{{user}}\AppData\Local\Google\Chrome\User Data\Default\Cache\Cache_Data\f_{{rand}}',
+  'C:\Users\{{user}}\AppData\Local\Google\Chrome\User Data\Default\Code Cache\js\{{rand}}',
+  'C:\Users\{{user}}\AppData\Local\Temp\{{rand}}.tmp',
+]
+
+[[files]]
+weight  = 20
+process = "OUTLOOK.EXE"
+actions = ["modify"]
+size_range = [10485760, 2147483648]
+paths = ['C:\Users\{{user}}\AppData\Local\Microsoft\Outlook\{{user}}@corp.example.co.jp.ost']
+
+[[files]]
+weight  = 18
+process = "OneDrive.exe"
+actions = ["create", "modify"]
+size_range = [4096, 20971520]
+paths = [
+  'C:\Users\{{user}}\OneDrive - Corp\ドキュメント\議事録_{{date}}_{{randint}}.docx',
+  'C:\Users\{{user}}\OneDrive - Corp\ドキュメント\見積_{{randint}}.xlsx',
+]
+
+[[files]]
+weight  = 15
+process = "EXCEL.EXE"
+actions = ["create", "modify", "rename", "delete"]
+size_range = [8192, 10485760]
+paths = [
+  'C:\Users\{{user}}\AppData\Roaming\Microsoft\Excel\~$月次報告_{{date}}.xlsx',
+  '\\fileserver01\share\経理\月次報告_{{date}}.xlsx',
+]
+
+[[files]]
+weight  = 10
+process = "MsMpEng.exe"
+actions = ["modify"]
+size_range = [1024, 262144]
+paths = ['C:\ProgramData\Microsoft\Windows Defender\Scans\History\Store\{{rand}}']
+
+# ─── ネットワーク ────────────────────────────────────────────
+
+[[network]]
+weight   = 35
+process  = "chrome.exe"
+proto    = "tcp"
+ports    = [443]
+hostname = "www.google.com"
+hosts    = ["142.250.196.100", "142.250.207.14", "172.217.161.78", "104.18.32.47"]
+bytes_sent_range = [400, 60000]
+bytes_recv_range = [2000, 3000000]
+
+[[network]]
+weight   = 20
+process  = "Teams.exe"
+proto    = "tcp"
+ports    = [443]
+hostname = "teams.microsoft.com"
+hosts    = ["52.113.194.132", "52.114.128.10", "13.107.64.11"]
+bytes_sent_range = [2000, 400000]
+bytes_recv_range = [2000, 800000]
+
+[[network]]
+weight   = 15
+process  = "OUTLOOK.EXE"
+proto    = "tcp"
+ports    = [443]
+hostname = "outlook.office365.com"
+hosts    = ["52.96.88.34", "40.100.174.2", "52.98.151.18"]
+bytes_sent_range = [1000, 200000]
+bytes_recv_range = [5000, 5000000]
+
+[[network]]
+weight   = 15
+process  = "explorer.exe"
+proto    = "tcp"
+ports    = [445, 139]
+hostname = "fileserver01.corp.example.co.jp"
+hosts    = ["10.20.255.10", "10.20.255.11"]
+bytes_sent_range = [1000, 500000]
+bytes_recv_range = [1000, 20000000]
+
+[[network]]
+weight   = 10
+process  = "CcmExec.exe"
+proto    = "tcp"
+ports    = [443, 8531]
+hostname = "sccm01.corp.example.co.jp"
+hosts    = ["10.20.255.30"]
+bytes_sent_range = [5000, 300000]
+bytes_recv_range = [10000, 100000000]
+
+[[network]]
+weight   = 5
+process  = "OneDrive.exe"
+proto    = "tcp"
+ports    = [443]
+hostname = "corp-my.sharepoint.com"
+hosts    = ["13.107.136.9"]
+bytes_sent_range = [10000, 20000000]
+bytes_recv_range = [5000, 5000000]
+
+# ─── DNS ─────────────────────────────────────────────────────
+
+[[dns]]
+weight  = 40
+process = "chrome.exe"
+queries = [
+  "www.google.com", "clients2.google.com", "safebrowsing.googleapis.com",
+  "www.bing.com", "cdn.jsdelivr.net", "fonts.gstatic.com",
+  "docs.google.com", "www.yahoo.co.jp",
+]
+
+[[dns]]
+weight  = 20
+process = "Teams.exe"
+queries = ["teams.microsoft.com", "presence.teams.microsoft.com", "config.teams.microsoft.com"]
+
+[[dns]]
+weight  = 20
+process = "OUTLOOK.EXE"
+queries = ["outlook.office365.com", "autodiscover.corp.example.co.jp", "substrate.office.com"]
+
+[[dns]]
+weight  = 20
+process = "explorer.exe"
+queries = ["fileserver01.corp.example.co.jp", "dc01.corp.example.co.jp", "sccm01.corp.example.co.jp"]
+
+# ─── レジストリ ──────────────────────────────────────────────
+
+[[registry]]
+weight  = 40
+process = "explorer.exe"
+actions = ["modify"]
+keys    = [
+  'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\RecentDocs',
+  'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\UserAssist\{CEBFF5CD-ACE2-4F4F-9178-9926F41749EA}\Count',
+]
+values = ["MRUListEx", "{{rand}}"]
+data   = ["01000000", "02000000"]
+
+[[registry]]
+weight  = 25
+process = "chrome.exe"
+actions = ["modify"]
+keys    = ['HKCU\Software\Google\Chrome\PreferenceMACs\Default']
+values  = ["browser.show_home_button", "extensions.settings"]
+data    = ["{{rand}}"]
+
+[[registry]]
+weight  = 20
+process = "OUTLOOK.EXE"
+actions = ["create", "modify"]
+keys    = ['HKCU\Software\Microsoft\Office\16.0\Outlook\Profiles\Outlook\{{rand}}']
+values  = ["01023d00", "001f6620"]
+data    = ["{{rand}}"]
+
+# Windows Update / Defender の定義更新に伴う HKLM 書き込み。SYSTEM 権限で
+# HKLM 配下を書き換えるという、永続化ルールが最も引っかかりやすい形。
+[[registry]]
+weight  = 15
+process = "MsMpEng.exe"
+actions = ["modify"]
+keys    = [
+  'HKLM\SOFTWARE\Microsoft\Windows Defender\Signature Updates',
+  'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update',
+]
+values  = ["SignatureLastUpdated", "LastWaTime"]
+data    = ["{{rand}}"]
+
+# ─── 認証 ────────────────────────────────────────────────────
+
+[[auth]]
+weight  = 80
+users   = ['CORP\{{user}}']
+actions = ["login"]
+success = true
+methods = ["password", "mfa"]
+
+[[auth]]
+weight  = 20
+users   = ['CORP\{{user}}']
+actions = ["logout"]
+success = true
+methods = ["password"]
+
+# ─── モジュールロード ────────────────────────────────────────
+
+[[image_loads]]
+weight  = 40
+process = "chrome.exe"
+signed  = true
+signer  = "Google LLC"
+paths   = [
+  'C:\Program Files\Google\Chrome\Application\132.0.6834.83\chrome.dll',
+  'C:\Windows\System32\kernel32.dll',
+  'C:\Windows\System32\ntdll.dll',
+]
+
+[[image_loads]]
+weight  = 30
+process = "OUTLOOK.EXE"
+signed  = true
+signer  = "Microsoft Corporation"
+paths   = [
+  'C:\Program Files\Microsoft Office\root\Office16\OUTLLIB.DLL',
+  'C:\Windows\System32\combase.dll',
+  'C:\Windows\System32\rpcrt4.dll',
+]
+
+[[image_loads]]
+weight  = 30
+process = "powershell.exe"
+signed  = true
+signer  = "Microsoft Corporation"
+paths   = [
+  'C:\Windows\assembly\NativeImages_v4.0.30319_64\System.Management.A#\{{rand}}\System.Management.Automation.ni.dll',
+  'C:\Windows\System32\amsi.dll',
+]
