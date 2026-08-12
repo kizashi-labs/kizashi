@@ -116,7 +116,7 @@ jobs:
       # アクションはビルド済みリリースバイナリを取得するので、リンタ側の依存解決が
       # そもそも起きない。この故障クラスが構造的に消える。version も固定する。
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@v8
+        uses: golangci/golangci-lint-action@v9
         with:
           version: v2.12.2
           working-directory: server
