@@ -146,7 +146,7 @@ jobs:
         run: npx playwright test --reporter=html
 
       - name: Upload test results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: failure()
         with:
           name: playwright-report
@@ -275,7 +275,7 @@ jobs:
             scenarios/api-smoke.js
 
       - name: Upload k6 summary
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: k6-smoke-summary

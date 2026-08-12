@@ -175,7 +175,7 @@ jobs:
         run: go tool cover -html=coverage.out -o coverage.html
 
       - name: Upload coverage report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: server-coverage
           path: |
@@ -309,7 +309,7 @@ jobs:
         run: go build -ldflags="-s -w" -o edr-watchdog-${{ matrix.goos }}-${{ matrix.goarch }}${{ matrix.suffix }} ./cmd/watchdog/...
 
       - name: Upload agent binaries
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: agent-${{ matrix.goos }}-${{ matrix.goarch }}
           path: agent/edr-*
@@ -432,7 +432,7 @@ jobs:
         run: go tool cover -html=coverage.out -o coverage.html
 
       - name: Upload coverage report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: agent-coverage
           path: |
@@ -578,7 +578,7 @@ jobs:
         run: npm run build
 
       - name: Upload build
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: frontend-build
           path: frontend/.next/standalone
