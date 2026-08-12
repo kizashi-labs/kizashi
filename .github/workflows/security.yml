@@ -41,7 +41,7 @@ jobs:
           ignore-unfixed: true
 
       - name: Upload SARIF to GitHub Security tab
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         if: always()
         continue-on-error: true   # プライベートリポジトリでは GHAS が必要なためスキップ可
         with:
@@ -99,7 +99,7 @@ jobs:
           ignore-unfixed: true
 
       - name: Upload SARIF
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         if: always()
         continue-on-error: true   # Requires GHAS on private repositories
         with:
@@ -139,7 +139,7 @@ jobs:
             .
 
       - name: Upload SARIF to GitHub Security tab
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         if: always()
         continue-on-error: true   # Requires GHAS on private repositories
         with:
