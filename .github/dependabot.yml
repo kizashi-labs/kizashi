@@ -1,3 +1,17 @@
+# 公開版の Dependabot 設定。
+#
+# 本流の設定は minor/patch をグループ化しているが、major は個別 PR になる。
+# 長く運用したリポジトリではピン留めが溜まっているため、新規に公開したリポジトリでは
+# その major が一斉に出る（公開初日に 20 件）。維持者が 1 人の公開版では、これは
+# レビューできない量になる。
+#
+# そこで:
+#   - github-actions と docker は major も含めて 1 本に束ねる（壊れても切り戻しが容易）
+#   - Go / npm の major は個別のまま残す（破壊的変更の切り分けに必要）
+#   - 代わりに open-pull-requests-limit を絞り、キューの長さを抑える
+#
+# セキュリティ更新はこの上限とグループを迂回して即時に届く。
+
 version: 2
 
 updates:
@@ -17,8 +31,7 @@ updates:
         update-types:
           - minor
           - patch
-    # Security updates bypass the group and are applied immediately
-    open-pull-requests-limit: 10
+    open-pull-requests-limit: 3
 
   # ── Go modules: agent ─────────────────────────────────────────
   - package-ecosystem: gomod
@@ -36,7 +49,7 @@ updates:
         update-types:
           - minor
           - patch
-    open-pull-requests-limit: 10
+    open-pull-requests-limit: 3
 
   # ── npm: frontend ─────────────────────────────────────────────
   - package-ecosystem: npm
@@ -54,11 +67,12 @@ updates:
         update-types:
           - minor
           - patch
-      # Keep major version upgrades ungrouped so they get individual PRs
     versioning-strategy: increase-if-necessary
-    open-pull-requests-limit: 10
+    open-pull-requests-limit: 3
 
   # ── GitHub Actions ────────────────────────────────────────────
+  # major も束ねる。アクションの major 更新は入力の名前が変わる程度のことが多く、
+  # 壊れたら 1 本戻せばよい。
   - package-ecosystem: github-actions
     directory: /
     schedule:
@@ -70,11 +84,12 @@ updates:
       - dependencies
       - github-actions
     groups:
-      actions-minor-and-patch:
+      actions:
         update-types:
+          - major
           - minor
           - patch
-    open-pull-requests-limit: 10
+    open-pull-requests-limit: 2
 
   # ── Docker base images ────────────────────────────────────────
   - package-ecosystem: docker
@@ -87,7 +102,13 @@ updates:
     labels:
       - dependencies
       - docker
-    open-pull-requests-limit: 5
+    groups:
+      base-images:
+        update-types:
+          - major
+          - minor
+          - patch
+    open-pull-requests-limit: 1
 
   - package-ecosystem: docker
     directory: /frontend
@@ -99,4 +120,10 @@ updates:
     labels:
       - dependencies
       - docker
-    open-pull-requests-limit: 5
+    groups:
+      base-images:
+        update-types:
+          - major
+          - minor
+          - patch
+    open-pull-requests-limit: 1
