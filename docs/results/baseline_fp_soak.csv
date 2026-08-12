@@ -1,0 +1,102 @@
+rule_id,title,alerts,max_severity,hosts,techniques,profiles,fp_per_1000_hosts_per_day
+TOTAL,,445,,20,host_days=1.6667,agents=20,266999.13
+2d684f00-4ca2-44d4-96e9-04e194153436,[SIGMA] 疑わしいPowerShell実行,26,7,11,T1059.001,it-admin|office-pc,15599.95
+(no-rule-id),[Sigma] Security Tooling Registry Tampering (Direct Write),24,8,12,T1562.001,file-server|office-pc,14399.95
+2756e3b6-f798-496d-86af-d0d283dfb5b7,[SIGMA] Archive Collected Data via Compression Utility (Linux),18,5,6,T1560.001,backup-server|dev-machine,10799.96
+10b3b382-aee6-439f-99c2-a4ccd1e3e1b6,[SIGMA] Container Administration Command (DB),12,4,4,T1609,dev-machine,7199.98
+2dcb343c-3fdd-4cca-9d2a-f96d25e74c49,[SIGMA] Container Image Build on Host (DB),12,5,4,T1612,dev-machine,7199.98
+6420831d-fdef-46cf-9d2f-3f9f896cb2b9,[SIGMA] Linux Shell Init File Modification (FIM),12,5,4,T1546.004,dev-machine,7199.98
+a1b2c3d4-0007-0007-0007-000000000033,[SIGMA] SSH Authorized Keys Modification,12,7,4,T1098.004,dev-machine,7199.98
+a1b2c3d4-0007-0007-0007-000000000035,[SIGMA] Suspicious chmod of Executable in /tmp,12,7,4,T1222.002,dev-machine,7199.98
+7fee79f2-a879-4549-bc19-cab9018f56e0,[BEHAVIORAL] Linux マルウェア投下キルチェーン,11,8,4,T1105,dev-machine,6599.98
+b2c3d4e5-0003-0003-0003-000000000103,[SIGMA] curl/wget Download to Temp Directory (Linux),11,6,4,T1105,dev-machine,6599.98
+(no-rule-id),[HEURISTIC] データ持ち出しの疑い: 外部 13.107.136.9 へ10分内に大量のデータを送信,10,7,10,T1048,office-pc,5999.98
+ed6e0002-0000-0000-0000-001204002000,[SIGMA] Script Execution from World-Writable Directory (Linux),10,4,4,T1204.002,dev-machine,5999.98
+(no-rule-id),[HEURISTIC] ランサムウェアの疑い: プロセス 'go' が30秒内に多数のファイルを破壊的操作,8,9,4,T1486,dev-machine,4799.98
+(no-rule-id),[Sigma] Container Administration Command Execution,8,5,4,T1609,dev-machine,4799.98
+(no-rule-id),[Sigma] Container Image Build on Host,8,5,4,T1612,dev-machine,4799.98
+(no-rule-id),[Sigma] Container and Orchestration Discovery,8,5,4,T1613,dev-machine,4799.98
+(no-rule-id),[Sigma] Private Key File Access (SSH/PPK),8,5,4,T1552.004,dev-machine,4799.98
+(no-rule-id),[Sigma] SSH authorized_keys への不審な書き込み,8,8,4,T1098.004,dev-machine,4799.98
+(no-rule-id),[Sigma] curl/wget による /tmp へのファイルダウンロード,8,5,4,T1105,dev-machine,4799.98
+(no-rule-id),[Sigma] macOS Ingress Tool Transfer via curl/osascript,8,5,4,T1105,dev-machine,4799.98
+6ca76743-71b6-43e0-afc5-06c74ae40659,[BEHAVIORAL] RDPブルートフォース検知,6,8,2,T1110.001,it-admin,3599.99
+3373c4fd-c4a6-4c06-911c-ae4fcbd8ae85,[BEHAVIORAL] RDP接続＋即時偵察キルチェーン（不正リモートアクセスの直後行動）,6,7,2,T1133,it-admin,3599.99
+deb88405-2c14-49b1-a00c-84ec7a7606c9,[BEHAVIORAL] 内部ネットワーク偵察（横展開）,6,7,2,T1018,it-admin,3599.99
+(no-rule-id),[KILLCHAIN] 多段攻撃の疑い: 複数段のATT&CK戦術を観測,6,9,6,TA0000,dev-machine|it-admin,3599.99
+fc0cdcf1-82a8-459c-b663-9db6f5737ee8,[SIGMA] Domain Account Discovery (DB),6,5,2,T1087.002,it-admin,3599.99
+ad6566a4-d9da-4460-8c06-4a6933c79059,[SIGMA] Domain Group Discovery (DB),6,5,2,T1069.002,it-admin,3599.99
+2536e7c1-e45b-45ec-802a-9574a9599a38,[SIGMA] Lateral Movement via RDP,6,7,2,T1021.001,it-admin,3599.99
+dfa90bd5-1260-4cbe-a487-25f59ab72ecf,[SIGMA] Network Share Discovery (DB),6,5,2,T1135,it-admin,3599.99
+a1b2c3d4-0001-0001-0001-000000000001,[SIGMA] PsExec Lateral Movement,6,7,2,T1021.002,it-admin,3599.99
+a1b2c3d4-0001-0001-0001-000000000003,[SIGMA] RDP Lateral Movement via xfreerdp or mstsc,6,5,2,T1021.001,it-admin,3599.99
+6f42b2a0-15e7-459d-8fbc-49466dd3d697,[SIGMA] Remote System Discovery (DB),6,5,2,T1018,it-admin,3599.99
+a1b2c3d4-0005-0005-0005-000000000024,[SIGMA] Suspicious Outbound Connection on Non-Standard Port,6,5,2,T1571,file-server,3599.99
+2c5be625-5148-4c5f-bacd-4ebe33c9d9ff,[SIGMA] WinRM Lateral Movement (DB),6,6,2,T1021.006,it-admin,3599.99
+56fa8596-125d-4fe2-b2a3-76c56cf1a873,[SIGMA] WMI Remote Command Execution,5,8,2,T1021.006,it-admin,2999.99
+(no-rule-id),通常見られないプロセスが不審な場所から実行: MsMpEng.exe,5,4,5,T1059,office-pc,2999.99
+(no-rule-id),[HEURISTIC] データ持ち出しの疑い: 外部 140.82.113.4 へ10分内に大量のデータを送信,4,7,4,T1048,dev-machine,2399.99
+(no-rule-id),[HEURISTIC] データ持ち出しの疑い: 外部 140.82.114.3 へ10分内に大量のデータを送信,4,7,4,T1048,dev-machine,2399.99
+(no-rule-id),[HEURISTIC] ランサムウェアの疑い: プロセス 'MsMpEng.exe' が30秒内に多数のファイルを破壊的操作,4,9,2,T1486,file-server,2399.99
+(no-rule-id),[HEURISTIC] ランサムウェアの疑い: プロセス 'System' が30秒内に多数のファイルを破壊的操作,4,9,2,T1486,file-server,2399.99
+(no-rule-id),[HEURISTIC] ランサムウェアの疑い: プロセス 'find' が30秒内に多数のファイルを破壊的操作,4,9,2,T1486,backup-server,2399.99
+(no-rule-id),[HEURISTIC] ランサムウェアの疑い: プロセス 'powershell.exe' が30秒内に多数のファイルを破壊的操作,4,9,2,T1486,file-server,2399.99
+(no-rule-id),[HEURISTIC] ランサムウェアの疑い: プロセス 'restic' が30秒内に多数のファイルを破壊的操作,4,9,2,T1486,backup-server,2399.99
+(no-rule-id),[HEURISTIC] ランサムウェアの疑い: プロセス 'robocopy.exe' が30秒内に多数のファイルを破壊的操作,4,9,2,T1486,file-server,2399.99
+(no-rule-id),[HEURISTIC] ランサムウェアの疑い: プロセス 'rsync' が30秒内に多数のファイルを破壊的操作,4,9,2,T1486,backup-server,2399.99
+(no-rule-id),[HEURISTIC] 横展開の疑い: 単一ホストが2分内に多数の異なるホストへリモートサービス接続,4,7,4,T1021,file-server|it-admin,2399.99
+(no-rule-id),[Sigma] Domain Account Discovery,4,5,2,T1087.002,it-admin,2399.99
+(no-rule-id),[Sigma] Domain Group Discovery,4,5,2,T1069.002,it-admin,2399.99
+(no-rule-id),[Sigma] Network Share Discovery,4,5,2,T1135,it-admin,2399.99
+(no-rule-id),[Sigma] PsExec Remote Execution,4,8,2,T1021.002,it-admin,2399.99
+(no-rule-id),[Sigma] Registry Modification via reg.exe,4,3,2,T1112,it-admin,2399.99
+(no-rule-id),[Sigma] Remote System and Domain Controller Discovery,4,5,2,T1018,it-admin,2399.99
+(no-rule-id),[Sigma] Virtualization or Sandbox Discovery via WMIC Hardware Query,4,3,2,T1497,it-admin,2399.99
+(no-rule-id),[Sigma] WinRM Lateral Movement (winrs / PowerShell Remoting),4,5,2,T1021.006,it-admin,2399.99
+(no-rule-id),[DISCOVERY] 短時間に複数種の探索コマンドを実行（偵察の疑い）,2,5,2,T1007|T1016,it-admin,1200.00
+(no-rule-id),[HEURISTIC] データ持ち出しの疑い: 外部 3.5.152.20 へ10分内に大量のデータを送信,2,7,2,T1048,backup-server,1200.00
+(no-rule-id),[HEURISTIC] データ持ち出しの疑い: 外部 52.219.136.42 へ10分内に大量のデータを送信,2,7,2,T1048,backup-server,1200.00
+(no-rule-id),[HEURISTIC] データ持ち出しの疑い: 外部 52.219.68.10 へ10分内に大量のデータを送信,2,7,2,T1048,backup-server,1200.00
+(no-rule-id),[BEHAVIORAL] C2ビーコン疑い（定期的な外部通信）,1,7,1,T1071,it-admin,600.00
+(no-rule-id),[HEURISTIC] ランサムウェアの疑い: プロセス 'docker' が30秒内に多数のファイルを破壊的操作,1,9,1,T1486,dev-machine,600.00
+(no-rule-id),[HEURISTIC] ランサムウェアの疑い: プロセス 'node' が30秒内に多数のファイルを破壊的操作,1,9,1,T1486,dev-machine,600.00
+(no-rule-id),エージェント fpsim-adm-0008 ヘルス警告,1,5,1,,it-admin,600.00
+(no-rule-id),エージェント fpsim-adm-0009 ヘルス警告,1,5,1,,it-admin,600.00
+(no-rule-id),エージェント fpsim-bkp-0000 ヘルス警告,1,5,1,,backup-server,600.00
+(no-rule-id),エージェント fpsim-bkp-0001 ヘルス警告,1,5,1,,backup-server,600.00
+(no-rule-id),エージェント fpsim-dev-0002 ヘルス警告,1,5,1,,dev-machine,600.00
+(no-rule-id),エージェント fpsim-dev-0003 ヘルス警告,1,5,1,,dev-machine,600.00
+(no-rule-id),エージェント fpsim-dev-0004 ヘルス警告,1,5,1,,dev-machine,600.00
+(no-rule-id),エージェント fpsim-dev-0005 ヘルス警告,1,5,1,,dev-machine,600.00
+(no-rule-id),エージェント fpsim-fs-0006 ヘルス警告,1,5,1,,file-server,600.00
+(no-rule-id),エージェント fpsim-fs-0007 ヘルス警告,1,5,1,,file-server,600.00
+(no-rule-id),エージェント fpsim-wks-0010 ヘルス警告,1,5,1,,office-pc,600.00
+(no-rule-id),エージェント fpsim-wks-0011 ヘルス警告,1,5,1,,office-pc,600.00
+(no-rule-id),エージェント fpsim-wks-0012 ヘルス警告,1,5,1,,office-pc,600.00
+(no-rule-id),エージェント fpsim-wks-0013 ヘルス警告,1,5,1,,office-pc,600.00
+(no-rule-id),エージェント fpsim-wks-0014 ヘルス警告,1,5,1,,office-pc,600.00
+(no-rule-id),エージェント fpsim-wks-0015 ヘルス警告,1,5,1,,office-pc,600.00
+(no-rule-id),エージェント fpsim-wks-0016 ヘルス警告,1,5,1,,office-pc,600.00
+(no-rule-id),エージェント fpsim-wks-0017 ヘルス警告,1,5,1,,office-pc,600.00
+(no-rule-id),エージェント fpsim-wks-0018 ヘルス警告,1,5,1,,office-pc,600.00
+(no-rule-id),エージェント fpsim-wks-0019 ヘルス警告,1,5,1,,office-pc,600.00
+(no-rule-id),エージェントオフライン: fpsim-adm-0008,1,7,1,,it-admin,600.00
+(no-rule-id),エージェントオフライン: fpsim-adm-0009,1,7,1,,it-admin,600.00
+(no-rule-id),エージェントオフライン: fpsim-bkp-0000,1,7,1,,backup-server,600.00
+(no-rule-id),エージェントオフライン: fpsim-bkp-0001,1,7,1,,backup-server,600.00
+(no-rule-id),エージェントオフライン: fpsim-dev-0002,1,7,1,,dev-machine,600.00
+(no-rule-id),エージェントオフライン: fpsim-dev-0003,1,7,1,,dev-machine,600.00
+(no-rule-id),エージェントオフライン: fpsim-dev-0004,1,7,1,,dev-machine,600.00
+(no-rule-id),エージェントオフライン: fpsim-dev-0005,1,7,1,,dev-machine,600.00
+(no-rule-id),エージェントオフライン: fpsim-fs-0006,1,7,1,,file-server,600.00
+(no-rule-id),エージェントオフライン: fpsim-fs-0007,1,7,1,,file-server,600.00
+(no-rule-id),エージェントオフライン: fpsim-wks-0010,1,7,1,,office-pc,600.00
+(no-rule-id),エージェントオフライン: fpsim-wks-0011,1,7,1,,office-pc,600.00
+(no-rule-id),エージェントオフライン: fpsim-wks-0012,1,7,1,,office-pc,600.00
+(no-rule-id),エージェントオフライン: fpsim-wks-0013,1,7,1,,office-pc,600.00
+(no-rule-id),エージェントオフライン: fpsim-wks-0014,1,7,1,,office-pc,600.00
+(no-rule-id),エージェントオフライン: fpsim-wks-0015,1,7,1,,office-pc,600.00
+(no-rule-id),エージェントオフライン: fpsim-wks-0016,1,7,1,,office-pc,600.00
+(no-rule-id),エージェントオフライン: fpsim-wks-0017,1,7,1,,office-pc,600.00
+(no-rule-id),エージェントオフライン: fpsim-wks-0018,1,7,1,,office-pc,600.00
+(no-rule-id),エージェントオフライン: fpsim-wks-0019,1,7,1,,office-pc,600.00

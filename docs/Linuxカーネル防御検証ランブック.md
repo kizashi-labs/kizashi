@@ -181,7 +181,7 @@ rm -f /tmp/blockme /tmp/prevention-poc
 
 §4 で `-tags "ebpf prevention"` ビルド（PreventionLSM＋TamperLSM を生成）した前提。各フェーズは **使い捨て検証物**（agent モジュール内に作り、リポジトリには入れない）で確認する。検証後は VM/`/tmp`/取得ソースを破棄。
 
-> ⚠️ **環境ハマり所（実機で踏んだもの）**: ①agent EC2 と server は別ホスト（例 ip-10-0-15-11 / ip-10-0-4-192）。②`read -s` は一括ペーストで hang → **単独実行**。③`sudo -i` 後は `$API` 等の環境変数が引き継がれない。④root が作った `/tmp/*` は ec2-user で上書き不可 → `sudo rm -f` 先行。⑤後始末でソース/バイナリを消すので**都度 tarball 再取得＋生成物再生成**。
+> ⚠️ **環境ハマり所（実機で踏んだもの）**: ①agent EC2 と server は別ホスト（例 ip-10-0-0-10 / ip-10-0-0-10）。②`read -s` は一括ペーストで hang → **単独実行**。③`sudo -i` 後は `$API` 等の環境変数が引き継がれない。④root が作った `/tmp/*` は ec2-user で上書き不可 → `sudo rm -f` 先行。⑤後始末でソース/バイナリを消すので**都度 tarball 再取得＋生成物再生成**。
 
 ### 9-1. Ph1 保護能力検出（config 不要）
 

@@ -1,0 +1,77 @@
+name: Attack Scorecard (offline regression gate)
+
+# 定点観測: attack-scorer をコミット済みの runlog + alerts fixture に対して
+# オフライン採点し、コミット済みの baseline スコアカードと比較する。サーバや実 VM を
+# 必要とせず決定的に走るため、CI で毎回まわせる。採点ロジック(tactics マップ /
+# サブテク精密マッチ / attribute)を変更して fixture チェーンの検知率が baseline を
+# 下回ると CI が落ちる = 測定ツール自身の退行を自動検出する。
+#
+# ライブ測定(実サーバ + 実 atomics)は別途 run-atomics.ps1 + -server で行う。
+# 新しい baseline を採用したいときは下記 fixture を再採点して baseline_*.csv を更新する。
+
+on:
+  push:
+    paths:
+      - 'agent/cmd/attack-scorer/**'
+      - 'docs/results/fixtures/**'
+      - 'docs/results/baseline_*.csv'
+      - '.github/workflows/attack-scorecard.yml'
+  pull_request:
+    paths:
+      - 'agent/cmd/attack-scorer/**'
+      - 'docs/results/fixtures/**'
+      - 'docs/results/baseline_*.csv'
+  # 定点観測のハートビート: コード変更が無い期間も週次で採点を回し、fixture
+  # チェーンの検知率が baseline どおり緑であることを可視的に確認する（毎週月曜09:00 JST=00:00 UTC）。
+  # ライブ採点（実サーバ×実攻撃）は別途で、手順は docs/results/live-20260701-linux-scorecard.md の
+  # 「再現手順」を参照（エージェントホストで sev<9 の安全攻撃→attack-scorer）。
+  schedule:
+    - cron: '0 0 * * 1'
+  workflow_dispatch:
+
+jobs:
+  scorecard:
+    name: Offline scorecard + regression gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: agent/go.mod
+
+      - name: Build attack-scorer
+        working-directory: agent
+        run: go build -o /tmp/attack-scorer ./cmd/attack-scorer
+
+      - name: Score intrusion-chain fixture vs baseline
+        run: |
+          /tmp/attack-scorer \
+            -runlog docs/results/fixtures/intrusion_runlog.csv \
+            -alerts docs/results/fixtures/intrusion_alerts.json \
+            -out /tmp/scorecard-intrusion.csv \
+            -baseline docs/results/baseline_intrusion.csv \
+            -baseline-tol 0
+
+      # discovery-burst シナリオ: live-20260702 (Win2022) で 8/8 Technique を実測した
+      # ディスカバリ・バーストを、相関アラート1件が全技を担当する形で fixture 化。
+      # intrusion-chain(部分検知)とは別の「相関バースト×全技検知」経路を回帰ガードする。
+      - name: Score discovery-burst fixture vs baseline
+        run: |
+          /tmp/attack-scorer \
+            -runlog docs/results/fixtures/discovery_runlog.csv \
+            -alerts docs/results/fixtures/discovery_alerts.json \
+            -out /tmp/scorecard-discovery.csv \
+            -baseline docs/results/baseline_discovery.csv \
+            -baseline-tol 0
+
+      - name: Upload scorecards
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: attack-scorecard
+          path: |
+            /tmp/scorecard-intrusion.csv
+            /tmp/scorecard-discovery.csv
+          retention-days: 30

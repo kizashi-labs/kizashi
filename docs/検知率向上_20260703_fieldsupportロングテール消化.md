@@ -53,7 +53,7 @@ false green の最大要因（93 件中 ~94 のルールが `OriginalFileName` �
   - #377: しかし `QueryFullProcessImageName` は ProcessStart 直後のインタラクティブセッションプロセスで
     非決定的に失敗した（DB 証跡: username 取得成功＝ハンドルは開けているのに image=ベース名/hash 空）。
     **カーネル捕捉の CommandLine の argv[0] は常にフルパスを含む**ため、これを最終フォールバックにした。
-- **実機実証（box EC2AMAZ-EVVIB8T）**: notepad のコピー `ren7.exe`（偽装パス）を起動 →
+- **実機実証（box WIN-ENDPOINT-01）**: notepad のコピー `ren7.exe`（偽装パス）を起動 →
   DB で `image=C:\Users\Administrator\ren7.exe`, `original_file_name=NOTEPAD.EXE` を確認。
 
 > 教訓: 実機を通したからこそ、机上では見えない ETW ベース名の解決問題を根因特定できた。ETW 再起動直後は

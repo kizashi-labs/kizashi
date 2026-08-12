@@ -302,7 +302,7 @@ eBPF テレメトリのバグ（イベントが1970年タイムスタンプで�
 
 ## 12. 実測結果（第2回・Windows ディスカバリ, 2026-06-26）
 
-Windows Server 2022 EC2 agent（`EC2AMAZ-EVVIB8T`）で、ディスカバリ・バーストを実機発火させて再測定。
+Windows Server 2022 EC2 agent（`WIN-ENDPOINT-01`）で、ディスカバリ・バーストを実機発火させて再測定。
 **第1回（6-22）の Windows ディスカバリで唯一 MISS だった `net localgroup`（T1069.001）が Technique に
 昇格することを実機で確認**した。
 
