@@ -23,17 +23,16 @@
   "type": "module",
   "exports": {
     ".": {
+      "types": "./dist/client.d.ts",
       "import": "./dist/client.js",
-      "require": "./dist/client.cjs",
-      "default": "./src/client.ts"
+      "default": "./dist/client.js"
     }
   },
-  "main": "./dist/client.cjs",
   "module": "./dist/client.js",
   "types": "./dist/client.d.ts",
   "files": [
     "dist",
-    "src"
+    "src/client.ts"
   ],
   "scripts": {
     "build": "tsc --project tsconfig.json",
