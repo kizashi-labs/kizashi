@@ -46,9 +46,9 @@ jobs:
         image: nats:2.10-alpine
         ports: ["4222:4222"]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: "20"
           cache: npm
@@ -63,7 +63,7 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       - name: Set up Go & start services
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v7
         with:
           go-version-file: server/go.mod
 
@@ -146,7 +146,7 @@ jobs:
         run: npx playwright test --reporter=html
 
       - name: Upload test results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: failure()
         with:
           name: playwright-report
@@ -181,10 +181,10 @@ jobs:
           --health-timeout 3s
           --health-retries 5
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v7
         with:
           go-version-file: server/go.mod
           cache-dependency-path: server/go.sum
@@ -275,7 +275,7 @@ jobs:
             scenarios/api-smoke.js
 
       - name: Upload k6 summary
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: k6-smoke-summary
