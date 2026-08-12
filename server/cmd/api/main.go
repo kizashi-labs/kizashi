@@ -247,8 +247,6 @@ func main() {
 	}
 	investigationHandler := handlers.NewInvestigationHandler(investigator)
 
-
-
 	// ─── Auth security components ─────────────────────────────
 	tokenBlocklist := auth.NewTokenBlocklist()
 	tokenBlocklist.StartCleanup()
@@ -748,7 +746,6 @@ func main() {
 	// ─── Email Verification ───────────────────────────────────
 	h.EmailVerify = handlers.NewEmailVerificationHandler(pool, baseURL, mailer)
 
-
 	// ─── User Preferences ─────────────────────────────────────
 	userPrefsStore := store.NewUserPreferencesStore(pool)
 	h.UserPreferences = handlers.NewUserPreferencesHandler(userPrefsStore)
@@ -910,7 +907,6 @@ func main() {
 	// ─── Alert Deduplication ──────────────────────────────────
 	alertDeduplicator := dedup.NewAlertDeduplicator(pool)
 	go alertDeduplicator.Run(ctx)
-
 
 	// ─── Incident Auto-Escalation ─────────────────────────────
 	incidentEscalator := scheduler.NewIncidentEscalator(pool)
@@ -1680,7 +1676,6 @@ func main() {
 	h.Org = handlers.NewOrgHandler(orgStore)
 	slog.Info("マルチテナント組織ストアを初期化しました")
 
-
 	// ─── GeoIP Threat Map ─────────────────────────────────────
 	h.GeoIP = handlers.NewGeoIPHandler(pool)
 	slog.Info("GeoIPスレッドマップハンドラーを初期化しました")
@@ -1712,7 +1707,6 @@ func main() {
 	}
 	h.SIEMWebhook = handlers.NewSIEMWebhookHandler(siemConnector)
 	slog.Info("SIEMウェブフックコネクターを初期化しました")
-
 
 	// ─── Query Cache ──────────────────────────────────────────
 	queryCache := cache.New(5 * time.Minute)
@@ -1746,8 +1740,6 @@ func main() {
 	// ─── License Expiry Notifier ──────────────────────────────
 	go scheduler.NewLicenseExpiryNotifier(pool).Run(ctx)
 	slog.Info("ライセンス期限切れ通知スケジューラーを開始しました")
-
-
 
 	// ─── Support Tickets (Phase 5) ────────────────────────────
 	{
@@ -1867,7 +1859,6 @@ func main() {
 	complianceScheduler := compliancepkg.NewScheduler(pool)
 	complianceScheduler.Start(ctx)
 	slog.Info("コンプライアンス自動評価スケジューラーを起動しました（毎日 02:00 UTC）")
-
 
 	// ─── Zero Trust Engine ────────────────────────────────────
 	ztEngine := zerotrust.NewEngine(pool)

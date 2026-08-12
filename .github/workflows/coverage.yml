@@ -173,43 +173,6 @@ jobs:
           name: server-coverage
           token: ${{ secrets.CODECOV_TOKEN }}
 
-      # ── Commit badge JSON to main (push events only) ─────────────
-      - name: Commit badge to repository
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          # Keep the freshly generated badge outside the work tree: a retry resets to
-          # the remote tip, which would otherwise revert this tracked file.
-          staged="$(mktemp -d)"
-          cp badges/coverage.json "$staged/coverage.json"
-
-          # Retry to survive races against concurrent pushes to main (a merge, or
-          # another workflow's binary commit). Re-apply onto the new tip rather than
-          # `pull --rebase`: two coverage runs race on the SAME badge file, which
-          # rebase cannot merge — it stops on a conflict and leaves the loop stuck
-          # mid-rebase. "Latest measurement wins" is the semantics we want.
-          for attempt in 1 2 3 4 5; do
-            cp "$staged/coverage.json" badges/coverage.json
-            git add badges/coverage.json
-            if git diff --staged --quiet; then
-              echo "Badge unchanged — nothing to push."
-              exit 0
-            fi
-            git commit -m "ci: update coverage badge to ${{ steps.coverage_table.outputs.coverage_pct }}% [skip ci]"
-            if git push; then
-              echo "Pushed badge update on attempt $attempt."
-              exit 0
-            fi
-            echo "Push attempt $attempt rejected — re-applying onto the updated main."
-            git fetch origin main
-            git reset --hard origin/main
-            sleep 5
-          done
-          echo "Failed to push badge after 5 attempts — leaving the badge stale (non-fatal)."
-          exit 0
-
-      # ── Post PR comment ──────────────────────────────────────────
       - name: Post coverage comment on PR
         if: github.event_name == 'pull_request'
         uses: actions/github-script@v7
