@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Kizashi — Windows pre-execution prevention driver build definition.
+
+  Builds prevention.c into prevention.sys as a WDM kernel driver, linked with
+  /INTEGRITYCHECK (required by PsSetCreateProcessNotifyRoutineEx). Designed to
+  build under the EWDK (Enterprise WDK) so no Visual Studio WDK extension is
+  needed — sidesteps the VS/WDK vsix version-mismatch.
+
+  Build (inside an EWDK build environment, from this directory):
+    msbuild prevention.vcxproj /p:Configuration=Release /p:Platform=x64
+  Output: x64\Release\prevention\prevention.sys
+
+  See docs/Windowsカーネル防御PoC手順.md.
+-->
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{6F3A1C2E-9B4D-4E7A-8C21-2D5F7A0B9E33}</ProjectGuid>
+    <RootNamespace>prevention</RootNamespace>
+    <TargetVersion>Windows10</TargetVersion>
+    <DriverType>WDM</DriverType>
+    <WindowsTargetPlatformVersion>10.0.26100.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Label="Configuration">
+    <ConfigurationType>Driver</ConfigurationType>
+    <DriverType>WDM</DriverType>
+    <PlatformToolset>WindowsKernelModeDriver10.0</PlatformToolset>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <SpectreMitigation>false</SpectreMitigation>
+    <!-- Skip the build-time test-sign step (newer signtool rejects the WDK
+         target's /sha1 without /fd). We test-sign prevention.sys manually with
+         our own cert — see docs/Windowsカーネル防御PoC手順.md STEP 3. -->
+    <SignMode>Off</SignMode>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <TreatWarningAsError>false</TreatWarningAsError>
+    </ClCompile>
+    <Link>
+      <AdditionalOptions>/INTEGRITYCHECK %(AdditionalOptions)</AdditionalOptions>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="prevention.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="prevention.h" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+</Project>

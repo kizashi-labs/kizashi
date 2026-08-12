@@ -1,0 +1,4266 @@
+openapi: "3.0.3"
+info:
+  title: Kizashi API
+  version: "1.0.0"
+  description: |
+    Kizashi REST API — エンドポイント検知・対応プラットフォーム
+
+    ## 認証
+    すべての保護されたエンドポイントは `Authorization: Bearer <JWT>` ヘッダーが必要です。
+    `/api/v1/auth/login` でJWTトークンを取得してください。
+
+    ## レート制限
+    - 認証済みリクエスト: 1000 req/分
+    - 認証エンドポイント: 10 req/分
+  contact:
+    name: Kizashi Support
+    email: support@kizashi-edr.example.com
+  license:
+    name: Proprietary
+
+servers:
+  - url: http://localhost:8080
+    description: 開発サーバー
+  - url: https://api.kizashi-edr.example.com
+    description: 本番サーバー
+
+security:
+  - BearerAuth: []
+
+tags:
+  - name: auth
+    description: 認証・認可
+  - name: agents
+    description: エンドポイントエージェント管理
+  - name: alerts
+    description: セキュリティアラート
+  - name: incidents
+    description: インシデント管理
+  - name: rules
+    description: 検知ルール
+  - name: users
+    description: ユーザー管理
+  - name: invitations
+    description: ユーザー招待
+  - name: support
+    description: サポートチケット
+  - name: billing
+    description: 課金・サブスクリプション
+  - name: compliance
+    description: コンプライアンス
+  - name: threat-intel
+    description: 脅威インテリジェンス
+  - name: reports
+    description: レポート生成
+  - name: settings
+    description: システム設定
+  - name: system
+    description: システム情報・ヘルスチェック
+  - name: users
+    description: ユーザー管理
+  - name: API Keys
+    description: APIキー管理
+  - name: Live Response
+    description: ライブレスポンス
+  - name: Vulnerabilities
+    description: 脆弱性管理
+  - name: Enrollment
+    description: エージェント登録
+  - name: DLP
+    description: データ損失防止
+
+paths:
+  # ── Auth ────────────────────────────────────────────────────────
+  /api/v1/auth/login:
+    post:
+      operationId: login
+      tags: [auth]
+      summary: ログイン
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: admin@example.com
+                password:
+                  type: string
+                  format: password
+                  example: Password123!
+      responses:
+        "200":
+          description: ログイン成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                    description: JWT アクセストークン
+                  user:
+                    $ref: "#/components/schemas/User"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /api/v1/auth/logout:
+    post:
+      operationId: logout
+      tags: [auth]
+      summary: ログアウト
+      responses:
+        "200":
+          description: ログアウト成功
+
+  /api/v1/auth/refresh:
+    post:
+      operationId: refreshToken
+      tags: [auth]
+      summary: アクセストークン更新
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refresh_token]
+              properties:
+                refresh_token:
+                  type: string
+                  description: リフレッシュトークン
+      responses:
+        "200":
+          description: 新しいアクセストークン
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                    description: JWTアクセストークン
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /api/v1/auth/me:
+    get:
+      operationId: getMe
+      tags: [auth]
+      summary: 現在のユーザー情報取得
+      responses:
+        "200":
+          description: ユーザー情報
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+
+  /api/v1/auth/password-reset/request:
+    post:
+      operationId: requestPasswordReset
+      tags: [auth]
+      summary: パスワードリセットリクエスト
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email:
+                  type: string
+                  format: email
+      responses:
+        "200":
+          description: メールを送信しました（メール存在有無に関わらず200）
+
+  /api/v1/auth/password-reset/confirm:
+    post:
+      operationId: confirmPasswordReset
+      tags: [auth]
+      summary: パスワードリセット確認
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token, new_password]
+              properties:
+                token:
+                  type: string
+                new_password:
+                  type: string
+                  minLength: 8
+      responses:
+        "200":
+          description: パスワードを変更しました
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  /api/v1/auth/invite/info:
+    get:
+      operationId: getInviteInfo
+      tags: [auth]
+      summary: 招待情報取得
+      security: []
+      parameters:
+        - name: token
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: 招待情報
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  email:
+                    type: string
+                  role:
+                    type: string
+
+  /api/v1/auth/invite/accept:
+    post:
+      operationId: acceptInvite
+      tags: [auth]
+      summary: 招待を受諾してアカウント作成
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token, password]
+              properties:
+                token:
+                  type: string
+                full_name:
+                  type: string
+                password:
+                  type: string
+                  minLength: 8
+      responses:
+        "201":
+          description: アカウントを作成しました
+
+  # ── Agents ─────────────────────────────────────────────────────
+  /api/v1/agents:
+    get:
+      operationId: listAgents
+      tags: [agents]
+      summary: エージェント一覧取得
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [online, offline, isolated, error, inactive]
+        - name: os
+          in: query
+          description: os_type の完全一致
+          schema:
+            type: string
+            enum: [windows, linux, darwin, unknown]
+        - name: group_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: search
+          in: query
+          description: ホスト名・IPアドレスの部分一致
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: per_page
+          in: query
+          description: 1〜1000。範囲外は 20 にフォールバックする。別名 limit も可
+          schema:
+            type: integer
+            default: 20
+      responses:
+        "200":
+          description: エージェント一覧
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Agent"
+                  total:
+                    type: integer
+                  page:
+                    type: integer
+                  per_page:
+                    type: integer
+                  has_more:
+                    type: boolean
+
+  /api/v1/agents/{id}:
+    get:
+      operationId: getAgent
+      tags: [agents]
+      summary: エージェント詳細取得
+      parameters:
+        - $ref: "#/components/parameters/ID"
+      responses:
+        "200":
+          description: エージェント詳細
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Agent"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /api/v1/agents/{id}/isolate:
+    post:
+      operationId: isolateAgent
+      tags: [agents]
+      summary: エージェントのネットワーク隔離
+      parameters:
+        - $ref: "#/components/parameters/ID"
+      responses:
+        "200":
+          description: 隔離コマンドを送信しました
+
+  /api/v1/agents/{id}/unisolate:
+    post:
+      operationId: unisolateAgent
+      tags: [agents]
+      summary: エージェントの隔離解除
+      parameters:
+        - $ref: "#/components/parameters/ID"
+      responses:
+        "200":
+          description: 隔離解除コマンドを送信しました
+
+  /api/v1/agents/{id}/effective-config:
+    get:
+      operationId: getAgentEffectiveConfig
+      tags: [agents]
+      summary: エージェントの実効設定取得（ポリシー + エージェント個別設定のマージ結果）
+      parameters:
+        - $ref: "#/components/parameters/ID"
+      responses:
+        "200":
+          description: 実効設定マップ
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  agent_id:
+                    type: string
+                  effective:
+                    type: object
+                    additionalProperties: true
+                    description: キー→値の設定マップ（スキーマ定義による）
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /api/v1/agent-config/schema:
+    get:
+      operationId: getAgentConfigSchema
+      tags: [agents]
+      summary: エージェント設定スキーマ取得（有効なキー・型・デフォルト値・制約の一覧）
+      responses:
+        "200":
+          description: 設定スキーマ
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  schema:
+                    type: object
+                    additionalProperties:
+                      type: object
+                      properties:
+                        type:
+                          type: string
+                        default:
+                          description: デフォルト値
+                        min:
+                          type: integer
+                        max:
+                          type: integer
+                        enum:
+                          type: array
+                          items:
+                            type: string
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  # ── Alerts ─────────────────────────────────────────────────────
+  /api/v1/alerts:
+    get:
+      operationId: listAlerts
+      tags: [alerts]
+      summary: アラート一覧取得
+      parameters:
+        - name: severity
+          in: query
+          schema:
+            type: string
+            enum: [critical, high, medium, low, info]
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [open, investigating, resolved, false_positive]
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        "200":
+          description: アラート一覧
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Alert"
+                  total:
+                    type: integer
+
+  /api/v1/alerts/{id}:
+    get:
+      operationId: getAlert
+      tags: [alerts]
+      summary: アラート詳細取得
+      parameters:
+        - $ref: "#/components/parameters/ID"
+      responses:
+        "200":
+          description: アラート詳細
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Alert"
+    patch:
+      operationId: updateAlert
+      tags: [alerts]
+      summary: アラートステータス更新
+      parameters:
+        - $ref: "#/components/parameters/ID"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  enum: [open, investigating, resolved, false_positive]
+                assigned_to:
+                  type: string
+      responses:
+        "200":
+          description: 更新成功
+
+  # ── Incidents ──────────────────────────────────────────────────
+  /api/v1/incidents:
+    get:
+      operationId: listIncidents
+      tags: [incidents]
+      summary: インシデント一覧取得
+      responses:
+        "200":
+          description: インシデント一覧
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Incident"
+    post:
+      operationId: createIncident
+      tags: [incidents]
+      summary: インシデント作成
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [title, severity]
+              properties:
+                title:
+                  type: string
+                severity:
+                  type: string
+                  enum: [critical, high, medium, low]
+                description:
+                  type: string
+      responses:
+        "201":
+          description: インシデントを作成しました
+
+  /api/v1/incidents/{id}:
+    get:
+      operationId: getIncident
+      tags: [incidents]
+      summary: インシデント詳細取得
+      parameters:
+        - $ref: "#/components/parameters/ID"
+      responses:
+        "200":
+          description: インシデント詳細
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Incident"
+    patch:
+      operationId: updateIncident
+      tags: [incidents]
+      summary: インシデント更新
+      parameters:
+        - $ref: "#/components/parameters/ID"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  enum: [open, investigating, contained, resolved, closed]
+                severity:
+                  type: string
+      responses:
+        "200":
+          description: 更新成功
+
+  # ── Detection Rules ────────────────────────────────────────────
+  /api/v1/rules:
+    get:
+      operationId: listRules
+      tags: [rules]
+      summary: 検知ルール一覧取得
+      responses:
+        "200":
+          description: ルール一覧
+    post:
+      operationId: createRule
+      tags: [rules]
+      summary: 検知ルール作成
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RuleInput"
+      responses:
+        "201":
+          description: ルールを作成しました
+
+  /api/v1/rules/{id}:
+    get:
+      operationId: getRule
+      tags: [rules]
+      summary: 検知ルール詳細取得
+      parameters:
+        - $ref: "#/components/parameters/ID"
+      responses:
+        "200":
+          description: ルール詳細
+    put:
+      operationId: updateRule
+      tags: [rules]
+      summary: 検知ルール更新
+      parameters:
+        - $ref: "#/components/parameters/ID"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RuleInput"
+      responses:
+        "200":
+          description: 更新成功
+    delete:
+      operationId: deleteRule
+      tags: [rules]
+      summary: 検知ルール削除
+      parameters:
+        - $ref: "#/components/parameters/ID"
+      responses:
+        "200":
+          description: 削除成功
+
+  # ── Users ──────────────────────────────────────────────────────
+  /api/v1/admin/users:
+    get:
+      operationId: listAdminUsers
+      tags: [users]
+      summary: ユーザー一覧取得（管理者）
+      responses:
+        "200":
+          description: ユーザー一覧
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/User"
+
+  /api/v1/admin/users/{id}:
+    patch:
+      operationId: updateAdminUser
+      tags: [users]
+      summary: ユーザー情報更新（管理者）
+      parameters:
+        - $ref: "#/components/parameters/ID"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                role:
+                  type: string
+                  enum: [admin, analyst, viewer]
+                is_active:
+                  type: boolean
+      responses:
+        "200":
+          description: 更新成功
+    delete:
+      operationId: deleteAdminUser
+      tags: [users]
+      summary: ユーザー削除（管理者）
+      parameters:
+        - $ref: "#/components/parameters/ID"
+      responses:
+        "200":
+          description: 削除成功
+
+  # ── Invitations ────────────────────────────────────────────────
+  /api/v1/admin/invitations:
+    get:
+      operationId: listInvitations
+      tags: [invitations]
+      summary: 招待一覧取得
+      responses:
+        "200":
+          description: 招待一覧
+    post:
+      operationId: createInvitation
+      tags: [invitations]
+      summary: ユーザー招待送信
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email:
+                  type: string
+                  format: email
+                role:
+                  type: string
+                  enum: [admin, analyst, viewer]
+                  default: analyst
+      responses:
+        "201":
+          description: 招待を送信しました
+
+  /api/v1/admin/invitations/{id}:
+    delete:
+      operationId: deleteInvitation
+      tags: [invitations]
+      summary: 招待を取り消す
+      parameters:
+        - $ref: "#/components/parameters/ID"
+      responses:
+        "200":
+          description: 削除成功
+
+  # ── Support Tickets ────────────────────────────────────────────
+  /api/v1/support/tickets:
+    get:
+      operationId: listSupportTickets
+      tags: [support]
+      summary: サポートチケット一覧取得
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [open, in_progress, resolved, closed]
+        - name: priority
+          in: query
+          schema:
+            type: string
+            enum: [low, medium, high, critical]
+      responses:
+        "200":
+          description: チケット一覧
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/SupportTicket"
+    post:
+      operationId: createSupportTicket
+      tags: [support]
+      summary: サポートチケット作成
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [subject, description]
+              properties:
+                subject:
+                  type: string
+                description:
+                  type: string
+                priority:
+                  type: string
+                  enum: [low, medium, high, critical]
+                  default: medium
+                category:
+                  type: string
+      responses:
+        "201":
+          description: チケットを作成しました
+
+  /api/v1/support/tickets/{id}:
+    get:
+      operationId: getSupportTicket
+      tags: [support]
+      summary: サポートチケット詳細取得
+      parameters:
+        - $ref: "#/components/parameters/ID"
+      responses:
+        "200":
+          description: チケット詳細
+    patch:
+      operationId: updateSupportTicket
+      tags: [support]
+      summary: サポートチケット更新
+      parameters:
+        - $ref: "#/components/parameters/ID"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  enum: [open, in_progress, resolved, closed]
+                priority:
+                  type: string
+      responses:
+        "200":
+          description: 更新成功
+
+  /api/v1/support/tickets/{id}/comments:
+    get:
+      operationId: listTicketComments
+      tags: [support]
+      summary: チケットコメント一覧取得
+      parameters:
+        - $ref: "#/components/parameters/ID"
+      responses:
+        "200":
+          description: コメント一覧
+    post:
+      operationId: addTicketComment
+      tags: [support]
+      summary: チケットコメント追加
+      parameters:
+        - $ref: "#/components/parameters/ID"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [body]
+              properties:
+                body:
+                  type: string
+                is_internal:
+                  type: boolean
+                  description: 管理者のみ表示（内部メモ）
+                  default: false
+      responses:
+        "201":
+          description: コメントを追加しました
+
+  /api/v1/admin/support/stats:
+    get:
+      operationId: getSupportStats
+      tags: [support]
+      summary: サポート統計取得（管理者）
+      responses:
+        "200":
+          description: サポート統計
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total:
+                    type: integer
+                  open:
+                    type: integer
+                  in_progress:
+                    type: integer
+                  high_priority:
+                    type: integer
+                  resolved_today:
+                    type: integer
+
+  # ── Billing ────────────────────────────────────────────────────
+  /api/v1/billing/subscription:
+    get:
+      operationId: getSubscription
+      tags: [billing]
+      summary: サブスクリプション情報取得
+      responses:
+        "200":
+          description: サブスクリプション情報
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Subscription"
+
+  /api/v1/billing/invoices:
+    get:
+      operationId: listInvoices
+      tags: [billing]
+      summary: 請求書一覧取得
+      responses:
+        "200":
+          description: 請求書一覧
+
+  /api/v1/billing/portal:
+    post:
+      operationId: getBillingPortal
+      tags: [billing]
+      summary: Stripeカスタマーポータル取得
+      responses:
+        "200":
+          description: ポータルURL
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  url:
+                    type: string
+                    format: uri
+
+  # ── Compliance ─────────────────────────────────────────────────
+  /api/v1/compliance/summary:
+    get:
+      operationId: getComplianceSummary
+      tags: [compliance]
+      summary: コンプライアンスサマリー取得
+      responses:
+        "200":
+          description: コンプライアンスサマリー
+        "402":
+          $ref: "#/components/responses/PaymentRequired"
+
+  /api/v1/compliance/score:
+    get:
+      operationId: getComplianceScore
+      tags: [compliance]
+      summary: コンプライアンススコア取得
+      parameters:
+        - name: framework
+          in: query
+          schema:
+            type: string
+            enum: [cis, nist, iso27001, soc2, pci_dss]
+      responses:
+        "200":
+          description: スコア情報
+        "402":
+          $ref: "#/components/responses/PaymentRequired"
+
+  # ── Reports ────────────────────────────────────────────────────
+  /api/v1/reports:
+    get:
+      operationId: listReports
+      tags: [reports]
+      summary: レポート一覧取得
+      responses:
+        "200":
+          description: レポート一覧
+        "402":
+          $ref: "#/components/responses/PaymentRequired"
+    post:
+      operationId: createReport
+      tags: [reports]
+      summary: レポート生成
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [type]
+              properties:
+                type:
+                  type: string
+                  enum: [executive, compliance, incident, threat]
+                period_days:
+                  type: integer
+                  default: 30
+      responses:
+        "201":
+          description: レポートを生成しました
+        "402":
+          $ref: "#/components/responses/PaymentRequired"
+
+  # ── System ─────────────────────────────────────────────────────
+  /health:
+    get:
+      operationId: getHealth
+      tags: [system]
+      summary: ヘルスチェック
+      security: []
+      responses:
+        "200":
+          description: システム状態
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+                  db:
+                    type: string
+                    example: ok
+                  version:
+                    type: string
+
+  /api/v1/admin/enrollment-token:
+    get:
+      operationId: getEnrollmentToken
+      tags: [agents]
+      summary: エージェント登録トークン取得
+      responses:
+        "200":
+          description: 登録トークン
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                  expires_at:
+                    type: string
+                    format: date-time
+
+  # ── Users ───────────────────────────────────────────────────────
+  /api/v1/users:
+    get:
+      operationId: listUsers
+      tags: [users]
+      summary: ユーザー一覧取得
+      parameters:
+        - name: page
+          in: query
+          schema: { type: integer, default: 1 }
+        - name: per_page
+          in: query
+          schema: { type: integer, default: 20, maximum: 200 }
+        - name: role
+          in: query
+          schema: { type: string, enum: [admin, analyst, viewer, operator] }
+      responses:
+        "200":
+          description: ユーザー一覧
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  users:
+                    type: array
+                    items: { $ref: "#/components/schemas/User" }
+                  total: { type: integer }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+    post:
+      operationId: createUser
+      tags: [users]
+      summary: ユーザー作成
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password, role]
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  format: password
+                  minLength: 12
+                role:
+                  type: string
+                  enum: [admin, analyst, viewer, operator]
+                name:
+                  type: string
+      responses:
+        "201":
+          description: ユーザー作成成功
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/User" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+  /api/v1/users/{id}:
+    get:
+      operationId: getUser
+      tags: [users]
+      summary: ユーザー詳細取得
+      parameters:
+        - $ref: "#/components/parameters/ID"
+      responses:
+        "200":
+          description: ユーザー情報
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/User" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    put:
+      operationId: updateUser
+      tags: [users]
+      summary: ユーザー更新
+      parameters:
+        - $ref: "#/components/parameters/ID"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: { type: string }
+                role:
+                  type: string
+                  enum: [admin, analyst, viewer, operator]
+                is_active: { type: boolean }
+      responses:
+        "200":
+          description: 更新成功
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/User" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    delete:
+      operationId: deleteUser
+      tags: [users]
+      summary: ユーザー削除
+      parameters:
+        - $ref: "#/components/parameters/ID"
+      responses:
+        "200":
+          description: 削除成功
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /api/v1/users/{id}/password:
+    put:
+      operationId: changePassword
+      tags: [users]
+      summary: パスワード変更
+      parameters:
+        - $ref: "#/components/parameters/ID"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [new_password]
+              properties:
+                current_password:
+                  type: string
+                  format: password
+                new_password:
+                  type: string
+                  format: password
+                  minLength: 12
+      responses:
+        "200":
+          description: 変更成功
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /api/v1/alerts/{id}/classify:
+    post:
+      operationId: classifyAlert
+      tags: [alerts]
+      summary: アラートの MITRE ATT&CK タクティクス自動分類
+      parameters:
+        - $ref: "#/components/parameters/ID"
+      responses:
+        "200":
+          description: 分類結果
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  alert_id:
+                    type: string
+                  detected_tactics:
+                    type: array
+                    items:
+                      type: string
+                    description: 検出されたタクティクス ID (例 TA0006)
+                  updated:
+                    type: boolean
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /api/v1/alerts/classify-batch:
+    post:
+      operationId: classifyAlertsBatch
+      tags: [alerts]
+      summary: 複数アラートの MITRE ATT&CK タクティクス一括分類
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [alert_ids]
+              properties:
+                alert_ids:
+                  type: array
+                  items:
+                    type: string
+                  description: 分類対象のアラート UUID リスト
+      responses:
+        "200":
+          description: 一括分類結果
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  processed:
+                    type: integer
+                  results:
+                    type: array
+                    items:
+                      type: object
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  # ── Alerts (extended) ────────────────────────────────────────────
+  /api/v1/alerts/{id}/status:
+    put:
+      operationId: updateAlertStatus
+      tags: [alerts]
+      summary: アラートステータス変更
+      parameters:
+        - $ref: "#/components/parameters/ID"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status:
+                  type: string
+                  enum: [open, investigating, resolved, false_positive, suppressed]
+      responses:
+        "200":
+          description: 更新成功
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /api/v1/alerts/{id}/comments:
+    get:
+      operationId: listAlertComments
+      tags: [alerts]
+      summary: アラートコメント一覧
+      parameters:
+        - $ref: "#/components/parameters/ID"
+      responses:
+        "200":
+          description: コメント一覧
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  comments:
+                    type: array
+                    items: { $ref: "#/components/schemas/Comment" }
+    post:
+      operationId: addAlertComment
+      tags: [alerts]
+      summary: アラートコメント追加
+      parameters:
+        - $ref: "#/components/parameters/ID"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [content]
+              properties:
+                content: { type: string }
+      responses:
+        "201":
+          description: コメント追加成功
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Comment" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /api/v1/alerts/bulk-status:
+    post:
+      operationId: bulkUpdateAlertStatus
+      tags: [alerts]
+      summary: アラート一括ステータス変更
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [alert_ids, status]
+              properties:
+                alert_ids:
+                  type: array
+                  items: { type: string, format: uuid }
+                status:
+                  type: string
+                  enum: [open, investigating, resolved, false_positive]
+      responses:
+        "200":
+          description: 更新成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  updated: { type: integer }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /api/v1/alerts/export:
+    get:
+      operationId: exportAlerts
+      tags: [alerts]
+      summary: アラートエクスポート
+      parameters:
+        - name: format
+          in: query
+          schema: { type: string, enum: [csv, json, pdf] }
+        - name: from
+          in: query
+          schema: { type: string, format: date-time }
+        - name: to
+          in: query
+          schema: { type: string, format: date-time }
+      responses:
+        "200":
+          description: エクスポートファイル
+          content:
+            text/csv:
+              schema: { type: string }
+            application/json:
+              schema: { type: array, items: { $ref: "#/components/schemas/Alert" } }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  # ── Incidents (extended) ──────────────────────────────────────────
+  /api/v1/incidents/{id}/alerts:
+    get:
+      operationId: listIncidentAlerts
+      tags: [incidents]
+      summary: インシデントに関連するアラート一覧
+      parameters:
+        - $ref: "#/components/parameters/ID"
+      responses:
+        "200":
+          description: アラート一覧
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    post:
+      operationId: linkIncidentAlerts
+      tags: [incidents]
+      summary: インシデントにアラートを関連付け
+      parameters:
+        - $ref: "#/components/parameters/ID"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [alert_ids]
+              properties:
+                alert_ids:
+                  type: array
+                  items: { type: string, format: uuid }
+      responses:
+        "200":
+          description: 関連付け成功
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /api/v1/incidents/{id}/notes:
+    get:
+      operationId: listIncidentNotes
+      tags: [incidents]
+      summary: インシデントノート一覧
+      parameters:
+        - $ref: "#/components/parameters/ID"
+      responses:
+        "200":
+          description: ノート一覧
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    post:
+      operationId: addIncidentNote
+      tags: [incidents]
+      summary: インシデントノート追加
+      parameters:
+        - $ref: "#/components/parameters/ID"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [content]
+              properties:
+                content: { type: string }
+      responses:
+        "201":
+          description: ノート追加成功
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  # ── API Keys ─────────────────────────────────────────────────────
+  /api/v1/api-keys:
+    get:
+      operationId: listAPIKeys
+      tags: [API Keys]
+      summary: APIキー一覧
+      responses:
+        "200":
+          description: APIキー一覧
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  api_keys:
+                    type: array
+                    items: { $ref: "#/components/schemas/APIKey" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "402": { $ref: "#/components/responses/PaymentRequired" }
+    post:
+      operationId: createAPIKey
+      tags: [API Keys]
+      summary: APIキー作成
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name: { type: string }
+                scopes:
+                  type: array
+                  items:
+                    type: string
+                    enum: [read, write, admin]
+                expires_at:
+                  type: string
+                  format: date-time
+      responses:
+        "201":
+          description: APIキー作成成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/APIKey"
+                  - type: object
+                    properties:
+                      key:
+                        type: string
+                        description: 一度のみ表示されるAPIキー
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "402": { $ref: "#/components/responses/PaymentRequired" }
+
+  /api/v1/api-keys/{id}:
+    delete:
+      operationId: deleteAPIKey
+      tags: [API Keys]
+      summary: APIキー削除
+      parameters:
+        - $ref: "#/components/parameters/ID"
+      responses:
+        "200":
+          description: 削除成功
+        "402": { $ref: "#/components/responses/PaymentRequired" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  # ── Live Response ─────────────────────────────────────────────────
+  /api/v1/live-response/sessions:
+    get:
+      operationId: listLiveSessions
+      tags: [Live Response]
+      summary: ライブレスポンスセッション一覧
+      responses:
+        "200":
+          description: セッション一覧
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  sessions:
+                    type: array
+                    items: { $ref: "#/components/schemas/LiveResponseSession" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+    post:
+      operationId: createLiveSession
+      tags: [Live Response]
+      summary: ライブレスポンスセッション開始
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [agent_id]
+              properties:
+                agent_id:
+                  type: string
+                  format: uuid
+      responses:
+        "201":
+          description: セッション開始成功
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/LiveResponseSession" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+  /api/v1/live-response/sessions/{sid}/exec:
+    post:
+      operationId: execLiveCommand
+      tags: [Live Response]
+      summary: コマンド実行
+      parameters:
+        - name: sid
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [command]
+              properties:
+                command: { type: string }
+                timeout:
+                  type: integer
+                  default: 30
+      responses:
+        "200":
+          description: コマンド実行結果
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  stdout: { type: string }
+                  stderr: { type: string }
+                  exit_code: { type: integer }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+  # ── Vulnerabilities ───────────────────────────────────────────────
+  /api/v1/vulnerabilities:
+    get:
+      operationId: listVulnerabilities
+      tags: [Vulnerabilities]
+      summary: 脆弱性一覧
+      parameters:
+        - name: severity
+          in: query
+          schema: { type: string, enum: [critical, high, medium, low] }
+        - name: status
+          in: query
+          schema: { type: string, enum: [open, patched, accepted_risk, false_positive] }
+        - name: agent_id
+          in: query
+          schema: { type: string, format: uuid }
+        - name: limit
+          in: query
+          schema: { type: integer, default: 50, maximum: 500 }
+        - name: offset
+          in: query
+          schema: { type: integer, default: 0 }
+      responses:
+        "200":
+          description: 脆弱性一覧
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: "#/components/schemas/Vulnerability" }
+                  total: { type: integer }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /api/v1/vulnerabilities/stats:
+    get:
+      operationId: getVulnerabilityStats
+      tags: [Vulnerabilities]
+      summary: 脆弱性統計
+      responses:
+        "200":
+          description: 統計情報
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total: { type: integer }
+                  by_severity:
+                    type: object
+                    properties:
+                      critical: { type: integer }
+                      high: { type: integer }
+                      medium: { type: integer }
+                      low: { type: integer }
+                  patched_this_week: { type: integer }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  # ── Enrollment ────────────────────────────────────────────────────
+  /api/v1/enrollment/request:
+    post:
+      operationId: requestEnrollment
+      tags: [Enrollment]
+      summary: エージェント登録リクエスト
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [hostname, os, agent_version]
+              properties:
+                hostname: { type: string }
+                os: { type: string, enum: [windows, linux, macos] }
+                agent_version: { type: string }
+                enrollment_token: { type: string }
+      responses:
+        "200":
+          description: 登録成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  agent_id:
+                    type: string
+                    format: uuid
+                  config_url: { type: string }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "429": { $ref: "#/components/responses/TooManyRequests" }
+
+  /api/v1/admin/enrollment/requests:
+    get:
+      operationId: listEnrollmentRequests
+      tags: [Enrollment]
+      summary: 登録リクエスト一覧（管理者）
+      responses:
+        "200":
+          description: 登録リクエスト一覧
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+  /api/v1/admin/enrollment/requests/{id}/approve:
+    post:
+      operationId: approveEnrollmentRequest
+      tags: [Enrollment]
+      summary: 登録リクエスト承認
+      parameters:
+        - $ref: "#/components/parameters/ID"
+      responses:
+        "200":
+          description: 承認成功
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /api/v1/admin/enrollment/requests/{id}/reject:
+    post:
+      operationId: rejectEnrollmentRequest
+      tags: [Enrollment]
+      summary: 登録リクエスト拒否
+      parameters:
+        - $ref: "#/components/parameters/ID"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason: { type: string }
+      responses:
+        "200":
+          description: 拒否成功
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  # ── Reports (extended) ────────────────────────────────────────────
+  /api/v1/reports/{id}:
+    get:
+      operationId: getReport
+      tags: [reports]
+      summary: レポート詳細取得
+      parameters:
+        - $ref: "#/components/parameters/ID"
+      responses:
+        "200":
+          description: レポート詳細
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Report" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "402": { $ref: "#/components/responses/PaymentRequired" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    delete:
+      operationId: deleteReport
+      tags: [reports]
+      summary: レポート削除
+      parameters:
+        - $ref: "#/components/parameters/ID"
+      responses:
+        "200":
+          description: 削除成功
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "402": { $ref: "#/components/responses/PaymentRequired" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /api/v1/reports/{id}/download:
+    get:
+      operationId: downloadReport
+      tags: [reports]
+      summary: レポートダウンロード
+      parameters:
+        - $ref: "#/components/parameters/ID"
+        - name: format
+          in: query
+          schema: { type: string, enum: [pdf, csv, json], default: pdf }
+      responses:
+        "200":
+          description: レポートファイル
+          content:
+            application/pdf:
+              schema: { type: string, format: binary }
+            text/csv:
+              schema: { type: string }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "402": { $ref: "#/components/responses/PaymentRequired" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  # ── Threat Intelligence ───────────────────────────────────────────
+  /api/v1/threat-intel/iocs:
+    get:
+      operationId: listIOCs
+      tags: [threat-intel]
+      summary: IOC一覧
+      parameters:
+        - name: type
+          in: query
+          schema: { type: string, enum: [ip, domain, url, hash, email] }
+        - name: limit
+          in: query
+          schema: { type: integer, default: 50, maximum: 500 }
+        - name: offset
+          in: query
+          schema: { type: integer, default: 0 }
+      responses:
+        "200":
+          description: IOC一覧
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: "#/components/schemas/IOC" }
+                  total: { type: integer }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "402": { $ref: "#/components/responses/PaymentRequired" }
+    post:
+      operationId: createIOC
+      tags: [threat-intel]
+      summary: IOC追加
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [type, value]
+              properties:
+                type: { type: string, enum: [ip, domain, url, hash, email] }
+                value: { type: string }
+                severity: { type: integer, minimum: 1, maximum: 10 }
+                confidence: { type: integer, minimum: 0, maximum: 100 }
+                tags:
+                  type: array
+                  items: { type: string }
+      responses:
+        "201":
+          description: IOC追加成功
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "402": { $ref: "#/components/responses/PaymentRequired" }
+
+  /api/v1/threat-intel/feeds:
+    get:
+      operationId: listThreatFeeds
+      tags: [threat-intel]
+      summary: 脅威フィード一覧
+      responses:
+        "200":
+          description: フィード一覧
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "402": { $ref: "#/components/responses/PaymentRequired" }
+    post:
+      operationId: createThreatFeed
+      tags: [threat-intel]
+      summary: フィード追加
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, url]
+              properties:
+                name: { type: string }
+                url: { type: string, format: uri }
+                format: { type: string, enum: [txt, csv, json, stix] }
+                enabled: { type: boolean, default: true }
+      responses:
+        "201":
+          description: フィード追加成功
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "402": { $ref: "#/components/responses/PaymentRequired" }
+
+  # ── DLP ──────────────────────────────────────────────────────────
+  /api/v1/admin/dlp/rules:
+    get:
+      operationId: listDLPRules
+      tags: [DLP]
+      summary: DLPルール一覧
+      responses:
+        "200":
+          description: DLPルール一覧
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: "#/components/schemas/DLPRule" }
+                  total: { type: integer }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+    post:
+      operationId: createDLPRule
+      tags: [DLP]
+      summary: DLPルール作成
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, pattern]
+              properties:
+                name: { type: string }
+                description: { type: string }
+                pattern: { type: string }
+                pattern_type:
+                  type: string
+                  enum: [regex, keyword, fingerprint]
+                  default: regex
+                data_category:
+                  type: string
+                  enum: [pii, financial, healthcare, intellectual_property]
+                  default: pii
+                action:
+                  type: string
+                  enum: [alert, block, encrypt]
+                  default: alert
+                severity: { type: integer, minimum: 1, maximum: 10 }
+      responses:
+        "201":
+          description: DLPルール作成成功
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DLPRule" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /api/v1/admin/dlp/rules/{id}:
+    put:
+      operationId: updateDLPRule
+      tags: [DLP]
+      summary: DLPルール更新
+      parameters:
+        - $ref: "#/components/parameters/ID"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: { type: string }
+                pattern: { type: string }
+                enabled: { type: boolean }
+      responses:
+        "200":
+          description: 更新成功
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    delete:
+      operationId: deleteDLPRule
+      tags: [DLP]
+      summary: DLPルール削除
+      parameters:
+        - $ref: "#/components/parameters/ID"
+      responses:
+        "200":
+          description: 削除成功
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /api/v1/admin/dlp/violations:
+    get:
+      operationId: listDLPViolations
+      tags: [DLP]
+      summary: DLP違反一覧
+      parameters:
+        - name: agent_id
+          in: query
+          schema: { type: string, format: uuid }
+        - name: rule_id
+          in: query
+          schema: { type: string, format: uuid }
+        - name: limit
+          in: query
+          schema: { type: integer, default: 50, maximum: 500 }
+        - name: offset
+          in: query
+          schema: { type: integer, default: 0 }
+      responses:
+        "200":
+          description: DLP違反一覧
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  # ── Sigma Rules ──────────────────────────────────────────────────
+  /api/v1/admin/sigma/rules:
+    get:
+      operationId: listSigmaRules
+      tags: [rules]
+      summary: Sigmaルール一覧
+      parameters:
+        - name: status
+          in: query
+          schema: { type: string, enum: [active, inactive, testing] }
+        - name: severity
+          in: query
+          schema: { type: string, enum: [critical, high, medium, low] }
+        - name: limit
+          in: query
+          schema: { type: integer, default: 50 }
+        - name: offset
+          in: query
+          schema: { type: integer, default: 0 }
+      responses:
+        "200":
+          description: Sigmaルール一覧
+        "401": { $ref: "#/components/responses/Unauthorized" }
+    post:
+      operationId: createSigmaRule
+      tags: [rules]
+      summary: Sigmaルール作成
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, content]
+              properties:
+                name: { type: string }
+                content: { type: string, description: YAML形式のSigmaルール }
+                enabled: { type: boolean, default: true }
+      responses:
+        "201":
+          description: 作成成功
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /api/v1/admin/sigma/rules/{id}:
+    get:
+      operationId: getSigmaRule
+      tags: [rules]
+      summary: Sigmaルール詳細
+      parameters:
+        - $ref: "#/components/parameters/ID"
+      responses:
+        "200":
+          description: Sigmaルール詳細
+        "404": { $ref: "#/components/responses/NotFound" }
+    put:
+      operationId: updateSigmaRule
+      tags: [rules]
+      summary: Sigmaルール更新
+      parameters:
+        - $ref: "#/components/parameters/ID"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: { type: string }
+                content: { type: string }
+                enabled: { type: boolean }
+      responses:
+        "200":
+          description: 更新成功
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    delete:
+      operationId: deleteSigmaRule
+      tags: [rules]
+      summary: Sigmaルール削除
+      parameters:
+        - $ref: "#/components/parameters/ID"
+      responses:
+        "204": { description: 削除成功 }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  # ── YARA Rules ───────────────────────────────────────────────────
+  /api/v1/yara-rules:
+    get:
+      operationId: listYARARules
+      tags: [rules]
+      summary: YARAルール一覧
+      parameters:
+        - name: enabled
+          in: query
+          schema: { type: boolean }
+        - name: limit
+          in: query
+          schema: { type: integer, default: 50 }
+        - name: offset
+          in: query
+          schema: { type: integer, default: 0 }
+      responses:
+        "200":
+          description: YARAルール一覧
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "402": { $ref: "#/components/responses/PaymentRequired" }
+    post:
+      operationId: createYARARule
+      tags: [rules]
+      summary: YARAルール作成
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, content]
+              properties:
+                name: { type: string }
+                content: { type: string, description: YARAルール本文 }
+                description: { type: string }
+                enabled: { type: boolean, default: true }
+      responses:
+        "201":
+          description: 作成成功
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "402": { $ref: "#/components/responses/PaymentRequired" }
+
+  /api/v1/yara-rules/{id}:
+    get:
+      operationId: getYARARule
+      tags: [rules]
+      summary: YARAルール詳細
+      parameters:
+        - $ref: "#/components/parameters/ID"
+      responses:
+        "200":
+          description: YARAルール詳細
+        "402": { $ref: "#/components/responses/PaymentRequired" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    put:
+      operationId: updateYARARule
+      tags: [rules]
+      summary: YARAルール更新
+      parameters:
+        - $ref: "#/components/parameters/ID"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: { type: string }
+                content: { type: string }
+                enabled: { type: boolean }
+      responses:
+        "200": { description: 更新成功 }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "402": { $ref: "#/components/responses/PaymentRequired" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    delete:
+      operationId: deleteYARARule
+      tags: [rules]
+      summary: YARAルール削除
+      parameters:
+        - $ref: "#/components/parameters/ID"
+      responses:
+        "204": { description: 削除成功 }
+        "402": { $ref: "#/components/responses/PaymentRequired" }
+
+  # ── FIM Rules ────────────────────────────────────────────────────
+  /api/v1/fim-rules:
+    get:
+      operationId: listFIMRules
+      tags: [rules]
+      summary: FIMルール一覧
+      parameters:
+        - name: enabled
+          in: query
+          schema: { type: boolean }
+      responses:
+        "200":
+          description: FIMルール一覧
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  rules:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/FIMRule"
+        "401": { $ref: "#/components/responses/Unauthorized" }
+    post:
+      operationId: createFIMRule
+      tags: [rules]
+      summary: FIMルール作成
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, path]
+              properties:
+                name: { type: string }
+                path: { type: string, example: /etc/passwd }
+                recursive: { type: boolean, default: false }
+                monitor_create: { type: boolean, default: true }
+                monitor_modify: { type: boolean, default: true }
+                monitor_delete: { type: boolean, default: true }
+                enabled: { type: boolean, default: true }
+      responses:
+        "201":
+          description: 作成成功
+        "400": { $ref: "#/components/responses/BadRequest" }
+
+  /api/v1/fim-rules/{id}:
+    put:
+      operationId: updateFIMRule
+      tags: [rules]
+      summary: FIMルール更新
+      parameters:
+        - $ref: "#/components/parameters/ID"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: { type: string }
+                path: { type: string }
+                recursive: { type: boolean }
+                enabled: { type: boolean }
+      responses:
+        "200": { description: 更新成功 }
+        "404": { $ref: "#/components/responses/NotFound" }
+    delete:
+      operationId: deleteFIMRule
+      tags: [rules]
+      summary: FIMルール削除
+      parameters:
+        - $ref: "#/components/parameters/ID"
+      responses:
+        "204": { description: 削除成功 }
+
+  # ── Process Blocking ─────────────────────────────────────────────
+  /api/v1/process-rules:
+    get:
+      operationId: listProcessRules
+      tags: [rules]
+      summary: プロセスブロックルール一覧
+      responses:
+        "200":
+          description: ブロックルール一覧
+        "401": { $ref: "#/components/responses/Unauthorized" }
+    post:
+      operationId: createProcessRule
+      tags: [rules]
+      summary: プロセスブロックルール作成
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, process_name]
+              properties:
+                name: { type: string }
+                process_name: { type: string, example: mimikatz.exe }
+                rule_type:
+                  type: string
+                  enum: [deny, allow]
+                  default: deny
+                scope:
+                  type: string
+                  enum: [all, agent, group]
+                  default: all
+                scope_id:
+                  type: string
+                  format: uuid
+                  description: scope が all 以外のとき必須
+      responses:
+        "201": { description: 作成成功 }
+        "400": { $ref: "#/components/responses/BadRequest" }
+
+  /api/v1/process-rules/{id}:
+    delete:
+      operationId: deleteProcessRule
+      tags: [rules]
+      summary: プロセスブロックルール削除
+      parameters:
+        - $ref: "#/components/parameters/ID"
+      responses:
+        "204": { description: 削除成功 }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  # ── Suppression Rules ────────────────────────────────────────────
+  /api/v1/suppressions:
+    get:
+      operationId: listSuppressions
+      tags: [rules]
+      summary: アラート抑制ルール一覧
+      responses:
+        "200":
+          description: 抑制ルール一覧
+        "401": { $ref: "#/components/responses/Unauthorized" }
+    post:
+      operationId: createSuppression
+      tags: [rules]
+      summary: アラート抑制ルール作成
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, conditions]
+              properties:
+                name: { type: string }
+                conditions:
+                  type: object
+                  description: 抑制条件 (JSONフィルタ)
+                duration_seconds:
+                  type: integer
+                  description: 抑制期間(秒) 0=無期限
+                  default: 0
+      responses:
+        "201": { description: 作成成功 }
+        "400": { $ref: "#/components/responses/BadRequest" }
+
+  /api/v1/suppressions/{id}:
+    put:
+      operationId: updateSuppression
+      tags: [rules]
+      summary: 抑制ルール更新
+      parameters:
+        - $ref: "#/components/parameters/ID"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: { type: string }
+                conditions: { type: object }
+                enabled: { type: boolean }
+      responses:
+        "200": { description: 更新成功 }
+        "404": { $ref: "#/components/responses/NotFound" }
+    delete:
+      operationId: deleteSuppression
+      tags: [rules]
+      summary: 抑制ルール削除
+      parameters:
+        - $ref: "#/components/parameters/ID"
+      responses:
+        "204": { description: 削除成功 }
+
+  # ── Agent Policies ───────────────────────────────────────────────
+  /api/v1/agent-policies:
+    get:
+      operationId: listAgentPolicies
+      tags: [agents]
+      summary: エージェントポリシー一覧
+      responses:
+        "200":
+          description: ポリシー一覧
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  policies:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/AgentPolicy"
+        "401": { $ref: "#/components/responses/Unauthorized" }
+    post:
+      operationId: createAgentPolicy
+      tags: [agents]
+      summary: エージェントポリシー作成
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name: { type: string }
+                description: { type: string }
+                config:
+                  type: object
+                  description: ポリシー設定 (JSONオブジェクト)
+      responses:
+        "201": { description: 作成成功 }
+        "400": { $ref: "#/components/responses/BadRequest" }
+
+  /api/v1/agent-policies/{id}:
+    get:
+      operationId: getAgentPolicy
+      tags: [agents]
+      summary: エージェントポリシー詳細
+      parameters:
+        - $ref: "#/components/parameters/ID"
+      responses:
+        "200":
+          description: ポリシー詳細
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AgentPolicy"
+        "404": { $ref: "#/components/responses/NotFound" }
+    put:
+      operationId: updateAgentPolicy
+      tags: [agents]
+      summary: エージェントポリシー更新
+      parameters:
+        - $ref: "#/components/parameters/ID"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: { type: string }
+                config: { type: object }
+      responses:
+        "200": { description: 更新成功 }
+        "404": { $ref: "#/components/responses/NotFound" }
+    delete:
+      operationId: deleteAgentPolicy
+      tags: [agents]
+      summary: エージェントポリシー削除
+      parameters:
+        - $ref: "#/components/parameters/ID"
+      responses:
+        "204": { description: 削除成功 }
+
+  # ── Hunting ──────────────────────────────────────────────────────
+  /api/v1/threat-hunting/queries:
+    get:
+      operationId: listHuntingQueries
+      tags: [threat-intel]
+      summary: ハンティングクエリ一覧
+      parameters:
+        - name: limit
+          in: query
+          schema: { type: integer, default: 50 }
+        - name: offset
+          in: query
+          schema: { type: integer, default: 0 }
+      responses:
+        "200":
+          description: クエリ一覧
+        "401": { $ref: "#/components/responses/Unauthorized" }
+    post:
+      operationId: runHuntingQuery
+      tags: [threat-intel]
+      summary: ハンティングクエリ実行
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [query]
+              properties:
+                name: { type: string }
+                query: { type: string, description: OSQueryまたはSQL形式のクエリ }
+                target:
+                  type: string
+                  enum: [all, agent, group]
+                  default: all
+                target_id:
+                  type: string
+                  format: uuid
+      responses:
+        "202":
+          description: クエリをキューに追加しました
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  query_id: { type: string, format: uuid }
+        "400": { $ref: "#/components/responses/BadRequest" }
+
+  /api/v1/threat-hunting/queries/{id}/results:
+    get:
+      operationId: getHuntingQueryResults
+      tags: [threat-intel]
+      summary: ハンティングクエリ結果取得
+      parameters:
+        - $ref: "#/components/parameters/ID"
+      responses:
+        "200":
+          description: クエリ結果
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [pending, running, completed, failed]
+                  results:
+                    type: array
+                    items: { type: object }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  # ── Watchlist ────────────────────────────────────────────────────
+  /api/v1/admin/watchlist:
+    get:
+      operationId: listWatchlist
+      tags: [threat-intel]
+      summary: ウォッチリスト一覧
+      responses:
+        "200":
+          description: ウォッチリスト
+        "401": { $ref: "#/components/responses/Unauthorized" }
+    post:
+      operationId: addWatchlistEntry
+      tags: [threat-intel]
+      summary: ウォッチリスト追加
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [type, value]
+              properties:
+                type:
+                  type: string
+                  enum: [ip, domain, hash, user, process]
+                value: { type: string }
+                reason: { type: string }
+                expires_at:
+                  type: string
+                  format: date-time
+      responses:
+        "201": { description: 追加成功 }
+        "400": { $ref: "#/components/responses/BadRequest" }
+
+  /api/v1/admin/watchlist/{id}:
+    delete:
+      operationId: deleteWatchlistEntry
+      tags: [threat-intel]
+      summary: ウォッチリスト削除
+      parameters:
+        - $ref: "#/components/parameters/ID"
+      responses:
+        "204": { description: 削除成功 }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  # ── Threat Feeds ─────────────────────────────────────────────────
+  /api/v1/threat-intel/feeds/{id}:
+    get:
+      operationId: getThreatFeed
+      tags: [threat-intel]
+      summary: 脅威フィード詳細
+      parameters:
+        - $ref: "#/components/parameters/ID"
+      responses:
+        "200":
+          description: フィード詳細
+        "402": { $ref: "#/components/responses/PaymentRequired" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    put:
+      operationId: updateThreatFeed
+      tags: [threat-intel]
+      summary: 脅威フィード更新
+      parameters:
+        - $ref: "#/components/parameters/ID"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: { type: string }
+                url: { type: string, format: uri }
+                enabled: { type: boolean }
+                interval_minutes: { type: integer, minimum: 5 }
+      responses:
+        "200": { description: 更新成功 }
+        "402": { $ref: "#/components/responses/PaymentRequired" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    delete:
+      operationId: deleteThreatFeed
+      tags: [threat-intel]
+      summary: 脅威フィード削除
+      parameters:
+        - $ref: "#/components/parameters/ID"
+      responses:
+        "204": { description: 削除成功 }
+        "402": { $ref: "#/components/responses/PaymentRequired" }
+
+  /api/v1/threat-intel/feeds/{id}/sync:
+    post:
+      operationId: syncThreatFeed
+      tags: [threat-intel]
+      summary: 脅威フィード手動同期
+      parameters:
+        - $ref: "#/components/parameters/ID"
+      responses:
+        "202": { description: 同期を開始しました }
+        "402": { $ref: "#/components/responses/PaymentRequired" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  # ── TAXII ────────────────────────────────────────────────────────
+  /taxii2/api1/collections/:
+    get:
+      operationId: getTAXIICollections
+      tags: [threat-intel]
+      summary: TAXIIコレクション一覧
+      responses:
+        "200":
+          description: TAXII 2.1 コレクション
+          content:
+            application/taxii+json:
+              schema:
+                type: object
+                properties:
+                  collections:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: string }
+                        title: { type: string }
+                        can_read: { type: boolean }
+                        can_write: { type: boolean }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /taxii2/api1/collections/{id}/objects/:
+    get:
+      operationId: getTAXIICollectionObjects
+      tags: [threat-intel]
+      summary: TAXIIコレクションオブジェクト取得
+      parameters:
+        - $ref: "#/components/parameters/ID"
+        - name: match[type]
+          in: query
+          schema: { type: string }
+        - name: added_after
+          in: query
+          schema: { type: string, format: date-time }
+        - name: limit
+          in: query
+          schema: { type: integer, default: 100 }
+      responses:
+        "200":
+          description: STIXオブジェクト一覧
+          content:
+            application/taxii+json:
+              schema:
+                type: object
+                properties:
+                  type: { type: string, example: bundle }
+                  objects:
+                    type: array
+                    items: { type: object }
+        "404": { $ref: "#/components/responses/NotFound" }
+    post:
+      operationId: addTAXIICollectionObjects
+      tags: [threat-intel]
+      summary: TAXIIコレクションへオブジェクト追加
+      parameters:
+        - $ref: "#/components/parameters/ID"
+      requestBody:
+        required: true
+        content:
+          application/taxii+json:
+            schema:
+              type: object
+              required: [type, objects]
+              properties:
+                type: { type: string, example: bundle }
+                objects:
+                  type: array
+                  items: { type: object }
+      responses:
+        "200": { description: 追加成功 }
+        "400": { $ref: "#/components/responses/BadRequest" }
+
+  # ── STIX ─────────────────────────────────────────────────────────
+  /api/v1/stix/import:
+    post:
+      operationId: importSTIX
+      tags: [threat-intel]
+      summary: STIXバンドルインポート
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [bundle]
+              properties:
+                bundle:
+                  type: object
+                  description: STIX 2.1 バンドル
+      responses:
+        "200":
+          description: インポート成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  imported: { type: integer }
+                  skipped: { type: integer }
+                  errors: { type: integer }
+        "400": { $ref: "#/components/responses/BadRequest" }
+
+  /api/v1/stix/export:
+    get:
+      operationId: exportSTIX
+      tags: [threat-intel]
+      summary: STIXバンドルエクスポート
+      parameters:
+        - name: type
+          in: query
+          schema: { type: string, enum: [indicator, malware, threat-actor, campaign] }
+        - name: since
+          in: query
+          schema: { type: string, format: date-time }
+      responses:
+        "200":
+          description: STIXバンドル
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  type: { type: string, example: bundle }
+                  id: { type: string }
+                  objects:
+                    type: array
+                    items: { type: object }
+
+  # ── SOC Tickets ──────────────────────────────────────────────────
+  /api/v1/soc/tickets:
+    get:
+      operationId: listSOCTickets
+      tags: [support]
+      summary: SOCチケット一覧
+      parameters:
+        - name: status
+          in: query
+          schema: { type: string, enum: [open, in_progress, resolved, closed] }
+        - name: priority
+          in: query
+          schema: { type: string, enum: [critical, high, medium, low] }
+        - name: assignee_id
+          in: query
+          schema: { type: string, format: uuid }
+        - name: limit
+          in: query
+          schema: { type: integer, default: 50 }
+        - name: offset
+          in: query
+          schema: { type: integer, default: 0 }
+      responses:
+        "200":
+          description: SOCチケット一覧
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  tickets:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/SOCTicket"
+                  total: { type: integer }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+    post:
+      operationId: createSOCTicket
+      tags: [support]
+      summary: SOCチケット作成
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [title, severity]
+              properties:
+                title: { type: string }
+                description: { type: string }
+                severity: { type: integer, minimum: 1, maximum: 10 }
+                alert_ids:
+                  type: array
+                  items: { type: string, format: uuid }
+                incident_id:
+                  type: string
+                  format: uuid
+      responses:
+        "201":
+          description: チケット作成成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SOCTicket"
+        "400": { $ref: "#/components/responses/BadRequest" }
+
+  /api/v1/soc/tickets/{id}:
+    get:
+      operationId: getSOCTicket
+      tags: [support]
+      summary: SOCチケット詳細
+      parameters:
+        - $ref: "#/components/parameters/ID"
+      responses:
+        "200":
+          description: SOCチケット詳細
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SOCTicket"
+        "404": { $ref: "#/components/responses/NotFound" }
+    put:
+      operationId: updateSOCTicket
+      tags: [support]
+      summary: SOCチケット更新
+      parameters:
+        - $ref: "#/components/parameters/ID"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  enum: [open, in_progress, resolved, closed]
+                assignee_id:
+                  type: string
+                  format: uuid
+                notes: { type: string }
+      responses:
+        "200": { description: 更新成功 }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  # ── SOC Shifts ───────────────────────────────────────────────────
+  /api/v1/soc/shifts:
+    get:
+      operationId: listSOCShifts
+      tags: [support]
+      summary: シフト一覧
+      parameters:
+        - name: limit
+          in: query
+          schema: { type: integer, default: 20 }
+      responses:
+        "200":
+          description: シフト一覧
+        "401": { $ref: "#/components/responses/Unauthorized" }
+    post:
+      operationId: startSOCShift
+      tags: [support]
+      summary: シフト開始
+      responses:
+        "201": { description: シフト開始成功 }
+        "400": { $ref: "#/components/responses/BadRequest" }
+
+  /api/v1/soc/shifts/current:
+    get:
+      operationId: getCurrentSOCShift
+      tags: [support]
+      summary: 現在のシフト取得
+      responses:
+        "200":
+          description: 現在のシフト
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /api/v1/soc/shifts/{id}/end:
+    post:
+      operationId: endSOCShift
+      tags: [support]
+      summary: シフト終了
+      parameters:
+        - $ref: "#/components/parameters/ID"
+      responses:
+        "200": { description: シフト終了成功 }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /api/v1/soc/tickets/{id}/comments:
+    post:
+      operationId: addSOCTicketComment
+      tags: [support]
+      summary: SOCチケットにコメント追加
+      parameters:
+        - $ref: "#/components/parameters/ID"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [content]
+              properties:
+                content: { type: string }
+      responses:
+        "201": { description: コメント追加成功 }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /api/v1/soc/tickets/{id}/close:
+    post:
+      operationId: closeSOCTicket
+      tags: [support]
+      summary: SOCチケットクローズ
+      parameters:
+        - $ref: "#/components/parameters/ID"
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                resolution: { type: string }
+      responses:
+        "200": { description: クローズ成功 }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  # ── SOAR ─────────────────────────────────────────────────────────
+  /api/v1/soar/configs:
+    get:
+      operationId: listSOARConfigs
+      tags: [settings]
+      summary: SOAR設定一覧
+      responses:
+        "200":
+          description: SOAR設定一覧
+        "401": { $ref: "#/components/responses/Unauthorized" }
+    post:
+      operationId: createSOARConfig
+      tags: [settings]
+      summary: SOAR設定作成
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, type, config]
+              properties:
+                name: { type: string }
+                type:
+                  type: string
+                  enum: [jira, pagerduty, slack, webhook, servicenow]
+                config:
+                  type: object
+                  description: プロバイダー固有の設定
+      responses:
+        "201": { description: 作成成功 }
+        "400": { $ref: "#/components/responses/BadRequest" }
+
+  /api/v1/soar/configs/{id}:
+    patch:
+      operationId: updateSOARConfig
+      tags: [settings]
+      summary: SOAR設定更新
+      parameters:
+        - $ref: "#/components/parameters/ID"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: { type: string }
+                enabled: { type: boolean }
+                config: { type: object }
+      responses:
+        "200": { description: 更新成功 }
+        "404": { $ref: "#/components/responses/NotFound" }
+    delete:
+      operationId: deleteSOARConfig
+      tags: [settings]
+      summary: SOAR設定削除
+      parameters:
+        - $ref: "#/components/parameters/ID"
+      responses:
+        "204": { description: 削除成功 }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /api/v1/soar/configs/{id}/test:
+    post:
+      operationId: testSOARConfig
+      tags: [settings]
+      summary: SOAR設定テスト
+      parameters:
+        - $ref: "#/components/parameters/ID"
+      responses:
+        "200": { description: テスト成功 }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /api/v1/soar/executions:
+    get:
+      operationId: listSOARExecutions
+      tags: [settings]
+      summary: SOAR実行履歴一覧
+      parameters:
+        - name: status
+          in: query
+          schema: { type: string, enum: [pending, running, completed, failed] }
+        - name: limit
+          in: query
+          schema: { type: integer, default: 50 }
+        - name: offset
+          in: query
+          schema: { type: integer, default: 0 }
+      responses:
+        "200":
+          description: 実行履歴一覧
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /api/v1/soar/executions/{id}:
+    get:
+      operationId: getSOARExecution
+      tags: [settings]
+      summary: SOAR実行詳細
+      parameters:
+        - $ref: "#/components/parameters/ID"
+      responses:
+        "200":
+          description: 実行詳細
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /api/v1/incidents/{id}/ticket:
+    post:
+      operationId: createIncidentTicket
+      tags: [incidents]
+      summary: インシデントからSOARチケット作成
+      parameters:
+        - $ref: "#/components/parameters/ID"
+      responses:
+        "201": { description: チケット作成成功 }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  # ── Notifications ─────────────────────────────────────────────────
+  /api/v1/notifications:
+    get:
+      operationId: listNotifications
+      tags: [settings]
+      summary: 通知一覧
+      parameters:
+        - name: unread_only
+          in: query
+          schema: { type: boolean }
+        - name: limit
+          in: query
+          schema: { type: integer, default: 50 }
+      responses:
+        "200":
+          description: 通知一覧
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /api/v1/notifications/{id}/read:
+    put:
+      operationId: markNotificationRead
+      tags: [settings]
+      summary: 通知を既読にする
+      parameters:
+        - $ref: "#/components/parameters/ID"
+      responses:
+        "200": { description: 既読にしました }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /api/v1/notifications/read-all:
+    post:
+      operationId: markAllNotificationsRead
+      tags: [settings]
+      summary: 全通知を既読にする
+      responses:
+        "200": { description: 全て既読にしました }
+
+  /api/v1/admin/notifications/channels:
+    get:
+      operationId: listNotificationChannels
+      tags: [settings]
+      summary: 通知チャンネル設定一覧
+      responses:
+        "200":
+          description: チャンネル設定一覧
+        "401": { $ref: "#/components/responses/Unauthorized" }
+    post:
+      operationId: createNotificationChannel
+      tags: [settings]
+      summary: 通知チャンネル追加
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [type, name, config]
+              properties:
+                type:
+                  type: string
+                  enum: [slack, teams, email, webhook, pagerduty]
+                name: { type: string }
+                config:
+                  type: object
+                  description: チャンネル固有の設定
+      responses:
+        "201": { description: 作成成功 }
+        "400": { $ref: "#/components/responses/BadRequest" }
+
+  /api/v1/admin/notifications/channels/{id}/test:
+    post:
+      operationId: testNotificationChannel
+      tags: [settings]
+      summary: 通知チャンネルテスト送信
+      parameters:
+        - $ref: "#/components/parameters/ID"
+      responses:
+        "200": { description: テスト送信しました }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  # ── Audit Logs ────────────────────────────────────────────────────
+  /api/v1/audit/logs:
+    get:
+      operationId: listAuditLogs
+      tags: [compliance]
+      summary: 監査ログ一覧
+      parameters:
+        - name: user_id
+          in: query
+          schema: { type: string, format: uuid }
+        - name: action
+          in: query
+          schema: { type: string }
+        - name: resource_type
+          in: query
+          schema: { type: string }
+        - name: from
+          in: query
+          schema: { type: string, format: date-time }
+        - name: to
+          in: query
+          schema: { type: string, format: date-time }
+        - name: limit
+          in: query
+          schema: { type: integer, default: 100, maximum: 1000 }
+        - name: offset
+          in: query
+          schema: { type: integer, default: 0 }
+      responses:
+        "200":
+          description: 監査ログ一覧
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  logs:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/AuditLog"
+                  total: { type: integer }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /api/v1/audit/logs/export:
+    get:
+      operationId: exportAuditLogs
+      tags: [compliance]
+      summary: 監査ログエクスポート
+      parameters:
+        - name: format
+          in: query
+          schema: { type: string, enum: [csv, json], default: csv }
+        - name: from
+          in: query
+          schema: { type: string, format: date-time }
+        - name: to
+          in: query
+          schema: { type: string, format: date-time }
+      responses:
+        "200":
+          description: エクスポートファイル
+          content:
+            text/csv:
+              schema: { type: string }
+            application/json:
+              schema: { type: array, items: { type: object } }
+
+  # ── Dashboard ─────────────────────────────────────────────────────
+  /api/v1/dashboard/summary:
+    get:
+      operationId: getDashboardSummary
+      tags: [system]
+      summary: ダッシュボードサマリー
+      responses:
+        "200":
+          description: ダッシュボードサマリー
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  active_agents: { type: integer }
+                  open_alerts: { type: integer }
+                  open_incidents: { type: integer }
+                  critical_vulnerabilities: { type: integer }
+                  threat_score: { type: number }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /api/v1/dashboard/metrics:
+    get:
+      operationId: getDashboardMetrics
+      tags: [system]
+      summary: ダッシュボードメトリクス
+      parameters:
+        - name: period
+          in: query
+          schema: { type: string, enum: [1h, 24h, 7d, 30d], default: 24h }
+      responses:
+        "200":
+          description: 時系列メトリクス
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  # ── System Settings ───────────────────────────────────────────────
+  /api/v1/admin/settings:
+    get:
+      operationId: getSystemSettings
+      tags: [settings]
+      summary: システム設定取得
+      responses:
+        "200":
+          description: システム設定
+        "401": { $ref: "#/components/responses/Unauthorized" }
+    put:
+      operationId: updateSystemSettings
+      tags: [settings]
+      summary: システム設定更新
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                retention_days: { type: integer, minimum: 7 }
+                max_agents: { type: integer }
+                session_timeout_minutes: { type: integer }
+                mfa_required: { type: boolean }
+                allowed_ips:
+                  type: array
+                  items: { type: string }
+      responses:
+        "200": { description: 更新成功 }
+        "400": { $ref: "#/components/responses/BadRequest" }
+
+  /api/v1/system/status:
+    get:
+      operationId: getSystemStatus
+      tags: [system]
+      summary: システム詳細ステータス
+      responses:
+        "200":
+          description: システムステータス
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  db: { type: string, enum: [ok, degraded, error] }
+                  cache: { type: string, enum: [ok, degraded, error] }
+                  queue: { type: string, enum: [ok, degraded, error] }
+                  agent_count: { type: integer }
+                  uptime_seconds: { type: integer }
+
+  # ── Rules Import/Export ──────────────────────────────────────────
+  /api/v1/rules/import:
+    post:
+      operationId: importRules
+      tags: [rules]
+      summary: ルール一括インポート
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - type: array
+                  items:
+                    $ref: "#/components/schemas/ImportRule"
+                - type: object
+                  properties:
+                    rules:
+                      type: array
+                      items:
+                        $ref: "#/components/schemas/ImportRule"
+                    detection_rules:
+                      type: array
+                      items:
+                        $ref: "#/components/schemas/ImportRule"
+      responses:
+        "200":
+          description: インポート結果
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  imported: { type: integer }
+                  skipped: { type: integer }
+                  errors:
+                    type: array
+                    items: { type: string }
+        "400": { $ref: "#/components/responses/BadRequest" }
+
+  /api/v1/rules/export:
+    get:
+      operationId: exportRules
+      tags: [rules]
+      summary: ルール一括エクスポート
+      parameters:
+        - name: type
+          in: query
+          schema: { type: string, enum: [sigma, yara, all] }
+        - name: format
+          in: query
+          schema: { type: string, enum: [json, zip], default: json }
+      responses:
+        "200":
+          description: エクスポートデータ
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ImportRule"
+
+  # ── Geolocation ───────────────────────────────────────────────────
+  /api/v1/geo/lookup:
+    post:
+      operationId: lookupGeo
+      tags: [threat-intel]
+      summary: IPアドレスのジオロケーション情報取得
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [ip]
+              properties:
+                ip: { type: string, format: ipv4 }
+      responses:
+        "200":
+          description: ジオロケーション情報
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ip: { type: string }
+                  country: { type: string }
+                  country_code: { type: string }
+                  city: { type: string }
+                  latitude: { type: number }
+                  longitude: { type: number }
+                  is_vpn: { type: boolean }
+                  is_tor: { type: boolean }
+                  threat_score: { type: integer }
+        "400": { $ref: "#/components/responses/BadRequest" }
+
+  /api/v1/admin/system-updates:
+    get:
+      tags: [Admin - System Updates]
+      summary: Auto-update履歴一覧
+      description: |
+        検知済みのプラットフォームアップデート一覧を新しい順で返す。
+        Phase 1: rows はテストフィクスチャか手動 SQL で挿入される。
+      operationId: listSystemUpdates
+      responses:
+        "200":
+          description: 更新履歴
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: "#/components/schemas/SystemUpdate" }
+                  total: { type: integer }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+  /api/v1/admin/system-updates/current:
+    get:
+      tags: [Admin - System Updates]
+      summary: 現在版 + 最新利用可能版
+      operationId: getCurrentSystemUpdate
+      responses:
+        "200":
+          description: 現在のバージョンと最新候補
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  current_version:
+                    type: string
+                    example: "1.0.0"
+                  latest_available:
+                    oneOf:
+                      - $ref: "#/components/schemas/SystemUpdate"
+                      - type: "null"
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+  /api/v1/admin/system-updates/check:
+    post:
+      tags: [Admin - System Updates]
+      summary: 即時 Releases チェック
+      description: |
+        GitHub Releases API を同期呼び出しして、新しいバージョンを検出した場合は
+        `system_updates` テーブルに INSERT した上で `update_available` を返す。
+
+        - `up_to_date`: 現在の `Version` が最新
+        - `update_available`: 新版検出 (latest_available に詳細)
+        - `check_failed`: GitHub API 呼び出し失敗 (error フィールドに詳細)
+
+        Phase 1 では常に `up_to_date` を返すスタブ。Phase 2 で実装。
+      operationId: checkSystemUpdates
+      responses:
+        "200":
+          description: チェック結果
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  checked_at:
+                    type: string
+                    format: date-time
+                  result:
+                    type: string
+                    enum: [up_to_date, update_available, check_failed]
+                  error:
+                    type: string
+                    description: result=check_failed 時のエラー詳細
+                  latest_available:
+                    oneOf:
+                      - $ref: "#/components/schemas/SystemUpdate"
+                      - type: "null"
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+  /api/v1/admin/system-updates/{id}/approve:
+    post:
+      tags: [Admin - System Updates]
+      summary: アップデート適用承認
+      description: |
+        status を `available` → `approved` に遷移させる。
+        Phase 1: DB 行の更新のみ、実際の適用は Phase 3 で実装。
+      operationId: approveSystemUpdate
+      parameters:
+        - $ref: "#/components/parameters/ID"
+      responses:
+        "200":
+          description: 更新後の行
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SystemUpdate" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "409":
+          description: 現在ステータスが `available` ではない、または id が存在しない
+
+  /api/v1/admin/system-updates/{id}/cancel:
+    post:
+      tags: [Admin - System Updates]
+      summary: 承認取消
+      description: status を `approved` → `available` に戻す。
+      operationId: cancelSystemUpdate
+      parameters:
+        - $ref: "#/components/parameters/ID"
+      responses:
+        "200":
+          description: 更新後の行
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SystemUpdate" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "409":
+          description: 現在ステータスが `approved` ではない、または id が存在しない
+
+  /api/v1/admin/system-updates/settings:
+    get:
+      tags: [Admin - System Updates]
+      summary: 自動適用設定取得
+      operationId: getSystemUpdateSettings
+      responses:
+        "200":
+          description: 設定
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SystemUpdateSettings" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+    put:
+      tags: [Admin - System Updates]
+      summary: 自動適用設定更新
+      operationId: updateSystemUpdateSettings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SystemUpdateSettingsInput" }
+      responses:
+        "200":
+          description: 更新後の設定
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SystemUpdateSettings" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    ID:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+  responses:
+    BadRequest:
+      description: リクエストが不正です
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    Unauthorized:
+      description: 認証が必要です
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    Forbidden:
+      description: アクセス権限がありません
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    NotFound:
+      description: リソースが見つかりません
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    TooManyRequests:
+      description: レート制限を超過しました
+      headers:
+        Retry-After:
+          schema:
+            type: integer
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    PaymentRequired:
+      description: |
+        現在のライセンスプランで利用可能な機能・上限を超えています。
+        レスポンスボディの `error` フィールドで原因を判別:
+        - `plan_required`: 機能ゲート (例: MDM を Lite テナントが叩いた) — `feature` / `required_plan` / `upgrade_message` を含む
+        - `agent_limit_reached`: エージェント上限超過 — `agent_limit` / `agents_active` / `plan` を含む
+      content:
+        application/json:
+          schema:
+            oneOf:
+              - $ref: "#/components/schemas/PlanRequiredError"
+              - $ref: "#/components/schemas/AgentLimitReachedError"
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          example: エラーメッセージ
+
+    PlanRequiredError:
+      type: object
+      description: |
+        `RequireFeature` ミドルウェアが返す 402 エラー (`server/internal/middleware/plan_gate.go`)。
+        現在のライセンスが必要な機能を含まない場合に返される。
+      required: [error, feature, required_plan, upgrade_message]
+      properties:
+        error:
+          type: string
+          enum: [plan_required]
+        feature:
+          type: string
+          description: |
+            アクセスを試みた機能の名前 (`server/internal/license/manager.go` の `Feature*` 定数)。
+          enum:
+            - basic_detection
+            - alerts
+            - reports
+            - mdm
+            - ai_investigation
+            - siem_integration
+            - playbooks
+            - threat_intel
+            - yara
+            - ml_detection
+            - threat_hunting
+            - multi_tenant
+            - compliance
+            - api_access
+            - xdr
+            - deception
+            - forensics
+            - soar
+        required_plan:
+          type: string
+          description: |
+            この機能を解除する最小プラン。`requiredPlanFor` ヘルパーが返す値で、
+            v1.3.3 で MDM 機能は `enterprise` から `starter` に修正済み。
+            `lite` は他機能を持たない (Lite が含む機能は 200 を返すため `required_plan` は出現しない)。
+          enum: [starter, professional, enterprise]
+        upgrade_message:
+          type: string
+          example: この機能はStarterプラン（¥1,800/端末/月）以上で利用できます
+
+    AgentLimitReachedError:
+      type: object
+      description: |
+        `EnforceAgentLimit` ミドルウェアが返す 402 エラー (`server/internal/middleware/plan_gate.go`)。
+        プランの `agent_limit` に達した状態でエージェント追加を試みると返される。
+        Lite プランでは Stripe Subscription Quantity が `agent_limit` になる
+        (例: 10 EP 契約のテナントは 10 台で上限)。
+      required: [error, agent_limit, agents_active, plan, upgrade_message]
+      properties:
+        error:
+          type: string
+          enum: [agent_limit_reached]
+        agent_limit:
+          type: integer
+          description: 現プランのエージェント上限 (0=無制限)
+          example: 10
+        agents_active:
+          type: integer
+          description: 現在アクティブなエージェント数
+          example: 10
+        plan:
+          type: string
+          enum: [free, lite, starter, professional, enterprise]
+        upgrade_message:
+          type: string
+          example: エージェント数がプランの上限に達しています。プランをアップグレードしてください。
+
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        full_name:
+          type: string
+        role:
+          type: string
+          enum: [admin, analyst, viewer]
+        is_active:
+          type: boolean
+        email_verified:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        last_login_at:
+          type: string
+          format: date-time
+
+    Agent:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        hostname:
+          type: string
+        os_type:
+          type: string
+          enum: [windows, linux, darwin, unknown]
+        os_version:
+          type: string
+        agent_version:
+          type: string
+        ip_addresses:
+          type: array
+          items:
+            type: string
+        status:
+          type: string
+          enum: [online, offline, isolated, error, inactive]
+          description: >-
+            inactive = 30日以上ハートビートが無く DeadAgentCleanup が退役判定した状態。
+            エージェントが再びハートビートを送れば online に戻る（isolated だけは保護される）。
+        last_seen:
+          type: string
+          format: date-time
+          description: 値が無い場合はレスポンスから省略されます。
+        enrolled_at:
+          type: string
+          format: date-time
+        group_id:
+          type: string
+          format: uuid
+          nullable: true
+        policy_id:
+          type: string
+          format: uuid
+          nullable: true
+        config_version:
+          type: integer
+        tls_thumbprint:
+          type: string
+          nullable: true
+        isolated_at:
+          type: string
+          format: date-time
+          nullable: true
+        isolated_reason:
+          type: string
+          nullable: true
+        isolated_by:
+          type: string
+          nullable: true
+          description: "'ai_agent' | 'auto_rule' | ユーザーID"
+        tags:
+          type: array
+          items:
+            type: string
+
+    Alert:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        description:
+          type: string
+        severity:
+          type: string
+          enum: [critical, high, medium, low, info]
+        status:
+          type: string
+          enum: [open, investigating, resolved, false_positive]
+        rule_name:
+          type: string
+        agent_id:
+          type: string
+          format: uuid
+        hostname:
+          type: string
+        mitre_technique:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        resolved_at:
+          type: string
+          format: date-time
+
+    Incident:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        description:
+          type: string
+        severity:
+          type: string
+          enum: [critical, high, medium, low]
+        status:
+          type: string
+          enum: [open, investigating, contained, resolved, closed]
+        assigned_to:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+
+    RuleInput:
+      type: object
+      required: [name, type, condition]
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        type:
+          type: string
+          enum: [sigma, yara, custom]
+        severity:
+          type: string
+          enum: [critical, high, medium, low, info]
+        condition:
+          type: string
+          description: Sigma/YARA rule content or JSON condition
+        enabled:
+          type: boolean
+          default: true
+
+    SupportTicket:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        subject:
+          type: string
+        description:
+          type: string
+        status:
+          type: string
+          enum: [open, in_progress, resolved, closed]
+        priority:
+          type: string
+          enum: [low, medium, high, critical]
+        category:
+          type: string
+        created_by:
+          type: string
+          format: uuid
+        assigned_to:
+          type: string
+          format: uuid
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    Subscription:
+      type: object
+      properties:
+        plan:
+          type: string
+          enum: [lite, starter, professional, enterprise]
+          description: |
+            Subscription tier. `lite` is the SMB entry tier added 2026-04-23
+            (5–45 endpoints in 5-EP increments at ¥500/EP/month, basic
+            detection + alerts + reports, no MDM). See docs/pricing.md.
+        status:
+          type: string
+          enum: [active, past_due, canceled, trialing]
+        current_period_end:
+          type: string
+          format: date-time
+        endpoint_limit:
+          type: integer
+        endpoint_count:
+          type: integer
+        stripe_customer_id:
+          type: string
+
+    Comment:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        content:
+          type: string
+        author_id:
+          type: string
+          format: uuid
+        author_name:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+
+    Report:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        type:
+          type: string
+          enum: [executive, compliance, incident, threat]
+        status:
+          type: string
+          enum: [pending, generating, completed, failed]
+        created_by:
+          type: string
+          format: uuid
+        created_at:
+          type: string
+          format: date-time
+        completed_at:
+          type: string
+          format: date-time
+        download_url:
+          type: string
+
+    APIKey:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        scopes:
+          type: array
+          items:
+            type: string
+            enum: [read, write, admin]
+        created_by:
+          type: string
+          format: uuid
+        created_at:
+          type: string
+          format: date-time
+        expires_at:
+          type: string
+          format: date-time
+        last_used_at:
+          type: string
+          format: date-time
+
+    LiveResponseSession:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        agent_id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [connecting, active, closed, expired]
+        created_by:
+          type: string
+          format: uuid
+        created_at:
+          type: string
+          format: date-time
+        expires_at:
+          type: string
+          format: date-time
+
+    Vulnerability:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        cve_id:
+          type: string
+          example: CVE-2024-12345
+        title:
+          type: string
+        severity:
+          type: string
+          enum: [critical, high, medium, low, informational]
+        cvss_score:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 10
+        affected_software:
+          type: string
+        affected_agents:
+          type: integer
+        status:
+          type: string
+          enum: [open, patched, accepted_risk, false_positive]
+        detected_at:
+          type: string
+          format: date-time
+
+    IOC:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        type:
+          type: string
+          enum: [ip, domain, url, hash, email]
+        value:
+          type: string
+        severity:
+          type: integer
+          minimum: 1
+          maximum: 10
+        confidence:
+          type: integer
+          minimum: 0
+          maximum: 100
+        source:
+          type: string
+        tags:
+          type: array
+          items: { type: string }
+        created_at:
+          type: string
+          format: date-time
+        expires_at:
+          type: string
+          format: date-time
+
+    DLPRule:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+        pattern:
+          type: string
+        pattern_type:
+          type: string
+          enum: [regex, keyword, fingerprint]
+        data_category:
+          type: string
+          enum: [pii, financial, healthcare, intellectual_property]
+        action:
+          type: string
+          enum: [alert, block, encrypt]
+        severity:
+          type: integer
+          minimum: 1
+          maximum: 10
+        enabled:
+          type: boolean
+        match_count:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    FIMRule:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        path:
+          type: string
+        recursive:
+          type: boolean
+        monitor_create:
+          type: boolean
+        monitor_modify:
+          type: boolean
+        monitor_delete:
+          type: boolean
+        enabled:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+
+    AgentPolicy:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+        config:
+          type: object
+        agent_count:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    SOCTicket:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        ticket_number:
+          type: string
+          example: TKT-20260323-0001
+        title:
+          type: string
+        description:
+          type: string
+        status:
+          type: string
+          enum: [open, in_progress, resolved, closed]
+        priority:
+          type: string
+          enum: [critical, high, medium, low]
+        severity:
+          type: integer
+          minimum: 1
+          maximum: 10
+        assignee_id:
+          type: string
+          format: uuid
+        due_at:
+          type: string
+          format: date-time
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    AuditLog:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        user_email:
+          type: string
+          format: email
+        action:
+          type: string
+          example: update_alert_status
+        resource_type:
+          type: string
+          example: alert
+        resource_id:
+          type: string
+          format: uuid
+        details:
+          type: object
+        ip_address:
+          type: string
+        user_agent:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+
+    SystemUpdate:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        current_version:
+          type: string
+          example: "1.0.0"
+        available_version:
+          type: string
+          example: "1.0.1"
+        release_notes_url:
+          type: string
+        release_notes_md:
+          type: string
+        channel:
+          type: string
+          enum: [stable, beta]
+        detected_at:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [available, approved, applying, success, failed, rolled_back, cancelled]
+        approved_by:
+          type: string
+          format: uuid
+          nullable: true
+        approved_at:
+          type: string
+          format: date-time
+          nullable: true
+        applied_at:
+          type: string
+          format: date-time
+          nullable: true
+        failed_reason:
+          type: string
+        rollback_from_version:
+          type: string
+
+    SystemUpdateSettings:
+      type: object
+      properties:
+        auto_apply_patch:
+          type: boolean
+          description: Phase 4 機能、Phase 1-3 では参照されない
+        auto_apply_minor:
+          type: boolean
+          description: Phase 4 機能、Phase 1-3 では参照されない
+        maintenance_window_start:
+          type: string
+          nullable: true
+          example: "02:00"
+          description: HH:MM (24h)
+        maintenance_window_end:
+          type: string
+          nullable: true
+          example: "04:00"
+        notify_email:
+          type: string
+        channel:
+          type: string
+          enum: [stable, beta]
+        updated_at:
+          type: string
+          format: date-time
+
+    SystemUpdateSettingsInput:
+      type: object
+      required: [channel]
+      properties:
+        auto_apply_patch:
+          type: boolean
+        auto_apply_minor:
+          type: boolean
+        maintenance_window_start:
+          type: string
+          nullable: true
+        maintenance_window_end:
+          type: string
+          nullable: true
+        notify_email:
+          type: string
+        channel:
+          type: string
+          enum: [stable, beta]
+
+    ImportRule:
+      type: object
+      required: [name, content]
+      properties:
+        name:
+          type: string
+        content:
+          type: string
+          description: ルール本文 (Sigma YAML / YARA テキスト)
+        type:
+          type: string
+          enum: [sigma, yara, custom]
+          default: sigma
+        enabled:
+          type: boolean
+          default: true

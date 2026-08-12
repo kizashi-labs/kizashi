@@ -1,0 +1,58 @@
+name: Docs Gate
+
+# ci.yml は docs/Markdown のみの変更で全ジョブをスキップする（コスト最適化、
+# docs/CI・デプロイ運用とコスト最適化.md §2-1）。これは正しい判断だが、副作用と
+# して **負債台帳のゲートが、台帳を編集する PR では一度も走らない** 状態を作って
+# いた——台帳の編集は定義上ほぼ常に docs-only だからである。
+#
+# PR #639 で入れた debt_ledger_test.go は、番号衝突や節の消失といった「git が
+# 競合として検出しない」サイレントな事故を捕捉するためのものだった。それが
+# server-test ジョブの中にあったため、守るべき変更クラスに対して自分自身が
+# サイレントに不活性だった。このワークフローはその穴だけを塞ぐ。
+#
+# ci.yml の paths-ignore を外す選択もあるが、それでは docs の typo 修正で
+# Playwright E2E や Trivy 4 イメージまで走ることになり、§2-1 が消そうとした
+# コストがそのまま戻る。ここでは台帳ゲートだけを 1 ジョブで走らせる。
+#
+# 混在 PR（コード + docs）は ci.yml 側も走るので、このジョブと二重に実行される。
+# 1 分未満のジョブなので許容する。
+
+on:
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'docs/**'
+      - '**/*.md'
+  push:
+    branches: [main]
+    paths:
+      - 'docs/**'
+      - '**/*.md'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  debt-ledger:
+    name: Debt Ledger Consistency
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: server/go.mod
+          cache-dependency-path: server/go.sum
+
+      # DB もネットワークも不要。markdown を読むだけなので、この 4 検査は
+      # サービスコンテナ無しで走る:
+      #   - ID の重複禁止
+      #   - 索引と本体の双方向一致
+      #   - 退役 ID の再利用禁止
+      #   - 他ドキュメントからの引用の解決性
+      - name: 負債台帳の整合性
+        working-directory: server
+        run: go test ./internal/store/ -run 'DebtLedger' -v

@@ -1,0 +1,13 @@
+-- Effective collection mechanism reported by the agent each heartbeat.
+-- Values: 'ebpf' | 'poll' | 'off' | NULL (not reported — e.g. Windows/macOS
+-- agents, whose collectors do not register a mode today).
+--
+-- Deliberately separate from agents.protection_mode (migration 268). That column
+-- records host *capability* (kernel version / BTF / LSM list); this one records
+-- what the agent's collectors are *actually* running on. The two diverge exactly
+-- where it hurts: a fully eBPF-capable host still degrades to /proc polling when
+-- the binary lacks the ebpf tag or a consumer fails to load, and with only the
+-- capability column the fleet view shows those endpoints as eBPF-backed while
+-- they are blind. Two Linux sensors shipped dead for months behind that gap —
+-- see docs/検知率向上_20260726_prevention誤ゲートによるeBPF死角.md.
+ALTER TABLE agents ADD COLUMN IF NOT EXISTS telemetry_mode TEXT;

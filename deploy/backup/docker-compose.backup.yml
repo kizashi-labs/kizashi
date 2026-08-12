@@ -1,0 +1,100 @@
+version: '3.8'
+
+services:
+  backup:
+    image: postgres:16-alpine
+    environment:
+      - DATABASE_URL
+      - BACKUP_DEST=${BACKUP_DEST:-local}
+      - BACKUP_DIR=/backups
+      - RETENTION_DAYS=${RETENTION_DAYS:-30}
+      - S3_BUCKET
+      - S3_PREFIX=${S3_PREFIX:-edr-backups}
+      - GCS_BUCKET
+      # AWS 認証 (S3使用時)
+      - AWS_ACCESS_KEY_ID
+      - AWS_SECRET_ACCESS_KEY
+      - AWS_DEFAULT_REGION
+      # GCS 認証 (GCS使用時)
+      - GOOGLE_APPLICATION_CREDENTIALS
+    volumes:
+      - ./backup.sh:/backup.sh:ro
+      - backup_data:/backups
+      # GCS サービスアカウントキー (任意)
+      - ${GCS_CREDENTIALS_FILE:-/dev/null}:/gcp-credentials.json:ro
+    command: ["sh", "/backup.sh"]
+    profiles:
+      - backup
+    networks:
+      - edr-net
+    # aws-cli / gsutil を含むカスタムイメージが必要な場合は下記を有効化
+    # build:
+    #   context: .
+    #   dockerfile: Dockerfile.backup
+
+  restore:
+    image: postgres:16-alpine
+    environment:
+      - DATABASE_URL
+      - BACKUP_DIR=/backups
+      # AWS 認証
+      - AWS_ACCESS_KEY_ID
+      - AWS_SECRET_ACCESS_KEY
+      - AWS_DEFAULT_REGION
+      # GCS 認証
+      - GOOGLE_APPLICATION_CREDENTIALS
+    volumes:
+      - ./restore.sh:/restore.sh:ro
+      - backup_data:/backups
+      - ${GCS_CREDENTIALS_FILE:-/dev/null}:/gcp-credentials.json:ro
+    # 使用例: docker compose run --rm restore sh /restore.sh <backup_file>
+    entrypoint: ["sh"]
+    command: ["/restore.sh"]
+    profiles:
+      - restore
+    networks:
+      - edr-net
+
+  cleanup:
+    image: postgres:16-alpine
+    environment:
+      - BACKUP_DIR=/backups
+      - RETENTION_DAYS=${RETENTION_DAYS:-30}
+    volumes:
+      - ./cleanup.sh:/cleanup.sh:ro
+      - backup_data:/backups
+    command: ["sh", "/cleanup.sh"]
+    profiles:
+      - cleanup
+    networks:
+      - edr-net
+
+  # Cron-like scheduled backup using ofelia
+  backup-scheduler:
+    image: mcuadros/ofelia:latest
+    depends_on:
+      - backup
+    environment:
+      - DATABASE_URL
+      - BACKUP_DEST=${BACKUP_DEST:-local}
+      - BACKUP_DIR=/backups
+      - RETENTION_DAYS=${RETENTION_DAYS:-30}
+      - S3_BUCKET
+      - GCS_BUCKET
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./ofelia.ini:/etc/ofelia/config.ini:ro
+    profiles:
+      - backup-scheduler
+    networks:
+      - edr-net
+    restart: unless-stopped
+
+volumes:
+  backup_data:
+    driver: local
+
+networks:
+  edr-net:
+    external: true
+    name: edr-platform_default

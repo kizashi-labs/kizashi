@@ -1,0 +1,79 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "edr-platform.fullname" . }}-nats
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "edr-platform.nats.labels" . | nindent 4 }}
+  {{- with .Values.nats.podAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  # Single-node NATS for development. For production, use the official NATS Helm chart
+  # with clustering enabled: https://github.com/nats-io/k8s
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "edr-platform.nats.selectorLabels" . | nindent 6 }}
+  strategy:
+    # Recreate to avoid two instances competing over JetStream storage
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        {{- include "edr-platform.nats.selectorLabels" . | nindent 8 }}
+      {{- with .Values.nats.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    spec:
+      {{- include "edr-platform.imagePullSecrets" . | nindent 6 }}
+      serviceAccountName: {{ include "edr-platform.serviceAccountName" . }}
+      containers:
+        - name: nats
+          image: {{ include "edr-platform.nats.image" . }}
+          imagePullPolicy: {{ .Values.nats.image.pullPolicy }}
+          args:
+            - "-js"
+            {{- if .Values.nats.jetstream.enabled }}
+            - "-sd"
+            - {{ .Values.nats.jetstream.storageDir | quote }}
+            {{- end }}
+            - "-m"
+            - {{ .Values.nats.monitoringPort | quote }}
+          ports:
+            - name: client
+              containerPort: {{ .Values.nats.port }}
+              protocol: TCP
+            - name: monitoring
+              containerPort: {{ .Values.nats.monitoringPort }}
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: monitoring
+            initialDelaySeconds: 10
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: monitoring
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          resources:
+            {{- toYaml .Values.nats.resources | nindent 12 }}
+          {{- if .Values.nats.jetstream.enabled }}
+          volumeMounts:
+            - name: nats-data
+              mountPath: {{ .Values.nats.jetstream.storageDir }}
+          {{- end }}
+      {{- if .Values.nats.jetstream.enabled }}
+      volumes:
+        - name: nats-data
+          emptyDir: {}
+      {{- end }}

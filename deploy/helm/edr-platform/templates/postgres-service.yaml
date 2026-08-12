@@ -1,0 +1,36 @@
+{{/* Headless service for StatefulSet DNS */}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "edr-platform.fullname" . }}-postgres-headless
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "edr-platform.postgres.labels" . | nindent 4 }}
+spec:
+  type: ClusterIP
+  clusterIP: None
+  selector:
+    {{- include "edr-platform.postgres.selectorLabels" . | nindent 4 }}
+  ports:
+    - name: postgres
+      port: {{ .Values.postgres.port }}
+      targetPort: postgres
+      protocol: TCP
+---
+{{/* Regular ClusterIP service for application connections */}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "edr-platform.fullname" . }}-postgres
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "edr-platform.postgres.labels" . | nindent 4 }}
+spec:
+  type: ClusterIP
+  selector:
+    {{- include "edr-platform.postgres.selectorLabels" . | nindent 4 }}
+  ports:
+    - name: postgres
+      port: {{ .Values.postgres.port }}
+      targetPort: postgres
+      protocol: TCP

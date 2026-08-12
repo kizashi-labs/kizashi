@@ -1,0 +1,113 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "kizashi.fullname" . }}-api
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "kizashi.componentLabels" (dict "root" . "component" "api") | nindent 4 }}
+spec:
+  replicas: {{ .Values.api.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "kizashi.componentSelectorLabels" (dict "root" . "component" "api") | nindent 6 }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        {{- include "kizashi.componentLabels" (dict "root" . "component" "api") | nindent 8 }}
+      annotations:
+        # Force pod restart when the credentials secret changes
+        checksum/secret: {{ include (print $.Template.BasePath "/secrets.yaml") . | sha256sum }}
+        {{- with .Values.api.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      serviceAccountName: {{ include "kizashi.serviceAccountName" . }}
+      automountServiceAccountToken: {{ .Values.serviceAccount.automountServiceAccountToken }}
+      {{- include "kizashi.imagePullSecrets" . | nindent 6 }}
+      {{- with .Values.api.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: api
+          image: {{ include "kizashi.image" (dict "root" . "image" .Values.api.image) }}
+          imagePullPolicy: {{ .Values.api.image.pullPolicy }}
+          {{- with .Values.api.securityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.api.ports.http }}
+              protocol: TCP
+            - name: grpc
+              containerPort: {{ .Values.api.ports.grpc }}
+              protocol: TCP
+          env:
+            # ---- Database ----
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "kizashi.dbSecretName" . }}
+                  key: {{ include "kizashi.dbSecretKey" . }}
+            - name: DATABASE_URL
+              value: "postgres://{{ .Values.global.postgresql.user }}:$(DB_PASSWORD)@{{ .Values.global.postgresql.host }}:{{ .Values.global.postgresql.port }}/{{ .Values.global.postgresql.database }}?sslmode=require"
+            # ---- NATS ----
+            - name: NATS_URL
+              value: {{ include "kizashi.natsURL" . | quote }}
+            # ---- JWT ----
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "kizashi.jwtSecretName" . }}
+                  key: {{ include "kizashi.jwtSecretKey" . }}
+            # ---- Ports ----
+            - name: HTTP_PORT
+              value: {{ .Values.api.ports.http | quote }}
+            - name: GRPC_PORT
+              value: {{ .Values.api.ports.grpc | quote }}
+            # ---- App config ----
+            - name: APP_ENV
+              value: "production"
+            - name: LOG_LEVEL
+              value: "info"
+            {{- with .Values.api.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          livenessProbe:
+            {{- toYaml .Values.api.livenessProbe | nindent 12 }}
+          readinessProbe:
+            {{- toYaml .Values.api.readinessProbe | nindent 12 }}
+          resources:
+            {{- toYaml .Values.api.resources | nindent 12 }}
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}
+      {{- with .Values.api.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.api.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.api.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      # Spread pods across nodes for high availability
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              {{- include "kizashi.componentSelectorLabels" (dict "root" . "component" "api") | nindent 14 }}

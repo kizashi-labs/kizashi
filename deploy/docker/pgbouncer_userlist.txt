@@ -1,0 +1,8 @@
+# PgBouncer userlist — passwords are md5 hashes of "md5" + md5(password + username)
+# Generate: echo -n "md5$(echo -n 'PASSWORDusername' | md5sum | awk '{print $1}')"
+#
+# Replace HASHED_PASSWORD below after running the generation command.
+# Example for user "edr" with password from $POSTGRES_PASSWORD env var:
+#   python3 -c "import hashlib; p='changeme_in_production'; u='edr'; print('md5'+hashlib.md5((p+u).encode()).hexdigest())"
+"edr" "md5REPLACE_WITH_ACTUAL_HASH"
+"pgbouncer_admin" "md5REPLACE_WITH_ACTUAL_HASH"

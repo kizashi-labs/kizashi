@@ -1,0 +1,4 @@
+{{- if and .Values.postgres.persistence.enabled (not .Values.postgres.persistence.storageClass) }}
+# PVC is managed by the StatefulSet volumeClaimTemplates section.
+# This file is intentionally left minimal — see postgres-statefulset.yaml.
+{{- end }}

@@ -1,0 +1,202 @@
+# EDR Platform — Production Scale Overlay
+#
+# Usage (apply on top of base compose file):
+#   docker compose -f docker-compose.yml -f docker-compose.scale.yml up -d
+#
+# What this adds / overrides:
+#   • 3-node NATS JetStream cluster (replaces single nats service)
+#   • PgBouncer connection pooler in front of PostgreSQL
+#   • HAProxy load balancer for agent gRPC ingestion
+#   • 3× server-ingest replicas (behind HAProxy)
+#   • 2× server-detect replicas (NATS consumer group)
+#   • 2× server-api replicas (behind Caddy)
+#   • All services use pgbouncer:5432 instead of postgres:5432
+
+services:
+
+  # ─── NATS 3-node cluster ──────────────────────────────────────
+
+  nats:
+    # Disable the single-node NATS from the base file
+    profiles: ["disabled"]
+
+  nats-1:
+    image: nats:2.10-alpine
+    command: ["-c", "/etc/nats/nats-1.conf"]
+    volumes:
+      - ./deploy/nats/nats-1.conf:/etc/nats/nats-1.conf:ro
+      - nats1_data:/data
+    ports:
+      - "127.0.0.1:4222:4222"
+      - "127.0.0.1:8222:8222"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8222/healthz || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  nats-2:
+    image: nats:2.10-alpine
+    command: ["-c", "/etc/nats/nats-2.conf"]
+    volumes:
+      - ./deploy/nats/nats-2.conf:/etc/nats/nats-2.conf:ro
+      - nats2_data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8222/healthz || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    depends_on:
+      nats-1: { condition: service_healthy }
+    restart: unless-stopped
+
+  nats-3:
+    image: nats:2.10-alpine
+    command: ["-c", "/etc/nats/nats-3.conf"]
+    volumes:
+      - ./deploy/nats/nats-3.conf:/etc/nats/nats-3.conf:ro
+      - nats3_data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8222/healthz || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    depends_on:
+      nats-1: { condition: service_healthy }
+    restart: unless-stopped
+
+  # ─── PgBouncer ────────────────────────────────────────────────
+
+  pgbouncer:
+    image: pgbouncer/pgbouncer:1.22
+    environment:
+      PGBOUNCER_DATABASE: edrplatform
+      POSTGRESQL_HOST: postgres
+      POSTGRESQL_PORT: "5432"
+      POSTGRESQL_USERNAME: edr
+      POSTGRESQL_PASSWORD: ${POSTGRES_PASSWORD:-changeme_in_production}
+      PGBOUNCER_POOL_MODE: transaction
+      PGBOUNCER_MAX_CLIENT_CONN: "500"
+      PGBOUNCER_DEFAULT_POOL_SIZE: "25"
+    volumes:
+      - ./deploy/docker/pgbouncer.ini:/etc/pgbouncer/pgbouncer.ini:ro
+      - ./deploy/docker/pgbouncer_userlist.txt:/etc/pgbouncer/userlist.txt:ro
+    depends_on:
+      postgres: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h localhost -p 5432 -U edr || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # ─── HAProxy (gRPC ingestion LB) ──────────────────────────────
+
+  haproxy:
+    image: haproxy:2.9-alpine
+    volumes:
+      - ./deploy/docker/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
+    ports:
+      - "9090:9090"     # Agents connect here instead of directly to server-ingest
+      - "127.0.0.1:8404:8404"  # HAProxy stats
+    depends_on:
+      - server-ingest-1
+      - server-ingest-2
+      - server-ingest-3
+    restart: unless-stopped
+
+  # ─── Ingestion replicas ───────────────────────────────────────
+  # Base server-ingest port binding is removed; HAProxy is the entry point.
+
+  server-ingest:
+    ports: []   # remove direct exposure — HAProxy handles :9090
+
+  server-ingest-1:
+    extends:
+      file: docker-compose.yml
+      service: server-ingest
+    ports: []
+    environment:
+      DATABASE_URL: postgres://edr:${POSTGRES_PASSWORD:-changeme_in_production}@pgbouncer:5432/edrplatform
+      NATS_URL: nats://nats-1:4222,nats://nats-2:4222,nats://nats-3:4222
+    depends_on:
+      pgbouncer: { condition: service_healthy }
+      nats-1: { condition: service_healthy }
+
+  server-ingest-2:
+    extends:
+      file: docker-compose.yml
+      service: server-ingest
+    ports: []
+    environment:
+      DATABASE_URL: postgres://edr:${POSTGRES_PASSWORD:-changeme_in_production}@pgbouncer:5432/edrplatform
+      NATS_URL: nats://nats-1:4222,nats://nats-2:4222,nats://nats-3:4222
+    depends_on:
+      pgbouncer: { condition: service_healthy }
+      nats-1: { condition: service_healthy }
+
+  server-ingest-3:
+    extends:
+      file: docker-compose.yml
+      service: server-ingest
+    ports: []
+    environment:
+      DATABASE_URL: postgres://edr:${POSTGRES_PASSWORD:-changeme_in_production}@pgbouncer:5432/edrplatform
+      NATS_URL: nats://nats-1:4222,nats://nats-2:4222,nats://nats-3:4222
+    depends_on:
+      pgbouncer: { condition: service_healthy }
+      nats-1: { condition: service_healthy }
+
+  # ─── Detection replicas (NATS consumer group) ─────────────────
+  # Multiple detect instances share the same NATS durable consumer group
+  # so each event is processed by exactly one instance.
+
+  server-detect:
+    environment:
+      DATABASE_URL: postgres://edr:${POSTGRES_PASSWORD:-changeme_in_production}@pgbouncer:5432/edrplatform
+      NATS_URL: nats://nats-1:4222,nats://nats-2:4222,nats://nats-3:4222
+      DETECTION_CONSUMER_GROUP: detect-group
+    depends_on:
+      pgbouncer: { condition: service_healthy }
+      nats-1: { condition: service_healthy }
+
+  server-detect-2:
+    extends:
+      file: docker-compose.yml
+      service: server-detect
+    environment:
+      DATABASE_URL: postgres://edr:${POSTGRES_PASSWORD:-changeme_in_production}@pgbouncer:5432/edrplatform
+      NATS_URL: nats://nats-1:4222,nats://nats-2:4222,nats://nats-3:4222
+      DETECTION_CONSUMER_GROUP: detect-group
+    depends_on:
+      pgbouncer: { condition: service_healthy }
+      nats-1: { condition: service_healthy }
+
+  # ─── API replicas ─────────────────────────────────────────────
+
+  server-api:
+    ports: []   # Caddy load-balances across both API instances
+    environment:
+      DATABASE_URL: postgres://edr:${POSTGRES_PASSWORD:-changeme_in_production}@pgbouncer:5432/edrplatform
+      NATS_URL: nats://nats-1:4222,nats://nats-2:4222,nats://nats-3:4222
+    depends_on:
+      pgbouncer: { condition: service_healthy }
+      nats-1: { condition: service_healthy }
+
+  server-api-2:
+    extends:
+      file: docker-compose.yml
+      service: server-api
+    ports: []
+    environment:
+      DATABASE_URL: postgres://edr:${POSTGRES_PASSWORD:-changeme_in_production}@pgbouncer:5432/edrplatform
+      NATS_URL: nats://nats-1:4222,nats://nats-2:4222,nats://nats-3:4222
+    depends_on:
+      pgbouncer: { condition: service_healthy }
+      nats-1: { condition: service_healthy }
+
+volumes:
+  nats1_data:
+  nats2_data:
+  nats3_data:

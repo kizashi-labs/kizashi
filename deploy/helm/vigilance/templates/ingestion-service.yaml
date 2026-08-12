@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "kizashi.fullname" . }}-ingestion
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "kizashi.componentLabels" (dict "root" . "component" "ingestion") | nindent 4 }}
+  {{- with .Values.ingestion.service.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ .Values.ingestion.service.type }}
+  selector:
+    {{- include "kizashi.componentSelectorLabels" (dict "root" . "component" "ingestion") | nindent 4 }}
+  ports:
+    - name: grpc
+      port: {{ .Values.ingestion.service.grpcPort }}
+      targetPort: grpc
+      protocol: TCP

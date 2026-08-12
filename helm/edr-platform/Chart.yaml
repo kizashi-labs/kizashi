@@ -1,0 +1,28 @@
+apiVersion: v2
+name: edr-platform
+description: Kizashi — Endpoint Detection & Response Platform
+type: application
+version: 0.1.0
+appVersion: "1.2.0"
+home: https://github.com/edr-platform
+keywords:
+  - edr
+  - security
+  - endpoint
+  - detection
+  - response
+maintainers:
+  - name: Kizashi Team
+dependencies:
+  - name: postgresql
+    version: "13.x.x"
+    repository: "https://charts.bitnami.com/bitnami"
+    condition: postgresql.enabled
+  - name: redis
+    version: "18.x.x"
+    repository: "https://charts.bitnami.com/bitnami"
+    condition: redis.enabled
+  - name: nats
+    version: "1.x.x"
+    repository: "https://nats-io.github.io/k8s/helm/charts/"
+    condition: nats.enabled

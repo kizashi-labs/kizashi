@@ -1,0 +1,18 @@
+{
+  "cookies": [],
+  "origins": [
+    {
+      "origin": "http://localhost",
+      "localStorage": [
+        {
+          "name": "edr_token",
+          "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiYWRtaW4iLCJyb2xlIjoiYWRtaW4iLCJpc3MiOiJlZHItcGxhdGZvcm0iLCJleHAiOjE3NzM4MTEwMjAsImlhdCI6MTc3MzcyNDYyMCwianRpIjoiNTQyMDBhNjMtZjFkMS00ZTZiLWFiOWUtNDJjZWYyZjcwMTFiIn0.aFwJ3R36LLbtB23fUn8VHebCkKX_UryGF5JrTiFdw7U"
+        },
+        {
+          "name": "edr_user",
+          "value": "{\"email\":\"admin@localhost\",\"id\":\"admin\",\"role\":\"admin\"}"
+        }
+      ]
+    }
+  ]
+}

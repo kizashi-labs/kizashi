@@ -1,0 +1,449 @@
+# =============================================================================
+# Kizashi - Helm Chart Default Values
+# =============================================================================
+
+# -- Global settings shared across all subcharts and components
+global:
+  # -- Container image registry (overrides per-component registry if set)
+  imageRegistry: ""
+  # -- Image pull secrets for private registries
+  imagePullSecrets: []
+  # -- Storage class for persistent volumes; "" uses the cluster default
+  storageClass: ""
+
+  postgresql:
+    # -- PostgreSQL host (used if not deploying bundled postgres)
+    host: "postgresql"
+    # -- PostgreSQL port
+    port: 5432
+    # -- Database name
+    database: "kizashi"
+    # -- Database user
+    user: "kizashi"
+    # -- Plaintext password (used only when createSecrets=true; prefer secretRef in prod)
+    password: ""
+    # -- Reference an existing Secret for the DB password
+    existingSecret: ""
+    existingSecretKey: "postgresql-password"
+
+  jwt:
+    # -- Plaintext JWT secret (used only when createSecrets=true; prefer secretRef in prod)
+    secret: ""
+    # -- Reference an existing Secret for the JWT secret
+    existingSecret: ""
+    existingSecretKey: "jwt-secret"
+
+  nats:
+    # -- NATS cluster URLs (3-node cluster by default)
+    urls:
+      - "nats://nats-0.nats-headless:4222"
+      - "nats://nats-1.nats-headless:4222"
+      - "nats://nats-2.nats-headless:4222"
+
+# -- Create a Kubernetes Secret from the plaintext values above.
+#    Set to false and provide existingSecret refs for production deployments.
+createSecrets: true
+
+# -- Name of the created secret (when createSecrets=true)
+secretName: "kizashi-credentials"
+
+# =============================================================================
+# API Server
+# =============================================================================
+api:
+  # -- Number of API server replicas
+  replicaCount: 2
+
+  image:
+    repository: "kizashi/api"
+    tag: "1.0.0"
+    pullPolicy: IfNotPresent
+
+  # -- Ports exposed by the API container
+  ports:
+    http: 8080
+    grpc: 9090
+
+  service:
+    type: ClusterIP
+    httpPort: 8080
+    grpcPort: 9090
+    annotations: {}
+
+  resources:
+    requests:
+      cpu: "250m"
+      memory: "256Mi"
+    limits:
+      cpu: "1000m"
+      memory: "512Mi"
+
+  # -- Liveness probe configuration
+  livenessProbe:
+    httpGet:
+      path: /healthz
+      port: http
+    initialDelaySeconds: 15
+    periodSeconds: 20
+    timeoutSeconds: 5
+    failureThreshold: 3
+
+  # -- Readiness probe configuration
+  readinessProbe:
+    httpGet:
+      path: /healthz
+      port: http
+    initialDelaySeconds: 5
+    periodSeconds: 10
+    timeoutSeconds: 3
+    failureThreshold: 3
+
+  autoscaling:
+    enabled: false
+    minReplicas: 2
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+
+  # -- Extra environment variables for the API container
+  extraEnv: []
+
+  # -- Node selector for API pods
+  nodeSelector: {}
+
+  # -- Tolerations for API pods
+  tolerations: []
+
+  # -- Affinity rules for API pods
+  affinity: {}
+
+  # -- Pod annotations
+  podAnnotations: {}
+
+  # -- Pod security context
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    fsGroup: 1000
+
+  # -- Container security context
+  securityContext:
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: true
+    capabilities:
+      drop:
+        - ALL
+
+# =============================================================================
+# Ingestion Server
+# =============================================================================
+ingestion:
+  # -- Number of ingestion server replicas
+  replicaCount: 2
+
+  image:
+    repository: "kizashi/ingestion"
+    tag: "1.0.0"
+    pullPolicy: IfNotPresent
+
+  ports:
+    grpc: 9091
+
+  service:
+    type: ClusterIP
+    grpcPort: 9091
+    annotations: {}
+
+  resources:
+    requests:
+      cpu: "500m"
+      memory: "512Mi"
+    limits:
+      cpu: "2000m"
+      memory: "1Gi"
+
+  livenessProbe:
+    tcpSocket:
+      port: grpc
+    initialDelaySeconds: 15
+    periodSeconds: 20
+    timeoutSeconds: 5
+    failureThreshold: 3
+
+  readinessProbe:
+    tcpSocket:
+      port: grpc
+    initialDelaySeconds: 5
+    periodSeconds: 10
+    timeoutSeconds: 3
+    failureThreshold: 3
+
+  autoscaling:
+    enabled: false
+    minReplicas: 2
+    maxReplicas: 8
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+
+  extraEnv: []
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  podAnnotations: {}
+
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    fsGroup: 1000
+
+  securityContext:
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: true
+    capabilities:
+      drop:
+        - ALL
+
+# =============================================================================
+# Detection Engine
+# =============================================================================
+detection:
+  # -- Number of detection engine replicas
+  replicaCount: 2
+
+  image:
+    repository: "kizashi/detection"
+    tag: "1.0.0"
+    pullPolicy: IfNotPresent
+
+  ports:
+    grpc: 9092
+
+  service:
+    type: ClusterIP
+    grpcPort: 9092
+    annotations: {}
+
+  resources:
+    requests:
+      cpu: "1000m"
+      memory: "1Gi"
+    limits:
+      cpu: "4000m"
+      memory: "4Gi"
+
+  livenessProbe:
+    tcpSocket:
+      port: grpc
+    initialDelaySeconds: 20
+    periodSeconds: 30
+    timeoutSeconds: 5
+    failureThreshold: 3
+
+  readinessProbe:
+    tcpSocket:
+      port: grpc
+    initialDelaySeconds: 10
+    periodSeconds: 15
+    timeoutSeconds: 3
+    failureThreshold: 3
+
+  autoscaling:
+    enabled: false
+    minReplicas: 2
+    maxReplicas: 6
+    targetCPUUtilizationPercentage: 75
+    targetMemoryUtilizationPercentage: 80
+
+  extraEnv: []
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  podAnnotations: {}
+
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    fsGroup: 1000
+
+  securityContext:
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: true
+    capabilities:
+      drop:
+        - ALL
+
+# =============================================================================
+# Frontend
+# =============================================================================
+frontend:
+  # -- Number of frontend replicas
+  replicaCount: 2
+
+  image:
+    repository: "kizashi/frontend"
+    tag: "1.0.0"
+    pullPolicy: IfNotPresent
+
+  ports:
+    http: 3000
+
+  service:
+    type: ClusterIP
+    httpPort: 3000
+    annotations: {}
+
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "128Mi"
+    limits:
+      cpu: "500m"
+      memory: "256Mi"
+
+  livenessProbe:
+    httpGet:
+      path: /
+      port: http
+    initialDelaySeconds: 10
+    periodSeconds: 20
+    timeoutSeconds: 5
+    failureThreshold: 3
+
+  readinessProbe:
+    httpGet:
+      path: /
+      port: http
+    initialDelaySeconds: 5
+    periodSeconds: 10
+    timeoutSeconds: 3
+    failureThreshold: 3
+
+  autoscaling:
+    enabled: false
+    minReplicas: 2
+    maxReplicas: 6
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+
+  extraEnv: []
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  podAnnotations: {}
+
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    fsGroup: 1000
+
+  securityContext:
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: false
+    capabilities:
+      drop:
+        - ALL
+
+# =============================================================================
+# Ingress
+# =============================================================================
+ingress:
+  enabled: true
+  className: "nginx"
+  host: "kizashi.example.com"
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
+  tls:
+    enabled: true
+    # -- TLS secret name; if empty a self-signed cert will be generated by cert-manager
+    secretName: "kizashi-tls"
+    # -- Set to true to use cert-manager for automatic certificate provisioning
+    certManager: false
+    certManagerIssuer: "letsencrypt-prod"
+
+# =============================================================================
+# TLS / mTLS (internal service mesh)
+# =============================================================================
+tls:
+  # -- Enable mTLS between internal services (requires cert-manager or manual certs)
+  internal:
+    enabled: false
+    secretName: "kizashi-internal-tls"
+
+# =============================================================================
+# Service Account
+# =============================================================================
+serviceAccount:
+  create: true
+  # -- Name override; if empty the chart fullname is used
+  name: ""
+  annotations: {}
+  automountServiceAccountToken: false
+
+# =============================================================================
+# PostgreSQL (Bitnami subchart or external)
+# =============================================================================
+postgresql:
+  # -- Deploy a bundled PostgreSQL instance (set to false for external DB)
+  enabled: true
+  auth:
+    username: "kizashi"
+    password: ""
+    database: "kizashi"
+    existingSecret: ""
+  primary:
+    persistence:
+      enabled: true
+      size: "20Gi"
+      # -- storageClass overrides global.storageClass
+      storageClass: ""
+    resources:
+      requests:
+        cpu: "500m"
+        memory: "512Mi"
+      limits:
+        cpu: "2000m"
+        memory: "2Gi"
+
+# =============================================================================
+# NATS (3-node cluster)
+# =============================================================================
+nats:
+  # -- Deploy a bundled NATS cluster
+  enabled: true
+  replicaCount: 3
+  persistence:
+    enabled: true
+    size: "5Gi"
+    storageClass: ""
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "128Mi"
+    limits:
+      cpu: "500m"
+      memory: "512Mi"
+
+# =============================================================================
+# Monitoring
+# =============================================================================
+monitoring:
+  # -- Deploy a Prometheus ServiceMonitor for each component
+  serviceMonitor:
+    enabled: false
+    # -- Namespace where the Prometheus operator is installed
+    namespace: "monitoring"
+    interval: "30s"
+    scrapeTimeout: "10s"
+    # -- Additional labels to add to the ServiceMonitor (for Prometheus selector)
+    additionalLabels: {}
+
+  # -- Grafana dashboard ConfigMap
+  grafana:
+    enabled: false
+    # -- Namespace where Grafana is installed
+    namespace: "monitoring"
+    # -- Label that Grafana watches for dashboard ConfigMaps
+    sidecarLabel: "grafana_dashboard"
+    sidecarLabelValue: "1"

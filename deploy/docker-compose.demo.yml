@@ -1,0 +1,302 @@
+# EDR Platform - Demo Environment Docker Compose
+# Usage:  docker compose -f deploy/docker-compose.demo.yml up -d
+# Reset:  ./deploy/demo/reset-demo.sh
+#
+# Pre-configured credentials (DO NOT use in production):
+#   Frontend / API admin : admin@demo.edr.local / Admin1234!
+#   Frontend / API SOC   : analyst@demo.edr.local / Demo1234!
+#   Grafana              : demo / demo123
+#   PostgreSQL           : edr / demo123
+#
+# Port map (demo uses offset +10 to avoid conflicts with prod on 3000/8080/3001):
+#   3010  — Frontend (Next.js)
+#   8090  — API (REST + WebSocket)
+#   3011  — Grafana dashboards
+#   5433  — PostgreSQL (localhost only, for debugging)
+
+services:
+
+  # ─── Frontend ────────────────────────────────────────────────
+
+  frontend:
+    build:
+      context: ..
+      dockerfile: deploy/docker/frontend.Dockerfile
+      args:
+        # API_URL is read by next.config.js rewrites() at BUILD time.
+        # Must point to the Docker service name (not localhost).
+        API_URL: http://api:8080
+    restart: unless-stopped
+    ports:
+      - "3010:3000"
+    environment:
+      NODE_ENV: production
+      NEXTAUTH_URL: http://localhost:3010
+      NEXTAUTH_SECRET: d3m0-n3xtauth-k3y-edr-platform-2026-xQ7rL5vN
+      NEXT_PUBLIC_API_URL: http://localhost:8090/api/v1
+      # API_URL is used by next.config.js rewrites (server-side, must use Docker service name)
+      API_URL: http://api:8080
+    networks:
+      - demo
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/ || exit 1"]
+      interval: 30s
+      timeout: 10s
+      start_period: 30s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 384M
+    labels:
+      com.edr.env: "demo"
+
+  # ─── API Service ─────────────────────────────────────────────
+
+  api:
+    build:
+      context: ..
+      dockerfile: deploy/docker/server.Dockerfile
+      args:
+        SERVICE: api
+    restart: unless-stopped
+    ports:
+      - "8090:8080"
+    environment:
+      # Database
+      DATABASE_URL: postgres://edr:demo123@postgres:5432/edrplatform?sslmode=disable
+      # NATS
+      NATS_URL: nats://nats:4222
+      # Auth
+      JWT_SECRET: d3m0-jwt-k3y-edr-platform-2026-not4prod-xK9mP2nQ
+      # Server
+      HTTP_PORT: "8080"
+      LOG_LEVEL: info
+      ENVIRONMENT: demo
+      # AI analysis off by default in demo (no API key needed)
+      AI_ANALYSIS_ENABLED: "false"
+      AUTO_RESPONSE_ENABLED: "false"
+      AUTO_ISOLATE_MIN_SEVERITY: "9"
+      # CORS — allow demo frontend origin
+      CORS_ORIGINS: "http://localhost:3010"
+    networks:
+      - demo
+    depends_on:
+      postgres:
+        condition: service_healthy
+      nats:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/health || exit 1"]
+      interval: 20s
+      timeout: 10s
+      start_period: 60s
+      retries: 10
+    deploy:
+      resources:
+        limits:
+          memory: 384M
+    labels:
+      com.edr.env: "demo"
+
+  # ─── Detection Engine ────────────────────────────────────────
+
+  detection:
+    build:
+      context: ..
+      dockerfile: deploy/docker/server.Dockerfile
+      args:
+        SERVICE: detection
+    restart: unless-stopped
+    expose:
+      - "9090"
+    environment:
+      DATABASE_URL: postgres://edr:demo123@postgres:5432/edrplatform?sslmode=disable
+      NATS_URL: nats://nats:4222
+      GRPC_PORT: "9090"
+      RULES_DIR: /rules
+      LOG_LEVEL: info
+      ENVIRONMENT: demo
+    volumes:
+      - ../rules:/rules:ro
+    networks:
+      - demo
+    depends_on:
+      postgres:
+        condition: service_healthy
+      nats:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z localhost 9090 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      start_period: 25s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+    labels:
+      com.edr.env: "demo"
+
+  # ─── Database ─────────────────────────────────────────────────
+
+  postgres:
+    image: timescale/timescaledb:latest-pg16
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: edrplatform
+      POSTGRES_USER: edr
+      POSTGRES_PASSWORD: demo123
+    volumes:
+      # Init script applies migrations then seeds demo data (single dir mount avoids Docker conflict)
+      - ./demo/initdb:/docker-entrypoint-initdb.d:ro
+      # Migrations and seed referenced by the init script
+      - ../server/migrations:/migrations:ro
+      - ./demo/seed.sql:/seed.sql:ro
+      - pgdata_demo:/var/lib/postgresql/data
+    networks:
+      - demo
+    # Expose on localhost only — useful for demo debugging / DB tools
+    ports:
+      - "127.0.0.1:5433:5432"
+    healthcheck:
+      # Check both that postgres accepts connections AND that the users table exists
+      # (proving migrations have completed before the API is allowed to start)
+      test: ["CMD-SHELL", "pg_isready -U edr -d edrplatform && psql -U edr -d edrplatform -c 'SELECT 1 FROM users LIMIT 1' -q 2>/dev/null"]
+      interval: 15s
+      timeout: 10s
+      start_period: 300s
+      retries: 20
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    labels:
+      com.edr.env: "demo"
+
+  # ─── Messaging ────────────────────────────────────────────────
+
+  nats:
+    image: nats:2-alpine
+    restart: unless-stopped
+    command: >
+      -js
+      -sd /data
+      -m 8222
+    volumes:
+      - nats_data_demo:/data
+    networks:
+      - demo
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8222/healthz || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+    labels:
+      com.edr.env: "demo"
+
+  # ─── Prometheus ───────────────────────────────────────────────
+
+  prometheus:
+    image: prom/prometheus:v2.51.0
+    restart: unless-stopped
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      # Keep only 7 days of metrics data for demo (saves disk space)
+      - "--storage.tsdb.retention.time=7d"
+      - "--storage.tsdb.retention.size=1GB"
+      - "--web.enable-lifecycle"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data_demo:/prometheus
+    networks:
+      - demo
+    expose:
+      - "9090"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:9090/-/healthy || exit 1"]
+      interval: 30s
+      timeout: 10s
+      start_period: 15s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+    labels:
+      com.edr.env: "demo"
+
+  # ─── Grafana ──────────────────────────────────────────────────
+
+  grafana:
+    image: grafana/grafana:10.4.2
+    restart: unless-stopped
+    ports:
+      - "3011:3000"
+    environment:
+      # Demo credentials — intentionally simple for ease of access
+      GF_SECURITY_ADMIN_USER: demo
+      GF_SECURITY_ADMIN_PASSWORD: demo123
+      GF_SERVER_ROOT_URL: http://localhost:3011
+      # Disable telemetry and update checks for offline demo use
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
+      GF_ANALYTICS_CHECK_FOR_PLUGIN_UPDATES: "false"
+      # Allow iframes (useful for embedding in demo slides)
+      GF_SECURITY_ALLOW_EMBEDDING: "true"
+      # Skip login page — anonymous viewer access for live demos
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_NAME: "Main Org."
+      GF_AUTH_ANONYMOUS_ORG_ROLE: "Viewer"
+      # Disable unified alerting noise
+      GF_ALERTING_ENABLED: "false"
+      GF_UNIFIED_ALERTING_ENABLED: "false"
+    volumes:
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - grafana_data_demo:/var/lib/grafana
+    networks:
+      - demo
+    depends_on:
+      prometheus:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/api/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      start_period: 20s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+    labels:
+      com.edr.env: "demo"
+
+# ─── Networks ──────────────────────────────────────────────────
+
+networks:
+  demo:
+    driver: bridge
+    name: edr_demo
+
+# ─── Volumes ───────────────────────────────────────────────────
+
+volumes:
+  pgdata_demo:
+    name: edr_demo_pgdata
+  nats_data_demo:
+    name: edr_demo_nats
+  prometheus_data_demo:
+    name: edr_demo_prometheus
+  grafana_data_demo:
+    name: edr_demo_grafana

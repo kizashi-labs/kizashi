@@ -1,0 +1,196 @@
+KIZASHI
+Copyright (c) 2026 camel
+
+This product includes software and detection content developed by third parties.
+The following is a summary of those components and their licenses.
+
+================================================================================
+DETECTION CONTENT
+================================================================================
+
+--------------------------------------------------------------------------------
+SigmaHQ community rules
+License: Detection Rule License (DRL) 1.1
+Copyright the SigmaHQ contributors
+https://github.com/SigmaHQ/sigma
+https://github.com/SigmaHQ/Detection-Rule-License
+
+Portions of the rules seeded into the `rules` database table are derived from,
+or adapted from, rules published by the SigmaHQ project and are used under the
+Detection Rule License 1.1. Attribution to SigmaHQ is retained here as required
+by that license. Rules authored for this project are marked with
+`author: Kizashi` (or `author: EDR Platform` in older revisions) and are covered
+by the project license (AGPL-3.0-or-later) rather than the DRL.
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+MITRE ATT&CK®
+© 2015-2026 The MITRE Corporation
+https://attack.mitre.org/
+
+ATT&CK® is a registered trademark of The MITRE Corporation. Technique and tactic
+identifiers are used for interoperability and reference. This project is not
+affiliated with, endorsed by, or sponsored by The MITRE Corporation.
+--------------------------------------------------------------------------------
+
+================================================================================
+BACKEND DEPENDENCIES (Go)
+================================================================================
+
+--------------------------------------------------------------------------------
+github.com/gin-gonic/gin
+License: MIT
+Copyright (c) 2014 Manuel Martinez-Almeida
+https://github.com/gin-gonic/gin
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+github.com/jackc/pgx/v5
+License: MIT
+Copyright (c) 2013-2024 Jack Christensen
+https://github.com/jackc/pgx
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+github.com/nats-io/nats.go
+License: Apache License, Version 2.0
+Copyright 2012-2024 The NATS Authors
+https://github.com/nats-io/nats.go
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+github.com/golang-jwt/jwt/v5
+License: MIT
+Copyright (c) 2012 Dave Grijalva
+Copyright (c) 2021 golang-jwt authors
+https://github.com/golang-jwt/jwt
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+github.com/go-playground/validator/v10
+License: MIT
+Copyright (c) 2015 Dean Karn
+https://github.com/go-playground/validator
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+github.com/cilium/ebpf
+License: MIT
+Copyright (c) 2017 Nathan Sweet, 2018-2024 Cloudflare, 2019-2024 Authors of Cilium
+https://github.com/cilium/ebpf
+
+Used for loading the CO-RE eBPF programs in the Linux agent, and for the
+bpf2go bindings committed under agent/internal/platform/linux.
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+go.opentelemetry.io/otel
+License: Apache License, Version 2.0
+Copyright The OpenTelemetry Authors
+https://github.com/open-telemetry/opentelemetry-go
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+google.golang.org/grpc
+google.golang.org/protobuf
+License: Apache License, Version 2.0 / BSD 3-Clause
+Copyright The gRPC Authors / Copyright (c) 2018 The Go Authors
+https://github.com/grpc/grpc-go
+https://github.com/protocolbuffers/protobuf-go
+--------------------------------------------------------------------------------
+
+The complete, authoritative dependency list with resolved versions is
+server/go.sum and agent/go.sum. Each module carries its own license text in the
+Go module cache.
+
+================================================================================
+FRONTEND DEPENDENCIES (npm / Node.js)
+================================================================================
+
+--------------------------------------------------------------------------------
+next
+License: MIT
+Copyright (c) 2024 Vercel, Inc.
+https://github.com/vercel/next.js
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+react
+react-dom
+License: MIT
+Copyright (c) Meta Platforms, Inc. and affiliates.
+https://github.com/facebook/react
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+tailwindcss
+License: MIT
+Copyright (c) Tailwind Labs, Inc.
+https://github.com/tailwindlabs/tailwindcss
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+recharts
+License: MIT
+Copyright (c) 2015-2024 recharts group
+https://github.com/recharts/recharts
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+@tanstack/react-query
+License: MIT
+Copyright (c) 2021-present Tanner Linsley
+https://github.com/TanStack/query
+--------------------------------------------------------------------------------
+
+The complete, authoritative dependency list is frontend/package-lock.json.
+
+================================================================================
+FULL LICENSE TEXTS
+================================================================================
+
+The full text of each license is available at the URLs listed above and is also
+reproduced in the respective package distributions. Copies of the MIT License
+and Apache License 2.0 are included below for convenience.
+
+--------------------------------------------------------------------------------
+MIT License (representative text)
+--------------------------------------------------------------------------------
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+--------------------------------------------------------------------------------
+Apache License, Version 2.0 (summary)
+--------------------------------------------------------------------------------
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+================================================================================
+END OF NOTICE
+================================================================================

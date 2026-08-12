@@ -1,0 +1,55 @@
+[Unit]
+Description=EDR Agent Watchdog
+Documentation=https://github.com/edr-platform/docs
+After=network-online.target
+Wants=network-online.target
+# Restart if NATS/server is temporarily unreachable at boot
+StartLimitIntervalSec=300
+StartLimitBurst=5
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/edr-watchdog \
+    --agent  /usr/local/bin/edr-agent \
+    --config /etc/edr/agent.toml \
+    --pidfile /var/run/edr-watchdog.pid
+ExecStop=/bin/kill -TERM $MAINPID
+
+# Run as dedicated low-privilege user; give CAP_NET_ADMIN for network isolation
+User=edr
+Group=edr
+AmbientCapabilities=CAP_NET_ADMIN CAP_SYS_PTRACE
+CapabilityBoundingSet=CAP_NET_ADMIN CAP_SYS_PTRACE
+
+# Hardening
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/var/log/edr /var/run /var/quarantine/edr
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=no
+RestrictNamespaces=yes
+SystemCallFilter=@system-service @network-io
+
+# Resource limits — prevent the agent from consuming runaway resources
+MemoryMax=512M
+CPUQuota=25%
+LimitNOFILE=65536
+
+# Logging — journal collects stdout/stderr
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=edr-watchdog
+
+# The watchdog handles restarts internally; systemd is the last-resort restarter.
+Restart=on-failure
+RestartSec=30
+
+[Install]
+WantedBy=multi-user.target

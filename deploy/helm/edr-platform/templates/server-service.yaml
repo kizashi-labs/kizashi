@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "edr-platform.fullname" . }}-server
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "edr-platform.server.labels" . | nindent 4 }}
+spec:
+  type: ClusterIP
+  selector:
+    {{- include "edr-platform.server.selectorLabels" . | nindent 4 }}
+  ports:
+    - name: http
+      port: {{ .Values.server.port }}
+      targetPort: http
+      protocol: TCP

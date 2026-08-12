@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+    "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  EDR Platform Agent — macOS LaunchDaemon
+
+  インストール:
+    sudo cp com.edrplatform.agent.plist /Library/LaunchDaemons/
+    sudo launchctl load -w /Library/LaunchDaemons/com.edrplatform.agent.plist
+
+  アンインストール:
+    sudo launchctl unload /Library/LaunchDaemons/com.edrplatform.agent.plist
+    sudo rm /Library/LaunchDaemons/com.edrplatform.agent.plist
+    sudo rm -rf /opt/edr-agent
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.edrplatform.agent</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/opt/edr-agent/edr-agent</string>
+        <string>--config</string>
+        <string>/opt/edr-agent/config.yaml</string>
+    </array>
+
+    <!-- システム起動時・ログイン前に起動 -->
+    <key>RunAtLoad</key>
+    <true/>
+
+    <!-- クラッシュ時に自動再起動 -->
+    <key>KeepAlive</key>
+    <true/>
+
+    <!-- ログ出力先 -->
+    <key>StandardOutPath</key>
+    <string>/var/log/edr-agent.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>/var/log/edr-agent-error.log</string>
+
+    <!-- root権限で実行 (ESFはrootが必要) -->
+    <key>UserName</key>
+    <string>root</string>
+
+    <!-- プロセス優先度 (EDRは高優先度で動作) -->
+    <key>ProcessType</key>
+    <string>Standard</string>
+
+    <!-- 環境変数 -->
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>EDR_CONFIG_PATH</key>
+        <string>/opt/edr-agent/config.yaml</string>
+    </dict>
+</dict>
+</plist>

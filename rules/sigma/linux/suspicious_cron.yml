@@ -1,0 +1,36 @@
+title: Linuxの疑わしいcronジョブ追加
+id: b23c4d5e-6f70-8901-bcde-f12345678901
+status: stable
+description: |
+  攻撃者は永続化のためにcronジョブを追加することがあります。
+  特に、ダウンロードや実行を含むcronジョブの追加を検知します。
+author: EDR Platform
+date: 2024/01/01
+tags:
+  - attack.persistence
+  - attack.t1053.003
+logsource:
+  category: file_event
+  product: linux
+detection:
+  cron_files:
+    TargetFilename|contains:
+      - '/etc/cron'
+      - '/var/spool/cron'
+      - '/etc/crontab'
+  suspicious_content:
+    Contents|contains:
+      - 'curl '
+      - 'wget '
+      - 'bash -i'
+      - '/dev/tcp/'
+      - 'nc -e'
+      - 'python -c'
+      - 'perl -e'
+  condition: cron_files and suspicious_content
+falsepositives:
+  - 正規のバックアップスクリプト
+  - システム管理ツール
+level: high
+severity: 8
+auto_isolate: false

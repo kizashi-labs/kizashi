@@ -1,0 +1,35 @@
+{
+  "name": "@kizashi-edr/client",
+  "version": "1.0.0",
+  "description": "Official TypeScript client SDK for the Kizashi API",
+  "license": "Proprietary",
+  "type": "module",
+  "exports": {
+    ".": {
+      "import": "./dist/client.js",
+      "require": "./dist/client.cjs",
+      "default": "./src/client.ts"
+    }
+  },
+  "main": "./dist/client.cjs",
+  "module": "./dist/client.js",
+  "types": "./dist/client.d.ts",
+  "files": [
+    "dist",
+    "src"
+  ],
+  "scripts": {
+    "build": "tsc --project tsconfig.json",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.4.0",
+    "vitest": "^2.0.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
