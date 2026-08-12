@@ -184,7 +184,7 @@ jobs:
           retention-days: 14
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v7
         continue-on-error: true   # Non-blocking if token not configured
         with:
           files: server/coverage.out
@@ -441,7 +441,7 @@ jobs:
           retention-days: 14
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v7
         continue-on-error: true   # Non-blocking if token not configured
         with:
           files: agent/coverage.out
