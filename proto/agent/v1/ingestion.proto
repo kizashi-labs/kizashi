@@ -1,0 +1,179 @@
+syntax = "proto3";
+
+package agent.v1;
+
+option go_package = "github.com/edr-platform/proto/gen/go/agent/v1";
+
+import "agent/v1/events.proto";
+import "agent/v1/config.proto";
+import "google/protobuf/timestamp.proto";
+
+// ─── Ingestion Service ────────────────────────────────────────
+
+service IngestionService {
+  // Bidirectional stream: agent sends events, server sends commands
+  rpc EventStream(stream EventBatch) returns (stream ServerCommand);
+
+  // Config pull
+  rpc GetConfig(ConfigRequest) returns (AgentConfig);
+
+  // One-time enrollment
+  rpc Enroll(EnrollRequest) returns (EnrollResponse);
+
+  // Heartbeat / health check
+  rpc Heartbeat(HeartbeatRequest) returns (HeartbeatResponse);
+}
+
+// ─── Server Commands (pushed to agent) ───────────────────────
+
+message ServerCommand {
+  string command_id = 1;
+  google.protobuf.Timestamp issued_at = 2;
+
+  oneof command {
+    ReloadConfigCommand     reload_config     = 10;
+    IsolateCommand          isolate           = 11;
+    UnisolateCommand        unisolate         = 12;
+    KillProcessCommand      kill_process      = 13;
+    QuarantineFileCommand   quarantine_file   = 14;
+    RestoreFileCommand      restore_file      = 15;
+    CollectArtifactCommand  collect_artifact  = 16;
+    ScanCommand             scan              = 17;
+    UpdateAgentCommand      update_agent      = 18;
+  }
+}
+
+// ─── Command Types ────────────────────────────────────────────
+
+message ReloadConfigCommand {
+  uint64 new_version = 1;
+}
+
+// Network isolation: blocks all traffic except EDR server + DNS
+message IsolateCommand {
+  string reason             = 1; // human-readable
+  string alert_id           = 2; // linked alert
+  repeated string allow_ips = 3; // additional IPs to allow (override)
+}
+
+message UnisolateCommand {
+  string reason    = 1;
+  string alert_id  = 2;
+}
+
+message KillProcessCommand {
+  uint32 pid          = 1;
+  string process_name = 2; // for verification
+  string reason       = 3;
+  string alert_id     = 4;
+}
+
+message QuarantineFileCommand {
+  string path     = 1;
+  string reason   = 2;
+  string alert_id = 3;
+}
+
+message RestoreFileCommand {
+  string quarantine_id = 1; // ID returned during quarantine
+  string restore_path  = 2; // optional override path
+}
+
+message CollectArtifactCommand {
+  ArtifactType type       = 1;
+  string target           = 2; // path, PID, etc.
+  string output_upload_url = 3; // presigned URL for upload
+
+  enum ArtifactType {
+    ARTIFACT_TYPE_UNSPECIFIED  = 0;
+    ARTIFACT_TYPE_FILE         = 1;
+    ARTIFACT_TYPE_MEMORY_DUMP  = 2;
+    ARTIFACT_TYPE_PROCESS_LIST = 3;
+    ARTIFACT_TYPE_NETWORK_CONN = 4;
+    ARTIFACT_TYPE_REGISTRY     = 5;
+    ARTIFACT_TYPE_LOGS         = 6;
+  }
+}
+
+message ScanCommand {
+  ScanType type       = 1;
+  string target       = 2; // path or PID
+  repeated string rule_ids = 3; // empty = all rules
+
+  enum ScanType {
+    SCAN_TYPE_UNSPECIFIED = 0;
+    SCAN_TYPE_FILE        = 1;
+    SCAN_TYPE_MEMORY      = 2;
+    SCAN_TYPE_FULL_DISK   = 3;
+  }
+}
+
+message UpdateAgentCommand {
+  string version    = 1;
+  string download_url = 2;
+  string sha256     = 3;
+  string signature  = 4; // Ed25519
+}
+
+// ─── Command Acknowledgement ──────────────────────────────────
+
+message CommandAck {
+  string command_id = 1;
+  AckStatus status  = 2;
+  string error      = 3;
+  bytes  result     = 4; // command-specific result payload
+
+  enum AckStatus {
+    ACK_STATUS_UNSPECIFIED = 0;
+    ACK_STATUS_SUCCESS     = 1;
+    ACK_STATUS_FAILED      = 2;
+    ACK_STATUS_PARTIAL     = 3;
+  }
+}
+
+// ─── Enrollment ───────────────────────────────────────────────
+
+message EnrollRequest {
+  string enrollment_token = 1; // one-time token from admin UI
+  string hostname         = 2;
+  string os_type          = 3;
+  string os_version       = 4;
+  string agent_version    = 5;
+  repeated string ip_addresses = 6;
+  string csr              = 7; // PEM-encoded Certificate Signing Request
+}
+
+message EnrollResponse {
+  string agent_id         = 1;
+  string signed_cert      = 2; // PEM-encoded signed client certificate
+  string ca_cert          = 3; // server CA cert for pinning
+  AgentConfig initial_config = 4;
+}
+
+// ─── Heartbeat ────────────────────────────────────────────────
+
+message HeartbeatRequest {
+  string agent_id         = 1;
+  string agent_version    = 2;
+  repeated string ip_addresses = 3;
+  uint64 events_buffered  = 4;
+  double cpu_usage        = 5;
+  double memory_usage_mb  = 6;
+  AgentStatus status      = 7;
+  uint64 config_version   = 8;
+  string hostname         = 9;
+  string os_version       = 10;
+
+  enum AgentStatus {
+    AGENT_STATUS_UNSPECIFIED = 0;
+    AGENT_STATUS_ONLINE      = 1;
+    AGENT_STATUS_ISOLATED    = 2;
+    AGENT_STATUS_ERROR       = 3;
+  }
+}
+
+message HeartbeatResponse {
+  bool config_update_available = 1;
+  uint64 latest_config_version = 2;
+  repeated ServerCommand pending_commands = 3; // queued commands
+}

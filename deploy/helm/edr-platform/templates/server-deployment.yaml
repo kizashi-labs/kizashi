@@ -1,0 +1,147 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "edr-platform.fullname" . }}-server
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "edr-platform.server.labels" . | nindent 4 }}
+  {{- with .Values.server.podAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  replicas: {{ .Values.server.replicas }}
+  selector:
+    matchLabels:
+      {{- include "edr-platform.server.selectorLabels" . | nindent 6 }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        {{- include "edr-platform.server.selectorLabels" . | nindent 8 }}
+      {{- with .Values.server.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    spec:
+      {{- include "edr-platform.imagePullSecrets" . | nindent 6 }}
+      serviceAccountName: {{ include "edr-platform.serviceAccountName" . }}
+      {{- with .Values.server.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: server
+          image: {{ include "edr-platform.server.image" . }}
+          imagePullPolicy: {{ .Values.server.image.pullPolicy }}
+          {{- with .Values.server.securityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.server.port }}
+              protocol: TCP
+          env:
+            # Plain config values
+            - name: API_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "edr-platform.fullname" . }}-server-config
+                  key: API_PORT
+            - name: EDR_BASE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "edr-platform.fullname" . }}-server-config
+                  key: EDR_BASE_URL
+            - name: NATS_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "edr-platform.fullname" . }}-server-config
+                  key: NATS_URL
+            - name: CLAUDE_MODEL
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "edr-platform.fullname" . }}-server-config
+                  key: CLAUDE_MODEL
+            - name: AI_ANALYSIS_ENABLED
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "edr-platform.fullname" . }}-server-config
+                  key: AI_ANALYSIS_ENABLED
+            - name: AUTO_RESPONSE_ENABLED
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "edr-platform.fullname" . }}-server-config
+                  key: AUTO_RESPONSE_ENABLED
+            - name: AUTO_ISOLATE_MIN_SEVERITY
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "edr-platform.fullname" . }}-server-config
+                  key: AUTO_ISOLATE_MIN_SEVERITY
+            - name: AI_MIN_SEVERITY
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "edr-platform.fullname" . }}-server-config
+                  key: AI_MIN_SEVERITY
+            # Sensitive values from Secret
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "edr-platform.fullname" . }}-server-secret
+                  key: JWT_SECRET
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "edr-platform.fullname" . }}-server-secret
+                  key: POSTGRES_PASSWORD
+            - name: ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "edr-platform.fullname" . }}-server-secret
+                  key: ADMIN_PASSWORD
+            - name: CLAUDE_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "edr-platform.fullname" . }}-server-secret
+                  key: CLAUDE_API_KEY
+            # DATABASE_URL is composed using the injected password
+            - name: DATABASE_URL
+              value: {{ printf "postgres://%s:$(POSTGRES_PASSWORD)@%s-postgres:%d/%s" .Values.postgres.username .Release.Name (.Values.postgres.port | int) .Values.postgres.database | quote }}
+            {{- with .Values.server.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          resources:
+            {{- toYaml .Values.server.resources | nindent 12 }}
+      {{- with .Values.server.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.server.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.server.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

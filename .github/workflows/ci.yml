@@ -1,0 +1,684 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+    # Docs/markdown-only changes don't affect builds or deploys, so skip CI
+    # (and the downstream docker.yml deploy, which is workflow_run-triggered).
+    # A mixed PR (code + docs) still runs CI because path filters only skip when
+    # ALL changed files match.
+    paths-ignore:
+      - 'docs/**'
+      - '**/*.md'
+      - 'LICENSE'
+      - '.gitignore'
+  pull_request:
+    branches: [main, develop]
+    paths-ignore:
+      - 'docs/**'
+      - '**/*.md'
+      - 'LICENSE'
+      - '.gitignore'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ── Go: server ────────────────────────────────────────────────
+  server-test:
+    name: Server Tests (Go)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: timescale/timescaledb:latest-pg16
+        env:
+          POSTGRES_DB: edrplatform_test
+          POSTGRES_USER: edr
+          POSTGRES_PASSWORD: testpassword
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U edr -d edrplatform_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      nats:
+        image: nats:2.10-alpine
+        ports: ["4222:4222"]
+        options: >-
+          --health-cmd "nc -z localhost 4222 || exit 1"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # golangci-lint の --new-from-merge-base に必要（origin/main との比較）。
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: server/go.mod
+          cache-dependency-path: server/go.sum
+
+      - name: Run migrations
+        working-directory: server
+        env:
+          DATABASE_URL: postgres://edr:testpassword@localhost:5432/edrplatform_test
+        run: |
+          for f in migrations/*.sql; do
+            psql "$DATABASE_URL" -f "$f" 2>/dev/null || true
+          done
+
+      # gofmt ゲート。未整形のまま入ったファイルが 337 件まで積み上がっていた
+      # (この PR で一括整形)。CI に検出が無いのが原因なので、ここで塞ぐ。
+      #
+      # gofmt -l は未整形ファイルのパスを出すだけで終了コードは 0 のため、
+      # 出力が空であることを test -z で確認する。差分そのものは -d で出す。
+      - name: gofmt
+        working-directory: server
+        run: |
+          if [ -n "$(gofmt -l .)" ]; then
+            echo "以下のファイルが gofmt 未整形です:"
+            gofmt -l .
+            echo "--- 差分 ---"
+            gofmt -d .
+            exit 1
+          fi
+
+      - name: go vet
+        working-directory: server
+        run: go vet ./...
+
+      # staticcheck はバージョンを固定する。@latest は「コードが変わっていないのに
+      # CI が赤くなる」経路そのもので、golangci-lint 側で実際に起きた
+      # (docs/ops/CI負債_調査と是正.md)。上げるときは意図的に上げる。
+      - name: staticcheck
+        working-directory: server
+        run: |
+          go install honnef.co/go/tools/cmd/staticcheck@v0.7.0
+          staticcheck ./...
+
+      # golangci-lint: errcheck/gosec/bodyclose 等の厳選セットを追加（.golangci.yml）。
+      # 既存バックログは段階導入のため、--new-from-merge-base で「新規・変更コードのみ」を
+      # ゲートする（main push 時は差分なし）。全体スキャンはローカルで実施。
+      #
+      # 公式アクションを使う理由: `go install …@latest` は golangci-lint の依存を
+      # その場でモジュール解決するため、リンタの依存が1つでも取得できなくなると
+      # コード変更ゼロで CI が落ちる。2026-08-03 に実際に発生した:
+      #
+      #   unqueryvet.go:4:2: github.com/MirrexOne/unqueryvet@v1.5.4:
+      #   reading https://proxy.golang.org/…/@v/v1.5.4.zip: 403 Forbidden
+      #
+      # アクションはビルド済みリリースバイナリを取得するので、リンタ側の依存解決が
+      # そもそも起きない。この故障クラスが構造的に消える。version も固定する。
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v8
+        with:
+          version: v2.12.2
+          working-directory: server
+          args: --new-from-merge-base=origin/main ./...
+
+      # NOTE: govulncheck はこのジョブには置かない。server-vulncheck ジョブを参照。
+
+      - name: Unit tests (with coverage)
+        working-directory: server
+        env:
+          DATABASE_URL: postgres://edr:testpassword@localhost:5432/edrplatform_test
+          # TEST_DATABASE_URL activates the DB-backed handler integration tests
+          # (testPool in handlers_test.go) which otherwise t.Skip(). Points at the
+          # same migrated postgres service so the integration suite actually runs.
+          TEST_DATABASE_URL: postgres://edr:testpassword@localhost:5432/edrplatform_test
+          NATS_URL: nats://localhost:4222
+        run: |
+          go test -race -timeout 120s \
+            -coverprofile=coverage.out -covermode=atomic \
+            ./...
+
+      # Synthetic-injection E2E: drives crafted events through the real
+      # AlertPipeline → real Postgres INSERT path and asserts an alert row lands.
+      # Tagged `integration` so it is excluded from the unit step above; it needs
+      # the migrated postgres service (DATABASE_URL). Guards the "silent break"
+      # class (inert rule / failed INSERT) that pure-logic tests cannot see.
+      - name: Synthetic injection E2E (integration)
+        working-directory: server
+        env:
+          DATABASE_URL: postgres://edr:testpassword@localhost:5432/edrplatform_test
+          NATS_URL: nats://localhost:4222
+        run: |
+          go test -tags integration -race -timeout 120s \
+            ./internal/detection/...
+
+      - name: Check coverage threshold (15%)
+        working-directory: server
+        # 公開版のカバレッジゲート。
+        # 商用版のゲート (45%) は、全ハンドラを登録するルータテストを含めて
+        # 測った値で、そのテストは公開版に含まれないため到達できない。
+        # ここでは「大きな後退だけを捕まえる床」を置いている。
+        # TODO: 最初の CI 実行で実測値が出たら、その 1〜2pp 下まで引き上げること。
+        run: |
+          COVERAGE=$(go tool cover -func=coverage.out \
+            | grep '^total:' | awk '{print $3}' | tr -d '%')
+          echo "Total coverage: ${COVERAGE}%"
+          # Use awk for float comparison (bash cannot compare floats natively)
+          if awk "BEGIN { exit !($COVERAGE < 15) }"; then
+            echo "ERROR: Coverage ${COVERAGE}% is below the 15% threshold."
+            exit 1
+          fi
+          echo "Coverage check passed: ${COVERAGE}% >= 15%"
+
+      - name: Generate HTML coverage report
+        working-directory: server
+        run: go tool cover -html=coverage.out -o coverage.html
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: server-coverage
+          path: |
+            server/coverage.out
+            server/coverage.html
+          retention-days: 14
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        continue-on-error: true   # Non-blocking if token not configured
+        with:
+          files: server/coverage.out
+          flags: server
+          name: server-coverage
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+      - name: Build all services
+        working-directory: server
+        run: |
+          go build ./cmd/api/...
+          go build ./cmd/ingestion/...
+          go build ./cmd/detection/...
+
+  # ── Detection rule validation ────────────────────────────────
+  # rules/ (Sigma YAML under rules/sigma/**, YARA under rules/yara/**) had no
+  # CI validation at all — a malformed rule would just silently fail to load
+  # in production with no build-time signal. This job reuses the server's
+  # real Sigma parser/compiler (server/internal/detection.SigmaEvaluator,
+  # the same code path used to load rules at runtime) and the real `yara`
+  # CLI (reference implementation) to catch syntax errors before they ship.
+  # See server/cmd/validate-rules for the validator and why YARA validation
+  # shells out to the `yara` CLI rather than reusing the agent's hand-rolled
+  # parser (agent/internal/scanner is an `internal` package in a different
+  # module tree and cannot be imported from server/cmd).
+  rules-validate:
+    name: Detection Rule Validation (Sigma + YARA)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: server/go.mod
+          cache-dependency-path: server/go.sum
+
+      - name: Install yara CLI
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq yara
+
+      - name: Validate rules/sigma and rules/yara
+        working-directory: server
+        run: go run ./cmd/validate-rules -dir ../rules
+
+  # ── Go: agent ────────────────────────────────────────────────
+  agent-build:
+    name: Agent Build (Go cross-compile)
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - goos: windows
+            goarch: amd64
+            suffix: .exe
+            tags: ""
+          # Linux ships with -tags ebpf by default: the eBPF process collector
+          # captures short-lived process argv in-kernel. Polling misses sub-second
+          # execs (empty process_name/command_line → detection blind spot; measured
+          # 8% vs ~full detection, docs/results/live-20260701-linux-discovery-v1.md).
+          # Strict superset — auto-falls back to /proc polling when BTF/CAP_BPF is
+          # unavailable (agent/internal/platform/linux/process_ebpf.go). Pure Go
+          # (embedded bpf2go objects) so CGO_ENABLED=0 cross-compile still works.
+          - goos: linux
+            goarch: amd64
+            suffix: ""
+            tags: ebpf
+          - goos: darwin
+            goarch: arm64
+            suffix: ""
+            tags: ""
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: agent/go.mod
+          cache-dependency-path: agent/go.sum
+
+      # NetworkMonitor/FilelessMonitor bpf2go bindings aren't committed (like
+      # ProcessMonitor's are), so the standard `-tags ebpf` Linux build needs them
+      # generated here first. Same recipe as agent-ebpf.yml's prevention/tamper
+      # generation step, but under plain `-tags ebpf`: both are report-only
+      # tracepoint/kprobe monitors with no LSM/enforcement hooks, so neither
+      # belongs behind the "prevention" tag. One bpftool build serves both.
+      - name: Generate report-only eBPF bindings (Linux only)
+        if: matrix.goos == 'linux'
+        working-directory: agent
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang llvm libbpf-dev libelf-dev zlib1g-dev pkg-config gcc make git
+          test -r /sys/kernel/btf/vmlinux || { echo "runner kernel has no BTF (/sys/kernel/btf/vmlinux)"; exit 1; }
+          git clone --depth 1 --recurse-submodules https://github.com/libbpf/bpftool.git /tmp/bpftool
+          make -C /tmp/bpftool/src
+          sudo /tmp/bpftool/src/bpftool btf dump file /sys/kernel/btf/vmlinux format c > ebpf/vmlinux.h
+          wc -l ebpf/vmlinux.h
+          cd internal/platform/linux
+          GOPACKAGE=linux go run github.com/cilium/ebpf/cmd/bpf2go \
+            -tags ebpf -cc clang \
+            -cflags "-O2 -g -target bpf -D__TARGET_ARCH_x86" \
+            NetworkMonitor ../../../ebpf/network_monitor.bpf.c
+          GOPACKAGE=linux go run github.com/cilium/ebpf/cmd/bpf2go \
+            -tags ebpf -cc clang \
+            -cflags "-O2 -g -target bpf -D__TARGET_ARCH_x86" \
+            FilelessMonitor ../../../ebpf/fileless_monitor.bpf.c
+          ls -1 networkmonitor_bpf* filelessmonitor_bpf*
+
+      - name: Build agent
+        working-directory: agent
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: "0"
+        run: go build -tags "${{ matrix.tags }}" -ldflags="-s -w" -o edr-agent-${{ matrix.goos }}-${{ matrix.goarch }}${{ matrix.suffix }} ./cmd/agent/...
+
+      - name: Build watchdog
+        working-directory: agent
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: "0"
+        run: go build -ldflags="-s -w" -o edr-watchdog-${{ matrix.goos }}-${{ matrix.goarch }}${{ matrix.suffix }} ./cmd/watchdog/...
+
+      - name: Upload agent binaries
+        uses: actions/upload-artifact@v4
+        with:
+          name: agent-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: agent/edr-*
+
+  # ── Agent unit tests ─────────────────────────────────────────
+  # Runs the agent Go test suite natively on linux/amd64. The agent-build job
+  # above only cross-compiles the binaries (windows/linux/darwin) and never
+  # executes their test binaries, so the agent's ~8k lines of tests provided
+  # zero CI protection until this job. Uses -tags ebpf to match the default
+  # Linux agent build (the ebpf collector is pure Go via embedded bpf2go
+  # objects, so it compiles without CGO; -race enables cgo for the detector).
+  agent-test:
+    name: Agent Tests (Go)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: agent/go.mod
+          cache-dependency-path: agent/go.sum
+
+      # gofmt ゲート。server 側と同じ理由 (未整形が 337 件まで積み上がっていた)。
+      # ビルドを必要としないので eBPF バインディング生成より前に置く — 整形漏れは
+      # バインディング生成 (数分) を待たずに落ちたほうが速い。
+      - name: gofmt
+        working-directory: agent
+        run: |
+          if [ -n "$(gofmt -l .)" ]; then
+            echo "以下のファイルが gofmt 未整形です:"
+            gofmt -l .
+            echo "--- 差分 ---"
+            gofmt -d .
+            exit 1
+          fi
+
+      # This job compiles with `-tags ebpf`, so it needs the same bindings the
+      # agent-build job generates (they aren't committed the way ProcessMonitor's
+      # are). Without this, internal/platform/linux fails to build with
+      # `undefined: NetworkMonitorObjects` / `undefined: FilelessMonitorObjects`.
+      - name: Generate report-only eBPF bindings
+        working-directory: agent
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang llvm libbpf-dev libelf-dev zlib1g-dev pkg-config gcc make git
+          test -r /sys/kernel/btf/vmlinux || { echo "runner kernel has no BTF (/sys/kernel/btf/vmlinux)"; exit 1; }
+          git clone --depth 1 --recurse-submodules https://github.com/libbpf/bpftool.git /tmp/bpftool
+          make -C /tmp/bpftool/src
+          sudo /tmp/bpftool/src/bpftool btf dump file /sys/kernel/btf/vmlinux format c > ebpf/vmlinux.h
+          cd internal/platform/linux
+          GOPACKAGE=linux go run github.com/cilium/ebpf/cmd/bpf2go \
+            -tags ebpf -cc clang \
+            -cflags "-O2 -g -target bpf -D__TARGET_ARCH_x86" \
+            NetworkMonitor ../../../ebpf/network_monitor.bpf.c
+          GOPACKAGE=linux go run github.com/cilium/ebpf/cmd/bpf2go \
+            -tags ebpf -cc clang \
+            -cflags "-O2 -g -target bpf -D__TARGET_ARCH_x86" \
+            FilelessMonitor ../../../ebpf/fileless_monitor.bpf.c
+          ls -1 networkmonitor_bpf* filelessmonitor_bpf*
+
+      # staticcheck は server ジョブにはあったが agent には無く、指摘が 16 件
+      # 溜まっていた (#601 で解消)。同じことを繰り返さないようゲートを置く。
+      #
+      # 既定タグと ebpf タグの両方を解析する。
+      #
+      # 両方回すのは、ビルドタグで分かれたファイルの指摘が片方でしか出ない
+      # ためで、これは実際に起きた: credNoiseFiltered / hostIntegrityNoiseFiltered
+      # の U1000 は「宣言が既定タグ、加算が ebpf && prevention」というずれで、
+      # 既定タグ側でのみ検出された。逆に ebpf 側にしか無いコードの指摘は、
+      # 既定タグだけでは永久に出ない。
+      #
+      # このステップは上の bpf2go バインディング生成 (NetworkMonitor /
+      # FilelessMonitor) の後に置く必要がある。生成前だと -tags ebpf で
+      # internal/platform/linux が undefined でコンパイルできない。
+      #
+      # prevention タグは対象外。そちらのバインディング (CredAccessLSM 等) は
+      # このジョブで生成しておらず、解析以前にビルドが通らない。
+      #
+      # バージョンは server ジョブと同じ v0.7.0 に固定する。2つのジョブが別々の
+      # staticcheck を使うと、同じコードが片方だけ赤くなる状態が起こり得る。
+      - name: staticcheck
+        working-directory: agent
+        run: |
+          go install honnef.co/go/tools/cmd/staticcheck@v0.7.0
+          staticcheck ./...
+          staticcheck -tags ebpf ./...
+
+      # Coverage was previously unmeasured for the agent module entirely — only
+      # server/ had a coverage.yml badge/gate. Mirrors the server's approach:
+      # measure on every PR, gate on a threshold, upload the report. Baseline
+      # measured locally was 33.1%; the 30% gate leaves headroom while still
+      # catching a real regression (matches server-test's ratcheting pattern).
+      - name: Unit tests (with coverage)
+        working-directory: agent
+        run: |
+          go test -tags ebpf -race -timeout 120s \
+            -coverprofile=coverage.out -covermode=atomic \
+            ./...
+
+      - name: Check coverage threshold (30%)
+        working-directory: agent
+        run: |
+          COVERAGE=$(go tool cover -func=coverage.out \
+            | grep '^total:' | awk '{print $3}' | tr -d '%')
+          echo "Total coverage: ${COVERAGE}%"
+          if awk "BEGIN { exit !($COVERAGE < 30) }"; then
+            echo "ERROR: Coverage ${COVERAGE}% is below the 30% threshold."
+            exit 1
+          fi
+          echo "Coverage check passed: ${COVERAGE}% >= 30%"
+
+      - name: Generate HTML coverage report
+        working-directory: agent
+        run: go tool cover -html=coverage.out -o coverage.html
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: agent-coverage
+          path: |
+            agent/coverage.out
+            agent/coverage.html
+          retention-days: 14
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        continue-on-error: true   # Non-blocking if token not configured
+        with:
+          files: agent/coverage.out
+          flags: agent
+          name: agent-coverage
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+      # Cross-platform compile check for the Windows/macOS agent packages.
+      # Those packages are OS-tagged (//go:build windows / darwin), so the
+      # linux unit-test step above cannot compile them and executing their
+      # tests would need costly Windows/macOS runners. `go vet` with GOOS set
+      # type-checks and compiles each package *including its _test.go files*
+      # without running them, so signature drift and compile rot in the
+      # Windows/macOS collectors and their tests is caught per-PR on this cheap
+      # ubuntu runner — the class of bug (e.g. a struct-layout mismatch) that
+      # went undetected while agent tests never ran in CI at all.
+      - name: Cross-platform vet (windows/darwin)
+        working-directory: agent
+        run: |
+          GOOS=windows GOARCH=amd64 go vet ./...
+          GOOS=darwin  GOARCH=arm64 go vet ./...
+          # macOS EndpointSecurity (ESF) build variant + its prevention combo.
+          GOOS=darwin  GOARCH=arm64 go vet -tags esf ./internal/platform/darwin/...
+          GOOS=darwin  GOARCH=arm64 go vet -tags "esf prevention" ./internal/platform/darwin/...
+
+  # ── Server dependency vulnerability scan (govulncheck) ────────
+  # 独立ジョブであることが重要。以前は server-test ジョブの中間ステップだったため、
+  # 依存に脆弱性が1件出るだけで後続の Unit tests / Synthetic injection E2E /
+  # Build all services が丸ごと skipped になり、テストゲートが静かに消えていた
+  # (GO-2026-6061 が main で赤かった数日間、実際にサーバのユニットテストは
+  #  一度も実行されていない)。脆弱性は脆弱性として、テストはテストとして
+  # それぞれ独立に赤くなるべきなので、agent-vulncheck と同じ形に揃えた。
+  server-vulncheck:
+    name: Server Vulnerability Check (govulncheck)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: server/go.mod
+          cache-dependency-path: server/go.sum
+
+      # govulncheck もバージョンを固定する。ただし固定の意味は staticcheck とは
+      # 違う。staticcheck の @latest は新しい検査が増えるだけでコードが赤くなるが、
+      # govulncheck が報告する脆弱性は「解析エンジンの版」ではなく「実行時に
+      # 取得する脆弱性データベース」に由来する。DB は毎回 vuln.go.dev から
+      # 取り直されるので、版を固定しても新規 CVE の検知力は一切落ちない。
+      #
+      # 固定して防げるのは解析エンジン側の事故だけ:
+      #   - 新リリースが go.mod より新しい Go ツールチェインを要求して install が失敗する
+      #   - 出力形式や終了コードが変わる
+      #   - 到達可能性解析のリグレッションで既知の脆弱性を見落とす
+      # いずれもコード無変更で CI の色が変わる事象なので、pin する価値はある。
+      #
+      # 注意: Dependabot の github-actions エコシステムは `uses:` しか見ないため、
+      # run: の中の go install ...@vX.Y.Z は自動更新されない (staticcheck の
+      # v0.7.0 も同様)。上げるのは手動。放置すると解析エンジンだけが古びる。
+      - name: Install govulncheck
+        run: go install golang.org/x/vuln/cmd/govulncheck@v1.6.0
+
+      - name: govulncheck
+        working-directory: server
+        run: govulncheck ./...
+
+  # ── Agent dependency vulnerability scan (govulncheck) ─────────
+  # Runs once on linux/amd64 (independent of the cross-compile matrix above).
+  # Mirrors server-vulncheck so both Go modules are covered by Go's official
+  # vuln database (replaces the removed nancy job in security.yml, which
+  # suffered OSS Index 401s).
+  agent-vulncheck:
+    name: Agent Vulnerability Check (govulncheck)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: agent/go.mod
+          cache-dependency-path: agent/go.sum
+
+      # server-vulncheck と同じ版に揃える。揃えないと、同じ脆弱性が
+      # 片方のモジュールでだけ報告される状態が起こり得る (staticcheck を
+      # agent 側にも入れた時と同じ理由)。固定の意味は server-vulncheck の
+      # コメントを参照。
+      - name: Install govulncheck
+        run: go install golang.org/x/vuln/cmd/govulncheck@v1.6.0
+
+      - name: govulncheck
+        working-directory: agent
+        run: govulncheck ./...
+
+  # ── Frontend ──────────────────────────────────────────────────
+  frontend-build:
+    name: Frontend Build (Next.js)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm install --prefer-offline
+
+      - name: Lint
+        working-directory: frontend
+        run: npm run lint
+
+      - name: Type check
+        working-directory: frontend
+        run: npx tsc --noEmit
+
+      # Vitest unit/component tests (frontend/tests/**). Previously these were
+      # never run in CI — only lint, typecheck, build, and the separate
+      # Playwright e2e job ran — so component and lib-level regressions could
+      # merge undetected. `npm test` maps to `vitest run` (see package.json).
+      # Now that the Playwright e2e job runs nightly (integration.yml) rather than
+      # per-push, this is the frontend's only per-push behavioral safety net.
+      - name: Unit tests (Vitest)
+        working-directory: frontend
+        run: npm test
+
+      - name: Build
+        working-directory: frontend
+        env:
+          NEXT_PUBLIC_API_URL: /api/v1
+        run: npm run build
+
+      - name: Upload build
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-build
+          path: frontend/.next/standalone
+          retention-days: 1
+
+  # ── SDKs (Python + TypeScript) ───────────────────────────────
+  # The client SDKs shipped to customers had no CI test execution at all: the
+  # Python suite (pytest, 56 tests) was never invoked by any workflow, and the
+  # TypeScript suite (vitest, 45 tests) existed on disk but the package had no
+  # `test` script or vitest devDependency to run it with — so both suites were
+  # silent dead weight that regressions could sail through undetected.
+  sdk-test:
+    name: SDK Tests (Python + TypeScript)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Python SDK dev dependencies
+        working-directory: sdk/python
+        run: pip install -r requirements-dev.txt
+
+      - name: Python SDK tests
+        working-directory: sdk/python
+        run: pytest -q
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: sdk/typescript/package-lock.json
+
+      - name: Install TypeScript SDK dependencies
+        working-directory: sdk/typescript
+        run: npm install
+
+      - name: TypeScript SDK typecheck
+        working-directory: sdk/typescript
+        run: npm run typecheck
+
+      - name: TypeScript SDK tests
+        working-directory: sdk/typescript
+        run: npm test
+
+  # ── Backup / Restore integrity test ──────────────────────────
+  backup-test:
+    name: Backup & Restore Integrity Test
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: testpass
+          POSTGRES_DB: edr_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create test table and insert data
+        run: |
+          psql postgresql://postgres:testpass@localhost/edr_test \
+            -c "CREATE TABLE backup_test (id serial, val text); INSERT INTO backup_test VALUES (1, 'hello');"
+
+      - name: Run backup (local mode)
+        env:
+          DATABASE_URL: postgresql://postgres:testpass@localhost/edr_test
+          BACKUP_DIR: /tmp/backups
+          BACKUP_DEST: local
+        run: |
+          mkdir -p /tmp/backups
+          bash deploy/backup/backup.sh --local
+
+      - name: Verify backup file and checksum exist
+        run: |
+          ls -la /tmp/backups/
+          test -f /tmp/backups/edr_backup_*.dump.gz
+          test -f /tmp/backups/edr_backup_*.dump.gz.sha256
+
+      - name: Verify checksum integrity
+        run: |
+          cd /tmp/backups
+          sha256sum --check edr_backup_*.dump.gz.sha256
+
+      - name: Drop table and restore from backup
+        env:
+          DATABASE_URL: postgresql://postgres:testpass@localhost/edr_test
+        run: |
+          psql postgresql://postgres:testpass@localhost/edr_test \
+            -c "DROP TABLE backup_test;"
+          BACKUP_FILE=$(ls /tmp/backups/edr_backup_*.dump.gz | head -1)
+          bash deploy/backup/restore.sh --force "$BACKUP_FILE"
+
+      - name: Verify restored data
+        run: |
+          psql postgresql://postgres:testpass@localhost/edr_test \
+            -c "SELECT val FROM backup_test WHERE id=1;" | grep hello
+

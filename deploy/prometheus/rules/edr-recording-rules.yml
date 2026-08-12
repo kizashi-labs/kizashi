@@ -1,0 +1,75 @@
+groups:
+  # ──────────────────────────────────────────────────────────────────────
+  # EDR Recording Rules
+  # Pre-computed metrics to reduce query complexity in dashboards and alerts
+  # ──────────────────────────────────────────────────────────────────────
+
+  - name: edr_alerts_recording
+    interval: 30s
+    rules:
+      # Alert creation rate over 5-minute window
+      - record: edr:alerts:rate5m
+        expr: rate(edr_alerts_created_total[5m])
+
+  - name: edr_agents_recording
+    interval: 30s
+    rules:
+      # Ratio of online agents to total registered agents
+      # Returns a value between 0 and 1; e.g. 0.95 = 95% online
+      - record: edr:agents:online_ratio
+        expr: |
+          edr_agents_online
+          / clamp_min(edr_agents_online + edr_agents_offline_total, 1)
+
+  - name: edr_api_recording
+    interval: 15s
+    rules:
+      # Per-endpoint request rate (requests/second over 5m window)
+      - record: edr:api:request_rate
+        expr: |
+          sum by (handler, method) (
+            rate(http_requests_total{job="edr-api"}[5m])
+          )
+
+      # 5xx error rate as a fraction of total requests per endpoint
+      # Returns a value between 0 and 1; e.g. 0.02 = 2% errors
+      - record: edr:api:error_rate
+        expr: |
+          sum by (handler, method) (
+            rate(http_requests_total{job="edr-api", status=~"5.."}[5m])
+          )
+          / clamp_min(
+            sum by (handler, method) (
+              rate(http_requests_total{job="edr-api"}[5m])
+            ),
+            1e-9
+          )
+
+      # P95 request latency per endpoint in seconds
+      - record: edr:api:p95_latency
+        expr: |
+          histogram_quantile(0.95,
+            sum by (handler, method, le) (
+              rate(http_request_duration_seconds_bucket{job="edr-api"}[5m])
+            )
+          )
+
+  - name: edr_incidents_recording
+    interval: 30s
+    rules:
+      # Current count of open incidents grouped by severity
+      - record: edr:incidents:open_count
+        expr: |
+          sum by (severity) (
+            edr_incidents_open_total
+          )
+
+  - name: edr_detection_recording
+    interval: 30s
+    rules:
+      # Detection rule match rate per rule name (matches/second over 5m window)
+      - record: edr:detection:rule_hit_rate
+        expr: |
+          sum by (rule_name, rule_id) (
+            rate(edr_rule_matches_total[5m])
+          )

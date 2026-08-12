@@ -1,0 +1,106 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "kizashi.fullname" . }}-detection
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "kizashi.componentLabels" (dict "root" . "component" "detection") | nindent 4 }}
+spec:
+  replicas: {{ .Values.detection.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "kizashi.componentSelectorLabels" (dict "root" . "component" "detection") | nindent 6 }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        {{- include "kizashi.componentLabels" (dict "root" . "component" "detection") | nindent 8 }}
+      annotations:
+        checksum/secret: {{ include (print $.Template.BasePath "/secrets.yaml") . | sha256sum }}
+        {{- with .Values.detection.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      serviceAccountName: {{ include "kizashi.serviceAccountName" . }}
+      automountServiceAccountToken: {{ .Values.serviceAccount.automountServiceAccountToken }}
+      {{- include "kizashi.imagePullSecrets" . | nindent 6 }}
+      {{- with .Values.detection.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: detection
+          image: {{ include "kizashi.image" (dict "root" . "image" .Values.detection.image) }}
+          imagePullPolicy: {{ .Values.detection.image.pullPolicy }}
+          {{- with .Values.detection.securityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          ports:
+            - name: grpc
+              containerPort: {{ .Values.detection.ports.grpc }}
+              protocol: TCP
+          env:
+            # ---- Database ----
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "kizashi.dbSecretName" . }}
+                  key: {{ include "kizashi.dbSecretKey" . }}
+            - name: DATABASE_URL
+              value: "postgres://{{ .Values.global.postgresql.user }}:$(DB_PASSWORD)@{{ .Values.global.postgresql.host }}:{{ .Values.global.postgresql.port }}/{{ .Values.global.postgresql.database }}?sslmode=require"
+            # ---- NATS ----
+            - name: NATS_URL
+              value: {{ include "kizashi.natsURL" . | quote }}
+            # ---- JWT (needed for token validation in detection callbacks) ----
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "kizashi.jwtSecretName" . }}
+                  key: {{ include "kizashi.jwtSecretKey" . }}
+            # ---- Ports ----
+            - name: GRPC_PORT
+              value: {{ .Values.detection.ports.grpc | quote }}
+            # ---- App config ----
+            - name: APP_ENV
+              value: "production"
+            - name: LOG_LEVEL
+              value: "info"
+            {{- with .Values.detection.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          livenessProbe:
+            {{- toYaml .Values.detection.livenessProbe | nindent 12 }}
+          readinessProbe:
+            {{- toYaml .Values.detection.readinessProbe | nindent 12 }}
+          resources:
+            {{- toYaml .Values.detection.resources | nindent 12 }}
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}
+      {{- with .Values.detection.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.detection.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.detection.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              {{- include "kizashi.componentSelectorLabels" (dict "root" . "component" "detection") | nindent 14 }}

@@ -1,0 +1,33 @@
+# Development overrides — use with: docker compose -f docker-compose.yml -f docker-compose.dev.yml up
+version: '3.9'
+
+services:
+  postgres:
+    ports:
+      - "5432:5432"  # Expose for local DB tools
+
+  nats:
+    ports:
+      - "4222:4222"
+      - "8222:8222"  # NATS monitoring dashboard
+
+  api:
+    build:
+      target: api
+    environment:
+      LOG_LEVEL: debug
+      GIN_MODE: debug
+    volumes:
+      - ./server:/app:ro  # Hot-reload friendly (use air for live reload)
+
+  frontend:
+    build:
+      context: ./frontend
+      target: deps  # Use deps stage for dev
+    command: npm run dev
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
+    environment:
+      NODE_ENV: development

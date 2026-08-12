@@ -1,0 +1,90 @@
+╔══════════════════════════════════════════════════════════════════╗
+║          EDR Platform — Post-Install Instructions               ║
+╚══════════════════════════════════════════════════════════════════╝
+
+Release name : {{ .Release.Name }}
+Namespace    : {{ .Release.Namespace }}
+Chart version: {{ .Chart.Version }}
+App version  : {{ .Chart.AppVersion }}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. VERIFY DEPLOYMENT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  kubectl get pods -n {{ .Release.Namespace }} -l app.kubernetes.io/instance={{ .Release.Name }}
+
+  # Watch rollout status
+  kubectl rollout status deployment/{{ include "edr-platform.fullname" . }}-server \
+    -n {{ .Release.Namespace }}
+  kubectl rollout status deployment/{{ include "edr-platform.fullname" . }}-frontend \
+    -n {{ .Release.Namespace }}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+2. ACCESS THE PLATFORM
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+{{- if .Values.ingress.enabled }}
+  Platform URL: http{{ if .Values.ingress.tls.enabled }}s{{ end }}://{{ .Values.ingress.host }}
+{{- else }}
+  Ingress is disabled. Use port-forward to access services:
+
+  kubectl port-forward svc/{{ include "edr-platform.fullname" . }}-frontend \
+    3000:{{ .Values.frontend.port }} -n {{ .Release.Namespace }}
+
+  kubectl port-forward svc/{{ include "edr-platform.fullname" . }}-server \
+    8080:{{ .Values.server.port }} -n {{ .Release.Namespace }}
+
+  Frontend : http://localhost:3000
+  API      : http://localhost:8080
+{{- end }}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+3. IMPORTANT SECURITY REMINDERS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  The following secrets MUST be set to non-default values in production:
+
+    --set secrets.jwtSecret=<long-random-string>
+    --set secrets.dbPassword=<strong-db-password>
+    --set secrets.redisPassword=<strong-redis-password>
+    --set secrets.nextauthSecret=<long-random-string>
+    --set secrets.adminPassword=<strong-admin-password>
+    --set secrets.claudeApiKey=<your-anthropic-api-key>
+
+  To generate a strong secret:
+    openssl rand -base64 48
+
+  WARNING: The Secret resource has helm.sh/resource-policy: keep
+  to prevent accidental deletion. Remove it manually if required:
+    kubectl delete secret {{ include "edr-platform.fullname" . }}-server-secret \
+      -n {{ .Release.Namespace }}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+4. HPA STATUS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+{{- if .Values.hpa.enabled }}
+  HPA is ENABLED for the server deployment.
+  Min replicas: {{ .Values.hpa.minReplicas }}
+  Max replicas: {{ .Values.hpa.maxReplicas }}
+  CPU target  : {{ .Values.hpa.targetCPUUtilizationPercentage }}%
+
+  kubectl get hpa -n {{ .Release.Namespace }}
+{{- else }}
+  HPA is disabled. Enable it with:
+    --set hpa.enabled=true
+{{- end }}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+5. LOGS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  kubectl logs -f -l app.kubernetes.io/component=server \
+    -n {{ .Release.Namespace }}
+
+  kubectl logs -f -l app.kubernetes.io/component=frontend \
+    -n {{ .Release.Namespace }}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Documentation: https://github.com/edr-platform/edr-platform
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

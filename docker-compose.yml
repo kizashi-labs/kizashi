@@ -1,0 +1,366 @@
+# ──────────────────────────────────────────────
+# EDR Platform — Full Stack Docker Compose
+# Usage: docker compose up -d
+# ──────────────────────────────────────────────
+
+x-common-env: &common-env
+  TZ: UTC
+  LOG_LEVEL: info
+
+services:
+
+  # ── Infrastructure ──────────────────────────
+
+  postgres:
+    image: timescale/timescaledb:latest-pg16
+    container_name: kizashi-postgres
+    restart: unless-stopped
+    # max_connections raised from the image default (50) to 100. The three app
+    # services (api/detection/ingestion) each hold a pgxpool — api alone keeps
+    # ~29 mostly-idle connections — which together sit right at 50, leaving zero
+    # headroom. A simultaneous recreate of all services (as `docker.yml`'s deploy
+    # does) then tips it over "FATAL: sorry, too many clients already", which
+    # would fail the migration api runs on startup and stall ingestion. A CLI
+    # `-c` flag outranks postgresql.conf/auto.conf, so this stays authoritative
+    # even on a fresh data volume (disaster recovery / new env) where the
+    # ALTER SYSTEM override that fixed the running box would not exist. Preserves
+    # the image's postgresql.conf (shared_preload_libraries=timescaledb).
+    command: ["postgres", "-c", "max_connections=100"]
+    environment:
+      POSTGRES_USER: edr
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-edr_dev_password}
+      POSTGRES_DB: edrplatform
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U edr -d edrplatform"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - kizashi-internal
+
+  nats-1:
+    image: nats:2.10-alpine
+    container_name: kizashi-nats-1
+    restart: unless-stopped
+    command: ["--js", "--sd", "/data", "--cluster_name", "edr-cluster", "-m", "8222",
+              "--cluster", "nats://0.0.0.0:6222",
+              "--routes", "nats://nats-2:6222,nats://nats-3:6222",
+              "--server_name", "nats-1"]
+    volumes:
+      - nats_data_1:/data
+    ports:
+      - "${NATS_PORT:-4222}:4222"
+      - "8222:8222"  # NATS monitoring
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:8222/healthz?js-server-only=true || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - kizashi-internal
+
+  nats-2:
+    image: nats:2.10-alpine
+    container_name: kizashi-nats-2
+    restart: unless-stopped
+    command: ["--js", "--sd", "/data", "--cluster_name", "edr-cluster", "-m", "8222",
+              "--cluster", "nats://0.0.0.0:6222",
+              "--routes", "nats://nats-1:6222,nats://nats-3:6222",
+              "--server_name", "nats-2"]
+    volumes:
+      - nats_data_2:/data
+    ports:
+      - "4223:4222"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:8222/healthz?js-server-only=true || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - kizashi-internal
+
+  nats-3:
+    image: nats:2.10-alpine
+    container_name: kizashi-nats-3
+    restart: unless-stopped
+    command: ["--js", "--sd", "/data", "--cluster_name", "edr-cluster", "-m", "8222",
+              "--cluster", "nats://0.0.0.0:6222",
+              "--routes", "nats://nats-1:6222,nats://nats-2:6222",
+              "--server_name", "nats-3"]
+    volumes:
+      - nats_data_3:/data
+    ports:
+      - "4224:4222"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:8222/healthz?js-server-only=true || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - kizashi-internal
+
+  # ── Tor Proxy（ダークウェブ監視用 SOCKS5 プロキシ）────
+  tor:
+    image: peterdavehello/tor-socks-proxy:latest
+    container_name: edr-tor
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:9050:9050"   # ローカルからのアクセスのみ許可
+    healthcheck:
+      test: ["CMD", "pgrep", "tor"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+  # ── Backend Services ────────────────────────
+
+  api:
+    image: kizashi-server-api:${IMAGE_TAG:-local}
+    build:
+      context: .
+      dockerfile: server/Dockerfile
+      target: api
+      args:
+        GIT_COMMIT: ${GIT_COMMIT:-unknown}
+    container_name: kizashi-api
+    restart: unless-stopped
+    user: "0:0"
+    environment:
+      <<: *common-env
+      DATABASE_URL: postgres://edr:${POSTGRES_PASSWORD:-edr_dev_password}@postgres:5432/edrplatform?sslmode=disable
+      # Runtime app connection (non-superuser edr_app) for RLS tenant isolation.
+      # Leave empty to fall back to DATABASE_URL (current behavior). To activate,
+      # create edr_app's password (migration 325 + operator step) and set:
+      #   APP_DATABASE_URL=postgres://edr_app:<pass>@postgres:5432/edrplatform?sslmode=disable
+      # in .env. See docs/security/マルチテナント分離ハードニング.md 手順2.
+      APP_DATABASE_URL: ${APP_DATABASE_URL:-}
+      NATS_URL: nats://nats-1:4222,nats://nats-2:4222,nats://nats-3:4222
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set in .env}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+      CERT_DIR: /certs
+      HTTP_PORT: 8080
+      GRPC_PORT: 9090
+      RUN_MIGRATIONS: "true"
+      # SigmaHQ public-rule auto-sync (SigmaSyncScheduler). Off by default so a
+      # fresh deploy does not pull thousands of rules unexpectedly; opt in per
+      # environment via .env (SIGMAHQ_SYNC_ENABLED=true). Scope is bounded to the
+      # telemetry-mapped DefaultSyncPaths and stable/test rules only.
+      SERVER_URL: ${SERVER_URL:-http://localhost:8080}
+      EDR_BASE_URL: ${EDR_BASE_URL:-http://localhost:8080}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-}
+      AGENT_BIN_DIR: /downloads
+      AGENT_LATEST_VERSION: ${AGENT_LATEST_VERSION:-}
+      AGENT_LATEST_URL: ${AGENT_LATEST_URL:-}
+      AGENT_LATEST_CHECKSUM: ${AGENT_LATEST_CHECKSUM:-}
+      TOR_PROXY_URL: socks5://tor:9050
+      DARKWEB_MONITOR_ENABLED: ${DARKWEB_MONITOR_ENABLED:-true}
+      BILLING_GRACE_PERIOD_DAYS: ${BILLING_GRACE_PERIOD_DAYS:-30}
+    volumes:
+      - certs_data:/certs
+    ports:
+      - "${API_PORT:-8080}:8080"
+      - "${GRPC_PORT:-9090}:9090"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      nats-1:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8080/healthz || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+    networks:
+      - kizashi-internal
+      - kizashi-external
+
+  # Detection consumers scale horizontally: every replica binds the SAME
+  # JetStream durable ("detection-engine"), so NATS load-balances events.>
+  # across them (each event handled by exactly one replica). Because the durable
+  # is shared, DETECTION_CONCURRENCY / DETECTION_MAX_ACK_PENDING MUST be identical
+  # on all replicas — they read the same .env vars below, so they stay in sync.
+  # To add capacity: add a detection-N service extending this one (or set
+  # replicas via `docker compose up -d --scale`-friendly tooling) and bump the
+  # values via .env. MaxAckPending is the TOTAL in-flight cap across all replicas.
+  detection: &detection-base
+    image: kizashi-server-detect:${IMAGE_TAG:-local}
+    build:
+      context: .
+      dockerfile: server/Dockerfile
+      target: detection
+    container_name: kizashi-detection
+    restart: unless-stopped
+    environment:
+      <<: *common-env
+      DATABASE_URL: postgres://edr:${POSTGRES_PASSWORD:-edr_dev_password}@postgres:5432/edrplatform?sslmode=disable
+      # Runtime app connection (non-superuser edr_app) for RLS tenant isolation.
+      # Leave empty to fall back to DATABASE_URL (current behavior). To activate,
+      # create edr_app's password (migration 325 + operator step) and set:
+      #   APP_DATABASE_URL=postgres://edr_app:<pass>@postgres:5432/edrplatform?sslmode=disable
+      # in .env. See docs/security/マルチテナント分離ハードニング.md 手順2.
+      APP_DATABASE_URL: ${APP_DATABASE_URL:-}
+      NATS_URL: nats://nats-1:4222,nats://nats-2:4222,nats://nats-3:4222
+      AUTO_RESPONSE_ENABLED: "true"
+      AUTO_ISOLATE_MIN_SEVERITY: "9"
+      AI_ANALYSIS_ENABLED: "false"
+      EDR_BASE_URL: ${SERVER_URL:-http://localhost:8080}
+      DETECTION_CONCURRENCY: ${DETECTION_CONCURRENCY:-20}
+      # Empty → the detection engine derives MaxAckPending from concurrency
+      # (concurrency×3). Keep prefetch aligned with real worker parallelism:
+      # a large fixed value causes a redelivery storm (buffered messages time
+      # out past AckWait before they are processed) that stalls ack progress.
+      DETECTION_MAX_ACK_PENDING: ${DETECTION_MAX_ACK_PENDING:-}
+      DETECTION_ACK_WAIT_SEC: ${DETECTION_ACK_WAIT_SEC:-60}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      nats-1:
+        condition: service_healthy
+    networks:
+      - kizashi-internal
+
+  # Second detection replica. Inherits everything from `detection` via the YAML
+  # anchor, overriding only container_name so the two run side by side and share
+  # the durable consumer group. Add detection-3, -4… the same way as load grows.
+  detection-2:
+    <<: *detection-base
+    container_name: kizashi-detection-2
+
+  ingestion:
+    image: kizashi-server-ingest:${IMAGE_TAG:-local}
+    build:
+      context: .
+      dockerfile: server/Dockerfile
+      target: ingestion
+    container_name: kizashi-ingestion
+    user: "0:0"
+    restart: unless-stopped
+    environment:
+      <<: *common-env
+      DATABASE_URL: postgres://edr:${POSTGRES_PASSWORD:-edr_dev_password}@postgres:5432/edrplatform?sslmode=disable
+      # Runtime app connection (non-superuser edr_app) for RLS tenant isolation.
+      # Leave empty to fall back to DATABASE_URL (current behavior). To activate,
+      # create edr_app's password (migration 325 + operator step) and set:
+      #   APP_DATABASE_URL=postgres://edr_app:<pass>@postgres:5432/edrplatform?sslmode=disable
+      # in .env. See docs/security/マルチテナント分離ハードニング.md 手順2.
+      APP_DATABASE_URL: ${APP_DATABASE_URL:-}
+      NATS_URL: nats://nats-1:4222,nats://nats-2:4222,nats://nats-3:4222
+      GRPC_PORT: 9091
+      TLS_ENABLED: "false"
+      TLS_CERT_FILE: ""
+      TLS_KEY_FILE: ""
+      CA_CERT_FILE: "/certs/ca.crt"
+      CA_KEY_FILE: "/certs/ca.key"
+    volumes:
+      - certs_data:/certs:ro
+    ports:
+      - "${INGESTION_PORT:-9091}:9091"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      nats-1:
+        condition: service_healthy
+    networks:
+      - kizashi-internal
+      - kizashi-external
+
+  # ── Frontend ────────────────────────────────
+
+  frontend:
+    image: kizashi-frontend:${IMAGE_TAG:-local}
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8080}
+        API_URL: http://api:8080
+    container_name: edr-frontend
+    restart: unless-stopped
+    environment:
+      <<: *common-env
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8080}
+      API_URL: http://api:8080
+      NODE_ENV: production
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"
+    depends_on:
+      api:
+        condition: service_healthy
+    networks:
+      - kizashi-internal
+      - kizashi-external
+
+  # ── Observability ────────────────────────────
+
+  prometheus:
+    image: prom/prometheus:v2.52.0
+    container_name: edr-prometheus
+    restart: unless-stopped
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=30d'
+      - '--web.enable-lifecycle'
+    volumes:
+      - ./deploy/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      # prometheus.yml の rule_files は /etc/prometheus/rules/*.yml を参照するが、
+      # この rules ディレクトリが未マウントだったため EDR アラートルール
+      # (検知insert失敗 / パイプライン沈黙 / curate inert・隔離整合 等)が全て
+      # ロードされず無効だった。ディレクトリをマウントして有効化する。
+      - ./deploy/prometheus/rules:/etc/prometheus/rules:ro
+      - prometheus_data:/prometheus
+    ports:
+      - "${PROMETHEUS_PORT:-9095}:9090"
+    depends_on:
+      - api
+    networks:
+      - kizashi-internal
+
+  grafana:
+    image: grafana/grafana:10.4.2
+    container_name: edr-grafana
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - ./deploy/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./deploy/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana_data:/var/lib/grafana
+    ports:
+      - "${GRAFANA_PORT:-3001}:3000"
+    depends_on:
+      - prometheus
+    networks:
+      - kizashi-internal
+      - kizashi-external
+
+  # ── System Auto-Updater (Phase 3) ───────────
+  # Polls GitHub Releases for new platform versions, and on admin
+  # approval (from /admin/system-updates) runs docker compose pull/up
+  # against the host. Docker socket is mounted read-write — this is the
+  # only container that needs it. The api/frontend/postgres containers
+  # remain socket-free (SOC2-friendly privilege isolation).
+volumes:
+  postgres_data:
+  nats_data_1:
+  nats_data_2:
+  nats_data_3:
+  prometheus_data:
+  grafana_data:
+  certs_data:
+
+networks:
+  kizashi-internal:
+    internal: true
+  kizashi-external:
+    driver: bridge

@@ -1,0 +1,146 @@
+name: Agent OS-Specific Tests
+
+# Executes the agent Go tests that CANNOT run on the linux ci.yml `agent-test`
+# job because their packages are OS-tagged (//go:build windows / darwin). ci.yml
+# already compiles these via the cross-platform `go vet` step; THIS workflow
+# actually RUNS them on real Windows and macOS runners.
+#
+# Trigger split by runner cost (hosted runners are billed at a multiplier on
+# top of linux: Windows 2x, macOS 10x):
+#   * Windows — runs PER-PR when agent/** changes, plus the weekly schedule.
+#     At ~1.5 min that is ~4 billed-minutes per agent PR, cheap enough to be a
+#     real gate. It guards the largest body of OS-specific code we ship (the
+#     collectors, isolation/WFP, ETW) and is where the class of bug this
+#     workflow exists to catch has actually appeared.
+#   * macOS — schedule + manual dispatch ONLY. Three variants at 10x would cost
+#     more per PR than the entire linux CI, and the darwin surface is smaller
+#     and slower-moving.
+# The linux agent-test job (unit tests + cross-vet) remains the universal
+# per-PR gate; this workflow adds native execution on top.
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 6 * * 1' # Mondays 06:00 UTC
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'agent/**'
+      - '.github/workflows/agent-os-tests.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  # Per-PR runs supersede each other (github.ref is refs/pull/N/merge), so a
+  # force-push does not leave a premium runner burning minutes on stale code.
+  group: agent-os-tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ── Windows (per-PR gate) ─────────────────────────────────────
+  windows-tests:
+    name: Windows platform tests
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: agent/go.mod
+          cache-dependency-path: agent/go.sum
+
+      - name: Test
+        working-directory: agent
+        # Git Bash on the Windows runner.
+        shell: bash
+        run: |
+          # Discover every package holding at least one windows-only test file
+          # — either an explicit `//go:build windows` constraint or the
+          # `_windows_test.go` filename convention. Derived from the tree rather
+          # than hard-coded so a windows test added to a NEW package is picked
+          # up automatically instead of silently never running.
+          #
+          # Hard-coding ./internal/platform/windows/... previously excluded every
+          # OTHER package holding windows-only tests: the broken filetimeSumCentis
+          # in internal/collector (per-process CPU stats always 0) shipped with a
+          # test that FAILED, because no CI job ever ran that package's windows
+          # test file.
+          #
+          # BOTH probes are required: cmd/agent/memscan_test.go carries the build
+          # tag but does not match the filename convention, so `find` alone misses
+          # it. Testing only these packages (not ./...) keeps premium-runner
+          # minutes minimal and avoids dragging in cross-platform flakes.
+          PKG=$(
+            {
+              grep -rl --include='*_test.go' -E '^//go:build .*windows' . || true
+              find . -name '*_windows_test.go' || true
+            } | xargs -r -n1 dirname | sort -u
+          )
+          if [ -z "$PKG" ]; then
+            echo "::error::No windows-only test packages found — the discovery glob is broken."
+            exit 1
+          fi
+          echo "Discovered windows test packages:"; echo "$PKG"
+
+          # -v が要る。wmi_etw_live_windows_test.go は実 ETW セッションを張って
+          # 実際に観測できたイベントを t.Logf で出すが、-v が無いと成功したテストの
+          # ログは表示されない。さらに **スキップされたテストは行ごと出ない**ので、
+          # 「live 検証が走って通った」と「live 検証がスキップされた」がジョブの
+          # 出力上まったく区別できなくなる。それはこの検証が終わらせるために
+          # 存在する状態そのものなので、証拠が残る形で走らせる。
+          #
+          # 300s: 成功時はイベント到着で即抜けるが、失敗時は最大 45s 待つ。
+          # タイムアウトで打ち切られると「何が起きたか」を説明する assertion の
+          # メッセージが出ないまま赤くなるため、余裕を持たせる。
+          go test -v -timeout 300s $PKG
+
+  # ── macOS (schedule / manual only) ────────────────────────────
+  macos-tests:
+    name: ${{ matrix.name }}
+    runs-on: macos-latest
+    # Kept off the per-PR path purely on cost (10x multiplier x 3 variants).
+    if: github.event_name != 'pull_request'
+    strategy:
+      # Surface every variant's result independently — one failure should not
+      # mask the others.
+      fail-fast: false
+      matrix:
+        include:
+          - name: macOS platform tests
+            tags: ""
+          - name: macOS platform tests (ESF)
+            tags: esf
+          # Compiles the AUTH_EXEC prevention path (prevention_esf.go) too, which
+          # only builds under the extra `prevention` tag.
+          - name: macOS platform tests (ESF prevention)
+            tags: esf prevention
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: agent/go.mod
+          cache-dependency-path: agent/go.sum
+
+      - name: Test
+        working-directory: agent
+        # Point cgo at the SDK sysroot (helps header/tooling resolution). The ESF
+        # variants run `go build` (compile-only): they exercise every cgo file but
+        # skip the final executable link, because EndpointSecurity.framework is not
+        # linkable on hosted GitHub runners, and actually running ESF needs the
+        # com.apple.developer.endpoint-security.client entitlement + code signing,
+        # neither of which CI can provide. So we validate that the ESF cgo compiles
+        # (catching signature/symbol/header drift), not that it links or runs.
+        shell: bash
+        run: |
+          SDK="$(xcrun --show-sdk-path)"
+          export SDKROOT="$SDK"
+          export CGO_CFLAGS="-isysroot $SDK"
+
+          case "${{ matrix.tags }}" in
+            *esf*) go build -tags "${{ matrix.tags }}" ./internal/platform/darwin/... ;;
+            *)     go test -timeout 180s ./internal/platform/darwin/... ;;
+          esac

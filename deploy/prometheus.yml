@@ -1,0 +1,54 @@
+global:
+  scrape_interval:     15s
+  evaluation_interval: 15s
+  external_labels:
+    environment: 'production'
+    service:     'edr-platform'
+
+# アラートルールファイル
+rule_files:
+  # /etc/prometheus/alerts.yml は存在しない死んだ参照だったため削除。実体は
+  # rules/ 配下の2ファイル(docker-compose がこのディレクトリをマウントする)。
+  - /etc/prometheus/rules/edr-recording-rules.yml
+  - /etc/prometheus/rules/edr-alerts.yml
+
+# Alertmanager への接続 (任意 — Slack/Email 通知が必要な場合)
+# alerting:
+#   alertmanagers:
+#     - static_configs:
+#         - targets: ['alertmanager:9093']
+
+scrape_configs:
+  # ─── EDR API サービス ───────────────────────
+  - job_name: 'edr-api'
+    static_configs:
+      - targets: ['api:8080']
+    metrics_path: /metrics
+    scrape_interval: 15s
+
+  # ─── EDR 検知エンジン ─────────────────────
+  - job_name: 'edr-detection'
+    static_configs:
+      - targets: ['detection:8081']
+    metrics_path: /metrics
+    scrape_interval: 15s
+
+  # ─── EDR 収集サービス ─────────────────────
+  - job_name: 'edr-ingestion'
+    static_configs:
+      - targets: ['ingestion:9091']
+    metrics_path: /metrics
+    scrape_interval: 15s
+
+  # ─── NATS メッセージング ──────────────────
+  - job_name: 'nats'
+    static_configs:
+      - targets: ['nats:8222']
+    metrics_path: /metrics
+    scrape_interval: 30s
+
+  # ─── Prometheus 自身 ─────────────────────
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+    scrape_interval: 30s

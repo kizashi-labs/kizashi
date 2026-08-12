@@ -1,0 +1,156 @@
+# EDR Platform Helm Chart - Default Values
+# Override these values with -f myvalues.yaml or --set key=value
+
+# ─── Global ──────────────────────────────────────────────────────────────────
+global:
+  imageRegistry: ""
+  imagePullSecrets: []
+  storageClass: ""
+
+# ─── Service Account ─────────────────────────────────────────────────────────
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+# ─── Server (API) ────────────────────────────────────────────────────────────
+server:
+  image:
+    repository: edr-platform/server-api
+    tag: "1.0.0"
+    pullPolicy: IfNotPresent
+  replicas: 2
+  port: 8080
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "128Mi"
+    limits:
+      cpu: "500m"
+      memory: "512Mi"
+  # Extra environment variables
+  extraEnv: []
+  #  - name: SOME_VAR
+  #    value: "some-value"
+  podAnnotations: {}
+  podSecurityContext: {}
+  securityContext: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+# ─── Frontend ────────────────────────────────────────────────────────────────
+frontend:
+  image:
+    repository: edr-platform/frontend
+    tag: "1.0.0"
+    pullPolicy: IfNotPresent
+  replicas: 2
+  port: 3000
+  resources:
+    requests:
+      cpu: "50m"
+      memory: "128Mi"
+    limits:
+      cpu: "250m"
+      memory: "256Mi"
+  extraEnv: []
+  podAnnotations: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+# ─── PostgreSQL (TimescaleDB) ─────────────────────────────────────────────────
+postgres:
+  image:
+    repository: timescale/timescaledb
+    tag: "latest-pg16"
+    pullPolicy: IfNotPresent
+  port: 5432
+  database: edrplatform
+  username: edr
+  persistence:
+    enabled: true
+    storageClass: ""
+    size: 10Gi
+    accessMode: ReadWriteOnce
+  resources:
+    requests:
+      cpu: "250m"
+      memory: "256Mi"
+    limits:
+      cpu: "1000m"
+      memory: "1Gi"
+  podAnnotations: {}
+
+# ─── NATS ─────────────────────────────────────────────────────────────────────
+nats:
+  image:
+    repository: nats
+    tag: "2.10-alpine"
+    pullPolicy: IfNotPresent
+  port: 4222
+  monitoringPort: 8222
+  # Enable JetStream persistence
+  jetstream:
+    enabled: true
+    storageDir: /data
+  resources:
+    requests:
+      cpu: "50m"
+      memory: "64Mi"
+    limits:
+      cpu: "200m"
+      memory: "256Mi"
+  podAnnotations: {}
+
+# ─── Ingress ──────────────────────────────────────────────────────────────────
+ingress:
+  enabled: true
+  className: "nginx"
+  host: "edr.example.com"
+  tls:
+    enabled: false
+    secretName: "edr-platform-tls"
+  annotations: {}
+  #  kubernetes.io/ingress.class: nginx
+  #  cert-manager.io/cluster-issuer: letsencrypt-prod
+
+# ─── Secrets (MUST be overridden before deploying) ───────────────────────────
+secrets:
+  # JWT signing secret — set a long random string
+  jwtSecret: ""
+  # PostgreSQL password
+  dbPassword: ""
+  # Redis password
+  redisPassword: ""
+  # NextAuth secret for the frontend
+  nextauthSecret: ""
+  # Admin user initial password
+  adminPassword: ""
+  # Anthropic Claude API key (optional, enables AI analysis)
+  claudeApiKey: ""
+
+# ─── ConfigMap / Application Config ──────────────────────────────────────────
+config:
+  apiPort: "8080"
+  edrBaseURL: "http://edr.example.com"
+  claudeModel: "claude-opus-4-6"
+  aiAnalysisEnabled: "true"
+  autoResponseEnabled: "true"
+  autoIsolateSeverityThreshold: "9"
+  aiMinSeverity: "5"
+  logLevel: "info"
+
+# ─── Horizontal Pod Autoscaler ────────────────────────────────────────────────
+hpa:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: ""
+
+# ─── Pod Disruption Budget ────────────────────────────────────────────────────
+podDisruptionBudget:
+  enabled: false
+  minAvailable: 1

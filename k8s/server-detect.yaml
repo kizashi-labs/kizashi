@@ -1,0 +1,54 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: server-detect
+  namespace: edr-platform
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: server-detect
+  template:
+    metadata:
+      labels:
+        app: server-detect
+    spec:
+      containers:
+        - name: server-detect
+          image: ghcr.io/YOUR_ORG/edr-platform-server-detect:latest
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: edr-platform-secrets
+                  key: DATABASE_URL
+          envFrom:
+            - configMapRef:
+                name: edr-platform-config
+          resources:
+            requests:
+              cpu: 200m
+              memory: 256Mi
+            limits:
+              cpu: 2000m
+              memory: 1Gi
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: server-detect-hpa
+  namespace: edr-platform
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: server-detect
+  minReplicas: 2
+  maxReplicas: 8
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70

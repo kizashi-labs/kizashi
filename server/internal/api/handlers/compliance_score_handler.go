@@ -1,0 +1,101 @@
+package handlers
+
+import (
+	"encoding/json"
+	"net/http"
+
+	"github.com/gin-gonic/gin"
+	"github.com/jackc/pgx/v5/pgxpool"
+
+	"github.com/edr-platform/server/internal/compliance"
+	"github.com/edr-platform/server/internal/store"
+)
+
+// ComplianceScoreHandler handles CIS benchmark auto-scoring endpoints.
+type ComplianceScoreHandler struct {
+	pool       *pgxpool.Pool
+	scoreStore *store.ComplianceScoreStore
+}
+
+// NewComplianceScoreHandler creates a new ComplianceScoreHandler.
+func NewComplianceScoreHandler(pool *pgxpool.Pool) *ComplianceScoreHandler {
+	return &ComplianceScoreHandler{
+		pool:       pool,
+		scoreStore: store.NewComplianceScoreStore(pool),
+	}
+}
+
+// ListScores handles GET /api/v1/compliance/scores
+// Returns all agents' compliance scores ordered by score ascending (worst first).
+func (h *ComplianceScoreHandler) ListScores(c *gin.Context) {
+	scores, err := h.scoreStore.ListAll(c.Request.Context())
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "コンプライアンススコアの取得に失敗しました"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"scores": scores})
+}
+
+// GetScore handles GET /api/v1/compliance/scores/:agent_id
+// Returns the compliance score for a specific agent.
+func (h *ComplianceScoreHandler) GetScore(c *gin.Context) {
+	agentID := c.Param("agent_id")
+	framework := c.DefaultQuery("framework", "CIS")
+
+	score, err := h.scoreStore.GetByAgent(c.Request.Context(), agentID, framework)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "指定されたエージェントのスコアが見つかりません"})
+		return
+	}
+	c.JSON(http.StatusOK, score)
+}
+
+// ComputeScore handles POST /api/v1/compliance/scores/:agent_id/compute
+// Triggers recomputation of CIS compliance score for the specified agent.
+func (h *ComplianceScoreHandler) ComputeScore(c *gin.Context) {
+	agentID := c.Param("agent_id")
+
+	result, err := compliance.ScoreAgent(c.Request.Context(), h.pool, agentID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": dbErrMsg(err)})
+		return
+	}
+
+	// Build details JSON
+	type checkJSON struct {
+		ID       string `json:"id"`
+		Title    string `json:"title"`
+		Severity string `json:"severity"`
+		Passed   bool   `json:"passed"`
+	}
+	type detailsJSON struct {
+		Checks []checkJSON `json:"checks"`
+	}
+	d := detailsJSON{Checks: make([]checkJSON, len(result.Checks))}
+	for i, ch := range result.Checks {
+		d.Checks[i] = checkJSON{
+			ID:       ch.ID,
+			Title:    ch.Title,
+			Severity: ch.Severity,
+			Passed:   ch.Passed,
+		}
+	}
+	detailsBytes, _ := json.Marshal(d)
+
+	scoreRecord := &store.ComplianceScore{
+		AgentID:      result.AgentID,
+		Framework:    "CIS",
+		Score:        result.Score,
+		TotalChecks:  result.Total,
+		PassedChecks: result.Passed,
+		Details:      detailsBytes,
+	}
+
+	saved, err := h.scoreStore.Upsert(c.Request.Context(), scoreRecord)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": dbErrMsg(err)})
+		return
+	}
+
+	c.JSON(http.StatusOK, saved)
+}

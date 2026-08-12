@@ -1,0 +1,23 @@
+# シェルスクリプトの改行は LF に固定する（予防措置）。
+#
+# リポジトリ上の .sh は現時点で全て LF で健全だが、Windows の作業ツリーでは
+# 編集ツールによって CRLF に化けることがある。その状態でコミットされると
+# Linux / コンテナ上で
+#   line 17: $'\r': command not found
+#   line 38: syntax error near unexpected token `$'do\r''
+# となり実行できない。誰かが Linux で実行するまで表面化しないため、
+# 混入をコミット時に止める。
+#
+# 実例(2026-08-05): 作業ツリーで CRLF 化していた agent/scripts/run-atomics.sh を
+# Windows から検証ホストへ scp して実行し、上記のエラーで全技法が実行されなかった。
+# リポジトリ側は LF だったため CI 経由では再現しないが、送り込み経路によっては起きる
+# (ci-live-measure.sh 側でも受け取ったスクリプトを正規化している)。
+#
+# 注意: この指定は「これから add / checkout されるファイル」に効く。すでに CRLF で
+# 手元にあるファイルは直らない——`git add --renormalize` が正規化するのは index だけで、
+# 作業ツリーの実体は CRLF のまま残る。実体を LF に戻すには作業ツリーを作り直す:
+#   git rm --cached -r . && git reset --hard
+#
+# 取りこぼし（属性が外れた・`-text` で追加された等）の検出は
+# server/internal/store/shell_eol_test.go（CI の Server Tests で実行）が担う。
+*.sh text eol=lf

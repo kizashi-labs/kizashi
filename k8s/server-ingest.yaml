@@ -1,0 +1,74 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: server-ingest
+  namespace: edr-platform
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: server-ingest
+  template:
+    metadata:
+      labels:
+        app: server-ingest
+    spec:
+      containers:
+        - name: server-ingest
+          image: ghcr.io/YOUR_ORG/edr-platform-server-ingest:latest
+          ports:
+            - containerPort: 9090
+              name: grpc
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: edr-platform-secrets
+                  key: DATABASE_URL
+          envFrom:
+            - configMapRef:
+                name: edr-platform-config
+          readinessProbe:
+            grpc:
+              port: 9090
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 200m
+              memory: 128Mi
+            limits:
+              cpu: 2000m
+              memory: 1Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: server-ingest
+  namespace: edr-platform
+spec:
+  selector:
+    app: server-ingest
+  ports:
+    - port: 9090
+      name: grpc
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: server-ingest-hpa
+  namespace: edr-platform
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: server-ingest
+  minReplicas: 3
+  maxReplicas: 20
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 60

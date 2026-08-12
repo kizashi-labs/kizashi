@@ -1,0 +1,258 @@
+# EDR Platform - Production Docker Compose (on-site build variant)
+#
+# NOTE: この compose は「サーバー上で全イメージを docker build する」経路用。
+# 推奨の商用デプロイは **ルート `docker-compose.yml` + `docker-compose.prod.yml`**
+# (GHCR pull 版) を使う: `deploy.sh --registry` または `deploy.sh --tag=1.0.0`。
+#
+# ルート compose で使える商用向け機能がこの deploy/ 版には無い点:
+#   - agent バイナリの焼き込み (root server/Dockerfile は /downloads へクロスコンパイル)
+#   - api service の環境変数展開 (root compose.yml で明示される CERT_DIR / AGENT_BIN_DIR 等)
+# オンサイトビルドが必要な特別事情が無ければルート compose + GHCR を使用のこと。
+#
+# Usage (on-site build のみ):
+#   docker compose -f docker-compose.prod.yml up -d --build
+# Prerequisites: copy .env.prod.example to .env.prod and fill in all values
+
+services:
+
+  # ─── Reverse Proxy & SSL ──────────────────────────────────────
+
+  nginx:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./certbot/www:/var/www/certbot:ro
+      - ./certbot/conf:/etc/letsencrypt:ro
+    networks:
+      - public
+    depends_on:
+      - frontend
+      - api
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost/healthz 2>/dev/null || nginx -t"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+
+  certbot:
+    image: certbot/certbot
+    restart: unless-stopped
+    volumes:
+      - ./certbot/www:/var/www/certbot
+      - ./certbot/conf:/etc/letsencrypt
+    networks:
+      - public
+    # Renew certificates twice daily; exits 0 immediately if not due
+    entrypoint: /bin/sh -c "trap exit TERM; while :; do certbot renew --webroot -w /var/www/certbot --quiet; sleep 12h & wait $${!}; done"
+
+  # ─── Frontend ─────────────────────────────────────────────────
+
+  frontend:
+    build:
+      context: ..
+      dockerfile: deploy/docker/frontend.Dockerfile
+      args:
+        # NEXT_PUBLIC_* and rewrites()-referenced API_URL are baked into the
+        # Next.js bundle during `npm run build`. They must be under `args:`
+        # (not `environment:`) or the runtime values are ignored.
+        API_URL: http://api:8080
+        NEXT_PUBLIC_API_URL: /api/v1
+    restart: unless-stopped
+    expose:
+      - "3000"
+    environment:
+      NEXTAUTH_URL: ${EDR_BASE_URL}
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}
+    networks:
+      - internal
+      - public
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/ || exit 1"]
+      interval: 30s
+      timeout: 10s
+      start_period: 20s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  # ─── API Service ──────────────────────────────────────────────
+
+  api:
+    build:
+      context: ..
+      dockerfile: deploy/docker/server.Dockerfile
+      args:
+        SERVICE: api
+    restart: unless-stopped
+    expose:
+      - "8080"
+    env_file:
+      - .env.prod
+    networks:
+      - internal
+    depends_on:
+      postgres:
+        condition: service_healthy
+      nats:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      start_period: 15s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  # ─── Detection Engine ─────────────────────────────────────────
+
+  detection:
+    build:
+      context: ..
+      dockerfile: deploy/docker/server.Dockerfile
+      args:
+        SERVICE: detection
+    restart: unless-stopped
+    expose:
+      - "9090"
+    env_file:
+      - .env.prod
+    environment:
+      GRPC_PORT: "9090"
+      RULES_DIR: /rules
+    volumes:
+      - ../rules:/rules:ro
+      - ../certs:/certs:ro
+    networks:
+      - internal
+    depends_on:
+      postgres:
+        condition: service_healthy
+      nats:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z localhost 9090 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      start_period: 20s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  # ─── Ingestion (Agent gRPC endpoint) ──────────────────────────
+  # Agents open mTLS gRPC connections directly to this port,
+  # bypassing nginx (gRPC termination not configured on reverse proxy).
+
+  ingestion:
+    build:
+      context: ..
+      dockerfile: deploy/docker/server.Dockerfile
+      args:
+        SERVICE: ingestion
+    restart: unless-stopped
+    ports:
+      - "9091:9091"
+    env_file:
+      - .env.prod
+    environment:
+      GRPC_PORT: "9091"
+      TLS_ENABLED: "false"
+    volumes:
+      - ../certs:/certs:ro
+    networks:
+      - internal
+      - public
+    depends_on:
+      postgres:
+        condition: service_healthy
+      nats:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z localhost 9091 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      start_period: 20s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  # ─── Database ─────────────────────────────────────────────────
+
+  postgres:
+    image: timescale/timescaledb:latest-pg16
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: edrplatform
+      POSTGRES_USER: edr
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ../server/migrations:/docker-entrypoint-initdb.d:ro
+    networks:
+      - internal
+    # No external port exposure in production
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U edr -d edrplatform"]
+      interval: 10s
+      timeout: 5s
+      start_period: 30s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+
+  # ─── Messaging ────────────────────────────────────────────────
+
+  nats:
+    image: nats:2-alpine
+    restart: unless-stopped
+    command: >
+      -js
+      -sd /data
+      -m 8222
+    volumes:
+      - nats_data:/data
+    networks:
+      internal:
+        aliases:
+          - nats-1
+          - nats-2
+          - nats-3
+    # Ports intentionally not exposed externally in production
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8222/healthz || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+networks:
+  internal:
+    driver: bridge
+    internal: true
+  public:
+    driver: bridge
+
+volumes:
+  pgdata:
+  nats_data:

@@ -1,0 +1,102 @@
+version: 2
+
+updates:
+  # ── Go modules: server ────────────────────────────────────────
+  - package-ecosystem: gomod
+    directory: /server
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: UTC
+    labels:
+      - dependencies
+      - go
+    groups:
+      minor-and-patch:
+        update-types:
+          - minor
+          - patch
+    # Security updates bypass the group and are applied immediately
+    open-pull-requests-limit: 10
+
+  # ── Go modules: agent ─────────────────────────────────────────
+  - package-ecosystem: gomod
+    directory: /agent
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: UTC
+    labels:
+      - dependencies
+      - go
+    groups:
+      minor-and-patch:
+        update-types:
+          - minor
+          - patch
+    open-pull-requests-limit: 10
+
+  # ── npm: frontend ─────────────────────────────────────────────
+  - package-ecosystem: npm
+    directory: /frontend
+    schedule:
+      interval: weekly
+      day: monday
+      time: "07:00"
+      timezone: UTC
+    labels:
+      - dependencies
+      - javascript
+    groups:
+      minor-and-patch:
+        update-types:
+          - minor
+          - patch
+      # Keep major version upgrades ungrouped so they get individual PRs
+    versioning-strategy: increase-if-necessary
+    open-pull-requests-limit: 10
+
+  # ── GitHub Actions ────────────────────────────────────────────
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: tuesday
+      time: "06:00"
+      timezone: UTC
+    labels:
+      - dependencies
+      - github-actions
+    groups:
+      actions-minor-and-patch:
+        update-types:
+          - minor
+          - patch
+    open-pull-requests-limit: 10
+
+  # ── Docker base images ────────────────────────────────────────
+  - package-ecosystem: docker
+    directory: /server
+    schedule:
+      interval: monthly
+      day: monday
+      time: "08:00"
+      timezone: UTC
+    labels:
+      - dependencies
+      - docker
+    open-pull-requests-limit: 5
+
+  - package-ecosystem: docker
+    directory: /frontend
+    schedule:
+      interval: monthly
+      day: monday
+      time: "08:00"
+      timezone: UTC
+    labels:
+      - dependencies
+      - docker
+    open-pull-requests-limit: 5

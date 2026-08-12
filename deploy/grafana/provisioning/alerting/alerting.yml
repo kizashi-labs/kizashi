@@ -1,0 +1,9 @@
+apiVersion: 1
+
+# Grafana Alerting — 通知設定
+# Slack/Email を使用する場合はここで設定してください
+# デフォルトは無効（Grafana UI から手動設定可能）
+
+contactPoints: []
+
+policies: []

@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+    "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  EDR Platform Agent — macOS Endpoint Security Framework Entitlements
+  ===========================================================================
+
+  【Appleへの申請手順】
+  1. Apple Developer Portal で "Endpoint Security" entitlement を申請する
+     URL: https://developer.apple.com/contact/request/system-extension/
+  2. "com.apple.developer.endpoint-security.client" の承認を受ける
+     (通常2〜4週間かかります)
+  3. Developer ID Application 証明書でコード署名する:
+
+     codesign \
+       --entitlements agent/deploy/darwin/entitlements.plist \
+       --sign "Developer ID Application: Your Company Name (TEAMID)" \
+       --options runtime \
+       --timestamp \
+       edr-agent-darwin-amd64-esf
+
+  4. notarytool で公証する:
+
+     xcrun notarytool submit edr-agent-darwin-amd64-esf.zip \
+       --apple-id "your@email.com" \
+       --team-id "TEAMID" \
+       --password "@keychain:AC_PASSWORD" \
+       --wait
+
+  5. staple する:
+
+     xcrun stapler staple edr-agent-darwin-amd64-esf
+
+  【ビルド手順】
+  cd agent
+  make build-darwin-esf
+
+  【参考】
+  - ESF概要: https://developer.apple.com/documentation/endpointsecurity
+  - System Extensions: https://developer.apple.com/system-extensions/
+  - Notarization: https://developer.apple.com/documentation/security/notarizing_macos_software_before_distribution
+-->
+<plist version="1.0">
+<dict>
+    <!-- ─── Endpoint Security Framework ────────────────────────────────── -->
+    <!--
+      Appleの事前承認が必要です。
+      承認なしにこのentitlementを付与してもESFクライアントの作成は失敗します。
+      エラーコード: ES_NEW_CLIENT_RESULT_ERR_NOT_ENTITLED
+    -->
+    <key>com.apple.developer.endpoint-security.client</key>
+    <true/>
+
+    <!-- ─── System Extension (オプション: LaunchDaemonではなくSystem Extensionとして配布する場合) -->
+    <!--
+    <key>com.apple.developer.system-extension.install</key>
+    <true/>
+    -->
+
+    <!-- ─── Hardened Runtime ────────────────────────────────────────────── -->
+    <!-- コード署名の整合性を強制する -->
+    <key>com.apple.security.cs.allow-jit</key>
+    <false/>
+
+    <!-- 他プロセスへのデバッガアタッチを禁止 -->
+    <key>com.apple.security.cs.debugger</key>
+    <false/>
+
+    <!-- Goランタイムはsigned librariesのみ使用 -->
+    <key>com.apple.security.cs.allow-unsigned-executable-memory</key>
+    <false/>
+
+    <!-- ─── Network Access ───────────────────────────────────────────────── -->
+    <!-- EDRサーバーへのgRPC接続に必要 -->
+    <key>com.apple.security.network.client</key>
+    <true/>
+
+    <!-- ─── File System ─────────────────────────────────────────────────── -->
+    <!-- ファイルイベント監視に必要 (ESF経由で取得するためsandboxは不要) -->
+    <key>com.apple.security.files.user-selected.read-only</key>
+    <false/>
+</dict>
+</plist>
