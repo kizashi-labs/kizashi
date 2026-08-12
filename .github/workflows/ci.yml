@@ -152,24 +152,26 @@ jobs:
           go test -tags integration -race -timeout 120s \
             ./internal/detection/...
 
-      - name: Check coverage threshold (34%)
+      - name: Check coverage threshold (35%)
         working-directory: server
         # 公開版のカバレッジゲート。
         # 商用版のゲート (45%) は、全ハンドラを登録するルータテストを含めて
         # 測った値で、そのテストは公開版に含まれないため到達できない。
         # ここでは「大きな後退だけを捕まえる床」を置いている。
-        # 2026-08-12 の初回グリーン実行で実測 35.9%。1.9pp の余裕を見て 34%。
+        # 2026-08-12: 実測 35.9%（ci.yml と coverage.yml の独立した 2 経路で一致）。
+        # 本流と同じ流儀で実測の約 1pp 下に置く: 34% → 35% にラチェット。
         # 上げるときは、直近のグリーン実行の `Total coverage` を見てから。
+        # 段階: 15% → 34% → 35%。
         run: |
           COVERAGE=$(go tool cover -func=coverage.out \
             | grep '^total:' | awk '{print $3}' | tr -d '%')
           echo "Total coverage: ${COVERAGE}%"
           # Use awk for float comparison (bash cannot compare floats natively)
-          if awk "BEGIN { exit !($COVERAGE < 34) }"; then
-            echo "ERROR: Coverage ${COVERAGE}% is below the 34% threshold."
+          if awk "BEGIN { exit !($COVERAGE < 35) }"; then
+            echo "ERROR: Coverage ${COVERAGE}% is below the 35% threshold."
             exit 1
           fi
-          echo "Coverage check passed: ${COVERAGE}% >= 34%"
+          echo "Coverage check passed: ${COVERAGE}% >= 35%"
 
       - name: Generate HTML coverage report
         working-directory: server
