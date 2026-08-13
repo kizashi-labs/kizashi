@@ -2,11 +2,18 @@
 
 `/cloud-security`（クラウドセキュリティ態勢）に表示するデータを入れる手順。
 
-## 前提: このリポジトリに CSPM スキャナは無い
+## 位置づけ: 外部ツールの結果を取り込む経路
 
-クラウドへ接続して設定を検査する処理は実装されていません。`POST /api/v1/cloud/scan` は **501 Not Implemented** を返します（以前は何もしないのに 200 と「スキャン完了」を返していました。詳細は PR #679）。
+所見を入れる経路は 2 つあります。
 
-代わりに、**既存の CSPM ツールの出力を取り込む**設計です。Wazuh 連携と同じ形です。
+| | |
+|---|---|
+| **自前の AWS スキャナ** | `server/internal/cspm/awsscan`。AWS のみ。読み取り専用ロールを引き受けて検査する。→ `docs/CSPMスキャナ_AWS.md` |
+| **外部ツールの取り込み**（このドキュメント） | Azure / GCP、あるいは AWS でも CIS 全項目を見たい場合。閉域でサーバから AWS へ出られない構成でも使える |
+
+`POST /api/v1/cloud/scan`（プロバイダ横断のスキャン）は依然 **501 Not Implemented** です。アカウント単位のスキャンは `POST /api/v1/admin/cspm-enhanced/accounts/:id/scan` を使ってください（AWS のみ）。
+
+取り込みは、**既存の CSPM ツールの出力を取り込む**設計です。Wazuh 連携と同じ形です。
 
 - Prowler（OSS、AWS/Azure/GCP）
 - ScoutSuite（OSS）
@@ -125,9 +132,43 @@ curl -sS "$API_URL/api/v1/cloud/posture?provider=aws" \
   -H "Authorization: Bearer $EDR_TOKEN" | jq '{data_available, posture_score, findings}'
 ```
 
+## 管理 API（`/api/v1/admin/cspm-enhanced/*`）
+
+同じデータを、アカウント単位・所見単位で引くための口です。
+
+| | |
+|---|---|
+| `GET /accounts` | 登録済みクラウドアカウント。`posture_score` は 0〜100 |
+| `GET /findings` | 所見一覧。`provider` / `severity` / `status` / `limit` / `offset` で絞れる。既定は `status=open` |
+| `GET /stats` | 全体集計 |
+| `POST /accounts/:id/scan` | **501 を返します**（スキャナ未実装） |
+
+絞り込みに想定外の値を渡すと 400 です。0 件として返すと「所見が無い」と読めてしまうためです。
+
+### `stats` に準拠率が無い理由
+
+`cspm_findings` に入るのは**不合格の所見だけ**で、取り込み API は `PASS` を行にせず既存の所見を `resolved` にします。つまり「何項目中何項目に合格したか」の分母が手元にありません。
+
+以前このエンドポイントは `CIS 145/23（86.3%）` のような準拠率を固定値で返していましたが、分母が無い以上これは算出できない数字でした。現在は枠組みごとの未対応件数のみを `compliance_open_findings` として返します。
+
+```json
+{
+  "total_accounts": 1, "total_findings": 2,
+  "critical": 1, "high": 1, "medium": 0, "low": 0,
+  "avg_posture_score": 88.5,
+  "compliance_open_findings": [{"framework": "CIS-1.5", "open_findings": 2}],
+  "data_available": true
+}
+```
+
+`avg_posture_score` は一度もスキャン結果を取り込んでいないアカウント（`last_scanned_at IS NULL`）を除いた平均です。既定値の 0 は「最悪」ではなく「未計測」なので、混ぜるとアカウントを登録しただけでスコアが下がります。取り込みが 1 件も無ければ `null` になります。
+
 ## 関連
 
 - `server/internal/api/handlers/cloud_findings_import.go` — 取り込み本体
 - `server/internal/api/handlers/cloud_posture_handler.go` — 表示側
+- `server/internal/api/handlers/cspm_enhanced_handler.go` — 管理 API（`/admin/cspm-enhanced/*`）
 - `server/migrations/381_cspm_findings_import.sql` — 一意制約と `posture_score` の桁拡張
+- `docs/CSPMスキャナ_AWS.md` — 自前の AWS スキャナ
+- `server/internal/store/cspm.go` — 所見の書き込み（取り込みとスキャナで共通）
 - `wazuh/` — 同じ「外部ツールの結果を取り込む」形の先例

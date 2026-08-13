@@ -16,7 +16,6 @@ package handlers
 // 正規形に寄せる薄い変換 (jq 等) を挟むのが確実。
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"log/slog"
@@ -24,7 +23,8 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/jackc/pgx/v5"
+
+	"github.com/edr-platform/server/internal/store"
 )
 
 // cspmImportRequest は取り込みの本体。
@@ -215,22 +215,23 @@ func (h *CloudPostureHandler) ImportFindings(c *gin.Context) {
 		accountName = req.AccountID
 	}
 
+	// 書き込みは store.CSPMStore に一本化してある。自前の AWS スキャナ
+	// (internal/cspm/awsscan) も同じ関数を通るので、同一性判定・解決済みの
+	// 扱い・集計の更新が経路によってずれない。
+	cs := store.NewCSPMStore(h.pool)
+
 	// アカウントは無ければ作る。取り込みの起点はここなので、
 	// 事前登録を強制しない。
-	var accountUUID string
-	if err := h.pool.QueryRow(ctx, `
-		INSERT INTO cspm_accounts (cloud_provider, account_id, account_name, last_scanned_at, scan_status)
-		VALUES ($1, $2, $3, NOW(), 'completed')
-		ON CONFLICT (cloud_provider, account_id) DO UPDATE
-		   SET account_name    = COALESCE(NULLIF(EXCLUDED.account_name, ''), cspm_accounts.account_name),
-		       last_scanned_at = NOW(),
-		       scan_status     = 'completed'
-		RETURNING id::text`,
-		provider, req.AccountID, accountName).Scan(&accountUUID); err != nil {
+	accountUUID, err := cs.EnsureAccount(ctx, provider, req.AccountID, accountName)
+	if err != nil {
 		slog.Error("CSPM 取り込み: アカウントの登録に失敗しました",
 			"provider", provider, "account_id", req.AccountID, "error", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "アカウントの登録に失敗しました"})
 		return
+	}
+	if err := cs.SetScanStatus(ctx, accountUUID, "completed", nil); err != nil {
+		slog.Warn("CSPM 取り込み: 取り込み状態の記録に失敗しました",
+			"account", accountUUID, "error", err)
 	}
 
 	var imported, resolved int
@@ -245,51 +246,34 @@ func (h *CloudPostureHandler) ImportFindings(c *gin.Context) {
 		}
 
 		if f.Passed {
-			tag, err := h.pool.Exec(ctx, `
-				UPDATE cspm_findings
-				   SET status = 'resolved', last_seen_at = NOW()
-				 WHERE account_id = $1::uuid AND check_id = $2 AND resource_id = $3
-				   AND COALESCE(region, '') = $4 AND status = 'open'`,
-				accountUUID, f.CheckID, f.ResourceID, f.Region)
+			n, err := cs.ResolveFinding(ctx, accountUUID, f.CheckID, f.ResourceID, f.Region)
 			if err != nil {
 				rejected = append(rejected, fmt.Sprintf("findings[%d]: 解消の記録に失敗: %v", i, err))
 				continue
 			}
-			resolved += int(tag.RowsAffected())
+			resolved += n
 			continue
 		}
 
-		if _, err := h.pool.Exec(ctx, `
-			INSERT INTO cspm_findings
-			    (account_id, resource_type, resource_id, resource_name, region,
-			     check_id, check_name, severity, status, description, remediation,
-			     compliance_frameworks, first_seen_at, last_seen_at)
-			VALUES ($1::uuid, $2, $3, $4, $5, $6, $7, $8, 'open', $9, $10, $11, NOW(), NOW())
-			ON CONFLICT (account_id, check_id, resource_id, COALESCE(region, ''))
-			   WHERE account_id IS NOT NULL
-			DO UPDATE SET
-			    resource_type         = EXCLUDED.resource_type,
-			    resource_name         = EXCLUDED.resource_name,
-			    check_name            = EXCLUDED.check_name,
-			    severity              = EXCLUDED.severity,
-			    description           = EXCLUDED.description,
-			    remediation           = EXCLUDED.remediation,
-			    compliance_frameworks = EXCLUDED.compliance_frameworks,
-			    last_seen_at          = NOW(),
-			    -- 一度 suppressed / accepted_risk にしたものは運用判断なので
-			    -- 再検出で勝手に open に戻さない。それ以外は open に戻す。
-			    status = CASE WHEN cspm_findings.status IN ('suppressed', 'accepted_risk')
-			                  THEN cspm_findings.status ELSE 'open' END`,
-			accountUUID, f.ResourceType, f.ResourceID, f.ResourceName, f.Region,
-			f.CheckID, f.CheckName, f.Severity, f.Description, f.Remediation, f.Frameworks,
-		); err != nil {
+		if err := cs.UpsertFinding(ctx, accountUUID, store.CSPMFinding{
+			CheckID:      f.CheckID,
+			CheckName:    f.CheckName,
+			Severity:     f.Severity,
+			ResourceType: f.ResourceType,
+			ResourceID:   f.ResourceID,
+			ResourceName: f.ResourceName,
+			Region:       f.Region,
+			Description:  f.Description,
+			Remediation:  f.Remediation,
+			Frameworks:   f.Frameworks,
+		}); err != nil {
 			rejected = append(rejected, fmt.Sprintf("findings[%d]: 保存に失敗: %v", i, err))
 			continue
 		}
 		imported++
 	}
 
-	if err := h.refreshAccountRollup(ctx, accountUUID); err != nil {
+	if err := cs.RefreshRollup(ctx, accountUUID); err != nil {
 		// 所見自体は入っているので、集計の失敗で 500 にはしない。
 		slog.Warn("CSPM 取り込み: アカウント集計の更新に失敗しました",
 			"account", accountUUID, "error", err)
@@ -303,32 +287,4 @@ func (h *CloudPostureHandler) ImportFindings(c *gin.Context) {
 		"rejected":   len(rejected),
 		"errors":     rejected,
 	})
-}
-
-// refreshAccountRollup は cspm_accounts 側の集計値を数え直す。
-// posture_score は GetPosture と同じ減点式にそろえる (ずれると画面と一覧で
-// 違う点数が出る)。
-func (h *CloudPostureHandler) refreshAccountRollup(ctx context.Context, accountUUID string) error {
-	_, err := h.pool.Exec(ctx, `
-		WITH c AS (
-		    SELECT
-		        COUNT(*) FILTER (WHERE severity = 'critical') AS crit,
-		        COUNT(*) FILTER (WHERE severity = 'high')     AS high,
-		        COUNT(*) FILTER (WHERE severity = 'medium')   AS med,
-		        COUNT(*) FILTER (WHERE severity = 'low')      AS low
-		    FROM cspm_findings
-		    WHERE account_id = $1::uuid AND status = 'open'
-		)
-		UPDATE cspm_accounts a
-		   SET critical_findings = c.crit,
-		       high_findings     = c.high,
-		       posture_score     = GREATEST(0,
-		           100 - (c.crit * 5 + c.high * 2 + c.med * 0.5 + c.low * 0.1)),
-		       last_scanned_at   = NOW()
-		  FROM c
-		 WHERE a.id = $1::uuid`, accountUUID)
-	if err != nil && err != pgx.ErrNoRows {
-		return err
-	}
-	return nil
 }

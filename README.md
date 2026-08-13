@@ -94,13 +94,25 @@ recovering an isolated host takes longer than you expect.
 
 | OS | Sensor | Status |
 |---|---|---|
-| Linux | eBPF CO-RE — process, network, file, library, LSM hooks | Production |
+| Linux | eBPF CO-RE — process, network, file, fileless exec, shared-object load | Production |
 | Windows | ETW — process, network, registry, WMI, named pipes, PowerShell | Production |
 | macOS | Endpoint Security Framework (build tag) or process polling | ESF requires an Apple entitlement |
 
 A watchdog process supervises the agent and is registered with systemd, Windows
 Service Manager, or launchd. The agent ring-buffers events while offline and
 reconnects with exponential backoff.
+
+**Shared-object (`image_load`) telemetry on Linux covers `dlopen` only.** The
+collector is a uprobe on libc's `dlopen`
+(`internal/platform/linux/library_loader.go`), so it reports what an
+already-running process pulls in — plugins, PAM/NSS modules, anything loaded at
+runtime. Libraries resolved by `ld.so` when a program starts are **not** reported,
+which makes this narrower than the Windows ETW image-load stream. Rule the two
+apart: the Windows side-loading rule keys on an unsigned/invalid signature, which
+does not exist on Linux, so Linux has its own rule keyed on shared objects loaded
+from world-writable paths (`/tmp`, `/var/tmp`, `/dev/shm`, `/run/shm`).
+
+The LSM-based sensors below are a different matter — those genuinely ship nothing.
 
 ### Getting the agent binaries
 
@@ -217,7 +229,9 @@ Japanese.
   外部通信が発生するのは、利用者自身が設定した場合だけです（VirusTotal 照会、
   SIEM / Elasticsearch への転送、脅威インテルフィードの取得、クラウド事業者の API 監視）
 - **Linux は eBPF、Windows は ETW、macOS は ESF またはプロセスポーリング**による
-  OS ネイティブな収集（ESF の利用には Apple のエンタイトルメント申請が必要です）
+  OS ネイティブな収集（ESF の利用には Apple のエンタイトルメント申請が必要です）。
+  Linux の共有ライブラリのロード（`image_load`）は **`dlopen` のみ**を捉えます。
+  プログラム起動時に `ld.so` が解決する分は含まれません
 - **3系統の検知**（ビルトイン Sigma / DB 上の Sigma ルール / 状態を持つ振る舞い検知）に
   加え、YARA・IOC 照合・Isolation Forest による異常検知・プロセス系譜分析
 - **対応機能** — ネットワーク隔離、ファイル検疫、プロセス停止、プレイブック、ライブレスポンス

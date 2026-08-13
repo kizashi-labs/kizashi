@@ -189,11 +189,26 @@ cmd_run() {
 
   # Snapshot the analyst-facing numbers BEFORE -label would relabel everything.
   # (This script deliberately omits -label for that reason; see cmd_report.)
+  # `harness` は測定リグ自身が出すアラート (ソーク終了でエージェントが黙るため
+  # ホストごとに offline + health が 1 件ずつ)。検知内容ではない。
+  #
+  # ★ これを OPEN から抜くのは体裁の問題ではない。ハーネス由来はソーク終了の
+  #   タイミング次第で出たり出なかったりし、20台なら最大 20 件アーム間で振れる。
+  #   2026-08-09 の migration 378 の A/B では、検知アラートが 289→271 と 18 件
+  #   減っているのに、ハーネス由来が 20→40 と増えたせいで OPEN は 155→175 と
+  #   「20 件悪化」に見えた。**改善が悪化に見えた。**
+  #   下の ★ 注記は「行数ではなく OPEN で比べろ」と言っているが、その OPEN が
+  #   リグ自身のノイズを含んでいては同じ穴に落ちる。
   psql "$DBURL" -tAc "
     SELECT '$label|' || count(*) || '|' ||
            count(*) FILTER (WHERE description LIKE '%二重エンジン%') || '|' ||
            count(*) FILTER (WHERE description LIKE '%[重複排除:%') || '|' ||
-           count(*) FILTER (WHERE status = 'open')
+           count(*) FILTER (WHERE status = 'open') || '|' ||
+           count(*) FILTER (WHERE title LIKE 'エージェントオフライン:%'
+                               OR title LIKE '%ヘルス警告') || '|' ||
+           count(*) FILTER (WHERE status = 'open'
+                              AND title NOT LIKE 'エージェントオフライン:%'
+                              AND title NOT LIKE '%ヘルス警告')
     FROM alerts" > "$WORK/out/$label.counts"
   cmd_report "$label"
 }
@@ -201,18 +216,21 @@ cmd_run() {
 cmd_report() {
   local label="${1:-}"
   [ -f "$WORK/out/$label.counts" ] || die "no result for '$label'"
-  IFS='|' read -r _ rows xeng title open < "$WORK/out/$label.counts"
+  IFS='|' read -r _ rows xeng title open harness openDet < "$WORK/out/$label.counts"
   cat <<EOF
 
 ── [$label] ────────────────────────────────────
   alert ROWS               $rows      <- what the scorecard counts
     merged (cross-engine)  $xeng
     merged (same title)    $title
-  OPEN alerts              $open      <- what an analyst actually sees
+  OPEN alerts              $open
+    of which harness       $harness      <- rig artifacts, NOT detection content
+  OPEN (detection only)    $openDet      <- ★ compare arms on THIS
 
   scorecard: $WORK/out/$label.csv
 
-  ★ Compare arms on OPEN, not on rows. Deduplication resolves rows and RETAINS
+  ★ Compare arms on OPEN (detection only), not on rows and not on raw OPEN.
+    Deduplication resolves rows and RETAINS
     them, so fpsoak-report — which counts every row in the window regardless of
     status — cannot see it. Measuring a dedup change by the headline number
     reports no effect no matter how well it works (learned the hard way,

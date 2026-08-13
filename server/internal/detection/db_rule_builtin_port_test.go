@@ -30,18 +30,25 @@ import (
 // still detected somewhere in the api path. Whether the rule is too noisy is the
 // FP soak's question, not this one's.
 
-// portedDBRules pairs each rule migration 377 disables with events that the DB
+const (
+	mig377 = "377_disable_db_rules_ported_to_builtins.sql"
+	mig383 = "383_disable_remaining_builtin_parity_rules.sql"
+)
+
+// portedDBRules pairs each rule migration 377 or 381 disables with events that the DB
 // row matched, and the built-in title that must now catch each one.
 var portedDBRules = []struct {
-	dbRule string
-	cases  []struct {
+	dbRule    string
+	migration string
+	cases     []struct {
 		why     string
 		builtin string
 		event   map[string]interface{}
 	}
 }{
 	{
-		dbRule: "WMI Remote Command Execution",
+		dbRule:    "WMI Remote Command Execution",
+		migration: mig377,
 		cases: []struct {
 			why     string
 			builtin string
@@ -65,7 +72,8 @@ var portedDBRules = []struct {
 		},
 	},
 	{
-		dbRule: "疑わしいPowerShell実行",
+		dbRule:    "疑わしいPowerShell実行",
+		migration: mig377,
 		cases: []struct {
 			why     string
 			builtin string
@@ -86,7 +94,8 @@ var portedDBRules = []struct {
 		},
 	},
 	{
-		dbRule: "Suspicious chmod of Executable in /tmp",
+		dbRule:    "Suspicious chmod of Executable in /tmp",
+		migration: mig377,
 		cases: []struct {
 			why     string
 			builtin string
@@ -105,7 +114,8 @@ var portedDBRules = []struct {
 		},
 	},
 	{
-		dbRule: "Script Execution from World-Writable Directory (Linux)",
+		dbRule:    "Script Execution from World-Writable Directory (Linux)",
+		migration: mig377,
 		cases: []struct {
 			why     string
 			builtin string
@@ -124,7 +134,8 @@ var portedDBRules = []struct {
 		},
 	},
 	{
-		dbRule: "Container Image Build on Host (DB)",
+		dbRule:    "Container Image Build on Host (DB)",
+		migration: mig377,
 		cases: []struct {
 			why     string
 			builtin string
@@ -145,7 +156,8 @@ var portedDBRules = []struct {
 		},
 	},
 	{
-		dbRule: "Container Administration Command (DB)",
+		dbRule:    "Container Administration Command (DB)",
+		migration: mig377,
 		cases: []struct {
 			why     string
 			builtin string
@@ -165,7 +177,8 @@ var portedDBRules = []struct {
 		},
 	},
 	{
-		dbRule: "Linux Shell Init File Modification (FIM)",
+		dbRule:    "Linux Shell Init File Modification (FIM)",
+		migration: mig377,
 		cases: []struct {
 			why     string
 			builtin string
@@ -188,6 +201,106 @@ var portedDBRules = []struct {
 					"path":      "/etc/profile.d/00-evil.sh",
 					"operation": "FILE_ACTION_MODIFY",
 				},
+			},
+		},
+	},
+	{
+		dbRule:    "WinRM Lateral Movement (DB)",
+		migration: mig383,
+		cases: []struct {
+			why     string
+			builtin string
+			event   map[string]interface{}
+		}{
+			{
+				// The only one of 381's five that was NOT already a subset: the
+				// builtin matched winrs via Image, so a wrapper invocation slipped
+				// past it. Absorbed as the winrs_cmdline branch.
+				why:     "wrapper-invoked winrs (Image is cmd.exe, not winrs.exe)",
+				builtin: "WinRM Lateral Movement (winrs / PowerShell Remoting)",
+				event: portedProc(`C:\Windows\System32\cmd.exe`,
+					`cmd /c winrs -r:dc01 "whoami"`, ""),
+			},
+			{
+				why:     "Enter-PSSession",
+				builtin: "WinRM Lateral Movement (winrs / PowerShell Remoting)",
+				event: portedProc(`C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe`,
+					`powershell Enter-PSSession -ComputerName dc01`, ""),
+			},
+		},
+	},
+	{
+		dbRule:    "Remote System Discovery (DB)",
+		migration: mig383,
+		cases: []struct {
+			why     string
+			builtin string
+			event   map[string]interface{}
+		}{
+			{
+				why:     "nltest domain controller enumeration",
+				builtin: "Remote System and Domain Controller Discovery",
+				event:   portedProc(`C:\Windows\System32\nltest.exe`, `nltest /dclist:corp.local`, ""),
+			},
+		},
+	},
+	{
+		dbRule:    "Domain Account Discovery (DB)",
+		migration: mig383,
+		cases: []struct {
+			why     string
+			builtin string
+			event   map[string]interface{}
+		}{
+			{
+				// adsisearcher is in the DB row's tools branch; the builtin carries
+				// it too (verified term-by-term), which is why no absorption was
+				// needed here.
+				why:     "adsisearcher user enumeration",
+				builtin: "Domain Account Discovery",
+				event: portedProc(`C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe`,
+					`powershell ([adsisearcher]"(objectClass=user)").FindAll()`, ""),
+			},
+			{
+				why:     "net user /domain",
+				builtin: "Domain Account Discovery",
+				event:   portedProc(`C:\Windows\System32\net.exe`, `net user bob /domain`, ""),
+			},
+		},
+	},
+	{
+		dbRule:    "Domain Group Discovery (DB)",
+		migration: mig383,
+		cases: []struct {
+			why     string
+			builtin string
+			event   map[string]interface{}
+		}{
+			{
+				why:     "net group /domain",
+				builtin: "Domain Group Discovery",
+				event:   portedProc(`C:\Windows\System32\net.exe`, `net group "Domain Admins" /domain`, ""),
+			},
+		},
+	},
+	{
+		dbRule:    "Network Share Discovery (DB)",
+		migration: mig383,
+		cases: []struct {
+			why     string
+			builtin string
+			event   map[string]interface{}
+		}{
+			{
+				why:     "Get-SmbShare",
+				builtin: "Network Share Discovery",
+				event: portedProc(`C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe`,
+					`powershell Get-SmbShare`, ""),
+			},
+			{
+				why:     "net share",
+				builtin: "Network Share Discovery",
+				event:   portedProc(`C:\Windows\System32\net.exe`, `net share`, ""),
 			},
 		},
 	},
@@ -244,42 +357,47 @@ func TestDisabledDBRulesAreCoveredByBuiltins(t *testing.T) {
 // read out of the SQL. Without this, renaming a rule in the migration (or
 // dropping a statement in a merge) leaves the test above asserting coverage for
 // a row that is still live — passing while proving nothing.
-func TestMigration377DisablesExactlyThePortedRules(t *testing.T) {
-	path := filepath.Join("..", "..", "migrations", "377_disable_db_rules_ported_to_builtins.sql")
-	b, err := os.ReadFile(path)
-	if err != nil {
-		t.Fatalf("read 377: %v", err)
-	}
-	sql := string(b)
-
-	for _, r := range portedDBRules {
-		want := "WHERE name = '" + r.dbRule + "'"
-		if !strings.Contains(sql, want) {
-			t.Errorf("377 does not disable %q (looked for %s) — this file asserts a builtin "+
-				"covers it, which is only worth asserting if the DB row is actually gone",
-				r.dbRule, want)
+func TestPortMigrationsDisableExactlyThePortedRules(t *testing.T) {
+	for _, mig := range []string{mig377, mig383} {
+		b, err := os.ReadFile(filepath.Join("..", "..", "migrations", mig))
+		if err != nil {
+			t.Fatalf("read %s: %v", mig, err)
 		}
-	}
+		sql := string(b)
 
-	// And nothing beyond them: an extra disable would remove coverage that no
-	// case here vouches for.
-	for _, line := range strings.Split(sql, "\n") {
-		line = strings.TrimSpace(line)
-		rest, ok := strings.CutPrefix(line, "WHERE name = '")
-		if !ok {
-			continue
-		}
-		name := strings.TrimSuffix(strings.TrimSuffix(rest, ";"), "'")
-		found := false
+		// Every rule this file vouches for under `mig` must actually be disabled there.
 		for _, r := range portedDBRules {
-			if r.dbRule == name {
-				found = true
-				break
+			if r.migration != mig {
+				continue
+			}
+			want := "WHERE name = '" + r.dbRule + "'"
+			if !strings.Contains(sql, want) {
+				t.Errorf("%s does not disable %q (looked for %s) — this file asserts a builtin "+
+					"covers it, which is only worth asserting if the DB row is actually gone",
+					mig, r.dbRule, want)
 			}
 		}
-		if !found {
-			t.Errorf("377 disables %q but no case in portedDBRules shows a builtin still covers it — "+
-				"add the evidence or drop the statement", name)
+
+		// And nothing beyond them: an extra disable would remove coverage that no
+		// case here vouches for.
+		for _, line := range strings.Split(sql, "\n") {
+			line = strings.TrimSpace(line)
+			rest, ok := strings.CutPrefix(line, "WHERE name = '")
+			if !ok {
+				continue
+			}
+			name := strings.TrimSuffix(strings.TrimSuffix(rest, ";"), "'")
+			found := false
+			for _, r := range portedDBRules {
+				if r.migration == mig && r.dbRule == name {
+					found = true
+					break
+				}
+			}
+			if !found {
+				t.Errorf("%s disables %q but no case in portedDBRules shows a builtin still "+
+					"covers it — add the evidence or drop the statement", mig, name)
+			}
 		}
 	}
 }

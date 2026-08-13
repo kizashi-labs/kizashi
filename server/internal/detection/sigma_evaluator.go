@@ -19,6 +19,7 @@ import (
 
 	"gopkg.in/yaml.v3"
 
+	detectionrules "github.com/edr-platform/server/internal/detection/rules"
 	"github.com/edr-platform/server/internal/metrics"
 )
 
@@ -46,6 +47,18 @@ type SigmaRule struct {
 	// stop the same finding from being recognised as one — measured at 55
 	// unmerged duplicates per 1.67 benign host-days.
 	DBSeverity int
+
+	// Platform is the `rules.platform` column for a rule loaded from the
+	// database; nil for a builtin (which carries no such column and is therefore
+	// never platform-gated here).
+	//
+	// It exists because DB Sigma rules moved to this engine. server-detect gated
+	// them on this column — that is what stopped a macOS-only rule from matching
+	// Linux telemetry — and this pipeline has never had any platform scoping at
+	// all. Evaluating them here without the column would silently drop the gate:
+	// measured on a benign Linux/Windows fleet, "macOS Ingress Tool Transfer via
+	// curl/osascript" fired 8 times on dev-machine hosts.
+	Platform []string
 }
 
 // SigmaLogSource describes the log source for a Sigma rule.
@@ -127,9 +140,23 @@ func (e *SigmaEvaluator) EvaluateEvent(event map[string]interface{}) []SigmaMatc
 	e.mu.RUnlock()
 
 	eventType, _ := event["type"].(string)
+	eventPlatform, _ := event["platform"].(string)
 
 	var matches []SigmaMatch
 	for _, cr := range rules {
+		// Platform scoping for DB-loaded rules. Builtins carry no Platform and are
+		// never gated here (their OS scoping, where any, lives in logsource).
+		//
+		// This is NOT a new restriction: server-detect has applied exactly this
+		// gate to exactly these rules for as long as they have existed there. It
+		// moved with them. Reusing rules.PlatformMatchesEvent rather than copying
+		// the spelling table keeps both engines on the one set of contract tests
+		// (darwin≡macos, unknown OS fail-open, unlabelled rule ungated).
+		if len(cr.Rule.Platform) > 0 &&
+			!detectionrules.PlatformMatchesEvent(cr.Rule.Platform, eventPlatform) {
+			metrics.RulesPlatformGated.WithLabelValues(detectionrules.CanonPlatform(eventPlatform)).Inc()
+			continue
+		}
 		if cr.Evaluate(event) {
 			// Shadow-mode logsource.category check (P4-9): never filters, only
 			// flags. See sigma_category.go for the mapping and rationale.
@@ -980,12 +1007,12 @@ func loadSigmaRulesFromPool(e *SigmaEvaluator, pool interface{}) error {
 // entirely, so an unattributed alert is also an UNDEDUPLICABLE one: it would
 // stand alongside server-detect's copy of the same finding forever.
 func (e *SigmaEvaluator) LoadRuleWithFallbackTags(yamlContent string, fallback []string) error {
-	return e.loadDBRule(yamlContent, fallback, 0)
+	return e.loadDBRule(yamlContent, fallback, 0, nil)
 }
 
 // loadDBRule compiles a rule from the `rules` table, carrying the row's declared
 // severity so the API reports the same number the detection engine does.
-func (e *SigmaEvaluator) loadDBRule(yamlContent string, fallback []string, dbSeverity int) error {
+func (e *SigmaEvaluator) loadDBRule(yamlContent string, fallback []string, dbSeverity int, platform []string) error {
 	rule, err := parseSigmaYAML(yamlContent)
 	if err != nil {
 		return fmt.Errorf("parse sigma rule: %w", err)
@@ -998,6 +1025,7 @@ func (e *SigmaEvaluator) loadDBRule(yamlContent string, fallback []string, dbSev
 		return fmt.Errorf("compile sigma condition '%s': %w", rule.Title, err)
 	}
 	rule.DBSeverity = dbSeverity
+	rule.Platform = platform
 	e.mu.Lock()
 	e.rules = append(e.rules, &CompiledSigmaRule{Rule: rule, Evaluate: evaluateFn})
 	e.mu.Unlock()

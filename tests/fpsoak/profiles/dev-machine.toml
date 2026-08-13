@@ -161,6 +161,72 @@ cmdlines = [
   "tar -xzf /tmp/node-v20.tar.gz -C /tmp",
 ]
 
+# ─── 第 3 波（migration 386）のクロス OS ルールと語彙が重なる正規操作 ───
+#
+# これらのコマンドは 5 つのプロファイルに一度も現れておらず、ルールを入れても
+# 誤検知を測れない状態だった（P4-12）。攻撃者が使うから危険なのではなく、
+# 開発者も日常的に使うから誤検知になる、という層をここで作る。
+
+# 持ち出し検知と形が同じ正規転送。ビルド成果物のデプロイは毎日走る。
+[[processes]]
+weight   = 7
+name     = "scp"
+path     = "/usr/bin/scp"
+parent   = "bash"
+user     = "{{user}}"
+cmdlines = [
+  "scp dist/app.tar.gz deploy@10.21.0.9:/srv/releases/",
+  "scp deploy@10.21.0.9:/var/log/app.log ./tmp/",
+]
+
+# クラウド開発の日常。外部宛に大量送信するので持ち出しと区別がつきにくい。
+[[processes]]
+weight   = 6
+name     = "aws"
+path     = "/usr/local/bin/aws"
+parent   = "bash"
+user     = "{{user}}"
+cmdlines = [
+  "aws s3 sync ./dist s3://company-assets/web/",
+  "aws s3 cp backup.tar.gz s3://company-backup/{{rand}}/",
+]
+
+# プロセス探索。スクリプトの冒頭で頻繁に走る。単体では偵察と区別がつかない。
+[[processes]]
+weight   = 9
+name     = "pgrep"
+path     = "/usr/bin/pgrep"
+parent   = "bash"
+user     = "{{user}}"
+cmdlines = [
+  "pgrep -f node",
+  "pgrep -x dockerd",
+]
+
+# 再起動。カーネル更新後や検証環境の作り直しで正規に走る。
+[[processes]]
+weight   = 3
+name     = "shutdown"
+path     = "/sbin/shutdown"
+parent   = "sudo"
+user     = "root"
+cmdlines = [
+  "shutdown -r now",
+  "shutdown -r +5",
+]
+
+# シェル履歴の参照。攻撃者も見るが、本人はもっと見る。
+[[processes]]
+weight   = 5
+name     = "grep"
+path     = "/usr/bin/grep"
+parent   = "bash"
+user     = "{{user}}"
+cmdlines = [
+  "grep -n docker /home/{{user}}/.bash_history",
+  "grep -rn TODO ./internal",
+]
+
 # ─── ファイル ────────────────────────────────────────────────
 
 [[files]]

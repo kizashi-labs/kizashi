@@ -344,12 +344,15 @@ jobs:
           go-version-file: agent/go.mod
           cache-dependency-path: agent/go.sum
 
-      # NetworkMonitor/FilelessMonitor bpf2go bindings aren't committed (like
-      # ProcessMonitor's are), so the standard `-tags ebpf` Linux build needs them
-      # generated here first. Same recipe as agent-ebpf.yml's prevention/tamper
-      # generation step, but under plain `-tags ebpf`: both are report-only
-      # tracepoint/kprobe monitors with no LSM/enforcement hooks, so neither
-      # belongs behind the "prevention" tag. One bpftool build serves both.
+      # NetworkMonitor/FilelessMonitor bpf2go bindings are committed (like
+      # ProcessMonitor's), so `-tags ebpf` builds anywhere without clang — which is
+      # what lets server/Dockerfile ship the eBPF agent. Here we regenerate them
+      # anyway and diff, so a change to the .bpf.c sources cannot silently leave
+      # the committed bindings (and therefore the shipped agent) behind.
+      # Same recipe as agent-ebpf.yml's prevention/tamper generation step, but
+      # under plain `-tags ebpf`: both are report-only tracepoint/kprobe monitors
+      # with no LSM/enforcement hooks, so neither belongs behind the "prevention"
+      # tag. One bpftool build serves both.
       - name: Generate report-only eBPF bindings (Linux only)
         if: matrix.goos == 'linux'
         working-directory: agent
@@ -371,6 +374,22 @@ jobs:
             -cflags "-O2 -g -target bpf -D__TARGET_ARCH_x86" \
             FilelessMonitor ../../../ebpf/fileless_monitor.bpf.c
           ls -1 networkmonitor_bpf* filelessmonitor_bpf*
+
+      # 生成物のドリフト検査。.o は BTF 由来のデバッグ情報でランナーごとに差が出るため、
+      # C ソースだけから決まる .go 側を見る。ここが落ちたら .bpf.c を変えたのに
+      # バインディングを再生成してコミットしていない、という意味。
+      # 直し方: 上のステップと同じ bpf2go コマンドをローカルで流してコミットする
+      # （clang と BTF のあるホスト、または Docker: docs/Linuxカーネル防御検証ランブック.md）。
+      - name: Check committed eBPF bindings are up to date (Linux only)
+        if: matrix.goos == 'linux'
+        working-directory: agent
+        run: |
+          if ! git diff --exit-code -- \
+              'internal/platform/linux/networkmonitor_bpf*.go' \
+              'internal/platform/linux/filelessmonitor_bpf*.go'; then
+            echo "::error::committed bpf2go bindings are stale — regenerate and commit them" >&2
+            exit 1
+          fi
 
       - name: Build agent
         working-directory: agent

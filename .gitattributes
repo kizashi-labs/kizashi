@@ -21,3 +21,11 @@
 # 取りこぼし（属性が外れた・`-text` で追加された等）の検出は
 # server/internal/store/shell_eol_test.go（CI の Server Tests で実行）が担う。
 *.sh text eol=lf
+
+# Go も LF に固定する。
+#
+# Windows 上で新規に .go を作ると CRLF になり、Linux の CI で `gofmt -l` が
+# 落ちる。差分は「同じ行が消えて同じ行が足される」形にしか見えないので、
+# 原因に辿り着くまで時間を取られる（2026-08-13 に実際に踏んだ）。
+# 既存の .go は全て LF なので、ここで固定しても差分は出ない。
+*.go text eol=lf

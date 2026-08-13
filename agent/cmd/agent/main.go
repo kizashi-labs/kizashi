@@ -360,10 +360,13 @@ func main() {
 	}
 
 	// ─── gRPC client ──────────────────────────────────────────
+	// ack の送信先は grpcClient だが、grpcClient はコマンドハンドラで executor を
+	// 参照するため相互に必要になる。間に薄い転送を挟んで循環を解く。
+	ackSender := &deferredAckSender{}
 	executor := response.NewExecutor(
 		isolation, procMgr, quarantine,
 		cfg.Agent.ID, cfg.Server.URL,
-		nil, // ack sender set below
+		ackSender, // 下で grpcClient を代入する
 	)
 
 	var grpcClient *transport.GRPCClient
@@ -569,6 +572,7 @@ rule Malware_Test_Content {
 			}
 		}
 	})
+	ackSender.set(grpcClient) // ここで実際の送信先が決まる
 
 	// ─── Local ML anomaly detector ────────────────────────────
 	mlDetector := scanner.NewLocalAnomalyDetector()
@@ -1882,4 +1886,36 @@ func hashFileSHA256(path string) string {
 		return ""
 	}
 	return hex.EncodeToString(h.Sum(nil))
+}
+
+// deferredAckSender は response.Executor と GRPCClient の相互依存を解く。
+//
+// Executor はコマンド実行結果を送るために AckSender を必要とし、GRPCClient は
+// 受け取ったコマンドを実行するために Executor を必要とする。生成順をどちらに
+// しても片方が先に要る。薄い転送を挟み、grpcClient が出来た時点で差し込む。
+//
+// これが無かったために NewExecutor へ nil が渡され（"ack sender set below" と
+// あるが、その "below" は存在しなかった）、エージェントはコマンドの実行結果を
+// 一度も返していなかった。AckSender の実装型が agent 内に 1 つも無い状態だった。
+type deferredAckSender struct {
+	mu     sync.Mutex
+	target response.AckSender
+}
+
+func (d *deferredAckSender) set(target response.AckSender) {
+	d.mu.Lock()
+	d.target = target
+	d.mu.Unlock()
+}
+
+func (d *deferredAckSender) SendAck(ctx context.Context, commandID string, success bool, errMsg string, result []byte) error {
+	d.mu.Lock()
+	t := d.target
+	d.mu.Unlock()
+	if t == nil {
+		// 起動直後にコマンドが来た場合。送れないことを黙らせない。
+		slog.Warn("ACK の送信先が未設定です", "command_id", commandID)
+		return nil
+	}
+	return t.SendAck(ctx, commandID, success, errMsg, result)
 }

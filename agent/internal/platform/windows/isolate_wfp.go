@@ -281,6 +281,14 @@ func (m *WFPIsolationManager) IsIsolated() bool {
 	return m.isolated
 }
 
+// VerifyIsolation reads the actual Windows Firewall rules.
+//
+// reconcile() で使っている読み返しを、適用直後の確認にも使う。netsh が成功しても
+// ルールが実際に入っているとは限らず、後からポリシーで上書きされることもある。
+func (m *WFPIsolationManager) VerifyIsolation() (bool, error) {
+	return len(existingIsolationRules()) > 0, nil
+}
+
 // rollback removes all isolation rules and ensures default policy allows traffic.
 func (m *WFPIsolationManager) rollback() error {
 	var errs []string

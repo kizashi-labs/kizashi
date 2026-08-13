@@ -167,12 +167,17 @@ func main() {
 func startNATSCommandBridge(nc *nats.Conn, d *ingestion.InMemoryCommandDispatcher) {
 	relay := func(subject string, data []byte) {
 		type cmdPayload struct {
-			AgentID  string   `json:"agent_id"`
-			Reason   string   `json:"reason"`
-			AlertID  string   `json:"alert_id"`
-			PID      uint32   `json:"pid"`
-			Path     string   `json:"path"`
-			AllowIPs []string `json:"allow_ips"`
+			AgentID string `json:"agent_id"`
+			// CommandID は API 側が採番した response_actions.id。
+			// これをそのまま ServerCommand.command_id として使うことで、
+			// エージェントが返す ack を監査記録の行に対応付けられる。
+			// 空なら従来どおりディスパッチャが採番する（自動対応の経路）。
+			CommandID string   `json:"command_id"`
+			Reason    string   `json:"reason"`
+			AlertID   string   `json:"alert_id"`
+			PID       uint32   `json:"pid"`
+			Path      string   `json:"path"`
+			AllowIPs  []string `json:"allow_ips"`
 		}
 
 		// Subject format: commands.{agentID}.{type}
@@ -189,7 +194,7 @@ func startNATSCommandBridge(nc *nats.Conn, d *ingestion.InMemoryCommandDispatche
 		var err error
 		switch cmdType {
 		case "isolate":
-			err = d.EnqueueIsolate(agentID, p.Reason, p.AlertID, p.AllowIPs)
+			err = d.EnqueueIsolate(agentID, p.Reason, p.AlertID, p.AllowIPs, p.CommandID)
 		case "unisolate":
 			payload, _ := json.Marshal(map[string]interface{}{"reason": p.Reason})
 			err = d.Enqueue(agentID, &ingestion.Command{

@@ -1838,22 +1838,22 @@ func TestCommandStore_Dispatch(t *testing.T) {
 	aid := seedAgentStore(t, db)
 	s := store.NewCommandStore(db, stubPublisher{})
 	ctx := context.Background()
-	if err := s.IsolateEndpoint(ctx, aid, "cov-reason", ""); err != nil {
+	if err := s.IsolateEndpoint(ctx, aid, "cov-reason", "", ""); err != nil {
 		t.Fatalf("IsolateEndpoint: %v", err)
 	}
-	if err := s.UnisolateEndpoint(ctx, aid, "cov-reason"); err != nil {
+	if err := s.UnisolateEndpoint(ctx, aid, "cov-reason", ""); err != nil {
 		t.Fatalf("UnisolateEndpoint: %v", err)
 	}
-	if err := s.KillProcess(ctx, aid, 1234, "cov-reason"); err != nil {
+	if err := s.KillProcess(ctx, aid, 1234, "cov-reason", ""); err != nil {
 		t.Fatalf("KillProcess: %v", err)
 	}
-	if err := s.QuarantineFile(ctx, aid, "/tmp/evil", ""); err != nil {
+	if err := s.QuarantineFile(ctx, aid, "/tmp/evil", "", ""); err != nil {
 		t.Fatalf("QuarantineFile: %v", err)
 	}
-	if err := s.Scan(ctx, aid, "quick", "cov-user"); err != nil {
+	if err := s.Scan(ctx, aid, "quick", "cov-user", ""); err != nil {
 		t.Fatalf("Scan: %v", err)
 	}
-	if err := s.ScanCancel(ctx, aid, "cov-user"); err != nil {
+	if err := s.ScanCancel(ctx, aid, "cov-user", ""); err != nil {
 		t.Fatalf("ScanCancel: %v", err)
 	}
 }

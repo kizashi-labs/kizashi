@@ -239,7 +239,7 @@ var (
 		[]string{"rule_type", "result"}, // sigma/yara/ml, match/no_match/error
 	)
 
-	// RulesPlatformGated counts rule evaluations the detection server's OS gate
+	// RulesPlatformGated counts rule evaluations an OS gate
 	// skipped, labelled by the event's platform. The gate shipped in #356 but was
 	// inert in production until 2026-08-04: agents never set EventBatch.Platform, so
 	// every event arrived as "unknown" and the gate's fail-open branch ran every

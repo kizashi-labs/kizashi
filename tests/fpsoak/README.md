@@ -28,7 +28,17 @@
 | `dev-machine.toml` | Linux | 20 | 開発者マシン。コマンドライン系ルールの誤爆源 |
 | `file-server.toml` | Windows | 8 | 大量ファイルI/O。ランサム検知の閾値近傍 |
 | `it-admin.toml` | Windows | 8 | 情シス管理端末。**FPフロンティアの本丸** |
+| `macbook.toml` | macOS | 15 | Jamf 管理下の Mac。macOS 専用ルールの唯一の測定対象 |
 | `backup-server.toml` | Linux | 4 | 世代削除＋外部大容量転送 |
+
+> **`macbook.toml` が無いと macOS 専用ルールは「静かなルール」と区別がつかない。**
+> `platform` 列を持つ DB Sigma ルールは `rules.PlatformMatchesEvent` が
+> **評価前に**落とすので、darwin ホストが 0 台のフリートでは macOS ルールが
+> 一律 0 件になる。スコアカード上、それは「精度が高いルール」と同じ見え方をする。
+> 実際 migration 386 で macOS 専用 9 件を入れた直後のソークは全件 0 件を報告し、
+> それを「誤検知が少ない」と読みかけた（負債台帳 P4-12）。
+> `TestRealProfilesLoad` が windows/linux/**darwin** の 3 つ揃いを要求するのは
+> この穴を再び開けないためである。
 
 ## スキーマ
 
@@ -89,6 +99,10 @@ cd agent && go test ./cmd/fleet-sim/
 - `TestRealProfilesLoad` — 全ファイルがパース・検証を通るか
 - `TestRealProfilesCoverFPFrontier` — 上記の設計原則2が維持されているか
   (探索バースト / 横展開ファンアウト / 大量削除 / 外部大容量送信 / 内部対照)
+- `TestMacProfileMakesWave3RulesMeasurable` — macOS プロファイルが migration 386 の
+  各ルールのセレクタに実際に届いているか。加えて**禁止側**（SIP 無効化・リバース
+  シェル・匿名アップローダ・VNC）が入り込んでいないことも見る。カバレッジ欲しさに
+  攻撃相当の挙動を書くと、それは FP を測ったことにならず真陽性を誤ラベルするだけ
 - `TestGeneratorEmitsEveryRatedKind` — `rates` に対して実際にイベントが出るか
 
 **`rates` に値を入れたのに対応する `[[...]]` を書き忘れると、その種別は無音になる。**

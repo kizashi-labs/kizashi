@@ -396,9 +396,15 @@ func detectionStillLagging(ctx context.Context, pool *pgxpool.Pool, agentIDs []s
 	if err != nil {
 		return false, fmt.Errorf("アラート数の照会に失敗しました: %w", err)
 	}
+	// ここは「到着した生の件数」で数える。採点側 (fetchAlerts) は dedup が
+	// 統合済みの写しを除くが、この検査の目的は「エンジンが追いつききったか」で
+	// あって誤検知率ではない。統合されて減った分を「落ち着いた」と読むと、
+	// まだ流れ込んでいる最中に採点してしまう。数え方が違うので、採点対象では
+	// なく到着数だと分かる文言にしておく。
+	//
 	// #nosec G706 -- the arguments are two ints and a time.Duration parsed from a
 	// CLI flag; none can carry a newline into the log.
-	log.Printf("集計対象アラート: %d 件 (うち窓の最後 %s に %d 件)", total, quiesce, tail)
+	log.Printf("到着アラート: %d 件 (うち窓の最後 %s に %d 件)", total, quiesce, tail)
 	return tail > residualTolerance(total), nil
 }
 
@@ -433,6 +439,32 @@ func countEvents(ctx context.Context, pool *pgxpool.Pool, agentIDs []string, w w
 	return n, err
 }
 
+// notMergedDuplicate は「dedup が別のアラートへ統合した写し」を除く条件。
+//
+// 検知は 2 プロセスに分かれており、PR #647 で rules テーブルが api 経路にも
+// 繋がった結果、DB ルールは server-detect と server-api の両方が評価する。
+// 1 つの検知が 2 行になる:
+//
+//	[SIGMA] X   (server-detect)
+//	[Sigma] X   (server-api)
+//
+// dedup.AlertDeduplicator はこれを統合するが、行は消さない — 生存側に
+// dedup_key を立て、統合された側を status='resolved' にして注記を足すだけ。
+// 一方このレポートは status を見ずに数えていたため、統合済みの写しまで
+// 誤検知として計上していた。集計キー (ruleKey → foldEnginePrefix) が
+// [SIGMA] と [Sigma] を畳むので、両方の写しが 1 行に合算されて件数が倍になる。
+//
+// 実測 (CI run 2026-08-12): "RDP Lateral Movement via xfreerdp or mstsc" が
+// 6 → 12 件。baseline (2026-08-02、#647 より前) には server-detect の 6 件しか
+// 無かった。運用者が画面で向き合う件数は統合後の 6 件なので、12 は計測の側の
+// 数え間違いであって誤検知の増加ではない。
+//
+// 誤検知率は「運用者が実際に向き合う件数」でなければ意味がないので、統合済みの
+// 写しは数えない。生存側にも dedup_key は付くため dedup_key IS NULL では生存側
+// まで落ちる。status との組み合わせで判定する。解析者が手で resolved にした
+// アラートは dedup_key を持たないので残る。
+const notMergedDuplicate = `AND NOT (status = 'resolved' AND dedup_key IS NOT NULL)`
+
 func fetchAlerts(ctx context.Context, pool *pgxpool.Pool, agentIDs []string, w window) ([]AlertRow, error) {
 	rows, err := pool.Query(ctx, `
 		SELECT id::text,
@@ -444,6 +476,7 @@ func fetchAlerts(ctx context.Context, pool *pgxpool.Pool, agentIDs []string, w w
 		       created_at
 		FROM alerts
 		WHERE agent_id = ANY($1::uuid[]) AND created_at >= $2 AND created_at <= $3
+		  `+notMergedDuplicate+`
 		ORDER BY created_at
 	`, agentIDs, w.from, w.to)
 	if err != nil {

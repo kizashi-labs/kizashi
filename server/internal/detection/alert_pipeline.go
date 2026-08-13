@@ -1017,6 +1017,15 @@ func addPipelineSigmaAliases(flat map[string]interface{}) {
 		"target_image": {"TargetImage"},
 		"source_pid":   {"SourceProcessId"},
 		"target_pid":   {"TargetProcessId"},
+		// DesiredAccess on the handle (Sysmon EID10 GrantedAccess). The
+		// credential-access sensor emits it as access_mask and server-detect's
+		// RuleEngine has mapped GrantedAccess→access_mask for a long time; this
+		// pipeline never did, so every GrantedAccess-gated rule was inert on the api
+		// side only — including the shipped "LSASS ダンプ" rule (T1003.001,
+		// migration 003), which selects on GrantedAccess AND TargetImage and so
+		// could not fire here at all. Same parity gap, and same fix, as logon_type
+		// below. Found by TestMigrationSigmaFieldSupportInAPIEvaluator.
+		"access_mask": {"GrantedAccess"},
 		// Registry: expose key/value under the standard Sigma names. Following the
 		// Sysmon convention, TargetObject is the key path and Details is the value
 		// DATA (what persistence rules match on); value_name stays available raw.

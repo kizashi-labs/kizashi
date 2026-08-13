@@ -91,6 +91,8 @@ type Engine struct {
 	alertDedupMu   sync.Mutex
 	mu             sync.RWMutex
 	config         EngineConfig
+	// isoGuard は自動隔離の安全弁（冷却期間・時間あたり上限・ドライラン）。
+	isoGuard *isolationGuard
 }
 
 // alertDedupWindow は同一 (エージェント+アラート題名) の再発火を抑制する時間窓。
@@ -173,6 +175,12 @@ type EngineConfig struct {
 	// Minimum alert severity required to trigger auto-isolation (1-10, default 9).
 	// A rule must also have auto_isolate=true. Set to 0 to disable threshold enforcement.
 	AutoIsolateSeverityThreshold int
+	// AutoIsolateCooldown は同じ端末を再び自動隔離するまでの最短間隔（既定 30m）。
+	AutoIsolateCooldown time.Duration
+	// AutoIsolateHourlyBudget は 1 時間あたりに自動隔離を許す台数（既定 3）。
+	AutoIsolateHourlyBudget int
+	// AutoIsolateDryRun が true なら、隔離せず「隔離するはずだった」ことだけ記録する。
+	AutoIsolateDryRun bool
 }
 
 type DetectionStore interface {
@@ -243,16 +251,18 @@ func NewEngine(
 		return nil, fmt.Errorf("JetStream初期化に失敗しました: %w", err)
 	}
 	return &Engine{
-		nats:          nc,
-		js:            js,
-		store:         store,
-		aiAgent:       aiAgent,
-		commander:     commander,
-		rules:         rules,
-		notifier:      notifier,
-		playbooks:     playbooks,
-		iocMatcher:    iocMatcher,
-		suppression:   suppression,
+		nats:        nc,
+		js:          js,
+		store:       store,
+		aiAgent:     aiAgent,
+		commander:   commander,
+		rules:       rules,
+		notifier:    notifier,
+		playbooks:   playbooks,
+		iocMatcher:  iocMatcher,
+		suppression: suppression,
+		isoGuard: newIsolationGuard(
+			config.AutoIsolateCooldown, config.AutoIsolateHourlyBudget, config.AutoIsolateDryRun),
 		parents:       newParentResolver(),
 		netScan:       newNetworkScanDetector(),
 		dnsAgg:        newDNSTunnelAggregator(),
@@ -1601,8 +1611,24 @@ func (e *Engine) applyRuleBasedResponse(ctx context.Context, alert *StoredAlert,
 		if e.commander == nil {
 			return
 		}
+
+		// severity は検知器が自分で決める値なので、誤検知が 10 を出せばそのまま
+		// 端末が止まる。判定の質はここでは直せないので、被害の大きさを抑える。
+		if e.isoGuard != nil {
+			if v := e.isoGuard.allow(alert.AgentID); !v.allow {
+				e.isoGuard.logRefusal(alert.AgentID, ruleLabel, v.reason)
+				return
+			}
+			if e.isoGuard.isDryRun() {
+				// 何が止まるはずだったかを先に見るための状態。実際には隔離しない。
+				slog.Warn("自動隔離（ドライラン）: 実際には隔離していません",
+					"agent", alert.AgentID, "rule", ruleLabel, "severity", alert.Severity)
+				return
+			}
+		}
+
 		reason := fmt.Sprintf("ルールベース自動隔離: %s (重大度: %d)", ruleLabel, alert.Severity)
-		if err := e.commander.IsolateEndpoint(ctx, alert.AgentID, reason, alert.ID); err != nil {
+		if err := e.commander.IsolateEndpoint(ctx, alert.AgentID, reason, alert.ID, ""); err != nil {
 			slog.Error("auto isolate failed", "agent", alert.AgentID, "error", err)
 		} else {
 			e.logAction(ctx, alert.ID, alert.AgentID, "isolate", "", reason, "auto_rule", true, "")

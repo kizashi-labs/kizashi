@@ -137,3 +137,42 @@ func TestParseTcpdumpDNS_Ignored(t *testing.T) {
 		}
 	}
 }
+
+// 既定の監視パスは検知ルールの前提である。Sigma ルールが TargetFilename で
+// あるパスを見ていても、収集側がそのディレクトリを見ていなければ**フィールドは
+// 解決するのに値が永久に来ない**——このリポジトリが P5-5 / P5-7 で繰り返し
+// 潰してきた形になる。実際 migration 386 の
+// `macOS Sudoers or Passwd Modification` は、/etc が既定に無かったせいで
+// そのままでは発火しなかった。
+//
+// Linux 側（linux/file_collector.go）には最初から /etc が入っており、
+// 非対称だった。ここで両者が揃っていることを固定する。
+//
+// ★ このテストは Linux の CI では**実行されない**。パッケージ全体が
+// `//go:build darwin` で、agent の CI ジョブは ubuntu 上で `go test ./...` を
+// 回すため、ここは丸ごとビルド対象外になる。macOS 上で開発する人の手元でだけ
+// 走る。CI で効くのは `GOOS=darwin go vet`（型検査）までで、この表明そのものは
+// 検証されない——「緑だから守られている」と読まないこと。
+func TestDarwinDefaultWatchDirsCoverRuleTargets(t *testing.T) {
+	c := NewDarwinFileCollector(nil)
+
+	// 出荷ルールが TargetFilename で見ている場所。増やすときは、対応する
+	// ルールがあることを確かめてから足すこと（監視範囲はノイズ量に直結する）。
+	required := map[string]string{
+		"/etc":                   "sudoers / passwd 改変 (T1548.003)",
+		"/Library/LaunchAgents":  "LaunchAgent plist 作成 (T1543.001)",
+		"/Library/LaunchDaemons": "LaunchDaemon plist 作成 (T1543.004)",
+		"/Users":                 "シェル起動ファイル改変 (T1546.004)",
+	}
+
+	have := make(map[string]bool, len(c.monitored))
+	for _, d := range c.monitored {
+		have[d] = true
+	}
+	for dir, why := range required {
+		if !have[dir] {
+			t.Errorf("既定の監視パスに %s が無い（%s のルールが発火しなくなる）。"+
+				"現在の監視パス: %v", dir, why, c.monitored)
+		}
+	}
+}

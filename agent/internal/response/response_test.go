@@ -298,6 +298,20 @@ type mockIsolationManager struct {
 	isolated     bool
 	isolateErr   error
 	unisolateErr error
+	// verifyLies が true なら、Isolate が成功しても実態は「入っていない」を返す。
+	// 「コマンドは成功したがルールが無い」を再現するため。
+	verifyLies bool
+	verifyErr  error
+}
+
+func (m *mockIsolationManager) VerifyIsolation() (bool, error) {
+	if m.verifyErr != nil {
+		return false, m.verifyErr
+	}
+	if m.verifyLies {
+		return false, nil
+	}
+	return m.isolated, nil
 }
 
 func (m *mockIsolationManager) Isolate(_ []string, _ []uint16) error {

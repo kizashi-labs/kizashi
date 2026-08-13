@@ -331,7 +331,7 @@ func NewCommandStore(db *DB, nc interface{ Publish(string, []byte) error }) *Com
 }
 
 // IsolateEndpoint sends an isolation command to an agent and updates the DB.
-func (s *CommandStore) IsolateEndpoint(ctx context.Context, agentID, reason, alertID string) error {
+func (s *CommandStore) IsolateEndpoint(ctx context.Context, agentID, reason, alertID, commandID string) error {
 	// Update database
 	agentStore := &AgentStore{pool: s.pool}
 	if err := agentStore.IsolateAgent(ctx, agentID, reason, "ai_agent"); err != nil {
@@ -340,11 +340,12 @@ func (s *CommandStore) IsolateEndpoint(ctx context.Context, agentID, reason, ale
 
 	// Publish command via NATS for delivery to the agent
 	type isolateCmd struct {
-		AgentID string `json:"agent_id"`
-		Reason  string `json:"reason"`
-		AlertID string `json:"alert_id"`
+		AgentID   string `json:"agent_id"`
+		CommandID string `json:"command_id"`
+		Reason    string `json:"reason"`
+		AlertID   string `json:"alert_id"`
 	}
-	data, err := json.Marshal(isolateCmd{AgentID: agentID, Reason: reason, AlertID: alertID})
+	data, err := json.Marshal(isolateCmd{AgentID: agentID, CommandID: commandID, Reason: reason, AlertID: alertID})
 	if err != nil {
 		return fmt.Errorf("marshal isolate command: %w", err)
 	}
@@ -352,13 +353,14 @@ func (s *CommandStore) IsolateEndpoint(ctx context.Context, agentID, reason, ale
 }
 
 // KillProcess sends a process kill command.
-func (s *CommandStore) KillProcess(ctx context.Context, agentID string, pid uint32, reason string) error {
+func (s *CommandStore) KillProcess(ctx context.Context, agentID string, pid uint32, reason, commandID string) error {
 	type killCmd struct {
-		AgentID string `json:"agent_id"`
-		PID     uint32 `json:"pid"`
-		Reason  string `json:"reason"`
+		AgentID   string `json:"agent_id"`
+		CommandID string `json:"command_id"`
+		PID       uint32 `json:"pid"`
+		Reason    string `json:"reason"`
 	}
-	data, err := json.Marshal(killCmd{AgentID: agentID, PID: pid, Reason: reason})
+	data, err := json.Marshal(killCmd{AgentID: agentID, CommandID: commandID, PID: pid, Reason: reason})
 	if err != nil {
 		return fmt.Errorf("marshal kill command: %w", err)
 	}
@@ -366,13 +368,14 @@ func (s *CommandStore) KillProcess(ctx context.Context, agentID string, pid uint
 }
 
 // QuarantineFile sends a file quarantine command.
-func (s *CommandStore) QuarantineFile(ctx context.Context, agentID, path, alertID string) error {
+func (s *CommandStore) QuarantineFile(ctx context.Context, agentID, path, alertID, commandID string) error {
 	type quarantineCmd struct {
-		AgentID string `json:"agent_id"`
-		Path    string `json:"path"`
-		AlertID string `json:"alert_id"`
+		AgentID   string `json:"agent_id"`
+		CommandID string `json:"command_id"`
+		Path      string `json:"path"`
+		AlertID   string `json:"alert_id"`
 	}
-	data, err := json.Marshal(quarantineCmd{AgentID: agentID, Path: path, AlertID: alertID})
+	data, err := json.Marshal(quarantineCmd{AgentID: agentID, CommandID: commandID, Path: path, AlertID: alertID})
 	if err != nil {
 		return fmt.Errorf("marshal quarantine command: %w", err)
 	}
@@ -380,13 +383,14 @@ func (s *CommandStore) QuarantineFile(ctx context.Context, agentID, path, alertI
 }
 
 // RestoreFile sends a file restore command.
-func (s *CommandStore) RestoreFile(ctx context.Context, agentID, quarantineID, restorePath string) error {
+func (s *CommandStore) RestoreFile(ctx context.Context, agentID, quarantineID, restorePath, commandID string) error {
 	type restoreCmd struct {
 		AgentID      string `json:"agent_id"`
+		CommandID    string `json:"command_id"`
 		QuarantineID string `json:"quarantine_id"`
 		RestorePath  string `json:"restore_path"`
 	}
-	data, err := json.Marshal(restoreCmd{AgentID: agentID, QuarantineID: quarantineID, RestorePath: restorePath})
+	data, err := json.Marshal(restoreCmd{AgentID: agentID, CommandID: commandID, QuarantineID: quarantineID, RestorePath: restorePath})
 	if err != nil {
 		return fmt.Errorf("marshal restore command: %w", err)
 	}
@@ -396,13 +400,14 @@ func (s *CommandStore) RestoreFile(ctx context.Context, agentID, quarantineID, r
 // DeleteFile sends a file-delete command — used by rollback to remove an
 // incident-created artefact (the inverse of a create). Distinct from quarantine
 // (which preserves the file); delete permanently removes it.
-func (s *CommandStore) DeleteFile(ctx context.Context, agentID, path, reason string) error {
+func (s *CommandStore) DeleteFile(ctx context.Context, agentID, path, reason, commandID string) error {
 	type deleteCmd struct {
-		AgentID string `json:"agent_id"`
-		Path    string `json:"path"`
-		Reason  string `json:"reason"`
+		AgentID   string `json:"agent_id"`
+		CommandID string `json:"command_id"`
+		Path      string `json:"path"`
+		Reason    string `json:"reason"`
 	}
-	data, err := json.Marshal(deleteCmd{AgentID: agentID, Path: path, Reason: reason})
+	data, err := json.Marshal(deleteCmd{AgentID: agentID, CommandID: commandID, Path: path, Reason: reason})
 	if err != nil {
 		return fmt.Errorf("marshal delete command: %w", err)
 	}
@@ -410,12 +415,13 @@ func (s *CommandStore) DeleteFile(ctx context.Context, agentID, path, reason str
 }
 
 // UnisolateEndpoint removes network isolation from an agent.
-func (s *CommandStore) UnisolateEndpoint(ctx context.Context, agentID, reason string) error {
+func (s *CommandStore) UnisolateEndpoint(ctx context.Context, agentID, reason, commandID string) error {
 	type unisolateCmd struct {
-		AgentID string `json:"agent_id"`
-		Reason  string `json:"reason"`
+		AgentID   string `json:"agent_id"`
+		CommandID string `json:"command_id"`
+		Reason    string `json:"reason"`
 	}
-	data, err := json.Marshal(unisolateCmd{AgentID: agentID, Reason: reason})
+	data, err := json.Marshal(unisolateCmd{AgentID: agentID, CommandID: commandID, Reason: reason})
 	if err != nil {
 		return fmt.Errorf("marshal unisolate command: %w", err)
 	}
@@ -449,13 +455,14 @@ func (s *CommandStore) EnqueueApplyPolicy(agentID string, payload ApplyPolicyPay
 }
 
 // Scan sends a scan command to an agent.
-func (s *CommandStore) Scan(ctx context.Context, agentID, scanType, triggeredBy string) error {
+func (s *CommandStore) Scan(ctx context.Context, agentID, scanType, triggeredBy, commandID string) error {
 	type scanCmd struct {
 		AgentID     string `json:"agent_id"`
+		CommandID   string `json:"command_id"`
 		ScanType    string `json:"scan_type"`
 		TriggeredBy string `json:"triggered_by"`
 	}
-	data, err := json.Marshal(scanCmd{AgentID: agentID, ScanType: scanType, TriggeredBy: triggeredBy})
+	data, err := json.Marshal(scanCmd{AgentID: agentID, CommandID: commandID, ScanType: scanType, TriggeredBy: triggeredBy})
 	if err != nil {
 		return fmt.Errorf("marshal scan command: %w", err)
 	}
@@ -465,9 +472,10 @@ func (s *CommandStore) Scan(ctx context.Context, agentID, scanType, triggeredBy 
 // ScanCancel asks the agent to stop the in-flight scan. It reuses the scan
 // command with the "__cancel__" target sentinel so no new proto command type
 // is needed; the agent cancels its running scan instead of starting one.
-func (s *CommandStore) ScanCancel(ctx context.Context, agentID, triggeredBy string) error {
+func (s *CommandStore) ScanCancel(ctx context.Context, agentID, triggeredBy, commandID string) error {
 	type scanCmd struct {
 		AgentID     string `json:"agent_id"`
+		CommandID   string `json:"command_id"`
 		ScanType    string `json:"scan_type"`
 		Target      string `json:"target"`
 		TriggeredBy string `json:"triggered_by"`

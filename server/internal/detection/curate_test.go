@@ -19,7 +19,7 @@ func TestCurateBatch_GateAndCap(t *testing.T) {
 		// process category: 1 supported.
 		{ID: "p1", Category: "process_creation", Content: ruleYAML("proc1", "CommandLine|contains")},
 		// unsupported field → must be Pending regardless of cap.
-		{ID: "u1", Category: "registry", Content: ruleYAML("inert", "GrantedAccess")},
+		{ID: "u1", Category: "registry", Content: ruleYAML("inert", "CallTrace")},
 	}
 
 	plan := CurateBatch(rules, 2, supported)

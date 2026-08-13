@@ -127,7 +127,7 @@ func (r *PlaybookRunner) runAction(ctx context.Context, action store.PlaybookAct
 			return fmt.Errorf("commander not configured")
 		}
 		reason := fmt.Sprintf("プレイブック自動隔離: アラート %s (重大度: %d)", alert.Title, alert.Severity)
-		return r.commander.IsolateEndpoint(ctx, alert.AgentID, reason, alert.ID)
+		return r.commander.IsolateEndpoint(ctx, alert.AgentID, reason, alert.ID, "")
 
 	case "create_incident":
 		if r.incidents == nil {

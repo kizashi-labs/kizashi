@@ -42,6 +42,15 @@ func NewDarwinFileCollector(watchDirs []string) *DarwinFileCollector {
 			"/Applications",
 			"/Library/LaunchDaemons",
 			"/Library/LaunchAgents",
+			// /etc は Linux の既定監視パス（linux/file_collector.go）には最初から
+			// 入っていたが、こちらには無かった。非対称に気づいたのは、migration 386 で
+			// `macOS Sudoers or Passwd Modification`（/etc/sudoers・/etc/passwd を
+			// TargetFilename で見る）を入れようとして、**フィールドは解決するのに
+			// 値が永久に来ない**ことが分かったため。
+			//
+			// macOS の /etc は書き込み頻度が低く、Linux で既に同じ範囲を見ている
+			// 実績があるので、ノイズ増は小さいと判断した。
+			"/etc",
 		}
 	}
 	return &DarwinFileCollector{monitored: watchDirs}

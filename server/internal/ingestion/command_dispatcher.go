@@ -48,14 +48,21 @@ func (d *InMemoryCommandDispatcher) Dequeue(agentID string) ([]*Command, error) 
 }
 
 // EnqueueIsolate creates and enqueues an isolation command.
-func (d *InMemoryCommandDispatcher) EnqueueIsolate(agentID, reason, alertID string, allowedIPs []string) error {
+//
+// commandID が空でなければ、それをコマンド ID として使う。API 側が採番した
+// response_actions.id を渡すことで、エージェントの ack を監査記録に
+// 対応付けられる。空なら従来どおり内部で採番する。
+func (d *InMemoryCommandDispatcher) EnqueueIsolate(agentID, reason, alertID string, allowedIPs []string, commandID string) error {
 	payload, _ := json.Marshal(map[string]interface{}{
 		"reason":      reason,
 		"alert_id":    alertID,
 		"allowed_ips": allowedIPs,
 	})
+	if commandID == "" {
+		commandID = generateCommandID()
+	}
 	return d.Enqueue(agentID, &Command{
-		ID:       generateCommandID(),
+		ID:       commandID,
 		Type:     "isolate",
 		Payload:  payload,
 		IssuedAt: time.Now(),

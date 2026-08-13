@@ -190,7 +190,20 @@ type IsolationManager interface {
 	// Unisolate restores normal network access.
 	Unisolate() error
 	// IsIsolated returns the current isolation state.
+	//
+	// 注意: これはエージェントのメモリ上の状態であって、ホストの実態ではない。
+	// 実際にルールが入っているかは VerifyIsolation で確かめる。
 	IsIsolated() bool
+	// VerifyIsolation reads the host's actual firewall state.
+	//
+	// Isolate() が終了コード 0 を返しても、ルールが入っている保証はない。
+	// 適用後に別の何かが流すこともある（iptables -F は珍しくない）。
+	// 「隔離した」と報告する前に、ここで実態を確かめる。
+	//
+	// 第 2 返り値が非 nil のときは、状態を確認できなかったということ。
+	// 「隔離されていない」と混同してはいけない — 前者は分からない、
+	// 後者は分かったうえで入っていない、で対処が違う。
+	VerifyIsolation() (bool, error)
 }
 
 // ProcessManager handles process response actions.

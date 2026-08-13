@@ -81,12 +81,25 @@ COPY agent/ .
 
 # Cross-compile agent for all major platforms, injecting main.version
 # (build-arg VERSION, else server/VERSION file, else "dev").
+#
+# linux/amd64 は `-tags ebpf` で建てる。これがサーバから配られる Linux エージェントの
+# 実体で、タグ無しだと eBPF センサーが丸ごと落ちて /proc ポーリングへの縮退版になる
+# (短命プロセスを取りこぼし、eBPF 由来の file / library / LSM テレメトリはゼロになる)。
+# ci.yml の配布物は元から `-tags ebpf` 付きなので、ここだけが取り残されていた。
+# 生成済みの bpf2go バインディングと .o はリポジトリにあるため、このステージに
+# clang も BTF も要らない (CO-RE なのでビルドホストのカーネルにも依存しない)。
+# ロードに失敗した端末は runEBPFProcessMonitor が警告を出して /proc 監視へ縮退する
+# ので、eBPF の無いカーネルへ配っても安全側に倒れる。
+#
+# linux/arm64 はタグ無しのまま。バインディングは `-D__TARGET_ARCH_x86` で生成されて
+# おり、arm64 向けの .o が無い。ci.yml の配布物も同じ理由で amd64 だけが ebpf 付き。
 RUN AGENT_VERSION="${VERSION:-$(cat /build/VERSION 2>/dev/null | tr -d '[:space:]' || echo dev)}"; \
     LDFLAGS="-s -w -X main.version=${AGENT_VERSION}"; \
-    CGO_ENABLED=0 GOOS=linux   GOARCH=amd64 go build -ldflags="$LDFLAGS" -o /downloads/edr-agent-linux-amd64       ./cmd/agent && \
+    CGO_ENABLED=0 GOOS=linux   GOARCH=amd64 go build -tags ebpf -ldflags="$LDFLAGS" -o /downloads/edr-agent-linux-amd64 ./cmd/agent && \
     CGO_ENABLED=0 GOOS=linux   GOARCH=arm64 go build -ldflags="$LDFLAGS" -o /downloads/edr-agent-linux-arm64       ./cmd/agent && \
     CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -ldflags="$LDFLAGS" -o /downloads/edr-agent-windows-amd64.exe ./cmd/agent && \
-    CGO_ENABLED=0 GOOS=darwin  GOARCH=amd64 go build -ldflags="$LDFLAGS" -o /downloads/edr-agent-darwin-amd64      ./cmd/agent
+    CGO_ENABLED=0 GOOS=darwin  GOARCH=amd64 go build -ldflags="$LDFLAGS" -o /downloads/edr-agent-darwin-amd64      ./cmd/agent && \
+    CGO_ENABLED=0 GOOS=darwin  GOARCH=arm64 go build -ldflags="$LDFLAGS" -o /downloads/edr-agent-darwin-arm64      ./cmd/agent
 
 # Cross-compile watchdog for Linux and Windows
 RUN CGO_ENABLED=0 GOOS=linux   GOARCH=amd64 go build -ldflags="-s -w" -o /downloads/edr-watchdog-linux-amd64       ./cmd/watchdog

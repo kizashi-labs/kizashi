@@ -137,23 +137,44 @@ func (s *Store) Delete(ctx context.Context, id string) error {
 }
 
 // GetStats returns aggregate statistics for an organization.
+//
+// agents / users / alerts の所属列は tenant_id で、org_id は存在しない。
+// 以前は org_id で数えており、3 本とも毎回
+// `column "org_id" does not exist` で失敗していた。戻り値を `_ =` で
+// 捨てているため、組織統計は常に 0/0/0 を返していた
+// (/api/v1 の組織詳細から到達する)。
+//
+// 注意: organizations と tenants は列構成が重なる別テーブルで、
+// tenant_id の外部キーは tenants を指す。両者を突き合わせられるのは
+// migration 183 が入れる既定組織と既定テナントが同じ UUID
+// (00000000-0000-0000-0000-000000000001) を持つためで、
+// Store.Create で新規に作った組織には対応するテナントが無い。
+// その場合ここは 0 を返すが、実際にその組織を参照するエージェントも
+// 存在しないので数としては正しい。
+// 概念の重複そのものは別途整理が要る。
 func (s *Store) GetStats(ctx context.Context, orgID string) (*OrgStats, error) {
 	stats := &OrgStats{}
 
 	// Agent count
-	_ = s.pool.QueryRow(ctx,
-		`SELECT COUNT(*) FROM agents WHERE org_id = $1`, orgID,
-	).Scan(&stats.AgentCount)
+	if err := s.pool.QueryRow(ctx,
+		`SELECT COUNT(*) FROM agents WHERE tenant_id = $1`, orgID,
+	).Scan(&stats.AgentCount); err != nil {
+		slog.Warn("tenant: エージェント数の取得に失敗", "org_id", orgID, "error", err)
+	}
 
 	// User count
-	_ = s.pool.QueryRow(ctx,
-		`SELECT COUNT(*) FROM users WHERE org_id = $1`, orgID,
-	).Scan(&stats.UserCount)
+	if err := s.pool.QueryRow(ctx,
+		`SELECT COUNT(*) FROM users WHERE tenant_id = $1`, orgID,
+	).Scan(&stats.UserCount); err != nil {
+		slog.Warn("tenant: ユーザー数の取得に失敗", "org_id", orgID, "error", err)
+	}
 
 	// Alert count last 30 days
-	_ = s.pool.QueryRow(ctx,
-		`SELECT COUNT(*) FROM alerts WHERE org_id = $1 AND created_at > NOW() - INTERVAL '30 days'`, orgID,
-	).Scan(&stats.AlertCount30d)
+	if err := s.pool.QueryRow(ctx,
+		`SELECT COUNT(*) FROM alerts WHERE tenant_id = $1 AND created_at > NOW() - INTERVAL '30 days'`, orgID,
+	).Scan(&stats.AlertCount30d); err != nil {
+		slog.Warn("tenant: アラート数の取得に失敗", "org_id", orgID, "error", err)
+	}
 
 	return stats, nil
 }

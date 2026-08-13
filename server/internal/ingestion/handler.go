@@ -507,6 +507,10 @@ type preppedEvent struct {
 // round-trip per event: a burst of ETW/eBPF events would otherwise serialize into N
 // sequential INSERT round-trips, throttling ingestion and stressing the pool.
 func (s *Server) publishEventBatch(ctx context.Context, agentID string, batch *v1.EventBatch) {
+	// コマンドの実行結果は、イベント送信に相乗りしてくる。イベントが 0 件でも
+	// ack だけの batch が来るので、events より先に処理する。
+	s.applyCommandAcks(ctx, agentID, batch.GetAcks())
+
 	platform := platformString(batch.GetPlatform())
 
 	// Resolve every event once (type + timestamp + payload), dropping unresolvable
@@ -1522,5 +1526,59 @@ func processActionString(a v1.ProcessEvent_ProcessAction) string {
 		return "existing"
 	default:
 		return "existing"
+	}
+}
+
+// applyCommandAcks closes the audit rows for commands the agent has finished.
+//
+// command_id は API 側が採番した response_actions.id（#721）。エージェントは
+// 受け取った値をそのまま返すので、ここで終了状態に更新できる。
+//
+// これが無い間、隔離の記録は dispatched のまま残り、期限切れワーカーが
+// timeout に畳んでいた。つまり「実際には成功した隔離」も timeout と記録される。
+// ack が届いて初めて、成功と「結果が返らなかった」を区別できる。
+//
+// 終了状態の行は上書きしない。期限切れで畳んだ後に遅れて ack が届いた場合、
+// 記録を書き換えると「いつ確定したのか」が失われる。遅れて届いた事実は
+// ログに残す。
+func (s *Server) applyCommandAcks(ctx context.Context, agentID string, acks []*v1.CommandAck) {
+	if len(acks) == 0 || s.pool == nil {
+		return
+	}
+	for _, ack := range acks {
+		id := ack.GetCommandId()
+		if id == "" {
+			continue
+		}
+		status := "success"
+		if ack.GetStatus() != v1.CommandAck_ACK_STATUS_SUCCESS {
+			status = "failure"
+		}
+		var errMsg *string
+		if e := ack.GetError(); e != "" {
+			errMsg = &e
+		}
+		tag, err := s.pool.Exec(ctx, `
+			UPDATE response_actions
+			   SET status_text = $2,
+			       error_msg   = COALESCE($3, error_msg)
+			 WHERE id = $1
+			   AND status_text IN ('pending', 'dispatched', 'running')
+		`, id, status, errMsg)
+		if err != nil {
+			slog.Warn("コマンド実行結果の記録に失敗しました",
+				"agent", agentID, "command_id", id, "error", err)
+			continue
+		}
+		if tag.RowsAffected() == 0 {
+			// 期限切れで畳まれた後に届いたか、そもそも該当する記録が無い
+			// （自動対応の経路は id を持たない）。どちらも異常ではないが、
+			// 継続的に出るなら期限が短すぎる。
+			slog.Info("対応する記録が無い、または既に確定済みの ACK を受け取りました",
+				"agent", agentID, "command_id", id, "status", status)
+			continue
+		}
+		slog.Info("コマンドの実行結果を記録しました",
+			"agent", agentID, "command_id", id, "status", status)
 	}
 }

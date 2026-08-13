@@ -14,19 +14,21 @@ import (
 // failingCommander fails every dispatch, standing in for a NATS outage.
 type failingCommander struct{ err error }
 
-func (c *failingCommander) IsolateEndpoint(context.Context, string, string, string) error {
+func (c *failingCommander) IsolateEndpoint(context.Context, string, string, string, string) error {
 	return c.err
 }
-func (c *failingCommander) UnisolateEndpoint(context.Context, string, string) error { return c.err }
-func (c *failingCommander) Scan(context.Context, string, string, string) error      { return c.err }
-func (c *failingCommander) ScanCancel(context.Context, string, string) error        { return c.err }
-func (c *failingCommander) KillProcess(context.Context, string, uint32, string) error {
+func (c *failingCommander) UnisolateEndpoint(context.Context, string, string, string) error {
 	return c.err
 }
-func (c *failingCommander) QuarantineFile(context.Context, string, string, string) error {
+func (c *failingCommander) Scan(context.Context, string, string, string, string) error { return c.err }
+func (c *failingCommander) ScanCancel(context.Context, string, string, string) error   { return c.err }
+func (c *failingCommander) KillProcess(context.Context, string, uint32, string, string) error {
 	return c.err
 }
-func (c *failingCommander) RestoreFile(context.Context, string, string, string) error {
+func (c *failingCommander) QuarantineFile(context.Context, string, string, string, string) error {
+	return c.err
+}
+func (c *failingCommander) RestoreFile(context.Context, string, string, string, string) error {
 	return c.err
 }
 
@@ -80,7 +82,7 @@ func TestIsolateDispatchFailureIsNotReportedAsSuccess(t *testing.T) {
 	// Drive the dispatch stage directly: with no Store the handler cannot reach it,
 	// so assert on the decision this test exists for by calling the commander the
 	// same way the handler does and checking the recorded outcome.
-	err := h.Commander.IsolateEndpoint(context.Background(), "agent-1", "手動隔離", "")
+	err := h.Commander.IsolateEndpoint(context.Background(), "agent-1", "手動隔離", "", "")
 	if err == nil {
 		t.Fatal("the stub must fail")
 	}

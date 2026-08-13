@@ -106,7 +106,7 @@ func (h *QuarantineActionsHandler) Create(c *gin.Context) {
 
 	// Dispatch real command to agent via NATS if commander is available.
 	if h.commander != nil && req.NetworkIsolated {
-		if err := h.commander.IsolateEndpoint(c.Request.Context(), req.AgentID, req.Reason, ""); err != nil {
+		if err := h.commander.IsolateEndpoint(c.Request.Context(), req.AgentID, req.Reason, "", ""); err != nil {
 			// Log but do not fail the HTTP response; the DB record is authoritative.
 			_ = err
 		}
@@ -134,7 +134,7 @@ func (h *QuarantineActionsHandler) Release(c *gin.Context) {
 
 	// Send unisolate command to agent via NATS.
 	if h.commander != nil && agentID != "" {
-		if err := h.commander.UnisolateEndpoint(c.Request.Context(), agentID, "quarantine released"); err != nil {
+		if err := h.commander.UnisolateEndpoint(c.Request.Context(), agentID, "quarantine released", ""); err != nil {
 			_ = err
 		}
 	}

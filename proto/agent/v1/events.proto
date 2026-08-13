@@ -236,4 +236,28 @@ message EventBatch {
   repeated Event events = 2;
   uint64 sequence_id    = 3; // monotonic, for dedup
   Platform platform     = 4;
+
+  // acks は、直前に実行したサーバコマンドの結果。イベント送信に相乗りさせる。
+  //
+  // 専用の RPC を足さないのは、既にある永続ストリームと mTLS・再接続処理を
+  // そのまま使えるため。新しいフィールドなので、ack を返さない旧エージェントは
+  // 従来どおり動く（サーバ側は期限切れとして畳む）。
+  repeated CommandAck acks = 5;
+}
+
+// CommandAck はサーバコマンドの実行結果。command_id は ServerCommand で
+// 受け取った値をそのまま返す。サーバはこれを response_actions.id として扱い、
+// 対応する監査記録を終了状態に更新する。
+message CommandAck {
+  string command_id = 1;
+  AckStatus status  = 2;
+  string error      = 3;
+  bytes  result     = 4; // command-specific result payload
+
+  enum AckStatus {
+    ACK_STATUS_UNSPECIFIED = 0;
+    ACK_STATUS_SUCCESS     = 1;
+    ACK_STATUS_FAILED      = 2;
+    ACK_STATUS_PARTIAL     = 3;
+  }
 }

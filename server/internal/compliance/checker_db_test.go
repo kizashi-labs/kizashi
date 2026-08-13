@@ -116,3 +116,130 @@ func TestAssessAgent_NoEventsFails(t *testing.T) {
 		}
 	}
 }
+
+// 幻のテーブル (endpoint_hardening / vuln_findings) を引いていた 3 項目の
+// 再発防止。
+//
+// どちらの表も、どの migration も作っていない。クエリは毎回
+// `relation ... does not exist` で失敗し、戻り値は `_ =` で捨てられていたため:
+//
+//	disk_encryption  … encryptionEnabled が false のまま → 全台が恒久的に不合格
+//	firewall_enabled … 同上 → 全台が恒久的に不合格
+//	patch_status     … criticalVulns が 0 のまま → patchOK=true で全台が恒久的に合格
+//
+// 最後の 1 つが特に危険で、未パッチの重大脆弱性があっても「良好」と報告する。
+// 測れていないものは pass にも fail にもせず unknown にする。
+func TestAssessAgent_UnmeasuredChecksAreUnknownNotPass(t *testing.T) {
+	pool := complianceTestPool(t)
+	ctx := context.Background()
+
+	const agentID = "cc11cc11-0000-4000-8000-00000000c001"
+	seedAgentWithEvents(t, pool, agentID, 3)
+
+	got, err := NewChecker(pool).AssessAgent(ctx, agentID)
+	if err != nil {
+		t.Fatalf("AssessAgent: %v", err)
+	}
+
+	byID := map[string]*ComplianceCheck{}
+	for _, c := range got.Checks {
+		byID[c.CheckID] = c
+	}
+
+	// ファイアウォールの状態はどのテーブルにも無い。合格でも不合格でもなく unknown。
+	fw := byID["firewall_enabled"]
+	if fw == nil {
+		t.Fatal("firewall_enabled のチェックが無い")
+	}
+	if fw.Status != "unknown" {
+		t.Errorf("firewall_enabled = %q, want unknown (収集経路が無いものを断定しない)", fw.Status)
+	}
+
+	// 暗号化の報告が無いエージェントは「暗号化されていない」ではなく不明。
+	enc := byID["disk_encryption"]
+	if enc == nil {
+		t.Fatal("disk_encryption のチェックが無い")
+	}
+	if enc.Status != "unknown" {
+		t.Errorf("disk_encryption = %q, want unknown (endpoint_encryption に行が無い)", enc.Status)
+	}
+
+	// 脆弱性が 1 件も無いなら patch_status は正しく pass。
+	// クエリが壊れていた頃も pass だったので、pass であること自体は証拠にならない。
+	// 下の TestAssessAgent_PatchStatusFailsOnOldCriticalVuln が実際に数えられて
+	// いることを示す。
+	if p := byID["patch_status"]; p == nil || p.Status != "pass" {
+		t.Errorf("patch_status = %v, want pass (脆弱性 0 件)", p)
+	}
+
+	// unknown は pass にも fail にも数えない。件数は固定せず、実際に
+	// unknown だったものを数えて突き合わせる (収集経路が増えれば減るため)。
+	unknown := 0
+	for _, c := range got.Checks {
+		if c.Status == "unknown" {
+			unknown++
+		}
+	}
+	if unknown == 0 {
+		t.Error("unknown が 1 件も無い — 測っていない項目が pass/fail に倒れている")
+	}
+	if got.PassCount+got.FailCount != len(got.Checks)-unknown {
+		t.Errorf("pass %d + fail %d, checks %d, unknown %d — unknown が数に混ざっている",
+			got.PassCount, got.FailCount, len(got.Checks), unknown)
+	}
+}
+
+// patch_status が実際に vulnerability_findings を数えていることを示す。
+// 併せて、実表の status には 'patched' が無い (open/in_progress/resolved/
+// accepted/false_positive) ため、旧実装の `status != 'patched'` では
+// 解決済みまで未対応として数えてしまう点も押さえる。
+func TestAssessAgent_PatchStatusFailsOnOldCriticalVuln(t *testing.T) {
+	pool := complianceTestPool(t)
+	ctx := context.Background()
+
+	const agentID = "cc11cc11-0000-4000-8000-00000000c002"
+	seedAgentWithEvents(t, pool, agentID, 3)
+
+	cleanup := func() {
+		if _, err := pool.Exec(ctx,
+			`DELETE FROM vulnerability_findings WHERE agent_id = $1::uuid`, agentID); err != nil {
+			t.Errorf("後片付けに失敗しました (vulnerability_findings): %v", err)
+		}
+	}
+	cleanup()
+	t.Cleanup(cleanup)
+
+	// 30 日より古い未対応の重大脆弱性 1 件と、解決済み 1 件。
+	// 数えてよいのは前者だけ。
+	for _, v := range []struct{ cve, status string }{
+		{"CVE-2026-0001", "open"},
+		{"CVE-2026-0002", "resolved"},
+	} {
+		if _, err := pool.Exec(ctx, `
+			INSERT INTO vulnerability_findings
+			    (agent_id, cve_id, title, severity, status, first_seen)
+			VALUES ($1::uuid, $2, 'itest', 'critical', $3, NOW() - INTERVAL '60 days')`,
+			agentID, v.cve, v.status); err != nil {
+			t.Fatalf("seed vulnerability_findings (%s): %v", v.cve, err)
+		}
+	}
+
+	got, err := NewChecker(pool).AssessAgent(ctx, agentID)
+	if err != nil {
+		t.Fatalf("AssessAgent: %v", err)
+	}
+	for _, c := range got.Checks {
+		if c.CheckID != "patch_status" {
+			continue
+		}
+		if c.Status != "fail" {
+			t.Errorf("patch_status = %q, want fail (未対応の重大脆弱性が 1 件)", c.Status)
+		}
+		// resolved を数えていたら 2 件になる。
+		if c.Evidence != "Critical unpatched vulns >30d: 1" {
+			t.Errorf("evidence = %q, want 1 件 (resolved を数えていないこと)", c.Evidence)
+		}
+		return
+	}
+	t.Fatal("patch_status のチェックが無い")
+}

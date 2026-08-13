@@ -122,10 +122,10 @@ var cspmSources = []cspmSource{
 // 「完全に準拠している」という最も安心できる表示に化けていた。
 // セキュリティ製品としては最悪の壊れ方なので、未計測は未計測として返す。
 //
-// なお cspm_findings / cspm_accounts / cloud_misconfigurations に書き込む
-// 経路は現時点でリポジトリ内に存在しない (CSPM スキャナ未実装)。
-// つまり通常は data_available=false になる。取り込み経路が入れば、
-// このハンドラは変更なしで実データを表示する。
+// cspm_findings / cspm_accounts への書き込みは PR #680 の取り込み API
+// (POST /api/v1/cloud/findings/import) が行う。クラウドへ接続して自分で
+// 検査する処理は依然として無いので、外部 CSPM ツールの結果を取り込むまでは
+// data_available=false になる。
 func (h *CloudPostureHandler) GetPosture(c *gin.Context) {
 	provider := c.DefaultQuery("provider", "aws")
 	ctx := c.Request.Context()

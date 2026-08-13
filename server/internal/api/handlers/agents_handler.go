@@ -41,13 +41,13 @@ type AgentHandler struct {
 // success. That path had no coverage because the field was a concrete type and a
 // failing commander could not be injected.
 type agentCommander interface {
-	IsolateEndpoint(ctx context.Context, agentID, reason, alertID string) error
-	UnisolateEndpoint(ctx context.Context, agentID, reason string) error
-	Scan(ctx context.Context, agentID, scanType, triggeredBy string) error
-	ScanCancel(ctx context.Context, agentID, triggeredBy string) error
-	KillProcess(ctx context.Context, agentID string, pid uint32, reason string) error
-	QuarantineFile(ctx context.Context, agentID, path, alertID string) error
-	RestoreFile(ctx context.Context, agentID, quarantineID, restorePath string) error
+	IsolateEndpoint(ctx context.Context, agentID, reason, alertID, commandID string) error
+	UnisolateEndpoint(ctx context.Context, agentID, reason, commandID string) error
+	Scan(ctx context.Context, agentID, scanType, triggeredBy, commandID string) error
+	ScanCancel(ctx context.Context, agentID, triggeredBy, commandID string) error
+	KillProcess(ctx context.Context, agentID string, pid uint32, reason, commandID string) error
+	QuarantineFile(ctx context.Context, agentID, path, alertID, commandID string) error
+	RestoreFile(ctx context.Context, agentID, quarantineID, restorePath, commandID string) error
 }
 
 // responseAuditor records what was attempted and whether it was dispatched.
@@ -241,12 +241,25 @@ func (h *AgentHandler) Isolate(c *gin.Context) {
 	// got 200 "エージェントを隔離しました" — while the endpoint was never told and
 	// stayed on the network. A containment action that reports success without
 	// happening is the most dangerous failure this API can have.
+	// 送る前に記録する。ここで採番した id をコマンドに載せることで、エージェントが
+	// 返す ack をこの行に対応付けられる。順序が逆だと、送った直後に返ってきた ack を
+	// 受け止める先が存在しない。
+	var actionID string
+	if h.ResponseActions != nil {
+		actionID, _ = h.ResponseActions.Record(c.Request.Context(), id, "isolate",
+			store.StatusPending, by, map[string]string{"reason": req.Reason})
+	}
+
 	if h.Commander != nil {
-		if err := h.Commander.IsolateEndpoint(c.Request.Context(), id, req.Reason, ""); err != nil {
+		if err := h.Commander.IsolateEndpoint(c.Request.Context(), id, req.Reason, "", actionID); err != nil {
 			slog.Error("隔離コマンドの送信に失敗しました", "agent", id, "error", err)
 			if h.ResponseActions != nil {
-				_ = h.ResponseActions.RecordFailure(c.Request.Context(), id, "isolate", by, err.Error(),
-					map[string]string{"reason": req.Reason})
+				if actionID != "" {
+					_ = h.ResponseActions.Complete(c.Request.Context(), actionID, store.StatusFailure, err.Error())
+				} else {
+					_ = h.ResponseActions.RecordFailure(c.Request.Context(), id, "isolate", by, err.Error(),
+						map[string]string{"reason": req.Reason})
+				}
 			}
 			// The agents row keeps isolated=true on purpose: it records the operator's
 			// INTENT, and the heartbeat/self-healing path uses it to re-deliver. Rolling
@@ -260,9 +273,8 @@ func (h *AgentHandler) Isolate(c *gin.Context) {
 		}
 	}
 
-	if h.ResponseActions != nil {
-		_, _ = h.ResponseActions.Record(c.Request.Context(), id, "isolate", store.StatusDispatched, by,
-			map[string]string{"reason": req.Reason})
+	if actionID != "" {
+		_ = h.ResponseActions.Complete(c.Request.Context(), actionID, store.StatusDispatched, "")
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "エージェントを隔離しました", "id": id})
@@ -288,11 +300,21 @@ func (h *AgentHandler) Unisolate(c *gin.Context) {
 	// endpoint is released while its firewall rules are still in place. That is the
 	// orphaned-isolation shape — the host is unreachable and every console says it
 	// is fine.
+	var actionID string
+	if h.ResponseActions != nil {
+		actionID, _ = h.ResponseActions.Record(c.Request.Context(), id, "unisolate",
+			store.StatusPending, by, nil)
+	}
+
 	if h.Commander != nil {
-		if err := h.Commander.UnisolateEndpoint(c.Request.Context(), id, "手動隔離解除"); err != nil {
+		if err := h.Commander.UnisolateEndpoint(c.Request.Context(), id, "手動隔離解除", actionID); err != nil {
 			slog.Error("隔離解除コマンドの送信に失敗しました", "agent", id, "error", err)
 			if h.ResponseActions != nil {
-				_ = h.ResponseActions.RecordFailure(c.Request.Context(), id, "unisolate", by, err.Error(), nil)
+				if actionID != "" {
+					_ = h.ResponseActions.Complete(c.Request.Context(), actionID, store.StatusFailure, err.Error())
+				} else {
+					_ = h.ResponseActions.RecordFailure(c.Request.Context(), id, "unisolate", by, err.Error(), nil)
+				}
 			}
 			c.JSON(http.StatusBadGateway, gin.H{
 				"error": "隔離解除を記録しましたが、エンドポイントへの指示に失敗しました。端末はまだ隔離されたままの可能性があります",
@@ -302,8 +324,8 @@ func (h *AgentHandler) Unisolate(c *gin.Context) {
 		}
 	}
 
-	if h.ResponseActions != nil {
-		_, _ = h.ResponseActions.Record(c.Request.Context(), id, "unisolate", store.StatusDispatched, by, nil)
+	if actionID != "" {
+		_ = h.ResponseActions.Complete(c.Request.Context(), actionID, store.StatusDispatched, "")
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "エージェントの隔離を解除しました", "id": id})
@@ -425,7 +447,7 @@ func (h *AgentHandler) TriggerScan(c *gin.Context) {
 	by, _ := userID.(string)
 
 	if h.Commander != nil {
-		if err := h.Commander.Scan(c.Request.Context(), id, req.ScanType, by); err != nil {
+		if err := h.Commander.Scan(c.Request.Context(), id, req.ScanType, by, ""); err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "スキャンコマンドの送信に失敗しました"})
 			return
 		}
@@ -456,7 +478,7 @@ func (h *AgentHandler) TriggerScanCancel(c *gin.Context) {
 	by, _ := userID.(string)
 
 	if h.Commander != nil {
-		if err := h.Commander.ScanCancel(c.Request.Context(), id, by); err != nil {
+		if err := h.Commander.ScanCancel(c.Request.Context(), id, by, ""); err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "スキャン停止コマンドの送信に失敗しました"})
 			return
 		}
@@ -671,7 +693,7 @@ func (h *AgentHandler) KillProcess(c *gin.Context) {
 	by, _ := userID.(string)
 
 	if h.Commander != nil {
-		if err := h.Commander.KillProcess(c.Request.Context(), agentID, req.PID, req.Reason); err != nil {
+		if err := h.Commander.KillProcess(c.Request.Context(), agentID, req.PID, req.Reason, ""); err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "プロセス終了コマンドの送信に失敗しました"})
 			return
 		}
@@ -710,7 +732,7 @@ func (h *AgentHandler) QuarantineFile(c *gin.Context) {
 	by, _ := userID.(string)
 
 	if h.Commander != nil {
-		if err := h.Commander.QuarantineFile(c.Request.Context(), agentID, req.Path, req.AlertID); err != nil {
+		if err := h.Commander.QuarantineFile(c.Request.Context(), agentID, req.Path, req.AlertID, ""); err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "ファイル隔離コマンドの送信に失敗しました"})
 			return
 		}
@@ -748,7 +770,7 @@ func (h *AgentHandler) RestoreFile(c *gin.Context) {
 	by, _ := userID.(string)
 
 	if h.Commander != nil {
-		if err := h.Commander.RestoreFile(c.Request.Context(), agentID, req.QuarantineID, req.RestorePath); err != nil {
+		if err := h.Commander.RestoreFile(c.Request.Context(), agentID, req.QuarantineID, req.RestorePath, ""); err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "ファイル復元コマンドの送信に失敗しました"})
 			return
 		}
