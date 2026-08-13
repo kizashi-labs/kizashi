@@ -189,6 +189,19 @@ func main() {
 		serverURL   = flag.String("server", "", "EDRサーバーURL (enroll時)")
 		enrollToken = flag.String("token", "", "登録トークン (enroll時)")
 
+		// Uninstall protection. The uninstall scripts call this and refuse to
+		// remove anything unless it exits 0. Password comes from
+		// EDR_UNINSTALL_PASSWORD or stdin — never an argument, which would put
+		// it in the process list for the duration of the key derivation.
+		verifyUninstall = flag.Bool("verify-uninstall", false,
+			"アンインストールパスワードを検証して終了 (0=許可 2=拒否 3=判定不能)")
+
+		// First-run config generation, called by the OS packages (MSI custom
+		// action / deb+rpm postinstall / macOS pkg postinstall). Refuses to
+		// overwrite an existing config, so packages can call it unconditionally.
+		writeConfig = flag.Bool("write-config", false,
+			"初回設定ファイルを生成して終了 (既存ファイルがあれば何もしない)")
+
 		// Standalone memory-scan cost measurement (#511). Needs no config or
 		// enrollment and sends no events, so it can be run on any host — including
 		// alongside an installed agent — to check what the scanner costs there.
@@ -219,6 +232,17 @@ func main() {
 	if *showVersion {
 		fmt.Printf("edr-agent v%s (%s/%s)\n", version, runtime.GOOS, runtime.GOARCH)
 		os.Exit(0)
+	}
+
+	// Before logging setup and any collector initialisation: this mode answers
+	// one question and exits, and must not start monitoring on a host that is
+	// being decommissioned.
+	if *verifyUninstall {
+		os.Exit(runVerifyUninstall(*configPath))
+	}
+
+	if *writeConfig {
+		os.Exit(runWriteConfig(*configPath, *serverURL))
 	}
 
 	// ─── Logging setup ────────────────────────────────────────
@@ -361,6 +385,10 @@ func main() {
 		case transport.CmdQuarantineFile:
 			if c, ok := cmd.Payload.(response.QuarantineFileCmd); ok {
 				executor.QuarantineFile(ctx, c)
+			}
+		case transport.CmdApplyPolicy:
+			if c, ok := cmd.Payload.(transport.ApplyPolicyCmd); ok {
+				applyServerPolicy(cfgMgr, c)
 			}
 		case transport.CmdRestoreFile:
 			if c, ok := cmd.Payload.(response.RestoreFileCmd); ok {
@@ -597,6 +625,7 @@ rule Malware_Test_Content {
 		)
 		hbReporter.SetProtectionMode(string(protCaps.Mode))
 		hbReporter.SetTelemetryModeFunc(func() string { return string(telemetry.Aggregate()) })
+		hbReporter.SetUninstallGuardApplier(makeUninstallGuardApplier(*configPath))
 		hbReporter.Run(ctx)
 	}()
 
@@ -1405,6 +1434,63 @@ func processAction(a string) v1.ProcessEvent_ProcessAction {
 		return v1.ProcessEvent_PROCESS_ACTION_HOLLOW
 	default:
 		return v1.ProcessEvent_PROCESS_ACTION_UNSPECIFIED
+	}
+}
+
+// applyServerPolicy applies an admin-console policy push.
+//
+// Only the toggles the server actually sends are touched. buildEnabledModules on
+// the server emits at most {"network","dns"}; process, file, registry and auth
+// monitoring are never named. Treating "absent" as "disable" would therefore turn
+// OFF process and file collection the moment any policy is assigned — the whole
+// sensor, silently, from a UI that never offered that choice. So the list is read
+// as "these two, set to on/off" and everything else is preserved verbatim.
+func applyServerPolicy(cfgMgr *config.Manager, p transport.ApplyPolicyCmd) {
+	if cfgMgr == nil {
+		return
+	}
+	cur := cfgMgr.Get()
+	if cur == nil {
+		return
+	}
+	network, dns := false, false
+	var unknown []string
+	for _, m := range p.EnabledModules {
+		switch strings.ToLower(strings.TrimSpace(m)) {
+		case "network":
+			network = true
+		case "dns":
+			dns = true
+		default:
+			unknown = append(unknown, m)
+		}
+	}
+	// Carry every other field through unchanged: ApplyRemote overwrites the whole
+	// collection block, so building a fresh RemoteConfig would wipe the monitored
+	// and excluded paths and clear AutoResponseEnabled as a side effect.
+	cfgMgr.ApplyRemote(&config.RemoteConfig{
+		ProcessMonitoring:    cur.Collection.ProcessMonitoring,
+		FileMonitoring:       cur.Collection.FileMonitoring,
+		NetworkMonitoring:    network,
+		DNSMonitoring:        dns,
+		MonitoredPaths:       cur.Collection.MonitoredPaths,
+		ExcludedPaths:        cur.Collection.ExcludedPaths,
+		ExcludedProcesses:    cur.Collection.ExcludedProcesses,
+		EventBatchIntervalMS: cur.Collection.EventBatchIntervalMS,
+		AutoResponseEnabled:  cur.Response.AutoResponseEnabled,
+	})
+	slog.Info("[apply_policy] ポリシーを適用しました",
+		"policy", p.PolicyID, "network", network, "dns", dns)
+	if len(unknown) > 0 {
+		slog.Warn("[apply_policy] 未対応のモジュール名を無視しました", "modules", unknown)
+	}
+	// Reported, not applied: the agent has no scan scheduler, and the CPU ceiling
+	// is fixed at construction (resource.New) with no setter — and the throttle is
+	// created but never consulted on the event path (`_ = throttle`). Logging the
+	// gap beats pretending the knob took effect.
+	if p.ScanIntervalMin > 0 || p.CPULimitPct > 0 {
+		slog.Warn("[apply_policy] 未対応の項目があります(受信のみ)",
+			"scan_interval_min", p.ScanIntervalMin, "cpu_limit_pct", p.CPULimitPct)
 	}
 }
 

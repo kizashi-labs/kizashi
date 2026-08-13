@@ -33,7 +33,14 @@ func (h *ThreatGraphHandler) GetSubGraph(c *gin.Context) {
 	}
 	depthStr := c.DefaultQuery("depth", "3")
 	depth := 3
-	fmt.Sscanf(depthStr, "%d", &depth)
+	// パース失敗時は既定の 3 が残るので戻り値は見ない。ただし上限は要る:
+	// 以前は ?depth=999999 がそのまま渡り、探索が青天井だった。
+	_, _ = fmt.Sscanf(depthStr, "%d", &depth)
+	if depth < 1 {
+		depth = 1
+	} else if depth > 10 {
+		depth = 10
+	}
 
 	q := &threatgraph.GraphQuery{
 		RootNodeID: rootID,

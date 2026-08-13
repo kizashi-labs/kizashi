@@ -1,4 +1,4 @@
-//go:build darwin && esf && prevention
+//go:build darwin && esf && prevention && cgo
 
 // macOS pre-execution prevention via Apple's Endpoint Security Framework (ESF)
 // AUTH_EXEC — the macOS counterpart of the Linux eBPF LSM and Windows driver

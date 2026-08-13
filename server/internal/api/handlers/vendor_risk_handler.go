@@ -331,10 +331,10 @@ func (h *VendorRiskHandler) ListAssessments(c *gin.Context) {
 
 	rows, err := h.pool.Query(ctx, `
 		SELECT va.id::text, va.vendor_id::text, COALESCE(v.name,''), va.overall_score,
-		       va.status, COALESCE(va.findings,''), va.created_at
+		       va.status, COALESCE(va.findings,''), va.assessed_at
 		FROM vendor_assessments va
 		LEFT JOIN third_party_vendors v ON v.id = va.vendor_id
-		ORDER BY va.created_at DESC LIMIT 200`)
+		ORDER BY va.assessed_at DESC LIMIT 200`)
 	if err != nil {
 		c.JSON(http.StatusOK, []Assessment{})
 		return

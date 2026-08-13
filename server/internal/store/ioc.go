@@ -3,6 +3,7 @@ package store
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -175,11 +176,21 @@ func (s *IOCStore) Stats(ctx context.Context) (*IOCStats, error) {
 		stats.Active += active
 	}
 
-	// Count IOC-triggered alerts in last 7 days
-	_ = s.pool.QueryRow(ctx, `
+	// 直近 7 日の IOC 由来アラート数。
+	//
+	// 以前は rule_id = 'ioc-match' で数えていたが、alerts.rule_id は uuid 列で、
+	// 文字列と比較すると毎回 `invalid input syntax for type uuid` になっていた。
+	// エラーは捨てられていたので、画面には常に 0 が出ていた。
+	//
+	// IOC 経路では rule_id は設定されない。上の TopHits と同じく、確実に残る
+	// 手掛かりは title だけなので、createAlertFromIOC の書式と対で突き合わせる
+	// (片方だけ変えるとエラーにならず件数が黙って 0 になる)。
+	if err := s.pool.QueryRow(ctx, `
 		SELECT COUNT(*) FROM alerts
-		WHERE rule_id = 'ioc-match' AND created_at > NOW() - INTERVAL '7 days'`,
-	).Scan(&stats.Alerts7d)
+		WHERE title LIKE 'Known IOC detected: %' AND created_at > NOW() - INTERVAL '7 days'`,
+	).Scan(&stats.Alerts7d); err != nil {
+		slog.Warn("IOC: 直近 7 日のアラート数の取得に失敗しました", "error", err)
+	}
 
 	return stats, nil
 }

@@ -90,12 +90,14 @@ func (h *SecuritySLAHandler) CreatePolicy(c *gin.Context) {
 
 func (h *SecuritySLAHandler) SLAStats(c *gin.Context) {
 	var total, responsBreached, resolBreached int
-	h.pool.QueryRow(c.Request.Context(), `
+	if err := h.pool.QueryRow(c.Request.Context(), `
 		SELECT COUNT(*),
 		       COUNT(*) FILTER (WHERE response_breached),
 		       COUNT(*) FILTER (WHERE resolution_breached)
 		FROM sla_tracking
-	`).Scan(&total, &responsBreached, &resolBreached)
+	`).Scan(&total, &responsBreached, &resolBreached); err != nil {
+		slog.Warn("security sla: 集計クエリに失敗しました", "error", err)
+	}
 	c.JSON(http.StatusOK, gin.H{
 		"total":               total,
 		"response_breached":   responsBreached,

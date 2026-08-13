@@ -1,0 +1,48 @@
+#!/bin/sh
+# macOS pkg postinstall — configure on first run, then load the daemon.
+set -e
+
+LABEL=com.edrplatform.agent
+PLIST="/Library/LaunchDaemons/${LABEL}.plist"
+CONFIG_DIR=/etc/edr
+CONFIG_FILE="${CONFIG_DIR}/agent.toml"
+ENROLL_ENV="${CONFIG_DIR}/enroll.env"
+AGENT_BIN=/usr/local/bin/edr-agent
+
+log() { printf '[edr-agent] %s\n' "$*"; }
+
+mkdir -p "$CONFIG_DIR" /var/log/edr /var/lib/edr
+chmod 0700 "$CONFIG_DIR"
+
+# A pkg cannot know the server URL at build time. MDM (Jamf, Kandji, Intune for
+# Mac) drops /etc/edr/enroll.env alongside the package; without it the agent is
+# installed but not started, because an agent pointed at nothing would run,
+# fail every connection, and still look installed.
+SERVER_URL=""
+if [ -r "$ENROLL_ENV" ]; then
+    # shellcheck disable=SC1090
+    . "$ENROLL_ENV"
+fi
+
+# -write-config is a no-op when the file already exists, so this is safe on
+# upgrade: the endpoint keeps its agent ID and therefore its dashboard identity
+# and history.
+if [ -n "${SERVER_URL:-}" ]; then
+    "$AGENT_BIN" -write-config -config "$CONFIG_FILE" -server "$SERVER_URL" || true
+fi
+
+if [ ! -f "$CONFIG_FILE" ]; then
+    log "no SERVER_URL in ${ENROLL_ENV}; the agent is installed but NOT started."
+    log "write SERVER_URL=... to ${ENROLL_ENV}, then run:"
+    log "  sudo ${AGENT_BIN} -write-config -config ${CONFIG_FILE} -server <url>"
+    log "  sudo launchctl bootstrap system ${PLIST}"
+    exit 0
+fi
+
+chmod 0640 "$CONFIG_FILE" || true
+
+launchctl bootstrap system "$PLIST" 2>/dev/null \
+    || launchctl load -w "$PLIST" 2>/dev/null \
+    || log "failed to load ${LABEL}; check /var/log/edr-agent-error.log"
+
+exit 0

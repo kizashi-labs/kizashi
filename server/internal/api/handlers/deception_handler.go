@@ -535,14 +535,18 @@ func (h *DeceptionHandler) CreateAsset(c *gin.Context) {
 // GET /api/v1/admin/deception/stats
 func (h *DeceptionHandler) AssetStats(c *gin.Context) {
 	var total, active, triggered int
-	h.pool.QueryRow(c.Request.Context(), `
+	if err := h.pool.QueryRow(c.Request.Context(), `
 		SELECT COUNT(*),
 		       COUNT(*) FILTER (WHERE status='active'),
 		       COUNT(*) FILTER (WHERE status='triggered')
 		FROM deception_assets
-	`).Scan(&total, &active, &triggered)
+	`).Scan(&total, &active, &triggered); err != nil {
+		slog.Warn("deception: 集計クエリに失敗しました", "error", err)
+	}
 	var eventCount int
-	h.pool.QueryRow(c.Request.Context(), `SELECT COUNT(*) FROM deception_events`).Scan(&eventCount)
+	if err := h.pool.QueryRow(c.Request.Context(), `SELECT COUNT(*) FROM deception_events`).Scan(&eventCount); err != nil {
+		slog.Warn("deception: 集計クエリに失敗しました", "error", err)
+	}
 	c.JSON(http.StatusOK, gin.H{
 		"total_assets": total,
 		"active":       active,

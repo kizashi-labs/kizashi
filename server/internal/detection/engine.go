@@ -332,10 +332,17 @@ func (e *Engine) Start(ctx context.Context) error {
 			defer func() { <-sem }()
 			if err := e.processMessage(ctx, msg); err != nil {
 				slog.Error("event processing failed", "error", err)
-				msg.Nak()
+				// Nak が通らないと再配信されず、そのイベントは失われる。
+				if nakErr := msg.Nak(); nakErr != nil {
+					slog.Warn("NATS Nak に失敗しました(再配信されません)", "error", nakErr)
+				}
 				return
 			}
-			msg.Ack()
+			// Ack が通らないと ack_wait 後に再配信される。処理は済んでいるので
+			// 重複検知の原因になる。
+			if ackErr := msg.Ack(); ackErr != nil {
+				slog.Warn("NATS Ack に失敗しました(再配信される可能性があります)", "error", ackErr)
+			}
 		}()
 	})
 	if err != nil {
@@ -1412,6 +1419,7 @@ func (e *Engine) processEventData(ctx context.Context, data []byte) error {
 			RawEvent:    json.RawMessage(rawEventJSON),
 			CreatedAt:   time.Now(),
 			UpdatedAt:   time.Now(),
+			EventIDs:    evidenceEventIDs(eventEnvelope.EventID),
 		}
 		// Propagate MITRE ATT&CK techniques. The primary (most-specific, first)
 		// technique → mitre_technique; the FULL set → ai_mitre_tags so a single
@@ -1718,10 +1726,14 @@ func (e *Engine) logAction(ctx context.Context, alertID, agentID, actionType, ta
 // the ingestion service (publisher) and the detection engine (consumer).
 // JSON tags MUST match NormalizedEvent in ingestion/handler.go exactly.
 type EventEnvelope struct {
-	AgentID   string    `json:"agent_id"`
-	Hostname  string    `json:"hostname"`
-	Platform  string    `json:"platform"`
-	Type      string    `json:"type"`
+	AgentID  string `json:"agent_id"`
+	Hostname string `json:"hostname"`
+	Platform string `json:"platform"`
+	Type     string `json:"type"`
+	// EventID is the events.event_id of the row ingestion persisted this event as.
+	// Empty when the publisher predates the field; treat that as "unknown", never
+	// as an error.
+	EventID   string    `json:"event_id,omitempty"`
 	Timestamp time.Time `json:"timestamp"`
 	// Data holds the JSON-encoded proto Event; unmarshaled on demand for rule evaluation.
 	Data json.RawMessage `json:"data"`

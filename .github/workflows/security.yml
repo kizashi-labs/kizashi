@@ -49,9 +49,14 @@ jobs:
           category: trivy-filesystem
 
   # ── Docker image scans ────────────────────────────────────────
+  # イメージスキャンは 3 イメージをビルドしてから走らせるため、単独で 8 分超を使う。
+  # PR ごとに回す価値は薄い: 依存の脆弱性はファイルシステム走査 (trivy-fs) と
+  # govulncheck が PR で捕まえており、イメージ固有の差分はベースイメージ更新時に
+  # しか動かない。main への push で回せば検出は 1 サイクル遅れるだけで済む。
   trivy-image:
     name: Trivy Image Scan (${{ matrix.service }})
     runs-on: ubuntu-latest
+    if: github.event_name == 'push'
     permissions:
       contents: read
       security-events: write

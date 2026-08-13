@@ -137,7 +137,26 @@ const (
 	CmdLiveResponseStart
 	CmdForensicsJob
 	CmdCertRenew
+	CmdApplyPolicy
 )
+
+// ApplyPolicyCmd mirrors the server's store.ApplyPolicyPayload — the shape the
+// API, the database and the admin UI have all used from the start.
+//
+// The agent used to have a THIRD, incompatible idea of what a policy looks like
+// (internal/policy.Policy: {type, version, content, updated_at, checksum}), and
+// ingestion's comment claimed the wire payload carried a "type":"apply_policy"
+// field for disambiguation — a field the server has never sent. Three contracts,
+// no agreement, so the command was received and silently discarded. Aligning on
+// the server's shape is the only option that leaves the UI, the API and the
+// stored policies untouched.
+type ApplyPolicyCmd struct {
+	CommandID       string
+	PolicyID        string   `json:"policy_id"`
+	ScanIntervalMin int      `json:"scan_interval_min"`
+	CPULimitPct     int      `json:"cpu_limit_pct"`
+	EnabledModules  []string `json:"enabled_modules"`
+}
 
 // CertRenewCmd is the payload for CmdCertRenew commands.
 type CertRenewCmd struct {
@@ -453,6 +472,19 @@ func convertServerCommand(cmd *v1.ServerCommand) *ServerCommand {
 					CommandID:    cmd.GetCommandId(),
 					RenewalToken: p.RenewalToken,
 				}
+				return internal
+			}
+		}
+		// Policy pushes ride the same tunnel with ARTIFACT_TYPE_UNSPECIFIED as the
+		// sentinel. They carry no "type" marker — the server's payload has never
+		// had one, whatever ingestion's comment says — so identify them by the
+		// field only a policy has: policy_id.
+		if ca.GetType() == v1.CollectArtifactCommand_ARTIFACT_TYPE_UNSPECIFIED {
+			var p ApplyPolicyCmd
+			if err := json.Unmarshal([]byte(target), &p); err == nil && p.PolicyID != "" {
+				p.CommandID = cmd.GetCommandId()
+				internal.Type = CmdApplyPolicy
+				internal.Payload = p
 				return internal
 			}
 		}

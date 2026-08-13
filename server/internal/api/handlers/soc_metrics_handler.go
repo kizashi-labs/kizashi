@@ -209,7 +209,7 @@ func (h *SOCMetricsHandler) Summary(c *gin.Context) {
 	rows3, err := h.Pool.Query(ctx, fmt.Sprintf(`
 		SELECT
 			COALESCE(a.assigned_to::text, ''),
-			COALESCE(u.display_name, u.username, 'Unknown'),
+			COALESCE(u.full_name, u.email, 'Unknown'),
 			COUNT(*) FILTER (WHERE a.status='resolved') AS resolved,
 			COALESCE(AVG(EXTRACT(EPOCH FROM (a.updated_at - a.created_at))/3600) FILTER (WHERE a.status='resolved'), 0)
 		FROM alerts a
@@ -400,7 +400,7 @@ func (h *SOCMetricsHandler) FrontendMetrics(c *gin.Context) {
 		rows, err := h.Pool.Query(ctx, fmt.Sprintf(`
 			SELECT
 				COALESCE(a.assigned_to::text, ''),
-				COALESCE(u.display_name, u.username, 'Unknown'),
+				COALESCE(u.full_name, u.email, 'Unknown'),
 				COUNT(*) FILTER (WHERE a.status = 'resolved')                               AS handled,
 				COALESCE(AVG(EXTRACT(EPOCH FROM (a.updated_at - a.created_at))/60)
 				         FILTER (WHERE a.status = 'resolved'), 0)                           AS avg_min,
@@ -413,7 +413,7 @@ func (h *SOCMetricsHandler) FrontendMetrics(c *gin.Context) {
 			LEFT JOIN users u ON u.id = a.assigned_to
 			WHERE a.created_at >= NOW() - INTERVAL '%d days'
 			  AND a.assigned_to IS NOT NULL
-			GROUP BY a.assigned_to, u.display_name, u.username
+			GROUP BY a.assigned_to, u.full_name, u.email
 			ORDER BY handled DESC
 			LIMIT 10`, days))
 		if err == nil {
@@ -560,7 +560,7 @@ func (h *SOCMetricsHandler) FrontendMetrics(c *gin.Context) {
 					ELSE 'low'
 				END,
 				EXTRACT(EPOCH FROM (NOW()-i.created_at))/3600,
-				COALESCE(u.display_name, u.username, '未割当')
+				COALESCE(u.full_name, u.email, '未割当')
 			FROM incidents i
 			LEFT JOIN users u ON u.id = i.assigned_to
 			WHERE i.status NOT IN ('resolved','closed')

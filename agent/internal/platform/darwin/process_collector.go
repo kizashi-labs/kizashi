@@ -1,6 +1,14 @@
-//go:build darwin && !esf
+//go:build darwin && (!esf || !cgo)
 
 // このファイルは ps コマンドによるポーリングを使用するフォールバック実装です。
+//
+// 制約に `|| !cgo` が入っているのは、ESF 実装が cgo ファイル（import "C"）で
+// あるため。CGO_ENABLED=0 だと Go は cgo ファイルをビルド対象から丸ごと外すので、
+// 「darwin && !esf」だけだと -tags esf かつ CGO_ENABLED=0 のときに ESF 実装も
+// このフォールバックも両方消え、NewDarwinProcessCollector が未定義になる。
+// 実際 `GOOS=darwin go build -tags esf` は長期間ビルド不能だった（CI が
+// internal/platform/darwin だけを vet していて、未定義が露見する使用側
+// cmd/agent を見ていなかったため気づけなかった）。
 // Endpoint Security Framework (ESF) を使用する場合は -tags esf でビルドしてください。
 // ESF ビルドには Apple の entitlement 承認と CGo が必要です。
 // 参照: agent/internal/platform/darwin/process_collector_esf.go

@@ -12,6 +12,7 @@ import (
 	"io"
 	"log/slog"
 	"net"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -476,8 +477,8 @@ func (s *Server) GetConfig(ctx context.Context, req *v1.ConfigRequest) (*v1.Agen
 
 // ─── Event publishing ─────────────────────────────────────────
 
-const insertEventSQL = `INSERT INTO events (time, agent_id, event_type, raw_data)
-	VALUES ($1, $2::uuid, $3, $4::jsonb)`
+const insertEventSQL = `INSERT INTO events (time, agent_id, event_type, raw_data, event_id)
+	VALUES ($1, $2::uuid, $3, $4::jsonb, $5::uuid)`
 
 // eventInsertChunk bounds how many events go into one multi-row INSERT. A batch is
 // normally tens–hundreds of events; the cap keeps the statement well under the
@@ -493,6 +494,12 @@ type preppedEvent struct {
 	raw     []byte
 	evt     *v1.Event
 	idx     int
+	// eventID is the row's events.event_id, minted here rather than left to the
+	// column DEFAULT so the SAME id can travel on the NATS envelope. Without it
+	// the stored row and the published event have no shared identifier, and an
+	// alert can never be traced back to the evidence that produced it — see
+	// docs/死蔵経路の全数棚卸し_20260810.md §8.
+	eventID string
 }
 
 // publishEventBatch persists all events in a batch to the DB and publishes them to
@@ -521,6 +528,7 @@ func (s *Server) publishEventBatch(ctx context.Context, agentID string, batch *v
 			raw:     normalizeEventData(evt),
 			evt:     evt,
 			idx:     i,
+			eventID: uuid.NewString(),
 		})
 	}
 
@@ -534,7 +542,7 @@ func (s *Server) publishEventBatch(ctx context.Context, agentID string, batch *v
 		return
 	}
 	for _, p := range prepped {
-		data, err := s.marshalEventPayload(agentID, platform, p.evtType, p.evt)
+		data, err := s.marshalEventPayload(agentID, platform, p.evtType, p.eventID, p.evt)
 		if err != nil {
 			slog.Warn("イベントペイロードのシリアライズに失敗しました", "agent", agentID, "type", p.evtType, "error", err)
 			continue
@@ -592,7 +600,7 @@ func (s *Server) insertEvents(ctx context.Context, agentID string, prepped []pre
 			slog.Warn("イベントの一括挿入に失敗、個別挿入にフォールバックします",
 				"agent", agentID, "count", len(chunk), "error", err)
 			for _, p := range chunk {
-				if _, e := s.pool.Exec(ctx, insertEventSQL, p.evtTime, agentID, p.evtType, p.raw); e != nil {
+				if _, e := s.pool.Exec(ctx, insertEventSQL, p.evtTime, agentID, p.evtType, p.raw, p.eventID); e != nil {
 					slog.Warn("イベントのDB保存に失敗しました", "agent", agentID, "type", p.evtType, "error", e)
 				}
 			}
@@ -722,15 +730,15 @@ func (s *Server) insertEventsChunk(ctx context.Context, agentID string, chunk []
 // each value exactly as before. Pure (no I/O) so it is unit-tested directly.
 func buildEventsInsert(agentID string, chunk []preppedEvent) (string, []any) {
 	var sb strings.Builder
-	sb.WriteString("INSERT INTO events (time, agent_id, event_type, raw_data) VALUES ")
-	args := make([]any, 0, len(chunk)*4)
+	sb.WriteString("INSERT INTO events (time, agent_id, event_type, raw_data, event_id) VALUES ")
+	args := make([]any, 0, len(chunk)*5)
 	for i, p := range chunk {
 		if i > 0 {
 			sb.WriteByte(',')
 		}
-		n := i * 4
-		fmt.Fprintf(&sb, "($%d, $%d::uuid, $%d, $%d::jsonb)", n+1, n+2, n+3, n+4)
-		args = append(args, p.evtTime, agentID, p.evtType, p.raw)
+		n := i * 5
+		fmt.Fprintf(&sb, "($%d, $%d::uuid, $%d, $%d::jsonb, $%d::uuid)", n+1, n+2, n+3, n+4, n+5)
+		args = append(args, p.evtTime, agentID, p.evtType, p.raw, p.eventID)
 	}
 	return sb.String(), args
 }
@@ -738,15 +746,20 @@ func buildEventsInsert(agentID string, chunk []preppedEvent) (string, []any) {
 // NormalizedEvent is the canonical event format published to NATS JetStream.
 // This is the single shared schema between the ingestion and detection services.
 type NormalizedEvent struct {
-	AgentID   string          `json:"agent_id"`
-	Hostname  string          `json:"hostname"`
-	Platform  string          `json:"platform"`
-	Type      string          `json:"type"`
+	AgentID  string `json:"agent_id"`
+	Hostname string `json:"hostname"`
+	Platform string `json:"platform"`
+	Type     string `json:"type"`
+	// EventID is the events.event_id of the row this event was persisted as, so a
+	// detection built from it can record which evidence it fired on. Omitted (and
+	// therefore empty on the consumer side) only by producers older than this
+	// field; consumers must treat "" as "unknown", never as an error.
+	EventID   string          `json:"event_id,omitempty"`
 	Timestamp time.Time       `json:"timestamp"`
 	Data      json.RawMessage `json:"data"`
 }
 
-func (s *Server) marshalEventPayload(agentID, platform, evtType string, evt *v1.Event) ([]byte, error) {
+func (s *Server) marshalEventPayload(agentID, platform, evtType, eventID string, evt *v1.Event) ([]byte, error) {
 	// Use normalizeEventData (flat key/value form) instead of json.Marshal(evt)
 	// (proto oneof wrapper). The detection engine's mergeProtoEvent can then
 	// surface inner fields like .query, .path, .dst_ip directly in the flat
@@ -770,6 +783,7 @@ func (s *Server) marshalEventPayload(agentID, platform, evtType string, evt *v1.
 		Hostname:  hostname,
 		Platform:  platform,
 		Type:      evtType,
+		EventID:   eventID,
 		Timestamp: evt.GetTimestamp().AsTime(),
 		Data:      payload,
 	}
@@ -795,6 +809,13 @@ func (s *Server) publishEvent(topic string, data []byte, msgID string) {
 // ─── Command conversion ───────────────────────────────────────
 
 // commandToProto converts an internal Command to a proto ServerCommand.
+//
+// ペイロードの JSON が壊れていたら nil を返す。以前は json.Unmarshal の
+// 戻り値を捨てていたため、パースに失敗するとゼロ値のまま proto を組み立てて
+// エージェントへ送っていた。害が具体的なのは kill_process で、**PID 0 の
+// プロセス終了コマンド**がそのまま端末に届く。quarantine_file も同様に
+// 空パスで飛ぶ。呼び出し側 (Dequeue のループ) は既に nil を読み飛ばすので、
+// 送らないのが安全側。
 func commandToProto(cmd *Command) *v1.ServerCommand {
 	sc := &v1.ServerCommand{CommandId: cmd.ID}
 
@@ -804,7 +825,11 @@ func commandToProto(cmd *Command) *v1.ServerCommand {
 			Reason  string `json:"reason"`
 			AlertID string `json:"alert_id"`
 		}
-		json.Unmarshal(cmd.Payload, &p)
+		if err := json.Unmarshal(cmd.Payload, &p); err != nil {
+			slog.Warn("コマンドペイロードの JSON が不正です(送信しません)",
+				"command_id", cmd.ID, "type", cmd.Type, "error", err)
+			return nil
+		}
 		sc.Command = &v1.ServerCommand_Isolate{
 			Isolate: &v1.IsolateCommand{Reason: p.Reason, AlertId: p.AlertID},
 		}
@@ -813,7 +838,11 @@ func commandToProto(cmd *Command) *v1.ServerCommand {
 		var p struct {
 			Reason string `json:"reason"`
 		}
-		json.Unmarshal(cmd.Payload, &p)
+		if err := json.Unmarshal(cmd.Payload, &p); err != nil {
+			slog.Warn("コマンドペイロードの JSON が不正です(送信しません)",
+				"command_id", cmd.ID, "type", cmd.Type, "error", err)
+			return nil
+		}
 		sc.Command = &v1.ServerCommand_Unisolate{
 			Unisolate: &v1.UnisolateCommand{Reason: p.Reason},
 		}
@@ -823,7 +852,11 @@ func commandToProto(cmd *Command) *v1.ServerCommand {
 			PID    uint32 `json:"pid"`
 			Reason string `json:"reason"`
 		}
-		json.Unmarshal(cmd.Payload, &p)
+		if err := json.Unmarshal(cmd.Payload, &p); err != nil {
+			slog.Warn("コマンドペイロードの JSON が不正です(送信しません)",
+				"command_id", cmd.ID, "type", cmd.Type, "error", err)
+			return nil
+		}
 		sc.Command = &v1.ServerCommand_KillProcess{
 			KillProcess: &v1.KillProcessCommand{Pid: p.PID, Reason: p.Reason},
 		}
@@ -833,7 +866,11 @@ func commandToProto(cmd *Command) *v1.ServerCommand {
 			Path    string `json:"path"`
 			AlertID string `json:"alert_id"`
 		}
-		json.Unmarshal(cmd.Payload, &p)
+		if err := json.Unmarshal(cmd.Payload, &p); err != nil {
+			slog.Warn("コマンドペイロードの JSON が不正です(送信しません)",
+				"command_id", cmd.ID, "type", cmd.Type, "error", err)
+			return nil
+		}
 		sc.Command = &v1.ServerCommand_QuarantineFile{
 			QuarantineFile: &v1.QuarantineFileCommand{Path: p.Path, AlertId: p.AlertID},
 		}
@@ -843,7 +880,11 @@ func commandToProto(cmd *Command) *v1.ServerCommand {
 			QuarantineID string `json:"quarantine_id"`
 			RestorePath  string `json:"restore_path"`
 		}
-		json.Unmarshal(cmd.Payload, &p)
+		if err := json.Unmarshal(cmd.Payload, &p); err != nil {
+			slog.Warn("コマンドペイロードの JSON が不正です(送信しません)",
+				"command_id", cmd.ID, "type", cmd.Type, "error", err)
+			return nil
+		}
 		sc.Command = &v1.ServerCommand_RestoreFile{
 			RestoreFile: &v1.RestoreFileCommand{QuarantineId: p.QuarantineID, RestorePath: p.RestorePath},
 		}
@@ -853,7 +894,11 @@ func commandToProto(cmd *Command) *v1.ServerCommand {
 			ScanType string `json:"scan_type"`
 			Target   string `json:"target"`
 		}
-		json.Unmarshal(cmd.Payload, &p)
+		if err := json.Unmarshal(cmd.Payload, &p); err != nil {
+			slog.Warn("コマンドペイロードの JSON が不正です(送信しません)",
+				"command_id", cmd.ID, "type", cmd.Type, "error", err)
+			return nil
+		}
 		scanType := v1.ScanCommand_SCAN_TYPE_FULL_DISK
 		if p.ScanType == "file" {
 			scanType = v1.ScanCommand_SCAN_TYPE_FILE
@@ -882,9 +927,17 @@ func commandToProto(cmd *Command) *v1.ServerCommand {
 
 	case "apply_policy":
 		// Carry the full policy JSON in CollectArtifactCommand.Target.
-		// ARTIFACT_TYPE_UNSPECIFIED (0) is used as a sentinel meaning "apply_policy"
-		// so the agent can distinguish it from real artifact collections.
-		// The payload JSON includes a "type":"apply_policy" field for disambiguation.
+		// ARTIFACT_TYPE_UNSPECIFIED (0) is the sentinel meaning "apply_policy", and
+		// the agent narrows it further by the presence of "policy_id".
+		//
+		// This comment used to claim the payload carries a "type":"apply_policy"
+		// field for disambiguation. It never has — store.ApplyPolicyPayload is
+		// {agent_id, policy_id, scan_interval_min, cpu_limit_pct, enabled_modules}
+		// and has no "type" key at all. The agent looked for a marker that was
+		// never sent, fell through to a generic artifact collection, and dropped
+		// the command; policy push had therefore never worked on any endpoint.
+		// A comment describing a contract nobody implements is worse than none:
+		// it makes the reader stop looking.
 		sc.Command = &v1.ServerCommand_CollectArtifact{
 			CollectArtifact: &v1.CollectArtifactCommand{
 				Type:   v1.CollectArtifactCommand_ARTIFACT_TYPE_UNSPECIFIED,
@@ -933,6 +986,29 @@ func extractAgentIDFromCert(ctx context.Context) string {
 	return ""
 }
 
+// eventTypeByIDPrefix maps a log-style event's ID prefix to the canonical
+// event_type. Kept as data rather than a switch so producibleEventTypes can
+// enumerate the result set — the constraint gate in
+// event_type_constraint_test.go needs the full set, and a switch cannot be
+// enumerated. Order is irrelevant: no prefix is a prefix of another.
+var eventTypeByIDPrefix = []struct{ prefix, evtType string }{
+	{"fim_change:", "file"},
+	{"process_stats:", "process_stats"},
+	{"process_block:", "process_block"},
+	{"memory:", "memory"},
+	{"credential_access:", "credential_access"},
+	{"host_integrity:", "host_integrity"},
+	{"create_remote_thread:", "create_remote_thread"},
+	{"tls_handshake:", "tls_handshake"},
+	{"ps_module:", "ps_module"},
+	{"pipe_created:", "pipe_created"},
+	{"wmi_activity:", "wmi_activity"},
+	{"eventlog_cleared:", "eventlog_cleared"},
+	{"service_installed:", "service_installed"},
+	{"device_event:", "device_event"},
+	{"tamper:", "tamper"},
+}
+
 // promoteEventType resolves the canonical event_type for an incoming event.
 // Most events carry it in the proto type enum, but log-style findings arrive as
 // EVENT_TYPE_LOG ("") with the real type and payload encoded in the ID as
@@ -944,40 +1020,35 @@ func promoteEventType(evt *v1.Event) string {
 		return t
 	}
 	id := evt.GetId()
-	switch {
-	case strings.HasPrefix(id, "fim_change:"):
-		return "file"
-	case strings.HasPrefix(id, "process_stats:"):
-		return "process_stats"
-	case strings.HasPrefix(id, "process_block:"):
-		return "process_block"
-	case strings.HasPrefix(id, "memory:"):
-		return "memory"
-	case strings.HasPrefix(id, "credential_access:"):
-		return "credential_access"
-	case strings.HasPrefix(id, "host_integrity:"):
-		return "host_integrity"
-	case strings.HasPrefix(id, "create_remote_thread:"):
-		return "create_remote_thread"
-	case strings.HasPrefix(id, "tls_handshake:"):
-		return "tls_handshake"
-	case strings.HasPrefix(id, "ps_module:"):
-		return "ps_module"
-	case strings.HasPrefix(id, "pipe_created:"):
-		return "pipe_created"
-	case strings.HasPrefix(id, "wmi_activity:"):
-		return "wmi_activity"
-	case strings.HasPrefix(id, "eventlog_cleared:"):
-		return "eventlog_cleared"
-	case strings.HasPrefix(id, "service_installed:"):
-		return "service_installed"
-	case strings.HasPrefix(id, "device_event:"):
-		return "device_event"
-	case strings.HasPrefix(id, "tamper:"):
-		return "tamper"
-	default:
-		return ""
+	for _, m := range eventTypeByIDPrefix {
+		if strings.HasPrefix(id, m.prefix) {
+			return m.evtType
+		}
 	}
+	return ""
+}
+
+// producibleEventTypes is every value promoteEventType can return, derived from
+// its two sources rather than restated: the proto enum (via eventTypeString) and
+// eventTypeByIDPrefix. Every one of these must be permitted by the
+// events_event_type_check constraint or the INSERT is rejected with 23514 —
+// see event_type_constraint_test.go, which enforces exactly that.
+func producibleEventTypes() []string {
+	seen := make(map[string]bool)
+	for v := range v1.EventType_name {
+		if t := eventTypeString(v1.EventType(v)); t != "" {
+			seen[t] = true
+		}
+	}
+	for _, m := range eventTypeByIDPrefix {
+		seen[m.evtType] = true
+	}
+	out := make([]string, 0, len(seen))
+	for t := range seen {
+		out = append(out, t)
+	}
+	sort.Strings(out)
+	return out
 }
 
 func eventTypeString(t v1.EventType) string {

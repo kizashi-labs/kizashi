@@ -1,4 +1,4 @@
-//go:build darwin && esf && prevention
+//go:build darwin && esf && prevention && cgo
 
 package main
 

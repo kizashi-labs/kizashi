@@ -124,16 +124,41 @@ sha256_of() {
     else shasum -a 256 "$1" | awk '{print $1}'; fi
 }
 
+# load_variant reads the build variant recorded by install.sh. An update must
+# stay on the build the host was installed with: without this, a host running
+# the eBPF/LSM enforcing agent was handed the default telemetry-only binary on
+# its next update and lost exec prevention, tamper protection and
+# credential-access auditing — successfully, silently, with no error to notice.
+load_variant() {
+    VARIANT=""
+    local f="${CONFIG_DIR}/agent-variant"
+    if [ -r "$f" ]; then
+        VARIANT="$(tr -d '[:space:]' < "$f")"
+    fi
+    case "$VARIANT" in
+        ""|ebpf|esf) ;;
+        *) warn "Unrecognised variant '${VARIANT}' in ${f}; updating to the default build"; VARIANT="" ;;
+    esac
+    [ -n "$VARIANT" ] && step "Installed build variant: ${VARIANT} (kept across this update)"
+    return 0
+}
+
 # Download one binary via the server API and verify its SHA-256.
 # The checksum endpoint returns JSON: {"...","checksum":"<hex>"}; extract without jq.
 download_binary() {
     local binary="$1"   # agent | watchdog
     local dest="$2"
 
-    local url="${SERVER_URL}/api/v1/agents/download?platform=${OS}&arch=${ARCH}&binary=${binary}"
-    local sum_url="${SERVER_URL}/api/v1/agents/download/checksum?platform=${OS}&arch=${ARCH}&binary=${binary}"
+    # Only the agent has variant builds; the watchdog is variant-independent.
+    local variant_q=""
+    if [ -n "${VARIANT:-}" ] && [ "$binary" = "agent" ]; then
+        variant_q="&variant=${VARIANT}"
+    fi
 
-    step "Downloading edr-${binary} (${OS}/${ARCH})"
+    local url="${SERVER_URL}/api/v1/agents/download?platform=${OS}&arch=${ARCH}&binary=${binary}${variant_q}"
+    local sum_url="${SERVER_URL}/api/v1/agents/download/checksum?platform=${OS}&arch=${ARCH}&binary=${binary}${variant_q}"
+
+    step "Downloading edr-${binary} (${OS}/${ARCH}${VARIANT:+/${VARIANT}})"
     http_get "$url" "$dest" || error "Failed to download edr-${binary}. Check that SERVER_URL is reachable."
 
     local sum_json expected actual
@@ -183,6 +208,7 @@ main() {
     TMP_DIR="$(mktemp -d /tmp/edr-update.XXXXXX)"
 
     section "Downloading new binaries"
+    load_variant
     local tmp_agent="${TMP_DIR}/edr-agent" tmp_watchdog="${TMP_DIR}/edr-watchdog"
     download_binary "agent"    "$tmp_agent"
     download_binary "watchdog" "$tmp_watchdog"

@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log/slog"
@@ -17,16 +18,57 @@ import (
 // AgentHandler provides endpoint management handlers.
 type AgentHandler struct {
 	Store           *store.AgentStore
-	Commander       *store.CommandStore
-	ResponseActions *store.ResponseActionStore
+	Commander       agentCommander
+	ResponseActions responseAuditor
 	Alerts          *store.AlertStore
 	Quarantine      *store.QuarantineStore
 	Pool            *pgxpool.Pool // for cross-table queries (processes)
+	// UninstallGuardProvider supplies the tenant's uninstall-password material
+	// to attach to heartbeat responses, or nil when none is configured.
+	//
+	// A function rather than a store handle so this handler keeps no dependency
+	// on uninstall protection and stays constructible without it — the
+	// registration test builds every handler with zero values, and a nil store
+	// here would turn a heartbeat into a panic. Nil provider simply means the
+	// field is omitted and agents keep whatever guard they already hold.
+	UninstallGuardProvider func(*gin.Context) map[string]any
+}
+
+// agentCommander is the subset of store.CommandStore this handler dispatches
+// through. It is an interface so a DISPATCH FAILURE can be exercised in a test:
+// the defect this guards against is a containment command that fails to reach the
+// endpoint while the database, the audit trail and the HTTP response all report
+// success. That path had no coverage because the field was a concrete type and a
+// failing commander could not be injected.
+type agentCommander interface {
+	IsolateEndpoint(ctx context.Context, agentID, reason, alertID string) error
+	UnisolateEndpoint(ctx context.Context, agentID, reason string) error
+	Scan(ctx context.Context, agentID, scanType, triggeredBy string) error
+	ScanCancel(ctx context.Context, agentID, triggeredBy string) error
+	KillProcess(ctx context.Context, agentID string, pid uint32, reason string) error
+	QuarantineFile(ctx context.Context, agentID, path, alertID string) error
+	RestoreFile(ctx context.Context, agentID, quarantineID, restorePath string) error
+}
+
+// responseAuditor records what was attempted and whether it was dispatched.
+type responseAuditor interface {
+	// Record returns the new row's id so a later result notification can move it
+	// to a terminal state via Complete.
+	Record(ctx context.Context, agentID, actionType, status, triggeredBy string, details interface{}) (string, error)
+	RecordFailure(ctx context.Context, agentID, actionType, triggeredBy, errMsg string, details interface{}) error
+	Complete(ctx context.Context, id, status, errMsg string) error
+	List(ctx context.Context, agentID string, limit, offset int) ([]*store.ResponseAction, int, error)
 }
 
 // NewAgentHandler creates a new AgentHandler.
 func NewAgentHandler(s *store.AgentStore, cmd *store.CommandStore) *AgentHandler {
-	return &AgentHandler{Store: s, Commander: cmd}
+	h := &AgentHandler{Store: s}
+	// Assign only when non-nil: storing a typed nil pointer in an interface makes
+	// every `h.Commander != nil` guard true and the next call panics.
+	if cmd != nil {
+		h.Commander = cmd
+	}
+	return h
 }
 
 // List returns a paginated list of agents with optional filtering.
@@ -194,12 +236,32 @@ func (h *AgentHandler) Isolate(c *gin.Context) {
 		return
 	}
 
+	// The dispatch error used to be discarded. When it failed, the database still
+	// said "isolated", the audit trail still said "success", and the operator still
+	// got 200 "エージェントを隔離しました" — while the endpoint was never told and
+	// stayed on the network. A containment action that reports success without
+	// happening is the most dangerous failure this API can have.
 	if h.Commander != nil {
-		_ = h.Commander.IsolateEndpoint(c.Request.Context(), id, req.Reason, "")
+		if err := h.Commander.IsolateEndpoint(c.Request.Context(), id, req.Reason, ""); err != nil {
+			slog.Error("隔離コマンドの送信に失敗しました", "agent", id, "error", err)
+			if h.ResponseActions != nil {
+				_ = h.ResponseActions.RecordFailure(c.Request.Context(), id, "isolate", by, err.Error(),
+					map[string]string{"reason": req.Reason})
+			}
+			// The agents row keeps isolated=true on purpose: it records the operator's
+			// INTENT, and the heartbeat/self-healing path uses it to re-deliver. Rolling
+			// it back here would discard the intent and leave nothing to retry from.
+			// Say plainly that the two are out of step so nobody reads this as done.
+			c.JSON(http.StatusBadGateway, gin.H{
+				"error": "隔離を記録しましたが、エンドポイントへの指示に失敗しました。端末はまだネットワークに接続されています",
+				"id":    id,
+			})
+			return
+		}
 	}
 
 	if h.ResponseActions != nil {
-		_ = h.ResponseActions.Record(c.Request.Context(), id, "isolate", "success", by,
+		_, _ = h.ResponseActions.Record(c.Request.Context(), id, "isolate", store.StatusDispatched, by,
 			map[string]string{"reason": req.Reason})
 	}
 
@@ -219,14 +281,29 @@ func (h *AgentHandler) Unisolate(c *gin.Context) {
 		return
 	}
 
+	userID, _ := c.Get("user_id")
+	by, _ := userID.(string)
+
+	// Same discarded error as Isolate, and the inverse hazard: the database says the
+	// endpoint is released while its firewall rules are still in place. That is the
+	// orphaned-isolation shape — the host is unreachable and every console says it
+	// is fine.
 	if h.Commander != nil {
-		_ = h.Commander.UnisolateEndpoint(c.Request.Context(), id, "手動隔離解除")
+		if err := h.Commander.UnisolateEndpoint(c.Request.Context(), id, "手動隔離解除"); err != nil {
+			slog.Error("隔離解除コマンドの送信に失敗しました", "agent", id, "error", err)
+			if h.ResponseActions != nil {
+				_ = h.ResponseActions.RecordFailure(c.Request.Context(), id, "unisolate", by, err.Error(), nil)
+			}
+			c.JSON(http.StatusBadGateway, gin.H{
+				"error": "隔離解除を記録しましたが、エンドポイントへの指示に失敗しました。端末はまだ隔離されたままの可能性があります",
+				"id":    id,
+			})
+			return
+		}
 	}
 
 	if h.ResponseActions != nil {
-		userID, _ := c.Get("user_id")
-		by, _ := userID.(string)
-		_ = h.ResponseActions.Record(c.Request.Context(), id, "unisolate", "success", by, nil)
+		_, _ = h.ResponseActions.Record(c.Request.Context(), id, "unisolate", store.StatusDispatched, by, nil)
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "エージェントの隔離を解除しました", "id": id})
@@ -355,7 +432,7 @@ func (h *AgentHandler) TriggerScan(c *gin.Context) {
 	}
 
 	if h.ResponseActions != nil {
-		_ = h.ResponseActions.Record(c.Request.Context(), id, "scan", "success", by,
+		_, _ = h.ResponseActions.Record(c.Request.Context(), id, "scan", store.StatusDispatched, by,
 			map[string]string{"scan_type": req.ScanType})
 	}
 
@@ -386,7 +463,7 @@ func (h *AgentHandler) TriggerScanCancel(c *gin.Context) {
 	}
 
 	if h.ResponseActions != nil {
-		_ = h.ResponseActions.Record(c.Request.Context(), id, "scan_cancel", "success", by, nil)
+		_, _ = h.ResponseActions.Record(c.Request.Context(), id, "scan_cancel", store.StatusDispatched, by, nil)
 	}
 
 	c.JSON(http.StatusAccepted, gin.H{
@@ -458,7 +535,7 @@ func (h *AgentHandler) ReportScanResults(c *gin.Context) {
 	}
 
 	if h.ResponseActions != nil {
-		_ = h.ResponseActions.Record(c.Request.Context(), agentID, "scan_result", status, "agent", details)
+		_, _ = h.ResponseActions.Record(c.Request.Context(), agentID, "scan_result", status, "agent", details)
 	}
 
 	// Generate an alert when YARA matches were found, so the detection appears
@@ -601,7 +678,7 @@ func (h *AgentHandler) KillProcess(c *gin.Context) {
 	}
 
 	if h.ResponseActions != nil {
-		_ = h.ResponseActions.Record(c.Request.Context(), agentID, "kill_process", "success", by,
+		_, _ = h.ResponseActions.Record(c.Request.Context(), agentID, "kill_process", store.StatusDispatched, by,
 			map[string]string{"pid": strconv.Itoa(int(req.PID)), "reason": req.Reason})
 	}
 
@@ -640,7 +717,7 @@ func (h *AgentHandler) QuarantineFile(c *gin.Context) {
 	}
 
 	if h.ResponseActions != nil {
-		_ = h.ResponseActions.Record(c.Request.Context(), agentID, "quarantine_file", "success", by,
+		_, _ = h.ResponseActions.Record(c.Request.Context(), agentID, "quarantine_file", store.StatusDispatched, by,
 			map[string]string{"path": req.Path, "alert_id": req.AlertID})
 	}
 
@@ -678,7 +755,7 @@ func (h *AgentHandler) RestoreFile(c *gin.Context) {
 	}
 
 	if h.ResponseActions != nil {
-		_ = h.ResponseActions.Record(c.Request.Context(), agentID, "restore_file", "success", by,
+		_, _ = h.ResponseActions.Record(c.Request.Context(), agentID, "restore_file", store.StatusDispatched, by,
 			map[string]string{"quarantine_id": req.QuarantineID, "restore_path": req.RestorePath})
 	}
 
@@ -1178,5 +1255,16 @@ func (h *AgentHandler) Heartbeat(c *gin.Context) {
 		}
 	}
 
-	c.JSON(http.StatusOK, gin.H{"ok": true, "should_unisolate": shouldUnisolate})
+	resp := gin.H{"ok": true, "should_unisolate": shouldUnisolate}
+
+	// Uninstall-password material rides the heartbeat because it has to be on
+	// the endpoint *before* it is needed: the agent verifies an uninstall with
+	// the network plausibly cut, so there is no chance to fetch it then.
+	if h.UninstallGuardProvider != nil {
+		if guard := h.UninstallGuardProvider(c); guard != nil {
+			resp["uninstall_guard"] = guard
+		}
+	}
+
+	c.JSON(http.StatusOK, resp)
 }

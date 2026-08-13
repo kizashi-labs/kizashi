@@ -278,6 +278,77 @@ var (
 		[]string{"engine", "mitre"}, // engine: sigma/behavioral/heuristic/yara/ioc/chain; mitre: T#### or none
 	)
 
+	// FileBurstObservations counts every file event offered to the ransomware
+	// mass-modification detector (T1486), labelled by the action it carried and by
+	// what the detector did with it.
+	//
+	// This exists because a controlled experiment could not be explained: 200
+	// destructive operations on 200 distinct paths, delivered within 5 seconds
+	// (verified present in `events` and in the JetStream sequence), did not trip a
+	// detector whose threshold is 60 distinct paths in 5 seconds. Nine hypotheses
+	// were eliminated from the outside — msgID collision, publish loss, dedup
+	// cooldown, path exclusion, action-matching, and more — without reaching an
+	// answer, because nothing between the database and the detector is observable.
+	//
+	// outcome:
+	//   counted        — accepted into a bucket
+	//   ignored_action — not a destructive action (create/access/attrib)
+	//   ignored_path   — empty path, so the event cannot be counted as distinct
+	//
+	// A flat counter means the events never arrive; a rising "counted" with no
+	// alert means they arrive and the window never fills. Those are different bugs
+	// in different components, and they were indistinguishable until now.
+	// See docs/死蔵経路の全数棚卸し_20260810.md §10 / §13.
+	FileBurstObservations = promauto.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "edr_fileburst_observations_total",
+			Help: "File events offered to the T1486 burst detector, by action and outcome",
+		},
+		[]string{"action", "outcome"},
+	)
+
+	// FileBurstBucketPaths reports the distinct-path count of the bucket that was
+	// just touched, so a scrape shows how close the window actually gets to the
+	// firing threshold. scope is "host" when the telemetry carries no process
+	// identity (every Linux/macOS file collector today) and "process" otherwise.
+	FileBurstBucketPaths = promauto.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "edr_fileburst_bucket_paths",
+			Help: "Distinct destructively-touched paths currently in the last-touched burst bucket",
+		},
+		[]string{"scope"},
+	)
+
+	// RemediationTriggers counts every alert offered to the auto-remediation engine
+	// and what the engine decided, so "it never ran" can be told apart from "it ran
+	// and matched nothing".
+	//
+	// remediation_logs has been empty for four months across 400k+ alerts, yet every
+	// part of the path checks out: the engine is wired into AlertPipeline, four
+	// builtin rules are loaded and enabled, the always-on rule fires on ANY alert at
+	// severity >= 9, "critical" maps to 10 so that is reachable, and execution
+	// persists through persistLog. No defect was found and it still produced nothing.
+	//
+	// outcome:
+	//   offered         — TriggerOnAlert was entered at all (the one fact nothing else records)
+	//   excluded_host   — the agent is on the exclusion list
+	//   no_rules        — the engine holds no rules
+	//   no_match        — rules exist, none matched this alert
+	//   cooldown        — matched but throttled
+	//   executed        — actions ran
+	//
+	// A flat "offered" means the engine is never reached — which would point at the
+	// two-pipeline split, since TriggerOnAlert is called only from AlertPipeline
+	// (server-api) and never from server-detect's Engine, where most severity-9
+	// alerts come from. See docs/死蔵経路の全数棚卸し_20260810.md §16.
+	RemediationTriggers = promauto.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "edr_remediation_triggers_total",
+			Help: "Alerts offered to the auto-remediation engine, by outcome",
+		},
+		[]string{"outcome"},
+	)
+
 	// AlertInsertFailures counts detection matches that were generated but FAILED
 	// to persist to the alerts table — the silent-break class where a source
 	// detects but produces zero alerts (e.g. a non-UUID rule_id into the uuid

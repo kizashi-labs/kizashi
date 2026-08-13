@@ -285,7 +285,7 @@ func (s *Seeder) seedAPT(ctx context.Context) error {
 	for i, a := range aptAlerts {
 		agentID := agentIDs[i%len(agentIDs)]
 		ts := time.Now().AddDate(0, 0, -a.daysAgo)
-		s.pool.Exec(ctx, `
+		if _, err := s.pool.Exec(ctx, `
 			INSERT INTO alerts (agent_id, title, description, severity, status,
 				mitre_technique, created_at, updated_at)
 			VALUES ($1, $2, $3, $4, $5, $6, $7, $7)
@@ -293,7 +293,9 @@ func (s *Seeder) seedAPT(ctx context.Context) error {
 			agentID, a.title,
 			fmt.Sprintf("APT29 TTPs検知: %s [APT29-TTP-%d]", a.title, i+1),
 			severityToInt(a.severity), "open", a.technique, ts,
-		)
+		); err != nil {
+			s.log("  警告: アラート '%s' の挿入をスキップ: %v", a.title, err)
+		}
 	}
 
 	s.log("✓ APTシナリオ: %d エージェント, %d アラート", len(agentIDs), len(aptAlerts))
@@ -328,7 +330,7 @@ func (s *Seeder) seedInsider(ctx context.Context) error {
 	for i, a := range insiderAlerts {
 		agentID := agentIDs[i%len(agentIDs)]
 		ts := time.Now().AddDate(0, 0, -a.daysAgo)
-		s.pool.Exec(ctx, `
+		if _, err := s.pool.Exec(ctx, `
 			INSERT INTO alerts (agent_id, title, description, severity, status,
 				created_at, updated_at)
 			VALUES ($1, $2, $3, $4, $5, $6, $6)
@@ -336,7 +338,9 @@ func (s *Seeder) seedInsider(ctx context.Context) error {
 			agentID, a.title,
 			fmt.Sprintf("UEBA行動異常検知: %s [UEBA-Insider-%d]", a.title, i+1),
 			severityToInt(a.severity), "open", ts,
-		)
+		); err != nil {
+			s.log("  警告: アラート '%s' の挿入をスキップ: %v", a.title, err)
+		}
 	}
 
 	s.log("✓ 内部脅威シナリオ: %d エージェント, %d アラート", len(agentIDs), len(insiderAlerts))

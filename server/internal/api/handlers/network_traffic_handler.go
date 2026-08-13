@@ -37,7 +37,7 @@ func (h *NetworkTrafficHandler) GetStats(c *gin.Context) {
 
 	if ntaExists {
 		var suspicious int
-		_ = h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM nta_detections WHERE created_at > NOW()-INTERVAL '24h'`).Scan(&suspicious)
+		_ = h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM nta_detections WHERE detected_at > NOW()-INTERVAL '24 hours'`).Scan(&suspicious)
 		stats["suspicious_flows"] = suspicious
 	}
 

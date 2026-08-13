@@ -144,6 +144,8 @@ func (h *QuarantineActionsHandler) Release(c *gin.Context) {
 
 func (h *QuarantineActionsHandler) Stats(c *gin.Context) {
 	var total, active, released int
-	h.pool.QueryRow(c.Request.Context(), `SELECT COUNT(*), COUNT(*) FILTER (WHERE status='active'), COUNT(*) FILTER (WHERE status='released') FROM quarantine_actions`).Scan(&total, &active, &released)
+	if err := h.pool.QueryRow(c.Request.Context(), `SELECT COUNT(*), COUNT(*) FILTER (WHERE status='active'), COUNT(*) FILTER (WHERE status='released') FROM quarantine_actions`).Scan(&total, &active, &released); err != nil {
+		slog.Warn("quarantine actions: 集計クエリに失敗しました", "error", err)
+	}
 	c.JSON(http.StatusOK, gin.H{"total": total, "active": active, "released": released})
 }

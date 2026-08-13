@@ -603,13 +603,15 @@ func (h *DataClassificationHandler) ListFindings(c *gin.Context) {
 // GET /api/v1/admin/data-classification/stats
 func (h *DataClassificationHandler) FindingsStats(c *gin.Context) {
 	var total, restricted, confidential, openFindings int
-	h.pool.QueryRow(c.Request.Context(), `
+	if err := h.pool.QueryRow(c.Request.Context(), `
 		SELECT COUNT(*),
 		       COUNT(*) FILTER (WHERE classification_level IN ('restricted','top_secret')),
 		       COUNT(*) FILTER (WHERE classification_level = 'confidential'),
 		       COUNT(*) FILTER (WHERE status = 'open')
 		FROM data_classification_findings
-	`).Scan(&total, &restricted, &confidential, &openFindings)
+	`).Scan(&total, &restricted, &confidential, &openFindings); err != nil {
+		slog.Warn("data classification: 集計クエリに失敗しました", "error", err)
+	}
 	c.JSON(http.StatusOK, gin.H{
 		"total":        total,
 		"restricted":   restricted,

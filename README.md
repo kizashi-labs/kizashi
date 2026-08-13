@@ -55,6 +55,8 @@ The console is at `http://localhost:3000`. Other ports: API `8080` (REST) / `909
 Database migrations are applied automatically on API startup.
 
 Agent installation is documented in [`docs/エージェントインストール手順.md`](docs/エージェントインストール手順.md).
+Where the binaries come from — and the two targets you have to build yourself — is
+covered under [Agent](#getting-the-agent-binaries).
 
 ## Detection
 
@@ -99,6 +101,35 @@ recovering an isolated host takes longer than you expect.
 A watchdog process supervises the agent and is registered with systemd, Windows
 Service Manager, or launchd. The agent ring-buffers events while offline and
 reconnects with exponential backoff.
+
+### Getting the agent binaries
+
+No pre-built binaries are shipped in this repository. They do not need to be:
+building the API image cross-compiles the agent and the watchdog and bakes them
+into the image at `AGENT_BIN_DIR` (`/downloads`), so `docker compose up -d` leaves
+you with a server that can already hand out agents. The installer endpoints and the
+console's installer page serve them from there, together with `.sha256` sidecars.
+
+**The binaries are not code signed.** Windows SmartScreen and macOS Gatekeeper will
+say so. Sign them yourself if you are deploying beyond a lab —
+[`docs/エージェントコード署名.md`](docs/エージェントコード署名.md) describes the procedure.
+
+Two targets are deliberately *not* in the image, and both fall back to a `404` with
+manual instructions. Build them yourself and drop them into `AGENT_BIN_DIR` if you
+need them:
+
+| Target | Why it is missing | How to build |
+|---|---|---|
+| `darwin/arm64` (Apple Silicon) | the image builds `darwin/amd64` only | `cd agent && make build-darwin-arm64`, then rename to `edr-agent-darwin-arm64` |
+| Linux **with eBPF** | the image build stage has no clang, so the Linux agent is compiled *without* `-tags ebpf` | generate the CO-RE bindings with `agent/ebpf/Makefile`, then `go build -tags ebpf -o edr-agent-linux-amd64 ./cmd/agent` |
+
+> **The Linux agent served out of the box has no eBPF sensors.** It falls back to
+> procfs polling, which sees fewer short-lived processes and none of the eBPF-only
+> file, library and LSM telemetry. If you want the Linux coverage described in the
+> table above, you have to supply the `-tags ebpf` build yourself.
+
+Filenames matter: the download endpoint looks for exactly
+`edr-agent-<os>-<arch>` (`.exe` on Windows) inside `AGENT_BIN_DIR`.
 
 > ### ⚠️ Kernel-level prevention is an unverified proof of concept
 >
@@ -216,6 +247,33 @@ docker compose up -d
 配布していません）。
 
 コンソールは `http://localhost:3000`。マイグレーションは API 起動時に自動適用されます。
+
+## エージェントの配布
+
+ビルド済みバイナリは同梱していませんが、**用意する必要はありません**。API イメージの
+ビルド時にエージェントと watchdog をクロスコンパイルしてイメージ内の `AGENT_BIN_DIR`
+（`/downloads`）に格納するため、`docker compose up -d` の時点で配布可能な状態になります。
+コンソールのインストーラ画面とインストーラ API が、`.sha256` とあわせてここから配ります。
+
+**バイナリはコード署名されていません。** Windows の SmartScreen や macOS の Gatekeeper が
+警告します。検証環境を超えて配る場合はご自身で署名してください
+（[`docs/エージェントコード署名.md`](docs/エージェントコード署名.md)）。
+
+イメージに含めていないターゲットが2つあります。いずれも 404 と手動手順が返るので、
+必要なら自分でビルドして `AGENT_BIN_DIR` に置いてください。
+
+| ターゲット | 理由 | ビルド方法 |
+|---|---|---|
+| `darwin/arm64`（Apple Silicon） | イメージは `darwin/amd64` のみビルドする | `cd agent && make build-darwin-arm64` の後 `edr-agent-darwin-arm64` にリネーム |
+| **eBPF 有効な Linux** | イメージのビルドステージに clang が無く、Linux 版は `-tags ebpf` **なし**でコンパイルされる | `agent/ebpf/Makefile` で CO-RE バインディングを生成し、`go build -tags ebpf -o edr-agent-linux-amd64 ./cmd/agent` |
+
+> **既定で配られる Linux エージェントに eBPF センサーはありません。** procfs ポーリングに
+> フォールバックするため、短命プロセスの取りこぼしが増え、eBPF でしか取れないファイル・
+> ライブラリ・LSM のテレメトリは取得できません。上記の Linux 検知能力が必要な場合は、
+> `-tags ebpf` でビルドしたものを自分で配置する必要があります。
+
+ファイル名は固定です。ダウンロード API は `AGENT_BIN_DIR` 内の
+`edr-agent-<os>-<arch>`（Windows は `.exe` 付き）をそのまま探します。
 
 ## ⚠️ カーネル防御は未検証の PoC です
 

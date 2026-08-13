@@ -8,6 +8,8 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+
+	"github.com/edr-platform/server/internal/detection"
 )
 
 // RuleStat holds false positive statistics for a single detection rule.
@@ -100,15 +102,27 @@ func (t *Tracker) Calculate(ctx context.Context, period string) (*DetectionMetri
 		m.FalsePositiveRate = float64(m.FalsePositives) / float64(m.TotalAlerts)
 	}
 
-	// ── MTTD: avg(alert.created_at - event.created_at) ──────────────────────
-	// Attempt to join alerts to their triggering event via event_id if column exists.
+	// ── MTTD: avg(alert.created_at - event.time) ────────────────────────────
+	//
+	// 以前は `JOIN events e ON e.id::text = a.event_id::text` と書いており、
+	// events に id 列は無く (実列は event_id)、alerts にも event_id 列は無い
+	// (実列は event_ids の配列)。events の時刻列も created_at ではなく time。
+	// 3 つとも誤っていたため、このクエリは毎回失敗し MTTD は常に 0 だった。
+	//
+	// アラートは複数イベントを束ねうるので、最初のイベント (最古の time) を
+	// 検知の起点とみなす。
 	var mttdMinutes *float64
 	mttdErr := t.pool.QueryRow(ctx, `
-		SELECT EXTRACT(EPOCH FROM AVG(a.created_at - e.created_at)) / 60.0
+		SELECT EXTRACT(EPOCH FROM AVG(a.created_at - e.first_seen)) / 60.0
 		FROM alerts a
-		JOIN events e ON e.id::text = a.event_id::text
+		JOIN LATERAL (
+			SELECT MIN("time") AS first_seen
+			FROM events
+			WHERE event_id = ANY(a.event_ids::uuid[])
+		) e ON e.first_seen IS NOT NULL
 		WHERE a.created_at > NOW() - $1::interval
-		  AND e.created_at IS NOT NULL`,
+		  AND a.event_ids IS NOT NULL
+		  AND array_length(a.event_ids, 1) > 0`,
 		interval,
 	).Scan(&mttdMinutes)
 	if mttdErr == nil && mttdMinutes != nil {
@@ -205,24 +219,35 @@ func (t *Tracker) Calculate(ctx context.Context, period string) (*DetectionMetri
 	}
 
 	// ── MITRE coverage (tactic → rule count) ─────────────────────────────────
+	// rules に mitre_tactic 列は無い。実在するのは mitre_tags (テクニック ID の
+	// 配列)。SQL ではテクニック単位に数え、タクティクへの写像は Go 側の
+	// detection.TacticForTechnique に任せる (kill-chain 相関・コンプライアンス
+	// スコアと同じ表)。
 	mitreRows, err := t.pool.Query(ctx, `
-		SELECT COALESCE(r.mitre_tactic, 'unknown'), COUNT(DISTINCT r.id)
-		FROM rules r
+		SELECT tag, COUNT(DISTINCT r.id)
+		FROM rules r, unnest(COALESCE(r.mitre_tags, '{}')) AS tag
 		WHERE r.enabled = true
-		GROUP BY r.mitre_tactic`)
+		GROUP BY tag`)
 	if err == nil {
 		defer mitreRows.Close()
-		totalTactics := 0
-		coveredTactics := 0
 		for mitreRows.Next() {
-			var tactic string
+			var technique string
 			var count int
-			if err := mitreRows.Scan(&tactic, &count); err == nil {
-				m.MITRECoverage[tactic] = count
-				totalTactics++
-				if count > 0 {
-					coveredTactics++
-				}
+			if err := mitreRows.Scan(&technique, &count); err != nil {
+				continue
+			}
+			tactic := detection.TacticForTechnique(technique)
+			if tactic == "" {
+				// 写像表に無いテクニックはタクティクとして数えない。
+				continue
+			}
+			m.MITRECoverage[tactic] += count
+		}
+		totalTactics := len(m.MITRECoverage)
+		coveredTactics := 0
+		for _, count := range m.MITRECoverage {
+			if count > 0 {
+				coveredTactics++
 			}
 		}
 		// Coverage = fraction of known MITRE ATT&CK tactics with at least one rule.
@@ -277,13 +302,13 @@ func (t *Tracker) GetMITRECoverage(ctx context.Context) (map[string][]string, er
 		return coverage, nil
 	}
 
+	// mitre_tactic / mitre_technique 列は無い。mitre_tags を展開して
+	// テクニックを取り、タクティクは Go 側で写す。
 	rows, err := t.pool.Query(ctx, `
-		SELECT COALESCE(mitre_tactic, 'unknown'), COALESCE(mitre_technique, '')
-		FROM rules
-		WHERE enabled = true
-		  AND mitre_technique IS NOT NULL
-		  AND mitre_technique <> ''
-		ORDER BY mitre_tactic, mitre_technique`)
+		SELECT DISTINCT tag
+		FROM rules r, unnest(COALESCE(r.mitre_tags, '{}')) AS tag
+		WHERE r.enabled = true AND tag <> ''
+		ORDER BY tag`)
 	if err != nil {
 		slog.Warn("detectionmetrics: GetMITRECoverage query failed", "error", err)
 		return coverage, nil
@@ -291,10 +316,15 @@ func (t *Tracker) GetMITRECoverage(ctx context.Context) (map[string][]string, er
 	defer rows.Close()
 
 	for rows.Next() {
-		var tactic, technique string
-		if err := rows.Scan(&tactic, &technique); err == nil {
-			coverage[tactic] = append(coverage[tactic], technique)
+		var technique string
+		if err := rows.Scan(&technique); err != nil {
+			continue
 		}
+		tactic := detection.TacticForTechnique(technique)
+		if tactic == "" {
+			tactic = "unknown"
+		}
+		coverage[tactic] = append(coverage[tactic], technique)
 	}
 
 	// Deduplicate techniques per tactic.

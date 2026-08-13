@@ -18,6 +18,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/nats-io/nats.go"
+
+	"github.com/edr-platform/server/internal/metrics"
 )
 
 // RuleTrigger defines what events activate a RemediationRule.
@@ -146,7 +148,12 @@ func (e *Engine) TriggerOnAlert(
 	severity int,
 	tags []string,
 ) []ExecutionLog {
+	// Counted before any filtering: this is the only record that the engine was
+	// reached at all. Everything downstream is observable only from inside.
+	metrics.RemediationTriggers.WithLabelValues("offered").Inc()
+
 	if e.IsExcluded(hostname) {
+		metrics.RemediationTriggers.WithLabelValues("excluded_host").Inc()
 		slog.Info("remediation: agent excluded from auto-remediation",
 			"agent_id", agentID, "hostname", hostname)
 		return nil
@@ -157,7 +164,13 @@ func (e *Engine) TriggerOnAlert(
 	copy(rules, e.rules)
 	e.mu.Unlock()
 
+	if len(rules) == 0 {
+		metrics.RemediationTriggers.WithLabelValues("no_rules").Inc()
+		return nil
+	}
+
 	var logs []ExecutionLog
+	matchedAny := false
 	for _, rule := range rules {
 		if !rule.Enabled {
 			continue
@@ -165,14 +178,17 @@ func (e *Engine) TriggerOnAlert(
 		if !e.triggerMatches(rule.Trigger, "alert", severity, tags) {
 			continue
 		}
+		matchedAny = true
 		cdKey := cooldownKey(rule.ID, agentID)
 		e.mu.RLock()
 		last := e.lastExec[cdKey]
 		e.mu.RUnlock()
 		if rule.Cooldown > 0 && time.Since(last) < rule.Cooldown {
+			metrics.RemediationTriggers.WithLabelValues("cooldown").Inc()
 			slog.Debug("remediation: rule skipped (cooldown)", "rule_id", rule.ID, "agent_id", agentID)
 			continue
 		}
+		metrics.RemediationTriggers.WithLabelValues("executed").Inc()
 
 		log := e.executeRule(ctx, rule, alertID, agentID)
 		logs = append(logs, log)
@@ -190,6 +206,9 @@ func (e *Engine) TriggerOnAlert(
 		if rule.RollbackTimeout > 0 && e.executionIsolated(log) {
 			e.scheduleRollback(rule.RollbackTimeout, log.ID, agentID)
 		}
+	}
+	if !matchedAny {
+		metrics.RemediationTriggers.WithLabelValues("no_match").Inc()
 	}
 	return logs
 }

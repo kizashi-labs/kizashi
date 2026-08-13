@@ -20,7 +20,11 @@ func TestComplianceAlerter_RaisesAndDedupes(t *testing.T) {
 	if err != nil {
 		t.Fatalf("pool: %v", err)
 	}
-	defer pool.Close()
+	// pool.Close は defer ではなく t.Cleanup で閉じる。defer はテスト関数の
+	// return 時点で走るが、t.Cleanup はその後に走るため、defer にすると
+	// 後続の後片付け DELETE が「閉じたプール」に当たって全て失敗する。
+	// 先に登録しておけば LIFO により最後に閉じられる。
+	t.Cleanup(pool.Close)
 	ctx := context.Background()
 
 	var agentID string
@@ -35,12 +39,23 @@ func TestComplianceAlerter_RaisesAndDedupes(t *testing.T) {
 		 VALUES ('compl-alert-baseline', 'linux', 'cis') RETURNING id::text`).Scan(&baselineID); err != nil {
 		t.Fatalf("seed baseline: %v", err)
 	}
+	// 後片付けが失敗すると次回以降 uq_hardening_baselines_name に当たって
+	// このテストが落ちる。黙って捨てず、失敗を残す。
 	t.Cleanup(func() {
-		_, _ = pool.Exec(ctx, "DELETE FROM alerts WHERE agent_id=$1", agentID)
-		_, _ = pool.Exec(ctx, "DELETE FROM hardening_assessments WHERE agent_id=$1", agentID)
-		_, _ = pool.Exec(ctx, "DELETE FROM hardening_baselines WHERE id=$1", baselineID)
-		_, _ = pool.Exec(ctx, "DELETE FROM endpoint_encryption WHERE agent_id=$1", agentID)
-		_, _ = pool.Exec(ctx, "DELETE FROM agents WHERE id=$1", agentID)
+		for _, q := range []struct {
+			sql  string
+			args []any
+		}{
+			{"DELETE FROM alerts WHERE agent_id=$1", []any{agentID}},
+			{"DELETE FROM hardening_assessments WHERE agent_id=$1", []any{agentID}},
+			{"DELETE FROM hardening_baselines WHERE id=$1", []any{baselineID}},
+			{"DELETE FROM endpoint_encryption WHERE agent_id=$1", []any{agentID}},
+			{"DELETE FROM agents WHERE id=$1", []any{agentID}},
+		} {
+			if _, err := pool.Exec(ctx, q.sql, q.args...); err != nil {
+				t.Errorf("後片付けに失敗しました (%s): %v", q.sql, err)
+			}
+		}
 	})
 
 	// Unencrypted endpoint.

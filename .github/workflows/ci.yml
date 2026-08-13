@@ -27,8 +27,81 @@ concurrency:
 
 jobs:
   # ── Go: server ────────────────────────────────────────────────
+  # ── 変更のあった領域を判定する ──────────────────────────────
+  # PR ごとに 18 ジョブ全部を回すと、サーバだけの変更でもエージェントの
+  # 6 ターゲット・クロスビルドや Trivy のイメージスキャンが走る。実測で
+  # 1 PR あたり 40 分超を消費し、Actions の予算を 2 度使い切った。
+  #
+  # 第三者製のフィルタ・アクションは使わず git で判定する。セキュリティ製品の
+  # CI に外部アクションを増やしたくないため。判定できない場合は必ず「全部走らせる」
+  # に倒す（取りこぼして緑になるより、余分に回すほうがまし）。
+  changes:
+    name: Changed areas
+    runs-on: ubuntu-latest
+    outputs:
+      agent:    ${{ steps.filter.outputs.agent }}
+      server:   ${{ steps.filter.outputs.server }}
+      frontend: ${{ steps.filter.outputs.frontend }}
+      sdk:      ${{ steps.filter.outputs.sdk }}
+      rules:    ${{ steps.filter.outputs.rules }}
+      all:      ${{ steps.filter.outputs.all }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - id: filter
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE_REF: ${{ github.base_ref }}
+          BEFORE: ${{ github.event.before }}
+          SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          files=""
+          if [ "$EVENT" = "pull_request" ]; then
+            git fetch --no-tags origin "$BASE_REF" >/dev/null 2>&1 || true
+            files="$(git diff --name-only "origin/$BASE_REF...HEAD" || true)"
+          elif [ -n "${BEFORE:-}" ] && [ "$BEFORE" != "0000000000000000000000000000000000000000" ]                && git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then
+            files="$(git diff --name-only "$BEFORE" "$SHA" || true)"
+          fi
+
+          # 差分が取れなかった (初回 push / force push / 履歴なし) ときは全部走らせる
+          if [ -z "$files" ]; then
+            echo "変更ファイルを特定できませんでした。全ジョブを実行します。"
+            for k in agent server frontend sdk rules all; do echo "$k=true" >> "$GITHUB_OUTPUT"; done
+            exit 0
+          fi
+
+          echo "変更ファイル:"; echo "$files" | sed 's/^/  /'
+
+          has() { echo "$files" | grep -qE "$1"; }
+
+          # CI 定義・proto・共通設定が変わったら全部走らせる。
+          # proto は agent と server の両方が依存し、ズレると実行時にしか露見しない。
+          all=false
+          if has '^\.github/workflows/' || has '^proto/' || has '^docker-compose' || has '^Makefile'; then
+            all=true
+          fi
+
+          agent=false;    has '^agent/'                      && agent=true
+          # migrations は server のテストが実 DB に適用するので server 側に含める
+          server=false;   has '^server/'                     && server=true
+          frontend=false; has '^frontend/'                   && frontend=true
+          sdk=false;      has '^sdk/'                        && sdk=true
+          rules=false;    has '^rules/|^server/migrations/'  && rules=true
+
+          {
+            echo "agent=$agent"; echo "server=$server"; echo "frontend=$frontend"
+            echo "sdk=$sdk"; echo "rules=$rules"; echo "all=$all"
+          } >> "$GITHUB_OUTPUT"
+
+          echo "判定: agent=$agent server=$server frontend=$frontend sdk=$sdk rules=$rules all=$all"
+
   server-test:
     name: Server Tests (Go)
+    needs: changes
+    if: needs.changes.outputs.server == 'true' || needs.changes.outputs.all == 'true'
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -215,6 +288,8 @@ jobs:
   # module tree and cannot be imported from server/cmd).
   rules-validate:
     name: Detection Rule Validation (Sigma + YARA)
+    needs: changes
+    if: needs.changes.outputs.rules == 'true' || needs.changes.outputs.all == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -235,6 +310,8 @@ jobs:
   # ── Go: agent ────────────────────────────────────────────────
   agent-build:
     name: Agent Build (Go cross-compile)
+    needs: changes
+    if: needs.changes.outputs.agent == 'true' || needs.changes.outputs.all == 'true'
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -326,6 +403,8 @@ jobs:
   # objects, so it compiles without CGO; -race enables cgo for the detector).
   agent-test:
     name: Agent Tests (Go)
+    needs: changes
+    if: needs.changes.outputs.agent == 'true' || needs.changes.outputs.all == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -354,7 +433,15 @@ jobs:
       # agent-build job generates (they aren't committed the way ProcessMonitor's
       # are). Without this, internal/platform/linux fails to build with
       # `undefined: NetworkMonitorObjects` / `undefined: FilelessMonitorObjects`.
-      - name: Generate report-only eBPF bindings
+      #
+      # The Prevention/Tamper/CredAccess LSM bindings are generated here too, so
+      # the `ebpf prevention` build — the variant that actually enforces, shipped
+      # as edr-agent-linux-amd64-ebpf — gets a per-PR gate. It previously had
+      # none: agent-ebpf.yml is workflow_dispatch-only, so nothing type-checked
+      # the prevention tag between manual runs. The three extra bpf2go calls are
+      # a few seconds of clang each; the expensive part (building bpftool from
+      # source to dump the runner's BTF) is already paid for above and reused.
+      - name: Generate eBPF bindings (report-only + prevention LSM)
         working-directory: agent
         run: |
           sudo apt-get update
@@ -364,15 +451,30 @@ jobs:
           make -C /tmp/bpftool/src
           sudo /tmp/bpftool/src/bpftool btf dump file /sys/kernel/btf/vmlinux format c > ebpf/vmlinux.h
           cd internal/platform/linux
-          GOPACKAGE=linux go run github.com/cilium/ebpf/cmd/bpf2go \
-            -tags ebpf -cc clang \
-            -cflags "-O2 -g -target bpf -D__TARGET_ARCH_x86" \
-            NetworkMonitor ../../../ebpf/network_monitor.bpf.c
-          GOPACKAGE=linux go run github.com/cilium/ebpf/cmd/bpf2go \
-            -tags ebpf -cc clang \
-            -cflags "-O2 -g -target bpf -D__TARGET_ARCH_x86" \
-            FilelessMonitor ../../../ebpf/fileless_monitor.bpf.c
-          ls -1 networkmonitor_bpf* filelessmonitor_bpf*
+          gen() {
+            GOPACKAGE=linux go run github.com/cilium/ebpf/cmd/bpf2go \
+              -tags "$1" -cc clang \
+              -cflags "-O2 -g -target bpf -D__TARGET_ARCH_x86" \
+              "$2" "../../../ebpf/$3"
+          }
+          gen "ebpf"            NetworkMonitor       network_monitor.bpf.c
+          gen "ebpf"            FilelessMonitor      fileless_monitor.bpf.c
+          gen "ebpf prevention" PreventionLSM        prevention_lsm.bpf.c
+          gen "ebpf prevention" TamperLSM            tamper_lsm.bpf.c
+          gen "ebpf prevention" CredAccessLSM        credaccess_lsm.bpf.c
+          # HostIntegrityMonitor and TLSMonitor landed AFTER the last successful
+          # run of agent-ebpf.yml (2026-07-20) and were never added to any
+          # generation list. `-tags "ebpf prevention"` has therefore been broken
+          # on main ever since, with `undefined: HostIntegrityMonitorObjects` /
+          # `undefined: TLSMonitorObjects` — invisible because that build had no
+          # CI gate and its workflow only ran on manual dispatch. This gate is
+          # what surfaced it; keep this list in step with the `linux && ebpf &&
+          # prevention` runners in internal/platform/linux.
+          gen "ebpf prevention" HostIntegrityMonitor hostintegrity_monitor.bpf.c
+          gen "ebpf prevention" TLSMonitor           tls_monitor.bpf.c
+          ls -1 networkmonitor_bpf* filelessmonitor_bpf* \
+                preventionlsm_bpf* tamperlsm_bpf* credaccesslsm_bpf* \
+                hostintegritymonitor_bpf* tlsmonitor_bpf*
 
       # staticcheck は server ジョブにはあったが agent には無く、指摘が 16 件
       # 溜まっていた (#601 で解消)。同じことを繰り返さないようゲートを置く。
@@ -385,12 +487,12 @@ jobs:
       # 既定タグ側でのみ検出された。逆に ebpf 側にしか無いコードの指摘は、
       # 既定タグだけでは永久に出ない。
       #
-      # このステップは上の bpf2go バインディング生成 (NetworkMonitor /
-      # FilelessMonitor) の後に置く必要がある。生成前だと -tags ebpf で
-      # internal/platform/linux が undefined でコンパイルできない。
+      # このステップは上の bpf2go バインディング生成の後に置く必要がある。
+      # 生成前だと -tags ebpf で internal/platform/linux が undefined になる。
       #
-      # prevention タグは対象外。そちらのバインディング (CredAccessLSM 等) は
-      # このジョブで生成しておらず、解析以前にビルドが通らない。
+      # `ebpf prevention` も解析対象。防御を実際に有効化する唯一のビルドであり、
+      # ここを外すと「出荷する構成だけ静的解析されない」状態になる。バインディング
+      # は上のステップで生成済み。
       #
       # バージョンは server ジョブと同じ v0.7.0 に固定する。2つのジョブが別々の
       # staticcheck を使うと、同じコードが片方だけ赤くなる状態が起こり得る。
@@ -400,6 +502,7 @@ jobs:
           go install honnef.co/go/tools/cmd/staticcheck@v0.7.0
           staticcheck ./...
           staticcheck -tags ebpf ./...
+          staticcheck -tags "ebpf prevention" ./...
 
       # Coverage was previously unmeasured for the agent module entirely — only
       # server/ had a coverage.yml badge/gate. Mirrors the server's approach:
@@ -456,14 +559,52 @@ jobs:
       # Windows/macOS collectors and their tests is caught per-PR on this cheap
       # ubuntu runner — the class of bug (e.g. a struct-layout mismatch) that
       # went undetected while agent tests never ran in CI at all.
+      # The enforcing Linux variant (edr-agent-linux-amd64-ebpf). This is the only
+      # build in which the LSM exec-prevention, tamper-protection and credential-
+      # access hooks exist at all, so "does it still compile and do its tests
+      # pass" was previously answered only by a manual agent-ebpf.yml dispatch —
+      # in practice, weeks apart. Built and tested here on every PR.
+      #
+      # No -race and no coverage: the shared code is already covered by the
+      # -tags ebpf run above, and this step exists to catch compile rot plus the
+      # prevention-only unit tests (blocklist mapping, path aliasing, decision
+      # parsing). Loading the LSM needs an lsm=bpf kernel and is not attempted —
+      # the runners have no BPF LSM, and the runtime path is fail-open by design.
+      - name: Build & test the enforcing variant (ebpf prevention)
+        working-directory: agent
+        run: |
+          go build -tags "ebpf prevention" -ldflags="-s -w" -o /tmp/edr-agent-ebpf ./cmd/agent/...
+          go build -tags "ebpf prevention" -ldflags="-s -w" -o /tmp/edr-watchdog-ebpf ./cmd/watchdog/...
+          go test -tags "ebpf prevention" -timeout 120s ./...
+
       - name: Cross-platform vet (windows/darwin)
         working-directory: agent
         run: |
           GOOS=windows GOARCH=amd64 go vet ./...
           GOOS=darwin  GOARCH=arm64 go vet ./...
+          # Windows kernel-driver prevention variant. Its four driver-facing files
+          # (prevention_driver.go / cred_driver_windows.go / tamper_driver_windows.go
+          # / pathalias_windows.go) and their tests are behind `windows && prevention`
+          # and were type-checked by nothing at all: the plain `go vet` above drops
+          # them, and no Windows runner exists. When this gate was first added it
+          # immediately found that pathalias_windows_test.go had never compiled
+          # (a `contains` helper colliding with auth_parse_test.go's).
+          GOOS=windows GOARCH=amd64 go vet -tags prevention ./...
           # macOS EndpointSecurity (ESF) build variant + its prevention combo.
-          GOOS=darwin  GOARCH=arm64 go vet -tags esf ./internal/platform/darwin/...
-          GOOS=darwin  GOARCH=arm64 go vet -tags "esf prevention" ./internal/platform/darwin/...
+          #
+          # Over ./... , not just ./internal/platform/darwin/... . Narrowing it to
+          # that one package is what let `-tags esf` stay unbuildable unnoticed:
+          # the ESF collector is a cgo file, CGO_ENABLED=0 here drops it, and the
+          # polling fallback was excluded by `!esf` — so both implementations
+          # vanished and NewDarwinProcessCollector was undefined. Nothing in the
+          # darwin package references it, so a package-scoped vet passed; the
+          # error only appears at the call site in cmd/agent.
+          #
+          # This is a compile gate for the cgo-less shape of the build. The real
+          # ESF compile (CGO_ENABLED=1, EndpointSecurity.h) needs a macOS host
+          # and lives in agent-macos-esf.yml.
+          GOOS=darwin  GOARCH=arm64 go vet -tags esf ./...
+          GOOS=darwin  GOARCH=arm64 go vet -tags "esf prevention" ./...
 
   # ── Server dependency vulnerability scan (govulncheck) ────────
   # 独立ジョブであることが重要。以前は server-test ジョブの中間ステップだったため、
@@ -474,6 +615,8 @@ jobs:
   # それぞれ独立に赤くなるべきなので、agent-vulncheck と同じ形に揃えた。
   server-vulncheck:
     name: Server Vulnerability Check (govulncheck)
+    needs: changes
+    if: needs.changes.outputs.server == 'true' || needs.changes.outputs.all == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -513,6 +656,8 @@ jobs:
   # suffered OSS Index 401s).
   agent-vulncheck:
     name: Agent Vulnerability Check (govulncheck)
+    needs: changes
+    if: needs.changes.outputs.agent == 'true' || needs.changes.outputs.all == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -537,6 +682,8 @@ jobs:
   # ── Frontend ──────────────────────────────────────────────────
   frontend-build:
     name: Frontend Build (Next.js)
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true' || needs.changes.outputs.all == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -590,6 +737,8 @@ jobs:
   # silent dead weight that regressions could sail through undetected.
   sdk-test:
     name: SDK Tests (Python + TypeScript)
+    needs: changes
+    if: needs.changes.outputs.sdk == 'true' || needs.changes.outputs.all == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

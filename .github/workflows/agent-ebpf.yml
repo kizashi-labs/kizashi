@@ -10,8 +10,42 @@ name: Agent eBPF Build (Linux prevention/tamper)
 # The standard polling build (edr-agent-linux-amd64, no tags) continues to ship
 # via ci.yml; this variant is the opt-in eBPF/prevention build for lsm=bpf hosts.
 
+# Dispatch-only shipping meant the committed
+# downloads/edr-agent-linux-amd64-ebpf silently fell behind main — it sat at a
+# three-week-old build while the polling variant (shipped by ci.yml on every
+# main push) tracked HEAD. Two agent binaries built from different sources is
+# worse than one: the enforcing variant is exactly the build whose fixes matter
+# most, and "the LSM build is stale" is invisible from the outside because the
+# file is present and installs fine.
+#
+# ┌─ TEMPORARY (2026-08-10) — Actions budget ────────────────────────────────┐
+# │ The intended trigger is `push` on main for agent/proto changes, which     │
+# │ bounds staleness to "one merge". The repository's Actions budget is       │
+# │ currently exhausted ("The job was not started because an Actions budget   │
+# │ is preventing further use"), so this runs WEEKLY instead: each run builds │
+# │ bpftool from source, so per-merge is the more expensive cadence.          │
+# │                                                                          │
+# │ Staleness is therefore bounded at 7 days rather than 1 merge. That is a   │
+# │ real regression against what this workflow exists to fix — it is not      │
+# │ dispatch-only again, but it is not per-merge either.                      │
+# │                                                                          │
+# │ TO REVERT once the budget is restored: delete the `schedule:` block below │
+# │ and uncomment the `push:` block. Nothing else changes.                    │
+# └──────────────────────────────────────────────────────────────────────────┘
 on:
   workflow_dispatch: {}
+
+  # Weekly, Mondays 03:00 UTC (12:00 JST). Off-hours so it does not compete
+  # with interactive CI for runners.
+  schedule:
+    - cron: '0 3 * * 1'
+
+  # push:
+  #   branches: [main]
+  #   paths:
+  #     - 'agent/**'
+  #     - 'proto/**'
+  #     - '.github/workflows/agent-ebpf.yml'
 
 jobs:
   build-ebpf:
@@ -20,6 +54,17 @@ jobs:
     permissions:
       contents: write # to commit the binary to downloads/
     steps:
+      # The weekly schedule is a temporary measure taken while the Actions
+      # budget was exhausted (see the header). Reverting it is a manual step
+      # with nothing to enforce it, so the workflow says so itself — every
+      # scheduled run, in the place someone is already looking. The warning
+      # disappears when the trigger is restored, because it only fires on
+      # `schedule`.
+      - name: Reminder — this workflow is on its temporary weekly schedule
+        if: github.event_name == 'schedule'
+        run: |
+          echo "::warning title=一時措置が残っています::agent-ebpf.yml は Actions 予算枯渇のため週次で動作しています（本来は main への agent/proto 変更ごと）。予算が回復済みなら、ヘッダの手順で schedule を push トリガに戻してください。防御版バイナリの陳腐化が最大7日まで許容されている状態です。"
+
       - uses: actions/checkout@v4
 
       - name: Set up Go
@@ -71,7 +116,23 @@ jobs:
             -tags "ebpf prevention" -cc clang \
             -cflags "-O2 -g -target bpf -D__TARGET_ARCH_x86" \
             FilelessMonitor ../../../ebpf/fileless_monitor.bpf.c
-          ls -1 preventionlsm_bpf* tamperlsm_bpf* credaccesslsm_bpf* networkmonitor_bpf* filelessmonitor_bpf*
+          # HostIntegrityMonitor and TLSMonitor landed AFTER this workflow last
+          # ran successfully (2026-07-20) and were never added here, so the
+          # `ebpf prevention` build has been failing ever since with
+          # `undefined: HostIntegrityMonitorObjects` / `undefined:
+          # TLSMonitorObjects`. Nobody saw it because this workflow only ran on
+          # manual dispatch and nothing else compiled that tag combination.
+          GOPACKAGE=linux go run github.com/cilium/ebpf/cmd/bpf2go \
+            -tags "ebpf prevention" -cc clang \
+            -cflags "-O2 -g -target bpf -D__TARGET_ARCH_x86" \
+            HostIntegrityMonitor ../../../ebpf/hostintegrity_monitor.bpf.c
+          GOPACKAGE=linux go run github.com/cilium/ebpf/cmd/bpf2go \
+            -tags "ebpf prevention" -cc clang \
+            -cflags "-O2 -g -target bpf -D__TARGET_ARCH_x86" \
+            TLSMonitor ../../../ebpf/tls_monitor.bpf.c
+          ls -1 preventionlsm_bpf* tamperlsm_bpf* credaccesslsm_bpf* \
+                networkmonitor_bpf* filelessmonitor_bpf* \
+                hostintegritymonitor_bpf* tlsmonitor_bpf*
 
       - name: Build eBPF agent
         working-directory: agent

@@ -148,6 +148,7 @@ func (m *Manager) ApplyRemote(remote *RemoteConfig) {
 	c.Collection.ProcessMonitoring = remote.ProcessMonitoring
 	c.Collection.FileMonitoring = remote.FileMonitoring
 	c.Collection.NetworkMonitoring = remote.NetworkMonitoring
+	c.Collection.DNSMonitoring = remote.DNSMonitoring
 	c.Collection.MonitoredPaths = remote.MonitoredPaths
 	c.Collection.ExcludedPaths = remote.ExcludedPaths
 	c.Collection.ExcludedProcesses = remote.ExcludedProcesses
@@ -163,6 +164,7 @@ type RemoteConfig struct {
 	ProcessMonitoring    bool
 	FileMonitoring       bool
 	NetworkMonitoring    bool
+	DNSMonitoring        bool
 	MonitoredPaths       []string
 	ExcludedPaths        []string
 	ExcludedProcesses    []string

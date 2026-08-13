@@ -144,11 +144,11 @@ func (s *AlertStore) SaveAlert(ctx context.Context, a *StoredAlert) error {
 		INSERT INTO alerts (
 			id, rule_id, agent_id, severity, status, title, description,
 			mitre_technique, anomaly_score, raw_event, created_at, updated_at,
-			ai_mitre_tags
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
+			ai_mitre_tags, event_ids
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14::uuid[])`,
 		a.ID, a.RuleID, agentIDArg, a.Severity, a.Status, a.Title,
 		a.Description, a.MITRETech, a.AnomalyScore, rawEventVal,
-		a.CreatedAt, a.UpdatedAt, a.AIMITRETags,
+		a.CreatedAt, a.UpdatedAt, a.AIMITRETags, a.EventIDs,
 	)
 	if err != nil {
 		return err
@@ -631,14 +631,20 @@ type AlertSummaryRow struct {
 
 // SaveResponseAction logs a response action.
 func (s *AlertStore) SaveResponseAction(ctx context.Context, action *ResponseActionRow) error {
+	// success は status_text から導出される生成列なので直接書けない
+	// (migration 379)。呼び出し側の bool を語彙に写す。
+	status := StatusSuccess
+	if !action.Success {
+		status = StatusFailure
+	}
 	_, err := s.pool.Exec(ctx, `
 		INSERT INTO response_actions (
 			id, alert_id, agent_id, action_type, target,
-			reason, executed_by, success, error_msg, executed_at
+			reason, executed_by, status_text, error_msg, executed_at
 		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
 		action.ID, action.AlertID, action.AgentID, action.ActionType,
 		action.Target, action.Reason, action.ExecutedBy,
-		action.Success, action.ErrorMsg, action.ExecutedAt,
+		status, action.ErrorMsg, action.ExecutedAt,
 	)
 	return err
 }
