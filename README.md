@@ -55,9 +55,14 @@ The console is at `http://localhost:3000`. Other ports: API `8080` (REST) / `909
 
 Database migrations are applied automatically on API startup.
 
-Agent installation is documented in [`docs/エージェントインストール手順.md`](docs/エージェントインストール手順.md).
+Agent installation: [`deploy/install/README.md`](deploy/install/README.md) (English)
+or [`docs/エージェントインストール手順.md`](docs/エージェントインストール手順.md) (Japanese).
 Where the binaries come from — and the two targets you have to build yourself — is
 covered under [Agent](#getting-the-agent-binaries).
+
+A longer walkthrough, a configuration reference and a troubleshooting guide are in
+**[`docs/en/`](docs/en/README.md)**. That page also indexes the Japanese-only
+documents, so you can see what exists even if you cannot read it.
 
 ## Detection
 
@@ -253,8 +258,21 @@ in your own environment before relying on it. Deploying an endpoint agent with
 kernel-level or eBPF components carries operational risk — test on
 non-critical hosts first.
 
-Most of the documentation under `docs/` and much of the console copy is written in
-Japanese.
+## Language
+
+Most of `docs/` and all of the console's UI text is Japanese.
+
+English versions of the documents you need to run the thing are in
+[`docs/en/`](docs/en/README.md) — getting started, configuration reference,
+troubleshooting — along with an index of what the Japanese-only documents cover.
+The agent installer guide ([`deploy/install/README.md`](deploy/install/README.md)),
+the agent's own logs and `agent.toml` are English already.
+
+The **console has no English mode**. The strings are inline in the components and
+there is no i18n layer to add one to. This is the largest remaining barrier for
+non-Japanese operators and is a known gap, not an oversight. Screen paths
+(`/alerts`, `/endpoints`, `/incidents`) are in English and stable, so the English
+docs can send you to the right screen even when its labels don't help.
 
 ---
 
@@ -413,3 +431,13 @@ AGPL のソース開示義務を受け入れられない組織向けに、**商�
 本ソフトウェアは無保証で提供されます。検知・対応のためのツールであり、
 セキュリティを保証するものではありません。いかなるアンチマルウェア認証・規制基準の
 試験も受けていません。実運用の前に、ご自身の環境で検証してください。
+
+## 言語
+
+`docs/` のほとんどとコンソールの UI 文言は日本語です。導入に必要な範囲
+（導入手順・設定リファレンス・トラブルシュート）の英語版を
+[`docs/en/`](docs/en/README.md) に置いています。日本語のみのドキュメントも、
+何が書いてあるかを一覧にしてあります。
+
+コンソール自体には英語モードがありません。文言がコンポーネントに直書きされて
+おり、i18n の層が無いためです。非日本語話者にとって最大の障壁として残っています。
