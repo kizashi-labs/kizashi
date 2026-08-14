@@ -725,6 +725,13 @@ jobs:
         working-directory: frontend
         run: npx tsc --noEmit
 
+      # 本番ビルド(NEXT_PUBLIC_USE_MOCK != 'true')で描画されてしまう
+      # モックデータ参照を落とす。28 箇所が素通しになっていた実績があり、
+      # 「データが少ないだけ」に見えるので目視では気づけない。
+      - name: Mock guard check
+        working-directory: frontend
+        run: node scripts/check-mock-guards.mjs
+
       # Vitest unit/component tests (frontend/tests/**). Previously these were
       # never run in CI — only lint, typecheck, build, and the separate
       # Playwright e2e job ran — so component and lib-level regressions could

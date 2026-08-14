@@ -10,7 +10,7 @@ import {
   Minus, ArrowUp, ArrowDown, Calendar
 } from 'lucide-react'
 import Link from 'next/link'
-import { USE_MOCK, m } from '@/lib/mock'
+import { m, mockOr } from '@/lib/mock'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -483,7 +483,7 @@ export default function InsiderThreatsPage() {
     staleTime: 30_000,
     retry: false,
   })
-  const behavior = behaviorData ?? (selectedUserId ? MOCK_USER_BEHAVIOR : null)
+  const behavior = behaviorData ?? (selectedUserId ? mockOr<UserBehavior | null>(MOCK_USER_BEHAVIOR, null) : null)
 
   const filteredAlerts = useMemo(() => {
     return alerts.filter(a => {

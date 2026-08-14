@@ -9,7 +9,7 @@ import {
   User, ArrowRight, Square, Circle, CheckCircle,
   AlertTriangle, ChevronDown, Filter, BarChart2
 } from 'lucide-react'
-import { USE_MOCK, m } from '@/lib/mock'
+import { m } from '@/lib/mock'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -328,9 +328,11 @@ function ThreatModal({
 
 // ─── Add Mitigation Modal ─────────────────────────────────────────────────────
 
-function AddMitigationModal({ onClose, onSave }: { onClose: () => void; onSave: (m: Omit<Mitigation, 'id'>) => void }) {
+// components はキャンバス上の要素名。以前はここで MOCK_ELEMENTS を直接引いており、
+// モック無効時（＝本番）でも架空のコンポーネント名が選択肢に並んでいた。
+function AddMitigationModal({ onClose, onSave, components }: { onClose: () => void; onSave: (m: Omit<Mitigation, 'id'>) => void; components: string[] }) {
   const [form, setForm] = useState({
-    threat_desc: '', component: 'Webアプリ', category: 'S' as StrideCategory,
+    threat_desc: '', component: components[0] ?? '', category: 'S' as StrideCategory,
     mitigation: '', status: 'not_started' as ImplStatus, priority: 'medium' as Mitigation['priority'], assigned_to: '',
     threat_id: '',
   })
@@ -352,7 +354,7 @@ function AddMitigationModal({ onClose, onSave }: { onClose: () => void; onSave: 
             <label className="block text-xs text-[#7d92b0] mb-1 font-medium">コンポーネント</label>
             <select value={form.component} onChange={e => setForm(f => ({ ...f, component: e.target.value }))}
               className="w-full bg-[#070d19] border border-[#1e2d42] rounded px-3 py-2 text-sm text-white focus:outline-none">
-              {MOCK_ELEMENTS.map(e => <option key={e.id}>{e.label}</option>)}
+              {components.map(label => <option key={label}>{label}</option>)}
             </select>
           </div>
           <div>
@@ -432,7 +434,7 @@ export default function ThreatModelingPage() {
   const [tab, setTab] = useState<'canvas' | 'stride' | 'mitigations'>('canvas')
 
   // Canvas state
-  const [elements, setElements] = useState<CanvasElement[]>(MOCK_ELEMENTS)
+  const [elements, setElements] = useState<CanvasElement[]>(m(MOCK_ELEMENTS))
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [exportMsg, setExportMsg] = useState('')
   const svgRef = useRef<SVGSVGElement>(null)
@@ -501,11 +503,11 @@ export default function ThreatModelingPage() {
   }
 
   // STRIDE state
-  const [strideMatrix, setStrideMatrix] = useState<StrideMatrix>(MOCK_STRIDE)
+  const [strideMatrix, setStrideMatrix] = useState<StrideMatrix>(m(MOCK_STRIDE))
   const [threatModal, setThreatModal] = useState<{ component: string; category: StrideCategory; existing: ThreatEntry | null } | null>(null)
 
   // Mitigations state
-  const [mitigations, setMitigations] = useState<Mitigation[]>(MOCK_MITIGATIONS)
+  const [mitigations, setMitigations] = useState<Mitigation[]>(m(MOCK_MITIGATIONS))
   const [showAddMit, setShowAddMit] = useState(false)
 
   const selectedEl = elements.find(e => e.id === selectedId) ?? null
@@ -604,6 +606,7 @@ export default function ThreatModelingPage() {
         <AddMitigationModal
           onClose={() => setShowAddMit(false)}
           onSave={addMitigation}
+          components={elements.map(e => e.label)}
         />
       )}
 
