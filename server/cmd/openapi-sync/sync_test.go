@@ -127,3 +127,32 @@ func TestGeneratedStubsStayMinimal(t *testing.T) {
 		}
 	}
 }
+
+// リポジトリルートの探索が server/ で止まらないこと。
+//
+// 目印を docs/openapi.yaml だけにしていたため、配信用コピーのある
+// server/ をルートと誤判定していた。CI は `working-directory: server` で
+// 走らせるので、server/server/internal/api/router.go を開こうとして落ちた。
+// ローカルでは -root を渡していて気づけなかった。
+func TestRepoRootFromServerDir(t *testing.T) {
+	root := repoRoot(t)
+
+	for _, start := range []string{
+		root,
+		filepath.Join(root, "server"),
+		filepath.Join(root, "server", "cmd", "openapi-sync"),
+		filepath.Join(root, "frontend"),
+	} {
+		if _, err := os.Stat(start); err != nil {
+			continue
+		}
+		got, err := repoRootFrom(start)
+		if err != nil {
+			t.Errorf("repoRootFrom(%q): %v", start, err)
+			continue
+		}
+		if got != root {
+			t.Errorf("repoRootFrom(%q) = %q, want %q", start, got, root)
+		}
+	}
+}

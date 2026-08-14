@@ -124,19 +124,32 @@ func fail(format string, args ...any) {
 	os.Exit(1)
 }
 
-// findRepoRoot は cwd から上へ辿って go.mod の親（= リポジトリルート）を探す。
+// findRepoRoot は cwd から上へ辿ってリポジトリルートを探す。
 func findRepoRoot() (string, error) {
 	wd, err := os.Getwd()
 	if err != nil {
 		return "", err
 	}
-	for dir := wd; ; {
-		if _, err := os.Stat(filepath.Join(dir, "docs", "openapi.yaml")); err == nil {
+	return repoRootFrom(wd)
+}
+
+// repoRootFrom は start から上へ辿ってリポジトリルートを返す。
+//
+// 目印は `docs/openapi.yaml` と `server/internal/api/router.go` の**両方**。
+// 片方（docs/openapi.yaml）だけを見ると `server/` で止まってしまう
+// — 配信用のコピーが server/docs/openapi.yaml にあるため。CI は
+// `working-directory: server` で走らせるので、これをやると
+// server/server/internal/api/router.go を開こうとして落ちる（実際に落ちた）。
+func repoRootFrom(start string) (string, error) {
+	for dir := start; ; {
+		_, e1 := os.Stat(filepath.Join(dir, "docs", "openapi.yaml"))
+		_, e2 := os.Stat(filepath.Join(dir, "server", "internal", "api", "router.go"))
+		if e1 == nil && e2 == nil {
 			return dir, nil
 		}
 		parent := filepath.Dir(dir)
 		if parent == dir {
-			return "", fmt.Errorf("docs/openapi.yaml が見つかりません (探索開始: %s)", wd)
+			return "", fmt.Errorf("リポジトリルートが見つかりません (探索開始: %s)", start)
 		}
 		dir = parent
 	}
