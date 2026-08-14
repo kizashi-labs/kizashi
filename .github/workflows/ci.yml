@@ -166,6 +166,15 @@ jobs:
         working-directory: server
         run: go vet ./...
 
+      # docs/openapi.yaml が router.go に追従しているかを見る。
+      # 手書き記述が実装に存在すること、自動生成分が最新であること、
+      # API が配信する server/docs/openapi.yaml が正本と同一であることの3点。
+      # 導入前は 1,459 操作中 119 しか載っておらず、載っていた 171 のうち
+      # 52 が実装に存在しないパス/メソッドだった。
+      - name: OpenAPI sync check
+        working-directory: server
+        run: go run ./cmd/openapi-sync -check
+
       # staticcheck はバージョンを固定する。@latest は「コードが変わっていないのに
       # CI が赤くなる」経路そのもので、golangci-lint 側で実際に起きた
       # (docs/ops/CI負債_調査と是正.md)。上げるときは意図的に上げる。
