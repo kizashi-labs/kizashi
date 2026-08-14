@@ -37,16 +37,14 @@ import (
 
 func main() {
 	check := flag.Bool("check", false, "書き換えずに差分の有無だけを判定する（差分があれば exit 1）")
-	root := flag.String("root", "", "リポジトリルート（既定: このファイルからの相対解決）")
 	flag.Parse()
 
-	repoRoot := *root
-	if repoRoot == "" {
-		var err error
-		repoRoot, err = findRepoRoot()
-		if err != nil {
-			fail("リポジトリルートを特定できませんでした: %v", err)
-		}
+	// リポジトリルートは cwd から上へ辿って決める。以前は -root フラグでも
+	// 渡せたが、あれは findRepoRoot が server/ で止まるバグの回避策だった。
+	// バグを直した今は不要で、外から任意のパスを差し込める口を残す理由も無い。
+	repoRoot, err := findRepoRoot()
+	if err != nil {
+		fail("リポジトリルートを特定できませんでした: %v", err)
 	}
 
 	routerPath := filepath.Join(repoRoot, "server", "internal", "api", "router.go")
@@ -57,9 +55,8 @@ func main() {
 	// パス表記も内容も食い違っていた。
 	embedPath := filepath.Join(repoRoot, "server", "docs", "openapi.yaml")
 
-	// #nosec G304 -- 3 つのパスはいずれも repoRoot に固定の相対パスを繋いだもの。
-	// repoRoot は cwd から上へ辿って見つけたリポジトリルートか、開発者自身が
-	// -root で渡したローカルパス。外部入力は入らない。
+	// #nosec G304 -- 3 つのパスはいずれも、cwd から辿って見つけた repoRoot に
+	// 固定の相対パスを繋いだもの。外部入力は一切入らない。
 	routerSrc, err := os.ReadFile(routerPath)
 	if err != nil {
 		fail("router.go を読めませんでした: %v", err)
@@ -111,12 +108,15 @@ func main() {
 		return
 	}
 
+	// #nosec G703 -- 書き込み先は repoRoot + 固定の相対パスで、repoRoot は
+	// cwd から上へ辿って見つけたもの。フラグにも環境変数にも由来しない。
+	//
 	// 0o600 は**新規作成時のみ**効く。両ファイルとも既にリポジトリに存在するので
 	// 実際のモードは変わらない（git も実行ビットしか追跡しない）。
 	if err := os.WriteFile(specPath, []byte(out), 0o600); err != nil {
 		fail("docs/openapi.yaml を書けませんでした: %v", err)
 	}
-	if err := os.WriteFile(embedPath, []byte(out), 0o600); err != nil {
+	if err := os.WriteFile(embedPath, []byte(out), 0o600); err != nil { // #nosec G703 -- 同上
 		fail("server/docs/openapi.yaml を書けませんでした: %v", err)
 	}
 	cov, total := spec.Coverage(routes)
