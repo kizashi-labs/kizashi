@@ -1189,7 +1189,10 @@ func main() {
 	)
 
 	// ─── Dark Web Monitor ─────────────────────────────────────
-	darkwebEnabled := os.Getenv("DARKWEB_MONITOR_ENABLED") != "false"
+	// オプトイン。有効にすると起動直後に ransomwatch / ransomware.live へ
+	// 外向き HTTPS が出るため、明示的に true を設定した場合だけ動かす。
+	// 「既定では何も外に出ない」を実装側で保証するのはここ。
+	darkwebEnabled := scheduler.DarkWebEnabled(os.Getenv("DARKWEB_MONITOR_ENABLED"))
 	torProxy := os.Getenv("TOR_PROXY_URL")
 	darkwebSched := scheduler.NewDarkWebScheduler(pool, torProxy, darkwebEnabled)
 	// 即時通知設定（検知時に別途 Slack/Webhook へ緊急通知）
