@@ -57,11 +57,14 @@ func main() {
 	// パス表記も内容も食い違っていた。
 	embedPath := filepath.Join(repoRoot, "server", "docs", "openapi.yaml")
 
+	// #nosec G304 -- 3 つのパスはいずれも repoRoot に固定の相対パスを繋いだもの。
+	// repoRoot は cwd から上へ辿って見つけたリポジトリルートか、開発者自身が
+	// -root で渡したローカルパス。外部入力は入らない。
 	routerSrc, err := os.ReadFile(routerPath)
 	if err != nil {
 		fail("router.go を読めませんでした: %v", err)
 	}
-	specSrc, err := os.ReadFile(specPath)
+	specSrc, err := os.ReadFile(specPath) // #nosec G304 -- 同上
 	if err != nil {
 		fail("openapi.yaml を読めませんでした: %v", err)
 	}
@@ -95,7 +98,7 @@ func main() {
 					"`go run ./cmd/openapi-sync` を実行して差分をコミットしてください。")
 			os.Exit(1)
 		}
-		embedded, err := os.ReadFile(embedPath)
+		embedded, err := os.ReadFile(embedPath) // #nosec G304 -- 同上
 		if err != nil || string(embedded) != out {
 			fmt.Fprintln(os.Stderr,
 				"server/docs/openapi.yaml が docs/openapi.yaml と一致しません。"+
@@ -108,10 +111,12 @@ func main() {
 		return
 	}
 
-	if err := os.WriteFile(specPath, []byte(out), 0o644); err != nil {
+	// 0o600 は**新規作成時のみ**効く。両ファイルとも既にリポジトリに存在するので
+	// 実際のモードは変わらない（git も実行ビットしか追跡しない）。
+	if err := os.WriteFile(specPath, []byte(out), 0o600); err != nil {
 		fail("docs/openapi.yaml を書けませんでした: %v", err)
 	}
-	if err := os.WriteFile(embedPath, []byte(out), 0o644); err != nil {
+	if err := os.WriteFile(embedPath, []byte(out), 0o600); err != nil {
 		fail("server/docs/openapi.yaml を書けませんでした: %v", err)
 	}
 	cov, total := spec.Coverage(routes)
