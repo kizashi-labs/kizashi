@@ -889,9 +889,14 @@ func main() {
 	slog.Info("レポートメール配信スケジューラーを開始しました")
 
 	// ─── Threat Feed Auto-Update Scheduler ───────────────────
-	feedScheduler := scheduler.NewFeedScheduler(pool, threatFeedStore, 6*time.Hour)
+	// 公開 IOC ブロックリストの取得は既定で有効。外向き通信を一切出したく
+	// ない環境は THREAT_FEED_SYNC_ENABLED=false で全停止できる（個別に
+	// 止めるなら threat_feeds.is_active）。README の外部通信表を参照。
+	feedSyncEnabled := scheduler.ThreatFeedSyncEnabled(os.Getenv("THREAT_FEED_SYNC_ENABLED"))
+	feedScheduler := scheduler.NewFeedScheduler(pool, threatFeedStore, 6*time.Hour).
+		WithEnabled(feedSyncEnabled)
 	go feedScheduler.Run(ctx)
-	slog.Info("脅威フィード自動更新スケジューラーを開始しました")
+	slog.Info("脅威フィード自動更新スケジューラーを開始しました", "enabled", feedSyncEnabled)
 
 	// ─── IOC Expiry Sweeper ───────────────────────────────────
 	// Deactivate IOCs whose STIX valid_until (expires_at) has passed.
@@ -1189,7 +1194,10 @@ func main() {
 	)
 
 	// ─── Dark Web Monitor ─────────────────────────────────────
-	darkwebEnabled := os.Getenv("DARKWEB_MONITOR_ENABLED") != "false"
+	// オプトイン。有効にすると起動直後に ransomwatch / ransomware.live へ
+	// 外向き HTTPS が出るため、明示的に true を設定した場合だけ動かす。
+	// 「既定では何も外に出ない」を実装側で保証するのはここ。
+	darkwebEnabled := scheduler.DarkWebEnabled(os.Getenv("DARKWEB_MONITOR_ENABLED"))
 	torProxy := os.Getenv("TOR_PROXY_URL")
 	darkwebSched := scheduler.NewDarkWebScheduler(pool, torProxy, darkwebEnabled)
 	// 即時通知設定（検知時に別途 Slack/Webhook へ緊急通知）
@@ -1265,8 +1273,8 @@ func main() {
 	slog.Info("コンプライアンスアラーターを開始しました")
 
 	// ─── Threat Feed Auto-Import Scheduler ───────────────────
-	go scheduler.NewThreatFeedImporter(pool, nc).Run(ctx)
-	slog.Info("脅威フィード自動インポートスケジューラーを開始しました")
+	go scheduler.NewThreatFeedImporter(pool, nc).WithEnabled(feedSyncEnabled).Run(ctx)
+	slog.Info("脅威フィード自動インポートスケジューラーを開始しました", "enabled", feedSyncEnabled)
 
 	// ─── Log Ingestion Handler ────────────────────────────────
 	h.LogIngestion = handlers.NewLogIngestionHandler(pool)

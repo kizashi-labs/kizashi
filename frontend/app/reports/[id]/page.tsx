@@ -20,7 +20,7 @@ import {
   Monitor,
   ChevronRight,
 } from 'lucide-react'
-import { USE_MOCK, m } from '@/lib/mock'
+import { m, mockOr } from '@/lib/mock'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -251,10 +251,21 @@ function MetricCard({
   )
 }
 
+const EMPTY_SUMMARY: NonNullable<Report['summary']> = {
+  total_alerts: 0,
+  critical_alerts: 0,
+  resolved_alerts: 0,
+  avg_resolution_hours: 0,
+  top_techniques: [],
+  severity_breakdown: {},
+}
+
 // ─── Summary Tab ──────────────────────────────────────────────────────────────
 
 function SummaryTab({ report }: { report: Report }) {
-  const s = report.summary ?? m(MOCK_REPORT_FALLBACK).summary!
+  // summary はオプショナル。モック無効時に m() が {} を返して
+  // s.severity_breakdown で落ちていたので、ゼロ埋めの空サマリーに倒す。
+  const s = report.summary ?? EMPTY_SUMMARY
   const total = Object.values(s.severity_breakdown).reduce((a, b) => a + b, 0) || 1
   const maxTechCount = s.top_techniques[0]?.count ?? 1
 
@@ -504,8 +515,10 @@ export default function ReportDetailPage() {
     // fall back gracefully — the detail page renders mock data if the API is a stub
   })
 
-  // Use API data if available, otherwise fall back to mock
-  const report: Report | null = reportData ?? (isError ? { ...MOCK_REPORT_FALLBACK, id } : null)
+  // API が返せばそれを使う。失敗時のフォールバックはモック有効時だけで、
+  // それ以外は null（＝エラー表示）にする。ここを素通しにすると、取得に
+  // 失敗したレポートが架空の集計値つきで表示され、そのまま印刷できてしまう。
+  const report: Report | null = reportData ?? (isError ? mockOr<Report | null>({ ...MOCK_REPORT_FALLBACK, id }, null) : null)
 
   // Regenerate mutation
   const regenMutation = useMutation({

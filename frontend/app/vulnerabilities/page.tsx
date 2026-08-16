@@ -12,7 +12,7 @@ import {
   X, ExternalLink, ChevronLeft, ChevronRight, RefreshCw,
   CheckSquare, Square, Download, Ticket, Monitor,
 } from 'lucide-react'
-import { USE_MOCK } from '@/lib/mock'
+import { USE_MOCK, m } from '@/lib/mock'
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -128,9 +128,12 @@ const MOCK_CVE_DB: Record<string, { cve_id: string; cvss_score: number; severity
   git:        [{ cve_id: 'CVE-2023-23946', cvss_score: 6.5, severity: 'medium', fixed_version: '2.39.2' }],
 }
 
+// 呼び出し側でも USE_MOCK を見ているが、ここでも m() を通す。将来ガード無しの
+// 呼び出しが増えたときに、架空の CVE が本番の脆弱性一覧に混ざるのを防ぐ
+// （モック無効時は {} になり、ループが回らず null が返る）。
 function getMockCVEs(name: string) {
   const lower = name.toLowerCase()
-  for (const [key, entries] of Object.entries(MOCK_CVE_DB)) {
+  for (const [key, entries] of Object.entries(m(MOCK_CVE_DB))) {
     if (lower.includes(key)) return entries
   }
   return null

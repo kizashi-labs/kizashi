@@ -10,7 +10,7 @@ import {
   CheckCircle, Clock, Loader2, Trash2, Edit3, Eye, Server,
   BarChart2, FileText, Lock, Upload,
 } from 'lucide-react'
-import { USE_MOCK, m } from '@/lib/mock'
+import { mockOr } from '@/lib/mock'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -155,6 +155,18 @@ const MOCK_MODEL: ThreatModel = {
   linddun_threats: MOCK_LINDDUN_THREATS,
   pasta: MOCK_PASTA,
 }
+
+const EMPTY_MODEL: ThreatModel = {
+  id: '', name: '', created_by: '', last_modified: '',
+  components: [], stride_threats: [], dread_threats: [], linddun_threats: [],
+  pasta: { stages: [] } as any,
+}
+
+// API が未実装／失敗したときに表示するモデル。NEXT_PUBLIC_USE_MOCK=true の
+// ローカル開発でだけデモ用モデルを出し、それ以外では空のモデルを出す。
+// ここを素の MOCK_MODEL にしておくと、本番で「EDRプラットフォーム脅威モデル v2.1」
+// という実在しないモデルが、担当者名つきで表示されてしまう。
+const FALLBACK_MODEL: ThreatModel = mockOr(MOCK_MODEL, EMPTY_MODEL)
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -780,8 +792,8 @@ export default function AdvancedThreatModelingPage() {
   const { data: model } = useQuery<ThreatModel>({
     queryKey: ['threat-model-advanced'],
     queryFn: () => apiFetch('/api/v1/threat-models?advanced=true'),
-    // APIが未実装の場合はモックデータをプレースホルダーとして使用
-    placeholderData: MOCK_MODEL,
+    // APIが未実装の場合のプレースホルダー（モック無効時は空モデル）
+    placeholderData: FALLBACK_MODEL,
     retry: 0,
   })
 
@@ -793,9 +805,8 @@ export default function AdvancedThreatModelingPage() {
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['threat-model-advanced'] }); setSaveModal(false) },
   })
 
-  const EMPTY_MODEL: ThreatModel = { id: '', name: '', created_by: '', last_modified: '', components: [], stride_threats: [], dread_threats: [], linddun_threats: [], pasta: { stages: [] } as any }
-  // APIが返したデータを優先し、なければデモ用モックデータを表示
-  const activeModel: ThreatModel = { ...EMPTY_MODEL, ...(model ?? MOCK_MODEL) }
+  // APIが返したデータを優先し、なければフォールバック（モック無効時は空）
+  const activeModel: ThreatModel = { ...EMPTY_MODEL, ...(model ?? FALLBACK_MODEL) }
 
   const exportJSON = () => {
     const blob = new Blob([JSON.stringify(activeModel, null, 2)], { type: 'application/json' })

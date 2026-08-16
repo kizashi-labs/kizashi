@@ -345,7 +345,7 @@ export default function BulkOperationsPage() {
         }))
         return { agents: mapped }
       } catch {
-        return { agents: MOCK_AGENTS }
+        return { agents: m(MOCK_AGENTS) }
       }
     },
   })

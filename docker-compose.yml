@@ -104,19 +104,10 @@ services:
     networks:
       - kizashi-internal
 
-  # ── Tor Proxy（ダークウェブ監視用 SOCKS5 プロキシ）────
-  tor:
-    image: peterdavehello/tor-socks-proxy:latest
-    container_name: edr-tor
-    restart: unless-stopped
-    ports:
-      - "127.0.0.1:9050:9050"   # ローカルからのアクセスのみ許可
-    healthcheck:
-      test: ["CMD", "pgrep", "tor"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 30s
+  # Tor プロキシはこのベース compose には含まれない。ダークウェブ監視は
+  # オプトイン機能で、有効化するときだけ docker-compose.darkweb.yml を重ねる:
+  #   docker compose -f docker-compose.yml -f docker-compose.darkweb.yml up -d
+  # 既定構成が外部へ出ていかないようにするための分離。
 
   # ── Backend Services ────────────────────────
 
@@ -159,8 +150,17 @@ services:
       AGENT_LATEST_VERSION: ${AGENT_LATEST_VERSION:-}
       AGENT_LATEST_URL: ${AGENT_LATEST_URL:-}
       AGENT_LATEST_CHECKSUM: ${AGENT_LATEST_CHECKSUM:-}
-      TOR_PROXY_URL: socks5://tor:9050
-      DARKWEB_MONITOR_ENABLED: ${DARKWEB_MONITOR_ENABLED:-true}
+      # 公開 IOC ブロックリストの取得と NVD CVE 照会は既定で有効（IOC 照合と
+      # 脆弱性検出の入力そのもののため）。外向き通信を一切出したくない環境は
+      # ここを false にする。README の「Outbound traffic」を参照。
+      THREAT_FEED_SYNC_ENABLED: ${THREAT_FEED_SYNC_ENABLED:-true}
+      NVD_LOOKUP_ENABLED: ${NVD_LOOKUP_ENABLED:-true}
+      NVD_API_KEY: ${NVD_API_KEY:-}
+      # ダークウェブ監視（ランサムウェアリークサイトの同期・照合）はオプトイン。
+      # 有効にすると ransomwatch / ransomware.live へ外向き HTTPS が出るため、
+      # 既定は off。有効化は docker-compose.darkweb.yml を重ねて行う。
+      TOR_PROXY_URL: ${TOR_PROXY_URL:-}
+      DARKWEB_MONITOR_ENABLED: ${DARKWEB_MONITOR_ENABLED:-false}
       BILLING_GRACE_PERIOD_DAYS: ${BILLING_GRACE_PERIOD_DAYS:-30}
     volumes:
       - certs_data:/certs
