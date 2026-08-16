@@ -57,8 +57,21 @@ The stack refuses to be useful without these.
 
 ## Outbound integrations
 
-All optional. See [Outbound traffic](../../README.md#outbound-traffic) for what a
-default install already reaches out to.
+See [Outbound traffic](../../README.md#outbound-traffic) for the complete picture.
+
+Two of these are **on** by default, because they are the input to IOC matching and
+vulnerability detection — turn them off and a fresh install detects noticeably
+less:
+
+| Variable | Default | Turns off |
+|---|---|---|
+| `THREAT_FEED_SYNC_ENABLED` | `true` | All public IOC blocklist fetching (abuse.ch, AlienVault, CINS, blocklist.de, IPsum). To drop a single feed instead, set `is_active = FALSE` on its `threat_feeds` row |
+| `NVD_LOOKUP_ENABLED` | `true` | CVE lookups against `services.nvd.nist.gov`. Falls back to a small built-in CVE table, so vulnerability detection keeps working with far less data |
+
+Only `false` disables them — any other value (including `0` and `no`) leaves them
+on, so a typo cannot silently switch off your detection input.
+
+Everything below is off until you configure it:
 
 | Variable | Default | Enables |
 |---|---|---|
@@ -67,7 +80,7 @@ default install already reaches out to.
 | `DARKWEB_ALERT_SLACK_WEBHOOK_URL`, `DARKWEB_ALERT_WEBHOOK_URL`, `DARKWEB_ALERT_EMAIL_TO` | empty | Immediate notification on a dark-web hit |
 | `VIRUSTOTAL_API_KEY` | empty | File/hash reputation lookups |
 | `ABUSEIPDB_API_KEY`, `OTX_API_KEY` | empty | IP and IOC reputation lookups |
-| `NVD_API_KEY` | empty | Raises the NVD CVE API rate limit from 5 to 50 requests / 30 s. The lookup happens either way |
+| `NVD_API_KEY` | empty | Raises the NVD CVE API rate limit from 5 to 50 requests / 30 s |
 | `SIGMAHQ_SYNC_ENABLED` | `false` | SigmaHQ community rule sync (also enabled by setting `GITHUB_TOKEN`) |
 | `ES_URL`, `ES_USERNAME`, `ES_PASSWORD`, `ES_INDEX` | empty | Elasticsearch log shipping |
 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM` | example values | Mail delivery. `DIGEST_RECIPIENTS` for the alert digest |

@@ -127,3 +127,80 @@ func repoRootFromSchedulerPkg(t *testing.T) string {
 	}
 	return root
 }
+
+// 外向き通信のスイッチが、既定値ごと README の表と一致していること。
+//
+// ダークウェブ監視はオプトイン（未設定＝無効）、公開ブロックリストと NVD 照会は
+// オプトアウト（未設定＝有効）。この非対称は意図的で、後者は IOC 照合と脆弱性
+// 検出の母数に直結するため。既定を取り違えると、片方は「黙って外に出る」、
+// もう片方は「入れたのに検知しない」に化ける。
+func TestOutboundSwitchDefaults(t *testing.T) {
+	cases := []struct {
+		name string
+		fn   func(string) bool
+		env  string
+		want bool
+	}{
+		{"feeds/未設定は有効", ThreatFeedSyncEnabled, "", true},
+		{"feeds/false で無効", ThreatFeedSyncEnabled, "false", false},
+		{"feeds/FALSE も無効", ThreatFeedSyncEnabled, "FALSE", false},
+		{"feeds/空白込みでも無効", ThreatFeedSyncEnabled, " false ", false},
+		{"feeds/true は有効", ThreatFeedSyncEnabled, "true", true},
+		{"feeds/未知の値は既定の有効", ThreatFeedSyncEnabled, "0", true},
+
+		{"nvd/未設定は有効", NVDLookupEnabled, "", true},
+		{"nvd/false で無効", NVDLookupEnabled, "false", false},
+		{"nvd/未知の値は既定の有効", NVDLookupEnabled, "no", true},
+	}
+	for _, c := range cases {
+		if got := c.fn(c.env); got != c.want {
+			t.Errorf("%s: %q → %v, want %v", c.name, c.env, got, c.want)
+		}
+	}
+}
+
+// enabled=false のフィードスケジューラーがネットワークにも DB にも触れないこと。
+// pool は nil なので、DB に触れれば panic して落ちる。
+func TestFeedSchedulerDisabledDoesNothing(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 200*time.Millisecond)
+	defer cancel()
+
+	done := make(chan struct{})
+	go func() {
+		NewFeedScheduler(nil, nil, time.Hour).WithEnabled(false).Run(ctx)
+		close(done)
+	}()
+
+	select {
+	case <-done:
+	case <-ctx.Done():
+		t.Fatal("Run が即座に戻りませんでした。enabled=false は何もせず返るべきです")
+	}
+}
+
+// インポーター側も同じスイッチで止まること。両方止めないと、同じ
+// threat_feeds を引く経路が片方だけ残って外向き通信が消えない。
+func TestThreatFeedImporterDisabledDoesNothing(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 200*time.Millisecond)
+	defer cancel()
+
+	done := make(chan struct{})
+	go func() {
+		NewThreatFeedImporter(nil, nil).WithEnabled(false).Run(ctx)
+		close(done)
+	}()
+
+	select {
+	case <-done:
+	case <-ctx.Done():
+		t.Fatal("Run が即座に戻りませんでした。enabled=false は何もせず返るべきです")
+	}
+}
+
+// NVD_LOOKUP_ENABLED=false のとき lookupNVD がネットワークに触れないこと。
+func TestNVDLookupDisabledMakesNoRequest(t *testing.T) {
+	t.Setenv("NVD_LOOKUP_ENABLED", "false")
+	if entry := lookupNVD(context.Background(), "openssl"); entry != nil {
+		t.Errorf("無効なのに結果が返りました: %+v", entry)
+	}
+}

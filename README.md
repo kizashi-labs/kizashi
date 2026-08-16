@@ -106,14 +106,20 @@ opens *outwards*, and what each one is on by default.
 
 | What | Where to | When | Turn it off with |
 |---|---|---|---|
-| Public IOC blocklists | `*.abuse.ch` (URLhaus, MalwareBazaar, Feodo, ThreatFox), `reputation.alienvault.com`, `cinsscore.com`, `lists.blocklist.de`, `raw.githubusercontent.com` (IPsum) | every 6–24 h per feed | disable the feed in **Threat Intelligence → Feeds**, or `UPDATE threat_feeds SET is_active = FALSE;` |
-| CVE lookups | `services.nvd.nist.gov` | every 6 h, and only for software your agents actually report | no flag yet — see [Known gaps](#known-gaps) |
+| Public IOC blocklists | `*.abuse.ch` (URLhaus, MalwareBazaar, Feodo, ThreatFox), `reputation.alienvault.com`, `cinsscore.com`, `lists.blocklist.de`, `raw.githubusercontent.com` (IPsum) | every 6–24 h per feed | `THREAT_FEED_SYNC_ENABLED=false` stops all of them. To drop one feed, disable it in **Threat Intelligence → Feeds** or `UPDATE threat_feeds SET is_active = FALSE WHERE …;` |
+| CVE lookups | `services.nvd.nist.gov` | every 6 h, and only for software your agents actually report | `NVD_LOOKUP_ENABLED=false` (falls back to a small built-in CVE table) |
 
 These send a query, not your data: a blocklist fetch is a plain GET, and the CVE
 lookup sends a software product name (e.g. `openssl`). Neither carries hostnames,
 users, event contents or hashes from your estate. If even that is unacceptable in
-your environment, turn the feeds off — detection continues to run against the
-built-in Sigma, YARA and behavioural paths.
+your environment, turn both off — detection continues to run against the built-in
+Sigma, YARA and behavioural paths, though IOC matching and CVE detection lose most
+of their input.
+
+They are on by default because they *are* the input to IOC matching and
+vulnerability detection; shipping them off would mean a fresh install detects far
+less than it appears to. That is a deliberate choice, not an oversight — and both
+switches above turn it off in one line.
 
 **Off unless you turn it on:**
 
@@ -131,12 +137,6 @@ built-in Sigma, YARA and behavioural paths.
 The dark web monitor used to be **on** by default and synced on startup. It is
 opt-in as of this change, and the Tor container has moved out of the base compose
 file into `docker-compose.darkweb.yml` so the default stack no longer ships it.
-
-### Known gaps
-
-- The NVD CVE lookup has no off switch. To suppress it today, block
-  `services.nvd.nist.gov` at your egress; the scanner falls back to a small
-  built-in CVE table when NVD is unreachable.
 
 ## Agent
 
@@ -332,13 +332,18 @@ docker compose up -d
 
 | 内容 | 接続先 | 頻度 | 止め方 |
 |---|---|---|---|
-| 公開 IOC ブロックリスト | `*.abuse.ch`（URLhaus / MalwareBazaar / Feodo / ThreatFox）、`reputation.alienvault.com`、`cinsscore.com`、`lists.blocklist.de`、`raw.githubusercontent.com`（IPsum） | フィードごとに 6〜24 時間おき | **脅威インテリジェンス → フィード**で無効化、または `UPDATE threat_feeds SET is_active = FALSE;` |
-| CVE 照会 | `services.nvd.nist.gov` | 6 時間おき。エージェントがソフトウェア資産を報告している場合のみ | 現状フラグなし（[残っている穴](#残っている穴)を参照） |
+| 公開 IOC ブロックリスト | `*.abuse.ch`（URLhaus / MalwareBazaar / Feodo / ThreatFox）、`reputation.alienvault.com`、`cinsscore.com`、`lists.blocklist.de`、`raw.githubusercontent.com`（IPsum） | フィードごとに 6〜24 時間おき | `THREAT_FEED_SYNC_ENABLED=false` で全停止。個別に止めるなら**脅威インテリジェンス → フィード**、または `UPDATE threat_feeds SET is_active = FALSE WHERE …;` |
+| CVE 照会 | `services.nvd.nist.gov` | 6 時間おき。エージェントがソフトウェア資産を報告している場合のみ | `NVD_LOOKUP_ENABLED=false`（内蔵の小さな CVE 表にフォールバック） |
 
 送っているのは問い合わせだけです。ブロックリストの取得は素の GET で、CVE 照会は
 ソフトウェア名（例: `openssl`）だけを送ります。ホスト名・ユーザー名・イベント内容・
-ハッシュは含みません。それも許容できない環境ではフィードを無効化してください。
-ビルトイン Sigma / YARA / 振る舞い検知はそのまま動きます。
+ハッシュは含みません。それも許容できない環境では両方を無効化してください。
+ビルトイン Sigma / YARA / 振る舞い検知はそのまま動きますが、IOC 照合と脆弱性検出は
+入力の大半を失います。
+
+既定で有効にしているのは、これらが IOC 照合と脆弱性検出の**入力そのもの**だからです。
+止めた状態で配ると、入れたのに検知しない状態になり、しかもそれが分かりません。
+意図した既定であって、放置ではありません。上記のスイッチで 1 行で止められます。
 
 **明示的に有効化したときだけ:**
 
@@ -356,12 +361,6 @@ docker compose up -d
 ダークウェブ監視は以前**既定で有効**で、起動直後に同期していました。本変更で
 オプトインに倒し、Tor コンテナもベースの compose から `docker-compose.darkweb.yml`
 へ切り出しています。
-
-### 残っている穴
-
-- NVD の CVE 照会にはオフスイッチがありません。現状は `services.nvd.nist.gov` を
-  egress で遮断してください。NVD に到達できないときは内蔵の小さな CVE 表に
-  フォールバックします。
 
 ## エージェントの配布
 

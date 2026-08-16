@@ -16,17 +16,30 @@ import (
 
 // ThreatFeedImporter periodically fetches all enabled threat feeds and imports IOCs.
 type ThreatFeedImporter struct {
-	pool *pgxpool.Pool
-	nc   *nats.Conn
+	pool    *pgxpool.Pool
+	nc      *nats.Conn
+	enabled bool // THREAT_FEED_SYNC_ENABLED（既定 true）
 }
 
 // NewThreatFeedImporter creates a ThreatFeedImporter.
 func NewThreatFeedImporter(pool *pgxpool.Pool, nc *nats.Conn) *ThreatFeedImporter {
-	return &ThreatFeedImporter{pool: pool, nc: nc}
+	return &ThreatFeedImporter{pool: pool, nc: nc, enabled: true}
+}
+
+// WithEnabled は外向きのフィード取得そのものを止められるようにする。
+// FeedScheduler と同じスイッチで動く（どちらも同じ threat_feeds を引くため、
+// 片方だけ止めても外向き通信は残ってしまう）。
+func (t *ThreatFeedImporter) WithEnabled(enabled bool) *ThreatFeedImporter {
+	t.enabled = enabled
+	return t
 }
 
 // Run starts the importer loop. Designed to be called as a goroutine.
 func (t *ThreatFeedImporter) Run(ctx context.Context) {
+	if !t.enabled {
+		slog.Info("脅威フィードインポーター: 無効です (THREAT_FEED_SYNC_ENABLED=false)")
+		return
+	}
 	ticker := time.NewTicker(6 * time.Hour)
 	defer ticker.Stop()
 	slog.Info("脅威フィードインポーターを起動しました")

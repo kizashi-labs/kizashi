@@ -889,9 +889,14 @@ func main() {
 	slog.Info("レポートメール配信スケジューラーを開始しました")
 
 	// ─── Threat Feed Auto-Update Scheduler ───────────────────
-	feedScheduler := scheduler.NewFeedScheduler(pool, threatFeedStore, 6*time.Hour)
+	// 公開 IOC ブロックリストの取得は既定で有効。外向き通信を一切出したく
+	// ない環境は THREAT_FEED_SYNC_ENABLED=false で全停止できる（個別に
+	// 止めるなら threat_feeds.is_active）。README の外部通信表を参照。
+	feedSyncEnabled := scheduler.ThreatFeedSyncEnabled(os.Getenv("THREAT_FEED_SYNC_ENABLED"))
+	feedScheduler := scheduler.NewFeedScheduler(pool, threatFeedStore, 6*time.Hour).
+		WithEnabled(feedSyncEnabled)
 	go feedScheduler.Run(ctx)
-	slog.Info("脅威フィード自動更新スケジューラーを開始しました")
+	slog.Info("脅威フィード自動更新スケジューラーを開始しました", "enabled", feedSyncEnabled)
 
 	// ─── IOC Expiry Sweeper ───────────────────────────────────
 	// Deactivate IOCs whose STIX valid_until (expires_at) has passed.
@@ -1268,8 +1273,8 @@ func main() {
 	slog.Info("コンプライアンスアラーターを開始しました")
 
 	// ─── Threat Feed Auto-Import Scheduler ───────────────────
-	go scheduler.NewThreatFeedImporter(pool, nc).Run(ctx)
-	slog.Info("脅威フィード自動インポートスケジューラーを開始しました")
+	go scheduler.NewThreatFeedImporter(pool, nc).WithEnabled(feedSyncEnabled).Run(ctx)
+	slog.Info("脅威フィード自動インポートスケジューラーを開始しました", "enabled", feedSyncEnabled)
 
 	// ─── Log Ingestion Handler ────────────────────────────────
 	h.LogIngestion = handlers.NewLogIngestionHandler(pool)

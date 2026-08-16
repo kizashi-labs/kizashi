@@ -286,17 +286,31 @@ curl -H "Authorization: Bearer $TOKEN" \\
           <div ref={el => { refs.current['agents'] = el }}>
           <Section id="agents" title="エージェント管理" icon={<Terminal className="w-4 h-4" />}>
             <H3>エージェントのインストール</H3>
-            <p>エージェントをエンドポイントにインストールするには、以下のコマンドを管理者権限で実行します。<code className="text-[#e8002d] font-mono text-xs">ENROLLMENT_TOKEN</code> と <code className="text-[#e8002d] font-mono text-xs">SERVER_URL</code> は環境に合わせて変更してください。</p>
+            <p>インストール方法は 2 通りあります。エンロールメントトークンは <strong>設定 → エージェント配布</strong>（<code className="text-[#e8002d] font-mono text-xs">/agents/deploy</code>）で発行します。</p>
+
+            <H3>方法 1: サーバーが生成するスクリプト</H3>
+            <p>トークンを埋め込んだインストールスクリプトをサーバー側で生成します。<code className="text-[#e8002d] font-mono text-xs">arch</code> は <code className="text-[#e8002d] font-mono text-xs">amd64</code> か <code className="text-[#e8002d] font-mono text-xs">arm64</code> です。</p>
 
             <Code lang="bash">{`# Linux / macOS
-curl -fsSL https://edr.example.com/api/v1/install/linux \\
-  | sudo EDR_TOKEN=your-enrollment-token bash
+curl -fsSL "https://edr.example.com/api/v1/installer/linux/amd64?token=your-enrollment-token" \\
+  | sudo bash
 
 # Windows (PowerShell as Administrator)
-[System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12
-$env:EDR_TOKEN = "your-enrollment-token"
-$env:EDR_SERVER = "https://edr.example.com"
-iex (irm https://edr.example.com/api/v1/install/windows)`}</Code>
+irm "https://edr.example.com/api/v1/installer/windows/amd64?token=your-enrollment-token" \\
+  -OutFile Install-EDRAgent.ps1
+powershell -ExecutionPolicy Bypass -File Install-EDRAgent.ps1`}</Code>
+
+            <H3>方法 2: リポジトリ同梱のインストーラ</H3>
+            <p>こちらは<strong>環境変数</strong>で受け取ります（<code className="text-[#e8002d] font-mono text-xs">--server</code> / <code className="text-[#e8002d] font-mono text-xs">--token</code> のようなフラグはありません）。watchdog による自動再起動とロールバックが付くのはこちらです。</p>
+
+            <Code lang="bash">{`# Linux / macOS
+sudo SERVER_URL=https://edr.example.com ENROLLMENT_TOKEN=your-enrollment-token \\
+  ./deploy/install/install.sh
+
+# Windows (PowerShell as Administrator)
+$env:SERVER_URL = "https://edr.example.com"
+$env:ENROLLMENT_TOKEN = "your-enrollment-token"
+.\\deploy\\install\\install.ps1`}</Code>
 
             <H3>エージェントステータスの確認</H3>
             <p>エージェントは定期的にサーバーへハートビートを送信します。以下のステータスがあります：</p>

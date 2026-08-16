@@ -150,6 +150,12 @@ services:
       AGENT_LATEST_VERSION: ${AGENT_LATEST_VERSION:-}
       AGENT_LATEST_URL: ${AGENT_LATEST_URL:-}
       AGENT_LATEST_CHECKSUM: ${AGENT_LATEST_CHECKSUM:-}
+      # 公開 IOC ブロックリストの取得と NVD CVE 照会は既定で有効（IOC 照合と
+      # 脆弱性検出の入力そのもののため）。外向き通信を一切出したくない環境は
+      # ここを false にする。README の「Outbound traffic」を参照。
+      THREAT_FEED_SYNC_ENABLED: ${THREAT_FEED_SYNC_ENABLED:-true}
+      NVD_LOOKUP_ENABLED: ${NVD_LOOKUP_ENABLED:-true}
+      NVD_API_KEY: ${NVD_API_KEY:-}
       # ダークウェブ監視（ランサムウェアリークサイトの同期・照合）はオプトイン。
       # 有効にすると ransomwatch / ransomware.live へ外向き HTTPS が出るため、
       # 既定は off。有効化は docker-compose.darkweb.yml を重ねて行う。
