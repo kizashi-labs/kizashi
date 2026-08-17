@@ -44,6 +44,9 @@ type rwGroup struct {
 // DarkWebScheduler はランサムウェアリークサイトを監視するスケジューラー。
 //   - A: ransomwatch GitHub から .onion URL と被害者リストを毎日同期
 //   - B: Tor SOCKS5 を使った死活監視（fail_count >= 5 で自動無効化）
+//
+// 外向き通信を伴うためオプトイン（DARKWEB_MONITOR_ENABLED=true）。
+// enabled=false のときは Run が即座に戻り、ネットワークには一切触れない。
 type DarkWebScheduler struct {
 	pool     *pgxpool.Pool
 	torProxy string // "socks5://tor:9050"
@@ -59,6 +62,17 @@ type DarkWebScheduler struct {
 // ransomwatch の被害者リスト取得先。テストから差し替えられるよう、
 // 取得時は定数を直接使わず DarkWebScheduler.ransomwatchURL を参照する。
 const defaultRansomwatchURL = "https://raw.githubusercontent.com/joshhighet/ransomwatch/main/groups.json"
+
+// DarkWebEnabled は DARKWEB_MONITOR_ENABLED の値から有効・無効を決める。
+//
+// **オプトイン**（"true" のときだけ有効）である点が肝。以前は
+// `!= "false"` すなわち既定 ON で、`docker compose up` しただけの環境から
+// ransomwatch / ransomware.live へ外向き通信が出ていた。README が謳う
+// 「既定では何も外に出ない」と食い違っていたため、既定を OFF に倒した。
+// 判定を main.go に直書きせず関数にしてあるのは、この既定をテストで固定するため。
+func DarkWebEnabled(v string) bool {
+	return strings.EqualFold(strings.TrimSpace(v), "true")
+}
 
 // NewDarkWebScheduler はスケジューラーを生成する。
 // torProxy が空の場合はヘルスチェックをスキップ（GitHub同期のみ実行）。
@@ -122,7 +136,7 @@ func (s *DarkWebScheduler) sendUrgentAlert(title, description string) {
 //   - 6時間ごと: ransomware.live 同期（軽量・近リアルタイム）
 func (s *DarkWebScheduler) Run(ctx context.Context) {
 	if !s.enabled {
-		slog.Info("DarkWebScheduler: 無効化されています (DARKWEB_MONITOR_ENABLED=false)")
+		slog.Info("DarkWebScheduler: 無効です。有効にするには DARKWEB_MONITOR_ENABLED=true を設定してください（既定は無効。有効化すると ransomwatch / ransomware.live へ外向き通信が発生します）")
 		return
 	}
 	slog.Info("DarkWebScheduler: 開始", "tor_proxy", s.torProxy)

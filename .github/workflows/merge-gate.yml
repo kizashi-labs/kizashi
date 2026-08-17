@@ -54,10 +54,10 @@ jobs:
     name: Cross-PR consistency (migration / debt ledger)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v7
         with:
           go-version-file: server/go.mod
 
@@ -85,7 +85,7 @@ jobs:
       (github.event_name == 'push' && github.ref == 'refs/heads/main')
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # 開いている PR が「追加/リネームした」migration ファイルの番号を集め、
       # いま main に在る番号と突き合わせる。PR の差分はマージベース基準なので、

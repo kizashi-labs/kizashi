@@ -19,10 +19,11 @@ Sigma rules, YARA rules, IOC feeds, statistical baselines and stateful behaviour
 detectors, and escalates correlated alerts into incidents you can work in the
 included web console.
 
-Everything runs on infrastructure you control. **By default nothing leaves your
-network** — the only outbound traffic is what you configure yourself (VirusTotal
-lookups, SIEM/Elasticsearch forwarding, threat intelligence feeds, cloud provider
-polling). None of it is on unless you turn it on.
+Everything runs on infrastructure you control. **No endpoint telemetry ever leaves
+your network** — events, alerts and incidents stay in your Postgres. A default
+install does make a small number of outbound *fetches* (public threat-intel
+blocklists, CVE lookups); every one of them is listed and switchable in
+[Outbound traffic](#outbound-traffic) below.
 
 | Component | Stack |
 |---|---|
@@ -54,9 +55,14 @@ The console is at `http://localhost:3000`. Other ports: API `8080` (REST) / `909
 
 Database migrations are applied automatically on API startup.
 
-Agent installation is documented in [`docs/エージェントインストール手順.md`](docs/エージェントインストール手順.md).
+Agent installation: [`deploy/install/README.md`](deploy/install/README.md) (English)
+or [`docs/エージェントインストール手順.md`](docs/エージェントインストール手順.md) (Japanese).
 Where the binaries come from — and the two targets you have to build yourself — is
 covered under [Agent](#getting-the-agent-binaries).
+
+A longer walkthrough, a configuration reference and a troubleshooting guide are in
+**[`docs/en/`](docs/en/README.md)**. That page also indexes the Japanese-only
+documents, so you can see what exists even if you cannot read it.
 
 ## Detection
 
@@ -89,6 +95,48 @@ Rule-driven automatic isolation is available and gated behind
 `AUTO_ISOLATE_MIN_SEVERITY` (default `9`). **Read the tuning notes before enabling it
 in production** — an over-eager threshold will isolate hosts on false positives, and
 recovering an isolated host takes longer than you expect.
+
+## Outbound traffic
+
+Nothing you collect is ever uploaded — no telemetry, no alerts, no file contents,
+no usage analytics. What follows is the complete list of connections the server
+opens *outwards*, and what each one is on by default.
+
+**On out of the box:**
+
+| What | Where to | When | Turn it off with |
+|---|---|---|---|
+| Public IOC blocklists | `*.abuse.ch` (URLhaus, MalwareBazaar, Feodo, ThreatFox), `reputation.alienvault.com`, `cinsscore.com`, `lists.blocklist.de`, `raw.githubusercontent.com` (IPsum) | every 6–24 h per feed | `THREAT_FEED_SYNC_ENABLED=false` stops all of them. To drop one feed, disable it in **Threat Intelligence → Feeds** or `UPDATE threat_feeds SET is_active = FALSE WHERE …;` |
+| CVE lookups | `services.nvd.nist.gov` | every 6 h, and only for software your agents actually report | `NVD_LOOKUP_ENABLED=false` (falls back to a small built-in CVE table) |
+
+These send a query, not your data: a blocklist fetch is a plain GET, and the CVE
+lookup sends a software product name (e.g. `openssl`). Neither carries hostnames,
+users, event contents or hashes from your estate. If even that is unacceptable in
+your environment, turn both off — detection continues to run against the built-in
+Sigma, YARA and behavioural paths, though IOC matching and CVE detection lose most
+of their input.
+
+They are on by default because they *are* the input to IOC matching and
+vulnerability detection; shipping them off would mean a fresh install detects far
+less than it appears to. That is a deliberate choice, not an oversight — and both
+switches above turn it off in one line.
+
+**Off unless you turn it on:**
+
+| What | Where to | Enable with |
+|---|---|---|
+| Dark web / ransomware leak-site monitoring | `raw.githubusercontent.com` (ransomwatch), `api.ransomware.live`, Tor SOCKS5 for `.onion` reachability | `docker compose -f docker-compose.yml -f docker-compose.darkweb.yml up -d` (`DARKWEB_MONITOR_ENABLED=true`) |
+| File / hash reputation | `virustotal.com`, `abuseipdb.com`, `otx.alienvault.com` | `VIRUSTOTAL_API_KEY` / `ABUSEIPDB_API_KEY` / `OTX_API_KEY` |
+| SigmaHQ community rule sync | `github.com` | `SIGMAHQ_SYNC_ENABLED=true` |
+| SIEM / log forwarding | your Elasticsearch | `ES_URL` |
+| Mail, Slack, generic webhooks | your SMTP server / the webhook URLs you supply | `SMTP_HOST`, `*_SLACK_WEBHOOK_URL`, `*_WEBHOOK_URL` |
+| Tracing | your OTLP collector | `OTEL_EXPORTER_OTLP_ENDPOINT` |
+| Cloud posture (CSPM) polling | AWS / Azure / GCP APIs | cloud credentials configured in the console |
+| Agent update checks | wherever you host the binaries | `AGENT_LATEST_URL` |
+
+The dark web monitor used to be **on** by default and synced on startup. It is
+opt-in as of this change, and the Tor container has moved out of the base compose
+file into `docker-compose.darkweb.yml` so the default stack no longer ships it.
 
 ## Agent
 
@@ -210,8 +258,21 @@ in your own environment before relying on it. Deploying an endpoint agent with
 kernel-level or eBPF components carries operational risk — test on
 non-critical hosts first.
 
-Most of the documentation under `docs/` and much of the console copy is written in
-Japanese.
+## Language
+
+Most of `docs/` and all of the console's UI text is Japanese.
+
+English versions of the documents you need to run the thing are in
+[`docs/en/`](docs/en/README.md) — getting started, configuration reference,
+troubleshooting — along with an index of what the Japanese-only documents cover.
+The agent installer guide ([`deploy/install/README.md`](deploy/install/README.md)),
+the agent's own logs and `agent.toml` are English already.
+
+The **console has no English mode**. The strings are inline in the components and
+there is no i18n layer to add one to. This is the largest remaining barrier for
+non-Japanese operators and is a known gap, not an oversight. Screen paths
+(`/alerts`, `/endpoints`, `/incidents`) are in English and stable, so the English
+docs can send you to the right screen even when its labels don't help.
 
 ---
 
@@ -225,9 +286,9 @@ Japanese.
 
 ## 特徴
 
-- **すべて自分の環境で動く。** 既定では、収集したデータが外部に出ることはありません。
-  外部通信が発生するのは、利用者自身が設定した場合だけです（VirusTotal 照会、
-  SIEM / Elasticsearch への転送、脅威インテルフィードの取得、クラウド事業者の API 監視）
+- **すべて自分の環境で動く。** 収集したテレメトリ（イベント・アラート・インシデント）が
+  外部に出ることはありません。ただし既定構成でも、公開ブロックリストと CVE の
+  **取得**のために数本の外向き通信が出ます。全件を[外部通信](#外部通信)に列挙しています
 - **Linux は eBPF、Windows は ETW、macOS は ESF またはプロセスポーリング**による
   OS ネイティブな収集（ESF の利用には Apple のエンタイトルメント申請が必要です）。
   Linux の共有ライブラリのロード（`image_load`）は **`dlopen` のみ**を捉えます。
@@ -261,6 +322,45 @@ docker compose up -d
 配布していません）。
 
 コンソールは `http://localhost:3000`。マイグレーションは API 起動時に自動適用されます。
+
+## 外部通信
+
+収集したものを送信することはありません（テレメトリ・アラート・ファイル内容・
+利用統計、いずれも送りません）。サーバーが**外向き**に張る接続は以下がすべてです。
+
+**既定で有効:**
+
+| 内容 | 接続先 | 頻度 | 止め方 |
+|---|---|---|---|
+| 公開 IOC ブロックリスト | `*.abuse.ch`（URLhaus / MalwareBazaar / Feodo / ThreatFox）、`reputation.alienvault.com`、`cinsscore.com`、`lists.blocklist.de`、`raw.githubusercontent.com`（IPsum） | フィードごとに 6〜24 時間おき | `THREAT_FEED_SYNC_ENABLED=false` で全停止。個別に止めるなら**脅威インテリジェンス → フィード**、または `UPDATE threat_feeds SET is_active = FALSE WHERE …;` |
+| CVE 照会 | `services.nvd.nist.gov` | 6 時間おき。エージェントがソフトウェア資産を報告している場合のみ | `NVD_LOOKUP_ENABLED=false`（内蔵の小さな CVE 表にフォールバック） |
+
+送っているのは問い合わせだけです。ブロックリストの取得は素の GET で、CVE 照会は
+ソフトウェア名（例: `openssl`）だけを送ります。ホスト名・ユーザー名・イベント内容・
+ハッシュは含みません。それも許容できない環境では両方を無効化してください。
+ビルトイン Sigma / YARA / 振る舞い検知はそのまま動きますが、IOC 照合と脆弱性検出は
+入力の大半を失います。
+
+既定で有効にしているのは、これらが IOC 照合と脆弱性検出の**入力そのもの**だからです。
+止めた状態で配ると、入れたのに検知しない状態になり、しかもそれが分かりません。
+意図した既定であって、放置ではありません。上記のスイッチで 1 行で止められます。
+
+**明示的に有効化したときだけ:**
+
+| 内容 | 接続先 | 有効化 |
+|---|---|---|
+| ダークウェブ / リークサイト監視 | `raw.githubusercontent.com`（ransomwatch）、`api.ransomware.live`、`.onion` 到達性チェック用 Tor SOCKS5 | `docker compose -f docker-compose.yml -f docker-compose.darkweb.yml up -d`（`DARKWEB_MONITOR_ENABLED=true`） |
+| ファイル / ハッシュ評価 | `virustotal.com`、`abuseipdb.com`、`otx.alienvault.com` | `VIRUSTOTAL_API_KEY` / `ABUSEIPDB_API_KEY` / `OTX_API_KEY` |
+| SigmaHQ ルール同期 | `github.com` | `SIGMAHQ_SYNC_ENABLED=true` |
+| SIEM / ログ転送 | 自組織の Elasticsearch | `ES_URL` |
+| メール・Slack・Webhook | 自組織の SMTP / 指定した Webhook | `SMTP_HOST`、`*_SLACK_WEBHOOK_URL`、`*_WEBHOOK_URL` |
+| トレーシング | 自組織の OTLP コレクタ | `OTEL_EXPORTER_OTLP_ENDPOINT` |
+| クラウド構成監査（CSPM） | AWS / Azure / GCP API | コンソールで設定したクラウド認証情報 |
+| エージェント更新確認 | バイナリの配布元 | `AGENT_LATEST_URL` |
+
+ダークウェブ監視は以前**既定で有効**で、起動直後に同期していました。本変更で
+オプトインに倒し、Tor コンテナもベースの compose から `docker-compose.darkweb.yml`
+へ切り出しています。
 
 ## エージェントの配布
 
@@ -330,3 +430,13 @@ AGPL のソース開示義務を受け入れられない組織向けに、**商�
 本ソフトウェアは無保証で提供されます。検知・対応のためのツールであり、
 セキュリティを保証するものではありません。いかなるアンチマルウェア認証・規制基準の
 試験も受けていません。実運用の前に、ご自身の環境で検証してください。
+
+## 言語
+
+`docs/` のほとんどとコンソールの UI 文言は日本語です。導入に必要な範囲
+（導入手順・設定リファレンス・トラブルシュート）の英語版を
+[`docs/en/`](docs/en/README.md) に置いています。日本語のみのドキュメントも、
+何が書いてあるかを一覧にしてあります。
+
+コンソール自体には英語モードがありません。文言がコンポーネントに直書きされて
+おり、i18n の層が無いためです。非日本語話者にとって最大の障壁として残っています。

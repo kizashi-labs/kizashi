@@ -4,7 +4,7 @@
 #   docker build -f server/Dockerfile --target api .
 # Produces two targets: 'api' and 'ingestion'
 
-FROM golang:1.26.5-alpine AS builder
+FROM golang:1.26.6-alpine AS builder
 WORKDIR /build
 
 # GIT_COMMIT is passed via --build-arg or docker-compose args.
@@ -53,7 +53,7 @@ RUN CGO_ENABLED=0 GOOS=linux go build \
     -o /bin/detection-server ./cmd/detection/
 
 # ── Agent builder ─────────────────────────────
-FROM golang:1.26.5-alpine AS agent-builder
+FROM golang:1.26.6-alpine AS agent-builder
 WORKDIR /build
 
 # VERSION mirrors the builder stage so the agent reports an accurate version
@@ -112,7 +112,7 @@ RUN CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -ldflags="-s -w" -o /downlo
 RUN cd /downloads && for f in edr-agent-* edr-watchdog-*; do sha256sum "$f" > "$f.sha256"; done
 
 # ── API target ──────────────────────────────
-FROM alpine:3.21 AS api
+FROM alpine:3.24 AS api
 RUN apk add --no-cache ca-certificates tzdata wget postgresql-client
 COPY --from=builder /bin/api-server /api-server
 COPY --from=builder /build/server/migrations /migrations
@@ -123,7 +123,7 @@ EXPOSE 8080 9090
 ENTRYPOINT ["/api-server"]
 
 # ── Ingestion target ─────────────────────────
-FROM alpine:3.21 AS ingestion
+FROM alpine:3.24 AS ingestion
 RUN apk add --no-cache ca-certificates tzdata wget
 COPY --from=builder /bin/ingestion-server /ingestion-server
 EXPOSE 9091
@@ -131,7 +131,7 @@ USER nobody:nobody
 ENTRYPOINT ["/ingestion-server"]
 
 # ── Detection target ──────────────────────────
-FROM alpine:3.21 AS detection
+FROM alpine:3.24 AS detection
 RUN apk add --no-cache ca-certificates tzdata
 COPY --from=builder /bin/detection-server /detection-server
 EXPOSE 8083

@@ -1,6 +1,6 @@
 module github.com/edr-platform/agent
 
-go 1.26.5
+go 1.26.6
 
 require (
 	github.com/0xrawsec/golang-etw v1.6.2

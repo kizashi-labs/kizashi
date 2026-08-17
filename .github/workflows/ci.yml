@@ -46,7 +46,7 @@ jobs:
       rules:    ${{ steps.filter.outputs.rules }}
       all:      ${{ steps.filter.outputs.all }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -126,13 +126,13 @@ jobs:
           --health-retries 5
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           # golangci-lint の --new-from-merge-base に必要（origin/main との比較）。
           fetch-depth: 0
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v7
         with:
           go-version-file: server/go.mod
           cache-dependency-path: server/go.sum
@@ -166,6 +166,15 @@ jobs:
         working-directory: server
         run: go vet ./...
 
+      # docs/openapi.yaml が router.go に追従しているかを見る。
+      # 手書き記述が実装に存在すること、自動生成分が最新であること、
+      # API が配信する server/docs/openapi.yaml が正本と同一であることの3点。
+      # 導入前は 1,459 操作中 119 しか載っておらず、載っていた 171 のうち
+      # 52 が実装に存在しないパス/メソッドだった。
+      - name: OpenAPI sync check
+        working-directory: server
+        run: go run ./cmd/openapi-sync -check
+
       # staticcheck はバージョンを固定する。@latest は「コードが変わっていないのに
       # CI が赤くなる」経路そのもので、golangci-lint 側で実際に起きた
       # (docs/ops/CI負債_調査と是正.md)。上げるときは意図的に上げる。
@@ -189,7 +198,7 @@ jobs:
       # アクションはビルド済みリリースバイナリを取得するので、リンタ側の依存解決が
       # そもそも起きない。この故障クラスが構造的に消える。version も固定する。
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@v8
+        uses: golangci/golangci-lint-action@v9
         with:
           version: v2.12.2
           working-directory: server
@@ -251,7 +260,7 @@ jobs:
         run: go tool cover -html=coverage.out -o coverage.html
 
       - name: Upload coverage report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: server-coverage
           path: |
@@ -260,7 +269,7 @@ jobs:
           retention-days: 14
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v7
         continue-on-error: true   # Non-blocking if token not configured
         with:
           files: server/coverage.out
@@ -292,10 +301,10 @@ jobs:
     if: needs.changes.outputs.rules == 'true' || needs.changes.outputs.all == 'true'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v7
         with:
           go-version-file: server/go.mod
           cache-dependency-path: server/go.sum
@@ -336,10 +345,10 @@ jobs:
             suffix: ""
             tags: ""
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v7
         with:
           go-version-file: agent/go.mod
           cache-dependency-path: agent/go.sum
@@ -408,7 +417,7 @@ jobs:
         run: go build -ldflags="-s -w" -o edr-watchdog-${{ matrix.goos }}-${{ matrix.goarch }}${{ matrix.suffix }} ./cmd/watchdog/...
 
       - name: Upload agent binaries
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: agent-${{ matrix.goos }}-${{ matrix.goarch }}
           path: agent/edr-*
@@ -426,10 +435,10 @@ jobs:
     if: needs.changes.outputs.agent == 'true' || needs.changes.outputs.all == 'true'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v7
         with:
           go-version-file: agent/go.mod
           cache-dependency-path: agent/go.sum
@@ -552,7 +561,7 @@ jobs:
         run: go tool cover -html=coverage.out -o coverage.html
 
       - name: Upload coverage report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: agent-coverage
           path: |
@@ -561,7 +570,7 @@ jobs:
           retention-days: 14
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v7
         continue-on-error: true   # Non-blocking if token not configured
         with:
           files: agent/coverage.out
@@ -638,10 +647,10 @@ jobs:
     if: needs.changes.outputs.server == 'true' || needs.changes.outputs.all == 'true'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v7
         with:
           go-version-file: server/go.mod
           cache-dependency-path: server/go.sum
@@ -679,10 +688,10 @@ jobs:
     if: needs.changes.outputs.agent == 'true' || needs.changes.outputs.all == 'true'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v7
         with:
           go-version-file: agent/go.mod
           cache-dependency-path: agent/go.sum
@@ -705,11 +714,11 @@ jobs:
     if: needs.changes.outputs.frontend == 'true' || needs.changes.outputs.all == 'true'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
-          node-version: "20"
+          node-version: "24"
           cache: npm
           cache-dependency-path: frontend/package-lock.json
 
@@ -724,6 +733,13 @@ jobs:
       - name: Type check
         working-directory: frontend
         run: npx tsc --noEmit
+
+      # 本番ビルド(NEXT_PUBLIC_USE_MOCK != 'true')で描画されてしまう
+      # モックデータ参照を落とす。28 箇所が素通しになっていた実績があり、
+      # 「データが少ないだけ」に見えるので目視では気づけない。
+      - name: Mock guard check
+        working-directory: frontend
+        run: node scripts/check-mock-guards.mjs
 
       # Vitest unit/component tests (frontend/tests/**). Previously these were
       # never run in CI — only lint, typecheck, build, and the separate
@@ -742,7 +758,7 @@ jobs:
         run: npm run build
 
       - name: Upload build
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: frontend-build
           path: frontend/.next/standalone
@@ -760,10 +776,10 @@ jobs:
     if: needs.changes.outputs.sdk == 'true' || needs.changes.outputs.all == 'true'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: "3.11"
 
@@ -775,9 +791,9 @@ jobs:
         working-directory: sdk/python
         run: pytest -q
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
-          node-version: "20"
+          node-version: "24"
           cache: npm
           cache-dependency-path: sdk/typescript/package-lock.json
 
@@ -812,7 +828,7 @@ jobs:
           --health-retries 5
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Create test table and insert data
         run: |

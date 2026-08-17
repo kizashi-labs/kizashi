@@ -114,8 +114,13 @@ function DeployAgentStep({ onAgentsFound }: { onAgentsFound: (n: number) => void
   const serverUrl = typeof window !== 'undefined' ? window.location.origin : ''
 
   useEffect(() => {
-    apiFetch<{ token?: string; enrollment_token?: string }>('/api/v1/admin/enrollment-token')
-      .then(d => setEnrollToken(d.token ?? d.enrollment_token ?? ''))
+    // 以前は GET /api/v1/admin/enrollment-token を叩いていたが、この経路は
+    // ルータに存在しない（openapi-sync の乖離検査で発覚）。実装は
+    // POST /api/v1/settings/enrollment-token で、呼ぶたびに再生成される。
+    apiFetch<{ token?: string; enrollment_token?: string }>('/api/v1/settings/enrollment-token', {
+      method: 'POST',
+    })
+      .then(d => setEnrollToken(d.enrollment_token ?? d.token ?? ''))
       .catch(() => {})
       .finally(() => setTokenLoading(false))
   }, [])
