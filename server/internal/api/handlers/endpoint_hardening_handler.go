@@ -110,14 +110,18 @@ func (h *EndpointHardeningHandler) ListAssessments(c *gin.Context) {
 func (h *EndpointHardeningHandler) Stats(c *gin.Context) {
 	var total, compliant int
 	var avgScore float64
-	h.pool.QueryRow(c.Request.Context(), `
+	if err := h.pool.QueryRow(c.Request.Context(), `
 		SELECT COUNT(*),
 		       COUNT(*) FILTER (WHERE score >= 80),
 		       COALESCE(AVG(score), 0)
 		FROM hardening_assessments WHERE status='completed'
-	`).Scan(&total, &compliant, &avgScore)
+	`).Scan(&total, &compliant, &avgScore); err != nil {
+		slog.Warn("endpoint hardening: 集計クエリに失敗しました", "error", err)
+	}
 	var baselines int
-	h.pool.QueryRow(c.Request.Context(), `SELECT COUNT(*) FROM hardening_baselines WHERE enabled=true`).Scan(&baselines)
+	if err := h.pool.QueryRow(c.Request.Context(), `SELECT COUNT(*) FROM hardening_baselines WHERE enabled=true`).Scan(&baselines); err != nil {
+		slog.Warn("endpoint hardening: 集計クエリに失敗しました", "error", err)
+	}
 	c.JSON(http.StatusOK, gin.H{
 		"total_assessments": total,
 		"compliant":         compliant,

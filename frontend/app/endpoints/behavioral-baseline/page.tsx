@@ -624,7 +624,7 @@ export default function BehavioralBaselinePage() {
           recent_deviations: [],
           exclusion_rules: [],
         }))
-      : MOCK_ENDPOINTS
+      : m(MOCK_ENDPOINTS)
   const filtered = filterStatus === 'all' ? endpoints : endpoints.filter(e => e.baseline_status === filterStatus)
 
   const stats = {

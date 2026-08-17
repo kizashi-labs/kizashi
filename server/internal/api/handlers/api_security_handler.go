@@ -770,19 +770,26 @@ func (h *APISecurityHandler) ListEvents(c *gin.Context) {
 // Stats GET /admin/api-security/stats — migration 168
 func (h *APISecurityHandler) Stats(c *gin.Context) {
 	var totalEndpoints, highRisk int
-	h.pool.QueryRow(c.Request.Context(), `
-		SELECT COUNT(*), COUNT(*) FILTER (WHERE risk_level IN ('critical','high'))
-		FROM api_endpoints WHERE enabled=true
-	`).Scan(&totalEndpoints, &highRisk)
+	// api_endpoints に risk_level / enabled 列は無い。リスクは risk_score
+	// (0-100) で、区分はこのファイルの一覧クエリと同じ <=25 low / <=50 medium /
+	// <=75 high / それ以上 critical。high 以上 = risk_score > 50。
+	if err := h.pool.QueryRow(c.Request.Context(), `
+		SELECT COUNT(*), COUNT(*) FILTER (WHERE risk_score > 50)
+		FROM api_endpoints
+	`).Scan(&totalEndpoints, &highRisk); err != nil {
+		slog.Warn("api_security: endpoint stats query failed", "error", err)
+	}
 
 	var totalEvents, authFailures, rateLimited int
-	h.pool.QueryRow(c.Request.Context(), `
+	if err := h.pool.QueryRow(c.Request.Context(), `
 		SELECT COUNT(*),
 		       COUNT(*) FILTER (WHERE event_type='auth_failure'),
 		       COUNT(*) FILTER (WHERE event_type='rate_limit')
 		FROM api_security_events
 		WHERE created_at >= NOW() - INTERVAL '24 hours'
-	`).Scan(&totalEvents, &authFailures, &rateLimited)
+	`).Scan(&totalEvents, &authFailures, &rateLimited); err != nil {
+		slog.Warn("api security: 集計クエリに失敗しました", "error", err)
+	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"total_endpoints":   totalEndpoints,

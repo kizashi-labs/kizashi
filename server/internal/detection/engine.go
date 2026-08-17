@@ -91,6 +91,8 @@ type Engine struct {
 	alertDedupMu   sync.Mutex
 	mu             sync.RWMutex
 	config         EngineConfig
+	// isoGuard は自動隔離の安全弁（冷却期間・時間あたり上限・ドライラン）。
+	isoGuard *isolationGuard
 }
 
 // alertDedupWindow は同一 (エージェント+アラート題名) の再発火を抑制する時間窓。
@@ -173,6 +175,12 @@ type EngineConfig struct {
 	// Minimum alert severity required to trigger auto-isolation (1-10, default 9).
 	// A rule must also have auto_isolate=true. Set to 0 to disable threshold enforcement.
 	AutoIsolateSeverityThreshold int
+	// AutoIsolateCooldown は同じ端末を再び自動隔離するまでの最短間隔（既定 30m）。
+	AutoIsolateCooldown time.Duration
+	// AutoIsolateHourlyBudget は 1 時間あたりに自動隔離を許す台数（既定 3）。
+	AutoIsolateHourlyBudget int
+	// AutoIsolateDryRun が true なら、隔離せず「隔離するはずだった」ことだけ記録する。
+	AutoIsolateDryRun bool
 }
 
 type DetectionStore interface {
@@ -243,16 +251,18 @@ func NewEngine(
 		return nil, fmt.Errorf("JetStream初期化に失敗しました: %w", err)
 	}
 	return &Engine{
-		nats:          nc,
-		js:            js,
-		store:         store,
-		aiAgent:       aiAgent,
-		commander:     commander,
-		rules:         rules,
-		notifier:      notifier,
-		playbooks:     playbooks,
-		iocMatcher:    iocMatcher,
-		suppression:   suppression,
+		nats:        nc,
+		js:          js,
+		store:       store,
+		aiAgent:     aiAgent,
+		commander:   commander,
+		rules:       rules,
+		notifier:    notifier,
+		playbooks:   playbooks,
+		iocMatcher:  iocMatcher,
+		suppression: suppression,
+		isoGuard: newIsolationGuard(
+			config.AutoIsolateCooldown, config.AutoIsolateHourlyBudget, config.AutoIsolateDryRun),
 		parents:       newParentResolver(),
 		netScan:       newNetworkScanDetector(),
 		dnsAgg:        newDNSTunnelAggregator(),
@@ -332,10 +342,17 @@ func (e *Engine) Start(ctx context.Context) error {
 			defer func() { <-sem }()
 			if err := e.processMessage(ctx, msg); err != nil {
 				slog.Error("event processing failed", "error", err)
-				msg.Nak()
+				// Nak が通らないと再配信されず、そのイベントは失われる。
+				if nakErr := msg.Nak(); nakErr != nil {
+					slog.Warn("NATS Nak に失敗しました(再配信されません)", "error", nakErr)
+				}
 				return
 			}
-			msg.Ack()
+			// Ack が通らないと ack_wait 後に再配信される。処理は済んでいるので
+			// 重複検知の原因になる。
+			if ackErr := msg.Ack(); ackErr != nil {
+				slog.Warn("NATS Ack に失敗しました(再配信される可能性があります)", "error", ackErr)
+			}
 		}()
 	})
 	if err != nil {
@@ -1412,6 +1429,7 @@ func (e *Engine) processEventData(ctx context.Context, data []byte) error {
 			RawEvent:    json.RawMessage(rawEventJSON),
 			CreatedAt:   time.Now(),
 			UpdatedAt:   time.Now(),
+			EventIDs:    evidenceEventIDs(eventEnvelope.EventID),
 		}
 		// Propagate MITRE ATT&CK techniques. The primary (most-specific, first)
 		// technique → mitre_technique; the FULL set → ai_mitre_tags so a single
@@ -1593,8 +1611,24 @@ func (e *Engine) applyRuleBasedResponse(ctx context.Context, alert *StoredAlert,
 		if e.commander == nil {
 			return
 		}
+
+		// severity は検知器が自分で決める値なので、誤検知が 10 を出せばそのまま
+		// 端末が止まる。判定の質はここでは直せないので、被害の大きさを抑える。
+		if e.isoGuard != nil {
+			if v := e.isoGuard.allow(alert.AgentID); !v.allow {
+				e.isoGuard.logRefusal(alert.AgentID, ruleLabel, v.reason)
+				return
+			}
+			if e.isoGuard.isDryRun() {
+				// 何が止まるはずだったかを先に見るための状態。実際には隔離しない。
+				slog.Warn("自動隔離（ドライラン）: 実際には隔離していません",
+					"agent", alert.AgentID, "rule", ruleLabel, "severity", alert.Severity)
+				return
+			}
+		}
+
 		reason := fmt.Sprintf("ルールベース自動隔離: %s (重大度: %d)", ruleLabel, alert.Severity)
-		if err := e.commander.IsolateEndpoint(ctx, alert.AgentID, reason, alert.ID); err != nil {
+		if err := e.commander.IsolateEndpoint(ctx, alert.AgentID, reason, alert.ID, ""); err != nil {
 			slog.Error("auto isolate failed", "agent", alert.AgentID, "error", err)
 		} else {
 			e.logAction(ctx, alert.ID, alert.AgentID, "isolate", "", reason, "auto_rule", true, "")
@@ -1718,10 +1752,14 @@ func (e *Engine) logAction(ctx context.Context, alertID, agentID, actionType, ta
 // the ingestion service (publisher) and the detection engine (consumer).
 // JSON tags MUST match NormalizedEvent in ingestion/handler.go exactly.
 type EventEnvelope struct {
-	AgentID   string    `json:"agent_id"`
-	Hostname  string    `json:"hostname"`
-	Platform  string    `json:"platform"`
-	Type      string    `json:"type"`
+	AgentID  string `json:"agent_id"`
+	Hostname string `json:"hostname"`
+	Platform string `json:"platform"`
+	Type     string `json:"type"`
+	// EventID is the events.event_id of the row ingestion persisted this event as.
+	// Empty when the publisher predates the field; treat that as "unknown", never
+	// as an error.
+	EventID   string    `json:"event_id,omitempty"`
 	Timestamp time.Time `json:"timestamp"`
 	// Data holds the JSON-encoded proto Event; unmarshaled on demand for rule evaluation.
 	Data json.RawMessage `json:"data"`

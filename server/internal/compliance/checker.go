@@ -4,9 +4,11 @@ package compliance
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"time"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -222,36 +224,65 @@ func (c *Checker) AssessAgent(ctx context.Context, agentID string) (*AgentCompli
 	}
 	avRunning := avEvents > 0
 
-	// Disk encryption: check endpoint_hardening table if available.
+	// ディスク暗号化。実表は endpoint_encryption (列は encrypted / reported_at)。
+	//
+	// 以前は endpoint_hardening.disk_encryption_enabled を読んでいたが、
+	// endpoint_hardening はどの migration も作っていない。クエリは毎回
+	// `relation "endpoint_hardening" does not exist` で失敗し、エラーは
+	// `_ =` で捨てられるため encryptionEnabled は false のまま —
+	// 全エージェントが恒久的に「暗号化されていない」と判定されていた。
+	//
+	// 行が無い場合は「暗号化されていない」ではなく「報告が無い」。
+	// 不明を fail にすると、収集していないことを非準拠として主張してしまう。
 	var encryptionEnabled bool
-	_ = c.pool.QueryRow(ctx, `
-		SELECT COALESCE(disk_encryption_enabled, false)
-		FROM endpoint_hardening
+	encryptionKnown := true
+	if err := c.pool.QueryRow(ctx, `
+		SELECT encrypted
+		FROM endpoint_encryption
 		WHERE agent_id = $1
-		ORDER BY created_at DESC LIMIT 1`,
+		ORDER BY reported_at DESC NULLS LAST LIMIT 1`,
 		agentID,
-	).Scan(&encryptionEnabled)
+	).Scan(&encryptionEnabled); err != nil {
+		if !errors.Is(err, pgx.ErrNoRows) {
+			slog.Warn("compliance: ディスク暗号化状態の取得に失敗", "agent_id", agentID, "error", err)
+		}
+		encryptionKnown = false
+	}
 
-	// Firewall: check endpoint_hardening.
-	var firewallEnabled bool
-	_ = c.pool.QueryRow(ctx, `
-		SELECT COALESCE(firewall_enabled, false)
-		FROM endpoint_hardening
-		WHERE agent_id = $1
-		ORDER BY created_at DESC LIMIT 1`,
-		agentID,
-	).Scan(&firewallEnabled)
+	// ファイアウォールの状態を持つ列は、どのテーブルにも存在しない
+	// (information_schema 全体を当たって確認済み)。エージェントが収集して
+	// いないため、判定材料が無い。
+	//
+	// 以前は endpoint_hardening.firewall_enabled を読んで失敗し、false =
+	// 「ファイアウォール未検出」として全エージェントを不合格にしていた。
+	// 収集経路が無いことを非準拠として報告するのは誤りなので unknown にする
+	// (unknown は pass にも fail にも数えられない)。
+	firewallEnabled := false
 
-	// Patch status: check vuln_findings for critical unpatched vulns older than 30d.
+	// 未対応の重大脆弱性 (30 日超)。実表は vulnerability_findings
+	// (時刻列は first_seen)。vuln_findings は存在しない。
+	//
+	// status の実際の値は open / in_progress / resolved / accepted /
+	// false_positive で 'patched' は無い。以前の `status != 'patched'` は
+	// 全件に一致してしまうため、未対応を表す 2 値で絞る。
+	//
+	// ここが特に危険だった: クエリが失敗しても criticalVulns は 0 のままで、
+	// patchOK = true となり「パッチ適用状況は良好」と報告していた。
+	// 測れていないことを合格として出すのは、最も避けるべき向きの誤りなので、
+	// 取得に失敗したら unknown にする。
 	var criticalVulns int
-	_ = c.pool.QueryRow(ctx, `
-		SELECT COUNT(*) FROM vuln_findings
+	patchKnown := true
+	if err := c.pool.QueryRow(ctx, `
+		SELECT COUNT(*) FROM vulnerability_findings
 		WHERE agent_id = $1
 		  AND severity = 'critical'
-		  AND status != 'patched'
-		  AND found_at < NOW() - INTERVAL '30 days'`,
+		  AND status IN ('open', 'in_progress')
+		  AND first_seen < NOW() - INTERVAL '30 days'`,
 		agentID,
-	).Scan(&criticalVulns)
+	).Scan(&criticalVulns); err != nil {
+		slog.Warn("compliance: 未対応の重大脆弱性数の取得に失敗", "agent_id", agentID, "error", err)
+		patchKnown = false
+	}
 	patchOK := criticalVulns == 0
 
 	checkResults := map[string]bool{
@@ -271,19 +302,29 @@ func (c *Checker) AssessAgent(ctx context.Context, agentID string) (*AgentCompli
 		"agent_alive":      "Last seen: " + lastSeen.Format(time.RFC3339),
 		"events_flowing":   "Recent events in last hour: " + itoa(recentEvents),
 		"av_running":       "AV process events in last 24h: " + itoa(avEvents),
-		"firewall_enabled": boolStr(firewallEnabled, "Firewall enabled", "Firewall not detected"),
-		"disk_encryption":  boolStr(encryptionEnabled, "Disk encryption active", "Encryption not detected"),
+		"firewall_enabled": "No data available",
+		"disk_encryption":  encryptionEvidence(encryptionKnown, encryptionEnabled),
 		"logging_enabled":  boolStr(eventsFlowing, "Events are flowing", "No events in last hour"),
-		"patch_status":     "Critical unpatched vulns >30d: " + itoa(criticalVulns),
+		"patch_status":     patchEvidence(patchKnown, criticalVulns),
 		"admin_accounts":   "No data available",
 		"password_policy":  "No data available",
 		"screen_lock":      "No data available",
 	}
 
+	// unknown は pass にも fail にも数えない。測っていない項目を
+	// どちらかに倒すと、準拠・非準拠のいずれかを根拠なく主張することになる。
 	unknownChecks := map[string]bool{
 		"admin_accounts":  true,
 		"password_policy": true,
 		"screen_lock":     true,
+		// ファイアウォールの状態はどこにも保存されていない (収集経路が無い)。
+		"firewall_enabled": true,
+	}
+	if !encryptionKnown {
+		unknownChecks["disk_encryption"] = true
+	}
+	if !patchKnown {
+		unknownChecks["patch_status"] = true
 	}
 
 	var checks []*ComplianceCheck
@@ -441,4 +482,21 @@ func boolStr(b bool, trueVal, falseVal string) string {
 		return trueVal
 	}
 	return falseVal
+}
+
+// encryptionEvidence / patchEvidence は「測れなかった」を「該当なし」と
+// 書かないための分岐。unknown の項目に断定的な根拠文を出すと、状態表示と
+// 根拠がずれる (0 件と表示されているのに unknown、など)。
+func encryptionEvidence(known, enabled bool) string {
+	if !known {
+		return "No data available"
+	}
+	return boolStr(enabled, "Disk encryption active", "Encryption not detected")
+}
+
+func patchEvidence(known bool, criticalVulns int) string {
+	if !known {
+		return "No data available"
+	}
+	return "Critical unpatched vulns >30d: " + itoa(criticalVulns)
 }

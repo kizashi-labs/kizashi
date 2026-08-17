@@ -2370,6 +2370,12 @@ falsepositives:
 	// Requires the agent image_load collector to populate ImageLoaded /
 	// SignatureStatus (see proto ImageLoadEvent). Detects an untrusted (unsigned/
 	// invalid) DLL loaded from a user-writable directory — the core sideloading IOC.
+	//
+	// WINDOWS ONLY in practice. Only the ETW collector emits image_load; the Linux
+	// eBPF counterpart (internal/platform/linux/library_loader.go) sits behind a
+	// `solib` build tag that nothing builds, so this rule cannot fire on a Linux
+	// endpoint no matter what runs there. Do not read a zero Linux hit count as
+	// "no side-loading on Linux".
 	`
 title: Untrusted DLL Loaded From User-Writable Path (Side-Loading)
 description: Detects loading of an unsigned or invalidly-signed DLL from a user-writable location (Temp/AppData/ProgramData/Downloads), a hallmark of DLL side-loading.
@@ -2400,6 +2406,54 @@ detection:
   condition: dll and untrusted and userpath
 falsepositives:
   - In-house software shipping unsigned DLLs in user directories
+`,
+
+	// ── T1574.006 – Shared-object load from a world-writable path (Linux) ───────
+	// The Linux half of side-loading. The Windows rule above cannot serve here:
+	// it requires SignatureStatus unsigned/invalid, and Linux has no Authenticode
+	// (the collector reports "unknown" for every .so), so it never matches.
+	//
+	// Fed by the eBPF dlopen uprobe (internal/platform/linux/library_loader.go).
+	// That collector only sees dlopen — libraries resolved by ld.so at program
+	// start are not reported — so this rule covers runtime loading: a service or
+	// shell pulling in an object after it is already running.
+	//
+	// Scope is deliberately the world-writable directories only. /home was left
+	// out on purpose: python venvs, conda, node native modules and cargo builds
+	// all load .so files from under a home directory as a matter of course, and
+	// a selector that fires on those would be the non-discriminating kind this
+	// codebase has repeatedly had to walk back. /tmp, /var/tmp, /dev/shm and
+	// /run/shm are different — a shared object executing from there is the
+	// technique, not the subsystem.
+	//
+	// Measured before shipping (verification EC2, 300s): 14 dlopen calls total,
+	// all PAM modules from /lib. Nothing in the baseline touches these paths.
+	`
+title: Shared Object Loaded From World-Writable Path (Linux Side-Loading)
+description: Detects a process dlopen()ing a shared object from /tmp, /var/tmp, /dev/shm or /run/shm. Legitimate software installs its libraries under /lib, /usr/lib or its own prefix; loading one from a world-writable directory is a hallmark of side-loading and of post-exploitation payload staging.
+status: stable
+level: high
+tags:
+  - attack.t1574.006
+  - attack.defense_evasion
+  - attack.persistence
+  - attack.privilege_escalation
+logsource:
+  product: linux
+  category: image_load
+detection:
+  sharedobject:
+    ImageLoaded|contains: .so
+  worldwritable:
+    ImageLoaded|startswith:
+      - /tmp/
+      - /var/tmp/
+      - /dev/shm/
+      - /run/shm/
+  condition: sharedobject and worldwritable
+falsepositives:
+  - Build systems and package managers that compile and dlopen from a temporary directory
+  - Self-extracting installers that stage their libraries in /tmp before moving them
 `,
 
 	// ── T1059.001 / T1027 – Malicious Script Content (ScriptBlock/AMSI) ─
@@ -2779,13 +2833,21 @@ logsource:
 detection:
   winrs:
     Image|contains: winrs
+  # Absorbed from the rules-table row "WinRM Lateral Movement (DB)"
+  # (migration 341), which migration 378 disables. That row keyed on the command
+  # line, so it caught invocations where winrs is not the image — a wrapper
+  # (cmd /c winrs -r:host ...) or a renamed copy. Keeping the branch is what
+  # makes disabling the DB row lossless; the other four rows 378 disables needed
+  # no such addition because their builtins were already supersets.
+  winrs_cmdline:
+    CommandLine|contains: winrs
   pssession:
     CommandLine|contains:
       - Enter-PSSession
       - New-PSSession
   evil_winrm:
     CommandLine|contains: "evil-winrm"
-  condition: winrs or pssession or evil_winrm
+  condition: winrs or winrs_cmdline or pssession or evil_winrm
 falsepositives:
   - Administrators using PowerShell remoting / winrs for management
 `,
@@ -7757,9 +7819,38 @@ falsepositives:
 `,
 
 	// ── macOS T1497 – Virtualization/Sandbox Discovery ─────────
+	//
+	// このルールは 2026-08-13 に**セレクタを入れ替えている**。旧版は
+	//
+	//     system_profiler + SPHardwareDataType
+	//     ioreg + IOPlatformExpertDevice / IOPlatformSerialNumber / IOPlatformUUID
+	//
+	// を見ていたが、これは仮想化の判定ではなく**ハードウェア棚卸しそのもの**である。
+	// Mac のシリアル/UUID を読む正規の手段がこの 2 つしかないため、Jamf・Kandji・
+	// Mosyle・Munki・osquery といった資産管理エージェントが全台で定期実行する。
+	//
+	// FP ソークに macOS プロファイルを足した初回計測（CI run 31694491473）で、
+	// **3 台中 3 台で発火**した。Jamf の棚卸しコマンドをそのまま拾っている。
+	// hosts が台数に等しい = プロファイル共通の挙動 = ルール側の問題である
+	// （docs/ops/FPソーク運用.md §4 の読み方）。CI 規模は 1.67 ホスト日なので
+	// 1 件 = 600件/1000ホスト/日 に相当し、実運用では Jamf のチェックインが
+	// 15 分ごとであることを考えると桁がもう 2 つ上がる。
+	//
+	// **旧セレクタには攻撃と正規操作を分ける情報が無い。** 分かれるのは「読んだ値を
+	// VM ベンダ文字列と突き合わせるか」で、それは姉妹ルール
+	// `macOS Virtualization/Sandbox Evasion Checks`（probe and vmvendor）が既に見ている。
+	// ATT&CK スコアカードの T1497/macOS ケース（attack_coverage_test.go:152 の
+	// `sh -c "ioreg -l | grep -i VMware"`）も姉妹ルール側で満たされるので、
+	// ここを入れ替えても TP は落ちない。
+	//
+	// 代わりに、**ハイパーバイザ判定にしか使われない**プローブを見る。いずれも
+	// 資産管理が実行する理由が無く、コマンドライン単体で判定できる
+	// （ParentImage による除外は採らなかった。macOS の既定ビルドは ps ポーリングで
+	// 短命プロセスの親解決が原理的に不安定なうえ、FP ソークでは親プロセスの
+	// イベント自体が流れないため、**効いているかを実測できない**修正になる）。
 	`
 title: macOS Virtualization/Sandbox Discovery
-description: Detects hardware/platform fingerprinting via system_profiler or ioreg, used by macOS malware to detect a virtual machine or analysis sandbox before executing.
+description: Detects hypervisor-presence probes on macOS — the kern.hv_vmm_present / kern.hv_support sysctls, the CPUID hypervisor (VMM) feature bit, and ioreg queries filtered for hypervisor artifacts — used by malware to identify an analysis VM before executing. Deliberately does NOT match bare system_profiler/ioreg hardware reads, which are how every MDM inventory agent obtains a Mac's serial and UUID and carry no virtualization signal on their own.
 status: stable
 level: low
 tags:
@@ -7770,18 +7861,21 @@ logsource:
   product: macos
   category: process_creation
 detection:
-  profiler:
-    Image|endswith: /system_profiler
-    CommandLine|contains: SPHardwareDataType
-  ioreg_fp:
-    Image|endswith: /ioreg
+  sysctl_hypervisor:
     CommandLine|contains:
-      - IOPlatformExpertDevice
-      - IOPlatformSerialNumber
-      - IOPlatformUUID
-  condition: profiler or ioreg_fp
+      - kern.hv_vmm_present
+      - kern.hv_support
+  cpuid_vmm_bit:
+    CommandLine|contains|all:
+      - machdep.cpu.features
+      - VMM
+  ioreg_hypervisor:
+    CommandLine|contains|all:
+      - ioreg
+      - hypervisor
+  condition: sysctl_hypervisor or cpuid_vmm_bit or ioreg_hypervisor
 falsepositives:
-  - Inventory/asset tools reading hardware information
+  - Virtualization tooling legitimately checking hypervisor availability before starting a VM
 `,
 
 	// ── macOS T1070.002 – Clear macOS System/Unified Logs ──────

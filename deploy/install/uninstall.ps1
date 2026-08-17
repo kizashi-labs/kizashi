@@ -76,6 +76,60 @@ function Assert-Administrator {
     }
 }
 
+# ─── Uninstall protection ─────────────────────────────────────────────────────
+# Removing the agent requires the tenant's uninstall password when the SOC has
+# set one. Runs BEFORE the confirmation prompt and before anything is stopped or
+# deleted, so a refusal leaves the endpoint exactly as it was, still monitored.
+#
+# The decision belongs to the agent binary (`edr-agent.exe -verify-uninstall`),
+# which verifies 600k PBKDF2 iterations against material on disk. This script
+# only reads its exit code:
+#
+#   0  authorised (correct password, or no password configured for this tenant)
+#   2  denied — the password did not match
+#   3  could not decide (guard file unreadable/corrupt)
+#
+# Anything other than 0 aborts, exit 3 included: a damaged guard file must not
+# be a cheaper way out than knowing the password.
+function Assert-UninstallAuthorised {
+    if (-not (Test-Path $AgentExe)) {
+        # Nothing left to ask, and nothing left for the check to protect.
+        Write-Warn "エージェント実行ファイルが見つかりません ($AgentExe)。アンインストール保護を確認できません。"
+        return
+    }
+
+    Write-Section 'Checking uninstall protection'
+
+    # The password reaches the child process through the environment, never as
+    # an argument: arguments are readable in the process list for the whole
+    # derivation, which at 600k iterations is a comfortable window.
+    & $AgentExe -config $ConfigFile -verify-uninstall
+    $rc = $LASTEXITCODE
+
+    if ($rc -eq 0) {
+        Write-Step 'Authorised.'
+        return
+    }
+
+    if ($rc -eq 2) {
+        throw @"
+アンインストールパスワードが違うため中止しました。
+この端末は EDR 管理コンソールで設定されたアンインストールパスワードで保護されています。
+管理者からパスワードを受け取り、次のように指定してください:
+
+  `$env:EDR_UNINSTALL_PASSWORD = '<password>'; .\uninstall.ps1
+
+この試行はサーバに通報されました。
+"@
+    }
+
+    throw @"
+アンインストール保護の状態を確認できなかったため中止しました (exit $rc)。
+保護設定が壊れている可能性があります。管理コンソールからパスワードを再設定して
+エージェントのハートビートを1回待つと復旧します。
+"@
+}
+
 # ─── Confirmation prompt ──────────────────────────────────────────────────────
 function Confirm-Uninstall {
     Write-Host ''
@@ -276,6 +330,7 @@ function Write-Summary {
 # ─── Main ────────────────────────────────────────────────────────────────────
 function Invoke-Uninstall {
     Assert-Administrator
+    Assert-UninstallAuthorised
     Confirm-Uninstall
 
     Write-Section 'Stopping and removing services'

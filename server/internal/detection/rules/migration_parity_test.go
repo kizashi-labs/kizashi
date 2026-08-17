@@ -22,8 +22,28 @@ import (
 // because neither builtin was a superset on its own: they pinned the binary with
 // Image|endswith and so missed crictl and wrapper invocations (sudo docker exec).
 var relocatedParityRules = map[string]string{
+	// migration 377
 	"T1612 image build on host": "Container Image Build on Host",
 	"T1609 container exec":      "Container Administration Command Execution",
+
+	// migration 378. These five `(DB)` rows were flagged by a local A/B soak:
+	// technique-level cross-engine dedup was still merging them with their
+	// builtin twins, i.e. one event was still producing two alert rows inside the
+	// api process. Four of the five builtins were already supersets (verified
+	// term-by-term and branch-by-branch); the WinRM builtin was not, and gained a
+	// winrs_cmdline branch first. See migration 378's header.
+	"T1087.002 domain account discovery": "Domain Account Discovery",
+	"T1087.002 via ADSI":                 "Domain Account Discovery",
+	"T1069.002 net group domain":         "Domain Group Discovery",
+	"T1069.002 privileged group":         "Domain Group Discovery",
+	"T1135 net share":                    "Network Share Discovery",
+	"T1135 get-smbshare":                 "Network Share Discovery",
+	"T1135 invoke-sharefinder":           "Network Share Discovery",
+	"T1018 nltest dclist":                "Remote System and Domain Controller Discovery",
+	"T1018 net view domain":              "Remote System and Domain Controller Discovery",
+	"T1018 powerview computer":           "Remote System and Domain Controller Discovery",
+	"T1021.006 winrs":                    "WinRM Lateral Movement (winrs / PowerShell Remoting)",
+	"T1021.006 enter-pssession":          "WinRM Lateral Movement (winrs / PowerShell Remoting)",
 }
 
 func TestMigrationCloudADParityRulesFire(t *testing.T) {

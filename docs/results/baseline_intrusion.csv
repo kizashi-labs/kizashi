@@ -1,0 +1,6 @@
+technique,test_name,rank,rank_name,latency_sec,matched_by,exit_code
+T1566.001,phish-attach,0,None,,,0
+T1059.001,encoded-ps,4,Technique,3.0,[Sigma] Encoded PowerShell Command Execution (fixture-a1),0
+T1003.001,lsass-dump,4,Technique,4.0,[CRED] LSASSメモリ・アクセス（認証情… (fixture-a2),0
+T1021.002,smb-exec,4,Technique,4.0,[Sigma] SMB/Windows Admin Share Lateral Movement (fixture-a3),0
+T1041,c2-exfil,0,None,,,0

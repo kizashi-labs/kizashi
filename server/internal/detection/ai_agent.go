@@ -117,9 +117,9 @@ type AlertStore interface {
 
 // AgentCommander sends response commands to endpoints.
 type AgentCommander interface {
-	IsolateEndpoint(ctx context.Context, agentID, reason, alertID string) error
-	KillProcess(ctx context.Context, agentID string, pid uint32, reason string) error
-	QuarantineFile(ctx context.Context, agentID, path, alertID string) error
+	IsolateEndpoint(ctx context.Context, agentID, reason, alertID, commandID string) error
+	KillProcess(ctx context.Context, agentID string, pid uint32, reason, commandID string) error
+	QuarantineFile(ctx context.Context, agentID, path, alertID, commandID string) error
 }
 
 type EventSummary struct {
@@ -356,7 +356,7 @@ func (a *AIAgent) executeAutoResponse(ctx context.Context, alert *Alert, analysi
 	if ar.ShouldIsolate && analysis.Severity >= 8 && analysis.Confidence >= 0.80 {
 		if err := a.commander.IsolateEndpoint(ctx, alert.AgentID,
 			fmt.Sprintf("AI分析による自動隔離: %s", ar.Reasoning),
-			alert.ID); err != nil {
+			alert.ID, ""); err != nil {
 			return fmt.Errorf("isolate endpoint: %w", err)
 		}
 	}
@@ -364,7 +364,7 @@ func (a *AIAgent) executeAutoResponse(ctx context.Context, alert *Alert, analysi
 	// Kill malicious process
 	if ar.ShouldKillProcess && ar.KillPID > 0 && analysis.Severity >= 7 {
 		if err := a.commander.KillProcess(ctx, alert.AgentID, ar.KillPID,
-			fmt.Sprintf("AI分析によるプロセス終了: %s", ar.Reasoning)); err != nil {
+			fmt.Sprintf("AI分析によるプロセス終了: %s", ar.Reasoning), ""); err != nil {
 			return fmt.Errorf("kill process: %w", err)
 		}
 	}
@@ -372,7 +372,7 @@ func (a *AIAgent) executeAutoResponse(ctx context.Context, alert *Alert, analysi
 	// Quarantine suspicious file
 	if ar.ShouldQuarantine && ar.QuarantinePath != "" && analysis.Severity >= 6 {
 		if err := a.commander.QuarantineFile(ctx, alert.AgentID,
-			ar.QuarantinePath, alert.ID); err != nil {
+			ar.QuarantinePath, alert.ID, ""); err != nil {
 			return fmt.Errorf("quarantine file: %w", err)
 		}
 	}

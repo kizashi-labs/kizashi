@@ -1,0 +1,9 @@
+technique,test_name,start_utc,end_utc,exit_code,scenario
+T1033,whoami,2026-01-01T01:00:00Z,2026-01-01T01:00:02Z,0,discovery-burst
+T1087.001,net-user,2026-01-01T01:00:03Z,2026-01-01T01:00:05Z,0,discovery-burst
+T1069.001,net-localgroup,2026-01-01T01:00:06Z,2026-01-01T01:00:08Z,0,discovery-burst
+T1049,netstat,2026-01-01T01:00:09Z,2026-01-01T01:00:11Z,0,discovery-burst
+T1018,arp,2026-01-01T01:00:12Z,2026-01-01T01:00:14Z,0,discovery-burst
+T1016,ipconfig,2026-01-01T01:00:15Z,2026-01-01T01:00:17Z,0,discovery-burst
+T1057,tasklist,2026-01-01T01:00:18Z,2026-01-01T01:00:20Z,0,discovery-burst
+T1082,systeminfo,2026-01-01T01:00:21Z,2026-01-01T01:00:23Z,0,discovery-burst

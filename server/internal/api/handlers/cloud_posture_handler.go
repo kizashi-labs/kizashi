@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"context"
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -35,10 +37,95 @@ type cloudPostureResponse struct {
 	TopRiskyResources  []map[string]interface{} `json:"top_risky_resources"`
 	ResourcesMonitored int                      `json:"resources_monitored"`
 	LastScanned        string                   `json:"last_scanned"`
+
+	// DataAvailable は「CSPM のデータが 1 件でも入っているか」。
+	// これが false のとき posture_score と compliance は未計測を意味する 0 で、
+	// 「100% 準拠」ではない。詳細は GetPosture のコメントを参照。
+	DataAvailable bool `json:"data_available"`
+}
+
+// cspmSource は CSPM 所見の取得元テーブルと、その実スキーマに合わせた
+// クエリの組み合わせ。テーブルごとに列名が全く違うため、呼び出し側で
+// テーブル名だけ差し替える (以前の実装) ことはできない。
+type cspmSource struct {
+	name     string
+	countSQL string // provider を $1 に取り、(severity, count) を返す
+	listSQL  string // provider を $1 に取り、所見を重大度順に返す
+}
+
+// cspmSources は取得元の候補。上から順に「実際に行があるもの」を採用する。
+//
+// cspm_findings に provider 列は無い。プロバイダは cspm_accounts.cloud_provider
+// 側にあるため結合が要る。所見の文言も finding ではなく check_name。
+// cloud_misconfigurations は別スキーマで、資源は workload_id / workload_name、
+// 文言は issue_type / description に入っている。
+var cspmSources = []cspmSource{
+	{
+		name: "cspm_findings",
+		countSQL: `SELECT f.severity, COUNT(*)
+		           FROM cspm_findings f
+		           JOIN cspm_accounts a ON a.id = f.account_id
+		           WHERE a.cloud_provider = $1 AND f.status = 'open'
+		           GROUP BY f.severity`,
+		listSQL: `SELECT f.id::text,
+		                 COALESCE(f.resource_type, 'unknown'),
+		                 COALESCE(f.resource_name, f.resource_id),
+		                 COALESCE(NULLIF(f.check_name, ''), f.check_id),
+		                 f.severity,
+		                 COALESCE(f.region, 'global'),
+		                 f.status,
+		                 COALESCE(f.remediation, '')
+		          FROM cspm_findings f
+		          JOIN cspm_accounts a ON a.id = f.account_id
+		          WHERE a.cloud_provider = $1 AND f.status = 'open'
+		          ORDER BY CASE f.severity
+		                     WHEN 'critical' THEN 1 WHEN 'high' THEN 2
+		                     WHEN 'medium' THEN 3 ELSE 4 END,
+		                   f.last_seen_at DESC
+		          LIMIT 20`,
+	},
+	{
+		name: "cloud_misconfigurations",
+		countSQL: `SELECT severity, COUNT(*)
+		           FROM cloud_misconfigurations
+		           WHERE provider = $1 AND status = 'open'
+		           GROUP BY severity`,
+		listSQL: `SELECT id::text,
+		                 COALESCE(NULLIF(issue_type, ''), 'misconfiguration'),
+		                 COALESCE(NULLIF(workload_name, ''), workload_id),
+		                 COALESCE(NULLIF(description, ''), issue_type),
+		                 severity,
+		                 COALESCE(region, 'global'),
+		                 status,
+		                 remediation
+		          FROM cloud_misconfigurations
+		          WHERE provider = $1 AND status = 'open'
+		          ORDER BY CASE severity
+		                     WHEN 'critical' THEN 1 WHEN 'high' THEN 2
+		                     WHEN 'medium' THEN 3 ELSE 4 END,
+		                   created_at DESC
+		          LIMIT 20`,
+	},
 }
 
 // GetPosture returns the cloud security posture for a given provider.
 // GET /api/v1/cloud/posture?provider=aws
+//
+// 「所見 0 件」と「まだ一度も計測していない」を区別する。
+//
+// 以前はこの区別が無く、所見が 0 件なら compliance を 100/100/100、
+// posture_score を 100 として返していた。ところが実際には発行していた
+// SQL が全て実行時エラーになっており (cspm_findings に provider 列も
+// finding 列も無い)、エラーは `_ =` と `if err == nil` で捨てられていた。
+// 結果として画面には「CIS 100% / SOC 2 100% / ISO 27001 100%、
+// スコア 100 点 (A 判定)」— つまりクエリが壊れているという事実が
+// 「完全に準拠している」という最も安心できる表示に化けていた。
+// セキュリティ製品としては最悪の壊れ方なので、未計測は未計測として返す。
+//
+// cspm_findings / cspm_accounts への書き込みは PR #680 の取り込み API
+// (POST /api/v1/cloud/findings/import) が行う。クラウドへ接続して自分で
+// 検査する処理は依然として無いので、外部 CSPM ツールの結果を取り込むまでは
+// data_available=false になる。
 func (h *CloudPostureHandler) GetPosture(c *gin.Context) {
 	provider := c.DefaultQuery("provider", "aws")
 	ctx := c.Request.Context()
@@ -51,96 +138,143 @@ func (h *CloudPostureHandler) GetPosture(c *gin.Context) {
 		Misconfigurations: []map[string]interface{}{},
 		TopRiskyResources: []map[string]interface{}{},
 		LastScanned:       time.Now().UTC().Format(time.RFC3339),
+		DataAvailable:     false,
 	}
 
-	// Try cspm_findings or cloud_misconfigurations table.
-	table := ""
-	if h.tableExists(c, "cspm_findings") {
-		table = "cspm_findings"
-	} else if h.tableExists(c, "cloud_misconfigurations") {
-		table = "cloud_misconfigurations"
-	}
-
-	if table != "" {
-		var total, critical, high, medium, low int
-		_ = h.pool.QueryRow(ctx,
-			`SELECT COUNT(*) FROM `+table+` WHERE provider=$1 AND status='open'`, provider).Scan(&total)
-		_ = h.pool.QueryRow(ctx,
-			`SELECT COUNT(*) FROM `+table+` WHERE provider=$1 AND severity='critical' AND status='open'`, provider).Scan(&critical)
-		_ = h.pool.QueryRow(ctx,
-			`SELECT COUNT(*) FROM `+table+` WHERE provider=$1 AND severity='high' AND status='open'`, provider).Scan(&high)
-		_ = h.pool.QueryRow(ctx,
-			`SELECT COUNT(*) FROM `+table+` WHERE provider=$1 AND severity='medium' AND status='open'`, provider).Scan(&medium)
-		_ = h.pool.QueryRow(ctx,
-			`SELECT COUNT(*) FROM `+table+` WHERE provider=$1 AND severity='low' AND status='open'`, provider).Scan(&low)
-
-		resp.Findings = map[string]int{
-			"critical": critical, "high": high, "medium": medium, "low": low,
+	// 行がある取得元を採用する。テーブルの存在だけで選ぶと、空の
+	// cspm_findings が常に勝ってしまい cloud_misconfigurations に
+	// 到達できない (以前の実装がこれだった)。
+	for _, src := range cspmSources {
+		if !h.tableExists(c, src.name) {
+			continue
+		}
+		counts, err := h.severityCounts(ctx, src, provider)
+		if err != nil {
+			slog.Warn("CSPM: 重大度集計に失敗しました", "table", src.name, "provider", provider, "error", err)
+			continue
+		}
+		total := counts["critical"] + counts["high"] + counts["medium"] + counts["low"]
+		if total == 0 {
+			continue
 		}
 
-		// Rough posture score: start at 100, subtract penalty per severity.
-		penalty := float64(critical)*5 + float64(high)*2 + float64(medium)*0.5 + float64(low)*0.1
+		resp.DataAvailable = true
+		resp.Findings = counts
+		resp.ResourcesMonitored = total
+
+		// スコアは 100 点から重大度ごとに減点する概算。
+		penalty := float64(counts["critical"])*5 + float64(counts["high"])*2 +
+			float64(counts["medium"])*0.5 + float64(counts["low"])*0.1
 		score := 100.0 - penalty
 		if score < 0 {
 			score = 0
 		}
-		if score > 100 {
-			score = 100
-		}
 		resp.PostureScore = score
-		resp.ResourcesMonitored = total
-
-		// Fetch top misconfigurations.
-		rows, err := h.pool.Query(ctx,
-			`SELECT COALESCE(resource_type,'unknown'), COALESCE(resource_id,''), finding,
-			        severity, COALESCE(region,'global'), status
-			 FROM `+table+`
-			 WHERE provider=$1 AND status='open'
-			 ORDER BY CASE severity WHEN 'critical' THEN 1 WHEN 'high' THEN 2 WHEN 'medium' THEN 3 ELSE 4 END
-			 LIMIT 20`, provider)
-		if err == nil {
-			defer rows.Close()
-			for rows.Next() {
-				var rt, rid, finding, sev, region, status string
-				if rows.Scan(&rt, &rid, &finding, &sev, &region, &status) == nil {
-					resp.Misconfigurations = append(resp.Misconfigurations, map[string]interface{}{
-						"id":                generateShortID(),
-						"resource_type":     rt,
-						"resource_id":       rid,
-						"finding":           finding,
-						"severity":          sev,
-						"region":            region,
-						"status":            status,
-						"remediation_steps": []string{},
-						"cli_command":       "",
-					})
-				}
-			}
-		}
-	}
-
-	// Rough compliance scores from findings.
-	total := resp.Findings["critical"] + resp.Findings["high"] + resp.Findings["medium"] + resp.Findings["low"]
-	if total == 0 {
-		resp.Compliance = map[string]float64{"cis": 100, "soc2": 100, "iso27001": 100}
-	} else {
-		base := resp.PostureScore
 		resp.Compliance = map[string]float64{
-			"cis":      base * 0.95,
-			"soc2":     base * 0.90,
-			"iso27001": base * 0.85,
+			"cis":      score * 0.95,
+			"soc2":     score * 0.90,
+			"iso27001": score * 0.85,
 		}
+
+		if mis, err := h.topMisconfigurations(ctx, src, provider); err != nil {
+			slog.Warn("CSPM: 設定不備一覧の取得に失敗しました", "table", src.name, "provider", provider, "error", err)
+		} else {
+			resp.Misconfigurations = mis
+		}
+		break
 	}
 
 	c.JSON(http.StatusOK, resp)
 }
 
-// TriggerScan triggers a cloud security posture scan.
+// severityCounts は重大度ごとの未対応件数を返す。以前は重大度ごとに
+// 5 回問い合わせていたが、1 回で足りる。
+func (h *CloudPostureHandler) severityCounts(ctx context.Context, src cspmSource, provider string) (map[string]int, error) {
+	counts := map[string]int{"critical": 0, "high": 0, "medium": 0, "low": 0}
+	rows, err := h.pool.Query(ctx, src.countSQL, provider)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var sev string
+		var n int
+		if err := rows.Scan(&sev, &n); err != nil {
+			return nil, err
+		}
+		if _, known := counts[sev]; known {
+			counts[sev] = n
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return counts, nil
+}
+
+func (h *CloudPostureHandler) topMisconfigurations(ctx context.Context, src cspmSource, provider string) ([]map[string]interface{}, error) {
+	rows, err := h.pool.Query(ctx, src.listSQL, provider)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	out := []map[string]interface{}{}
+	for rows.Next() {
+		var id, rt, rid, finding, sev, region, status, remediation string
+		if err := rows.Scan(&id, &rt, &rid, &finding, &sev, &region, &status, &remediation); err != nil {
+			return nil, err
+		}
+		steps := []string{}
+		if remediation != "" {
+			steps = append(steps, remediation)
+		}
+		out = append(out, map[string]interface{}{
+			// 以前は generateShortID() で毎回違う ID を返していたため、
+			// 再取得のたびに React の key が変わっていた。実 ID を返す。
+			"id":                id,
+			"resource_type":     rt,
+			"resource_id":       rid,
+			"finding":           finding,
+			"severity":          sev,
+			"region":            region,
+			"status":            status,
+			"remediation_steps": steps,
+			"cli_command":       "",
+		})
+	}
+	return out, rows.Err()
+}
+
+// TriggerScan は CSPM スキャンの実行要求を受ける。
 // POST /api/v1/cloud/scan
+//
+// スキャナは未実装。このリポジトリには cspm_findings / cspm_accounts /
+// cloud_misconfigurations に書き込む経路が存在せず、クラウドへ接続する
+// コードも無い。
+//
+// それにもかかわらず、以前はここで 200 と status:"running" を返していた。
+// 画面側はそれを受けて進捗バーを 100% まで進め、最後に緑で
+// 「スキャン完了 — 全プロバイダーのポスチャーを更新しました」と表示していた。
+// 実際には AWS にも Azure にも GCP にも一度も接続していない。
+//
+// 実施していない監査を「実施した」と報告するのは、セキュリティ製品として
+// 最も避けるべき嘘なので、未実装であることをそのまま返す。
+// スキャナが入ったらこのハンドラを実装に差し替える。
 func (h *CloudPostureHandler) TriggerScan(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{
-		"message":    "Cloud security scan initiated",
-		"started_at": time.Now().UTC().Format(time.RFC3339),
-		"status":     "running",
+	// 設定済みアカウント数は運用者への手がかりとして返す。
+	// 取れなくてもスキャンが未実装である事実は変わらないので、失敗しても続ける。
+	var accounts int
+	if err := h.pool.QueryRow(c.Request.Context(),
+		`SELECT COUNT(*) FROM cspm_accounts WHERE enabled`).Scan(&accounts); err != nil {
+		slog.Warn("CSPM: アカウント数の取得に失敗しました", "error", err)
+		accounts = -1
+	}
+
+	c.JSON(http.StatusNotImplemented, gin.H{
+		// apiFetch は非 2xx のとき error フィールドをそのまま例外メッセージにする。
+		"error":               "CSPM スキャナは未実装です。クラウドに接続して設定を検査する処理がまだ入っていないため、スキャンは実行されません。",
+		"code":                "cspm_scanner_not_implemented",
+		"accounts_configured": accounts,
 	})
 }

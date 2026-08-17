@@ -59,10 +59,11 @@ func (a *ThreatHuntAutomator) huntFromIOCs(ctx context.Context) {
 
 	var query string
 	if hasConfidence {
-		query = `SELECT id, ioc_type, value FROM iocs
+		// IOC の実表は ioc_entries (`iocs` というテーブルは無い)。
+		query = `SELECT id, ioc_type, value FROM ioc_entries
 		         WHERE created_at >= NOW() - INTERVAL '24 hours' AND confidence > 70`
 	} else {
-		query = `SELECT id, ioc_type, value FROM iocs
+		query = `SELECT id, ioc_type, value FROM ioc_entries
 		         WHERE created_at >= NOW() - INTERVAL '24 hours'`
 	}
 
@@ -102,8 +103,10 @@ func (a *ThreatHuntAutomator) huntFromIOCs(ctx context.Context) {
 
 			var agentID string
 			err := a.pool.QueryRow(ctx,
+				// network_connections の列は dst_ip / time。
+				// remote_ip / timestamp という列は無い。
 				`SELECT agent_id FROM network_connections
-				 WHERE remote_ip=$1 AND timestamp >= NOW() - INTERVAL '24 hours'
+				 WHERE dst_ip=$1::inet AND "time" >= NOW() - INTERVAL '24 hours'
 				 LIMIT 1`, ioc.value).Scan(&agentID)
 			if err == nil && agentID != "" {
 				a.createAlert(ctx, agentID,

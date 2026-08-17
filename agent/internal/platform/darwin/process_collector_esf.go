@@ -1,4 +1,4 @@
-//go:build darwin && esf
+//go:build darwin && esf && cgo
 
 // Package darwin provides macOS-specific process monitoring using Apple's
 // Endpoint Security Framework (ESF).

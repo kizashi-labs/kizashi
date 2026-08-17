@@ -130,13 +130,15 @@ func (h *ThreatSimulationHandler) StartRun(c *gin.Context) {
 func (h *ThreatSimulationHandler) SimStats(c *gin.Context) {
 	var total, completed, running int
 	var avgDetection float64
-	h.pool.QueryRow(c.Request.Context(), `
+	if err := h.pool.QueryRow(c.Request.Context(), `
 		SELECT COUNT(*),
 		       COUNT(*) FILTER (WHERE status='completed'),
 		       COUNT(*) FILTER (WHERE status='running'),
 		       COALESCE(AVG(detections_count::float / NULLIF(detections_count+missed_count,0)*100) FILTER (WHERE status='completed'), 0)
 		FROM simulation_runs
-	`).Scan(&total, &completed, &running, &avgDetection)
+	`).Scan(&total, &completed, &running, &avgDetection); err != nil {
+		slog.Warn("threat simulation: 集計クエリに失敗しました", "error", err)
+	}
 	c.JSON(http.StatusOK, gin.H{
 		"total":              total,
 		"completed":          completed,

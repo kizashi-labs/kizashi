@@ -7,6 +7,8 @@ import (
 	"log/slog"
 	"net/http"
 	"time"
+
+	"github.com/edr-platform/agent/internal/collector"
 )
 
 // HTTPServer exposes a local HTTP health endpoint for the agent.
@@ -49,6 +51,22 @@ func (s *HTTPServer) Run(ctx context.Context) {
 		fmt.Fprintf(w, "edr_memory_mb %.2f\n", status.MemoryMB)
 		fmt.Fprintf(w, "edr_goroutines %d\n", status.Goroutines)
 		fmt.Fprintf(w, "edr_uptime_seconds %d\n", status.UptimeSeconds)
+
+		// Per-action file-event tallies, counted at the sensor boundary. The
+		// aggregate edr_events_total cannot answer "did this endpoint ever emit a
+		// file DELETE?", and that question was unanswerable from the server side
+		// too: the Linux agent shows 0 deletes and 0 renames over a week while the
+		// Windows agent shows tens of thousands, with no code path that explains
+		// the difference. Generated counts what the sensor produced; dropped counts
+		// what the send queue refused. Both are needed — a zero Generated means the
+		// sensor never saw the operation, a nonzero Generated with nothing in the
+		// database means it was lost after this point.
+		snap := collector.FileEmitSnapshot()
+		for _, action := range collector.FileEmitActions() {
+			st := snap[action]
+			fmt.Fprintf(w, "edr_file_events_generated_total{action=%q} %d\n", action, st.Generated)
+			fmt.Fprintf(w, "edr_file_events_dropped_total{action=%q} %d\n", action, st.Dropped)
+		}
 	})
 
 	mux.HandleFunc("/diagnostics", func(w http.ResponseWriter, r *http.Request) {

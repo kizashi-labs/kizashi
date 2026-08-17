@@ -229,7 +229,7 @@ detection:
 level: low
 `
 	e := NewSigmaEvaluator()
-	if err := e.loadDBRule(rule, nil, 4); err != nil {
+	if err := e.loadDBRule(rule, nil, 4, nil); err != nil {
 		t.Fatalf("loadDBRule: %v", err)
 	}
 	m := e.EvaluateEvent(map[string]interface{}{

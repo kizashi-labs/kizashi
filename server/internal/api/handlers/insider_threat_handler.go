@@ -94,7 +94,7 @@ func (h *InsiderThreatHandler) ListUsers(c *gin.Context) {
 			COUNT(*) FILTER (WHERE ua.created_at >= NOW() - INTERVAL '7 days') AS anomaly_count_week,
 			MAX(ua.created_at) AS last_anomaly
 		FROM ueba_anomalies ua
-		LEFT JOIN users u ON u.username = ua.username
+		LEFT JOIN users u ON u.email = ua.username
 		WHERE ua.status != 'false_positive'
 		GROUP BY ua.username, u.id, u.email, u.role
 		ORDER BY risk_score DESC

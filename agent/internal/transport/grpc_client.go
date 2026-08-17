@@ -63,6 +63,12 @@ type GRPCClient struct {
 	// false flapping. Atomic: written by the heartbeat/receive goroutines, read by
 	// the watchdog.
 	serverKeepalive atomic.Bool
+
+	// pendingAcks holds command results waiting to ride along with the next
+	// EventBatch. 専用の RPC を足さず既存のストリームに相乗りさせるので、
+	// mTLS も再接続もそのまま使える。
+	ackMu       sync.Mutex
+	pendingAcks []*v1.CommandAck
 }
 
 // defaultSendTimeout bounds a single stream.Send(). A normal send completes in
@@ -137,7 +143,26 @@ const (
 	CmdLiveResponseStart
 	CmdForensicsJob
 	CmdCertRenew
+	CmdApplyPolicy
 )
+
+// ApplyPolicyCmd mirrors the server's store.ApplyPolicyPayload — the shape the
+// API, the database and the admin UI have all used from the start.
+//
+// The agent used to have a THIRD, incompatible idea of what a policy looks like
+// (internal/policy.Policy: {type, version, content, updated_at, checksum}), and
+// ingestion's comment claimed the wire payload carried a "type":"apply_policy"
+// field for disambiguation — a field the server has never sent. Three contracts,
+// no agreement, so the command was received and silently discarded. Aligning on
+// the server's shape is the only option that leaves the UI, the API and the
+// stored policies untouched.
+type ApplyPolicyCmd struct {
+	CommandID       string
+	PolicyID        string   `json:"policy_id"`
+	ScanIntervalMin int      `json:"scan_interval_min"`
+	CPULimitPct     int      `json:"cpu_limit_pct"`
+	EnabledModules  []string `json:"enabled_modules"`
+}
 
 // CertRenewCmd is the payload for CmdCertRenew commands.
 type CertRenewCmd struct {
@@ -456,6 +481,19 @@ func convertServerCommand(cmd *v1.ServerCommand) *ServerCommand {
 				return internal
 			}
 		}
+		// Policy pushes ride the same tunnel with ARTIFACT_TYPE_UNSPECIFIED as the
+		// sentinel. They carry no "type" marker — the server's payload has never
+		// had one, whatever ingestion's comment says — so identify them by the
+		// field only a policy has: policy_id.
+		if ca.GetType() == v1.CollectArtifactCommand_ARTIFACT_TYPE_UNSPECIFIED {
+			var p ApplyPolicyCmd
+			if err := json.Unmarshal([]byte(target), &p); err == nil && p.PolicyID != "" {
+				p.CommandID = cmd.GetCommandId()
+				internal.Type = CmdApplyPolicy
+				internal.Payload = p
+				return internal
+			}
+		}
 		internal.Type = CmdCollectArtifact
 
 	default:
@@ -632,6 +670,75 @@ func batchPlatform() v1.Platform {
 	}
 }
 
+// SendAck queues a command result for delivery to the server.
+//
+// response.Executor はコマンドを実行するたびにこれを呼ぶ。ここまでの配線が
+// 欠けていたため（NewExecutor に nil が渡され、SendAck を実装した型が
+// 存在しなかった）、エージェントは結果を一度も返していなかった。器は
+// 両端に揃っていて、間だけが繋がっていない状態だった。
+//
+// 送信はイベント送信に相乗りさせる。ここで即座に送らないのは、切断中でも
+// 結果を失わないため。積んでおけば次の送信に乗る。イベントが流れない
+// 端末では FlushAcks が拾う。
+func (c *GRPCClient) SendAck(_ context.Context, commandID string, success bool, errMsg string, result []byte) error {
+	if commandID == "" {
+		// id が無い ack はサーバ側で対応付けられない。捨てるほうが、
+		// 対応付け不能な記録を増やすより良い。
+		return nil
+	}
+	status := v1.CommandAck_ACK_STATUS_SUCCESS
+	if !success {
+		status = v1.CommandAck_ACK_STATUS_FAILED
+	}
+	c.ackMu.Lock()
+	c.pendingAcks = append(c.pendingAcks, &v1.CommandAck{
+		CommandId: commandID,
+		Status:    status,
+		Error:     errMsg,
+		Result:    result,
+	})
+	c.ackMu.Unlock()
+	return nil
+}
+
+// drainAcks removes and returns the queued acks.
+func (c *GRPCClient) drainAcks() []*v1.CommandAck {
+	c.ackMu.Lock()
+	defer c.ackMu.Unlock()
+	if len(c.pendingAcks) == 0 {
+		return nil
+	}
+	acks := c.pendingAcks
+	c.pendingAcks = nil
+	return acks
+}
+
+// requeueAcks puts acks back after a failed send, in front of anything queued
+// since. 送信に失敗した結果を捨てると、サーバ側は期限切れとして畳むことになり、
+// 「実際には成功した隔離」が timeout として記録される。
+func (c *GRPCClient) requeueAcks(acks []*v1.CommandAck) {
+	if len(acks) == 0 {
+		return
+	}
+	c.ackMu.Lock()
+	c.pendingAcks = append(acks, c.pendingAcks...)
+	c.ackMu.Unlock()
+}
+
+// FlushAcks sends any queued acks even when there are no events to report.
+//
+// イベントがほとんど流れない端末では、相乗りだけに頼ると結果が届かない。
+// 定期的にこれを呼ぶことで、静かな端末でも結果が返る。
+func (c *GRPCClient) FlushAcks(ctx context.Context) error {
+	c.ackMu.Lock()
+	n := len(c.pendingAcks)
+	c.ackMu.Unlock()
+	if n == 0 {
+		return nil
+	}
+	return c.SendEvents(ctx, &v1.EventBatch{AgentId: c.cfg.Agent.ID})
+}
+
 // SendEvents sends a batch of events. Falls back to buffer if disconnected.
 //
 // Stamps EventBatch.Platform here rather than at each construction site. Every
@@ -651,6 +758,11 @@ func batchPlatform() v1.Platform {
 func (c *GRPCClient) SendEvents(ctx context.Context, batch *v1.EventBatch) error {
 	if batch != nil && batch.GetPlatform() == v1.Platform_PLATFORM_UNSPECIFIED {
 		batch.Platform = batchPlatform()
+	}
+	// 実行結果を相乗りさせる。SendEvents はオフライン経路も含めた唯一の
+	// 出口なので、ここに置けば取りこぼしがない。
+	if batch != nil && len(batch.Acks) == 0 {
+		batch.Acks = c.drainAcks()
 	}
 	c.mu.RLock()
 	connected := c.connected
@@ -676,7 +788,14 @@ func (c *GRPCClient) SendEvents(ctx context.Context, batch *v1.EventBatch) error
 		// so calling it here after the watchdog already did is harmless. Then buffer.
 		slog.Warn("stream send failed, reconnecting & buffering", "error", err)
 		c.signalDisconnect()
-		return c.bufferBatch(batch)
+		if bufErr := c.bufferBatch(batch); bufErr != nil {
+			// リングバッファも溢れた。イベントは落ちるが、実行結果は積み直す。
+			// 捨てるとサーバ側は期限切れとして畳み、実際には成功した隔離が
+			// timeout として記録される。
+			c.requeueAcks(batch.GetAcks())
+			return bufErr
+		}
+		return nil
 	}
 	return nil
 }

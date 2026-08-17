@@ -18,7 +18,11 @@ func printTable(headers []string, rows [][]string) {
 	for _, row := range rows {
 		fmt.Fprintln(w, strings.Join(row, "\t"))
 	}
-	w.Flush()
+	// tabwriter はここで初めて書き出す。失敗を捨てると表が途中で切れたまま
+	// 正常終了したように見える。
+	if err := w.Flush(); err != nil {
+		fmt.Fprintf(os.Stderr, "出力の書き出しに失敗しました: %v\n", err)
+	}
 }
 
 // printJSON prints v as indented JSON.

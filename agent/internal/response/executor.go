@@ -110,7 +110,26 @@ func (e *Executor) Isolate(ctx context.Context, cmd IsolateCmd) {
 		return
 	}
 
-	slog.Warn("✓ エンドポイントが隔離されました",
+	// 終了コード 0 は「ルールが入った」ことを意味しない。適用したつもりで
+	// 効いていない場合も、直後に別の何かが流した場合も、ここまでは成功に見える。
+	// 実態を読み返してから成功と報告する。隔離は監査・報告の根拠になるので、
+	// 確かめずに成功と言うほうが、失敗を報告するより有害になる。
+	ok, verr := e.isolation.VerifyIsolation()
+	if verr != nil {
+		// 状態を確認できなかった。「隔離されていない」とは違うので、そう伝える。
+		slog.Error("隔離ルールの確認に失敗しました", "error", verr)
+		e.ackError(ctx, cmd.CommandID,
+			fmt.Sprintf("isolate applied but verification failed: %s", verr))
+		return
+	}
+	if !ok {
+		slog.Error("隔離コマンドは成功しましたが、ルールが見つかりません")
+		e.ackError(ctx, cmd.CommandID,
+			"isolate reported success but no firewall rules are present")
+		return
+	}
+
+	slog.Warn("✓ エンドポイントが隔離されました（ルールの存在を確認）",
 		"allowed_ips", allowedIPs,
 		"reason", cmd.Reason,
 	)
@@ -127,7 +146,24 @@ func (e *Executor) Unisolate(ctx context.Context, cmd UnisolateCmd) {
 		return
 	}
 
-	slog.Info("✓ 隔離を解除しました")
+	// 解除も同じ。ルールが残ったまま「解除した」と報告すると、コンソール上は
+	// 復旧済みなのに端末は繋がらない —— 孤児化した隔離そのものになる。
+	// この形は実際に起きており、切り分けに時間を取られた。
+	ok, verr := e.isolation.VerifyIsolation()
+	if verr != nil {
+		slog.Error("隔離解除の確認に失敗しました", "error", verr)
+		e.ackError(ctx, cmd.CommandID,
+			fmt.Sprintf("unisolate applied but verification failed: %s", verr))
+		return
+	}
+	if ok {
+		slog.Error("隔離解除コマンドは成功しましたが、ルールが残っています")
+		e.ackError(ctx, cmd.CommandID,
+			"unisolate reported success but firewall rules are still present")
+		return
+	}
+
+	slog.Info("✓ 隔離を解除しました（ルールの消失を確認）")
 	e.ackSuccess(ctx, cmd.CommandID, nil)
 }
 

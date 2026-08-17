@@ -23,6 +23,9 @@ interface CloudPosture {
   top_risky_resources: RiskyResource[]
   resources_monitored: number
   last_scanned: string
+  // CSPM のデータが 1 件でも入っているか。false のときスコアと
+  // コンプライアンス率は「未計測」であって「0 点」でも「100% 準拠」でもない。
+  data_available: boolean
 }
 
 interface Misconfiguration {
@@ -66,6 +69,7 @@ const EMPTY_POSTURE: CloudPosture = {
   top_risky_resources: [],
   resources_monitored: 0,
   last_scanned: '',
+  data_available: false,
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -193,7 +197,10 @@ function ProviderPanel({ posture }: { posture: CloudPosture }) {
   const [statusFilter, setStatusFilter] = useState<FindingStatus | 'all'>('all')
   const [severityFilter, setSeverityFilter] = useState<Severity | 'all'>('all')
 
-  const g = grade(posture.posture_score)
+  // 未計測のときは判定を出さない。0 点 (F 判定) と表示すると「最悪の状態」に、
+  // 100 点 (A 判定) と表示すると「完全に準拠」に見えてしまい、どちらも嘘になる。
+  const measured = posture.data_available
+  const g = measured ? grade(posture.posture_score) : { label: '未計測', cls: 'text-[#7d92b0]' }
   const totalFindings = posture.findings.critical + posture.findings.high + posture.findings.medium + posture.findings.low
 
   const filtered = posture.misconfigurations.filter(m => {
@@ -213,20 +220,24 @@ function ProviderPanel({ posture }: { posture: CloudPosture }) {
           <div className="relative w-20 h-20 flex-shrink-0">
             <svg viewBox="0 0 80 80" className="w-full h-full -rotate-90">
               <circle cx="40" cy="40" r="34" fill="none" stroke="#1e2d42" strokeWidth="8" />
-              <circle cx="40" cy="40" r="34" fill="none"
-                stroke={posture.posture_score >= 80 ? '#22c55e' : posture.posture_score >= 60 ? '#f59e0b' : '#e8002d'}
-                strokeWidth="8"
-                strokeDasharray={`${(posture.posture_score / 100) * 213.6} 213.6`}
-                strokeLinecap="round" />
+              {measured && (
+                <circle cx="40" cy="40" r="34" fill="none"
+                  stroke={posture.posture_score >= 80 ? '#22c55e' : posture.posture_score >= 60 ? '#f59e0b' : '#e8002d'}
+                  strokeWidth="8"
+                  strokeDasharray={`${(posture.posture_score / 100) * 213.6} 213.6`}
+                  strokeLinecap="round" />
+              )}
             </svg>
             <div className="absolute inset-0 flex items-center justify-center">
-              <span className={`text-xl font-bold ${g.cls}`}>{posture.posture_score}</span>
+              <span className={`text-xl font-bold ${g.cls}`}>{measured ? posture.posture_score : '—'}</span>
             </div>
           </div>
           <div>
             <p className="text-[#7d92b0] text-xs mb-1">ポスチャースコア</p>
             <p className={`text-3xl font-bold ${g.cls}`}>{g.label}</p>
-            <p className="text-[#7d92b0] text-xs mt-1">{totalFindings} 件の検出</p>
+            <p className="text-[#7d92b0] text-xs mt-1">
+              {measured ? `${totalFindings} 件の検出` : 'CSPM スキャン未実施'}
+            </p>
           </div>
         </div>
 
@@ -260,11 +271,15 @@ function ProviderPanel({ posture }: { posture: CloudPosture }) {
               <div key={c.label}>
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-xs text-[#7d92b0]">{c.label}</span>
-                  <span className={`text-xs font-bold ${c.pct >= 80 ? 'text-green-400' : c.pct >= 70 ? 'text-yellow-400' : 'text-orange-400'}`}>{c.pct}%</span>
+                  <span className={`text-xs font-bold ${!measured ? 'text-[#7d92b0]' : c.pct >= 80 ? 'text-green-400' : c.pct >= 70 ? 'text-yellow-400' : 'text-orange-400'}`}>
+                    {measured ? `${c.pct}%` : '未計測'}
+                  </span>
                 </div>
                 <div className="h-1.5 bg-[#1e2d42] rounded-full overflow-hidden">
-                  <div className={`h-full rounded-full ${c.pct >= 80 ? 'bg-green-500' : c.pct >= 70 ? 'bg-yellow-500' : 'bg-orange-500'}`}
-                    style={{ width: `${c.pct}%` }} />
+                  {measured && (
+                    <div className={`h-full rounded-full ${c.pct >= 80 ? 'bg-green-500' : c.pct >= 70 ? 'bg-yellow-500' : 'bg-orange-500'}`}
+                      style={{ width: `${c.pct}%` }} />
+                  )}
                 </div>
               </div>
             ))}
@@ -447,8 +462,7 @@ function CrossProviderSummaryPanel({ summary, postureMap }: { summary: CrossProv
 export default function CloudSecurityPage() {
   const [activeProvider, setActiveProvider] = useState<Provider>('aws')
   const [scanning, setScanning] = useState(false)
-  const [scanDone, setScanDone] = useState(false)
-  const [scanProgress, setScanProgress] = useState(0)
+  const [scanResult, setScanResult] = useState<{ ok: boolean; message: string } | null>(null)
 
   const { data: awsData } = useQuery<CloudPosture | null>({
     queryKey: ['cloud-posture-aws'],
@@ -485,28 +499,21 @@ export default function CloudSecurityPage() {
 
   const activePosture = postureMap[activeProvider]
 
+  // 進捗バーは出さない。以前はここで Math.random() の値を 100% まで進め、
+  // 最後に「スキャン完了 — 全プロバイダーのポスチャーを更新しました」と
+  // 緑で表示していたが、サーバは何もスキャンしていなかった。
+  // 実施していない監査を実施したと報告しないよう、結果をそのまま出す。
   const handleScan = async () => {
     setScanning(true)
-    setScanDone(false)
-    setScanProgress(0)
-    const interval = setInterval(() => {
-      setScanProgress(prev => {
-        if (prev >= 95) { clearInterval(interval); return 95 }
-        return prev + Math.floor(Math.random() * 8) + 3
-      })
-    }, 200)
+    setScanResult(null)
     try {
       await apiFetch('/api/v1/cloud/scan', { method: 'POST' })
-    } catch {
-      // mock
-    }
-    setTimeout(() => {
-      clearInterval(interval)
-      setScanProgress(100)
+      setScanResult({ ok: true, message: 'スキャンを開始しました' })
+    } catch (e) {
+      setScanResult({ ok: false, message: e instanceof Error ? e.message : 'スキャンを開始できませんでした' })
+    } finally {
       setScanning(false)
-      setScanDone(true)
-      setTimeout(() => setScanDone(false), 3000)
-    }, 3000)
+    }
   }
 
   const providers: { key: Provider; label: string; color: string }[] = [
@@ -536,27 +543,17 @@ export default function CloudSecurityPage() {
         </button>
       </div>
 
-      {/* Scan progress */}
-      {scanning && (
-        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-4">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-white text-sm font-medium">スキャン実行中...</span>
-            <span className="text-[#7d92b0] text-xs">{Math.min(scanProgress, 100)}%</span>
-          </div>
-          <div className="h-2 bg-[#1e2d42] rounded-full overflow-hidden">
-            <div className="h-full bg-[#e8002d] rounded-full transition-all duration-200"
-              style={{ width: `${Math.min(scanProgress, 100)}%` }} />
-          </div>
-          <p className="text-[#7d92b0] text-xs mt-2">
-            {scanProgress < 30 ? 'AWSリソースをスキャン中...' : scanProgress < 60 ? 'Azureリソースをスキャン中...' : scanProgress < 90 ? 'GCPリソースをスキャン中...' : 'レポートを生成中...'}
-          </p>
-        </div>
-      )}
-
-      {scanDone && (
-        <div className="flex items-center gap-2 px-4 py-2.5 bg-green-500/15 border border-green-500/30 rounded-lg text-green-400 text-sm">
-          <CheckCircle className="w-4 h-4 flex-shrink-0" />
-          スキャン完了 — 全プロバイダーのポスチャーを更新しました
+      {/* スキャン結果。成功も失敗もサーバの返答をそのまま伝える。 */}
+      {scanResult && (
+        <div className={`flex items-start gap-2 px-4 py-2.5 rounded-lg text-sm border ${
+          scanResult.ok
+            ? 'bg-green-500/15 border-green-500/30 text-green-400'
+            : 'bg-amber-500/15 border-amber-500/30 text-amber-300'
+        }`}>
+          {scanResult.ok
+            ? <CheckCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+            : <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />}
+          <span>{scanResult.message}</span>
         </div>
       )}
 
@@ -571,7 +568,7 @@ export default function CloudSecurityPage() {
             }`}>
             <span className={activeProvider === p.key ? 'text-white' : p.color}>{p.label}</span>
             <span className={`ml-2 text-xs ${activeProvider === p.key ? 'text-[#7d92b0]' : 'text-[#3d5068]'}`}>
-              {postureMap[p.key].posture_score}点
+              {postureMap[p.key].data_available ? `${postureMap[p.key].posture_score}点` : '未計測'}
             </span>
           </button>
         ))}

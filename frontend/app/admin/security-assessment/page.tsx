@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { apiFetch } from '@/lib/api'
+import { mockOr } from '@/lib/mock'
 import { Plus, FileText, Download, Pencil, Upload, ChevronRight, AlertTriangle, CheckCircle, Clock } from 'lucide-react'
 
 interface AssessmentFinding {
@@ -62,7 +63,12 @@ const MOCK_ASSESSMENTS: Assessment[] = [
   },
 ]
 
-const MOCK: AssessmentData = { assessments: MOCK_ASSESSMENTS }
+const EMPTY: AssessmentData = { assessments: [] }
+
+// API が落ちている/未実装のときのフォールバック。NEXT_PUBLIC_USE_MOCK=true の
+// ローカル開発でだけモックを返し、それ以外では空を返す。ここを素の MOCK に
+// しておくと、本番で API が失敗したときに架空の評価結果が表示される。
+const FALLBACK: AssessmentData = mockOr({ assessments: MOCK_ASSESSMENTS }, EMPTY)
 
 const TYPE_STYLES: Record<string, { bg: string; text: string; label: string }> = {
   gap_analysis: { bg: 'bg-blue-900/40',   text: 'text-blue-300',   label: 'ギャップ分析' },
@@ -113,7 +119,7 @@ export default function SecurityAssessmentPage() {
 
   const { data } = useQuery<AssessmentData>({
     queryKey: ['security-assessment'],
-    queryFn: () => apiFetch<AssessmentData>('/api/v1/admin/security-assessment').catch(() => MOCK),
+    queryFn: () => apiFetch<AssessmentData>('/api/v1/admin/security-assessment').catch(() => FALLBACK),
   })
 
   const qc = useQueryClient()
@@ -121,7 +127,7 @@ export default function SecurityAssessmentPage() {
     mutationFn: (id: string) => apiFetch(`/api/v1/admin/security-assessment/${id}/export`).catch(() => ({})),
   })
 
-  const d = data ?? MOCK
+  const d = data ?? FALLBACK
   const detail = d.assessments.find(a => a.id === selected) ?? null
 
   return (

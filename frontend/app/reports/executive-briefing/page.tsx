@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { apiFetch } from '@/lib/api'
+import { USE_MOCK } from '@/lib/mock'
 import {
   Briefcase, Download, Mail, Globe, Printer, X, Send,
   TrendingUp, TrendingDown, Minus, AlertTriangle, CheckCircle,
@@ -469,10 +470,17 @@ export default function ExecutiveBriefingPage() {
     setTimeout(() => setToast(null), 3500)
   }
 
-  const briefing = lang === 'ja' ? MOCK_BRIEFING_JA : MOCK_BRIEFING_EN
+  // この画面を支える API はまだ無く、中身は完全にサンプルデータ。
+  // 経営層に見せる数字を架空のまま出すと、そのまま取締役会資料に化ける。
+  // NEXT_PUBLIC_USE_MOCK=true のときだけ描画し、それ以外は未実装だと明示する。
+  const briefing = USE_MOCK ? (lang === 'ja' ? MOCK_BRIEFING_JA : MOCK_BRIEFING_EN) : null
 
   const handleGenerate = () => {
     setGenerated(true)
+    if (!briefing) {
+      showToast(lang === 'ja' ? 'この画面はまだ実装されていません' : 'This screen is not implemented yet', 'error')
+      return
+    }
     showToast(lang === 'ja' ? 'ブリーフィングを生成しました' : 'Briefing generated successfully')
   }
 
@@ -561,8 +569,22 @@ export default function ExecutiveBriefingPage() {
       </div>
 
       {/* Briefing Preview */}
-      {generated ? (
+      {generated && briefing ? (
         <BriefingPreview briefing={briefing} classification={classification} lang={lang} />
+      ) : generated && !briefing ? (
+        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-16 text-center">
+          <div className="w-16 h-16 rounded-full bg-[#070d19] border border-[#1e2d42] flex items-center justify-center mx-auto mb-4">
+            <AlertTriangle className="w-8 h-8 text-[#3d5068]" />
+          </div>
+          <p className="text-white font-semibold text-lg mb-2">
+            {lang === 'ja' ? 'この画面はまだ実装されていません' : 'Not implemented yet'}
+          </p>
+          <p className="text-[#7d92b0] text-sm max-w-lg mx-auto">
+            {lang === 'ja'
+              ? 'ブリーフィング生成の API がまだありません。レイアウト確認のためのサンプル表示は NEXT_PUBLIC_USE_MOCK=true のときだけ有効です。'
+              : 'There is no briefing-generation API yet. The sample rendering used for layout work is only available with NEXT_PUBLIC_USE_MOCK=true.'}
+          </p>
+        </div>
       ) : (
         <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-16 text-center">
           <div className="w-16 h-16 rounded-full bg-[#070d19] border border-[#1e2d42] flex items-center justify-center mx-auto mb-4">

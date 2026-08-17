@@ -102,7 +102,7 @@ func TestDequeue_ClearsQueue(t *testing.T) {
 
 func TestEnqueueIsolate_CommandType(t *testing.T) {
 	d := NewInMemoryCommandDispatcher()
-	err := d.EnqueueIsolate("agent-001", "malware detected", "alert-123", []string{"10.0.0.1"})
+	err := d.EnqueueIsolate("agent-001", "malware detected", "alert-123", []string{"10.0.0.1"}, "")
 	if err != nil {
 		t.Fatalf("EnqueueIsolate: 予期しないエラー: %v", err)
 	}
@@ -117,7 +117,7 @@ func TestEnqueueIsolate_CommandType(t *testing.T) {
 
 func TestEnqueueIsolate_PayloadContainsReason(t *testing.T) {
 	d := NewInMemoryCommandDispatcher()
-	_ = d.EnqueueIsolate("agent-001", "malware detected", "alert-123", nil)
+	_ = d.EnqueueIsolate("agent-001", "malware detected", "alert-123", nil, "")
 	cmds, _ := d.Dequeue("agent-001")
 	var payload map[string]interface{}
 	_ = json.Unmarshal(cmds[0].Payload, &payload)

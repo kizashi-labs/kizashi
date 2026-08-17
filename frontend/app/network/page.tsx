@@ -11,6 +11,7 @@ import {
   Download, RefreshCw, AlertTriangle, X, ChevronRight,
 } from 'lucide-react'
 import type { Agent, NetworkEventData } from '@/types/api'
+import { m } from '@/lib/mock'
 
 // ─── Local types ─────────────────────────────────────────────────────────────
 
@@ -487,8 +488,8 @@ export default function NetworkPage() {
 
   const { nodes, edges } = useMemo<{ nodes: GraphNode[]; edges: GraphEdge[] }>(() => {
     // Fall back to mock only while API hasn't responded; empty array once it has
-    const rawEvents = graphEventsData !== undefined ? (graphEventsData?.data ?? []) : MOCK_GRAPH_EVENTS_DATA
-    const agentList  = agentsData?.data?.length ? agentsData.data : (agentsData?.data ? [] : MOCK_AGENTS_RESPONSE.data)
+    const rawEvents = graphEventsData !== undefined ? (graphEventsData?.data ?? []) : m(MOCK_GRAPH_EVENTS_DATA)
+    const agentList  = agentsData?.data?.length ? agentsData.data : (agentsData?.data ? [] : m(MOCK_AGENTS_RESPONSE.data))
     const agentById: Record<string, Agent> = {}
     for (const a of agentList) agentById[a.id] = a
 

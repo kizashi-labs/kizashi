@@ -9,7 +9,7 @@ import {
   FileEdit, FilePlus, FileX, AlertTriangle, Clock, BarChart2, Eye, EyeOff,
   Trash2, Plus, ToggleLeft, ToggleRight, Monitor, Apple, Smartphone, Tablet,
 } from 'lucide-react'
-import { USE_MOCK } from '@/lib/mock'
+import { USE_MOCK, m } from '@/lib/mock'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -799,8 +799,8 @@ function IgnoreRulesTab() {
     staleTime: 60_000,
   })
 
-  // Use mock data if API returns nothing
-  const rules: IgnoreRule[] = rulesData?.data?.length ? rulesData.data : MOCK_IGNORE_RULES
+  // API が空を返したときのフォールバック（モック無効時は空のまま）
+  const rules: IgnoreRule[] = rulesData?.data?.length ? rulesData.data : m(MOCK_IGNORE_RULES)
 
   const addMutation = useMutation({
     mutationFn: (pattern: string) =>

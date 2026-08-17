@@ -1,0 +1,96 @@
+# nfpm configuration for the Linux agent packages (.deb and .rpm).
+#
+# Why nfpm rather than fpm or hand-rolled dpkg-deb: one declarative file produces
+# both formats from a plain Linux runner with no Ruby toolchain and no chroot,
+# and it is the same tool the Go ecosystem standardises on. The alternative that
+# was in place — curl an install.sh and run it as root — cannot be delivered by
+# Intune, SCCM, Ansible's apt/yum modules, or any patch-management system a
+# customer already operates, which is the actual blocker for enterprise rollout.
+#
+# Layout deliberately matches deploy/install/install.sh so a host can be moved
+# between the script and the package without stranding its config or its
+# dashboard identity:
+#
+#   /usr/local/bin/edr-agent, edr-watchdog
+#   /etc/edr/agent.toml                  (config — never overwritten on upgrade)
+#   /var/log/edr, /var/lib/edr           (logs, data)
+#
+# Values interpolated from the environment at build time (see package.yml):
+#   VERSION   release version without the leading "v"
+#   ARCH      nfpm arch (amd64 | arm64)
+#
+# NOTE: nfpm expands ${VAR} in scalar fields such as `version` and `arch`, but
+# NOT in `contents[].src` — those are globbed before expansion, so a ${BINDIR}
+# there fails with "no matching files". The workflow therefore stages the
+# built binaries into ./bin/ next to this file rather than pointing at them.
+
+name: edr-agent
+arch: ${ARCH}
+platform: linux
+version: ${VERSION}
+section: admin
+priority: optional
+maintainer: Kizashi <support@example.com>
+description: |
+  Kizashi endpoint agent.
+  Collects process, network, file and authentication telemetry and streams it to
+  the Kizashi server over mTLS gRPC. Includes the supervising watchdog.
+vendor: Kizashi
+homepage: https://github.com/edr-platform
+license: Proprietary
+
+# The agent needs neither a shell nor a package manager at runtime; keeping the
+# dependency set empty avoids pulling anything onto a hardened host.
+depends: []
+
+contents:
+  - src: ./bin/edr-agent
+    dst: /usr/local/bin/edr-agent
+    file_info:
+      mode: 0755
+
+  - src: ./bin/edr-watchdog
+    dst: /usr/local/bin/edr-watchdog
+    file_info:
+      mode: 0755
+
+  - src: ../../agent/deploy/linux/edr-watchdog.service
+    dst: /lib/systemd/system/edr-watchdog.service
+    file_info:
+      mode: 0644
+
+  # Config is marked as a config file so neither dpkg nor rpm clobbers a
+  # customer's server URL and enrolled agent ID on upgrade. Losing agent.toml
+  # would re-enroll the endpoint under a new ID and orphan its history.
+  - src: ./agent.toml.sample
+    dst: /etc/edr/agent.toml
+    type: config|noreplace
+    file_info:
+      mode: 0640
+
+  # /var/log/edr and /var/lib/edr are deliberately NOT listed here.
+  #
+  # A directory shipped as package content is owned by the package manager,
+  # and dpkg removes an owned directory on `remove` once it is empty. That
+  # directly contradicts postremove's promise to keep logs and quarantined
+  # files: on a host where the agent had not yet written anything, `apt remove`
+  # deleted the directories while printing "logs and quarantined files kept".
+  # (Caught by the container install test, not by any static check.)
+  #
+  # They are created by postinstall instead, so the package manager never owns
+  # them and the documented behaviour holds whether or not they have content.
+
+scripts:
+  postinstall: ./scripts/postinstall.sh
+  preremove: ./scripts/preremove.sh
+  postremove: ./scripts/postremove.sh
+
+deb:
+  fields:
+    Bugs: https://github.com/edr-platform/issues
+  # Signing is applied by the workflow when a GPG key is configured; nfpm's own
+  # deb signature block is left out so both formats sign through one path.
+
+rpm:
+  group: Applications/System
+  summary: Kizashi endpoint agent

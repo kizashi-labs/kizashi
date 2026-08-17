@@ -78,12 +78,16 @@ func TestWMIActivityCollectorEmitsOnLiveETW(t *testing.T) {
 	cleanup := createWMISubscription(t, name)
 	defer cleanup()
 
-	// 5861 is emitted when the binding is registered. Poll rather than sleep a
-	// fixed period so a fast runner does not pay for a slow one.
+	// Wait for 5861 SPECIFICALLY — the binding registration. 5858 (operation) is
+	// not interchangeable with it: 5858 records who called WMI and from where, and
+	// carries no Consumer or Namespace at all. Taking whichever event arrives first
+	// made this test fail intermittently (2026-07-27, 08-10, 08-13), because the
+	// PowerShell calls that create the subscription generate 5858 traffic of their
+	// own and often win the race. The assertions below only make sense for 5861.
 	var got wmiLiveEvent
 	deadline := time.Now().Add(45 * time.Second)
 	for time.Now().Before(deadline) {
-		if ev, ok := sink.findWMIActivity(); ok {
+		if ev, ok := sink.findWMIBinding(); ok {
 			got = ev
 			break
 		}
@@ -91,26 +95,36 @@ func TestWMIActivityCollectorEmitsOnLiveETW(t *testing.T) {
 	}
 
 	if got.EventType == "" {
-		t.Fatalf("no wmi_activity event was emitted within 45s of registering a WMI event "+
-			"subscription. The sensor built and the ETW session opened, so either the provider "+
-			"does not emit 5858/5861 for this operation or the property names the collector "+
-			"reads (etwProp) do not match this Windows build. Captured %d batches in total.",
-			sink.count())
+		// Distinguish the two failures that look identical from here: the provider
+		// never emitted 5861, or it did and the collector dropped it (handleETWEvent
+		// returns early when both query and consumer read back empty — the silent
+		// shape etwProp exists to guard against). The Operational log is written
+		// from the same manifest, so it answers which side is at fault.
+		logDetail := countSubscriptionEventsInLog(t)
+		byID := sink.countsByEventID()
+		t.Fatalf("no 5861 (subscription) wmi_activity event within 45s of registering a WMI "+
+			"event subscription.\n"+
+			"  emitted by the collector, by event id: %v (total batches %d)\n"+
+			"  5861 records in Microsoft-Windows-WMI-Activity/Operational: %s\n"+
+			"If the log shows 5861 but the collector emitted none, the provider spelling changed "+
+			"and etwProp/handleETWEvent dropped it (query and consumer both read back empty). "+
+			"If the log shows none either, this Windows build no longer emits 5861 for "+
+			"__FilterToConsumerBinding creation and the sensor's persistence signal is gone.",
+			byID, sink.count(), logDetail)
 	}
 
 	t.Logf("live wmi_activity event: type=%q event_id=%d consumer=%q query=%q namespace=%q user=%q",
 		got.EventType, got.EventID, got.Consumer, got.Query, got.Namespace, got.User)
-
-	// The point of the sensor is the consumer and the query: a record carrying
-	// neither would be published, stored, counted — and matched by nothing.
-	if got.EventID != 5861 && got.EventID != 5858 {
-		t.Errorf("event_id = %d, want 5861 (subscription) or 5858 (operation)", got.EventID)
+	if ops := sink.countsByEventID()[5858]; ops > 0 {
+		t.Logf("also observed %d 5858 (operation) events — expected, the subscription is created "+
+			"over WMI. They carry Operation/ClientMachine, never Consumer.", ops)
 	}
+
 	// The consumer is the one field the detection rule selects on. Everything
 	// else in the payload is context.
 	if got.Consumer == "" {
-		t.Error("consumer is empty — the detection rule keys on the consumer TYPE, so an " +
-			"event without it is stored, counted, and matched by nothing. Either the provider " +
+		t.Error("consumer is empty on a 5861 — the detection rule keys on the consumer TYPE, so " +
+			"an event without it is stored, counted, and matched by nothing. Either the provider " +
 			"stopped populating Consumer on this Windows build or etwProp needs another spelling")
 	}
 	if !strings.Contains(got.Consumer, "CommandLineEventConsumer") {
@@ -169,10 +183,10 @@ func (s *capturingSender) count() int {
 	return len(s.batches)
 }
 
-// findWMIActivity returns the first captured wmi_activity payload. The wire form
-// is "wmi_activity:<uuid>:<json>", the same prefix promotion the ingestion side
+// eachWMIActivity decodes every captured wmi_activity payload. The wire form is
+// "wmi_activity:<uuid>:<json>", the same prefix promotion the ingestion side
 // splits on, so decoding it here also checks that the ID stayed parseable.
-func (s *capturingSender) findWMIActivity() (wmiLiveEvent, bool) {
+func (s *capturingSender) eachWMIActivity(fn func(wmiLiveEvent) bool) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	for _, b := range s.batches {
@@ -185,12 +199,64 @@ func (s *capturingSender) findWMIActivity() (wmiLiveEvent, bool) {
 			if err := json.Unmarshal([]byte(parts[2]), &out); err != nil {
 				continue
 			}
-			if out.EventType != "" {
-				return out, true
+			if out.EventType == "" {
+				continue
+			}
+			if !fn(out) {
+				return
 			}
 		}
 	}
-	return wmiLiveEvent{}, false
+}
+
+// findWMIBinding returns the first captured 5861 (subscription registration).
+// Deliberately not "the first wmi_activity of any kind": see the polling loop.
+func (s *capturingSender) findWMIBinding() (wmiLiveEvent, bool) {
+	var found wmiLiveEvent
+	var ok bool
+	s.eachWMIActivity(func(ev wmiLiveEvent) bool {
+		if ev.EventID == 5861 {
+			found, ok = ev, true
+			return false
+		}
+		return true
+	})
+	return found, ok
+}
+
+func (s *capturingSender) countsByEventID() map[int]int {
+	counts := map[int]int{}
+	s.eachWMIActivity(func(ev wmiLiveEvent) bool {
+		counts[ev.EventID]++
+		return true
+	})
+	return counts
+}
+
+// countSubscriptionEventsInLog asks the Windows event log whether the provider
+// wrote any 5861 records recently. The ETW session and the Operational log are
+// fed from the same manifest, so this separates "the provider never emitted it"
+// from "it was emitted and the collector dropped it" — two failures that look
+// identical from inside the test. Diagnostic only: never fails the test.
+func countSubscriptionEventsInLog(t *testing.T) string {
+	t.Helper()
+	const ps = `
+$ErrorActionPreference = 'SilentlyContinue'
+$evts = Get-WinEvent -FilterHashtable @{
+  LogName   = 'Microsoft-Windows-WMI-Activity/Operational'
+  Id        = 5861
+  StartTime = (Get-Date).AddMinutes(-5)
+} -MaxEvents 5
+if ($null -eq $evts) { Write-Output 'none' } else { Write-Output ("{0} found" -f @($evts).Count) }
+`
+	out, err := exec.Command("powershell", "-NoProfile", "-NonInteractive", "-Command", ps).CombinedOutput()
+	if err != nil {
+		return "could not read the log: " + err.Error()
+	}
+	if s := strings.TrimSpace(string(out)); s != "" {
+		return s
+	}
+	return "no output from Get-WinEvent"
 }
 
 // createWMISubscription registers filter + CommandLineEventConsumer + binding —

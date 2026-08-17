@@ -61,16 +61,35 @@ detection:
 			wantSupported: true,
 		},
 		{
+			// GrantedAccess used to be the example here, and it stopped being one:
+			// the credential-access sensor emits access_mask and the api pipeline
+			// now aliases it (see TestLSASSDumpRuleFiresInAPIEvaluatorViaAccessMask).
+			// The fixture is kept pointed at CallTrace, which no sensor produces —
+			// an example that has quietly become supported turns this case into a
+			// test of nothing.
 			name: "rule selecting a field telemetry never emits is inert",
 			rule: `
-title: Needs Sysmon EID10 GrantedAccess
+title: Needs Sysmon EID10 CallTrace
 detection:
   selection:
-    GrantedAccess: '0x1410'
     CallTrace|contains: 'UNKNOWN'
   condition: selection`,
 			wantSupported: false,
-			wantUnsupp:    []string{"GrantedAccess", "CallTrace"},
+			wantUnsupp:    []string{"CallTrace"},
+		},
+		{
+			// The other half of that change: GrantedAccess must now be supported.
+			// Without this, re-breaking the access_mask alias would only show up in
+			// the migration-corpus gate, far from the alias it belongs to.
+			name: "GrantedAccess resolves via the access_mask alias",
+			rule: `
+title: LSASS handle open
+detection:
+  selection:
+    TargetImage|endswith: '\lsass.exe'
+    GrantedAccess: '0x1410'
+  condition: selection`,
+			wantSupported: true,
 		},
 		{
 			name:          "unparseable / empty rule is never enabled",

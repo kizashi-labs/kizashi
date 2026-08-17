@@ -638,3 +638,71 @@ func TestAggregateSumsBothEngineSpellings(t *testing.T) {
 		t.Errorf("alerts = %d, want 2 (both spellings summed)", sc.Rules[0].Alerts)
 	}
 }
+
+// A detector that names its subject in the title must still be measurable.
+//
+// Built from the real shape observed on a benign 20-host soak: the file-burst
+// heuristic produced 36 alerts under EIGHT titles (one per process), seven of
+// them at 4 alerts — below the 5-alert new-rule floor, hence exempt from the
+// gate. Doubling the detector leaves each title around 8, an increase of ~4,
+// inside the per-rule tolerance of 5. Per-title, nothing fires.
+func TestFamilyRollupCatchesSubjectTitledDetector(t *testing.T) {
+	rules := func(per int, procs ...string) []RuleStat {
+		var out []RuleStat
+		for _, p := range procs {
+			out = append(out, RuleStat{
+				Title:  "[HEURISTIC] ランサムウェアの疑い: プロセス '" + p + "' が30秒内に多数のファイルを破壊的操作",
+				Alerts: per,
+				Rate:   float64(per) * 600,
+			})
+		}
+		return out
+	}
+	procs := []string{"rsync", "restic", "robocopy.exe", "MsMpEng.exe", "go", "find", "node", "tar"}
+
+	baseline := Scorecard{Rate: 100, Rules: rules(4, procs...)}
+	doubled := Scorecard{Rate: 100, Rules: rules(8, procs...)}
+
+	// Per-title alone is blind: +4 alerts each is inside ruleTol.
+	var perTitle int
+	for _, r := range doubled.Rules {
+		was := 4 * 600.0
+		if r.Rate > was+3000 {
+			perTitle++
+		}
+	}
+	if perTitle != 0 {
+		t.Fatalf("premise broken: %d titles exceed the per-rule tolerance on their own, so this "+
+			"test is no longer exercising the blind spot it was written for", perTitle)
+	}
+
+	regs := CompareBaseline(doubled, baseline, 42000, 3000, 3000)
+	if len(regs) == 0 {
+		t.Error("a detector that doubled (4→8 alerts across 8 per-process titles, 32→64 total) " +
+			"passed the gate. Splitting one detector across many subject-titled rows hides it " +
+			"from every per-title check: each row stays under the new-rule floor and each " +
+			"increase stays inside the per-rule tolerance.")
+	}
+
+	// And it must not fire when nothing changed.
+	if regs := CompareBaseline(baseline, baseline, 42000, 3000, 3000); len(regs) != 0 {
+		t.Errorf("an unchanged run reported family regressions: %+v", regs)
+	}
+}
+
+// The rollup must not collapse genuinely different rules into one bucket.
+func TestFamilyRollupKeepsDistinctRulesApart(t *testing.T) {
+	if a, b := familyKey("[Sigma] Domain Group Discovery"), familyKey("[Sigma] Domain Account Discovery"); a == b {
+		t.Errorf("two unrelated rules share a family key %q — the subject stripper is too greedy", a)
+	}
+	// Same detector, different subject → same family.
+	a := familyKey("[HEURISTIC] 疑い: プロセス 'rsync' が…")
+	b := familyKey("[HEURISTIC] 疑い: プロセス 'restic' が…")
+	if a != b {
+		t.Errorf("same detector, different process, got different families: %q vs %q", a, b)
+	}
+	// Engine-prefix case still folds (the #647 fix must survive the rollup).
+	if familyKey("[SIGMA] X") != familyKey("[Sigma] X") {
+		t.Error("familyKey stopped folding the engine prefix")
+	}
+}

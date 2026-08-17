@@ -9,7 +9,12 @@ import (
 	"testing"
 )
 
-func contains(ss []string, want string) bool {
+// containsFold reports whether ss holds want (case-insensitively). Named for the
+// fold-compare rather than plain `contains`: auth_parse_test.go in this package
+// already declares a substring `contains`, and under `-tags prevention` the two
+// files compile together. That collision meant this test file had never been
+// compiled at all — no CI job type-checked the windows+prevention build.
+func containsFold(ss []string, want string) bool {
 	for _, s := range ss {
 		if strings.EqualFold(s, want) {
 			return true
@@ -33,7 +38,7 @@ func TestPathAliasesExistingFile(t *testing.T) {
 	aliases := PathAliases(long)
 	t.Logf("aliases(%q) = %v", long, aliases)
 
-	if !contains(aliases, long) {
+	if !containsFold(aliases, long) {
 		t.Errorf("aliases must contain the input path %q; got %v", long, aliases)
 	}
 
@@ -51,12 +56,12 @@ func TestPathAliasesExistingFile(t *testing.T) {
 	// Short form: if the volume preserves 8.3 names, GetShortPathName differs and
 	// must be present (this is exactly the ADMINI~1 case from W0 testing).
 	if sp := shortPath(long); sp != "" && !strings.EqualFold(sp, long) {
-		if !contains(aliases, sp) {
+		if !containsFold(aliases, sp) {
 			t.Errorf("short-name form %q missing from aliases %v", sp, aliases)
 		}
 		// And expanding the short form must recover the long form.
 		back := PathAliases(sp)
-		if !contains(back, longPath(sp)) {
+		if !containsFold(back, longPath(sp)) {
 			t.Errorf("expanding short form %q should include its long form; got %v", sp, back)
 		}
 	} else {
@@ -69,7 +74,7 @@ func TestPathAliasesExistingFile(t *testing.T) {
 func TestPathAliasesMissingFile(t *testing.T) {
 	p := `C:\definitely\does\not\exist\evil.exe`
 	aliases := PathAliases(p)
-	if !contains(aliases, p) {
+	if !containsFold(aliases, p) {
 		t.Errorf("missing-file aliases must still contain the input; got %v", aliases)
 	}
 }

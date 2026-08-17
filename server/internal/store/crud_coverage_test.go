@@ -1838,22 +1838,22 @@ func TestCommandStore_Dispatch(t *testing.T) {
 	aid := seedAgentStore(t, db)
 	s := store.NewCommandStore(db, stubPublisher{})
 	ctx := context.Background()
-	if err := s.IsolateEndpoint(ctx, aid, "cov-reason", ""); err != nil {
+	if err := s.IsolateEndpoint(ctx, aid, "cov-reason", "", ""); err != nil {
 		t.Fatalf("IsolateEndpoint: %v", err)
 	}
-	if err := s.UnisolateEndpoint(ctx, aid, "cov-reason"); err != nil {
+	if err := s.UnisolateEndpoint(ctx, aid, "cov-reason", ""); err != nil {
 		t.Fatalf("UnisolateEndpoint: %v", err)
 	}
-	if err := s.KillProcess(ctx, aid, 1234, "cov-reason"); err != nil {
+	if err := s.KillProcess(ctx, aid, 1234, "cov-reason", ""); err != nil {
 		t.Fatalf("KillProcess: %v", err)
 	}
-	if err := s.QuarantineFile(ctx, aid, "/tmp/evil", ""); err != nil {
+	if err := s.QuarantineFile(ctx, aid, "/tmp/evil", "", ""); err != nil {
 		t.Fatalf("QuarantineFile: %v", err)
 	}
-	if err := s.Scan(ctx, aid, "quick", "cov-user"); err != nil {
+	if err := s.Scan(ctx, aid, "quick", "cov-user", ""); err != nil {
 		t.Fatalf("Scan: %v", err)
 	}
-	if err := s.ScanCancel(ctx, aid, "cov-user"); err != nil {
+	if err := s.ScanCancel(ctx, aid, "cov-user", ""); err != nil {
 		t.Fatalf("ScanCancel: %v", err)
 	}
 }
@@ -1996,8 +1996,81 @@ func TestResponseActionStore_CRUD(t *testing.T) {
 	aid := seedAgentStore(t, db)
 	s := store.NewResponseActionStore(db)
 	ctx := context.Background()
-	if err := s.Record(ctx, aid, "isolate", "success", "cov-user", map[string]interface{}{"k": "v"}); err != nil {
+	id, err := s.Record(ctx, aid, "isolate", store.StatusDispatched, "cov-user", map[string]interface{}{"k": "v"})
+	if err != nil {
 		t.Fatalf("Record: %v", err)
+	}
+	// 送っただけの行が success と数えられないこと。ここが真だったのが元の欠陥。
+	var success bool
+	if err := db.Pool().QueryRow(ctx,
+		"SELECT success FROM response_actions WHERE id=$1", id).Scan(&success); err != nil {
+		t.Fatalf("success の読み出し: %v", err)
+	}
+	if success {
+		t.Errorf("status=%s の行が success=true になっています", store.StatusDispatched)
+	}
+	// 結果が返ってきたら終了状態へ移せること。
+	if err := s.Complete(ctx, id, store.StatusSuccess, ""); err != nil {
+		t.Fatalf("Complete: %v", err)
+	}
+	if err := db.Pool().QueryRow(ctx,
+		"SELECT success FROM response_actions WHERE id=$1", id).Scan(&success); err != nil {
+		t.Fatalf("success の再読み出し: %v", err)
+	}
+	if !success {
+		t.Error("Complete 後も success=false のままです")
+	}
+
+	// 期限切れの掃除。結果が返らないまま放置された行を timeout に畳む。
+	// 新しい行を巻き添えにしないことが要点で、そちらを取り違えると
+	// 実行中のコマンドを失敗として記録してしまう。
+	stale, err := s.Record(ctx, aid, "isolate", store.StatusDispatched, "cov-user", nil)
+	if err != nil {
+		t.Fatalf("Record(stale): %v", err)
+	}
+	fresh, err := s.Record(ctx, aid, "isolate", store.StatusDispatched, "cov-user", nil)
+	if err != nil {
+		t.Fatalf("Record(fresh): %v", err)
+	}
+	// 片方だけ「30 分前に送った」ことにする
+	if _, err := db.Pool().Exec(ctx,
+		"UPDATE response_actions SET executed_at = NOW() - INTERVAL '30 minutes' WHERE id=$1",
+		stale); err != nil {
+		t.Fatalf("executed_at の巻き戻し: %v", err)
+	}
+
+	n, err := s.ExpireStale(ctx, 15*time.Minute)
+	if err != nil {
+		t.Fatalf("ExpireStale: %v", err)
+	}
+	if n < 1 {
+		t.Errorf("期限切れの件数 = %d, want >= 1", n)
+	}
+
+	var staleStatus, freshStatus string
+	if err := db.Pool().QueryRow(ctx,
+		"SELECT status_text FROM response_actions WHERE id=$1", stale).Scan(&staleStatus); err != nil {
+		t.Fatalf("stale の読み出し: %v", err)
+	}
+	if staleStatus != store.StatusTimeout {
+		t.Errorf("放置された行の状態 = %q, want %q", staleStatus, store.StatusTimeout)
+	}
+	if err := db.Pool().QueryRow(ctx,
+		"SELECT status_text FROM response_actions WHERE id=$1", fresh).Scan(&freshStatus); err != nil {
+		t.Fatalf("fresh の読み出し: %v", err)
+	}
+	if freshStatus != store.StatusDispatched {
+		t.Errorf("送ったばかりの行の状態 = %q, want %q（巻き添えにしてはいけない）",
+			freshStatus, store.StatusDispatched)
+	}
+	// 終了状態の行は二度と書き換えられない
+	var completedStatus string
+	if err := db.Pool().QueryRow(ctx,
+		"SELECT status_text FROM response_actions WHERE id=$1", id).Scan(&completedStatus); err != nil {
+		t.Fatalf("completed の読み出し: %v", err)
+	}
+	if completedStatus != store.StatusSuccess {
+		t.Errorf("完了済みの行が %q に書き換わりました", completedStatus)
 	}
 	t.Cleanup(func() { _, _ = db.Pool().Exec(ctx, "DELETE FROM response_actions WHERE agent_id=$1", aid) })
 	if _, _, err := s.List(ctx, aid, 10, 0); err != nil {

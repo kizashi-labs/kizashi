@@ -142,7 +142,6 @@ type Handlers struct {
 	ThreatFusion         *handlers.ThreatFusionHandler
 	IPBlock              *handlers.IPBlockHandler
 
-
 	AutoResponse     *handlers.AutoResponseHandler
 	CustomAlertRules *handlers.CustomAlertRulesHandler
 	MetricsAPI       *handlers.MetricsAPIHandler
@@ -563,7 +562,6 @@ type Handlers struct {
 	ComplianceEval *handlers.ComplianceEvalHandler
 
 	// M-3: Mobile Push Token
-
 
 	// Phase 5: Support Tickets
 	Support *handlers.SupportHandler
@@ -4232,7 +4230,6 @@ func (s *Server) registerRoutes() {
 			wl.GET("/stats", s.handlers.Watchlist.Stats)
 		}
 	}
-
 
 	// ─── サポートチケット ──────────────────────────────────────────────────
 	if s.handlers.Support != nil {

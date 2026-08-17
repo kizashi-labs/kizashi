@@ -1,0 +1,17 @@
+#!/bin/sh
+# macOS pkg preinstall — runs before the payload is laid down, on install and
+# upgrade alike.
+set -e
+
+LABEL=com.edrplatform.agent
+PLIST="/Library/LaunchDaemons/${LABEL}.plist"
+
+# Stop a running daemon so the payload can replace a binary that is executing.
+# bootout is the modern form; the legacy unload is kept for macOS < 11.
+if [ -f "$PLIST" ]; then
+    launchctl bootout "system/${LABEL}" 2>/dev/null \
+        || launchctl unload -w "$PLIST" 2>/dev/null \
+        || true
+fi
+
+exit 0

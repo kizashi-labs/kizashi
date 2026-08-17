@@ -17,31 +17,30 @@ func NewCSPMHandler(checker *cspm.Checker) *CSPMHandler {
 
 // Scan runs a CSPM scan
 // POST /api/v1/admin/cspm/scan
+//
+// 注意: このハンドラはルーターに登録されていない。cspm.Checker の各チェックは
+// クラウドへ接続せず、呼び出し元が渡す cfg.Settings を読むだけなので、
+// 「設定値を渡すと判定してくれる」評価器であってスキャナではない。
+//
+// 以前はリクエストが空 (または不正) のとき、AWS アカウント 123456789012 の
+// 「ルート MFA 無効・SSH 全開放・EBS 未暗号化」という設定値を勝手に埋めて
+// 判定していた。誰も検査していないアカウントの不合格所見が返ることになり、
+// 万一ルーティングされれば実所見と区別が付かない。判定材料が無いときは
+// 判定せず 400 を返す。
 func (h *CSPMHandler) Scan(c *gin.Context) {
 	var cfg cspm.ProviderConfig
 	if err := c.ShouldBindJSON(&cfg); err != nil {
-		// Use simulated default config
-		cfg = cspm.ProviderConfig{
-			Provider:  cspm.ProviderAWS,
-			AccountID: "123456789012",
-			Region:    "ap-northeast-1",
-			Settings: map[string]interface{}{
-				"s3_block_public_access": true,
-				"root_mfa_enabled":       false,
-				"cloudtrail_enabled":     true,
-				"ssh_unrestricted":       true,
-				"ebs_encryption":         false,
-			},
-		}
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "検査対象の設定 (provider / account_id / settings) を指定してください",
+		})
+		return
 	}
 	if len(cfg.Settings) == 0 {
-		cfg.Settings = map[string]interface{}{
-			"s3_block_public_access": true,
-			"root_mfa_enabled":       false,
-			"cloudtrail_enabled":     true,
-			"ssh_unrestricted":       true,
-			"ebs_encryption":         false,
-		}
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "settings が空です。各チェックは settings の値だけを見るため、" +
+				"空のまま実行すると全項目が既定側 (多くは不合格) に倒れます",
+		})
+		return
 	}
 
 	result, err := h.checker.Scan(c.Request.Context(), cfg)

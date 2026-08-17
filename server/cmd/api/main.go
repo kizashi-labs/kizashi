@@ -247,8 +247,6 @@ func main() {
 	}
 	investigationHandler := handlers.NewInvestigationHandler(investigator)
 
-
-
 	// ─── Auth security components ─────────────────────────────
 	tokenBlocklist := auth.NewTokenBlocklist()
 	tokenBlocklist.StartCleanup()
@@ -748,7 +746,6 @@ func main() {
 	// ─── Email Verification ───────────────────────────────────
 	h.EmailVerify = handlers.NewEmailVerificationHandler(pool, baseURL, mailer)
 
-
 	// ─── User Preferences ─────────────────────────────────────
 	userPrefsStore := store.NewUserPreferencesStore(pool)
 	h.UserPreferences = handlers.NewUserPreferencesHandler(userPrefsStore)
@@ -892,9 +889,14 @@ func main() {
 	slog.Info("レポートメール配信スケジューラーを開始しました")
 
 	// ─── Threat Feed Auto-Update Scheduler ───────────────────
-	feedScheduler := scheduler.NewFeedScheduler(pool, threatFeedStore, 6*time.Hour)
+	// 公開 IOC ブロックリストの取得は既定で有効。外向き通信を一切出したく
+	// ない環境は THREAT_FEED_SYNC_ENABLED=false で全停止できる（個別に
+	// 止めるなら threat_feeds.is_active）。README の外部通信表を参照。
+	feedSyncEnabled := scheduler.ThreatFeedSyncEnabled(os.Getenv("THREAT_FEED_SYNC_ENABLED"))
+	feedScheduler := scheduler.NewFeedScheduler(pool, threatFeedStore, 6*time.Hour).
+		WithEnabled(feedSyncEnabled)
 	go feedScheduler.Run(ctx)
-	slog.Info("脅威フィード自動更新スケジューラーを開始しました")
+	slog.Info("脅威フィード自動更新スケジューラーを開始しました", "enabled", feedSyncEnabled)
 
 	// ─── IOC Expiry Sweeper ───────────────────────────────────
 	// Deactivate IOCs whose STIX valid_until (expires_at) has passed.
@@ -910,7 +912,6 @@ func main() {
 	// ─── Alert Deduplication ──────────────────────────────────
 	alertDeduplicator := dedup.NewAlertDeduplicator(pool)
 	go alertDeduplicator.Run(ctx)
-
 
 	// ─── Incident Auto-Escalation ─────────────────────────────
 	incidentEscalator := scheduler.NewIncidentEscalator(pool)
@@ -1193,7 +1194,10 @@ func main() {
 	)
 
 	// ─── Dark Web Monitor ─────────────────────────────────────
-	darkwebEnabled := os.Getenv("DARKWEB_MONITOR_ENABLED") != "false"
+	// オプトイン。有効にすると起動直後に ransomwatch / ransomware.live へ
+	// 外向き HTTPS が出るため、明示的に true を設定した場合だけ動かす。
+	// 「既定では何も外に出ない」を実装側で保証するのはここ。
+	darkwebEnabled := scheduler.DarkWebEnabled(os.Getenv("DARKWEB_MONITOR_ENABLED"))
 	torProxy := os.Getenv("TOR_PROXY_URL")
 	darkwebSched := scheduler.NewDarkWebScheduler(pool, torProxy, darkwebEnabled)
 	// 即時通知設定（検知時に別途 Slack/Webhook へ緊急通知）
@@ -1269,8 +1273,8 @@ func main() {
 	slog.Info("コンプライアンスアラーターを開始しました")
 
 	// ─── Threat Feed Auto-Import Scheduler ───────────────────
-	go scheduler.NewThreatFeedImporter(pool, nc).Run(ctx)
-	slog.Info("脅威フィード自動インポートスケジューラーを開始しました")
+	go scheduler.NewThreatFeedImporter(pool, nc).WithEnabled(feedSyncEnabled).Run(ctx)
+	slog.Info("脅威フィード自動インポートスケジューラーを開始しました", "enabled", feedSyncEnabled)
 
 	// ─── Log Ingestion Handler ────────────────────────────────
 	h.LogIngestion = handlers.NewLogIngestionHandler(pool)
@@ -1680,7 +1684,6 @@ func main() {
 	h.Org = handlers.NewOrgHandler(orgStore)
 	slog.Info("マルチテナント組織ストアを初期化しました")
 
-
 	// ─── GeoIP Threat Map ─────────────────────────────────────
 	h.GeoIP = handlers.NewGeoIPHandler(pool)
 	slog.Info("GeoIPスレッドマップハンドラーを初期化しました")
@@ -1712,7 +1715,6 @@ func main() {
 	}
 	h.SIEMWebhook = handlers.NewSIEMWebhookHandler(siemConnector)
 	slog.Info("SIEMウェブフックコネクターを初期化しました")
-
 
 	// ─── Query Cache ──────────────────────────────────────────
 	queryCache := cache.New(5 * time.Minute)
@@ -1746,8 +1748,6 @@ func main() {
 	// ─── License Expiry Notifier ──────────────────────────────
 	go scheduler.NewLicenseExpiryNotifier(pool).Run(ctx)
 	slog.Info("ライセンス期限切れ通知スケジューラーを開始しました")
-
-
 
 	// ─── Support Tickets (Phase 5) ────────────────────────────
 	{
@@ -1868,7 +1868,6 @@ func main() {
 	complianceScheduler.Start(ctx)
 	slog.Info("コンプライアンス自動評価スケジューラーを起動しました（毎日 02:00 UTC）")
 
-
 	// ─── Zero Trust Engine ────────────────────────────────────
 	ztEngine := zerotrust.NewEngine(pool)
 	h.ZeroTrustEngine = handlers.NewZeroTrustEngineHandler(ztEngine)
@@ -1974,15 +1973,6 @@ func main() {
 	}
 
 	slog.Info("REST APIサーバーを停止しました")
-}
-
-// alertStoreAdapter wraps *store.AlertStore to satisfy handlers.AlertQueryStore.
-type alertStoreAdapter struct {
-	store *store.AlertStore
-}
-
-func (a *alertStoreAdapter) GetAlert(ctx context.Context, id string) (interface{}, error) {
-	return a.store.GetAlert(ctx, id)
 }
 
 func mustEnv(key string) string {

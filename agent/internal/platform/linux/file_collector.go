@@ -335,9 +335,9 @@ func (c *InotifyFileCollector) Stop() error {
 // source cuts pipeline volume (bandwidth, storage, and detection-engine load) while
 // keeping /tmp visible for actual malware staging.
 var runtimeNoisePrefixes = []string{
-	"/tmp/runc-",               // runc exec fifos: /tmp/runc-processNNN
-	"/tmp/crun-",               // crun equivalent
-	"/tmp/containerd-",         // containerd shim temp
+	"/tmp/runc-",             // runc exec fifos: /tmp/runc-processNNN
+	"/tmp/crun-",             // crun equivalent
+	"/tmp/containerd-",       // containerd shim temp
 	"/tmp/kizashi-agent.log", // the agent's own log file
 	// Compiler scratch trees. Measured on a live endpoint (2026-08-01): a single
 	// `go build` wrote 120 files in 30s and tripped the ransomware rate detector.

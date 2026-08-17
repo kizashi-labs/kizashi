@@ -158,6 +158,68 @@ detect_platform() {
     esac
 
     info "Platform detected: ${OS}/${ARCH} (${DISTRO})"
+
+    detect_variant
+}
+
+# ─── Build variant selection ─────────────────────────────────────────────────
+# Beyond the default (telemetry-only) build, two enforcing variants exist:
+#
+#   edr-agent-linux-amd64-ebpf    eBPF/LSM exec prevention, tamper protection,
+#                                 credential-access auditing
+#   edr-agent-darwin-<arch>-esf   Apple Endpoint Security Framework collector
+#                                 (+ AUTH_EXEC prevention with the entitlement)
+#
+# Linux is auto-detected: the enforcing build needs a kernel with BPF LSM active
+# (CONFIG_BPF_LSM and `bpf` in the boot-time lsm= list), and on such hosts it is
+# a strict superset. Until now the enforcing binary was published but nothing
+# ever chose it, which is why prevention shipped in name only.
+#
+# macOS is NOT auto-detected. The ESF build is only functional when signed with
+# Apple's approved com.apple.developer.endpoint-security.client entitlement, and
+# an unsigned one fails at es_new_client with ERR_NOT_ENTITLED — the installer
+# cannot tell from the outside whether the published binary was signed. Picking
+# it automatically would trade a working polling agent for a silently dead ESF
+# one, so it requires EDR_AGENT_VARIANT=esf.
+#
+# Override with EDR_AGENT_VARIANT=ebpf|esf (force) or EDR_AGENT_VARIANT=none.
+detect_variant() {
+    VARIANT=""
+
+    case "${EDR_AGENT_VARIANT:-auto}" in
+        none|default) info "Build variant: default (forced via EDR_AGENT_VARIANT)"; return ;;
+        ebpf)         VARIANT="ebpf"; warn "Build variant: ebpf (forced via EDR_AGENT_VARIANT; kernel support not checked)"; return ;;
+        esf)          VARIANT="esf";  warn "Build variant: esf (forced via EDR_AGENT_VARIANT; requires an entitlement-signed binary)"; return ;;
+        auto)         ;;
+        *)            warn "Unknown EDR_AGENT_VARIANT='${EDR_AGENT_VARIANT}'; falling back to auto-detection" ;;
+    esac
+
+    if [ "$OS" = "darwin" ]; then
+        info "Build variant: default (macOS ESF build must be requested with EDR_AGENT_VARIANT=esf)"
+        return
+    fi
+
+    if [ "$OS" != "linux" ] || [ "$ARCH" != "amd64" ]; then
+        info "Build variant: default (the enforcing Linux build is published for linux/amd64 only)"
+        return
+    fi
+
+    # securityfs exposes the active LSM list. Absent => securityfs not mounted or
+    # a kernel too old to report it; either way we cannot confirm BPF LSM.
+    local lsm_list="/sys/kernel/security/lsm"
+    if [ ! -r "$lsm_list" ]; then
+        info "Build variant: default (cannot read ${lsm_list}; BPF LSM unconfirmed)"
+        return
+    fi
+
+    if grep -qw bpf "$lsm_list" 2>/dev/null; then
+        VARIANT="ebpf"
+        info "Build variant: ebpf — BPF LSM active, installing the enforcing build"
+    else
+        info "Build variant: default (BPF LSM not in $(cat "$lsm_list" 2>/dev/null))"
+        info "  To enable pre-execution prevention, add 'bpf' to the kernel lsm= boot"
+        info "  parameter (e.g. lsm=lockdown,capability,landlock,yama,apparmor,bpf) and re-run."
+    fi
 }
 
 # ─── Download helper ─────────────────────────────────────────────────────────
@@ -181,18 +243,54 @@ http_get() {
     fi
 }
 
+# confirm_variant_available downgrades VARIANT to the default build when the
+# server has no binary for it, so auto-detection can never turn a working
+# install into a failed one. A server that has not yet published the enforcing
+# build (agent-ebpf.yml has to have run at least once) is a perfectly normal
+# state, and on a BPF-LSM host auto-detection would otherwise pick a variant the
+# server 404s on and abort the install.
+#
+# The warning is deliberately loud: silently installing the non-enforcing build
+# on a host that *can* enforce is the failure mode worth being noisy about.
+confirm_variant_available() {
+    [ -n "${VARIANT:-}" ] || return 0
+
+    local probe="${SERVER_URL}/api/v1/agents/download/checksum?platform=${OS}&arch=${ARCH}&binary=agent&variant=${VARIANT}"
+    if http_get "$probe" /dev/null 2>/dev/null; then
+        return 0
+    fi
+
+    warn "The server has no '${VARIANT}' agent build published for ${OS}/${ARCH}."
+    warn "Installing the default (telemetry-only) build — pre-execution prevention will NOT be active."
+    case "$VARIANT" in
+        ebpf) warn "Publish it by running the 'Agent eBPF Build' workflow, then re-run this installer." ;;
+        esf)  warn "Publish it by running the 'Agent macOS ESF Build' workflow with Apple signing secrets configured." ;;
+    esac
+    VARIANT=""
+}
+
 # ─── Download binaries ───────────────────────────────────────────────────────
 download_binary() {
     local name="$1"       # e.g. edr-agent or edr-watchdog
     local dest="$2"       # destination path for verified binary
 
-    local filename="${name}-${OS}-${ARCH}"
     # binary key for the download API: edr-agent -> agent, edr-watchdog -> watchdog
     local binary="${name#edr-}"
+
+    # Only the agent has variant builds; the watchdog carries no prevention code
+    # and one binary serves both. Requesting it with a variant is harmless (the
+    # server maps it back to the plain watchdog) but asking plainly is clearer.
+    local variant_q="" variant_sfx=""
+    if [ -n "${VARIANT:-}" ] && [ "$binary" = "agent" ]; then
+        variant_q="&variant=${VARIANT}"
+        variant_sfx="-${VARIANT}"
+    fi
+
+    local filename="${name}-${OS}-${ARCH}${variant_sfx}"
     # The server exposes binaries via the agent download API, not a static
     # /downloads/ path (that route does not exist on the Go server).
-    local url="${SERVER_URL}/api/v1/agents/download?platform=${OS}&arch=${ARCH}&binary=${binary}"
-    local checksum_url="${SERVER_URL}/api/v1/agents/download/checksum?platform=${OS}&arch=${ARCH}&binary=${binary}"
+    local url="${SERVER_URL}/api/v1/agents/download?platform=${OS}&arch=${ARCH}&binary=${binary}${variant_q}"
+    local checksum_url="${SERVER_URL}/api/v1/agents/download/checksum?platform=${OS}&arch=${ARCH}&binary=${binary}${variant_q}"
 
     local tmp_bin="${TMP_DIR}/${filename}"
     local tmp_sha="${tmp_bin}.sha256"
@@ -582,6 +680,7 @@ main() {
     TMP_DIR="$(mktemp -d /tmp/edr-install.XXXXXX)"
 
     section "Downloading binaries"
+    confirm_variant_available
     local tmp_agent="${TMP_DIR}/edr-agent"
     local tmp_watchdog="${TMP_DIR}/edr-watchdog"
 
@@ -593,6 +692,14 @@ main() {
     install -o root -m 755 "$tmp_watchdog" "$WATCHDOG_BIN"
     step "Installed: ${AGENT_BIN}"
     step "Installed: ${WATCHDOG_BIN}"
+
+    # Record which build was installed so update.sh keeps this host on it. The
+    # kernel check cannot be re-run at update time to decide this: an operator
+    # may have pinned the default build with EDR_AGENT_VARIANT=none on a
+    # BPF-LSM-capable host, and re-detecting would silently override that.
+    mkdir -p "$CONFIG_DIR"
+    printf '%s\n' "${VARIANT:-}" > "${CONFIG_DIR}/agent-variant"
+    chmod 644 "${CONFIG_DIR}/agent-variant"
 
     section "Creating system user and directories"
     if [ "$OS" = "linux" ]; then

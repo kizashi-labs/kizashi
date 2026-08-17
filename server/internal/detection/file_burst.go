@@ -19,6 +19,7 @@ import (
 	"time"
 
 	detectionrules "github.com/edr-platform/server/internal/detection/rules"
+	"github.com/edr-platform/server/internal/metrics"
 )
 
 const (
@@ -96,9 +97,23 @@ func isDestructiveFileAction(action string) bool {
 // Non-destructive actions and empty paths are ignored. now is injected for
 // deterministic tests.
 func (d *FileBurstScorer) Observe(agentID, procName, path, action string, now time.Time) []*detectionrules.RuleMatch {
-	if path == "" || !isDestructiveFileAction(action) {
+	// Count every offer at the detector boundary, before any filtering. Without
+	// this, "the events never reached the detector" and "they reached it and the
+	// window never filled" look identical from outside the process — which is
+	// exactly where a live experiment stalled (see metrics.FileBurstObservations).
+	label := action
+	if label == "" {
+		label = "unknown"
+	}
+	if path == "" {
+		metrics.FileBurstObservations.WithLabelValues(label, "ignored_path").Inc()
 		return nil
 	}
+	if !isDestructiveFileAction(action) {
+		metrics.FileBurstObservations.WithLabelValues(label, "ignored_action").Inc()
+		return nil
+	}
+	metrics.FileBurstObservations.WithLabelValues(label, "counted").Inc()
 	// No collector populates the actor for file events yet, so an empty procName is
 	// the PRODUCTION norm, not an edge case: the key degenerates to one bucket per
 	// host. Track that explicitly and score it on rate concentration instead of raw
@@ -135,6 +150,11 @@ func (d *FileBurstScorer) Observe(agentID, procName, path, action string, now ti
 	st.paths[path] = nu
 
 	n := len(st.paths)
+	scope := "process"
+	if hostScoped {
+		scope = "host"
+	}
+	metrics.FileBurstBucketPaths.WithLabelValues(scope).Set(float64(n))
 	if n < fileBurstMinFiles {
 		return nil
 	}

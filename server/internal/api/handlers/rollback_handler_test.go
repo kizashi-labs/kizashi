@@ -33,11 +33,11 @@ func (f *fakePlanner) MarkReverted(_ context.Context, _ string, paths []string) 
 
 type fakeCmd struct{ restored, deleted []string }
 
-func (f *fakeCmd) RestoreFile(_ context.Context, _, _, path string) error {
+func (f *fakeCmd) RestoreFile(_ context.Context, _, _, path, _ string) error {
 	f.restored = append(f.restored, path)
 	return nil
 }
-func (f *fakeCmd) DeleteFile(_ context.Context, _, path, _ string) error {
+func (f *fakeCmd) DeleteFile(_ context.Context, _, path, _, _ string) error {
 	f.deleted = append(f.deleted, path)
 	return nil
 }

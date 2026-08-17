@@ -243,6 +243,14 @@ func (m *IPTablesIsolationManager) IsIsolated() bool {
 	return m.isolated
 }
 
+// VerifyIsolation reads the actual firewall state instead of the in-memory flag.
+//
+// detectIsolationState は起動時にしか使われていなかった。適用直後に確かめれば、
+// 「コマンドは成功したがルールが入っていない」を捕まえられる。
+func (m *IPTablesIsolationManager) VerifyIsolation() (bool, error) {
+	return m.detectIsolationState(), nil
+}
+
 func isNFTablesAvailable() bool {
 	return exec.Command("nft", "--version").Run() == nil
 }

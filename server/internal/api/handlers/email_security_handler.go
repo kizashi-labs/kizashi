@@ -751,16 +751,20 @@ func (h *EmailSecurityHandler) GetThreatTrend(c *gin.Context) {
 // Stats — GET /admin/email-security/stats (migration 170 schema)
 func (h *EmailSecurityHandler) Stats(c *gin.Context) {
 	var total, phishing, malware, blocked int
-	h.pool.QueryRow(c.Request.Context(), `
+	if err := h.pool.QueryRow(c.Request.Context(), `
 		SELECT COUNT(*),
 		       COUNT(*) FILTER (WHERE event_type='phishing'),
 		       COUNT(*) FILTER (WHERE event_type='malware'),
 		       COUNT(*) FILTER (WHERE action_taken='blocked')
 		FROM email_security_events
 		WHERE created_at >= NOW() - INTERVAL '24 hours'
-	`).Scan(&total, &phishing, &malware, &blocked)
+	`).Scan(&total, &phishing, &malware, &blocked); err != nil {
+		slog.Warn("email security: 集計クエリに失敗しました", "error", err)
+	}
 	var policies int
-	h.pool.QueryRow(c.Request.Context(), `SELECT COUNT(*) FROM email_security_policies WHERE enabled=true`).Scan(&policies)
+	if err := h.pool.QueryRow(c.Request.Context(), `SELECT COUNT(*) FROM email_security_policies WHERE enabled=true`).Scan(&policies); err != nil {
+		slog.Warn("email security: 集計クエリに失敗しました", "error", err)
+	}
 	c.JSON(http.StatusOK, gin.H{
 		"events_24h":      total,
 		"phishing_24h":    phishing,

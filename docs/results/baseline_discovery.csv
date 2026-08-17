@@ -1,0 +1,9 @@
+technique,test_name,rank,rank_name,latency_sec,matched_by,exit_code
+T1033,whoami,4,Technique,24.0,[BEHAVIORAL] 探索コマンドの短時間バ�… (fixture-disc-burst),0
+T1087.001,net-user,4,Technique,21.0,[BEHAVIORAL] 探索コマンドの短時間バ�… (fixture-disc-burst),0
+T1069.001,net-localgroup,4,Technique,18.0,[BEHAVIORAL] 探索コマンドの短時間バ�… (fixture-disc-burst),0
+T1049,netstat,4,Technique,15.0,[BEHAVIORAL] 探索コマンドの短時間バ�… (fixture-disc-burst),0
+T1018,arp,4,Technique,12.0,[BEHAVIORAL] 探索コマンドの短時間バ�… (fixture-disc-burst),0
+T1016,ipconfig,4,Technique,9.0,[BEHAVIORAL] 探索コマンドの短時間バ�… (fixture-disc-burst),0
+T1057,tasklist,4,Technique,6.0,[BEHAVIORAL] 探索コマンドの短時間バ�… (fixture-disc-burst),0
+T1082,systeminfo,4,Technique,3.0,[BEHAVIORAL] 探索コマンドの短時間バ�… (fixture-disc-burst),0

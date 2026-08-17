@@ -236,6 +236,14 @@ func (p *AlertPipeline) handleEvent(ctx context.Context, subject string, data []
 	// Flatten NormalizedEvent: copy top-level metadata and merge nested data payload.
 	event := flattenNormalizedEvent(envelope)
 
+	// The events.event_id ingestion persisted this event as, recorded on every
+	// alert built from it so the alert can be traced back to its evidence.
+	// Deliberately NOT merged into `event`: flattenNormalizedEvent copies a fixed
+	// allowlist, and "event_id" is already a DETECTION field name (the numeric
+	// Windows Event ID, e.g. 5861) — merging the envelope's UUID under that key
+	// would silently break every rule selecting on it.
+	evidenceID, _ := envelope["event_id"].(string)
+
 	// Resolve the parent image name from ppid so Sigma ParentImage rules can fire.
 	// flattenNormalizedEvent already applied the alias layer; re-apply it so the
 	// freshly-injected parent_process maps onto ParentImage.
@@ -251,7 +259,7 @@ func (p *AlertPipeline) handleEvent(ctx context.Context, subject string, data []
 			"level", match.Level,
 			"subject", subject,
 		)
-		p.createAlertFromSigma(ctx, match, event)
+		p.createAlertFromSigma(ctx, match, event, evidenceID)
 	}
 
 	// ── IOC matching via existing IOCMatcher ────────────────
@@ -262,7 +270,7 @@ func (p *AlertPipeline) handleEvent(ctx context.Context, subject string, data []
 				"value", hit.Value,
 				"field", hit.MatchedOn,
 			)
-			p.createAlertFromIOC(ctx, hit, event)
+			p.createAlertFromIOC(ctx, hit, event, evidenceID)
 		}
 	}
 
@@ -271,7 +279,7 @@ func (p *AlertPipeline) handleEvent(ctx context.Context, subject string, data []
 		for _, m := range p.custom.EvaluateEvent(event) {
 			slog.Info("alert_pipeline: custom rule match",
 				"rule", m.Rule.Name, "count", m.Count, "subject", subject)
-			p.createAlertFromCustomRule(ctx, m, event)
+			p.createAlertFromCustomRule(ctx, m, event, evidenceID)
 		}
 	}
 
@@ -293,7 +301,7 @@ func (p *AlertPipeline) ReloadCustomRules(ctx context.Context) error {
 
 // createAlertFromCustomRule inserts an alert for a custom rule that reached its
 // threshold.
-func (p *AlertPipeline) createAlertFromCustomRule(ctx context.Context, m CustomRuleMatch, event map[string]interface{}) {
+func (p *AlertPipeline) createAlertFromCustomRule(ctx context.Context, m CustomRuleMatch, event map[string]interface{}, evidenceID string) {
 	hostname, _ := event["hostname"].(string)
 	agentID, _ := event["agent_id"].(string)
 
@@ -325,6 +333,7 @@ func (p *AlertPipeline) createAlertFromCustomRule(ctx context.Context, m CustomR
 		Description: desc,
 		Status:      "open",
 		MITRETech:   mitre,
+		EventIDs:    evidenceEventIDs(evidenceID),
 	})
 	if err != nil {
 		slog.Warn("alert_pipeline: ユーザー定義ルールのアラート登録に失敗しました",
@@ -337,7 +346,7 @@ func (p *AlertPipeline) createAlertFromCustomRule(ctx context.Context, m CustomR
 // ─── Alert Creation ──────────────────────────────────────────
 
 // createAlertFromSigma inserts an alert for a Sigma rule match.
-func (p *AlertPipeline) createAlertFromSigma(ctx context.Context, match SigmaMatch, event map[string]interface{}) {
+func (p *AlertPipeline) createAlertFromSigma(ctx context.Context, match SigmaMatch, event map[string]interface{}, evidenceID string) {
 	hostname, _ := event["hostname"].(string)
 	agentID, _ := event["agent_id"].(string)
 
@@ -374,6 +383,7 @@ func (p *AlertPipeline) createAlertFromSigma(ctx context.Context, match SigmaMat
 		Description: fmt.Sprintf("Sigma rule '%s' matched (level: %s)", match.RuleTitle, match.Level),
 		Status:      "open",
 		MITRETech:   parseMITRETechFromTags(match.Tags),
+		EventIDs:    evidenceEventIDs(evidenceID),
 	})
 	if err != nil {
 		slog.Warn("alert_pipeline: failed to insert sigma alert", "rule", match.RuleTitle, "error", err)
@@ -641,7 +651,7 @@ func isDiscoveryRecon(tech string) bool {
 // いる。TopHits は IOC とアラートを結ぶ手掛かりが他に無いためこの title で
 // 突き合わせており、書式を変えるとエラーにはならず「上位 IOC」が黙って 0 件に
 // なる。変更する場合は両方を揃えること。
-func (p *AlertPipeline) createAlertFromIOC(ctx context.Context, hit IOCMatch, event map[string]interface{}) {
+func (p *AlertPipeline) createAlertFromIOC(ctx context.Context, hit IOCMatch, event map[string]interface{}, evidenceID string) {
 	hostname, _ := event["hostname"].(string)
 	agentID, _ := event["agent_id"].(string)
 
@@ -654,6 +664,7 @@ func (p *AlertPipeline) createAlertFromIOC(ctx context.Context, hit IOCMatch, ev
 		Title:       fmt.Sprintf("Known IOC detected: %s", hit.Value),
 		Description: fmt.Sprintf("Field '%s' matched %s IOC: %s", hit.MatchedOn, hit.IOC.Type, hit.IOC.Description),
 		Status:      "open",
+		EventIDs:    evidenceEventIDs(evidenceID),
 	})
 	if err != nil {
 		slog.Warn("alert_pipeline: failed to insert IOC alert", "type", hit.IOC.Type, "error", err)
@@ -832,6 +843,7 @@ type insertAlertParams struct {
 	Description string
 	Status      string
 	MITRETech   string
+	EventIDs    []string
 }
 
 // insertAlert writes to the alerts table and returns the new alert ID.
@@ -842,8 +854,8 @@ func (p *AlertPipeline) insertAlert(ctx context.Context, params insertAlertParam
 		mitreTech = &params.MITRETech
 	}
 	err := p.pool.QueryRow(ctx, `
-		INSERT INTO alerts (agent_id, severity, status, title, description, mitre_technique)
-		VALUES ($1::uuid, $2, $3, $4, $5, $6)
+		INSERT INTO alerts (agent_id, severity, status, title, description, mitre_technique, event_ids)
+		VALUES ($1::uuid, $2, $3, $4, $5, $6, $7::uuid[])
 		RETURNING id
 	`,
 		nilStr(params.AgentID),
@@ -852,6 +864,7 @@ func (p *AlertPipeline) insertAlert(ctx context.Context, params insertAlertParam
 		params.Title,
 		params.Description,
 		mitreTech,
+		params.EventIDs,
 	).Scan(&alertID)
 	return alertID, err
 }
@@ -1004,6 +1017,15 @@ func addPipelineSigmaAliases(flat map[string]interface{}) {
 		"target_image": {"TargetImage"},
 		"source_pid":   {"SourceProcessId"},
 		"target_pid":   {"TargetProcessId"},
+		// DesiredAccess on the handle (Sysmon EID10 GrantedAccess). The
+		// credential-access sensor emits it as access_mask and server-detect's
+		// RuleEngine has mapped GrantedAccess→access_mask for a long time; this
+		// pipeline never did, so every GrantedAccess-gated rule was inert on the api
+		// side only — including the shipped "LSASS ダンプ" rule (T1003.001,
+		// migration 003), which selects on GrantedAccess AND TargetImage and so
+		// could not fire here at all. Same parity gap, and same fix, as logon_type
+		// below. Found by TestMigrationSigmaFieldSupportInAPIEvaluator.
+		"access_mask": {"GrantedAccess"},
 		// Registry: expose key/value under the standard Sigma names. Following the
 		// Sysmon convention, TargetObject is the key path and Details is the value
 		// DATA (what persistence rules match on); value_name stays available raw.

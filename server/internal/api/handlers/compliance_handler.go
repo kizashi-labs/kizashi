@@ -124,10 +124,10 @@ func (h *ComplianceHandler) Summary(c *gin.Context) {
 			Scan(&totalVulns, &criticalVulns, &highVulns)
 
 		// IOCs
-		_ = h.Pool.QueryRow(ctx, `SELECT COUNT(*) FROM iocs WHERE is_active`).Scan(&totalIOC)
+		_ = h.Pool.QueryRow(ctx, `SELECT COUNT(*) FROM ioc_entries WHERE is_active`).Scan(&totalIOC)
 
 		// Playbooks
-		_ = h.Pool.QueryRow(ctx, `SELECT COUNT(*), COUNT(*) FILTER (WHERE enabled) FROM playbooks`).
+		_ = h.Pool.QueryRow(ctx, `SELECT COUNT(*), COUNT(*) FILTER (WHERE is_active) FROM playbooks`).
 			Scan(&totalPlaybooks, &enabledPlaybooks)
 
 		// Incidents (shows incident management maturity)
@@ -596,7 +596,7 @@ func (h *ComplianceHandler) CISControls(c *gin.Context) {
 	if h.Pool != nil {
 		_ = h.Pool.QueryRow(ctx, `SELECT COUNT(*) FROM rules WHERE enabled`).Scan(&totalRules)
 		rows, err := h.Pool.Query(ctx,
-			`SELECT COALESCE(category, 'general'), COUNT(*) FROM rules WHERE enabled GROUP BY category`)
+			`SELECT COALESCE(type, 'general'), COUNT(*) FROM rules WHERE enabled GROUP BY type`)
 		if err == nil {
 			defer rows.Close()
 			for rows.Next() {

@@ -1,0 +1,459 @@
+# 情報システム部門の管理端末 (Windows) — FPフロンティアの本丸。
+#
+# 管理者の正規業務は、MITRE ATT&CK の Discovery / Lateral Movement /
+# Credential Access と挙動レベルで区別がつかない:
+#   - whoami / systeminfo / net user / nltest / ipconfig を数分で立て続けに叩く
+#     → discovery.go の「4種以上のバースト」閾値の真上
+#   - 多数のホストへ RDP / WinRM / SMB で接続する
+#     → lateral_fanout.go (T1021) の真上
+#   - AD 情報を大量に引く (Get-ADUser -Filter *)
+#     → T1087 アカウント探索ルールの真上
+#
+# 台数は少ないが、FP を出すならほぼ確実にここ。fleet_weight は小さいまま
+# AllocateFleet が最低1台を保証するので、小規模なCI実行でも必ず含まれる。
+
+name        = "it-admin"
+os          = "windows"
+os_version  = "Windows 11 Enterprise 23H2"
+description = "情報システム部の管理端末: AD運用・リモート管理・脆弱性スキャン"
+host_prefix = "adm"
+fleet_weight = 8
+subnet      = "10.20.9.0/24"
+users       = ["admin_hasegawa", "admin_okada", "admin_morita"]
+
+[rates]
+process    = 300
+file       = 500
+network    = 900
+dns        = 300
+registry   = 200
+auth       = 30
+image_load = 250
+
+# ─── プロセス ────────────────────────────────────────────────
+
+# 探索コマンド群。discovery.go は「単発は無音、4種以上のバーストのみ相関1件」
+# という設計になっている。その設計が実運用の管理者操作に耐えるかを
+# 測るのがこの weight の高いエントリの目的。
+[[processes]]
+weight   = 22
+name     = "cmd.exe"
+path     = 'C:\Windows\System32\cmd.exe'
+parent   = "explorer.exe"
+user     = 'CORP\{{user}}'
+integrity = "High"
+company  = "Microsoft Corporation"
+original_file_name = "Cmd.Exe"
+cmdlines = [
+  "whoami /groups",
+  "systeminfo",
+  "ipconfig /all",
+  "net user {{user}} /domain",
+  "net group \"Domain Admins\" /domain",
+  "nltest /dclist:corp",
+  "tasklist /svc",
+  "netstat -ano",
+  "arp -a",
+  "query user",
+  "net share",
+  "nslookup dc01.corp.example.co.jp",
+]
+
+[[processes]]
+weight   = 20
+name     = "powershell.exe"
+path     = 'C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe'
+parent   = "explorer.exe"
+user     = 'CORP\{{user}}'
+integrity = "High"
+company  = "Microsoft Corporation"
+product  = "Microsoft® Windows® Operating System"
+original_file_name = "PowerShell.EXE"
+cmdlines = [
+  'powershell.exe -Command "Get-ADUser -Filter * -Properties LastLogonDate | Select-Object Name,LastLogonDate"',
+  'powershell.exe -Command "Get-ADComputer -Filter * | Measure-Object"',
+  'powershell.exe -Command "Get-ADGroupMember -Identity \"Domain Admins\""',
+  'powershell.exe -Command "Invoke-Command -ComputerName wks-{{randint}} -ScriptBlock { Get-Service }"',
+  'powershell.exe -Command "Enter-PSSession -ComputerName fs01.corp.example.co.jp"',
+  'powershell.exe -Command "Get-WinEvent -LogName Security -MaxEvents 500"',
+  'powershell.exe -NoProfile -ExecutionPolicy Bypass -File "\\sccm01\scripts$\Audit-Patches.ps1"',
+]
+
+[[processes]]
+weight   = 12
+name     = "mstsc.exe"
+path     = 'C:\Windows\System32\mstsc.exe'
+parent   = "explorer.exe"
+user     = 'CORP\{{user}}'
+integrity = "Medium"
+company  = "Microsoft Corporation"
+original_file_name = "mstsc.exe"
+cmdlines = [
+  "mstsc.exe /v:wks-{{randint}}.corp.example.co.jp",
+  "mstsc.exe /v:fs01.corp.example.co.jp /admin",
+]
+
+[[processes]]
+weight   = 10
+name     = "mmc.exe"
+path     = 'C:\Windows\System32\mmc.exe'
+parent   = "explorer.exe"
+user     = 'CORP\{{user}}'
+integrity = "High"
+company  = "Microsoft Corporation"
+original_file_name = "MMC.EXE"
+cmdlines = [
+  '"C:\Windows\system32\mmc.exe" "C:\Windows\system32\dsa.msc"',
+  '"C:\Windows\system32\mmc.exe" "C:\Windows\system32\gpmc.msc"',
+  '"C:\Windows\system32\mmc.exe" "C:\Windows\system32\compmgmt.msc" /computer:wks-{{randint}}',
+]
+
+# WMI によるリモート照会。攻撃の T1047 と完全に同形。
+[[processes]]
+weight   = 10
+name     = "wmic.exe"
+path     = 'C:\Windows\System32\wbem\WMIC.exe'
+parent   = "cmd.exe"
+user     = 'CORP\{{user}}'
+integrity = "High"
+company  = "Microsoft Corporation"
+original_file_name = "wmic.exe"
+cmdlines = [
+  "wmic /node:wks-{{randint}} computersystem get name,domain",
+  "wmic qfe list brief",
+  "wmic product get name,version",
+  "wmic service where started=true get name,startmode",
+]
+
+[[processes]]
+weight   = 8
+name     = "reg.exe"
+path     = 'C:\Windows\System32\reg.exe'
+parent   = "cmd.exe"
+user     = 'CORP\{{user}}'
+integrity = "High"
+company  = "Microsoft Corporation"
+original_file_name = "reg.exe"
+cmdlines = [
+  'reg query "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion" /v ProductName',
+  'reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU" /v NoAutoUpdate /t REG_DWORD /d 0 /f',
+  'reg query "HKLM\SYSTEM\CurrentControlSet\Services\LanmanServer\Parameters"',
+]
+
+[[processes]]
+weight   = 8
+name     = "nessusd.exe"
+path     = 'C:\Program Files\Tenable\Nessus Agent\nessusd.exe'
+parent   = "services.exe"
+user     = 'NT AUTHORITY\SYSTEM'
+integrity = "System"
+company  = "Tenable, Inc."
+original_file_name = "nessusd.exe"
+cmdlines = ['"C:\Program Files\Tenable\Nessus Agent\nessusd.exe" -q']
+
+[[processes]]
+weight   = 5
+name     = "psexec.exe"
+path     = 'C:\Tools\SysinternalsSuite\PsExec64.exe'
+parent   = "cmd.exe"
+user     = 'CORP\{{user}}'
+integrity = "High"
+company  = "Sysinternals - www.sysinternals.com"
+product  = "Sysinternals PsExec"
+original_file_name = "psexec.c"
+file_description = "Execute processes remotely"
+cmdlines = [
+  'PsExec64.exe \\wks-{{randint}} -s cmd.exe /c "gpupdate /force"',
+  'PsExec64.exe \\fs01 -s ipconfig /flushdns',
+]
+
+# LOLBin の「正規側」。cmstp / installutil / odbcconf / certutil / ftp は
+# いずれも ATT&CK の proxy-execution・ingress 技法として検知ルールが載っている
+# バイナリだが、下記はすべて情シスの日常操作そのものである。
+#
+# 2026-07-18 の良性バッテリで、この5つのうち certutil -decode / InstallUtil /u /
+# odbcconf CONFIGSYSDSN の3つが実際に誤検知していた。原因は、ルールの selection
+# (=OR) に「そのバイナリの起動なら良性・悪性を問わずほぼ必ず付く」トークン
+# (.inf / /u / /a / .dll / -decode) が混ざっており、単独で十分な一致条件に
+# なっていたこと。修正は「そのバイナリが使われたか」ではなく「その技法が
+# 使われたか」を書く形への置き換え (技術的負債と改善計画.md P5-11)。
+#
+# ここに置く理由は、ユニットテストが「そのルールが鳴らないこと」しか見ないのに対し、
+# FPソークは**フリート全体の誤検知率として**測れるため。良性側の代表操作を
+# プロファイルに入れておかないと、同じ型の退行が数字に出ない。
+[[processes]]
+weight   = 6
+name     = "cmd.exe"
+path     = 'C:\Windows\System32\cmd.exe'
+parent   = "explorer.exe"
+user     = 'CORP\{{user}}'
+integrity = "High"
+company  = "Microsoft Corporation"
+original_file_name = "Cmd.Exe"
+cmdlines = [
+  # 配布物に同梱された base64 の証明書/構成をローカルで復号する。通信は一切しない。
+  'certutil -decode C:\Temp\rootca.b64 C:\Temp\rootca.cer',
+  'certutil -encode C:\Temp\client.cer C:\Temp\client.b64',
+  # 内製 .NET サービスの入れ替え。/u は日常のアンインストール。
+  'InstallUtil.exe /u "C:\Program Files\Corp\AgentSvc\AgentSvc.exe"',
+  # 基幹系 ODBC の DSN 設定。/a と .dll は全アクション共通の構文。
+  'odbcconf.exe /a {CONFIGSYSDSN "SQL Server" "DSN=CorpDW|Driver=sqlncli.dll|Server=dw01"}',
+  # VPN 接続マネージャのプロファイル導入。.inf は cmstp の必須引数。
+  'cmstp.exe "\\sccm01\pkg$\vpn\CorpVPN.inf"',
+  # 旧来の社内FTPへ対話接続。put/get はセッション内で打つのでコマンドラインには出ない。
+  'ftp.exe ftp.corp.example.co.jp',
+]
+
+[[processes]]
+weight   = 5
+name     = "explorer.exe"
+path     = 'C:\Windows\explorer.exe'
+parent   = "userinit.exe"
+user     = 'CORP\{{user}}'
+integrity = "Medium"
+company  = "Microsoft Corporation"
+original_file_name = "EXPLORER.EXE"
+cmdlines = ['C:\Windows\Explorer.EXE']
+
+# ─── ファイル ────────────────────────────────────────────────
+
+[[files]]
+weight  = 30
+process = "powershell.exe"
+actions = ["create", "modify"]
+size_range = [1024, 52428800]
+paths = [
+  'C:\Users\{{user}}\Documents\reports\ad-audit-{{date}}.csv',
+  'C:\Users\{{user}}\AppData\Local\Temp\__PSScriptPolicyTest_{{rand}}.ps1',
+  'C:\Users\{{user}}\Documents\WindowsPowerShell\PSReadLine\ConsoleHost_history.txt',
+]
+
+[[files]]
+weight  = 25
+process = "nessusd.exe"
+actions = ["create", "modify", "delete"]
+size_range = [4096, 209715200]
+paths = [
+  'C:\ProgramData\Tenable\Nessus Agent\nessus\plugins\{{rand}}.nasl',
+  'C:\ProgramData\Tenable\Nessus Agent\nessus\logs\nessusd-{{date}}.messages',
+]
+
+[[files]]
+weight  = 20
+process = "mmc.exe"
+actions = ["create", "modify"]
+size_range = [512, 5242880]
+paths = ['C:\Users\{{user}}\AppData\Roaming\Microsoft\MMC\{{rand}}']
+
+[[files]]
+weight  = 15
+process = "psexec.exe"
+actions = ["create", "delete"]
+size_range = [100000, 500000]
+paths = ['\\wks-{{randint}}\ADMIN$\PSEXESVC.exe']
+
+[[files]]
+weight  = 10
+process = "cmd.exe"
+actions = ["create", "modify"]
+size_range = [128, 1048576]
+paths = ['C:\Users\{{user}}\AppData\Local\Temp\{{rand}}.log']
+
+# ─── ネットワーク ────────────────────────────────────────────
+
+# 管理端末から多数のホストへの管理ポート接続。lateral_fanout.go は
+# 「1ホストが多数ホストへリモート管理ポート接続」で T1021 を発火させる。
+# 管理者の日常業務そのものなので、閾値と抑制設計の実用性がここで決まる。
+[[network]]
+weight   = 30
+process  = "mstsc.exe"
+proto    = "tcp"
+ports    = [3389]
+hostname = "wks.corp.example.co.jp"
+hosts    = [
+  "10.20.1.11", "10.20.1.12", "10.20.1.13", "10.20.1.14",
+  "10.20.2.21", "10.20.2.22", "10.20.3.31", "10.20.3.32",
+  "10.20.4.41", "10.20.4.42", "10.20.5.51", "10.20.5.52",
+]
+bytes_sent_range = [50000, 30000000]
+bytes_recv_range = [100000, 200000000]
+
+[[network]]
+weight   = 25
+process  = "powershell.exe"
+proto    = "tcp"
+ports    = [5985, 5986]
+hostname = "wks.corp.example.co.jp"
+hosts    = [
+  "10.20.1.11", "10.20.1.15", "10.20.2.23", "10.20.3.33",
+  "10.20.4.43", "10.20.5.53", "10.20.255.10", "10.20.255.11",
+]
+bytes_sent_range = [2000, 3000000]
+bytes_recv_range = [2000, 10000000]
+
+[[network]]
+weight   = 20
+process  = "mmc.exe"
+proto    = "tcp"
+ports    = [389, 636, 88, 135]
+hostname = "dc01.corp.example.co.jp"
+hosts    = ["10.20.255.5", "10.20.255.6"]
+bytes_sent_range = [1000, 2000000]
+bytes_recv_range = [2000, 40000000]
+
+# 脆弱性スキャン。サブネット全域へポートを開けにいく形は
+# ポートスキャン検知 (T1046) と原理的に同一。
+[[network]]
+weight   = 15
+process  = "nessusd.exe"
+proto    = "tcp"
+ports    = [22, 80, 135, 139, 443, 445, 3389, 5985, 8080]
+hostname = "scan-target"
+hosts    = [
+  "10.20.1.11", "10.20.1.12", "10.20.1.13", "10.20.2.21",
+  "10.20.2.22", "10.20.3.31", "10.20.4.41", "10.20.5.51",
+  "10.20.255.5", "10.20.255.10", "10.20.255.30", "10.20.255.50",
+]
+bytes_sent_range = [64, 20000]
+bytes_recv_range = [0, 60000]
+
+[[network]]
+weight   = 10
+process  = "psexec.exe"
+proto    = "tcp"
+ports    = [445]
+hostname = "wks.corp.example.co.jp"
+hosts    = ["10.20.1.11", "10.20.2.21", "10.20.3.31", "10.20.4.41"]
+bytes_sent_range = [200000, 2000000]
+bytes_recv_range = [1000, 500000]
+
+# ─── DNS ─────────────────────────────────────────────────────
+
+[[dns]]
+weight  = 40
+process = "powershell.exe"
+queries = [
+  "dc01.corp.example.co.jp", "dc02.corp.example.co.jp",
+  "fs01.corp.example.co.jp", "sccm01.corp.example.co.jp",
+  "_ldap._tcp.dc._msdcs.corp.example.co.jp",
+]
+
+[[dns]]
+weight  = 30
+process = "mstsc.exe"
+queries = [
+  "wks-101.corp.example.co.jp", "wks-102.corp.example.co.jp",
+  "wks-203.corp.example.co.jp", "wks-304.corp.example.co.jp",
+]
+
+[[dns]]
+weight  = 20
+process = "nessusd.exe"
+queries = ["cloud.tenable.com", "plugins.nessus.org"]
+
+[[dns]]
+weight  = 10
+process = "cmd.exe"
+queries = ["corp.example.co.jp", "dc01.corp.example.co.jp"]
+
+# ─── レジストリ ──────────────────────────────────────────────
+
+# 管理者による HKLM ポリシー変更。永続化・防御回避ルールが
+# 最も引っかかりやすい正規操作。
+[[registry]]
+weight  = 40
+process = "reg.exe"
+actions = ["create", "modify"]
+keys    = [
+  'HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU',
+  'HKLM\SYSTEM\CurrentControlSet\Control\Terminal Server',
+  'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System',
+]
+values  = ["NoAutoUpdate", "fDenyTSConnections", "LocalAccountTokenFilterPolicy"]
+data    = ["0", "1"]
+
+[[registry]]
+weight  = 30
+process = "mmc.exe"
+actions = ["modify", "query"]
+keys    = ['HKCU\Software\Microsoft\MMC\{{rand}}']
+values  = ["FavoritesList", "{{rand}}"]
+data    = ["{{rand}}"]
+
+[[registry]]
+weight  = 20
+process = "powershell.exe"
+actions = ["modify"]
+keys    = ['HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\RunMRU']
+values  = ["a", "b", "MRUList"]
+data    = ["powershell\\1", "cmd\\1"]
+
+[[registry]]
+weight  = 10
+process = "psexec.exe"
+actions = ["create", "delete"]
+keys    = ['HKLM\SYSTEM\CurrentControlSet\Services\PSEXESVC']
+values  = ["ImagePath"]
+data    = ['%SystemRoot%\PSEXESVC.exe']
+
+# ─── 認証 ────────────────────────────────────────────────────
+
+[[auth]]
+weight  = 50
+users   = ['CORP\{{user}}']
+actions = ["login"]
+success = true
+methods = ["mfa", "password"]
+
+# 管理者による特権昇格。1日に何度も発生する。
+[[auth]]
+weight  = 35
+users   = ['CORP\{{user}}']
+actions = ["privilege"]
+success = true
+methods = ["password"]
+
+# 管理端末では「サービスアカウントのパスワード切れ」等で
+# 失敗が固まって出ることがある。ブルートフォース検知の閾値近傍。
+[[auth]]
+weight  = 15
+users   = ['CORP\svc_monitor', 'CORP\svc_backup', 'CORP\{{user}}']
+actions = ["failed"]
+success = false
+methods = ["password"]
+failure_reason = "The specified account password has expired"
+
+# ─── モジュールロード ────────────────────────────────────────
+
+[[image_loads]]
+weight  = 40
+process = "powershell.exe"
+signed  = true
+signer  = "Microsoft Corporation"
+paths   = [
+  'C:\Windows\System32\amsi.dll',
+  'C:\Windows\Microsoft.NET\assembly\GAC_MSIL\System.DirectoryServices\v4.0_4.0.0.0__b03f5f7f11d50a3a\System.DirectoryServices.dll',
+]
+
+[[image_loads]]
+weight  = 30
+process = "mmc.exe"
+signed  = true
+signer  = "Microsoft Windows"
+paths   = ['C:\Windows\System32\dsadmin.dll', 'C:\Windows\System32\adprop.dll']
+
+[[image_loads]]
+weight  = 20
+process = "wmic.exe"
+signed  = true
+signer  = "Microsoft Windows"
+paths   = ['C:\Windows\System32\wbem\wbemcomn.dll', 'C:\Windows\System32\wbem\fastprox.dll']
+
+# 署名済みだが Microsoft 以外の署名者。サードパーティ管理ツールは
+# 「署名者が想定外」というだけで疑われやすい。
+[[image_loads]]
+weight  = 10
+process = "nessusd.exe"
+signed  = true
+signer  = "Tenable, Inc."
+paths   = ['C:\Program Files\Tenable\Nessus Agent\nessus_ssl.dll']

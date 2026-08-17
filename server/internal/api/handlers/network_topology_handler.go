@@ -109,15 +109,19 @@ func (h *NetworkTopologyHandler) GetTopology(c *gin.Context) {
 
 func (h *NetworkTopologyHandler) Stats(c *gin.Context) {
 	var total, endpoints, servers, critical int
-	h.pool.QueryRow(c.Request.Context(), `
+	if err := h.pool.QueryRow(c.Request.Context(), `
 		SELECT COUNT(*),
 		       COUNT(*) FILTER (WHERE node_type='endpoint'),
 		       COUNT(*) FILTER (WHERE node_type='server'),
 		       COUNT(*) FILTER (WHERE criticality='critical')
 		FROM network_topology_nodes
-	`).Scan(&total, &endpoints, &servers, &critical)
+	`).Scan(&total, &endpoints, &servers, &critical); err != nil {
+		slog.Warn("network topology: 集計クエリに失敗しました", "error", err)
+	}
 	var edgeCount int
-	h.pool.QueryRow(c.Request.Context(), `SELECT COUNT(*) FROM network_topology_edges`).Scan(&edgeCount)
+	if err := h.pool.QueryRow(c.Request.Context(), `SELECT COUNT(*) FROM network_topology_edges`).Scan(&edgeCount); err != nil {
+		slog.Warn("network topology: 集計クエリに失敗しました", "error", err)
+	}
 	c.JSON(http.StatusOK, gin.H{
 		"total_nodes":    total,
 		"endpoints":      endpoints,

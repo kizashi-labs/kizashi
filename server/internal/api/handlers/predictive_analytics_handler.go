@@ -53,11 +53,11 @@ func (h *PredictiveAnalyticsHandler) fetchStats(ctx context.Context) riskStats {
 	).Scan(&s.criticalAlerts)
 	_ = h.pool.QueryRow(ctx, `
 		SELECT COUNT(*) FROM alerts
-		WHERE severity = 'high' AND created_at >= NOW() - INTERVAL '30 days'`,
+		WHERE severity BETWEEN 7 AND 8 AND created_at >= NOW() - INTERVAL '30 days'`,
 	).Scan(&s.highAlerts)
 	_ = h.pool.QueryRow(ctx, `
 		SELECT COUNT(*) FROM alerts
-		WHERE severity = 'medium' AND created_at >= NOW() - INTERVAL '30 days'`,
+		WHERE severity BETWEEN 4 AND 6 AND created_at >= NOW() - INTERVAL '30 days'`,
 	).Scan(&s.mediumAlerts)
 
 	// 直近7日・30日アラート総数
@@ -288,7 +288,7 @@ func (h *PredictiveAnalyticsHandler) GetTrends(c *gin.Context) {
 			SELECT
 				DATE(created_at) AS day,
 				COUNT(*) AS alert_count,
-				COUNT(*) FILTER (WHERE severity IN ('critical','high')) AS anomaly_count
+				COUNT(*) FILTER (WHERE severity >= 7) AS anomaly_count
 			FROM alerts
 			WHERE created_at >= NOW() - INTERVAL '30 days'
 			GROUP BY day

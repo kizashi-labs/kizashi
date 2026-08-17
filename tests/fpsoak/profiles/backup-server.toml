@@ -1,0 +1,250 @@
+# バックアップサーバ (Linux) — 「大量ファイル操作 + 大容量外部送信」の常態。
+#
+# 2つの検知器の閾値に正面から当たる:
+#   - file_burst.go (T1486): 1プロセスが短時間に多数ファイルを破壊的操作。
+#     世代管理による古いスナップショットの一括削除がまさにこの形。
+#   - exfil_volume.go (T1048): 外部宛先への累積送信バイトが閾値超。
+#     夜間のクラウド(オフサイト)バックアップは数百GB〜を外部IPへ送る。
+#     内部RFC1918宛は除外される設計なので、外部宛が正しく除外されないと
+#     毎晩必ず1件のアラートが出る = 最も高コストな誤検知になる。
+
+name        = "backup-server"
+os          = "linux"
+os_version  = "Rocky Linux 9.4"
+description = "バックアップサーバ: restic/rsync、世代削除、クラウドへのオフサイト転送"
+host_prefix = "bkp"
+fleet_weight = 4
+subnet      = "10.22.0.0/24"
+users       = ["backup", "root"]
+
+[rates]
+process    = 80
+file       = 6000
+network    = 900
+dns        = 100
+auth       = 20
+image_load = 60
+
+# ─── プロセス ────────────────────────────────────────────────
+
+[[processes]]
+weight   = 25
+name     = "restic"
+path     = "/usr/local/bin/restic"
+parent   = "systemd"
+user     = "backup"
+cmdlines = [
+  "restic -r s3:s3.ap-northeast-1.amazonaws.com/corp-backup backup /srv/data --tag daily",
+  "restic -r s3:s3.ap-northeast-1.amazonaws.com/corp-backup forget --keep-daily 7 --keep-weekly 4 --prune",
+  "restic -r /mnt/vault check --read-data-subset=5%",
+]
+
+[[processes]]
+weight   = 20
+name     = "rsync"
+path     = "/usr/bin/rsync"
+parent   = "bash"
+user     = "backup"
+cmdlines = [
+  "rsync -az --delete --numeric-ids /srv/data/ backup@10.22.0.20:/vault/data/",
+  "rsync -a --link-dest=/vault/{{date}} /srv/data/ /vault/{{randint}}/",
+]
+
+[[processes]]
+weight   = 15
+name     = "tar"
+path     = "/usr/bin/tar"
+parent   = "bash"
+user     = "backup"
+cmdlines = [
+  "tar --zstd -cf /vault/archive-{{date}}.tar.zst /srv/data/share",
+  "tar -tvf /vault/archive-{{date}}.tar.zst",
+]
+
+# 世代管理による一括削除。ランサム検知の真正面。
+[[processes]]
+weight   = 15
+name     = "find"
+path     = "/usr/bin/find"
+parent   = "bash"
+user     = "backup"
+cmdlines = [
+  "find /vault/snapshots -type f -mtime +30 -delete",
+  "find /srv/data -type f -newermt '-1 day' -print",
+]
+
+[[processes]]
+weight   = 10
+name     = "pg_dump"
+path     = "/usr/bin/pg_dump"
+parent   = "bash"
+user     = "backup"
+cmdlines = [
+  "pg_dump -h db01.corp.example.co.jp -U backup -Fc -f /vault/db-{{date}}.dump appdb",
+]
+
+[[processes]]
+weight   = 8
+name     = "gpg"
+path     = "/usr/bin/gpg"
+parent   = "bash"
+user     = "backup"
+cmdlines = [
+  "gpg --batch --yes --encrypt --recipient backup@corp.example.co.jp /vault/db-{{date}}.dump",
+]
+
+[[processes]]
+weight   = 7
+name     = "systemd"
+path     = "/usr/lib/systemd/systemd"
+parent   = "systemd"
+user     = "root"
+cmdlines = ["/usr/lib/systemd/systemd --system --deserialize 31"]
+
+# ─── ファイル ────────────────────────────────────────────────
+
+# 世代削除: 単一プロセスが短時間に数千ファイルを delete する。
+# file_burst.go の閾値をそのまま踏みにいく、完全に正規の夜間バッチ。
+[[files]]
+weight  = 40
+process = "find"
+actions = ["delete"]
+size_range = [1024, 1073741824]
+paths = [
+  "/vault/snapshots/{{date}}/{{rand}}",
+  "/vault/snapshots/old/{{rand}}.chunk",
+]
+
+[[files]]
+weight  = 30
+process = "restic"
+actions = ["create", "modify"]
+size_range = [4096, 536870912]
+paths = [
+  "/vault/repo/data/{{rand}}/{{rand}}",
+  "/vault/repo/index/{{rand}}",
+  "/vault/repo/snapshots/{{rand}}",
+]
+
+[[files]]
+weight  = 20
+process = "rsync"
+actions = ["create", "modify", "rename", "delete"]
+size_range = [512, 4294967296]
+paths = [
+  "/vault/data/share/{{rand}}",
+  "/vault/data/.~tmp~/{{rand}}",
+]
+
+[[files]]
+weight  = 10
+process = "tar"
+actions = ["create"]
+size_range = [1073741824, 8589934592]
+paths = ["/vault/archive-{{date}}.tar.zst"]
+
+# ─── ネットワーク ────────────────────────────────────────────
+
+# オフサイト(クラウド)転送。外部IP宛に1晩で数百GB。
+# exfil_volume.go の isExternalIP 判定と閾値が実運用に耐えるかが
+# ここで決まる — 誤爆すれば毎晩1件、100台なら年間3万件。
+[[network]]
+weight   = 40
+process  = "restic"
+proto    = "tcp"
+ports    = [443]
+hostname = "s3.ap-northeast-1.amazonaws.com"
+hosts    = ["52.219.68.10", "52.219.136.42", "3.5.152.20"]
+bytes_sent_range = [10000000, 2000000000]
+bytes_recv_range = [1000, 5000000]
+
+# 内部の二次保管先へのレプリケーション。RFC1918 宛なので
+# exfil_volume は無音であるべき — その対照実験を兼ねる。
+[[network]]
+weight   = 30
+process  = "rsync"
+proto    = "tcp"
+ports    = [22, 873]
+hostname = "vault01.corp.example.co.jp"
+hosts    = ["10.22.0.20", "10.22.0.21"]
+bytes_sent_range = [50000000, 8000000000]
+bytes_recv_range = [1000, 2000000]
+
+[[network]]
+weight   = 20
+process  = "pg_dump"
+proto    = "tcp"
+ports    = [5432]
+hostname = "db01.corp.example.co.jp"
+hosts    = ["10.22.0.30"]
+bytes_sent_range = [1000, 500000]
+bytes_recv_range = [10000000, 4000000000]
+
+[[network]]
+weight   = 10
+process  = "systemd"
+proto    = "udp"
+ports    = [123, 53]
+hostname = "ntp.nict.jp"
+hosts    = ["133.243.238.163", "10.22.0.1"]
+bytes_sent_range = [48, 512]
+bytes_recv_range = [48, 512]
+
+# ─── DNS ─────────────────────────────────────────────────────
+
+[[dns]]
+weight  = 50
+process = "restic"
+queries = ["s3.ap-northeast-1.amazonaws.com", "corp-backup.s3.ap-northeast-1.amazonaws.com"]
+
+[[dns]]
+weight  = 30
+process = "rsync"
+queries = ["vault01.corp.example.co.jp", "vault02.corp.example.co.jp"]
+
+[[dns]]
+weight  = 20
+process = "pg_dump"
+queries = ["db01.corp.example.co.jp"]
+
+# ─── 認証 ────────────────────────────────────────────────────
+
+[[auth]]
+weight  = 60
+users   = ["backup"]
+actions = ["login"]
+success = true
+methods = ["key"]
+sources = ["10.22.0.20", "10.22.0.21"]
+
+[[auth]]
+weight  = 30
+users   = ["root"]
+actions = ["privilege"]
+success = true
+methods = ["key"]
+
+# インターネット公開ホストではないが、社内スキャナや設定ミスにより
+# 一定数の失敗が出る。単発では鳴らないことの確認材料。
+[[auth]]
+weight  = 10
+users   = ["backup"]
+actions = ["failed"]
+success = false
+methods = ["key"]
+sources = ["10.22.0.99"]
+failure_reason = "Failed publickey"
+
+# ─── モジュールロード ────────────────────────────────────────
+
+[[image_loads]]
+weight  = 60
+process = "restic"
+signed  = false
+paths   = ["/usr/lib64/libc.so.6", "/usr/lib64/libpthread.so.0"]
+
+[[image_loads]]
+weight  = 40
+process = "pg_dump"
+signed  = false
+paths   = ["/usr/lib64/libpq.so.5", "/usr/lib64/libssl.so.3"]

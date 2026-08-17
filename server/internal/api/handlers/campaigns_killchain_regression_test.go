@@ -18,6 +18,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"strings"
 	"testing"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -203,16 +204,53 @@ func TestCampaigns_DetectsTacticAndRuleFamily(t *testing.T) {
 
 func TestCampaigns_CriticalBurstUsesTenPointScale(t *testing.T) {
 	pool := testPool(t)
+	ctx := context.Background()
 
-	// 1 ホストに severity 9 を 6 件、同じ時間バケットに固定して入れる。
-	// 以前は severity = 4 を「クリティカル」としていたため、
-	// 1-10 スケールの実データでは 1 件も引っかからなかった。
+	// 1 台のホストに、同じ時間バケットで
 	//
-	// テクニックは写像表に無い T9999 にする。最終段に「ホスト集合が同じ
-	// キャンペーンは 1 つに畳む」処理があるため、同じホストでタクティク別
-	// キャンペーンも立つと集中検知の方が畳まれてしまう。写像できない
-	// テクニックなら戦略1 が拾わないので、集中検知だけが残る。
-	seedCampaignAlertsAt(t, pool, "burst", "T9999", "camp-burst-alert", 1, 6, 9, true)
+	//   T1486 (impact)    severity 9 × 6 件
+	//   T1059 (execution) severity 9 × 3 件
+	//
+	// を入れる。すると 1 ホストに対して 3 つのキャンペーンが立つ:
+	//
+	//   タクティク別 impact     (6 件)
+	//   タクティク別 execution  (3 件)
+	//   クリティカル集中        (9 件、同一バケット)
+	//
+	// 束ねているアラートはそれぞれ違うので、3 つとも出るのが正しい。
+	//
+	// 以前の重複排除は Agents を "," で連結した文字列をキーにしていたため、
+	// ホストが同じというだけで後の 2 つが消えていた。severity も 4 を
+	// 「クリティカル」としており、1-10 スケールの実データでは集中検知が
+	// そもそも 1 件も引っかからなかった。
+	var agentID string
+	if err := pool.QueryRow(ctx,
+		`INSERT INTO agents (hostname, os_type, status, last_seen, enrolled_at)
+		 VALUES ('camp-burst-single', 'linux', 'online', NOW(), NOW()) RETURNING id::text`).
+		Scan(&agentID); err != nil {
+		t.Fatalf("seed agent: %v", err)
+	}
+	t.Cleanup(func() { _, _ = pool.Exec(ctx, `DELETE FROM alerts WHERE agent_id = $1`, agentID) })
+	t.Cleanup(func() { _, _ = pool.Exec(ctx, `DELETE FROM agents WHERE id = $1`, agentID) })
+
+	for _, seed := range []struct {
+		technique string
+		title     string
+		n         int
+	}{
+		{"T1486", "camp-burst-impact", 6},
+		{"T1059", "camp-burst-exec", 3},
+	} {
+		if _, err := pool.Exec(ctx, `
+			INSERT INTO alerts (agent_id, severity, title, description, status,
+			                    mitre_technique, created_at)
+			SELECT $1::uuid, 9, $2, 'd', 'open', $3,
+			       date_trunc('hour', NOW()) + INTERVAL '1 minute'
+			FROM generate_series(1, $4) g`,
+			agentID, seed.title, seed.technique, seed.n); err != nil {
+			t.Fatalf("seed alerts (%s): %v", seed.technique, err)
+		}
+	}
 
 	h := handlers.NewCampaignsHandler(pool)
 	code, resp := doJSON(t, http.MethodGet, "/api/v1/campaigns?hours=72", nil, h.List)
@@ -221,14 +259,117 @@ func TestCampaigns_CriticalBurstUsesTenPointScale(t *testing.T) {
 	}
 
 	items, _ := resp["campaigns"].([]any)
+	var sawBurst, sawImpact, sawExecution bool
 	for _, it := range items {
 		m, ok := it.(map[string]any)
 		if !ok {
 			continue
 		}
-		if id, _ := m["id"].(string); len(id) > 10 && id[:10] == "camp-burst" {
-			return // 集中検知が出た
+		id, _ := m["id"].(string)
+		name, _ := m["name"].(string)
+		switch {
+		case strings.HasPrefix(id, "camp-burst"):
+			sawBurst = true
+			// 投入した 9 件は必ず含まれる。/api/v1/campaigns は全体集計で、
+			// 他パッケージのテストが同じ DB に並行でアラートを入れるため、
+			// ちょうど 9 件とは限らない。
+			if cnt, _ := m["alert_count"].(float64); cnt < 9 {
+				t.Errorf("集中検知の件数 = %v, want >= 9", cnt)
+			}
+			// 集中検知は定義上クリティカル (severity >= 9 のみを集める)。
+			if sev, _ := m["max_severity"].(float64); sev < 9 {
+				t.Errorf("集中検知の max_severity = %v, want >= 9", sev)
+			}
+		case name == "impact キャンペーン":
+			sawImpact = true
+		case name == "execution キャンペーン":
+			sawExecution = true
 		}
 	}
-	t.Errorf("クリティカルアラート集中のキャンペーンが出ていない: %v", items)
+
+	if !sawBurst {
+		t.Errorf("クリティカルアラート集中のキャンペーンが出ていない: %v", items)
+	}
+	if !sawImpact {
+		t.Errorf("impact のタクティク別キャンペーンが出ていない: %v", items)
+	}
+	if !sawExecution {
+		t.Errorf("execution のタクティク別キャンペーンが出ていない (同一ホストというだけで畳まれている): %v", items)
+	}
+}
+
+// seedAlertsOn は既存ホストに (テクニック, タイトル, 件数) のアラートを入れる。
+func seedAlertsOn(t *testing.T, pool *pgxpool.Pool, agentID, technique, title string, n int) {
+	t.Helper()
+	if _, err := pool.Exec(context.Background(), `
+		INSERT INTO alerts (agent_id, severity, title, description, status,
+		                    mitre_technique, created_at)
+		SELECT $1::uuid, 8, $2, 'd', 'open', $3, NOW() - (g || ' minutes')::INTERVAL
+		FROM generate_series(1, $4) g`, agentID, title, technique, n); err != nil {
+		t.Fatalf("seed alerts (%s/%s): %v", technique, title, err)
+	}
+}
+
+// newCampaignHost はホストを 1 台作り、後始末を登録する。
+func newCampaignHost(t *testing.T, pool *pgxpool.Pool, hostname string) string {
+	t.Helper()
+	ctx := context.Background()
+	var id string
+	if err := pool.QueryRow(ctx,
+		`INSERT INTO agents (hostname, os_type, status, last_seen, enrolled_at)
+		 VALUES ($1, 'linux', 'online', NOW(), NOW()) RETURNING id::text`, hostname).
+		Scan(&id); err != nil {
+		t.Fatalf("seed agent %s: %v", hostname, err)
+	}
+	t.Cleanup(func() { _, _ = pool.Exec(ctx, `DELETE FROM alerts WHERE agent_id = $1`, id) })
+	t.Cleanup(func() { _, _ = pool.Exec(ctx, `DELETE FROM agents WHERE id = $1`, id) })
+	return id
+}
+
+// 戦略2 の「既に出ているキャンペーンと重複か」の判定が、件数の一致ではなく
+// 束ねたアラートの一致で行われることを確認する。
+//
+// 以前は `existing.AlertCount == alertCnt` だったため、たまたま件数が同じ
+// だけの無関係なキャンペーンを取り違えて捨てていた。
+func TestCampaigns_RuleFamilyNotDroppedByCountCollision(t *testing.T) {
+	pool := testPool(t)
+
+	// タクティク impact をちょうど 6 件にする (ホスト 2 台 × 3 件)。
+	// このルール系統はタクティクと同じ集合なので、最終段で正しく畳まれる。
+	for _, h := range []string{"camp-coll-a0", "camp-coll-a1"} {
+		seedAlertsOn(t, pool, newCampaignHost(t, pool, h), "T1486", "camp-alpha - s1", 3)
+	}
+
+	// 別のルール系統を、**合計 6 件・別のアラート**になるように作る。
+	// 2 タクティクにまたがるので、どのタクティク別キャンペーンとも
+	// 集合が一致しない。件数だけが impact と同じ 6。
+	for _, h := range []string{"camp-coll-b0", "camp-coll-b1"} {
+		id := newCampaignHost(t, pool, h)
+		seedAlertsOn(t, pool, id, "T1059", "camp-beta - s1", 2) // execution
+		seedAlertsOn(t, pool, id, "T1105", "camp-beta - s2", 1) // command-and-control
+	}
+
+	h := handlers.NewCampaignsHandler(pool)
+	code, resp := doJSON(t, http.MethodGet, "/api/v1/campaigns?hours=72", nil, h.List)
+	if code != http.StatusOK {
+		t.Fatalf("status = %d, want 200 (body: %v)", code, resp)
+	}
+
+	items, _ := resp["campaigns"].([]any)
+	var sawBeta bool
+	for _, it := range items {
+		m, ok := it.(map[string]any)
+		if !ok {
+			continue
+		}
+		if name, _ := m["name"].(string); name == "camp-beta — 多拠点検知" {
+			sawBeta = true
+			if cnt, _ := m["alert_count"].(float64); cnt != 6 {
+				t.Errorf("camp-beta の件数 = %v, want 6", cnt)
+			}
+		}
+	}
+	if !sawBeta {
+		t.Errorf("件数が impact キャンペーンと同じ 6 というだけで camp-beta が捨てられている: %v", items)
+	}
 }

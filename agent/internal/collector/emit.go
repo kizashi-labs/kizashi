@@ -32,6 +32,13 @@ const emitBlockFor = 250 * time.Millisecond
 // counted in dropped and surfaced in the log (first occurrence, then every
 // 1000th) so silent telemetry loss cannot hide. Passing a nil counter is fine.
 func EmitFile(ctx context.Context, out chan<- FileEvent, evt FileEvent, dropped *atomic.Uint64) bool {
+	// Count at the sensor boundary, before anything can filter or drop the event.
+	// This is the only place that can distinguish "the sensor never produced a
+	// delete" from "it produced one and something downstream ate it" — see
+	// filestats.go for why that distinction could not be made from the outside.
+	c := countersFor(evt.Action)
+	c.generated.Add(1)
+
 	select {
 	case out <- evt:
 		return true
@@ -48,6 +55,7 @@ func EmitFile(ctx context.Context, out chan<- FileEvent, evt FileEvent, dropped 
 	case <-ctx.Done():
 		return false
 	case <-t.C:
+		c.dropped.Add(1)
 		if dropped == nil {
 			return false
 		}

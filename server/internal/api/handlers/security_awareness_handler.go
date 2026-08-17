@@ -107,18 +107,22 @@ func (h *SecurityAwarenessHandler) ListSimulations(c *gin.Context) {
 
 func (h *SecurityAwarenessHandler) Stats(c *gin.Context) {
 	var courses, mandatory int
-	h.pool.QueryRow(c.Request.Context(), `
+	if err := h.pool.QueryRow(c.Request.Context(), `
 		SELECT COUNT(*), COUNT(*) FILTER (WHERE mandatory=true)
 		FROM awareness_courses WHERE enabled=true
-	`).Scan(&courses, &mandatory)
+	`).Scan(&courses, &mandatory); err != nil {
+		slog.Warn("security awareness: 集計クエリに失敗しました", "error", err)
+	}
 	var totalEnroll, completed int
 	var avgScore float64
-	h.pool.QueryRow(c.Request.Context(), `
+	if err := h.pool.QueryRow(c.Request.Context(), `
 		SELECT COUNT(*),
 		       COUNT(*) FILTER (WHERE status='completed'),
 		       COALESCE(AVG(score) FILTER (WHERE status='completed'), 0)
 		FROM awareness_enrollments
-	`).Scan(&totalEnroll, &completed, &avgScore)
+	`).Scan(&totalEnroll, &completed, &avgScore); err != nil {
+		slog.Warn("security awareness: 集計クエリに失敗しました", "error", err)
+	}
 	completionRate := 0.0
 	if totalEnroll > 0 {
 		completionRate = float64(completed) / float64(totalEnroll) * 100

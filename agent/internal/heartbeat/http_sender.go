@@ -84,10 +84,14 @@ func (s *HTTPSender) SendHeartbeat(ctx context.Context, req *HeartbeatRequest) (
 	}
 
 	var hbResp struct {
-		ShouldUnisolate bool `json:"should_unisolate"`
+		ShouldUnisolate bool                    `json:"should_unisolate"`
+		UninstallGuard  *UninstallGuardMaterial `json:"uninstall_guard"`
 	}
 	// Best-effort decode — ignore errors (older servers won't have this field).
 	_ = json.NewDecoder(resp.Body).Decode(&hbResp)
 
-	return &HeartbeatResponse{ShouldUnisolate: hbResp.ShouldUnisolate}, nil
+	return &HeartbeatResponse{
+		ShouldUnisolate: hbResp.ShouldUnisolate,
+		UninstallGuard:  hbResp.UninstallGuard,
+	}, nil
 }

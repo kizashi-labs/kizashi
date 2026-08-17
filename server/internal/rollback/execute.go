@@ -11,9 +11,9 @@ import "context"
 // rollback). Kept minimal so rollback need not import the store package.
 type Commander interface {
 	// RestoreFile writes the pre-image backup (backupRef) back to restorePath.
-	RestoreFile(ctx context.Context, agentID, backupRef, restorePath string) error
+	RestoreFile(ctx context.Context, agentID, backupRef, restorePath, commandID string) error
 	// DeleteFile removes an incident-created artefact at path.
-	DeleteFile(ctx context.Context, agentID, path, reason string) error
+	DeleteFile(ctx context.Context, agentID, path, reason, commandID string) error
 }
 
 // ExecOutcome is the per-operation result of executing a rollback plan.
@@ -42,9 +42,9 @@ func Execute(ctx context.Context, agentID string, plan RollbackPlan, cmd Command
 		var err error
 		switch op.Action {
 		case ActionRestore:
-			err = cmd.RestoreFile(ctx, agentID, op.BackupRef, op.Path)
+			err = cmd.RestoreFile(ctx, agentID, op.BackupRef, op.Path, "")
 		case ActionDelete:
-			err = cmd.DeleteFile(ctx, agentID, op.Path, "rollback: remove incident-created file")
+			err = cmd.DeleteFile(ctx, agentID, op.Path, "rollback: remove incident-created file", "")
 		default:
 			o.Skipped = true
 			o.Reason = "unknown action '" + op.Action + "'"

@@ -1,18 +1,24 @@
-//go:build linux && ebpf && solib
+//go:build linux && ebpf
 
 // Linux shared-object (.so) load monitor via an eBPF uprobe on dlopen — the
 // Linux counterpart to the Windows image_load ETW collector (DLL/SO
 // side-loading, T1574.006).
 //
-// Gated behind the extra `solib` build tag because it depends on bpf2go-
-// generated objects (LibraryMonitor*) that must be produced on a clang + BTF
-// host first:
+// This used to sit behind an extra `solib` build tag because the bpf2go objects
+// (LibraryMonitor*) had never been generated. Nothing in the repository built
+// with that tag, so no shipped agent ever emitted image_load on Linux — the
+// event type simply read zero, which is indistinguishable from "nothing
+// happened". The generated bindings are committed now (as ProcessMonitor's
+// always were), so the plain `-tags ebpf` build carries this collector.
 //
-//	cd agent && go generate ./internal/platform/linux/...   # produces librarymonitor_bpf*.go
-//	go build -tags "ebpf solib" ./cmd/agent
+// Measured before shipping it (verification EC2, 300s): 14 dlopen calls, 0.05/s,
+// ≈4k/day/host — under 2% of the process-event volume on the same host. Volume
+// was never the reason this was gated.
 //
-// Until those artifacts exist this file is not compiled, so the default and
-// plain `-tags ebpf` builds are unaffected.
+// What it does and does not see: only dlopen. Libraries resolved by ld.so at
+// program start are NOT reported, so this is not equivalent to the Windows ETW
+// image_load stream. It covers the runtime-load half of side-loading (plugins,
+// PAM/NSS modules, anything an already-running process pulls in).
 package linux
 
 import (
@@ -40,11 +46,14 @@ var libcCandidates = []string{
 }
 
 // ebpfLibraryEvent mirrors struct library_event in library_monitor.bpf.c.
+// Field order and sizes must match it exactly — the ring-buffer record is read
+// with binary.Read, so a mismatch shifts every field silently.
 type ebpfLibraryEvent struct {
 	TimestampNs uint64
 	Pid         uint32
 	Uid         uint32
 	Path        [256]byte
+	Comm        [16]byte
 }
 
 // EBPFLibraryCollector implements collector.ImageLoadCollector on Linux using
@@ -113,12 +122,21 @@ func (c *EBPFLibraryCollector) run(ctx context.Context, out chan<- collector.Ima
 		if path == "" {
 			continue
 		}
+		// ProcessName is the LOADER (sshd, a service, a shell), read from the BPF
+		// side's comm. It used to be soBaseName(path) — the loaded object's own
+		// name — which left the "who loaded it" half of side-loading unanswerable.
+		// Fall back to the basename only if comm came back empty, so the field is
+		// never blank.
+		procName := nullTerminated(raw.Comm[:])
+		if procName == "" {
+			procName = soBaseName(path)
+		}
 		evt := collector.ImageLoadEvent{
 			ID:              uuid.New().String(),
 			Timestamp:       time.Unix(0, int64(raw.TimestampNs)),
 			ImagePath:       path,
 			PID:             raw.Pid,
-			ProcessName:     soBaseName(path),
+			ProcessName:     procName,
 			SignatureStatus: "unknown", // Linux has no Authenticode; path-based rules apply
 		}
 		select {
