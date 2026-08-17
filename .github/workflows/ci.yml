@@ -53,11 +53,26 @@ jobs:
       - id: filter
         env:
           EVENT: ${{ github.event_name }}
+          REF: ${{ github.ref }}
           BASE_REF: ${{ github.base_ref }}
           BEFORE: ${{ github.event.before }}
           SHA: ${{ github.sha }}
         run: |
           set -euo pipefail
+
+          # main への push は絞らない。
+          #
+          # PR で絞るのはコスト削減として妥当だが、main まで絞ると **一度赤くなった
+          # ジョブは、その領域を触る PR が来るまで二度と走らない**。チェック一覧の
+          # 上では「走って通った」と「そもそも走っていない」の区別が付かないため、
+          # 赤が無期限に隠れる（実際に 8 日間隠れた）。マージ 1 回ぶんのコストで、
+          # main の全ジョブに常に最新の結論が存在する状態を買う。
+          if [ "$EVENT" = "push" ] && [ "$REF" = "refs/heads/main" ]; then
+            echo "main への push のため、絞らず全ジョブを実行します"
+            for k in agent server frontend sdk rules all; do echo "$k=true" >> "$GITHUB_OUTPUT"; done
+            exit 0
+          fi
+
           files=""
           if [ "$EVENT" = "pull_request" ]; then
             git fetch --no-tags origin "$BASE_REF" >/dev/null 2>&1 || true
