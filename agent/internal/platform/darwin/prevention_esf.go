@@ -13,7 +13,8 @@
 package darwin
 
 /*
-#cgo LDFLAGS: -framework EndpointSecurity -framework Foundation
+// リンク指定の理由は process_collector_esf.go の同じ箇所を参照。
+#cgo LDFLAGS: -lEndpointSecurity -lbsm -framework Foundation
 #include <EndpointSecurity/EndpointSecurity.h>
 #include <stdlib.h>
 // <bsm/libbsm.h> declares audit_token_to_pid(); without it modern clang
