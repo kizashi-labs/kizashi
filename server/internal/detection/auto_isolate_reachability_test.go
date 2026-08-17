@@ -15,15 +15,17 @@ type recordingCommander struct {
 	reasons  []string
 }
 
-func (c *recordingCommander) IsolateEndpoint(_ context.Context, agentID, reason, _ string) error {
+func (c *recordingCommander) IsolateEndpoint(_ context.Context, agentID, reason, _ string, _ string) error {
 	c.isolated = append(c.isolated, agentID)
 	c.reasons = append(c.reasons, reason)
 	return nil
 }
-func (c *recordingCommander) KillProcess(_ context.Context, _ string, _ uint32, _ string) error {
+func (c *recordingCommander) KillProcess(_ context.Context, _ string, _ uint32, _ string, _ string) error {
 	return nil
 }
-func (c *recordingCommander) QuarantineFile(_ context.Context, _, _, _ string) error { return nil }
+func (c *recordingCommander) QuarantineFile(_ context.Context, _, _, _ string, _ string) error {
+	return nil
+}
 
 // newIsolationEngine builds the minimum Engine needed to exercise the auto-response
 // path with auto-isolation armed at the production default threshold (9).

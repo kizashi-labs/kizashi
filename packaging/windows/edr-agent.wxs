@@ -1,0 +1,196 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Kizashi Agent — Windows Installer (WiX v4/v5)
+
+  Why an MSI at all: Intune, SCCM/ConfigMgr, Group Policy software installation
+  and every third-party patch-management product deploy MSI packages. None of
+  them can deploy "run this install.ps1 as SYSTEM with these environment
+  variables", which was the only Windows install path this repo had. An EDR that
+  cannot be pushed by the customer's existing management tooling does not get
+  deployed at scale, however good the agent is.
+
+  Layout matches deploy/install/install.ps1 so a host can move between the
+  script and the MSI without losing its config or its dashboard identity:
+
+    C:\ProgramData\EDRAgent\bin\{edr-agent,edr-watchdog}.exe
+    C:\ProgramData\EDRAgent\agent.toml
+    C:\ProgramData\EDRAgent\{logs,quarantine,data}
+
+  Properties (pass with msiexec /i ... SERVERURL=... or an Intune command line):
+
+    SERVERURL         required for the service to start
+    ENROLLMENTTOKEN   optional
+    AGENTVARIANT      optional, reserved for future variant builds
+
+  Build:
+    wix build edr-agent.wxs -arch x64 -d BinDir=<dir> -d Version=<x.y.z> -o edr-agent.msi
+-->
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:util="http://wixtoolset.org/schemas/v4/wxs/util">
+
+  <Package Name="Kizashi Agent"
+           Manufacturer="Kizashi"
+           Version="$(var.Version)"
+           UpgradeCode="8f3a1c52-6d24-4b7e-9a11-2c5e7f0d4b83"
+           Scope="perMachine"
+           Compressed="yes">
+
+    <!-- Block downgrades outright. An EDR silently rolling back to an older
+         sensor is a detection regression that nothing surfaces. -->
+    <MajorUpgrade
+        DowngradeErrorMessage="A newer version of the Kizashi Agent is already installed."
+        Schedule="afterInstallInitialize" />
+
+    <MediaTemplate EmbedCab="yes" />
+
+    <!-- 64-bit only: the ETW collectors and the prevention driver are x64. -->
+    <Launch Condition="VersionNT64"
+            Message="The Kizashi Agent requires 64-bit Windows." />
+
+    <Property Id="SERVERURL" Secure="yes" />
+    <Property Id="ENROLLMENTTOKEN" Secure="yes" Hidden="yes" />
+    <Property Id="AGENTVARIANT" Secure="yes" />
+
+    <!-- ARPNOMODIFY: the agent has no repair story worth exposing in Programs
+         and Features, and "Modify" there would run the installer UI as the
+         desktop user on a machine-scope install. -->
+    <Property Id="ARPNOMODIFY" Value="1" />
+    <Property Id="ARPPRODUCTICON" Value="AgentIcon" />
+
+    <StandardDirectory Id="CommonAppDataFolder">
+      <Directory Id="INSTALLFOLDER" Name="EDRAgent">
+        <Directory Id="BINFOLDER"  Name="bin" />
+        <Directory Id="LOGFOLDER"  Name="logs" />
+        <Directory Id="DATAFOLDER" Name="data" />
+        <Directory Id="QUARANTINEFOLDER" Name="quarantine" />
+      </Directory>
+    </StandardDirectory>
+
+    <ComponentGroup Id="AgentFiles" Directory="BINFOLDER">
+      <Component Id="AgentExe" Guid="*">
+        <File Id="edr_agent_exe"
+              Source="$(var.BinDir)\edr-agent.exe"
+              KeyPath="yes" />
+      </Component>
+
+      <Component Id="WatchdogExe" Guid="*">
+        <File Id="edr_watchdog_exe"
+              Source="$(var.BinDir)\edr-watchdog.exe"
+              KeyPath="yes" />
+
+        <!-- The watchdog is the service; it supervises and restarts the agent.
+             Installing the agent itself as a service would give Windows two
+             restart authorities that fight each other. -->
+        <ServiceInstall Id="WatchdogService"
+                        Name="EDRWatchdog"
+                        DisplayName="Kizashi Watchdog"
+                        Description="Supervises the Kizashi agent and restarts it if it stops."
+                        Type="ownProcess"
+                        Start="auto"
+                        ErrorControl="normal"
+                        Account="LocalSystem"
+                        Arguments="--agent &quot;[BINFOLDER]edr-agent.exe&quot; --config &quot;[INSTALLFOLDER]agent.toml&quot;"
+                        Vital="yes">
+          <!-- Let the SCM restart it too. Two layers is intentional here, unlike
+               the agent: if the watchdog itself is killed, nothing else is
+               watching, which is exactly the tamper case worth surviving. -->
+          <util:ServiceConfig
+              FirstFailureActionType="restart"
+              SecondFailureActionType="restart"
+              ThirdFailureActionType="restart"
+              RestartServiceDelayInSeconds="30"
+              ResetPeriodInDays="1" />
+        </ServiceInstall>
+
+        <ServiceControl Id="WatchdogControl"
+                        Name="EDRWatchdog"
+                        Start="install"
+                        Stop="both"
+                        Remove="uninstall"
+                        Wait="yes" />
+      </Component>
+    </ComponentGroup>
+
+    <!-- Directories the agent writes to. Created empty and removed on
+         uninstall only if empty, so logs and quarantined files survive — they
+         are forensic material, and an EDR being removed in a hurry is usually
+         a host where something happened. -->
+    <ComponentGroup Id="AgentDirs">
+      <Component Id="LogDir" Directory="LOGFOLDER" Guid="*">
+        <CreateFolder />
+        <RegistryValue Root="HKLM" Key="Software\Kizashi\EDRAgent"
+                       Name="LogDir" Type="string" Value="[LOGFOLDER]" KeyPath="yes" />
+      </Component>
+      <Component Id="DataDir" Directory="DATAFOLDER" Guid="*">
+        <CreateFolder />
+        <RegistryValue Root="HKLM" Key="Software\Kizashi\EDRAgent"
+                       Name="DataDir" Type="string" Value="[DATAFOLDER]" KeyPath="yes" />
+      </Component>
+      <Component Id="QuarantineDir" Directory="QUARANTINEFOLDER" Guid="*">
+        <CreateFolder />
+        <RegistryValue Root="HKLM" Key="Software\Kizashi\EDRAgent"
+                       Name="QuarantineDir" Type="string" Value="[QUARANTINEFOLDER]" KeyPath="yes" />
+      </Component>
+      <Component Id="InstallMarker" Directory="INSTALLFOLDER" Guid="*">
+        <RegistryValue Root="HKLM" Key="Software\Kizashi\EDRAgent"
+                       Name="InstallDir" Type="string" Value="[INSTALLFOLDER]" KeyPath="yes" />
+      </Component>
+    </ComponentGroup>
+
+    <Feature Id="Main" Title="Kizashi Agent" Level="1" AllowAbsent="no">
+      <ComponentGroupRef Id="AgentFiles" />
+      <ComponentGroupRef Id="AgentDirs" />
+    </Feature>
+
+    <Icon Id="AgentIcon" SourceFile="$(var.BinDir)\edr-agent.exe" />
+
+    <!-- ── Custom actions ────────────────────────────────────────────────────
+
+         Configure: writes agent.toml on FIRST install only. Deferred and
+         run as the system account because it writes under ProgramData.
+         Never runs on upgrade: regenerating the agent ID would re-enrol the
+         endpoint under a new identity and orphan its alerts and timeline.
+
+         VerifyUninstall: enforces the tenant uninstall password. Without it,
+         "msiexec /x" and the Programs-and-Features button would each be a way
+         around a protection the uninstall.ps1 path enforces — and on a fleet
+         managed by Intune, those are the normal removal routes, not edge cases.
+    -->
+    <SetProperty Id="ConfigureAgent"
+                 Value="&quot;[BINFOLDER]edr-agent.exe&quot; -config &quot;[INSTALLFOLDER]agent.toml&quot; -write-config -server &quot;[SERVERURL]&quot;"
+                 Before="ConfigureAgent"
+                 Sequence="execute" />
+
+    <CustomAction Id="ConfigureAgent"
+                  BinaryRef="Wix4UtilCA_X64"
+                  DllEntry="WixQuietExec64"
+                  Execute="deferred"
+                  Impersonate="no"
+                  Return="ignore" />
+
+    <SetProperty Id="VerifyUninstall"
+                 Value="&quot;[BINFOLDER]edr-agent.exe&quot; -config &quot;[INSTALLFOLDER]agent.toml&quot; -verify-uninstall"
+                 Before="VerifyUninstall"
+                 Sequence="execute" />
+
+    <CustomAction Id="VerifyUninstall"
+                  BinaryRef="Wix4UtilCA_X64"
+                  DllEntry="WixQuietExec64"
+                  Execute="deferred"
+                  Impersonate="no"
+                  Return="check" />
+
+    <InstallExecuteSequence>
+      <!-- After InstallFiles: the binary must exist before it can be run. -->
+      <Custom Action="ConfigureAgent" After="InstallFiles"
+              Condition="NOT Installed AND SERVERURL" />
+
+      <!-- Before the service is stopped and files are removed, so a refusal
+           leaves the endpoint exactly as it was: still installed, still
+           running, still monitored. -->
+      <Custom Action="VerifyUninstall" Before="StopServices"
+              Condition="REMOVE=&quot;ALL&quot;" />
+    </InstallExecuteSequence>
+
+  </Package>
+</Wix>

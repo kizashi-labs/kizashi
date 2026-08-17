@@ -12,14 +12,14 @@ type fakeCommander struct {
 	failPath string // path whose dispatch returns an error
 }
 
-func (f *fakeCommander) RestoreFile(_ context.Context, _, backupRef, restorePath string) error {
+func (f *fakeCommander) RestoreFile(_ context.Context, _, backupRef, restorePath string, _ string) error {
 	if restorePath == f.failPath {
 		return errors.New("dispatch failed")
 	}
 	f.restored = append(f.restored, [2]string{backupRef, restorePath})
 	return nil
 }
-func (f *fakeCommander) DeleteFile(_ context.Context, _, path, _ string) error {
+func (f *fakeCommander) DeleteFile(_ context.Context, _, path, _ string, _ string) error {
 	if path == f.failPath {
 		return errors.New("dispatch failed")
 	}

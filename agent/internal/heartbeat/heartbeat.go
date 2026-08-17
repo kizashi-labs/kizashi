@@ -35,6 +35,18 @@ type Reporter struct {
 	// invisible without this. Read through a func so each heartbeat picks up the
 	// current value rather than one latched at startup.
 	telemetryMode func() string
+	// applyGuard persists uninstall-guard material handed back by the server.
+	// Injected rather than called directly so this package keeps no dependency
+	// on the on-disk layout, and so tests can observe delivery without touching
+	// a filesystem. Nil until SetUninstallGuardApplier is called.
+	applyGuard func(*UninstallGuardMaterial) error
+}
+
+// SetUninstallGuardApplier installs the callback that persists uninstall-guard
+// material received on a heartbeat. Set after construction, alongside the other
+// optional wiring, to keep the constructor signature stable.
+func (r *Reporter) SetUninstallGuardApplier(f func(*UninstallGuardMaterial) error) {
+	r.applyGuard = f
 }
 
 // SetProtectionMode sets the protection capability tier reported in heartbeats.
@@ -84,6 +96,28 @@ type HeartbeatResponse struct {
 	// reporting status=isolated. This allows the agent to self-unisolate even when
 	// the gRPC command stream is unavailable.
 	ShouldUnisolate bool
+	// UninstallGuard carries the tenant's uninstall-password material (a PBKDF2
+	// salt and digest — never the password). Nil when the tenant has not set
+	// one, or when talking to a server that predates the feature.
+	//
+	// It rides the heartbeat rather than a dedicated fetch because the guard has
+	// to be on disk *before* it is needed: verification happens with the network
+	// plausibly cut, so there is no opportunity to go and get it at uninstall
+	// time. The heartbeat already runs on every agent on a short interval, which
+	// is exactly the delivery property required.
+	UninstallGuard *UninstallGuardMaterial
+}
+
+// UninstallGuardMaterial is the wire form of the uninstall guard. Field names
+// match the on-disk guard file so the agent can persist it without a lossy
+// translation step in between.
+type UninstallGuardMaterial struct {
+	Version    int       `json:"version"`
+	Algorithm  string    `json:"algorithm"`
+	Iterations int       `json:"iterations"`
+	SaltB64    string    `json:"salt"`
+	DigestB64  string    `json:"digest"`
+	UpdatedAt  time.Time `json:"updated_at"`
 }
 
 func NewReporter(agentID, version string, osVersion func() string, hostname string, sender HeartbeatSender,
@@ -163,6 +197,14 @@ func (r *Reporter) sendOnce(ctx context.Context) {
 	}
 	if resp.PendingCommandCount > 0 {
 		slog.Info("pending commands from server", "count", resp.PendingCommandCount)
+	}
+	// Persist the uninstall guard before anything else that could fail: the
+	// whole point is for it to be on disk ahead of the moment it is needed, and
+	// that moment may be a few seconds from now.
+	if resp.UninstallGuard != nil && r.applyGuard != nil {
+		if err := r.applyGuard(resp.UninstallGuard); err != nil {
+			slog.Warn("アンインストール保護の設定を保存できませんでした", "error", err)
+		}
 	}
 	if resp.ShouldUnisolate && r.unisolate != nil {
 		slog.Info("サーバーからの隔離解除指示を受信しました（ハートビート経由）")

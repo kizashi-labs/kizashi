@@ -106,7 +106,8 @@ func loadSigmaRulesFromPoolTyped(e *SigmaEvaluator, pool interface{}) error {
 	// See LoadRuleWithFallbackTags for why dropping it would also break
 	// cross-engine deduplication, not just the alert's MITRE field.
 	rows, err := p.Query(ctx, `
-		SELECT name, content, COALESCE(mitre_tags, '{}'), COALESCE(severity, 0)
+		SELECT name, content, COALESCE(mitre_tags, '{}'), COALESCE(severity, 0),
+		       COALESCE(platform, '{}')
 		  FROM rules
 		 WHERE enabled = true
 		   AND type = 'sigma'
@@ -128,9 +129,9 @@ func loadSigmaRulesFromPoolTyped(e *SigmaEvaluator, pool interface{}) error {
 	var failedNames []string
 	for rows.Next() {
 		var name, content string
-		var mitreTags []string
+		var mitreTags, platform []string
 		var severity int
-		if err := rows.Scan(&name, &content, &mitreTags, &severity); err != nil {
+		if err := rows.Scan(&name, &content, &mitreTags, &severity, &platform); err != nil {
 			failed++
 			continue
 		}
@@ -142,7 +143,12 @@ func loadSigmaRulesFromPoolTyped(e *SigmaEvaluator, pool interface{}) error {
 			skipped++
 			continue
 		}
-		if err := e.loadDBRule(content, sigmaTagsFromColumn(mitreTags), severity); err != nil {
+		// platform comes along because server-detect gated these rules on it and
+		// this engine is now their only evaluator (SetDBSigmaEvaluation). Dropping
+		// the column would silently remove OS scoping — a macOS-only rule would
+		// start matching Linux telemetry, which is exactly what was measured on a
+		// benign fleet before this was wired.
+		if err := e.loadDBRule(content, sigmaTagsFromColumn(mitreTags), severity, platform); err != nil {
 			failed++
 			if len(failedNames) < 20 {
 				failedNames = append(failedNames, name)

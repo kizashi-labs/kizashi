@@ -118,9 +118,11 @@ func (h *NetworkMapHandler) GetTopology(c *gin.Context) {
 
 	if h.pool != nil && tableExistsNetMap(h.pool, c, "network_connections") {
 		rows, err := h.pool.Query(ctx,
+			// network_connections の時刻列は time (hypertable のパーティション
+			// キー)。timestamp という列は無い。
 			`SELECT DISTINCT agent_id, dst_ip, COUNT(*) as connection_count
 			 FROM network_connections
-			 WHERE timestamp > NOW() - INTERVAL '24 hours'
+			 WHERE "time" > NOW() - INTERVAL '24 hours'
 			 GROUP BY agent_id, dst_ip
 			 LIMIT 2000`,
 		)
@@ -156,7 +158,7 @@ func (h *NetworkMapHandler) GetTopology(c *gin.Context) {
 		lmRows, err := h.pool.Query(ctx,
 			`SELECT agent_id, COUNT(DISTINCT dst_ip) as peer_count
 			 FROM network_connections
-			 WHERE timestamp > NOW() - INTERVAL '1 hour'
+			 WHERE "time" > NOW() - INTERVAL '1 hour'
 			 GROUP BY agent_id
 			 HAVING COUNT(DISTINCT dst_ip) > 5`,
 		)

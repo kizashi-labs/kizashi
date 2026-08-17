@@ -15,6 +15,8 @@ import (
 	"runtime"
 	"strings"
 	"time"
+
+	"github.com/edr-platform/agent/internal/buildvariant"
 )
 
 // UpdateInfo describes an available agent update.
@@ -52,8 +54,15 @@ func New(serverURL, agentID, currentVersion, dataDir string) *Updater {
 func (u *Updater) Check(ctx context.Context) (*UpdateInfo, error) {
 	// platform/arch let the server advertise the correct per-platform binary and
 	// derive its checksum (avoids checksum/URL mismatch on non-linux agents).
-	url := fmt.Sprintf("%s/api/v1/agents/%s/update-check?version=%s&platform=%s&arch=%s",
-		u.serverURL, u.agentID, u.currentVersion, runtime.GOOS, runtime.GOARCH)
+	//
+	// variant keeps an enforcing agent enforcing. Without it the server always
+	// advertised the default telemetry-only binary, so an endpoint installed
+	// with the eBPF/LSM build would quietly downgrade to the non-enforcing one
+	// at its next self-update — prevention gone, no error raised. Empty for the
+	// default build, so servers predating this parameter behave as before.
+	url := fmt.Sprintf("%s/api/v1/agents/%s/update-check?version=%s&platform=%s&arch=%s&variant=%s",
+		u.serverURL, u.agentID, u.currentVersion, runtime.GOOS, runtime.GOARCH,
+		buildvariant.Name)
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {

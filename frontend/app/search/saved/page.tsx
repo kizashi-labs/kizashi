@@ -9,7 +9,7 @@ import {
   Clock, BarChart2, Globe, AlertTriangle, Monitor, Activity, Tag, ChevronDown,
   BookmarkCheck, Users, User, Bookmark,
 } from 'lucide-react'
-import { USE_MOCK, m } from '@/lib/mock'
+import { m } from '@/lib/mock'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -222,7 +222,7 @@ const LS_KEY = 'edr_saved_searches'
 function loadFromLS(): SavedSearch[] {
   try {
     const raw = localStorage.getItem(LS_KEY)
-    return raw ? JSON.parse(raw) : MOCK_SAVED_SEARCHES
+    return raw ? JSON.parse(raw) : m(MOCK_SAVED_SEARCHES)
   } catch {
     return m(MOCK_SAVED_SEARCHES)
   }

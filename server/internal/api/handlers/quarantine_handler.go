@@ -97,7 +97,7 @@ func (h *QuarantineHandler) Restore(c *gin.Context) {
 	}
 
 	if h.Commander != nil {
-		_ = h.Commander.RestoreFile(c.Request.Context(), req.AgentID, agentQID, req.RestorePath)
+		_ = h.Commander.RestoreFile(c.Request.Context(), req.AgentID, agentQID, req.RestorePath, "")
 	}
 
 	if err := h.Store.MarkRestored(c.Request.Context(), id, by); err != nil {

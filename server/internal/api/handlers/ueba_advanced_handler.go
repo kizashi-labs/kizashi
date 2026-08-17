@@ -362,7 +362,7 @@ func (h *UEBAHandler) ListUsers(c *gin.Context) {
 			COALESCE(u.role, '') AS department,
 			MAX(ua.created_at) AS last_seen
 		FROM ueba_anomalies ua
-		LEFT JOIN users u ON u.username = ua.username
+		LEFT JOIN users u ON u.email = ua.username
 		WHERE ua.status != 'false_positive'
 		  AND ua.created_at >= NOW() - INTERVAL '30 days'
 		GROUP BY ua.username, u.id, u.email, u.role

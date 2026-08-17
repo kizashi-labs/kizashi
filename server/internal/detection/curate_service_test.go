@@ -149,13 +149,16 @@ func TestCurateService_InertRules(t *testing.T) {
 // TestCurateService_FieldGapReport checks the field-gap canary aggregates
 // enabled-but-inert rules by the missing telemetry field, ranked most-rules-first.
 func TestCurateService_FieldGapReport(t *testing.T) {
-	// GrantedAccess / CallTrace are Sysmon EID10 fields the telemetry does not emit,
+	// CallTrace / SourceThreadId are Sysmon EID10 fields the telemetry does not emit.
+	// GrantedAccess used to stand in here and no longer can: the credential-access
+	// sensor emits access_mask and the api pipeline aliases it, so a fixture built
+	// on GrantedAccess would silently be testing a SUPPORTED field.
 	// so they stay field-unsupported (the PE VERSIONINFO / Initiated fields that were
 	// once gaps are now supported — see false-green消化 2026-07-03 — so don't use them).
 	sup := ruleYAML("ok", "CommandLine|contains") // field-supported → not inert
-	gapA := ruleYAML("gapa", "GrantedAccess")     // unsupported → inert (GrantedAccess)
-	gapB := ruleYAML("gapb", "GrantedAccess")     // unsupported → inert (GrantedAccess)
-	gapC := ruleYAML("gapc", "CallTrace")         // unsupported → inert (CallTrace)
+	gapA := ruleYAML("gapa", "CallTrace")         // unsupported → inert (CallTrace)
+	gapB := ruleYAML("gapb", "CallTrace")         // unsupported → inert (CallTrace)
+	gapC := ruleYAML("gapc", "SourceThreadId")    // unsupported → inert (SourceThreadId)
 	db := &fakeCurateDB{fieldGapRows: [][]any{{sup}, {gapA}, {gapB}, {gapC}}}
 	svc := NewCurateService(db, nil)
 
@@ -166,8 +169,8 @@ func TestCurateService_FieldGapReport(t *testing.T) {
 	if inert != 3 {
 		t.Fatalf("inert = %d, want 3", inert)
 	}
-	if len(gaps) == 0 || gaps[0].Field != "GrantedAccess" || gaps[0].Rules != 2 {
-		t.Fatalf("top gap = %+v, want GrantedAccess=2 first", gaps)
+	if len(gaps) == 0 || gaps[0].Field != "CallTrace" || gaps[0].Rules != 2 {
+		t.Fatalf("top gap = %+v, want CallTrace=2 first", gaps)
 	}
 }
 
@@ -186,7 +189,7 @@ detection:
 title: Needs Sysmon EID10
 detection:
   selection:
-    GrantedAccess: '0x1410'
+    SourceThreadId: '4242'
     CallTrace|contains: 'UNKNOWN'
   condition: selection`
 	db := &fakeCurateDB{falseGreenRows: [][]any{
@@ -208,7 +211,7 @@ detection:
 // field gate + enabled/quarantine state (not just stored curate_state).
 func TestCurateService_Status(t *testing.T) {
 	sup := ruleYAML("ok", "CommandLine|contains") // field-supported
-	unsup := ruleYAML("inert", "GrantedAccess")   // field-unsupported
+	unsup := ruleYAML("inert", "CallTrace")       // field-unsupported
 	db := &fakeCurateDB{statusRows: [][]any{
 		{sup, true, "enabled"},      // → Enabled + Supported
 		{sup, false, ""},            // → Deferred + Supported
@@ -230,7 +233,7 @@ func TestCurateService_Status(t *testing.T) {
 // (skipping the unsupported one) and fires rules.invalidate.
 func TestCurateService_RunRound(t *testing.T) {
 	sup := ruleYAML("ok", "CommandLine|contains")
-	unsup := ruleYAML("inert", "GrantedAccess")
+	unsup := ruleYAML("inert", "CallTrace")
 	db := &fakeCurateDB{candidateRows: [][]any{
 		{"a", sup},
 		{"b", sup},

@@ -189,9 +189,9 @@ func (h *OpsReportHandler) GetReport(c *gin.Context) {
 	// ── Threat Intel ──────────────────────────────────────────────────────────
 	var iocCount, newThreats int
 	if h.Pool != nil {
-		_ = h.Pool.QueryRow(ctx, `SELECT COUNT(*) FROM iocs WHERE is_active`).Scan(&iocCount)
+		_ = h.Pool.QueryRow(ctx, `SELECT COUNT(*) FROM ioc_entries WHERE is_active`).Scan(&iocCount)
 		_ = h.Pool.QueryRow(ctx, fmt.Sprintf(`
-			SELECT COUNT(*) FROM iocs
+			SELECT COUNT(*) FROM ioc_entries
 			WHERE created_at >= NOW() - INTERVAL '%d days'`, days)).Scan(&newThreats)
 	}
 	// Blocked = resolved alerts that matched IOC (proxy: critical+high resolved)
@@ -213,7 +213,7 @@ func (h *OpsReportHandler) GetReport(c *gin.Context) {
 				COUNT(*) FILTER (WHERE severity='critical' AND status='open'),
 				COUNT(*) FILTER (WHERE severity='high' AND status='open')
 			FROM vulnerabilities`).Scan(&criticalVulns, &highVulns)
-		_ = h.Pool.QueryRow(ctx, `SELECT COUNT(*) FROM iocs WHERE is_active`).Scan(&totalIOC2)
+		_ = h.Pool.QueryRow(ctx, `SELECT COUNT(*) FROM ioc_entries WHERE is_active`).Scan(&totalIOC2)
 	}
 
 	clamp := func(v int) int {

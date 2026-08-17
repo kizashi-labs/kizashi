@@ -26,7 +26,7 @@ func TestRealProfilesLoad(t *testing.T) {
 		t.Fatalf("expected at least 5 committed profiles, got %d", len(profiles))
 	}
 
-	sawWindows, sawLinux := false, false
+	sawWindows, sawLinux, sawDarwin := false, false, false
 	for _, p := range profiles {
 		if err := p.Validate(); err != nil {
 			t.Errorf("profile %q failed validation: %v", p.Name, err)
@@ -39,11 +39,20 @@ func TestRealProfilesLoad(t *testing.T) {
 			sawWindows = true
 		case "linux":
 			sawLinux = true
+		case "darwin":
+			sawDarwin = true
 		}
 	}
-	if !sawWindows || !sawLinux {
-		t.Errorf("profile set must cover both Windows and Linux (windows=%v linux=%v)",
-			sawWindows, sawLinux)
+	// darwin was missing from this set until 2026-08-13, and the absence was
+	// invisible: DB Sigma rules carrying platform=['macos'] are dropped by
+	// rules.PlatformMatchesEvent before evaluation, so a soak with no darwin host
+	// reports every macOS rule as "0 false positives" — indistinguishable, on the
+	// scorecard, from a rule that is quiet because it is precise. migration 386
+	// added 9 macOS-only rules and the soak that followed measured none of them
+	// (P4-12). An OS with no host in this set is an OS the gate cannot see.
+	if !sawWindows || !sawLinux || !sawDarwin {
+		t.Errorf("profile set must cover Windows, Linux and macOS (windows=%v linux=%v darwin=%v)",
+			sawWindows, sawLinux, sawDarwin)
 	}
 }
 
@@ -290,7 +299,257 @@ func TestAllocateFleetSmallerThanProfileCount(t *testing.T) {
 	}
 }
 
+// TestMacProfileMakesWave3RulesMeasurable pins the reason macbook.toml exists.
+//
+// Adding a darwin host is necessary but not sufficient: the macOS rules from
+// migration 386 key on specific Image suffixes and CommandLine/TargetFilename
+// substrings, so a darwin profile made only of Chrome and Slack would clear the
+// platform gate and still measure nothing. The rules would stay at zero and the
+// scorecard would keep reading as "quiet", which is exactly the misreading
+// P4-12 records.
+//
+// Each check below mirrors one rule's selector *structure* — Image suffix and
+// CommandLine substring have to come from the SAME process spec, because that is
+// how Sigma evaluates them. A drift in either half fails here.
+//
+// The pairing with server/internal/detection/dark_technique_wave3_test.go is
+// deliberate and the two halves are load-bearing together:
+//
+//	that test   given an event of this shape, the rule fires
+//	this test   the benign fleet actually produces an event of that shape
+//
+// Neither alone establishes that the soak measures the rule.
+func TestMacProfileMakesWave3RulesMeasurable(t *testing.T) {
+	profiles, err := LoadProfiles(realProfileDir)
+	if err != nil {
+		t.Fatalf("load: %v", err)
+	}
+
+	// 名前で取る。"最初の darwin" で取ると mac-workstation.toml が先に見つかり、
+	// 第 3 波のために作られた macbook.toml ではなくそちらを検査してしまう
+	// (mac-workstation の files は Safari のキャッシュと履歴の 2 spec だけで、
+	// plist も .zshrc も /etc も持たない)。失敗メッセージは「macbook.toml が」と
+	// 言うのに実際は別のファイルを見ている、という最悪の形になっていた。
+	var mac *Profile
+	for _, p := range profiles {
+		if p.Name == "macbook" {
+			mac = p
+			break
+		}
+	}
+	if mac == nil {
+		t.Fatal("macbook.toml が読み込まれていない。macOS 専用ルールは platform ゲートで " +
+			"評価対象から外れ、スコアカードでは静かなルールと区別がつかない")
+	}
+	if mac.OS != "darwin" {
+		t.Fatalf("macbook.toml の os が %q になっている。darwin でなければ macOS ルールは "+
+			"platform ゲートで落ちる", mac.OS)
+	}
+
+	// Positive coverage: benign activity that reaches each rule's selectors.
+	covered := []struct {
+		rule string
+		ok   bool
+	}{
+		{
+			"macOS System and Owner Discovery",
+			procImageCmd(mac, []string{"/system_profiler", "/sw_vers", "/whoami", "/id", "/hostname"}, nil),
+		},
+		{
+			"macOS Security Software Discovery",
+			procImageCmd(mac,
+				[]string{"/ps", "/pgrep", "/csrutil", "/spctl"},
+				[]string{"csrutil status", "spctl --status", "LittleSnitch", "CrowdStrike", "santad"}),
+		},
+		{
+			"macOS Kernel Extension Load",
+			procImageCmd(mac, []string{"/kextload", "/kextutil"}, nil) ||
+				procImageCmd(mac, []string{"/kmutil"}, []string{"load"}),
+		},
+		{
+			// mac-workstation.toml (#736) との一本化で移してきた分。
+			"Remote Access via VNC Server or Client",
+			procImageCmd(mac, []string{"/vncviewer", "/x11vnc", "/vncserver", "/tigervncserver"}, nil),
+		},
+		{
+			"Unix System Shutdown or Reboot",
+			procImageCmd(mac, []string{"/shutdown", "/reboot", "/poweroff", "/halt"}, nil),
+		},
+		{
+			"macOS Data Exfiltration via curl or scp Upload",
+			anyCmdline(mac, func(cl string) bool {
+				if strings.Contains(cl, "scp ") {
+					return true
+				}
+				return containsFold(cl, "curl") && containsAny(cl,
+					" -F ", " --form", " -T ", " --upload-file", " --data-binary @", " -d @")
+			}),
+		},
+		{
+			"Exfiltration to Cloud Storage via Native CLI",
+			anyCmdline(mac, func(cl string) bool {
+				return containsFold(cl, "aws") && containsFold(cl, "s3") &&
+					containsAny(cl, " cp ", " sync ", "put-object")
+			}),
+		},
+		{
+			"Credential Harvesting from Shell or DB History",
+			anyCmdline(mac, func(cl string) bool {
+				return containsAny(cl, "cat", "less", "more", "grep", "head", "tail", "strings") &&
+					containsAny(cl, ".bash_history", ".zsh_history", ".mysql_history", ".psql_history")
+			}),
+		},
+		{
+			"macOS Launch Agent or Daemon plist File Creation",
+			anyFilePath(mac, func(p string) bool {
+				return containsAny(p, "/Library/LaunchAgents/", "/Library/LaunchDaemons/") &&
+					strings.HasSuffix(p, ".plist")
+			}),
+		},
+		{
+			"macOS Shell Startup File Modification",
+			anyFilePath(mac, func(p string) bool {
+				return hasAnySuffix(p, "/.zshrc", "/.zprofile", "/.bash_profile", "/.bashrc", "/.profile")
+			}),
+		},
+		{
+			// この 1 件だけは収集側の変更とセットである。migration 386 の PR で
+			// darwin/file_collector.go の既定監視パスに /etc を足すまで、ここは
+			// フィールドが解決するのに値が永久に来ない状態だった。
+			"macOS Sudoers or Passwd Modification",
+			anyFilePath(mac, func(p string) bool {
+				return containsAny(p, "/etc/sudoers", "/etc/passwd")
+			}),
+		},
+	}
+	for _, c := range covered {
+		if !c.ok {
+			t.Errorf("macbook.toml が %q のセレクタに届かなくなった——"+
+				"ルールは評価されるが決して鳴らず、スコアカード上は「精度が高い」と"+
+				"区別がつかない", c.rule)
+		}
+	}
+
+	// Negative controls. The soak's ground truth is structural: every alert this
+	// fleet raises is a false positive BY CONSTRUCTION. That holds only while the
+	// profile contains nothing an analyst would call an attack. These are the four
+	// wave-3 rules deliberately left unmeasured (see macbook.toml's header) —
+	// writing the behaviour in to buy coverage would not measure their FP rate, it
+	// would relabel a true positive as one.
+	forbidden := []struct {
+		what   string
+		needle []string
+	}{
+		{"SIP/ファイアウォールの無効化", []string{"csrutil disable", "--setglobalstate off", "--setglobalstate 0", "boot-args"}},
+		{"リバースシェル", []string{"/dev/tcp/", "/dev/udp/", "bash -i", "zsh -i", "-e /bin/bash", "-e /bin/sh", "-e /bin/zsh"}},
+		{"匿名アップローダへの送信", []string{"transfer.sh", "0x0.st", "file.io", "ix.io", "termbin.com", "anonfiles", "gofile.io"}},
+		// VNC は「クライアントで社内へ繋ぐ」正規操作として入れてある (vncviewer)。
+		// 禁止するのは**認証なしで待ち受ける側**——業務端末が -nopw で VNC サーバを
+		// 上げる正当な理由は無い。
+		{"認証なし VNC サーバの待ち受け", []string{"-rfbport", "-nopw", "x11vnc -display"}},
+	}
+	for _, f := range forbidden {
+		if anyCmdline(mac, func(cl string) bool { return containsAny(cl, f.needle...) }) {
+			t.Errorf("macbook.toml に %s が入っている。良性フリートに攻撃相当の挙動を"+
+				"書くと、FP ソークの前提（このフリートのアラートは定義上すべて誤検知）"+
+				"そのものが崩れる", f.what)
+		}
+	}
+
+	// The controls above only prove something if a present string would be found.
+	// Without this, a typo in containsAny would make every forbidden check pass.
+	if !anyCmdline(mac, func(cl string) bool { return containsAny(cl, "csrutil status") }) {
+		t.Error("対照が効いていない: 実在する文字列 'csrutil status' を検出できていないので、" +
+			"上の禁止チェックが通ったことに意味が無い")
+	}
+
+	// 精度の対照。macOS Security Software Discovery は tooling (/ps /pgrep /csrutil
+	// /spctl) **and** products (CrowdStrike, santad, …) を要求する。tooling 側だけに
+	// 当たって products 側に当たらない入力が無いと、条件の and が or に退化していても
+	// ソークでは気づけない——どちらの実装でも「鳴る」からである。
+	//
+	// mac-workstation.toml (#736) から移してきた pgrep がその役をする。
+	products := []string{"LittleSnitch", "CrowdStrike", "falcon", "SentinelOne",
+		"sentineld", "CarbonBlack", "santad", "BlockBlock", "KnockKnock"}
+	toolingOnly := false
+	for _, proc := range mac.Processes {
+		if !hasAnySuffix(proc.Path, "/ps", "/pgrep") {
+			continue
+		}
+		for _, cl := range proc.CommandLines {
+			if !containsAny(cl, products...) {
+				toolingOnly = true
+			}
+		}
+	}
+	if !toolingOnly {
+		t.Error("tooling セレクタには当たるが products セレクタには当たらない入力が無い。" +
+			"macOS Security Software Discovery の `tooling and products` が and として" +
+			"効いているかを、このプロファイルでは確かめられない")
+	}
+}
+
 // ─── helpers ──────────────────────────────────────────────────
+
+// procImageCmd reports whether one process spec has both an image path ending in
+// any of imageSuffixes and (when cmdSubstrings is non-empty) a command line
+// containing any of them. Both from the same spec, as Sigma evaluates them.
+func procImageCmd(p *Profile, imageSuffixes, cmdSubstrings []string) bool {
+	for _, proc := range p.Processes {
+		if !hasAnySuffix(proc.Path, imageSuffixes...) {
+			continue
+		}
+		if len(cmdSubstrings) == 0 {
+			return true
+		}
+		for _, cl := range proc.CommandLines {
+			if containsAny(cl, cmdSubstrings...) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func anyCmdline(p *Profile, match func(string) bool) bool {
+	for _, proc := range p.Processes {
+		for _, cl := range proc.CommandLines {
+			if match(cl) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func anyFilePath(p *Profile, match func(string) bool) bool {
+	for _, spec := range p.Files {
+		for _, path := range spec.Paths {
+			if match(path) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func containsAny(haystack string, needles ...string) bool {
+	for _, n := range needles {
+		if strings.Contains(haystack, n) {
+			return true
+		}
+	}
+	return false
+}
+
+func hasAnySuffix(s string, suffixes ...string) bool {
+	for _, suf := range suffixes {
+		if strings.HasSuffix(s, suf) {
+			return true
+		}
+	}
+	return false
+}
 
 func containsFold(haystack, needle string) bool {
 	return strings.Contains(strings.ToLower(haystack), strings.ToLower(needle))

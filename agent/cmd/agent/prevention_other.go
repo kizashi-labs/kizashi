@@ -1,4 +1,4 @@
-//go:build !(linux && ebpf && prevention) && !(windows && prevention) && !(darwin && esf && prevention)
+//go:build !(linux && ebpf && prevention) && !(windows && prevention) && !(darwin && esf && prevention && cgo)
 
 package main
 

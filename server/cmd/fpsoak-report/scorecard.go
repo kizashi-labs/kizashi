@@ -4,6 +4,8 @@ import (
 	"encoding/csv"
 	"fmt"
 	"io"
+	"math"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -384,6 +386,8 @@ func CompareBaseline(current, baseline Scorecard, totalTol, ruleTol, newRuleFloo
 		out = append(out, Regression{Scope: r.Title, Was: was.Rate, Now: r.Rate, Message: msg})
 	}
 
+	out = append(out, compareFamilies(current, baseline, ruleTol, newRuleFloor)...)
+
 	sort.Slice(out, func(i, j int) bool {
 		if out[i].Scope == totalRow {
 			return true
@@ -545,4 +549,86 @@ func sortedCountKeys(m map[string]int) []string {
 		return keys[i] < keys[j]
 	})
 	return keys
+}
+
+// familyKeyRe strips an embedded subject from an alert title: the quoted process
+// name in "プロセス 'rsync' が…", or a bare IP/host in the exfil detector's title.
+var familyKeyRe = regexp.MustCompile(`'[^']*'|"[^"]*"|\b\d{1,3}(?:\.\d{1,3}){3}\b`)
+
+// familyKey collapses titles that differ only in the subject they name.
+//
+// Some detectors put the offending process (or destination address) INTO the
+// alert title, which is right for an analyst — "which process burst" is the
+// first thing they need — but it splits one detector across many scorecard rows.
+func familyKey(title string) string {
+	return strings.TrimSpace(familyKeyRe.ReplaceAllString(foldEnginePrefix(title), "…"))
+}
+
+// compareFamilies catches a detector getting noisier when its output is spread
+// across many per-subject titles.
+//
+// The per-title comparison above cannot see it. Measured on a benign 20-host
+// soak, the file-burst heuristic produced 36 alerts under EIGHT titles — one per
+// process (rsync, restic, robocopy.exe, MsMpEng.exe, go, find, …). Seven of the
+// eight sat at 4 alerts, BELOW the 5-alert new-rule floor, so they were exempt
+// from the gate entirely; and if the detector doubled, each title would grow by
+// about 4, inside the per-rule tolerance. A 2× regression in a severity-8
+// ransomware heuristic would have passed silently.
+//
+// Only families with more than one title are checked. A single-title family is
+// already covered by the per-title pass, and reporting it twice would just make
+// every ordinary regression print two lines.
+//
+// This does NOT second-guess the detectors that title themselves this way. The
+// file-burst heuristic's noise on backup and build tooling is a deliberate,
+// documented trade-off (see internal/detection/file_burst.go: the rate signal is
+// the only observation surface for ransomware that skips shadow-copy deletion).
+// The defect was never the noise — it was that the gate could not measure it.
+func compareFamilies(current, baseline Scorecard, ruleTol, newRuleFloor float64) []Regression {
+	agg := func(sc Scorecard) (rate map[string]float64, alerts map[string]int, titles map[string]int) {
+		rate, alerts, titles = map[string]float64{}, map[string]int{}, map[string]int{}
+		for _, r := range sc.Rules {
+			k := familyKey(r.Title)
+			rate[k] += r.Rate
+			alerts[k] += r.Alerts
+			titles[k]++
+		}
+		return
+	}
+	curRate, curAlerts, curTitles := agg(current)
+	baseRate, _, _ := agg(baseline)
+
+	keys := make([]string, 0, len(curRate))
+	for k := range curRate {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	var out []Regression
+	for _, k := range keys {
+		if curTitles[k] < 2 {
+			continue // already covered per-title
+		}
+		now, was := roundRate(curRate[k]), roundRate(baseRate[k])
+
+		// The tolerance has to grow with the family, or this check is flakier than
+		// the thing it measures. ruleTol is calibrated for ONE rule's run-to-run
+		// swing; a family is a sum of N of them, and the swing of a sum of roughly
+		// independent counts grows as sqrt(N), not stays flat and not N. Using
+		// ruleTol unscaled would fire on ordinary jitter across eight titles; using
+		// ruleTol*N would be so loose that a doubling slips through (measured: 8
+		// titles, 32→64 alerts is a delta of 19200, under a linear 24000 budget).
+		tol := ruleTol * math.Sqrt(float64(curTitles[k]))
+		if now <= was+tol || now < newRuleFloor {
+			continue
+		}
+		msg := fmt.Sprintf("検知器 %q の誤検知率が悪化しました: %.2f → %.2f (許容 +%.2f / %d タイトルに分散, 計 %d件)",
+			k, was, now, tol, curTitles[k], curAlerts[k])
+		if was == 0 {
+			msg = fmt.Sprintf("新たに誤検知を出す検知器です %q: %.2f /1000ホスト/日 (%d タイトルに分散, 計 %d件)",
+				k, now, curTitles[k], curAlerts[k])
+		}
+		out = append(out, Regression{Scope: k, Was: was, Now: now, Message: msg})
+	}
+	return out
 }

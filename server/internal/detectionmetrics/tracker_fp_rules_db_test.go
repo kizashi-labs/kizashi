@@ -33,7 +33,9 @@ func TestTopFalsePositiveRulesReturnsRows(t *testing.T) {
 	if err != nil {
 		t.Skipf("cannot connect to DATABASE_URL: %v", err)
 	}
-	defer pool.Close()
+	// defer ではなく t.Cleanup。defer はテスト関数の return 時に走るため、
+	// その後に走る t.Cleanup の DELETE が閉じたプールに当たってしまう。
+	t.Cleanup(pool.Close)
 	if err := pool.Ping(ctx); err != nil {
 		t.Skipf("DB ping failed: %v", err)
 	}
@@ -48,7 +50,10 @@ func TestTopFalsePositiveRulesReturnsRows(t *testing.T) {
 		t.Skipf("agents table unavailable (unmigrated schema?): %v", err)
 	}
 	t.Cleanup(func() {
-		_, _ = pool.Exec(context.Background(), `DELETE FROM agents WHERE id = $1::uuid`, agentID)
+		if _, err := pool.Exec(context.Background(),
+			`DELETE FROM agents WHERE id = $1::uuid`, agentID); err != nil {
+			t.Errorf("後片付けに失敗しました (agents): %v", err)
+		}
 	})
 
 	const title = "fpmetrics-test-rule"

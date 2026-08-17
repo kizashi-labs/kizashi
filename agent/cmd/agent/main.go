@@ -189,6 +189,19 @@ func main() {
 		serverURL   = flag.String("server", "", "EDRサーバーURL (enroll時)")
 		enrollToken = flag.String("token", "", "登録トークン (enroll時)")
 
+		// Uninstall protection. The uninstall scripts call this and refuse to
+		// remove anything unless it exits 0. Password comes from
+		// EDR_UNINSTALL_PASSWORD or stdin — never an argument, which would put
+		// it in the process list for the duration of the key derivation.
+		verifyUninstall = flag.Bool("verify-uninstall", false,
+			"アンインストールパスワードを検証して終了 (0=許可 2=拒否 3=判定不能)")
+
+		// First-run config generation, called by the OS packages (MSI custom
+		// action / deb+rpm postinstall / macOS pkg postinstall). Refuses to
+		// overwrite an existing config, so packages can call it unconditionally.
+		writeConfig = flag.Bool("write-config", false,
+			"初回設定ファイルを生成して終了 (既存ファイルがあれば何もしない)")
+
 		// Standalone memory-scan cost measurement (#511). Needs no config or
 		// enrollment and sends no events, so it can be run on any host — including
 		// alongside an installed agent — to check what the scanner costs there.
@@ -219,6 +232,17 @@ func main() {
 	if *showVersion {
 		fmt.Printf("edr-agent v%s (%s/%s)\n", version, runtime.GOOS, runtime.GOARCH)
 		os.Exit(0)
+	}
+
+	// Before logging setup and any collector initialisation: this mode answers
+	// one question and exits, and must not start monitoring on a host that is
+	// being decommissioned.
+	if *verifyUninstall {
+		os.Exit(runVerifyUninstall(*configPath))
+	}
+
+	if *writeConfig {
+		os.Exit(runWriteConfig(*configPath, *serverURL))
 	}
 
 	// ─── Logging setup ────────────────────────────────────────
@@ -336,10 +360,13 @@ func main() {
 	}
 
 	// ─── gRPC client ──────────────────────────────────────────
+	// ack の送信先は grpcClient だが、grpcClient はコマンドハンドラで executor を
+	// 参照するため相互に必要になる。間に薄い転送を挟んで循環を解く。
+	ackSender := &deferredAckSender{}
 	executor := response.NewExecutor(
 		isolation, procMgr, quarantine,
 		cfg.Agent.ID, cfg.Server.URL,
-		nil, // ack sender set below
+		ackSender, // 下で grpcClient を代入する
 	)
 
 	var grpcClient *transport.GRPCClient
@@ -361,6 +388,10 @@ func main() {
 		case transport.CmdQuarantineFile:
 			if c, ok := cmd.Payload.(response.QuarantineFileCmd); ok {
 				executor.QuarantineFile(ctx, c)
+			}
+		case transport.CmdApplyPolicy:
+			if c, ok := cmd.Payload.(transport.ApplyPolicyCmd); ok {
+				applyServerPolicy(cfgMgr, c)
 			}
 		case transport.CmdRestoreFile:
 			if c, ok := cmd.Payload.(response.RestoreFileCmd); ok {
@@ -541,6 +572,7 @@ rule Malware_Test_Content {
 			}
 		}
 	})
+	ackSender.set(grpcClient) // ここで実際の送信先が決まる
 
 	// ─── Local ML anomaly detector ────────────────────────────
 	mlDetector := scanner.NewLocalAnomalyDetector()
@@ -597,6 +629,7 @@ rule Malware_Test_Content {
 		)
 		hbReporter.SetProtectionMode(string(protCaps.Mode))
 		hbReporter.SetTelemetryModeFunc(func() string { return string(telemetry.Aggregate()) })
+		hbReporter.SetUninstallGuardApplier(makeUninstallGuardApplier(*configPath))
 		hbReporter.Run(ctx)
 	}()
 
@@ -1408,6 +1441,63 @@ func processAction(a string) v1.ProcessEvent_ProcessAction {
 	}
 }
 
+// applyServerPolicy applies an admin-console policy push.
+//
+// Only the toggles the server actually sends are touched. buildEnabledModules on
+// the server emits at most {"network","dns"}; process, file, registry and auth
+// monitoring are never named. Treating "absent" as "disable" would therefore turn
+// OFF process and file collection the moment any policy is assigned — the whole
+// sensor, silently, from a UI that never offered that choice. So the list is read
+// as "these two, set to on/off" and everything else is preserved verbatim.
+func applyServerPolicy(cfgMgr *config.Manager, p transport.ApplyPolicyCmd) {
+	if cfgMgr == nil {
+		return
+	}
+	cur := cfgMgr.Get()
+	if cur == nil {
+		return
+	}
+	network, dns := false, false
+	var unknown []string
+	for _, m := range p.EnabledModules {
+		switch strings.ToLower(strings.TrimSpace(m)) {
+		case "network":
+			network = true
+		case "dns":
+			dns = true
+		default:
+			unknown = append(unknown, m)
+		}
+	}
+	// Carry every other field through unchanged: ApplyRemote overwrites the whole
+	// collection block, so building a fresh RemoteConfig would wipe the monitored
+	// and excluded paths and clear AutoResponseEnabled as a side effect.
+	cfgMgr.ApplyRemote(&config.RemoteConfig{
+		ProcessMonitoring:    cur.Collection.ProcessMonitoring,
+		FileMonitoring:       cur.Collection.FileMonitoring,
+		NetworkMonitoring:    network,
+		DNSMonitoring:        dns,
+		MonitoredPaths:       cur.Collection.MonitoredPaths,
+		ExcludedPaths:        cur.Collection.ExcludedPaths,
+		ExcludedProcesses:    cur.Collection.ExcludedProcesses,
+		EventBatchIntervalMS: cur.Collection.EventBatchIntervalMS,
+		AutoResponseEnabled:  cur.Response.AutoResponseEnabled,
+	})
+	slog.Info("[apply_policy] ポリシーを適用しました",
+		"policy", p.PolicyID, "network", network, "dns", dns)
+	if len(unknown) > 0 {
+		slog.Warn("[apply_policy] 未対応のモジュール名を無視しました", "modules", unknown)
+	}
+	// Reported, not applied: the agent has no scan scheduler, and the CPU ceiling
+	// is fixed at construction (resource.New) with no setter — and the throttle is
+	// created but never consulted on the event path (`_ = throttle`). Logging the
+	// gap beats pretending the knob took effect.
+	if p.ScanIntervalMin > 0 || p.CPULimitPct > 0 {
+		slog.Warn("[apply_policy] 未対応の項目があります(受信のみ)",
+			"scan_interval_min", p.ScanIntervalMin, "cpu_limit_pct", p.CPULimitPct)
+	}
+}
+
 func fileAction(a string) v1.FileEvent_FileAction {
 	switch a {
 	case "create":
@@ -1796,4 +1886,36 @@ func hashFileSHA256(path string) string {
 		return ""
 	}
 	return hex.EncodeToString(h.Sum(nil))
+}
+
+// deferredAckSender は response.Executor と GRPCClient の相互依存を解く。
+//
+// Executor はコマンド実行結果を送るために AckSender を必要とし、GRPCClient は
+// 受け取ったコマンドを実行するために Executor を必要とする。生成順をどちらに
+// しても片方が先に要る。薄い転送を挟み、grpcClient が出来た時点で差し込む。
+//
+// これが無かったために NewExecutor へ nil が渡され（"ack sender set below" と
+// あるが、その "below" は存在しなかった）、エージェントはコマンドの実行結果を
+// 一度も返していなかった。AckSender の実装型が agent 内に 1 つも無い状態だった。
+type deferredAckSender struct {
+	mu     sync.Mutex
+	target response.AckSender
+}
+
+func (d *deferredAckSender) set(target response.AckSender) {
+	d.mu.Lock()
+	d.target = target
+	d.mu.Unlock()
+}
+
+func (d *deferredAckSender) SendAck(ctx context.Context, commandID string, success bool, errMsg string, result []byte) error {
+	d.mu.Lock()
+	t := d.target
+	d.mu.Unlock()
+	if t == nil {
+		// 起動直後にコマンドが来た場合。送れないことを黙らせない。
+		slog.Warn("ACK の送信先が未設定です", "command_id", commandID)
+		return nil
+	}
+	return t.SendAck(ctx, commandID, success, errMsg, result)
 }

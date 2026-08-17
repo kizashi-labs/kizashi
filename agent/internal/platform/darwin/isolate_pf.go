@@ -3,6 +3,7 @@
 package darwin
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"os/exec"
@@ -108,6 +109,21 @@ func (m *PFIsolationManager) IsIsolated() bool {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 	return m.isolated
+}
+
+// VerifyIsolation reads the actual pf anchor instead of the in-memory flag.
+//
+// アンカーにルールが入っているかを pfctl から読み返す。pfctl は対象が空でも
+// 終了コード 0 を返すので、出力が空でないことまで見る必要がある。
+// 「アンカーは存在するがルールが 0 件」は隔離されていない状態。
+func (m *PFIsolationManager) VerifyIsolation() (bool, error) {
+	out, err := exec.Command("pfctl", "-a", edrAnchorName, "-s", "rules").CombinedOutput()
+	if err != nil {
+		// pf 自体が無効、または権限が無い。状態を確認できなかったので
+		// 「隔離されていない」とは言わない。
+		return false, fmt.Errorf("pfctl でアンカーを読めませんでした: %w", err)
+	}
+	return len(bytes.TrimSpace(out)) > 0, nil
 }
 
 func buildPFConfig(allowedIPs []string) string {

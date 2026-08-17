@@ -2,21 +2,37 @@
   "name": "@kizashi-edr/client",
   "version": "1.0.0",
   "description": "Official TypeScript client SDK for the Kizashi API",
-  "license": "Proprietary",
+  "license": "AGPL-3.0-or-later",
+  "author": "camel",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kizashi-labs/kizashi.git",
+    "directory": "sdk/typescript"
+  },
+  "homepage": "https://github.com/kizashi-labs/kizashi#readme",
+  "bugs": "https://github.com/kizashi-labs/kizashi/issues",
+  "keywords": [
+    "edr",
+    "endpoint-detection-response",
+    "security",
+    "kizashi"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
   "type": "module",
   "exports": {
     ".": {
+      "types": "./dist/client.d.ts",
       "import": "./dist/client.js",
-      "require": "./dist/client.cjs",
-      "default": "./src/client.ts"
+      "default": "./dist/client.js"
     }
   },
-  "main": "./dist/client.cjs",
   "module": "./dist/client.js",
   "types": "./dist/client.d.ts",
   "files": [
     "dist",
-    "src"
+    "src/client.ts"
   ],
   "scripts": {
     "build": "tsc --project tsconfig.json",

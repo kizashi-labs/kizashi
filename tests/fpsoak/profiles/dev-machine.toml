@@ -1,0 +1,443 @@
+# 開発者マシン (Linux) — 「攻撃と見分けがつきにくい正規操作」の宝庫。
+#
+# 開発者は日常的に、攻撃者と同じツール(curl/wget/base64/chmod +x/ssh)を、
+# 同じ場所(/tmp, ~/.cache)で、同じ形(スクリプトをダウンロードして実行)で使う。
+# コマンドライン文字列にマッチする Sigma ルールが最も誤爆する層であり、
+# curate で有効化したルールの実運用ノイズはまずここに現れる。
+
+name        = "dev-machine"
+os          = "linux"
+os_version  = "Ubuntu 24.04.1 LTS"
+description = "開発者マシン: git/go/docker/npm、コンテナビルド、社内SSH"
+host_prefix = "dev"
+fleet_weight = 20
+subnet      = "10.21.0.0/16"
+users       = ["kobayashi", "kato", "yoshida", "yamada", "sasaki", "matsumoto"]
+
+[rates]
+process    = 400
+file       = 3000
+network    = 1200
+dns        = 400
+auth       = 10
+image_load = 200
+
+# ─── プロセス ────────────────────────────────────────────────
+
+[[processes]]
+weight   = 20
+name     = "git"
+path     = "/usr/bin/git"
+parent   = "bash"
+user     = "{{user}}"
+cmdlines = [
+  "git fetch --all --prune",
+  "git status --porcelain",
+  "git log --oneline -20",
+  "git rev-parse HEAD",
+  "git push origin feature/{{rand}}",
+]
+
+[[processes]]
+weight   = 16
+name     = "go"
+path     = "/usr/local/go/bin/go"
+parent   = "bash"
+user     = "{{user}}"
+cmdlines = [
+  "go build ./...",
+  "go test -race ./internal/...",
+  "go vet ./...",
+  "go mod download",
+]
+
+[[processes]]
+weight   = 12
+name     = "docker"
+path     = "/usr/bin/docker"
+parent   = "bash"
+user     = "{{user}}"
+cmdlines = [
+  "docker build -t app:{{rand}} .",
+  "docker compose up -d",
+  "docker ps -a",
+  "docker exec -it app-{{rand}} /bin/sh",
+]
+
+[[processes]]
+weight   = 10
+name     = "node"
+path     = "/usr/bin/node"
+parent   = "npm"
+user     = "{{user}}"
+cmdlines = [
+  "node /usr/lib/node_modules/npm/bin/npm-cli.js install",
+  "node ./node_modules/.bin/next build",
+  "node ./node_modules/.bin/jest --ci",
+]
+
+# 開発者による「ダウンロードして実行」。攻撃の T1105 (Ingress Tool Transfer) と
+# 文字列上は区別できない正規操作で、curl|sh 系ルールの誤爆源。
+[[processes]]
+weight   = 8
+name     = "curl"
+path     = "/usr/bin/curl"
+parent   = "bash"
+user     = "{{user}}"
+cmdlines = [
+  "curl -fsSL https://proxy.golang.org/github.com/example/mod/@v/list",
+  "curl -sS -o /tmp/installer-{{rand}}.sh https://get.docker.com",
+  "curl -H 'Authorization: Bearer ***' https://api.internal.example.co.jp/v1/deploy",
+]
+
+[[processes]]
+weight   = 6
+name     = "bash"
+path     = "/usr/bin/bash"
+parent   = "sshd"
+user     = "{{user}}"
+cmdlines = [
+  "bash /tmp/installer-{{rand}}.sh",
+  "bash -c 'source ~/.nvm/nvm.sh && nvm use 20'",
+  "-bash",
+]
+
+# 権限昇格。正規の sudo は攻撃の T1548 と同じ形をとる。
+[[processes]]
+weight   = 6
+name     = "sudo"
+path     = "/usr/bin/sudo"
+parent   = "bash"
+user     = "{{user}}"
+cmdlines = [
+  "sudo apt-get update",
+  "sudo systemctl restart docker",
+  "sudo journalctl -u app.service -n 200",
+]
+
+[[processes]]
+weight   = 6
+name     = "ssh"
+path     = "/usr/bin/ssh"
+parent   = "bash"
+user     = "{{user}}"
+cmdlines = [
+  "ssh deploy@app-staging-01.corp.example.co.jp",
+  "ssh -A jump01.corp.example.co.jp",
+]
+
+[[processes]]
+weight   = 6
+name     = "chmod"
+path     = "/usr/bin/chmod"
+parent   = "bash"
+user     = "{{user}}"
+cmdlines = [
+  "chmod +x /tmp/installer-{{rand}}.sh",
+  "chmod 600 /home/{{user}}/.ssh/id_ed25519",
+  "chmod -R 755 ./build",
+]
+
+[[processes]]
+weight   = 5
+name     = "python3"
+path     = "/usr/bin/python3"
+parent   = "bash"
+user     = "{{user}}"
+cmdlines = [
+  "python3 -m pip install -r requirements.txt",
+  "python3 scripts/migrate.py --env=dev",
+  "python3 -m http.server 8000",
+]
+
+[[processes]]
+weight   = 5
+name     = "tar"
+path     = "/usr/bin/tar"
+parent   = "bash"
+user     = "{{user}}"
+cmdlines = [
+  "tar -czf /tmp/artifact-{{rand}}.tar.gz ./dist",
+  "tar -xzf /tmp/node-v20.tar.gz -C /tmp",
+]
+
+# ─── 第 3 波（migration 386）のクロス OS ルールと語彙が重なる正規操作 ───
+#
+# これらのコマンドは 5 つのプロファイルに一度も現れておらず、ルールを入れても
+# 誤検知を測れない状態だった（P4-12）。攻撃者が使うから危険なのではなく、
+# 開発者も日常的に使うから誤検知になる、という層をここで作る。
+
+# 持ち出し検知と形が同じ正規転送。ビルド成果物のデプロイは毎日走る。
+[[processes]]
+weight   = 7
+name     = "scp"
+path     = "/usr/bin/scp"
+parent   = "bash"
+user     = "{{user}}"
+cmdlines = [
+  "scp dist/app.tar.gz deploy@10.21.0.9:/srv/releases/",
+  "scp deploy@10.21.0.9:/var/log/app.log ./tmp/",
+]
+
+# クラウド開発の日常。外部宛に大量送信するので持ち出しと区別がつきにくい。
+[[processes]]
+weight   = 6
+name     = "aws"
+path     = "/usr/local/bin/aws"
+parent   = "bash"
+user     = "{{user}}"
+cmdlines = [
+  "aws s3 sync ./dist s3://company-assets/web/",
+  "aws s3 cp backup.tar.gz s3://company-backup/{{rand}}/",
+]
+
+# プロセス探索。スクリプトの冒頭で頻繁に走る。単体では偵察と区別がつかない。
+[[processes]]
+weight   = 9
+name     = "pgrep"
+path     = "/usr/bin/pgrep"
+parent   = "bash"
+user     = "{{user}}"
+cmdlines = [
+  "pgrep -f node",
+  "pgrep -x dockerd",
+]
+
+# 再起動。カーネル更新後や検証環境の作り直しで正規に走る。
+[[processes]]
+weight   = 3
+name     = "shutdown"
+path     = "/sbin/shutdown"
+parent   = "sudo"
+user     = "root"
+cmdlines = [
+  "shutdown -r now",
+  "shutdown -r +5",
+]
+
+# シェル履歴の参照。攻撃者も見るが、本人はもっと見る。
+[[processes]]
+weight   = 5
+name     = "grep"
+path     = "/usr/bin/grep"
+parent   = "bash"
+user     = "{{user}}"
+cmdlines = [
+  "grep -n docker /home/{{user}}/.bash_history",
+  "grep -rn TODO ./internal",
+]
+
+# ─── ファイル ────────────────────────────────────────────────
+
+[[files]]
+weight  = 35
+process = "go"
+actions = ["create", "modify", "delete"]
+size_range = [512, 52428800]
+paths = [
+  "/home/{{user}}/.cache/go-build/{{rand}}/{{rand}}-d",
+  "/home/{{user}}/go/pkg/mod/cache/download/github.com/example/@v/v1.{{randint}}.0.zip",
+  "/tmp/go-build{{randint}}/b001/exe/main",
+]
+
+[[files]]
+weight  = 25
+process = "node"
+actions = ["create", "modify", "delete"]
+size_range = [128, 8388608]
+paths = [
+  "/home/{{user}}/project/node_modules/.package-lock.json",
+  "/home/{{user}}/project/node_modules/{{rand}}/index.js",
+  "/home/{{user}}/project/.next/cache/webpack/client-development/{{rand}}.pack",
+]
+
+[[files]]
+weight  = 20
+process = "docker"
+actions = ["create", "modify", "delete"]
+size_range = [1024, 1073741824]
+paths = [
+  "/var/lib/docker/overlay2/{{rand}}/diff/usr/local/bin/app",
+  "/var/lib/docker/tmp/docker-builder{{randint}}/layer.tar",
+]
+
+[[files]]
+weight  = 12
+process = "git"
+actions = ["create", "modify"]
+size_range = [64, 20971520]
+paths = [
+  "/home/{{user}}/project/.git/objects/{{rand}}",
+  "/home/{{user}}/project/.git/refs/heads/feature/{{rand}}",
+]
+
+# 開発者が自分の SSH 鍵と shell 設定を触る。永続化 FIM ルール
+# (authorized_keys / .bashrc — migration 311) の真正面にある良性操作で、
+# ここが鳴るかどうかは FIM ルールの実用性を直接左右する。
+[[files]]
+weight  = 5
+process = "bash"
+actions = ["modify"]
+size_range = [128, 8192]
+paths = [
+  "/home/{{user}}/.bashrc",
+  "/home/{{user}}/.ssh/authorized_keys",
+  "/home/{{user}}/.ssh/known_hosts",
+  "/home/{{user}}/.gitconfig",
+]
+
+[[files]]
+weight  = 3
+process = "curl"
+actions = ["create", "execute"]
+size_range = [1024, 262144]
+paths = ["/tmp/installer-{{rand}}.sh"]
+
+# ─── ネットワーク ────────────────────────────────────────────
+
+[[network]]
+weight   = 25
+process  = "go"
+proto    = "tcp"
+ports    = [443]
+hostname = "proxy.golang.org"
+hosts    = ["142.250.199.81", "34.107.244.51"]
+bytes_sent_range = [500, 40000]
+bytes_recv_range = [10000, 80000000]
+
+[[network]]
+weight   = 20
+process  = "node"
+proto    = "tcp"
+ports    = [443]
+hostname = "registry.npmjs.org"
+hosts    = ["104.16.24.35", "104.16.25.35"]
+bytes_sent_range = [500, 30000]
+bytes_recv_range = [10000, 120000000]
+
+[[network]]
+weight   = 18
+process  = "git"
+proto    = "tcp"
+ports    = [443, 22]
+hostname = "github.com"
+hosts    = ["140.82.113.4", "140.82.114.3"]
+bytes_sent_range = [1000, 30000000]
+bytes_recv_range = [1000, 60000000]
+
+[[network]]
+weight   = 15
+process  = "docker"
+proto    = "tcp"
+ports    = [443]
+hostname = "registry-1.docker.io"
+hosts    = ["54.236.113.205", "3.216.34.172"]
+bytes_sent_range = [1000, 50000]
+bytes_recv_range = [50000, 900000000]
+
+# 社内ステージング環境への SSH。1台が複数の内部ホストへ 22 番で繋ぐ形は
+# 横展開検知 (T1021 lateral_fanout) の閾値近傍にある良性挙動。
+[[network]]
+weight   = 12
+process  = "ssh"
+proto    = "tcp"
+ports    = [22]
+hostname = "app-staging.corp.example.co.jp"
+hosts    = [
+  "10.21.255.11", "10.21.255.12", "10.21.255.13",
+  "10.21.255.14", "10.21.255.15",
+]
+bytes_sent_range = [2000, 4000000]
+bytes_recv_range = [2000, 8000000]
+
+[[network]]
+weight   = 10
+process  = "curl"
+proto    = "tcp"
+ports    = [443]
+hostname = "api.internal.example.co.jp"
+hosts    = ["10.21.255.40", "104.18.32.47"]
+bytes_sent_range = [500, 200000]
+bytes_recv_range = [500, 2000000]
+
+# ─── DNS ─────────────────────────────────────────────────────
+
+[[dns]]
+weight  = 30
+process = "go"
+queries = ["proxy.golang.org", "sum.golang.org", "storage.googleapis.com"]
+
+[[dns]]
+weight  = 25
+process = "node"
+queries = ["registry.npmjs.org", "nodejs.org", "cdn.jsdelivr.net"]
+
+[[dns]]
+weight  = 20
+process = "git"
+queries = ["github.com", "codeload.github.com", "objects.githubusercontent.com"]
+
+[[dns]]
+weight  = 15
+process = "docker"
+queries = ["registry-1.docker.io", "auth.docker.io", "production.cloudflare.docker.com"]
+
+[[dns]]
+weight  = 10
+process = "ssh"
+queries = [
+  "app-staging-01.corp.example.co.jp",
+  "jump01.corp.example.co.jp",
+  "gitlab.corp.example.co.jp",
+]
+
+# ─── 認証 ────────────────────────────────────────────────────
+
+[[auth]]
+weight  = 60
+users   = ["{{user}}"]
+actions = ["login"]
+success = true
+methods = ["key"]
+
+# sudo による権限昇格。auth テレメトリ側の T1548 相当で、
+# ブルートフォース検知器 (auth_attack.go) が見る成功イベントでもある。
+[[auth]]
+weight  = 30
+users   = ["{{user}}"]
+actions = ["privilege"]
+success = true
+methods = ["password"]
+
+# タイプミスによるパスワード失敗。単発では鳴ってはならない
+# (auth_attack.go はレート現象でのみ判定する) ことの確認材料。
+[[auth]]
+weight  = 10
+users   = ["{{user}}"]
+actions = ["failed"]
+success = false
+methods = ["password"]
+failure_reason = "Authentication failure"
+
+# ─── モジュールロード ────────────────────────────────────────
+
+[[image_loads]]
+weight  = 50
+process = "go"
+signed  = false
+paths   = ["/usr/lib/x86_64-linux-gnu/libc.so.6", "/usr/lib/x86_64-linux-gnu/libpthread.so.0"]
+
+[[image_loads]]
+weight  = 30
+process = "python3"
+signed  = false
+paths   = [
+  "/usr/lib/python3.12/lib-dynload/_ssl.cpython-312-x86_64-linux-gnu.so",
+  "/usr/lib/x86_64-linux-gnu/libssl.so.3",
+]
+
+[[image_loads]]
+weight  = 20
+process = "node"
+signed  = false
+paths   = ["/home/{{user}}/project/node_modules/.bin/../sharp/build/Release/sharp.node"]

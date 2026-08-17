@@ -64,6 +64,8 @@ env/
 *.dylib
 server/bin/
 server/*.exe
+# `go build ./cmd/openapi-sync` がリポジトリ直下に吐くバイナリ
+server/openapi-sync
 
 # ダウンロード・一時ファイル
 downloads/

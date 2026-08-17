@@ -1,0 +1,35 @@
+# Kizashi Agent Configuration
+#
+# Shipped by the .deb/.rpm package as a placeholder. The postinstall script
+# fills in `id` (a fresh UUID for this host) and `url` (from
+# /etc/edr/enroll.env) the first time it runs, and never touches the file
+# again — it is marked as a config file so upgrades preserve local edits.
+#
+# A package cannot know the server URL at build time, so it is supplied by
+# whatever placed the package: drop /etc/edr/enroll.env before installing.
+#
+#   SERVER_URL=https://edr.example.com
+#   ENROLLMENT_TOKEN=<token>      # optional
+#
+# Without it the package installs but the service stays stopped, with the
+# reason logged. That is deliberate: an agent pointed at a placeholder URL
+# would run, fail every connection, and look installed.
+
+[agent]
+id       = ""
+hostname = ""
+
+[server]
+url                  = ""
+grpc_port            = 9090
+ingestion_grpc_port  = 9091
+connect_timeout_sec  = 30
+# cert_pins = []  # Optional: SHA-256 SPKI pins for certificate pinning
+
+[collection]
+process_monitoring = true
+network_monitoring = true
+file_monitoring    = true
+
+[logging]
+level = "info"

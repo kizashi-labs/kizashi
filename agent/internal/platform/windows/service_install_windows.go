@@ -24,10 +24,10 @@ import (
 // service-based lateral movement was invisible. Read-only over the System log
 // (readable without admin), polling every 15s.
 type WindowsServiceInstallCollector struct {
-	cancel   context.CancelFunc
-	agentID  string
-	sender   collector.EventSender
-	lastSeen time.Time
+	cancel    context.CancelFunc
+	agentID   string
+	sender    collector.EventSender
+	watermark *collector.EventLogWatermark
 }
 
 // NewWindowsServiceInstallCollector creates the service-install collector.
@@ -43,7 +43,7 @@ func (c *WindowsServiceInstallCollector) Start(ctx context.Context, agentID stri
 	ctx, c.cancel = context.WithCancel(ctx)
 	c.agentID = agentID
 	c.sender = sender
-	c.lastSeen = time.Now().Add(-60 * time.Second)
+	c.watermark = collector.NewEventLogWatermark(time.Now().Add(-60 * time.Second))
 	slog.Info("サービスインストールの監視を開始します (System 7045)")
 	go c.run(ctx)
 	return nil
@@ -79,7 +79,9 @@ func (c *WindowsServiceInstallCollector) run(ctx context.Context) {
 }
 
 func (c *WindowsServiceInstallCollector) query() ([]*v1.EventBatch, error) {
-	timeStr := c.lastSeen.UTC().Format("2006-01-02T15:04:05.000Z")
+	round := c.watermark.BeginRound()
+	timeStr := c.watermark.QueryFrom().UTC().Format("2006-01-02T15:04:05.000Z")
+	var newest time.Time
 	q := fmt.Sprintf(`*[System[(EventID=7045) and TimeCreated[@SystemTime>='%s']]]`, timeStr)
 
 	channelPtr, err := winsys.UTF16PtrFromString("System")
@@ -120,8 +122,15 @@ func (c *WindowsServiceInstallCollector) query() ([]*v1.EventBatch, error) {
 			if !ok {
 				continue
 			}
-			if ts.After(c.lastSeen) {
-				c.lastSeen = ts
+			// The XPath lower bound is inclusive, so the newest already-reported
+			// 7045 comes back on EVERY poll. Emitting it again turned one Defender
+			// service install into 5,761 events and a [PERSIST] alert every five
+			// minutes. Fetch it, then drop it here.
+			if !c.watermark.ShouldEmit(round, ts) {
+				continue
+			}
+			if ts.After(newest) {
+				newest = ts
 			}
 			payload := collector.ServiceInstallPayload(f.name, f.imagePath, f.serviceType, f.startType, f.account)
 			if batch := collector.BuildServiceInstallEvent(c.agentID, payload); batch != nil {
@@ -129,6 +138,7 @@ func (c *WindowsServiceInstallCollector) query() ([]*v1.EventBatch, error) {
 			}
 		}
 	}
+	c.watermark.Commit(newest)
 	return out, nil
 }
 

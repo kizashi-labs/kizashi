@@ -143,6 +143,39 @@ func main() {
 		ruleEngine.SetPlatformGate(false)
 		slog.Warn("ルールのプラットフォーム・ゲートを無効化しました (EDR_RULE_PLATFORM_GATE)")
 	}
+
+	// Who evaluates the `rules` table's Sigma rules.
+	//
+	// Since P4-6 the api server's AlertPipeline loads that table too, so leaving it
+	// on here means BOTH processes evaluate every DB Sigma rule and one event
+	// becomes two alert rows. Dedup merges them but does not delete them.
+	//
+	// The switch is EDR_SIGMA_DB_RULES, the SAME variable the api reads, with the
+	// opposite sense — so the two processes cannot both own the rules and cannot
+	// both skip them. Unset (the default) means the api owns them, because this
+	// service's JetStream consumer lags chronically and a late alert is worse than
+	// a prompt one elsewhere. Setting it to 0 sheds the load from the api and hands
+	// ownership back here.
+	//
+	// Evidence for the default: internal/detection's
+	// TestMigrationSigmaFieldSupportInAPIEvaluator (the api resolves every field
+	// the DB rules select on, bar three that are dead in both engines) and
+	// TestBothEnginesAgreeOnDBRules (215 of 242 rules driven through both engines
+	// with events built from their own selectors — no disagreements).
+	dbSigmaHere := false
+	if v := os.Getenv("EDR_SIGMA_DB_RULES"); v == "0" || strings.EqualFold(v, "false") ||
+		strings.EqualFold(v, "no") || strings.EqualFold(v, "off") {
+		dbSigmaHere = true
+	}
+	ruleEngine.SetDBSigmaEvaluation(dbSigmaHere)
+	if dbSigmaHere {
+		slog.Warn("DB Sigma ルールを本サービスが評価します (EDR_SIGMA_DB_RULES=0) — " +
+			"api 側は読み込みません")
+	} else {
+		slog.Info("DB Sigma ルールは api サーバ (AlertPipeline) が評価します — " +
+			"本サービスはスキップします (二重評価の回避)")
+	}
+
 	dbRules, err := ruleStore.ListEnabled(ctx)
 	if err != nil {
 		slog.Warn("ルールの読み込みに失敗しました", "error", err)
@@ -218,8 +251,36 @@ func main() {
 		}
 	}
 
+	// 自動隔離の安全弁。誤検知は無くならない前提で、被害の大きさを機械的に抑える。
+	//   AUTO_ISOLATE_COOLDOWN       同じ端末を再隔離するまでの最短間隔（既定 30m）
+	//   AUTO_ISOLATE_HOURLY_BUDGET  1 時間あたりに隔離を許す台数（既定 3）
+	//   AUTO_ISOLATE_DRY_RUN        true なら隔離せず記録だけ（段階的に有効化する用）
+	isoCooldown := 30 * time.Minute
+	if v := os.Getenv("AUTO_ISOLATE_COOLDOWN"); v != "" {
+		if d, err := time.ParseDuration(v); err == nil && d > 0 {
+			isoCooldown = d
+		} else {
+			slog.Warn("AUTO_ISOLATE_COOLDOWN の値が無効です。既定(30m)を使用します", "value", v)
+		}
+	}
+	isoBudget := 3
+	if v := os.Getenv("AUTO_ISOLATE_HOURLY_BUDGET"); v != "" {
+		if n, err := strconv.Atoi(v); err == nil && n > 0 {
+			isoBudget = n
+		} else {
+			slog.Warn("AUTO_ISOLATE_HOURLY_BUDGET の値が無効です。既定(3)を使用します", "value", v)
+		}
+	}
+	isoDryRun := os.Getenv("AUTO_ISOLATE_DRY_RUN") == "true"
+	if isoDryRun {
+		slog.Warn("自動隔離はドライランです。隔離は実行されず、記録だけ残ります")
+	}
+
 	engineConfig := detection.EngineConfig{
 		AutoResponseEnabled:          autoResponse,
+		AutoIsolateCooldown:          isoCooldown,
+		AutoIsolateHourlyBudget:      isoBudget,
+		AutoIsolateDryRun:            isoDryRun,
 		AIAnalysisMinSeverity:        5,
 		AIAnalysisMinAnomalyScore:    0.6,
 		AIAnalysisConcurrency:        5,

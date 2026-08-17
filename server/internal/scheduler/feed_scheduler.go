@@ -25,6 +25,7 @@ type FeedScheduler struct {
 	interval  time.Duration
 	importer  *intel.FeedImporter // format-aware parser for abuse.ch / OTX / MISP feeds
 	taxii     *intel.TAXIIClient  // TAXII 2.1 collection poller for source_format="taxii21"
+	enabled   bool                // THREAT_FEED_SYNC_ENABLED（既定 true）
 }
 
 // NewFeedScheduler creates a FeedScheduler that polls for due feeds on the given interval.
@@ -40,11 +41,24 @@ func NewFeedScheduler(pool *pgxpool.Pool, feedStore *store.ThreatFeedStore, inte
 		interval:  interval,
 		importer:  intel.NewFeedImporter(),
 		taxii:     intel.NewTAXIIClient(),
+		enabled:   true,
 	}
+}
+
+// WithEnabled は外向きのフィード取得そのものを止められるようにする。
+// enabled=false なら Run は何もせずに戻り、ネットワークにも DB にも触れない。
+func (s *FeedScheduler) WithEnabled(enabled bool) *FeedScheduler {
+	s.enabled = enabled
+	return s
 }
 
 // Run starts the feed scheduler loop. Designed to be called as a goroutine.
 func (s *FeedScheduler) Run(ctx context.Context) {
+	if !s.enabled {
+		slog.Info("脅威フィードスケジューラー: 無効です (THREAT_FEED_SYNC_ENABLED=false)。" +
+			"公開ブロックリストへの外向き取得は行いません")
+		return
+	}
 	ticker := time.NewTicker(s.interval)
 	defer ticker.Stop()
 	slog.Info("脅威フィードスケジューラー起動", "interval", s.interval)

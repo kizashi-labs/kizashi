@@ -56,16 +56,16 @@ func (c *WindowsEventLogClearCollector) Stop() error {
 }
 
 type clearWatch struct {
-	channel  string
-	eventID  int
-	lastSeen time.Time
+	channel   string
+	eventID   int
+	watermark *collector.EventLogWatermark
 }
 
 func (c *WindowsEventLogClearCollector) run(ctx context.Context) {
 	start := time.Now().Add(-60 * time.Second)
 	watches := []*clearWatch{
-		{channel: "Security", eventID: 1102, lastSeen: start},
-		{channel: "System", eventID: 104, lastSeen: start},
+		{channel: "Security", eventID: 1102, watermark: collector.NewEventLogWatermark(start)},
+		{channel: "System", eventID: 104, watermark: collector.NewEventLogWatermark(start)},
 	}
 
 	ticker := time.NewTicker(15 * time.Second)
@@ -81,9 +81,18 @@ func (c *WindowsEventLogClearCollector) run(ctx context.Context) {
 			if err != nil {
 				continue // channel access denied (non-admin) — skip quietly
 			}
+			round := w.watermark.BeginRound()
+			var newest time.Time
 			for _, ev := range events {
-				if ev.when.After(w.lastSeen) {
-					w.lastSeen = ev.when
+				// Same inclusive-boundary re-match as the 7045 collector. Untriggered
+				// here only because nobody had cleared a log — and a log clear
+				// (T1070.001) turning into an unending alert stream would be the
+				// worst possible place for this bug to surface.
+				if !w.watermark.ShouldEmit(round, ev.when) {
+					continue
+				}
+				if ev.when.After(newest) {
+					newest = ev.when
 				}
 				batch := collector.BuildEventLogClearEvent(c.agentID,
 					collector.EventLogClearPayload(w.channel, ev.user, ev.backupPath))
@@ -94,6 +103,7 @@ func (c *WindowsEventLogClearCollector) run(ctx context.Context) {
 					slog.Debug("[eventlog_cleared] イベント送信失敗", "error", err)
 				}
 			}
+			w.watermark.Commit(newest)
 		}
 	}
 }
@@ -105,7 +115,7 @@ type clearEvent struct {
 }
 
 func (c *WindowsEventLogClearCollector) queryClears(w *clearWatch) ([]clearEvent, error) {
-	timeStr := w.lastSeen.UTC().Format("2006-01-02T15:04:05.000Z")
+	timeStr := w.watermark.QueryFrom().UTC().Format("2006-01-02T15:04:05.000Z")
 	query := fmt.Sprintf(`*[System[(EventID=%d) and TimeCreated[@SystemTime>='%s']]]`, w.eventID, timeStr)
 
 	channelPtr, err := winsys.UTF16PtrFromString(w.channel)

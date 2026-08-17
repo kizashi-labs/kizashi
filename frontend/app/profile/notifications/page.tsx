@@ -10,7 +10,7 @@ import {
   Server, ClipboardList, AlertCircle, Clock, Globe,
   Send, RefreshCw, BellOff, Volume2,
 } from 'lucide-react'
-import { USE_MOCK, m } from '@/lib/mock'
+import { mockOr } from '@/lib/mock'
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -85,6 +85,39 @@ const MOCK_PREFS: NotificationPreferences = {
     timezone: 'Asia/Tokyo',
   },
 }
+
+// サーバーから設定が返るまでの初期値。すべて無効・空の中立な状態にしておく。
+// ここにモックを置くと「メール通知が analyst@kizashi-edr.local 宛に有効」と
+// 表示され、そのまま保存すると身に覚えのない設定が書き込まれてしまう。
+const DEFAULT_PREFS: NotificationPreferences = {
+  channels: {
+    email: { enabled: false, address: '' },
+    slack: { enabled: false, webhook_url: '', channel: '' },
+    in_app: false,
+    desktop: false,
+  },
+  filters: {
+    critical_alerts: false,
+    high_alerts: false,
+    medium_alerts: false,
+    agent_offline: false,
+    incident_created: false,
+    incident_updated_mine: false,
+    compliance_violation: false,
+    system_failure: false,
+    my_endpoints_only: false,
+  },
+  schedule: {
+    quiet_hours_enabled: false,
+    quiet_from: '22:00',
+    quiet_to: '08:00',
+    no_weekends: false,
+    urgent_bypass: false,
+    timezone: 'UTC',
+  },
+}
+
+const INITIAL_PREFS = mockOr(MOCK_PREFS, DEFAULT_PREFS)
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -200,7 +233,7 @@ const FILTER_ITEMS: {
 // ── Main Page ──────────────────────────────────────────────────────────────
 
 export default function NotificationPreferencesPage() {
-  const [prefs, setPrefs] = useState<NotificationPreferences>(MOCK_PREFS)
+  const [prefs, setPrefs] = useState<NotificationPreferences>(INITIAL_PREFS)
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null)
   const [testingSend, setTestingSend] = useState(false)
 

@@ -64,6 +64,15 @@ type RuleEngine struct {
 	c2fusion     *C2FusionScorer               // fuse beacon periodicity (S1) with TI reputation (S2)
 	config       sigma.Config
 	platformGate bool // when true, skip a rule whose Platform excludes the event's OS
+	// dbSigmaOwned: when true this engine compiles the `rules` table's Sigma rules.
+	//
+	// Defaults to TRUE, so a RuleEngine built in isolation behaves the way it
+	// always has. Ownership is a property of the deployed topology, not of the
+	// library: only cmd/detection knows that an api server is also reading the
+	// same table, so only cmd/detection turns this off. Encoding the deployment's
+	// answer as the library default would make every direct user of RuleEngine
+	// silently evaluate nothing. See SetDBSigmaEvaluation.
+	dbSigmaOwned bool
 }
 
 // NewRuleEngine creates a RuleEngine with the default Sigma field mapping.
@@ -75,6 +84,9 @@ func NewRuleEngine() *RuleEngine {
 		beacon:       NewBeaconDetector(),
 		c2fusion:     NewC2FusionScorer(),
 		platformGate: true, // on by default; ops can disable via SetPlatformGate
+		dbSigmaOwned: true, // library default: evaluate. cmd/detection turns this
+		//                      off because the api server owns DB Sigma in the
+		//                      deployed topology — see SetDBSigmaEvaluation.
 		// Field mapping translates Sigma's standard field names (PascalCase, Windows-centric)
 		// to the proto JSON field names produced by our agents.
 		config: sigma.Config{
@@ -117,6 +129,23 @@ func NewRuleEngine() *RuleEngine {
 				"TargetObject":  {TargetNames: []string{"key_path", "keyPath", "TargetObject"}},
 				"Details":       {TargetNames: []string{"value_data", "Details"}},
 				"EventType":     {TargetNames: []string{"operation", "EventType"}},
+				// image_load 系と PE VERSIONINFO。migration 385（第 2 波）が
+				// これらを使うルールを 3 件持ち込み、TestMigrationSigmaFieldSupport が
+				// 「このエンジンでは解決できない」と落ちたので足した。
+				//
+				// api が DB Sigma ルールを所有している現状（PR #671）では、この 3 件は
+				// AlertPipeline 側で解決されるので実害は出ない。それでも足すのは、
+				// EDR_SIGMA_DB_RULES=0 で所有権を detect に戻すロールバック経路が
+				// 文書化されているためである。写像が無いままだと、その切り戻しで
+				// **この 3 件だけが黙って落ちる**。切り戻しは事故の最中に行われる
+				// 操作なので、そこで被覆が減るのは最も避けたい。
+				//
+				// 元キーは ingestion/handler.go が出している名前に合わせてある
+				// （image_loaded ← ImagePath / signature_status / signer）。
+				"ImageLoaded":      {TargetNames: []string{"image_loaded", "image_path", "ImageLoaded"}},
+				"SignatureStatus":  {TargetNames: []string{"signature_status", "SignatureStatus"}},
+				"Signature":        {TargetNames: []string{"signer", "Signature"}},
+				"OriginalFileName": {TargetNames: []string{"original_file_name", "OriginalFileName"}},
 			},
 		},
 	}
@@ -132,11 +161,31 @@ func (e *RuleEngine) LoadRules(rules []*DetectionRule) {
 
 	compiled := 0
 	failed := 0
+	skipped := 0
 
 	for _, r := range rules {
 		e.rules[r.ID] = r
 
 		if r.Type == "sigma" {
+			// Ownership gate. Since P4-6 the api server's AlertPipeline also loads
+			// the `rules` table, so a DB Sigma rule is evaluated TWICE per event —
+			// once here and once there — and one event becomes two alert rows.
+			// Dedup merges them but does not delete them, so the duplication is
+			// real, persisted, and visible to anything that counts rows.
+			//
+			// Exactly one engine must own them. The default owner is the api,
+			// because this consumer lags chronically (docs/検知ルールの二重管理と
+			// デプロイ.md) and a rule that fires late is worse than the same rule
+			// firing promptly elsewhere.
+			//
+			// Only Sigma compilation is gated. Sequence/behavioural rules below and
+			// e.rules lookups are untouched — those have no counterpart on the api
+			// side, and dropping them would be a coverage loss rather than a
+			// de-duplication.
+			if !e.dbSigmaOwned {
+				skipped++
+				continue
+			}
 			cs, err := compileSigmaRule(r, e.config)
 			if err != nil {
 				// A rule that fails to compile is enabled in the DB yet never
@@ -152,7 +201,9 @@ func (e *RuleEngine) LoadRules(rules []*DetectionRule) {
 		}
 	}
 
-	slog.Info("Sigmaルールをロードしました", "compiled", compiled, "failed", failed)
+	slog.Info("Sigmaルールをロードしました",
+		"compiled", compiled, "failed", failed,
+		"skipped_owned_by_api", skipped, "db_sigma_owner", ownerName(e.dbSigmaOwned))
 
 	// Load sequence rules (behavioral rules with window+threshold directives)
 	e.sequence.LoadRules(rules)
@@ -161,6 +212,32 @@ func (e *RuleEngine) LoadRules(rules []*DetectionRule) {
 // SetPlatformGate toggles the OS-scoping gate. It is on by default; the detection
 // service can turn it off (EDR_RULE_PLATFORM_GATE=0) as an escape hatch if a
 // mislabeled rule platform ever suppresses a real detection.
+// SetDBSigmaEvaluation decides whether THIS engine compiles the `rules` table's
+// Sigma rules.
+//
+// It is driven by the same EDR_SIGMA_DB_RULES switch the api server reads, with
+// the opposite sense, so the two processes cannot both evaluate them and cannot
+// both skip them: one variable, one owner. Default (unset) = the api owns them
+// and this engine skips, which is the de-duplicated configuration.
+//
+// Setting EDR_SIGMA_DB_RULES=0 hands ownership back here — the escape hatch for
+// an operator who needs the api to shed the load, or who hits a rule the api
+// evaluates differently. It is deliberately not two independent knobs: the
+// failure mode of independent knobs is silent double-evaluation or silent zero
+// coverage, and neither announces itself.
+func (e *RuleEngine) SetDBSigmaEvaluation(own bool) {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	e.dbSigmaOwned = own
+}
+
+func ownerName(ownedHere bool) string {
+	if ownedHere {
+		return "server-detect"
+	}
+	return "server-api"
+}
+
 func (e *RuleEngine) SetPlatformGate(on bool) {
 	e.mu.Lock()
 	defer e.mu.Unlock()
@@ -271,6 +348,20 @@ func (e *RuleEngine) Evaluate(ctx context.Context, evt interface{}) ([]*RuleMatc
 //   - darwin and macos are the same OS — agents report "darwin" (runtime.GOOS)
 //     while SigmaHQ logsource.product is "macos", so equality alone would wrongly
 //     stop MacOS rules from ever matching MacOS events.
+//
+// PlatformMatchesEvent is the exported form, for the api server's Sigma
+// evaluator.
+//
+// Exported rather than reimplemented: this gate and its canonical-spelling table
+// are already pinned by platform_contract_test.go (darwin≡macos, unknown OS
+// fail-open, unlabelled rule ungated), and a second copy would drift from those
+// tests the first time a spelling is added. The api needs it because DB Sigma
+// rules moved to that engine — see SetDBSigmaEvaluation — and it had no platform
+// scoping of its own.
+func PlatformMatchesEvent(rulePlatforms []string, eventPlatform string) bool {
+	return platformMatchesEvent(rulePlatforms, eventPlatform)
+}
+
 func platformMatchesEvent(rulePlatforms []string, eventPlatform string) bool {
 	if len(rulePlatforms) == 0 {
 		return true
@@ -286,6 +377,12 @@ func platformMatchesEvent(rulePlatforms []string, eventPlatform string) bool {
 	}
 	return false
 }
+
+// CanonPlatform is the exported form, so the api server labels
+// edr_rules_platform_gated_total with the same bounded value set this engine
+// does. Labelling it with anything else (a service name, the raw string) either
+// breaks the existing dashboards or gives the counter unbounded cardinality.
+func CanonPlatform(p string) string { return canonPlatform(p) }
 
 // canonPlatform folds the OS spellings the rules and agents use into a single
 // canonical token (linux/windows/macos); "" for anything unrecognized.

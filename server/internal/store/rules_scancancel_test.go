@@ -27,7 +27,7 @@ func TestCommandStore_ScanCancel(t *testing.T) {
 	// ScanCancel only uses nc; pool is not touched.
 	s := &CommandStore{nc: pub}
 
-	if err := s.ScanCancel(context.Background(), "agent-123", "user-9"); err != nil {
+	if err := s.ScanCancel(context.Background(), "agent-123", "user-9", ""); err != nil {
 		t.Fatalf("ScanCancel returned error: %v", err)
 	}
 

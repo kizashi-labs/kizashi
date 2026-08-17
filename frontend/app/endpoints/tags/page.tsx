@@ -179,7 +179,7 @@ export default function EndpointTagsPage() {
         }))
         return { agents, total: agents.length }
       } catch {
-        return { agents: MOCK_AGENTS, total: m(MOCK_AGENTS).length }
+        return { agents: m(MOCK_AGENTS), total: m(MOCK_AGENTS).length }
       }
     },
   })

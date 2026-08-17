@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"sort"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -42,6 +41,44 @@ type Campaign struct {
 	Agents      []string `json:"agents"`
 	RuleNames   []string `json:"rule_names"`
 	IocCount    int      `json:"ioc_count"`
+
+	// alertIDs はこのキャンペーンが束ねたアラートの ID 集合。
+	//
+	// 重複排除にだけ使うのでレスポンスには出さない。以前は
+	//
+	//   - 戦略2: 既存キャンペーンと「件数が同じ」なら重複とみなす
+	//   - 最終段: Agents を "," で連結した文字列が同じなら重複とみなす
+	//
+	// という近似をしていた。件数一致は無関係なキャンペーン同士を
+	// 巻き込み、Agents の連結は並び順に依存する (同じ集合でも順序が
+	// 違えば別物と見なす)。束ねたアラートそのもので比べれば、どちらも
+	// 起きない。
+	alertIDs map[string]struct{}
+}
+
+// sameAlertSet は 2 つのキャンペーンが同じアラート集合を束ねているかを返す。
+// 片方でも ID を持たない場合 (利用者が作ったキャンペーンなど) は比較しない。
+func sameAlertSet(a, b map[string]struct{}) bool {
+	if len(a) == 0 || len(b) == 0 || len(a) != len(b) {
+		return false
+	}
+	for id := range a {
+		if _, ok := b[id]; !ok {
+			return false
+		}
+	}
+	return true
+}
+
+// alertIDSet は array_agg で得た ID 配列を集合にする。
+func alertIDSet(ids []string) map[string]struct{} {
+	set := make(map[string]struct{}, len(ids))
+	for _, id := range ids {
+		if id != "" {
+			set[id] = struct{}{}
+		}
+	}
+	return set
 }
 
 // setToSortedSlice は集合を安定した順序のスライスにする。
@@ -85,7 +122,8 @@ func (h *CampaignsHandler) List(c *gin.Context) {
 			MIN(al.created_at)::text AS first_seen,
 			MAX(al.created_at)::text AS last_seen,
 			array_agg(DISTINCT COALESCE(ag.hostname,'unknown')) AS agents,
-			array_agg(DISTINCT COALESCE(NULLIF(r.name,''), al.title)) AS rules
+			array_agg(DISTINCT COALESCE(NULLIF(r.name,''), al.title)) AS rules,
+			array_agg(DISTINCT al.id::text) AS alert_ids
 		FROM alerts al
 		LEFT JOIN agents ag ON ag.id = al.agent_id
 		LEFT JOIN rules r ON r.id = al.rule_id
@@ -105,6 +143,7 @@ func (h *CampaignsHandler) List(c *gin.Context) {
 			lastSeen  string
 			agents    map[string]struct{}
 			rules     map[string]struct{}
+			alertIDs  map[string]struct{}
 		}
 		agg := map[string]*tacticAgg{}
 
@@ -112,9 +151,9 @@ func (h *CampaignsHandler) List(c *gin.Context) {
 			var technique string
 			var alertCnt, maxSev int
 			var firstSeen, lastSeen string
-			var agents, rules []string
+			var agents, rules, alertIDs []string
 			if err := rows.Scan(&technique, &alertCnt, &maxSev,
-				&firstSeen, &lastSeen, &agents, &rules); err != nil {
+				&firstSeen, &lastSeen, &agents, &rules, &alertIDs); err != nil {
 				continue
 			}
 			tactic := detection.TacticForTechnique(technique)
@@ -129,6 +168,7 @@ func (h *CampaignsHandler) List(c *gin.Context) {
 				a = &tacticAgg{
 					firstSeen: firstSeen, lastSeen: lastSeen,
 					agents: map[string]struct{}{}, rules: map[string]struct{}{},
+					alertIDs: map[string]struct{}{},
 				}
 				agg[tactic] = a
 			}
@@ -152,6 +192,9 @@ func (h *CampaignsHandler) List(c *gin.Context) {
 				if r != "" {
 					a.rules[r] = struct{}{}
 				}
+			}
+			for id := range alertIDSet(alertIDs) {
+				a.alertIDs[id] = struct{}{}
 			}
 		}
 		if err := rows.Err(); err != nil {
@@ -206,6 +249,7 @@ func (h *CampaignsHandler) List(c *gin.Context) {
 				LastSeen:    a.lastSeen,
 				Agents:      agentList,
 				RuleNames:   ruleList,
+				alertIDs:    a.alertIDs,
 			})
 		}
 	}
@@ -224,7 +268,8 @@ func (h *CampaignsHandler) List(c *gin.Context) {
 			MIN(al.created_at)::text AS first_seen,
 			MAX(al.created_at)::text AS last_seen,
 			array_agg(DISTINCT COALESCE(ag.hostname,'unknown')) AS agents,
-			array_agg(DISTINCT COALESCE(al.mitre_technique,'')) AS techniques
+			array_agg(DISTINCT COALESCE(al.mitre_technique,'')) AS techniques,
+			array_agg(DISTINCT al.id::text) AS alert_ids
 		FROM alerts al
 		LEFT JOIN agents ag ON ag.id = al.agent_id
 		LEFT JOIN rules r ON r.id = al.rule_id
@@ -244,16 +289,20 @@ func (h *CampaignsHandler) List(c *gin.Context) {
 			var family string
 			var alertCnt, agentCnt, maxSev int
 			var firstSeen, lastSeen string
-			var agents, techniques []string
+			var agents, techniques, alertIDsRaw []string
 			if err := rows2.Scan(&family, &alertCnt, &agentCnt, &maxSev,
-				&firstSeen, &lastSeen, &agents, &techniques); err != nil {
+				&firstSeen, &lastSeen, &agents, &techniques, &alertIDsRaw); err != nil {
 				continue
 			}
+			ruleAlertIDs := alertIDSet(alertIDsRaw)
 
-			// Check not already covered by tactic campaign
+			// 既に同じアラート集合を束ねたキャンペーンが出ているなら重ねない。
+			//
+			// 以前は「件数が同じなら重複」と見ていたため、たまたま件数が
+			// 一致しただけの無関係なキャンペーンを取り違えて捨てていた。
 			alreadyCovered := false
 			for _, existing := range campaigns {
-				if existing.AlertCount == alertCnt {
+				if sameAlertSet(existing.alertIDs, ruleAlertIDs) {
 					alreadyCovered = true
 					break
 				}
@@ -284,6 +333,7 @@ func (h *CampaignsHandler) List(c *gin.Context) {
 				LastSeen:    lastSeen,
 				Agents:      agents,
 				RuleNames:   []string{family},
+				alertIDs:    ruleAlertIDs,
 			})
 			i++
 		}
@@ -310,6 +360,7 @@ func (h *CampaignsHandler) List(c *gin.Context) {
 				COUNT(*) AS cnt,
 				COUNT(DISTINCT COALESCE(ag.hostname,'')) AS agents,
 				array_agg(DISTINCT COALESCE(ag.hostname,'')) AS agent_list,
+				array_agg(DISTINCT al.id::text) AS alert_ids,
 				MIN(al.created_at)::text AS first_seen,
 				MAX(al.created_at)::text AS last_seen
 			FROM alerts al
@@ -319,7 +370,7 @@ func (h *CampaignsHandler) List(c *gin.Context) {
 			  AND al.created_at >= NOW() - INTERVAL '%d hours'
 			GROUP BY 1
 		)
-		SELECT window_start::text, cnt, agents, agent_list, first_seen, last_seen
+		SELECT window_start::text, cnt, agents, agent_list, alert_ids, first_seen, last_seen
 		FROM windows WHERE cnt >= 5
 		ORDER BY cnt DESC LIMIT 3`, hours))
 	if err != nil {
@@ -330,8 +381,9 @@ func (h *CampaignsHandler) List(c *gin.Context) {
 		for rows3.Next() {
 			var windowStart, firstSeen, lastSeen string
 			var cnt, agentCnt int
-			var agents []string
-			if err := rows3.Scan(&windowStart, &cnt, &agentCnt, &agents, &firstSeen, &lastSeen); err != nil {
+			var agents, alertIDsRaw []string
+			if err := rows3.Scan(&windowStart, &cnt, &agentCnt, &agents, &alertIDsRaw,
+				&firstSeen, &lastSeen); err != nil {
 				continue
 			}
 
@@ -362,6 +414,7 @@ func (h *CampaignsHandler) List(c *gin.Context) {
 				LastSeen:    lastSeen,
 				Agents:      cleanAgents,
 				RuleNames:   []string{},
+				alertIDs:    alertIDSet(alertIDsRaw),
 			})
 			i++
 		}
@@ -371,13 +424,21 @@ func (h *CampaignsHandler) List(c *gin.Context) {
 		rows3.Close()
 	}
 
-	// Deduplicate by agent set overlap
-	seen := map[string]bool{}
+	// 同じアラート集合を束ねたキャンペーンは 1 つに畳む。
+	//
+	// 以前は Agents を "," で連結した文字列をキーにしていた。ホスト集合が
+	// 同じでも別のアラートを見ているキャンペーン (例: 同一ホストのタクティク別と
+	// クリティカル集中) を取り違えて捨てるうえ、連結キーは並び順に依存する。
 	var dedupd []Campaign
 	for _, camp := range campaigns {
-		key := strings.Join(camp.Agents, ",")
-		if !seen[key] {
-			seen[key] = true
+		dup := false
+		for _, kept := range dedupd {
+			if sameAlertSet(kept.alertIDs, camp.alertIDs) {
+				dup = true
+				break
+			}
+		}
+		if !dup {
 			dedupd = append(dedupd, camp)
 		}
 	}

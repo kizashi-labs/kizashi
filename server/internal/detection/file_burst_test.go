@@ -122,7 +122,7 @@ func TestIsDestructiveFileAction(t *testing.T) {
 	}
 }
 
-// ─── 実エンドポイント検証(2026-07-26, EC2AMAZ-QCQVG82)で判明した退化への回帰 ───
+// ─── 実エンドポイント検証(2026-07-26, WIN-ENDPOINT-01)で判明した退化への回帰 ───
 //
 // 本番ではどのプラットフォームの file collector も FileEvent.ProcessName/PID を
 // 埋めない(Linux inotify / macOS FSEvents / Windows ReadDirectoryChangesW はいずれも

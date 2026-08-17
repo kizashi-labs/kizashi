@@ -28,7 +28,7 @@ jobs:
       contents: read
       security-events: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Run Trivy (filesystem)
         uses: aquasecurity/trivy-action@master
@@ -41,7 +41,7 @@ jobs:
           ignore-unfixed: true
 
       - name: Upload SARIF to GitHub Security tab
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         if: always()
         continue-on-error: true   # プライベートリポジトリでは GHAS が必要なためスキップ可
         with:
@@ -49,9 +49,14 @@ jobs:
           category: trivy-filesystem
 
   # ── Docker image scans ────────────────────────────────────────
+  # イメージスキャンは 3 イメージをビルドしてから走らせるため、単独で 8 分超を使う。
+  # PR ごとに回す価値は薄い: 依存の脆弱性はファイルシステム走査 (trivy-fs) と
+  # govulncheck が PR で捕まえており、イメージ固有の差分はベースイメージ更新時に
+  # しか動かない。main への push で回せば検出は 1 サイクル遅れるだけで済む。
   trivy-image:
     name: Trivy Image Scan (${{ matrix.service }})
     runs-on: ubuntu-latest
+    if: github.event_name == 'push'
     permissions:
       contents: read
       security-events: write
@@ -72,13 +77,13 @@ jobs:
             dockerfile: frontend/Dockerfile
             target: ""
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
 
       - name: Build image (no push)
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v7
         with:
           context: ${{ matrix.context }}
           file: ${{ matrix.dockerfile }}
@@ -99,7 +104,7 @@ jobs:
           ignore-unfixed: true
 
       - name: Upload SARIF
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         if: always()
         continue-on-error: true   # Requires GHAS on private repositories
         with:
@@ -121,7 +126,7 @@ jobs:
     container:
       image: semgrep/semgrep
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Run semgrep (Go + security rulesets)
         # --error dropped: 129 findings accumulated across multiple rulesets
@@ -139,7 +144,7 @@ jobs:
             .
 
       - name: Upload SARIF to GitHub Security tab
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         if: always()
         continue-on-error: true   # Requires GHAS on private repositories
         with:
@@ -147,7 +152,7 @@ jobs:
           category: semgrep
 
       - name: Upload semgrep report artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: semgrep-sarif
@@ -166,7 +171,7 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0   # Full history needed for commit-range scanning
 

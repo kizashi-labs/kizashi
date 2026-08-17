@@ -19,7 +19,7 @@ func TestAnalyzeDNSQuery_BenignNotFlagged(t *testing.T) {
 		// (a metadata probe with the EC2 region search domain appended) that fired a
 		// CRITICAL DNS-tunneling alert every ~30s on the server host.
 		"metadata.google.internal.ap-northeast-1.compute.internal",
-		"ip-10-0-4-192.ap-northeast-1.compute.internal",
+		"ip-10-0-0-10.ap-northeast-1.compute.internal",
 		"kizashi-postgres.edr_default.svc.cluster.local",
 		"100.4.0.10.in-addr.arpa",
 	}

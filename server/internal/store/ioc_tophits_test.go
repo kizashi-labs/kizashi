@@ -217,3 +217,33 @@ func TestIOCStore_TopHits_LimitApplies(t *testing.T) {
 		t.Errorf("件数 = %d, 既定 limit 10 を超えている", len(hits))
 	}
 }
+
+// IOCStore.Stats の Alerts7d が常に 0 だった件の再発防止。
+//
+// 以前は `rule_id = 'ioc-match'` で数えていたが、alerts.rule_id は uuid 列で、
+// 文字列と比べると毎回 `invalid input syntax for type uuid` になっていた。
+// エラーは `_ =` で捨てられていたため、画面には常に 0 が出ていた。
+// IOC 経路では rule_id は設定されないので、TopHits と同じく title で数える。
+func TestIOCStore_Stats_CountsIOCAlertsInLast7Days(t *testing.T) {
+	db := topHitsTestDB(t)
+	s := store.NewIOCStore(db)
+
+	before, err := s.Stats(context.Background())
+	if err != nil {
+		t.Fatalf("Stats (前): %v", err)
+	}
+
+	const value = "203.0.113.77"
+	seedIOCWithAlerts(t, db, value, "ip", 4, 1) // 7 日以内
+	seedIOCWithAlerts(t, db, "203.0.113.78", "ip", 3, 30)
+
+	after, err := s.Stats(context.Background())
+	if err != nil {
+		t.Fatalf("Stats (後): %v", err)
+	}
+
+	// 7 日以内の 4 件だけが増える。30 日前の 3 件は窓の外。
+	if got := after.Alerts7d - before.Alerts7d; got != 4 {
+		t.Errorf("Alerts7d の増分 = %d, want 4 (30 日前の 3 件は窓外)", got)
+	}
+}

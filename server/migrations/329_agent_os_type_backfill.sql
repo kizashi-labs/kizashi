@@ -1,6 +1,6 @@
 -- Migration 329: Correct agents.os_type that was pinned by the heartbeat fallback
 --
--- Symptom: EC2AMAZ-QCQVG82 shows os_type='linux' in the endpoint list while its
+-- Symptom: WIN-ENDPOINT-01 shows os_type='linux' in the endpoint list while its
 -- os_version reads "Windows Server 2022 (Build 20348)".
 --
 -- Root cause (three defects that compound):

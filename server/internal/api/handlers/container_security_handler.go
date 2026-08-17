@@ -422,19 +422,23 @@ func (h *ContainerSecurityHandler) ListRuntimeEvents(c *gin.Context) {
 // ImageStats GET /admin/container-security/image-stats — migration 169
 func (h *ContainerSecurityHandler) ImageStats(c *gin.Context) {
 	var totalImages, criticalImages, scanned int
-	h.pool.QueryRow(c.Request.Context(), `
+	if err := h.pool.QueryRow(c.Request.Context(), `
 		SELECT COUNT(*),
 		       COUNT(*) FILTER (WHERE critical_vulns > 0),
 		       COUNT(*) FILTER (WHERE scan_status='scanned')
 		FROM container_images
-	`).Scan(&totalImages, &criticalImages, &scanned)
+	`).Scan(&totalImages, &criticalImages, &scanned); err != nil {
+		slog.Warn("container security: 集計クエリに失敗しました", "error", err)
+	}
 
 	var totalEvents, criticalEvents int
-	h.pool.QueryRow(c.Request.Context(), `
+	if err := h.pool.QueryRow(c.Request.Context(), `
 		SELECT COUNT(*), COUNT(*) FILTER (WHERE severity='critical')
 		FROM container_runtime_events
 		WHERE created_at >= NOW() - INTERVAL '24 hours'
-	`).Scan(&totalEvents, &criticalEvents)
+	`).Scan(&totalEvents, &criticalEvents); err != nil {
+		slog.Warn("container security: 集計クエリに失敗しました", "error", err)
+	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"total_images":    totalImages,

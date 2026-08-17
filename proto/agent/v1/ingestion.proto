@@ -117,19 +117,10 @@ message UpdateAgentCommand {
 
 // ─── Command Acknowledgement ──────────────────────────────────
 
-message CommandAck {
-  string command_id = 1;
-  AckStatus status  = 2;
-  string error      = 3;
-  bytes  result     = 4; // command-specific result payload
-
-  enum AckStatus {
-    ACK_STATUS_UNSPECIFIED = 0;
-    ACK_STATUS_SUCCESS     = 1;
-    ACK_STATUS_FAILED      = 2;
-    ACK_STATUS_PARTIAL     = 3;
-  }
-}
+// CommandAck は events.proto に移した。EventBatch がこれを参照するため
+// （エージェントは実行結果をイベント送信に相乗りさせて返す）、ここに置くと
+// ingestion.proto → events.proto の import と循環する。
+// proto パッケージは同じ agent.v1 なので、生成される Go の API は変わらない。
 
 // ─── Enrollment ───────────────────────────────────────────────
 

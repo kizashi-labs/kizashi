@@ -120,7 +120,7 @@ func (h *TimelineHandler) GetTimeline(c *gin.Context) {
 	if hasAudit {
 		unionParts = append(unionParts, `
 			SELECT id::text AS eid, 'audit' AS etype,
-			       COALESCE(action,'') || CASE WHEN resource IS NOT NULL THEN ' ' || resource ELSE '' END AS etitle,
+			       COALESCE(action,'') || CASE WHEN resource_id IS NOT NULL THEN ' ' || resource_id ELSE '' END AS etitle,
 			       '' AS edetail, 0 AS eseverity, '' AS eagent_id, created_at AS ts
 			FROM audit_logs`)
 	}

@@ -88,6 +88,57 @@ detect_os() {
 }
 
 # ─── Confirmation prompt ──────────────────────────────────────────────────────
+# ─── Uninstall protection ────────────────────────────────────────────────────
+# Removing the agent requires the tenant's uninstall password when the SOC has
+# set one. The check runs FIRST — before the confirmation prompt and before
+# anything is stopped or deleted — so a refusal leaves the endpoint exactly as
+# it was, still monitored.
+#
+# The decision is made by the agent binary (`edr-agent -verify-uninstall`), not
+# here: verifying means 600k PBKDF2 iterations against material on disk, which
+# is not something to reimplement in shell. This script only reads its exit code.
+#
+#   0  authorised (correct password, or no password configured for this tenant)
+#   2  denied — the password did not match
+#   3  could not decide (guard file unreadable/corrupt)
+#
+# Anything other than 0 aborts. In particular exit 3 aborts: a damaged guard
+# file must not be a cheaper way out than knowing the password.
+require_uninstall_authorisation() {
+    if [ ! -x "$AGENT_BIN" ]; then
+        # No agent binary to ask. Either this is a repair of a half-removed
+        # install or someone already deleted it by hand; there is nothing left
+        # for this check to protect.
+        warn "エージェントバイナリが見つかりません (${AGENT_BIN})。アンインストール保護を確認できません。"
+        return 0
+    fi
+
+    section "Checking uninstall protection"
+
+    set +e
+    "$AGENT_BIN" -config "${CONFIG_DIR}/agent.toml" -verify-uninstall
+    local rc=$?
+    set -e
+
+    case "$rc" in
+        0) step "Authorised." ;;
+        2)
+            error "アンインストールパスワードが違うため中止しました。
+この端末は EDR 管理コンソールで設定されたアンインストールパスワードで保護されています。
+管理者からパスワードを受け取り、次のように指定してください:
+
+  sudo EDR_UNINSTALL_PASSWORD='<password>' $0 $*
+
+この試行はサーバに通報されました。"
+            ;;
+        *)
+            error "アンインストール保護の状態を確認できなかったため中止しました (exit ${rc})。
+保護設定が壊れている可能性があります。管理コンソールからパスワードを再設定して
+エージェントのハートビートを1回待つと復旧します。"
+            ;;
+    esac
+}
+
 confirm_uninstall() {
     printf "\n${BOLD}Kizashi Agent — Uninstaller${NC}\n\n"
     printf "  This will remove the following:\n"
@@ -252,6 +303,7 @@ print_summary() {
 main() {
     check_root
     detect_os
+    require_uninstall_authorisation
     confirm_uninstall
 
     section "Stopping and removing service"

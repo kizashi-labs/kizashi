@@ -18,6 +18,7 @@
 #include <bpf/bpf_core_read.h>
 
 #define MAX_PATH_LEN 256
+#define TASK_COMM_LEN 16
 
 // ─── Struct ───────────────────────────────────────────────────
 
@@ -25,7 +26,8 @@ struct library_event {
     __u64 timestamp_ns;
     __u32 pid;
     __u32 uid;
-    char  path[MAX_PATH_LEN]; // the dlopen()'d shared object path
+    char  path[MAX_PATH_LEN];      // the dlopen()'d shared object path
+    char  comm[TASK_COMM_LEN];     // the LOADING process, not the loaded object
 };
 
 // ─── Maps ─────────────────────────────────────────────────────
@@ -52,6 +54,11 @@ int BPF_KPROBE(handle_dlopen, const char *filename)
     e->pid = pid_tgid >> 32;
     e->uid = (__u32)bpf_get_current_uid_gid();
     bpf_probe_read_user_str(&e->path, sizeof(e->path), filename);
+    // Without this the userspace side had nothing to put in ProcessName and fell
+    // back to the .so's own basename — which made every event answer "what was
+    // loaded" twice and "who loaded it" never. Side-loading detection needs the
+    // loader (sshd, a service, a shell) far more than it needs the object again.
+    bpf_get_current_comm(&e->comm, sizeof(e->comm));
 
     bpf_ringbuf_submit(e, 0);
     return 0;
