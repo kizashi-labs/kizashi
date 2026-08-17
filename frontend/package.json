@@ -62,6 +62,7 @@
     "react-simple-maps": {
       "react": "$react",
       "react-dom": "$react-dom"
-    }
+    },
+    "d3-color": "^3.1.0"
   }
 }
