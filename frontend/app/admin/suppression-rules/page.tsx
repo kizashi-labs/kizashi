@@ -205,17 +205,17 @@ export default function SuppressionRulesPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-[#e8002d] to-[#a80020] flex items-center justify-center shadow-lg">
+          <div className="w-10 h-10 rounded-lg bg-linear-to-br from-falcon-red to-falcon-red-dark flex items-center justify-center shadow-lg">
             <ShieldOff className="w-5 h-5 text-white" />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-[#e2e8f4]">アラート抑制ルール</h1>
-            <p className="text-sm text-[#7d92b0]">ノイズの多いアラートをパターンマッチングで抑制します</p>
+            <h1 className="text-xl font-bold text-falcon-text">アラート抑制ルール</h1>
+            <p className="text-sm text-falcon-muted">ノイズの多いアラートをパターンマッチングで抑制します</p>
           </div>
         </div>
         <button
           onClick={openCreate}
-          className="flex items-center gap-2 px-4 py-2 bg-[#e8002d] hover:bg-[#c8001d] text-white rounded-lg text-sm font-medium transition-colors"
+          className="flex items-center gap-2 px-4 py-2 bg-falcon-red hover:bg-[#c8001d] text-white rounded-lg text-sm font-medium transition-colors"
         >
           <Plus className="w-4 h-4" />
           ルール追加
@@ -227,34 +227,34 @@ export default function SuppressionRulesPage() {
         {[
           { label: '総ルール数', value: totalRules, icon: Filter, color: 'text-blue-400' },
           { label: '有効ルール', value: enabledCount, icon: ShieldOff, color: 'text-green-400' },
-          { label: '総抑制数', value: totalSuppressed.toLocaleString(), icon: ShieldOff, color: 'text-[#7d92b0]' },
+          { label: '総抑制数', value: totalSuppressed.toLocaleString(), icon: ShieldOff, color: 'text-falcon-muted' },
           {
             label: '期限切れ間近',
             value: expiringSoon,
             icon: Clock,
-            color: expiringSoon > 0 ? 'text-yellow-400' : 'text-[#7d92b0]',
+            color: expiringSoon > 0 ? 'text-yellow-400' : 'text-falcon-muted',
           },
         ].map(({ label, value, icon: Icon, color }) => (
-          <div key={label} className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-4 flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-[#0a0f1d] flex items-center justify-center flex-shrink-0">
+          <div key={label} className="bg-falcon-surface border border-falcon-border rounded-xl p-4 flex items-center gap-3">
+            <div className="w-9 h-9 rounded-lg bg-[#0a0f1d] flex items-center justify-center shrink-0">
               <Icon className={`w-5 h-5 ${color}`} />
             </div>
             <div>
-              <p className="text-2xl font-bold text-[#e2e8f4]">{value}</p>
-              <p className="text-xs text-[#7d92b0]">{label}</p>
+              <p className="text-2xl font-bold text-falcon-text">{value}</p>
+              <p className="text-xs text-falcon-muted">{label}</p>
             </div>
           </div>
         ))}
       </div>
 
       {/* Table */}
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
+      <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-[#1e2d42]">
+              <tr className="border-b border-falcon-border">
                 {['名前', 'パターン', 'マッチ対象', 'エージェント', '最大重大度', '有効期限', '抑制数', '状態', '操作'].map(h => (
-                  <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-[#7d92b0] uppercase tracking-wider whitespace-nowrap">
+                  <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-falcon-muted uppercase tracking-wider whitespace-nowrap">
                     {h}
                   </th>
                 ))}
@@ -263,17 +263,17 @@ export default function SuppressionRulesPage() {
             <tbody>
               {isLoading ? (
                 Array.from({ length: 3 }).map((_, i) => (
-                  <tr key={i} className="border-b border-[#1e2d42]">
+                  <tr key={i} className="border-b border-falcon-border">
                     {Array.from({ length: 9 }).map((_, j) => (
                       <td key={j} className="px-4 py-3">
-                        <div className="h-4 bg-[#1e2d42] rounded animate-pulse" />
+                        <div className="h-4 bg-falcon-border rounded-sm animate-pulse" />
                       </td>
                     ))}
                   </tr>
                 ))
               ) : rules.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="px-4 py-10 text-center text-[#7d92b0] text-sm">
+                  <td colSpan={9} className="px-4 py-10 text-center text-falcon-muted text-sm">
                     抑制ルールがありません
                   </td>
                 </tr>
@@ -282,36 +282,36 @@ export default function SuppressionRulesPage() {
                   const expiring = isExpiringSoon(rule.expires_at)
                   const expired = isExpired(rule.expires_at)
                   return (
-                    <tr key={rule.id} className="border-b border-[#1e2d42] hover:bg-[#0a0f1d] transition-colors">
+                    <tr key={rule.id} className="border-b border-falcon-border hover:bg-[#0a0f1d] transition-colors">
 
                       {/* Name */}
                       <td className="px-4 py-3">
-                        <p className="text-sm font-medium text-[#e2e8f4]">{rule.name}</p>
+                        <p className="text-sm font-medium text-falcon-text">{rule.name}</p>
                         {rule.description && (
-                          <p className="text-xs text-[#7d92b0] mt-0.5 truncate max-w-[160px]">{rule.description}</p>
+                          <p className="text-xs text-falcon-muted mt-0.5 truncate max-w-[160px]">{rule.description}</p>
                         )}
                       </td>
 
                       {/* Pattern */}
                       <td className="px-4 py-3">
-                        <code className="text-xs font-mono text-[#7d92b0] bg-[#070d19] px-2 py-1 rounded border border-[#1e2d42]">
+                        <code className="text-xs font-mono text-falcon-muted bg-[#070d19] px-2 py-1 rounded-sm border border-falcon-border">
                           {rule.pattern}
                         </code>
                       </td>
 
                       {/* Match field */}
                       <td className="px-4 py-3">
-                        <span className="text-xs px-2 py-1 rounded bg-[#1e2d42] text-[#7d92b0]">
+                        <span className="text-xs px-2 py-1 rounded-sm bg-falcon-border text-falcon-muted">
                           {MATCH_FIELD_LABELS[rule.match_field]}
                         </span>
                       </td>
 
                       {/* Agent */}
-                      <td className="px-4 py-3 text-sm text-[#7d92b0]">
+                      <td className="px-4 py-3 text-sm text-falcon-muted">
                         {rule.agent_name ? (
-                          <span className="text-[#e2e8f4]">{rule.agent_name}</span>
+                          <span className="text-falcon-text">{rule.agent_name}</span>
                         ) : (
-                          <span className="text-[#3d5068] text-xs italic">全エージェント</span>
+                          <span className="text-falcon-subtle text-xs italic">全エージェント</span>
                         )}
                       </td>
 
@@ -327,19 +327,19 @@ export default function SuppressionRulesPage() {
                         {rule.expires_at ? (
                           <div className="flex items-center gap-1">
                             {(expiring || expired) && (
-                              <AlertTriangle className={`w-3 h-3 flex-shrink-0 ${expired ? 'text-[#e8002d]' : 'text-yellow-400'}`} />
+                              <AlertTriangle className={`w-3 h-3 shrink-0 ${expired ? 'text-falcon-red' : 'text-yellow-400'}`} />
                             )}
-                            <span className={`text-xs ${expired ? 'text-[#e8002d]' : expiring ? 'text-yellow-400' : 'text-[#7d92b0]'}`}>
+                            <span className={`text-xs ${expired ? 'text-falcon-red' : expiring ? 'text-yellow-400' : 'text-falcon-muted'}`}>
                               {formatDate(rule.expires_at)}
                             </span>
                           </div>
                         ) : (
-                          <span className="text-xs text-[#3d5068] italic">無期限</span>
+                          <span className="text-xs text-falcon-subtle italic">無期限</span>
                         )}
                       </td>
 
                       {/* Suppressed count */}
-                      <td className="px-4 py-3 text-sm text-[#e2e8f4] font-mono">
+                      <td className="px-4 py-3 text-sm text-falcon-text font-mono">
                         {(rule.suppressed_count ?? 0).toLocaleString()}
                       </td>
 
@@ -354,7 +354,7 @@ export default function SuppressionRulesPage() {
                           {rule.enabled ? (
                             <ToggleRight className="w-7 h-7 text-green-400" />
                           ) : (
-                            <ToggleLeft className="w-7 h-7 text-[#3d5068]" />
+                            <ToggleLeft className="w-7 h-7 text-falcon-subtle" />
                           )}
                         </button>
                       </td>
@@ -364,14 +364,14 @@ export default function SuppressionRulesPage() {
                         <div className="flex items-center gap-1">
                           <button
                             onClick={() => openEdit(rule)}
-                            className="p-1.5 text-[#7d92b0] hover:text-white hover:bg-[#1d2f4a] rounded transition-colors"
+                            className="p-1.5 text-falcon-muted hover:text-white hover:bg-falcon-active rounded-sm transition-colors"
                             title="編集"
                           >
                             <Pencil className="w-3.5 h-3.5" />
                           </button>
                           <button
                             onClick={() => setDeleteConfirm(rule.id)}
-                            className="p-1.5 text-[#7d92b0] hover:text-[#e8002d] hover:bg-[#e8002d]/10 rounded transition-colors"
+                            className="p-1.5 text-falcon-muted hover:text-falcon-red hover:bg-falcon-red/10 rounded-sm transition-colors"
                             title="削除"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
@@ -391,17 +391,17 @@ export default function SuppressionRulesPage() {
       {/* Add/Edit Modal */}
       {modalOpen && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-6">
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+          <div className="bg-falcon-surface border border-falcon-border rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
 
             {/* Modal header */}
-            <div className="flex items-center justify-between p-5 border-b border-[#1e2d42]">
+            <div className="flex items-center justify-between p-5 border-b border-falcon-border">
               <div className="flex items-center gap-2">
-                <ShieldOff className="w-4 h-4 text-[#e8002d]" />
-                <h3 className="text-sm font-semibold text-[#e2e8f4]">
+                <ShieldOff className="w-4 h-4 text-falcon-red" />
+                <h3 className="text-sm font-semibold text-falcon-text">
                   {editingRule ? '抑制ルール編集' : 'ルール追加'}
                 </h3>
               </div>
-              <button onClick={() => setModalOpen(false)} className="text-[#7d92b0] hover:text-white transition-colors">
+              <button onClick={() => setModalOpen(false)} className="text-falcon-muted hover:text-white transition-colors">
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -410,59 +410,59 @@ export default function SuppressionRulesPage() {
             <div className="p-5 flex flex-col gap-4">
 
               {formError && (
-                <div className="p-3 bg-[#e8002d]/10 border border-[#e8002d]/30 rounded-lg text-sm text-[#e8002d]">
+                <div className="p-3 bg-falcon-red/10 border border-falcon-red/30 rounded-lg text-sm text-falcon-red">
                   {formError}
                 </div>
               )}
 
               {/* Name */}
               <div>
-                <label className="block text-xs font-medium text-[#7d92b0] mb-1">
-                  名前 <span className="text-[#e8002d]">*</span>
+                <label className="block text-xs font-medium text-falcon-muted mb-1">
+                  名前 <span className="text-falcon-red">*</span>
                 </label>
                 <input
                   type="text"
                   value={form.name}
                   onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-                  className="w-full px-3 py-2 bg-[#070d19] border border-[#1e2d42] rounded-lg text-sm text-[#e2e8f4] focus:border-[#e8002d]/50 focus:outline-none"
+                  className="w-full px-3 py-2 bg-[#070d19] border border-falcon-border rounded-lg text-sm text-falcon-text focus:border-falcon-red/50 focus:outline-hidden"
                   placeholder="ルール名を入力"
                 />
               </div>
 
               {/* Description */}
               <div>
-                <label className="block text-xs font-medium text-[#7d92b0] mb-1">説明</label>
+                <label className="block text-xs font-medium text-falcon-muted mb-1">説明</label>
                 <input
                   type="text"
                   value={form.description}
                   onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-                  className="w-full px-3 py-2 bg-[#070d19] border border-[#1e2d42] rounded-lg text-sm text-[#e2e8f4] focus:border-[#e8002d]/50 focus:outline-none"
+                  className="w-full px-3 py-2 bg-[#070d19] border border-falcon-border rounded-lg text-sm text-falcon-text focus:border-falcon-red/50 focus:outline-hidden"
                   placeholder="ルールの説明（任意）"
                 />
               </div>
 
               {/* Pattern */}
               <div>
-                <label className="block text-xs font-medium text-[#7d92b0] mb-1">
-                  パターン <span className="text-[#e8002d]">*</span>
+                <label className="block text-xs font-medium text-falcon-muted mb-1">
+                  パターン <span className="text-falcon-red">*</span>
                 </label>
                 <input
                   type="text"
                   value={form.pattern}
                   onChange={e => setForm(f => ({ ...f, pattern: e.target.value }))}
-                  className="w-full px-3 py-2 bg-[#070d19] border border-[#1e2d42] rounded-lg text-sm text-[#e2e8f4] font-mono focus:border-[#e8002d]/50 focus:outline-none"
+                  className="w-full px-3 py-2 bg-[#070d19] border border-falcon-border rounded-lg text-sm text-falcon-text font-mono focus:border-falcon-red/50 focus:outline-hidden"
                   placeholder="正規表現パターン（例: test|demo）"
                 />
-                <p className="text-[11px] text-[#3d5068] mt-1">正規表現が使えます。例: <code className="font-mono">test|demo</code>、<code className="font-mono">svchost\.exe</code></p>
+                <p className="text-[11px] text-falcon-subtle mt-1">正規表現が使えます。例: <code className="font-mono">test|demo</code>、<code className="font-mono">svchost\.exe</code></p>
               </div>
 
               {/* Match field */}
               <div>
-                <label className="block text-xs font-medium text-[#7d92b0] mb-1">マッチ対象フィールド</label>
+                <label className="block text-xs font-medium text-falcon-muted mb-1">マッチ対象フィールド</label>
                 <select
                   value={form.match_field}
                   onChange={e => setForm(f => ({ ...f, match_field: e.target.value as MatchField }))}
-                  className="w-full px-3 py-2 bg-[#070d19] border border-[#1e2d42] rounded-lg text-sm text-[#e2e8f4] focus:border-[#e8002d]/50 focus:outline-none"
+                  className="w-full px-3 py-2 bg-[#070d19] border border-falcon-border rounded-lg text-sm text-falcon-text focus:border-falcon-red/50 focus:outline-hidden"
                 >
                   {Object.entries(MATCH_FIELD_LABELS).map(([val, label]) => (
                     <option key={val} value={val}>{label}</option>
@@ -472,11 +472,11 @@ export default function SuppressionRulesPage() {
 
               {/* Agent selector */}
               <div>
-                <label className="block text-xs font-medium text-[#7d92b0] mb-1">対象エージェント</label>
+                <label className="block text-xs font-medium text-falcon-muted mb-1">対象エージェント</label>
                 <select
                   value={form.agent_id}
                   onChange={e => setForm(f => ({ ...f, agent_id: e.target.value }))}
-                  className="w-full px-3 py-2 bg-[#070d19] border border-[#1e2d42] rounded-lg text-sm text-[#e2e8f4] focus:border-[#e8002d]/50 focus:outline-none"
+                  className="w-full px-3 py-2 bg-[#070d19] border border-falcon-border rounded-lg text-sm text-falcon-text focus:border-falcon-red/50 focus:outline-hidden"
                 >
                   <option value="">全エージェント</option>
                   {agents.map(a => (
@@ -487,7 +487,7 @@ export default function SuppressionRulesPage() {
 
               {/* Severity max slider */}
               <div>
-                <label className="block text-xs font-medium text-[#7d92b0] mb-2">
+                <label className="block text-xs font-medium text-falcon-muted mb-2">
                   最大重大度: <span className={`font-semibold ${SEVERITY_COLORS[form.severity_max]}`}>{form.severity_max} — {SEVERITY_LABELS[form.severity_max]}</span>
                 </label>
                 <input
@@ -496,9 +496,9 @@ export default function SuppressionRulesPage() {
                   max={10}
                   value={form.severity_max}
                   onChange={e => setForm(f => ({ ...f, severity_max: Number(e.target.value) }))}
-                  className="w-full accent-[#e8002d]"
+                  className="w-full accent-falcon-red"
                 />
-                <div className="flex justify-between text-[10px] text-[#3d5068] mt-1">
+                <div className="flex justify-between text-[10px] text-falcon-subtle mt-1">
                   <span>1 (Info)</span>
                   <span>5 (Medium)</span>
                   <span>10 (Critical)</span>
@@ -507,30 +507,30 @@ export default function SuppressionRulesPage() {
 
               {/* Expires at */}
               <div>
-                <label className="block text-xs font-medium text-[#7d92b0] mb-1">有効期限（任意）</label>
+                <label className="block text-xs font-medium text-falcon-muted mb-1">有効期限（任意）</label>
                 <input
                   type="datetime-local"
                   value={form.expires_at}
                   onChange={e => setForm(f => ({ ...f, expires_at: e.target.value }))}
-                  className="w-full px-3 py-2 bg-[#070d19] border border-[#1e2d42] rounded-lg text-sm text-[#e2e8f4] focus:border-[#e8002d]/50 focus:outline-none"
+                  className="w-full px-3 py-2 bg-[#070d19] border border-falcon-border rounded-lg text-sm text-falcon-text focus:border-falcon-red/50 focus:outline-hidden"
                 />
-                <p className="text-[11px] text-[#3d5068] mt-1">未入力の場合は無期限で有効</p>
+                <p className="text-[11px] text-falcon-subtle mt-1">未入力の場合は無期限で有効</p>
               </div>
 
             </div>
 
             {/* Modal footer */}
-            <div className="p-5 border-t border-[#1e2d42] flex gap-3 justify-end">
+            <div className="p-5 border-t border-falcon-border flex gap-3 justify-end">
               <button
                 onClick={() => setModalOpen(false)}
-                className="px-4 py-2 text-sm text-[#7d92b0] hover:text-white bg-[#1a2640] hover:bg-[#1d2f4a] rounded-lg border border-[#1e2d42] transition-colors"
+                className="px-4 py-2 text-sm text-falcon-muted hover:text-white bg-[#1a2640] hover:bg-falcon-active rounded-lg border border-falcon-border transition-colors"
               >
                 キャンセル
               </button>
               <button
                 onClick={handleSave}
                 disabled={saveMutation.isPending}
-                className="px-4 py-2 text-sm text-white bg-[#e8002d] hover:bg-[#c8001d] rounded-lg transition-colors disabled:opacity-50"
+                className="px-4 py-2 text-sm text-white bg-falcon-red hover:bg-[#c8001d] rounded-lg transition-colors disabled:opacity-50"
               >
                 {saveMutation.isPending ? '保存中...' : '保存する'}
               </button>
@@ -543,20 +543,20 @@ export default function SuppressionRulesPage() {
       {/* Delete confirm modal */}
       {deleteConfirm && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-6">
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl shadow-2xl p-6 w-full max-w-sm">
-            <h3 className="text-base font-semibold text-[#e2e8f4] mb-2">抑制ルールの削除</h3>
-            <p className="text-sm text-[#7d92b0] mb-5">このルールを削除します。この操作は取り消せません。</p>
+          <div className="bg-falcon-surface border border-falcon-border rounded-xl shadow-2xl p-6 w-full max-w-sm">
+            <h3 className="text-base font-semibold text-falcon-text mb-2">抑制ルールの削除</h3>
+            <p className="text-sm text-falcon-muted mb-5">このルールを削除します。この操作は取り消せません。</p>
             <div className="flex gap-3 justify-end">
               <button
                 onClick={() => setDeleteConfirm(null)}
-                className="px-4 py-2 text-sm text-[#7d92b0] hover:text-white bg-[#1a2640] rounded-lg border border-[#1e2d42] transition-colors"
+                className="px-4 py-2 text-sm text-falcon-muted hover:text-white bg-[#1a2640] rounded-lg border border-falcon-border transition-colors"
               >
                 キャンセル
               </button>
               <button
                 onClick={() => deleteMutation.mutate(deleteConfirm)}
                 disabled={deleteMutation.isPending}
-                className="px-4 py-2 text-sm text-white bg-[#e8002d] hover:bg-[#c8001d] rounded-lg transition-colors disabled:opacity-50"
+                className="px-4 py-2 text-sm text-white bg-falcon-red hover:bg-[#c8001d] rounded-lg transition-colors disabled:opacity-50"
               >
                 削除する
               </button>

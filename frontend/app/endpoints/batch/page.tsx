@@ -47,21 +47,21 @@ function StepIndicator({ current }: { current: 1 | 2 | 3 }) {
       {steps.map((step, i) => (
         <div key={step.n} className="flex items-center">
           <div className="flex items-center gap-2">
-            <div className={`w-7 h-7 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 ${
+            <div className={`w-7 h-7 rounded-full flex items-center justify-center text-sm font-bold shrink-0 ${
               step.n < current
                 ? 'bg-green-700 text-white'
                 : step.n === current
-                ? 'bg-[#e8002d] text-white'
-                : 'bg-[#1e2d42] text-[#7d92b0]'
+                ? 'bg-falcon-red text-white'
+                : 'bg-falcon-border text-falcon-muted'
             }`}>
               {step.n < current ? '✓' : step.n}
             </div>
-            <span className={`text-sm ${step.n === current ? 'text-white font-medium' : 'text-[#7d92b0]'}`}>
+            <span className={`text-sm ${step.n === current ? 'text-white font-medium' : 'text-falcon-muted'}`}>
               {step.label}
             </span>
           </div>
           {i < steps.length - 1 && (
-            <ChevronRight className="w-4 h-4 text-[#3d5068] mx-3" />
+            <ChevronRight className="w-4 h-4 text-falcon-subtle mx-3" />
           )}
         </div>
       ))}
@@ -86,18 +86,18 @@ function CommandButton({
     scan: 'border-blue-700/50 hover:border-blue-500 data-[selected=true]:border-blue-500 data-[selected=true]:bg-blue-900/20',
     kill_process: 'border-orange-700/50 hover:border-orange-500 data-[selected=true]:border-orange-500 data-[selected=true]:bg-orange-900/20',
     run_script: 'border-purple-700/50 hover:border-purple-500 data-[selected=true]:border-purple-500 data-[selected=true]:bg-purple-900/20',
-    update_policy: 'border-[#7d92b0]/30 hover:border-[#7d92b0] data-[selected=true]:border-[#7d92b0] data-[selected=true]:bg-[#1e2d42]/60',
+    update_policy: 'border-falcon-muted/30 hover:border-falcon-muted data-[selected=true]:border-falcon-muted data-[selected=true]:bg-falcon-border/60',
   }
   return (
     <button
       data-selected={selected}
       onClick={onClick}
       className={`text-left p-3 rounded-lg border transition-all ${colorMap[cmd]} ${
-        selected ? '' : 'border-[#1e2d42] bg-[#0d1220]'
+        selected ? '' : 'border-falcon-border bg-falcon-surface'
       }`}
     >
       <p className="text-sm font-medium text-white mb-0.5">{label}</p>
-      <p className="text-xs text-[#7d92b0]">{description}</p>
+      <p className="text-xs text-falcon-muted">{description}</p>
     </button>
   )
 }
@@ -116,11 +116,11 @@ const AGENT_STATUS_LABEL: Record<string, string> = {
 // ── Result status icon ─────────────────────────────────────────────────────
 
 function ResultIcon({ status }: { status: PerAgentResult['status'] }) {
-  if (status === 'pending') return <span className="w-4 h-4 rounded-full border border-[#3d5068]" />
+  if (status === 'pending') return <span className="w-4 h-4 rounded-full border border-falcon-subtle" />
   if (status === 'running') return <Loader2 className="w-4 h-4 text-blue-400 animate-spin" />
   if (status === 'success') return <CheckCircle2 className="w-4 h-4 text-green-400" />
   if (status === 'failed') return <XCircle className="w-4 h-4 text-red-400" />
-  return <SkipForward className="w-4 h-4 text-[#7d92b0]" />
+  return <SkipForward className="w-4 h-4 text-falcon-muted" />
 }
 
 // ── Main page ──────────────────────────────────────────────────────────────
@@ -260,47 +260,47 @@ function BatchCommandInner() {
     <div className="min-h-screen bg-[#070d19] p-6">
       {/* Header */}
       <div className="flex items-center gap-3 mb-4">
-        <Terminal className="w-6 h-6 text-[#e8002d]" />
+        <Terminal className="w-6 h-6 text-falcon-red" />
         <div>
           <h1 className="text-2xl font-bold text-white">バッチコマンド実行</h1>
-          <p className="text-sm text-[#7d92b0]">複数エンドポイントに一括でコマンドを実行</p>
+          <p className="text-sm text-falcon-muted">複数エンドポイントに一括でコマンドを実行</p>
         </div>
       </div>
 
       {/* Warning banner */}
       <div className="flex items-center gap-3 px-4 py-3 mb-6 bg-amber-900/20 border border-amber-700/50 rounded-xl">
-        <AlertTriangle className="w-5 h-5 text-amber-400 flex-shrink-0" />
+        <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0" />
         <p className="text-sm text-amber-300 font-medium">管理者権限が必要です — この操作は取り消せない場合があります。実行前に影響範囲を必ず確認してください。</p>
       </div>
 
       {/* Step indicator */}
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl px-5 py-4 mb-6">
+      <div className="bg-falcon-surface border border-falcon-border rounded-xl px-5 py-4 mb-6">
         <StepIndicator current={step} />
       </div>
 
       {/* ── Step 1: Endpoint selection ────────────────────────────── */}
       {step === 1 && (
         <div className="space-y-4">
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-4">
+          <div className="bg-falcon-surface border border-falcon-border rounded-xl p-4">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-base font-semibold text-white">Step 1 — エンドポイント選択</h2>
               <div className="flex items-center gap-2">
                 <button
                   onClick={selectAll}
-                  className="text-xs px-2.5 py-1 bg-[#070d19] border border-[#1e2d42] text-[#7d92b0]
-                             rounded-lg hover:bg-[#1e2d42] transition-colors"
+                  className="text-xs px-2.5 py-1 bg-[#070d19] border border-falcon-border text-falcon-muted
+                             rounded-lg hover:bg-falcon-border transition-colors"
                 >
                   全選択
                 </button>
                 <button
                   onClick={deselectAll}
-                  className="text-xs px-2.5 py-1 bg-[#070d19] border border-[#1e2d42] text-[#7d92b0]
-                             rounded-lg hover:bg-[#1e2d42] transition-colors"
+                  className="text-xs px-2.5 py-1 bg-[#070d19] border border-falcon-border text-falcon-muted
+                             rounded-lg hover:bg-falcon-border transition-colors"
                 >
                   全解除
                 </button>
                 {selectedIds.size > 0 && (
-                  <span className="text-xs px-2.5 py-1 bg-[#e8002d] text-white rounded-lg font-bold">
+                  <span className="text-xs px-2.5 py-1 bg-falcon-red text-white rounded-lg font-bold">
                     {selectedIds.size} 件選択中
                   </span>
                 )}
@@ -310,21 +310,21 @@ function BatchCommandInner() {
             {/* Filters */}
             <div className="flex gap-2 flex-wrap mb-4">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#3d5068]" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-falcon-subtle" />
                 <input
                   value={search}
                   onChange={e => setSearch(e.target.value)}
                   placeholder="ホスト名で検索..."
-                  className="pl-9 pr-3 py-1.5 text-sm border border-[#1e2d42] rounded-lg
-                             bg-[#070d19] text-white placeholder-[#3d5068] w-44
-                             focus:outline-none focus:border-[#e8002d]"
+                  className="pl-9 pr-3 py-1.5 text-sm border border-falcon-border rounded-lg
+                             bg-[#070d19] text-white placeholder-falcon-subtle w-44
+                             focus:outline-hidden focus:border-falcon-red"
                 />
               </div>
               <select
                 value={groupFilter}
                 onChange={e => setGroupFilter(e.target.value)}
-                className="text-sm border border-[#1e2d42] rounded-lg px-2 py-1.5
-                           bg-[#070d19] text-[#7d92b0] focus:outline-none focus:border-[#e8002d]"
+                className="text-sm border border-falcon-border rounded-lg px-2 py-1.5
+                           bg-[#070d19] text-falcon-muted focus:outline-hidden focus:border-falcon-red"
               >
                 <option value="">グループ: すべて</option>
                 {(groupsData?.data ?? []).map(g => (
@@ -334,8 +334,8 @@ function BatchCommandInner() {
               <select
                 value={statusFilter}
                 onChange={e => setStatusFilter(e.target.value)}
-                className="text-sm border border-[#1e2d42] rounded-lg px-2 py-1.5
-                           bg-[#070d19] text-[#7d92b0] focus:outline-none focus:border-[#e8002d]"
+                className="text-sm border border-falcon-border rounded-lg px-2 py-1.5
+                           bg-[#070d19] text-falcon-muted focus:outline-hidden focus:border-falcon-red"
               >
                 <option value="">ステータス: すべて</option>
                 <option value="online">オンライン</option>
@@ -346,8 +346,8 @@ function BatchCommandInner() {
               <select
                 value={osFilter}
                 onChange={e => setOsFilter(e.target.value)}
-                className="text-sm border border-[#1e2d42] rounded-lg px-2 py-1.5
-                           bg-[#070d19] text-[#7d92b0] focus:outline-none focus:border-[#e8002d]"
+                className="text-sm border border-falcon-border rounded-lg px-2 py-1.5
+                           bg-[#070d19] text-falcon-muted focus:outline-hidden focus:border-falcon-red"
               >
                 <option value="">OS: すべて</option>
                 <option value="windows">Windows</option>
@@ -365,26 +365,26 @@ function BatchCommandInner() {
               </div>
             ) : agents.length === 0 ? (
               <div className="text-center py-10">
-                <Monitor className="w-8 h-8 text-[#3d5068] mx-auto mb-2" />
-                <p className="text-sm text-[#7d92b0]">エンドポイントが見つかりません</p>
+                <Monitor className="w-8 h-8 text-falcon-subtle mx-auto mb-2" />
+                <p className="text-sm text-falcon-muted">エンドポイントが見つかりません</p>
               </div>
             ) : (
-              <div className="border border-[#1e2d42] rounded-lg overflow-hidden">
+              <div className="border border-falcon-border rounded-lg overflow-hidden">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b border-[#1e2d42] bg-[#070d19]/80">
+                    <tr className="border-b border-falcon-border bg-[#070d19]/80">
                       <th className="px-3 py-2 w-10">
                         <input
                           type="checkbox"
                           checked={selectedIds.size === agents.length && agents.length > 0}
                           onChange={e => e.target.checked ? selectAll() : deselectAll()}
-                          className="rounded border-[#1e2d42] bg-[#0d1220] text-[#e8002d]"
+                          className="rounded-sm border-falcon-border bg-falcon-surface text-falcon-red"
                         />
                       </th>
-                      <th className="text-left px-3 py-2 text-xs font-medium text-[#7d92b0]">ホスト名</th>
-                      <th className="text-left px-3 py-2 text-xs font-medium text-[#7d92b0]">OS</th>
-                      <th className="text-left px-3 py-2 text-xs font-medium text-[#7d92b0]">ステータス</th>
-                      <th className="text-left px-3 py-2 text-xs font-medium text-[#7d92b0]">グループ</th>
+                      <th className="text-left px-3 py-2 text-xs font-medium text-falcon-muted">ホスト名</th>
+                      <th className="text-left px-3 py-2 text-xs font-medium text-falcon-muted">OS</th>
+                      <th className="text-left px-3 py-2 text-xs font-medium text-falcon-muted">ステータス</th>
+                      <th className="text-left px-3 py-2 text-xs font-medium text-falcon-muted">グループ</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -394,32 +394,32 @@ function BatchCommandInner() {
                         <tr
                           key={agent.id}
                           onClick={() => toggleAgent(agent.id)}
-                          className={`border-b border-[#1e2d42]/40 last:border-0 cursor-pointer transition-colors ${
-                            isSelected ? 'bg-[#e8002d]/5 hover:bg-[#e8002d]/10' : 'hover:bg-[#1e2d42]/30'
+                          className={`border-b border-falcon-border/40 last:border-0 cursor-pointer transition-colors ${
+                            isSelected ? 'bg-falcon-red/5 hover:bg-falcon-red/10' : 'hover:bg-falcon-border/30'
                           }`}
                         >
                           <td className="px-3 py-2.5">
                             {isSelected
-                              ? <CheckSquare className="w-4 h-4 text-[#e8002d]" />
-                              : <Square className="w-4 h-4 text-[#3d5068]" />
+                              ? <CheckSquare className="w-4 h-4 text-falcon-red" />
+                              : <Square className="w-4 h-4 text-falcon-subtle" />
                             }
                           </td>
                           <td className="px-3 py-2.5">
                             <span className="font-medium text-white">{agent.hostname}</span>
                           </td>
-                          <td className="px-3 py-2.5 text-xs text-[#7d92b0]">
+                          <td className="px-3 py-2.5 text-xs text-falcon-muted">
                             {agent.os_type} {agent.os_version}
                           </td>
                           <td className="px-3 py-2.5">
                             <span className={`text-xs font-medium ${
                               agent.status === 'online' ? 'text-green-400' :
                               agent.status === 'isolated' ? 'text-red-400' :
-                              'text-[#7d92b0]'
+                              'text-falcon-muted'
                             }`}>
                               {AGENT_STATUS_LABEL[agent.status] ?? agent.status}
                             </span>
                           </td>
-                          <td className="px-3 py-2.5 text-xs text-[#7d92b0]">
+                          <td className="px-3 py-2.5 text-xs text-falcon-muted">
                             {(groupsData?.data ?? []).find(g => g.id === agent.group_id)?.name ?? '—'}
                           </td>
                         </tr>
@@ -435,7 +435,7 @@ function BatchCommandInner() {
             <button
               onClick={() => setStep(2)}
               disabled={selectedIds.size === 0}
-              className="flex items-center gap-2 px-5 py-2.5 text-sm font-medium bg-[#e8002d] text-white
+              className="flex items-center gap-2 px-5 py-2.5 text-sm font-medium bg-falcon-red text-white
                          rounded-lg hover:bg-[#c8001e] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             >
               次へ: コマンド設定
@@ -448,7 +448,7 @@ function BatchCommandInner() {
       {/* ── Step 2: Command configuration ─────────────────────────── */}
       {step === 2 && (
         <div className="space-y-4">
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-4">
+          <div className="bg-falcon-surface border border-falcon-border rounded-xl p-4">
             <h2 className="text-base font-semibold text-white mb-4">Step 2 — コマンド設定</h2>
 
             {/* Command type grid */}
@@ -464,14 +464,14 @@ function BatchCommandInner() {
             {/* Dynamic params */}
             {command === 'kill_process' && (
               <div className="space-y-2">
-                <label className="block text-sm font-medium text-[#7d92b0]">終了するプロセス名</label>
+                <label className="block text-sm font-medium text-falcon-muted">終了するプロセス名</label>
                 <input
                   value={processName}
                   onChange={e => setProcessName(e.target.value)}
                   placeholder="例: malware.exe"
-                  className="w-full px-3 py-2 text-sm border border-[#1e2d42] rounded-lg
-                             bg-[#070d19] text-white placeholder-[#3d5068]
-                             focus:outline-none focus:border-[#e8002d]"
+                  className="w-full px-3 py-2 text-sm border border-falcon-border rounded-lg
+                             bg-[#070d19] text-white placeholder-falcon-subtle
+                             focus:outline-hidden focus:border-falcon-red"
                 />
               </div>
             )}
@@ -479,27 +479,27 @@ function BatchCommandInner() {
             {command === 'run_script' && (
               <div className="space-y-3">
                 <div>
-                  <label className="block text-sm font-medium text-[#7d92b0] mb-1">スクリプト内容</label>
+                  <label className="block text-sm font-medium text-falcon-muted mb-1">スクリプト内容</label>
                   <textarea
                     value={scriptContent}
                     onChange={e => setScriptContent(e.target.value)}
                     rows={6}
                     placeholder="#!/bin/bash&#10;echo 'Hello World'"
-                    className="w-full px-3 py-2 text-sm border border-[#1e2d42] rounded-lg
-                               bg-[#070d19] text-white placeholder-[#3d5068] font-mono
-                               focus:outline-none focus:border-[#e8002d] resize-y"
+                    className="w-full px-3 py-2 text-sm border border-falcon-border rounded-lg
+                               bg-[#070d19] text-white placeholder-falcon-subtle font-mono
+                               focus:outline-hidden focus:border-falcon-red resize-y"
                   />
                 </div>
                 <div className="flex items-center gap-3">
-                  <label className="text-sm font-medium text-[#7d92b0]">タイムアウト (秒)</label>
+                  <label className="text-sm font-medium text-falcon-muted">タイムアウト (秒)</label>
                   <input
                     type="number"
                     value={scriptTimeout}
                     onChange={e => setScriptTimeout(e.target.value)}
                     min="1"
                     max="3600"
-                    className="w-24 px-3 py-1.5 text-sm border border-[#1e2d42] rounded-lg
-                               bg-[#070d19] text-white focus:outline-none focus:border-[#e8002d]"
+                    className="w-24 px-3 py-1.5 text-sm border border-falcon-border rounded-lg
+                               bg-[#070d19] text-white focus:outline-hidden focus:border-falcon-red"
                   />
                 </div>
               </div>
@@ -507,28 +507,28 @@ function BatchCommandInner() {
 
             {command === 'update_policy' && (
               <div className="space-y-2">
-                <label className="block text-sm font-medium text-[#7d92b0]">ポリシーID</label>
+                <label className="block text-sm font-medium text-falcon-muted">ポリシーID</label>
                 <input
                   value={policyId}
                   onChange={e => setPolicyId(e.target.value)}
                   placeholder="ポリシーIDを入力..."
-                  className="w-full px-3 py-2 text-sm border border-[#1e2d42] rounded-lg
-                             bg-[#070d19] text-white placeholder-[#3d5068]
-                             focus:outline-none focus:border-[#e8002d]"
+                  className="w-full px-3 py-2 text-sm border border-falcon-border rounded-lg
+                             bg-[#070d19] text-white placeholder-falcon-subtle
+                             focus:outline-hidden focus:border-falcon-red"
                 />
               </div>
             )}
 
             {/* Schedule option */}
-            <div className="mt-6 pt-4 border-t border-[#1e2d42]">
-              <p className="text-sm font-medium text-[#7d92b0] mb-3">実行タイミング</p>
+            <div className="mt-6 pt-4 border-t border-falcon-border">
+              <p className="text-sm font-medium text-falcon-muted mb-3">実行タイミング</p>
               <div className="flex gap-3">
                 <button
                   onClick={() => setSchedule('now')}
                   className={`flex items-center gap-2 px-4 py-2.5 rounded-lg border text-sm transition-colors ${
                     schedule === 'now'
-                      ? 'border-[#e8002d] bg-[#e8002d]/10 text-white'
-                      : 'border-[#1e2d42] bg-[#070d19] text-[#7d92b0] hover:border-[#7d92b0]/50'
+                      ? 'border-falcon-red bg-falcon-red/10 text-white'
+                      : 'border-falcon-border bg-[#070d19] text-falcon-muted hover:border-falcon-muted/50'
                   }`}
                 >
                   <Play className="w-4 h-4" />
@@ -538,8 +538,8 @@ function BatchCommandInner() {
                   onClick={() => setSchedule('scheduled')}
                   className={`flex items-center gap-2 px-4 py-2.5 rounded-lg border text-sm transition-colors ${
                     schedule === 'scheduled'
-                      ? 'border-[#e8002d] bg-[#e8002d]/10 text-white'
-                      : 'border-[#1e2d42] bg-[#070d19] text-[#7d92b0] hover:border-[#7d92b0]/50'
+                      ? 'border-falcon-red bg-falcon-red/10 text-white'
+                      : 'border-falcon-border bg-[#070d19] text-falcon-muted hover:border-falcon-muted/50'
                   }`}
                 >
                   <Clock className="w-4 h-4" />
@@ -552,8 +552,8 @@ function BatchCommandInner() {
                     type="datetime-local"
                     value={scheduledAt}
                     onChange={e => setScheduledAt(e.target.value)}
-                    className="text-sm border border-[#1e2d42] rounded-lg px-3 py-2
-                               bg-[#070d19] text-white focus:outline-none focus:border-[#e8002d]"
+                    className="text-sm border border-falcon-border rounded-lg px-3 py-2
+                               bg-[#070d19] text-white focus:outline-hidden focus:border-falcon-red"
                   />
                 </div>
               )}
@@ -563,8 +563,8 @@ function BatchCommandInner() {
           <div className="flex justify-between">
             <button
               onClick={() => setStep(1)}
-              className="px-4 py-2 text-sm text-[#7d92b0] bg-[#0d1220] border border-[#1e2d42]
-                         rounded-lg hover:bg-[#1e2d42] transition-colors"
+              className="px-4 py-2 text-sm text-falcon-muted bg-falcon-surface border border-falcon-border
+                         rounded-lg hover:bg-falcon-border transition-colors"
             >
               ← 戻る
             </button>
@@ -576,7 +576,7 @@ function BatchCommandInner() {
                 (command === 'update_policy' && !policyId.trim()) ||
                 (schedule === 'scheduled' && !scheduledAt)
               }
-              className="flex items-center gap-2 px-5 py-2.5 text-sm font-medium bg-[#e8002d] text-white
+              className="flex items-center gap-2 px-5 py-2.5 text-sm font-medium bg-falcon-red text-white
                          rounded-lg hover:bg-[#c8001e] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             >
               次へ: 確認
@@ -589,19 +589,19 @@ function BatchCommandInner() {
       {/* ── Step 3: Confirm & Execute ──────────────────────────────── */}
       {step === 3 && (
         <div className="space-y-4">
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-4">
+          <div className="bg-falcon-surface border border-falcon-border rounded-xl p-4">
             <h2 className="text-base font-semibold text-white mb-4">Step 3 — 確認と実行</h2>
 
             {/* Summary card */}
-            <div className="bg-[#070d19] border border-[#1e2d42] rounded-lg p-4 mb-4 space-y-3">
+            <div className="bg-[#070d19] border border-falcon-border rounded-lg p-4 mb-4 space-y-3">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-[#e8002d]/10 border border-[#e8002d]/30
+                <div className="w-10 h-10 rounded-full bg-falcon-red/10 border border-falcon-red/30
                                 flex items-center justify-center">
-                  <Terminal className="w-5 h-5 text-[#e8002d]" />
+                  <Terminal className="w-5 h-5 text-falcon-red" />
                 </div>
                 <div>
                   <p className="text-base font-bold text-white">{commandLabels[command]}</p>
-                  <p className="text-sm text-[#7d92b0]">
+                  <p className="text-sm text-falcon-muted">
                     {selectedIds.size} エンドポイントに実行 ·{' '}
                     {schedule === 'now' ? '今すぐ実行' : `スケジュール: ${scheduledAt}`}
                   </p>
@@ -609,29 +609,29 @@ function BatchCommandInner() {
               </div>
 
               {command === 'kill_process' && processName && (
-                <div className="text-xs text-[#7d92b0]">
+                <div className="text-xs text-falcon-muted">
                   プロセス名: <span className="text-white font-mono">{processName}</span>
                 </div>
               )}
 
               {command === 'run_script' && (
-                <div className="text-xs text-[#7d92b0]">
+                <div className="text-xs text-falcon-muted">
                   タイムアウト: <span className="text-white">{scriptTimeout}秒</span>
                 </div>
               )}
 
               {command === 'update_policy' && policyId && (
-                <div className="text-xs text-[#7d92b0]">
+                <div className="text-xs text-falcon-muted">
                   ポリシーID: <span className="text-white font-mono">{policyId}</span>
                 </div>
               )}
 
               {/* Selected endpoints list */}
-              <div className="border-t border-[#1e2d42] pt-3">
-                <p className="text-xs text-[#7d92b0] mb-2">対象エンドポイント ({selectedAgents.length})</p>
+              <div className="border-t border-falcon-border pt-3">
+                <p className="text-xs text-falcon-muted mb-2">対象エンドポイント ({selectedAgents.length})</p>
                 <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto">
                   {selectedAgents.map(a => (
-                    <span key={a.id} className="text-xs px-2 py-0.5 bg-[#1e2d42] text-[#7d92b0] rounded font-mono">
+                    <span key={a.id} className="text-xs px-2 py-0.5 bg-falcon-border text-falcon-muted rounded-sm font-mono">
                       {a.hostname}
                     </span>
                   ))}
@@ -646,7 +646,7 @@ function BatchCommandInner() {
                 type="checkbox"
                 checked={confirmed}
                 onChange={e => setConfirmed(e.target.checked)}
-                className="mt-0.5 rounded border-amber-700 bg-[#070d19] text-amber-500"
+                className="mt-0.5 rounded-sm border-amber-700 bg-[#070d19] text-amber-500"
               />
               <label htmlFor="confirm-check" className="text-sm text-amber-200 cursor-pointer leading-snug">
                 この操作の影響を理解しています。
@@ -658,15 +658,15 @@ function BatchCommandInner() {
             <div className="flex justify-between items-center">
               <button
                 onClick={() => { setStep(2); setConfirmed(false) }}
-                className="px-4 py-2 text-sm text-[#7d92b0] bg-[#0d1220] border border-[#1e2d42]
-                           rounded-lg hover:bg-[#1e2d42] transition-colors"
+                className="px-4 py-2 text-sm text-falcon-muted bg-falcon-surface border border-falcon-border
+                           rounded-lg hover:bg-falcon-border transition-colors"
               >
                 ← 戻る
               </button>
               <button
                 onClick={handleExecute}
                 disabled={!confirmed || batchMutation.isPending}
-                className="flex items-center gap-2 px-6 py-2.5 text-sm font-bold bg-[#e8002d] text-white
+                className="flex items-center gap-2 px-6 py-2.5 text-sm font-bold bg-falcon-red text-white
                            rounded-lg hover:bg-[#c8001e] transition-colors
                            disabled:opacity-40 disabled:cursor-not-allowed"
               >
@@ -682,8 +682,8 @@ function BatchCommandInner() {
 
           {/* Results table */}
           {results.length > 0 && (
-            <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
-              <div className="px-4 py-3 border-b border-[#1e2d42] bg-[#070d19]/60">
+            <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
+              <div className="px-4 py-3 border-b border-falcon-border bg-[#070d19]/60">
                 <h3 className="text-sm font-semibold text-white">実行結果</h3>
                 <div className="flex items-center gap-4 mt-1">
                   <span className="text-xs text-green-400">
@@ -699,15 +699,15 @@ function BatchCommandInner() {
               </div>
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-[#1e2d42]/60">
-                    <th className="text-left px-4 py-2.5 text-xs text-[#7d92b0] font-medium">エンドポイント</th>
-                    <th className="text-left px-4 py-2.5 text-xs text-[#7d92b0] font-medium">ステータス</th>
-                    <th className="text-left px-4 py-2.5 text-xs text-[#7d92b0] font-medium">詳細</th>
+                  <tr className="border-b border-falcon-border/60">
+                    <th className="text-left px-4 py-2.5 text-xs text-falcon-muted font-medium">エンドポイント</th>
+                    <th className="text-left px-4 py-2.5 text-xs text-falcon-muted font-medium">ステータス</th>
+                    <th className="text-left px-4 py-2.5 text-xs text-falcon-muted font-medium">詳細</th>
                   </tr>
                 </thead>
                 <tbody>
                   {results.map(r => (
-                    <tr key={r.agent_id} className="border-b border-[#1e2d42]/40 last:border-0">
+                    <tr key={r.agent_id} className="border-b border-falcon-border/40 last:border-0">
                       <td className="px-4 py-3 font-medium text-white font-mono text-sm">{r.hostname}</td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
@@ -716,7 +716,7 @@ function BatchCommandInner() {
                             r.status === 'success' ? 'text-green-400' :
                             r.status === 'failed' ? 'text-red-400' :
                             r.status === 'running' ? 'text-blue-400' :
-                            'text-[#7d92b0]'
+                            'text-falcon-muted'
                           }`}>
                             {r.status === 'success' ? '成功' :
                              r.status === 'failed' ? '失敗' :
@@ -725,7 +725,7 @@ function BatchCommandInner() {
                           </span>
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-xs text-[#7d92b0]">
+                      <td className="px-4 py-3 text-xs text-falcon-muted">
                         {r.error ?? (r.status === 'success' ? 'コマンドが正常に完了しました' : '—')}
                       </td>
                     </tr>
@@ -746,7 +746,7 @@ export default function BatchCommandPage() {
       <div className="min-h-screen bg-[#070d19] p-6">
         <div className="space-y-4">
           {[...Array(5)].map((_, i) => (
-            <div key={i} className="h-16 bg-[#0d1220] rounded-xl border border-[#1e2d42] animate-pulse" />
+            <div key={i} className="h-16 bg-falcon-surface rounded-xl border border-falcon-border animate-pulse" />
           ))}
         </div>
       </div>

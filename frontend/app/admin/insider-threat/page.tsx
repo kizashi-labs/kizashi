@@ -117,17 +117,17 @@ export default function InsiderThreatPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-[#e8002d]/20 border border-[#e8002d]/30 flex items-center justify-center">
-            <Eye className="w-5 h-5 text-[#e8002d]" />
+          <div className="w-10 h-10 rounded-lg bg-falcon-red/20 border border-falcon-red/30 flex items-center justify-center">
+            <Eye className="w-5 h-5 text-falcon-red" />
           </div>
           <div>
             <h1 className="text-2xl font-bold text-white">内部脅威検出</h1>
-            <p className="text-sm text-[#7d92b0]">行動インテリジェンスとケース管理</p>
+            <p className="text-sm text-falcon-muted">行動インテリジェンスとケース管理</p>
           </div>
         </div>
         <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-orange-500/10 border border-orange-500/30">
           <AlertTriangle className="w-4 h-4 text-orange-400" />
-          <span className="text-xs text-[#7d92b0]">現在の脅威レベル:</span>
+          <span className="text-xs text-falcon-muted">現在の脅威レベル:</span>
           <span className="text-sm font-bold text-orange-400">上昇中</span>
         </div>
       </div>
@@ -140,10 +140,10 @@ export default function InsiderThreatPage() {
           { label: '不審アクセスパターン',   value: unusualAccessCount,  icon: '🔄', color: 'text-yellow-400', border: 'border-yellow-500/20' },
           { label: 'ポリシー違反',           value: policyViolCount,     icon: '⚠️', color: 'text-blue-400',   border: 'border-blue-500/20'   },
         ].map(({ label, value, icon, color, border }) => (
-          <div key={label} className={`bg-[#0d1220] border ${border} rounded-xl p-4`}>
+          <div key={label} className={`bg-falcon-surface border ${border} rounded-xl p-4`}>
             <div className="flex items-center gap-2 mb-3">
               <span className="text-lg">{icon}</span>
-              <p className="text-xs text-[#7d92b0] leading-tight">{label}</p>
+              <p className="text-xs text-falcon-muted leading-tight">{label}</p>
             </div>
             <p className={`text-3xl font-bold ${color}`}>{value}</p>
           </div>
@@ -153,15 +153,15 @@ export default function InsiderThreatPage() {
       {/* Active Investigations */}
       <div className="mb-8">
         <h2 className="text-white font-semibold text-lg mb-4 flex items-center gap-2">
-          <Shield className="w-5 h-5 text-[#e8002d]" />
+          <Shield className="w-5 h-5 text-falcon-red" />
           アクティブな調査
         </h2>
-        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
+        <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-[#1e2d42]">
+              <tr className="border-b border-falcon-border">
                 {['対象者', '脅威カテゴリ', 'リスクスコア', '証拠', 'ステータス', '担当者', '開始日', '操作'].map(h => (
-                  <th key={h} className="text-left text-xs text-[#7d92b0] font-medium px-4 py-3">{h}</th>
+                  <th key={h} className="text-left text-xs text-falcon-muted font-medium px-4 py-3">{h}</th>
                 ))}
               </tr>
             </thead>
@@ -170,7 +170,7 @@ export default function InsiderThreatPage() {
                 const cat = CATEGORY_CONFIG[inv.category]
                 const st  = STATUS_CONFIG[inv.status]
                 return (
-                  <tr key={inv.id} className="border-b border-[#1e2d42]/60 last:border-0 hover:bg-[#070d19]/50 transition-colors">
+                  <tr key={inv.id} className="border-b border-falcon-border/60 last:border-0 hover:bg-[#070d19]/50 transition-colors">
                     <td className="px-4 py-3">
                       <span className="text-sm text-white font-mono">{inv.subject}</span>
                     </td>
@@ -183,31 +183,31 @@ export default function InsiderThreatPage() {
                     <td className="px-4 py-3">
                       <span className={`text-lg font-bold ${riskScoreColor(inv.risk_score)}`}>{inv.risk_score}</span>
                     </td>
-                    <td className="px-4 py-3 text-sm text-[#7d92b0]">{inv.evidence_count} 件</td>
+                    <td className="px-4 py-3 text-sm text-falcon-muted">{inv.evidence_count} 件</td>
                     <td className="px-4 py-3">
                       <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs border font-medium ${st.cls}`}>
                         {st.label}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-sm text-[#7d92b0]">{inv.assigned_to}</td>
-                    <td className="px-4 py-3 text-xs text-[#7d92b0]">{inv.started}</td>
+                    <td className="px-4 py-3 text-sm text-falcon-muted">{inv.assigned_to}</td>
+                    <td className="px-4 py-3 text-xs text-falcon-muted">{inv.started}</td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-1">
                         <button
                           onClick={() => handleCaseAction(inv.id, 'open')}
-                          className="px-2 py-1 rounded text-xs bg-blue-900/30 hover:bg-blue-900/50 text-blue-300 border border-blue-500/20 transition-colors whitespace-nowrap"
+                          className="px-2 py-1 rounded-sm text-xs bg-blue-900/30 hover:bg-blue-900/50 text-blue-300 border border-blue-500/20 transition-colors whitespace-nowrap"
                         >
                           開く
                         </button>
                         <button
                           onClick={() => handleCaseAction(inv.id, 'escalate')}
-                          className="px-2 py-1 rounded text-xs bg-orange-900/30 hover:bg-orange-900/50 text-orange-300 border border-orange-500/20 transition-colors"
+                          className="px-2 py-1 rounded-sm text-xs bg-orange-900/30 hover:bg-orange-900/50 text-orange-300 border border-orange-500/20 transition-colors"
                         >
                           エスカレート
                         </button>
                         <button
                           onClick={() => handleCaseAction(inv.id, 'clear')}
-                          className="px-2 py-1 rounded text-xs bg-green-900/30 hover:bg-green-900/50 text-green-300 border border-green-500/20 transition-colors"
+                          className="px-2 py-1 rounded-sm text-xs bg-green-900/30 hover:bg-green-900/50 text-green-300 border border-green-500/20 transition-colors"
                         >
                           解除
                         </button>
@@ -226,7 +226,7 @@ export default function InsiderThreatPage() {
         {/* Behavioral Indicators */}
         <div className="col-span-3">
           <h2 className="text-white font-semibold text-lg mb-4 flex items-center gap-2">
-            <AlertTriangle className="w-5 h-5 text-[#e8002d]" />
+            <AlertTriangle className="w-5 h-5 text-falcon-red" />
             行動指標
           </h2>
           <div className="space-y-3">
@@ -236,11 +236,11 @@ export default function InsiderThreatPage() {
               return (
                 <div
                   key={indicator.id}
-                  className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-4 hover:border-[#2a3a52] transition-colors"
+                  className="bg-falcon-surface border border-falcon-border rounded-xl p-4 hover:border-[#2a3a52] transition-colors"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-start gap-3 flex-1 min-w-0">
-                      <span className="text-xl flex-shrink-0 mt-0.5">{cat.icon}</span>
+                      <span className="text-xl shrink-0 mt-0.5">{cat.icon}</span>
                       <div className="min-w-0">
                         <div className="flex items-center gap-2 flex-wrap mb-1">
                           <span className="text-sm font-semibold text-white font-mono">{indicator.user}</span>
@@ -251,10 +251,10 @@ export default function InsiderThreatPage() {
                             {indicator.severity}
                           </span>
                         </div>
-                        <p className="text-sm text-[#7d92b0]">{indicator.description}</p>
+                        <p className="text-sm text-falcon-muted">{indicator.description}</p>
                       </div>
                     </div>
-                    <span className="text-xs text-[#7d92b0] whitespace-nowrap flex-shrink-0">{fmtDate(indicator.timestamp)}</span>
+                    <span className="text-xs text-falcon-muted whitespace-nowrap shrink-0">{fmtDate(indicator.timestamp)}</span>
                   </div>
                 </div>
               )
@@ -265,10 +265,10 @@ export default function InsiderThreatPage() {
         {/* Risk Timeline */}
         <div className="col-span-2">
           <h2 className="text-white font-semibold text-lg mb-4 flex items-center gap-2">
-            <TrendingUp className="w-5 h-5 text-[#e8002d]" />
+            <TrendingUp className="w-5 h-5 text-falcon-red" />
             7日間リスクタイムライン
           </h2>
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
+          <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
             <div className="flex items-end gap-2 h-40 mb-3">
               {RISK_TIMELINE.map(({ day, score }) => {
                 const heightPct = (score / 100) * 100
@@ -290,14 +290,14 @@ export default function InsiderThreatPage() {
                 )
               })}
             </div>
-            <div className="flex items-center gap-2 border-t border-[#1e2d42] pt-3">
+            <div className="flex items-center gap-2 border-t border-falcon-border pt-3">
               {RISK_TIMELINE.map(({ day }) => (
                 <div key={day} className="flex-1 text-center">
-                  <span className="text-[10px] text-[#7d92b0]">{day.replace('Mar ', '')}</span>
+                  <span className="text-[10px] text-falcon-muted">{day.replace('Mar ', '')}</span>
                 </div>
               ))}
             </div>
-            <p className="text-xs text-[#7d92b0] mt-3 text-center">内部脅威スコアの総合値（0〜100）</p>
+            <p className="text-xs text-falcon-muted mt-3 text-center">内部脅威スコアの総合値（0〜100）</p>
 
             {/* Score legend */}
             <div className="flex items-center justify-center gap-4 mt-3">
@@ -308,8 +308,8 @@ export default function InsiderThreatPage() {
                 { color: '#ef4444', label: 'クリティカル' },
               ].map(({ color, label }) => (
                 <div key={label} className="flex items-center gap-1">
-                  <div className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: color }} />
-                  <span className="text-xs text-[#7d92b0]">{label}</span>
+                  <div className="w-2.5 h-2.5 rounded-xs" style={{ backgroundColor: color }} />
+                  <span className="text-xs text-falcon-muted">{label}</span>
                 </div>
               ))}
             </div>

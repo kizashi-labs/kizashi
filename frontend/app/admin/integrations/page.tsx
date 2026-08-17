@@ -38,7 +38,7 @@ interface IntegrationCardProps {
 function StatusBadge({ status }: { status: IntegrationStatus }) {
   const map: Record<IntegrationStatus, { label: string; cls: string; dot?: string }> = {
     connected:    { label: '接続中',   cls: 'bg-emerald-900/30 text-emerald-300 border-emerald-700/40', dot: 'bg-emerald-400' },
-    disconnected: { label: '未接続',   cls: 'bg-[#1e2d42] text-[#7d92b0] border-[#1e2d42]' },
+    disconnected: { label: '未接続',   cls: 'bg-falcon-border text-falcon-muted border-falcon-border' },
     error:        { label: 'エラー',   cls: 'bg-red-900/30 text-red-400 border-red-700/40',         dot: 'bg-red-400' },
     pending:      { label: '設定中',   cls: 'bg-yellow-900/30 text-yellow-400 border-yellow-700/40', dot: 'bg-yellow-400' },
   }
@@ -64,13 +64,13 @@ function IntegrationCard({
   children,
 }: IntegrationCardProps) {
   return (
-    <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-6">
+    <div className="bg-falcon-surface border border-falcon-border rounded-lg p-6">
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-start gap-3">
-          <div className="flex-shrink-0 mt-0.5">{logoPlaceholder}</div>
+          <div className="shrink-0 mt-0.5">{logoPlaceholder}</div>
           <div>
             <h3 className="text-white font-semibold">{name}</h3>
-            <p className="text-[#7d92b0] text-sm mt-1">{description}</p>
+            <p className="text-falcon-muted text-sm mt-1">{description}</p>
           </div>
         </div>
         <StatusBadge status={status} />
@@ -85,8 +85,8 @@ function IntegrationCard({
           <button
             onClick={onTest}
             disabled={testState === 'testing'}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-sm border border-[#1e2d42]
-                       rounded text-[#7d92b0] hover:text-white hover:border-[#7d92b0]/50
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm border border-falcon-border
+                       rounded text-falcon-muted hover:text-white hover:border-falcon-muted/50
                        disabled:opacity-40 disabled:cursor-not-allowed transition-all"
           >
             {testState === 'testing' ? (
@@ -103,7 +103,7 @@ function IntegrationCard({
         )}
         <a
           href={configHref}
-          className="px-3 py-1.5 text-sm bg-[#e8002d] hover:bg-[#c0001f] rounded text-white
+          className="px-3 py-1.5 text-sm bg-falcon-red hover:bg-[#c0001f] rounded text-white
                      transition-colors"
         >
           設定
@@ -192,7 +192,7 @@ function TeamsLogo() {
 
 function WebhookLogo() {
   return (
-    <div className="w-9 h-9 rounded-lg bg-[#1e2d42] border border-[#2d4060] flex items-center justify-center text-[#7d92b0] font-bold text-xs">
+    <div className="w-9 h-9 rounded-lg bg-falcon-border border border-[#2d4060] flex items-center justify-center text-falcon-muted font-bold text-xs">
       WH
     </div>
   )
@@ -225,7 +225,7 @@ function SiemTab() {
     <div className="space-y-6">
       <div>
         <h2 className="text-base font-semibold text-white mb-1">SIEM 連携</h2>
-        <p className="text-sm text-[#7d92b0]">
+        <p className="text-sm text-falcon-muted">
           セキュリティ情報・イベント管理 (SIEM) システムへのデータ転送設定
         </p>
       </div>
@@ -242,8 +242,8 @@ function SiemTab() {
           onTest={() => runTest(setElasticTest, '/api/v1/admin/integrations/elastic/test')}
           testState={elasticTest}
         >
-          <div className="text-xs text-[#7d92b0] bg-[#070d19] rounded-lg border border-[#1e2d42] px-3 py-2">
-            <span className="text-[#3d5068]">URL:</span>{' '}
+          <div className="text-xs text-falcon-muted bg-[#070d19] rounded-lg border border-falcon-border px-3 py-2">
+            <span className="text-falcon-subtle">URL:</span>{' '}
             <span className="font-mono">https://elastic.corp:9200</span>
           </div>
         </IntegrationCard>
@@ -258,9 +258,9 @@ function SiemTab() {
           onTest={() => runTest(setSplunkTest, '/api/v1/admin/integrations/splunk/test')}
           testState={splunkTest}
         >
-          <div className="text-xs text-[#7d92b0] bg-[#070d19] rounded-lg border border-[#1e2d42] px-3 py-2">
-            <span className="text-[#3d5068]">HEC URL:</span>{' '}
-            <span className="font-mono text-[#3d5068]">未設定</span>
+          <div className="text-xs text-falcon-muted bg-[#070d19] rounded-lg border border-falcon-border px-3 py-2">
+            <span className="text-falcon-subtle">HEC URL:</span>{' '}
+            <span className="font-mono text-falcon-subtle">未設定</span>
           </div>
         </IntegrationCard>
 
@@ -274,8 +274,8 @@ function SiemTab() {
           onTest={() => runTest(setSentinelTest, '/api/v1/admin/integrations/sentinel/test')}
           testState={sentinelTest}
         >
-          <div className="text-xs text-[#7d92b0] bg-[#070d19] rounded-lg border border-[#1e2d42] px-3 py-2">
-            <span className="text-[#3d5068]">Workspace ID:</span>{' '}
+          <div className="text-xs text-falcon-muted bg-[#070d19] rounded-lg border border-falcon-border px-3 py-2">
+            <span className="text-falcon-subtle">Workspace ID:</span>{' '}
             <span className="font-mono">a4b2c1d3-****-****-****-f0e1d2c3b4a5</span>
           </div>
         </IntegrationCard>
@@ -290,9 +290,9 @@ function SiemTab() {
           onTest={() => runTest(setQRadarTest, '/api/v1/admin/integrations/qradar/test')}
           testState={qradarTest}
         >
-          <div className="text-xs text-[#7d92b0] bg-[#070d19] rounded-lg border border-[#1e2d42] px-3 py-2">
-            <span className="text-[#3d5068]">Console IP:</span>{' '}
-            <span className="font-mono text-[#3d5068]">未設定</span>
+          <div className="text-xs text-falcon-muted bg-[#070d19] rounded-lg border border-falcon-border px-3 py-2">
+            <span className="text-falcon-subtle">Console IP:</span>{' '}
+            <span className="font-mono text-falcon-subtle">未設定</span>
           </div>
         </IntegrationCard>
       </div>
@@ -325,7 +325,7 @@ function SoarTab() {
     <div className="space-y-6">
       <div>
         <h2 className="text-base font-semibold text-white mb-1">SOAR / チケッティング連携</h2>
-        <p className="text-sm text-[#7d92b0]">
+        <p className="text-sm text-falcon-muted">
           セキュリティオーケストレーション・自動対応 (SOAR) とチケットシステムの設定
         </p>
       </div>
@@ -340,8 +340,8 @@ function SoarTab() {
           onTest={() => runTest(setJiraTest, '/api/v1/soar/jira/test')}
           testState={jiraTest}
         >
-          <div className="text-xs text-[#7d92b0] bg-[#070d19] rounded-lg border border-[#1e2d42] px-3 py-2">
-            <span className="text-[#3d5068]">プロジェクト:</span>{' '}
+          <div className="text-xs text-falcon-muted bg-[#070d19] rounded-lg border border-falcon-border px-3 py-2">
+            <span className="text-falcon-subtle">プロジェクト:</span>{' '}
             <span className="font-mono">SEC</span>
           </div>
         </IntegrationCard>
@@ -355,9 +355,9 @@ function SoarTab() {
           onTest={() => runTest(setSnTest, '/api/v1/soar/servicenow/test')}
           testState={snTest}
         >
-          <div className="text-xs text-[#7d92b0] bg-[#070d19] rounded-lg border border-[#1e2d42] px-3 py-2">
-            <span className="text-[#3d5068]">インスタンス:</span>{' '}
-            <span className="font-mono text-[#3d5068]">未設定</span>
+          <div className="text-xs text-falcon-muted bg-[#070d19] rounded-lg border border-falcon-border px-3 py-2">
+            <span className="text-falcon-subtle">インスタンス:</span>{' '}
+            <span className="font-mono text-falcon-subtle">未設定</span>
           </div>
         </IntegrationCard>
 
@@ -399,7 +399,7 @@ function NotificationsTab() {
     <div className="space-y-6">
       <div>
         <h2 className="text-base font-semibold text-white mb-1">通知連携</h2>
-        <p className="text-sm text-[#7d92b0]">
+        <p className="text-sm text-falcon-muted">
           アラート・システム通知の送信先チャンネルを設定します
         </p>
       </div>
@@ -414,8 +414,8 @@ function NotificationsTab() {
           onTest={() => runTest(setSlackTest, '/api/v1/notifications/slack/test')}
           testState={slackTest}
         >
-          <div className="text-xs text-[#7d92b0] bg-[#070d19] rounded-lg border border-[#1e2d42] px-3 py-2">
-            <span className="text-[#3d5068]">チャンネル:</span>{' '}
+          <div className="text-xs text-falcon-muted bg-[#070d19] rounded-lg border border-falcon-border px-3 py-2">
+            <span className="text-falcon-subtle">チャンネル:</span>{' '}
             <span className="font-mono">#soc-alerts</span>
           </div>
         </IntegrationCard>
@@ -451,16 +451,16 @@ function TicketingTab() {
     <div className="space-y-6">
       <div>
         <h2 className="text-base font-semibold text-white mb-1">チケッティング連携</h2>
-        <p className="text-sm text-[#7d92b0]">
+        <p className="text-sm text-falcon-muted">
           インシデント管理・ヘルプデスクシステムとの統合設定
         </p>
       </div>
 
-      <div className="flex items-start gap-3 bg-[#1a6bff]/5 border border-[#1a6bff]/20 rounded-xl px-5 py-4">
-        <Info className="w-4 h-4 text-[#1a6bff] flex-shrink-0 mt-0.5" />
-        <p className="text-sm text-[#7d92b0] leading-relaxed">
+      <div className="flex items-start gap-3 bg-falcon-blue/5 border border-falcon-blue/20 rounded-xl px-5 py-4">
+        <Info className="w-4 h-4 text-falcon-blue shrink-0 mt-0.5" />
+        <p className="text-sm text-falcon-muted leading-relaxed">
           Jira および ServiceNow の詳細設定は{' '}
-          <a href="/admin/integrations/soar" className="text-[#e8002d] hover:underline">
+          <a href="/admin/integrations/soar" className="text-falcon-red hover:underline">
             SOAR タブ
           </a>{' '}
           から行えます。追加のチケッティングシステム統合は今後のアップデートで提供予定です。
@@ -505,16 +505,16 @@ function IntegrationsSummary() {
   return (
     <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
       {[
-        { label: '総連携数',   value: stats.total,        cls: 'text-[#e2e8f4]' },
+        { label: '総連携数',   value: stats.total,        cls: 'text-falcon-text' },
         { label: '接続中',     value: stats.connected,    cls: 'text-emerald-400' },
-        { label: '未接続',     value: stats.disconnected, cls: 'text-[#7d92b0]' },
+        { label: '未接続',     value: stats.disconnected, cls: 'text-falcon-muted' },
         { label: 'エラー',     value: stats.error,        cls: 'text-red-400' },
       ].map(({ label, value, cls }) => (
         <div
           key={label}
-          className="bg-[#0d1220] border border-[#1e2d42] rounded-lg px-4 py-3"
+          className="bg-falcon-surface border border-falcon-border rounded-lg px-4 py-3"
         >
-          <p className="text-xs text-[#7d92b0] uppercase tracking-wide mb-1">{label}</p>
+          <p className="text-xs text-falcon-muted uppercase tracking-wide mb-1">{label}</p>
           <p className={`text-2xl font-bold ${cls}`}>
             {isLoading ? <Loader2 className="w-5 h-5 animate-spin inline" /> : value}
           </p>
@@ -540,24 +540,24 @@ export default function IntegrationsPage() {
 
   return (
     <div className="min-h-screen bg-[#070d19]">
-      <div className="max-w-screen-xl mx-auto p-6 space-y-6">
+      <div className="max-w-(--breakpoint-xl) mx-auto p-6 space-y-6">
 
         {/* ── Breadcrumb ─────────────────────────────────────────── */}
-        <nav className="flex items-center gap-1.5 text-xs text-[#3d5068]">
-          <a href="/admin" className="hover:text-[#7d92b0] transition-colors">Admin</a>
+        <nav className="flex items-center gap-1.5 text-xs text-falcon-subtle">
+          <a href="/admin" className="hover:text-falcon-muted transition-colors">Admin</a>
           <ChevronRight className="w-3 h-3" />
-          <span className="text-[#7d92b0]">Integrations</span>
+          <span className="text-falcon-muted">Integrations</span>
         </nav>
 
         {/* ── Header ────────────────────────────────────────────── */}
         <div className="flex items-start gap-4">
-          <div className="w-11 h-11 rounded-xl bg-[#e8002d]/10 border border-[#e8002d]/20
-                          flex items-center justify-center flex-shrink-0">
-            <Puzzle className="w-5 h-5 text-[#e8002d]" />
+          <div className="w-11 h-11 rounded-xl bg-falcon-red/10 border border-falcon-red/20
+                          flex items-center justify-center shrink-0">
+            <Puzzle className="w-5 h-5 text-falcon-red" />
           </div>
           <div>
             <h1 className="text-2xl font-bold text-white">外部連携</h1>
-            <p className="text-sm text-[#7d92b0] mt-0.5">
+            <p className="text-sm text-falcon-muted mt-0.5">
               SIEM・SOAR・通知・チケッティングシステムとの統合を一元管理
             </p>
           </div>
@@ -568,7 +568,7 @@ export default function IntegrationsPage() {
 
         {/* ── Tabs ──────────────────────────────────────────────── */}
         <div>
-          <div className="flex gap-1 bg-[#0d1220] border border-[#1e2d42] rounded-xl p-1 w-fit overflow-x-auto">
+          <div className="flex gap-1 bg-falcon-surface border border-falcon-border rounded-xl p-1 w-fit overflow-x-auto">
             {TABS.map(tab => (
               <button
                 key={tab.id}
@@ -576,8 +576,8 @@ export default function IntegrationsPage() {
                 className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg
                             whitespace-nowrap transition-all duration-150
                   ${activeTab === tab.id
-                    ? 'bg-[#e8002d] text-white shadow-sm'
-                    : 'text-[#7d92b0] hover:text-[#e2e8f4] hover:bg-[#19253d]'
+                    ? 'bg-falcon-red text-white shadow-xs'
+                    : 'text-falcon-muted hover:text-falcon-text hover:bg-falcon-hover'
                   }`}
               >
                 {tab.icon}

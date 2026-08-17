@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useQuery } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
 import { apiFetch } from '@/lib/api'
@@ -179,7 +180,7 @@ function AlertSeverityBadge({ severity }: { severity: Alert['severity'] }) {
   }
   const labels = { critical: '重大', high: '高', medium: '中', low: '低' }
   return (
-    <span className={`px-2 py-0.5 rounded text-[11px] font-medium uppercase ${map[severity]}`}>
+    <span className={`px-2 py-0.5 rounded-sm text-[11px] font-medium uppercase ${map[severity]}`}>
       {labels[severity]}
     </span>
   )
@@ -192,9 +193,9 @@ function AlertStatusBadge({ status }: { status: string }) {
     resolved: 'bg-green-900/30 text-green-300',
   }
   const labels: Record<string, string> = { open: 'オープン', in_progress: '対応中', resolved: '解決済み' }
-  const cls = map[status] ?? 'bg-[#1e2d42] text-[#7d92b0]'
+  const cls = map[status] ?? 'bg-falcon-border text-falcon-muted'
   return (
-    <span className={`px-2 py-0.5 rounded text-[11px] font-medium ${cls}`}>
+    <span className={`px-2 py-0.5 rounded-sm text-[11px] font-medium ${cls}`}>
       {labels[status] ?? status}
     </span>
   )
@@ -209,7 +210,7 @@ function PriorityBadge({ priority }: { priority: string }) {
   }
   const labels: Record<string, string> = { critical: '重大', high: '高', medium: '中', low: '低' }
   return (
-    <span className={`px-2 py-0.5 rounded text-[11px] font-semibold uppercase ${map[priority] ?? ''}`}>
+    <span className={`px-2 py-0.5 rounded-sm text-[11px] font-semibold uppercase ${map[priority] ?? ''}`}>
       {labels[priority] ?? priority}
     </span>
   )
@@ -217,10 +218,10 @@ function PriorityBadge({ priority }: { priority: string }) {
 
 function SkeletonCard() {
   return (
-    <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5 animate-pulse">
-      <div className="h-3 bg-[#1e2d42] rounded w-24 mb-3" />
-      <div className="h-10 bg-[#1e2d42] rounded w-16 mb-2" />
-      <div className="h-2 bg-[#1e2d42] rounded w-20" />
+    <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5 animate-pulse">
+      <div className="h-3 bg-falcon-border rounded-sm w-24 mb-3" />
+      <div className="h-10 bg-falcon-border rounded-sm w-16 mb-2" />
+      <div className="h-2 bg-falcon-border rounded-sm w-20" />
     </div>
   )
 }
@@ -235,14 +236,14 @@ function RiskTrendChart({ data }: { data: { day: string; count: number }[] }) {
         const pct = (item.count / maxCount) * 100
         return (
           <div key={i} className="flex-1 flex flex-col items-center gap-1">
-            <span className="text-[10px] text-[#7d92b0]">{item.count}</span>
+            <span className="text-[10px] text-falcon-muted">{item.count}</span>
             <div className="w-full flex items-end" style={{ height: 72 }}>
               <div
-                className="w-full rounded-t bg-gradient-to-t from-[#e8002d] to-[#ff3355] opacity-80 hover:opacity-100 transition-opacity"
+                className="w-full rounded-t bg-linear-to-t from-falcon-red to-[#ff3355] opacity-80 hover:opacity-100 transition-opacity"
                 style={{ height: `${pct}%` }}
               />
             </div>
-            <span className="text-[10px] text-[#7d92b0]">{item.day}</span>
+            <span className="text-[10px] text-falcon-muted">{item.day}</span>
           </div>
         )
       })}
@@ -262,7 +263,7 @@ function ComplianceBar({ name, pct }: { name: string; pct: number }) {
           {pct}%
         </span>
       </div>
-      <div className="h-2 bg-[#1e2d42] rounded-full overflow-hidden">
+      <div className="h-2 bg-falcon-border rounded-full overflow-hidden">
         <div
           className={`h-full rounded-full transition-all duration-700 ${color}`}
           style={{ width: `${pct}%` }}
@@ -357,8 +358,8 @@ export default function ExecutiveDashboardPage() {
       value: isLoading ? '—' : String(score),
       sub: score >= 80 ? '良好な状態' : score >= 60 ? '要注意' : 'リスクあり',
       icon: Shield,
-      color: isLoading ? 'text-[#7d92b0]' : scoreColor(score),
-      bg: 'border-[#1e2d42]',
+      color: isLoading ? 'text-falcon-muted' : scoreColor(score),
+      bg: 'border-falcon-border',
     },
     {
       label: 'アクティブ脅威',
@@ -398,7 +399,7 @@ export default function ExecutiveDashboardPage() {
       sub: '平均解決時間',
       icon: Clock,
       color: d.detectionStats.avg_resolution_hours <= 4 ? 'text-green-400' : 'text-yellow-400',
-      bg: 'border-[#1e2d42]',
+      bg: 'border-falcon-border',
     },
   ]
 
@@ -408,10 +409,10 @@ export default function ExecutiveDashboardPage() {
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-white tracking-tight flex items-center gap-2">
-            <BarChart2 className="w-6 h-6 text-[#e8002d]" />
+            <BarChart2 className="w-6 h-6 text-falcon-red" />
             エグゼクティブセキュリティダッシュボード
           </h1>
-          <p className="text-[#7d92b0] text-sm mt-1">
+          <p className="text-falcon-muted text-sm mt-1">
             最終更新:{' '}
             <span className="text-white">{lastUpdated}</span>
           </p>
@@ -419,12 +420,12 @@ export default function ExecutiveDashboardPage() {
         <div className="flex items-center gap-2">
           <button
             onClick={() => refetch()}
-            className="flex items-center gap-2 px-3 py-2 bg-[#0d1220] border border-[#1e2d42] hover:border-[#2a3f5c] text-[#7d92b0] hover:text-white text-sm rounded-lg transition-colors"
+            className="flex items-center gap-2 px-3 py-2 bg-falcon-surface border border-falcon-border hover:border-[#2a3f5c] text-falcon-muted hover:text-white text-sm rounded-lg transition-colors"
           >
             <RefreshCw className="w-4 h-4" />
             更新
           </button>
-          <button className="flex items-center gap-2 px-4 py-2 bg-[#1e2d42] hover:bg-[#253650] text-white text-sm font-medium rounded-lg transition-colors border border-[#2a3f5c]">
+          <button className="flex items-center gap-2 px-4 py-2 bg-falcon-border hover:bg-[#253650] text-white text-sm font-medium rounded-lg transition-colors border border-[#2a3f5c]">
             <Download className="w-4 h-4" />
             PDFエクスポート
           </button>
@@ -439,13 +440,13 @@ export default function ExecutiveDashboardPage() {
       ) : (
         <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
           {KPI_CARDS.map(card => (
-            <div key={card.label} className={`bg-[#0d1220] border rounded-xl p-5 ${card.bg}`}>
+            <div key={card.label} className={`bg-falcon-surface border rounded-xl p-5 ${card.bg}`}>
               <div className="flex items-center justify-between mb-3">
-                <p className="text-xs text-[#7d92b0] uppercase tracking-wider font-medium">{card.label}</p>
+                <p className="text-xs text-falcon-muted uppercase tracking-wider font-medium">{card.label}</p>
                 <card.icon className={`w-5 h-5 ${card.color}`} />
               </div>
               <p className={`text-4xl font-black tracking-tight ${card.color}`}>{card.value}</p>
-              <p className="text-xs text-[#7d92b0] mt-1">{card.sub}</p>
+              <p className="text-xs text-falcon-muted mt-1">{card.sub}</p>
             </div>
           ))}
         </div>
@@ -454,45 +455,45 @@ export default function ExecutiveDashboardPage() {
       {/* 中段: リスクトレンド + 脅威ランドスケープ */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* リスクトレンド */}
-        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
+        <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h2 className="text-white font-semibold text-sm">リスクトレンド</h2>
-              <p className="text-[#7d92b0] text-xs mt-0.5">日次アラート件数 — 過去7日間</p>
+              <p className="text-falcon-muted text-xs mt-0.5">日次アラート件数 — 過去7日間</p>
             </div>
-            <TrendingUp className="w-4 h-4 text-[#7d92b0]" />
+            <TrendingUp className="w-4 h-4 text-falcon-muted" />
           </div>
           {trendData.length > 0 ? (
             <RiskTrendChart data={trendData} />
           ) : (
-            <div className="flex items-center justify-center h-24 text-[#7d92b0] text-sm">
+            <div className="flex items-center justify-center h-24 text-falcon-muted text-sm">
               データなし
             </div>
           )}
         </div>
 
         {/* 脅威ランドスケープ */}
-        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
+        <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h2 className="text-white font-semibold text-sm">脅威ランドスケープ</h2>
-              <p className="text-[#7d92b0] text-xs mt-0.5">MITREテクニック別アラート（過去30日）</p>
+              <p className="text-falcon-muted text-xs mt-0.5">MITREテクニック別アラート（過去30日）</p>
             </div>
-            <Activity className="w-4 h-4 text-[#7d92b0]" />
+            <Activity className="w-4 h-4 text-falcon-muted" />
           </div>
           <div className="grid grid-cols-1 gap-3">
             {threatLandscape.length > 0 ? (
               threatLandscape.map(threat => (
-                <div key={threat.name} className="bg-[#070d19] border border-[#1e2d42] rounded-lg p-4 flex items-center justify-between">
+                <div key={threat.name} className="bg-[#070d19] border border-falcon-border rounded-lg p-4 flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${threat.color}`} />
+                    <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${threat.color}`} />
                     <span className="text-white text-sm font-medium">{threat.name}</span>
                   </div>
                   <span className="text-2xl font-bold text-white">{threat.count}</span>
                 </div>
               ))
             ) : (
-              <div className="flex items-center justify-center h-20 text-[#7d92b0] text-sm">
+              <div className="flex items-center justify-center h-20 text-falcon-muted text-sm">
                 MITREテクニックデータなし
               </div>
             )}
@@ -501,13 +502,13 @@ export default function ExecutiveDashboardPage() {
       </div>
 
       {/* コンプライアンスサマリー */}
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
+      <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
         <div className="flex items-center justify-between mb-5">
           <div>
             <h2 className="text-white font-semibold text-sm">コンプライアンスサマリー</h2>
-            <p className="text-[#7d92b0] text-xs mt-0.5">アクティブなコントロール全体のフレームワーク達成率</p>
+            <p className="text-falcon-muted text-xs mt-0.5">アクティブなコントロール全体のフレームワーク達成率</p>
           </div>
-          <CheckCircle className="w-4 h-4 text-[#7d92b0]" />
+          <CheckCircle className="w-4 h-4 text-falcon-muted" />
         </div>
         {complianceFrameworks.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
@@ -516,51 +517,51 @@ export default function ExecutiveDashboardPage() {
             ))}
           </div>
         ) : (
-          <div className="flex items-center justify-center h-16 text-[#7d92b0] text-sm">
+          <div className="flex items-center justify-center h-16 text-falcon-muted text-sm">
             コンプライアンスデータを読み込み中...
           </div>
         )}
       </div>
 
       {/* 最近の高優先度アラート */}
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
-        <div className="px-5 py-3.5 border-b border-[#1e2d42] flex items-center justify-between">
+      <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
+        <div className="px-5 py-3.5 border-b border-falcon-border flex items-center justify-between">
           <div>
             <h2 className="text-white font-semibold text-sm">最近の高優先度アラート</h2>
-            <p className="text-[#7d92b0] text-xs mt-0.5">直近の重大・高重大度アラート5件</p>
+            <p className="text-falcon-muted text-xs mt-0.5">直近の重大・高重大度アラート5件</p>
           </div>
-          <a
+          <Link
             href="/alerts"
-            className="flex items-center gap-1 text-xs text-[#7d92b0] hover:text-white transition-colors"
+            className="flex items-center gap-1 text-xs text-falcon-muted hover:text-white transition-colors"
           >
             すべて表示 <ChevronRight className="w-3.5 h-3.5" />
-          </a>
+          </Link>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-[#1e2d42]">
+              <tr className="border-b border-falcon-border">
                 {['タイトル', '重大度', 'エージェント', '時間', 'ステータス'].map(h => (
-                  <th key={h} className="px-4 py-3 text-left text-xs font-medium text-[#7d92b0] uppercase tracking-wider whitespace-nowrap">
+                  <th key={h} className="px-4 py-3 text-left text-xs font-medium text-falcon-muted uppercase tracking-wider whitespace-nowrap">
                     {h}
                   </th>
                 ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#1e2d42]">
+            <tbody className="divide-y divide-falcon-border">
               {isLoading ? (
                 Array.from({ length: 5 }).map((_, i) => (
-                  <tr key={i} className="animate-pulse border-b border-[#1e2d42]">
+                  <tr key={i} className="animate-pulse border-b border-falcon-border">
                     {[260, 80, 100, 100, 80].map((w, j) => (
                       <td key={j} className="px-4 py-3">
-                        <div className="h-3 bg-[#1e2d42] rounded" style={{ width: w }} />
+                        <div className="h-3 bg-falcon-border rounded-sm" style={{ width: w }} />
                       </td>
                     ))}
                   </tr>
                 ))
               ) : d.recentAlerts.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-4 py-8 text-center text-[#7d92b0] text-sm">
+                  <td colSpan={5} className="px-4 py-8 text-center text-falcon-muted text-sm">
                     重大・高重大度のアラートはありません
                   </td>
                 </tr>
@@ -572,8 +573,8 @@ export default function ExecutiveDashboardPage() {
                   <td className="px-4 py-3">
                     <AlertSeverityBadge severity={alert.severity} />
                   </td>
-                  <td className="px-4 py-3 text-[#7d92b0] text-xs font-mono whitespace-nowrap">{alert.agent_hostname}</td>
-                  <td className="px-4 py-3 text-[#7d92b0] text-xs whitespace-nowrap">{formatDate(alert.created_at)}</td>
+                  <td className="px-4 py-3 text-falcon-muted text-xs font-mono whitespace-nowrap">{alert.agent_hostname}</td>
+                  <td className="px-4 py-3 text-falcon-muted text-xs whitespace-nowrap">{formatDate(alert.created_at)}</td>
                   <td className="px-4 py-3">
                     <AlertStatusBadge status={alert.status} />
                   </td>
@@ -585,29 +586,29 @@ export default function ExecutiveDashboardPage() {
       </div>
 
       {/* 推奨事項 */}
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
+      <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
         <div className="flex items-center gap-2 mb-4">
           <h2 className="text-white font-semibold text-sm">推奨事項</h2>
-          <span className="px-2 py-0.5 rounded-full bg-[#1e2d42] text-[#7d92b0] text-[11px] font-medium">
+          <span className="px-2 py-0.5 rounded-full bg-falcon-border text-falcon-muted text-[11px] font-medium">
             {recommendations.length} 件のアクション
           </span>
         </div>
         <div className="space-y-3">
           {recommendations.length === 0 ? (
-            <div className="flex items-center justify-center h-16 text-[#7d92b0] text-sm">
+            <div className="flex items-center justify-center h-16 text-falcon-muted text-sm">
               現在、対応が必要な推奨事項はありません
             </div>
           ) : recommendations.map((rec, idx) => (
             <a
               key={idx}
               href={rec.href}
-              className="flex items-start gap-3 p-3.5 bg-[#070d19] border border-[#1e2d42] rounded-lg hover:border-[#2a3f5c] hover:bg-[#0a1428] transition-colors cursor-pointer select-none no-underline"
+              className="flex items-start gap-3 p-3.5 bg-[#070d19] border border-falcon-border rounded-lg hover:border-[#2a3f5c] hover:bg-[#0a1428] transition-colors cursor-pointer select-none no-underline"
             >
-              <div className="flex-shrink-0 mt-0.5">
+              <div className="shrink-0 mt-0.5">
                 <PriorityBadge priority={rec.priority} />
               </div>
-              <p className="text-[#7d92b0] text-sm leading-relaxed">{rec.text}</p>
-              <ChevronRight className="w-4 h-4 text-[#4a6080] flex-shrink-0 mt-0.5 ml-auto" />
+              <p className="text-falcon-muted text-sm leading-relaxed">{rec.text}</p>
+              <ChevronRight className="w-4 h-4 text-[#4a6080] shrink-0 mt-0.5 ml-auto" />
             </a>
           ))}
         </div>

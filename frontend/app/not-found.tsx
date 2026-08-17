@@ -8,7 +8,7 @@ export default function NotFound() {
     <div className="min-h-screen bg-zinc-950 flex items-center justify-center p-6">
       <div className="text-center max-w-lg w-full">
         {/* Shield icon */}
-        <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-red-600 to-red-800 flex items-center justify-center mx-auto mb-6 shadow-lg shadow-red-900/30">
+        <div className="w-20 h-20 rounded-2xl bg-linear-to-br from-red-600 to-red-800 flex items-center justify-center mx-auto mb-6 shadow-lg shadow-red-900/30">
           <Shield className="w-10 h-10 text-white" />
         </div>
 

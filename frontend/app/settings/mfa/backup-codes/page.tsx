@@ -175,7 +175,7 @@ export default function MFABackupCodesPage() {
                   {item.code}
                 </span>
                 {item.used && (
-                  <span className="text-xs text-red-400 bg-red-900/40 px-2 py-0.5 rounded ml-2 whitespace-nowrap">
+                  <span className="text-xs text-red-400 bg-red-900/40 px-2 py-0.5 rounded-sm ml-2 whitespace-nowrap">
                     使用済み
                   </span>
                 )}

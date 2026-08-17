@@ -159,11 +159,11 @@ const PRIORITY_COLORS: Record<string, string> = {
 }
 
 function timeRemainingColor(min: number, slaTotalMin: number) {
-  if (min < 0) return 'text-[#7d92b0]'
+  if (min < 0) return 'text-falcon-muted'
   const pct = min / slaTotalMin
-  if (pct > 0.5) return 'text-[#00c853]'
+  if (pct > 0.5) return 'text-falcon-green'
   if (pct > 0.2) return 'text-[#ffd740]'
-  return 'text-[#e8002d]'
+  return 'text-falcon-red'
 }
 
 function formatRemaining(min: number): string {
@@ -239,8 +239,8 @@ function BreachPieChart({ reasons }: { reasons: BreachReason[] }) {
       <div className="space-y-1.5">
         {reasons.map(r => (
           <div key={r.reason} className="flex items-center gap-2 text-xs">
-            <span className="w-2.5 h-2.5 rounded-sm flex-shrink-0" style={{ background: r.color }} />
-            <span className="text-[#7d92b0]">{r.reason}</span>
+            <span className="w-2.5 h-2.5 rounded-xs shrink-0" style={{ background: r.color }} />
+            <span className="text-falcon-muted">{r.reason}</span>
             <span className="text-white font-medium ml-auto pl-3">{r.pct}%</span>
           </div>
         ))}
@@ -321,7 +321,7 @@ export default function SLAPage() {
 
   const assignees = Array.from(new Set(sla.tickets.map(t => t.assignee)))
 
-  const achieveColor = sla.stats.achievement_rate >= 90 ? 'text-[#00c853]' : 'text-[#ffd740]'
+  const achieveColor = sla.stats.achievement_rate >= 90 ? 'text-falcon-green' : 'text-[#ffd740]'
 
   function handleSave() {
     setSaveMsg('保存しました')
@@ -333,39 +333,39 @@ export default function SLAPage() {
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-white">SLA管理</h1>
-        <p className="text-[#7d92b0] text-sm mt-1">インシデント・チケット対応のSLA達成状況</p>
+        <p className="text-falcon-muted text-sm mt-1">インシデント・チケット対応のSLA達成状況</p>
       </div>
 
       {/* Stats Row */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5 text-center">
+        <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5 text-center">
           <div className={`text-4xl font-black ${achieveColor}`}>{sla.stats.achievement_rate}%</div>
-          <div className="text-xs text-[#7d92b0] mt-1">SLA達成率</div>
+          <div className="text-xs text-falcon-muted mt-1">SLA達成率</div>
         </div>
-        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5 text-center">
-          <div className="text-4xl font-black text-[#e8002d]">{sla.stats.breached_today}</div>
-          <div className="text-xs text-[#7d92b0] mt-1">本日の違反</div>
+        <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5 text-center">
+          <div className="text-4xl font-black text-falcon-red">{sla.stats.breached_today}</div>
+          <div className="text-xs text-falcon-muted mt-1">本日の違反</div>
         </div>
-        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5 text-center">
+        <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5 text-center">
           <div className="text-4xl font-black text-[#ffd740]">{sla.stats.at_risk}</div>
-          <div className="text-xs text-[#7d92b0] mt-1">リスク件数 (&lt;1h)</div>
+          <div className="text-xs text-falcon-muted mt-1">リスク件数 (&lt;1h)</div>
         </div>
-        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5 text-center">
+        <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5 text-center">
           <div className="text-2xl font-black text-white">{sla.stats.avg_response_time}</div>
-          <div className="text-xs text-[#7d92b0] mt-1">平均対応時間</div>
+          <div className="text-xs text-falcon-muted mt-1">平均対応時間</div>
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 bg-[#0d1220] border border-[#1e2d42] rounded-lg p-1 w-fit">
+      <div className="flex gap-1 bg-falcon-surface border border-falcon-border rounded-lg p-1 w-fit">
         {(['overview', 'tickets', 'settings'] as const).map(t => (
           <button
             key={t}
             onClick={() => setTab(t)}
             className={`px-4 py-2 rounded text-sm font-medium transition-colors ${
               tab === t
-                ? 'bg-[#1e2d42] text-white'
-                : 'text-[#7d92b0] hover:text-white'
+                ? 'bg-falcon-border text-white'
+                : 'text-falcon-muted hover:text-white'
             }`}
           >
             {t === 'overview' ? 'SLA概要' : t === 'tickets' ? 'チケット別' : '設定'}
@@ -377,7 +377,7 @@ export default function SLAPage() {
       {tab === 'overview' && (
         <div className="space-y-6">
           {/* Gauges per priority */}
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-6">
+          <div className="bg-falcon-surface border border-falcon-border rounded-xl p-6">
             <h2 className="text-base font-semibold text-white mb-5">優先度別 SLA達成率</h2>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
               {sla.priority_breakdown.map(row => (
@@ -393,12 +393,12 @@ export default function SLAPage() {
           </div>
 
           {/* Priority breakdown table */}
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-6">
+          <div className="bg-falcon-surface border border-falcon-border rounded-xl p-6">
             <h2 className="text-base font-semibold text-white mb-4">優先度別内訳</h2>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="text-[#7d92b0] text-xs border-b border-[#1e2d42]">
+                  <tr className="text-falcon-muted text-xs border-b border-falcon-border">
                     <th className="pb-2 text-left">優先度</th>
                     <th className="pb-2 text-center">SLA目標</th>
                     <th className="pb-2 text-center">今週チケット</th>
@@ -408,12 +408,12 @@ export default function SLAPage() {
                     <th className="pb-2 text-center">平均実績</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#1e2d42]">
+                <tbody className="divide-y divide-falcon-border">
                   {sla.priority_breakdown.map(row => (
                     <tr key={row.priority} className="hover:bg-[#0a1020]">
                       <td className="py-3">
                         <span
-                          className="px-2 py-0.5 rounded text-xs font-medium"
+                          className="px-2 py-0.5 rounded-sm text-xs font-medium"
                           style={{ background: `${PRIORITY_COLORS[row.priority]}20`, color: PRIORITY_COLORS[row.priority] }}
                         >
                           {PRIORITY_LABELS[row.priority]}
@@ -421,10 +421,10 @@ export default function SLAPage() {
                       </td>
                       <td className="py-3 text-center text-[#c8d6ea]">{row.sla_hours}時間</td>
                       <td className="py-3 text-center text-white">{row.tickets_week}</td>
-                      <td className="py-3 text-center text-[#00c853]">{row.met}</td>
-                      <td className="py-3 text-center text-[#e8002d]">{row.breached}</td>
+                      <td className="py-3 text-center text-falcon-green">{row.met}</td>
+                      <td className="py-3 text-center text-falcon-red">{row.breached}</td>
                       <td className="py-3 text-center">
-                        <span className={row.achievement_pct >= 90 ? 'text-[#00c853]' : 'text-[#ffd740]'}>
+                        <span className={row.achievement_pct >= 90 ? 'text-falcon-green' : 'text-[#ffd740]'}>
                           {row.achievement_pct.toFixed(1)}%
                         </span>
                       </td>
@@ -437,19 +437,19 @@ export default function SLAPage() {
           </div>
 
           {/* Monthly trend */}
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-6">
+          <div className="bg-falcon-surface border border-falcon-border rounded-xl p-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-base font-semibold text-white">過去30日 日別トレンド</h2>
-              <div className="flex items-center gap-4 text-xs text-[#7d92b0]">
-                <div className="flex items-center gap-1"><span className="w-3 h-2 rounded bg-[#00c853] inline-block opacity-70" /> 達成</div>
-                <div className="flex items-center gap-1"><span className="w-3 h-2 rounded bg-[#e8002d] inline-block opacity-80" /> 違反</div>
+              <div className="flex items-center gap-4 text-xs text-falcon-muted">
+                <div className="flex items-center gap-1"><span className="w-3 h-2 rounded-sm bg-falcon-green inline-block opacity-70" /> 達成</div>
+                <div className="flex items-center gap-1"><span className="w-3 h-2 rounded-sm bg-falcon-red inline-block opacity-80" /> 違反</div>
               </div>
             </div>
             <DailyBarChart bars={sla.daily_bars} />
           </div>
 
           {/* Breach reasons */}
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-6">
+          <div className="bg-falcon-surface border border-falcon-border rounded-xl p-6">
             <h2 className="text-base font-semibold text-white mb-4">違反理由内訳</h2>
             <BreachPieChart reasons={sla.breach_reasons} />
           </div>
@@ -462,12 +462,12 @@ export default function SLAPage() {
           {/* Filters */}
           <div className="flex flex-wrap gap-3 items-center">
             {/* Status filter */}
-            <div className="flex gap-1 bg-[#0d1220] border border-[#1e2d42] rounded p-1">
+            <div className="flex gap-1 bg-falcon-surface border border-falcon-border rounded-sm p-1">
               {([['all', '全て'], ['breached', '違反'], ['at_risk', 'リスク'], ['on_track', '正常']] as const).map(([v, l]) => (
                 <button
                   key={v}
                   onClick={() => setTicketFilter(v)}
-                  className={`px-3 py-1 rounded text-xs font-medium transition-colors ${ticketFilter === v ? 'bg-[#1e2d42] text-white' : 'text-[#7d92b0] hover:text-white'}`}
+                  className={`px-3 py-1 rounded-sm text-xs font-medium transition-colors ${ticketFilter === v ? 'bg-falcon-border text-white' : 'text-falcon-muted hover:text-white'}`}
                 >
                   {l}
                 </button>
@@ -479,14 +479,14 @@ export default function SLAPage() {
               <select
                 value={priorityFilter}
                 onChange={e => setPriorityFilter(e.target.value)}
-                className="appearance-none bg-[#0d1220] border border-[#1e2d42] rounded px-3 py-1.5 text-xs text-[#c8d6ea] pr-7 cursor-pointer"
+                className="appearance-none bg-falcon-surface border border-falcon-border rounded-sm px-3 py-1.5 text-xs text-[#c8d6ea] pr-7 cursor-pointer"
               >
                 <option value="all">全優先度</option>
                 {Object.entries(PRIORITY_LABELS).map(([v, l]) => (
                   <option key={v} value={v}>{l}</option>
                 ))}
               </select>
-              <ChevronDown className="w-3 h-3 text-[#7d92b0] absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <ChevronDown className="w-3 h-3 text-falcon-muted absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
             </div>
 
             {/* Assignee filter */}
@@ -494,23 +494,23 @@ export default function SLAPage() {
               <select
                 value={assigneeFilter}
                 onChange={e => setAssigneeFilter(e.target.value)}
-                className="appearance-none bg-[#0d1220] border border-[#1e2d42] rounded px-3 py-1.5 text-xs text-[#c8d6ea] pr-7 cursor-pointer"
+                className="appearance-none bg-falcon-surface border border-falcon-border rounded-sm px-3 py-1.5 text-xs text-[#c8d6ea] pr-7 cursor-pointer"
               >
                 <option value="all">全担当者</option>
                 {assignees.map(a => <option key={a} value={a}>{a}</option>)}
               </select>
-              <ChevronDown className="w-3 h-3 text-[#7d92b0] absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <ChevronDown className="w-3 h-3 text-falcon-muted absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
             </div>
 
-            <span className="text-xs text-[#7d92b0] ml-auto">{filteredTickets.length}件</span>
+            <span className="text-xs text-falcon-muted ml-auto">{filteredTickets.length}件</span>
           </div>
 
           {/* Table */}
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
+          <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="text-[#7d92b0] text-xs border-b border-[#1e2d42] bg-[#0a1020]">
+                  <tr className="text-falcon-muted text-xs border-b border-falcon-border bg-[#0a1020]">
                     <th className="px-4 py-3 text-left">チケット#</th>
                     <th className="px-4 py-3 text-left">タイトル</th>
                     <th className="px-4 py-3 text-center">優先度</th>
@@ -521,33 +521,33 @@ export default function SLAPage() {
                     <th className="px-4 py-3 text-left">担当者</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#1e2d42]">
+                <tbody className="divide-y divide-falcon-border">
                   {filteredTickets.map(t => {
                     const slaTotalMin = (sla.config[`${t.priority}_hours` as keyof SLAConfig] as number) * 60
                     const remColor = timeRemainingColor(t.time_remaining_min, slaTotalMin)
                     return (
                       <tr key={t.id} className="hover:bg-[#0a1020] transition-colors">
-                        <td className="px-4 py-3 text-[#e8002d] font-mono text-xs">{t.id}</td>
+                        <td className="px-4 py-3 text-falcon-red font-mono text-xs">{t.id}</td>
                         <td className="px-4 py-3 text-white max-w-[200px] truncate">{t.title}</td>
                         <td className="px-4 py-3 text-center">
                           <span
-                            className="px-2 py-0.5 rounded text-xs font-medium"
+                            className="px-2 py-0.5 rounded-sm text-xs font-medium"
                             style={{ background: `${PRIORITY_COLORS[t.priority]}20`, color: PRIORITY_COLORS[t.priority] }}
                           >
                             {PRIORITY_LABELS[t.priority]}
                           </span>
                         </td>
-                        <td className="px-4 py-3 text-center text-[#7d92b0] text-xs whitespace-nowrap">
+                        <td className="px-4 py-3 text-center text-falcon-muted text-xs whitespace-nowrap">
                           {new Date(t.created_at).toLocaleString('ja-JP', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                         </td>
-                        <td className="px-4 py-3 text-center text-[#7d92b0] text-xs whitespace-nowrap">
+                        <td className="px-4 py-3 text-center text-falcon-muted text-xs whitespace-nowrap">
                           {new Date(t.sla_due).toLocaleString('ja-JP', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                         </td>
                         <td className={`px-4 py-3 text-center text-xs font-medium whitespace-nowrap ${remColor}`}>
                           {formatRemaining(t.time_remaining_min)}
                         </td>
                         <td className="px-4 py-3 text-center">
-                          <span className={`px-2 py-0.5 rounded text-xs ${t.status === 'in_progress' ? 'bg-[#1e6ef440] text-[#60a5fa]' : 'bg-[#1e2d42] text-[#7d92b0]'}`}>
+                          <span className={`px-2 py-0.5 rounded-sm text-xs ${t.status === 'in_progress' ? 'bg-[#1e6ef440] text-[#60a5fa]' : 'bg-falcon-border text-falcon-muted'}`}>
                             {t.status === 'in_progress' ? '対応中' : 'オープン'}
                           </span>
                         </td>
@@ -557,7 +557,7 @@ export default function SLAPage() {
                   })}
                   {filteredTickets.length === 0 && (
                     <tr>
-                      <td colSpan={8} className="px-4 py-8 text-center text-[#7d92b0] text-sm">
+                      <td colSpan={8} className="px-4 py-8 text-center text-falcon-muted text-sm">
                         該当チケットはありません
                       </td>
                     </tr>
@@ -573,13 +573,13 @@ export default function SLAPage() {
       {tab === 'settings' && (
         <div className="space-y-6 max-w-2xl">
           {/* SLA Targets */}
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-6">
+          <div className="bg-falcon-surface border border-falcon-border rounded-xl p-6">
             <h2 className="text-base font-semibold text-white mb-4">SLA目標時間設定</h2>
             <div className="space-y-4">
               {([ ['critical', 'クリティカル'], ['high', '高'], ['medium', '中'], ['low', '低'] ] as const).map(([key, label]) => (
                 <div key={key} className="flex items-center gap-4">
                   <span
-                    className="w-24 px-2 py-0.5 rounded text-xs font-medium text-center flex-shrink-0"
+                    className="w-24 px-2 py-0.5 rounded-sm text-xs font-medium text-center shrink-0"
                     style={{ background: `${PRIORITY_COLORS[key]}20`, color: PRIORITY_COLORS[key] }}
                   >
                     {label}
@@ -589,10 +589,10 @@ export default function SLAPage() {
                       type="number"
                       value={config[`${key}_hours` as keyof SLAConfig] as number}
                       onChange={e => setConfig(prev => ({ ...prev, [`${key}_hours`]: Number(e.target.value) }))}
-                      className="w-20 bg-[#070d19] border border-[#1e2d42] rounded px-3 py-1.5 text-sm text-white focus:outline-none focus:border-[#e8002d]"
+                      className="w-20 bg-[#070d19] border border-falcon-border rounded-sm px-3 py-1.5 text-sm text-white focus:outline-hidden focus:border-falcon-red"
                       min={1}
                     />
-                    <span className="text-[#7d92b0] text-sm">時間</span>
+                    <span className="text-falcon-muted text-sm">時間</span>
                   </div>
                 </div>
               ))}
@@ -600,24 +600,24 @@ export default function SLAPage() {
           </div>
 
           {/* Business Hours */}
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-6">
+          <div className="bg-falcon-surface border border-falcon-border rounded-xl p-6">
             <h2 className="text-base font-semibold text-white mb-4">ビジネス時間設定</h2>
             <label className="flex items-center gap-3 cursor-pointer">
               <div
-                className={`w-10 h-5 rounded-full transition-colors relative ${config.business_hours_only ? 'bg-[#e8002d]' : 'bg-[#1e2d42]'}`}
+                className={`w-10 h-5 rounded-full transition-colors relative ${config.business_hours_only ? 'bg-falcon-red' : 'bg-falcon-border'}`}
                 onClick={() => setConfig(p => ({ ...p, business_hours_only: !p.business_hours_only }))}
               >
-                <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-[#e2e8f4] transition-transform ${config.business_hours_only ? 'translate-x-5' : 'translate-x-0.5'}`} />
+                <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-falcon-text transition-transform ${config.business_hours_only ? 'translate-x-5' : 'translate-x-0.5'}`} />
               </div>
               <div>
                 <div className="text-sm text-white">ビジネス時間のみでSLAをカウント</div>
-                <div className="text-xs text-[#7d92b0]">月〜金 9:00〜18:00 (JST)</div>
+                <div className="text-xs text-falcon-muted">月〜金 9:00〜18:00 (JST)</div>
               </div>
             </label>
           </div>
 
           {/* Escalation Rules */}
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-6">
+          <div className="bg-falcon-surface border border-falcon-border rounded-xl p-6">
             <h2 className="text-base font-semibold text-white mb-4">エスカレーションルール</h2>
             <div className="space-y-3">
               {[
@@ -630,7 +630,7 @@ export default function SLAPage() {
                     type="checkbox"
                     checked={config[key as keyof SLAConfig] as boolean}
                     onChange={e => setConfig(p => ({ ...p, [key]: e.target.checked }))}
-                    className="w-4 h-4 rounded border-[#1e2d42] bg-[#070d19] accent-[#e8002d]"
+                    className="w-4 h-4 rounded-sm border-falcon-border bg-[#070d19] accent-falcon-red"
                   />
                   <span className="text-sm text-[#c8d6ea]">{label}</span>
                 </label>
@@ -642,12 +642,12 @@ export default function SLAPage() {
           <div className="flex items-center gap-3">
             <button
               onClick={handleSave}
-              className="flex items-center gap-2 px-6 py-2.5 bg-[#e8002d] hover:bg-[#c0001e] rounded-lg text-white text-sm font-medium transition-colors"
+              className="flex items-center gap-2 px-6 py-2.5 bg-falcon-red hover:bg-[#c0001e] rounded-lg text-white text-sm font-medium transition-colors"
             >
               <Save className="w-4 h-4" />
               保存する
             </button>
-            {saveMsg && <span className="text-[#00c853] text-sm">{saveMsg}</span>}
+            {saveMsg && <span className="text-falcon-green text-sm">{saveMsg}</span>}
           </div>
         </div>
       )}

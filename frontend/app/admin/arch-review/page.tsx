@@ -105,7 +105,7 @@ const ANSWER_CONFIG: Record<ChecklistAnswer, { label: string; cls: string }> = {
 }
 
 function Badge({ children, cls }: { children: React.ReactNode; cls: string }) {
-  return <span className={`inline-flex items-center px-2 py-0.5 rounded border text-xs font-medium ${cls}`}>{children}</span>
+  return <span className={`inline-flex items-center px-2 py-0.5 rounded-sm border text-xs font-medium ${cls}`}>{children}</span>
 }
 
 function calcAutoRisk(findings: Finding[]): RiskRating {
@@ -137,20 +137,20 @@ function CreateReviewModal({ onClose }: { onClose: () => void }) {
 
   return (
     <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl w-full max-w-2xl max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
-        <div className="flex items-center justify-between p-6 border-b border-[#1e2d42]">
+      <div className="bg-falcon-surface border border-falcon-border rounded-xl w-full max-w-2xl max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between p-6 border-b border-falcon-border">
           <h2 className="text-white font-semibold text-lg">新規アーキテクチャレビュー作成</h2>
-          <button onClick={onClose} className="p-2 rounded hover:bg-[#1e2d42] text-[#7d92b0] hover:text-white transition-colors"><X className="w-5 h-5" /></button>
+          <button onClick={onClose} className="p-2 rounded-sm hover:bg-falcon-border text-falcon-muted hover:text-white transition-colors"><X className="w-5 h-5" /></button>
         </div>
         <div className="flex-1 overflow-y-auto p-6 space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="col-span-2">
-              <label className="text-[#7d92b0] text-xs uppercase tracking-wider block mb-1.5">レビュー名 *</label>
-              <input value={form.name} onChange={e => set('name', e.target.value)} className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[#e8002d]/50 transition-colors" placeholder="例: 新規ECシステム アーキテクチャレビュー" />
+              <label className="text-falcon-muted text-xs uppercase tracking-wider block mb-1.5">レビュー名 *</label>
+              <input value={form.name} onChange={e => set('name', e.target.value)} className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-red/50 transition-colors" placeholder="例: 新規ECシステム アーキテクチャレビュー" />
             </div>
             <div>
-              <label className="text-[#7d92b0] text-xs uppercase tracking-wider block mb-1.5">レビュー種別</label>
-              <select value={form.review_type} onChange={e => set('review_type', e.target.value)} className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-[#7d92b0] text-sm focus:outline-none focus:border-[#e8002d]/50">
+              <label className="text-falcon-muted text-xs uppercase tracking-wider block mb-1.5">レビュー種別</label>
+              <select value={form.review_type} onChange={e => set('review_type', e.target.value)} className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-falcon-muted text-sm focus:outline-hidden focus:border-falcon-red/50">
                 <option value="new_system">新規システム</option>
                 <option value="change_request">変更申請</option>
                 <option value="annual">年次レビュー</option>
@@ -158,16 +158,16 @@ function CreateReviewModal({ onClose }: { onClose: () => void }) {
               </select>
             </div>
             <div>
-              <label className="text-[#7d92b0] text-xs uppercase tracking-wider block mb-1.5">システム名</label>
-              <input value={form.system_name} onChange={e => set('system_name', e.target.value)} className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[#e8002d]/50 transition-colors" />
+              <label className="text-falcon-muted text-xs uppercase tracking-wider block mb-1.5">システム名</label>
+              <input value={form.system_name} onChange={e => set('system_name', e.target.value)} className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-red/50 transition-colors" />
             </div>
             <div>
-              <label className="text-[#7d92b0] text-xs uppercase tracking-wider block mb-1.5">申請者</label>
-              <input value={form.submitted_by} onChange={e => set('submitted_by', e.target.value)} className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[#e8002d]/50 transition-colors" />
+              <label className="text-falcon-muted text-xs uppercase tracking-wider block mb-1.5">申請者</label>
+              <input value={form.submitted_by} onChange={e => set('submitted_by', e.target.value)} className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-red/50 transition-colors" />
             </div>
             <div>
-              <label className="text-[#7d92b0] text-xs uppercase tracking-wider block mb-1.5">データ分類</label>
-              <select value={form.data_classification} onChange={e => set('data_classification', e.target.value)} className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-[#7d92b0] text-sm focus:outline-none focus:border-[#e8002d]/50">
+              <label className="text-falcon-muted text-xs uppercase tracking-wider block mb-1.5">データ分類</label>
+              <select value={form.data_classification} onChange={e => set('data_classification', e.target.value)} className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-falcon-muted text-sm focus:outline-hidden focus:border-falcon-red/50">
                 <option value="public">公開</option>
                 <option value="internal">社内</option>
                 <option value="confidential">機密</option>
@@ -175,8 +175,8 @@ function CreateReviewModal({ onClose }: { onClose: () => void }) {
               </select>
             </div>
             <div>
-              <label className="text-[#7d92b0] text-xs uppercase tracking-wider block mb-1.5">ネットワーク露出</label>
-              <select value={form.network_exposure} onChange={e => set('network_exposure', e.target.value)} className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-[#7d92b0] text-sm focus:outline-none focus:border-[#e8002d]/50">
+              <label className="text-falcon-muted text-xs uppercase tracking-wider block mb-1.5">ネットワーク露出</label>
+              <select value={form.network_exposure} onChange={e => set('network_exposure', e.target.value)} className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-falcon-muted text-sm focus:outline-hidden focus:border-falcon-red/50">
                 <option value="internet">インターネット公開</option>
                 <option value="dmz">DMZ</option>
                 <option value="internal">内部ネットワーク</option>
@@ -184,8 +184,8 @@ function CreateReviewModal({ onClose }: { onClose: () => void }) {
               </select>
             </div>
             <div>
-              <label className="text-[#7d92b0] text-xs uppercase tracking-wider block mb-1.5">認証方式</label>
-              <select value={form.auth_type} onChange={e => set('auth_type', e.target.value)} className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-[#7d92b0] text-sm focus:outline-none focus:border-[#e8002d]/50">
+              <label className="text-falcon-muted text-xs uppercase tracking-wider block mb-1.5">認証方式</label>
+              <select value={form.auth_type} onChange={e => set('auth_type', e.target.value)} className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-falcon-muted text-sm focus:outline-hidden focus:border-falcon-red/50">
                 <option value="password">パスワード</option>
                 <option value="mfa">MFA</option>
                 <option value="sso">SSO</option>
@@ -193,18 +193,18 @@ function CreateReviewModal({ onClose }: { onClose: () => void }) {
               </select>
             </div>
             <div className="col-span-2">
-              <label className="text-[#7d92b0] text-xs uppercase tracking-wider block mb-1.5">設計書URL（参照用）</label>
-              <input value={form.design_doc_url} onChange={e => set('design_doc_url', e.target.value)} className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[#e8002d]/50 transition-colors font-mono" placeholder="https://confluence.example.com/..." />
+              <label className="text-falcon-muted text-xs uppercase tracking-wider block mb-1.5">設計書URL（参照用）</label>
+              <input value={form.design_doc_url} onChange={e => set('design_doc_url', e.target.value)} className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-red/50 transition-colors font-mono" placeholder="https://confluence.example.com/..." />
             </div>
             <div className="col-span-2">
-              <label className="text-[#7d92b0] text-xs uppercase tracking-wider block mb-1.5">説明</label>
-              <textarea value={form.description} onChange={e => set('description', e.target.value)} rows={3} className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[#e8002d]/50 transition-colors resize-none" />
+              <label className="text-falcon-muted text-xs uppercase tracking-wider block mb-1.5">説明</label>
+              <textarea value={form.description} onChange={e => set('description', e.target.value)} rows={3} className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-red/50 transition-colors resize-none" />
             </div>
           </div>
         </div>
-        <div className="flex justify-end gap-3 p-6 border-t border-[#1e2d42]">
-          <button onClick={onClose} className="px-4 py-2 bg-[#0d1220] border border-[#1e2d42] text-[#7d92b0] rounded-lg text-sm hover:text-white transition-colors">キャンセル</button>
-          <button onClick={handleSubmit} className="px-4 py-2 bg-[#e8002d] text-white rounded-lg text-sm font-semibold hover:bg-[#c0001f] transition-colors">作成</button>
+        <div className="flex justify-end gap-3 p-6 border-t border-falcon-border">
+          <button onClick={onClose} className="px-4 py-2 bg-falcon-surface border border-falcon-border text-falcon-muted rounded-lg text-sm hover:text-white transition-colors">キャンセル</button>
+          <button onClick={handleSubmit} className="px-4 py-2 bg-falcon-red text-white rounded-lg text-sm font-semibold hover:bg-[#c0001f] transition-colors">作成</button>
         </div>
       </div>
     </div>
@@ -226,20 +226,20 @@ function AddFindingModal({ reviewId, onClose }: { reviewId: string; onClose: () 
 
   return (
     <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl w-full max-w-xl" onClick={e => e.stopPropagation()}>
-        <div className="flex items-center justify-between p-6 border-b border-[#1e2d42]">
+      <div className="bg-falcon-surface border border-falcon-border rounded-xl w-full max-w-xl" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between p-6 border-b border-falcon-border">
           <h2 className="text-white font-semibold">指摘事項の追加</h2>
-          <button onClick={onClose} className="p-2 rounded hover:bg-[#1e2d42] text-[#7d92b0] hover:text-white transition-colors"><X className="w-4 h-4" /></button>
+          <button onClick={onClose} className="p-2 rounded-sm hover:bg-falcon-border text-falcon-muted hover:text-white transition-colors"><X className="w-4 h-4" /></button>
         </div>
         <div className="p-6 space-y-4">
           <div>
-            <label className="text-[#7d92b0] text-xs uppercase tracking-wider block mb-1.5">タイトル</label>
-            <input value={form.title} onChange={e => set('title', e.target.value)} className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[#e8002d]/50 transition-colors" />
+            <label className="text-falcon-muted text-xs uppercase tracking-wider block mb-1.5">タイトル</label>
+            <input value={form.title} onChange={e => set('title', e.target.value)} className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-red/50 transition-colors" />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="text-[#7d92b0] text-xs uppercase tracking-wider block mb-1.5">重要度</label>
-              <select value={form.severity} onChange={e => set('severity', e.target.value)} className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-[#7d92b0] text-sm focus:outline-none focus:border-[#e8002d]/50">
+              <label className="text-falcon-muted text-xs uppercase tracking-wider block mb-1.5">重要度</label>
+              <select value={form.severity} onChange={e => set('severity', e.target.value)} className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-falcon-muted text-sm focus:outline-hidden focus:border-falcon-red/50">
                 <option value="info">Info</option>
                 <option value="low">Low</option>
                 <option value="medium">Medium</option>
@@ -248,22 +248,22 @@ function AddFindingModal({ reviewId, onClose }: { reviewId: string; onClose: () 
               </select>
             </div>
             <div>
-              <label className="text-[#7d92b0] text-xs uppercase tracking-wider block mb-1.5">担当者</label>
-              <input value={form.assignee} onChange={e => set('assignee', e.target.value)} className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[#e8002d]/50 transition-colors" />
+              <label className="text-falcon-muted text-xs uppercase tracking-wider block mb-1.5">担当者</label>
+              <input value={form.assignee} onChange={e => set('assignee', e.target.value)} className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-red/50 transition-colors" />
             </div>
           </div>
           <div>
-            <label className="text-[#7d92b0] text-xs uppercase tracking-wider block mb-1.5">説明</label>
-            <textarea value={form.description} onChange={e => set('description', e.target.value)} rows={3} className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[#e8002d]/50 transition-colors resize-none" />
+            <label className="text-falcon-muted text-xs uppercase tracking-wider block mb-1.5">説明</label>
+            <textarea value={form.description} onChange={e => set('description', e.target.value)} rows={3} className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-red/50 transition-colors resize-none" />
           </div>
           <div>
-            <label className="text-[#7d92b0] text-xs uppercase tracking-wider block mb-1.5">推奨対応</label>
-            <textarea value={form.recommendation} onChange={e => set('recommendation', e.target.value)} rows={2} className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[#e8002d]/50 transition-colors resize-none" />
+            <label className="text-falcon-muted text-xs uppercase tracking-wider block mb-1.5">推奨対応</label>
+            <textarea value={form.recommendation} onChange={e => set('recommendation', e.target.value)} rows={2} className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-red/50 transition-colors resize-none" />
           </div>
         </div>
-        <div className="flex justify-end gap-3 p-6 border-t border-[#1e2d42]">
-          <button onClick={onClose} className="px-4 py-2 bg-[#0d1220] border border-[#1e2d42] text-[#7d92b0] rounded-lg text-sm hover:text-white transition-colors">キャンセル</button>
-          <button onClick={handleSubmit} className="px-4 py-2 bg-[#e8002d] text-white rounded-lg text-sm font-semibold hover:bg-[#c0001f] transition-colors">追加</button>
+        <div className="flex justify-end gap-3 p-6 border-t border-falcon-border">
+          <button onClick={onClose} className="px-4 py-2 bg-falcon-surface border border-falcon-border text-falcon-muted rounded-lg text-sm hover:text-white transition-colors">キャンセル</button>
+          <button onClick={handleSubmit} className="px-4 py-2 bg-falcon-red text-white rounded-lg text-sm font-semibold hover:bg-[#c0001f] transition-colors">追加</button>
         </div>
       </div>
     </div>
@@ -314,9 +314,9 @@ function ReviewDetailPanel({ review, onClose }: { review: ArchReview; onClose: (
 
   return (
     <div className="fixed inset-0 z-40 bg-black/70 flex" onClick={onClose}>
-      <div className="ml-auto bg-[#0d1220] border-l border-[#1e2d42] w-full max-w-3xl flex flex-col h-full overflow-hidden" onClick={e => e.stopPropagation()}>
+      <div className="ml-auto bg-falcon-surface border-l border-falcon-border w-full max-w-3xl flex flex-col h-full overflow-hidden" onClick={e => e.stopPropagation()}>
         {/* Header */}
-        <div className="flex items-start gap-3 p-6 border-b border-[#1e2d42]">
+        <div className="flex items-start gap-3 p-6 border-b border-falcon-border">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap mb-1">
               <Badge cls={REVIEW_TYPE_CONFIG[review.review_type].cls}>{REVIEW_TYPE_CONFIG[review.review_type].label}</Badge>
@@ -324,53 +324,53 @@ function ReviewDetailPanel({ review, onClose }: { review: ArchReview; onClose: (
               <Badge cls={RISK_CONFIG[review.risk_rating].cls}>{RISK_CONFIG[review.risk_rating].label}</Badge>
             </div>
             <h2 className="text-white font-bold text-lg leading-tight">{review.name}</h2>
-            <p className="text-[#7d92b0] text-sm mt-0.5">{review.system_name}</p>
+            <p className="text-falcon-muted text-sm mt-0.5">{review.system_name}</p>
           </div>
-          <button onClick={onClose} className="p-2 rounded hover:bg-[#1e2d42] text-[#7d92b0] hover:text-white transition-colors flex-shrink-0"><X className="w-5 h-5" /></button>
+          <button onClick={onClose} className="p-2 rounded-sm hover:bg-falcon-border text-falcon-muted hover:text-white transition-colors shrink-0"><X className="w-5 h-5" /></button>
         </div>
 
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
           {/* System Info */}
-          <div className="bg-[#070d19] border border-[#1e2d42] rounded-xl p-4">
-            <h3 className="text-[#7d92b0] text-xs uppercase tracking-wider mb-3">システム情報</h3>
+          <div className="bg-[#070d19] border border-falcon-border rounded-xl p-4">
+            <h3 className="text-falcon-muted text-xs uppercase tracking-wider mb-3">システム情報</h3>
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
-                <span className="text-[#7d92b0]">申請者: </span>
+                <span className="text-falcon-muted">申請者: </span>
                 <span className="text-white">{review.requested_by}</span>
               </div>
               <div>
-                <span className="text-[#7d92b0]">レビュアー: </span>
+                <span className="text-falcon-muted">レビュアー: </span>
                 <span className="text-white">{review.assigned_reviewer}</span>
               </div>
               <div>
-                <span className="text-[#7d92b0]">提出日: </span>
+                <span className="text-falcon-muted">提出日: </span>
                 <span className="text-white">{review.submission_date}</span>
               </div>
               <div>
-                <span className="text-[#7d92b0]">完了目標: </span>
+                <span className="text-falcon-muted">完了目標: </span>
                 <span className="text-white">{review.target_completion}</span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-[#7d92b0]">データ分類: </span>
+                <span className="text-falcon-muted">データ分類: </span>
                 <Badge cls="bg-purple-900/40 border-purple-700 text-purple-300">{dataClassLabels[review.data_classification]}</Badge>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-[#7d92b0]">ネットワーク: </span>
+                <span className="text-falcon-muted">ネットワーク: </span>
                 <span className="text-white">{networkLabels[review.network_exposure]}</span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-[#7d92b0]">認証方式: </span>
+                <span className="text-falcon-muted">認証方式: </span>
                 <span className="text-white">{authLabels[review.auth_type]}</span>
               </div>
               {review.design_doc_url && (
                 <div className="col-span-2">
-                  <span className="text-[#7d92b0]">設計書: </span>
-                  <span className="text-[#7d92b0] font-mono text-xs ml-1">{review.design_doc_url}</span>
+                  <span className="text-falcon-muted">設計書: </span>
+                  <span className="text-falcon-muted font-mono text-xs ml-1">{review.design_doc_url}</span>
                 </div>
               )}
             </div>
             {review.description && (
-              <p className="text-[#7d92b0] text-sm mt-3 pt-3 border-t border-[#1e2d42]">{review.description}</p>
+              <p className="text-falcon-muted text-sm mt-3 pt-3 border-t border-falcon-border">{review.description}</p>
             )}
           </div>
 
@@ -378,10 +378,10 @@ function ReviewDetailPanel({ review, onClose }: { review: ArchReview; onClose: (
           <div>
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-white font-semibold">レビューチェックリスト</h3>
-              <span className="text-[#7d92b0] text-xs">{answeredItems}/{totalItems} 完了</span>
+              <span className="text-falcon-muted text-xs">{answeredItems}/{totalItems} 完了</span>
             </div>
-            <div className="h-1 bg-[#1e2d42] rounded-full mb-4 overflow-hidden">
-              <div className="h-full bg-[#e8002d] rounded-full transition-all" style={{ width: `${(answeredItems / totalItems) * 100}%` }} />
+            <div className="h-1 bg-falcon-border rounded-full mb-4 overflow-hidden">
+              <div className="h-full bg-falcon-red rounded-full transition-all" style={{ width: `${(answeredItems / totalItems) * 100}%` }} />
             </div>
             <div className="space-y-2">
               {checklist.map(section => {
@@ -389,15 +389,15 @@ function ReviewDetailPanel({ review, onClose }: { review: ArchReview; onClose: (
                 const yesCount = section.items.filter(i => i.answer === 'yes').length
                 const noCount = section.items.filter(i => i.answer === 'no').length
                 return (
-                  <div key={section.id} className="bg-[#070d19] border border-[#1e2d42] rounded-xl overflow-hidden">
+                  <div key={section.id} className="bg-[#070d19] border border-falcon-border rounded-xl overflow-hidden">
                     <button
                       className="w-full flex items-center justify-between p-4 hover:bg-[#0a1628] transition-colors"
                       onClick={() => toggleSection(section.id)}
                     >
                       <div className="flex items-center gap-3">
-                        {isOpen ? <ChevronDown className="w-4 h-4 text-[#7d92b0]" /> : <ChevronRight className="w-4 h-4 text-[#7d92b0]" />}
+                        {isOpen ? <ChevronDown className="w-4 h-4 text-falcon-muted" /> : <ChevronRight className="w-4 h-4 text-falcon-muted" />}
                         <span className="text-white font-medium">{section.title}</span>
-                        <span className="text-[#3d5068] text-xs">({section.items.length}項目)</span>
+                        <span className="text-falcon-subtle text-xs">({section.items.length}項目)</span>
                       </div>
                       <div className="flex items-center gap-2">
                         {yesCount > 0 && <span className="text-green-400 text-xs font-medium">{yesCount}✓</span>}
@@ -405,7 +405,7 @@ function ReviewDetailPanel({ review, onClose }: { review: ArchReview; onClose: (
                       </div>
                     </button>
                     {isOpen && (
-                      <div className="border-t border-[#1e2d42] divide-y divide-[#1e2d42]">
+                      <div className="border-t border-falcon-border divide-y divide-falcon-border">
                         {section.items.map(item => (
                           <div key={item.id} className="p-4">
                             <p className="text-white text-sm mb-3">{item.question}</p>
@@ -414,7 +414,7 @@ function ReviewDetailPanel({ review, onClose }: { review: ArchReview; onClose: (
                                 <button
                                   key={ans}
                                   onClick={() => setAnswer(section.id, item.id, ans)}
-                                  className={`px-3 py-1 rounded border text-xs font-medium transition-colors ${item.answer === ans ? ANSWER_CONFIG[ans].cls : 'bg-[#0d1220] border-[#1e2d42] text-[#3d5068] hover:text-[#7d92b0]'}`}
+                                  className={`px-3 py-1 rounded-sm border text-xs font-medium transition-colors ${item.answer === ans ? ANSWER_CONFIG[ans].cls : 'bg-falcon-surface border-falcon-border text-falcon-subtle hover:text-falcon-muted'}`}
                                 >
                                   {ANSWER_CONFIG[ans].label}
                                 </button>
@@ -425,7 +425,7 @@ function ReviewDetailPanel({ review, onClose }: { review: ArchReview; onClose: (
                                 value={item.notes}
                                 onChange={e => setNote(section.id, item.id, e.target.value)}
                                 placeholder="メモ・補足..."
-                                className="w-full bg-[#0d1220] border border-[#1e2d42] rounded px-3 py-1.5 text-white text-xs focus:outline-none focus:border-[#e8002d]/50 transition-colors"
+                                className="w-full bg-falcon-surface border border-falcon-border rounded-sm px-3 py-1.5 text-white text-xs focus:outline-hidden focus:border-falcon-red/50 transition-colors"
                               />
                             )}
                           </div>
@@ -442,24 +442,24 @@ function ReviewDetailPanel({ review, onClose }: { review: ArchReview; onClose: (
           <div>
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-white font-semibold flex items-center gap-2">
-                <AlertTriangle className="w-4 h-4 text-[#e8002d]" /> 指摘事項 ({review.findings.length}件)
+                <AlertTriangle className="w-4 h-4 text-falcon-red" /> 指摘事項 ({review.findings.length}件)
               </h3>
               <button
                 onClick={() => setShowAddFinding(true)}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-[#e8002d]/10 border border-[#e8002d]/30 text-[#e8002d] rounded-lg text-xs font-medium hover:bg-[#e8002d]/20 transition-colors"
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-falcon-red/10 border border-falcon-red/30 text-falcon-red rounded-lg text-xs font-medium hover:bg-falcon-red/20 transition-colors"
               >
                 <Plus className="w-3.5 h-3.5" /> 追加
               </button>
             </div>
             <div className="space-y-3">
               {review.findings.length === 0 && (
-                <div className="bg-[#070d19] border border-[#1e2d42] rounded-xl p-6 text-center">
+                <div className="bg-[#070d19] border border-falcon-border rounded-xl p-6 text-center">
                   <CheckCircle className="w-8 h-8 text-green-400 mx-auto mb-2" />
-                  <p className="text-[#7d92b0] text-sm">指摘事項なし</p>
+                  <p className="text-falcon-muted text-sm">指摘事項なし</p>
                 </div>
               )}
               {review.findings.map(f => (
-                <div key={f.id} className="bg-[#070d19] border border-[#1e2d42] rounded-xl p-4">
+                <div key={f.id} className="bg-[#070d19] border border-falcon-border rounded-xl p-4">
                   <div className="flex items-center gap-2 mb-2">
                     <Badge cls={FINDING_SEV_CONFIG[f.severity].cls}>{FINDING_SEV_CONFIG[f.severity].label}</Badge>
                     <span className="text-white font-medium text-sm">{f.title}</span>
@@ -467,34 +467,34 @@ function ReviewDetailPanel({ review, onClose }: { review: ArchReview; onClose: (
                       {f.status === 'resolved' ? '解決済み' : f.status === 'in_progress' ? '対応中' : f.status === 'accepted' ? '承認済み' : 'オープン'}
                     </Badge>
                   </div>
-                  <p className="text-[#7d92b0] text-sm mb-2">{f.description}</p>
-                  <p className="text-green-300 text-xs bg-green-900/10 border border-green-900/20 rounded p-2">{f.recommendation}</p>
-                  <div className="flex items-center gap-3 mt-2 text-xs text-[#3d5068]">
-                    <span>担当: <span className="text-[#7d92b0]">{f.assignee}</span></span>
+                  <p className="text-falcon-muted text-sm mb-2">{f.description}</p>
+                  <p className="text-green-300 text-xs bg-green-900/10 border border-green-900/20 rounded-sm p-2">{f.recommendation}</p>
+                  <div className="flex items-center gap-3 mt-2 text-xs text-falcon-subtle">
+                    <span>担当: <span className="text-falcon-muted">{f.assignee}</span></span>
                     <span>{f.created_at}</span>
                   </div>
                 </div>
               ))}
             </div>
             {/* Auto Risk Rating */}
-            <div className="mt-4 bg-[#070d19] border border-[#1e2d42] rounded-xl p-4">
+            <div className="mt-4 bg-[#070d19] border border-falcon-border rounded-xl p-4">
               <div className="flex items-center justify-between">
-                <span className="text-[#7d92b0] text-sm">自動計算リスク評価</span>
+                <span className="text-falcon-muted text-sm">自動計算リスク評価</span>
                 <Badge cls={RISK_CONFIG[autoRisk].cls}>{RISK_CONFIG[autoRisk].label}</Badge>
               </div>
-              <p className="text-[#3d5068] text-xs mt-1">指摘事項の重要度から自動計算</p>
+              <p className="text-falcon-subtle text-xs mt-1">指摘事項の重要度から自動計算</p>
             </div>
           </div>
 
           {/* Approval Section */}
-          <div className="bg-[#070d19] border border-[#1e2d42] rounded-xl p-4">
+          <div className="bg-[#070d19] border border-falcon-border rounded-xl p-4">
             <h3 className="text-white font-semibold mb-3">承認・判定</h3>
             <textarea
               value={approvalComment}
               onChange={e => setApprovalComment(e.target.value)}
               placeholder="コメントを入力..."
               rows={3}
-              className="w-full bg-[#0d1220] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[#e8002d]/50 transition-colors resize-none mb-3"
+              className="w-full bg-falcon-surface border border-falcon-border rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-red/50 transition-colors resize-none mb-3"
             />
             <div className="flex gap-2">
               <button className="flex items-center gap-1.5 px-4 py-2 bg-green-900/30 border border-green-700 text-green-300 rounded-lg text-sm font-medium hover:bg-green-900/50 transition-colors">
@@ -512,20 +512,20 @@ function ReviewDetailPanel({ review, onClose }: { review: ArchReview; onClose: (
           {/* Timeline */}
           <div>
             <h3 className="text-white font-semibold mb-3 flex items-center gap-2">
-              <Activity className="w-4 h-4 text-[#e8002d]" /> レビュー履歴
+              <Activity className="w-4 h-4 text-falcon-red" /> レビュー履歴
             </h3>
             <div className="relative pl-6">
-              <div className="absolute left-2 top-0 bottom-0 w-px bg-[#1e2d42]" />
+              <div className="absolute left-2 top-0 bottom-0 w-px bg-falcon-border" />
               {review.timeline.map((ev, i) => (
                 <div key={i} className="relative mb-4 last:mb-0">
-                  <div className="absolute -left-4 w-4 h-4 rounded-full bg-[#1e2d42] border-2 border-[#e8002d] -translate-x-1/2" />
-                  <div className="bg-[#070d19] border border-[#1e2d42] rounded-lg p-3 ml-2">
+                  <div className="absolute -left-4 w-4 h-4 rounded-full bg-falcon-border border-2 border-falcon-red -translate-x-1/2" />
+                  <div className="bg-[#070d19] border border-falcon-border rounded-lg p-3 ml-2">
                     <div className="flex items-center justify-between">
                       <span className="text-white text-sm font-medium">{ev.action}</span>
-                      <span className="text-[#3d5068] text-xs">{ev.date}</span>
+                      <span className="text-falcon-subtle text-xs">{ev.date}</span>
                     </div>
-                    <span className="text-[#7d92b0] text-xs">{ev.actor}</span>
-                    {ev.comment && <p className="text-[#7d92b0] text-xs mt-1 italic">"{ev.comment}"</p>}
+                    <span className="text-falcon-muted text-xs">{ev.actor}</span>
+                    {ev.comment && <p className="text-falcon-muted text-xs mt-1 italic">"{ev.comment}"</p>}
                   </div>
                 </div>
               ))}
@@ -577,16 +577,16 @@ export default function ArchReviewPage() {
           </div>
           <div>
             <h1 className="text-white text-xl font-bold">セキュリティアーキテクチャレビュー</h1>
-            <p className="text-[#7d92b0] text-sm">システム設計のセキュリティ審査・指摘事項管理</p>
+            <p className="text-falcon-muted text-sm">システム設計のセキュリティ審査・指摘事項管理</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <button className="flex items-center gap-2 px-4 py-2 bg-[#0d1220] border border-[#1e2d42] rounded-lg text-[#7d92b0] hover:text-white text-sm transition-colors">
+          <button className="flex items-center gap-2 px-4 py-2 bg-falcon-surface border border-falcon-border rounded-lg text-falcon-muted hover:text-white text-sm transition-colors">
             <RefreshCw className="w-4 h-4" /> 更新
           </button>
           <button
             onClick={() => setShowCreate(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-[#e8002d] text-white rounded-lg text-sm font-semibold hover:bg-[#c0001f] transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-falcon-red text-white rounded-lg text-sm font-semibold hover:bg-[#c0001f] transition-colors"
           >
             <Plus className="w-4 h-4" /> 新規レビュー
           </button>
@@ -603,10 +603,10 @@ export default function ArchReviewPage() {
         ].map(s => {
           const Icon = s.icon
           return (
-            <div key={s.label} className={`bg-[#0d1220] border rounded-xl p-4 ${s.bg}`}>
+            <div key={s.label} className={`bg-falcon-surface border rounded-xl p-4 ${s.bg}`}>
               <div className="flex items-center gap-2 mb-2">
                 <Icon className={`w-4 h-4 ${s.color}`} />
-                <span className="text-[#7d92b0] text-xs">{s.label}</span>
+                <span className="text-falcon-muted text-xs">{s.label}</span>
               </div>
               <p className={`text-3xl font-bold ${s.color}`}>{s.value}</p>
             </div>
@@ -616,27 +616,27 @@ export default function ArchReviewPage() {
 
       {/* Search */}
       <div className="mb-4 relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#3d5068]" />
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-falcon-subtle" />
         <input
           value={search}
           onChange={e => setSearch(e.target.value)}
           placeholder="レビュー名・システム名・申請者で検索..."
-          className="w-full max-w-md bg-[#0d1220] border border-[#1e2d42] rounded-lg pl-10 pr-4 py-2.5 text-white placeholder-[#3d5068] focus:outline-none focus:border-[#e8002d]/50 text-sm transition-colors"
+          className="w-full max-w-md bg-falcon-surface border border-falcon-border rounded-lg pl-10 pr-4 py-2.5 text-white placeholder-falcon-subtle focus:outline-hidden focus:border-falcon-red/50 text-sm transition-colors"
         />
       </div>
 
       {/* Table */}
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
+      <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-[#1e2d42]">
+              <tr className="border-b border-falcon-border">
                 {['レビュー名', '種別', 'ステータス', '申請者', 'レビュアー', '提出日', '完了目標', 'リスク', '操作'].map(h => (
-                  <th key={h} className="text-left text-[#7d92b0] text-xs font-medium uppercase tracking-wider px-4 py-3 whitespace-nowrap">{h}</th>
+                  <th key={h} className="text-left text-falcon-muted text-xs font-medium uppercase tracking-wider px-4 py-3 whitespace-nowrap">{h}</th>
                 ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#1e2d42]">
+            <tbody className="divide-y divide-falcon-border">
               {filtered.map(r => {
                 const rt = REVIEW_TYPE_CONFIG[r.review_type]
                 const st = STATUS_CONFIG[r.status]
@@ -647,29 +647,29 @@ export default function ArchReviewPage() {
                     <td className="px-4 py-3">
                       <div>
                         <p className="text-white text-sm font-medium max-w-xs truncate">{r.name}</p>
-                        <p className="text-[#3d5068] text-xs">{r.system_name}</p>
+                        <p className="text-falcon-subtle text-xs">{r.system_name}</p>
                       </div>
                     </td>
                     <td className="px-4 py-3"><Badge cls={rt.cls}>{rt.label}</Badge></td>
                     <td className="px-4 py-3">
-                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded border text-xs font-medium ${st.cls}`}>
+                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-sm border text-xs font-medium ${st.cls}`}>
                         <StatusIcon className="w-3 h-3" />{st.label}
                       </span>
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-1.5">
-                        <User className="w-3 h-3 text-[#3d5068]" />
-                        <span className="text-[#7d92b0] text-sm">{r.requested_by}</span>
+                        <User className="w-3 h-3 text-falcon-subtle" />
+                        <span className="text-falcon-muted text-sm">{r.requested_by}</span>
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-[#7d92b0] text-sm">{r.assigned_reviewer}</td>
-                    <td className="px-4 py-3 text-[#7d92b0] text-sm whitespace-nowrap">{r.submission_date}</td>
-                    <td className="px-4 py-3 text-[#7d92b0] text-sm whitespace-nowrap">{r.target_completion}</td>
+                    <td className="px-4 py-3 text-falcon-muted text-sm">{r.assigned_reviewer}</td>
+                    <td className="px-4 py-3 text-falcon-muted text-sm whitespace-nowrap">{r.submission_date}</td>
+                    <td className="px-4 py-3 text-falcon-muted text-sm whitespace-nowrap">{r.target_completion}</td>
                     <td className="px-4 py-3"><Badge cls={rk.cls}>{rk.label}</Badge></td>
                     <td className="px-4 py-3">
                       <button
                         onClick={() => setSelectedReview(r)}
-                        className="flex items-center gap-1.5 px-3 py-1.5 bg-[#0a1628] border border-[#1e2d42] text-[#7d92b0] hover:text-white hover:border-[#7d92b0]/30 rounded text-xs transition-colors"
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-[#0a1628] border border-falcon-border text-falcon-muted hover:text-white hover:border-falcon-muted/30 rounded-sm text-xs transition-colors"
                       >
                         <Eye className="w-3.5 h-3.5" /> 詳細
                       </button>

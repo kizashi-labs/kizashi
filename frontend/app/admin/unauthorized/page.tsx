@@ -25,7 +25,7 @@ export default function UnauthorizedPage() {
     <div className="min-h-screen bg-zinc-950 flex items-center justify-center p-6">
       <div className="text-center max-w-md w-full">
         {/* Icon */}
-        <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-yellow-600 to-yellow-800 flex items-center justify-center mx-auto mb-6 shadow-lg shadow-yellow-900/30">
+        <div className="w-20 h-20 rounded-2xl bg-linear-to-br from-yellow-600 to-yellow-800 flex items-center justify-center mx-auto mb-6 shadow-lg shadow-yellow-900/30">
           <Lock className="w-10 h-10 text-white" />
         </div>
 

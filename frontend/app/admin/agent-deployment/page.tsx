@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useState, useEffect, useCallback } from 'react'
 import {
   Monitor, Apple, Server, ChevronRight, ChevronLeft,
@@ -78,24 +79,24 @@ function StepIndicator({ current }: { current: number }) {
             <div
               className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-all
                 ${current === s.n
-                  ? 'bg-[#e8002d] text-white shadow-[0_0_12px_rgba(232,0,45,0.4)]'
+                  ? 'bg-falcon-red text-white shadow-[0_0_12px_rgba(232,0,45,0.4)]'
                   : current > s.n
-                  ? 'bg-[#00c853] text-white'
-                  : 'bg-[#1e2d42] text-[#3d5068]'
+                  ? 'bg-falcon-green text-white'
+                  : 'bg-falcon-border text-falcon-subtle'
                 }`}
             >
               {current > s.n ? <Check className="w-4 h-4" /> : s.n}
             </div>
             <span
               className={`text-sm font-medium hidden sm:block transition-colors
-                ${current === s.n ? 'text-white' : current > s.n ? 'text-[#00c853]' : 'text-[#3d5068]'}`}
+                ${current === s.n ? 'text-white' : current > s.n ? 'text-falcon-green' : 'text-falcon-subtle'}`}
             >
               {s.label}
             </span>
           </div>
           {i < STEPS.length - 1 && (
             <div
-              className={`h-px w-8 mx-2 transition-all ${current > s.n ? 'bg-[#00c853]' : 'bg-[#1e2d42]'}`}
+              className={`h-px w-8 mx-2 transition-all ${current > s.n ? 'bg-falcon-green' : 'bg-falcon-border'}`}
             />
           )}
         </div>
@@ -132,8 +133,8 @@ function CopyButton({ text, className = '' }: { text: string; className?: string
       onClick={handleCopy}
       className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-medium transition-all
         ${copied
-          ? 'bg-[#00c853]/20 text-[#00c853] border border-[#00c853]/30'
-          : 'bg-[#1e2d42] text-[#7d92b0] hover:text-white hover:bg-[#263a57] border border-[#1e2d42]'
+          ? 'bg-falcon-green/20 text-falcon-green border border-falcon-green/30'
+          : 'bg-falcon-border text-falcon-muted hover:text-white hover:bg-[#263a57] border border-falcon-border'
         } ${className}`}
     >
       {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
@@ -146,9 +147,9 @@ function CopyButton({ text, className = '' }: { text: string; className?: string
 
 function CodeBlock({ code, lang = 'bash' }: { code: string; lang?: string }) {
   return (
-    <div className="relative group rounded-lg bg-[#060d18] border border-[#1e2d42] overflow-hidden">
-      <div className="flex items-center justify-between px-4 py-2 bg-[#0d1220] border-b border-[#1e2d42]">
-        <span className="text-[10px] font-mono text-[#3d5068] uppercase tracking-wider">{lang}</span>
+    <div className="relative group rounded-lg bg-[#060d18] border border-falcon-border overflow-hidden">
+      <div className="flex items-center justify-between px-4 py-2 bg-falcon-surface border-b border-falcon-border">
+        <span className="text-[10px] font-mono text-falcon-subtle uppercase tracking-wider">{lang}</span>
         <CopyButton text={code} />
       </div>
       <pre className="p-4 text-sm font-mono text-[#a8c4e0] overflow-x-auto whitespace-pre-wrap break-all leading-relaxed">
@@ -433,17 +434,17 @@ spec:
   // ── Render steps ───────────────────────────────────────────────────────
 
   return (
-    <div className="min-h-screen bg-[#060d18] text-[#e2e8f4] p-6">
+    <div className="min-h-screen bg-[#060d18] text-falcon-text p-6">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="mb-6">
           <div className="flex items-center gap-3 mb-1">
-            <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-[#e8002d] to-[#a80020] flex items-center justify-center">
+            <div className="w-9 h-9 rounded-lg bg-linear-to-br from-falcon-red to-falcon-red-dark flex items-center justify-center">
               <Download className="w-5 h-5 text-white" />
             </div>
             <div>
               <h1 className="text-xl font-bold text-white">エージェント配布ウィザード</h1>
-              <p className="text-sm text-[#7d92b0]">ステップに従ってエージェントをインストールしてください</p>
+              <p className="text-sm text-falcon-muted">ステップに従ってエージェントをインストールしてください</p>
             </div>
           </div>
         </div>
@@ -452,13 +453,13 @@ spec:
         <StepIndicator current={step} />
 
         {/* Card wrapper */}
-        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-6 shadow-xl">
+        <div className="bg-falcon-surface border border-falcon-border rounded-xl p-6 shadow-xl">
 
           {/* ── Step 1: Select Platform ─────────────────────────── */}
           {step === 1 && (
             <div>
               <h2 className="text-lg font-semibold text-white mb-1">プラットフォームを選択</h2>
-              <p className="text-sm text-[#7d92b0] mb-6">エージェントをインストールするOSを選択してください</p>
+              <p className="text-sm text-falcon-muted mb-6">エージェントをインストールするOSを選択してください</p>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
                 {PLATFORMS.map(({ id, label, icon: Icon, archs }) => (
@@ -467,18 +468,18 @@ spec:
                     onClick={() => setPlatform(id)}
                     className={`relative flex flex-col items-center gap-4 p-6 rounded-xl border-2 transition-all
                       ${platform === id
-                        ? 'border-[#e8002d] bg-[#1a0810] shadow-[0_0_20px_rgba(232,0,45,0.2)]'
-                        : 'border-[#1e2d42] bg-[#0d1220] hover:border-[#2d4060] hover:bg-[#111927]'
+                        ? 'border-falcon-red bg-[#1a0810] shadow-[0_0_20px_rgba(232,0,45,0.2)]'
+                        : 'border-falcon-border bg-falcon-surface hover:border-[#2d4060] hover:bg-[#111927]'
                       }`}
                   >
                     {platform === id && (
                       <span className="absolute top-3 right-3">
-                        <Check className="w-4 h-4 text-[#e8002d]" />
+                        <Check className="w-4 h-4 text-falcon-red" />
                       </span>
                     )}
                     <div className={`w-16 h-16 rounded-2xl flex items-center justify-center
-                      ${platform === id ? 'bg-[#e8002d]/20' : 'bg-[#1e2d42]'}`}>
-                      <Icon className={`w-8 h-8 ${platform === id ? 'text-[#e8002d]' : 'text-[#7d92b0]'}`} />
+                      ${platform === id ? 'bg-falcon-red/20' : 'bg-falcon-border'}`}>
+                      <Icon className={`w-8 h-8 ${platform === id ? 'text-falcon-red' : 'text-falcon-muted'}`} />
                     </div>
                     <div className="text-center">
                       <p className={`font-semibold text-base mb-2 ${platform === id ? 'text-white' : 'text-[#a8c4e0]'}`}>
@@ -486,7 +487,7 @@ spec:
                       </p>
                       <div className="space-y-1">
                         {archs.map((arch) => (
-                          <p key={arch} className="text-xs text-[#3d5068] flex items-center gap-1.5 justify-center">
+                          <p key={arch} className="text-xs text-falcon-subtle flex items-center gap-1.5 justify-center">
                             <Cpu className="w-3 h-3" />
                             {arch}
                           </p>
@@ -502,8 +503,8 @@ spec:
                   onClick={handleNextFromStep1}
                   disabled={!platform}
                   className="flex items-center gap-2 px-5 py-2.5 rounded-lg font-medium text-sm transition-all
-                    bg-[#e8002d] text-white hover:bg-[#c00025] disabled:opacity-40 disabled:cursor-not-allowed
-                    shadow-[0_0_12px_rgba(232,0,45,0.3)]"
+                    bg-falcon-red text-white hover:bg-[#c00025] disabled:opacity-40 disabled:cursor-not-allowed
+                    shadow-falcon-glow-red"
                 >
                   次へ <ChevronRight className="w-4 h-4" />
                 </button>
@@ -515,22 +516,22 @@ spec:
           {step === 2 && (
             <div>
               <h2 className="text-lg font-semibold text-white mb-1">設定</h2>
-              <p className="text-sm text-[#7d92b0] mb-6">エージェントの接続設定を構成してください</p>
+              <p className="text-sm text-falcon-muted mb-6">エージェントの接続設定を構成してください</p>
 
               <div className="space-y-5">
                 {/* Server URL */}
                 <div>
                   <label className="block text-sm font-medium text-[#a8c4e0] mb-1.5">
-                    <Globe className="w-3.5 h-3.5 inline mr-1.5 text-[#3d5068]" />
+                    <Globe className="w-3.5 h-3.5 inline mr-1.5 text-falcon-subtle" />
                     サーバー URL
                   </label>
                   <input
                     type="url"
                     value={serverURL}
                     onChange={(e) => setServerURL(e.target.value)}
-                    className="w-full px-3 py-2.5 rounded-lg bg-[#060d18] border border-[#1e2d42]
-                      text-white text-sm focus:outline-none focus:border-[#e8002d] transition-colors
-                      placeholder:text-[#3d5068]"
+                    className="w-full px-3 py-2.5 rounded-lg bg-[#060d18] border border-falcon-border
+                      text-white text-sm focus:outline-hidden focus:border-falcon-red transition-colors
+                      placeholder:text-falcon-subtle"
                     placeholder="https://your-edr-server.example.com"
                   />
                 </div>
@@ -538,19 +539,19 @@ spec:
                 {/* Agent Group */}
                 <div>
                   <label className="block text-sm font-medium text-[#a8c4e0] mb-1.5">
-                    <Layers className="w-3.5 h-3.5 inline mr-1.5 text-[#3d5068]" />
+                    <Layers className="w-3.5 h-3.5 inline mr-1.5 text-falcon-subtle" />
                     エージェントグループ
                   </label>
                   {loadingGroups ? (
-                    <div className="flex items-center gap-2 py-2 text-sm text-[#3d5068]">
+                    <div className="flex items-center gap-2 py-2 text-sm text-falcon-subtle">
                       <Loader2 className="w-4 h-4 animate-spin" /> 読み込み中...
                     </div>
                   ) : (
                     <select
                       value={agentGroup}
                       onChange={(e) => setAgentGroup(e.target.value)}
-                      className="w-full px-3 py-2.5 rounded-lg bg-[#060d18] border border-[#1e2d42]
-                        text-white text-sm focus:outline-none focus:border-[#e8002d] transition-colors"
+                      className="w-full px-3 py-2.5 rounded-lg bg-[#060d18] border border-falcon-border
+                        text-white text-sm focus:outline-hidden focus:border-falcon-red transition-colors"
                     >
                       <option value="">グループなし（デフォルト）</option>
                       {groups.map((g) => (
@@ -563,7 +564,7 @@ spec:
                 {/* Registration Token */}
                 <div>
                   <label className="block text-sm font-medium text-[#a8c4e0] mb-1.5">
-                    <Key className="w-3.5 h-3.5 inline mr-1.5 text-[#3d5068]" />
+                    <Key className="w-3.5 h-3.5 inline mr-1.5 text-falcon-subtle" />
                     登録トークン
                   </label>
                   <div className="flex gap-2">
@@ -571,20 +572,20 @@ spec:
                       type="text"
                       value={registrationToken}
                       readOnly
-                      className="flex-1 px-3 py-2.5 rounded-lg bg-[#060d18] border border-[#1e2d42]
-                        text-[#a8c4e0] text-sm font-mono focus:outline-none cursor-default"
+                      className="flex-1 px-3 py-2.5 rounded-lg bg-[#060d18] border border-falcon-border
+                        text-[#a8c4e0] text-sm font-mono focus:outline-hidden cursor-default"
                     />
                     <CopyButton text={registrationToken} />
                     <button
                       onClick={() => setRegistrationToken(generateUUID())}
                       title="再生成"
-                      className="p-2.5 rounded-lg bg-[#1e2d42] text-[#7d92b0] hover:text-white
-                        hover:bg-[#263a57] transition-all border border-[#1e2d42]"
+                      className="p-2.5 rounded-lg bg-falcon-border text-falcon-muted hover:text-white
+                        hover:bg-[#263a57] transition-all border border-falcon-border"
                     >
                       <RefreshCw className="w-4 h-4" />
                     </button>
                   </div>
-                  <p className="text-xs text-[#3d5068] mt-1.5">
+                  <p className="text-xs text-falcon-subtle mt-1.5">
                     このトークンはエージェントの最初の登録に使用されます。安全に保管してください。
                   </p>
                 </div>
@@ -592,17 +593,17 @@ spec:
                 {/* Agent Name Prefix */}
                 <div>
                   <label className="block text-sm font-medium text-[#a8c4e0] mb-1.5">
-                    <Terminal className="w-3.5 h-3.5 inline mr-1.5 text-[#3d5068]" />
+                    <Terminal className="w-3.5 h-3.5 inline mr-1.5 text-falcon-subtle" />
                     エージェント名プレフィックス
-                    <span className="ml-1.5 text-[#3d5068] font-normal text-xs">(オプション)</span>
+                    <span className="ml-1.5 text-falcon-subtle font-normal text-xs">(オプション)</span>
                   </label>
                   <input
                     type="text"
                     value={namePrefix}
                     onChange={(e) => setNamePrefix(e.target.value)}
-                    className="w-full px-3 py-2.5 rounded-lg bg-[#060d18] border border-[#1e2d42]
-                      text-white text-sm focus:outline-none focus:border-[#e8002d] transition-colors
-                      placeholder:text-[#3d5068]"
+                    className="w-full px-3 py-2.5 rounded-lg bg-[#060d18] border border-falcon-border
+                      text-white text-sm focus:outline-hidden focus:border-falcon-red transition-colors
+                      placeholder:text-falcon-subtle"
                     placeholder="例: prod-, datacenter-east-"
                   />
                 </div>
@@ -610,17 +611,17 @@ spec:
                 {/* Proxy Settings */}
                 <div>
                   <label className="block text-sm font-medium text-[#a8c4e0] mb-1.5">
-                    <Settings className="w-3.5 h-3.5 inline mr-1.5 text-[#3d5068]" />
+                    <Settings className="w-3.5 h-3.5 inline mr-1.5 text-falcon-subtle" />
                     プロキシ URL
-                    <span className="ml-1.5 text-[#3d5068] font-normal text-xs">(オプション)</span>
+                    <span className="ml-1.5 text-falcon-subtle font-normal text-xs">(オプション)</span>
                   </label>
                   <input
                     type="url"
                     value={proxyURL}
                     onChange={(e) => setProxyURL(e.target.value)}
-                    className="w-full px-3 py-2.5 rounded-lg bg-[#060d18] border border-[#1e2d42]
-                      text-white text-sm focus:outline-none focus:border-[#e8002d] transition-colors
-                      placeholder:text-[#3d5068]"
+                    className="w-full px-3 py-2.5 rounded-lg bg-[#060d18] border border-falcon-border
+                      text-white text-sm focus:outline-hidden focus:border-falcon-red transition-colors
+                      placeholder:text-falcon-subtle"
                     placeholder="http://proxy.example.com:8080"
                   />
                 </div>
@@ -630,7 +631,7 @@ spec:
                 <button
                   onClick={() => setStep(1)}
                   className="flex items-center gap-2 px-5 py-2.5 rounded-lg font-medium text-sm
-                    text-[#7d92b0] hover:text-white bg-[#1e2d42] hover:bg-[#263a57] transition-all"
+                    text-falcon-muted hover:text-white bg-falcon-border hover:bg-[#263a57] transition-all"
                 >
                   <ChevronLeft className="w-4 h-4" /> 戻る
                 </button>
@@ -638,8 +639,8 @@ spec:
                   onClick={() => setStep(3)}
                   disabled={!serverURL || !registrationToken}
                   className="flex items-center gap-2 px-5 py-2.5 rounded-lg font-medium text-sm
-                    bg-[#e8002d] text-white hover:bg-[#c00025] disabled:opacity-40 disabled:cursor-not-allowed
-                    transition-all shadow-[0_0_12px_rgba(232,0,45,0.3)]"
+                    bg-falcon-red text-white hover:bg-[#c00025] disabled:opacity-40 disabled:cursor-not-allowed
+                    transition-all shadow-falcon-glow-red"
                 >
                   次へ <ChevronRight className="w-4 h-4" />
                 </button>
@@ -651,12 +652,12 @@ spec:
           {step === 3 && (
             <div>
               <h2 className="text-lg font-semibold text-white mb-1">インストール</h2>
-              <p className="text-sm text-[#7d92b0] mb-5">
+              <p className="text-sm text-falcon-muted mb-5">
                 以下のコマンドを使ってエージェントをインストールしてください
               </p>
 
               {/* Tab selector */}
-              <div className="flex gap-1 mb-5 bg-[#060d18] rounded-lg p-1 border border-[#1e2d42]">
+              <div className="flex gap-1 mb-5 bg-[#060d18] rounded-lg p-1 border border-falcon-border">
                 {([
                   { id: 'oneliner' as InstallTab, label: 'ワンライナー', icon: Terminal },
                   { id: 'manual'   as InstallTab, label: '手動', icon: Settings },
@@ -668,8 +669,8 @@ spec:
                     onClick={() => setInstallTab(id)}
                     className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded text-xs font-medium transition-all
                       ${installTab === id
-                        ? 'bg-[#1e2d42] text-white'
-                        : 'text-[#3d5068] hover:text-[#7d92b0]'
+                        ? 'bg-falcon-border text-white'
+                        : 'text-falcon-subtle hover:text-falcon-muted'
                       }`}
                   >
                     <Icon className="w-3.5 h-3.5" />
@@ -681,21 +682,21 @@ spec:
               {/* Tab content */}
               {installTab === 'oneliner' && (
                 <div className="space-y-4">
-                  <p className="text-xs text-[#7d92b0]">
+                  <p className="text-xs text-falcon-muted">
                     {platform === 'windows'
                       ? 'PowerShell（管理者権限）で実行してください：'
                       : 'ターミナルで以下のコマンドを実行してください：'}
                   </p>
                   <CodeBlock code={getOneLinear()} lang={platform === 'windows' ? 'powershell' : 'bash'} />
-                  <div className="p-4 rounded-lg bg-[#060d18] border border-[#1e2d42]">
-                    <p className="text-xs text-[#7d92b0] flex items-start gap-2">
-                      <Shield className="w-4 h-4 text-[#3d5068] flex-shrink-0 mt-0.5" />
+                  <div className="p-4 rounded-lg bg-[#060d18] border border-falcon-border">
+                    <p className="text-xs text-falcon-muted flex items-start gap-2">
+                      <Shield className="w-4 h-4 text-falcon-subtle shrink-0 mt-0.5" />
                       スクリプトを実行する前に内容を確認することをお勧めします。
                       <a
                         href={`${serverURL}/api/v1/installer/script?os=${platform}&token=${registrationToken}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-[#1a6bff] hover:underline whitespace-nowrap"
+                        className="text-falcon-blue hover:underline whitespace-nowrap"
                       >
                         スクリプトを確認 →
                       </a>
@@ -706,7 +707,7 @@ spec:
                       href={`${serverURL}/api/v1/installer/script?os=${platform ?? 'linux'}&token=${registrationToken}${agentGroup ? `&group=${agentGroup}` : ''}`}
                       download={`install-kizashi-agent-${platform}.sh`}
                       className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium
-                        bg-[#1e2d42] text-[#7d92b0] hover:text-white hover:bg-[#263a57] transition-all border border-[#1e2d42]"
+                        bg-falcon-border text-falcon-muted hover:text-white hover:bg-[#263a57] transition-all border border-falcon-border"
                     >
                       <Download className="w-4 h-4" />
                       インストーラーをダウンロード
@@ -717,17 +718,17 @@ spec:
 
               {installTab === 'manual' && (
                 <div className="space-y-4">
-                  <p className="text-xs text-[#7d92b0]">手動インストール手順：</p>
+                  <p className="text-xs text-falcon-muted">手動インストール手順：</p>
                   <CodeBlock code={getManualSteps()} lang={platform === 'windows' ? 'powershell' : 'bash'} />
                 </div>
               )}
 
               {installTab === 'docker' && (
                 <div className="space-y-4">
-                  <p className="text-xs text-[#7d92b0]">Docker で起動する場合：</p>
+                  <p className="text-xs text-falcon-muted">Docker で起動する場合：</p>
                   <CodeBlock code={getDockerCommand()} lang="bash" />
-                  <div className="p-4 rounded-lg bg-[#060d18] border border-[#1e2d42]">
-                    <p className="text-xs text-[#7d92b0]">
+                  <div className="p-4 rounded-lg bg-[#060d18] border border-falcon-border">
+                    <p className="text-xs text-falcon-muted">
                       Docker イメージは <code className="text-[#a8c4e0]">ghcr.io/kizashiedr/agent:latest</code> から取得します。
                       <br />必要な権限（<code className="text-[#a8c4e0]">--privileged</code>、<code className="text-[#a8c4e0]">--pid host</code>）はエンドポイント監視に必要です。
                     </p>
@@ -737,7 +738,7 @@ spec:
 
               {installTab === 'kubernetes' && (
                 <div className="space-y-4">
-                  <p className="text-xs text-[#7d92b0]">
+                  <p className="text-xs text-falcon-muted">
                     Kubernetes DaemonSet として全ノードにデプロイ：
                   </p>
                   <CodeBlock code={getKubernetesYAML()} lang="yaml" />
@@ -754,13 +755,13 @@ spec:
                         URL.revokeObjectURL(url)
                       }}
                       className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium
-                        bg-[#1e2d42] text-[#7d92b0] hover:text-white hover:bg-[#263a57] transition-all border border-[#1e2d42]"
+                        bg-falcon-border text-falcon-muted hover:text-white hover:bg-[#263a57] transition-all border border-falcon-border"
                     >
                       <Download className="w-4 h-4" />
                       YAML をダウンロード
                     </button>
                   </div>
-                  <div className="p-4 rounded-lg bg-[#060d18] border border-[#1e2d42] text-xs text-[#7d92b0] space-y-1">
+                  <div className="p-4 rounded-lg bg-[#060d18] border border-falcon-border text-xs text-falcon-muted space-y-1">
                     <p className="font-semibold text-[#a8c4e0]">デプロイ手順:</p>
                     <p>1. 上の YAML をファイルに保存します（例: <code className="text-[#a8c4e0]">kizashi-agent-daemonset.yaml</code>）</p>
                     <p>2. <code className="text-[#a8c4e0]">kubectl apply -f kizashi-agent-daemonset.yaml</code> を実行します</p>
@@ -773,15 +774,15 @@ spec:
                 <button
                   onClick={() => setStep(2)}
                   className="flex items-center gap-2 px-5 py-2.5 rounded-lg font-medium text-sm
-                    text-[#7d92b0] hover:text-white bg-[#1e2d42] hover:bg-[#263a57] transition-all"
+                    text-falcon-muted hover:text-white bg-falcon-border hover:bg-[#263a57] transition-all"
                 >
                   <ChevronLeft className="w-4 h-4" /> 戻る
                 </button>
                 <button
                   onClick={() => { setStep(4); setVerifyStatus('waiting') }}
                   className="flex items-center gap-2 px-5 py-2.5 rounded-lg font-medium text-sm
-                    bg-[#e8002d] text-white hover:bg-[#c00025] transition-all
-                    shadow-[0_0_12px_rgba(232,0,45,0.3)]"
+                    bg-falcon-red text-white hover:bg-[#c00025] transition-all
+                    shadow-falcon-glow-red"
                 >
                   次へ <ChevronRight className="w-4 h-4" />
                 </button>
@@ -793,22 +794,22 @@ spec:
           {step === 4 && (
             <div>
               <h2 className="text-lg font-semibold text-white mb-1">接続確認</h2>
-              <p className="text-sm text-[#7d92b0] mb-6">
+              <p className="text-sm text-falcon-muted mb-6">
                 エージェントのインストール完了後、接続を確認してください
               </p>
 
               {/* Summary */}
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6">
-                <div className="p-3 rounded-lg bg-[#060d18] border border-[#1e2d42]">
-                  <p className="text-xs text-[#3d5068] mb-0.5">プラットフォーム</p>
+                <div className="p-3 rounded-lg bg-[#060d18] border border-falcon-border">
+                  <p className="text-xs text-falcon-subtle mb-0.5">プラットフォーム</p>
                   <p className="text-sm font-medium text-white capitalize">{platform}</p>
                 </div>
-                <div className="p-3 rounded-lg bg-[#060d18] border border-[#1e2d42]">
-                  <p className="text-xs text-[#3d5068] mb-0.5">サーバー URL</p>
+                <div className="p-3 rounded-lg bg-[#060d18] border border-falcon-border">
+                  <p className="text-xs text-falcon-subtle mb-0.5">サーバー URL</p>
                   <p className="text-sm font-medium text-white truncate" title={serverURL}>{serverURL}</p>
                 </div>
-                <div className="p-3 rounded-lg bg-[#060d18] border border-[#1e2d42] col-span-2 sm:col-span-1">
-                  <p className="text-xs text-[#3d5068] mb-0.5">登録トークン</p>
+                <div className="p-3 rounded-lg bg-[#060d18] border border-falcon-border col-span-2 sm:col-span-1">
+                  <p className="text-xs text-falcon-subtle mb-0.5">登録トークン</p>
                   <p className="text-sm font-mono text-[#a8c4e0] truncate" title={registrationToken}>
                     {registrationToken.substring(0, 18)}...
                   </p>
@@ -822,7 +823,7 @@ spec:
                   disabled={verifyLoading}
                   className="flex items-center gap-2.5 px-6 py-3 rounded-xl font-semibold text-sm
                     bg-[#1a3a6b] text-[#4a9eff] hover:bg-[#1f4480] hover:text-white
-                    border border-[#1a6bff]/30 hover:border-[#1a6bff]/60
+                    border border-falcon-blue/30 hover:border-falcon-blue/60
                     disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                 >
                   {verifyLoading
@@ -833,27 +834,27 @@ spec:
 
                 {/* Status indicator */}
                 {verifyStatus === 'waiting' && !verifyLoading && (
-                  <p className="text-sm text-[#3d5068] text-center max-w-sm">
+                  <p className="text-sm text-falcon-subtle text-center max-w-sm">
                     エージェントをインストールしたら「確認」ボタンをクリックしてください
                   </p>
                 )}
 
                 {verifyStatus === 'connected' && verifyAgent && (
-                  <div className="w-full max-w-md p-5 rounded-xl bg-[#001a0d] border border-[#00c853]/30">
+                  <div className="w-full max-w-md p-5 rounded-xl bg-[#001a0d] border border-falcon-green/30">
                     <div className="flex items-center gap-2 mb-4">
-                      <CheckCircle2 className="w-5 h-5 text-[#00c853]" />
-                      <span className="font-semibold text-[#00c853]">エージェントが接続されました</span>
+                      <CheckCircle2 className="w-5 h-5 text-falcon-green" />
+                      <span className="font-semibold text-falcon-green">エージェントが接続されました</span>
                     </div>
                     <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-                      <dt className="text-[#3d5068]">ホスト名</dt>
+                      <dt className="text-falcon-subtle">ホスト名</dt>
                       <dd className="text-white font-medium">{verifyAgent.hostname}</dd>
-                      <dt className="text-[#3d5068]">ステータス</dt>
-                      <dd className="text-[#00c853] font-medium capitalize">{verifyAgent.status}</dd>
-                      <dt className="text-[#3d5068]">バージョン</dt>
+                      <dt className="text-falcon-subtle">ステータス</dt>
+                      <dd className="text-falcon-green font-medium capitalize">{verifyAgent.status}</dd>
+                      <dt className="text-falcon-subtle">バージョン</dt>
                       <dd className="text-[#a8c4e0]">{verifyAgent.version || 'N/A'}</dd>
-                      <dt className="text-[#3d5068]">プラットフォーム</dt>
+                      <dt className="text-falcon-subtle">プラットフォーム</dt>
                       <dd className="text-[#a8c4e0] capitalize">{verifyAgent.platform || platform}</dd>
-                      <dt className="text-[#3d5068]">最終確認</dt>
+                      <dt className="text-falcon-subtle">最終確認</dt>
                       <dd className="text-[#a8c4e0]">
                         {verifyAgent.last_seen ? new Date(verifyAgent.last_seen).toLocaleString('ja-JP') : 'N/A'}
                       </dd>
@@ -862,17 +863,17 @@ spec:
                 )}
 
                 {verifyStatus === 'failed' && (
-                  <div className="w-full max-w-md p-5 rounded-xl bg-[#1a0810] border border-[#e8002d]/30">
+                  <div className="w-full max-w-md p-5 rounded-xl bg-[#1a0810] border border-falcon-red/30">
                     <div className="flex items-start gap-2 mb-2">
-                      <AlertCircle className="w-5 h-5 text-[#e8002d] flex-shrink-0 mt-0.5" />
+                      <AlertCircle className="w-5 h-5 text-falcon-red shrink-0 mt-0.5" />
                       <div>
-                        <p className="font-semibold text-[#e8002d]">接続が確認できませんでした</p>
+                        <p className="font-semibold text-falcon-red">接続が確認できませんでした</p>
                         {verifyError && (
-                          <p className="text-sm text-[#7d92b0] mt-1">{verifyError}</p>
+                          <p className="text-sm text-falcon-muted mt-1">{verifyError}</p>
                         )}
                       </div>
                     </div>
-                    <ul className="mt-3 space-y-1 text-xs text-[#7d92b0] list-disc list-inside">
+                    <ul className="mt-3 space-y-1 text-xs text-falcon-muted list-disc list-inside">
                       <li>エージェントがインストールされ、起動していることを確認してください</li>
                       <li>ファイアウォールでポート 443/8080 が許可されているか確認してください</li>
                       <li>サーバー URL とトークンが正しいか確認してください</li>
@@ -886,19 +887,19 @@ spec:
                 <button
                   onClick={() => setStep(3)}
                   className="flex items-center gap-2 px-5 py-2.5 rounded-lg font-medium text-sm
-                    text-[#7d92b0] hover:text-white bg-[#1e2d42] hover:bg-[#263a57] transition-all"
+                    text-falcon-muted hover:text-white bg-falcon-border hover:bg-[#263a57] transition-all"
                 >
                   <ChevronLeft className="w-4 h-4" /> 戻る
                 </button>
                 {verifyStatus === 'connected' && (
-                  <a
+                  <Link
                     href="/endpoints"
                     className="flex items-center gap-2 px-5 py-2.5 rounded-lg font-medium text-sm
-                      bg-[#00c853]/20 text-[#00c853] border border-[#00c853]/30
-                      hover:bg-[#00c853]/30 transition-all"
+                      bg-falcon-green/20 text-falcon-green border border-falcon-green/30
+                      hover:bg-falcon-green/30 transition-all"
                   >
                     エンドポイント一覧へ <ChevronRight className="w-4 h-4" />
-                  </a>
+                  </Link>
                 )}
               </div>
             </div>

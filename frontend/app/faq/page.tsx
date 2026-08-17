@@ -96,24 +96,24 @@ const FAQS = [
 function FAQItem({ q, a, link }: { q: string; a: string; link?: { label: string; href: string } }) {
   const [open, setOpen] = useState(false)
   return (
-    <div className="border-b border-[#1e2d42] last:border-0">
+    <div className="border-b border-falcon-border last:border-0">
       <button
         onClick={() => setOpen(v => !v)}
-        className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-[#111827] transition-colors"
+        className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-falcon-card transition-colors"
       >
-        <span className="text-sm font-medium text-[#e2e8f4] pr-4">{q}</span>
+        <span className="text-sm font-medium text-falcon-text pr-4">{q}</span>
         {open
-          ? <ChevronUp className="w-4 h-4 text-[#e8002d] flex-shrink-0" />
-          : <ChevronDown className="w-4 h-4 text-[#3d5068] flex-shrink-0" />
+          ? <ChevronUp className="w-4 h-4 text-falcon-red shrink-0" />
+          : <ChevronDown className="w-4 h-4 text-falcon-subtle shrink-0" />
         }
       </button>
       {open && (
         <div className="px-5 pb-4">
-          <p className="text-sm text-[#7d92b0] leading-relaxed whitespace-pre-line">{a}</p>
+          <p className="text-sm text-falcon-muted leading-relaxed whitespace-pre-line">{a}</p>
           {link && (
             <Link
               href={link.href}
-              className="inline-flex items-center gap-1.5 mt-3 text-xs text-[#e8002d] hover:text-[#ff4060] transition-colors"
+              className="inline-flex items-center gap-1.5 mt-3 text-xs text-falcon-red hover:text-[#ff4060] transition-colors"
             >
               {link.label}
               <ArrowRight className="w-3 h-3" />
@@ -137,29 +137,29 @@ export default function FAQPage() {
     <div className="min-h-screen bg-[#070d19] p-6 max-w-3xl mx-auto">
       {/* ヘッダー */}
       <div className="flex items-center gap-3 mb-8">
-        <div className="p-2 bg-[#e8002d]/10 rounded-lg border border-[#e8002d]/20">
-          <HelpCircle className="w-5 h-5 text-[#e8002d]" />
+        <div className="p-2 bg-falcon-red/10 rounded-lg border border-falcon-red/20">
+          <HelpCircle className="w-5 h-5 text-falcon-red" />
         </div>
         <div>
           <h1 className="text-xl font-bold text-white">よくある質問（FAQ）</h1>
-          <p className="text-xs text-[#3d5068] mt-0.5">Kizashiの使い方・よくあるお問い合わせ</p>
+          <p className="text-xs text-falcon-subtle mt-0.5">Kizashiの使い方・よくあるお問い合わせ</p>
         </div>
       </div>
 
       {/* Freeプランステータスカード */}
       {plan === 'free' && (
-        <div className="mb-6 bg-[#0d1220] border border-[#1e2d42] rounded-xl p-4 flex items-center gap-4">
-          <Shield className="w-5 h-5 text-[#e8002d] flex-shrink-0" />
+        <div className="mb-6 bg-falcon-surface border border-falcon-border rounded-xl p-4 flex items-center gap-4">
+          <Shield className="w-5 h-5 text-falcon-red shrink-0" />
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-white">現在: Freeプラン</p>
-            <p className="text-xs text-[#3d5068] mt-0.5">
+            <p className="text-xs text-falcon-subtle mt-0.5">
               エージェント {agentUsed}/{agentLimit}台使用中
             </p>
           </div>
           <Link
             href="/admin/license"
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-[#e8002d]/10 border border-[#e8002d]/30
-                       text-[#e8002d] text-xs font-medium rounded-lg hover:bg-[#e8002d]/20 transition-colors flex-shrink-0"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-falcon-red/10 border border-falcon-red/30
+                       text-falcon-red text-xs font-medium rounded-lg hover:bg-falcon-red/20 transition-colors shrink-0"
           >
             プランを確認
             <ArrowRight className="w-3 h-3" />
@@ -173,8 +173,8 @@ export default function FAQPage() {
           onClick={() => setActiveCategory(null)}
           className={`px-3 py-1.5 text-xs font-medium rounded-full border transition-colors ${
             activeCategory === null
-              ? 'bg-[#e8002d]/20 border-[#e8002d]/50 text-[#e8002d]'
-              : 'bg-[#0d1220] border-[#1e2d42] text-[#3d5068] hover:text-white'
+              ? 'bg-falcon-red/20 border-falcon-red/50 text-falcon-red'
+              : 'bg-falcon-surface border-falcon-border text-falcon-subtle hover:text-white'
           }`}
         >
           すべて
@@ -185,8 +185,8 @@ export default function FAQPage() {
             onClick={() => setActiveCategory(f.category)}
             className={`px-3 py-1.5 text-xs font-medium rounded-full border transition-colors ${
               activeCategory === f.category
-                ? 'bg-[#e8002d]/20 border-[#e8002d]/50 text-[#e8002d]'
-                : 'bg-[#0d1220] border-[#1e2d42] text-[#3d5068] hover:text-white'
+                ? 'bg-falcon-red/20 border-falcon-red/50 text-falcon-red'
+                : 'bg-falcon-surface border-falcon-border text-falcon-subtle hover:text-white'
             }`}
           >
             {f.category}
@@ -197,9 +197,9 @@ export default function FAQPage() {
       {/* FAQ一覧 */}
       <div className="space-y-4">
         {displayed.map(section => (
-          <div key={section.category} className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
-            <div className="px-5 py-3 border-b border-[#1e2d42] bg-[#080c14]">
-              <p className="text-xs font-bold text-[#7d92b0] uppercase tracking-wide">{section.category}</p>
+          <div key={section.category} className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
+            <div className="px-5 py-3 border-b border-falcon-border bg-falcon-bg">
+              <p className="text-xs font-bold text-falcon-muted uppercase tracking-wide">{section.category}</p>
             </div>
             {section.questions.map(item => (
               <FAQItem key={item.q} {...item} />
@@ -209,11 +209,11 @@ export default function FAQPage() {
       </div>
 
       {/* 解決しない場合 */}
-      <div className="mt-8 bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5 text-center">
-        <p className="text-sm text-[#7d92b0] mb-3">解決しない場合は詳細ガイドをご覧ください</p>
+      <div className="mt-8 bg-falcon-surface border border-falcon-border rounded-xl p-5 text-center">
+        <p className="text-sm text-falcon-muted mb-3">解決しない場合は詳細ガイドをご覧ください</p>
         <Link
           href="/admin/guide"
-          className="inline-flex items-center gap-2 px-4 py-2 bg-[#1d2f4a] hover:bg-[#253d5e]
+          className="inline-flex items-center gap-2 px-4 py-2 bg-falcon-active hover:bg-[#253d5e]
                      border border-[#2a3f60] text-sm text-white rounded-lg transition-colors"
         >
           管理者向け詳細ガイドを開く

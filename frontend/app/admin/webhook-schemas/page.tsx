@@ -562,17 +562,17 @@ export default function WebhookSchemasPage() {
       {/* Header */}
       <div className="mb-6">
         <div className="flex items-center gap-3 mb-1">
-          <div className="w-8 h-8 rounded bg-[#e8002d]/20 flex items-center justify-center">
-            <Webhook className="w-4 h-4 text-[#e8002d]" />
+          <div className="w-8 h-8 rounded-sm bg-falcon-red/20 flex items-center justify-center">
+            <Webhook className="w-4 h-4 text-falcon-red" />
           </div>
           <h1 className="text-xl font-bold text-white">Webhookイベントスキーマ</h1>
         </div>
-        <p className="text-[#7d92b0] text-sm ml-11">Webhookで送信されるイベントのペイロードスキーマリファレンス</p>
+        <p className="text-falcon-muted text-sm ml-11">Webhookで送信されるイベントのペイロードスキーマリファレンス</p>
       </div>
 
       <div className="flex gap-5">
         {/* Left sidebar: categories + events */}
-        <div className="w-56 flex-shrink-0 space-y-1">
+        <div className="w-56 shrink-0 space-y-1">
           {CATEGORIES.map(cat => {
             const catEvents = EVENTS.filter(e => e.category === cat.id)
             return (
@@ -585,7 +585,7 @@ export default function WebhookSchemasPage() {
                   className={`w-full text-left px-3 py-2 rounded text-xs font-semibold transition-colors ${
                     activeCategory === cat.id
                       ? `${cat.color} border`
-                      : 'text-[#7d92b0] hover:text-[#e2e8f4] hover:bg-[#0d1220]'
+                      : 'text-falcon-muted hover:text-falcon-text hover:bg-falcon-surface'
                   }`}
                 >
                   {cat.label}
@@ -596,11 +596,11 @@ export default function WebhookSchemasPage() {
                     onClick={() => setActiveEvent(ev.id)}
                     className={`w-full text-left px-3 py-1.5 ml-2 rounded text-xs flex items-center gap-1.5 transition-colors ${
                       activeEvent === ev.id
-                        ? 'bg-[#1d2f4a] text-white'
-                        : 'text-[#7d92b0] hover:bg-[#0d1220] hover:text-[#e2e8f4]'
+                        ? 'bg-falcon-active text-white'
+                        : 'text-falcon-muted hover:bg-falcon-surface hover:text-falcon-text'
                     }`}
                   >
-                    <ChevronRight className="w-3 h-3 flex-shrink-0" />
+                    <ChevronRight className="w-3 h-3 shrink-0" />
                     <code className="font-mono">{ev.name}</code>
                   </button>
                 ))}
@@ -612,20 +612,20 @@ export default function WebhookSchemasPage() {
         {/* Main content */}
         <div className="flex-1 min-w-0 space-y-4">
           {/* Event header */}
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-5">
+          <div className="bg-falcon-surface border border-falcon-border rounded-lg p-5">
             <div className="flex items-center gap-3 mb-2">
-              <code className="text-[#e8002d] bg-[#e8002d]/10 border border-[#e8002d]/30 px-3 py-1 rounded-md text-sm font-bold font-mono">
+              <code className="text-falcon-red bg-falcon-red/10 border border-falcon-red/30 px-3 py-1 rounded-md text-sm font-bold font-mono">
                 {currentEvent.name}
               </code>
-              <span className="text-xs bg-[#1e2d42] text-[#7d92b0] px-2 py-1 rounded">
+              <span className="text-xs bg-falcon-border text-falcon-muted px-2 py-1 rounded-sm">
                 POST · application/json
               </span>
             </div>
-            <p className="text-[#7d92b0] text-sm">{currentEvent.description}</p>
+            <p className="text-falcon-muted text-sm">{currentEvent.description}</p>
 
             {/* Headers info */}
-            <div className="mt-4 bg-[#070d19] rounded border border-[#1e2d42] p-3">
-              <p className="text-[#7d92b0] text-xs font-medium mb-2 flex items-center gap-1.5">
+            <div className="mt-4 bg-[#070d19] rounded-sm border border-falcon-border p-3">
+              <p className="text-falcon-muted text-xs font-medium mb-2 flex items-center gap-1.5">
                 <Info className="w-3.5 h-3.5" />送信HTTPヘッダー
               </p>
               <div className="space-y-1 font-mono text-xs">
@@ -637,7 +637,7 @@ export default function WebhookSchemasPage() {
                   ['User-Agent', 'FalconEDR-Webhook/3.2'],
                 ].map(([k, v]) => (
                   <div key={k} className="flex gap-2">
-                    <span className="text-[#79b8ff] w-44 flex-shrink-0">{k}:</span>
+                    <span className="text-[#79b8ff] w-44 shrink-0">{k}:</span>
                     <span className="text-[#85e89d]">{v}</span>
                   </div>
                 ))}
@@ -646,20 +646,20 @@ export default function WebhookSchemasPage() {
           </div>
 
           {/* Schema table */}
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg">
-            <div className="p-4 border-b border-[#1e2d42]">
-              <h3 className="text-[#e2e8f4] font-semibold text-sm">ペイロードスキーマ</h3>
+          <div className="bg-falcon-surface border border-falcon-border rounded-lg">
+            <div className="p-4 border-b border-falcon-border">
+              <h3 className="text-falcon-text font-semibold text-sm">ペイロードスキーマ</h3>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-xs">
                 <thead>
-                  <tr className="border-b border-[#1e2d42]">
+                  <tr className="border-b border-falcon-border">
                     {['フィールド', '型', '必須', '説明'].map(h => (
-                      <th key={h} className="px-4 py-2.5 text-left text-[#7d92b0] font-medium">{h}</th>
+                      <th key={h} className="px-4 py-2.5 text-left text-falcon-muted font-medium">{h}</th>
                     ))}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#1e2d42]">
+                <tbody className="divide-y divide-falcon-border">
                   {currentEvent.schema.map(field => (
                     <tr key={field.name} className="hover:bg-[#0a1525] transition-colors">
                       <td className="px-4 py-2.5">
@@ -670,10 +670,10 @@ export default function WebhookSchemasPage() {
                       </td>
                       <td className="px-4 py-2.5">
                         {field.required
-                          ? <span className="text-[#e8002d] font-semibold">必須</span>
-                          : <span className="text-[#3d5068]">任意</span>}
+                          ? <span className="text-falcon-red font-semibold">必須</span>
+                          : <span className="text-falcon-subtle">任意</span>}
                       </td>
-                      <td className="px-4 py-2.5 text-[#7d92b0]">{field.description}</td>
+                      <td className="px-4 py-2.5 text-falcon-muted">{field.description}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -682,15 +682,15 @@ export default function WebhookSchemasPage() {
           </div>
 
           {/* Payload example */}
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg">
-            <div className="flex items-center justify-between px-4 py-3 border-b border-[#1e2d42]">
-              <h3 className="text-[#e2e8f4] font-semibold text-sm flex items-center gap-2">
-                <Code className="w-4 h-4 text-[#e8002d]" />
+          <div className="bg-falcon-surface border border-falcon-border rounded-lg">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-falcon-border">
+              <h3 className="text-falcon-text font-semibold text-sm flex items-center gap-2">
+                <Code className="w-4 h-4 text-falcon-red" />
                 ペイロード例
               </h3>
               <button
                 onClick={() => handleCopy(payloadJson, 'payload')}
-                className="flex items-center gap-1.5 px-2.5 py-1 rounded text-xs bg-[#1e2d42] text-[#7d92b0] hover:text-white transition-colors"
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded-sm text-xs bg-falcon-border text-falcon-muted hover:text-white transition-colors"
               >
                 {copied === 'payload' ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
                 {copied === 'payload' ? 'コピー済み' : 'コピー'}
@@ -702,10 +702,10 @@ export default function WebhookSchemasPage() {
           </div>
 
           {/* HMAC Verification */}
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg">
-            <div className="p-4 border-b border-[#1e2d42]">
-              <h3 className="text-[#e2e8f4] font-semibold text-sm">HMAC署名の検証</h3>
-              <p className="text-[#7d92b0] text-xs mt-1">X-Falcon-Signature ヘッダーで HMAC-SHA256 署名を検証します</p>
+          <div className="bg-falcon-surface border border-falcon-border rounded-lg">
+            <div className="p-4 border-b border-falcon-border">
+              <h3 className="text-falcon-text font-semibold text-sm">HMAC署名の検証</h3>
+              <p className="text-falcon-muted text-xs mt-1">X-Falcon-Signature ヘッダーで HMAC-SHA256 署名を検証します</p>
             </div>
             <div className="p-4">
               {/* Lang tabs */}
@@ -716,8 +716,8 @@ export default function WebhookSchemasPage() {
                     onClick={() => setCodeLang(lang)}
                     className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
                       codeLang === lang
-                        ? 'bg-[#e8002d] text-white'
-                        : 'bg-[#1e2d42] text-[#7d92b0] hover:text-white'
+                        ? 'bg-falcon-red text-white'
+                        : 'bg-falcon-border text-falcon-muted hover:text-white'
                     }`}
                   >
                     {lang === 'javascript' ? 'JavaScript' : 'Python'}
@@ -725,13 +725,13 @@ export default function WebhookSchemasPage() {
                 ))}
                 <button
                   onClick={() => handleCopy(HMAC_CODE[codeLang], 'hmac')}
-                  className="ml-auto flex items-center gap-1.5 px-2.5 py-1 rounded text-xs bg-[#1e2d42] text-[#7d92b0] hover:text-white transition-colors"
+                  className="ml-auto flex items-center gap-1.5 px-2.5 py-1 rounded-sm text-xs bg-falcon-border text-falcon-muted hover:text-white transition-colors"
                 >
                   {copied === 'hmac' ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
                   {copied === 'hmac' ? 'コピー済み' : 'コピー'}
                 </button>
               </div>
-              <pre className="bg-[#040a13] rounded border border-[#1e2d42] p-4 text-xs font-mono text-[#e2e8f4] leading-relaxed overflow-x-auto whitespace-pre">
+              <pre className="bg-[#040a13] rounded-sm border border-falcon-border p-4 text-xs font-mono text-falcon-text leading-relaxed overflow-x-auto whitespace-pre">
                 {HMAC_CODE[codeLang]}
               </pre>
             </div>
@@ -740,31 +740,31 @@ export default function WebhookSchemasPage() {
       </div>
 
       {/* Test Panel */}
-      <div className="mt-6 bg-[#0d1220] border border-[#1e2d42] rounded-lg">
-        <div className="flex items-center gap-3 px-5 py-4 border-b border-[#1e2d42]">
-          <Send className="w-4 h-4 text-[#e8002d]" />
-          <h2 className="text-[#e2e8f4] font-semibold text-sm">Webhookテスト送信</h2>
+      <div className="mt-6 bg-falcon-surface border border-falcon-border rounded-lg">
+        <div className="flex items-center gap-3 px-5 py-4 border-b border-falcon-border">
+          <Send className="w-4 h-4 text-falcon-red" />
+          <h2 className="text-falcon-text font-semibold text-sm">Webhookテスト送信</h2>
         </div>
         <div className="p-5 space-y-4">
           <div className="flex gap-4">
             <div className="flex-1">
-              <label className="text-[#7d92b0] text-xs font-medium block mb-1.5">イベントタイプ</label>
+              <label className="text-falcon-muted text-xs font-medium block mb-1.5">イベントタイプ</label>
               <select
                 value={testEventType}
                 onChange={e => setTestEventType(e.target.value)}
-                className="w-full bg-[#070d19] border border-[#1e2d42] rounded px-3 py-2 text-sm text-[#e2e8f4] focus:outline-none focus:border-[#3d5068]"
+                className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-sm text-falcon-text focus:outline-hidden focus:border-falcon-subtle"
               >
                 {EVENTS.map(ev => (
                   <option key={ev.id} value={ev.id}>{ev.name}</option>
                 ))}
               </select>
             </div>
-            <div className="flex-[2]">
-              <label className="text-[#7d92b0] text-xs font-medium block mb-1.5">送信先URL</label>
+            <div className="flex-2">
+              <label className="text-falcon-muted text-xs font-medium block mb-1.5">送信先URL</label>
               <input
                 value={testUrl}
                 onChange={e => setTestUrl(e.target.value)}
-                className="w-full bg-[#070d19] border border-[#1e2d42] rounded px-3 py-2 text-sm text-[#e2e8f4] focus:outline-none focus:border-[#3d5068]"
+                className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-sm text-falcon-text focus:outline-hidden focus:border-falcon-subtle"
                 placeholder="https://hooks.example.com/webhook"
               />
             </div>
@@ -772,7 +772,7 @@ export default function WebhookSchemasPage() {
               <button
                 onClick={handleTestSend}
                 disabled={testLoading}
-                className="flex items-center gap-2 px-5 py-2 rounded bg-[#e8002d] hover:bg-[#c0001f] disabled:opacity-50 text-white text-sm font-medium transition-colors"
+                className="flex items-center gap-2 px-5 py-2 rounded-sm bg-falcon-red hover:bg-[#c0001f] disabled:opacity-50 text-white text-sm font-medium transition-colors"
               >
                 {testLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                 テスト送信
@@ -784,9 +784,9 @@ export default function WebhookSchemasPage() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <div className="flex items-center gap-2 mb-2">
-                  <span className="text-[#7d92b0] text-xs font-medium">リクエスト</span>
+                  <span className="text-falcon-muted text-xs font-medium">リクエスト</span>
                 </div>
-                <pre className="bg-[#040a13] border border-[#1e2d42] rounded p-3 text-xs font-mono text-[#7d92b0] max-h-48 overflow-y-auto">
+                <pre className="bg-[#040a13] border border-falcon-border rounded-sm p-3 text-xs font-mono text-falcon-muted max-h-48 overflow-y-auto">
                   {testResult.request}
                 </pre>
               </div>
@@ -795,20 +795,20 @@ export default function WebhookSchemasPage() {
                   {testResult.status < 400
                     ? <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
                     : <XCircle className="w-3.5 h-3.5 text-red-400" />}
-                  <span className="text-[#7d92b0] text-xs font-medium">レスポンス</span>
+                  <span className="text-falcon-muted text-xs font-medium">レスポンス</span>
                   <span className={`text-xs font-bold ${testResult.status < 400 ? 'text-emerald-400' : 'text-red-400'}`}>
                     {testResult.status}
                   </span>
                 </div>
-                <pre className="bg-[#040a13] border border-[#1e2d42] rounded p-3 text-xs font-mono text-[#85e89d] max-h-48 overflow-y-auto">
+                <pre className="bg-[#040a13] border border-falcon-border rounded-sm p-3 text-xs font-mono text-[#85e89d] max-h-48 overflow-y-auto">
                   {testResult.body}
                 </pre>
               </div>
             </div>
           )}
           {testError && (
-            <div className="flex items-center gap-2 p-3 rounded bg-red-500/10 border border-red-500/30 text-red-400 text-xs">
-              <AlertCircle className="w-4 h-4 flex-shrink-0" />
+            <div className="flex items-center gap-2 p-3 rounded-sm bg-red-500/10 border border-red-500/30 text-red-400 text-xs">
+              <AlertCircle className="w-4 h-4 shrink-0" />
               {testError}
             </div>
           )}

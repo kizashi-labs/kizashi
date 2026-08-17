@@ -270,12 +270,12 @@ export default function ThreatHuntingQueryBuilder() {
             value={quickTerm}
             onChange={e => setQuickTerm(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && runQuickSearch()}
-            className="flex-1 min-w-48 bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-red-500"
+            className="flex-1 min-w-48 bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-zinc-100 placeholder-zinc-500 focus:outline-hidden focus:border-red-500"
           />
           <select
             value={quickType}
             onChange={e => setQuickType(e.target.value)}
-            className="bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:border-red-500"
+            className="bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-zinc-100 focus:outline-hidden focus:border-red-500"
           >
             <option value="">All Types</option>
             {EVENT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
@@ -283,7 +283,7 @@ export default function ThreatHuntingQueryBuilder() {
           <select
             value={quickLast}
             onChange={e => setQuickLast(e.target.value)}
-            className="bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:border-red-500"
+            className="bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-zinc-100 focus:outline-hidden focus:border-red-500"
           >
             {TIME_RANGES.map(r => <option key={r} value={r}>Last {r}</option>)}
           </select>
@@ -370,14 +370,14 @@ export default function ThreatHuntingQueryBuilder() {
                   <select
                     value={f.field}
                     onChange={e => updateFilter(f.id, 'field', e.target.value)}
-                    className="flex-1 bg-zinc-800 border border-zinc-700 rounded-lg px-2 py-1.5 text-xs text-zinc-100 focus:outline-none focus:border-red-500"
+                    className="flex-1 bg-zinc-800 border border-zinc-700 rounded-lg px-2 py-1.5 text-xs text-zinc-100 focus:outline-hidden focus:border-red-500"
                   >
                     {FILTER_FIELDS.map(ff => <option key={ff.value} value={ff.value}>{ff.label}</option>)}
                   </select>
                   <select
                     value={f.operator}
                     onChange={e => updateFilter(f.id, 'operator', e.target.value)}
-                    className="w-32 bg-zinc-800 border border-zinc-700 rounded-lg px-2 py-1.5 text-xs text-zinc-100 focus:outline-none focus:border-red-500"
+                    className="w-32 bg-zinc-800 border border-zinc-700 rounded-lg px-2 py-1.5 text-xs text-zinc-100 focus:outline-hidden focus:border-red-500"
                   >
                     {OPERATORS.map(op => <option key={op.value} value={op.value}>{op.label}</option>)}
                   </select>
@@ -386,7 +386,7 @@ export default function ThreatHuntingQueryBuilder() {
                     placeholder="Value"
                     value={f.value}
                     onChange={e => updateFilter(f.id, 'value', e.target.value)}
-                    className="flex-1 bg-zinc-800 border border-zinc-700 rounded-lg px-2 py-1.5 text-xs text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-red-500"
+                    className="flex-1 bg-zinc-800 border border-zinc-700 rounded-lg px-2 py-1.5 text-xs text-zinc-100 placeholder-zinc-500 focus:outline-hidden focus:border-red-500"
                   />
                   <button onClick={() => removeFilter(f.id)} className="text-zinc-500 hover:text-red-400 transition-colors">
                     <X className="w-3.5 h-3.5" />
@@ -408,7 +408,7 @@ export default function ThreatHuntingQueryBuilder() {
                 ) : agentsList.map(a => {
                   const selected = agentFilter.split(',').map(s => s.trim()).includes(a.id)
                   return (
-                    <label key={a.id} className="flex items-center gap-2 px-1 py-0.5 rounded hover:bg-zinc-700 cursor-pointer">
+                    <label key={a.id} className="flex items-center gap-2 px-1 py-0.5 rounded-sm hover:bg-zinc-700 cursor-pointer">
                       <input
                         type="checkbox"
                         checked={selected}
@@ -430,7 +430,7 @@ export default function ThreatHuntingQueryBuilder() {
               <select
                 value={limit}
                 onChange={e => setLimit(Number(e.target.value))}
-                className="bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:border-red-500"
+                className="bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-zinc-100 focus:outline-hidden focus:border-red-500"
               >
                 {LIMIT_OPTIONS.map(l => <option key={l} value={l}>{l}</option>)}
               </select>
@@ -457,7 +457,7 @@ export default function ThreatHuntingQueryBuilder() {
 
           {runError && (
             <div className="flex items-center gap-2 text-red-400 text-sm bg-red-900/20 border border-red-800 rounded-lg px-3 py-2">
-              <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+              <AlertTriangle className="w-4 h-4 shrink-0" />
               {runError}
             </div>
           )}
@@ -476,7 +476,7 @@ export default function ThreatHuntingQueryBuilder() {
                   <span className="text-sm font-medium text-zinc-200 leading-tight">{sq.name}</span>
                   <button
                     onClick={() => loadSaved(sq.query)}
-                    className="flex-shrink-0 text-xs px-2 py-0.5 bg-red-900/40 hover:bg-red-800/60 border border-red-700 text-red-300 rounded transition-colors"
+                    className="shrink-0 text-xs px-2 py-0.5 bg-red-900/40 hover:bg-red-800/60 border border-red-700 text-red-300 rounded-sm transition-colors"
                   >
                     Load
                   </button>
@@ -486,7 +486,7 @@ export default function ThreatHuntingQueryBuilder() {
                   {(sq.query.event_types ?? []).map(t => (
                     <span
                       key={t}
-                      className={`px-1.5 py-0.5 rounded text-xs border ${EVENT_TYPE_COLORS[t] ?? 'bg-zinc-700 text-zinc-300 border-zinc-600'}`}
+                      className={`px-1.5 py-0.5 rounded-sm text-xs border ${EVENT_TYPE_COLORS[t] ?? 'bg-zinc-700 text-zinc-300 border-zinc-600'}`}
                     >
                       {t}
                     </span>
@@ -530,7 +530,7 @@ export default function ThreatHuntingQueryBuilder() {
                 )}
               </span>
               {results.returned < results.total && (
-                <span className="text-xs text-amber-400 bg-amber-900/30 border border-amber-800 px-2 py-0.5 rounded">
+                <span className="text-xs text-amber-400 bg-amber-900/30 border border-amber-800 px-2 py-0.5 rounded-sm">
                   Showing {results.returned}
                 </span>
               )}
@@ -583,7 +583,7 @@ export default function ThreatHuntingQueryBuilder() {
                             <div className="text-zinc-500 text-xs font-mono">{r.agent_id}</div>
                           </td>
                           <td className="py-2.5 px-3">
-                            <span className={`px-2 py-0.5 rounded text-xs border ${EVENT_TYPE_COLORS[r.event_type] ?? 'bg-zinc-700 text-zinc-300 border-zinc-600'}`}>
+                            <span className={`px-2 py-0.5 rounded-sm text-xs border ${EVENT_TYPE_COLORS[r.event_type] ?? 'bg-zinc-700 text-zinc-300 border-zinc-600'}`}>
                               {r.event_type}
                             </span>
                           </td>
@@ -591,7 +591,7 @@ export default function ThreatHuntingQueryBuilder() {
                             {keyData(r.data)}
                           </td>
                           <td className="py-2.5 px-3">
-                            <span className={`px-2 py-0.5 rounded text-xs ${sev.cls}`}>{sev.label}</span>
+                            <span className={`px-2 py-0.5 rounded-sm text-xs ${sev.cls}`}>{sev.label}</span>
                           </td>
                         </tr>
                         {isOpen && (

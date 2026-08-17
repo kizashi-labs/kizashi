@@ -37,7 +37,7 @@ export function UpgradeBanner() {
         : 'bg-orange-950/50 border-b border-orange-700/40'
     }`}>
       {/* アイコン */}
-      <div className={`flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full ${
+      <div className={`shrink-0 flex items-center justify-center w-6 h-6 rounded-full ${
         isAt ? 'bg-red-600/30' : 'bg-orange-500/30'
       }`}>
         {isAt
@@ -65,7 +65,7 @@ export function UpgradeBanner() {
       <Link
         href="/admin/license"
         className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold
-                    flex-shrink-0 transition-colors ${
+                    shrink-0 transition-colors ${
           isAt
             ? 'bg-red-600 hover:bg-red-500 text-white'
             : 'bg-orange-500 hover:bg-orange-400 text-white'
@@ -76,14 +76,14 @@ export function UpgradeBanner() {
       </Link>
 
       {/* 価格の補足 */}
-      <span className="hidden md:block text-[10px] flex-shrink-0 text-[#5a6a7a]">
+      <span className="hidden md:block text-[10px] shrink-0 text-[#5a6a7a]">
         Liteプラン ¥500/台/月〜（最小5台）
       </span>
 
       {/* 閉じるボタン */}
       <button
         onClick={dismiss}
-        className="flex-shrink-0 text-[#3d5068] hover:text-white transition-colors ml-1"
+        className="shrink-0 text-falcon-subtle hover:text-white transition-colors ml-1"
         title="今は閉じる（セッション中のみ非表示）"
       >
         <X className="w-3.5 h-3.5" />

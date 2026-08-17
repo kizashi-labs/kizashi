@@ -154,11 +154,11 @@ function Toggle({ value, onChange }: { value: boolean; onChange: (v: boolean) =>
       type="button"
       onClick={() => onChange(!value)}
       className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
-        value ? 'bg-[#e8002d]' : 'bg-[#1e2d42]'
+        value ? 'bg-falcon-red' : 'bg-falcon-border'
       }`}
     >
       <span
-        className={`inline-block h-3.5 w-3.5 transform rounded-full bg-[#e2e8f4] transition-transform ${
+        className={`inline-block h-3.5 w-3.5 transform rounded-full bg-falcon-text transition-transform ${
           value ? 'translate-x-4' : 'translate-x-1'
         }`}
       />
@@ -390,22 +390,22 @@ export default function MaintenanceWindowsPage() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <div className="flex items-center gap-3 mb-1">
-            <div className="w-8 h-8 rounded bg-[#e8002d]/10 border border-[#e8002d]/30 flex items-center justify-center">
-              <CalendarClock className="w-4 h-4 text-[#e8002d]" />
+            <div className="w-8 h-8 rounded-sm bg-falcon-red/10 border border-falcon-red/30 flex items-center justify-center">
+              <CalendarClock className="w-4 h-4 text-falcon-red" />
             </div>
             <h1 className="text-xl font-bold text-white">メンテナンスウィンドウ</h1>
           </div>
-          <p className="text-[#7d92b0] text-sm ml-11">
+          <p className="text-falcon-muted text-sm ml-11">
             計画メンテナンス期間を設定し、アラートと通知を抑制します
           </p>
         </div>
         <div className="flex items-center gap-3">
           {/* View toggle */}
-          <div className="flex bg-[#0d1220] border border-[#1e2d42] rounded overflow-hidden">
+          <div className="flex bg-falcon-surface border border-falcon-border rounded-sm overflow-hidden">
             <button
               onClick={() => setView('list')}
               className={`flex items-center gap-1.5 px-3 py-2 text-xs font-medium transition-colors ${
-                view === 'list' ? 'bg-[#1e2d42] text-white' : 'text-[#7d92b0] hover:text-white'
+                view === 'list' ? 'bg-falcon-border text-white' : 'text-falcon-muted hover:text-white'
               }`}
             >
               <List className="w-3.5 h-3.5" /> リスト
@@ -413,7 +413,7 @@ export default function MaintenanceWindowsPage() {
             <button
               onClick={() => setView('calendar')}
               className={`flex items-center gap-1.5 px-3 py-2 text-xs font-medium transition-colors ${
-                view === 'calendar' ? 'bg-[#1e2d42] text-white' : 'text-[#7d92b0] hover:text-white'
+                view === 'calendar' ? 'bg-falcon-border text-white' : 'text-falcon-muted hover:text-white'
               }`}
             >
               <Calendar className="w-3.5 h-3.5" /> カレンダー
@@ -421,7 +421,7 @@ export default function MaintenanceWindowsPage() {
           </div>
           <button
             onClick={openCreate}
-            className="flex items-center gap-2 px-4 py-2 bg-[#e8002d] hover:bg-[#c8001f] text-white text-sm font-medium rounded transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-falcon-red hover:bg-[#c8001f] text-white text-sm font-medium rounded-sm transition-colors"
           >
             <Plus className="w-4 h-4" />
             新規作成
@@ -433,32 +433,32 @@ export default function MaintenanceWindowsPage() {
       {!statusLoading && (
         <div className={`mb-6 rounded-lg border p-4 flex items-center gap-4 ${
           isActive
-            ? 'bg-[#e8002d]/10 border-[#e8002d]/40'
-            : 'bg-[#00c853]/10 border-[#00c853]/30'
+            ? 'bg-falcon-red/10 border-falcon-red/40'
+            : 'bg-falcon-green/10 border-falcon-green/30'
         }`}>
           {isActive ? (
-            <AlertTriangle className="w-6 h-6 text-[#e8002d] flex-shrink-0" />
+            <AlertTriangle className="w-6 h-6 text-falcon-red shrink-0" />
           ) : (
-            <CheckCircle className="w-6 h-6 text-[#00c853] flex-shrink-0" />
+            <CheckCircle className="w-6 h-6 text-falcon-green shrink-0" />
           )}
           <div className="flex-1 min-w-0">
-            <p className={`text-base font-bold ${isActive ? 'text-[#e8002d]' : 'text-[#00c853]'}`}>
+            <p className={`text-base font-bold ${isActive ? 'text-falcon-red' : 'text-falcon-green'}`}>
               {isActive ? 'メンテナンス中' : '通常稼働中'}
             </p>
             {isActive && currentWindow && (
-              <p className="text-xs text-[#7d92b0] mt-0.5 truncate">
+              <p className="text-xs text-falcon-muted mt-0.5 truncate">
                 現在のウィンドウ: <span className="text-white">{currentWindow.name}</span>
                 {' '}— 終了予定: {formatDateTime(currentWindow.end_time)}
               </p>
             )}
             {!isActive && (
-              <p className="text-xs text-[#7d92b0] mt-0.5">
+              <p className="text-xs text-falcon-muted mt-0.5">
                 アクティブなメンテナンスウィンドウはありません
               </p>
             )}
           </div>
           {isActive && currentWindow && (
-            <div className="flex items-center gap-2 text-xs text-[#7d92b0]">
+            <div className="flex items-center gap-2 text-xs text-falcon-muted">
               <Clock className="w-3.5 h-3.5" />
               <span>{formatDuration(currentWindow.start_time, currentWindow.end_time)}</span>
             </div>
@@ -468,24 +468,24 @@ export default function MaintenanceWindowsPage() {
 
       {/* ── Upcoming Section ───────────────────────────────────── */}
       {upcoming.length > 0 && (
-        <div className="mb-6 bg-[#0d1220] border border-[#1e2d42] rounded-lg p-4">
+        <div className="mb-6 bg-falcon-surface border border-falcon-border rounded-lg p-4">
           <h2 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
-            <Clock className="w-4 h-4 text-[#7d92b0]" />
+            <Clock className="w-4 h-4 text-falcon-muted" />
             直近のメンテナンスウィンドウ
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             {upcoming.map(w => (
-              <div key={w.id} className="bg-[#070d19] border border-[#1e2d42] rounded-lg p-3">
+              <div key={w.id} className="bg-[#070d19] border border-falcon-border rounded-lg p-3">
                 <p className="text-xs font-semibold text-white truncate">{w.name}</p>
-                <p className="text-[10px] text-[#7d92b0] mt-1">
+                <p className="text-[10px] text-falcon-muted mt-1">
                   {formatDateTime(w.start_time)}
                 </p>
                 <div className="flex items-center justify-between mt-2">
-                  <span className="text-[10px] text-[#3d5068]">
+                  <span className="text-[10px] text-falcon-subtle">
                     所要時間: {formatDuration(w.start_time, w.end_time)}
                   </span>
                   {w.recurring && (
-                    <span className="text-[10px] bg-blue-500/10 text-blue-400 border border-blue-500/20 px-1.5 py-0.5 rounded">
+                    <span className="text-[10px] bg-blue-500/10 text-blue-400 border border-blue-500/20 px-1.5 py-0.5 rounded-sm">
                       繰り返し
                     </span>
                   )}
@@ -498,12 +498,12 @@ export default function MaintenanceWindowsPage() {
 
       {/* ── Calendar View ──────────────────────────────────────── */}
       {view === 'calendar' && (
-        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg overflow-hidden mb-6">
+        <div className="bg-falcon-surface border border-falcon-border rounded-lg overflow-hidden mb-6">
           {/* Calendar header */}
-          <div className="flex items-center justify-between px-4 py-3 border-b border-[#1e2d42]">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-falcon-border">
             <button
               onClick={prevMonth}
-              className="p-1.5 rounded text-[#7d92b0] hover:text-white hover:bg-[#1e2d42] transition-colors"
+              className="p-1.5 rounded-sm text-falcon-muted hover:text-white hover:bg-falcon-border transition-colors"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
@@ -512,18 +512,18 @@ export default function MaintenanceWindowsPage() {
             </span>
             <button
               onClick={nextMonth}
-              className="p-1.5 rounded text-[#7d92b0] hover:text-white hover:bg-[#1e2d42] transition-colors"
+              className="p-1.5 rounded-sm text-falcon-muted hover:text-white hover:bg-falcon-border transition-colors"
             >
               <ChevronRight className="w-4 h-4" />
             </button>
           </div>
           {/* Day headers */}
-          <div className="grid grid-cols-7 border-b border-[#1e2d42]">
+          <div className="grid grid-cols-7 border-b border-falcon-border">
             {DAY_HEADERS.map((d, i) => (
               <div
                 key={d}
                 className={`py-2 text-center text-xs font-medium ${
-                  i === 0 ? 'text-[#e8002d]' : i === 6 ? 'text-blue-400' : 'text-[#7d92b0]'
+                  i === 0 ? 'text-falcon-red' : i === 6 ? 'text-blue-400' : 'text-falcon-muted'
                 }`}
               >
                 {d}
@@ -541,7 +541,7 @@ export default function MaintenanceWindowsPage() {
               return (
                 <div
                   key={idx}
-                  className={`min-h-[80px] p-1.5 border-b border-r border-[#1e2d42] ${
+                  className={`min-h-[80px] p-1.5 border-b border-r border-falcon-border ${
                     day === null ? 'bg-[#070d19]/50' : 'bg-transparent'
                   }`}
                 >
@@ -549,8 +549,8 @@ export default function MaintenanceWindowsPage() {
                     <>
                       <span className={`text-xs font-medium inline-flex items-center justify-center w-5 h-5 rounded-full ${
                         isToday
-                          ? 'bg-[#e8002d] text-white'
-                          : 'text-[#7d92b0]'
+                          ? 'bg-falcon-red text-white'
+                          : 'text-falcon-muted'
                       }`}>
                         {day}
                       </span>
@@ -561,8 +561,8 @@ export default function MaintenanceWindowsPage() {
                             title={w.name}
                             className={`text-[9px] rounded px-1 py-0.5 truncate cursor-pointer ${
                               w.enabled
-                                ? 'bg-[#e8002d]/20 text-[#e8002d] border border-[#e8002d]/30'
-                                : 'bg-[#1e2d42] text-[#3d5068] border border-[#1e2d42]'
+                                ? 'bg-falcon-red/20 text-falcon-red border border-falcon-red/30'
+                                : 'bg-falcon-border text-falcon-subtle border border-falcon-border'
                             }`}
                             onClick={() => openEdit(w)}
                           >
@@ -570,7 +570,7 @@ export default function MaintenanceWindowsPage() {
                           </div>
                         ))}
                         {dayWindows.length > 3 && (
-                          <span className="text-[8px] text-[#3d5068]">+{dayWindows.length - 3}</span>
+                          <span className="text-[8px] text-falcon-subtle">+{dayWindows.length - 3}</span>
                         )}
                       </div>
                     </>
@@ -584,21 +584,21 @@ export default function MaintenanceWindowsPage() {
 
       {/* ── List View ──────────────────────────────────────────── */}
       {view === 'list' && (
-        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg overflow-hidden">
-          <div className="px-4 py-3 border-b border-[#1e2d42] flex items-center justify-between">
+        <div className="bg-falcon-surface border border-falcon-border rounded-lg overflow-hidden">
+          <div className="px-4 py-3 border-b border-falcon-border flex items-center justify-between">
             <h2 className="text-sm font-semibold text-white">ウィンドウ一覧</h2>
-            <span className="text-xs text-[#7d92b0]">{windows.length} 件</span>
+            <span className="text-xs text-falcon-muted">{windows.length} 件</span>
           </div>
 
           {windowsLoading ? (
-            <div className="p-8 text-center text-[#7d92b0] text-sm">読み込み中...</div>
+            <div className="p-8 text-center text-falcon-muted text-sm">読み込み中...</div>
           ) : windows.length === 0 ? (
             <div className="p-10 text-center">
-              <CalendarClock className="w-8 h-8 text-[#3d5068] mx-auto mb-3" />
-              <p className="text-[#7d92b0] text-sm">メンテナンスウィンドウが登録されていません</p>
+              <CalendarClock className="w-8 h-8 text-falcon-subtle mx-auto mb-3" />
+              <p className="text-falcon-muted text-sm">メンテナンスウィンドウが登録されていません</p>
               <button
                 onClick={openCreate}
-                className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-[#e8002d]/10 hover:bg-[#e8002d]/20 text-[#e8002d] text-sm rounded border border-[#e8002d]/30 transition-colors"
+                className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-falcon-red/10 hover:bg-falcon-red/20 text-falcon-red text-sm rounded-sm border border-falcon-red/30 transition-colors"
               >
                 <Plus className="w-4 h-4" /> 最初のウィンドウを作成
               </button>
@@ -607,40 +607,40 @@ export default function MaintenanceWindowsPage() {
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="border-b border-[#1e2d42]">
+                  <tr className="border-b border-falcon-border">
                     {['名前', '開始日時', '終了日時', '所要時間', '繰り返し', 'アラート抑制', '通知抑制', '有効', '操作'].map(h => (
-                      <th key={h} className="px-4 py-3 text-left text-xs font-medium text-[#7d92b0] uppercase tracking-wider whitespace-nowrap">
+                      <th key={h} className="px-4 py-3 text-left text-xs font-medium text-falcon-muted uppercase tracking-wider whitespace-nowrap">
                         {h}
                       </th>
                     ))}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#1e2d42]">
+                <tbody className="divide-y divide-falcon-border">
                   {windows.map(w => {
                     const activeNow = w.enabled &&
                       new Date(w.start_time) <= now && new Date(w.end_time) >= now
                     return (
-                      <tr key={w.id} className={`hover:bg-[#0a1628] transition-colors ${activeNow ? 'bg-[#e8002d]/5' : ''}`}>
+                      <tr key={w.id} className={`hover:bg-[#0a1628] transition-colors ${activeNow ? 'bg-falcon-red/5' : ''}`}>
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2">
                             {activeNow && (
-                              <span className="w-1.5 h-1.5 rounded-full bg-[#e8002d] flex-shrink-0 animate-pulse" />
+                              <span className="w-1.5 h-1.5 rounded-full bg-falcon-red shrink-0 animate-pulse" />
                             )}
                             <div>
                               <p className="text-sm font-medium text-white">{w.name}</p>
                               {w.description && (
-                                <p className="text-xs text-[#3d5068] truncate max-w-[200px]">{w.description}</p>
+                                <p className="text-xs text-falcon-subtle truncate max-w-[200px]">{w.description}</p>
                               )}
                             </div>
                           </div>
                         </td>
-                        <td className="px-4 py-3 text-xs text-[#7d92b0] whitespace-nowrap">
+                        <td className="px-4 py-3 text-xs text-falcon-muted whitespace-nowrap">
                           {formatDateTime(w.start_time)}
                         </td>
-                        <td className="px-4 py-3 text-xs text-[#7d92b0] whitespace-nowrap">
+                        <td className="px-4 py-3 text-xs text-falcon-muted whitespace-nowrap">
                           {formatDateTime(w.end_time)}
                         </td>
-                        <td className="px-4 py-3 text-xs text-[#7d92b0]">
+                        <td className="px-4 py-3 text-xs text-falcon-muted">
                           {formatDuration(w.start_time, w.end_time)}
                         </td>
                         <td className="px-4 py-3">
@@ -650,16 +650,16 @@ export default function MaintenanceWindowsPage() {
                               <span className="text-xs text-blue-400">{recurrenceLabel(w.recurrence_pattern)}</span>
                             </div>
                           ) : (
-                            <span className="text-xs text-[#3d5068]">—</span>
+                            <span className="text-xs text-falcon-subtle">—</span>
                           )}
                         </td>
                         <td className="px-4 py-3">
-                          <span className={`text-xs ${w.suppress_alerts ? 'text-[#00c853]' : 'text-[#3d5068]'}`}>
+                          <span className={`text-xs ${w.suppress_alerts ? 'text-falcon-green' : 'text-falcon-subtle'}`}>
                             {w.suppress_alerts ? '有効' : '無効'}
                           </span>
                         </td>
                         <td className="px-4 py-3">
-                          <span className={`text-xs ${w.suppress_notifications ? 'text-[#00c853]' : 'text-[#3d5068]'}`}>
+                          <span className={`text-xs ${w.suppress_notifications ? 'text-falcon-green' : 'text-falcon-subtle'}`}>
                             {w.suppress_notifications ? '有効' : '無効'}
                           </span>
                         </td>
@@ -675,7 +675,7 @@ export default function MaintenanceWindowsPage() {
                                 <ToggleRight className="w-4 h-4" /> 有効
                               </span>
                             ) : (
-                              <span className="flex items-center gap-1 text-[#7d92b0] hover:text-white">
+                              <span className="flex items-center gap-1 text-falcon-muted hover:text-white">
                                 <ToggleLeft className="w-4 h-4" /> 無効
                               </span>
                             )}
@@ -685,14 +685,14 @@ export default function MaintenanceWindowsPage() {
                           <div className="flex items-center gap-2">
                             <button
                               onClick={() => openEdit(w)}
-                              className="p-1.5 rounded text-[#7d92b0] hover:text-white hover:bg-[#1e2d42] transition-colors"
+                              className="p-1.5 rounded-sm text-falcon-muted hover:text-white hover:bg-falcon-border transition-colors"
                               title="編集"
                             >
                               <Pencil className="w-3.5 h-3.5" />
                             </button>
                             <button
                               onClick={() => setDeleteConfirm(w.id)}
-                              className="p-1.5 rounded text-[#7d92b0] hover:text-[#e8002d] hover:bg-[#e8002d]/10 transition-colors"
+                              className="p-1.5 rounded-sm text-falcon-muted hover:text-falcon-red hover:bg-falcon-red/10 transition-colors"
                               title="削除"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
@@ -711,17 +711,17 @@ export default function MaintenanceWindowsPage() {
 
       {/* ── Create/Edit Modal ───────────────────────────────────── */}
       {modalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl w-full max-w-2xl mx-4 shadow-2xl max-h-[90vh] flex flex-col">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs">
+          <div className="bg-falcon-surface border border-falcon-border rounded-xl w-full max-w-2xl mx-4 shadow-2xl max-h-[90vh] flex flex-col">
             {/* Modal header */}
-            <div className="flex items-center justify-between px-5 py-4 border-b border-[#1e2d42] flex-shrink-0">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-falcon-border shrink-0">
               <h2 className="text-base font-semibold text-white flex items-center gap-2">
-                <CalendarClock className="w-4 h-4 text-[#e8002d]" />
+                <CalendarClock className="w-4 h-4 text-falcon-red" />
                 {editingWindow ? 'メンテナンスウィンドウを編集' : '新規メンテナンスウィンドウ'}
               </h2>
               <button
                 onClick={() => setModalOpen(false)}
-                className="p-1 rounded text-[#7d92b0] hover:text-white hover:bg-[#1e2d42] transition-colors"
+                className="p-1 rounded-sm text-falcon-muted hover:text-white hover:bg-falcon-border transition-colors"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -732,60 +732,60 @@ export default function MaintenanceWindowsPage() {
 
               {/* Name */}
               <div>
-                <label className="block text-xs font-medium text-[#7d92b0] mb-1.5">
-                  名前 <span className="text-[#e8002d]">*</span>
+                <label className="block text-xs font-medium text-falcon-muted mb-1.5">
+                  名前 <span className="text-falcon-red">*</span>
                 </label>
                 <input
                   type="text"
                   value={form.name}
                   onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
                   placeholder="例: 週次定期メンテナンス"
-                  className="w-full bg-[#070d19] border border-[#1e2d42] rounded px-3 py-2 text-sm text-white placeholder-[#3d5068] focus:outline-none focus:border-[#e8002d]/50"
+                  className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-sm text-white placeholder-falcon-subtle focus:outline-hidden focus:border-falcon-red/50"
                 />
               </div>
 
               {/* Description */}
               <div>
-                <label className="block text-xs font-medium text-[#7d92b0] mb-1.5">説明</label>
+                <label className="block text-xs font-medium text-falcon-muted mb-1.5">説明</label>
                 <textarea
                   value={form.description}
                   onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
                   placeholder="メンテナンス内容の詳細..."
                   rows={2}
-                  className="w-full bg-[#070d19] border border-[#1e2d42] rounded px-3 py-2 text-sm text-white placeholder-[#3d5068] focus:outline-none focus:border-[#e8002d]/50 resize-none"
+                  className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-sm text-white placeholder-falcon-subtle focus:outline-hidden focus:border-falcon-red/50 resize-none"
                 />
               </div>
 
               {/* Date/time row */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-medium text-[#7d92b0] mb-1.5">
-                    開始日時 <span className="text-[#e8002d]">*</span>
+                  <label className="block text-xs font-medium text-falcon-muted mb-1.5">
+                    開始日時 <span className="text-falcon-red">*</span>
                   </label>
                   <input
                     type="datetime-local"
                     value={form.start_time}
                     onChange={e => setForm(f => ({ ...f, start_time: e.target.value }))}
-                    className="w-full bg-[#070d19] border border-[#1e2d42] rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-[#e8002d]/50 [color-scheme:dark]"
+                    className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-sm text-white focus:outline-hidden focus:border-falcon-red/50 scheme-dark"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-[#7d92b0] mb-1.5">
-                    終了日時 <span className="text-[#e8002d]">*</span>
+                  <label className="block text-xs font-medium text-falcon-muted mb-1.5">
+                    終了日時 <span className="text-falcon-red">*</span>
                   </label>
                   <input
                     type="datetime-local"
                     value={form.end_time}
                     onChange={e => setForm(f => ({ ...f, end_time: e.target.value }))}
-                    className="w-full bg-[#070d19] border border-[#1e2d42] rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-[#e8002d]/50 [color-scheme:dark]"
+                    className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-sm text-white focus:outline-hidden focus:border-falcon-red/50 scheme-dark"
                   />
                 </div>
               </div>
 
               {/* Duration calculator */}
-              <div className="flex items-center gap-2 bg-[#070d19] border border-[#1e2d42] rounded px-3 py-2">
-                <Clock className="w-3.5 h-3.5 text-[#7d92b0]" />
-                <span className="text-xs text-[#7d92b0]">所要時間:</span>
+              <div className="flex items-center gap-2 bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2">
+                <Clock className="w-3.5 h-3.5 text-falcon-muted" />
+                <span className="text-xs text-falcon-muted">所要時間:</span>
                 <span className="text-xs font-semibold text-white">
                   {calcDurationFromStrings(
                     fromLocalDatetimeValue(form.start_time),
@@ -797,16 +797,16 @@ export default function MaintenanceWindowsPage() {
               {/* Recurring toggle */}
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs font-medium text-[#7d92b0]">繰り返し</p>
-                  <p className="text-[10px] text-[#3d5068]">定期的なメンテナンスウィンドウを設定します</p>
+                  <p className="text-xs font-medium text-falcon-muted">繰り返し</p>
+                  <p className="text-[10px] text-falcon-subtle">定期的なメンテナンスウィンドウを設定します</p>
                 </div>
                 <Toggle value={form.recurring} onChange={v => setForm(f => ({ ...f, recurring: v }))} />
               </div>
 
               {/* Recurrence pattern */}
               {form.recurring && (
-                <div className="bg-[#070d19] border border-[#1e2d42] rounded-lg p-4 space-y-3">
-                  <label className="block text-xs font-medium text-[#7d92b0]">繰り返しパターン</label>
+                <div className="bg-[#070d19] border border-falcon-border rounded-lg p-4 space-y-3">
+                  <label className="block text-xs font-medium text-falcon-muted">繰り返しパターン</label>
                   <div className="flex gap-2 flex-wrap">
                     {RECURRENCE_OPTIONS.map(opt => (
                       <button
@@ -815,8 +815,8 @@ export default function MaintenanceWindowsPage() {
                         onClick={() => setForm(f => ({ ...f, recurrence_type: opt.value as FormState['recurrence_type'] }))}
                         className={`px-3 py-1.5 text-xs rounded border transition-colors ${
                           form.recurrence_type === opt.value
-                            ? 'bg-[#e8002d]/20 text-[#e8002d] border-[#e8002d]/40'
-                            : 'text-[#7d92b0] border-[#1e2d42] hover:border-[#7d92b0]/40'
+                            ? 'bg-falcon-red/20 text-falcon-red border-falcon-red/40'
+                            : 'text-falcon-muted border-falcon-border hover:border-falcon-muted/40'
                         }`}
                       >
                         {opt.label}
@@ -825,7 +825,7 @@ export default function MaintenanceWindowsPage() {
                   </div>
                   {form.recurrence_type === 'weekly' && (
                     <div>
-                      <label className="block text-xs font-medium text-[#7d92b0] mb-2">曜日</label>
+                      <label className="block text-xs font-medium text-falcon-muted mb-2">曜日</label>
                       <div className="flex gap-1.5 flex-wrap">
                         {DAYS_OF_WEEK.map(day => (
                           <button
@@ -834,8 +834,8 @@ export default function MaintenanceWindowsPage() {
                             onClick={() => setForm(f => ({ ...f, recurrence_day_of_week: day }))}
                             className={`w-8 h-8 text-xs rounded border transition-colors ${
                               form.recurrence_day_of_week === day
-                                ? 'bg-[#e8002d]/20 text-[#e8002d] border-[#e8002d]/40'
-                                : 'text-[#7d92b0] border-[#1e2d42] hover:border-[#7d92b0]/40'
+                                ? 'bg-falcon-red/20 text-falcon-red border-falcon-red/40'
+                                : 'text-falcon-muted border-falcon-border hover:border-falcon-muted/40'
                             }`}
                           >
                             {DAY_LABELS[day]}
@@ -846,14 +846,14 @@ export default function MaintenanceWindowsPage() {
                   )}
                   {form.recurrence_type === 'monthly' && (
                     <div>
-                      <label className="block text-xs font-medium text-[#7d92b0] mb-1.5">日 (1〜31)</label>
+                      <label className="block text-xs font-medium text-falcon-muted mb-1.5">日 (1〜31)</label>
                       <input
                         type="number"
                         min={1}
                         max={31}
                         value={form.recurrence_day_of_month}
                         onChange={e => setForm(f => ({ ...f, recurrence_day_of_month: e.target.value }))}
-                        className="w-24 bg-[#0d1220] border border-[#1e2d42] rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-[#e8002d]/50"
+                        className="w-24 bg-falcon-surface border border-falcon-border rounded-sm px-3 py-2 text-sm text-white focus:outline-hidden focus:border-falcon-red/50"
                       />
                     </div>
                   )}
@@ -862,11 +862,11 @@ export default function MaintenanceWindowsPage() {
 
               {/* Suppress options */}
               <div className="space-y-3">
-                <p className="text-xs font-medium text-[#7d92b0]">抑制オプション</p>
+                <p className="text-xs font-medium text-falcon-muted">抑制オプション</p>
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-xs text-white">アラート抑制</p>
-                    <p className="text-[10px] text-[#3d5068]">メンテナンス中はアラートを抑制します</p>
+                    <p className="text-[10px] text-falcon-subtle">メンテナンス中はアラートを抑制します</p>
                   </div>
                   <Toggle
                     value={form.suppress_alerts}
@@ -876,7 +876,7 @@ export default function MaintenanceWindowsPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-xs text-white">通知抑制</p>
-                    <p className="text-[10px] text-[#3d5068]">メンテナンス中はメール/Slack通知を抑制します</p>
+                    <p className="text-[10px] text-falcon-subtle">メンテナンス中はメール/Slack通知を抑制します</p>
                   </div>
                   <Toggle
                     value={form.suppress_notifications}
@@ -887,7 +887,7 @@ export default function MaintenanceWindowsPage() {
 
               {/* Affected scope */}
               <div className="space-y-3">
-                <p className="text-xs font-medium text-[#7d92b0]">対象スコープ</p>
+                <p className="text-xs font-medium text-falcon-muted">対象スコープ</p>
                 <div className="flex gap-3 flex-wrap">
                   {[
                     { value: 'all', label: 'すべてのエージェント' },
@@ -901,9 +901,9 @@ export default function MaintenanceWindowsPage() {
                         value={opt.value}
                         checked={form.scope === opt.value}
                         onChange={() => setForm(f => ({ ...f, scope: opt.value as FormState['scope'] }))}
-                        className="accent-[#e8002d]"
+                        className="accent-falcon-red"
                       />
-                      <span className="text-xs text-[#7d92b0]">{opt.label}</span>
+                      <span className="text-xs text-falcon-muted">{opt.label}</span>
                     </label>
                   ))}
                 </div>
@@ -913,17 +913,17 @@ export default function MaintenanceWindowsPage() {
                     value={form.affected_groups_text}
                     onChange={e => setForm(f => ({ ...f, affected_groups_text: e.target.value }))}
                     placeholder="group1, group2, ..."
-                    className="w-full bg-[#070d19] border border-[#1e2d42] rounded px-3 py-2 text-sm text-white placeholder-[#3d5068] focus:outline-none focus:border-[#e8002d]/50"
+                    className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-sm text-white placeholder-falcon-subtle focus:outline-hidden focus:border-falcon-red/50"
                   />
                 )}
                 {form.scope === 'agents' && (
-                  <div className="border border-[#1e2d42] rounded p-2 max-h-40 overflow-y-auto bg-[#070d19] space-y-1">
+                  <div className="border border-falcon-border rounded-sm p-2 max-h-40 overflow-y-auto bg-[#070d19] space-y-1">
                     {agentsList.length === 0 ? (
-                      <p className="text-xs text-[#3d5068] px-1">エージェントなし</p>
+                      <p className="text-xs text-falcon-subtle px-1">エージェントなし</p>
                     ) : agentsList.map(a => {
                       const selected = form.affected_agents_text.split(',').map(s => s.trim()).includes(a.id)
                       return (
-                        <label key={a.id} className="flex items-center gap-2 px-1 py-0.5 rounded hover:bg-[#1e2d42] cursor-pointer">
+                        <label key={a.id} className="flex items-center gap-2 px-1 py-0.5 rounded-sm hover:bg-falcon-border cursor-pointer">
                           <input
                             type="checkbox"
                             checked={selected}
@@ -932,7 +932,7 @@ export default function MaintenanceWindowsPage() {
                               const next = e.target.checked ? [...current, a.id] : current.filter(id => id !== a.id)
                               setForm(f => ({ ...f, affected_agents_text: next.join(', ') }))
                             }}
-                            className="accent-[#e8002d]"
+                            className="accent-falcon-red"
                           />
                           <span className="text-xs text-white">{a.hostname}</span>
                         </label>
@@ -945,32 +945,32 @@ export default function MaintenanceWindowsPage() {
               {/* Enabled */}
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs font-medium text-[#7d92b0]">有効</p>
-                  <p className="text-[10px] text-[#3d5068]">無効にすると一時的にスキップされます</p>
+                  <p className="text-xs font-medium text-falcon-muted">有効</p>
+                  <p className="text-[10px] text-falcon-subtle">無効にすると一時的にスキップされます</p>
                 </div>
                 <Toggle value={form.enabled} onChange={v => setForm(f => ({ ...f, enabled: v }))} />
               </div>
 
               {formError && (
-                <div className="flex items-center gap-2 bg-[#e8002d]/10 border border-[#e8002d]/30 rounded px-3 py-2">
-                  <AlertTriangle className="w-3.5 h-3.5 text-[#e8002d] flex-shrink-0" />
-                  <p className="text-xs text-[#e8002d]">{formError}</p>
+                <div className="flex items-center gap-2 bg-falcon-red/10 border border-falcon-red/30 rounded-sm px-3 py-2">
+                  <AlertTriangle className="w-3.5 h-3.5 text-falcon-red shrink-0" />
+                  <p className="text-xs text-falcon-red">{formError}</p>
                 </div>
               )}
             </div>
 
             {/* Modal footer */}
-            <div className="px-5 py-4 border-t border-[#1e2d42] flex justify-end gap-3 flex-shrink-0">
+            <div className="px-5 py-4 border-t border-falcon-border flex justify-end gap-3 shrink-0">
               <button
                 onClick={() => setModalOpen(false)}
-                className="px-4 py-2 text-sm text-[#7d92b0] hover:text-white rounded border border-[#1e2d42] hover:border-[#7d92b0]/40 transition-colors"
+                className="px-4 py-2 text-sm text-falcon-muted hover:text-white rounded-sm border border-falcon-border hover:border-falcon-muted/40 transition-colors"
               >
                 キャンセル
               </button>
               <button
                 onClick={handleSubmit}
                 disabled={isPending}
-                className="px-4 py-2 text-sm bg-[#e8002d] hover:bg-[#c8001f] text-white rounded font-medium transition-colors disabled:opacity-50"
+                className="px-4 py-2 text-sm bg-falcon-red hover:bg-[#c8001f] text-white rounded-sm font-medium transition-colors disabled:opacity-50"
               >
                 {isPending ? '保存中...' : editingWindow ? '更新' : '作成'}
               </button>
@@ -981,26 +981,26 @@ export default function MaintenanceWindowsPage() {
 
       {/* ── Delete Confirm Modal ────────────────────────────────── */}
       {deleteConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl w-full max-w-sm mx-4 shadow-2xl p-5">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs">
+          <div className="bg-falcon-surface border border-falcon-border rounded-xl w-full max-w-sm mx-4 shadow-2xl p-5">
             <div className="flex items-center gap-3 mb-3">
-              <div className="w-8 h-8 rounded-full bg-[#e8002d]/10 flex items-center justify-center flex-shrink-0">
-                <Trash2 className="w-4 h-4 text-[#e8002d]" />
+              <div className="w-8 h-8 rounded-full bg-falcon-red/10 flex items-center justify-center shrink-0">
+                <Trash2 className="w-4 h-4 text-falcon-red" />
               </div>
               <h2 className="text-base font-semibold text-white">ウィンドウを削除しますか？</h2>
             </div>
-            <p className="text-sm text-[#7d92b0] mb-5 ml-11">この操作は取り消せません。</p>
+            <p className="text-sm text-falcon-muted mb-5 ml-11">この操作は取り消せません。</p>
             <div className="flex justify-end gap-3">
               <button
                 onClick={() => setDeleteConfirm(null)}
-                className="px-4 py-2 text-sm text-[#7d92b0] hover:text-white rounded border border-[#1e2d42] transition-colors"
+                className="px-4 py-2 text-sm text-falcon-muted hover:text-white rounded-sm border border-falcon-border transition-colors"
               >
                 キャンセル
               </button>
               <button
                 onClick={() => deleteMutation.mutate(deleteConfirm)}
                 disabled={deleteMutation.isPending}
-                className="px-4 py-2 text-sm bg-[#e8002d] hover:bg-[#c8001f] text-white rounded font-medium transition-colors disabled:opacity-50"
+                className="px-4 py-2 text-sm bg-falcon-red hover:bg-[#c8001f] text-white rounded-sm font-medium transition-colors disabled:opacity-50"
               >
                 {deleteMutation.isPending ? '削除中...' : '削除'}
               </button>

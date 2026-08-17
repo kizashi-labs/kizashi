@@ -106,8 +106,8 @@ function TestEmailModal({ onClose }: { onClose: () => void }) {
   })
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-      <div className="bg-[#111827] border border-[#1e2d42] rounded-2xl p-6 w-full max-w-md shadow-2xl space-y-5">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs">
+      <div className="bg-falcon-card border border-falcon-border rounded-2xl p-6 w-full max-w-md shadow-2xl space-y-5">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -127,8 +127,8 @@ function TestEmailModal({ onClose }: { onClose: () => void }) {
             value={to}
             onChange={e => setTo(e.target.value)}
             placeholder="recipient@example.com"
-            className="w-full px-3 py-2 bg-[#080c14] border border-[#1e2d42] rounded-lg text-white text-sm
-                       focus:outline-none focus:border-blue-500 transition-colors"
+            className="w-full px-3 py-2 bg-falcon-bg border border-falcon-border rounded-lg text-white text-sm
+                       focus:outline-hidden focus:border-blue-500 transition-colors"
           />
         </div>
 
@@ -142,7 +142,7 @@ function TestEmailModal({ onClose }: { onClose: () => void }) {
                 className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-colors ${
                   template === t.value
                     ? 'border-blue-500/60 bg-blue-900/10'
-                    : 'border-[#1e2d42] hover:border-[#2a3d5a]'
+                    : 'border-falcon-border hover:border-[#2a3d5a]'
                 }`}
               >
                 <input
@@ -165,13 +165,13 @@ function TestEmailModal({ onClose }: { onClose: () => void }) {
         {/* Status */}
         {status === 'success' && (
           <div className="flex items-center gap-2 px-3 py-2 bg-green-900/20 border border-green-700/40 rounded-lg">
-            <CheckCircle2 className="w-4 h-4 text-green-400 flex-shrink-0" />
+            <CheckCircle2 className="w-4 h-4 text-green-400 shrink-0" />
             <span className="text-sm text-green-300">テストメールを送信しました</span>
           </div>
         )}
         {status === 'error' && (
           <div className="flex items-center gap-2 px-3 py-2 bg-red-900/20 border border-red-700/40 rounded-lg">
-            <XCircle className="w-4 h-4 text-red-400 flex-shrink-0" />
+            <XCircle className="w-4 h-4 text-red-400 shrink-0" />
             <span className="text-sm text-red-300">{errorMsg || '送信に失敗しました'}</span>
           </div>
         )}
@@ -199,7 +199,7 @@ function TestEmailModal({ onClose }: { onClose: () => void }) {
           </button>
           <button
             onClick={onClose}
-            className="px-4 py-2.5 bg-[#161f33] hover:bg-[#1d2f4a] border border-[#1e2d42]
+            className="px-4 py-2.5 bg-falcon-raised hover:bg-falcon-active border border-falcon-border
                        text-[#8899aa] text-sm rounded-xl transition-colors"
           >
             閉じる
@@ -310,8 +310,8 @@ export default function NotificationsPage() {
           {canWrite && (
             <button
               onClick={() => setShowTestEmailModal(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-[#161f33] hover:bg-[#1d2f4a]
-                         border border-[#1e2d42] text-[#8899aa] hover:text-white text-sm rounded-lg transition-colors"
+              className="flex items-center gap-2 px-4 py-2 bg-falcon-raised hover:bg-falcon-active
+                         border border-falcon-border text-[#8899aa] hover:text-white text-sm rounded-lg transition-colors"
             >
               <TestTube className="w-4 h-4" />
               テストメール
@@ -320,7 +320,7 @@ export default function NotificationsPage() {
           {canWrite && activeTab === 'channels' && (
             <button
               onClick={() => setShowForm(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-[#1a6bff] hover:bg-[#1557d4]
+              className="flex items-center gap-2 px-4 py-2 bg-falcon-blue hover:bg-[#1557d4]
                          text-white text-sm rounded-lg transition-colors"
             >
               <Plus className="w-4 h-4" />
@@ -331,7 +331,7 @@ export default function NotificationsPage() {
       </div>
 
       {/* Tabs */}
-      <div className="border-b border-[#1e2d42] flex gap-0">
+      <div className="border-b border-falcon-border flex gap-0">
         {([['channels','チャンネル設定',Bell], ['history','送信履歴',History]] as const).map(([id, label, Icon]) => (
           <button
             key={id}
@@ -351,8 +351,8 @@ export default function NotificationsPage() {
         <div className="space-y-4">
           {/* Stats */}
           <div className="grid grid-cols-3 gap-4">
-            <div className="bg-[#111827] rounded-xl border border-[#1e2d42] p-4 flex items-center gap-3">
-              <div className="w-9 h-9 bg-[#1a6bff] rounded-lg flex items-center justify-center">
+            <div className="bg-falcon-card rounded-xl border border-falcon-border p-4 flex items-center gap-3">
+              <div className="w-9 h-9 bg-falcon-blue rounded-lg flex items-center justify-center">
                 <BarChart3 className="w-5 h-5 text-white" />
               </div>
               <div>
@@ -360,7 +360,7 @@ export default function NotificationsPage() {
                 <p className="text-2xl font-bold text-white">{(statsData?.sent ?? 0) + (statsData?.failed ?? 0)}</p>
               </div>
             </div>
-            <div className="bg-[#111827] rounded-xl border border-[#1e2d42] p-4 flex items-center gap-3">
+            <div className="bg-falcon-card rounded-xl border border-falcon-border p-4 flex items-center gap-3">
               <div className="w-9 h-9 bg-green-600 rounded-lg flex items-center justify-center">
                 <CheckCircle2 className="w-5 h-5 text-white" />
               </div>
@@ -369,8 +369,8 @@ export default function NotificationsPage() {
                 <p className="text-2xl font-bold text-white">{statsData?.sent ?? 0}</p>
               </div>
             </div>
-            <div className="bg-[#111827] rounded-xl border border-[#1e2d42] p-4 flex items-center gap-3">
-              <div className="w-9 h-9 bg-[#e8002d] rounded-lg flex items-center justify-center">
+            <div className="bg-falcon-card rounded-xl border border-falcon-border p-4 flex items-center gap-3">
+              <div className="w-9 h-9 bg-falcon-red rounded-lg flex items-center justify-center">
                 <XCircle className="w-5 h-5 text-white" />
               </div>
               <div>
@@ -381,14 +381,14 @@ export default function NotificationsPage() {
           </div>
 
           {/* History table */}
-          <div className="bg-[#111827] rounded-xl border border-[#1e2d42] overflow-hidden">
-            <div className="px-5 py-3 border-b border-[#1e2d42] text-xs text-[#8899aa] font-semibold">
+          <div className="bg-falcon-card rounded-xl border border-falcon-border overflow-hidden">
+            <div className="px-5 py-3 border-b border-falcon-border text-xs text-[#8899aa] font-semibold">
               送信履歴（直近100件）
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-[#1e2d42] text-xs text-[#8899aa]">
+                  <tr className="border-b border-falcon-border text-xs text-[#8899aa]">
                     <th className="px-4 py-3 text-left">日時</th>
                     <th className="px-4 py-3 text-left">チャンネル</th>
                     <th className="px-4 py-3 text-left">件名</th>
@@ -399,15 +399,15 @@ export default function NotificationsPage() {
                   {(historyData?.data ?? []).length === 0 ? (
                     <tr><td colSpan={4} className="px-4 py-10 text-center text-[#5a6a7a]">送信履歴はありません</td></tr>
                   ) : (historyData?.data ?? []).map(e => (
-                    <tr key={e.id} className="border-b border-[#1e2d42]/50 hover:bg-[#161f33]/30">
+                    <tr key={e.id} className="border-b border-falcon-border/50 hover:bg-falcon-raised/30">
                       <td className="px-4 py-2.5 text-[#8899aa] font-mono text-xs whitespace-nowrap">
                         {e.sent_at ? format(parseISO(e.sent_at), 'MM/dd HH:mm:ss', { locale: ja }) : '-'}
                       </td>
                       <td className="px-4 py-2.5">
                         <span className="text-[#8899aa] text-xs">{e.channel_name}</span>
-                        <span className="ml-2 text-xs text-[#5a6a7a] bg-[#161f33] px-1.5 py-0.5 rounded">{e.channel_type}</span>
+                        <span className="ml-2 text-xs text-[#5a6a7a] bg-falcon-raised px-1.5 py-0.5 rounded-sm">{e.channel_type}</span>
                       </td>
-                      <td className="px-4 py-2.5 text-[#e2e8f4] text-xs max-w-xs truncate">{e.subject || '-'}</td>
+                      <td className="px-4 py-2.5 text-falcon-text text-xs max-w-xs truncate">{e.subject || '-'}</td>
                       <td className="px-4 py-2.5">
                         {e.status === 'sent' ? (
                           <span className="flex items-center gap-1 text-green-400 text-xs">
@@ -434,7 +434,7 @@ export default function NotificationsPage() {
           <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-blue-500" />
         </div>
       ) : channels.length === 0 && !showForm ? (
-        <div className="text-center py-16 bg-[#111827] rounded-xl border border-[#1e2d42]">
+        <div className="text-center py-16 bg-falcon-card rounded-xl border border-falcon-border">
           <Bell className="w-12 h-12 mx-auto mb-3 text-[#5a6a7a]" />
           <p className="text-[#8899aa]">通知チャンネルが設定されていません</p>
           {canWrite && (
@@ -455,11 +455,11 @@ export default function NotificationsPage() {
 
             if (isEditing && editForm) {
               return (
-                <div key={channel.id} className="bg-[#111827] rounded-xl border border-blue-700 p-5 space-y-4">
+                <div key={channel.id} className="bg-falcon-card rounded-xl border border-blue-700 p-5 space-y-4">
                   <div className="flex items-center justify-between">
                     <h3 className="text-white font-semibold text-sm">チャンネルを編集</h3>
                     <button onClick={() => { setEditingId(null); setEditForm(null) }}
-                      className="text-[#8899aa] hover:text-[#e2e8f4]"><X className="w-4 h-4" /></button>
+                      className="text-[#8899aa] hover:text-falcon-text"><X className="w-4 h-4" /></button>
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
@@ -468,7 +468,7 @@ export default function NotificationsPage() {
                       <input
                         value={editForm.name}
                         onChange={e => setEditForm(p => p ? { ...p, name: e.target.value } : p)}
-                        className="w-full px-3 py-2 bg-[#161f33] border border-[#1e2d42] rounded-lg text-white text-sm"
+                        className="w-full px-3 py-2 bg-falcon-raised border border-falcon-border rounded-lg text-white text-sm"
                       />
                     </div>
                     <div>
@@ -477,7 +477,7 @@ export default function NotificationsPage() {
                         type="number" min={1} max={10}
                         value={editForm.min_severity}
                         onChange={e => setEditForm(p => p ? { ...p, min_severity: parseInt(e.target.value) } : p)}
-                        className="w-full px-3 py-2 bg-[#161f33] border border-[#1e2d42] rounded-lg text-white text-sm"
+                        className="w-full px-3 py-2 bg-falcon-raised border border-falcon-border rounded-lg text-white text-sm"
                       />
                     </div>
                   </div>
@@ -492,7 +492,7 @@ export default function NotificationsPage() {
                             value={editForm.config[field.key] ?? ''}
                             onChange={e => setEditConfig(field.key, e.target.value)}
                             rows={4}
-                            className="w-full px-3 py-2 bg-[#161f33] border border-[#1e2d42] rounded-lg text-white text-sm resize-y"
+                            className="w-full px-3 py-2 bg-falcon-raised border border-falcon-border rounded-lg text-white text-sm resize-y"
                           />
                         ) : (
                           <input
@@ -500,7 +500,7 @@ export default function NotificationsPage() {
                             placeholder={field.placeholder}
                             value={editForm.config[field.key] ?? ''}
                             onChange={e => setEditConfig(field.key, e.target.value)}
-                            className="w-full px-3 py-2 bg-[#161f33] border border-[#1e2d42] rounded-lg text-white text-sm"
+                            className="w-full px-3 py-2 bg-falcon-raised border border-falcon-border rounded-lg text-white text-sm"
                           />
                         )}
                       </div>
@@ -525,13 +525,13 @@ export default function NotificationsPage() {
                       <button
                         onClick={() => update.mutate(editForm)}
                         disabled={update.isPending || !editForm.name}
-                        className="px-4 py-2 bg-[#1a6bff] hover:bg-[#1557d4] text-white text-sm rounded-lg disabled:opacity-50"
+                        className="px-4 py-2 bg-falcon-blue hover:bg-[#1557d4] text-white text-sm rounded-lg disabled:opacity-50"
                       >
                         {update.isPending ? '保存中...' : '保存'}
                       </button>
                       <button
                         onClick={() => { setEditingId(null); setEditForm(null) }}
-                        className="px-4 py-2 bg-[#161f33] hover:bg-[#1d2f4a] text-white text-sm rounded-lg"
+                        className="px-4 py-2 bg-falcon-raised hover:bg-falcon-active text-white text-sm rounded-lg"
                       >
                         キャンセル
                       </button>
@@ -543,20 +543,20 @@ export default function NotificationsPage() {
 
             return (
               <div key={channel.id}
-                className="bg-[#111827] rounded-xl border border-[#1e2d42] p-4 flex items-center justify-between"
+                className="bg-falcon-card rounded-xl border border-falcon-border p-4 flex items-center justify-between"
               >
                 <div className="flex items-center gap-4">
-                  <div className={`p-2 rounded-lg ${channel.enabled ? 'bg-blue-900/30' : 'bg-[#161f33]'}`}>
+                  <div className={`p-2 rounded-lg ${channel.enabled ? 'bg-blue-900/30' : 'bg-falcon-raised'}`}>
                     <Icon className={`w-5 h-5 ${channel.enabled ? 'text-blue-400' : 'text-[#5a6a7a]'}`} />
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
                       <p className="text-white font-medium text-sm">{channel.name}</p>
-                      <span className="text-xs px-2 py-0.5 bg-[#161f33] text-[#8899aa] rounded">
+                      <span className="text-xs px-2 py-0.5 bg-falcon-raised text-[#8899aa] rounded-sm">
                         {TYPE_LABELS[channel.type]}
                       </span>
                       {!channel.enabled && (
-                        <span className="text-xs px-2 py-0.5 bg-[#161f33] text-[#5a6a7a] rounded">無効</span>
+                        <span className="text-xs px-2 py-0.5 bg-falcon-raised text-[#5a6a7a] rounded-sm">無効</span>
                       )}
                     </div>
                     <p className="text-[#8899aa] text-xs mt-0.5">
@@ -575,7 +575,7 @@ export default function NotificationsPage() {
                   <button
                     onClick={() => test.mutate(channel.id)}
                     disabled={test.isPending}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-[#161f33] hover:bg-[#1d2f4a]
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-falcon-raised hover:bg-falcon-active
                                text-[#8899aa] text-xs rounded-lg transition-colors"
                   >
                     <TestTube className="w-3.5 h-3.5" />
@@ -607,7 +607,7 @@ export default function NotificationsPage() {
 
       {/* Create form */}
       {showForm && (
-        <div className="bg-[#111827] rounded-xl border border-blue-700 p-5 space-y-4">
+        <div className="bg-falcon-card rounded-xl border border-blue-700 p-5 space-y-4">
           <h2 className="text-white font-semibold text-sm">新しい通知チャンネル</h2>
 
           <div className="grid grid-cols-2 gap-4">
@@ -617,7 +617,7 @@ export default function NotificationsPage() {
                 value={form.name}
                 onChange={e => setForm(p => ({ ...p, name: e.target.value }))}
                 placeholder="例: SOCチーム Slack"
-                className="w-full px-3 py-2 bg-[#161f33] border border-[#1e2d42] rounded-lg text-white text-sm"
+                className="w-full px-3 py-2 bg-falcon-raised border border-falcon-border rounded-lg text-white text-sm"
               />
             </div>
             <div>
@@ -625,7 +625,7 @@ export default function NotificationsPage() {
               <select
                 value={form.type}
                 onChange={e => setForm(p => ({ ...p, type: e.target.value as NotifChannel['type'], config: {} }))}
-                className="w-full px-3 py-2 bg-[#161f33] border border-[#1e2d42] rounded-lg text-white text-sm"
+                className="w-full px-3 py-2 bg-falcon-raised border border-falcon-border rounded-lg text-white text-sm"
               >
                 {Object.entries(TYPE_LABELS).map(([k, v]) => (
                   <option key={k} value={k}>{v}</option>
@@ -642,7 +642,7 @@ export default function NotificationsPage() {
               max={10}
               value={form.min_severity}
               onChange={e => setForm(p => ({ ...p, min_severity: parseInt(e.target.value) }))}
-              className="w-24 px-3 py-2 bg-[#161f33] border border-[#1e2d42] rounded-lg text-white text-sm"
+              className="w-24 px-3 py-2 bg-falcon-raised border border-falcon-border rounded-lg text-white text-sm"
             />
           </div>
 
@@ -657,7 +657,7 @@ export default function NotificationsPage() {
                     value={form.config[field.key] ?? ''}
                     onChange={e => setConfig(field.key, e.target.value)}
                     rows={4}
-                    className="w-full px-3 py-2 bg-[#161f33] border border-[#1e2d42] rounded-lg text-white text-sm resize-y"
+                    className="w-full px-3 py-2 bg-falcon-raised border border-falcon-border rounded-lg text-white text-sm resize-y"
                   />
                 ) : (
                   <input
@@ -665,7 +665,7 @@ export default function NotificationsPage() {
                     placeholder={field.placeholder}
                     value={form.config[field.key] ?? ''}
                     onChange={e => setConfig(field.key, e.target.value)}
-                    className="w-full px-3 py-2 bg-[#161f33] border border-[#1e2d42] rounded-lg text-white text-sm"
+                    className="w-full px-3 py-2 bg-falcon-raised border border-falcon-border rounded-lg text-white text-sm"
                   />
                 )}
               </div>
@@ -676,13 +676,13 @@ export default function NotificationsPage() {
             <button
               onClick={() => create.mutate(form)}
               disabled={create.isPending || !form.name}
-              className="px-4 py-2 bg-[#1a6bff] hover:bg-[#1557d4] text-white text-sm rounded-lg disabled:opacity-50"
+              className="px-4 py-2 bg-falcon-blue hover:bg-[#1557d4] text-white text-sm rounded-lg disabled:opacity-50"
             >
               作成
             </button>
             <button
               onClick={() => setShowForm(false)}
-              className="px-4 py-2 bg-[#161f33] hover:bg-[#1d2f4a] text-white text-sm rounded-lg"
+              className="px-4 py-2 bg-falcon-raised hover:bg-falcon-active text-white text-sm rounded-lg"
             >
               キャンセル
             </button>

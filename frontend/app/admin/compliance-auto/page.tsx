@@ -171,20 +171,20 @@ export default function ComplianceAutoPage() {
             CIS Benchmark / NIST CSF / SOC2 フレームワークに基づくエージェントの自動コンプライアンス評価
           </p>
         </div>
-        <div className="flex items-center gap-3 flex-shrink-0">
+        <div className="flex items-center gap-3 shrink-0">
           {confirmAll ? (
             <div className="flex items-center gap-2">
               <span className="text-[#f0883e] text-sm">全エージェントを評価しますか？</span>
               <button
                 onClick={() => evaluateAll.mutate()}
                 disabled={evaluateAll.isPending}
-                className="px-3 py-1.5 bg-[#e8002d] text-white text-sm rounded hover:bg-[#c80026] disabled:opacity-50 transition-colors"
+                className="px-3 py-1.5 bg-falcon-red text-white text-sm rounded-sm hover:bg-[#c80026] disabled:opacity-50 transition-colors"
               >
                 {evaluateAll.isPending ? '実行中...' : '確認'}
               </button>
               <button
                 onClick={() => setConfirmAll(false)}
-                className="px-3 py-1.5 bg-[#21262d] text-[#e6edf3] text-sm rounded hover:bg-[#30363d] transition-colors"
+                className="px-3 py-1.5 bg-[#21262d] text-[#e6edf3] text-sm rounded-sm hover:bg-[#30363d] transition-colors"
               >
                 キャンセル
               </button>
@@ -224,7 +224,7 @@ export default function ComplianceAutoPage() {
                     <span className="text-base font-normal text-[#7d8590] ml-1">/ 100</span>
                   </p>
                 </div>
-                <div className="relative flex-shrink-0">
+                <div className="relative shrink-0">
                   <ScoreRing score={s.avg_score} size={72} />
                   <div className="absolute inset-0 flex items-center justify-center">
                     <span className={`text-sm font-bold ${scoreColor(s.avg_score)}`}>{s.avg_score}</span>
@@ -272,7 +272,7 @@ export default function ComplianceAutoPage() {
             <h2 className="text-[#e6edf3] font-semibold text-sm">
               エージェント評価結果 — {FRAMEWORK_LABELS[framework]}
             </h2>
-            <span className="px-2 py-0.5 bg-[#21262d] text-[#7d8590] text-xs rounded">
+            <span className="px-2 py-0.5 bg-[#21262d] text-[#7d8590] text-xs rounded-sm">
               {agents.length} 件
             </span>
           </div>
@@ -309,8 +309,8 @@ export default function ComplianceAutoPage() {
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
                           {isExpanded
-                            ? <ChevronDown className="w-4 h-4 text-[#7d8590] flex-shrink-0" />
-                            : <ChevronRight className="w-4 h-4 text-[#7d8590] flex-shrink-0" />
+                            ? <ChevronDown className="w-4 h-4 text-[#7d8590] shrink-0" />
+                            : <ChevronRight className="w-4 h-4 text-[#7d8590] shrink-0" />
                           }
                           <span className="text-[#e6edf3] font-medium font-mono text-xs">{agent.hostname}</span>
                         </div>
@@ -359,7 +359,7 @@ export default function ComplianceAutoPage() {
                             evaluateAgent.mutate({ agentId: agent.id })
                           }}
                           disabled={isEvaluating}
-                          className="flex items-center gap-1.5 px-3 py-1.5 bg-[#21262d] border border-[#30363d] text-[#e6edf3] text-xs rounded hover:bg-[#30363d] disabled:opacity-50 transition-colors whitespace-nowrap"
+                          className="flex items-center gap-1.5 px-3 py-1.5 bg-[#21262d] border border-[#30363d] text-[#e6edf3] text-xs rounded-sm hover:bg-[#30363d] disabled:opacity-50 transition-colors whitespace-nowrap"
                         >
                           {isEvaluating
                             ? <RefreshCw className="w-3 h-3 animate-spin" />
@@ -412,7 +412,7 @@ export default function ComplianceAutoPage() {
                                       {ctrl.title}
                                     </td>
                                     <td className="py-2.5 px-3">
-                                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded border text-[11px] font-medium ${STATUS_CONFIG[ctrl.status].className}`}>
+                                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-sm border text-[11px] font-medium ${STATUS_CONFIG[ctrl.status].className}`}>
                                         {STATUS_CONFIG[ctrl.status].icon}
                                         {STATUS_CONFIG[ctrl.status].label}
                                       </span>

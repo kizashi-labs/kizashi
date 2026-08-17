@@ -145,7 +145,7 @@ function RuleDetailInner() {
           onClick={() => saveMutation.mutate({ ...form, id: form.id || '' } as Rule)}
           disabled={saveMutation.isPending}
           className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors disabled:opacity-50 text-white ${
-            saveSuccess ? 'bg-green-600 hover:bg-green-700' : 'bg-[#1a6bff] hover:bg-[#1557d4]'
+            saveSuccess ? 'bg-green-600 hover:bg-green-700' : 'bg-falcon-blue hover:bg-[#1557d4]'
           }`}
         >
           {saveMutation.isPending ? (
@@ -160,7 +160,7 @@ function RuleDetailInner() {
       </div>
 
       {/* Tabs */}
-      <div className="border-b border-[#1e2d42]">
+      <div className="border-b border-falcon-border">
         <div className="flex gap-1">
           {tabs.map(tab => (
             <button
@@ -182,7 +182,7 @@ function RuleDetailInner() {
         <div className="grid grid-cols-3 gap-6">
           {/* Left: Basic Info */}
           <div className="col-span-1 space-y-4">
-            <div className="bg-[#111827] rounded-xl p-4 space-y-4">
+            <div className="bg-falcon-card rounded-xl p-4 space-y-4">
               <h3 className="text-white font-medium">基本情報</h3>
 
               <div>
@@ -191,7 +191,7 @@ function RuleDetailInner() {
                   type="text"
                   value={form.name || ''}
                   onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-                  className="w-full bg-[#080c14] text-white px-3 py-2 rounded-lg border border-[#1e2d42] focus:outline-none focus:border-[#1a6bff] text-sm"
+                  className="w-full bg-falcon-bg text-white px-3 py-2 rounded-lg border border-falcon-border focus:outline-hidden focus:border-falcon-blue text-sm"
                 />
               </div>
 
@@ -200,7 +200,7 @@ function RuleDetailInner() {
                 <select
                   value={form.type || 'sigma'}
                   onChange={e => setForm(f => ({ ...f, type: e.target.value as Rule['type'] }))}
-                  className="w-full bg-[#080c14] text-white px-3 py-2 rounded-lg border border-[#1e2d42] text-sm focus:outline-none focus:border-[#1a6bff]"
+                  className="w-full bg-falcon-bg text-white px-3 py-2 rounded-lg border border-falcon-border text-sm focus:outline-hidden focus:border-falcon-blue"
                 >
                   <option value="sigma">Sigma</option>
                   <option value="yara">YARA</option>
@@ -242,7 +242,7 @@ function RuleDetailInner() {
                             ? [...(f.platform || []), p]
                             : (f.platform || []).filter(x => x !== p)
                         }))}
-                        className="rounded"
+                        className="rounded-sm"
                       />
                       <span className="text-[#8899aa] text-sm capitalize">{p}</span>
                     </label>
@@ -256,12 +256,12 @@ function RuleDetailInner() {
                   value={form.description || ''}
                   onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
                   rows={3}
-                  className="w-full bg-[#080c14] text-white px-3 py-2 rounded-lg border border-[#1e2d42] focus:outline-none focus:border-[#1a6bff] text-sm resize-none"
+                  className="w-full bg-falcon-bg text-white px-3 py-2 rounded-lg border border-falcon-border focus:outline-hidden focus:border-falcon-blue text-sm resize-none"
                 />
               </div>
             </div>
 
-            <div className="bg-[#111827] rounded-xl p-4 space-y-3">
+            <div className="bg-falcon-card rounded-xl p-4 space-y-3">
               <h3 className="text-white font-medium">自動対応</h3>
               {[
                 { key: 'auto_isolate', label: 'エンドポイント隔離', color: 'text-red-400', desc: '深刻度9以上推奨' },
@@ -273,7 +273,7 @@ function RuleDetailInner() {
                     type="checkbox"
                     checked={!!form[opt.key as keyof Rule]}
                     onChange={e => setForm(f => ({ ...f, [opt.key]: e.target.checked }))}
-                    className="mt-0.5 rounded"
+                    className="mt-0.5 rounded-sm"
                   />
                   <div>
                     <span className={`text-sm font-medium ${opt.color}`}>{opt.label}</span>
@@ -283,19 +283,19 @@ function RuleDetailInner() {
               ))}
               {(form.auto_isolate || form.auto_kill || form.auto_quarantine) && (
                 <div className="flex items-center gap-2 text-yellow-400 text-xs bg-yellow-900/20 px-3 py-2 rounded-lg">
-                  <AlertTriangle className="w-3 h-3 flex-shrink-0" />
+                  <AlertTriangle className="w-3 h-3 shrink-0" />
                   自動対応は誤検知率が低いルールにのみ設定してください
                 </div>
               )}
             </div>
 
-            <div className="bg-[#111827] rounded-xl p-4 space-y-3">
+            <div className="bg-falcon-card rounded-xl p-4 space-y-3">
               <h3 className="text-white font-medium">MITRE ATT&CK</h3>
               <div className="flex flex-wrap gap-1.5">
                 {(form.mitre_tags || []).map(tag => (
                   <span
                     key={tag}
-                    className="text-xs bg-[#161f33] text-[#8899aa] px-2 py-1 rounded font-mono flex items-center gap-1 cursor-pointer hover:bg-red-900/30 hover:text-red-300"
+                    className="text-xs bg-falcon-raised text-[#8899aa] px-2 py-1 rounded-sm font-mono flex items-center gap-1 cursor-pointer hover:bg-red-900/30 hover:text-red-300"
                     onClick={() => setForm(f => ({ ...f, mitre_tags: (f.mitre_tags || []).filter(t => t !== tag) }))}
                   >
                     {tag} ×
@@ -308,7 +308,7 @@ function RuleDetailInner() {
                   value={mitreInput}
                   onChange={e => setMitreInput(e.target.value)}
                   placeholder="T1059.001"
-                  className="flex-1 bg-[#080c14] text-white px-2 py-1 rounded border border-[#1e2d42] text-xs focus:outline-none focus:border-[#1a6bff] font-mono"
+                  className="flex-1 bg-falcon-bg text-white px-2 py-1 rounded-sm border border-falcon-border text-xs focus:outline-hidden focus:border-falcon-blue font-mono"
                   onKeyDown={e => {
                     if (e.key === 'Enter' && mitreInput) {
                       setForm(f => ({ ...f, mitre_tags: [...new Set([...(f.mitre_tags || []), mitreInput])] }))
@@ -333,8 +333,8 @@ function RuleDetailInner() {
 
           {/* Right: Rule Content */}
           <div className="col-span-2">
-            <div className="bg-[#111827] rounded-xl h-full flex flex-col">
-              <div className="flex items-center justify-between px-4 py-3 border-b border-[#1e2d42]">
+            <div className="bg-falcon-card rounded-xl h-full flex flex-col">
+              <div className="flex items-center justify-between px-4 py-3 border-b border-falcon-border">
                 <h3 className="text-white font-medium flex items-center gap-2">
                   <FileCode className="w-4 h-4 text-blue-400" />
                   ルール内容
@@ -353,7 +353,7 @@ function RuleDetailInner() {
                     ? 'rule RuleName {\n  strings:\n    $s1 = "malicious_string"\n  condition:\n    $s1\n}'
                     : '{\n  "sequence": [],\n  "timeWindow": "5m"\n}'
                 }
-                className="flex-1 bg-[#080c14] text-[#e2e8f4] p-4 font-mono text-sm focus:outline-none resize-none rounded-b-xl"
+                className="flex-1 bg-falcon-bg text-falcon-text p-4 font-mono text-sm focus:outline-hidden resize-none rounded-b-xl"
                 style={{ minHeight: '500px' }}
               />
             </div>
@@ -367,11 +367,11 @@ function RuleDetailInner() {
             {!form.id && (
               <div className="flex items-center gap-2 text-yellow-400 text-sm bg-yellow-900/20
                               border border-yellow-700/50 rounded-lg px-4 py-3">
-                <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+                <AlertTriangle className="w-4 h-4 shrink-0" />
                 ルールを先に保存してからテストを実行してください。
               </div>
             )}
-            <div className="bg-[#111827] rounded-xl p-4">
+            <div className="bg-falcon-card rounded-xl p-4">
               <h3 className="text-white font-medium mb-3 flex items-center gap-2">
                 <TestTube className="w-4 h-4 text-yellow-400" />
                 テストイベント
@@ -381,7 +381,7 @@ function RuleDetailInner() {
                 onChange={e => setSampleEvent(e.target.value)}
                 placeholder='{"EventID": 4624, "Image": "C:\\Windows\\System32\\powershell.exe", "CommandLine": "powershell.exe -enc base64..."}'
                 rows={15}
-                className="w-full bg-[#080c14] text-[#e2e8f4] px-3 py-2 rounded-lg border border-[#1e2d42] focus:outline-none focus:border-yellow-500 text-sm font-mono resize-none"
+                className="w-full bg-falcon-bg text-falcon-text px-3 py-2 rounded-lg border border-falcon-border focus:outline-hidden focus:border-yellow-500 text-sm font-mono resize-none"
               />
               <button
                 onClick={() => testMutation.mutate({ id: form.id || '', event: sampleEvent })}
@@ -400,7 +400,7 @@ function RuleDetailInner() {
 
           <div>
             {testResult ? (
-              <div className="bg-[#111827] rounded-xl p-4 space-y-4">
+              <div className="bg-falcon-card rounded-xl p-4 space-y-4">
                 <h3 className="text-white font-medium">テスト結果</h3>
                 <div className={`flex items-center gap-3 p-4 rounded-lg ${
                   testResult.matched ? 'bg-red-900/30 border border-red-700' : 'bg-green-900/30 border border-green-700'
@@ -419,14 +419,14 @@ function RuleDetailInner() {
                 {testResult.details && (
                   <div>
                     <div className="text-[#8899aa] text-sm mb-2">詳細</div>
-                    <pre className="bg-[#080c14] text-[#8899aa] p-3 rounded-lg text-xs overflow-auto font-mono">
+                    <pre className="bg-falcon-bg text-[#8899aa] p-3 rounded-lg text-xs overflow-auto font-mono">
                       {testResult.details}
                     </pre>
                   </div>
                 )}
               </div>
             ) : (
-              <div className="bg-[#111827] rounded-xl p-4 flex items-center justify-center h-64">
+              <div className="bg-falcon-card rounded-xl p-4 flex items-center justify-center h-64">
                 <div className="text-center text-[#5a6a7a]">
                   <TestTube className="w-12 h-12 mx-auto mb-3 opacity-30" />
                   <p>左のフォームにイベントを入力して<br />テストを実行してください</p>
@@ -439,7 +439,7 @@ function RuleDetailInner() {
 
       {activeTab === 'info' && rule && (
         <div className="grid grid-cols-2 gap-6">
-          <div className="bg-[#111827] rounded-xl p-4 space-y-3">
+          <div className="bg-falcon-card rounded-xl p-4 space-y-3">
             <h3 className="text-white font-medium">メタデータ</h3>
             {[
               { label: 'ルールID', value: rule.id },
@@ -450,15 +450,15 @@ function RuleDetailInner() {
             ].map(item => (
               <div key={item.label} className="flex justify-between">
                 <span className="text-[#8899aa] text-sm">{item.label}</span>
-                <span className="text-[#e2e8f4] text-sm font-mono">{item.value}</span>
+                <span className="text-falcon-text text-sm font-mono">{item.value}</span>
               </div>
             ))}
           </div>
-          <div className="bg-[#111827] rounded-xl p-4 space-y-3">
+          <div className="bg-falcon-card rounded-xl p-4 space-y-3">
             <h3 className="text-white font-medium">MITRE ATT&CK マッピング</h3>
             {rule.mitre_tags.map(tag => (
-              <div key={tag} className="flex items-center gap-3 p-2 bg-[#080c14] rounded-lg">
-                <span className="text-xs font-mono bg-blue-900/40 text-blue-300 px-2 py-1 rounded">{tag}</span>
+              <div key={tag} className="flex items-center gap-3 p-2 bg-falcon-bg rounded-lg">
+                <span className="text-xs font-mono bg-blue-900/40 text-blue-300 px-2 py-1 rounded-sm">{tag}</span>
                 <span className="text-[#8899aa] text-sm">Technique {tag}</span>
               </div>
             ))}
@@ -476,8 +476,8 @@ export default function RuleDetailPage() {
   return (
     <Suspense fallback={
       <div className="p-6 space-y-4">
-        <div className="h-8 w-48 bg-[#111827] rounded-lg animate-pulse" />
-        <div className="h-96 bg-[#111827] rounded-xl border border-[#1e2d42] animate-pulse" />
+        <div className="h-8 w-48 bg-falcon-card rounded-lg animate-pulse" />
+        <div className="h-96 bg-falcon-card rounded-xl border border-falcon-border animate-pulse" />
       </div>
     }>
       <RuleDetailInner />

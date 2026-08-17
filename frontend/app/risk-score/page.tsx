@@ -420,7 +420,7 @@ export default function RiskScorePage() {
       {/* ── Header ── */}
       <div className="flex items-start justify-between flex-wrap gap-3">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 bg-red-700 rounded-lg flex items-center justify-center flex-shrink-0">
+          <div className="w-9 h-9 bg-red-700 rounded-lg flex items-center justify-center shrink-0">
             <TrendingDown className="w-5 h-5 text-white" />
           </div>
           <div>
@@ -461,7 +461,7 @@ export default function RiskScorePage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm text-gray-300">
             <div>
               <p className="text-gray-400 text-xs mb-1 font-medium">組織全体スコア</p>
-              <code className="text-xs text-green-300 bg-gray-900 px-2 py-1 rounded block">
+              <code className="text-xs text-green-300 bg-gray-900 px-2 py-1 rounded-sm block">
                 (critical×40 + high×25 + medium×10 + low×5) / maxScore × 100
               </code>
             </div>
@@ -665,7 +665,7 @@ export default function RiskScorePage() {
                               </span>
                             </td>
                             <td className="py-2.5 pr-3">
-                              <span className={`px-2 py-0.5 rounded text-xs font-medium ${statusStyle}`}>
+                              <span className={`px-2 py-0.5 rounded-sm text-xs font-medium ${statusStyle}`}>
                                 {agent.status ?? '—'}
                               </span>
                             </td>
@@ -703,7 +703,7 @@ export default function RiskScorePage() {
                     className={`flex items-start gap-3 p-3 rounded-lg border ${impactStyle[factor.impact]}`}
                   >
                     <div className="flex-1 text-xs leading-snug">{factor.label}</div>
-                    <span className={`flex-shrink-0 text-xs px-1.5 py-0.5 rounded border ${impactStyle[factor.impact]}`}>
+                    <span className={`shrink-0 text-xs px-1.5 py-0.5 rounded-sm border ${impactStyle[factor.impact]}`}>
                       {impactLabel[factor.impact]}
                     </span>
                   </div>
@@ -713,15 +713,15 @@ export default function RiskScorePage() {
                 <p className="text-xs text-gray-500">凡例</p>
                 <div className="flex flex-col gap-1.5 text-xs">
                   <div className="flex items-center gap-2">
-                    <span className="w-2.5 h-2.5 rounded-full bg-red-500 flex-shrink-0" />
+                    <span className="w-2.5 h-2.5 rounded-full bg-red-500 shrink-0" />
                     <span className="text-gray-400">重大 — 即時対応が必要</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="w-2.5 h-2.5 rounded-full bg-orange-500 flex-shrink-0" />
+                    <span className="w-2.5 h-2.5 rounded-full bg-orange-500 shrink-0" />
                     <span className="text-gray-400">高 — 早急な対応を推奨</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="w-2.5 h-2.5 rounded-full bg-yellow-500 flex-shrink-0" />
+                    <span className="w-2.5 h-2.5 rounded-full bg-yellow-500 shrink-0" />
                     <span className="text-gray-400">中 — 計画的な対応</span>
                   </div>
                 </div>

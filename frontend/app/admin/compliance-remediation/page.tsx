@@ -42,11 +42,11 @@ const TypeBadge = ({ type }: { type: RemediationType }) => {
   const cfg = {
     auto: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
     'semi-auto': 'bg-blue-500/20 text-blue-400 border-blue-500/30',
-    manual: 'bg-[#1e2d42] text-[#7d92b0] border-[#1e2d42]',
+    manual: 'bg-falcon-border text-falcon-muted border-falcon-border',
   }
   const label = { auto: '自動', 'semi-auto': 'セミ自動', manual: '手動' }
   return (
-    <span className={`px-2 py-0.5 rounded text-xs border ${cfg[type]}`}>
+    <span className={`px-2 py-0.5 rounded-sm text-xs border ${cfg[type]}`}>
       {label[type]}
     </span>
   )
@@ -54,7 +54,7 @@ const TypeBadge = ({ type }: { type: RemediationType }) => {
 
 const StatusBadge = ({ status }: { status: ExecStatus }) => {
   const cfg: Record<ExecStatus, string> = {
-    pending: 'bg-[#1e2d42] text-[#7d92b0]',
+    pending: 'bg-falcon-border text-falcon-muted',
     approved: 'bg-blue-500/20 text-blue-400',
     running: 'bg-blue-500/20 text-blue-300 animate-pulse',
     completed: 'bg-emerald-500/20 text-emerald-400',
@@ -65,7 +65,7 @@ const StatusBadge = ({ status }: { status: ExecStatus }) => {
     pending: '承認待ち', approved: '承認済', running: '実行中',
     completed: '完了', failed: '失敗', rejected: '却下',
   }
-  return <span className={`px-2 py-0.5 rounded text-xs ${cfg[status]}`}>{label[status]}</span>
+  return <span className={`px-2 py-0.5 rounded-sm text-xs ${cfg[status]}`}>{label[status]}</span>
 }
 
 // ─── Tab 1: Rules ─────────────────────────────────────────────────────────────
@@ -89,26 +89,26 @@ function RulesTab({ rules, onToggle, onRun }: {
               onClick={() => setFramework(fw)}
               className={`px-3 py-1.5 rounded text-sm transition-colors ${
                 framework === fw
-                  ? 'bg-[#e8002d] text-white'
-                  : 'bg-[#0d1220] border border-[#1e2d42] text-[#7d92b0] hover:text-white'
+                  ? 'bg-falcon-red text-white'
+                  : 'bg-falcon-surface border border-falcon-border text-falcon-muted hover:text-white'
               }`}
             >
               {fw}
             </button>
           ))}
         </div>
-        <button className="flex items-center gap-2 px-4 py-2 bg-[#e8002d] text-white rounded text-sm hover:bg-red-700 transition-colors">
+        <button className="flex items-center gap-2 px-4 py-2 bg-falcon-red text-white rounded-sm text-sm hover:bg-red-700 transition-colors">
           <Plus className="w-4 h-4" />
           新規ルール
         </button>
       </div>
 
-      <div className="rounded-lg border border-[#1e2d42] overflow-hidden">
+      <div className="rounded-lg border border-falcon-border overflow-hidden">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-[#1e2d42] bg-[#070d19]">
+            <tr className="border-b border-falcon-border bg-[#070d19]">
               {['ルール名', 'フレームワーク', 'コントロールID', '修復タイプ', '自動承認', '有効', '実行数', '成功率', 'アクション'].map(h => (
-                <th key={h} className="px-4 py-3 text-left text-[#7d92b0] font-medium">{h}</th>
+                <th key={h} className="px-4 py-3 text-left text-falcon-muted font-medium">{h}</th>
               ))}
             </tr>
           </thead>
@@ -116,18 +116,18 @@ function RulesTab({ rules, onToggle, onRun }: {
             {filtered.map((rule, i) => (
               <tr
                 key={rule.id}
-                className={`border-b border-[#1e2d42] hover:bg-[#0d1220]/60 transition-colors ${
-                  i % 2 === 0 ? 'bg-[#0d1220]' : 'bg-[#070d19]'
+                className={`border-b border-falcon-border hover:bg-falcon-surface/60 transition-colors ${
+                  i % 2 === 0 ? 'bg-falcon-surface' : 'bg-[#070d19]'
                 }`}
               >
                 <td className="px-4 py-3 text-white font-medium">{rule.name}</td>
                 <td className="px-4 py-3">
-                  <span className="px-2 py-0.5 rounded text-xs bg-[#1e2d42] text-[#7d92b0]">{rule.framework}</span>
+                  <span className="px-2 py-0.5 rounded-sm text-xs bg-falcon-border text-falcon-muted">{rule.framework}</span>
                 </td>
-                <td className="px-4 py-3 text-[#7d92b0] font-mono text-xs">{rule.controlId}</td>
+                <td className="px-4 py-3 text-falcon-muted font-mono text-xs">{rule.controlId}</td>
                 <td className="px-4 py-3"><TypeBadge type={rule.type} /></td>
                 <td className="px-4 py-3">
-                  <span className={`text-xs ${rule.autoApprove ? 'text-emerald-400' : 'text-[#7d92b0]'}`}>
+                  <span className={`text-xs ${rule.autoApprove ? 'text-emerald-400' : 'text-falcon-muted'}`}>
                     {rule.autoApprove ? '✓' : '—'}
                   </span>
                 </td>
@@ -135,11 +135,11 @@ function RulesTab({ rules, onToggle, onRun }: {
                   <button onClick={() => onToggle(rule.id)} className="flex items-center">
                     {rule.enabled
                       ? <ToggleRight className="w-6 h-6 text-emerald-400" />
-                      : <ToggleLeft className="w-6 h-6 text-[#7d92b0]" />
+                      : <ToggleLeft className="w-6 h-6 text-falcon-muted" />
                     }
                   </button>
                 </td>
-                <td className="px-4 py-3 text-[#7d92b0]">{rule.execCount}</td>
+                <td className="px-4 py-3 text-falcon-muted">{rule.execCount}</td>
                 <td className="px-4 py-3">
                   <span className={rule.successRate >= 90 ? 'text-emerald-400' : 'text-amber-400'}>
                     {rule.successRate}%
@@ -148,7 +148,7 @@ function RulesTab({ rules, onToggle, onRun }: {
                 <td className="px-4 py-3">
                   <button
                     onClick={() => onRun(rule.id)}
-                    className="flex items-center gap-1 px-3 py-1 bg-blue-600/20 text-blue-400 border border-blue-500/30 rounded text-xs hover:bg-blue-600/30 transition-colors"
+                    className="flex items-center gap-1 px-3 py-1 bg-blue-600/20 text-blue-400 border border-blue-500/30 rounded-sm text-xs hover:bg-blue-600/30 transition-colors"
                   >
                     <Play className="w-3 h-3" /> 実行
                   </button>
@@ -183,8 +183,8 @@ function HistoryTab({ history, onApprove, onReject }: {
             onClick={() => setFilter(s)}
             className={`px-3 py-1.5 rounded text-sm transition-colors ${
               filter === s
-                ? 'bg-[#e8002d] text-white'
-                : 'bg-[#0d1220] border border-[#1e2d42] text-[#7d92b0] hover:text-white'
+                ? 'bg-falcon-red text-white'
+                : 'bg-falcon-surface border border-falcon-border text-falcon-muted hover:text-white'
             }`}
           >
             {s === 'all' ? '全て' : ({ pending: '承認待ち', running: '実行中', completed: '完了', failed: '失敗', approved: '承認済み', rejected: '却下' } as Record<string, string>)[s]}
@@ -192,12 +192,12 @@ function HistoryTab({ history, onApprove, onReject }: {
         ))}
       </div>
 
-      <div className="rounded-lg border border-[#1e2d42] overflow-hidden">
+      <div className="rounded-lg border border-falcon-border overflow-hidden">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-[#1e2d42] bg-[#070d19]">
+            <tr className="border-b border-falcon-border bg-[#070d19]">
               {['', 'ルール名', 'ステータス', 'トリガー', '実行日時', '完了日時', '結果', 'アクション'].map(h => (
-                <th key={h} className="px-4 py-3 text-left text-[#7d92b0] font-medium">{h}</th>
+                <th key={h} className="px-4 py-3 text-left text-falcon-muted font-medium">{h}</th>
               ))}
             </tr>
           </thead>
@@ -206,36 +206,36 @@ function HistoryTab({ history, onApprove, onReject }: {
               <>
                 <tr
                   key={item.id}
-                  className={`border-b border-[#1e2d42] hover:bg-[#0d1220]/60 transition-colors ${
-                    i % 2 === 0 ? 'bg-[#0d1220]' : 'bg-[#070d19]'
+                  className={`border-b border-falcon-border hover:bg-falcon-surface/60 transition-colors ${
+                    i % 2 === 0 ? 'bg-falcon-surface' : 'bg-[#070d19]'
                   }`}
                 >
                   <td className="px-4 py-3 w-8">
                     <button onClick={() => setExpanded(expanded === item.id ? null : item.id)}>
                       {expanded === item.id
-                        ? <ChevronDown className="w-4 h-4 text-[#7d92b0]" />
-                        : <ChevronRight className="w-4 h-4 text-[#7d92b0]" />
+                        ? <ChevronDown className="w-4 h-4 text-falcon-muted" />
+                        : <ChevronRight className="w-4 h-4 text-falcon-muted" />
                       }
                     </button>
                   </td>
                   <td className="px-4 py-3 text-white font-medium">{item.ruleName}</td>
                   <td className="px-4 py-3"><StatusBadge status={item.status} /></td>
-                  <td className="px-4 py-3 text-[#7d92b0]">{item.trigger}</td>
-                  <td className="px-4 py-3 text-[#7d92b0] text-xs font-mono">{item.startedAt}</td>
-                  <td className="px-4 py-3 text-[#7d92b0] text-xs font-mono">{item.completedAt ?? '—'}</td>
-                  <td className="px-4 py-3 text-[#7d92b0] text-xs max-w-[200px] truncate">{item.result}</td>
+                  <td className="px-4 py-3 text-falcon-muted">{item.trigger}</td>
+                  <td className="px-4 py-3 text-falcon-muted text-xs font-mono">{item.startedAt}</td>
+                  <td className="px-4 py-3 text-falcon-muted text-xs font-mono">{item.completedAt ?? '—'}</td>
+                  <td className="px-4 py-3 text-falcon-muted text-xs max-w-[200px] truncate">{item.result}</td>
                   <td className="px-4 py-3">
                     {item.status === 'pending' && (
                       <div className="flex gap-2">
                         <button
                           onClick={() => onApprove(item.id)}
-                          className="flex items-center gap-1 px-2 py-1 bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 rounded text-xs hover:bg-emerald-600/30 transition-colors"
+                          className="flex items-center gap-1 px-2 py-1 bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 rounded-sm text-xs hover:bg-emerald-600/30 transition-colors"
                         >
                           <CheckCircle className="w-3 h-3" /> 承認
                         </button>
                         <button
                           onClick={() => onReject(item.id)}
-                          className="flex items-center gap-1 px-2 py-1 bg-red-500/10 text-red-400 border border-red-500/30 rounded text-xs hover:bg-red-500/20 transition-colors"
+                          className="flex items-center gap-1 px-2 py-1 bg-red-500/10 text-red-400 border border-red-500/30 rounded-sm text-xs hover:bg-red-500/20 transition-colors"
                         >
                           <XCircle className="w-3 h-3" /> 拒否
                         </button>
@@ -244,9 +244,9 @@ function HistoryTab({ history, onApprove, onReject }: {
                   </td>
                 </tr>
                 {expanded === item.id && (
-                  <tr key={`${item.id}-detail`} className="bg-[#070d19] border-b border-[#1e2d42]">
+                  <tr key={`${item.id}-detail`} className="bg-[#070d19] border-b border-falcon-border">
                     <td colSpan={8} className="px-8 py-4">
-                      <div className="p-3 rounded-lg bg-[#0d1220] border border-[#1e2d42] text-sm text-[#7d92b0]">
+                      <div className="p-3 rounded-lg bg-falcon-surface border border-falcon-border text-sm text-falcon-muted">
                         <p className="font-semibold text-white mb-1">実行詳細</p>
                         <p>{item.result}</p>
                         <p className="mt-1 text-xs">ID: {item.id} | トリガー: {item.trigger} | 開始: {item.startedAt}</p>
@@ -279,7 +279,7 @@ function DashboardTab() {
   const donut = [
     { label: '自動', pct: 42, color: 'bg-emerald-500' },
     { label: 'セミ自動', pct: 38, color: 'bg-blue-500' },
-    { label: '手動', pct: 20, color: 'bg-[#7d92b0]' },
+    { label: '手動', pct: 20, color: 'bg-falcon-muted' },
   ]
 
   return (
@@ -289,21 +289,21 @@ function DashboardTab() {
         <p className="text-lg font-semibold text-emerald-400">
           30日間のコンプライアンス改善率: <span className="text-2xl">+8%</span>
         </p>
-        <p className="text-sm text-[#7d92b0] mt-1">修復ルールの自動実行により、全フレームワーク平均スコアが向上しました</p>
+        <p className="text-sm text-falcon-muted mt-1">修復ルールの自動実行により、全フレームワーク平均スコアが向上しました</p>
       </div>
 
       <div className="grid grid-cols-2 gap-6">
         {/* Framework compliance bars */}
-        <div className="p-4 rounded-lg bg-[#0d1220] border border-[#1e2d42]">
+        <div className="p-4 rounded-lg bg-falcon-surface border border-falcon-border">
           <h3 className="text-white font-semibold mb-4">フレームワーク別コンプライアンス</h3>
           <div className="space-y-3">
             {frameworks.map(fw => (
               <div key={fw.name}>
                 <div className="flex justify-between text-sm mb-1">
-                  <span className="text-[#7d92b0]">{fw.name}</span>
+                  <span className="text-falcon-muted">{fw.name}</span>
                   <span className="text-white">{fw.pct}%</span>
                 </div>
-                <div className="h-2 rounded-full bg-[#1e2d42]">
+                <div className="h-2 rounded-full bg-falcon-border">
                   <div
                     className={`h-2 rounded-full ${fw.color} transition-all`}
                     style={{ width: `${fw.pct}%` }}
@@ -315,14 +315,14 @@ function DashboardTab() {
         </div>
 
         {/* Rule type breakdown */}
-        <div className="p-4 rounded-lg bg-[#0d1220] border border-[#1e2d42]">
+        <div className="p-4 rounded-lg bg-falcon-surface border border-falcon-border">
           <h3 className="text-white font-semibold mb-4">修復タイプ分布</h3>
           <div className="space-y-3">
             {donut.map(d => (
               <div key={d.label} className="flex items-center gap-3">
                 <div className={`w-3 h-3 rounded-full ${d.color}`} />
-                <span className="text-[#7d92b0] text-sm flex-1">{d.label}</span>
-                <div className="w-32 h-2 rounded-full bg-[#1e2d42]">
+                <span className="text-falcon-muted text-sm flex-1">{d.label}</span>
+                <div className="w-32 h-2 rounded-full bg-falcon-border">
                   <div className={`h-2 rounded-full ${d.color}`} style={{ width: `${d.pct}%` }} />
                 </div>
                 <span className="text-white text-sm w-8 text-right">{d.pct}%</span>
@@ -333,17 +333,17 @@ function DashboardTab() {
       </div>
 
       {/* 7-day trend chart */}
-      <div className="p-4 rounded-lg bg-[#0d1220] border border-[#1e2d42]">
+      <div className="p-4 rounded-lg bg-falcon-surface border border-falcon-border">
         <h3 className="text-white font-semibold mb-4">直近7日間 修復実行件数</h3>
         <div className="flex items-end gap-3 h-32">
           {trend.map((v, i) => (
             <div key={days[i]} className="flex-1 flex flex-col items-center gap-1">
-              <span className="text-xs text-[#7d92b0]">{v}</span>
+              <span className="text-xs text-falcon-muted">{v}</span>
               <div
-                className="w-full bg-[#e8002d]/70 rounded-t"
+                className="w-full bg-falcon-red/70 rounded-t"
                 style={{ height: `${(v / maxTrend) * 100}px` }}
               />
-              <span className="text-xs text-[#7d92b0]">{days[i]}</span>
+              <span className="text-xs text-falcon-muted">{days[i]}</span>
             </div>
           ))}
         </div>
@@ -377,7 +377,7 @@ export default function ComplianceRemediationPage() {
     { label: '本日実行', value: '15', icon: Play, color: 'text-emerald-400' },
     { label: '成功率', value: '86.7%', icon: CheckCircle, color: 'text-emerald-400' },
     { label: '承認待ち', value: '3', icon: Clock, color: 'text-amber-400' },
-    { label: '平均修復時間', value: '12.5分', icon: RefreshCw, color: 'text-[#7d92b0]' },
+    { label: '平均修復時間', value: '12.5分', icon: RefreshCw, color: 'text-falcon-muted' },
   ]
 
   const tabs: { id: TabId; label: string }[] = [
@@ -416,20 +416,20 @@ export default function ComplianceRemediationPage() {
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex items-center gap-3">
-          <ShieldCheck className="w-8 h-8 text-[#e8002d]" />
+          <ShieldCheck className="w-8 h-8 text-falcon-red" />
           <div>
             <h1 className="text-2xl font-bold">コンプライアンス自動修復</h1>
-            <p className="text-[#7d92b0] text-sm">フレームワーク違反の自動検出・修復管理</p>
+            <p className="text-falcon-muted text-sm">フレームワーク違反の自動検出・修復管理</p>
           </div>
         </div>
 
         {/* Stats */}
         <div className="grid grid-cols-5 gap-4">
           {stats.map(s => (
-            <div key={s.label} className="p-4 rounded-lg bg-[#0d1220] border border-[#1e2d42]">
+            <div key={s.label} className="p-4 rounded-lg bg-falcon-surface border border-falcon-border">
               <div className="flex items-center gap-2 mb-2">
                 <s.icon className={`w-4 h-4 ${s.color}`} />
-                <span className="text-xs text-[#7d92b0]">{s.label}</span>
+                <span className="text-xs text-falcon-muted">{s.label}</span>
               </div>
               <p className={`text-2xl font-bold ${s.color}`}>{s.value}</p>
             </div>
@@ -437,7 +437,7 @@ export default function ComplianceRemediationPage() {
         </div>
 
         {/* Tabs */}
-        <div className="border-b border-[#1e2d42]">
+        <div className="border-b border-falcon-border">
           <div className="flex gap-1">
             {tabs.map(tab => (
               <button
@@ -445,8 +445,8 @@ export default function ComplianceRemediationPage() {
                 onClick={() => setActiveTab(tab.id)}
                 className={`px-6 py-3 text-sm font-medium transition-colors border-b-2 -mb-px ${
                   activeTab === tab.id
-                    ? 'border-[#e8002d] text-white'
-                    : 'border-transparent text-[#7d92b0] hover:text-white'
+                    ? 'border-falcon-red text-white'
+                    : 'border-transparent text-falcon-muted hover:text-white'
                 }`}
               >
                 {tab.label}

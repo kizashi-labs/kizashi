@@ -61,7 +61,7 @@ export function TagChip({ tag, onRemove, removable = true }: TagChipProps) {
         <button
           onClick={onRemove}
           aria-label={`タグ「${tag}」を削除`}
-          className="ml-0.5 opacity-60 hover:opacity-100 transition-opacity flex-shrink-0"
+          className="ml-0.5 opacity-60 hover:opacity-100 transition-opacity shrink-0"
         >
           <X className="w-3 h-3" />
         </button>
@@ -251,8 +251,8 @@ export default function AgentTags({ agentId, initialTags, onTagsChange }: AgentT
               onBlur={handleBlur}
               placeholder="タグ名..."
               maxLength={32}
-              className="bg-[#111827] text-white text-xs px-2.5 py-1 rounded-full border border-[#1a6bff]/60
-                         focus:outline-none focus:border-[#1a6bff] w-28 placeholder-[#5a6a7a]"
+              className="bg-falcon-card text-white text-xs px-2.5 py-1 rounded-full border border-falcon-blue/60
+                         focus:outline-hidden focus:border-falcon-blue w-28 placeholder-[#5a6a7a]"
             />
 
             {/* Suggestion dropdown */}
@@ -268,7 +268,7 @@ export default function AgentTags({ agentId, initialTags, onTagsChange }: AgentT
                       e.preventDefault()
                       addSuggestion(s)
                     }}
-                    className="w-full text-left px-3 py-1.5 text-xs text-[#e2e8f4]
+                    className="w-full text-left px-3 py-1.5 text-xs text-falcon-text
                                hover:bg-[#253050] transition-colors"
                   >
                     {s}
@@ -289,8 +289,8 @@ export default function AgentTags({ agentId, initialTags, onTagsChange }: AgentT
             disabled={saving}
             aria-label="タグを追加"
             className="inline-flex items-center justify-center w-7 h-7 rounded-full
-                       border border-dashed border-[#3d5068] text-[#5a6a7a]
-                       hover:border-[#1a6bff] hover:text-[#1a6bff] transition-colors
+                       border border-dashed border-falcon-subtle text-[#5a6a7a]
+                       hover:border-falcon-blue hover:text-falcon-blue transition-colors
                        disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Plus className="w-3.5 h-3.5" />
@@ -301,7 +301,7 @@ export default function AgentTags({ agentId, initialTags, onTagsChange }: AgentT
       {/* Error */}
       {error && (
         <p className="mt-2 text-red-400 text-xs flex items-center gap-1">
-          <X className="w-3 h-3 flex-shrink-0" />
+          <X className="w-3 h-3 shrink-0" />
           {error}
         </p>
       )}

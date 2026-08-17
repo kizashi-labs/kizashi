@@ -169,15 +169,15 @@ function RuleFormModal({
     setForm((f) => ({ ...f, [k]: v }));
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-      <div className="bg-[#111827] border border-[#1e2d42] rounded-xl p-6 w-full max-w-lg mx-4 shadow-2xl max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs">
+      <div className="bg-falcon-card border border-falcon-border rounded-xl p-6 w-full max-w-lg mx-4 shadow-2xl max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-5">
-          <h2 className="text-sm font-semibold text-[#e2e8f4] flex items-center gap-2">
+          <h2 className="text-sm font-semibold text-falcon-text flex items-center gap-2">
             <Terminal className="w-4 h-4 text-blue-400" />
             {title}
           </h2>
-          <button onClick={onClose} className="text-[#7d92b0] hover:text-[#e2e8f4] transition-colors">
+          <button onClick={onClose} className="text-falcon-muted hover:text-falcon-text transition-colors">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -185,7 +185,7 @@ function RuleFormModal({
         <div className="space-y-4">
           {/* Name */}
           <div>
-            <label className="block text-xs text-[#7d92b0] mb-1.5">
+            <label className="block text-xs text-falcon-muted mb-1.5">
               ルール名 <span className="text-red-400">*</span>
             </label>
             <input
@@ -194,14 +194,14 @@ function RuleFormModal({
               onChange={(e) => set('name', e.target.value)}
               placeholder="cmd.exe ブロック"
               autoComplete="off"
-              className="w-full px-3 py-2 bg-[#080c14] border border-[#1e2d42] rounded-lg text-sm
-                         text-[#e2e8f4] placeholder-[#3a4d66] focus:outline-none focus:border-blue-500"
+              className="w-full px-3 py-2 bg-falcon-bg border border-falcon-border rounded-lg text-sm
+                         text-falcon-text placeholder-[#3a4d66] focus:outline-hidden focus:border-blue-500"
             />
           </div>
 
           {/* Process Name */}
           <div>
-            <label className="block text-xs text-[#7d92b0] mb-1.5">
+            <label className="block text-xs text-falcon-muted mb-1.5">
               プロセス名またはグロブ <span className="text-red-400">*</span>
             </label>
             <input
@@ -211,8 +211,8 @@ function RuleFormModal({
               placeholder="cmd.exe  または  pow*"
               autoComplete="off"
               spellCheck={false}
-              className="w-full px-3 py-2 bg-[#080c14] border border-[#1e2d42] rounded-lg text-sm
-                         text-[#e2e8f4] placeholder-[#3a4d66] focus:outline-none focus:border-blue-500 font-mono"
+              className="w-full px-3 py-2 bg-falcon-bg border border-falcon-border rounded-lg text-sm
+                         text-falcon-text placeholder-[#3a4d66] focus:outline-hidden focus:border-blue-500 font-mono"
             />
             <p className="text-xs text-[#3a4d66] mt-1">
               完全一致 (例: <code className="font-mono">cmd.exe</code>) またはグロブ (例: <code className="font-mono">pow*</code>)
@@ -221,7 +221,7 @@ function RuleFormModal({
 
           {/* Rule Type */}
           <div>
-            <label className="block text-xs text-[#7d92b0] mb-2">ルール種別</label>
+            <label className="block text-xs text-falcon-muted mb-2">ルール種別</label>
             <div className="grid grid-cols-2 gap-3">
               {(['deny', 'allow'] as RuleType[]).map((rt) => (
                 <button
@@ -233,7 +233,7 @@ function RuleFormModal({
                       ? rt === 'deny'
                         ? 'bg-red-500/20 border-red-500/50 text-red-300'
                         : 'bg-green-500/20 border-green-500/50 text-green-300'
-                      : 'bg-[#0d1525] border-[#1e2d42] text-[#7d92b0] hover:border-[#2a3d5a]'
+                      : 'bg-[#0d1525] border-falcon-border text-falcon-muted hover:border-[#2a3d5a]'
                     }`}
                 >
                   {rt === 'deny' ? '拒否 (Deny)' : '許可 (Allow)'}
@@ -244,7 +244,7 @@ function RuleFormModal({
 
           {/* Action */}
           <div>
-            <label className="block text-xs text-[#7d92b0] mb-2">アクション</label>
+            <label className="block text-xs text-falcon-muted mb-2">アクション</label>
             <div className="grid grid-cols-3 gap-2">
               {(['alert', 'block', 'alert_and_block'] as ActionType[]).map((a) => (
                 <button
@@ -258,7 +258,7 @@ function RuleFormModal({
                         : a === 'alert_and_block'
                           ? 'bg-orange-500/20 border-orange-500/50 text-orange-300'
                           : 'bg-yellow-500/20 border-yellow-500/50 text-yellow-300'
-                      : 'bg-[#0d1525] border-[#1e2d42] text-[#7d92b0] hover:border-[#2a3d5a]'
+                      : 'bg-[#0d1525] border-falcon-border text-falcon-muted hover:border-[#2a3d5a]'
                     }`}
                 >
                   {a === 'alert' ? (
@@ -274,7 +274,7 @@ function RuleFormModal({
             </div>
             {(form.action === 'block' || form.action === 'alert_and_block') && (
               <p className="text-xs text-red-400 mt-2 flex items-start gap-1.5">
-                <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
+                <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
                 プロセスを強制終了します
               </p>
             )}
@@ -282,7 +282,7 @@ function RuleFormModal({
 
           {/* Severity */}
           <div>
-            <label className="block text-xs text-[#7d92b0] mb-2">重大度</label>
+            <label className="block text-xs text-falcon-muted mb-2">重大度</label>
             <div className="grid grid-cols-4 gap-2">
               {(['low', 'medium', 'high', 'critical'] as Severity[]).map((s) => (
                 <button
@@ -292,7 +292,7 @@ function RuleFormModal({
                   className={`px-2 py-2 rounded-lg border text-xs font-medium transition-colors
                     ${form.severity === s
                       ? SEVERITY_STYLES[s]
-                      : 'bg-[#0d1525] border-[#1e2d42] text-[#7d92b0] hover:border-[#2a3d5a]'
+                      : 'bg-[#0d1525] border-falcon-border text-falcon-muted hover:border-[#2a3d5a]'
                     }`}
                 >
                   {SEVERITY_LABELS[s]}
@@ -303,7 +303,7 @@ function RuleFormModal({
 
           {/* Scope */}
           <div>
-            <label className="block text-xs text-[#7d92b0] mb-2">適用スコープ</label>
+            <label className="block text-xs text-falcon-muted mb-2">適用スコープ</label>
             <div className="grid grid-cols-3 gap-2">
               {(['all', 'group', 'agent'] as ScopeType[]).map((sc) => (
                 <button
@@ -313,7 +313,7 @@ function RuleFormModal({
                   className={`px-2 py-2.5 rounded-lg border text-xs font-medium transition-colors
                     ${form.scope === sc
                       ? 'bg-blue-500/20 border-blue-500/50 text-blue-300'
-                      : 'bg-[#0d1525] border-[#1e2d42] text-[#7d92b0] hover:border-[#2a3d5a]'
+                      : 'bg-[#0d1525] border-falcon-border text-falcon-muted hover:border-[#2a3d5a]'
                     }`}
                 >
                   {sc === 'all' ? '全エージェント' : sc === 'group' ? 'グループ' : 'エージェント'}
@@ -325,7 +325,7 @@ function RuleFormModal({
           {/* Scope ID */}
           {form.scope !== 'all' && (
             <div>
-              <label className="block text-xs text-[#7d92b0] mb-1.5">
+              <label className="block text-xs text-falcon-muted mb-1.5">
                 {form.scope === 'group' ? 'グループID' : 'エージェントID'}
                 <span className="text-red-400"> *</span>
               </label>
@@ -336,8 +336,8 @@ function RuleFormModal({
                 placeholder={form.scope === 'group' ? 'グループUUID' : 'エージェントUUID'}
                 autoComplete="off"
                 spellCheck={false}
-                className="w-full px-3 py-2 bg-[#080c14] border border-[#1e2d42] rounded-lg text-sm
-                           text-[#e2e8f4] placeholder-[#3a4d66] focus:outline-none focus:border-blue-500 font-mono"
+                className="w-full px-3 py-2 bg-falcon-bg border border-falcon-border rounded-lg text-sm
+                           text-falcon-text placeholder-[#3a4d66] focus:outline-hidden focus:border-blue-500 font-mono"
               />
             </div>
           )}
@@ -345,13 +345,13 @@ function RuleFormModal({
           {/* Enable Toggle */}
           <div className="flex items-center justify-between pt-1">
             <div>
-              <p className="text-sm text-[#e2e8f4]">有効化</p>
-              <p className="text-xs text-[#7d92b0] mt-0.5">このルールを有効にします</p>
+              <p className="text-sm text-falcon-text">有効化</p>
+              <p className="text-xs text-falcon-muted mt-0.5">このルールを有効にします</p>
             </div>
             <button
               type="button"
               onClick={() => set('enabled', !form.enabled)}
-              className="flex-shrink-0 ml-4"
+              className="shrink-0 ml-4"
             >
               {form.enabled ? (
                 <ToggleRight className="w-8 h-8 text-blue-400" />
@@ -373,7 +373,7 @@ function RuleFormModal({
         <div className="flex gap-3 mt-6">
           <button
             onClick={onClose}
-            className="flex-1 px-4 py-2 bg-[#1e2d42] hover:bg-[#253550] text-[#e2e8f4] text-sm rounded-lg transition-colors"
+            className="flex-1 px-4 py-2 bg-falcon-border hover:bg-[#253550] text-falcon-text text-sm rounded-lg transition-colors"
           >
             キャンセル
           </button>
@@ -410,23 +410,23 @@ function DeleteConfirmDialog({
   isPending: boolean;
 }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-      <div className="bg-[#111827] border border-red-500/30 rounded-xl p-6 w-full max-w-sm mx-4 shadow-2xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs">
+      <div className="bg-falcon-card border border-red-500/30 rounded-xl p-6 w-full max-w-sm mx-4 shadow-2xl">
         <div className="flex items-start gap-3 mb-4">
-          <div className="p-2 bg-red-500/10 rounded-lg border border-red-500/20 flex-shrink-0">
+          <div className="p-2 bg-red-500/10 rounded-lg border border-red-500/20 shrink-0">
             <Trash2 className="w-4 h-4 text-red-400" />
           </div>
           <div>
-            <h2 className="text-sm font-semibold text-[#e2e8f4]">ルールを削除</h2>
-            <p className="text-xs text-[#7d92b0] mt-1">
-              <span className="text-[#e2e8f4] font-medium">{ruleName}</span> を削除しますか？この操作は元に戻せません。
+            <h2 className="text-sm font-semibold text-falcon-text">ルールを削除</h2>
+            <p className="text-xs text-falcon-muted mt-1">
+              <span className="text-falcon-text font-medium">{ruleName}</span> を削除しますか？この操作は元に戻せません。
             </p>
           </div>
         </div>
         <div className="flex gap-3">
           <button
             onClick={onCancel}
-            className="flex-1 px-4 py-2 bg-[#1e2d42] hover:bg-[#253550] text-[#e2e8f4] text-sm rounded-lg transition-colors"
+            className="flex-1 px-4 py-2 bg-falcon-border hover:bg-[#253550] text-falcon-text text-sm rounded-lg transition-colors"
           >
             キャンセル
           </button>
@@ -463,7 +463,7 @@ function RuleCard({
       className={`bg-[#0d1525] border rounded-xl px-5 py-4 transition-colors
         ${rule.action === 'block' || rule.action === 'alert_and_block'
           ? 'border-red-500/20 hover:border-red-500/40'
-          : 'border-[#1e2d42] hover:border-[#2a3d5a]'
+          : 'border-falcon-border hover:border-[#2a3d5a]'
         }
         ${!rule.enabled ? 'opacity-60' : ''}
       `}
@@ -471,8 +471,8 @@ function RuleCard({
       <div className="flex items-start justify-between gap-3">
         {/* Left: info */}
         <div className="min-w-0 space-y-2">
-          <p className="text-sm font-medium text-[#e2e8f4] truncate">{rule.name}</p>
-          <p className="text-xs font-mono text-blue-300 bg-blue-900/20 px-2 py-0.5 rounded w-fit">
+          <p className="text-sm font-medium text-falcon-text truncate">{rule.name}</p>
+          <p className="text-xs font-mono text-blue-300 bg-blue-900/20 px-2 py-0.5 rounded-sm w-fit">
             {rule.process_name}
           </p>
           <div className="flex items-center gap-2 flex-wrap">
@@ -485,7 +485,7 @@ function RuleCard({
               </span>
             )}
             {!rule.enabled && (
-              <span className="text-xs px-2 py-0.5 rounded-full border bg-[#1e2d42] text-[#7d92b0] border-[#2a3d5a]">
+              <span className="text-xs px-2 py-0.5 rounded-full border bg-falcon-border text-falcon-muted border-[#2a3d5a]">
                 無効
               </span>
             )}
@@ -496,11 +496,11 @@ function RuleCard({
         </div>
 
         {/* Right: actions */}
-        <div className="flex items-center gap-1 flex-shrink-0">
+        <div className="flex items-center gap-1 shrink-0">
           <button
             onClick={() => onToggle(rule.id)}
             title={rule.enabled ? '無効化' : '有効化'}
-            className="p-1.5 text-[#7d92b0] hover:text-[#e2e8f4] transition-colors"
+            className="p-1.5 text-falcon-muted hover:text-falcon-text transition-colors"
           >
             {rule.enabled ? (
               <ToggleRight className="w-5 h-5 text-blue-400" />
@@ -511,14 +511,14 @@ function RuleCard({
           <button
             onClick={() => onEdit(rule)}
             title="編集"
-            className="p-1.5 text-[#7d92b0] hover:text-blue-400 transition-colors rounded-lg hover:bg-blue-900/20"
+            className="p-1.5 text-falcon-muted hover:text-blue-400 transition-colors rounded-lg hover:bg-blue-900/20"
           >
             <Pencil className="w-4 h-4" />
           </button>
           <button
             onClick={() => onDelete(rule)}
             title="削除"
-            className="p-1.5 text-[#7d92b0] hover:text-red-400 transition-colors rounded-lg hover:bg-red-900/20"
+            className="p-1.5 text-falcon-muted hover:text-red-400 transition-colors rounded-lg hover:bg-red-900/20"
           >
             <Trash2 className="w-4 h-4" />
           </button>
@@ -619,7 +619,7 @@ export default function ProcessRulesPage() {
   // ─── Render ─────────────────────────────────────────────────────────────────
 
   return (
-    <div className="min-h-screen bg-[#080c14] text-[#e2e8f4]">
+    <div className="min-h-screen bg-falcon-bg text-falcon-text">
       <div className="max-w-4xl mx-auto px-6 py-8">
 
         {/* Header */}
@@ -629,8 +629,8 @@ export default function ProcessRulesPage() {
               <ShieldBan className="w-5 h-5 text-red-400" />
             </div>
             <div>
-              <h1 className="text-xl font-semibold text-[#e2e8f4]">プロセス実行制御</h1>
-              <p className="text-sm text-[#7d92b0] mt-0.5">
+              <h1 className="text-xl font-semibold text-falcon-text">プロセス実行制御</h1>
+              <p className="text-sm text-falcon-muted mt-0.5">
                 エージェントでのプロセス実行を許可・拒否するルールを設定します
               </p>
             </div>
@@ -646,7 +646,7 @@ export default function ProcessRulesPage() {
 
         {/* Warning Banner */}
         <div className="mb-8 flex items-start gap-3 bg-red-500/10 border border-red-500/30 rounded-xl px-5 py-4">
-          <AlertTriangle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+          <AlertTriangle className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
           <div className="text-sm text-red-300 space-y-1">
             <p>
               <span className="font-semibold">ブロック</span> または{' '}
@@ -661,25 +661,25 @@ export default function ProcessRulesPage() {
 
         {/* Stats */}
         <div className="grid grid-cols-3 gap-4 mb-8">
-          <div className="bg-[#0d1525] border border-[#1e2d42] rounded-xl px-5 py-4">
-            <p className="text-xs text-[#7d92b0] mb-1">総ルール数</p>
-            <p className="text-2xl font-bold text-[#e2e8f4]">{rules.length}</p>
+          <div className="bg-[#0d1525] border border-falcon-border rounded-xl px-5 py-4">
+            <p className="text-xs text-falcon-muted mb-1">総ルール数</p>
+            <p className="text-2xl font-bold text-falcon-text">{rules.length}</p>
           </div>
-          <div className="bg-[#0d1525] border border-[#1e2d42] rounded-xl px-5 py-4">
-            <p className="text-xs text-[#7d92b0] mb-1">有効</p>
+          <div className="bg-[#0d1525] border border-falcon-border rounded-xl px-5 py-4">
+            <p className="text-xs text-falcon-muted mb-1">有効</p>
             <p className="text-2xl font-bold text-green-400">{enabledCount}</p>
           </div>
-          <div className="bg-[#0d1525] border border-[#1e2d42] rounded-xl px-5 py-4">
-            <p className="text-xs text-[#7d92b0] mb-1">ブロックルール</p>
+          <div className="bg-[#0d1525] border border-falcon-border rounded-xl px-5 py-4">
+            <p className="text-xs text-falcon-muted mb-1">ブロックルール</p>
             <p className="text-2xl font-bold text-red-400">{blockCount}</p>
           </div>
         </div>
 
         {/* Info hint */}
         {denyCount > 0 && (
-          <p className="text-xs text-[#7d92b0] mb-4">
+          <p className="text-xs text-falcon-muted mb-4">
             拒否ルール{' '}
-            <span className="text-[#e2e8f4] font-medium">{denyCount}</span>{' '}
+            <span className="text-falcon-text font-medium">{denyCount}</span>{' '}
             件が設定されています。エージェントは60秒ごとにルールを更新します。
           </p>
         )}
@@ -693,12 +693,12 @@ export default function ProcessRulesPage() {
 
         {/* Empty State */}
         {!isLoading && rules.length === 0 && (
-          <div className="bg-[#0d1525] border border-[#1e2d42] rounded-xl flex flex-col items-center justify-center py-16 text-center">
-            <div className="p-3 bg-[#1e2d42] rounded-full mb-4">
-              <Terminal className="w-6 h-6 text-[#7d92b0]" />
+          <div className="bg-[#0d1525] border border-falcon-border rounded-xl flex flex-col items-center justify-center py-16 text-center">
+            <div className="p-3 bg-falcon-border rounded-full mb-4">
+              <Terminal className="w-6 h-6 text-falcon-muted" />
             </div>
-            <p className="text-sm text-[#e2e8f4] font-medium">プロセス制御ルールがありません</p>
-            <p className="text-xs text-[#7d92b0] mt-1 max-w-xs">
+            <p className="text-sm text-falcon-text font-medium">プロセス制御ルールがありません</p>
+            <p className="text-xs text-falcon-muted mt-1 max-w-xs">
               「新規ルール」ボタンからプロセス名またはグロブパターンでルールを作成してください
             </p>
             <button

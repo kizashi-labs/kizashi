@@ -161,7 +161,7 @@ function KPICard({
       <div className="flex items-start justify-between">
         <p className="text-xs text-gray-400 leading-tight pr-2">{label}</p>
         <div
-          className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${iconColor}`}
+          className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${iconColor}`}
         >
           <Icon className="w-4 h-4 text-white" />
         </div>
@@ -178,7 +178,7 @@ function KPICard({
           <span className="text-sm text-gray-400 mb-0.5">{unit}</span>
         )}
       </div>
-      <div className="flex items-center gap-2 min-h-[1.125rem]">
+      <div className="flex items-center gap-2 min-h-4.5">
         {sub && <span className="text-xs text-gray-500">{sub}</span>}
         {trend}
       </div>
@@ -359,7 +359,7 @@ export default function SOCMetricsPage() {
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 bg-cyan-600 rounded-lg flex items-center justify-center flex-shrink-0">
+          <div className="w-9 h-9 bg-cyan-600 rounded-lg flex items-center justify-center shrink-0">
             <BarChart2 className="w-5 h-5 text-white" />
           </div>
           <div>
@@ -489,7 +489,7 @@ export default function SOCMetricsPage() {
           {/* KPI Cards — secondary row */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="bg-gray-800 rounded-xl border border-gray-700 p-4 flex items-center gap-3">
-              <div className="w-10 h-10 bg-red-600/25 rounded-lg flex items-center justify-center flex-shrink-0">
+              <div className="w-10 h-10 bg-red-600/25 rounded-lg flex items-center justify-center shrink-0">
                 <AlertTriangle className="w-5 h-5 text-red-400" />
               </div>
               <div className="min-w-0">
@@ -505,7 +505,7 @@ export default function SOCMetricsPage() {
             </div>
 
             <div className="bg-gray-800 rounded-xl border border-gray-700 p-4 flex items-center gap-3">
-              <div className="w-10 h-10 bg-green-600/25 rounded-lg flex items-center justify-center flex-shrink-0">
+              <div className="w-10 h-10 bg-green-600/25 rounded-lg flex items-center justify-center shrink-0">
                 <CheckCircle className="w-5 h-5 text-green-400" />
               </div>
               <div className="min-w-0">
@@ -515,7 +515,7 @@ export default function SOCMetricsPage() {
             </div>
 
             <div className="bg-gray-800 rounded-xl border border-gray-700 p-4 flex items-center gap-3">
-              <div className="w-10 h-10 bg-cyan-600/25 rounded-lg flex items-center justify-center flex-shrink-0">
+              <div className="w-10 h-10 bg-cyan-600/25 rounded-lg flex items-center justify-center shrink-0">
                 <BarChart2 className="w-5 h-5 text-cyan-400" />
               </div>
               <div className="min-w-0">
@@ -538,7 +538,7 @@ export default function SOCMetricsPage() {
             </div>
 
             <div className="bg-gray-800 rounded-xl border border-gray-700 p-4 flex items-center gap-3">
-              <div className="w-10 h-10 bg-purple-600/25 rounded-lg flex items-center justify-center flex-shrink-0">
+              <div className="w-10 h-10 bg-purple-600/25 rounded-lg flex items-center justify-center shrink-0">
                 <Users className="w-5 h-5 text-purple-400" />
               </div>
               <div className="min-w-0">
@@ -654,7 +654,7 @@ export default function SOCMetricsPage() {
                     {severityDistData.map(d => (
                       <div key={d.name} className="flex items-center gap-2">
                         <div
-                          className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                          className="w-2.5 h-2.5 rounded-full shrink-0"
                           style={{ backgroundColor: d.color }}
                         />
                         <span className="text-xs text-gray-400 flex-1">
@@ -739,12 +739,12 @@ export default function SOCMetricsPage() {
                       : 0
                   return (
                     <div key={a.analyst} className="flex items-center gap-3">
-                      <div className="w-6 h-6 rounded-full bg-purple-900/50 flex items-center justify-center flex-shrink-0">
+                      <div className="w-6 h-6 rounded-full bg-purple-900/50 flex items-center justify-center shrink-0">
                         <span className="text-[10px] text-purple-300 font-bold">
                           {i + 1}
                         </span>
                       </div>
-                      <span className="text-xs text-gray-300 w-36 truncate flex-shrink-0">
+                      <span className="text-xs text-gray-300 w-36 truncate shrink-0">
                         {a.analyst}
                       </span>
                       <div className="flex-1 h-5 bg-gray-700 rounded-full overflow-hidden">
@@ -757,7 +757,7 @@ export default function SOCMetricsPage() {
                           }}
                         />
                       </div>
-                      <span className="text-xs text-gray-400 w-12 text-right flex-shrink-0">
+                      <span className="text-xs text-gray-400 w-12 text-right shrink-0">
                         {a.count}件
                       </span>
                     </div>
@@ -872,10 +872,10 @@ function MTTRTrendSection({ incidents }: { incidents: Incident[] }) {
           const display = w.avg !== null ? minutesToDisplay(w.avg) : '—'
           return (
             <div key={w.label} className="flex items-center gap-3">
-              <span className="text-xs text-gray-400 w-10 flex-shrink-0">{w.label}</span>
-              <div className="flex-1 h-6 bg-gray-700 rounded overflow-hidden">
+              <span className="text-xs text-gray-400 w-10 shrink-0">{w.label}</span>
+              <div className="flex-1 h-6 bg-gray-700 rounded-sm overflow-hidden">
                 <div
-                  className="h-full rounded transition-all duration-700 flex items-center px-2"
+                  className="h-full rounded-sm transition-all duration-700 flex items-center px-2"
                   style={{
                     width: `${pct}%`,
                     background: 'linear-gradient(90deg, #0891b2, #06b6d4)',
@@ -887,10 +887,10 @@ function MTTRTrendSection({ incidents }: { incidents: Incident[] }) {
                   )}
                 </div>
               </div>
-              <span className="text-xs text-gray-400 w-14 text-right flex-shrink-0">
+              <span className="text-xs text-gray-400 w-14 text-right shrink-0">
                 {w.avg !== null ? display : 'データなし'}
               </span>
-              <span className="text-xs text-gray-500 w-10 text-right flex-shrink-0">
+              <span className="text-xs text-gray-500 w-10 text-right shrink-0">
                 {w.count}件
               </span>
             </div>
@@ -1042,7 +1042,7 @@ function SLABreachSection({ alerts }: { alerts: Alert[] }) {
         <div className="space-y-3 flex-1">
           {data.map(d => (
             <div key={d.name} className="flex items-center gap-2">
-              <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: d.color }} />
+              <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: d.color }} />
               <span className="text-xs text-gray-300 flex-1">{d.name}</span>
               <span className="text-sm font-bold text-white">{d.value}%</span>
             </div>

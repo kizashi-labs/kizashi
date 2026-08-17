@@ -70,24 +70,24 @@ function AlertGroupView({ alerts }: { alerts: Alert[] }) {
         const isOpen = expanded.has(ruleName)
         const hostnames = [...new Set(group.map(a => a.agent_hostname))].slice(0, 5)
         return (
-          <div key={ruleName} className="bg-[#111827] rounded-xl border border-[#1e2d42] overflow-hidden">
+          <div key={ruleName} className="bg-falcon-card rounded-xl border border-falcon-border overflow-hidden">
             <button
               onClick={() => toggle(ruleName)}
-              className="w-full flex items-center gap-3 px-4 py-3 hover:bg-[#19253d]/30 transition-colors text-left"
+              className="w-full flex items-center gap-3 px-4 py-3 hover:bg-falcon-hover/30 transition-colors text-left"
             >
-              <ChevronDown className={`w-4 h-4 text-[#5a6a7a] flex-shrink-0 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+              <ChevronDown className={`w-4 h-4 text-[#5a6a7a] shrink-0 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
               <span className={`text-xs px-2 py-0.5 rounded-full border font-semibold ${SEV_COLOR[sev] ?? SEV_COLOR.low}`}>
                 {SEV_LABEL[sev] ?? sev}
               </span>
-              <span className="font-medium text-[#e2e8f4] text-sm flex-1 truncate">{ruleName}</span>
-              <span className="text-xs text-[#5a6a7a] flex-shrink-0 ml-2">
+              <span className="font-medium text-falcon-text text-sm flex-1 truncate">{ruleName}</span>
+              <span className="text-xs text-[#5a6a7a] shrink-0 ml-2">
                 {group.length}件 · {hostnames.join(', ')}{hostnames.length < [...new Set(group.map(a => a.agent_hostname))].length ? '…' : ''}
               </span>
             </button>
             {isOpen && (
-              <div className="border-t border-[#1e2d42] space-y-0">
+              <div className="border-t border-falcon-border space-y-0">
                 {group.map(alert => (
-                  <div key={alert.id} className="border-b border-[#1e2d42]/50 last:border-0 px-4 py-1">
+                  <div key={alert.id} className="border-b border-falcon-border/50 last:border-0 px-4 py-1">
                     <AlertCard alert={alert} />
                   </div>
                 ))}
@@ -270,12 +270,12 @@ function AlertsInner() {
         </div>
         <div className="flex items-center gap-2">
           {/* View mode toggle */}
-          <div className="flex items-center bg-[#161f33] border border-[#1e2d42] rounded-lg overflow-hidden">
+          <div className="flex items-center bg-falcon-raised border border-falcon-border rounded-lg overflow-hidden">
             <button
               onClick={() => setViewMode('list')}
               title="リスト表示"
               className={`flex items-center gap-1.5 px-3 py-1.5 text-sm transition-colors
-                ${viewMode === 'list' ? 'bg-[#1d2f4a] text-[#e2e8f4]' : 'text-[#5a6a7a] hover:text-[#8899aa]'}`}
+                ${viewMode === 'list' ? 'bg-falcon-active text-falcon-text' : 'text-[#5a6a7a] hover:text-[#8899aa]'}`}
             >
               <List className="w-4 h-4" />
             </button>
@@ -283,7 +283,7 @@ function AlertsInner() {
               onClick={() => setViewMode('group')}
               title="グループ表示"
               className={`flex items-center gap-1.5 px-3 py-1.5 text-sm transition-colors
-                ${viewMode === 'group' ? 'bg-[#1d2f4a] text-[#e2e8f4]' : 'text-[#5a6a7a] hover:text-[#8899aa]'}`}
+                ${viewMode === 'group' ? 'bg-falcon-active text-falcon-text' : 'text-[#5a6a7a] hover:text-[#8899aa]'}`}
             >
               <Layers className="w-4 h-4" />
             </button>
@@ -292,7 +292,7 @@ function AlertsInner() {
             onClick={downloadCSV}
             title="現在のフィルターでCSVダウンロード"
             className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-[#8899aa]
-                       bg-[#161f33] border border-[#1e2d42] rounded-lg hover:bg-[#1d2f4a] transition-colors"
+                       bg-falcon-raised border border-falcon-border rounded-lg hover:bg-falcon-active transition-colors"
           >
             <Download className="w-4 h-4" />
             CSV
@@ -300,7 +300,7 @@ function AlertsInner() {
           <button
             onClick={() => qc.invalidateQueries({ queryKey: ['alerts'] })}
             className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-[#8899aa]
-                       bg-[#161f33] border border-[#1e2d42] rounded-lg hover:bg-[#1d2f4a] transition-colors"
+                       bg-falcon-raised border border-falcon-border rounded-lg hover:bg-falcon-active transition-colors"
           >
             <RefreshCw className="w-4 h-4" />
             更新
@@ -315,18 +315,18 @@ function AlertsInner() {
             <Clock className="w-3.5 h-3.5" /> SLA状況:
           </span>
           {slaStats.breached > 0 && (
-            <span className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-full bg-[#e8002d]/15 text-[#ff4d6d] border border-[#e8002d]/30 font-medium">
+            <span className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-full bg-falcon-red/15 text-[#ff4d6d] border border-falcon-red/30 font-medium">
               <AlertTriangle className="w-3 h-3" />
               期限超過 {slaStats.breached}件
             </span>
           )}
           {slaStats.atRisk > 0 && (
-            <span className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-full bg-[#ff9800]/10 text-[#ffb74d] border border-[#ff9800]/30 font-medium">
+            <span className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-full bg-falcon-amber/10 text-[#ffb74d] border border-falcon-amber/30 font-medium">
               <Clock className="w-3 h-3" />
               期限間近 {slaStats.atRisk}件
             </span>
           )}
-          <span className="text-xs px-2.5 py-1 rounded-full bg-[#00c853]/10 text-[#69f0ae] border border-[#00c853]/30 font-medium">
+          <span className="text-xs px-2.5 py-1 rounded-full bg-falcon-green/10 text-[#69f0ae] border border-falcon-green/30 font-medium">
             正常 {slaStats.ok}件
           </span>
         </div>
@@ -340,9 +340,9 @@ function AlertsInner() {
             value={search}
             onChange={e => { setSearch(e.target.value); setPage(1) }}
             placeholder="タイトル・ホスト名で検索..."
-            className="pl-9 pr-4 py-1.5 text-sm border border-[#1e2d42] rounded-lg
-                       bg-[#111827] text-white placeholder-[#5a6a7a] w-56
-                       focus:outline-none focus:border-[#1a6bff]"
+            className="pl-9 pr-4 py-1.5 text-sm border border-falcon-border rounded-lg
+                       bg-falcon-card text-white placeholder-[#5a6a7a] w-56
+                       focus:outline-hidden focus:border-falcon-blue"
           />
         </div>
         <div className="flex items-center gap-1.5">
@@ -357,8 +357,8 @@ function AlertsInner() {
               onClick={() => { setStatus(value); setPage(1) }}
               className={`px-3 py-1 text-xs rounded-full transition-colors ${
                 status === value
-                  ? 'bg-[#1a6bff] text-white'
-                  : 'bg-[#161f33] border border-[#1e2d42] text-[#8899aa] hover:border-[#1e2d42] hover:text-[#e2e8f4]'
+                  ? 'bg-falcon-blue text-white'
+                  : 'bg-falcon-raised border border-falcon-border text-[#8899aa] hover:border-falcon-border hover:text-falcon-text'
               }`}
             >
               {label}
@@ -369,8 +369,8 @@ function AlertsInner() {
         <select
           value={severity}
           onChange={e => { setSeverity(e.target.value); setPage(1) }}
-          className="text-xs border border-[#1e2d42] rounded-lg px-2 py-1
-                     bg-[#161f33] text-[#8899aa] focus:outline-none focus:border-[#1a6bff]"
+          className="text-xs border border-falcon-border rounded-lg px-2 py-1
+                     bg-falcon-raised text-[#8899aa] focus:outline-hidden focus:border-falcon-blue"
         >
           <option value="">重大度: すべて</option>
           <option value="9:10">クリティカル (9-10)</option>
@@ -385,8 +385,8 @@ function AlertsInner() {
             value={fromDate}
             onChange={e => { setFromDate(e.target.value); setPage(1) }}
             title="開始日"
-            className="text-xs border border-[#1e2d42] rounded-lg px-2 py-1
-                       bg-[#161f33] text-[#8899aa] focus:outline-none focus:border-[#1a6bff]"
+            className="text-xs border border-falcon-border rounded-lg px-2 py-1
+                       bg-falcon-raised text-[#8899aa] focus:outline-hidden focus:border-falcon-blue"
           />
           <span className="text-[#5a6a7a] text-xs">〜</span>
           <input
@@ -394,8 +394,8 @@ function AlertsInner() {
             value={toDate}
             onChange={e => { setToDate(e.target.value); setPage(1) }}
             title="終了日"
-            className="text-xs border border-[#1e2d42] rounded-lg px-2 py-1
-                       bg-[#161f33] text-[#8899aa] focus:outline-none focus:border-[#1a6bff]"
+            className="text-xs border border-falcon-border rounded-lg px-2 py-1
+                       bg-falcon-raised text-[#8899aa] focus:outline-hidden focus:border-falcon-blue"
           />
         </div>
 
@@ -416,7 +416,7 @@ function AlertsInner() {
               setSearch(''); setStatus(''); setSeverity(''); setFromDate(''); setToDate(''); setMitreTech(''); setPage(1)
             }}
             className="flex items-center gap-1 text-xs text-[#8899aa] hover:text-white
-                       px-2 py-1 rounded-lg hover:bg-[#19253d] transition-colors"
+                       px-2 py-1 rounded-lg hover:bg-falcon-hover transition-colors"
             title="フィルターをすべてクリア"
           >
             <X className="w-3.5 h-3.5" />
@@ -459,8 +459,8 @@ function AlertsInner() {
               <button
                 onClick={() => bulkUpdate.mutate({ status: 'false_positive' })}
                 disabled={bulkUpdate.isPending}
-                className="text-xs px-3 py-1 bg-[#161f33] text-[#8899aa] border border-[#1e2d42]
-                           rounded-lg hover:bg-[#1d2f4a] transition-colors disabled:opacity-50"
+                className="text-xs px-3 py-1 bg-falcon-raised text-[#8899aa] border border-falcon-border
+                           rounded-lg hover:bg-falcon-active transition-colors disabled:opacity-50"
               >
                 誤検知にする
               </button>
@@ -469,7 +469,7 @@ function AlertsInner() {
                 className={`text-xs px-3 py-1 border rounded-lg transition-colors flex items-center gap-1 ${
                   showBulkAssign
                     ? 'bg-blue-700 text-white border-blue-600'
-                    : 'bg-[#161f33] text-[#8899aa] border-[#1e2d42] hover:bg-[#1d2f4a]'
+                    : 'bg-falcon-raised text-[#8899aa] border-falcon-border hover:bg-falcon-active'
                 }`}
               >
                 <UserCheck className="w-3 h-3" />
@@ -487,10 +487,10 @@ function AlertsInner() {
           {/* Bulk assign panel */}
           {showBulkAssign && (
             <div className="flex items-center gap-2 pt-1 border-t border-blue-700/30">
-              <UserCheck className="w-3.5 h-3.5 text-blue-400 flex-shrink-0" />
+              <UserCheck className="w-3.5 h-3.5 text-blue-400 shrink-0" />
               <select
-                className="flex-1 text-xs bg-[#111827] border border-[#1e2d42] rounded-lg px-2 py-1.5
-                           text-[#8899aa] focus:outline-none focus:border-[#1a6bff]"
+                className="flex-1 text-xs bg-falcon-card border border-falcon-border rounded-lg px-2 py-1.5
+                           text-[#8899aa] focus:outline-hidden focus:border-falcon-blue"
                 defaultValue=""
                 onChange={e => {
                   bulkUpdate.mutate({ assigned_to: e.target.value })
@@ -514,12 +514,12 @@ function AlertsInner() {
       {isLoading ? (
         <AlertListSkeleton />
       ) : isError ? (
-        <div className="text-center py-16 bg-[#111827] rounded-xl border border-[#e8002d]/30">
-          <p className="text-[#e8002d] text-sm font-medium">アラートデータの取得に失敗しました</p>
+        <div className="text-center py-16 bg-falcon-card rounded-xl border border-falcon-red/30">
+          <p className="text-falcon-red text-sm font-medium">アラートデータの取得に失敗しました</p>
           <p className="text-[#5a6a7a] text-xs mt-1">ネットワーク接続またはサーバーの状態を確認してください</p>
         </div>
       ) : displayAlerts.length === 0 ? (
-        <div className="text-center py-16 bg-[#111827] rounded-xl border border-[#1e2d42]">
+        <div className="text-center py-16 bg-falcon-card rounded-xl border border-falcon-border">
           <p className="text-[#5a6a7a] text-sm">アラートがありません</p>
         </div>
       ) : viewMode === 'group' ? (
@@ -532,7 +532,7 @@ function AlertsInner() {
                 type="checkbox"
                 checked={selected.size === alerts.length && alerts.length > 0}
                 onChange={toggleSelectAll}
-                className="rounded border-[#1e2d42] bg-[#161f33] text-blue-600"
+                className="rounded-sm border-falcon-border bg-falcon-raised text-blue-600"
               />
               <span className="text-xs text-[#5a6a7a]">すべて選択</span>
             </div>
@@ -545,33 +545,33 @@ function AlertsInner() {
                   type="checkbox"
                   checked={selected.has(alert.id)}
                   onChange={() => toggleSelect(alert.id)}
-                  className="mt-3 rounded border-[#1e2d42] bg-[#161f33] text-blue-600"
+                  className="mt-3 rounded-sm border-falcon-border bg-falcon-raised text-blue-600"
                 />
               )}
               <div className="flex-1">
                 <AlertCard alert={alert} />
               </div>
               {/* Per-alert quick assign (admin/analyst only) */}
-              {canWrite && <div className="mt-2 flex-shrink-0 relative" ref={assignTarget === alert.id ? assignRef : null}>
+              {canWrite && <div className="mt-2 shrink-0 relative" ref={assignTarget === alert.id ? assignRef : null}>
                 <button
                   onClick={e => { e.stopPropagation(); setAssignTarget(assignTarget === alert.id ? null : alert.id) }}
                   title="担当者を割り当て"
                   className={`opacity-0 group-hover/row:opacity-100 flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs border transition-all
                     ${alert.assigned_to_name
                       ? 'bg-blue-900/30 text-blue-400 border-blue-700/50 opacity-100'
-                      : 'bg-[#161f33] text-[#5a6a7a] border-[#1e2d42] hover:text-[#8899aa]'
+                      : 'bg-falcon-raised text-[#5a6a7a] border-falcon-border hover:text-[#8899aa]'
                     }`}
                 >
                   <UserCheck className="w-3.5 h-3.5" />
                   <ChevronDown className="w-3 h-3" />
                 </button>
                 {assignTarget === alert.id && (
-                  <div className="absolute right-0 top-8 z-30 w-48 bg-[#111827] border border-[#1e2d42] rounded-xl shadow-2xl overflow-hidden">
-                    <p className="text-[10px] text-[#3d5068] uppercase tracking-wider px-3 pt-2.5 pb-1">担当者を選択</p>
+                  <div className="absolute right-0 top-8 z-30 w-48 bg-falcon-card border border-falcon-border rounded-xl shadow-2xl overflow-hidden">
+                    <p className="text-[10px] text-falcon-subtle uppercase tracking-wider px-3 pt-2.5 pb-1">担当者を選択</p>
                     <button
                       onClick={() => singleAssign.mutate({ alertId: alert.id, userId: '' })}
                       disabled={singleAssign.isPending}
-                      className="w-full text-left px-3 py-2 text-xs text-[#5a6a7a] hover:bg-[#1e2d42] hover:text-white transition-colors border-b border-[#1e2d42]"
+                      className="w-full text-left px-3 py-2 text-xs text-[#5a6a7a] hover:bg-falcon-border hover:text-white transition-colors border-b border-falcon-border"
                     >
                       未割り当て
                     </button>
@@ -580,13 +580,13 @@ function AlertsInner() {
                         key={u.id}
                         onClick={() => singleAssign.mutate({ alertId: alert.id, userId: u.id })}
                         disabled={singleAssign.isPending}
-                        className="w-full text-left px-3 py-2 text-xs text-[#8899aa] hover:bg-[#1e2d42] hover:text-white transition-colors"
+                        className="w-full text-left px-3 py-2 text-xs text-[#8899aa] hover:bg-falcon-border hover:text-white transition-colors"
                       >
                         {u.full_name || u.email}
                       </button>
                     ))}
                     {(usersData?.data ?? []).length === 0 && (
-                      <p className="px-3 py-2 text-xs text-[#3d5068]">ユーザーを読み込み中...</p>
+                      <p className="px-3 py-2 text-xs text-falcon-subtle">ユーザーを読み込み中...</p>
                     )}
                   </div>
                 )}
@@ -602,8 +602,8 @@ function AlertsInner() {
           <button
             disabled={page === 1}
             onClick={() => setPage(p => p - 1)}
-            className="px-4 py-2 text-sm bg-[#161f33] border border-[#1e2d42] text-[#8899aa] rounded-lg
-                       disabled:opacity-50 hover:bg-[#1d2f4a] transition-colors"
+            className="px-4 py-2 text-sm bg-falcon-raised border border-falcon-border text-[#8899aa] rounded-lg
+                       disabled:opacity-50 hover:bg-falcon-active transition-colors"
           >
             前へ
           </button>
@@ -611,8 +611,8 @@ function AlertsInner() {
           <button
             disabled={!data?.has_more}
             onClick={() => setPage(p => p + 1)}
-            className="px-4 py-2 text-sm bg-[#161f33] border border-[#1e2d42] text-[#8899aa] rounded-lg
-                       disabled:opacity-50 hover:bg-[#1d2f4a] transition-colors"
+            className="px-4 py-2 text-sm bg-falcon-raised border border-falcon-border text-[#8899aa] rounded-lg
+                       disabled:opacity-50 hover:bg-falcon-active transition-colors"
           >
             次へ
           </button>
@@ -634,7 +634,7 @@ function AlertListSkeleton() {
   return (
     <div className="space-y-2">
       {[...Array(8)].map((_, i) => (
-        <div key={i} className="h-24 bg-[#111827] rounded-xl border border-[#1e2d42] animate-pulse" />
+        <div key={i} className="h-24 bg-falcon-card rounded-xl border border-falcon-border animate-pulse" />
       ))}
     </div>
   )

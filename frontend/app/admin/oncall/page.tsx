@@ -53,23 +53,23 @@ interface CreateIntegrationPayload {
 const PROVIDER_META: Record<Provider, { label: string; color: string; bg: string; border: string; help: string }> = {
   pagerduty: {
     label: 'PagerDuty',
-    color: 'text-[#00c853]',
-    bg: 'bg-[#00c853]/10',
-    border: 'border-[#00c853]/30',
+    color: 'text-falcon-green',
+    bg: 'bg-falcon-green/10',
+    border: 'border-falcon-green/30',
     help: 'PagerDutyのサービス統合キーを入力してください。サービス → 統合 → Events API v2 で取得できます。',
   },
   opsgenie: {
     label: 'OpsGenie',
-    color: 'text-[#1a6bff]',
-    bg: 'bg-[#1a6bff]/10',
-    border: 'border-[#1a6bff]/30',
+    color: 'text-falcon-blue',
+    bg: 'bg-falcon-blue/10',
+    border: 'border-falcon-blue/30',
     help: 'OpsGenieのAPIキーを入力してください。設定 → API key management で作成できます。',
   },
   victorops: {
     label: 'VictorOps',
-    color: 'text-[#e8002d]',
-    bg: 'bg-[#e8002d]/10',
-    border: 'border-[#e8002d]/30',
+    color: 'text-falcon-red',
+    bg: 'bg-falcon-red/10',
+    border: 'border-falcon-red/30',
     help: 'VictorOps (Splunk On-Call) のルーティングキーを入力してください。Integrations → REST Endpoint で確認できます。',
   },
 }
@@ -90,7 +90,7 @@ function formatRelative(iso: string): string {
 
 function Badge({ children, color }: { children: React.ReactNode; color: string }) {
   return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium border ${color}`}>
+    <span className={`inline-flex items-center px-2 py-0.5 rounded-sm text-[11px] font-medium border ${color}`}>
       {children}
     </span>
   )
@@ -98,10 +98,10 @@ function Badge({ children, color }: { children: React.ReactNode; color: string }
 
 function Toast({ message, onClose }: { message: string; onClose: () => void }) {
   return (
-    <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 px-4 py-3 rounded-lg bg-[#0d1220] border border-[#00c853]/40 shadow-xl text-sm text-[#e2e8f4]">
-      <CheckCircle2 className="w-4 h-4 text-[#00c853] flex-shrink-0" />
+    <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 px-4 py-3 rounded-lg bg-falcon-surface border border-falcon-green/40 shadow-xl text-sm text-falcon-text">
+      <CheckCircle2 className="w-4 h-4 text-falcon-green shrink-0" />
       <span>{message}</span>
-      <button onClick={onClose} className="p-0.5 rounded hover:bg-[#1e2d42] text-[#7d92b0] transition-colors">
+      <button onClick={onClose} className="p-0.5 rounded-sm hover:bg-falcon-border text-falcon-muted transition-colors">
         <X className="w-3.5 h-3.5" />
       </button>
     </div>
@@ -143,14 +143,14 @@ function IntegrationModal({
   const valid = form.name.trim().length > 0 && form.integration_key.trim().length > 0
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm overflow-y-auto py-8">
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl w-full max-w-lg mx-4 shadow-2xl">
-        <div className="flex items-center gap-3 px-5 py-4 border-b border-[#1e2d42]">
-          <div className="w-8 h-8 rounded-lg bg-[#1a6bff]/10 flex items-center justify-center">
-            <Bell className="w-4 h-4 text-[#1a6bff]" />
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs overflow-y-auto py-8">
+      <div className="bg-falcon-surface border border-falcon-border rounded-xl w-full max-w-lg mx-4 shadow-2xl">
+        <div className="flex items-center gap-3 px-5 py-4 border-b border-falcon-border">
+          <div className="w-8 h-8 rounded-lg bg-falcon-blue/10 flex items-center justify-center">
+            <Bell className="w-4 h-4 text-falcon-blue" />
           </div>
-          <h3 className="text-sm font-semibold text-[#e2e8f4] flex-1">{title}</h3>
-          <button onClick={onClose} className="p-1.5 rounded hover:bg-[#1e2d42] text-[#7d92b0] hover:text-[#e2e8f4] transition-colors">
+          <h3 className="text-sm font-semibold text-falcon-text flex-1">{title}</h3>
+          <button onClick={onClose} className="p-1.5 rounded-sm hover:bg-falcon-border text-falcon-muted hover:text-falcon-text transition-colors">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -158,7 +158,7 @@ function IntegrationModal({
         <div className="p-5 space-y-5">
           {/* Provider Select */}
           <div className="flex flex-col gap-2">
-            <label className="text-xs font-medium text-[#7d92b0] uppercase tracking-wide">プロバイダー <span className="text-[#e8002d]">*</span></label>
+            <label className="text-xs font-medium text-falcon-muted uppercase tracking-wide">プロバイダー <span className="text-falcon-red">*</span></label>
             <div className="grid grid-cols-3 gap-2">
               {(Object.keys(PROVIDER_META) as Provider[]).map(p => {
                 const m = PROVIDER_META[p]
@@ -170,7 +170,7 @@ function IntegrationModal({
                     className={`flex flex-col items-center gap-1.5 px-3 py-3 rounded-lg border text-center transition-colors ${
                       form.provider === p
                         ? `${m.bg} ${m.border} ${m.color}`
-                        : 'border-[#1e2d42] text-[#7d92b0] hover:border-[#253750]'
+                        : 'border-falcon-border text-falcon-muted hover:border-[#253750]'
                     }`}
                   >
                     <Zap className="w-4 h-4" />
@@ -183,33 +183,33 @@ function IntegrationModal({
 
           {/* Name */}
           <div className="flex flex-col gap-1">
-            <label className="text-xs font-medium text-[#7d92b0] uppercase tracking-wide">名前 <span className="text-[#e8002d]">*</span></label>
+            <label className="text-xs font-medium text-falcon-muted uppercase tracking-wide">名前 <span className="text-falcon-red">*</span></label>
             <input
               type="text"
               value={form.name}
               onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
               placeholder={`${meta.label} Production`}
-              className="w-full bg-[#070d19] border border-[#1e2d42] rounded px-3 py-2 text-sm text-[#e2e8f4] placeholder-[#3d5068]
-                         focus:outline-none focus:border-[#1a6bff]/60 transition-colors"
+              className="w-full bg-[#070d19] border border-falcon-border rounded px-3 py-2 text-sm text-falcon-text placeholder-falcon-subtle
+                         focus:outline-hidden focus:border-falcon-blue/60 transition-colors"
             />
           </div>
 
           {/* Integration Key */}
           <div className="flex flex-col gap-1">
-            <label className="text-xs font-medium text-[#7d92b0] uppercase tracking-wide">統合キー <span className="text-[#e8002d]">*</span></label>
+            <label className="text-xs font-medium text-falcon-muted uppercase tracking-wide">統合キー <span className="text-falcon-red">*</span></label>
             <div className="relative">
               <input
                 type={showKey ? 'text' : 'password'}
                 value={form.integration_key}
                 onChange={e => setForm(f => ({ ...f, integration_key: e.target.value }))}
                 placeholder="統合キーを入力..."
-                className="w-full bg-[#070d19] border border-[#1e2d42] rounded px-3 py-2 pr-10 text-sm text-[#e2e8f4] placeholder-[#3d5068]
-                           focus:outline-none focus:border-[#1a6bff]/60 transition-colors font-mono"
+                className="w-full bg-[#070d19] border border-falcon-border rounded px-3 py-2 pr-10 text-sm text-falcon-text placeholder-falcon-subtle
+                           focus:outline-hidden focus:border-falcon-blue/60 transition-colors font-mono"
               />
               <button
                 type="button"
                 onClick={() => setShowKey(s => !s)}
-                className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded text-[#7d92b0] hover:text-[#e2e8f4] transition-colors"
+                className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-sm text-falcon-muted hover:text-falcon-text transition-colors"
               >
                 {showKey
                   ? <X className="w-4 h-4" />
@@ -217,17 +217,17 @@ function IntegrationModal({
                 }
               </button>
             </div>
-            <p className="text-xs text-[#7d92b0] mt-0.5">{meta.help}</p>
+            <p className="text-xs text-falcon-muted mt-0.5">{meta.help}</p>
           </div>
 
           {/* Severity Threshold Slider */}
           <div className="flex flex-col gap-2">
             <div className="flex items-center justify-between">
-              <label className="text-xs font-medium text-[#7d92b0] uppercase tracking-wide">重大度しきい値</label>
+              <label className="text-xs font-medium text-falcon-muted uppercase tracking-wide">重大度しきい値</label>
               <span className={`text-sm font-bold px-2 py-0.5 rounded ${
-                form.severity_threshold >= 8 ? 'text-[#e8002d] bg-[#e8002d]/10' :
+                form.severity_threshold >= 8 ? 'text-falcon-red bg-falcon-red/10' :
                 form.severity_threshold >= 6 ? 'text-[#f59e0b] bg-[#f59e0b]/10' :
-                'text-[#00c853] bg-[#00c853]/10'
+                'text-falcon-green bg-falcon-green/10'
               }`}>
                 {form.severity_threshold}
               </span>
@@ -238,9 +238,9 @@ function IntegrationModal({
               max={10}
               value={form.severity_threshold}
               onChange={e => setForm(f => ({ ...f, severity_threshold: Number(e.target.value) }))}
-              className="w-full accent-[#e8002d]"
+              className="w-full accent-falcon-red"
             />
-            <div className="flex justify-between text-[10px] text-[#3d5068]">
+            <div className="flex justify-between text-[10px] text-falcon-subtle">
               <span>1 (低)</span>
               <span>重大度 ≥ {form.severity_threshold} で通知</span>
               <span>10 (高)</span>
@@ -248,17 +248,17 @@ function IntegrationModal({
           </div>
         </div>
 
-        <div className="px-5 py-4 border-t border-[#1e2d42] flex gap-3">
+        <div className="px-5 py-4 border-t border-falcon-border flex gap-3">
           <button
             onClick={onClose}
-            className="flex-1 py-2.5 rounded-lg border border-[#1e2d42] text-[#7d92b0] hover:text-[#e2e8f4] text-sm font-medium transition-colors"
+            className="flex-1 py-2.5 rounded-lg border border-falcon-border text-falcon-muted hover:text-falcon-text text-sm font-medium transition-colors"
           >
             キャンセル
           </button>
           <button
             onClick={() => valid && onSave(form)}
             disabled={!valid || saving}
-            className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg bg-[#1a6bff] hover:bg-[#1558d6]
+            className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg bg-falcon-blue hover:bg-[#1558d6]
                        text-white text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
@@ -274,19 +274,19 @@ function IntegrationModal({
 
 function ConfirmModal({ message, onConfirm, onClose }: { message: string; onConfirm: () => void; onClose: () => void }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl w-full max-w-sm mx-4 shadow-2xl p-5 space-y-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs">
+      <div className="bg-falcon-surface border border-falcon-border rounded-xl w-full max-w-sm mx-4 shadow-2xl p-5 space-y-4">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-[#e8002d]/10 flex items-center justify-center">
-            <AlertTriangle className="w-4 h-4 text-[#e8002d]" />
+          <div className="w-8 h-8 rounded-lg bg-falcon-red/10 flex items-center justify-center">
+            <AlertTriangle className="w-4 h-4 text-falcon-red" />
           </div>
-          <p className="text-sm text-[#e2e8f4] flex-1">{message}</p>
+          <p className="text-sm text-falcon-text flex-1">{message}</p>
         </div>
         <div className="flex gap-3">
-          <button onClick={onClose} className="flex-1 py-2.5 rounded-lg border border-[#1e2d42] text-[#7d92b0] hover:text-[#e2e8f4] text-sm font-medium transition-colors">
+          <button onClick={onClose} className="flex-1 py-2.5 rounded-lg border border-falcon-border text-falcon-muted hover:text-falcon-text text-sm font-medium transition-colors">
             キャンセル
           </button>
-          <button onClick={onConfirm} className="flex-1 py-2.5 rounded-lg bg-[#e8002d] hover:bg-[#c8001d] text-white text-sm font-semibold transition-colors">
+          <button onClick={onConfirm} className="flex-1 py-2.5 rounded-lg bg-falcon-red hover:bg-[#c8001d] text-white text-sm font-semibold transition-colors">
             削除
           </button>
         </div>
@@ -420,18 +420,18 @@ export default function OnCallPage() {
   })
 
   return (
-    <div className="min-h-screen bg-[#070d19] text-[#e2e8f4]">
+    <div className="min-h-screen bg-[#070d19] text-falcon-text">
       <div className="max-w-6xl mx-auto px-6 py-8 space-y-6">
 
         {/* Header */}
         <div className="flex items-start justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-[#e2e8f4] tracking-tight">オンコール統合</h1>
-            <p className="text-sm text-[#7d92b0] mt-1">PagerDuty・OpsGenieへの重大アラート自動通知</p>
+            <h1 className="text-2xl font-bold text-falcon-text tracking-tight">オンコール統合</h1>
+            <p className="text-sm text-falcon-muted mt-1">PagerDuty・OpsGenieへの重大アラート自動通知</p>
           </div>
           <button
             onClick={() => setShowCreate(true)}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-[#e8002d] hover:bg-[#c8001d]
+            className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-falcon-red hover:bg-[#c8001d]
                        text-white text-sm font-semibold transition-colors shadow-lg"
           >
             <Plus className="w-4 h-4" />
@@ -442,27 +442,27 @@ export default function OnCallPage() {
         {/* Stats Row */}
         <div className="grid grid-cols-4 gap-4">
           {[
-            { label: 'アクティブ統合', value: String(activeCount), icon: Activity, color: 'text-[#00c853]' },
-            { label: '今日のイベント送信', value: String(eventsSentToday), icon: Send, color: 'text-[#1a6bff]' },
+            { label: 'アクティブ統合', value: String(activeCount), icon: Activity, color: 'text-falcon-green' },
+            { label: '今日のイベント送信', value: String(eventsSentToday), icon: Send, color: 'text-falcon-blue' },
             {
               label: '最終イベント時刻',
               value: lastEvent ? formatRelative(lastEvent) : 'なし',
               icon: Clock,
-              color: 'text-[#7d92b0]',
+              color: 'text-falcon-muted',
             },
             {
               label: '失敗イベント',
               value: String(failedCount),
               icon: AlertCircle,
-              color: failedCount > 0 ? 'text-[#e8002d]' : 'text-[#7d92b0]',
+              color: failedCount > 0 ? 'text-falcon-red' : 'text-falcon-muted',
             },
           ].map(stat => (
-            <div key={stat.label} className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-4">
+            <div key={stat.label} className="bg-falcon-surface border border-falcon-border rounded-lg p-4">
               <div className="flex items-center justify-between mb-2">
-                <p className="text-xs text-[#7d92b0]">{stat.label}</p>
+                <p className="text-xs text-falcon-muted">{stat.label}</p>
                 <stat.icon className={`w-4 h-4 ${stat.color}`} />
               </div>
-              <p className={`text-xl font-bold ${stat.label === '失敗イベント' && failedCount > 0 ? 'text-[#e8002d]' : 'text-[#e2e8f4]'}`}>
+              <p className={`text-xl font-bold ${stat.label === '失敗イベント' && failedCount > 0 ? 'text-falcon-red' : 'text-falcon-text'}`}>
                 {stat.value}
               </p>
             </div>
@@ -470,15 +470,15 @@ export default function OnCallPage() {
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-1 p-1 bg-[#0d1220] border border-[#1e2d42] rounded-lg w-fit">
+        <div className="flex gap-1 p-1 bg-falcon-surface border border-falcon-border rounded-lg w-fit">
           {([['settings', '統合設定'], ['history', 'イベント履歴']] as const).map(([tab, label]) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
               className={`px-4 py-2 rounded text-sm font-medium transition-colors ${
                 activeTab === tab
-                  ? 'bg-[#1e2d42] text-[#e2e8f4]'
-                  : 'text-[#7d92b0] hover:text-[#e2e8f4]'
+                  ? 'bg-falcon-border text-falcon-text'
+                  : 'text-falcon-muted hover:text-falcon-text'
               }`}
             >
               {label}
@@ -491,60 +491,60 @@ export default function OnCallPage() {
           <div className="grid grid-cols-1 gap-4">
             {loadingInt
               ? Array.from({ length: 2 }).map((_, i) => (
-                  <div key={i} className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5 animate-pulse">
-                    <div className="h-5 bg-[#1e2d42] rounded w-48 mb-3" />
-                    <div className="h-4 bg-[#1e2d42] rounded w-32" />
+                  <div key={i} className="bg-falcon-surface border border-falcon-border rounded-xl p-5 animate-pulse">
+                    <div className="h-5 bg-falcon-border rounded-sm w-48 mb-3" />
+                    <div className="h-4 bg-falcon-border rounded-sm w-32" />
                   </div>
                 ))
               : displayIntegrations.map(intg => {
                   const meta = PROVIDER_META[intg.provider]
                   const isTesting = testingId === intg.id
                   return (
-                    <div key={intg.id} className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
+                    <div key={intg.id} className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
                       <div className="flex items-start justify-between gap-4">
                         <div className="flex items-start gap-4 flex-1 min-w-0">
                           {/* Provider Badge */}
-                          <div className={`flex-shrink-0 px-3 py-2 rounded-lg border ${meta.bg} ${meta.border}`}>
+                          <div className={`shrink-0 px-3 py-2 rounded-lg border ${meta.bg} ${meta.border}`}>
                             <span className={`text-xs font-bold ${meta.color}`}>{meta.label}</span>
                           </div>
 
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 flex-wrap">
-                              <h3 className="text-sm font-semibold text-[#e2e8f4]">{intg.name}</h3>
+                              <h3 className="text-sm font-semibold text-falcon-text">{intg.name}</h3>
                               {/* Severity Badge */}
                               <Badge color={
                                 intg.severity_threshold >= 8
-                                  ? 'border-[#e8002d]/40 text-[#e8002d] bg-[#e8002d]/5'
+                                  ? 'border-falcon-red/40 text-falcon-red bg-falcon-red/5'
                                   : intg.severity_threshold >= 6
                                   ? 'border-[#f59e0b]/40 text-[#f59e0b] bg-[#f59e0b]/5'
-                                  : 'border-[#00c853]/40 text-[#00c853] bg-[#00c853]/5'
+                                  : 'border-falcon-green/40 text-falcon-green bg-falcon-green/5'
                               }>
                                 重大度 ≥ {intg.severity_threshold}
                               </Badge>
                             </div>
                             {/* Masked Key */}
-                            <p className="text-xs font-mono text-[#7d92b0] mt-1">
+                            <p className="text-xs font-mono text-falcon-muted mt-1">
                               鍵: {maskKey(intg.integration_key)}
                             </p>
-                            <div className="flex items-center gap-4 mt-2 text-xs text-[#7d92b0]">
-                              <span>送信: <span className="text-[#e2e8f4] font-medium">{intg.events_sent}</span></span>
+                            <div className="flex items-center gap-4 mt-2 text-xs text-falcon-muted">
+                              <span>送信: <span className="text-falcon-text font-medium">{intg.events_sent}</span></span>
                               {intg.last_event && (
-                                <span>最終: <span className="text-[#e2e8f4]">{formatRelative(intg.last_event)}</span></span>
+                                <span>最終: <span className="text-falcon-text">{formatRelative(intg.last_event)}</span></span>
                               )}
                             </div>
                           </div>
                         </div>
 
                         {/* Actions */}
-                        <div className="flex items-center gap-2 flex-shrink-0">
+                        <div className="flex items-center gap-2 shrink-0">
                           {/* Enabled Toggle */}
                           <div
                             onClick={() => toggleMutation.mutate({ id: intg.id, enabled: !intg.enabled })}
                             className="cursor-pointer"
                           >
                             {intg.enabled
-                              ? <ToggleRight className="w-8 h-8 text-[#00c853]" />
-                              : <ToggleLeft className="w-8 h-8 text-[#3d5068]" />
+                              ? <ToggleRight className="w-8 h-8 text-falcon-green" />
+                              : <ToggleLeft className="w-8 h-8 text-falcon-subtle" />
                             }
                           </div>
 
@@ -555,8 +555,8 @@ export default function OnCallPage() {
                               testMutation.mutate(intg.id)
                             }}
                             disabled={isTesting}
-                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#1e2d42]
-                                       text-xs text-[#7d92b0] hover:text-[#e2e8f4] hover:border-[#253750]
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-falcon-border
+                                       text-xs text-falcon-muted hover:text-falcon-text hover:border-[#253750]
                                        disabled:opacity-50 transition-colors"
                           >
                             {isTesting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
@@ -566,7 +566,7 @@ export default function OnCallPage() {
                           {/* Edit */}
                           <button
                             onClick={() => setEditTarget(intg)}
-                            className="p-1.5 rounded hover:bg-[#1e2d42] text-[#7d92b0] hover:text-[#e2e8f4] transition-colors"
+                            className="p-1.5 rounded-sm hover:bg-falcon-border text-falcon-muted hover:text-falcon-text transition-colors"
                           >
                             <Edit2 className="w-4 h-4" />
                           </button>
@@ -574,7 +574,7 @@ export default function OnCallPage() {
                           {/* Delete */}
                           <button
                             onClick={() => setDeleteTarget(intg)}
-                            className="p-1.5 rounded hover:bg-[#1e2d42] text-[#7d92b0] hover:text-[#e8002d] transition-colors"
+                            className="p-1.5 rounded-sm hover:bg-falcon-border text-falcon-muted hover:text-falcon-red transition-colors"
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
@@ -586,12 +586,12 @@ export default function OnCallPage() {
             }
 
             {!loadingInt && displayIntegrations.length === 0 && (
-              <div className="bg-[#0d1220] border border-dashed border-[#1e2d42] rounded-xl p-10 text-center">
-                <Bell className="w-8 h-8 text-[#3d5068] mx-auto mb-3" />
-                <p className="text-sm text-[#7d92b0]">統合がまだ設定されていません</p>
+              <div className="bg-falcon-surface border border-dashed border-falcon-border rounded-xl p-10 text-center">
+                <Bell className="w-8 h-8 text-falcon-subtle mx-auto mb-3" />
+                <p className="text-sm text-falcon-muted">統合がまだ設定されていません</p>
                 <button
                   onClick={() => setShowCreate(true)}
-                  className="mt-3 text-sm text-[#1a6bff] hover:text-[#4d8bff] transition-colors flex items-center gap-1.5 mx-auto"
+                  className="mt-3 text-sm text-falcon-blue hover:text-[#4d8bff] transition-colors flex items-center gap-1.5 mx-auto"
                 >
                   <Plus className="w-4 h-4" />
                   最初の統合を追加
@@ -606,7 +606,7 @@ export default function OnCallPage() {
           <div className="space-y-4">
             {/* Filters */}
             <div className="flex items-center gap-3 flex-wrap">
-              <div className="flex items-center gap-1.5 text-xs text-[#7d92b0]">
+              <div className="flex items-center gap-1.5 text-xs text-falcon-muted">
                 <Filter className="w-3.5 h-3.5" />
                 フィルター:
               </div>
@@ -614,8 +614,8 @@ export default function OnCallPage() {
               <select
                 value={filterIntegration}
                 onChange={e => setFilterIntegration(e.target.value)}
-                className="bg-[#0d1220] border border-[#1e2d42] rounded px-3 py-1.5 text-xs text-[#e2e8f4]
-                           focus:outline-none focus:border-[#1a6bff]/60 transition-colors"
+                className="bg-falcon-surface border border-falcon-border rounded px-3 py-1.5 text-xs text-falcon-text
+                           focus:outline-hidden focus:border-falcon-blue/60 transition-colors"
               >
                 <option value="all">すべての統合</option>
                 {displayIntegrations.map(i => (
@@ -626,8 +626,8 @@ export default function OnCallPage() {
               <select
                 value={filterEventType}
                 onChange={e => setFilterEventType(e.target.value)}
-                className="bg-[#0d1220] border border-[#1e2d42] rounded px-3 py-1.5 text-xs text-[#e2e8f4]
-                           focus:outline-none focus:border-[#1a6bff]/60 transition-colors"
+                className="bg-falcon-surface border border-falcon-border rounded px-3 py-1.5 text-xs text-falcon-text
+                           focus:outline-hidden focus:border-falcon-blue/60 transition-colors"
               >
                 <option value="all">すべてのタイプ</option>
                 <option value="trigger">trigger</option>
@@ -638,68 +638,68 @@ export default function OnCallPage() {
               <select
                 value={filterStatus}
                 onChange={e => setFilterStatus(e.target.value)}
-                className="bg-[#0d1220] border border-[#1e2d42] rounded px-3 py-1.5 text-xs text-[#e2e8f4]
-                           focus:outline-none focus:border-[#1a6bff]/60 transition-colors"
+                className="bg-falcon-surface border border-falcon-border rounded px-3 py-1.5 text-xs text-falcon-text
+                           focus:outline-hidden focus:border-falcon-blue/60 transition-colors"
               >
                 <option value="all">すべてのステータス</option>
                 <option value="sent">送信済み</option>
                 <option value="failed">失敗</option>
               </select>
 
-              <span className="text-xs text-[#3d5068]">{filteredEvents.length} 件</span>
+              <span className="text-xs text-falcon-subtle">{filteredEvents.length} 件</span>
             </div>
 
             {/* Table */}
-            <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg overflow-hidden">
+            <div className="bg-falcon-surface border border-falcon-border rounded-lg overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b border-[#1e2d42]">
+                    <tr className="border-b border-falcon-border">
                       {['統合名', 'アラートID', 'タイプ', 'サマリー', '重大度', 'ステータス', 'レスポンス', '送信時刻', ''].map(h => (
-                        <th key={h} className="px-4 py-3 text-left text-xs font-medium text-[#7d92b0] uppercase tracking-wide whitespace-nowrap">
+                        <th key={h} className="px-4 py-3 text-left text-xs font-medium text-falcon-muted uppercase tracking-wide whitespace-nowrap">
                           {h}
                         </th>
                       ))}
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-[#1e2d42]/50">
+                  <tbody className="divide-y divide-falcon-border/50">
                     {loadingEv
                       ? Array.from({ length: 5 }).map((_, i) => (
                           <tr key={i} className="animate-pulse">
                             {Array.from({ length: 9 }).map((_, j) => (
                               <td key={j} className="px-4 py-3">
-                                <div className="h-3.5 bg-[#1e2d42] rounded" />
+                                <div className="h-3.5 bg-falcon-border rounded-sm" />
                               </td>
                             ))}
                           </tr>
                         ))
                       : filteredEvents.map(ev => (
                           <tr key={ev.id} className="hover:bg-[#0a1120] transition-colors">
-                            <td className="px-4 py-3 text-xs text-[#7d92b0] whitespace-nowrap">
+                            <td className="px-4 py-3 text-xs text-falcon-muted whitespace-nowrap">
                               {ev.integration_name}
                             </td>
                             <td className="px-4 py-3">
-                              <a href={`/alerts?id=${ev.alert_id}`} className="text-xs font-mono text-[#1a6bff] hover:text-[#4d8bff] transition-colors">
+                              <a href={`/alerts?id=${ev.alert_id}`} className="text-xs font-mono text-falcon-blue hover:text-[#4d8bff] transition-colors">
                                 {ev.alert_id}
                               </a>
                             </td>
                             <td className="px-4 py-3">
                               <Badge color={
                                 ev.event_type === 'trigger'
-                                  ? 'border-[#e8002d]/40 text-[#e8002d] bg-[#e8002d]/5'
+                                  ? 'border-falcon-red/40 text-falcon-red bg-falcon-red/5'
                                   : ev.event_type === 'resolve'
-                                  ? 'border-[#00c853]/40 text-[#00c853] bg-[#00c853]/5'
+                                  ? 'border-falcon-green/40 text-falcon-green bg-falcon-green/5'
                                   : 'border-[#f59e0b]/40 text-[#f59e0b] bg-[#f59e0b]/5'
                               }>
                                 {ev.event_type}
                               </Badge>
                             </td>
                             <td className="px-4 py-3 max-w-[220px]">
-                              <p className="text-xs text-[#7d92b0] truncate" title={ev.summary}>{ev.summary}</p>
+                              <p className="text-xs text-falcon-muted truncate" title={ev.summary}>{ev.summary}</p>
                             </td>
                             <td className="px-4 py-3 text-center">
                               <span className={`text-xs font-bold ${
-                                ev.severity >= 8 ? 'text-[#e8002d]' : ev.severity >= 6 ? 'text-[#f59e0b]' : 'text-[#7d92b0]'
+                                ev.severity >= 8 ? 'text-falcon-red' : ev.severity >= 6 ? 'text-[#f59e0b]' : 'text-falcon-muted'
                               }`}>
                                 {ev.severity}
                               </span>
@@ -707,24 +707,24 @@ export default function OnCallPage() {
                             <td className="px-4 py-3">
                               <Badge color={
                                 ev.status === 'sent'
-                                  ? 'border-[#00c853]/40 text-[#00c853] bg-[#00c853]/5'
-                                  : 'border-[#e8002d]/40 text-[#e8002d] bg-[#e8002d]/5'
+                                  ? 'border-falcon-green/40 text-falcon-green bg-falcon-green/5'
+                                  : 'border-falcon-red/40 text-falcon-red bg-falcon-red/5'
                               }>
                                 {ev.status === 'sent' ? '送信済み' : '失敗'}
                               </Badge>
                             </td>
-                            <td className="px-4 py-3 text-xs font-mono text-[#7d92b0]">
+                            <td className="px-4 py-3 text-xs font-mono text-falcon-muted">
                               {ev.response_code ?? '—'}
                             </td>
-                            <td className="px-4 py-3 text-xs text-[#7d92b0] whitespace-nowrap">
+                            <td className="px-4 py-3 text-xs text-falcon-muted whitespace-nowrap">
                               {formatRelative(ev.sent_at)}
                             </td>
                             <td className="px-4 py-3">
                               {ev.status === 'failed' && (
                                 <button
                                   onClick={() => resendMutation.mutate(ev.id)}
-                                  className="flex items-center gap-1 px-2.5 py-1 rounded border border-[#1e2d42]
-                                             text-xs text-[#7d92b0] hover:text-[#e2e8f4] hover:border-[#253750] transition-colors"
+                                  className="flex items-center gap-1 px-2.5 py-1 rounded border border-falcon-border
+                                             text-xs text-falcon-muted hover:text-falcon-text hover:border-[#253750] transition-colors"
                                 >
                                   <RefreshCw className="w-3 h-3" />
                                   再送信

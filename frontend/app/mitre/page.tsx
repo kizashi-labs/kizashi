@@ -225,7 +225,7 @@ export default function MITREPage() {
         {/* ── Header ── */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
           <div className="flex items-center gap-3">
-            <Shield className="w-7 h-7 text-blue-400 flex-shrink-0" />
+            <Shield className="w-7 h-7 text-blue-400 shrink-0" />
             <div>
               <h1 className="text-2xl font-bold text-white">MITRE ATT&CK マトリクス</h1>
               <p className="text-sm text-gray-400 mt-0.5">
@@ -294,8 +294,8 @@ export default function MITREPage() {
         {isLoading ? (
           <div className="text-center py-20 text-gray-500">読み込み中...</div>
         ) : isError ? (
-          <div className="text-center py-20 bg-[#0d1220] rounded-xl border border-[#e8002d]/30">
-            <p className="text-[#e8002d] text-sm font-medium">MITREデータの取得に失敗しました</p>
+          <div className="text-center py-20 bg-falcon-surface rounded-xl border border-falcon-red/30">
+            <p className="text-falcon-red text-sm font-medium">MITREデータの取得に失敗しました</p>
             <p className="text-gray-500 text-xs mt-1">ネットワーク接続またはサーバーの状態を確認してください</p>
           </div>
         ) : (
@@ -345,7 +345,7 @@ export default function MITREPage() {
                         }`}
                       >
                         <p className="text-[10px] font-mono font-bold leading-none mb-0.5">{techId}</p>
-                        <p className="text-[9px] leading-tight break-words">{techName}</p>
+                        <p className="text-[9px] leading-tight wrap-break-word">{techName}</p>
                         {hits > 0 && (
                           <p className="text-[10px] font-bold mt-1 text-right">
                             {hits}件
@@ -370,7 +370,7 @@ export default function MITREPage() {
             { cls: 'bg-red-900/50 border-red-800',           label: '10件以上' },
           ].map(l => (
             <div key={l.label} className="flex items-center gap-1.5">
-              <div className={`w-4 h-4 rounded border ${l.cls}`} />
+              <div className={`w-4 h-4 rounded-sm border ${l.cls}`} />
               <span>{l.label}</span>
             </div>
           ))}
@@ -431,7 +431,7 @@ export default function MITREPage() {
                         <p className="text-sm text-white font-medium group-hover:text-blue-300 transition-colors line-clamp-2">
                           {alert.title}
                         </p>
-                        <span className={`text-xs px-2 py-0.5 rounded flex-shrink-0 ${sevBadgeClass(alert.severity)}`}>
+                        <span className={`text-xs px-2 py-0.5 rounded-sm shrink-0 ${sevBadgeClass(alert.severity)}`}>
                           {severityLabel(alert.severity)}
                         </span>
                       </div>

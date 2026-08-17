@@ -106,50 +106,50 @@ function ProviderModal({ provider, onClose, onSave }: ProviderModalProps) {
   const hints = CONFIG_HINTS[form.provider_type]
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl w-full max-w-lg shadow-2xl">
-        <div className="flex items-center justify-between p-5 border-b border-[#1e2d42]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
+      <div className="bg-falcon-surface border border-falcon-border rounded-xl w-full max-w-lg shadow-2xl">
+        <div className="flex items-center justify-between p-5 border-b border-falcon-border">
           <h2 className="text-white font-semibold text-lg">{provider ? 'プロバイダー編集' : '新規プロバイダー追加'}</h2>
-          <button onClick={onClose} className="text-[#7d92b0] hover:text-white p-1 rounded hover:bg-[#1e2d42] transition-colors"><X className="w-5 h-5" /></button>
+          <button onClick={onClose} className="text-falcon-muted hover:text-white p-1 rounded-sm hover:bg-falcon-border transition-colors"><X className="w-5 h-5" /></button>
         </div>
         <div className="p-5 space-y-4">
           <div>
-            <label className="block text-[#7d92b0] text-sm mb-1.5">プロバイダー名 *</label>
-            <input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[#e8002d]/50" placeholder="例: Azure AD - 本社" />
+            <label className="block text-falcon-muted text-sm mb-1.5">プロバイダー名 *</label>
+            <input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-red/50" placeholder="例: Azure AD - 本社" />
           </div>
           <div>
-            <label className="block text-[#7d92b0] text-sm mb-1.5">プロバイダータイプ</label>
-            <select value={form.provider_type} onChange={e => setForm(f => ({ ...f, provider_type: e.target.value as ProviderType }))} className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[#e8002d]/50">
+            <label className="block text-falcon-muted text-sm mb-1.5">プロバイダータイプ</label>
+            <select value={form.provider_type} onChange={e => setForm(f => ({ ...f, provider_type: e.target.value as ProviderType }))} className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-red/50">
               {(Object.keys(PROVIDER_LABEL) as ProviderType[]).map(t => <option key={t} value={t}>{PROVIDER_LABEL[t]}</option>)}
             </select>
           </div>
           <div>
-            <label className="block text-[#7d92b0] text-sm mb-1.5">テナントID / ドメイン</label>
-            <input value={form.tenant_id} onChange={e => setForm(f => ({ ...f, tenant_id: e.target.value }))} className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm font-mono focus:outline-none focus:border-[#e8002d]/50" />
+            <label className="block text-falcon-muted text-sm mb-1.5">テナントID / ドメイン</label>
+            <input value={form.tenant_id} onChange={e => setForm(f => ({ ...f, tenant_id: e.target.value }))} className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm font-mono focus:outline-hidden focus:border-falcon-red/50" />
           </div>
           <div>
-            <label className="block text-[#7d92b0] text-sm mb-1.5">設定 (JSON)</label>
-            <div className="mb-2 p-3 bg-[#070d19] border border-[#1e2d42] rounded-lg">
-              <p className="text-xs text-[#7d92b0] mb-1.5 font-medium">{PROVIDER_LABEL[form.provider_type]} 必要フィールド:</p>
+            <label className="block text-falcon-muted text-sm mb-1.5">設定 (JSON)</label>
+            <div className="mb-2 p-3 bg-[#070d19] border border-falcon-border rounded-lg">
+              <p className="text-xs text-falcon-muted mb-1.5 font-medium">{PROVIDER_LABEL[form.provider_type]} 必要フィールド:</p>
               <div className="space-y-1">
                 {hints.map(h => (
                   <div key={h.label} className="flex items-center gap-2 text-xs">
-                    <span className="text-[#e8002d] font-mono">{h.label}:</span>
-                    <span className="text-[#7d92b0]">{h.placeholder}</span>
+                    <span className="text-falcon-red font-mono">{h.label}:</span>
+                    <span className="text-falcon-muted">{h.placeholder}</span>
                   </div>
                 ))}
               </div>
             </div>
-            <textarea value={form.config_json} onChange={e => setForm(f => ({ ...f, config_json: e.target.value }))} rows={6} className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm font-mono focus:outline-none focus:border-[#e8002d]/50 resize-none" />
+            <textarea value={form.config_json} onChange={e => setForm(f => ({ ...f, config_json: e.target.value }))} rows={6} className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm font-mono focus:outline-hidden focus:border-falcon-red/50 resize-none" />
           </div>
         </div>
-        <div className="flex justify-end gap-3 p-5 border-t border-[#1e2d42]">
-          <button onClick={onClose} className="px-4 py-2 text-[#7d92b0] text-sm hover:text-white rounded-lg hover:bg-[#1e2d42] transition-colors">キャンセル</button>
+        <div className="flex justify-end gap-3 p-5 border-t border-falcon-border">
+          <button onClick={onClose} className="px-4 py-2 text-falcon-muted text-sm hover:text-white rounded-lg hover:bg-falcon-border transition-colors">キャンセル</button>
           <button onClick={() => {
             let config = {}
             try { config = JSON.parse(form.config_json) } catch {}
             onSave({ name: form.name, provider_type: form.provider_type, tenant_id: form.tenant_id, config })
-          }} className="px-4 py-2 bg-[#e8002d] text-white text-sm font-medium rounded-lg hover:bg-[#c0001f] transition-colors">保存</button>
+          }} className="px-4 py-2 bg-falcon-red text-white text-sm font-medium rounded-lg hover:bg-[#c0001f] transition-colors">保存</button>
         </div>
       </div>
     </div>
@@ -168,28 +168,28 @@ function LinkModal({ identity, onClose, onLink }: LinkModalProps) {
   const [localUserId, setLocalUserId] = useState('')
   const LOCAL_USERS = ['admin', 'tanaka', 'suzuki', 'yamada', 'sato', 'ito', 'nakamura', 'user001', 'user002', 'user003']
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl w-full max-w-md shadow-2xl">
-        <div className="flex items-center justify-between p-5 border-b border-[#1e2d42]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
+      <div className="bg-falcon-surface border border-falcon-border rounded-xl w-full max-w-md shadow-2xl">
+        <div className="flex items-center justify-between p-5 border-b border-falcon-border">
           <h2 className="text-white font-semibold text-lg">ローカルユーザーと紐付け</h2>
-          <button onClick={onClose} className="text-[#7d92b0] hover:text-white p-1 rounded hover:bg-[#1e2d42] transition-colors"><X className="w-5 h-5" /></button>
+          <button onClick={onClose} className="text-falcon-muted hover:text-white p-1 rounded-sm hover:bg-falcon-border transition-colors"><X className="w-5 h-5" /></button>
         </div>
         <div className="p-5 space-y-4">
-          <div className="p-3 bg-[#070d19] border border-[#1e2d42] rounded-lg">
+          <div className="p-3 bg-[#070d19] border border-falcon-border rounded-lg">
             <p className="text-white text-sm font-medium">{identity.display_name}</p>
-            <p className="text-[#7d92b0] text-xs font-mono mt-0.5">{identity.email}</p>
+            <p className="text-falcon-muted text-xs font-mono mt-0.5">{identity.email}</p>
           </div>
           <div>
-            <label className="block text-[#7d92b0] text-sm mb-1.5">ローカルユーザーを選択</label>
-            <select value={localUserId} onChange={e => setLocalUserId(e.target.value)} className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[#e8002d]/50">
+            <label className="block text-falcon-muted text-sm mb-1.5">ローカルユーザーを選択</label>
+            <select value={localUserId} onChange={e => setLocalUserId(e.target.value)} className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-red/50">
               <option value="">-- 選択してください --</option>
               {LOCAL_USERS.map(u => <option key={u} value={u}>{u}</option>)}
             </select>
           </div>
         </div>
-        <div className="flex justify-end gap-3 p-5 border-t border-[#1e2d42]">
-          <button onClick={onClose} className="px-4 py-2 text-[#7d92b0] text-sm hover:text-white rounded-lg hover:bg-[#1e2d42] transition-colors">キャンセル</button>
-          <button onClick={() => localUserId && onLink(identity.id, localUserId)} disabled={!localUserId} className="px-4 py-2 bg-[#e8002d] text-white text-sm font-medium rounded-lg hover:bg-[#c0001f] transition-colors disabled:opacity-50 disabled:cursor-not-allowed">紐付け</button>
+        <div className="flex justify-end gap-3 p-5 border-t border-falcon-border">
+          <button onClick={onClose} className="px-4 py-2 text-falcon-muted text-sm hover:text-white rounded-lg hover:bg-falcon-border transition-colors">キャンセル</button>
+          <button onClick={() => localUserId && onLink(identity.id, localUserId)} disabled={!localUserId} className="px-4 py-2 bg-falcon-red text-white text-sm font-medium rounded-lg hover:bg-[#c0001f] transition-colors disabled:opacity-50 disabled:cursor-not-allowed">紐付け</button>
         </div>
       </div>
     </div>
@@ -299,16 +299,16 @@ export default function CloudIdentityPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-[#0d1220] border border-[#1e2d42] flex items-center justify-center">
-            <Users className="w-5 h-5 text-[#e8002d]" />
+          <div className="w-10 h-10 rounded-lg bg-falcon-surface border border-falcon-border flex items-center justify-center">
+            <Users className="w-5 h-5 text-falcon-red" />
           </div>
           <div>
             <h1 className="text-white font-bold text-xl">クラウドID統合管理</h1>
-            <p className="text-[#7d92b0] text-sm">マルチクラウドIDフェデレーションの統合管理</p>
+            <p className="text-falcon-muted text-sm">マルチクラウドIDフェデレーションの統合管理</p>
           </div>
         </div>
         {activeTab === 'providers' && (
-          <button onClick={() => { setEditingProvider(undefined); setShowProviderModal(true) }} className="flex items-center gap-2 px-4 py-2 bg-[#e8002d] text-white text-sm font-medium rounded-lg hover:bg-[#c0001f] transition-colors">
+          <button onClick={() => { setEditingProvider(undefined); setShowProviderModal(true) }} className="flex items-center gap-2 px-4 py-2 bg-falcon-red text-white text-sm font-medium rounded-lg hover:bg-[#c0001f] transition-colors">
             <Plus className="w-4 h-4" />プロバイダー追加
           </button>
         )}
@@ -322,12 +322,12 @@ export default function CloudIdentityPage() {
           { label: 'ローカルリンク済み', value: linkedCount, icon: LinkIcon, color: 'text-green-400' },
           { label: 'リスクあり', value: atRiskCount, icon: AlertTriangle, color: 'text-orange-400' },
         ].map(c => (
-          <div key={c.label} className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-4 flex items-center gap-4">
-            <div className="w-10 h-10 rounded-lg bg-[#070d19] flex items-center justify-center flex-shrink-0">
+          <div key={c.label} className="bg-falcon-surface border border-falcon-border rounded-xl p-4 flex items-center gap-4">
+            <div className="w-10 h-10 rounded-lg bg-[#070d19] flex items-center justify-center shrink-0">
               <c.icon className={`w-5 h-5 ${c.color}`} />
             </div>
             <div>
-              <p className="text-[#7d92b0] text-xs">{c.label}</p>
+              <p className="text-falcon-muted text-xs">{c.label}</p>
               <p className="text-white font-bold text-2xl">{c.value}</p>
             </div>
           </div>
@@ -335,9 +335,9 @@ export default function CloudIdentityPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 mb-6 bg-[#0d1220] border border-[#1e2d42] rounded-lg p-1 w-fit">
+      <div className="flex gap-1 mb-6 bg-falcon-surface border border-falcon-border rounded-lg p-1 w-fit">
         {(['providers', 'identities'] as const).map(tab => (
-          <button key={tab} onClick={() => setActiveTab(tab)} className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === tab ? 'bg-[#1e2d42] text-white' : 'text-[#7d92b0] hover:text-white'}`}>
+          <button key={tab} onClick={() => setActiveTab(tab)} className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === tab ? 'bg-falcon-border text-white' : 'text-falcon-muted hover:text-white'}`}>
             {tab === 'providers' ? 'IDプロバイダー' : 'フェデレーションID'}
           </button>
         ))}
@@ -345,49 +345,49 @@ export default function CloudIdentityPage() {
 
       {/* Providers Tab */}
       {activeTab === 'providers' && (
-        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
+        <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-[#1e2d42]">
+              <tr className="border-b border-falcon-border">
                 {['プロバイダー名', 'タイプ', 'テナントID', '同期ステータス', '最終同期', 'ユーザー', 'グループ', '有効', 'アクション'].map(h => (
-                  <th key={h} className="px-4 py-3 text-left text-xs font-medium text-[#7d92b0] uppercase tracking-wider">{h}</th>
+                  <th key={h} className="px-4 py-3 text-left text-xs font-medium text-falcon-muted uppercase tracking-wider">{h}</th>
                 ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#1e2d42]">
+            <tbody className="divide-y divide-falcon-border">
               {providers.map(p => (
                 <tr key={p.id} className="hover:bg-[#0d1826] transition-colors">
                   <td className="px-4 py-3">
                     <p className="text-white text-sm font-medium">{p.name}</p>
-                    <p className="text-[#7d92b0] text-xs mt-0.5">{p.linked_identities} ID リンク済み</p>
+                    <p className="text-falcon-muted text-xs mt-0.5">{p.linked_identities} ID リンク済み</p>
                   </td>
                   <td className="px-4 py-3">
-                    <span className={`px-2 py-0.5 rounded text-xs font-medium ${PROVIDER_BADGE[p.provider_type]}`}>{PROVIDER_LABEL[p.provider_type]}</span>
+                    <span className={`px-2 py-0.5 rounded-sm text-xs font-medium ${PROVIDER_BADGE[p.provider_type]}`}>{PROVIDER_LABEL[p.provider_type]}</span>
                   </td>
                   <td className="px-4 py-3">
-                    <span className="text-[#7d92b0] text-xs font-mono">{p.tenant_id.length > 20 ? `${p.tenant_id.slice(0, 20)}…` : p.tenant_id}</span>
+                    <span className="text-falcon-muted text-xs font-mono">{p.tenant_id.length > 20 ? `${p.tenant_id.slice(0, 20)}…` : p.tenant_id}</span>
                   </td>
                   <td className="px-4 py-3">
-                    <span className={`flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium w-fit ${SYNC_BADGE[p.sync_status]}`}>
+                    <span className={`flex items-center gap-1 px-2 py-0.5 rounded-sm text-xs font-medium w-fit ${SYNC_BADGE[p.sync_status]}`}>
                       {p.sync_status === 'syncing' && <RefreshCw className="w-3 h-3 animate-spin" />}
                       {SYNC_LABEL[p.sync_status]}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-[#7d92b0] text-xs">{p.last_sync ? formatDate(p.last_sync) : '—'}</td>
+                  <td className="px-4 py-3 text-falcon-muted text-xs">{p.last_sync ? formatDate(p.last_sync) : '—'}</td>
                   <td className="px-4 py-3 text-white text-sm">{(p.user_count ?? 0).toLocaleString()}</td>
                   <td className="px-4 py-3 text-white text-sm">{p.group_count}</td>
                   <td className="px-4 py-3">
-                    <button onClick={() => handleToggleProvider(p.id)} className={`text-2xl transition-colors ${p.enabled ? 'text-green-400' : 'text-[#3d5068]'}`}>
+                    <button onClick={() => handleToggleProvider(p.id)} className={`text-2xl transition-colors ${p.enabled ? 'text-green-400' : 'text-falcon-subtle'}`}>
                       {p.enabled ? <ToggleRight className="w-8 h-5" /> : <ToggleLeft className="w-8 h-5" />}
                     </button>
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-1">
-                      <button onClick={() => handleSync(p.id)} disabled={syncingIds.has(p.id)} title="同期" className="p-1.5 rounded hover:bg-[#1e2d42] text-[#7d92b0] hover:text-blue-400 transition-colors disabled:opacity-50">
+                      <button onClick={() => handleSync(p.id)} disabled={syncingIds.has(p.id)} title="同期" className="p-1.5 rounded-sm hover:bg-falcon-border text-falcon-muted hover:text-blue-400 transition-colors disabled:opacity-50">
                         <RefreshCw className={`w-3.5 h-3.5 ${syncingIds.has(p.id) ? 'animate-spin' : ''}`} />
                       </button>
-                      <button onClick={() => { setEditingProvider(p); setShowProviderModal(true) }} title="編集" className="p-1.5 rounded hover:bg-[#1e2d42] text-[#7d92b0] hover:text-white transition-colors"><Pencil className="w-3.5 h-3.5" /></button>
-                      <button onClick={() => handleDeleteProvider(p.id)} title="削除" className="p-1.5 rounded hover:bg-[#1e2d42] text-[#7d92b0] hover:text-[#e8002d] transition-colors"><Trash2 className="w-3.5 h-3.5" /></button>
+                      <button onClick={() => { setEditingProvider(p); setShowProviderModal(true) }} title="編集" className="p-1.5 rounded-sm hover:bg-falcon-border text-falcon-muted hover:text-white transition-colors"><Pencil className="w-3.5 h-3.5" /></button>
+                      <button onClick={() => handleDeleteProvider(p.id)} title="削除" className="p-1.5 rounded-sm hover:bg-falcon-border text-falcon-muted hover:text-falcon-red transition-colors"><Trash2 className="w-3.5 h-3.5" /></button>
                     </div>
                   </td>
                 </tr>
@@ -403,74 +403,74 @@ export default function CloudIdentityPage() {
           {/* Filters */}
           <div className="flex flex-wrap items-center gap-3">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#7d92b0]" />
-              <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="メール/名前で検索..." className="bg-[#0d1220] border border-[#1e2d42] rounded-lg pl-9 pr-3 py-2 text-white text-sm focus:outline-none focus:border-[#e8002d]/50 w-56" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-falcon-muted" />
+              <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="メール/名前で検索..." className="bg-falcon-surface border border-falcon-border rounded-lg pl-9 pr-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-red/50 w-56" />
             </div>
-            <select value={filterProvider} onChange={e => setFilterProvider(e.target.value)} className="bg-[#0d1220] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[#e8002d]/50">
+            <select value={filterProvider} onChange={e => setFilterProvider(e.target.value)} className="bg-falcon-surface border border-falcon-border rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-red/50">
               <option value="all">全プロバイダー</option>
               {providers.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
             </select>
-            <select value={filterLinked} onChange={e => setFilterLinked(e.target.value as 'all' | 'linked' | 'unlinked')} className="bg-[#0d1220] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[#e8002d]/50">
+            <select value={filterLinked} onChange={e => setFilterLinked(e.target.value as 'all' | 'linked' | 'unlinked')} className="bg-falcon-surface border border-falcon-border rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-red/50">
               <option value="all">リンク状態: 全て</option>
               <option value="linked">リンク済み</option>
               <option value="unlinked">未リンク</option>
             </select>
-            <select value={filterRisk} onChange={e => setFilterRisk(e.target.value as RiskIndicator | 'all')} className="bg-[#0d1220] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[#e8002d]/50">
+            <select value={filterRisk} onChange={e => setFilterRisk(e.target.value as RiskIndicator | 'all')} className="bg-falcon-surface border border-falcon-border rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-red/50">
               <option value="all">リスク: 全て</option>
               {(Object.keys(RISK_LABEL) as RiskIndicator[]).map(r => <option key={r} value={r}>{RISK_LABEL[r]}</option>)}
             </select>
           </div>
 
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
+          <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-[#1e2d42]">
+                <tr className="border-b border-falcon-border">
                   {['表示名', 'メール', 'プロバイダー', 'グループ', 'ロール', 'ローカルユーザー', '最終確認', 'リスク', 'アクション'].map(h => (
-                    <th key={h} className="px-4 py-3 text-left text-xs font-medium text-[#7d92b0] uppercase tracking-wider">{h}</th>
+                    <th key={h} className="px-4 py-3 text-left text-xs font-medium text-falcon-muted uppercase tracking-wider">{h}</th>
                   ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#1e2d42]">
+              <tbody className="divide-y divide-falcon-border">
                 {filteredIdentities.slice(0, 20).map(id => (
                   <tr key={id.id} className="hover:bg-[#0d1826] transition-colors">
                     <td className="px-4 py-3 text-white text-sm font-medium">{id.display_name}</td>
-                    <td className="px-4 py-3 text-[#7d92b0] text-xs font-mono">{id.email}</td>
+                    <td className="px-4 py-3 text-falcon-muted text-xs font-mono">{id.email}</td>
                     <td className="px-4 py-3">
-                      <span className={`px-2 py-0.5 rounded text-xs font-medium ${PROVIDER_BADGE[id.provider_type]}`}>{PROVIDER_LABEL[id.provider_type]}</span>
+                      <span className={`px-2 py-0.5 rounded-sm text-xs font-medium ${PROVIDER_BADGE[id.provider_type]}`}>{PROVIDER_LABEL[id.provider_type]}</span>
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex flex-wrap gap-1">
-                        {id.groups.slice(0, 2).map(g => <span key={g} className="px-1.5 py-0.5 bg-[#1e2d42] text-[#7d92b0] rounded text-xs">{g}</span>)}
-                        {id.groups.length > 2 && <span className="px-1.5 py-0.5 bg-[#1e2d42] text-[#7d92b0] rounded text-xs">+{id.groups.length - 2}</span>}
+                        {id.groups.slice(0, 2).map(g => <span key={g} className="px-1.5 py-0.5 bg-falcon-border text-falcon-muted rounded-sm text-xs">{g}</span>)}
+                        {id.groups.length > 2 && <span className="px-1.5 py-0.5 bg-falcon-border text-falcon-muted rounded-sm text-xs">+{id.groups.length - 2}</span>}
                       </div>
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex flex-wrap gap-1">
-                        {id.roles.slice(0, 2).map(r => <span key={r} className="px-1.5 py-0.5 bg-[#1e2d42] text-[#7d92b0] rounded text-xs">{r}</span>)}
+                        {id.roles.slice(0, 2).map(r => <span key={r} className="px-1.5 py-0.5 bg-falcon-border text-falcon-muted rounded-sm text-xs">{r}</span>)}
                       </div>
                     </td>
                     <td className="px-4 py-3">
                       {id.local_user_id ? (
                         <span className="flex items-center gap-1 text-green-400 text-xs"><LinkIcon className="w-3 h-3" />{id.local_user_name ?? id.local_user_id}</span>
                       ) : (
-                        <span className="px-2 py-0.5 bg-yellow-500/10 text-yellow-400 border border-yellow-500/30 rounded text-xs">未リンク</span>
+                        <span className="px-2 py-0.5 bg-yellow-500/10 text-yellow-400 border border-yellow-500/30 rounded-sm text-xs">未リンク</span>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-[#7d92b0] text-xs">{formatDate(id.last_seen)}</td>
+                    <td className="px-4 py-3 text-falcon-muted text-xs">{formatDate(id.last_seen)}</td>
                     <td className="px-4 py-3">
                       <div className="flex flex-wrap gap-1">
-                        {id.risk_indicators.map(r => <span key={r} className={`px-1.5 py-0.5 rounded text-xs ${RISK_BADGE[r]}`}>{RISK_LABEL[r]}</span>)}
+                        {id.risk_indicators.map(r => <span key={r} className={`px-1.5 py-0.5 rounded-sm text-xs ${RISK_BADGE[r]}`}>{RISK_LABEL[r]}</span>)}
                       </div>
                     </td>
                     <td className="px-4 py-3">
-                      <button onClick={() => setLinkingIdentity(id)} title={id.local_user_id ? 'リンク変更' : 'リンク'} className="p-1.5 rounded hover:bg-[#1e2d42] text-[#7d92b0] hover:text-blue-400 transition-colors">
+                      <button onClick={() => setLinkingIdentity(id)} title={id.local_user_id ? 'リンク変更' : 'リンク'} className="p-1.5 rounded-sm hover:bg-falcon-border text-falcon-muted hover:text-blue-400 transition-colors">
                         <LinkIcon className="w-3.5 h-3.5" />
                       </button>
                     </td>
                   </tr>
                 ))}
                 {filteredIdentities.length === 0 && (
-                  <tr><td colSpan={9} className="px-4 py-12 text-center text-[#7d92b0] text-sm">条件に一致するIDがありません</td></tr>
+                  <tr><td colSpan={9} className="px-4 py-12 text-center text-falcon-muted text-sm">条件に一致するIDがありません</td></tr>
                 )}
               </tbody>
             </table>
@@ -481,17 +481,17 @@ export default function CloudIdentityPage() {
             <h3 className="text-white font-semibold text-sm mb-3">リスク分析</h3>
             <div className="grid grid-cols-4 gap-4">
               {(Object.keys(RISK_LABEL) as RiskIndicator[]).map(r => (
-                <div key={r} className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-4">
+                <div key={r} className="bg-falcon-surface border border-falcon-border rounded-xl p-4">
                   <div className="flex items-center justify-between mb-3">
-                    <span className={`px-2 py-0.5 rounded text-xs font-medium ${RISK_BADGE[r]}`}>{RISK_LABEL[r]}</span>
+                    <span className={`px-2 py-0.5 rounded-sm text-xs font-medium ${RISK_BADGE[r]}`}>{RISK_LABEL[r]}</span>
                     <span className="text-white font-bold text-xl">{riskGroups[r].length}</span>
                   </div>
                   <div className="space-y-1">
                     {riskGroups[r].slice(0, 3).map(id => (
-                      <p key={id.id} className="text-[#7d92b0] text-xs truncate">{id.email}</p>
+                      <p key={id.id} className="text-falcon-muted text-xs truncate">{id.email}</p>
                     ))}
-                    {riskGroups[r].length > 3 && <p className="text-[#3d5068] text-xs">+{riskGroups[r].length - 3} 件</p>}
-                    {riskGroups[r].length === 0 && <p className="text-[#3d5068] text-xs">リスクなし</p>}
+                    {riskGroups[r].length > 3 && <p className="text-falcon-subtle text-xs">+{riskGroups[r].length - 3} 件</p>}
+                    {riskGroups[r].length === 0 && <p className="text-falcon-subtle text-xs">リスクなし</p>}
                   </div>
                 </div>
               ))}

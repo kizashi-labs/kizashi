@@ -95,10 +95,10 @@ const SESSION_TYPE_ICONS: Record<SessionType, React.ComponentType<{ className?: 
 
 function StatCard({ label, value, sub, color }: { label: string; value: string | number; sub?: string; color?: string }) {
   return (
-    <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-4">
-      <p className="text-[#7d92b0] text-xs mb-1">{label}</p>
+    <div className="bg-falcon-surface border border-falcon-border rounded-lg p-4">
+      <p className="text-falcon-muted text-xs mb-1">{label}</p>
       <p className={`text-2xl font-bold ${color ?? 'text-white'}`}>{value}</p>
-      {sub && <p className="text-[#7d92b0] text-xs mt-1">{sub}</p>}
+      {sub && <p className="text-falcon-muted text-xs mt-1">{sub}</p>}
     </div>
   )
 }
@@ -106,7 +106,7 @@ function StatCard({ label, value, sub, color }: { label: string; value: string |
 function SessionTypeBadge({ type }: { type: SessionType }) {
   const Icon = SESSION_TYPE_ICONS[type]
   return (
-    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium border ${SESSION_TYPE_COLORS[type]}`}>
+    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-xs font-medium border ${SESSION_TYPE_COLORS[type]}`}>
       <Icon className="w-3 h-3" />
       {SESSION_TYPE_LABELS[type]}
     </span>
@@ -115,25 +115,25 @@ function SessionTypeBadge({ type }: { type: SessionType }) {
 
 function StatusBadge({ status }: { status: SessionStatus }) {
   if (status === 'active') return (
-    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium bg-green-500/20 text-green-400 border border-green-500/30">
+    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-sm text-xs font-medium bg-green-500/20 text-green-400 border border-green-500/30">
       <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
       アクティブ
     </span>
   )
   if (status === 'flagged') return (
-    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-red-500/20 text-red-400 border border-red-500/30">
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-xs font-medium bg-red-500/20 text-red-400 border border-red-500/30">
       <Flag className="w-3 h-3" />
       フラグ
     </span>
   )
-  return <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-500/20 text-gray-400 border border-gray-500/30">終了</span>
+  return <span className="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-gray-500/20 text-gray-400 border border-gray-500/30">終了</span>
 }
 
 function RiskBar({ score }: { score: number }) {
   const color = score >= 70 ? 'bg-red-500' : score >= 40 ? 'bg-yellow-500' : 'bg-green-500'
   return (
     <div className="flex items-center gap-2">
-      <div className="flex-1 h-1.5 bg-[#1e2d42] rounded-full overflow-hidden w-16">
+      <div className="flex-1 h-1.5 bg-falcon-border rounded-full overflow-hidden w-16">
         <div className={`h-full rounded-full transition-all ${color}`} style={{ width: `${score}%` }} />
       </div>
       <span className={`text-xs font-mono font-medium ${score >= 70 ? 'text-red-400' : score >= 40 ? 'text-yellow-400' : 'text-green-400'}`}>
@@ -172,23 +172,23 @@ function PlaybackModal({ session, onClose }: { session: PrivilegedSession; onClo
   const visibleActivity = session.activity.slice(0, playIdx + 1)
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl w-full max-w-2xl max-h-[90vh] flex flex-col">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-[#1e2d42]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-xs p-4">
+      <div className="bg-falcon-surface border border-falcon-border rounded-xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-falcon-border">
           <div className="flex items-center gap-3">
-            <Play className="w-5 h-5 text-[#e8002d]" />
+            <Play className="w-5 h-5 text-falcon-red" />
             <div>
               <h3 className="text-white font-semibold">セッション再生</h3>
-              <p className="text-[#7d92b0] text-xs">{session.session_id} — {session.user}</p>
+              <p className="text-falcon-muted text-xs">{session.session_id} — {session.user}</p>
             </div>
           </div>
-          <button onClick={onClose} className="text-[#7d92b0] hover:text-white transition-colors"><X className="w-5 h-5" /></button>
+          <button onClick={onClose} className="text-falcon-muted hover:text-white transition-colors"><X className="w-5 h-5" /></button>
         </div>
 
         <div className="p-5 flex-1 overflow-hidden flex flex-col gap-4">
           {session.session_type === 'rdp' ? (
-            <div className="flex-1 bg-[#1a2235] border border-[#1e2d42] rounded-lg flex items-center justify-center min-h-48">
-              <div className="text-center text-[#7d92b0]">
+            <div className="flex-1 bg-[#1a2235] border border-falcon-border rounded-lg flex items-center justify-center min-h-48">
+              <div className="text-center text-falcon-muted">
                 <Monitor className="w-12 h-12 mx-auto mb-3 opacity-40" />
                 <p className="text-sm">RDPセッション録画</p>
                 <p className="text-xs mt-1 opacity-60">映像再生: プレースホルダー</p>
@@ -198,13 +198,13 @@ function PlaybackModal({ session, onClose }: { session: PrivilegedSession; onClo
           ) : (
             <div
               ref={termRef}
-              className="flex-1 bg-[#020609] border border-[#1e2d42] rounded-lg p-4 font-mono text-xs overflow-y-auto min-h-48 max-h-80 space-y-1"
+              className="flex-1 bg-[#020609] border border-falcon-border rounded-lg p-4 font-mono text-xs overflow-y-auto min-h-48 max-h-80 space-y-1"
             >
               <p className="text-green-400 mb-2">── セッション開始: {fmtTime(session.start_time)} ──</p>
               {visibleActivity.map((act, i) => (
                 <div key={i} className={`flex gap-2 ${act.suspicious ? 'text-red-400' : 'text-green-300'}`}>
-                  <span className="text-[#3d5068] flex-shrink-0">{new Date(act.timestamp).toLocaleTimeString('ja-JP')}</span>
-                  {act.suspicious && <span className="text-red-500 flex-shrink-0">[!]</span>}
+                  <span className="text-falcon-subtle shrink-0">{new Date(act.timestamp).toLocaleTimeString('ja-JP')}</span>
+                  {act.suspicious && <span className="text-red-500 shrink-0">[!]</span>}
                   <span className="break-all">{act.type === 'command' ? `$ ${act.content}` : `> ${act.content}`}</span>
                 </div>
               ))}
@@ -215,20 +215,20 @@ function PlaybackModal({ session, onClose }: { session: PrivilegedSession; onClo
           <div className="flex items-center gap-3">
             <button
               onClick={() => { setPlayIdx(0); setPlaying(true) }}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#e8002d] text-white text-sm hover:bg-[#c0001f] transition-colors"
+              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-falcon-red text-white text-sm hover:bg-[#c0001f] transition-colors"
             >
               <Play className="w-4 h-4" />最初から再生
             </button>
             {playing ? (
-              <button onClick={() => setPlaying(false)} className="flex items-center gap-2 px-4 py-2 rounded-lg border border-[#1e2d42] text-[#7d92b0] text-sm hover:text-white transition-colors">
+              <button onClick={() => setPlaying(false)} className="flex items-center gap-2 px-4 py-2 rounded-lg border border-falcon-border text-falcon-muted text-sm hover:text-white transition-colors">
                 <Square className="w-4 h-4" />停止
               </button>
             ) : (
-              <button onClick={() => setPlaying(true)} className="flex items-center gap-2 px-4 py-2 rounded-lg border border-[#1e2d42] text-[#7d92b0] text-sm hover:text-white transition-colors">
+              <button onClick={() => setPlaying(true)} className="flex items-center gap-2 px-4 py-2 rounded-lg border border-falcon-border text-falcon-muted text-sm hover:text-white transition-colors">
                 <Play className="w-4 h-4" />再開
               </button>
             )}
-            <span className="text-[#7d92b0] text-xs ml-auto">
+            <span className="text-falcon-muted text-xs ml-auto">
               {playIdx + 1} / {session.activity.length} イベント
             </span>
           </div>
@@ -252,21 +252,21 @@ function SessionDetailPanel({ session, onClose, onFlag }: {
   return (
     <>
       <div className="fixed inset-0 z-40 bg-black/40" onClick={onClose} />
-      <div className="fixed right-0 top-0 bottom-0 z-50 w-full max-w-xl bg-[#0d1220] border-l border-[#1e2d42] flex flex-col overflow-hidden">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-[#1e2d42]">
+      <div className="fixed right-0 top-0 bottom-0 z-50 w-full max-w-xl bg-falcon-surface border-l border-falcon-border flex flex-col overflow-hidden">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-falcon-border">
           <div className="flex items-center gap-3">
-            <Video className="w-5 h-5 text-[#e8002d]" />
+            <Video className="w-5 h-5 text-falcon-red" />
             <div>
               <h3 className="text-white font-semibold">{session.session_id}</h3>
-              <p className="text-[#7d92b0] text-xs">{session.user}</p>
+              <p className="text-falcon-muted text-xs">{session.user}</p>
             </div>
           </div>
-          <button onClick={onClose} className="text-[#7d92b0] hover:text-white"><X className="w-5 h-5" /></button>
+          <button onClick={onClose} className="text-falcon-muted hover:text-white"><X className="w-5 h-5" /></button>
         </div>
 
         <div className="flex-1 overflow-y-auto p-5 space-y-5">
           {/* Metadata */}
-          <div className="bg-[#070d19] border border-[#1e2d42] rounded-lg p-4 grid grid-cols-2 gap-3">
+          <div className="bg-[#070d19] border border-falcon-border rounded-lg p-4 grid grid-cols-2 gap-3">
             {[
               ['ユーザー', session.user],
               ['アカウント', session.user_account],
@@ -278,7 +278,7 @@ function SessionDetailPanel({ session, onClose, onFlag }: {
               ['録画サイズ', fmtSize(session.recording_size_mb)],
             ].map(([k, v]) => (
               <div key={k}>
-                <p className="text-[#7d92b0] text-xs">{k}</p>
+                <p className="text-falcon-muted text-xs">{k}</p>
                 <p className="text-white text-sm font-medium mt-0.5">{v}</p>
               </div>
             ))}
@@ -294,7 +294,7 @@ function SessionDetailPanel({ session, onClose, onFlag }: {
             </div>
             {suspiciousCount > 0 && (
               <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3 flex items-start gap-2">
-                <AlertTriangle className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
+                <AlertTriangle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
                 <div>
                   <p className="text-red-400 text-sm font-medium">{suspiciousCount} 件の不審なアクティビティ検出</p>
                   {session.flagged_reason && <p className="text-red-300/80 text-xs mt-1">{session.flagged_reason}</p>}
@@ -308,11 +308,11 @@ function SessionDetailPanel({ session, onClose, onFlag }: {
             <h4 className="text-white text-sm font-semibold mb-3">アクティビティタイムライン</h4>
             <div className="space-y-1.5 max-h-72 overflow-y-auto pr-1">
               {session.activity.map((act, i) => (
-                <div key={i} className={`flex gap-3 p-2.5 rounded-lg text-xs ${act.suspicious ? 'bg-red-500/10 border border-red-500/20' : 'bg-[#070d19] border border-[#1e2d42]'}`}>
-                  <span className="text-[#3d5068] flex-shrink-0 font-mono mt-0.5">
+                <div key={i} className={`flex gap-3 p-2.5 rounded-lg text-xs ${act.suspicious ? 'bg-red-500/10 border border-red-500/20' : 'bg-[#070d19] border border-falcon-border'}`}>
+                  <span className="text-falcon-subtle shrink-0 font-mono mt-0.5">
                     {new Date(act.timestamp).toLocaleTimeString('ja-JP')}
                   </span>
-                  {act.suspicious && <AlertTriangle className="w-3.5 h-3.5 text-red-400 flex-shrink-0 mt-0.5" />}
+                  {act.suspicious && <AlertTriangle className="w-3.5 h-3.5 text-red-400 shrink-0 mt-0.5" />}
                   <span className={`font-mono break-all leading-relaxed ${act.suspicious ? 'text-red-300' : 'text-[#a8c0d8]'}`}>
                     {act.type === 'command' ? `$ ${act.content}` : `> ${act.content}`}
                   </span>
@@ -323,10 +323,10 @@ function SessionDetailPanel({ session, onClose, onFlag }: {
         </div>
 
         {/* Actions */}
-        <div className="border-t border-[#1e2d42] px-5 py-4 flex items-center gap-3 flex-wrap">
+        <div className="border-t border-falcon-border px-5 py-4 flex items-center gap-3 flex-wrap">
           <button
             onClick={() => setShowPlayback(true)}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#e8002d] text-white text-sm hover:bg-[#c0001f] transition-colors"
+            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-falcon-red text-white text-sm hover:bg-[#c0001f] transition-colors"
           >
             <Play className="w-4 h-4" />再生
           </button>
@@ -338,7 +338,7 @@ function SessionDetailPanel({ session, onClose, onFlag }: {
               <Flag className="w-4 h-4" />フラグ
             </button>
           )}
-          <button className="flex items-center gap-2 px-4 py-2 rounded-lg border border-[#1e2d42] text-[#7d92b0] text-sm hover:text-white transition-colors ml-auto">
+          <button className="flex items-center gap-2 px-4 py-2 rounded-lg border border-falcon-border text-falcon-muted text-sm hover:text-white transition-colors ml-auto">
             <Download className="w-4 h-4" />ログ出力
           </button>
         </div>
@@ -389,8 +389,8 @@ function LiveFeed({ session }: { session: PrivilegedSession }) {
   }, [lines])
 
   return (
-    <div className="mt-3 bg-[#020609] border border-[#1e2d42] rounded-lg p-3 font-mono text-xs max-h-40 overflow-y-auto" ref={feedRef}>
-      <p className="text-[#3d5068] mb-1">── ライブフィード: {session.user} @ {session.target_system} ──</p>
+    <div className="mt-3 bg-[#020609] border border-falcon-border rounded-lg p-3 font-mono text-xs max-h-40 overflow-y-auto" ref={feedRef}>
+      <p className="text-falcon-subtle mb-1">── ライブフィード: {session.user} @ {session.target_system} ──</p>
       <div className="text-green-400">
         $ {current}<span className="inline-block w-1.5 h-3 bg-green-400 animate-pulse ml-0.5" />
       </div>
@@ -469,10 +469,10 @@ export default function PrivilegedSessionsPage() {
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-2xl font-bold text-white flex items-center gap-3">
-            <Video className="w-7 h-7 text-[#e8002d]" />
+            <Video className="w-7 h-7 text-falcon-red" />
             特権セッション録画
           </h1>
-          <p className="text-[#7d92b0] text-sm mt-1">特権アカウントセッションの録画・再生・監査</p>
+          <p className="text-falcon-muted text-sm mt-1">特権アカウントセッションの録画・再生・監査</p>
         </div>
       </div>
 
@@ -487,7 +487,7 @@ export default function PrivilegedSessionsPage() {
       {/* Long-running warning */}
       {longRunningSessions.length > 0 && (
         <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4 flex items-start gap-3">
-          <AlertTriangle className="w-5 h-5 text-yellow-400 flex-shrink-0 mt-0.5" />
+          <AlertTriangle className="w-5 h-5 text-yellow-400 shrink-0 mt-0.5" />
           <div>
             <p className="text-yellow-400 font-medium text-sm">長時間セッション検出</p>
             <p className="text-yellow-300/80 text-xs mt-1">
@@ -498,9 +498,9 @@ export default function PrivilegedSessionsPage() {
       )}
 
       {/* Main card */}
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
+      <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
         {/* Tabs */}
-        <div className="flex border-b border-[#1e2d42]">
+        <div className="flex border-b border-falcon-border">
           {[
             { id: 'list', label: 'セッション一覧', count: sessions.length },
             { id: 'active', label: 'アクティブセッション', count: activeSessions.length },
@@ -509,12 +509,12 @@ export default function PrivilegedSessionsPage() {
               key={t.id}
               onClick={() => setTab(t.id as 'list' | 'active')}
               className={`px-5 py-3 text-sm font-medium transition-colors relative flex items-center gap-2 ${
-                tab === t.id ? 'text-white border-b-2 border-[#e8002d]' : 'text-[#7d92b0] hover:text-white'
+                tab === t.id ? 'text-white border-b-2 border-falcon-red' : 'text-falcon-muted hover:text-white'
               }`}
             >
               {t.label}
               <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
-                t.id === 'active' ? 'bg-green-500 text-white' : 'bg-[#1e2d42] text-[#7d92b0]'
+                t.id === 'active' ? 'bg-green-500 text-white' : 'bg-falcon-border text-falcon-muted'
               }`}>{t.count}</span>
             </button>
           ))}
@@ -525,29 +525,29 @@ export default function PrivilegedSessionsPage() {
           {tab === 'list' && (
             <div className="space-y-4">
               {/* Filters */}
-              <div className="flex flex-wrap gap-3 p-3 bg-[#070d19] border border-[#1e2d42] rounded-lg">
+              <div className="flex flex-wrap gap-3 p-3 bg-[#070d19] border border-falcon-border rounded-lg">
                 <div className="flex items-center gap-2">
-                  <Filter className="w-4 h-4 text-[#7d92b0]" />
-                  <span className="text-[#7d92b0] text-xs">フィルター:</span>
+                  <Filter className="w-4 h-4 text-falcon-muted" />
+                  <span className="text-falcon-muted text-xs">フィルター:</span>
                 </div>
                 <input
                   type="text"
                   placeholder="ユーザー検索..."
                   value={filterUser}
                   onChange={e => setFilterUser(e.target.value)}
-                  className="bg-[#0d1220] border border-[#1e2d42] rounded px-2 py-1.5 text-white text-xs focus:outline-none focus:border-[#e8002d] w-36"
+                  className="bg-falcon-surface border border-falcon-border rounded-sm px-2 py-1.5 text-white text-xs focus:outline-hidden focus:border-falcon-red w-36"
                 />
                 <input
                   type="text"
                   placeholder="対象システム..."
                   value={filterTarget}
                   onChange={e => setFilterTarget(e.target.value)}
-                  className="bg-[#0d1220] border border-[#1e2d42] rounded px-2 py-1.5 text-white text-xs focus:outline-none focus:border-[#e8002d] w-36"
+                  className="bg-falcon-surface border border-falcon-border rounded-sm px-2 py-1.5 text-white text-xs focus:outline-hidden focus:border-falcon-red w-36"
                 />
                 <select
                   value={filterType}
                   onChange={e => setFilterType(e.target.value as SessionType | 'all')}
-                  className="bg-[#0d1220] border border-[#1e2d42] rounded px-2 py-1.5 text-white text-xs focus:outline-none focus:border-[#e8002d]"
+                  className="bg-falcon-surface border border-falcon-border rounded-sm px-2 py-1.5 text-white text-xs focus:outline-hidden focus:border-falcon-red"
                 >
                   <option value="all">全種別</option>
                   <option value="ssh">SSH</option>
@@ -559,21 +559,21 @@ export default function PrivilegedSessionsPage() {
                   type="date"
                   value={filterDateFrom}
                   onChange={e => setFilterDateFrom(e.target.value)}
-                  className="bg-[#0d1220] border border-[#1e2d42] rounded px-2 py-1.5 text-white text-xs focus:outline-none focus:border-[#e8002d]"
+                  className="bg-falcon-surface border border-falcon-border rounded-sm px-2 py-1.5 text-white text-xs focus:outline-hidden focus:border-falcon-red"
                 />
-                <label className="flex items-center gap-2 text-[#7d92b0] text-xs cursor-pointer hover:text-white">
+                <label className="flex items-center gap-2 text-falcon-muted text-xs cursor-pointer hover:text-white">
                   <input
                     type="checkbox"
                     checked={filterFlagged}
                     onChange={e => setFilterFlagged(e.target.checked)}
-                    className="accent-[#e8002d]"
+                    className="accent-falcon-red"
                   />
                   フラグのみ
                 </label>
                 {(filterUser || filterTarget || filterType !== 'all' || filterFlagged || filterDateFrom) && (
                   <button
                     onClick={() => { setFilterUser(''); setFilterTarget(''); setFilterType('all'); setFilterFlagged(false); setFilterDateFrom('') }}
-                    className="text-xs text-[#e8002d] hover:underline ml-auto"
+                    className="text-xs text-falcon-red hover:underline ml-auto"
                   >
                     クリア
                   </button>
@@ -583,37 +583,37 @@ export default function PrivilegedSessionsPage() {
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b border-[#1e2d42]">
+                    <tr className="border-b border-falcon-border">
                       {['セッションID', 'ユーザー', '対象システム', '種別', '開始時刻', '継続時間', 'ステータス', '録画サイズ', 'リスクスコア', ''].map(h => (
-                        <th key={h} className="text-left text-[#7d92b0] text-xs font-medium px-3 py-2 whitespace-nowrap">{h}</th>
+                        <th key={h} className="text-left text-falcon-muted text-xs font-medium px-3 py-2 whitespace-nowrap">{h}</th>
                       ))}
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-[#1e2d42]/50">
+                  <tbody className="divide-y divide-falcon-border/50">
                     {filteredSessions.map(s => (
                       <tr
                         key={s.id}
                         className="hover:bg-[#0a1428]/60 transition-colors cursor-pointer"
                         onClick={() => setSelectedSession(s)}
                       >
-                        <td className="px-3 py-2.5 font-mono text-xs text-[#7d92b0]">{s.session_id}</td>
+                        <td className="px-3 py-2.5 font-mono text-xs text-falcon-muted">{s.session_id}</td>
                         <td className="px-3 py-2.5">
                           <div>
                             <p className="text-white text-xs font-medium">{s.user}</p>
-                            <p className="text-[#7d92b0] text-[10px] font-mono">{s.user_account}</p>
+                            <p className="text-falcon-muted text-[10px] font-mono">{s.user_account}</p>
                           </div>
                         </td>
                         <td className="px-3 py-2.5 text-[#a8c0d8] text-xs">{s.target_system}</td>
                         <td className="px-3 py-2.5"><SessionTypeBadge type={s.session_type} /></td>
-                        <td className="px-3 py-2.5 text-[#7d92b0] text-xs whitespace-nowrap">{fmtTime(s.start_time)}</td>
-                        <td className="px-3 py-2.5 text-[#7d92b0] text-xs whitespace-nowrap">{fmtDuration(s.duration_seconds)}</td>
+                        <td className="px-3 py-2.5 text-falcon-muted text-xs whitespace-nowrap">{fmtTime(s.start_time)}</td>
+                        <td className="px-3 py-2.5 text-falcon-muted text-xs whitespace-nowrap">{fmtDuration(s.duration_seconds)}</td>
                         <td className="px-3 py-2.5"><StatusBadge status={s.status} /></td>
-                        <td className="px-3 py-2.5 text-[#7d92b0] text-xs">{fmtSize(s.recording_size_mb)}</td>
+                        <td className="px-3 py-2.5 text-falcon-muted text-xs">{fmtSize(s.recording_size_mb)}</td>
                         <td className="px-3 py-2.5 min-w-[100px]"><RiskBar score={s.risk_score} /></td>
                         <td className="px-3 py-2.5">
                           <button
                             onClick={e => { e.stopPropagation(); setSelectedSession(s) }}
-                            className="flex items-center gap-1 px-2 py-1 rounded text-xs bg-[#1e2d42] text-[#7d92b0] hover:text-white transition-colors"
+                            className="flex items-center gap-1 px-2 py-1 rounded-sm text-xs bg-falcon-border text-falcon-muted hover:text-white transition-colors"
                           >
                             <Eye className="w-3 h-3" />詳細
                           </button>
@@ -623,7 +623,7 @@ export default function PrivilegedSessionsPage() {
                   </tbody>
                 </table>
                 {filteredSessions.length === 0 && (
-                  <div className="text-center py-12 text-[#7d92b0]">
+                  <div className="text-center py-12 text-falcon-muted">
                     <Search className="w-8 h-8 mx-auto mb-2 opacity-30" />
                     <p className="text-sm">該当するセッションがありません</p>
                   </div>
@@ -643,16 +643,16 @@ export default function PrivilegedSessionsPage() {
                 <label className="flex items-center gap-2 cursor-pointer">
                   <div
                     onClick={() => setLiveMonitor(v => !v)}
-                    className={`w-10 h-5 rounded-full transition-colors relative ${liveMonitor ? 'bg-[#e8002d]' : 'bg-[#1e2d42]'}`}
+                    className={`w-10 h-5 rounded-full transition-colors relative ${liveMonitor ? 'bg-falcon-red' : 'bg-falcon-border'}`}
                   >
-                    <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-[#e2e8f4] transition-all ${liveMonitor ? 'left-5' : 'left-0.5'}`} />
+                    <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-falcon-text transition-all ${liveMonitor ? 'left-5' : 'left-0.5'}`} />
                   </div>
-                  <span className="text-[#7d92b0] text-sm">ライブモニタリング</span>
+                  <span className="text-falcon-muted text-sm">ライブモニタリング</span>
                 </label>
               </div>
 
               {activeSessions.length === 0 ? (
-                <div className="text-center py-16 text-[#7d92b0]">
+                <div className="text-center py-16 text-falcon-muted">
                   <Shield className="w-10 h-10 mx-auto mb-3 opacity-40" />
                   <p>アクティブなセッションはありません</p>
                 </div>
@@ -661,10 +661,10 @@ export default function PrivilegedSessionsPage() {
                   {activeSessions.map(s => {
                     const overFourHours = s.duration_seconds > 4 * 3600
                     return (
-                      <div key={s.id} className={`border rounded-lg p-4 ${overFourHours ? 'border-yellow-500/40 bg-yellow-500/5' : 'border-[#1e2d42] bg-[#070d19]'}`}>
+                      <div key={s.id} className={`border rounded-lg p-4 ${overFourHours ? 'border-yellow-500/40 bg-yellow-500/5' : 'border-falcon-border bg-[#070d19]'}`}>
                         <div className="flex items-start justify-between gap-4 flex-wrap">
                           <div className="flex items-start gap-3">
-                            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#1a6bff] to-[#0044cc] flex items-center justify-center flex-shrink-0">
+                            <div className="w-9 h-9 rounded-full bg-linear-to-br from-falcon-blue to-[#0044cc] flex items-center justify-center shrink-0">
                               <span className="text-xs font-bold text-white">{s.user[0]}</span>
                             </div>
                             <div>
@@ -673,13 +673,13 @@ export default function PrivilegedSessionsPage() {
                                 <SessionTypeBadge type={s.session_type} />
                                 <StatusBadge status={s.status} />
                                 {overFourHours && (
-                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-yellow-500/20 text-yellow-400 border border-yellow-500/30">
+                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-xs font-medium bg-yellow-500/20 text-yellow-400 border border-yellow-500/30">
                                     <AlertTriangle className="w-3 h-3" />4時間超過
                                   </span>
                                 )}
                               </div>
-                              <p className="text-[#7d92b0] text-xs mt-0.5 font-mono">{s.user_account}</p>
-                              <div className="flex items-center gap-3 mt-1 text-xs text-[#7d92b0]">
+                              <p className="text-falcon-muted text-xs mt-0.5 font-mono">{s.user_account}</p>
+                              <div className="flex items-center gap-3 mt-1 text-xs text-falcon-muted">
                                 <span>{s.target_system}</span>
                                 <span>•</span>
                                 <span className="font-mono">{fmtDuration(s.duration_seconds)}</span>
@@ -692,7 +692,7 @@ export default function PrivilegedSessionsPage() {
                             <RiskBar score={s.risk_score} />
                             <button
                               onClick={() => setSelectedSession(s)}
-                              className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs border border-[#1e2d42] text-[#7d92b0] hover:text-white transition-colors"
+                              className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs border border-falcon-border text-falcon-muted hover:text-white transition-colors"
                             >
                               <Eye className="w-3.5 h-3.5" />詳細
                             </button>

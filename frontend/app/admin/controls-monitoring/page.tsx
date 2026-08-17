@@ -104,56 +104,56 @@ function ControlRow({ control }: { control: Control }) {
 
   return (
     <>
-      <tr className="border-t border-[#1e2d42] hover:bg-[#070d19]/50 cursor-pointer" onClick={() => setExpanded(e => !e)}>
+      <tr className="border-t border-falcon-border hover:bg-[#070d19]/50 cursor-pointer" onClick={() => setExpanded(e => !e)}>
         <td className="px-4 py-3">
           <div className="flex items-center gap-2">
-            {expanded ? <ChevronDown className="w-3.5 h-3.5 text-[#7d92b0]" /> : <ChevronRight className="w-3.5 h-3.5 text-[#7d92b0]" />}
+            {expanded ? <ChevronDown className="w-3.5 h-3.5 text-falcon-muted" /> : <ChevronRight className="w-3.5 h-3.5 text-falcon-muted" />}
             <span className="text-white text-sm font-medium">{control.name}</span>
           </div>
         </td>
         <td className="px-4 py-3">
-          <span className={`px-2 py-0.5 rounded text-xs font-medium ${control.control_type === 'automated' ? 'bg-blue-900/40 text-blue-300' : 'bg-purple-900/40 text-purple-300'}`}>
+          <span className={`px-2 py-0.5 rounded-sm text-xs font-medium ${control.control_type === 'automated' ? 'bg-blue-900/40 text-blue-300' : 'bg-purple-900/40 text-purple-300'}`}>
             {control.control_type === 'automated' ? '自動' : '手動'}
           </span>
         </td>
-        <td className="px-4 py-3 text-[#7d92b0] text-xs">{fmtDate(control.last_tested)}</td>
+        <td className="px-4 py-3 text-falcon-muted text-xs">{fmtDate(control.last_tested)}</td>
         <td className="px-4 py-3">
           <div className="flex items-center gap-1.5">
             <StatusIcon className={`w-4 h-4 ${status.text}`} />
-            <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${status.bg} ${status.text}`}>{status.label}</span>
+            <span className={`px-1.5 py-0.5 rounded-sm text-xs font-medium ${status.bg} ${status.text}`}>{status.label}</span>
           </div>
         </td>
         <td className="px-4 py-3"><TrendIcon trend={control.trend} /></td>
-        <td className="px-4 py-3 text-[#7d92b0] text-xs truncate max-w-[120px]">{control.evidence_link || '—'}</td>
+        <td className="px-4 py-3 text-falcon-muted text-xs truncate max-w-[120px]">{control.evidence_link || '—'}</td>
       </tr>
       {expanded && (
         <tr className="bg-[#070d19]/30">
           <td colSpan={6} className="px-8 py-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <p className="text-[#7d92b0] text-xs uppercase tracking-wider mb-1">期待動作</p>
+                <p className="text-falcon-muted text-xs uppercase tracking-wider mb-1">期待動作</p>
                 <p className="text-white text-sm">{control.expected_behavior}</p>
               </div>
               <div>
-                <p className="text-[#7d92b0] text-xs uppercase tracking-wider mb-1">現在の測定値</p>
+                <p className="text-falcon-muted text-xs uppercase tracking-wider mb-1">現在の測定値</p>
                 <p className={`text-sm font-semibold ${status.text}`}>{control.current_measurement}</p>
               </div>
               <div>
-                <p className="text-[#7d92b0] text-xs uppercase tracking-wider mb-1">閾値</p>
+                <p className="text-falcon-muted text-xs uppercase tracking-wider mb-1">閾値</p>
                 <p className="text-white text-sm">{control.threshold}</p>
               </div>
               <div>
-                <p className="text-[#7d92b0] text-xs uppercase tracking-wider mb-1">コンプライアンスマッピング</p>
+                <p className="text-falcon-muted text-xs uppercase tracking-wider mb-1">コンプライアンスマッピング</p>
                 <div className="flex flex-wrap gap-1">
                   {control.compliance_mappings.map(m => (
-                    <span key={m} className="px-1.5 py-0.5 bg-[#1e2d42] rounded text-[10px] text-[#7d92b0]">{m}</span>
+                    <span key={m} className="px-1.5 py-0.5 bg-falcon-border rounded-sm text-[10px] text-falcon-muted">{m}</span>
                   ))}
                 </div>
               </div>
             </div>
             {/* History */}
             <div className="mt-3">
-              <p className="text-[#7d92b0] text-xs uppercase tracking-wider mb-2">最近5回の結果</p>
+              <p className="text-falcon-muted text-xs uppercase tracking-wider mb-2">最近5回の結果</p>
               <div className="flex items-center gap-2">
                 {control.history.map((h, i) => {
                   const hs = STATUS_CONFIG[h.status]
@@ -161,8 +161,8 @@ function ControlRow({ control }: { control: Control }) {
                   return (
                     <div key={i} className="flex flex-col items-center gap-1">
                       <HIcon className={`w-4 h-4 ${hs.text}`} />
-                      <span className="text-[#3d5068] text-[9px]">{h.date}</span>
-                      <span className="text-[#7d92b0] text-[9px] font-mono">{h.measurement}</span>
+                      <span className="text-falcon-subtle text-[9px]">{h.date}</span>
+                      <span className="text-falcon-muted text-[9px] font-mono">{h.measurement}</span>
                     </div>
                   )
                 })}
@@ -182,28 +182,28 @@ function DomainAccordion({ domain, freq, onFreqChange }: { domain: ControlDomain
   const health = getHealthColor(domain.health_percent)
 
   return (
-    <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg overflow-hidden">
+    <div className="bg-falcon-surface border border-falcon-border rounded-lg overflow-hidden">
       <button onClick={() => setOpen(o => !o)}
         className="w-full flex items-center justify-between p-4 hover:bg-[#070d19]/30 transition-colors">
         <div className="flex items-center gap-3">
-          {open ? <ChevronDown className="w-4 h-4 text-[#7d92b0]" /> : <ChevronRight className="w-4 h-4 text-[#7d92b0]" />}
+          {open ? <ChevronDown className="w-4 h-4 text-falcon-muted" /> : <ChevronRight className="w-4 h-4 text-falcon-muted" />}
           <span className="text-white font-semibold">{domain.name}</span>
           <span className={`text-xs font-bold ${health.color}`}>{domain.health_percent}%</span>
         </div>
         <div className="flex items-center gap-3">
-          <div className="w-32 bg-[#1e2d42] rounded-full h-2">
+          <div className="w-32 bg-falcon-border rounded-full h-2">
             <div className={`h-2 rounded-full transition-all ${health.bg}`} style={{ width: `${domain.health_percent}%` }} />
           </div>
-          <span className="text-[#7d92b0] text-xs">{domain.controls.length}コントロール</span>
+          <span className="text-falcon-muted text-xs">{domain.controls.length}コントロール</span>
         </div>
       </button>
       {open && (
         <div>
-          <div className="px-4 pb-3 flex items-center gap-3 border-b border-[#1e2d42]">
-            <Settings className="w-3.5 h-3.5 text-[#7d92b0]" />
-            <span className="text-[#7d92b0] text-xs">監視頻度:</span>
+          <div className="px-4 pb-3 flex items-center gap-3 border-b border-falcon-border">
+            <Settings className="w-3.5 h-3.5 text-falcon-muted" />
+            <span className="text-falcon-muted text-xs">監視頻度:</span>
             <select value={freq} onChange={e => onFreqChange(e.target.value as MonitorFreq)}
-              className="bg-[#070d19] border border-[#1e2d42] rounded px-2 py-1 text-[#7d92b0] text-xs focus:outline-none"
+              className="bg-[#070d19] border border-falcon-border rounded-sm px-2 py-1 text-falcon-muted text-xs focus:outline-hidden"
               onClick={e => e.stopPropagation()}>
               <option value="hourly">毎時</option>
               <option value="daily">日次</option>
@@ -215,7 +215,7 @@ function DomainAccordion({ domain, freq, onFreqChange }: { domain: ControlDomain
             <thead className="bg-[#070d19]">
               <tr>
                 {['コントロール名', '種別', '最終テスト', 'ステータス', 'トレンド', '証跡'].map(h => (
-                  <th key={h} className="text-left px-4 py-2 text-[#7d92b0] text-xs font-medium">{h}</th>
+                  <th key={h} className="text-left px-4 py-2 text-falcon-muted text-xs font-medium">{h}</th>
                 ))}
               </tr>
             </thead>
@@ -291,33 +291,33 @@ export default function ControlsMonitoringPage() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-[#e8002d]/10 border border-[#e8002d]/20 flex items-center justify-center">
-              <ShieldCheck className="w-5 h-5 text-[#e8002d]" />
+            <div className="w-10 h-10 rounded-lg bg-falcon-red/10 border border-falcon-red/20 flex items-center justify-center">
+              <ShieldCheck className="w-5 h-5 text-falcon-red" />
             </div>
             <div>
               <h1 className="text-2xl font-bold text-white">継続的コントロール監視</h1>
-              <p className="text-[#7d92b0] text-sm">Continuous Controls Monitoring (CCM) – リアルタイムセキュリティコントロール評価</p>
+              <p className="text-falcon-muted text-sm">Continuous Controls Monitoring (CCM) – リアルタイムセキュリティコントロール評価</p>
             </div>
           </div>
           <div className="flex items-center gap-3">
             <button onClick={collectEvidence} disabled={collecting}
-              className="flex items-center gap-2 px-4 py-2 border border-[#1e2d42] rounded-lg text-[#7d92b0] hover:text-white hover:border-[#7d92b0]/50 text-sm transition-colors disabled:opacity-50">
+              className="flex items-center gap-2 px-4 py-2 border border-falcon-border rounded-lg text-falcon-muted hover:text-white hover:border-falcon-muted/50 text-sm transition-colors disabled:opacity-50">
               {collecting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Activity className="w-4 h-4" />}
               全証拠を収集
             </button>
             <button onClick={exportReport}
-              className="flex items-center gap-2 px-4 py-2 border border-[#1e2d42] rounded-lg text-[#7d92b0] hover:text-white hover:border-[#7d92b0]/50 text-sm transition-colors">
+              className="flex items-center gap-2 px-4 py-2 border border-falcon-border rounded-lg text-falcon-muted hover:text-white hover:border-falcon-muted/50 text-sm transition-colors">
               <Download className="w-4 h-4" /> レポート出力
             </button>
           </div>
         </div>
 
         {/* Overall Health */}
-        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-6">
+        <div className="bg-falcon-surface border border-falcon-border rounded-lg p-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-8">
               <div className="text-center">
-                <p className="text-[#7d92b0] text-sm mb-1">総合ヘルス</p>
+                <p className="text-falcon-muted text-sm mb-1">総合ヘルス</p>
                 <p className={`text-6xl font-black ${health.color}`}>{summary.overall_health}%</p>
                 <span className={`inline-block mt-1 px-3 py-1 rounded-full text-xs font-bold ${
                   health.label === 'GREEN' ? 'bg-green-900/40 text-green-300' :
@@ -334,23 +334,23 @@ export default function ControlsMonitoringPage() {
                   <div key={label} className="flex flex-col items-center">
                     <Icon className={`w-5 h-5 ${color} mb-1`} />
                     <p className={`text-2xl font-bold ${color}`}>{value}</p>
-                    <p className="text-[#7d92b0] text-xs">{label}</p>
+                    <p className="text-falcon-muted text-xs">{label}</p>
                   </div>
                 ))}
               </div>
             </div>
             <div className="text-right">
-              <p className="text-[#7d92b0] text-xs mb-1">最終評価</p>
+              <p className="text-falcon-muted text-xs mb-1">最終評価</p>
               <p className="text-white text-sm">{fmtDate(summary.last_assessment)}</p>
               <button onClick={runAssessment} disabled={assessing}
-                className="mt-3 flex items-center gap-2 px-4 py-2 bg-[#e8002d] rounded-lg text-white text-sm font-medium hover:bg-[#e8002d]/80 disabled:opacity-50 transition-colors">
+                className="mt-3 flex items-center gap-2 px-4 py-2 bg-falcon-red rounded-lg text-white text-sm font-medium hover:bg-falcon-red/80 disabled:opacity-50 transition-colors">
                 {assessing ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
                 {assessing ? '評価中...' : '今すぐ評価'}
               </button>
             </div>
           </div>
           {/* Health bar */}
-          <div className="mt-4 w-full bg-[#1e2d42] rounded-full h-3">
+          <div className="mt-4 w-full bg-falcon-border rounded-full h-3">
             <div className={`h-3 rounded-full transition-all ${health.bg}`} style={{ width: `${summary.overall_health}%` }} />
           </div>
         </div>
@@ -364,12 +364,12 @@ export default function ControlsMonitoringPage() {
             </div>
             <div className="space-y-2">
               {failingControls.map(ctrl => (
-                <div key={ctrl.id} className="flex items-center justify-between bg-[#0d1220] rounded px-4 py-3">
+                <div key={ctrl.id} className="flex items-center justify-between bg-falcon-surface rounded-sm px-4 py-3">
                   <div>
                     <p className="text-white font-medium text-sm">{ctrl.name}</p>
-                    <p className="text-[#7d92b0] text-xs mt-0.5">{ctrl.current_measurement} (閾値: {ctrl.threshold})</p>
+                    <p className="text-falcon-muted text-xs mt-0.5">{ctrl.current_measurement} (閾値: {ctrl.threshold})</p>
                   </div>
-                  <button className="flex items-center gap-1 px-3 py-1.5 bg-[#e8002d]/10 border border-[#e8002d]/30 rounded text-[#e8002d] text-xs hover:bg-[#e8002d]/20 transition-colors">
+                  <button className="flex items-center gap-1 px-3 py-1.5 bg-falcon-red/10 border border-falcon-red/30 rounded-sm text-falcon-red text-xs hover:bg-falcon-red/20 transition-colors">
                     <ChevronRight className="w-3 h-3" /> 対処
                   </button>
                 </div>
@@ -387,10 +387,10 @@ export default function ControlsMonitoringPage() {
             </div>
             <div className="flex flex-wrap gap-2">
               {driftControls.map(ctrl => (
-                <div key={ctrl.id} className="flex items-center gap-2 px-3 py-2 bg-[#0d1220] rounded border border-[#1e2d42]">
+                <div key={ctrl.id} className="flex items-center gap-2 px-3 py-2 bg-falcon-surface rounded-sm border border-falcon-border">
                   <TrendingDown className="w-3.5 h-3.5 text-yellow-400" />
                   <span className="text-white text-xs">{ctrl.name}</span>
-                  <span className={`px-1.5 py-0.5 rounded text-[10px] ${STATUS_CONFIG[ctrl.current_status].bg} ${STATUS_CONFIG[ctrl.current_status].text}`}>
+                  <span className={`px-1.5 py-0.5 rounded-sm text-[10px] ${STATUS_CONFIG[ctrl.current_status].bg} ${STATUS_CONFIG[ctrl.current_status].text}`}>
                     {STATUS_CONFIG[ctrl.current_status].label}
                   </span>
                 </div>
@@ -415,10 +415,10 @@ export default function ControlsMonitoringPage() {
 
       {/* Toast */}
       {toast && (
-        <div className="fixed bottom-6 right-6 z-50 bg-[#0d1220] border border-green-500/50 rounded-lg p-4 shadow-xl flex items-center gap-3">
+        <div className="fixed bottom-6 right-6 z-50 bg-falcon-surface border border-green-500/50 rounded-lg p-4 shadow-xl flex items-center gap-3">
           <CheckCircle className="w-4 h-4 text-green-400" />
           <span className="text-white text-sm">{toast}</span>
-          <button onClick={() => setToast('')} className="text-[#7d92b0] hover:text-white"><X className="w-4 h-4" /></button>
+          <button onClick={() => setToast('')} className="text-falcon-muted hover:text-white"><X className="w-4 h-4" /></button>
         </div>
       )}
     </div>

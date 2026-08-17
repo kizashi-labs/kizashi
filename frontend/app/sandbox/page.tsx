@@ -116,14 +116,14 @@ function truncateHash(h: string) {
 // ── Verdict Badge ─────────────────────────────────────────────────────────────
 
 function VerdictBadge({ verdict }: { verdict: 'MALICIOUS' | 'SUSPICIOUS' | 'BENIGN' | null }) {
-  if (!verdict) return <span className="text-[#7d92b0] text-xs">—</span>
+  if (!verdict) return <span className="text-falcon-muted text-xs">—</span>
   const cfg = {
     MALICIOUS:  { cls: 'bg-red-500/20 text-red-400 border-red-500/40',    label: '悪性' },
     SUSPICIOUS: { cls: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/40', label: '疑わしい' },
     BENIGN:     { cls: 'bg-green-500/20 text-green-400 border-green-500/40',  label: '安全' },
   }[verdict]
   return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded border text-[11px] font-bold ${cfg.cls}`}>
+    <span className={`inline-flex items-center px-2 py-0.5 rounded-sm border text-[11px] font-bold ${cfg.cls}`}>
       {verdict === 'MALICIOUS' && <XCircle className="w-3 h-3 mr-1" />}
       {verdict === 'SUSPICIOUS' && <AlertTriangle className="w-3 h-3 mr-1" />}
       {verdict === 'BENIGN' && <CheckCircle className="w-3 h-3 mr-1" />}
@@ -134,14 +134,14 @@ function VerdictBadge({ verdict }: { verdict: 'MALICIOUS' | 'SUSPICIOUS' | 'BENI
 
 function StatusBadge({ status }: { status: SandboxSubmission['status'] }) {
   const cfg = {
-    queued:    { cls: 'bg-[#7d92b0]/20 text-[#7d92b0] border-[#7d92b0]/30', label: 'キュー中', icon: Clock },
+    queued:    { cls: 'bg-falcon-muted/20 text-falcon-muted border-falcon-muted/30', label: 'キュー中', icon: Clock },
     analyzing: { cls: 'bg-blue-500/20 text-blue-400 border-blue-500/30',    label: '解析中',   icon: Loader2 },
     completed: { cls: 'bg-green-500/20 text-green-400 border-green-500/30', label: '完了',     icon: CheckCircle },
     failed:    { cls: 'bg-red-500/20 text-red-400 border-red-500/30',       label: 'エラー',   icon: XCircle },
   }[status]
   const Icon = cfg.icon
   return (
-    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded border text-[11px] font-medium ${cfg.cls}`}>
+    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-sm border text-[11px] font-medium ${cfg.cls}`}>
       <Icon className={`w-3 h-3 ${status === 'analyzing' ? 'animate-spin' : ''}`} />
       {cfg.label}
     </span>
@@ -154,11 +154,11 @@ function SeverityBadge({ severity }: { severity: string }) {
     medium:   'bg-yellow-500/15 text-yellow-400 border-yellow-500/30',
     high:     'bg-orange-500/15 text-orange-400 border-orange-500/30',
     critical: 'bg-red-500/15 text-red-400 border-red-500/30',
-    info:     'bg-[#7d92b0]/15 text-[#7d92b0] border-[#7d92b0]/30',
+    info:     'bg-falcon-muted/15 text-falcon-muted border-falcon-muted/30',
   }
   const labels: Record<string, string> = { low: '低', medium: '中', high: '高', critical: '重大', info: '情報' }
   return (
-    <span className={`inline-flex px-1.5 py-0.5 rounded border text-[10px] font-medium ${cfg[severity] ?? cfg.info}`}>
+    <span className={`inline-flex px-1.5 py-0.5 rounded-sm border text-[10px] font-medium ${cfg[severity] ?? cfg.info}`}>
       {labels[severity] ?? severity}
     </span>
   )
@@ -172,7 +172,7 @@ function BehaviorCategoryIcon({ category }: { category: Behavior['category'] }) 
     file_system: { Icon: FolderOpen, color: 'text-yellow-400', label: 'ファイル' },
     process:     { Icon: Cpu, color: 'text-orange-400', label: 'プロセス' },
   }
-  const { Icon, color, label } = cfg[category] ?? { Icon: Activity, color: 'text-[#7d92b0]', label: category }
+  const { Icon, color, label } = cfg[category] ?? { Icon: Activity, color: 'text-falcon-muted', label: category }
   return (
     <span className={`inline-flex items-center gap-1 text-xs font-medium ${color}`}>
       <Icon className="w-3.5 h-3.5" />
@@ -184,14 +184,14 @@ function BehaviorCategoryIcon({ category }: { category: Behavior['category'] }) 
 // ── Score Bar ─────────────────────────────────────────────────────────────────
 
 function ScoreBar({ score }: { score: number | null }) {
-  if (score === null) return <span className="text-[#7d92b0] text-xs">—</span>
+  if (score === null) return <span className="text-falcon-muted text-xs">—</span>
   const color = score >= 70 ? 'bg-red-500' : score >= 40 ? 'bg-yellow-500' : 'bg-green-500'
   return (
     <div className="flex items-center gap-2">
-      <div className="flex-1 h-1.5 bg-[#1e2d42] rounded-full overflow-hidden">
+      <div className="flex-1 h-1.5 bg-falcon-border rounded-full overflow-hidden">
         <div className={`h-full rounded-full transition-all ${color}`} style={{ width: `${score}%` }} />
       </div>
-      <span className="text-xs text-[#e2e8f4] w-6 text-right">{score}</span>
+      <span className="text-xs text-falcon-text w-6 text-right">{score}</span>
     </div>
   )
 }
@@ -220,7 +220,7 @@ function ConfidenceGauge({ score, verdict, confidence }: { score: number; verdic
         <text x="50" y="60" textAnchor="middle" fill="#7d92b0" fontSize="9">SCORE</text>
       </svg>
       <div className="text-center">
-        <p className="text-[10px] text-[#7d92b0]">信頼度</p>
+        <p className="text-[10px] text-falcon-muted">信頼度</p>
         <p className="text-sm font-bold" style={{ color }}>{confidence}%</p>
       </div>
     </div>
@@ -239,17 +239,17 @@ function ResultPanel({ submissionId, onClose }: { submissionId: string; onClose:
   })
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[#1e2d42]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+      <div className="bg-falcon-surface border border-falcon-border rounded-xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-falcon-border">
           <div className="flex items-center gap-3">
-            <Bug className="w-5 h-5 text-[#e8002d]" />
+            <Bug className="w-5 h-5 text-falcon-red" />
             <div>
-              <h2 className="text-[#e2e8f4] font-semibold">サンドボックス解析結果</h2>
-              <p className="text-[#7d92b0] text-xs">{submissionId}</p>
+              <h2 className="text-falcon-text font-semibold">サンドボックス解析結果</h2>
+              <p className="text-falcon-muted text-xs">{submissionId}</p>
             </div>
           </div>
-          <button onClick={onClose} className="p-1.5 rounded hover:bg-[#1e2d42] text-[#7d92b0] hover:text-white transition-colors">
+          <button onClick={onClose} className="p-1.5 rounded-sm hover:bg-falcon-border text-falcon-muted hover:text-white transition-colors">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -257,55 +257,55 @@ function ResultPanel({ submissionId, onClose }: { submissionId: string; onClose:
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
           {isLoading && (
             <div className="flex items-center justify-center py-20">
-              <Loader2 className="w-8 h-8 text-[#7d92b0] animate-spin" />
+              <Loader2 className="w-8 h-8 text-falcon-muted animate-spin" />
             </div>
           )}
           {!isLoading && data && (
             <>
               {/* Verdict summary */}
-              <div className="flex gap-6 items-center p-4 bg-[#070d19] rounded-lg border border-[#1e2d42]">
+              <div className="flex gap-6 items-center p-4 bg-[#070d19] rounded-lg border border-falcon-border">
                 <ConfidenceGauge score={data.score} verdict={data.verdict} confidence={data.confidence} />
                 <div className="flex-1 space-y-3">
                   <div>
-                    <p className="text-[#7d92b0] text-xs mb-1">判定結果</p>
+                    <p className="text-falcon-muted text-xs mb-1">判定結果</p>
                     <VerdictBadge verdict={data.verdict} />
                   </div>
                   <div className="grid grid-cols-3 gap-4">
                     <div>
-                      <p className="text-[#7d92b0] text-xs">ファイル名</p>
-                      <p className="text-[#e2e8f4] text-sm font-medium truncate">{data.file_name}</p>
+                      <p className="text-falcon-muted text-xs">ファイル名</p>
+                      <p className="text-falcon-text text-sm font-medium truncate">{data.file_name}</p>
                     </div>
                     <div>
-                      <p className="text-[#7d92b0] text-xs">解析時間</p>
-                      <p className="text-[#e2e8f4] text-sm font-medium">{formatDuration(data.analysis_duration_seconds)}</p>
+                      <p className="text-falcon-muted text-xs">解析時間</p>
+                      <p className="text-falcon-text text-sm font-medium">{formatDuration(data.analysis_duration_seconds)}</p>
                     </div>
                     <div>
-                      <p className="text-[#7d92b0] text-xs">完了日時</p>
-                      <p className="text-[#e2e8f4] text-sm font-medium">{formatDate(data.completed_at)}</p>
+                      <p className="text-falcon-muted text-xs">完了日時</p>
+                      <p className="text-falcon-text text-sm font-medium">{formatDate(data.completed_at)}</p>
                     </div>
                   </div>
                   <div>
-                    <p className="text-[#7d92b0] text-xs mb-1">SHA-256</p>
-                    <p className="font-mono text-xs text-[#7d92b0] break-all">{data.file_hash}</p>
+                    <p className="text-falcon-muted text-xs mb-1">SHA-256</p>
+                    <p className="font-mono text-xs text-falcon-muted break-all">{data.file_hash}</p>
                   </div>
                 </div>
               </div>
 
               {/* Behaviors */}
               <div>
-                <h3 className="text-[#e2e8f4] font-semibold mb-3 flex items-center gap-2">
-                  <Activity className="w-4 h-4 text-[#e8002d]" />
+                <h3 className="text-falcon-text font-semibold mb-3 flex items-center gap-2">
+                  <Activity className="w-4 h-4 text-falcon-red" />
                   検出された挙動 ({data.behaviors.length})
                 </h3>
                 <div className="space-y-2">
                   {data.behaviors.map(b => (
-                    <div key={b.id} className="flex items-start gap-3 p-3 bg-[#070d19] rounded-lg border border-[#1e2d42]">
+                    <div key={b.id} className="flex items-start gap-3 p-3 bg-[#070d19] rounded-lg border border-falcon-border">
                       <div className="pt-0.5">
                         <BehaviorCategoryIcon category={b.category} />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-[#e2e8f4] text-sm">{b.description}</p>
-                        <p className="text-[#7d92b0] text-xs mt-0.5">+{(b.timestamp_offset_ms / 1000).toFixed(1)}s</p>
+                        <p className="text-falcon-text text-sm">{b.description}</p>
+                        <p className="text-falcon-muted text-xs mt-0.5">+{(b.timestamp_offset_ms / 1000).toFixed(1)}s</p>
                       </div>
                       <SeverityBadge severity={b.severity} />
                     </div>
@@ -315,37 +315,37 @@ function ResultPanel({ submissionId, onClose }: { submissionId: string; onClose:
 
               {/* Network Indicators */}
               <div>
-                <h3 className="text-[#e2e8f4] font-semibold mb-3 flex items-center gap-2">
+                <h3 className="text-falcon-text font-semibold mb-3 flex items-center gap-2">
                   <Globe className="w-4 h-4 text-blue-400" />
                   ネットワーク指標 ({data.network_indicators.length})
                 </h3>
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
-                      <tr className="border-b border-[#1e2d42]">
-                        <th className="text-left py-2 px-3 text-[#7d92b0] text-xs font-medium">タイプ</th>
-                        <th className="text-left py-2 px-3 text-[#7d92b0] text-xs font-medium">値</th>
-                        <th className="text-left py-2 px-3 text-[#7d92b0] text-xs font-medium">国</th>
-                        <th className="text-left py-2 px-3 text-[#7d92b0] text-xs font-medium">脅威スコア</th>
-                        <th className="text-left py-2 px-3 text-[#7d92b0] text-xs font-medium">説明</th>
+                      <tr className="border-b border-falcon-border">
+                        <th className="text-left py-2 px-3 text-falcon-muted text-xs font-medium">タイプ</th>
+                        <th className="text-left py-2 px-3 text-falcon-muted text-xs font-medium">値</th>
+                        <th className="text-left py-2 px-3 text-falcon-muted text-xs font-medium">国</th>
+                        <th className="text-left py-2 px-3 text-falcon-muted text-xs font-medium">脅威スコア</th>
+                        <th className="text-left py-2 px-3 text-falcon-muted text-xs font-medium">説明</th>
                       </tr>
                     </thead>
                     <tbody>
                       {data.network_indicators.map((n, i) => (
-                        <tr key={i} className="border-b border-[#1e2d42]/50 hover:bg-[#1e2d42]/20">
+                        <tr key={i} className="border-b border-falcon-border/50 hover:bg-falcon-border/20">
                           <td className="py-2 px-3">
-                            <span className="px-1.5 py-0.5 bg-blue-500/15 text-blue-400 border border-blue-500/30 rounded text-[10px] font-mono uppercase">
+                            <span className="px-1.5 py-0.5 bg-blue-500/15 text-blue-400 border border-blue-500/30 rounded-sm text-[10px] font-mono uppercase">
                               {n.type}
                             </span>
                           </td>
-                          <td className="py-2 px-3 font-mono text-xs text-[#e2e8f4]">{n.value}</td>
-                          <td className="py-2 px-3 text-[#7d92b0] text-xs">{n.country}</td>
+                          <td className="py-2 px-3 font-mono text-xs text-falcon-text">{n.value}</td>
+                          <td className="py-2 px-3 text-falcon-muted text-xs">{n.country}</td>
                           <td className="py-2 px-3">
                             <span className={`text-xs font-bold ${n.threat_score >= 80 ? 'text-red-400' : n.threat_score >= 50 ? 'text-yellow-400' : 'text-green-400'}`}>
                               {n.threat_score}
                             </span>
                           </td>
-                          <td className="py-2 px-3 text-[#7d92b0] text-xs">{n.description}</td>
+                          <td className="py-2 px-3 text-falcon-muted text-xs">{n.description}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -355,27 +355,27 @@ function ResultPanel({ submissionId, onClose }: { submissionId: string; onClose:
 
               {/* Signatures */}
               <div>
-                <h3 className="text-[#e2e8f4] font-semibold mb-3 flex items-center gap-2">
+                <h3 className="text-falcon-text font-semibold mb-3 flex items-center gap-2">
                   <Shield className="w-4 h-4 text-red-400" />
                   マッチしたシグネチャ ({data.signatures.length})
                 </h3>
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
-                      <tr className="border-b border-[#1e2d42]">
-                        <th className="text-left py-2 px-3 text-[#7d92b0] text-xs font-medium">シグネチャ名</th>
-                        <th className="text-left py-2 px-3 text-[#7d92b0] text-xs font-medium">ファミリー</th>
-                        <th className="text-left py-2 px-3 text-[#7d92b0] text-xs font-medium">深刻度</th>
-                        <th className="text-left py-2 px-3 text-[#7d92b0] text-xs font-medium">説明</th>
+                      <tr className="border-b border-falcon-border">
+                        <th className="text-left py-2 px-3 text-falcon-muted text-xs font-medium">シグネチャ名</th>
+                        <th className="text-left py-2 px-3 text-falcon-muted text-xs font-medium">ファミリー</th>
+                        <th className="text-left py-2 px-3 text-falcon-muted text-xs font-medium">深刻度</th>
+                        <th className="text-left py-2 px-3 text-falcon-muted text-xs font-medium">説明</th>
                       </tr>
                     </thead>
                     <tbody>
                       {data.signatures.map((s, i) => (
-                        <tr key={i} className="border-b border-[#1e2d42]/50 hover:bg-[#1e2d42]/20">
-                          <td className="py-2 px-3 font-mono text-xs text-[#e2e8f4]">{s.name}</td>
-                          <td className="py-2 px-3 text-[#7d92b0] text-xs">{s.family}</td>
+                        <tr key={i} className="border-b border-falcon-border/50 hover:bg-falcon-border/20">
+                          <td className="py-2 px-3 font-mono text-xs text-falcon-text">{s.name}</td>
+                          <td className="py-2 px-3 text-falcon-muted text-xs">{s.family}</td>
                           <td className="py-2 px-3"><SeverityBadge severity={s.severity} /></td>
-                          <td className="py-2 px-3 text-[#7d92b0] text-xs">{s.description}</td>
+                          <td className="py-2 px-3 text-falcon-muted text-xs">{s.description}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -385,25 +385,25 @@ function ResultPanel({ submissionId, onClose }: { submissionId: string; onClose:
 
               {/* Timeline */}
               <div>
-                <h3 className="text-[#e2e8f4] font-semibold mb-3 flex items-center gap-2">
-                  <Clock className="w-4 h-4 text-[#7d92b0]" />
+                <h3 className="text-falcon-text font-semibold mb-3 flex items-center gap-2">
+                  <Clock className="w-4 h-4 text-falcon-muted" />
                   実行タイムライン
                 </h3>
                 <div className="relative pl-4">
-                  <div className="absolute left-0 top-2 bottom-2 w-px bg-[#1e2d42]" />
+                  <div className="absolute left-0 top-2 bottom-2 w-px bg-falcon-border" />
                   {data.timeline.map((e, i) => {
                     const dotColor = {
                       critical: 'bg-red-500', high: 'bg-orange-500',
-                      medium: 'bg-yellow-500', low: 'bg-blue-500', info: 'bg-[#3d5068]',
-                    }[e.severity] ?? 'bg-[#3d5068]'
+                      medium: 'bg-yellow-500', low: 'bg-blue-500', info: 'bg-falcon-subtle',
+                    }[e.severity] ?? 'bg-falcon-subtle'
                     return (
                       <div key={i} className="relative flex items-start gap-3 pb-4">
-                        <div className={`absolute -left-1.5 top-1.5 w-3 h-3 rounded-full border-2 border-[#0d1220] ${dotColor}`} />
+                        <div className={`absolute -left-1.5 top-1.5 w-3 h-3 rounded-full border-2 border-falcon-surface ${dotColor}`} />
                         <div className="ml-3">
-                          <p className="text-[#e2e8f4] text-xs">{e.description}</p>
+                          <p className="text-falcon-text text-xs">{e.description}</p>
                           <div className="flex items-center gap-2 mt-0.5">
-                            <span className="text-[10px] text-[#7d92b0] font-mono">+{(e.timestamp_offset_ms / 1000).toFixed(1)}s</span>
-                            <span className="text-[10px] text-[#7d92b0]">{e.type}</span>
+                            <span className="text-[10px] text-falcon-muted font-mono">+{(e.timestamp_offset_ms / 1000).toFixed(1)}s</span>
+                            <span className="text-[10px] text-falcon-muted">{e.type}</span>
                             <SeverityBadge severity={e.severity} />
                           </div>
                         </div>
@@ -477,43 +477,43 @@ function SubmitTab({ agents }: { agents: Agent[] }) {
       {resultPanelId && <ResultPanel submissionId={resultPanelId} onClose={() => setResultPanelId(null)} />}
 
       {/* Form */}
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-6">
-        <h2 className="text-[#e2e8f4] font-semibold mb-4 flex items-center gap-2">
-          <Upload className="w-4 h-4 text-[#e8002d]" />
+      <div className="bg-falcon-surface border border-falcon-border rounded-xl p-6">
+        <h2 className="text-falcon-text font-semibold mb-4 flex items-center gap-2">
+          <Upload className="w-4 h-4 text-falcon-red" />
           ファイル解析送信
         </h2>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="md:col-span-2">
-              <label className="block text-[#7d92b0] text-xs mb-1.5">SHA-256 ハッシュ <span className="text-red-400">*</span></label>
+              <label className="block text-falcon-muted text-xs mb-1.5">SHA-256 ハッシュ <span className="text-red-400">*</span></label>
               <input
                 type="text"
                 value={form.file_hash}
                 onChange={e => { setForm(f => ({ ...f, file_hash: e.target.value })); validateHash(e.target.value) }}
                 placeholder="64桁の16進数ハッシュを入力..."
-                className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-[#e2e8f4]
-                           focus:outline-none focus:border-[#e8002d]/60 placeholder-[#3d5068] font-mono"
+                className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-sm text-falcon-text
+                           focus:outline-hidden focus:border-falcon-red/60 placeholder-falcon-subtle font-mono"
               />
               {hashError && <p className="text-red-400 text-xs mt-1">{hashError}</p>}
             </div>
             <div>
-              <label className="block text-[#7d92b0] text-xs mb-1.5">ファイル名</label>
+              <label className="block text-falcon-muted text-xs mb-1.5">ファイル名</label>
               <input
                 type="text"
                 value={form.file_name}
                 onChange={e => setForm(f => ({ ...f, file_name: e.target.value }))}
                 placeholder="例: suspicious_file.exe"
-                className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-[#e2e8f4]
-                           focus:outline-none focus:border-[#e8002d]/60 placeholder-[#3d5068]"
+                className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-sm text-falcon-text
+                           focus:outline-hidden focus:border-falcon-red/60 placeholder-falcon-subtle"
               />
             </div>
             <div>
-              <label className="block text-[#7d92b0] text-xs mb-1.5">エージェント (任意)</label>
+              <label className="block text-falcon-muted text-xs mb-1.5">エージェント (任意)</label>
               <select
                 value={form.agent_id}
                 onChange={e => setForm(f => ({ ...f, agent_id: e.target.value }))}
-                className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-[#e2e8f4]
-                           focus:outline-none focus:border-[#e8002d]/60"
+                className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-sm text-falcon-text
+                           focus:outline-hidden focus:border-falcon-red/60"
               >
                 <option value="">— 指定なし —</option>
                 {agents.map(a => (
@@ -522,12 +522,12 @@ function SubmitTab({ agents }: { agents: Agent[] }) {
               </select>
             </div>
             <div>
-              <label className="block text-[#7d92b0] text-xs mb-1.5">優先度</label>
+              <label className="block text-falcon-muted text-xs mb-1.5">優先度</label>
               <select
                 value={form.priority}
                 onChange={e => setForm(f => ({ ...f, priority: e.target.value as 'normal' | 'high' }))}
-                className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-[#e2e8f4]
-                           focus:outline-none focus:border-[#e8002d]/60"
+                className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-sm text-falcon-text
+                           focus:outline-hidden focus:border-falcon-red/60"
               >
                 <option value="normal">通常</option>
                 <option value="high">高優先度</option>
@@ -537,7 +537,7 @@ function SubmitTab({ agents }: { agents: Agent[] }) {
           <button
             type="submit"
             disabled={mutation.isPending || !form.file_hash || !!hashError}
-            className="flex items-center gap-2 px-4 py-2 bg-[#e8002d] hover:bg-[#c0001f] disabled:opacity-50
+            className="flex items-center gap-2 px-4 py-2 bg-falcon-red hover:bg-[#c0001f] disabled:opacity-50
                        disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors"
           >
             {mutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
@@ -549,18 +549,18 @@ function SubmitTab({ agents }: { agents: Agent[] }) {
       {/* Submitted items */}
       {submittedItems.length > 0 && (
         <div className="space-y-3">
-          <h3 className="text-[#7d92b0] text-sm font-medium">送信済み</h3>
+          <h3 className="text-falcon-muted text-sm font-medium">送信済み</h3>
           {submittedItems.map(item => (
-            <div key={item.id} className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-4">
+            <div key={item.id} className="bg-falcon-surface border border-falcon-border rounded-xl p-4">
               <div className="flex items-center justify-between gap-4 flex-wrap">
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
-                    <span className="text-[#e2e8f4] font-medium text-sm">{item.file_name || 'unknown.bin'}</span>
+                    <span className="text-falcon-text font-medium text-sm">{item.file_name || 'unknown.bin'}</span>
                     <StatusBadge status={item.status} />
                     {item.verdict && <VerdictBadge verdict={item.verdict} />}
                   </div>
-                  <p className="font-mono text-xs text-[#7d92b0]">{truncateHash(item.file_hash)}</p>
-                  <div className="flex items-center gap-3 text-xs text-[#7d92b0]">
+                  <p className="font-mono text-xs text-falcon-muted">{truncateHash(item.file_hash)}</p>
+                  <div className="flex items-center gap-3 text-xs text-falcon-muted">
                     <span>ID: {item.submission_id}</span>
                     {item.agent_hostname && <span>Agent: {item.agent_hostname}</span>}
                     {item.estimated_seconds && item.status !== 'completed' && (
@@ -571,8 +571,8 @@ function SubmitTab({ agents }: { agents: Agent[] }) {
                 {item.status === 'completed' && (
                   <button
                     onClick={() => setResultPanelId(item.id)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-[#1e2d42] hover:bg-[#2a3f5f]
-                               text-[#e2e8f4] rounded-lg transition-colors border border-[#2a3f5f]"
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-falcon-border hover:bg-[#2a3f5f]
+                               text-falcon-text rounded-lg transition-colors border border-[#2a3f5f]"
                   >
                     <FileText className="w-3.5 h-3.5" />
                     結果確認
@@ -636,12 +636,12 @@ function HistoryTab({ agents }: { agents: Agent[] }) {
       {/* Filters */}
       <div className="flex flex-wrap gap-3 items-center">
         <div className="flex items-center gap-2">
-          <Filter className="w-4 h-4 text-[#7d92b0]" />
+          <Filter className="w-4 h-4 text-falcon-muted" />
           <select
             value={verdictFilter}
             onChange={e => setVerdictFilter(e.target.value)}
-            className="bg-[#0d1220] border border-[#1e2d42] rounded-lg px-3 py-1.5 text-sm text-[#e2e8f4]
-                       focus:outline-none focus:border-[#e8002d]/60"
+            className="bg-falcon-surface border border-falcon-border rounded-lg px-3 py-1.5 text-sm text-falcon-text
+                       focus:outline-hidden focus:border-falcon-red/60"
           >
             <option value="all">全判定</option>
             <option value="MALICIOUS">悪性</option>
@@ -652,8 +652,8 @@ function HistoryTab({ agents }: { agents: Agent[] }) {
         <select
           value={agentFilter}
           onChange={e => setAgentFilter(e.target.value)}
-          className="bg-[#0d1220] border border-[#1e2d42] rounded-lg px-3 py-1.5 text-sm text-[#e2e8f4]
-                     focus:outline-none focus:border-[#e8002d]/60"
+          className="bg-falcon-surface border border-falcon-border rounded-lg px-3 py-1.5 text-sm text-falcon-text
+                     focus:outline-hidden focus:border-falcon-red/60"
         >
           <option value="all">全エージェント</option>
           {agents.map(a => <option key={a.id} value={a.hostname}>{a.hostname}</option>)}
@@ -661,8 +661,8 @@ function HistoryTab({ agents }: { agents: Agent[] }) {
         <div className="ml-auto">
           <button
             onClick={exportCSV}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-[#0d1220] border border-[#1e2d42]
-                       hover:border-[#7d92b0]/40 text-[#7d92b0] hover:text-[#e2e8f4] rounded-lg transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-falcon-surface border border-falcon-border
+                       hover:border-falcon-muted/40 text-falcon-muted hover:text-falcon-text rounded-lg transition-colors"
           >
             <Download className="w-3.5 h-3.5" />
             CSV出力
@@ -671,47 +671,47 @@ function HistoryTab({ agents }: { agents: Agent[] }) {
       </div>
 
       {/* Table */}
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
+      <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-[#1e2d42] bg-[#070d19]/50">
-                <th className="text-left py-3 px-4 text-[#7d92b0] text-xs font-medium">ファイル名</th>
-                <th className="text-left py-3 px-4 text-[#7d92b0] text-xs font-medium">SHA-256</th>
-                <th className="text-left py-3 px-4 text-[#7d92b0] text-xs font-medium">エージェント</th>
-                <th className="text-left py-3 px-4 text-[#7d92b0] text-xs font-medium">判定</th>
-                <th className="text-left py-3 px-4 text-[#7d92b0] text-xs font-medium w-32">スコア</th>
-                <th className="text-left py-3 px-4 text-[#7d92b0] text-xs font-medium">送信日時</th>
-                <th className="text-left py-3 px-4 text-[#7d92b0] text-xs font-medium">完了日時</th>
-                <th className="text-left py-3 px-4 text-[#7d92b0] text-xs font-medium">所要時間</th>
+              <tr className="border-b border-falcon-border bg-[#070d19]/50">
+                <th className="text-left py-3 px-4 text-falcon-muted text-xs font-medium">ファイル名</th>
+                <th className="text-left py-3 px-4 text-falcon-muted text-xs font-medium">SHA-256</th>
+                <th className="text-left py-3 px-4 text-falcon-muted text-xs font-medium">エージェント</th>
+                <th className="text-left py-3 px-4 text-falcon-muted text-xs font-medium">判定</th>
+                <th className="text-left py-3 px-4 text-falcon-muted text-xs font-medium w-32">スコア</th>
+                <th className="text-left py-3 px-4 text-falcon-muted text-xs font-medium">送信日時</th>
+                <th className="text-left py-3 px-4 text-falcon-muted text-xs font-medium">完了日時</th>
+                <th className="text-left py-3 px-4 text-falcon-muted text-xs font-medium">所要時間</th>
                 <th className="py-3 px-4" />
               </tr>
             </thead>
             <tbody>
               {isLoading ? (
-                <tr><td colSpan={9} className="py-10 text-center text-[#7d92b0]"><Loader2 className="w-6 h-6 animate-spin inline" /></td></tr>
+                <tr><td colSpan={9} className="py-10 text-center text-falcon-muted"><Loader2 className="w-6 h-6 animate-spin inline" /></td></tr>
               ) : filtered.length === 0 ? (
-                <tr><td colSpan={9} className="py-10 text-center text-[#7d92b0]">データなし</td></tr>
+                <tr><td colSpan={9} className="py-10 text-center text-falcon-muted">データなし</td></tr>
               ) : filtered.map(s => (
-                <tr key={s.id} className="border-b border-[#1e2d42]/50 hover:bg-[#1e2d42]/20 transition-colors">
-                  <td className="py-3 px-4 text-[#e2e8f4] font-medium max-w-[140px] truncate">{s.file_name}</td>
+                <tr key={s.id} className="border-b border-falcon-border/50 hover:bg-falcon-border/20 transition-colors">
+                  <td className="py-3 px-4 text-falcon-text font-medium max-w-[140px] truncate">{s.file_name}</td>
                   <td className="py-3 px-4">
-                    <span className="font-mono text-xs text-[#7d92b0]">{truncateHash(s.file_hash)}</span>
+                    <span className="font-mono text-xs text-falcon-muted">{truncateHash(s.file_hash)}</span>
                   </td>
-                  <td className="py-3 px-4 text-[#7d92b0] text-xs">{s.agent_hostname ?? '—'}</td>
+                  <td className="py-3 px-4 text-falcon-muted text-xs">{s.agent_hostname ?? '—'}</td>
                   <td className="py-3 px-4">
                     {s.status !== 'completed' ? <StatusBadge status={s.status} /> : <VerdictBadge verdict={s.verdict} />}
                   </td>
                   <td className="py-3 px-4 w-32"><ScoreBar score={s.score} /></td>
-                  <td className="py-3 px-4 text-[#7d92b0] text-xs whitespace-nowrap">{formatDate(s.submitted_at)}</td>
-                  <td className="py-3 px-4 text-[#7d92b0] text-xs whitespace-nowrap">{formatDate(s.completed_at)}</td>
-                  <td className="py-3 px-4 text-[#7d92b0] text-xs">{formatDuration(s.duration_seconds)}</td>
+                  <td className="py-3 px-4 text-falcon-muted text-xs whitespace-nowrap">{formatDate(s.submitted_at)}</td>
+                  <td className="py-3 px-4 text-falcon-muted text-xs whitespace-nowrap">{formatDate(s.completed_at)}</td>
+                  <td className="py-3 px-4 text-falcon-muted text-xs">{formatDuration(s.duration_seconds)}</td>
                   <td className="py-3 px-4">
                     {s.status === 'completed' && (
                       <button
                         onClick={() => setResultPanelId(s.id)}
-                        className="flex items-center gap-1 px-2.5 py-1 text-xs font-medium bg-[#1e2d42] hover:bg-[#2a3f5f]
-                                   text-[#e2e8f4] rounded transition-colors border border-[#2a3f5f]"
+                        className="flex items-center gap-1 px-2.5 py-1 text-xs font-medium bg-falcon-border hover:bg-[#2a3f5f]
+                                   text-falcon-text rounded transition-colors border border-[#2a3f5f]"
                       >
                         <FileText className="w-3 h-3" />
                         詳細
@@ -759,7 +759,7 @@ export default function SandboxPage() {
     { label: '本日の送信数', value: s.submissions_today, icon: Upload, color: 'text-blue-400', bg: 'bg-blue-500/10 border-blue-500/20' },
     { label: '悪性検出', value: s.malicious_found, icon: XCircle, color: 'text-red-400', bg: 'bg-red-500/10 border-red-500/20' },
     { label: '疑わしいファイル', value: s.suspicious, icon: AlertTriangle, color: 'text-yellow-400', bg: 'bg-yellow-500/10 border-yellow-500/20' },
-    { label: '平均解析時間', value: `${s.avg_analysis_time_seconds}s`, icon: Clock, color: 'text-[#7d92b0]', bg: 'bg-[#1e2d42]/50 border-[#1e2d42]' },
+    { label: '平均解析時間', value: `${s.avg_analysis_time_seconds}s`, icon: Clock, color: 'text-falcon-muted', bg: 'bg-falcon-border/50 border-falcon-border' },
   ]
 
   return (
@@ -767,11 +767,11 @@ export default function SandboxPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-[#e2e8f4] flex items-center gap-3">
-            <Bug className="w-6 h-6 text-[#e8002d]" />
+          <h1 className="text-2xl font-bold text-falcon-text flex items-center gap-3">
+            <Bug className="w-6 h-6 text-falcon-red" />
             マルウェアサンドボックス
           </h1>
-          <p className="text-[#7d92b0] text-sm mt-1">ファイル自動解析・脅威検証</p>
+          <p className="text-falcon-muted text-sm mt-1">ファイル自動解析・脅威検証</p>
         </div>
       </div>
 
@@ -780,14 +780,14 @@ export default function SandboxPage() {
         {statCards.map(c => {
           const Icon = c.icon
           return (
-            <div key={c.label} className={`bg-[#0d1220] border rounded-xl p-4 ${c.bg}`}>
+            <div key={c.label} className={`bg-falcon-surface border rounded-xl p-4 ${c.bg}`}>
               <div className="flex items-center gap-3">
                 <div className={`p-2 rounded-lg bg-[#070d19]/60`}>
                   <Icon className={`w-5 h-5 ${c.color}`} />
                 </div>
                 <div>
                   <p className={`text-xl font-bold ${c.color}`}>{c.value}</p>
-                  <p className="text-[#7d92b0] text-xs">{c.label}</p>
+                  <p className="text-falcon-muted text-xs">{c.label}</p>
                 </div>
               </div>
             </div>
@@ -796,7 +796,7 @@ export default function SandboxPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 border-b border-[#1e2d42]">
+      <div className="flex gap-1 border-b border-falcon-border">
         {(['submit', 'history'] as const).map(tab => {
           const labels = { submit: '解析送信', history: '解析履歴' }
           return (
@@ -805,8 +805,8 @@ export default function SandboxPage() {
               onClick={() => setActiveTab(tab)}
               className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors -mb-px
                 ${activeTab === tab
-                  ? 'border-[#e8002d] text-[#e2e8f4]'
-                  : 'border-transparent text-[#7d92b0] hover:text-[#e2e8f4]'}`}
+                  ? 'border-falcon-red text-falcon-text'
+                  : 'border-transparent text-falcon-muted hover:text-falcon-text'}`}
             >
               {labels[tab]}
             </button>

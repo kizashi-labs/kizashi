@@ -38,7 +38,7 @@ const threatLevelBadge = (level: string) => {
   }
   const cfg = configs[level] ?? configs.low
   return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium border ${cfg.className}`}>
+    <span className={`inline-flex items-center px-2 py-0.5 rounded-sm text-[11px] font-medium border ${cfg.className}`}>
       {cfg.label}
     </span>
   )
@@ -54,7 +54,7 @@ const motivationBadge = (m: string) => {
     financial: '金融目的', espionage: 'スパイ', disruption: '妨害',
   }
   return (
-    <span key={m} className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] border ${configs[m] ?? 'bg-[#1e2d42] text-[#7d92b0] border-[#1e2d42]'}`}>
+    <span key={m} className={`inline-flex items-center px-2 py-0.5 rounded-sm text-[10px] border ${configs[m] ?? 'bg-falcon-border text-falcon-muted border-falcon-border'}`}>
       {labels[m] ?? m}
     </span>
   )
@@ -86,8 +86,8 @@ export default function ThreatActorsPage() {
     <div className="min-h-screen bg-[#070d19] p-6">
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-[#e2e8f4]">脅威アクター</h1>
-        <p className="text-[#7d92b0] text-sm mt-1">
+        <h1 className="text-2xl font-bold text-falcon-text">脅威アクター</h1>
+        <p className="text-falcon-muted text-sm mt-1">
           追跡中の脅威グループ・APTアクター一覧
         </p>
       </div>
@@ -100,11 +100,11 @@ export default function ThreatActorsPage() {
           { label: '高脅威', value: allActors.filter(a => a.threat_level === 'high').length, icon: Shield, color: 'text-orange-400' },
           { label: '総IOC数', value: allActors.reduce((s, a) => s + a.ioc_count, 0).toLocaleString(), icon: Target, color: 'text-purple-400' },
         ].map(stat => (
-          <div key={stat.label} className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-4 flex items-center gap-3">
+          <div key={stat.label} className="bg-falcon-surface border border-falcon-border rounded-lg p-4 flex items-center gap-3">
             <stat.icon className={`w-8 h-8 ${stat.color}`} />
             <div>
-              <p className="text-2xl font-bold text-[#e2e8f4]">{stat.value}</p>
-              <p className="text-[#7d92b0] text-xs">{stat.label}</p>
+              <p className="text-2xl font-bold text-falcon-text">{stat.value}</p>
+              <p className="text-falcon-muted text-xs">{stat.label}</p>
             </div>
           </div>
         ))}
@@ -113,16 +113,16 @@ export default function ThreatActorsPage() {
       {/* Filters */}
       <div className="flex items-center gap-3 mb-6">
         <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#7d92b0]" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-falcon-muted" />
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="アクター名またはエイリアスで検索..."
-            className="w-full pl-10 pr-4 py-2 bg-[#0d1220] border border-[#1e2d42] rounded-lg text-sm text-[#e2e8f4] placeholder-[#3d5068] focus:outline-none focus:border-[#7d92b0]/50"
+            className="w-full pl-10 pr-4 py-2 bg-falcon-surface border border-falcon-border rounded-lg text-sm text-falcon-text placeholder-falcon-subtle focus:outline-hidden focus:border-falcon-muted/50"
           />
         </div>
         <div className="flex items-center gap-2">
-          <Filter className="w-4 h-4 text-[#7d92b0]" />
+          <Filter className="w-4 h-4 text-falcon-muted" />
           <div className="flex gap-1">
             {THREAT_LEVELS.map(lv => (
               <button
@@ -130,8 +130,8 @@ export default function ThreatActorsPage() {
                 onClick={() => setLevelFilter(lv)}
                 className={`px-3 py-1.5 rounded text-xs font-medium transition-colors ${
                   levelFilter === lv
-                    ? 'bg-[#e8002d] text-white'
-                    : 'bg-[#0d1220] border border-[#1e2d42] text-[#7d92b0] hover:border-[#7d92b0]/40'
+                    ? 'bg-falcon-red text-white'
+                    : 'bg-falcon-surface border border-falcon-border text-falcon-muted hover:border-falcon-muted/40'
                 }`}
               >
                 {lv === 'all' ? '全て' : lv === 'critical' ? 'クリティカル' : lv === 'high' ? '高' : lv === 'medium' ? '中' : '低'}
@@ -139,7 +139,7 @@ export default function ThreatActorsPage() {
             ))}
           </div>
         </div>
-        {isLoading && <RefreshCw className="w-4 h-4 text-[#7d92b0] animate-spin" />}
+        {isLoading && <RefreshCw className="w-4 h-4 text-falcon-muted animate-spin" />}
       </div>
 
       {/* Actor Grid */}
@@ -148,25 +148,25 @@ export default function ThreatActorsPage() {
           <Link
             key={actor.id}
             href={`/threat-intel/actors/${actor.id}`}
-            className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-5 hover:border-[#7d92b0]/40 hover:bg-[#111827] transition-all group"
+            className="bg-falcon-surface border border-falcon-border rounded-lg p-5 hover:border-falcon-muted/40 hover:bg-falcon-card transition-all group"
           >
             <div className="flex items-start justify-between mb-3">
               <div>
-                <h3 className="text-[#e2e8f4] font-semibold text-base group-hover:text-white transition-colors">
+                <h3 className="text-falcon-text font-semibold text-base group-hover:text-white transition-colors">
                   {actor.name}
                 </h3>
                 <div className="flex items-center gap-1.5 mt-1">
                   <span className="text-lg">{actor.origin_flag}</span>
-                  <span className="text-[#7d92b0] text-xs">{actor.origin_country}</span>
+                  <span className="text-falcon-muted text-xs">{actor.origin_country}</span>
                 </div>
               </div>
               <div className="flex flex-col items-end gap-1.5">
                 {threatLevelBadge(actor.threat_level)}
-                <ChevronRight className="w-4 h-4 text-[#3d5068] group-hover:text-[#7d92b0] transition-colors" />
+                <ChevronRight className="w-4 h-4 text-falcon-subtle group-hover:text-falcon-muted transition-colors" />
               </div>
             </div>
 
-            <p className="text-[#7d92b0] text-xs line-clamp-2 mb-3">{actor.description}</p>
+            <p className="text-falcon-muted text-xs line-clamp-2 mb-3">{actor.description}</p>
 
             <div className="flex flex-wrap gap-1 mb-3">
               {actor.motivation.map(m => motivationBadge(m))}
@@ -174,18 +174,18 @@ export default function ThreatActorsPage() {
 
             <div className="flex flex-wrap gap-1 mb-3">
               {actor.aliases.slice(0, 3).map(alias => (
-                <span key={alias} className="px-1.5 py-0.5 rounded text-[10px] bg-[#1e2d42] text-[#7d92b0] border border-[#1e2d42]">
+                <span key={alias} className="px-1.5 py-0.5 rounded-sm text-[10px] bg-falcon-border text-falcon-muted border border-falcon-border">
                   {alias}
                 </span>
               ))}
               {actor.aliases.length > 3 && (
-                <span className="px-1.5 py-0.5 rounded text-[10px] bg-[#1e2d42] text-[#7d92b0]">
+                <span className="px-1.5 py-0.5 rounded-sm text-[10px] bg-falcon-border text-falcon-muted">
                   +{actor.aliases.length - 3}
                 </span>
               )}
             </div>
 
-            <div className="border-t border-[#1e2d42] pt-3 flex items-center justify-between text-xs text-[#7d92b0]">
+            <div className="border-t border-falcon-border pt-3 flex items-center justify-between text-xs text-falcon-muted">
               <div className="flex items-center gap-1">
                 <Calendar className="w-3 h-3" />
                 <span>最終確認: {new Date(actor.last_seen).toLocaleDateString('ja-JP')}</span>
@@ -200,7 +200,7 @@ export default function ThreatActorsPage() {
       </div>
 
       {actors.length === 0 && (
-        <div className="text-center py-16 text-[#7d92b0]">
+        <div className="text-center py-16 text-falcon-muted">
           <Globe className="w-12 h-12 mx-auto mb-3 opacity-30" />
           <p>条件に一致するアクターが見つかりません</p>
         </div>

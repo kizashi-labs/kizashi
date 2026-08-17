@@ -133,18 +133,18 @@ function AnomalyHeatmap({ data }: { data: number[][] }) {
       <div className="grid gap-0.5 mb-1" style={{ gridTemplateColumns: 'auto repeat(7, 1fr)' }}>
         <span className="w-10" />
         {days.map((d, i) => (
-          <span key={i} className="text-[#7d92b0] text-xs text-center font-medium">{d}</span>
+          <span key={i} className="text-falcon-muted text-xs text-center font-medium">{d}</span>
         ))}
       </div>
       <div className="grid gap-0.5" style={{ gridTemplateColumns: 'auto repeat(7, 1fr)' }}>
         {Array.from({ length: 24 }, (_, h) => (
           <>
-            <span key={`h${h}`} className="text-[#7d92b0] text-xs text-right pr-1 leading-3 w-10">{h}:00</span>
+            <span key={`h${h}`} className="text-falcon-muted text-xs text-right pr-1 leading-3 w-10">{h}:00</span>
             {days.map((d, di) => (
               <div
                 key={`${h}-${di}`}
                 title={`${d} ${h}:00 - ${data[di]?.[h] || 0}件`}
-                className="h-3 rounded-sm cursor-pointer hover:opacity-80 transition-opacity"
+                className="h-3 rounded-xs cursor-pointer hover:opacity-80 transition-opacity"
                 style={{ backgroundColor: getColor(data[di]?.[h] || 0) }}
               />
             ))}
@@ -152,7 +152,7 @@ function AnomalyHeatmap({ data }: { data: number[][] }) {
         ))}
       </div>
       {/* Legend */}
-      <div className="flex items-center gap-3 mt-3 pt-2 border-t border-[#1e2d42]">
+      <div className="flex items-center gap-3 mt-3 pt-2 border-t border-falcon-border">
         <span className="text-[10px] text-[#5a6a7a]">密度:</span>
         {[
           { color: '#0d1220', label: '0' },
@@ -161,8 +161,8 @@ function AnomalyHeatmap({ data }: { data: number[][] }) {
           { color: '#e8002d', label: '高' },
         ].map(({ color, label }) => (
           <div key={label} className="flex items-center gap-1">
-            <div className="w-3 h-3 rounded-sm border border-[#1e2d42]/50" style={{ backgroundColor: color }} />
-            <span className="text-[10px] text-[#7d92b0]">{label}</span>
+            <div className="w-3 h-3 rounded-xs border border-falcon-border/50" style={{ backgroundColor: color }} />
+            <span className="text-[10px] text-falcon-muted">{label}</span>
           </div>
         ))}
       </div>
@@ -243,11 +243,11 @@ function BaselineDeviationChart({ points }: { points: BaselinePoint[] }) {
       <div className="flex items-center gap-4 mt-1">
         <div className="flex items-center gap-1.5">
           <svg width={20} height={10}><line x1={0} y1={5} x2={20} y2={5} stroke="#e8002d" strokeWidth={2} /></svg>
-          <span className="text-[10px] text-[#7d92b0]">実際の活動</span>
+          <span className="text-[10px] text-falcon-muted">実際の活動</span>
         </div>
         <div className="flex items-center gap-1.5">
           <svg width={20} height={10}><line x1={0} y1={5} x2={20} y2={5} stroke="#1a6bff" strokeWidth={1.5} strokeDasharray="5,3" /></svg>
-          <span className="text-[10px] text-[#7d92b0]">ベースライン</span>
+          <span className="text-[10px] text-falcon-muted">ベースライン</span>
         </div>
       </div>
     </div>
@@ -262,17 +262,17 @@ function AnomalyTypeBar({ items }: { items: AnomalyTypeCount[] }) {
     <div className="space-y-2">
       {items.map((item, i) => (
         <div key={i} className="flex items-center gap-2">
-          <span className="text-xs text-[#8899aa] w-40 truncate flex-shrink-0">{item.type}</span>
-          <div className="flex-1 h-4 bg-[#0d1220] rounded overflow-hidden">
+          <span className="text-xs text-[#8899aa] w-40 truncate shrink-0">{item.type}</span>
+          <div className="flex-1 h-4 bg-falcon-surface rounded-sm overflow-hidden">
             <div
-              className="h-full rounded transition-all"
+              className="h-full rounded-sm transition-all"
               style={{
                 width: `${(item.count / maxCount) * 100}%`,
                 background: `linear-gradient(90deg, #1a6bff, #7c3aed)`,
               }}
             />
           </div>
-          <span className="text-xs text-white font-mono w-8 text-right flex-shrink-0">{item.count}</span>
+          <span className="text-xs text-white font-mono w-8 text-right shrink-0">{item.count}</span>
         </div>
       ))}
     </div>
@@ -282,9 +282,9 @@ function AnomalyTypeBar({ items }: { items: AnomalyTypeCount[] }) {
 // ─── Trend Arrow ──────────────────────────────────────────────────────────
 
 function TrendArrow({ trend }: { trend?: 'up' | 'down' | 'stable' }) {
-  if (trend === 'up') return <span title="リスク増加中"><TrendingUp className="w-3.5 h-3.5 text-red-400 flex-shrink-0" /></span>
-  if (trend === 'down') return <span title="リスク低下中"><TrendingDown className="w-3.5 h-3.5 text-green-400 flex-shrink-0" /></span>
-  return <span title="安定"><Minus className="w-3.5 h-3.5 text-[#5a6a7a] flex-shrink-0" /></span>
+  if (trend === 'up') return <span title="リスク増加中"><TrendingUp className="w-3.5 h-3.5 text-red-400 shrink-0" /></span>
+  if (trend === 'down') return <span title="リスク低下中"><TrendingDown className="w-3.5 h-3.5 text-green-400 shrink-0" /></span>
+  return <span title="安定"><Minus className="w-3.5 h-3.5 text-[#5a6a7a] shrink-0" /></span>
 }
 
 // ─── Existing helpers (unchanged) ─────────────────────────────────────────
@@ -294,9 +294,9 @@ function RiskBadge({ score }: { score: number }) {
     ? { cls: 'bg-red-900/50 text-red-300 border-red-700', label: '高リスク' }
     : score >= 40
     ? { cls: 'bg-yellow-900/50 text-yellow-300 border-yellow-700', label: '中リスク' }
-    : { cls: 'bg-[#161f33] text-[#8899aa] border-[#1e2d42]', label: '低リスク' }
+    : { cls: 'bg-falcon-raised text-[#8899aa] border-falcon-border', label: '低リスク' }
   return (
-    <span className={`px-2 py-0.5 rounded border text-xs font-semibold ${cfg.cls}`}>
+    <span className={`px-2 py-0.5 rounded-sm border text-xs font-semibold ${cfg.cls}`}>
       {cfg.label} {score}
     </span>
   )
@@ -305,7 +305,7 @@ function RiskBadge({ score }: { score: number }) {
 function RiskBar({ score }: { score: number }) {
   const color = score >= 70 ? 'bg-red-500' : score >= 40 ? 'bg-yellow-500' : 'bg-green-500'
   return (
-    <div className="w-24 h-1.5 bg-[#161f33] rounded-full overflow-hidden">
+    <div className="w-24 h-1.5 bg-falcon-raised rounded-full overflow-hidden">
       <div className={`h-full ${color} transition-all`} style={{ width: `${score}%` }} />
     </div>
   )
@@ -330,12 +330,12 @@ function ScoreBreakdown({ signals, score }: { signals: string[]; score: number }
   }))
   const total = weighted.reduce((s, w) => s + w.weight, 0)
   return (
-    <div className="mt-2 space-y-1.5 bg-[#080c14]/40 rounded-lg p-3 border border-[#1e2d42]/50">
+    <div className="mt-2 space-y-1.5 bg-falcon-bg/40 rounded-lg p-3 border border-falcon-border/50">
       <p className="text-[10px] text-[#5a6a7a] font-semibold uppercase tracking-wider mb-2">スコア内訳 (推定)</p>
       {weighted.map((w, i) => (
         <div key={i} className="flex items-center gap-2">
           <span className="text-xs text-orange-300 flex-1 truncate">{w.label}</span>
-          <div className="w-20 h-1.5 bg-[#161f33] rounded-full overflow-hidden flex-shrink-0">
+          <div className="w-20 h-1.5 bg-falcon-raised rounded-full overflow-hidden shrink-0">
             <div
               className="h-full bg-orange-500/70 rounded-full"
               style={{ width: `${(w.weight / total) * 100}%` }}
@@ -344,7 +344,7 @@ function ScoreBreakdown({ signals, score }: { signals: string[]; score: number }
           <span className="text-[10px] text-[#5a6a7a] w-8 text-right">{Math.round((w.weight / total) * score)}</span>
         </div>
       ))}
-      <div className="flex justify-between text-[10px] text-[#5a6a7a] pt-1 border-t border-[#1e2d42]/50 mt-1">
+      <div className="flex justify-between text-[10px] text-[#5a6a7a] pt-1 border-t border-falcon-border/50 mt-1">
         <span>合計リスクスコア</span>
         <span className={`font-bold ${score >= 70 ? 'text-red-400' : score >= 40 ? 'text-yellow-400' : 'text-green-400'}`}>{score}</span>
       </div>
@@ -356,7 +356,7 @@ function StatCard({ label, value, icon: Icon, color, warn }: {
   label: string; value: number; icon: React.ElementType; color: string; warn?: boolean
 }) {
   return (
-    <div className={`bg-[#111827] rounded-xl border p-4 flex items-center gap-3 ${warn && value > 0 ? 'border-red-700' : 'border-[#1e2d42]'}`}>
+    <div className={`bg-falcon-card rounded-xl border p-4 flex items-center gap-3 ${warn && value > 0 ? 'border-red-700' : 'border-falcon-border'}`}>
       <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${color}`}>
         <Icon className="w-4.5 h-4.5 text-white" />
       </div>
@@ -440,7 +440,7 @@ export default function UEBAPage() {
               key={r.hours}
               onClick={() => setHours(r.hours)}
               className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                hours === r.hours ? 'bg-violet-600 text-white' : 'bg-[#111827] text-[#8899aa] hover:bg-[#19253d]'
+                hours === r.hours ? 'bg-violet-600 text-white' : 'bg-falcon-card text-[#8899aa] hover:bg-falcon-hover'
               }`}
             >
               {r.label}
@@ -457,17 +457,17 @@ export default function UEBAPage() {
         <>
           {/* Summary cards */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <StatCard label="高リスクユーザー"     value={s?.high_risk_users ?? 0}    icon={UserX}     color="bg-[#e8002d]"    warn />
+            <StatCard label="高リスクユーザー"     value={s?.high_risk_users ?? 0}    icon={UserX}     color="bg-falcon-red"    warn />
             <StatCard label="高リスクエンドポイント" value={s?.high_risk_entities ?? 0} icon={Server}    color="bg-orange-600" warn />
             <StatCard label="希少プロセス"          value={s?.rare_process_count ?? 0} icon={Cpu}       color="bg-yellow-600" />
-            <StatCard label="新規ホスト"            value={s?.new_host_count ?? 0}     icon={Globe}     color="bg-[#1a6bff]" />
+            <StatCard label="新規ホスト"            value={s?.new_host_count ?? 0}     icon={Globe}     color="bg-falcon-blue" />
           </div>
 
           {/* ── NEW: Anomaly Heatmap + Anomaly Type Distribution ── */}
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
             {/* Anomaly Heatmap */}
-            <div className="bg-[#111827] rounded-xl border border-[#1e2d42] overflow-hidden">
-              <div className="flex items-center gap-2 px-5 py-4 border-b border-[#1e2d42]">
+            <div className="bg-falcon-card rounded-xl border border-falcon-border overflow-hidden">
+              <div className="flex items-center gap-2 px-5 py-4 border-b border-falcon-border">
                 <Activity className="w-4 h-4 text-violet-400" />
                 <h2 className="text-sm font-semibold text-white">異常ヒートマップ</h2>
                 <span className="ml-auto text-xs text-[#5a6a7a]">曜日 × 時間帯</span>
@@ -478,8 +478,8 @@ export default function UEBAPage() {
             </div>
 
             {/* Anomaly Type Distribution */}
-            <div className="bg-[#111827] rounded-xl border border-[#1e2d42] overflow-hidden">
-              <div className="flex items-center gap-2 px-5 py-4 border-b border-[#1e2d42]">
+            <div className="bg-falcon-card rounded-xl border border-falcon-border overflow-hidden">
+              <div className="flex items-center gap-2 px-5 py-4 border-b border-falcon-border">
                 <BarChart2 className="w-4 h-4 text-blue-400" />
                 <h2 className="text-sm font-semibold text-white">異常タイプ分布</h2>
                 <span className="ml-auto text-xs text-[#5a6a7a]">件数</span>
@@ -491,8 +491,8 @@ export default function UEBAPage() {
           </div>
 
           {/* ── NEW: Baseline Deviation Chart ── */}
-          <div className="bg-[#111827] rounded-xl border border-[#1e2d42] overflow-hidden">
-            <div className="flex items-center gap-2 px-5 py-4 border-b border-[#1e2d42]">
+          <div className="bg-falcon-card rounded-xl border border-falcon-border overflow-hidden">
+            <div className="flex items-center gap-2 px-5 py-4 border-b border-falcon-border">
               <TrendingUp className="w-4 h-4 text-orange-400" />
               <h2 className="text-sm font-semibold text-white">ベースライン乖離チャート</h2>
               <span className="ml-auto text-xs text-[#5a6a7a]">過去7日間の実際の活動 vs ベースライン</span>
@@ -504,8 +504,8 @@ export default function UEBAPage() {
 
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
             {/* User anomalies — enhanced with trend arrow */}
-            <div className="bg-[#111827] rounded-xl border border-[#1e2d42] overflow-hidden">
-              <div className="flex items-center gap-2 px-5 py-4 border-b border-[#1e2d42]">
+            <div className="bg-falcon-card rounded-xl border border-falcon-border overflow-hidden">
+              <div className="flex items-center gap-2 px-5 py-4 border-b border-falcon-border">
                 <Users className="w-4 h-4 text-violet-400" />
                 <h2 className="text-sm font-semibold text-white">ユーザー異常行動</h2>
                 <div className="ml-auto flex items-center gap-2">
@@ -516,8 +516,8 @@ export default function UEBAPage() {
                       placeholder="ユーザー名..."
                       value={userSearch}
                       onChange={e => setUserSearch(e.target.value)}
-                      className="pl-6 pr-2 py-1 bg-[#111827] border border-[#1e2d42] rounded text-xs text-white
-                                 placeholder-[#5a6a7a] focus:outline-none focus:border-violet-500 w-32"
+                      className="pl-6 pr-2 py-1 bg-falcon-card border border-falcon-border rounded text-xs text-white
+                                 placeholder-[#5a6a7a] focus:outline-hidden focus:border-violet-500 w-32"
                     />
                   </div>
                   <span className="text-xs text-[#5a6a7a]">{filteredUsers.length}件</span>
@@ -526,14 +526,14 @@ export default function UEBAPage() {
               {filteredUsers.length === 0 ? (
                 <div className="py-10 text-center text-[#5a6a7a] text-sm">異常なユーザー行動は検出されていません</div>
               ) : (
-                <div className="divide-y divide-[#1e2d42]/50">
+                <div className="divide-y divide-falcon-border/50">
                   {filteredUsers.map(u => (
                     <div key={u.username}>
                       <button
                         onClick={() => setExpandedUser(expandedUser === u.username ? null : u.username)}
-                        className="w-full flex items-center gap-3 px-5 py-3 hover:bg-[#161f33]/30 text-left transition-colors"
+                        className="w-full flex items-center gap-3 px-5 py-3 hover:bg-falcon-raised/30 text-left transition-colors"
                       >
-                        <div className="w-7 h-7 bg-[#161f33] rounded-full flex items-center justify-center flex-shrink-0">
+                        <div className="w-7 h-7 bg-falcon-raised rounded-full flex items-center justify-center shrink-0">
                           <Users className="w-3.5 h-3.5 text-[#8899aa]" />
                         </div>
                         <div className="flex-1 min-w-0">
@@ -549,8 +549,8 @@ export default function UEBAPage() {
                         <RiskBar score={u.risk_score} />
                         <RiskBadge score={u.risk_score} />
                         {expandedUser === u.username
-                          ? <ChevronDown className="w-4 h-4 text-[#5a6a7a] flex-shrink-0" />
-                          : <ChevronRight className="w-4 h-4 text-[#5a6a7a] flex-shrink-0" />}
+                          ? <ChevronDown className="w-4 h-4 text-[#5a6a7a] shrink-0" />
+                          : <ChevronRight className="w-4 h-4 text-[#5a6a7a] shrink-0" />}
                       </button>
                       {expandedUser === u.username && u.signals.length > 0 && (
                         <div className="px-5 pb-4">
@@ -564,8 +564,8 @@ export default function UEBAPage() {
             </div>
 
             {/* Entity anomalies */}
-            <div className="bg-[#111827] rounded-xl border border-[#1e2d42] overflow-hidden">
-              <div className="flex items-center gap-2 px-5 py-4 border-b border-[#1e2d42]">
+            <div className="bg-falcon-card rounded-xl border border-falcon-border overflow-hidden">
+              <div className="flex items-center gap-2 px-5 py-4 border-b border-falcon-border">
                 <Monitor className="w-4 h-4 text-orange-400" />
                 <h2 className="text-sm font-semibold text-white">エンドポイント異常行動</h2>
                 <div className="ml-auto flex items-center gap-2">
@@ -576,8 +576,8 @@ export default function UEBAPage() {
                       placeholder="ホスト名..."
                       value={entitySearch}
                       onChange={e => setEntitySearch(e.target.value)}
-                      className="pl-6 pr-2 py-1 bg-[#111827] border border-[#1e2d42] rounded text-xs text-white
-                                 placeholder-[#5a6a7a] focus:outline-none focus:border-orange-500 w-32"
+                      className="pl-6 pr-2 py-1 bg-falcon-card border border-falcon-border rounded text-xs text-white
+                                 placeholder-[#5a6a7a] focus:outline-hidden focus:border-orange-500 w-32"
                     />
                   </div>
                   <span className="text-xs text-[#5a6a7a]">{filteredEntities.length}件</span>
@@ -586,14 +586,14 @@ export default function UEBAPage() {
               {filteredEntities.length === 0 ? (
                 <div className="py-10 text-center text-[#5a6a7a] text-sm">異常なエンドポイント行動は検出されていません</div>
               ) : (
-                <div className="divide-y divide-[#1e2d42]/50">
+                <div className="divide-y divide-falcon-border/50">
                   {filteredEntities.map(e => (
                     <div key={e.agent_id}>
                       <button
                         onClick={() => setExpandedEntity(expandedEntity === e.agent_id ? null : e.agent_id)}
-                        className="w-full flex items-center gap-3 px-5 py-3 hover:bg-[#161f33]/30 text-left transition-colors"
+                        className="w-full flex items-center gap-3 px-5 py-3 hover:bg-falcon-raised/30 text-left transition-colors"
                       >
-                        <div className="w-7 h-7 bg-[#161f33] rounded-full flex items-center justify-center flex-shrink-0">
+                        <div className="w-7 h-7 bg-falcon-raised rounded-full flex items-center justify-center shrink-0">
                           <Monitor className="w-3.5 h-3.5 text-[#8899aa]" />
                         </div>
                         <div className="flex-1 min-w-0">
@@ -605,8 +605,8 @@ export default function UEBAPage() {
                         <RiskBar score={e.risk_score} />
                         <RiskBadge score={e.risk_score} />
                         {expandedEntity === e.agent_id
-                          ? <ChevronDown className="w-4 h-4 text-[#5a6a7a] flex-shrink-0" />
-                          : <ChevronRight className="w-4 h-4 text-[#5a6a7a] flex-shrink-0" />}
+                          ? <ChevronDown className="w-4 h-4 text-[#5a6a7a] shrink-0" />
+                          : <ChevronRight className="w-4 h-4 text-[#5a6a7a] shrink-0" />}
                       </button>
                       {expandedEntity === e.agent_id && (
                         <div className="px-5 pb-4">
@@ -628,8 +628,8 @@ export default function UEBAPage() {
           </div>
 
           {/* Rare processes */}
-          <div className="bg-[#111827] rounded-xl border border-[#1e2d42] overflow-hidden">
-            <div className="flex items-center gap-2 px-5 py-4 border-b border-[#1e2d42]">
+          <div className="bg-falcon-card rounded-xl border border-falcon-border overflow-hidden">
+            <div className="flex items-center gap-2 px-5 py-4 border-b border-falcon-border">
               <Zap className="w-4 h-4 text-yellow-400" />
               <h2 className="text-sm font-semibold text-white">希少プロセス（1台のみで実行）</h2>
               <span className="ml-auto text-xs text-[#5a6a7a]">ベースライン外の実行ファイル</span>
@@ -640,7 +640,7 @@ export default function UEBAPage() {
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b border-[#1e2d42] text-xs text-[#8899aa]">
+                    <tr className="border-b border-falcon-border text-xs text-[#8899aa]">
                       <th className="px-4 py-3 text-left">実行ファイル</th>
                       <th className="px-4 py-3 text-left">ホスト</th>
                       <th className="px-4 py-3 text-left">初回検知</th>
@@ -648,7 +648,7 @@ export default function UEBAPage() {
                   </thead>
                   <tbody>
                     {(data?.rare_processes ?? []).map((p, i) => (
-                      <tr key={i} className="border-b border-[#1e2d42]/50 hover:bg-[#161f33]/30">
+                      <tr key={i} className="border-b border-falcon-border/50 hover:bg-falcon-raised/30">
                         <td className="px-4 py-2.5 font-mono text-xs text-yellow-300 max-w-xs truncate">
                           {p.image}
                         </td>
@@ -673,8 +673,8 @@ export default function UEBAPage() {
 
           {/* New hosts */}
           {(data?.new_hosts ?? []).length > 0 && (
-            <div className="bg-[#111827] rounded-xl border border-[#1e2d42] overflow-hidden">
-              <div className="flex items-center gap-2 px-5 py-4 border-b border-[#1e2d42]">
+            <div className="bg-falcon-card rounded-xl border border-falcon-border overflow-hidden">
+              <div className="flex items-center gap-2 px-5 py-4 border-b border-falcon-border">
                 <Globe className="w-4 h-4 text-blue-400" />
                 <h2 className="text-sm font-semibold text-white">新規エンドポイント</h2>
                 <span className="ml-auto text-xs text-[#5a6a7a]">期間内に初めて登録されたホスト</span>
@@ -684,9 +684,9 @@ export default function UEBAPage() {
                   <Link
                     key={h.agent_id}
                     href={`/endpoints/${h.agent_id}`}
-                    className="flex items-center gap-3 p-3 bg-[#161f33]/50 rounded-lg hover:bg-[#161f33] transition-colors"
+                    className="flex items-center gap-3 p-3 bg-falcon-raised/50 rounded-lg hover:bg-falcon-raised transition-colors"
                   >
-                    <Monitor className="w-4 h-4 text-blue-400 flex-shrink-0" />
+                    <Monitor className="w-4 h-4 text-blue-400 shrink-0" />
                     <div className="min-w-0">
                       <p className="text-sm text-white truncate">{h.hostname}</p>
                       <p className="text-xs text-[#8899aa]">{h.os}</p>

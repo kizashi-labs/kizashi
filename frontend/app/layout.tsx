@@ -37,7 +37,7 @@ export default function RootLayout({
         <link rel="apple-touch-icon" href="/icons/icon.svg" />
         <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
       </head>
-      <body className="bg-[#080c14] text-[#e2e8f4] antialiased">
+      <body className="bg-falcon-bg text-falcon-text antialiased">
         <Providers>
           <AppShell>
             <BackendPendingBanner />

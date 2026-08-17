@@ -128,20 +128,20 @@ function AddEntryModal({ onClose, onSuccess }: AddEntryModalProps) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs">
       <div className="bg-zinc-900 border border-zinc-700 rounded-xl shadow-2xl w-full max-w-lg mx-4">
         <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-700">
           <h2 className="text-lg font-semibold text-zinc-100">ウォッチリストエントリ追加</h2>
           <button onClick={onClose} className="text-zinc-400 hover:text-zinc-200 transition-colors"><X className="h-5 w-5" /></button>
         </div>
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          {error && <div className="text-red-400 text-sm bg-red-900/20 border border-red-700/40 rounded px-3 py-2">{error}</div>}
+          {error && <div className="text-red-400 text-sm bg-red-900/20 border border-red-700/40 rounded-sm px-3 py-2">{error}</div>}
 
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-xs text-zinc-400 mb-1">エンティティ種別</label>
               <select value={form.entity_type} onChange={e => setForm(f => ({ ...f, entity_type: e.target.value as EntityType }))}
-                className="w-full bg-zinc-800 border border-zinc-600 rounded-lg px-3 py-2 text-zinc-100 text-sm focus:outline-none focus:border-blue-500">
+                className="w-full bg-zinc-800 border border-zinc-600 rounded-lg px-3 py-2 text-zinc-100 text-sm focus:outline-hidden focus:border-blue-500">
                 {(Object.keys(ENTITY_STYLES) as EntityType[]).map(t => (
                   <option key={t} value={t}>{ENTITY_STYLES[t].label}</option>
                 ))}
@@ -158,27 +158,27 @@ function AddEntryModal({ onClose, onSuccess }: AddEntryModalProps) {
             <div className="col-span-2">
               <label className="block text-xs text-zinc-400 mb-1">値</label>
               <input value={form.value} onChange={e => setForm(f => ({ ...f, value: e.target.value }))}
-                className="w-full bg-zinc-800 border border-zinc-600 rounded-lg px-3 py-2 text-zinc-100 text-sm font-mono focus:outline-none focus:border-blue-500" placeholder="例: 192.168.1.1, evil.com, sha256..." />
+                className="w-full bg-zinc-800 border border-zinc-600 rounded-lg px-3 py-2 text-zinc-100 text-sm font-mono focus:outline-hidden focus:border-blue-500" placeholder="例: 192.168.1.1, evil.com, sha256..." />
             </div>
             <div className="col-span-2">
               <label className="block text-xs text-zinc-400 mb-1">ラベル</label>
               <input value={form.label} onChange={e => setForm(f => ({ ...f, label: e.target.value }))}
-                className="w-full bg-zinc-800 border border-zinc-600 rounded-lg px-3 py-2 text-zinc-100 text-sm focus:outline-none focus:border-blue-500" placeholder="簡潔な説明" />
+                className="w-full bg-zinc-800 border border-zinc-600 rounded-lg px-3 py-2 text-zinc-100 text-sm focus:outline-hidden focus:border-blue-500" placeholder="簡潔な説明" />
             </div>
             <div className="col-span-2">
               <label className="block text-xs text-zinc-400 mb-1">理由</label>
               <textarea value={form.reason} onChange={e => setForm(f => ({ ...f, reason: e.target.value }))} rows={2}
-                className="w-full bg-zinc-800 border border-zinc-600 rounded-lg px-3 py-2 text-zinc-100 text-sm focus:outline-none focus:border-blue-500 resize-none" placeholder="このエンティティを監視する理由" />
+                className="w-full bg-zinc-800 border border-zinc-600 rounded-lg px-3 py-2 text-zinc-100 text-sm focus:outline-hidden focus:border-blue-500 resize-none" placeholder="このエンティティを監視する理由" />
             </div>
             <div>
               <label className="block text-xs text-zinc-400 mb-1">タグ（カンマ区切り）</label>
               <input value={form.tags} onChange={e => setForm(f => ({ ...f, tags: e.target.value }))}
-                className="w-full bg-zinc-800 border border-zinc-600 rounded-lg px-3 py-2 text-zinc-100 text-sm focus:outline-none focus:border-blue-500" placeholder="tor, c2, malware" />
+                className="w-full bg-zinc-800 border border-zinc-600 rounded-lg px-3 py-2 text-zinc-100 text-sm focus:outline-hidden focus:border-blue-500" placeholder="tor, c2, malware" />
             </div>
             <div>
               <label className="block text-xs text-zinc-400 mb-1">有効期限（任意）</label>
               <input type="date" value={form.expires_at} onChange={e => setForm(f => ({ ...f, expires_at: e.target.value }))}
-                className="w-full bg-zinc-800 border border-zinc-600 rounded-lg px-3 py-2 text-zinc-100 text-sm focus:outline-none focus:border-blue-500" />
+                className="w-full bg-zinc-800 border border-zinc-600 rounded-lg px-3 py-2 text-zinc-100 text-sm focus:outline-hidden focus:border-blue-500" />
             </div>
           </div>
 
@@ -313,7 +313,7 @@ export default function WatchlistPage() {
           <div>
             <label className="block text-xs text-zinc-500 mb-1">種別</label>
             <select value={checkType} onChange={e => setCheckType(e.target.value as EntityType)}
-              className="bg-zinc-800 border border-zinc-600 rounded-lg px-3 py-2 text-zinc-100 text-sm focus:outline-none focus:border-blue-500">
+              className="bg-zinc-800 border border-zinc-600 rounded-lg px-3 py-2 text-zinc-100 text-sm focus:outline-hidden focus:border-blue-500">
               {(Object.keys(ENTITY_STYLES) as EntityType[]).map(t => (
                 <option key={t} value={t}>{ENTITY_STYLES[t].label}</option>
               ))}
@@ -322,7 +322,7 @@ export default function WatchlistPage() {
           <div className="flex-1">
             <label className="block text-xs text-zinc-500 mb-1">値</label>
             <input value={checkValue} onChange={e => setCheckValue(e.target.value)}
-              className="w-full bg-zinc-800 border border-zinc-600 rounded-lg px-3 py-2 text-zinc-100 text-sm font-mono focus:outline-none focus:border-blue-500" placeholder="IP、ドメイン、ハッシュを入力..." />
+              className="w-full bg-zinc-800 border border-zinc-600 rounded-lg px-3 py-2 text-zinc-100 text-sm font-mono focus:outline-hidden focus:border-blue-500" placeholder="IP、ドメイン、ハッシュを入力..." />
           </div>
           <button type="submit" disabled={checking || !checkValue}
             className="px-4 py-2 text-sm bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white rounded-lg transition-colors flex items-center gap-2">
@@ -364,7 +364,7 @@ export default function WatchlistPage() {
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="エントリを検索..."
-            className="bg-zinc-900 border border-zinc-700 rounded-lg pl-9 pr-4 py-2 text-sm text-zinc-100 focus:outline-none focus:border-blue-500 w-64" />
+            className="bg-zinc-900 border border-zinc-700 rounded-lg pl-9 pr-4 py-2 text-sm text-zinc-100 focus:outline-hidden focus:border-blue-500 w-64" />
         </div>
       </div>
 
@@ -392,7 +392,7 @@ export default function WatchlistPage() {
               return (
                 <tr key={entry.id} className="hover:bg-zinc-800/30 transition-colors">
                   <td className="px-4 py-3">
-                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium ${es.color}`}>
+                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-xs font-medium ${es.color}`}>
                       <es.icon className="h-3 w-3" />{es.label}
                     </span>
                   </td>
@@ -412,7 +412,7 @@ export default function WatchlistPage() {
                   <td className="px-4 py-3">
                     <div className="flex flex-wrap gap-1">
                       {entry.tags.slice(0, 2).map(t => (
-                        <span key={t} className="text-xs px-1.5 py-0.5 bg-zinc-800 text-zinc-400 rounded border border-zinc-700">{t}</span>
+                        <span key={t} className="text-xs px-1.5 py-0.5 bg-zinc-800 text-zinc-400 rounded-sm border border-zinc-700">{t}</span>
                       ))}
                       {entry.tags.length > 2 && <span className="text-xs text-zinc-600">+{entry.tags.length - 2}</span>}
                     </div>

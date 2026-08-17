@@ -273,9 +273,9 @@ function ProcessNode({ proc, depth = 0 }: { proc: ProcessEvent; depth: number })
       <div className="flex items-center gap-2 text-sm">
         <span className="text-green-400">▶</span>
         <span className="text-white font-mono">{proc.process_name}</span>
-        <span className="text-[#7d92b0]">({proc.pid})</span>
+        <span className="text-falcon-muted">({proc.pid})</span>
         {proc.cmdline && (
-          <span className="text-[#7d92b0] text-xs truncate max-w-xs">{proc.cmdline}</span>
+          <span className="text-falcon-muted text-xs truncate max-w-xs">{proc.cmdline}</span>
         )}
       </div>
       {proc.children?.map(child => (
@@ -293,10 +293,10 @@ function ProcessCard({ event }: { event: ProcessEvent }) {
       <ProcessNode proc={event} depth={0} />
       <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-[#4d6480] mt-1">
         {event.parent_name && (
-          <span>親プロセス: <span className="text-[#7d92b0] font-mono">{event.parent_name}</span></span>
+          <span>親プロセス: <span className="text-falcon-muted font-mono">{event.parent_name}</span></span>
         )}
         {event.user && (
-          <span>ユーザー: <span className="text-[#7d92b0]">{event.user}</span></span>
+          <span>ユーザー: <span className="text-falcon-muted">{event.user}</span></span>
         )}
         {event.action && (
           <span>アクション: <span className={event.action === 'create' ? 'text-green-400' : 'text-red-400'}>{event.action}</span></span>
@@ -324,22 +324,22 @@ function FileCard({ event }: { event: FileEvent }) {
   return (
     <div className="space-y-1">
       <div className="flex items-center gap-2">
-        <span className={`text-xs font-bold uppercase px-1.5 py-0.5 rounded ${actionColor} bg-current/10`} style={{ backgroundColor: 'rgba(0,0,0,0.2)' }}>
+        <span className={`text-xs font-bold uppercase px-1.5 py-0.5 rounded-sm ${actionColor} bg-current/10`} style={{ backgroundColor: 'rgba(0,0,0,0.2)' }}>
           <span className={actionColor}>{actionLabel}</span>
         </span>
-        <span className="text-sm font-mono text-[#e2e8f4] break-all">{event.path}</span>
+        <span className="text-sm font-mono text-falcon-text break-all">{event.path}</span>
       </div>
       {event.new_path && (
         <div className="text-xs text-[#4d6480]">
-          → <span className="font-mono text-[#7d92b0]">{event.new_path}</span>
+          → <span className="font-mono text-falcon-muted">{event.new_path}</span>
         </div>
       )}
       <div className="flex gap-4 text-xs text-[#4d6480]">
         {event.size !== undefined && (
-          <span>サイズ: <span className="text-[#7d92b0]">{formatBytes(event.size)}</span></span>
+          <span>サイズ: <span className="text-falcon-muted">{formatBytes(event.size)}</span></span>
         )}
         {event.process_name && (
-          <span>プロセス: <span className="text-[#7d92b0] font-mono">{event.process_name}</span></span>
+          <span>プロセス: <span className="text-falcon-muted font-mono">{event.process_name}</span></span>
         )}
       </div>
     </div>
@@ -350,23 +350,23 @@ function NetworkCard({ event }: { event: NetworkEvent }) {
   return (
     <div className="space-y-1">
       <div className="flex items-center gap-2 text-sm flex-wrap">
-        <span className="font-mono text-[#e2e8f4]">{event.src_ip}</span>
+        <span className="font-mono text-falcon-text">{event.src_ip}</span>
         <span className="text-[#4d6480]">→</span>
-        <span className="font-mono text-[#e2e8f4]">{event.dst_ip}</span>
+        <span className="font-mono text-falcon-text">{event.dst_ip}</span>
         <span className="text-blue-400 font-mono">:{event.dst_port}</span>
-        <span className="text-xs bg-blue-500/10 text-blue-400 border border-blue-500/20 px-1.5 py-0.5 rounded">
+        <span className="text-xs bg-blue-500/10 text-blue-400 border border-blue-500/20 px-1.5 py-0.5 rounded-sm">
           {event.protocol}
         </span>
       </div>
       <div className="flex gap-4 text-xs text-[#4d6480]">
         {event.bytes_sent !== undefined && (
-          <span>送信: <span className="text-[#7d92b0]">{formatBytes(event.bytes_sent)}</span></span>
+          <span>送信: <span className="text-falcon-muted">{formatBytes(event.bytes_sent)}</span></span>
         )}
         {event.bytes_recv !== undefined && (
-          <span>受信: <span className="text-[#7d92b0]">{formatBytes(event.bytes_recv)}</span></span>
+          <span>受信: <span className="text-falcon-muted">{formatBytes(event.bytes_recv)}</span></span>
         )}
         {event.process_name && (
-          <span>プロセス: <span className="text-[#7d92b0] font-mono">{event.process_name}</span></span>
+          <span>プロセス: <span className="text-falcon-muted font-mono">{event.process_name}</span></span>
         )}
       </div>
     </div>
@@ -378,8 +378,8 @@ function DnsCard({ event }: { event: DnsEvent }) {
   return (
     <div className="space-y-1">
       <div className="flex items-center gap-2 text-sm flex-wrap">
-        <span className="font-mono text-[#e2e8f4]">{event.domain}</span>
-        <span className="text-xs bg-purple-500/10 text-purple-400 border border-purple-500/20 px-1.5 py-0.5 rounded">
+        <span className="font-mono text-falcon-text">{event.domain}</span>
+        <span className="text-xs bg-purple-500/10 text-purple-400 border border-purple-500/20 px-1.5 py-0.5 rounded-sm">
           {event.query_type}
         </span>
         {event.response_code && (
@@ -388,10 +388,10 @@ function DnsCard({ event }: { event: DnsEvent }) {
       </div>
       <div className="flex gap-4 text-xs text-[#4d6480]">
         {event.response && (
-          <span>レスポンス: <span className="text-[#7d92b0] font-mono">{event.response}</span></span>
+          <span>レスポンス: <span className="text-falcon-muted font-mono">{event.response}</span></span>
         )}
         {event.process_name && (
-          <span>プロセス: <span className="text-[#7d92b0] font-mono">{event.process_name}</span></span>
+          <span>プロセス: <span className="text-falcon-muted font-mono">{event.process_name}</span></span>
         )}
       </div>
     </div>
@@ -487,7 +487,7 @@ function EventDensityRuler({
   const fmt = (ms: number) => new Date(ms).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })
 
   return (
-    <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg px-4 pt-3 pb-2 mb-4">
+    <div className="bg-falcon-surface border border-falcon-border rounded-lg px-4 pt-3 pb-2 mb-4">
       <div className="flex items-center justify-between mb-2">
         <p className="text-[10px] font-semibold text-[#4d6480] uppercase tracking-wider">
           イベント密度 — {events.length} 件
@@ -516,8 +516,8 @@ function EventDensityRuler({
         ))}
       </div>
       <div className="flex justify-between mt-1">
-        <span className="text-[9px] text-[#3d5068] font-mono">{fmt(fromMs)}</span>
-        <span className="text-[9px] text-[#3d5068] font-mono">{fmt(toMs)}</span>
+        <span className="text-[9px] text-falcon-subtle font-mono">{fmt(fromMs)}</span>
+        <span className="text-[9px] text-falcon-subtle font-mono">{fmt(toMs)}</span>
       </div>
     </div>
   )
@@ -533,22 +533,22 @@ function TimelineEventCard({ event }: { event: TimelineEvent }) {
   return (
     <div className="flex gap-4 group">
       {/* Left timeline dot */}
-      <div className="flex flex-col items-center flex-shrink-0" style={{ width: 24 }}>
-        <div className={`w-3 h-3 rounded-full ${cfg.dotColor} border-2 border-[#0d1220] z-10 flex-shrink-0 mt-4`} />
-        <div className="w-px flex-1 bg-[#1e2d42] mt-1" />
+      <div className="flex flex-col items-center shrink-0" style={{ width: 24 }}>
+        <div className={`w-3 h-3 rounded-full ${cfg.dotColor} border-2 border-falcon-surface z-10 shrink-0 mt-4`} />
+        <div className="w-px flex-1 bg-falcon-border mt-1" />
       </div>
 
       {/* Event card */}
       <div className={`
-        flex-1 mb-3 rounded-lg border border-[#1e2d42] border-l-2 ${cfg.borderColor}
+        flex-1 mb-3 rounded-lg border border-falcon-border border-l-2 ${cfg.borderColor}
         ${cfg.bgColor} overflow-hidden
       `}>
         {/* Card header */}
         <div
-          className="flex items-start gap-3 px-4 py-3 cursor-pointer hover:bg-white/[0.02] transition-colors"
+          className="flex items-start gap-3 px-4 py-3 cursor-pointer hover:bg-white/2 transition-colors"
           onClick={() => setExpanded(prev => !prev)}
         >
-          <div className={`flex-shrink-0 mt-0.5 ${cfg.color}`}>
+          <div className={`shrink-0 mt-0.5 ${cfg.color}`}>
             <Icon className="w-4 h-4" />
           </div>
           <div className="flex-1 min-w-0">
@@ -557,8 +557,8 @@ function TimelineEventCard({ event }: { event: TimelineEvent }) {
             {event.type === 'network' && <NetworkCard event={event as NetworkEvent} />}
             {event.type === 'dns' && <DnsCard event={event as DnsEvent} />}
           </div>
-          <div className="flex items-center gap-2 flex-shrink-0 text-right">
-            <span className="text-[10px] text-[#3d5068] font-mono">
+          <div className="flex items-center gap-2 shrink-0 text-right">
+            <span className="text-[10px] text-falcon-subtle font-mono">
               {formatTimestamp(event.timestamp)}
             </span>
             {expanded
@@ -570,11 +570,11 @@ function TimelineEventCard({ event }: { event: TimelineEvent }) {
 
         {/* Expanded raw JSON */}
         {expanded && (
-          <div className="border-t border-[#1e2d42] px-4 py-3">
+          <div className="border-t border-falcon-border px-4 py-3">
             <p className="text-[10px] text-[#4d6480] uppercase tracking-wider mb-2 font-medium">
               Raw Event Data
             </p>
-            <pre className="text-xs text-[#7d92b0] font-mono bg-[#080c14] rounded p-3 overflow-x-auto">
+            <pre className="text-xs text-falcon-muted font-mono bg-falcon-bg rounded-sm p-3 overflow-x-auto">
               {JSON.stringify(event, null, 2)}
             </pre>
           </div>
@@ -744,16 +744,16 @@ export default function ForensicsTimelinePage() {
   const selectedAgent = agents.find(a => a.id === selectedAgentId)
 
   return (
-    <div className="min-h-full bg-[#080c14] p-6">
+    <div className="min-h-full bg-falcon-bg p-6">
       {/* Page Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-[#4d8fff]/20 to-[#7b61ff]/20
+          <div className="w-9 h-9 rounded-lg bg-linear-to-br from-[#4d8fff]/20 to-[#7b61ff]/20
                           border border-[#4d8fff]/20 flex items-center justify-center">
             <Activity className="w-5 h-5 text-[#4d8fff]" />
           </div>
           <div>
-            <h1 className="text-lg font-semibold text-[#e2e8f4]">フォレンジックタイムライン</h1>
+            <h1 className="text-lg font-semibold text-falcon-text">フォレンジックタイムライン</h1>
             <p className="text-xs text-[#4d6480]">エンドポイントイベントの時系列分析</p>
           </div>
         </div>
@@ -761,8 +761,8 @@ export default function ForensicsTimelinePage() {
         {filteredEvents.length > 0 && (
           <button
             onClick={handleExport}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#19253d] border border-[#1e2d42]
-                       text-sm text-[#7d92b0] hover:text-[#e2e8f4] hover:border-[#2a3d5a] transition-colors"
+            className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-falcon-hover border border-falcon-border
+                       text-sm text-falcon-muted hover:text-falcon-text hover:border-[#2a3d5a] transition-colors"
           >
             <Download className="w-4 h-4" />
             <span>エクスポート</span>
@@ -771,7 +771,7 @@ export default function ForensicsTimelinePage() {
       </div>
 
       {/* Control Panel */}
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-4 mb-4">
+      <div className="bg-falcon-surface border border-falcon-border rounded-lg p-4 mb-4">
         <div className="flex flex-wrap gap-4 items-end">
           {/* Agent Selector */}
           <div className="flex flex-col gap-1.5 min-w-[200px]">
@@ -782,9 +782,9 @@ export default function ForensicsTimelinePage() {
               <select
                 value={selectedAgentId}
                 onChange={e => setSelectedAgentId(e.target.value)}
-                className="w-full bg-[#080c14] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm
-                           text-[#e2e8f4] appearance-none cursor-pointer
-                           focus:outline-none focus:border-[#4d8fff]/50 transition-colors pr-8"
+                className="w-full bg-falcon-bg border border-falcon-border rounded-lg px-3 py-2 text-sm
+                           text-falcon-text appearance-none cursor-pointer
+                           focus:outline-hidden focus:border-[#4d8fff]/50 transition-colors pr-8"
               >
                 <option value="">エージェントを選択...</option>
                 {agents.map(agent => (
@@ -810,8 +810,8 @@ export default function ForensicsTimelinePage() {
               type="datetime-local"
               value={timeFrom}
               onChange={e => setTimeFrom(e.target.value)}
-              className="bg-[#080c14] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm
-                         text-[#e2e8f4] focus:outline-none focus:border-[#4d8fff]/50 transition-colors"
+              className="bg-falcon-bg border border-falcon-border rounded-lg px-3 py-2 text-sm
+                         text-falcon-text focus:outline-hidden focus:border-[#4d8fff]/50 transition-colors"
             />
           </div>
 
@@ -824,8 +824,8 @@ export default function ForensicsTimelinePage() {
               type="datetime-local"
               value={timeTo}
               onChange={e => setTimeTo(e.target.value)}
-              className="bg-[#080c14] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm
-                         text-[#e2e8f4] focus:outline-none focus:border-[#4d8fff]/50 transition-colors"
+              className="bg-falcon-bg border border-falcon-border rounded-lg px-3 py-2 text-sm
+                         text-falcon-text focus:outline-hidden focus:border-[#4d8fff]/50 transition-colors"
             />
           </div>
 
@@ -839,8 +839,8 @@ export default function ForensicsTimelinePage() {
                 <button
                   key={p}
                   onClick={() => applyPreset(p)}
-                  className="px-2.5 py-2 text-xs rounded-lg bg-[#080c14] border border-[#1e2d42]
-                             text-[#7d92b0] hover:text-[#e2e8f4] hover:border-[#2a3d5a] transition-colors"
+                  className="px-2.5 py-2 text-xs rounded-lg bg-falcon-bg border border-falcon-border
+                             text-falcon-muted hover:text-falcon-text hover:border-[#2a3d5a] transition-colors"
                 >
                   {p === '7d' ? '直近7日' : p === '24h' ? '直近24h' : p === '6h' ? '直近6h' : '直近1h'}
                 </button>
@@ -865,7 +865,7 @@ export default function ForensicsTimelinePage() {
 
       {/* Filter + Search Bar */}
       {(rawEvents.length > 0 || queryParams) && (
-        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg px-4 py-3 mb-4">
+        <div className="bg-falcon-surface border border-falcon-border rounded-lg px-4 py-3 mb-4">
           <div className="flex flex-wrap items-center gap-4">
             {/* Type Toggles */}
             <div className="flex items-center gap-2">
@@ -882,7 +882,7 @@ export default function ForensicsTimelinePage() {
                     className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs border transition-colors ${
                       enabled
                         ? `${cfg.color} border-current/30 bg-current/5`
-                        : 'text-[#3d5068] border-[#1e2d42] hover:border-[#2a3d5a]'
+                        : 'text-falcon-subtle border-falcon-border hover:border-[#2a3d5a]'
                     }`}
                   >
                     <Icon className="w-3 h-3" />
@@ -901,9 +901,9 @@ export default function ForensicsTimelinePage() {
                 placeholder="イベントを検索..."
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
-                className="w-full bg-[#080c14] border border-[#1e2d42] rounded-lg pl-8 pr-3 py-1.5 text-sm
-                           text-[#e2e8f4] placeholder-[#3d5068]
-                           focus:outline-none focus:border-[#4d8fff]/50 transition-colors"
+                className="w-full bg-falcon-bg border border-falcon-border rounded-lg pl-8 pr-3 py-1.5 text-sm
+                           text-falcon-text placeholder-falcon-subtle
+                           focus:outline-hidden focus:border-[#4d8fff]/50 transition-colors"
               />
             </div>
 
@@ -922,11 +922,11 @@ export default function ForensicsTimelinePage() {
       {!queryParams ? (
         // Empty state — no query yet
         <div className="flex flex-col items-center justify-center py-24 text-center">
-          <div className="w-16 h-16 rounded-2xl bg-[#0d1220] border border-[#1e2d42] flex items-center justify-center mb-4">
-            <Activity className="w-8 h-8 text-[#1e2d42]" />
+          <div className="w-16 h-16 rounded-2xl bg-falcon-surface border border-falcon-border flex items-center justify-center mb-4">
+            <Activity className="w-8 h-8 text-falcon-border" />
           </div>
           <h3 className="text-base font-medium text-[#4d6480] mb-1">タイムラインを読み込む</h3>
-          <p className="text-sm text-[#3d5068] max-w-sm">
+          <p className="text-sm text-falcon-subtle max-w-sm">
             エージェントと時間範囲を選択して「タイムライン読み込み」をクリックしてください
           </p>
         </div>
@@ -939,11 +939,11 @@ export default function ForensicsTimelinePage() {
       ) : filteredEvents.length === 0 ? (
         // No events
         <div className="flex flex-col items-center justify-center py-24 text-center">
-          <div className="w-16 h-16 rounded-2xl bg-[#0d1220] border border-[#1e2d42] flex items-center justify-center mb-4">
-            <Clock className="w-8 h-8 text-[#1e2d42]" />
+          <div className="w-16 h-16 rounded-2xl bg-falcon-surface border border-falcon-border flex items-center justify-center mb-4">
+            <Clock className="w-8 h-8 text-falcon-border" />
           </div>
           <h3 className="text-base font-medium text-[#4d6480] mb-1">イベントが見つかりません</h3>
-          <p className="text-sm text-[#3d5068]">
+          <p className="text-sm text-falcon-subtle">
             {searchQuery
               ? `"${searchQuery}" に一致するイベントはありません`
               : '選択した時間範囲にイベントはありません'}
@@ -965,9 +965,9 @@ export default function ForensicsTimelinePage() {
             {/* Agent Info Banner */}
             {selectedAgent && (
               <div className="flex items-center gap-3 px-4 py-2.5 mb-4 rounded-lg
-                              bg-[#0d1220] border border-[#1e2d42]">
+                              bg-falcon-surface border border-falcon-border">
                 <Server className="w-4 h-4 text-[#4d8fff]" />
-                <span className="text-sm font-medium text-[#e2e8f4]">{selectedAgent.hostname}</span>
+                <span className="text-sm font-medium text-falcon-text">{selectedAgent.hostname}</span>
                 {selectedAgent.os && (
                   <span className="text-xs text-[#4d6480]">{selectedAgent.os}</span>
                 )}
@@ -980,7 +980,7 @@ export default function ForensicsTimelinePage() {
                     {selectedAgent.status === 'online' ? 'オンライン' : 'オフライン'}
                   </span>
                 )}
-                <span className="ml-auto text-xs text-[#3d5068] font-mono">
+                <span className="ml-auto text-xs text-falcon-subtle font-mono">
                   {new Date(timeFrom).toLocaleString('ja-JP')}
                   {' → '}
                   {new Date(timeTo).toLocaleString('ja-JP')}
@@ -1001,9 +1001,9 @@ export default function ForensicsTimelinePage() {
           </div>
 
           {/* Sidebar Summary */}
-          <div className="w-52 flex-shrink-0 hidden xl:block">
+          <div className="w-52 shrink-0 hidden xl:block">
             <div className="sticky top-20 space-y-3">
-              <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-3">
+              <div className="bg-falcon-surface border border-falcon-border rounded-lg p-3">
                 <h3 className="text-xs font-semibold text-[#4d6480] uppercase tracking-wider mb-3">
                   イベント集計
                 </h3>
@@ -1018,7 +1018,7 @@ export default function ForensicsTimelinePage() {
                         <span className={`text-xs ${cfg.color}`}>{cfg.label}</span>
                         <span className="text-xs text-[#4d6480]">{count}</span>
                       </div>
-                      <div className="h-1.5 bg-[#1e2d42] rounded-full overflow-hidden">
+                      <div className="h-1.5 bg-falcon-border rounded-full overflow-hidden">
                         <div
                           className={`h-full rounded-full ${cfg.dotColor}`}
                           style={{ width: `${pct}%` }}
@@ -1029,11 +1029,11 @@ export default function ForensicsTimelinePage() {
                 })}
               </div>
 
-              <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-3">
+              <div className="bg-falcon-surface border border-falcon-border rounded-lg p-3">
                 <h3 className="text-xs font-semibold text-[#4d6480] uppercase tracking-wider mb-2">
                   合計
                 </h3>
-                <p className="text-2xl font-bold text-[#e2e8f4]">{filteredEvents.length}</p>
+                <p className="text-2xl font-bold text-falcon-text">{filteredEvents.length}</p>
                 <p className="text-[11px] text-[#4d6480] mt-0.5">件のイベント</p>
               </div>
             </div>

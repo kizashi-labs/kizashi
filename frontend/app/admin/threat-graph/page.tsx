@@ -190,7 +190,7 @@ function GraphVisualization({ graph }: { graph: { root_id: string; max_depth: nu
             <div className="space-y-1">
               {Object.entries(node.properties || {}).map(([k, v]) => (
                 <div key={k} className="flex gap-1 text-xs">
-                  <span className="text-gray-500 flex-shrink-0">{k}:</span>
+                  <span className="text-gray-500 shrink-0">{k}:</span>
                   <span className="text-gray-300 truncate">{String(v)}</span>
                 </div>
               ))}
@@ -292,7 +292,7 @@ export default function ThreatGraphPage() {
           <input
             value={rootNodeId}
             onChange={(e) => setRootNodeId(e.target.value)}
-            className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-cyan-500"
+            className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white focus:outline-hidden focus:border-cyan-500"
             placeholder="process:agent-id:pid:1234"
           />
         </div>
@@ -301,7 +301,7 @@ export default function ThreatGraphPage() {
           <select
             value={depth}
             onChange={(e) => setDepth(Number(e.target.value))}
-            className="bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-cyan-500"
+            className="bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white focus:outline-hidden focus:border-cyan-500"
           >
             {[1, 2, 3, 4, 5, 6].map(d => <option key={d} value={d}>{d}</option>)}
           </select>

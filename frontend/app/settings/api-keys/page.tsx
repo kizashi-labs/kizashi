@@ -113,7 +113,7 @@ function isExpired(key: APIKey): boolean {
 
 function ScopeBadge({ scope }: { scope: string }) {
   const def = SCOPE_DEFS.find((d) => d.value === scope)
-  const cls = def?.badgeClass ?? 'bg-[#1e2d42] text-[#7d92b0] border-[#2a3d58]'
+  const cls = def?.badgeClass ?? 'bg-falcon-border text-falcon-muted border-[#2a3d58]'
   return (
     <span className={`text-[11px] px-2 py-0.5 rounded-full border font-medium ${cls}`}>
       {scope}
@@ -136,8 +136,8 @@ function CopyButton({ text, label = 'コピー' }: { text: string; label?: strin
     <button
       onClick={handleCopy}
       title="クリップボードにコピー"
-      className="flex items-center gap-1.5 px-3 py-1.5 bg-[#1e2d42] hover:bg-[#253550] text-[#e2e8f4]
-                 text-xs rounded-lg transition-colors flex-shrink-0 border border-[#2a3d58]"
+      className="flex items-center gap-1.5 px-3 py-1.5 bg-falcon-border hover:bg-[#253550] text-falcon-text
+                 text-xs rounded-lg transition-colors shrink-0 border border-[#2a3d58]"
     >
       {copied ? (
         <>
@@ -174,7 +174,7 @@ function NewKeyRevealBox({
       {/* Header row */}
       <div className="flex items-start justify-between gap-4 mb-4">
         <div className="flex items-start gap-3">
-          <div className="mt-0.5 p-1.5 rounded-lg bg-amber-500/15 border border-amber-500/30 flex-shrink-0">
+          <div className="mt-0.5 p-1.5 rounded-lg bg-amber-500/15 border border-amber-500/30 shrink-0">
             <AlertTriangle className="w-4 h-4 text-amber-400" />
           </div>
           <div>
@@ -189,7 +189,7 @@ function NewKeyRevealBox({
         </div>
         <button
           onClick={onDismiss}
-          className="text-amber-400/50 hover:text-amber-300 transition-colors flex-shrink-0 mt-0.5"
+          className="text-amber-400/50 hover:text-amber-300 transition-colors shrink-0 mt-0.5"
           title="閉じる"
         >
           <X className="w-4 h-4" />
@@ -201,12 +201,12 @@ function NewKeyRevealBox({
         <code className="flex-1 text-sm font-mono text-amber-200 break-all select-all leading-relaxed">
           {visible ? rawKey : masked}
         </code>
-        <div className="flex items-center gap-2 flex-shrink-0">
+        <div className="flex items-center gap-2 shrink-0">
           <button
             onClick={() => setVisible((v) => !v)}
             title={visible ? 'キーを隠す' : 'キーを表示'}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-[#1e2d42] hover:bg-[#253550]
-                       text-[#7d92b0] hover:text-[#e2e8f4] text-xs rounded-lg transition-colors
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-falcon-border hover:bg-[#253550]
+                       text-falcon-muted hover:text-falcon-text text-xs rounded-lg transition-colors
                        border border-[#2a3d58]"
           >
             {visible ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
@@ -231,7 +231,7 @@ function NewKeyRevealBox({
 function WarningBanner() {
   return (
     <div className="flex items-start gap-3 px-4 py-3 bg-[#1a1200] border border-yellow-700/40 rounded-xl mb-6">
-      <Shield className="w-4 h-4 text-yellow-500 flex-shrink-0 mt-0.5" />
+      <Shield className="w-4 h-4 text-yellow-500 shrink-0 mt-0.5" />
       <p className="text-xs text-yellow-400/90 leading-relaxed">
         <span className="font-semibold text-yellow-300">セキュリティの注意: </span>
         APIキーはパスワードと同様に扱ってください。作成時のみ全文が表示されます。
@@ -296,22 +296,22 @@ function CreateModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 backdrop-blur-xs"
       onClick={(e) => { if (e.target === e.currentTarget) onClose() }}
     >
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-2xl w-full max-w-md mx-4 shadow-2xl">
+      <div className="bg-falcon-surface border border-falcon-border rounded-2xl w-full max-w-md mx-4 shadow-2xl">
 
         {/* Modal header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[#1e2d42]">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-falcon-border">
           <div className="flex items-center gap-3">
-            <div className="p-1.5 bg-[#e8002d]/10 rounded-lg border border-[#e8002d]/20">
-              <KeyRound className="w-4 h-4 text-[#e8002d]" />
+            <div className="p-1.5 bg-falcon-red/10 rounded-lg border border-falcon-red/20">
+              <KeyRound className="w-4 h-4 text-falcon-red" />
             </div>
             <h2 className="text-sm font-semibold text-white">新しいAPIキーを作成</h2>
           </div>
           <button
             onClick={onClose}
-            className="text-[#7d92b0] hover:text-[#e2e8f4] transition-colors"
+            className="text-falcon-muted hover:text-falcon-text transition-colors"
           >
             <X className="w-4 h-4" />
           </button>
@@ -322,23 +322,23 @@ function CreateModal({
 
           {/* Name */}
           <div>
-            <label className="block text-xs font-medium text-[#7d92b0] mb-1.5">
-              名前 <span className="text-[#e8002d]">*</span>
+            <label className="block text-xs font-medium text-falcon-muted mb-1.5">
+              名前 <span className="text-falcon-red">*</span>
             </label>
             <input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="例: CI/CDパイプライン、監視スクリプト"
-              className="w-full px-3 py-2 bg-[#070d19] border border-[#1e2d42] rounded-lg text-sm
-                         text-[#e2e8f4] placeholder-[#3a4d66] focus:outline-none focus:border-[#e8002d]/50
+              className="w-full px-3 py-2 bg-[#070d19] border border-falcon-border rounded-lg text-sm
+                         text-falcon-text placeholder-[#3a4d66] focus:outline-hidden focus:border-falcon-red/50
                          transition-colors"
             />
           </div>
 
           {/* Expiry */}
           <div>
-            <label className="block text-xs font-medium text-[#7d92b0] mb-2">
+            <label className="block text-xs font-medium text-falcon-muted mb-2">
               有効期限
             </label>
             <div className="grid grid-cols-4 gap-2">
@@ -348,8 +348,8 @@ function CreateModal({
                   onClick={() => setExpiryDays(opt.value as ExpiryValue)}
                   className={`px-3 py-2 rounded-lg text-xs font-medium border transition-colors ${
                     expiryDays === opt.value
-                      ? 'bg-[#e8002d]/15 border-[#e8002d]/50 text-[#e8002d]'
-                      : 'bg-[#070d19] border-[#1e2d42] text-[#7d92b0] hover:border-[#2a3d58] hover:text-[#e2e8f4]'
+                      ? 'bg-falcon-red/15 border-falcon-red/50 text-falcon-red'
+                      : 'bg-[#070d19] border-falcon-border text-falcon-muted hover:border-[#2a3d58] hover:text-falcon-text'
                   }`}
                 >
                   {opt.label}
@@ -360,8 +360,8 @@ function CreateModal({
 
           {/* Scopes */}
           <div>
-            <label className="block text-xs font-medium text-[#7d92b0] mb-2">
-              スコープ <span className="text-[#e8002d]">*</span>
+            <label className="block text-xs font-medium text-falcon-muted mb-2">
+              スコープ <span className="text-falcon-red">*</span>
               <span className="text-[#3a4d66] font-normal ml-1">— 最小権限の原則を推奨します</span>
             </label>
             <div className="space-y-1.5">
@@ -377,29 +377,29 @@ function CreateModal({
                         ? isAdminScope
                           ? 'bg-red-500/8 border-red-500/30'
                           : 'bg-[#0d1829] border-[#1e3558]'
-                        : 'bg-[#070d19] border-[#1e2d42] hover:border-[#253550]'
+                        : 'bg-[#070d19] border-falcon-border hover:border-[#253550]'
                     }`}
                   >
                     <input
                       type="checkbox"
                       checked={checked}
                       onChange={() => toggleScope(def.value)}
-                      className="w-3.5 h-3.5 accent-[#e8002d] flex-shrink-0"
+                      className="w-3.5 h-3.5 accent-falcon-red shrink-0"
                     />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <code className={`text-xs font-mono font-medium ${checked ? 'text-[#e2e8f4]' : 'text-[#7d92b0]'}`}>
+                        <code className={`text-xs font-mono font-medium ${checked ? 'text-falcon-text' : 'text-falcon-muted'}`}>
                           {def.value}
                         </code>
                         {isAdminScope && (
-                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-red-500/15 text-red-400 border border-red-500/30 font-medium">
+                          <span className="text-[10px] px-1.5 py-0.5 rounded-sm bg-red-500/15 text-red-400 border border-red-500/30 font-medium">
                             高権限
                           </span>
                         )}
                       </div>
                       <p className="text-[11px] text-[#3a4d66] mt-0.5">{def.description}</p>
                     </div>
-                    {checked && <Check className="w-3.5 h-3.5 text-green-400 flex-shrink-0" />}
+                    {checked && <Check className="w-3.5 h-3.5 text-green-400 shrink-0" />}
                   </label>
                 )
               })}
@@ -408,7 +408,7 @@ function CreateModal({
             {/* Admin scope warning */}
             {hasAdmin && (
               <div className="mt-2 flex items-start gap-2 px-3 py-2 bg-red-500/8 border border-red-500/20 rounded-lg">
-                <AlertTriangle className="w-3.5 h-3.5 text-red-400 flex-shrink-0 mt-0.5" />
+                <AlertTriangle className="w-3.5 h-3.5 text-red-400 shrink-0 mt-0.5" />
                 <p className="text-xs text-red-400/90">
                   admin スコープは全機能へのフルアクセスを付与します。本当に必要な場合のみ使用してください。
                 </p>
@@ -419,17 +419,17 @@ function CreateModal({
           {/* Error */}
           {error && (
             <div className="flex items-start gap-2 px-3 py-2.5 bg-red-500/10 border border-red-500/20 rounded-lg">
-              <AlertTriangle className="w-3.5 h-3.5 text-red-400 flex-shrink-0 mt-0.5" />
+              <AlertTriangle className="w-3.5 h-3.5 text-red-400 shrink-0 mt-0.5" />
               <p className="text-xs text-red-400">{error}</p>
             </div>
           )}
         </div>
 
         {/* Modal footer */}
-        <div className="flex gap-3 px-6 py-4 border-t border-[#1e2d42]">
+        <div className="flex gap-3 px-6 py-4 border-t border-falcon-border">
           <button
             onClick={onClose}
-            className="flex-1 px-4 py-2 bg-[#1e2d42] hover:bg-[#253550] text-[#e2e8f4]
+            className="flex-1 px-4 py-2 bg-falcon-border hover:bg-[#253550] text-falcon-text
                        text-sm rounded-lg transition-colors border border-[#2a3d58]"
           >
             キャンセル
@@ -438,7 +438,7 @@ function CreateModal({
             onClick={handleSubmit}
             disabled={mutation.isPending}
             className="flex-1 flex items-center justify-center gap-2 px-4 py-2
-                       bg-[#e8002d] hover:bg-[#c5001f] disabled:opacity-50
+                       bg-falcon-red hover:bg-[#c5001f] disabled:opacity-50
                        text-white text-sm rounded-lg transition-colors font-medium"
           >
             {mutation.isPending ? (
@@ -469,19 +469,19 @@ function RevokeDialog({
 }) {
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 backdrop-blur-xs"
       onClick={(e) => { if (e.target === e.currentTarget) onCancel() }}
     >
-      <div className="bg-[#0d1220] border border-red-500/40 rounded-2xl w-full max-w-sm mx-4 shadow-2xl">
+      <div className="bg-falcon-surface border border-red-500/40 rounded-2xl w-full max-w-sm mx-4 shadow-2xl">
         <div className="px-6 py-5">
           <div className="flex items-start gap-4 mb-5">
-            <div className="p-2 bg-red-500/10 rounded-xl border border-red-500/25 flex-shrink-0">
+            <div className="p-2 bg-red-500/10 rounded-xl border border-red-500/25 shrink-0">
               <ShieldOff className="w-5 h-5 text-red-400" />
             </div>
             <div>
               <h3 className="text-sm font-semibold text-white">APIキーを失効させますか？</h3>
-              <p className="text-xs text-[#7d92b0] mt-2 leading-relaxed">
-                <span className="font-medium text-[#e2e8f4]">"{keyName}"</span>{' '}
+              <p className="text-xs text-falcon-muted mt-2 leading-relaxed">
+                <span className="font-medium text-falcon-text">"{keyName}"</span>{' '}
                 を失効させます。この操作は取り消せません。
                 このキーを使用しているすべての連携・スクリプトが即座に動作しなくなります。
               </p>
@@ -490,7 +490,7 @@ function RevokeDialog({
           <div className="flex gap-3">
             <button
               onClick={onCancel}
-              className="flex-1 px-4 py-2 bg-[#1e2d42] hover:bg-[#253550] text-[#e2e8f4]
+              className="flex-1 px-4 py-2 bg-falcon-border hover:bg-[#253550] text-falcon-text
                          text-sm rounded-lg transition-colors border border-[#2a3d58]"
             >
               キャンセル
@@ -526,7 +526,7 @@ function KeyRow({ apiKey, onRevoke }: { apiKey: APIKey; onRevoke: (k: APIKey) =>
   const statusBadge = () => {
     if (revoked) {
       return (
-        <span className="text-[11px] px-2 py-0.5 rounded-full border bg-[#1e2d42] text-[#7d92b0] border-[#2a3d58] font-medium">
+        <span className="text-[11px] px-2 py-0.5 rounded-full border bg-falcon-border text-falcon-muted border-[#2a3d58] font-medium">
           失効済み
         </span>
       )
@@ -546,13 +546,13 @@ function KeyRow({ apiKey, onRevoke }: { apiKey: APIKey; onRevoke: (k: APIKey) =>
   }
 
   return (
-    <tr className={`border-t border-[#1e2d42] transition-colors hover:bg-[#0a1118] ${inactive ? 'opacity-50' : ''}`}>
+    <tr className={`border-t border-falcon-border transition-colors hover:bg-[#0a1118] ${inactive ? 'opacity-50' : ''}`}>
       {/* 名前 / プレフィックス */}
       <td className="px-5 py-3.5">
-        <p className={`text-sm font-medium ${inactive ? 'text-[#7d92b0]' : 'text-white'}`}>
+        <p className={`text-sm font-medium ${inactive ? 'text-falcon-muted' : 'text-white'}`}>
           {apiKey.name}
         </p>
-        <code className="text-[11px] text-[#3d5068] font-mono mt-0.5 block">
+        <code className="text-[11px] text-falcon-subtle font-mono mt-0.5 block">
           {apiKey.prefix}...
         </code>
       </td>
@@ -568,23 +568,23 @@ function KeyRow({ apiKey, onRevoke }: { apiKey: APIKey; onRevoke: (k: APIKey) =>
 
       {/* 最終使用 */}
       <td className="px-5 py-3.5">
-        <span className="text-xs text-[#7d92b0] whitespace-nowrap flex items-center gap-1.5">
-          <Clock className="w-3 h-3 text-[#3d5068] flex-shrink-0" />
+        <span className="text-xs text-falcon-muted whitespace-nowrap flex items-center gap-1.5">
+          <Clock className="w-3 h-3 text-falcon-subtle shrink-0" />
           {apiKey.last_used ? fmt(apiKey.last_used) : '未使用'}
         </span>
       </td>
 
       {/* 有効期限 */}
       <td className="px-5 py-3.5">
-        <span className={`text-xs whitespace-nowrap flex items-center gap-1.5 ${expired ? 'text-orange-400' : 'text-[#7d92b0]'}`}>
-          <Calendar className="w-3 h-3 text-[#3d5068] flex-shrink-0" />
+        <span className={`text-xs whitespace-nowrap flex items-center gap-1.5 ${expired ? 'text-orange-400' : 'text-falcon-muted'}`}>
+          <Calendar className="w-3 h-3 text-falcon-subtle shrink-0" />
           {apiKey.expires_at ? fmt(apiKey.expires_at) : '無期限'}
         </span>
       </td>
 
       {/* 作成日 */}
       <td className="px-5 py-3.5">
-        <span className="text-xs text-[#7d92b0] whitespace-nowrap">
+        <span className="text-xs text-falcon-muted whitespace-nowrap">
           {fmt(apiKey.created_at)}
         </span>
       </td>
@@ -598,7 +598,7 @@ function KeyRow({ apiKey, onRevoke }: { apiKey: APIKey; onRevoke: (k: APIKey) =>
           <button
             onClick={() => onRevoke(apiKey)}
             title="このキーを失効させる"
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-[#7d92b0] border border-[#1e2d42]
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-falcon-muted border border-falcon-border
                        hover:text-red-400 hover:border-red-500/40 hover:bg-red-500/8
                        rounded-lg transition-colors"
           >
@@ -607,7 +607,7 @@ function KeyRow({ apiKey, onRevoke }: { apiKey: APIKey; onRevoke: (k: APIKey) =>
           </button>
         )}
         {revoked && (
-          <span className="text-xs text-[#3d5068]">—</span>
+          <span className="text-xs text-falcon-subtle">—</span>
         )}
       </td>
     </tr>
@@ -647,26 +647,26 @@ export default function APIKeysPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#070d19] text-[#e2e8f4]">
+    <div className="min-h-screen bg-[#070d19] text-falcon-text">
       <div className="max-w-6xl mx-auto px-6 py-8">
 
         {/* ── Header ──────────────────────────────────────────── */}
         <div className="flex items-start justify-between gap-4 mb-6">
           <div className="flex items-start gap-3">
-            <div className="mt-0.5 p-2 bg-[#e8002d]/10 rounded-xl border border-[#e8002d]/20">
-              <KeyRound className="w-5 h-5 text-[#e8002d]" />
+            <div className="mt-0.5 p-2 bg-falcon-red/10 rounded-xl border border-falcon-red/20">
+              <KeyRound className="w-5 h-5 text-falcon-red" />
             </div>
             <div>
               <h1 className="text-xl font-bold text-white">APIキー管理</h1>
-              <p className="text-sm text-[#7d92b0] mt-0.5">
+              <p className="text-sm text-falcon-muted mt-0.5">
                 プログラムからEDRプラットフォームにアクセスするためのAPIキーを発行・管理します
               </p>
             </div>
           </div>
           <button
             onClick={() => { setNewKeyInfo(null); setShowCreateModal(true) }}
-            className="flex items-center gap-2 px-4 py-2 bg-[#e8002d] hover:bg-[#c5001f]
-                       text-white text-sm rounded-lg transition-colors font-medium flex-shrink-0"
+            className="flex items-center gap-2 px-4 py-2 bg-falcon-red hover:bg-[#c5001f]
+                       text-white text-sm rounded-lg transition-colors font-medium shrink-0"
           >
             <Plus className="w-4 h-4" />
             新しいAPIキーを作成
@@ -687,30 +687,30 @@ export default function APIKeysPage() {
 
         {/* ── Stats ───────────────────────────────────────────── */}
         <div className="grid grid-cols-3 gap-4 mb-6">
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl px-5 py-4">
-            <p className="text-xs text-[#7d92b0] mb-1">合計キー数</p>
+          <div className="bg-falcon-surface border border-falcon-border rounded-xl px-5 py-4">
+            <p className="text-xs text-falcon-muted mb-1">合計キー数</p>
             <p className="text-2xl font-bold text-white">{keys.length}</p>
           </div>
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl px-5 py-4">
-            <p className="text-xs text-[#7d92b0] mb-1">有効</p>
+          <div className="bg-falcon-surface border border-falcon-border rounded-xl px-5 py-4">
+            <p className="text-xs text-falcon-muted mb-1">有効</p>
             <p className="text-2xl font-bold text-green-400">{activeCount}</p>
           </div>
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl px-5 py-4">
-            <p className="text-xs text-[#7d92b0] mb-1">失効・期限切れ</p>
-            <p className="text-2xl font-bold text-[#7d92b0]">{inactiveCount}</p>
+          <div className="bg-falcon-surface border border-falcon-border rounded-xl px-5 py-4">
+            <p className="text-xs text-falcon-muted mb-1">失効・期限切れ</p>
+            <p className="text-2xl font-bold text-falcon-muted">{inactiveCount}</p>
           </div>
         </div>
 
         {/* ── Loading ─────────────────────────────────────────── */}
         {isLoading && (
           <div className="flex items-center justify-center py-20">
-            <Loader2 className="w-6 h-6 animate-spin text-[#e8002d]" />
+            <Loader2 className="w-6 h-6 animate-spin text-falcon-red" />
           </div>
         )}
 
         {/* ── Error ───────────────────────────────────────────── */}
         {isError && !isLoading && (
-          <div className="bg-[#0d1220] border border-red-500/30 rounded-xl px-5 py-10 text-center">
+          <div className="bg-falcon-surface border border-red-500/30 rounded-xl px-5 py-10 text-center">
             <AlertTriangle className="w-6 h-6 text-red-400 mx-auto mb-3" />
             <p className="text-sm text-red-400">APIキー一覧の取得に失敗しました</p>
           </div>
@@ -718,17 +718,17 @@ export default function APIKeysPage() {
 
         {/* ── Empty State ─────────────────────────────────────── */}
         {!isLoading && !isError && keys.length === 0 && (
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl flex flex-col items-center justify-center py-16 text-center">
-            <div className="p-3 bg-[#1e2d42] rounded-full mb-4">
-              <KeyRound className="w-6 h-6 text-[#7d92b0]" />
+          <div className="bg-falcon-surface border border-falcon-border rounded-xl flex flex-col items-center justify-center py-16 text-center">
+            <div className="p-3 bg-falcon-border rounded-full mb-4">
+              <KeyRound className="w-6 h-6 text-falcon-muted" />
             </div>
             <p className="text-sm text-white font-medium">APIキーがありません</p>
-            <p className="text-xs text-[#7d92b0] mt-1 max-w-xs">
+            <p className="text-xs text-falcon-muted mt-1 max-w-xs">
               「新しいAPIキーを作成」ボタンから最初のAPIキーを発行してください
             </p>
             <button
               onClick={() => setShowCreateModal(true)}
-              className="mt-5 flex items-center gap-2 px-4 py-2 bg-[#e8002d] hover:bg-[#c5001f]
+              className="mt-5 flex items-center gap-2 px-4 py-2 bg-falcon-red hover:bg-[#c5001f]
                          text-white text-sm rounded-lg transition-colors"
             >
               <Plus className="w-4 h-4" />
@@ -739,15 +739,15 @@ export default function APIKeysPage() {
 
         {/* ── Keys Table ──────────────────────────────────────── */}
         {!isLoading && !isError && keys.length > 0 && (
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
+          <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="bg-[#070d19] border-b border-[#1e2d42]">
+                  <tr className="bg-[#070d19] border-b border-falcon-border">
                     {['名前 / プレフィックス', 'スコープ', '最終使用', '有効期限', '作成日', 'ステータス', '操作'].map((h) => (
                       <th
                         key={h}
-                        className="px-5 py-3 text-left text-[11px] font-semibold text-[#7d92b0] uppercase tracking-wider whitespace-nowrap"
+                        className="px-5 py-3 text-left text-[11px] font-semibold text-falcon-muted uppercase tracking-wider whitespace-nowrap"
                       >
                         {h}
                       </th>
@@ -766,12 +766,12 @@ export default function APIKeysPage() {
 
         {/* ── Security Info Cards ─────────────────────────────── */}
         <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl px-5 py-4">
+          <div className="bg-falcon-surface border border-falcon-border rounded-xl px-5 py-4">
             <div className="flex items-start gap-3">
-              <Shield className="w-4 h-4 text-[#e8002d] flex-shrink-0 mt-0.5" />
+              <Shield className="w-4 h-4 text-falcon-red shrink-0 mt-0.5" />
               <div>
                 <p className="text-sm font-medium text-white mb-2">セキュリティのベストプラクティス</p>
-                <ul className="space-y-1.5 text-xs text-[#7d92b0] list-none">
+                <ul className="space-y-1.5 text-xs text-falcon-muted list-none">
                   {[
                     '必要最小限のスコープのみ付与する（最小権限の原則）',
                     '有効期限を設定することを強く推奨する',
@@ -781,7 +781,7 @@ export default function APIKeysPage() {
                     '定期的にキーのローテーションを実施する',
                   ].map((tip) => (
                     <li key={tip} className="flex items-start gap-2">
-                      <span className="text-[#e8002d] mt-0.5 flex-shrink-0">·</span>
+                      <span className="text-falcon-red mt-0.5 shrink-0">·</span>
                       {tip}
                     </li>
                   ))}
@@ -790,21 +790,21 @@ export default function APIKeysPage() {
             </div>
           </div>
 
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl px-5 py-4">
+          <div className="bg-falcon-surface border border-falcon-border rounded-xl px-5 py-4">
             <div className="flex items-start gap-3">
-              <KeyRound className="w-4 h-4 text-[#7d92b0] flex-shrink-0 mt-0.5" />
+              <KeyRound className="w-4 h-4 text-falcon-muted shrink-0 mt-0.5" />
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-medium text-white mb-2">APIキーの使い方</p>
-                <p className="text-xs text-[#7d92b0] mb-2">
+                <p className="text-xs text-falcon-muted mb-2">
                   すべてのAPIリクエストのヘッダーに以下を付与してください:
                 </p>
-                <code className="block text-xs font-mono bg-[#070d19] border border-[#1e2d42]
+                <code className="block text-xs font-mono bg-[#070d19] border border-falcon-border
                                  rounded-lg px-3 py-2.5 text-[#4a9eff] break-all">
                   Authorization: Bearer &lt;your-api-key&gt;
                 </code>
-                <p className="text-xs text-[#7d92b0] mt-3 mb-1.5">cURL の例:</p>
-                <code className="block text-[11px] font-mono bg-[#070d19] border border-[#1e2d42]
-                                 rounded-lg px-3 py-2.5 text-[#7d92b0] break-all leading-relaxed">
+                <p className="text-xs text-falcon-muted mt-3 mb-1.5">cURL の例:</p>
+                <code className="block text-[11px] font-mono bg-[#070d19] border border-falcon-border
+                                 rounded-lg px-3 py-2.5 text-falcon-muted break-all leading-relaxed">
                   {'curl -H "Authorization: Bearer edr_..."'}<br />
                   {'     https://your-instance/api/v1/alerts'}
                 </code>

@@ -58,7 +58,7 @@ function ToastItem({ toast, onClose }: ToastItemProps) {
       `}
     >
       {/* Severity bar (auto-drain) */}
-      <div className="h-0.5 w-full bg-[#1e2d42]">
+      <div className="h-0.5 w-full bg-falcon-border">
         <div
           className={`h-full ${cfg.bar}`}
           style={{
@@ -68,13 +68,13 @@ function ToastItem({ toast, onClose }: ToastItemProps) {
       </div>
 
       <div className="flex items-start gap-3 px-3 py-3">
-        <Icon className={`w-4 h-4 mt-0.5 flex-shrink-0 ${cfg.text}`} />
+        <Icon className={`w-4 h-4 mt-0.5 shrink-0 ${cfg.text}`} />
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5 mb-0.5">
             <span className={`text-[10px] font-bold font-mono ${cfg.text}`}>{cfg.label}</span>
             <span className="text-[10px] text-[#5a6a7a] font-mono">{toast.alert.Hostname}</span>
           </div>
-          <p className="text-sm text-[#e2e8f4] font-medium leading-snug truncate">{toast.alert.Title}</p>
+          <p className="text-sm text-falcon-text font-medium leading-snug truncate">{toast.alert.Title}</p>
           {toast.alert.RuleName && (
             <p className="text-[11px] text-[#5a6a7a] truncate mt-0.5">{toast.alert.RuleName}</p>
           )}
@@ -88,7 +88,7 @@ function ToastItem({ toast, onClose }: ToastItemProps) {
         </div>
         <button
           onClick={() => onClose(toast.id)}
-          className="text-[#3d5068] hover:text-[#7d92b0] transition-colors flex-shrink-0"
+          className="text-falcon-subtle hover:text-falcon-muted transition-colors shrink-0"
         >
           <X className="w-3.5 h-3.5" />
         </button>

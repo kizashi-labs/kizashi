@@ -105,18 +105,18 @@ function MetricCard({
 }) {
   const display = value !== undefined ? value.toFixed(1) : '—'
   return (
-    <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5 flex flex-col gap-3">
+    <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5 flex flex-col gap-3">
       <div className="flex items-center justify-between">
-        <span className="text-xs text-[#7d92b0] font-medium uppercase tracking-wide">{label}</span>
+        <span className="text-xs text-falcon-muted font-medium uppercase tracking-wide">{label}</span>
         <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: `${color}22` }}>
           <Icon className="w-4 h-4" style={{ color }} />
         </div>
       </div>
       <div className="flex items-end gap-1">
         <span className="text-3xl font-bold text-white leading-none">{display}</span>
-        <span className="text-sm text-[#7d92b0] mb-0.5">{unit}</span>
+        <span className="text-sm text-falcon-muted mb-0.5">{unit}</span>
       </div>
-      <div className="h-1 rounded-full bg-[#1e2d42] overflow-hidden">
+      <div className="h-1 rounded-full bg-falcon-border overflow-hidden">
         <div
           className="h-full rounded-full transition-all duration-500"
           style={{
@@ -150,7 +150,7 @@ function ChartCard({
   const sampled = formatted.filter((_, i) => i % step === 0)
 
   return (
-    <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
+    <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
       <h3 className="text-sm font-semibold text-white mb-4">{label}</h3>
       <ResponsiveContainer width="100%" height={160}>
         <LineChart data={sampled} margin={{ top: 4, right: 8, left: -20, bottom: 0 }}>
@@ -246,18 +246,18 @@ export default function EndpointPerformancePage() {
         <div className="flex items-center gap-3">
           <Link
             href={`/endpoints/${id}`}
-            className="p-2 rounded-lg bg-[#0d1220] border border-[#1e2d42] text-[#7d92b0] hover:text-white hover:bg-[#1e2d42] transition-colors"
+            className="p-2 rounded-lg bg-falcon-surface border border-falcon-border text-falcon-muted hover:text-white hover:bg-falcon-border transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
           </Link>
-          <div className="w-9 h-9 bg-[#e8002d]/20 rounded-lg flex items-center justify-center">
-            <Monitor className="w-5 h-5 text-[#e8002d]" />
+          <div className="w-9 h-9 bg-falcon-red/20 rounded-lg flex items-center justify-center">
+            <Monitor className="w-5 h-5 text-falcon-red" />
           </div>
           <div>
             <h1 className="text-xl font-bold text-white">
               {agent?.hostname ?? id}
             </h1>
-            <p className="text-xs text-[#7d92b0]">
+            <p className="text-xs text-falcon-muted">
               ID: {id} &nbsp;·&nbsp; パフォーマンス監視
             </p>
           </div>
@@ -265,15 +265,15 @@ export default function EndpointPerformancePage() {
 
         <div className="flex items-center gap-2">
           {/* Time range selector */}
-          <div className="flex gap-1 bg-[#0d1220] rounded-lg p-1 border border-[#1e2d42]">
+          <div className="flex gap-1 bg-falcon-surface rounded-lg p-1 border border-falcon-border">
             {(['1h', '6h', '24h'] as const).map(r => (
               <button
                 key={r}
                 onClick={() => setRange(r)}
                 className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
                   range === r
-                    ? 'bg-[#e8002d] text-white'
-                    : 'text-[#7d92b0] hover:text-white hover:bg-[#1e2d42]'
+                    ? 'bg-falcon-red text-white'
+                    : 'text-falcon-muted hover:text-white hover:bg-falcon-border'
                 }`}
               >
                 {r}
@@ -286,8 +286,8 @@ export default function EndpointPerformancePage() {
             onClick={() => setAutoRefresh(v => !v)}
             className={`flex items-center gap-1.5 px-3 py-2 rounded-lg border text-sm font-medium transition-colors ${
               autoRefresh
-                ? 'bg-[#0d1220] border-[#e8002d]/50 text-[#e8002d]'
-                : 'bg-[#0d1220] border-[#1e2d42] text-[#7d92b0]'
+                ? 'bg-falcon-surface border-falcon-red/50 text-falcon-red'
+                : 'bg-falcon-surface border-falcon-border text-falcon-muted'
             }`}
             title="30秒ごとに自動更新"
           >
@@ -299,7 +299,7 @@ export default function EndpointPerformancePage() {
           <button
             onClick={handleRefresh}
             disabled={isLoading}
-            className="p-2 rounded-lg bg-[#0d1220] border border-[#1e2d42] text-[#7d92b0] hover:text-white hover:bg-[#1e2d42] transition-colors disabled:opacity-40"
+            className="p-2 rounded-lg bg-falcon-surface border border-falcon-border text-falcon-muted hover:text-white hover:bg-falcon-border transition-colors disabled:opacity-40"
             title="今すぐ更新"
           >
             <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
@@ -309,7 +309,7 @@ export default function EndpointPerformancePage() {
 
       {/* Auto-refresh indicator */}
       {autoRefresh && (
-        <div className="flex items-center gap-2 text-xs text-[#7d92b0]">
+        <div className="flex items-center gap-2 text-xs text-falcon-muted">
           <Clock className="w-3 h-3" />
           30秒ごとに自動更新中
         </div>
@@ -318,8 +318,8 @@ export default function EndpointPerformancePage() {
       {/* Loading */}
       {isLoading && (
         <div className="flex justify-center items-center py-20">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#e8002d]" />
-          <span className="ml-3 text-[#7d92b0] text-sm">データを読み込み中...</span>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-falcon-red" />
+          <span className="ml-3 text-falcon-muted text-sm">データを読み込み中...</span>
         </div>
       )}
 
@@ -390,18 +390,18 @@ export default function EndpointPerformancePage() {
           </div>
 
           {/* Top 10 processes table */}
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
+          <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
             <h2 className="text-sm font-semibold text-white mb-4">
               CPU 使用率 Top 10 プロセス
             </h2>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-[#1e2d42]">
+                  <tr className="border-b border-falcon-border">
                     {['プロセス名', 'PID', 'CPU %', 'メモリ %', 'ユーザー'].map(h => (
                       <th
                         key={h}
-                        className="text-left text-xs text-[#7d92b0] font-medium pb-3 pr-4 last:pr-0"
+                        className="text-left text-xs text-falcon-muted font-medium pb-3 pr-4 last:pr-0"
                       >
                         {h}
                       </th>
@@ -411,7 +411,7 @@ export default function EndpointPerformancePage() {
                 <tbody>
                   {processes.length === 0 ? (
                     <tr>
-                      <td colSpan={5} className="py-8 text-center text-[#7d92b0] text-xs">
+                      <td colSpan={5} className="py-8 text-center text-falcon-muted text-xs">
                         プロセスデータなし
                       </td>
                     </tr>
@@ -419,17 +419,17 @@ export default function EndpointPerformancePage() {
                     processes.map((proc, i) => (
                       <tr
                         key={`${proc.pid}-${i}`}
-                        className="border-b border-[#1e2d42]/50 hover:bg-[#1e2d42]/20 transition-colors"
+                        className="border-b border-falcon-border/50 hover:bg-falcon-border/20 transition-colors"
                       >
                         <td className="py-3 pr-4 text-white font-mono text-xs truncate max-w-[180px]">
                           {proc.name}
                         </td>
-                        <td className="py-3 pr-4 text-[#7d92b0] font-mono text-xs">
+                        <td className="py-3 pr-4 text-falcon-muted font-mono text-xs">
                           {proc.pid}
                         </td>
                         <td className="py-3 pr-4">
                           <div className="flex items-center gap-2">
-                            <div className="w-16 h-1.5 rounded-full bg-[#1e2d42] overflow-hidden flex-shrink-0">
+                            <div className="w-16 h-1.5 rounded-full bg-falcon-border overflow-hidden shrink-0">
                               <div
                                 className="h-full rounded-full"
                                 style={{
@@ -440,7 +440,7 @@ export default function EndpointPerformancePage() {
                             </div>
                             <span
                               className={`text-xs font-medium ${
-                                proc.cpu_pct > 50 ? 'text-[#e8002d]' : 'text-white'
+                                proc.cpu_pct > 50 ? 'text-falcon-red' : 'text-white'
                               }`}
                             >
                               {proc.cpu_pct.toFixed(1)}%
@@ -449,7 +449,7 @@ export default function EndpointPerformancePage() {
                         </td>
                         <td className="py-3 pr-4">
                           <div className="flex items-center gap-2">
-                            <div className="w-16 h-1.5 rounded-full bg-[#1e2d42] overflow-hidden flex-shrink-0">
+                            <div className="w-16 h-1.5 rounded-full bg-falcon-border overflow-hidden shrink-0">
                               <div
                                 className="h-full rounded-full bg-[#8b5cf6]"
                                 style={{ width: `${Math.min(proc.mem_pct, 100)}%` }}
@@ -460,7 +460,7 @@ export default function EndpointPerformancePage() {
                             </span>
                           </div>
                         </td>
-                        <td className="py-3 text-xs text-[#7d92b0] font-mono">
+                        <td className="py-3 text-xs text-falcon-muted font-mono">
                           {proc.user ?? '—'}
                         </td>
                       </tr>

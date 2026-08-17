@@ -69,10 +69,10 @@ export default function SecurityPage() {
       </div>
 
       {/* 現在のMFA状態バナー */}
-      <div className="bg-[#111827] rounded-xl border border-[#1e2d42] p-4 flex items-center gap-3">
+      <div className="bg-falcon-card rounded-xl border border-falcon-border p-4 flex items-center gap-3">
         {profile.mfa_enabled ? (
           <>
-            <ShieldCheck className="w-5 h-5 text-green-400 flex-shrink-0" />
+            <ShieldCheck className="w-5 h-5 text-green-400 shrink-0" />
             <div className="flex-1 min-w-0">
               <p className="text-white text-sm font-medium">MFAが有効です</p>
               <p className="text-[#8899aa] text-xs mt-0.5">
@@ -86,20 +86,20 @@ export default function SecurityPage() {
                 </span>
               </p>
             </div>
-            <span className="text-xs px-2.5 py-1 rounded-full bg-green-900/40 text-green-300 font-medium flex-shrink-0">
+            <span className="text-xs px-2.5 py-1 rounded-full bg-green-900/40 text-green-300 font-medium shrink-0">
               有効
             </span>
           </>
         ) : (
           <>
-            <ShieldOff className="w-5 h-5 text-[#5a6a7a] flex-shrink-0" />
+            <ShieldOff className="w-5 h-5 text-[#5a6a7a] shrink-0" />
             <div className="flex-1 min-w-0">
               <p className="text-white text-sm font-medium">MFAが無効です</p>
               <p className="text-[#8899aa] text-xs mt-0.5">
                 セキュリティ向上のためMFAを設定することを推奨します
               </p>
             </div>
-            <span className="text-xs px-2.5 py-1 rounded-full bg-[#161f33] text-[#8899aa] font-medium flex-shrink-0">
+            <span className="text-xs px-2.5 py-1 rounded-full bg-falcon-raised text-[#8899aa] font-medium shrink-0">
               無効
             </span>
           </>
@@ -107,15 +107,15 @@ export default function SecurityPage() {
       </div>
 
       {/* タブ */}
-      <div className="bg-[#111827] rounded-xl border border-[#1e2d42] overflow-hidden">
+      <div className="bg-falcon-card rounded-xl border border-falcon-border overflow-hidden">
         {/* タブヘッダー */}
-        <div className="flex border-b border-[#1e2d42]">
+        <div className="flex border-b border-falcon-border">
           <button
             onClick={() => setActiveTab('totp')}
             className={`flex items-center gap-2 px-5 py-3.5 text-sm font-medium transition-colors border-b-2 -mb-px ${
               activeTab === 'totp'
-                ? 'text-white border-[#1a6bff] bg-[#1a6bff]/5'
-                : 'text-[#8899aa] border-transparent hover:text-white hover:bg-[#161f33]'
+                ? 'text-white border-falcon-blue bg-falcon-blue/5'
+                : 'text-[#8899aa] border-transparent hover:text-white hover:bg-falcon-raised'
             }`}
           >
             <Smartphone className="w-4 h-4" />
@@ -125,8 +125,8 @@ export default function SecurityPage() {
             onClick={() => setActiveTab('email')}
             className={`flex items-center gap-2 px-5 py-3.5 text-sm font-medium transition-colors border-b-2 -mb-px ${
               activeTab === 'email'
-                ? 'text-white border-[#1a6bff] bg-[#1a6bff]/5'
-                : 'text-[#8899aa] border-transparent hover:text-white hover:bg-[#161f33]'
+                ? 'text-white border-falcon-blue bg-falcon-blue/5'
+                : 'text-[#8899aa] border-transparent hover:text-white hover:bg-falcon-raised'
             }`}
           >
             <Mail className="w-4 h-4" />
@@ -220,7 +220,7 @@ function TOTPTab({
     return (
       <div className="space-y-4">
         <div className="flex items-center gap-3 p-4 bg-green-900/20 border border-green-700/50 rounded-lg">
-          <CheckCircle className="w-5 h-5 text-green-400 flex-shrink-0" />
+          <CheckCircle className="w-5 h-5 text-green-400 shrink-0" />
           <div>
             <p className="text-green-300 text-sm font-medium">TOTPが有効化されました</p>
             <p className="text-green-400/70 text-xs mt-0.5">
@@ -237,7 +237,7 @@ function TOTPTab({
               {showBackupCodes ? 'バックアップコードを隠す' : 'バックアップコードを表示'}
             </button>
             {showBackupCodes && (
-              <div className="mt-3 p-4 bg-[#080c14] rounded-lg border border-[#1e2d42]">
+              <div className="mt-3 p-4 bg-falcon-bg rounded-lg border border-falcon-border">
                 <p className="text-[#8899aa] text-xs mb-3">
                   バックアップコードは安全な場所に保管してください。各コードは1回のみ使用できます。
                 </p>
@@ -245,7 +245,7 @@ function TOTPTab({
                   {setupData.backup_codes.map((c) => (
                     <code
                       key={c}
-                      className="text-xs font-mono text-white bg-[#161f33] px-2 py-1 rounded"
+                      className="text-xs font-mono text-white bg-falcon-raised px-2 py-1 rounded-sm"
                     >
                       {c}
                     </code>
@@ -289,12 +289,12 @@ function TOTPTab({
         <div>
           <label className="text-[#8899aa] text-xs block mb-1">シークレットキー</label>
           <div className="flex items-center gap-2">
-            <code className="flex-1 text-xs font-mono text-white bg-[#080c14] border border-[#1e2d42] rounded-lg px-3 py-2 break-all">
+            <code className="flex-1 text-xs font-mono text-white bg-falcon-bg border border-falcon-border rounded-lg px-3 py-2 break-all">
               {setupData.secret}
             </code>
             <button
               onClick={handleCopySecret}
-              className="flex-shrink-0 p-2 text-[#8899aa] hover:text-white bg-[#161f33] rounded-lg border border-[#1e2d42] transition-colors"
+              className="shrink-0 p-2 text-[#8899aa] hover:text-white bg-falcon-raised rounded-lg border border-falcon-border transition-colors"
               title="コピー"
             >
               {copiedSecret ? (
@@ -316,7 +316,7 @@ function TOTPTab({
               {showBackupCodes ? 'バックアップコードを隠す' : 'バックアップコードを表示 (保存推奨)'}
             </button>
             {showBackupCodes && (
-              <div className="mt-3 p-4 bg-[#080c14] rounded-lg border border-[#1e2d42]">
+              <div className="mt-3 p-4 bg-falcon-bg rounded-lg border border-falcon-border">
                 <p className="text-[#8899aa] text-xs mb-3">
                   バックアップコードは今すぐ安全な場所に保管してください。
                 </p>
@@ -324,7 +324,7 @@ function TOTPTab({
                   {setupData.backup_codes.map((bc) => (
                     <code
                       key={bc}
-                      className="text-xs font-mono text-white bg-[#161f33] px-2 py-1 rounded"
+                      className="text-xs font-mono text-white bg-falcon-raised px-2 py-1 rounded-sm"
                     >
                       {bc}
                     </code>
@@ -348,15 +348,15 @@ function TOTPTab({
             value={code}
             onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
             placeholder="000000"
-            className="w-full bg-[#080c14] text-white text-lg font-mono text-center px-3 py-2.5 rounded-lg
-                       border border-[#1e2d42] focus:outline-none focus:border-[#1a6bff] placeholder-[#5a6a7a]
+            className="w-full bg-falcon-bg text-white text-lg font-mono text-center px-3 py-2.5 rounded-lg
+                       border border-falcon-border focus:outline-hidden focus:border-falcon-blue placeholder-[#5a6a7a]
                        tracking-[0.5em]"
           />
         </div>
 
         {error && (
           <div className="flex items-center gap-2 text-red-400 text-sm bg-red-900/20 border border-red-700/50 rounded-lg px-3 py-2">
-            <AlertCircle className="w-4 h-4 flex-shrink-0" />
+            <AlertCircle className="w-4 h-4 shrink-0" />
             {error}
           </div>
         )}
@@ -365,7 +365,7 @@ function TOTPTab({
           <button
             onClick={() => confirmMutation.mutate(code)}
             disabled={code.length !== 6 || confirmMutation.isPending}
-            className="flex items-center gap-2 px-4 py-2 bg-[#1a6bff] text-white rounded-lg
+            className="flex items-center gap-2 px-4 py-2 bg-falcon-blue text-white rounded-lg
                        hover:bg-[#1557d4] transition-colors disabled:opacity-50 text-sm"
           >
             {confirmMutation.isPending ? (
@@ -377,7 +377,7 @@ function TOTPTab({
           </button>
           <button
             onClick={() => { setStep('idle'); setCode(''); setError(null) }}
-            className="px-4 py-2 text-[#8899aa] hover:text-white rounded-lg border border-[#1e2d42]
+            className="px-4 py-2 text-[#8899aa] hover:text-white rounded-lg border border-falcon-border
                        hover:border-[#2a3d5a] transition-colors text-sm"
           >
             キャンセル
@@ -391,7 +391,7 @@ function TOTPTab({
   return (
     <div className="space-y-4">
       <div className="flex items-start gap-3">
-        <div className="w-10 h-10 rounded-lg bg-[#161f33] border border-[#1e2d42] flex items-center justify-center flex-shrink-0">
+        <div className="w-10 h-10 rounded-lg bg-falcon-raised border border-falcon-border flex items-center justify-center shrink-0">
           <QrCode className="w-5 h-5 text-[#8899aa]" />
         </div>
         <div>
@@ -404,14 +404,14 @@ function TOTPTab({
 
       {isTOTPActive && (
         <div className="flex items-center gap-2 p-3 bg-green-900/10 border border-green-700/30 rounded-lg">
-          <CheckCircle className="w-4 h-4 text-green-400 flex-shrink-0" />
+          <CheckCircle className="w-4 h-4 text-green-400 shrink-0" />
           <p className="text-green-300 text-sm">TOTP MFAが現在有効です</p>
         </div>
       )}
 
       {error && (
         <div className="flex items-center gap-2 text-red-400 text-sm bg-red-900/20 border border-red-700/50 rounded-lg px-3 py-2">
-          <AlertCircle className="w-4 h-4 flex-shrink-0" />
+          <AlertCircle className="w-4 h-4 shrink-0" />
           {error}
         </div>
       )}
@@ -421,7 +421,7 @@ function TOTPTab({
           <button
             onClick={() => setupMutation.mutate()}
             disabled={setupMutation.isPending}
-            className="flex items-center gap-2 px-4 py-2 bg-[#1a6bff] text-white rounded-lg
+            className="flex items-center gap-2 px-4 py-2 bg-falcon-blue text-white rounded-lg
                        hover:bg-[#1557d4] transition-colors disabled:opacity-50 text-sm"
           >
             {setupMutation.isPending ? (
@@ -471,8 +471,8 @@ function DisableTOTPButton({
         value={password}
         onChange={(e) => setPassword(e.target.value)}
         placeholder="パスワードを入力して確認"
-        className="bg-[#080c14] text-white px-3 py-2 rounded-lg border border-[#1e2d42] text-sm
-                   focus:outline-none focus:border-red-500 placeholder-[#5a6a7a] w-56"
+        className="bg-falcon-bg text-white px-3 py-2 rounded-lg border border-falcon-border text-sm
+                   focus:outline-hidden focus:border-red-500 placeholder-[#5a6a7a] w-56"
       />
       <button
         onClick={() => { onDisable(password); setShowConfirm(false); setPassword('') }}
@@ -557,7 +557,7 @@ function EmailOTPTab({
     return (
       <div className="space-y-4">
         <div className="flex items-start gap-3">
-          <div className="w-10 h-10 rounded-lg bg-[#161f33] border border-[#1e2d42] flex items-center justify-center flex-shrink-0">
+          <div className="w-10 h-10 rounded-lg bg-falcon-raised border border-falcon-border flex items-center justify-center shrink-0">
             <Mail className="w-5 h-5 text-[#8899aa]" />
           </div>
           <div>
@@ -569,13 +569,13 @@ function EmailOTPTab({
         </div>
 
         <div className="flex items-center gap-2 p-3 bg-green-900/10 border border-green-700/30 rounded-lg">
-          <CheckCircle className="w-4 h-4 text-green-400 flex-shrink-0" />
+          <CheckCircle className="w-4 h-4 text-green-400 shrink-0" />
           <p className="text-green-300 text-sm">メールOTP MFAが有効です</p>
         </div>
 
         {error && (
           <div className="flex items-center gap-2 text-red-400 text-sm bg-red-900/20 border border-red-700/50 rounded-lg px-3 py-2">
-            <AlertCircle className="w-4 h-4 flex-shrink-0" />
+            <AlertCircle className="w-4 h-4 shrink-0" />
             {error}
           </div>
         )}
@@ -601,7 +601,7 @@ function EmailOTPTab({
   return (
     <div className="space-y-4">
       <div className="flex items-start gap-3">
-        <div className="w-10 h-10 rounded-lg bg-[#161f33] border border-[#1e2d42] flex items-center justify-center flex-shrink-0">
+        <div className="w-10 h-10 rounded-lg bg-falcon-raised border border-falcon-border flex items-center justify-center shrink-0">
           <Mail className="w-5 h-5 text-[#8899aa]" />
         </div>
         <div>
@@ -613,13 +613,13 @@ function EmailOTPTab({
         </div>
       </div>
 
-      <div className="bg-[#080c14] rounded-lg border border-[#1e2d42] p-4 space-y-2 text-sm">
+      <div className="bg-falcon-bg rounded-lg border border-falcon-border p-4 space-y-2 text-sm">
         <p className="text-[#8899aa]">送信先メールアドレス:</p>
         <p className="text-white font-medium">{profile.email}</p>
       </div>
 
       <div className="bg-yellow-900/10 border border-yellow-700/30 rounded-lg p-3 flex items-start gap-2">
-        <AlertCircle className="w-4 h-4 text-yellow-400 flex-shrink-0 mt-0.5" />
+        <AlertCircle className="w-4 h-4 text-yellow-400 shrink-0 mt-0.5" />
         <p className="text-yellow-300/80 text-xs">
           メールOTPを有効にすると、現在の認証方式が変更されます。
           有効化後は次回ログインからメールコードが必要になります。
@@ -628,7 +628,7 @@ function EmailOTPTab({
 
       {error && (
         <div className="flex items-center gap-2 text-red-400 text-sm bg-red-900/20 border border-red-700/50 rounded-lg px-3 py-2">
-          <AlertCircle className="w-4 h-4 flex-shrink-0" />
+          <AlertCircle className="w-4 h-4 shrink-0" />
           {error}
         </div>
       )}
@@ -636,7 +636,7 @@ function EmailOTPTab({
       <button
         onClick={() => enableMutation.mutate()}
         disabled={enableMutation.isPending}
-        className="flex items-center gap-2 px-4 py-2 bg-[#1a6bff] text-white rounded-lg
+        className="flex items-center gap-2 px-4 py-2 bg-falcon-blue text-white rounded-lg
                    hover:bg-[#1557d4] transition-colors disabled:opacity-50 text-sm"
       >
         {enableMutation.isPending ? (
@@ -707,8 +707,8 @@ function EmailOTPVerifyForm({
   return (
     <div className="space-y-4">
       <div className="text-center">
-        <div className="w-12 h-12 rounded-full bg-[#1a6bff]/20 border border-[#1a6bff]/40 flex items-center justify-center mx-auto mb-3">
-          <Mail className="w-6 h-6 text-[#1a6bff]" />
+        <div className="w-12 h-12 rounded-full bg-falcon-blue/20 border border-falcon-blue/40 flex items-center justify-center mx-auto mb-3">
+          <Mail className="w-6 h-6 text-falcon-blue" />
         </div>
         <h3 className="text-white font-semibold">メール認証</h3>
         <p className="text-[#8899aa] text-sm mt-1">
@@ -720,7 +720,7 @@ function EmailOTPVerifyForm({
 
       {error && (
         <div className="flex items-center gap-2 text-red-400 text-sm bg-red-900/20 border border-red-700/50 rounded-lg px-3 py-2">
-          <AlertCircle className="w-4 h-4 flex-shrink-0" />
+          <AlertCircle className="w-4 h-4 shrink-0" />
           {error}
         </div>
       )}
@@ -729,7 +729,7 @@ function EmailOTPVerifyForm({
         <button
           onClick={() => sendMutation.mutate()}
           disabled={sendMutation.isPending}
-          className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-[#1a6bff] text-white
+          className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-falcon-blue text-white
                      rounded-lg hover:bg-[#1557d4] transition-colors disabled:opacity-50 text-sm font-medium"
         >
           {sendMutation.isPending ? (
@@ -756,8 +756,8 @@ function EmailOTPVerifyForm({
               onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
               placeholder="000000"
               autoFocus
-              className="w-full bg-[#080c14] text-white text-xl font-mono text-center px-3 py-3 rounded-lg
-                         border border-[#1e2d42] focus:outline-none focus:border-[#1a6bff]
+              className="w-full bg-falcon-bg text-white text-xl font-mono text-center px-3 py-3 rounded-lg
+                         border border-falcon-border focus:outline-hidden focus:border-falcon-blue
                          placeholder-[#5a6a7a] tracking-[0.5em]"
             />
           </div>
@@ -765,7 +765,7 @@ function EmailOTPVerifyForm({
           <button
             onClick={() => verifyMutation.mutate(code)}
             disabled={code.length !== 6 || verifyMutation.isPending}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-[#1a6bff] text-white
+            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-falcon-blue text-white
                        rounded-lg hover:bg-[#1557d4] transition-colors disabled:opacity-50 text-sm font-medium"
           >
             {verifyMutation.isPending ? (

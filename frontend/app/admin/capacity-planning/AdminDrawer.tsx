@@ -72,12 +72,12 @@ function TextField({ label, value, onChange, type = 'text' }: {
 }) {
   return (
     <label className="block">
-      <span className="text-[#7d92b0] text-xs">{label}</span>
+      <span className="text-falcon-muted text-xs">{label}</span>
       <input
         type={type}
         value={value}
         onChange={e => onChange(e.target.value)}
-        className="mt-1 w-full bg-[#070d19] border border-[#1e2d42] rounded px-2 py-1 text-white text-sm focus:outline-none focus:border-[#e8002d]"
+        className="mt-1 w-full bg-[#070d19] border border-falcon-border rounded-sm px-2 py-1 text-white text-sm focus:outline-hidden focus:border-falcon-red"
       />
     </label>
   )
@@ -91,11 +91,11 @@ function SelectField({ label, value, onChange, options }: {
 }) {
   return (
     <label className="block">
-      <span className="text-[#7d92b0] text-xs">{label}</span>
+      <span className="text-falcon-muted text-xs">{label}</span>
       <select
         value={value}
         onChange={e => onChange(e.target.value)}
-        className="mt-1 w-full bg-[#070d19] border border-[#1e2d42] rounded px-2 py-1 text-white text-sm focus:outline-none focus:border-[#e8002d]"
+        className="mt-1 w-full bg-[#070d19] border border-falcon-border rounded-sm px-2 py-1 text-white text-sm focus:outline-hidden focus:border-falcon-red"
       >
         {options.map(o => <option key={o} value={o}>{o}</option>)}
       </select>
@@ -119,7 +119,7 @@ function ActionRow({ onSave, onDelete, saving, error }: {
         <button
           onClick={onSave}
           disabled={saving}
-          className="flex items-center gap-1 px-3 py-1 bg-[#e8002d] hover:bg-[#c0001f] disabled:opacity-50 text-white text-xs rounded"
+          className="flex items-center gap-1 px-3 py-1 bg-falcon-red hover:bg-[#c0001f] disabled:opacity-50 text-white text-xs rounded-sm"
         >
           <Save className="w-3 h-3" />
           {saving ? '保存中…' : '保存'}
@@ -127,7 +127,7 @@ function ActionRow({ onSave, onDelete, saving, error }: {
         {onDelete && (
           <button
             onClick={onDelete}
-            className="flex items-center gap-1 px-3 py-1 bg-[#1e2d42] hover:bg-red-500/30 text-red-300 text-xs rounded border border-red-500/30"
+            className="flex items-center gap-1 px-3 py-1 bg-falcon-border hover:bg-red-500/30 text-red-300 text-xs rounded-sm border border-red-500/30"
           >
             <Trash2 className="w-3 h-3" />
             削除
@@ -176,7 +176,7 @@ function PlanningTargetsEditor() {
 
   return (
     <div className="space-y-3">
-      <p className="text-[#7d92b0] text-xs">エンドポイント単価目標値と、アナリスト必要余裕人数を設定します。</p>
+      <p className="text-falcon-muted text-xs">エンドポイント単価目標値と、アナリスト必要余裕人数を設定します。</p>
       <TextField label="エンドポイント単価目標 (円/台)" value={cost} onChange={setCost} type="number" />
       <TextField label="アナリスト余裕人数" value={headroom} onChange={setHeadroom} type="number" />
       <ActionRow onSave={() => save.mutate()} saving={save.isPending} error={mutErr(save.error)} />
@@ -260,7 +260,7 @@ function Row<T extends Record<string, unknown>>({ item, fields, path, idKey, onC
   })
 
   return (
-    <div className="bg-[#070d19] border border-[#1e2d42] rounded-lg p-3 space-y-2">
+    <div className="bg-[#070d19] border border-falcon-border rounded-lg p-3 space-y-2">
       <div className="grid grid-cols-2 gap-2">
         {fields.map(f => {
           const v = draft[f.key]
@@ -299,7 +299,7 @@ function Row<T extends Record<string, unknown>>({ item, fields, path, idKey, onC
         saving={save.isPending || remove.isPending}
         error={mutErr(save.error) || mutErr(remove.error)}
       />
-      <p className="text-[#3d5068] text-[10px]">id: {String(item[idKey])}</p>
+      <p className="text-falcon-subtle text-[10px]">id: {String(item[idKey])}</p>
     </div>
   )
 }
@@ -324,14 +324,14 @@ function AddRow<T extends Record<string, unknown>>({ fields, initial, path, onAd
     return (
       <button
         onClick={() => setOpen(true)}
-        className="flex items-center gap-1 px-3 py-2 text-xs text-[#e8002d] border border-dashed border-[#1e2d42] rounded hover:bg-[#0d1220] w-full justify-center"
+        className="flex items-center gap-1 px-3 py-2 text-xs text-falcon-red border border-dashed border-falcon-border rounded-sm hover:bg-falcon-surface w-full justify-center"
       >
         <Plus className="w-3 h-3" /> 新規追加
       </button>
     )
   }
   return (
-    <div className="bg-[#070d19] border border-[#e8002d]/30 rounded-lg p-3 space-y-2">
+    <div className="bg-[#070d19] border border-falcon-red/30 rounded-lg p-3 space-y-2">
       <p className="text-white text-xs font-medium">新規レコード</p>
       <div className="grid grid-cols-2 gap-2">
         {fields.map(f => {
@@ -367,13 +367,13 @@ function AddRow<T extends Record<string, unknown>>({ fields, initial, path, onAd
         <button
           onClick={() => add.mutate()}
           disabled={add.isPending}
-          className="px-3 py-1 bg-[#e8002d] hover:bg-[#c0001f] disabled:opacity-50 text-white text-xs rounded"
+          className="px-3 py-1 bg-falcon-red hover:bg-[#c0001f] disabled:opacity-50 text-white text-xs rounded-sm"
         >
           {add.isPending ? '追加中…' : '追加'}
         </button>
         <button
           onClick={() => { setOpen(false); setDraft(initial) }}
-          className="px-3 py-1 bg-[#1e2d42] text-[#7d92b0] text-xs rounded"
+          className="px-3 py-1 bg-falcon-border text-falcon-muted text-xs rounded-sm"
         >
           キャンセル
         </button>
@@ -417,7 +417,7 @@ function AnalystsEditor() {
   }
   return (
     <div className="space-y-3">
-      <p className="text-[#7d92b0] text-xs">スキルは JSON 形式（例: {'{"DFIR":"full","Malware":"partial","Network":"full","Cloud":"none","Compliance":"partial"}'}）</p>
+      <p className="text-falcon-muted text-xs">スキルは JSON 形式（例: {'{"DFIR":"full","Malware":"partial","Network":"full","Cloud":"none","Compliance":"partial"}'}）</p>
       {rows.map(r => {
         const serialized = (d: Row) => ({ ...d, skills: parseSkillsOrThrow(d.skills) })
         return (
@@ -461,7 +461,7 @@ function SerializingRow<T extends Record<string, unknown>>({ item, fields, path,
   const remove = useMutation({ mutationFn: () => del(path), onSuccess: onChanged })
 
   return (
-    <div className="bg-[#070d19] border border-[#1e2d42] rounded-lg p-3 space-y-2">
+    <div className="bg-[#070d19] border border-falcon-border rounded-lg p-3 space-y-2">
       <div className="grid grid-cols-2 gap-2">
         {fields.map(f => {
           const v = draft[f.key]
@@ -484,7 +484,7 @@ function SerializingRow<T extends Record<string, unknown>>({ item, fields, path,
         saving={save.isPending || remove.isPending}
         error={mutErr(save.error) || mutErr(remove.error)}
       />
-      <p className="text-[#3d5068] text-[10px]">id: {String(item[idKey])}</p>
+      <p className="text-falcon-subtle text-[10px]">id: {String(item[idKey])}</p>
     </div>
   )
 }
@@ -506,14 +506,14 @@ function SerializingAddRow<T extends Record<string, unknown>>({ fields, initial,
     return (
       <button
         onClick={() => setOpen(true)}
-        className="flex items-center gap-1 px-3 py-2 text-xs text-[#e8002d] border border-dashed border-[#1e2d42] rounded hover:bg-[#0d1220] w-full justify-center"
+        className="flex items-center gap-1 px-3 py-2 text-xs text-falcon-red border border-dashed border-falcon-border rounded-sm hover:bg-falcon-surface w-full justify-center"
       >
         <Plus className="w-3 h-3" /> 新規追加
       </button>
     )
   }
   return (
-    <div className="bg-[#070d19] border border-[#e8002d]/30 rounded-lg p-3 space-y-2">
+    <div className="bg-[#070d19] border border-falcon-red/30 rounded-lg p-3 space-y-2">
       <p className="text-white text-xs font-medium">新規レコード</p>
       <div className="grid grid-cols-2 gap-2">
         {fields.map(f => {
@@ -533,11 +533,11 @@ function SerializingAddRow<T extends Record<string, unknown>>({ fields, initial,
       </div>
       <div className="flex gap-2">
         <button onClick={() => add.mutate()} disabled={add.isPending}
-          className="px-3 py-1 bg-[#e8002d] hover:bg-[#c0001f] disabled:opacity-50 text-white text-xs rounded">
+          className="px-3 py-1 bg-falcon-red hover:bg-[#c0001f] disabled:opacity-50 text-white text-xs rounded-sm">
           {add.isPending ? '追加中…' : '追加'}
         </button>
         <button onClick={() => { setOpen(false); setDraft(initial) }}
-          className="px-3 py-1 bg-[#1e2d42] text-[#7d92b0] text-xs rounded">
+          className="px-3 py-1 bg-falcon-border text-falcon-muted text-xs rounded-sm">
           キャンセル
         </button>
       </div>
@@ -699,7 +699,7 @@ function OncallEditor() {
   ]
   return (
     <div className="space-y-3">
-      <p className="text-[#7d92b0] text-xs">担当者未割当セルは「—」と入力してください。</p>
+      <p className="text-falcon-muted text-xs">担当者未割当セルは「—」と入力してください。</p>
       {rows.map(r => (
         <Row key={r.id} item={r} fields={fields} idKey="id"
           path={`/api/v1/admin/capacity-planning/oncall-shifts/${r.id}`}
@@ -754,7 +754,7 @@ function ROIEditor() {
   ]
   return (
     <div className="space-y-3">
-      <p className="text-[#7d92b0] text-xs">
+      <p className="text-falcon-muted text-xs">
         ROI% = (侵害防止 + 運用効率化 + コンプラ) × 100 / 年間投資。
         カテゴリキーに <code>overall</code> は使用できません（集計用の予約キー）。
       </p>
@@ -778,24 +778,24 @@ export default function AdminDrawer({ open, onClose }: { open: boolean; onClose:
 
   return (
     <div className="fixed inset-0 z-50 flex" onClick={onClose}>
-      <div className="flex-1 bg-black/60 backdrop-blur-sm" />
+      <div className="flex-1 bg-black/60 backdrop-blur-xs" />
       <div
-        className="w-full max-w-2xl h-full bg-[#0d1220] border-l border-[#1e2d42] shadow-2xl flex flex-col"
+        className="w-full max-w-2xl h-full bg-falcon-surface border-l border-falcon-border shadow-2xl flex flex-col"
         onClick={e => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between px-5 py-4 border-b border-[#1e2d42]">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-falcon-border">
           <h2 className="text-white font-semibold">キャパシティ計画データ管理</h2>
-          <button onClick={onClose} className="p-1.5 rounded hover:bg-[#1e2d42] text-[#7d92b0]">
+          <button onClick={onClose} className="p-1.5 rounded-sm hover:bg-falcon-border text-falcon-muted">
             <X className="w-4 h-4" />
           </button>
         </div>
 
-        <div className="flex gap-1 px-5 pt-3 border-b border-[#1e2d42] overflow-x-auto">
+        <div className="flex gap-1 px-5 pt-3 border-b border-falcon-border overflow-x-auto">
           {SECTIONS.map(s => (
             <button
               key={s.key}
               onClick={() => setSection(s.key)}
-              className={`px-3 py-2 text-xs whitespace-nowrap border-b-2 ${section === s.key ? 'border-[#e8002d] text-white' : 'border-transparent text-[#7d92b0] hover:text-white'}`}
+              className={`px-3 py-2 text-xs whitespace-nowrap border-b-2 ${section === s.key ? 'border-falcon-red text-white' : 'border-transparent text-falcon-muted hover:text-white'}`}
             >
               {s.label}
             </button>

@@ -35,7 +35,7 @@ const EVENT_TYPE_LABELS: Record<EventType, string> = {
 }
 
 const EVENT_TYPE_COLORS: Record<EventType, string> = {
-  alert_critical: 'bg-[#e8002d]/20 text-[#e8002d] border-[#e8002d]/30',
+  alert_critical: 'bg-falcon-red/20 text-falcon-red border-falcon-red/30',
   alert_high: 'bg-orange-900/30 text-orange-400 border-orange-700/30',
   agent_offline: 'bg-yellow-900/30 text-yellow-400 border-yellow-700/30',
   compliance_failure: 'bg-purple-900/30 text-purple-400 border-purple-700/30',
@@ -211,17 +211,17 @@ export default function NotificationTemplatesPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-[#e8002d] to-[#a80020] flex items-center justify-center shadow-lg">
+          <div className="w-10 h-10 rounded-lg bg-linear-to-br from-falcon-red to-falcon-red-dark flex items-center justify-center shadow-lg">
             <Bell className="w-5 h-5 text-white" />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-[#e2e8f4]">通知テンプレート管理</h1>
-            <p className="text-sm text-[#7d92b0]">メール・Slackの通知テンプレートを管理します</p>
+            <h1 className="text-xl font-bold text-falcon-text">通知テンプレート管理</h1>
+            <p className="text-sm text-falcon-muted">メール・Slackの通知テンプレートを管理します</p>
           </div>
         </div>
         <button
           onClick={handleNewTemplate}
-          className="flex items-center gap-2 px-4 py-2 bg-[#e8002d] hover:bg-[#c8001d] text-white rounded-lg text-sm font-medium transition-colors"
+          className="flex items-center gap-2 px-4 py-2 bg-falcon-red hover:bg-[#c8001d] text-white rounded-lg text-sm font-medium transition-colors"
         >
           <Plus className="w-4 h-4" />
           テンプレート追加
@@ -229,20 +229,20 @@ export default function NotificationTemplatesPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 p-1 bg-[#0d1220] rounded-lg border border-[#1e2d42] w-fit">
+      <div className="flex gap-1 p-1 bg-falcon-surface rounded-lg border border-falcon-border w-fit">
         {(['email', 'slack'] as TemplateType[]).map(tab => (
           <button
             key={tab}
             onClick={() => handleTabChange(tab)}
             className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${
               activeTab === tab
-                ? 'bg-[#1d2f4a] text-white'
-                : 'text-[#7d92b0] hover:text-[#e2e8f4]'
+                ? 'bg-falcon-active text-white'
+                : 'text-falcon-muted hover:text-falcon-text'
             }`}
           >
             {tab === 'email' ? <Mail className="w-4 h-4" /> : <Slack className="w-4 h-4" />}
             {tab === 'email' ? 'メールテンプレート' : 'Slackテンプレート'}
-            <span className="text-xs px-1.5 py-0.5 rounded bg-[#0d1220] border border-[#1e2d42] text-[#7d92b0]">
+            <span className="text-xs px-1.5 py-0.5 rounded-sm bg-falcon-surface border border-falcon-border text-falcon-muted">
               {templates.filter(t => t.type === tab).length}
             </span>
           </button>
@@ -253,13 +253,13 @@ export default function NotificationTemplatesPage() {
       <div className="flex gap-4 min-h-[600px]">
 
         {/* Template list sidebar */}
-        <div className="w-72 flex-shrink-0 flex flex-col gap-2">
+        <div className="w-72 shrink-0 flex flex-col gap-2">
           {isLoading ? (
             Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="h-20 bg-[#0d1220] rounded-lg border border-[#1e2d42] animate-pulse" />
+              <div key={i} className="h-20 bg-falcon-surface rounded-lg border border-falcon-border animate-pulse" />
             ))
           ) : filteredTemplates.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-32 text-[#7d92b0] text-sm bg-[#0d1220] rounded-lg border border-[#1e2d42]">
+            <div className="flex flex-col items-center justify-center h-32 text-falcon-muted text-sm bg-falcon-surface rounded-lg border border-falcon-border">
               <Bell className="w-6 h-6 mb-2 opacity-40" />
               テンプレートなし
             </div>
@@ -270,20 +270,20 @@ export default function NotificationTemplatesPage() {
                 onClick={() => handleSelectTemplate(tpl)}
                 className={`text-left p-3 rounded-lg border transition-all ${
                   selectedId === tpl.id
-                    ? 'bg-[#1d2f4a] border-[#e8002d]/40'
-                    : 'bg-[#0d1220] border-[#1e2d42] hover:border-[#2d3f5a]'
+                    ? 'bg-falcon-active border-falcon-red/40'
+                    : 'bg-falcon-surface border-falcon-border hover:border-[#2d3f5a]'
                 }`}
               >
                 <div className="flex items-start justify-between gap-2 mb-1.5">
-                  <p className="text-sm font-medium text-[#e2e8f4] leading-tight">{tpl.name}</p>
+                  <p className="text-sm font-medium text-falcon-text leading-tight">{tpl.name}</p>
                   {selectedId === tpl.id && (
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#e8002d] flex-shrink-0 mt-1" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-falcon-red shrink-0 mt-1" />
                   )}
                 </div>
-                <span className={`inline-flex items-center px-2 py-0.5 rounded border text-[11px] font-medium ${EVENT_TYPE_COLORS[tpl.event_type]}`}>
+                <span className={`inline-flex items-center px-2 py-0.5 rounded-sm border text-[11px] font-medium ${EVENT_TYPE_COLORS[tpl.event_type]}`}>
                   {EVENT_TYPE_LABELS[tpl.event_type]}
                 </span>
-                <p className="text-[11px] text-[#3d5068] mt-2">更新: {formatDate(tpl.updated_at)}</p>
+                <p className="text-[11px] text-falcon-subtle mt-2">更新: {formatDate(tpl.updated_at)}</p>
               </button>
             ))
           )}
@@ -292,16 +292,16 @@ export default function NotificationTemplatesPage() {
         {/* Editor panel */}
         <div className="flex-1 flex flex-col gap-4">
           {selectedId === null && !isEditing ? (
-            <div className="flex-1 flex flex-col items-center justify-center bg-[#0d1220] rounded-xl border border-[#1e2d42] text-[#7d92b0]">
+            <div className="flex-1 flex flex-col items-center justify-center bg-falcon-surface rounded-xl border border-falcon-border text-falcon-muted">
               <Mail className="w-12 h-12 opacity-20 mb-3" />
               <p className="text-sm">テンプレートを選択するか、新規作成してください</p>
             </div>
           ) : (
-            <div className="flex-1 flex flex-col gap-4 bg-[#0d1220] rounded-xl border border-[#1e2d42] p-5">
+            <div className="flex-1 flex flex-col gap-4 bg-falcon-surface rounded-xl border border-falcon-border p-5">
 
               {/* Editor header */}
               <div className="flex items-center justify-between">
-                <h2 className="text-base font-semibold text-[#e2e8f4]">
+                <h2 className="text-base font-semibold text-falcon-text">
                   {isEditing ? (selectedId ? 'テンプレート編集' : '新規テンプレート') : 'テンプレート詳細'}
                 </h2>
                 <div className="flex items-center gap-2">
@@ -309,14 +309,14 @@ export default function NotificationTemplatesPage() {
                     <>
                       <button
                         onClick={handleEdit}
-                        className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-[#7d92b0] hover:text-white bg-[#1a2640] hover:bg-[#1d2f4a] rounded-lg border border-[#1e2d42] transition-colors"
+                        className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-falcon-muted hover:text-white bg-[#1a2640] hover:bg-falcon-active rounded-lg border border-falcon-border transition-colors"
                       >
                         <Pencil className="w-3.5 h-3.5" />
                         編集
                       </button>
                       <button
                         onClick={() => setDeleteConfirm(selectedId)}
-                        className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-[#e8002d] hover:bg-[#e8002d]/10 rounded-lg border border-[#e8002d]/30 transition-colors"
+                        className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-falcon-red hover:bg-falcon-red/10 rounded-lg border border-falcon-red/30 transition-colors"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                         削除
@@ -327,7 +327,7 @@ export default function NotificationTemplatesPage() {
                     <>
                       <button
                         onClick={() => setPreviewOpen(true)}
-                        className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-[#7d92b0] hover:text-white bg-[#1a2640] hover:bg-[#1d2f4a] rounded-lg border border-[#1e2d42] transition-colors"
+                        className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-falcon-muted hover:text-white bg-[#1a2640] hover:bg-falcon-active rounded-lg border border-falcon-border transition-colors"
                       >
                         <Eye className="w-3.5 h-3.5" />
                         プレビュー
@@ -335,7 +335,7 @@ export default function NotificationTemplatesPage() {
                       <button
                         onClick={handleSave}
                         disabled={saveMutation.isPending}
-                        className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-white bg-[#e8002d] hover:bg-[#c8001d] rounded-lg transition-colors disabled:opacity-50"
+                        className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-white bg-falcon-red hover:bg-[#c8001d] rounded-lg transition-colors disabled:opacity-50"
                       >
                         <Save className="w-3.5 h-3.5" />
                         {saveMutation.isPending ? '保存中...' : saveSuccess ? '保存済み' : '保存'}
@@ -348,29 +348,29 @@ export default function NotificationTemplatesPage() {
               {/* Form fields */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="col-span-2">
-                  <label className="block text-xs font-medium text-[#7d92b0] mb-1">テンプレート名</label>
+                  <label className="block text-xs font-medium text-falcon-muted mb-1">テンプレート名</label>
                   {isEditing ? (
                     <input
                       type="text"
                       value={form.name}
                       onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-                      className="w-full px-3 py-2 bg-[#070d19] border border-[#1e2d42] rounded-lg text-sm text-[#e2e8f4] focus:border-[#e8002d]/50 focus:outline-none"
+                      className="w-full px-3 py-2 bg-[#070d19] border border-falcon-border rounded-lg text-sm text-falcon-text focus:border-falcon-red/50 focus:outline-hidden"
                       placeholder="テンプレート名を入力"
                     />
                   ) : (
-                    <p className="text-sm text-[#e2e8f4] px-3 py-2 bg-[#070d19] rounded-lg border border-[#1e2d42]">
+                    <p className="text-sm text-falcon-text px-3 py-2 bg-[#070d19] rounded-lg border border-falcon-border">
                       {selectedTemplate?.name}
                     </p>
                   )}
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-[#7d92b0] mb-1">イベントタイプ</label>
+                  <label className="block text-xs font-medium text-falcon-muted mb-1">イベントタイプ</label>
                   {isEditing ? (
                     <select
                       value={form.event_type}
                       onChange={e => setForm(f => ({ ...f, event_type: e.target.value as EventType }))}
-                      className="w-full px-3 py-2 bg-[#070d19] border border-[#1e2d42] rounded-lg text-sm text-[#e2e8f4] focus:border-[#e8002d]/50 focus:outline-none"
+                      className="w-full px-3 py-2 bg-[#070d19] border border-falcon-border rounded-lg text-sm text-falcon-text focus:border-falcon-red/50 focus:outline-hidden"
                     >
                       {Object.entries(EVENT_TYPE_LABELS).map(([val, label]) => (
                         <option key={val} value={val}>{label}</option>
@@ -378,7 +378,7 @@ export default function NotificationTemplatesPage() {
                     </select>
                   ) : (
                     <div className="px-3 py-2">
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded border text-xs font-medium ${EVENT_TYPE_COLORS[selectedTemplate?.event_type ?? 'alert_critical']}`}>
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded-sm border text-xs font-medium ${EVENT_TYPE_COLORS[selectedTemplate?.event_type ?? 'alert_critical']}`}>
                         {EVENT_TYPE_LABELS[selectedTemplate?.event_type ?? 'alert_critical']}
                       </span>
                     </div>
@@ -386,28 +386,28 @@ export default function NotificationTemplatesPage() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-[#7d92b0] mb-1">タイプ</label>
+                  <label className="block text-xs font-medium text-falcon-muted mb-1">タイプ</label>
                   <div className="flex items-center gap-2 px-3 py-2">
                     {activeTab === 'email'
-                      ? <><Mail className="w-4 h-4 text-blue-400" /><span className="text-sm text-[#e2e8f4]">メール</span></>
-                      : <><Slack className="w-4 h-4 text-green-400" /><span className="text-sm text-[#e2e8f4]">Slack</span></>
+                      ? <><Mail className="w-4 h-4 text-blue-400" /><span className="text-sm text-falcon-text">メール</span></>
+                      : <><Slack className="w-4 h-4 text-green-400" /><span className="text-sm text-falcon-text">Slack</span></>
                     }
                   </div>
                 </div>
 
                 {(activeTab === 'email') && (
                   <div className="col-span-2">
-                    <label className="block text-xs font-medium text-[#7d92b0] mb-1">件名</label>
+                    <label className="block text-xs font-medium text-falcon-muted mb-1">件名</label>
                     {isEditing ? (
                       <input
                         type="text"
                         value={form.subject}
                         onChange={e => setForm(f => ({ ...f, subject: e.target.value }))}
-                        className="w-full px-3 py-2 bg-[#070d19] border border-[#1e2d42] rounded-lg text-sm text-[#e2e8f4] focus:border-[#e8002d]/50 focus:outline-none"
+                        className="w-full px-3 py-2 bg-[#070d19] border border-falcon-border rounded-lg text-sm text-falcon-text focus:border-falcon-red/50 focus:outline-hidden"
                         placeholder="メール件名（{{変数}}が使えます）"
                       />
                     ) : (
-                      <p className="text-sm text-[#e2e8f4] px-3 py-2 bg-[#070d19] rounded-lg border border-[#1e2d42] font-mono">
+                      <p className="text-sm text-falcon-text px-3 py-2 bg-[#070d19] rounded-lg border border-falcon-border font-mono">
                         {selectedTemplate?.subject ?? '—'}
                       </p>
                     )}
@@ -415,17 +415,17 @@ export default function NotificationTemplatesPage() {
                 )}
 
                 <div className="col-span-2">
-                  <label className="block text-xs font-medium text-[#7d92b0] mb-1">本文</label>
+                  <label className="block text-xs font-medium text-falcon-muted mb-1">本文</label>
                   {isEditing ? (
                     <textarea
                       value={form.body}
                       onChange={e => setForm(f => ({ ...f, body: e.target.value }))}
                       rows={10}
-                      className="w-full px-3 py-2 bg-[#070d19] border border-[#1e2d42] rounded-lg text-sm text-[#e2e8f4] font-mono focus:border-[#e8002d]/50 focus:outline-none resize-y"
+                      className="w-full px-3 py-2 bg-[#070d19] border border-falcon-border rounded-lg text-sm text-falcon-text font-mono focus:border-falcon-red/50 focus:outline-hidden resize-y"
                       placeholder="テンプレート本文を入力（{{変数}}が使えます）"
                     />
                   ) : (
-                    <pre className="text-sm text-[#e2e8f4] px-3 py-2 bg-[#070d19] rounded-lg border border-[#1e2d42] font-mono whitespace-pre-wrap min-h-[200px]">
+                    <pre className="text-sm text-falcon-text px-3 py-2 bg-[#070d19] rounded-lg border border-falcon-border font-mono whitespace-pre-wrap min-h-[200px]">
                       {selectedTemplate?.body}
                     </pre>
                   )}
@@ -433,8 +433,8 @@ export default function NotificationTemplatesPage() {
               </div>
 
               {/* Variable reference panel */}
-              <div className="rounded-lg border border-[#1e2d42] bg-[#070d19] p-3">
-                <p className="text-xs font-semibold text-[#7d92b0] uppercase tracking-wider mb-2">利用可能な変数</p>
+              <div className="rounded-lg border border-falcon-border bg-[#070d19] p-3">
+                <p className="text-xs font-semibold text-falcon-muted uppercase tracking-wider mb-2">利用可能な変数</p>
                 <div className="flex flex-wrap gap-2">
                   {AVAILABLE_VARIABLES.map(v => (
                     <button
@@ -443,18 +443,18 @@ export default function NotificationTemplatesPage() {
                       title={v.desc}
                       className={`flex items-center gap-1.5 px-2 py-1 rounded border text-xs font-mono transition-colors ${
                         isEditing
-                          ? 'border-[#1e2d42] text-[#7d92b0] hover:border-[#e8002d]/40 hover:text-[#e2e8f4] hover:bg-[#1d2f4a] cursor-pointer'
-                          : 'border-[#1e2d42] text-[#3d5068] cursor-default'
+                          ? 'border-falcon-border text-falcon-muted hover:border-falcon-red/40 hover:text-falcon-text hover:bg-falcon-active cursor-pointer'
+                          : 'border-falcon-border text-falcon-subtle cursor-default'
                       }`}
                     >
                       <Copy className="w-3 h-3 opacity-60" />
                       {v.name}
-                      <span className="text-[10px] text-[#3d5068] font-sans hidden sm:inline">— {v.desc}</span>
+                      <span className="text-[10px] text-falcon-subtle font-sans hidden sm:inline">— {v.desc}</span>
                     </button>
                   ))}
                 </div>
                 {isEditing && (
-                  <p className="text-[11px] text-[#3d5068] mt-2">クリックで本文末尾に挿入します</p>
+                  <p className="text-[11px] text-falcon-subtle mt-2">クリックで本文末尾に挿入します</p>
                 )}
               </div>
 
@@ -466,21 +466,21 @@ export default function NotificationTemplatesPage() {
       {/* Preview Modal */}
       {previewOpen && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-6">
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl shadow-2xl w-full max-w-2xl max-h-[80vh] flex flex-col">
-            <div className="flex items-center justify-between p-4 border-b border-[#1e2d42]">
+          <div className="bg-falcon-surface border border-falcon-border rounded-xl shadow-2xl w-full max-w-2xl max-h-[80vh] flex flex-col">
+            <div className="flex items-center justify-between p-4 border-b border-falcon-border">
               <div className="flex items-center gap-2">
-                <Eye className="w-4 h-4 text-[#e8002d]" />
-                <h3 className="text-sm font-semibold text-[#e2e8f4]">プレビュー (サンプルデータで表示)</h3>
+                <Eye className="w-4 h-4 text-falcon-red" />
+                <h3 className="text-sm font-semibold text-falcon-text">プレビュー (サンプルデータで表示)</h3>
               </div>
-              <button onClick={() => setPreviewOpen(false)} className="text-[#7d92b0] hover:text-white">
+              <button onClick={() => setPreviewOpen(false)} className="text-falcon-muted hover:text-white">
                 <X className="w-4 h-4" />
               </button>
             </div>
             <div className="flex-1 overflow-y-auto p-4">
               {activeTab === 'email' && form.subject && (
-                <div className="mb-3 p-3 bg-[#070d19] rounded-lg border border-[#1e2d42]">
-                  <p className="text-xs text-[#7d92b0] mb-1">件名:</p>
-                  <p className="text-sm text-[#e2e8f4] font-medium">
+                <div className="mb-3 p-3 bg-[#070d19] rounded-lg border border-falcon-border">
+                  <p className="text-xs text-falcon-muted mb-1">件名:</p>
+                  <p className="text-sm text-falcon-text font-medium">
                     {Object.entries(SAMPLE_VALUES).reduce(
                       (s, [k, v]) => s.replaceAll(k, v),
                       form.subject
@@ -488,17 +488,17 @@ export default function NotificationTemplatesPage() {
                   </p>
                 </div>
               )}
-              <div className="p-3 bg-[#070d19] rounded-lg border border-[#1e2d42]">
-                <p className="text-xs text-[#7d92b0] mb-2">本文:</p>
-                <pre className="text-sm text-[#e2e8f4] whitespace-pre-wrap font-mono leading-relaxed">
+              <div className="p-3 bg-[#070d19] rounded-lg border border-falcon-border">
+                <p className="text-xs text-falcon-muted mb-2">本文:</p>
+                <pre className="text-sm text-falcon-text whitespace-pre-wrap font-mono leading-relaxed">
                   {renderPreview()}
                 </pre>
               </div>
             </div>
-            <div className="p-4 border-t border-[#1e2d42] flex justify-end">
+            <div className="p-4 border-t border-falcon-border flex justify-end">
               <button
                 onClick={() => setPreviewOpen(false)}
-                className="px-4 py-2 text-sm text-[#7d92b0] hover:text-white bg-[#1a2640] hover:bg-[#1d2f4a] rounded-lg border border-[#1e2d42] transition-colors"
+                className="px-4 py-2 text-sm text-falcon-muted hover:text-white bg-[#1a2640] hover:bg-falcon-active rounded-lg border border-falcon-border transition-colors"
               >
                 閉じる
               </button>
@@ -510,20 +510,20 @@ export default function NotificationTemplatesPage() {
       {/* Delete confirm modal */}
       {deleteConfirm && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-6">
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl shadow-2xl p-6 w-full max-w-sm">
-            <h3 className="text-base font-semibold text-[#e2e8f4] mb-2">テンプレートの削除</h3>
-            <p className="text-sm text-[#7d92b0] mb-5">このテンプレートを削除します。この操作は取り消せません。</p>
+          <div className="bg-falcon-surface border border-falcon-border rounded-xl shadow-2xl p-6 w-full max-w-sm">
+            <h3 className="text-base font-semibold text-falcon-text mb-2">テンプレートの削除</h3>
+            <p className="text-sm text-falcon-muted mb-5">このテンプレートを削除します。この操作は取り消せません。</p>
             <div className="flex gap-3 justify-end">
               <button
                 onClick={() => setDeleteConfirm(null)}
-                className="px-4 py-2 text-sm text-[#7d92b0] hover:text-white bg-[#1a2640] rounded-lg border border-[#1e2d42] transition-colors"
+                className="px-4 py-2 text-sm text-falcon-muted hover:text-white bg-[#1a2640] rounded-lg border border-falcon-border transition-colors"
               >
                 キャンセル
               </button>
               <button
                 onClick={() => deleteMutation.mutate(deleteConfirm)}
                 disabled={deleteMutation.isPending}
-                className="px-4 py-2 text-sm text-white bg-[#e8002d] hover:bg-[#c8001d] rounded-lg transition-colors disabled:opacity-50"
+                className="px-4 py-2 text-sm text-white bg-falcon-red hover:bg-[#c8001d] rounded-lg transition-colors disabled:opacity-50"
               >
                 削除する
               </button>

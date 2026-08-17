@@ -45,7 +45,7 @@ const CATEGORY_CONFIG: Record<ArticleCategory, { label: string; icon: React.Elem
   compliance: { label: 'コンプライアンス', icon: CheckSquare, color: 'text-green-300', bg: 'bg-green-900/20', border: 'border-green-700/30' },
   tools: { label: 'ツール', icon: Wrench, color: 'text-blue-300', bg: 'bg-blue-900/20', border: 'border-blue-700/30' },
   procedures: { label: '手順書', icon: List, color: 'text-yellow-300', bg: 'bg-yellow-900/20', border: 'border-yellow-700/30' },
-  faq: { label: 'FAQ', icon: HelpCircle, color: 'text-[#7d92b0]', bg: 'bg-[#1e2d42]/50', border: 'border-[#2a3f5c]' },
+  faq: { label: 'FAQ', icon: HelpCircle, color: 'text-falcon-muted', bg: 'bg-falcon-border/50', border: 'border-[#2a3f5c]' },
 }
 
 // ─── Markdown-like Renderer ───────────────────────────────────────────────────
@@ -55,7 +55,7 @@ function renderMarkdown(content: string): React.ReactNode {
   return lines.map((line, i) => {
     // Headers
     if (line.startsWith('# ')) return <h1 key={i} className="text-xl font-bold text-white mt-4 mb-2">{line.slice(2)}</h1>
-    if (line.startsWith('## ')) return <h2 key={i} className="text-base font-semibold text-[#e2e8f4] mt-4 mb-2 border-b border-[#1e2d42] pb-1">{line.slice(3)}</h2>
+    if (line.startsWith('## ')) return <h2 key={i} className="text-base font-semibold text-falcon-text mt-4 mb-2 border-b border-falcon-border pb-1">{line.slice(3)}</h2>
     if (line.startsWith('### ')) return <h3 key={i} className="text-sm font-semibold text-[#c4d4e8] mt-3 mb-1">{line.slice(4)}</h3>
 
     // Code block markers
@@ -64,13 +64,13 @@ function renderMarkdown(content: string): React.ReactNode {
     // Checkbox list
     if (line.startsWith('- [ ]')) return (
       <div key={i} className="flex items-start gap-2 text-sm text-[#b0c4de] my-0.5">
-        <span className="mt-0.5 w-4 h-4 rounded border border-[#2a3f5c] flex-shrink-0" />
+        <span className="mt-0.5 w-4 h-4 rounded-sm border border-[#2a3f5c] shrink-0" />
         <span>{renderInline(line.slice(5))}</span>
       </div>
     )
     if (line.startsWith('- [x]') || line.startsWith('- [X]')) return (
       <div key={i} className="flex items-start gap-2 text-sm text-green-300 my-0.5">
-        <span className="mt-0.5 w-4 h-4 rounded border border-green-700/50 bg-green-900/30 flex-shrink-0 flex items-center justify-center text-[10px]">✓</span>
+        <span className="mt-0.5 w-4 h-4 rounded-sm border border-green-700/50 bg-green-900/30 shrink-0 flex items-center justify-center text-[10px]">✓</span>
         <span>{renderInline(line.slice(5))}</span>
       </div>
     )
@@ -78,7 +78,7 @@ function renderMarkdown(content: string): React.ReactNode {
     // Bullet list
     if (line.startsWith('- ')) return (
       <div key={i} className="flex items-start gap-2 text-sm text-[#b0c4de] my-0.5">
-        <span className="mt-2 w-1.5 h-1.5 rounded-full bg-[#3d5068] flex-shrink-0" />
+        <span className="mt-2 w-1.5 h-1.5 rounded-full bg-falcon-subtle shrink-0" />
         <span>{renderInline(line.slice(2))}</span>
       </div>
     )
@@ -87,7 +87,7 @@ function renderMarkdown(content: string): React.ReactNode {
     const numMatch = line.match(/^(\d+)\.\s(.+)/)
     if (numMatch) return (
       <div key={i} className="flex items-start gap-2 text-sm text-[#b0c4de] my-0.5">
-        <span className="text-[#7d92b0] font-mono text-xs mt-0.5 flex-shrink-0">{numMatch[1]}.</span>
+        <span className="text-falcon-muted font-mono text-xs mt-0.5 shrink-0">{numMatch[1]}.</span>
         <span>{renderInline(numMatch[2])}</span>
       </div>
     )
@@ -112,7 +112,7 @@ function renderInline(text: string): React.ReactNode {
     const raw = m[0]
     if (raw.startsWith('**')) parts.push(<strong key={idx++} className="text-white font-semibold">{raw.slice(2, -2)}</strong>)
     else if (raw.startsWith('*')) parts.push(<em key={idx++} className="text-[#c4d4e8] italic">{raw.slice(1, -1)}</em>)
-    else parts.push(<code key={idx++} className="px-1.5 py-0.5 bg-[#0d1220] border border-[#1e2d42] rounded text-xs font-mono text-green-300">{raw.slice(1, -1)}</code>)
+    else parts.push(<code key={idx++} className="px-1.5 py-0.5 bg-falcon-surface border border-falcon-border rounded-sm text-xs font-mono text-green-300">{raw.slice(1, -1)}</code>)
     last = m.index + raw.length
   }
   if (last < text.length) parts.push(<span key={idx++}>{text.slice(last)}</span>)
@@ -124,7 +124,7 @@ function renderInline(text: string): React.ReactNode {
 function CategoryBadge({ category }: { category: ArticleCategory }) {
   const cfg = CATEGORY_CONFIG[category]
   return (
-    <span className={`px-2 py-0.5 rounded text-[11px] font-medium ${cfg.bg} ${cfg.color} border ${cfg.border}`}>
+    <span className={`px-2 py-0.5 rounded-sm text-[11px] font-medium ${cfg.bg} ${cfg.color} border ${cfg.border}`}>
       {cfg.label}
     </span>
   )
@@ -152,29 +152,29 @@ function ArticleEditorModal({
   })
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl w-full max-w-2xl shadow-2xl mx-4 max-h-[90vh] flex flex-col">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[#1e2d42] flex-shrink-0">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs">
+      <div className="bg-falcon-surface border border-falcon-border rounded-xl w-full max-w-2xl shadow-2xl mx-4 max-h-[90vh] flex flex-col">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-falcon-border shrink-0">
           <h2 className="text-white font-semibold text-base">{article ? '記事編集' : '記事作成'}</h2>
-          <button onClick={onClose} className="text-[#7d92b0] hover:text-white"><X className="w-5 h-5" /></button>
+          <button onClick={onClose} className="text-falcon-muted hover:text-white"><X className="w-5 h-5" /></button>
         </div>
         <div className="p-6 space-y-4 overflow-y-auto flex-1">
           <div>
-            <label className="block text-xs text-[#7d92b0] mb-1.5">タイトル *</label>
+            <label className="block text-xs text-falcon-muted mb-1.5">タイトル *</label>
             <input
               required
               value={form.title}
               onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
-              className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-white placeholder-[#3d5068] focus:outline-none focus:border-[#1a6bff] transition-colors"
+              className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-sm text-white placeholder-falcon-subtle focus:outline-hidden focus:border-falcon-blue transition-colors"
               placeholder="記事タイトル"
             />
           </div>
           <div>
-            <label className="block text-xs text-[#7d92b0] mb-1.5">カテゴリー</label>
+            <label className="block text-xs text-falcon-muted mb-1.5">カテゴリー</label>
             <select
               value={form.category}
               onChange={e => setForm(f => ({ ...f, category: e.target.value as ArticleCategory }))}
-              className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-[#1a6bff] transition-colors"
+              className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-sm text-white focus:outline-hidden focus:border-falcon-blue transition-colors"
             >
               {(Object.entries(CATEGORY_CONFIG) as [ArticleCategory, typeof CATEGORY_CONFIG[ArticleCategory]][]).map(([key, cfg]) => (
                 <option key={key} value={key}>{cfg.label}</option>
@@ -182,40 +182,40 @@ function ArticleEditorModal({
             </select>
           </div>
           <div>
-            <label className="block text-xs text-[#7d92b0] mb-1.5">コンテンツ (Markdown対応)</label>
+            <label className="block text-xs text-falcon-muted mb-1.5">コンテンツ (Markdown対応)</label>
             <textarea
               value={form.content}
               onChange={e => setForm(f => ({ ...f, content: e.target.value }))}
               rows={12}
-              className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-white placeholder-[#3d5068] focus:outline-none focus:border-[#1a6bff] transition-colors resize-none font-mono"
+              className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-sm text-white placeholder-falcon-subtle focus:outline-hidden focus:border-falcon-blue transition-colors resize-none font-mono"
               placeholder="# 記事タイトル&#10;&#10;## 概要&#10;ここに内容を記述..."
             />
           </div>
           <div>
-            <label className="block text-xs text-[#7d92b0] mb-1.5">タグ (カンマ区切り)</label>
+            <label className="block text-xs text-falcon-muted mb-1.5">タグ (カンマ区切り)</label>
             <input
               value={form.tags}
               onChange={e => setForm(f => ({ ...f, tags: e.target.value }))}
-              className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-white placeholder-[#3d5068] focus:outline-none focus:border-[#1a6bff] transition-colors"
+              className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-sm text-white placeholder-falcon-subtle focus:outline-hidden focus:border-falcon-blue transition-colors"
               placeholder="tag1, tag2, tag3"
             />
           </div>
           <label className="flex items-center gap-2 cursor-pointer">
             <div
               onClick={() => setForm(f => ({ ...f, published: !f.published }))}
-              className={`relative w-10 h-5 rounded-full transition-colors ${form.published ? 'bg-green-600' : 'bg-[#1e2d42]'}`}
+              className={`relative w-10 h-5 rounded-full transition-colors ${form.published ? 'bg-green-600' : 'bg-falcon-border'}`}
             >
-              <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-[#e2e8f4] transition-transform ${form.published ? 'translate-x-5' : 'translate-x-0.5'}`} />
+              <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-falcon-text transition-transform ${form.published ? 'translate-x-5' : 'translate-x-0.5'}`} />
             </div>
-            <span className="text-sm text-[#7d92b0]">公開する</span>
+            <span className="text-sm text-falcon-muted">公開する</span>
           </label>
         </div>
-        <div className="flex justify-end gap-3 px-6 py-4 border-t border-[#1e2d42] flex-shrink-0">
-          <button onClick={onClose} className="px-4 py-2 text-sm text-[#7d92b0] hover:text-white transition-colors">キャンセル</button>
+        <div className="flex justify-end gap-3 px-6 py-4 border-t border-falcon-border shrink-0">
+          <button onClick={onClose} className="px-4 py-2 text-sm text-falcon-muted hover:text-white transition-colors">キャンセル</button>
           <button
             disabled={!form.title || loading}
             onClick={() => onSubmit({ ...form, tags: form.tags.split(',').map(s => s.trim()).filter(Boolean) })}
-            className="px-5 py-2 bg-[#1a6bff] hover:bg-[#1557d4] text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2"
+            className="px-5 py-2 bg-falcon-blue hover:bg-[#1557d4] text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2"
           >
             {loading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
             {article ? '保存' : '作成'}
@@ -253,11 +253,11 @@ function ArticleDetail({
     <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
       {/* Main content */}
       <div className="lg:col-span-3 space-y-4">
-        <button onClick={onBack} className="flex items-center gap-1.5 text-sm text-[#7d92b0] hover:text-white transition-colors">
+        <button onClick={onBack} className="flex items-center gap-1.5 text-sm text-falcon-muted hover:text-white transition-colors">
           <ArrowLeft className="w-4 h-4" />
           ナレッジベースに戻る
         </button>
-        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-6 space-y-4">
+        <div className="bg-falcon-surface border border-falcon-border rounded-xl p-6 space-y-4">
           {/* Header */}
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1">
@@ -267,8 +267,8 @@ function ArticleDetail({
               <h1 className="text-xl font-bold text-white leading-tight">{article.title}</h1>
             </div>
             {isAdmin && (
-              <div className="flex items-center gap-2 flex-shrink-0">
-                <button onClick={() => onEdit(article)} className="flex items-center gap-1.5 px-3 py-1.5 bg-[#1e2d42] hover:bg-[#253650] text-[#7d92b0] hover:text-white text-xs rounded-lg transition-colors">
+              <div className="flex items-center gap-2 shrink-0">
+                <button onClick={() => onEdit(article)} className="flex items-center gap-1.5 px-3 py-1.5 bg-falcon-border hover:bg-[#253650] text-falcon-muted hover:text-white text-xs rounded-lg transition-colors">
                   <Edit className="w-3.5 h-3.5" />編集
                 </button>
                 <button onClick={() => onDelete(article.id)} className="flex items-center gap-1.5 px-3 py-1.5 bg-red-900/20 hover:bg-red-900/30 text-red-400 text-xs rounded-lg transition-colors border border-red-700/30">
@@ -279,7 +279,7 @@ function ArticleDetail({
           </div>
 
           {/* Meta */}
-          <div className="flex flex-wrap items-center gap-4 text-xs text-[#7d92b0] border-b border-[#1e2d42] pb-4">
+          <div className="flex flex-wrap items-center gap-4 text-xs text-falcon-muted border-b border-falcon-border pb-4">
             <span className="flex items-center gap-1"><Globe className="w-3.5 h-3.5" />{article.author}</span>
             <span className="flex items-center gap-1"><Calendar className="w-3.5 h-3.5" />{new Date(article.updated_at).toLocaleDateString('ja-JP')}</span>
             <span className="flex items-center gap-1"><Eye className="w-3.5 h-3.5" />{(article.view_count ?? 0).toLocaleString()} 閲覧</span>
@@ -292,9 +292,9 @@ function ArticleDetail({
 
           {/* Tags */}
           {article.tags.length > 0 && (
-            <div className="flex flex-wrap gap-1.5 pt-4 border-t border-[#1e2d42]">
+            <div className="flex flex-wrap gap-1.5 pt-4 border-t border-falcon-border">
               {article.tags.map(tag => (
-                <span key={tag} className="flex items-center gap-1 px-2 py-0.5 bg-[#1e2d42] text-[#7d92b0] rounded text-xs">
+                <span key={tag} className="flex items-center gap-1 px-2 py-0.5 bg-falcon-border text-falcon-muted rounded-sm text-xs">
                   <Tag className="w-3 h-3" />{tag}
                 </span>
               ))}
@@ -302,8 +302,8 @@ function ArticleDetail({
           )}
 
           {/* Voting */}
-          <div className="flex items-center gap-3 pt-4 border-t border-[#1e2d42]">
-            <span className="text-sm text-[#7d92b0]">この記事は役に立ちましたか？</span>
+          <div className="flex items-center gap-3 pt-4 border-t border-falcon-border">
+            <span className="text-sm text-falcon-muted">この記事は役に立ちましたか？</span>
             <button
               onClick={() => onVote(article.id, 'helpful')}
               disabled={votingId === article.id}
@@ -314,7 +314,7 @@ function ArticleDetail({
             <button
               onClick={() => onVote(article.id, 'unhelpful')}
               disabled={votingId === article.id}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-[#1e2d42] hover:bg-[#253650] text-[#7d92b0] text-sm rounded-lg transition-colors disabled:opacity-50"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-falcon-border hover:bg-[#253650] text-falcon-muted text-sm rounded-lg transition-colors disabled:opacity-50"
             >
               <ThumbsDown className="w-4 h-4" />{article.unhelpful_votes}
             </button>
@@ -324,13 +324,13 @@ function ArticleDetail({
 
       {/* Related articles sidebar */}
       <div className="space-y-3">
-        <h3 className="text-sm font-semibold text-[#7d92b0] uppercase tracking-wider">関連記事</h3>
+        <h3 className="text-sm font-semibold text-falcon-muted uppercase tracking-wider">関連記事</h3>
         {relatedArticles.length === 0 ? (
-          <p className="text-xs text-[#3d5068]">関連記事がありません</p>
+          <p className="text-xs text-falcon-subtle">関連記事がありません</p>
         ) : relatedArticles.map(rel => (
-          <div key={rel.id} className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-3 hover:border-[#2a3f5c] transition-colors cursor-pointer" onClick={onBack}>
+          <div key={rel.id} className="bg-falcon-surface border border-falcon-border rounded-lg p-3 hover:border-[#2a3f5c] transition-colors cursor-pointer" onClick={onBack}>
             <p className="text-sm text-white font-medium leading-tight line-clamp-2">{rel.title}</p>
-            <div className="flex items-center gap-2 mt-2 text-xs text-[#7d92b0]">
+            <div className="flex items-center gap-2 mt-2 text-xs text-falcon-muted">
               <Eye className="w-3 h-3" />{rel.view_count}
               <ThumbsUp className="w-3 h-3 ml-1" />{rel.helpful_votes}
             </div>
@@ -495,15 +495,15 @@ export default function KnowledgeBasePage() {
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-white tracking-tight flex items-center gap-2">
-            <BookOpen className="w-6 h-6 text-[#e8002d]" />
+            <BookOpen className="w-6 h-6 text-falcon-red" />
             ナレッジベース
           </h1>
-          <p className="text-[#7d92b0] text-sm mt-1">インシデント対応手順・セキュリティガイド・FAQ</p>
+          <p className="text-falcon-muted text-sm mt-1">インシデント対応手順・セキュリティガイド・FAQ</p>
         </div>
         {isAdmin && (
           <button
             onClick={() => { setEditingArticle(null); setShowEditor(true) }}
-            className="flex items-center gap-2 px-4 py-2 bg-[#e8002d] hover:bg-[#c00025] text-white text-sm font-medium rounded-lg transition-colors shadow-lg shadow-red-900/20"
+            className="flex items-center gap-2 px-4 py-2 bg-falcon-red hover:bg-[#c00025] text-white text-sm font-medium rounded-lg transition-colors shadow-lg shadow-red-900/20"
           >
             <Plus className="w-4 h-4" />記事作成
           </button>
@@ -512,16 +512,16 @@ export default function KnowledgeBasePage() {
 
       {/* Search Bar */}
       <div className="relative">
-        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#3d5068]" />
+        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-falcon-subtle" />
         <input
           type="text"
           value={searchQuery}
           onChange={e => setSearchQuery(e.target.value)}
           placeholder="記事を検索... (タイトル、コンテンツ、タグ)"
-          className="w-full bg-[#0d1220] border border-[#1e2d42] rounded-xl pl-12 pr-12 py-3.5 text-sm text-white placeholder-[#3d5068] focus:outline-none focus:border-[#1a6bff] transition-colors shadow-lg"
+          className="w-full bg-falcon-surface border border-falcon-border rounded-xl pl-12 pr-12 py-3.5 text-sm text-white placeholder-falcon-subtle focus:outline-hidden focus:border-falcon-blue transition-colors shadow-lg"
         />
         {searchQuery && (
-          <button onClick={() => setSearchQuery('')} className="absolute right-4 top-1/2 -translate-y-1/2 text-[#7d92b0] hover:text-white">
+          <button onClick={() => setSearchQuery('')} className="absolute right-4 top-1/2 -translate-y-1/2 text-falcon-muted hover:text-white">
             <X className="w-4 h-4" />
           </button>
         )}
@@ -529,27 +529,27 @@ export default function KnowledgeBasePage() {
 
       {/* View Toggle + Sort */}
       <div className="flex items-center justify-between gap-4">
-        <div className="flex gap-1 bg-[#0d1220] border border-[#1e2d42] rounded-lg p-1">
+        <div className="flex gap-1 bg-falcon-surface border border-falcon-border rounded-lg p-1">
           <button
             onClick={() => { setView('categories'); setSelectedCategory(null) }}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${view === 'categories' && !selectedCategory ? 'bg-[#1e2d42] text-white' : 'text-[#7d92b0] hover:text-white'}`}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${view === 'categories' && !selectedCategory ? 'bg-falcon-border text-white' : 'text-falcon-muted hover:text-white'}`}
           >
             <LayoutGrid className="w-4 h-4" />カテゴリー
           </button>
           <button
             onClick={() => { setView('articles'); setSelectedCategory(null) }}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${view === 'articles' || selectedCategory ? 'bg-[#1e2d42] text-white' : 'text-[#7d92b0] hover:text-white'}`}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${view === 'articles' || selectedCategory ? 'bg-falcon-border text-white' : 'text-falcon-muted hover:text-white'}`}
           >
             <LayoutList className="w-4 h-4" />全記事
           </button>
         </div>
         {(view === 'articles' || selectedCategory || debouncedQuery) && (
           <div className="flex items-center gap-2">
-            <SortDesc className="w-4 h-4 text-[#7d92b0]" />
+            <SortDesc className="w-4 h-4 text-falcon-muted" />
             <select
               value={sortOrder}
               onChange={e => setSortOrder(e.target.value as SortOrder)}
-              className="bg-[#0d1220] border border-[#1e2d42] rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:border-[#1a6bff] transition-colors"
+              className="bg-falcon-surface border border-falcon-border rounded-lg px-3 py-1.5 text-sm text-white focus:outline-hidden focus:border-falcon-blue transition-colors"
             >
               <option value="newest">最新順</option>
               <option value="most_viewed">閲覧数順</option>
@@ -561,10 +561,10 @@ export default function KnowledgeBasePage() {
 
       {/* Searching indicator */}
       {debouncedQuery.length >= 2 && (
-        <div className="flex items-center gap-2 text-sm text-[#7d92b0]">
+        <div className="flex items-center gap-2 text-sm text-falcon-muted">
           <Search className="w-4 h-4" />
           <span>&ldquo;{debouncedQuery}&rdquo; の検索結果: {sortedArticles.length}件</span>
-          <button onClick={() => setSearchQuery('')} className="ml-2 text-[#1a6bff] hover:text-blue-300 text-xs">クリア</button>
+          <button onClick={() => setSearchQuery('')} className="ml-2 text-falcon-blue hover:text-blue-300 text-xs">クリア</button>
         </div>
       )}
 
@@ -578,17 +578,17 @@ export default function KnowledgeBasePage() {
               <button
                 key={cat}
                 onClick={() => { setSelectedCategory(cat); setView('articles') }}
-                className={`bg-[#0d1220] border rounded-xl p-5 text-left hover:border-[#2a3f5c] transition-all group hover:shadow-lg ${cfg.border}`}
+                className={`bg-falcon-surface border rounded-xl p-5 text-left hover:border-[#2a3f5c] transition-all group hover:shadow-lg ${cfg.border}`}
               >
                 <div className={`w-10 h-10 rounded-lg ${cfg.bg} border ${cfg.border} flex items-center justify-center mb-3 group-hover:scale-110 transition-transform`}>
                   <cfg.icon className={`w-5 h-5 ${cfg.color}`} />
                 </div>
                 <h3 className="text-white font-semibold text-sm">{cfg.label}</h3>
-                <p className="text-[#7d92b0] text-xs mt-1">{count} 記事</p>
+                <p className="text-falcon-muted text-xs mt-1">{count} 記事</p>
                 {latest && (
-                  <p className="text-[#3d5068] text-xs mt-2 line-clamp-1">{latest.title}</p>
+                  <p className="text-falcon-subtle text-xs mt-2 line-clamp-1">{latest.title}</p>
                 )}
-                <div className="flex items-center gap-1 mt-3 text-[#7d92b0] text-xs group-hover:text-white transition-colors">
+                <div className="flex items-center gap-1 mt-3 text-falcon-muted text-xs group-hover:text-white transition-colors">
                   <span>記事を見る</span>
                   <ChevronRight className="w-3.5 h-3.5" />
                 </div>
@@ -605,18 +605,18 @@ export default function KnowledgeBasePage() {
             <div className="flex items-center gap-2">
               <button
                 onClick={() => { setSelectedCategory(null); setView('categories') }}
-                className="flex items-center gap-1.5 text-sm text-[#7d92b0] hover:text-white transition-colors"
+                className="flex items-center gap-1.5 text-sm text-falcon-muted hover:text-white transition-colors"
               >
                 <ArrowLeft className="w-4 h-4" />
                 カテゴリーに戻る
               </button>
-              <span className="text-[#3d5068]">/</span>
+              <span className="text-falcon-subtle">/</span>
               <CategoryBadge category={selectedCategory} />
             </div>
           )}
 
           {sortedArticles.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-[#7d92b0]">
+            <div className="flex flex-col items-center justify-center py-16 text-falcon-muted">
               <BookOpen className="w-12 h-12 mb-3 opacity-30" />
               <p className="text-base">記事が見つかりませんでした</p>
               <p className="text-sm mt-1 opacity-60">検索条件を変更してみてください</p>
@@ -626,7 +626,7 @@ export default function KnowledgeBasePage() {
             return (
               <div
                 key={article.id}
-                className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-4 hover:border-[#2a3f5c] transition-colors cursor-pointer group"
+                className="bg-falcon-surface border border-falcon-border rounded-xl p-4 hover:border-[#2a3f5c] transition-colors cursor-pointer group"
                 onClick={() => setSelectedArticle(article)}
               >
                 <div className="flex items-start justify-between gap-4">
@@ -634,23 +634,23 @@ export default function KnowledgeBasePage() {
                     <div className="flex items-center gap-2 mb-1.5 flex-wrap">
                       <CategoryBadge category={article.category} />
                       {!article.published && isAdmin && (
-                        <span className="px-2 py-0.5 rounded text-[11px] font-medium bg-[#1e2d42] text-[#7d92b0] border border-[#2a3f5c]">非公開</span>
+                        <span className="px-2 py-0.5 rounded-sm text-[11px] font-medium bg-falcon-border text-falcon-muted border border-[#2a3f5c]">非公開</span>
                       )}
                     </div>
                     <h3 className="text-white font-semibold text-sm group-hover:text-blue-300 transition-colors">{article.title}</h3>
                     <div className="flex flex-wrap gap-1.5 mt-2">
                       {article.tags.slice(0, 3).map(tag => (
-                        <span key={tag} className="flex items-center gap-0.5 px-1.5 py-0.5 bg-[#1e2d42] text-[#7d92b0] rounded text-[10px]">
+                        <span key={tag} className="flex items-center gap-0.5 px-1.5 py-0.5 bg-falcon-border text-falcon-muted rounded-sm text-[10px]">
                           <Tag className="w-2.5 h-2.5" />{tag}
                         </span>
                       ))}
                       {article.tags.length > 3 && (
-                        <span className="px-1.5 py-0.5 bg-[#1e2d42] text-[#7d92b0] rounded text-[10px]">+{article.tags.length - 3}</span>
+                        <span className="px-1.5 py-0.5 bg-falcon-border text-falcon-muted rounded-sm text-[10px]">+{article.tags.length - 3}</span>
                       )}
                     </div>
                   </div>
-                  <div className="flex flex-col items-end gap-2 flex-shrink-0">
-                    <div className="flex items-center gap-3 text-xs text-[#7d92b0]">
+                  <div className="flex flex-col items-end gap-2 shrink-0">
+                    <div className="flex items-center gap-3 text-xs text-falcon-muted">
                       <span className="flex items-center gap-1"><Eye className="w-3.5 h-3.5" />{(article.view_count ?? 0).toLocaleString()}</span>
                       <span className="flex items-center gap-1"><ThumbsUp className="w-3.5 h-3.5" />{article.helpful_votes}</span>
                       <span className="flex items-center gap-1"><Calendar className="w-3.5 h-3.5" />{new Date(article.created_at).toLocaleDateString('ja-JP', { month: 'short', day: 'numeric' })}</span>
@@ -660,19 +660,19 @@ export default function KnowledgeBasePage() {
                         <>
                           <button
                             onClick={e => { e.stopPropagation(); setEditingArticle(article); setShowEditor(true) }}
-                            className="flex items-center gap-1 px-2 py-1 bg-[#1e2d42] hover:bg-[#253650] text-[#7d92b0] hover:text-white text-xs rounded transition-colors"
+                            className="flex items-center gap-1 px-2 py-1 bg-falcon-border hover:bg-[#253650] text-falcon-muted hover:text-white text-xs rounded-sm transition-colors"
                           >
                             <Edit className="w-3 h-3" />編集
                           </button>
                           <button
                             onClick={e => { e.stopPropagation(); if (confirm('削除しますか？')) deleteMutation.mutate(article.id) }}
-                            className="flex items-center gap-1 px-2 py-1 bg-red-900/20 hover:bg-red-900/30 text-red-400 text-xs rounded transition-colors"
+                            className="flex items-center gap-1 px-2 py-1 bg-red-900/20 hover:bg-red-900/30 text-red-400 text-xs rounded-sm transition-colors"
                           >
                             <Trash2 className="w-3 h-3" />削除
                           </button>
                         </>
                       )}
-                      <button className="flex items-center gap-1 px-3 py-1 bg-[#1a6bff]/20 hover:bg-[#1a6bff]/30 text-[#1a6bff] hover:text-blue-300 text-xs rounded transition-colors border border-[#1a6bff]/30">
+                      <button className="flex items-center gap-1 px-3 py-1 bg-falcon-blue/20 hover:bg-falcon-blue/30 text-falcon-blue hover:text-blue-300 text-xs rounded-sm transition-colors border border-falcon-blue/30">
                         読む <ChevronRight className="w-3 h-3" />
                       </button>
                     </div>

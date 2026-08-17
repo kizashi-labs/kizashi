@@ -73,12 +73,14 @@ describe('MobileBottomNav', () => {
     expect(screen.getByText('メニュー')).toBeInTheDocument()
   })
 
+  // text-falcon-red === #e8002d。Tailwind v4 移行で任意値クラスがテーマ
+  // トークン名に正規化された（出力される CSS は同じ）。
   it('現在のパスに一致する項目がアクティブ表示 (赤色クラス) されること', () => {
     mockUseAuth.mockReturnValue({ token: 'tok' })
     mockUsePathname.mockReturnValue('/alerts')
     render(<MobileBottomNav onSearchOpen={onSearchOpen} />)
     const alertsLink = screen.getByText('アラート').closest('a')
-    expect(alertsLink?.className).toContain('text-[#e8002d]')
+    expect(alertsLink?.className).toContain('text-falcon-red')
   })
 
   it('サブパス (/alerts/123) でも該当項目がアクティブになること', () => {
@@ -86,7 +88,7 @@ describe('MobileBottomNav', () => {
     mockUsePathname.mockReturnValue('/alerts/123')
     render(<MobileBottomNav onSearchOpen={onSearchOpen} />)
     const alertsLink = screen.getByText('アラート').closest('a')
-    expect(alertsLink?.className).toContain('text-[#e8002d]')
+    expect(alertsLink?.className).toContain('text-falcon-red')
   })
 
   it('メニューボタンをクリックするとドロワーが開くこと', async () => {

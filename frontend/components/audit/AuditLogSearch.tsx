@@ -104,7 +104,7 @@ function TextInput({
         onChange={e => onChange(e.target.value)}
         placeholder={placeholder}
         className="w-full bg-gray-900 border border-gray-600 rounded-lg px-3 py-2 text-sm
-                   text-gray-200 placeholder-gray-600 focus:outline-none focus:border-blue-500
+                   text-gray-200 placeholder-gray-600 focus:outline-hidden focus:border-blue-500
                    focus:ring-1 focus:ring-blue-500/30 transition-colors"
       />
       {hint && <p className="text-xs text-gray-600 mt-1">{hint}</p>}
@@ -245,7 +245,7 @@ export function AuditLogSearch({ onSearch }: Props) {
             onKeyDown={e => e.key === 'Enter' && !e.nativeEvent.isComposing && handleSearch()}
             placeholder="アクション、リソースID、IPアドレスを検索..."
             className="w-full bg-gray-900 border border-gray-600 rounded-lg pl-10 pr-4 py-2.5 text-sm
-                       text-gray-200 placeholder-gray-600 focus:outline-none focus:border-blue-500
+                       text-gray-200 placeholder-gray-600 focus:outline-hidden focus:border-blue-500
                        focus:ring-1 focus:ring-blue-500/30 transition-colors"
           />
         </div>
@@ -313,8 +313,8 @@ export function AuditLogSearch({ onSearch }: Props) {
                 value={filters.from_date ?? ''}
                 onChange={e => set('from_date', e.target.value)}
                 className="w-full bg-gray-900 border border-gray-600 rounded-lg px-3 py-2 text-sm
-                           text-gray-200 focus:outline-none focus:border-blue-500
-                           focus:ring-1 focus:ring-blue-500/30 transition-colors [color-scheme:dark]"
+                           text-gray-200 focus:outline-hidden focus:border-blue-500
+                           focus:ring-1 focus:ring-blue-500/30 transition-colors scheme-dark"
               />
             </div>
             <div>
@@ -324,8 +324,8 @@ export function AuditLogSearch({ onSearch }: Props) {
                 value={filters.to_date ?? ''}
                 onChange={e => set('to_date', e.target.value)}
                 className="w-full bg-gray-900 border border-gray-600 rounded-lg px-3 py-2 text-sm
-                           text-gray-200 focus:outline-none focus:border-blue-500
-                           focus:ring-1 focus:ring-blue-500/30 transition-colors [color-scheme:dark]"
+                           text-gray-200 focus:outline-hidden focus:border-blue-500
+                           focus:ring-1 focus:ring-blue-500/30 transition-colors scheme-dark"
               />
             </div>
           </div>
@@ -359,8 +359,8 @@ export function AuditLogSearch({ onSearch }: Props) {
                 value={filters.resource_type ?? ''}
                 onChange={e => set('resource_type', e.target.value)}
                 className="w-full bg-gray-900 border border-gray-600 rounded-lg px-3 py-2 text-sm
-                           text-gray-200 focus:outline-none focus:border-blue-500
-                           focus:ring-1 focus:ring-blue-500/30 transition-colors [color-scheme:dark]"
+                           text-gray-200 focus:outline-hidden focus:border-blue-500
+                           focus:ring-1 focus:ring-blue-500/30 transition-colors scheme-dark"
               >
                 {RESOURCE_TYPE_OPTIONS.map(opt => (
                   <option key={opt.value} value={opt.value}>{opt.label}</option>

@@ -138,10 +138,10 @@ function CreateOrgModal({ onClose, onCreated }: {
     setSaving(false)
   }
 
-  const inputCls = 'w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-zinc-500 transition-colors'
+  const inputCls = 'w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-zinc-200 placeholder-zinc-600 focus:outline-hidden focus:border-zinc-500 transition-colors'
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
       <div className="bg-zinc-900 border border-zinc-800 rounded-2xl w-full max-w-md shadow-2xl">
         <div className="flex items-center justify-between p-5 border-b border-zinc-800">
           <h2 className="text-base font-semibold text-zinc-100">組織を作成</h2>
@@ -228,7 +228,7 @@ function CreateOrgModal({ onClose, onCreated }: {
               onClick={() => setForm(p => ({ ...p, ssoAllowed: !p.ssoAllowed }))}
               className={`relative w-10 h-6 rounded-full transition-colors ${form.ssoAllowed ? 'bg-red-600' : 'bg-zinc-700'}`}
             >
-              <span className={`absolute top-1 w-4 h-4 rounded-full bg-[#e2e8f4] shadow transition-transform ${form.ssoAllowed ? 'left-5' : 'left-1'}`} />
+              <span className={`absolute top-1 w-4 h-4 rounded-full bg-falcon-text shadow-sm transition-transform ${form.ssoAllowed ? 'left-5' : 'left-1'}`} />
             </button>
           </div>
 
@@ -389,7 +389,7 @@ export default function OrganizationsPage() {
                       )}
                     </td>
                     <td className="px-4 py-3">
-                      <code className="text-xs font-mono text-zinc-400 bg-zinc-800 px-1.5 py-0.5 rounded">
+                      <code className="text-xs font-mono text-zinc-400 bg-zinc-800 px-1.5 py-0.5 rounded-sm">
                         {org.slug}
                       </code>
                     </td>
@@ -411,7 +411,7 @@ export default function OrganizationsPage() {
                         onClick={() => toggleEnabled(org.id)}
                         className={`relative w-9 h-5 rounded-full transition-colors ${org.enabled ? 'bg-green-600' : 'bg-zinc-700'}`}
                       >
-                        <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-[#e2e8f4] shadow transition-transform ${org.enabled ? 'left-4' : 'left-0.5'}`} />
+                        <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-falcon-text shadow-sm transition-transform ${org.enabled ? 'left-4' : 'left-0.5'}`} />
                       </button>
                     </td>
                     <td className="px-4 py-3 text-xs text-zinc-500">{org.createdAt}</td>

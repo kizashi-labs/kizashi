@@ -33,14 +33,14 @@ interface TrainingDataset {
 
 function StatCard({ icon: Icon, label, value, sub }: { icon: any; label: string; value: string; sub?: string }) {
   return (
-    <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-4 flex items-start gap-3">
+    <div className="bg-falcon-surface border border-falcon-border rounded-lg p-4 flex items-start gap-3">
       <div className="p-2 bg-[#070d19] rounded-md">
-        <Icon size={18} className="text-[#e8002d]" />
+        <Icon size={18} className="text-falcon-red" />
       </div>
       <div>
-        <p className="text-[#7d92b0] text-xs mb-0.5">{label}</p>
+        <p className="text-falcon-muted text-xs mb-0.5">{label}</p>
         <p className="text-white text-xl font-semibold">{value}</p>
-        {sub && <p className="text-[#7d92b0] text-xs mt-0.5">{sub}</p>}
+        {sub && <p className="text-falcon-muted text-xs mt-0.5">{sub}</p>}
       </div>
     </div>
   )
@@ -54,7 +54,7 @@ function RiskBadge({ level }: { level: RiskLevel }) {
     '重大': 'bg-red-500/20 text-red-400 border-red-500/30',
   }
   return (
-    <span className={`text-xs px-2 py-0.5 rounded border ${colors[level]}`}>{level}</span>
+    <span className={`text-xs px-2 py-0.5 rounded-sm border ${colors[level]}`}>{level}</span>
   )
 }
 
@@ -65,7 +65,7 @@ function StatusBadge({ status }: { status: BaselineStatus }) {
     '不十分': 'bg-red-500/20 text-red-400',
   }
   return (
-    <span className={`text-xs px-2 py-0.5 rounded ${colors[status]}`}>{status}</span>
+    <span className={`text-xs px-2 py-0.5 rounded-sm ${colors[status]}`}>{status}</span>
   )
 }
 
@@ -76,7 +76,7 @@ function MiniBarChart({ bars, color }: { bars: number[]; color: string }) {
       {bars.map((v, i) => (
         <div
           key={i}
-          className="flex-1 rounded-sm"
+          className="flex-1 rounded-xs"
           style={{ height: `${(v / max) * 100}%`, backgroundColor: color, opacity: 0.8 }}
         />
       ))}
@@ -91,21 +91,21 @@ function TabUserProfiles({ profiles }: { profiles: UserProfile[] }) {
     <div className="overflow-x-auto">
       <table className="w-full text-sm">
         <thead>
-          <tr className="border-b border-[#1e2d42]">
+          <tr className="border-b border-falcon-border">
             {['ユーザー', '部門', 'ベースライン状況', '異常スコア', '最終活動', 'リスクレベル'].map(h => (
-              <th key={h} className="text-left text-[#7d92b0] font-medium px-3 py-2 whitespace-nowrap">{h}</th>
+              <th key={h} className="text-left text-falcon-muted font-medium px-3 py-2 whitespace-nowrap">{h}</th>
             ))}
           </tr>
         </thead>
         <tbody>
           {profiles.map(u => (
-            <tr key={u.id} className="border-b border-[#1e2d42]/50 hover:bg-[#0d1220] transition-colors">
+            <tr key={u.id} className="border-b border-falcon-border/50 hover:bg-falcon-surface transition-colors">
               <td className="px-3 py-2.5 text-white font-medium">{u.name}</td>
-              <td className="px-3 py-2.5 text-[#7d92b0]">{u.department}</td>
+              <td className="px-3 py-2.5 text-falcon-muted">{u.department}</td>
               <td className="px-3 py-2.5"><StatusBadge status={u.baseline_status} /></td>
               <td className="px-3 py-2.5">
                 <div className="flex items-center gap-2">
-                  <div className="w-16 h-1.5 bg-[#1e2d42] rounded-full overflow-hidden">
+                  <div className="w-16 h-1.5 bg-falcon-border rounded-full overflow-hidden">
                     <div
                       className="h-full rounded-full"
                       style={{
@@ -114,10 +114,10 @@ function TabUserProfiles({ profiles }: { profiles: UserProfile[] }) {
                       }}
                     />
                   </div>
-                  <span className="text-[#7d92b0]">{u.anomaly_score}</span>
+                  <span className="text-falcon-muted">{u.anomaly_score}</span>
                 </div>
               </td>
-              <td className="px-3 py-2.5 text-[#7d92b0] whitespace-nowrap">{u.last_activity}</td>
+              <td className="px-3 py-2.5 text-falcon-muted whitespace-nowrap">{u.last_activity}</td>
               <td className="px-3 py-2.5"><RiskBadge level={u.risk_level} /></td>
             </tr>
           ))}
@@ -131,17 +131,17 @@ function TabBehaviorPatterns() {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       {BEHAVIOR_CATEGORIES.map(cat => (
-        <div key={cat.name} className="bg-[#070d19] border border-[#1e2d42] rounded-lg p-4">
+        <div key={cat.name} className="bg-[#070d19] border border-falcon-border rounded-lg p-4">
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-white font-medium text-sm">{cat.name}</h3>
             <span
-              className={`text-xs font-semibold ${cat.deviation.startsWith('+') ? 'text-[#e8002d]' : 'text-green-400'}`}
+              className={`text-xs font-semibold ${cat.deviation.startsWith('+') ? 'text-falcon-red' : 'text-green-400'}`}
             >
               {cat.deviation} 偏差
             </span>
           </div>
           <MiniBarChart bars={cat.bars} color={cat.color} />
-          <div className="flex justify-between mt-2 text-xs text-[#7d92b0]">
+          <div className="flex justify-between mt-2 text-xs text-falcon-muted">
             <span>7日前</span>
             <span>今日</span>
           </div>
@@ -171,10 +171,10 @@ function TabDetectionSettings() {
         { label: '最小データポイント数', value: minDataPoints, min: 50, max: 500, step: 10, onChange: setMinDataPoints, format: (v: number) => `${v} 件` },
         { label: 'Z スコア閾値', value: zScore, min: 1.5, max: 4.0, step: 0.1, onChange: setZScore, format: (v: number) => v.toFixed(1) },
       ].map(s => (
-        <div key={s.label} className="bg-[#070d19] border border-[#1e2d42] rounded-lg p-4">
+        <div key={s.label} className="bg-[#070d19] border border-falcon-border rounded-lg p-4">
           <div className="flex items-center justify-between mb-3">
             <label className="text-white text-sm font-medium">{s.label}</label>
-            <span className="text-[#e8002d] text-sm font-semibold">{s.format(s.value)}</span>
+            <span className="text-falcon-red text-sm font-semibold">{s.format(s.value)}</span>
           </div>
           <input
             type="range"
@@ -183,9 +183,9 @@ function TabDetectionSettings() {
             step={s.step}
             value={s.value}
             onChange={e => s.onChange(parseFloat(e.target.value))}
-            className="w-full accent-[#e8002d] cursor-pointer"
+            className="w-full accent-falcon-red cursor-pointer"
           />
-          <div className="flex justify-between text-xs text-[#7d92b0] mt-1">
+          <div className="flex justify-between text-xs text-falcon-muted mt-1">
             <span>{s.min}</span>
             <span>{s.max}</span>
           </div>
@@ -194,7 +194,7 @@ function TabDetectionSettings() {
 
       <button
         onClick={handleSave}
-        className="flex items-center gap-2 px-5 py-2.5 bg-[#e8002d] hover:bg-[#c0001f] text-white rounded-lg text-sm font-medium transition-colors"
+        className="flex items-center gap-2 px-5 py-2.5 bg-falcon-red hover:bg-[#c0001f] text-white rounded-lg text-sm font-medium transition-colors"
       >
         <Save size={15} />
         {saved ? '保存しました' : '設定を保存'}
@@ -207,34 +207,34 @@ function TabTrainingData() {
   const statusColors: Record<string, string> = {
     '完了': 'bg-green-500/20 text-green-400',
     '進行中': 'bg-blue-500/20 text-blue-400',
-    '待機中': 'bg-[#1e2d42] text-[#7d92b0]',
+    '待機中': 'bg-falcon-border text-falcon-muted',
   }
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-sm">
         <thead>
-          <tr className="border-b border-[#1e2d42]">
+          <tr className="border-b border-falcon-border">
             {['データセット名', 'ステータス', 'サンプル数', '精度', '更新日'].map(h => (
-              <th key={h} className="text-left text-[#7d92b0] font-medium px-3 py-2 whitespace-nowrap">{h}</th>
+              <th key={h} className="text-left text-falcon-muted font-medium px-3 py-2 whitespace-nowrap">{h}</th>
             ))}
           </tr>
         </thead>
         <tbody>
           {([] as TrainingDataset[]).map(d => (
-            <tr key={d.id} className="border-b border-[#1e2d42]/50 hover:bg-[#0d1220] transition-colors">
+            <tr key={d.id} className="border-b border-falcon-border/50 hover:bg-falcon-surface transition-colors">
               <td className="px-3 py-2.5 text-white">{d.name}</td>
               <td className="px-3 py-2.5">
-                <span className={`text-xs px-2 py-0.5 rounded ${statusColors[d.status]}`}>{d.status}</span>
+                <span className={`text-xs px-2 py-0.5 rounded-sm ${statusColors[d.status]}`}>{d.status}</span>
               </td>
-              <td className="px-3 py-2.5 text-[#7d92b0]">{(d.sample_count ?? 0).toLocaleString()}</td>
+              <td className="px-3 py-2.5 text-falcon-muted">{(d.sample_count ?? 0).toLocaleString()}</td>
               <td className="px-3 py-2.5">
                 {d.accuracy > 0 ? (
                   <span className="text-green-400 font-medium">{d.accuracy.toFixed(1)}%</span>
                 ) : (
-                  <span className="text-[#7d92b0]">—</span>
+                  <span className="text-falcon-muted">—</span>
                 )}
               </td>
-              <td className="px-3 py-2.5 text-[#7d92b0]">{d.updated_at}</td>
+              <td className="px-3 py-2.5 text-falcon-muted">{d.updated_at}</td>
             </tr>
           ))}
         </tbody>
@@ -281,13 +281,13 @@ export default function BehavioralBaselinePage() {
     <div className="min-h-screen bg-[#070d19] text-white p-6">
       {/* Header */}
       <div className="mb-6">
-        <div className="flex items-center gap-2 text-[#7d92b0] text-xs mb-2">
+        <div className="flex items-center gap-2 text-falcon-muted text-xs mb-2">
           <span>管理</span>
           <ChevronRight size={12} />
           <span className="text-white">行動ベースライン管理</span>
         </div>
         <h1 className="text-2xl font-semibold text-white">行動ベースライン管理</h1>
-        <p className="text-[#7d92b0] text-sm mt-1">ユーザー行動の正常ベースラインを確立・管理し、異常を検知します</p>
+        <p className="text-falcon-muted text-sm mt-1">ユーザー行動の正常ベースラインを確立・管理し、異常を検知します</p>
       </div>
 
       {/* Stats */}
@@ -299,15 +299,15 @@ export default function BehavioralBaselinePage() {
       </div>
 
       {/* Tab bar */}
-      <div className="flex gap-1 mb-5 border-b border-[#1e2d42]">
+      <div className="flex gap-1 mb-5 border-b border-falcon-border">
         {TABS.map(tab => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
             className={`px-4 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px whitespace-nowrap ${
               activeTab === tab
-                ? 'border-[#e8002d] text-white'
-                : 'border-transparent text-[#7d92b0] hover:text-white'
+                ? 'border-falcon-red text-white'
+                : 'border-transparent text-falcon-muted hover:text-white'
             }`}
           >
             {tab}
@@ -316,7 +316,7 @@ export default function BehavioralBaselinePage() {
       </div>
 
       {/* Tab content */}
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-4">
+      <div className="bg-falcon-surface border border-falcon-border rounded-lg p-4">
         {activeTab === 'ユーザープロファイル' && <TabUserProfiles profiles={profiles} />}
         {activeTab === '行動パターン' && <TabBehaviorPatterns />}
         {activeTab === '異常検知設定' && <TabDetectionSettings />}

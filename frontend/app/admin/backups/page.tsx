@@ -84,7 +84,7 @@ function statusColor(status?: string) {
     case 'failed':    return 'text-red-400 bg-red-900/20 border-red-700/40'
     case 'running':
     case 'pending':   return 'text-yellow-400 bg-yellow-900/20 border-yellow-700/40'
-    default:          return 'text-[#7d92b0] bg-[#0d1220] border-[#1e2d42]'
+    default:          return 'text-falcon-muted bg-falcon-surface border-falcon-border'
   }
 }
 
@@ -139,25 +139,25 @@ function RestoreWizard({ backups }: { backups: Backup[] }) {
   ]
 
   return (
-    <div className="bg-[#0d1220] rounded-xl border border-[#1e2d42] overflow-hidden">
-      <div className="px-5 py-4 border-b border-[#1e2d42] flex items-center gap-2">
+    <div className="bg-falcon-surface rounded-xl border border-falcon-border overflow-hidden">
+      <div className="px-5 py-4 border-b border-falcon-border flex items-center gap-2">
         <RotateCcw className="w-4 h-4 text-blue-400" />
         <h2 className="text-sm font-semibold text-white">リストアウィザード</h2>
       </div>
 
       {/* Step indicators */}
-      <div className="flex items-center px-5 py-4 border-b border-[#1e2d42] gap-0">
+      <div className="flex items-center px-5 py-4 border-b border-falcon-border gap-0">
         {RESTORE_STEPS.map((label, i) => (
           <div key={i} className="flex items-center flex-1">
-            <div className={`flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold flex-shrink-0
-              ${i < step ? 'bg-blue-600 text-white' : i === step ? 'bg-[#e8002d] text-white' : 'bg-[#1e2d42] text-[#7d92b0]'}`}>
+            <div className={`flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold shrink-0
+              ${i < step ? 'bg-blue-600 text-white' : i === step ? 'bg-falcon-red text-white' : 'bg-falcon-border text-falcon-muted'}`}>
               {i < step ? <CheckCircle className="w-4 h-4" /> : i + 1}
             </div>
-            <span className={`ml-2 text-xs whitespace-nowrap ${i === step ? 'text-white font-medium' : 'text-[#7d92b0]'}`}>
+            <span className={`ml-2 text-xs whitespace-nowrap ${i === step ? 'text-white font-medium' : 'text-falcon-muted'}`}>
               {label}
             </span>
             {i < RESTORE_STEPS.length - 1 && (
-              <div className={`flex-1 h-px mx-3 ${i < step ? 'bg-blue-600' : 'bg-[#1e2d42]'}`} />
+              <div className={`flex-1 h-px mx-3 ${i < step ? 'bg-blue-600' : 'bg-falcon-border'}`} />
             )}
           </div>
         ))}
@@ -167,9 +167,9 @@ function RestoreWizard({ backups }: { backups: Backup[] }) {
         {/* Step 0: Select backup */}
         {step === 0 && (
           <div className="space-y-3">
-            <p className="text-[#7d92b0] text-sm mb-3">復元に使用するバックアップを選択してください。</p>
+            <p className="text-falcon-muted text-sm mb-3">復元に使用するバックアップを選択してください。</p>
             {backups.length === 0 ? (
-              <p className="text-[#7d92b0] text-sm italic">バックアップがありません</p>
+              <p className="text-falcon-muted text-sm italic">バックアップがありません</p>
             ) : (
               <div className="space-y-2 max-h-52 overflow-y-auto pr-1">
                 {backups.map((b) => (
@@ -178,15 +178,15 @@ function RestoreWizard({ backups }: { backups: Backup[] }) {
                     onClick={() => setSelected(b.name)}
                     className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg border text-left transition-colors
                       ${selected === b.name
-                        ? 'border-[#e8002d] bg-[#e8002d]/10'
-                        : 'border-[#1e2d42] bg-[#070d19] hover:border-[#2e4060]'}`}
+                        ? 'border-falcon-red bg-falcon-red/10'
+                        : 'border-falcon-border bg-[#070d19] hover:border-[#2e4060]'}`}
                   >
-                    <Database className={`w-4 h-4 flex-shrink-0 ${selected === b.name ? 'text-[#e8002d]' : 'text-[#7d92b0]'}`} />
+                    <Database className={`w-4 h-4 shrink-0 ${selected === b.name ? 'text-falcon-red' : 'text-falcon-muted'}`} />
                     <div className="flex-1 min-w-0">
                       <p className="text-sm text-white font-mono truncate">{b.name}</p>
-                      <p className="text-xs text-[#7d92b0] mt-0.5">{formatFileSize(b.size ?? 0)} · {formatDate(b.created_at)}</p>
+                      <p className="text-xs text-falcon-muted mt-0.5">{formatFileSize(b.size ?? 0)} · {formatDate(b.created_at)}</p>
                     </div>
-                    {selected === b.name && <CheckCircle className="w-4 h-4 text-[#e8002d] flex-shrink-0" />}
+                    {selected === b.name && <CheckCircle className="w-4 h-4 text-falcon-red shrink-0" />}
                   </button>
                 ))}
               </div>
@@ -207,24 +207,24 @@ function RestoreWizard({ backups }: { backups: Backup[] }) {
         {/* Step 1: Choose scope */}
         {step === 1 && (
           <div className="space-y-3">
-            <p className="text-[#7d92b0] text-sm mb-3">復元スコープを選択してください。</p>
+            <p className="text-falcon-muted text-sm mb-3">復元スコープを選択してください。</p>
             {([ ['full', 'フル復元', '全スキーマとデータを復元します'], ['schema', 'スキーマのみ', 'テーブル定義・インデックスのみ復元します'], ['data', 'データのみ', 'スキーマはそのまま、データ行のみ復元します'] ] as [RestoreScope, string, string][]).map(([val, label, desc]) => (
               <button
                 key={val}
                 onClick={() => setScope(val)}
                 className={`w-full flex items-start gap-3 px-4 py-3 rounded-lg border text-left transition-colors
-                  ${scope === val ? 'border-[#e8002d] bg-[#e8002d]/10' : 'border-[#1e2d42] bg-[#070d19] hover:border-[#2e4060]'}`}
+                  ${scope === val ? 'border-falcon-red bg-falcon-red/10' : 'border-falcon-border bg-[#070d19] hover:border-[#2e4060]'}`}
               >
-                <Shield className={`w-4 h-4 mt-0.5 flex-shrink-0 ${scope === val ? 'text-[#e8002d]' : 'text-[#7d92b0]'}`} />
+                <Shield className={`w-4 h-4 mt-0.5 shrink-0 ${scope === val ? 'text-falcon-red' : 'text-falcon-muted'}`} />
                 <div>
                   <p className="text-sm text-white font-medium">{label}</p>
-                  <p className="text-xs text-[#7d92b0] mt-0.5">{desc}</p>
+                  <p className="text-xs text-falcon-muted mt-0.5">{desc}</p>
                 </div>
-                {scope === val && <CheckCircle className="w-4 h-4 text-[#e8002d] ml-auto flex-shrink-0" />}
+                {scope === val && <CheckCircle className="w-4 h-4 text-falcon-red ml-auto shrink-0" />}
               </button>
             ))}
             <div className="flex justify-between pt-2">
-              <button onClick={() => setStep(0)} className="flex items-center gap-1 px-4 py-2 bg-[#1e2d42] text-[#7d92b0] rounded-lg hover:text-white transition-colors text-sm">
+              <button onClick={() => setStep(0)} className="flex items-center gap-1 px-4 py-2 bg-falcon-border text-falcon-muted rounded-lg hover:text-white transition-colors text-sm">
                 <ChevronLeft className="w-4 h-4" /> 戻る
               </button>
               <button onClick={() => setStep(2)} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium">
@@ -238,29 +238,29 @@ function RestoreWizard({ backups }: { backups: Backup[] }) {
         {step === 2 && (
           <div className="space-y-4">
             <div className="flex items-start gap-3 px-4 py-3 rounded-lg bg-yellow-900/20 border border-yellow-700/40">
-              <AlertTriangle className="w-5 h-5 text-yellow-400 flex-shrink-0 mt-0.5" />
+              <AlertTriangle className="w-5 h-5 text-yellow-400 shrink-0 mt-0.5" />
               <div>
                 <p className="text-yellow-300 text-sm font-semibold">警告: 現在のデータが上書きされます!</p>
                 <p className="text-yellow-300/70 text-xs mt-1">この操作は元に戻せません。本番データへの影響を必ず確認してください。</p>
               </div>
             </div>
-            <div className="bg-[#070d19] rounded-lg border border-[#1e2d42] p-4 space-y-2 text-sm">
+            <div className="bg-[#070d19] rounded-lg border border-falcon-border p-4 space-y-2 text-sm">
               <div className="flex justify-between">
-                <span className="text-[#7d92b0]">バックアップ</span>
+                <span className="text-falcon-muted">バックアップ</span>
                 <span className="text-white font-mono text-xs">{selected}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-[#7d92b0]">スコープ</span>
+                <span className="text-falcon-muted">スコープ</span>
                 <span className="text-white">{scope === 'full' ? 'フル復元' : scope === 'schema' ? 'スキーマのみ' : 'データのみ'}</span>
               </div>
             </div>
             <div className="flex justify-between pt-1">
-              <button onClick={() => setStep(1)} className="flex items-center gap-1 px-4 py-2 bg-[#1e2d42] text-[#7d92b0] rounded-lg hover:text-white transition-colors text-sm">
+              <button onClick={() => setStep(1)} className="flex items-center gap-1 px-4 py-2 bg-falcon-border text-falcon-muted rounded-lg hover:text-white transition-colors text-sm">
                 <ChevronLeft className="w-4 h-4" /> 戻る
               </button>
               <button
                 onClick={runRestore}
-                className="flex items-center gap-2 px-4 py-2 bg-[#e8002d] text-white rounded-lg hover:bg-[#c0001f] transition-colors text-sm font-medium"
+                className="flex items-center gap-2 px-4 py-2 bg-falcon-red text-white rounded-lg hover:bg-[#c0001f] transition-colors text-sm font-medium"
               >
                 <RotateCcw className="w-4 h-4" /> 復元を開始する
               </button>
@@ -275,25 +275,25 @@ function RestoreWizard({ backups }: { backups: Backup[] }) {
               <div className="flex flex-col items-center gap-3 py-6">
                 <CheckCircle className="w-12 h-12 text-green-400" />
                 <p className="text-white font-semibold text-lg">復元が完了しました</p>
-                <p className="text-[#7d92b0] text-sm">バックアップから正常に復元されました。</p>
+                <p className="text-falcon-muted text-sm">バックアップから正常に復元されました。</p>
                 <button onClick={reset} className="mt-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium">
                   最初に戻る
                 </button>
               </div>
             ) : (
               <div className="space-y-3 py-2">
-                <p className="text-[#7d92b0] text-sm mb-4">復元処理を実行中です。しばらくお待ちください...</p>
+                <p className="text-falcon-muted text-sm mb-4">復元処理を実行中です。しばらくお待ちください...</p>
                 {PROGRESS_LABELS.map((label, i) => (
                   <div key={i} className="flex items-center gap-3">
-                    <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0
-                      ${i < progressStep ? 'bg-green-600' : i === progressStep ? 'bg-blue-600' : 'bg-[#1e2d42]'}`}>
+                    <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0
+                      ${i < progressStep ? 'bg-green-600' : i === progressStep ? 'bg-blue-600' : 'bg-falcon-border'}`}>
                       {i < progressStep
                         ? <CheckCircle className="w-3 h-3 text-white" />
                         : i === progressStep
                           ? <Loader2 className="w-3 h-3 text-white animate-spin" />
-                          : <span className="w-2 h-2 bg-[#7d92b0] rounded-full" />}
+                          : <span className="w-2 h-2 bg-falcon-muted rounded-full" />}
                     </div>
-                    <span className={`text-sm ${i < progressStep ? 'text-green-400' : i === progressStep ? 'text-white' : 'text-[#7d92b0]'}`}>
+                    <span className={`text-sm ${i < progressStep ? 'text-green-400' : i === progressStep ? 'text-white' : 'text-falcon-muted'}`}>
                       {label}
                     </span>
                   </div>
@@ -437,14 +437,14 @@ export default function BackupsPage() {
             <Database className="w-6 h-6 text-blue-400" />
             バックアップ管理
           </h1>
-          <p className="text-[#7d92b0] text-sm mt-1">PostgreSQL データベースのバックアップを管理します</p>
+          <p className="text-falcon-muted text-sm mt-1">PostgreSQL データベースのバックアップを管理します</p>
         </div>
 
         <div className="flex items-center gap-3">
           <button
             onClick={() => refetch()}
             disabled={isFetching}
-            className="p-2 text-[#7d92b0] hover:text-white transition-colors disabled:opacity-50"
+            className="p-2 text-falcon-muted hover:text-white transition-colors disabled:opacity-50"
             title="更新"
           >
             <RefreshCw className={`w-5 h-5 ${isFetching ? 'animate-spin' : ''}`} />
@@ -452,7 +452,7 @@ export default function BackupsPage() {
           <button
             onClick={() => { setSuccess(null); setError(null); createMutation.mutate() }}
             disabled={createMutation.isPending}
-            className="flex items-center gap-2 px-4 py-2 bg-[#e8002d] text-white rounded-lg
+            className="flex items-center gap-2 px-4 py-2 bg-falcon-red text-white rounded-lg
                        hover:bg-[#c0001f] transition-colors text-sm font-medium disabled:opacity-50"
           >
             {createMutation.isPending
@@ -465,84 +465,84 @@ export default function BackupsPage() {
 
       {/* Banners */}
       <div className="bg-yellow-900/20 border border-yellow-700/40 rounded-xl px-4 py-3 flex items-center gap-3">
-        <AlertTriangle className="w-5 h-5 text-yellow-400 flex-shrink-0" />
+        <AlertTriangle className="w-5 h-5 text-yellow-400 shrink-0" />
         <p className="text-yellow-300 text-sm">本番データを含む重要なファイルです。取り扱いに注意してください。</p>
       </div>
 
       {successMessage && (
         <div className="bg-green-900/20 border border-green-700/40 rounded-xl px-4 py-3 flex items-center gap-3">
-          <CheckCircle className="w-5 h-5 text-green-400 flex-shrink-0" />
+          <CheckCircle className="w-5 h-5 text-green-400 shrink-0" />
           <div>
             <p className="text-green-300 text-sm font-medium">バックアップ作成を開始しました</p>
-            <p className="text-[#7d92b0] text-xs mt-0.5 font-mono">{successMessage}</p>
+            <p className="text-falcon-muted text-xs mt-0.5 font-mono">{successMessage}</p>
           </div>
-          <button onClick={() => setSuccess(null)} className="ml-auto text-[#7d92b0] hover:text-white text-xs">✕</button>
+          <button onClick={() => setSuccess(null)} className="ml-auto text-falcon-muted hover:text-white text-xs">✕</button>
         </div>
       )}
       {errorMessage && (
         <div className="bg-red-900/20 border border-red-700/40 rounded-xl px-4 py-3 flex items-center gap-3">
-          <AlertTriangle className="w-5 h-5 text-red-400 flex-shrink-0" />
+          <AlertTriangle className="w-5 h-5 text-red-400 shrink-0" />
           <p className="text-red-300 text-sm">{errorMessage}</p>
-          <button onClick={() => setError(null)} className="ml-auto text-[#7d92b0] hover:text-white text-xs">✕</button>
+          <button onClick={() => setError(null)} className="ml-auto text-falcon-muted hover:text-white text-xs">✕</button>
         </div>
       )}
 
       {/* Summary cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-[#0d1220] rounded-xl border border-[#1e2d42] p-4 flex items-center gap-4">
-          <Database className="w-5 h-5 text-blue-400 flex-shrink-0" />
+        <div className="bg-falcon-surface rounded-xl border border-falcon-border p-4 flex items-center gap-4">
+          <Database className="w-5 h-5 text-blue-400 shrink-0" />
           <div>
-            <p className="text-[#7d92b0] text-xs">バックアップ数</p>
+            <p className="text-falcon-muted text-xs">バックアップ数</p>
             <p className="text-2xl font-bold text-white mt-0.5">{backups.length}</p>
           </div>
         </div>
-        <div className="bg-[#0d1220] rounded-xl border border-[#1e2d42] p-4 flex items-center gap-4">
-          <HardDrive className="w-5 h-5 text-purple-400 flex-shrink-0" />
+        <div className="bg-falcon-surface rounded-xl border border-falcon-border p-4 flex items-center gap-4">
+          <HardDrive className="w-5 h-5 text-purple-400 shrink-0" />
           <div>
-            <p className="text-[#7d92b0] text-xs">合計サイズ</p>
+            <p className="text-falcon-muted text-xs">合計サイズ</p>
             <p className="text-2xl font-bold text-white mt-0.5">{formatFileSize(totalSize)}</p>
           </div>
         </div>
-        <div className="bg-[#0d1220] rounded-xl border border-[#1e2d42] p-4 flex items-center gap-4">
-          <Clock className="w-5 h-5 text-green-400 flex-shrink-0" />
+        <div className="bg-falcon-surface rounded-xl border border-falcon-border p-4 flex items-center gap-4">
+          <Clock className="w-5 h-5 text-green-400 shrink-0" />
           <div>
-            <p className="text-[#7d92b0] text-xs">最新バックアップ</p>
+            <p className="text-falcon-muted text-xs">最新バックアップ</p>
             <p className="text-sm font-semibold text-white mt-0.5">{latestDate ? formatDate(latestDate) : '—'}</p>
           </div>
         </div>
       </div>
 
       {/* Storage stats bar */}
-      <div className="bg-[#0d1220] rounded-xl border border-[#1e2d42] p-4">
+      <div className="bg-falcon-surface rounded-xl border border-falcon-border p-4">
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2 text-sm text-white font-medium">
-            <HardDrive className="w-4 h-4 text-[#7d92b0]" />
+            <HardDrive className="w-4 h-4 text-falcon-muted" />
             ストレージ使用状況
           </div>
-          <span className="text-xs text-[#7d92b0]">
+          <span className="text-xs text-falcon-muted">
             {formatFileSize(totalSize)} / {formatFileSize(DISK_LIMIT)} ({usedPercent}%)
           </span>
         </div>
-        <div className="w-full h-3 bg-[#1e2d42] rounded-full overflow-hidden">
+        <div className="w-full h-3 bg-falcon-border rounded-full overflow-hidden">
           <div
             className={`h-full rounded-full transition-all duration-500 ${usedPercent > 80 ? 'bg-red-500' : usedPercent > 50 ? 'bg-yellow-500' : 'bg-blue-500'}`}
             style={{ width: `${usedPercent}%` }}
           />
         </div>
-        <div className="flex items-center justify-between mt-1.5 text-xs text-[#7d92b0]">
+        <div className="flex items-center justify-between mt-1.5 text-xs text-falcon-muted">
           <span>使用中: {formatFileSize(totalSize)}</span>
           <span>空き: {formatFileSize(DISK_LIMIT - totalSize)}</span>
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 bg-[#0d1220] rounded-xl border border-[#1e2d42] p-1">
+      <div className="flex gap-1 bg-falcon-surface rounded-xl border border-falcon-border p-1">
         {TABS.map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
             className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors flex-1 justify-center
-              ${activeTab === tab.id ? 'bg-[#1e2d42] text-white' : 'text-[#7d92b0] hover:text-white'}`}
+              ${activeTab === tab.id ? 'bg-falcon-border text-white' : 'text-falcon-muted hover:text-white'}`}
           >
             {tab.icon}
             <span className="hidden sm:inline">{tab.label}</span>
@@ -552,13 +552,13 @@ export default function BackupsPage() {
 
       {/* ── Tab: Backup List ───────────────────────────────────────────── */}
       {activeTab === 'backups' && (
-        <div className="bg-[#0d1220] rounded-xl border border-[#1e2d42] overflow-hidden">
-          <div className="px-4 py-3 border-b border-[#1e2d42] flex items-center justify-between">
+        <div className="bg-falcon-surface rounded-xl border border-falcon-border overflow-hidden">
+          <div className="px-4 py-3 border-b border-falcon-border flex items-center justify-between">
             <h2 className="text-sm font-semibold text-white flex items-center gap-2">
               <Database className="w-4 h-4 text-blue-400" />
               バックアップ一覧
             </h2>
-            <span className="text-xs text-[#7d92b0]">{backups.length} 件</span>
+            <span className="text-xs text-falcon-muted">{backups.length} 件</span>
           </div>
 
           {isLoading ? (
@@ -566,7 +566,7 @@ export default function BackupsPage() {
               <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
             </div>
           ) : backups.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-40 text-[#7d92b0]">
+            <div className="flex flex-col items-center justify-center h-40 text-falcon-muted">
               <Database className="w-10 h-10 mb-3 opacity-30" />
               <p className="text-sm">バックアップがありません</p>
             </div>
@@ -574,21 +574,21 @@ export default function BackupsPage() {
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-[#1e2d42] bg-[#070d19]/60">
-                    <th className="text-left px-4 py-3 text-[#7d92b0] text-xs font-medium">ファイル名</th>
-                    <th className="text-left px-4 py-3 text-[#7d92b0] text-xs font-medium">サイズ</th>
-                    <th className="text-left px-4 py-3 text-[#7d92b0] text-xs font-medium">ステータス</th>
-                    <th className="text-left px-4 py-3 text-[#7d92b0] text-xs font-medium hidden lg:table-cell">整合性</th>
-                    <th className="text-left px-4 py-3 text-[#7d92b0] text-xs font-medium">作成日時</th>
-                    <th className="text-right px-4 py-3 text-[#7d92b0] text-xs font-medium">操作</th>
+                  <tr className="border-b border-falcon-border bg-[#070d19]/60">
+                    <th className="text-left px-4 py-3 text-falcon-muted text-xs font-medium">ファイル名</th>
+                    <th className="text-left px-4 py-3 text-falcon-muted text-xs font-medium">サイズ</th>
+                    <th className="text-left px-4 py-3 text-falcon-muted text-xs font-medium">ステータス</th>
+                    <th className="text-left px-4 py-3 text-falcon-muted text-xs font-medium hidden lg:table-cell">整合性</th>
+                    <th className="text-left px-4 py-3 text-falcon-muted text-xs font-medium">作成日時</th>
+                    <th className="text-right px-4 py-3 text-falcon-muted text-xs font-medium">操作</th>
                   </tr>
                 </thead>
                 <tbody>
                   {backups.map((backup) => (
-                    <tr key={backup.name} className="border-b border-[#1e2d42]/50 last:border-0 hover:bg-[#1e2d42]/20 transition-colors">
+                    <tr key={backup.name} className="border-b border-falcon-border/50 last:border-0 hover:bg-falcon-border/20 transition-colors">
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
-                          <Database className="w-3.5 h-3.5 text-[#7d92b0] flex-shrink-0" />
+                          <Database className="w-3.5 h-3.5 text-falcon-muted shrink-0" />
                           <span className="font-mono text-sm text-gray-200 break-all">{backup.name}</span>
                         </div>
                       </td>
@@ -602,7 +602,7 @@ export default function BackupsPage() {
                         {(() => {
                           const vs = verifyStates[backup.name]
                           if (!vs || vs === 'idle') return (
-                            <span className="text-[#3d5068] text-xs">—</span>
+                            <span className="text-falcon-subtle text-xs">—</span>
                           )
                           if (vs === 'checking') return (
                             <span className="flex items-center gap-1 text-yellow-400 text-xs">
@@ -615,7 +615,7 @@ export default function BackupsPage() {
                                 <CheckCircle className="w-3 h-3" /> OK
                               </span>
                               {vs.checksum && (
-                                <span className="text-[#3d5068] text-[10px] font-mono block mt-0.5 truncate max-w-[160px]" title={vs.checksum}>
+                                <span className="text-falcon-subtle text-[10px] font-mono block mt-0.5 truncate max-w-[160px]" title={vs.checksum}>
                                   {vs.checksum.slice(0, 20)}…
                                 </span>
                               )}
@@ -627,7 +627,7 @@ export default function BackupsPage() {
                           )
                         })()}
                       </td>
-                      <td className="px-4 py-3 text-[#7d92b0] whitespace-nowrap text-xs">{formatDate(backup.created_at)}</td>
+                      <td className="px-4 py-3 text-falcon-muted whitespace-nowrap text-xs">{formatDate(backup.created_at)}</td>
                       <td className="px-4 py-3">
                         <div className="flex items-center justify-end gap-2">
                           <button
@@ -672,8 +672,8 @@ export default function BackupsPage() {
       {/* ── Tab: Auto Schedule ─────────────────────────────────────────── */}
       {activeTab === 'schedule' && (
         <div className="space-y-4">
-          <div className="bg-[#0d1220] rounded-xl border border-[#1e2d42] overflow-hidden">
-            <div className="px-5 py-4 border-b border-[#1e2d42] flex items-center gap-2">
+          <div className="bg-falcon-surface rounded-xl border border-falcon-border overflow-hidden">
+            <div className="px-5 py-4 border-b border-falcon-border flex items-center gap-2">
               <Clock className="w-4 h-4 text-blue-400" />
               <h2 className="text-sm font-semibold text-white">自動バックアップスケジュール</h2>
             </div>
@@ -682,19 +682,19 @@ export default function BackupsPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-white text-sm font-medium">自動バックアップを有効化</p>
-                  <p className="text-[#7d92b0] text-xs mt-0.5">指定の間隔でバックアップを自動実行します</p>
+                  <p className="text-falcon-muted text-xs mt-0.5">指定の間隔でバックアップを自動実行します</p>
                 </div>
                 <button
                   onClick={() => setAutoEnabled(!autoEnabled)}
-                  className={`relative w-12 h-6 rounded-full transition-colors ${autoEnabled ? 'bg-[#e8002d]' : 'bg-[#1e2d42]'}`}
+                  className={`relative w-12 h-6 rounded-full transition-colors ${autoEnabled ? 'bg-falcon-red' : 'bg-falcon-border'}`}
                 >
-                  <span className={`absolute top-0.5 w-5 h-5 bg-[#e2e8f4] rounded-full shadow transition-transform ${autoEnabled ? 'translate-x-6' : 'translate-x-0.5'}`} />
+                  <span className={`absolute top-0.5 w-5 h-5 bg-falcon-text rounded-full shadow-sm transition-transform ${autoEnabled ? 'translate-x-6' : 'translate-x-0.5'}`} />
                 </button>
               </div>
 
               {/* Frequency selector */}
               <div>
-                <label className="text-[#7d92b0] text-xs font-medium block mb-2">バックアップ間隔</label>
+                <label className="text-falcon-muted text-xs font-medium block mb-2">バックアップ間隔</label>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                   {[['6h','6時間毎'],['12h','12時間毎'],['24h','24時間毎'],['weekly','週次']].map(([val, label]) => (
                     <button
@@ -703,8 +703,8 @@ export default function BackupsPage() {
                       disabled={!autoEnabled}
                       className={`px-3 py-2 rounded-lg text-sm border transition-colors disabled:opacity-40
                         ${scheduleFreq === val
-                          ? 'border-[#e8002d] bg-[#e8002d]/10 text-white'
-                          : 'border-[#1e2d42] text-[#7d92b0] hover:border-[#2e4060]'}`}
+                          ? 'border-falcon-red bg-falcon-red/10 text-white'
+                          : 'border-falcon-border text-falcon-muted hover:border-[#2e4060]'}`}
                     >
                       {label}
                     </button>
@@ -714,7 +714,7 @@ export default function BackupsPage() {
 
               {/* Retention count */}
               <div>
-                <label className="text-[#7d92b0] text-xs font-medium block mb-2">
+                <label className="text-falcon-muted text-xs font-medium block mb-2">
                   保持するバックアップ数
                 </label>
                 <div className="flex items-center gap-3">
@@ -725,10 +725,10 @@ export default function BackupsPage() {
                     value={retentionCount}
                     disabled={!autoEnabled}
                     onChange={(e) => setRetentionCount(Math.max(1, parseInt(e.target.value) || 1))}
-                    className="w-24 px-3 py-2 rounded-lg bg-[#070d19] border border-[#1e2d42] text-white text-sm
-                               focus:outline-none focus:border-blue-500 disabled:opacity-40"
+                    className="w-24 px-3 py-2 rounded-lg bg-[#070d19] border border-falcon-border text-white text-sm
+                               focus:outline-hidden focus:border-blue-500 disabled:opacity-40"
                   />
-                  <span className="text-[#7d92b0] text-sm">件（古いものを自動削除）</span>
+                  <span className="text-falcon-muted text-sm">件（古いものを自動削除）</span>
                 </div>
               </div>
 
@@ -736,14 +736,14 @@ export default function BackupsPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-white text-sm font-medium">古いバックアップを自動削除</p>
-                  <p className="text-[#7d92b0] text-xs mt-0.5">保持数を超えた古いバックアップを自動的に削除します</p>
+                  <p className="text-falcon-muted text-xs mt-0.5">保持数を超えた古いバックアップを自動的に削除します</p>
                 </div>
                 <button
                   onClick={() => setAutoDeleteEnabled(!autoDeleteEnabled)}
                   disabled={!autoEnabled}
-                  className={`relative w-12 h-6 rounded-full transition-colors disabled:opacity-40 ${autoDeleteEnabled ? 'bg-blue-600' : 'bg-[#1e2d42]'}`}
+                  className={`relative w-12 h-6 rounded-full transition-colors disabled:opacity-40 ${autoDeleteEnabled ? 'bg-blue-600' : 'bg-falcon-border'}`}
                 >
-                  <span className={`absolute top-0.5 w-5 h-5 bg-[#e2e8f4] rounded-full shadow transition-transform ${autoDeleteEnabled ? 'translate-x-6' : 'translate-x-0.5'}`} />
+                  <span className={`absolute top-0.5 w-5 h-5 bg-falcon-text rounded-full shadow-sm transition-transform ${autoDeleteEnabled ? 'translate-x-6' : 'translate-x-0.5'}`} />
                 </button>
               </div>
 
@@ -763,8 +763,8 @@ export default function BackupsPage() {
 
       {/* ── Tab: S3 Upload ──────────────────────────────────────────────── */}
       {activeTab === 's3' && (
-        <div className="bg-[#0d1220] rounded-xl border border-[#1e2d42] overflow-hidden">
-          <div className="px-5 py-4 border-b border-[#1e2d42] flex items-center gap-2">
+        <div className="bg-falcon-surface rounded-xl border border-falcon-border overflow-hidden">
+          <div className="px-5 py-4 border-b border-falcon-border flex items-center gap-2">
             <Upload className="w-4 h-4 text-blue-400" />
             <h2 className="text-sm font-semibold text-white">S3 ストレージ設定</h2>
           </div>
@@ -772,66 +772,66 @@ export default function BackupsPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {/* AWS Region */}
               <div>
-                <label className="text-[#7d92b0] text-xs font-medium block mb-1.5">AWS リージョン</label>
+                <label className="text-falcon-muted text-xs font-medium block mb-1.5">AWS リージョン</label>
                 <input
                   type="text"
                   placeholder="ap-northeast-1"
                   value={s3Region}
                   onChange={(e) => setS3Region(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg bg-[#070d19] border border-[#1e2d42] text-white text-sm
-                             placeholder:text-[#3d5068] focus:outline-none focus:border-blue-500"
+                  className="w-full px-3 py-2 rounded-lg bg-[#070d19] border border-falcon-border text-white text-sm
+                             placeholder:text-falcon-subtle focus:outline-hidden focus:border-blue-500"
                 />
               </div>
 
               {/* Bucket name */}
               <div>
-                <label className="text-[#7d92b0] text-xs font-medium block mb-1.5">バケット名</label>
+                <label className="text-falcon-muted text-xs font-medium block mb-1.5">バケット名</label>
                 <input
                   type="text"
                   placeholder="my-edr-backups"
                   value={s3Bucket}
                   onChange={(e) => setS3Bucket(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg bg-[#070d19] border border-[#1e2d42] text-white text-sm
-                             placeholder:text-[#3d5068] focus:outline-none focus:border-blue-500"
+                  className="w-full px-3 py-2 rounded-lg bg-[#070d19] border border-falcon-border text-white text-sm
+                             placeholder:text-falcon-subtle focus:outline-hidden focus:border-blue-500"
                 />
               </div>
 
               {/* Prefix */}
               <div>
-                <label className="text-[#7d92b0] text-xs font-medium block mb-1.5">プレフィックス</label>
+                <label className="text-falcon-muted text-xs font-medium block mb-1.5">プレフィックス</label>
                 <input
                   type="text"
                   placeholder="edr-backups/"
                   value={s3Prefix}
                   onChange={(e) => setS3Prefix(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg bg-[#070d19] border border-[#1e2d42] text-white text-sm
-                             placeholder:text-[#3d5068] focus:outline-none focus:border-blue-500"
+                  className="w-full px-3 py-2 rounded-lg bg-[#070d19] border border-falcon-border text-white text-sm
+                             placeholder:text-falcon-subtle focus:outline-hidden focus:border-blue-500"
                 />
               </div>
 
               {/* Access Key ID */}
               <div>
-                <label className="text-[#7d92b0] text-xs font-medium block mb-1.5">アクセスキー ID</label>
+                <label className="text-falcon-muted text-xs font-medium block mb-1.5">アクセスキー ID</label>
                 <input
                   type="text"
                   placeholder="AKIAIOSFODNN7EXAMPLE"
                   value={s3KeyId}
                   onChange={(e) => setS3KeyId(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg bg-[#070d19] border border-[#1e2d42] text-white text-sm
-                             placeholder:text-[#3d5068] focus:outline-none focus:border-blue-500 font-mono"
+                  className="w-full px-3 py-2 rounded-lg bg-[#070d19] border border-falcon-border text-white text-sm
+                             placeholder:text-falcon-subtle focus:outline-hidden focus:border-blue-500 font-mono"
                 />
               </div>
 
               {/* Secret */}
               <div className="sm:col-span-2">
-                <label className="text-[#7d92b0] text-xs font-medium block mb-1.5">シークレットアクセスキー</label>
+                <label className="text-falcon-muted text-xs font-medium block mb-1.5">シークレットアクセスキー</label>
                 <input
                   type="password"
                   placeholder="••••••••••••••••••••••••••••••••••••••••"
                   value={s3Secret}
                   onChange={(e) => setS3Secret(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg bg-[#070d19] border border-[#1e2d42] text-white text-sm
-                             placeholder:text-[#3d5068] focus:outline-none focus:border-blue-500"
+                  className="w-full px-3 py-2 rounded-lg bg-[#070d19] border border-falcon-border text-white text-sm
+                             placeholder:text-falcon-subtle focus:outline-hidden focus:border-blue-500"
                 />
               </div>
             </div>
@@ -841,8 +841,8 @@ export default function BackupsPage() {
               <button
                 onClick={testS3}
                 disabled={s3TestStatus === 'testing'}
-                className="flex items-center gap-2 px-4 py-2 bg-[#1e2d42] text-[#7d92b0] rounded-lg
-                           hover:text-white border border-[#1e2d42] hover:border-[#2e4060] transition-colors text-sm disabled:opacity-50"
+                className="flex items-center gap-2 px-4 py-2 bg-falcon-border text-falcon-muted rounded-lg
+                           hover:text-white border border-falcon-border hover:border-[#2e4060] transition-colors text-sm disabled:opacity-50"
               >
                 {s3TestStatus === 'testing' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wifi className="w-4 h-4" />}
                 接続テスト
@@ -873,16 +873,16 @@ export default function BackupsPage() {
 
       {/* Delete confirmation modal */}
       {deleteTarget && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-[#0d1220] rounded-2xl p-6 w-full max-w-md border border-[#1e2d42] shadow-2xl">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-50">
+          <div className="bg-falcon-surface rounded-2xl p-6 w-full max-w-md border border-falcon-border shadow-2xl">
             <div className="flex items-start gap-4 mb-5">
-              <div className="p-2 bg-red-900/30 rounded-lg flex-shrink-0">
+              <div className="p-2 bg-red-900/30 rounded-lg shrink-0">
                 <Trash2 className="w-6 h-6 text-red-400" />
               </div>
               <div>
                 <h2 className="text-lg font-bold text-white">バックアップを削除</h2>
-                <p className="text-[#7d92b0] text-sm mt-1">以下のバックアップファイルを削除します。この操作は元に戻せません。</p>
-                <p className="font-mono text-xs text-gray-300 mt-2 break-all bg-[#070d19] px-2 py-1.5 rounded-lg border border-[#1e2d42]">
+                <p className="text-falcon-muted text-sm mt-1">以下のバックアップファイルを削除します。この操作は元に戻せません。</p>
+                <p className="font-mono text-xs text-gray-300 mt-2 break-all bg-[#070d19] px-2 py-1.5 rounded-lg border border-falcon-border">
                   {deleteTarget}
                 </p>
               </div>
@@ -905,7 +905,7 @@ export default function BackupsPage() {
               <button
                 onClick={() => { setDeleteTarget(null); deleteMutation.reset() }}
                 disabled={deleteMutation.isPending}
-                className="px-5 py-2.5 bg-[#1e2d42] text-[#7d92b0] rounded-xl hover:bg-[#2e4060]
+                className="px-5 py-2.5 bg-falcon-border text-falcon-muted rounded-xl hover:bg-[#2e4060]
                            transition-colors text-sm disabled:opacity-50"
               >
                 キャンセル

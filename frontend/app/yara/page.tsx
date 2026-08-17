@@ -170,8 +170,8 @@ function ScanJobButton() {
           onClick={() => scanMutation.mutate()}
           disabled={scanMutation.isPending}
           title="全エージェントにYARAスキャンを要求します"
-          className="flex items-center gap-2 px-3 py-2 bg-[#161f33] hover:bg-[#1d2f4a]
-                     border border-[#1e2d42] text-[#7d92b0] hover:text-white
+          className="flex items-center gap-2 px-3 py-2 bg-falcon-raised hover:bg-falcon-active
+                     border border-falcon-border text-falcon-muted hover:text-white
                      text-sm rounded-lg transition-colors disabled:opacity-50"
         >
           <ScanLine className={`w-3.5 h-3.5 ${scanMutation.isPending ? 'animate-pulse' : ''}`} />
@@ -179,8 +179,8 @@ function ScanJobButton() {
         </button>
         <button
           onClick={() => setShowJobs(v => !v)}
-          className="px-2 py-2 bg-[#161f33] hover:bg-[#1d2f4a] border border-[#1e2d42]
-                     text-[#3d5068] hover:text-white text-xs rounded-lg transition-colors"
+          className="px-2 py-2 bg-falcon-raised hover:bg-falcon-active border border-falcon-border
+                     text-falcon-subtle hover:text-white text-xs rounded-lg transition-colors"
           title="スキャンジョブ一覧"
         >
           {jobs.length > 0 ? `${jobs.length}件` : '履歴'}
@@ -192,38 +192,38 @@ function ScanJobButton() {
         </p>
       )}
       {showJobs && (
-        <div className="absolute top-10 right-0 z-50 bg-[#0d1220] border border-[#1e2d42]
+        <div className="absolute top-10 right-0 z-50 bg-falcon-surface border border-falcon-border
                         rounded-xl shadow-2xl w-96 max-h-80 overflow-auto">
-          <div className="px-4 py-2.5 border-b border-[#1e2d42] flex items-center justify-between">
-            <span className="text-xs font-medium text-[#e2e8f4]">スキャンジョブ一覧</span>
-            <button onClick={() => setShowJobs(false)} className="text-[#3d5068] hover:text-white text-xs">閉じる</button>
+          <div className="px-4 py-2.5 border-b border-falcon-border flex items-center justify-between">
+            <span className="text-xs font-medium text-falcon-text">スキャンジョブ一覧</span>
+            <button onClick={() => setShowJobs(false)} className="text-falcon-subtle hover:text-white text-xs">閉じる</button>
           </div>
           {jobs.length === 0 ? (
-            <p className="px-4 py-6 text-xs text-[#3d5068] text-center">ジョブなし</p>
+            <p className="px-4 py-6 text-xs text-falcon-subtle text-center">ジョブなし</p>
           ) : (
             <table className="w-full text-xs">
               <thead>
-                <tr className="border-b border-[#1e2d42] bg-[#080c14]">
-                  <th className="px-3 py-2 text-left text-[#3d5068]">状態</th>
-                  <th className="px-3 py-2 text-left text-[#3d5068]">パス</th>
-                  <th className="px-3 py-2 text-right text-[#3d5068]">一致</th>
-                  <th className="px-3 py-2 text-left text-[#3d5068]">作成日時</th>
+                <tr className="border-b border-falcon-border bg-falcon-bg">
+                  <th className="px-3 py-2 text-left text-falcon-subtle">状態</th>
+                  <th className="px-3 py-2 text-left text-falcon-subtle">パス</th>
+                  <th className="px-3 py-2 text-right text-falcon-subtle">一致</th>
+                  <th className="px-3 py-2 text-left text-falcon-subtle">作成日時</th>
                 </tr>
               </thead>
               <tbody>
                 {jobs.map(j => (
-                  <tr key={j.id} className="border-b border-[#1e2d42] hover:bg-[#111827]">
+                  <tr key={j.id} className="border-b border-falcon-border hover:bg-falcon-card">
                     <td className="px-3 py-2">
                       <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
                         j.status === 'done' ? 'bg-green-900/30 text-green-400' :
                         j.status === 'running' ? 'bg-blue-900/30 text-blue-400' :
                         j.status === 'failed' ? 'bg-red-900/30 text-red-400' :
-                        'bg-[#1e2d42] text-[#3d5068]'
+                        'bg-falcon-border text-falcon-subtle'
                       }`}>{j.status}</span>
                     </td>
-                    <td className="px-3 py-2 text-[#7d92b0] font-mono truncate max-w-[100px]">{j.scan_path}</td>
-                    <td className="px-3 py-2 text-right text-[#e2e8f4]">{j.match_count}</td>
-                    <td className="px-3 py-2 text-[#3d5068]">
+                    <td className="px-3 py-2 text-falcon-muted font-mono truncate max-w-[100px]">{j.scan_path}</td>
+                    <td className="px-3 py-2 text-right text-falcon-text">{j.match_count}</td>
+                    <td className="px-3 py-2 text-falcon-subtle">
                       {new Date(j.requested_at).toLocaleString('ja-JP', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}
                     </td>
                   </tr>
@@ -256,8 +256,8 @@ function ReclassifyButton({ onDone }: { onDone: () => void }) {
         onClick={() => mutation.mutate()}
         disabled={mutation.isPending}
         title="ルール名・タグからカテゴリを自動再分類します"
-        className="flex items-center gap-2 px-3 py-2 bg-[#161f33] hover:bg-[#1d2f4a]
-                   border border-[#1e2d42] text-[#7d92b0] hover:text-white
+        className="flex items-center gap-2 px-3 py-2 bg-falcon-raised hover:bg-falcon-active
+                   border border-falcon-border text-falcon-muted hover:text-white
                    text-sm rounded-lg transition-colors disabled:opacity-50"
       >
         <RefreshCcw className={`w-3.5 h-3.5 ${mutation.isPending ? 'animate-spin' : ''}`} />
@@ -274,9 +274,9 @@ function ReclassifyButton({ onDone }: { onDone: () => void }) {
 
 function StatCard({ label, value, color }: { label: string; value: number | string; color: string }) {
   return (
-    <div className="bg-[#0d1220] rounded-xl border border-[#1e2d42] px-5 py-4">
+    <div className="bg-falcon-surface rounded-xl border border-falcon-border px-5 py-4">
       <p className={`text-2xl font-bold ${color}`}>{value}</p>
-      <p className="text-xs text-[#7d92b0] mt-1">{label}</p>
+      <p className="text-xs text-falcon-muted mt-1">{label}</p>
     </div>
   )
 }
@@ -284,7 +284,7 @@ function StatCard({ label, value, color }: { label: string; value: number | stri
 function CategoryBadge({ category }: { category: string }) {
   const cls = CATEGORY_COLORS[category] ?? 'bg-gray-700/40 text-gray-300 border-gray-600/40'
   return (
-    <span className={`text-xs px-2 py-0.5 rounded border ${cls}`}>
+    <span className={`text-xs px-2 py-0.5 rounded-sm border ${cls}`}>
       {CATEGORY_LABELS[category] ?? category}
     </span>
   )
@@ -293,7 +293,7 @@ function CategoryBadge({ category }: { category: string }) {
 function SeverityBadge({ severity }: { severity: string }) {
   const cls = SEVERITY_COLORS[severity] ?? 'text-gray-400 bg-gray-700/30 border-gray-600/40'
   return (
-    <span className={`text-xs px-2 py-0.5 rounded border font-medium ${cls}`}>
+    <span className={`text-xs px-2 py-0.5 rounded-sm border font-medium ${cls}`}>
       {SEVERITY_LABELS[severity] ?? severity}
     </span>
   )
@@ -324,13 +324,13 @@ function RuleDetailPanel({
   })
 
   return (
-    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-[#0d1220] rounded-2xl w-full max-w-3xl border border-[#1e2d42] flex flex-col max-h-[90vh]">
+    <div className="fixed inset-0 bg-black/70 backdrop-blur-xs flex items-center justify-center z-50 p-4">
+      <div className="bg-falcon-surface rounded-2xl w-full max-w-3xl border border-falcon-border flex flex-col max-h-[90vh]">
         {/* Header */}
-        <div className="flex items-start justify-between p-6 border-b border-[#1e2d42] flex-shrink-0">
+        <div className="flex items-start justify-between p-6 border-b border-falcon-border shrink-0">
           <div className="flex items-start gap-3 min-w-0">
-            <div className="w-9 h-9 rounded-lg bg-[#e8002d]/15 border border-[#e8002d]/30 flex items-center justify-center flex-shrink-0 mt-0.5">
-              <FileCode className="w-4.5 h-4.5 text-[#e8002d]" />
+            <div className="w-9 h-9 rounded-lg bg-falcon-red/15 border border-falcon-red/30 flex items-center justify-center shrink-0 mt-0.5">
+              <FileCode className="w-4.5 h-4.5 text-falcon-red" />
             </div>
             <div className="min-w-0">
               <h2 className="text-lg font-bold text-white truncate">{rule.name}</h2>
@@ -349,7 +349,7 @@ function RuleDetailPanel({
           </div>
           <button
             onClick={onClose}
-            className="text-[#7d92b0] hover:text-white transition-colors flex-shrink-0 ml-4"
+            className="text-falcon-muted hover:text-white transition-colors shrink-0 ml-4"
           >
             <X className="w-5 h-5" />
           </button>
@@ -361,8 +361,8 @@ function RuleDetailPanel({
           {/* Description */}
           {rule.description && (
             <div>
-              <p className="text-xs text-[#7d92b0] mb-1">説明</p>
-              <p className="text-sm text-[#e2e8f4]">{rule.description}</p>
+              <p className="text-xs text-falcon-muted mb-1">説明</p>
+              <p className="text-sm text-falcon-text">{rule.description}</p>
             </div>
           )}
 
@@ -373,8 +373,8 @@ function RuleDetailPanel({
               { label: '最終マッチ',   value: rule.last_matched ? new Date(rule.last_matched).toLocaleString('ja-JP') : '—' },
               { label: '作成日',       value: new Date(rule.created_at).toLocaleDateString('ja-JP') },
             ].map(item => (
-              <div key={item.label} className="bg-[#070d19] rounded-lg p-3 border border-[#1e2d42]">
-                <p className="text-xs text-[#7d92b0]">{item.label}</p>
+              <div key={item.label} className="bg-[#070d19] rounded-lg p-3 border border-falcon-border">
+                <p className="text-xs text-falcon-muted">{item.label}</p>
                 <p className="text-sm text-white font-medium mt-0.5">{item.value}</p>
               </div>
             ))}
@@ -383,18 +383,18 @@ function RuleDetailPanel({
           {/* YARA content */}
           <div>
             <div className="flex items-center gap-2 mb-2">
-              <Code2 className="w-3.5 h-3.5 text-[#7d92b0]" />
-              <p className="text-xs text-[#7d92b0] font-medium">YARAルール内容</p>
+              <Code2 className="w-3.5 h-3.5 text-falcon-muted" />
+              <p className="text-xs text-falcon-muted font-medium">YARAルール内容</p>
             </div>
-            <pre className="bg-[#070d19] border border-[#1e2d42] rounded-lg p-4 text-xs font-mono text-[#a8c0e0] overflow-x-auto leading-relaxed whitespace-pre">
+            <pre className="bg-[#070d19] border border-falcon-border rounded-lg p-4 text-xs font-mono text-[#a8c0e0] overflow-x-auto leading-relaxed whitespace-pre">
               {rule.content}
             </pre>
           </div>
 
           {/* Test panel */}
-          <div className="bg-[#070d19] rounded-xl border border-[#1e2d42] p-4">
+          <div className="bg-[#070d19] rounded-xl border border-falcon-border p-4">
             <div className="flex items-center gap-2 mb-3">
-              <Play className="w-3.5 h-3.5 text-[#e8002d]" />
+              <Play className="w-3.5 h-3.5 text-falcon-red" />
               <p className="text-sm font-semibold text-white">ルールのテスト</p>
             </div>
             <div className="flex gap-2">
@@ -403,14 +403,14 @@ function RuleDetailPanel({
                 value={testInput}
                 onChange={e => { setTestInput(e.target.value); setTestResult(null) }}
                 placeholder="ファイルハッシュ または ファイルパスを入力..."
-                className="flex-1 bg-[#0d1220] border border-[#1e2d42] rounded-lg px-3 py-2
-                           text-sm text-white placeholder-[#3d5068] font-mono
-                           focus:outline-none focus:border-[#e8002d]/50"
+                className="flex-1 bg-falcon-surface border border-falcon-border rounded-lg px-3 py-2
+                           text-sm text-white placeholder-falcon-subtle font-mono
+                           focus:outline-hidden focus:border-falcon-red/50"
               />
               <button
                 onClick={() => { if (testInput.trim()) testMutation.mutate(testInput.trim()) }}
                 disabled={!testInput.trim() || testMutation.isPending}
-                className="flex items-center gap-1.5 px-4 py-2 bg-[#e8002d] hover:bg-[#c8001f]
+                className="flex items-center gap-1.5 px-4 py-2 bg-falcon-red hover:bg-[#c8001f]
                            text-white text-sm rounded-lg disabled:opacity-50 transition-colors"
               >
                 {testMutation.isPending
@@ -430,12 +430,12 @@ function RuleDetailPanel({
               }`}>
                 {testResult.error ? (
                   <>
-                    <XCircle className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
+                    <XCircle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
                     <p className="text-red-300">{testResult.error}</p>
                   </>
                 ) : testResult.matched ? (
                   <>
-                    <AlertTriangle className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
+                    <AlertTriangle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
                     <div>
                       <p className="text-red-300 font-medium">マッチしました</p>
                       {testResult.matches && testResult.matches.length > 0 && (
@@ -449,7 +449,7 @@ function RuleDetailPanel({
                   </>
                 ) : (
                   <>
-                    <CheckCircle2 className="w-4 h-4 text-green-400 flex-shrink-0 mt-0.5" />
+                    <CheckCircle2 className="w-4 h-4 text-green-400 shrink-0 mt-0.5" />
                     <p className="text-green-300">マッチしませんでした</p>
                   </>
                 )}
@@ -459,10 +459,10 @@ function RuleDetailPanel({
         </div>
 
         {/* Footer */}
-        <div className="flex justify-end px-6 py-4 border-t border-[#1e2d42] flex-shrink-0">
+        <div className="flex justify-end px-6 py-4 border-t border-falcon-border shrink-0">
           <button
             onClick={onClose}
-            className="px-5 py-2 text-sm text-[#7d92b0] bg-[#161f33] hover:bg-[#1d2f4a] rounded-lg transition-colors border border-[#1e2d42]"
+            className="px-5 py-2 text-sm text-falcon-muted bg-falcon-raised hover:bg-falcon-active rounded-lg transition-colors border border-falcon-border"
           >
             閉じる
           </button>
@@ -519,15 +519,15 @@ function UploadModal({
   const canSubmit = form.name.trim().length > 0 && form.content.trim().length > 0
 
   return (
-    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-[#0d1220] rounded-2xl w-full max-w-2xl border border-[#1e2d42] flex flex-col max-h-[92vh]">
+    <div className="fixed inset-0 bg-black/70 backdrop-blur-xs flex items-center justify-center z-50 p-4">
+      <div className="bg-falcon-surface rounded-2xl w-full max-w-2xl border border-falcon-border flex flex-col max-h-[92vh]">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-[#1e2d42] flex-shrink-0">
+        <div className="flex items-center justify-between p-6 border-b border-falcon-border shrink-0">
           <h2 className="text-lg font-bold text-white flex items-center gap-2">
-            <FileCode className="w-5 h-5 text-[#e8002d]" />
+            <FileCode className="w-5 h-5 text-falcon-red" />
             {isEdit ? 'YARAルールを編集' : '新しいYARAルール'}
           </h2>
-          <button onClick={onClose} className="text-[#7d92b0] hover:text-white transition-colors">
+          <button onClick={onClose} className="text-falcon-muted hover:text-white transition-colors">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -537,28 +537,28 @@ function UploadModal({
 
           {/* Name */}
           <div>
-            <label className="text-xs text-[#7d92b0] block mb-1.5">
-              ルール名 <span className="text-[#e8002d]">*</span>
+            <label className="text-xs text-falcon-muted block mb-1.5">
+              ルール名 <span className="text-falcon-red">*</span>
             </label>
             <input
               type="text"
               value={form.name}
               onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
               placeholder="例: DetectMimikatz"
-              className="w-full bg-[#070d19] text-white px-3 py-2 rounded-lg border border-[#1e2d42]
-                         focus:outline-none focus:border-[#e8002d]/50 text-sm placeholder-[#3d5068]"
+              className="w-full bg-[#070d19] text-white px-3 py-2 rounded-lg border border-falcon-border
+                         focus:outline-hidden focus:border-falcon-red/50 text-sm placeholder-falcon-subtle"
             />
           </div>
 
           {/* Category + Severity */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="text-xs text-[#7d92b0] block mb-1.5">カテゴリ</label>
+              <label className="text-xs text-falcon-muted block mb-1.5">カテゴリ</label>
               <select
                 value={form.category}
                 onChange={e => setForm(f => ({ ...f, category: e.target.value }))}
-                className="w-full bg-[#070d19] text-white px-3 py-2 rounded-lg border border-[#1e2d42]
-                           focus:outline-none focus:border-[#e8002d]/50 text-sm"
+                className="w-full bg-[#070d19] text-white px-3 py-2 rounded-lg border border-falcon-border
+                           focus:outline-hidden focus:border-falcon-red/50 text-sm"
               >
                 {CATEGORIES.map(c => (
                   <option key={c} value={c}>{CATEGORY_LABELS[c]}</option>
@@ -566,12 +566,12 @@ function UploadModal({
               </select>
             </div>
             <div>
-              <label className="text-xs text-[#7d92b0] block mb-1.5">重大度</label>
+              <label className="text-xs text-falcon-muted block mb-1.5">重大度</label>
               <select
                 value={form.severity}
                 onChange={e => setForm(f => ({ ...f, severity: e.target.value }))}
-                className="w-full bg-[#070d19] text-white px-3 py-2 rounded-lg border border-[#1e2d42]
-                           focus:outline-none focus:border-[#e8002d]/50 text-sm"
+                className="w-full bg-[#070d19] text-white px-3 py-2 rounded-lg border border-falcon-border
+                           focus:outline-hidden focus:border-falcon-red/50 text-sm"
               >
                 {SEVERITIES.map(s => (
                   <option key={s} value={s}>{SEVERITY_LABELS[s]} ({s})</option>
@@ -582,14 +582,14 @@ function UploadModal({
 
           {/* Description */}
           <div>
-            <label className="text-xs text-[#7d92b0] block mb-1.5">説明 (省略可)</label>
+            <label className="text-xs text-falcon-muted block mb-1.5">説明 (省略可)</label>
             <input
               type="text"
               value={form.description}
               onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
               placeholder="このルールが検知する内容の概要..."
-              className="w-full bg-[#070d19] text-white px-3 py-2 rounded-lg border border-[#1e2d42]
-                         focus:outline-none focus:border-[#e8002d]/50 text-sm placeholder-[#3d5068]"
+              className="w-full bg-[#070d19] text-white px-3 py-2 rounded-lg border border-falcon-border
+                         focus:outline-hidden focus:border-falcon-red/50 text-sm placeholder-falcon-subtle"
             />
           </div>
 
@@ -601,14 +601,14 @@ function UploadModal({
                 aria-checked={form.enabled}
                 onClick={() => setForm(f => ({ ...f, enabled: !f.enabled }))}
                 className={`w-10 h-5 rounded-full transition-colors cursor-pointer relative ${
-                  form.enabled ? 'bg-[#e8002d]' : 'bg-[#1e2d42]'
+                  form.enabled ? 'bg-falcon-red' : 'bg-falcon-border'
                 }`}
               >
-                <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-[#e2e8f4] shadow transition-transform ${
+                <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-falcon-text shadow transition-transform ${
                   form.enabled ? 'translate-x-5.5' : 'translate-x-0.5'
                 }`} />
               </div>
-              <span className="text-sm text-[#7d92b0]">
+              <span className="text-sm text-falcon-muted">
                 {form.enabled ? '有効にする' : '無効にする'}
               </span>
             </label>
@@ -616,42 +616,42 @@ function UploadModal({
 
           {/* YARA content */}
           <div>
-            <label className="text-xs text-[#7d92b0] block mb-1.5">
-              YARAルール内容 <span className="text-[#e8002d]">*</span>
+            <label className="text-xs text-falcon-muted block mb-1.5">
+              YARAルール内容 <span className="text-falcon-red">*</span>
             </label>
             <textarea
               value={form.content}
               onChange={e => handleContentChange(e.target.value)}
               rows={14}
               spellCheck={false}
-              className="w-full bg-[#070d19] text-[#a8c0e0] px-3 py-2.5 rounded-lg border border-[#1e2d42]
-                         focus:outline-none focus:border-[#e8002d]/50 text-xs font-mono resize-y leading-relaxed"
+              className="w-full bg-[#070d19] text-[#a8c0e0] px-3 py-2.5 rounded-lg border border-falcon-border
+                         focus:outline-hidden focus:border-falcon-red/50 text-xs font-mono resize-y leading-relaxed"
             />
             {contentWarning && (
               <div className="flex items-start gap-2 mt-1.5 text-yellow-400 text-xs">
-                <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
+                <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
                 <span>{contentWarning}</span>
               </div>
             )}
-            <p className="text-[#3d5068] text-xs mt-1">
+            <p className="text-falcon-subtle text-xs mt-1">
               注意: 実際のYARAスキャンにはエージェント側でlibyaraが必要です。
             </p>
           </div>
 
           {mutation.isError && (
             <div className="flex items-center gap-2 text-red-400 text-sm bg-red-900/20 px-3 py-2 rounded-lg border border-red-700/40">
-              <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+              <AlertTriangle className="w-4 h-4 shrink-0" />
               <span>保存に失敗しました。再度お試しください。</span>
             </div>
           )}
         </div>
 
         {/* Footer */}
-        <div className="flex gap-3 px-6 py-4 border-t border-[#1e2d42] flex-shrink-0">
+        <div className="flex gap-3 px-6 py-4 border-t border-falcon-border shrink-0">
           <button
             onClick={() => mutation.mutate(form)}
             disabled={!canSubmit || mutation.isPending}
-            className="flex-1 py-2 bg-[#e8002d] hover:bg-[#c8001f] text-white rounded-lg
+            className="flex-1 py-2 bg-falcon-red hover:bg-[#c8001f] text-white rounded-lg
                        disabled:opacity-50 disabled:cursor-not-allowed
                        flex items-center justify-center gap-2 text-sm font-medium transition-colors"
           >
@@ -662,7 +662,7 @@ function UploadModal({
           </button>
           <button
             onClick={onClose}
-            className="px-5 py-2 bg-[#161f33] text-[#7d92b0] rounded-lg hover:bg-[#1d2f4a] transition-colors border border-[#1e2d42] text-sm"
+            className="px-5 py-2 bg-falcon-raised text-falcon-muted rounded-lg hover:bg-falcon-active transition-colors border border-falcon-border text-sm"
           >
             キャンセル
           </button>
@@ -686,28 +686,28 @@ function DeleteConfirmModal({
   isPending: boolean
 }) {
   return (
-    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-[#0d1220] rounded-2xl w-full max-w-md border border-[#1e2d42] p-6">
+    <div className="fixed inset-0 bg-black/70 backdrop-blur-xs flex items-center justify-center z-50 p-4">
+      <div className="bg-falcon-surface rounded-2xl w-full max-w-md border border-falcon-border p-6">
         <div className="flex items-center gap-3 mb-4">
           <div className="w-10 h-10 rounded-full bg-red-900/30 border border-red-700/50 flex items-center justify-center">
             <Trash2 className="w-5 h-5 text-red-400" />
           </div>
           <div>
             <h3 className="text-base font-bold text-white">ルールを削除</h3>
-            <p className="text-xs text-[#7d92b0]">この操作は元に戻せません</p>
+            <p className="text-xs text-falcon-muted">この操作は元に戻せません</p>
           </div>
         </div>
-        <p className="text-sm text-[#e2e8f4] mb-1">
+        <p className="text-sm text-falcon-text mb-1">
           以下のルールを削除しますか？
         </p>
-        <p className="text-sm font-semibold text-white bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 font-mono mb-5">
+        <p className="text-sm font-semibold text-white bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 font-mono mb-5">
           {rule.name}
         </p>
         <div className="flex gap-3">
           <button
             onClick={onConfirm}
             disabled={isPending}
-            className="flex-1 py-2 bg-[#e8002d] hover:bg-[#c8001f] text-white rounded-lg
+            className="flex-1 py-2 bg-falcon-red hover:bg-[#c8001f] text-white rounded-lg
                        disabled:opacity-50 text-sm font-medium transition-colors flex items-center justify-center gap-2"
           >
             {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
@@ -715,7 +715,7 @@ function DeleteConfirmModal({
           </button>
           <button
             onClick={onCancel}
-            className="px-5 py-2 bg-[#161f33] text-[#7d92b0] rounded-lg hover:bg-[#1d2f4a] transition-colors border border-[#1e2d42] text-sm"
+            className="px-5 py-2 bg-falcon-raised text-falcon-muted rounded-lg hover:bg-falcon-active transition-colors border border-falcon-border text-sm"
           >
             キャンセル
           </button>
@@ -825,12 +825,12 @@ export default function YARAPage() {
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-2xl font-bold text-white flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-[#e8002d]/15 border border-[#e8002d]/30 flex items-center justify-center">
-              <FileCode className="w-4.5 h-4.5 text-[#e8002d]" />
+            <div className="w-8 h-8 rounded-lg bg-falcon-red/15 border border-falcon-red/30 flex items-center justify-center">
+              <FileCode className="w-4.5 h-4.5 text-falcon-red" />
             </div>
             YARAルール管理
           </h1>
-          <p className="text-[#7d92b0] text-sm mt-1 ml-11">
+          <p className="text-falcon-muted text-sm mt-1 ml-11">
             静的シグネチャによるマルウェア・脅威の検知ルールを管理します
           </p>
         </div>
@@ -843,7 +843,7 @@ export default function YARAPage() {
             }} />
             <button
               onClick={openCreate}
-              className="flex items-center gap-2 px-4 py-2 bg-[#e8002d] hover:bg-[#c8001f]
+              className="flex items-center gap-2 px-4 py-2 bg-falcon-red hover:bg-[#c8001f]
                          text-white text-sm font-medium rounded-lg transition-colors"
             >
               <Plus className="w-4 h-4" />
@@ -857,30 +857,30 @@ export default function YARAPage() {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <StatCard label="総ルール数"   value={total}    color="text-white" />
         <StatCard label="有効"         value={enabled}  color="text-green-400" />
-        <StatCard label="無効"         value={disabled} color="text-[#7d92b0]" />
+        <StatCard label="無効"         value={disabled} color="text-falcon-muted" />
         <StatCard
           label="最終スキャン"
           value={lastScan ? new Date(lastScan).toLocaleDateString('ja-JP') : '—'}
-          color="text-[#e2e8f4]"
+          color="text-falcon-text"
         />
       </div>
 
       {/* ── Filters ───────────────────────────────────────────────── */}
       <div className="flex flex-wrap items-center gap-3">
         <div className="relative flex-1 min-w-48 max-w-72">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#3d5068]" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-falcon-subtle" />
           <input
             type="text"
             placeholder="ルール名・説明を検索..."
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="w-full bg-[#0d1220] text-white pl-9 pr-8 py-2 rounded-lg border border-[#1e2d42]
-                       focus:outline-none focus:border-[#e8002d]/40 text-sm placeholder-[#3d5068]"
+            className="w-full bg-falcon-surface text-white pl-9 pr-8 py-2 rounded-lg border border-falcon-border
+                       focus:outline-hidden focus:border-falcon-red/40 text-sm placeholder-falcon-subtle"
           />
           {search && (
             <button
               onClick={() => setSearch('')}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#3d5068] hover:text-[#7d92b0]"
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-falcon-subtle hover:text-falcon-muted"
             >
               <X className="w-3.5 h-3.5" />
             </button>
@@ -889,13 +889,13 @@ export default function YARAPage() {
 
         {/* カテゴリフィルター — バッジボタン */}
         <div className="flex items-center gap-1.5 flex-wrap">
-          <Filter className="w-3.5 h-3.5 text-[#3d5068] flex-shrink-0" />
+          <Filter className="w-3.5 h-3.5 text-falcon-subtle shrink-0" />
           <button
             onClick={() => setCategory('')}
             className={`text-xs px-2.5 py-1 rounded-full border transition-colors ${
               categoryFilter === ''
-                ? 'bg-[#e8002d]/20 text-[#e8002d] border-[#e8002d]/50'
-                : 'bg-[#0d1220] text-[#3d5068] border-[#1e2d42] hover:text-white hover:border-[#2a3f60]'
+                ? 'bg-falcon-red/20 text-falcon-red border-falcon-red/50'
+                : 'bg-falcon-surface text-falcon-subtle border-falcon-border hover:text-white hover:border-[#2a3f60]'
             }`}
           >
             全て
@@ -905,7 +905,7 @@ export default function YARAPage() {
           </button>
           {CATEGORIES.filter(c => catCounts[c] > 0).map(c => {
             const baseCls = CATEGORY_COLORS[c] ?? 'bg-gray-700/40 text-gray-300 border-gray-600/40'
-            const activeCls = categoryFilter === c ? baseCls : 'bg-[#0d1220] text-[#3d5068] border-[#1e2d42] hover:text-white hover:border-[#2a3f60]'
+            const activeCls = categoryFilter === c ? baseCls : 'bg-falcon-surface text-falcon-subtle border-falcon-border hover:text-white hover:border-[#2a3f60]'
             return (
               <button
                 key={c}
@@ -928,7 +928,7 @@ export default function YARAPage() {
               high:     'text-orange-400 border-orange-700/40 bg-orange-900/30',
               critical: 'text-red-400 border-red-600/40 bg-red-900/30',
             }
-            const activeCls = severityFilter === s ? clsMap[s] : 'bg-[#0d1220] text-[#3d5068] border-[#1e2d42] hover:text-white hover:border-[#2a3f60]'
+            const activeCls = severityFilter === s ? clsMap[s] : 'bg-falcon-surface text-falcon-subtle border-falcon-border hover:text-white hover:border-[#2a3f60]'
             return (
               <button
                 key={s}
@@ -944,39 +944,39 @@ export default function YARAPage() {
         {(search || categoryFilter || severityFilter) && (
           <button
             onClick={() => { setSearch(''); setCategory(''); setSeverity('') }}
-            className="flex items-center gap-1 text-xs text-[#7d92b0] hover:text-white
-                       px-2 py-1 rounded-lg hover:bg-[#161f33] transition-colors"
+            className="flex items-center gap-1 text-xs text-falcon-muted hover:text-white
+                       px-2 py-1 rounded-lg hover:bg-falcon-raised transition-colors"
           >
             <X className="w-3.5 h-3.5" />
             フィルターをクリア
           </button>
         )}
 
-        <span className="ml-auto text-xs text-[#3d5068]">{total} 件</span>
+        <span className="ml-auto text-xs text-falcon-subtle">{total} 件</span>
       </div>
 
       {/* ── Table ─────────────────────────────────────────────────── */}
       {isLoading ? (
         <div className="space-y-2">
           {[...Array(6)].map((_, i) => (
-            <div key={i} className="h-14 bg-[#0d1220] rounded-xl border border-[#1e2d42] animate-pulse" />
+            <div key={i} className="h-14 bg-falcon-surface rounded-xl border border-falcon-border animate-pulse" />
           ))}
         </div>
       ) : isError ? (
-        <div className="text-center py-16 bg-[#0d1220] rounded-xl border border-[#1e2d42]">
-          <AlertTriangle className="w-10 h-10 text-[#e8002d] mx-auto mb-3" />
-          <p className="text-[#7d92b0] text-sm">データの取得に失敗しました</p>
+        <div className="text-center py-16 bg-falcon-surface rounded-xl border border-falcon-border">
+          <AlertTriangle className="w-10 h-10 text-falcon-red mx-auto mb-3" />
+          <p className="text-falcon-muted text-sm">データの取得に失敗しました</p>
           <button
             onClick={() => qc.invalidateQueries({ queryKey: ['yara'] })}
-            className="mt-3 text-xs text-[#e8002d] hover:underline"
+            className="mt-3 text-xs text-falcon-red hover:underline"
           >
             再試行
           </button>
         </div>
       ) : rules.length === 0 ? (
-        <div className="text-center py-16 bg-[#0d1220] rounded-xl border border-[#1e2d42]">
-          <FileCode className="w-10 h-10 text-[#1e2d42] mx-auto mb-3" />
-          <p className="text-[#7d92b0] text-sm">
+        <div className="text-center py-16 bg-falcon-surface rounded-xl border border-falcon-border">
+          <FileCode className="w-10 h-10 text-falcon-border mx-auto mb-3" />
+          <p className="text-falcon-muted text-sm">
             {search || categoryFilter || severityFilter
               ? '条件に一致するルールが見つかりません'
               : 'YARAルールがまだありません'}
@@ -984,7 +984,7 @@ export default function YARAPage() {
           {!search && !categoryFilter && !severityFilter && canWrite && (
             <button
               onClick={openCreate}
-              className="mt-4 flex items-center gap-1.5 mx-auto px-4 py-2 text-sm bg-[#e8002d] hover:bg-[#c8001f] text-white rounded-lg transition-colors"
+              className="mt-4 flex items-center gap-1.5 mx-auto px-4 py-2 text-sm bg-falcon-red hover:bg-[#c8001f] text-white rounded-lg transition-colors"
             >
               <Plus className="w-4 h-4" />
               最初のルールを追加
@@ -992,18 +992,18 @@ export default function YARAPage() {
           )}
         </div>
       ) : (
-        <div className="bg-[#0d1220] rounded-xl border border-[#1e2d42] overflow-hidden">
+        <div className="bg-falcon-surface rounded-xl border border-falcon-border overflow-hidden">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-[#1e2d42] bg-[#070d19]/60">
-                <th className="text-left px-4 py-3 text-xs text-[#7d92b0] font-medium uppercase tracking-wide w-6" />
-                <th className="text-left px-4 py-3 text-xs text-[#7d92b0] font-medium uppercase tracking-wide">名前</th>
-                <th className="text-left px-4 py-3 text-xs text-[#7d92b0] font-medium uppercase tracking-wide">カテゴリ</th>
-                <th className="text-left px-4 py-3 text-xs text-[#7d92b0] font-medium uppercase tracking-wide">重大度</th>
-                <th className="text-left px-4 py-3 text-xs text-[#7d92b0] font-medium uppercase tracking-wide">マッチ数</th>
-                <th className="text-left px-4 py-3 text-xs text-[#7d92b0] font-medium uppercase tracking-wide">最終マッチ</th>
-                <th className="text-center px-4 py-3 text-xs text-[#7d92b0] font-medium uppercase tracking-wide">有効/無効</th>
-                <th className="text-center px-4 py-3 text-xs text-[#7d92b0] font-medium uppercase tracking-wide">アクション</th>
+              <tr className="border-b border-falcon-border bg-[#070d19]/60">
+                <th className="text-left px-4 py-3 text-xs text-falcon-muted font-medium uppercase tracking-wide w-6" />
+                <th className="text-left px-4 py-3 text-xs text-falcon-muted font-medium uppercase tracking-wide">名前</th>
+                <th className="text-left px-4 py-3 text-xs text-falcon-muted font-medium uppercase tracking-wide">カテゴリ</th>
+                <th className="text-left px-4 py-3 text-xs text-falcon-muted font-medium uppercase tracking-wide">重大度</th>
+                <th className="text-left px-4 py-3 text-xs text-falcon-muted font-medium uppercase tracking-wide">マッチ数</th>
+                <th className="text-left px-4 py-3 text-xs text-falcon-muted font-medium uppercase tracking-wide">最終マッチ</th>
+                <th className="text-center px-4 py-3 text-xs text-falcon-muted font-medium uppercase tracking-wide">有効/無効</th>
+                <th className="text-center px-4 py-3 text-xs text-falcon-muted font-medium uppercase tracking-wide">アクション</th>
               </tr>
             </thead>
             <tbody>
@@ -1014,11 +1014,11 @@ export default function YARAPage() {
                     <tr
                       key={rule.id}
                       onClick={() => toggleRow(rule.id)}
-                      className={`border-b border-[#1e2d42]/60 hover:bg-[#161f33]/50 transition-colors cursor-pointer
+                      className={`border-b border-falcon-border/60 hover:bg-falcon-raised/50 transition-colors cursor-pointer
                                   ${!rule.enabled ? 'opacity-60' : ''}`}
                     >
                       {/* Expand icon */}
-                      <td className="px-3 py-3.5 text-[#3d5068]">
+                      <td className="px-3 py-3.5 text-falcon-subtle">
                         {isExpanded
                           ? <ChevronDown className="w-3.5 h-3.5" />
                           : <ChevronRight className="w-3.5 h-3.5" />}
@@ -1028,7 +1028,7 @@ export default function YARAPage() {
                       <td className="px-4 py-3.5">
                         <div className="font-medium text-sm text-white">{rule.name}</div>
                         {rule.description && (
-                          <div className="text-xs text-[#7d92b0] mt-0.5 truncate max-w-xs">{rule.description}</div>
+                          <div className="text-xs text-falcon-muted mt-0.5 truncate max-w-xs">{rule.description}</div>
                         )}
                       </td>
 
@@ -1045,16 +1045,16 @@ export default function YARAPage() {
                       {/* Match count */}
                       <td className="px-4 py-3.5">
                         {rule.match_count > 0 ? (
-                          <span className="text-[#e8002d] font-medium text-sm">
+                          <span className="text-falcon-red font-medium text-sm">
                             {(rule.match_count ?? 0).toLocaleString()}
                           </span>
                         ) : (
-                          <span className="text-[#3d5068] text-sm">0</span>
+                          <span className="text-falcon-subtle text-sm">0</span>
                         )}
                       </td>
 
                       {/* Last matched */}
-                      <td className="px-4 py-3.5 text-xs text-[#3d5068]">
+                      <td className="px-4 py-3.5 text-xs text-falcon-subtle">
                         {rule.last_matched
                           ? new Date(rule.last_matched).toLocaleString('ja-JP')
                           : '—'}
@@ -1072,7 +1072,7 @@ export default function YARAPage() {
                             {rule.enabled ? (
                               <ToggleRight className="w-6 h-6 text-green-400" />
                             ) : (
-                              <ToggleLeft className="w-6 h-6 text-[#3d5068]" />
+                              <ToggleLeft className="w-6 h-6 text-falcon-subtle" />
                             )}
                           </button>
                         ) : (
@@ -1080,7 +1080,7 @@ export default function YARAPage() {
                             {rule.enabled ? (
                               <ToggleRight className="w-6 h-6 text-green-400" />
                             ) : (
-                              <ToggleLeft className="w-6 h-6 text-[#3d5068]" />
+                              <ToggleLeft className="w-6 h-6 text-falcon-subtle" />
                             )}
                           </span>
                         )}
@@ -1091,7 +1091,7 @@ export default function YARAPage() {
                         <div className="flex items-center justify-center gap-2" onClick={e => e.stopPropagation()}>
                           <button
                             onClick={() => setDetailRule(rule)}
-                            className="text-[#3d5068] hover:text-[#7d92b0] transition-colors"
+                            className="text-falcon-subtle hover:text-falcon-muted transition-colors"
                             title="詳細を見る"
                           >
                             <Eye className="w-4 h-4" />
@@ -1099,7 +1099,7 @@ export default function YARAPage() {
                           {canWrite && (
                             <button
                               onClick={e => openEdit(rule, e)}
-                              className="text-[#3d5068] hover:text-[#e8002d] transition-colors"
+                              className="text-falcon-subtle hover:text-falcon-red transition-colors"
                               title="編集"
                             >
                               <FileCode className="w-4 h-4" />
@@ -1108,7 +1108,7 @@ export default function YARAPage() {
                           {canWrite && (
                             <button
                               onClick={() => setDeleteTarget(rule)}
-                              className="text-[#3d5068] hover:text-red-400 transition-colors"
+                              className="text-falcon-subtle hover:text-red-400 transition-colors"
                               title="削除"
                             >
                               <Trash2 className="w-4 h-4" />
@@ -1120,20 +1120,20 @@ export default function YARAPage() {
 
                     {/* Expanded row — inline YARA preview */}
                     {isExpanded && (
-                      <tr key={`${rule.id}-expanded`} className="bg-[#070d19]/80 border-b border-[#1e2d42]/60">
+                      <tr key={`${rule.id}-expanded`} className="bg-[#070d19]/80 border-b border-falcon-border/60">
                         <td colSpan={8} className="px-6 py-4">
                           <div className="flex items-center gap-2 mb-2">
-                            <Code2 className="w-3.5 h-3.5 text-[#7d92b0]" />
-                            <span className="text-xs text-[#7d92b0] font-medium">YARAルール内容</span>
+                            <Code2 className="w-3.5 h-3.5 text-falcon-muted" />
+                            <span className="text-xs text-falcon-muted font-medium">YARAルール内容</span>
                             <button
                               onClick={() => setDetailRule(rule)}
-                              className="ml-auto text-xs text-[#e8002d] hover:underline flex items-center gap-1"
+                              className="ml-auto text-xs text-falcon-red hover:underline flex items-center gap-1"
                             >
                               <Eye className="w-3 h-3" />
                               詳細 / テスト
                             </button>
                           </div>
-                          <pre className="text-xs font-mono text-[#a8c0e0] bg-[#0d1220] border border-[#1e2d42] rounded-lg p-3 overflow-x-auto leading-relaxed whitespace-pre max-h-48 overflow-y-auto">
+                          <pre className="text-xs font-mono text-[#a8c0e0] bg-falcon-surface border border-falcon-border rounded-lg p-3 overflow-x-auto leading-relaxed whitespace-pre max-h-48 overflow-y-auto">
                             {rule.content}
                           </pre>
                         </td>

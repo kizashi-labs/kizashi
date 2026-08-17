@@ -134,73 +134,73 @@ function ExerciseModal({ onClose, onSave, saving }: {
   const setObjective = (i: number, v: string) => setForm(f => ({ ...f, objectives: f.objectives.map((o, idx) => idx === i ? v : o) }))
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl w-full max-w-2xl mx-4 shadow-2xl max-h-[90vh] flex flex-col">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[#1e2d42] flex-shrink-0">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs">
+      <div className="bg-falcon-surface border border-falcon-border rounded-xl w-full max-w-2xl mx-4 shadow-2xl max-h-[90vh] flex flex-col">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-falcon-border shrink-0">
           <h2 className="text-white font-semibold">新規演習作成</h2>
-          <button onClick={onClose} className="text-[#7d92b0] hover:text-white"><X className="w-5 h-5" /></button>
+          <button onClick={onClose} className="text-falcon-muted hover:text-white"><X className="w-5 h-5" /></button>
         </div>
         <div className="overflow-y-auto flex-1 px-6 py-5 space-y-4">
           <div>
-            <label className="block text-xs text-[#7d92b0] mb-1.5">演習名 *</label>
+            <label className="block text-xs text-falcon-muted mb-1.5">演習名 *</label>
             <input value={form.name} onChange={e => set('name', e.target.value)}
-              className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[#e8002d]/50"
+              className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-red/50"
               placeholder="2026年Q2 フルレッドチーム演習" />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs text-[#7d92b0] mb-1.5">演習タイプ</label>
+              <label className="block text-xs text-falcon-muted mb-1.5">演習タイプ</label>
               <select value={form.exercise_type} onChange={e => set('exercise_type', e.target.value as ExerciseType)}
-                className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[#e8002d]/50">
+                className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-red/50">
                 {(Object.entries(EXERCISE_TYPE_STYLES) as [ExerciseType, { label: string }][]).map(([k, v]) => (
                   <option key={k} value={k}>{v.label}</option>
                 ))}
               </select>
             </div>
             <div>
-              <label className="block text-xs text-[#7d92b0] mb-1.5">レッドチームリード</label>
+              <label className="block text-xs text-falcon-muted mb-1.5">レッドチームリード</label>
               <input value={form.red_team_lead} onChange={e => set('red_team_lead', e.target.value)}
-                className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[#e8002d]/50"
+                className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-red/50"
                 placeholder="氏名 (会社名)" />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs text-[#7d92b0] mb-1.5">開始日</label>
+              <label className="block text-xs text-falcon-muted mb-1.5">開始日</label>
               <input type="date" value={form.start_date} onChange={e => set('start_date', e.target.value)}
-                className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[#e8002d]/50" />
+                className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-red/50" />
             </div>
             <div>
-              <label className="block text-xs text-[#7d92b0] mb-1.5">終了日</label>
+              <label className="block text-xs text-falcon-muted mb-1.5">終了日</label>
               <input type="date" value={form.end_date} onChange={e => set('end_date', e.target.value)}
-                className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[#e8002d]/50" />
+                className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-red/50" />
             </div>
           </div>
           <div>
-            <label className="block text-xs text-[#7d92b0] mb-1.5">スコープ</label>
+            <label className="block text-xs text-falcon-muted mb-1.5">スコープ</label>
             <textarea value={form.scope} onChange={e => set('scope', e.target.value)} rows={2}
-              className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[#e8002d]/50 resize-none"
+              className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-red/50 resize-none"
               placeholder="対象システム、ネットワークレンジ、アプリケーション" />
           </div>
           <div>
-            <label className="block text-xs text-[#7d92b0] mb-1.5">交戦規定 (Rules of Engagement)</label>
+            <label className="block text-xs text-falcon-muted mb-1.5">交戦規定 (Rules of Engagement)</label>
             <textarea value={form.rules_of_engagement} onChange={e => set('rules_of_engagement', e.target.value)} rows={2}
-              className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[#e8002d]/50 resize-none"
+              className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-red/50 resize-none"
               placeholder="禁止手法、緊急連絡手順など" />
           </div>
           <div>
             <div className="flex items-center justify-between mb-1.5">
-              <label className="text-xs text-[#7d92b0]">目標</label>
-              <button onClick={addObjective} className="text-xs text-[#e8002d] hover:text-red-300 transition-colors">+ 追加</button>
+              <label className="text-xs text-falcon-muted">目標</label>
+              <button onClick={addObjective} className="text-xs text-falcon-red hover:text-red-300 transition-colors">+ 追加</button>
             </div>
             <div className="space-y-2">
               {form.objectives.map((obj, i) => (
                 <div key={i} className="flex gap-2">
                   <input value={obj} onChange={e => setObjective(i, e.target.value)}
-                    className="flex-1 bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[#e8002d]/50"
+                    className="flex-1 bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-red/50"
                     placeholder={`目標 ${i + 1}`} />
                   {form.objectives.length > 1 && (
-                    <button onClick={() => removeObjective(i)} className="p-2 rounded-lg hover:bg-red-900/30 text-[#7d92b0] hover:text-red-400 transition-colors">
+                    <button onClick={() => removeObjective(i)} className="p-2 rounded-lg hover:bg-red-900/30 text-falcon-muted hover:text-red-400 transition-colors">
                       <X className="w-3.5 h-3.5" />
                     </button>
                   )}
@@ -210,14 +210,14 @@ function ExerciseModal({ onClose, onSave, saving }: {
           </div>
           <div className="flex items-center gap-2">
             <input type="checkbox" id="is_blind" checked={form.is_blind} onChange={e => set('is_blind', e.target.checked)}
-              className="rounded border-[#1e2d42] bg-[#070d19]" />
-            <label htmlFor="is_blind" className="text-sm text-[#7d92b0]">ブラインド演習 (ブルーチームへの事前通知なし)</label>
+              className="rounded-sm border-falcon-border bg-[#070d19]" />
+            <label htmlFor="is_blind" className="text-sm text-falcon-muted">ブラインド演習 (ブルーチームへの事前通知なし)</label>
           </div>
         </div>
-        <div className="flex justify-end gap-3 px-6 py-4 border-t border-[#1e2d42] flex-shrink-0">
-          <button onClick={onClose} className="px-4 py-2 rounded-lg border border-[#1e2d42] text-[#7d92b0] hover:text-white text-sm transition-colors">キャンセル</button>
+        <div className="flex justify-end gap-3 px-6 py-4 border-t border-falcon-border shrink-0">
+          <button onClick={onClose} className="px-4 py-2 rounded-lg border border-falcon-border text-falcon-muted hover:text-white text-sm transition-colors">キャンセル</button>
           <button onClick={() => onSave(form)} disabled={saving || !form.name}
-            className="px-4 py-2 rounded-lg bg-[#e8002d] hover:bg-[#c0001f] text-white text-sm font-medium transition-colors disabled:opacity-50 flex items-center gap-2">
+            className="px-4 py-2 rounded-lg bg-falcon-red hover:bg-[#c0001f] text-white text-sm font-medium transition-colors disabled:opacity-50 flex items-center gap-2">
             {saving && <Loader2 className="w-3.5 h-3.5 animate-spin" />}作成
           </button>
         </div>
@@ -238,9 +238,9 @@ function ExerciseSlideOver({ exercise, onClose }: { exercise: Exercise; onClose:
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end" onClick={onClose}>
-      <div className="bg-[#0d1220] border-l border-[#1e2d42] w-full max-w-xl h-full flex flex-col overflow-hidden shadow-2xl"
+      <div className="bg-falcon-surface border-l border-falcon-border w-full max-w-xl h-full flex flex-col overflow-hidden shadow-2xl"
         onClick={e => e.stopPropagation()}>
-        <div className="flex items-start justify-between px-6 py-4 border-b border-[#1e2d42] flex-shrink-0">
+        <div className="flex items-start justify-between px-6 py-4 border-b border-falcon-border shrink-0">
           <div>
             <div className="flex items-center gap-2 mb-1">
               <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs border font-medium ${EXERCISE_TYPE_STYLES[exercise.exercise_type].cls}`}>
@@ -252,7 +252,7 @@ function ExerciseSlideOver({ exercise, onClose }: { exercise: Exercise; onClose:
             </div>
             <h2 className="text-white font-semibold text-base">{exercise.name}</h2>
           </div>
-          <button onClick={onClose} className="text-[#7d92b0] hover:text-white flex-shrink-0"><X className="w-5 h-5" /></button>
+          <button onClick={onClose} className="text-falcon-muted hover:text-white shrink-0"><X className="w-5 h-5" /></button>
         </div>
         <div className="overflow-y-auto flex-1 px-6 py-5 space-y-5">
           <div className="grid grid-cols-2 gap-3">
@@ -262,8 +262,8 @@ function ExerciseSlideOver({ exercise, onClose }: { exercise: Exercise; onClose:
               { label: '開始日', value: exercise.start_date },
               { label: '終了日', value: exercise.end_date },
             ].map(({ label, value }) => (
-              <div key={label} className="bg-[#070d19] border border-[#1e2d42] rounded-lg p-3">
-                <p className="text-xs text-[#7d92b0] mb-1">{label}</p>
+              <div key={label} className="bg-[#070d19] border border-falcon-border rounded-lg p-3">
+                <p className="text-xs text-falcon-muted mb-1">{label}</p>
                 <p className="text-sm text-white">{value}</p>
               </div>
             ))}
@@ -271,31 +271,31 @@ function ExerciseSlideOver({ exercise, onClose }: { exercise: Exercise; onClose:
 
           {/* Phase Stepper */}
           <div>
-            <p className="text-xs font-medium text-[#7d92b0] mb-3">フェーズ進捗</p>
+            <p className="text-xs font-medium text-falcon-muted mb-3">フェーズ進捗</p>
             <div className="space-y-3">
               {mockPhases.map((p, i) => {
                 const isDone = i < phaseIndex
                 const isCurrent = i === phaseIndex
                 return (
                   <div key={p.phase} className="flex gap-3">
-                    <div className="flex flex-col items-center flex-shrink-0">
+                    <div className="flex flex-col items-center shrink-0">
                       <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
-                        isDone ? 'bg-green-500 text-white' : isCurrent ? 'bg-[#e8002d] text-white' : 'bg-[#070d19] border border-[#1e2d42] text-[#3d5068]'
+                        isDone ? 'bg-green-500 text-white' : isCurrent ? 'bg-falcon-red text-white' : 'bg-[#070d19] border border-falcon-border text-falcon-subtle'
                       }`}>
                         {isDone ? '✓' : i + 1}
                       </div>
                       {i < PHASES.length - 1 && (
-                        <div className={`w-0.5 h-6 mt-1 ${isDone ? 'bg-green-500/50' : 'bg-[#1e2d42]'}`} />
+                        <div className={`w-0.5 h-6 mt-1 ${isDone ? 'bg-green-500/50' : 'bg-falcon-border'}`} />
                       )}
                     </div>
                     <div className="flex-1 pb-3">
                       <div className="flex items-center gap-2">
-                        <p className={`text-sm font-medium ${isDone ? 'text-green-400' : isCurrent ? 'text-[#e8002d]' : 'text-[#3d5068]'}`}>
+                        <p className={`text-sm font-medium ${isDone ? 'text-green-400' : isCurrent ? 'text-falcon-red' : 'text-falcon-subtle'}`}>
                           {PHASE_LABELS[p.phase]}
                         </p>
-                        {p.date && <span className="text-xs text-[#3d5068]">{p.date}</span>}
+                        {p.date && <span className="text-xs text-falcon-subtle">{p.date}</span>}
                       </div>
-                      {p.date && <p className="text-xs text-[#7d92b0] mt-0.5">{p.notes}</p>}
+                      {p.date && <p className="text-xs text-falcon-muted mt-0.5">{p.notes}</p>}
                     </div>
                   </div>
                 )
@@ -305,17 +305,17 @@ function ExerciseSlideOver({ exercise, onClose }: { exercise: Exercise; onClose:
 
           {/* Scope */}
           <div>
-            <p className="text-xs font-medium text-[#7d92b0] mb-2">スコープ</p>
-            <div className="bg-[#070d19] border border-[#1e2d42] rounded-lg p-3 text-sm text-[#e2e8f4]">{exercise.scope}</div>
+            <p className="text-xs font-medium text-falcon-muted mb-2">スコープ</p>
+            <div className="bg-[#070d19] border border-falcon-border rounded-lg p-3 text-sm text-falcon-text">{exercise.scope}</div>
           </div>
 
           {/* Objectives */}
           <div>
-            <p className="text-xs font-medium text-[#7d92b0] mb-2">目標</p>
+            <p className="text-xs font-medium text-falcon-muted mb-2">目標</p>
             <div className="space-y-1">
               {exercise.objectives.map((obj, i) => (
-                <div key={i} className="flex items-start gap-2 text-sm text-[#e2e8f4]">
-                  <ChevronRight className="w-3.5 h-3.5 text-[#e8002d] mt-0.5 flex-shrink-0" />
+                <div key={i} className="flex items-start gap-2 text-sm text-falcon-text">
+                  <ChevronRight className="w-3.5 h-3.5 text-falcon-red mt-0.5 shrink-0" />
                   <span>{obj}</span>
                 </div>
               ))}
@@ -324,27 +324,27 @@ function ExerciseSlideOver({ exercise, onClose }: { exercise: Exercise; onClose:
 
           {/* Rules */}
           <div>
-            <p className="text-xs font-medium text-[#7d92b0] mb-2">交戦規定</p>
-            <div className="bg-[#070d19] border border-[#1e2d42] rounded-lg p-3 text-sm text-[#e2e8f4]">{exercise.rules_of_engagement}</div>
+            <p className="text-xs font-medium text-falcon-muted mb-2">交戦規定</p>
+            <div className="bg-[#070d19] border border-falcon-border rounded-lg p-3 text-sm text-falcon-text">{exercise.rules_of_engagement}</div>
           </div>
 
           {/* Deconfliction */}
           <div>
-            <p className="text-xs font-medium text-[#7d92b0] mb-2">デコンフリクション (要調整アクティビティ)</p>
+            <p className="text-xs font-medium text-falcon-muted mb-2">デコンフリクション (要調整アクティビティ)</p>
             <div className="space-y-2">
               {[
                 { time: '03/10 14:00', activity: 'C2ビーコン設置', status: '通知済み', note: 'SOC確認後に実施' },
                 { time: '03/13 11:00', activity: 'DCSync操作', status: '未通知', note: 'ブラインドテスト' },
                 { time: '03/16 10:00', activity: 'NTLM Relay', status: '未通知', note: 'ブラインドテスト' },
               ].map((item, i) => (
-                <div key={i} className="flex items-start gap-3 bg-[#070d19] border border-[#1e2d42] rounded-lg p-3">
+                <div key={i} className="flex items-start gap-3 bg-[#070d19] border border-falcon-border rounded-lg p-3">
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
-                      <span className="text-xs font-mono text-[#7d92b0]">{item.time}</span>
-                      <span className={`text-xs px-1.5 py-0.5 rounded ${item.status === '通知済み' ? 'bg-green-500/20 text-green-400' : 'bg-yellow-500/20 text-yellow-400'}`}>{item.status}</span>
+                      <span className="text-xs font-mono text-falcon-muted">{item.time}</span>
+                      <span className={`text-xs px-1.5 py-0.5 rounded-sm ${item.status === '通知済み' ? 'bg-green-500/20 text-green-400' : 'bg-yellow-500/20 text-yellow-400'}`}>{item.status}</span>
                     </div>
                     <p className="text-sm text-white mt-0.5">{item.activity}</p>
-                    <p className="text-xs text-[#7d92b0]">{item.note}</p>
+                    <p className="text-xs text-falcon-muted">{item.note}</p>
                   </div>
                 </div>
               ))}
@@ -364,12 +364,12 @@ function FindingDetailModal({ finding, onClose, onUpdate, updating }: {
   const [status, setStatus] = useState<FindingStatus>(finding.status)
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl w-full max-w-2xl mx-4 shadow-2xl max-h-[90vh] flex flex-col">
-        <div className="flex items-start justify-between px-6 py-4 border-b border-[#1e2d42] flex-shrink-0">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs">
+      <div className="bg-falcon-surface border border-falcon-border rounded-xl w-full max-w-2xl mx-4 shadow-2xl max-h-[90vh] flex flex-col">
+        <div className="flex items-start justify-between px-6 py-4 border-b border-falcon-border shrink-0">
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <span className="text-xs font-mono text-[#7d92b0]">{finding.finding_id}</span>
+              <span className="text-xs font-mono text-falcon-muted">{finding.finding_id}</span>
               <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs border font-medium ${FINDING_SEVERITY_STYLES[finding.severity].cls}`}>
                 {FINDING_SEVERITY_STYLES[finding.severity].label}
               </span>
@@ -379,68 +379,68 @@ function FindingDetailModal({ finding, onClose, onUpdate, updating }: {
             </div>
             <h2 className="text-white font-semibold text-base">{finding.title}</h2>
           </div>
-          <button onClick={onClose} className="text-[#7d92b0] hover:text-white flex-shrink-0"><X className="w-5 h-5" /></button>
+          <button onClick={onClose} className="text-falcon-muted hover:text-white shrink-0"><X className="w-5 h-5" /></button>
         </div>
         <div className="overflow-y-auto flex-1 px-6 py-5 space-y-4">
           <div className="grid grid-cols-2 gap-3">
-            <div className="bg-[#070d19] border border-[#1e2d42] rounded-lg p-3">
-              <p className="text-xs text-[#7d92b0] mb-1">MITRE ATT&CK</p>
+            <div className="bg-[#070d19] border border-falcon-border rounded-lg p-3">
+              <p className="text-xs text-falcon-muted mb-1">MITRE ATT&CK</p>
               <a href={`https://attack.mitre.org/techniques/${finding.attack_technique.replace('.', '/')}`}
                 target="_blank" rel="noopener noreferrer"
                 className="text-sm font-mono text-blue-400 hover:text-blue-300 transition-colors">
                 {finding.attack_technique}
               </a>
             </div>
-            <div className="bg-[#070d19] border border-[#1e2d42] rounded-lg p-3">
-              <p className="text-xs text-[#7d92b0] mb-1">滞在時間</p>
+            <div className="bg-[#070d19] border border-falcon-border rounded-lg p-3">
+              <p className="text-xs text-falcon-muted mb-1">滞在時間</p>
               <p className="text-sm text-white">{finding.dwell_time_hours}時間</p>
             </div>
           </div>
           <div>
-            <p className="text-xs font-medium text-[#7d92b0] mb-2">攻撃シナリオ</p>
-            <div className="bg-[#070d19] border border-[#1e2d42] rounded-lg p-3 text-sm text-[#e2e8f4] leading-relaxed">{finding.description}</div>
+            <p className="text-xs font-medium text-falcon-muted mb-2">攻撃シナリオ</p>
+            <div className="bg-[#070d19] border border-falcon-border rounded-lg p-3 text-sm text-falcon-text leading-relaxed">{finding.description}</div>
           </div>
           <div>
-            <p className="text-xs font-medium text-[#7d92b0] mb-2">タイムライン</p>
-            <div className="bg-[#070d19] border border-[#1e2d42] rounded-lg p-3 text-sm font-mono text-green-400">{finding.timeline}</div>
+            <p className="text-xs font-medium text-falcon-muted mb-2">タイムライン</p>
+            <div className="bg-[#070d19] border border-falcon-border rounded-lg p-3 text-sm font-mono text-green-400">{finding.timeline}</div>
           </div>
           <div>
-            <p className="text-xs font-medium text-[#7d92b0] mb-2">証拠 (モック)</p>
+            <p className="text-xs font-medium text-falcon-muted mb-2">証拠 (モック)</p>
             <div className="grid grid-cols-3 gap-2">
               {['screenshot_001.png', 'memory_dump.bin', 'network_capture.pcap'].map(f => (
-                <div key={f} className="bg-[#070d19] border border-[#1e2d42] rounded-lg p-2 flex items-center gap-2 cursor-pointer hover:border-[#7d92b0]/30 transition-colors">
-                  <FileText className="w-3.5 h-3.5 text-[#7d92b0] flex-shrink-0" />
-                  <span className="text-xs text-[#7d92b0] truncate">{f}</span>
+                <div key={f} className="bg-[#070d19] border border-falcon-border rounded-lg p-2 flex items-center gap-2 cursor-pointer hover:border-falcon-muted/30 transition-colors">
+                  <FileText className="w-3.5 h-3.5 text-falcon-muted shrink-0" />
+                  <span className="text-xs text-falcon-muted truncate">{f}</span>
                 </div>
               ))}
             </div>
           </div>
           <div>
-            <p className="text-xs font-medium text-[#7d92b0] mb-2">検知ギャップ分析</p>
-            <div className="bg-[#070d19] border border-yellow-500/20 rounded-lg p-3 text-sm text-[#e2e8f4]">
+            <p className="text-xs font-medium text-falcon-muted mb-2">検知ギャップ分析</p>
+            <div className="bg-[#070d19] border border-yellow-500/20 rounded-lg p-3 text-sm text-falcon-text">
               {finding.detection_status === 'missed' && '検知ルールが存在しないか、既存ルールが回避されました。SIEMへのルール追加とEDRの設定見直しが必要です。'}
               {finding.detection_status === 'partially_detected' && 'アラートは発生しましたが、適切に処理されませんでした。トリアージプロセスとSOCアナリストのトレーニング改善が必要です。'}
               {finding.detection_status === 'detected' && '検知が成功しました。しかし対応時間の短縮と自動化の改善余地があります。'}
             </div>
           </div>
           <div>
-            <p className="text-xs font-medium text-[#7d92b0] mb-2">推奨対策</p>
-            <div className="bg-[#070d19] border border-[#1e2d42] rounded-lg p-3 text-sm text-[#e2e8f4]">{finding.remediation}</div>
+            <p className="text-xs font-medium text-falcon-muted mb-2">推奨対策</p>
+            <div className="bg-[#070d19] border border-falcon-border rounded-lg p-3 text-sm text-falcon-text">{finding.remediation}</div>
           </div>
           <div>
-            <p className="text-xs font-medium text-[#7d92b0] mb-2">ステータス更新</p>
+            <p className="text-xs font-medium text-falcon-muted mb-2">ステータス更新</p>
             <select value={status} onChange={e => setStatus(e.target.value as FindingStatus)}
-              className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[#e8002d]/50">
+              className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-red/50">
               {(Object.entries(FINDING_STATUS_STYLES) as [FindingStatus, { label: string }][]).map(([k, v]) => (
                 <option key={k} value={k}>{v.label}</option>
               ))}
             </select>
           </div>
         </div>
-        <div className="flex justify-end gap-3 px-6 py-4 border-t border-[#1e2d42] flex-shrink-0">
-          <button onClick={onClose} className="px-4 py-2 rounded-lg border border-[#1e2d42] text-[#7d92b0] hover:text-white text-sm transition-colors">閉じる</button>
+        <div className="flex justify-end gap-3 px-6 py-4 border-t border-falcon-border shrink-0">
+          <button onClick={onClose} className="px-4 py-2 rounded-lg border border-falcon-border text-falcon-muted hover:text-white text-sm transition-colors">閉じる</button>
           <button onClick={() => onUpdate(finding.id, status)} disabled={updating}
-            className="px-4 py-2 rounded-lg bg-[#e8002d] hover:bg-[#c0001f] text-white text-sm font-medium transition-colors disabled:opacity-50 flex items-center gap-2">
+            className="px-4 py-2 rounded-lg bg-falcon-red hover:bg-[#c0001f] text-white text-sm font-medium transition-colors disabled:opacity-50 flex items-center gap-2">
             {updating && <Loader2 className="w-3.5 h-3.5 animate-spin" />}更新
           </button>
         </div>
@@ -467,37 +467,37 @@ function AddFindingModal({ exercises, onClose, onSave, saving }: {
   const set = (k: string, v: unknown) => setForm(f => ({ ...f, [k]: v }))
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl w-full max-w-xl mx-4 shadow-2xl max-h-[90vh] flex flex-col">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[#1e2d42] flex-shrink-0">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs">
+      <div className="bg-falcon-surface border border-falcon-border rounded-xl w-full max-w-xl mx-4 shadow-2xl max-h-[90vh] flex flex-col">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-falcon-border shrink-0">
           <h2 className="text-white font-semibold">所見追加</h2>
-          <button onClick={onClose} className="text-[#7d92b0] hover:text-white"><X className="w-5 h-5" /></button>
+          <button onClick={onClose} className="text-falcon-muted hover:text-white"><X className="w-5 h-5" /></button>
         </div>
         <div className="overflow-y-auto flex-1 px-6 py-5 space-y-4">
           <div>
-            <label className="block text-xs text-[#7d92b0] mb-1.5">演習</label>
+            <label className="block text-xs text-falcon-muted mb-1.5">演習</label>
             <select value={form.exercise_id} onChange={e => set('exercise_id', e.target.value)}
-              className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[#e8002d]/50">
+              className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-red/50">
               {exercises.map(ex => <option key={ex.id} value={ex.id}>{ex.name}</option>)}
             </select>
           </div>
           <div>
-            <label className="block text-xs text-[#7d92b0] mb-1.5">タイトル *</label>
+            <label className="block text-xs text-falcon-muted mb-1.5">タイトル *</label>
             <input value={form.title} onChange={e => set('title', e.target.value)}
-              className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[#e8002d]/50"
+              className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-red/50"
               placeholder="発見事項のタイトル" />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs text-[#7d92b0] mb-1.5">MITRE ATT&CK ID</label>
+              <label className="block text-xs text-falcon-muted mb-1.5">MITRE ATT&CK ID</label>
               <input value={form.attack_technique} onChange={e => set('attack_technique', e.target.value)}
-                className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm font-mono focus:outline-none focus:border-[#e8002d]/50"
+                className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm font-mono focus:outline-hidden focus:border-falcon-red/50"
                 placeholder="T1558.003" />
             </div>
             <div>
-              <label className="block text-xs text-[#7d92b0] mb-1.5">重大度</label>
+              <label className="block text-xs text-falcon-muted mb-1.5">重大度</label>
               <select value={form.severity} onChange={e => set('severity', e.target.value as FindingSeverity)}
-                className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[#e8002d]/50">
+                className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-red/50">
                 {(Object.entries(FINDING_SEVERITY_STYLES) as [FindingSeverity, { label: string }][]).map(([k, v]) => (
                   <option key={k} value={k}>{v.label}</option>
                 ))}
@@ -506,37 +506,37 @@ function AddFindingModal({ exercises, onClose, onSave, saving }: {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs text-[#7d92b0] mb-1.5">検知状況</label>
+              <label className="block text-xs text-falcon-muted mb-1.5">検知状況</label>
               <select value={form.detection_status} onChange={e => set('detection_status', e.target.value as DetectionStatus)}
-                className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[#e8002d]/50">
+                className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-red/50">
                 {(Object.entries(DETECTION_STATUS_STYLES) as [DetectionStatus, { label: string }][]).map(([k, v]) => (
                   <option key={k} value={k}>{v.label}</option>
                 ))}
               </select>
             </div>
             <div>
-              <label className="block text-xs text-[#7d92b0] mb-1.5">滞在時間 (時間)</label>
+              <label className="block text-xs text-falcon-muted mb-1.5">滞在時間 (時間)</label>
               <input type="number" value={form.dwell_time_hours} onChange={e => set('dwell_time_hours', parseInt(e.target.value))} min={0}
-                className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[#e8002d]/50" />
+                className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-red/50" />
             </div>
           </div>
           <div>
-            <label className="block text-xs text-[#7d92b0] mb-1.5">説明</label>
+            <label className="block text-xs text-falcon-muted mb-1.5">説明</label>
             <textarea value={form.description} onChange={e => set('description', e.target.value)} rows={3}
-              className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[#e8002d]/50 resize-none"
+              className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-red/50 resize-none"
               placeholder="攻撃シナリオの詳細説明" />
           </div>
           <div>
-            <label className="block text-xs text-[#7d92b0] mb-1.5">推奨修正</label>
+            <label className="block text-xs text-falcon-muted mb-1.5">推奨修正</label>
             <textarea value={form.remediation} onChange={e => set('remediation', e.target.value)} rows={2}
-              className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[#e8002d]/50 resize-none"
+              className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-red/50 resize-none"
               placeholder="具体的な改善手順" />
           </div>
         </div>
-        <div className="flex justify-end gap-3 px-6 py-4 border-t border-[#1e2d42] flex-shrink-0">
-          <button onClick={onClose} className="px-4 py-2 rounded-lg border border-[#1e2d42] text-[#7d92b0] hover:text-white text-sm transition-colors">キャンセル</button>
+        <div className="flex justify-end gap-3 px-6 py-4 border-t border-falcon-border shrink-0">
+          <button onClick={onClose} className="px-4 py-2 rounded-lg border border-falcon-border text-falcon-muted hover:text-white text-sm transition-colors">キャンセル</button>
           <button onClick={() => onSave(form)} disabled={saving || !form.title}
-            className="px-4 py-2 rounded-lg bg-[#e8002d] hover:bg-[#c0001f] text-white text-sm font-medium transition-colors disabled:opacity-50 flex items-center gap-2">
+            className="px-4 py-2 rounded-lg bg-falcon-red hover:bg-[#c0001f] text-white text-sm font-medium transition-colors disabled:opacity-50 flex items-center gap-2">
             {saving && <Loader2 className="w-3.5 h-3.5 animate-spin" />}追加
           </button>
         </div>
@@ -653,16 +653,16 @@ export default function RedTeamPage() {
       {/* Header */}
       <div className="flex items-start justify-between mb-6">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-lg bg-[#e8002d]/20 border border-[#e8002d]/30 flex items-center justify-center">
-            <Target className="w-5 h-5 text-[#e8002d]" />
+          <div className="w-9 h-9 rounded-lg bg-falcon-red/20 border border-falcon-red/30 flex items-center justify-center">
+            <Target className="w-5 h-5 text-falcon-red" />
           </div>
           <div>
             <h1 className="text-2xl font-bold text-white">レッドチーム演習管理</h1>
-            <p className="text-sm text-[#7d92b0]">レッドチーム演習の管理と所見追跡</p>
+            <p className="text-sm text-falcon-muted">レッドチーム演習の管理と所見追跡</p>
           </div>
         </div>
         <button onClick={handleGenerateReport}
-          className="flex items-center gap-2 px-3 py-2 rounded-lg border border-[#1e2d42] text-[#7d92b0] hover:text-white text-sm transition-colors">
+          className="flex items-center gap-2 px-3 py-2 rounded-lg border border-falcon-border text-falcon-muted hover:text-white text-sm transition-colors">
           <Download className="w-4 h-4" />
           レポート生成
         </button>
@@ -670,7 +670,7 @@ export default function RedTeamPage() {
 
       {/* Active Exercise Summary */}
       {activeExercise && (
-        <div className="bg-[#0d1220] border border-yellow-500/30 rounded-xl p-4 mb-6">
+        <div className="bg-falcon-surface border border-yellow-500/30 rounded-xl p-4 mb-6">
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-3">
               <div className="w-2 h-2 rounded-full bg-yellow-400 animate-pulse mt-1" />
@@ -682,19 +682,19 @@ export default function RedTeamPage() {
             <div className="flex items-center gap-6 text-sm">
               <div className="text-center">
                 <p className="text-2xl font-bold text-white">{activeExercise.days_running}</p>
-                <p className="text-xs text-[#7d92b0]">実施日数</p>
+                <p className="text-xs text-falcon-muted">実施日数</p>
               </div>
               <div className="text-center">
-                <p className="text-2xl font-bold text-[#e8002d]">{activeExercise.findings_count}</p>
-                <p className="text-xs text-[#7d92b0]">所見数</p>
+                <p className="text-2xl font-bold text-falcon-red">{activeExercise.findings_count}</p>
+                <p className="text-xs text-falcon-muted">所見数</p>
               </div>
               <div className="text-center">
                 <p className="text-2xl font-bold text-yellow-400">{PHASE_LABELS[activeExercise.current_phase]}</p>
-                <p className="text-xs text-[#7d92b0]">現在フェーズ</p>
+                <p className="text-xs text-falcon-muted">現在フェーズ</p>
               </div>
               <div className="text-center">
                 <p className="text-2xl font-bold text-white">{activeExercise.is_blind ? '非通知' : '通知済'}</p>
-                <p className="text-xs text-[#7d92b0]">ブルーチーム</p>
+                <p className="text-xs text-falcon-muted">ブルーチーム</p>
               </div>
             </div>
           </div>
@@ -702,11 +702,11 @@ export default function RedTeamPage() {
       )}
 
       {/* Tabs */}
-      <div className="flex gap-1 mb-6 bg-[#0d1220] border border-[#1e2d42] rounded-lg p-1 w-fit">
+      <div className="flex gap-1 mb-6 bg-falcon-surface border border-falcon-border rounded-lg p-1 w-fit">
         {(['exercises', 'findings'] as const).map(tab => (
           <button key={tab} onClick={() => setActiveTab(tab)}
             className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-150 ${
-              activeTab === tab ? 'bg-[#1e2d42] text-white' : 'text-[#7d92b0] hover:text-white'
+              activeTab === tab ? 'bg-falcon-border text-white' : 'text-falcon-muted hover:text-white'
             }`}>
             {tab === 'exercises' ? '演習管理' : `所見・報告 (${findings.length})`}
           </button>
@@ -718,7 +718,7 @@ export default function RedTeamPage() {
         <div className="space-y-4">
           <div className="flex justify-end">
             <button onClick={() => setShowExerciseModal(true)}
-              className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#e8002d] hover:bg-[#c0001f] text-white text-sm font-medium transition-colors">
+              className="flex items-center gap-2 px-3 py-2 rounded-lg bg-falcon-red hover:bg-[#c0001f] text-white text-sm font-medium transition-colors">
               <Plus className="w-4 h-4" />
               新規演習作成
             </button>
@@ -726,7 +726,7 @@ export default function RedTeamPage() {
 
           <div className="space-y-4">
             {exercises.map(ex => (
-              <div key={ex.id} className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-4 hover:border-[#7d92b0]/30 transition-all">
+              <div key={ex.id} className="bg-falcon-surface border border-falcon-border rounded-xl p-4 hover:border-falcon-muted/30 transition-all">
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1.5 flex-wrap">
@@ -748,39 +748,39 @@ export default function RedTeamPage() {
                     </div>
                     <h3 className="text-base font-semibold text-white mb-1">{ex.name}</h3>
                   </div>
-                  <div className="flex items-center gap-1 flex-shrink-0">
+                  <div className="flex items-center gap-1 shrink-0">
                     <button onClick={() => setSlideOverExercise(ex)}
-                      className="px-3 py-1.5 rounded-lg text-xs bg-[#1e2d42] hover:bg-[#2a3a52] text-white transition-colors">
+                      className="px-3 py-1.5 rounded-lg text-xs bg-falcon-border hover:bg-[#2a3a52] text-white transition-colors">
                       詳細
                     </button>
                     <button onClick={() => deleteExerciseMutation.mutate(ex.id)}
-                      className="p-1.5 rounded hover:bg-red-900/30 text-[#7d92b0] hover:text-red-400 transition-colors">
+                      className="p-1.5 rounded-sm hover:bg-red-900/30 text-falcon-muted hover:text-red-400 transition-colors">
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-4 gap-3 mb-3">
-                  <div className="flex items-center gap-1.5 text-xs text-[#7d92b0]">
-                    <Users className="w-3.5 h-3.5 flex-shrink-0" />
+                  <div className="flex items-center gap-1.5 text-xs text-falcon-muted">
+                    <Users className="w-3.5 h-3.5 shrink-0" />
                     <span className="truncate">{ex.red_team_lead}</span>
                   </div>
-                  <div className="flex items-center gap-1.5 text-xs text-[#7d92b0]">
-                    <Calendar className="w-3.5 h-3.5 flex-shrink-0" />
+                  <div className="flex items-center gap-1.5 text-xs text-falcon-muted">
+                    <Calendar className="w-3.5 h-3.5 shrink-0" />
                     <span>{ex.start_date} 〜 {ex.end_date}</span>
                   </div>
-                  <div className="flex items-center gap-1.5 text-xs text-[#7d92b0]">
-                    <Clock className="w-3.5 h-3.5 flex-shrink-0" />
+                  <div className="flex items-center gap-1.5 text-xs text-falcon-muted">
+                    <Clock className="w-3.5 h-3.5 shrink-0" />
                     <span>現在: {PHASE_LABELS[ex.current_phase]}</span>
                   </div>
                   <div className="flex items-center gap-1.5 text-xs">
-                    <AlertTriangle className="w-3.5 h-3.5 text-[#e8002d] flex-shrink-0" />
+                    <AlertTriangle className="w-3.5 h-3.5 text-falcon-red shrink-0" />
                     <span className="text-white font-semibold">{ex.findings_count}</span>
-                    <span className="text-[#7d92b0]">所見</span>
+                    <span className="text-falcon-muted">所見</span>
                   </div>
                 </div>
 
-                <p className="text-xs text-[#7d92b0] line-clamp-1">{ex.scope}</p>
+                <p className="text-xs text-falcon-muted line-clamp-1">{ex.scope}</p>
               </div>
             ))}
           </div>
@@ -798,15 +798,15 @@ export default function RedTeamPage() {
               { label: '平均滞在時間', value: `${avgDwell}h`, color: '#f97316' },
               { label: '対処済み', value: findings.filter(f => f.status === 'remediated').length, color: '#22c55e' },
             ].map(({ label, value, color }) => (
-              <div key={label} className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-4">
-                <p className="text-xs text-[#7d92b0] mb-1">{label}</p>
+              <div key={label} className="bg-falcon-surface border border-falcon-border rounded-xl p-4">
+                <p className="text-xs text-falcon-muted mb-1">{label}</p>
                 <p className="text-2xl font-bold" style={{ color }}>{value}</p>
               </div>
             ))}
           </div>
 
           {/* MITRE Heatmap */}
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-4">
+          <div className="bg-falcon-surface border border-falcon-border rounded-xl p-4">
             <p className="text-sm font-semibold text-white mb-3">MITRE ATT&CK 検知ヒートマップ (タクティクス別)</p>
             <div className="grid grid-cols-5 gap-2">
               {MITRE_TACTICS.map(tactic => {
@@ -833,59 +833,59 @@ export default function RedTeamPage() {
           {/* Filters + Table */}
           <div className="flex flex-wrap items-center gap-3">
             <div className="relative flex-1 min-w-[200px] max-w-xs">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#7d92b0]" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-falcon-muted" />
               <input value={findingSearch} onChange={e => setFindingSearch(e.target.value)}
                 placeholder="所見を検索..."
-                className="w-full bg-[#0d1220] border border-[#1e2d42] rounded-lg pl-9 pr-3 py-2 text-white text-sm focus:outline-none focus:border-[#e8002d]/50" />
+                className="w-full bg-falcon-surface border border-falcon-border rounded-lg pl-9 pr-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-red/50" />
             </div>
             <select value={exerciseFilter} onChange={e => setExerciseFilter(e.target.value)}
-              className="bg-[#0d1220] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm focus:outline-none">
+              className="bg-falcon-surface border border-falcon-border rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden">
               <option value="all">全演習</option>
               {exercises.map(ex => <option key={ex.id} value={ex.id}>{ex.name}</option>)}
             </select>
             <select value={severityFilter} onChange={e => setSeverityFilter(e.target.value as FindingSeverity | 'all')}
-              className="bg-[#0d1220] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm focus:outline-none">
+              className="bg-falcon-surface border border-falcon-border rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden">
               <option value="all">全重大度</option>
               {(Object.entries(FINDING_SEVERITY_STYLES) as [FindingSeverity, { label: string }][]).map(([k, v]) => (
                 <option key={k} value={k}>{v.label}</option>
               ))}
             </select>
             <select value={detectionFilter} onChange={e => setDetectionFilter(e.target.value as DetectionStatus | 'all')}
-              className="bg-[#0d1220] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm focus:outline-none">
+              className="bg-falcon-surface border border-falcon-border rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden">
               <option value="all">全検知状況</option>
               {(Object.entries(DETECTION_STATUS_STYLES) as [DetectionStatus, { label: string }][]).map(([k, v]) => (
                 <option key={k} value={k}>{v.label}</option>
               ))}
             </select>
             <button onClick={() => setShowFindingModal(true)}
-              className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#e8002d] hover:bg-[#c0001f] text-white text-sm font-medium transition-colors ml-auto">
+              className="flex items-center gap-2 px-3 py-2 rounded-lg bg-falcon-red hover:bg-[#c0001f] text-white text-sm font-medium transition-colors ml-auto">
               <Plus className="w-4 h-4" />
               所見追加
             </button>
           </div>
 
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
+          <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-[#1e2d42]">
+                <tr className="border-b border-falcon-border">
                   {['所見ID', 'タイトル', '攻撃手法', '重大度', '検知状況', '滞在時間', 'ステータス', '操作'].map(h => (
-                    <th key={h} className="text-left text-xs text-[#7d92b0] font-medium px-4 py-3">{h}</th>
+                    <th key={h} className="text-left text-xs text-falcon-muted font-medium px-4 py-3">{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {filteredFindings.length === 0 ? (
-                  <tr><td colSpan={8} className="px-4 py-8 text-center text-sm text-[#7d92b0]">所見が見つかりません</td></tr>
+                  <tr><td colSpan={8} className="px-4 py-8 text-center text-sm text-falcon-muted">所見が見つかりません</td></tr>
                 ) : filteredFindings.map(f => (
-                  <tr key={f.id} className="border-b border-[#1e2d42]/60 last:border-0 hover:bg-[#070d19]/50 transition-colors">
+                  <tr key={f.id} className="border-b border-falcon-border/60 last:border-0 hover:bg-[#070d19]/50 transition-colors">
                     <td className="px-4 py-3">
-                      <span className="text-xs font-mono text-[#7d92b0]">{f.finding_id}</span>
+                      <span className="text-xs font-mono text-falcon-muted">{f.finding_id}</span>
                     </td>
                     <td className="px-4 py-3 max-w-[180px]">
                       <p className="text-sm text-white truncate" title={f.title}>{f.title}</p>
                     </td>
                     <td className="px-4 py-3">
-                      <span className="text-xs font-mono text-blue-400 bg-blue-500/10 border border-blue-500/20 px-2 py-0.5 rounded">
+                      <span className="text-xs font-mono text-blue-400 bg-blue-500/10 border border-blue-500/20 px-2 py-0.5 rounded-sm">
                         {f.attack_technique}
                       </span>
                     </td>
@@ -911,7 +911,7 @@ export default function RedTeamPage() {
                     </td>
                     <td className="px-4 py-3">
                       <button onClick={() => setDetailFinding(f)}
-                        className="px-2 py-1 rounded text-xs bg-[#1e2d42] hover:bg-[#2a3a52] text-white transition-colors">
+                        className="px-2 py-1 rounded-sm text-xs bg-falcon-border hover:bg-[#2a3a52] text-white transition-colors">
                         詳細
                       </button>
                     </td>

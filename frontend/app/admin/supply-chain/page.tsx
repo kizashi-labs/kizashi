@@ -92,14 +92,14 @@ function CompareModal({ sboms, onClose }: { sboms: SbomReport[]; onClose: () => 
   const changed = [{ name: 'react', from: '17.0.1', to: '18.2.0' }, { name: 'webpack', from: '5.60.0', to: '5.75.0' }]
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl w-full max-w-xl shadow-2xl">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-[#1e2d42]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
+      <div className="bg-falcon-surface border border-falcon-border rounded-xl w-full max-w-xl shadow-2xl">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-falcon-border">
           <div className="flex items-center gap-2">
-            <GitCompare className="w-4 h-4 text-[#e8002d]" />
+            <GitCompare className="w-4 h-4 text-falcon-red" />
             <h2 className="text-white font-semibold text-sm">SBOM比較</h2>
           </div>
-          <button onClick={onClose} className="text-[#7d92b0] hover:text-white transition-colors">
+          <button onClick={onClose} className="text-falcon-muted hover:text-white transition-colors">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -107,15 +107,15 @@ function CompareModal({ sboms, onClose }: { sboms: SbomReport[]; onClose: () => 
         <div className="px-5 py-4 space-y-4">
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs text-[#7d92b0] mb-1.5">比較元</label>
-              <select className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-xs text-white focus:outline-none"
+              <label className="block text-xs text-falcon-muted mb-1.5">比較元</label>
+              <select className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-xs text-white focus:outline-hidden"
                 value={a} onChange={e => setA(e.target.value)}>
                 {sboms.map(s => <option key={s.id} value={s.id}>{s.filename}</option>)}
               </select>
             </div>
             <div>
-              <label className="block text-xs text-[#7d92b0] mb-1.5">比較先</label>
-              <select className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-xs text-white focus:outline-none"
+              <label className="block text-xs text-falcon-muted mb-1.5">比較先</label>
+              <select className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-xs text-white focus:outline-hidden"
                 value={b} onChange={e => setB(e.target.value)}>
                 {sboms.map(s => <option key={s.id} value={s.id}>{s.filename}</option>)}
               </select>
@@ -150,7 +150,7 @@ function CompareModal({ sboms, onClose }: { sboms: SbomReport[]; onClose: () => 
                   <div key={c.name} className="flex items-center gap-2 text-xs text-yellow-200">
                     <span className="text-yellow-500">~</span>
                     <span>{c.name}</span>
-                    <span className="text-[#3d5068]">{c.from} → {c.to}</span>
+                    <span className="text-falcon-subtle">{c.from} → {c.to}</span>
                   </div>
                 ))}
               </div>
@@ -158,9 +158,9 @@ function CompareModal({ sboms, onClose }: { sboms: SbomReport[]; onClose: () => 
           </div>
         </div>
 
-        <div className="px-5 py-3 border-t border-[#1e2d42] flex justify-end">
+        <div className="px-5 py-3 border-t border-falcon-border flex justify-end">
           <button onClick={onClose}
-            className="px-4 py-2 rounded-lg bg-[#1e2d42] hover:bg-[#1e2d42]/80 text-white text-sm transition-all">
+            className="px-4 py-2 rounded-lg bg-falcon-border hover:bg-falcon-border/80 text-white text-sm transition-all">
             閉じる
           </button>
         </div>
@@ -265,7 +265,7 @@ return sbomData.reports ?? []
     <div className="min-h-screen bg-[#070d19] p-6">
       {/* Toast */}
       {toastMsg && (
-        <div className="fixed top-4 right-4 z-50 px-4 py-2.5 rounded-lg bg-[#0d1220] border border-[#1e2d42] text-white text-sm shadow-xl">
+        <div className="fixed top-4 right-4 z-50 px-4 py-2.5 rounded-lg bg-falcon-surface border border-falcon-border text-white text-sm shadow-xl">
           {toastMsg}
         </div>
       )}
@@ -273,12 +273,12 @@ return sbomData.reports ?? []
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-[#e8002d] to-[#a80020] flex items-center justify-center">
+          <div className="w-9 h-9 rounded-lg bg-linear-to-br from-falcon-red to-falcon-red-dark flex items-center justify-center">
             <Package className="w-5 h-5 text-white" />
           </div>
           <div>
             <h1 className="text-xl font-bold text-white">サプライチェーンセキュリティ</h1>
-            <p className="text-xs text-[#7d92b0] mt-0.5">SBOM管理・コンポーネント脆弱性トラッキング</p>
+            <p className="text-xs text-falcon-muted mt-0.5">SBOM管理・コンポーネント脆弱性トラッキング</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -286,7 +286,7 @@ return sbomData.reports ?? []
           <button
             onClick={() => fileRef.current?.click()}
             disabled={importing}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#1e2d42] hover:bg-[#1e2d42]/80 text-white text-sm font-medium transition-all disabled:opacity-60"
+            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-falcon-border hover:bg-falcon-border/80 text-white text-sm font-medium transition-all disabled:opacity-60"
           >
             {importing ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
             SBOMアップロード
@@ -302,28 +302,28 @@ return sbomData.reports ?? []
           { label: 'クリティカルCVE',   value: criticalCves,   icon: Shield,         color: 'text-red-400',    icon_bg: 'bg-red-500/20' },
           { label: '古いパッケージ',     value: outdated,       icon: RefreshCw,     color: 'text-yellow-400', icon_bg: 'bg-yellow-500/20' },
         ].map(stat => (
-          <div key={stat.label} className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-4 flex items-center gap-4">
-            <div className={`w-10 h-10 rounded-lg ${stat.icon_bg} flex items-center justify-center flex-shrink-0`}>
+          <div key={stat.label} className="bg-falcon-surface border border-falcon-border rounded-xl p-4 flex items-center gap-4">
+            <div className={`w-10 h-10 rounded-lg ${stat.icon_bg} flex items-center justify-center shrink-0`}>
               <stat.icon className={`w-5 h-5 ${stat.color}`} />
             </div>
             <div>
               <div className={`text-2xl font-bold ${stat.color}`}>{stat.value}</div>
-              <div className="text-xs text-[#7d92b0] mt-0.5">{stat.label}</div>
+              <div className="text-xs text-falcon-muted mt-0.5">{stat.label}</div>
             </div>
           </div>
         ))}
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 mb-5 bg-[#0d1220] border border-[#1e2d42] rounded-xl p-1 w-fit">
+      <div className="flex gap-1 mb-5 bg-falcon-surface border border-falcon-border rounded-xl p-1 w-fit">
         {(['components', 'sbom'] as const).map(tab => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
             className={`px-5 py-2 rounded-lg text-sm font-medium transition-all ${
               activeTab === tab
-                ? 'bg-[#1e2d42] text-white'
-                : 'text-[#7d92b0] hover:text-white'
+                ? 'bg-falcon-border text-white'
+                : 'text-falcon-muted hover:text-white'
             }`}
           >
             {tab === 'components' ? 'コンポーネント' : 'SBOM'}
@@ -333,13 +333,13 @@ return sbomData.reports ?? []
 
       {/* Components Tab */}
       {activeTab === 'components' && (
-        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl">
+        <div className="bg-falcon-surface border border-falcon-border rounded-xl">
           {/* Toolbar */}
-          <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4 border-b border-[#1e2d42]">
+          <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4 border-b border-falcon-border">
             <div className="flex flex-wrap items-center gap-2">
-              <Filter className="w-3.5 h-3.5 text-[#7d92b0]" />
+              <Filter className="w-3.5 h-3.5 text-falcon-muted" />
               <select
-                className="bg-[#070d19] border border-[#1e2d42] rounded-lg px-2.5 py-1.5 text-xs text-[#7d92b0] focus:outline-none"
+                className="bg-[#070d19] border border-falcon-border rounded-lg px-2.5 py-1.5 text-xs text-falcon-muted focus:outline-hidden"
                 value={filterType} onChange={e => setFilterType(e.target.value)}
               >
                 <option value="all">全タイプ</option>
@@ -348,7 +348,7 @@ return sbomData.reports ?? []
                 ))}
               </select>
               <select
-                className="bg-[#070d19] border border-[#1e2d42] rounded-lg px-2.5 py-1.5 text-xs text-[#7d92b0] focus:outline-none"
+                className="bg-[#070d19] border border-falcon-border rounded-lg px-2.5 py-1.5 text-xs text-falcon-muted focus:outline-hidden"
                 value={filterLicense} onChange={e => setFilterLicense(e.target.value)}
               >
                 <option value="all">全ライセンス</option>
@@ -361,15 +361,15 @@ return sbomData.reports ?? []
                   type="checkbox"
                   checked={filterVuln}
                   onChange={e => setFilterVuln(e.target.checked)}
-                  className="w-3.5 h-3.5 accent-[#e8002d]"
+                  className="w-3.5 h-3.5 accent-falcon-red"
                 />
-                <span className="text-xs text-[#7d92b0]">脆弱性あり</span>
+                <span className="text-xs text-falcon-muted">脆弱性あり</span>
               </label>
             </div>
             {selected.size > 0 && (
               <button
                 onClick={handleBulkUpdate}
-                className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#e8002d] hover:bg-[#c0001f] text-white text-xs font-medium transition-all"
+                className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-falcon-red hover:bg-[#c0001f] text-white text-xs font-medium transition-all"
               >
                 <RefreshCw className="w-3.5 h-3.5" />
                 アップデート確認 ({selected.size}件)
@@ -380,15 +380,15 @@ return sbomData.reports ?? []
           <div className="overflow-x-auto">
             <table className="w-full text-sm min-w-[900px]">
               <thead>
-                <tr className="border-b border-[#1e2d42]">
+                <tr className="border-b border-falcon-border">
                   <th className="px-4 py-3 w-10">
-                    <input type="checkbox" className="w-3.5 h-3.5 accent-[#e8002d]"
+                    <input type="checkbox" className="w-3.5 h-3.5 accent-falcon-red"
                       checked={selected.size === filtered.length && filtered.length > 0}
                       onChange={e => setSelected(e.target.checked ? new Set(filtered.map(c => c.id)) : new Set())}
                     />
                   </th>
                   {['名前', 'バージョン', 'タイプ', 'ライセンス', 'CVE', '最終更新', 'リスク'].map(h => (
-                    <th key={h} className="px-4 py-3 text-left text-xs text-[#7d92b0] font-medium">{h}</th>
+                    <th key={h} className="px-4 py-3 text-left text-xs text-falcon-muted font-medium">{h}</th>
                   ))}
                   <th className="px-4 py-3 w-8" />
                 </tr>
@@ -398,24 +398,24 @@ return sbomData.reports ?? []
                   <>
                     <tr
                       key={comp.id}
-                      className={`border-b border-[#1e2d42]/60 hover:bg-[#070d19]/60 transition-colors cursor-pointer ${
+                      className={`border-b border-falcon-border/60 hover:bg-[#070d19]/60 transition-colors cursor-pointer ${
                         expandedRow === comp.id ? 'bg-[#070d19]/40' : ''
                       }`}
                       onClick={() => setExpandedRow(expandedRow === comp.id ? null : comp.id)}
                     >
                       <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
-                        <input type="checkbox" className="w-3.5 h-3.5 accent-[#e8002d]"
+                        <input type="checkbox" className="w-3.5 h-3.5 accent-falcon-red"
                           checked={selected.has(comp.id)}
                           onChange={() => toggleSelect(comp.id)}
                         />
                       </td>
                       <td className="px-4 py-3 text-white text-xs font-medium font-mono">{comp.name}</td>
-                      <td className="px-4 py-3 text-xs text-[#7d92b0] font-mono">{comp.version}</td>
+                      <td className="px-4 py-3 text-xs text-falcon-muted font-mono">{comp.version}</td>
                       <td className="px-4 py-3">
-                        <span className={`text-[10px] px-1.5 py-0.5 rounded border ${TYPE_COLORS[comp.type]}`}>{comp.type}</span>
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded-sm border ${TYPE_COLORS[comp.type]}`}>{comp.type}</span>
                       </td>
                       <td className="px-4 py-3">
-                        <span className="text-[10px] px-1.5 py-0.5 rounded border bg-slate-500/20 text-slate-300 border-slate-500/30">
+                        <span className="text-[10px] px-1.5 py-0.5 rounded-sm border bg-slate-500/20 text-slate-300 border-slate-500/30">
                           {comp.license}
                         </span>
                       </td>
@@ -430,7 +430,7 @@ return sbomData.reports ?? []
                           </span>
                         )}
                       </td>
-                      <td className="px-4 py-3 text-xs text-[#7d92b0]">{comp.last_updated}</td>
+                      <td className="px-4 py-3 text-xs text-falcon-muted">{comp.last_updated}</td>
                       <td className="px-4 py-3">
                         <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${riskBadge(comp.risk_score)}`}>
                           {riskLabel(comp.risk_score)} ({comp.risk_score})
@@ -438,8 +438,8 @@ return sbomData.reports ?? []
                       </td>
                       <td className="px-4 py-3">
                         {expandedRow === comp.id
-                          ? <ChevronDown className="w-4 h-4 text-[#7d92b0]" />
-                          : <ChevronRight className="w-4 h-4 text-[#3d5068]" />}
+                          ? <ChevronDown className="w-4 h-4 text-falcon-muted" />
+                          : <ChevronRight className="w-4 h-4 text-falcon-subtle" />}
                       </td>
                     </tr>
                     {expandedRow === comp.id && (
@@ -452,21 +452,21 @@ return sbomData.reports ?? []
                             </div>
                           ) : (
                             <div className="space-y-2">
-                              <p className="text-xs font-semibold text-[#7d92b0] mb-2">関連CVE</p>
+                              <p className="text-xs font-semibold text-falcon-muted mb-2">関連CVE</p>
                               {comp.cves.map(cve => (
-                                <div key={cve.id} className="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-[#0d1220] border border-[#1e2d42]">
+                                <div key={cve.id} className="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-falcon-surface border border-falcon-border">
                                   <span className="text-xs font-mono font-bold text-white w-28">{cve.id}</span>
-                                  <span className={`text-[10px] px-1.5 py-0.5 rounded border ${SEV_COLORS[cve.severity]}`}>
+                                  <span className={`text-[10px] px-1.5 py-0.5 rounded-sm border ${SEV_COLORS[cve.severity]}`}>
                                     {cve.severity.toUpperCase()}
                                   </span>
                                   <span className="text-xs font-bold text-white w-8">{cve.score}</span>
-                                  <span className="flex-1 text-xs text-[#7d92b0] truncate">{cve.description}</span>
-                                  <span className="text-[10px] text-[#3d5068] whitespace-nowrap">
+                                  <span className="flex-1 text-xs text-falcon-muted truncate">{cve.description}</span>
+                                  <span className="text-[10px] text-falcon-subtle whitespace-nowrap">
                                     修正: {cve.fix_version ?? '未定'}
                                   </span>
                                   <button
                                     onClick={() => showToast(`${cve.id} の修正を確認しました`)}
-                                    className="text-[10px] px-2 py-1 rounded bg-[#e8002d]/20 hover:bg-[#e8002d]/40 text-[#e8002d] border border-[#e8002d]/30 transition-all whitespace-nowrap"
+                                    className="text-[10px] px-2 py-1 rounded-sm bg-falcon-red/20 hover:bg-falcon-red/40 text-falcon-red border border-falcon-red/30 transition-all whitespace-nowrap"
                                   >
                                     修正確認
                                   </button>
@@ -482,7 +482,7 @@ return sbomData.reports ?? []
               </tbody>
             </table>
             {filtered.length === 0 && (
-              <div className="text-center py-12 text-[#3d5068] text-sm">
+              <div className="text-center py-12 text-falcon-subtle text-sm">
                 条件に合うコンポーネントが見つかりません
               </div>
             )}
@@ -492,12 +492,12 @@ return sbomData.reports ?? []
 
       {/* SBOM Tab */}
       {activeTab === 'sbom' && (
-        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl">
-          <div className="flex items-center justify-between px-5 py-4 border-b border-[#1e2d42]">
+        <div className="bg-falcon-surface border border-falcon-border rounded-xl">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-falcon-border">
             <h2 className="text-white font-semibold text-sm">インポート済みSBOM</h2>
             <button
               onClick={() => setShowCompare(true)}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#1e2d42] hover:bg-[#1e2d42]/80 text-white text-xs font-medium transition-all"
+              className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-falcon-border hover:bg-falcon-border/80 text-white text-xs font-medium transition-all"
             >
               <GitCompare className="w-3.5 h-3.5" />
               SBOM比較
@@ -506,27 +506,27 @@ return sbomData.reports ?? []
 
           <div className="p-4 space-y-3">
             {sboms.map(sbom => (
-              <div key={sbom.id} className="flex flex-wrap items-center gap-4 px-4 py-4 rounded-xl bg-[#070d19] border border-[#1e2d42] hover:border-[#2a3d57] transition-all">
+              <div key={sbom.id} className="flex flex-wrap items-center gap-4 px-4 py-4 rounded-xl bg-[#070d19] border border-falcon-border hover:border-[#2a3d57] transition-all">
                 <div className="flex items-center gap-3 flex-1 min-w-0">
-                  <div className="w-8 h-8 rounded-lg bg-[#1e2d42] flex items-center justify-center flex-shrink-0">
-                    <FileText className="w-4 h-4 text-[#7d92b0]" />
+                  <div className="w-8 h-8 rounded-lg bg-falcon-border flex items-center justify-center shrink-0">
+                    <FileText className="w-4 h-4 text-falcon-muted" />
                   </div>
                   <div className="min-w-0">
                     <p className="text-white text-sm font-medium font-mono truncate">{sbom.filename}</p>
-                    <p className="text-xs text-[#3d5068] mt-0.5">{sbom.app_name}</p>
+                    <p className="text-xs text-falcon-subtle mt-0.5">{sbom.app_name}</p>
                   </div>
                 </div>
 
                 <div className="flex flex-wrap items-center gap-3 text-xs">
-                  <span className={`px-2 py-0.5 rounded border ${FORMAT_COLORS[sbom.format]}`}>{sbom.format}</span>
-                  <span className="text-[#7d92b0]">{sbom.import_date}</span>
+                  <span className={`px-2 py-0.5 rounded-sm border ${FORMAT_COLORS[sbom.format]}`}>{sbom.format}</span>
+                  <span className="text-falcon-muted">{sbom.import_date}</span>
                   <span className="text-white font-medium">{sbom.component_count}件</span>
                   {sbom.vuln_count > 0 ? (
-                    <span className="px-2 py-0.5 rounded border bg-red-500/20 text-red-300 border-red-500/30">
+                    <span className="px-2 py-0.5 rounded-sm border bg-red-500/20 text-red-300 border-red-500/30">
                       脆弱性 {sbom.vuln_count}件
                     </span>
                   ) : (
-                    <span className="px-2 py-0.5 rounded border bg-emerald-500/20 text-emerald-300 border-emerald-500/30">
+                    <span className="px-2 py-0.5 rounded-sm border bg-emerald-500/20 text-emerald-300 border-emerald-500/30">
                       脆弱性なし
                     </span>
                   )}
@@ -534,7 +534,7 @@ return sbomData.reports ?? []
 
                 <button
                   onClick={() => handleDownloadCsv(sbom)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#1e2d42] hover:bg-[#1e2d42]/80 text-white text-xs transition-all"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-falcon-border hover:bg-falcon-border/80 text-white text-xs transition-all"
                 >
                   <Download className="w-3.5 h-3.5" />
                   ダウンロード

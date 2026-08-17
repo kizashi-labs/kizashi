@@ -417,23 +417,23 @@ function StatCard({
 
   return (
 
-    <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-4 flex items-center gap-4">
+    <div className="bg-falcon-surface border border-falcon-border rounded-lg p-4 flex items-center gap-4">
 
-      <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${
+      <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${
 
-        accent ? 'bg-red-900/30' : 'bg-[#161f33]'
+        accent ? 'bg-red-900/30' : 'bg-falcon-raised'
 
       }`}>
 
-        <Icon className={`w-5 h-5 ${accent ? 'text-[#e8002d]' : 'text-[#7d92b0]'}`} />
+        <Icon className={`w-5 h-5 ${accent ? 'text-falcon-red' : 'text-falcon-muted'}`} />
 
       </div>
 
       <div>
 
-        <p className="text-[#7d92b0] text-xs">{label}</p>
+        <p className="text-falcon-muted text-xs">{label}</p>
 
-        <p className={`text-2xl font-bold ${accent ? 'text-[#e8002d]' : 'text-[#e2e8f4]'}`}>{value}</p>
+        <p className={`text-2xl font-bold ${accent ? 'text-falcon-red' : 'text-falcon-text'}`}>{value}</p>
 
       </div>
 
@@ -449,7 +449,7 @@ function Badge({ className, children }: { className: string; children: React.Rea
 
   return (
 
-    <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border ${className}`}>
+    <span className={`inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium border ${className}`}>
 
       {children}
 
@@ -465,7 +465,7 @@ function CategoryTag({ category }: { category: DataCategory }) {
 
   return (
 
-    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-[#161f33] border border-[#1e2d42] text-[#7d92b0]">
+    <span className="inline-flex items-center px-1.5 py-0.5 rounded-sm text-[10px] font-medium bg-falcon-raised border border-falcon-border text-falcon-muted">
 
       {category}
 
@@ -535,13 +535,13 @@ function AddSubjectModal({ onClose, onSuccess }: { onClose: () => void; onSucces
 
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
 
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl w-full max-w-lg p-6 shadow-2xl">
+      <div className="bg-falcon-surface border border-falcon-border rounded-xl w-full max-w-lg p-6 shadow-2xl">
 
         <div className="flex items-center justify-between mb-6">
 
           <h3 className="text-white font-semibold text-lg">データ主体追加</h3>
 
-          <button onClick={onClose} className="text-[#7d92b0] hover:text-white"><X className="w-5 h-5" /></button>
+          <button onClick={onClose} className="text-falcon-muted hover:text-white"><X className="w-5 h-5" /></button>
 
         </div>
 
@@ -551,11 +551,11 @@ function AddSubjectModal({ onClose, onSuccess }: { onClose: () => void; onSucces
 
             <div>
 
-              <label className="text-[#7d92b0] text-xs block mb-1">種別</label>
+              <label className="text-falcon-muted text-xs block mb-1">種別</label>
 
               <select
 
-                className="w-full bg-[#070d19] border border-[#1e2d42] rounded px-3 py-2 text-sm text-[#e2e8f4] focus:outline-none focus:border-[#3d6baa]"
+                className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-sm text-falcon-text focus:outline-hidden focus:border-[#3d6baa]"
 
                 value={form.subject_type}
 
@@ -575,13 +575,13 @@ function AddSubjectModal({ onClose, onSuccess }: { onClose: () => void; onSucces
 
             <div>
 
-              <label className="text-[#7d92b0] text-xs block mb-1">保持期間 (日)</label>
+              <label className="text-falcon-muted text-xs block mb-1">保持期間 (日)</label>
 
               <input
 
                 type="number"
 
-                className="w-full bg-[#070d19] border border-[#1e2d42] rounded px-3 py-2 text-sm text-[#e2e8f4] focus:outline-none focus:border-[#3d6baa]"
+                className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-sm text-falcon-text focus:outline-hidden focus:border-[#3d6baa]"
 
                 value={form.retention_period_days}
 
@@ -595,13 +595,13 @@ function AddSubjectModal({ onClose, onSuccess }: { onClose: () => void; onSucces
 
           <div>
 
-            <label className="text-[#7d92b0] text-xs block mb-1">メールアドレス</label>
+            <label className="text-falcon-muted text-xs block mb-1">メールアドレス</label>
 
             <input
 
               type="email"
 
-              className="w-full bg-[#070d19] border border-[#1e2d42] rounded px-3 py-2 text-sm text-[#e2e8f4] focus:outline-none focus:border-[#3d6baa]"
+              className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-sm text-falcon-text focus:outline-hidden focus:border-[#3d6baa]"
 
               placeholder="user@example.com"
 
@@ -615,13 +615,13 @@ function AddSubjectModal({ onClose, onSuccess }: { onClose: () => void; onSucces
 
           <div>
 
-            <label className="text-[#7d92b0] text-xs block mb-1">氏名</label>
+            <label className="text-falcon-muted text-xs block mb-1">氏名</label>
 
             <input
 
               type="text"
 
-              className="w-full bg-[#070d19] border border-[#1e2d42] rounded px-3 py-2 text-sm text-[#e2e8f4] focus:outline-none focus:border-[#3d6baa]"
+              className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-sm text-falcon-text focus:outline-hidden focus:border-[#3d6baa]"
 
               placeholder="山田 太郎"
 
@@ -635,7 +635,7 @@ function AddSubjectModal({ onClose, onSuccess }: { onClose: () => void; onSucces
 
           <div>
 
-            <label className="text-[#7d92b0] text-xs block mb-2">データカテゴリ</label>
+            <label className="text-falcon-muted text-xs block mb-2">データカテゴリ</label>
 
             <div className="grid grid-cols-2 gap-2">
 
@@ -647,7 +647,7 @@ function AddSubjectModal({ onClose, onSuccess }: { onClose: () => void; onSucces
 
                     type="checkbox"
 
-                    className="accent-[#e8002d]"
+                    className="accent-falcon-red"
 
                     checked={form.data_categories.includes(cat)}
 
@@ -655,7 +655,7 @@ function AddSubjectModal({ onClose, onSuccess }: { onClose: () => void; onSucces
 
                   />
 
-                  <span className="text-[#e2e8f4] text-sm">{DATA_CATEGORY_LABELS[cat]}</span>
+                  <span className="text-falcon-text text-sm">{DATA_CATEGORY_LABELS[cat]}</span>
 
                 </label>
 
@@ -667,17 +667,17 @@ function AddSubjectModal({ onClose, onSuccess }: { onClose: () => void; onSucces
 
           <div className="flex items-center gap-3">
 
-            <label className="text-[#7d92b0] text-sm">同意取得済み</label>
+            <label className="text-falcon-muted text-sm">同意取得済み</label>
 
             <button
 
               onClick={() => setForm(f => ({ ...f, consent_given: !f.consent_given }))}
 
-              className={`relative w-10 h-5 rounded-full transition-colors ${form.consent_given ? 'bg-[#e8002d]' : 'bg-[#1e2d42]'}`}
+              className={`relative w-10 h-5 rounded-full transition-colors ${form.consent_given ? 'bg-falcon-red' : 'bg-falcon-border'}`}
 
             >
 
-              <span className={`absolute top-0.5 w-4 h-4 bg-[#e2e8f4] rounded-full transition-transform shadow ${form.consent_given ? 'translate-x-5' : 'translate-x-0.5'}`} />
+              <span className={`absolute top-0.5 w-4 h-4 bg-falcon-text rounded-full transition-transform shadow-sm ${form.consent_given ? 'translate-x-5' : 'translate-x-0.5'}`} />
 
             </button>
 
@@ -687,7 +687,7 @@ function AddSubjectModal({ onClose, onSuccess }: { onClose: () => void; onSucces
 
         <div className="flex gap-3 mt-6">
 
-          <button onClick={onClose} className="flex-1 px-4 py-2 rounded border border-[#1e2d42] text-[#7d92b0] hover:text-white text-sm transition-colors">キャンセル</button>
+          <button onClick={onClose} className="flex-1 px-4 py-2 rounded-sm border border-falcon-border text-falcon-muted hover:text-white text-sm transition-colors">キャンセル</button>
 
           <button
 
@@ -695,7 +695,7 @@ function AddSubjectModal({ onClose, onSuccess }: { onClose: () => void; onSucces
 
             disabled={mutation.isPending || !form.email || !form.name}
 
-            className="flex-1 px-4 py-2 rounded bg-[#e8002d] hover:bg-[#c00025] disabled:opacity-50 text-white text-sm font-medium transition-colors"
+            className="flex-1 px-4 py-2 rounded-sm bg-falcon-red hover:bg-[#c00025] disabled:opacity-50 text-white text-sm font-medium transition-colors"
 
           >
 
@@ -767,13 +767,13 @@ function AddDSARModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: 
 
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
 
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl w-full max-w-lg p-6 shadow-2xl">
+      <div className="bg-falcon-surface border border-falcon-border rounded-xl w-full max-w-lg p-6 shadow-2xl">
 
         <div className="flex items-center justify-between mb-6">
 
           <h3 className="text-white font-semibold text-lg">DSAR新規登録</h3>
 
-          <button onClick={onClose} className="text-[#7d92b0] hover:text-white"><X className="w-5 h-5" /></button>
+          <button onClick={onClose} className="text-falcon-muted hover:text-white"><X className="w-5 h-5" /></button>
 
         </div>
 
@@ -781,11 +781,11 @@ function AddDSARModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: 
 
           <div>
 
-            <label className="text-[#7d92b0] text-xs block mb-1">リクエスト種別</label>
+            <label className="text-falcon-muted text-xs block mb-1">リクエスト種別</label>
 
             <select
 
-              className="w-full bg-[#070d19] border border-[#1e2d42] rounded px-3 py-2 text-sm text-[#e2e8f4] focus:outline-none focus:border-[#3d6baa]"
+              className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-sm text-falcon-text focus:outline-hidden focus:border-[#3d6baa]"
 
               value={form.request_type}
 
@@ -801,7 +801,7 @@ function AddDSARModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: 
 
             </select>
 
-            <p className="text-[#7d92b0] text-xs mt-1">{DSAR_TYPE_DESCRIPTIONS[form.request_type]}</p>
+            <p className="text-falcon-muted text-xs mt-1">{DSAR_TYPE_DESCRIPTIONS[form.request_type]}</p>
 
           </div>
 
@@ -809,13 +809,13 @@ function AddDSARModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: 
 
             <div>
 
-              <label className="text-[#7d92b0] text-xs block mb-1">メールアドレス</label>
+              <label className="text-falcon-muted text-xs block mb-1">メールアドレス</label>
 
               <input
 
                 type="email"
 
-                className="w-full bg-[#070d19] border border-[#1e2d42] rounded px-3 py-2 text-sm text-[#e2e8f4] focus:outline-none focus:border-[#3d6baa]"
+                className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-sm text-falcon-text focus:outline-hidden focus:border-[#3d6baa]"
 
                 value={form.subject_email}
 
@@ -827,13 +827,13 @@ function AddDSARModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: 
 
             <div>
 
-              <label className="text-[#7d92b0] text-xs block mb-1">氏名</label>
+              <label className="text-falcon-muted text-xs block mb-1">氏名</label>
 
               <input
 
                 type="text"
 
-                className="w-full bg-[#070d19] border border-[#1e2d42] rounded px-3 py-2 text-sm text-[#e2e8f4] focus:outline-none focus:border-[#3d6baa]"
+                className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-sm text-falcon-text focus:outline-hidden focus:border-[#3d6baa]"
 
                 value={form.subject_name}
 
@@ -847,11 +847,11 @@ function AddDSARModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: 
 
           <div>
 
-            <label className="text-[#7d92b0] text-xs block mb-1">備考</label>
+            <label className="text-falcon-muted text-xs block mb-1">備考</label>
 
             <textarea
 
-              className="w-full bg-[#070d19] border border-[#1e2d42] rounded px-3 py-2 text-sm text-[#e2e8f4] focus:outline-none focus:border-[#3d6baa] resize-none"
+              className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-sm text-falcon-text focus:outline-hidden focus:border-[#3d6baa] resize-none"
 
               rows={3}
 
@@ -865,7 +865,7 @@ function AddDSARModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: 
 
           <div className="bg-blue-900/20 border border-blue-700/40 rounded-lg p-3 flex gap-2">
 
-            <Info className="w-4 h-4 text-blue-400 flex-shrink-0 mt-0.5" />
+            <Info className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" />
 
             <p className="text-blue-300 text-xs">DSARは受付から30日以内に対応する義務があります (GDPR Art.12(3))。期限を超えた場合は自動的に「期限超過」となります。</p>
 
@@ -875,7 +875,7 @@ function AddDSARModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: 
 
         <div className="flex gap-3 mt-6">
 
-          <button onClick={onClose} className="flex-1 px-4 py-2 rounded border border-[#1e2d42] text-[#7d92b0] hover:text-white text-sm transition-colors">キャンセル</button>
+          <button onClick={onClose} className="flex-1 px-4 py-2 rounded-sm border border-falcon-border text-falcon-muted hover:text-white text-sm transition-colors">キャンセル</button>
 
           <button
 
@@ -883,7 +883,7 @@ function AddDSARModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: 
 
             disabled={mutation.isPending || !form.subject_email}
 
-            className="flex-1 px-4 py-2 rounded bg-[#e8002d] hover:bg-[#c00025] disabled:opacity-50 text-white text-sm font-medium transition-colors"
+            className="flex-1 px-4 py-2 rounded-sm bg-falcon-red hover:bg-[#c00025] disabled:opacity-50 text-white text-sm font-medium transition-colors"
 
           >
 
@@ -935,33 +935,33 @@ function CompleteDSARModal({ dsar, onClose, onSuccess }: { dsar: DSARRequest; on
 
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
 
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl w-full max-w-lg p-6 shadow-2xl">
+      <div className="bg-falcon-surface border border-falcon-border rounded-xl w-full max-w-lg p-6 shadow-2xl">
 
         <div className="flex items-center justify-between mb-4">
 
           <h3 className="text-white font-semibold text-lg">DSAR完了処理</h3>
 
-          <button onClick={onClose} className="text-[#7d92b0] hover:text-white"><X className="w-5 h-5" /></button>
+          <button onClick={onClose} className="text-falcon-muted hover:text-white"><X className="w-5 h-5" /></button>
 
         </div>
 
-        <div className="bg-[#161f33] rounded-lg p-3 mb-4 space-y-1">
+        <div className="bg-falcon-raised rounded-lg p-3 mb-4 space-y-1">
 
-          <p className="text-[#7d92b0] text-xs">リクエストID: <span className="text-[#e2e8f4] font-mono">{dsar.id}</span></p>
+          <p className="text-falcon-muted text-xs">リクエストID: <span className="text-falcon-text font-mono">{dsar.id}</span></p>
 
-          <p className="text-[#7d92b0] text-xs">種別: <span className="text-[#e2e8f4]">{dsarTypeLabel(dsar.request_type)}</span></p>
+          <p className="text-falcon-muted text-xs">種別: <span className="text-falcon-text">{dsarTypeLabel(dsar.request_type)}</span></p>
 
-          <p className="text-[#7d92b0] text-xs">申請者: <span className="text-[#e2e8f4]">{dsar.subject_name}</span></p>
+          <p className="text-falcon-muted text-xs">申請者: <span className="text-falcon-text">{dsar.subject_name}</span></p>
 
         </div>
 
         <div>
 
-          <label className="text-[#7d92b0] text-xs block mb-1">対応内容・回答メモ</label>
+          <label className="text-falcon-muted text-xs block mb-1">対応内容・回答メモ</label>
 
           <textarea
 
-            className="w-full bg-[#070d19] border border-[#1e2d42] rounded px-3 py-2 text-sm text-[#e2e8f4] focus:outline-none focus:border-[#3d6baa] resize-none"
+            className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-sm text-falcon-text focus:outline-hidden focus:border-[#3d6baa] resize-none"
 
             rows={4}
 
@@ -977,7 +977,7 @@ function CompleteDSARModal({ dsar, onClose, onSuccess }: { dsar: DSARRequest; on
 
         <div className="flex gap-3 mt-5">
 
-          <button onClick={onClose} className="flex-1 px-4 py-2 rounded border border-[#1e2d42] text-[#7d92b0] hover:text-white text-sm transition-colors">キャンセル</button>
+          <button onClick={onClose} className="flex-1 px-4 py-2 rounded-sm border border-falcon-border text-falcon-muted hover:text-white text-sm transition-colors">キャンセル</button>
 
           <button
 
@@ -985,7 +985,7 @@ function CompleteDSARModal({ dsar, onClose, onSuccess }: { dsar: DSARRequest; on
 
             disabled={mutation.isPending}
 
-            className="flex-1 px-4 py-2 rounded bg-green-700 hover:bg-green-600 disabled:opacity-50 text-white text-sm font-medium transition-colors flex items-center justify-center gap-2"
+            className="flex-1 px-4 py-2 rounded-sm bg-green-700 hover:bg-green-600 disabled:opacity-50 text-white text-sm font-medium transition-colors flex items-center justify-center gap-2"
 
           >
 
@@ -1065,13 +1065,13 @@ function AddIncidentModal({ onClose, onSuccess }: { onClose: () => void; onSucce
 
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
 
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl w-full max-w-lg p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
+      <div className="bg-falcon-surface border border-falcon-border rounded-xl w-full max-w-lg p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
 
         <div className="flex items-center justify-between mb-6">
 
           <h3 className="text-white font-semibold text-lg">インシデント登録</h3>
 
-          <button onClick={onClose} className="text-[#7d92b0] hover:text-white"><X className="w-5 h-5" /></button>
+          <button onClick={onClose} className="text-falcon-muted hover:text-white"><X className="w-5 h-5" /></button>
 
         </div>
 
@@ -1081,11 +1081,11 @@ function AddIncidentModal({ onClose, onSuccess }: { onClose: () => void; onSucce
 
             <div>
 
-              <label className="text-[#7d92b0] text-xs block mb-1">インシデント種別</label>
+              <label className="text-falcon-muted text-xs block mb-1">インシデント種別</label>
 
               <select
 
-                className="w-full bg-[#070d19] border border-[#1e2d42] rounded px-3 py-2 text-sm text-[#e2e8f4] focus:outline-none focus:border-[#3d6baa]"
+                className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-sm text-falcon-text focus:outline-hidden focus:border-[#3d6baa]"
 
                 value={form.incident_type}
 
@@ -1107,11 +1107,11 @@ function AddIncidentModal({ onClose, onSuccess }: { onClose: () => void; onSucce
 
             <div>
 
-              <label className="text-[#7d92b0] text-xs block mb-1">深刻度</label>
+              <label className="text-falcon-muted text-xs block mb-1">深刻度</label>
 
               <select
 
-                className="w-full bg-[#070d19] border border-[#1e2d42] rounded px-3 py-2 text-sm text-[#e2e8f4] focus:outline-none focus:border-[#3d6baa]"
+                className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-sm text-falcon-text focus:outline-hidden focus:border-[#3d6baa]"
 
                 value={form.severity}
 
@@ -1135,11 +1135,11 @@ function AddIncidentModal({ onClose, onSuccess }: { onClose: () => void; onSucce
 
           <div>
 
-            <label className="text-[#7d92b0] text-xs block mb-1">説明</label>
+            <label className="text-falcon-muted text-xs block mb-1">説明</label>
 
             <textarea
 
-              className="w-full bg-[#070d19] border border-[#1e2d42] rounded px-3 py-2 text-sm text-[#e2e8f4] focus:outline-none focus:border-[#3d6baa] resize-none"
+              className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-sm text-falcon-text focus:outline-hidden focus:border-[#3d6baa] resize-none"
 
               rows={3}
 
@@ -1153,13 +1153,13 @@ function AddIncidentModal({ onClose, onSuccess }: { onClose: () => void; onSucce
 
           <div>
 
-            <label className="text-[#7d92b0] text-xs block mb-1">影響を受けるデータ主体数</label>
+            <label className="text-falcon-muted text-xs block mb-1">影響を受けるデータ主体数</label>
 
             <input
 
               type="number"
 
-              className="w-full bg-[#070d19] border border-[#1e2d42] rounded px-3 py-2 text-sm text-[#e2e8f4] focus:outline-none focus:border-[#3d6baa]"
+              className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-sm text-falcon-text focus:outline-hidden focus:border-[#3d6baa]"
 
               value={form.affected_subjects_count}
 
@@ -1171,7 +1171,7 @@ function AddIncidentModal({ onClose, onSuccess }: { onClose: () => void; onSucce
 
           <div>
 
-            <label className="text-[#7d92b0] text-xs block mb-2">関連データカテゴリ</label>
+            <label className="text-falcon-muted text-xs block mb-2">関連データカテゴリ</label>
 
             <div className="grid grid-cols-2 gap-2">
 
@@ -1183,7 +1183,7 @@ function AddIncidentModal({ onClose, onSuccess }: { onClose: () => void; onSucce
 
                     type="checkbox"
 
-                    className="accent-[#e8002d]"
+                    className="accent-falcon-red"
 
                     checked={form.data_categories.includes(cat)}
 
@@ -1191,7 +1191,7 @@ function AddIncidentModal({ onClose, onSuccess }: { onClose: () => void; onSucce
 
                   />
 
-                  <span className="text-[#e2e8f4] text-sm">{DATA_CATEGORY_LABELS[cat]}</span>
+                  <span className="text-falcon-text text-sm">{DATA_CATEGORY_LABELS[cat]}</span>
 
                 </label>
 
@@ -1203,11 +1203,11 @@ function AddIncidentModal({ onClose, onSuccess }: { onClose: () => void; onSucce
 
           <div>
 
-            <label className="text-[#7d92b0] text-xs block mb-1">是正措置</label>
+            <label className="text-falcon-muted text-xs block mb-1">是正措置</label>
 
             <textarea
 
-              className="w-full bg-[#070d19] border border-[#1e2d42] rounded px-3 py-2 text-sm text-[#e2e8f4] focus:outline-none focus:border-[#3d6baa] resize-none"
+              className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-sm text-falcon-text focus:outline-hidden focus:border-[#3d6baa] resize-none"
 
               rows={2}
 
@@ -1221,7 +1221,7 @@ function AddIncidentModal({ onClose, onSuccess }: { onClose: () => void; onSucce
 
           <div className="bg-orange-900/20 border border-orange-700/40 rounded-lg p-3 flex gap-2">
 
-            <AlertTriangle className="w-4 h-4 text-orange-400 flex-shrink-0 mt-0.5" />
+            <AlertTriangle className="w-4 h-4 text-orange-400 shrink-0 mt-0.5" />
 
             <p className="text-orange-300 text-xs">GDPR Art.33: 個人データ侵害を認知してから72時間以内に監督機関へ報告する義務があります。</p>
 
@@ -1231,7 +1231,7 @@ function AddIncidentModal({ onClose, onSuccess }: { onClose: () => void; onSucce
 
         <div className="flex gap-3 mt-6">
 
-          <button onClick={onClose} className="flex-1 px-4 py-2 rounded border border-[#1e2d42] text-[#7d92b0] hover:text-white text-sm transition-colors">キャンセル</button>
+          <button onClick={onClose} className="flex-1 px-4 py-2 rounded-sm border border-falcon-border text-falcon-muted hover:text-white text-sm transition-colors">キャンセル</button>
 
           <button
 
@@ -1239,7 +1239,7 @@ function AddIncidentModal({ onClose, onSuccess }: { onClose: () => void; onSucce
 
             disabled={mutation.isPending || !form.description}
 
-            className="flex-1 px-4 py-2 rounded bg-[#e8002d] hover:bg-[#c00025] disabled:opacity-50 text-white text-sm font-medium transition-colors"
+            className="flex-1 px-4 py-2 rounded-sm bg-falcon-red hover:bg-[#c00025] disabled:opacity-50 text-white text-sm font-medium transition-colors"
 
           >
 
@@ -1333,11 +1333,11 @@ function DataMappingTab() {
 
       {/* Data Flow Diagram */}
 
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-6">
+      <div className="bg-falcon-surface border border-falcon-border rounded-lg p-6">
 
         <h3 className="text-white font-semibold mb-2">データフロー図</h3>
 
-        <p className="text-[#7d92b0] text-xs mb-4">Kizashi プラットフォームが収集・処理するデータの流れ</p>
+        <p className="text-falcon-muted text-xs mb-4">Kizashi プラットフォームが収集・処理するデータの流れ</p>
 
         <div className="overflow-x-auto">
 
@@ -1479,17 +1479,17 @@ function DataMappingTab() {
 
           ].map(item => (
 
-            <div key={item.label} className="bg-[#161f33] rounded-lg p-3 border border-[#1e2d42]">
+            <div key={item.label} className="bg-falcon-raised rounded-lg p-3 border border-falcon-border">
 
               <div className="flex items-center gap-2 mb-1">
 
-                <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: item.color }} />
+                <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: item.color }} />
 
-                <span className="text-[#e2e8f4] text-xs font-medium">{item.label}</span>
+                <span className="text-falcon-text text-xs font-medium">{item.label}</span>
 
               </div>
 
-              <p className="text-[#7d92b0] text-xs">保持期間: {item.retention}</p>
+              <p className="text-falcon-muted text-xs">保持期間: {item.retention}</p>
 
             </div>
 
@@ -1503,13 +1503,13 @@ function DataMappingTab() {
 
       {/* RoPA Table */}
 
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg">
+      <div className="bg-falcon-surface border border-falcon-border rounded-lg">
 
-        <div className="p-4 border-b border-[#1e2d42]">
+        <div className="p-4 border-b border-falcon-border">
 
           <h3 className="text-white font-semibold">データ処理活動記録 (RoPA)</h3>
 
-          <p className="text-[#7d92b0] text-xs mt-1">GDPR Art.30 — Records of Processing Activities</p>
+          <p className="text-falcon-muted text-xs mt-1">GDPR Art.30 — Records of Processing Activities</p>
 
         </div>
 
@@ -1519,11 +1519,11 @@ function DataMappingTab() {
 
             <thead>
 
-              <tr className="border-b border-[#1e2d42]">
+              <tr className="border-b border-falcon-border">
 
                 {['処理活動', '目的', '法的根拠', 'データカテゴリ', '保持期間', '第三者提供先'].map(h => (
 
-                  <th key={h} className="text-left px-4 py-3 text-[#7d92b0] font-medium text-xs whitespace-nowrap">{h}</th>
+                  <th key={h} className="text-left px-4 py-3 text-falcon-muted font-medium text-xs whitespace-nowrap">{h}</th>
 
                 ))}
 
@@ -1535,13 +1535,13 @@ function DataMappingTab() {
 
               {([] as RoPAEntry[]).map((entry, idx) => (
 
-                <tr key={entry.id} className={`border-b border-[#1e2d42]/50 ${idx % 2 === 0 ? '' : 'bg-[#070d19]/30'}`}>
+                <tr key={entry.id} className={`border-b border-falcon-border/50 ${idx % 2 === 0 ? '' : 'bg-[#070d19]/30'}`}>
 
-                  <td className="px-4 py-3 text-[#e2e8f4] font-medium whitespace-nowrap">{entry.activity}</td>
+                  <td className="px-4 py-3 text-falcon-text font-medium whitespace-nowrap">{entry.activity}</td>
 
-                  <td className="px-4 py-3 text-[#7d92b0] text-xs max-w-[140px]">{entry.purpose}</td>
+                  <td className="px-4 py-3 text-falcon-muted text-xs max-w-[140px]">{entry.purpose}</td>
 
-                  <td className="px-4 py-3 text-[#7d92b0] text-xs whitespace-nowrap">{entry.legal_basis}</td>
+                  <td className="px-4 py-3 text-falcon-muted text-xs whitespace-nowrap">{entry.legal_basis}</td>
 
                   <td className="px-4 py-3">
 
@@ -1549,7 +1549,7 @@ function DataMappingTab() {
 
                       {entry.data_categories.map(c => (
 
-                        <span key={c} className="inline-flex px-1.5 py-0.5 rounded text-[10px] bg-[#161f33] border border-[#1e2d42] text-[#7d92b0]">{c}</span>
+                        <span key={c} className="inline-flex px-1.5 py-0.5 rounded-sm text-[10px] bg-falcon-raised border border-falcon-border text-falcon-muted">{c}</span>
 
                       ))}
 
@@ -1557,7 +1557,7 @@ function DataMappingTab() {
 
                   </td>
 
-                  <td className="px-4 py-3 text-[#e2e8f4] text-xs font-mono whitespace-nowrap">{entry.retention}</td>
+                  <td className="px-4 py-3 text-falcon-text text-xs font-mono whitespace-nowrap">{entry.retention}</td>
 
                   <td className="px-4 py-3 text-xs">
 
@@ -1567,7 +1567,7 @@ function DataMappingTab() {
 
                       : entry.third_parties.map(tp => (
 
-                          <span key={tp} className="block text-[#7d92b0]">{tp}</span>
+                          <span key={tp} className="block text-falcon-muted">{tp}</span>
 
                         ))
 
@@ -1764,13 +1764,13 @@ export default function PrivacyPage() {
 
       <div className="mb-6">
 
-        <div className="flex items-center gap-2 text-[#7d92b0] text-xs mb-3">
+        <div className="flex items-center gap-2 text-falcon-muted text-xs mb-3">
 
           <span>管理</span>
 
           <ChevronRight className="w-3 h-3" />
 
-          <span className="text-[#e2e8f4]">プライバシー/GDPR管理</span>
+          <span className="text-falcon-text">プライバシー/GDPR管理</span>
 
         </div>
 
@@ -1780,9 +1780,9 @@ export default function PrivacyPage() {
 
             <h1 className="text-2xl font-bold text-white flex items-center gap-3">
 
-              <div className="w-8 h-8 rounded-lg bg-[#e8002d]/10 border border-[#e8002d]/20 flex items-center justify-center">
+              <div className="w-8 h-8 rounded-lg bg-falcon-red/10 border border-falcon-red/20 flex items-center justify-center">
 
-                <Shield className="w-4 h-4 text-[#e8002d]" />
+                <Shield className="w-4 h-4 text-falcon-red" />
 
               </div>
 
@@ -1790,7 +1790,7 @@ export default function PrivacyPage() {
 
             </h1>
 
-            <p className="text-[#7d92b0] text-sm mt-1">データ主体の権利管理・プライバシーインシデント・DSAR対応</p>
+            <p className="text-falcon-muted text-sm mt-1">データ主体の権利管理・プライバシーインシデント・DSAR対応</p>
 
           </div>
 
@@ -1808,7 +1808,7 @@ export default function PrivacyPage() {
 
             }}
 
-            className="p-2 rounded-lg border border-[#1e2d42] text-[#7d92b0] hover:text-white hover:border-[#3d5068] transition-colors"
+            className="p-2 rounded-lg border border-falcon-border text-falcon-muted hover:text-white hover:border-falcon-subtle transition-colors"
 
           >
 
@@ -1840,7 +1840,7 @@ export default function PrivacyPage() {
 
       {/* ── Tabs ── */}
 
-      <div className="flex gap-1 mb-6 bg-[#0d1220] border border-[#1e2d42] rounded-lg p-1 w-fit">
+      <div className="flex gap-1 mb-6 bg-falcon-surface border border-falcon-border rounded-lg p-1 w-fit">
 
         {tabs.map(tab => (
 
@@ -1854,9 +1854,9 @@ export default function PrivacyPage() {
 
               activeTab === tab.id
 
-                ? 'bg-[#1d2f4a] text-white'
+                ? 'bg-falcon-active text-white'
 
-                : 'text-[#7d92b0] hover:text-[#e2e8f4]'
+                : 'text-falcon-muted hover:text-falcon-text'
 
             }`}
 
@@ -1888,7 +1888,7 @@ export default function PrivacyPage() {
 
               onClick={() => setShowAddSubject(true)}
 
-              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#e8002d] hover:bg-[#c00025] text-white text-sm font-medium transition-colors"
+              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-falcon-red hover:bg-[#c00025] text-white text-sm font-medium transition-colors"
 
             >
 
@@ -1900,7 +1900,7 @@ export default function PrivacyPage() {
 
           </div>
 
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg overflow-hidden">
+          <div className="bg-falcon-surface border border-falcon-border rounded-lg overflow-hidden">
 
             <div className="overflow-x-auto">
 
@@ -1908,11 +1908,11 @@ export default function PrivacyPage() {
 
                 <thead>
 
-                  <tr className="border-b border-[#1e2d42]">
+                  <tr className="border-b border-falcon-border">
 
                     {['メールアドレス', '氏名', '種別', 'データカテゴリ', '同意', '保持期間', '削除要求', '操作'].map(h => (
 
-                      <th key={h} className="text-left px-4 py-3 text-[#7d92b0] font-medium text-xs whitespace-nowrap">{h}</th>
+                      <th key={h} className="text-left px-4 py-3 text-falcon-muted font-medium text-xs whitespace-nowrap">{h}</th>
 
                     ))}
 
@@ -1924,11 +1924,11 @@ export default function PrivacyPage() {
 
                   {subjects.map(subject => (
 
-                    <tr key={subject.id} className={`border-b border-[#1e2d42]/50 hover:bg-[#161f33]/30 transition-colors ${subject.deletion_requested ? 'bg-red-900/5' : ''}`}>
+                    <tr key={subject.id} className={`border-b border-falcon-border/50 hover:bg-falcon-raised/30 transition-colors ${subject.deletion_requested ? 'bg-red-900/5' : ''}`}>
 
-                      <td className="px-4 py-3 font-mono text-[#e2e8f4] text-xs">{maskEmail(subject.email)}</td>
+                      <td className="px-4 py-3 font-mono text-falcon-text text-xs">{maskEmail(subject.email)}</td>
 
-                      <td className="px-4 py-3 text-[#e2e8f4]">{subject.name}</td>
+                      <td className="px-4 py-3 text-falcon-text">{subject.name}</td>
 
                       <td className="px-4 py-3">
 
@@ -1956,21 +1956,21 @@ export default function PrivacyPage() {
 
                           ? <span className="flex items-center gap-1 text-green-400 text-xs"><CheckCircle className="w-3.5 h-3.5" />取得済み</span>
 
-                          : <span className="flex items-center gap-1 text-[#7d92b0] text-xs"><XCircle className="w-3.5 h-3.5" />未取得</span>
+                          : <span className="flex items-center gap-1 text-falcon-muted text-xs"><XCircle className="w-3.5 h-3.5" />未取得</span>
 
                         }
 
                       </td>
 
-                      <td className="px-4 py-3 text-[#7d92b0] text-xs font-mono">{subject.retention_period_days}日</td>
+                      <td className="px-4 py-3 text-falcon-muted text-xs font-mono">{subject.retention_period_days}日</td>
 
                       <td className="px-4 py-3">
 
                         {subject.deletion_requested
 
-                          ? <span className="flex items-center gap-1 text-[#e8002d] text-xs font-medium"><AlertTriangle className="w-3.5 h-3.5" />保留中</span>
+                          ? <span className="flex items-center gap-1 text-falcon-red text-xs font-medium"><AlertTriangle className="w-3.5 h-3.5" />保留中</span>
 
-                          : <span className="text-[#7d92b0] text-xs">なし</span>
+                          : <span className="text-falcon-muted text-xs">なし</span>
 
                         }
 
@@ -1994,7 +1994,7 @@ export default function PrivacyPage() {
 
                           disabled={deletingSubjectId === subject.id}
 
-                          className="flex items-center gap-1 px-2.5 py-1.5 rounded text-xs bg-red-900/20 border border-red-700/40 text-red-400 hover:bg-red-900/40 disabled:opacity-50 transition-colors"
+                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-sm text-xs bg-red-900/20 border border-red-700/40 text-red-400 hover:bg-red-900/40 disabled:opacity-50 transition-colors"
 
                         >
 
@@ -2034,7 +2034,7 @@ export default function PrivacyPage() {
 
             <div className="bg-blue-900/20 border border-blue-700/40 rounded-lg px-4 py-2.5 flex items-center gap-2">
 
-              <Info className="w-4 h-4 text-blue-400 flex-shrink-0" />
+              <Info className="w-4 h-4 text-blue-400 shrink-0" />
 
               <p className="text-blue-300 text-xs">GDPR Art.12(3): DSARは受付から<strong>30日</strong>以内に対応が必要です。</p>
 
@@ -2044,7 +2044,7 @@ export default function PrivacyPage() {
 
               onClick={() => setShowAddDSAR(true)}
 
-              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#e8002d] hover:bg-[#c00025] text-white text-sm font-medium transition-colors"
+              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-falcon-red hover:bg-[#c00025] text-white text-sm font-medium transition-colors"
 
             >
 
@@ -2056,7 +2056,7 @@ export default function PrivacyPage() {
 
           </div>
 
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg overflow-hidden">
+          <div className="bg-falcon-surface border border-falcon-border rounded-lg overflow-hidden">
 
             <div className="overflow-x-auto">
 
@@ -2064,11 +2064,11 @@ export default function PrivacyPage() {
 
                 <thead>
 
-                  <tr className="border-b border-[#1e2d42]">
+                  <tr className="border-b border-falcon-border">
 
                     {['リクエストID', '申請者', '種別', 'ステータス', '期限', '完了日時', '操作'].map(h => (
 
-                      <th key={h} className="text-left px-4 py-3 text-[#7d92b0] font-medium text-xs whitespace-nowrap">{h}</th>
+                      <th key={h} className="text-left px-4 py-3 text-falcon-muted font-medium text-xs whitespace-nowrap">{h}</th>
 
                     ))}
 
@@ -2094,17 +2094,17 @@ export default function PrivacyPage() {
 
                         key={req.id}
 
-                        className={`border-b border-[#1e2d42]/50 hover:bg-[#161f33]/30 transition-colors ${isOverdue ? 'bg-red-900/10' : ''}`}
+                        className={`border-b border-falcon-border/50 hover:bg-falcon-raised/30 transition-colors ${isOverdue ? 'bg-red-900/10' : ''}`}
 
                       >
 
-                        <td className="px-4 py-3 font-mono text-[#7d92b0] text-xs">{req.id.slice(-8)}</td>
+                        <td className="px-4 py-3 font-mono text-falcon-muted text-xs">{req.id.slice(-8)}</td>
 
                         <td className="px-4 py-3">
 
-                          <p className="text-[#e2e8f4] text-xs">{req.subject_name}</p>
+                          <p className="text-falcon-text text-xs">{req.subject_name}</p>
 
-                          <p className="text-[#7d92b0] text-[10px] font-mono">{maskEmail(req.subject_email)}</p>
+                          <p className="text-falcon-muted text-[10px] font-mono">{maskEmail(req.subject_email)}</p>
 
                         </td>
 
@@ -2132,21 +2132,21 @@ export default function PrivacyPage() {
 
                           <div>
 
-                            <p className={`text-xs font-medium ${isOverdue ? 'text-[#e8002d]' : daysLeft <= 7 ? 'text-orange-400' : 'text-[#e2e8f4]'}`}>
+                            <p className={`text-xs font-medium ${isOverdue ? 'text-falcon-red' : daysLeft <= 7 ? 'text-orange-400' : 'text-falcon-text'}`}>
 
                               {isOverdue ? `${Math.abs(daysLeft)}日超過` : `残${daysLeft}日`}
 
                             </p>
 
-                            <p className="text-[#7d92b0] text-[10px]">{formatDate(req.due_date)}</p>
+                            <p className="text-falcon-muted text-[10px]">{formatDate(req.due_date)}</p>
 
                             {/* SLA bar */}
 
-                            <div className="mt-1 w-20 h-1 bg-[#1e2d42] rounded-full overflow-hidden">
+                            <div className="mt-1 w-20 h-1 bg-falcon-border rounded-full overflow-hidden">
 
                               <div
 
-                                className={`h-full rounded-full transition-all ${slaPercent > 80 ? 'bg-[#e8002d]' : slaPercent > 60 ? 'bg-orange-500' : 'bg-green-500'}`}
+                                className={`h-full rounded-full transition-all ${slaPercent > 80 ? 'bg-falcon-red' : slaPercent > 60 ? 'bg-orange-500' : 'bg-green-500'}`}
 
                                 style={{ width: `${slaPercent}%` }}
 
@@ -2158,7 +2158,7 @@ export default function PrivacyPage() {
 
                         </td>
 
-                        <td className="px-4 py-3 text-[#7d92b0] text-xs">
+                        <td className="px-4 py-3 text-falcon-muted text-xs">
 
                           {req.completed_at ? formatDate(req.completed_at) : '—'}
 
@@ -2172,7 +2172,7 @@ export default function PrivacyPage() {
 
                               onClick={() => setCompletingDSAR(req)}
 
-                              className="flex items-center gap-1 px-2.5 py-1.5 rounded text-xs bg-green-900/20 border border-green-700/40 text-green-400 hover:bg-green-900/40 transition-colors"
+                              className="flex items-center gap-1 px-2.5 py-1.5 rounded-sm text-xs bg-green-900/20 border border-green-700/40 text-green-400 hover:bg-green-900/40 transition-colors"
 
                             >
 
@@ -2226,7 +2226,7 @@ export default function PrivacyPage() {
 
             <div className="bg-orange-900/20 border border-orange-700/40 rounded-lg px-4 py-2.5 flex items-center gap-2">
 
-              <AlertTriangle className="w-4 h-4 text-orange-400 flex-shrink-0" />
+              <AlertTriangle className="w-4 h-4 text-orange-400 shrink-0" />
 
               <p className="text-orange-300 text-xs">GDPR Art.33: 個人データ侵害は認知から<strong>72時間以内</strong>に監督機関へ報告が必要です。</p>
 
@@ -2236,7 +2236,7 @@ export default function PrivacyPage() {
 
               onClick={() => setShowAddIncident(true)}
 
-              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#e8002d] hover:bg-[#c00025] text-white text-sm font-medium transition-colors"
+              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-falcon-red hover:bg-[#c00025] text-white text-sm font-medium transition-colors"
 
             >
 
@@ -2248,7 +2248,7 @@ export default function PrivacyPage() {
 
           </div>
 
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg overflow-hidden">
+          <div className="bg-falcon-surface border border-falcon-border rounded-lg overflow-hidden">
 
             <div className="overflow-x-auto">
 
@@ -2256,11 +2256,11 @@ export default function PrivacyPage() {
 
                 <thead>
 
-                  <tr className="border-b border-[#1e2d42]">
+                  <tr className="border-b border-falcon-border">
 
                     {['種別', '説明', '影響者数', 'データカテゴリ', '深刻度', '当局報告', 'ステータス', '発生日', '操作'].map(h => (
 
-                      <th key={h} className="text-left px-4 py-3 text-[#7d92b0] font-medium text-xs whitespace-nowrap">{h}</th>
+                      <th key={h} className="text-left px-4 py-3 text-falcon-muted font-medium text-xs whitespace-nowrap">{h}</th>
 
                     ))}
 
@@ -2272,7 +2272,7 @@ export default function PrivacyPage() {
 
                   {incidents.map(incident => (
 
-                    <tr key={incident.id} className="border-b border-[#1e2d42]/50 hover:bg-[#161f33]/30 transition-colors">
+                    <tr key={incident.id} className="border-b border-falcon-border/50 hover:bg-falcon-raised/30 transition-colors">
 
                       <td className="px-4 py-3">
 
@@ -2284,7 +2284,7 @@ export default function PrivacyPage() {
 
                       </td>
 
-                      <td className="px-4 py-3 text-[#7d92b0] text-xs max-w-[200px]">
+                      <td className="px-4 py-3 text-falcon-muted text-xs max-w-[200px]">
 
                         <span title={incident.description}>
 
@@ -2296,7 +2296,7 @@ export default function PrivacyPage() {
 
                       <td className="px-4 py-3">
 
-                        <span className={`font-bold text-sm ${incident.affected_subjects_count > 100 ? 'text-[#e8002d]' : 'text-[#e2e8f4]'}`}>
+                        <span className={`font-bold text-sm ${incident.affected_subjects_count > 100 ? 'text-falcon-red' : 'text-falcon-text'}`}>
 
                           {(incident.affected_subjects_count ?? 0).toLocaleString()}
 
@@ -2330,7 +2330,7 @@ export default function PrivacyPage() {
 
                           ? <span className="flex items-center gap-1 text-green-400 text-xs"><CheckCircle className="w-3.5 h-3.5" />報告済</span>
 
-                          : <span className="flex items-center gap-1 text-[#7d92b0] text-xs"><XCircle className="w-3.5 h-3.5" />未報告</span>
+                          : <span className="flex items-center gap-1 text-falcon-muted text-xs"><XCircle className="w-3.5 h-3.5" />未報告</span>
 
                         }
 
@@ -2358,7 +2358,7 @@ export default function PrivacyPage() {
 
                       </td>
 
-                      <td className="px-4 py-3 text-[#7d92b0] text-xs whitespace-nowrap">{formatDate(incident.created_at)}</td>
+                      <td className="px-4 py-3 text-falcon-muted text-xs whitespace-nowrap">{formatDate(incident.created_at)}</td>
 
                       <td className="px-4 py-3">
 
@@ -2376,7 +2376,7 @@ export default function PrivacyPage() {
 
                             disabled={reportingIncidentId === incident.id}
 
-                            className="flex items-center gap-1 px-2.5 py-1.5 rounded text-xs bg-blue-900/20 border border-blue-700/40 text-blue-400 hover:bg-blue-900/40 disabled:opacity-50 transition-colors whitespace-nowrap"
+                            className="flex items-center gap-1 px-2.5 py-1.5 rounded-sm text-xs bg-blue-900/20 border border-blue-700/40 text-blue-400 hover:bg-blue-900/40 disabled:opacity-50 transition-colors whitespace-nowrap"
 
                           >
 

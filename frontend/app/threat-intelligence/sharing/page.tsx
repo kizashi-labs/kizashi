@@ -145,12 +145,12 @@ const SAMPLE_STIX = `{
 function TLPBadge({ level }: { level: string }) {
   const cfg: Record<string, string> = {
     WHITE: 'bg-white/10 text-white border-white/30',
-    GREEN: 'bg-[#00c853]/20 text-[#00c853] border-[#00c853]/40',
+    GREEN: 'bg-falcon-green/20 text-falcon-green border-falcon-green/40',
     AMBER: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/40',
-    RED: 'bg-[#e8002d]/20 text-[#e8002d] border-[#e8002d]/40',
+    RED: 'bg-falcon-red/20 text-falcon-red border-falcon-red/40',
   }
   return (
-    <span className={`text-[10px] font-bold px-2 py-0.5 rounded border whitespace-nowrap ${cfg[level] ?? 'bg-[#1e2d42] text-[#7d92b0]'}`}>
+    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-sm border whitespace-nowrap ${cfg[level] ?? 'bg-falcon-border text-falcon-muted'}`}>
       TLP:{level}
     </span>
   )
@@ -158,29 +158,29 @@ function TLPBadge({ level }: { level: string }) {
 
 function StatusBadge({ status }: { status: string }) {
   const cfg: Record<string, { cls: string; label: string }> = {
-    connected: { cls: 'bg-[#00c853]/20 text-[#00c853]', label: '接続中' },
-    error: { cls: 'bg-[#e8002d]/20 text-[#e8002d]', label: 'エラー' },
-    disconnected: { cls: 'bg-[#7d92b0]/20 text-[#7d92b0]', label: '切断' },
-    success: { cls: 'bg-[#00c853]/20 text-[#00c853]', label: '成功' },
+    connected: { cls: 'bg-falcon-green/20 text-falcon-green', label: '接続中' },
+    error: { cls: 'bg-falcon-red/20 text-falcon-red', label: 'エラー' },
+    disconnected: { cls: 'bg-falcon-muted/20 text-falcon-muted', label: '切断' },
+    success: { cls: 'bg-falcon-green/20 text-falcon-green', label: '成功' },
     partial: { cls: 'bg-yellow-500/20 text-yellow-400', label: '一部' },
-    ok: { cls: 'bg-[#00c853]/20 text-[#00c853]', label: 'OK' },
+    ok: { cls: 'bg-falcon-green/20 text-falcon-green', label: 'OK' },
     warning: { cls: 'bg-yellow-500/20 text-yellow-400', label: '警告' },
   }
-  const c = cfg[status] ?? { cls: 'bg-[#1e2d42] text-[#7d92b0]', label: status }
+  const c = cfg[status] ?? { cls: 'bg-falcon-border text-falcon-muted', label: status }
   return (
-    <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${c.cls}`}>{c.label}</span>
+    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-sm ${c.cls}`}>{c.label}</span>
   )
 }
 
 function FormatBadge({ fmt }: { fmt: string }) {
   const colors: Record<string, string> = {
-    stix: 'bg-[#1a6bff]/20 text-[#1a6bff]',
+    stix: 'bg-falcon-blue/20 text-falcon-blue',
     csv: 'bg-purple-500/20 text-purple-400',
     json: 'bg-teal-500/20 text-teal-400',
     misp: 'bg-orange-500/20 text-orange-400',
   }
   return (
-    <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase ${colors[fmt] ?? 'bg-[#1e2d42] text-[#7d92b0]'}`}>
+    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-sm uppercase ${colors[fmt] ?? 'bg-falcon-border text-falcon-muted'}`}>
       {fmt}
     </span>
   )
@@ -190,9 +190,9 @@ function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean
   return (
     <button
       onClick={() => onChange(!checked)}
-      className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${checked ? 'bg-[#e8002d]' : 'bg-[#1e2d42]'}`}
+      className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${checked ? 'bg-falcon-red' : 'bg-falcon-border'}`}
     >
-      <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-[#e2e8f4] transition-transform ${checked ? 'translate-x-4' : 'translate-x-1'}`} />
+      <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-falcon-text transition-transform ${checked ? 'translate-x-4' : 'translate-x-1'}`} />
     </button>
   )
 }
@@ -249,16 +249,16 @@ function SharingSettingsTab() {
           <h3 className="text-white font-semibold">トラストグループ</h3>
           <button
             onClick={() => setShowAddGroup(true)}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#e8002d] text-white text-xs hover:bg-[#c0001f] transition-colors"
+            className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-falcon-red text-white text-xs hover:bg-[#c0001f] transition-colors"
           >
             <Plus className="w-3 h-3" /> グループ追加
           </button>
         </div>
 
-        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
+        <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-[#1e2d42] text-[#3d5068] text-xs">
+              <tr className="border-b border-falcon-border text-falcon-subtle text-xs">
                 <th className="text-left px-4 py-3">グループ名</th>
                 <th className="text-left px-4 py-3">メンバー数</th>
                 <th className="text-left px-4 py-3">TLPレベル</th>
@@ -270,16 +270,16 @@ function SharingSettingsTab() {
             <tbody>
               {groups.map(g => (
                 <>
-                  <tr key={g.id} className="border-b border-[#1e2d42] last:border-0 hover:bg-[#19253d] transition-colors">
+                  <tr key={g.id} className="border-b border-falcon-border last:border-0 hover:bg-falcon-hover transition-colors">
                     <td className="px-4 py-3">
                       <div>
                         <p className="text-white font-medium">{g.name}</p>
-                        <p className="text-[#3d5068] text-xs mt-0.5">{g.description}</p>
+                        <p className="text-falcon-subtle text-xs mt-0.5">{g.description}</p>
                       </div>
                     </td>
                     <td className="px-4 py-3">
                       <span className="text-white">{g.members_count}</span>
-                      <span className="text-[#3d5068] text-xs ml-1">名</span>
+                      <span className="text-falcon-subtle text-xs ml-1">名</span>
                     </td>
                     <td className="px-4 py-3"><TLPBadge level={g.tlp_level} /></td>
                     <td className="px-4 py-3">
@@ -288,32 +288,32 @@ function SharingSettingsTab() {
                         onChange={v => setGroups(prev => prev.map(x => x.id === g.id ? { ...x, auto_share: v } : x))}
                       />
                     </td>
-                    <td className="px-4 py-3 text-xs text-[#7d92b0]">
+                    <td className="px-4 py-3 text-xs text-falcon-muted">
                       {g.last_shared ? new Date(g.last_shared).toLocaleString('ja-JP') : '—'}
                     </td>
                     <td className="px-4 py-3">
                       <button
                         onClick={() => setExpandedGroup(expandedGroup === g.id ? null : g.id)}
-                        className="text-xs px-3 py-1 rounded bg-[#1e2d42] text-[#7d92b0] hover:text-white transition-colors flex items-center gap-1"
+                        className="text-xs px-3 py-1 rounded-sm bg-falcon-border text-falcon-muted hover:text-white transition-colors flex items-center gap-1"
                       >
                         メンバー <ChevronRight className={`w-3 h-3 transition-transform ${expandedGroup === g.id ? 'rotate-90' : ''}`} />
                       </button>
                     </td>
                   </tr>
                   {expandedGroup === g.id && (
-                    <tr key={`${g.id}-members`} className="border-b border-[#1e2d42] bg-[#070d19]">
+                    <tr key={`${g.id}-members`} className="border-b border-falcon-border bg-[#070d19]">
                       <td colSpan={6} className="px-4 py-3">
-                        <div className="text-xs text-[#7d92b0] space-y-1">
+                        <div className="text-xs text-falcon-muted space-y-1">
                           {Array.from({ length: Math.min(g.members_count, 5) }, (_, i) => (
-                            <div key={i} className="flex items-center justify-between py-1 border-b border-[#1e2d42] last:border-0">
+                            <div key={i} className="flex items-center justify-between py-1 border-b border-falcon-border last:border-0">
                               <span className="text-white">member{i + 1}@organization{i + 1}.jp</span>
-                              <button className="text-[#e8002d] hover:underline text-xs">削除</button>
+                              <button className="text-falcon-red hover:underline text-xs">削除</button>
                             </div>
                           ))}
                           {g.members_count > 5 && (
-                            <p className="text-[#3d5068]">...他 {g.members_count - 5} 名</p>
+                            <p className="text-falcon-subtle">...他 {g.members_count - 5} 名</p>
                           )}
-                          <button className="mt-2 flex items-center gap-1 text-[#1a6bff] hover:text-white transition-colors">
+                          <button className="mt-2 flex items-center gap-1 text-falcon-blue hover:text-white transition-colors">
                             <Plus className="w-3 h-3" /> メンバー追加
                           </button>
                         </div>
@@ -330,31 +330,31 @@ function SharingSettingsTab() {
       {/* Add Group Modal */}
       {showAddGroup && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-6 w-[480px] space-y-4">
+          <div className="bg-falcon-surface border border-falcon-border rounded-xl p-6 w-[480px] space-y-4">
             <h3 className="text-white font-semibold">トラストグループ追加</h3>
             <div className="space-y-3">
               <div>
-                <label className="text-xs text-[#7d92b0] block mb-1">グループ名</label>
+                <label className="text-xs text-falcon-muted block mb-1">グループ名</label>
                 <input
-                  className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[#1a6bff]"
+                  className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-blue"
                   value={newGroup.name}
                   onChange={e => setNewGroup(p => ({ ...p, name: e.target.value }))}
                   placeholder="例: 金融ISAC グループ"
                 />
               </div>
               <div>
-                <label className="text-xs text-[#7d92b0] block mb-1">説明</label>
+                <label className="text-xs text-falcon-muted block mb-1">説明</label>
                 <textarea
-                  className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[#1a6bff] resize-none"
+                  className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-blue resize-none"
                   rows={2}
                   value={newGroup.description}
                   onChange={e => setNewGroup(p => ({ ...p, description: e.target.value }))}
                 />
               </div>
               <div>
-                <label className="text-xs text-[#7d92b0] block mb-1">TLPレベル</label>
+                <label className="text-xs text-falcon-muted block mb-1">TLPレベル</label>
                 <select
-                  className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[#1a6bff]"
+                  className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-blue"
                   value={newGroup.tlp_level}
                   onChange={e => setNewGroup(p => ({ ...p, tlp_level: e.target.value }))}
                 >
@@ -366,18 +366,18 @@ function SharingSettingsTab() {
               </div>
               <div className="flex items-center gap-3">
                 <Toggle checked={newGroup.auto_share} onChange={v => setNewGroup(p => ({ ...p, auto_share: v }))} />
-                <span className="text-sm text-[#7d92b0]">自動共有を有効にする</span>
+                <span className="text-sm text-falcon-muted">自動共有を有効にする</span>
               </div>
             </div>
             <div className="flex gap-3 pt-2">
               <button
                 onClick={handleAddGroup}
                 disabled={!newGroup.name}
-                className="flex-1 py-2 rounded-lg bg-[#e8002d] text-white text-sm font-medium hover:bg-[#c0001f] disabled:opacity-50 transition-colors"
+                className="flex-1 py-2 rounded-lg bg-falcon-red text-white text-sm font-medium hover:bg-[#c0001f] disabled:opacity-50 transition-colors"
               >
                 追加
               </button>
-              <button onClick={() => setShowAddGroup(false)} className="flex-1 py-2 rounded-lg border border-[#1e2d42] text-[#7d92b0] text-sm hover:text-white transition-colors">
+              <button onClick={() => setShowAddGroup(false)} className="flex-1 py-2 rounded-lg border border-falcon-border text-falcon-muted text-sm hover:text-white transition-colors">
                 キャンセル
               </button>
             </div>
@@ -391,16 +391,16 @@ function SharingSettingsTab() {
           <h3 className="text-white font-semibold">TAXIIパートナー接続</h3>
           <button
             onClick={() => setShowAddPartner(true)}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#1a6bff] text-white text-xs hover:bg-blue-600 transition-colors"
+            className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-falcon-blue text-white text-xs hover:bg-blue-600 transition-colors"
           >
             <Plus className="w-3 h-3" /> 接続追加
           </button>
         </div>
 
-        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
+        <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-[#1e2d42] text-[#3d5068] text-xs">
+              <tr className="border-b border-falcon-border text-falcon-subtle text-xs">
                 <th className="text-left px-4 py-3">名前 / URL</th>
                 <th className="text-left px-4 py-3">認証</th>
                 <th className="text-left px-4 py-3">ステータス</th>
@@ -411,17 +411,17 @@ function SharingSettingsTab() {
             </thead>
             <tbody>
               {partners.map(p => (
-                <tr key={p.id} className="border-b border-[#1e2d42] last:border-0 hover:bg-[#19253d] transition-colors">
+                <tr key={p.id} className="border-b border-falcon-border last:border-0 hover:bg-falcon-hover transition-colors">
                   <td className="px-4 py-3">
                     <p className="text-white font-medium">{p.name}</p>
-                    <p className="text-[#3d5068] text-xs font-mono mt-0.5">{p.url}</p>
+                    <p className="text-falcon-subtle text-xs font-mono mt-0.5">{p.url}</p>
                   </td>
                   <td className="px-4 py-3">
-                    <span className="text-xs bg-[#1e2d42] text-[#7d92b0] px-2 py-0.5 rounded uppercase">{p.auth_type}</span>
+                    <span className="text-xs bg-falcon-border text-falcon-muted px-2 py-0.5 rounded-sm uppercase">{p.auth_type}</span>
                   </td>
                   <td className="px-4 py-3"><StatusBadge status={p.status} /></td>
                   <td className="px-4 py-3 text-right text-white font-mono text-xs">{(p.objects_received ?? 0).toLocaleString()}</td>
-                  <td className="px-4 py-3 text-xs text-[#7d92b0]">
+                  <td className="px-4 py-3 text-xs text-falcon-muted">
                     {p.last_pull ? new Date(p.last_pull).toLocaleString('ja-JP') : '—'}
                   </td>
                   <td className="px-4 py-3">
@@ -440,7 +440,7 @@ function SharingSettingsTab() {
       {/* Add Partner Modal */}
       {showAddPartner && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-6 w-[520px] space-y-4">
+          <div className="bg-falcon-surface border border-falcon-border rounded-xl p-6 w-[520px] space-y-4">
             <h3 className="text-white font-semibold">TAXIIサーバー接続追加</h3>
             <div className="space-y-3">
               {[
@@ -450,9 +450,9 @@ function SharingSettingsTab() {
                 { key: 'collection_id', label: 'Collection ID', ph: 'collection-uuid' },
               ].map(f => (
                 <div key={f.key}>
-                  <label className="text-xs text-[#7d92b0] block mb-1">{f.label}</label>
+                  <label className="text-xs text-falcon-muted block mb-1">{f.label}</label>
                   <input
-                    className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[#1a6bff]"
+                    className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-blue"
                     value={(newPartner as Record<string, string>)[f.key]}
                     onChange={e => setNewPartner(p => ({ ...p, [f.key]: e.target.value }))}
                     placeholder={f.ph}
@@ -460,9 +460,9 @@ function SharingSettingsTab() {
                 </div>
               ))}
               <div>
-                <label className="text-xs text-[#7d92b0] block mb-1">認証タイプ</label>
+                <label className="text-xs text-falcon-muted block mb-1">認証タイプ</label>
                 <select
-                  className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[#1a6bff]"
+                  className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-blue"
                   value={newPartner.auth_type}
                   onChange={e => setNewPartner(p => ({ ...p, auth_type: e.target.value }))}
                 >
@@ -474,53 +474,53 @@ function SharingSettingsTab() {
               {newPartner.auth_type === 'basic' && (
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="text-xs text-[#7d92b0] block mb-1">ユーザー名</label>
-                    <input className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[#1a6bff]" value={newPartner.username} onChange={e => setNewPartner(p => ({ ...p, username: e.target.value }))} />
+                    <label className="text-xs text-falcon-muted block mb-1">ユーザー名</label>
+                    <input className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-blue" value={newPartner.username} onChange={e => setNewPartner(p => ({ ...p, username: e.target.value }))} />
                   </div>
                   <div>
-                    <label className="text-xs text-[#7d92b0] block mb-1">パスワード</label>
-                    <input type="password" className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[#1a6bff]" value={newPartner.password} onChange={e => setNewPartner(p => ({ ...p, password: e.target.value }))} />
+                    <label className="text-xs text-falcon-muted block mb-1">パスワード</label>
+                    <input type="password" className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-blue" value={newPartner.password} onChange={e => setNewPartner(p => ({ ...p, password: e.target.value }))} />
                   </div>
                 </div>
               )}
               {newPartner.auth_type === 'token' && (
                 <div>
-                  <label className="text-xs text-[#7d92b0] block mb-1">APIトークン</label>
-                  <input type="password" className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[#1a6bff]" value={newPartner.token} onChange={e => setNewPartner(p => ({ ...p, token: e.target.value }))} />
+                  <label className="text-xs text-falcon-muted block mb-1">APIトークン</label>
+                  <input type="password" className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-blue" value={newPartner.token} onChange={e => setNewPartner(p => ({ ...p, token: e.target.value }))} />
                 </div>
               )}
             </div>
             <div className="flex gap-3 pt-2">
-              <button onClick={handleAddPartner} disabled={!newPartner.name || !newPartner.url} className="flex-1 py-2 rounded-lg bg-[#1a6bff] text-white text-sm font-medium hover:bg-blue-600 disabled:opacity-50 transition-colors">追加</button>
-              <button onClick={() => setShowAddPartner(false)} className="flex-1 py-2 rounded-lg border border-[#1e2d42] text-[#7d92b0] text-sm hover:text-white transition-colors">キャンセル</button>
+              <button onClick={handleAddPartner} disabled={!newPartner.name || !newPartner.url} className="flex-1 py-2 rounded-lg bg-falcon-blue text-white text-sm font-medium hover:bg-blue-600 disabled:opacity-50 transition-colors">追加</button>
+              <button onClick={() => setShowAddPartner(false)} className="flex-1 py-2 rounded-lg border border-falcon-border text-falcon-muted text-sm hover:text-white transition-colors">キャンセル</button>
             </div>
           </div>
         </div>
       )}
 
       {/* Sharing Policies */}
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
+      <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
         <h3 className="text-white font-semibold mb-4">共有ポリシー</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <p className="text-xs text-[#7d92b0] mb-3">アラート閾値 (自動共有)</p>
+            <p className="text-xs text-falcon-muted mb-3">アラート閾値 (自動共有)</p>
             <div className="space-y-2">
               {['Critical', 'High'].map(sev => (
                 <label key={sev} className="flex items-center gap-3 cursor-pointer group">
-                  <input type="checkbox" defaultChecked className="accent-[#e8002d]" />
-                  <span className="text-sm text-[#7d92b0] group-hover:text-white transition-colors">{sev} アラートを自動共有</span>
+                  <input type="checkbox" defaultChecked className="accent-falcon-red" />
+                  <span className="text-sm text-falcon-muted group-hover:text-white transition-colors">{sev} アラートを自動共有</span>
                 </label>
               ))}
               {['Medium', 'Low'].map(sev => (
                 <label key={sev} className="flex items-center gap-3 cursor-pointer group">
-                  <input type="checkbox" className="accent-[#e8002d]" />
-                  <span className="text-sm text-[#7d92b0] group-hover:text-white transition-colors">{sev} アラートを自動共有</span>
+                  <input type="checkbox" className="accent-falcon-red" />
+                  <span className="text-sm text-falcon-muted group-hover:text-white transition-colors">{sev} アラートを自動共有</span>
                 </label>
               ))}
             </div>
           </div>
           <div>
-            <p className="text-xs text-[#7d92b0] mb-3">IOCタイプ (自動エクスポート)</p>
+            <p className="text-xs text-falcon-muted mb-3">IOCタイプ (自動エクスポート)</p>
             <div className="space-y-2">
               {[
                 { label: 'IPアドレス', checked: true },
@@ -531,8 +531,8 @@ function SharingSettingsTab() {
                 { label: 'User-Agent', checked: false },
               ].map(item => (
                 <label key={item.label} className="flex items-center gap-3 cursor-pointer group">
-                  <input type="checkbox" defaultChecked={item.checked} className="accent-[#1a6bff]" />
-                  <span className="text-sm text-[#7d92b0] group-hover:text-white transition-colors">{item.label}</span>
+                  <input type="checkbox" defaultChecked={item.checked} className="accent-falcon-blue" />
+                  <span className="text-sm text-falcon-muted group-hover:text-white transition-colors">{item.label}</span>
                 </label>
               ))}
             </div>
@@ -571,7 +571,7 @@ function ExportTab() {
     <div className="space-y-6">
 
       {/* Export Wizard */}
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-6">
+      <div className="bg-falcon-surface border border-falcon-border rounded-xl p-6">
         <div className="flex items-center justify-between mb-6">
           <h3 className="text-white font-semibold">エクスポートウィザード</h3>
           <div className="flex items-center gap-1">
@@ -579,34 +579,34 @@ function ExportTab() {
               <div key={s} className="flex items-center gap-1">
                 <div
                   className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold cursor-pointer transition-colors ${
-                    s < step ? 'bg-[#00c853] text-white' :
-                    s === step ? 'bg-[#e8002d] text-white' :
-                    'bg-[#1e2d42] text-[#3d5068]'
+                    s < step ? 'bg-falcon-green text-white' :
+                    s === step ? 'bg-falcon-red text-white' :
+                    'bg-falcon-border text-falcon-subtle'
                   }`}
                   onClick={() => s < step && setStep(s)}
                 >
                   {s < step ? <CheckCircle className="w-4 h-4" /> : s}
                 </div>
-                {s < 4 && <div className={`w-8 h-0.5 ${s < step ? 'bg-[#00c853]' : 'bg-[#1e2d42]'}`} />}
+                {s < 4 && <div className={`w-8 h-0.5 ${s < step ? 'bg-falcon-green' : 'bg-falcon-border'}`} />}
               </div>
             ))}
           </div>
         </div>
 
-        <p className="text-xs text-[#3d5068] mb-4">ステップ {step}: {stepTitles[step - 1]}</p>
+        <p className="text-xs text-falcon-subtle mb-4">ステップ {step}: {stepTitles[step - 1]}</p>
 
         {/* Step 1: Content */}
         {step === 1 && (
           <div className="space-y-4">
             <div>
-              <p className="text-sm text-[#7d92b0] mb-3">IOCタイプを選択</p>
+              <p className="text-sm text-falcon-muted mb-3">IOCタイプを選択</p>
               <div className="grid grid-cols-3 gap-3">
                 {(Object.entries(iocTypes) as [keyof typeof iocTypes, boolean][]).map(([k, v]) => {
                   const labels = { ip: 'IPアドレス', domain: 'ドメイン', hash: 'ハッシュ', url: 'URL', email: 'メール' }
                   return (
                     <label key={k} className="flex items-center gap-2 cursor-pointer">
-                      <input type="checkbox" checked={v} onChange={e => setIocTypes(p => ({ ...p, [k]: e.target.checked }))} className="accent-[#e8002d]" />
-                      <span className="text-sm text-[#7d92b0]">{labels[k]}</span>
+                      <input type="checkbox" checked={v} onChange={e => setIocTypes(p => ({ ...p, [k]: e.target.checked }))} className="accent-falcon-red" />
+                      <span className="text-sm text-falcon-muted">{labels[k]}</span>
                     </label>
                   )
                 })}
@@ -614,15 +614,15 @@ function ExportTab() {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="text-xs text-[#7d92b0] block mb-1">開始日</label>
-                <input type="date" className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[#1a6bff]" value={dateRange.from} onChange={e => setDateRange(p => ({ ...p, from: e.target.value }))} />
+                <label className="text-xs text-falcon-muted block mb-1">開始日</label>
+                <input type="date" className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-blue" value={dateRange.from} onChange={e => setDateRange(p => ({ ...p, from: e.target.value }))} />
               </div>
               <div>
-                <label className="text-xs text-[#7d92b0] block mb-1">終了日</label>
-                <input type="date" className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[#1a6bff]" value={dateRange.to} onChange={e => setDateRange(p => ({ ...p, to: e.target.value }))} />
+                <label className="text-xs text-falcon-muted block mb-1">終了日</label>
+                <input type="date" className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-blue" value={dateRange.to} onChange={e => setDateRange(p => ({ ...p, to: e.target.value }))} />
               </div>
             </div>
-            <p className="text-xs text-[#3d5068]">推定オブジェクト数: <span className="text-white font-bold">{estimatedCount}</span></p>
+            <p className="text-xs text-falcon-subtle">推定オブジェクト数: <span className="text-white font-bold">{estimatedCount}</span></p>
           </div>
         )}
 
@@ -636,11 +636,11 @@ function ExportTab() {
                 <button
                   key={f}
                   onClick={() => setFormat(f)}
-                  className={`p-4 rounded-lg border text-left transition-all ${format === f ? 'border-[#e8002d] bg-[#e8002d]/10' : 'border-[#1e2d42] hover:border-[#7d92b0]/40'}`}
+                  className={`p-4 rounded-lg border text-left transition-all ${format === f ? 'border-falcon-red bg-falcon-red/10' : 'border-falcon-border hover:border-falcon-muted/40'}`}
                 >
                   <FormatBadge fmt={f} />
                   <p className="text-white font-medium mt-2 text-sm">{labels[f]}</p>
-                  <p className="text-[#3d5068] text-xs mt-1">{descs[f]}</p>
+                  <p className="text-falcon-subtle text-xs mt-1">{descs[f]}</p>
                 </button>
               )
             })}
@@ -661,11 +661,11 @@ function ExportTab() {
                 <button
                   key={t}
                   onClick={() => setTlp(t)}
-                  className={`w-full p-3 rounded-lg border text-left flex items-center gap-3 transition-all ${tlp === t ? 'border-[#e8002d] bg-[#e8002d]/5' : 'border-[#1e2d42] hover:border-[#7d92b0]/40'}`}
+                  className={`w-full p-3 rounded-lg border text-left flex items-center gap-3 transition-all ${tlp === t ? 'border-falcon-red bg-falcon-red/5' : 'border-falcon-border hover:border-falcon-muted/40'}`}
                 >
                   <TLPBadge level={t} />
-                  <span className="text-sm text-[#7d92b0]">{descs[t]}</span>
-                  {tlp === t && <CheckCircle className="w-4 h-4 text-[#e8002d] ml-auto" />}
+                  <span className="text-sm text-falcon-muted">{descs[t]}</span>
+                  {tlp === t && <CheckCircle className="w-4 h-4 text-falcon-red ml-auto" />}
                 </button>
               )
             })}
@@ -676,29 +676,29 @@ function ExportTab() {
         {step === 4 && (
           <div className="space-y-4">
             <div className="grid grid-cols-3 gap-4 text-sm">
-              <div className="bg-[#070d19] rounded-lg p-3 border border-[#1e2d42]">
-                <p className="text-[#3d5068] text-xs">推定オブジェクト数</p>
+              <div className="bg-[#070d19] rounded-lg p-3 border border-falcon-border">
+                <p className="text-falcon-subtle text-xs">推定オブジェクト数</p>
                 <p className="text-white font-bold text-xl mt-1">{estimatedCount}</p>
               </div>
-              <div className="bg-[#070d19] rounded-lg p-3 border border-[#1e2d42]">
-                <p className="text-[#3d5068] text-xs">フォーマット</p>
+              <div className="bg-[#070d19] rounded-lg p-3 border border-falcon-border">
+                <p className="text-falcon-subtle text-xs">フォーマット</p>
                 <div className="mt-1"><FormatBadge fmt={format} /></div>
               </div>
-              <div className="bg-[#070d19] rounded-lg p-3 border border-[#1e2d42]">
-                <p className="text-[#3d5068] text-xs">TLPマーキング</p>
+              <div className="bg-[#070d19] rounded-lg p-3 border border-falcon-border">
+                <p className="text-falcon-subtle text-xs">TLPマーキング</p>
                 <div className="mt-1"><TLPBadge level={tlp} /></div>
               </div>
             </div>
             {format === 'stix' && (
               <div>
-                <p className="text-xs text-[#7d92b0] mb-2">サンプル STIX オブジェクト</p>
-                <pre className="bg-[#070d19] border border-[#1e2d42] rounded-lg p-3 text-xs text-[#00c853] font-mono overflow-auto max-h-48">
+                <p className="text-xs text-falcon-muted mb-2">サンプル STIX オブジェクト</p>
+                <pre className="bg-[#070d19] border border-falcon-border rounded-lg p-3 text-xs text-falcon-green font-mono overflow-auto max-h-48">
                   {SAMPLE_STIX}
                 </pre>
               </div>
             )}
             {exportDone ? (
-              <div className="flex items-center gap-2 p-3 rounded-lg bg-[#00c853]/10 border border-[#00c853]/30 text-[#00c853]">
+              <div className="flex items-center gap-2 p-3 rounded-lg bg-falcon-green/10 border border-falcon-green/30 text-falcon-green">
                 <CheckCircle className="w-4 h-4" />
                 <span className="text-sm font-medium">エクスポート完了: {estimatedCount}件のオブジェクト</span>
               </div>
@@ -706,7 +706,7 @@ function ExportTab() {
               <button
                 onClick={handleExport}
                 disabled={exporting}
-                className="w-full py-3 rounded-lg bg-[#e8002d] text-white font-medium hover:bg-[#c0001f] disabled:opacity-60 transition-colors flex items-center justify-center gap-2"
+                className="w-full py-3 rounded-lg bg-falcon-red text-white font-medium hover:bg-[#c0001f] disabled:opacity-60 transition-colors flex items-center justify-center gap-2"
               >
                 {exporting ? <><Loader2 className="w-4 h-4 animate-spin" /> エクスポート中...</> : <><Download className="w-4 h-4" /> エクスポート実行</>}
               </button>
@@ -716,12 +716,12 @@ function ExportTab() {
 
         <div className="flex gap-3 mt-6">
           {step > 1 && (
-            <button onClick={() => setStep(s => s - 1)} className="px-4 py-2 rounded-lg border border-[#1e2d42] text-[#7d92b0] text-sm hover:text-white transition-colors">
+            <button onClick={() => setStep(s => s - 1)} className="px-4 py-2 rounded-lg border border-falcon-border text-falcon-muted text-sm hover:text-white transition-colors">
               戻る
             </button>
           )}
           {step < 4 && (
-            <button onClick={() => setStep(s => s + 1)} className="px-4 py-2 rounded-lg bg-[#1a6bff] text-white text-sm font-medium hover:bg-blue-600 transition-colors ml-auto">
+            <button onClick={() => setStep(s => s + 1)} className="px-4 py-2 rounded-lg bg-falcon-blue text-white text-sm font-medium hover:bg-blue-600 transition-colors ml-auto">
               次へ
             </button>
           )}
@@ -730,21 +730,21 @@ function ExportTab() {
 
       {/* Statistics */}
       <div className="grid grid-cols-2 gap-4">
-        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-4 flex items-center gap-4">
-          <div className="w-10 h-10 rounded-lg bg-[#1a6bff]/10 flex items-center justify-center">
-            <Share2 className="w-5 h-5 text-[#1a6bff]" />
+        <div className="bg-falcon-surface border border-falcon-border rounded-xl p-4 flex items-center gap-4">
+          <div className="w-10 h-10 rounded-lg bg-falcon-blue/10 flex items-center justify-center">
+            <Share2 className="w-5 h-5 text-falcon-blue" />
           </div>
           <div>
-            <p className="text-[#7d92b0] text-xs">今月の共有オブジェクト</p>
+            <p className="text-falcon-muted text-xs">今月の共有オブジェクト</p>
             <p className="text-white font-bold text-2xl">2,847</p>
           </div>
         </div>
-        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-4 flex items-center gap-4">
-          <div className="w-10 h-10 rounded-lg bg-[#00c853]/10 flex items-center justify-center">
-            <Download className="w-5 h-5 text-[#00c853]" />
+        <div className="bg-falcon-surface border border-falcon-border rounded-xl p-4 flex items-center gap-4">
+          <div className="w-10 h-10 rounded-lg bg-falcon-green/10 flex items-center justify-center">
+            <Download className="w-5 h-5 text-falcon-green" />
           </div>
           <div>
-            <p className="text-[#7d92b0] text-xs">消費パートナーフィード</p>
+            <p className="text-falcon-muted text-xs">消費パートナーフィード</p>
             <p className="text-white font-bold text-2xl">69,601</p>
           </div>
         </div>
@@ -753,10 +753,10 @@ function ExportTab() {
       {/* Recent Exports */}
       <div>
         <h3 className="text-white font-semibold mb-3">最近のエクスポート</h3>
-        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
+        <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-[#1e2d42] text-[#3d5068] text-xs">
+              <tr className="border-b border-falcon-border text-falcon-subtle text-xs">
                 <th className="text-left px-4 py-3">ファイル名</th>
                 <th className="text-left px-4 py-3">フォーマット</th>
                 <th className="text-right px-4 py-3">オブジェクト数</th>
@@ -767,15 +767,15 @@ function ExportTab() {
             </thead>
             <tbody>
               {m(MOCK_EXPORTS).map(ex => (
-                <tr key={ex.id} className="border-b border-[#1e2d42] last:border-0 hover:bg-[#19253d] transition-colors">
+                <tr key={ex.id} className="border-b border-falcon-border last:border-0 hover:bg-falcon-hover transition-colors">
                   <td className="px-4 py-3">
-                    <span className="text-[#1a6bff] font-mono text-xs hover:underline cursor-pointer">{ex.filename}</span>
+                    <span className="text-falcon-blue font-mono text-xs hover:underline cursor-pointer">{ex.filename}</span>
                   </td>
                   <td className="px-4 py-3"><FormatBadge fmt={ex.format} /></td>
                   <td className="px-4 py-3 text-right text-white font-mono">{(ex.objects_count ?? 0).toLocaleString()}</td>
                   <td className="px-4 py-3"><TLPBadge level={ex.tlp_level} /></td>
-                  <td className="px-4 py-3 text-xs text-[#7d92b0]">{new Date(ex.date).toLocaleString('ja-JP')}</td>
-                  <td className="px-4 py-3 text-xs text-[#7d92b0]">{ex.downloaded_by}</td>
+                  <td className="px-4 py-3 text-xs text-falcon-muted">{new Date(ex.date).toLocaleString('ja-JP')}</td>
+                  <td className="px-4 py-3 text-xs text-falcon-muted">{ex.downloaded_by}</td>
                 </tr>
               ))}
             </tbody>
@@ -794,30 +794,30 @@ function ImportLogTab() {
 
       {/* Enrichment Stats */}
       <div className="grid grid-cols-3 gap-4">
-        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-4 flex items-center gap-4">
-          <div className="w-10 h-10 rounded-lg bg-[#e8002d]/10 flex items-center justify-center">
-            <Shield className="w-5 h-5 text-[#e8002d]" />
+        <div className="bg-falcon-surface border border-falcon-border rounded-xl p-4 flex items-center gap-4">
+          <div className="w-10 h-10 rounded-lg bg-falcon-red/10 flex items-center justify-center">
+            <Shield className="w-5 h-5 text-falcon-red" />
           </div>
           <div>
-            <p className="text-[#7d92b0] text-xs">TI強化されたアラート (今月)</p>
+            <p className="text-falcon-muted text-xs">TI強化されたアラート (今月)</p>
             <p className="text-white font-bold text-2xl">1,482</p>
           </div>
         </div>
-        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-4 flex items-center gap-4">
-          <div className="w-10 h-10 rounded-lg bg-[#1a6bff]/10 flex items-center justify-center">
-            <Database className="w-5 h-5 text-[#1a6bff]" />
+        <div className="bg-falcon-surface border border-falcon-border rounded-xl p-4 flex items-center gap-4">
+          <div className="w-10 h-10 rounded-lg bg-falcon-blue/10 flex items-center justify-center">
+            <Database className="w-5 h-5 text-falcon-blue" />
           </div>
           <div>
-            <p className="text-[#7d92b0] text-xs">インポートオブジェクト総数</p>
+            <p className="text-falcon-muted text-xs">インポートオブジェクト総数</p>
             <p className="text-white font-bold text-2xl">69,601</p>
           </div>
         </div>
-        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-4 flex items-center gap-4">
-          <div className="w-10 h-10 rounded-lg bg-[#00c853]/10 flex items-center justify-center">
-            <CheckCircle className="w-5 h-5 text-[#00c853]" />
+        <div className="bg-falcon-surface border border-falcon-border rounded-xl p-4 flex items-center gap-4">
+          <div className="w-10 h-10 rounded-lg bg-falcon-green/10 flex items-center justify-center">
+            <CheckCircle className="w-5 h-5 text-falcon-green" />
           </div>
           <div>
-            <p className="text-[#7d92b0] text-xs">アクティブフィード数</p>
+            <p className="text-falcon-muted text-xs">アクティブフィード数</p>
             <p className="text-white font-bold text-2xl">4</p>
           </div>
         </div>
@@ -826,10 +826,10 @@ function ImportLogTab() {
       {/* Import History */}
       <div>
         <h3 className="text-white font-semibold mb-3">インポート履歴</h3>
-        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
+        <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-[#1e2d42] text-[#3d5068] text-xs">
+              <tr className="border-b border-falcon-border text-falcon-subtle text-xs">
                 <th className="text-left px-4 py-3">ソース</th>
                 <th className="text-left px-4 py-3">フォーマット</th>
                 <th className="text-right px-4 py-3">インポート数</th>
@@ -842,17 +842,17 @@ function ImportLogTab() {
             </thead>
             <tbody>
               {m(MOCK_IMPORTS).map(im => (
-                <tr key={im.id} className="border-b border-[#1e2d42] last:border-0 hover:bg-[#19253d] transition-colors">
+                <tr key={im.id} className="border-b border-falcon-border last:border-0 hover:bg-falcon-hover transition-colors">
                   <td className="px-4 py-3 text-white font-medium">{im.source_name}</td>
                   <td className="px-4 py-3">
-                    <span className="text-xs bg-[#1e2d42] text-[#7d92b0] px-2 py-0.5 rounded">{im.format}</span>
+                    <span className="text-xs bg-falcon-border text-falcon-muted px-2 py-0.5 rounded-sm">{im.format}</span>
                   </td>
                   <td className="px-4 py-3 text-right text-white font-mono">{(im.objects_imported ?? 0).toLocaleString()}</td>
-                  <td className="px-4 py-3 text-right text-[#00c853] font-mono">{im.new_count}</td>
-                  <td className="px-4 py-3 text-right text-[#1a6bff] font-mono">{im.updated_count}</td>
-                  <td className="px-4 py-3 text-right text-[#3d5068] font-mono">{im.duplicate_count}</td>
+                  <td className="px-4 py-3 text-right text-falcon-green font-mono">{im.new_count}</td>
+                  <td className="px-4 py-3 text-right text-falcon-blue font-mono">{im.updated_count}</td>
+                  <td className="px-4 py-3 text-right text-falcon-subtle font-mono">{im.duplicate_count}</td>
                   <td className="px-4 py-3"><StatusBadge status={im.status} /></td>
-                  <td className="px-4 py-3 text-xs text-[#7d92b0]">{new Date(im.imported_at).toLocaleString('ja-JP')}</td>
+                  <td className="px-4 py-3 text-xs text-falcon-muted">{new Date(im.imported_at).toLocaleString('ja-JP')}</td>
                 </tr>
               ))}
             </tbody>
@@ -863,10 +863,10 @@ function ImportLogTab() {
       {/* Feed Health */}
       <div>
         <h3 className="text-white font-semibold mb-3">フィードヘルス</h3>
-        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
+        <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-[#1e2d42] text-[#3d5068] text-xs">
+              <tr className="border-b border-falcon-border text-falcon-subtle text-xs">
                 <th className="text-left px-4 py-3">フィード名</th>
                 <th className="text-left px-4 py-3">最終更新</th>
                 <th className="text-left px-4 py-3">ステータス</th>
@@ -876,20 +876,20 @@ function ImportLogTab() {
             </thead>
             <tbody>
               {m(MOCK_FEED_HEALTH).map(f => (
-                <tr key={f.id} className={`border-b border-[#1e2d42] last:border-0 hover:bg-[#19253d] transition-colors ${f.status === 'error' ? 'bg-[#e8002d]/5' : ''}`}>
+                <tr key={f.id} className={`border-b border-falcon-border last:border-0 hover:bg-falcon-hover transition-colors ${f.status === 'error' ? 'bg-falcon-red/5' : ''}`}>
                   <td className="px-4 py-3 text-white font-medium">{f.name}</td>
-                  <td className="px-4 py-3 text-xs text-[#7d92b0]">{new Date(f.last_update).toLocaleString('ja-JP')}</td>
+                  <td className="px-4 py-3 text-xs text-falcon-muted">{new Date(f.last_update).toLocaleString('ja-JP')}</td>
                   <td className="px-4 py-3"><StatusBadge status={f.status} /></td>
                   <td className="px-4 py-3 text-right">
                     {f.status === 'error' ? (
-                      <span className="text-[#e8002d] text-xs">—</span>
+                      <span className="text-falcon-red text-xs">—</span>
                     ) : (
-                      <span className={`text-xs font-mono ${f.latency_ms > 2000 ? 'text-[#ff9800]' : 'text-[#00c853]'}`}>
+                      <span className={`text-xs font-mono ${f.latency_ms > 2000 ? 'text-falcon-amber' : 'text-falcon-green'}`}>
                         {f.latency_ms}ms
                       </span>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-xs text-[#7d92b0]">
+                  <td className="px-4 py-3 text-xs text-falcon-muted">
                     {f.error_message ?? '—'}
                   </td>
                 </tr>
@@ -914,22 +914,22 @@ export default function ThreatIntelSharingPage() {
   ]
 
   return (
-    <div className="min-h-screen bg-[#070d19] text-[#7d92b0]">
+    <div className="min-h-screen bg-[#070d19] text-falcon-muted">
       {/* Header */}
-      <div className="border-b border-[#1e2d42] bg-[#0d1220] px-6 py-4">
+      <div className="border-b border-falcon-border bg-falcon-surface px-6 py-4">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-[#1a6bff] to-[#0044cc] flex items-center justify-center">
+          <div className="w-9 h-9 rounded-lg bg-linear-to-br from-falcon-blue to-[#0044cc] flex items-center justify-center">
             <Share2 className="w-5 h-5 text-white" />
           </div>
           <div>
             <h1 className="text-xl font-bold text-white">脅威インテリジェンス共有</h1>
-            <p className="text-xs text-[#3d5068] mt-0.5">STIX/TAXII — 信頼グループ・パートナー接続・エクスポート管理</p>
+            <p className="text-xs text-falcon-subtle mt-0.5">STIX/TAXII — 信頼グループ・パートナー接続・エクスポート管理</p>
           </div>
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="border-b border-[#1e2d42] bg-[#0d1220] px-6">
+      <div className="border-b border-falcon-border bg-falcon-surface px-6">
         <div className="flex gap-0">
           {tabs.map(t => (
             <button
@@ -937,8 +937,8 @@ export default function ThreatIntelSharingPage() {
               onClick={() => setActiveTab(t.id)}
               className={`px-5 py-3 text-sm font-medium border-b-2 transition-all ${
                 activeTab === t.id
-                  ? 'border-[#e8002d] text-white'
-                  : 'border-transparent text-[#7d92b0] hover:text-[#e2e8f4] hover:border-[#1e2d42]'
+                  ? 'border-falcon-red text-white'
+                  : 'border-transparent text-falcon-muted hover:text-falcon-text hover:border-falcon-border'
               }`}
             >
               {t.label}

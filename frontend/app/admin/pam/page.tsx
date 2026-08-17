@@ -125,17 +125,17 @@ function StatCard({ label, value, sub, color }: {
   label: string; value: string | number; sub?: string; color?: string
 }) {
   return (
-    <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-4">
-      <p className="text-[#7d92b0] text-xs mb-1">{label}</p>
+    <div className="bg-falcon-surface border border-falcon-border rounded-lg p-4">
+      <p className="text-falcon-muted text-xs mb-1">{label}</p>
       <p className={`text-2xl font-bold ${color ?? 'text-white'}`}>{value}</p>
-      {sub && <p className="text-[#7d92b0] text-xs mt-1">{sub}</p>}
+      {sub && <p className="text-falcon-muted text-xs mt-1">{sub}</p>}
     </div>
   )
 }
 
 function AccessLevelBadge({ level }: { level: AccessLevel }) {
   return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border ${ACCESS_LEVEL_COLORS[level]}`}>
+    <span className={`inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium border ${ACCESS_LEVEL_COLORS[level]}`}>
       {level === 'read' ? '読取' : level === 'write' ? '書込' : '管理者'}
     </span>
   )
@@ -143,7 +143,7 @@ function AccessLevelBadge({ level }: { level: AccessLevel }) {
 
 function StatusBadge({ status }: { status: RequestStatus }) {
   return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border ${STATUS_COLORS[status]}`}>
+    <span className={`inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium border ${STATUS_COLORS[status]}`}>
       {STATUS_LABELS[status]}
     </span>
   )
@@ -152,7 +152,7 @@ function StatusBadge({ status }: { status: RequestStatus }) {
 function AvatarInitial({ name }: { name: string }) {
   const initial = name[0]
   return (
-    <div className="w-7 h-7 rounded-full bg-gradient-to-br from-[#1a6bff] to-[#0044cc] flex items-center justify-center flex-shrink-0">
+    <div className="w-7 h-7 rounded-full bg-linear-to-br from-falcon-blue to-[#0044cc] flex items-center justify-center shrink-0">
       <span className="text-[10px] font-bold text-white">{initial}</span>
     </div>
   )
@@ -167,24 +167,24 @@ function DenyModal({ requestId, onClose, onConfirm }: {
 }) {
   const [reason, setReason] = useState('')
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-6 w-full max-w-md mx-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs">
+      <div className="bg-falcon-surface border border-falcon-border rounded-xl p-6 w-full max-w-md mx-4">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-white font-semibold flex items-center gap-2">
             <XCircle className="w-5 h-5 text-red-400" />
             申請を却下
           </h3>
-          <button onClick={onClose} className="text-[#7d92b0] hover:text-white"><X className="w-4 h-4" /></button>
+          <button onClick={onClose} className="text-falcon-muted hover:text-white"><X className="w-4 h-4" /></button>
         </div>
-        <p className="text-[#7d92b0] text-sm mb-4">却下理由を入力してください（申請者に通知されます）</p>
+        <p className="text-falcon-muted text-sm mb-4">却下理由を入力してください（申請者に通知されます）</p>
         <textarea
-          className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm resize-none focus:outline-none focus:border-[#e8002d] h-28"
+          className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm resize-none focus:outline-hidden focus:border-falcon-red h-28"
           placeholder="却下理由を入力..."
           value={reason}
           onChange={e => setReason(e.target.value)}
         />
         <div className="flex gap-3 mt-4 justify-end">
-          <button onClick={onClose} className="px-4 py-2 text-sm rounded-lg border border-[#1e2d42] text-[#7d92b0] hover:text-white hover:border-[#7d92b0] transition-colors">
+          <button onClick={onClose} className="px-4 py-2 text-sm rounded-lg border border-falcon-border text-falcon-muted hover:text-white hover:border-falcon-muted transition-colors">
             キャンセル
           </button>
           <button
@@ -215,21 +215,21 @@ function NewRequestModal({ onClose, onSubmit }: {
   })
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-6 w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs">
+      <div className="bg-falcon-surface border border-falcon-border rounded-xl p-6 w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-5">
           <h3 className="text-white font-semibold flex items-center gap-2">
-            <Plus className="w-5 h-5 text-[#e8002d]" />
+            <Plus className="w-5 h-5 text-falcon-red" />
             新規アクセス申請
           </h3>
-          <button onClick={onClose} className="text-[#7d92b0] hover:text-white"><X className="w-4 h-4" /></button>
+          <button onClick={onClose} className="text-falcon-muted hover:text-white"><X className="w-4 h-4" /></button>
         </div>
         <div className="space-y-4">
           <div>
-            <label className="block text-xs text-[#7d92b0] mb-1">対象リソース *</label>
+            <label className="block text-xs text-falcon-muted mb-1">対象リソース *</label>
             <input
               type="text"
-              className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[#e8002d]"
+              className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-red"
               placeholder="例: prod-db-01.internal"
               value={form.target_resource}
               onChange={e => setForm(f => ({ ...f, target_resource: e.target.value }))}
@@ -237,9 +237,9 @@ function NewRequestModal({ onClose, onSubmit }: {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs text-[#7d92b0] mb-1">リソース種別</label>
+              <label className="block text-xs text-falcon-muted mb-1">リソース種別</label>
               <select
-                className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[#e8002d]"
+                className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-red"
                 value={form.resource_type}
                 onChange={e => setForm(f => ({ ...f, resource_type: e.target.value as ResourceType }))}
               >
@@ -250,9 +250,9 @@ function NewRequestModal({ onClose, onSubmit }: {
               </select>
             </div>
             <div>
-              <label className="block text-xs text-[#7d92b0] mb-1">アクセスレベル</label>
+              <label className="block text-xs text-falcon-muted mb-1">アクセスレベル</label>
               <select
-                className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[#e8002d]"
+                className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-red"
                 value={form.access_level}
                 onChange={e => setForm(f => ({ ...f, access_level: e.target.value as AccessLevel }))}
               >
@@ -263,9 +263,9 @@ function NewRequestModal({ onClose, onSubmit }: {
             </div>
           </div>
           <div>
-            <label className="block text-xs text-[#7d92b0] mb-1">アクセス期間</label>
+            <label className="block text-xs text-falcon-muted mb-1">アクセス期間</label>
             <select
-              className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[#e8002d]"
+              className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-red"
               value={form.duration_minutes}
               onChange={e => setForm(f => ({ ...f, duration_minutes: Number(e.target.value) }))}
             >
@@ -277,9 +277,9 @@ function NewRequestModal({ onClose, onSubmit }: {
             </select>
           </div>
           <div>
-            <label className="block text-xs text-[#7d92b0] mb-1">申請理由 *</label>
+            <label className="block text-xs text-falcon-muted mb-1">申請理由 *</label>
             <textarea
-              className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm resize-none focus:outline-none focus:border-[#e8002d] h-24"
+              className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm resize-none focus:outline-hidden focus:border-falcon-red h-24"
               placeholder="アクセスが必要な理由を詳しく記入してください..."
               value={form.justification}
               onChange={e => setForm(f => ({ ...f, justification: e.target.value }))}
@@ -287,13 +287,13 @@ function NewRequestModal({ onClose, onSubmit }: {
           </div>
         </div>
         <div className="flex gap-3 mt-5 justify-end">
-          <button onClick={onClose} className="px-4 py-2 text-sm rounded-lg border border-[#1e2d42] text-[#7d92b0] hover:text-white hover:border-[#7d92b0] transition-colors">
+          <button onClick={onClose} className="px-4 py-2 text-sm rounded-lg border border-falcon-border text-falcon-muted hover:text-white hover:border-falcon-muted transition-colors">
             キャンセル
           </button>
           <button
             onClick={() => form.target_resource && form.justification && onSubmit(form)}
             disabled={!form.target_resource || !form.justification}
-            className="px-4 py-2 text-sm rounded-lg bg-[#e8002d] text-white hover:bg-[#c0001f] disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+            className="px-4 py-2 text-sm rounded-lg bg-falcon-red text-white hover:bg-[#c0001f] disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
           >
             <Plus className="w-4 h-4" />
             申請する
@@ -325,7 +325,7 @@ function RequestsTab({
         <h2 className="text-white font-semibold">申請一覧</h2>
         <button
           onClick={onNewRequest}
-          className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#e8002d] text-white text-sm hover:bg-[#c0001f] transition-colors"
+          className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-falcon-red text-white text-sm hover:bg-[#c0001f] transition-colors"
         >
           <Plus className="w-4 h-4" />
           新規申請
@@ -335,20 +335,20 @@ function RequestsTab({
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-[#1e2d42]">
+            <tr className="border-b border-falcon-border">
               {['申請ID', '申請者', '対象リソース', 'レベル', '期間', 'ステータス', '申請日時', 'SLA', '操作'].map(h => (
-                <th key={h} className="text-left text-[#7d92b0] text-xs font-medium px-3 py-2 whitespace-nowrap">{h}</th>
+                <th key={h} className="text-left text-falcon-muted text-xs font-medium px-3 py-2 whitespace-nowrap">{h}</th>
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-[#1e2d42]/50">
+          <tbody className="divide-y divide-falcon-border/50">
             {requests.map(req => {
               const { text: ago, minutes } = timeAgo(req.requested_at)
               const slaOver = req.status === 'pending' && minutes > 30
               const ResourceIcon = RESOURCE_ICONS[req.resource_type]
               return (
-                <tr key={req.id} className="hover:bg-[#0d1220]/60 transition-colors">
-                  <td className="px-3 py-2.5 font-mono text-xs text-[#7d92b0]">{req.short_id}</td>
+                <tr key={req.id} className="hover:bg-falcon-surface/60 transition-colors">
+                  <td className="px-3 py-2.5 font-mono text-xs text-falcon-muted">{req.short_id}</td>
                   <td className="px-3 py-2.5">
                     <div className="flex items-center gap-2">
                       <AvatarInitial name={req.requester_name} />
@@ -357,23 +357,23 @@ function RequestsTab({
                   </td>
                   <td className="px-3 py-2.5">
                     <div className="flex items-center gap-1.5">
-                      <ResourceIcon className="w-3.5 h-3.5 text-[#7d92b0]" />
+                      <ResourceIcon className="w-3.5 h-3.5 text-falcon-muted" />
                       <span className="text-white text-xs">{req.target_resource}</span>
                     </div>
                   </td>
                   <td className="px-3 py-2.5"><AccessLevelBadge level={req.access_level} /></td>
-                  <td className="px-3 py-2.5 text-[#7d92b0] whitespace-nowrap">{formatDuration(req.duration_minutes)}</td>
+                  <td className="px-3 py-2.5 text-falcon-muted whitespace-nowrap">{formatDuration(req.duration_minutes)}</td>
                   <td className="px-3 py-2.5"><StatusBadge status={req.status} /></td>
-                  <td className="px-3 py-2.5 text-[#7d92b0] text-xs whitespace-nowrap">
+                  <td className="px-3 py-2.5 text-falcon-muted text-xs whitespace-nowrap">
                     {new Date(req.requested_at).toLocaleString('ja-JP', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}
                   </td>
                   <td className="px-3 py-2.5">
                     {req.status === 'pending' ? (
-                      <span className={`text-xs font-medium ${slaOver ? 'text-red-400' : 'text-[#7d92b0]'}`}>
+                      <span className={`text-xs font-medium ${slaOver ? 'text-red-400' : 'text-falcon-muted'}`}>
                         {slaOver ? '⚠ ' : ''}{ago}
                       </span>
                     ) : (
-                      <span className="text-xs text-[#7d92b0]">—</span>
+                      <span className="text-xs text-falcon-muted">—</span>
                     )}
                   </td>
                   <td className="px-3 py-2.5">
@@ -384,20 +384,20 @@ function RequestsTab({
                             onClick={() => {
                               if (confirm(`「${req.target_resource}」へのアクセスを承認しますか？`)) onApprove(req.id)
                             }}
-                            className="flex items-center gap-1 px-2 py-1 rounded text-xs bg-green-600/20 text-green-400 border border-green-600/30 hover:bg-green-600/30 transition-colors"
+                            className="flex items-center gap-1 px-2 py-1 rounded-sm text-xs bg-green-600/20 text-green-400 border border-green-600/30 hover:bg-green-600/30 transition-colors"
                           >
                             <CheckCircle className="w-3 h-3" />承認
                           </button>
                           <button
                             onClick={() => setDenyTarget(req.id)}
-                            className="flex items-center gap-1 px-2 py-1 rounded text-xs bg-red-600/20 text-red-400 border border-red-600/30 hover:bg-red-600/30 transition-colors"
+                            className="flex items-center gap-1 px-2 py-1 rounded-sm text-xs bg-red-600/20 text-red-400 border border-red-600/30 hover:bg-red-600/30 transition-colors"
                           >
                             <XCircle className="w-3 h-3" />却下
                           </button>
                         </>
                       )}
                       {req.status === 'approved' && req.session_id && (
-                        <button className="flex items-center gap-1 px-2 py-1 rounded text-xs bg-blue-600/20 text-blue-400 border border-blue-600/30 hover:bg-blue-600/30 transition-colors">
+                        <button className="flex items-center gap-1 px-2 py-1 rounded-sm text-xs bg-blue-600/20 text-blue-400 border border-blue-600/30 hover:bg-blue-600/30 transition-colors">
                           <Eye className="w-3 h-3" />セッション詳細
                         </button>
                       )}
@@ -445,7 +445,7 @@ function SessionsTab({
 
   const ResourceIcon = (type: ResourceType) => {
     const IC = RESOURCE_ICONS[type]
-    return <IC className="w-3.5 h-3.5 text-[#7d92b0]" />
+    return <IC className="w-3.5 h-3.5 text-falcon-muted" />
   }
 
   return (
@@ -453,10 +453,10 @@ function SessionsTab({
       <div className="flex items-center justify-between">
         <h2 className="text-white font-semibold">アクティブセッション ({sessions.length})</h2>
         <div className="flex items-center gap-3">
-          <span className="text-xs text-[#7d92b0]">最終更新: {lastRefresh.toLocaleTimeString('ja-JP')}</span>
+          <span className="text-xs text-falcon-muted">最終更新: {lastRefresh.toLocaleTimeString('ja-JP')}</span>
           <button
             onClick={onRefresh}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#1e2d42] text-[#7d92b0] text-sm hover:text-white hover:border-[#7d92b0] transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-falcon-border text-falcon-muted text-sm hover:text-white hover:border-falcon-muted transition-colors"
           >
             <RefreshCw className="w-3.5 h-3.5" />更新
           </button>
@@ -464,7 +464,7 @@ function SessionsTab({
       </div>
 
       {sessions.length === 0 ? (
-        <div className="text-center py-16 text-[#7d92b0]">
+        <div className="text-center py-16 text-falcon-muted">
           <Shield className="w-10 h-10 mx-auto mb-3 opacity-40" />
           <p>アクティブなセッションはありません</p>
         </div>
@@ -472,18 +472,18 @@ function SessionsTab({
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-[#1e2d42]">
+              <tr className="border-b border-falcon-border">
                 {['セッションID', '申請者', 'リソース', 'レベル', '開始時刻', '経過時間', 'コマンド数', '有効期限', '操作'].map(h => (
-                  <th key={h} className="text-left text-[#7d92b0] text-xs font-medium px-3 py-2 whitespace-nowrap">{h}</th>
+                  <th key={h} className="text-left text-falcon-muted text-xs font-medium px-3 py-2 whitespace-nowrap">{h}</th>
                 ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#1e2d42]/50">
+            <tbody className="divide-y divide-falcon-border/50">
               {sessions.map(sess => {
                 const expiring = new Date(sess.expires_at).getTime() - Date.now() < 15 * 60 * 1000
                 return (
-                  <tr key={sess.id} className="hover:bg-[#0d1220]/60 transition-colors">
-                    <td className="px-3 py-2.5 font-mono text-xs text-[#7d92b0]">{sess.short_id}</td>
+                  <tr key={sess.id} className="hover:bg-falcon-surface/60 transition-colors">
+                    <td className="px-3 py-2.5 font-mono text-xs text-falcon-muted">{sess.short_id}</td>
                     <td className="px-3 py-2.5">
                       <div className="flex items-center gap-2">
                         <AvatarInitial name={sess.requester_name} />
@@ -497,7 +497,7 @@ function SessionsTab({
                       </div>
                     </td>
                     <td className="px-3 py-2.5"><AccessLevelBadge level={sess.access_level} /></td>
-                    <td className="px-3 py-2.5 text-[#7d92b0] text-xs whitespace-nowrap">
+                    <td className="px-3 py-2.5 text-falcon-muted text-xs whitespace-nowrap">
                       {new Date(sess.started_at).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })}
                     </td>
                     <td className="px-3 py-2.5 text-white text-xs font-mono">{elapsed(sess.started_at)}</td>
@@ -514,7 +514,7 @@ function SessionsTab({
                         onClick={() => {
                           if (confirm(`セッション ${sess.short_id} を強制終了しますか？`)) onEndSession(sess.id)
                         }}
-                        className="flex items-center gap-1 px-2 py-1 rounded text-xs bg-red-600/20 text-red-400 border border-red-600/30 hover:bg-red-600/30 transition-colors"
+                        className="flex items-center gap-1 px-2 py-1 rounded-sm text-xs bg-red-600/20 text-red-400 border border-red-600/30 hover:bg-red-600/30 transition-colors"
                       >
                         <Lock className="w-3 h-3" />終了
                       </button>
@@ -565,14 +565,14 @@ function AuditTab({ requests }: { requests: PAMRequest[] }) {
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-3">
         <h2 className="text-white font-semibold mr-auto">監査ログ</h2>
-        <button onClick={exportCSV} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#1e2d42] text-[#7d92b0] text-sm hover:text-white hover:border-[#7d92b0] transition-colors">
+        <button onClick={exportCSV} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-falcon-border text-falcon-muted text-sm hover:text-white hover:border-falcon-muted transition-colors">
           <Download className="w-3.5 h-3.5" />CSV出力
         </button>
       </div>
 
-      <div className="flex flex-wrap gap-3 p-3 bg-[#0d1220] border border-[#1e2d42] rounded-lg">
+      <div className="flex flex-wrap gap-3 p-3 bg-falcon-surface border border-falcon-border rounded-lg">
         <select
-          className="bg-[#070d19] border border-[#1e2d42] rounded px-2 py-1.5 text-white text-xs focus:outline-none focus:border-[#e8002d]"
+          className="bg-[#070d19] border border-falcon-border rounded-sm px-2 py-1.5 text-white text-xs focus:outline-hidden focus:border-falcon-red"
           value={statusFilter}
           onChange={e => setStatusFilter(e.target.value as RequestStatus | 'all')}
         >
@@ -583,21 +583,21 @@ function AuditTab({ requests }: { requests: PAMRequest[] }) {
         </select>
         <input
           type="text"
-          className="bg-[#070d19] border border-[#1e2d42] rounded px-2 py-1.5 text-white text-xs focus:outline-none focus:border-[#e8002d] w-40"
+          className="bg-[#070d19] border border-falcon-border rounded-sm px-2 py-1.5 text-white text-xs focus:outline-hidden focus:border-falcon-red w-40"
           placeholder="申請者/リソース検索..."
           value={requesterFilter}
           onChange={e => setRequesterFilter(e.target.value)}
         />
         <input
           type="date"
-          className="bg-[#070d19] border border-[#1e2d42] rounded px-2 py-1.5 text-white text-xs focus:outline-none focus:border-[#e8002d]"
+          className="bg-[#070d19] border border-falcon-border rounded-sm px-2 py-1.5 text-white text-xs focus:outline-hidden focus:border-falcon-red"
           value={dateFrom}
           onChange={e => setDateFrom(e.target.value)}
         />
-        <span className="text-[#7d92b0] text-xs self-center">〜</span>
+        <span className="text-falcon-muted text-xs self-center">〜</span>
         <input
           type="date"
-          className="bg-[#070d19] border border-[#1e2d42] rounded px-2 py-1.5 text-white text-xs focus:outline-none focus:border-[#e8002d]"
+          className="bg-[#070d19] border border-falcon-border rounded-sm px-2 py-1.5 text-white text-xs focus:outline-hidden focus:border-falcon-red"
           value={dateTo}
           onChange={e => setDateTo(e.target.value)}
         />
@@ -606,18 +606,18 @@ function AuditTab({ requests }: { requests: PAMRequest[] }) {
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-[#1e2d42]">
+            <tr className="border-b border-falcon-border">
               {['申請ID', '申請者', '対象リソース', 'レベル', '期間', 'ステータス', '申請日時', '処理日時', '詳細'].map(h => (
-                <th key={h} className="text-left text-[#7d92b0] text-xs font-medium px-3 py-2 whitespace-nowrap">{h}</th>
+                <th key={h} className="text-left text-falcon-muted text-xs font-medium px-3 py-2 whitespace-nowrap">{h}</th>
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-[#1e2d42]/50">
+          <tbody className="divide-y divide-falcon-border/50">
             {filtered.map(req => {
               const ResourceIcon = RESOURCE_ICONS[req.resource_type]
               return (
-                <tr key={req.id} className="hover:bg-[#0d1220]/60 transition-colors">
-                  <td className="px-3 py-2.5 font-mono text-xs text-[#7d92b0]">{req.short_id}</td>
+                <tr key={req.id} className="hover:bg-falcon-surface/60 transition-colors">
+                  <td className="px-3 py-2.5 font-mono text-xs text-falcon-muted">{req.short_id}</td>
                   <td className="px-3 py-2.5">
                     <div className="flex items-center gap-2">
                       <AvatarInitial name={req.requester_name} />
@@ -626,17 +626,17 @@ function AuditTab({ requests }: { requests: PAMRequest[] }) {
                   </td>
                   <td className="px-3 py-2.5">
                     <div className="flex items-center gap-1.5">
-                      <ResourceIcon className="w-3.5 h-3.5 text-[#7d92b0]" />
+                      <ResourceIcon className="w-3.5 h-3.5 text-falcon-muted" />
                       <span className="text-white text-xs">{req.target_resource}</span>
                     </div>
                   </td>
                   <td className="px-3 py-2.5"><AccessLevelBadge level={req.access_level} /></td>
-                  <td className="px-3 py-2.5 text-[#7d92b0] text-xs whitespace-nowrap">{formatDuration(req.duration_minutes)}</td>
+                  <td className="px-3 py-2.5 text-falcon-muted text-xs whitespace-nowrap">{formatDuration(req.duration_minutes)}</td>
                   <td className="px-3 py-2.5"><StatusBadge status={req.status} /></td>
-                  <td className="px-3 py-2.5 text-[#7d92b0] text-xs whitespace-nowrap">
+                  <td className="px-3 py-2.5 text-falcon-muted text-xs whitespace-nowrap">
                     {new Date(req.requested_at).toLocaleString('ja-JP', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}
                   </td>
-                  <td className="px-3 py-2.5 text-[#7d92b0] text-xs whitespace-nowrap">
+                  <td className="px-3 py-2.5 text-falcon-muted text-xs whitespace-nowrap">
                     {(req.approved_at || req.denied_reason)
                       ? req.approved_at
                         ? new Date(req.approved_at).toLocaleString('ja-JP', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
@@ -659,7 +659,7 @@ function AuditTab({ requests }: { requests: PAMRequest[] }) {
           </tbody>
         </table>
         {filtered.length === 0 && (
-          <div className="text-center py-10 text-[#7d92b0] text-sm">該当するログがありません</div>
+          <div className="text-center py-10 text-falcon-muted text-sm">該当するログがありません</div>
         )}
       </div>
     </div>
@@ -774,10 +774,10 @@ export default function PAMPage() {
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-2xl font-bold text-white flex items-center gap-3">
-            <Key className="w-7 h-7 text-[#e8002d]" />
+            <Key className="w-7 h-7 text-falcon-red" />
             特権アクセス管理 (PAM)
           </h1>
-          <p className="text-[#7d92b0] text-sm mt-1">特権アクセス申請・承認・セッション記録の管理</p>
+          <p className="text-falcon-muted text-sm mt-1">特権アクセス申請・承認・セッション記録の管理</p>
         </div>
       </div>
 
@@ -800,17 +800,17 @@ export default function PAMPage() {
       </div>
 
       {/* Card */}
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
+      <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
         {/* Tabs */}
-        <div className="flex border-b border-[#1e2d42]">
+        <div className="flex border-b border-falcon-border">
           {TABS.map(t => (
             <button
               key={t.id}
               onClick={() => setTab(t.id)}
               className={`px-5 py-3 text-sm font-medium transition-colors relative flex items-center gap-2 ${
                 tab === t.id
-                  ? 'text-white border-b-2 border-[#e8002d]'
-                  : 'text-[#7d92b0] hover:text-white'
+                  ? 'text-white border-b-2 border-falcon-red'
+                  : 'text-falcon-muted hover:text-white'
               }`}
             >
               {t.label}

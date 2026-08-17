@@ -106,23 +106,23 @@ function DetectionDetailModal({ detection, onClose, onUpdate }: {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl w-full max-w-2xl p-6 max-h-[90vh] overflow-y-auto">
+      <div className="bg-falcon-surface border border-falcon-border rounded-xl w-full max-w-2xl p-6 max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
             <h2 className="text-white font-semibold text-lg">検出詳細</h2>
             <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${cc.bg} ${cc.text}`}>{cc.label}</span>
-            <span className={`text-xs px-2 py-0.5 rounded font-bold ${sc.bg} ${sc.text}`}>{sc.label}</span>
+            <span className={`text-xs px-2 py-0.5 rounded-sm font-bold ${sc.bg} ${sc.text}`}>{sc.label}</span>
           </div>
-          <button onClick={onClose} className="text-[#7d92b0] hover:text-white"><X className="w-5 h-5" /></button>
+          <button onClick={onClose} className="text-falcon-muted hover:text-white"><X className="w-5 h-5" /></button>
         </div>
 
         <div className="bg-yellow-900/20 border border-yellow-700/30 rounded-lg p-3 mb-4">
           <p className="text-yellow-300 text-xs">機密情報: 実際のダークウェブリンクは表示されません。証拠参照のみ表示します。</p>
         </div>
 
-        <div className="bg-[#070d19] rounded-lg p-4 border border-[#1e2d42] mb-4">
-          <p className="text-xs text-[#7d92b0] mb-1 uppercase tracking-wider">詳細説明</p>
-          <p className="text-[#e2e8f4] text-sm">{detection.full_details}</p>
+        <div className="bg-[#070d19] rounded-lg p-4 border border-falcon-border mb-4">
+          <p className="text-xs text-falcon-muted mb-1 uppercase tracking-wider">詳細説明</p>
+          <p className="text-falcon-text text-sm">{detection.full_details}</p>
         </div>
 
         <div className="grid grid-cols-2 gap-4 mb-4">
@@ -132,19 +132,19 @@ function DetectionDetailModal({ detection, onClose, onUpdate }: {
             ['ソース日付', detection.source_date],
             ['証拠参照', detection.evidence_ref],
           ].map(([k, v]) => (
-            <div key={k} className="bg-[#070d19] rounded-lg p-3 border border-[#1e2d42]">
-              <p className="text-xs text-[#7d92b0] mb-1">{k}</p>
+            <div key={k} className="bg-[#070d19] rounded-lg p-3 border border-falcon-border">
+              <p className="text-xs text-falcon-muted mb-1">{k}</p>
               <p className="text-white text-sm font-mono">{v}</p>
             </div>
           ))}
         </div>
 
-        <div className="bg-[#070d19] rounded-lg p-4 border border-[#1e2d42] mb-4">
-          <p className="text-xs text-[#7d92b0] mb-3 uppercase tracking-wider">推奨対応</p>
+        <div className="bg-[#070d19] rounded-lg p-4 border border-falcon-border mb-4">
+          <p className="text-xs text-falcon-muted mb-3 uppercase tracking-wider">推奨対応</p>
           <ol className="space-y-2">
             {detection.recommended_actions.map((a, i) => (
-              <li key={i} className="flex items-start gap-2 text-sm text-[#e2e8f4]">
-                <span className="w-5 h-5 rounded-full bg-[#e8002d]/20 text-[#e8002d] text-xs flex items-center justify-center flex-shrink-0 mt-0.5 font-bold">{i + 1}</span>
+              <li key={i} className="flex items-start gap-2 text-sm text-falcon-text">
+                <span className="w-5 h-5 rounded-full bg-falcon-red/20 text-falcon-red text-xs flex items-center justify-center shrink-0 mt-0.5 font-bold">{i + 1}</span>
                 {a}
               </li>
             ))}
@@ -152,17 +152,17 @@ function DetectionDetailModal({ detection, onClose, onUpdate }: {
         </div>
 
         <div className="flex gap-3 items-center mb-4">
-          <label className="text-xs text-[#7d92b0] flex-shrink-0">担当者:</label>
+          <label className="text-xs text-falcon-muted shrink-0">担当者:</label>
           <input value={assignee} onChange={e => setAssignee(e.target.value)}
             placeholder="担当者を入力..."
-            className="flex-1 bg-[#070d19] border border-[#1e2d42] rounded px-3 py-1.5 text-sm text-white focus:outline-none focus:border-[#e8002d]/50" />
+            className="flex-1 bg-[#070d19] border border-falcon-border rounded-sm px-3 py-1.5 text-sm text-white focus:outline-hidden focus:border-falcon-red/50" />
         </div>
 
         <div className="flex gap-3">
           {(['reviewed', 'actioned'] as DetectionStatus[]).map(s => (
             <button key={s} onClick={() => { onUpdate(detection.id, { status: s, assigned_to: assignee || null }); onClose() }}
               className={`flex-1 py-2 rounded text-sm font-medium transition-colors flex items-center justify-center gap-2
-                ${s === 'actioned' ? 'bg-[#e8002d] hover:bg-[#c8001e] text-white' : 'bg-[#1e2d42] hover:bg-[#2a3f5a] text-[#7d92b0] hover:text-white'}`}>
+                ${s === 'actioned' ? 'bg-falcon-red hover:bg-[#c8001e] text-white' : 'bg-falcon-border hover:bg-[#2a3f5a] text-falcon-muted hover:text-white'}`}>
               <CheckCircle className="w-4 h-4" />
               {STATUS_CONFIG[s].label}にする
             </button>
@@ -183,43 +183,43 @@ function AddKeywordModal({ onClose, onAdd }: {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl w-full max-w-lg p-6">
+      <div className="bg-falcon-surface border border-falcon-border rounded-xl w-full max-w-lg p-6">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-white font-semibold text-lg">監視キーワード追加</h2>
-          <button onClick={onClose} className="text-[#7d92b0] hover:text-white"><X className="w-5 h-5" /></button>
+          <button onClick={onClose} className="text-falcon-muted hover:text-white"><X className="w-5 h-5" /></button>
         </div>
         <div className="space-y-4">
           <div>
-            <label className="text-xs text-[#7d92b0] mb-1 block">キーワード/フレーズ</label>
+            <label className="text-xs text-falcon-muted mb-1 block">キーワード/フレーズ</label>
             <input value={form.keyword} onChange={e => setForm(p => ({ ...p, keyword: e.target.value }))}
               placeholder="監視するキーワードを入力..."
-              className="w-full bg-[#070d19] border border-[#1e2d42] rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-[#e8002d]/50" />
+              className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-sm text-white focus:outline-hidden focus:border-falcon-red/50" />
           </div>
           <div>
-            <label className="text-xs text-[#7d92b0] mb-1 block">カテゴリ</label>
+            <label className="text-xs text-falcon-muted mb-1 block">カテゴリ</label>
             <select value={form.category} onChange={e => setForm(p => ({ ...p, category: e.target.value as KeywordCategory }))}
-              className="w-full bg-[#070d19] border border-[#1e2d42] rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-[#e8002d]/50">
+              className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-sm text-white focus:outline-hidden focus:border-falcon-red/50">
               {(Object.keys(KEYWORD_CATEGORY_CONFIG) as KeywordCategory[]).map(c => (
                 <option key={c} value={c}>{KEYWORD_CATEGORY_CONFIG[c].label}</option>
               ))}
             </select>
           </div>
           <div>
-            <label className="text-xs text-[#7d92b0] mb-1 block">メモ (任意)</label>
+            <label className="text-xs text-falcon-muted mb-1 block">メモ (任意)</label>
             <textarea value={form.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))}
-              rows={2} className="w-full bg-[#070d19] border border-[#1e2d42] rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-[#e8002d]/50 resize-none" />
+              rows={2} className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-sm text-white focus:outline-hidden focus:border-falcon-red/50 resize-none" />
           </div>
-          <label className="flex items-center gap-2 text-sm text-[#7d92b0] cursor-pointer">
-            <button onClick={() => setForm(p => ({ ...p, active: !p.active }))} className="text-[#7d92b0]">
+          <label className="flex items-center gap-2 text-sm text-falcon-muted cursor-pointer">
+            <button onClick={() => setForm(p => ({ ...p, active: !p.active }))} className="text-falcon-muted">
               {form.active ? <ToggleRight className="w-6 h-6 text-green-400" /> : <ToggleLeft className="w-6 h-6" />}
             </button>
             有効化
           </label>
         </div>
         <div className="flex gap-3 mt-6">
-          <button onClick={onClose} className="flex-1 py-2 rounded border border-[#1e2d42] text-[#7d92b0] hover:text-white text-sm transition-colors">キャンセル</button>
+          <button onClick={onClose} className="flex-1 py-2 rounded-sm border border-falcon-border text-falcon-muted hover:text-white text-sm transition-colors">キャンセル</button>
           <button onClick={() => { if (form.keyword) { onAdd(form); onClose() } }}
-            className="flex-1 py-2 rounded bg-[#e8002d] text-white text-sm font-medium hover:bg-[#c8001e] transition-colors">追加</button>
+            className="flex-1 py-2 rounded-sm bg-falcon-red text-white text-sm font-medium hover:bg-[#c8001e] transition-colors">追加</button>
         </div>
       </div>
     </div>
@@ -307,18 +307,18 @@ export default function DarkWebPage() {
     <div className="min-h-screen bg-[#070d19] p-6">
       {/* Header */}
       <div className="flex items-center gap-3 mb-4">
-        <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-[#e8002d] to-[#a80020] flex items-center justify-center">
+        <div className="w-10 h-10 rounded-lg bg-linear-to-br from-falcon-red to-falcon-red-dark flex items-center justify-center">
           <EyeOff className="w-5 h-5 text-white" />
         </div>
         <div>
           <h1 className="text-white text-2xl font-bold">ダークウェブ監視</h1>
-          <p className="text-[#7d92b0] text-sm">脅威情報サービスによるダークウェブ上の情報漏洩検知</p>
+          <p className="text-falcon-muted text-sm">脅威情報サービスによるダークウェブ上の情報漏洩検知</p>
         </div>
       </div>
 
       {/* Disclaimer Banner */}
       <div className="bg-[#1a1200] border border-yellow-700/40 rounded-lg p-3 mb-6 flex items-start gap-3">
-        <AlertTriangle className="w-4 h-4 text-yellow-400 flex-shrink-0 mt-0.5" />
+        <AlertTriangle className="w-4 h-4 text-yellow-400 shrink-0 mt-0.5" />
         <p className="text-yellow-300 text-sm">このデータは監視サービスから収集されたものです。ダークウェブへの直接アクセスは行いません。すべての情報は合法的な脅威インテリジェンスサービス経由で取得されています。</p>
       </div>
 
@@ -330,8 +330,8 @@ export default function DarkWebPage() {
           { label: 'データリーク', value: dataLeaks, color: 'text-orange-400' },
           { label: '今週の新規', value: newThisWeek, color: 'text-yellow-400' },
         ].map(c => (
-          <div key={c.label} className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-4">
-            <p className="text-xs text-[#7d92b0] mb-2">{c.label}</p>
+          <div key={c.label} className="bg-falcon-surface border border-falcon-border rounded-xl p-4">
+            <p className="text-xs text-falcon-muted mb-2">{c.label}</p>
             <p className={`text-3xl font-bold ${c.color}`}>{c.value}</p>
           </div>
         ))}
@@ -342,7 +342,7 @@ export default function DarkWebPage() {
         {[{ key: 'detections', label: '検出アイテム' }, { key: 'keywords', label: '監視キーワード' }, { key: 'stats', label: '統計' }].map(t => (
           <button key={t.key} onClick={() => setTab(t.key as any)}
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-              tab === t.key ? 'bg-[#e8002d] text-white' : 'bg-[#0d1220] border border-[#1e2d42] text-[#7d92b0] hover:text-white'
+              tab === t.key ? 'bg-falcon-red text-white' : 'bg-falcon-surface border border-falcon-border text-falcon-muted hover:text-white'
             }`}>{t.label}</button>
         ))}
       </div>
@@ -351,28 +351,28 @@ export default function DarkWebPage() {
       {tab === 'detections' && (
         <div>
           <div className="flex flex-wrap gap-3 mb-4">
-            <div className="flex items-center gap-2 bg-[#0d1220] border border-[#1e2d42] rounded-lg px-3 py-2">
-              <Filter className="w-3.5 h-3.5 text-[#7d92b0]" />
+            <div className="flex items-center gap-2 bg-falcon-surface border border-falcon-border rounded-lg px-3 py-2">
+              <Filter className="w-3.5 h-3.5 text-falcon-muted" />
               <select value={filterCategory} onChange={e => setFilterCategory(e.target.value as any)}
-                className="bg-transparent text-sm text-[#7d92b0] focus:outline-none focus:text-white">
+                className="bg-transparent text-sm text-falcon-muted focus:outline-hidden focus:text-white">
                 <option value="">全カテゴリ</option>
                 {(Object.keys(CATEGORY_CONFIG) as DetectionCategory[]).map(c => (
                   <option key={c} value={c}>{CATEGORY_CONFIG[c].label}</option>
                 ))}
               </select>
             </div>
-            <div className="flex items-center gap-2 bg-[#0d1220] border border-[#1e2d42] rounded-lg px-3 py-2">
+            <div className="flex items-center gap-2 bg-falcon-surface border border-falcon-border rounded-lg px-3 py-2">
               <select value={filterSeverity} onChange={e => setFilterSeverity(e.target.value as any)}
-                className="bg-transparent text-sm text-[#7d92b0] focus:outline-none focus:text-white">
+                className="bg-transparent text-sm text-falcon-muted focus:outline-hidden focus:text-white">
                 <option value="">全重要度</option>
                 {(['low','medium','high','critical'] as Severity[]).map(s => (
                   <option key={s} value={s}>{SEVERITY_CONFIG[s].label}</option>
                 ))}
               </select>
             </div>
-            <div className="flex items-center gap-2 bg-[#0d1220] border border-[#1e2d42] rounded-lg px-3 py-2">
+            <div className="flex items-center gap-2 bg-falcon-surface border border-falcon-border rounded-lg px-3 py-2">
               <select value={filterStatus} onChange={e => setFilterStatus(e.target.value as any)}
-                className="bg-transparent text-sm text-[#7d92b0] focus:outline-none focus:text-white">
+                className="bg-transparent text-sm text-falcon-muted focus:outline-hidden focus:text-white">
                 <option value="">全ステータス</option>
                 {(['new','reviewed','actioned'] as DetectionStatus[]).map(s => (
                   <option key={s} value={s}>{STATUS_CONFIG[s].label}</option>
@@ -381,7 +381,7 @@ export default function DarkWebPage() {
             </div>
             {(filterCategory || filterSeverity || filterStatus) && (
               <button onClick={() => { setFilterCategory(''); setFilterSeverity(''); setFilterStatus('') }}
-                className="text-xs text-[#7d92b0] hover:text-white px-3 border border-[#1e2d42] rounded-lg">リセット</button>
+                className="text-xs text-falcon-muted hover:text-white px-3 border border-falcon-border rounded-lg">リセット</button>
             )}
             <button onClick={handleBulkAction}
               className="ml-auto px-4 py-2 bg-green-900/40 border border-green-700/30 text-green-300 rounded-lg text-sm hover:bg-green-900/60 transition-colors flex items-center gap-2">
@@ -389,12 +389,12 @@ export default function DarkWebPage() {
             </button>
           </div>
 
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
+          <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-[#1e2d42]">
+                <tr className="border-b border-falcon-border">
                   {['日時', 'カテゴリ', 'ソース', '重要度', 'サマリー', 'ステータス', '担当者', '操作'].map(h => (
-                    <th key={h} className="text-left text-xs text-[#7d92b0] font-medium px-4 py-3">{h}</th>
+                    <th key={h} className="text-left text-xs text-falcon-muted font-medium px-4 py-3">{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -404,25 +404,25 @@ export default function DarkWebPage() {
                   const sc = SEVERITY_CONFIG[d.severity]
                   const stc = STATUS_CONFIG[d.status]
                   return (
-                    <tr key={d.id} className="border-b border-[#1e2d42]/50 hover:bg-[#070d19]/50 transition-colors">
-                      <td className="px-4 py-3 text-xs text-[#7d92b0] whitespace-nowrap">{fmt(d.timestamp)}</td>
+                    <tr key={d.id} className="border-b border-falcon-border/50 hover:bg-[#070d19]/50 transition-colors">
+                      <td className="px-4 py-3 text-xs text-falcon-muted whitespace-nowrap">{fmt(d.timestamp)}</td>
                       <td className="px-4 py-3">
                         <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${cc.bg} ${cc.text}`}>{cc.label}</span>
                       </td>
-                      <td className="px-4 py-3 text-xs text-[#7d92b0]">{d.source}</td>
+                      <td className="px-4 py-3 text-xs text-falcon-muted">{d.source}</td>
                       <td className="px-4 py-3">
-                        <span className={`text-xs px-2 py-0.5 rounded font-bold ${sc.bg} ${sc.text}`}>{sc.label}</span>
+                        <span className={`text-xs px-2 py-0.5 rounded-sm font-bold ${sc.bg} ${sc.text}`}>{sc.label}</span>
                       </td>
                       <td className="px-4 py-3 max-w-[200px]">
-                        <p className="text-xs text-[#e2e8f4] truncate" title={d.summary}>{d.summary}</p>
+                        <p className="text-xs text-falcon-text truncate" title={d.summary}>{d.summary}</p>
                       </td>
                       <td className="px-4 py-3">
-                        <span className={`text-xs px-2 py-0.5 rounded font-medium ${stc.bg} ${stc.text}`}>{stc.label}</span>
+                        <span className={`text-xs px-2 py-0.5 rounded-sm font-medium ${stc.bg} ${stc.text}`}>{stc.label}</span>
                       </td>
-                      <td className="px-4 py-3 text-xs text-[#7d92b0]">{displayUser(d.assigned_to)}</td>
+                      <td className="px-4 py-3 text-xs text-falcon-muted">{displayUser(d.assigned_to)}</td>
                       <td className="px-4 py-3">
                         <button onClick={() => setSelectedDetection(d)}
-                          className="flex items-center gap-1 text-xs text-[#7d92b0] hover:text-white transition-colors">
+                          className="flex items-center gap-1 text-xs text-falcon-muted hover:text-white transition-colors">
                           <Eye className="w-3.5 h-3.5" /> 詳細
                         </button>
                       </td>
@@ -431,7 +431,7 @@ export default function DarkWebPage() {
                 })}
               </tbody>
             </table>
-            {filteredDetections.length === 0 && <div className="text-center py-12 text-[#7d92b0] text-sm">条件に一致するアイテムがありません</div>}
+            {filteredDetections.length === 0 && <div className="text-center py-12 text-falcon-muted text-sm">条件に一致するアイテムがありません</div>}
           </div>
         </div>
       )}
@@ -439,30 +439,30 @@ export default function DarkWebPage() {
       {/* Keywords Tab */}
       {tab === 'keywords' && (
         <div>
-          <div className="bg-[#0d1220] border border-blue-700/30 rounded-xl p-4 mb-6">
+          <div className="bg-falcon-surface border border-blue-700/30 rounded-xl p-4 mb-6">
             <div className="flex items-start gap-3">
-              <Globe className="w-4 h-4 text-blue-400 flex-shrink-0 mt-0.5" />
+              <Globe className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" />
               <div>
                 <p className="text-white text-sm font-medium mb-1">監視スコープについて</p>
-                <p className="text-[#7d92b0] text-xs">登録されたキーワードは、ダークウェブフォーラム・マーケットプレイス・ペーストサイト・Telegramチャンネルを継続的に監視するために使用されます。マッチが検出されると、検出アイテムタブに新規エントリが作成されます。</p>
+                <p className="text-falcon-muted text-xs">登録されたキーワードは、ダークウェブフォーラム・マーケットプレイス・ペーストサイト・Telegramチャンネルを継続的に監視するために使用されます。マッチが検出されると、検出アイテムタブに新規エントリが作成されます。</p>
               </div>
             </div>
           </div>
 
           <div className="flex justify-between items-center mb-4">
-            <p className="text-[#7d92b0] text-sm">{localKeywords.length} 件のキーワード</p>
+            <p className="text-falcon-muted text-sm">{localKeywords.length} 件のキーワード</p>
             <button onClick={() => setShowAddKeyword(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-[#e8002d] text-white rounded-lg text-sm font-medium hover:bg-[#c8001e] transition-colors">
+              className="flex items-center gap-2 px-4 py-2 bg-falcon-red text-white rounded-lg text-sm font-medium hover:bg-[#c8001e] transition-colors">
               <Plus className="w-4 h-4" /> キーワード追加
             </button>
           </div>
 
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
+          <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-[#1e2d42]">
+                <tr className="border-b border-falcon-border">
                   {['キーワード', 'カテゴリ', '有効', '最終マッチ', 'マッチ数', 'メモ', '操作'].map(h => (
-                    <th key={h} className="text-left text-xs text-[#7d92b0] font-medium px-4 py-3">{h}</th>
+                    <th key={h} className="text-left text-xs text-falcon-muted font-medium px-4 py-3">{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -470,7 +470,7 @@ export default function DarkWebPage() {
                 {localKeywords.map(kw => {
                   const kc = KEYWORD_CATEGORY_CONFIG[kw.category]
                   return (
-                    <tr key={kw.id} className="border-b border-[#1e2d42]/50 hover:bg-[#070d19]/50 transition-colors">
+                    <tr key={kw.id} className="border-b border-falcon-border/50 hover:bg-[#070d19]/50 transition-colors">
                       <td className="px-4 py-3">
                         <span className="text-white text-sm font-mono">{kw.keyword}</span>
                       </td>
@@ -479,16 +479,16 @@ export default function DarkWebPage() {
                       </td>
                       <td className="px-4 py-3">
                         <button onClick={() => handleToggleKeyword(kw)}>
-                          {kw.active ? <ToggleRight className="w-5 h-5 text-green-400" /> : <ToggleLeft className="w-5 h-5 text-[#3d5068]" />}
+                          {kw.active ? <ToggleRight className="w-5 h-5 text-green-400" /> : <ToggleLeft className="w-5 h-5 text-falcon-subtle" />}
                         </button>
                       </td>
-                      <td className="px-4 py-3 text-xs text-[#7d92b0]">{kw.last_match ? fmt(kw.last_match) : '—'}</td>
+                      <td className="px-4 py-3 text-xs text-falcon-muted">{kw.last_match ? fmt(kw.last_match) : '—'}</td>
                       <td className="px-4 py-3">
-                        <span className={`text-sm font-bold ${kw.match_count > 0 ? 'text-orange-400' : 'text-[#7d92b0]'}`}>{kw.match_count}</span>
+                        <span className={`text-sm font-bold ${kw.match_count > 0 ? 'text-orange-400' : 'text-falcon-muted'}`}>{kw.match_count}</span>
                       </td>
-                      <td className="px-4 py-3 text-xs text-[#7d92b0] max-w-[160px] truncate">{kw.notes || '—'}</td>
+                      <td className="px-4 py-3 text-xs text-falcon-muted max-w-[160px] truncate">{kw.notes || '—'}</td>
                       <td className="px-4 py-3">
-                        <button onClick={() => handleDeleteKeyword(kw)} className="text-[#7d92b0] hover:text-red-400 transition-colors">
+                        <button onClick={() => handleDeleteKeyword(kw)} className="text-falcon-muted hover:text-red-400 transition-colors">
                           <Trash2 className="w-4 h-4" />
                         </button>
                       </td>
@@ -505,18 +505,18 @@ export default function DarkWebPage() {
       {tab === 'stats' && (
         <div className="space-y-6">
           {/* Monthly trend */}
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
+          <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
             <h3 className="text-white font-semibold text-sm mb-4 flex items-center gap-2">
-              <TrendingUp className="w-4 h-4 text-[#e8002d]" /> 月別検出トレンド (12ヶ月)
+              <TrendingUp className="w-4 h-4 text-falcon-red" /> 月別検出トレンド (12ヶ月)
             </h3>
             <div className="flex items-end gap-2 h-40">
               {MONTHLY_STATS.map(m => {
                 const pct = maxMonthly > 0 ? (m.count / maxMonthly) * 100 : 0
                 return (
                   <div key={m.month} className="flex-1 flex flex-col items-center gap-1">
-                    <span className="text-xs text-[#7d92b0]">{m.count}</span>
+                    <span className="text-xs text-falcon-muted">{m.count}</span>
                     <div className="w-full rounded-t" style={{ height: `${pct}%`, minHeight: '4px', backgroundColor: '#e8002d', opacity: 0.7 + (pct / 100) * 0.3 }} />
-                    <span className="text-[9px] text-[#3d5068] rotate-45 origin-left whitespace-nowrap">{m.month.slice(5)}</span>
+                    <span className="text-[9px] text-falcon-subtle rotate-45 origin-left whitespace-nowrap">{m.month.slice(5)}</span>
                   </div>
                 )
               })}
@@ -525,9 +525,9 @@ export default function DarkWebPage() {
 
           {/* Category distribution */}
           <div className="grid grid-cols-2 gap-6">
-            <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
+            <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
               <h3 className="text-white font-semibold text-sm mb-4 flex items-center gap-2">
-                <BarChart2 className="w-4 h-4 text-[#e8002d]" /> カテゴリ別分布
+                <BarChart2 className="w-4 h-4 text-falcon-red" /> カテゴリ別分布
               </h3>
               <div className="space-y-3">
                 {(Object.keys(CATEGORY_CONFIG) as DetectionCategory[]).map(cat => {
@@ -536,11 +536,11 @@ export default function DarkWebPage() {
                   const cc = CATEGORY_CONFIG[cat]
                   return (
                     <div key={cat} className="flex items-center gap-3">
-                      <span className={`text-xs ${cc.text} w-24 flex-shrink-0`}>{cc.label}</span>
-                      <div className="flex-1 h-2 bg-[#1e2d42] rounded-full overflow-hidden">
+                      <span className={`text-xs ${cc.text} w-24 shrink-0`}>{cc.label}</span>
+                      <div className="flex-1 h-2 bg-falcon-border rounded-full overflow-hidden">
                         <div className={`h-full rounded-full ${cc.bg.replace('/40', '/80')}`} style={{ width: `${pct}%` }} />
                       </div>
-                      <span className="text-xs text-[#7d92b0] w-8 text-right">{count}</span>
+                      <span className="text-xs text-falcon-muted w-8 text-right">{count}</span>
                     </div>
                   )
                 })}
@@ -548,17 +548,17 @@ export default function DarkWebPage() {
             </div>
 
             {/* Top sources */}
-            <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
+            <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
               <h3 className="text-white font-semibold text-sm mb-4 flex items-center gap-2">
-                <Globe className="w-4 h-4 text-[#e8002d]" /> TOP 5 ソース
+                <Globe className="w-4 h-4 text-falcon-red" /> TOP 5 ソース
               </h3>
               <div className="space-y-3">
                 {TOP_SOURCES.map((s, i) => (
                   <div key={s.name} className="flex items-center gap-3">
-                    <span className="text-xs text-[#3d5068] font-bold w-4">{i + 1}</span>
-                    <span className="text-xs text-[#e2e8f4] flex-1">{s.name}</span>
-                    <div className="w-24 h-2 bg-[#1e2d42] rounded-full overflow-hidden">
-                      <div className="h-full rounded-full bg-[#e8002d]/60" style={{ width: `${(s.count / TOP_SOURCES[0].count) * 100}%` }} />
+                    <span className="text-xs text-falcon-subtle font-bold w-4">{i + 1}</span>
+                    <span className="text-xs text-falcon-text flex-1">{s.name}</span>
+                    <div className="w-24 h-2 bg-falcon-border rounded-full overflow-hidden">
+                      <div className="h-full rounded-full bg-falcon-red/60" style={{ width: `${(s.count / TOP_SOURCES[0].count) * 100}%` }} />
                     </div>
                     <span className="text-xs text-white font-bold w-4">{s.count}</span>
                   </div>
@@ -568,14 +568,14 @@ export default function DarkWebPage() {
           </div>
 
           {/* Credential exposure by domain */}
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
+          <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
             <h3 className="text-white font-semibold text-sm mb-4">ドメイン別認証情報露出</h3>
-            <div className="overflow-hidden rounded-lg border border-[#1e2d42]">
+            <div className="overflow-hidden rounded-lg border border-falcon-border">
               <table className="w-full">
                 <thead>
-                  <tr className="border-b border-[#1e2d42] bg-[#070d19]">
+                  <tr className="border-b border-falcon-border bg-[#070d19]">
                     {['ドメイン', '露出件数', '重要度'].map(h => (
-                      <th key={h} className="text-left text-xs text-[#7d92b0] font-medium px-4 py-2">{h}</th>
+                      <th key={h} className="text-left text-xs text-falcon-muted font-medium px-4 py-2">{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -583,11 +583,11 @@ export default function DarkWebPage() {
                   {CREDENTIAL_DOMAINS.map(d => {
                     const sc = SEVERITY_CONFIG[d.severity]
                     return (
-                      <tr key={d.domain} className="border-b border-[#1e2d42]/50">
+                      <tr key={d.domain} className="border-b border-falcon-border/50">
                         <td className="px-4 py-3 text-sm text-white font-mono">{d.domain}</td>
                         <td className="px-4 py-3 text-sm text-orange-400 font-bold">{d.count}</td>
                         <td className="px-4 py-3">
-                          <span className={`text-xs px-2 py-0.5 rounded font-bold ${sc.bg} ${sc.text}`}>{sc.label}</span>
+                          <span className={`text-xs px-2 py-0.5 rounded-sm font-bold ${sc.bg} ${sc.text}`}>{sc.label}</span>
                         </td>
                       </tr>
                     )
@@ -610,10 +610,10 @@ export default function DarkWebPage() {
       {showAddKeyword && <AddKeywordModal onClose={() => setShowAddKeyword(false)} onAdd={handleAddKeyword} />}
 
       {toast && (
-        <div className="fixed bottom-6 right-6 z-50 max-w-sm bg-[#0d1220] border border-green-500/50 rounded-lg p-4 shadow-xl flex items-center gap-3">
-          <CheckCircle className="w-4 h-4 text-green-400 flex-shrink-0" />
-          <p className="text-sm text-[#e2e8f4] flex-1">{toast}</p>
-          <button onClick={() => setToast(null)} className="text-[#7d92b0] hover:text-white"><X className="w-4 h-4" /></button>
+        <div className="fixed bottom-6 right-6 z-50 max-w-sm bg-falcon-surface border border-green-500/50 rounded-lg p-4 shadow-xl flex items-center gap-3">
+          <CheckCircle className="w-4 h-4 text-green-400 shrink-0" />
+          <p className="text-sm text-falcon-text flex-1">{toast}</p>
+          <button onClick={() => setToast(null)} className="text-falcon-muted hover:text-white"><X className="w-4 h-4" /></button>
         </div>
       )}
     </div>

@@ -91,7 +91,7 @@ export default function BackendPendingBanner() {
 
   return (
     <div className="bg-amber-500/10 border-b border-amber-500/30 px-4 py-2 flex items-center gap-2">
-      <Construction className="w-4 h-4 text-amber-400 flex-shrink-0" />
+      <Construction className="w-4 h-4 text-amber-400 shrink-0" />
       <p className="text-xs text-amber-300">
         {full
           ? 'この画面のバックエンドは準備中です。データの表示・保存はまだ行われません（実装後に自動的に有効になります）。'

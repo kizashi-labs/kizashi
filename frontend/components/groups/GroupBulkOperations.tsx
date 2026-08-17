@@ -50,8 +50,8 @@ function ResultBanner({ type, message, onDismiss }: ResultBannerProps) {
                     : 'bg-red-900/40 border border-red-700/50 text-red-300'}`}
     >
       {isSuccess
-        ? <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
-        : <AlertTriangle className="w-4 h-4 flex-shrink-0" />}
+        ? <CheckCircle2 className="w-4 h-4 shrink-0" />
+        : <AlertTriangle className="w-4 h-4 shrink-0" />}
       <span className="flex-1">{message}</span>
       <button
         onClick={onDismiss}
@@ -104,14 +104,14 @@ function AgentCheckboxList({
   }
 
   return (
-    <div className="rounded-lg border border-[#1e2d42] overflow-hidden">
+    <div className="rounded-lg border border-falcon-border overflow-hidden">
       {/* Select-all header */}
       <div
-        className="flex items-center gap-3 px-4 py-2.5 bg-[#0d1628] border-b border-[#1e2d42]
+        className="flex items-center gap-3 px-4 py-2.5 bg-[#0d1628] border-b border-falcon-border
                    cursor-pointer hover:bg-[#111c2e] transition-colors select-none"
         onClick={onToggleAll}
       >
-        <span className={`flex-shrink-0 ${allSelected ? 'text-[#1a6bff]' : 'text-[#3d5068]'}`}>
+        <span className={`shrink-0 ${allSelected ? 'text-falcon-blue' : 'text-falcon-subtle'}`}>
           {allSelected
             ? <CheckSquare className="w-4 h-4" />
             : <Square className="w-4 h-4" />}
@@ -120,7 +120,7 @@ function AgentCheckboxList({
           全選択 ({agents.length}件)
         </span>
         {selected.size > 0 && (
-          <span className="ml-auto text-xs text-[#1a6bff] font-semibold">
+          <span className="ml-auto text-xs text-falcon-blue font-semibold">
             {selected.size}件選択中
           </span>
         )}
@@ -135,10 +135,10 @@ function AgentCheckboxList({
               key={agent.id}
               onClick={() => onToggle(agent.id)}
               className={`flex items-center gap-3 px-4 py-2.5 cursor-pointer transition-colors select-none
-                          border-b border-[#1e2d42]/50 last:border-b-0
-                          ${checked ? 'bg-[#1a6bff]/10' : 'hover:bg-[#161f33]'}`}
+                          border-b border-falcon-border/50 last:border-b-0
+                          ${checked ? 'bg-falcon-blue/10' : 'hover:bg-falcon-raised'}`}
             >
-              <span className={`flex-shrink-0 ${checked ? 'text-[#1a6bff]' : 'text-[#3d5068]'}`}>
+              <span className={`shrink-0 ${checked ? 'text-falcon-blue' : 'text-falcon-subtle'}`}>
                 {checked
                   ? <CheckSquare className="w-4 h-4" />
                   : <Square className="w-4 h-4" />}
@@ -149,10 +149,10 @@ function AgentCheckboxList({
               </div>
               {agent.status && (
                 <span
-                  className={`text-xs px-2 py-0.5 rounded-full flex-shrink-0
+                  className={`text-xs px-2 py-0.5 rounded-full shrink-0
                               ${agent.status === 'online'
                                 ? 'bg-green-900/40 text-green-400'
-                                : 'bg-[#161f33] text-[#5a6a7a]'}`}
+                                : 'bg-falcon-raised text-[#5a6a7a]'}`}
                 >
                   {agent.status}
                 </span>
@@ -333,9 +333,9 @@ export default function GroupBulkOperations({ groupId, groupName }: GroupBulkOpe
   // ── Render ─────────────────────────────────────────────────────────────────
 
   return (
-    <div className="bg-gray-800 rounded-xl border border-[#1e2d42] overflow-hidden">
+    <div className="bg-gray-800 rounded-xl border border-falcon-border overflow-hidden">
       {/* Card header */}
-      <div className="px-5 py-4 border-b border-[#1e2d42]">
+      <div className="px-5 py-4 border-b border-falcon-border">
         <h2 className="text-base font-semibold text-white flex items-center gap-2">
           <Users className="w-4 h-4 text-[#8899aa]" />
           {groupName} — エージェント管理
@@ -346,13 +346,13 @@ export default function GroupBulkOperations({ groupId, groupName }: GroupBulkOpe
       </div>
 
       {/* Tabs */}
-      <div className="flex border-b border-[#1e2d42]">
+      <div className="flex border-b border-falcon-border">
         <button
           onClick={() => { setActiveTab('add'); setResult(null) }}
           className={`flex items-center gap-2 px-5 py-3 text-sm font-medium transition-colors
                       ${activeTab === 'add'
-                        ? 'text-white border-b-2 border-[#1a6bff] bg-[#1a6bff]/5'
-                        : 'text-[#8899aa] hover:text-white hover:bg-[#161f33]'}`}
+                        ? 'text-white border-b-2 border-falcon-blue bg-falcon-blue/5'
+                        : 'text-[#8899aa] hover:text-white hover:bg-falcon-raised'}`}
         >
           <UserPlus className="w-4 h-4" />
           エージェントを追加
@@ -362,7 +362,7 @@ export default function GroupBulkOperations({ groupId, groupName }: GroupBulkOpe
           className={`flex items-center gap-2 px-5 py-3 text-sm font-medium transition-colors
                       ${activeTab === 'remove'
                         ? 'text-white border-b-2 border-red-500 bg-red-500/5'
-                        : 'text-[#8899aa] hover:text-white hover:bg-[#161f33]'}`}
+                        : 'text-[#8899aa] hover:text-white hover:bg-falcon-raised'}`}
         >
           <UserMinus className="w-4 h-4" />
           エージェントを削除
@@ -390,8 +390,8 @@ export default function GroupBulkOperations({ groupId, groupName }: GroupBulkOpe
                 placeholder="ホスト名またはIPで検索..."
                 value={addSearch}
                 onChange={(e) => setAddSearch(e.target.value)}
-                className="w-full bg-[#111827] text-white text-sm pl-9 pr-4 py-2 rounded-lg
-                           border border-[#1e2d42] focus:outline-none focus:border-[#1a6bff]"
+                className="w-full bg-falcon-card text-white text-sm pl-9 pr-4 py-2 rounded-lg
+                           border border-falcon-border focus:outline-hidden focus:border-falcon-blue"
               />
             </div>
 
@@ -410,7 +410,7 @@ export default function GroupBulkOperations({ groupId, groupName }: GroupBulkOpe
               onClick={handleAdd}
               disabled={addSelected.size === 0 || submitting}
               className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium
-                         bg-[#1a6bff] text-white hover:bg-[#1557d4] transition-colors
+                         bg-falcon-blue text-white hover:bg-[#1557d4] transition-colors
                          disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {submitting ? (
@@ -441,8 +441,8 @@ export default function GroupBulkOperations({ groupId, groupName }: GroupBulkOpe
                 placeholder="ホスト名またはIPで検索..."
                 value={removeSearch}
                 onChange={(e) => setRemoveSearch(e.target.value)}
-                className="w-full bg-[#111827] text-white text-sm pl-9 pr-4 py-2 rounded-lg
-                           border border-[#1e2d42] focus:outline-none focus:border-red-500/60"
+                className="w-full bg-falcon-card text-white text-sm pl-9 pr-4 py-2 rounded-lg
+                           border border-falcon-border focus:outline-hidden focus:border-red-500/60"
               />
             </div>
 

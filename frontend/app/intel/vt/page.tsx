@@ -36,7 +36,7 @@ async function vtLookup(value: string, type?: string): Promise<VTResult> {
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
 function VerdictBadge({ malicious, total }: { malicious: number; total: number }) {
-  if (total === 0) return <span className="text-xs text-[#7d92b0]">スキャン未実施</span>
+  if (total === 0) return <span className="text-xs text-falcon-muted">スキャン未実施</span>
   const ratio = malicious / total
   if (malicious === 0)
     return (
@@ -64,7 +64,7 @@ function DetectionBar({ malicious, suspicious, total }: { malicious: number; sus
   const cleanPct = 100 - malPct - suspPct
   return (
     <div>
-      <div className="flex h-2 rounded-full overflow-hidden bg-[#1e2d42] gap-0.5">
+      <div className="flex h-2 rounded-full overflow-hidden bg-falcon-border gap-0.5">
         {malPct > 0   && <div className="bg-red-500"    style={{ width: `${malPct}%` }} />}
         {suspPct > 0  && <div className="bg-yellow-500" style={{ width: `${suspPct}%` }} />}
         {cleanPct > 0 && <div className="bg-green-600"  style={{ width: `${cleanPct}%` }} />}
@@ -73,7 +73,7 @@ function DetectionBar({ malicious, suspicious, total }: { malicious: number; sus
         <span className="text-red-400">悪意: {malicious}</span>
         <span className="text-yellow-400">疑わしい: {suspicious}</span>
         <span className="text-green-400">クリーン: {total - malicious - suspicious}</span>
-        <span className="text-[#7d92b0]">合計: {total} エンジン</span>
+        <span className="text-falcon-muted">合計: {total} エンジン</span>
       </div>
     </div>
   )
@@ -133,8 +133,8 @@ export default function VirusTotalPage() {
           <ScanSearch className="w-5 h-5 text-blue-400" />
         </div>
         <div>
-          <h1 className="text-lg font-semibold text-[#e2e8f4]">VirusTotal 検索</h1>
-          <p className="text-xs text-[#7d92b0]">ハッシュ・IPアドレス・ドメインをVirusTotalで照会します</p>
+          <h1 className="text-lg font-semibold text-falcon-text">VirusTotal 検索</h1>
+          <p className="text-xs text-falcon-muted">ハッシュ・IPアドレス・ドメインをVirusTotalで照会します</p>
         </div>
       </div>
 
@@ -144,9 +144,9 @@ export default function VirusTotalPage() {
           value={input}
           onChange={e => setInput(e.target.value)}
           placeholder="MD5 / SHA1 / SHA256 / IPアドレス / ドメイン を入力..."
-          className="flex-1 bg-[#111827] border border-[#1e2d42] rounded-lg px-4 py-2.5
-                     text-sm text-[#e2e8f4] placeholder-[#5a6a7a]
-                     focus:outline-none focus:border-blue-500/60 transition-colors"
+          className="flex-1 bg-falcon-card border border-falcon-border rounded-lg px-4 py-2.5
+                     text-sm text-falcon-text placeholder-[#5a6a7a]
+                     focus:outline-hidden focus:border-blue-500/60 transition-colors"
         />
         <button
           type="submit"
@@ -167,26 +167,26 @@ export default function VirusTotalPage() {
 
       {/* Result */}
       {result && (
-        <div className="bg-[#111827] border border-[#1e2d42] rounded-xl overflow-hidden">
+        <div className="bg-falcon-card border border-falcon-border rounded-xl overflow-hidden">
           {/* Result header */}
-          <div className="px-5 py-4 border-b border-[#1e2d42] flex items-start justify-between gap-4">
+          <div className="px-5 py-4 border-b border-falcon-border flex items-start justify-between gap-4">
             <div className="flex items-center gap-2 min-w-0">
               <TypeIcon type={result.type} />
-              <span className="text-sm font-mono text-[#e2e8f4] truncate">{lastQuery}</span>
+              <span className="text-sm font-mono text-falcon-text truncate">{lastQuery}</span>
             </div>
             <VerdictBadge malicious={result.malicious} total={result.total_engines} />
           </div>
 
           {!result.found ? (
-            <div className="px-5 py-8 text-center text-[#7d92b0] text-sm">
-              <Shield className="w-10 h-10 mx-auto mb-3 text-[#3d5068]" />
+            <div className="px-5 py-8 text-center text-falcon-muted text-sm">
+              <Shield className="w-10 h-10 mx-auto mb-3 text-falcon-subtle" />
               VirusTotalにデータが見つかりませんでした
             </div>
           ) : (
             <div className="px-5 py-4 space-y-5">
               {/* Detection bar */}
               <div>
-                <p className="text-xs text-[#7d92b0] mb-2 font-medium uppercase tracking-wider">検出状況</p>
+                <p className="text-xs text-falcon-muted mb-2 font-medium uppercase tracking-wider">検出状況</p>
                 <DetectionBar
                   malicious={result.malicious}
                   suspicious={result.suspicious}
@@ -198,28 +198,28 @@ export default function VirusTotalPage() {
               <div className="grid grid-cols-2 gap-4">
                 {result.common_name && (
                   <div className="col-span-2">
-                    <p className="text-xs text-[#7d92b0] mb-1">マルウェア名</p>
+                    <p className="text-xs text-falcon-muted mb-1">マルウェア名</p>
                     <p className="text-sm font-semibold text-red-400">{result.common_name}</p>
                   </div>
                 )}
 
                 <div>
-                  <p className="text-xs text-[#7d92b0] mb-1 flex items-center gap-1">
+                  <p className="text-xs text-falcon-muted mb-1 flex items-center gap-1">
                     <Clock className="w-3 h-3" /> 初回検出
                   </p>
-                  <p className="text-sm text-[#e2e8f4]">{formatDate(result.first_seen)}</p>
+                  <p className="text-sm text-falcon-text">{formatDate(result.first_seen)}</p>
                 </div>
 
                 <div>
-                  <p className="text-xs text-[#7d92b0] mb-1 flex items-center gap-1">
+                  <p className="text-xs text-falcon-muted mb-1 flex items-center gap-1">
                     <Clock className="w-3 h-3" /> 最終分析
                   </p>
-                  <p className="text-sm text-[#e2e8f4]">{formatDate(result.last_analysis)}</p>
+                  <p className="text-sm text-falcon-text">{formatDate(result.last_analysis)}</p>
                 </div>
 
                 {result.reputation !== 0 && (
                   <div>
-                    <p className="text-xs text-[#7d92b0] mb-1">レピュテーション</p>
+                    <p className="text-xs text-falcon-muted mb-1">レピュテーション</p>
                     <p className={`text-sm font-semibold ${result.reputation < 0 ? 'text-red-400' : 'text-green-400'}`}>
                       {result.reputation > 0 ? '+' : ''}{result.reputation}
                     </p>
@@ -230,14 +230,14 @@ export default function VirusTotalPage() {
               {/* Tags */}
               {result.tags && result.tags.length > 0 && (
                 <div>
-                  <p className="text-xs text-[#7d92b0] mb-2 flex items-center gap-1">
+                  <p className="text-xs text-falcon-muted mb-2 flex items-center gap-1">
                     <Tag className="w-3 h-3" /> タグ
                   </p>
                   <div className="flex flex-wrap gap-1.5">
                     {result.tags.map(tag => (
                       <span
                         key={tag}
-                        className="text-xs px-2 py-0.5 rounded-full bg-[#1e2d42] border border-[#2a3f5f] text-[#8899aa]"
+                        className="text-xs px-2 py-0.5 rounded-full bg-falcon-border border border-[#2a3f5f] text-[#8899aa]"
                       >
                         {tag}
                       </span>

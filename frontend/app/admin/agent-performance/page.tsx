@@ -65,12 +65,12 @@ type SortDir = 'asc' | 'desc'
 
 function CpuBar({ pct }: { pct: number }) {
   const color =
-    pct > 50 ? 'bg-[#e8002d]' : pct > 20 ? 'bg-yellow-400' : 'bg-[#00c853]'
+    pct > 50 ? 'bg-falcon-red' : pct > 20 ? 'bg-yellow-400' : 'bg-falcon-green'
   const textColor =
-    pct > 50 ? 'text-[#e8002d]' : pct > 20 ? 'text-yellow-400' : 'text-[#00c853]'
+    pct > 50 ? 'text-falcon-red' : pct > 20 ? 'text-yellow-400' : 'text-falcon-green'
   return (
     <div className="flex items-center gap-2 min-w-[100px]">
-      <div className="flex-1 h-1.5 bg-[#1e2d42] rounded-full overflow-hidden">
+      <div className="flex-1 h-1.5 bg-falcon-border rounded-full overflow-hidden">
         <div className={`h-full rounded-full ${color}`} style={{ width: `${Math.min(pct, 100)}%` }} />
       </div>
       <span className={`text-xs font-mono w-10 text-right ${textColor}`}>{pct.toFixed(1)}%</span>
@@ -80,13 +80,13 @@ function CpuBar({ pct }: { pct: number }) {
 
 function MemBar({ mb }: { mb: number }) {
   const pct = Math.min((mb / 1024) * 100, 100)
-  const color = mb > 500 ? 'bg-[#e8002d]' : mb > 300 ? 'bg-yellow-400' : 'bg-[#4a90e2]'
+  const color = mb > 500 ? 'bg-falcon-red' : mb > 300 ? 'bg-yellow-400' : 'bg-[#4a90e2]'
   return (
     <div className="flex items-center gap-2 min-w-[110px]">
-      <div className="flex-1 h-1.5 bg-[#1e2d42] rounded-full overflow-hidden">
+      <div className="flex-1 h-1.5 bg-falcon-border rounded-full overflow-hidden">
         <div className={`h-full rounded-full ${color}`} style={{ width: `${pct}%` }} />
       </div>
-      <span className="text-xs font-mono text-[#7d92b0] w-14 text-right">{mb} MB</span>
+      <span className="text-xs font-mono text-falcon-muted w-14 text-right">{mb} MB</span>
     </div>
   )
 }
@@ -94,11 +94,11 @@ function MemBar({ mb }: { mb: number }) {
 function OsBadge({ os }: { os: AgentPerf['os'] }) {
   const map = {
     Windows: 'bg-[#0078d4]/20 text-[#4fc3f7] border-[#0078d4]/40',
-    Linux:   'bg-[#e8002d]/10 text-[#ef9a9a] border-[#e8002d]/30',
+    Linux:   'bg-falcon-red/10 text-[#ef9a9a] border-falcon-red/30',
     macOS:   'bg-gray-500/10 text-gray-300 border-gray-500/30',
   }
   return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold border ${map[os]}`}>
+    <span className={`inline-flex items-center px-2 py-0.5 rounded-sm text-[10px] font-semibold border ${map[os]}`}>
       {os}
     </span>
   )
@@ -106,13 +106,13 @@ function OsBadge({ os }: { os: AgentPerf['os'] }) {
 
 function StatusBadge({ status }: { status: AgentPerf['status'] }) {
   const map = {
-    online:   'bg-[#00c853]/10 text-[#00c853] border-[#00c853]/30',
+    online:   'bg-falcon-green/10 text-falcon-green border-falcon-green/30',
     degraded: 'bg-yellow-400/10 text-yellow-400 border-yellow-400/30',
-    offline:  'bg-[#e8002d]/10 text-[#e8002d] border-[#e8002d]/30',
+    offline:  'bg-falcon-red/10 text-falcon-red border-falcon-red/30',
   }
   const labels = { online: 'オンライン', degraded: '低下', offline: 'オフライン' }
   return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold border ${map[status]}`}>
+    <span className={`inline-flex items-center px-2 py-0.5 rounded-sm text-[10px] font-semibold border ${map[status]}`}>
       {labels[status]}
     </span>
   )
@@ -141,10 +141,10 @@ function Sparkline({ values }: { values: number[] }) {
 }
 
 function SortIcon({ col, sortKey, sortDir }: { col: SortKey; sortKey: SortKey; sortDir: SortDir }) {
-  if (col !== sortKey) return <ChevronsUpDown className="w-3 h-3 text-[#3d5068]" />
+  if (col !== sortKey) return <ChevronsUpDown className="w-3 h-3 text-falcon-subtle" />
   return sortDir === 'asc'
-    ? <ChevronUp className="w-3 h-3 text-[#e8002d]" />
-    : <ChevronDown className="w-3 h-3 text-[#e8002d]" />
+    ? <ChevronUp className="w-3 h-3 text-falcon-red" />
+    : <ChevronDown className="w-3 h-3 text-falcon-red" />
 }
 
 function formatLastSeen(iso: string) {
@@ -219,7 +219,7 @@ export default function AgentPerformancePage() {
 
   const slowAgents = perf.agents.filter(a => a.cpu_pct > 80 || a.memory_mb > 500)
 
-  const inputCls = 'w-full px-3 py-2 rounded bg-[#070d19] border border-[#1e2d42] text-[#e2e8f4] text-sm placeholder-[#3d5068] focus:outline-none focus:border-[#3d6baa] transition-colors'
+  const inputCls = 'w-full px-3 py-2 rounded-sm bg-[#070d19] border border-falcon-border text-falcon-text text-sm placeholder-falcon-subtle focus:outline-hidden focus:border-[#3d6baa] transition-colors'
 
   return (
     <div className="min-h-screen bg-[#070d19] p-6 space-y-6">
@@ -227,25 +227,25 @@ export default function AgentPerformancePage() {
       {/* Header */}
       <div className="flex items-start justify-between flex-wrap gap-4">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-[#e8002d]/10 border border-[#e8002d]/20 flex items-center justify-center">
-            <Activity className="w-5 h-5 text-[#e8002d]" />
+          <div className="w-10 h-10 rounded-lg bg-falcon-red/10 border border-falcon-red/20 flex items-center justify-center">
+            <Activity className="w-5 h-5 text-falcon-red" />
           </div>
           <div>
             <h1 className="text-2xl font-bold text-white">エージェントパフォーマンス</h1>
-            <p className="text-sm text-[#7d92b0] mt-0.5">エージェントのCPU・メモリ・イベント処理プロファイリング</p>
+            <p className="text-sm text-falcon-muted mt-0.5">エージェントのCPU・メモリ・イベント処理プロファイリング</p>
           </div>
         </div>
         <div className="flex items-center gap-3 flex-wrap">
           {/* Time range selector */}
-          <div className="flex items-center gap-1 bg-[#0d1220] border border-[#1e2d42] rounded-lg p-1">
+          <div className="flex items-center gap-1 bg-falcon-surface border border-falcon-border rounded-lg p-1">
             {TIME_RANGES.map(r => (
               <button
                 key={r}
                 onClick={() => setRange(r)}
                 className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${
                   range === r
-                    ? 'bg-[#e8002d] text-white'
-                    : 'text-[#7d92b0] hover:text-[#e2e8f4] hover:bg-[#1e2d42]'
+                    ? 'bg-falcon-red text-white'
+                    : 'text-falcon-muted hover:text-falcon-text hover:bg-falcon-border'
                 }`}
               >
                 {r}
@@ -257,8 +257,8 @@ export default function AgentPerformancePage() {
             onClick={() => setAutoRefresh(v => !v)}
             className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-sm font-medium transition-colors ${
               autoRefresh
-                ? 'bg-[#e8002d]/10 border-[#e8002d]/40 text-[#e8002d]'
-                : 'bg-[#0d1220] border-[#1e2d42] text-[#7d92b0] hover:text-[#e2e8f4]'
+                ? 'bg-falcon-red/10 border-falcon-red/40 text-falcon-red'
+                : 'bg-falcon-surface border-falcon-border text-falcon-muted hover:text-falcon-text'
             }`}
           >
             <RefreshCw className={`w-4 h-4 ${autoRefresh ? 'animate-spin' : ''}`} style={autoRefresh ? { animationDuration: '3s' } : {}} />
@@ -266,7 +266,7 @@ export default function AgentPerformancePage() {
           </button>
           <button
             onClick={() => { refetch(); setLastRefresh(new Date()) }}
-            className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#0d1220] border border-[#1e2d42] text-[#7d92b0] hover:text-[#e2e8f4] hover:border-[#7d92b0]/40 text-sm transition-colors"
+            className="flex items-center gap-2 px-3 py-2 rounded-lg bg-falcon-surface border border-falcon-border text-falcon-muted hover:text-falcon-text hover:border-falcon-muted/40 text-sm transition-colors"
           >
             <RefreshCw className="w-4 h-4" />
             更新
@@ -275,7 +275,7 @@ export default function AgentPerformancePage() {
       </div>
 
       {/* Last refresh */}
-      <p className="text-xs text-[#3d5068] flex items-center gap-1.5">
+      <p className="text-xs text-falcon-subtle flex items-center gap-1.5">
         <Clock className="w-3 h-3" />
         最終更新: {lastRefresh.toLocaleTimeString('ja-JP')}
       </p>
@@ -284,17 +284,17 @@ export default function AgentPerformancePage() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
           { label: '平均CPU使用率', value: `${perf.avg_cpu.toFixed(1)}%`, icon: Cpu, color: 'text-[#4a90e2]', bg: 'bg-[#4a90e2]/10' },
-          { label: '平均メモリ', value: `${perf.avg_memory_mb} MB`, icon: MemoryStick, color: 'text-[#00c853]', bg: 'bg-[#00c853]/10' },
+          { label: '平均メモリ', value: `${perf.avg_memory_mb} MB`, icon: MemoryStick, color: 'text-falcon-green', bg: 'bg-falcon-green/10' },
           { label: '平均イベント/秒', value: (perf.avg_events_per_sec ?? 0).toLocaleString(), icon: Zap, color: 'text-yellow-400', bg: 'bg-yellow-400/10' },
-          { label: '低速エージェント', value: perf.slow_agents_count, icon: AlertTriangle, color: 'text-[#e8002d]', bg: 'bg-[#e8002d]/10' },
+          { label: '低速エージェント', value: perf.slow_agents_count, icon: AlertTriangle, color: 'text-falcon-red', bg: 'bg-falcon-red/10' },
         ].map(({ label, value, icon: Icon, color, bg }) => (
-          <div key={label} className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-4 flex items-center gap-4">
-            <div className={`w-10 h-10 rounded-lg ${bg} flex items-center justify-center flex-shrink-0`}>
+          <div key={label} className="bg-falcon-surface border border-falcon-border rounded-lg p-4 flex items-center gap-4">
+            <div className={`w-10 h-10 rounded-lg ${bg} flex items-center justify-center shrink-0`}>
               <Icon className={`w-5 h-5 ${color}`} />
             </div>
             <div>
               <p className="text-2xl font-bold text-white">{value}</p>
-              <p className="text-xs text-[#7d92b0] mt-0.5">{label}</p>
+              <p className="text-xs text-falcon-muted mt-0.5">{label}</p>
             </div>
           </div>
         ))}
@@ -302,17 +302,17 @@ export default function AgentPerformancePage() {
 
       {/* Slow Agents Alert */}
       {slowAgents.length > 0 && (
-        <div className="bg-[#e8002d]/5 border border-[#e8002d]/30 rounded-lg p-4">
+        <div className="bg-falcon-red/5 border border-falcon-red/30 rounded-lg p-4">
           <div className="flex items-center gap-2 mb-3">
-            <AlertTriangle className="w-4 h-4 text-[#e8002d]" />
-            <h3 className="text-sm font-semibold text-[#e8002d]">パフォーマンス警告 — {slowAgents.length}件のエージェントで問題が検出されました</h3>
+            <AlertTriangle className="w-4 h-4 text-falcon-red" />
+            <h3 className="text-sm font-semibold text-falcon-red">パフォーマンス警告 — {slowAgents.length}件のエージェントで問題が検出されました</h3>
           </div>
           <div className="flex flex-wrap gap-3">
             {slowAgents.map(a => (
-              <div key={a.id} className="flex items-center gap-2 px-3 py-2 bg-[#0d1220] border border-[#e8002d]/20 rounded-lg">
+              <div key={a.id} className="flex items-center gap-2 px-3 py-2 bg-falcon-surface border border-falcon-red/20 rounded-lg">
                 <OsBadge os={a.os} />
                 <span className="text-sm font-medium text-white">{a.hostname}</span>
-                {a.cpu_pct > 80 && <span className="text-xs text-[#e8002d] font-mono">CPU {a.cpu_pct.toFixed(0)}%</span>}
+                {a.cpu_pct > 80 && <span className="text-xs text-falcon-red font-mono">CPU {a.cpu_pct.toFixed(0)}%</span>}
                 {a.memory_mb > 500 && <span className="text-xs text-orange-400 font-mono">MEM {a.memory_mb}MB</span>}
               </div>
             ))}
@@ -321,21 +321,21 @@ export default function AgentPerformancePage() {
       )}
 
       {/* Agents Performance Table */}
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg overflow-hidden">
-        <div className="flex items-center gap-3 px-5 py-4 border-b border-[#1e2d42]">
-          <Activity className="w-5 h-5 text-[#e8002d]" />
+      <div className="bg-falcon-surface border border-falcon-border rounded-lg overflow-hidden">
+        <div className="flex items-center gap-3 px-5 py-4 border-b border-falcon-border">
+          <Activity className="w-5 h-5 text-falcon-red" />
           <h2 className="text-white font-semibold">エージェント パフォーマンス一覧</h2>
-          <span className="ml-auto text-xs text-[#7d92b0] bg-[#1e2d42] px-2 py-0.5 rounded">{perf.agents.length} エージェント</span>
+          <span className="ml-auto text-xs text-falcon-muted bg-falcon-border px-2 py-0.5 rounded-sm">{perf.agents.length} エージェント</span>
         </div>
         {isLoading ? (
-          <div className="flex items-center justify-center h-32 text-[#7d92b0]">
+          <div className="flex items-center justify-center h-32 text-falcon-muted">
             <RefreshCw className="w-5 h-5 animate-spin mr-2" /> 読み込み中...
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-[#1e2d42]">
+                <tr className="border-b border-falcon-border">
                   {([
                     { key: 'hostname' as SortKey, label: 'ホスト名', w: '' },
                     { key: null,                  label: 'OS',       w: 'w-20' },
@@ -349,7 +349,7 @@ export default function AgentPerformancePage() {
                   ]).map(({ key, label, w }) => (
                     <th
                       key={label}
-                      className={`px-4 py-3 text-left text-xs font-medium text-[#7d92b0] uppercase tracking-wider ${w} ${key ? 'cursor-pointer hover:text-[#e2e8f4] select-none' : ''}`}
+                      className={`px-4 py-3 text-left text-xs font-medium text-falcon-muted uppercase tracking-wider ${w} ${key ? 'cursor-pointer hover:text-falcon-text select-none' : ''}`}
                       onClick={() => key && handleSort(key)}
                     >
                       <div className="flex items-center gap-1">
@@ -360,27 +360,27 @@ export default function AgentPerformancePage() {
                   ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#1e2d42]">
+              <tbody className="divide-y divide-falcon-border">
                 {sortedAgents.map(agent => (
                   <>
                     <tr
                       key={agent.id}
                       className={`transition-colors cursor-pointer ${
                         expandedId === agent.id
-                          ? 'bg-[#19253d]'
-                          : 'hover:bg-[#111827]'
+                          ? 'bg-falcon-hover'
+                          : 'hover:bg-falcon-card'
                       }`}
                       onClick={() => setExpandedId(expandedId === agent.id ? null : agent.id)}
                     >
-                      <td className="px-4 py-3 font-mono text-sm text-[#e2e8f4]">{agent.hostname}</td>
+                      <td className="px-4 py-3 font-mono text-sm text-falcon-text">{agent.hostname}</td>
                       <td className="px-4 py-3"><OsBadge os={agent.os} /></td>
-                      <td className="px-4 py-3 font-mono text-xs text-[#7d92b0]">{agent.version}</td>
+                      <td className="px-4 py-3 font-mono text-xs text-falcon-muted">{agent.version}</td>
                       <td className="px-4 py-3"><CpuBar pct={agent.cpu_pct} /></td>
                       <td className="px-4 py-3"><MemBar mb={agent.memory_mb} /></td>
-                      <td className="px-4 py-3 font-mono text-sm text-[#e2e8f4]">{(agent.events_per_sec ?? 0).toLocaleString()}</td>
-                      <td className="px-4 py-3 font-mono text-sm text-[#7d92b0]">{agent.latency_ms}ms</td>
+                      <td className="px-4 py-3 font-mono text-sm text-falcon-text">{(agent.events_per_sec ?? 0).toLocaleString()}</td>
+                      <td className="px-4 py-3 font-mono text-sm text-falcon-muted">{agent.latency_ms}ms</td>
                       <td className="px-4 py-3"><StatusBadge status={agent.status} /></td>
-                      <td className="px-4 py-3 text-xs text-[#7d92b0]">{formatLastSeen(agent.last_seen)}</td>
+                      <td className="px-4 py-3 text-xs text-falcon-muted">{formatLastSeen(agent.last_seen)}</td>
                     </tr>
                     {expandedId === agent.id && (
                       <tr key={`${agent.id}-detail`} className="bg-[#0a1128]">
@@ -388,23 +388,23 @@ export default function AgentPerformancePage() {
                           <div className="grid grid-cols-2 gap-6">
                             {/* CPU History Sparkline */}
                             <div>
-                              <p className="text-xs font-semibold text-[#7d92b0] uppercase tracking-wider mb-3">CPU 使用率履歴 (直近10サンプル)</p>
-                              <div className="p-3 bg-[#070d19] border border-[#1e2d42] rounded-lg">
+                              <p className="text-xs font-semibold text-falcon-muted uppercase tracking-wider mb-3">CPU 使用率履歴 (直近10サンプル)</p>
+                              <div className="p-3 bg-[#070d19] border border-falcon-border rounded-lg">
                                 <Sparkline values={agent.cpu_history.values} />
                                 <div className="flex justify-between mt-1">
-                                  <span className="text-[10px] text-[#3d5068]">最古</span>
-                                  <span className="text-[10px] text-[#3d5068]">最新</span>
+                                  <span className="text-[10px] text-falcon-subtle">最古</span>
+                                  <span className="text-[10px] text-falcon-subtle">最新</span>
                                 </div>
                               </div>
                             </div>
                             {/* Top Expensive Operations */}
                             <div>
-                              <p className="text-xs font-semibold text-[#7d92b0] uppercase tracking-wider mb-3">高コスト操作 Top 5</p>
+                              <p className="text-xs font-semibold text-falcon-muted uppercase tracking-wider mb-3">高コスト操作 Top 5</p>
                               <div className="space-y-1.5">
                                 {agent.top_ops.map((op, i) => (
-                                  <div key={op.name} className="flex items-center gap-3 px-3 py-2 bg-[#070d19] border border-[#1e2d42] rounded">
-                                    <span className="text-xs font-bold text-[#3d5068] w-4">{i + 1}</span>
-                                    <span className="flex-1 text-xs font-mono text-[#e2e8f4]">{op.name}</span>
+                                  <div key={op.name} className="flex items-center gap-3 px-3 py-2 bg-[#070d19] border border-falcon-border rounded-sm">
+                                    <span className="text-xs font-bold text-falcon-subtle w-4">{i + 1}</span>
+                                    <span className="flex-1 text-xs font-mono text-falcon-text">{op.name}</span>
                                     <span className="text-xs font-mono text-yellow-400">{op.avg_ms}ms</span>
                                   </div>
                                 ))}
@@ -423,37 +423,37 @@ export default function AgentPerformancePage() {
       </div>
 
       {/* Operations Breakdown */}
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg overflow-hidden">
-        <div className="flex items-center gap-3 px-5 py-4 border-b border-[#1e2d42]">
-          <Zap className="w-5 h-5 text-[#e8002d]" />
+      <div className="bg-falcon-surface border border-falcon-border rounded-lg overflow-hidden">
+        <div className="flex items-center gap-3 px-5 py-4 border-b border-falcon-border">
+          <Zap className="w-5 h-5 text-falcon-red" />
           <h2 className="text-white font-semibold">オペレーション ブレークダウン</h2>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-[#1e2d42]">
+              <tr className="border-b border-falcon-border">
                 {['オペレーション名', '平均時間 (ms)', '呼び出し回数', 'P99 (ms)'].map(h => (
-                  <th key={h} className="px-5 py-3 text-left text-xs font-medium text-[#7d92b0] uppercase tracking-wider">{h}</th>
+                  <th key={h} className="px-5 py-3 text-left text-xs font-medium text-falcon-muted uppercase tracking-wider">{h}</th>
                 ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#1e2d42]">
+            <tbody className="divide-y divide-falcon-border">
               {perf.operations.map(op => {
                 const pct = Math.min((op.avg_duration_ms / 120) * 100, 100)
-                const barColor = op.avg_duration_ms > 50 ? 'bg-[#e8002d]' : op.avg_duration_ms > 20 ? 'bg-yellow-400' : 'bg-[#00c853]'
+                const barColor = op.avg_duration_ms > 50 ? 'bg-falcon-red' : op.avg_duration_ms > 20 ? 'bg-yellow-400' : 'bg-falcon-green'
                 return (
-                  <tr key={op.name} className="hover:bg-[#111827] transition-colors">
-                    <td className="px-5 py-3 font-mono text-sm text-[#e2e8f4]">{op.name}</td>
+                  <tr key={op.name} className="hover:bg-falcon-card transition-colors">
+                    <td className="px-5 py-3 font-mono text-sm text-falcon-text">{op.name}</td>
                     <td className="px-5 py-3">
                       <div className="flex items-center gap-3">
-                        <div className="w-24 h-1.5 bg-[#1e2d42] rounded-full overflow-hidden">
+                        <div className="w-24 h-1.5 bg-falcon-border rounded-full overflow-hidden">
                           <div className={`h-full rounded-full ${barColor}`} style={{ width: `${pct}%` }} />
                         </div>
-                        <span className="font-mono text-sm text-[#e2e8f4]">{op.avg_duration_ms}</span>
+                        <span className="font-mono text-sm text-falcon-text">{op.avg_duration_ms}</span>
                       </div>
                     </td>
-                    <td className="px-5 py-3 font-mono text-sm text-[#7d92b0]">{(op.call_count ?? 0).toLocaleString()}</td>
-                    <td className="px-5 py-3 font-mono text-sm text-[#7d92b0]">{op.p99_ms}</td>
+                    <td className="px-5 py-3 font-mono text-sm text-falcon-muted">{(op.call_count ?? 0).toLocaleString()}</td>
+                    <td className="px-5 py-3 font-mono text-sm text-falcon-muted">{op.p99_ms}</td>
                   </tr>
                 )
               })}

@@ -258,7 +258,7 @@ export default function IncidentsPage() {
                 className="flex items-center gap-4 px-5 py-4 cursor-pointer hover:bg-zinc-800/40 transition-colors"
               >
                 {/* Severity Badge */}
-                <span className={`inline-flex items-center justify-center w-8 h-8 rounded-lg text-sm font-bold border flex-shrink-0 ${sev.bg} ${sev.text}`}>
+                <span className={`inline-flex items-center justify-center w-8 h-8 rounded-lg text-sm font-bold border shrink-0 ${sev.bg} ${sev.text}`}>
                   {inc.severity}
                 </span>
 
@@ -271,12 +271,12 @@ export default function IncidentsPage() {
                 </div>
 
                 {/* Status */}
-                <span className={`inline-flex items-center px-2.5 py-1 rounded text-xs font-medium border flex-shrink-0 ${st.className}`}>
+                <span className={`inline-flex items-center px-2.5 py-1 rounded-sm text-xs font-medium border shrink-0 ${st.className}`}>
                   {st.label}
                 </span>
 
                 {/* Counts */}
-                <div className="flex items-center gap-3 text-xs text-zinc-500 flex-shrink-0">
+                <div className="flex items-center gap-3 text-xs text-zinc-500 shrink-0">
                   <span className="flex items-center gap-1">
                     <Activity className="w-3.5 h-3.5" />
                     {inc.alert_count} alerts
@@ -291,7 +291,7 @@ export default function IncidentsPage() {
                   </span>
                 </div>
 
-                {isExpanded ? <ChevronUp className="w-4 h-4 text-zinc-500 flex-shrink-0" /> : <ChevronDown className="w-4 h-4 text-zinc-500 flex-shrink-0" />}
+                {isExpanded ? <ChevronUp className="w-4 h-4 text-zinc-500 shrink-0" /> : <ChevronDown className="w-4 h-4 text-zinc-500 shrink-0" />}
               </div>
 
               {/* Expanded Detail */}
@@ -313,7 +313,7 @@ export default function IncidentsPage() {
                             ['Resolved', fmtDate(inc.resolved_at)],
                           ].map(([k, v]) => (
                             <div key={k} className="flex items-center gap-2">
-                              <dt className="text-zinc-500 w-24 flex-shrink-0">{k}:</dt>
+                              <dt className="text-zinc-500 w-24 shrink-0">{k}:</dt>
                               <dd className="text-zinc-300">{v}</dd>
                             </div>
                           ))}
@@ -348,8 +348,8 @@ export default function IncidentsPage() {
                             {detail!.alerts.map(a => {
                               const asev = SEVERITY_COLOR(a.severity)
                               return (
-                                <div key={a.alert_id} className="flex items-start gap-2 p-2 rounded bg-zinc-900 border border-zinc-800">
-                                  <span className={`inline-flex items-center justify-center w-6 h-6 rounded text-[11px] font-bold border flex-shrink-0 ${asev.bg} ${asev.text}`}>
+                                <div key={a.alert_id} className="flex items-start gap-2 p-2 rounded-sm bg-zinc-900 border border-zinc-800">
+                                  <span className={`inline-flex items-center justify-center w-6 h-6 rounded-sm text-[11px] font-bold border shrink-0 ${asev.bg} ${asev.text}`}>
                                     {a.severity}
                                   </span>
                                   <div className="min-w-0">
@@ -462,7 +462,7 @@ export default function IncidentsPage() {
                           </span>
                         </td>
                         <td className="px-5 py-3">
-                          <span className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium border ${rule.enabled ? 'bg-green-500/15 text-green-400 border-green-500/30' : 'bg-zinc-500/15 text-zinc-500 border-zinc-500/30'}`}>
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded-sm text-[11px] font-medium border ${rule.enabled ? 'bg-green-500/15 text-green-400 border-green-500/30' : 'bg-zinc-500/15 text-zinc-500 border-zinc-500/30'}`}>
                             {rule.enabled ? 'Enabled' : 'Disabled'}
                           </span>
                         </td>

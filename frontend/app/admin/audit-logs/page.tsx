@@ -185,14 +185,14 @@ export default function AuditLogsPage() {
                 value={filterUser}
                 onChange={e => setFilterUser(e.target.value)}
                 placeholder="ユーザー名またはID"
-                className="bg-zinc-800 border border-zinc-700 rounded-lg pl-8 pr-3 py-1.5 text-sm text-zinc-100 focus:outline-none focus:border-teal-500 w-44"
+                className="bg-zinc-800 border border-zinc-700 rounded-lg pl-8 pr-3 py-1.5 text-sm text-zinc-100 focus:outline-hidden focus:border-teal-500 w-44"
               />
             </div>
           </div>
           <div>
             <label className="text-xs text-zinc-500 mb-1 block">アクション</label>
             <select value={filterAction} onChange={e => setFilterAction(e.target.value)}
-              className="bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-1.5 text-sm text-zinc-100 focus:outline-none">
+              className="bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-1.5 text-sm text-zinc-100 focus:outline-hidden">
               <option value="all">すべてのアクション</option>
               {(['create', 'update', 'delete', 'login', 'logout', 'export', 'view', 'execute'] as Action[]).map(a => (
                 <option key={a} value={a}>{a}</option>
@@ -202,7 +202,7 @@ export default function AuditLogsPage() {
           <div>
             <label className="text-xs text-zinc-500 mb-1 block">リソース</label>
             <select value={filterResource} onChange={e => setFilterResource(e.target.value)}
-              className="bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-1.5 text-sm text-zinc-100 focus:outline-none">
+              className="bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-1.5 text-sm text-zinc-100 focus:outline-hidden">
               <option value="all">すべてのリソース</option>
               {allResources.map(r => <option key={r} value={r}>{r.replace(/_/g, ' ')}</option>)}
             </select>
@@ -210,12 +210,12 @@ export default function AuditLogsPage() {
           <div>
             <label className="text-xs text-zinc-500 mb-1 block">開始日</label>
             <input type="date" value={filterStart} onChange={e => setFilterStart(e.target.value)}
-              className="bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-1.5 text-sm text-zinc-100 focus:outline-none" />
+              className="bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-1.5 text-sm text-zinc-100 focus:outline-hidden" />
           </div>
           <div>
             <label className="text-xs text-zinc-500 mb-1 block">終了日</label>
             <input type="date" value={filterEnd} onChange={e => setFilterEnd(e.target.value)}
-              className="bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-1.5 text-sm text-zinc-100 focus:outline-none" />
+              className="bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-1.5 text-sm text-zinc-100 focus:outline-hidden" />
           </div>
           <div className="flex gap-2">
             <button onClick={applyFilter}
@@ -263,7 +263,7 @@ export default function AuditLogsPage() {
                     <p className="text-sm text-zinc-200 truncate max-w-[140px]">{evt.username || evt.user_id || '—'}</p>
                   </td>
                   <td className="px-3 py-3">
-                    <span className={`px-2 py-0.5 rounded text-xs font-semibold capitalize ${ACTION_COLORS[evt.action]}`}>
+                    <span className={`px-2 py-0.5 rounded-sm text-xs font-semibold capitalize ${ACTION_COLORS[evt.action]}`}>
                       {evt.action}
                     </span>
                   </td>

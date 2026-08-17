@@ -68,7 +68,7 @@ const statusLabel: Record<string, string> = {
 }
 
 const priorityBadge: Record<string, string> = {
-  critical: 'bg-[#e8002d]/20 text-[#e8002d]',
+  critical: 'bg-falcon-red/20 text-falcon-red',
   high:     'bg-[#f97316]/20 text-[#f97316]',
   medium:   'bg-[#f59e0b]/20 text-[#f59e0b]',
   low:      'bg-[#5a6a7a]/20 text-[#8899aa]',
@@ -105,12 +105,12 @@ function StatCard({ icon, label, value, sub }: {
   sub?: string
 }) {
   return (
-    <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-4">
+    <div className="bg-falcon-surface border border-falcon-border rounded-lg p-4">
       <div className="flex items-center gap-2 mb-2 text-[#5a6a7a]">
         {icon}
         <span className="text-xs">{label}</span>
       </div>
-      <p className="text-2xl font-bold text-[#e2e8f4]">{value}</p>
+      <p className="text-2xl font-bold text-falcon-text">{value}</p>
       {sub && <p className="text-xs text-[#5a6a7a] mt-0.5">{sub}</p>}
     </div>
   )
@@ -142,19 +142,19 @@ function AdminComments({ ticketId }: { ticketId: string }) {
   })
 
   return (
-    <div className="mt-4 pt-4 border-t border-[#1e2d42]">
+    <div className="mt-4 pt-4 border-t border-falcon-border">
       <p className="text-xs font-medium text-[#5a6a7a] mb-3">コメント ({comments.length})</p>
       <div className="space-y-2 mb-3 max-h-48 overflow-y-auto">
         {comments.map(cm => (
           <div key={cm.id} className={`flex gap-2 ${cm.is_internal ? 'opacity-70' : ''}`}>
-            <div className="w-6 h-6 rounded-full bg-[#1e2d42] flex items-center justify-center flex-shrink-0 text-xs text-[#5a6a7a] mt-0.5">
+            <div className="w-6 h-6 rounded-full bg-falcon-border flex items-center justify-center shrink-0 text-xs text-[#5a6a7a] mt-0.5">
               {cm.author_name.charAt(0).toUpperCase()}
             </div>
-            <div className={`flex-1 rounded p-2 border ${cm.is_internal ? 'bg-[#1a1000] border-[#f59e0b]/20' : 'bg-[#080c14] border-[#1e2d42]'}`}>
+            <div className={`flex-1 rounded-sm p-2 border ${cm.is_internal ? 'bg-[#1a1000] border-[#f59e0b]/20' : 'bg-falcon-bg border-falcon-border'}`}>
               <div className="flex items-center gap-2 mb-1">
-                <span className="text-xs font-medium text-[#e2e8f4]">{cm.author_name}</span>
+                <span className="text-xs font-medium text-falcon-text">{cm.author_name}</span>
                 {cm.is_internal && (
-                  <span className="px-1 py-0.5 rounded text-[9px] bg-[#f59e0b]/20 text-[#f59e0b]">内部メモ</span>
+                  <span className="px-1 py-0.5 rounded-sm text-[9px] bg-[#f59e0b]/20 text-[#f59e0b]">内部メモ</span>
                 )}
                 <span className="text-xs text-[#5a6a7a]">{fmtDate(cm.created_at)}</span>
               </div>
@@ -169,7 +169,7 @@ function AdminComments({ ticketId }: { ticketId: string }) {
           onChange={e => setBody(e.target.value)}
           rows={2}
           placeholder="返信を入力..."
-          className="w-full bg-[#080c14] border border-[#1e2d42] rounded px-3 py-2 text-xs text-[#e2e8f4] placeholder-[#5a6a7a] focus:outline-none focus:border-[#2a3f5a] resize-none"
+          className="w-full bg-falcon-bg border border-falcon-border rounded-sm px-3 py-2 text-xs text-falcon-text placeholder-[#5a6a7a] focus:outline-hidden focus:border-[#2a3f5a] resize-none"
         />
         <div className="flex items-center justify-between">
           <label className="flex items-center gap-2 text-xs text-[#5a6a7a] cursor-pointer">
@@ -177,14 +177,14 @@ function AdminComments({ ticketId }: { ticketId: string }) {
               type="checkbox"
               checked={isInternal}
               onChange={e => setIsInternal(e.target.checked)}
-              className="rounded"
+              className="rounded-sm"
             />
             内部メモ（顧客非表示）
           </label>
           <button
             onClick={() => addMutation.mutate()}
             disabled={!body || addMutation.isPending}
-            className="px-3 py-1.5 bg-[#1e2d42] hover:bg-[#2a3f5a] disabled:opacity-50 text-[#e2e8f4] text-xs rounded transition-colors"
+            className="px-3 py-1.5 bg-falcon-border hover:bg-[#2a3f5a] disabled:opacity-50 text-falcon-text text-xs rounded-sm transition-colors"
           >
             送信
           </button>
@@ -213,29 +213,29 @@ function AdminTicketRow({ ticket }: { ticket: Ticket }) {
   })
 
   return (
-    <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg overflow-hidden">
+    <div className="bg-falcon-surface border border-falcon-border rounded-lg overflow-hidden">
       <button
         onClick={() => setExpanded(v => !v)}
-        className="w-full text-left px-4 py-3 flex items-center gap-3 hover:bg-[#111827] transition-colors"
+        className="w-full text-left px-4 py-3 flex items-center gap-3 hover:bg-falcon-card transition-colors"
       >
         {/* ステータス */}
-        <div className="flex items-center gap-1 w-28 flex-shrink-0">
+        <div className="flex items-center gap-1 w-28 shrink-0">
           {statusIcon[ticket.status]}
           <span className="text-xs text-[#8899aa]">{statusLabel[ticket.status] ?? ticket.status}</span>
         </div>
         {/* タイトル */}
         <div className="flex-1 min-w-0">
-          <p className="text-sm text-[#e2e8f4] truncate">{ticket.title}</p>
+          <p className="text-sm text-falcon-text truncate">{ticket.title}</p>
           <p className="text-xs text-[#5a6a7a]">
             {ticket.created_by_name} · {categoryLabel[ticket.category] ?? ticket.category} · {fmtDate(ticket.updated_at)}
           </p>
         </div>
         {/* 優先度バッジ */}
-        <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium flex-shrink-0 ${priorityBadge[ticket.priority] ?? 'bg-[#1e2d42] text-[#8899aa]'}`}>
+        <span className={`px-1.5 py-0.5 rounded-sm text-[10px] font-medium shrink-0 ${priorityBadge[ticket.priority] ?? 'bg-falcon-border text-[#8899aa]'}`}>
           {priorityLabel[ticket.priority] ?? ticket.priority}
         </span>
         {/* コメント数 */}
-        <span className="flex items-center gap-1 text-xs text-[#5a6a7a] flex-shrink-0">
+        <span className="flex items-center gap-1 text-xs text-[#5a6a7a] shrink-0">
           <MessageSquare className="w-3 h-3" />
           {ticket.comment_count}
         </span>
@@ -243,7 +243,7 @@ function AdminTicketRow({ ticket }: { ticket: Ticket }) {
       </button>
 
       {expanded && (
-        <div className="px-4 pb-4 border-t border-[#1e2d42]">
+        <div className="px-4 pb-4 border-t border-falcon-border">
           <p className="text-xs text-[#8899aa] mt-3 whitespace-pre-wrap mb-4">{ticket.description}</p>
 
           {/* アクション */}
@@ -253,7 +253,7 @@ function AdminTicketRow({ ticket }: { ticket: Ticket }) {
               <select
                 defaultValue={ticket.status}
                 onChange={e => updateMutation.mutate({ status: e.target.value })}
-                className="bg-[#080c14] border border-[#1e2d42] rounded px-2 py-1.5 text-xs text-[#e2e8f4] focus:outline-none"
+                className="bg-falcon-bg border border-falcon-border rounded-sm px-2 py-1.5 text-xs text-falcon-text focus:outline-hidden"
               >
                 <option value="open">オープン</option>
                 <option value="in_progress">対応中</option>
@@ -267,7 +267,7 @@ function AdminTicketRow({ ticket }: { ticket: Ticket }) {
               <select
                 defaultValue={ticket.priority}
                 onChange={e => updateMutation.mutate({ priority: e.target.value })}
-                className="bg-[#080c14] border border-[#1e2d42] rounded px-2 py-1.5 text-xs text-[#e2e8f4] focus:outline-none"
+                className="bg-falcon-bg border border-falcon-border rounded-sm px-2 py-1.5 text-xs text-falcon-text focus:outline-hidden"
               >
                 <option value="low">低</option>
                 <option value="medium">中</option>
@@ -319,9 +319,9 @@ export default function AdminSupportPage() {
   return (
     <div className="p-6">
       <div className="flex items-center gap-3 mb-6">
-        <TicketIcon className="w-5 h-5 text-[#e8002d]" />
+        <TicketIcon className="w-5 h-5 text-falcon-red" />
         <div>
-          <h1 className="text-lg font-semibold text-[#e2e8f4]">サポート管理</h1>
+          <h1 className="text-lg font-semibold text-falcon-text">サポート管理</h1>
           <p className="text-xs text-[#5a6a7a]">全テナントのサポートチケットを管理</p>
         </div>
       </div>
@@ -335,7 +335,7 @@ export default function AdminSupportPage() {
             value={stats.open + stats.in_progress}
           />
           <StatCard
-            icon={<AlertTriangle className="w-4 h-4 text-[#e8002d]" />}
+            icon={<AlertTriangle className="w-4 h-4 text-falcon-red" />}
             label="緊急・高優先度"
             value={stats.critical + stats.high}
             sub={`緊急: ${stats.critical} / 高: ${stats.high}`}
@@ -355,14 +355,14 @@ export default function AdminSupportPage() {
 
       {/* フィルター */}
       <div className="flex flex-wrap items-center gap-3 mb-4">
-        <div className="flex gap-0 border-b border-[#1e2d42]">
+        <div className="flex gap-0 border-b border-falcon-border">
           {statusTabs.map(tab => (
             <button
               key={tab.value}
               onClick={() => setStatusFilter(tab.value)}
               className={`px-3 py-2 text-xs font-medium transition-colors border-b-2 -mb-px ${
                 statusFilter === tab.value
-                  ? 'border-[#e8002d] text-[#e2e8f4]'
+                  ? 'border-falcon-red text-falcon-text'
                   : 'border-transparent text-[#5a6a7a] hover:text-[#8899aa]'
               }`}
             >
@@ -374,7 +374,7 @@ export default function AdminSupportPage() {
         <select
           value={priorityFilter}
           onChange={e => setPriorityFilter(e.target.value)}
-          className="ml-auto bg-[#0d1220] border border-[#1e2d42] rounded px-2 py-1.5 text-xs text-[#e2e8f4] focus:outline-none"
+          className="ml-auto bg-falcon-surface border border-falcon-border rounded-sm px-2 py-1.5 text-xs text-falcon-text focus:outline-hidden"
         >
           <option value="">優先度: すべて</option>
           <option value="critical">緊急</option>

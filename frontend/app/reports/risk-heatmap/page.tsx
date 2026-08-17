@@ -114,13 +114,13 @@ function RiskModal({
   const colors = getHeatColor(score)
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl w-full max-w-lg shadow-2xl">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[#1e2d42]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
+      <div className="bg-falcon-surface border border-falcon-border rounded-xl w-full max-w-lg shadow-2xl">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-falcon-border">
           <h2 className="text-white font-semibold text-base">
             {initial ? 'リスク編集' : 'リスク追加'}
           </h2>
-          <button onClick={onClose} className="text-[#7d92b0] hover:text-white transition-colors">
+          <button onClick={onClose} className="text-falcon-muted hover:text-white transition-colors">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -128,9 +128,9 @@ function RiskModal({
         <div className="px-6 py-4 space-y-4">
           {/* Name */}
           <div>
-            <label className="block text-xs text-[#7d92b0] mb-1.5">リスク名 *</label>
+            <label className="block text-xs text-falcon-muted mb-1.5">リスク名 *</label>
             <input
-              className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-white placeholder-[#3d5068] focus:outline-none focus:border-[#e8002d]/60"
+              className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-sm text-white placeholder-falcon-subtle focus:outline-hidden focus:border-falcon-red/60"
               placeholder="リスク名を入力..."
               value={form.name}
               onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
@@ -139,9 +139,9 @@ function RiskModal({
 
           {/* Category */}
           <div>
-            <label className="block text-xs text-[#7d92b0] mb-1.5">カテゴリ</label>
+            <label className="block text-xs text-falcon-muted mb-1.5">カテゴリ</label>
             <select
-              className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-[#e8002d]/60"
+              className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-sm text-white focus:outline-hidden focus:border-falcon-red/60"
               value={form.category}
               onChange={e => setForm(f => ({ ...f, category: e.target.value as RiskCategory }))}
             >
@@ -153,33 +153,33 @@ function RiskModal({
 
           {/* Impact slider */}
           <div>
-            <label className="block text-xs text-[#7d92b0] mb-1.5">
+            <label className="block text-xs text-falcon-muted mb-1.5">
               影響度: <span className="text-white font-semibold">{form.impact}</span>
             </label>
             <input type="range" min={1} max={5} value={form.impact}
               onChange={e => setForm(f => ({ ...f, impact: +e.target.value }))}
-              className="w-full accent-[#e8002d]" />
-            <div className="flex justify-between text-[10px] text-[#3d5068] mt-0.5">
+              className="w-full accent-falcon-red" />
+            <div className="flex justify-between text-[10px] text-falcon-subtle mt-0.5">
               <span>1 (低)</span><span>5 (高)</span>
             </div>
           </div>
 
           {/* Likelihood slider */}
           <div>
-            <label className="block text-xs text-[#7d92b0] mb-1.5">
+            <label className="block text-xs text-falcon-muted mb-1.5">
               発生可能性: <span className="text-white font-semibold">{form.likelihood}</span>
             </label>
             <input type="range" min={1} max={5} value={form.likelihood}
               onChange={e => setForm(f => ({ ...f, likelihood: +e.target.value }))}
-              className="w-full accent-[#e8002d]" />
-            <div className="flex justify-between text-[10px] text-[#3d5068] mt-0.5">
+              className="w-full accent-falcon-red" />
+            <div className="flex justify-between text-[10px] text-falcon-subtle mt-0.5">
               <span>1 (低)</span><span>5 (高)</span>
             </div>
           </div>
 
           {/* Score preview */}
           <div className={`flex items-center gap-3 px-3 py-2 rounded-lg border ${colors.bg} ${colors.border}`}>
-            <span className="text-xs text-[#7d92b0]">リスクスコア:</span>
+            <span className="text-xs text-falcon-muted">リスクスコア:</span>
             <span className={`text-xl font-bold ${colors.text}`}>{score}</span>
             <span className={`text-xs font-medium px-2 py-0.5 rounded-full border ${colors.bg} ${colors.border} ${colors.text}`}>
               {colors.label}
@@ -188,9 +188,9 @@ function RiskModal({
 
           {/* Owner */}
           <div>
-            <label className="block text-xs text-[#7d92b0] mb-1.5">担当者</label>
+            <label className="block text-xs text-falcon-muted mb-1.5">担当者</label>
             <input
-              className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-white placeholder-[#3d5068] focus:outline-none focus:border-[#e8002d]/60"
+              className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-sm text-white placeholder-falcon-subtle focus:outline-hidden focus:border-falcon-red/60"
               placeholder="担当者名..."
               value={form.owner}
               onChange={e => setForm(f => ({ ...f, owner: e.target.value }))}
@@ -199,10 +199,10 @@ function RiskModal({
 
           {/* Description */}
           <div>
-            <label className="block text-xs text-[#7d92b0] mb-1.5">説明</label>
+            <label className="block text-xs text-falcon-muted mb-1.5">説明</label>
             <textarea
               rows={2}
-              className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-white placeholder-[#3d5068] focus:outline-none focus:border-[#e8002d]/60 resize-none"
+              className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-sm text-white placeholder-falcon-subtle focus:outline-hidden focus:border-falcon-red/60 resize-none"
               placeholder="リスクの説明..."
               value={form.description}
               onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
@@ -211,10 +211,10 @@ function RiskModal({
 
           {/* Mitigation plan */}
           <div>
-            <label className="block text-xs text-[#7d92b0] mb-1.5">緩和計画</label>
+            <label className="block text-xs text-falcon-muted mb-1.5">緩和計画</label>
             <textarea
               rows={2}
-              className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-white placeholder-[#3d5068] focus:outline-none focus:border-[#e8002d]/60 resize-none"
+              className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-sm text-white placeholder-falcon-subtle focus:outline-hidden focus:border-falcon-red/60 resize-none"
               placeholder="緩和計画の詳細..."
               value={form.mitigation_plan}
               onChange={e => setForm(f => ({ ...f, mitigation_plan: e.target.value }))}
@@ -222,14 +222,14 @@ function RiskModal({
           </div>
         </div>
 
-        <div className="flex gap-3 px-6 py-4 border-t border-[#1e2d42]">
+        <div className="flex gap-3 px-6 py-4 border-t border-falcon-border">
           <button onClick={onClose}
-            className="flex-1 px-4 py-2 rounded-lg border border-[#1e2d42] text-[#7d92b0] hover:text-white hover:border-[#7d92b0]/40 transition-all text-sm">
+            className="flex-1 px-4 py-2 rounded-lg border border-falcon-border text-falcon-muted hover:text-white hover:border-falcon-muted/40 transition-all text-sm">
             キャンセル
           </button>
           <button
             onClick={() => { if (form.name) { onSave(form); onClose() } }}
-            className="flex-1 px-4 py-2 rounded-lg bg-[#e8002d] hover:bg-[#c0001f] text-white font-medium transition-all text-sm disabled:opacity-50"
+            className="flex-1 px-4 py-2 rounded-lg bg-falcon-red hover:bg-[#c0001f] text-white font-medium transition-all text-sm disabled:opacity-50"
             disabled={!form.name}
           >
             {initial ? '更新' : '追加'}
@@ -248,30 +248,30 @@ function CellPanel({ risks, impact, likelihood, onClose }: {
   const score = impact * likelihood
   const colors = getHeatColor(score)
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl w-full max-w-md shadow-2xl">
-        <div className="flex items-center justify-between px-5 py-3.5 border-b border-[#1e2d42]">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-xs p-4">
+      <div className="bg-falcon-surface border border-falcon-border rounded-xl w-full max-w-md shadow-2xl">
+        <div className="flex items-center justify-between px-5 py-3.5 border-b border-falcon-border">
           <div className="flex items-center gap-2">
-            <div className={`w-2.5 h-2.5 rounded-sm ${colors.bg} border ${colors.border}`} />
+            <div className={`w-2.5 h-2.5 rounded-xs ${colors.bg} border ${colors.border}`} />
             <span className="text-white font-semibold text-sm">
               影響度 {impact} × 可能性 {likelihood} = スコア {score}
             </span>
             <span className={`text-xs px-2 py-0.5 rounded-full border ${colors.bg} ${colors.border} ${colors.text}`}>{colors.label}</span>
           </div>
-          <button onClick={onClose} className="text-[#7d92b0] hover:text-white transition-colors">
+          <button onClick={onClose} className="text-falcon-muted hover:text-white transition-colors">
             <X className="w-4 h-4" />
           </button>
         </div>
         <div className="p-4 space-y-2 max-h-72 overflow-y-auto">
           {risks.length === 0 ? (
-            <p className="text-[#3d5068] text-sm text-center py-4">このセルにリスクはありません</p>
+            <p className="text-falcon-subtle text-sm text-center py-4">このセルにリスクはありません</p>
           ) : risks.map(r => (
-            <div key={r.id} className="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-[#070d19] border border-[#1e2d42]">
-              <span className={`text-[10px] px-1.5 py-0.5 rounded border ${CATEGORY_COLORS[r.category]}`}>
+            <div key={r.id} className="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-[#070d19] border border-falcon-border">
+              <span className={`text-[10px] px-1.5 py-0.5 rounded-sm border ${CATEGORY_COLORS[r.category]}`}>
                 {CATEGORY_LABELS[r.category]}
               </span>
               <span className="flex-1 text-sm text-white truncate">{r.name}</span>
-              <span className={`text-[10px] px-1.5 py-0.5 rounded border ${STATUS_COLORS[r.status]}`}>
+              <span className={`text-[10px] px-1.5 py-0.5 rounded-sm border ${STATUS_COLORS[r.status]}`}>
                 {STATUS_LABELS[r.status]}
               </span>
             </div>
@@ -380,17 +380,17 @@ export default function RiskHeatmapPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-[#e8002d] to-[#a80020] flex items-center justify-center">
+          <div className="w-9 h-9 rounded-lg bg-linear-to-br from-falcon-red to-falcon-red-dark flex items-center justify-center">
             <Map className="w-5 h-5 text-white" />
           </div>
           <div>
             <h1 className="text-xl font-bold text-white">リスクヒートマップ</h1>
-            <p className="text-xs text-[#7d92b0] mt-0.5">リスクの分布と優先度を可視化</p>
+            <p className="text-xs text-falcon-muted mt-0.5">リスクの分布と優先度を可視化</p>
           </div>
         </div>
         <button
           onClick={() => { setEditItem(null); setShowModal(true) }}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#e8002d] hover:bg-[#c0001f] text-white text-sm font-medium transition-all"
+          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-falcon-red hover:bg-[#c0001f] text-white text-sm font-medium transition-all"
         >
           <Plus className="w-4 h-4" />
           リスク追加
@@ -401,13 +401,13 @@ export default function RiskHeatmapPage() {
         {/* Left: Heatmap + Legend */}
         <div className="xl:col-span-2 space-y-6">
           {/* Heatmap */}
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
+          <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
             <h2 className="text-white font-semibold text-sm mb-4">リスクマトリクス</h2>
 
             <div className="flex gap-3">
               {/* Y-axis label */}
               <div className="flex flex-col items-center justify-center gap-1 w-6">
-                <span className="text-[10px] text-[#7d92b0] writing-mode-vertical [writing-mode:vertical-rl] rotate-180 whitespace-nowrap">
+                <span className="text-[10px] text-falcon-muted writing-mode-vertical [writing-mode:vertical-rl] rotate-180 whitespace-nowrap">
                   影響度 →
                 </span>
               </div>
@@ -417,7 +417,7 @@ export default function RiskHeatmapPage() {
                 <div className="space-y-1.5">
                   {[5, 4, 3, 2, 1].map(imp => (
                     <div key={imp} className="flex items-center gap-1.5">
-                      <span className="w-4 text-center text-xs text-[#7d92b0] font-medium flex-shrink-0">{imp}</span>
+                      <span className="w-4 text-center text-xs text-falcon-muted font-medium shrink-0">{imp}</span>
                       <div className="flex gap-1.5 flex-1">
                         {[1, 2, 3, 4, 5].map(lik => {
                           const cellScore = imp * lik
@@ -433,7 +433,7 @@ export default function RiskHeatmapPage() {
                             >
                               <span className={`text-sm font-bold ${colors.text}`}>{cellScore}</span>
                               {cellRisksHere.length > 0 && (
-                                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-[#e2e8f4]/10 text-white leading-none">
+                                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-falcon-text/10 text-white leading-none">
                                   {cellRisksHere.length}件
                                 </span>
                               )}
@@ -447,19 +447,19 @@ export default function RiskHeatmapPage() {
 
                 {/* X-axis */}
                 <div className="flex items-center gap-1.5 mt-2">
-                  <div className="w-4 flex-shrink-0" />
+                  <div className="w-4 shrink-0" />
                   <div className="flex gap-1.5 flex-1">
                     {[1, 2, 3, 4, 5].map(l => (
-                      <div key={l} className="flex-1 text-center text-xs text-[#7d92b0]">{l}</div>
+                      <div key={l} className="flex-1 text-center text-xs text-falcon-muted">{l}</div>
                     ))}
                   </div>
                 </div>
-                <p className="text-center text-[11px] text-[#7d92b0] mt-1">← 発生可能性 →</p>
+                <p className="text-center text-[11px] text-falcon-muted mt-1">← 発生可能性 →</p>
               </div>
             </div>
 
             {/* Legend */}
-            <div className="flex flex-wrap gap-3 mt-5 pt-4 border-t border-[#1e2d42]">
+            <div className="flex flex-wrap gap-3 mt-5 pt-4 border-t border-falcon-border">
               {[
                 { label: '低 (1-3)',    bg: 'bg-emerald-900/60', border: 'border-emerald-700/60', text: 'text-emerald-300' },
                 { label: '中 (4-8)',    bg: 'bg-yellow-900/60',  border: 'border-yellow-700/60',  text: 'text-yellow-300' },
@@ -467,7 +467,7 @@ export default function RiskHeatmapPage() {
                 { label: '重大 (16-25)',bg: 'bg-red-900/60',     border: 'border-red-700/60',     text: 'text-red-300' },
               ].map(c => (
                 <div key={c.label} className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border ${c.bg} ${c.border}`}>
-                  <div className={`w-2 h-2 rounded-sm ${c.bg} border ${c.border}`} />
+                  <div className={`w-2 h-2 rounded-xs ${c.bg} border ${c.border}`} />
                   <span className={`text-xs ${c.text}`}>{c.label}</span>
                 </div>
               ))}
@@ -475,13 +475,13 @@ export default function RiskHeatmapPage() {
           </div>
 
           {/* Table */}
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl">
-            <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4 border-b border-[#1e2d42]">
+          <div className="bg-falcon-surface border border-falcon-border rounded-xl">
+            <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4 border-b border-falcon-border">
               <h2 className="text-white font-semibold text-sm">リスク一覧</h2>
               <div className="flex flex-wrap items-center gap-2">
-                <Filter className="w-3.5 h-3.5 text-[#7d92b0]" />
+                <Filter className="w-3.5 h-3.5 text-falcon-muted" />
                 <select
-                  className="bg-[#070d19] border border-[#1e2d42] rounded-lg px-2.5 py-1.5 text-xs text-[#7d92b0] focus:outline-none"
+                  className="bg-[#070d19] border border-falcon-border rounded-lg px-2.5 py-1.5 text-xs text-falcon-muted focus:outline-hidden"
                   value={filterCategory}
                   onChange={e => setFilterCategory(e.target.value)}
                 >
@@ -491,7 +491,7 @@ export default function RiskHeatmapPage() {
                   ))}
                 </select>
                 <select
-                  className="bg-[#070d19] border border-[#1e2d42] rounded-lg px-2.5 py-1.5 text-xs text-[#7d92b0] focus:outline-none"
+                  className="bg-[#070d19] border border-falcon-border rounded-lg px-2.5 py-1.5 text-xs text-falcon-muted focus:outline-hidden"
                   value={filterStatus}
                   onChange={e => setFilterStatus(e.target.value)}
                 >
@@ -506,7 +506,7 @@ export default function RiskHeatmapPage() {
             <div className="overflow-x-auto">
               <table className="w-full text-sm min-w-[800px]">
                 <thead>
-                  <tr className="border-b border-[#1e2d42]">
+                  <tr className="border-b border-falcon-border">
                     {[
                       { label: 'リスク名', field: 'name' as keyof RiskItem },
                       { label: 'カテゴリ', field: 'category' as keyof RiskItem },
@@ -520,22 +520,22 @@ export default function RiskHeatmapPage() {
                       <th
                         key={col.field}
                         onClick={() => handleSort(col.field)}
-                        className="px-4 py-3 text-left text-xs text-[#7d92b0] font-medium cursor-pointer hover:text-white transition-colors whitespace-nowrap"
+                        className="px-4 py-3 text-left text-xs text-falcon-muted font-medium cursor-pointer hover:text-white transition-colors whitespace-nowrap"
                       >
                         {col.label} <SortIcon field={col.field} />
                       </th>
                     ))}
-                    <th className="px-4 py-3 text-left text-xs text-[#7d92b0] font-medium">操作</th>
+                    <th className="px-4 py-3 text-left text-xs text-falcon-muted font-medium">操作</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filtered.map(risk => {
                     const colors = getHeatColor(risk.score)
                     return (
-                      <tr key={risk.id} className="border-b border-[#1e2d42]/60 hover:bg-[#070d19]/60 transition-colors">
+                      <tr key={risk.id} className="border-b border-falcon-border/60 hover:bg-[#070d19]/60 transition-colors">
                         <td className="px-4 py-3 text-white text-xs font-medium max-w-[180px] truncate">{risk.name}</td>
                         <td className="px-4 py-3">
-                          <span className={`text-[10px] px-1.5 py-0.5 rounded border ${CATEGORY_COLORS[risk.category]}`}>
+                          <span className={`text-[10px] px-1.5 py-0.5 rounded-sm border ${CATEGORY_COLORS[risk.category]}`}>
                             {CATEGORY_LABELS[risk.category]}
                           </span>
                         </td>
@@ -550,18 +550,18 @@ export default function RiskHeatmapPage() {
                             {risk.score}
                           </span>
                         </td>
-                        <td className="px-4 py-3 text-xs text-[#7d92b0] whitespace-nowrap">{risk.owner}</td>
+                        <td className="px-4 py-3 text-xs text-falcon-muted whitespace-nowrap">{risk.owner}</td>
                         <td className="px-4 py-3">
-                          <span className={`text-[10px] px-1.5 py-0.5 rounded border ${STATUS_COLORS[risk.status]}`}>
+                          <span className={`text-[10px] px-1.5 py-0.5 rounded-sm border ${STATUS_COLORS[risk.status]}`}>
                             {STATUS_LABELS[risk.status]}
                           </span>
                         </td>
-                        <td className="px-4 py-3 text-xs text-[#7d92b0] whitespace-nowrap">{risk.last_review}</td>
+                        <td className="px-4 py-3 text-xs text-falcon-muted whitespace-nowrap">{risk.last_review}</td>
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-1.5">
                             <button
                               onClick={() => { setEditItem(risk); setShowModal(true) }}
-                              className="p-1.5 rounded-md bg-[#1e2d42]/60 hover:bg-[#1e2d42] text-[#7d92b0] hover:text-white transition-all"
+                              className="p-1.5 rounded-md bg-falcon-border/60 hover:bg-falcon-border text-falcon-muted hover:text-white transition-all"
                             >
                               <Edit2 className="w-3.5 h-3.5" />
                             </button>
@@ -579,7 +579,7 @@ export default function RiskHeatmapPage() {
                 </tbody>
               </table>
               {filtered.length === 0 && (
-                <div className="text-center py-12 text-[#3d5068] text-sm">
+                <div className="text-center py-12 text-falcon-subtle text-sm">
                   条件に合うリスクが見つかりません
                 </div>
               )}
@@ -589,9 +589,9 @@ export default function RiskHeatmapPage() {
 
         {/* Right: Top 5 */}
         <div className="space-y-4">
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
+          <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
             <div className="flex items-center gap-2 mb-4">
-              <TrendingUp className="w-4 h-4 text-[#e8002d]" />
+              <TrendingUp className="w-4 h-4 text-falcon-red" />
               <h2 className="text-white font-semibold text-sm">Top 5 高リスク</h2>
             </div>
             <div className="space-y-3">
@@ -601,7 +601,7 @@ export default function RiskHeatmapPage() {
                 return (
                   <div key={risk.id} className="space-y-1.5">
                     <div className="flex items-center gap-2">
-                      <span className="w-5 h-5 rounded-full bg-[#1e2d42] flex items-center justify-center text-[10px] font-bold text-[#7d92b0] flex-shrink-0">
+                      <span className="w-5 h-5 rounded-full bg-falcon-border flex items-center justify-center text-[10px] font-bold text-falcon-muted shrink-0">
                         {idx + 1}
                       </span>
                       <span className="flex-1 text-xs text-white font-medium truncate">{risk.name}</span>
@@ -609,7 +609,7 @@ export default function RiskHeatmapPage() {
                         {risk.score}
                       </span>
                     </div>
-                    <div className="ml-7 h-1.5 bg-[#1e2d42] rounded-full overflow-hidden">
+                    <div className="ml-7 h-1.5 bg-falcon-border rounded-full overflow-hidden">
                       <div
                         className={`h-full rounded-full transition-all ${
                           risk.score >= 16 ? 'bg-red-500' :
@@ -620,10 +620,10 @@ export default function RiskHeatmapPage() {
                       />
                     </div>
                     <div className="ml-7 flex items-center gap-2">
-                      <span className={`text-[10px] px-1.5 py-0.5 rounded border ${CATEGORY_COLORS[risk.category]}`}>
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded-sm border ${CATEGORY_COLORS[risk.category]}`}>
                         {CATEGORY_LABELS[risk.category]}
                       </span>
-                      <span className="text-[10px] text-[#3d5068]">{risk.owner}</span>
+                      <span className="text-[10px] text-falcon-subtle">{risk.owner}</span>
                     </div>
                   </div>
                 )
@@ -639,15 +639,15 @@ export default function RiskHeatmapPage() {
               { label: '緩和済み',     value: allRisks.filter(r => r.status === 'mitigated').length,   color: 'text-emerald-400' },
               { label: '重大リスク',   value: allRisks.filter(r => r.score >= 16).length,              color: 'text-orange-400' },
             ].map(stat => (
-              <div key={stat.label} className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-4 text-center">
+              <div key={stat.label} className="bg-falcon-surface border border-falcon-border rounded-xl p-4 text-center">
                 <div className={`text-2xl font-bold ${stat.color}`}>{stat.value}</div>
-                <div className="text-[11px] text-[#7d92b0] mt-0.5">{stat.label}</div>
+                <div className="text-[11px] text-falcon-muted mt-0.5">{stat.label}</div>
               </div>
             ))}
           </div>
 
           {/* Category breakdown */}
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
+          <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
             <h2 className="text-white font-semibold text-sm mb-4">カテゴリ別分布</h2>
             <div className="space-y-2.5">
               {(Object.keys(CATEGORY_LABELS) as RiskCategory[]).map(cat => {
@@ -656,12 +656,12 @@ export default function RiskHeatmapPage() {
                 return (
                   <div key={cat} className="space-y-1">
                     <div className="flex items-center justify-between text-xs">
-                      <span className="text-[#7d92b0]">{CATEGORY_LABELS[cat]}</span>
+                      <span className="text-falcon-muted">{CATEGORY_LABELS[cat]}</span>
                       <span className="text-white font-medium">{count}件</span>
                     </div>
-                    <div className="h-1.5 bg-[#1e2d42] rounded-full overflow-hidden">
+                    <div className="h-1.5 bg-falcon-border rounded-full overflow-hidden">
                       <div
-                        className="h-full rounded-full bg-[#e8002d] transition-all"
+                        className="h-full rounded-full bg-falcon-red transition-all"
                         style={{ width: `${pct}%` }}
                       />
                     </div>

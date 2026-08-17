@@ -150,17 +150,17 @@ export default function EndpointHardeningPage() {
         <div className="mb-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#e8002d] to-[#a80020] flex items-center justify-center shadow-lg">
+              <div className="w-8 h-8 rounded-lg bg-linear-to-br from-falcon-red to-falcon-red-dark flex items-center justify-center shadow-lg">
                 <HardDrive className="w-4 h-4 text-white" />
               </div>
               <div>
                 <h1 className="text-2xl font-bold text-white">エンドポイント堅牢化</h1>
-                <p className="text-[#7d92b0] text-sm">CIS/STIGコンプライアンス評価</p>
+                <p className="text-falcon-muted text-sm">CIS/STIGコンプライアンス評価</p>
               </div>
             </div>
             <button
               onClick={() => refetch()}
-              className="flex items-center gap-2 px-3 py-2 text-sm text-[#7d92b0] hover:text-white border border-[#1e2d42] hover:border-[#7d92b0]/40 rounded-lg transition-colors"
+              className="flex items-center gap-2 px-3 py-2 text-sm text-falcon-muted hover:text-white border border-falcon-border hover:border-falcon-muted/40 rounded-lg transition-colors"
             >
               <RefreshCw className="w-4 h-4" />
               更新
@@ -176,9 +176,9 @@ export default function EndpointHardeningPage() {
             { label: '平均スコア', value: `${displayStats.average_score}%`, icon: Shield, color: avgScore >= 80 ? 'text-green-400' : avgScore >= 60 ? 'text-yellow-400' : 'text-red-400', bg: avgScore >= 80 ? 'bg-green-900/20 border-green-700/30' : avgScore >= 60 ? 'bg-yellow-900/20 border-yellow-700/30' : 'bg-red-900/20 border-red-700/30' },
             { label: '有効ベースライン', value: displayStats.active_baselines, icon: Layers, color: 'text-purple-400', bg: 'bg-purple-900/20 border-purple-700/30' },
           ].map(s => (
-            <div key={s.label} className={`rounded-xl p-4 border ${s.bg} bg-[#0d1220]`}>
+            <div key={s.label} className={`rounded-xl p-4 border ${s.bg} bg-falcon-surface`}>
               <div className="flex items-center justify-between mb-2">
-                <span className="text-xs text-[#7d92b0]">{s.label}</span>
+                <span className="text-xs text-falcon-muted">{s.label}</span>
                 <s.icon className={`w-4 h-4 ${s.color}`} />
               </div>
               <p className={`text-3xl font-bold ${s.color}`}>
@@ -189,47 +189,47 @@ export default function EndpointHardeningPage() {
         </div>
 
         {/* Overall Score Gauge */}
-        <div className="bg-[#0d1220] rounded-xl border border-[#1e2d42] p-6 mb-6 flex items-center gap-8">
+        <div className="bg-falcon-surface rounded-xl border border-falcon-border p-6 mb-6 flex items-center gap-8">
           {/* Gauge display */}
-          <div className="flex-shrink-0 flex flex-col items-center">
+          <div className="shrink-0 flex flex-col items-center">
             <div
               className="relative w-32 h-32 rounded-full flex items-center justify-center"
               style={{
                 background: `conic-gradient(${gaugeColor} ${gaugeDeg}deg, #1e2d42 ${gaugeDeg}deg)`,
               }}
             >
-              <div className="absolute inset-3 rounded-full bg-[#0d1220] flex flex-col items-center justify-center">
+              <div className="absolute inset-3 rounded-full bg-falcon-surface flex flex-col items-center justify-center">
                 <span className={`text-3xl font-bold`} style={{ color: gaugeColor }}>
                   {avgScore}
                 </span>
-                <span className="text-[#7d92b0] text-xs">/ 100</span>
+                <span className="text-falcon-muted text-xs">/ 100</span>
               </div>
             </div>
-            <p className="text-[#7d92b0] text-xs mt-2">総合スコア</p>
+            <p className="text-falcon-muted text-xs mt-2">総合スコア</p>
           </div>
 
           {/* Breakdown */}
           <div className="flex-1 grid grid-cols-3 gap-4">
             <div className="text-center">
               <p className="text-green-400 text-2xl font-bold">{displayStats.compliant_count}</p>
-              <p className="text-[#7d92b0] text-xs mt-1">準拠ホスト</p>
+              <p className="text-falcon-muted text-xs mt-1">準拠ホスト</p>
             </div>
             <div className="text-center">
               <p className="text-yellow-400 text-2xl font-bold">
                 {displayAssessments.filter(a => a.status === 'partial').length}
               </p>
-              <p className="text-[#7d92b0] text-xs mt-1">一部準拠</p>
+              <p className="text-falcon-muted text-xs mt-1">一部準拠</p>
             </div>
             <div className="text-center">
               <p className="text-red-400 text-2xl font-bold">
                 {displayAssessments.filter(a => a.status === 'non_compliant').length}
               </p>
-              <p className="text-[#7d92b0] text-xs mt-1">非準拠</p>
+              <p className="text-falcon-muted text-xs mt-1">非準拠</p>
             </div>
           </div>
 
           <div className="flex-1">
-            <p className="text-xs text-[#7d92b0] mb-2">スコア分布</p>
+            <p className="text-xs text-falcon-muted mb-2">スコア分布</p>
             <div className="space-y-2">
               {[
                 { label: '高 (≥80%)', count: displayAssessments.filter(a => a.score >= 80).length, color: 'bg-green-500' },
@@ -238,7 +238,7 @@ export default function EndpointHardeningPage() {
               ].map(b => (
                 <div key={b.label} className="flex items-center gap-2">
                   <div className={`w-2 h-2 rounded-full ${b.color}`} />
-                  <span className="text-xs text-[#7d92b0] flex-1">{b.label}</span>
+                  <span className="text-xs text-falcon-muted flex-1">{b.label}</span>
                   <span className="text-xs text-white font-bold">{b.count}</span>
                 </div>
               ))}
@@ -247,15 +247,15 @@ export default function EndpointHardeningPage() {
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-1 mb-5 border-b border-[#1e2d42]">
+        <div className="flex gap-1 mb-5 border-b border-falcon-border">
           {(['assessments', 'baselines'] as const).map(tab => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
               className={`px-5 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px
                 ${activeTab === tab
-                  ? 'border-[#e8002d] text-white'
-                  : 'border-transparent text-[#7d92b0] hover:text-white'
+                  ? 'border-falcon-red text-white'
+                  : 'border-transparent text-falcon-muted hover:text-white'
                 }`}
             >
               {tab === 'assessments' ? '評価一覧' : 'ベースライン'}
@@ -265,26 +265,26 @@ export default function EndpointHardeningPage() {
 
         {/* Assessments Tab */}
         {activeTab === 'assessments' && (
-          <div className="bg-[#0d1220] rounded-xl border border-[#1e2d42] overflow-hidden">
+          <div className="bg-falcon-surface rounded-xl border border-falcon-border overflow-hidden">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-[#1e2d42]">
+                <tr className="border-b border-falcon-border">
                   {['ホスト名', 'ベースライン', '合格', '不合格', 'スコア', 'ステータス', '最終評価日時'].map(h => (
-                    <th key={h} className="text-left px-4 py-3 text-xs text-[#7d92b0] font-medium whitespace-nowrap">{h}</th>
+                    <th key={h} className="text-left px-4 py-3 text-xs text-falcon-muted font-medium whitespace-nowrap">{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {displayAssessments.map(a => (
-                  <tr key={a.id} className="border-b border-[#1e2d42]/50 hover:bg-[#131d31]/50 transition-colors">
+                  <tr key={a.id} className="border-b border-falcon-border/50 hover:bg-[#131d31]/50 transition-colors">
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
-                        <Server className="w-3.5 h-3.5 text-[#7d92b0]" />
+                        <Server className="w-3.5 h-3.5 text-falcon-muted" />
                         <span className="text-white font-mono text-xs">{a.hostname}</span>
                       </div>
                     </td>
                     <td className="px-4 py-3">
-                      <span className="text-[#7d92b0] text-xs">{a.baseline}</span>
+                      <span className="text-falcon-muted text-xs">{a.baseline}</span>
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-1">
@@ -301,7 +301,7 @@ export default function EndpointHardeningPage() {
                     <td className="px-4 py-3">
                       <div className="space-y-1">
                         <div className="flex items-center gap-2">
-                          <div className="w-20 h-1.5 bg-[#1e2d42] rounded-full overflow-hidden">
+                          <div className="w-20 h-1.5 bg-falcon-border rounded-full overflow-hidden">
                             <div
                               className={`h-full rounded-full ${scoreBarColor(a.score)}`}
                               style={{ width: `${a.score}%` }}
@@ -312,12 +312,12 @@ export default function EndpointHardeningPage() {
                       </div>
                     </td>
                     <td className="px-4 py-3">
-                      <span className={`text-xs px-2 py-0.5 rounded border ${statusBadge(a.status)}`}>
+                      <span className={`text-xs px-2 py-0.5 rounded-sm border ${statusBadge(a.status)}`}>
                         {statusLabel(a.status)}
                       </span>
                     </td>
                     <td className="px-4 py-3">
-                      <span className="text-[#7d92b0] text-xs whitespace-nowrap">{fmtDate(a.last_assessed)}</span>
+                      <span className="text-falcon-muted text-xs whitespace-nowrap">{fmtDate(a.last_assessed)}</span>
                     </td>
                   </tr>
                 ))}
@@ -328,38 +328,38 @@ export default function EndpointHardeningPage() {
 
         {/* Baselines Tab */}
         {activeTab === 'baselines' && (
-          <div className="bg-[#0d1220] rounded-xl border border-[#1e2d42] overflow-hidden">
+          <div className="bg-falcon-surface rounded-xl border border-falcon-border overflow-hidden">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-[#1e2d42]">
+                <tr className="border-b border-falcon-border">
                   {['名前', 'OSタイプ', 'フレームワーク', 'バージョン', '有効'].map(h => (
-                    <th key={h} className="text-left px-4 py-3 text-xs text-[#7d92b0] font-medium">{h}</th>
+                    <th key={h} className="text-left px-4 py-3 text-xs text-falcon-muted font-medium">{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {displayBaselines.map(bl => (
-                  <tr key={bl.id} className="border-b border-[#1e2d42]/50 hover:bg-[#131d31]/50 transition-colors">
+                  <tr key={bl.id} className="border-b border-falcon-border/50 hover:bg-[#131d31]/50 transition-colors">
                     <td className="px-4 py-3">
                       <span className="text-white font-medium">{bl.name}</span>
                     </td>
                     <td className="px-4 py-3">
-                      <span className={`text-xs px-2 py-0.5 rounded border ${osBadge(bl.os_type)}`}>
+                      <span className={`text-xs px-2 py-0.5 rounded-sm border ${osBadge(bl.os_type)}`}>
                         {bl.os_type}
                       </span>
                     </td>
                     <td className="px-4 py-3">
-                      <span className={`text-xs px-2 py-0.5 rounded border ${frameworkBadge(bl.framework)}`}>
+                      <span className={`text-xs px-2 py-0.5 rounded-sm border ${frameworkBadge(bl.framework)}`}>
                         {bl.framework}
                       </span>
                     </td>
                     <td className="px-4 py-3">
-                      <span className="text-[#7d92b0] font-mono text-xs">{bl.version}</span>
+                      <span className="text-falcon-muted font-mono text-xs">{bl.version}</span>
                     </td>
                     <td className="px-4 py-3">
                       {bl.enabled
                         ? <ToggleRight className="w-6 h-6 text-green-400" />
-                        : <ToggleLeft className="w-6 h-6 text-[#3d5068]" />
+                        : <ToggleLeft className="w-6 h-6 text-falcon-subtle" />
                       }
                     </td>
                   </tr>

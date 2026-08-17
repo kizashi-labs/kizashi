@@ -131,19 +131,19 @@ function StartCaptureModal({ onClose, onSubmit, isSubmitting }: StartCaptureModa
     setForm(prev => ({ ...prev, [key]: value }))
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl shadow-2xl w-full max-w-lg mx-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs">
+      <div className="bg-falcon-surface border border-falcon-border rounded-xl shadow-2xl w-full max-w-lg mx-4">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[#1e2d42]">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-falcon-border">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-[#e8002d]/15 flex items-center justify-center">
-              <Network className="w-4 h-4 text-[#e8002d]" />
+            <div className="w-8 h-8 rounded-lg bg-falcon-red/15 flex items-center justify-center">
+              <Network className="w-4 h-4 text-falcon-red" />
             </div>
             <h2 className="text-white font-semibold text-base">パケットキャプチャ開始</h2>
           </div>
           <button
             onClick={onClose}
-            className="text-[#7d92b0] hover:text-white transition-colors p-1 rounded hover:bg-[#1e2d42]"
+            className="text-falcon-muted hover:text-white transition-colors p-1 rounded-sm hover:bg-falcon-border"
           >
             <X className="w-5 h-5" />
           </button>
@@ -153,16 +153,16 @@ function StartCaptureModal({ onClose, onSubmit, isSubmitting }: StartCaptureModa
         <form onSubmit={handleSubmit} className="px-6 py-5 space-y-4">
           {/* Agent selector */}
           <div>
-            <label className="block text-xs font-medium text-[#7d92b0] mb-1.5 uppercase tracking-wider">
-              エージェント <span className="text-[#e8002d]">*</span>
+            <label className="block text-xs font-medium text-falcon-muted mb-1.5 uppercase tracking-wider">
+              エージェント <span className="text-falcon-red">*</span>
             </label>
             <select
               value={form.agent_id}
               onChange={e => set('agent_id', e.target.value)}
               required
-              className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2.5
-                         text-[#e2e8f4] text-sm focus:outline-none focus:border-[#e8002d]/50
-                         focus:ring-1 focus:ring-[#e8002d]/20"
+              className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2.5
+                         text-falcon-text text-sm focus:outline-hidden focus:border-falcon-red/50
+                         focus:ring-1 focus:ring-falcon-red/20"
             >
               <option value="">エージェントを選択...</option>
               {agents.map(a => (
@@ -175,8 +175,8 @@ function StartCaptureModal({ onClose, onSubmit, isSubmitting }: StartCaptureModa
 
           {/* Name */}
           <div>
-            <label className="block text-xs font-medium text-[#7d92b0] mb-1.5 uppercase tracking-wider">
-              キャプチャ名 <span className="text-[#e8002d]">*</span>
+            <label className="block text-xs font-medium text-falcon-muted mb-1.5 uppercase tracking-wider">
+              キャプチャ名 <span className="text-falcon-red">*</span>
             </label>
             <input
               type="text"
@@ -184,15 +184,15 @@ function StartCaptureModal({ onClose, onSubmit, isSubmitting }: StartCaptureModa
               onChange={e => set('name', e.target.value)}
               placeholder="例: HTTPS traffic capture"
               required
-              className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2.5
-                         text-[#e2e8f4] text-sm placeholder-[#3d5068]
-                         focus:outline-none focus:border-[#e8002d]/50 focus:ring-1 focus:ring-[#e8002d]/20"
+              className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2.5
+                         text-falcon-text text-sm placeholder-falcon-subtle
+                         focus:outline-hidden focus:border-falcon-red/50 focus:ring-1 focus:ring-falcon-red/20"
             />
           </div>
 
           {/* BPF Filter */}
           <div>
-            <label className="block text-xs font-medium text-[#7d92b0] mb-1.5 uppercase tracking-wider">
+            <label className="block text-xs font-medium text-falcon-muted mb-1.5 uppercase tracking-wider">
               BPFフィルター
             </label>
             <input
@@ -200,16 +200,16 @@ function StartCaptureModal({ onClose, onSubmit, isSubmitting }: StartCaptureModa
               value={form.filter}
               onChange={e => set('filter', e.target.value)}
               placeholder="例: tcp port 443, host 192.168.1.1, udp"
-              className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2.5
-                         text-[#e2e8f4] text-sm font-mono placeholder-[#3d5068]
-                         focus:outline-none focus:border-[#e8002d]/50 focus:ring-1 focus:ring-[#e8002d]/20"
+              className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2.5
+                         text-falcon-text text-sm font-mono placeholder-falcon-subtle
+                         focus:outline-hidden focus:border-falcon-red/50 focus:ring-1 focus:ring-falcon-red/20"
             />
-            <p className="text-[#3d5068] text-xs mt-1">空白の場合は全トラフィックをキャプチャします</p>
+            <p className="text-falcon-subtle text-xs mt-1">空白の場合は全トラフィックをキャプチャします</p>
           </div>
 
           {/* Interface */}
           <div>
-            <label className="block text-xs font-medium text-[#7d92b0] mb-1.5 uppercase tracking-wider">
+            <label className="block text-xs font-medium text-falcon-muted mb-1.5 uppercase tracking-wider">
               インターフェース
             </label>
             <input
@@ -217,16 +217,16 @@ function StartCaptureModal({ onClose, onSubmit, isSubmitting }: StartCaptureModa
               value={form.interface}
               onChange={e => set('interface', e.target.value)}
               placeholder="eth0, ens3, any"
-              className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2.5
-                         text-[#e2e8f4] text-sm font-mono placeholder-[#3d5068]
-                         focus:outline-none focus:border-[#e8002d]/50 focus:ring-1 focus:ring-[#e8002d]/20"
+              className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2.5
+                         text-falcon-text text-sm font-mono placeholder-falcon-subtle
+                         focus:outline-hidden focus:border-falcon-red/50 focus:ring-1 focus:ring-falcon-red/20"
             />
           </div>
 
           {/* Max packets + Duration side by side */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-medium text-[#7d92b0] mb-1.5 uppercase tracking-wider">
+              <label className="block text-xs font-medium text-falcon-muted mb-1.5 uppercase tracking-wider">
                 最大パケット数
               </label>
               <input
@@ -235,13 +235,13 @@ function StartCaptureModal({ onClose, onSubmit, isSubmitting }: StartCaptureModa
                 onChange={e => set('max_packets', parseInt(e.target.value) || 0)}
                 min={1}
                 max={1000000}
-                className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2.5
-                           text-[#e2e8f4] text-sm
-                           focus:outline-none focus:border-[#e8002d]/50 focus:ring-1 focus:ring-[#e8002d]/20"
+                className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2.5
+                           text-falcon-text text-sm
+                           focus:outline-hidden focus:border-falcon-red/50 focus:ring-1 focus:ring-falcon-red/20"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-[#7d92b0] mb-1.5 uppercase tracking-wider">
+              <label className="block text-xs font-medium text-falcon-muted mb-1.5 uppercase tracking-wider">
                 最大時間 (秒)
               </label>
               <input
@@ -250,9 +250,9 @@ function StartCaptureModal({ onClose, onSubmit, isSubmitting }: StartCaptureModa
                 onChange={e => set('max_duration', parseInt(e.target.value) || 0)}
                 min={1}
                 max={3600}
-                className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2.5
-                           text-[#e2e8f4] text-sm
-                           focus:outline-none focus:border-[#e8002d]/50 focus:ring-1 focus:ring-[#e8002d]/20"
+                className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2.5
+                           text-falcon-text text-sm
+                           focus:outline-hidden focus:border-falcon-red/50 focus:ring-1 focus:ring-falcon-red/20"
               />
             </div>
           </div>
@@ -262,8 +262,8 @@ function StartCaptureModal({ onClose, onSubmit, isSubmitting }: StartCaptureModa
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-2.5 rounded-lg border border-[#1e2d42]
-                         text-[#7d92b0] hover:text-white hover:border-[#7d92b0]/40
+              className="flex-1 px-4 py-2.5 rounded-lg border border-falcon-border
+                         text-falcon-muted hover:text-white hover:border-falcon-muted/40
                          transition-all text-sm font-medium"
             >
               キャンセル
@@ -272,7 +272,7 @@ function StartCaptureModal({ onClose, onSubmit, isSubmitting }: StartCaptureModa
               type="submit"
               disabled={isSubmitting || !form.agent_id || !form.name}
               className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg
-                         bg-[#e8002d] hover:bg-[#c0001f] disabled:opacity-50 disabled:cursor-not-allowed
+                         bg-falcon-red hover:bg-[#c0001f] disabled:opacity-50 disabled:cursor-not-allowed
                          text-white text-sm font-semibold transition-all"
             >
               {isSubmitting ? (
@@ -300,21 +300,21 @@ interface DeleteConfirmProps {
 
 function DeleteConfirm({ capture, onConfirm, onCancel, isDeleting }: DeleteConfirmProps) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl shadow-2xl w-full max-w-sm mx-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs">
+      <div className="bg-falcon-surface border border-falcon-border rounded-xl shadow-2xl w-full max-w-sm mx-4">
         <div className="p-6 text-center">
           <div className="w-12 h-12 rounded-full bg-red-500/10 border border-red-500/30 flex items-center justify-center mx-auto mb-4">
             <Trash2 className="w-5 h-5 text-red-400" />
           </div>
           <h3 className="text-white font-semibold text-base mb-2">キャプチャを削除</h3>
-          <p className="text-[#7d92b0] text-sm mb-6">
+          <p className="text-falcon-muted text-sm mb-6">
             <span className="text-white font-medium">{capture.name}</span> を削除しますか？この操作は取り消せません。
           </p>
           <div className="flex gap-3">
             <button
               onClick={onCancel}
-              className="flex-1 px-4 py-2.5 rounded-lg border border-[#1e2d42]
-                         text-[#7d92b0] hover:text-white transition-all text-sm font-medium"
+              className="flex-1 px-4 py-2.5 rounded-lg border border-falcon-border
+                         text-falcon-muted hover:text-white transition-all text-sm font-medium"
             >
               キャンセル
             </button>
@@ -425,12 +425,12 @@ export default function NetworkCapturesPage() {
       {/* ── Header ─────────────────────────────────────────────────────────── */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-[#e8002d]/15 border border-[#e8002d]/20 flex items-center justify-center">
-            <Network className="w-5 h-5 text-[#e8002d]" />
+          <div className="w-10 h-10 rounded-xl bg-falcon-red/15 border border-falcon-red/20 flex items-center justify-center">
+            <Network className="w-5 h-5 text-falcon-red" />
           </div>
           <div>
             <h1 className="text-xl font-bold text-white">ネットワークパケットキャプチャ</h1>
-            <p className="text-[#7d92b0] text-sm">エンドポイントのネットワークトラフィックをキャプチャ・分析します</p>
+            <p className="text-falcon-muted text-sm">エンドポイントのネットワークトラフィックをキャプチャ・分析します</p>
           </div>
         </div>
         <div className="flex items-center gap-3">
@@ -443,15 +443,15 @@ export default function NetworkCapturesPage() {
           <button
             onClick={() => refetch()}
             disabled={isFetching}
-            className="flex items-center gap-2 px-3 py-2 rounded-lg border border-[#1e2d42]
-                       text-[#7d92b0] hover:text-white hover:border-[#7d92b0]/40 transition-all text-sm"
+            className="flex items-center gap-2 px-3 py-2 rounded-lg border border-falcon-border
+                       text-falcon-muted hover:text-white hover:border-falcon-muted/40 transition-all text-sm"
           >
             <RefreshCw className={`w-4 h-4 ${isFetching ? 'animate-spin' : ''}`} />
             更新
           </button>
           <button
             onClick={() => setShowStartModal(true)}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#e8002d] hover:bg-[#c0001f]
+            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-falcon-red hover:bg-[#c0001f]
                        text-white text-sm font-semibold transition-all"
           >
             <Plus className="w-4 h-4" />
@@ -463,14 +463,14 @@ export default function NetworkCapturesPage() {
       {/* ── Stats cards ────────────────────────────────────────────────────── */}
       <div className="grid grid-cols-4 gap-4 mb-6">
         {[
-          { label: '合計', value: stats.total, color: 'text-[#e2e8f4]', icon: Network },
+          { label: '合計', value: stats.total, color: 'text-falcon-text', icon: Network },
           { label: '実行中', value: stats.running, color: 'text-green-400', icon: Loader2 },
           { label: '完了', value: stats.completed, color: 'text-blue-400', icon: CheckCircle },
           { label: '失敗', value: stats.failed, color: 'text-red-400', icon: AlertCircle },
         ].map(({ label, value, color, icon: Icon }) => (
-          <div key={label} className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-4">
+          <div key={label} className="bg-falcon-surface border border-falcon-border rounded-xl p-4">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-[#7d92b0] text-xs font-medium uppercase tracking-wider">{label}</span>
+              <span className="text-falcon-muted text-xs font-medium uppercase tracking-wider">{label}</span>
               <Icon className={`w-4 h-4 ${color}`} />
             </div>
             <p className={`text-2xl font-bold ${color}`}>{value}</p>
@@ -479,17 +479,17 @@ export default function NetworkCapturesPage() {
       </div>
 
       {/* ── Filters ────────────────────────────────────────────────────────── */}
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-4 mb-4">
+      <div className="bg-falcon-surface border border-falcon-border rounded-xl p-4 mb-4">
         <div className="flex items-center gap-4 flex-wrap">
           <div className="flex items-center gap-2">
-            <Filter className="w-4 h-4 text-[#7d92b0]" />
-            <span className="text-[#7d92b0] text-sm font-medium">フィルター</span>
+            <Filter className="w-4 h-4 text-falcon-muted" />
+            <span className="text-falcon-muted text-sm font-medium">フィルター</span>
           </div>
           <select
             value={filterAgentId}
             onChange={e => setFilterAgentId(e.target.value)}
-            className="bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-1.5 text-sm
-                       text-[#e2e8f4] focus:outline-none focus:border-[#e8002d]/50"
+            className="bg-[#070d19] border border-falcon-border rounded-lg px-3 py-1.5 text-sm
+                       text-falcon-text focus:outline-hidden focus:border-falcon-red/50"
           >
             <option value="">全エージェント</option>
             {agents.map(a => (
@@ -499,8 +499,8 @@ export default function NetworkCapturesPage() {
           <select
             value={filterStatus}
             onChange={e => setFilterStatus(e.target.value)}
-            className="bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-1.5 text-sm
-                       text-[#e2e8f4] focus:outline-none focus:border-[#e8002d]/50"
+            className="bg-[#070d19] border border-falcon-border rounded-lg px-3 py-1.5 text-sm
+                       text-falcon-text focus:outline-hidden focus:border-falcon-red/50"
           >
             <option value="">全ステータス</option>
             <option value="pending">Pending</option>
@@ -511,36 +511,36 @@ export default function NetworkCapturesPage() {
           {(filterAgentId || filterStatus) && (
             <button
               onClick={() => { setFilterAgentId(''); setFilterStatus('') }}
-              className="text-[#7d92b0] hover:text-white text-sm flex items-center gap-1 transition-colors"
+              className="text-falcon-muted hover:text-white text-sm flex items-center gap-1 transition-colors"
             >
               <X className="w-3.5 h-3.5" />
               クリア
             </button>
           )}
-          <span className="ml-auto text-[#7d92b0] text-sm">{filteredCaptures.length} 件</span>
+          <span className="ml-auto text-falcon-muted text-sm">{filteredCaptures.length} 件</span>
         </div>
       </div>
 
       {/* ── Table ──────────────────────────────────────────────────────────── */}
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
+      <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
         {isLoading ? (
           <div className="flex items-center justify-center py-20">
-            <Loader2 className="w-6 h-6 text-[#e8002d] animate-spin mr-3" />
-            <span className="text-[#7d92b0] text-sm">読み込み中...</span>
+            <Loader2 className="w-6 h-6 text-falcon-red animate-spin mr-3" />
+            <span className="text-falcon-muted text-sm">読み込み中...</span>
           </div>
         ) : error ? (
           <div className="flex flex-col items-center justify-center py-20 gap-3">
             <AlertCircle className="w-8 h-8 text-red-400" />
             <p className="text-red-400 text-sm">データの読み込みに失敗しました</p>
-            <button onClick={() => refetch()} className="text-[#e8002d] text-sm hover:underline">再試行</button>
+            <button onClick={() => refetch()} className="text-falcon-red text-sm hover:underline">再試行</button>
           </div>
         ) : filteredCaptures.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 gap-3">
-            <Network className="w-10 h-10 text-[#3d5068]" />
-            <p className="text-[#7d92b0] text-sm">キャプチャが見つかりません</p>
+            <Network className="w-10 h-10 text-falcon-subtle" />
+            <p className="text-falcon-muted text-sm">キャプチャが見つかりません</p>
             <button
               onClick={() => setShowStartModal(true)}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#e8002d] hover:bg-[#c0001f]
+              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-falcon-red hover:bg-[#c0001f]
                          text-white text-sm font-medium transition-all"
             >
               <Plus className="w-4 h-4" />
@@ -551,30 +551,30 @@ export default function NetworkCapturesPage() {
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-[#1e2d42]">
+                <tr className="border-b border-falcon-border">
                   {['名前', 'エンドポイント', 'ステータス', 'フィルター (BPF)', 'パケット数', 'ファイルサイズ', '期間', '開始時刻', 'アクション'].map(h => (
                     <th
                       key={h}
-                      className="px-4 py-3 text-left text-xs font-semibold text-[#7d92b0] uppercase tracking-wider whitespace-nowrap"
+                      className="px-4 py-3 text-left text-xs font-semibold text-falcon-muted uppercase tracking-wider whitespace-nowrap"
                     >
                       {h}
                     </th>
                   ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#1e2d42]/50">
+              <tbody className="divide-y divide-falcon-border/50">
                 {filteredCaptures.map(capture => (
                   <tr
                     key={capture.id}
-                    className="hover:bg-[#19253d]/30 transition-colors group"
+                    className="hover:bg-falcon-hover/30 transition-colors group"
                   >
                     {/* Name */}
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
-                        <Network className="w-4 h-4 text-[#3d5068] flex-shrink-0" />
+                        <Network className="w-4 h-4 text-falcon-subtle shrink-0" />
                         <div>
-                          <p className="text-[#e2e8f4] text-sm font-medium">{capture.name}</p>
-                          <p className="text-[#3d5068] text-xs font-mono">{capture.interface}</p>
+                          <p className="text-falcon-text text-sm font-medium">{capture.name}</p>
+                          <p className="text-falcon-subtle text-xs font-mono">{capture.interface}</p>
                         </div>
                       </div>
                     </td>
@@ -582,8 +582,8 @@ export default function NetworkCapturesPage() {
                     {/* Agent */}
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
-                        <Cpu className="w-3.5 h-3.5 text-[#3d5068]" />
-                        <span className="text-[#7d92b0] text-sm">{capture.agent_hostname || '—'}</span>
+                        <Cpu className="w-3.5 h-3.5 text-falcon-subtle" />
+                        <span className="text-falcon-muted text-sm">{capture.agent_hostname || '—'}</span>
                       </div>
                     </td>
 
@@ -601,23 +601,23 @@ export default function NetworkCapturesPage() {
                     <td className="px-4 py-3">
                       {capture.filter ? (
                         <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded
-                                         bg-[#1e2d42] text-[#7d92b0] text-xs font-mono">
+                                         bg-falcon-border text-falcon-muted text-xs font-mono">
                           <Filter className="w-3 h-3" />
                           {capture.filter}
                         </span>
                       ) : (
-                        <span className="text-[#3d5068] text-xs italic">フィルターなし</span>
+                        <span className="text-falcon-subtle text-xs italic">フィルターなし</span>
                       )}
                     </td>
 
                     {/* Packets */}
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-1.5">
-                        <span className="text-[#e2e8f4] text-sm font-mono">
+                        <span className="text-falcon-text text-sm font-mono">
                           {(capture.packets_captured ?? 0).toLocaleString()}
                         </span>
                         {capture.max_packets > 0 && (
-                          <span className="text-[#3d5068] text-xs">/ {(capture.max_packets ?? 0).toLocaleString()}</span>
+                          <span className="text-falcon-subtle text-xs">/ {(capture.max_packets ?? 0).toLocaleString()}</span>
                         )}
                       </div>
                     </td>
@@ -625,24 +625,24 @@ export default function NetworkCapturesPage() {
                     {/* File size */}
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-1.5">
-                        <HardDrive className="w-3.5 h-3.5 text-[#3d5068]" />
-                        <span className="text-[#7d92b0] text-sm">{formatBytes(capture.file_size_bytes)}</span>
+                        <HardDrive className="w-3.5 h-3.5 text-falcon-subtle" />
+                        <span className="text-falcon-muted text-sm">{formatBytes(capture.file_size_bytes)}</span>
                       </div>
                     </td>
 
                     {/* Duration */}
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-1.5">
-                        <Timer className="w-3.5 h-3.5 text-[#3d5068]" />
-                        <span className="text-[#7d92b0] text-sm">{formatDuration(capture.duration_seconds)}</span>
+                        <Timer className="w-3.5 h-3.5 text-falcon-subtle" />
+                        <span className="text-falcon-muted text-sm">{formatDuration(capture.duration_seconds)}</span>
                       </div>
                     </td>
 
                     {/* Started at */}
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-1.5">
-                        <Calendar className="w-3.5 h-3.5 text-[#3d5068]" />
-                        <span className="text-[#7d92b0] text-xs">{formatDate(capture.started_at)}</span>
+                        <Calendar className="w-3.5 h-3.5 text-falcon-subtle" />
+                        <span className="text-falcon-muted text-xs">{formatDate(capture.started_at)}</span>
                       </div>
                     </td>
 
@@ -703,7 +703,7 @@ export default function NetworkCapturesPage() {
       {startMutation.isError && (
         <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 px-4 py-3 rounded-xl
                         bg-red-900/80 border border-red-500/40 text-red-200 text-sm shadow-xl">
-          <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0" />
+          <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
           キャプチャの開始に失敗しました
           <button onClick={() => startMutation.reset()} className="ml-2 text-red-400 hover:text-white">
             <X className="w-4 h-4" />

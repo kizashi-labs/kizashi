@@ -176,10 +176,10 @@ function CategoryBar({
     <div className="space-y-1.5">
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2 min-w-0">
-          <Icon className="w-3.5 h-3.5 text-[#3d5068] flex-shrink-0" />
-          <span className="text-sm text-[#e2e8f4] font-medium truncate">{label}</span>
+          <Icon className="w-3.5 h-3.5 text-falcon-subtle shrink-0" />
+          <span className="text-sm text-falcon-text font-medium truncate">{label}</span>
         </div>
-        <span className={`text-sm font-bold tabular-nums flex-shrink-0 ${textClass}`}>{score}</span>
+        <span className={`text-sm font-bold tabular-nums shrink-0 ${textClass}`}>{score}</span>
       </div>
       <div className="h-2.5 bg-[#0a1525] rounded-full overflow-hidden">
         <div
@@ -187,7 +187,7 @@ function CategoryBar({
           style={{ width: `${score}%` }}
         />
       </div>
-      {description && <p className="text-[10px] text-[#7d92b0]">{description}</p>}
+      {description && <p className="text-[10px] text-falcon-muted">{description}</p>}
     </div>
   )
 }
@@ -228,7 +228,7 @@ function PriorityBadge({ priority }: { priority: 'Critical' | 'High' | 'Medium' 
   }
   const labels = { Critical: '重大', High: '高', Medium: '中' }
   return (
-    <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${styles[priority]}`}>
+    <span className={`px-2 py-0.5 rounded-sm text-[10px] font-bold ${styles[priority]}`}>
       {labels[priority]}
     </span>
   )
@@ -451,19 +451,19 @@ export default function SecurityScorePage() {
       {/* ── Header ── */}
       <div className="flex items-start justify-between flex-wrap gap-3">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-lg flex items-center justify-center bg-gradient-to-br from-[#e8002d] to-[#a80020] flex-shrink-0">
+          <div className="w-9 h-9 rounded-lg flex items-center justify-center bg-linear-to-br from-falcon-red to-falcon-red-dark shrink-0">
             <ShieldCheck className="w-5 h-5 text-white" />
           </div>
           <div>
             <h1 className="text-xl font-bold text-white">セキュリティスコアカード</h1>
-            <p className="text-xs text-[#7d92b0]">組織のセキュリティ成熟度を総合的に評価します</p>
+            <p className="text-xs text-falcon-muted">組織のセキュリティ成熟度を総合的に評価します</p>
           </div>
         </div>
         <button
           onClick={handleRefresh}
           disabled={isLoading}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#0d1220] border border-[#1e2d42]
-                     text-[#7d92b0] hover:text-white hover:border-[#7d92b0]/40 text-sm transition-colors
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-falcon-surface border border-falcon-border
+                     text-falcon-muted hover:text-white hover:border-falcon-muted/40 text-sm transition-colors
                      disabled:opacity-40"
         >
           <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
@@ -475,25 +475,25 @@ export default function SecurityScorePage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
         {/* Overall Score Gauge */}
-        <div className="bg-[#0d1220] rounded-xl border border-[#1e2d42] p-5">
+        <div className="bg-falcon-surface rounded-xl border border-falcon-border p-5">
           <h2 className="text-sm font-semibold text-white mb-1 flex items-center gap-2">
-            <Shield className="w-4 h-4 text-[#e8002d]" />
+            <Shield className="w-4 h-4 text-falcon-red" />
             総合セキュリティスコア
           </h2>
-          <p className="text-xs text-[#7d92b0] mb-4">6カテゴリの加重平均スコア</p>
+          <p className="text-xs text-falcon-muted mb-4">6カテゴリの加重平均スコア</p>
           <div className="flex flex-col items-center gap-3">
             <SecurityGauge score={overallScore} />
 
             {/* Score history sparkline */}
             <div className="w-full">
               <div className="flex items-center justify-between mb-2">
-                <p className="text-xs text-[#7d92b0]">過去7日間のトレンド</p>
+                <p className="text-xs text-falcon-muted">過去7日間のトレンド</p>
                 <span className={`text-xs font-bold ${scoreTailwindText(overallScore)}`}>
                   {overallScore >= 70 ? '↑ 改善中' : overallScore >= 40 ? '→ 安定' : '↓ 要対処'}
                 </span>
               </div>
               <SparklineBar data={trendData} />
-              <div className="flex justify-between text-[9px] text-[#3d5068] mt-1">
+              <div className="flex justify-between text-[9px] text-falcon-subtle mt-1">
                 <span>7日前</span>
                 <span>今日</span>
               </div>
@@ -502,9 +502,9 @@ export default function SecurityScorePage() {
         </div>
 
         {/* Category Scores */}
-        <div className="bg-[#0d1220] rounded-xl border border-[#1e2d42] p-5">
+        <div className="bg-falcon-surface rounded-xl border border-falcon-border p-5">
           <h2 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
-            <BarChart3 className="w-4 h-4 text-[#e8002d]" />
+            <BarChart3 className="w-4 h-4 text-falcon-red" />
             カテゴリ別スコア
           </h2>
           <div className="space-y-5">
@@ -552,15 +552,15 @@ export default function SecurityScorePage() {
       <div className="grid grid-cols-1 xl:grid-cols-5 gap-6">
 
         {/* Improvement Recommendations */}
-        <div className="xl:col-span-3 bg-[#0d1220] rounded-xl border border-[#1e2d42] overflow-hidden">
-          <div className="px-5 py-4 border-b border-[#1e2d42] flex items-center justify-between">
+        <div className="xl:col-span-3 bg-falcon-surface rounded-xl border border-falcon-border overflow-hidden">
+          <div className="px-5 py-4 border-b border-falcon-border flex items-center justify-between">
             <h2 className="text-sm font-semibold text-white flex items-center gap-2">
               <AlertTriangle className="w-4 h-4 text-amber-400" />
               改善推奨アクション
             </h2>
-            <span className="text-xs text-[#7d92b0]">優先度順</span>
+            <span className="text-xs text-falcon-muted">優先度順</span>
           </div>
-          <div className="divide-y divide-[#1e2d42]/50">
+          <div className="divide-y divide-falcon-border/50">
             {recommendations.map((rec, i) => (
               <div key={i} className="px-5 py-4 hover:bg-[#111928] transition-colors">
                 <div className="flex items-start gap-3">
@@ -569,15 +569,15 @@ export default function SecurityScorePage() {
                       <PriorityBadge priority={rec.priority} />
                       <span className="text-sm font-medium text-white">{rec.title}</span>
                     </div>
-                    <p className="text-xs text-[#7d92b0] leading-relaxed">{rec.detail}</p>
+                    <p className="text-xs text-falcon-muted leading-relaxed">{rec.detail}</p>
                   </div>
-                  <div className="flex flex-col items-end gap-2 flex-shrink-0">
+                  <div className="flex flex-col items-end gap-2 shrink-0">
                     <span className="text-xs font-bold text-green-400 whitespace-nowrap">
                       +{rec.gain} pts
                     </span>
                     <Link
                       href={rec.href}
-                      className="flex items-center gap-1 text-[10px] text-[#1a6bff] hover:text-blue-300 transition-colors whitespace-nowrap"
+                      className="flex items-center gap-1 text-[10px] text-falcon-blue hover:text-blue-300 transition-colors whitespace-nowrap"
                     >
                       対処する
                       <ChevronRight className="w-3 h-3" />
@@ -589,35 +589,35 @@ export default function SecurityScorePage() {
             {recommendations.length === 0 && (
               <div className="px-5 py-12 text-center">
                 <CheckCircle className="w-8 h-8 text-green-500 mx-auto mb-2" />
-                <p className="text-sm text-[#7d92b0]">すべてのカテゴリが良好な状態です</p>
+                <p className="text-sm text-falcon-muted">すべてのカテゴリが良好な状態です</p>
               </div>
             )}
           </div>
         </div>
 
         {/* Benchmark Comparison */}
-        <div className="xl:col-span-2 bg-[#0d1220] rounded-xl border border-[#1e2d42] p-5">
+        <div className="xl:col-span-2 bg-falcon-surface rounded-xl border border-falcon-border p-5">
           <h2 className="text-sm font-semibold text-white mb-1 flex items-center gap-2">
-            <TrendingUp className="w-4 h-4 text-[#e8002d]" />
+            <TrendingUp className="w-4 h-4 text-falcon-red" />
             業界平均との比較
           </h2>
-          <p className="text-xs text-[#7d92b0] mb-5">セキュリティ業界平均との比較</p>
+          <p className="text-xs text-falcon-muted mb-5">セキュリティ業界平均との比較</p>
 
           {/* Overall comparison */}
-          <div className="flex items-center justify-center gap-8 mb-6 pb-5 border-b border-[#1e2d42]">
+          <div className="flex items-center justify-center gap-8 mb-6 pb-5 border-b border-falcon-border">
             <div className="text-center">
               <p className={`text-3xl font-bold tabular-nums ${scoreTailwindText(overallScore)}`}>{overallScore}</p>
-              <p className="text-xs text-[#7d92b0] mt-1">自組織</p>
+              <p className="text-xs text-falcon-muted mt-1">自組織</p>
             </div>
             <div className="text-center">
-              <p className="text-3xl font-bold text-[#7d92b0] tabular-nums">67</p>
-              <p className="text-xs text-[#7d92b0] mt-1">業界平均</p>
+              <p className="text-3xl font-bold text-falcon-muted tabular-nums">67</p>
+              <p className="text-xs text-falcon-muted mt-1">業界平均</p>
             </div>
             <div className="text-center">
-              <p className={`text-xl font-bold tabular-nums ${overallScore >= 67 ? 'text-green-400' : 'text-[#e8002d]'}`}>
+              <p className={`text-xl font-bold tabular-nums ${overallScore >= 67 ? 'text-green-400' : 'text-falcon-red'}`}>
                 {overallScore >= 67 ? '+' : ''}{overallScore - 67}
               </p>
-              <p className="text-xs text-[#7d92b0] mt-1">差分</p>
+              <p className="text-xs text-falcon-muted mt-1">差分</p>
             </div>
           </div>
 
@@ -628,8 +628,8 @@ export default function SecurityScorePage() {
               return (
                 <div key={b.label} className="space-y-1">
                   <div className="flex items-center justify-between text-xs">
-                    <span className="text-[#7d92b0]">{b.label}</span>
-                    <span className={`font-bold tabular-nums ${diff >= 0 ? 'text-green-400' : 'text-[#e8002d]'}`}>
+                    <span className="text-falcon-muted">{b.label}</span>
+                    <span className={`font-bold tabular-nums ${diff >= 0 ? 'text-green-400' : 'text-falcon-red'}`}>
                       {diff >= 0 ? '+' : ''}{diff}
                     </span>
                   </div>
@@ -637,7 +637,7 @@ export default function SecurityScorePage() {
                   <div className="relative h-5">
                     {/* Industry average bar */}
                     <div className="absolute inset-0 flex items-center">
-                      <div className="h-2 bg-[#1e2d42] rounded-full" style={{ width: `${b.industry}%` }} />
+                      <div className="h-2 bg-falcon-border rounded-full" style={{ width: `${b.industry}%` }} />
                     </div>
                     {/* Org bar */}
                     <div className="absolute inset-0 flex items-end">
@@ -648,11 +648,11 @@ export default function SecurityScorePage() {
                     </div>
                     {/* Industry marker line */}
                     <div
-                      className="absolute top-0 bottom-0 w-0.5 bg-[#7d92b0]/40"
+                      className="absolute top-0 bottom-0 w-0.5 bg-falcon-muted/40"
                       style={{ left: `${b.industry}%` }}
                     />
                   </div>
-                  <div className="flex justify-between text-[9px] text-[#3d5068]">
+                  <div className="flex justify-between text-[9px] text-falcon-subtle">
                     <span>自組織: {b.org}</span>
                     <span>業界平均: {b.industry}</span>
                   </div>
@@ -662,13 +662,13 @@ export default function SecurityScorePage() {
           </div>
 
           {/* Legend */}
-          <div className="flex items-center gap-4 mt-5 pt-4 border-t border-[#1e2d42] text-[10px] text-[#7d92b0]">
+          <div className="flex items-center gap-4 mt-5 pt-4 border-t border-falcon-border text-[10px] text-falcon-muted">
             <span className="flex items-center gap-1.5">
-              <span className="w-3 h-2 rounded bg-[#1e2d42] inline-block" />
+              <span className="w-3 h-2 rounded-sm bg-falcon-border inline-block" />
               業界平均
             </span>
             <span className="flex items-center gap-1.5">
-              <span className="w-3 h-1.5 rounded bg-green-500 inline-block" />
+              <span className="w-3 h-1.5 rounded-sm bg-green-500 inline-block" />
               自組織
             </span>
           </div>
@@ -676,9 +676,9 @@ export default function SecurityScorePage() {
       </div>
 
       {/* ── Score Matrix ── */}
-      <div className="bg-[#0d1220] rounded-xl border border-[#1e2d42] p-5">
+      <div className="bg-falcon-surface rounded-xl border border-falcon-border p-5">
         <h2 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
-          <ShieldCheck className="w-4 h-4 text-[#e8002d]" />
+          <ShieldCheck className="w-4 h-4 text-falcon-red" />
           セキュリティ成熟度マトリクス
         </h2>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
@@ -696,9 +696,9 @@ export default function SecurityScorePage() {
             return (
               <div
                 key={item.label}
-                className="bg-[#0a1525] rounded-lg border border-[#1e2d42] p-4 flex flex-col items-center gap-2 text-center"
+                className="bg-[#0a1525] rounded-lg border border-falcon-border p-4 flex flex-col items-center gap-2 text-center"
               >
-                <Icon className="w-5 h-5 text-[#3d5068]" />
+                <Icon className="w-5 h-5 text-falcon-subtle" />
                 {/* Mini circular indicator */}
                 <div className="relative w-14 h-14">
                   <svg viewBox="0 0 56 56" className="w-full h-full -rotate-90">
@@ -718,7 +718,7 @@ export default function SecurityScorePage() {
                     {item.score}
                   </span>
                 </div>
-                <p className="text-[10px] text-[#7d92b0] leading-tight">{item.label}</p>
+                <p className="text-[10px] text-falcon-muted leading-tight">{item.label}</p>
                 <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${
                   item.score >= 70 ? 'bg-green-900/30 text-green-400' :
                   item.score >= 40 ? 'bg-amber-900/30 text-amber-400' :

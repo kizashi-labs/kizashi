@@ -93,12 +93,12 @@ function Toggle({
     <button
       type="button"
       onClick={() => !disabled && onChange(!value)}
-      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none
+      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-hidden
                   ${value ? 'bg-blue-600' : 'bg-gray-600'}
                   ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
     >
       <span
-        className={`inline-block h-4 w-4 transform rounded-full bg-[#e2e8f4] shadow transition-transform
+        className={`inline-block h-4 w-4 transform rounded-full bg-falcon-text shadow transition-transform
                     ${value ? 'translate-x-6' : 'translate-x-1'}`}
       />
     </button>
@@ -121,7 +121,7 @@ function Section({
   return (
     <div className="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden">
       <div className="flex items-center gap-3 px-6 py-4 border-b border-gray-700 bg-gray-800/80">
-        <Icon className={`w-5 h-5 flex-shrink-0 ${iconColor}`} />
+        <Icon className={`w-5 h-5 shrink-0 ${iconColor}`} />
         <h2 className="text-base font-semibold text-white">{title}</h2>
       </div>
       <div className="px-6 py-5 space-y-5">{children}</div>
@@ -148,7 +148,7 @@ function FieldRow({
           <p className="text-xs text-gray-500 mt-0.5">{description}</p>
         )}
       </div>
-      <div className="flex-shrink-0">{children}</div>
+      <div className="shrink-0">{children}</div>
     </div>
   )
 }
@@ -177,7 +177,7 @@ function NumberInput({
         min={min}
         max={max}
         className="w-24 px-3 py-1.5 bg-gray-700 border border-gray-600 rounded-lg text-sm text-white
-                   focus:outline-none focus:border-blue-500 text-right tabular-nums"
+                   focus:outline-hidden focus:border-blue-500 text-right tabular-nums"
       />
       {suffix && <span className="text-xs text-gray-400">{suffix}</span>}
     </div>
@@ -225,7 +225,7 @@ function MaintenanceModal({
   onCancel: () => void
 }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs">
       <div className="bg-gray-800 rounded-2xl border border-red-500/60 p-8 max-w-md w-full mx-4 shadow-2xl">
         <div className="flex items-center gap-3 mb-4">
           <div className="w-10 h-10 rounded-full bg-red-900/50 flex items-center justify-center">
@@ -409,7 +409,7 @@ export default function SystemSettingsPage() {
       {/* Maintenance mode banner */}
       {form.maintenance_mode && (
         <div className="mb-6 px-5 py-4 bg-red-900/40 border border-red-500/60 rounded-xl flex items-center gap-3">
-          <AlertTriangle className="w-5 h-5 text-red-400 flex-shrink-0 animate-pulse" />
+          <AlertTriangle className="w-5 h-5 text-red-400 shrink-0 animate-pulse" />
           <div className="flex-1">
             <p className="text-sm font-bold text-red-300 uppercase tracking-wider">
               MAINTENANCE MODE ACTIVE
@@ -418,7 +418,7 @@ export default function SystemSettingsPage() {
               管理者以外のユーザーはシステムにアクセスできません
             </p>
           </div>
-          <Ban className="w-5 h-5 text-red-400 flex-shrink-0" />
+          <Ban className="w-5 h-5 text-red-400 shrink-0" />
         </div>
       )}
 
@@ -463,7 +463,7 @@ export default function SystemSettingsPage() {
       {/* Save error */}
       {saveError && (
         <div className="max-w-4xl mx-auto mb-4 px-4 py-3 bg-red-900/30 border border-red-500/50 rounded-lg flex items-center gap-2 text-sm text-red-300">
-          <X className="w-4 h-4 flex-shrink-0" />
+          <X className="w-4 h-4 shrink-0" />
           {saveError}
         </div>
       )}
@@ -601,7 +601,7 @@ export default function SystemSettingsPage() {
               <Key className="w-4 h-4 text-gray-400" />
               <p className="text-sm font-medium text-gray-200">許可IPアドレス範囲</p>
               {!form.ip_whitelist_enabled && (
-                <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-700 text-gray-500">
+                <span className="text-[10px] px-1.5 py-0.5 rounded-sm bg-gray-700 text-gray-500">
                   無効
                 </span>
               )}
@@ -614,7 +614,7 @@ export default function SystemSettingsPage() {
               rows={5}
               placeholder={'192.168.0.0/24\n10.0.0.0/8\n172.16.0.0/12'}
               className={`w-full px-3 py-2.5 bg-gray-700/50 border rounded-lg text-sm font-mono text-gray-200
-                          focus:outline-none focus:border-blue-500 resize-none placeholder-gray-600
+                          focus:outline-hidden focus:border-blue-500 resize-none placeholder-gray-600
                           ${form.ip_whitelist_enabled ? 'border-gray-600' : 'border-gray-700/50 opacity-50 cursor-not-allowed'}`}
             />
           </div>
@@ -679,8 +679,8 @@ export default function SystemSettingsPage() {
                     基本的な脅威分析と調査サマリーを生成。高速・低コストで動作します。
                   </p>
                   <div className="flex gap-2 mt-3">
-                    <span className="text-[10px] px-1.5 py-0.5 bg-blue-900/40 text-blue-300 rounded">高速</span>
-                    <span className="text-[10px] px-1.5 py-0.5 bg-green-900/40 text-green-300 rounded">低コスト</span>
+                    <span className="text-[10px] px-1.5 py-0.5 bg-blue-900/40 text-blue-300 rounded-sm">高速</span>
+                    <span className="text-[10px] px-1.5 py-0.5 bg-green-900/40 text-green-300 rounded-sm">低コスト</span>
                   </div>
                 </button>
 
@@ -704,8 +704,8 @@ export default function SystemSettingsPage() {
                     SOCアナリスト相当の詳細調査を自動実行。攻撃チェーン分析・IOC抽出・MITRE ATT&CKマッピング・対応アクション提案を含む日本語レポートを生成。
                   </p>
                   <div className="flex gap-2 mt-3">
-                    <span className="text-[10px] px-1.5 py-0.5 bg-purple-900/40 text-purple-300 rounded">高品質</span>
-                    <span className="text-[10px] px-1.5 py-0.5 bg-orange-900/40 text-orange-300 rounded">詳細分析</span>
+                    <span className="text-[10px] px-1.5 py-0.5 bg-purple-900/40 text-purple-300 rounded-sm">高品質</span>
+                    <span className="text-[10px] px-1.5 py-0.5 bg-orange-900/40 text-orange-300 rounded-sm">詳細分析</span>
                   </div>
                 </button>
               </div>
@@ -724,14 +724,14 @@ export default function SystemSettingsPage() {
 
                   {form.ai_autonomous_model && (
                     <div className="mb-3 flex items-center gap-2 px-3 py-2 bg-gray-900/60 border border-gray-700 rounded-lg">
-                      <span className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0" />
+                      <span className="w-2 h-2 rounded-full bg-green-500 shrink-0" />
                       <span className="text-xs text-gray-400">現在選択中:</span>
                       <span className="text-xs font-medium text-gray-200 font-mono">{form.ai_autonomous_model}</span>
                     </div>
                   )}
 
                   <div className="flex items-center gap-2 mb-3 px-3 py-2 bg-gray-900/60 border border-gray-700 rounded-lg">
-                    <Bot className="w-3.5 h-3.5 text-purple-400 flex-shrink-0" />
+                    <Bot className="w-3.5 h-3.5 text-purple-400 shrink-0" />
                     <span className="text-[11px] text-gray-400">
                       プロバイダー: <span className="text-gray-200 font-medium">Anthropic (Claude)</span>
                       <span className="text-gray-600 ml-2">— OpenAI / Google / Ollama は自律調査では未対応</span>
@@ -754,7 +754,7 @@ export default function SystemSettingsPage() {
                         >
                           <div className="flex items-center justify-between mb-1.5">
                             <div className="flex items-center gap-2">
-                              <span className={`w-3 h-3 rounded-full border-2 flex-shrink-0 transition-colors ${
+                              <span className={`w-3 h-3 rounded-full border-2 shrink-0 transition-colors ${
                                 selected ? `${m.borderCls} bg-gray-700` : 'border-gray-600'
                               }`} />
                               <span className="text-sm font-semibold text-gray-100">{m.name}</span>
@@ -767,7 +767,7 @@ export default function SystemSettingsPage() {
                           <p className="text-xs text-gray-400 mb-2 ml-5 leading-relaxed">{m.desc}</p>
                           <div className="flex flex-wrap gap-1 ml-5">
                             {m.tags.map(t => (
-                              <span key={t} className="text-[10px] text-gray-500 bg-gray-900/60 border border-gray-700 px-1.5 py-0.5 rounded">
+                              <span key={t} className="text-[10px] text-gray-500 bg-gray-900/60 border border-gray-700 px-1.5 py-0.5 rounded-sm">
                                 {t}
                               </span>
                             ))}
@@ -818,7 +818,7 @@ export default function SystemSettingsPage() {
                   value={form.ai_autonomous_language}
                   onChange={e => setField('ai_autonomous_language', e.target.value)}
                   className="px-3 py-1.5 bg-gray-700 border border-gray-600 rounded-lg text-sm text-white
-                             focus:outline-none focus:border-blue-500"
+                             focus:outline-hidden focus:border-blue-500"
                 >
                   <option value="ja">日本語</option>
                   <option value="en">English</option>
@@ -839,7 +839,7 @@ export default function SystemSettingsPage() {
 
               {form.ai_autonomous_auto_response && (
                 <div className="flex items-start gap-3 p-3 rounded-lg bg-yellow-900/20 border border-yellow-700/40">
-                  <AlertTriangle className="w-4 h-4 text-yellow-400 flex-shrink-0 mt-0.5" />
+                  <AlertTriangle className="w-4 h-4 text-yellow-400 shrink-0 mt-0.5" />
                   <p className="text-xs text-yellow-300/80">
                     自動対応アクションの提案を有効にすると、AIがエンドポイントの隔離やプロセス停止を推奨する場合があります。
                     実際の実行には別途承認が必要です。
@@ -858,7 +858,7 @@ export default function SystemSettingsPage() {
                             ${form.maintenance_mode
                               ? 'border-red-500/60 bg-red-900/20'
                               : 'border-gray-700 bg-gray-700/20'}">
-              <div className={`w-14 h-14 rounded-full flex items-center justify-center flex-shrink-0 ${
+              <div className={`w-14 h-14 rounded-full flex items-center justify-center shrink-0 ${
                 form.maintenance_mode ? 'bg-red-900/50' : 'bg-gray-700/50'
               }`}>
                 {form.maintenance_mode
@@ -893,13 +893,13 @@ export default function SystemSettingsPage() {
                 onChange={e => setField('maintenance_message', e.target.value)}
                 rows={3}
                 className="w-full px-3 py-2.5 bg-gray-700/50 border border-gray-600 rounded-lg text-sm text-gray-200
-                           focus:outline-none focus:border-blue-500 resize-none"
+                           focus:outline-hidden focus:border-blue-500 resize-none"
               />
             </div>
 
             {/* Warning notice */}
             <div className="flex items-start gap-3 p-3 rounded-lg bg-yellow-900/20 border border-yellow-700/40">
-              <AlertTriangle className="w-4 h-4 text-yellow-400 flex-shrink-0 mt-0.5" />
+              <AlertTriangle className="w-4 h-4 text-yellow-400 shrink-0 mt-0.5" />
               <p className="text-xs text-yellow-300/80">
                 メンテナンスモードを有効にすると、管理者以外のすべてのユーザーがシステムにアクセスできなくなります。
                 本番環境での使用には十分注意してください。

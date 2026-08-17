@@ -303,7 +303,9 @@ describe('Sidebar', () => {
     // (see '現在のパスに一致するグループが初期状態で開いていること' above) —
     // no click needed, and clicking '検知' again would toggle it closed.
     const link = screen.getByText('アラート').closest('a')
-    expect(link?.className).toContain('bg-[#1d2f4a]')
+    // bg-falcon-active === #1d2f4a。Tailwind v4 移行で任意値クラスがテーマ
+    // トークン名に正規化された（出力される CSS は同じ）。
+    expect(link?.className).toContain('bg-falcon-active')
   })
 
   it('機能ロックされた項目にロックアイコンが表示され、タイトルにその旨が示されること', async () => {

@@ -272,10 +272,10 @@ export default function ScheduledReportsPage() {
             <div className="flex items-start justify-between gap-4 flex-wrap">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap mb-2">
-                  <span className={`text-xs font-medium px-2 py-0.5 rounded border ${REPORT_TYPE_COLORS[schedule.report_type]}`}>
+                  <span className={`text-xs font-medium px-2 py-0.5 rounded-sm border ${REPORT_TYPE_COLORS[schedule.report_type]}`}>
                     {REPORT_TYPE_LABELS[schedule.report_type]}
                   </span>
-                  <span className={`text-xs font-medium px-2 py-0.5 rounded border ${FORMAT_COLORS[schedule.format]}`}>
+                  <span className={`text-xs font-medium px-2 py-0.5 rounded-sm border ${FORMAT_COLORS[schedule.format]}`}>
                     {schedule.format.toUpperCase()}
                   </span>
                 </div>
@@ -348,7 +348,7 @@ export default function ScheduledReportsPage() {
 
       {/* Create Modal */}
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
           <div className="bg-zinc-900 border border-zinc-800 rounded-2xl w-full max-w-lg shadow-2xl max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between p-5 border-b border-zinc-800">
               <h2 className="text-lg font-semibold text-zinc-100">Create Schedule</h2>
@@ -366,7 +366,7 @@ export default function ScheduledReportsPage() {
                   value={form.name}
                   onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
                   placeholder="e.g. Weekly Executive Summary"
-                  className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-indigo-500"
+                  className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-zinc-100 placeholder-zinc-500 focus:outline-hidden focus:border-indigo-500"
                 />
               </div>
 
@@ -376,7 +376,7 @@ export default function ScheduledReportsPage() {
                 <select
                   value={form.report_type}
                   onChange={e => setForm(f => ({ ...f, report_type: e.target.value as ReportType }))}
-                  className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-zinc-100 focus:outline-none focus:border-indigo-500"
+                  className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-zinc-100 focus:outline-hidden focus:border-indigo-500"
                 >
                   {(Object.keys(REPORT_TYPE_LABELS) as ReportType[]).map(k => (
                     <option key={k} value={k}>{REPORT_TYPE_LABELS[k]}</option>
@@ -408,7 +408,7 @@ export default function ScheduledReportsPage() {
                     value={form.custom_cron}
                     onChange={e => setForm(f => ({ ...f, custom_cron: e.target.value }))}
                     placeholder="e.g. 0 9 * * FRI"
-                    className="mt-2 w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-sm font-mono text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-indigo-500"
+                    className="mt-2 w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-sm font-mono text-zinc-100 placeholder-zinc-500 focus:outline-hidden focus:border-indigo-500"
                   />
                 )}
               </div>
@@ -443,7 +443,7 @@ export default function ScheduledReportsPage() {
                     onChange={e => setForm(f => ({ ...f, recipient_input: e.target.value }))}
                     onKeyDown={e => e.key === 'Enter' && addRecipient()}
                     placeholder="email@company.com"
-                    className="flex-1 px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-indigo-500"
+                    className="flex-1 px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-zinc-100 placeholder-zinc-500 focus:outline-hidden focus:border-indigo-500"
                   />
                   <button
                     onClick={addRecipient}

@@ -261,42 +261,42 @@ function SaveModal({ initial, onClose, onSave }: SaveModalProps) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg w-full max-w-lg p-6 shadow-2xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs">
+      <div className="bg-falcon-surface border border-falcon-border rounded-lg w-full max-w-lg p-6 shadow-2xl">
         <div className="flex items-center justify-between mb-5">
           <h3 className="text-white font-semibold text-base">
             {initial ? '検索を編集' : '検索を保存'}
           </h3>
-          <button onClick={onClose} className="text-[#7d92b0] hover:text-white transition-colors">
+          <button onClick={onClose} className="text-falcon-muted hover:text-white transition-colors">
             <X className="w-4 h-4" />
           </button>
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="text-[#7d92b0] text-xs font-medium block mb-1.5">名前 *</label>
+            <label className="text-falcon-muted text-xs font-medium block mb-1.5">名前 *</label>
             <input
               required
               value={name}
               onChange={e => setName(e.target.value)}
-              className="w-full bg-[#070d19] border border-[#1e2d42] rounded px-3 py-2 text-sm text-[#e2e8f4] focus:outline-none focus:border-[#3d5068] placeholder-[#3d5068]"
+              className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-sm text-falcon-text focus:outline-hidden focus:border-falcon-subtle placeholder-falcon-subtle"
               placeholder="検索名を入力"
             />
           </div>
           <div>
-            <label className="text-[#7d92b0] text-xs font-medium block mb-1.5">説明</label>
+            <label className="text-falcon-muted text-xs font-medium block mb-1.5">説明</label>
             <input
               value={description}
               onChange={e => setDescription(e.target.value)}
-              className="w-full bg-[#070d19] border border-[#1e2d42] rounded px-3 py-2 text-sm text-[#e2e8f4] focus:outline-none focus:border-[#3d5068] placeholder-[#3d5068]"
+              className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-sm text-falcon-text focus:outline-hidden focus:border-falcon-subtle placeholder-falcon-subtle"
               placeholder="任意の説明"
             />
           </div>
           <div>
-            <label className="text-[#7d92b0] text-xs font-medium block mb-1.5">スコープ</label>
+            <label className="text-falcon-muted text-xs font-medium block mb-1.5">スコープ</label>
             <select
               value={scope}
               onChange={e => setScope(e.target.value as Scope)}
-              className="w-full bg-[#070d19] border border-[#1e2d42] rounded px-3 py-2 text-sm text-[#e2e8f4] focus:outline-none focus:border-[#3d5068]"
+              className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-sm text-falcon-text focus:outline-hidden focus:border-falcon-subtle"
             >
               {(Object.keys(SCOPE_LABELS) as Scope[]).map(s => (
                 <option key={s} value={s}>{SCOPE_LABELS[s]}</option>
@@ -304,21 +304,21 @@ function SaveModal({ initial, onClose, onSave }: SaveModalProps) {
             </select>
           </div>
           <div>
-            <label className="text-[#7d92b0] text-xs font-medium block mb-1.5">クエリ文字列</label>
+            <label className="text-falcon-muted text-xs font-medium block mb-1.5">クエリ文字列</label>
             <textarea
               value={query}
               onChange={e => setQuery(e.target.value)}
               rows={3}
-              className="w-full bg-[#070d19] border border-[#1e2d42] rounded px-3 py-2 text-sm text-[#e2e8f4] font-mono focus:outline-none focus:border-[#3d5068] placeholder-[#3d5068] resize-none"
+              className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-sm text-falcon-text font-mono focus:outline-hidden focus:border-falcon-subtle placeholder-falcon-subtle resize-none"
               placeholder="例: severity>=9 status=open"
             />
           </div>
           <div>
-            <label className="text-[#7d92b0] text-xs font-medium block mb-1.5">タグ (カンマ区切り)</label>
+            <label className="text-falcon-muted text-xs font-medium block mb-1.5">タグ (カンマ区切り)</label>
             <input
               value={tags}
               onChange={e => setTags(e.target.value)}
-              className="w-full bg-[#070d19] border border-[#1e2d42] rounded px-3 py-2 text-sm text-[#e2e8f4] focus:outline-none focus:border-[#3d5068] placeholder-[#3d5068]"
+              className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-sm text-falcon-text focus:outline-hidden focus:border-falcon-subtle placeholder-falcon-subtle"
               placeholder="例: daily, critical, team"
             />
           </div>
@@ -326,23 +326,23 @@ function SaveModal({ initial, onClose, onSave }: SaveModalProps) {
             <button
               type="button"
               onClick={() => setShared(!shared)}
-              className={`relative w-10 h-5 rounded-full transition-colors ${shared ? 'bg-[#e8002d]' : 'bg-[#1e2d42]'}`}
+              className={`relative w-10 h-5 rounded-full transition-colors ${shared ? 'bg-falcon-red' : 'bg-falcon-border'}`}
             >
-              <span className={`absolute top-0.5 w-4 h-4 bg-[#e2e8f4] rounded-full transition-transform ${shared ? 'translate-x-5' : 'translate-x-0.5'}`} />
+              <span className={`absolute top-0.5 w-4 h-4 bg-falcon-text rounded-full transition-transform ${shared ? 'translate-x-5' : 'translate-x-0.5'}`} />
             </button>
-            <span className="text-[#7d92b0] text-sm">チームと共有</span>
+            <span className="text-falcon-muted text-sm">チームと共有</span>
           </div>
           <div className="flex gap-3 pt-2">
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-2 rounded border border-[#1e2d42] text-[#7d92b0] hover:text-white hover:border-[#3d5068] text-sm transition-colors"
+              className="flex-1 px-4 py-2 rounded-sm border border-falcon-border text-falcon-muted hover:text-white hover:border-falcon-subtle text-sm transition-colors"
             >
               キャンセル
             </button>
             <button
               type="submit"
-              className="flex-1 px-4 py-2 rounded bg-[#e8002d] hover:bg-[#c0001f] text-white text-sm font-medium transition-colors"
+              className="flex-1 px-4 py-2 rounded-sm bg-falcon-red hover:bg-[#c0001f] text-white text-sm font-medium transition-colors"
             >
               {initial ? '更新' : '保存'}
             </button>
@@ -361,30 +361,30 @@ interface DeleteConfirmProps {
 
 function DeleteConfirm({ name, onClose, onConfirm }: DeleteConfirmProps) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg w-full max-w-sm p-6 shadow-2xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs">
+      <div className="bg-falcon-surface border border-falcon-border rounded-lg w-full max-w-sm p-6 shadow-2xl">
         <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 rounded-full bg-red-500/20 flex items-center justify-center flex-shrink-0">
+          <div className="w-10 h-10 rounded-full bg-red-500/20 flex items-center justify-center shrink-0">
             <Trash2 className="w-5 h-5 text-red-400" />
           </div>
           <div>
             <h3 className="text-white font-semibold text-sm">検索を削除</h3>
-            <p className="text-[#7d92b0] text-xs mt-0.5">この操作は元に戻せません</p>
+            <p className="text-falcon-muted text-xs mt-0.5">この操作は元に戻せません</p>
           </div>
         </div>
-        <p className="text-[#7d92b0] text-sm mb-5">
+        <p className="text-falcon-muted text-sm mb-5">
           <span className="text-white font-medium">{name}</span> を削除しますか？
         </p>
         <div className="flex gap-3">
           <button
             onClick={onClose}
-            className="flex-1 px-4 py-2 rounded border border-[#1e2d42] text-[#7d92b0] hover:text-white text-sm transition-colors"
+            className="flex-1 px-4 py-2 rounded-sm border border-falcon-border text-falcon-muted hover:text-white text-sm transition-colors"
           >
             キャンセル
           </button>
           <button
             onClick={onConfirm}
-            className="flex-1 px-4 py-2 rounded bg-[#e8002d] hover:bg-[#c0001f] text-white text-sm font-medium transition-colors"
+            className="flex-1 px-4 py-2 rounded-sm bg-falcon-red hover:bg-[#c0001f] text-white text-sm font-medium transition-colors"
           >
             削除
           </button>
@@ -513,12 +513,12 @@ export default function SavedSearchPage() {
       {/* Header */}
       <div className="mb-6">
         <div className="flex items-center gap-3 mb-1">
-          <div className="w-8 h-8 rounded bg-[#e8002d]/20 flex items-center justify-center">
-            <BookmarkCheck className="w-4 h-4 text-[#e8002d]" />
+          <div className="w-8 h-8 rounded-sm bg-falcon-red/20 flex items-center justify-center">
+            <BookmarkCheck className="w-4 h-4 text-falcon-red" />
           </div>
           <h1 className="text-xl font-bold text-white">保存済み検索</h1>
         </div>
-        <p className="text-[#7d92b0] text-sm ml-11">カスタムフィルターの保存・管理・共有</p>
+        <p className="text-falcon-muted text-sm ml-11">カスタムフィルターの保存・管理・共有</p>
       </div>
 
       {/* Stats Row */}
@@ -542,13 +542,13 @@ export default function SavedSearchPage() {
             color: 'text-amber-400',
           },
         ].map(({ label, value, icon: Icon, color }) => (
-          <div key={label} className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-4 flex items-center gap-3">
-            <div className={`w-9 h-9 rounded bg-[#1e2d42] flex items-center justify-center flex-shrink-0`}>
+          <div key={label} className="bg-falcon-surface border border-falcon-border rounded-lg p-4 flex items-center gap-3">
+            <div className={`w-9 h-9 rounded-sm bg-falcon-border flex items-center justify-center shrink-0`}>
               <Icon className={`w-4 h-4 ${color}`} />
             </div>
             <div>
               <p className="text-white font-bold text-lg leading-none">{value}</p>
-              <p className="text-[#7d92b0] text-xs mt-1">{label}</p>
+              <p className="text-falcon-muted text-xs mt-1">{label}</p>
             </div>
           </div>
         ))}
@@ -557,37 +557,37 @@ export default function SavedSearchPage() {
       {/* Quick System Filters */}
       <div className="mb-6">
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-[#e2e8f4] font-semibold text-sm">クイックフィルター</h2>
-          <span className="text-[#7d92b0] text-xs">システム定義の検索</span>
+          <h2 className="text-falcon-text font-semibold text-sm">クイックフィルター</h2>
+          <span className="text-falcon-muted text-xs">システム定義の検索</span>
         </div>
         <div className="grid grid-cols-3 gap-3">
           {systemFilters.map(f => {
             const ScopeIcon = SCOPE_ICONS[f.scope]
             return (
-              <div key={f.id} className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-4 flex flex-col gap-2 hover:border-[#3d5068] transition-colors group">
+              <div key={f.id} className="bg-falcon-surface border border-falcon-border rounded-lg p-4 flex flex-col gap-2 hover:border-falcon-subtle transition-colors group">
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-2">
-                    <ScopeIcon className="w-4 h-4 text-[#7d92b0]" />
-                    <span className={`text-[10px] px-1.5 py-0.5 rounded border ${SCOPE_COLORS[f.scope]} font-medium`}>
+                    <ScopeIcon className="w-4 h-4 text-falcon-muted" />
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded-sm border ${SCOPE_COLORS[f.scope]} font-medium`}>
                       {SCOPE_LABELS[f.scope]}
                     </span>
                   </div>
                   <button
                     onClick={() => handleToggleFavorite(f.id)}
-                    className={`transition-colors ${f.favorited ? 'text-amber-400' : 'text-[#3d5068] group-hover:text-[#7d92b0]'}`}
+                    className={`transition-colors ${f.favorited ? 'text-amber-400' : 'text-falcon-subtle group-hover:text-falcon-muted'}`}
                     title="お気に入り"
                   >
                     <Star className="w-4 h-4" fill={f.favorited ? 'currentColor' : 'none'} />
                   </button>
                 </div>
-                <p className="text-[#e2e8f4] text-sm font-medium">{f.name}</p>
-                <p className="text-[#7d92b0] text-xs">{f.description}</p>
-                <code className="text-[#7d92b0] text-[10px] font-mono bg-[#070d19] px-2 py-1 rounded border border-[#1e2d42] truncate block">
+                <p className="text-falcon-text text-sm font-medium">{f.name}</p>
+                <p className="text-falcon-muted text-xs">{f.description}</p>
+                <code className="text-falcon-muted text-[10px] font-mono bg-[#070d19] px-2 py-1 rounded-sm border border-falcon-border truncate block">
                   {f.query}
                 </code>
                 <button
                   onClick={() => handleRunSystem(f)}
-                  className="mt-auto w-full py-1.5 rounded bg-[#1e2d42] hover:bg-[#e8002d] text-[#7d92b0] hover:text-white text-xs font-medium transition-colors flex items-center justify-center gap-1.5"
+                  className="mt-auto w-full py-1.5 rounded-sm bg-falcon-border hover:bg-falcon-red text-falcon-muted hover:text-white text-xs font-medium transition-colors flex items-center justify-center gap-1.5"
                 >
                   <Play className="w-3 h-3" />
                   実行
@@ -599,11 +599,11 @@ export default function SavedSearchPage() {
       </div>
 
       {/* Saved Searches */}
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg">
+      <div className="bg-falcon-surface border border-falcon-border rounded-lg">
         {/* Toolbar */}
-        <div className="flex items-center justify-between gap-3 p-4 border-b border-[#1e2d42]">
-          <h2 className="text-[#e2e8f4] font-semibold text-sm flex items-center gap-2">
-            <BookmarkCheck className="w-4 h-4 text-[#e8002d]" />
+        <div className="flex items-center justify-between gap-3 p-4 border-b border-falcon-border">
+          <h2 className="text-falcon-text font-semibold text-sm flex items-center gap-2">
+            <BookmarkCheck className="w-4 h-4 text-falcon-red" />
             保存済み検索一覧
           </h2>
           <div className="flex items-center gap-2">
@@ -612,44 +612,44 @@ export default function SavedSearchPage() {
               <select
                 value={scopeFilter}
                 onChange={e => setScopeFilter(e.target.value as Scope | 'all')}
-                className="appearance-none bg-[#070d19] border border-[#1e2d42] rounded px-3 py-1.5 text-xs text-[#7d92b0] focus:outline-none focus:border-[#3d5068] pr-7"
+                className="appearance-none bg-[#070d19] border border-falcon-border rounded-sm px-3 py-1.5 text-xs text-falcon-muted focus:outline-hidden focus:border-falcon-subtle pr-7"
               >
                 <option value="all">全スコープ</option>
                 {(Object.keys(SCOPE_LABELS) as Scope[]).map(s => (
                   <option key={s} value={s}>{SCOPE_LABELS[s]}</option>
                 ))}
               </select>
-              <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-[#3d5068] pointer-events-none" />
+              <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-falcon-subtle pointer-events-none" />
             </div>
             {/* Owner filter */}
             <div className="relative">
               <select
                 value={ownerFilter}
                 onChange={e => setOwnerFilter(e.target.value as OwnerFilter)}
-                className="appearance-none bg-[#070d19] border border-[#1e2d42] rounded px-3 py-1.5 text-xs text-[#7d92b0] focus:outline-none focus:border-[#3d5068] pr-7"
+                className="appearance-none bg-[#070d19] border border-falcon-border rounded-sm px-3 py-1.5 text-xs text-falcon-muted focus:outline-hidden focus:border-falcon-subtle pr-7"
               >
                 <option value="all">全員</option>
                 <option value="mine">自分</option>
                 <option value="team">チーム共有</option>
               </select>
-              <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-[#3d5068] pointer-events-none" />
+              <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-falcon-subtle pointer-events-none" />
             </div>
             {/* Sort */}
             <div className="relative">
               <select
                 value={sortBy}
                 onChange={e => setSortBy(e.target.value as SortBy)}
-                className="appearance-none bg-[#070d19] border border-[#1e2d42] rounded px-3 py-1.5 text-xs text-[#7d92b0] focus:outline-none focus:border-[#3d5068] pr-7"
+                className="appearance-none bg-[#070d19] border border-falcon-border rounded-sm px-3 py-1.5 text-xs text-falcon-muted focus:outline-hidden focus:border-falcon-subtle pr-7"
               >
                 <option value="newest">新着順</option>
                 <option value="most_used">使用回数</option>
                 <option value="name">名前順</option>
               </select>
-              <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-[#3d5068] pointer-events-none" />
+              <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-falcon-subtle pointer-events-none" />
             </div>
             <button
               onClick={() => setShowSaveModal(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded bg-[#e8002d] hover:bg-[#c0001f] text-white text-xs font-medium transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-sm bg-falcon-red hover:bg-[#c0001f] text-white text-xs font-medium transition-colors"
             >
               <Plus className="w-3 h-3" />
               検索を保存
@@ -658,11 +658,11 @@ export default function SavedSearchPage() {
         </div>
 
         {/* List */}
-        <div className="divide-y divide-[#1e2d42]">
+        <div className="divide-y divide-falcon-border">
           {filtered.length === 0 && (
             <div className="py-12 text-center">
-              <Search className="w-8 h-8 text-[#3d5068] mx-auto mb-2" />
-              <p className="text-[#7d92b0] text-sm">該当する保存済み検索がありません</p>
+              <Search className="w-8 h-8 text-falcon-subtle mx-auto mb-2" />
+              <p className="text-falcon-muted text-sm">該当する保存済み検索がありません</p>
             </div>
           )}
           {filtered.map(s => {
@@ -670,44 +670,44 @@ export default function SavedSearchPage() {
             return (
               <div key={s.id} className="p-4 flex items-center gap-4 hover:bg-[#0a1525] transition-colors group">
                 {/* Scope icon */}
-                <div className="w-9 h-9 rounded bg-[#1e2d42] flex items-center justify-center flex-shrink-0">
-                  <ScopeIcon className="w-4 h-4 text-[#7d92b0]" />
+                <div className="w-9 h-9 rounded-sm bg-falcon-border flex items-center justify-center shrink-0">
+                  <ScopeIcon className="w-4 h-4 text-falcon-muted" />
                 </div>
                 {/* Info */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="text-[#e2e8f4] text-sm font-medium">{s.name}</span>
-                    <span className={`text-[10px] px-1.5 py-0.5 rounded border ${SCOPE_COLORS[s.scope]} font-medium`}>
+                    <span className="text-falcon-text text-sm font-medium">{s.name}</span>
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded-sm border ${SCOPE_COLORS[s.scope]} font-medium`}>
                       {SCOPE_LABELS[s.scope]}
                     </span>
                     {s.shared && (
-                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-medium flex items-center gap-1">
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-sm bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-medium flex items-center gap-1">
                         <Users className="w-2.5 h-2.5" />共有
                       </span>
                     )}
                   </div>
                   {s.description && (
-                    <p className="text-[#7d92b0] text-xs mb-1.5">{s.description}</p>
+                    <p className="text-falcon-muted text-xs mb-1.5">{s.description}</p>
                   )}
-                  <code className="text-[#7d92b0] text-[11px] font-mono bg-[#070d19] px-2 py-0.5 rounded border border-[#1e2d42] truncate inline-block max-w-lg">
+                  <code className="text-falcon-muted text-[11px] font-mono bg-[#070d19] px-2 py-0.5 rounded-sm border border-falcon-border truncate inline-block max-w-lg">
                     {s.query}
                   </code>
                   <div className="flex items-center gap-3 mt-1.5">
                     {/* Owner avatar */}
                     <div className="flex items-center gap-1">
-                      <div className="w-4 h-4 rounded-full bg-[#1a6bff] flex items-center justify-center">
+                      <div className="w-4 h-4 rounded-full bg-falcon-blue flex items-center justify-center">
                         <span className="text-[8px] font-bold text-white">{s.owner_initial}</span>
                       </div>
-                      <span className="text-[#3d5068] text-[10px]">{s.owner}</span>
+                      <span className="text-falcon-subtle text-[10px]">{s.owner}</span>
                     </div>
-                    <span className="text-[#3d5068] text-[10px] flex items-center gap-1">
+                    <span className="text-falcon-subtle text-[10px] flex items-center gap-1">
                       <Clock className="w-3 h-3" />{formatRelative(s.last_used)}
                     </span>
-                    <span className="text-[#3d5068] text-[10px] flex items-center gap-1">
+                    <span className="text-falcon-subtle text-[10px] flex items-center gap-1">
                       <BarChart2 className="w-3 h-3" />{s.use_count}回使用
                     </span>
                     {s.tags.map(t => (
-                      <span key={t} className="text-[#3d5068] text-[10px] px-1.5 py-0.5 rounded bg-[#1e2d42]">{t}</span>
+                      <span key={t} className="text-falcon-subtle text-[10px] px-1.5 py-0.5 rounded-sm bg-falcon-border">{t}</span>
                     ))}
                   </div>
                 </div>
@@ -716,28 +716,28 @@ export default function SavedSearchPage() {
                   <button
                     onClick={() => handleRun(s)}
                     title="実行"
-                    className="flex items-center gap-1 px-2.5 py-1.5 rounded bg-[#e8002d]/20 hover:bg-[#e8002d] text-[#e8002d] hover:text-white text-xs font-medium transition-colors"
+                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-sm bg-falcon-red/20 hover:bg-falcon-red text-falcon-red hover:text-white text-xs font-medium transition-colors"
                   >
                     <Play className="w-3 h-3" />実行
                   </button>
                   <button
                     onClick={() => handleToggleShare(s.id)}
                     title={s.shared ? '共有を解除' : '共有する'}
-                    className={`p-1.5 rounded transition-colors ${s.shared ? 'bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/40' : 'bg-[#1e2d42] text-[#7d92b0] hover:text-white'}`}
+                    className={`p-1.5 rounded-sm transition-colors ${s.shared ? 'bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/40' : 'bg-falcon-border text-falcon-muted hover:text-white'}`}
                   >
                     <Share2 className="w-3.5 h-3.5" />
                   </button>
                   <button
                     onClick={() => setEditTarget(s)}
                     title="編集"
-                    className="p-1.5 rounded bg-[#1e2d42] text-[#7d92b0] hover:text-white transition-colors"
+                    className="p-1.5 rounded-sm bg-falcon-border text-falcon-muted hover:text-white transition-colors"
                   >
                     <Edit2 className="w-3.5 h-3.5" />
                   </button>
                   <button
                     onClick={() => setDeleteTarget(s)}
                     title="削除"
-                    className="p-1.5 rounded bg-[#1e2d42] text-[#7d92b0] hover:text-red-400 transition-colors"
+                    className="p-1.5 rounded-sm bg-falcon-border text-falcon-muted hover:text-red-400 transition-colors"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>

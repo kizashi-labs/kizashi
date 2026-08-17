@@ -51,7 +51,7 @@ function getStatus(flag: FeatureFlag): 'enabled' | 'disabled' | 'partial' {
 const STATUS_LABELS = { enabled: '有効', disabled: '無効', partial: '部分展開' }
 const STATUS_COLORS = {
   enabled: 'bg-green-500/10 text-green-400 border-green-500/30',
-  disabled: 'bg-red-500/10 text-[#e8002d] border-red-500/30',
+  disabled: 'bg-red-500/10 text-falcon-red border-red-500/30',
   partial: 'bg-yellow-500/10 text-yellow-400 border-yellow-500/30',
 }
 
@@ -68,7 +68,7 @@ function DonutChart({ pct }: { pct: number }) {
   const circ = 2 * Math.PI * r
   const dash = (pct / 100) * circ
   return (
-    <svg width={52} height={52} viewBox="0 0 52 52" className="rotate-[-90deg]">
+    <svg width={52} height={52} viewBox="0 0 52 52" className="-rotate-90">
       <circle cx={26} cy={26} r={r} fill="none" stroke="#1e2d42" strokeWidth={6} />
       <circle
         cx={26} cy={26} r={r} fill="none"
@@ -92,11 +92,11 @@ function DonutChart({ pct }: { pct: number }) {
 
 function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl w-full max-w-lg shadow-2xl">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-[#1e2d42]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-xs p-4">
+      <div className="bg-falcon-surface border border-falcon-border rounded-xl w-full max-w-lg shadow-2xl">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-falcon-border">
           <h3 className="text-sm font-semibold text-white">{title}</h3>
-          <button onClick={onClose} className="text-[#7d92b0] hover:text-white transition-colors">
+          <button onClick={onClose} className="text-falcon-muted hover:text-white transition-colors">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -161,58 +161,58 @@ function FlagForm({
     <div className="space-y-4">
       {/* Name */}
       <div>
-        <label className="block text-xs text-[#7d92b0] mb-1">フラグ名 <span className="text-[#e8002d]">*</span></label>
+        <label className="block text-xs text-falcon-muted mb-1">フラグ名 <span className="text-falcon-red">*</span></label>
         <input
           value={form.name}
           onChange={e => set('name', e.target.value)}
           placeholder="my_feature_flag"
-          className="w-full bg-[#070d19] border border-[#1e2d42] rounded px-3 py-2 text-sm text-white font-mono placeholder-[#3d5068] focus:outline-none focus:border-[#e8002d]/50"
+          className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-sm text-white font-mono placeholder-falcon-subtle focus:outline-hidden focus:border-falcon-red/50"
         />
-        {nameError && <p className="text-xs text-[#e8002d] mt-1">{nameError}</p>}
+        {nameError && <p className="text-xs text-falcon-red mt-1">{nameError}</p>}
       </div>
 
       {/* Description */}
       <div>
-        <label className="block text-xs text-[#7d92b0] mb-1">説明</label>
+        <label className="block text-xs text-falcon-muted mb-1">説明</label>
         <input
           value={form.description}
           onChange={e => set('description', e.target.value)}
           placeholder="機能の説明"
-          className="w-full bg-[#070d19] border border-[#1e2d42] rounded px-3 py-2 text-sm text-white placeholder-[#3d5068] focus:outline-none focus:border-[#e8002d]/50"
+          className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-sm text-white placeholder-falcon-subtle focus:outline-hidden focus:border-falcon-red/50"
         />
       </div>
 
       {/* Enabled toggle */}
       <div className="flex items-center justify-between">
-        <span className="text-xs text-[#7d92b0]">有効化</span>
+        <span className="text-xs text-falcon-muted">有効化</span>
         <button
           type="button"
           onClick={() => set('enabled', !form.enabled)}
-          className={`relative w-11 h-6 rounded-full transition-colors ${form.enabled ? 'bg-green-500' : 'bg-[#1e2d42]'}`}
+          className={`relative w-11 h-6 rounded-full transition-colors ${form.enabled ? 'bg-green-500' : 'bg-falcon-border'}`}
         >
-          <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-[#e2e8f4] shadow transition-transform ${form.enabled ? 'translate-x-5' : ''}`} />
+          <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-falcon-text shadow-sm transition-transform ${form.enabled ? 'translate-x-5' : ''}`} />
         </button>
       </div>
 
       {/* Rollout slider */}
       <div>
-        <label className="block text-xs text-[#7d92b0] mb-2">
+        <label className="block text-xs text-falcon-muted mb-2">
           ロールアウト率 — <span className="text-white font-medium">{form.rollout_percentage}% のユーザーに有効</span>
         </label>
         <input
           type="range" min={0} max={100}
           value={form.rollout_percentage}
           onChange={e => set('rollout_percentage', Number(e.target.value))}
-          className="w-full accent-[#e8002d]"
+          className="w-full accent-falcon-red"
         />
-        <div className="flex justify-between text-[10px] text-[#3d5068] mt-0.5">
+        <div className="flex justify-between text-[10px] text-falcon-subtle mt-0.5">
           <span>0%</span><span>50%</span><span>100%</span>
         </div>
       </div>
 
       {/* Target roles */}
       <div>
-        <label className="block text-xs text-[#7d92b0] mb-2">対象ロール</label>
+        <label className="block text-xs text-falcon-muted mb-2">対象ロール</label>
         <div className="flex gap-3">
           {ROLES.map(role => (
             <label key={role} className="flex items-center gap-1.5 cursor-pointer">
@@ -220,9 +220,9 @@ function FlagForm({
                 type="checkbox"
                 checked={form.target_roles.includes(role)}
                 onChange={() => toggleRole(role)}
-                className="accent-[#e8002d]"
+                className="accent-falcon-red"
               />
-              <span className="text-xs text-[#e2e8f4]">{role}</span>
+              <span className="text-xs text-falcon-text">{role}</span>
             </label>
           ))}
         </div>
@@ -230,27 +230,27 @@ function FlagForm({
 
       {/* Metadata */}
       <div>
-        <label className="block text-xs text-[#7d92b0] mb-1">メタデータ (JSON, 任意)</label>
+        <label className="block text-xs text-falcon-muted mb-1">メタデータ (JSON, 任意)</label>
         <textarea
           value={form.metadata}
           onChange={e => set('metadata', e.target.value)}
           rows={3}
           placeholder='{"key": "value"}'
-          className="w-full bg-[#070d19] border border-[#1e2d42] rounded px-3 py-2 text-xs text-white font-mono placeholder-[#3d5068] focus:outline-none focus:border-[#e8002d]/50 resize-none"
+          className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-xs text-white font-mono placeholder-falcon-subtle focus:outline-hidden focus:border-falcon-red/50 resize-none"
         />
       </div>
 
       <div className="flex gap-2 justify-end pt-2">
         <button
           onClick={onCancel}
-          className="px-4 py-2 text-xs text-[#7d92b0] hover:text-white border border-[#1e2d42] rounded hover:border-[#7d92b0]/40 transition-colors"
+          className="px-4 py-2 text-xs text-falcon-muted hover:text-white border border-falcon-border rounded-sm hover:border-falcon-muted/40 transition-colors"
         >
           キャンセル
         </button>
         <button
           onClick={handleSubmit}
           disabled={submitting}
-          className="px-4 py-2 text-xs text-white bg-[#e8002d] hover:bg-[#c8001f] rounded transition-colors disabled:opacity-50"
+          className="px-4 py-2 text-xs text-white bg-falcon-red hover:bg-[#c8001f] rounded-sm transition-colors disabled:opacity-50"
         >
           {submitting ? '保存中...' : '保存'}
         </button>
@@ -373,8 +373,8 @@ export default function FeatureFlagsPage() {
   // ── Render helpers ────────────────────────────────────────────
 
   const StatCard = ({ label, value, color }: { label: string; value: number; color: string }) => (
-    <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-4">
-      <p className="text-[#7d92b0] text-xs mb-1">{label}</p>
+    <div className="bg-falcon-surface border border-falcon-border rounded-lg p-4">
+      <p className="text-falcon-muted text-xs mb-1">{label}</p>
       <p className={`text-2xl font-bold ${color}`}>{value}</p>
     </div>
   )
@@ -388,10 +388,10 @@ export default function FeatureFlagsPage() {
         <td className="px-4 py-3">
           <span className="font-mono text-sm text-white">{flag.name}</span>
           {flag.protected && (
-            <span className="ml-2 text-[9px] px-1.5 py-0.5 rounded bg-[#e8002d]/10 text-[#e8002d] border border-[#e8002d]/20 uppercase">保護</span>
+            <span className="ml-2 text-[9px] px-1.5 py-0.5 rounded-sm bg-falcon-red/10 text-falcon-red border border-falcon-red/20 uppercase">保護</span>
           )}
         </td>
-        <td className="px-4 py-3 text-xs text-[#7d92b0] max-w-[200px] truncate">{flag.description}</td>
+        <td className="px-4 py-3 text-xs text-falcon-muted max-w-[200px] truncate">{flag.description}</td>
         <td className="px-4 py-3">
           <span className={`text-[11px] px-2 py-0.5 rounded-full border font-medium ${STATUS_COLORS[status]}`}>
             {STATUS_LABELS[status]}
@@ -399,23 +399,23 @@ export default function FeatureFlagsPage() {
         </td>
         <td className="px-4 py-3 w-[140px]">
           <div className="flex items-center gap-2">
-            <div className="flex-1 h-1.5 bg-[#1e2d42] rounded-full overflow-hidden">
+            <div className="flex-1 h-1.5 bg-falcon-border rounded-full overflow-hidden">
               <div
-                className={`h-full rounded-full transition-all ${flag.rollout_percentage === 100 ? 'bg-green-500' : flag.rollout_percentage > 0 ? 'bg-yellow-500' : 'bg-[#3d5068]'}`}
+                className={`h-full rounded-full transition-all ${flag.rollout_percentage === 100 ? 'bg-green-500' : flag.rollout_percentage > 0 ? 'bg-yellow-500' : 'bg-falcon-subtle'}`}
                 style={{ width: `${flag.rollout_percentage}%` }}
               />
             </div>
-            <span className="text-xs text-[#7d92b0] w-8 text-right">{flag.rollout_percentage}%</span>
+            <span className="text-xs text-falcon-muted w-8 text-right">{flag.rollout_percentage}%</span>
           </div>
         </td>
         <td className="px-4 py-3">
           <div className="flex flex-wrap gap-1">
             {flag.target_roles.map(r => (
-              <span key={r} className="text-[10px] px-1.5 py-0.5 rounded bg-[#1e2d42] text-[#7d92b0] border border-[#1e2d42]">{r}</span>
+              <span key={r} className="text-[10px] px-1.5 py-0.5 rounded-sm bg-falcon-border text-falcon-muted border border-falcon-border">{r}</span>
             ))}
           </div>
         </td>
-        <td className="px-4 py-3 text-xs text-[#7d92b0] whitespace-nowrap">{fmtDate(flag.created_at)}</td>
+        <td className="px-4 py-3 text-xs text-falcon-muted whitespace-nowrap">{fmtDate(flag.created_at)}</td>
         <td className="px-4 py-3">
           <div className="flex items-center gap-1">
             {/* Toggle */}
@@ -423,24 +423,24 @@ export default function FeatureFlagsPage() {
               onClick={() => toggleMutation.mutate(flag.id)}
               disabled={toggleMutation.isPending}
               title={flag.enabled ? '無効化' : '有効化'}
-              className="p-1.5 rounded hover:bg-[#1e2d42] transition-colors"
+              className="p-1.5 rounded-sm hover:bg-falcon-border transition-colors"
             >
               {flag.enabled
                 ? <ToggleRight className="w-4 h-4 text-green-400" />
-                : <ToggleLeft className="w-4 h-4 text-[#3d5068]" />}
+                : <ToggleLeft className="w-4 h-4 text-falcon-subtle" />}
             </button>
             {/* Rollout */}
             <button
               onClick={() => { setRolloutFlag(flag); setRolloutPct(flag.rollout_percentage) }}
               title="ロールアウト設定"
-              className="p-1.5 rounded hover:bg-[#1e2d42] transition-colors text-[#7d92b0] hover:text-white"
+              className="p-1.5 rounded-sm hover:bg-falcon-border transition-colors text-falcon-muted hover:text-white"
             >
               <Sliders className="w-3.5 h-3.5" />
             </button>
             {/* Edit */}
             <button
               onClick={() => setEditFlag(flag)}
-              className="p-1.5 rounded hover:bg-[#1e2d42] transition-colors text-[#7d92b0] hover:text-white"
+              className="p-1.5 rounded-sm hover:bg-falcon-border transition-colors text-falcon-muted hover:text-white"
             >
               <Edit2 className="w-3.5 h-3.5" />
             </button>
@@ -448,7 +448,7 @@ export default function FeatureFlagsPage() {
             <button
               onClick={() => !flag.protected && setDeleteFlag(flag)}
               disabled={flag.protected}
-              className="p-1.5 rounded hover:bg-[#1e2d42] transition-colors text-[#7d92b0] hover:text-[#e8002d] disabled:opacity-30 disabled:cursor-not-allowed"
+              className="p-1.5 rounded-sm hover:bg-falcon-border transition-colors text-falcon-muted hover:text-falcon-red disabled:opacity-30 disabled:cursor-not-allowed"
             >
               <Trash2 className="w-3.5 h-3.5" />
             </button>
@@ -463,31 +463,31 @@ export default function FeatureFlagsPage() {
   const FlagCard = ({ flag }: { flag: FeatureFlag }) => {
     const status = getStatus(flag)
     return (
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5 flex flex-col gap-4">
+      <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5 flex flex-col gap-4">
         <div className="flex items-start justify-between">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <span className="font-mono text-sm text-white font-semibold">{flag.name}</span>
               {flag.protected && (
-                <span className="text-[9px] px-1.5 py-0.5 rounded bg-[#e8002d]/10 text-[#e8002d] border border-[#e8002d]/20 uppercase">保護</span>
+                <span className="text-[9px] px-1.5 py-0.5 rounded-sm bg-falcon-red/10 text-falcon-red border border-falcon-red/20 uppercase">保護</span>
               )}
               <span className={`text-[11px] px-2 py-0.5 rounded-full border font-medium ${STATUS_COLORS[status]}`}>
                 {STATUS_LABELS[status]}
               </span>
             </div>
-            <p className="text-xs text-[#7d92b0] mt-1 line-clamp-2">{flag.description}</p>
+            <p className="text-xs text-falcon-muted mt-1 line-clamp-2">{flag.description}</p>
           </div>
           <DonutChart pct={flag.rollout_percentage} />
         </div>
 
         <div className="flex flex-wrap gap-1">
-          <span className="text-[10px] text-[#3d5068]">対象:</span>
+          <span className="text-[10px] text-falcon-subtle">対象:</span>
           {flag.target_roles.map(r => (
-            <span key={r} className="text-[10px] px-1.5 py-0.5 rounded bg-[#1e2d42] text-[#7d92b0] border border-[#1e2d42]">{r}</span>
+            <span key={r} className="text-[10px] px-1.5 py-0.5 rounded-sm bg-falcon-border text-falcon-muted border border-falcon-border">{r}</span>
           ))}
         </div>
 
-        <div className="flex items-center justify-between border-t border-[#1e2d42] pt-3">
+        <div className="flex items-center justify-between border-t border-falcon-border pt-3">
           <div className="flex items-center gap-1">
             <button
               onClick={() => toggleMutation.mutate(flag.id)}
@@ -495,7 +495,7 @@ export default function FeatureFlagsPage() {
               className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full border transition-colors ${
                 flag.enabled
                   ? 'bg-green-500/10 border-green-500/30 text-green-400 hover:bg-green-500/20'
-                  : 'bg-[#1e2d42] border-[#1e2d42] text-[#7d92b0] hover:text-white'
+                  : 'bg-falcon-border border-falcon-border text-falcon-muted hover:text-white'
               }`}
             >
               {flag.enabled ? <ToggleRight className="w-3.5 h-3.5" /> : <ToggleLeft className="w-3.5 h-3.5" />}
@@ -503,19 +503,19 @@ export default function FeatureFlagsPage() {
             </button>
             <button
               onClick={() => { setRolloutFlag(flag); setRolloutPct(flag.rollout_percentage) }}
-              className="p-1.5 rounded hover:bg-[#1e2d42] transition-colors text-[#7d92b0] hover:text-white"
+              className="p-1.5 rounded-sm hover:bg-falcon-border transition-colors text-falcon-muted hover:text-white"
             >
               <Sliders className="w-3.5 h-3.5" />
             </button>
           </div>
           <div className="flex items-center gap-1">
-            <button onClick={() => setEditFlag(flag)} className="p-1.5 rounded hover:bg-[#1e2d42] transition-colors text-[#7d92b0] hover:text-white">
+            <button onClick={() => setEditFlag(flag)} className="p-1.5 rounded-sm hover:bg-falcon-border transition-colors text-falcon-muted hover:text-white">
               <Edit2 className="w-3.5 h-3.5" />
             </button>
             <button
               onClick={() => !flag.protected && setDeleteFlag(flag)}
               disabled={flag.protected}
-              className="p-1.5 rounded hover:bg-[#1e2d42] transition-colors text-[#7d92b0] hover:text-[#e8002d] disabled:opacity-30 disabled:cursor-not-allowed"
+              className="p-1.5 rounded-sm hover:bg-falcon-border transition-colors text-falcon-muted hover:text-falcon-red disabled:opacity-30 disabled:cursor-not-allowed"
             >
               <Trash2 className="w-3.5 h-3.5" />
             </button>
@@ -534,32 +534,32 @@ export default function FeatureFlagsPage() {
       <div className="flex items-start justify-between mb-6">
         <div>
           <div className="flex items-center gap-3 mb-1">
-            <div className="w-8 h-8 rounded bg-[#e8002d]/10 border border-[#e8002d]/30 flex items-center justify-center">
-              <Flag className="w-4 h-4 text-[#e8002d]" />
+            <div className="w-8 h-8 rounded-sm bg-falcon-red/10 border border-falcon-red/30 flex items-center justify-center">
+              <Flag className="w-4 h-4 text-falcon-red" />
             </div>
             <h1 className="text-xl font-bold text-white">フィーチャーフラグ</h1>
           </div>
-          <p className="text-[#7d92b0] text-sm ml-11">機能のON/OFF・段階的ロールアウトの管理</p>
+          <p className="text-falcon-muted text-sm ml-11">機能のON/OFF・段階的ロールアウトの管理</p>
         </div>
         <div className="flex items-center gap-2">
           {/* View toggle */}
-          <div className="flex items-center bg-[#0d1220] border border-[#1e2d42] rounded p-0.5">
+          <div className="flex items-center bg-falcon-surface border border-falcon-border rounded-sm p-0.5">
             <button
               onClick={() => setView('list')}
-              className={`p-1.5 rounded transition-colors ${view === 'list' ? 'bg-[#1e2d42] text-white' : 'text-[#7d92b0] hover:text-white'}`}
+              className={`p-1.5 rounded-sm transition-colors ${view === 'list' ? 'bg-falcon-border text-white' : 'text-falcon-muted hover:text-white'}`}
             >
               <LayoutList className="w-4 h-4" />
             </button>
             <button
               onClick={() => setView('card')}
-              className={`p-1.5 rounded transition-colors ${view === 'card' ? 'bg-[#1e2d42] text-white' : 'text-[#7d92b0] hover:text-white'}`}
+              className={`p-1.5 rounded-sm transition-colors ${view === 'card' ? 'bg-falcon-border text-white' : 'text-falcon-muted hover:text-white'}`}
             >
               <LayoutGrid className="w-4 h-4" />
             </button>
           </div>
           <button
             onClick={() => setShowCreate(true)}
-            className="flex items-center gap-2 px-3 py-2 bg-[#e8002d] hover:bg-[#c8001f] text-white text-sm font-medium rounded transition-colors"
+            className="flex items-center gap-2 px-3 py-2 bg-falcon-red hover:bg-[#c8001f] text-white text-sm font-medium rounded-sm transition-colors"
           >
             <Plus className="w-4 h-4" />
             フラグ作成
@@ -571,26 +571,26 @@ export default function FeatureFlagsPage() {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
         <StatCard label="総フラグ数" value={stats.total} color="text-white" />
         <StatCard label="有効" value={stats.enabled} color="text-green-400" />
-        <StatCard label="無効" value={stats.disabled} color="text-[#e8002d]" />
+        <StatCard label="無効" value={stats.disabled} color="text-falcon-red" />
         <StatCard label="部分展開" value={stats.partial} color="text-yellow-400" />
       </div>
 
       {/* Main content */}
       {isLoading ? (
-        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-12 text-center text-[#7d92b0] text-sm">読み込み中...</div>
+        <div className="bg-falcon-surface border border-falcon-border rounded-lg p-12 text-center text-falcon-muted text-sm">読み込み中...</div>
       ) : view === 'list' ? (
-        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg overflow-hidden">
+        <div className="bg-falcon-surface border border-falcon-border rounded-lg overflow-hidden">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-[#1e2d42]">
+              <tr className="border-b border-falcon-border">
                 {['フラグ名', '説明', 'ステータス', 'ロールアウト', '対象ロール', '作成日', 'アクション'].map(h => (
-                  <th key={h} className="px-4 py-3 text-left text-xs font-medium text-[#7d92b0] uppercase tracking-wider whitespace-nowrap">
+                  <th key={h} className="px-4 py-3 text-left text-xs font-medium text-falcon-muted uppercase tracking-wider whitespace-nowrap">
                     {h}
                   </th>
                 ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#1e2d42]">
+            <tbody className="divide-y divide-falcon-border">
               {flags.map(f => <FlagRow key={f.id} flag={f} />)}
             </tbody>
           </table>
@@ -602,28 +602,28 @@ export default function FeatureFlagsPage() {
       )}
 
       {/* Evaluate panel */}
-      <div className="mt-6 bg-[#0d1220] border border-[#1e2d42] rounded-lg">
+      <div className="mt-6 bg-falcon-surface border border-falcon-border rounded-lg">
         <button
           onClick={() => setEvalOpen(o => !o)}
           className="w-full flex items-center justify-between px-5 py-4 text-sm font-semibold text-white hover:bg-[#0a1628] transition-colors rounded-lg"
         >
           <span className="flex items-center gap-2">
-            <Flag className="w-4 h-4 text-[#e8002d]" />
+            <Flag className="w-4 h-4 text-falcon-red" />
             フラグ評価テスト
           </span>
-          {evalOpen ? <ChevronUp className="w-4 h-4 text-[#7d92b0]" /> : <ChevronDown className="w-4 h-4 text-[#7d92b0]" />}
+          {evalOpen ? <ChevronUp className="w-4 h-4 text-falcon-muted" /> : <ChevronDown className="w-4 h-4 text-falcon-muted" />}
         </button>
 
         {evalOpen && (
-          <div className="px-5 pb-5 border-t border-[#1e2d42] pt-4 space-y-4">
+          <div className="px-5 pb-5 border-t border-falcon-border pt-4 space-y-4">
             <div className="flex flex-wrap gap-3">
               {/* Flag name */}
               <div className="flex flex-col gap-1">
-                <label className="text-xs text-[#7d92b0]">フラグ名</label>
+                <label className="text-xs text-falcon-muted">フラグ名</label>
                 <select
                   value={evalForm.flag_name}
                   onChange={e => setEvalForm(f => ({ ...f, flag_name: e.target.value }))}
-                  className="bg-[#070d19] border border-[#1e2d42] rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-[#e8002d]/50 w-48"
+                  className="bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-sm text-white focus:outline-hidden focus:border-falcon-red/50 w-48"
                 >
                   <option value="">選択...</option>
                   {flags.map(f => <option key={f.id} value={f.name}>{f.name}</option>)}
@@ -631,21 +631,21 @@ export default function FeatureFlagsPage() {
               </div>
               {/* User ID */}
               <div className="flex flex-col gap-1">
-                <label className="text-xs text-[#7d92b0]">ユーザーID</label>
+                <label className="text-xs text-falcon-muted">ユーザーID</label>
                 <input
                   value={evalForm.user_id}
                   onChange={e => setEvalForm(f => ({ ...f, user_id: e.target.value }))}
                   placeholder="user-123"
-                  className="bg-[#070d19] border border-[#1e2d42] rounded px-3 py-2 text-sm text-white placeholder-[#3d5068] focus:outline-none focus:border-[#e8002d]/50 w-40"
+                  className="bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-sm text-white placeholder-falcon-subtle focus:outline-hidden focus:border-falcon-red/50 w-40"
                 />
               </div>
               {/* Role */}
               <div className="flex flex-col gap-1">
-                <label className="text-xs text-[#7d92b0]">ロール</label>
+                <label className="text-xs text-falcon-muted">ロール</label>
                 <select
                   value={evalForm.role}
                   onChange={e => setEvalForm(f => ({ ...f, role: e.target.value }))}
-                  className="bg-[#070d19] border border-[#1e2d42] rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-[#e8002d]/50"
+                  className="bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-sm text-white focus:outline-hidden focus:border-falcon-red/50"
                 >
                   {ROLES.map(r => <option key={r} value={r}>{r}</option>)}
                 </select>
@@ -654,7 +654,7 @@ export default function FeatureFlagsPage() {
                 <button
                   onClick={() => evaluateMutation.mutate(evalForm)}
                   disabled={!evalForm.flag_name || !evalForm.user_id || evaluateMutation.isPending}
-                  className="px-4 py-2 bg-[#e8002d] hover:bg-[#c8001f] text-white text-sm rounded transition-colors disabled:opacity-50"
+                  className="px-4 py-2 bg-falcon-red hover:bg-[#c8001f] text-white text-sm rounded-sm transition-colors disabled:opacity-50"
                 >
                   {evaluateMutation.isPending ? '評価中...' : '評価'}
                 </button>
@@ -662,17 +662,17 @@ export default function FeatureFlagsPage() {
             </div>
 
             {evalResult && (
-              <div className="bg-[#070d19] border border-[#1e2d42] rounded-lg p-4 flex items-start gap-3">
+              <div className="bg-[#070d19] border border-falcon-border rounded-lg p-4 flex items-start gap-3">
                 {evalResult.enabled ? (
-                  <Check className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
+                  <Check className="w-5 h-5 text-green-400 shrink-0 mt-0.5" />
                 ) : (
-                  <X className="w-5 h-5 text-[#e8002d] flex-shrink-0 mt-0.5" />
+                  <X className="w-5 h-5 text-falcon-red shrink-0 mt-0.5" />
                 )}
                 <div>
-                  <span className={`text-sm font-semibold ${evalResult.enabled ? 'text-green-400' : 'text-[#e8002d]'}`}>
+                  <span className={`text-sm font-semibold ${evalResult.enabled ? 'text-green-400' : 'text-falcon-red'}`}>
                     {evalResult.enabled ? 'YES — 有効' : 'NO — 無効'}
                   </span>
-                  <p className="text-xs text-[#7d92b0] mt-1">{evalResult.reason}</p>
+                  <p className="text-xs text-falcon-muted mt-1">{evalResult.reason}</p>
                 </div>
               </div>
             )}
@@ -716,20 +716,20 @@ export default function FeatureFlagsPage() {
       {deleteFlag && (
         <Modal title="フラグ削除" onClose={() => setDeleteFlag(null)}>
           <div className="space-y-4">
-            <div className="flex items-start gap-3 p-3 rounded-lg bg-[#e8002d]/5 border border-[#e8002d]/20">
-              <AlertTriangle className="w-5 h-5 text-[#e8002d] flex-shrink-0 mt-0.5" />
-              <p className="text-sm text-[#e2e8f4]">
+            <div className="flex items-start gap-3 p-3 rounded-lg bg-falcon-red/5 border border-falcon-red/20">
+              <AlertTriangle className="w-5 h-5 text-falcon-red shrink-0 mt-0.5" />
+              <p className="text-sm text-falcon-text">
                 フラグ <span className="font-mono font-semibold">{deleteFlag.name}</span> を削除しますか？この操作は元に戻せません。
               </p>
             </div>
             <div className="flex gap-2 justify-end">
-              <button onClick={() => setDeleteFlag(null)} className="px-4 py-2 text-xs text-[#7d92b0] hover:text-white border border-[#1e2d42] rounded hover:border-[#7d92b0]/40 transition-colors">
+              <button onClick={() => setDeleteFlag(null)} className="px-4 py-2 text-xs text-falcon-muted hover:text-white border border-falcon-border rounded-sm hover:border-falcon-muted/40 transition-colors">
                 キャンセル
               </button>
               <button
                 onClick={() => deleteMutation.mutate(deleteFlag.id)}
                 disabled={deleteMutation.isPending}
-                className="px-4 py-2 text-xs text-white bg-[#e8002d] hover:bg-[#c8001f] rounded transition-colors disabled:opacity-50"
+                className="px-4 py-2 text-xs text-white bg-falcon-red hover:bg-[#c8001f] rounded-sm transition-colors disabled:opacity-50"
               >
                 {deleteMutation.isPending ? '削除中...' : '削除'}
               </button>
@@ -743,35 +743,35 @@ export default function FeatureFlagsPage() {
         <Modal title={`ロールアウト設定: ${rolloutFlag.name}`} onClose={() => setRolloutFlag(null)}>
           <div className="space-y-5">
             <div>
-              <p className="text-xs text-[#7d92b0] mb-3">
+              <p className="text-xs text-falcon-muted mb-3">
                 ロールアウト率 — <span className="text-white font-semibold">{rolloutPct}% のユーザーに有効</span>
               </p>
               <input
                 type="range" min={0} max={100}
                 value={rolloutPct}
                 onChange={e => setRolloutPct(Number(e.target.value))}
-                className="w-full accent-[#e8002d]"
+                className="w-full accent-falcon-red"
               />
-              <div className="flex justify-between text-[10px] text-[#3d5068] mt-1">
+              <div className="flex justify-between text-[10px] text-falcon-subtle mt-1">
                 <span>0% (全無効)</span>
                 <span className="text-yellow-400">50%</span>
                 <span>100% (全有効)</span>
               </div>
             </div>
-            <div className="h-2 bg-[#1e2d42] rounded-full overflow-hidden">
+            <div className="h-2 bg-falcon-border rounded-full overflow-hidden">
               <div
-                className={`h-full rounded-full transition-all ${rolloutPct === 100 ? 'bg-green-500' : rolloutPct > 0 ? 'bg-yellow-500' : 'bg-[#3d5068]'}`}
+                className={`h-full rounded-full transition-all ${rolloutPct === 100 ? 'bg-green-500' : rolloutPct > 0 ? 'bg-yellow-500' : 'bg-falcon-subtle'}`}
                 style={{ width: `${rolloutPct}%` }}
               />
             </div>
             <div className="flex gap-2 justify-end">
-              <button onClick={() => setRolloutFlag(null)} className="px-4 py-2 text-xs text-[#7d92b0] hover:text-white border border-[#1e2d42] rounded hover:border-[#7d92b0]/40 transition-colors">
+              <button onClick={() => setRolloutFlag(null)} className="px-4 py-2 text-xs text-falcon-muted hover:text-white border border-falcon-border rounded-sm hover:border-falcon-muted/40 transition-colors">
                 キャンセル
               </button>
               <button
                 onClick={() => rolloutMutation.mutate({ id: rolloutFlag.id, pct: rolloutPct })}
                 disabled={rolloutMutation.isPending}
-                className="px-4 py-2 text-xs text-white bg-[#e8002d] hover:bg-[#c8001f] rounded transition-colors disabled:opacity-50"
+                className="px-4 py-2 text-xs text-white bg-falcon-red hover:bg-[#c8001f] rounded-sm transition-colors disabled:opacity-50"
               >
                 {rolloutMutation.isPending ? '更新中...' : '更新'}
               </button>

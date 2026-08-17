@@ -57,9 +57,9 @@ function isExpired(iso: string | null): boolean {
 }
 
 function ExpiryBadge({ expires_at }: { expires_at: string | null }) {
-  if (!expires_at) return <span className="px-2 py-0.5 bg-green-900 text-green-300 rounded text-xs">Permanent</span>
-  if (isExpired(expires_at)) return <span className="px-2 py-0.5 bg-red-900 text-red-300 rounded text-xs">Expired</span>
-  return <span className="px-2 py-0.5 bg-yellow-900 text-yellow-300 rounded text-xs">Expires {fmtDate(expires_at)}</span>
+  if (!expires_at) return <span className="px-2 py-0.5 bg-green-900 text-green-300 rounded-sm text-xs">Permanent</span>
+  if (isExpired(expires_at)) return <span className="px-2 py-0.5 bg-red-900 text-red-300 rounded-sm text-xs">Expired</span>
+  return <span className="px-2 py-0.5 bg-yellow-900 text-yellow-300 rounded-sm text-xs">Expires {fmtDate(expires_at)}</span>
 }
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
@@ -225,7 +225,7 @@ export default function AlertSuppressionPage() {
                   </button>
                   <button
                     onClick={() => handleDelete(rule.id)}
-                    className="p-1.5 hover:bg-zinc-700 rounded text-zinc-500 hover:text-red-400"
+                    className="p-1.5 hover:bg-zinc-700 rounded-sm text-zinc-500 hover:text-red-400"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
@@ -263,7 +263,7 @@ export default function AlertSuppressionPage() {
               value={testJson}
               onChange={e => setTestJson(e.target.value)}
               rows={7}
-              className="w-full bg-zinc-950 border border-zinc-700 rounded-lg p-3 text-xs font-mono text-zinc-100 focus:outline-none focus:border-blue-500 resize-none mb-2"
+              className="w-full bg-zinc-950 border border-zinc-700 rounded-lg p-3 text-xs font-mono text-zinc-100 focus:outline-hidden focus:border-blue-500 resize-none mb-2"
             />
             <button
               onClick={handleTest}
@@ -322,7 +322,7 @@ export default function AlertSuppressionPage() {
                     value={newName}
                     onChange={e => setNewName(e.target.value)}
                     placeholder="e.g. Monitoring Agent"
-                    className="w-full bg-zinc-800 border border-zinc-700 rounded-lg p-2 text-sm text-zinc-100 focus:outline-none focus:border-orange-500"
+                    className="w-full bg-zinc-800 border border-zinc-700 rounded-lg p-2 text-sm text-zinc-100 focus:outline-hidden focus:border-orange-500"
                   />
                 </div>
                 <div>
@@ -331,7 +331,7 @@ export default function AlertSuppressionPage() {
                     value={newDesc}
                     onChange={e => setNewDesc(e.target.value)}
                     placeholder="What does this rule suppress?"
-                    className="w-full bg-zinc-800 border border-zinc-700 rounded-lg p-2 text-sm text-zinc-100 focus:outline-none focus:border-orange-500"
+                    className="w-full bg-zinc-800 border border-zinc-700 rounded-lg p-2 text-sm text-zinc-100 focus:outline-hidden focus:border-orange-500"
                   />
                 </div>
               </div>
@@ -352,14 +352,14 @@ export default function AlertSuppressionPage() {
                       <select
                         value={c.field}
                         onChange={e => updateCondition(i, 'field', e.target.value)}
-                        className="bg-zinc-800 border border-zinc-700 rounded-lg p-2 text-sm text-zinc-100 focus:outline-none flex-1"
+                        className="bg-zinc-800 border border-zinc-700 rounded-lg p-2 text-sm text-zinc-100 focus:outline-hidden flex-1"
                       >
                         {FIELDS.map(f => <option key={f} value={f}>{f}</option>)}
                       </select>
                       <select
                         value={c.operator}
                         onChange={e => updateCondition(i, 'operator', e.target.value as Operator)}
-                        className="bg-zinc-800 border border-zinc-700 rounded-lg p-2 text-sm text-zinc-100 focus:outline-none flex-1"
+                        className="bg-zinc-800 border border-zinc-700 rounded-lg p-2 text-sm text-zinc-100 focus:outline-hidden flex-1"
                       >
                         {OPERATORS.map(op => <option key={op} value={op}>{op}</option>)}
                       </select>
@@ -367,12 +367,12 @@ export default function AlertSuppressionPage() {
                         value={c.value}
                         onChange={e => updateCondition(i, 'value', e.target.value)}
                         placeholder="value"
-                        className="bg-zinc-800 border border-zinc-700 rounded-lg p-2 text-sm text-zinc-100 focus:outline-none flex-1 font-mono"
+                        className="bg-zinc-800 border border-zinc-700 rounded-lg p-2 text-sm text-zinc-100 focus:outline-hidden flex-1 font-mono"
                       />
                       {newConditions.length > 1 && (
                         <button
                           onClick={() => removeCondition(i)}
-                          className="p-1.5 hover:bg-zinc-700 rounded text-zinc-500 hover:text-red-400"
+                          className="p-1.5 hover:bg-zinc-700 rounded-sm text-zinc-500 hover:text-red-400"
                         >
                           <X className="w-4 h-4" />
                         </button>
@@ -407,7 +407,7 @@ export default function AlertSuppressionPage() {
                       value={durationHours}
                       onChange={e => setDurationHours(e.target.value)}
                       min="1"
-                      className="w-24 bg-zinc-800 border border-zinc-700 rounded-lg p-2 text-sm text-zinc-100 focus:outline-none"
+                      className="w-24 bg-zinc-800 border border-zinc-700 rounded-lg p-2 text-sm text-zinc-100 focus:outline-hidden"
                     />
                     <span className="text-sm text-zinc-400">hours</span>
                   </div>

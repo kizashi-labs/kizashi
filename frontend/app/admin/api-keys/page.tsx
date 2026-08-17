@@ -166,19 +166,19 @@ function GenerateModal({ onClose, onCreated }: GenerateModalProps) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs">
       <div className="bg-zinc-900 border border-zinc-700 rounded-xl shadow-2xl w-full max-w-lg mx-4">
         <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-700">
           <h2 className="text-lg font-semibold text-zinc-100">新規APIキー発行</h2>
           <button onClick={onClose} className="text-zinc-400 hover:text-zinc-200 transition-colors"><X className="h-5 w-5" /></button>
         </div>
         <form onSubmit={handleSubmit} className="p-6 space-y-5">
-          {error && <div className="text-red-400 text-sm bg-red-900/20 border border-red-700/40 rounded px-3 py-2">{error}</div>}
+          {error && <div className="text-red-400 text-sm bg-red-900/20 border border-red-700/40 rounded-sm px-3 py-2">{error}</div>}
 
           <div>
             <label className="block text-xs text-zinc-400 mb-1">キー名</label>
             <input value={name} onChange={e => setName(e.target.value)}
-              className="w-full bg-zinc-800 border border-zinc-600 rounded-lg px-3 py-2 text-zinc-100 text-sm focus:outline-none focus:border-blue-500" placeholder="例: SIEM連携" />
+              className="w-full bg-zinc-800 border border-zinc-600 rounded-lg px-3 py-2 text-zinc-100 text-sm focus:outline-hidden focus:border-blue-500" placeholder="例: SIEM連携" />
           </div>
 
           <div>
@@ -203,7 +203,7 @@ function GenerateModal({ onClose, onCreated }: GenerateModalProps) {
                   <div>
                     <div className={`text-xs font-medium ${s.dangerous ? 'text-red-400' : 'text-zinc-300'}`}>
                       {s.label}
-                      {s.dangerous && <span className="ml-1.5 text-xs bg-red-900/40 text-red-400 px-1.5 py-0.5 rounded border border-red-700/30">危険</span>}
+                      {s.dangerous && <span className="ml-1.5 text-xs bg-red-900/40 text-red-400 px-1.5 py-0.5 rounded-sm border border-red-700/30">危険</span>}
                     </div>
                     <div className="text-xs text-zinc-600">{s.description}</div>
                   </div>
@@ -258,7 +258,7 @@ function ShowKeyModal({ keyData, onClose }: ShowKeyModalProps) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs">
       <div className="bg-zinc-900 border border-zinc-700 rounded-xl shadow-2xl w-full max-w-lg mx-4">
         <div className="px-6 py-4 border-b border-zinc-700">
           <div className="flex items-center gap-2 text-yellow-400 mb-1">
@@ -280,7 +280,7 @@ function ShowKeyModal({ keyData, onClose }: ShowKeyModalProps) {
               <span className="text-zinc-600">スコープ:</span>
               <div className="flex flex-wrap gap-1 mt-1">
                 {(keyData.scopes ?? []).map(s => (
-                  <span key={s} className="px-1.5 py-0.5 bg-zinc-800 text-zinc-400 rounded border border-zinc-700 text-xs font-mono">{s}</span>
+                  <span key={s} className="px-1.5 py-0.5 bg-zinc-800 text-zinc-400 rounded-sm border border-zinc-700 text-xs font-mono">{s}</span>
                 ))}
               </div>
             </div>
@@ -385,13 +385,13 @@ export default function ApiKeysPage() {
               return (
                 <tr key={k.id} className={`hover:bg-zinc-800/30 transition-colors ${k.status !== 'active' ? 'opacity-60' : ''}`}>
                   <td className="px-5 py-3">
-                    <span className="font-mono text-xs text-zinc-300 bg-zinc-800 px-2 py-1 rounded">{k.prefix}...</span>
+                    <span className="font-mono text-xs text-zinc-300 bg-zinc-800 px-2 py-1 rounded-sm">{k.prefix}...</span>
                   </td>
                   <td className="px-5 py-3 text-sm text-zinc-200">{k.name}</td>
                   <td className="px-5 py-3">
                     <div className="flex flex-wrap gap-1">
                       {k.scopes.slice(0, 3).map(s => (
-                        <span key={s} className="text-xs px-1.5 py-0.5 bg-zinc-800 text-zinc-400 rounded border border-zinc-700 font-mono">{s}</span>
+                        <span key={s} className="text-xs px-1.5 py-0.5 bg-zinc-800 text-zinc-400 rounded-sm border border-zinc-700 font-mono">{s}</span>
                       ))}
                       {k.scopes.length > 3 && <span className="text-xs text-zinc-600">+{k.scopes.length - 3}</span>}
                     </div>
@@ -409,7 +409,7 @@ export default function ApiKeysPage() {
                   </td>
                   <td className="px-5 py-3 text-xs text-zinc-500">{fmtRelative(k.last_used_at)}</td>
                   <td className="px-5 py-3">
-                    <span className={`text-xs px-2 py-0.5 rounded font-medium ${STATUS_STYLES[k.status]}`}>
+                    <span className={`text-xs px-2 py-0.5 rounded-sm font-medium ${STATUS_STYLES[k.status]}`}>
                       {k.status === 'active' ? '有効' : k.status === 'expired' ? '期限切れ' : '無効化'}
                     </span>
                   </td>
@@ -445,7 +445,7 @@ export default function ApiKeysPage() {
               <tr key={s.id} className="hover:bg-zinc-800/20">
                 <td className="px-5 py-2.5">
                   <span className="font-mono text-xs text-zinc-300">{s.id}</span>
-                  {s.dangerous && <span className="ml-2 text-xs bg-red-900/40 text-red-400 px-1.5 py-0.5 rounded border border-red-700/30">管理者</span>}
+                  {s.dangerous && <span className="ml-2 text-xs bg-red-900/40 text-red-400 px-1.5 py-0.5 rounded-sm border border-red-700/30">管理者</span>}
                 </td>
                 <td className="px-5 py-2.5 text-xs text-zinc-500">{s.description}</td>
               </tr>

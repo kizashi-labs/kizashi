@@ -194,12 +194,12 @@ function ToggleSwitch({
       disabled={disabled}
       onClick={() => onChange(!checked)}
       className={`relative inline-flex h-5 w-9 shrink-0 rounded-full border-2 border-transparent
-                  transition-colors duration-200 focus:outline-none
+                  transition-colors duration-200 focus:outline-hidden
                   disabled:opacity-40 disabled:cursor-not-allowed
                   ${checked ? 'bg-blue-600' : 'bg-gray-600'}`}
     >
       <span
-        className={`pointer-events-none inline-block h-4 w-4 rounded-full bg-[#e2e8f4] shadow
+        className={`pointer-events-none inline-block h-4 w-4 rounded-full bg-falcon-text shadow
                     transform transition-transform duration-200
                     ${checked ? 'translate-x-4' : 'translate-x-0'}`}
       />
@@ -232,7 +232,7 @@ function Field({
 const inputClass =
   'w-full px-3 py-2 text-sm border border-gray-700 rounded-lg ' +
   'bg-gray-900 text-white placeholder-gray-600 ' +
-  'focus:outline-none focus:border-blue-500 transition-colors'
+  'focus:outline-hidden focus:border-blue-500 transition-colors'
 
 // ─── 設定フォーム(タイプ別) ───────────────────────────────────────────────────
 
@@ -334,7 +334,7 @@ function EmailFields({
               className={`px-3 py-1.5 text-xs rounded border transition-colors ${
                 (p.host && p.host === form.smtp_host)
                   ? 'bg-blue-600/30 border-blue-500 text-blue-300'
-                  : 'bg-[#070d19] border-[#1e2d42] text-[#8899aa] hover:border-[#4a6fa5]'
+                  : 'bg-[#070d19] border-falcon-border text-[#8899aa] hover:border-[#4a6fa5]'
               }`}
             >
               {p.label}

@@ -101,14 +101,14 @@ export default function MigrationsPage() {
           <h2 className="text-sm font-semibold text-white">マイグレーション一覧</h2>
           <div className="flex items-center gap-3">
             {false && (
-              <span className="text-xs text-yellow-400 bg-yellow-900/30 border border-yellow-800 px-2 py-0.5 rounded">
+              <span className="text-xs text-yellow-400 bg-yellow-900/30 border border-yellow-800 px-2 py-0.5 rounded-sm">
                 モックデータ表示中
               </span>
             )}
             <button
               onClick={() => refetch()}
               disabled={isLoading || isFetching}
-              className="flex items-center gap-2 px-3 py-1.5 text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 rounded border border-gray-600 transition-colors disabled:opacity-50"
+              className="flex items-center gap-2 px-3 py-1.5 text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 rounded-sm border border-gray-600 transition-colors disabled:opacity-50"
             >
               <RefreshCw className={`w-3 h-3 ${isFetching ? 'animate-spin' : ''}`} />
               マイグレーション状態を更新

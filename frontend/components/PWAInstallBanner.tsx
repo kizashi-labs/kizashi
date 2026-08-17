@@ -55,28 +55,28 @@ export function PWAInstallBanner() {
   // iOS manual install guide (Safari share menu → "Add to Home Screen")
   if (iosVisible) {
     return (
-      <div className="fixed bottom-20 left-4 right-4 md:bottom-4 md:left-4 md:right-auto md:max-w-sm z-[150] safe-bottom">
-        <div className="bg-[#0a1628] border border-[#1e2d42] rounded-xl shadow-2xl p-4">
+      <div className="fixed bottom-20 left-4 right-4 md:bottom-4 md:left-4 md:right-auto md:max-w-sm z-150 safe-bottom">
+        <div className="bg-[#0a1628] border border-falcon-border rounded-xl shadow-2xl p-4">
           <div className="flex items-start gap-3">
-            <div className="w-10 h-10 bg-[#1a6bff]/10 rounded-lg flex items-center justify-center flex-shrink-0">
-              <Share className="w-5 h-5 text-[#1a6bff]" />
+            <div className="w-10 h-10 bg-falcon-blue/10 rounded-lg flex items-center justify-center shrink-0">
+              <Share className="w-5 h-5 text-falcon-blue" />
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold text-white mb-1">ホーム画面に追加</p>
-              <p className="text-xs text-[#7d92b0] leading-relaxed">
+              <p className="text-xs text-falcon-muted leading-relaxed">
                 Safari下部の <Share className="inline w-3 h-3 align-[-2px]" /> 共有ボタン
                 →「ホーム画面に追加」でフルスクリーンアプリとしてご利用いただけます
               </p>
               <button
                 onClick={handleIosDismiss}
-                className="mt-3 text-xs text-[#3d5068] hover:text-[#7d92b0] transition-colors"
+                className="mt-3 text-xs text-falcon-subtle hover:text-falcon-muted transition-colors"
               >
                 了解しました
               </button>
             </div>
             <button
               onClick={handleIosDismiss}
-              className="w-6 h-6 flex items-center justify-center text-[#3d5068] hover:text-white transition-colors flex-shrink-0"
+              className="w-6 h-6 flex items-center justify-center text-falcon-subtle hover:text-white transition-colors shrink-0"
               aria-label="閉じる"
             >
               <X className="w-3.5 h-3.5" />
@@ -90,29 +90,29 @@ export function PWAInstallBanner() {
   if (!visible) return null
 
   return (
-    <div className="fixed bottom-20 left-4 right-4 md:bottom-4 md:left-4 md:right-auto md:max-w-xs z-[150] safe-bottom">
-      <div className="bg-[#0a1628] border border-[#1e2d42] rounded-xl shadow-2xl p-4">
+    <div className="fixed bottom-20 left-4 right-4 md:bottom-4 md:left-4 md:right-auto md:max-w-xs z-150 safe-bottom">
+      <div className="bg-[#0a1628] border border-falcon-border rounded-xl shadow-2xl p-4">
         <div className="flex items-start gap-3">
-          <div className="w-10 h-10 bg-[#e8002d]/10 rounded-lg flex items-center justify-center flex-shrink-0">
-            <Shield className="w-5 h-5 text-[#e8002d]" />
+          <div className="w-10 h-10 bg-falcon-red/10 rounded-lg flex items-center justify-center shrink-0">
+            <Shield className="w-5 h-5 text-falcon-red" />
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-semibold text-white mb-0.5">アプリをインストール</p>
-            <p className="text-xs text-[#7d92b0] leading-relaxed">
+            <p className="text-xs text-falcon-muted leading-relaxed">
               Kizashiをホーム画面に追加してすぐにアクセス
             </p>
             <div className="flex gap-2 mt-3">
               <button
                 onClick={handleInstall}
                 disabled={installing}
-                className="flex items-center gap-1.5 bg-[#e8002d] hover:bg-[#c4001f] disabled:opacity-60 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors"
+                className="flex items-center gap-1.5 bg-falcon-red hover:bg-[#c4001f] disabled:opacity-60 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors"
               >
                 <Download className="w-3.5 h-3.5" />
                 {installing ? 'インストール中...' : 'インストール'}
               </button>
               <button
                 onClick={handleDismiss}
-                className="text-xs text-[#3d5068] hover:text-[#7d92b0] px-2 py-1.5 transition-colors"
+                className="text-xs text-falcon-subtle hover:text-falcon-muted px-2 py-1.5 transition-colors"
               >
                 後で
               </button>
@@ -120,7 +120,7 @@ export function PWAInstallBanner() {
           </div>
           <button
             onClick={handleDismiss}
-            className="w-6 h-6 flex items-center justify-center text-[#3d5068] hover:text-white transition-colors flex-shrink-0"
+            className="w-6 h-6 flex items-center justify-center text-falcon-subtle hover:text-white transition-colors shrink-0"
             aria-label="閉じる"
           >
             <X className="w-3.5 h-3.5" />

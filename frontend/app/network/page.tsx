@@ -367,11 +367,11 @@ function NodeDetailPanel({ node, edges, nodes, onClose }: NodeDetailPanelProps) 
     .slice(0, 8)
 
   return (
-    <div className="bg-[#111827] border border-[#1e2d42] rounded-xl p-4 h-full overflow-y-auto">
+    <div className="bg-falcon-card border border-falcon-border rounded-xl p-4 h-full overflow-y-auto">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <div
-            className="w-3 h-3 rounded-full flex-shrink-0"
+            className="w-3 h-3 rounded-full shrink-0"
             style={{ backgroundColor: node.type === 'agent' ? (STATUS_COLOR[node.status ?? 'offline'] ?? '#6b7280') : '#334155' }}
           />
           <span className="text-sm font-semibold text-white truncate">{node.label}</span>
@@ -407,9 +407,9 @@ function NodeDetailPanel({ node, edges, nodes, onClose }: NodeDetailPanelProps) 
         ) : (
           related.map(({ node: other, edge }, i) => (
             <div key={i} className="flex items-center gap-2 text-xs">
-              <ChevronRight className="w-3 h-3 text-[#5a6a7a] flex-shrink-0" />
+              <ChevronRight className="w-3 h-3 text-[#5a6a7a] shrink-0" />
               <span className="flex-1 text-[#8899aa] truncate">{other.label}</span>
-              <div className="flex items-center gap-1 flex-shrink-0">
+              <div className="flex items-center gap-1 shrink-0">
                 {edge.suspicious && <AlertTriangle className="w-3 h-3 text-red-400" />}
                 <span className={edge.suspicious ? 'text-red-400' : 'text-[#5a6a7a]'}>{edge.count}</span>
               </div>
@@ -642,7 +642,7 @@ export default function NetworkPage() {
   // ── Render ───────────────────────────────────────────────────────────────
 
   return (
-    <div className="bg-[#080c14] text-white min-h-screen">
+    <div className="bg-falcon-bg text-white min-h-screen">
       <div className="max-w-7xl mx-auto px-6 py-8">
 
         {/* ── Header ── */}
@@ -658,12 +658,12 @@ export default function NetworkPage() {
             {/* Time range */}
             <div className="flex items-center gap-2">
               <Clock className="w-4 h-4 text-[#5a6a7a]" />
-              <div className="flex border border-[#1e2d42] rounded-lg overflow-hidden text-sm">
+              <div className="flex border border-falcon-border rounded-lg overflow-hidden text-sm">
                 {HOURS_OPTIONS.map(h => (
                   <button
                     key={h.value}
                     onClick={() => { setHours(h.value); setPage(1) }}
-                    className={`px-3 py-1.5 transition-colors ${hours === h.value ? 'bg-[#1a6bff] text-white' : 'text-[#8899aa] hover:bg-[#111827]'}`}
+                    className={`px-3 py-1.5 transition-colors ${hours === h.value ? 'bg-falcon-blue text-white' : 'text-[#8899aa] hover:bg-falcon-card'}`}
                   >
                     {h.label}
                   </button>
@@ -673,7 +673,7 @@ export default function NetworkPage() {
             {/* Refresh */}
             <button
               onClick={handleRefresh}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-[#111827] border border-[#1e2d42] text-[#8899aa] hover:text-white text-sm rounded-lg transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-falcon-card border border-falcon-border text-[#8899aa] hover:text-white text-sm rounded-lg transition-colors"
             >
               <RefreshCw className="w-4 h-4" />
               更新
@@ -689,7 +689,7 @@ export default function NetworkPage() {
             { label: '不審な接続',         value: suspiciousCount,                                    icon: AlertTriangle,  color: 'text-red-400' },
             { label: '登録エンドポイント', value: agentNodeCount,                                     icon: Wifi,           color: 'text-green-400' },
           ].map(s => (
-            <div key={s.label} className="bg-[#111827] border border-[#1e2d42] rounded-xl p-4">
+            <div key={s.label} className="bg-falcon-card border border-falcon-border rounded-xl p-4">
               <div className="flex items-center gap-2 mb-2">
                 <s.icon className={`w-4 h-4 ${s.color}`} />
                 <span className="text-xs text-[#8899aa]">{s.label}</span>
@@ -700,12 +700,12 @@ export default function NetworkPage() {
         </div>
 
         {/* ── Tab selector ── */}
-        <div className="flex gap-1 mb-6 bg-[#111827] border border-[#1e2d42] rounded-xl p-1 w-fit">
+        <div className="flex gap-1 mb-6 bg-falcon-card border border-falcon-border rounded-xl p-1 w-fit">
           {(['graph', 'table'] as const).map(t => (
             <button
               key={t}
               onClick={() => setTab(t)}
-              className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${tab === t ? 'bg-[#1a6bff] text-white' : 'text-[#8899aa] hover:text-white'}`}
+              className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${tab === t ? 'bg-falcon-blue text-white' : 'text-[#8899aa] hover:text-white'}`}
             >
               {t === 'graph' ? '通信グラフ' : '接続テーブル'}
             </button>
@@ -741,7 +741,7 @@ export default function NetworkPage() {
             <div className="flex gap-4 items-start">
               {/* SVG graph */}
               <div
-                className="flex-1 bg-[#0d1526] border border-[#1e2d42] rounded-xl overflow-hidden"
+                className="flex-1 bg-[#0d1526] border border-falcon-border rounded-xl overflow-hidden"
                 style={{ height: '460px' }}
               >
                 {graphLoading ? (
@@ -761,7 +761,7 @@ export default function NetworkPage() {
 
               {/* Detail panel */}
               {selectedNode && (
-                <div className="w-64 flex-shrink-0" style={{ height: '460px' }}>
+                <div className="w-64 shrink-0" style={{ height: '460px' }}>
                   <NodeDetailPanel
                     node={selectedNode}
                     edges={edges}
@@ -777,7 +777,7 @@ export default function NetworkPage() {
         {/* ── Analytics row (always shown) ── */}
         <div className="grid grid-cols-2 gap-6 mb-8">
           {/* Top destinations */}
-          <div className="bg-[#111827] border border-[#1e2d42] rounded-xl p-5">
+          <div className="bg-falcon-card border border-falcon-border rounded-xl p-5">
             <h2 className="text-sm font-semibold text-[#8899aa] mb-4 flex items-center gap-2">
               <Globe className="w-4 h-4 text-purple-400" /> 接続先IPアドレス TOP 10
             </h2>
@@ -804,7 +804,7 @@ export default function NetworkPage() {
           </div>
 
           {/* Top ports */}
-          <div className="bg-[#111827] border border-[#1e2d42] rounded-xl p-5">
+          <div className="bg-falcon-card border border-falcon-border rounded-xl p-5">
             <h2 className="text-sm font-semibold text-[#8899aa] mb-4 flex items-center gap-2">
               <Server className="w-4 h-4 text-yellow-400" /> 宛先ポート TOP 15
             </h2>
@@ -821,7 +821,7 @@ export default function NetworkPage() {
                     : '#4b5563'
                   return (
                     <div key={i} className="flex items-center gap-3">
-                      <div className={`text-xs font-mono w-14 text-right flex-shrink-0 ${portRiskColor(p.port) || 'text-[#8899aa]'}`}>
+                      <div className={`text-xs font-mono w-14 text-right shrink-0 ${portRiskColor(p.port) || 'text-[#8899aa]'}`}>
                         :{p.port}
                       </div>
                       <div className="flex-1 bg-[#0d1526] rounded-full h-4 relative overflow-hidden">
@@ -830,7 +830,7 @@ export default function NetworkPage() {
                           {notable ? notable.label : p.protocol} · {p.count}
                         </span>
                       </div>
-                      <span className="text-xs text-[#5a6a7a] w-10 text-right flex-shrink-0">{p.count}</span>
+                      <span className="text-xs text-[#5a6a7a] w-10 text-right shrink-0">{p.count}</span>
                     </div>
                   )
                 })}
@@ -849,7 +849,7 @@ export default function NetworkPage() {
               {stats.top_ports
                 .filter(p => NOTABLE_PORTS[p.port]?.risk === 'critical')
                 .map(p => (
-                  <span key={p.port} className="text-xs bg-red-900/40 border border-red-700 text-red-300 px-2 py-1 rounded font-mono">
+                  <span key={p.port} className="text-xs bg-red-900/40 border border-red-700 text-red-300 px-2 py-1 rounded-sm font-mono">
                     :{p.port} ({NOTABLE_PORTS[p.port].label}) — {p.count}件
                   </span>
                 ))}
@@ -859,9 +859,9 @@ export default function NetworkPage() {
 
         {/* ── Connection table tab ── */}
         {tab === 'table' && (
-          <div className="bg-[#111827] border border-[#1e2d42] rounded-xl overflow-hidden mb-8">
+          <div className="bg-falcon-card border border-falcon-border rounded-xl overflow-hidden mb-8">
             {/* Table toolbar */}
-            <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4 border-b border-[#1e2d42]">
+            <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4 border-b border-falcon-border">
               <h2 className="text-sm font-semibold text-[#8899aa]">
                 接続テーブル ({totalEvents.toLocaleString()}件)
               </h2>
@@ -870,7 +870,7 @@ export default function NetworkPage() {
                 <button
                   onClick={exportCSV}
                   disabled={events.length === 0}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-[#161f33] hover:bg-[#1d2f4a] text-[#8899aa] text-xs rounded-lg transition-colors disabled:opacity-40"
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-falcon-raised hover:bg-falcon-active text-[#8899aa] text-xs rounded-lg transition-colors disabled:opacity-40"
                 >
                   <Download className="w-3.5 h-3.5" /> CSV
                 </button>
@@ -880,7 +880,7 @@ export default function NetworkPage() {
                   className={`flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg border transition-colors ${
                     suspiciousOnly
                       ? 'bg-red-900/40 border-red-700 text-red-300'
-                      : 'bg-[#161f33] border-[#1e2d42] text-[#8899aa] hover:bg-[#1d2f4a]'
+                      : 'bg-falcon-raised border-falcon-border text-[#8899aa] hover:bg-falcon-active'
                   }`}
                 >
                   <AlertTriangle className="w-3.5 h-3.5" /> 不審のみ
@@ -889,7 +889,7 @@ export default function NetworkPage() {
                 <select
                   value={agentFilter}
                   onChange={e => { setAgentFilter(e.target.value); setPage(1) }}
-                  className="bg-[#111827] border border-[#1e2d42] rounded px-2 py-1.5 text-xs text-white"
+                  className="bg-falcon-card border border-falcon-border rounded-sm px-2 py-1.5 text-xs text-white"
                 >
                   <option value="">すべてのエンドポイント</option>
                   {(agentsData?.data ?? []).map(a => (
@@ -900,7 +900,7 @@ export default function NetworkPage() {
                 <div className="relative">
                   <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#5a6a7a]" />
                   <input
-                    className="bg-[#111827] border border-[#1e2d42] rounded pl-7 pr-3 py-1.5 text-xs text-white w-44"
+                    className="bg-falcon-card border border-falcon-border rounded-sm pl-7 pr-3 py-1.5 text-xs text-white w-44"
                     placeholder="IP・ポート・プロセスで検索"
                     value={search}
                     onChange={e => { setSearch(e.target.value); setPage(1) }}
@@ -928,7 +928,7 @@ export default function NetworkPage() {
               <>
                 <table className="w-full text-xs">
                   <thead>
-                    <tr className="border-b border-[#1e2d42] text-[#8899aa]">
+                    <tr className="border-b border-falcon-border text-[#8899aa]">
                       <th className="text-left px-4 py-2.5">送信元エージェント</th>
                       <th className="text-left px-4 py-2.5">宛先IP</th>
                       <th className="text-left px-4 py-2.5">ポート</th>
@@ -949,12 +949,12 @@ export default function NetworkPage() {
                       return (
                         <tr
                           key={ev.id}
-                          className={`border-b border-[#1e2d42]/60 hover:bg-[#0d1526]/60 transition-colors ${isSuspect ? 'bg-red-900/10' : ''}`}
+                          className={`border-b border-falcon-border/60 hover:bg-[#0d1526]/60 transition-colors ${isSuspect ? 'bg-red-900/10' : ''}`}
                         >
                           <td className="px-4 py-2 text-[#c5d0e0] font-medium">
                             {agent?.hostname ?? ev.agent_id.slice(0, 12)}
                           </td>
-                          <td className="px-4 py-2 font-mono text-[#e2e8f4]">{d.dst_ip ?? '—'}</td>
+                          <td className="px-4 py-2 font-mono text-falcon-text">{d.dst_ip ?? '—'}</td>
                           <td className={`px-4 py-2 font-mono font-semibold ${portRiskColor(port) || 'text-[#8899aa]'}`}>
                             {port || '—'}
                             {portNote && (
@@ -987,17 +987,17 @@ export default function NetworkPage() {
 
                 {/* Pagination */}
                 {totalPages > 1 && (
-                  <div className="flex justify-center items-center gap-2 px-4 py-3 border-t border-[#1e2d42]">
+                  <div className="flex justify-center items-center gap-2 px-4 py-3 border-t border-falcon-border">
                     <button
                       disabled={page === 1}
                       onClick={() => setPage(p => p - 1)}
-                      className="px-3 py-1 text-xs rounded bg-[#111827] text-[#8899aa] disabled:opacity-40 hover:bg-[#19253d]"
+                      className="px-3 py-1 text-xs rounded-sm bg-falcon-card text-[#8899aa] disabled:opacity-40 hover:bg-falcon-hover"
                     >前へ</button>
                     <span className="text-xs text-[#5a6a7a]">{page} / {totalPages}</span>
                     <button
                       disabled={page === totalPages}
                       onClick={() => setPage(p => p + 1)}
-                      className="px-3 py-1 text-xs rounded bg-[#111827] text-[#8899aa] disabled:opacity-40 hover:bg-[#19253d]"
+                      className="px-3 py-1 text-xs rounded-sm bg-falcon-card text-[#8899aa] disabled:opacity-40 hover:bg-falcon-hover"
                     >次へ</button>
                   </div>
                 )}

@@ -83,11 +83,11 @@ function UsageBar({ used, max, color = '#3b82f6' }: { used: number; max: number;
   const barColor = pct > 90 ? '#e8002d' : pct > 70 ? '#f59e0b' : color
   return (
     <div>
-      <div className="flex justify-between text-xs text-[#7d92b0] mb-1">
+      <div className="flex justify-between text-xs text-falcon-muted mb-1">
         <span>{u} / {m}</span>
         <span>{pct.toFixed(0)}%</span>
       </div>
-      <div className="h-1.5 bg-[#1e2d42] rounded-full overflow-hidden">
+      <div className="h-1.5 bg-falcon-border rounded-full overflow-hidden">
         <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, backgroundColor: barColor }} />
       </div>
     </div>
@@ -105,12 +105,12 @@ function ProgressCard({ label, used, max, unit, icon: Icon }: {
     <div className="bg-[#070d19] rounded-lg p-4">
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
-          <Icon className="w-4 h-4 text-[#7d92b0]" />
-          <span className="text-[#7d92b0] text-sm">{label}</span>
+          <Icon className="w-4 h-4 text-falcon-muted" />
+          <span className="text-falcon-muted text-sm">{label}</span>
         </div>
         <span className="text-white font-bold">{u}{unit} / {m}{unit}</span>
       </div>
-      <div className="h-2.5 bg-[#1e2d42] rounded-full overflow-hidden">
+      <div className="h-2.5 bg-falcon-border rounded-full overflow-hidden">
         <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, backgroundColor: barColor }} />
       </div>
       <p className="text-xs text-right mt-1" style={{ color: barColor }}>{pct.toFixed(1)}% 使用中</p>
@@ -133,38 +133,38 @@ function CreateTenantModal({ onClose, onSave }: { onClose: () => void; onSave: (
 
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl w-full max-w-lg">
-        <div className="flex items-center justify-between p-4 border-b border-[#1e2d42]">
+      <div className="bg-falcon-surface border border-falcon-border rounded-xl w-full max-w-lg">
+        <div className="flex items-center justify-between p-4 border-b border-falcon-border">
           <h3 className="text-white font-semibold">新規テナント作成</h3>
-          <button onClick={onClose} className="text-[#7d92b0] hover:text-white"><X className="w-5 h-5" /></button>
+          <button onClick={onClose} className="text-falcon-muted hover:text-white"><X className="w-5 h-5" /></button>
         </div>
         <div className="p-4 space-y-3">
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-[#7d92b0] text-xs mb-1">テナント名 *</label>
+              <label className="block text-falcon-muted text-xs mb-1">テナント名 *</label>
               <input value={form.name} onChange={e => handle('name', e.target.value)}
-                className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[#e8002d]" />
+                className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-red" />
             </div>
             <div>
-              <label className="block text-[#7d92b0] text-xs mb-1">ドメイン *</label>
+              <label className="block text-falcon-muted text-xs mb-1">ドメイン *</label>
               <input value={form.domain} onChange={e => handle('domain', e.target.value)}
-                className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[#e8002d]" />
+                className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-red" />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-[#7d92b0] text-xs mb-1">プラン</label>
+              <label className="block text-falcon-muted text-xs mb-1">プラン</label>
               <select value={form.plan} onChange={e => handle('plan', e.target.value as Plan)}
-                className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[#e8002d]">
+                className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-red">
                 <option value="free">フリー</option>
                 <option value="standard">スタンダード</option>
                 <option value="enterprise">エンタープライズ</option>
               </select>
             </div>
             <div>
-              <label className="block text-[#7d92b0] text-xs mb-1">管理者メール</label>
+              <label className="block text-falcon-muted text-xs mb-1">管理者メール</label>
               <input value={form.admin_email} onChange={e => handle('admin_email', e.target.value)}
-                className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[#e8002d]" />
+                className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-red" />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
@@ -175,17 +175,17 @@ function CreateTenantModal({ onClose, onSave }: { onClose: () => void; onSave: (
               { key: 'max_alerts_per_day', label: '日次アラート上限' },
             ].map(f => (
               <div key={f.key}>
-                <label className="block text-[#7d92b0] text-xs mb-1">{f.label}</label>
+                <label className="block text-falcon-muted text-xs mb-1">{f.label}</label>
                 <input type="number" value={(form as Record<string, unknown>)[f.key] as number}
                   onChange={e => handle(f.key, parseInt(e.target.value) || 0)}
-                  className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[#e8002d]" />
+                  className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-red" />
               </div>
             ))}
           </div>
         </div>
-        <div className="flex justify-end gap-2 p-4 border-t border-[#1e2d42]">
-          <button onClick={onClose} className="px-4 py-2 rounded-lg border border-[#1e2d42] text-[#7d92b0] hover:text-white text-sm">キャンセル</button>
-          <button onClick={() => onSave(form)} className="px-4 py-2 rounded-lg bg-[#e8002d] text-white text-sm font-medium hover:bg-[#cc0027] transition-colors">作成</button>
+        <div className="flex justify-end gap-2 p-4 border-t border-falcon-border">
+          <button onClick={onClose} className="px-4 py-2 rounded-lg border border-falcon-border text-falcon-muted hover:text-white text-sm">キャンセル</button>
+          <button onClick={() => onSave(form)} className="px-4 py-2 rounded-lg bg-falcon-red text-white text-sm font-medium hover:bg-[#cc0027] transition-colors">作成</button>
         </div>
       </div>
     </div>
@@ -206,16 +206,16 @@ function EditQuotaModal({ tenant, onClose, onSave }: { tenant: Tenant; onClose: 
 
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl w-full max-w-md">
-        <div className="flex items-center justify-between p-4 border-b border-[#1e2d42]">
+      <div className="bg-falcon-surface border border-falcon-border rounded-xl w-full max-w-md">
+        <div className="flex items-center justify-between p-4 border-b border-falcon-border">
           <h3 className="text-white font-semibold">クォータ編集: {tenant.name}</h3>
-          <button onClick={onClose} className="text-[#7d92b0] hover:text-white"><X className="w-5 h-5" /></button>
+          <button onClick={onClose} className="text-falcon-muted hover:text-white"><X className="w-5 h-5" /></button>
         </div>
         <div className="p-4 space-y-3">
           <div>
-            <label className="block text-[#7d92b0] text-xs mb-1">プラン</label>
+            <label className="block text-falcon-muted text-xs mb-1">プラン</label>
             <select value={form.plan} onChange={e => handle('plan', e.target.value as Plan)}
-              className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[#e8002d]">
+              className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-red">
               <option value="free">フリー</option>
               <option value="standard">スタンダード</option>
               <option value="enterprise">エンタープライズ</option>
@@ -228,16 +228,16 @@ function EditQuotaModal({ tenant, onClose, onSave }: { tenant: Tenant; onClose: 
             { key: 'max_alerts_per_day', label: '日次アラート上限' },
           ].map(f => (
             <div key={f.key}>
-              <label className="block text-[#7d92b0] text-xs mb-1">{f.label}</label>
+              <label className="block text-falcon-muted text-xs mb-1">{f.label}</label>
               <input type="number" value={(form as Record<string, unknown>)[f.key] as number}
                 onChange={e => handle(f.key, parseInt(e.target.value) || 0)}
-                className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[#e8002d]" />
+                className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-red" />
             </div>
           ))}
         </div>
-        <div className="flex justify-end gap-2 p-4 border-t border-[#1e2d42]">
-          <button onClick={onClose} className="px-4 py-2 rounded-lg border border-[#1e2d42] text-[#7d92b0] hover:text-white text-sm">キャンセル</button>
-          <button onClick={() => onSave(form)} className="px-4 py-2 rounded-lg bg-[#e8002d] text-white text-sm font-medium hover:bg-[#cc0027] transition-colors">保存</button>
+        <div className="flex justify-end gap-2 p-4 border-t border-falcon-border">
+          <button onClick={onClose} className="px-4 py-2 rounded-lg border border-falcon-border text-falcon-muted hover:text-white text-sm">キャンセル</button>
+          <button onClick={() => onSave(form)} className="px-4 py-2 rounded-lg bg-falcon-red text-white text-sm font-medium hover:bg-[#cc0027] transition-colors">保存</button>
         </div>
       </div>
     </div>
@@ -248,13 +248,13 @@ function StatsModal({ tenant, stats, onClose }: { tenant: Tenant; stats: TenantS
   const maxAlert = Math.max(...stats.daily_alerts.map(d => d.count))
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl w-full max-w-xl max-h-[85vh] overflow-y-auto">
-        <div className="sticky top-0 bg-[#0d1220] flex items-center justify-between p-4 border-b border-[#1e2d42]">
+      <div className="bg-falcon-surface border border-falcon-border rounded-xl w-full max-w-xl max-h-[85vh] overflow-y-auto">
+        <div className="sticky top-0 bg-falcon-surface flex items-center justify-between p-4 border-b border-falcon-border">
           <div className="flex items-center gap-2">
-            <BarChart2 className="w-5 h-5 text-[#e8002d]" />
+            <BarChart2 className="w-5 h-5 text-falcon-red" />
             <h3 className="text-white font-semibold">{tenant.name} — 使用状況</h3>
           </div>
-          <button onClick={onClose} className="text-[#7d92b0] hover:text-white"><X className="w-5 h-5" /></button>
+          <button onClick={onClose} className="text-falcon-muted hover:text-white"><X className="w-5 h-5" /></button>
         </div>
         <div className="p-4 space-y-4">
           <ProgressCard label="エージェント"  used={stats.agent_count}     max={stats.max_agents}       unit="台" icon={Cpu} />
@@ -264,17 +264,17 @@ function StatsModal({ tenant, stats, onClose }: { tenant: Tenant; stats: TenantS
 
           {/* Alert chart */}
           <div>
-            <p className="text-[#7d92b0] text-sm font-medium mb-3">直近7日間アラート数</p>
+            <p className="text-falcon-muted text-sm font-medium mb-3">直近7日間アラート数</p>
             <div className="flex items-end gap-2 h-28">
               {stats.daily_alerts.map(d => (
                 <div key={d.day} className="flex-1 flex flex-col items-center gap-1">
                   <div className="w-full flex flex-col justify-end" style={{ height: '88px' }}>
                     <div
-                      className="w-full bg-[#e8002d] rounded-t"
+                      className="w-full bg-falcon-red rounded-t"
                       style={{ height: `${(d.count / maxAlert) * 100}%` }}
                     />
                   </div>
-                  <span className="text-[#7d92b0] text-xs">{d.day}</span>
+                  <span className="text-falcon-muted text-xs">{d.day}</span>
                   <span className="text-white text-xs font-medium">{d.count}</span>
                 </div>
               ))}
@@ -295,45 +295,45 @@ function AuditModal({ tenant, logs, page, setPage, onClose }: {
 
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl w-full max-w-2xl max-h-[85vh] flex flex-col">
-        <div className="flex items-center justify-between p-4 border-b border-[#1e2d42] shrink-0">
+      <div className="bg-falcon-surface border border-falcon-border rounded-xl w-full max-w-2xl max-h-[85vh] flex flex-col">
+        <div className="flex items-center justify-between p-4 border-b border-falcon-border shrink-0">
           <h3 className="text-white font-semibold">監査ログ: {tenant.name}</h3>
-          <button onClick={onClose} className="text-[#7d92b0] hover:text-white"><X className="w-5 h-5" /></button>
+          <button onClick={onClose} className="text-falcon-muted hover:text-white"><X className="w-5 h-5" /></button>
         </div>
         <div className="flex-1 overflow-y-auto">
           <table className="w-full">
-            <thead className="sticky top-0 bg-[#0d1220]">
-              <tr className="border-b border-[#1e2d42]">
+            <thead className="sticky top-0 bg-falcon-surface">
+              <tr className="border-b border-falcon-border">
                 {['アクター', 'アクション', 'リソース', 'IPアドレス', '日時'].map(h => (
-                  <th key={h} className="text-left px-4 py-3 text-[#7d92b0] text-xs font-medium">{h}</th>
+                  <th key={h} className="text-left px-4 py-3 text-falcon-muted text-xs font-medium">{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {paginated.map(log => (
-                <tr key={log.id} className="border-b border-[#1e2d42] hover:bg-[#070d19] transition-colors">
-                  <td className="px-4 py-3 text-[#7d92b0] text-xs">{log.actor_email}</td>
+                <tr key={log.id} className="border-b border-falcon-border hover:bg-[#070d19] transition-colors">
+                  <td className="px-4 py-3 text-falcon-muted text-xs">{log.actor_email}</td>
                   <td className="px-4 py-3">
-                    <span className="text-xs bg-[#1e2d42] text-white px-2 py-0.5 rounded font-mono">{log.action}</span>
+                    <span className="text-xs bg-falcon-border text-white px-2 py-0.5 rounded-sm font-mono">{log.action}</span>
                   </td>
-                  <td className="px-4 py-3 text-[#7d92b0] text-xs font-mono">{log.resource}</td>
-                  <td className="px-4 py-3 text-[#7d92b0] text-xs font-mono">{log.ip_address}</td>
-                  <td className="px-4 py-3 text-[#7d92b0] text-xs whitespace-nowrap">{log.created_at}</td>
+                  <td className="px-4 py-3 text-falcon-muted text-xs font-mono">{log.resource}</td>
+                  <td className="px-4 py-3 text-falcon-muted text-xs font-mono">{log.ip_address}</td>
+                  <td className="px-4 py-3 text-falcon-muted text-xs whitespace-nowrap">{log.created_at}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
-        <div className="flex items-center justify-between p-4 border-t border-[#1e2d42] shrink-0">
-          <span className="text-[#7d92b0] text-sm">{logs.length}件中 {(page-1)*PAGE_SIZE+1}〜{Math.min(page*PAGE_SIZE, logs.length)}件</span>
+        <div className="flex items-center justify-between p-4 border-t border-falcon-border shrink-0">
+          <span className="text-falcon-muted text-sm">{logs.length}件中 {(page-1)*PAGE_SIZE+1}〜{Math.min(page*PAGE_SIZE, logs.length)}件</span>
           <div className="flex items-center gap-2">
             <button disabled={page <= 1} onClick={() => setPage(page - 1)}
-              className="p-1.5 rounded border border-[#1e2d42] text-[#7d92b0] hover:text-white disabled:opacity-40">
+              className="p-1.5 rounded-sm border border-falcon-border text-falcon-muted hover:text-white disabled:opacity-40">
               <ChevronLeft className="w-4 h-4" />
             </button>
             <span className="text-white text-sm">{page} / {totalPages}</span>
             <button disabled={page >= totalPages} onClick={() => setPage(page + 1)}
-              className="p-1.5 rounded border border-[#1e2d42] text-[#7d92b0] hover:text-white disabled:opacity-40">
+              className="p-1.5 rounded-sm border border-falcon-border text-falcon-muted hover:text-white disabled:opacity-40">
               <ChevronRight className="w-4 h-4" />
             </button>
           </div>
@@ -346,15 +346,15 @@ function AuditModal({ tenant, logs, page, setPage, onClose }: {
 function ImpersonateModal({ tenant, onClose, onConfirm }: { tenant: Tenant; onClose: () => void; onConfirm: () => void }) {
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl w-full max-w-sm">
-        <div className="p-4 border-b border-[#1e2d42]">
+      <div className="bg-falcon-surface border border-falcon-border rounded-xl w-full max-w-sm">
+        <div className="p-4 border-b border-falcon-border">
           <div className="flex items-center gap-2">
             <AlertTriangle className="w-5 h-5 text-yellow-400" />
             <h3 className="text-white font-semibold">テナント切り替えの確認</h3>
           </div>
         </div>
         <div className="p-4">
-          <p className="text-[#7d92b0] text-sm">
+          <p className="text-falcon-muted text-sm">
             <span className="text-white font-medium">{tenant.name}</span> のコンテキストに切り替えます。<br />
             このテナントのデータ・設定にアクセスできるようになります。
           </p>
@@ -362,8 +362,8 @@ function ImpersonateModal({ tenant, onClose, onConfirm }: { tenant: Tenant; onCl
             <p className="text-yellow-400 text-xs">すべての操作はスーパー管理者として記録されます</p>
           </div>
         </div>
-        <div className="flex justify-end gap-2 p-4 border-t border-[#1e2d42]">
-          <button onClick={onClose} className="px-4 py-2 rounded-lg border border-[#1e2d42] text-[#7d92b0] hover:text-white text-sm">キャンセル</button>
+        <div className="flex justify-end gap-2 p-4 border-t border-falcon-border">
+          <button onClick={onClose} className="px-4 py-2 rounded-lg border border-falcon-border text-falcon-muted hover:text-white text-sm">キャンセル</button>
           <button onClick={onConfirm} className="px-4 py-2 rounded-lg bg-yellow-500 text-black text-sm font-semibold hover:bg-yellow-400 transition-colors">切り替える</button>
         </div>
       </div>
@@ -431,21 +431,21 @@ export default function TenantsManagementPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="p-2 rounded-lg bg-[#0d1220] border border-[#1e2d42]">
-            <Building2 className="w-6 h-6 text-[#e8002d]" />
+          <div className="p-2 rounded-lg bg-falcon-surface border border-falcon-border">
+            <Building2 className="w-6 h-6 text-falcon-red" />
           </div>
           <div>
             <h1 className="text-2xl font-bold text-white">マルチテナント管理</h1>
-            <p className="text-sm text-[#7d92b0] mt-0.5">テナントの作成・管理・クォータ設定</p>
+            <p className="text-sm text-falcon-muted mt-0.5">テナントの作成・管理・クォータ設定</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
           <button onClick={() => refetch()}
-            className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#0d1220] border border-[#1e2d42] text-[#7d92b0] hover:text-white hover:border-[#e8002d] transition-colors text-sm">
+            className="flex items-center gap-2 px-3 py-2 rounded-lg bg-falcon-surface border border-falcon-border text-falcon-muted hover:text-white hover:border-falcon-red transition-colors text-sm">
             <RefreshCw className="w-4 h-4" />更新
           </button>
           <button onClick={() => setShowCreate(true)}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#e8002d] text-white text-sm font-medium hover:bg-[#cc0027] transition-colors">
+            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-falcon-red text-white text-sm font-medium hover:bg-[#cc0027] transition-colors">
             <Plus className="w-4 h-4" />新規テナント
           </button>
         </div>
@@ -453,20 +453,20 @@ export default function TenantsManagementPage() {
 
       {/* Usage Overview */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-4">
-          <p className="text-[#7d92b0] text-sm">総テナント数</p>
+        <div className="bg-falcon-surface border border-falcon-border rounded-xl p-4">
+          <p className="text-falcon-muted text-sm">総テナント数</p>
           <p className="text-2xl font-bold text-white mt-1">{tenants.length}</p>
         </div>
-        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-4">
-          <p className="text-[#7d92b0] text-sm">総エージェント</p>
+        <div className="bg-falcon-surface border border-falcon-border rounded-xl p-4">
+          <p className="text-falcon-muted text-sm">総エージェント</p>
           <p className="text-2xl font-bold text-white mt-1">{totalAgents.toLocaleString()}</p>
         </div>
-        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-4">
-          <p className="text-[#7d92b0] text-sm">総ストレージ使用量</p>
+        <div className="bg-falcon-surface border border-falcon-border rounded-xl p-4">
+          <p className="text-falcon-muted text-sm">総ストレージ使用量</p>
           <p className="text-2xl font-bold text-white mt-1">{totalStorage.toFixed(2)} GB</p>
         </div>
-        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-4">
-          <p className="text-[#7d92b0] text-sm mb-2">プラン分布</p>
+        <div className="bg-falcon-surface border border-falcon-border rounded-xl p-4">
+          <p className="text-falcon-muted text-sm mb-2">プラン分布</p>
           <div className="space-y-1">
             {[
               { plan: 'enterprise', label: 'Enterprise', color: '#f59e0b' },
@@ -476,7 +476,7 @@ export default function TenantsManagementPage() {
               <div key={p.plan} className="flex items-center justify-between">
                 <div className="flex items-center gap-1.5">
                   <div className="w-2 h-2 rounded-full" style={{ backgroundColor: p.color }} />
-                  <span className="text-[#7d92b0] text-xs">{p.label}</span>
+                  <span className="text-falcon-muted text-xs">{p.label}</span>
                 </div>
                 <span className="text-white text-xs font-medium">{planCounts[p.plan] || 0}</span>
               </div>
@@ -486,27 +486,27 @@ export default function TenantsManagementPage() {
       </div>
 
       {/* Tenant Table */}
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
-        <div className="p-4 border-b border-[#1e2d42]">
+      <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
+        <div className="p-4 border-b border-falcon-border">
           <h2 className="text-lg font-semibold text-white">テナント一覧</h2>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-[#1e2d42]">
+              <tr className="border-b border-falcon-border">
                 {['テナント名', 'プラン', 'ステータス', 'エージェント', 'ユーザー', 'ストレージ', '作成日', 'アクション'].map(h => (
-                  <th key={h} className="text-left px-4 py-3 text-[#7d92b0] text-xs font-medium uppercase tracking-wider whitespace-nowrap">{h}</th>
+                  <th key={h} className="text-left px-4 py-3 text-falcon-muted text-xs font-medium uppercase tracking-wider whitespace-nowrap">{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {tenants.map(tenant => (
                 <tr key={tenant.id}
-                  className="border-b border-[#1e2d42] hover:bg-[#070d19] transition-colors cursor-pointer"
+                  className="border-b border-falcon-border hover:bg-[#070d19] transition-colors cursor-pointer"
                   onClick={() => setStatsTenant(tenant)}>
                   <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
                     <p className="text-white text-sm font-medium">{tenant.name}</p>
-                    <p className="text-[#7d92b0] text-xs">{tenant.domain}</p>
+                    <p className="text-falcon-muted text-xs">{tenant.domain}</p>
                   </td>
                   <td className="px-4 py-3" onClick={e => e.stopPropagation()}><PlanBadge plan={tenant.plan} /></td>
                   <td className="px-4 py-3" onClick={e => e.stopPropagation()}><StatusBadge status={tenant.status} /></td>
@@ -519,31 +519,31 @@ export default function TenantsManagementPage() {
                   <td className="px-4 py-3 min-w-[140px]" onClick={e => e.stopPropagation()}>
                     <UsageBar used={parseFloat((tenant.storage_used_gb || 0).toFixed(2))} max={tenant.max_storage_gb} color="#a855f7" />
                   </td>
-                  <td className="px-4 py-3 text-[#7d92b0] text-sm whitespace-nowrap" onClick={e => e.stopPropagation()}>{tenant.created_at}</td>
+                  <td className="px-4 py-3 text-falcon-muted text-sm whitespace-nowrap" onClick={e => e.stopPropagation()}>{tenant.created_at}</td>
                   <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
                     <div className="flex items-center gap-1">
                       <button
                         onClick={() => setImpersonateTenant(tenant)}
                         title="テナントに切り替え"
-                        className="p-1.5 rounded text-[#7d92b0] hover:text-white hover:bg-[#1e2d42] transition-colors">
+                        className="p-1.5 rounded-sm text-falcon-muted hover:text-white hover:bg-falcon-border transition-colors">
                         <Eye className="w-4 h-4" />
                       </button>
                       <button
                         onClick={() => setEditQuotaTenant(tenant)}
                         title="クォータ編集"
-                        className="p-1.5 rounded text-[#7d92b0] hover:text-white hover:bg-[#1e2d42] transition-colors">
+                        className="p-1.5 rounded-sm text-falcon-muted hover:text-white hover:bg-falcon-border transition-colors">
                         <Settings2 className="w-4 h-4" />
                       </button>
                       <button
                         onClick={() => { setAuditTenant(tenant); setAuditPage(1) }}
                         title="監査ログ"
-                        className="p-1.5 rounded text-[#7d92b0] hover:text-white hover:bg-[#1e2d42] transition-colors">
+                        className="p-1.5 rounded-sm text-falcon-muted hover:text-white hover:bg-falcon-border transition-colors">
                         <Shield className="w-4 h-4" />
                       </button>
                       <button
                         onClick={() => setDeleteConfirm(tenant)}
                         title="削除"
-                        className="p-1.5 rounded text-[#7d92b0] hover:text-red-400 hover:bg-[#1e2d42] transition-colors">
+                        className="p-1.5 rounded-sm text-falcon-muted hover:text-red-400 hover:bg-falcon-border transition-colors">
                         <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
@@ -595,23 +595,23 @@ export default function TenantsManagementPage() {
 
       {deleteConfirm && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl w-full max-w-sm">
-            <div className="p-4 border-b border-[#1e2d42]">
+          <div className="bg-falcon-surface border border-falcon-border rounded-xl w-full max-w-sm">
+            <div className="p-4 border-b border-falcon-border">
               <div className="flex items-center gap-2">
-                <AlertTriangle className="w-5 h-5 text-[#e8002d]" />
+                <AlertTriangle className="w-5 h-5 text-falcon-red" />
                 <h3 className="text-white font-semibold">テナント削除の確認</h3>
               </div>
             </div>
             <div className="p-4">
-              <p className="text-[#7d92b0] text-sm">
+              <p className="text-falcon-muted text-sm">
                 <span className="text-white font-medium">{deleteConfirm.name}</span> を削除しますか？<br />
                 この操作は元に戻せません。
               </p>
             </div>
-            <div className="flex justify-end gap-2 p-4 border-t border-[#1e2d42]">
-              <button onClick={() => setDeleteConfirm(null)} className="px-4 py-2 rounded-lg border border-[#1e2d42] text-[#7d92b0] hover:text-white text-sm">キャンセル</button>
+            <div className="flex justify-end gap-2 p-4 border-t border-falcon-border">
+              <button onClick={() => setDeleteConfirm(null)} className="px-4 py-2 rounded-lg border border-falcon-border text-falcon-muted hover:text-white text-sm">キャンセル</button>
               <button onClick={() => deleteMutation.mutate(deleteConfirm.id)}
-                className="px-4 py-2 rounded-lg bg-[#e8002d] text-white text-sm font-medium hover:bg-[#cc0027] transition-colors">削除</button>
+                className="px-4 py-2 rounded-lg bg-falcon-red text-white text-sm font-medium hover:bg-[#cc0027] transition-colors">削除</button>
             </div>
           </div>
         </div>

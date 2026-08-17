@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback, use } from 'react'
 import { useRouter } from 'next/navigation'
 import { apiFetch, apiFetchList } from '@/lib/api'
 import { Agent } from '@/types/api'
@@ -72,8 +72,8 @@ function statusBadge(status: Agent['status']) {
       )
     case 'offline':
       return (
-        <span className="flex items-center gap-1.5 text-xs px-2 py-0.5 rounded-full bg-[#1e2d42] border border-[#2d4060] text-[#8899aa]">
-          <span className="w-1.5 h-1.5 rounded-full bg-[#3d5068]" />
+        <span className="flex items-center gap-1.5 text-xs px-2 py-0.5 rounded-full bg-falcon-border border border-[#2d4060] text-[#8899aa]">
+          <span className="w-1.5 h-1.5 rounded-full bg-falcon-subtle" />
           オフライン
         </span>
       )
@@ -117,9 +117,11 @@ function sessionStateBadge(state: SessionState) {
 
 // ─── Main component ───────────────────────────────────────────
 
-export default function TerminalPage({ params }: { params: { id: string } }) {
+// Next.js 15 以降、動的セグメントの params は Promise で渡る。
+// クライアントコンポーネントでは React の use() で解決する。
+export default function TerminalPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter()
-  const agentId = params.id
+  const agentId = use(params).id
 
   // Agent & session state
   const [agent, setAgent] = useState<Agent | null>(null)
@@ -340,12 +342,12 @@ export default function TerminalPage({ params }: { params: { id: string } }) {
 
       {/* ── Agent header ── */}
       <div className="flex items-center justify-between flex-wrap gap-3
-                      bg-[#111827] border border-[#1e2d42] rounded-xl px-5 py-3">
+                      bg-falcon-card border border-falcon-border rounded-xl px-5 py-3">
         <div className="flex items-center gap-3">
-          <Terminal className="w-5 h-5 text-green-400 flex-shrink-0" />
+          <Terminal className="w-5 h-5 text-green-400 shrink-0" />
           <div>
             {agentLoading ? (
-              <div className="w-32 h-4 bg-[#1e2d42] rounded animate-pulse" />
+              <div className="w-32 h-4 bg-falcon-border rounded-sm animate-pulse" />
             ) : (
               <span className="font-semibold text-white text-base">{hostname}</span>
             )}
@@ -391,7 +393,7 @@ export default function TerminalPage({ params }: { params: { id: string } }) {
             <button
               onClick={clearHistory}
               title="コマンド履歴をクリア"
-              className="flex items-center gap-1.5 px-3 py-2 bg-[#1e2d42] hover:bg-[#253647]
+              className="flex items-center gap-1.5 px-3 py-2 bg-falcon-border hover:bg-[#253647]
                          border border-[#2d4060] text-[#8899aa] hover:text-white text-sm rounded-lg transition-colors"
             >
               <Trash2 className="w-4 h-4" />
@@ -402,7 +404,7 @@ export default function TerminalPage({ params }: { params: { id: string } }) {
       </div>
 
       {/* ── Quick commands (collapsible) ── */}
-      <div className="bg-[#111827] border border-[#1e2d42] rounded-xl overflow-hidden">
+      <div className="bg-falcon-card border border-falcon-border rounded-xl overflow-hidden">
         <button
           onClick={() => setQuickOpen(v => !v)}
           className="w-full flex items-center justify-between px-4 py-2.5 text-sm text-[#8899aa] hover:text-white transition-colors"
@@ -415,7 +417,7 @@ export default function TerminalPage({ params }: { params: { id: string } }) {
         </button>
 
         {quickOpen && (
-          <div className="px-4 pb-3 flex flex-wrap gap-2 border-t border-[#1e2d42] pt-3">
+          <div className="px-4 pb-3 flex flex-wrap gap-2 border-t border-falcon-border pt-3">
             {QUICK_COMMANDS.map(({ label, cmd }) => (
               <button
                 key={cmd}
@@ -437,7 +439,7 @@ export default function TerminalPage({ params }: { params: { id: string } }) {
                       overflow-hidden min-h-0" style={{ minHeight: '420px' }}>
 
         {/* Terminal title bar */}
-        <div className="flex items-center gap-2 px-4 py-2.5 bg-[#0d1626] border-b border-[#1a2535] flex-shrink-0">
+        <div className="flex items-center gap-2 px-4 py-2.5 bg-[#0d1626] border-b border-[#1a2535] shrink-0">
           <div className="flex gap-1.5">
             <span className="w-3 h-3 rounded-full bg-red-500/70" />
             <span className="w-3 h-3 rounded-full bg-yellow-500/70" />
@@ -452,7 +454,7 @@ export default function TerminalPage({ params }: { params: { id: string } }) {
         <div className="flex-1 overflow-y-auto px-5 py-4 font-mono text-sm space-y-3 min-h-0">
 
           {sessionState === 'idle' && (
-            <p className="text-[#3d5068] text-sm">
+            <p className="text-falcon-subtle text-sm">
               「セッションを開始」ボタンを押してリモートターミナルに接続してください。
             </p>
           )}
@@ -462,7 +464,7 @@ export default function TerminalPage({ params }: { params: { id: string } }) {
               {/* Command line */}
               {entry.command && (
                 <div className="flex items-start gap-2">
-                  <span className="text-[#5a8a6a] select-none flex-shrink-0">
+                  <span className="text-[#5a8a6a] select-none shrink-0">
                     [{hostname}]$
                   </span>
                   <span className="text-yellow-300 break-all">{entry.command}</span>
@@ -499,10 +501,10 @@ export default function TerminalPage({ params }: { params: { id: string } }) {
         </div>
 
         {/* Input line */}
-        <div className="flex-shrink-0 border-t border-[#1a2535] bg-[#0a0f1a] px-4 py-3">
+        <div className="shrink-0 border-t border-[#1a2535] bg-[#0a0f1a] px-4 py-3">
           {sessionState === 'active' ? (
             <div className="flex items-center gap-2">
-              <span className="text-[#5a8a6a] font-mono text-sm select-none flex-shrink-0">
+              <span className="text-[#5a8a6a] font-mono text-sm select-none shrink-0">
                 [{hostname}]$
               </span>
               <input
@@ -513,7 +515,7 @@ export default function TerminalPage({ params }: { params: { id: string } }) {
                 onKeyDown={handleKeyDown}
                 disabled={isExecuting}
                 placeholder={isExecuting ? '実行中...' : 'コマンドを入力（↑↓ で履歴）'}
-                className="flex-1 bg-transparent outline-none text-white font-mono text-sm
+                className="flex-1 bg-transparent outline-hidden text-white font-mono text-sm
                            placeholder-[#2d4060] caret-green-400 disabled:opacity-40"
                 autoComplete="off"
                 spellCheck={false}
@@ -532,7 +534,7 @@ export default function TerminalPage({ params }: { params: { id: string } }) {
               </button>
             </div>
           ) : (
-            <div className="flex items-center gap-2 text-[#3d5068] font-mono text-sm">
+            <div className="flex items-center gap-2 text-falcon-subtle font-mono text-sm">
               <span className="select-none">[{hostname}]$</span>
               <span className="text-xs italic">
                 {sessionState === 'connecting'

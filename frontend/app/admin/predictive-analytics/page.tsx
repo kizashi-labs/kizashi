@@ -231,18 +231,18 @@ export default function PredictiveAnalyticsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-[#e8002d]/10 border border-[#e8002d]/30 flex items-center justify-center">
-            <TrendingUp className="w-5 h-5 text-[#e8002d]" />
+          <div className="w-10 h-10 rounded-lg bg-falcon-red/10 border border-falcon-red/30 flex items-center justify-center">
+            <TrendingUp className="w-5 h-5 text-falcon-red" />
           </div>
           <div>
             <h1 className="text-xl font-bold text-white">予測的セキュリティ分析</h1>
-            <p className="text-xs text-[#7d92b0]">AIモデルによる将来リスク予測</p>
+            <p className="text-xs text-falcon-muted">AIモデルによる将来リスク予測</p>
           </div>
         </div>
         <button
           onClick={handleGenerate}
           disabled={generating}
-          className="flex items-center gap-2 px-4 py-2 bg-[#e8002d] hover:bg-[#c0001f] text-white text-sm rounded-lg transition-colors disabled:opacity-60"
+          className="flex items-center gap-2 px-4 py-2 bg-falcon-red hover:bg-[#c0001f] text-white text-sm rounded-lg transition-colors disabled:opacity-60"
         >
           {generating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Brain className="w-4 h-4" />}
           予測を生成
@@ -251,18 +251,18 @@ export default function PredictiveAnalyticsPage() {
 
       {/* Generate progress */}
       {generating && (
-        <div className="bg-[#0d1220] border border-[#e8002d]/30 rounded-xl p-4">
+        <div className="bg-falcon-surface border border-falcon-red/30 rounded-xl p-4">
           <div className="flex items-center justify-between mb-2">
             <p className="text-sm text-white font-medium">予測モデルを実行中...</p>
-            <span className="text-xs text-[#e8002d]">{Math.round(generateProgress)}%</span>
+            <span className="text-xs text-falcon-red">{Math.round(generateProgress)}%</span>
           </div>
-          <div className="w-full h-2 bg-[#1e2d42] rounded-full overflow-hidden">
+          <div className="w-full h-2 bg-falcon-border rounded-full overflow-hidden">
             <div
-              className="h-full bg-gradient-to-r from-[#e8002d] to-red-400 rounded-full transition-all duration-300"
+              className="h-full bg-linear-to-r from-falcon-red to-red-400 rounded-full transition-all duration-300"
               style={{ width: `${generateProgress}%` }}
             />
           </div>
-          <p className="text-xs text-[#7d92b0] mt-1">
+          <p className="text-xs text-falcon-muted mt-1">
             {generateProgress < 30 ? 'データ収集中...' : generateProgress < 60 ? 'モデル推論中...' : generateProgress < 90 ? '結果集計中...' : '予測完了'}
           </p>
         </div>
@@ -271,28 +271,28 @@ export default function PredictiveAnalyticsPage() {
       {/* Model status cards */}
       <div className="grid grid-cols-4 gap-4">
         {models.map((m, i) => (
-          <div key={m.id} className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-4">
+          <div key={m.id} className="bg-falcon-surface border border-falcon-border rounded-xl p-4">
             <div className="flex items-start justify-between mb-3">
-              <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${m.status === 'ready' ? 'bg-green-500/10 text-green-400' : m.status === 'stale' ? 'bg-yellow-500/10 text-yellow-400' : 'bg-[#1e2d42] text-[#7d92b0]'}`}>
+              <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${m.status === 'ready' ? 'bg-green-500/10 text-green-400' : m.status === 'stale' ? 'bg-yellow-500/10 text-yellow-400' : 'bg-falcon-border text-falcon-muted'}`}>
                 {modelIcons[i]}
               </div>
-              <span className={`text-[10px] px-2 py-0.5 rounded font-medium ${modelStatusColor[m.status]}`}>
+              <span className={`text-[10px] px-2 py-0.5 rounded-sm font-medium ${modelStatusColor[m.status]}`}>
                 {modelStatusLabel[m.status]}
               </span>
             </div>
             <p className="text-sm text-white font-medium mb-0.5">{m.name}</p>
-            <p className="text-[11px] text-[#7d92b0] mb-3">{m.description}</p>
+            <p className="text-[11px] text-falcon-muted mb-3">{m.description}</p>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs text-[#7d92b0]">精度</p>
+                <p className="text-xs text-falcon-muted">精度</p>
                 <p className="text-lg font-bold text-white">{m.accuracy}%</p>
               </div>
               <div className="text-right">
-                <p className="text-[10px] text-[#3d5068]">最終学習</p>
-                <p className="text-[11px] text-[#7d92b0]">{timeAgo(m.last_trained)}</p>
+                <p className="text-[10px] text-falcon-subtle">最終学習</p>
+                <p className="text-[11px] text-falcon-muted">{timeAgo(m.last_trained)}</p>
               </div>
             </div>
-            <div className="mt-2 w-full h-1 bg-[#1e2d42] rounded-full overflow-hidden">
+            <div className="mt-2 w-full h-1 bg-falcon-border rounded-full overflow-hidden">
               <div className={`h-full rounded-full ${m.accuracy >= 90 ? 'bg-green-400' : m.accuracy >= 80 ? 'bg-blue-400' : 'bg-yellow-400'}`}
                 style={{ width: `${m.accuracy}%` }} />
             </div>
@@ -301,43 +301,43 @@ export default function PredictiveAnalyticsPage() {
       </div>
 
       {/* Volume Forecast Chart */}
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
+      <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
         <div className="flex items-center justify-between mb-4">
           <div>
             <p className="text-sm font-medium text-white">アラート量予測 (今後30日)</p>
-            <p className="text-xs text-[#7d92b0]">信頼区間80% · 赤線=予測, 帯域=上下限</p>
+            <p className="text-xs text-falcon-muted">信頼区間80% · 赤線=予測, 帯域=上下限</p>
           </div>
-          <div className="flex items-center gap-3 text-xs text-[#7d92b0]">
-            <div className="flex items-center gap-1.5"><div className="w-4 h-0.5 bg-[#e8002d]" /><span>予測</span></div>
-            <div className="flex items-center gap-1.5"><div className="w-4 h-2 bg-[#e8002d]/20 rounded-sm" /><span>信頼区間</span></div>
+          <div className="flex items-center gap-3 text-xs text-falcon-muted">
+            <div className="flex items-center gap-1.5"><div className="w-4 h-0.5 bg-falcon-red" /><span>予測</span></div>
+            <div className="flex items-center gap-1.5"><div className="w-4 h-2 bg-falcon-red/20 rounded-xs" /><span>信頼区間</span></div>
           </div>
         </div>
         <VolumeChart data={(_predictions as { volume_forecast?: DayForecast[] })?.volume_forecast ?? []} />
       </div>
 
       {/* Endpoint breach risk */}
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
+      <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
         <p className="text-sm font-medium text-white mb-4">侵害リスクスコア (上位10エンドポイント)</p>
         <div className="space-y-2.5">
           {([] as EndpointRisk[]).map(ep => (
             <div key={ep.host} className="flex items-center gap-3">
-              <p className="text-xs font-mono text-[#e2e8f4] w-36 flex-shrink-0">{ep.host}</p>
+              <p className="text-xs font-mono text-falcon-text w-36 shrink-0">{ep.host}</p>
               <div className="flex-1 relative">
-                <div className="w-full h-5 bg-[#1e2d42] rounded overflow-hidden">
+                <div className="w-full h-5 bg-falcon-border rounded-sm overflow-hidden">
                   <div
-                    className={`h-full rounded transition-all duration-500 ${ep.score >= 80 ? 'bg-red-500' : ep.score >= 60 ? 'bg-orange-500' : 'bg-yellow-500'}`}
+                    className={`h-full rounded-sm transition-all duration-500 ${ep.score >= 80 ? 'bg-red-500' : ep.score >= 60 ? 'bg-orange-500' : 'bg-yellow-500'}`}
                     style={{ width: `${ep.score}%` }}
                   />
                 </div>
               </div>
-              <div className="flex items-center gap-2 w-24 flex-shrink-0">
+              <div className="flex items-center gap-2 w-24 shrink-0">
                 <span className={`text-sm font-bold ${ep.score >= 80 ? 'text-red-400' : ep.score >= 60 ? 'text-orange-400' : 'text-yellow-400'}`}>
                   {ep.score}
                 </span>
-                <span className={`text-[10px] ${ep.trend === 'up' ? 'text-red-400' : ep.trend === 'down' ? 'text-green-400' : 'text-[#7d92b0]'}`}>
+                <span className={`text-[10px] ${ep.trend === 'up' ? 'text-red-400' : ep.trend === 'down' ? 'text-green-400' : 'text-falcon-muted'}`}>
                   {ep.trend === 'up' ? '↑' : ep.trend === 'down' ? '↓' : '→'}
                 </span>
-                <span className="text-[10px] text-[#3d5068] truncate">{ep.risk_factors[0]}</span>
+                <span className="text-[10px] text-falcon-subtle truncate">{ep.risk_factors[0]}</span>
               </div>
             </div>
           ))}
@@ -345,18 +345,18 @@ export default function PredictiveAnalyticsPage() {
       </div>
 
       {/* Vuln trend */}
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
+      <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
         <div className="flex items-center justify-between mb-4">
           <div>
             <p className="text-sm font-medium text-white">脆弱性露出トレンド (過去30日 + 30日予測)</p>
-            <p className="text-xs text-[#7d92b0]">青=実績, 赤点線=予測投影</p>
+            <p className="text-xs text-falcon-muted">青=実績, 赤点線=予測投影</p>
           </div>
         </div>
         <VulnTrendChart data={[]} />
       </div>
 
       {/* Recommended actions */}
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
+      <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
         <p className="text-sm font-medium text-white mb-4">AI推奨アクション ({([] as RecommendedAction[]).length}件)</p>
         <div className="space-y-3">
           {([] as RecommendedAction[]).map(a => (
@@ -364,16 +364,16 @@ export default function PredictiveAnalyticsPage() {
               <div className="flex items-start gap-3">
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
-                    <span className={`text-[11px] font-medium px-2 py-0.5 rounded ${priorityBadge[a.priority]}`}>{priorityLabel[a.priority]}</span>
+                    <span className={`text-[11px] font-medium px-2 py-0.5 rounded-sm ${priorityBadge[a.priority]}`}>{priorityLabel[a.priority]}</span>
                     <p className="text-sm text-white font-medium">{a.title}</p>
                   </div>
-                  <p className="text-xs text-[#7d92b0] leading-relaxed mb-1.5">{a.description}</p>
+                  <p className="text-xs text-falcon-muted leading-relaxed mb-1.5">{a.description}</p>
                   <div className="flex items-center gap-3 text-[11px]">
-                    <span className="text-[#3d5068]">モデル: <span className="text-[#7d92b0]">{a.model_source}</span></span>
-                    <span className="text-[#3d5068]">信頼度: <span className="text-white font-medium">{a.confidence}%</span></span>
+                    <span className="text-falcon-subtle">モデル: <span className="text-falcon-muted">{a.model_source}</span></span>
+                    <span className="text-falcon-subtle">信頼度: <span className="text-white font-medium">{a.confidence}%</span></span>
                   </div>
                 </div>
-                <button className="flex items-center gap-1 px-3 py-1.5 text-xs text-white bg-[#e8002d]/80 hover:bg-[#e8002d] rounded-lg transition-colors flex-shrink-0">
+                <button className="flex items-center gap-1 px-3 py-1.5 text-xs text-white bg-falcon-red/80 hover:bg-falcon-red rounded-lg transition-colors shrink-0">
                   <ChevronRight className="w-3.5 h-3.5" /> 対応
                 </button>
               </div>
@@ -385,11 +385,11 @@ export default function PredictiveAnalyticsPage() {
       {/* Bottom row: Accuracy + Feature Importance */}
       <div className="grid grid-cols-2 gap-4">
         {/* Accuracy chart */}
-        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
+        <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
           <div className="flex items-center justify-between mb-4">
             <p className="text-sm font-medium text-white">精度追跡 (過去30日)</p>
-            <div className="flex items-center gap-3 text-xs text-[#7d92b0]">
-              <div className="flex items-center gap-1.5"><div className="w-4 h-0.5 bg-[#e8002d]" style={{ borderTop: '2px dashed #e8002d' }} /><span>予測</span></div>
+            <div className="flex items-center gap-3 text-xs text-falcon-muted">
+              <div className="flex items-center gap-1.5"><div className="w-4 h-0.5 bg-falcon-red" style={{ borderTop: '2px dashed #e8002d' }} /><span>予測</span></div>
               <div className="flex items-center gap-1.5"><div className="w-4 h-0.5 bg-blue-400" /><span>実績</span></div>
             </div>
           </div>
@@ -397,21 +397,21 @@ export default function PredictiveAnalyticsPage() {
         </div>
 
         {/* Feature importance */}
-        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
+        <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
           <p className="text-sm font-medium text-white mb-4">特徴量重要度</p>
           <div className="space-y-2.5">
             {([] as FeatureImportance[]).map(f => (
               <div key={f.feature} className="flex items-center gap-3">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between mb-0.5">
-                    <p className="text-xs text-[#e2e8f4] truncate">{f.feature}</p>
-                    <span className="text-[11px] text-[#7d92b0] ml-2 flex-shrink-0">{Math.round(f.importance * 100)}%</span>
+                    <p className="text-xs text-falcon-text truncate">{f.feature}</p>
+                    <span className="text-[11px] text-falcon-muted ml-2 shrink-0">{Math.round(f.importance * 100)}%</span>
                   </div>
-                  <div className="w-full h-1.5 bg-[#1e2d42] rounded-full overflow-hidden">
-                    <div className="h-full bg-[#e8002d] rounded-full" style={{ width: `${f.importance * 100}%` }} />
+                  <div className="w-full h-1.5 bg-falcon-border rounded-full overflow-hidden">
+                    <div className="h-full bg-falcon-red rounded-full" style={{ width: `${f.importance * 100}%` }} />
                   </div>
                 </div>
-                <span className="text-[10px] text-[#3d5068] w-20 text-right flex-shrink-0">{f.category}</span>
+                <span className="text-[10px] text-falcon-subtle w-20 text-right shrink-0">{f.category}</span>
               </div>
             ))}
           </div>

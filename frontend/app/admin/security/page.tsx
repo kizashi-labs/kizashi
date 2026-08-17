@@ -46,12 +46,12 @@ function Toggle({
         role="switch"
         aria-checked={checked}
         onClick={() => onChange(!checked)}
-        className={`relative inline-flex h-6 w-11 flex-shrink-0 rounded-full border-2 border-transparent
-          transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500
-          ${checked ? 'bg-blue-600' : 'bg-[#1e2d42]'}`}
+        className={`relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent
+          transition-colors duration-200 ease-in-out focus:outline-hidden focus:ring-2 focus:ring-blue-500
+          ${checked ? 'bg-blue-600' : 'bg-falcon-border'}`}
       >
         <span
-          className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-[#e2e8f4] shadow
+          className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-falcon-text shadow
             ring-0 transition duration-200 ease-in-out
             ${checked ? 'translate-x-5' : 'translate-x-0'}`}
         />
@@ -145,21 +145,21 @@ export default function SecuritySettingsPage() {
       {/* Feedback banners */}
       {saveSuccess && (
         <div className="flex items-center gap-2 px-4 py-3 bg-green-900/30 border border-green-700/50 rounded-lg text-green-300 text-sm">
-          <CheckCircle className="w-4 h-4 flex-shrink-0" />
+          <CheckCircle className="w-4 h-4 shrink-0" />
           パスワードポリシーを保存しました
         </div>
       )}
       {saveError && (
         <div className="flex items-center gap-2 px-4 py-3 bg-red-900/30 border border-red-700/50 rounded-lg text-red-300 text-sm">
-          <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+          <AlertTriangle className="w-4 h-4 shrink-0" />
           {saveError}
         </div>
       )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* ── Password Complexity ───────────────────────── */}
-        <section className="bg-[#111827] rounded-xl border border-[#1e2d42] p-6 space-y-5">
-          <div className="flex items-center gap-2 pb-3 border-b border-[#1e2d42]">
+        <section className="bg-falcon-card rounded-xl border border-falcon-border p-6 space-y-5">
+          <div className="flex items-center gap-2 pb-3 border-b border-falcon-border">
             <Lock className="w-4 h-4 text-blue-400" />
             <h2 className="text-white font-semibold">パスワード複雑性</h2>
           </div>
@@ -183,7 +183,7 @@ export default function SecuritySettingsPage() {
               onChange={e => setForm(f => ({ ...f, min_length: Number(e.target.value) }))}
               disabled={isLoading}
               className="w-full h-2 rounded-full appearance-none cursor-pointer
-                         bg-[#1e2d42] accent-blue-500 disabled:opacity-50"
+                         bg-falcon-border accent-blue-500 disabled:opacity-50"
             />
             <div className="flex justify-between text-xs text-[#8899aa]">
               <span>6</span>
@@ -221,8 +221,8 @@ export default function SecuritySettingsPage() {
         </section>
 
         {/* ── Expiry & History ──────────────────────────── */}
-        <section className="bg-[#111827] rounded-xl border border-[#1e2d42] p-6 space-y-5">
-          <div className="flex items-center gap-2 pb-3 border-b border-[#1e2d42]">
+        <section className="bg-falcon-card rounded-xl border border-falcon-border p-6 space-y-5">
+          <div className="flex items-center gap-2 pb-3 border-b border-falcon-border">
             <Key className="w-4 h-4 text-blue-400" />
             <h2 className="text-white font-semibold">有効期限と履歴</h2>
           </div>
@@ -243,8 +243,8 @@ export default function SecuritySettingsPage() {
               value={form.max_age_days}
               onChange={e => setForm(f => ({ ...f, max_age_days: Math.max(0, Number(e.target.value)) }))}
               disabled={isLoading}
-              className="w-32 px-3 py-2 bg-[#0d1623] border border-[#1e2d42] rounded-lg text-white
-                         text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+              className="w-32 px-3 py-2 bg-[#0d1623] border border-falcon-border rounded-lg text-white
+                         text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
             />
             {form.max_age_days > 0 && (
               <p className="text-xs text-blue-400 mt-1">
@@ -269,18 +269,18 @@ export default function SecuritySettingsPage() {
               value={form.history_count}
               onChange={e => setForm(f => ({ ...f, history_count: Math.max(0, Number(e.target.value)) }))}
               disabled={isLoading}
-              className="w-32 px-3 py-2 bg-[#0d1623] border border-[#1e2d42] rounded-lg text-white
-                         text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+              className="w-32 px-3 py-2 bg-[#0d1623] border border-falcon-border rounded-lg text-white
+                         text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
             />
           </div>
         </section>
 
         {/* ── MFA Enforcement (future) ─────────────────── */}
-        <section className="bg-[#111827] rounded-xl border border-[#1e2d42] p-6 space-y-4 opacity-60">
-          <div className="flex items-center gap-2 pb-3 border-b border-[#1e2d42]">
+        <section className="bg-falcon-card rounded-xl border border-falcon-border p-6 space-y-4 opacity-60">
+          <div className="flex items-center gap-2 pb-3 border-b border-falcon-border">
             <Shield className="w-4 h-4 text-[#8899aa]" />
             <h2 className="text-white font-semibold">多要素認証（MFA）強制</h2>
-            <span className="ml-auto text-xs text-[#8899aa] border border-[#1e2d42] rounded px-2 py-0.5">
+            <span className="ml-auto text-xs text-[#8899aa] border border-falcon-border rounded-sm px-2 py-0.5">
               近日公開
             </span>
           </div>
@@ -302,7 +302,7 @@ export default function SecuritySettingsPage() {
           <button
             type="submit"
             disabled={updateMutation.isPending || isLoading}
-            className="flex items-center gap-2 px-5 py-2.5 bg-[#1a6bff] text-white rounded-lg
+            className="flex items-center gap-2 px-5 py-2.5 bg-falcon-blue text-white rounded-lg
                        hover:bg-[#1557d4] transition-colors text-sm font-medium
                        disabled:opacity-50 disabled:cursor-not-allowed ml-auto"
           >

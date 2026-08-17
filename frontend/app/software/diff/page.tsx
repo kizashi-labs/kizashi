@@ -138,21 +138,21 @@ function DiffEntry({ diff, isExpanded, onToggle }: {
 }) {
   const totalChanges = diff.installed.length + diff.removed.length
   return (
-    <div className="border border-[#1e2d42] rounded-xl overflow-hidden bg-[#0d1220] hover:border-[#2e4a6e] transition-all">
+    <div className="border border-falcon-border rounded-xl overflow-hidden bg-falcon-surface hover:border-[#2e4a6e] transition-all">
       {/* Header */}
       <button
         onClick={onToggle}
         className="w-full flex items-center gap-4 px-5 py-4 text-left group"
       >
         {/* Timeline dot */}
-        <div className="flex-shrink-0 flex flex-col items-center">
-          <div className={`w-3 h-3 rounded-full border-2 ${totalChanges > 0 ? 'border-[#e8002d] bg-[#e8002d]/30' : 'border-[#3d5068] bg-[#0d1220]'}`} />
+        <div className="shrink-0 flex flex-col items-center">
+          <div className={`w-3 h-3 rounded-full border-2 ${totalChanges > 0 ? 'border-falcon-red bg-falcon-red/30' : 'border-falcon-subtle bg-falcon-surface'}`} />
         </div>
 
         {/* Date */}
-        <div className="flex-shrink-0 w-28">
+        <div className="shrink-0 w-28">
           <p className="text-white text-sm font-semibold">{dayLabel(diff.computed_at)}</p>
-          <p className="text-[#7d92b0] text-xs">{fmtDate(diff.computed_at)}</p>
+          <p className="text-falcon-muted text-xs">{fmtDate(diff.computed_at)}</p>
         </div>
 
         {/* Change summary */}
@@ -168,18 +168,18 @@ function DiffEntry({ diff, isExpanded, onToggle }: {
             </span>
           )}
           {totalChanges === 0 && (
-            <span className="text-[#3d5068] text-xs">変更なし</span>
+            <span className="text-falcon-subtle text-xs">変更なし</span>
           )}
         </div>
 
-        <div className="flex-shrink-0 text-[#7d92b0] group-hover:text-white transition-colors">
+        <div className="shrink-0 text-falcon-muted group-hover:text-white transition-colors">
           {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
         </div>
       </button>
 
       {/* Expanded detail */}
       {isExpanded && (
-        <div className="border-t border-[#1e2d42] px-5 py-4 space-y-4">
+        <div className="border-t border-falcon-border px-5 py-4 space-y-4">
           {/* Installed software */}
           {diff.installed.length > 0 && (
             <div>
@@ -188,7 +188,7 @@ function DiffEntry({ diff, isExpanded, onToggle }: {
                 <h4 className="text-green-400 text-xs font-semibold uppercase tracking-wider">
                   追加されたソフトウェア
                 </h4>
-                <span className="text-[10px] px-1.5 py-0.5 rounded bg-green-500/10 text-green-400">{diff.installed.length}</span>
+                <span className="text-[10px] px-1.5 py-0.5 rounded-sm bg-green-500/10 text-green-400">{diff.installed.length}</span>
               </div>
               <div className="overflow-hidden rounded-lg border border-green-500/10">
                 <table className="w-full">
@@ -221,7 +221,7 @@ function DiffEntry({ diff, isExpanded, onToggle }: {
                 <h4 className="text-red-400 text-xs font-semibold uppercase tracking-wider">
                   削除されたソフトウェア
                 </h4>
-                <span className="text-[10px] px-1.5 py-0.5 rounded bg-red-500/10 text-red-400">{diff.removed.length}</span>
+                <span className="text-[10px] px-1.5 py-0.5 rounded-sm bg-red-500/10 text-red-400">{diff.removed.length}</span>
               </div>
               <div className="overflow-hidden rounded-lg border border-red-500/10">
                 <table className="w-full">
@@ -315,26 +315,26 @@ export default function SoftwareDiffPage() {
         {/* Header */}
         <div className="mb-6">
           <div className="flex items-center gap-3 mb-1">
-            <Package className="w-6 h-6 text-[#e8002d]" />
+            <Package className="w-6 h-6 text-falcon-red" />
             <h1 className="text-2xl font-bold text-white">ソフトウェア変更履歴</h1>
           </div>
-          <p className="text-[#7d92b0] text-sm ml-9">
+          <p className="text-falcon-muted text-sm ml-9">
             エンドポイントのソフトウェアインストール・削除の変化を追跡します
           </p>
         </div>
 
         {/* Agent Selector */}
-        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5 mb-6">
+        <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5 mb-6">
           <div className="flex flex-wrap items-end gap-4">
             <div className="flex-1 min-w-[240px]">
-              <label className="block text-xs text-[#7d92b0] mb-1.5">
+              <label className="block text-xs text-falcon-muted mb-1.5">
                 <Monitor className="w-3 h-3 inline mr-1" />
                 エンドポイントを選択
               </label>
               <select
                 value={selectedAgentId}
                 onChange={e => { setSelectedAgentId(e.target.value); setExpandedDiff(null) }}
-                className="w-full px-3 py-2.5 bg-[#070d19] border border-[#1e2d42] rounded-lg text-white text-sm focus:outline-none focus:border-[#e8002d]/50 transition-colors"
+                className="w-full px-3 py-2.5 bg-[#070d19] border border-falcon-border rounded-lg text-white text-sm focus:outline-hidden focus:border-falcon-red/50 transition-colors"
               >
                 <option value="">-- エンドポイントを選択してください --</option>
                 {agents.map(a => (
@@ -348,7 +348,7 @@ export default function SoftwareDiffPage() {
               <button
                 onClick={() => { setComputeStatus('idle'); computeMutation.mutate() }}
                 disabled={computeMutation.isPending}
-                className="flex items-center gap-2 px-4 py-2.5 bg-[#e8002d] hover:bg-[#c8001f] disabled:opacity-50 text-white text-sm font-semibold rounded-lg transition-colors"
+                className="flex items-center gap-2 px-4 py-2.5 bg-falcon-red hover:bg-[#c8001f] disabled:opacity-50 text-white text-sm font-semibold rounded-lg transition-colors"
               >
                 {computeMutation.isPending
                   ? <RefreshCw className="w-4 h-4 animate-spin" />
@@ -375,10 +375,10 @@ export default function SoftwareDiffPage() {
               { label: '削除ソフトウェア', value: totalRemoved, icon: Minus, color: 'text-red-400' },
               { label: '最多変更日', value: mostActiveDay, icon: Calendar, color: 'text-yellow-400', small: true },
             ].map(stat => (
-              <div key={stat.label} className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-4">
+              <div key={stat.label} className="bg-falcon-surface border border-falcon-border rounded-xl p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <stat.icon className={`w-4 h-4 ${stat.color}`} />
-                  <span className="text-xs text-[#7d92b0]">{stat.label}</span>
+                  <span className="text-xs text-falcon-muted">{stat.label}</span>
                 </div>
                 <p className={`font-bold text-white ${stat.small ? 'text-sm' : 'text-2xl'}`}>{stat.value}</p>
               </div>
@@ -388,20 +388,20 @@ export default function SoftwareDiffPage() {
 
         {/* Timeline */}
         {!selectedAgentId ? (
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl py-16 text-center">
-            <Monitor className="w-12 h-12 text-[#3d5068] mx-auto mb-4" />
-            <p className="text-[#7d92b0] text-sm">エンドポイントを選択して変更履歴を表示します</p>
+          <div className="bg-falcon-surface border border-falcon-border rounded-xl py-16 text-center">
+            <Monitor className="w-12 h-12 text-falcon-subtle mx-auto mb-4" />
+            <p className="text-falcon-muted text-sm">エンドポイントを選択して変更履歴を表示します</p>
           </div>
         ) : isFetching ? (
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl py-16 text-center">
-            <RefreshCw className="w-8 h-8 text-[#3d5068] mx-auto mb-3 animate-spin" />
-            <p className="text-[#7d92b0] text-sm">変更履歴を読み込み中...</p>
+          <div className="bg-falcon-surface border border-falcon-border rounded-xl py-16 text-center">
+            <RefreshCw className="w-8 h-8 text-falcon-subtle mx-auto mb-3 animate-spin" />
+            <p className="text-falcon-muted text-sm">変更履歴を読み込み中...</p>
           </div>
         ) : shownDiffs.length === 0 ? (
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl py-16 text-center">
-            <AlertTriangle className="w-10 h-10 text-[#3d5068] mx-auto mb-3" />
-            <p className="text-[#7d92b0] text-sm">変更履歴がありません</p>
-            <p className="text-[#3d5068] text-xs mt-1">「差分を計算」ボタンで計算を開始できます</p>
+          <div className="bg-falcon-surface border border-falcon-border rounded-xl py-16 text-center">
+            <AlertTriangle className="w-10 h-10 text-falcon-subtle mx-auto mb-3" />
+            <p className="text-falcon-muted text-sm">変更履歴がありません</p>
+            <p className="text-falcon-subtle text-xs mt-1">「差分を計算」ボタンで計算を開始できます</p>
           </div>
         ) : (
           <div>
@@ -410,16 +410,16 @@ export default function SoftwareDiffPage() {
               <h2 className="text-white font-semibold text-sm">
                 変更タイムライン
                 {selectedAgent && (
-                  <span className="ml-2 text-[#7d92b0] font-normal">— {selectedAgent.hostname}</span>
+                  <span className="ml-2 text-falcon-muted font-normal">— {selectedAgent.hostname}</span>
                 )}
               </h2>
-              <span className="text-xs text-[#7d92b0]">{shownDiffs.length} 件のスナップショット</span>
+              <span className="text-xs text-falcon-muted">{shownDiffs.length} 件のスナップショット</span>
             </div>
 
             {/* Timeline entries with connector line */}
             <div className="relative">
               {/* Vertical line */}
-              <div className="absolute left-[26px] top-6 bottom-6 w-px bg-[#1e2d42]" />
+              <div className="absolute left-[26px] top-6 bottom-6 w-px bg-falcon-border" />
 
               <div className="space-y-3">
                 {shownDiffs.map(diff => (

@@ -35,7 +35,7 @@ function SeverityBadge({ severity }: { severity: string }) {
     low: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
   }
   return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border ${map[severity] ?? 'bg-gray-500/20 text-gray-400 border-gray-500/30'}`}>
+    <span className={`inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium border ${map[severity] ?? 'bg-gray-500/20 text-gray-400 border-gray-500/30'}`}>
       {severity}
     </span>
   )
@@ -48,7 +48,7 @@ function StatusBadge({ status }: { status: string }) {
     resolved: 'bg-green-500/20 text-green-400 border-green-500/30',
   }
   return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border ${map[status] ?? 'bg-gray-500/20 text-gray-400 border-gray-500/30'}`}>
+    <span className={`inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium border ${map[status] ?? 'bg-gray-500/20 text-gray-400 border-gray-500/30'}`}>
       {status}
     </span>
   )
@@ -206,7 +206,7 @@ export default function XDRPage() {
                 <div key={inc.id} className="bg-gray-700/50 rounded-lg p-4 border border-gray-600/50 hover:border-gray-500 transition-colors">
                   <div className="flex items-start justify-between mb-2">
                     <div className="flex items-center gap-2">
-                      <AlertTriangle className="w-4 h-4 text-orange-400 flex-shrink-0" />
+                      <AlertTriangle className="w-4 h-4 text-orange-400 shrink-0" />
                       <span className="text-sm font-semibold text-white">{inc.title}</span>
                     </div>
                     <div className="flex items-center gap-2">
@@ -227,7 +227,7 @@ export default function XDRPage() {
                     <span className="text-xs text-gray-500">信頼度: {inc.confidence}%</span>
                     <div className="flex gap-1 flex-wrap ml-auto">
                       {(inc.attack_tactics || []).map((t: string) => (
-                        <span key={t} className="text-xs px-1.5 py-0.5 bg-red-500/10 text-red-400 rounded">
+                        <span key={t} className="text-xs px-1.5 py-0.5 bg-red-500/10 text-red-400 rounded-sm">
                           {t}
                         </span>
                       ))}

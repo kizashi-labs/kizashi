@@ -51,9 +51,9 @@ const CATEGORIES = [
     label: 'アラート対応',
     href: '/alerts',
     icon: ShieldAlert,
-    color: 'text-[#e8002d]',
-    bg: 'bg-[#e8002d]/10',
-    border: 'border-[#e8002d]/30',
+    color: 'text-falcon-red',
+    bg: 'bg-falcon-red/10',
+    border: 'border-falcon-red/30',
     description: 'アラートのトリアージ・調査・クローズ手順',
   },
   {
@@ -91,9 +91,9 @@ const CATEGORIES = [
     label: '管理者設定',
     href: '/settings',
     icon: Settings,
-    color: 'text-[#7d92b0]',
-    bg: 'bg-[#1e2d42]/30',
-    border: 'border-[#1e2d42]',
+    color: 'text-falcon-muted',
+    bg: 'bg-falcon-border/30',
+    border: 'border-falcon-border',
     description: 'ユーザー管理・SIEM連携・バックアップ・SSO設定',
   },
 ]
@@ -140,8 +140,8 @@ const FAQ_ITEMS = [
 function KbdKey({ children }: { children: string }) {
   return (
     <kbd
-      className="inline-flex items-center px-2 py-0.5 rounded border border-[#1e2d42]
-                 bg-[#070d19] text-[#e2e8f4] text-[11px] font-mono font-semibold
+      className="inline-flex items-center px-2 py-0.5 rounded border border-falcon-border
+                 bg-[#070d19] text-falcon-text text-[11px] font-mono font-semibold
                  shadow-[0_1px_0_#1e2d42]"
     >
       {children}
@@ -152,23 +152,23 @@ function KbdKey({ children }: { children: string }) {
 function FaqItem({ question, answer }: { question: string; answer: string }) {
   const [open, setOpen] = useState(false)
   return (
-    <div className="border border-[#1e2d42] rounded-lg overflow-hidden">
+    <div className="border border-falcon-border rounded-lg overflow-hidden">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
         className="w-full flex items-center justify-between gap-4 px-5 py-4
-                   bg-[#0d1220] hover:bg-[#111827] transition-colors text-left"
+                   bg-falcon-surface hover:bg-falcon-card transition-colors text-left"
       >
-        <span className="text-sm font-medium text-[#e2e8f4]">{question}</span>
+        <span className="text-sm font-medium text-falcon-text">{question}</span>
         {open ? (
-          <ChevronDown className="w-4 h-4 text-[#7d92b0] flex-shrink-0" />
+          <ChevronDown className="w-4 h-4 text-falcon-muted shrink-0" />
         ) : (
-          <ChevronRight className="w-4 h-4 text-[#7d92b0] flex-shrink-0" />
+          <ChevronRight className="w-4 h-4 text-falcon-muted shrink-0" />
         )}
       </button>
       {open && (
-        <div className="px-5 py-4 bg-[#070d19] border-t border-[#1e2d42]">
-          <p className="text-sm text-[#7d92b0] leading-relaxed">{answer}</p>
+        <div className="px-5 py-4 bg-[#070d19] border-t border-falcon-border">
+          <p className="text-sm text-falcon-muted leading-relaxed">{answer}</p>
         </div>
       )}
     </div>
@@ -218,40 +218,40 @@ export default function HelpPage() {
       {/* ── Header ───────────────────────────────────────────────────────── */}
       <div className="flex flex-col sm:flex-row sm:items-center gap-4">
         <div className="flex items-center gap-3 flex-1">
-          <div className="w-9 h-9 rounded-lg bg-[#e8002d]/10 border border-[#e8002d]/30
-                          flex items-center justify-center flex-shrink-0">
-            <HelpCircle className="w-5 h-5 text-[#e8002d]" />
+          <div className="w-9 h-9 rounded-lg bg-falcon-red/10 border border-falcon-red/30
+                          flex items-center justify-center shrink-0">
+            <HelpCircle className="w-5 h-5 text-falcon-red" />
           </div>
           <div>
             <h1 className="text-xl font-bold text-white">ヘルプ &amp; ドキュメント</h1>
-            <p className="text-xs text-[#7d92b0] mt-0.5">Kizashi の使い方・リファレンス</p>
+            <p className="text-xs text-falcon-muted mt-0.5">Kizashi の使い方・リファレンス</p>
           </div>
         </div>
 
         {/* Search */}
         <div className="relative w-full sm:w-72">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#3d5068] pointer-events-none" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-falcon-subtle pointer-events-none" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="ドキュメントを検索..."
-            className="w-full pl-9 pr-4 py-2 text-sm bg-[#0d1220] border border-[#1e2d42] rounded-lg
-                       text-[#e2e8f4] placeholder-[#3d5068]
-                       focus:outline-none focus:border-[#e8002d]/60 transition-colors"
+            className="w-full pl-9 pr-4 py-2 text-sm bg-falcon-surface border border-falcon-border rounded-lg
+                       text-falcon-text placeholder-falcon-subtle
+                       focus:outline-hidden focus:border-falcon-red/60 transition-colors"
           />
         </div>
       </div>
 
       {/* No results state */}
       {searchQuery.trim() && !hasSearchResults && (
-        <div className="flex flex-col items-center justify-center py-16 text-[#3d5068]">
+        <div className="flex flex-col items-center justify-center py-16 text-falcon-subtle">
           <Search className="w-10 h-10 mb-3 opacity-30" />
           <p className="text-sm">「{searchQuery}」に一致する結果が見つかりませんでした</p>
           <button
             type="button"
             onClick={() => setSearchQuery('')}
-            className="mt-3 text-xs text-[#e8002d] hover:underline"
+            className="mt-3 text-xs text-falcon-red hover:underline"
           >
             検索をクリア
           </button>
@@ -261,7 +261,7 @@ export default function HelpPage() {
       {/* ── Quick Navigation ──────────────────────────────────────────────── */}
       {filteredCategories.length > 0 && (
         <section className="space-y-3">
-          <h2 className="text-sm font-semibold text-[#7d92b0] uppercase tracking-wider flex items-center gap-2">
+          <h2 className="text-sm font-semibold text-falcon-muted uppercase tracking-wider flex items-center gap-2">
             <BookOpen className="w-4 h-4" />
             クイックナビゲーション
           </h2>
@@ -276,12 +276,12 @@ export default function HelpPage() {
                               transition-all hover:scale-[1.01] hover:brightness-110
                               ${cat.bg} ${cat.border}`}
                 >
-                  <div className={`mt-0.5 flex-shrink-0 ${cat.color}`}>
+                  <div className={`mt-0.5 shrink-0 ${cat.color}`}>
                     <Icon className="w-5 h-5" />
                   </div>
                   <div className="min-w-0">
                     <p className={`text-sm font-semibold ${cat.color}`}>{cat.label}</p>
-                    <p className="text-xs text-[#7d92b0] mt-0.5 leading-relaxed">{cat.description}</p>
+                    <p className="text-xs text-falcon-muted mt-0.5 leading-relaxed">{cat.description}</p>
                   </div>
                 </Link>
               )
@@ -298,7 +298,7 @@ export default function HelpPage() {
           {/* FAQ Accordion */}
           {(!searchQuery.trim() || filteredFaq.length > 0) && (
             <section className="space-y-3">
-              <h2 className="text-sm font-semibold text-[#7d92b0] uppercase tracking-wider flex items-center gap-2">
+              <h2 className="text-sm font-semibold text-falcon-muted uppercase tracking-wider flex items-center gap-2">
                 <HelpCircle className="w-4 h-4" />
                 よくある質問 (FAQ)
               </h2>
@@ -313,18 +313,18 @@ export default function HelpPage() {
           {/* Keyboard Shortcuts */}
           {!searchQuery.trim() && (
             <section className="space-y-3">
-              <h2 className="text-sm font-semibold text-[#7d92b0] uppercase tracking-wider flex items-center gap-2">
+              <h2 className="text-sm font-semibold text-falcon-muted uppercase tracking-wider flex items-center gap-2">
                 <Keyboard className="w-4 h-4" />
                 キーボードショートカット
               </h2>
-              <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
+              <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
                 <table className="w-full">
                   <thead>
-                    <tr className="border-b border-[#1e2d42]">
-                      <th className="px-5 py-3 text-left text-xs font-semibold text-[#7d92b0] uppercase tracking-wide">
+                    <tr className="border-b border-falcon-border">
+                      <th className="px-5 py-3 text-left text-xs font-semibold text-falcon-muted uppercase tracking-wide">
                         ショートカット
                       </th>
-                      <th className="px-5 py-3 text-left text-xs font-semibold text-[#7d92b0] uppercase tracking-wide">
+                      <th className="px-5 py-3 text-left text-xs font-semibold text-falcon-muted uppercase tracking-wide">
                         動作
                       </th>
                     </tr>
@@ -333,7 +333,7 @@ export default function HelpPage() {
                     {KEYBOARD_SHORTCUTS.map((sc, i) => (
                       <tr
                         key={i}
-                        className="border-b border-[#1e2d42] last:border-0 hover:bg-[#070d19] transition-colors"
+                        className="border-b border-falcon-border last:border-0 hover:bg-[#070d19] transition-colors"
                       >
                         <td className="px-5 py-3">
                           <div className="flex items-center gap-1.5 flex-wrap">
@@ -341,7 +341,7 @@ export default function HelpPage() {
                               <span key={ki} className="flex items-center gap-1">
                                 <KbdKey>{k}</KbdKey>
                                 {ki < sc.keys.length - 1 && (
-                                  <span className="text-xs text-[#3d5068]">
+                                  <span className="text-xs text-falcon-subtle">
                                     {sc.keys.length === 2 && sc.keys[0].length === 1 ? 'then' : '+'}
                                   </span>
                                 )}
@@ -349,7 +349,7 @@ export default function HelpPage() {
                             ))}
                           </div>
                         </td>
-                        <td className="px-5 py-3 text-sm text-[#e2e8f4]">{sc.description}</td>
+                        <td className="px-5 py-3 text-sm text-falcon-text">{sc.description}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -363,12 +363,12 @@ export default function HelpPage() {
         <div className="space-y-4">
 
           {/* API Documentation */}
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5 space-y-3">
+          <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5 space-y-3">
             <h3 className="text-sm font-semibold text-white flex items-center gap-2">
               <BookOpen className="w-4 h-4 text-blue-400" />
               APIドキュメント
             </h3>
-            <p className="text-xs text-[#7d92b0] leading-relaxed">
+            <p className="text-xs text-falcon-muted leading-relaxed">
               REST API の全エンドポイント仕様を Swagger UI で確認できます。
               認証・リクエスト例・レスポンス形式が網羅されています。
             </p>
@@ -386,22 +386,22 @@ export default function HelpPage() {
           </div>
 
           {/* Support */}
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5 space-y-3">
+          <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5 space-y-3">
             <h3 className="text-sm font-semibold text-white flex items-center gap-2">
-              <Mail className="w-4 h-4 text-[#e8002d]" />
+              <Mail className="w-4 h-4 text-falcon-red" />
               サポート &amp; お問い合わせ
             </h3>
-            <p className="text-xs text-[#7d92b0] leading-relaxed">
+            <p className="text-xs text-falcon-muted leading-relaxed">
               バグ報告・機能要望・技術的な質問はサポートチームまたは GitHub リポジトリへ。
             </p>
             <div className="space-y-2">
               <a
                 href="mailto:support@kizashi-edr.example.com"
                 className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm
-                           bg-[#070d19] border border-[#1e2d42] text-[#7d92b0]
-                           hover:border-[#e8002d]/40 hover:text-[#e2e8f4] transition-colors"
+                           bg-[#070d19] border border-falcon-border text-falcon-muted
+                           hover:border-falcon-red/40 hover:text-falcon-text transition-colors"
               >
-                <Mail className="w-3.5 h-3.5 text-[#e8002d]" />
+                <Mail className="w-3.5 h-3.5 text-falcon-red" />
                 support@kizashi-edr.example.com
               </a>
               <a
@@ -409,8 +409,8 @@ export default function HelpPage() {
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm
-                           bg-[#070d19] border border-[#1e2d42] text-[#7d92b0]
-                           hover:border-[#7d92b0]/40 hover:text-[#e2e8f4] transition-colors"
+                           bg-[#070d19] border border-falcon-border text-falcon-muted
+                           hover:border-falcon-muted/40 hover:text-falcon-text transition-colors"
               >
                 <Github className="w-3.5 h-3.5" />
                 GitHub Issues
@@ -419,9 +419,9 @@ export default function HelpPage() {
           </div>
 
           {/* Version Info */}
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5 space-y-3">
+          <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5 space-y-3">
             <h3 className="text-sm font-semibold text-white flex items-center gap-2">
-              <Info className="w-4 h-4 text-[#7d92b0]" />
+              <Info className="w-4 h-4 text-falcon-muted" />
               バージョン情報
             </h3>
             {healthData ? (
@@ -439,14 +439,14 @@ export default function HelpPage() {
                   },
                 ].map(({ label, value }) => (
                   <div key={label} className="flex items-center justify-between gap-2">
-                    <dt className="text-xs text-[#7d92b0]">{label}</dt>
-                    <dd className="text-xs font-mono text-[#e2e8f4] text-right">{value}</dd>
+                    <dt className="text-xs text-falcon-muted">{label}</dt>
+                    <dd className="text-xs font-mono text-falcon-text text-right">{value}</dd>
                   </div>
                 ))}
               </dl>
             ) : (
-              <div className="flex items-center gap-2 text-xs text-[#3d5068]">
-                <div className="w-3 h-3 border border-[#3d5068] border-t-transparent rounded-full animate-spin" />
+              <div className="flex items-center gap-2 text-xs text-falcon-subtle">
+                <div className="w-3 h-3 border border-falcon-subtle border-t-transparent rounded-full animate-spin" />
                 取得中...
               </div>
             )}

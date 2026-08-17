@@ -74,8 +74,8 @@ function PostureCheck({ label, value }: { label: string; value: boolean }) {
   return (
     <div className="flex items-center gap-1.5 text-xs">
       {value
-        ? <CheckCircle className="w-3.5 h-3.5 text-green-400 flex-shrink-0" />
-        : <XCircle className="w-3.5 h-3.5 text-red-400 flex-shrink-0" />}
+        ? <CheckCircle className="w-3.5 h-3.5 text-green-400 shrink-0" />
+        : <XCircle className="w-3.5 h-3.5 text-red-400 shrink-0" />}
       <span className={value ? 'text-gray-300' : 'text-gray-500'}>{label}</span>
     </div>
   )
@@ -130,7 +130,7 @@ function PolicyModal({
               value={form.name}
               onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
               placeholder="例: 管理者パネルアクセス"
-              className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-green-500 transition-colors"
+              className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-green-500 transition-colors"
             />
           </div>
 
@@ -143,7 +143,7 @@ function PolicyModal({
               onChange={e => setForm(f => ({ ...f, resource: e.target.value }))}
               placeholder="例: admin"
               list="resource-suggestions"
-              className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-green-500 transition-colors"
+              className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-green-500 transition-colors"
             />
             <datalist id="resource-suggestions">
               {RESOURCE_SUGGESTIONS.map(r => <option key={r} value={r} />)}
@@ -181,7 +181,7 @@ function PolicyModal({
                 onClick={() => setForm(f => ({ ...f, require_mfa: !f.require_mfa }))}
                 className={`relative w-10 h-5 rounded-full transition-colors ${form.require_mfa ? 'bg-green-500' : 'bg-gray-600'}`}
               >
-                <span className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${form.require_mfa ? 'translate-x-5' : 'translate-x-0.5'}`} />
+                <span className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow-sm transition-transform ${form.require_mfa ? 'translate-x-5' : 'translate-x-0.5'}`} />
               </button>
             </label>
             <label className="flex items-center justify-between cursor-pointer">
@@ -191,7 +191,7 @@ function PolicyModal({
                 onClick={() => setForm(f => ({ ...f, enabled: !f.enabled }))}
                 className={`relative w-10 h-5 rounded-full transition-colors ${form.enabled ? 'bg-green-500' : 'bg-gray-600'}`}
               >
-                <span className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${form.enabled ? 'translate-x-5' : 'translate-x-0.5'}`} />
+                <span className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow-sm transition-transform ${form.enabled ? 'translate-x-5' : 'translate-x-0.5'}`} />
               </button>
             </label>
           </div>
@@ -456,7 +456,7 @@ export default function ZeroTrustPage() {
                 <div className="text-center py-8 text-gray-500">ポリシーが登録されていません</div>
               ) : policies.map(policy => (
                 <div key={policy.id} className="bg-gray-700/50 rounded-lg p-4 border border-gray-600/50 flex items-center gap-4">
-                  <div className={`p-2 rounded-lg border flex-shrink-0 ${TRUST_COLORS[policy.min_trust]}`}>
+                  <div className={`p-2 rounded-lg border shrink-0 ${TRUST_COLORS[policy.min_trust]}`}>
                     <Shield className="w-4 h-4" />
                   </div>
                   <div className="flex-1 min-w-0">

@@ -1,4 +1,5 @@
 declare module 'react-simple-maps' {
+  import type React from 'react'
   import { ReactNode, SVGProps, MouseEvent } from 'react'
 
   interface ComposableMapProps {
@@ -66,12 +67,12 @@ declare module 'react-simple-maps' {
     strokeLinecap?: string
   }
 
-  export function ComposableMap(props: ComposableMapProps): JSX.Element
-  export function Geographies(props: GeographiesProps): JSX.Element
-  export function Geography(props: GeographyProps): JSX.Element
-  export function Sphere(props: SphereProps): JSX.Element
-  export function Graticule(props: GraticuleProps): JSX.Element
-  export function Marker(props: MarkerProps): JSX.Element
-  export function Line(props: LineProps): JSX.Element
-  export function ZoomableGroup(props: { children?: ReactNode; center?: [number, number]; zoom?: number }): JSX.Element
+  export function ComposableMap(props: ComposableMapProps): React.JSX.Element
+  export function Geographies(props: GeographiesProps): React.JSX.Element
+  export function Geography(props: GeographyProps): React.JSX.Element
+  export function Sphere(props: SphereProps): React.JSX.Element
+  export function Graticule(props: GraticuleProps): React.JSX.Element
+  export function Marker(props: MarkerProps): React.JSX.Element
+  export function Line(props: LineProps): React.JSX.Element
+  export function ZoomableGroup(props: { children?: ReactNode; center?: [number, number]; zoom?: number }): React.JSX.Element
 }

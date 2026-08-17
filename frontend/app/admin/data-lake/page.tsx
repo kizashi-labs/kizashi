@@ -113,52 +113,52 @@ function AddSourceModal({ source, onClose, onSave, saving }: {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl w-full max-w-lg mx-4 shadow-2xl">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[#1e2d42]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs">
+      <div className="bg-falcon-surface border border-falcon-border rounded-xl w-full max-w-lg mx-4 shadow-2xl">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-falcon-border">
           <h2 className="text-white font-semibold">{source ? 'データソース編集' : '新規データソース追加'}</h2>
-          <button onClick={onClose} className="text-[#7d92b0] hover:text-white"><X className="w-5 h-5" /></button>
+          <button onClick={onClose} className="text-falcon-muted hover:text-white"><X className="w-5 h-5" /></button>
         </div>
         <div className="px-6 py-5 space-y-4">
           <div>
-            <label className="block text-xs text-[#7d92b0] mb-1.5">ソース名 *</label>
+            <label className="block text-xs text-falcon-muted mb-1.5">ソース名 *</label>
             <input value={form.source_name} onChange={e => set('source_name', e.target.value)}
-              className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[#e8002d]/50"
+              className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-red/50"
               placeholder="Production Syslog" />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs text-[#7d92b0] mb-1.5">タイプ</label>
+              <label className="block text-xs text-falcon-muted mb-1.5">タイプ</label>
               <select value={form.type} onChange={e => set('type', e.target.value as SourceType)}
-                className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[#e8002d]/50">
+                className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-red/50">
                 {(Object.entries(SOURCE_TYPE_STYLES) as [SourceType, { label: string }][]).map(([k, v]) => (
                   <option key={k} value={k}>{v.label}</option>
                 ))}
               </select>
             </div>
             <div>
-              <label className="block text-xs text-[#7d92b0] mb-1.5">保存期間 (日)</label>
+              <label className="block text-xs text-falcon-muted mb-1.5">保存期間 (日)</label>
               <input type="number" value={form.retention_days} onChange={e => set('retention_days', parseInt(e.target.value))}
                 min={1} max={3650}
-                className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[#e8002d]/50" />
+                className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-red/50" />
             </div>
           </div>
           <div>
-            <label className="block text-xs text-[#7d92b0] mb-1.5">接続情報</label>
+            <label className="block text-xs text-falcon-muted mb-1.5">接続情報</label>
             <input value={form.connection_details} onChange={e => set('connection_details', e.target.value)}
-              className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm font-mono focus:outline-none focus:border-[#e8002d]/50"
+              className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm font-mono focus:outline-hidden focus:border-falcon-red/50"
               placeholder={connectionPlaceholder[form.type]} />
           </div>
           <div className="flex items-center gap-2">
             <input type="checkbox" id="enabled" checked={form.enabled} onChange={e => set('enabled', e.target.checked)}
-              className="rounded border-[#1e2d42] bg-[#070d19]" />
-            <label htmlFor="enabled" className="text-sm text-[#7d92b0]">有効化</label>
+              className="rounded-sm border-falcon-border bg-[#070d19]" />
+            <label htmlFor="enabled" className="text-sm text-falcon-muted">有効化</label>
           </div>
         </div>
-        <div className="flex justify-end gap-3 px-6 py-4 border-t border-[#1e2d42]">
-          <button onClick={onClose} className="px-4 py-2 rounded-lg border border-[#1e2d42] text-[#7d92b0] hover:text-white text-sm transition-colors">キャンセル</button>
+        <div className="flex justify-end gap-3 px-6 py-4 border-t border-falcon-border">
+          <button onClick={onClose} className="px-4 py-2 rounded-lg border border-falcon-border text-falcon-muted hover:text-white text-sm transition-colors">キャンセル</button>
           <button onClick={() => onSave(form)} disabled={saving || !form.source_name}
-            className="px-4 py-2 rounded-lg bg-[#e8002d] hover:bg-[#c0001f] text-white text-sm font-medium transition-colors disabled:opacity-50 flex items-center gap-2">
+            className="px-4 py-2 rounded-lg bg-falcon-red hover:bg-[#c0001f] text-white text-sm font-medium transition-colors disabled:opacity-50 flex items-center gap-2">
             {saving && <Loader2 className="w-3.5 h-3.5 animate-spin" />}{source ? '更新' : '追加'}
           </button>
         </div>
@@ -181,38 +181,38 @@ function RetentionPolicyModal({ policy, onClose, onSave, saving }: {
   const set = (k: string, v: unknown) => setForm(f => ({ ...f, [k]: v }))
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl w-full max-w-md mx-4 shadow-2xl">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[#1e2d42]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs">
+      <div className="bg-falcon-surface border border-falcon-border rounded-xl w-full max-w-md mx-4 shadow-2xl">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-falcon-border">
           <h2 className="text-white font-semibold">保存ポリシー編集: {policy.data_type}</h2>
-          <button onClick={onClose} className="text-[#7d92b0] hover:text-white"><X className="w-5 h-5" /></button>
+          <button onClick={onClose} className="text-falcon-muted hover:text-white"><X className="w-5 h-5" /></button>
         </div>
         <div className="px-6 py-5 space-y-4">
           <div>
-            <label className="block text-xs text-[#7d92b0] mb-1.5">保存期間 (日)</label>
+            <label className="block text-xs text-falcon-muted mb-1.5">保存期間 (日)</label>
             <input type="number" value={form.retention_days} onChange={e => set('retention_days', parseInt(e.target.value))}
-              className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[#e8002d]/50" />
+              className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-red/50" />
           </div>
           <div>
-            <label className="block text-xs text-[#7d92b0] mb-1.5">アーカイブ開始 (日後)</label>
+            <label className="block text-xs text-falcon-muted mb-1.5">アーカイブ開始 (日後)</label>
             <input type="number" value={form.archive_after_days} onChange={e => set('archive_after_days', parseInt(e.target.value))}
-              className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[#e8002d]/50" />
+              className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-red/50" />
           </div>
           <div>
-            <label className="block text-xs text-[#7d92b0] mb-1.5">完全削除 (日後)</label>
+            <label className="block text-xs text-falcon-muted mb-1.5">完全削除 (日後)</label>
             <input type="number" value={form.delete_after_days} onChange={e => set('delete_after_days', parseInt(e.target.value))}
-              className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[#e8002d]/50" />
+              className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-red/50" />
           </div>
           <div className="flex items-center gap-2">
             <input type="checkbox" id="legal_hold" checked={form.legal_hold} onChange={e => set('legal_hold', e.target.checked)}
-              className="rounded border-[#1e2d42] bg-[#070d19]" />
-            <label htmlFor="legal_hold" className="text-sm text-[#7d92b0]">リーガルホールド (自動削除無効)</label>
+              className="rounded-sm border-falcon-border bg-[#070d19]" />
+            <label htmlFor="legal_hold" className="text-sm text-falcon-muted">リーガルホールド (自動削除無効)</label>
           </div>
         </div>
-        <div className="flex justify-end gap-3 px-6 py-4 border-t border-[#1e2d42]">
-          <button onClick={onClose} className="px-4 py-2 rounded-lg border border-[#1e2d42] text-[#7d92b0] hover:text-white text-sm transition-colors">キャンセル</button>
+        <div className="flex justify-end gap-3 px-6 py-4 border-t border-falcon-border">
+          <button onClick={onClose} className="px-4 py-2 rounded-lg border border-falcon-border text-falcon-muted hover:text-white text-sm transition-colors">キャンセル</button>
           <button onClick={() => onSave(form)} disabled={saving}
-            className="px-4 py-2 rounded-lg bg-[#e8002d] hover:bg-[#c0001f] text-white text-sm font-medium transition-colors disabled:opacity-50 flex items-center gap-2">
+            className="px-4 py-2 rounded-lg bg-falcon-red hover:bg-[#c0001f] text-white text-sm font-medium transition-colors disabled:opacity-50 flex items-center gap-2">
             {saving && <Loader2 className="w-3.5 h-3.5 animate-spin" />}更新
           </button>
         </div>
@@ -320,16 +320,16 @@ export default function DataLakePage() {
       {/* Header */}
       <div className="flex items-start justify-between mb-6">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-lg bg-[#e8002d]/20 border border-[#e8002d]/30 flex items-center justify-center">
-            <Database className="w-5 h-5 text-[#e8002d]" />
+          <div className="w-9 h-9 rounded-lg bg-falcon-red/20 border border-falcon-red/30 flex items-center justify-center">
+            <Database className="w-5 h-5 text-falcon-red" />
           </div>
           <div>
             <h1 className="text-2xl font-bold text-white">セキュリティデータレイク</h1>
-            <p className="text-sm text-[#7d92b0]">ログ統合・長期ストレージ・クエリ分析</p>
+            <p className="text-sm text-falcon-muted">ログ統合・長期ストレージ・クエリ分析</p>
           </div>
         </div>
         <button onClick={() => { setEditSource(null); setShowSourceModal(true) }}
-          className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#e8002d] hover:bg-[#c0001f] text-white text-sm font-medium transition-colors">
+          className="flex items-center gap-2 px-3 py-2 rounded-lg bg-falcon-red hover:bg-[#c0001f] text-white text-sm font-medium transition-colors">
           <Plus className="w-4 h-4" />
           ソース追加
         </button>
@@ -343,9 +343,9 @@ export default function DataLakePage() {
           { label: 'アクティブソース', value: `${activeSources} / ${sources.length}`, icon: Database, color: '#7d92b0' },
           { label: 'クエリコスト推計', value: `$${queryEstimate}/月`, icon: DollarSign, color: '#eab308' },
         ].map(({ label, value, icon: Icon, color }) => (
-          <div key={label} className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-4">
+          <div key={label} className="bg-falcon-surface border border-falcon-border rounded-xl p-4">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs text-[#7d92b0]">{label}</span>
+              <span className="text-xs text-falcon-muted">{label}</span>
               <Icon className="w-4 h-4" style={{ color }} />
             </div>
             <p className="text-xl font-bold text-white">{value}</p>
@@ -355,25 +355,25 @@ export default function DataLakePage() {
 
       <div className="grid grid-cols-1 gap-6">
         {/* Data Sources Table */}
-        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
-          <div className="flex items-center justify-between px-4 py-3 border-b border-[#1e2d42]">
+        <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-falcon-border">
             <h2 className="text-sm font-semibold text-white">データソース</h2>
           </div>
           <table className="w-full">
             <thead>
-              <tr className="border-b border-[#1e2d42]">
+              <tr className="border-b border-falcon-border">
                 {['ソース名', 'タイプ', 'ステータス', 'GB/日', '保存期間', '圧縮率', '最終受信', '操作'].map(h => (
-                  <th key={h} className="text-left text-xs text-[#7d92b0] font-medium px-4 py-3">{h}</th>
+                  <th key={h} className="text-left text-xs text-falcon-muted font-medium px-4 py-3">{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {sources.map(src => (
-                <tr key={src.id} className="border-b border-[#1e2d42]/60 last:border-0 hover:bg-[#070d19]/50 transition-colors">
+                <tr key={src.id} className="border-b border-falcon-border/60 last:border-0 hover:bg-[#070d19]/50 transition-colors">
                   <td className="px-4 py-3">
                     <div>
                       <p className="text-sm text-white font-medium">{src.source_name}</p>
-                      <p className="text-xs text-[#7d92b0] font-mono mt-0.5">{src.connection_details}</p>
+                      <p className="text-xs text-falcon-muted font-mono mt-0.5">{src.connection_details}</p>
                     </div>
                   </td>
                   <td className="px-4 py-3">
@@ -390,22 +390,22 @@ export default function DataLakePage() {
                     <span className="text-sm text-white font-mono">{src.daily_volume_gb.toFixed(1)}</span>
                   </td>
                   <td className="px-4 py-3">
-                    <span className="text-sm text-[#7d92b0]">{src.retention_days}日</span>
+                    <span className="text-sm text-falcon-muted">{src.retention_days}日</span>
                   </td>
                   <td className="px-4 py-3">
-                    <span className="text-sm text-[#7d92b0]">{src.compression_ratio}x</span>
+                    <span className="text-sm text-falcon-muted">{src.compression_ratio}x</span>
                   </td>
                   <td className="px-4 py-3">
-                    <span className="text-xs text-[#7d92b0]">{src.last_received ? fmtDate(src.last_received) : '—'}</span>
+                    <span className="text-xs text-falcon-muted">{src.last_received ? fmtDate(src.last_received) : '—'}</span>
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-1">
                       <button onClick={() => { setEditSource(src); setShowSourceModal(true) }}
-                        className="p-1.5 rounded hover:bg-[#1e2d42] text-[#7d92b0] hover:text-white transition-colors">
+                        className="p-1.5 rounded-sm hover:bg-falcon-border text-falcon-muted hover:text-white transition-colors">
                         <Pencil className="w-3.5 h-3.5" />
                       </button>
                       <button onClick={() => deleteSourceMutation.mutate(src.id)}
-                        className="p-1.5 rounded hover:bg-red-900/30 text-[#7d92b0] hover:text-red-400 transition-colors">
+                        className="p-1.5 rounded-sm hover:bg-red-900/30 text-falcon-muted hover:text-red-400 transition-colors">
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     </div>
@@ -417,35 +417,35 @@ export default function DataLakePage() {
         </div>
 
         {/* Retention Policies */}
-        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
-          <div className="px-4 py-3 border-b border-[#1e2d42]">
+        <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
+          <div className="px-4 py-3 border-b border-falcon-border">
             <h2 className="text-sm font-semibold text-white">データ保存ポリシー</h2>
           </div>
           <table className="w-full">
             <thead>
-              <tr className="border-b border-[#1e2d42]">
+              <tr className="border-b border-falcon-border">
                 {['データタイプ', '保存期間', 'アーカイブ開始', '完全削除', 'リーガルホールド', '操作'].map(h => (
-                  <th key={h} className="text-left text-xs text-[#7d92b0] font-medium px-4 py-3">{h}</th>
+                  <th key={h} className="text-left text-xs text-falcon-muted font-medium px-4 py-3">{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {policies.map(p => (
-                <tr key={p.id} className="border-b border-[#1e2d42]/60 last:border-0 hover:bg-[#070d19]/50 transition-colors">
+                <tr key={p.id} className="border-b border-falcon-border/60 last:border-0 hover:bg-[#070d19]/50 transition-colors">
                   <td className="px-4 py-3"><p className="text-sm text-white">{p.data_type}</p></td>
-                  <td className="px-4 py-3"><span className="text-sm text-[#7d92b0]">{p.retention_days}日</span></td>
-                  <td className="px-4 py-3"><span className="text-sm text-[#7d92b0]">{p.archive_after_days}日後</span></td>
-                  <td className="px-4 py-3"><span className="text-sm text-[#7d92b0]">{p.delete_after_days}日後</span></td>
+                  <td className="px-4 py-3"><span className="text-sm text-falcon-muted">{p.retention_days}日</span></td>
+                  <td className="px-4 py-3"><span className="text-sm text-falcon-muted">{p.archive_after_days}日後</span></td>
+                  <td className="px-4 py-3"><span className="text-sm text-falcon-muted">{p.delete_after_days}日後</span></td>
                   <td className="px-4 py-3">
                     {p.legal_hold ? (
                       <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs border font-medium bg-yellow-500/20 text-yellow-400 border-yellow-500/30">ON</span>
                     ) : (
-                      <span className="text-xs text-[#3d5068]">OFF</span>
+                      <span className="text-xs text-falcon-subtle">OFF</span>
                     )}
                   </td>
                   <td className="px-4 py-3">
                     <button onClick={() => setEditPolicy(p)}
-                      className="p-1.5 rounded hover:bg-[#1e2d42] text-[#7d92b0] hover:text-white transition-colors">
+                      className="p-1.5 rounded-sm hover:bg-falcon-border text-falcon-muted hover:text-white transition-colors">
                       <Pencil className="w-3.5 h-3.5" />
                     </button>
                   </td>
@@ -456,8 +456,8 @@ export default function DataLakePage() {
         </div>
 
         {/* Query Interface */}
-        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
-          <div className="px-4 py-3 border-b border-[#1e2d42]">
+        <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
+          <div className="px-4 py-3 border-b border-falcon-border">
             <h2 className="text-sm font-semibold text-white">クエリインターフェース</h2>
           </div>
           <div className="p-4 space-y-3">
@@ -465,12 +465,12 @@ export default function DataLakePage() {
               <div className="flex-1">
                 <textarea value={queryText} onChange={e => setQueryText(e.target.value)}
                   rows={5}
-                  className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm font-mono focus:outline-none focus:border-[#e8002d]/50 resize-none"
+                  className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm font-mono focus:outline-hidden focus:border-falcon-red/50 resize-none"
                   placeholder="SELECT * FROM security_events WHERE severity = 'critical' LIMIT 100;" />
               </div>
               <div className="flex flex-col gap-2">
                 <select value={timeRange} onChange={e => setTimeRange(e.target.value)}
-                  className="bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm focus:outline-none w-32">
+                  className="bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden w-32">
                   <option value="1h">直近1時間</option>
                   <option value="24h">直近24時間</option>
                   <option value="7d">直近7日</option>
@@ -478,7 +478,7 @@ export default function DataLakePage() {
                   <option value="90d">直近90日</option>
                 </select>
                 <button onClick={runQuery} disabled={queryRunning || !queryText.trim()}
-                  className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-[#e8002d] hover:bg-[#c0001f] text-white text-sm font-medium transition-colors disabled:opacity-50">
+                  className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-falcon-red hover:bg-[#c0001f] text-white text-sm font-medium transition-colors disabled:opacity-50">
                   {queryRunning ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
                   実行
                 </button>
@@ -488,23 +488,23 @@ export default function DataLakePage() {
             {queryResult && (
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs text-[#7d92b0]">{(queryResult.row_count ?? 0).toLocaleString()} 件 ({queryResult.execution_ms}ms)</span>
-                  <button onClick={() => setQueryResult(null)} className="text-xs text-[#3d5068] hover:text-[#7d92b0]">クリア</button>
+                  <span className="text-xs text-falcon-muted">{(queryResult.row_count ?? 0).toLocaleString()} 件 ({queryResult.execution_ms}ms)</span>
+                  <button onClick={() => setQueryResult(null)} className="text-xs text-falcon-subtle hover:text-falcon-muted">クリア</button>
                 </div>
-                <div className="bg-[#070d19] border border-[#1e2d42] rounded-lg overflow-x-auto">
+                <div className="bg-[#070d19] border border-falcon-border rounded-lg overflow-x-auto">
                   <table className="w-full text-xs">
                     <thead>
-                      <tr className="border-b border-[#1e2d42]">
+                      <tr className="border-b border-falcon-border">
                         {queryResult.columns.map(c => (
-                          <th key={c} className="text-left text-[#7d92b0] font-medium px-3 py-2 whitespace-nowrap">{c}</th>
+                          <th key={c} className="text-left text-falcon-muted font-medium px-3 py-2 whitespace-nowrap">{c}</th>
                         ))}
                       </tr>
                     </thead>
                     <tbody>
                       {queryResult.rows.map((row, i) => (
-                        <tr key={i} className="border-b border-[#1e2d42]/40 last:border-0">
+                        <tr key={i} className="border-b border-falcon-border/40 last:border-0">
                           {row.map((cell, j) => (
-                            <td key={j} className="px-3 py-2 text-[#e2e8f4] font-mono whitespace-nowrap">{cell}</td>
+                            <td key={j} className="px-3 py-2 text-falcon-text font-mono whitespace-nowrap">{cell}</td>
                           ))}
                         </tr>
                       ))}
@@ -517,31 +517,31 @@ export default function DataLakePage() {
         </div>
 
         {/* Pre-built Queries */}
-        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
-          <div className="px-4 py-3 border-b border-[#1e2d42]">
+        <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
+          <div className="px-4 py-3 border-b border-falcon-border">
             <h2 className="text-sm font-semibold text-white">プリセットクエリ</h2>
           </div>
-          <div className="divide-y divide-[#1e2d42]">
+          <div className="divide-y divide-falcon-border">
             {PRE_BUILT_QUERIES.map(q => (
               <div key={q.id}>
                 <button
                   onClick={() => setOpenAccordion(openAccordion === q.id ? null : q.id)}
                   className="w-full flex items-center justify-between px-4 py-3 hover:bg-[#070d19]/50 transition-colors">
                   <div className="flex items-center gap-3">
-                    {openAccordion === q.id ? <ChevronDown className="w-4 h-4 text-[#7d92b0]" /> : <ChevronRight className="w-4 h-4 text-[#7d92b0]" />}
+                    {openAccordion === q.id ? <ChevronDown className="w-4 h-4 text-falcon-muted" /> : <ChevronRight className="w-4 h-4 text-falcon-muted" />}
                     <div className="text-left">
                       <p className="text-sm font-medium text-white">{q.title}</p>
-                      <p className="text-xs text-[#7d92b0]">{q.description}</p>
+                      <p className="text-xs text-falcon-muted">{q.description}</p>
                     </div>
                   </div>
                   <button onClick={e => { e.stopPropagation(); runPreBuiltQuery(q) }}
-                    className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[#1e2d42] hover:bg-[#2a3a52] text-white text-xs transition-colors flex-shrink-0">
+                    className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-falcon-border hover:bg-[#2a3a52] text-white text-xs transition-colors shrink-0">
                     <Play className="w-3 h-3" />実行
                   </button>
                 </button>
                 {openAccordion === q.id && (
                   <div className="px-4 pb-3">
-                    <pre className="bg-[#070d19] border border-[#1e2d42] rounded-lg p-3 text-xs text-green-400 font-mono overflow-x-auto">
+                    <pre className="bg-[#070d19] border border-falcon-border rounded-lg p-3 text-xs text-green-400 font-mono overflow-x-auto">
                       {q.sql}
                     </pre>
                   </div>
@@ -552,21 +552,21 @@ export default function DataLakePage() {
         </div>
 
         {/* Archival Jobs */}
-        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
-          <div className="px-4 py-3 border-b border-[#1e2d42]">
+        <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
+          <div className="px-4 py-3 border-b border-falcon-border">
             <h2 className="text-sm font-semibold text-white">アーカイブジョブ</h2>
           </div>
           <table className="w-full">
             <thead>
-              <tr className="border-b border-[#1e2d42]">
+              <tr className="border-b border-falcon-border">
                 {['データ範囲', 'ステータス', '保存先', 'サイズ', '開始日時'].map(h => (
-                  <th key={h} className="text-left text-xs text-[#7d92b0] font-medium px-4 py-3">{h}</th>
+                  <th key={h} className="text-left text-xs text-falcon-muted font-medium px-4 py-3">{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {archivalJobs.map(job => (
-                <tr key={job.id} className="border-b border-[#1e2d42]/60 last:border-0 hover:bg-[#070d19]/50 transition-colors">
+                <tr key={job.id} className="border-b border-falcon-border/60 last:border-0 hover:bg-[#070d19]/50 transition-colors">
                   <td className="px-4 py-3"><span className="text-sm text-white font-mono">{job.data_range}</span></td>
                   <td className="px-4 py-3">
                     <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs border font-medium ${ARCHIVE_STATUS_STYLES[job.status].cls}`}>
@@ -574,13 +574,13 @@ export default function DataLakePage() {
                     </span>
                   </td>
                   <td className="px-4 py-3">
-                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs border bg-[#070d19] border-[#1e2d42] text-[#7d92b0]">{job.destination}</span>
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-sm text-xs border bg-[#070d19] border-falcon-border text-falcon-muted">{job.destination}</span>
                   </td>
                   <td className="px-4 py-3">
-                    <span className="text-sm text-[#7d92b0]">{job.size_gb > 0 ? `${job.size_gb.toFixed(1)} GB` : '—'}</span>
+                    <span className="text-sm text-falcon-muted">{job.size_gb > 0 ? `${job.size_gb.toFixed(1)} GB` : '—'}</span>
                   </td>
                   <td className="px-4 py-3">
-                    <span className="text-xs text-[#7d92b0]">{fmtDate(job.started_at)}</span>
+                    <span className="text-xs text-falcon-muted">{fmtDate(job.started_at)}</span>
                   </td>
                 </tr>
               ))}
@@ -589,7 +589,7 @@ export default function DataLakePage() {
         </div>
 
         {/* Cost Analysis */}
-        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
+        <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
           <div className="flex items-center gap-2 mb-4">
             <DollarSign className="w-4 h-4 text-yellow-400" />
             <h2 className="text-sm font-semibold text-white">コスト分析</h2>
@@ -600,22 +600,22 @@ export default function DataLakePage() {
               { label: 'クエリ料金 (月)', value: `$${queryEstimate.toFixed(2)}`, note: 'クエリ実行ベース', color: '#eab308' },
               { label: '合計推計', value: sources.length > 0 ? `$${(parseFloat(String(storageTb)) * 20 + queryEstimate).toFixed(2)}` : '—', note: '実データ基準', color: '#22c55e' },
             ].map(({ label, value, note, color }) => (
-              <div key={label} className="bg-[#070d19] border border-[#1e2d42] rounded-lg p-3">
-                <p className="text-xs text-[#7d92b0] mb-1">{label}</p>
+              <div key={label} className="bg-[#070d19] border border-falcon-border rounded-lg p-3">
+                <p className="text-xs text-falcon-muted mb-1">{label}</p>
                 <p className="text-xl font-bold" style={{ color }}>{value}</p>
-                <p className="text-xs text-[#3d5068] mt-0.5">{note}</p>
+                <p className="text-xs text-falcon-subtle mt-0.5">{note}</p>
               </div>
             ))}
           </div>
           <div className="space-y-2">
-            <p className="text-xs font-medium text-[#7d92b0]">最適化推奨</p>
+            <p className="text-xs font-medium text-falcon-muted">最適化推奨</p>
             {[
               '圧縮率の低いKafkaソース (2.9x) はParquet形式への変換でストレージを30%削減できます',
               '30日間クエリされていないデータをColdストレージ (Glacier) に移動すると$15/月節約できます',
               'ネットワークフローの保存期間90日→30日への短縮でストレージを40%削減できます',
             ].map((tip, i) => (
-              <div key={i} className="flex items-start gap-2 text-xs text-[#7d92b0]">
-                <span className="text-[#e8002d] mt-0.5 flex-shrink-0">•</span>
+              <div key={i} className="flex items-start gap-2 text-xs text-falcon-muted">
+                <span className="text-falcon-red mt-0.5 shrink-0">•</span>
                 <span>{tip}</span>
               </div>
             ))}
