@@ -29,6 +29,16 @@ type NetworkMonitorConnStats struct {
 	StartNs   uint64
 }
 
+// Names of all BPF objects in the ELF.
+//
+// Used for safe lookups in a Collection or CollectionSpec.
+const (
+	NetworkMonitorMapActiveConns       = "active_conns"
+	NetworkMonitorMapNetEvents         = "net_events"
+	NetworkMonitorProgHandleSetState   = "handle_set_state"
+	NetworkMonitorProgHandleTcpConnect = "handle_tcp_connect"
+)
+
 // LoadNetworkMonitor returns the embedded CollectionSpec for NetworkMonitor.
 func LoadNetworkMonitor() (*ebpf.CollectionSpec, error) {
 	reader := bytes.NewReader(_NetworkMonitorBytes)
@@ -49,7 +59,7 @@ func LoadNetworkMonitor() (*ebpf.CollectionSpec, error) {
 //	*NetworkMonitorMaps
 //
 // See ebpf.CollectionSpec.LoadAndAssign documentation for details.
-func LoadNetworkMonitorObjects(obj interface{}, opts *ebpf.CollectionOptions) error {
+func LoadNetworkMonitorObjects(obj any, opts *ebpf.CollectionOptions) error {
 	spec, err := LoadNetworkMonitor()
 	if err != nil {
 		return err

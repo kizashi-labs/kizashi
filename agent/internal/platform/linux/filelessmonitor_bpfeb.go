@@ -12,6 +12,15 @@ import (
 	"github.com/cilium/ebpf"
 )
 
+// Names of all BPF objects in the ELF.
+//
+// Used for safe lookups in a Collection or CollectionSpec.
+const (
+	FilelessMonitorMapFilelessEvents  = "fileless_events"
+	FilelessMonitorProgHandleExecveat = "handle_execveat"
+	FilelessMonitorProgHandleMemfd    = "handle_memfd"
+)
+
 // LoadFilelessMonitor returns the embedded CollectionSpec for FilelessMonitor.
 func LoadFilelessMonitor() (*ebpf.CollectionSpec, error) {
 	reader := bytes.NewReader(_FilelessMonitorBytes)
@@ -32,7 +41,7 @@ func LoadFilelessMonitor() (*ebpf.CollectionSpec, error) {
 //	*FilelessMonitorMaps
 //
 // See ebpf.CollectionSpec.LoadAndAssign documentation for details.
-func LoadFilelessMonitorObjects(obj interface{}, opts *ebpf.CollectionOptions) error {
+func LoadFilelessMonitorObjects(obj any, opts *ebpf.CollectionOptions) error {
 	spec, err := LoadFilelessMonitor()
 	if err != nil {
 		return err
