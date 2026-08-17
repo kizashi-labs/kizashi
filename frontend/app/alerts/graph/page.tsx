@@ -370,25 +370,25 @@ export default function AlertGraphPage() {
       {/* ── Header ─────────────────────────────────────────────────── */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
-          <GitBranch className="w-6 h-6 text-[#e8002d]" />
+          <GitBranch className="w-6 h-6 text-falcon-red" />
           <div>
             <h1 className="text-2xl font-bold text-white">アラート相関グラフ</h1>
-            <p className="text-sm text-[#7d92b0]">同一エンドポイント上のアラートをグラフで可視化</p>
+            <p className="text-sm text-falcon-muted">同一エンドポイント上のアラートをグラフで可視化</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
           <button
             onClick={handleExportSVG}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-[#7d92b0]
-                       bg-[#0d1220] border border-[#1e2d42] rounded-lg hover:bg-[#1e2d42] transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-falcon-muted
+                       bg-falcon-surface border border-falcon-border rounded-lg hover:bg-falcon-border transition-colors"
           >
             <Download className="w-4 h-4" />
             SVG エクスポート
           </button>
           <Link
             href="/alerts"
-            className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-[#7d92b0]
-                       bg-[#0d1220] border border-[#1e2d42] rounded-lg hover:bg-[#1e2d42] transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-falcon-muted
+                       bg-falcon-surface border border-falcon-border rounded-lg hover:bg-falcon-border transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
             アラートへ戻る
@@ -397,17 +397,17 @@ export default function AlertGraphPage() {
       </div>
 
       {/* ── Time Range Filter Bar ───────────────────────────────────── */}
-      <div className="flex items-center gap-3 mb-4 p-3 bg-[#0d1220] border border-[#1e2d42] rounded-xl flex-wrap">
-        <Calendar className="w-4 h-4 text-[#7d92b0] flex-shrink-0" />
-        <div className="flex rounded-lg border border-[#1e2d42] overflow-hidden">
+      <div className="flex items-center gap-3 mb-4 p-3 bg-falcon-surface border border-falcon-border rounded-xl flex-wrap">
+        <Calendar className="w-4 h-4 text-falcon-muted shrink-0" />
+        <div className="flex rounded-lg border border-falcon-border overflow-hidden">
           {TIME_RANGES.map(r => (
             <button
               key={r.value}
               onClick={() => setTimeRange(r.value)}
               className={`px-3 py-1.5 text-xs font-medium transition-colors ${
                 timeRange === r.value
-                  ? 'bg-[#e8002d] text-white'
-                  : 'bg-[#0a111e] text-[#7d92b0] hover:text-white hover:bg-[#1e2d42]'
+                  ? 'bg-falcon-red text-white'
+                  : 'bg-[#0a111e] text-falcon-muted hover:text-white hover:bg-falcon-border'
               }`}
             >
               {r.label}
@@ -417,40 +417,40 @@ export default function AlertGraphPage() {
         {timeRange === 'custom' && (
           <div className="flex items-center gap-2 flex-wrap">
             <div className="flex items-center gap-1.5">
-              <span className="text-xs text-[#7d92b0]">From</span>
+              <span className="text-xs text-falcon-muted">From</span>
               <input
                 type="datetime-local"
                 value={customFrom}
                 onChange={e => setCustomFrom(e.target.value)}
-                className="text-xs border border-[#1e2d42] rounded-lg px-2 py-1.5
-                           bg-[#0a111e] text-[#e2e8f4] focus:outline-none focus:border-[#e8002d]"
+                className="text-xs border border-falcon-border rounded-lg px-2 py-1.5
+                           bg-[#0a111e] text-falcon-text focus:outline-hidden focus:border-falcon-red"
               />
             </div>
             <div className="flex items-center gap-1.5">
-              <span className="text-xs text-[#7d92b0]">To</span>
+              <span className="text-xs text-falcon-muted">To</span>
               <input
                 type="datetime-local"
                 value={customTo}
                 onChange={e => setCustomTo(e.target.value)}
-                className="text-xs border border-[#1e2d42] rounded-lg px-2 py-1.5
-                           bg-[#0a111e] text-[#e2e8f4] focus:outline-none focus:border-[#e8002d]"
+                className="text-xs border border-falcon-border rounded-lg px-2 py-1.5
+                           bg-[#0a111e] text-falcon-text focus:outline-hidden focus:border-falcon-red"
               />
             </div>
           </div>
         )}
-        <div className="text-xs text-[#3d5068] ml-auto">
+        <div className="text-xs text-falcon-subtle ml-auto">
           {isLoading ? '読み込み中...' : `${alerts.length} アラート取得`}
         </div>
       </div>
 
       {/* ── Controls ───────────────────────────────────────────────── */}
       <div className="flex items-center gap-3 mb-4 flex-wrap">
-        <Filter className="w-4 h-4 text-[#7d92b0] flex-shrink-0" />
+        <Filter className="w-4 h-4 text-falcon-muted shrink-0" />
         <select
           value={severityFilter}
           onChange={e => setSeverityFilter(e.target.value)}
-          className="text-sm border border-[#1e2d42] rounded-lg px-3 py-2
-                     bg-[#0d1220] text-[#7d92b0] focus:outline-none focus:border-[#e8002d]"
+          className="text-sm border border-falcon-border rounded-lg px-3 py-2
+                     bg-falcon-surface text-falcon-muted focus:outline-hidden focus:border-falcon-red"
         >
           <option value="">重大度: すべて</option>
           <option value="critical">クリティカル</option>
@@ -460,22 +460,22 @@ export default function AlertGraphPage() {
         </select>
 
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#3d5068]" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-falcon-subtle" />
           <input
             value={agentFilter}
             onChange={e => setAgentFilter(e.target.value)}
             placeholder="エージェント名でフィルター..."
-            className="pl-9 pr-4 py-2 text-sm border border-[#1e2d42] rounded-lg
-                       bg-[#0d1220] text-white placeholder-[#3d5068] w-56
-                       focus:outline-none focus:border-[#e8002d]"
+            className="pl-9 pr-4 py-2 text-sm border border-falcon-border rounded-lg
+                       bg-falcon-surface text-white placeholder-falcon-subtle w-56
+                       focus:outline-hidden focus:border-falcon-red"
           />
         </div>
 
         <button
           onClick={() => refetch()}
           disabled={isLoading}
-          className="flex items-center gap-1.5 px-3 py-2 text-sm text-[#7d92b0]
-                     bg-[#0d1220] border border-[#1e2d42] rounded-lg hover:bg-[#1e2d42] transition-colors
+          className="flex items-center gap-1.5 px-3 py-2 text-sm text-falcon-muted
+                     bg-falcon-surface border border-falcon-border rounded-lg hover:bg-falcon-border transition-colors
                      disabled:opacity-50"
         >
           <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
@@ -486,22 +486,22 @@ export default function AlertGraphPage() {
         <div className="flex items-center gap-1 ml-auto">
           <button
             onClick={() => setZoom(z => Math.min(z + 0.2, 3))}
-            className="p-1.5 text-[#7d92b0] bg-[#0d1220] border border-[#1e2d42] rounded hover:bg-[#1e2d42] transition-colors"
+            className="p-1.5 text-falcon-muted bg-falcon-surface border border-falcon-border rounded-sm hover:bg-falcon-border transition-colors"
             title="ズームイン"
           >
             <ZoomIn className="w-4 h-4" />
           </button>
-          <span className="text-xs text-[#7d92b0] w-10 text-center">{Math.round(zoom * 100)}%</span>
+          <span className="text-xs text-falcon-muted w-10 text-center">{Math.round(zoom * 100)}%</span>
           <button
             onClick={() => setZoom(z => Math.max(z - 0.2, 0.3))}
-            className="p-1.5 text-[#7d92b0] bg-[#0d1220] border border-[#1e2d42] rounded hover:bg-[#1e2d42] transition-colors"
+            className="p-1.5 text-falcon-muted bg-falcon-surface border border-falcon-border rounded-sm hover:bg-falcon-border transition-colors"
             title="ズームアウト"
           >
             <ZoomOut className="w-4 h-4" />
           </button>
           <button
             onClick={resetView}
-            className="p-1.5 text-[#7d92b0] bg-[#0d1220] border border-[#1e2d42] rounded hover:bg-[#1e2d42] transition-colors"
+            className="p-1.5 text-falcon-muted bg-falcon-surface border border-falcon-border rounded-sm hover:bg-falcon-border transition-colors"
             title="ビューをリセット"
           >
             <Maximize2 className="w-4 h-4" />
@@ -510,8 +510,8 @@ export default function AlertGraphPage() {
             onClick={() => setShowLegend(l => !l)}
             className={`px-2 py-1.5 text-xs border rounded transition-colors ${
               showLegend
-                ? 'bg-[#1e2d42] text-white border-[#3d5068]'
-                : 'bg-[#0d1220] text-[#7d92b0] border-[#1e2d42] hover:bg-[#1e2d42]'
+                ? 'bg-falcon-border text-white border-falcon-subtle'
+                : 'bg-falcon-surface text-falcon-muted border-falcon-border hover:bg-falcon-border'
             }`}
           >
             凡例
@@ -526,47 +526,47 @@ export default function AlertGraphPage() {
         <div className="flex-1 min-w-0">
 
           {/* Stats bar */}
-          <div className="flex items-center gap-6 px-4 py-2 mb-3 bg-[#0d1220] border border-[#1e2d42] rounded-lg">
+          <div className="flex items-center gap-6 px-4 py-2 mb-3 bg-falcon-surface border border-falcon-border rounded-lg">
             <div className="flex items-center gap-2">
-              <span className="text-xs text-[#7d92b0]">ノード数</span>
+              <span className="text-xs text-falcon-muted">ノード数</span>
               <span className="text-sm font-bold text-white">{nodes.length}</span>
             </div>
-            <div className="w-px h-4 bg-[#1e2d42]" />
+            <div className="w-px h-4 bg-falcon-border" />
             <div className="flex items-center gap-2">
-              <span className="text-xs text-[#7d92b0]">エッジ数</span>
+              <span className="text-xs text-falcon-muted">エッジ数</span>
               <span className="text-sm font-bold text-white">{edges.length}</span>
             </div>
-            <div className="w-px h-4 bg-[#1e2d42]" />
+            <div className="w-px h-4 bg-falcon-border" />
             <div className="flex items-center gap-2">
-              <span className="text-xs text-[#7d92b0]">クラスター数</span>
+              <span className="text-xs text-falcon-muted">クラスター数</span>
               <span className="text-sm font-bold text-white">{clusters.length}</span>
             </div>
-            <div className="w-px h-4 bg-[#1e2d42]" />
+            <div className="w-px h-4 bg-falcon-border" />
             <div className="flex items-center gap-2">
-              <span className="text-xs text-[#7d92b0]">クリティカル</span>
-              <span className="text-sm font-bold text-[#e8002d]">
+              <span className="text-xs text-falcon-muted">クリティカル</span>
+              <span className="text-sm font-bold text-falcon-red">
                 {nodes.filter(n => severityLabel(n.alert.severity) === 'critical').length}
               </span>
             </div>
-            <div className="text-xs text-[#3d5068] ml-auto">ノードをドラッグして移動 · 背景をドラッグしてパン</div>
+            <div className="text-xs text-falcon-subtle ml-auto">ノードをドラッグして移動 · 背景をドラッグしてパン</div>
           </div>
 
           {/* SVG Graph */}
-          <div className="relative bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden"
+          <div className="relative bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden"
                style={{ height: 580 }}>
             {isLoading ? (
               <div className="flex items-center justify-center h-full">
                 <div className="text-center">
-                  <RefreshCw className="w-8 h-8 text-[#3d5068] animate-spin mx-auto mb-2" />
-                  <p className="text-sm text-[#7d92b0]">グラフを読み込み中...</p>
+                  <RefreshCw className="w-8 h-8 text-falcon-subtle animate-spin mx-auto mb-2" />
+                  <p className="text-sm text-falcon-muted">グラフを読み込み中...</p>
                 </div>
               </div>
             ) : nodes.length === 0 ? (
               <div className="flex items-center justify-center h-full">
                 <div className="text-center">
-                  <GitBranch className="w-10 h-10 text-[#3d5068] mx-auto mb-2" />
-                  <p className="text-sm text-[#7d92b0]">表示するアラートがありません</p>
-                  <p className="text-xs text-[#3d5068] mt-1">時間範囲やフィルターを変更してください</p>
+                  <GitBranch className="w-10 h-10 text-falcon-subtle mx-auto mb-2" />
+                  <p className="text-sm text-falcon-muted">表示するアラートがありません</p>
+                  <p className="text-xs text-falcon-subtle mt-1">時間範囲やフィルターを変更してください</p>
                 </div>
               </div>
             ) : (
@@ -726,7 +726,7 @@ export default function AlertGraphPage() {
             {tooltip.visible && (
               <div
                 className="absolute z-20 pointer-events-none px-2.5 py-1.5 text-xs text-white
-                           bg-[#161f33] border border-[#1e2d42] rounded-lg shadow-xl max-w-[300px]"
+                           bg-falcon-raised border border-falcon-border rounded-lg shadow-xl max-w-[300px]"
                 style={{ left: tooltip.x, top: tooltip.y }}
               >
                 {tooltip.text}
@@ -735,16 +735,16 @@ export default function AlertGraphPage() {
 
             {/* Legend Panel */}
             {showLegend && (
-              <div className="absolute bottom-3 left-3 bg-[#0d1220]/90 border border-[#1e2d42] rounded-xl p-3 backdrop-blur-sm">
-                <p className="text-[10px] font-bold text-[#7d92b0] uppercase tracking-wider mb-2">凡例</p>
+              <div className="absolute bottom-3 left-3 bg-falcon-surface/90 border border-falcon-border rounded-xl p-3 backdrop-blur-xs">
+                <p className="text-[10px] font-bold text-falcon-muted uppercase tracking-wider mb-2">凡例</p>
 
                 {/* Severity */}
-                <p className="text-[9px] text-[#3d5068] mb-1.5 uppercase">重大度 (サイズ)</p>
+                <p className="text-[9px] text-falcon-subtle mb-1.5 uppercase">重大度 (サイズ)</p>
                 <div className="space-y-1 mb-3">
                   {Object.entries(SEVERITY_COLOR).map(([sev, color]) => (
                     <div key={sev} className="flex items-center gap-2">
                       <div
-                        className="rounded-full flex-shrink-0"
+                        className="rounded-full shrink-0"
                         style={{
                           width:  SEVERITY_RADIUS[sev] * 1.2,
                           height: SEVERITY_RADIUS[sev] * 1.2,
@@ -752,13 +752,13 @@ export default function AlertGraphPage() {
                           opacity: 0.85,
                         }}
                       />
-                      <span className="text-[10px] text-[#7d92b0]">{SEVERITY_LABEL_JP[sev]}</span>
+                      <span className="text-[10px] text-falcon-muted">{SEVERITY_LABEL_JP[sev]}</span>
                     </div>
                   ))}
                 </div>
 
                 {/* MITRE tactic samples */}
-                <p className="text-[9px] text-[#3d5068] mb-1.5 uppercase">MITRE タクティク (バッジ)</p>
+                <p className="text-[9px] text-falcon-subtle mb-1.5 uppercase">MITRE タクティク (バッジ)</p>
                 <div className="space-y-1">
                   {[
                     ['IA', 'initial-access', 'Initial Access'],
@@ -768,12 +768,12 @@ export default function AlertGraphPage() {
                   ].map(([abbr, tactic, label]) => (
                     <div key={tactic} className="flex items-center gap-2">
                       <span
-                        className="text-[8px] font-bold px-1 py-0.5 rounded flex-shrink-0"
+                        className="text-[8px] font-bold px-1 py-0.5 rounded-sm shrink-0"
                         style={{ background: TACTIC_COLORS[tactic], color: 'white', minWidth: 18, textAlign: 'center' }}
                       >
                         {abbr}
                       </span>
-                      <span className="text-[10px] text-[#7d92b0]">{label}</span>
+                      <span className="text-[10px] text-falcon-muted">{label}</span>
                     </div>
                   ))}
                 </div>
@@ -784,10 +784,10 @@ export default function AlertGraphPage() {
           {/* Cluster list (expandable) */}
           {clusters.length > 0 && (
             <div className="mt-4">
-              <h2 className="text-sm font-semibold text-[#7d92b0] mb-2 uppercase tracking-wide flex items-center gap-2">
+              <h2 className="text-sm font-semibold text-falcon-muted mb-2 uppercase tracking-wide flex items-center gap-2">
                 クラスター一覧
-                <span className="text-xs bg-[#1e2d42] text-[#7d92b0] px-1.5 py-0.5 rounded">{clusters.length}</span>
-                <span className="text-xs text-[#3d5068] font-normal normal-case">クリックして展開</span>
+                <span className="text-xs bg-falcon-border text-falcon-muted px-1.5 py-0.5 rounded-sm">{clusters.length}</span>
+                <span className="text-xs text-falcon-subtle font-normal normal-case">クリックして展開</span>
               </h2>
               <div className="grid grid-cols-2 gap-2">
                 {clusters.map((clusterAlerts, ci) => {
@@ -799,7 +799,7 @@ export default function AlertGraphPage() {
                   return (
                     <div
                       key={ci}
-                      className="bg-[#0d1220] border border-[#1e2d42] rounded-lg hover:border-[#7d92b0]/40 transition-colors"
+                      className="bg-falcon-surface border border-falcon-border rounded-lg hover:border-falcon-muted/40 transition-colors"
                     >
                       {/* Cluster header */}
                       <button
@@ -809,7 +809,7 @@ export default function AlertGraphPage() {
                         <div className="flex items-center gap-2 min-w-0">
                           <span className="text-xs font-medium text-white truncate">{hostname || agentId || '不明'}</span>
                           <span
-                            className="text-[10px] font-bold px-1.5 py-0.5 rounded flex-shrink-0"
+                            className="text-[10px] font-bold px-1.5 py-0.5 rounded-sm shrink-0"
                             style={{
                               background: SEVERITY_COLOR[sevKey] + '30',
                               color: SEVERITY_COLOR[sevKey],
@@ -818,15 +818,15 @@ export default function AlertGraphPage() {
                             {sevKey}
                           </span>
                         </div>
-                        <div className="flex items-center gap-1.5 flex-shrink-0">
-                          <span className="text-xs text-[#7d92b0]">{clusterAlerts.length}</span>
-                          <span className="text-xs text-[#3d5068]">{isExpanded ? '▲' : '▼'}</span>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <span className="text-xs text-falcon-muted">{clusterAlerts.length}</span>
+                          <span className="text-xs text-falcon-subtle">{isExpanded ? '▲' : '▼'}</span>
                         </div>
                       </button>
 
                       {/* Expanded: individual alerts */}
                       {isExpanded && (
-                        <div className="border-t border-[#1e2d42] px-3 pb-3 space-y-1.5">
+                        <div className="border-t border-falcon-border px-3 pb-3 space-y-1.5">
                           {clusterAlerts.map(alert => {
                             const sev = severityLabel(alert.severity)
                             return (
@@ -834,13 +834,13 @@ export default function AlertGraphPage() {
                                 key={alert.id}
                                 onClick={() => setSelectedAlert(alert)}
                                 className="w-full flex items-center gap-2 py-1.5 px-2 rounded
-                                           hover:bg-[#1e2d42] transition-colors text-left group"
+                                           hover:bg-falcon-border transition-colors text-left group"
                               >
                                 <div
-                                  className="w-2 h-2 rounded-full flex-shrink-0"
+                                  className="w-2 h-2 rounded-full shrink-0"
                                   style={{ background: SEVERITY_COLOR[sev] }}
                                 />
-                                <span className="text-xs text-[#7d92b0] group-hover:text-white truncate transition-colors">
+                                <span className="text-xs text-falcon-muted group-hover:text-white truncate transition-colors">
                                   {alert.title}
                                 </span>
                               </button>
@@ -857,14 +857,14 @@ export default function AlertGraphPage() {
         </div>
 
         {/* ── Alert detail panel ─────────────────────────────────── */}
-        <div className="w-72 flex-shrink-0">
+        <div className="w-72 shrink-0">
           {selectedAlert ? (
-            <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-4 space-y-4 sticky top-4">
+            <div className="bg-falcon-surface border border-falcon-border rounded-xl p-4 space-y-4 sticky top-4">
               <div className="flex items-start justify-between gap-2">
                 <h3 className="text-sm font-semibold text-white leading-snug">{selectedAlert.title}</h3>
                 <button
                   onClick={() => setSelectedAlert(null)}
-                  className="text-[#7d92b0] hover:text-white transition-colors flex-shrink-0 text-lg leading-none"
+                  className="text-falcon-muted hover:text-white transition-colors shrink-0 text-lg leading-none"
                 >
                   ×
                 </button>
@@ -876,7 +876,7 @@ export default function AlertGraphPage() {
                   const sev = severityLabel(selectedAlert.severity)
                   return (
                     <span
-                      className="text-xs font-bold px-2 py-0.5 rounded"
+                      className="text-xs font-bold px-2 py-0.5 rounded-sm"
                       style={{
                         background: SEVERITY_COLOR[sev] + '30',
                         color: SEVERITY_COLOR[sev],
@@ -903,8 +903,8 @@ export default function AlertGraphPage() {
               {/* MITRE tactic badge */}
               {selectedAlert.mitre_technique && (
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-xs text-[#7d92b0]">MITRE:</span>
-                  <span className="text-xs font-mono bg-purple-900/30 text-purple-300 border border-purple-700/30 px-2 py-0.5 rounded">
+                  <span className="text-xs text-falcon-muted">MITRE:</span>
+                  <span className="text-xs font-mono bg-purple-900/30 text-purple-300 border border-purple-700/30 px-2 py-0.5 rounded-sm">
                     {selectedAlert.mitre_technique}
                   </span>
                 </div>
@@ -912,7 +912,7 @@ export default function AlertGraphPage() {
               {selectedAlert.ai_mitre_tags && selectedAlert.ai_mitre_tags.length > 0 && (
                 <div className="flex flex-wrap gap-1">
                   {selectedAlert.ai_mitre_tags.slice(0, 4).map(tag => (
-                    <span key={tag} className="text-[10px] bg-[#161f33] border border-[#1e2d42] text-[#7d92b0] px-1.5 py-0.5 rounded">
+                    <span key={tag} className="text-[10px] bg-falcon-raised border border-falcon-border text-falcon-muted px-1.5 py-0.5 rounded-sm">
                       {tag}
                     </span>
                   ))}
@@ -922,27 +922,27 @@ export default function AlertGraphPage() {
               {/* Details */}
               <div className="space-y-1.5">
                 <div className="flex justify-between text-xs">
-                  <span className="text-[#7d92b0]">エンドポイント</span>
+                  <span className="text-falcon-muted">エンドポイント</span>
                   <span className="text-white font-medium">{selectedAlert.agent_hostname}</span>
                 </div>
                 <div className="flex justify-between text-xs">
-                  <span className="text-[#7d92b0]">OS</span>
+                  <span className="text-falcon-muted">OS</span>
                   <span className="text-white">{selectedAlert.agent_os}</span>
                 </div>
                 {selectedAlert.rule_name && (
                   <div className="flex justify-between text-xs">
-                    <span className="text-[#7d92b0]">ルール</span>
+                    <span className="text-falcon-muted">ルール</span>
                     <span className="text-white truncate max-w-[140px]">{selectedAlert.rule_name}</span>
                   </div>
                 )}
                 {selectedAlert.assigned_to_name && (
                   <div className="flex justify-between text-xs">
-                    <span className="text-[#7d92b0]">担当者</span>
+                    <span className="text-falcon-muted">担当者</span>
                     <span className="text-white">{selectedAlert.assigned_to_name}</span>
                   </div>
                 )}
                 <div className="flex justify-between text-xs">
-                  <span className="text-[#7d92b0]">作成日時</span>
+                  <span className="text-falcon-muted">作成日時</span>
                   <span className="text-white">
                     {new Date(selectedAlert.created_at).toLocaleString('ja-JP', {
                       month: '2-digit', day: '2-digit',
@@ -953,7 +953,7 @@ export default function AlertGraphPage() {
               </div>
 
               {selectedAlert.description && (
-                <p className="text-xs text-[#7d92b0] leading-relaxed border-t border-[#1e2d42] pt-3">
+                <p className="text-xs text-falcon-muted leading-relaxed border-t border-falcon-border pt-3">
                   {selectedAlert.description.slice(0, 200)}
                   {selectedAlert.description.length > 200 ? '...' : ''}
                 </p>
@@ -962,22 +962,22 @@ export default function AlertGraphPage() {
               <Link
                 href={`/alerts/${selectedAlert.id}`}
                 className="block w-full text-center py-2 text-xs font-medium text-white
-                           bg-[#e8002d] rounded-lg hover:bg-[#c8001e] transition-colors"
+                           bg-falcon-red rounded-lg hover:bg-[#c8001e] transition-colors"
               >
                 アラート詳細を見る →
               </Link>
             </div>
           ) : (
-            <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-6 text-center">
-              <GitBranch className="w-8 h-8 text-[#3d5068] mx-auto mb-2" />
-              <p className="text-sm text-[#7d92b0]">ノードをクリックして</p>
-              <p className="text-sm text-[#7d92b0]">詳細を表示</p>
-              <div className="mt-4 text-left space-y-2 border-t border-[#1e2d42] pt-4">
-                <p className="text-xs text-[#3d5068] font-semibold uppercase tracking-wide">操作方法</p>
-                <p className="text-xs text-[#3d5068]">• ノードをクリック → 詳細表示</p>
-                <p className="text-xs text-[#3d5068]">• ノードをドラッグ → 移動</p>
-                <p className="text-xs text-[#3d5068]">• 背景をドラッグ → パン</p>
-                <p className="text-xs text-[#3d5068]">• ±ボタン → ズーム</p>
+            <div className="bg-falcon-surface border border-falcon-border rounded-xl p-6 text-center">
+              <GitBranch className="w-8 h-8 text-falcon-subtle mx-auto mb-2" />
+              <p className="text-sm text-falcon-muted">ノードをクリックして</p>
+              <p className="text-sm text-falcon-muted">詳細を表示</p>
+              <div className="mt-4 text-left space-y-2 border-t border-falcon-border pt-4">
+                <p className="text-xs text-falcon-subtle font-semibold uppercase tracking-wide">操作方法</p>
+                <p className="text-xs text-falcon-subtle">• ノードをクリック → 詳細表示</p>
+                <p className="text-xs text-falcon-subtle">• ノードをドラッグ → 移動</p>
+                <p className="text-xs text-falcon-subtle">• 背景をドラッグ → パン</p>
+                <p className="text-xs text-falcon-subtle">• ±ボタン → ズーム</p>
               </div>
             </div>
           )}

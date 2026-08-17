@@ -89,7 +89,7 @@ function StatusBadge({ status }: { status: string }) {
     },
     cancelled: {
       label: 'Cancelled',
-      cls: 'bg-[#7d92b0]/10 text-[#7d92b0] border border-[#7d92b0]/30',
+      cls: 'bg-falcon-muted/10 text-falcon-muted border border-falcon-muted/30',
       icon: <X className="w-3 h-3" />,
     },
     timeout: {
@@ -101,7 +101,7 @@ function StatusBadge({ status }: { status: string }) {
 
   const c = config[status] ?? {
     label: status,
-    cls: 'bg-[#7d92b0]/10 text-[#7d92b0] border border-[#7d92b0]/30',
+    cls: 'bg-falcon-muted/10 text-falcon-muted border border-falcon-muted/30',
     icon: null,
   }
 
@@ -302,46 +302,46 @@ export default function AgentCommandsPage() {
   return (
     <div className="min-h-screen bg-[#070d19] text-white">
       {/* ─── Header ──────────────────────────────────────────── */}
-      <div className="border-b border-[#1e2d42] bg-[#0d1220]">
-        <div className="max-w-screen-2xl mx-auto px-6 py-4">
+      <div className="border-b border-falcon-border bg-falcon-surface">
+        <div className="max-w-(--breakpoint-2xl) mx-auto px-6 py-4">
           <div className="flex items-center gap-3 mb-4">
             <Link
               href={`/endpoints/${agentId}`}
-              className="text-[#7d92b0] hover:text-white transition-colors"
+              className="text-falcon-muted hover:text-white transition-colors"
             >
               <ArrowLeft className="w-5 h-5" />
             </Link>
-            <Terminal className="w-5 h-5 text-[#e8002d]" />
+            <Terminal className="w-5 h-5 text-falcon-red" />
             <h1 className="text-lg font-semibold">Agent Commands</h1>
           </div>
 
           {/* Agent info bar */}
           <div className="flex items-center gap-6 flex-wrap">
             <div className="flex items-center gap-2">
-              <Monitor className="w-4 h-4 text-[#7d92b0]" />
+              <Monitor className="w-4 h-4 text-falcon-muted" />
               <span className="font-mono text-sm text-white">
                 {agent?.hostname ?? agentId}
               </span>
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-xs text-[#7d92b0]">OS:</span>
+              <span className="text-xs text-falcon-muted">OS:</span>
               <span className="text-xs text-white">{osBadge}</span>
             </div>
             {agent?.ip_address && (
               <div className="flex items-center gap-2">
-                <span className="text-xs text-[#7d92b0]">IP:</span>
+                <span className="text-xs text-falcon-muted">IP:</span>
                 <span className="text-xs font-mono text-white">{agent.ip_address}</span>
               </div>
             )}
             <div className="flex items-center gap-2">
-              <span className="text-xs text-[#7d92b0]">Status:</span>
+              <span className="text-xs text-falcon-muted">Status:</span>
               <span
                 className={`text-xs font-medium ${
                   agent?.status === 'online'
                     ? 'text-green-400'
                     : agent?.status === 'offline'
                     ? 'text-red-400'
-                    : 'text-[#7d92b0]'
+                    : 'text-falcon-muted'
                 }`}
               >
                 {agent?.status ?? 'unknown'}
@@ -349,7 +349,7 @@ export default function AgentCommandsPage() {
             </div>
             {agent?.version && (
               <div className="flex items-center gap-2">
-                <span className="text-xs text-[#7d92b0]">Agent v{agent.version}</span>
+                <span className="text-xs text-falcon-muted">Agent v{agent.version}</span>
               </div>
             )}
           </div>
@@ -357,26 +357,26 @@ export default function AgentCommandsPage() {
       </div>
 
       {/* ─── Main Layout ─────────────────────────────────────── */}
-      <div className="max-w-screen-2xl mx-auto px-6 py-6 grid grid-cols-1 xl:grid-cols-3 gap-6">
+      <div className="max-w-(--breakpoint-2xl) mx-auto px-6 py-6 grid grid-cols-1 xl:grid-cols-3 gap-6">
         {/* ── Left column: input + history ── */}
         <div className="xl:col-span-1 flex flex-col gap-6">
           {/* Command Input Panel */}
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
-            <div className="px-4 py-3 border-b border-[#1e2d42] flex items-center gap-2">
-              <Terminal className="w-4 h-4 text-[#e8002d]" />
+          <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
+            <div className="px-4 py-3 border-b border-falcon-border flex items-center gap-2">
+              <Terminal className="w-4 h-4 text-falcon-red" />
               <span className="text-sm font-semibold text-white">Command Input</span>
             </div>
 
             {/* Tab selector */}
-            <div className="flex border-b border-[#1e2d42]">
+            <div className="flex border-b border-falcon-border">
               {(['shell', 'file', 'process'] as CommandTab[]).map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
                   className={`flex-1 py-2 text-xs font-medium capitalize transition-colors ${
                     activeTab === tab
-                      ? 'text-white border-b-2 border-[#e8002d] bg-[#e8002d]/5'
-                      : 'text-[#7d92b0] hover:text-white'
+                      ? 'text-white border-b-2 border-falcon-red bg-falcon-red/5'
+                      : 'text-falcon-muted hover:text-white'
                   }`}
                 >
                   {tab === 'shell' ? 'Shell' : tab === 'file' ? 'File' : 'Process'}
@@ -389,8 +389,8 @@ export default function AgentCommandsPage() {
               {activeTab === 'shell' && (
                 <>
                   <div>
-                    <label className="block text-xs text-[#7d92b0] mb-1">
-                      Command <span className="text-[#7d92b0]/60">(Ctrl+Enter to execute)</span>
+                    <label className="block text-xs text-falcon-muted mb-1">
+                      Command <span className="text-falcon-muted/60">(Ctrl+Enter to execute)</span>
                     </label>
                     <textarea
                       value={shellCmd}
@@ -398,11 +398,11 @@ export default function AgentCommandsPage() {
                       onKeyDown={handleKeyDown}
                       placeholder="ps aux"
                       rows={4}
-                      className="w-full bg-black border border-[#1e2d42] rounded-lg px-3 py-2 font-mono text-sm text-[#22c55e] placeholder-[#7d92b0]/40 focus:outline-none focus:border-[#e8002d]/50 resize-none"
+                      className="w-full bg-black border border-falcon-border rounded-lg px-3 py-2 font-mono text-sm text-[#22c55e] placeholder-falcon-muted/40 focus:outline-hidden focus:border-falcon-red/50 resize-none"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs text-[#7d92b0] mb-2">Timeout</label>
+                    <label className="block text-xs text-falcon-muted mb-2">Timeout</label>
                     <div className="grid grid-cols-4 gap-2">
                       {([10, 30, 60, 120] as TimeoutOption[]).map((t) => (
                         <button
@@ -410,8 +410,8 @@ export default function AgentCommandsPage() {
                           onClick={() => setTimeoutSec(t)}
                           className={`py-1.5 text-xs rounded-lg border transition-colors ${
                             timeoutSec === t
-                              ? 'bg-[#e8002d]/10 border-[#e8002d]/50 text-[#e8002d]'
-                              : 'border-[#1e2d42] text-[#7d92b0] hover:border-[#7d92b0]/50 hover:text-white'
+                              ? 'bg-falcon-red/10 border-falcon-red/50 text-falcon-red'
+                              : 'border-falcon-border text-falcon-muted hover:border-falcon-muted/50 hover:text-white'
                           }`}
                         >
                           {t}s
@@ -430,8 +430,8 @@ export default function AgentCommandsPage() {
                       onClick={() => setFileAction('download')}
                       className={`flex items-center justify-center gap-2 py-2 text-xs rounded-lg border transition-colors ${
                         fileAction === 'download'
-                          ? 'bg-[#e8002d]/10 border-[#e8002d]/50 text-[#e8002d]'
-                          : 'border-[#1e2d42] text-[#7d92b0] hover:border-[#7d92b0]/50 hover:text-white'
+                          ? 'bg-falcon-red/10 border-falcon-red/50 text-falcon-red'
+                          : 'border-falcon-border text-falcon-muted hover:border-falcon-muted/50 hover:text-white'
                       }`}
                     >
                       <FileDown className="w-3.5 h-3.5" />
@@ -441,8 +441,8 @@ export default function AgentCommandsPage() {
                       onClick={() => setFileAction('upload')}
                       className={`flex items-center justify-center gap-2 py-2 text-xs rounded-lg border transition-colors ${
                         fileAction === 'upload'
-                          ? 'bg-[#e8002d]/10 border-[#e8002d]/50 text-[#e8002d]'
-                          : 'border-[#1e2d42] text-[#7d92b0] hover:border-[#7d92b0]/50 hover:text-white'
+                          ? 'bg-falcon-red/10 border-falcon-red/50 text-falcon-red'
+                          : 'border-falcon-border text-falcon-muted hover:border-falcon-muted/50 hover:text-white'
                       }`}
                     >
                       <FileUp className="w-3.5 h-3.5" />
@@ -450,7 +450,7 @@ export default function AgentCommandsPage() {
                     </button>
                   </div>
                   <div>
-                    <label className="block text-xs text-[#7d92b0] mb-1">
+                    <label className="block text-xs text-falcon-muted mb-1">
                       {fileAction === 'download' ? 'Remote File Path' : 'Local File Path'}
                     </label>
                     <input
@@ -458,18 +458,18 @@ export default function AgentCommandsPage() {
                       value={filePath}
                       onChange={(e) => setFilePath(e.target.value)}
                       placeholder={fileAction === 'download' ? '/etc/passwd' : '/local/file.txt'}
-                      className="w-full bg-black border border-[#1e2d42] rounded-lg px-3 py-2 font-mono text-sm text-[#22c55e] placeholder-[#7d92b0]/40 focus:outline-none focus:border-[#e8002d]/50"
+                      className="w-full bg-black border border-falcon-border rounded-lg px-3 py-2 font-mono text-sm text-[#22c55e] placeholder-falcon-muted/40 focus:outline-hidden focus:border-falcon-red/50"
                     />
                   </div>
                   {fileAction === 'upload' && (
                     <div>
-                      <label className="block text-xs text-[#7d92b0] mb-1">Destination Path (on agent)</label>
+                      <label className="block text-xs text-falcon-muted mb-1">Destination Path (on agent)</label>
                       <input
                         type="text"
                         value={uploadPath}
                         onChange={(e) => setUploadPath(e.target.value)}
                         placeholder="/tmp/uploaded.txt"
-                        className="w-full bg-black border border-[#1e2d42] rounded-lg px-3 py-2 font-mono text-sm text-[#22c55e] placeholder-[#7d92b0]/40 focus:outline-none focus:border-[#e8002d]/50"
+                        className="w-full bg-black border border-falcon-border rounded-lg px-3 py-2 font-mono text-sm text-[#22c55e] placeholder-falcon-muted/40 focus:outline-hidden focus:border-falcon-red/50"
                       />
                     </div>
                   )}
@@ -484,8 +484,8 @@ export default function AgentCommandsPage() {
                       onClick={() => setProcessAction('kill_pid')}
                       className={`flex items-center justify-center gap-2 py-2 text-xs rounded-lg border transition-colors ${
                         processAction === 'kill_pid'
-                          ? 'bg-[#e8002d]/10 border-[#e8002d]/50 text-[#e8002d]'
-                          : 'border-[#1e2d42] text-[#7d92b0] hover:border-[#7d92b0]/50 hover:text-white'
+                          ? 'bg-falcon-red/10 border-falcon-red/50 text-falcon-red'
+                          : 'border-falcon-border text-falcon-muted hover:border-falcon-muted/50 hover:text-white'
                       }`}
                     >
                       <Cpu className="w-3.5 h-3.5" />
@@ -495,8 +495,8 @@ export default function AgentCommandsPage() {
                       onClick={() => setProcessAction('kill_name')}
                       className={`flex items-center justify-center gap-2 py-2 text-xs rounded-lg border transition-colors ${
                         processAction === 'kill_name'
-                          ? 'bg-[#e8002d]/10 border-[#e8002d]/50 text-[#e8002d]'
-                          : 'border-[#1e2d42] text-[#7d92b0] hover:border-[#7d92b0]/50 hover:text-white'
+                          ? 'bg-falcon-red/10 border-falcon-red/50 text-falcon-red'
+                          : 'border-falcon-border text-falcon-muted hover:border-falcon-muted/50 hover:text-white'
                       }`}
                     >
                       <Cpu className="w-3.5 h-3.5" />
@@ -504,7 +504,7 @@ export default function AgentCommandsPage() {
                     </button>
                   </div>
                   <div>
-                    <label className="block text-xs text-[#7d92b0] mb-1">
+                    <label className="block text-xs text-falcon-muted mb-1">
                       {processAction === 'kill_pid' ? 'PID' : 'Process Name'}
                     </label>
                     <input
@@ -512,7 +512,7 @@ export default function AgentCommandsPage() {
                       value={processTarget}
                       onChange={(e) => setProcessTarget(e.target.value)}
                       placeholder={processAction === 'kill_pid' ? '1234' : 'malware.exe'}
-                      className="w-full bg-black border border-[#1e2d42] rounded-lg px-3 py-2 font-mono text-sm text-[#22c55e] placeholder-[#7d92b0]/40 focus:outline-none focus:border-[#e8002d]/50"
+                      className="w-full bg-black border border-falcon-border rounded-lg px-3 py-2 font-mono text-sm text-[#22c55e] placeholder-falcon-muted/40 focus:outline-hidden focus:border-falcon-red/50"
                     />
                   </div>
                 </>
@@ -522,7 +522,7 @@ export default function AgentCommandsPage() {
               <button
                 onClick={handleExecute}
                 disabled={executeMutation.isPending}
-                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-[#e8002d] hover:bg-[#e8002d]/90 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-semibold transition-colors"
+                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-falcon-red hover:bg-falcon-red/90 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-semibold transition-colors"
               >
                 {executeMutation.isPending ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -541,20 +541,20 @@ export default function AgentCommandsPage() {
           </div>
 
           {/* Command History Panel */}
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden flex flex-col">
-            <div className="px-4 py-3 border-b border-[#1e2d42] flex items-center justify-between">
+          <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden flex flex-col">
+            <div className="px-4 py-3 border-b border-falcon-border flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Clock className="w-4 h-4 text-[#7d92b0]" />
+                <Clock className="w-4 h-4 text-falcon-muted" />
                 <span className="text-sm font-semibold text-white">Command History</span>
                 {commands.length > 0 && (
-                  <span className="text-xs bg-[#1e2d42] text-[#7d92b0] px-1.5 py-0.5 rounded-full">
+                  <span className="text-xs bg-falcon-border text-falcon-muted px-1.5 py-0.5 rounded-full">
                     {commands.length}
                   </span>
                 )}
               </div>
               <button
                 onClick={() => refetchCmds()}
-                className="text-[#7d92b0] hover:text-white transition-colors"
+                className="text-falcon-muted hover:text-white transition-colors"
                 title="Refresh"
               >
                 <RefreshCw className="w-3.5 h-3.5" />
@@ -564,15 +564,15 @@ export default function AgentCommandsPage() {
             <div className="overflow-y-auto max-h-[480px]">
               {cmdsLoading ? (
                 <div className="flex items-center justify-center py-8">
-                  <Loader2 className="w-5 h-5 animate-spin text-[#7d92b0]" />
+                  <Loader2 className="w-5 h-5 animate-spin text-falcon-muted" />
                 </div>
               ) : commands.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-8 text-[#7d92b0]">
+                <div className="flex flex-col items-center justify-center py-8 text-falcon-muted">
                   <Terminal className="w-8 h-8 mb-2 opacity-40" />
                   <p className="text-sm">No commands yet</p>
                 </div>
               ) : (
-                <ul className="divide-y divide-[#1e2d42]">
+                <ul className="divide-y divide-falcon-border">
                   {commands.map((cmd) => {
                     const isExpanded = expandedCmds.has(cmd.id)
                     const isSelected = selectedCmdId === cmd.id
@@ -582,8 +582,8 @@ export default function AgentCommandsPage() {
                         <div
                           className={`px-4 py-3 cursor-pointer transition-colors ${
                             isSelected
-                              ? 'bg-[#e8002d]/5 border-l-2 border-[#e8002d]'
-                              : 'hover:bg-[#1e2d42]/30 border-l-2 border-transparent'
+                              ? 'bg-falcon-red/5 border-l-2 border-falcon-red'
+                              : 'hover:bg-falcon-border/30 border-l-2 border-transparent'
                           }`}
                           onClick={() => {
                             setSelectedCmdId(cmd.id)
@@ -596,7 +596,7 @@ export default function AgentCommandsPage() {
                                   e.stopPropagation()
                                   toggleExpand(cmd.id)
                                 }}
-                                className="mt-0.5 text-[#7d92b0] hover:text-white flex-shrink-0"
+                                className="mt-0.5 text-falcon-muted hover:text-white shrink-0"
                               >
                                 {isExpanded ? (
                                   <ChevronDown className="w-3.5 h-3.5" />
@@ -611,19 +611,19 @@ export default function AgentCommandsPage() {
                                     : cmd.command}
                                 </p>
                                 <div className="flex items-center gap-2 mt-1">
-                                  <span className="text-xs text-[#7d92b0]">
+                                  <span className="text-xs text-falcon-muted">
                                     {fmtTime(cmd.created_at)}
                                   </span>
-                                  <span className="text-xs text-[#7d92b0]">
+                                  <span className="text-xs text-falcon-muted">
                                     {calcDuration(cmd)}
                                   </span>
-                                  <span className="text-xs text-[#7d92b0] capitalize">
+                                  <span className="text-xs text-falcon-muted capitalize">
                                     {cmd.command_type}
                                   </span>
                                 </div>
                               </div>
                             </div>
-                            <div className="flex items-center gap-2 flex-shrink-0">
+                            <div className="flex items-center gap-2 shrink-0">
                               <StatusBadge status={cmd.status} />
                               {cmd.status === 'pending' && (
                                 <button
@@ -632,7 +632,7 @@ export default function AgentCommandsPage() {
                                     cancelMutation.mutate(cmd.id)
                                   }}
                                   disabled={cancelMutation.isPending}
-                                  className="text-[#7d92b0] hover:text-red-400 transition-colors"
+                                  className="text-falcon-muted hover:text-red-400 transition-colors"
                                   title="キャンセル"
                                 >
                                   <X className="w-3.5 h-3.5" />
@@ -647,13 +647,13 @@ export default function AgentCommandsPage() {
                               className="mt-2 ml-5"
                               onClick={(e) => e.stopPropagation()}
                             >
-                              <pre className="bg-black border border-[#1e2d42] rounded-lg p-2 font-mono text-[#22c55e] text-xs overflow-x-auto whitespace-pre-wrap max-h-32 overflow-y-auto">
+                              <pre className="bg-black border border-falcon-border rounded-lg p-2 font-mono text-[#22c55e] text-xs overflow-x-auto whitespace-pre-wrap max-h-32 overflow-y-auto">
                                 {cmd.output}
                               </pre>
                             </div>
                           )}
                           {isExpanded && !cmd.output && cmd.status === 'completed' && (
-                            <p className="mt-2 ml-5 text-xs text-[#7d92b0] italic">
+                            <p className="mt-2 ml-5 text-xs text-falcon-muted italic">
                               No output
                             </p>
                           )}
@@ -669,10 +669,10 @@ export default function AgentCommandsPage() {
 
         {/* ── Right column: output panel ── */}
         <div className="xl:col-span-2 flex flex-col gap-4">
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden flex flex-col h-full min-h-[600px]">
-            <div className="px-4 py-3 border-b border-[#1e2d42] flex items-center justify-between">
+          <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden flex flex-col h-full min-h-[600px]">
+            <div className="px-4 py-3 border-b border-falcon-border flex items-center justify-between">
               <div className="flex items-center gap-3 min-w-0 flex-1">
-                <Terminal className="w-4 h-4 text-[#22c55e] flex-shrink-0" />
+                <Terminal className="w-4 h-4 text-[#22c55e] shrink-0" />
                 {selectedCmd ? (
                   <>
                     <span className="font-mono text-sm text-white truncate">
@@ -683,22 +683,22 @@ export default function AgentCommandsPage() {
                     <StatusBadge status={selectedCmd.status} />
                   </>
                 ) : (
-                  <span className="text-sm text-[#7d92b0]">Select a command to view output</span>
+                  <span className="text-sm text-falcon-muted">Select a command to view output</span>
                 )}
               </div>
 
               {selectedCmd?.output && (
-                <div className="flex items-center gap-2 flex-shrink-0 ml-3">
+                <div className="flex items-center gap-2 shrink-0 ml-3">
                   <button
                     onClick={handleCopyOutput}
-                    className="flex items-center gap-1.5 px-2.5 py-1 text-xs text-[#7d92b0] hover:text-white border border-[#1e2d42] hover:border-[#7d92b0]/50 rounded-lg transition-colors"
+                    className="flex items-center gap-1.5 px-2.5 py-1 text-xs text-falcon-muted hover:text-white border border-falcon-border hover:border-falcon-muted/50 rounded-lg transition-colors"
                   >
                     <Copy className="w-3 h-3" />
                     {copyFeedback ? 'Copied!' : 'Copy'}
                   </button>
                   <button
                     onClick={handleDownloadOutput}
-                    className="flex items-center gap-1.5 px-2.5 py-1 text-xs text-[#7d92b0] hover:text-white border border-[#1e2d42] hover:border-[#7d92b0]/50 rounded-lg transition-colors"
+                    className="flex items-center gap-1.5 px-2.5 py-1 text-xs text-falcon-muted hover:text-white border border-falcon-border hover:border-falcon-muted/50 rounded-lg transition-colors"
                   >
                     <Download className="w-3 h-3" />
                     Download
@@ -709,7 +709,7 @@ export default function AgentCommandsPage() {
 
             {/* Command metadata strip */}
             {selectedCmd && (
-              <div className="px-4 py-2 border-b border-[#1e2d42] bg-[#070d19]/50 flex items-center gap-4 flex-wrap text-xs text-[#7d92b0]">
+              <div className="px-4 py-2 border-b border-falcon-border bg-[#070d19]/50 flex items-center gap-4 flex-wrap text-xs text-falcon-muted">
                 <span>
                   ID: <span className="font-mono text-white/70">{selectedCmd.id.slice(0, 8)}…</span>
                 </span>
@@ -754,7 +754,7 @@ export default function AgentCommandsPage() {
             {/* Terminal output */}
             <div className="flex-1 overflow-hidden relative">
               {!selectedCmd ? (
-                <div className="flex flex-col items-center justify-center h-full text-[#7d92b0]">
+                <div className="flex flex-col items-center justify-center h-full text-falcon-muted">
                   <Terminal className="w-12 h-12 mb-3 opacity-20" />
                   <p className="text-sm">No command selected</p>
                   <p className="text-xs mt-1 opacity-60">
@@ -762,7 +762,7 @@ export default function AgentCommandsPage() {
                   </p>
                 </div>
               ) : selectedCmd.status === 'pending' || selectedCmd.status === 'running' ? (
-                <div className="flex flex-col items-center justify-center h-full text-[#7d92b0]">
+                <div className="flex flex-col items-center justify-center h-full text-falcon-muted">
                   <Loader2 className="w-8 h-8 mb-3 animate-spin text-[#22c55e]" />
                   <p className="text-sm">
                     {selectedCmd.status === 'pending'
@@ -772,7 +772,7 @@ export default function AgentCommandsPage() {
                   <p className="text-xs mt-1 opacity-60">Auto-refreshing every 3s</p>
                 </div>
               ) : !selectedCmd.output ? (
-                <div className="flex flex-col items-center justify-center h-full text-[#7d92b0]">
+                <div className="flex flex-col items-center justify-center h-full text-falcon-muted">
                   <Terminal className="w-8 h-8 mb-3 opacity-20" />
                   <p className="text-sm">
                     {selectedCmd.status === 'failed'
@@ -790,7 +790,7 @@ export default function AgentCommandsPage() {
                   className="h-full bg-black font-mono text-[#22c55e] text-sm overflow-auto p-4 leading-relaxed"
                 >
                   {/* Output with timestamp prefix on first line */}
-                  <span className="text-[#7d92b0] select-none">
+                  <span className="text-falcon-muted select-none">
                     [{fmtTime(selectedCmd.completed_at ?? selectedCmd.created_at)}]{' '}
                   </span>
                   {selectedCmd.output}
@@ -799,7 +799,7 @@ export default function AgentCommandsPage() {
             </div>
 
             {/* Bottom status bar */}
-            <div className="px-4 py-2 border-t border-[#1e2d42] bg-[#070d19]/50 flex items-center justify-between text-xs text-[#7d92b0]">
+            <div className="px-4 py-2 border-t border-falcon-border bg-[#070d19]/50 flex items-center justify-between text-xs text-falcon-muted">
               <div className="flex items-center gap-2">
                 {selectedCmd?.output && (
                   <span>{selectedCmd.output.split('\n').length} lines</span>
@@ -847,9 +847,9 @@ export default function AgentCommandsPage() {
             ].map(({ label, value, cls }) => (
               <div
                 key={label}
-                className="bg-[#0d1220] border border-[#1e2d42] rounded-xl px-4 py-3"
+                className="bg-falcon-surface border border-falcon-border rounded-xl px-4 py-3"
               >
-                <p className="text-xs text-[#7d92b0] mb-1">{label}</p>
+                <p className="text-xs text-falcon-muted mb-1">{label}</p>
                 <p className={`text-2xl font-bold tabular-nums ${cls}`}>{value}</p>
               </div>
             ))}

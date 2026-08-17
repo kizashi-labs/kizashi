@@ -205,7 +205,7 @@ export default function InstallerPage() {
             onChange={e => setServerUrl(e.target.value)}
             placeholder="https://your-edr-server.com"
             className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white
-                       placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50
+                       placeholder-gray-600 focus:outline-hidden focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50
                        font-mono"
           />
         </div>
@@ -280,7 +280,7 @@ export default function InstallerPage() {
             onChange={e => setGroup(e.target.value)}
             placeholder="例: production / servers"
             className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white
-                       placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50"
+                       placeholder-gray-600 focus:outline-hidden focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50"
           />
         </div>
 
@@ -297,7 +297,7 @@ export default function InstallerPage() {
               onChange={e => setToken(e.target.value)}
               placeholder="32文字の16進数トークン"
               className="flex-1 bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white
-                         placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50
+                         placeholder-gray-600 focus:outline-hidden focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50
                          font-mono"
             />
             <button
@@ -317,7 +317,7 @@ export default function InstallerPage() {
             type="checkbox"
             checked={installService}
             onChange={e => setInstallService(e.target.checked)}
-            className="w-4 h-4 accent-blue-500 rounded"
+            className="w-4 h-4 accent-blue-500 rounded-sm"
           />
           <span className="text-sm text-gray-300 group-hover:text-white transition-colors">
             サービスとしてインストール
@@ -364,7 +364,7 @@ export default function InstallerPage() {
         </div>
         {!token && (
           <div className="px-4 py-2.5 border-t border-gray-700 flex items-center gap-2">
-            <AlertCircle className="w-3.5 h-3.5 text-yellow-400 flex-shrink-0" />
+            <AlertCircle className="w-3.5 h-3.5 text-yellow-400 shrink-0" />
             <p className="text-xs text-yellow-400">
               トークンが設定されていません。「生成」ボタンでトークンを作成してください。
             </p>
@@ -393,7 +393,7 @@ export default function InstallerPage() {
               target="_blank"
               rel="noopener noreferrer"
             >
-              <span className={`${color} flex-shrink-0 group-hover:scale-110 transition-transform`}>
+              <span className={`${color} shrink-0 group-hover:scale-110 transition-transform`}>
                 {icon}
               </span>
               <div className="min-w-0">
@@ -402,7 +402,7 @@ export default function InstallerPage() {
                   {`/${os}/${archVal}`}
                 </p>
               </div>
-              <Download className="w-3.5 h-3.5 text-gray-600 group-hover:text-gray-400 ml-auto flex-shrink-0 transition-colors" />
+              <Download className="w-3.5 h-3.5 text-gray-600 group-hover:text-gray-400 ml-auto shrink-0 transition-colors" />
             </a>
           ))}
         </div>
@@ -445,7 +445,7 @@ export default function InstallerPage() {
                     className="border-b border-gray-700/50 last:border-0 hover:bg-gray-700/20 transition-colors"
                   >
                     <td className="px-4 py-3">
-                      <span className="font-mono text-xs text-gray-300 bg-gray-900 px-2 py-0.5 rounded">
+                      <span className="font-mono text-xs text-gray-300 bg-gray-900 px-2 py-0.5 rounded-sm">
                         {t.id.slice(0, 8)}…{t.id.slice(-6)}
                       </span>
                     </td>
@@ -485,7 +485,7 @@ export default function InstallerPage() {
         )}
 
         <div className="px-4 py-3 border-t border-gray-700 flex items-start gap-2">
-          <AlertCircle className="w-3.5 h-3.5 text-yellow-500 flex-shrink-0 mt-0.5" />
+          <AlertCircle className="w-3.5 h-3.5 text-yellow-500 shrink-0 mt-0.5" />
           <p className="text-xs text-gray-500">
             本番環境ではサーバー側でトークン管理を実装してください。現在のデータはモックです。
           </p>

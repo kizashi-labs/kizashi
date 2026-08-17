@@ -136,7 +136,7 @@ export default function EscalationRulesPage() {
     if (n >= 7) return { label: 'High', color: 'text-orange-400' }
     if (n >= 5) return { label: 'Medium', color: 'text-yellow-400' }
     if (n >= 3) return { label: 'Low', color: 'text-blue-400' }
-    return { label: 'Info', color: 'text-[#7d92b0]' }
+    return { label: 'Info', color: 'text-falcon-muted' }
   }
 
   return (
@@ -145,16 +145,16 @@ export default function EscalationRulesPage() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <div className="flex items-center gap-3 mb-1">
-            <div className="w-8 h-8 rounded bg-[#e8002d]/10 border border-[#e8002d]/30 flex items-center justify-center">
-              <TrendingUp className="w-4 h-4 text-[#e8002d]" />
+            <div className="w-8 h-8 rounded-sm bg-falcon-red/10 border border-falcon-red/30 flex items-center justify-center">
+              <TrendingUp className="w-4 h-4 text-falcon-red" />
             </div>
             <h1 className="text-xl font-bold text-white">エスカレーションルール</h1>
           </div>
-          <p className="text-[#7d92b0] text-sm ml-11">未解決アラートの自動エスカレーションを設定します</p>
+          <p className="text-falcon-muted text-sm ml-11">未解決アラートの自動エスカレーションを設定します</p>
         </div>
         <button
           onClick={openCreate}
-          className="flex items-center gap-2 px-4 py-2 bg-[#e8002d] hover:bg-[#c8001f] text-white text-sm font-medium rounded transition-colors"
+          className="flex items-center gap-2 px-4 py-2 bg-falcon-red hover:bg-[#c8001f] text-white text-sm font-medium rounded-sm transition-colors"
         >
           <Plus className="w-4 h-4" />
           ルールを追加
@@ -162,31 +162,31 @@ export default function EscalationRulesPage() {
       </div>
 
       {/* Table */}
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg overflow-hidden">
-        <div className="px-4 py-3 border-b border-[#1e2d42] flex items-center justify-between">
+      <div className="bg-falcon-surface border border-falcon-border rounded-lg overflow-hidden">
+        <div className="px-4 py-3 border-b border-falcon-border flex items-center justify-between">
           <h2 className="text-sm font-semibold text-white">ルール一覧</h2>
-          <span className="text-xs text-[#7d92b0]">{rules.length} 件</span>
+          <span className="text-xs text-falcon-muted">{rules.length} 件</span>
         </div>
 
         {isLoading ? (
-          <div className="p-8 text-center text-[#7d92b0] text-sm">読み込み中...</div>
+          <div className="p-8 text-center text-falcon-muted text-sm">読み込み中...</div>
         ) : rules.length === 0 ? (
-          <div className="p-8 text-center text-[#7d92b0] text-sm">ルールが登録されていません</div>
+          <div className="p-8 text-center text-falcon-muted text-sm">ルールが登録されていません</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-[#1e2d42]">
-                  <th className="px-4 py-3 text-left text-xs font-medium text-[#7d92b0] uppercase tracking-wider">ルール名</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-[#7d92b0] uppercase tracking-wider">最小重大度</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-[#7d92b0] uppercase tracking-wider">未解決時間(分)</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-[#7d92b0] uppercase tracking-wider">エスカレーション先</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-[#7d92b0] uppercase tracking-wider">通知Ch</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-[#7d92b0] uppercase tracking-wider">有効</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-[#7d92b0] uppercase tracking-wider">操作</th>
+                <tr className="border-b border-falcon-border">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-falcon-muted uppercase tracking-wider">ルール名</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-falcon-muted uppercase tracking-wider">最小重大度</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-falcon-muted uppercase tracking-wider">未解決時間(分)</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-falcon-muted uppercase tracking-wider">エスカレーション先</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-falcon-muted uppercase tracking-wider">通知Ch</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-falcon-muted uppercase tracking-wider">有効</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-falcon-muted uppercase tracking-wider">操作</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#1e2d42]">
+              <tbody className="divide-y divide-falcon-border">
                 {rules.map(rule => {
                   const sev = severityLabel(rule.severity_min)
                   return (
@@ -197,11 +197,11 @@ export default function EscalationRulesPage() {
                           {rule.severity_min} / {sev.label}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-sm text-[#7d92b0]">{rule.unresolved_mins} 分</td>
-                      <td className="px-4 py-3 text-xs text-[#7d92b0] font-mono truncate max-w-[160px]">
+                      <td className="px-4 py-3 text-sm text-falcon-muted">{rule.unresolved_mins} 分</td>
+                      <td className="px-4 py-3 text-xs text-falcon-muted font-mono truncate max-w-[160px]">
                         {rule.escalate_to}
                       </td>
-                      <td className="px-4 py-3 text-xs text-[#7d92b0]">
+                      <td className="px-4 py-3 text-xs text-falcon-muted">
                         {rule.notify_channel || '—'}
                       </td>
                       <td className="px-4 py-3">
@@ -216,7 +216,7 @@ export default function EscalationRulesPage() {
                               <ToggleRight className="w-4 h-4" /> 有効
                             </span>
                           ) : (
-                            <span className="flex items-center gap-1 text-[#7d92b0] hover:text-white">
+                            <span className="flex items-center gap-1 text-falcon-muted hover:text-white">
                               <ToggleLeft className="w-4 h-4" /> 無効
                             </span>
                           )}
@@ -226,14 +226,14 @@ export default function EscalationRulesPage() {
                         <div className="flex items-center gap-2">
                           <button
                             onClick={() => openEdit(rule)}
-                            className="p-1.5 rounded text-[#7d92b0] hover:text-white hover:bg-[#1e2d42] transition-colors"
+                            className="p-1.5 rounded-sm text-falcon-muted hover:text-white hover:bg-falcon-border transition-colors"
                             title="編集"
                           >
                             <Pencil className="w-3.5 h-3.5" />
                           </button>
                           <button
                             onClick={() => setDeleteConfirm(rule.id)}
-                            className="p-1.5 rounded text-[#7d92b0] hover:text-[#e8002d] hover:bg-[#e8002d]/10 transition-colors"
+                            className="p-1.5 rounded-sm text-falcon-muted hover:text-falcon-red hover:bg-falcon-red/10 transition-colors"
                             title="削除"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
@@ -251,15 +251,15 @@ export default function EscalationRulesPage() {
 
       {/* Create/Edit Modal */}
       {modalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl w-full max-w-lg mx-4 shadow-2xl">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-[#1e2d42]">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs">
+          <div className="bg-falcon-surface border border-falcon-border rounded-xl w-full max-w-lg mx-4 shadow-2xl">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-falcon-border">
               <h2 className="text-base font-semibold text-white">
                 {editingRule ? 'ルールを編集' : '新規ルール作成'}
               </h2>
               <button
                 onClick={() => setModalOpen(false)}
-                className="p-1 rounded text-[#7d92b0] hover:text-white hover:bg-[#1e2d42] transition-colors"
+                className="p-1 rounded-sm text-falcon-muted hover:text-white hover:bg-falcon-border transition-colors"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -267,21 +267,21 @@ export default function EscalationRulesPage() {
             <div className="px-5 py-4 space-y-4">
               {/* Name */}
               <div>
-                <label className="block text-xs font-medium text-[#7d92b0] mb-1.5">
-                  ルール名 <span className="text-[#e8002d]">*</span>
+                <label className="block text-xs font-medium text-falcon-muted mb-1.5">
+                  ルール名 <span className="text-falcon-red">*</span>
                 </label>
                 <input
                   type="text"
                   value={form.name}
                   onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
                   placeholder="例: Critical unresolved 1h"
-                  className="w-full bg-[#070d19] border border-[#1e2d42] rounded px-3 py-2 text-sm text-white placeholder-[#3d5068] focus:outline-none focus:border-[#e8002d]/50"
+                  className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-sm text-white placeholder-falcon-subtle focus:outline-hidden focus:border-falcon-red/50"
                 />
               </div>
 
               {/* Severity min */}
               <div>
-                <label className="block text-xs font-medium text-[#7d92b0] mb-2">
+                <label className="block text-xs font-medium text-falcon-muted mb-2">
                   最小重大度: <span className={`font-bold ${severityLabel(form.severity_min).color}`}>
                     {form.severity_min} ({severityLabel(form.severity_min).label})
                   </span>
@@ -292,9 +292,9 @@ export default function EscalationRulesPage() {
                   max={10}
                   value={form.severity_min}
                   onChange={e => setForm(f => ({ ...f, severity_min: Number(e.target.value) }))}
-                  className="w-full accent-[#e8002d]"
+                  className="w-full accent-falcon-red"
                 />
-                <div className="flex justify-between text-[10px] text-[#3d5068] mt-1">
+                <div className="flex justify-between text-[10px] text-falcon-subtle mt-1">
                   <span>1 (Info)</span>
                   <span>5 (Medium)</span>
                   <span>10 (Critical)</span>
@@ -303,7 +303,7 @@ export default function EscalationRulesPage() {
 
               {/* Unresolved mins */}
               <div>
-                <label className="block text-xs font-medium text-[#7d92b0] mb-1.5">
+                <label className="block text-xs font-medium text-falcon-muted mb-1.5">
                   未解決時間（分）
                 </label>
                 <input
@@ -311,27 +311,27 @@ export default function EscalationRulesPage() {
                   min={1}
                   value={form.unresolved_mins}
                   onChange={e => setForm(f => ({ ...f, unresolved_mins: Number(e.target.value) }))}
-                  className="w-32 bg-[#070d19] border border-[#1e2d42] rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-[#e8002d]/50"
+                  className="w-32 bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-sm text-white focus:outline-hidden focus:border-falcon-red/50"
                 />
               </div>
 
               {/* Escalate to */}
               <div>
-                <label className="block text-xs font-medium text-[#7d92b0] mb-1.5">
-                  エスカレーション先（メール） <span className="text-[#e8002d]">*</span>
+                <label className="block text-xs font-medium text-falcon-muted mb-1.5">
+                  エスカレーション先（メール） <span className="text-falcon-red">*</span>
                 </label>
                 <input
                   type="email"
                   value={form.escalate_to}
                   onChange={e => setForm(f => ({ ...f, escalate_to: e.target.value }))}
                   placeholder="soc@example.com"
-                  className="w-full bg-[#070d19] border border-[#1e2d42] rounded px-3 py-2 text-sm text-white placeholder-[#3d5068] focus:outline-none focus:border-[#e8002d]/50"
+                  className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-sm text-white placeholder-falcon-subtle focus:outline-hidden focus:border-falcon-red/50"
                 />
               </div>
 
               {/* Notify channel */}
               <div>
-                <label className="block text-xs font-medium text-[#7d92b0] mb-1.5">
+                <label className="block text-xs font-medium text-falcon-muted mb-1.5">
                   通知チャンネル（任意）
                 </label>
                 <input
@@ -339,22 +339,22 @@ export default function EscalationRulesPage() {
                   value={form.notify_channel}
                   onChange={e => setForm(f => ({ ...f, notify_channel: e.target.value }))}
                   placeholder="#soc-alerts"
-                  className="w-full bg-[#070d19] border border-[#1e2d42] rounded px-3 py-2 text-sm text-white placeholder-[#3d5068] focus:outline-none focus:border-[#e8002d]/50"
+                  className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-sm text-white placeholder-falcon-subtle focus:outline-hidden focus:border-falcon-red/50"
                 />
               </div>
 
               {/* Enabled */}
               <div className="flex items-center justify-between">
-                <label className="text-xs font-medium text-[#7d92b0]">有効</label>
+                <label className="text-xs font-medium text-falcon-muted">有効</label>
                 <button
                   type="button"
                   onClick={() => setForm(f => ({ ...f, enabled: !f.enabled }))}
                   className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
-                    form.enabled ? 'bg-[#e8002d]' : 'bg-[#1e2d42]'
+                    form.enabled ? 'bg-falcon-red' : 'bg-falcon-border'
                   }`}
                 >
                   <span
-                    className={`inline-block h-3.5 w-3.5 transform rounded-full bg-[#e2e8f4] transition-transform ${
+                    className={`inline-block h-3.5 w-3.5 transform rounded-full bg-falcon-text transition-transform ${
                       form.enabled ? 'translate-x-4' : 'translate-x-1'
                     }`}
                   />
@@ -362,20 +362,20 @@ export default function EscalationRulesPage() {
               </div>
 
               {formError && (
-                <p className="text-xs text-[#e8002d]">{formError}</p>
+                <p className="text-xs text-falcon-red">{formError}</p>
               )}
             </div>
-            <div className="px-5 py-4 border-t border-[#1e2d42] flex justify-end gap-3">
+            <div className="px-5 py-4 border-t border-falcon-border flex justify-end gap-3">
               <button
                 onClick={() => setModalOpen(false)}
-                className="px-4 py-2 text-sm text-[#7d92b0] hover:text-white rounded border border-[#1e2d42] hover:border-[#7d92b0]/40 transition-colors"
+                className="px-4 py-2 text-sm text-falcon-muted hover:text-white rounded-sm border border-falcon-border hover:border-falcon-muted/40 transition-colors"
               >
                 キャンセル
               </button>
               <button
                 onClick={handleSubmit}
                 disabled={isPending}
-                className="px-4 py-2 text-sm bg-[#e8002d] hover:bg-[#c8001f] text-white rounded font-medium transition-colors disabled:opacity-50"
+                className="px-4 py-2 text-sm bg-falcon-red hover:bg-[#c8001f] text-white rounded-sm font-medium transition-colors disabled:opacity-50"
               >
                 {isPending ? '保存中...' : editingRule ? '更新' : '作成'}
               </button>
@@ -386,21 +386,21 @@ export default function EscalationRulesPage() {
 
       {/* Delete Confirm Modal */}
       {deleteConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl w-full max-w-sm mx-4 shadow-2xl p-5">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs">
+          <div className="bg-falcon-surface border border-falcon-border rounded-xl w-full max-w-sm mx-4 shadow-2xl p-5">
             <h2 className="text-base font-semibold text-white mb-2">ルールを削除しますか？</h2>
-            <p className="text-sm text-[#7d92b0] mb-5">この操作は取り消せません。</p>
+            <p className="text-sm text-falcon-muted mb-5">この操作は取り消せません。</p>
             <div className="flex justify-end gap-3">
               <button
                 onClick={() => setDeleteConfirm(null)}
-                className="px-4 py-2 text-sm text-[#7d92b0] hover:text-white rounded border border-[#1e2d42] transition-colors"
+                className="px-4 py-2 text-sm text-falcon-muted hover:text-white rounded-sm border border-falcon-border transition-colors"
               >
                 キャンセル
               </button>
               <button
                 onClick={() => deleteMutation.mutate(deleteConfirm)}
                 disabled={deleteMutation.isPending}
-                className="px-4 py-2 text-sm bg-[#e8002d] hover:bg-[#c8001f] text-white rounded font-medium transition-colors disabled:opacity-50"
+                className="px-4 py-2 text-sm bg-falcon-red hover:bg-[#c8001f] text-white rounded-sm font-medium transition-colors disabled:opacity-50"
               >
                 {deleteMutation.isPending ? '削除中...' : '削除'}
               </button>

@@ -126,42 +126,42 @@ function PlanDetail({ plan, onClose }: { plan: EmulationPlan; onClose: () => voi
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg w-full max-w-3xl max-h-[92vh] overflow-y-auto">
-        <div className="flex items-center justify-between p-4 border-b border-[#1e2d42]">
+      <div className="bg-falcon-surface border border-falcon-border rounded-lg w-full max-w-3xl max-h-[92vh] overflow-y-auto">
+        <div className="flex items-center justify-between p-4 border-b border-falcon-border">
           <div className="flex items-center gap-2">
-            <Target className="w-5 h-5 text-[#e8002d]" />
+            <Target className="w-5 h-5 text-falcon-red" />
             <h2 className="text-white font-semibold">{plan.plan_name}</h2>
-            <span className={`px-2 py-0.5 rounded text-xs font-medium ${statusStyle.bg} ${statusStyle.text}`}>{statusStyle.label}</span>
+            <span className={`px-2 py-0.5 rounded-sm text-xs font-medium ${statusStyle.bg} ${statusStyle.text}`}>{statusStyle.label}</span>
           </div>
           <div className="flex items-center gap-2">
-            <button onClick={() => {}} className="flex items-center gap-1 px-3 py-1.5 border border-[#1e2d42] rounded text-[#7d92b0] hover:text-white text-xs transition-colors">
+            <button onClick={() => {}} className="flex items-center gap-1 px-3 py-1.5 border border-falcon-border rounded-sm text-falcon-muted hover:text-white text-xs transition-colors">
               <Download className="w-3.5 h-3.5" /> 計画をエクスポート
             </button>
-            <button onClick={onClose} className="text-[#7d92b0] hover:text-white"><X className="w-5 h-5" /></button>
+            <button onClick={onClose} className="text-falcon-muted hover:text-white"><X className="w-5 h-5" /></button>
           </div>
         </div>
         <div className="p-4 space-y-4">
           {/* Actor Profile */}
-          <div className="bg-[#070d19] border border-[#1e2d42] rounded-lg p-4">
-            <p className="text-[#7d92b0] text-xs uppercase tracking-wider mb-3">脅威アクタープロファイル: {plan.threat_actor_based_on}</p>
+          <div className="bg-[#070d19] border border-falcon-border rounded-lg p-4">
+            <p className="text-falcon-muted text-xs uppercase tracking-wider mb-3">脅威アクタープロファイル: {plan.threat_actor_based_on}</p>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <p className="text-[#3d5068] text-xs mb-0.5">動機</p>
+                <p className="text-falcon-subtle text-xs mb-0.5">動機</p>
                 <p className="text-white text-sm">{plan.actor_profile.motivation}</p>
               </div>
               <div>
-                <p className="text-[#3d5068] text-xs mb-0.5">洗練度</p>
+                <p className="text-falcon-subtle text-xs mb-0.5">洗練度</p>
                 <p className="text-white text-sm">{SOPHISTICATION_LABELS[plan.actor_profile.sophistication]}</p>
               </div>
               <div>
-                <p className="text-[#3d5068] text-xs mb-0.5">帰属</p>
+                <p className="text-falcon-subtle text-xs mb-0.5">帰属</p>
                 <p className="text-white text-sm">{plan.actor_profile.origin}</p>
               </div>
               <div>
-                <p className="text-[#3d5068] text-xs mb-0.5">既知キャンペーン</p>
+                <p className="text-falcon-subtle text-xs mb-0.5">既知キャンペーン</p>
                 <div className="flex flex-wrap gap-1">
                   {plan.actor_profile.known_campaigns.map(c => (
-                    <span key={c} className="px-1.5 py-0.5 bg-[#1e2d42] rounded text-[10px] text-[#7d92b0]">{c}</span>
+                    <span key={c} className="px-1.5 py-0.5 bg-falcon-border rounded-sm text-[10px] text-falcon-muted">{c}</span>
                   ))}
                 </div>
               </div>
@@ -170,33 +170,33 @@ function PlanDetail({ plan, onClose }: { plan: EmulationPlan; onClose: () => voi
 
           {/* Scope & ROE */}
           <div className="grid grid-cols-2 gap-3">
-            <div className="bg-[#070d19] rounded p-3">
-              <p className="text-[#7d92b0] text-xs uppercase tracking-wider mb-2">スコープ</p>
+            <div className="bg-[#070d19] rounded-sm p-3">
+              <p className="text-falcon-muted text-xs uppercase tracking-wider mb-2">スコープ</p>
               <p className="text-white text-sm mb-2">{plan.scope}</p>
-              <p className="text-[#3d5068] text-xs mb-1">対象システム:</p>
-              {plan.target_systems.map(s => <p key={s} className="text-[#7d92b0] text-xs font-mono">{s}</p>)}
-              <p className="text-[#3d5068] text-xs mt-2 mb-1">除外システム:</p>
-              {plan.excluded_systems.map(s => <p key={s} className="text-[#7d92b0] text-xs font-mono">{s}</p>)}
+              <p className="text-falcon-subtle text-xs mb-1">対象システム:</p>
+              {plan.target_systems.map(s => <p key={s} className="text-falcon-muted text-xs font-mono">{s}</p>)}
+              <p className="text-falcon-subtle text-xs mt-2 mb-1">除外システム:</p>
+              {plan.excluded_systems.map(s => <p key={s} className="text-falcon-muted text-xs font-mono">{s}</p>)}
             </div>
-            <div className="bg-[#070d19] rounded p-3">
-              <p className="text-[#7d92b0] text-xs uppercase tracking-wider mb-2">実施規則 (ROE)</p>
-              <p className="text-[#7d92b0] text-xs leading-relaxed">{plan.rules_of_engagement}</p>
-              <p className="text-[#3d5068] text-xs mt-2 mb-1">時間帯:</p>
+            <div className="bg-[#070d19] rounded-sm p-3">
+              <p className="text-falcon-muted text-xs uppercase tracking-wider mb-2">実施規則 (ROE)</p>
+              <p className="text-falcon-muted text-xs leading-relaxed">{plan.rules_of_engagement}</p>
+              <p className="text-falcon-subtle text-xs mt-2 mb-1">時間帯:</p>
               <p className="text-white text-xs">{plan.time_window}</p>
             </div>
           </div>
 
           {/* Preconditions */}
-          <div className="bg-[#070d19] rounded p-3">
-            <p className="text-[#7d92b0] text-xs uppercase tracking-wider mb-2">実施前提条件チェックリスト</p>
+          <div className="bg-[#070d19] rounded-sm p-3">
+            <p className="text-falcon-muted text-xs uppercase tracking-wider mb-2">実施前提条件チェックリスト</p>
             <div className="space-y-2">
               {plan.preconditions.map((pre, i) => (
                 <div key={i} className="flex items-center gap-2">
                   {pre.checked
-                    ? <CheckCircle className="w-4 h-4 text-green-400 flex-shrink-0" />
-                    : <div className="w-4 h-4 rounded-full border border-[#1e2d42] flex-shrink-0" />
+                    ? <CheckCircle className="w-4 h-4 text-green-400 shrink-0" />
+                    : <div className="w-4 h-4 rounded-full border border-falcon-border shrink-0" />
                   }
-                  <span className={`text-sm ${pre.checked ? 'text-[#7d92b0]' : 'text-white'}`}>{pre.label}</span>
+                  <span className={`text-sm ${pre.checked ? 'text-falcon-muted' : 'text-white'}`}>{pre.label}</span>
                 </div>
               ))}
             </div>
@@ -204,36 +204,36 @@ function PlanDetail({ plan, onClose }: { plan: EmulationPlan; onClose: () => voi
 
           {/* Emulation Phases */}
           <div>
-            <p className="text-[#7d92b0] text-xs uppercase tracking-wider mb-2">エミュレーションフェーズ ({plan.phases.length}フェーズ / {plan.technique_count}テクニック)</p>
+            <p className="text-falcon-muted text-xs uppercase tracking-wider mb-2">エミュレーションフェーズ ({plan.phases.length}フェーズ / {plan.technique_count}テクニック)</p>
             <div className="space-y-2">
               {plan.phases.map(phase => (
-                <div key={phase.id} className="border border-[#1e2d42] rounded-lg overflow-hidden">
+                <div key={phase.id} className="border border-falcon-border rounded-lg overflow-hidden">
                   <button onClick={() => setExpandedPhase(expandedPhase === phase.id ? null : phase.id)}
                     className="w-full flex items-center justify-between px-4 py-3 bg-[#070d19] hover:bg-[#070d19]/50 transition-colors">
                     <div className="flex items-center gap-2">
-                      {expandedPhase === phase.id ? <ChevronDown className="w-4 h-4 text-[#7d92b0]" /> : <ChevronRight className="w-4 h-4 text-[#7d92b0]" />}
+                      {expandedPhase === phase.id ? <ChevronDown className="w-4 h-4 text-falcon-muted" /> : <ChevronRight className="w-4 h-4 text-falcon-muted" />}
                       <span className="text-white font-medium">Phase {phase.order}: {phase.name}</span>
                     </div>
-                    <span className="text-[#7d92b0] text-xs">{phase.techniques.length} テクニック</span>
+                    <span className="text-falcon-muted text-xs">{phase.techniques.length} テクニック</span>
                   </button>
                   {expandedPhase === phase.id && (
                     <div className="px-4 py-3 space-y-3">
-                      <p className="text-[#7d92b0] text-sm">{phase.description}</p>
+                      <p className="text-falcon-muted text-sm">{phase.description}</p>
                       {phase.techniques.map(tech => (
-                        <div key={tech.id} className="bg-[#070d19] border border-[#1e2d42] rounded p-3">
+                        <div key={tech.id} className="bg-[#070d19] border border-falcon-border rounded-sm p-3">
                           <div className="flex items-center gap-2 mb-1">
-                            <span className="px-1.5 py-0.5 bg-[#e8002d]/10 border border-[#e8002d]/20 rounded text-xs text-[#e8002d] font-mono">{tech.mitre_id}</span>
+                            <span className="px-1.5 py-0.5 bg-falcon-red/10 border border-falcon-red/20 rounded-sm text-xs text-falcon-red font-mono">{tech.mitre_id}</span>
                             <span className="text-white font-medium text-sm">{tech.name}</span>
                           </div>
-                          <p className="text-[#7d92b0] text-xs mb-2">{tech.description}</p>
+                          <p className="text-falcon-muted text-xs mb-2">{tech.description}</p>
                           <div className="mb-2">
-                            <span className="text-[#3d5068] text-xs">検知機会: </span>
+                            <span className="text-falcon-subtle text-xs">検知機会: </span>
                             <span className="text-green-400 text-xs">{tech.detection_opportunity}</span>
                           </div>
                           <div>
-                            <p className="text-[#3d5068] text-xs mb-1">手順 (シミュレーションのみ):</p>
+                            <p className="text-falcon-subtle text-xs mb-1">手順 (シミュレーションのみ):</p>
                             {tech.procedure_steps.map((step, si) => (
-                              <p key={si} className="text-[#7d92b0] font-mono text-xs leading-relaxed ml-2">{si + 1}. {step}</p>
+                              <p key={si} className="text-falcon-muted font-mono text-xs leading-relaxed ml-2">{si + 1}. {step}</p>
                             ))}
                           </div>
                         </div>
@@ -258,14 +258,14 @@ function ExecutionDetail({ result, onClose }: { result: ExecutionResult; onClose
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg w-full max-w-3xl max-h-[92vh] overflow-y-auto">
-        <div className="flex items-center justify-between p-4 border-b border-[#1e2d42]">
+      <div className="bg-falcon-surface border border-falcon-border rounded-lg w-full max-w-3xl max-h-[92vh] overflow-y-auto">
+        <div className="flex items-center justify-between p-4 border-b border-falcon-border">
           <div className="flex items-center gap-2">
-            <BarChart3 className="w-5 h-5 text-[#e8002d]" />
+            <BarChart3 className="w-5 h-5 text-falcon-red" />
             <h2 className="text-white font-semibold">実行結果詳細</h2>
-            <span className="text-[#7d92b0] text-sm">{result.plan_name}</span>
+            <span className="text-falcon-muted text-sm">{result.plan_name}</span>
           </div>
-          <button onClick={onClose} className="text-[#7d92b0] hover:text-white"><X className="w-5 h-5" /></button>
+          <button onClick={onClose} className="text-falcon-muted hover:text-white"><X className="w-5 h-5" /></button>
         </div>
         <div className="p-4 space-y-4">
           {/* Summary */}
@@ -274,10 +274,10 @@ function ExecutionDetail({ result, onClose }: { result: ExecutionResult; onClose
               { label: '検知率', value: `${result.detection_rate.toFixed(1)}%`, color: result.detection_rate >= 80 ? 'text-green-400' : result.detection_rate >= 60 ? 'text-yellow-400' : 'text-red-400' },
               { label: '検知数', value: result.detections_count, color: 'text-green-400' },
               { label: '見逃し', value: result.missed_detections_count, color: 'text-red-400' },
-              { label: '所要時間', value: `${result.duration_minutes}分`, color: 'text-[#7d92b0]' },
+              { label: '所要時間', value: `${result.duration_minutes}分`, color: 'text-falcon-muted' },
             ].map(({ label, value, color }) => (
-              <div key={label} className="bg-[#070d19] rounded p-3 text-center">
-                <p className="text-[#7d92b0] text-xs mb-1">{label}</p>
+              <div key={label} className="bg-[#070d19] rounded-sm p-3 text-center">
+                <p className="text-falcon-muted text-xs mb-1">{label}</p>
                 <p className={`text-xl font-bold ${color}`}>{value}</p>
               </div>
             ))}
@@ -285,19 +285,19 @@ function ExecutionDetail({ result, onClose }: { result: ExecutionResult; onClose
 
           {/* Detection heatmap-style: tactic columns */}
           <div>
-            <p className="text-[#7d92b0] text-xs uppercase tracking-wider mb-2">検知カバレッジ (MITRE ATT&CK タクティクス × 検知状況)</p>
+            <p className="text-falcon-muted text-xs uppercase tracking-wider mb-2">検知カバレッジ (MITRE ATT&CK タクティクス × 検知状況)</p>
             <div className="overflow-x-auto">
               <div className="flex gap-2 min-w-max">
                 {result.phase_results.map(phase => (
                   <div key={phase.phase_name} className="min-w-[120px]">
-                    <p className="text-[#7d92b0] text-[10px] text-center mb-1 truncate">{phase.phase_name}</p>
+                    <p className="text-falcon-muted text-[10px] text-center mb-1 truncate">{phase.phase_name}</p>
                     <div className="space-y-1">
                       {phase.techniques.map(tech => {
                         const rc = RESULT_CONFIG[tech.result]
                         const RIcon = rc.icon
                         return (
-                          <div key={tech.mitre_id} className={`${rc.bg} rounded p-1.5 flex items-center gap-1`}>
-                            <RIcon className={`w-3 h-3 flex-shrink-0 ${rc.color}`} />
+                          <div key={tech.mitre_id} className={`${rc.bg} rounded-sm p-1.5 flex items-center gap-1`}>
+                            <RIcon className={`w-3 h-3 shrink-0 ${rc.color}`} />
                             <span className="text-[10px] text-white font-mono truncate">{tech.mitre_id}</span>
                           </div>
                         )
@@ -313,7 +313,7 @@ function ExecutionDetail({ result, onClose }: { result: ExecutionResult; onClose
                 return (
                   <div key={key} className="flex items-center gap-1">
                     <VIcon className={`w-3 h-3 ${val.color}`} />
-                    <span className="text-[#7d92b0] text-xs">{val.label}</span>
+                    <span className="text-falcon-muted text-xs">{val.label}</span>
                   </div>
                 )
               })}
@@ -322,7 +322,7 @@ function ExecutionDetail({ result, onClose }: { result: ExecutionResult; onClose
 
           {/* Phase-by-phase results */}
           <div>
-            <p className="text-[#7d92b0] text-xs uppercase tracking-wider mb-2">フェーズ別結果</p>
+            <p className="text-falcon-muted text-xs uppercase tracking-wider mb-2">フェーズ別結果</p>
             <div className="space-y-3">
               {result.phase_results.map(phase => (
                 <div key={phase.phase_name} className="bg-[#070d19] rounded-lg p-3">
@@ -332,13 +332,13 @@ function ExecutionDetail({ result, onClose }: { result: ExecutionResult; onClose
                     const TIcon = rc.icon
                     return (
                       <div key={tech.mitre_id} className="flex items-start gap-3 mb-2 last:mb-0">
-                        <div className={`flex items-center gap-1.5 flex-shrink-0 px-2 py-1 rounded ${rc.bg}`}>
+                        <div className={`flex items-center gap-1.5 shrink-0 px-2 py-1 rounded-sm ${rc.bg}`}>
                           <TIcon className={`w-3.5 h-3.5 ${rc.color}`} />
                           <span className={`text-xs font-medium ${rc.color}`}>{rc.label}</span>
                         </div>
                         <div>
                           <p className="text-white text-xs font-mono">{tech.mitre_id} — {tech.technique_name}</p>
-                          <p className="text-[#7d92b0] text-xs">{tech.notes}</p>
+                          <p className="text-falcon-muted text-xs">{tech.notes}</p>
                         </div>
                       </div>
                     )
@@ -351,16 +351,16 @@ function ExecutionDetail({ result, onClose }: { result: ExecutionResult; onClose
           {/* Gap Analysis */}
           {result.gap_analysis.length > 0 && (
             <div>
-              <p className="text-[#7d92b0] text-xs uppercase tracking-wider mb-2">ギャップ分析と推奨事項</p>
+              <p className="text-falcon-muted text-xs uppercase tracking-wider mb-2">ギャップ分析と推奨事項</p>
               <div className="space-y-3">
                 {result.gap_analysis.map((gap, i) => (
                   <div key={i} className="bg-red-900/10 border border-red-500/20 rounded-lg p-3">
                     <div className="flex items-center gap-2 mb-1">
                       <XCircle className="w-4 h-4 text-red-400" />
                       <span className="text-white font-medium text-sm">{gap.technique_name}</span>
-                      <span className="text-[#7d92b0] font-mono text-xs">{gap.mitre_id}</span>
+                      <span className="text-falcon-muted font-mono text-xs">{gap.mitre_id}</span>
                     </div>
-                    <p className="text-[#7d92b0] text-sm">{gap.recommendation}</p>
+                    <p className="text-falcon-muted text-sm">{gap.recommendation}</p>
                   </div>
                 ))}
               </div>
@@ -369,9 +369,9 @@ function ExecutionDetail({ result, onClose }: { result: ExecutionResult; onClose
 
           {/* Notes */}
           {result.notes && (
-            <div className="bg-[#070d19] rounded p-3">
-              <p className="text-[#7d92b0] text-xs uppercase tracking-wider mb-1">総括</p>
-              <p className="text-[#7d92b0] text-sm">{result.notes}</p>
+            <div className="bg-[#070d19] rounded-sm p-3">
+              <p className="text-falcon-muted text-xs uppercase tracking-wider mb-1">総括</p>
+              <p className="text-falcon-muted text-sm">{result.notes}</p>
             </div>
           )}
         </div>
@@ -394,54 +394,54 @@ function NewExecutionModal({ plans, onClose, onSave }: { plans: EmulationPlan[];
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg w-full max-w-md">
-        <div className="flex items-center justify-between p-4 border-b border-[#1e2d42]">
+      <div className="bg-falcon-surface border border-falcon-border rounded-lg w-full max-w-md">
+        <div className="flex items-center justify-between p-4 border-b border-falcon-border">
           <h2 className="text-white font-semibold">新規実行結果を記録</h2>
-          <button onClick={onClose} className="text-[#7d92b0] hover:text-white"><X className="w-5 h-5" /></button>
+          <button onClick={onClose} className="text-falcon-muted hover:text-white"><X className="w-5 h-5" /></button>
         </div>
         <div className="p-4 space-y-3">
           <div>
-            <label className="text-[#7d92b0] text-xs block mb-1">計画</label>
-            <select className="w-full bg-[#070d19] border border-[#1e2d42] rounded px-3 py-2 text-white text-sm focus:outline-none"
+            <label className="text-falcon-muted text-xs block mb-1">計画</label>
+            <select className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-white text-sm focus:outline-hidden"
               value={planId} onChange={e => setPlanId(e.target.value)}>
               {plans.map(p => <option key={p.id} value={p.id}>{p.plan_name}</option>)}
             </select>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-[#7d92b0] text-xs block mb-1">所要時間 (分)</label>
-              <input type="number" className="w-full bg-[#070d19] border border-[#1e2d42] rounded px-3 py-2 text-white text-sm focus:outline-none"
+              <label className="text-falcon-muted text-xs block mb-1">所要時間 (分)</label>
+              <input type="number" className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-white text-sm focus:outline-hidden"
                 value={duration} onChange={e => setDuration(Number(e.target.value))} />
             </div>
             <div>
-              <label className="text-[#7d92b0] text-xs block mb-1">検知率: {rate}%</label>
-              <div className="w-full bg-[#1e2d42] rounded-full h-2 mt-3">
+              <label className="text-falcon-muted text-xs block mb-1">検知率: {rate}%</label>
+              <div className="w-full bg-falcon-border rounded-full h-2 mt-3">
                 <div className={`h-2 rounded-full ${rate >= 80 ? 'bg-green-500' : rate >= 60 ? 'bg-yellow-500' : 'bg-red-500'}`} style={{ width: `${rate}%` }} />
               </div>
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-[#7d92b0] text-xs block mb-1">検知数</label>
-              <input type="number" className="w-full bg-[#070d19] border border-[#1e2d42] rounded px-3 py-2 text-white text-sm focus:outline-none"
+              <label className="text-falcon-muted text-xs block mb-1">検知数</label>
+              <input type="number" className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-white text-sm focus:outline-hidden"
                 value={detected} onChange={e => setDetected(Number(e.target.value))} />
             </div>
             <div>
-              <label className="text-[#7d92b0] text-xs block mb-1">見逃し数</label>
-              <input type="number" className="w-full bg-[#070d19] border border-[#1e2d42] rounded px-3 py-2 text-white text-sm focus:outline-none"
+              <label className="text-falcon-muted text-xs block mb-1">見逃し数</label>
+              <input type="number" className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-white text-sm focus:outline-hidden"
                 value={missed} onChange={e => setMissed(Number(e.target.value))} />
             </div>
           </div>
           <div>
-            <label className="text-[#7d92b0] text-xs block mb-1">メモ</label>
-            <textarea rows={3} className="w-full bg-[#070d19] border border-[#1e2d42] rounded px-3 py-2 text-white text-sm focus:outline-none resize-none"
+            <label className="text-falcon-muted text-xs block mb-1">メモ</label>
+            <textarea rows={3} className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-white text-sm focus:outline-hidden resize-none"
               value={notes} onChange={e => setNotes(e.target.value)} placeholder="実行結果の概要を入力..." />
           </div>
         </div>
-        <div className="flex justify-end gap-2 p-4 border-t border-[#1e2d42]">
-          <button onClick={onClose} className="px-4 py-2 border border-[#1e2d42] rounded text-[#7d92b0] hover:text-white text-sm">キャンセル</button>
+        <div className="flex justify-end gap-2 p-4 border-t border-falcon-border">
+          <button onClick={onClose} className="px-4 py-2 border border-falcon-border rounded-sm text-falcon-muted hover:text-white text-sm">キャンセル</button>
           <button onClick={() => onSave({ plan_id: planId, duration_minutes: duration, detections_count: detected, missed_detections_count: missed, detection_rate: rate, notes, phases_completed: 0, phases_total: 0, phase_results: [], gap_analysis: [] })}
-            className="px-4 py-2 bg-[#e8002d] rounded text-white text-sm hover:bg-[#e8002d]/80">記録する</button>
+            className="px-4 py-2 bg-falcon-red rounded-sm text-white text-sm hover:bg-falcon-red/80">記録する</button>
         </div>
       </div>
     </div>
@@ -464,19 +464,19 @@ function NewPlanModal({ onClose, onSave, saving }: { onClose: () => void; onSave
 
   const csv = (s: string) => s.split(',').map(x => x.trim()).filter(Boolean)
   const canSave = planName.trim().length > 0 && !saving
-  const inputCls = 'w-full bg-[#070d19] border border-[#1e2d42] rounded px-3 py-2 text-white text-sm focus:outline-none'
-  const labelCls = 'text-[#7d92b0] text-xs block mb-1'
+  const inputCls = 'w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-white text-sm focus:outline-hidden'
+  const labelCls = 'text-falcon-muted text-xs block mb-1'
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg w-full max-w-lg max-h-[90vh] flex flex-col">
-        <div className="flex items-center justify-between p-4 border-b border-[#1e2d42]">
+      <div className="bg-falcon-surface border border-falcon-border rounded-lg w-full max-w-lg max-h-[90vh] flex flex-col">
+        <div className="flex items-center justify-between p-4 border-b border-falcon-border">
           <h2 className="text-white font-semibold">計画を作成</h2>
-          <button onClick={onClose} className="text-[#7d92b0] hover:text-white"><X className="w-5 h-5" /></button>
+          <button onClick={onClose} className="text-falcon-muted hover:text-white"><X className="w-5 h-5" /></button>
         </div>
         <div className="p-4 space-y-3 overflow-y-auto">
           <div>
-            <label className={labelCls}>計画名 <span className="text-[#e8002d]">*</span></label>
+            <label className={labelCls}>計画名 <span className="text-falcon-red">*</span></label>
             <input className={inputCls} value={planName} onChange={e => setPlanName(e.target.value)} placeholder="例: APT29 エミュレーション Q3" />
           </div>
           <div className="grid grid-cols-2 gap-3">
@@ -543,8 +543,8 @@ function NewPlanModal({ onClose, onSave, saving }: { onClose: () => void; onSave
             <textarea rows={2} className={`${inputCls} resize-none`} value={roe} onChange={e => setRoe(e.target.value)} placeholder="実施上の制約・禁止事項..." />
           </div>
         </div>
-        <div className="flex justify-end gap-2 p-4 border-t border-[#1e2d42]">
-          <button onClick={onClose} className="px-4 py-2 border border-[#1e2d42] rounded text-[#7d92b0] hover:text-white text-sm">キャンセル</button>
+        <div className="flex justify-end gap-2 p-4 border-t border-falcon-border">
+          <button onClick={onClose} className="px-4 py-2 border border-falcon-border rounded-sm text-falcon-muted hover:text-white text-sm">キャンセル</button>
           <button disabled={!canSave}
             onClick={() => onSave({
               plan_name: planName.trim(),
@@ -559,7 +559,7 @@ function NewPlanModal({ onClose, onSave, saving }: { onClose: () => void; onSave
               phases: [],
               preconditions: [],
             })}
-            className={`px-4 py-2 rounded text-white text-sm ${canSave ? 'bg-[#e8002d] hover:bg-[#e8002d]/80' : 'bg-[#e8002d]/40 cursor-not-allowed'}`}>
+            className={`px-4 py-2 rounded-sm text-white text-sm ${canSave ? 'bg-falcon-red hover:bg-falcon-red/80' : 'bg-falcon-red/40 cursor-not-allowed'}`}>
             {saving ? '作成中...' : '作成する'}
           </button>
         </div>
@@ -628,24 +628,24 @@ export default function AdversaryEmulationPage() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-[#e8002d]/10 border border-[#e8002d]/20 flex items-center justify-center">
-              <Target className="w-5 h-5 text-[#e8002d]" />
+            <div className="w-10 h-10 rounded-lg bg-falcon-red/10 border border-falcon-red/20 flex items-center justify-center">
+              <Target className="w-5 h-5 text-falcon-red" />
             </div>
             <div>
               <h1 className="text-2xl font-bold text-white">敵対的エミュレーション計画</h1>
-              <p className="text-[#7d92b0] text-sm">Adversary Emulation – MITRE ATT&CK ベースの検知能力評価</p>
+              <p className="text-falcon-muted text-sm">Adversary Emulation – MITRE ATT&CK ベースの検知能力評価</p>
             </div>
           </div>
           <div className="flex items-center gap-3">
             {tab === 'results' && (
               <button onClick={() => setShowNewExec(true)}
-                className="flex items-center gap-2 px-4 py-2 border border-[#1e2d42] rounded-lg text-[#7d92b0] hover:text-white hover:border-[#7d92b0]/50 text-sm transition-colors">
+                className="flex items-center gap-2 px-4 py-2 border border-falcon-border rounded-lg text-falcon-muted hover:text-white hover:border-falcon-muted/50 text-sm transition-colors">
                 <Play className="w-4 h-4" /> 新規実行記録
               </button>
             )}
             {tab === 'plans' && (
               <button onClick={() => setShowNewPlan(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-[#e8002d] rounded-lg text-white text-sm font-medium hover:bg-[#e8002d]/80 transition-colors">
+                className="flex items-center gap-2 px-4 py-2 bg-falcon-red rounded-lg text-white text-sm font-medium hover:bg-falcon-red/80 transition-colors">
                 <Plus className="w-4 h-4" /> 計画を作成
               </button>
             )}
@@ -655,10 +655,10 @@ export default function AdversaryEmulationPage() {
         {/* Info Card */}
         <div className="bg-blue-900/10 border border-blue-500/20 rounded-lg p-4">
           <div className="flex items-start gap-3">
-            <Info className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
+            <Info className="w-5 h-5 text-blue-400 shrink-0 mt-0.5" />
             <div>
               <p className="text-white font-medium text-sm">敵対的エミュレーションとは</p>
-              <p className="text-[#7d92b0] text-sm mt-1">
+              <p className="text-falcon-muted text-sm mt-1">
                 敵対的エミュレーションは、実際の脅威アクター (APT) の戦術・技術・手順 (TTPs) を安全に再現し、
                 組織の検知・対応能力を評価するプロセスです。
                 MITRE ATT&CK フレームワークに基づいてシミュレーションを構造化し、
@@ -679,11 +679,11 @@ export default function AdversaryEmulationPage() {
             { label: '計画数', value: plans.length, icon: FileText, color: 'text-blue-400' },
             { label: '実行済み', value: results.length, icon: Play, color: 'text-green-400' },
             { label: '平均検知率', value: `${avgDetectionRate}%`, icon: BarChart3, color: Number(avgDetectionRate) >= 75 ? 'text-green-400' : 'text-yellow-400' },
-            { label: '総テクニック数', value: plans.reduce((s, p) => s + p.technique_count, 0), icon: Target, color: 'text-[#e8002d]' },
+            { label: '総テクニック数', value: plans.reduce((s, p) => s + p.technique_count, 0), icon: Target, color: 'text-falcon-red' },
           ].map(({ label, value, icon: Icon, color }) => (
-            <div key={label} className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-4">
+            <div key={label} className="bg-falcon-surface border border-falcon-border rounded-lg p-4">
               <div className="flex items-center justify-between mb-2">
-                <p className="text-[#7d92b0] text-xs">{label}</p>
+                <p className="text-falcon-muted text-xs">{label}</p>
                 <Icon className={`w-4 h-4 ${color}`} />
               </div>
               <p className={`text-2xl font-bold ${color}`}>{value}</p>
@@ -692,24 +692,24 @@ export default function AdversaryEmulationPage() {
         </div>
 
         {/* Tabs */}
-        <div className="flex border-b border-[#1e2d42]">
+        <div className="flex border-b border-falcon-border">
           {([['plans', 'エミュレーション計画'], ['results', '実行結果']] as const).map(([key, label]) => (
             <button key={key} onClick={() => setTab(key)}
               className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-                tab === key ? 'border-[#e8002d] text-white' : 'border-transparent text-[#7d92b0] hover:text-white'
+                tab === key ? 'border-falcon-red text-white' : 'border-transparent text-falcon-muted hover:text-white'
               }`}>{label}</button>
           ))}
         </div>
 
         {/* Plans Tab */}
         {tab === 'plans' && (
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg overflow-hidden">
+          <div className="bg-falcon-surface border border-falcon-border rounded-lg overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead className="bg-[#070d19] border-b border-[#1e2d42]">
+                <thead className="bg-[#070d19] border-b border-falcon-border">
                   <tr>
                     {['計画名', 'ベース脅威アクター', 'スコープ', 'ステータス', '作成者', '最終実行', 'テクニック数', '操作'].map(h => (
-                      <th key={h} className="text-left px-4 py-3 text-[#7d92b0] text-xs font-medium">{h}</th>
+                      <th key={h} className="text-left px-4 py-3 text-falcon-muted text-xs font-medium">{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -717,30 +717,30 @@ export default function AdversaryEmulationPage() {
                   {plans.map(plan => {
                     const statusStyle = PLAN_STATUS_STYLES[plan.status]
                     return (
-                      <tr key={plan.id} className="border-t border-[#1e2d42] hover:bg-[#070d19]/50">
+                      <tr key={plan.id} className="border-t border-falcon-border hover:bg-[#070d19]/50">
                         <td className="px-4 py-3">
-                          <button onClick={() => setSelectedPlan(plan)} className="text-white font-medium hover:text-[#e8002d] transition-colors text-left">
+                          <button onClick={() => setSelectedPlan(plan)} className="text-white font-medium hover:text-falcon-red transition-colors text-left">
                             {plan.plan_name}
                           </button>
                         </td>
                         <td className="px-4 py-3">
-                          <span className="px-2 py-0.5 bg-[#e8002d]/10 border border-[#e8002d]/20 rounded text-xs text-[#e8002d] font-bold">{plan.threat_actor_based_on}</span>
+                          <span className="px-2 py-0.5 bg-falcon-red/10 border border-falcon-red/20 rounded-sm text-xs text-falcon-red font-bold">{plan.threat_actor_based_on}</span>
                         </td>
-                        <td className="px-4 py-3 text-[#7d92b0] text-xs max-w-[160px] truncate">{plan.scope}</td>
+                        <td className="px-4 py-3 text-falcon-muted text-xs max-w-[160px] truncate">{plan.scope}</td>
                         <td className="px-4 py-3">
-                          <span className={`px-2 py-0.5 rounded text-xs font-medium ${statusStyle.bg} ${statusStyle.text}`}>{statusStyle.label}</span>
+                          <span className={`px-2 py-0.5 rounded-sm text-xs font-medium ${statusStyle.bg} ${statusStyle.text}`}>{statusStyle.label}</span>
                         </td>
-                        <td className="px-4 py-3 text-[#7d92b0] text-xs">{displayUser(plan.created_by)}</td>
-                        <td className="px-4 py-3 text-[#7d92b0] text-xs">{fmt(plan.last_executed)}</td>
+                        <td className="px-4 py-3 text-falcon-muted text-xs">{displayUser(plan.created_by)}</td>
+                        <td className="px-4 py-3 text-falcon-muted text-xs">{fmt(plan.last_executed)}</td>
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-1">
-                            <Target className="w-3.5 h-3.5 text-[#e8002d]" />
+                            <Target className="w-3.5 h-3.5 text-falcon-red" />
                             <span className="text-white font-semibold">{plan.technique_count}</span>
                           </div>
                         </td>
                         <td className="px-4 py-3">
                           <button onClick={() => setSelectedPlan(plan)}
-                            className="flex items-center gap-1 px-2 py-1 border border-[#1e2d42] rounded text-[#7d92b0] hover:text-white hover:border-[#7d92b0]/50 text-xs transition-colors">
+                            className="flex items-center gap-1 px-2 py-1 border border-falcon-border rounded-sm text-falcon-muted hover:text-white hover:border-falcon-muted/50 text-xs transition-colors">
                             <Eye className="w-3 h-3" /> 詳細
                           </button>
                         </td>
@@ -755,29 +755,29 @@ export default function AdversaryEmulationPage() {
 
         {/* Results Tab */}
         {tab === 'results' && (
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg overflow-hidden">
+          <div className="bg-falcon-surface border border-falcon-border rounded-lg overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead className="bg-[#070d19] border-b border-[#1e2d42]">
+                <thead className="bg-[#070d19] border-b border-falcon-border">
                   <tr>
                     {['計画名', '実行日時', '実行者', '所要時間', 'フェーズ', '検知', '見逃し', '検知率', '詳細'].map(h => (
-                      <th key={h} className="text-left px-4 py-3 text-[#7d92b0] text-xs font-medium">{h}</th>
+                      <th key={h} className="text-left px-4 py-3 text-falcon-muted text-xs font-medium">{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {results.map(result => (
-                    <tr key={result.id} className="border-t border-[#1e2d42] hover:bg-[#070d19]/50">
+                    <tr key={result.id} className="border-t border-falcon-border hover:bg-[#070d19]/50">
                       <td className="px-4 py-3 text-white font-medium">{result.plan_name}</td>
-                      <td className="px-4 py-3 text-[#7d92b0] text-xs whitespace-nowrap">{fmt(result.executed_at)}</td>
-                      <td className="px-4 py-3 text-[#7d92b0] text-xs">{result.executed_by?.split('@')[0]}</td>
-                      <td className="px-4 py-3 text-[#7d92b0] text-xs">{result.duration_minutes}分</td>
-                      <td className="px-4 py-3 text-[#7d92b0] text-xs">{result.phases_completed}/{result.phases_total}</td>
+                      <td className="px-4 py-3 text-falcon-muted text-xs whitespace-nowrap">{fmt(result.executed_at)}</td>
+                      <td className="px-4 py-3 text-falcon-muted text-xs">{result.executed_by?.split('@')[0]}</td>
+                      <td className="px-4 py-3 text-falcon-muted text-xs">{result.duration_minutes}分</td>
+                      <td className="px-4 py-3 text-falcon-muted text-xs">{result.phases_completed}/{result.phases_total}</td>
                       <td className="px-4 py-3 text-green-400 font-semibold">{result.detections_count}</td>
                       <td className="px-4 py-3 text-red-400 font-semibold">{result.missed_detections_count}</td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
-                          <div className="w-16 bg-[#1e2d42] rounded-full h-2">
+                          <div className="w-16 bg-falcon-border rounded-full h-2">
                             <div className={`h-2 rounded-full ${result.detection_rate >= 80 ? 'bg-green-500' : result.detection_rate >= 60 ? 'bg-yellow-500' : 'bg-red-500'}`}
                               style={{ width: `${result.detection_rate}%` }} />
                           </div>
@@ -788,7 +788,7 @@ export default function AdversaryEmulationPage() {
                       </td>
                       <td className="px-4 py-3">
                         <button onClick={() => setSelectedResult(result)}
-                          className="flex items-center gap-1 px-2 py-1 border border-[#1e2d42] rounded text-[#7d92b0] hover:text-white hover:border-[#7d92b0]/50 text-xs transition-colors">
+                          className="flex items-center gap-1 px-2 py-1 border border-falcon-border rounded-sm text-falcon-muted hover:text-white hover:border-falcon-muted/50 text-xs transition-colors">
                           <Eye className="w-3 h-3" /> 詳細
                         </button>
                       </td>
@@ -809,10 +809,10 @@ export default function AdversaryEmulationPage() {
 
       {/* Toast */}
       {toast && (
-        <div className="fixed bottom-6 right-6 z-50 bg-[#0d1220] border border-green-500/50 rounded-lg p-4 shadow-xl flex items-center gap-3">
+        <div className="fixed bottom-6 right-6 z-50 bg-falcon-surface border border-green-500/50 rounded-lg p-4 shadow-xl flex items-center gap-3">
           <CheckCircle className="w-4 h-4 text-green-400" />
           <span className="text-white text-sm">{toast}</span>
-          <button onClick={() => setToast('')} className="text-[#7d92b0] hover:text-white"><X className="w-4 h-4" /></button>
+          <button onClick={() => setToast('')} className="text-falcon-muted hover:text-white"><X className="w-4 h-4" /></button>
         </div>
       )}
     </div>

@@ -134,7 +134,7 @@ function TopConnectionsTab({ connections }: { connections: TopConnection[] }) {
                 <td className="px-4 py-3">
                   <div className="flex flex-wrap gap-1">
                     {c.flags.map(f => (
-                      <span key={f} className={`text-xs px-1.5 py-0.5 rounded font-medium ${FLAG_STYLES[f] ?? 'bg-zinc-700 text-zinc-400'}`}>{f.replace('_', ' ')}</span>
+                      <span key={f} className={`text-xs px-1.5 py-0.5 rounded-sm font-medium ${FLAG_STYLES[f] ?? 'bg-zinc-700 text-zinc-400'}`}>{f.replace('_', ' ')}</span>
                     ))}
                   </div>
                 </td>
@@ -156,7 +156,7 @@ function TopConnectionsTab({ connections }: { connections: TopConnection[] }) {
                       <div><span className="text-zinc-500">フラグ</span>
                         <div className="flex flex-wrap gap-1 mt-1">
                           {c.flags.length > 0 ? c.flags.map(f => (
-                            <span key={f} className={`text-xs px-1.5 py-0.5 rounded ${FLAG_STYLES[f] ?? 'bg-zinc-700 text-zinc-400'}`}>{f.replace('_', ' ')}</span>
+                            <span key={f} className={`text-xs px-1.5 py-0.5 rounded-sm ${FLAG_STYLES[f] ?? 'bg-zinc-700 text-zinc-400'}`}>{f.replace('_', ' ')}</span>
                           )) : <span className="text-zinc-600">なし</span>}
                         </div>
                       </div>
@@ -187,8 +187,8 @@ function PortAnalysisTab({ ports }: { ports: PortStat[] }) {
             return (
               <div key={p.port} className="flex items-center gap-3">
                 <div className="w-12 text-right text-xs font-mono text-zinc-400 shrink-0">{p.port}</div>
-                <div className="flex-1 h-5 bg-zinc-800 rounded overflow-hidden">
-                  <div className={`h-full rounded ${barColor} transition-all`} style={{ width: `${pct}%` }} />
+                <div className="flex-1 h-5 bg-zinc-800 rounded-sm overflow-hidden">
+                  <div className={`h-full rounded-sm ${barColor} transition-all`} style={{ width: `${pct}%` }} />
                 </div>
                 <div className="w-16 text-right text-xs font-mono text-zinc-400 shrink-0">{fmtNum(p.connection_count)}</div>
               </div>
@@ -220,7 +220,7 @@ function PortAnalysisTab({ ports }: { ports: PortStat[] }) {
                 <td className="px-4 py-3 text-xs text-zinc-300 font-medium">{(p.connection_count ?? 0).toLocaleString()}</td>
                 <td className="px-4 py-3 text-xs text-zinc-400">{p.unique_hosts}</td>
                 <td className="px-4 py-3">
-                  <span className={`text-xs px-2 py-0.5 rounded font-medium ${RISK_STYLES[p.risk_level]}`}>{p.risk_level}</span>
+                  <span className={`text-xs px-2 py-0.5 rounded-sm font-medium ${RISK_STYLES[p.risk_level]}`}>{p.risk_level}</span>
                 </td>
                 <td className="px-4 py-3">
                   {p.is_common

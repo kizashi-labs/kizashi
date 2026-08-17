@@ -136,7 +136,7 @@ const assetTypeGroups: { label: string; type: AssetType }[] = [
 
 function Badge({ className, children }: { className: string; children: React.ReactNode }) {
   return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border ${className}`}>
+    <span className={`inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium border ${className}`}>
       {children}
     </span>
   )
@@ -169,7 +169,7 @@ function DependencyGraph({
 }) {
   if (!centerAsset) {
     return (
-      <div className="flex items-center justify-center h-full text-[#3d5068]">
+      <div className="flex items-center justify-center h-full text-falcon-subtle">
         <div className="text-center">
           <GitFork className="w-12 h-12 mx-auto mb-3 opacity-30" />
           <p className="text-sm">左のリストからアセットを選択してください</p>
@@ -191,12 +191,12 @@ function DependencyGraph({
         onClick={() => !isCenter && onSelectAsset(asset)}
         className={`flex flex-col items-center gap-1.5 px-3 py-2 rounded-lg border transition-all ${
           isCenter
-            ? 'bg-[#e8002d]/10 border-[#e8002d]/50 cursor-default min-w-[120px]'
+            ? 'bg-falcon-red/10 border-falcon-red/50 cursor-default min-w-[120px]'
             : `${meta.bgColor} hover:opacity-80 cursor-pointer min-w-[100px]`
         }`}
       >
-        <TypeIcon className={`w-5 h-5 ${isCenter ? 'text-[#e8002d]' : meta.color}`} />
-        <span className={`text-xs font-medium text-center leading-tight ${isCenter ? 'text-white' : 'text-[#e2e8f4]'}`}>{asset.name}</span>
+        <TypeIcon className={`w-5 h-5 ${isCenter ? 'text-falcon-red' : meta.color}`} />
+        <span className={`text-xs font-medium text-center leading-tight ${isCenter ? 'text-white' : 'text-falcon-text'}`}>{asset.name}</span>
         {!isCenter && <span className={`text-[10px] ${meta.color}`}>{meta.label}</span>}
       </button>
     )
@@ -207,7 +207,7 @@ function DependencyGraph({
       {/* Upstream column */}
       {upstreamAssets.length > 0 && (
         <div className="flex flex-col gap-3 items-end">
-          <p className="text-[10px] text-[#3d5068] uppercase tracking-wide mb-1">上流 (依存元)</p>
+          <p className="text-[10px] text-falcon-subtle uppercase tracking-wide mb-1">上流 (依存元)</p>
           {upstreamAssets.map(a => <AssetNode key={a.id} asset={a} />)}
         </div>
       )}
@@ -215,8 +215,8 @@ function DependencyGraph({
       {/* Arrows from upstream to center */}
       {upstreamAssets.length > 0 && (
         <div className="flex flex-col items-center justify-center">
-          <div className="flex items-center gap-1 text-[#3d5068]">
-            <div className="w-8 h-px bg-[#1e2d42]" />
+          <div className="flex items-center gap-1 text-falcon-subtle">
+            <div className="w-8 h-px bg-falcon-border" />
             <ChevronRight className="w-3 h-3" />
           </div>
         </div>
@@ -233,8 +233,8 @@ function DependencyGraph({
       {/* Arrows from center to downstream */}
       {downstreamAssets.length > 0 && (
         <div className="flex flex-col items-center justify-center">
-          <div className="flex items-center gap-1 text-[#3d5068]">
-            <div className="w-8 h-px bg-[#1e2d42]" />
+          <div className="flex items-center gap-1 text-falcon-subtle">
+            <div className="w-8 h-px bg-falcon-border" />
             <ChevronRight className="w-3 h-3" />
           </div>
         </div>
@@ -243,7 +243,7 @@ function DependencyGraph({
       {/* Downstream column */}
       {downstreamAssets.length > 0 && (
         <div className="flex flex-col gap-3 items-start">
-          <p className="text-[10px] text-[#3d5068] uppercase tracking-wide mb-1">下流 (依存先)</p>
+          <p className="text-[10px] text-falcon-subtle uppercase tracking-wide mb-1">下流 (依存先)</p>
           {downstreamAssets.map(a => <AssetNode key={a.id} asset={a} />)}
         </div>
       )}
@@ -349,27 +349,27 @@ export default function DependenciesPage() {
   })() : []
 
   return (
-    <div className="min-h-screen bg-[#070d19] text-[#7d92b0] p-6">
+    <div className="min-h-screen bg-[#070d19] text-falcon-muted p-6">
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
 
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-[#e8002d]/10 border border-[#e8002d]/30 flex items-center justify-center">
-            <GitFork className="w-5 h-5 text-[#e8002d]" />
+          <div className="w-10 h-10 rounded-lg bg-falcon-red/10 border border-falcon-red/30 flex items-center justify-center">
+            <GitFork className="w-5 h-5 text-falcon-red" />
           </div>
           <div>
             <h1 className="text-xl font-bold text-white">資産依存関係マッピング</h1>
-            <p className="text-xs text-[#7d92b0] mt-0.5">{assets.length} アセット · {deps.length} 依存関係</p>
+            <p className="text-xs text-falcon-muted mt-0.5">{assets.length} アセット · {deps.length} 依存関係</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <select value={zoomLevel} onChange={e => setZoomLevel(e.target.value as ZoomLevel)} className="bg-[#0d1220] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-[#7d92b0] outline-none">
+          <select value={zoomLevel} onChange={e => setZoomLevel(e.target.value as ZoomLevel)} className="bg-falcon-surface border border-falcon-border rounded-lg px-3 py-2 text-sm text-falcon-muted outline-hidden">
             <option value="service">サービス単位</option>
             <option value="application">アプリケーション単位</option>
             <option value="datacenter">データセンター単位</option>
           </select>
-          <button onClick={() => showToast('画像エクスポートを開始しました')} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#0d1220] border border-[#1e2d42] hover:border-[#7d92b0]/40 text-sm transition-colors">
+          <button onClick={() => showToast('画像エクスポートを開始しました')} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-falcon-surface border border-falcon-border hover:border-falcon-muted/40 text-sm transition-colors">
             <Download className="w-3.5 h-3.5" />
             エクスポート
           </button>
@@ -378,24 +378,24 @@ export default function DependenciesPage() {
 
       <div className="flex gap-4">
         {/* Left sidebar: asset list */}
-        <div className="w-56 flex-shrink-0 space-y-3">
+        <div className="w-56 shrink-0 space-y-3">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#3d5068]" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-falcon-subtle" />
             <input
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               placeholder="アセットを検索..."
-              className="w-full bg-[#0d1220] border border-[#1e2d42] rounded-lg pl-8 pr-3 py-2 text-sm text-white outline-none"
+              className="w-full bg-falcon-surface border border-falcon-border rounded-lg pl-8 pr-3 py-2 text-sm text-white outline-hidden"
             />
           </div>
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-3 max-h-[500px] overflow-y-auto space-y-3">
+          <div className="bg-falcon-surface border border-falcon-border rounded-xl p-3 max-h-[500px] overflow-y-auto space-y-3">
             {assetTypeGroups.map(group => {
               const groupAssets = filteredAssets.filter(a => a.type === group.type)
               if (groupAssets.length === 0) return null
               const TypeIcon = assetTypeIcon[group.type]
               return (
                 <div key={group.type}>
-                  <p className="text-[10px] text-[#3d5068] uppercase tracking-wide mb-1 flex items-center gap-1">
+                  <p className="text-[10px] text-falcon-subtle uppercase tracking-wide mb-1 flex items-center gap-1">
                     <TypeIcon className="w-3 h-3" />
                     {group.label}
                   </p>
@@ -406,10 +406,10 @@ export default function DependenciesPage() {
                         key={asset.id}
                         onClick={() => { setSelectedAsset(asset); setImpactResult(null) }}
                         className={`w-full flex items-center gap-2 px-2 py-1.5 rounded text-left transition-colors ${
-                          selectedAsset?.id === asset.id ? 'bg-[#1e2d42] text-white' : 'text-[#7d92b0] hover:bg-[#1e2d42]/50'
+                          selectedAsset?.id === asset.id ? 'bg-falcon-border text-white' : 'text-falcon-muted hover:bg-falcon-border/50'
                         }`}
                       >
-                        <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${
+                        <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${
                           asset.health === 'healthy' ? 'bg-green-400' :
                           asset.health === 'degraded' ? 'bg-yellow-400' :
                           asset.health === 'critical' ? 'bg-red-400' : 'bg-gray-400'
@@ -427,7 +427,7 @@ export default function DependenciesPage() {
         {/* Main: graph + details */}
         <div className="flex-1 flex flex-col gap-4">
           {/* Graph */}
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl" style={{ minHeight: 320 }}>
+          <div className="bg-falcon-surface border border-falcon-border rounded-xl" style={{ minHeight: 320 }}>
             <DependencyGraph
               centerAsset={selectedAsset}
               assets={assets}
@@ -440,79 +440,79 @@ export default function DependenciesPage() {
           {selectedAsset && (
             <div className="grid grid-cols-2 gap-4">
               {/* Asset details */}
-              <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
+              <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
                 <h3 className="text-white font-semibold mb-3">{selectedAsset.name}</h3>
                 <div className="space-y-2 mb-4">
                   <div className="flex justify-between text-sm">
-                    <span className="text-[#7d92b0]">タイプ</span>
+                    <span className="text-falcon-muted">タイプ</span>
                     <span className="text-white capitalize">{selectedAsset.type}</span>
                   </div>
                   <div className="flex justify-between text-sm items-center">
-                    <span className="text-[#7d92b0]">ヘルス</span>
+                    <span className="text-falcon-muted">ヘルス</span>
                     <Badge className={healthMeta[selectedAsset.health].bgColor + ' ' + healthMeta[selectedAsset.health].color}>
                       {healthMeta[selectedAsset.health].label}
                     </Badge>
                   </div>
                   <div className="flex justify-between text-sm items-center">
-                    <span className="text-[#7d92b0]">重要度</span>
+                    <span className="text-falcon-muted">重要度</span>
                     <Badge className={criticalityColor[selectedAsset.criticality]}>{selectedAsset.criticality}</Badge>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-[#7d92b0]">オーナー</span>
+                    <span className="text-falcon-muted">オーナー</span>
                     <span className="text-white">{selectedAsset.owner}</span>
                   </div>
                 </div>
                 <div className="mb-4">
-                  <p className="text-xs text-[#7d92b0] mb-1">上流依存 ({upstreamDeps.length})</p>
+                  <p className="text-xs text-falcon-muted mb-1">上流依存 ({upstreamDeps.length})</p>
                   <div className="flex flex-wrap gap-1">
                     {upstreamDeps.map(d => {
                       const a = assets.find(a => a.id === d.from_asset_id)
                       return a ? <Badge key={d.id} className="bg-blue-500/20 text-blue-400 border-blue-500/30">{a.name}</Badge> : null
                     })}
-                    {upstreamDeps.length === 0 && <span className="text-xs text-[#3d5068]">なし</span>}
+                    {upstreamDeps.length === 0 && <span className="text-xs text-falcon-subtle">なし</span>}
                   </div>
                 </div>
                 <div className="mb-4">
-                  <p className="text-xs text-[#7d92b0] mb-1">下流依存 ({downstreamDeps.length})</p>
+                  <p className="text-xs text-falcon-muted mb-1">下流依存 ({downstreamDeps.length})</p>
                   <div className="flex flex-wrap gap-1">
                     {downstreamDeps.map(d => {
                       const a = assets.find(a => a.id === d.to_asset_id)
                       return a ? <Badge key={d.id} className="bg-orange-500/20 text-orange-400 border-orange-500/30">{a.name}</Badge> : null
                     })}
-                    {downstreamDeps.length === 0 && <span className="text-xs text-[#3d5068]">なし</span>}
+                    {downstreamDeps.length === 0 && <span className="text-xs text-falcon-subtle">なし</span>}
                   </div>
                 </div>
                 {criticalPath.length > 1 && (
                   <div>
-                    <p className="text-xs text-[#7d92b0] mb-2">クリティカルパス</p>
+                    <p className="text-xs text-falcon-muted mb-2">クリティカルパス</p>
                     <div className="flex items-center flex-wrap gap-1">
                       {criticalPath.map((name, i) => (
                         <span key={i} className="flex items-center gap-1">
-                          <span className="text-xs text-white bg-[#1e2d42] px-2 py-0.5 rounded">{name}</span>
-                          {i < criticalPath.length - 1 && <ChevronRight className="w-3 h-3 text-[#3d5068]" />}
+                          <span className="text-xs text-white bg-falcon-border px-2 py-0.5 rounded-sm">{name}</span>
+                          {i < criticalPath.length - 1 && <ChevronRight className="w-3 h-3 text-falcon-subtle" />}
                         </span>
                       ))}
                     </div>
                   </div>
                 )}
-                <button onClick={handleImpactAnalysis} className="mt-4 w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-[#e8002d]/10 border border-[#e8002d]/30 text-[#e8002d] text-sm hover:bg-[#e8002d]/20 transition-colors">
+                <button onClick={handleImpactAnalysis} className="mt-4 w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-falcon-red/10 border border-falcon-red/30 text-falcon-red text-sm hover:bg-falcon-red/20 transition-colors">
                   <AlertCircle className="w-4 h-4" />
                   影響分析
                 </button>
               </div>
 
               {/* Impact analysis */}
-              <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
+              <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
                 <h3 className="text-white font-semibold mb-3">影響分析結果</h3>
                 {impactResult === null ? (
-                  <p className="text-sm text-[#3d5068]">「影響分析」ボタンをクリックして分析を実行してください</p>
+                  <p className="text-sm text-falcon-subtle">「影響分析」ボタンをクリックして分析を実行してください</p>
                 ) : impactResult.length === 0 ? (
                   <p className="text-sm text-green-400 flex items-center gap-2"><CheckCircle className="w-4 h-4" />影響を受けるアセットなし</p>
                 ) : (
                   <div className="space-y-2">
-                    <p className="text-sm text-[#7d92b0] mb-3">{selectedAsset.name} が障害になった場合、{impactResult.length}件のアセットが影響を受けます</p>
+                    <p className="text-sm text-falcon-muted mb-3">{selectedAsset.name} が障害になった場合、{impactResult.length}件のアセットが影響を受けます</p>
                     {impactResult.map(a => (
-                      <div key={a.id} className="flex items-center justify-between px-3 py-2 bg-[#1e2d42]/30 border border-[#1e2d42] rounded-lg">
+                      <div key={a.id} className="flex items-center justify-between px-3 py-2 bg-falcon-border/30 border border-falcon-border rounded-lg">
                         <div className="flex items-center gap-2">
                           <span className={`w-2 h-2 rounded-full ${
                             a.health === 'healthy' ? 'bg-green-400' :
@@ -531,10 +531,10 @@ export default function DependenciesPage() {
           )}
 
           {/* Dependency rules table */}
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
+          <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-white font-semibold">依存関係ルール</h3>
-              <button onClick={() => setShowAddDep(true)} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#e8002d] text-white text-sm hover:bg-[#c8001e] transition-colors">
+              <button onClick={() => setShowAddDep(true)} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-falcon-red text-white text-sm hover:bg-[#c8001e] transition-colors">
                 <Plus className="w-3.5 h-3.5" />
                 追加
               </button>
@@ -542,9 +542,9 @@ export default function DependenciesPage() {
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-[#1e2d42]">
+                  <tr className="border-b border-falcon-border">
                     {['元アセット', '関係タイプ', '先アセット', '重要度', '操作'].map(h => (
-                      <th key={h} className="text-left px-3 py-2 text-xs font-semibold text-[#7d92b0] uppercase">{h}</th>
+                      <th key={h} className="text-left px-3 py-2 text-xs font-semibold text-falcon-muted uppercase">{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -557,13 +557,13 @@ export default function DependenciesPage() {
                     const toA = assets.find(a => a.id === dep.to_asset_id)
                     if (!fromA || !toA) return null
                     return (
-                      <tr key={dep.id} className="border-b border-[#1e2d42]/50 hover:bg-[#1e2d42]/20">
+                      <tr key={dep.id} className="border-b border-falcon-border/50 hover:bg-falcon-border/20">
                         <td className="px-3 py-2 text-white">{fromA.name}</td>
                         <td className="px-3 py-2"><Badge className={relTypeMeta[dep.relationship_type].color}>{relTypeMeta[dep.relationship_type].label}</Badge></td>
                         <td className="px-3 py-2 text-white">{toA.name}</td>
                         <td className="px-3 py-2"><Badge className={criticalityColor[dep.criticality]}>{dep.criticality}</Badge></td>
                         <td className="px-3 py-2">
-                          <button onClick={() => handleDeleteDep(dep.id)} className="p-1 rounded hover:bg-red-900/30 text-[#3d5068] hover:text-red-400 transition-colors">
+                          <button onClick={() => handleDeleteDep(dep.id)} className="p-1 rounded-sm hover:bg-red-900/30 text-falcon-subtle hover:text-red-400 transition-colors">
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
                         </td>
@@ -573,7 +573,7 @@ export default function DependenciesPage() {
                 </tbody>
               </table>
               {!selectedAsset && deps.length > 10 && (
-                <p className="text-xs text-[#3d5068] text-center mt-2">アセットを選択すると関連する依存関係のみ表示されます</p>
+                <p className="text-xs text-falcon-subtle text-center mt-2">アセットを選択すると関連する依存関係のみ表示されます</p>
               )}
             </div>
           </div>
@@ -583,42 +583,42 @@ export default function DependenciesPage() {
       {/* Add Dependency Modal */}
       {showAddDep && (
         <div className="fixed inset-0 bg-black/60 z-40 flex items-center justify-center p-4">
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl w-full max-w-md p-6">
+          <div className="bg-falcon-surface border border-falcon-border rounded-xl w-full max-w-md p-6">
             <div className="flex items-center justify-between mb-5">
               <h2 className="text-lg font-bold text-white">依存関係を追加</h2>
               <button onClick={() => setShowAddDep(false)}><X className="w-5 h-5" /></button>
             </div>
             <div className="space-y-4">
               <div>
-                <label className="block text-xs text-[#7d92b0] mb-1">元アセット (From)</label>
-                <select value={newDep.from_asset_id} onChange={e => setNewDep(p => ({ ...p, from_asset_id: e.target.value }))} className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-white outline-none">
+                <label className="block text-xs text-falcon-muted mb-1">元アセット (From)</label>
+                <select value={newDep.from_asset_id} onChange={e => setNewDep(p => ({ ...p, from_asset_id: e.target.value }))} className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-sm text-white outline-hidden">
                   <option value="">選択してください</option>
                   {assets.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
                 </select>
               </div>
               <div>
-                <label className="block text-xs text-[#7d92b0] mb-1">関係タイプ</label>
-                <select value={newDep.relationship_type} onChange={e => setNewDep(p => ({ ...p, relationship_type: e.target.value as RelationshipType }))} className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-white outline-none">
+                <label className="block text-xs text-falcon-muted mb-1">関係タイプ</label>
+                <select value={newDep.relationship_type} onChange={e => setNewDep(p => ({ ...p, relationship_type: e.target.value as RelationshipType }))} className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-sm text-white outline-hidden">
                   {Object.entries(relTypeMeta).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
                 </select>
               </div>
               <div>
-                <label className="block text-xs text-[#7d92b0] mb-1">先アセット (To)</label>
-                <select value={newDep.to_asset_id} onChange={e => setNewDep(p => ({ ...p, to_asset_id: e.target.value }))} className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-white outline-none">
+                <label className="block text-xs text-falcon-muted mb-1">先アセット (To)</label>
+                <select value={newDep.to_asset_id} onChange={e => setNewDep(p => ({ ...p, to_asset_id: e.target.value }))} className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-sm text-white outline-hidden">
                   <option value="">選択してください</option>
                   {assets.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
                 </select>
               </div>
               <div>
-                <label className="block text-xs text-[#7d92b0] mb-1">重要度</label>
-                <select value={newDep.criticality} onChange={e => setNewDep(p => ({ ...p, criticality: e.target.value as Criticality }))} className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-white outline-none">
+                <label className="block text-xs text-falcon-muted mb-1">重要度</label>
+                <select value={newDep.criticality} onChange={e => setNewDep(p => ({ ...p, criticality: e.target.value as Criticality }))} className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-sm text-white outline-hidden">
                   {Object.entries(criticalityColor).map(([k]) => <option key={k} value={k}>{k}</option>)}
                 </select>
               </div>
             </div>
             <div className="flex justify-end gap-3 mt-6">
-              <button onClick={() => setShowAddDep(false)} className="px-4 py-2 rounded-lg border border-[#1e2d42] text-[#7d92b0] text-sm hover:text-white transition-colors">キャンセル</button>
-              <button onClick={handleAddDep} className="px-4 py-2 rounded-lg bg-[#e8002d] text-white text-sm hover:bg-[#c8001e] transition-colors">追加</button>
+              <button onClick={() => setShowAddDep(false)} className="px-4 py-2 rounded-lg border border-falcon-border text-falcon-muted text-sm hover:text-white transition-colors">キャンセル</button>
+              <button onClick={handleAddDep} className="px-4 py-2 rounded-lg bg-falcon-red text-white text-sm hover:bg-[#c8001e] transition-colors">追加</button>
             </div>
           </div>
         </div>

@@ -121,9 +121,9 @@ function StatCard({ label, value, icon: Icon, color = '#7d92b0' }: {
 
   return (
 
-    <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-4 flex items-center gap-4">
+    <div className="bg-falcon-surface border border-falcon-border rounded-lg p-4 flex items-center gap-4">
 
-      <div className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
+      <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0"
 
            style={{ backgroundColor: `${color}20` }}>
 
@@ -133,7 +133,7 @@ function StatCard({ label, value, icon: Icon, color = '#7d92b0' }: {
 
       <div>
 
-        <p className="text-[#7d92b0] text-xs">{label}</p>
+        <p className="text-falcon-muted text-xs">{label}</p>
 
         <p className="text-white text-xl font-bold">{value}</p>
 
@@ -161,11 +161,11 @@ function Toggle({ value, onChange }: { value: boolean; onChange: (v: boolean) =>
 
       onClick={() => onChange(!value)}
 
-      className={`w-10 h-5 rounded-full transition-colors relative flex-shrink-0 ${value ? 'bg-[#e8002d]' : 'bg-[#1e2d42]'}`}
+      className={`w-10 h-5 rounded-full transition-colors relative shrink-0 ${value ? 'bg-falcon-red' : 'bg-falcon-border'}`}
 
     >
 
-      <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-[#e2e8f4] transition-all ${value ? 'left-5' : 'left-0.5'}`} />
+      <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-falcon-text transition-all ${value ? 'left-5' : 'left-0.5'}`} />
 
     </button>
 
@@ -191,21 +191,21 @@ function CreateModal({ onClose, onSave }: { onClose: () => void; onSave: (d: Cre
 
   return (
 
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
 
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl w-full max-w-md">
+      <div className="bg-falcon-surface border border-falcon-border rounded-xl w-full max-w-md">
 
-        <div className="flex items-center justify-between p-6 border-b border-[#1e2d42]">
+        <div className="flex items-center justify-between p-6 border-b border-falcon-border">
 
           <h3 className="text-white font-bold text-lg flex items-center gap-2">
 
-            <Lock className="w-5 h-5 text-[#e8002d]" />
+            <Lock className="w-5 h-5 text-falcon-red" />
 
             Quarantine Agent
 
           </h3>
 
-          <button onClick={onClose} className="text-[#7d92b0] hover:text-white transition-colors">
+          <button onClick={onClose} className="text-falcon-muted hover:text-white transition-colors">
 
             <X className="w-5 h-5" />
 
@@ -219,7 +219,7 @@ function CreateModal({ onClose, onSave }: { onClose: () => void; onSave: (d: Cre
 
           <div>
 
-            <label className="block text-[#7d92b0] text-xs mb-1.5">Agent ID <span className="text-[#e8002d]">*</span></label>
+            <label className="block text-falcon-muted text-xs mb-1.5">Agent ID <span className="text-falcon-red">*</span></label>
 
             <input
 
@@ -231,9 +231,9 @@ function CreateModal({ onClose, onSave }: { onClose: () => void; onSave: (d: Cre
 
               placeholder="e.g. agt-001"
 
-              className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm
+              className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm
 
-                         placeholder:text-[#3d5068] focus:outline-none focus:border-[#e8002d]/50"
+                         placeholder:text-falcon-subtle focus:outline-hidden focus:border-falcon-red/50"
 
             />
 
@@ -243,7 +243,7 @@ function CreateModal({ onClose, onSave }: { onClose: () => void; onSave: (d: Cre
 
           <div>
 
-            <label className="block text-[#7d92b0] text-xs mb-1.5">Reason <span className="text-[#e8002d]">*</span></label>
+            <label className="block text-falcon-muted text-xs mb-1.5">Reason <span className="text-falcon-red">*</span></label>
 
             <textarea
 
@@ -255,9 +255,9 @@ function CreateModal({ onClose, onSave }: { onClose: () => void; onSave: (d: Cre
 
               placeholder="Describe the reason for quarantine..."
 
-              className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm
+              className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm
 
-                         placeholder:text-[#3d5068] focus:outline-none focus:border-[#e8002d]/50 resize-none"
+                         placeholder:text-falcon-subtle focus:outline-hidden focus:border-falcon-red/50 resize-none"
 
             />
 
@@ -271,9 +271,9 @@ function CreateModal({ onClose, onSave }: { onClose: () => void; onSave: (d: Cre
 
               <div className="flex items-center gap-2">
 
-                <WifiOff className="w-4 h-4 text-[#7d92b0]" />
+                <WifiOff className="w-4 h-4 text-falcon-muted" />
 
-                <span className="text-sm text-[#7d92b0]">Network Isolated</span>
+                <span className="text-sm text-falcon-muted">Network Isolated</span>
 
               </div>
 
@@ -287,9 +287,9 @@ function CreateModal({ onClose, onSave }: { onClose: () => void; onSave: (d: Cre
 
               <div className="flex items-center gap-2">
 
-                <AlertTriangle className="w-4 h-4 text-[#7d92b0]" />
+                <AlertTriangle className="w-4 h-4 text-falcon-muted" />
 
-                <span className="text-sm text-[#7d92b0]">Kill Processes</span>
+                <span className="text-sm text-falcon-muted">Kill Processes</span>
 
               </div>
 
@@ -303,11 +303,11 @@ function CreateModal({ onClose, onSave }: { onClose: () => void; onSave: (d: Cre
 
 
 
-        <div className="flex gap-3 p-6 border-t border-[#1e2d42]">
+        <div className="flex gap-3 p-6 border-t border-falcon-border">
 
           <button onClick={onClose}
 
-            className="flex-1 px-4 py-2 border border-[#1e2d42] text-[#7d92b0] rounded-lg text-sm hover:bg-[#19253d] transition-colors">
+            className="flex-1 px-4 py-2 border border-falcon-border text-falcon-muted rounded-lg text-sm hover:bg-falcon-hover transition-colors">
 
             Cancel
 
@@ -319,7 +319,7 @@ function CreateModal({ onClose, onSave }: { onClose: () => void; onSave: (d: Cre
 
             disabled={!form.agent_id.trim() || !form.reason.trim()}
 
-            className="flex-1 px-4 py-2 bg-[#e8002d] hover:bg-[#c0001f] disabled:opacity-50 disabled:cursor-not-allowed
+            className="flex-1 px-4 py-2 bg-falcon-red hover:bg-[#c0001f] disabled:opacity-50 disabled:cursor-not-allowed
 
                        text-white rounded-lg text-sm font-medium transition-colors">
 
@@ -433,13 +433,13 @@ export default function QuarantinePage() {
 
           <h1 className="text-2xl font-bold text-white flex items-center gap-3">
 
-            <ShieldOff className="w-7 h-7 text-[#e8002d]" />
+            <ShieldOff className="w-7 h-7 text-falcon-red" />
 
             Endpoint Quarantine
 
           </h1>
 
-          <p className="text-[#7d92b0] text-sm mt-1">Isolate and manage compromised endpoints</p>
+          <p className="text-falcon-muted text-sm mt-1">Isolate and manage compromised endpoints</p>
 
         </div>
 
@@ -447,7 +447,7 @@ export default function QuarantinePage() {
 
           onClick={() => setShowCreate(true)}
 
-          className="flex items-center gap-2 px-4 py-2 bg-[#e8002d] hover:bg-[#c0001f] text-white rounded-lg text-sm font-medium transition-colors"
+          className="flex items-center gap-2 px-4 py-2 bg-falcon-red hover:bg-[#c0001f] text-white rounded-lg text-sm font-medium transition-colors"
 
         >
 
@@ -477,13 +477,13 @@ export default function QuarantinePage() {
 
       {/* Table */}
 
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
+      <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
 
         {isLoading ? (
 
           <div className="flex items-center justify-center py-16">
 
-            <RefreshCw className="w-6 h-6 text-[#7d92b0] animate-spin" />
+            <RefreshCw className="w-6 h-6 text-falcon-muted animate-spin" />
 
           </div>
 
@@ -493,11 +493,11 @@ export default function QuarantinePage() {
 
             <thead>
 
-              <tr className="border-b border-[#1e2d42]">
+              <tr className="border-b border-falcon-border">
 
                 {['Agent / Hostname', 'Status', 'Reason', 'Network Isolated', 'Started At', 'Actions'].map(h => (
 
-                  <th key={h} className="px-4 py-3 text-left text-xs text-[#7d92b0] font-medium">{h}</th>
+                  <th key={h} className="px-4 py-3 text-left text-xs text-falcon-muted font-medium">{h}</th>
 
                 ))}
 
@@ -511,7 +511,7 @@ export default function QuarantinePage() {
 
                 <tr>
 
-                  <td colSpan={6} className="px-4 py-12 text-center text-[#7d92b0] text-sm">
+                  <td colSpan={6} className="px-4 py-12 text-center text-falcon-muted text-sm">
 
                     No quarantine entries found
 
@@ -521,13 +521,13 @@ export default function QuarantinePage() {
 
               ) : quarantines.map(q => (
 
-                <tr key={q.id} className="border-b border-[#1e2d42]/50 hover:bg-[#19253d]/30 transition-colors">
+                <tr key={q.id} className="border-b border-falcon-border/50 hover:bg-falcon-hover/30 transition-colors">
 
                   <td className="px-4 py-3">
 
                     <p className="text-white text-sm font-medium">{q.hostname}</p>
 
-                    <p className="text-[#7d92b0] text-xs font-mono">{q.agent_id}</p>
+                    <p className="text-falcon-muted text-xs font-mono">{q.agent_id}</p>
 
                   </td>
 
@@ -541,7 +541,7 @@ export default function QuarantinePage() {
 
                   </td>
 
-                  <td className="px-4 py-3 text-[#7d92b0] text-sm max-w-[200px] truncate" title={q.reason}>
+                  <td className="px-4 py-3 text-falcon-muted text-sm max-w-[200px] truncate" title={q.reason}>
 
                     {q.reason}
 
@@ -559,7 +559,7 @@ export default function QuarantinePage() {
 
                     ) : (
 
-                      <span className="flex items-center gap-1.5 text-[#7d92b0] text-xs">
+                      <span className="flex items-center gap-1.5 text-falcon-muted text-xs">
 
                         <Wifi className="w-3.5 h-3.5" /> No
 
@@ -569,7 +569,7 @@ export default function QuarantinePage() {
 
                   </td>
 
-                  <td className="px-4 py-3 text-[#7d92b0] text-sm">{fmtDateTime(q.started_at)}</td>
+                  <td className="px-4 py-3 text-falcon-muted text-sm">{fmtDateTime(q.started_at)}</td>
 
                   <td className="px-4 py-3">
 

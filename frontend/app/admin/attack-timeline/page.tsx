@@ -87,14 +87,14 @@ function EventCard({ event }: { event: TimelineEvent }) {
         <div className="flex items-start justify-between gap-2 flex-wrap">
           <div className="flex items-center gap-2 flex-wrap">
             <Icon className={`w-4 h-4 shrink-0 ${cfg.text}`} />
-            <span className={`text-xs font-medium px-2 py-0.5 rounded border ${cfg.bg} ${cfg.text} ${cfg.border}`}>
+            <span className={`text-xs font-medium px-2 py-0.5 rounded-sm border ${cfg.bg} ${cfg.text} ${cfg.border}`}>
               {event.category}
             </span>
-            <span className={`text-xs font-medium px-2 py-0.5 rounded border ${SEVERITY_COLORS[event.severity]}`}>
+            <span className={`text-xs font-medium px-2 py-0.5 rounded-sm border ${SEVERITY_COLORS[event.severity]}`}>
               {event.severity.toUpperCase()}
             </span>
             {event.mitre_technique && (
-              <span className="text-xs px-2 py-0.5 rounded bg-zinc-800 text-zinc-400 border border-zinc-700 font-mono">
+              <span className="text-xs px-2 py-0.5 rounded-sm bg-zinc-800 text-zinc-400 border border-zinc-700 font-mono">
                 {event.mitre_technique}
               </span>
             )}
@@ -226,7 +226,7 @@ export default function AttackTimelinePage() {
                 value={agentId}
                 onChange={e => setAgentId(e.target.value)}
                 placeholder="e.g. a001"
-                className="px-3 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-blue-500 w-40"
+                className="px-3 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-sm text-zinc-100 placeholder-zinc-500 focus:outline-hidden focus:border-blue-500 w-40"
               />
             </div>
             <div>
@@ -234,7 +234,7 @@ export default function AttackTimelinePage() {
               <select
                 value={hours}
                 onChange={e => setHours(Number(e.target.value))}
-                className="px-3 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-sm text-zinc-100 focus:outline-none focus:border-blue-500"
+                className="px-3 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-sm text-zinc-100 focus:outline-hidden focus:border-blue-500"
               >
                 {[1, 6, 24, 72].map(h => <option key={h} value={h}>{h}h</option>)}
               </select>
@@ -249,7 +249,7 @@ export default function AttackTimelinePage() {
               value={incidentId}
               onChange={e => setIncidentId(e.target.value)}
               placeholder="e.g. INC-001"
-              className="px-3 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-blue-500 w-40"
+              className="px-3 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-sm text-zinc-100 placeholder-zinc-500 focus:outline-hidden focus:border-blue-500 w-40"
             />
           </div>
         )}
@@ -261,7 +261,7 @@ export default function AttackTimelinePage() {
               value={alertId}
               onChange={e => setAlertId(e.target.value)}
               placeholder="e.g. alert-001"
-              className="px-3 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-blue-500 w-40"
+              className="px-3 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-sm text-zinc-100 placeholder-zinc-500 focus:outline-hidden focus:border-blue-500 w-40"
             />
           </div>
         )}
@@ -313,13 +313,13 @@ export default function AttackTimelinePage() {
                 placeholder="Search events..."
                 value={searchText}
                 onChange={e => setSearchText(e.target.value)}
-                className="pl-9 pr-3 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-blue-500"
+                className="pl-9 pr-3 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-sm text-zinc-100 placeholder-zinc-500 focus:outline-hidden focus:border-blue-500"
               />
             </div>
             <select
               value={filterCategory}
               onChange={e => setFilterCategory(e.target.value)}
-              className="px-3 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-sm text-zinc-100 focus:outline-none focus:border-blue-500"
+              className="px-3 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-sm text-zinc-100 focus:outline-hidden focus:border-blue-500"
             >
               <option value="">All Categories</option>
               {categories.map(c => <option key={c} value={c}>{c}</option>)}
@@ -327,7 +327,7 @@ export default function AttackTimelinePage() {
             <select
               value={filterSeverity}
               onChange={e => setFilterSeverity(e.target.value)}
-              className="px-3 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-sm text-zinc-100 focus:outline-none focus:border-blue-500"
+              className="px-3 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-sm text-zinc-100 focus:outline-hidden focus:border-blue-500"
             >
               <option value="">All Severities</option>
               {['critical', 'high', 'medium', 'low', 'info'].map(s => <option key={s} value={s}>{s}</option>)}

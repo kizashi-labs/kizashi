@@ -145,7 +145,7 @@ function InputBase({ className = '', ...props }: React.InputHTMLAttributes<HTMLI
     <input
       {...props}
       className={`w-full bg-gray-900 border border-gray-700 text-white text-sm rounded-lg px-3 py-2
-                  focus:outline-none focus:border-blue-500 placeholder-gray-600 ${className}`}
+                  focus:outline-hidden focus:border-blue-500 placeholder-gray-600 ${className}`}
     />
   )
 }
@@ -155,7 +155,7 @@ function SelectBase({ className = '', children, ...props }: React.SelectHTMLAttr
     <select
       {...props}
       className={`w-full bg-gray-900 border border-gray-700 text-white text-sm rounded-lg px-3 py-2
-                  focus:outline-none focus:border-blue-500 ${className}`}
+                  focus:outline-hidden focus:border-blue-500 ${className}`}
     >
       {children}
     </select>
@@ -317,9 +317,9 @@ function ReportPreviewModal({ report, onClose }: { report: GeneratedReport; onCl
   const generatedAt = report.completed_at ?? report.requested_at
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl">
-        <div className="flex items-start justify-between gap-4 p-5 border-b border-[#1e2d42]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-xs p-4">
+      <div className="bg-falcon-surface border border-falcon-border rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl">
+        <div className="flex items-start justify-between gap-4 p-5 border-b border-falcon-border">
           <div className="flex items-start gap-3 min-w-0">
             <div className={`p-2 rounded-lg shrink-0 ${
               report.type === 'alerts' ? 'bg-orange-900/30' :
@@ -344,7 +344,7 @@ function ReportPreviewModal({ report, onClose }: { report: GeneratedReport; onCl
         </div>
 
         <div className="overflow-y-auto flex-1 p-5 space-y-4">
-          <div className="bg-[#070d19] border border-[#1e2d42] rounded-xl p-4 space-y-2 text-sm text-gray-300">
+          <div className="bg-[#070d19] border border-falcon-border rounded-xl p-4 space-y-2 text-sm text-gray-300">
             <div className="flex items-center gap-2">
               <Calendar className="w-4 h-4 text-gray-500" />
               <span>生成日時: {formatDateTime(generatedAt)}</span>
@@ -363,7 +363,7 @@ function ReportPreviewModal({ report, onClose }: { report: GeneratedReport; onCl
           <div className="text-center text-xs text-gray-600 py-2">完全なレポートはダウンロードしてご確認ください</div>
         </div>
 
-        <div className="flex gap-2 p-4 border-t border-[#1e2d42]">
+        <div className="flex gap-2 p-4 border-t border-falcon-border">
           {report.download_url && (
             <button
               onClick={() => downloadViaAnchor(report.download_url!, `report_${report.id}.pdf`)}
@@ -488,7 +488,7 @@ function ScheduleForm({ onSubmit, onCancel, isPending }: ScheduleFormProps) {
           aria-label="有効化"
         >
           <span
-            className={`inline-block h-4 w-4 transform rounded-full bg-[#e2e8f4] shadow transition-transform ${
+            className={`inline-block h-4 w-4 transform rounded-full bg-falcon-text shadow transition-transform ${
               enabled ? 'translate-x-4' : 'translate-x-0.5'
             }`}
           />

@@ -54,7 +54,7 @@ const CATEGORY_CONFIG: Record<Category, { label: string; className: string; icon
 const CategoryBadge = ({ category }: { category: Category }) => {
   const cfg = CATEGORY_CONFIG[category] ?? CATEGORY_CONFIG['malware']
   return (
-    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium border ${cfg.className}`}>
+    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-[11px] font-medium border ${cfg.className}`}>
       {cfg.icon}
       {cfg.label}
     </span>
@@ -85,7 +85,7 @@ const SeverityBadge = ({ severity }: { severity: number }) => {
   else if (severity >= 75) { label = '高'; cls = 'bg-orange-500/15 text-orange-400 border-orange-500/30' }
   else if (severity >= 50) { label = '中'; cls = 'bg-yellow-500/15 text-yellow-400 border-yellow-500/30' }
   return (
-    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium border ${cls}`}>
+    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-[11px] font-medium border ${cls}`}>
       <AlertTriangle className="w-3 h-3" />
       {label} ({severity})
     </span>
@@ -278,32 +278,32 @@ export default function YaraRulesPage() {
 
   const RuleModal = () => (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl w-full max-w-2xl max-h-[90vh] flex flex-col">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[#1e2d42]">
-          <h3 className="text-[#e2e8f4] font-semibold text-lg">
+      <div className="bg-falcon-surface border border-falcon-border rounded-xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-falcon-border">
+          <h3 className="text-falcon-text font-semibold text-lg">
             {editRule ? 'YARAルール編集' : '新規YARAルール追加'}
           </h3>
-          <button onClick={() => { setShowAddModal(false); setEditRule(null) }} className="text-[#7d92b0] hover:text-[#e2e8f4] transition-colors">
+          <button onClick={() => { setShowAddModal(false); setEditRule(null) }} className="text-falcon-muted hover:text-falcon-text transition-colors">
             <X className="w-5 h-5" />
           </button>
         </div>
         <div className="flex-1 overflow-y-auto p-6 space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-medium text-[#7d92b0] mb-1.5">ルール名 *</label>
+              <label className="block text-xs font-medium text-falcon-muted mb-1.5">ルール名 *</label>
               <input
                 value={form.name ?? ''}
                 onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-                className="w-full px-3 py-2 bg-[#070d19] border border-[#1e2d42] rounded text-sm text-[#e2e8f4] placeholder-[#3d5068] focus:outline-none focus:border-[#7d92b0]/50"
+                className="w-full px-3 py-2 bg-[#070d19] border border-falcon-border rounded-sm text-sm text-falcon-text placeholder-falcon-subtle focus:outline-hidden focus:border-falcon-muted/50"
                 placeholder="MyCustomRule"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-[#7d92b0] mb-1.5">カテゴリ</label>
+              <label className="block text-xs font-medium text-falcon-muted mb-1.5">カテゴリ</label>
               <select
                 value={form.category ?? 'malware'}
                 onChange={e => setForm(f => ({ ...f, category: e.target.value as Category }))}
-                className="w-full px-3 py-2 bg-[#070d19] border border-[#1e2d42] rounded text-sm text-[#e2e8f4] focus:outline-none focus:border-[#7d92b0]/50"
+                className="w-full px-3 py-2 bg-[#070d19] border border-falcon-border rounded-sm text-sm text-falcon-text focus:outline-hidden focus:border-falcon-muted/50"
               >
                 {CATEGORIES.map(c => (
                   <option key={c} value={c}>{CATEGORY_CONFIG[c].label}</option>
@@ -313,18 +313,18 @@ export default function YaraRulesPage() {
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-[#7d92b0] mb-1.5">説明</label>
+            <label className="block text-xs font-medium text-falcon-muted mb-1.5">説明</label>
             <input
               value={form.description ?? ''}
               onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-              className="w-full px-3 py-2 bg-[#070d19] border border-[#1e2d42] rounded text-sm text-[#e2e8f4] placeholder-[#3d5068] focus:outline-none focus:border-[#7d92b0]/50"
+              className="w-full px-3 py-2 bg-[#070d19] border border-falcon-border rounded-sm text-sm text-falcon-text placeholder-falcon-subtle focus:outline-hidden focus:border-falcon-muted/50"
               placeholder="ルールの説明..."
             />
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-[#7d92b0] mb-2">
-              深刻度: <span className="text-[#e2e8f4] font-semibold">{form.severity ?? 70}</span>
+            <label className="block text-xs font-medium text-falcon-muted mb-2">
+              深刻度: <span className="text-falcon-text font-semibold">{form.severity ?? 70}</span>
             </label>
             <input
               type="range"
@@ -332,51 +332,51 @@ export default function YaraRulesPage() {
               max={100}
               value={form.severity ?? 70}
               onChange={e => setForm(f => ({ ...f, severity: Number(e.target.value) }))}
-              className="w-full accent-[#e8002d]"
+              className="w-full accent-falcon-red"
             />
-            <div className="flex justify-between text-[10px] text-[#3d5068] mt-1">
+            <div className="flex justify-between text-[10px] text-falcon-subtle mt-1">
               <span>低 (0)</span><span>中 (50)</span><span>高 (75)</span><span>クリティカル (90+)</span>
             </div>
           </div>
 
           <div className="flex items-center gap-2">
-            <label className="text-xs font-medium text-[#7d92b0]">有効化</label>
+            <label className="text-xs font-medium text-falcon-muted">有効化</label>
             <button
               onClick={() => setForm(f => ({ ...f, enabled: !f.enabled }))}
-              className={`transition-colors ${form.enabled ? 'text-green-400' : 'text-[#3d5068]'}`}
+              className={`transition-colors ${form.enabled ? 'text-green-400' : 'text-falcon-subtle'}`}
             >
               {form.enabled ? <ToggleRight className="w-6 h-6" /> : <ToggleLeft className="w-6 h-6" />}
             </button>
-            <span className="text-xs text-[#7d92b0]">{form.enabled ? '有効' : '無効'}</span>
+            <span className="text-xs text-falcon-muted">{form.enabled ? '有効' : '無効'}</span>
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-[#7d92b0] mb-1.5">
+            <label className="block text-xs font-medium text-falcon-muted mb-1.5">
               YARAルールコンテンツ
-              <span className="ml-2 text-[#3d5068] font-normal">
-                — ヒント: <code className="font-mono bg-[#1e2d42] px-1 rounded">{'rule ExampleRule { strings: $a = "example" condition: $a }'}</code>
+              <span className="ml-2 text-falcon-subtle font-normal">
+                — ヒント: <code className="font-mono bg-falcon-border px-1 rounded-sm">{'rule ExampleRule { strings: $a = "example" condition: $a }'}</code>
               </span>
             </label>
             <textarea
               value={form.rule_content ?? ''}
               onChange={e => setForm(f => ({ ...f, rule_content: e.target.value }))}
               rows={12}
-              className="w-full px-3 py-2 bg-[#070d19] border border-[#1e2d42] rounded text-sm text-[#e2e8f4] font-mono focus:outline-none focus:border-[#7d92b0]/50 resize-none"
+              className="w-full px-3 py-2 bg-[#070d19] border border-falcon-border rounded-sm text-sm text-falcon-text font-mono focus:outline-hidden focus:border-falcon-muted/50 resize-none"
               spellCheck={false}
             />
           </div>
         </div>
-        <div className="px-6 py-4 border-t border-[#1e2d42] flex items-center justify-end gap-3">
+        <div className="px-6 py-4 border-t border-falcon-border flex items-center justify-end gap-3">
           <button
             onClick={() => { setShowAddModal(false); setEditRule(null) }}
-            className="px-4 py-2 rounded text-sm text-[#7d92b0] hover:text-[#e2e8f4] transition-colors"
+            className="px-4 py-2 rounded-sm text-sm text-falcon-muted hover:text-falcon-text transition-colors"
           >
             キャンセル
           </button>
           <button
             onClick={handleFormSubmit}
             disabled={!form.name}
-            className="px-4 py-2 rounded text-sm bg-[#e8002d] text-white font-medium hover:bg-[#c0001f] disabled:opacity-50 transition-colors"
+            className="px-4 py-2 rounded-sm text-sm bg-falcon-red text-white font-medium hover:bg-[#c0001f] disabled:opacity-50 transition-colors"
           >
             {editRule ? '保存' : '追加'}
           </button>
@@ -389,22 +389,22 @@ export default function YaraRulesPage() {
 
   const TestModal = () => (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl w-full max-w-xl">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[#1e2d42]">
-          <h3 className="text-[#e2e8f4] font-semibold">ルールテスト: {testRule?.name}</h3>
-          <button onClick={() => setTestRule(null)} className="text-[#7d92b0] hover:text-[#e2e8f4]">
+      <div className="bg-falcon-surface border border-falcon-border rounded-xl w-full max-w-xl">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-falcon-border">
+          <h3 className="text-falcon-text font-semibold">ルールテスト: {testRule?.name}</h3>
+          <button onClick={() => setTestRule(null)} className="text-falcon-muted hover:text-falcon-text">
             <X className="w-5 h-5" />
           </button>
         </div>
         <div className="p-6 space-y-4">
           <div>
-            <label className="block text-xs font-medium text-[#7d92b0] mb-1.5">テスト対象コンテンツ</label>
+            <label className="block text-xs font-medium text-falcon-muted mb-1.5">テスト対象コンテンツ</label>
             <textarea
               value={testContent}
               onChange={e => setTestContent(e.target.value)}
               rows={6}
               placeholder="スキャンするファイルの内容またはバイナリデータのテキスト表現を入力してください..."
-              className="w-full px-3 py-2 bg-[#070d19] border border-[#1e2d42] rounded text-sm text-[#e2e8f4] font-mono placeholder-[#3d5068] focus:outline-none focus:border-[#7d92b0]/50 resize-none"
+              className="w-full px-3 py-2 bg-[#070d19] border border-falcon-border rounded-sm text-sm text-falcon-text font-mono placeholder-falcon-subtle focus:outline-hidden focus:border-falcon-muted/50 resize-none"
             />
           </div>
 
@@ -421,10 +421,10 @@ export default function YaraRulesPage() {
               </div>
               {testResult.matched && testResult.matched_strings.length > 0 && (
                 <div>
-                  <p className="text-xs text-[#7d92b0] mb-1">マッチした文字列:</p>
+                  <p className="text-xs text-falcon-muted mb-1">マッチした文字列:</p>
                   <div className="space-y-1">
                     {testResult.matched_strings.map((s, i) => (
-                      <code key={i} className="block text-xs text-red-300 font-mono bg-[#070d19] px-2 py-1 rounded">
+                      <code key={i} className="block text-xs text-red-300 font-mono bg-[#070d19] px-2 py-1 rounded-sm">
                         {s}
                       </code>
                     ))}
@@ -435,13 +435,13 @@ export default function YaraRulesPage() {
           )}
 
           <div className="flex items-center justify-end gap-3">
-            <button onClick={() => setTestRule(null)} className="px-4 py-2 rounded text-sm text-[#7d92b0] hover:text-[#e2e8f4] transition-colors">
+            <button onClick={() => setTestRule(null)} className="px-4 py-2 rounded-sm text-sm text-falcon-muted hover:text-falcon-text transition-colors">
               閉じる
             </button>
             <button
               onClick={() => testRule && testMutation.mutate({ id: testRule.id, content: testContent })}
               disabled={!testContent || testMutation.isPending}
-              className="flex items-center gap-2 px-4 py-2 rounded text-sm bg-blue-600 text-white font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors"
+              className="flex items-center gap-2 px-4 py-2 rounded-sm text-sm bg-blue-600 text-white font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors"
             >
               {testMutation.isPending ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
               テスト実行
@@ -456,27 +456,27 @@ export default function YaraRulesPage() {
 
   const DeleteModal = () => (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl w-full max-w-sm">
+      <div className="bg-falcon-surface border border-falcon-border rounded-xl w-full max-w-sm">
         <div className="p-6">
           <div className="flex items-center gap-3 mb-4">
             <div className="w-10 h-10 rounded-full bg-red-500/15 flex items-center justify-center">
               <Trash2 className="w-5 h-5 text-red-400" />
             </div>
             <div>
-              <h3 className="text-[#e2e8f4] font-semibold">ルールを削除</h3>
-              <p className="text-[#7d92b0] text-sm">{deleteConfirm?.name}</p>
+              <h3 className="text-falcon-text font-semibold">ルールを削除</h3>
+              <p className="text-falcon-muted text-sm">{deleteConfirm?.name}</p>
             </div>
           </div>
-          <p className="text-[#7d92b0] text-sm mb-6">
+          <p className="text-falcon-muted text-sm mb-6">
             このYARAルールを削除しますか？この操作は取り消せません。
           </p>
           <div className="flex items-center justify-end gap-3">
-            <button onClick={() => setDeleteConfirm(null)} className="px-4 py-2 rounded text-sm text-[#7d92b0] hover:text-[#e2e8f4] transition-colors">
+            <button onClick={() => setDeleteConfirm(null)} className="px-4 py-2 rounded-sm text-sm text-falcon-muted hover:text-falcon-text transition-colors">
               キャンセル
             </button>
             <button
               onClick={() => deleteConfirm && deleteMutation.mutate(deleteConfirm.id)}
-              className="px-4 py-2 rounded text-sm bg-red-600 text-white font-medium hover:bg-red-700 transition-colors"
+              className="px-4 py-2 rounded-sm text-sm bg-red-600 text-white font-medium hover:bg-red-700 transition-colors"
             >
               削除
             </button>
@@ -496,18 +496,18 @@ export default function YaraRulesPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-[#e2e8f4] flex items-center gap-2">
-            <FileSearch className="w-7 h-7 text-[#e8002d]" />
+          <h1 className="text-2xl font-bold text-falcon-text flex items-center gap-2">
+            <FileSearch className="w-7 h-7 text-falcon-red" />
             YARAルール管理
           </h1>
-          <p className="text-[#7d92b0] text-sm mt-1">
+          <p className="text-falcon-muted text-sm mt-1">
             YARAルールの作成・管理・テストおよびスキャン結果の確認
           </p>
         </div>
         {activeTab === 'ルール一覧' && (
           <button
             onClick={() => { setForm(EMPTY_RULE); setShowAddModal(true) }}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#e8002d] text-white font-medium hover:bg-[#c0001f] transition-colors text-sm"
+            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-falcon-red text-white font-medium hover:bg-[#c0001f] transition-colors text-sm"
           >
             <Plus className="w-4 h-4" />
             ルール追加
@@ -516,7 +516,7 @@ export default function YaraRulesPage() {
         {activeTab === 'スキャン結果' && (
           <button
             onClick={exportCSV}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#0d1220] border border-[#1e2d42] text-[#7d92b0] hover:text-[#e2e8f4] hover:border-[#7d92b0]/40 transition-colors text-sm"
+            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-falcon-surface border border-falcon-border text-falcon-muted hover:text-falcon-text hover:border-falcon-muted/40 transition-colors text-sm"
           >
             <Download className="w-4 h-4" />
             CSV出力
@@ -532,23 +532,23 @@ export default function YaraRulesPage() {
           { label: '総マッチ数', value: (stats.totalMatches ?? 0).toLocaleString(), color: 'text-orange-400' },
           { label: 'カテゴリ数', value: stats.categories, color: 'text-purple-400' },
         ].map(stat => (
-          <div key={stat.label} className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-4">
+          <div key={stat.label} className="bg-falcon-surface border border-falcon-border rounded-lg p-4">
             <p className={`text-2xl font-bold ${stat.color}`}>{stat.value}</p>
-            <p className="text-[#7d92b0] text-xs mt-1">{stat.label}</p>
+            <p className="text-falcon-muted text-xs mt-1">{stat.label}</p>
           </div>
         ))}
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 mb-6 border-b border-[#1e2d42]">
+      <div className="flex gap-1 mb-6 border-b border-falcon-border">
         {TABS.map(tab => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
             className={`px-4 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px ${
               activeTab === tab
-                ? 'border-[#e8002d] text-[#e2e8f4]'
-                : 'border-transparent text-[#7d92b0] hover:text-[#e2e8f4]'
+                ? 'border-falcon-red text-falcon-text'
+                : 'border-transparent text-falcon-muted hover:text-falcon-text'
             }`}
           >
             {tab}
@@ -560,9 +560,9 @@ export default function YaraRulesPage() {
       {activeTab === 'ルール一覧' && (
         <div className="flex gap-6">
           {/* Filter Sidebar */}
-          <div className="w-52 flex-shrink-0 space-y-5">
+          <div className="w-52 shrink-0 space-y-5">
             <div>
-              <h4 className="text-xs font-semibold text-[#7d92b0] uppercase tracking-wider mb-2">カテゴリ</h4>
+              <h4 className="text-xs font-semibold text-falcon-muted uppercase tracking-wider mb-2">カテゴリ</h4>
               <div className="space-y-1.5">
                 {CATEGORIES.map(cat => (
                   <label key={cat} className="flex items-center gap-2 cursor-pointer group">
@@ -570,9 +570,9 @@ export default function YaraRulesPage() {
                       type="checkbox"
                       checked={selectedCategories.has(cat)}
                       onChange={() => toggleCategory(cat)}
-                      className="w-3.5 h-3.5 rounded border-[#1e2d42] bg-[#070d19] accent-[#e8002d]"
+                      className="w-3.5 h-3.5 rounded-sm border-falcon-border bg-[#070d19] accent-falcon-red"
                     />
-                    <span className="text-sm text-[#7d92b0] group-hover:text-[#e2e8f4] transition-colors flex items-center gap-1.5">
+                    <span className="text-sm text-falcon-muted group-hover:text-falcon-text transition-colors flex items-center gap-1.5">
                       <span className={`w-1.5 h-1.5 rounded-full ${
                         cat === 'malware' ? 'bg-red-400' :
                         cat === 'ransomware' ? 'bg-orange-400' :
@@ -587,8 +587,8 @@ export default function YaraRulesPage() {
             </div>
 
             <div>
-              <h4 className="text-xs font-semibold text-[#7d92b0] uppercase tracking-wider mb-2">
-                深刻度: <span className="text-[#e2e8f4]">{severityMin}+</span>
+              <h4 className="text-xs font-semibold text-falcon-muted uppercase tracking-wider mb-2">
+                深刻度: <span className="text-falcon-text">{severityMin}+</span>
               </h4>
               <input
                 type="range"
@@ -597,15 +597,15 @@ export default function YaraRulesPage() {
                 step={10}
                 value={severityMin}
                 onChange={e => setSeverityMin(Number(e.target.value))}
-                className="w-full accent-[#e8002d]"
+                className="w-full accent-falcon-red"
               />
-              <div className="flex justify-between text-[10px] text-[#3d5068] mt-1">
+              <div className="flex justify-between text-[10px] text-falcon-subtle mt-1">
                 <span>0</span><span>50</span><span>100</span>
               </div>
             </div>
 
             <div>
-              <h4 className="text-xs font-semibold text-[#7d92b0] uppercase tracking-wider mb-2">状態</h4>
+              <h4 className="text-xs font-semibold text-falcon-muted uppercase tracking-wider mb-2">状態</h4>
               <div className="space-y-1">
                 {[['all', '全て'], ['enabled', '有効のみ'], ['disabled', '無効のみ']].map(([val, label]) => (
                   <button
@@ -613,8 +613,8 @@ export default function YaraRulesPage() {
                     onClick={() => { setEnabledFilter(val as typeof enabledFilter); setPage(1) }}
                     className={`w-full text-left px-3 py-1.5 rounded text-sm transition-colors ${
                       enabledFilter === val
-                        ? 'bg-[#1d2f4a] text-white'
-                        : 'text-[#7d92b0] hover:bg-[#19253d] hover:text-[#e2e8f4]'
+                        ? 'bg-falcon-active text-white'
+                        : 'text-falcon-muted hover:bg-falcon-hover hover:text-falcon-text'
                     }`}
                   >
                     {label}
@@ -626,7 +626,7 @@ export default function YaraRulesPage() {
             {(selectedCategories.size > 0 || enabledFilter !== 'all' || severityMin > 0) && (
               <button
                 onClick={() => { setSelectedCategories(new Set()); setEnabledFilter('all'); setSeverityMin(0) }}
-                className="w-full text-xs text-[#e8002d] hover:text-red-300 transition-colors text-left"
+                className="w-full text-xs text-falcon-red hover:text-red-300 transition-colors text-left"
               >
                 フィルタをリセット
               </button>
@@ -637,60 +637,60 @@ export default function YaraRulesPage() {
           <div className="flex-1 space-y-3">
             {rulesLoading && (
               <div className="flex items-center justify-center py-8">
-                <RefreshCw className="w-6 h-6 text-[#7d92b0] animate-spin" />
+                <RefreshCw className="w-6 h-6 text-falcon-muted animate-spin" />
               </div>
             )}
             {filteredRules.length === 0 && !rulesLoading && (
-              <div className="text-center py-12 text-[#7d92b0]">
+              <div className="text-center py-12 text-falcon-muted">
                 <FileSearch className="w-10 h-10 mx-auto mb-3 opacity-30" />
                 <p>条件に一致するルールが見つかりません</p>
               </div>
             )}
             {filteredRules.map(rule => (
-              <div key={rule.id} className={`bg-[#0d1220] border rounded-lg p-5 transition-all ${rule.enabled ? 'border-[#1e2d42]' : 'border-[#1e2d42] opacity-70'}`}>
+              <div key={rule.id} className={`bg-falcon-surface border rounded-lg p-5 transition-all ${rule.enabled ? 'border-falcon-border' : 'border-falcon-border opacity-70'}`}>
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap mb-1.5">
-                      <h4 className="text-[#e2e8f4] font-semibold font-mono text-sm">{rule.name}</h4>
+                      <h4 className="text-falcon-text font-semibold font-mono text-sm">{rule.name}</h4>
                       <CategoryBadge category={rule.category} />
                       <SeverityBadge severity={rule.severity} />
                       {!rule.enabled && (
-                        <span className="px-2 py-0.5 rounded text-[10px] bg-[#1e2d42] text-[#3d5068] border border-[#1e2d42]">
+                        <span className="px-2 py-0.5 rounded-sm text-[10px] bg-falcon-border text-falcon-subtle border border-falcon-border">
                           無効
                         </span>
                       )}
                     </div>
-                    <p className="text-[#7d92b0] text-xs mb-3">{rule.description}</p>
-                    <div className="flex items-center gap-4 text-xs text-[#7d92b0]">
-                      <span>マッチ数: <span className="text-[#e2e8f4] font-medium">{(rule.match_count ?? 0).toLocaleString()}</span></span>
-                      <span>最終スキャン: <span className="text-[#e2e8f4]">{new Date(rule.last_scan).toLocaleString('ja-JP')}</span></span>
+                    <p className="text-falcon-muted text-xs mb-3">{rule.description}</p>
+                    <div className="flex items-center gap-4 text-xs text-falcon-muted">
+                      <span>マッチ数: <span className="text-falcon-text font-medium">{(rule.match_count ?? 0).toLocaleString()}</span></span>
+                      <span>最終スキャン: <span className="text-falcon-text">{new Date(rule.last_scan).toLocaleString('ja-JP')}</span></span>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 flex-shrink-0">
+                  <div className="flex items-center gap-2 shrink-0">
                     <button
                       onClick={() => toggleMutation.mutate(rule.id)}
-                      className={`transition-colors ${rule.enabled ? 'text-green-400 hover:text-green-300' : 'text-[#3d5068] hover:text-[#7d92b0]'}`}
+                      className={`transition-colors ${rule.enabled ? 'text-green-400 hover:text-green-300' : 'text-falcon-subtle hover:text-falcon-muted'}`}
                       title={rule.enabled ? '無効化' : '有効化'}
                     >
                       {rule.enabled ? <ToggleRight className="w-6 h-6" /> : <ToggleLeft className="w-6 h-6" />}
                     </button>
                     <button
                       onClick={() => openTest(rule)}
-                      className="p-1.5 rounded hover:bg-[#1e2d42] text-[#7d92b0] hover:text-blue-400 transition-colors"
+                      className="p-1.5 rounded-sm hover:bg-falcon-border text-falcon-muted hover:text-blue-400 transition-colors"
                       title="テスト"
                     >
                       <Play className="w-4 h-4" />
                     </button>
                     <button
                       onClick={() => openEdit(rule)}
-                      className="p-1.5 rounded hover:bg-[#1e2d42] text-[#7d92b0] hover:text-[#e2e8f4] transition-colors"
+                      className="p-1.5 rounded-sm hover:bg-falcon-border text-falcon-muted hover:text-falcon-text transition-colors"
                       title="編集"
                     >
                       <Pencil className="w-4 h-4" />
                     </button>
                     <button
                       onClick={() => setDeleteConfirm(rule)}
-                      className="p-1.5 rounded hover:bg-[#1e2d42] text-[#7d92b0] hover:text-red-400 transition-colors"
+                      className="p-1.5 rounded-sm hover:bg-falcon-border text-falcon-muted hover:text-red-400 transition-colors"
                       title="削除"
                     >
                       <Trash2 className="w-4 h-4" />
@@ -702,25 +702,25 @@ export default function YaraRulesPage() {
 
             {/* ページネーション */}
             {totalRules > perPage && (
-              <div className="flex items-center justify-between pt-3 border-t border-[#1e2d42]">
-                <span className="text-xs text-[#7d92b0]">
+              <div className="flex items-center justify-between pt-3 border-t border-falcon-border">
+                <span className="text-xs text-falcon-muted">
                   {((page - 1) * perPage) + 1}–{Math.min(page * perPage, totalRules)} / {totalRules.toLocaleString()}件
                 </span>
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => setPage(p => Math.max(1, p - 1))}
                     disabled={page === 1}
-                    className="p-1.5 rounded bg-[#111827] border border-[#1e2d42] text-[#7d92b0] hover:text-white disabled:opacity-30 transition-colors"
+                    className="p-1.5 rounded-sm bg-falcon-card border border-falcon-border text-falcon-muted hover:text-white disabled:opacity-30 transition-colors"
                   >
                     <ChevronLeft className="w-4 h-4" />
                   </button>
-                  <span className="text-xs text-[#7d92b0] font-mono">
+                  <span className="text-xs text-falcon-muted font-mono">
                     {page} / {Math.ceil(totalRules / perPage)}
                   </span>
                   <button
                     onClick={() => setPage(p => Math.min(Math.ceil(totalRules / perPage), p + 1))}
                     disabled={page >= Math.ceil(totalRules / perPage)}
-                    className="p-1.5 rounded bg-[#111827] border border-[#1e2d42] text-[#7d92b0] hover:text-white disabled:opacity-30 transition-colors"
+                    className="p-1.5 rounded-sm bg-falcon-card border border-falcon-border text-falcon-muted hover:text-white disabled:opacity-30 transition-colors"
                   >
                     <ChevronRight className="w-4 h-4" />
                   </button>
@@ -735,57 +735,57 @@ export default function YaraRulesPage() {
       {activeTab === 'スキャン結果' && (
         <div className="space-y-4">
           {/* Filters */}
-          <div className="flex items-center gap-3 flex-wrap bg-[#0d1220] border border-[#1e2d42] rounded-lg p-4">
+          <div className="flex items-center gap-3 flex-wrap bg-falcon-surface border border-falcon-border rounded-lg p-4">
             <div className="flex items-center gap-2">
-              <Filter className="w-4 h-4 text-[#7d92b0]" />
-              <span className="text-xs text-[#7d92b0] font-medium">フィルタ:</span>
+              <Filter className="w-4 h-4 text-falcon-muted" />
+              <span className="text-xs text-falcon-muted font-medium">フィルタ:</span>
             </div>
             <div>
               <select
                 value={scanRuleFilter}
                 onChange={e => setScanRuleFilter(e.target.value)}
-                className="px-3 py-1.5 bg-[#070d19] border border-[#1e2d42] rounded text-sm text-[#e2e8f4] focus:outline-none focus:border-[#7d92b0]/50"
+                className="px-3 py-1.5 bg-[#070d19] border border-falcon-border rounded-sm text-sm text-falcon-text focus:outline-hidden focus:border-falcon-muted/50"
               >
                 <option value="all">全ルール</option>
                 {rules.map(r => <option key={r.id} value={r.name}>{r.name}</option>)}
               </select>
             </div>
             <div className="relative">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#7d92b0]" />
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-falcon-muted" />
               <input
                 value={scanAgentFilter}
                 onChange={e => setScanAgentFilter(e.target.value)}
                 placeholder="エージェント名..."
-                className="pl-8 pr-3 py-1.5 bg-[#070d19] border border-[#1e2d42] rounded text-sm text-[#e2e8f4] placeholder-[#3d5068] focus:outline-none focus:border-[#7d92b0]/50 w-36"
+                className="pl-8 pr-3 py-1.5 bg-[#070d19] border border-falcon-border rounded-sm text-sm text-falcon-text placeholder-falcon-subtle focus:outline-hidden focus:border-falcon-muted/50 w-36"
               />
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-xs text-[#7d92b0]">日付:</span>
+              <span className="text-xs text-falcon-muted">日付:</span>
               <input
                 type="date"
                 value={scanDateFrom}
                 onChange={e => setScanDateFrom(e.target.value)}
-                className="px-2 py-1.5 bg-[#070d19] border border-[#1e2d42] rounded text-sm text-[#e2e8f4] focus:outline-none focus:border-[#7d92b0]/50"
+                className="px-2 py-1.5 bg-[#070d19] border border-falcon-border rounded-sm text-sm text-falcon-text focus:outline-hidden focus:border-falcon-muted/50"
               />
-              <span className="text-[#7d92b0]">—</span>
+              <span className="text-falcon-muted">—</span>
               <input
                 type="date"
                 value={scanDateTo}
                 onChange={e => setScanDateTo(e.target.value)}
-                className="px-2 py-1.5 bg-[#070d19] border border-[#1e2d42] rounded text-sm text-[#e2e8f4] focus:outline-none focus:border-[#7d92b0]/50"
+                className="px-2 py-1.5 bg-[#070d19] border border-falcon-border rounded-sm text-sm text-falcon-text focus:outline-hidden focus:border-falcon-muted/50"
               />
             </div>
-            <span className="text-xs text-[#7d92b0] ml-auto">{filteredScans.length} 件</span>
+            <span className="text-xs text-falcon-muted ml-auto">{filteredScans.length} 件</span>
           </div>
 
           {/* Table */}
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg overflow-hidden">
+          <div className="bg-falcon-surface border border-falcon-border rounded-lg overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-[#1e2d42]">
+                  <tr className="border-b border-falcon-border">
                     {['ルール名', 'エージェント', 'ファイルパス', 'マッチ文字列', 'スキャン日時'].map(h => (
-                      <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-[#7d92b0] uppercase tracking-wider whitespace-nowrap">
+                      <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-falcon-muted uppercase tracking-wider whitespace-nowrap">
                         {h}
                       </th>
                     ))}
@@ -793,20 +793,20 @@ export default function YaraRulesPage() {
                 </thead>
                 <tbody>
                   {filteredScans.map((scan, i) => (
-                    <tr key={scan.id} className={`border-b border-[#1e2d42] hover:bg-[#111827] transition-colors ${i % 2 === 0 ? '' : 'bg-[#070d19]/30'}`}>
-                      <td className="px-4 py-3 font-mono text-[#e8002d] text-xs font-medium whitespace-nowrap">
+                    <tr key={scan.id} className={`border-b border-falcon-border hover:bg-falcon-card transition-colors ${i % 2 === 0 ? '' : 'bg-[#070d19]/30'}`}>
+                      <td className="px-4 py-3 font-mono text-falcon-red text-xs font-medium whitespace-nowrap">
                         {scan.rule_name}
                       </td>
-                      <td className="px-4 py-3 text-[#e2e8f4] text-xs whitespace-nowrap font-medium">
+                      <td className="px-4 py-3 text-falcon-text text-xs whitespace-nowrap font-medium">
                         {scan.agent}
                       </td>
-                      <td className="px-4 py-3 font-mono text-[#7d92b0] text-xs max-w-xs truncate" title={scan.file_path}>
+                      <td className="px-4 py-3 font-mono text-falcon-muted text-xs max-w-xs truncate" title={scan.file_path}>
                         {scan.file_path}
                       </td>
                       <td className="px-4 py-3 font-mono text-xs text-yellow-400 max-w-xs truncate" title={scan.matched_strings}>
                         {scan.matched_strings.length > 60 ? scan.matched_strings.slice(0, 60) + '…' : scan.matched_strings}
                       </td>
-                      <td className="px-4 py-3 text-[#7d92b0] text-xs whitespace-nowrap">
+                      <td className="px-4 py-3 text-falcon-muted text-xs whitespace-nowrap">
                         {new Date(scan.scanned_at).toLocaleString('ja-JP')}
                       </td>
                     </tr>
@@ -815,7 +815,7 @@ export default function YaraRulesPage() {
               </table>
             </div>
             {filteredScans.length === 0 && (
-              <div className="text-center py-10 text-[#7d92b0]">
+              <div className="text-center py-10 text-falcon-muted">
                 <Search className="w-8 h-8 mx-auto mb-2 opacity-30" />
                 <p>条件に一致するスキャン結果が見つかりません</p>
               </div>

@@ -220,14 +220,14 @@ export default function BackupPage() {
                   </td>
                   <td className="px-5 py-3 font-mono text-xs text-zinc-400">{b.version}</td>
                   <td className="px-5 py-3">
-                    <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 bg-zinc-800 border border-zinc-700 rounded text-zinc-400">
+                    <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 bg-zinc-800 border border-zinc-700 rounded-sm text-zinc-400">
                       <Database className="h-3 w-3" />{(b.tables ?? []).length} テーブル
                     </span>
                   </td>
                   <td className="px-5 py-3 text-xs text-zinc-300">{totalRecords.toLocaleString()}</td>
                   <td className="px-5 py-3 text-xs text-zinc-400">{fmtBytes(b.size_bytes)}</td>
                   <td className="px-5 py-3">
-                    <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded font-medium ${s.badge}`}>
+                    <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-sm font-medium ${s.badge}`}>
                       <s.icon className={`h-3 w-3 ${s.iconColor}`} />{s.label}
                     </span>
                   </td>
@@ -301,7 +301,7 @@ export default function BackupPage() {
                 <div className="text-xs text-zinc-500 mb-2">リストアされたテーブル:</div>
                 <div className="flex flex-wrap gap-2">
                   {restoreResult.tables_restored.map(t => (
-                    <div key={t.table} className="flex items-center gap-1.5 text-xs bg-zinc-800 border border-zinc-700 rounded px-2.5 py-1">
+                    <div key={t.table} className="flex items-center gap-1.5 text-xs bg-zinc-800 border border-zinc-700 rounded-sm px-2.5 py-1">
                       <Database className="h-3 w-3 text-zinc-500" />
                       <span className="font-mono text-zinc-300">{t.table}</span>
                       <span className="text-zinc-600">({t.records})</span>

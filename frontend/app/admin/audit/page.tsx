@@ -50,7 +50,7 @@ function methodBadgeStyle(method: string): string {
     case 'PUT':    return 'bg-yellow-900/40 text-yellow-300'
     case 'PATCH':  return 'bg-orange-900/40 text-orange-300'
     case 'DELETE': return 'bg-red-900/40 text-red-300'
-    default:       return 'bg-[#161f33] text-[#8899aa]'
+    default:       return 'bg-falcon-raised text-[#8899aa]'
   }
 }
 
@@ -170,7 +170,7 @@ function UserSummarySection({ logs }: { logs: AuditLog[] }) {
   const maxCount = stats[0]?.count ?? 1
 
   return (
-    <div className="bg-[#111827] border border-[#1e2d42] rounded-xl p-5 space-y-4">
+    <div className="bg-falcon-card border border-falcon-border rounded-xl p-5 space-y-4">
       <div className="flex items-center gap-2">
         <TrendingUp className="w-5 h-5 text-purple-400 shrink-0" />
         <h2 className="text-base font-semibold text-white">アクティブユーザー Top 4</h2>
@@ -180,7 +180,7 @@ function UserSummarySection({ logs }: { logs: AuditLog[] }) {
         {stats.map(u => (
           <div
             key={u.email}
-            className="bg-[#080c14] border border-[#1e2d42] rounded-lg p-4 space-y-3"
+            className="bg-falcon-bg border border-falcon-border rounded-lg p-4 space-y-3"
           >
             {/* アバター + メール */}
             <div className="flex items-center gap-2 min-w-0">
@@ -199,7 +199,7 @@ function UserSummarySection({ logs }: { logs: AuditLog[] }) {
                 <span className="text-[10px] text-[#5a6a7a]">総アクション</span>
                 <span className="text-xs font-bold text-white">{u.count}</span>
               </div>
-              <div className="w-full h-1.5 bg-[#1e2d42] rounded-full overflow-hidden">
+              <div className="w-full h-1.5 bg-falcon-border rounded-full overflow-hidden">
                 <div
                   className="h-full bg-purple-500 rounded-full"
                   style={{ width: `${(u.count / maxCount) * 100}%` }}
@@ -272,7 +272,7 @@ function SiemExportPanel() {
   const activeFormat = SIEM_FORMATS.find(f => f.value === format)!
 
   return (
-    <div className="bg-[#111827] border border-[#1e2d42] rounded-xl p-5 space-y-5">
+    <div className="bg-falcon-card border border-falcon-border rounded-xl p-5 space-y-5">
 
       {/* セクションヘッダー */}
       <div className="flex items-center gap-2">
@@ -295,7 +295,7 @@ function SiemExportPanel() {
                 className={`flex-1 py-1.5 text-xs font-semibold rounded-lg border transition-colors ${
                   format === f.value
                     ? 'bg-cyan-700 border-cyan-500 text-white'
-                    : 'bg-[#161f33] border-[#1e2d42] text-[#8899aa] hover:text-white hover:border-[#2a3d5a]'
+                    : 'bg-falcon-raised border-falcon-border text-[#8899aa] hover:text-white hover:border-[#2a3d5a]'
                 }`}
               >
                 {f.label}
@@ -316,10 +316,10 @@ function SiemExportPanel() {
             type="datetime-local"
             value={since}
             onChange={e => setSince(e.target.value)}
-            className="w-full px-3 py-1.5 text-xs border border-[#1e2d42] rounded-lg
-                       bg-[#080c14] text-white
-                       focus:outline-none focus:border-cyan-500 transition-colors
-                       [color-scheme:dark]"
+            className="w-full px-3 py-1.5 text-xs border border-falcon-border rounded-lg
+                       bg-falcon-bg text-white
+                       focus:outline-hidden focus:border-cyan-500 transition-colors
+                       scheme-dark"
           />
         </div>
 
@@ -332,10 +332,10 @@ function SiemExportPanel() {
             type="datetime-local"
             value={until}
             onChange={e => setUntil(e.target.value)}
-            className="w-full px-3 py-1.5 text-xs border border-[#1e2d42] rounded-lg
-                       bg-[#080c14] text-white
-                       focus:outline-none focus:border-cyan-500 transition-colors
-                       [color-scheme:dark]"
+            className="w-full px-3 py-1.5 text-xs border border-falcon-border rounded-lg
+                       bg-falcon-bg text-white
+                       focus:outline-hidden focus:border-cyan-500 transition-colors
+                       scheme-dark"
           />
         </div>
 
@@ -347,10 +347,10 @@ function SiemExportPanel() {
           <select
             value={limit}
             onChange={e => setLimit(e.target.value)}
-            className="w-full px-3 py-1.5 text-xs border border-[#1e2d42] rounded-lg
-                       bg-[#080c14] text-white
-                       focus:outline-none focus:border-cyan-500 transition-colors
-                       [color-scheme:dark]"
+            className="w-full px-3 py-1.5 text-xs border border-falcon-border rounded-lg
+                       bg-falcon-bg text-white
+                       focus:outline-hidden focus:border-cyan-500 transition-colors
+                       scheme-dark"
           >
             {UNIQUE_LIMIT_OPTIONS.map(opt => (
               <option key={opt.value + opt.label} value={opt.value}>
@@ -432,8 +432,8 @@ export default function AdminAuditPage() {
           <button
             onClick={() => exportCsv(logs)}
             disabled={logs.length === 0}
-            className="flex items-center gap-2 px-4 py-2 bg-[#161f33] border border-[#1e2d42]
-                       text-[#8899aa] hover:text-white hover:bg-[#1d2f4a] text-sm rounded-lg
+            className="flex items-center gap-2 px-4 py-2 bg-falcon-raised border border-falcon-border
+                       text-[#8899aa] hover:text-white hover:bg-falcon-active text-sm rounded-lg
                        transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
             <Download className="w-4 h-4" />
@@ -444,8 +444,8 @@ export default function AdminAuditPage() {
           <button
             onClick={() => refetch()}
             disabled={isFetching}
-            className="flex items-center gap-2 px-4 py-2 bg-[#161f33] border border-[#1e2d42]
-                       text-[#8899aa] hover:text-white hover:bg-[#1d2f4a] text-sm rounded-lg
+            className="flex items-center gap-2 px-4 py-2 bg-falcon-raised border border-falcon-border
+                       text-[#8899aa] hover:text-white hover:bg-falcon-active text-sm rounded-lg
                        transition-colors disabled:opacity-50"
           >
             <RefreshCw className={`w-4 h-4 ${isFetching ? 'animate-spin' : ''}`} />
@@ -455,9 +455,9 @@ export default function AdminAuditPage() {
       </div>
 
       {/* ─── フィルターバー ──────────────────────────────────────────── */}
-      <div className="flex flex-wrap items-center gap-3 bg-[#111827] border border-[#1e2d42]
+      <div className="flex flex-wrap items-center gap-3 bg-falcon-card border border-falcon-border
                       rounded-xl px-4 py-3">
-        <Filter className="w-4 h-4 text-[#5a6a7a] flex-shrink-0" />
+        <Filter className="w-4 h-4 text-[#5a6a7a] shrink-0" />
 
         {/* メールアドレス検索 */}
         <div className="relative">
@@ -466,9 +466,9 @@ export default function AdminAuditPage() {
             value={userFilter}
             onChange={e => { setUserFilter(e.target.value); setPage(1) }}
             placeholder="メールで検索..."
-            className="pl-8 pr-3 py-1.5 text-xs border border-[#1e2d42] rounded-lg
-                       bg-[#080c14] text-white placeholder-[#5a6a7a] w-52
-                       focus:outline-none focus:border-purple-500 transition-colors"
+            className="pl-8 pr-3 py-1.5 text-xs border border-falcon-border rounded-lg
+                       bg-falcon-bg text-white placeholder-[#5a6a7a] w-52
+                       focus:outline-hidden focus:border-purple-500 transition-colors"
           />
         </div>
 
@@ -481,7 +481,7 @@ export default function AdminAuditPage() {
               className={`px-2.5 py-1 text-xs rounded-full border transition-colors ${
                 methodFilter === m
                   ? 'bg-purple-700 border-purple-600 text-white'
-                  : 'bg-[#161f33] border-[#1e2d42] text-[#8899aa] hover:text-[#e2e8f4] hover:border-[#2a3d5a]'
+                  : 'bg-falcon-raised border-falcon-border text-[#8899aa] hover:text-falcon-text hover:border-[#2a3d5a]'
               }`}
             >
               {m === '' ? 'ALL' : m}
@@ -495,7 +495,7 @@ export default function AdminAuditPage() {
           className={`flex items-center gap-1.5 px-3 py-1 text-xs rounded-full border transition-colors ${
             errorsOnly
               ? 'bg-red-800 text-red-200 border-red-600'
-              : 'bg-[#161f33] border-[#1e2d42] text-[#8899aa] hover:text-[#e2e8f4] hover:border-[#2a3d5a]'
+              : 'bg-falcon-raised border-falcon-border text-[#8899aa] hover:text-falcon-text hover:border-[#2a3d5a]'
           }`}
         >
           <XCircle className="w-3 h-3" />
@@ -507,7 +507,7 @@ export default function AdminAuditPage() {
           <button
             onClick={clearFilters}
             className="flex items-center gap-1 text-xs text-[#8899aa] hover:text-white
-                       px-2 py-1 rounded-lg hover:bg-[#161f33] transition-colors ml-auto"
+                       px-2 py-1 rounded-lg hover:bg-falcon-raised transition-colors ml-auto"
           >
             <X className="w-3.5 h-3.5" />
             クリア
@@ -532,7 +532,7 @@ export default function AdminAuditPage() {
       {logs.length > 0 && <UserSummarySection logs={logs} />}
 
       {/* ─── ログテーブル ────────────────────────────────────────────── */}
-      <div className="bg-[#111827] rounded-xl border border-[#1e2d42] overflow-hidden">
+      <div className="bg-falcon-card rounded-xl border border-falcon-border overflow-hidden">
         {isLoading ? (
           <div className="flex items-center justify-center h-40">
             <div className="w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
@@ -553,7 +553,7 @@ export default function AdminAuditPage() {
         ) : (
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-[#1e2d42] bg-[#080c14]/30">
+              <tr className="border-b border-falcon-border bg-falcon-bg/30">
                 <th className="text-left px-4 py-3 text-[#8899aa] text-xs font-medium whitespace-nowrap">
                   日時
                 </th>
@@ -589,7 +589,7 @@ export default function AdminAuditPage() {
                 return (
                   <tr
                     key={log.id}
-                    className="border-b border-[#1e2d42]/50 last:border-0 hover:bg-[#161f33] transition-colors"
+                    className="border-b border-falcon-border/50 last:border-0 hover:bg-falcon-raised transition-colors"
                   >
                     {/* 日時 */}
                     <td className="px-4 py-3 text-[#8899aa] text-xs font-mono whitespace-nowrap">
@@ -606,10 +606,10 @@ export default function AdminAuditPage() {
                     {/* アクション */}
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2 min-w-0">
-                        <span className={`shrink-0 text-xs px-1.5 py-0.5 rounded font-mono ${methodBadgeStyle(method)}`}>
+                        <span className={`shrink-0 text-xs px-1.5 py-0.5 rounded-sm font-mono ${methodBadgeStyle(method)}`}>
                           {method}
                         </span>
-                        <span className="text-[#e2e8f4] text-xs font-mono truncate max-w-[260px]" title={path}>
+                        <span className="text-falcon-text text-xs font-mono truncate max-w-[260px]" title={path}>
                           {path}
                         </span>
                       </div>
@@ -651,7 +651,7 @@ export default function AdminAuditPage() {
                     {/* リスクスコア */}
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2 min-w-[80px]">
-                        <div className="flex-1 h-1.5 bg-[#1e2d42] rounded-full overflow-hidden">
+                        <div className="flex-1 h-1.5 bg-falcon-border rounded-full overflow-hidden">
                           <div
                             className={`h-full rounded-full ${riskBarColor(riskScore)}`}
                             style={{ width: `${riskScore}%` }}
@@ -676,8 +676,8 @@ export default function AdminAuditPage() {
           <button
             onClick={() => setPage(p => Math.max(1, p - 1))}
             disabled={page === 1}
-            className="px-4 py-2 bg-[#161f33] border border-[#1e2d42] text-[#8899aa] text-sm
-                       rounded-lg disabled:opacity-40 hover:bg-[#1d2f4a] transition-colors"
+            className="px-4 py-2 bg-falcon-raised border border-falcon-border text-[#8899aa] text-sm
+                       rounded-lg disabled:opacity-40 hover:bg-falcon-active transition-colors"
           >
             前へ
           </button>
@@ -687,8 +687,8 @@ export default function AdminAuditPage() {
           <button
             onClick={() => setPage(p => Math.min(totalPages, p + 1))}
             disabled={page >= totalPages}
-            className="px-4 py-2 bg-[#161f33] border border-[#1e2d42] text-[#8899aa] text-sm
-                       rounded-lg disabled:opacity-40 hover:bg-[#1d2f4a] transition-colors"
+            className="px-4 py-2 bg-falcon-raised border border-falcon-border text-[#8899aa] text-sm
+                       rounded-lg disabled:opacity-40 hover:bg-falcon-active transition-colors"
           >
             次へ
           </button>

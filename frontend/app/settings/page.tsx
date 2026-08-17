@@ -242,7 +242,7 @@ export default function SettingsPage() {
         <button
           onClick={() => update.mutate(current)}
           disabled={update.isPending}
-          className="flex items-center gap-2 px-4 py-2 bg-[#1a6bff] hover:bg-[#1557d4]
+          className="flex items-center gap-2 px-4 py-2 bg-falcon-blue hover:bg-[#1557d4]
                      text-white text-sm rounded-lg transition-colors disabled:opacity-50"
         >
           {saved ? <Check className="w-4 h-4" /> : <Settings className="w-4 h-4" />}
@@ -263,15 +263,15 @@ export default function SettingsPage() {
         <Field label="AIプロバイダー / モデル選択">
           {/* Currently selected model banner */}
           {current.claude_model && (
-            <div className="mb-3 flex items-center gap-2 px-3 py-2 bg-[#0d1929] border border-[#1e2d42] rounded-lg">
-              <span className="w-2 h-2 rounded-full bg-[#00c853] flex-shrink-0" />
-              <span className="text-xs text-[#7d92b0]">現在選択中:</span>
-              <span className="text-xs font-medium text-[#e2e8f4] font-mono">{current.claude_model}</span>
+            <div className="mb-3 flex items-center gap-2 px-3 py-2 bg-[#0d1929] border border-falcon-border rounded-lg">
+              <span className="w-2 h-2 rounded-full bg-falcon-green shrink-0" />
+              <span className="text-xs text-falcon-muted">現在選択中:</span>
+              <span className="text-xs font-medium text-falcon-text font-mono">{current.claude_model}</span>
             </div>
           )}
 
           {/* Provider tabs */}
-          <div className="flex gap-1 mb-3 bg-[#080c14] border border-[#1e2d42] rounded-lg p-1">
+          <div className="flex gap-1 mb-3 bg-falcon-bg border border-falcon-border rounded-lg p-1">
             {AI_PROVIDERS.map(p => (
               <button
                 key={p.id}
@@ -279,8 +279,8 @@ export default function SettingsPage() {
                 onClick={() => setProviderTab(p.id)}
                 className={`flex-1 text-[11px] py-1.5 px-2 rounded-md font-medium transition-all ${
                   providerTab === p.id
-                    ? 'bg-[#1e2d42] text-[#e2e8f4]'
-                    : 'text-[#4d6480] hover:text-[#7d92b0]'
+                    ? 'bg-falcon-border text-falcon-text'
+                    : 'text-[#4d6480] hover:text-falcon-muted'
                 }`}
               >
                 {p.label}
@@ -320,25 +320,25 @@ export default function SettingsPage() {
                       className={`text-left w-full rounded-lg border p-3 transition-all ${
                         selected
                           ? `${m.borderCls} bg-[#0d1929]`
-                          : 'border-[#1e2d42] bg-[#080c14] hover:border-[#3d5068]'
+                          : 'border-falcon-border bg-falcon-bg hover:border-falcon-subtle'
                       }`}
                     >
                       <div className="flex items-center justify-between mb-1.5">
                         <div className="flex items-center gap-2">
-                          <span className={`w-3 h-3 rounded-full border-2 flex-shrink-0 transition-colors ${
-                            selected ? `${m.borderCls} bg-[#1e2d42]` : 'border-[#3d5068]'
+                          <span className={`w-3 h-3 rounded-full border-2 shrink-0 transition-colors ${
+                            selected ? `${m.borderCls} bg-falcon-border` : 'border-falcon-subtle'
                           }`} />
-                          <span className="text-sm font-semibold text-[#e2e8f4]">{m.name}</span>
-                          {selected && <span className="text-[10px] text-[#00c853] font-medium">✓ 使用中</span>}
+                          <span className="text-sm font-semibold text-falcon-text">{m.name}</span>
+                          {selected && <span className="text-[10px] text-falcon-green font-medium">✓ 使用中</span>}
                         </div>
                         <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${m.badgeCls}`}>
                           {m.badge}
                         </span>
                       </div>
-                      <p className="text-xs text-[#7d92b0] mb-2 ml-5 leading-relaxed">{m.desc}</p>
+                      <p className="text-xs text-falcon-muted mb-2 ml-5 leading-relaxed">{m.desc}</p>
                       <div className="flex flex-wrap gap-1 ml-5">
                         {m.tags.map(t => (
-                          <span key={t} className="text-[10px] text-[#4d6480] bg-[#0d1220] border border-[#1e2d42] px-1.5 py-0.5 rounded">
+                          <span key={t} className="text-[10px] text-[#4d6480] bg-falcon-surface border border-falcon-border px-1.5 py-0.5 rounded-sm">
                             {t}
                           </span>
                         ))}
@@ -376,7 +376,7 @@ export default function SettingsPage() {
             <button
               onClick={() => regenToken.mutate()}
               disabled={regenToken.isPending}
-              className="flex items-center gap-1.5 px-3 py-2 bg-[#1e2d42] hover:bg-[#19253d]
+              className="flex items-center gap-1.5 px-3 py-2 bg-falcon-border hover:bg-falcon-hover
                          text-white text-sm rounded-lg transition-colors disabled:opacity-50 whitespace-nowrap"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${regenToken.isPending ? 'animate-spin' : ''}`} />
@@ -425,7 +425,7 @@ export default function SettingsPage() {
               { label: '受信アラート (24h)', value: wazuhStatus.alerts_24h, icon: CheckCircle2 },
               { label: '累計アラート', value: wazuhStatus.total_alerts, icon: XCircle },
             ].map(({ label, value, icon: Icon }) => (
-              <div key={label} className="bg-[#080c14] rounded-lg p-3 text-center">
+              <div key={label} className="bg-falcon-bg rounded-lg p-3 text-center">
                 <Icon className="w-4 h-4 text-[#8899aa] mx-auto mb-1" />
                 <p className="text-lg font-bold text-white">{value}</p>
                 <p className="text-xs text-[#5a6a7a]">{label}</p>
@@ -489,7 +489,7 @@ export default function SettingsPage() {
           />
         </Field>
 
-        <div className="mt-4 p-3 bg-[#080c14] rounded-lg border border-[#1e2d42]">
+        <div className="mt-4 p-3 bg-falcon-bg rounded-lg border border-falcon-border">
           <p className="text-xs font-semibold text-[#8899aa] mb-2">Wazuh ossec.conf 設定例</p>
           <pre className="text-xs text-green-400 font-mono whitespace-pre-wrap">{
 `<integration>
@@ -501,7 +501,7 @@ export default function SettingsPage() {
           }</pre>
         </div>
 
-        <div className="mt-3 p-3 bg-[#080c14] rounded-lg border border-[#1e2d42]">
+        <div className="mt-3 p-3 bg-falcon-bg rounded-lg border border-falcon-border">
           <p className="text-xs font-semibold text-[#8899aa] mb-2">環境変数（server-api コンテナ）</p>
           <pre className="text-xs text-blue-400 font-mono">{
 `WAZUH_MANAGER_URL=${current.wazuh_manager_url || 'https://wazuh-manager:55000'}
@@ -531,8 +531,8 @@ WAZUH_SKIP_TLS=${current.wazuh_skip_tls || 'true'}`
         <div className="mt-3">
           <NextLink
             href="/settings/siem"
-            className="inline-flex items-center gap-2 px-4 py-2 text-sm bg-[#0d1220] border border-[#1e2d42]
-                       rounded-lg text-[#e2e8f4] hover:border-blue-500/40 hover:text-blue-300 transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2 text-sm bg-falcon-surface border border-falcon-border
+                       rounded-lg text-falcon-text hover:border-blue-500/40 hover:text-blue-300 transition-colors"
           >
             <Radio className="w-4 h-4" />
             SIEMターゲットを管理する
@@ -549,8 +549,8 @@ WAZUH_SKIP_TLS=${current.wazuh_skip_tls || 'true'}`
         <div className="mt-3">
           <NextLink
             href="/notifications"
-            className="inline-flex items-center gap-2 px-4 py-2 text-sm bg-[#0d1220] border border-[#1e2d42]
-                       rounded-lg text-[#e2e8f4] hover:border-blue-500/40 hover:text-blue-300 transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2 text-sm bg-falcon-surface border border-falcon-border
+                       rounded-lg text-falcon-text hover:border-blue-500/40 hover:text-blue-300 transition-colors"
           >
             <Bell className="w-4 h-4" />
             通知チャンネルを管理する
@@ -594,8 +594,8 @@ function Section({ icon: Icon, title, children }: {
   children: React.ReactNode
 }) {
   return (
-    <div className="bg-[#111827] rounded-xl border border-[#1e2d42] p-5 space-y-4">
-      <div className="flex items-center gap-2.5 pb-3 border-b border-[#1e2d42]">
+    <div className="bg-falcon-card rounded-xl border border-falcon-border p-5 space-y-4">
+      <div className="flex items-center gap-2.5 pb-3 border-b border-falcon-border">
         <Icon className="w-4 h-4 text-blue-400" />
         <h2 className="text-white font-semibold text-sm">{title}</h2>
       </div>
@@ -623,10 +623,10 @@ function Toggle({ checked, onChange, label }: {
       <div
         onClick={() => onChange(!checked)}
         className={`relative w-10 h-5 rounded-full transition-colors ${
-          checked ? 'bg-[#1a6bff]' : 'bg-[#1e2d42]'
+          checked ? 'bg-falcon-blue' : 'bg-falcon-border'
         }`}
       >
-        <div className={`absolute top-0.5 w-4 h-4 bg-[#e2e8f4] rounded-full transition-transform ${
+        <div className={`absolute top-0.5 w-4 h-4 bg-falcon-text rounded-full transition-transform ${
           checked ? 'left-5' : 'left-0.5'
         }`} />
       </div>
@@ -720,12 +720,12 @@ function MFASettings() {
         </div>
 
         {/* Manual entry fallback */}
-        <div className="bg-[#080c14] rounded-lg p-4 space-y-2">
+        <div className="bg-falcon-bg rounded-lg p-4 space-y-2">
           <p className="text-[#5a6a7a] text-xs">
             QRコードをスキャンできない場合は、認証アプリで「手動入力」を選択し、以下のシークレットキーを入力してください。
           </p>
           <div className="flex items-center gap-2">
-            <code className="flex-1 font-mono text-sm text-blue-300 bg-[#111827] px-3 py-2 rounded-lg tracking-wider break-all">
+            <code className="flex-1 font-mono text-sm text-blue-300 bg-falcon-card px-3 py-2 rounded-lg tracking-wider break-all">
               {totpSecret || setupData.otpauth_url}
             </code>
             <button
@@ -734,7 +734,7 @@ function MFASettings() {
                 setCopied(true)
                 setTimeout(() => setCopied(false), 2000)
               }}
-              className="flex-shrink-0 p-2 text-[#8899aa] hover:text-[#e2e8f4] bg-[#111827] rounded-lg transition-colors"
+              className="shrink-0 p-2 text-[#8899aa] hover:text-falcon-text bg-falcon-card rounded-lg transition-colors"
               title="コピー"
             >
               {copied ? <Check className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
@@ -745,14 +745,14 @@ function MFASettings() {
           </p>
         </div>
 
-        <div className="bg-[#080c14] rounded-lg p-3">
+        <div className="bg-falcon-bg rounded-lg p-3">
           <div className="flex items-center justify-between mb-2">
             <span className="text-[#8899aa] text-xs font-medium">バックアップコード（大切に保管してください）</span>
             <div className="flex items-center gap-2">
-              <button onClick={() => setShowBackupCodes(v => !v)} className="text-[#8899aa] hover:text-[#e2e8f4]">
+              <button onClick={() => setShowBackupCodes(v => !v)} className="text-[#8899aa] hover:text-falcon-text">
                 {showBackupCodes ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
               </button>
-              <button onClick={() => downloadBackupCodes(setupData.backup_codes)} className="text-[#8899aa] hover:text-[#e2e8f4]">
+              <button onClick={() => downloadBackupCodes(setupData.backup_codes)} className="text-[#8899aa] hover:text-falcon-text">
                 <Download className="w-3.5 h-3.5" />
               </button>
             </div>
@@ -760,7 +760,7 @@ function MFASettings() {
           {showBackupCodes ? (
             <div className="grid grid-cols-2 gap-1">
               {setupData.backup_codes.map((code, i) => (
-                <span key={i} className="font-mono text-xs text-[#8899aa] bg-[#111827] px-2 py-1 rounded">{code}</span>
+                <span key={i} className="font-mono text-xs text-[#8899aa] bg-falcon-card px-2 py-1 rounded-sm">{code}</span>
               ))}
             </div>
           ) : (
@@ -778,12 +778,12 @@ function MFASettings() {
               value={confirmCode}
               onChange={e => { setConfirmCode(e.target.value.replace(/\D/g, '')); setConfirmError('') }}
               placeholder="000000"
-              className="flex-1 px-3 py-2 bg-[#161f33] border border-[#1e2d42] rounded-lg text-white font-mono text-center tracking-widest text-sm focus:outline-none focus:border-[#1a6bff]"
+              className="flex-1 px-3 py-2 bg-falcon-raised border border-falcon-border rounded-lg text-white font-mono text-center tracking-widest text-sm focus:outline-hidden focus:border-falcon-blue"
             />
             <button
               onClick={() => confirmMutation.mutate(confirmCode)}
               disabled={confirmCode.length < 6 || confirmMutation.isPending}
-              className="px-4 py-2 bg-[#1a6bff] hover:bg-[#1557d4] text-white text-sm rounded-lg transition-colors disabled:opacity-50"
+              className="px-4 py-2 bg-falcon-blue hover:bg-[#1557d4] text-white text-sm rounded-lg transition-colors disabled:opacity-50"
             >
               {confirmMutation.isPending ? '確認中...' : '有効化'}
             </button>
@@ -809,26 +809,26 @@ function MFASettings() {
           <span className="text-green-400 text-sm font-medium">二要素認証は有効です</span>
         </div>
         {showDisableForm ? (
-          <div className="space-y-3 p-4 bg-[#161f33] rounded-lg">
+          <div className="space-y-3 p-4 bg-falcon-raised rounded-lg">
             <p className="text-[#8899aa] text-sm">MFAを無効化するには現在のパスワードを入力してください。</p>
             <input
               type="password"
               value={disablePassword}
               onChange={e => setDisablePassword(e.target.value)}
               placeholder="現在のパスワード"
-              className="w-full px-3 py-2 bg-[#1e2d42] border border-[#1e2d42] rounded-lg text-white text-sm"
+              className="w-full px-3 py-2 bg-falcon-border border border-falcon-border rounded-lg text-white text-sm"
             />
             <div className="flex gap-2">
               <button
                 onClick={() => disableMutation.mutate(disablePassword)}
                 disabled={!disablePassword || disableMutation.isPending}
-                className="flex-1 py-2 bg-[#e8002d] hover:bg-[#b5001e] text-white text-sm rounded-lg disabled:opacity-50"
+                className="flex-1 py-2 bg-falcon-red hover:bg-[#b5001e] text-white text-sm rounded-lg disabled:opacity-50"
               >
                 {disableMutation.isPending ? '無効化中...' : 'MFAを無効化'}
               </button>
               <button
                 onClick={() => { setShowDisableForm(false); setDisablePassword('') }}
-                className="px-4 py-2 bg-[#1e2d42] text-white text-sm rounded-lg"
+                className="px-4 py-2 bg-falcon-border text-white text-sm rounded-lg"
               >
                 キャンセル
               </button>
@@ -858,7 +858,7 @@ function MFASettings() {
       <button
         onClick={() => setupMutation.mutate()}
         disabled={setupMutation.isPending}
-        className="flex items-center gap-2 px-4 py-2 bg-[#1a6bff] hover:bg-[#1557d4]
+        className="flex items-center gap-2 px-4 py-2 bg-falcon-blue hover:bg-[#1557d4]
                    text-white text-sm rounded-lg transition-colors disabled:opacity-50"
       >
         <Smartphone className="w-4 h-4" />
@@ -921,7 +921,7 @@ function AuditLog() {
       </button>
 
       {expanded && (
-        <div className="overflow-hidden rounded-lg border border-[#1e2d42]">
+        <div className="overflow-hidden rounded-lg border border-falcon-border">
           {isLoading ? (
             <div className="flex items-center justify-center py-8">
               <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-blue-500" />
@@ -931,7 +931,7 @@ function AuditLog() {
           ) : (
             <table className="w-full text-xs">
               <thead>
-                <tr className="bg-[#161f33] border-b border-[#1e2d42]">
+                <tr className="bg-falcon-raised border-b border-falcon-border">
                   <th className="text-left px-3 py-2 text-[#8899aa] font-medium">日時</th>
                   <th className="text-left px-3 py-2 text-[#8899aa] font-medium">ユーザー</th>
                   <th className="text-left px-3 py-2 text-[#8899aa] font-medium">アクション</th>
@@ -940,9 +940,9 @@ function AuditLog() {
                   <th className="text-left px-3 py-2 text-[#8899aa] font-medium">状態</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#1e2d42]/50">
+              <tbody className="divide-y divide-falcon-border/50">
                 {logs.map(log => (
-                  <tr key={log.id} className="hover:bg-[#161f33]/30">
+                  <tr key={log.id} className="hover:bg-falcon-raised/30">
                     <td className="px-3 py-2 text-[#5a6a7a] font-mono whitespace-nowrap">
                       {new Date(log.timestamp).toLocaleString('ja-JP', { dateStyle: 'short', timeStyle: 'medium' })}
                     </td>
@@ -1003,7 +1003,7 @@ function UserManagement() {
     <div className="space-y-3">
       <div className="space-y-2">
         {users.map(user => (
-          <div key={user.id} className="flex items-center justify-between py-2 border-b border-[#1e2d42]">
+          <div key={user.id} className="flex items-center justify-between py-2 border-b border-falcon-border">
             <div>
               <p className="text-white text-sm">{user.email}</p>
               <p className="text-[#8899aa] text-xs">{user.full_name} · {user.role}</p>
@@ -1019,30 +1019,30 @@ function UserManagement() {
       </div>
 
       {showForm ? (
-        <div className="space-y-3 p-4 bg-[#161f33] rounded-lg">
+        <div className="space-y-3 p-4 bg-falcon-raised rounded-lg">
           <input
             placeholder="メールアドレス"
             value={form.email}
             onChange={e => setForm(p => ({ ...p, email: e.target.value }))}
-            className="w-full px-3 py-2 bg-[#1e2d42] border border-[#1e2d42] rounded-lg text-white text-sm"
+            className="w-full px-3 py-2 bg-falcon-border border border-falcon-border rounded-lg text-white text-sm"
           />
           <input
             placeholder="フルネーム"
             value={form.full_name}
             onChange={e => setForm(p => ({ ...p, full_name: e.target.value }))}
-            className="w-full px-3 py-2 bg-[#1e2d42] border border-[#1e2d42] rounded-lg text-white text-sm"
+            className="w-full px-3 py-2 bg-falcon-border border border-falcon-border rounded-lg text-white text-sm"
           />
           <input
             type="password"
             placeholder="パスワード（8文字以上）"
             value={form.password}
             onChange={e => setForm(p => ({ ...p, password: e.target.value }))}
-            className="w-full px-3 py-2 bg-[#1e2d42] border border-[#1e2d42] rounded-lg text-white text-sm"
+            className="w-full px-3 py-2 bg-falcon-border border border-falcon-border rounded-lg text-white text-sm"
           />
           <select
             value={form.role}
             onChange={e => setForm(p => ({ ...p, role: e.target.value }))}
-            className="w-full px-3 py-2 bg-[#1e2d42] border border-[#1e2d42] rounded-lg text-white text-sm"
+            className="w-full px-3 py-2 bg-falcon-border border border-falcon-border rounded-lg text-white text-sm"
           >
             <option value="viewer">ビューアー</option>
             <option value="analyst">アナリスト</option>
@@ -1052,13 +1052,13 @@ function UserManagement() {
             <button
               onClick={() => create.mutate(form)}
               disabled={create.isPending || !form.email || !form.password}
-              className="flex-1 py-2 bg-[#1a6bff] hover:bg-[#1557d4] text-white text-sm rounded-lg disabled:opacity-50"
+              className="flex-1 py-2 bg-falcon-blue hover:bg-[#1557d4] text-white text-sm rounded-lg disabled:opacity-50"
             >
               作成
             </button>
             <button
               onClick={() => setShowForm(false)}
-              className="px-4 py-2 bg-[#1e2d42] hover:bg-[#19253d] text-white text-sm rounded-lg"
+              className="px-4 py-2 bg-falcon-border hover:bg-falcon-hover text-white text-sm rounded-lg"
             >
               キャンセル
             </button>

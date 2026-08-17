@@ -219,7 +219,7 @@ function ComponentTypeBadge({ type }: { type: ComponentType }) {
     dataflow: { label: 'データフロー', color: 'bg-purple-900/30 text-purple-400' },
   }
   const { label, color } = map[type]
-  return <span className={`px-2 py-0.5 rounded text-xs ${color}`}>{label}</span>
+  return <span className={`px-2 py-0.5 rounded-sm text-xs ${color}`}>{label}</span>
 }
 
 function StatusBadge({ status }: { status: RiskStatus }) {
@@ -261,11 +261,11 @@ function STRIDETab({ model }: { model: ThreatModel }) {
                 onClick={() => setSelectedComponent(comp.id)}
                 className={`flex items-center gap-2.5 p-3 rounded-xl border transition-all text-left ${
                   selectedComponent === comp.id
-                    ? 'bg-[#1d2f4a] border-[#e8002d]/50 text-white'
-                    : 'bg-[#0d1220] border-[#1e2d42] text-[#7d92b0] hover:border-[#2a3d5a] hover:text-white'
+                    ? 'bg-falcon-active border-falcon-red/50 text-white'
+                    : 'bg-falcon-surface border-falcon-border text-falcon-muted hover:border-[#2a3d5a] hover:text-white'
                 }`}
               >
-                <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
                   comp.type === 'external' ? 'bg-blue-900/40 text-blue-400'
                   : comp.type === 'process' ? 'bg-emerald-900/40 text-emerald-400'
                   : comp.type === 'datastore' ? 'bg-orange-900/40 text-orange-400'
@@ -276,7 +276,7 @@ function STRIDETab({ model }: { model: ThreatModel }) {
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-medium truncate">{comp.name}</p>
                   <div className="flex items-center gap-2 mt-0.5">
-                    <span className="text-xs text-[#3d5068]">{threatCount} 脅威</span>
+                    <span className="text-xs text-falcon-subtle">{threatCount} 脅威</span>
                     {highRisk > 0 && <span className="text-xs text-red-400">{highRisk} 高リスク</span>}
                   </div>
                 </div>
@@ -303,7 +303,7 @@ function STRIDETab({ model }: { model: ThreatModel }) {
                 <h3 className="text-white font-semibold">{selectedComp.name}</h3>
                 <div className="flex items-center gap-2">
                   <ComponentTypeBadge type={selectedComp.type} />
-                  <span className="text-xs text-[#7d92b0]">{selectedComp.description}</span>
+                  <span className="text-xs text-falcon-muted">{selectedComp.description}</span>
                 </div>
               </div>
             </div>
@@ -313,18 +313,18 @@ function STRIDETab({ model }: { model: ThreatModel }) {
                 const threats = compThreats.filter(t => t.category === cat)
                 const catInfo = STRIDE_LABELS[cat]
                 return (
-                  <div key={cat} className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
-                    <div className="flex items-center justify-between px-4 py-3 border-b border-[#1e2d42]">
+                  <div key={cat} className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
+                    <div className="flex items-center justify-between px-4 py-3 border-b border-falcon-border">
                       <div className="flex items-center gap-2">
-                        <span className={`px-2 py-0.5 rounded text-xs font-bold border ${catInfo.color}`}>{cat}</span>
+                        <span className={`px-2 py-0.5 rounded-sm text-xs font-bold border ${catInfo.color}`}>{cat}</span>
                         <span className="text-white text-sm font-medium">{catInfo.full}</span>
                       </div>
-                      <span className="text-xs text-[#7d92b0]">{threats.length} 脅威</span>
+                      <span className="text-xs text-falcon-muted">{threats.length} 脅威</span>
                     </div>
                     {threats.length === 0 ? (
-                      <div className="px-4 py-3 text-xs text-[#3d5068]">この脅威カテゴリに脅威はありません</div>
+                      <div className="px-4 py-3 text-xs text-falcon-subtle">この脅威カテゴリに脅威はありません</div>
                     ) : (
-                      <div className="divide-y divide-[#1e2d42]">
+                      <div className="divide-y divide-falcon-border">
                         {threats.map(threat => {
                           const score = threat.likelihood * threat.impact
                           return (
@@ -332,17 +332,17 @@ function STRIDETab({ model }: { model: ThreatModel }) {
                               <div className="flex items-start justify-between gap-3">
                                 <div className="flex-1 min-w-0">
                                   <p className="text-white text-sm">{threat.description}</p>
-                                  <p className="text-[#7d92b0] text-xs mt-1 truncate">{threat.mitigations}</p>
+                                  <p className="text-falcon-muted text-xs mt-1 truncate">{threat.mitigations}</p>
                                 </div>
-                                <div className="flex items-center gap-2 flex-shrink-0">
-                                  <div className={`px-2 py-1 rounded text-xs font-bold border ${riskColor(score)}`}>
+                                <div className="flex items-center gap-2 shrink-0">
+                                  <div className={`px-2 py-1 rounded-sm text-xs font-bold border ${riskColor(score)}`}>
                                     {score} ({riskLabel(score)})
                                   </div>
                                   <StatusBadge status={threat.status} />
-                                  <button onClick={() => setEditingThreat(threat)} className="p-1 rounded hover:bg-[#1e2d42] text-[#7d92b0] transition-colors"><Edit3 className="w-3.5 h-3.5" /></button>
+                                  <button onClick={() => setEditingThreat(threat)} className="p-1 rounded-sm hover:bg-falcon-border text-falcon-muted transition-colors"><Edit3 className="w-3.5 h-3.5" /></button>
                                 </div>
                               </div>
-                              <div className="flex items-center gap-4 mt-2 text-xs text-[#7d92b0]">
+                              <div className="flex items-center gap-4 mt-2 text-xs text-falcon-muted">
                                 <span>可能性: <span className="text-white">{threat.likelihood}/5</span></span>
                                 <span>影響: <span className="text-white">{threat.impact}/5</span></span>
                                 <span>リスクスコア: <span className={`font-bold ${score >= 12 ? 'text-red-400' : score >= 6 ? 'text-amber-400' : 'text-emerald-400'}`}>{score}</span></span>
@@ -362,34 +362,34 @@ function STRIDETab({ model }: { model: ThreatModel }) {
 
       {/* Edit Threat Modal */}
       {editingThreat && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 col-span-full">
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-2xl w-full max-w-lg shadow-2xl">
-            <div className="flex items-center justify-between px-6 py-5 border-b border-[#1e2d42]">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-50 p-4 col-span-full">
+          <div className="bg-falcon-surface border border-falcon-border rounded-2xl w-full max-w-lg shadow-2xl">
+            <div className="flex items-center justify-between px-6 py-5 border-b border-falcon-border">
               <h3 className="text-white font-semibold">脅威を編集</h3>
-              <button onClick={() => setEditingThreat(null)} className="text-[#7d92b0] hover:text-white"><X className="w-5 h-5" /></button>
+              <button onClick={() => setEditingThreat(null)} className="text-falcon-muted hover:text-white"><X className="w-5 h-5" /></button>
             </div>
             <div className="px-6 py-5 space-y-4">
               <div>
-                <label className="block text-xs text-[#7d92b0] mb-1.5">脅威の説明</label>
-                <textarea defaultValue={editingThreat.description} rows={3} className="w-full px-3 py-2 rounded-lg bg-[#070d19] border border-[#1e2d42] text-white text-sm focus:outline-none focus:border-[#7d92b0]/50 resize-none" />
+                <label className="block text-xs text-falcon-muted mb-1.5">脅威の説明</label>
+                <textarea defaultValue={editingThreat.description} rows={3} className="w-full px-3 py-2 rounded-lg bg-[#070d19] border border-falcon-border text-white text-sm focus:outline-hidden focus:border-falcon-muted/50 resize-none" />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs text-[#7d92b0] mb-1.5">可能性 (1-5)</label>
-                  <input type="number" min={1} max={5} defaultValue={editingThreat.likelihood} className="w-full px-3 py-2 rounded-lg bg-[#070d19] border border-[#1e2d42] text-white text-sm focus:outline-none" />
+                  <label className="block text-xs text-falcon-muted mb-1.5">可能性 (1-5)</label>
+                  <input type="number" min={1} max={5} defaultValue={editingThreat.likelihood} className="w-full px-3 py-2 rounded-lg bg-[#070d19] border border-falcon-border text-white text-sm focus:outline-hidden" />
                 </div>
                 <div>
-                  <label className="block text-xs text-[#7d92b0] mb-1.5">影響 (1-5)</label>
-                  <input type="number" min={1} max={5} defaultValue={editingThreat.impact} className="w-full px-3 py-2 rounded-lg bg-[#070d19] border border-[#1e2d42] text-white text-sm focus:outline-none" />
+                  <label className="block text-xs text-falcon-muted mb-1.5">影響 (1-5)</label>
+                  <input type="number" min={1} max={5} defaultValue={editingThreat.impact} className="w-full px-3 py-2 rounded-lg bg-[#070d19] border border-falcon-border text-white text-sm focus:outline-hidden" />
                 </div>
               </div>
               <div>
-                <label className="block text-xs text-[#7d92b0] mb-1.5">緩和策</label>
-                <textarea defaultValue={editingThreat.mitigations} rows={2} className="w-full px-3 py-2 rounded-lg bg-[#070d19] border border-[#1e2d42] text-white text-sm focus:outline-none resize-none" />
+                <label className="block text-xs text-falcon-muted mb-1.5">緩和策</label>
+                <textarea defaultValue={editingThreat.mitigations} rows={2} className="w-full px-3 py-2 rounded-lg bg-[#070d19] border border-falcon-border text-white text-sm focus:outline-hidden resize-none" />
               </div>
               <div>
-                <label className="block text-xs text-[#7d92b0] mb-1.5">ステータス</label>
-                <select defaultValue={editingThreat.status} className="w-full px-3 py-2 rounded-lg bg-[#070d19] border border-[#1e2d42] text-white text-sm focus:outline-none">
+                <label className="block text-xs text-falcon-muted mb-1.5">ステータス</label>
+                <select defaultValue={editingThreat.status} className="w-full px-3 py-2 rounded-lg bg-[#070d19] border border-falcon-border text-white text-sm focus:outline-hidden">
                   <option value="identified">識別済み</option>
                   <option value="mitigated">緩和済み</option>
                   <option value="accepted">受容</option>
@@ -397,9 +397,9 @@ function STRIDETab({ model }: { model: ThreatModel }) {
                 </select>
               </div>
             </div>
-            <div className="px-6 py-4 border-t border-[#1e2d42] flex justify-end gap-3">
-              <button onClick={() => setEditingThreat(null)} className="px-4 py-2 rounded-lg border border-[#1e2d42] text-[#7d92b0] hover:text-white text-sm transition-colors">キャンセル</button>
-              <button onClick={() => setEditingThreat(null)} className="px-4 py-2 rounded-lg bg-[#e8002d] hover:bg-[#c8001d] text-white text-sm font-medium transition-colors">保存</button>
+            <div className="px-6 py-4 border-t border-falcon-border flex justify-end gap-3">
+              <button onClick={() => setEditingThreat(null)} className="px-4 py-2 rounded-lg border border-falcon-border text-falcon-muted hover:text-white text-sm transition-colors">キャンセル</button>
+              <button onClick={() => setEditingThreat(null)} className="px-4 py-2 rounded-lg bg-falcon-red hover:bg-[#c8001d] text-white text-sm font-medium transition-colors">保存</button>
             </div>
           </div>
         </div>
@@ -434,15 +434,15 @@ function PASTATab({ pasta }: { pasta: PASTAData }) {
               key={stage.n}
               onClick={() => setCurrentStage(stage.n)}
               className={`w-full flex items-center gap-3 p-3 rounded-xl text-left transition-all ${
-                currentStage === stage.n ? 'bg-[#1d2f4a] border border-[#e8002d]/30' : 'hover:bg-[#1e2d42]/30'
+                currentStage === stage.n ? 'bg-falcon-active border border-falcon-red/30' : 'hover:bg-falcon-border/30'
               }`}
             >
-              <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${
-                currentStage === stage.n ? 'bg-[#e8002d] text-white' : 'bg-[#1e2d42] text-[#7d92b0]'
+              <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
+                currentStage === stage.n ? 'bg-falcon-red text-white' : 'bg-falcon-border text-falcon-muted'
               }`}>{stage.n}</div>
               <div>
-                <p className={`text-sm font-medium ${currentStage === stage.n ? 'text-white' : 'text-[#7d92b0]'}`}>{stage.title}</p>
-                <p className="text-xs text-[#3d5068]">{stage.subtitle}</p>
+                <p className={`text-sm font-medium ${currentStage === stage.n ? 'text-white' : 'text-falcon-muted'}`}>{stage.title}</p>
+                <p className="text-xs text-falcon-subtle">{stage.subtitle}</p>
               </div>
             </button>
           ))}
@@ -455,8 +455,8 @@ function PASTATab({ pasta }: { pasta: PASTAData }) {
           <div className="space-y-4">
             <h3 className="text-white font-semibold">ステージ1: 目標定義</h3>
             <div>
-              <label className="block text-xs text-[#7d92b0] mb-2">ビジネス目標・セキュリティ要件</label>
-              <textarea defaultValue={pasta.objectives} rows={6} className="w-full px-4 py-3 rounded-xl bg-[#070d19] border border-[#1e2d42] text-white text-sm focus:outline-none focus:border-[#7d92b0]/50 resize-none" />
+              <label className="block text-xs text-falcon-muted mb-2">ビジネス目標・セキュリティ要件</label>
+              <textarea defaultValue={pasta.objectives} rows={6} className="w-full px-4 py-3 rounded-xl bg-[#070d19] border border-falcon-border text-white text-sm focus:outline-hidden focus:border-falcon-muted/50 resize-none" />
             </div>
           </div>
         )}
@@ -465,13 +465,13 @@ function PASTATab({ pasta }: { pasta: PASTAData }) {
             <h3 className="text-white font-semibold">ステージ2: 技術スコープ</h3>
             <div className="space-y-2">
               {pasta.scope_components.map((comp, i) => (
-                <div key={i} className="flex items-center gap-3 p-3 rounded-xl bg-[#0d1220] border border-[#1e2d42]">
-                  <div className="w-6 h-6 rounded-full bg-[#e8002d]/20 flex items-center justify-center text-xs text-[#e8002d] font-bold">{i + 1}</div>
+                <div key={i} className="flex items-center gap-3 p-3 rounded-xl bg-falcon-surface border border-falcon-border">
+                  <div className="w-6 h-6 rounded-full bg-falcon-red/20 flex items-center justify-center text-xs text-falcon-red font-bold">{i + 1}</div>
                   <span className="text-white text-sm flex-1">{comp}</span>
-                  <button className="p-1 rounded hover:bg-[#1e2d42] text-[#7d92b0] transition-colors"><Trash2 className="w-3.5 h-3.5" /></button>
+                  <button className="p-1 rounded-sm hover:bg-falcon-border text-falcon-muted transition-colors"><Trash2 className="w-3.5 h-3.5" /></button>
                 </div>
               ))}
-              <button className="w-full py-2.5 rounded-xl border border-dashed border-[#1e2d42] text-[#7d92b0] hover:text-white hover:border-[#7d92b0]/50 text-sm transition-colors flex items-center justify-center gap-2">
+              <button className="w-full py-2.5 rounded-xl border border-dashed border-falcon-border text-falcon-muted hover:text-white hover:border-falcon-muted/50 text-sm transition-colors flex items-center justify-center gap-2">
                 <Plus className="w-4 h-4" />コンポーネントを追加
               </button>
             </div>
@@ -480,7 +480,7 @@ function PASTATab({ pasta }: { pasta: PASTAData }) {
         {currentStage === 3 && (
           <div className="space-y-4">
             <h3 className="text-white font-semibold">ステージ3: アプリケーション分解</h3>
-            <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-6">
+            <div className="bg-falcon-surface border border-falcon-border rounded-xl p-6">
               <div className="flex items-center justify-between">
                 <div className="text-center">
                   <div className="w-16 h-16 rounded-xl bg-blue-900/30 border border-blue-700/30 flex flex-col items-center justify-center">
@@ -490,9 +490,9 @@ function PASTATab({ pasta }: { pasta: PASTAData }) {
                 </div>
                 <div className="flex-1 flex items-center justify-center">
                   <div className="flex items-center gap-2">
-                    <div className="h-px w-12 bg-[#e8002d]/50" />
-                    <div className="text-xs text-[#e8002d] bg-[#e8002d]/10 px-2 py-0.5 rounded border border-[#e8002d]/30">HTTPS</div>
-                    <div className="h-px w-12 bg-[#e8002d]/50" />
+                    <div className="h-px w-12 bg-falcon-red/50" />
+                    <div className="text-xs text-falcon-red bg-falcon-red/10 px-2 py-0.5 rounded-sm border border-falcon-red/30">HTTPS</div>
+                    <div className="h-px w-12 bg-falcon-red/50" />
                   </div>
                 </div>
                 <div className="text-center">
@@ -503,9 +503,9 @@ function PASTATab({ pasta }: { pasta: PASTAData }) {
                 </div>
                 <div className="flex-1 flex items-center justify-center">
                   <div className="flex items-center gap-2">
-                    <div className="h-px w-8 bg-[#1e2d42]" />
-                    <ArrowRight className="w-4 h-4 text-[#7d92b0]" />
-                    <div className="h-px w-8 bg-[#1e2d42]" />
+                    <div className="h-px w-8 bg-falcon-border" />
+                    <ArrowRight className="w-4 h-4 text-falcon-muted" />
+                    <div className="h-px w-8 bg-falcon-border" />
                   </div>
                 </div>
                 <div className="text-center">
@@ -515,7 +515,7 @@ function PASTATab({ pasta }: { pasta: PASTAData }) {
                   </div>
                 </div>
               </div>
-              <p className="text-center text-xs text-[#3d5068] mt-4">データフロー図 (簡易表示)</p>
+              <p className="text-center text-xs text-falcon-subtle mt-4">データフロー図 (簡易表示)</p>
             </div>
           </div>
         )}
@@ -524,12 +524,12 @@ function PASTATab({ pasta }: { pasta: PASTAData }) {
             <h3 className="text-white font-semibold">ステージ4: 脅威分析</h3>
             <div className="space-y-2">
               {pasta.threats.map(threat => (
-                <div key={threat.id} className="p-4 rounded-xl bg-[#0d1220] border border-[#1e2d42]">
+                <div key={threat.id} className="p-4 rounded-xl bg-falcon-surface border border-falcon-border">
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="px-2 py-0.5 rounded text-xs bg-red-900/30 text-red-400 border border-red-700/30">{threat.tactic}</span>
+                    <span className="px-2 py-0.5 rounded-sm text-xs bg-red-900/30 text-red-400 border border-red-700/30">{threat.tactic}</span>
                     <span className="text-white font-medium text-sm">{threat.name}</span>
                   </div>
-                  <p className="text-[#7d92b0] text-xs">{threat.description}</p>
+                  <p className="text-falcon-muted text-xs">{threat.description}</p>
                 </div>
               ))}
             </div>
@@ -543,7 +543,7 @@ function PASTATab({ pasta }: { pasta: PASTAData }) {
                 <Eye className="w-4 h-4 text-blue-400" />
                 <span className="text-blue-400 text-sm font-medium">脆弱性スキャナーとの連携</span>
               </div>
-              <p className="text-[#7d92b0] text-xs">脆弱性管理モジュールから最新のスキャン結果を参照してください。CVSS 7.0以上の脆弱性が4件検出されています。</p>
+              <p className="text-falcon-muted text-xs">脆弱性管理モジュールから最新のスキャン結果を参照してください。CVSS 7.0以上の脆弱性が4件検出されています。</p>
               <a href="/vulnerabilities" className="inline-flex items-center gap-1.5 mt-3 text-xs text-blue-400 hover:text-blue-300 transition-colors">
                 <ArrowRight className="w-3.5 h-3.5" />
                 脆弱性管理ページへ
@@ -556,24 +556,24 @@ function PASTATab({ pasta }: { pasta: PASTAData }) {
             <h3 className="text-white font-semibold">ステージ6: 攻撃モデリング</h3>
             <div className="space-y-3">
               {pasta.attack_trees.map(tree => (
-                <div key={tree.id} className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
+                <div key={tree.id} className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
                   <button
-                    className="w-full flex items-center justify-between px-4 py-3 hover:bg-[#1e2d42]/20 transition-colors"
+                    className="w-full flex items-center justify-between px-4 py-3 hover:bg-falcon-border/20 transition-colors"
                     onClick={() => setExpandedTrees(prev => { const n = new Set(prev); n.has(tree.id) ? n.delete(tree.id) : n.add(tree.id); return n })}
                   >
                     <div className="flex items-center gap-2">
                       <AlertTriangle className="w-4 h-4 text-amber-400" />
                       <span className="text-white font-medium text-sm">{tree.name}</span>
                     </div>
-                    {expandedTrees.has(tree.id) ? <ChevronDown className="w-4 h-4 text-[#7d92b0]" /> : <ChevronRight className="w-4 h-4 text-[#7d92b0]" />}
+                    {expandedTrees.has(tree.id) ? <ChevronDown className="w-4 h-4 text-falcon-muted" /> : <ChevronRight className="w-4 h-4 text-falcon-muted" />}
                   </button>
                   {expandedTrees.has(tree.id) && (
-                    <div className="border-t border-[#1e2d42] p-4 space-y-2">
+                    <div className="border-t border-falcon-border p-4 space-y-2">
                       {tree.children.map((child, i) => (
                         <div key={i} className="flex items-center gap-3 ml-6">
-                          <div className="w-px h-4 bg-[#1e2d42]" />
-                          <ChevronRight className="w-3 h-3 text-[#3d5068]" />
-                          <span className="text-[#7d92b0] text-sm flex-1">{child.name}</span>
+                          <div className="w-px h-4 bg-falcon-border" />
+                          <ChevronRight className="w-3 h-3 text-falcon-subtle" />
+                          <span className="text-falcon-muted text-sm flex-1">{child.name}</span>
                           <span className={`text-xs px-2 py-0.5 rounded ${
                             child.likelihood === '高' ? 'bg-red-900/30 text-red-400' :
                             child.likelihood === '中' ? 'bg-amber-900/30 text-amber-400' : 'bg-emerald-900/30 text-emerald-400'
@@ -590,29 +590,29 @@ function PASTATab({ pasta }: { pasta: PASTAData }) {
         {currentStage === 7 && (
           <div className="space-y-4">
             <h3 className="text-white font-semibold">ステージ7: リスク分析</h3>
-            <div className="overflow-auto rounded-xl border border-[#1e2d42]">
+            <div className="overflow-auto rounded-xl border border-falcon-border">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="bg-[#0d1220] border-b border-[#1e2d42]">
-                    <th className="text-left px-4 py-3 text-[#7d92b0] font-medium">脅威</th>
-                    <th className="text-center px-4 py-3 text-[#7d92b0] font-medium">可能性</th>
-                    <th className="text-center px-4 py-3 text-[#7d92b0] font-medium">影響</th>
-                    <th className="text-center px-4 py-3 text-[#7d92b0] font-medium">スコア</th>
-                    <th className="text-left px-4 py-3 text-[#7d92b0] font-medium">緩和策</th>
+                  <tr className="bg-falcon-surface border-b border-falcon-border">
+                    <th className="text-left px-4 py-3 text-falcon-muted font-medium">脅威</th>
+                    <th className="text-center px-4 py-3 text-falcon-muted font-medium">可能性</th>
+                    <th className="text-center px-4 py-3 text-falcon-muted font-medium">影響</th>
+                    <th className="text-center px-4 py-3 text-falcon-muted font-medium">スコア</th>
+                    <th className="text-left px-4 py-3 text-falcon-muted font-medium">緩和策</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#1e2d42] bg-[#070d19]">
+                <tbody className="divide-y divide-falcon-border bg-[#070d19]">
                   {pasta.risks.map(risk => {
                     const score = risk.likelihood * risk.impact
                     return (
-                      <tr key={risk.id} className="hover:bg-[#1e2d42]/20 transition-colors">
+                      <tr key={risk.id} className="hover:bg-falcon-border/20 transition-colors">
                         <td className="px-4 py-3 text-white">{risk.threat}</td>
-                        <td className="px-4 py-3 text-center text-[#7d92b0]">{risk.likelihood}/5</td>
-                        <td className="px-4 py-3 text-center text-[#7d92b0]">{risk.impact}/5</td>
+                        <td className="px-4 py-3 text-center text-falcon-muted">{risk.likelihood}/5</td>
+                        <td className="px-4 py-3 text-center text-falcon-muted">{risk.impact}/5</td>
                         <td className="px-4 py-3 text-center">
-                          <span className={`px-2 py-0.5 rounded text-xs font-bold border ${riskColor(score)}`}>{score}</span>
+                          <span className={`px-2 py-0.5 rounded-sm text-xs font-bold border ${riskColor(score)}`}>{score}</span>
                         </td>
-                        <td className="px-4 py-3 text-[#7d92b0] text-xs max-w-xs truncate">{risk.mitigation}</td>
+                        <td className="px-4 py-3 text-falcon-muted text-xs max-w-xs truncate">{risk.mitigation}</td>
                       </tr>
                     )
                   })}
@@ -665,21 +665,21 @@ function DREADTab({ threats }: { threats: DREADThreat[] }) {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h3 className="text-white font-semibold">DREADスコアリング</h3>
-        <button onClick={exportCSV} className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#1e2d42] hover:bg-[#2a3d5a] text-white text-sm transition-colors">
+        <button onClick={exportCSV} className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-falcon-border hover:bg-[#2a3d5a] text-white text-sm transition-colors">
           <Download className="w-4 h-4" />
           CSV出力
         </button>
       </div>
-      <div className="overflow-auto rounded-xl border border-[#1e2d42]">
+      <div className="overflow-auto rounded-xl border border-falcon-border">
         <table className="w-full text-sm">
           <thead>
-            <tr className="bg-[#0d1220] border-b border-[#1e2d42]">
-              <th className="text-left px-4 py-3 text-[#7d92b0] font-medium">脅威名</th>
+            <tr className="bg-falcon-surface border-b border-falcon-border">
+              <th className="text-left px-4 py-3 text-falcon-muted font-medium">脅威名</th>
               {cols.map(col => (
                 <th key={col.key}>
                   <button
                     onClick={() => handleSort(col.key)}
-                    className={`w-full px-3 py-3 text-center font-medium transition-colors hover:text-white ${sortField === col.key ? 'text-[#e8002d]' : 'text-[#7d92b0]'}`}
+                    className={`w-full px-3 py-3 text-center font-medium transition-colors hover:text-white ${sortField === col.key ? 'text-falcon-red' : 'text-falcon-muted'}`}
                   >
                     {col.label} {sortField === col.key ? (sortDir === 'desc' ? '↓' : '↑') : ''}
                   </button>
@@ -687,9 +687,9 @@ function DREADTab({ threats }: { threats: DREADThreat[] }) {
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-[#1e2d42] bg-[#070d19]">
+          <tbody className="divide-y divide-falcon-border bg-[#070d19]">
             {sorted.map(t => (
-              <tr key={t.id} className="hover:bg-[#1e2d42]/20 transition-colors">
+              <tr key={t.id} className="hover:bg-falcon-border/20 transition-colors">
                 <td className="px-4 py-3 text-white font-medium">{t.name}</td>
                 {[t.damage, t.reproducibility, t.exploitability, t.affected_users, t.discoverability].map((val, i) => (
                   <td key={i} className="px-3 py-3 text-center">
@@ -697,14 +697,14 @@ function DREADTab({ threats }: { threats: DREADThreat[] }) {
                   </td>
                 ))}
                 <td className="px-3 py-3 text-center">
-                  <span className={`px-2 py-1 rounded text-xs font-bold border ${riskColor(t.total * 1.2)}`}>{t.total}</span>
+                  <span className={`px-2 py-1 rounded-sm text-xs font-bold border ${riskColor(t.total * 1.2)}`}>{t.total}</span>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
-      <div className="text-xs text-[#7d92b0] p-3 rounded-lg bg-[#0d1220] border border-[#1e2d42]">
+      <div className="text-xs text-falcon-muted p-3 rounded-lg bg-falcon-surface border border-falcon-border">
         <strong className="text-white">D</strong> Damage (被害) · <strong className="text-white">R</strong> Reproducibility (再現性) · <strong className="text-white">E</strong> Exploitability (悪用可能性) · <strong className="text-white">A</strong> Affected Users (影響ユーザー) · <strong className="text-white">D2</strong> Discoverability (発見可能性) — 各項目1-10で評価
       </div>
     </div>
@@ -719,21 +719,21 @@ function LINDDUNTab({ threats, components }: { threats: LINDDUNThreat[]; compone
   return (
     <div className="space-y-4">
       <h3 className="text-white font-semibold">LINDDUNプライバシー脅威分析</h3>
-      <div className="overflow-auto rounded-xl border border-[#1e2d42]">
+      <div className="overflow-auto rounded-xl border border-falcon-border">
         <table className="w-full text-sm">
           <thead>
-            <tr className="bg-[#0d1220] border-b border-[#1e2d42]">
-              <th className="text-left px-4 py-3 text-[#7d92b0] font-medium">コンポーネント</th>
+            <tr className="bg-falcon-surface border-b border-falcon-border">
+              <th className="text-left px-4 py-3 text-falcon-muted font-medium">コンポーネント</th>
               {categories.map(cat => (
                 <th key={cat} className="px-3 py-3 text-center">
-                  <div className="text-[#7d92b0] font-bold">{cat}</div>
+                  <div className="text-falcon-muted font-bold">{cat}</div>
                 </th>
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-[#1e2d42] bg-[#070d19]">
+          <tbody className="divide-y divide-falcon-border bg-[#070d19]">
             {components.map(comp => (
-              <tr key={comp.id} className="hover:bg-[#1e2d42]/20 transition-colors">
+              <tr key={comp.id} className="hover:bg-falcon-border/20 transition-colors">
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-2">
                     <ComponentIcon type={comp.type} />
@@ -749,15 +749,15 @@ function LINDDUNTab({ threats, components }: { threats: LINDDUNThreat[]; compone
                           <div className="w-6 h-6 rounded-full bg-red-900/40 border border-red-700/40 flex items-center justify-center mx-auto cursor-help">
                             <AlertTriangle className="w-3 h-3 text-red-400" />
                           </div>
-                          <div className="absolute z-10 bottom-8 left-1/2 -translate-x-1/2 w-64 p-3 rounded-xl bg-[#0d1220] border border-[#1e2d42] text-left hidden group-hover:block shadow-2xl">
+                          <div className="absolute z-10 bottom-8 left-1/2 -translate-x-1/2 w-64 p-3 rounded-xl bg-falcon-surface border border-falcon-border text-left hidden group-hover:block shadow-2xl">
                             <p className="text-white text-xs font-medium mb-1">{LINDDUN_LABELS[cat].full}</p>
-                            <p className="text-[#7d92b0] text-xs mb-2">{threat.description}</p>
+                            <p className="text-falcon-muted text-xs mb-2">{threat.description}</p>
                             <p className="text-emerald-400 text-xs"><strong>緩和策:</strong> {threat.mitigation}</p>
                           </div>
                         </div>
                       ) : (
-                        <div className="w-6 h-6 rounded-full bg-[#1e2d42] flex items-center justify-center mx-auto">
-                          <div className="w-1.5 h-1.5 rounded-full bg-[#3d5068]" />
+                        <div className="w-6 h-6 rounded-full bg-falcon-border flex items-center justify-center mx-auto">
+                          <div className="w-1.5 h-1.5 rounded-full bg-falcon-subtle" />
                         </div>
                       )}
                     </td>
@@ -770,9 +770,9 @@ function LINDDUNTab({ threats, components }: { threats: LINDDUNThreat[]; compone
       </div>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
         {Object.entries(LINDDUN_LABELS).map(([key, val]) => (
-          <div key={key} className="p-2.5 rounded-lg bg-[#0d1220] border border-[#1e2d42]">
-            <span className="text-[#e8002d] font-bold text-xs">{key}</span>
-            <p className="text-[#7d92b0] text-[10px] mt-0.5">{val.full}</p>
+          <div key={key} className="p-2.5 rounded-lg bg-falcon-surface border border-falcon-border">
+            <span className="text-falcon-red font-bold text-xs">{key}</span>
+            <p className="text-falcon-muted text-[10px] mt-0.5">{val.full}</p>
           </div>
         ))}
       </div>
@@ -818,38 +818,38 @@ export default function AdvancedThreatModelingPage() {
   const methodologies: Methodology[] = ['STRIDE', 'PASTA', 'DREAD', 'LINDDUN']
 
   return (
-    <div className="min-h-screen bg-[#070d19] text-[#7d92b0]">
+    <div className="min-h-screen bg-[#070d19] text-falcon-muted">
       <div className="max-w-7xl mx-auto px-6 py-6 space-y-6">
 
         {/* Header */}
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-[#e8002d] to-[#a80020] flex items-center justify-center shadow-lg">
+            <div className="w-10 h-10 rounded-lg bg-linear-to-br from-falcon-red to-falcon-red-dark flex items-center justify-center shadow-lg">
               <Brain className="w-5 h-5 text-white" />
             </div>
             <div>
               <h1 className="text-2xl font-bold text-white">高度脅威モデリング</h1>
-              <p className="text-sm text-[#7d92b0]">STRIDE · PASTA · DREAD · LINDDUN マルチメソドロジー対応</p>
+              <p className="text-sm text-falcon-muted">STRIDE · PASTA · DREAD · LINDDUN マルチメソドロジー対応</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
             <button
               onClick={() => setLoadModal(true)}
-              className="flex items-center gap-2 px-3 py-2 rounded-lg border border-[#1e2d42] text-[#7d92b0] hover:text-white text-sm transition-colors"
+              className="flex items-center gap-2 px-3 py-2 rounded-lg border border-falcon-border text-falcon-muted hover:text-white text-sm transition-colors"
             >
               <Upload className="w-4 h-4" />
               読み込み
             </button>
             <button
               onClick={exportJSON}
-              className="flex items-center gap-2 px-3 py-2 rounded-lg border border-[#1e2d42] text-[#7d92b0] hover:text-white text-sm transition-colors"
+              className="flex items-center gap-2 px-3 py-2 rounded-lg border border-falcon-border text-falcon-muted hover:text-white text-sm transition-colors"
             >
               <Download className="w-4 h-4" />
               JSONエクスポート
             </button>
             <button
               onClick={() => setSaveModal(true)}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#e8002d] hover:bg-[#c8001d] text-white text-sm font-medium transition-colors"
+              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-falcon-red hover:bg-[#c8001d] text-white text-sm font-medium transition-colors"
             >
               <Save className="w-4 h-4" />
               保存
@@ -858,40 +858,40 @@ export default function AdvancedThreatModelingPage() {
         </div>
 
         {/* Model Info */}
-        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-4">
+        <div className="bg-falcon-surface border border-falcon-border rounded-xl p-4">
           <div className="flex items-center gap-6 flex-wrap">
             <div>
-              <label className="block text-xs text-[#7d92b0] mb-1">モデル名</label>
+              <label className="block text-xs text-falcon-muted mb-1">モデル名</label>
               <input
                 value={modelName}
                 onChange={e => setModelName(e.target.value)}
-                className="px-3 py-1.5 rounded-lg bg-[#070d19] border border-[#1e2d42] text-white text-sm focus:outline-none focus:border-[#7d92b0]/50 w-80"
+                className="px-3 py-1.5 rounded-lg bg-[#070d19] border border-falcon-border text-white text-sm focus:outline-hidden focus:border-falcon-muted/50 w-80"
               />
             </div>
             <div>
-              <label className="block text-xs text-[#7d92b0] mb-1">作成者</label>
+              <label className="block text-xs text-falcon-muted mb-1">作成者</label>
               <p className="text-white text-sm">{displayUser(activeModel.created_by)}</p>
             </div>
             <div>
-              <label className="block text-xs text-[#7d92b0] mb-1">最終更新</label>
-              <p className="text-white text-sm flex items-center gap-1.5"><Clock className="w-3.5 h-3.5 text-[#7d92b0]" />{formatDate(activeModel.last_modified)}</p>
+              <label className="block text-xs text-falcon-muted mb-1">最終更新</label>
+              <p className="text-white text-sm flex items-center gap-1.5"><Clock className="w-3.5 h-3.5 text-falcon-muted" />{formatDate(activeModel.last_modified)}</p>
             </div>
             <div className="ml-auto flex items-center gap-3 text-sm">
-              <span className="text-[#7d92b0]">{activeModel.components.length} コンポーネント</span>
-              <span className="text-[#7d92b0]">{activeModel.stride_threats.length} STRIDE脅威</span>
-              <span className="text-[#7d92b0]">{activeModel.dread_threats.length} DREAD脅威</span>
+              <span className="text-falcon-muted">{activeModel.components.length} コンポーネント</span>
+              <span className="text-falcon-muted">{activeModel.stride_threats.length} STRIDE脅威</span>
+              <span className="text-falcon-muted">{activeModel.dread_threats.length} DREAD脅威</span>
             </div>
           </div>
         </div>
 
         {/* Methodology Tabs */}
-        <div className="flex gap-1 border-b border-[#1e2d42]">
+        <div className="flex gap-1 border-b border-falcon-border">
           {methodologies.map(m => (
             <button
               key={m}
               onClick={() => setMethodology(m)}
               className={`px-5 py-2.5 text-sm font-semibold transition-colors border-b-2 -mb-px ${
-                methodology === m ? 'border-[#e8002d] text-white' : 'border-transparent text-[#7d92b0] hover:text-white'
+                methodology === m ? 'border-falcon-red text-white' : 'border-transparent text-falcon-muted hover:text-white'
               }`}
             >
               {m}
@@ -908,29 +908,29 @@ export default function AdvancedThreatModelingPage() {
 
       {/* Save Modal */}
       {saveModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-2xl w-full max-w-md shadow-2xl">
-            <div className="flex items-center justify-between px-6 py-5 border-b border-[#1e2d42]">
-              <h3 className="text-white font-semibold flex items-center gap-2"><Save className="w-4 h-4 text-[#e8002d]" />モデルを保存</h3>
-              <button onClick={() => setSaveModal(false)} className="text-[#7d92b0] hover:text-white"><X className="w-5 h-5" /></button>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-50 p-4">
+          <div className="bg-falcon-surface border border-falcon-border rounded-2xl w-full max-w-md shadow-2xl">
+            <div className="flex items-center justify-between px-6 py-5 border-b border-falcon-border">
+              <h3 className="text-white font-semibold flex items-center gap-2"><Save className="w-4 h-4 text-falcon-red" />モデルを保存</h3>
+              <button onClick={() => setSaveModal(false)} className="text-falcon-muted hover:text-white"><X className="w-5 h-5" /></button>
             </div>
             <div className="px-6 py-5 space-y-4">
               <div>
-                <label className="block text-xs text-[#7d92b0] mb-1.5">モデル名</label>
-                <input value={modelName} onChange={e => setModelName(e.target.value)} className="w-full px-3 py-2 rounded-lg bg-[#070d19] border border-[#1e2d42] text-white text-sm focus:outline-none" />
+                <label className="block text-xs text-falcon-muted mb-1.5">モデル名</label>
+                <input value={modelName} onChange={e => setModelName(e.target.value)} className="w-full px-3 py-2 rounded-lg bg-[#070d19] border border-falcon-border text-white text-sm focus:outline-hidden" />
               </div>
-              <div className="p-3 rounded-lg bg-[#1e2d42]/40 text-xs text-[#7d92b0] space-y-1">
+              <div className="p-3 rounded-lg bg-falcon-border/40 text-xs text-falcon-muted space-y-1">
                 <p><span className="text-white">{activeModel.stride_threats.length}</span> STRIDE脅威</p>
                 <p><span className="text-white">{activeModel.dread_threats.length}</span> DREAD脅威</p>
                 <p><span className="text-white">{activeModel.linddun_threats.length}</span> LINDDUN脅威</p>
               </div>
             </div>
-            <div className="px-6 py-4 border-t border-[#1e2d42] flex justify-end gap-3">
-              <button onClick={() => setSaveModal(false)} className="px-4 py-2 rounded-lg border border-[#1e2d42] text-[#7d92b0] hover:text-white text-sm transition-colors">キャンセル</button>
+            <div className="px-6 py-4 border-t border-falcon-border flex justify-end gap-3">
+              <button onClick={() => setSaveModal(false)} className="px-4 py-2 rounded-lg border border-falcon-border text-falcon-muted hover:text-white text-sm transition-colors">キャンセル</button>
               <button
                 onClick={() => saveMutation.mutate({ ...activeModel, name: modelName })}
                 disabled={saveMutation.isPending}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#e8002d] hover:bg-[#c8001d] text-white text-sm font-medium transition-colors disabled:opacity-50"
+                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-falcon-red hover:bg-[#c8001d] text-white text-sm font-medium transition-colors disabled:opacity-50"
               >
                 {saveMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                 保存
@@ -942,11 +942,11 @@ export default function AdvancedThreatModelingPage() {
 
       {/* Load Modal */}
       {loadModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-2xl w-full max-w-md shadow-2xl">
-            <div className="flex items-center justify-between px-6 py-5 border-b border-[#1e2d42]">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-50 p-4">
+          <div className="bg-falcon-surface border border-falcon-border rounded-2xl w-full max-w-md shadow-2xl">
+            <div className="flex items-center justify-between px-6 py-5 border-b border-falcon-border">
               <h3 className="text-white font-semibold">モデルを読み込む</h3>
-              <button onClick={() => setLoadModal(false)} className="text-[#7d92b0] hover:text-white"><X className="w-5 h-5" /></button>
+              <button onClick={() => setLoadModal(false)} className="text-falcon-muted hover:text-white"><X className="w-5 h-5" /></button>
             </div>
             <div className="px-6 py-5 space-y-2">
               {[
@@ -957,18 +957,18 @@ export default function AdvancedThreatModelingPage() {
                 <button
                   key={i}
                   onClick={() => setLoadModal(false)}
-                  className="w-full flex items-center justify-between p-3 rounded-xl bg-[#070d19] border border-[#1e2d42] hover:border-[#7d92b0]/40 text-left transition-colors"
+                  className="w-full flex items-center justify-between p-3 rounded-xl bg-[#070d19] border border-falcon-border hover:border-falcon-muted/40 text-left transition-colors"
                 >
                   <div>
                     <p className="text-white text-sm font-medium">{m.name}</p>
-                    <p className="text-xs text-[#7d92b0] mt-0.5">{m.by} · {m.date}</p>
+                    <p className="text-xs text-falcon-muted mt-0.5">{m.by} · {m.date}</p>
                   </div>
-                  <ChevronRight className="w-4 h-4 text-[#7d92b0]" />
+                  <ChevronRight className="w-4 h-4 text-falcon-muted" />
                 </button>
               ))}
             </div>
-            <div className="px-6 py-4 border-t border-[#1e2d42] flex justify-end">
-              <button onClick={() => setLoadModal(false)} className="px-4 py-2 rounded-lg border border-[#1e2d42] text-[#7d92b0] hover:text-white text-sm transition-colors">閉じる</button>
+            <div className="px-6 py-4 border-t border-falcon-border flex justify-end">
+              <button onClick={() => setLoadModal(false)} className="px-4 py-2 rounded-lg border border-falcon-border text-falcon-muted hover:text-white text-sm transition-colors">閉じる</button>
             </div>
           </div>
         </div>

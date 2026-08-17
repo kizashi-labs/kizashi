@@ -144,7 +144,7 @@ export default function ReportSchedulesPage() {
         <div className="flex flex-col gap-1">
           <label className="text-xs text-[#8899aa]">曜日</label>
           <select
-            className="bg-[#161f33] border border-[#1e2d42] rounded px-2 py-1.5 text-sm text-white"
+            className="bg-falcon-raised border border-falcon-border rounded-sm px-2 py-1.5 text-sm text-white"
             value={f.day_of_week}
             onChange={e => setF({ ...f, day_of_week: Number(e.target.value) })}
           >
@@ -157,7 +157,7 @@ export default function ReportSchedulesPage() {
           <label className="text-xs text-[#8899aa]">日付</label>
           <input
             type="number" min={1} max={28}
-            className="bg-[#161f33] border border-[#1e2d42] rounded px-2 py-1.5 text-sm text-white w-20"
+            className="bg-falcon-raised border border-falcon-border rounded-sm px-2 py-1.5 text-sm text-white w-20"
             value={f.day_of_month}
             onChange={e => setF({ ...f, day_of_month: Number(e.target.value) })}
           />
@@ -167,7 +167,7 @@ export default function ReportSchedulesPage() {
   )
 
   return (
-    <div className="bg-[#080c14] text-white">
+    <div className="bg-falcon-bg text-white">
       <div className="max-w-5xl mx-auto px-6 py-8">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
@@ -180,7 +180,7 @@ export default function ReportSchedulesPage() {
           </div>
           <button
             onClick={() => setShowCreate(true)}
-            className="flex items-center gap-2 bg-[#1a6bff] hover:bg-[#1557d4] text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+            className="flex items-center gap-2 bg-falcon-blue hover:bg-[#1557d4] text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
           >
             <Plus className="w-4 h-4" />
             新規スケジュール
@@ -189,13 +189,13 @@ export default function ReportSchedulesPage() {
 
         {/* Create Form */}
         {showCreate && (
-          <div className="bg-[#111827] border border-[#1e2d42] rounded-xl p-6 mb-6">
+          <div className="bg-falcon-card border border-falcon-border rounded-xl p-6 mb-6">
             <h2 className="text-lg font-semibold mb-4 text-white">新規スケジュール作成</h2>
             <div className="grid grid-cols-2 gap-4">
               <div className="col-span-2 flex flex-col gap-1">
                 <label className="text-xs text-[#8899aa]">スケジュール名 <span className="text-red-400">*</span></label>
                 <input
-                  className="bg-[#161f33] border border-[#1e2d42] rounded px-3 py-2 text-sm text-white"
+                  className="bg-falcon-raised border border-falcon-border rounded-sm px-3 py-2 text-sm text-white"
                   placeholder="例: 週次セキュリティレポート"
                   value={form.name}
                   onChange={e => setForm({ ...form, name: e.target.value })}
@@ -204,7 +204,7 @@ export default function ReportSchedulesPage() {
               <div className="flex flex-col gap-1">
                 <label className="text-xs text-[#8899aa]">レポート種別 <span className="text-red-400">*</span></label>
                 <select
-                  className="bg-[#161f33] border border-[#1e2d42] rounded px-2 py-1.5 text-sm text-white"
+                  className="bg-falcon-raised border border-falcon-border rounded-sm px-2 py-1.5 text-sm text-white"
                   value={form.report_type}
                   onChange={e => setForm({ ...form, report_type: e.target.value })}
                 >
@@ -214,7 +214,7 @@ export default function ReportSchedulesPage() {
               <div className="flex flex-col gap-1">
                 <label className="text-xs text-[#8899aa]">頻度 <span className="text-red-400">*</span></label>
                 <select
-                  className="bg-[#161f33] border border-[#1e2d42] rounded px-2 py-1.5 text-sm text-white"
+                  className="bg-falcon-raised border border-falcon-border rounded-sm px-2 py-1.5 text-sm text-white"
                   value={form.frequency}
                   onChange={e => setForm({ ...form, frequency: e.target.value as 'daily' | 'weekly' | 'monthly' })}
                 >
@@ -228,7 +228,7 @@ export default function ReportSchedulesPage() {
                 <label className="text-xs text-[#8899aa]">実行時刻 (時)</label>
                 <input
                   type="number" min={0} max={23}
-                  className="bg-[#161f33] border border-[#1e2d42] rounded px-2 py-1.5 text-sm text-white w-24"
+                  className="bg-falcon-raised border border-falcon-border rounded-sm px-2 py-1.5 text-sm text-white w-24"
                   value={form.hour}
                   onChange={e => setForm({ ...form, hour: Number(e.target.value) })}
                 />
@@ -238,7 +238,7 @@ export default function ReportSchedulesPage() {
                   <Mail className="w-3 h-3" /> 送信先メールアドレス (カンマ区切り)
                 </label>
                 <input
-                  className="bg-[#161f33] border border-[#1e2d42] rounded px-3 py-2 text-sm text-white"
+                  className="bg-falcon-raised border border-falcon-border rounded-sm px-3 py-2 text-sm text-white"
                   placeholder="admin@example.com, soc@example.com"
                   value={form.recipients}
                   onChange={e => setForm({ ...form, recipients: e.target.value })}
@@ -253,7 +253,7 @@ export default function ReportSchedulesPage() {
               <button
                 onClick={() => createMut.mutate(buildPayload(form))}
                 disabled={!form.name || createMut.isPending}
-                className="flex items-center gap-2 bg-[#1a6bff] hover:bg-[#1557d4] disabled:opacity-50 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                className="flex items-center gap-2 bg-falcon-blue hover:bg-[#1557d4] disabled:opacity-50 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
               >
                 <Check className="w-4 h-4" />
                 作成
@@ -267,19 +267,19 @@ export default function ReportSchedulesPage() {
           <div className="text-center py-16 text-[#5a6a7a]">読み込み中...</div>
         ) : schedules.length === 0 ? (
           <div className="text-center py-16">
-            <Calendar className="w-12 h-12 text-[#1e2d42] mx-auto mb-3" />
+            <Calendar className="w-12 h-12 text-falcon-border mx-auto mb-3" />
             <p className="text-[#5a6a7a]">スケジュールが登録されていません</p>
           </div>
         ) : (
           <div className="space-y-3">
             {schedules.map(sc => (
-              <div key={sc.id} className={`bg-[#111827] border rounded-xl transition-all ${sc.is_active ? 'border-[#1e2d42]' : 'border-[#1e2d42] opacity-60'}`}>
+              <div key={sc.id} className={`bg-falcon-card border rounded-xl transition-all ${sc.is_active ? 'border-falcon-border' : 'border-falcon-border opacity-60'}`}>
                 {/* Main Row */}
                 <div className="flex items-center gap-4 px-5 py-4">
                   {/* Toggle */}
                   <button
                     onClick={() => toggleMut.mutate({ id: sc.id, is_active: !sc.is_active })}
-                    className="flex-shrink-0"
+                    className="shrink-0"
                     title={sc.is_active ? '無効化' : '有効化'}
                   >
                     {sc.is_active
@@ -297,7 +297,7 @@ export default function ReportSchedulesPage() {
                           <div className="col-span-2 flex flex-col gap-1">
                             <label className="text-xs text-[#8899aa]">名前</label>
                             <input
-                              className="bg-[#161f33] border border-[#1e2d42] rounded px-2 py-1.5 text-sm text-white"
+                              className="bg-falcon-raised border border-falcon-border rounded-sm px-2 py-1.5 text-sm text-white"
                               value={editForm.name}
                               onChange={e => setEditForm({ ...editForm, name: e.target.value })}
                             />
@@ -305,7 +305,7 @@ export default function ReportSchedulesPage() {
                           <div className="flex flex-col gap-1">
                             <label className="text-xs text-[#8899aa]">レポート種別</label>
                             <select
-                              className="bg-[#161f33] border border-[#1e2d42] rounded px-2 py-1.5 text-sm text-white"
+                              className="bg-falcon-raised border border-falcon-border rounded-sm px-2 py-1.5 text-sm text-white"
                               value={editForm.report_type}
                               onChange={e => setEditForm({ ...editForm, report_type: e.target.value })}
                             >
@@ -315,7 +315,7 @@ export default function ReportSchedulesPage() {
                           <div className="flex flex-col gap-1">
                             <label className="text-xs text-[#8899aa]">頻度</label>
                             <select
-                              className="bg-[#161f33] border border-[#1e2d42] rounded px-2 py-1.5 text-sm text-white"
+                              className="bg-falcon-raised border border-falcon-border rounded-sm px-2 py-1.5 text-sm text-white"
                               value={editForm.frequency}
                               onChange={e => setEditForm({ ...editForm, frequency: e.target.value as 'daily' | 'weekly' | 'monthly' })}
                             >
@@ -329,7 +329,7 @@ export default function ReportSchedulesPage() {
                             <label className="text-xs text-[#8899aa]">実行時刻 (時)</label>
                             <input
                               type="number" min={0} max={23}
-                              className="bg-[#161f33] border border-[#1e2d42] rounded px-2 py-1.5 text-sm text-white w-20"
+                              className="bg-falcon-raised border border-falcon-border rounded-sm px-2 py-1.5 text-sm text-white w-20"
                               value={editForm.hour}
                               onChange={e => setEditForm({ ...editForm, hour: Number(e.target.value) })}
                             />
@@ -337,7 +337,7 @@ export default function ReportSchedulesPage() {
                           <div className="col-span-2 flex flex-col gap-1">
                             <label className="text-xs text-[#8899aa]">送信先</label>
                             <input
-                              className="bg-[#161f33] border border-[#1e2d42] rounded px-2 py-1.5 text-sm text-white"
+                              className="bg-falcon-raised border border-falcon-border rounded-sm px-2 py-1.5 text-sm text-white"
                               value={editForm.recipients}
                               onChange={e => setEditForm({ ...editForm, recipients: e.target.value })}
                             />
@@ -348,7 +348,7 @@ export default function ReportSchedulesPage() {
                               id={`active-${sc.id}`}
                               checked={editForm.is_active}
                               onChange={e => setEditForm({ ...editForm, is_active: e.target.checked })}
-                              className="rounded"
+                              className="rounded-sm"
                             />
                             <label htmlFor={`active-${sc.id}`} className="text-sm text-[#8899aa]">有効</label>
                           </div>
@@ -357,13 +357,13 @@ export default function ReportSchedulesPage() {
                           <button
                             onClick={() => updateMut.mutate({ id: sc.id, body: buildPayload(editForm) })}
                             disabled={updateMut.isPending}
-                            className="flex items-center gap-1 bg-[#1a6bff] hover:bg-[#1557d4] text-white px-3 py-1.5 rounded text-xs"
+                            className="flex items-center gap-1 bg-falcon-blue hover:bg-[#1557d4] text-white px-3 py-1.5 rounded-sm text-xs"
                           >
                             <Check className="w-3 h-3" /> 保存
                           </button>
                           <button
                             onClick={() => setEditId(null)}
-                            className="flex items-center gap-1 text-[#8899aa] hover:text-white px-3 py-1.5 rounded text-xs"
+                            className="flex items-center gap-1 text-[#8899aa] hover:text-white px-3 py-1.5 rounded-sm text-xs"
                           >
                             <X className="w-3 h-3" /> キャンセル
                           </button>
@@ -374,14 +374,14 @@ export default function ReportSchedulesPage() {
                       <>
                         <div className="flex items-center gap-2 mb-1">
                           <span className="font-semibold text-white text-sm">{sc.name}</span>
-                          <span className="text-xs bg-[#161f33] text-[#8899aa] px-2 py-0.5 rounded-full">
+                          <span className="text-xs bg-falcon-raised text-[#8899aa] px-2 py-0.5 rounded-full">
                             {REPORT_TYPES.find(r => r.value === sc.report_type)?.label ?? sc.report_type}
                           </span>
                           <span className="text-xs bg-blue-900/40 text-blue-300 border border-blue-700/40 px-2 py-0.5 rounded-full">
                             {FREQUENCY_LABEL[sc.frequency]}
                           </span>
                           {!sc.is_active && (
-                            <span className="text-xs bg-[#111827] text-[#5a6a7a] px-2 py-0.5 rounded-full">無効</span>
+                            <span className="text-xs bg-falcon-card text-[#5a6a7a] px-2 py-0.5 rounded-full">無効</span>
                           )}
                         </div>
                         <div className="flex items-center gap-4 text-xs text-[#8899aa]">
@@ -400,7 +400,7 @@ export default function ReportSchedulesPage() {
 
                   {/* Actions */}
                   {editId !== sc.id && (
-                    <div className="flex items-center gap-2 flex-shrink-0">
+                    <div className="flex items-center gap-2 shrink-0">
                       <button
                         onClick={() => setExpandedId(expandedId === sc.id ? null : sc.id)}
                         className="p-1.5 text-[#5a6a7a] hover:text-white transition-colors"
@@ -428,7 +428,7 @@ export default function ReportSchedulesPage() {
 
                 {/* Expanded Detail */}
                 {expandedId === sc.id && editId !== sc.id && (
-                  <div className="px-5 pb-4 border-t border-[#1e2d42] pt-4 grid grid-cols-3 gap-4 text-sm">
+                  <div className="px-5 pb-4 border-t border-falcon-border pt-4 grid grid-cols-3 gap-4 text-sm">
                     <div>
                       <p className="text-xs text-[#5a6a7a] mb-1">次回実行</p>
                       <p className="text-[#8899aa]">{formatDateTime(sc.next_run_at)}</p>
@@ -446,7 +446,7 @@ export default function ReportSchedulesPage() {
                         <p className="text-xs text-[#5a6a7a] mb-1">送信先</p>
                         <div className="flex flex-wrap gap-1.5">
                           {sc.recipients.map(r => (
-                            <span key={r} className="text-xs bg-[#111827] text-[#8899aa] px-2 py-0.5 rounded flex items-center gap-1">
+                            <span key={r} className="text-xs bg-falcon-card text-[#8899aa] px-2 py-0.5 rounded-sm flex items-center gap-1">
                               <Mail className="w-3 h-3" /> {r}
                             </span>
                           ))}

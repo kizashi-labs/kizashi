@@ -212,13 +212,13 @@ function saveHistory(entries: HistoryEntry[]) {
 // ─── Small UI helpers ─────────────────────────────────────────────────────────
 
 const inputClass =
-  'w-full px-3 py-2 text-sm bg-[#070d19] border border-[#1e2d42] rounded-lg ' +
-  'text-[#e2e8f4] placeholder-[#3d5068] ' +
-  'focus:outline-none focus:border-[#e8002d]/60 transition-colors'
+  'w-full px-3 py-2 text-sm bg-[#070d19] border border-falcon-border rounded-lg ' +
+  'text-falcon-text placeholder-falcon-subtle ' +
+  'focus:outline-hidden focus:border-falcon-red/60 transition-colors'
 
 const selectClass =
-  'px-3 py-2 text-sm bg-[#070d19] border border-[#1e2d42] rounded-lg ' +
-  'text-[#e2e8f4] focus:outline-none focus:border-[#e8002d]/60 transition-colors cursor-pointer'
+  'px-3 py-2 text-sm bg-[#070d19] border border-falcon-border rounded-lg ' +
+  'text-falcon-text focus:outline-hidden focus:border-falcon-red/60 transition-colors cursor-pointer'
 
 function StatusBadge({ code }: { code: number }) {
   const is2xx = code >= 200 && code < 300
@@ -228,7 +228,7 @@ function StatusBadge({ code }: { code: number }) {
       className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-bold tabular-nums
         ${is2xx ? 'bg-green-900/40 text-green-300 border border-green-700/50' : ''}
         ${is4xx ? 'bg-orange-900/40 text-orange-300 border border-orange-700/50' : ''}
-        ${!is2xx && !is4xx ? 'bg-[#e8002d]/20 text-[#ff6b7a] border border-[#e8002d]/40' : ''}`}
+        ${!is2xx && !is4xx ? 'bg-falcon-red/20 text-[#ff6b7a] border border-falcon-red/40' : ''}`}
     >
       {is2xx ? <CheckCircle2 className="w-3.5 h-3.5" /> : <XCircle className="w-3.5 h-3.5" />}
       {code}
@@ -247,8 +247,8 @@ function CopyButton({ text }: { text: string }) {
   return (
     <button
       onClick={doCopy}
-      className="flex items-center gap-1 px-2 py-1 text-xs text-[#7d92b0] hover:text-white
-                 bg-[#0d1220] border border-[#1e2d42] rounded transition-colors"
+      className="flex items-center gap-1 px-2 py-1 text-xs text-falcon-muted hover:text-white
+                 bg-falcon-surface border border-falcon-border rounded transition-colors"
     >
       {copied ? <Check className="w-3 h-3 text-green-400" /> : <Copy className="w-3 h-3" />}
       {copied ? 'コピー済み' : 'コピー'}
@@ -391,13 +391,13 @@ export default function WebhookTesterPage() {
 
       {/* ── Header ─────────────────────────────────────────────────────────── */}
       <div className="flex items-center gap-3">
-        <div className="w-9 h-9 rounded-lg bg-[#e8002d]/10 border border-[#e8002d]/30
-                        flex items-center justify-center flex-shrink-0">
-          <Webhook className="w-5 h-5 text-[#e8002d]" />
+        <div className="w-9 h-9 rounded-lg bg-falcon-red/10 border border-falcon-red/30
+                        flex items-center justify-center shrink-0">
+          <Webhook className="w-5 h-5 text-falcon-red" />
         </div>
         <div>
           <h1 className="text-xl font-bold text-white">Webhookテスター</h1>
-          <p className="text-xs text-[#7d92b0] mt-0.5">Webhook設定の動作確認・デバッグツール</p>
+          <p className="text-xs text-falcon-muted mt-0.5">Webhook設定の動作確認・デバッグツール</p>
         </div>
       </div>
 
@@ -407,16 +407,16 @@ export default function WebhookTesterPage() {
         <div className="space-y-5">
 
           {/* Send Test Card */}
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5 space-y-5">
+          <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5 space-y-5">
             <h2 className="text-sm font-semibold text-white flex items-center gap-2">
-              <Send className="w-4 h-4 text-[#e8002d]" />
+              <Send className="w-4 h-4 text-falcon-red" />
               テスト送信
             </h2>
 
             {/* URL */}
             <div className="space-y-1.5">
-              <label className="text-xs font-medium text-[#7d92b0] uppercase tracking-wide">
-                Webhook URL <span className="text-[#e8002d]">*</span>
+              <label className="text-xs font-medium text-falcon-muted uppercase tracking-wide">
+                Webhook URL <span className="text-falcon-red">*</span>
               </label>
               <input
                 type="text"
@@ -430,10 +430,10 @@ export default function WebhookTesterPage() {
             {/* Method + Content-Type row */}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <label className="text-xs font-medium text-[#7d92b0] uppercase tracking-wide">
+                <label className="text-xs font-medium text-falcon-muted uppercase tracking-wide">
                   HTTPメソッド
                 </label>
-                <div className="flex rounded-lg overflow-hidden border border-[#1e2d42]">
+                <div className="flex rounded-lg overflow-hidden border border-falcon-border">
                   {(['POST', 'PUT'] as HttpMethod[]).map((m) => (
                     <button
                       key={m}
@@ -441,8 +441,8 @@ export default function WebhookTesterPage() {
                       onClick={() => setField('method', m)}
                       className={`flex-1 py-2 text-sm font-medium transition-colors
                         ${config.method === m
-                          ? 'bg-[#e8002d] text-white'
-                          : 'bg-[#070d19] text-[#7d92b0] hover:text-white hover:bg-[#0d1220]'
+                          ? 'bg-falcon-red text-white'
+                          : 'bg-[#070d19] text-falcon-muted hover:text-white hover:bg-falcon-surface'
                         }`}
                     >
                       {m}
@@ -452,7 +452,7 @@ export default function WebhookTesterPage() {
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-medium text-[#7d92b0] uppercase tracking-wide">
+                <label className="text-xs font-medium text-falcon-muted uppercase tracking-wide">
                   Content-Type
                 </label>
                 <select
@@ -470,7 +470,7 @@ export default function WebhookTesterPage() {
 
             {/* Auth */}
             <div className="space-y-1.5">
-              <label className="text-xs font-medium text-[#7d92b0] uppercase tracking-wide">
+              <label className="text-xs font-medium text-falcon-muted uppercase tracking-wide">
                 認証ヘッダー
               </label>
               <select
@@ -487,7 +487,7 @@ export default function WebhookTesterPage() {
 
             {config.authType !== 'none' && (
               <div className="space-y-1.5">
-                <label className="text-xs font-medium text-[#7d92b0] uppercase tracking-wide">
+                <label className="text-xs font-medium text-falcon-muted uppercase tracking-wide">
                   {config.authType === 'bearer' && 'トークン'}
                   {config.authType === 'basic' && 'ユーザー名:パスワード'}
                   {config.authType === 'custom' && 'ヘッダー名: 値'}
@@ -511,11 +511,11 @@ export default function WebhookTesterPage() {
             {/* Preset + Payload */}
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
-                <label className="text-xs font-medium text-[#7d92b0] uppercase tracking-wide">
+                <label className="text-xs font-medium text-falcon-muted uppercase tracking-wide">
                   ペイロード
                 </label>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-[#7d92b0]">プリセット:</span>
+                  <span className="text-xs text-falcon-muted">プリセット:</span>
                   <div className="relative">
                     <select
                       value={presetKey}
@@ -528,7 +528,7 @@ export default function WebhookTesterPage() {
                         </option>
                       ))}
                     </select>
-                    <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-[#7d92b0] pointer-events-none" />
+                    <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-falcon-muted pointer-events-none" />
                   </div>
                 </div>
               </div>
@@ -540,12 +540,12 @@ export default function WebhookTesterPage() {
                   rows={10}
                   spellCheck={false}
                   className={`${inputClass} font-mono text-xs leading-relaxed resize-y
-                    ${payloadError ? 'border-[#e8002d]/60' : ''}`}
+                    ${payloadError ? 'border-falcon-red/60' : ''}`}
                 />
               </div>
               {payloadError && (
                 <p className="flex items-center gap-1.5 text-xs text-[#ff6b7a]">
-                  <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0" />
                   {payloadError}
                 </p>
               )}
@@ -553,9 +553,9 @@ export default function WebhookTesterPage() {
 
             {/* Error from mutation */}
             {sendMutation.isError && (
-              <div className="flex items-center gap-2 px-3 py-2.5 bg-[#e8002d]/10
-                              border border-[#e8002d]/30 rounded-lg">
-                <XCircle className="w-4 h-4 text-[#e8002d] flex-shrink-0" />
+              <div className="flex items-center gap-2 px-3 py-2.5 bg-falcon-red/10
+                              border border-falcon-red/30 rounded-lg">
+                <XCircle className="w-4 h-4 text-falcon-red shrink-0" />
                 <p className="text-xs text-[#ff6b7a]">{sendMutation.error.message}</p>
               </div>
             )}
@@ -566,7 +566,7 @@ export default function WebhookTesterPage() {
               disabled={isLoading || !config.url.trim() || !!payloadError}
               onClick={() => sendMutation.mutate()}
               className="w-full flex items-center justify-center gap-2 py-2.5 px-4
-                         bg-[#e8002d] hover:bg-[#c5001f] disabled:opacity-40 disabled:cursor-not-allowed
+                         bg-falcon-red hover:bg-[#c5001f] disabled:opacity-40 disabled:cursor-not-allowed
                          text-white text-sm font-semibold rounded-lg transition-colors"
             >
               {isLoading ? (
@@ -584,9 +584,9 @@ export default function WebhookTesterPage() {
           </div>
 
           {/* Templates Card */}
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5 space-y-4">
+          <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5 space-y-4">
             <h2 className="text-sm font-semibold text-white flex items-center gap-2">
-              <Layers className="w-4 h-4 text-[#7d92b0]" />
+              <Layers className="w-4 h-4 text-falcon-muted" />
               プリビルトテンプレート
             </h2>
             <div className="grid grid-cols-2 gap-3">
@@ -597,10 +597,10 @@ export default function WebhookTesterPage() {
                   onClick={() => handleLoadTemplate(tpl)}
                   className={`flex flex-col items-start gap-1.5 p-3 rounded-lg border text-left
                               transition-all hover:scale-[1.01] active:scale-[0.99]
-                              ${tpl.bg} ${tpl.border} hover:border-opacity-70`}
+                              ${tpl.bg} ${tpl.border}`}
                 >
                   <span className={`text-sm font-semibold ${tpl.color}`}>{tpl.label}</span>
-                  <span className="text-xs text-[#7d92b0] font-mono truncate w-full">
+                  <span className="text-xs text-falcon-muted font-mono truncate w-full">
                     {tpl.urlHint.replace('https://', '').split('/')[0]}
                   </span>
                 </button>
@@ -613,22 +613,22 @@ export default function WebhookTesterPage() {
         <div className="space-y-5">
 
           {/* Response Viewer */}
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5 space-y-4">
+          <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5 space-y-4">
             <h2 className="text-sm font-semibold text-white flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 text-[#7d92b0]" />
+              <CheckCircle2 className="w-4 h-4 text-falcon-muted" />
               レスポンス
             </h2>
 
             {!response && !isLoading && (
-              <div className="flex flex-col items-center justify-center py-12 text-[#3d5068]">
+              <div className="flex flex-col items-center justify-center py-12 text-falcon-subtle">
                 <Webhook className="w-10 h-10 mb-3 opacity-30" />
                 <p className="text-sm">テスト送信するとレスポンスが表示されます</p>
               </div>
             )}
 
             {isLoading && (
-              <div className="flex flex-col items-center justify-center py-12 text-[#7d92b0]">
-                <div className="w-8 h-8 border-2 border-[#e8002d] border-t-transparent rounded-full animate-spin mb-3" />
+              <div className="flex flex-col items-center justify-center py-12 text-falcon-muted">
+                <div className="w-8 h-8 border-2 border-falcon-red border-t-transparent rounded-full animate-spin mb-3" />
                 <p className="text-sm">リクエスト送信中...</p>
               </div>
             )}
@@ -638,7 +638,7 @@ export default function WebhookTesterPage() {
                 {/* Status + Latency row */}
                 <div className="flex items-center gap-3 flex-wrap">
                   <StatusBadge code={response.status_code} />
-                  <span className="flex items-center gap-1.5 text-sm text-[#7d92b0]">
+                  <span className="flex items-center gap-1.5 text-sm text-falcon-muted">
                     <Clock className="w-3.5 h-3.5" />
                     {response.latency_ms} ms
                   </span>
@@ -647,16 +647,16 @@ export default function WebhookTesterPage() {
                 {/* Response Headers */}
                 {Object.keys(response.headers ?? {}).length > 0 && (
                   <div className="space-y-1.5">
-                    <p className="text-xs font-medium text-[#7d92b0] uppercase tracking-wide">
+                    <p className="text-xs font-medium text-falcon-muted uppercase tracking-wide">
                       レスポンスヘッダー
                     </p>
-                    <div className="bg-[#070d19] border border-[#1e2d42] rounded-lg overflow-hidden">
+                    <div className="bg-[#070d19] border border-falcon-border rounded-lg overflow-hidden">
                       <table className="w-full text-xs">
                         <tbody>
                           {Object.entries(response.headers).map(([k, v]) => (
-                            <tr key={k} className="border-b border-[#1e2d42] last:border-0">
-                              <td className="px-3 py-2 font-mono text-[#7d92b0] w-2/5 truncate">{k}</td>
-                              <td className="px-3 py-2 font-mono text-[#e2e8f4] truncate">{v}</td>
+                            <tr key={k} className="border-b border-falcon-border last:border-0">
+                              <td className="px-3 py-2 font-mono text-falcon-muted w-2/5 truncate">{k}</td>
+                              <td className="px-3 py-2 font-mono text-falcon-text truncate">{v}</td>
                             </tr>
                           ))}
                         </tbody>
@@ -668,7 +668,7 @@ export default function WebhookTesterPage() {
                 {/* Response Body */}
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between">
-                    <p className="text-xs font-medium text-[#7d92b0] uppercase tracking-wide">
+                    <p className="text-xs font-medium text-falcon-muted uppercase tracking-wide">
                       レスポンスボディ
                       {responseBody?.isJson && (
                         <span className="ml-2 px-1.5 py-0.5 bg-blue-900/30 border border-blue-800/40
@@ -679,8 +679,8 @@ export default function WebhookTesterPage() {
                     </p>
                     <CopyButton text={responseBody?.formatted ?? ''} />
                   </div>
-                  <div className="bg-[#070d19] border border-[#1e2d42] rounded-lg overflow-auto max-h-64">
-                    <pre className="p-3 text-xs font-mono text-[#e2e8f4] leading-relaxed whitespace-pre-wrap break-words">
+                  <div className="bg-[#070d19] border border-falcon-border rounded-lg overflow-auto max-h-64">
+                    <pre className="p-3 text-xs font-mono text-falcon-text leading-relaxed whitespace-pre-wrap wrap-break-word">
                       <code>{responseBody?.formatted || '(empty body)'}</code>
                     </pre>
                   </div>
@@ -690,12 +690,12 @@ export default function WebhookTesterPage() {
           </div>
 
           {/* History */}
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5 space-y-4">
+          <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5 space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-sm font-semibold text-white flex items-center gap-2">
-                <History className="w-4 h-4 text-[#7d92b0]" />
+                <History className="w-4 h-4 text-falcon-muted" />
                 テスト履歴
-                <span className="text-xs text-[#3d5068] font-normal">(最新10件)</span>
+                <span className="text-xs text-falcon-subtle font-normal">(最新10件)</span>
               </h2>
               {history.length > 0 && (
                 <button
@@ -704,7 +704,7 @@ export default function WebhookTesterPage() {
                     setHistory([])
                     saveHistory([])
                   }}
-                  className="flex items-center gap-1 text-xs text-[#7d92b0] hover:text-white transition-colors"
+                  className="flex items-center gap-1 text-xs text-falcon-muted hover:text-white transition-colors"
                 >
                   <RotateCcw className="w-3 h-3" />
                   クリア
@@ -713,7 +713,7 @@ export default function WebhookTesterPage() {
             </div>
 
             {history.length === 0 && (
-              <div className="flex flex-col items-center justify-center py-8 text-[#3d5068]">
+              <div className="flex flex-col items-center justify-center py-8 text-falcon-subtle">
                 <History className="w-8 h-8 mb-2 opacity-30" />
                 <p className="text-xs">履歴はまだありません</p>
               </div>
@@ -729,27 +729,27 @@ export default function WebhookTesterPage() {
                       type="button"
                       onClick={() => handleRestoreHistory(entry)}
                       className="w-full flex items-center gap-3 px-3 py-2.5 bg-[#070d19]
-                                 border border-[#1e2d42] rounded-lg text-left
-                                 hover:border-[#e8002d]/40 hover:bg-[#0d1220]
+                                 border border-falcon-border rounded-lg text-left
+                                 hover:border-falcon-red/40 hover:bg-falcon-surface
                                  transition-colors group"
                     >
                       <span
-                        className={`flex-shrink-0 text-xs font-bold tabular-nums px-1.5 py-0.5 rounded
-                          ${is2xx ? 'bg-green-900/40 text-green-300' : 'bg-[#e8002d]/20 text-[#ff6b7a]'}`}
+                        className={`shrink-0 text-xs font-bold tabular-nums px-1.5 py-0.5 rounded
+                          ${is2xx ? 'bg-green-900/40 text-green-300' : 'bg-falcon-red/20 text-[#ff6b7a]'}`}
                       >
                         {entry.status}
                       </span>
-                      <span className="flex-shrink-0 text-[10px] font-mono text-[#7d92b0] uppercase">
+                      <span className="shrink-0 text-[10px] font-mono text-falcon-muted uppercase">
                         {entry.method}
                       </span>
-                      <span className="flex-1 text-xs text-[#7d92b0] truncate font-mono group-hover:text-[#e2e8f4] transition-colors">
+                      <span className="flex-1 text-xs text-falcon-muted truncate font-mono group-hover:text-falcon-text transition-colors">
                         {entry.url}
                       </span>
-                      <span className="flex-shrink-0 flex items-center gap-1 text-xs text-[#3d5068]">
+                      <span className="shrink-0 flex items-center gap-1 text-xs text-falcon-subtle">
                         <Clock className="w-3 h-3" />
                         {entry.latency}ms
                       </span>
-                      <span className="flex-shrink-0 text-[10px] text-[#3d5068]">
+                      <span className="shrink-0 text-[10px] text-falcon-subtle">
                         {new Date(entry.timestamp).toLocaleTimeString('ja-JP', {
                           hour: '2-digit',
                           minute: '2-digit',

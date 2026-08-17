@@ -215,7 +215,7 @@ export default function LiveResponsePage() {
   // ── Loading state ──────────────────────────────────────────────────────────
   if (isCreating) {
     return (
-      <div className="min-h-screen bg-[#080c14] flex items-center justify-center">
+      <div className="min-h-screen bg-falcon-bg flex items-center justify-center">
         <div className="text-green-400 font-mono text-sm animate-pulse">
           セッションを初期化中...
         </div>
@@ -226,12 +226,12 @@ export default function LiveResponsePage() {
   // ── Error state ────────────────────────────────────────────────────────────
   if (error) {
     return (
-      <div className="min-h-screen bg-[#080c14] flex items-center justify-center">
+      <div className="min-h-screen bg-falcon-bg flex items-center justify-center">
         <div className="text-center">
           <p className="text-red-400 font-mono text-sm mb-4">{error}</p>
           <button
             onClick={() => router.back()}
-            className="text-xs font-mono text-gray-500 hover:text-gray-300 border border-gray-700 px-4 py-2 rounded"
+            className="text-xs font-mono text-gray-500 hover:text-gray-300 border border-gray-700 px-4 py-2 rounded-sm"
           >
             戻る
           </button>
@@ -242,7 +242,7 @@ export default function LiveResponsePage() {
 
   // ── Terminal UI ────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-[#080c14] flex flex-col text-green-400 font-mono text-sm">
+    <div className="min-h-screen bg-falcon-bg flex flex-col text-green-400 font-mono text-sm">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-2 border-b border-[#1a2234] bg-[#0a0f1e]">
         <div className="flex items-center gap-3">
@@ -290,7 +290,7 @@ export default function LiveResponsePage() {
 
           <button
             onClick={handleClose}
-            className="text-xs text-red-400 hover:text-red-300 border border-red-900/50 hover:border-red-700 px-3 py-1 rounded transition-colors"
+            className="text-xs text-red-400 hover:text-red-300 border border-red-900/50 hover:border-red-700 px-3 py-1 rounded-sm transition-colors"
           >
             セッション終了
           </button>
@@ -341,7 +341,7 @@ export default function LiveResponsePage() {
 
             {cmd.output && (
               <pre
-                className={`mt-1 ml-0 whitespace-pre-wrap break-words leading-relaxed text-xs ${
+                className={`mt-1 ml-0 whitespace-pre-wrap wrap-break-word leading-relaxed text-xs ${
                   cmd.status === 'error' || cmd.status === 'timeout'
                     ? 'text-red-400'
                     : 'text-gray-300'
@@ -373,7 +373,7 @@ export default function LiveResponsePage() {
       {/* Input area */}
       <div className="border-t border-[#1a2234] bg-[#0a0f1e] px-4 py-3">
         <form onSubmit={handleSubmit} className="flex items-center gap-2">
-          <span className="text-green-500 select-none flex-shrink-0">$</span>
+          <span className="text-green-500 select-none shrink-0">$</span>
           <input
             ref={inputRef}
             type="text"
@@ -398,7 +398,7 @@ export default function LiveResponsePage() {
             autoCorrect="off"
             autoCapitalize="off"
             spellCheck={false}
-            className={`flex-1 bg-transparent text-green-300 outline-none placeholder-gray-700 caret-green-400 text-sm font-mono ${
+            className={`flex-1 bg-transparent text-green-300 outline-hidden placeholder-gray-700 caret-green-400 text-sm font-mono ${
               !session ? 'opacity-50 cursor-not-allowed' : ''
             }`}
             disabled={!session}

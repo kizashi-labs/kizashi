@@ -92,8 +92,8 @@ function ConditionBuilder({ conditions, onChange }: { conditions: Condition[]; o
   return (
     <div>
       <div className="flex items-center justify-between mb-2">
-        <label className="text-[#7d92b0] text-xs">条件</label>
-        <button onClick={addCondition} className="text-[#e8002d] text-xs flex items-center gap-1 hover:text-[#e8002d]/80">
+        <label className="text-falcon-muted text-xs">条件</label>
+        <button onClick={addCondition} className="text-falcon-red text-xs flex items-center gap-1 hover:text-falcon-red/80">
           <Plus className="w-3 h-3" /> 追加
         </button>
       </div>
@@ -101,25 +101,25 @@ function ConditionBuilder({ conditions, onChange }: { conditions: Condition[]; o
         <div key={c.id} className="flex items-center gap-2 mb-2">
           {i > 0 && (
             <select value={c.logic} onChange={e => updateCondition(c.id, 'logic', e.target.value)}
-              className="w-14 bg-[#070d19] border border-[#1e2d42] rounded px-1 py-1.5 text-xs text-[#7d92b0] focus:outline-none">
+              className="w-14 bg-[#070d19] border border-falcon-border rounded-sm px-1 py-1.5 text-xs text-falcon-muted focus:outline-hidden">
               <option value="AND">AND</option>
               <option value="OR">OR</option>
             </select>
           )}
           {i === 0 && <div className="w-14" />}
           <input value={c.field} onChange={e => updateCondition(c.id, 'field', e.target.value)}
-            className="flex-1 bg-[#070d19] border border-[#1e2d42] rounded px-2 py-1.5 text-xs text-white focus:outline-none"
+            className="flex-1 bg-[#070d19] border border-falcon-border rounded-sm px-2 py-1.5 text-xs text-white focus:outline-hidden"
             placeholder="フィールド" />
           <select value={c.operator} onChange={e => updateCondition(c.id, 'operator', e.target.value)}
-            className="w-28 bg-[#070d19] border border-[#1e2d42] rounded px-1 py-1.5 text-xs text-[#7d92b0] focus:outline-none">
+            className="w-28 bg-[#070d19] border border-falcon-border rounded-sm px-1 py-1.5 text-xs text-falcon-muted focus:outline-hidden">
             {['equals', 'not_equals', 'contains', 'not_contains', 'greater_than', 'less_than', 'in', 'between', 'exists'].map(op => (
               <option key={op} value={op}>{op}</option>
             ))}
           </select>
           <input value={c.value} onChange={e => updateCondition(c.id, 'value', e.target.value)}
-            className="flex-1 bg-[#070d19] border border-[#1e2d42] rounded px-2 py-1.5 text-xs text-white focus:outline-none"
+            className="flex-1 bg-[#070d19] border border-falcon-border rounded-sm px-2 py-1.5 text-xs text-white focus:outline-hidden"
             placeholder="値" />
-          <button onClick={() => removeCondition(c.id)} className="text-[#7d92b0] hover:text-[#e8002d]"><X className="w-3 h-3" /></button>
+          <button onClick={() => removeCondition(c.id)} className="text-falcon-muted hover:text-falcon-red"><X className="w-3 h-3" /></button>
         </div>
       ))}
     </div>
@@ -135,59 +135,59 @@ function PatternModal({ pattern, onClose, onSave }: { pattern?: IncidentPattern;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg w-full max-w-xl max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between p-4 border-b border-[#1e2d42]">
+      <div className="bg-falcon-surface border border-falcon-border rounded-lg w-full max-w-xl max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between p-4 border-b border-falcon-border">
           <h2 className="text-white font-semibold">{pattern ? 'パターンを編集' : 'パターンを追加'}</h2>
-          <button onClick={onClose} className="text-[#7d92b0] hover:text-white"><X className="w-5 h-5" /></button>
+          <button onClick={onClose} className="text-falcon-muted hover:text-white"><X className="w-5 h-5" /></button>
         </div>
         <div className="p-4 space-y-3">
           <div>
-            <label className="text-[#7d92b0] text-xs block mb-1">パターン名</label>
-            <input className="w-full bg-[#070d19] border border-[#1e2d42] rounded px-3 py-2 text-white text-sm focus:outline-none focus:border-[#e8002d]/50"
+            <label className="text-falcon-muted text-xs block mb-1">パターン名</label>
+            <input className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-red/50"
               value={form.name ?? ''} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
           </div>
           <div>
-            <label className="text-[#7d92b0] text-xs block mb-1">説明</label>
-            <textarea rows={2} className="w-full bg-[#070d19] border border-[#1e2d42] rounded px-3 py-2 text-white text-sm focus:outline-none focus:border-[#e8002d]/50 resize-none"
+            <label className="text-falcon-muted text-xs block mb-1">説明</label>
+            <textarea rows={2} className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-red/50 resize-none"
               value={form.description ?? ''} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-[#7d92b0] text-xs block mb-1">パターンタイプ</label>
-              <select className="w-full bg-[#070d19] border border-[#1e2d42] rounded px-3 py-2 text-white text-sm focus:outline-none"
+              <label className="text-falcon-muted text-xs block mb-1">パターンタイプ</label>
+              <select className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-white text-sm focus:outline-hidden"
                 value={form.pattern_type} onChange={e => setForm(f => ({ ...f, pattern_type: e.target.value as PatternType }))}>
                 {Object.entries(PATTERN_TYPE_STYLES).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
               </select>
             </div>
             <div>
-              <label className="text-[#7d92b0] text-xs block mb-1">重要度</label>
-              <select className="w-full bg-[#070d19] border border-[#1e2d42] rounded px-3 py-2 text-white text-sm focus:outline-none"
+              <label className="text-falcon-muted text-xs block mb-1">重要度</label>
+              <select className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-white text-sm focus:outline-hidden"
                 value={form.severity} onChange={e => setForm(f => ({ ...f, severity: e.target.value as Severity }))}>
                 {Object.entries(SEVERITY_STYLES).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
               </select>
             </div>
           </div>
           <div>
-            <label className="text-[#7d92b0] text-xs block mb-1">信頼度閾値: {form.confidence_threshold}%</label>
+            <label className="text-falcon-muted text-xs block mb-1">信頼度閾値: {form.confidence_threshold}%</label>
             <input type="range" min={0} max={100} value={form.confidence_threshold ?? 75}
               onChange={e => setForm(f => ({ ...f, confidence_threshold: Number(e.target.value) }))}
-              className="w-full accent-[#e8002d]" />
+              className="w-full accent-falcon-red" />
           </div>
           <ConditionBuilder
             conditions={form.conditions ?? []}
             onChange={conditions => setForm(f => ({ ...f, conditions }))}
           />
           <div className="flex items-center gap-3">
-            <label className="text-[#7d92b0] text-xs">有効</label>
+            <label className="text-falcon-muted text-xs">有効</label>
             <button onClick={() => setForm(f => ({ ...f, is_active: !f.is_active }))}
-              className={`w-10 h-5 rounded-full transition-colors ${form.is_active ? 'bg-green-500' : 'bg-[#1e2d42]'}`}>
-              <div className={`w-4 h-4 bg-[#e2e8f4] rounded-full transition-transform mx-0.5 ${form.is_active ? 'translate-x-5' : 'translate-x-0'}`} />
+              className={`w-10 h-5 rounded-full transition-colors ${form.is_active ? 'bg-green-500' : 'bg-falcon-border'}`}>
+              <div className={`w-4 h-4 bg-falcon-text rounded-full transition-transform mx-0.5 ${form.is_active ? 'translate-x-5' : 'translate-x-0'}`} />
             </button>
           </div>
         </div>
-        <div className="flex justify-end gap-2 p-4 border-t border-[#1e2d42]">
-          <button onClick={onClose} className="px-4 py-2 border border-[#1e2d42] rounded text-[#7d92b0] hover:text-white text-sm">キャンセル</button>
-          <button onClick={() => onSave(form)} className="px-4 py-2 bg-[#e8002d] rounded text-white text-sm hover:bg-[#e8002d]/80">保存</button>
+        <div className="flex justify-end gap-2 p-4 border-t border-falcon-border">
+          <button onClick={onClose} className="px-4 py-2 border border-falcon-border rounded-sm text-falcon-muted hover:text-white text-sm">キャンセル</button>
+          <button onClick={() => onSave(form)} className="px-4 py-2 bg-falcon-red rounded-sm text-white text-sm hover:bg-falcon-red/80">保存</button>
         </div>
       </div>
     </div>
@@ -200,28 +200,28 @@ function MatchDetail({ match, onClose, onStatusChange }: { match: PatternMatch; 
   const typeStyle = PATTERN_TYPE_STYLES[match.pattern_type]
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg w-full max-w-xl max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between p-4 border-b border-[#1e2d42]">
+      <div className="bg-falcon-surface border border-falcon-border rounded-lg w-full max-w-xl max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between p-4 border-b border-falcon-border">
           <div className="flex items-center gap-2">
-            <Fingerprint className="w-5 h-5 text-[#e8002d]" />
+            <Fingerprint className="w-5 h-5 text-falcon-red" />
             <h2 className="text-white font-semibold">マッチ詳細</h2>
           </div>
-          <button onClick={onClose} className="text-[#7d92b0] hover:text-white"><X className="w-5 h-5" /></button>
+          <button onClick={onClose} className="text-falcon-muted hover:text-white"><X className="w-5 h-5" /></button>
         </div>
         <div className="p-4 space-y-4">
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <span className={`px-2 py-0.5 rounded text-xs font-medium ${typeStyle.bg} ${typeStyle.text}`}>{typeStyle.label}</span>
-              <span className={`px-2 py-0.5 rounded text-xs font-medium ${MATCH_STATUS_STYLES[match.status].bg} ${MATCH_STATUS_STYLES[match.status].text}`}>{MATCH_STATUS_STYLES[match.status].label}</span>
+              <span className={`px-2 py-0.5 rounded-sm text-xs font-medium ${typeStyle.bg} ${typeStyle.text}`}>{typeStyle.label}</span>
+              <span className={`px-2 py-0.5 rounded-sm text-xs font-medium ${MATCH_STATUS_STYLES[match.status].bg} ${MATCH_STATUS_STYLES[match.status].text}`}>{MATCH_STATUS_STYLES[match.status].label}</span>
             </div>
             <h3 className="text-white font-semibold">{match.pattern_name}</h3>
           </div>
 
           <div>
-            <p className="text-[#7d92b0] text-xs uppercase tracking-wider mb-2">信頼度スコア</p>
+            <p className="text-falcon-muted text-xs uppercase tracking-wider mb-2">信頼度スコア</p>
             <div className="flex items-center gap-3">
-              <div className="flex-1 bg-[#1e2d42] rounded-full h-3">
-                <div className={`h-3 rounded-full transition-all ${match.confidence >= 80 ? 'bg-[#e8002d]' : match.confidence >= 60 ? 'bg-yellow-500' : 'bg-green-500'}`}
+              <div className="flex-1 bg-falcon-border rounded-full h-3">
+                <div className={`h-3 rounded-full transition-all ${match.confidence >= 80 ? 'bg-falcon-red' : match.confidence >= 60 ? 'bg-yellow-500' : 'bg-green-500'}`}
                   style={{ width: `${match.confidence}%` }} />
               </div>
               <span className="text-white font-bold">{match.confidence}%</span>
@@ -229,15 +229,15 @@ function MatchDetail({ match, onClose, onStatusChange }: { match: PatternMatch; 
           </div>
 
           <div>
-            <p className="text-[#7d92b0] text-xs uppercase tracking-wider mb-2">サマリー</p>
-            <p className="text-[#7d92b0] text-sm leading-relaxed bg-[#070d19] rounded p-3">{match.summary}</p>
+            <p className="text-falcon-muted text-xs uppercase tracking-wider mb-2">サマリー</p>
+            <p className="text-falcon-muted text-sm leading-relaxed bg-[#070d19] rounded-sm p-3">{match.summary}</p>
           </div>
 
           <div>
-            <p className="text-[#7d92b0] text-xs uppercase tracking-wider mb-2">マッチしたインシデント ({match.matched_incident_ids.length}件)</p>
+            <p className="text-falcon-muted text-xs uppercase tracking-wider mb-2">マッチしたインシデント ({match.matched_incident_ids.length}件)</p>
             <div className="flex flex-wrap gap-2">
               {match.matched_incident_ids.map(id => (
-                <span key={id} className="flex items-center gap-1 px-2 py-1 bg-[#1e2d42] rounded text-xs text-blue-300 font-mono">
+                <span key={id} className="flex items-center gap-1 px-2 py-1 bg-falcon-border rounded-sm text-xs text-blue-300 font-mono">
                   <LinkIcon className="w-3 h-3" />{id}
                 </span>
               ))}
@@ -245,35 +245,35 @@ function MatchDetail({ match, onClose, onStatusChange }: { match: PatternMatch; 
           </div>
 
           <div>
-            <p className="text-[#7d92b0] text-xs uppercase tracking-wider mb-2">マッチした条件</p>
+            <p className="text-falcon-muted text-xs uppercase tracking-wider mb-2">マッチした条件</p>
             <div className="space-y-1">
               {match.matched_conditions.map((cond, i) => (
-                <div key={i} className="flex items-center gap-2 bg-[#070d19] rounded px-3 py-1.5">
-                  <CheckCircle className="w-3 h-3 text-green-400 flex-shrink-0" />
-                  <span className="text-[#7d92b0] font-mono text-xs">{cond}</span>
+                <div key={i} className="flex items-center gap-2 bg-[#070d19] rounded-sm px-3 py-1.5">
+                  <CheckCircle className="w-3 h-3 text-green-400 shrink-0" />
+                  <span className="text-falcon-muted font-mono text-xs">{cond}</span>
                 </div>
               ))}
             </div>
           </div>
 
           <div>
-            <p className="text-[#7d92b0] text-xs uppercase tracking-wider mb-2">推奨アクション</p>
+            <p className="text-falcon-muted text-xs uppercase tracking-wider mb-2">推奨アクション</p>
             <div className="space-y-1">
               {match.recommended_actions.map((action, i) => (
-                <div key={i} className="flex items-start gap-2 bg-[#070d19] rounded px-3 py-1.5">
-                  <ChevronRight className="w-3 h-3 text-[#e8002d] flex-shrink-0 mt-0.5" />
-                  <span className="text-[#7d92b0] text-xs">{action}</span>
+                <div key={i} className="flex items-start gap-2 bg-[#070d19] rounded-sm px-3 py-1.5">
+                  <ChevronRight className="w-3 h-3 text-falcon-red shrink-0 mt-0.5" />
+                  <span className="text-falcon-muted text-xs">{action}</span>
                 </div>
               ))}
             </div>
           </div>
 
           <div>
-            <p className="text-[#7d92b0] text-xs uppercase tracking-wider mb-2">ステータス更新</p>
+            <p className="text-falcon-muted text-xs uppercase tracking-wider mb-2">ステータス更新</p>
             <div className="flex flex-wrap gap-2">
               {(Object.keys(MATCH_STATUS_STYLES) as MatchStatus[]).map(status => (
                 <button key={status} onClick={() => { onStatusChange(match.id, status); onClose() }}
-                  className={`px-3 py-1.5 rounded text-xs font-medium transition-all ${match.status === status ? `${MATCH_STATUS_STYLES[status].bg} ${MATCH_STATUS_STYLES[status].text} ring-1 ring-white/20` : 'bg-[#1e2d42] text-[#7d92b0] hover:text-white'}`}>
+                  className={`px-3 py-1.5 rounded-sm text-xs font-medium transition-all ${match.status === status ? `${MATCH_STATUS_STYLES[status].bg} ${MATCH_STATUS_STYLES[status].text} ring-1 ring-white/20` : 'bg-falcon-border text-falcon-muted hover:text-white'}`}>
                   {MATCH_STATUS_STYLES[status].label}
                 </button>
               ))}
@@ -394,12 +394,12 @@ export default function IncidentPatternsPage() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-[#e8002d]/10 border border-[#e8002d]/20 flex items-center justify-center">
-              <Fingerprint className="w-5 h-5 text-[#e8002d]" />
+            <div className="w-10 h-10 rounded-lg bg-falcon-red/10 border border-falcon-red/20 flex items-center justify-center">
+              <Fingerprint className="w-5 h-5 text-falcon-red" />
             </div>
             <div>
               <h1 className="text-2xl font-bold text-white">インシデントパターン認識</h1>
-              <p className="text-[#7d92b0] text-sm">AIによる攻撃パターンの自動検出と関連付け</p>
+              <p className="text-falcon-muted text-sm">AIによる攻撃パターンの自動検出と関連付け</p>
             </div>
           </div>
           <div className="flex items-center gap-3">
@@ -415,7 +415,7 @@ export default function IncidentPatternsPage() {
               {analyzing ? '分析中...' : 'パターン分析を実行'}
             </button>
             <button onClick={() => { setEditingPattern(undefined); setShowPatternModal(true) }}
-              className="flex items-center gap-2 px-4 py-2 bg-[#e8002d] rounded-lg text-white text-sm font-medium hover:bg-[#e8002d]/80 transition-colors">
+              className="flex items-center gap-2 px-4 py-2 bg-falcon-red rounded-lg text-white text-sm font-medium hover:bg-falcon-red/80 transition-colors">
               <Plus className="w-4 h-4" /> パターンを追加
             </button>
           </div>
@@ -427,11 +427,11 @@ export default function IncidentPatternsPage() {
             { label: '総パターン数', value: patterns.length, icon: Fingerprint, color: 'text-blue-400' },
             { label: 'アクティブ', value: activePatterns, icon: CheckCircle, color: 'text-green-400' },
             { label: '今月のマッチ', value: monthlyMatches, icon: BarChart3, color: 'text-yellow-400' },
-            { label: '確認済みパターン', value: confirmedPatterns, icon: Shield, color: 'text-[#e8002d]' },
+            { label: '確認済みパターン', value: confirmedPatterns, icon: Shield, color: 'text-falcon-red' },
           ].map(({ label, value, icon: Icon, color }) => (
-            <div key={label} className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-4">
+            <div key={label} className="bg-falcon-surface border border-falcon-border rounded-lg p-4">
               <div className="flex items-center justify-between mb-2">
-                <p className="text-[#7d92b0] text-xs">{label}</p>
+                <p className="text-falcon-muted text-xs">{label}</p>
                 <Icon className={`w-4 h-4 ${color}`} />
               </div>
               <p className={`text-2xl font-bold ${color}`}>{value}</p>
@@ -440,24 +440,24 @@ export default function IncidentPatternsPage() {
         </div>
 
         {/* Tabs */}
-        <div className="flex border-b border-[#1e2d42]">
+        <div className="flex border-b border-falcon-border">
           {([['patterns', 'パターン定義'], ['matches', 'マッチ結果']] as const).map(([key, label]) => (
             <button key={key} onClick={() => setTab(key)}
               className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-                tab === key ? 'border-[#e8002d] text-white' : 'border-transparent text-[#7d92b0] hover:text-white'
+                tab === key ? 'border-falcon-red text-white' : 'border-transparent text-falcon-muted hover:text-white'
               }`}>{label}</button>
           ))}
         </div>
 
         {/* Patterns Tab */}
         {tab === 'patterns' && (
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg overflow-hidden">
+          <div className="bg-falcon-surface border border-falcon-border rounded-lg overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead className="bg-[#070d19] border-b border-[#1e2d42]">
+                <thead className="bg-[#070d19] border-b border-falcon-border">
                   <tr>
                     {['パターン名', 'タイプ', '重要度', '信頼度閾値', 'マッチ数', '有効', '操作'].map(h => (
-                      <th key={h} className="text-left px-4 py-3 text-[#7d92b0] text-xs font-medium">{h}</th>
+                      <th key={h} className="text-left px-4 py-3 text-falcon-muted text-xs font-medium">{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -466,38 +466,38 @@ export default function IncidentPatternsPage() {
                     const typeStyle = PATTERN_TYPE_STYLES[pattern.pattern_type]
                     const sevStyle = SEVERITY_STYLES[pattern.severity]
                     return (
-                      <tr key={pattern.id} className="border-t border-[#1e2d42] hover:bg-[#070d19]/50">
+                      <tr key={pattern.id} className="border-t border-falcon-border hover:bg-[#070d19]/50">
                         <td className="px-4 py-3">
                           <p className="text-white font-medium">{pattern.name}</p>
-                          <p className="text-[#7d92b0] text-xs mt-0.5 truncate max-w-[240px]">{pattern.description}</p>
+                          <p className="text-falcon-muted text-xs mt-0.5 truncate max-w-[240px]">{pattern.description}</p>
                         </td>
                         <td className="px-4 py-3">
-                          <span className={`px-2 py-0.5 rounded text-xs font-medium ${typeStyle.bg} ${typeStyle.text}`}>{typeStyle.label}</span>
+                          <span className={`px-2 py-0.5 rounded-sm text-xs font-medium ${typeStyle.bg} ${typeStyle.text}`}>{typeStyle.label}</span>
                         </td>
                         <td className="px-4 py-3">
-                          <span className={`px-2 py-0.5 rounded text-xs font-medium ${sevStyle.bg} ${sevStyle.text}`}>{sevStyle.label}</span>
+                          <span className={`px-2 py-0.5 rounded-sm text-xs font-medium ${sevStyle.bg} ${sevStyle.text}`}>{sevStyle.label}</span>
                         </td>
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2">
-                            <div className="w-16 bg-[#1e2d42] rounded-full h-1.5">
-                              <div className="bg-[#e8002d] h-1.5 rounded-full" style={{ width: `${pattern.confidence_threshold}%` }} />
+                            <div className="w-16 bg-falcon-border rounded-full h-1.5">
+                              <div className="bg-falcon-red h-1.5 rounded-full" style={{ width: `${pattern.confidence_threshold}%` }} />
                             </div>
-                            <span className="text-[#7d92b0] text-xs">{pattern.confidence_threshold}%</span>
+                            <span className="text-falcon-muted text-xs">{pattern.confidence_threshold}%</span>
                           </div>
                         </td>
                         <td className="px-4 py-3 text-white font-semibold">{pattern.match_count}</td>
                         <td className="px-4 py-3">
                           <button onClick={() => toggleMutation.mutate(pattern.id)}
-                            className={`w-10 h-5 rounded-full transition-colors ${pattern.is_active ? 'bg-green-500' : 'bg-[#1e2d42]'}`}>
-                            <div className={`w-4 h-4 bg-[#e2e8f4] rounded-full transition-transform mx-0.5 ${pattern.is_active ? 'translate-x-5' : 'translate-x-0'}`} />
+                            className={`w-10 h-5 rounded-full transition-colors ${pattern.is_active ? 'bg-green-500' : 'bg-falcon-border'}`}>
+                            <div className={`w-4 h-4 bg-falcon-text rounded-full transition-transform mx-0.5 ${pattern.is_active ? 'translate-x-5' : 'translate-x-0'}`} />
                           </button>
                         </td>
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2">
                             <button onClick={() => { setEditingPattern(pattern); setShowPatternModal(true) }}
-                              className="text-[#7d92b0] hover:text-white"><Edit2 className="w-4 h-4" /></button>
+                              className="text-falcon-muted hover:text-white"><Edit2 className="w-4 h-4" /></button>
                             <button onClick={() => deleteMutation.mutate(pattern.id)}
-                              className="text-[#7d92b0] hover:text-[#e8002d]"><Trash2 className="w-4 h-4" /></button>
+                              className="text-falcon-muted hover:text-falcon-red"><Trash2 className="w-4 h-4" /></button>
                           </div>
                         </td>
                       </tr>
@@ -513,35 +513,35 @@ export default function IncidentPatternsPage() {
         {tab === 'matches' && (
           <div className="space-y-4">
             {/* Filters */}
-            <div className="flex flex-wrap items-center gap-3 bg-[#0d1220] border border-[#1e2d42] rounded-lg p-3">
-              <Filter className="w-4 h-4 text-[#7d92b0]" />
+            <div className="flex flex-wrap items-center gap-3 bg-falcon-surface border border-falcon-border rounded-lg p-3">
+              <Filter className="w-4 h-4 text-falcon-muted" />
               <select value={filterPattern} onChange={e => setFilterPattern(e.target.value)}
-                className="bg-[#070d19] border border-[#1e2d42] rounded px-2 py-1.5 text-[#7d92b0] text-xs focus:outline-none">
+                className="bg-[#070d19] border border-falcon-border rounded-sm px-2 py-1.5 text-falcon-muted text-xs focus:outline-hidden">
                 <option value="">全パターン</option>
                 {patterns.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
               </select>
               <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}
-                className="bg-[#070d19] border border-[#1e2d42] rounded px-2 py-1.5 text-[#7d92b0] text-xs focus:outline-none">
+                className="bg-[#070d19] border border-falcon-border rounded-sm px-2 py-1.5 text-falcon-muted text-xs focus:outline-hidden">
                 <option value="">全ステータス</option>
                 {Object.entries(MATCH_STATUS_STYLES).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
               </select>
               <div className="flex items-center gap-2">
-                <Sliders className="w-3 h-3 text-[#7d92b0]" />
-                <span className="text-[#7d92b0] text-xs">最低確信度:</span>
+                <Sliders className="w-3 h-3 text-falcon-muted" />
+                <span className="text-falcon-muted text-xs">最低確信度:</span>
                 <input type="range" min={0} max={100} value={filterMinConf} onChange={e => setFilterMinConf(Number(e.target.value))}
-                  className="w-24 accent-[#e8002d]" />
-                <span className="text-[#7d92b0] text-xs">{filterMinConf}%</span>
+                  className="w-24 accent-falcon-red" />
+                <span className="text-falcon-muted text-xs">{filterMinConf}%</span>
               </div>
-              <span className="text-[#7d92b0] text-xs ml-auto">{filteredMatches.length}件</span>
+              <span className="text-falcon-muted text-xs ml-auto">{filteredMatches.length}件</span>
             </div>
 
-            <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg overflow-hidden">
+            <div className="bg-falcon-surface border border-falcon-border rounded-lg overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
-                  <thead className="bg-[#070d19] border-b border-[#1e2d42]">
+                  <thead className="bg-[#070d19] border-b border-falcon-border">
                     <tr>
                       {['パターン', '確信度', 'インシデント数', 'サマリー', 'ステータス', '検出日時', '詳細'].map(h => (
-                        <th key={h} className="text-left px-4 py-3 text-[#7d92b0] text-xs font-medium">{h}</th>
+                        <th key={h} className="text-left px-4 py-3 text-falcon-muted text-xs font-medium">{h}</th>
                       ))}
                     </tr>
                   </thead>
@@ -549,33 +549,33 @@ export default function IncidentPatternsPage() {
                     {filteredMatches.map(match => {
                       const statusStyle = MATCH_STATUS_STYLES[match.status]
                       return (
-                        <tr key={match.id} className="border-t border-[#1e2d42] hover:bg-[#070d19]/50">
+                        <tr key={match.id} className="border-t border-falcon-border hover:bg-[#070d19]/50">
                           <td className="px-4 py-3">
                             <p className="text-white text-sm font-medium">{match.pattern_name}</p>
-                            <span className={`px-1.5 py-0.5 rounded text-[10px] ${PATTERN_TYPE_STYLES[match.pattern_type].bg} ${PATTERN_TYPE_STYLES[match.pattern_type].text}`}>
+                            <span className={`px-1.5 py-0.5 rounded-sm text-[10px] ${PATTERN_TYPE_STYLES[match.pattern_type].bg} ${PATTERN_TYPE_STYLES[match.pattern_type].text}`}>
                               {PATTERN_TYPE_STYLES[match.pattern_type].label}
                             </span>
                           </td>
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-2">
-                              <div className="w-16 bg-[#1e2d42] rounded-full h-2">
-                                <div className={`h-2 rounded-full ${match.confidence >= 80 ? 'bg-[#e8002d]' : match.confidence >= 60 ? 'bg-yellow-500' : 'bg-green-500'}`}
+                              <div className="w-16 bg-falcon-border rounded-full h-2">
+                                <div className={`h-2 rounded-full ${match.confidence >= 80 ? 'bg-falcon-red' : match.confidence >= 60 ? 'bg-yellow-500' : 'bg-green-500'}`}
                                   style={{ width: `${match.confidence}%` }} />
                               </div>
                               <span className="text-white text-xs font-semibold">{match.confidence}%</span>
                             </div>
                           </td>
                           <td className="px-4 py-3 text-white font-semibold">{match.matched_incident_ids.length}</td>
-                          <td className="px-4 py-3 text-[#7d92b0] text-xs max-w-[220px]">
+                          <td className="px-4 py-3 text-falcon-muted text-xs max-w-[220px]">
                             <span className="line-clamp-2">{match.summary}</span>
                           </td>
                           <td className="px-4 py-3">
-                            <span className={`px-2 py-0.5 rounded text-xs font-medium ${statusStyle.bg} ${statusStyle.text}`}>{statusStyle.label}</span>
+                            <span className={`px-2 py-0.5 rounded-sm text-xs font-medium ${statusStyle.bg} ${statusStyle.text}`}>{statusStyle.label}</span>
                           </td>
-                          <td className="px-4 py-3 text-[#7d92b0] text-xs whitespace-nowrap">{fmt(match.created_at)}</td>
+                          <td className="px-4 py-3 text-falcon-muted text-xs whitespace-nowrap">{fmt(match.created_at)}</td>
                           <td className="px-4 py-3">
                             <button onClick={() => setSelectedMatch(match)}
-                              className="flex items-center gap-1 px-2 py-1 border border-[#1e2d42] rounded text-[#7d92b0] hover:text-white hover:border-[#7d92b0]/50 text-xs transition-colors">
+                              className="flex items-center gap-1 px-2 py-1 border border-falcon-border rounded-sm text-falcon-muted hover:text-white hover:border-falcon-muted/50 text-xs transition-colors">
                               <Eye className="w-3 h-3" /> 詳細
                             </button>
                           </td>
@@ -600,10 +600,10 @@ export default function IncidentPatternsPage() {
 
       {/* Toast */}
       {toast && (
-        <div className="fixed bottom-6 right-6 z-50 bg-[#0d1220] border border-green-500/50 rounded-lg p-4 shadow-xl flex items-center gap-3">
+        <div className="fixed bottom-6 right-6 z-50 bg-falcon-surface border border-green-500/50 rounded-lg p-4 shadow-xl flex items-center gap-3">
           <CheckCircle className="w-4 h-4 text-green-400" />
           <span className="text-white text-sm">{toast}</span>
-          <button onClick={() => setToast('')} className="text-[#7d92b0] hover:text-white"><X className="w-4 h-4" /></button>
+          <button onClick={() => setToast('')} className="text-falcon-muted hover:text-white"><X className="w-4 h-4" /></button>
         </div>
       )}
     </div>

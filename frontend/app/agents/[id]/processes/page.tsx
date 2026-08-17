@@ -91,20 +91,20 @@ function ActionBadge({ action }: { action?: string }) {
   const a = action?.toLowerCase()
   if (a === 'blocked') {
     return (
-      <span className="px-2 py-0.5 rounded text-xs font-medium bg-red-900/50 text-red-300 border border-red-700/40">
+      <span className="px-2 py-0.5 rounded-sm text-xs font-medium bg-red-900/50 text-red-300 border border-red-700/40">
         BLOCKED
       </span>
     )
   }
   if (a === 'alert') {
     return (
-      <span className="px-2 py-0.5 rounded text-xs font-medium bg-orange-900/50 text-orange-300 border border-orange-700/40">
+      <span className="px-2 py-0.5 rounded-sm text-xs font-medium bg-orange-900/50 text-orange-300 border border-orange-700/40">
         ALERT
       </span>
     )
   }
   return (
-    <span className="px-2 py-0.5 rounded text-xs font-medium bg-green-900/40 text-green-300 border border-green-700/40">
+    <span className="px-2 py-0.5 rounded-sm text-xs font-medium bg-green-900/40 text-green-300 border border-green-700/40">
       ALLOWED
     </span>
   )
@@ -125,7 +125,7 @@ function RuleSeverityBadge({ severity }: { severity: string }) {
       ? 'bg-green-900/40 text-green-300'
       : 'bg-gray-800 text-gray-400'
   return (
-    <span className={`px-2 py-0.5 rounded text-xs font-medium ${style}`}>
+    <span className={`px-2 py-0.5 rounded-sm text-xs font-medium ${style}`}>
       {severity?.toUpperCase() || '—'}
     </span>
   )
@@ -212,7 +212,7 @@ export default function ProcessesPage({ params }: { params: { id: string } }) {
         <div className="bg-gray-800 rounded-xl border border-gray-700 p-5">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-purple-900/40 flex items-center justify-center flex-shrink-0">
+              <div className="w-10 h-10 rounded-lg bg-purple-900/40 flex items-center justify-center shrink-0">
                 <Cpu className="w-5 h-5 text-purple-400" />
               </div>
               <div>
@@ -242,7 +242,7 @@ export default function ProcessesPage({ params }: { params: { id: string } }) {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {/* 合計 */}
           <div className="bg-gray-800 rounded-lg border border-gray-700 p-4 flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-blue-900/40 flex items-center justify-center flex-shrink-0">
+            <div className="w-9 h-9 rounded-lg bg-blue-900/40 flex items-center justify-center shrink-0">
               <Activity className="w-4 h-4 text-blue-400" />
             </div>
             <div>
@@ -253,7 +253,7 @@ export default function ProcessesPage({ params }: { params: { id: string } }) {
 
           {/* ブロック */}
           <div className="bg-gray-800 rounded-lg border border-red-900/30 p-4 flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-red-900/40 flex items-center justify-center flex-shrink-0">
+            <div className="w-9 h-9 rounded-lg bg-red-900/40 flex items-center justify-center shrink-0">
               <Shield className="w-4 h-4 text-red-400" />
             </div>
             <div>
@@ -264,7 +264,7 @@ export default function ProcessesPage({ params }: { params: { id: string } }) {
 
           {/* アラート */}
           <div className="bg-gray-800 rounded-lg border border-orange-900/30 p-4 flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-orange-900/40 flex items-center justify-center flex-shrink-0">
+            <div className="w-9 h-9 rounded-lg bg-orange-900/40 flex items-center justify-center shrink-0">
               <AlertTriangle className="w-4 h-4 text-orange-400" />
             </div>
             <div>
@@ -289,7 +289,7 @@ export default function ProcessesPage({ params }: { params: { id: string } }) {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="プロセス名またはコマンドラインで検索…"
-                className="pl-8 pr-3 py-1.5 bg-gray-900 border border-gray-600 rounded-lg text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 w-72"
+                className="pl-8 pr-3 py-1.5 bg-gray-900 border border-gray-600 rounded-lg text-sm text-white placeholder-gray-500 focus:outline-hidden focus:border-blue-500 w-72"
               />
             </div>
           </div>

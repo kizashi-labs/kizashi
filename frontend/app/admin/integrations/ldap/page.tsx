@@ -115,7 +115,7 @@ function TextInput({
         onChange={e => onChange(e.target.value)}
         placeholder={placeholder}
         className={`w-full bg-gray-900 border border-gray-600 rounded-lg px-3 py-2.5 text-sm
-                    text-gray-200 placeholder-gray-500 focus:outline-none focus:border-blue-500
+                    text-gray-200 placeholder-gray-500 focus:outline-hidden focus:border-blue-500
                     focus:ring-1 focus:ring-blue-500/30 transition-colors ${className}`}
       />
       {hint && <p className="text-xs text-gray-600 mt-1">{hint}</p>}
@@ -136,7 +136,7 @@ function ToggleRow({
 }) {
   return (
     <label className="flex items-start gap-3 cursor-pointer group">
-      <div className="relative mt-0.5 flex-shrink-0">
+      <div className="relative mt-0.5 shrink-0">
         <input
           type="checkbox"
           checked={checked}
@@ -149,7 +149,7 @@ function ToggleRow({
           }`}
         >
           <div
-            className={`absolute top-1 w-4 h-4 rounded-full bg-[#e2e8f4] shadow transition-transform ${
+            className={`absolute top-1 w-4 h-4 rounded-full bg-falcon-text shadow transition-transform ${
               checked ? 'translate-x-5' : 'translate-x-1'
             }`}
           />
@@ -254,13 +254,13 @@ export default function LdapIntegrationPage() {
 
   return (
     <div className="min-h-screen bg-gray-900">
-      <div className="max-w-screen-lg mx-auto p-6 space-y-6">
+      <div className="max-w-(--breakpoint-lg) mx-auto p-6 space-y-6">
 
         {/* ── Header ──────────────────────────────────────────────── */}
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-blue-900/40 border border-blue-700/50
-                            flex items-center justify-center flex-shrink-0">
+                            flex items-center justify-center shrink-0">
               <Server className="w-5 h-5 text-blue-400" />
             </div>
             <div>
@@ -291,7 +291,7 @@ export default function LdapIntegrationPage() {
         {/* ── Save error ───────────────────────────────────────────── */}
         {saveStatus === 'error' && saveError && (
           <div className="flex items-start gap-3 bg-red-900/20 border border-red-700/40 rounded-xl px-5 py-4">
-            <AlertTriangle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+            <AlertTriangle className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
             <p className="text-sm text-red-300">{saveError}</p>
           </div>
         )}
@@ -319,7 +319,7 @@ export default function LdapIntegrationPage() {
                   min={1}
                   max={65535}
                   className="w-full bg-gray-900 border border-gray-600 rounded-lg px-3 py-2.5 text-sm
-                             text-gray-200 focus:outline-none focus:border-blue-500
+                             text-gray-200 focus:outline-hidden focus:border-blue-500
                              focus:ring-1 focus:ring-blue-500/30 transition-colors [appearance:textfield]"
                 />
               </div>
@@ -495,9 +495,9 @@ export default function LdapIntegrationPage() {
                 onChange={e => set('sync_interval', e.target.value as LdapConfig['sync_interval'])}
                 disabled={!config.sync_enabled}
                 className="w-full max-w-xs bg-gray-900 border border-gray-600 rounded-lg px-3 py-2.5 text-sm
-                           text-gray-200 focus:outline-none focus:border-blue-500
+                           text-gray-200 focus:outline-hidden focus:border-blue-500
                            focus:ring-1 focus:ring-blue-500/30 transition-colors
-                           disabled:opacity-40 disabled:cursor-not-allowed [color-scheme:dark]"
+                           disabled:opacity-40 disabled:cursor-not-allowed scheme-dark"
               >
                 <option value="">無効</option>
                 <option value="hourly">1時間ごと</option>

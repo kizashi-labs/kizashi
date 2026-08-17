@@ -77,7 +77,7 @@ function ScoreBar({ value, max = 100, color }: { value: number; max?: number; co
   const pct = Math.min((value / max) * 100, 100)
   const c = color ?? (pct >= 70 ? '#00c853' : pct >= 50 ? '#ffc107' : '#e8002d')
   return (
-    <div className="flex-1 h-2 bg-[#1e2d42] rounded-full overflow-hidden">
+    <div className="flex-1 h-2 bg-falcon-border rounded-full overflow-hidden">
       <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, backgroundColor: c }} />
     </div>
   )
@@ -85,15 +85,15 @@ function ScoreBar({ value, max = 100, color }: { value: number; max?: number; co
 
 function StatCard({ label, value, sub, icon: Icon, accent }: { label: string; value: string | number; sub?: string; icon: React.ElementType; accent?: string }) {
   return (
-    <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl px-5 py-4">
+    <div className="bg-falcon-surface border border-falcon-border rounded-xl px-5 py-4">
       <div className="flex items-start justify-between">
         <div>
-          <p className="text-[#7d92b0] text-xs">{label}</p>
+          <p className="text-falcon-muted text-xs">{label}</p>
           <p className={`text-2xl font-bold mt-1 ${accent ?? 'text-white'}`}>{value}</p>
-          {sub && <p className="text-[#7d92b0] text-xs mt-0.5">{sub}</p>}
+          {sub && <p className="text-falcon-muted text-xs mt-0.5">{sub}</p>}
         </div>
-        <div className="p-2 bg-[#e8002d]/10 border border-[#e8002d]/20 rounded-lg">
-          <Icon className="w-4 h-4 text-[#e8002d]" />
+        <div className="p-2 bg-falcon-red/10 border border-falcon-red/20 rounded-lg">
+          <Icon className="w-4 h-4 text-falcon-red" />
         </div>
       </div>
     </div>
@@ -103,7 +103,7 @@ function StatCard({ label, value, sub, icon: Icon, accent }: { label: string; va
 const SKILL_COLORS: Record<SkillLevel, string> = {
   full: 'bg-green-500/30 text-green-300 border-green-500/30',
   partial: 'bg-yellow-500/20 text-yellow-300 border-yellow-500/20',
-  none: 'bg-[#1e2d42] text-[#3d5068] border-[#1e2d42]',
+  none: 'bg-falcon-border text-falcon-subtle border-falcon-border',
 }
 const SKILL_LABELS: Record<SkillLevel, string> = { full: '◎', partial: '△', none: '—' }
 
@@ -229,22 +229,22 @@ export default function CapacityPlanningPage() {
   ]
 
   return (
-    <div className="min-h-screen bg-[#070d19] text-[#7d92b0]">
+    <div className="min-h-screen bg-[#070d19] text-falcon-muted">
       {/* Header */}
-      <div className="border-b border-[#1e2d42] bg-[#0d1220] px-6 py-4">
+      <div className="border-b border-falcon-border bg-falcon-surface px-6 py-4">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-[#e8002d]/10 border border-[#e8002d]/20 rounded-lg">
-              <TrendingUp className="w-5 h-5 text-[#e8002d]" />
+            <div className="p-2 bg-falcon-red/10 border border-falcon-red/20 rounded-lg">
+              <TrendingUp className="w-5 h-5 text-falcon-red" />
             </div>
             <div>
               <h1 className="text-white font-semibold text-xl">セキュリティリソース計画</h1>
-              <p className="text-[#7d92b0] text-sm">人員・技術・予算の容量計画と最適化</p>
+              <p className="text-falcon-muted text-sm">人員・技術・予算の容量計画と最適化</p>
             </div>
           </div>
           <button
             onClick={() => setShowAdminDrawer(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-[#1e2d42] hover:bg-[#2a3a52] text-white text-sm rounded-lg transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-falcon-border hover:bg-[#2a3a52] text-white text-sm rounded-lg transition-colors"
           >
             <Settings className="w-4 h-4" />
             データ管理
@@ -260,13 +260,13 @@ export default function CapacityPlanningPage() {
       </div>
 
       {/* Tabs */}
-      <div className="px-6 pt-4 border-b border-[#1e2d42]">
+      <div className="px-6 pt-4 border-b border-falcon-border">
         <div className="flex gap-1">
           {([['workforce', '人員計画'], ['tech', '技術リソース'], ['budget', '予算計画']] as const).map(([id, label]) => (
             <button
               key={id}
               onClick={() => setTab(id)}
-              className={`px-4 py-2 text-sm font-medium rounded-t-lg border-b-2 transition-colors ${tab === id ? 'border-[#e8002d] text-white' : 'border-transparent text-[#7d92b0] hover:text-white'}`}
+              className={`px-4 py-2 text-sm font-medium rounded-t-lg border-b-2 transition-colors ${tab === id ? 'border-falcon-red text-white' : 'border-transparent text-falcon-muted hover:text-white'}`}
             >
               {label}
             </button>
@@ -279,15 +279,15 @@ export default function CapacityPlanningPage() {
         {tab === 'workforce' && (
           <>
             {/* Team composition */}
-            <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
-              <h2 className="text-white font-medium mb-4 flex items-center gap-2"><Users className="w-4 h-4 text-[#e8002d]" />チーム構成</h2>
+            <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
+              <h2 className="text-white font-medium mb-4 flex items-center gap-2"><Users className="w-4 h-4 text-falcon-red" />チーム構成</h2>
               <div className="flex flex-wrap gap-3">
                 {roleCounts.map(([role, count]) => (
-                  <div key={role} className="flex items-center gap-2 bg-[#070d19] border border-[#1e2d42] rounded-lg px-4 py-3 min-w-[160px]">
+                  <div key={role} className="flex items-center gap-2 bg-[#070d19] border border-falcon-border rounded-lg px-4 py-3 min-w-[160px]">
                     <div className="flex flex-col gap-1">
-                      <span className={`text-xs px-2 py-0.5 rounded border ${ROLE_COLORS[role]}`}>{role}</span>
+                      <span className={`text-xs px-2 py-0.5 rounded-sm border ${ROLE_COLORS[role]}`}>{role}</span>
                       <span className="text-2xl font-bold text-white">{count}</span>
-                      <span className="text-[#3d5068] text-xs">名</span>
+                      <span className="text-falcon-subtle text-xs">名</span>
                     </div>
                   </div>
                 ))}
@@ -295,21 +295,21 @@ export default function CapacityPlanningPage() {
             </div>
 
             {/* Workload analysis */}
-            <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
-              <h2 className="text-white font-medium mb-4 flex items-center gap-2"><BarChart3 className="w-4 h-4 text-[#e8002d]" />ワークロード分析</h2>
+            <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
+              <h2 className="text-white font-medium mb-4 flex items-center gap-2"><BarChart3 className="w-4 h-4 text-falcon-red" />ワークロード分析</h2>
               <div className="grid grid-cols-3 gap-6">
                 <div className="text-center">
-                  <p className="text-[#7d92b0] text-xs mb-1">日次アラート量</p>
+                  <p className="text-falcon-muted text-xs mb-1">日次アラート量</p>
                   <p className="text-3xl font-bold text-white">{alertsPerDay}</p>
-                  <p className="text-[#3d5068] text-xs">アラート/日</p>
+                  <p className="text-falcon-subtle text-xs">アラート/日</p>
                 </div>
                 <div className="text-center">
-                  <p className="text-[#7d92b0] text-xs mb-1">アナリスト処理能力</p>
+                  <p className="text-falcon-muted text-xs mb-1">アナリスト処理能力</p>
                   <p className="text-3xl font-bold text-green-400">{analystCapacity}</p>
-                  <p className="text-[#3d5068] text-xs">アラート/日</p>
+                  <p className="text-falcon-subtle text-xs">アラート/日</p>
                 </div>
                 <div className="text-center">
-                  <p className="text-[#7d92b0] text-xs mb-1">ワークロード比率</p>
+                  <p className="text-falcon-muted text-xs mb-1">ワークロード比率</p>
                   <p className={`text-3xl font-bold ${workloadColor}`}>{(workloadRatio * 100).toFixed(0)}%</p>
                   <p className={`text-xs mt-1 ${surplus >= 0 ? 'text-green-400' : 'text-red-400'}`}>
                     {surplus >= 0 ? `余裕: +${surplus}` : `不足: ${surplus}`} アラート/日
@@ -317,11 +317,11 @@ export default function CapacityPlanningPage() {
                 </div>
               </div>
               <div className="mt-4">
-                <div className="flex justify-between text-xs text-[#7d92b0] mb-1">
+                <div className="flex justify-between text-xs text-falcon-muted mb-1">
                   <span>処理能力使用率</span>
                   <span className={workloadColor}>{(workloadRatio * 100).toFixed(0)}%</span>
                 </div>
-                <div className="h-3 bg-[#1e2d42] rounded-full overflow-hidden">
+                <div className="h-3 bg-falcon-border rounded-full overflow-hidden">
                   <div
                     className="h-full rounded-full transition-all"
                     style={{ width: `${Math.min(workloadRatio * 100, 100)}%`, backgroundColor: workloadRatio < 0.7 ? '#00c853' : workloadRatio < 1.0 ? '#ffc107' : '#e8002d' }}
@@ -331,26 +331,26 @@ export default function CapacityPlanningPage() {
             </div>
 
             {/* Growth planning */}
-            <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
-              <h2 className="text-white font-medium mb-4 flex items-center gap-2"><TrendingUp className="w-4 h-4 text-[#e8002d]" />成長計画</h2>
+            <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
+              <h2 className="text-white font-medium mb-4 flex items-center gap-2"><TrendingUp className="w-4 h-4 text-falcon-red" />成長計画</h2>
               <div className="flex items-center gap-4 mb-5">
-                <label className="text-sm text-[#7d92b0]">アラート年間成長率</label>
+                <label className="text-sm text-falcon-muted">アラート年間成長率</label>
                 <input
                   type="range" min={0} max={100} step={5}
                   value={alertGrowthPct}
                   onChange={e => setAlertGrowthPct(Number(e.target.value))}
-                  className="flex-1 accent-[#e8002d]"
+                  className="flex-1 accent-falcon-red"
                 />
                 <span className="text-white font-bold w-12 text-right">{alertGrowthPct}%</span>
               </div>
               <div className="grid grid-cols-3 gap-4">
                 {projections.map(p => (
-                  <div key={p.months} className="bg-[#070d19] border border-[#1e2d42] rounded-lg p-4">
-                    <p className="text-[#7d92b0] text-xs mb-2">{p.months}ヶ月後</p>
+                  <div key={p.months} className="bg-[#070d19] border border-falcon-border rounded-lg p-4">
+                    <p className="text-falcon-muted text-xs mb-2">{p.months}ヶ月後</p>
                     <p className="text-white text-lg font-bold">{(p.projected_alerts ?? 0).toLocaleString()}</p>
-                    <p className="text-[#3d5068] text-xs mb-3">アラート/日</p>
-                    <div className="border-t border-[#1e2d42] pt-2">
-                      <p className="text-[#7d92b0] text-xs">必要アナリスト数</p>
+                    <p className="text-falcon-subtle text-xs mb-3">アラート/日</p>
+                    <div className="border-t border-falcon-border pt-2">
+                      <p className="text-falcon-muted text-xs">必要アナリスト数</p>
                       <p className="text-white font-bold text-xl">{p.required_analysts} 名</p>
                       <p className={`text-xs font-medium ${p.gap > 0 ? 'text-red-400' : 'text-green-400'}`}>
                         {p.gap > 0 ? `+${p.gap}名 不足` : `${Math.abs(p.gap)}名 余裕`}
@@ -362,27 +362,27 @@ export default function CapacityPlanningPage() {
             </div>
 
             {/* Skills matrix */}
-            <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
-              <h2 className="text-white font-medium mb-4 flex items-center gap-2"><CheckCircle className="w-4 h-4 text-[#e8002d]" />スキルマトリクス</h2>
+            <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
+              <h2 className="text-white font-medium mb-4 flex items-center gap-2"><CheckCircle className="w-4 h-4 text-falcon-red" />スキルマトリクス</h2>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b border-[#1e2d42]">
-                      <th className="py-2 pr-4 text-left text-xs text-[#7d92b0]">アナリスト</th>
-                      <th className="py-2 pr-4 text-left text-xs text-[#7d92b0]">役割</th>
-                      {SKILLS.map(s => <th key={s} className="py-2 px-3 text-center text-xs text-[#7d92b0]">{s}</th>)}
+                    <tr className="border-b border-falcon-border">
+                      <th className="py-2 pr-4 text-left text-xs text-falcon-muted">アナリスト</th>
+                      <th className="py-2 pr-4 text-left text-xs text-falcon-muted">役割</th>
+                      {SKILLS.map(s => <th key={s} className="py-2 px-3 text-center text-xs text-falcon-muted">{s}</th>)}
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-[#1e2d42]/50">
+                  <tbody className="divide-y divide-falcon-border/50">
                     {analysts.map(a => (
                       <tr key={a.id} className="hover:bg-[#070d19]/50">
                         <td className="py-2.5 pr-4 text-white text-sm font-medium">{a.name}</td>
                         <td className="py-2.5 pr-4">
-                          <span className={`text-xs px-2 py-0.5 rounded border ${ROLE_COLORS[a.role]}`}>{a.role}</span>
+                          <span className={`text-xs px-2 py-0.5 rounded-sm border ${ROLE_COLORS[a.role]}`}>{a.role}</span>
                         </td>
                         {SKILLS.map(s => (
                           <td key={s} className="py-2.5 px-3 text-center">
-                            <span className={`text-xs px-2 py-0.5 rounded border ${SKILL_COLORS[a.skills[s]]}`}>
+                            <span className={`text-xs px-2 py-0.5 rounded-sm border ${SKILL_COLORS[a.skills[s]]}`}>
                               {SKILL_LABELS[a.skills[s]]}
                             </span>
                           </td>
@@ -391,20 +391,20 @@ export default function CapacityPlanningPage() {
                     ))}
                   </tbody>
                 </table>
-                <p className="text-[#3d5068] text-xs mt-2">◎ = 熟練 &nbsp; △ = 習得中 &nbsp; — = 未習得</p>
+                <p className="text-falcon-subtle text-xs mt-2">◎ = 熟練 &nbsp; △ = 習得中 &nbsp; — = 未習得</p>
               </div>
             </div>
 
             {/* Hiring roadmap */}
-            <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
-              <h2 className="text-white font-medium mb-4 flex items-center gap-2"><Calendar className="w-4 h-4 text-[#e8002d]" />採用ロードマップ</h2>
+            <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
+              <h2 className="text-white font-medium mb-4 flex items-center gap-2"><Calendar className="w-4 h-4 text-falcon-red" />採用ロードマップ</h2>
               <div className="space-y-3">
                 {plannedHires.map((h, i) => (
-                  <div key={i} className="flex items-center justify-between bg-[#070d19] border border-[#1e2d42] rounded-lg px-4 py-3">
+                  <div key={i} className="flex items-center justify-between bg-[#070d19] border border-falcon-border rounded-lg px-4 py-3">
                     <div className="flex items-center gap-3">
                       <span className={`w-2 h-2 rounded-full ${PRIORITY_COLORS[h.priority].replace('text-', 'bg-')}`} />
-                      <span className={`text-xs px-2 py-0.5 rounded border ${ROLE_COLORS[h.role as AnalystRole] ?? 'bg-gray-500/20 text-gray-300 border-gray-500/30'}`}>{h.role}</span>
-                      <span className="text-[#7d92b0] text-sm">{h.planned_quarter}</span>
+                      <span className={`text-xs px-2 py-0.5 rounded-sm border ${ROLE_COLORS[h.role as AnalystRole] ?? 'bg-gray-500/20 text-gray-300 border-gray-500/30'}`}>{h.role}</span>
+                      <span className="text-falcon-muted text-sm">{h.planned_quarter}</span>
                     </div>
                     <div className="flex items-center gap-4">
                       <span className="text-white text-sm font-medium">{fmtJPY(h.estimated_annual_cost)}/年</span>
@@ -416,25 +416,25 @@ export default function CapacityPlanningPage() {
             </div>
 
             {/* On-call coverage */}
-            <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
-              <h2 className="text-white font-medium mb-4 flex items-center gap-2"><RefreshCw className="w-4 h-4 text-[#e8002d]" />24/7 オンコールカバレッジ</h2>
+            <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
+              <h2 className="text-white font-medium mb-4 flex items-center gap-2"><RefreshCw className="w-4 h-4 text-falcon-red" />24/7 オンコールカバレッジ</h2>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b border-[#1e2d42]">
-                      <th className="py-2 pr-4 text-left text-xs text-[#7d92b0]">シフト</th>
+                    <tr className="border-b border-falcon-border">
+                      <th className="py-2 pr-4 text-left text-xs text-falcon-muted">シフト</th>
                       {['月', '火', '水', '木', '金', '土', '日'].map(d => (
-                        <th key={d} className="py-2 px-3 text-center text-xs text-[#7d92b0]">{d}</th>
+                        <th key={d} className="py-2 px-3 text-center text-xs text-falcon-muted">{d}</th>
                       ))}
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-[#1e2d42]/50">
+                  <tbody className="divide-y divide-falcon-border/50">
                     {oncallShifts.map(s => (
                       <tr key={s.shift} className="hover:bg-[#070d19]/50">
-                        <td className="py-2.5 pr-4 text-[#7d92b0] text-xs whitespace-nowrap">{s.shift}</td>
+                        <td className="py-2.5 pr-4 text-falcon-muted text-xs whitespace-nowrap">{s.shift}</td>
                         {[s.mon, s.tue, s.wed, s.thu, s.fri, s.sat, s.sun].map((p, i) => (
                           <td key={i} className={`py-2.5 px-3 text-center text-xs font-medium ${p === '—' ? 'text-red-400' : 'text-white'}`}>
-                            {p === '—' ? <span className="px-1.5 py-0.5 bg-red-500/10 border border-red-500/20 rounded text-red-400">空白</span> : p}
+                            {p === '—' ? <span className="px-1.5 py-0.5 bg-red-500/10 border border-red-500/20 rounded-sm text-red-400">空白</span> : p}
                           </td>
                         ))}
                       </tr>
@@ -450,29 +450,29 @@ export default function CapacityPlanningPage() {
         {tab === 'tech' && (
           <>
             {/* Storage */}
-            <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
-              <h2 className="text-white font-medium mb-4 flex items-center gap-2"><HardDrive className="w-4 h-4 text-[#e8002d]" />ストレージ容量</h2>
+            <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
+              <h2 className="text-white font-medium mb-4 flex items-center gap-2"><HardDrive className="w-4 h-4 text-falcon-red" />ストレージ容量</h2>
               <div className="grid grid-cols-4 gap-4 mb-5">
                 {[
                   { label: '使用中', value: `${storage.used_tb} TB`, color: 'text-white' },
-                  { label: '上限', value: `${storage.total_tb} TB`, color: 'text-[#7d92b0]' },
+                  { label: '上限', value: `${storage.total_tb} TB`, color: 'text-falcon-muted' },
                   { label: '6ヶ月後予測', value: `${storage.projected_6m_tb} TB`, color: storage.projected_6m_tb > storage.total_tb ? 'text-red-400' : 'text-yellow-400' },
                   { label: '12ヶ月後予測', value: `${storage.projected_12m_tb} TB`, color: storage.projected_12m_tb > storage.total_tb ? 'text-red-400' : 'text-orange-400' },
                 ].map(c => (
-                  <div key={c.label} className="bg-[#070d19] border border-[#1e2d42] rounded-lg p-3 text-center">
-                    <p className="text-[#7d92b0] text-xs">{c.label}</p>
+                  <div key={c.label} className="bg-[#070d19] border border-falcon-border rounded-lg p-3 text-center">
+                    <p className="text-falcon-muted text-xs">{c.label}</p>
                     <p className={`text-xl font-bold mt-1 ${c.color}`}>{c.value}</p>
                   </div>
                 ))}
               </div>
               <div>
-                <div className="flex justify-between text-xs text-[#7d92b0] mb-1">
+                <div className="flex justify-between text-xs text-falcon-muted mb-1">
                   <span>現在の使用率</span>
                   <span className={storage.used_tb / storage.total_tb > 0.8 ? 'text-red-400' : 'text-white'}>
                     {((storage.used_tb / storage.total_tb) * 100).toFixed(0)}%
                   </span>
                 </div>
-                <div className="h-3 bg-[#1e2d42] rounded-full overflow-hidden">
+                <div className="h-3 bg-falcon-border rounded-full overflow-hidden">
                   <div
                     className="h-full rounded-full"
                     style={{
@@ -485,24 +485,24 @@ export default function CapacityPlanningPage() {
             </div>
 
             {/* License utilization */}
-            <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
-              <h2 className="text-white font-medium mb-4 flex items-center gap-2"><Package className="w-4 h-4 text-[#e8002d]" />ライセンス使用状況</h2>
+            <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
+              <h2 className="text-white font-medium mb-4 flex items-center gap-2"><Package className="w-4 h-4 text-falcon-red" />ライセンス使用状況</h2>
               <div className="space-y-3">
                 {licenses.map(l => {
                   const pct = (l.used / l.purchased) * 100
                   const exhaustDate = pct >= 100 ? '満杯' : pct >= 90 ? '3ヶ月以内' : '余裕あり'
                   const exhaustColor = pct >= 100 ? 'text-red-400' : pct >= 90 ? 'text-yellow-400' : 'text-green-400'
                   return (
-                    <div key={l.id} className="bg-[#070d19] border border-[#1e2d42] rounded-lg px-4 py-3">
+                    <div key={l.id} className="bg-[#070d19] border border-falcon-border rounded-lg px-4 py-3">
                       <div className="flex items-center justify-between mb-2">
                         <div>
                           <span className="text-white text-sm font-medium">{l.tool_name}</span>
-                          <span className="ml-2 text-xs px-1.5 py-0.5 bg-[#1e2d42] text-[#7d92b0] rounded">{l.category}</span>
+                          <span className="ml-2 text-xs px-1.5 py-0.5 bg-falcon-border text-falcon-muted rounded-sm">{l.category}</span>
                         </div>
                         <div className="flex items-center gap-4 text-xs">
-                          <span className="text-[#7d92b0]">{l.used}/{l.purchased}</span>
+                          <span className="text-falcon-muted">{l.used}/{l.purchased}</span>
                           <span className={`font-medium ${exhaustColor}`}>{exhaustDate}</span>
-                          <span className="text-[#3d5068]">更新: {l.renewal_date}</span>
+                          <span className="text-falcon-subtle">更新: {l.renewal_date}</span>
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
@@ -516,17 +516,17 @@ export default function CapacityPlanningPage() {
             </div>
 
             {/* Technical debt */}
-            <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
+            <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
               <h2 className="text-white font-medium mb-4 flex items-center gap-2"><AlertTriangle className="w-4 h-4 text-yellow-400" />技術的負債</h2>
               <div className="space-y-3">
                 {techDebt.map(td => (
-                  <div key={td.id} className="bg-[#070d19] border border-[#1e2d42] rounded-lg px-4 py-3">
+                  <div key={td.id} className="bg-[#070d19] border border-falcon-border rounded-lg px-4 py-3">
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex-1">
                         <p className="text-white text-sm font-medium">{td.title}</p>
-                        <p className="text-[#7d92b0] text-xs mt-1">{td.impact}</p>
+                        <p className="text-falcon-muted text-xs mt-1">{td.impact}</p>
                       </div>
-                      <span className={`text-xs px-2 py-0.5 rounded border flex-shrink-0 ${SEVERITY_COLORS[td.severity]}`}>
+                      <span className={`text-xs px-2 py-0.5 rounded-sm border shrink-0 ${SEVERITY_COLORS[td.severity]}`}>
                         {td.severity === 'high' ? '高' : td.severity === 'medium' ? '中' : '低'}
                       </span>
                     </div>
@@ -536,22 +536,22 @@ export default function CapacityPlanningPage() {
             </div>
 
             {/* Scaling scenarios */}
-            <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
-              <h2 className="text-white font-medium mb-4 flex items-center gap-2"><Cpu className="w-4 h-4 text-[#e8002d]" />スケーリングシナリオ</h2>
+            <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
+              <h2 className="text-white font-medium mb-4 flex items-center gap-2"><Cpu className="w-4 h-4 text-falcon-red" />スケーリングシナリオ</h2>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b border-[#1e2d42]">
+                    <tr className="border-b border-falcon-border">
                       {['シナリオ', 'エージェント数', 'ストレージ影響', 'コンピュート', '帯域幅'].map(h => (
-                        <th key={h} className="px-4 py-3 text-left text-xs font-medium text-[#7d92b0]">{h}</th>
+                        <th key={h} className="px-4 py-3 text-left text-xs font-medium text-falcon-muted">{h}</th>
                       ))}
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-[#1e2d42]/50">
+                  <tbody className="divide-y divide-falcon-border/50">
                     {scalingScenarios.map((s, i) => (
                       <tr key={i} className="hover:bg-[#070d19]/50">
                         <td className="px-4 py-3 text-white font-medium">{s.label}</td>
-                        <td className="px-4 py-3 text-[#7d92b0]">{(s.agents ?? 0).toLocaleString()}</td>
+                        <td className="px-4 py-3 text-falcon-muted">{(s.agents ?? 0).toLocaleString()}</td>
                         <td className="px-4 py-3 text-yellow-300">{s.storage}</td>
                         <td className="px-4 py-3 text-orange-300">{s.compute}</td>
                         <td className="px-4 py-3 text-red-300">{s.bandwidth}</td>
@@ -569,17 +569,17 @@ export default function CapacityPlanningPage() {
           <>
             {/* Summary */}
             <div className="grid grid-cols-3 gap-4">
-              <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
-                <p className="text-[#7d92b0] text-xs mb-1">総予算 (当年度)</p>
+              <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
+                <p className="text-falcon-muted text-xs mb-1">総予算 (当年度)</p>
                 <p className="text-3xl font-bold text-white">{fmtJPY(totalBudget)}</p>
               </div>
-              <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
-                <p className="text-[#7d92b0] text-xs mb-1">エンドポイント単価</p>
+              <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
+                <p className="text-falcon-muted text-xs mb-1">エンドポイント単価</p>
                 <p className="text-3xl font-bold text-white">{fmtJPY(costPerEndpoint)}</p>
-                <p className="text-[#3d5068] text-xs mt-0.5">目標: {fmtJPY(costPerEndpointTarget)}/台</p>
+                <p className="text-falcon-subtle text-xs mt-0.5">目標: {fmtJPY(costPerEndpointTarget)}/台</p>
               </div>
-              <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
-                <p className="text-[#7d92b0] text-xs mb-1">3年予測総額</p>
+              <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
+                <p className="text-falcon-muted text-xs mb-1">3年予測総額</p>
                 <p className="text-3xl font-bold text-white">
                   {fmtJPY(budget.reduce((s, b) => s + b.next_year + b.year3, 0) + totalBudget)}
                 </p>
@@ -587,21 +587,21 @@ export default function CapacityPlanningPage() {
             </div>
 
             {/* Budget allocation table */}
-            <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
-              <h2 className="text-white font-medium mb-4 flex items-center gap-2"><DollarSign className="w-4 h-4 text-[#e8002d]" />3年間予算予測</h2>
+            <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
+              <h2 className="text-white font-medium mb-4 flex items-center gap-2"><DollarSign className="w-4 h-4 text-falcon-red" />3年間予算予測</h2>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b border-[#1e2d42]">
-                      <th className="px-4 py-3 text-left text-xs text-[#7d92b0]">カテゴリ</th>
-                      <th className="px-4 py-3 text-right text-xs text-[#7d92b0]">当年度</th>
-                      <th className="px-4 py-3 text-right text-xs text-[#7d92b0]">来年度</th>
-                      <th className="px-4 py-3 text-right text-xs text-[#7d92b0]">3年目</th>
-                      <th className="px-4 py-3 text-right text-xs text-[#7d92b0]">3年合計</th>
-                      <th className="px-4 py-3 text-left text-xs text-[#7d92b0]">割合</th>
+                    <tr className="border-b border-falcon-border">
+                      <th className="px-4 py-3 text-left text-xs text-falcon-muted">カテゴリ</th>
+                      <th className="px-4 py-3 text-right text-xs text-falcon-muted">当年度</th>
+                      <th className="px-4 py-3 text-right text-xs text-falcon-muted">来年度</th>
+                      <th className="px-4 py-3 text-right text-xs text-falcon-muted">3年目</th>
+                      <th className="px-4 py-3 text-right text-xs text-falcon-muted">3年合計</th>
+                      <th className="px-4 py-3 text-left text-xs text-falcon-muted">割合</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-[#1e2d42]/50">
+                  <tbody className="divide-y divide-falcon-border/50">
                     {budget.map(b => {
                       const pct = (b.current_year / totalBudget) * 100
                       const total3 = b.current_year + b.next_year + b.year3
@@ -609,21 +609,21 @@ export default function CapacityPlanningPage() {
                         <tr key={b.label} className="hover:bg-[#070d19]/50">
                           <td className="px-4 py-3 text-white font-medium">{b.label}</td>
                           <td className="px-4 py-3 text-right text-white">{fmtJPY(b.current_year)}</td>
-                          <td className="px-4 py-3 text-right text-[#7d92b0]">{fmtJPY(b.next_year)}</td>
-                          <td className="px-4 py-3 text-right text-[#7d92b0]">{fmtJPY(b.year3)}</td>
-                          <td className="px-4 py-3 text-right text-[#7d92b0]">{fmtJPY(total3)}</td>
+                          <td className="px-4 py-3 text-right text-falcon-muted">{fmtJPY(b.next_year)}</td>
+                          <td className="px-4 py-3 text-right text-falcon-muted">{fmtJPY(b.year3)}</td>
+                          <td className="px-4 py-3 text-right text-falcon-muted">{fmtJPY(total3)}</td>
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-2">
-                              <div className="w-20 h-1.5 bg-[#1e2d42] rounded-full overflow-hidden">
-                                <div className="h-full bg-[#e8002d] rounded-full" style={{ width: `${pct}%` }} />
+                              <div className="w-20 h-1.5 bg-falcon-border rounded-full overflow-hidden">
+                                <div className="h-full bg-falcon-red rounded-full" style={{ width: `${pct}%` }} />
                               </div>
-                              <span className="text-xs text-[#7d92b0]">{pct.toFixed(0)}%</span>
+                              <span className="text-xs text-falcon-muted">{pct.toFixed(0)}%</span>
                             </div>
                           </td>
                         </tr>
                       )
                     })}
-                    <tr className="border-t border-[#1e2d42] bg-[#070d19]/30">
+                    <tr className="border-t border-falcon-border bg-[#070d19]/30">
                       <td className="px-4 py-3 text-white font-bold">合計</td>
                       <td className="px-4 py-3 text-right text-white font-bold">{fmtJPY(totalBudget)}</td>
                       <td className="px-4 py-3 text-right text-white font-bold">{fmtJPY(budget.reduce((s, b) => s + b.next_year, 0))}</td>
@@ -637,35 +637,35 @@ export default function CapacityPlanningPage() {
             </div>
 
             {/* ROI metrics — values computed server-side from investment vs benefit inputs (cp_roi_inputs) */}
-            <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
-              <h2 className="text-white font-medium mb-4 flex items-center gap-2"><TrendingUp className="w-4 h-4 text-[#e8002d]" />ROI指標</h2>
+            <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
+              <h2 className="text-white font-medium mb-4 flex items-center gap-2"><TrendingUp className="w-4 h-4 text-falcon-red" />ROI指標</h2>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {roiItems.map(r => {
                   const colorCls = r.color === 'green' ? 'text-green-400' : r.color === 'yellow' ? 'text-yellow-400' : 'text-red-400'
                   return (
-                    <div key={r.category} className="bg-[#070d19] border border-[#1e2d42] rounded-lg p-4 text-center">
-                      <p className="text-[#7d92b0] text-xs mb-1">{r.label}</p>
+                    <div key={r.category} className="bg-[#070d19] border border-falcon-border rounded-lg p-4 text-center">
+                      <p className="text-falcon-muted text-xs mb-1">{r.label}</p>
                       <p className={`text-3xl font-bold ${colorCls}`}>{r.roi_pct}%</p>
-                      <p className="text-[#3d5068] text-xs mt-1">{r.sub_label}</p>
+                      <p className="text-falcon-subtle text-xs mt-1">{r.sub_label}</p>
                     </div>
                   )
                 })}
                 {roiItems.length === 0 && (
-                  <p className="col-span-4 text-[#7d92b0] text-sm text-center py-4">ROIデータを読み込み中...</p>
+                  <p className="col-span-4 text-falcon-muted text-sm text-center py-4">ROIデータを読み込み中...</p>
                 )}
               </div>
             </div>
 
             {/* Budget request builder */}
-            <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
+            <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
               <div className="flex items-center justify-between">
                 <div>
                   <h2 className="text-white font-medium">予算申請書</h2>
-                  <p className="text-[#7d92b0] text-sm mt-0.5">現在のデータに基づいた予算申請書を生成します</p>
+                  <p className="text-falcon-muted text-sm mt-0.5">現在のデータに基づいた予算申請書を生成します</p>
                 </div>
                 <button
                   onClick={() => setShowBudgetModal(true)}
-                  className="flex items-center gap-2 px-4 py-2 bg-[#e8002d] hover:bg-[#c0001f] text-white text-sm font-medium rounded-lg transition-colors"
+                  className="flex items-center gap-2 px-4 py-2 bg-falcon-red hover:bg-[#c0001f] text-white text-sm font-medium rounded-lg transition-colors"
                 >
                   <Download className="w-4 h-4" />
                   予算申請書を作成
@@ -681,45 +681,45 @@ export default function CapacityPlanningPage() {
 
       {/* Budget proposal modal */}
       {showBudgetModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm" onClick={() => setShowBudgetModal(false)}>
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl w-full max-w-2xl p-6 shadow-xl" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-xs" onClick={() => setShowBudgetModal(false)}>
+          <div className="bg-falcon-surface border border-falcon-border rounded-xl w-full max-w-2xl p-6 shadow-xl" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-5">
               <h2 className="text-white font-semibold text-lg">予算申請書 (テンプレート)</h2>
-              <button onClick={() => setShowBudgetModal(false)} className="p-1.5 rounded hover:bg-[#1e2d42] text-[#7d92b0]">
+              <button onClick={() => setShowBudgetModal(false)} className="p-1.5 rounded-sm hover:bg-falcon-border text-falcon-muted">
                 <span className="text-lg">×</span>
               </button>
             </div>
-            <div className="bg-[#070d19] border border-[#1e2d42] rounded-lg p-5 space-y-4 text-sm">
+            <div className="bg-[#070d19] border border-falcon-border rounded-lg p-5 space-y-4 text-sm">
               <div>
-                <p className="text-[#e8002d] font-bold text-base mb-1">セキュリティ予算申請書 FY2027</p>
-                <p className="text-[#7d92b0]">作成日: {new Date().toISOString().slice(0, 10)} | 作成者: セキュリティ部門</p>
+                <p className="text-falcon-red font-bold text-base mb-1">セキュリティ予算申請書 FY2027</p>
+                <p className="text-falcon-muted">作成日: {new Date().toISOString().slice(0, 10)} | 作成者: セキュリティ部門</p>
               </div>
               <div>
                 <p className="text-white font-medium mb-2">1. 申請概要</p>
-                <p className="text-[#7d92b0]">現在のセキュリティ態勢強化および増大する脅威への対応力向上を目的として、FY2027予算 {fmtJPY(budget.reduce((s, b) => s + b.next_year, 0))} を申請します。</p>
+                <p className="text-falcon-muted">現在のセキュリティ態勢強化および増大する脅威への対応力向上を目的として、FY2027予算 {fmtJPY(budget.reduce((s, b) => s + b.next_year, 0))} を申請します。</p>
               </div>
               <div>
                 <p className="text-white font-medium mb-2">2. 予算内訳</p>
                 {budget.map(b => (
-                  <div key={b.label} className="flex justify-between border-b border-[#1e2d42]/50 py-1">
-                    <span className="text-[#7d92b0]">{b.label}</span>
+                  <div key={b.label} className="flex justify-between border-b border-falcon-border/50 py-1">
+                    <span className="text-falcon-muted">{b.label}</span>
                     <span className="text-white">{fmtJPY(b.next_year)}</span>
                   </div>
                 ))}
                 <div className="flex justify-between pt-2 font-bold">
                   <span className="text-white">合計</span>
-                  <span className="text-[#e8002d]">{fmtJPY(budget.reduce((s, b) => s + b.next_year, 0))}</span>
+                  <span className="text-falcon-red">{fmtJPY(budget.reduce((s, b) => s + b.next_year, 0))}</span>
                 </div>
               </div>
               <div>
                 <p className="text-white font-medium mb-2">3. 根拠・ROI</p>
-                <p className="text-[#7d92b0]">現在のアラート増加率 ({alertGrowthPct}%/年) に対応するため、{projections[1].gap > 0 ? `アナリスト${projections[1].gap}名の採用` : '現行人員維持'} および技術強化が必要です。推定投資対効果は {roiItems.find(r => r.category === 'overall')?.roi_pct ?? 0}% です。</p>
+                <p className="text-falcon-muted">現在のアラート増加率 ({alertGrowthPct}%/年) に対応するため、{projections[1].gap > 0 ? `アナリスト${projections[1].gap}名の採用` : '現行人員維持'} および技術強化が必要です。推定投資対効果は {roiItems.find(r => r.category === 'overall')?.roi_pct ?? 0}% です。</p>
               </div>
             </div>
             <div className="flex justify-end mt-4">
               <button
                 onClick={() => setShowBudgetModal(false)}
-                className="px-4 py-2 bg-[#e8002d] hover:bg-[#c0001f] text-white text-sm rounded-lg transition-colors"
+                className="px-4 py-2 bg-falcon-red hover:bg-[#c0001f] text-white text-sm rounded-lg transition-colors"
               >
                 閉じる
               </button>

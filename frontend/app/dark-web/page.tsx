@@ -294,19 +294,19 @@ export default function DarkWebMonitoringPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#070d19] text-[#e2e8f4]">
+    <div className="min-h-screen bg-[#070d19] text-falcon-text">
       <div className="max-w-7xl mx-auto px-6 py-6 space-y-6">
 
         {/* Header */}
         <div>
           <h1 className="text-2xl font-bold text-white">ダークウェブ監視</h1>
-          <p className="text-[#7d92b0] mt-1">漏洩認証情報・メンション・データ流出の監視</p>
+          <p className="text-falcon-muted mt-1">漏洩認証情報・メンション・データ流出の監視</p>
         </div>
 
         {/* Warning Banner */}
         {findings.length === 0 && keywords.length === 0 && (
           <div className="flex items-start gap-3 px-4 py-3 rounded-lg border border-yellow-700/50 bg-yellow-900/20">
-            <AlertTriangle className="w-5 h-5 text-yellow-400 flex-shrink-0 mt-0.5" />
+            <AlertTriangle className="w-5 h-5 text-yellow-400 shrink-0 mt-0.5" />
             <p className="text-yellow-300 text-sm">
               検出データがありません。外部脅威インテリジェンスAPIを設定するか、監視キーワードを追加してください。
             </p>
@@ -321,10 +321,10 @@ export default function DarkWebMonitoringPage() {
             { label: '漏洩認証情報', value: stats.leakedCredentials, icon: Key, color: stats.leakedCredentials > 0 ? 'text-red-400' : 'text-green-400', bold: stats.leakedCredentials > 0 },
             { label: '最終スキャン', value: stats.lastScan, icon: RefreshCw, color: 'text-green-400', bold: false, isText: true },
           ].map(({ label, value, icon: Icon, color, bold, isText }) => (
-            <div key={label} className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-4">
+            <div key={label} className="bg-falcon-surface border border-falcon-border rounded-lg p-4">
               <div className="flex items-center gap-2 mb-2">
                 <Icon className={`w-4 h-4 ${color}`} />
-                <span className="text-[#7d92b0] text-xs">{label}</span>
+                <span className="text-falcon-muted text-xs">{label}</span>
               </div>
               <p className={`text-2xl font-bold ${color} ${bold ? 'animate-pulse' : ''} ${isText ? 'text-base' : ''}`}>
                 {value}
@@ -334,7 +334,7 @@ export default function DarkWebMonitoringPage() {
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-1 border-b border-[#1e2d42]">
+        <div className="flex gap-1 border-b border-falcon-border">
           {([
             { id: 'findings', label: '検出結果' },
             { id: 'keywords', label: '監視キーワード' },
@@ -345,8 +345,8 @@ export default function DarkWebMonitoringPage() {
               onClick={() => setActiveTab(tab.id)}
               className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
                 activeTab === tab.id
-                  ? 'border-[#e8002d] text-white'
-                  : 'border-transparent text-[#7d92b0] hover:text-[#e2e8f4]'
+                  ? 'border-falcon-red text-white'
+                  : 'border-transparent text-falcon-muted hover:text-falcon-text'
               }`}
             >
               {tab.label}
@@ -359,11 +359,11 @@ export default function DarkWebMonitoringPage() {
           <div className="space-y-4">
             {/* Filters */}
             <div className="flex flex-wrap gap-3 items-center">
-              <Filter className="w-4 h-4 text-[#7d92b0]" />
+              <Filter className="w-4 h-4 text-falcon-muted" />
               <select
                 value={typeFilter}
                 onChange={e => setTypeFilter(e.target.value)}
-                className="bg-[#0d1220] border border-[#1e2d42] text-[#e2e8f4] rounded px-3 py-1.5 text-sm"
+                className="bg-falcon-surface border border-falcon-border text-falcon-text rounded-sm px-3 py-1.5 text-sm"
               >
                 <option value="all">種別: すべて</option>
                 <option value="credential">認証情報</option>
@@ -374,7 +374,7 @@ export default function DarkWebMonitoringPage() {
               <select
                 value={sevFilter}
                 onChange={e => setSevFilter(e.target.value)}
-                className="bg-[#0d1220] border border-[#1e2d42] text-[#e2e8f4] rounded px-3 py-1.5 text-sm"
+                className="bg-falcon-surface border border-falcon-border text-falcon-text rounded-sm px-3 py-1.5 text-sm"
               >
                 <option value="all">深刻度: すべて</option>
                 <option value="critical">Critical</option>
@@ -382,7 +382,7 @@ export default function DarkWebMonitoringPage() {
                 <option value="medium">Medium</option>
                 <option value="low">Low</option>
               </select>
-              <span className="text-[#7d92b0] text-sm ml-auto">{filteredFindings.length} 件</span>
+              <span className="text-falcon-muted text-sm ml-auto">{filteredFindings.length} 件</span>
             </div>
 
             {/* Finding Cards */}
@@ -396,10 +396,10 @@ export default function DarkWebMonitoringPage() {
                 const isExpanded = expandedFindings.has(finding.id)
 
                 return (
-                  <div key={finding.id} className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-4 space-y-3">
+                  <div key={finding.id} className="bg-falcon-surface border border-falcon-border rounded-lg p-4 space-y-3">
                     <div className="flex items-start gap-3">
                       {/* Type Icon */}
-                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center border flex-shrink-0 ${typeConf.color}`}>
+                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center border shrink-0 ${typeConf.color}`}>
                         <TypeIcon className="w-5 h-5" />
                       </div>
 
@@ -408,13 +408,13 @@ export default function DarkWebMonitoringPage() {
                         <div className="flex items-start justify-between gap-2 flex-wrap">
                           <div className="space-y-1">
                             <h3 className="text-white font-medium text-sm">{finding.title}</h3>
-                            <p className="text-[#7d92b0] text-xs">ソース: {finding.source}</p>
+                            <p className="text-falcon-muted text-xs">ソース: {finding.source}</p>
                           </div>
                           <div className="flex items-center gap-2 flex-wrap">
-                            <span className={`px-2 py-0.5 rounded text-xs border font-medium ${sevConf.badge}`}>
+                            <span className={`px-2 py-0.5 rounded-sm text-xs border font-medium ${sevConf.badge}`}>
                               {sevConf.label}
                             </span>
-                            <span className={`px-2 py-0.5 rounded text-xs border font-medium flex items-center gap-1 ${statusConf.badge}`}>
+                            <span className={`px-2 py-0.5 rounded-sm text-xs border font-medium flex items-center gap-1 ${statusConf.badge}`}>
                               <StatusIcon className="w-3 h-3" />
                               {statusConf.label}
                             </span>
@@ -422,26 +422,26 @@ export default function DarkWebMonitoringPage() {
                         </div>
 
                         {/* Preview */}
-                        <p className={`text-[#7d92b0] text-xs mt-2 ${isExpanded ? '' : 'line-clamp-2'}`}>
+                        <p className={`text-falcon-muted text-xs mt-2 ${isExpanded ? '' : 'line-clamp-2'}`}>
                           {finding.preview}
                         </p>
                         <button
                           onClick={() => toggleExpand(finding.id)}
-                          className="text-[#e8002d] text-xs mt-1 hover:underline flex items-center gap-1"
+                          className="text-falcon-red text-xs mt-1 hover:underline flex items-center gap-1"
                         >
                           {isExpanded ? <><ChevronUp className="w-3 h-3" />閉じる</> : <><ChevronDown className="w-3 h-3" />詳細</>}
                         </button>
 
-                        <p className="text-[#3d5068] text-xs mt-2">発見: {fmtDate(finding.discovered_at)}</p>
+                        <p className="text-falcon-subtle text-xs mt-2">発見: {fmtDate(finding.discovered_at)}</p>
                       </div>
                     </div>
 
                     {/* Actions */}
-                    <div className="flex items-center gap-2 flex-wrap pt-1 border-t border-[#1e2d42]">
+                    <div className="flex items-center gap-2 flex-wrap pt-1 border-t border-falcon-border">
                       {finding.status === 'new' && (
                         <button
                           onClick={() => updateFindingStatus.mutate({ id: finding.id, status: 'investigating' })}
-                          className="px-3 py-1 text-xs rounded border border-yellow-700/50 text-yellow-300 hover:bg-yellow-900/20 transition-colors"
+                          className="px-3 py-1 text-xs rounded-sm border border-yellow-700/50 text-yellow-300 hover:bg-yellow-900/20 transition-colors"
                         >
                           調査中にする
                         </button>
@@ -449,14 +449,14 @@ export default function DarkWebMonitoringPage() {
                       {finding.status !== 'resolved' && (
                         <button
                           onClick={() => updateFindingStatus.mutate({ id: finding.id, status: 'resolved' })}
-                          className="px-3 py-1 text-xs rounded border border-green-700/50 text-green-300 hover:bg-green-900/20 transition-colors"
+                          className="px-3 py-1 text-xs rounded-sm border border-green-700/50 text-green-300 hover:bg-green-900/20 transition-colors"
                         >
                           解決済みにする
                         </button>
                       )}
                       <button
                         onClick={() => createAlertMutation.mutate(finding)}
-                        className="px-3 py-1 text-xs rounded border border-[#e8002d]/50 text-red-300 hover:bg-red-900/20 transition-colors flex items-center gap-1"
+                        className="px-3 py-1 text-xs rounded-sm border border-falcon-red/50 text-red-300 hover:bg-red-900/20 transition-colors flex items-center gap-1"
                       >
                         <Plus className="w-3 h-3" />
                         アラート作成
@@ -473,37 +473,37 @@ export default function DarkWebMonitoringPage() {
         {activeTab === 'keywords' && (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <p className="text-[#7d92b0] text-sm">
+              <p className="text-falcon-muted text-sm">
                 監視中のキーワード・フレーズ ({keywords.filter(k => k.enabled).length}/{keywords.length} 有効)
               </p>
               <button
                 onClick={() => setShowAddKeyword(true)}
-                className="flex items-center gap-2 px-4 py-2 text-sm rounded bg-[#e8002d] hover:bg-[#c8001d] text-white transition-colors"
+                className="flex items-center gap-2 px-4 py-2 text-sm rounded-sm bg-falcon-red hover:bg-[#c8001d] text-white transition-colors"
               >
                 <Plus className="w-4 h-4" />
                 キーワード追加
               </button>
             </div>
 
-            <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg overflow-hidden">
+            <div className="bg-falcon-surface border border-falcon-border rounded-lg overflow-hidden">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-[#1e2d42]">
-                    <th className="text-left px-4 py-3 text-[#7d92b0] font-medium">キーワード</th>
-                    <th className="text-left px-4 py-3 text-[#7d92b0] font-medium">カテゴリ</th>
-                    <th className="text-left px-4 py-3 text-[#7d92b0] font-medium">有効</th>
-                    <th className="text-left px-4 py-3 text-[#7d92b0] font-medium">最終マッチ</th>
-                    <th className="text-left px-4 py-3 text-[#7d92b0] font-medium">マッチ数</th>
+                  <tr className="border-b border-falcon-border">
+                    <th className="text-left px-4 py-3 text-falcon-muted font-medium">キーワード</th>
+                    <th className="text-left px-4 py-3 text-falcon-muted font-medium">カテゴリ</th>
+                    <th className="text-left px-4 py-3 text-falcon-muted font-medium">有効</th>
+                    <th className="text-left px-4 py-3 text-falcon-muted font-medium">最終マッチ</th>
+                    <th className="text-left px-4 py-3 text-falcon-muted font-medium">マッチ数</th>
                   </tr>
                 </thead>
                 <tbody>
                   {keywords.map(kw => {
                     const catConf = CAT_CONFIG[kw.category]
                     return (
-                      <tr key={kw.id} className="border-b border-[#1e2d42] hover:bg-[#161f33] transition-colors">
-                        <td className="px-4 py-3 font-mono text-[#e2e8f4]">{kw.keyword}</td>
+                      <tr key={kw.id} className="border-b border-falcon-border hover:bg-falcon-raised transition-colors">
+                        <td className="px-4 py-3 font-mono text-falcon-text">{kw.keyword}</td>
                         <td className="px-4 py-3">
-                          <span className={`px-2 py-0.5 rounded text-xs border ${catConf.badge}`}>
+                          <span className={`px-2 py-0.5 rounded-sm text-xs border ${catConf.badge}`}>
                             {catConf.label}
                           </span>
                         </td>
@@ -511,15 +511,15 @@ export default function DarkWebMonitoringPage() {
                           <button onClick={() => toggleKeyword(kw.id)} className="transition-colors">
                             {kw.enabled
                               ? <ToggleRight className="w-6 h-6 text-green-400" />
-                              : <ToggleLeft className="w-6 h-6 text-[#3d5068]" />
+                              : <ToggleLeft className="w-6 h-6 text-falcon-subtle" />
                             }
                           </button>
                         </td>
-                        <td className="px-4 py-3 text-[#7d92b0] text-xs">
+                        <td className="px-4 py-3 text-falcon-muted text-xs">
                           {kw.last_match_date ?? '—'}
                         </td>
                         <td className="px-4 py-3">
-                          <span className={`font-medium ${kw.match_count > 0 ? 'text-[#e8002d]' : 'text-[#7d92b0]'}`}>
+                          <span className={`font-medium ${kw.match_count > 0 ? 'text-falcon-red' : 'text-falcon-muted'}`}>
                             {kw.match_count}
                           </span>
                         </td>
@@ -531,7 +531,7 @@ export default function DarkWebMonitoringPage() {
             </div>
 
             <div className="flex items-center gap-2 px-4 py-3 rounded-lg border border-blue-700/40 bg-blue-900/10">
-              <AlertCircle className="w-4 h-4 text-blue-400 flex-shrink-0" />
+              <AlertCircle className="w-4 h-4 text-blue-400 shrink-0" />
               <p className="text-blue-300 text-sm">実際の監視はAPIキー設定後に有効になります</p>
             </div>
           </div>
@@ -545,20 +545,20 @@ export default function DarkWebMonitoringPage() {
               <h2 className="text-white font-semibold mb-3">API連携</h2>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 {(integrationsData ?? []).map(svc => (
-                  <div key={svc.id} className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-4 flex items-start justify-between gap-3">
+                  <div key={svc.id} className="bg-falcon-surface border border-falcon-border rounded-lg p-4 flex items-start justify-between gap-3">
                     <div className="flex items-start gap-3">
-                      <div className="w-2 h-2 rounded-full mt-2 flex-shrink-0 bg-red-500" />
+                      <div className="w-2 h-2 rounded-full mt-2 shrink-0 bg-red-500" />
                       <div>
                         <p className="text-white font-medium text-sm">{svc.name}</p>
-                        <p className="text-[#7d92b0] text-xs mt-0.5">{svc.description}</p>
-                        <span className="inline-block mt-1 px-2 py-0.5 rounded text-xs border border-red-700/50 bg-red-900/30 text-red-300">
+                        <p className="text-falcon-muted text-xs mt-0.5">{svc.description}</p>
+                        <span className="inline-block mt-1 px-2 py-0.5 rounded-sm text-xs border border-red-700/50 bg-red-900/30 text-red-300">
                           未設定
                         </span>
                       </div>
                     </div>
                     <button
                       onClick={() => { setShowApiConfig(svc.id); setApiKeyInput('') }}
-                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded border border-[#1e2d42] text-[#7d92b0] hover:text-white hover:border-[#7d92b0]/40 transition-colors flex-shrink-0"
+                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-sm border border-falcon-border text-falcon-muted hover:text-white hover:border-falcon-muted/40 transition-colors shrink-0"
                     >
                       <Settings className="w-3 h-3" />
                       設定
@@ -569,7 +569,7 @@ export default function DarkWebMonitoringPage() {
             </div>
 
             {/* Scan Frequency */}
-            <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-4 space-y-3">
+            <div className="bg-falcon-surface border border-falcon-border rounded-lg p-4 space-y-3">
               <h2 className="text-white font-semibold">スキャン頻度</h2>
               <div className="flex flex-col gap-2">
                 {([
@@ -584,16 +584,16 @@ export default function DarkWebMonitoringPage() {
                       value={opt.id}
                       checked={scanFreq === opt.id}
                       onChange={() => setScanFreq(opt.id)}
-                      className="accent-[#e8002d]"
+                      className="accent-falcon-red"
                     />
-                    <span className="text-[#e2e8f4] text-sm">{opt.label}</span>
+                    <span className="text-falcon-text text-sm">{opt.label}</span>
                   </label>
                 ))}
               </div>
             </div>
 
             {/* Notifications */}
-            <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-4 space-y-3">
+            <div className="bg-falcon-surface border border-falcon-border rounded-lg p-4 space-y-3">
               <h2 className="text-white font-semibold">通知設定</h2>
               <label className="flex items-center gap-3 cursor-pointer">
                 <button
@@ -602,10 +602,10 @@ export default function DarkWebMonitoringPage() {
                 >
                   {emailNotify
                     ? <ToggleRight className="w-6 h-6 text-green-400" />
-                    : <ToggleLeft className="w-6 h-6 text-[#3d5068]" />
+                    : <ToggleLeft className="w-6 h-6 text-falcon-subtle" />
                   }
                 </button>
-                <span className="text-[#e2e8f4] text-sm">新規検出時にメール通知</span>
+                <span className="text-falcon-text text-sm">新規検出時にメール通知</span>
               </label>
             </div>
           </div>
@@ -614,31 +614,31 @@ export default function DarkWebMonitoringPage() {
 
       {/* ── Modal: キーワード追加 ────────────────────────────────── */}
       {showAddKeyword && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-6 w-full max-w-md shadow-xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs">
+          <div className="bg-falcon-surface border border-falcon-border rounded-lg p-6 w-full max-w-md shadow-xl">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-white font-semibold">監視キーワード追加</h2>
-              <button onClick={() => setShowAddKeyword(false)} className="text-[#7d92b0] hover:text-white">
+              <button onClick={() => setShowAddKeyword(false)} className="text-falcon-muted hover:text-white">
                 <X className="w-5 h-5" />
               </button>
             </div>
             <div className="space-y-4">
               <div>
-                <label className="block text-[#7d92b0] text-xs mb-1">キーワード / フレーズ</label>
+                <label className="block text-falcon-muted text-xs mb-1">キーワード / フレーズ</label>
                 <input
                   type="text"
                   value={keywordForm.keyword}
                   onChange={e => setKeywordForm(p => ({ ...p, keyword: e.target.value }))}
                   placeholder="例: company.com, @example.com"
-                  className="w-full bg-[#070d19] border border-[#1e2d42] rounded px-3 py-2 text-[#e2e8f4] text-sm focus:outline-none focus:border-[#e8002d]/50"
+                  className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-falcon-text text-sm focus:outline-hidden focus:border-falcon-red/50"
                 />
               </div>
               <div>
-                <label className="block text-[#7d92b0] text-xs mb-1">カテゴリ</label>
+                <label className="block text-falcon-muted text-xs mb-1">カテゴリ</label>
                 <select
                   value={keywordForm.category}
                   onChange={e => setKeywordForm(p => ({ ...p, category: e.target.value as KeywordCategory }))}
-                  className="w-full bg-[#070d19] border border-[#1e2d42] rounded px-3 py-2 text-[#e2e8f4] text-sm focus:outline-none focus:border-[#e8002d]/50"
+                  className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-falcon-text text-sm focus:outline-hidden focus:border-falcon-red/50"
                 >
                   <option value="domain">ドメイン</option>
                   <option value="email">メール</option>
@@ -650,14 +650,14 @@ export default function DarkWebMonitoringPage() {
             <div className="flex gap-3 mt-6">
               <button
                 onClick={() => setShowAddKeyword(false)}
-                className="flex-1 px-4 py-2 rounded border border-[#1e2d42] text-[#7d92b0] hover:text-white text-sm transition-colors"
+                className="flex-1 px-4 py-2 rounded-sm border border-falcon-border text-falcon-muted hover:text-white text-sm transition-colors"
               >
                 キャンセル
               </button>
               <button
                 onClick={addKeyword}
                 disabled={!keywordForm.keyword.trim()}
-                className="flex-1 px-4 py-2 rounded bg-[#e8002d] hover:bg-[#c8001d] text-white text-sm transition-colors disabled:opacity-40"
+                className="flex-1 px-4 py-2 rounded-sm bg-falcon-red hover:bg-[#c8001d] text-white text-sm transition-colors disabled:opacity-40"
               >
                 追加
               </button>
@@ -668,31 +668,31 @@ export default function DarkWebMonitoringPage() {
 
       {/* ── Modal: API設定 ───────────────────────────────────────── */}
       {showApiConfig && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-6 w-full max-w-md shadow-xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs">
+          <div className="bg-falcon-surface border border-falcon-border rounded-lg p-6 w-full max-w-md shadow-xl">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-white font-semibold">
                 API設定 — {(integrationsData ?? []).find(s => s.id === showApiConfig)?.name}
               </h2>
-              <button onClick={() => setShowApiConfig(null)} className="text-[#7d92b0] hover:text-white">
+              <button onClick={() => setShowApiConfig(null)} className="text-falcon-muted hover:text-white">
                 <X className="w-5 h-5" />
               </button>
             </div>
             <div className="space-y-4">
               <div>
-                <label className="block text-[#7d92b0] text-xs mb-1">APIキー</label>
+                <label className="block text-falcon-muted text-xs mb-1">APIキー</label>
                 <div className="relative">
                   <input
                     type="password"
                     value={apiKeyInput}
                     onChange={e => setApiKeyInput(e.target.value)}
                     placeholder="APIキーを入力してください"
-                    className="w-full bg-[#070d19] border border-[#1e2d42] rounded px-3 py-2 text-[#e2e8f4] text-sm focus:outline-none focus:border-[#e8002d]/50 pr-10"
+                    className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-falcon-text text-sm focus:outline-hidden focus:border-falcon-red/50 pr-10"
                   />
                 </div>
               </div>
-              <div className="flex items-start gap-2 px-3 py-2 rounded bg-yellow-900/10 border border-yellow-700/30">
-                <AlertTriangle className="w-4 h-4 text-yellow-400 flex-shrink-0 mt-0.5" />
+              <div className="flex items-start gap-2 px-3 py-2 rounded-sm bg-yellow-900/10 border border-yellow-700/30">
+                <AlertTriangle className="w-4 h-4 text-yellow-400 shrink-0 mt-0.5" />
                 <p className="text-yellow-300 text-xs">
                   これはデモ環境です。実際のAPIキーは保存されません。
                 </p>
@@ -701,13 +701,13 @@ export default function DarkWebMonitoringPage() {
             <div className="flex gap-3 mt-6">
               <button
                 onClick={() => setShowApiConfig(null)}
-                className="flex-1 px-4 py-2 rounded border border-[#1e2d42] text-[#7d92b0] hover:text-white text-sm transition-colors"
+                className="flex-1 px-4 py-2 rounded-sm border border-falcon-border text-falcon-muted hover:text-white text-sm transition-colors"
               >
                 キャンセル
               </button>
               <button
                 onClick={() => setShowApiConfig(null)}
-                className="flex-1 px-4 py-2 rounded bg-[#e8002d] hover:bg-[#c8001d] text-white text-sm transition-colors"
+                className="flex-1 px-4 py-2 rounded-sm bg-falcon-red hover:bg-[#c8001d] text-white text-sm transition-colors"
               >
                 保存 (デモ)
               </button>

@@ -157,7 +157,7 @@ function StatusBadge({ status, error }: { status: ForensicsJob['status']; error?
 
 function TypeBadge({ type }: { type: ForensicsJob['type'] }) {
   return (
-    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs bg-gray-700/60 text-gray-300 border border-gray-600/40 font-medium">
+    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-sm text-xs bg-gray-700/60 text-gray-300 border border-gray-600/40 font-medium">
       {TYPE_ICONS[type]}
       {TYPE_LABELS[type] ?? type}
     </span>
@@ -179,7 +179,7 @@ function StatCard({
 }) {
   return (
     <div className={`bg-gray-800 rounded-xl border ${accent} p-4 flex items-center gap-3`}>
-      <div className="flex-shrink-0">{icon}</div>
+      <div className="shrink-0">{icon}</div>
       <div>
         <p className="text-gray-400 text-xs">{label}</p>
         <p className="text-white text-xl font-bold">{value}</p>
@@ -300,7 +300,7 @@ export default function ForensicsPage() {
         {/* ── ヘッダー ── */}
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-blue-900/40 flex items-center justify-center flex-shrink-0">
+            <div className="w-10 h-10 rounded-xl bg-blue-900/40 flex items-center justify-center shrink-0">
               <HardDrive className="w-5 h-5 text-blue-400" />
             </div>
             <div>
@@ -400,7 +400,7 @@ export default function ForensicsPage() {
                       {/* エージェント */}
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-1.5 text-gray-200">
-                          <Server size={13} className="text-gray-500 flex-shrink-0" />
+                          <Server size={13} className="text-gray-500 shrink-0" />
                           <span className="font-mono text-xs">{agentHostname(job.agent_id)}</span>
                         </div>
                       </td>
@@ -449,7 +449,7 @@ export default function ForensicsPage() {
                             <button
                               onClick={() => handleDownload(job)}
                               title="アーティファクトをダウンロード"
-                              className="inline-flex items-center gap-1 px-2 py-1 bg-green-700/30 hover:bg-green-700/50 text-green-300 rounded text-xs transition-colors"
+                              className="inline-flex items-center gap-1 px-2 py-1 bg-green-700/30 hover:bg-green-700/50 text-green-300 rounded-sm text-xs transition-colors"
                             >
                               <Download size={12} />
                               DL
@@ -463,7 +463,7 @@ export default function ForensicsPage() {
                             }}
                             disabled={deleteMutation.isPending}
                             title="削除"
-                            className="inline-flex items-center justify-center w-7 h-7 bg-gray-800 hover:bg-red-900/40 text-gray-500 hover:text-red-400 rounded transition-colors disabled:opacity-40"
+                            className="inline-flex items-center justify-center w-7 h-7 bg-gray-800 hover:bg-red-900/40 text-gray-500 hover:text-red-400 rounded-sm transition-colors disabled:opacity-40"
                           >
                             <Trash2 size={13} />
                           </button>
@@ -505,7 +505,7 @@ export default function ForensicsPage() {
                 <select
                   value={form.agent_id}
                   onChange={(e) => setForm((f) => ({ ...f, agent_id: e.target.value }))}
-                  className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-gray-200 text-sm focus:outline-none focus:border-blue-500"
+                  className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-gray-200 text-sm focus:outline-hidden focus:border-blue-500"
                 >
                   <option value="">選択してください</option>
                   {agents.map((a) => (
@@ -524,7 +524,7 @@ export default function ForensicsPage() {
                   onChange={(e) =>
                     setForm((f) => ({ ...f, type: e.target.value as ForensicsJob['type'] }))
                   }
-                  className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-gray-200 text-sm focus:outline-none focus:border-blue-500"
+                  className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-gray-200 text-sm focus:outline-hidden focus:border-blue-500"
                 >
                   <option value="disk_image">ディスクイメージ</option>
                   <option value="memory_dump">メモリダンプ</option>
@@ -542,7 +542,7 @@ export default function ForensicsPage() {
                     value={form.path}
                     onChange={(e) => setForm((f) => ({ ...f, path: e.target.value }))}
                     placeholder="/var/log または C:\Windows\Logs"
-                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-gray-200 text-sm placeholder-gray-600 focus:outline-none focus:border-blue-500"
+                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-gray-200 text-sm placeholder-gray-600 focus:outline-hidden focus:border-blue-500"
                   />
                 </div>
               )}

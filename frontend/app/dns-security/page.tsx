@@ -82,7 +82,7 @@ function AlertTypeBadge({ type }: { type: AlertType }) {
     malware:   { cls: 'bg-orange-500/20 text-orange-400 border-orange-500/30', label: 'マルウェア' },
   }
   const { cls, label } = cfg[type]
-  return <span className={`inline-flex px-2 py-0.5 rounded border text-[11px] font-medium ${cls}`}>{label}</span>
+  return <span className={`inline-flex px-2 py-0.5 rounded-sm border text-[11px] font-medium ${cls}`}>{label}</span>
 }
 
 function CategoryBadge({ cat }: { cat: string }) {
@@ -94,7 +94,7 @@ function CategoryBadge({ cat }: { cat: string }) {
   }
   const labels: Record<string, string> = { malware: 'マルウェア', C2: 'C2通信', phishing: 'フィッシング', ads: '広告' }
   return (
-    <span className={`inline-flex px-2 py-0.5 rounded border text-[11px] font-medium ${cfg[cat] ?? 'bg-[#1e2d42] text-[#7d92b0] border-[#2a3f5f]'}`}>
+    <span className={`inline-flex px-2 py-0.5 rounded-sm border text-[11px] font-medium ${cfg[cat] ?? 'bg-falcon-border text-falcon-muted border-[#2a3f5f]'}`}>
       {labels[cat] ?? cat}
     </span>
   )
@@ -107,7 +107,7 @@ function SourceBadge({ src }: { src: BlockSource }) {
     auto:   'bg-green-500/20 text-green-400 border-green-500/30',
   }
   const labels: Record<BlockSource, string> = { manual: '手動', feed: 'フィード', auto: '自動' }
-  return <span className={`inline-flex px-2 py-0.5 rounded border text-[11px] font-medium ${cfg[src]}`}>{labels[src]}</span>
+  return <span className={`inline-flex px-2 py-0.5 rounded-sm border text-[11px] font-medium ${cfg[src]}`}>{labels[src]}</span>
 }
 
 // ── Alert Detail Modal ────────────────────────────────────────────────────────
@@ -119,7 +119,7 @@ function AlertDetailModal({ alert, onClose }: { alert: DnsAlert; onClose: () => 
     { label: 'N-gram 異常スコア', score: Math.round(alert.confidence * 0.95), color: 'bg-orange-500' },
     { label: 'TI フィード一致', score: alert.alert_type === 'C2' || alert.alert_type === 'malware' ? 95 : 40, color: 'bg-yellow-500' },
     { label: 'WHOIS 疑わしさ', score: Math.round(alert.confidence * 0.8), color: 'bg-purple-500' },
-    { label: '総合スコア', score: alert.confidence, color: 'bg-[#e8002d]' },
+    { label: '総合スコア', score: alert.confidence, color: 'bg-falcon-red' },
   ]
 
   const queryChain = [
@@ -129,17 +129,17 @@ function AlertDetailModal({ alert, onClose }: { alert: DnsAlert; onClose: () => 
   ]
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[#1e2d42]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+      <div className="bg-falcon-surface border border-falcon-border rounded-xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-falcon-border">
           <div className="flex items-center gap-3">
-            <Globe className="w-5 h-5 text-[#e8002d]" />
+            <Globe className="w-5 h-5 text-falcon-red" />
             <div>
               <h2 className="text-white font-semibold">DNSアラート詳細</h2>
-              <p className="text-[#7d92b0] text-xs font-mono">{alert.domain}</p>
+              <p className="text-falcon-muted text-xs font-mono">{alert.domain}</p>
             </div>
           </div>
-          <button onClick={onClose} className="p-1.5 rounded hover:bg-[#1e2d42] text-[#7d92b0] hover:text-white transition-colors">
+          <button onClick={onClose} className="p-1.5 rounded-sm hover:bg-falcon-border text-falcon-muted hover:text-white transition-colors">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -153,8 +153,8 @@ function AlertDetailModal({ alert, onClose }: { alert: DnsAlert; onClose: () => 
               { label: '信頼度', value: `${alert.confidence}%` },
               { label: 'レスポンス', value: alert.response },
             ].map(item => (
-              <div key={item.label} className="bg-[#070d19] rounded-lg border border-[#1e2d42] p-3">
-                <p className="text-[#7d92b0] text-xs mb-1">{item.label}</p>
+              <div key={item.label} className="bg-[#070d19] rounded-lg border border-falcon-border p-3">
+                <p className="text-falcon-muted text-xs mb-1">{item.label}</p>
                 <p className="text-white text-sm font-medium">{item.value}</p>
               </div>
             ))}
@@ -163,23 +163,23 @@ function AlertDetailModal({ alert, onClose }: { alert: DnsAlert; onClose: () => 
           {/* DNS Query Chain */}
           <div>
             <h3 className="text-white font-semibold mb-3 text-sm">DNSクエリチェーン</h3>
-            <div className="bg-[#070d19] rounded-lg border border-[#1e2d42] overflow-hidden">
+            <div className="bg-[#070d19] rounded-lg border border-falcon-border overflow-hidden">
               <table className="w-full text-xs">
                 <thead>
-                  <tr className="border-b border-[#1e2d42]">
+                  <tr className="border-b border-falcon-border">
                     {['ステップ', 'クエリ', 'タイプ', 'レスポンス', 'ネームサーバー'].map(h => (
-                      <th key={h} className="text-left py-2 px-3 text-[#7d92b0] font-medium">{h}</th>
+                      <th key={h} className="text-left py-2 px-3 text-falcon-muted font-medium">{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {queryChain.map(q => (
-                    <tr key={q.step} className="border-b border-[#1e2d42]/40">
-                      <td className="py-2 px-3 text-[#7d92b0]">{q.step}</td>
-                      <td className="py-2 px-3 font-mono text-[#e2e8f4] max-w-[180px] truncate">{q.query}</td>
-                      <td className="py-2 px-3"><span className="px-1.5 py-0.5 bg-blue-500/20 text-blue-400 rounded text-[10px]">{q.type}</span></td>
-                      <td className="py-2 px-3 font-mono text-[#7d92b0] max-w-[140px] truncate">{q.response}</td>
-                      <td className="py-2 px-3 font-mono text-[#7d92b0]">{q.ns}</td>
+                    <tr key={q.step} className="border-b border-falcon-border/40">
+                      <td className="py-2 px-3 text-falcon-muted">{q.step}</td>
+                      <td className="py-2 px-3 font-mono text-falcon-text max-w-[180px] truncate">{q.query}</td>
+                      <td className="py-2 px-3"><span className="px-1.5 py-0.5 bg-blue-500/20 text-blue-400 rounded-sm text-[10px]">{q.type}</span></td>
+                      <td className="py-2 px-3 font-mono text-falcon-muted max-w-[140px] truncate">{q.response}</td>
+                      <td className="py-2 px-3 font-mono text-falcon-muted">{q.ns}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -190,13 +190,13 @@ function AlertDetailModal({ alert, onClose }: { alert: DnsAlert; onClose: () => 
           {/* WHOIS Mock */}
           <div>
             <h3 className="text-white font-semibold mb-3 text-sm">WHOIS 情報 (モック)</h3>
-            <div className="bg-[#070d19] rounded-lg border border-[#1e2d42] p-3 font-mono text-xs text-[#7d92b0] space-y-1">
-              <p><span className="text-[#3d5068]">Registrar:</span> <span className="text-[#e2e8f4]">Namecheap Inc. (Private)</span></p>
-              <p><span className="text-[#3d5068]">Created:</span> <span className="text-[#e2e8f4]">2026-03-01 (17日前)</span></p>
-              <p><span className="text-[#3d5068]">Updated:</span> <span className="text-[#e2e8f4]">2026-03-10</span></p>
-              <p><span className="text-[#3d5068]">Registrant:</span> <span className="text-orange-400">REDACTED FOR PRIVACY</span></p>
-              <p><span className="text-[#3d5068]">Name Servers:</span> <span className="text-[#e2e8f4]">ns1.bulletproof-dns.ru, ns2.bulletproof-dns.ru</span></p>
-              <p><span className="text-[#3d5068]">Status:</span> <span className="text-red-400">clientTransferProhibited</span></p>
+            <div className="bg-[#070d19] rounded-lg border border-falcon-border p-3 font-mono text-xs text-falcon-muted space-y-1">
+              <p><span className="text-falcon-subtle">Registrar:</span> <span className="text-falcon-text">Namecheap Inc. (Private)</span></p>
+              <p><span className="text-falcon-subtle">Created:</span> <span className="text-falcon-text">2026-03-01 (17日前)</span></p>
+              <p><span className="text-falcon-subtle">Updated:</span> <span className="text-falcon-text">2026-03-10</span></p>
+              <p><span className="text-falcon-subtle">Registrant:</span> <span className="text-orange-400">REDACTED FOR PRIVACY</span></p>
+              <p><span className="text-falcon-subtle">Name Servers:</span> <span className="text-falcon-text">ns1.bulletproof-dns.ru, ns2.bulletproof-dns.ru</span></p>
+              <p><span className="text-falcon-subtle">Status:</span> <span className="text-red-400">clientTransferProhibited</span></p>
             </div>
           </div>
 
@@ -205,7 +205,7 @@ function AlertDetailModal({ alert, onClose }: { alert: DnsAlert; onClose: () => 
             <h3 className="text-white font-semibold mb-3 text-sm">関連 IOC</h3>
             <div className="flex flex-wrap gap-2">
               {['203.0.113.50', '185.220.101.45', 'evil.com', 'darkcdn.io', 'SHA256:4a8b...c91f'].map(ioc => (
-                <span key={ioc} className="px-2.5 py-1 bg-red-500/10 border border-red-500/20 rounded text-xs font-mono text-red-400">
+                <span key={ioc} className="px-2.5 py-1 bg-red-500/10 border border-red-500/20 rounded-sm text-xs font-mono text-red-400">
                   {ioc}
                 </span>
               ))}
@@ -219,10 +219,10 @@ function AlertDetailModal({ alert, onClose }: { alert: DnsAlert; onClose: () => 
               {mlScores.map(s => (
                 <div key={s.label}>
                   <div className="flex items-center justify-between mb-1">
-                    <span className="text-xs text-[#7d92b0]">{s.label}</span>
+                    <span className="text-xs text-falcon-muted">{s.label}</span>
                     <span className="text-xs font-bold text-white">{s.score}%</span>
                   </div>
-                  <div className="h-1.5 bg-[#1e2d42] rounded-full overflow-hidden">
+                  <div className="h-1.5 bg-falcon-border rounded-full overflow-hidden">
                     <div className={`h-full rounded-full ${s.color}`} style={{ width: `${s.score}%` }} />
                   </div>
                 </div>
@@ -231,16 +231,16 @@ function AlertDetailModal({ alert, onClose }: { alert: DnsAlert; onClose: () => 
           </div>
         </div>
 
-        <div className="flex items-center gap-2 px-6 py-4 border-t border-[#1e2d42]">
-          <button className="flex items-center gap-2 px-4 py-2 bg-[#e8002d] hover:bg-[#c0001f] text-white rounded-lg text-sm font-medium transition-colors">
+        <div className="flex items-center gap-2 px-6 py-4 border-t border-falcon-border">
+          <button className="flex items-center gap-2 px-4 py-2 bg-falcon-red hover:bg-[#c0001f] text-white rounded-lg text-sm font-medium transition-colors">
             <Shield className="w-4 h-4" />
             ドメインをブロック
           </button>
-          <button className="flex items-center gap-2 px-4 py-2 bg-[#1e2d42] hover:bg-[#2a3f5f] text-[#e2e8f4] rounded-lg text-sm transition-colors">
+          <button className="flex items-center gap-2 px-4 py-2 bg-falcon-border hover:bg-[#2a3f5f] text-falcon-text rounded-lg text-sm transition-colors">
             <Search className="w-4 h-4" />
             調査を開始
           </button>
-          <button onClick={onClose} className="ml-auto px-4 py-2 text-[#7d92b0] hover:text-white text-sm transition-colors">閉じる</button>
+          <button onClick={onClose} className="ml-auto px-4 py-2 text-falcon-muted hover:text-white text-sm transition-colors">閉じる</button>
         </div>
       </div>
     </div>
@@ -255,23 +255,23 @@ function AddDomainModal({ onClose, onAdd }: { onClose: () => void; onAdd: (d: Om
   const [reason, setReason] = useState('')
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl w-full max-w-md">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[#1e2d42]">
-          <h2 className="text-white font-semibold flex items-center gap-2"><Plus className="w-4 h-4 text-[#e8002d]" />ドメイン追加</h2>
-          <button onClick={onClose} className="p-1.5 rounded hover:bg-[#1e2d42] text-[#7d92b0] hover:text-white transition-colors"><X className="w-4 h-4" /></button>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+      <div className="bg-falcon-surface border border-falcon-border rounded-xl w-full max-w-md">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-falcon-border">
+          <h2 className="text-white font-semibold flex items-center gap-2"><Plus className="w-4 h-4 text-falcon-red" />ドメイン追加</h2>
+          <button onClick={onClose} className="p-1.5 rounded-sm hover:bg-falcon-border text-falcon-muted hover:text-white transition-colors"><X className="w-4 h-4" /></button>
         </div>
         <div className="p-6 space-y-4">
           <div>
-            <label className="block text-xs text-[#7d92b0] mb-1.5">ドメイン / パターン</label>
+            <label className="block text-xs text-falcon-muted mb-1.5">ドメイン / パターン</label>
             <input value={domain} onChange={e => setDomain(e.target.value)}
               placeholder="example.com or *.example.com"
-              className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-[#e8002d]/60 font-mono" />
+              className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-sm text-white focus:outline-hidden focus:border-falcon-red/60 font-mono" />
           </div>
           <div>
-            <label className="block text-xs text-[#7d92b0] mb-1.5">カテゴリ</label>
+            <label className="block text-xs text-falcon-muted mb-1.5">カテゴリ</label>
             <select value={category} onChange={e => setCategory(e.target.value as BlockCategory)}
-              className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-[#e8002d]/60">
+              className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-sm text-white focus:outline-hidden focus:border-falcon-red/60">
               <option value="malware">マルウェア</option>
               <option value="C2">C2通信</option>
               <option value="phishing">フィッシング</option>
@@ -279,18 +279,18 @@ function AddDomainModal({ onClose, onAdd }: { onClose: () => void; onAdd: (d: Om
             </select>
           </div>
           <div>
-            <label className="block text-xs text-[#7d92b0] mb-1.5">理由</label>
+            <label className="block text-xs text-falcon-muted mb-1.5">理由</label>
             <input value={reason} onChange={e => setReason(e.target.value)}
               placeholder="ブロック理由を入力..."
-              className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-[#e8002d]/60" />
+              className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-sm text-white focus:outline-hidden focus:border-falcon-red/60" />
           </div>
         </div>
         <div className="flex items-center gap-2 px-6 pb-4">
           <button
             onClick={() => { if (domain.trim()) { onAdd({ domain: domain.trim(), category, reason, source: 'manual' }); onClose() } }}
-            className="flex-1 py-2 bg-[#e8002d] hover:bg-[#c0001f] text-white rounded-lg text-sm font-medium transition-colors"
+            className="flex-1 py-2 bg-falcon-red hover:bg-[#c0001f] text-white rounded-lg text-sm font-medium transition-colors"
           >追加</button>
-          <button onClick={onClose} className="flex-1 py-2 bg-[#1e2d42] hover:bg-[#2a3f5f] text-[#e2e8f4] rounded-lg text-sm transition-colors">キャンセル</button>
+          <button onClick={onClose} className="flex-1 py-2 bg-falcon-border hover:bg-[#2a3f5f] text-falcon-text rounded-lg text-sm transition-colors">キャンセル</button>
         </div>
       </div>
     </div>
@@ -326,9 +326,9 @@ function DnsAlertsTab() {
       {selected && <AlertDetailModal alert={selected} onClose={() => setSelected(null)} />}
 
       <div className="flex flex-wrap gap-3 items-center">
-        <Filter className="w-4 h-4 text-[#7d92b0]" />
+        <Filter className="w-4 h-4 text-falcon-muted" />
         <select value={typeFilter} onChange={e => setTypeFilter(e.target.value as AlertType | 'all')}
-          className="bg-[#0d1220] border border-[#1e2d42] rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:border-[#e8002d]/60">
+          className="bg-falcon-surface border border-falcon-border rounded-lg px-3 py-1.5 text-sm text-white focus:outline-hidden focus:border-falcon-red/60">
           <option value="all">全タイプ</option>
           <option value="tunneling">トンネリング</option>
           <option value="DGA">DGA</option>
@@ -337,33 +337,33 @@ function DnsAlertsTab() {
           <option value="malware">マルウェア</option>
         </select>
         <div className="flex items-center gap-2">
-          <span className="text-xs text-[#7d92b0]">信頼度 ≥</span>
+          <span className="text-xs text-falcon-muted">信頼度 ≥</span>
           <input type="range" min={0} max={100} step={5} value={confThreshold}
             onChange={e => setConfThreshold(Number(e.target.value))}
-            className="w-28 accent-[#e8002d]" />
+            className="w-28 accent-falcon-red" />
           <span className="text-xs text-white w-8">{confThreshold}%</span>
         </div>
-        <span className="text-xs text-[#7d92b0] ml-auto">{filtered.length} 件</span>
+        <span className="text-xs text-falcon-muted ml-auto">{filtered.length} 件</span>
       </div>
 
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
+      <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-[#1e2d42] bg-[#070d19]/50">
+              <tr className="border-b border-falcon-border bg-[#070d19]/50">
                 {['日時', 'ソースホスト', 'ドメイン', 'タイプ', '信頼度', 'レスポンス', 'アクション'].map(h => (
-                  <th key={h} className="text-left py-3 px-4 text-[#7d92b0] text-xs font-medium">{h}</th>
+                  <th key={h} className="text-left py-3 px-4 text-falcon-muted text-xs font-medium">{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {isLoading ? (
-                <tr><td colSpan={7} className="py-10 text-center text-[#7d92b0]"><Loader2 className="w-5 h-5 animate-spin inline" /></td></tr>
+                <tr><td colSpan={7} className="py-10 text-center text-falcon-muted"><Loader2 className="w-5 h-5 animate-spin inline" /></td></tr>
               ) : filtered.map(a => (
-                <tr key={a.id} className="border-b border-[#1e2d42]/50 hover:bg-[#1e2d42]/20 transition-colors">
-                  <td className="py-3 px-4 text-[#7d92b0] text-xs whitespace-nowrap">{fmt(a.timestamp)}</td>
+                <tr key={a.id} className="border-b border-falcon-border/50 hover:bg-falcon-border/20 transition-colors">
+                  <td className="py-3 px-4 text-falcon-muted text-xs whitespace-nowrap">{fmt(a.timestamp)}</td>
                   <td className="py-3 px-4 text-white text-xs font-medium">{a.source_host}</td>
-                  <td className="py-3 px-4 font-mono text-xs text-[#7d92b0] max-w-[200px]">
+                  <td className="py-3 px-4 font-mono text-xs text-falcon-muted max-w-[200px]">
                     <span className="truncate block">{a.domain}</span>
                   </td>
                   <td className="py-3 px-4"><AlertTypeBadge type={a.alert_type} /></td>
@@ -373,15 +373,15 @@ function DnsAlertsTab() {
                     </span>
                   </td>
                   <td className="py-3 px-4">
-                    <span className={`text-xs font-mono ${a.blocked ? 'text-red-400' : 'text-[#7d92b0]'}`}>{a.response}</span>
+                    <span className={`text-xs font-mono ${a.blocked ? 'text-red-400' : 'text-falcon-muted'}`}>{a.response}</span>
                   </td>
                   <td className="py-3 px-4">
                     <div className="flex items-center gap-1">
                       <button onClick={() => setSelected(a)}
-                        className="flex items-center gap-1 px-2 py-1 text-xs bg-[#1e2d42] hover:bg-[#2a3f5f] text-[#e2e8f4] rounded transition-colors border border-[#2a3f5f]">
+                        className="flex items-center gap-1 px-2 py-1 text-xs bg-falcon-border hover:bg-[#2a3f5f] text-falcon-text rounded-sm transition-colors border border-[#2a3f5f]">
                         <Eye className="w-3 h-3" />詳細
                       </button>
-                      <button className="flex items-center gap-1 px-2 py-1 text-xs bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded transition-colors border border-red-500/30">
+                      <button className="flex items-center gap-1 px-2 py-1 text-xs bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-sm transition-colors border border-red-500/30">
                         <Shield className="w-3 h-3" />ブロック
                       </button>
                     </div>
@@ -426,35 +426,35 @@ function QueryAnalysisTab() {
   return (
     <div className="space-y-6">
       {/* Top domains table */}
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
-        <div className="px-5 py-4 border-b border-[#1e2d42] flex items-center justify-between">
+      <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
+        <div className="px-5 py-4 border-b border-falcon-border flex items-center justify-between">
           <h3 className="text-white font-semibold text-sm">上位20 クエリドメイン</h3>
-          <span className="text-xs text-[#7d92b0]">過去24時間</span>
+          <span className="text-xs text-falcon-muted">過去24時間</span>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-[#1e2d42] bg-[#070d19]/50">
+              <tr className="border-b border-falcon-border bg-[#070d19]/50">
                 {['#', 'ドメイン', 'クエリ数', 'カテゴリ', 'エントロピー', '分布'].map(h => (
-                  <th key={h} className="text-left py-3 px-4 text-[#7d92b0] text-xs font-medium">{h}</th>
+                  <th key={h} className="text-left py-3 px-4 text-falcon-muted text-xs font-medium">{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {isLoading ? (
-                <tr><td colSpan={6} className="py-8 text-center text-[#7d92b0]"><Loader2 className="w-5 h-5 animate-spin inline" /></td></tr>
+                <tr><td colSpan={6} className="py-8 text-center text-falcon-muted"><Loader2 className="w-5 h-5 animate-spin inline" /></td></tr>
               ) : domains.map((d, i) => {
                 const isSuspicious = d.entropy > 4.0
                 return (
-                  <tr key={d.domain} className={`border-b border-[#1e2d42]/50 hover:bg-[#1e2d42]/20 transition-colors ${isSuspicious ? 'bg-red-500/5' : ''}`}>
-                    <td className="py-2.5 px-4 text-[#3d5068] text-xs">{i + 1}</td>
+                  <tr key={d.domain} className={`border-b border-falcon-border/50 hover:bg-falcon-border/20 transition-colors ${isSuspicious ? 'bg-red-500/5' : ''}`}>
+                    <td className="py-2.5 px-4 text-falcon-subtle text-xs">{i + 1}</td>
                     <td className="py-2.5 px-4 font-mono text-xs text-white max-w-[220px]">
                       <span className="truncate block">{d.domain}</span>
                     </td>
                     <td className="py-2.5 px-4 text-white text-xs font-medium">{(d.count ?? 0).toLocaleString()}</td>
                     <td className="py-2.5 px-4">
                       <span className={`px-2 py-0.5 rounded border text-[10px] font-medium ${
-                        isSuspicious ? 'bg-red-500/20 text-red-400 border-red-500/30' : 'bg-[#1e2d42] text-[#7d92b0] border-[#2a3f5f]'
+                        isSuspicious ? 'bg-red-500/20 text-red-400 border-red-500/30' : 'bg-falcon-border text-falcon-muted border-[#2a3f5f]'
                       }`}>{d.category}</span>
                     </td>
                     <td className="py-2.5 px-4">
@@ -463,7 +463,7 @@ function QueryAnalysisTab() {
                       </span>
                     </td>
                     <td className="py-2.5 px-4">
-                      <div className="h-1.5 w-28 bg-[#1e2d42] rounded-full overflow-hidden">
+                      <div className="h-1.5 w-28 bg-falcon-border rounded-full overflow-hidden">
                         <div className={`h-full rounded-full ${isSuspicious ? 'bg-red-500' : 'bg-blue-500'}`}
                           style={{ width: `${(d.count / maxCount) * 100}%` }} />
                       </div>
@@ -477,16 +477,16 @@ function QueryAnalysisTab() {
       </div>
 
       {/* Entropy analysis */}
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
+      <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
         <div className="flex items-center gap-2 mb-4">
           <h3 className="text-white font-semibold text-sm">エントロピー分析 (DGA検出)</h3>
-          <span className="px-2 py-0.5 bg-orange-500/20 text-orange-400 border border-orange-500/30 rounded text-[10px]">高エントロピー = DGA疑い</span>
+          <span className="px-2 py-0.5 bg-orange-500/20 text-orange-400 border border-orange-500/30 rounded-sm text-[10px]">高エントロピー = DGA疑い</span>
         </div>
         <div className="space-y-2">
           {byEntropy.slice(0, 10).map(d => (
             <div key={d.domain} className="flex items-center gap-3">
-              <span className="font-mono text-xs text-[#7d92b0] w-52 truncate">{d.domain}</span>
-              <div className="flex-1 h-2 bg-[#1e2d42] rounded-full overflow-hidden">
+              <span className="font-mono text-xs text-falcon-muted w-52 truncate">{d.domain}</span>
+              <div className="flex-1 h-2 bg-falcon-border rounded-full overflow-hidden">
                 <div
                   className={`h-full rounded-full ${d.entropy > 4.5 ? 'bg-red-500' : d.entropy > 3.5 ? 'bg-orange-500' : d.entropy > 3.0 ? 'bg-yellow-500' : 'bg-green-500'}`}
                   style={{ width: `${(d.entropy / 5) * 100}%` }}
@@ -498,17 +498,17 @@ function QueryAnalysisTab() {
             </div>
           ))}
         </div>
-        <p className="text-[#7d92b0] text-xs mt-3">シャノンエントロピー: 4.0以上 = DGA疑い、4.5以上 = 高確率DGA</p>
+        <p className="text-falcon-muted text-xs mt-3">シャノンエントロピー: 4.0以上 = DGA疑い、4.5以上 = 高確率DGA</p>
       </div>
 
       {/* Histogram */}
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
+      <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-white font-semibold text-sm">クエリボリューム推移</h3>
           <div className="flex gap-1">
             {(['6h', '12h', '24h'] as const).map(t => (
               <button key={t} onClick={() => setTimeRange(t)}
-                className={`px-3 py-1 text-xs rounded transition-colors ${timeRange === t ? 'bg-[#e8002d] text-white' : 'bg-[#1e2d42] text-[#7d92b0] hover:text-white'}`}>
+                className={`px-3 py-1 text-xs rounded-sm transition-colors ${timeRange === t ? 'bg-falcon-red text-white' : 'bg-falcon-border text-falcon-muted hover:text-white'}`}>
                 {t}
               </button>
             ))}
@@ -523,29 +523,29 @@ function QueryAnalysisTab() {
                 <div className="absolute bottom-0 w-full bg-red-500/60 border-t border-red-500/80 rounded-t"
                   style={{ height: `${(d.blocked / maxHist) * 100 * 5}%` }} />
               </div>
-              <span className="text-[9px] text-[#3d5068]">{d.hour}</span>
+              <span className="text-[9px] text-falcon-subtle">{d.hour}</span>
             </div>
           ))}
         </div>
-        <div className="flex items-center gap-4 mt-2 text-xs text-[#7d92b0]">
+        <div className="flex items-center gap-4 mt-2 text-xs text-falcon-muted">
           <span className="flex items-center gap-1"><span className="w-3 h-2 bg-blue-500/40 border-t border-blue-500 inline-block rounded-t" />総クエリ</span>
           <span className="flex items-center gap-1"><span className="w-3 h-2 bg-red-500/60 border-t border-red-500 inline-block rounded-t" />ブロック</span>
         </div>
       </div>
 
       {/* NXDOMAIN ratio */}
-      <div className={`bg-[#0d1220] border rounded-xl p-5 ${nxRatio > 10 ? 'border-orange-500/40' : 'border-[#1e2d42]'}`}>
+      <div className={`bg-falcon-surface border rounded-xl p-5 ${nxRatio > 10 ? 'border-orange-500/40' : 'border-falcon-border'}`}>
         <div className="flex items-center gap-3">
-          <div className={`p-2.5 rounded-lg ${nxRatio > 10 ? 'bg-orange-500/15' : 'bg-[#1e2d42]'}`}>
-            <AlertTriangle className={`w-5 h-5 ${nxRatio > 10 ? 'text-orange-400' : 'text-[#7d92b0]'}`} />
+          <div className={`p-2.5 rounded-lg ${nxRatio > 10 ? 'bg-orange-500/15' : 'bg-falcon-border'}`}>
+            <AlertTriangle className={`w-5 h-5 ${nxRatio > 10 ? 'text-orange-400' : 'text-falcon-muted'}`} />
           </div>
           <div className="flex-1">
             <p className="text-white font-semibold text-sm">NXDOMAIN比率</p>
-            <p className="text-[#7d92b0] text-xs">高いNXDOMAIN比率はC2ビーコニングの可能性を示します</p>
+            <p className="text-falcon-muted text-xs">高いNXDOMAIN比率はC2ビーコニングの可能性を示します</p>
           </div>
           <div className="text-right">
             <p className={`text-2xl font-bold ${nxRatio > 10 ? 'text-orange-400' : 'text-green-400'}`}>{nxRatio}%</p>
-            <p className={`text-xs ${nxRatio > 10 ? 'text-orange-400' : 'text-[#7d92b0]'}`}>{nxRatio > 10 ? '警告: 平均より高い' : '正常範囲'}</p>
+            <p className={`text-xs ${nxRatio > 10 ? 'text-orange-400' : 'text-falcon-muted'}`}>{nxRatio > 10 ? '警告: 平均より高い' : '正常範囲'}</p>
           </div>
         </div>
       </div>
@@ -599,15 +599,15 @@ function BlocklistTab() {
 
       {importMsg && (
         <div className="flex items-center gap-2 px-4 py-2.5 bg-green-500/15 border border-green-500/30 rounded-lg text-green-400 text-sm">
-          <CheckCircle className="w-4 h-4 flex-shrink-0" />
+          <CheckCircle className="w-4 h-4 shrink-0" />
           {importMsg}
         </div>
       )}
 
       <div className="flex flex-wrap gap-3 items-center">
-        <Filter className="w-4 h-4 text-[#7d92b0]" />
+        <Filter className="w-4 h-4 text-falcon-muted" />
         <select value={catFilter} onChange={e => setCatFilter(e.target.value as BlockCategory | 'all')}
-          className="bg-[#0d1220] border border-[#1e2d42] rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:border-[#e8002d]/60">
+          className="bg-falcon-surface border border-falcon-border rounded-lg px-3 py-1.5 text-sm text-white focus:outline-hidden focus:border-falcon-red/60">
           <option value="all">全カテゴリ</option>
           <option value="malware">マルウェア</option>
           <option value="C2">C2通信</option>
@@ -615,7 +615,7 @@ function BlocklistTab() {
           <option value="ads">広告</option>
         </select>
         <select value={srcFilter} onChange={e => setSrcFilter(e.target.value as BlockSource | 'all')}
-          className="bg-[#0d1220] border border-[#1e2d42] rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:border-[#e8002d]/60">
+          className="bg-falcon-surface border border-falcon-border rounded-lg px-3 py-1.5 text-sm text-white focus:outline-hidden focus:border-falcon-red/60">
           <option value="all">全ソース</option>
           <option value="manual">手動</option>
           <option value="feed">フィード</option>
@@ -623,46 +623,46 @@ function BlocklistTab() {
         </select>
         <div className="ml-auto flex items-center gap-2">
           <button onClick={handleImport}
-            className="flex items-center gap-2 px-3 py-1.5 bg-[#1e2d42] hover:bg-[#2a3f5f] text-[#e2e8f4] rounded-lg text-xs transition-colors border border-[#2a3f5f]">
+            className="flex items-center gap-2 px-3 py-1.5 bg-falcon-border hover:bg-[#2a3f5f] text-falcon-text rounded-lg text-xs transition-colors border border-[#2a3f5f]">
             <Download className="w-3.5 h-3.5" />
             TIフィードからインポート
           </button>
           <button onClick={() => setShowAdd(true)}
-            className="flex items-center gap-2 px-3 py-1.5 bg-[#e8002d] hover:bg-[#c0001f] text-white rounded-lg text-xs transition-colors font-medium">
+            className="flex items-center gap-2 px-3 py-1.5 bg-falcon-red hover:bg-[#c0001f] text-white rounded-lg text-xs transition-colors font-medium">
             <Plus className="w-3.5 h-3.5" />
             ドメイン追加
           </button>
         </div>
       </div>
 
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
+      <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-[#1e2d42] bg-[#070d19]/50">
+              <tr className="border-b border-falcon-border bg-[#070d19]/50">
                 {['ドメイン / パターン', 'カテゴリ', '追加日', 'ヒット数', 'ソース', '理由', ''].map(h => (
-                  <th key={h} className="text-left py-3 px-4 text-[#7d92b0] text-xs font-medium">{h}</th>
+                  <th key={h} className="text-left py-3 px-4 text-falcon-muted text-xs font-medium">{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {isLoading ? (
-                <tr><td colSpan={7} className="py-8 text-center text-[#7d92b0]"><Loader2 className="w-5 h-5 animate-spin inline" /></td></tr>
+                <tr><td colSpan={7} className="py-8 text-center text-falcon-muted"><Loader2 className="w-5 h-5 animate-spin inline" /></td></tr>
               ) : filtered.map(e => (
-                <tr key={e.id} className="border-b border-[#1e2d42]/50 hover:bg-[#1e2d42]/20 transition-colors">
+                <tr key={e.id} className="border-b border-falcon-border/50 hover:bg-falcon-border/20 transition-colors">
                   <td className="py-3 px-4 font-mono text-xs text-white max-w-[200px]">
                     <span className="truncate block">{e.domain}</span>
                   </td>
                   <td className="py-3 px-4"><CategoryBadge cat={e.category} /></td>
-                  <td className="py-3 px-4 text-[#7d92b0] text-xs whitespace-nowrap">{fmtDate(e.added_date)}</td>
+                  <td className="py-3 px-4 text-falcon-muted text-xs whitespace-nowrap">{fmtDate(e.added_date)}</td>
                   <td className="py-3 px-4 text-white text-xs font-medium">{(e.hit_count ?? 0).toLocaleString()}</td>
                   <td className="py-3 px-4"><SourceBadge src={e.source} /></td>
-                  <td className="py-3 px-4 text-[#7d92b0] text-xs max-w-[180px]">
+                  <td className="py-3 px-4 text-falcon-muted text-xs max-w-[180px]">
                     <span className="truncate block">{e.reason}</span>
                   </td>
                   <td className="py-3 px-4">
                     <button onClick={() => deleteMutation.mutate(e.id)}
-                      className="p-1.5 rounded hover:bg-red-500/20 text-[#7d92b0] hover:text-red-400 transition-colors" title="削除">
+                      className="p-1.5 rounded-sm hover:bg-red-500/20 text-falcon-muted hover:text-red-400 transition-colors" title="削除">
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
                   </td>
@@ -674,21 +674,21 @@ function BlocklistTab() {
       </div>
 
       {/* Whitelist override */}
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
+      <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
         <h3 className="text-white font-semibold text-sm mb-3 flex items-center gap-2">
           <CheckCircle className="w-4 h-4 text-green-400" />
           ホワイトリスト (ブロック除外)
         </h3>
         <div className="flex gap-2">
           <input placeholder="除外するドメインを入力 (例: internal.corp.local)"
-            className="flex-1 bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-[#e8002d]/60" />
+            className="flex-1 bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-sm text-white focus:outline-hidden focus:border-falcon-red/60" />
           <button className="px-4 py-2 bg-green-500/20 hover:bg-green-500/30 text-green-400 rounded-lg text-sm border border-green-500/30 transition-colors font-medium">
             追加
           </button>
         </div>
         <div className="flex flex-wrap gap-2 mt-3">
           {['internal.corp.local', 'ad.company.com', 'windowsupdate.microsoft.com'].map(d => (
-            <span key={d} className="flex items-center gap-1.5 px-2.5 py-1 bg-green-500/10 border border-green-500/20 rounded text-xs text-green-400">
+            <span key={d} className="flex items-center gap-1.5 px-2.5 py-1 bg-green-500/10 border border-green-500/20 rounded-sm text-xs text-green-400">
               <CheckCircle className="w-3 h-3" />
               {d}
               <button className="hover:text-red-400 transition-colors"><X className="w-3 h-3" /></button>
@@ -737,12 +737,12 @@ export default function DnsSecurityPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-white flex items-center gap-3">
-            <Globe className="w-6 h-6 text-[#e8002d]" />
+            <Globe className="w-6 h-6 text-falcon-red" />
             DNSセキュリティ
           </h1>
-          <p className="text-[#7d92b0] text-sm mt-1">DNS異常・トンネリング・DGA検出</p>
+          <p className="text-falcon-muted text-sm mt-1">DNS異常・トンネリング・DGA検出</p>
         </div>
-        <button className="flex items-center gap-2 px-4 py-2 bg-[#1e2d42] hover:bg-[#2a3f5f] text-[#e2e8f4] rounded-lg text-sm transition-colors border border-[#2a3f5f]">
+        <button className="flex items-center gap-2 px-4 py-2 bg-falcon-border hover:bg-[#2a3f5f] text-falcon-text rounded-lg text-sm transition-colors border border-[#2a3f5f]">
           <RefreshCw className="w-4 h-4" />
           更新
         </button>
@@ -753,14 +753,14 @@ export default function DnsSecurityPage() {
         {statCards.map(c => {
           const Icon = c.icon
           return (
-            <div key={c.label} className={`bg-[#0d1220] border rounded-xl p-4 ${c.bg}`}>
+            <div key={c.label} className={`bg-falcon-surface border rounded-xl p-4 ${c.bg}`}>
               <div className="flex items-center gap-3">
                 <div className="p-2 rounded-lg bg-[#070d19]/60">
                   <Icon className={`w-5 h-5 ${c.color}`} />
                 </div>
                 <div>
                   <p className={`text-xl font-bold ${c.color}`}>{c.value}</p>
-                  <p className="text-[#7d92b0] text-xs">{c.label}</p>
+                  <p className="text-falcon-muted text-xs">{c.label}</p>
                 </div>
               </div>
             </div>
@@ -769,11 +769,11 @@ export default function DnsSecurityPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 border-b border-[#1e2d42]">
+      <div className="flex gap-1 border-b border-falcon-border">
         {tabs.map(tab => (
           <button key={tab.key} onClick={() => setActiveTab(tab.key)}
             className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors -mb-px
-              ${activeTab === tab.key ? 'border-[#e8002d] text-white' : 'border-transparent text-[#7d92b0] hover:text-white'}`}>
+              ${activeTab === tab.key ? 'border-falcon-red text-white' : 'border-transparent text-falcon-muted hover:text-white'}`}>
             {tab.label}
           </button>
         ))}

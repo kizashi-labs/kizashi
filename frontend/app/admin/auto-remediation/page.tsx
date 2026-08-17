@@ -374,7 +374,7 @@ export default function AutoRemediationPage() {
               <input
                 value={newRule.name}
                 onChange={e => setNewRule(f => ({ ...f, name: e.target.value }))}
-                className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded text-sm text-zinc-200 focus:outline-none focus:border-yellow-500/50"
+                className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-sm text-sm text-zinc-200 focus:outline-hidden focus:border-yellow-500/50"
                 placeholder="My Remediation Rule"
               />
             </div>
@@ -383,7 +383,7 @@ export default function AutoRemediationPage() {
               <select
                 value={newRule.event_type}
                 onChange={e => setNewRule(f => ({ ...f, event_type: e.target.value }))}
-                className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded text-sm text-zinc-200 focus:outline-none focus:border-yellow-500/50"
+                className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-sm text-sm text-zinc-200 focus:outline-hidden focus:border-yellow-500/50"
               >
                 {EVENT_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
               </select>
@@ -397,7 +397,7 @@ export default function AutoRemediationPage() {
               <input
                 value={newRule.tags}
                 onChange={e => setNewRule(f => ({ ...f, tags: e.target.value }))}
-                className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded text-sm text-zinc-200 focus:outline-none focus:border-yellow-500/50 font-mono"
+                className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-sm text-sm text-zinc-200 focus:outline-hidden focus:border-yellow-500/50 font-mono"
                 placeholder="ransomware, file_encryption"
               />
             </div>
@@ -409,7 +409,7 @@ export default function AutoRemediationPage() {
                 type="number"
                 value={newRule.rollback_timeout_seconds}
                 onChange={e => setNewRule(f => ({ ...f, rollback_timeout_seconds: Number(e.target.value) }))}
-                className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded text-sm text-zinc-200 focus:outline-none focus:border-yellow-500/50"
+                className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-sm text-sm text-zinc-200 focus:outline-hidden focus:border-yellow-500/50"
                 min={0}
               />
             </div>
@@ -433,7 +433,7 @@ export default function AutoRemediationPage() {
               <select
                 value={newRule.action_type}
                 onChange={e => setNewRule(f => ({ ...f, action_type: e.target.value }))}
-                className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded text-sm text-zinc-200 focus:outline-none focus:border-yellow-500/50"
+                className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-sm text-sm text-zinc-200 focus:outline-hidden focus:border-yellow-500/50"
               >
                 {Object.entries(ACTION_CONFIG).map(([k, v]) => (
                   <option key={k} value={k}>{v.label}</option>
@@ -446,7 +446,7 @@ export default function AutoRemediationPage() {
                 type="number"
                 value={newRule.cooldown_seconds}
                 onChange={e => setNewRule(f => ({ ...f, cooldown_seconds: Number(e.target.value) }))}
-                className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded text-sm text-zinc-200 focus:outline-none focus:border-yellow-500/50"
+                className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-sm text-sm text-zinc-200 focus:outline-hidden focus:border-yellow-500/50"
                 min={60}
               />
             </div>
@@ -455,7 +455,7 @@ export default function AutoRemediationPage() {
           <button
             onClick={handleCreateRule}
             disabled={!newRule.name}
-            className="px-5 py-2 rounded bg-yellow-500 text-zinc-900 font-medium text-sm hover:bg-yellow-400 disabled:opacity-50 transition-colors"
+            className="px-5 py-2 rounded-sm bg-yellow-500 text-zinc-900 font-medium text-sm hover:bg-yellow-400 disabled:opacity-50 transition-colors"
           >
             Create Rule
           </button>
@@ -494,7 +494,7 @@ export default function AutoRemediationPage() {
                   <button
                     onClick={() => approveMutation.mutate(rb.execution_id)}
                     disabled={approveMutation.isPending}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded bg-green-500/10 border border-green-500/30 text-green-400 hover:bg-green-500/20 text-xs font-medium transition-colors disabled:opacity-50"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-sm bg-green-500/10 border border-green-500/30 text-green-400 hover:bg-green-500/20 text-xs font-medium transition-colors disabled:opacity-50"
                   >
                     <CheckSquare className="w-3.5 h-3.5" />
                     Approve (Keep Isolated)
@@ -525,10 +525,10 @@ export default function AutoRemediationPage() {
                 <div className="flex items-center gap-2 mb-1">
                   <span className="text-zinc-100 font-semibold text-sm">{rule.name}</span>
                   {!rule.enabled && (
-                    <span className="px-1.5 py-0.5 rounded bg-zinc-700 text-zinc-500 text-[10px]">Disabled</span>
+                    <span className="px-1.5 py-0.5 rounded-sm bg-zinc-700 text-zinc-500 text-[10px]">Disabled</span>
                   )}
                   {rule.rollback_timeout && (
-                    <span className="px-1.5 py-0.5 rounded bg-orange-500/15 text-orange-400 text-[10px] border border-orange-500/30 flex items-center gap-0.5">
+                    <span className="px-1.5 py-0.5 rounded-sm bg-orange-500/15 text-orange-400 text-[10px] border border-orange-500/30 flex items-center gap-0.5">
                       <RotateCcw className="w-2.5 h-2.5" />
                       Auto-rollback {rule.rollback_timeout}
                     </span>
@@ -541,7 +541,7 @@ export default function AutoRemediationPage() {
                 {rule.triggerTags.length > 0 && (
                   <div className="flex flex-wrap gap-1 mt-1.5">
                     {rule.triggerTags.map(t => (
-                      <span key={t} className="px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-400 text-[10px] font-mono">
+                      <span key={t} className="px-1.5 py-0.5 rounded-sm bg-zinc-800 text-zinc-400 text-[10px] font-mono">
                         {t}
                       </span>
                     ))}
@@ -550,7 +550,7 @@ export default function AutoRemediationPage() {
               </div>
               <button
                 onClick={() => handleToggle(rule.id, rule.enabled)}
-                className={`flex-shrink-0 ml-2 transition-colors ${rule.enabled ? 'text-yellow-400' : 'text-zinc-600'}`}
+                className={`shrink-0 ml-2 transition-colors ${rule.enabled ? 'text-yellow-400' : 'text-zinc-600'}`}
               >
                 {rule.enabled ? <ToggleRight className="w-6 h-6" /> : <ToggleLeft className="w-6 h-6" />}
               </button>
@@ -560,7 +560,7 @@ export default function AutoRemediationPage() {
               {rule.actionList.map((action, i) => {
                 const cfg = actionConfig(action.type)
                 return (
-                  <span key={i} className={`inline-flex items-center gap-1 px-2 py-0.5 rounded bg-zinc-800 text-xs ${cfg.color}`}>
+                  <span key={i} className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-sm bg-zinc-800 text-xs ${cfg.color}`}>
                     {cfg.icon}
                     {cfg.label}
                   </span>
@@ -615,7 +615,7 @@ export default function AutoRemediationPage() {
                 <input
                   value={newExclusion.hostname_pattern}
                   onChange={e => setNewExclusion(f => ({ ...f, hostname_pattern: e.target.value }))}
-                  className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded text-sm text-zinc-200 focus:outline-none focus:border-zinc-500 font-mono"
+                  className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-sm text-sm text-zinc-200 focus:outline-hidden focus:border-zinc-500 font-mono"
                   placeholder="dc-* or prod-db-01"
                 />
               </div>
@@ -624,7 +624,7 @@ export default function AutoRemediationPage() {
                 <input
                   value={newExclusion.reason}
                   onChange={e => setNewExclusion(f => ({ ...f, reason: e.target.value }))}
-                  className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded text-sm text-zinc-200 focus:outline-none focus:border-zinc-500"
+                  className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-sm text-sm text-zinc-200 focus:outline-hidden focus:border-zinc-500"
                   placeholder="Domain controller — manual response only"
                 />
               </div>
@@ -636,13 +636,13 @@ export default function AutoRemediationPage() {
               <button
                 onClick={handleAddExclusion}
                 disabled={!newExclusion.hostname_pattern.trim()}
-                className="px-4 py-1.5 rounded bg-zinc-700 text-zinc-200 text-xs font-medium hover:bg-zinc-600 disabled:opacity-50 transition-colors"
+                className="px-4 py-1.5 rounded-sm bg-zinc-700 text-zinc-200 text-xs font-medium hover:bg-zinc-600 disabled:opacity-50 transition-colors"
               >
                 Add
               </button>
               <button
                 onClick={() => { setShowAddExclusion(false); setExclusionError('') }}
-                className="px-4 py-1.5 rounded text-zinc-500 text-xs hover:text-zinc-300 transition-colors"
+                className="px-4 py-1.5 rounded-sm text-zinc-500 text-xs hover:text-zinc-300 transition-colors"
               >
                 Cancel
               </button>
@@ -732,7 +732,7 @@ export default function AutoRemediationPage() {
                       <td className="px-5 py-3 font-mono text-zinc-500 text-xs">{log.trigger_id}</td>
                       <td className="px-5 py-3 text-zinc-400 text-sm">{log.agent_id || '—'}</td>
                       <td className="px-5 py-3">
-                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium border ${cfg.className}`}>
+                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-[11px] font-medium border ${cfg.className}`}>
                           {cfg.icon}
                           {cfg.label}
                         </span>

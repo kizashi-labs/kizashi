@@ -85,7 +85,7 @@ const DEFAULT_MAPPINGS: FieldMapping[] = [
 
 function FieldLabel({ children }: { children: React.ReactNode }) {
   return (
-    <label className="block text-xs font-medium text-[#7d92b0] mb-1.5 uppercase tracking-wide">
+    <label className="block text-xs font-medium text-falcon-muted mb-1.5 uppercase tracking-wide">
       {children}
     </label>
   )
@@ -113,9 +113,9 @@ function TextInput({
       onChange={e => onChange(e.target.value)}
       placeholder={placeholder}
       disabled={disabled}
-      className={`w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2.5 text-sm
-                  text-[#e2e8f4] placeholder-[#3d5068]
-                  focus:outline-none focus:border-[#e8002d]/60 focus:ring-1 focus:ring-[#e8002d]/20
+      className={`w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2.5 text-sm
+                  text-falcon-text placeholder-falcon-subtle
+                  focus:outline-hidden focus:border-falcon-red/60 focus:ring-1 focus:ring-falcon-red/20
                   disabled:opacity-40 disabled:cursor-not-allowed transition-colors ${className}`}
     />
   )
@@ -134,27 +134,27 @@ function Toggle({
 }) {
   return (
     <label className="flex items-start gap-3 cursor-pointer group">
-      <div className="relative mt-0.5 flex-shrink-0">
+      <div className="relative mt-0.5 shrink-0">
         <input
           type="checkbox"
           checked={checked}
           onChange={e => onChange(e.target.checked)}
           className="sr-only"
         />
-        <div className={`w-10 h-6 rounded-full transition-colors duration-200 ${checked ? 'bg-[#e8002d]' : 'bg-[#1e2d42]'}`}>
+        <div className={`w-10 h-6 rounded-full transition-colors duration-200 ${checked ? 'bg-falcon-red' : 'bg-falcon-border'}`}>
           <div
-            className={`absolute top-1 w-4 h-4 rounded-full bg-[#e2e8f4] shadow transition-transform duration-200 ${
+            className={`absolute top-1 w-4 h-4 rounded-full bg-falcon-text shadow transition-transform duration-200 ${
               checked ? 'translate-x-5' : 'translate-x-1'
             }`}
           />
         </div>
       </div>
       <div>
-        <p className="text-sm text-[#e2e8f4] font-medium group-hover:text-white transition-colors">
+        <p className="text-sm text-falcon-text font-medium group-hover:text-white transition-colors">
           {label}
         </p>
         {description && (
-          <p className="text-xs text-[#7d92b0] mt-0.5">{description}</p>
+          <p className="text-xs text-falcon-muted mt-0.5">{description}</p>
         )}
       </div>
     </label>
@@ -174,7 +174,7 @@ function Checkbox({
     <label className="flex items-center gap-2.5 cursor-pointer group">
       <div
         className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${
-          checked ? 'bg-[#e8002d] border-[#e8002d]' : 'border-[#1e2d42] bg-[#070d19]'
+          checked ? 'bg-falcon-red border-falcon-red' : 'border-falcon-border bg-[#070d19]'
         }`}
         onClick={() => onChange(!checked)}
       >
@@ -184,7 +184,7 @@ function Checkbox({
           </svg>
         )}
       </div>
-      <span className="text-sm text-[#e2e8f4] group-hover:text-white transition-colors">{label}</span>
+      <span className="text-sm text-falcon-text group-hover:text-white transition-colors">{label}</span>
     </label>
   )
 }
@@ -201,12 +201,12 @@ function Card({
   children: React.ReactNode
 }) {
   return (
-    <div className="bg-[#0d1220] rounded-xl border border-[#1e2d42] overflow-hidden">
-      <div className="px-6 py-4 border-b border-[#1e2d42] flex items-start gap-3">
-        {icon && <div className="mt-0.5 text-[#7d92b0]">{icon}</div>}
+    <div className="bg-falcon-surface rounded-xl border border-falcon-border overflow-hidden">
+      <div className="px-6 py-4 border-b border-falcon-border flex items-start gap-3">
+        {icon && <div className="mt-0.5 text-falcon-muted">{icon}</div>}
         <div>
           <h2 className="text-sm font-semibold text-white">{title}</h2>
-          {subtitle && <p className="text-xs text-[#7d92b0] mt-0.5">{subtitle}</p>}
+          {subtitle && <p className="text-xs text-falcon-muted mt-0.5">{subtitle}</p>}
         </div>
       </div>
       <div className="p-6">{children}</div>
@@ -218,14 +218,14 @@ function Banner({ type, message }: { type: 'success' | 'error'; message: string 
   if (type === 'success') {
     return (
       <div className="flex items-center gap-3 bg-emerald-900/20 border border-emerald-700/40 rounded-lg px-4 py-3">
-        <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+        <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
         <p className="text-sm text-emerald-300">{message}</p>
       </div>
     )
   }
   return (
     <div className="flex items-center gap-3 bg-red-900/20 border border-red-700/40 rounded-lg px-4 py-3">
-      <XCircle className="w-4 h-4 text-red-400 flex-shrink-0" />
+      <XCircle className="w-4 h-4 text-red-400 shrink-0" />
       <p className="text-sm text-red-300">{message}</p>
     </div>
   )
@@ -278,7 +278,7 @@ function HECConnectionCard() {
             onChange={v => set('url', v)}
             placeholder="https://splunk:8088/services/collector"
           />
-          <p className="text-xs text-[#3d5068] mt-1">
+          <p className="text-xs text-falcon-subtle mt-1">
             The HTTP Event Collector endpoint URL including port (default: 8088)
           </p>
         </div>
@@ -297,12 +297,12 @@ function HECConnectionCard() {
             <button
               type="button"
               onClick={() => setShowToken(prev => !prev)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-[#7d92b0] hover:text-[#e2e8f4] transition-colors"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-falcon-muted hover:text-falcon-text transition-colors"
             >
               {showToken ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
             </button>
           </div>
-          <p className="text-xs text-[#3d5068] mt-1">
+          <p className="text-xs text-falcon-subtle mt-1">
             Generate a token in Splunk: Settings → Data Inputs → HTTP Event Collector
           </p>
         </div>
@@ -316,7 +316,7 @@ function HECConnectionCard() {
               onChange={v => set('index', v)}
               placeholder="main"
             />
-            <p className="text-xs text-[#3d5068] mt-1">Target Splunk index for EDR events</p>
+            <p className="text-xs text-falcon-subtle mt-1">Target Splunk index for EDR events</p>
           </div>
           <div>
             <FieldLabel>ソースタイプ</FieldLabel>
@@ -325,7 +325,7 @@ function HECConnectionCard() {
               onChange={v => set('sourceType', v)}
               placeholder="edr:alert"
             />
-            <p className="text-xs text-[#3d5068] mt-1">Splunk sourcetype for field extraction</p>
+            <p className="text-xs text-falcon-subtle mt-1">Splunk sourcetype for field extraction</p>
           </div>
         </div>
 
@@ -346,8 +346,8 @@ function HECConnectionCard() {
             onClick={() => testMutation.mutate()}
             disabled={testStatus === 'testing' || !config.url || !config.token}
             className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg
-                       bg-[#070d19] border border-[#1e2d42] text-[#7d92b0]
-                       hover:border-[#7d92b0]/50 hover:text-[#e2e8f4]
+                       bg-[#070d19] border border-falcon-border text-falcon-muted
+                       hover:border-falcon-muted/50 hover:text-falcon-text
                        disabled:opacity-40 disabled:cursor-not-allowed transition-all"
           >
             {testStatus === 'testing' ? (
@@ -406,7 +406,7 @@ function ForwardingSettingsCard() {
         <div className={`space-y-4 transition-opacity ${config.enabled ? 'opacity-100' : 'opacity-40 pointer-events-none'}`}>
           {/* What to forward */}
           <div>
-            <p className="text-xs font-medium text-[#7d92b0] uppercase tracking-wide mb-3">Forward</p>
+            <p className="text-xs font-medium text-falcon-muted uppercase tracking-wide mb-3">Forward</p>
             <div className="space-y-2.5">
               <Checkbox
                 checked={config.forwardAlerts}
@@ -430,18 +430,18 @@ function ForwardingSettingsCard() {
           <div>
             <FieldLabel>Minimum Severity Threshold ({config.minSeverity})</FieldLabel>
             <div className="flex items-center gap-3">
-              <span className="text-xs text-[#7d92b0] w-4">1</span>
+              <span className="text-xs text-falcon-muted w-4">1</span>
               <input
                 type="range"
                 min={1}
                 max={10}
                 value={config.minSeverity}
                 onChange={e => set('minSeverity', parseInt(e.target.value))}
-                className="flex-1 accent-[#e8002d]"
+                className="flex-1 accent-falcon-red"
               />
-              <span className="text-xs text-[#7d92b0] w-4">10</span>
+              <span className="text-xs text-falcon-muted w-4">10</span>
             </div>
-            <p className="text-xs text-[#3d5068] mt-1">
+            <p className="text-xs text-falcon-subtle mt-1">
               Only forward alerts with severity ≥ {config.minSeverity}
             </p>
           </div>
@@ -456,15 +456,15 @@ function ForwardingSettingsCard() {
                   onClick={() => set('batchSize', size)}
                   className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-all ${
                     config.batchSize === size
-                      ? 'bg-[#e8002d]/10 border-[#e8002d]/50 text-[#e8002d]'
-                      : 'bg-[#070d19] border-[#1e2d42] text-[#7d92b0] hover:border-[#7d92b0]/50 hover:text-[#e2e8f4]'
+                      ? 'bg-falcon-red/10 border-falcon-red/50 text-falcon-red'
+                      : 'bg-[#070d19] border-falcon-border text-falcon-muted hover:border-falcon-muted/50 hover:text-falcon-text'
                   }`}
                 >
                   {size}
                 </button>
               ))}
             </div>
-            <p className="text-xs text-[#3d5068] mt-1.5">
+            <p className="text-xs text-falcon-subtle mt-1.5">
               Number of events per HEC batch request
             </p>
           </div>
@@ -484,7 +484,7 @@ function ForwardingSettingsCard() {
             onClick={() => saveMutation.mutate()}
             disabled={saveMutation.isPending}
             className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg
-                       bg-[#e8002d] text-white hover:bg-[#e8002d]/90
+                       bg-falcon-red text-white hover:bg-falcon-red/90
                        disabled:opacity-40 disabled:cursor-not-allowed transition-all"
           >
             {saveMutation.isPending ? (
@@ -534,8 +534,8 @@ function FieldMappingCard() {
       <div className="space-y-3">
         {/* Header */}
         <div className="grid grid-cols-[1fr_1fr_36px] gap-3 px-1">
-          <span className="text-xs font-medium text-[#7d92b0] uppercase tracking-wide">EDR Field</span>
-          <span className="text-xs font-medium text-[#7d92b0] uppercase tracking-wide">Splunk Field</span>
+          <span className="text-xs font-medium text-falcon-muted uppercase tracking-wide">EDR Field</span>
+          <span className="text-xs font-medium text-falcon-muted uppercase tracking-wide">Splunk Field</span>
           <span />
         </div>
 
@@ -554,8 +554,8 @@ function FieldMappingCard() {
             />
             <button
               onClick={() => removeMapping(mapping.id)}
-              className="w-9 h-9 flex items-center justify-center rounded-lg border border-[#1e2d42]
-                         text-[#7d92b0] hover:border-red-500/40 hover:text-red-400 transition-all"
+              className="w-9 h-9 flex items-center justify-center rounded-lg border border-falcon-border
+                         text-falcon-muted hover:border-red-500/40 hover:text-red-400 transition-all"
             >
               <XCircle className="w-4 h-4" />
             </button>
@@ -565,8 +565,8 @@ function FieldMappingCard() {
         {/* Add button */}
         <button
           onClick={addMapping}
-          className="flex items-center gap-2 text-sm text-[#7d92b0] hover:text-[#e2e8f4]
-                     border border-dashed border-[#1e2d42] hover:border-[#7d92b0]/50
+          className="flex items-center gap-2 text-sm text-falcon-muted hover:text-falcon-text
+                     border border-dashed border-falcon-border hover:border-falcon-muted/50
                      rounded-lg px-3 py-2 w-full justify-center transition-all"
         >
           <span className="text-base leading-none">+</span>
@@ -604,14 +604,14 @@ function SyncStatusCard() {
                 status.connected ? 'bg-emerald-400' : 'bg-red-400'
               }`}
             />
-            <span className="text-sm font-medium text-[#e2e8f4]">
+            <span className="text-sm font-medium text-falcon-text">
               {isLoading ? 'Checking...' : status.connected ? 'Connected' : 'Disconnected'}
             </span>
           </div>
           <button
             onClick={() => refetch()}
-            className="p-1.5 rounded-lg border border-[#1e2d42] text-[#7d92b0]
-                       hover:border-[#7d92b0]/50 hover:text-[#e2e8f4] transition-all"
+            className="p-1.5 rounded-lg border border-falcon-border text-falcon-muted
+                       hover:border-falcon-muted/50 hover:text-falcon-text transition-all"
           >
             <RefreshCw className="w-3.5 h-3.5" />
           </button>
@@ -619,21 +619,21 @@ function SyncStatusCard() {
 
         {/* Stats grid */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <div className="bg-[#070d19] rounded-lg border border-[#1e2d42] px-4 py-3">
-            <p className="text-xs text-[#7d92b0] mb-1">Last Event Forwarded</p>
-            <p className="text-sm font-medium text-[#e2e8f4]">
+          <div className="bg-[#070d19] rounded-lg border border-falcon-border px-4 py-3">
+            <p className="text-xs text-falcon-muted mb-1">Last Event Forwarded</p>
+            <p className="text-sm font-medium text-falcon-text">
               {status.lastEvent ?? 'Never'}
             </p>
           </div>
-          <div className="bg-[#070d19] rounded-lg border border-[#1e2d42] px-4 py-3">
-            <p className="text-xs text-[#7d92b0] mb-1">Events Today</p>
+          <div className="bg-[#070d19] rounded-lg border border-falcon-border px-4 py-3">
+            <p className="text-xs text-falcon-muted mb-1">Events Today</p>
             <p className="text-sm font-medium text-emerald-400">
               {(status.eventsToday ?? 0).toLocaleString()}
             </p>
           </div>
-          <div className="bg-[#070d19] rounded-lg border border-[#1e2d42] px-4 py-3">
-            <p className="text-xs text-[#7d92b0] mb-1">Errors Today</p>
-            <p className={`text-sm font-medium ${status.errorsToday > 0 ? 'text-red-400' : 'text-[#e2e8f4]'}`}>
+          <div className="bg-[#070d19] rounded-lg border border-falcon-border px-4 py-3">
+            <p className="text-xs text-falcon-muted mb-1">Errors Today</p>
+            <p className={`text-sm font-medium ${status.errorsToday > 0 ? 'text-red-400' : 'text-falcon-text'}`}>
               {status.errorsToday}
             </p>
           </div>
@@ -642,7 +642,7 @@ function SyncStatusCard() {
         {/* Error hint */}
         {status.errorsToday > 0 && (
           <div className="flex items-start gap-2.5 bg-amber-900/15 border border-amber-700/30 rounded-lg px-4 py-3">
-            <AlertTriangle className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" />
+            <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
             <p className="text-xs text-amber-300">
               {status.errorsToday} forwarding error{status.errorsToday !== 1 ? 's' : ''} occurred today.
               Check Splunk HEC token validity and network connectivity.
@@ -662,23 +662,23 @@ export default function SplunkIntegrationPage() {
       {/* Header */}
       <div className="mb-8">
         {/* Breadcrumb */}
-        <div className="flex items-center gap-1.5 text-xs text-[#7d92b0] mb-4">
+        <div className="flex items-center gap-1.5 text-xs text-falcon-muted mb-4">
           <span>管理</span>
           <ChevronRight className="w-3.5 h-3.5" />
           <span>インテグレーション</span>
           <ChevronRight className="w-3.5 h-3.5" />
-          <span className="text-[#e2e8f4]">Splunk</span>
+          <span className="text-falcon-text">Splunk</span>
         </div>
 
         {/* Title row */}
         <div className="flex items-center gap-4">
           {/* Splunk logo placeholder */}
-          <div className="w-12 h-12 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center flex-shrink-0">
+          <div className="w-12 h-12 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center shrink-0">
             <span className="text-emerald-400 font-bold text-xl">S</span>
           </div>
           <div>
             <h1 className="text-xl font-bold text-white">Splunk Integration</h1>
-            <p className="text-sm text-[#7d92b0] mt-0.5">
+            <p className="text-sm text-falcon-muted mt-0.5">
               Forward EDR alerts and events to Splunk via HTTP Event Collector (HEC)
             </p>
           </div>

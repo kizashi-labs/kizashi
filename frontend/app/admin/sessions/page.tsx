@@ -112,24 +112,24 @@ interface ConfirmModalProps {
 
 function ConfirmModal({ title, message, onConfirm, onCancel, isPending, danger = true }: ConfirmModalProps) {
   return (
-    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50">
-      <div className="bg-[#0d1220] rounded-2xl p-6 w-full max-w-md border border-[#1e2d42] shadow-2xl">
+    <div className="fixed inset-0 bg-black/70 backdrop-blur-xs flex items-center justify-center z-50">
+      <div className="bg-falcon-surface rounded-2xl p-6 w-full max-w-md border border-falcon-border shadow-2xl">
         <div className="flex items-start gap-3 mb-4">
-          <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
+          <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${
             danger ? 'bg-red-900/40' : 'bg-blue-900/40'
           }`}>
             <AlertTriangle className={`w-5 h-5 ${danger ? 'text-red-400' : 'text-blue-400'}`} />
           </div>
           <div>
             <h3 className="text-white font-semibold text-lg">{title}</h3>
-            <p className="text-[#7d92b0] text-sm mt-1">{message}</p>
+            <p className="text-falcon-muted text-sm mt-1">{message}</p>
           </div>
         </div>
         <div className="flex gap-3 justify-end mt-6">
           <button
             onClick={onCancel}
             disabled={isPending}
-            className="px-4 py-2 bg-[#161f33] text-[#7d92b0] rounded-lg hover:bg-[#1d2f4a]
+            className="px-4 py-2 bg-falcon-raised text-falcon-muted rounded-lg hover:bg-falcon-active
                        hover:text-white transition-colors text-sm disabled:opacity-50"
           >
             キャンセル
@@ -139,7 +139,7 @@ function ConfirmModal({ title, message, onConfirm, onCancel, isPending, danger =
             disabled={isPending}
             className={`px-4 py-2 rounded-lg text-white text-sm transition-colors
                         disabled:opacity-50 flex items-center gap-2
-                        ${danger ? 'bg-[#e8002d] hover:bg-[#c0001f]' : 'bg-blue-600 hover:bg-blue-700'}`}
+                        ${danger ? 'bg-falcon-red hover:bg-[#c0001f]' : 'bg-blue-600 hover:bg-blue-700'}`}
           >
             {isPending && (
               <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -252,10 +252,10 @@ export default function AdminSessionsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-            <MonitorSmartphone className="w-6 h-6 text-[#e8002d]" />
+            <MonitorSmartphone className="w-6 h-6 text-falcon-red" />
             セッション管理
           </h1>
-          <p className="text-[#7d92b0] text-sm mt-1">
+          <p className="text-falcon-muted text-sm mt-1">
             アクティブなユーザーセッションの監視・管理
           </p>
         </div>
@@ -266,7 +266,7 @@ export default function AdminSessionsPage() {
             className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm border transition-colors ${
               autoRefresh
                 ? 'bg-green-900/30 text-green-300 border-green-700/40'
-                : 'bg-[#0d1220] text-[#7d92b0] border-[#1e2d42] hover:text-white'
+                : 'bg-falcon-surface text-falcon-muted border-falcon-border hover:text-white'
             }`}
           >
             {autoRefresh
@@ -292,7 +292,7 @@ export default function AdminSessionsPage() {
           <button
             onClick={() => refetch()}
             disabled={isFetching}
-            className="p-2 text-[#7d92b0] hover:text-white transition-colors disabled:opacity-50"
+            className="p-2 text-falcon-muted hover:text-white transition-colors disabled:opacity-50"
             title="更新"
           >
             <RefreshCw className={`w-5 h-5 ${isFetching ? 'animate-spin' : ''}`} />
@@ -328,16 +328,16 @@ export default function AdminSessionsPage() {
             label: '本日無効化',
             value: revokedToday,
             icon: XCircle,
-            color: 'text-[#e8002d]',
+            color: 'text-falcon-red',
             iconBg: 'bg-red-900/30',
           },
         ].map(({ label, value, icon: Icon, color, iconBg }) => (
-          <div key={label} className="bg-[#0d1220] rounded-xl border border-[#1e2d42] p-4 flex items-center gap-3">
-            <div className={`w-10 h-10 rounded-lg ${iconBg} flex items-center justify-center flex-shrink-0`}>
+          <div key={label} className="bg-falcon-surface rounded-xl border border-falcon-border p-4 flex items-center gap-3">
+            <div className={`w-10 h-10 rounded-lg ${iconBg} flex items-center justify-center shrink-0`}>
               <Icon className={`w-5 h-5 ${color}`} />
             </div>
             <div>
-              <p className="text-[#7d92b0] text-xs">{label}</p>
+              <p className="text-falcon-muted text-xs">{label}</p>
               <p className={`text-2xl font-bold mt-0.5 ${color}`}>{value}</p>
             </div>
           </div>
@@ -345,36 +345,36 @@ export default function AdminSessionsPage() {
       </div>
 
       {/* ── Filters ─────────────────────────────────────────────────────────── */}
-      <div className="bg-[#0d1220] rounded-xl border border-[#1e2d42] p-4">
+      <div className="bg-falcon-surface rounded-xl border border-falcon-border p-4">
         <div className="flex items-center gap-3 flex-wrap">
-          <Filter className="w-4 h-4 text-[#7d92b0] flex-shrink-0" />
+          <Filter className="w-4 h-4 text-falcon-muted shrink-0" />
 
           {/* Filter by user (dropdown) */}
           <div className="relative">
             <select
               value={searchUser}
               onChange={e => setSearchUser(e.target.value)}
-              className="appearance-none bg-[#070d19] text-white px-3 py-2 pr-8 rounded-lg border border-[#1e2d42]
-                         text-sm focus:outline-none focus:border-[#1a6bff] cursor-pointer min-w-[180px]"
+              className="appearance-none bg-[#070d19] text-white px-3 py-2 pr-8 rounded-lg border border-falcon-border
+                         text-sm focus:outline-hidden focus:border-falcon-blue cursor-pointer min-w-[180px]"
             >
               <option value="">すべてのユーザー</option>
               {Array.from(new Map(sessions.map(s => [s.user_id, s.user_email])).entries()).map(([uid, email]) => (
                 <option key={uid} value={email}>{email}</option>
               ))}
             </select>
-            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#7d92b0] pointer-events-none" />
+            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-falcon-muted pointer-events-none" />
           </div>
 
           {/* Search by IP */}
           <div className="relative flex-1 min-w-[160px]">
-            <Globe className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#7d92b0]" />
+            <Globe className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-falcon-muted" />
             <input
               type="text"
               value={searchIP}
               onChange={e => setSearchIP(e.target.value)}
               placeholder="IPアドレスで検索..."
-              className="w-full bg-[#070d19] text-white pl-9 pr-3 py-2 rounded-lg border border-[#1e2d42]
-                         text-sm focus:outline-none focus:border-[#1a6bff] placeholder-[#7d92b0] font-mono"
+              className="w-full bg-[#070d19] text-white pl-9 pr-3 py-2 rounded-lg border border-falcon-border
+                         text-sm focus:outline-hidden focus:border-falcon-blue placeholder-falcon-muted font-mono"
             />
           </div>
 
@@ -383,44 +383,44 @@ export default function AdminSessionsPage() {
             <select
               value={statusFilter}
               onChange={e => setStatusFilter(e.target.value as typeof statusFilter)}
-              className="appearance-none bg-[#070d19] text-white px-3 py-2 pr-8 rounded-lg border border-[#1e2d42]
-                         text-sm focus:outline-none focus:border-[#1a6bff] cursor-pointer"
+              className="appearance-none bg-[#070d19] text-white px-3 py-2 pr-8 rounded-lg border border-falcon-border
+                         text-sm focus:outline-hidden focus:border-falcon-blue cursor-pointer"
             >
               <option value="all">すべてのステータス</option>
               <option value="active">アクティブ</option>
               <option value="expired">期限切れ</option>
               <option value="revoked">無効化済み</option>
             </select>
-            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#7d92b0] pointer-events-none" />
+            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-falcon-muted pointer-events-none" />
           </div>
 
           {/* Clear filters */}
           {(searchUser || searchIP || statusFilter !== 'all') && (
             <button
               onClick={() => { setSearchUser(''); setSearchIP(''); setStatusFilter('all') }}
-              className="flex items-center gap-1.5 text-xs text-[#7d92b0] hover:text-white
-                         px-2 py-1.5 rounded border border-[#1e2d42] hover:border-[#7d92b0] transition-colors"
+              className="flex items-center gap-1.5 text-xs text-falcon-muted hover:text-white
+                         px-2 py-1.5 rounded border border-falcon-border hover:border-falcon-muted transition-colors"
             >
               <X className="w-3 h-3" />
               クリア
             </button>
           )}
 
-          <span className="text-[#7d92b0] text-xs ml-auto">
+          <span className="text-falcon-muted text-xs ml-auto">
             {filtered.length} / {sessions.length} 件
           </span>
         </div>
       </div>
 
       {/* ── Sessions Table ───────────────────────────────────────────────────── */}
-      <div className="bg-[#0d1220] rounded-xl border border-[#1e2d42] overflow-hidden">
+      <div className="bg-falcon-surface rounded-xl border border-falcon-border overflow-hidden">
 
         {/* Table header */}
-        <div className="px-4 py-3 border-b border-[#1e2d42] flex items-center justify-between">
+        <div className="px-4 py-3 border-b border-falcon-border flex items-center justify-between">
           <h2 className="text-sm font-semibold text-white flex items-center gap-2">
-            <MonitorSmartphone className="w-4 h-4 text-[#7d92b0]" />
+            <MonitorSmartphone className="w-4 h-4 text-falcon-muted" />
             セッション一覧
-            <span className="text-xs text-[#7d92b0] font-normal">
+            <span className="text-xs text-falcon-muted font-normal">
               最終アクティブ降順
             </span>
           </h2>
@@ -428,11 +428,11 @@ export default function AdminSessionsPage() {
 
         {isLoading ? (
           <div className="flex items-center justify-center h-40">
-            <div className="w-8 h-8 border-2 border-[#e8002d] border-t-transparent rounded-full animate-spin" />
+            <div className="w-8 h-8 border-2 border-falcon-red border-t-transparent rounded-full animate-spin" />
           </div>
         ) : filtered.length === 0 ? (
           /* ── Empty state ── */
-          <div className="flex flex-col items-center justify-center h-48 text-[#7d92b0]">
+          <div className="flex flex-col items-center justify-center h-48 text-falcon-muted">
             <MonitorSmartphone className="w-12 h-12 mb-3 opacity-20" />
             <p className="text-sm font-medium">
               {sessions.length === 0 ? 'セッションがありません' : 'フィルター条件に一致するセッションがありません'}
@@ -440,7 +440,7 @@ export default function AdminSessionsPage() {
             {sessions.length > 0 && (
               <button
                 onClick={() => { setSearchUser(''); setSearchIP(''); setStatusFilter('all') }}
-                className="mt-2 text-xs text-[#1a6bff] hover:underline"
+                className="mt-2 text-xs text-falcon-blue hover:underline"
               >
                 フィルターをクリア
               </button>
@@ -450,15 +450,15 @@ export default function AdminSessionsPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-[#1e2d42] bg-[#070d19]/50">
-                  <th className="text-left px-4 py-3 text-[#7d92b0] text-xs font-medium">ユーザー</th>
-                  <th className="text-left px-4 py-3 text-[#7d92b0] text-xs font-medium">IPアドレス</th>
-                  <th className="text-left px-4 py-3 text-[#7d92b0] text-xs font-medium">ブラウザ / OS</th>
-                  <th className="text-left px-4 py-3 text-[#7d92b0] text-xs font-medium">作成日時</th>
-                  <th className="text-left px-4 py-3 text-[#7d92b0] text-xs font-medium">最終アクティブ</th>
-                  <th className="text-left px-4 py-3 text-[#7d92b0] text-xs font-medium">有効期限</th>
-                  <th className="text-left px-4 py-3 text-[#7d92b0] text-xs font-medium">ステータス</th>
-                  <th className="text-left px-4 py-3 text-[#7d92b0] text-xs font-medium">操作</th>
+                <tr className="border-b border-falcon-border bg-[#070d19]/50">
+                  <th className="text-left px-4 py-3 text-falcon-muted text-xs font-medium">ユーザー</th>
+                  <th className="text-left px-4 py-3 text-falcon-muted text-xs font-medium">IPアドレス</th>
+                  <th className="text-left px-4 py-3 text-falcon-muted text-xs font-medium">ブラウザ / OS</th>
+                  <th className="text-left px-4 py-3 text-falcon-muted text-xs font-medium">作成日時</th>
+                  <th className="text-left px-4 py-3 text-falcon-muted text-xs font-medium">最終アクティブ</th>
+                  <th className="text-left px-4 py-3 text-falcon-muted text-xs font-medium">有効期限</th>
+                  <th className="text-left px-4 py-3 text-falcon-muted text-xs font-medium">ステータス</th>
+                  <th className="text-left px-4 py-3 text-falcon-muted text-xs font-medium">操作</th>
                 </tr>
               </thead>
               <tbody>
@@ -471,13 +471,13 @@ export default function AdminSessionsPage() {
                   return (
                     <tr
                       key={session.id}
-                      className="border-b border-[#1e2d42]/50 last:border-0 hover:bg-[#131c2e] transition-colors"
+                      className="border-b border-falcon-border/50 last:border-0 hover:bg-[#131c2e] transition-colors"
                     >
                       {/* User */}
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
-                          <div className="w-7 h-7 rounded-full bg-gradient-to-br from-[#1a6bff] to-[#0044cc]
-                                          flex items-center justify-center flex-shrink-0">
+                          <div className="w-7 h-7 rounded-full bg-linear-to-br from-falcon-blue to-[#0044cc]
+                                          flex items-center justify-center shrink-0">
                             <span className="text-[9px] font-bold text-white uppercase">
                               {(session.user_name || session.user_email || '?')[0]?.toUpperCase()}
                             </span>
@@ -486,41 +486,41 @@ export default function AdminSessionsPage() {
                             <p className="text-white text-xs font-medium">
                               {session.user_name || '—'}
                             </p>
-                            <p className="text-[#7d92b0] text-xs font-mono">{session.user_email}</p>
+                            <p className="text-falcon-muted text-xs font-mono">{session.user_email}</p>
                           </div>
                         </div>
                       </td>
 
                       {/* IP */}
                       <td className="px-4 py-3">
-                        <span className="text-[#7d92b0] text-xs font-mono">{session.ip_address || '—'}</span>
+                        <span className="text-falcon-muted text-xs font-mono">{session.ip_address || '—'}</span>
                       </td>
 
                       {/* Browser / OS */}
                       <td className="px-4 py-3">
                         <div className="flex flex-col gap-0.5">
                           <span className="text-white text-xs">{browser}</span>
-                          <span className="text-[#7d92b0] text-xs">{os}</span>
+                          <span className="text-falcon-muted text-xs">{os}</span>
                         </div>
                       </td>
 
                       {/* Created at */}
-                      <td className="px-4 py-3 text-[#7d92b0] text-xs whitespace-nowrap">
+                      <td className="px-4 py-3 text-falcon-muted text-xs whitespace-nowrap">
                         {fmtDate(session.created_at)}
                       </td>
 
                       {/* Last active */}
                       <td className="px-4 py-3">
                         <div className="flex flex-col gap-0.5">
-                          <span className={`text-xs font-medium ${isActive ? 'text-green-400' : 'text-[#7d92b0]'}`}>
+                          <span className={`text-xs font-medium ${isActive ? 'text-green-400' : 'text-falcon-muted'}`}>
                             {timeAgo(session.last_active_at)}
                           </span>
-                          <span className="text-[#7d92b0] text-xs">{fmtDate(session.last_active_at)}</span>
+                          <span className="text-falcon-muted text-xs">{fmtDate(session.last_active_at)}</span>
                         </div>
                       </td>
 
                       {/* Expires at */}
-                      <td className="px-4 py-3 text-[#7d92b0] text-xs whitespace-nowrap">
+                      <td className="px-4 py-3 text-falcon-muted text-xs whitespace-nowrap">
                         {fmtDate(session.expires_at)}
                       </td>
 
@@ -553,8 +553,8 @@ export default function AdminSessionsPage() {
                               setConfirmRevokeUserEmail(session.user_email)
                             }}
                             className="flex items-center gap-1 text-xs px-2 py-1 rounded
-                                       bg-[#0d1220] text-[#7d92b0] border border-[#1e2d42]
-                                       hover:bg-[#161f33] hover:text-white transition-colors"
+                                       bg-falcon-surface text-falcon-muted border border-falcon-border
+                                       hover:bg-falcon-raised hover:text-white transition-colors"
                             title="このユーザーの全セッションを無効化"
                           >
                             <Shield className="w-3 h-3" />

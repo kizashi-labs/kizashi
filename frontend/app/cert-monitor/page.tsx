@@ -85,7 +85,7 @@ function DaysBar({ days, status }: { days: number; status: CertEntry['status'] }
 
   return (
     <div className="flex items-center gap-2 min-w-[120px]">
-      <div className="flex-1 h-1.5 bg-[#1e2d42] rounded-full overflow-hidden">
+      <div className="flex-1 h-1.5 bg-falcon-border rounded-full overflow-hidden">
         <div
           className={`h-full rounded-full ${barColor}`}
           style={{ width: `${pct}%` }}
@@ -181,7 +181,7 @@ export default function CertMonitorPage() {
           <button
             onClick={() => queryClient.invalidateQueries({ queryKey: ['certificates'] })}
             disabled={isFetching}
-            className="flex items-center gap-2 px-3 py-2 rounded-lg border border-[#1e2d42] bg-[#0d1220] text-[#8899aa] hover:text-white hover:border-[#2a3f5f] transition-colors text-sm disabled:opacity-50"
+            className="flex items-center gap-2 px-3 py-2 rounded-lg border border-falcon-border bg-falcon-surface text-[#8899aa] hover:text-white hover:border-[#2a3f5f] transition-colors text-sm disabled:opacity-50"
           >
             <RefreshCw className={`w-4 h-4 ${isFetching ? 'animate-spin' : ''}`} />
             更新
@@ -199,7 +199,7 @@ export default function CertMonitorPage() {
       {/* ── Warning banner ── */}
       {urgentCount > 0 && (
         <div className="mb-5 flex items-center gap-3 px-4 py-3 rounded-lg bg-red-900/30 border border-red-700/50 text-red-300">
-          <AlertTriangle className="w-5 h-5 flex-shrink-0" />
+          <AlertTriangle className="w-5 h-5 shrink-0" />
           <span className="text-sm font-medium">
             ⚠ {urgentCount}件の証明書が7日以内に期限切れになります
           </span>
@@ -208,7 +208,7 @@ export default function CertMonitorPage() {
 
       {/* ── Stats row ── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-4 flex items-center gap-3">
+        <div className="bg-falcon-surface border border-falcon-border rounded-xl p-4 flex items-center gap-3">
           <div className="p-2 rounded-lg bg-blue-900/30">
             <Globe className="w-5 h-5 text-blue-400" />
           </div>
@@ -217,7 +217,7 @@ export default function CertMonitorPage() {
             <p className="text-2xl font-bold text-white">{stats.total}</p>
           </div>
         </div>
-        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-4 flex items-center gap-3">
+        <div className="bg-falcon-surface border border-falcon-border rounded-xl p-4 flex items-center gap-3">
           <div className="p-2 rounded-lg bg-green-900/30">
             <CheckCircle className="w-5 h-5 text-green-400" />
           </div>
@@ -226,7 +226,7 @@ export default function CertMonitorPage() {
             <p className="text-2xl font-bold text-green-300">{stats.valid}</p>
           </div>
         </div>
-        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-4 flex items-center gap-3">
+        <div className="bg-falcon-surface border border-falcon-border rounded-xl p-4 flex items-center gap-3">
           <div className="p-2 rounded-lg bg-orange-900/30">
             <Clock className="w-5 h-5 text-orange-400" />
           </div>
@@ -235,7 +235,7 @@ export default function CertMonitorPage() {
             <p className="text-2xl font-bold text-orange-300">{stats.expiring}</p>
           </div>
         </div>
-        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-4 flex items-center gap-3">
+        <div className="bg-falcon-surface border border-falcon-border rounded-xl p-4 flex items-center gap-3">
           <div className="p-2 rounded-lg bg-red-900/30">
             <AlertTriangle className="w-5 h-5 text-red-400" />
           </div>
@@ -247,11 +247,11 @@ export default function CertMonitorPage() {
       </div>
 
       {/* ── Certificate table ── */}
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
+      <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-[#1e2d42]">
+              <tr className="border-b border-falcon-border">
                 {[
                   'ドメイン', '発行者', '有効期限', '残り日数', 'ステータス', 'ポート', '最終確認',
                 ].map((h) => (
@@ -267,10 +267,10 @@ export default function CertMonitorPage() {
             <tbody>
               {isLoading ? (
                 Array.from({ length: 5 }).map((_, i) => (
-                  <tr key={i} className="border-b border-[#1e2d42]/50">
+                  <tr key={i} className="border-b border-falcon-border/50">
                     {Array.from({ length: 7 }).map((_, j) => (
                       <td key={j} className="px-4 py-3">
-                        <div className="h-4 bg-[#1e2d42] rounded animate-pulse w-24" />
+                        <div className="h-4 bg-falcon-border rounded-sm animate-pulse w-24" />
                       </td>
                     ))}
                   </tr>
@@ -285,7 +285,7 @@ export default function CertMonitorPage() {
                 entries.map((cert) => (
                   <tr
                     key={cert.id}
-                    className="border-b border-[#1e2d42]/50 hover:bg-[#0d1828]/60 transition-colors"
+                    className="border-b border-falcon-border/50 hover:bg-[#0d1828]/60 transition-colors"
                   >
                     {/* Domain */}
                     <td className="px-4 py-3 font-mono text-white font-medium">
@@ -310,7 +310,7 @@ export default function CertMonitorPage() {
                     {/* Status */}
                     <td className="px-4 py-3">
                       <span
-                        className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${STATUS_CONFIG[cert.status].classes}`}
+                        className={`inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium ${STATUS_CONFIG[cert.status].classes}`}
                       >
                         {STATUS_CONFIG[cert.status].label}
                       </span>
@@ -335,10 +335,10 @@ export default function CertMonitorPage() {
 
       {/* ── Add Certificate Modal ── */}
       {showAddModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl w-full max-w-md mx-4 shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs">
+          <div className="bg-falcon-surface border border-falcon-border rounded-xl w-full max-w-md mx-4 shadow-2xl">
             {/* Modal header */}
-            <div className="flex items-center justify-between px-5 py-4 border-b border-[#1e2d42]">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-falcon-border">
               <div className="flex items-center gap-2">
                 <Shield className="w-5 h-5 text-blue-400" />
                 <h2 className="text-base font-semibold text-white">証明書を追加</h2>
@@ -349,7 +349,7 @@ export default function CertMonitorPage() {
                   setForm({ domain: '', port: '443' })
                   setFormError('')
                 }}
-                className="p-1 rounded hover:bg-[#1e2d42] text-[#8899aa] hover:text-white transition-colors"
+                className="p-1 rounded-sm hover:bg-falcon-border text-[#8899aa] hover:text-white transition-colors"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -359,7 +359,7 @@ export default function CertMonitorPage() {
             <form onSubmit={handleAddSubmit} className="px-5 py-4 space-y-4">
               {formError && (
                 <div className="flex items-center gap-2 text-sm text-red-300 bg-red-900/20 border border-red-700/40 rounded-lg px-3 py-2">
-                  <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+                  <AlertTriangle className="w-4 h-4 shrink-0" />
                   {formError}
                 </div>
               )}
@@ -373,7 +373,7 @@ export default function CertMonitorPage() {
                   placeholder="例: example.com"
                   value={form.domain}
                   onChange={(e) => setForm((f) => ({ ...f, domain: e.target.value }))}
-                  className="w-full px-3 py-2 bg-[#070d19] border border-[#1e2d42] rounded-lg text-white placeholder-[#8899aa] text-sm focus:outline-none focus:border-blue-500 transition-colors"
+                  className="w-full px-3 py-2 bg-[#070d19] border border-falcon-border rounded-lg text-white placeholder-[#8899aa] text-sm focus:outline-hidden focus:border-blue-500 transition-colors"
                 />
               </div>
 
@@ -388,7 +388,7 @@ export default function CertMonitorPage() {
                   max={65535}
                   value={form.port}
                   onChange={(e) => setForm((f) => ({ ...f, port: e.target.value }))}
-                  className="w-full px-3 py-2 bg-[#070d19] border border-[#1e2d42] rounded-lg text-white placeholder-[#8899aa] text-sm focus:outline-none focus:border-blue-500 transition-colors"
+                  className="w-full px-3 py-2 bg-[#070d19] border border-falcon-border rounded-lg text-white placeholder-[#8899aa] text-sm focus:outline-hidden focus:border-blue-500 transition-colors"
                 />
               </div>
 
@@ -400,7 +400,7 @@ export default function CertMonitorPage() {
                     setForm({ domain: '', port: '443' })
                     setFormError('')
                   }}
-                  className="px-4 py-2 rounded-lg border border-[#1e2d42] text-[#8899aa] hover:text-white hover:border-[#2a3f5f] transition-colors text-sm"
+                  className="px-4 py-2 rounded-lg border border-falcon-border text-[#8899aa] hover:text-white hover:border-[#2a3f5f] transition-colors text-sm"
                 >
                   キャンセル
                 </button>

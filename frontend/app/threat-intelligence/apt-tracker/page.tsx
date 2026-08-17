@@ -488,15 +488,15 @@ function MITREMatrix({ techniques }: { techniques: TTP[] }) {
       <div className="grid gap-1" style={{ gridTemplateColumns: `repeat(${MITRE_TACTICS.length}, minmax(90px, 1fr))` }}>
         {MITRE_TACTICS.map(tactic => (
           <div key={tactic} className="min-w-[90px]">
-            <div className="text-[10px] font-bold text-[#7d92b0] bg-[#0d1220] border border-[#1e2d42] px-1.5 py-1 rounded-t text-center truncate">
+            <div className="text-[10px] font-bold text-falcon-muted bg-falcon-surface border border-falcon-border px-1.5 py-1 rounded-t text-center truncate">
               {TACTIC_LABELS[tactic] || tactic}
             </div>
-            <div className="border border-t-0 border-[#1e2d42] rounded-b min-h-[60px] p-1 space-y-0.5">
+            <div className="border border-t-0 border-falcon-border rounded-b min-h-[60px] p-1 space-y-0.5">
               {(byTactic[tactic] || []).map(t => (
                 <div
                   key={t.technique_id}
                   title={t.technique_name}
-                  className="text-[9px] bg-[#e8002d]/20 border border-[#e8002d]/30 text-[#ff6b6b] rounded px-1 py-0.5 truncate"
+                  className="text-[9px] bg-falcon-red/20 border border-falcon-red/30 text-[#ff6b6b] rounded-sm px-1 py-0.5 truncate"
                 >
                   {t.technique_id}
                 </div>
@@ -542,41 +542,41 @@ function CampaignDetailModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/80 overflow-y-auto py-4">
-      <div className="w-full max-w-5xl mx-4 bg-[#0d1220] border border-[#1e2d42] rounded-xl shadow-2xl">
+      <div className="w-full max-w-5xl mx-4 bg-falcon-surface border border-falcon-border rounded-xl shadow-2xl">
         {/* Header */}
-        <div className="flex items-start justify-between p-5 border-b border-[#1e2d42]">
+        <div className="flex items-start justify-between p-5 border-b border-falcon-border">
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <span className={`text-xs px-2 py-0.5 rounded border font-medium ${getStatusBadgeClass(campaign.status)}`}>
+              <span className={`text-xs px-2 py-0.5 rounded-sm border font-medium ${getStatusBadgeClass(campaign.status)}`}>
                 {getStatusLabel(campaign.status)}
               </span>
-              <span className={`text-xs px-2 py-0.5 rounded border font-medium ${getPhaseBadgeClass(campaign.phase)}`}>
+              <span className={`text-xs px-2 py-0.5 rounded-sm border font-medium ${getPhaseBadgeClass(campaign.phase)}`}>
                 {getPhaseLabel(campaign.phase)}
               </span>
             </div>
             <h2 className="text-xl font-bold text-white">{campaign.campaign_name}</h2>
-            <p className="text-sm text-[#7d92b0] mt-0.5">
-              <span className="text-[#e8002d] font-medium">{campaign.apt_group}</span>
+            <p className="text-sm text-falcon-muted mt-0.5">
+              <span className="text-falcon-red font-medium">{campaign.apt_group}</span>
               {' · '}
               {campaign.start_date} → {campaign.end_date ?? '継続中'}
               {' · '}信頼度 {campaign.confidence}%
             </p>
           </div>
-          <button onClick={onClose} className="text-[#7d92b0] hover:text-white p-1">
+          <button onClick={onClose} className="text-falcon-muted hover:text-white p-1">
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-0.5 px-5 pt-3 border-b border-[#1e2d42] overflow-x-auto">
+        <div className="flex gap-0.5 px-5 pt-3 border-b border-falcon-border overflow-x-auto">
           {tabs.map(tab => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={`px-3 py-2 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
                 activeTab === tab.id
-                  ? 'border-[#e8002d] text-white'
-                  : 'border-transparent text-[#7d92b0] hover:text-white'
+                  ? 'border-falcon-red text-white'
+                  : 'border-transparent text-falcon-muted hover:text-white'
               }`}
             >
               {tab.label}
@@ -589,40 +589,40 @@ function CampaignDetailModal({
           {/* Overview */}
           {activeTab === 'overview' && (
             <div className="space-y-4">
-              <div className="bg-[#070d19] border border-[#1e2d42] rounded-lg p-4">
+              <div className="bg-[#070d19] border border-falcon-border rounded-lg p-4">
                 <h3 className="text-sm font-semibold text-white mb-2">キャンペーン概要</h3>
-                <p className="text-sm text-[#7d92b0] leading-relaxed">{campaign.description}</p>
+                <p className="text-sm text-falcon-muted leading-relaxed">{campaign.description}</p>
               </div>
               <div className="grid grid-cols-2 gap-4">
-                <div className="bg-[#070d19] border border-[#1e2d42] rounded-lg p-4">
+                <div className="bg-[#070d19] border border-falcon-border rounded-lg p-4">
                   <h3 className="text-sm font-semibold text-white mb-2">帰属分析</h3>
-                  <p className="text-sm text-[#7d92b0]">{campaign.attribution}</p>
+                  <p className="text-sm text-falcon-muted">{campaign.attribution}</p>
                   <div className="mt-2 flex items-center gap-2">
-                    <span className="text-xs text-[#7d92b0]">信頼度</span>
-                    <div className="flex-1 h-1.5 bg-[#1e2d42] rounded-full overflow-hidden">
+                    <span className="text-xs text-falcon-muted">信頼度</span>
+                    <div className="flex-1 h-1.5 bg-falcon-border rounded-full overflow-hidden">
                       <div
-                        className="h-full rounded-full bg-gradient-to-r from-[#e8002d] to-[#ff6b6b]"
+                        className="h-full rounded-full bg-linear-to-r from-falcon-red to-[#ff6b6b]"
                         style={{ width: `${campaign.confidence}%` }}
                       />
                     </div>
                     <span className="text-xs text-white font-bold">{campaign.confidence}%</span>
                   </div>
                 </div>
-                <div className="bg-[#070d19] border border-[#1e2d42] rounded-lg p-4">
+                <div className="bg-[#070d19] border border-falcon-border rounded-lg p-4">
                   <h3 className="text-sm font-semibold text-white mb-2">動機</h3>
-                  <p className="text-sm text-[#7d92b0]">{campaign.motivation}</p>
+                  <p className="text-sm text-falcon-muted">{campaign.motivation}</p>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
-                <div className="bg-[#070d19] border border-[#1e2d42] rounded-lg p-4">
+                <div className="bg-[#070d19] border border-falcon-border rounded-lg p-4">
                   <h3 className="text-sm font-semibold text-white mb-2">標的セクター</h3>
                   <div className="flex flex-wrap gap-1.5">
                     {campaign.target_sectors.map(s => (
-                      <span key={s} className="text-xs px-2 py-0.5 bg-[#1e2d42] rounded text-[#7d92b0]">{s}</span>
+                      <span key={s} className="text-xs px-2 py-0.5 bg-falcon-border rounded-sm text-falcon-muted">{s}</span>
                     ))}
                   </div>
                 </div>
-                <div className="bg-[#070d19] border border-[#1e2d42] rounded-lg p-4">
+                <div className="bg-[#070d19] border border-falcon-border rounded-lg p-4">
                   <h3 className="text-sm font-semibold text-white mb-2">標的国</h3>
                   <div className="flex flex-wrap gap-1.5">
                     {campaign.target_countries.map(c => (
@@ -637,23 +637,23 @@ function CampaignDetailModal({
           {/* Timeline */}
           {activeTab === 'timeline' && (
             <div className="relative">
-              <div className="absolute left-[100px] top-0 bottom-0 w-px bg-[#1e2d42]" />
+              <div className="absolute left-[100px] top-0 bottom-0 w-px bg-falcon-border" />
               <div className="space-y-4">
                 {campaign.techniques_used.map((ttp, i) => (
                   <div key={i} className="flex gap-4 relative">
                     <div className="w-[100px] text-right">
-                      <span className="text-xs text-[#7d92b0]">{ttp.date}</span>
+                      <span className="text-xs text-falcon-muted">{ttp.date}</span>
                     </div>
-                    <div className="relative flex-shrink-0 mt-1">
-                      <div className="w-3 h-3 rounded-full bg-[#e8002d] border-2 border-[#070d19] relative z-10" />
+                    <div className="relative shrink-0 mt-1">
+                      <div className="w-3 h-3 rounded-full bg-falcon-red border-2 border-[#070d19] relative z-10" />
                     </div>
-                    <div className="flex-1 bg-[#070d19] border border-[#1e2d42] rounded-lg p-3 mb-1">
+                    <div className="flex-1 bg-[#070d19] border border-falcon-border rounded-lg p-3 mb-1">
                       <div className="flex items-center gap-2 mb-1">
-                        <span className="text-xs font-mono font-bold text-[#e8002d]">{ttp.technique_id}</span>
+                        <span className="text-xs font-mono font-bold text-falcon-red">{ttp.technique_id}</span>
                         <span className="text-sm font-medium text-white">{ttp.technique_name}</span>
-                        <span className="text-xs text-[#7d92b0] bg-[#1e2d42] px-1.5 py-0.5 rounded">{ttp.tactic}</span>
+                        <span className="text-xs text-falcon-muted bg-falcon-border px-1.5 py-0.5 rounded-sm">{ttp.tactic}</span>
                       </div>
-                      <p className="text-xs text-[#7d92b0]">{ttp.description}</p>
+                      <p className="text-xs text-falcon-muted">{ttp.description}</p>
                     </div>
                   </div>
                 ))}
@@ -666,15 +666,15 @@ function CampaignDetailModal({
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-[#1e2d42]">
+                  <tr className="border-b border-falcon-border">
                     {['種別', '値', 'プロバイダー', 'ASN', '国'].map(h => (
-                      <th key={h} className="text-left py-2 px-3 text-xs text-[#7d92b0] font-medium">{h}</th>
+                      <th key={h} className="text-left py-2 px-3 text-xs text-falcon-muted font-medium">{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {campaign.infrastructure.map((entry, i) => (
-                    <tr key={i} className="border-b border-[#1e2d42]/40 hover:bg-[#070d19]/60">
+                    <tr key={i} className="border-b border-falcon-border/40 hover:bg-[#070d19]/60">
                       <td className="py-2 px-3">
                         <span className={`text-xs px-1.5 py-0.5 rounded ${
                           entry.type === 'domain' ? 'bg-blue-900/40 text-blue-400' : 'bg-orange-900/40 text-orange-400'
@@ -683,9 +683,9 @@ function CampaignDetailModal({
                         </span>
                       </td>
                       <td className="py-2 px-3 font-mono text-xs text-white">{entry.value}</td>
-                      <td className="py-2 px-3 text-[#7d92b0]">{entry.provider}</td>
-                      <td className="py-2 px-3 text-[#7d92b0] font-mono text-xs">{entry.asn}</td>
-                      <td className="py-2 px-3 text-[#7d92b0]">{COUNTRY_FLAGS[entry.country] ?? '🌐'} {entry.country}</td>
+                      <td className="py-2 px-3 text-falcon-muted">{entry.provider}</td>
+                      <td className="py-2 px-3 text-falcon-muted font-mono text-xs">{entry.asn}</td>
+                      <td className="py-2 px-3 text-falcon-muted">{COUNTRY_FLAGS[entry.country] ?? '🌐'} {entry.country}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -697,15 +697,15 @@ function CampaignDetailModal({
           {activeTab === 'malware' && (
             <div className="space-y-3">
               {campaign.malware_used.map((m, i) => (
-                <div key={i} className="flex items-center gap-3 bg-[#070d19] border border-[#1e2d42] rounded-lg p-3">
-                  <Bug className="w-5 h-5 text-[#e8002d] flex-shrink-0" />
+                <div key={i} className="flex items-center gap-3 bg-[#070d19] border border-falcon-border rounded-lg p-3">
+                  <Bug className="w-5 h-5 text-falcon-red shrink-0" />
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
                       <span className="font-bold text-white">{m.name}</span>
-                      <span className="text-xs text-[#7d92b0]">{m.family}</span>
+                      <span className="text-xs text-falcon-muted">{m.family}</span>
                     </div>
                   </div>
-                  <span className={`text-xs px-2 py-0.5 rounded font-medium ${getRoleColor(m.role)}`}>
+                  <span className={`text-xs px-2 py-0.5 rounded-sm font-medium ${getRoleColor(m.role)}`}>
                     {m.role}
                   </span>
                 </div>
@@ -718,22 +718,22 @@ function CampaignDetailModal({
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-[#1e2d42]">
+                  <tr className="border-b border-falcon-border">
                     {['種別', '値', '説明'].map(h => (
-                      <th key={h} className="text-left py-2 px-3 text-xs text-[#7d92b0] font-medium">{h}</th>
+                      <th key={h} className="text-left py-2 px-3 text-xs text-falcon-muted font-medium">{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {campaign.iocs.map((ioc, i) => (
-                    <tr key={i} className="border-b border-[#1e2d42]/40 hover:bg-[#070d19]/60">
+                    <tr key={i} className="border-b border-falcon-border/40 hover:bg-[#070d19]/60">
                       <td className="py-2 px-3">
-                        <span className={`text-xs px-1.5 py-0.5 rounded ${getIOCTypeColor(ioc.type)}`}>
+                        <span className={`text-xs px-1.5 py-0.5 rounded-sm ${getIOCTypeColor(ioc.type)}`}>
                           {ioc.type.toUpperCase()}
                         </span>
                       </td>
                       <td className="py-2 px-3 font-mono text-xs text-white max-w-[300px] truncate">{ioc.value}</td>
-                      <td className="py-2 px-3 text-[#7d92b0]">{ioc.description}</td>
+                      <td className="py-2 px-3 text-falcon-muted">{ioc.description}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -744,17 +744,17 @@ function CampaignDetailModal({
           {/* Victims */}
           {activeTab === 'victims' && (
             <div className="space-y-3">
-              <p className="text-xs text-[#7d92b0] italic">注：組織名は匿名化されています</p>
+              <p className="text-xs text-falcon-muted italic">注：組織名は匿名化されています</p>
               {campaign.victims.map((v, i) => (
-                <div key={i} className="flex items-center gap-3 bg-[#070d19] border border-[#1e2d42] rounded-lg p-3">
-                  <div className="w-8 h-8 rounded-full bg-[#1e2d42] flex items-center justify-center flex-shrink-0">
+                <div key={i} className="flex items-center gap-3 bg-[#070d19] border border-falcon-border rounded-lg p-3">
+                  <div className="w-8 h-8 rounded-full bg-falcon-border flex items-center justify-center shrink-0">
                     <span className="text-sm">{COUNTRY_FLAGS[v.country] ?? '🌐'}</span>
                   </div>
                   <div className="flex-1">
                     <span className="text-sm font-medium text-white">{v.industry}</span>
-                    <p className="text-xs text-[#7d92b0]">{v.country}</p>
+                    <p className="text-xs text-falcon-muted">{v.country}</p>
                   </div>
-                  <span className="text-sm font-bold text-[#e8002d]">{v.count}組織</span>
+                  <span className="text-sm font-bold text-falcon-red">{v.count}組織</span>
                 </div>
               ))}
             </div>
@@ -764,15 +764,15 @@ function CampaignDetailModal({
           {activeTab === 'related' && (
             <div className="space-y-3">
               {relatedCampaigns.length === 0 ? (
-                <p className="text-sm text-[#7d92b0] text-center py-8">関連キャンペーンなし</p>
+                <p className="text-sm text-falcon-muted text-center py-8">関連キャンペーンなし</p>
               ) : (
                 relatedCampaigns.map(rc => (
-                  <div key={rc.id} className="bg-[#070d19] border border-[#1e2d42] rounded-lg p-3">
+                  <div key={rc.id} className="bg-[#070d19] border border-falcon-border rounded-lg p-3">
                     <div className="flex items-center gap-2 mb-1">
                       <span className="font-medium text-white">{rc.campaign_name}</span>
-                      <span className="text-xs text-[#e8002d]">{rc.apt_group}</span>
+                      <span className="text-xs text-falcon-red">{rc.apt_group}</span>
                     </div>
-                    <p className="text-xs text-[#7d92b0]">{rc.start_date} → {rc.end_date ?? '継続中'}</p>
+                    <p className="text-xs text-falcon-muted">{rc.start_date} → {rc.end_date ?? '継続中'}</p>
                   </div>
                 ))
               )}
@@ -785,7 +785,7 @@ function CampaignDetailModal({
               <h3 className="text-sm font-semibold text-white mb-3">MITRE ATT&CK カバレッジ</h3>
               <MITREMatrix techniques={campaign.techniques_used} />
               <div className="mt-4">
-                <p className="text-xs text-[#7d92b0]">
+                <p className="text-xs text-falcon-muted">
                   合計 {campaign.techniques_used.length} テクニック / {new Set(campaign.techniques_used.map(t => t.tactic)).size} タクティクス
                 </p>
               </div>
@@ -842,10 +842,10 @@ function AddCampaignModal({ onClose, onAdd }: { onClose: () => void; onAdd: (c: 
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
-      <div className="w-full max-w-xl mx-4 bg-[#0d1220] border border-[#1e2d42] rounded-xl shadow-2xl">
-        <div className="flex items-center justify-between p-4 border-b border-[#1e2d42]">
+      <div className="w-full max-w-xl mx-4 bg-falcon-surface border border-falcon-border rounded-xl shadow-2xl">
+        <div className="flex items-center justify-between p-4 border-b border-falcon-border">
           <h2 className="text-lg font-bold text-white">新規キャンペーン追加</h2>
-          <button onClick={onClose} className="text-[#7d92b0] hover:text-white"><X className="w-5 h-5" /></button>
+          <button onClick={onClose} className="text-falcon-muted hover:text-white"><X className="w-5 h-5" /></button>
         </div>
         <div className="p-4 space-y-3 max-h-[70vh] overflow-y-auto">
           {[
@@ -861,9 +861,9 @@ function AddCampaignModal({ onClose, onAdd }: { onClose: () => void; onAdd: (c: 
             { label: '信頼度 (%)', key: 'confidence', placeholder: '70' },
           ].map(f => (
             <div key={f.key}>
-              <label className="text-xs text-[#7d92b0] mb-1 block">{f.label}</label>
+              <label className="text-xs text-falcon-muted mb-1 block">{f.label}</label>
               <input
-                className="w-full bg-[#070d19] border border-[#1e2d42] rounded px-3 py-2 text-sm text-white placeholder-[#3d5068] focus:outline-none focus:border-[#e8002d]/60"
+                className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-sm text-white placeholder-falcon-subtle focus:outline-hidden focus:border-falcon-red/60"
                 placeholder={f.placeholder}
                 value={(form as Record<string, string>)[f.key]}
                 onChange={e => setForm(prev => ({ ...prev, [f.key]: e.target.value }))}
@@ -872,9 +872,9 @@ function AddCampaignModal({ onClose, onAdd }: { onClose: () => void; onAdd: (c: 
           ))}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs text-[#7d92b0] mb-1 block">フェーズ</label>
+              <label className="text-xs text-falcon-muted mb-1 block">フェーズ</label>
               <select
-                className="w-full bg-[#070d19] border border-[#1e2d42] rounded px-3 py-2 text-sm text-white focus:outline-none"
+                className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-sm text-white focus:outline-hidden"
                 value={form.phase}
                 onChange={e => setForm(prev => ({ ...prev, phase: e.target.value as CampaignPhase }))}
               >
@@ -884,9 +884,9 @@ function AddCampaignModal({ onClose, onAdd }: { onClose: () => void; onAdd: (c: 
               </select>
             </div>
             <div>
-              <label className="text-xs text-[#7d92b0] mb-1 block">ステータス</label>
+              <label className="text-xs text-falcon-muted mb-1 block">ステータス</label>
               <select
-                className="w-full bg-[#070d19] border border-[#1e2d42] rounded px-3 py-2 text-sm text-white focus:outline-none"
+                className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-sm text-white focus:outline-hidden"
                 value={form.status}
                 onChange={e => setForm(prev => ({ ...prev, status: e.target.value as CampaignStatus }))}
               >
@@ -897,14 +897,14 @@ function AddCampaignModal({ onClose, onAdd }: { onClose: () => void; onAdd: (c: 
             </div>
           </div>
         </div>
-        <div className="flex justify-end gap-2 p-4 border-t border-[#1e2d42]">
-          <button onClick={onClose} className="px-4 py-2 text-sm text-[#7d92b0] hover:text-white border border-[#1e2d42] rounded">
+        <div className="flex justify-end gap-2 p-4 border-t border-falcon-border">
+          <button onClick={onClose} className="px-4 py-2 text-sm text-falcon-muted hover:text-white border border-falcon-border rounded-sm">
             キャンセル
           </button>
           <button
             onClick={handleSubmit}
             disabled={!form.campaign_name || !form.apt_group}
-            className="px-4 py-2 text-sm text-white bg-[#e8002d] hover:bg-[#c0001f] rounded disabled:opacity-50"
+            className="px-4 py-2 text-sm text-white bg-falcon-red hover:bg-[#c0001f] rounded-sm disabled:opacity-50"
           >
             追加
           </button>
@@ -987,15 +987,15 @@ function TimelineView({ campaigns }: { campaigns: APTCampaign[] }) {
     <div className="space-y-4">
       {/* Zoom controls */}
       <div className="flex items-center gap-2">
-        <span className="text-sm text-[#7d92b0]">期間:</span>
+        <span className="text-sm text-falcon-muted">期間:</span>
         {(['6m', '1y', '2y', 'all'] as const).map(z => (
           <button
             key={z}
             onClick={() => setZoom(z)}
             className={`px-3 py-1.5 text-xs rounded border transition-colors ${
               zoom === z
-                ? 'bg-[#e8002d]/20 border-[#e8002d]/50 text-[#e8002d]'
-                : 'border-[#1e2d42] text-[#7d92b0] hover:text-white'
+                ? 'bg-falcon-red/20 border-falcon-red/50 text-falcon-red'
+                : 'border-falcon-border text-falcon-muted hover:text-white'
             }`}
           >
             {{ '6m': '直近6ヶ月', '1y': '1年', '2y': '2年', 'all': '全期間' }[z]}
@@ -1004,13 +1004,13 @@ function TimelineView({ campaigns }: { campaigns: APTCampaign[] }) {
       </div>
 
       {/* Timeline */}
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-4">
+      <div className="bg-falcon-surface border border-falcon-border rounded-lg p-4">
         {/* Date ruler */}
         <div className="relative h-6 mb-2 ml-[140px]">
           {[0, 25, 50, 75, 100].map(pct => {
             const d = new Date(startWindow.getTime() + (pct / 100) * windowMs)
             return (
-              <div key={pct} className="absolute text-[10px] text-[#3d5068]" style={{ left: `${pct}%` }}>
+              <div key={pct} className="absolute text-[10px] text-falcon-subtle" style={{ left: `${pct}%` }}>
                 {d.toLocaleDateString('ja-JP', { month: 'short', year: '2-digit' })}
               </div>
             )
@@ -1028,7 +1028,7 @@ function TimelineView({ campaigns }: { campaigns: APTCampaign[] }) {
               return (
                 <div
                   key={campaign.id}
-                  className="absolute top-1 flex items-center h-8 rounded px-2 text-xs font-medium text-white cursor-pointer overflow-hidden"
+                  className="absolute top-1 flex items-center h-8 rounded-sm px-2 text-xs font-medium text-white cursor-pointer overflow-hidden"
                   style={{
                     left: `calc(140px + ${left}%)`,
                     width: `calc(${width}% - 2px)`,
@@ -1046,15 +1046,15 @@ function TimelineView({ campaigns }: { campaigns: APTCampaign[] }) {
         ))}
 
         {visibleCampaigns.length === 0 && (
-          <p className="text-sm text-[#7d92b0] text-center py-8">この期間にキャンペーンなし</p>
+          <p className="text-sm text-falcon-muted text-center py-8">この期間にキャンペーンなし</p>
         )}
 
         {/* Legend */}
-        <div className="mt-4 flex flex-wrap gap-2 border-t border-[#1e2d42] pt-3">
+        <div className="mt-4 flex flex-wrap gap-2 border-t border-falcon-border pt-3">
           {Object.entries(APT_COLORS).map(([group, color]) => (
             <div key={group} className="flex items-center gap-1">
-              <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: color }} />
-              <span className="text-xs text-[#7d92b0]">{group}</span>
+              <div className="w-3 h-3 rounded-xs" style={{ backgroundColor: color }} />
+              <span className="text-xs text-falcon-muted">{group}</span>
             </div>
           ))}
         </div>
@@ -1115,24 +1115,24 @@ export default function APTTrackerPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-[#e8002d]/10 border border-[#e8002d]/20 flex items-center justify-center">
-            <Radar className="w-5 h-5 text-[#e8002d]" />
+          <div className="w-10 h-10 rounded-lg bg-falcon-red/10 border border-falcon-red/20 flex items-center justify-center">
+            <Radar className="w-5 h-5 text-falcon-red" />
           </div>
           <div>
             <h1 className="text-2xl font-bold text-white">APTキャンペーントラッカー</h1>
-            <p className="text-sm text-[#7d92b0]">高度持続型脅威のキャンペーン追跡・分析</p>
+            <p className="text-sm text-falcon-muted">高度持続型脅威のキャンペーン追跡・分析</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
           <button
             onClick={() => queryClient.invalidateQueries({ queryKey: ['apt-campaigns'] })}
-            className="p-2 border border-[#1e2d42] rounded text-[#7d92b0] hover:text-white hover:border-[#7d92b0]/40 transition-colors"
+            className="p-2 border border-falcon-border rounded-sm text-falcon-muted hover:text-white hover:border-falcon-muted/40 transition-colors"
           >
             <RefreshCw className="w-4 h-4" />
           </button>
           <button
             onClick={() => setShowAddModal(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-[#e8002d] text-white text-sm rounded hover:bg-[#c0001f] transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-falcon-red text-white text-sm rounded-sm hover:bg-[#c0001f] transition-colors"
           >
             <Plus className="w-4 h-4" />
             キャンペーン追加
@@ -1141,15 +1141,15 @@ export default function APTTrackerPage() {
       </div>
 
       {/* Active campaigns banner */}
-      <div className="bg-[#e8002d]/10 border border-[#e8002d]/20 rounded-lg px-4 py-3 flex items-center gap-3">
-        <div className="w-2 h-2 rounded-full bg-[#e8002d] animate-pulse flex-shrink-0" />
+      <div className="bg-falcon-red/10 border border-falcon-red/20 rounded-lg px-4 py-3 flex items-center gap-3">
+        <div className="w-2 h-2 rounded-full bg-falcon-red animate-pulse shrink-0" />
         <p className="text-sm text-white">
-          過去30日間に <span className="font-bold text-[#e8002d]">{activeLast30}</span> 件のアクティブキャンペーンを観測。
+          過去30日間に <span className="font-bold text-falcon-red">{activeLast30}</span> 件のアクティブキャンペーンを観測。
           全{allCampaigns.length}件のキャンペーンをトラッキング中。
         </p>
         <div className="ml-auto flex gap-4 text-sm">
           {(['active', 'concluded', 'suspected'] as CampaignStatus[]).map(s => (
-            <span key={s} className="text-[#7d92b0]">
+            <span key={s} className="text-falcon-muted">
               {getStatusLabel(s)}: <span className="text-white font-medium">{allCampaigns.filter(c => c.status === s).length}</span>
             </span>
           ))}
@@ -1157,7 +1157,7 @@ export default function APTTrackerPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-0.5 border-b border-[#1e2d42]">
+      <div className="flex gap-0.5 border-b border-falcon-border">
         {[
           { id: 'campaigns', label: 'キャンペーン' },
           { id: 'timeline', label: 'タイムライン' },
@@ -1167,8 +1167,8 @@ export default function APTTrackerPage() {
             onClick={() => setActiveTab(tab.id as 'campaigns' | 'timeline')}
             className={`px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors ${
               activeTab === tab.id
-                ? 'border-[#e8002d] text-white'
-                : 'border-transparent text-[#7d92b0] hover:text-white'
+                ? 'border-falcon-red text-white'
+                : 'border-transparent text-falcon-muted hover:text-white'
             }`}
           >
             {tab.label}
@@ -1182,16 +1182,16 @@ export default function APTTrackerPage() {
           {/* Filters */}
           <div className="flex flex-wrap gap-3">
             <div className="relative flex-1 min-w-[200px]">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#3d5068]" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-falcon-subtle" />
               <input
-                className="w-full pl-9 pr-3 py-2 bg-[#0d1220] border border-[#1e2d42] rounded text-sm text-white placeholder-[#3d5068] focus:outline-none focus:border-[#e8002d]/50"
+                className="w-full pl-9 pr-3 py-2 bg-falcon-surface border border-falcon-border rounded-sm text-sm text-white placeholder-falcon-subtle focus:outline-hidden focus:border-falcon-red/50"
                 placeholder="キャンペーン名・APTグループで検索..."
                 value={search}
                 onChange={e => setSearch(e.target.value)}
               />
             </div>
             <select
-              className="bg-[#0d1220] border border-[#1e2d42] rounded px-3 py-2 text-sm text-[#7d92b0] focus:outline-none"
+              className="bg-falcon-surface border border-falcon-border rounded-sm px-3 py-2 text-sm text-falcon-muted focus:outline-hidden"
               value={filterGroup}
               onChange={e => setFilterGroup(e.target.value)}
             >
@@ -1199,7 +1199,7 @@ export default function APTTrackerPage() {
               {allGroups.map(g => <option key={g} value={g}>{g}</option>)}
             </select>
             <select
-              className="bg-[#0d1220] border border-[#1e2d42] rounded px-3 py-2 text-sm text-[#7d92b0] focus:outline-none"
+              className="bg-falcon-surface border border-falcon-border rounded-sm px-3 py-2 text-sm text-falcon-muted focus:outline-hidden"
               value={filterSector}
               onChange={e => setFilterSector(e.target.value)}
             >
@@ -1207,7 +1207,7 @@ export default function APTTrackerPage() {
               {allSectors.map(s => <option key={s} value={s}>{s}</option>)}
             </select>
             <select
-              className="bg-[#0d1220] border border-[#1e2d42] rounded px-3 py-2 text-sm text-[#7d92b0] focus:outline-none"
+              className="bg-falcon-surface border border-falcon-border rounded-sm px-3 py-2 text-sm text-falcon-muted focus:outline-hidden"
               value={filterStatus}
               onChange={e => setFilterStatus(e.target.value)}
             >
@@ -1219,43 +1219,43 @@ export default function APTTrackerPage() {
           </div>
 
           {/* Table */}
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg overflow-hidden">
+          <div className="bg-falcon-surface border border-falcon-border rounded-lg overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-[#1e2d42] bg-[#070d19]/60">
+                  <tr className="border-b border-falcon-border bg-[#070d19]/60">
                     {['キャンペーン', 'APTグループ', '期間', '標的セクター', '標的国', 'TTP数', 'フェーズ', '信頼度', 'ステータス', ''].map(h => (
-                      <th key={h} className="text-left py-3 px-3 text-xs text-[#7d92b0] font-medium whitespace-nowrap">{h}</th>
+                      <th key={h} className="text-left py-3 px-3 text-xs text-falcon-muted font-medium whitespace-nowrap">{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {isLoading ? (
-                    <tr><td colSpan={10} className="text-center py-8 text-[#7d92b0]">読み込み中...</td></tr>
+                    <tr><td colSpan={10} className="text-center py-8 text-falcon-muted">読み込み中...</td></tr>
                   ) : filteredCampaigns.length === 0 ? (
-                    <tr><td colSpan={10} className="text-center py-8 text-[#7d92b0]">キャンペーンが見つかりません</td></tr>
+                    <tr><td colSpan={10} className="text-center py-8 text-falcon-muted">キャンペーンが見つかりません</td></tr>
                   ) : filteredCampaigns.map(campaign => (
                     <tr
                       key={campaign.id}
-                      className="border-b border-[#1e2d42]/40 hover:bg-[#070d19]/60 cursor-pointer group"
+                      className="border-b border-falcon-border/40 hover:bg-[#070d19]/60 cursor-pointer group"
                       onClick={() => setSelectedCampaign(campaign)}
                     >
                       <td className="py-3 px-3">
-                        <span className="font-medium text-white group-hover:text-[#e8002d] transition-colors">{campaign.campaign_name}</span>
+                        <span className="font-medium text-white group-hover:text-falcon-red transition-colors">{campaign.campaign_name}</span>
                       </td>
                       <td className="py-3 px-3">
-                        <span className="text-[#e8002d] font-medium">{campaign.apt_group}</span>
+                        <span className="text-falcon-red font-medium">{campaign.apt_group}</span>
                       </td>
-                      <td className="py-3 px-3 text-[#7d92b0] text-xs whitespace-nowrap">
+                      <td className="py-3 px-3 text-falcon-muted text-xs whitespace-nowrap">
                         {campaign.start_date}<br />{campaign.end_date ?? <span className="text-green-400">継続中</span>}
                       </td>
                       <td className="py-3 px-3">
                         <div className="flex flex-wrap gap-1">
                           {campaign.target_sectors.slice(0, 2).map(s => (
-                            <span key={s} className="text-xs px-1.5 py-0.5 bg-[#1e2d42] rounded text-[#7d92b0]">{s}</span>
+                            <span key={s} className="text-xs px-1.5 py-0.5 bg-falcon-border rounded-sm text-falcon-muted">{s}</span>
                           ))}
                           {campaign.target_sectors.length > 2 && (
-                            <span className="text-xs text-[#3d5068]">+{campaign.target_sectors.length - 2}</span>
+                            <span className="text-xs text-falcon-subtle">+{campaign.target_sectors.length - 2}</span>
                           )}
                         </div>
                       </td>
@@ -1265,26 +1265,26 @@ export default function APTTrackerPage() {
                             <span key={c} className="text-sm" title={c}>{COUNTRY_FLAGS[c] ?? '🌐'}</span>
                           ))}
                           {campaign.target_countries.length > 4 && (
-                            <span className="text-xs text-[#3d5068] ml-0.5">+{campaign.target_countries.length - 4}</span>
+                            <span className="text-xs text-falcon-subtle ml-0.5">+{campaign.target_countries.length - 4}</span>
                           )}
                         </div>
                       </td>
                       <td className="py-3 px-3">
-                        <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 bg-[#1e2d42] rounded font-medium text-white">
-                          <Target className="w-3 h-3 text-[#e8002d]" />
+                        <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 bg-falcon-border rounded-sm font-medium text-white">
+                          <Target className="w-3 h-3 text-falcon-red" />
                           {campaign.techniques_used.length}
                         </span>
                       </td>
                       <td className="py-3 px-3">
-                        <span className={`text-xs px-2 py-0.5 rounded border font-medium ${getPhaseBadgeClass(campaign.phase)}`}>
+                        <span className={`text-xs px-2 py-0.5 rounded-sm border font-medium ${getPhaseBadgeClass(campaign.phase)}`}>
                           {getPhaseLabel(campaign.phase)}
                         </span>
                       </td>
                       <td className="py-3 px-3">
                         <div className="flex items-center gap-1.5">
-                          <div className="w-12 h-1.5 bg-[#1e2d42] rounded-full overflow-hidden">
+                          <div className="w-12 h-1.5 bg-falcon-border rounded-full overflow-hidden">
                             <div
-                              className="h-full rounded-full bg-gradient-to-r from-[#e8002d] to-[#ff6b6b]"
+                              className="h-full rounded-full bg-linear-to-r from-falcon-red to-[#ff6b6b]"
                               style={{ width: `${campaign.confidence}%` }}
                             />
                           </div>
@@ -1292,12 +1292,12 @@ export default function APTTrackerPage() {
                         </div>
                       </td>
                       <td className="py-3 px-3">
-                        <span className={`text-xs px-2 py-0.5 rounded border font-medium ${getStatusBadgeClass(campaign.status)}`}>
+                        <span className={`text-xs px-2 py-0.5 rounded-sm border font-medium ${getStatusBadgeClass(campaign.status)}`}>
                           {getStatusLabel(campaign.status)}
                         </span>
                       </td>
                       <td className="py-3 px-3">
-                        <ChevronRight className="w-4 h-4 text-[#3d5068] group-hover:text-[#7d92b0]" />
+                        <ChevronRight className="w-4 h-4 text-falcon-subtle group-hover:text-falcon-muted" />
                       </td>
                     </tr>
                   ))}

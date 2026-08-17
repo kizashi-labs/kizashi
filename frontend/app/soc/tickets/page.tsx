@@ -161,7 +161,7 @@ function priorityBadge(p: TicketPriority) {
     low: 'bg-green-900/60 text-green-300 border border-green-700/50',
   }
   const labels = { critical: 'Critical', high: 'High', medium: 'Medium', low: 'Low' }
-  return <span className={`text-[11px] px-2 py-0.5 rounded font-medium ${map[p]}`}>{labels[p]}</span>
+  return <span className={`text-[11px] px-2 py-0.5 rounded-sm font-medium ${map[p]}`}>{labels[p]}</span>
 }
 
 function statusBadge(s: TicketStatus) {
@@ -172,11 +172,11 @@ function statusBadge(s: TicketStatus) {
     resolved: 'bg-green-900/60 text-green-300 border border-green-700/50',
   }
   const labels = { open: 'Open', in_progress: 'In Progress', pending: 'Pending', resolved: 'Resolved' }
-  return <span className={`text-[11px] px-2 py-0.5 rounded font-medium ${map[s]}`}>{labels[s]}</span>
+  return <span className={`text-[11px] px-2 py-0.5 rounded-sm font-medium ${map[s]}`}>{labels[s]}</span>
 }
 
 function slaIndicator(sla: string | null) {
-  if (!sla) return <span className="text-[#7d92b0] text-xs">-</span>
+  if (!sla) return <span className="text-falcon-muted text-xs">-</span>
   const due = new Date(sla)
   const diff = due.getTime() - Date.now()
   const hours = diff / 3600000
@@ -202,8 +202,8 @@ function assigneeInitial(name: string | null) {
 
 function StatCard({ label, value, color = 'text-white' }: { label: string; value: number; color?: string }) {
   return (
-    <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg px-4 py-3">
-      <p className="text-[#7d92b0] text-xs mb-1">{label}</p>
+    <div className="bg-falcon-surface border border-falcon-border rounded-lg px-4 py-3">
+      <p className="text-falcon-muted text-xs mb-1">{label}</p>
       <p className={`text-2xl font-bold ${color}`}>{value}</p>
     </div>
   )
@@ -237,38 +237,38 @@ function CreateTicketModal({ users, onClose, onCreate, loading }: CreateModalPro
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl w-[540px] max-h-[90vh] overflow-y-auto shadow-xl">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[#1e2d42]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs">
+      <div className="bg-falcon-surface border border-falcon-border rounded-xl w-[540px] max-h-[90vh] overflow-y-auto shadow-xl">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-falcon-border">
           <h2 className="text-white font-semibold flex items-center gap-2">
-            <Ticket className="w-4 h-4 text-[#e8002d]" />
+            <Ticket className="w-4 h-4 text-falcon-red" />
             チケット作成
           </h2>
-          <button onClick={onClose} className="text-[#7d92b0] hover:text-white"><X className="w-4 h-4" /></button>
+          <button onClick={onClose} className="text-falcon-muted hover:text-white"><X className="w-4 h-4" /></button>
         </div>
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div>
-            <label className="text-xs text-[#7d92b0] mb-1 block">タイトル *</label>
+            <label className="text-xs text-falcon-muted mb-1 block">タイトル *</label>
             <input
               required value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
-              className="w-full bg-[#070d19] border border-[#1e2d42] rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-[#e8002d]/50"
+              className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-sm text-white focus:outline-hidden focus:border-falcon-red/50"
               placeholder="チケットのタイトルを入力"
             />
           </div>
           <div>
-            <label className="text-xs text-[#7d92b0] mb-1 block">説明</label>
+            <label className="text-xs text-falcon-muted mb-1 block">説明</label>
             <textarea
               rows={3} value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-              className="w-full bg-[#070d19] border border-[#1e2d42] rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-[#e8002d]/50 resize-none"
+              className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-sm text-white focus:outline-hidden focus:border-falcon-red/50 resize-none"
               placeholder="詳細な説明を入力"
             />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="text-xs text-[#7d92b0] mb-1 block">優先度</label>
+              <label className="text-xs text-falcon-muted mb-1 block">優先度</label>
               <select
                 value={form.priority} onChange={e => setForm(f => ({ ...f, priority: e.target.value as TicketPriority }))}
-                className="w-full bg-[#070d19] border border-[#1e2d42] rounded px-3 py-2 text-sm text-white focus:outline-none"
+                className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-sm text-white focus:outline-hidden"
               >
                 <option value="critical">Critical</option>
                 <option value="high">High</option>
@@ -277,10 +277,10 @@ function CreateTicketModal({ users, onClose, onCreate, loading }: CreateModalPro
               </select>
             </div>
             <div>
-              <label className="text-xs text-[#7d92b0] mb-1 block">担当者</label>
+              <label className="text-xs text-falcon-muted mb-1 block">担当者</label>
               <select
                 value={form.assignee_id} onChange={e => setForm(f => ({ ...f, assignee_id: e.target.value }))}
-                className="w-full bg-[#070d19] border border-[#1e2d42] rounded px-3 py-2 text-sm text-white focus:outline-none"
+                className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-sm text-white focus:outline-hidden"
               >
                 <option value="">未割り当て</option>
                 {users.map(u => <option key={u.id} value={u.id}>{u.full_name}</option>)}
@@ -288,26 +288,26 @@ function CreateTicketModal({ users, onClose, onCreate, loading }: CreateModalPro
             </div>
           </div>
           <div>
-            <label className="text-xs text-[#7d92b0] mb-1 block">タグ（カンマ区切り）</label>
+            <label className="text-xs text-falcon-muted mb-1 block">タグ（カンマ区切り）</label>
             <input
               value={form.tags} onChange={e => setForm(f => ({ ...f, tags: e.target.value }))}
-              className="w-full bg-[#070d19] border border-[#1e2d42] rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-[#e8002d]/50"
+              className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-sm text-white focus:outline-hidden focus:border-falcon-red/50"
               placeholder="ransomware, network, identity"
             />
           </div>
           <div>
-            <label className="text-xs text-[#7d92b0] mb-1 block">アラートID（任意）</label>
+            <label className="text-xs text-falcon-muted mb-1 block">アラートID（任意）</label>
             <input
               value={form.link_alert_id} onChange={e => setForm(f => ({ ...f, link_alert_id: e.target.value }))}
-              className="w-full bg-[#070d19] border border-[#1e2d42] rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-[#e8002d]/50"
+              className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-sm text-white focus:outline-hidden focus:border-falcon-red/50"
               placeholder="ALT-20260318-001"
             />
           </div>
           <div className="flex justify-end gap-3 pt-2">
-            <button type="button" onClick={onClose} className="px-4 py-2 rounded text-sm text-[#7d92b0] hover:text-white border border-[#1e2d42] hover:border-[#7d92b0]/40 transition-colors">
+            <button type="button" onClick={onClose} className="px-4 py-2 rounded-sm text-sm text-falcon-muted hover:text-white border border-falcon-border hover:border-falcon-muted/40 transition-colors">
               キャンセル
             </button>
-            <button type="submit" disabled={loading} className="px-4 py-2 rounded text-sm bg-[#e8002d] hover:bg-[#c0001f] text-white font-medium transition-colors disabled:opacity-50 flex items-center gap-2">
+            <button type="submit" disabled={loading} className="px-4 py-2 rounded-sm text-sm bg-falcon-red hover:bg-[#c0001f] text-white font-medium transition-colors disabled:opacity-50 flex items-center gap-2">
               {loading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
               作成
             </button>
@@ -337,44 +337,44 @@ function TicketSidePanel({ ticket, comments, onClose, onAddComment, addingCommen
   }
 
   return (
-    <div className="fixed inset-y-0 right-0 z-40 w-[480px] bg-[#0d1220] border-l border-[#1e2d42] shadow-2xl flex flex-col overflow-hidden">
-      <div className="flex items-center justify-between px-6 py-4 border-b border-[#1e2d42]">
+    <div className="fixed inset-y-0 right-0 z-40 w-[480px] bg-falcon-surface border-l border-falcon-border shadow-2xl flex flex-col overflow-hidden">
+      <div className="flex items-center justify-between px-6 py-4 border-b border-falcon-border">
         <div>
-          <span className="font-mono text-[#e8002d] text-sm">{ticket.ticket_number}</span>
+          <span className="font-mono text-falcon-red text-sm">{ticket.ticket_number}</span>
           <h3 className="text-white font-semibold text-sm mt-0.5">{ticket.title}</h3>
         </div>
-        <button onClick={onClose} className="text-[#7d92b0] hover:text-white"><X className="w-4 h-4" /></button>
+        <button onClick={onClose} className="text-falcon-muted hover:text-white"><X className="w-4 h-4" /></button>
       </div>
       <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
         <div className="flex flex-wrap gap-2">
           {priorityBadge(ticket.priority)}
           {statusBadge(ticket.status)}
           {ticket.tags.map(t => (
-            <span key={t} className="text-[11px] px-2 py-0.5 rounded bg-[#1e2d42] text-[#7d92b0] flex items-center gap-1">
+            <span key={t} className="text-[11px] px-2 py-0.5 rounded-sm bg-falcon-border text-falcon-muted flex items-center gap-1">
               <Tag className="w-2.5 h-2.5" />{t}
             </span>
           ))}
         </div>
-        <div className="bg-[#070d19] rounded-lg p-4 text-sm text-[#7d92b0] leading-relaxed">
+        <div className="bg-[#070d19] rounded-lg p-4 text-sm text-falcon-muted leading-relaxed">
           {ticket.description}
         </div>
         <div className="grid grid-cols-2 gap-3 text-xs">
-          <div className="bg-[#070d19] rounded p-3">
-            <p className="text-[#7d92b0] mb-1">担当者</p>
+          <div className="bg-[#070d19] rounded-sm p-3">
+            <p className="text-falcon-muted mb-1">担当者</p>
             <p className="text-white font-medium">{ticket.assignee_name || '未割り当て'}</p>
           </div>
-          <div className="bg-[#070d19] rounded p-3">
-            <p className="text-[#7d92b0] mb-1">SLA期限</p>
+          <div className="bg-[#070d19] rounded-sm p-3">
+            <p className="text-falcon-muted mb-1">SLA期限</p>
             <div className="font-medium">{slaIndicator(ticket.sla_due_at)}</div>
           </div>
-          <div className="bg-[#070d19] rounded p-3">
-            <p className="text-[#7d92b0] mb-1">作成日時</p>
+          <div className="bg-[#070d19] rounded-sm p-3">
+            <p className="text-falcon-muted mb-1">作成日時</p>
             <p className="text-white">{fmtDate(ticket.created_at)}</p>
           </div>
           {ticket.alert_id && (
-            <div className="bg-[#070d19] rounded p-3">
-              <p className="text-[#7d92b0] mb-1">アラート</p>
-              <a href={`/alerts?id=${ticket.alert_id}`} className="text-[#1a6bff] hover:underline flex items-center gap-1">
+            <div className="bg-[#070d19] rounded-sm p-3">
+              <p className="text-falcon-muted mb-1">アラート</p>
+              <a href={`/alerts?id=${ticket.alert_id}`} className="text-falcon-blue hover:underline flex items-center gap-1">
                 {ticket.alert_id}<ExternalLink className="w-3 h-3" />
               </a>
             </div>
@@ -382,7 +382,7 @@ function TicketSidePanel({ ticket, comments, onClose, onAddComment, addingCommen
         </div>
 
         <div>
-          <h4 className="text-[#7d92b0] text-xs uppercase tracking-wider mb-3 flex items-center gap-2">
+          <h4 className="text-falcon-muted text-xs uppercase tracking-wider mb-3 flex items-center gap-2">
             <MessageSquare className="w-3.5 h-3.5" />コメント ({comments.length})
           </h4>
           <div className="space-y-3">
@@ -390,28 +390,28 @@ function TicketSidePanel({ ticket, comments, onClose, onAddComment, addingCommen
               <div key={c.id} className="bg-[#070d19] rounded-lg p-3">
                 <div className="flex items-center justify-between mb-1.5">
                   <span className="text-white text-xs font-medium">{c.author_name}</span>
-                  <span className="text-[#7d92b0] text-[11px]">{fmtDate(c.created_at)}</span>
+                  <span className="text-falcon-muted text-[11px]">{fmtDate(c.created_at)}</span>
                 </div>
-                <p className="text-[#7d92b0] text-xs leading-relaxed">{c.body}</p>
+                <p className="text-falcon-muted text-xs leading-relaxed">{c.body}</p>
               </div>
             ))}
-            {comments.length === 0 && <p className="text-[#7d92b0] text-xs text-center py-4">コメントなし</p>}
+            {comments.length === 0 && <p className="text-falcon-muted text-xs text-center py-4">コメントなし</p>}
           </div>
         </div>
       </div>
 
       {canWrite && (
-        <div className="border-t border-[#1e2d42] px-6 py-4">
+        <div className="border-t border-falcon-border px-6 py-4">
           <div className="flex gap-2">
             <input
               value={comment} onChange={e => setComment(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), handleSend())}
-              className="flex-1 bg-[#070d19] border border-[#1e2d42] rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-[#e8002d]/50"
+              className="flex-1 bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-sm text-white focus:outline-hidden focus:border-falcon-red/50"
               placeholder="コメントを追加..."
             />
             <button
               onClick={handleSend} disabled={addingComment || !comment.trim()}
-              className="px-3 py-2 bg-[#e8002d] hover:bg-[#c0001f] text-white rounded transition-colors disabled:opacity-50 flex items-center"
+              className="px-3 py-2 bg-falcon-red hover:bg-[#c0001f] text-white rounded-sm transition-colors disabled:opacity-50 flex items-center"
             >
               {addingComment ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
             </button>
@@ -433,15 +433,15 @@ function KanbanCard({ ticket, onClick }: { ticket: SocTicket; onClick: () => voi
   return (
     <div
       onClick={onClick}
-      className="bg-[#070d19] border border-[#1e2d42] rounded-lg overflow-hidden cursor-pointer hover:border-[#7d92b0]/40 transition-all group"
+      className="bg-[#070d19] border border-falcon-border rounded-lg overflow-hidden cursor-pointer hover:border-falcon-muted/40 transition-all group"
     >
       <div className={`h-1 ${priorityBarColor(ticket.priority)}`} />
       <div className="p-3">
         <div className="flex items-start justify-between gap-2 mb-2">
-          <span className="font-mono text-[10px] text-[#7d92b0]">{ticket.ticket_number}</span>
+          <span className="font-mono text-[10px] text-falcon-muted">{ticket.ticket_number}</span>
           {ticket.assignee_name && (
-            <div className="w-5 h-5 rounded-full bg-[#1a6bff]/20 flex items-center justify-center flex-shrink-0">
-              <span className="text-[8px] text-[#1a6bff] font-bold">{assigneeInitial(ticket.assignee_name)}</span>
+            <div className="w-5 h-5 rounded-full bg-falcon-blue/20 flex items-center justify-center shrink-0">
+              <span className="text-[8px] text-falcon-blue font-bold">{assigneeInitial(ticket.assignee_name)}</span>
             </div>
           )}
         </div>
@@ -456,7 +456,7 @@ function KanbanCard({ ticket, onClick }: { ticket: SocTicket; onClick: () => voi
           )}
         </div>
         {ticket.comment_count > 0 && (
-          <div className="mt-2 flex items-center gap-1 text-[#7d92b0] text-[10px]">
+          <div className="mt-2 flex items-center gap-1 text-falcon-muted text-[10px]">
             <MessageSquare className="w-2.5 h-2.5" />{ticket.comment_count}
           </div>
         )}
@@ -575,15 +575,15 @@ export default function SocTicketsPage() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-white text-2xl font-bold flex items-center gap-2">
-            <Ticket className="w-6 h-6 text-[#e8002d]" />
+            <Ticket className="w-6 h-6 text-falcon-red" />
             SOCチケット
           </h1>
-          <p className="text-[#7d92b0] text-sm mt-1">セキュリティインシデントとアラートのチケット管理</p>
+          <p className="text-falcon-muted text-sm mt-1">セキュリティインシデントとアラートのチケット管理</p>
         </div>
         {canWrite && (
           <button
             onClick={() => setShowCreate(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-[#e8002d] hover:bg-[#c0001f] text-white text-sm font-medium rounded-lg transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-falcon-red hover:bg-[#c0001f] text-white text-sm font-medium rounded-lg transition-colors"
           >
             <Plus className="w-4 h-4" />
             チケット作成
@@ -601,16 +601,16 @@ export default function SocTicketsPage() {
 
       {/* View toggle */}
       <div className="flex items-center gap-2 mb-4">
-        <div className="flex bg-[#0d1220] border border-[#1e2d42] rounded-lg p-1 gap-1">
+        <div className="flex bg-falcon-surface border border-falcon-border rounded-lg p-1 gap-1">
           <button
             onClick={() => setView('list')}
-            className={`px-4 py-1.5 rounded text-sm font-medium transition-colors ${view === 'list' ? 'bg-[#1e2d42] text-white' : 'text-[#7d92b0] hover:text-white'}`}
+            className={`px-4 py-1.5 rounded-sm text-sm font-medium transition-colors ${view === 'list' ? 'bg-falcon-border text-white' : 'text-falcon-muted hover:text-white'}`}
           >
             リスト
           </button>
           <button
             onClick={() => setView('kanban')}
-            className={`px-4 py-1.5 rounded text-sm font-medium transition-colors ${view === 'kanban' ? 'bg-[#1e2d42] text-white' : 'text-[#7d92b0] hover:text-white'}`}
+            className={`px-4 py-1.5 rounded-sm text-sm font-medium transition-colors ${view === 'kanban' ? 'bg-falcon-border text-white' : 'text-falcon-muted hover:text-white'}`}
           >
             カンバン
           </button>
@@ -622,10 +622,10 @@ export default function SocTicketsPage() {
         <div>
           {/* Filter bar */}
           <div className="flex items-center gap-3 mb-4">
-            <Filter className="w-4 h-4 text-[#7d92b0]" />
+            <Filter className="w-4 h-4 text-falcon-muted" />
             <select
               value={filterStatus} onChange={e => setFilterStatus(e.target.value)}
-              className="bg-[#0d1220] border border-[#1e2d42] rounded px-3 py-1.5 text-sm text-[#7d92b0] focus:outline-none"
+              className="bg-falcon-surface border border-falcon-border rounded-sm px-3 py-1.5 text-sm text-falcon-muted focus:outline-hidden"
             >
               <option value="">全ステータス</option>
               <option value="open">Open</option>
@@ -635,7 +635,7 @@ export default function SocTicketsPage() {
             </select>
             <select
               value={filterPriority} onChange={e => setFilterPriority(e.target.value)}
-              className="bg-[#0d1220] border border-[#1e2d42] rounded px-3 py-1.5 text-sm text-[#7d92b0] focus:outline-none"
+              className="bg-falcon-surface border border-falcon-border rounded-sm px-3 py-1.5 text-sm text-falcon-muted focus:outline-hidden"
             >
               <option value="">全優先度</option>
               <option value="critical">Critical</option>
@@ -645,7 +645,7 @@ export default function SocTicketsPage() {
             </select>
             <select
               value={filterAssignee} onChange={e => setFilterAssignee(e.target.value)}
-              className="bg-[#0d1220] border border-[#1e2d42] rounded px-3 py-1.5 text-sm text-[#7d92b0] focus:outline-none"
+              className="bg-falcon-surface border border-falcon-border rounded-sm px-3 py-1.5 text-sm text-falcon-muted focus:outline-hidden"
             >
               <option value="">全担当者</option>
               {displayUsers.map(u => <option key={u.id} value={u.id}>{u.full_name}</option>)}
@@ -653,7 +653,7 @@ export default function SocTicketsPage() {
             {(filterStatus || filterPriority || filterAssignee) && (
               <button
                 onClick={() => { setFilterStatus(''); setFilterPriority(''); setFilterAssignee('') }}
-                className="text-[#7d92b0] hover:text-white text-sm flex items-center gap-1"
+                className="text-falcon-muted hover:text-white text-sm flex items-center gap-1"
               >
                 <X className="w-3.5 h-3.5" />クリア
               </button>
@@ -661,24 +661,24 @@ export default function SocTicketsPage() {
           </div>
 
           {/* Table */}
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
+          <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-[#1e2d42]">
+                <tr className="border-b border-falcon-border">
                   {['チケット#', 'タイトル', 'アラート', '優先度', 'ステータス', '担当者', 'SLA', '作成日時', '操作'].map(h => (
-                    <th key={h} className="px-4 py-3 text-left text-xs text-[#7d92b0] font-medium uppercase tracking-wider">{h}</th>
+                    <th key={h} className="px-4 py-3 text-left text-xs text-falcon-muted font-medium uppercase tracking-wider">{h}</th>
                   ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#1e2d42]">
+              <tbody className="divide-y divide-falcon-border">
                 {filtered.map(ticket => (
                   <tr
                     key={ticket.id}
                     onClick={() => setSelectedTicket(ticket)}
-                    className="hover:bg-[#19253d]/50 cursor-pointer transition-colors"
+                    className="hover:bg-falcon-hover/50 cursor-pointer transition-colors"
                   >
                     <td className="px-4 py-3">
-                      <span className="font-mono text-[#e8002d] text-xs">{ticket.ticket_number}</span>
+                      <span className="font-mono text-falcon-red text-xs">{ticket.ticket_number}</span>
                     </td>
                     <td className="px-4 py-3 max-w-[220px]">
                       <span className="text-white text-xs font-medium truncate block">{ticket.title}</span>
@@ -688,38 +688,38 @@ export default function SocTicketsPage() {
                         <a
                           href={`/alerts?id=${ticket.alert_id}`}
                           onClick={e => e.stopPropagation()}
-                          className="text-[#1a6bff] hover:underline text-xs flex items-center gap-1"
+                          className="text-falcon-blue hover:underline text-xs flex items-center gap-1"
                         >
                           {ticket.alert_id}<ExternalLink className="w-2.5 h-2.5" />
                         </a>
-                      ) : <span className="text-[#7d92b0] text-xs">-</span>}
+                      ) : <span className="text-falcon-muted text-xs">-</span>}
                     </td>
                     <td className="px-4 py-3">{priorityBadge(ticket.priority)}</td>
                     <td className="px-4 py-3">{statusBadge(ticket.status)}</td>
                     <td className="px-4 py-3">
                       {ticket.assignee_name ? (
                         <div className="flex items-center gap-2">
-                          <div className="w-6 h-6 rounded-full bg-[#1a6bff]/20 flex items-center justify-center">
-                            <span className="text-[9px] text-[#1a6bff] font-bold">{assigneeInitial(ticket.assignee_name)}</span>
+                          <div className="w-6 h-6 rounded-full bg-falcon-blue/20 flex items-center justify-center">
+                            <span className="text-[9px] text-falcon-blue font-bold">{assigneeInitial(ticket.assignee_name)}</span>
                           </div>
                           <span className="text-white text-xs">{ticket.assignee_name}</span>
                         </div>
-                      ) : <span className="text-[#7d92b0] text-xs">未割り当て</span>}
+                      ) : <span className="text-falcon-muted text-xs">未割り当て</span>}
                     </td>
                     <td className="px-4 py-3">{slaIndicator(ticket.sla_due_at)}</td>
-                    <td className="px-4 py-3 text-[#7d92b0] text-xs">{fmtDate(ticket.created_at)}</td>
+                    <td className="px-4 py-3 text-falcon-muted text-xs">{fmtDate(ticket.created_at)}</td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
                         <button
                           onClick={() => setSelectedTicket(ticket)}
-                          className="text-[#7d92b0] hover:text-white text-xs px-2 py-1 rounded border border-[#1e2d42] hover:border-[#7d92b0]/40 transition-colors"
+                          className="text-falcon-muted hover:text-white text-xs px-2 py-1 rounded-sm border border-falcon-border hover:border-falcon-muted/40 transition-colors"
                         >
                           表示
                         </button>
                         {canWrite && ticket.status !== 'resolved' && (
                           <button
                             onClick={() => closeMutation.mutate(ticket.id)}
-                            className="text-[#7d92b0] hover:text-green-400 text-xs px-2 py-1 rounded border border-[#1e2d42] hover:border-green-700/50 transition-colors"
+                            className="text-falcon-muted hover:text-green-400 text-xs px-2 py-1 rounded-sm border border-falcon-border hover:border-green-700/50 transition-colors"
                           >
                             クローズ
                           </button>
@@ -730,7 +730,7 @@ export default function SocTicketsPage() {
                 ))}
                 {filtered.length === 0 && (
                   <tr>
-                    <td colSpan={9} className="px-4 py-12 text-center text-[#7d92b0] text-sm">チケットが見つかりません</td>
+                    <td colSpan={9} className="px-4 py-12 text-center text-falcon-muted text-sm">チケットが見つかりません</td>
                   </tr>
                 )}
               </tbody>
@@ -751,11 +751,11 @@ export default function SocTicketsPage() {
                 onDragOver={e => { e.preventDefault(); setDragOverCol(col.key) }}
                 onDragLeave={() => setDragOverCol(null)}
                 onDrop={() => handleDrop(col.key)}
-                className={`min-h-[200px] rounded-xl border transition-colors ${isOver ? 'border-[#e8002d]/50 bg-[#e8002d]/5' : 'border-[#1e2d42] bg-[#0d1220]'}`}
+                className={`min-h-[200px] rounded-xl border transition-colors ${isOver ? 'border-falcon-red/50 bg-falcon-red/5' : 'border-falcon-border bg-falcon-surface'}`}
               >
-                <div className="px-4 py-3 border-b border-[#1e2d42] flex items-center justify-between">
+                <div className="px-4 py-3 border-b border-falcon-border flex items-center justify-between">
                   <span className="text-white text-sm font-medium">{col.label}</span>
-                  <span className="text-[10px] text-[#7d92b0] bg-[#1e2d42] rounded-full px-2 py-0.5">{colTickets.length}</span>
+                  <span className="text-[10px] text-falcon-muted bg-falcon-border rounded-full px-2 py-0.5">{colTickets.length}</span>
                 </div>
                 <div className="p-3 space-y-2">
                   {colTickets.map(t => (

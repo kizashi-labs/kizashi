@@ -7,18 +7,18 @@ export const metadata = {
 
 export default function TermsPage() {
   return (
-    <div className="min-h-screen bg-[#080c14] text-[#e2e8f4]">
+    <div className="min-h-screen bg-falcon-bg text-falcon-text">
       {/* ヘッダー */}
-      <header className="border-b border-[#1e2d42] px-6 py-4 flex items-center gap-3">
-        <Shield className="w-5 h-5 text-[#e8002d]" />
-        <span className="font-semibold text-sm text-[#e2e8f4]">Kizashi</span>
+      <header className="border-b border-falcon-border px-6 py-4 flex items-center gap-3">
+        <Shield className="w-5 h-5 text-falcon-red" />
+        <span className="font-semibold text-sm text-falcon-text">Kizashi</span>
         <Link href="/login" className="ml-auto text-xs text-[#5a6a7a] hover:text-[#8899aa]">
           ログインに戻る
         </Link>
       </header>
 
       <main className="max-w-3xl mx-auto px-6 py-12">
-        <h1 className="text-2xl font-bold text-[#e2e8f4] mb-2">利用規約</h1>
+        <h1 className="text-2xl font-bold text-falcon-text mb-2">利用規約</h1>
         <p className="text-xs text-[#5a6a7a] mb-8">最終更新日: 2026年3月21日</p>
 
         <div className="prose prose-sm max-w-none space-y-8 text-[#8899aa] leading-relaxed">
@@ -50,9 +50,9 @@ export default function TermsPage() {
           <Section title="第4条（ライセンスおよび料金）">
             <p>本サービスの利用には有効なライセンスが必要です。料金プランは以下のとおりです：</p>
             <ul className="list-disc pl-5 space-y-1">
-              <li><strong className="text-[#e2e8f4]">Starter プラン</strong>：¥1,800/エンドポイント/月（50〜500エンドポイント）</li>
-              <li><strong className="text-[#e2e8f4]">Professional プラン</strong>：¥2,800/エンドポイント/月（200〜5,000エンドポイント）</li>
-              <li><strong className="text-[#e2e8f4]">Enterprise プラン</strong>：個別見積もり（1,000エンドポイント以上）</li>
+              <li><strong className="text-falcon-text">Starter プラン</strong>：¥1,800/エンドポイント/月（50〜500エンドポイント）</li>
+              <li><strong className="text-falcon-text">Professional プラン</strong>：¥2,800/エンドポイント/月（200〜5,000エンドポイント）</li>
+              <li><strong className="text-falcon-text">Enterprise プラン</strong>：個別見積もり（1,000エンドポイント以上）</li>
             </ul>
             <p className="mt-2">料金は月次で請求し、前払いとします。ライセンスの有効期限が切れた場合、一部の機能が制限されます。</p>
           </Section>
@@ -104,7 +104,7 @@ export default function TermsPage() {
 
         </div>
 
-        <div className="mt-12 pt-6 border-t border-[#1e2d42] flex gap-4 text-xs text-[#5a6a7a]">
+        <div className="mt-12 pt-6 border-t border-falcon-border flex gap-4 text-xs text-[#5a6a7a]">
           <Link href="/privacy" className="hover:text-[#8899aa]">プライバシーポリシー</Link>
           <Link href="/login" className="hover:text-[#8899aa]">ログイン</Link>
         </div>
@@ -116,7 +116,7 @@ export default function TermsPage() {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section>
-      <h2 className="text-base font-semibold text-[#e2e8f4] mb-3">{title}</h2>
+      <h2 className="text-base font-semibold text-falcon-text mb-3">{title}</h2>
       <div className="space-y-2">{children}</div>
     </section>
   )

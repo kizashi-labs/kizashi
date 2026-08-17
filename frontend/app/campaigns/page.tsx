@@ -101,11 +101,11 @@ function CampaignModal({ initial, onClose, onSave, saving }: ModalProps) {
   }
 
   const inputCls = 'w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm ' +
-    'placeholder-gray-500 focus:outline-none focus:border-blue-500 transition-colors'
+    'placeholder-gray-500 focus:outline-hidden focus:border-blue-500 transition-colors'
   const labelCls = 'block text-xs font-medium text-gray-400 mb-1'
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs">
       <div className="bg-gray-900 border border-gray-700 rounded-2xl w-full max-w-xl mx-4 shadow-2xl">
         {/* Modal header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-800">
@@ -328,7 +328,7 @@ export default function CampaignsPage() {
   // ── Render ───────────────────────────────────────────────────────────────────
 
   const selectCls = 'bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-gray-300 text-sm ' +
-    'focus:outline-none focus:border-blue-500 transition-colors'
+    'focus:outline-hidden focus:border-blue-500 transition-colors'
 
   return (
     <div className="p-6 space-y-6 min-h-screen bg-gray-900">
@@ -365,7 +365,7 @@ export default function CampaignsPage() {
           { icon: <Shield className="w-5 h-5 text-white" />, bg: 'bg-blue-600',    label: '関連アラート合計',   val: totalAlerts },
         ].map(({ icon, bg, label, val }) => (
           <div key={label} className="bg-gray-800 border border-gray-700/50 rounded-xl p-4 flex items-center gap-3">
-            <div className={`w-9 h-9 ${bg} rounded-lg flex items-center justify-center flex-shrink-0`}>
+            <div className={`w-9 h-9 ${bg} rounded-lg flex items-center justify-center shrink-0`}>
               {icon}
             </div>
             <div>
@@ -387,7 +387,7 @@ export default function CampaignsPage() {
             value={search}
             onChange={e => setSearch(e.target.value)}
             className="w-full pl-8 pr-3 py-1.5 bg-gray-800 border border-gray-700 rounded-lg text-white
-                       text-sm placeholder-gray-500 focus:outline-none focus:border-blue-500 transition-colors"
+                       text-sm placeholder-gray-500 focus:outline-hidden focus:border-blue-500 transition-colors"
           />
           {search && (
             <button onClick={() => setSearch('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white">
@@ -457,13 +457,13 @@ export default function CampaignsPage() {
                     <h3 className="text-white font-semibold text-sm leading-snug truncate">{c.name}</h3>
                     {c.threat_actor && (
                       <div className="flex items-center gap-1 mt-1">
-                        <Users className="w-3 h-3 text-gray-500 flex-shrink-0" />
+                        <Users className="w-3 h-3 text-gray-500 shrink-0" />
                         <span className="text-xs text-blue-400 font-mono truncate">{c.threat_actor}</span>
                       </div>
                     )}
                   </div>
                   {canWrite && (
-                    <div className="flex items-center gap-1.5 flex-shrink-0">
+                    <div className="flex items-center gap-1.5 shrink-0">
                       <button
                         onClick={() => openEdit(c)}
                         className="p-1.5 text-gray-500 hover:text-white hover:bg-gray-700 rounded-lg transition-colors"
@@ -563,7 +563,7 @@ export default function CampaignsPage() {
 
       {/* ── Delete confirm dialog ── */}
       {deleteId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs">
           <div className="bg-gray-900 border border-gray-700 rounded-2xl w-full max-w-sm mx-4 p-6 shadow-2xl">
             <div className="flex items-center gap-3 mb-3">
               <div className="w-9 h-9 bg-red-900/40 rounded-lg flex items-center justify-center">

@@ -170,12 +170,12 @@ function WebhookModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-      <div className="bg-[#111827] border border-blue-500/30 rounded-xl p-6 w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
+      <div className="bg-falcon-card border border-blue-500/30 rounded-xl p-6 w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-5">
-          <h2 className="text-sm font-semibold text-[#e2e8f4]">
+          <h2 className="text-sm font-semibold text-falcon-text">
             {isEdit ? 'Webhookを編集' : '新しいWebhookを追加'}
           </h2>
-          <button onClick={onClose} className="text-[#7d92b0] hover:text-[#e2e8f4] transition-colors">
+          <button onClick={onClose} className="text-falcon-muted hover:text-falcon-text transition-colors">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -183,7 +183,7 @@ function WebhookModal({
         <div className="space-y-4">
           {/* 名前 */}
           <div>
-            <label className="block text-xs text-[#7d92b0] mb-1.5">
+            <label className="block text-xs text-falcon-muted mb-1.5">
               名前 <span className="text-red-400">*</span>
             </label>
             <input
@@ -191,13 +191,13 @@ function WebhookModal({
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
               placeholder="本番アラートWebhook"
-              className="w-full px-3 py-2 bg-[#080c14] border border-[#1e2d42] rounded-lg text-sm text-[#e2e8f4] placeholder-[#7d92b0] focus:outline-none focus:border-blue-500"
+              className="w-full px-3 py-2 bg-falcon-bg border border-falcon-border rounded-lg text-sm text-falcon-text placeholder-falcon-muted focus:outline-hidden focus:border-blue-500"
             />
           </div>
 
           {/* URL */}
           <div>
-            <label className="block text-xs text-[#7d92b0] mb-1.5">
+            <label className="block text-xs text-falcon-muted mb-1.5">
               エンドポイントURL <span className="text-red-400">*</span>
             </label>
             <input
@@ -205,13 +205,13 @@ function WebhookModal({
               value={form.url}
               onChange={(e) => setForm({ ...form, url: e.target.value })}
               placeholder="https://hooks.example.com/endpoint"
-              className="w-full px-3 py-2 bg-[#080c14] border border-[#1e2d42] rounded-lg text-sm text-[#e2e8f4] placeholder-[#7d92b0] focus:outline-none focus:border-blue-500"
+              className="w-full px-3 py-2 bg-falcon-bg border border-falcon-border rounded-lg text-sm text-falcon-text placeholder-falcon-muted focus:outline-hidden focus:border-blue-500"
             />
           </div>
 
           {/* シークレット */}
           <div>
-            <label className="block text-xs text-[#7d92b0] mb-1.5">
+            <label className="block text-xs text-falcon-muted mb-1.5">
               署名シークレット
               <span className="text-[#3a4d66] ml-1">(省略可 — HMAC-SHA256)</span>
             </label>
@@ -221,13 +221,13 @@ function WebhookModal({
               onChange={(e) => setForm({ ...form, secret: e.target.value })}
               placeholder={isEdit ? '変更する場合のみ入力' : 'シークレットキー'}
               autoComplete="off"
-              className="w-full px-3 py-2 bg-[#080c14] border border-[#1e2d42] rounded-lg text-sm text-[#e2e8f4] placeholder-[#7d92b0] focus:outline-none focus:border-blue-500"
+              className="w-full px-3 py-2 bg-falcon-bg border border-falcon-border rounded-lg text-sm text-falcon-text placeholder-falcon-muted focus:outline-hidden focus:border-blue-500"
             />
           </div>
 
           {/* イベント */}
-          <div className="pt-1 border-t border-[#1e2d42]">
-            <p className="text-xs text-[#7d92b0] mb-3">
+          <div className="pt-1 border-t border-falcon-border">
+            <p className="text-xs text-falcon-muted mb-3">
               トリガーイベント <span className="text-red-400">*</span>
             </p>
             <EventCheckboxes
@@ -237,15 +237,15 @@ function WebhookModal({
           </div>
 
           {/* 有効化 */}
-          <div className="flex items-center justify-between pt-1 border-t border-[#1e2d42]">
+          <div className="flex items-center justify-between pt-1 border-t border-falcon-border">
             <div>
-              <p className="text-sm text-[#e2e8f4]">有効化</p>
-              <p className="text-xs text-[#7d92b0] mt-0.5">このWebhookを有効にします</p>
+              <p className="text-sm text-falcon-text">有効化</p>
+              <p className="text-xs text-falcon-muted mt-0.5">このWebhookを有効にします</p>
             </div>
             <button
               type="button"
               onClick={() => setForm({ ...form, enabled: !form.enabled })}
-              className="flex-shrink-0 ml-4"
+              className="shrink-0 ml-4"
             >
               {form.enabled ? (
                 <ToggleRight className="w-8 h-8 text-blue-400" />
@@ -265,7 +265,7 @@ function WebhookModal({
         <div className="flex gap-3 mt-6">
           <button
             onClick={onClose}
-            className="flex-1 px-4 py-2 bg-[#1e2d42] hover:bg-[#253550] text-[#e2e8f4] text-sm rounded-lg transition-colors"
+            className="flex-1 px-4 py-2 bg-falcon-border hover:bg-[#253550] text-falcon-text text-sm rounded-lg transition-colors"
           >
             キャンセル
           </button>
@@ -319,11 +319,11 @@ function WebhookCard({
   };
 
   return (
-    <div className="bg-[#0d1525] border border-[#1e2d42] rounded-xl overflow-hidden">
+    <div className="bg-[#0d1525] border border-falcon-border rounded-xl overflow-hidden">
       {/* Card Header */}
       <div className="flex items-center justify-between px-5 py-4">
         <div className="flex items-center gap-3 min-w-0">
-          <div className="flex-shrink-0">
+          <div className="shrink-0">
             {target.enabled ? (
               <CheckCircle2 className="w-4 h-4 text-green-400" />
             ) : (
@@ -332,17 +332,17 @@ function WebhookCard({
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-sm font-medium text-[#e2e8f4] truncate">{target.name}</span>
+              <span className="text-sm font-medium text-falcon-text truncate">{target.name}</span>
               {statusBadge(target.last_status)}
             </div>
-            <p className="text-xs text-[#7d92b0] mt-0.5 truncate max-w-xs">{target.url}</p>
+            <p className="text-xs text-falcon-muted mt-0.5 truncate max-w-xs">{target.url}</p>
           </div>
         </div>
-        <div className="flex items-center gap-2 flex-shrink-0">
+        <div className="flex items-center gap-2 shrink-0">
           <button
             onClick={() => onToggle(target.id, !target.enabled)}
             title={target.enabled ? '無効化' : '有効化'}
-            className="text-[#7d92b0] hover:text-[#e2e8f4] transition-colors p-1"
+            className="text-falcon-muted hover:text-falcon-text transition-colors p-1"
           >
             {target.enabled ? (
               <ToggleRight className="w-5 h-5 text-blue-400" />
@@ -352,20 +352,20 @@ function WebhookCard({
           </button>
           <button
             onClick={() => setExpanded(!expanded)}
-            className="text-[#7d92b0] hover:text-[#e2e8f4] transition-colors p-1"
+            className="text-falcon-muted hover:text-falcon-text transition-colors p-1"
           >
             {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
           </button>
           <button
             onClick={() => onEdit(target)}
-            className="text-[#7d92b0] hover:text-blue-400 transition-colors p-1"
+            className="text-falcon-muted hover:text-blue-400 transition-colors p-1"
             title="編集"
           >
             <Shield className="w-4 h-4" />
           </button>
           <button
             onClick={() => onDelete(target.id)}
-            className="text-[#7d92b0] hover:text-red-400 transition-colors p-1"
+            className="text-falcon-muted hover:text-red-400 transition-colors p-1"
             title="削除"
           >
             <Trash2 className="w-4 h-4" />
@@ -375,17 +375,17 @@ function WebhookCard({
 
       {/* Expanded Details */}
       {expanded && (
-        <div className="border-t border-[#1e2d42] px-5 py-4 space-y-4">
+        <div className="border-t border-falcon-border px-5 py-4 space-y-4">
           {/* Events */}
           <div>
-            <p className="text-xs text-[#7d92b0] mb-2">登録イベント</p>
+            <p className="text-xs text-falcon-muted mb-2">登録イベント</p>
             <div className="flex flex-wrap gap-2">
               {target.events.map((ev) => {
                 const def = ALL_EVENTS.find((e) => e.value === ev);
                 return (
                   <span
                     key={ev}
-                    className={`text-xs px-2 py-0.5 rounded-full border font-medium bg-[#1e2d42] border-[#253550] ${def?.color ?? 'text-[#7d92b0]'}`}
+                    className={`text-xs px-2 py-0.5 rounded-full border font-medium bg-falcon-border border-[#253550] ${def?.color ?? 'text-falcon-muted'}`}
                   >
                     {def?.label ?? ev}
                   </span>
@@ -395,11 +395,11 @@ function WebhookCard({
           </div>
 
           {/* Test */}
-          <div className="flex items-center gap-3 pt-2 border-t border-[#1e2d42]">
+          <div className="flex items-center gap-3 pt-2 border-t border-falcon-border">
             <button
               onClick={handleTest}
               disabled={testing}
-              className="flex items-center gap-2 px-4 py-2 bg-[#1e2d42] hover:bg-[#253550] disabled:opacity-50 text-[#e2e8f4] text-sm rounded-lg transition-colors"
+              className="flex items-center gap-2 px-4 py-2 bg-falcon-border hover:bg-[#253550] disabled:opacity-50 text-falcon-text text-sm rounded-lg transition-colors"
             >
               {testing ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
@@ -483,7 +483,7 @@ export default function WebhooksPage() {
   const enabledCount = targets.filter((t) => t.enabled).length;
 
   return (
-    <div className="min-h-screen bg-[#080c14] text-[#e2e8f4]">
+    <div className="min-h-screen bg-falcon-bg text-falcon-text">
       <div className="max-w-4xl mx-auto px-6 py-8">
 
         {/* Header */}
@@ -493,8 +493,8 @@ export default function WebhooksPage() {
               <Webhook className="w-5 h-5 text-blue-400" />
             </div>
             <div>
-              <h1 className="text-xl font-semibold text-[#e2e8f4]">Webhook通知</h1>
-              <p className="text-sm text-[#7d92b0] mt-0.5">
+              <h1 className="text-xl font-semibold text-falcon-text">Webhook通知</h1>
+              <p className="text-sm text-falcon-muted mt-0.5">
                 アラートやインシデント発生時に外部エンドポイントへHTTP POSTで通知します
               </p>
             </div>
@@ -510,17 +510,17 @@ export default function WebhooksPage() {
 
         {/* Stats */}
         <div className="grid grid-cols-3 gap-4 mb-8">
-          <div className="bg-[#0d1525] border border-[#1e2d42] rounded-xl px-5 py-4">
-            <p className="text-xs text-[#7d92b0] mb-1">設定数</p>
-            <p className="text-2xl font-bold text-[#e2e8f4]">{targets.length}</p>
+          <div className="bg-[#0d1525] border border-falcon-border rounded-xl px-5 py-4">
+            <p className="text-xs text-falcon-muted mb-1">設定数</p>
+            <p className="text-2xl font-bold text-falcon-text">{targets.length}</p>
           </div>
-          <div className="bg-[#0d1525] border border-[#1e2d42] rounded-xl px-5 py-4">
-            <p className="text-xs text-[#7d92b0] mb-1">有効</p>
+          <div className="bg-[#0d1525] border border-falcon-border rounded-xl px-5 py-4">
+            <p className="text-xs text-falcon-muted mb-1">有効</p>
             <p className="text-2xl font-bold text-green-400">{enabledCount}</p>
           </div>
-          <div className="bg-[#0d1525] border border-[#1e2d42] rounded-xl px-5 py-4">
-            <p className="text-xs text-[#7d92b0] mb-1">無効</p>
-            <p className="text-2xl font-bold text-[#7d92b0]">{targets.length - enabledCount}</p>
+          <div className="bg-[#0d1525] border border-falcon-border rounded-xl px-5 py-4">
+            <p className="text-xs text-falcon-muted mb-1">無効</p>
+            <p className="text-2xl font-bold text-falcon-muted">{targets.length - enabledCount}</p>
           </div>
         </div>
 
@@ -533,12 +533,12 @@ export default function WebhooksPage() {
 
         {/* Empty State */}
         {!isLoading && targets.length === 0 && (
-          <div className="bg-[#0d1525] border border-[#1e2d42] rounded-xl flex flex-col items-center justify-center py-16 text-center">
-            <div className="p-3 bg-[#1e2d42] rounded-full mb-4">
-              <Webhook className="w-6 h-6 text-[#7d92b0]" />
+          <div className="bg-[#0d1525] border border-falcon-border rounded-xl flex flex-col items-center justify-center py-16 text-center">
+            <div className="p-3 bg-falcon-border rounded-full mb-4">
+              <Webhook className="w-6 h-6 text-falcon-muted" />
             </div>
-            <p className="text-sm text-[#e2e8f4] font-medium">Webhookが設定されていません</p>
-            <p className="text-xs text-[#7d92b0] mt-1 max-w-xs">
+            <p className="text-sm text-falcon-text font-medium">Webhookが設定されていません</p>
+            <p className="text-xs text-falcon-muted mt-1 max-w-xs">
               「Webhookを追加」ボタンから外部エンドポイントへの通知を設定してください
             </p>
             <button
@@ -569,16 +569,16 @@ export default function WebhooksPage() {
 
         {/* Signature Info */}
         {targets.length > 0 && (
-          <div className="mt-8 bg-[#111827] border border-[#1e2d42] rounded-xl px-5 py-4">
+          <div className="mt-8 bg-falcon-card border border-falcon-border rounded-xl px-5 py-4">
             <div className="flex items-start gap-3">
-              <Shield className="w-4 h-4 text-blue-400 flex-shrink-0 mt-0.5" />
+              <Shield className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" />
               <div>
-                <p className="text-sm font-medium text-[#e2e8f4]">ペイロード署名</p>
-                <p className="text-xs text-[#7d92b0] mt-1">
+                <p className="text-sm font-medium text-falcon-text">ペイロード署名</p>
+                <p className="text-xs text-falcon-muted mt-1">
                   シークレットが設定されている場合、リクエストには
-                  <code className="mx-1 px-1 bg-[#1e2d42] rounded text-blue-300 text-xs">X-Hub-Signature-256</code>
+                  <code className="mx-1 px-1 bg-falcon-border rounded-sm text-blue-300 text-xs">X-Hub-Signature-256</code>
                   ヘッダーが付与されます。値は
-                  <code className="mx-1 px-1 bg-[#1e2d42] rounded text-blue-300 text-xs">sha256=&lt;HMAC-SHA256&gt;</code>
+                  <code className="mx-1 px-1 bg-falcon-border rounded-sm text-blue-300 text-xs">sha256=&lt;HMAC-SHA256&gt;</code>
                   形式です。
                 </p>
               </div>

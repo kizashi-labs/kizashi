@@ -264,10 +264,10 @@ export default function AlertDetailPage() {
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
             <div className="flex items-center gap-2 flex-wrap mb-2">
-              <span className={`text-xs font-medium px-2.5 py-1 rounded border ${SEVERITY_STYLES[alert.severity]}`}>
+              <span className={`text-xs font-medium px-2.5 py-1 rounded-sm border ${SEVERITY_STYLES[alert.severity]}`}>
                 {alert.severity.toUpperCase()}
               </span>
-              <span className={`text-xs font-medium px-2.5 py-1 rounded border ${STATUS_STYLES[alert.status]}`}>
+              <span className={`text-xs font-medium px-2.5 py-1 rounded-sm border ${STATUS_STYLES[alert.status]}`}>
                 {STATUS_LABELS[alert.status]}
               </span>
               <span className="text-xs text-zinc-500 font-mono">{alert.id}</span>
@@ -380,7 +380,7 @@ export default function AlertDetailPage() {
                       onChange={e => setAiModel(e.target.value)}
                       disabled={aiLoading}
                       className="px-3 py-1.5 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-zinc-100
-                                 focus:outline-none focus:border-violet-500 disabled:opacity-50"
+                                 focus:outline-hidden focus:border-violet-500 disabled:opacity-50"
                     >
                       <option value="claude-opus-4-6">Claude Opus 4.6（最高精度）</option>
                       <option value="claude-sonnet-4-6">Claude Sonnet 4.6（バランス）</option>
@@ -424,7 +424,7 @@ export default function AlertDetailPage() {
             <select
               value={status}
               onChange={e => setStatus(e.target.value as AlertStatus)}
-              className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-zinc-100 focus:outline-none focus:border-blue-500 mb-3"
+              className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-zinc-100 focus:outline-hidden focus:border-blue-500 mb-3"
             >
               <option value="open">Open</option>
               <option value="investigating">Investigating</option>
@@ -522,7 +522,7 @@ export default function AlertDetailPage() {
                   className="w-full text-left p-2.5 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 rounded-lg transition-colors"
                 >
                   <div className="flex items-center gap-1.5 mb-1">
-                    <span className={`text-xs px-1.5 py-0.5 rounded border ${SEVERITY_STYLES[ra.severity]}`}>
+                    <span className={`text-xs px-1.5 py-0.5 rounded-sm border ${SEVERITY_STYLES[ra.severity]}`}>
                       {ra.severity.toUpperCase()}
                     </span>
                   </div>
@@ -541,7 +541,7 @@ export default function AlertDetailPage() {
               onChange={e => setNotes(e.target.value)}
               placeholder="Add investigation notes here..."
               rows={5}
-              className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-zinc-300 placeholder-zinc-600 focus:outline-none focus:border-blue-500 resize-none"
+              className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-zinc-300 placeholder-zinc-600 focus:outline-hidden focus:border-blue-500 resize-none"
             />
             <button
               onClick={saveNotes}

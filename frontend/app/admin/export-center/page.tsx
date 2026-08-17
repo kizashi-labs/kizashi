@@ -207,24 +207,24 @@ function StepIndicator({ current, steps }: { current: number; steps: string[] })
         return (
           <div key={label} className="flex items-center">
             <div className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all ${
-              active ? 'bg-[#e8002d]/15 border border-[#e8002d]/30' :
+              active ? 'bg-falcon-red/15 border border-falcon-red/30' :
               done   ? 'bg-green-500/10 border border-green-500/20' :
-                       'bg-[#0d1220] border border-[#1e2d42]'
+                       'bg-falcon-surface border border-falcon-border'
             }`}>
               <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
-                active ? 'bg-[#e8002d] text-white' :
+                active ? 'bg-falcon-red text-white' :
                 done   ? 'bg-green-500 text-white' :
-                         'bg-[#1e2d42] text-[#7d92b0]'
+                         'bg-falcon-border text-falcon-muted'
               }`}>
                 {done ? <CheckCircle className="w-3.5 h-3.5" /> : stepNum}
               </div>
               <span className={`text-sm font-medium ${
-                active ? 'text-white' : done ? 'text-green-400' : 'text-[#7d92b0]'
+                active ? 'text-white' : done ? 'text-green-400' : 'text-falcon-muted'
               }`}>{label}</span>
             </div>
             {i < steps.length - 1 && (
-              <ChevronRight className={`w-4 h-4 mx-1 flex-shrink-0 ${
-                done ? 'text-green-400' : 'text-[#3d5068]'
+              <ChevronRight className={`w-4 h-4 mx-1 shrink-0 ${
+                done ? 'text-green-400' : 'text-falcon-subtle'
               }`} />
             )}
           </div>
@@ -372,12 +372,12 @@ export default function ExportCenterPage() {
     <div className="min-h-screen bg-[#070d19] p-6">
       {/* ── Header ─────────────────────────────────────────────────────────── */}
       <div className="flex items-center gap-3 mb-8">
-        <div className="w-10 h-10 rounded-xl bg-[#e8002d]/15 border border-[#e8002d]/20 flex items-center justify-center">
-          <Download className="w-5 h-5 text-[#e8002d]" />
+        <div className="w-10 h-10 rounded-xl bg-falcon-red/15 border border-falcon-red/20 flex items-center justify-center">
+          <Download className="w-5 h-5 text-falcon-red" />
         </div>
         <div>
           <h1 className="text-xl font-bold text-white">エクスポートセンター</h1>
-          <p className="text-[#7d92b0] text-sm">各種データをCSV / JSON / NDJSONでエクスポートします</p>
+          <p className="text-falcon-muted text-sm">各種データをCSV / JSON / NDJSONでエクスポートします</p>
         </div>
       </div>
 
@@ -401,24 +401,24 @@ export default function ExportCenterPage() {
                       className={`flex flex-col items-start gap-3 p-5 rounded-xl border text-left
                                   transition-all duration-150 group
                                   ${selected
-                                    ? 'bg-[#e8002d]/10 border-[#e8002d]/50 shadow-[0_0_0_1px_#e8002d33]'
-                                    : 'bg-[#0d1220] border-[#1e2d42] hover:border-[#7d92b0]/30 hover:bg-[#19253d]/40'
+                                    ? 'bg-falcon-red/10 border-falcon-red/50 shadow-[0_0_0_1px_#e8002d33]'
+                                    : 'bg-falcon-surface border-falcon-border hover:border-falcon-muted/30 hover:bg-falcon-hover/40'
                                   }`}
                     >
                       <div className={`w-10 h-10 rounded-lg flex items-center justify-center transition-colors ${
-                        selected ? 'bg-[#e8002d]/20' : 'bg-[#1e2d42] group-hover:bg-[#1e2d42]'
+                        selected ? 'bg-falcon-red/20' : 'bg-falcon-border group-hover:bg-falcon-border'
                       }`}>
-                        <Icon className={`w-5 h-5 ${selected ? 'text-[#e8002d]' : 'text-[#7d92b0]'}`} />
+                        <Icon className={`w-5 h-5 ${selected ? 'text-falcon-red' : 'text-falcon-muted'}`} />
                       </div>
                       <div>
-                        <p className={`font-semibold text-sm ${selected ? 'text-white' : 'text-[#e2e8f4]'}`}>
+                        <p className={`font-semibold text-sm ${selected ? 'text-white' : 'text-falcon-text'}`}>
                           {type.labelJa}
                         </p>
-                        <p className="text-[#7d92b0] text-xs mt-0.5 leading-relaxed">{type.description}</p>
+                        <p className="text-falcon-muted text-xs mt-0.5 leading-relaxed">{type.description}</p>
                       </div>
                       {selected && (
                         <div className="ml-auto self-end">
-                          <CheckCircle className="w-4 h-4 text-[#e8002d]" />
+                          <CheckCircle className="w-4 h-4 text-falcon-red" />
                         </div>
                       )}
                     </button>
@@ -431,7 +431,7 @@ export default function ExportCenterPage() {
                   onClick={() => setStep(2)}
                   disabled={!selectedType}
                   className="flex items-center gap-2 px-6 py-2.5 rounded-lg
-                             bg-[#e8002d] hover:bg-[#c0001f] disabled:opacity-40 disabled:cursor-not-allowed
+                             bg-falcon-red hover:bg-[#c0001f] disabled:opacity-40 disabled:cursor-not-allowed
                              text-white text-sm font-semibold transition-all"
                 >
                   次へ
@@ -445,13 +445,13 @@ export default function ExportCenterPage() {
           {step === 2 && currentTypeDef && (
             <div className="space-y-6">
               <div className="flex items-center gap-3 mb-2">
-                <currentTypeDef.icon className="w-5 h-5 text-[#e8002d]" />
+                <currentTypeDef.icon className="w-5 h-5 text-falcon-red" />
                 <h2 className="text-white font-semibold text-base">{currentTypeDef.labelJa} のエクスポート設定</h2>
               </div>
 
               {/* Format */}
-              <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
-                <h3 className="text-[#7d92b0] text-xs font-semibold uppercase tracking-wider mb-4 flex items-center gap-2">
+              <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
+                <h3 className="text-falcon-muted text-xs font-semibold uppercase tracking-wider mb-4 flex items-center gap-2">
                   <FileJson className="w-4 h-4" />
                   出力フォーマット
                 </h3>
@@ -469,16 +469,16 @@ export default function ExportCenterPage() {
                         onClick={() => setFormat(f.id)}
                         className={`flex items-center gap-3 px-4 py-3 rounded-xl border transition-all
                                     ${selected
-                                      ? 'bg-[#e8002d]/10 border-[#e8002d]/50 text-white'
-                                      : 'bg-[#070d19] border-[#1e2d42] text-[#7d92b0] hover:border-[#7d92b0]/30'
+                                      ? 'bg-falcon-red/10 border-falcon-red/50 text-white'
+                                      : 'bg-[#070d19] border-falcon-border text-falcon-muted hover:border-falcon-muted/30'
                                     }`}
                       >
-                        <FIcon className={`w-4 h-4 ${selected ? 'text-[#e8002d]' : ''}`} />
+                        <FIcon className={`w-4 h-4 ${selected ? 'text-falcon-red' : ''}`} />
                         <div className="text-left">
                           <p className={`text-sm font-semibold ${selected ? 'text-white' : ''}`}>{f.label}</p>
-                          <p className="text-xs text-[#7d92b0]">{f.desc}</p>
+                          <p className="text-xs text-falcon-muted">{f.desc}</p>
                         </div>
-                        {selected && <CheckCircle className="w-4 h-4 text-[#e8002d] ml-2" />}
+                        {selected && <CheckCircle className="w-4 h-4 text-falcon-red ml-2" />}
                       </button>
                     )
                   })}
@@ -486,40 +486,40 @@ export default function ExportCenterPage() {
               </div>
 
               {/* Date range */}
-              <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
-                <h3 className="text-[#7d92b0] text-xs font-semibold uppercase tracking-wider mb-4 flex items-center gap-2">
+              <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
+                <h3 className="text-falcon-muted text-xs font-semibold uppercase tracking-wider mb-4 flex items-center gap-2">
                   <Calendar className="w-4 h-4" />
                   期間
                 </h3>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs text-[#7d92b0] mb-1.5">開始日時</label>
+                    <label className="block text-xs text-falcon-muted mb-1.5">開始日時</label>
                     <input
                       type="datetime-local"
                       value={fromDate}
                       onChange={e => setFromDate(e.target.value)}
-                      className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2.5
-                                 text-[#e2e8f4] text-sm focus:outline-none focus:border-[#e8002d]/50
-                                 focus:ring-1 focus:ring-[#e8002d]/20 [color-scheme:dark]"
+                      className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2.5
+                                 text-falcon-text text-sm focus:outline-hidden focus:border-falcon-red/50
+                                 focus:ring-1 focus:ring-falcon-red/20 scheme-dark"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs text-[#7d92b0] mb-1.5">終了日時</label>
+                    <label className="block text-xs text-falcon-muted mb-1.5">終了日時</label>
                     <input
                       type="datetime-local"
                       value={toDate}
                       onChange={e => setToDate(e.target.value)}
-                      className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2.5
-                                 text-[#e2e8f4] text-sm focus:outline-none focus:border-[#e8002d]/50
-                                 focus:ring-1 focus:ring-[#e8002d]/20 [color-scheme:dark]"
+                      className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2.5
+                                 text-falcon-text text-sm focus:outline-hidden focus:border-falcon-red/50
+                                 focus:ring-1 focus:ring-falcon-red/20 scheme-dark"
                     />
                   </div>
                 </div>
               </div>
 
               {/* Limit */}
-              <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
-                <h3 className="text-[#7d92b0] text-xs font-semibold uppercase tracking-wider mb-4 flex items-center gap-2">
+              <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
+                <h3 className="text-falcon-muted text-xs font-semibold uppercase tracking-wider mb-4 flex items-center gap-2">
                   <Hash className="w-4 h-4" />
                   最大レコード数
                 </h3>
@@ -530,8 +530,8 @@ export default function ExportCenterPage() {
                     onChange={e => setLimit(Math.min(50000, Math.max(1, parseInt(e.target.value) || 1)))}
                     min={1}
                     max={50000}
-                    className="w-48 bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2.5
-                               text-[#e2e8f4] text-sm focus:outline-none focus:border-[#e8002d]/50"
+                    className="w-48 bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2.5
+                               text-falcon-text text-sm focus:outline-hidden focus:border-falcon-red/50"
                   />
                   <div className="flex-1">
                     <input
@@ -541,31 +541,31 @@ export default function ExportCenterPage() {
                       step={1000}
                       value={limit}
                       onChange={e => setLimit(parseInt(e.target.value))}
-                      className="w-full accent-[#e8002d]"
+                      className="w-full accent-falcon-red"
                     />
-                    <div className="flex justify-between text-xs text-[#3d5068] mt-1">
+                    <div className="flex justify-between text-xs text-falcon-subtle mt-1">
                       <span>1,000</span>
                       <span>25,000</span>
                       <span>50,000</span>
                     </div>
                   </div>
                 </div>
-                <p className="text-[#3d5068] text-xs mt-2 flex items-center gap-1.5">
+                <p className="text-falcon-subtle text-xs mt-2 flex items-center gap-1.5">
                   <Info className="w-3 h-3" />
                   最大 50,000 レコードまでエクスポートできます
                 </p>
               </div>
 
               {/* Column selector */}
-              <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
+              <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-[#7d92b0] text-xs font-semibold uppercase tracking-wider flex items-center gap-2">
+                  <h3 className="text-falcon-muted text-xs font-semibold uppercase tracking-wider flex items-center gap-2">
                     <CheckSquare className="w-4 h-4" />
                     出力カラム
                   </h3>
                   <button
                     onClick={toggleAllColumns}
-                    className="text-xs text-[#e8002d] hover:text-[#ff1a44] transition-colors font-medium"
+                    className="text-xs text-falcon-red hover:text-[#ff1a44] transition-colors font-medium"
                   >
                     {selectedColumns.length === allColumns.length ? '必須のみ' : '全て選択'}
                   </button>
@@ -580,20 +580,20 @@ export default function ExportCenterPage() {
                         className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-left text-sm
                                     transition-all ${
                           checked
-                            ? 'bg-[#e8002d]/10 border-[#e8002d]/30 text-white'
-                            : 'bg-[#070d19] border-[#1e2d42] text-[#7d92b0] hover:border-[#7d92b0]/30'
+                            ? 'bg-falcon-red/10 border-falcon-red/30 text-white'
+                            : 'bg-[#070d19] border-falcon-border text-falcon-muted hover:border-falcon-muted/30'
                         }`}
                       >
                         {checked
-                          ? <CheckSquare className="w-3.5 h-3.5 text-[#e8002d] flex-shrink-0" />
-                          : <SquareIcon className="w-3.5 h-3.5 text-[#3d5068] flex-shrink-0" />
+                          ? <CheckSquare className="w-3.5 h-3.5 text-falcon-red shrink-0" />
+                          : <SquareIcon className="w-3.5 h-3.5 text-falcon-subtle shrink-0" />
                         }
                         <span className="truncate text-xs">{col.label}</span>
                       </button>
                     )
                   })}
                 </div>
-                <p className="text-[#3d5068] text-xs mt-3">
+                <p className="text-falcon-subtle text-xs mt-3">
                   {selectedColumns.length} / {allColumns.length} カラム選択中
                 </p>
               </div>
@@ -602,8 +602,8 @@ export default function ExportCenterPage() {
               <div className="flex justify-between">
                 <button
                   onClick={() => setStep(1)}
-                  className="flex items-center gap-2 px-5 py-2.5 rounded-lg border border-[#1e2d42]
-                             text-[#7d92b0] hover:text-white hover:border-[#7d92b0]/40 transition-all text-sm font-medium"
+                  className="flex items-center gap-2 px-5 py-2.5 rounded-lg border border-falcon-border
+                             text-falcon-muted hover:text-white hover:border-falcon-muted/40 transition-all text-sm font-medium"
                 >
                   戻る
                 </button>
@@ -611,7 +611,7 @@ export default function ExportCenterPage() {
                   onClick={() => setStep(3)}
                   disabled={selectedColumns.length === 0}
                   className="flex items-center gap-2 px-6 py-2.5 rounded-lg
-                             bg-[#e8002d] hover:bg-[#c0001f] disabled:opacity-40 disabled:cursor-not-allowed
+                             bg-falcon-red hover:bg-[#c0001f] disabled:opacity-40 disabled:cursor-not-allowed
                              text-white text-sm font-semibold transition-all"
                 >
                   次へ
@@ -627,8 +627,8 @@ export default function ExportCenterPage() {
               <h2 className="text-white font-semibold text-base mb-2">エクスポートの確認とダウンロード</h2>
 
               {/* Summary */}
-              <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
-                <h3 className="text-[#7d92b0] text-xs font-semibold uppercase tracking-wider mb-4">設定サマリー</h3>
+              <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
+                <h3 className="text-falcon-muted text-xs font-semibold uppercase tracking-wider mb-4">設定サマリー</h3>
                 <div className="grid grid-cols-2 gap-4">
                   {[
                     { label: 'データ種別', value: currentTypeDef.labelJa },
@@ -639,7 +639,7 @@ export default function ExportCenterPage() {
                     { label: 'カラム数', value: `${selectedColumns.length}カラム` },
                   ].map(({ label, value }) => (
                     <div key={label} className="flex flex-col gap-0.5">
-                      <span className="text-[#7d92b0] text-xs">{label}</span>
+                      <span className="text-falcon-muted text-xs">{label}</span>
                       <span className="text-white text-sm font-medium">{value}</span>
                     </div>
                   ))}
@@ -647,19 +647,19 @@ export default function ExportCenterPage() {
               </div>
 
               {/* Estimate */}
-              <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
+              <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-[#7d92b0] text-xs uppercase tracking-wider mb-1">推定レコード数</p>
+                    <p className="text-falcon-muted text-xs uppercase tracking-wider mb-1">推定レコード数</p>
                     {isStatusFetching ? (
                       <div className="flex items-center gap-2">
-                        <Loader2 className="w-4 h-4 text-[#e8002d] animate-spin" />
-                        <span className="text-[#7d92b0] text-sm">推計中...</span>
+                        <Loader2 className="w-4 h-4 text-falcon-red animate-spin" />
+                        <span className="text-falcon-muted text-sm">推計中...</span>
                       </div>
                     ) : (
                       <p className="text-2xl font-bold text-white">
                         {statusData?.estimated_count?.toLocaleString() ?? '—'}
-                        <span className="text-[#7d92b0] text-sm font-normal ml-2">件</span>
+                        <span className="text-falcon-muted text-sm font-normal ml-2">件</span>
                       </p>
                     )}
                   </div>
@@ -678,7 +678,7 @@ export default function ExportCenterPage() {
                 onClick={handleExport}
                 disabled={isExporting || selectedColumns.length === 0}
                 className="w-full flex items-center justify-center gap-3 px-6 py-4 rounded-xl
-                           bg-[#e8002d] hover:bg-[#c0001f] disabled:opacity-50 disabled:cursor-not-allowed
+                           bg-falcon-red hover:bg-[#c0001f] disabled:opacity-50 disabled:cursor-not-allowed
                            text-white font-bold text-base transition-all shadow-[0_0_20px_#e8002d33]"
               >
                 {isExporting ? (
@@ -698,7 +698,7 @@ export default function ExportCenterPage() {
               {exportSuccess && (
                 <div className="flex items-center gap-3 px-4 py-3 rounded-xl
                                 bg-green-900/40 border border-green-500/30 text-green-300 text-sm">
-                  <CheckCircle className="w-4 h-4 text-green-400 flex-shrink-0" />
+                  <CheckCircle className="w-4 h-4 text-green-400 shrink-0" />
                   {exportSuccess}
                   <button onClick={() => setExportSuccess(null)} className="ml-auto text-green-400 hover:text-white">
                     <X className="w-4 h-4" />
@@ -710,7 +710,7 @@ export default function ExportCenterPage() {
               {exportError && (
                 <div className="flex items-center gap-3 px-4 py-3 rounded-xl
                                 bg-red-900/40 border border-red-500/30 text-red-300 text-sm">
-                  <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0" />
+                  <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
                   {exportError}
                   <button onClick={() => setExportError(null)} className="ml-auto text-red-400 hover:text-white">
                     <X className="w-4 h-4" />
@@ -722,8 +722,8 @@ export default function ExportCenterPage() {
               <div className="flex justify-start">
                 <button
                   onClick={() => setStep(2)}
-                  className="flex items-center gap-2 px-5 py-2.5 rounded-lg border border-[#1e2d42]
-                             text-[#7d92b0] hover:text-white hover:border-[#7d92b0]/40 transition-all text-sm font-medium"
+                  className="flex items-center gap-2 px-5 py-2.5 rounded-lg border border-falcon-border
+                             text-falcon-muted hover:text-white hover:border-falcon-muted/40 transition-all text-sm font-medium"
                 >
                   戻る
                 </button>
@@ -734,16 +734,16 @@ export default function ExportCenterPage() {
 
         {/* ── Export History sidebar ──────────────────────────────────────────── */}
         <div>
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden sticky top-6">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-[#1e2d42]">
+          <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden sticky top-6">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-falcon-border">
               <div className="flex items-center gap-2">
-                <Clock className="w-4 h-4 text-[#7d92b0]" />
+                <Clock className="w-4 h-4 text-falcon-muted" />
                 <h3 className="text-white font-semibold text-sm">エクスポート履歴</h3>
               </div>
               {history.length > 0 && (
                 <button
                   onClick={() => { clearHistory(); setHistory([]) }}
-                  className="text-[#3d5068] hover:text-red-400 transition-colors"
+                  className="text-falcon-subtle hover:text-red-400 transition-colors"
                   title="履歴をクリア"
                 >
                   <Trash2 className="w-4 h-4" />
@@ -753,39 +753,39 @@ export default function ExportCenterPage() {
 
             {history.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 gap-3">
-                <Download className="w-8 h-8 text-[#3d5068]" />
-                <p className="text-[#7d92b0] text-sm text-center px-4">
+                <Download className="w-8 h-8 text-falcon-subtle" />
+                <p className="text-falcon-muted text-sm text-center px-4">
                   エクスポート履歴がありません
                 </p>
               </div>
             ) : (
-              <div className="divide-y divide-[#1e2d42]/50">
+              <div className="divide-y divide-falcon-border/50">
                 {history.map(entry => {
                   const typeDef = DATA_TYPES.find(t => t.id === entry.data_type)
                   const Icon = typeDef?.icon ?? Download
                   return (
-                    <div key={entry.id} className="px-5 py-4 hover:bg-[#19253d]/30 transition-colors">
+                    <div key={entry.id} className="px-5 py-4 hover:bg-falcon-hover/30 transition-colors">
                       <div className="flex items-start gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-[#1e2d42] flex items-center justify-center flex-shrink-0 mt-0.5">
-                          <Icon className="w-4 h-4 text-[#7d92b0]" />
+                        <div className="w-8 h-8 rounded-lg bg-falcon-border flex items-center justify-center shrink-0 mt-0.5">
+                          <Icon className="w-4 h-4 text-falcon-muted" />
                         </div>
                         <div className="min-w-0 flex-1">
-                          <p className="text-[#e2e8f4] text-sm font-medium truncate">
+                          <p className="text-falcon-text text-sm font-medium truncate">
                             {typeDef?.labelJa ?? entry.data_type}
                           </p>
                           <div className="flex items-center gap-2 mt-1">
                             <span className="px-1.5 py-0.5 rounded text-xs font-mono
-                                             bg-[#1e2d42] text-[#7d92b0] border border-[#3d5068]/30">
+                                             bg-falcon-border text-falcon-muted border border-falcon-subtle/30">
                               {entry.format.toUpperCase()}
                             </span>
-                            <span className="text-[#7d92b0] text-xs">
+                            <span className="text-falcon-muted text-xs">
                               {(entry.count ?? 0).toLocaleString()} 件
                             </span>
                           </div>
-                          <p className="text-[#3d5068] text-xs mt-1 truncate" title={entry.filename}>
+                          <p className="text-falcon-subtle text-xs mt-1 truncate" title={entry.filename}>
                             {entry.filename}
                           </p>
-                          <p className="text-[#3d5068] text-xs mt-0.5">
+                          <p className="text-falcon-subtle text-xs mt-0.5">
                             {new Date(entry.timestamp).toLocaleString('ja-JP', {
                               month: '2-digit', day: '2-digit',
                               hour: '2-digit', minute: '2-digit'
@@ -799,8 +799,8 @@ export default function ExportCenterPage() {
               </div>
             )}
 
-            <div className="px-5 py-3 border-t border-[#1e2d42] bg-[#070d19]/50">
-              <p className="text-[#3d5068] text-xs text-center">
+            <div className="px-5 py-3 border-t border-falcon-border bg-[#070d19]/50">
+              <p className="text-falcon-subtle text-xs text-center">
                 最大10件の履歴を保存 (ブラウザローカル)
               </p>
             </div>

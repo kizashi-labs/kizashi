@@ -143,12 +143,12 @@ function TreeNodeRow({
 
             {/* Badges */}
             {node.suspicious && (
-              <span className="ml-auto text-xs bg-red-900/60 text-red-300 border border-red-700 px-1.5 py-0.5 rounded">
+              <span className="ml-auto text-xs bg-red-900/60 text-red-300 border border-red-700 px-1.5 py-0.5 rounded-sm">
                 SUSPICIOUS
               </span>
             )}
             {isRootProcess && !node.suspicious && (
-              <span className="ml-auto text-xs bg-blue-900/60 text-blue-300 border border-blue-700 px-1.5 py-0.5 rounded">
+              <span className="ml-auto text-xs bg-blue-900/60 text-blue-300 border border-blue-700 px-1.5 py-0.5 rounded-sm">
                 ROOT
               </span>
             )}
@@ -301,7 +301,7 @@ export default function ProcessTreePage() {
               placeholder="Search agents..."
               value={agentSearch}
               onChange={e => setAgentSearch(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-purple-500"
+              className="w-full pl-9 pr-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-zinc-100 placeholder-zinc-500 focus:outline-hidden focus:border-purple-500"
             />
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-32 overflow-y-auto">
@@ -383,7 +383,7 @@ export default function ProcessTreePage() {
               placeholder="Highlight process name..."
               value={search}
               onChange={e => setSearch(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-purple-500"
+              className="w-full pl-9 pr-3 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-sm text-zinc-100 placeholder-zinc-500 focus:outline-hidden focus:border-purple-500"
             />
           </div>
           <button

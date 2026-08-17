@@ -109,41 +109,41 @@ function relativeTime(isoString: string): string {
 function NotificationIcon({ type }: { type: NotificationType }) {
   if (type === 'alert' || type === 'alert_critical') {
     return (
-      <div className="flex-shrink-0 w-8 h-8 rounded-full bg-red-500/10 flex items-center justify-center">
+      <div className="shrink-0 w-8 h-8 rounded-full bg-red-500/10 flex items-center justify-center">
         <ShieldAlert className="w-4 h-4 text-red-400" />
       </div>
     )
   }
   if (type === 'agent' || type === 'agent_offline') {
     return (
-      <div className="flex-shrink-0 w-8 h-8 rounded-full bg-orange-500/10 flex items-center justify-center">
+      <div className="shrink-0 w-8 h-8 rounded-full bg-orange-500/10 flex items-center justify-center">
         <AlertCircle className="w-4 h-4 text-orange-400" />
       </div>
     )
   }
   if (type === 'incident_created') {
     return (
-      <div className="flex-shrink-0 w-8 h-8 rounded-full bg-yellow-500/10 flex items-center justify-center">
+      <div className="shrink-0 w-8 h-8 rounded-full bg-yellow-500/10 flex items-center justify-center">
         <AlertCircle className="w-4 h-4 text-yellow-400" />
       </div>
     )
   }
   if (type === 'rule_matched') {
     return (
-      <div className="flex-shrink-0 w-8 h-8 rounded-full bg-purple-500/10 flex items-center justify-center">
+      <div className="shrink-0 w-8 h-8 rounded-full bg-purple-500/10 flex items-center justify-center">
         <ShieldAlert className="w-4 h-4 text-purple-400" />
       </div>
     )
   }
   if (type === 'system_warning') {
     return (
-      <div className="flex-shrink-0 w-8 h-8 rounded-full bg-yellow-500/10 flex items-center justify-center">
+      <div className="shrink-0 w-8 h-8 rounded-full bg-yellow-500/10 flex items-center justify-center">
         <Info className="w-4 h-4 text-yellow-400" />
       </div>
     )
   }
   return (
-    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center">
+    <div className="shrink-0 w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center">
       <Info className="w-4 h-4 text-blue-400" />
     </div>
   )
@@ -170,25 +170,25 @@ function NotificationItem({ notification, onRead, onClick }: NotificationItemPro
         relative flex items-start gap-3 px-4 py-3 cursor-pointer
         border-l-2 ${borderColor}
         ${notification.read ? 'opacity-60' : 'bg-[#0f1929]/40'}
-        hover:bg-[#19253d]/60 transition-colors group
+        hover:bg-falcon-hover/60 transition-colors group
       `}
       onClick={() => onClick(notification)}
     >
       {/* Unread dot */}
       {!notification.read && (
-        <span className="absolute top-3.5 right-4 w-2 h-2 rounded-full bg-[#e8002d] flex-shrink-0" />
+        <span className="absolute top-3.5 right-4 w-2 h-2 rounded-full bg-falcon-red shrink-0" />
       )}
 
       <NotificationIcon type={notification.type} />
 
       <div className="flex-1 min-w-0 pr-4">
-        <p className={`text-sm font-medium truncate ${notification.read ? 'text-[#7d92b0]' : 'text-[#e2e8f4]'}`}>
+        <p className={`text-sm font-medium truncate ${notification.read ? 'text-falcon-muted' : 'text-falcon-text'}`}>
           {notification.title}
         </p>
         <p className="text-xs text-[#4d6480] mt-0.5 line-clamp-2">
           {notification.message}
         </p>
-        <p className="text-[10px] text-[#3d5068] mt-1">
+        <p className="text-[10px] text-falcon-subtle mt-1">
           {relativeTime(notification.created_at)}
         </p>
       </div>
@@ -197,7 +197,7 @@ function NotificationItem({ notification, onRead, onClick }: NotificationItemPro
       {!notification.read && (
         <button
           className="absolute right-7 top-3 opacity-0 group-hover:opacity-100 transition-opacity
-                     p-0.5 rounded hover:bg-[#19253d] text-[#3d5068] hover:text-[#7d92b0]"
+                     p-0.5 rounded hover:bg-falcon-hover text-falcon-subtle hover:text-falcon-muted"
           title="既読にする"
           onClick={(e) => {
             e.stopPropagation()
@@ -343,8 +343,8 @@ export function NotificationCenter() {
         onClick={() => setOpen(prev => !prev)}
         className={`relative p-1.5 rounded transition-colors ${
           unreadCount > 0
-            ? 'text-[#e8002d] hover:bg-[#e8002d]/10'
-            : 'text-[#3d5068] hover:bg-[#19253d] hover:text-[#7d92b0]'
+            ? 'text-falcon-red hover:bg-falcon-red/10'
+            : 'text-falcon-subtle hover:bg-falcon-hover hover:text-falcon-muted'
         }`}
         aria-label="通知センター"
         aria-expanded={open}
@@ -353,7 +353,7 @@ export function NotificationCenter() {
         {unreadCount > 0 && (
           <span
             className="absolute -top-0.5 -right-0.5 w-4 h-4 text-[9px] font-bold
-                       bg-[#e8002d] text-white rounded-full flex items-center justify-center
+                       bg-falcon-red text-white rounded-full flex items-center justify-center
                        critical-pulse"
           >
             {unreadCount > 9 ? '9+' : unreadCount}
@@ -365,7 +365,7 @@ export function NotificationCenter() {
       {open && (
         <div
           ref={dropdownRef}
-          className="fixed z-50 mt-2 bg-[#0d1220] border border-[#1e2d42] rounded-lg shadow-xl w-96
+          className="fixed z-50 mt-2 bg-falcon-surface border border-falcon-border rounded-lg shadow-xl w-96
                      flex flex-col max-h-[calc(100vh-80px)]"
           style={{
             top: buttonRef.current
@@ -377,12 +377,12 @@ export function NotificationCenter() {
           }}
         >
           {/* Panel Header */}
-          <div className="flex items-center justify-between px-4 py-3 border-b border-[#1e2d42]">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-falcon-border">
             <div className="flex items-center gap-2">
-              <Bell className="w-4 h-4 text-[#7d92b0]" />
-              <h2 className="text-sm font-semibold text-[#e2e8f4]">通知</h2>
+              <Bell className="w-4 h-4 text-falcon-muted" />
+              <h2 className="text-sm font-semibold text-falcon-text">通知</h2>
               {unreadCount > 0 && (
-                <span className="text-[10px] bg-[#e8002d]/20 text-[#e8002d] border border-[#e8002d]/30
+                <span className="text-[10px] bg-falcon-red/20 text-falcon-red border border-falcon-red/30
                                  px-1.5 py-0.5 rounded-full font-medium">
                   {unreadCount} 件未読
                 </span>
@@ -401,7 +401,7 @@ export function NotificationCenter() {
               )}
               <button
                 onClick={() => setOpen(false)}
-                className="p-1 rounded text-[#3d5068] hover:text-[#7d92b0] hover:bg-[#19253d] transition-colors"
+                className="p-1 rounded-sm text-falcon-subtle hover:text-falcon-muted hover:bg-falcon-hover transition-colors"
                 aria-label="閉じる"
               >
                 <X className="w-3.5 h-3.5" />
@@ -410,7 +410,7 @@ export function NotificationCenter() {
           </div>
 
           {/* Filter Tabs */}
-          <div className="flex border-b border-[#1e2d42]">
+          <div className="flex border-b border-falcon-border">
             {TABS.map(tab => (
               <button
                 key={tab.value}
@@ -418,12 +418,12 @@ export function NotificationCenter() {
                 className={`flex-1 text-[11px] py-2 font-medium transition-colors ${
                   activeTab === tab.value
                     ? 'text-[#4d8fff] border-b-2 border-[#4d8fff] bg-[#4d8fff]/5'
-                    : 'text-[#4d6480] hover:text-[#7d92b0] hover:bg-[#19253d]/40'
+                    : 'text-[#4d6480] hover:text-falcon-muted hover:bg-falcon-hover/40'
                 }`}
               >
                 {tab.label}
                 {tab.value !== 'all' && (
-                  <span className="ml-1 text-[9px] text-[#3d5068]">
+                  <span className="ml-1 text-[9px] text-falcon-subtle">
                     ({notifications.filter(n => typeToTab(n.type) === tab.value).length})
                   </span>
                 )}
@@ -432,12 +432,12 @@ export function NotificationCenter() {
           </div>
 
           {/* Notification List */}
-          <div className="flex-1 overflow-y-auto divide-y divide-[#1e2d42]/50">
+          <div className="flex-1 overflow-y-auto divide-y divide-falcon-border/50">
             {filteredNotifications.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
-                <Bell className="w-8 h-8 text-[#1e2d42] mb-3" />
+                <Bell className="w-8 h-8 text-falcon-border mb-3" />
                 <p className="text-sm text-[#4d6480]">通知はありません</p>
-                <p className="text-[11px] text-[#3d5068] mt-1">
+                <p className="text-[11px] text-falcon-subtle mt-1">
                   {activeTab !== 'all' ? 'このカテゴリに通知はありません' : '現在、新しい通知はありません'}
                 </p>
               </div>
@@ -455,11 +455,11 @@ export function NotificationCenter() {
 
           {/* Panel Footer */}
           {filteredNotifications.length > 0 && (
-            <div className="border-t border-[#1e2d42] px-4 py-2.5 flex items-center justify-between">
+            <div className="border-t border-falcon-border px-4 py-2.5 flex items-center justify-between">
               <button
                 onClick={clearAll}
-                className="text-[11px] text-[#4d6480] hover:text-[#e8002d] transition-colors
-                           px-2 py-1 rounded hover:bg-[#e8002d]/10"
+                className="text-[11px] text-[#4d6480] hover:text-falcon-red transition-colors
+                           px-2 py-1 rounded hover:bg-falcon-red/10"
               >
                 すべてクリア
               </button>

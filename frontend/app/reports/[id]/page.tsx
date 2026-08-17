@@ -146,7 +146,7 @@ const RECOMMENDATIONS_BY_TYPE: Record<string, string[]> = {
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const SEVERITY_COLORS: Record<string, { bar: string; badge: string; text: string }> = {
-  critical: { bar: 'bg-[#e8002d]',    badge: 'bg-[#e8002d]/20 text-[#e8002d]',    text: 'text-[#e8002d]' },
+  critical: { bar: 'bg-falcon-red',    badge: 'bg-falcon-red/20 text-falcon-red',    text: 'text-falcon-red' },
   high:     { bar: 'bg-orange-500',   badge: 'bg-orange-500/20 text-orange-400',  text: 'text-orange-400' },
   medium:   { bar: 'bg-yellow-500',   badge: 'bg-yellow-500/20 text-yellow-400',  text: 'text-yellow-400' },
   low:      { bar: 'bg-blue-500',     badge: 'bg-blue-500/20 text-blue-400',      text: 'text-blue-400' },
@@ -160,7 +160,7 @@ const SEVERITY_LABELS: Record<string, string> = {
 }
 
 const STATUS_BADGES: Record<string, string> = {
-  open:          'bg-[#e8002d]/20 text-[#e8002d]',
+  open:          'bg-falcon-red/20 text-falcon-red',
   investigating: 'bg-yellow-500/20 text-yellow-400',
   resolved:      'bg-green-500/20 text-green-400',
 }
@@ -173,7 +173,7 @@ const STATUS_LABELS: Record<string, string> = {
 
 const REPORT_TYPE_BADGES: Record<string, string> = {
   security_summary: 'bg-blue-500/20 text-blue-300',
-  incident_report:  'bg-[#e8002d]/20 text-[#e8002d]',
+  incident_report:  'bg-falcon-red/20 text-falcon-red',
   compliance:       'bg-purple-500/20 text-purple-300',
   executive:        'bg-amber-500/20 text-amber-300',
 }
@@ -198,7 +198,7 @@ const REPORT_STATUS_CONFIG: Record<string, { label: string; cls: string; icon: R
   },
   failed: {
     label: '失敗',
-    cls:   'bg-[#e8002d]/20 text-[#e8002d]',
+    cls:   'bg-falcon-red/20 text-falcon-red',
     icon:  <AlertTriangle className="w-3.5 h-3.5" />,
   },
 }
@@ -225,7 +225,7 @@ function fmtDate(iso: string): string {
 
 function Skeleton({ className = '' }: { className?: string }) {
   return (
-    <div className={`animate-pulse bg-[#1e2d42] rounded ${className}`} />
+    <div className={`animate-pulse bg-falcon-border rounded-sm ${className}`} />
   )
 }
 
@@ -243,10 +243,10 @@ function MetricCard({
   accent?: boolean
 }) {
   return (
-    <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-4 flex flex-col gap-1">
-      <p className="text-[#7d92b0] text-xs">{label}</p>
-      <p className={`text-2xl font-bold ${accent ? 'text-[#e8002d]' : 'text-white'}`}>{value}</p>
-      {sub && <p className="text-[#7d92b0] text-xs">{sub}</p>}
+    <div className="bg-falcon-surface border border-falcon-border rounded-xl p-4 flex flex-col gap-1">
+      <p className="text-falcon-muted text-xs">{label}</p>
+      <p className={`text-2xl font-bold ${accent ? 'text-falcon-red' : 'text-white'}`}>{value}</p>
+      {sub && <p className="text-falcon-muted text-xs">{sub}</p>}
     </div>
   )
 }
@@ -292,7 +292,7 @@ function SummaryTab({ report }: { report: Report }) {
       </div>
 
       {/* Severity distribution */}
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
+      <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
         <h3 className="text-white font-semibold mb-4 text-sm">重大度別分布</h3>
         <div className="space-y-3">
           {(['critical', 'high', 'medium', 'low'] as const).map(sev => {
@@ -301,7 +301,7 @@ function SummaryTab({ report }: { report: Report }) {
             const cfg = SEVERITY_COLORS[sev]
             return (
               <div key={sev} className="flex items-center gap-3">
-                <span className="text-xs text-[#7d92b0] w-16 shrink-0">{SEVERITY_LABELS[sev]}</span>
+                <span className="text-xs text-falcon-muted w-16 shrink-0">{SEVERITY_LABELS[sev]}</span>
                 <div className="flex-1 bg-[#070d19] rounded-full h-2 overflow-hidden">
                   <div
                     className={`h-2 rounded-full ${cfg.bar} transition-all duration-700`}
@@ -309,7 +309,7 @@ function SummaryTab({ report }: { report: Report }) {
                   />
                 </div>
                 <span className={`text-xs font-medium w-12 text-right ${cfg.text}`}>
-                  {count} <span className="text-[#7d92b0] font-normal">({pct}%)</span>
+                  {count} <span className="text-falcon-muted font-normal">({pct}%)</span>
                 </span>
               </div>
             )
@@ -318,26 +318,26 @@ function SummaryTab({ report }: { report: Report }) {
       </div>
 
       {/* Top 5 MITRE ATT&CK techniques */}
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
+      <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
         <h3 className="text-white font-semibold mb-4 text-sm">Top 5 MITRE ATT&CK テクニック</h3>
         <div className="space-y-3">
           {s.top_techniques.slice(0, 5).map((t, idx) => {
             const pct = Math.round((t.count / maxTechCount) * 100)
             return (
               <div key={t.technique} className="flex items-center gap-3">
-                <span className="text-[#e8002d] font-bold text-sm w-5 shrink-0 text-right">
+                <span className="text-falcon-red font-bold text-sm w-5 shrink-0 text-right">
                   {idx + 1}
                 </span>
                 <div className="flex-1 min-w-0">
                   <p className="text-white text-xs truncate mb-1">{t.technique}</p>
                   <div className="bg-[#070d19] rounded-full h-1.5 overflow-hidden">
                     <div
-                      className="h-1.5 rounded-full bg-[#e8002d]/60 transition-all duration-700"
+                      className="h-1.5 rounded-full bg-falcon-red/60 transition-all duration-700"
                       style={{ width: `${pct}%` }}
                     />
                   </div>
                 </div>
-                <span className="text-[#7d92b0] text-xs shrink-0 w-8 text-right">{t.count}件</span>
+                <span className="text-falcon-muted text-xs shrink-0 w-8 text-right">{t.count}件</span>
               </div>
             )
           })}
@@ -351,16 +351,16 @@ function SummaryTab({ report }: { report: Report }) {
 
 function AlertsTab() {
   return (
-    <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
+    <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-[#1e2d42]">
-              <th className="text-left px-4 py-3 text-[#7d92b0] font-medium text-xs">日時</th>
-              <th className="text-left px-4 py-3 text-[#7d92b0] font-medium text-xs">タイトル</th>
-              <th className="text-left px-4 py-3 text-[#7d92b0] font-medium text-xs">重大度</th>
-              <th className="text-left px-4 py-3 text-[#7d92b0] font-medium text-xs">ステータス</th>
-              <th className="text-left px-4 py-3 text-[#7d92b0] font-medium text-xs">担当者</th>
+            <tr className="border-b border-falcon-border">
+              <th className="text-left px-4 py-3 text-falcon-muted font-medium text-xs">日時</th>
+              <th className="text-left px-4 py-3 text-falcon-muted font-medium text-xs">タイトル</th>
+              <th className="text-left px-4 py-3 text-falcon-muted font-medium text-xs">重大度</th>
+              <th className="text-left px-4 py-3 text-falcon-muted font-medium text-xs">ステータス</th>
+              <th className="text-left px-4 py-3 text-falcon-muted font-medium text-xs">担当者</th>
             </tr>
           </thead>
           <tbody>
@@ -369,11 +369,11 @@ function AlertsTab() {
               return (
                 <tr
                   key={alert.id}
-                  className={`border-b border-[#1e2d42]/60 hover:bg-[#1e2d42]/30 transition-colors ${
+                  className={`border-b border-falcon-border/60 hover:bg-falcon-border/30 transition-colors ${
                     i === m(MOCK_ALERTS).length - 1 ? 'border-b-0' : ''
                   }`}
                 >
-                  <td className="px-4 py-3 text-[#7d92b0] text-xs whitespace-nowrap font-mono">
+                  <td className="px-4 py-3 text-falcon-muted text-xs whitespace-nowrap font-mono">
                     {fmt(alert.datetime)}
                   </td>
                   <td className="px-4 py-3 text-white text-xs max-w-[280px]">
@@ -389,7 +389,7 @@ function AlertsTab() {
                       {STATUS_LABELS[alert.status]}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-[#7d92b0] text-xs whitespace-nowrap">
+                  <td className="px-4 py-3 text-falcon-muted text-xs whitespace-nowrap">
                     <span className="flex items-center gap-1.5">
                       <User className="w-3 h-3" />
                       {alert.assignee}
@@ -409,44 +409,44 @@ function AlertsTab() {
 
 function EndpointsTab() {
   return (
-    <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
+    <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-[#1e2d42]">
-              <th className="text-left px-4 py-3 text-[#7d92b0] font-medium text-xs">ホスト名</th>
-              <th className="text-left px-4 py-3 text-[#7d92b0] font-medium text-xs">OS</th>
-              <th className="text-left px-4 py-3 text-[#7d92b0] font-medium text-xs">アラート数</th>
-              <th className="text-left px-4 py-3 text-[#7d92b0] font-medium text-xs">最終検知</th>
+            <tr className="border-b border-falcon-border">
+              <th className="text-left px-4 py-3 text-falcon-muted font-medium text-xs">ホスト名</th>
+              <th className="text-left px-4 py-3 text-falcon-muted font-medium text-xs">OS</th>
+              <th className="text-left px-4 py-3 text-falcon-muted font-medium text-xs">アラート数</th>
+              <th className="text-left px-4 py-3 text-falcon-muted font-medium text-xs">最終検知</th>
             </tr>
           </thead>
           <tbody>
             {m(MOCK_ENDPOINTS).map((ep, i) => (
               <tr
                 key={ep.id}
-                className={`border-b border-[#1e2d42]/60 hover:bg-[#1e2d42]/30 transition-colors ${
+                className={`border-b border-falcon-border/60 hover:bg-falcon-border/30 transition-colors ${
                   i === m(MOCK_ENDPOINTS).length - 1 ? 'border-b-0' : ''
                 }`}
               >
                 <td className="px-4 py-3">
                   <span className="flex items-center gap-2">
-                    <Monitor className="w-3.5 h-3.5 text-[#7d92b0] shrink-0" />
+                    <Monitor className="w-3.5 h-3.5 text-falcon-muted shrink-0" />
                     <span className="text-white text-xs font-mono">{ep.hostname}</span>
                   </span>
                 </td>
-                <td className="px-4 py-3 text-[#7d92b0] text-xs">{ep.os}</td>
+                <td className="px-4 py-3 text-falcon-muted text-xs">{ep.os}</td>
                 <td className="px-4 py-3">
                   <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold ${
                     ep.alert_count >= 5
-                      ? 'bg-[#e8002d]/20 text-[#e8002d]'
+                      ? 'bg-falcon-red/20 text-falcon-red'
                       : ep.alert_count >= 3
                         ? 'bg-orange-500/20 text-orange-400'
-                        : 'bg-[#1e2d42] text-[#7d92b0]'
+                        : 'bg-falcon-border text-falcon-muted'
                   }`}>
                     {ep.alert_count} 件
                   </span>
                 </td>
-                <td className="px-4 py-3 text-[#7d92b0] text-xs whitespace-nowrap font-mono">
+                <td className="px-4 py-3 text-falcon-muted text-xs whitespace-nowrap font-mono">
                   {fmt(ep.last_detected)}
                 </td>
               </tr>
@@ -468,21 +468,21 @@ function RecommendationsTab({ reportType }: { reportType: Report['report_type'] 
       {recs.map((rec, idx) => (
         <div
           key={idx}
-          className="flex gap-4 bg-[#0d1220] border border-[#1e2d42] rounded-xl p-4 hover:border-[#e8002d]/30 transition-colors"
+          className="flex gap-4 bg-falcon-surface border border-falcon-border rounded-xl p-4 hover:border-falcon-red/30 transition-colors"
         >
-          <div className="shrink-0 w-7 h-7 rounded-full bg-[#e8002d]/10 border border-[#e8002d]/30 flex items-center justify-center">
-            <span className="text-[#e8002d] text-xs font-bold">{idx + 1}</span>
+          <div className="shrink-0 w-7 h-7 rounded-full bg-falcon-red/10 border border-falcon-red/30 flex items-center justify-center">
+            <span className="text-falcon-red text-xs font-bold">{idx + 1}</span>
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-white text-sm leading-relaxed">{rec}</p>
           </div>
-          <ChevronRight className="w-4 h-4 text-[#1e2d42] shrink-0 mt-0.5" />
+          <ChevronRight className="w-4 h-4 text-falcon-border shrink-0 mt-0.5" />
         </div>
       ))}
 
-      <div className="mt-4 p-4 bg-[#070d19] border border-[#1e2d42] rounded-xl flex items-start gap-3">
-        <Shield className="w-4 h-4 text-[#7d92b0] shrink-0 mt-0.5" />
-        <p className="text-[#7d92b0] text-xs leading-relaxed">
+      <div className="mt-4 p-4 bg-[#070d19] border border-falcon-border rounded-xl flex items-start gap-3">
+        <Shield className="w-4 h-4 text-falcon-muted shrink-0 mt-0.5" />
+        <p className="text-falcon-muted text-xs leading-relaxed">
           上記の推奨事項はレポートタイプおよび検知されたアラートのパターンに基づいて自動生成されています。
           実際の対応については、セキュリティチームと連携のうえ実施してください。
         </p>
@@ -572,12 +572,12 @@ export default function ReportDetailPage() {
     return (
       <div className="min-h-screen bg-[#070d19] flex items-center justify-center">
         <div className="text-center space-y-3">
-          <AlertTriangle className="w-10 h-10 text-[#e8002d] mx-auto" />
+          <AlertTriangle className="w-10 h-10 text-falcon-red mx-auto" />
           <p className="text-white font-semibold">レポートが見つかりません</p>
-          <p className="text-[#7d92b0] text-sm">{(error as Error)?.message}</p>
+          <p className="text-falcon-muted text-sm">{(error as Error)?.message}</p>
           <button
             onClick={() => router.push('/reports')}
-            className="mt-4 px-4 py-2 bg-[#1e2d42] hover:bg-[#263850] text-white rounded-lg text-sm transition-colors"
+            className="mt-4 px-4 py-2 bg-falcon-border hover:bg-[#263850] text-white rounded-lg text-sm transition-colors"
           >
             レポート一覧へ戻る
           </button>
@@ -597,7 +597,7 @@ export default function ReportDetailPage() {
         <div className="flex items-start gap-3 flex-1 min-w-0">
           <button
             onClick={() => router.push('/reports')}
-            className="mt-0.5 p-1.5 rounded-lg text-[#7d92b0] hover:text-white hover:bg-[#1e2d42] transition-colors shrink-0"
+            className="mt-0.5 p-1.5 rounded-lg text-falcon-muted hover:text-white hover:bg-falcon-border transition-colors shrink-0"
             title="レポート一覧へ"
           >
             <ArrowLeft className="w-4 h-4" />
@@ -606,12 +606,12 @@ export default function ReportDetailPage() {
             <div className="flex flex-wrap items-center gap-2 mb-1">
               <h1 className="text-white text-xl font-bold truncate">{report.title}</h1>
               <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium shrink-0 ${
-                REPORT_TYPE_BADGES[report.report_type] ?? 'bg-[#1e2d42] text-[#7d92b0]'
+                REPORT_TYPE_BADGES[report.report_type] ?? 'bg-falcon-border text-falcon-muted'
               }`}>
                 {REPORT_TYPE_LABELS[report.report_type] ?? report.report_type}
               </span>
             </div>
-            <p className="text-[#7d92b0] text-xs">レポート ID: {report.id}</p>
+            <p className="text-falcon-muted text-xs">レポート ID: {report.id}</p>
           </div>
         </div>
 
@@ -621,8 +621,8 @@ export default function ReportDetailPage() {
             onClick={() => regenMutation.mutate()}
             disabled={regenMutation.isPending || report.status === 'generating'}
             title="再生成"
-            className="flex items-center gap-1.5 px-3 py-2 bg-[#0d1220] border border-[#1e2d42]
-                       text-[#7d92b0] hover:text-white hover:border-[#263850] rounded-lg text-xs
+            className="flex items-center gap-1.5 px-3 py-2 bg-falcon-surface border border-falcon-border
+                       text-falcon-muted hover:text-white hover:border-[#263850] rounded-lg text-xs
                        transition-colors disabled:opacity-40"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${regenMutation.isPending ? 'animate-spin' : ''}`} />
@@ -630,8 +630,8 @@ export default function ReportDetailPage() {
           </button>
           <button
             onClick={handleCsvExport}
-            className="flex items-center gap-1.5 px-3 py-2 bg-[#0d1220] border border-[#1e2d42]
-                       text-[#7d92b0] hover:text-white hover:border-[#263850] rounded-lg text-xs
+            className="flex items-center gap-1.5 px-3 py-2 bg-falcon-surface border border-falcon-border
+                       text-falcon-muted hover:text-white hover:border-[#263850] rounded-lg text-xs
                        transition-colors"
           >
             <Download className="w-3.5 h-3.5" />
@@ -639,7 +639,7 @@ export default function ReportDetailPage() {
           </button>
           <button
             onClick={handlePdfDownload}
-            className="flex items-center gap-1.5 px-3 py-2 bg-[#e8002d] hover:bg-[#c4001f]
+            className="flex items-center gap-1.5 px-3 py-2 bg-falcon-red hover:bg-[#c4001f]
                        text-white rounded-lg text-xs font-medium transition-colors"
           >
             <ExternalLink className="w-3.5 h-3.5" />
@@ -650,33 +650,33 @@ export default function ReportDetailPage() {
 
       {/* ── Metadata bar ───────────────────────────────────────────────────── */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl px-4 py-3 flex items-center gap-3">
-          <Calendar className="w-4 h-4 text-[#7d92b0] shrink-0" />
+        <div className="bg-falcon-surface border border-falcon-border rounded-xl px-4 py-3 flex items-center gap-3">
+          <Calendar className="w-4 h-4 text-falcon-muted shrink-0" />
           <div className="min-w-0">
-            <p className="text-[#7d92b0] text-xs mb-0.5">生成日時</p>
+            <p className="text-falcon-muted text-xs mb-0.5">生成日時</p>
             <p className="text-white text-xs font-medium truncate">{fmt(report.created_at)}</p>
           </div>
         </div>
-        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl px-4 py-3 flex items-center gap-3">
-          <Clock className="w-4 h-4 text-[#7d92b0] shrink-0" />
+        <div className="bg-falcon-surface border border-falcon-border rounded-xl px-4 py-3 flex items-center gap-3">
+          <Clock className="w-4 h-4 text-falcon-muted shrink-0" />
           <div className="min-w-0">
-            <p className="text-[#7d92b0] text-xs mb-0.5">期間</p>
+            <p className="text-falcon-muted text-xs mb-0.5">期間</p>
             <p className="text-white text-xs font-medium truncate">
               {fmtDate(report.period_start)} – {fmtDate(report.period_end)}
             </p>
           </div>
         </div>
-        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl px-4 py-3 flex items-center gap-3">
-          <User className="w-4 h-4 text-[#7d92b0] shrink-0" />
+        <div className="bg-falcon-surface border border-falcon-border rounded-xl px-4 py-3 flex items-center gap-3">
+          <User className="w-4 h-4 text-falcon-muted shrink-0" />
           <div className="min-w-0">
-            <p className="text-[#7d92b0] text-xs mb-0.5">生成者</p>
+            <p className="text-falcon-muted text-xs mb-0.5">生成者</p>
             <p className="text-white text-xs font-medium truncate">{displayUser(report.created_by)}</p>
           </div>
         </div>
-        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl px-4 py-3 flex items-center gap-3">
-          <FileText className="w-4 h-4 text-[#7d92b0] shrink-0" />
+        <div className="bg-falcon-surface border border-falcon-border rounded-xl px-4 py-3 flex items-center gap-3">
+          <FileText className="w-4 h-4 text-falcon-muted shrink-0" />
           <div className="min-w-0">
-            <p className="text-[#7d92b0] text-xs mb-0.5">ステータス</p>
+            <p className="text-falcon-muted text-xs mb-0.5">ステータス</p>
             <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium ${statusCfg.cls}`}>
               {statusCfg.icon}
               {statusCfg.label}
@@ -687,22 +687,22 @@ export default function ReportDetailPage() {
 
       {/* Regeneration error */}
       {regenMutation.isError && (
-        <div className="flex items-center gap-2 px-4 py-3 bg-[#e8002d]/10 border border-[#e8002d]/30 rounded-xl text-sm text-[#e8002d]">
+        <div className="flex items-center gap-2 px-4 py-3 bg-falcon-red/10 border border-falcon-red/30 rounded-xl text-sm text-falcon-red">
           <AlertTriangle className="w-4 h-4 shrink-0" />
           再生成に失敗しました: {(regenMutation.error as Error).message}
         </div>
       )}
 
       {/* ── Tab bar ────────────────────────────────────────────────────────── */}
-      <div className="flex gap-1 bg-[#0d1220] border border-[#1e2d42] rounded-xl p-1">
+      <div className="flex gap-1 bg-falcon-surface border border-falcon-border rounded-xl p-1">
         {TABS.map(tab => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
             className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
               activeTab === tab
-                ? 'bg-[#1e2d42] text-white'
-                : 'text-[#7d92b0] hover:text-white hover:bg-[#1e2d42]/50'
+                ? 'bg-falcon-border text-white'
+                : 'text-falcon-muted hover:text-white hover:bg-falcon-border/50'
             }`}
           >
             {tab}

@@ -123,14 +123,14 @@ function buildMockReport(period: string): SecurityOpsReport {
 // ── Constants ──────────────────────────────────────────────────────────────────
 
 const SEVERITY_STYLES: Record<string, { bar: string; badge: string; label: string }> = {
-  critical: { bar: 'bg-[#e8002d]',  badge: 'bg-red-900/40 text-red-300 border border-red-700/50',     label: 'クリティカル' },
+  critical: { bar: 'bg-falcon-red',  badge: 'bg-red-900/40 text-red-300 border border-red-700/50',     label: 'クリティカル' },
   high:     { bar: 'bg-orange-500', badge: 'bg-orange-900/40 text-orange-300 border border-orange-700/50', label: '高' },
   medium:   { bar: 'bg-yellow-500', badge: 'bg-yellow-900/40 text-yellow-300 border border-yellow-700/50', label: '中' },
   low:      { bar: 'bg-blue-500',   badge: 'bg-blue-900/40 text-blue-300 border border-blue-700/50',   label: '低' },
 }
 
 const SOURCE_COLORS: Record<string, string> = {
-  'EDR':        'bg-[#e8002d]',
+  'EDR':        'bg-falcon-red',
   'ネットワーク': 'bg-purple-500',
   'クラウド':    'bg-blue-500',
   'メール':      'bg-green-500',
@@ -164,9 +164,9 @@ function fmtDateTime(iso: string): string {
 function DeltaBadge({ delta, invert = false, suffix = '' }: { delta: number; invert?: boolean; suffix?: string }) {
   const positive = invert ? delta < 0 : delta > 0
   const zero = delta === 0
-  if (zero) return <span className="text-[#7d92b0] text-xs">変化なし</span>
+  if (zero) return <span className="text-falcon-muted text-xs">変化なし</span>
   return (
-    <span className={`inline-flex items-center gap-0.5 text-xs font-medium ${positive ? 'text-green-400' : 'text-[#e8002d]'}`}>
+    <span className={`inline-flex items-center gap-0.5 text-xs font-medium ${positive ? 'text-green-400' : 'text-falcon-red'}`}>
       {positive ? <TrendingDown className="w-3 h-3" /> : <TrendingUp className="w-3 h-3" />}
       {Math.abs(delta)}{suffix}
     </span>
@@ -189,15 +189,15 @@ interface KpiCardProps {
 
 function KpiCard({ label, value, sub, delta, invertDelta, deltaSuffix, icon: Icon, iconColor, iconBg }: KpiCardProps) {
   return (
-    <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
+    <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
       <div className="flex items-start justify-between mb-3">
-        <p className="text-[#7d92b0] text-xs font-medium">{label}</p>
+        <p className="text-falcon-muted text-xs font-medium">{label}</p>
         <div className={`w-8 h-8 rounded-lg ${iconBg} flex items-center justify-center`}>
           <Icon className={`w-4 h-4 ${iconColor}`} />
         </div>
       </div>
       <p className="text-3xl font-bold text-white">{value}</p>
-      {sub && <p className="text-[#7d92b0] text-xs mt-1">{sub}</p>}
+      {sub && <p className="text-falcon-muted text-xs mt-1">{sub}</p>}
       {delta !== undefined && (
         <div className="mt-2">
           <DeltaBadge delta={delta} invert={invertDelta} suffix={deltaSuffix} />
@@ -231,17 +231,17 @@ function ScheduleModal({ onClose, onSubmit, loading }: {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative w-full max-w-md bg-[#0d1220] border border-[#1e2d42] rounded-xl shadow-2xl">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-xs" onClick={onClose} />
+      <div className="relative w-full max-w-md bg-falcon-surface border border-falcon-border rounded-xl shadow-2xl">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[#1e2d42]">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-falcon-border">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-lg bg-purple-500/15 flex items-center justify-center">
               <Calendar className="w-4 h-4 text-purple-400" />
             </div>
             <h3 className="text-white font-semibold">レポートをスケジュール</h3>
           </div>
-          <button onClick={onClose} className="text-[#7d92b0] hover:text-white transition-colors">
+          <button onClick={onClose} className="text-falcon-muted hover:text-white transition-colors">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -249,7 +249,7 @@ function ScheduleModal({ onClose, onSubmit, loading }: {
         <div className="px-6 py-5 space-y-4">
           {/* Frequency */}
           <div>
-            <label className="block text-[#7d92b0] text-xs font-medium mb-2">配信頻度</label>
+            <label className="block text-falcon-muted text-xs font-medium mb-2">配信頻度</label>
             <div className="grid grid-cols-3 gap-2">
               {([['daily', '毎日'], ['weekly', '毎週'], ['monthly', '毎月']] as const).map(([val, label]) => (
                 <button
@@ -257,8 +257,8 @@ function ScheduleModal({ onClose, onSubmit, loading }: {
                   onClick={() => setFrequency(val)}
                   className={`py-2 text-sm rounded-lg border transition-colors
                     ${frequency === val
-                      ? 'bg-[#1a6bff]/15 border-[#1a6bff] text-[#1a6bff]'
-                      : 'bg-[#070d19] border-[#1e2d42] text-[#7d92b0] hover:border-[#2d4060]'}`}
+                      ? 'bg-falcon-blue/15 border-falcon-blue text-falcon-blue'
+                      : 'bg-[#070d19] border-falcon-border text-falcon-muted hover:border-[#2d4060]'}`}
                 >
                   {label}
                 </button>
@@ -268,32 +268,32 @@ function ScheduleModal({ onClose, onSubmit, loading }: {
 
           {/* Recipients */}
           <div>
-            <label className="block text-[#7d92b0] text-xs font-medium mb-2">受信者</label>
+            <label className="block text-falcon-muted text-xs font-medium mb-2">受信者</label>
             <div className="flex gap-2 mb-2">
               <div className="relative flex-1">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#7d92b0]" />
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-falcon-muted" />
                 <input
                   type="email"
                   value={emailInput}
                   onChange={e => setEmailInput(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && addEmail()}
                   placeholder="メールアドレスを入力..."
-                  className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg pl-9 pr-3 py-2 text-white
-                             text-sm placeholder-[#3d5275] focus:outline-none focus:border-[#1a6bff] transition-colors"
+                  className="w-full bg-[#070d19] border border-falcon-border rounded-lg pl-9 pr-3 py-2 text-white
+                             text-sm placeholder-[#3d5275] focus:outline-hidden focus:border-falcon-blue transition-colors"
                 />
               </div>
               <button
                 onClick={addEmail}
-                className="px-3 py-2 bg-[#1a6bff] hover:bg-[#1558e0] text-white rounded-lg transition-colors"
+                className="px-3 py-2 bg-falcon-blue hover:bg-[#1558e0] text-white rounded-lg transition-colors"
               >
                 <Plus className="w-4 h-4" />
               </button>
             </div>
             <div className="space-y-1.5 max-h-32 overflow-y-auto">
               {recipients.map(r => (
-                <div key={r} className="flex items-center justify-between bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-1.5">
+                <div key={r} className="flex items-center justify-between bg-[#070d19] border border-falcon-border rounded-lg px-3 py-1.5">
                   <span className="text-white text-sm">{r}</span>
-                  <button onClick={() => removeEmail(r)} className="text-[#7d92b0] hover:text-[#e8002d] transition-colors">
+                  <button onClick={() => removeEmail(r)} className="text-falcon-muted hover:text-falcon-red transition-colors">
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
                 </div>
@@ -305,14 +305,14 @@ function ScheduleModal({ onClose, onSubmit, loading }: {
           </div>
         </div>
 
-        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-[#1e2d42]">
-          <button onClick={onClose} className="px-4 py-2 text-sm text-[#7d92b0] hover:text-white border border-[#1e2d42] hover:border-[#2d4060] rounded-lg transition-colors">
+        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-falcon-border">
+          <button onClick={onClose} className="px-4 py-2 text-sm text-falcon-muted hover:text-white border border-falcon-border hover:border-[#2d4060] rounded-lg transition-colors">
             キャンセル
           </button>
           <button
             onClick={() => onSubmit({ frequency, recipients })}
             disabled={recipients.length === 0 || loading}
-            className="px-4 py-2 text-sm text-white bg-[#1a6bff] hover:bg-[#1558e0] rounded-lg transition-colors disabled:opacity-40 flex items-center gap-2"
+            className="px-4 py-2 text-sm text-white bg-falcon-blue hover:bg-[#1558e0] rounded-lg transition-colors disabled:opacity-40 flex items-center gap-2"
           >
             {loading && <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />}
             スケジュール設定
@@ -327,13 +327,13 @@ function ScheduleModal({ onClose, onSubmit, loading }: {
 
 function Toast({ message, onClose }: { message: string; onClose: () => void }) {
   return (
-    <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 bg-[#0d1220] border border-[#1e2d42]
+    <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 bg-falcon-surface border border-falcon-border
                     rounded-xl px-4 py-3 shadow-2xl animate-fade-in">
-      <div className="w-7 h-7 rounded-full bg-[#1a6bff]/15 flex items-center justify-center flex-shrink-0">
-        <CheckCircle className="w-4 h-4 text-[#1a6bff]" />
+      <div className="w-7 h-7 rounded-full bg-falcon-blue/15 flex items-center justify-center shrink-0">
+        <CheckCircle className="w-4 h-4 text-falcon-blue" />
       </div>
       <p className="text-white text-sm">{message}</p>
-      <button onClick={onClose} className="text-[#7d92b0] hover:text-white transition-colors ml-1">
+      <button onClick={onClose} className="text-falcon-muted hover:text-white transition-colors ml-1">
         <X className="w-4 h-4" />
       </button>
     </div>
@@ -344,9 +344,9 @@ function Toast({ message, onClose }: { message: string; onClose: () => void }) {
 
 function Section({ title, icon: Icon, children }: { title: string; icon: React.ComponentType<{ className?: string }>; children: React.ReactNode }) {
   return (
-    <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
-      <div className="flex items-center gap-2.5 px-5 py-4 border-b border-[#1e2d42]">
-        <Icon className="w-4 h-4 text-[#7d92b0]" />
+    <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
+      <div className="flex items-center gap-2.5 px-5 py-4 border-b border-falcon-border">
+        <Icon className="w-4 h-4 text-falcon-muted" />
         <h2 className="text-white font-semibold text-sm">{title}</h2>
       </div>
       <div className="p-5">{children}</div>
@@ -422,17 +422,17 @@ export default function SecurityOpsReportPage() {
         />
       )}
 
-      <div className="max-w-screen-xl mx-auto px-6 py-8 space-y-6">
+      <div className="max-w-(--breakpoint-xl) mx-auto px-6 py-8 space-y-6">
         {/* Page Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-4">
-            <div className="w-10 h-10 rounded-xl bg-[#e8002d]/15 border border-[#e8002d]/30
+            <div className="w-10 h-10 rounded-xl bg-falcon-red/15 border border-falcon-red/30
                             flex items-center justify-center">
-              <Shield className="w-5 h-5 text-[#e8002d]" />
+              <Shield className="w-5 h-5 text-falcon-red" />
             </div>
             <div>
               <h1 className="text-xl font-bold text-white">セキュリティオペレーション レポート</h1>
-              <p className="text-[#7d92b0] text-sm mt-0.5">
+              <p className="text-falcon-muted text-sm mt-0.5">
                 {isLoading ? '読み込み中...' : `${periodLabel} — ${fmtDateTime(report?.generated_at ?? '')}`}
               </p>
             </div>
@@ -442,7 +442,7 @@ export default function SecurityOpsReportPage() {
           <div className="flex items-center gap-2 flex-wrap">
             <button
               onClick={() => refetch()}
-              className="p-2 text-[#7d92b0] hover:text-white border border-[#1e2d42]
+              className="p-2 text-falcon-muted hover:text-white border border-falcon-border
                          hover:border-[#2d4060] rounded-lg transition-colors"
               title="更新"
             >
@@ -450,15 +450,15 @@ export default function SecurityOpsReportPage() {
             </button>
             <button
               onClick={() => setShowSchedule(true)}
-              className="flex items-center gap-2 px-3 py-2 text-sm text-[#7d92b0] hover:text-white
-                         border border-[#1e2d42] hover:border-[#2d4060] rounded-lg transition-colors"
+              className="flex items-center gap-2 px-3 py-2 text-sm text-falcon-muted hover:text-white
+                         border border-falcon-border hover:border-[#2d4060] rounded-lg transition-colors"
             >
               <Calendar className="w-4 h-4" />
               スケジュール
             </button>
             <button
               onClick={handleExportPdf}
-              className="flex items-center gap-2 px-4 py-2 bg-[#e8002d] hover:bg-[#c20026] text-white
+              className="flex items-center gap-2 px-4 py-2 bg-falcon-red hover:bg-[#c20026] text-white
                          text-sm font-medium rounded-lg transition-colors"
             >
               <Download className="w-4 h-4" />
@@ -469,15 +469,15 @@ export default function SecurityOpsReportPage() {
 
         {/* Period selector */}
         <div className="flex flex-wrap items-center gap-2">
-          <div className="flex items-center gap-1 bg-[#0d1220] border border-[#1e2d42] rounded-lg p-1">
+          <div className="flex items-center gap-1 bg-falcon-surface border border-falcon-border rounded-lg p-1">
             {PERIOD_OPTIONS.map(opt => (
               <button
                 key={opt.value}
                 onClick={() => setPeriod(opt.value)}
                 className={`px-3 py-1.5 text-sm rounded-md transition-colors
                   ${period === opt.value
-                    ? 'bg-[#1a6bff] text-white'
-                    : 'text-[#7d92b0] hover:text-white hover:bg-[#161f33]'}`}
+                    ? 'bg-falcon-blue text-white'
+                    : 'text-falcon-muted hover:text-white hover:bg-falcon-raised'}`}
               >
                 {opt.label}
               </button>
@@ -490,16 +490,16 @@ export default function SecurityOpsReportPage() {
                 type="date"
                 value={customFrom}
                 onChange={e => setCustomFrom(e.target.value)}
-                className="bg-[#0d1220] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm
-                           focus:outline-none focus:border-[#1a6bff] transition-colors"
+                className="bg-falcon-surface border border-falcon-border rounded-lg px-3 py-2 text-white text-sm
+                           focus:outline-hidden focus:border-falcon-blue transition-colors"
               />
-              <span className="text-[#7d92b0] text-sm">〜</span>
+              <span className="text-falcon-muted text-sm">〜</span>
               <input
                 type="date"
                 value={customTo}
                 onChange={e => setCustomTo(e.target.value)}
-                className="bg-[#0d1220] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm
-                           focus:outline-none focus:border-[#1a6bff] transition-colors"
+                className="bg-falcon-surface border border-falcon-border rounded-lg px-3 py-2 text-white text-sm
+                           focus:outline-hidden focus:border-falcon-blue transition-colors"
               />
             </div>
           )}
@@ -507,7 +507,7 @@ export default function SecurityOpsReportPage() {
 
         {isLoading ? (
           <div className="flex items-center justify-center h-64">
-            <div className="w-10 h-10 border-2 border-[#e8002d] border-t-transparent rounded-full animate-spin" />
+            <div className="w-10 h-10 border-2 border-falcon-red border-t-transparent rounded-full animate-spin" />
           </div>
         ) : (
           <>
@@ -520,8 +520,8 @@ export default function SecurityOpsReportPage() {
                 delta={kpi?.incidents_delta}
                 invertDelta
                 icon={AlertCircle}
-                iconColor="text-[#e8002d]"
-                iconBg="bg-[#e8002d]/15"
+                iconColor="text-falcon-red"
+                iconBg="bg-falcon-red/15"
               />
               <KpiCard
                 label="平均対応時間 (MTTR)"
@@ -589,18 +589,18 @@ export default function SecurityOpsReportPage() {
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
-                    <tr className="border-b border-[#1e2d42]">
+                    <tr className="border-b border-falcon-border">
                       {['順位', 'カテゴリ', '件数', '割合', 'トレンド'].map(h => (
-                        <th key={h} className="text-left px-3 py-2 text-[#7d92b0] text-xs font-medium">{h}</th>
+                        <th key={h} className="text-left px-3 py-2 text-falcon-muted text-xs font-medium">{h}</th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
                     {report?.threat_categories.map((row, i) => (
-                      <tr key={row.rank} className={`border-b border-[#1e2d42]/50 hover:bg-[#111827]/60 transition-colors ${i === (report.threat_categories.length - 1) ? 'border-0' : ''}`}>
+                      <tr key={row.rank} className={`border-b border-falcon-border/50 hover:bg-falcon-card/60 transition-colors ${i === (report.threat_categories.length - 1) ? 'border-0' : ''}`}>
                         <td className="px-3 py-2.5">
                           <span className={`inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold
-                            ${row.rank <= 3 ? 'bg-[#e8002d]/20 text-[#e8002d]' : 'bg-[#1e2d42] text-[#7d92b0]'}`}>
+                            ${row.rank <= 3 ? 'bg-falcon-red/20 text-falcon-red' : 'bg-falcon-border text-falcon-muted'}`}>
                             {row.rank}
                           </span>
                         </td>
@@ -610,17 +610,17 @@ export default function SecurityOpsReportPage() {
                           <div className="flex items-center gap-2">
                             <div className="w-20 bg-[#070d19] rounded-full h-1.5 overflow-hidden">
                               <div
-                                className="h-full bg-[#1a6bff] rounded-full"
+                                className="h-full bg-falcon-blue rounded-full"
                                 style={{ width: `${row.percentage}%` }}
                               />
                             </div>
-                            <span className="text-[#7d92b0] text-xs">{row.percentage}%</span>
+                            <span className="text-falcon-muted text-xs">{row.percentage}%</span>
                           </div>
                         </td>
                         <td className="px-3 py-2.5">
-                          {row.trend === 'up'   && <span className="inline-flex items-center gap-1 text-xs text-[#e8002d]"><TrendingUp className="w-3.5 h-3.5" />増加</span>}
+                          {row.trend === 'up'   && <span className="inline-flex items-center gap-1 text-xs text-falcon-red"><TrendingUp className="w-3.5 h-3.5" />増加</span>}
                           {row.trend === 'down' && <span className="inline-flex items-center gap-1 text-xs text-green-400"><TrendingDown className="w-3.5 h-3.5" />減少</span>}
-                          {row.trend === 'flat' && <span className="text-xs text-[#7d92b0]">横ばい</span>}
+                          {row.trend === 'flat' && <span className="text-xs text-falcon-muted">横ばい</span>}
                         </td>
                       </tr>
                     ))}
@@ -634,22 +634,22 @@ export default function SecurityOpsReportPage() {
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
-                    <tr className="border-b border-[#1e2d42]">
+                    <tr className="border-b border-falcon-border">
                       {['アナリスト', '担当インシデント', '平均解決時間', 'SLA遵守率'].map(h => (
-                        <th key={h} className="text-left px-3 py-2 text-[#7d92b0] text-xs font-medium">{h}</th>
+                        <th key={h} className="text-left px-3 py-2 text-falcon-muted text-xs font-medium">{h}</th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
                     {report?.analyst_performance.map((row, i) => {
-                      const slaColor = row.sla_compliance >= 95 ? 'text-green-400' : row.sla_compliance >= 85 ? 'text-yellow-400' : 'text-[#e8002d]'
-                      const slaBarColor = row.sla_compliance >= 95 ? 'bg-green-500' : row.sla_compliance >= 85 ? 'bg-yellow-500' : 'bg-[#e8002d]'
+                      const slaColor = row.sla_compliance >= 95 ? 'text-green-400' : row.sla_compliance >= 85 ? 'text-yellow-400' : 'text-falcon-red'
+                      const slaBarColor = row.sla_compliance >= 95 ? 'bg-green-500' : row.sla_compliance >= 85 ? 'bg-yellow-500' : 'bg-falcon-red'
                       return (
-                        <tr key={row.email} className={`border-b border-[#1e2d42]/50 hover:bg-[#111827]/60 transition-colors ${i === (report.analyst_performance.length - 1) ? 'border-0' : ''}`}>
+                        <tr key={row.email} className={`border-b border-falcon-border/50 hover:bg-falcon-card/60 transition-colors ${i === (report.analyst_performance.length - 1) ? 'border-0' : ''}`}>
                           <td className="px-3 py-3">
                             <div className="flex items-center gap-2.5">
-                              <div className="w-7 h-7 rounded-full bg-gradient-to-br from-[#1a6bff] to-[#0044cc]
-                                              flex items-center justify-center text-xs font-bold text-white flex-shrink-0">
+                              <div className="w-7 h-7 rounded-full bg-linear-to-br from-falcon-blue to-[#0044cc]
+                                              flex items-center justify-center text-xs font-bold text-white shrink-0">
                                 {row.analyst[0]}
                               </div>
                               <div>
@@ -660,7 +660,7 @@ export default function SecurityOpsReportPage() {
                           </td>
                           <td className="px-3 py-3">
                             <span className="text-white text-sm font-semibold">{row.incidents_handled}</span>
-                            <span className="text-[#7d92b0] text-xs ml-1">件</span>
+                            <span className="text-falcon-muted text-xs ml-1">件</span>
                           </td>
                           <td className="px-3 py-3">
                             <span className="text-white text-sm">{fmtMinutes(row.avg_resolution_minutes)}</span>
@@ -690,10 +690,10 @@ export default function SecurityOpsReportPage() {
             <Section title="アラートソース別内訳" icon={Eye}>
               <div className="space-y-4">
                 {report?.alert_sources.map(row => {
-                  const barColor = SOURCE_COLORS[row.source] ?? 'bg-[#1a6bff]'
+                  const barColor = SOURCE_COLORS[row.source] ?? 'bg-falcon-blue'
                   return (
                     <div key={row.source} className="flex items-center gap-4">
-                      <span className="text-[#7d92b0] text-sm min-w-[100px] text-right">{row.source}</span>
+                      <span className="text-falcon-muted text-sm min-w-[100px] text-right">{row.source}</span>
                       <div className="flex-1 bg-[#070d19] rounded-full h-6 overflow-hidden">
                         <div
                           className={`h-full ${barColor} rounded-full transition-all duration-700
@@ -712,13 +712,13 @@ export default function SecurityOpsReportPage() {
               </div>
 
               {/* Legend */}
-              <div className="flex flex-wrap gap-3 mt-5 pt-4 border-t border-[#1e2d42]">
+              <div className="flex flex-wrap gap-3 mt-5 pt-4 border-t border-falcon-border">
                 {report?.alert_sources.map(row => {
-                  const barColor = SOURCE_COLORS[row.source] ?? 'bg-[#1a6bff]'
+                  const barColor = SOURCE_COLORS[row.source] ?? 'bg-falcon-blue'
                   return (
                     <div key={row.source} className="flex items-center gap-1.5">
                       <div className={`w-2.5 h-2.5 rounded-full ${barColor}`} />
-                      <span className="text-[#7d92b0] text-xs">{row.source}</span>
+                      <span className="text-falcon-muted text-xs">{row.source}</span>
                     </div>
                   )
                 })}
@@ -726,9 +726,9 @@ export default function SecurityOpsReportPage() {
             </Section>
 
             {/* Footer note */}
-            <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl px-5 py-4 flex items-start gap-3">
-              <Lock className="w-4 h-4 text-[#7d92b0] flex-shrink-0 mt-0.5" />
-              <p className="text-[#7d92b0] text-xs leading-relaxed">
+            <div className="bg-falcon-surface border border-falcon-border rounded-xl px-5 py-4 flex items-start gap-3">
+              <Lock className="w-4 h-4 text-falcon-muted shrink-0 mt-0.5" />
+              <p className="text-falcon-muted text-xs leading-relaxed">
                 このレポートは機密情報を含みます。社外への共有は禁止されています。
                 データは {fmtDateTime(report?.generated_at ?? '')} 時点のものです。
                 正確な情報のため、定期的に更新してください。

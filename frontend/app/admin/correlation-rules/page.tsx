@@ -71,17 +71,17 @@ export default function CorrelationRulesPage() {
       {/* Header */}
       <div className="mb-6">
         <div className="flex items-center gap-3 mb-1">
-          <div className="w-8 h-8 rounded bg-[#e8002d]/10 border border-[#e8002d]/30 flex items-center justify-center">
-            <GitBranch className="w-4 h-4 text-[#e8002d]" />
+          <div className="w-8 h-8 rounded-sm bg-falcon-red/10 border border-falcon-red/30 flex items-center justify-center">
+            <GitBranch className="w-4 h-4 text-falcon-red" />
           </div>
           <h1 className="text-xl font-bold text-white">コリレーションルール管理</h1>
         </div>
-        <p className="text-[#7d92b0] text-sm ml-11">検知エンジンが自動生成したコリレーショングループ</p>
+        <p className="text-falcon-muted text-sm ml-11">検知エンジンが自動生成したコリレーショングループ</p>
       </div>
 
       {/* Info banner */}
       <div className="flex items-start gap-2 bg-blue-500/5 border border-blue-500/20 rounded-lg px-4 py-3 mb-6">
-        <Info className="w-4 h-4 text-blue-400 flex-shrink-0 mt-0.5" />
+        <Info className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" />
         <p className="text-xs text-blue-300">
           コリレーショングループは検知エンジンが自動生成します。手動での作成は行えません。
         </p>
@@ -89,12 +89,12 @@ export default function CorrelationRulesPage() {
 
       {/* Stats */}
       <div className="grid grid-cols-2 gap-4 mb-6 max-w-sm">
-        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-4">
-          <p className="text-[#7d92b0] text-xs mb-1">総グループ数</p>
+        <div className="bg-falcon-surface border border-falcon-border rounded-lg p-4">
+          <p className="text-falcon-muted text-xs mb-1">総グループ数</p>
           <p className="text-2xl font-bold text-white">{total}</p>
         </div>
-        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-4">
-          <p className="text-[#7d92b0] text-xs mb-1">インシデント関連</p>
+        <div className="bg-falcon-surface border border-falcon-border rounded-lg p-4">
+          <p className="text-falcon-muted text-xs mb-1">インシデント関連</p>
           <p className="text-2xl font-bold text-white">
             {groups.filter(g => g.incident_id).length}
           </p>
@@ -103,32 +103,32 @@ export default function CorrelationRulesPage() {
 
       <div className="flex gap-4">
         {/* Table */}
-        <div className={`bg-[#0d1220] border border-[#1e2d42] rounded-lg overflow-hidden flex-1 min-w-0 transition-all ${selectedGroup ? 'max-w-[calc(100%-320px)]' : ''}`}>
-          <div className="px-4 py-3 border-b border-[#1e2d42] flex items-center justify-between">
+        <div className={`bg-falcon-surface border border-falcon-border rounded-lg overflow-hidden flex-1 min-w-0 transition-all ${selectedGroup ? 'max-w-[calc(100%-320px)]' : ''}`}>
+          <div className="px-4 py-3 border-b border-falcon-border flex items-center justify-between">
             <h2 className="text-sm font-semibold text-white">グループ一覧</h2>
-            <span className="text-xs text-[#7d92b0]">{total} 件</span>
+            <span className="text-xs text-falcon-muted">{total} 件</span>
           </div>
 
           {isLoading ? (
-            <div className="p-8 text-center text-[#7d92b0] text-sm">読み込み中...</div>
+            <div className="p-8 text-center text-falcon-muted text-sm">読み込み中...</div>
           ) : groups.length === 0 ? (
-            <div className="p-8 text-center text-[#7d92b0] text-sm">コリレーショングループが存在しません</div>
+            <div className="p-8 text-center text-falcon-muted text-sm">コリレーショングループが存在しません</div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="border-b border-[#1e2d42]">
-                    <th className="px-4 py-3 text-left text-xs font-medium text-[#7d92b0] uppercase tracking-wider">ID</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-[#7d92b0] uppercase tracking-wider">エージェント</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-[#7d92b0] uppercase tracking-wider">MITRE技術</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-[#7d92b0] uppercase tracking-wider">アラート数</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-[#7d92b0] uppercase tracking-wider">最初検知</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-[#7d92b0] uppercase tracking-wider">最終検知</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-[#7d92b0] uppercase tracking-wider">インシデント</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-[#7d92b0] uppercase tracking-wider">操作</th>
+                  <tr className="border-b border-falcon-border">
+                    <th className="px-4 py-3 text-left text-xs font-medium text-falcon-muted uppercase tracking-wider">ID</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-falcon-muted uppercase tracking-wider">エージェント</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-falcon-muted uppercase tracking-wider">MITRE技術</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-falcon-muted uppercase tracking-wider">アラート数</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-falcon-muted uppercase tracking-wider">最初検知</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-falcon-muted uppercase tracking-wider">最終検知</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-falcon-muted uppercase tracking-wider">インシデント</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-falcon-muted uppercase tracking-wider">操作</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#1e2d42]">
+                <tbody className="divide-y divide-falcon-border">
                   {groups.map(group => (
                     <tr
                       key={group.id}
@@ -137,26 +137,26 @@ export default function CorrelationRulesPage() {
                       }`}
                       onClick={() => setSelectedGroup(selectedGroup?.id === group.id ? null : group)}
                     >
-                      <td className="px-4 py-3 text-xs font-mono text-[#7d92b0] max-w-[80px] truncate">
+                      <td className="px-4 py-3 text-xs font-mono text-falcon-muted max-w-[80px] truncate">
                         {group.id.slice(0, 8)}…
                       </td>
-                      <td className="px-4 py-3 text-xs font-mono text-[#e2e8f4] max-w-[100px] truncate">
+                      <td className="px-4 py-3 text-xs font-mono text-falcon-text max-w-[100px] truncate">
                         {group.agent_id.slice(0, 8)}…
                       </td>
                       <td className="px-4 py-3">
-                        <span className="inline-block px-2 py-0.5 rounded text-xs font-medium bg-purple-500/10 text-purple-400 border border-purple-500/20">
+                        <span className="inline-block px-2 py-0.5 rounded-sm text-xs font-medium bg-purple-500/10 text-purple-400 border border-purple-500/20">
                           {group.mitre_technique}
                         </span>
                       </td>
                       <td className="px-4 py-3">
-                        <span className={`text-sm font-bold ${group.alert_count > 10 ? 'text-[#e8002d]' : group.alert_count > 5 ? 'text-orange-400' : 'text-white'}`}>
+                        <span className={`text-sm font-bold ${group.alert_count > 10 ? 'text-falcon-red' : group.alert_count > 5 ? 'text-orange-400' : 'text-white'}`}>
                           {group.alert_count}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-xs text-[#7d92b0] whitespace-nowrap">
+                      <td className="px-4 py-3 text-xs text-falcon-muted whitespace-nowrap">
                         {formatDate(group.first_seen_at)}
                       </td>
-                      <td className="px-4 py-3 text-xs text-[#7d92b0] whitespace-nowrap">
+                      <td className="px-4 py-3 text-xs text-falcon-muted whitespace-nowrap">
                         {formatDate(group.last_seen_at)}
                       </td>
                       <td className="px-4 py-3">
@@ -164,13 +164,13 @@ export default function CorrelationRulesPage() {
                           <a
                             href={`/incidents/${group.incident_id}`}
                             onClick={e => e.stopPropagation()}
-                            className="flex items-center gap-1 text-xs text-[#7d92b0] hover:text-[#e8002d] transition-colors font-mono"
+                            className="flex items-center gap-1 text-xs text-falcon-muted hover:text-falcon-red transition-colors font-mono"
                           >
                             <ExternalLink className="w-3 h-3" />
                             {group.incident_id.slice(0, 8)}…
                           </a>
                         ) : (
-                          <span className="text-xs text-[#3d5068]">—</span>
+                          <span className="text-xs text-falcon-subtle">—</span>
                         )}
                       </td>
                       <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
@@ -178,19 +178,19 @@ export default function CorrelationRulesPage() {
                           <button
                             onClick={() => toggleMutation.mutate(group.id)}
                             disabled={toggleMutation.isPending}
-                            className="p-1.5 rounded text-[#7d92b0] hover:text-white hover:bg-[#1e2d42] transition-colors"
+                            className="p-1.5 rounded-sm text-falcon-muted hover:text-white hover:bg-falcon-border transition-colors"
                             title="有効/無効切り替え"
                           >
                             <ToggleRight className="w-3.5 h-3.5" />
                           </button>
                           <button
                             onClick={() => setDeleteConfirm(group.id)}
-                            className="p-1.5 rounded text-[#7d92b0] hover:text-[#e8002d] hover:bg-[#e8002d]/10 transition-colors"
+                            className="p-1.5 rounded-sm text-falcon-muted hover:text-falcon-red hover:bg-falcon-red/10 transition-colors"
                             title="削除"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
-                          <ChevronRight className={`w-3.5 h-3.5 text-[#3d5068] transition-transform ${selectedGroup?.id === group.id ? 'rotate-90' : ''}`} />
+                          <ChevronRight className={`w-3.5 h-3.5 text-falcon-subtle transition-transform ${selectedGroup?.id === group.id ? 'rotate-90' : ''}`} />
                         </div>
                       </td>
                     </tr>
@@ -203,12 +203,12 @@ export default function CorrelationRulesPage() {
 
         {/* Detail slide-out panel */}
         {selectedGroup && (
-          <div className="w-72 flex-shrink-0 bg-[#0d1220] border border-[#1e2d42] rounded-lg overflow-hidden self-start">
-            <div className="flex items-center justify-between px-4 py-3 border-b border-[#1e2d42]">
+          <div className="w-72 shrink-0 bg-falcon-surface border border-falcon-border rounded-lg overflow-hidden self-start">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-falcon-border">
               <h3 className="text-sm font-semibold text-white">グループ詳細</h3>
               <button
                 onClick={() => setSelectedGroup(null)}
-                className="p-1 rounded text-[#7d92b0] hover:text-white hover:bg-[#1e2d42] transition-colors"
+                className="p-1 rounded-sm text-falcon-muted hover:text-white hover:bg-falcon-border transition-colors"
               >
                 <X className="w-3.5 h-3.5" />
               </button>
@@ -225,26 +225,26 @@ export default function CorrelationRulesPage() {
                 { label: 'インシデントID', value: selectedGroup.incident_id ?? '—', mono: !!selectedGroup.incident_id },
               ].map(({ label, value, mono }) => (
                 <div key={label}>
-                  <p className="text-[10px] font-medium text-[#7d92b0] uppercase tracking-wider mb-1">{label}</p>
-                  <p className={`text-xs text-[#e2e8f4] break-all ${mono ? 'font-mono' : ''}`}>{value}</p>
+                  <p className="text-[10px] font-medium text-falcon-muted uppercase tracking-wider mb-1">{label}</p>
+                  <p className={`text-xs text-falcon-text break-all ${mono ? 'font-mono' : ''}`}>{value}</p>
                 </div>
               ))}
 
               {selectedGroup.incident_id && (
                 <a
                   href={`/incidents/${selectedGroup.incident_id}`}
-                  className="flex items-center gap-2 w-full px-3 py-2 rounded bg-[#1e2d42] hover:bg-[#e8002d]/10 hover:border-[#e8002d]/30 border border-[#1e2d42] text-xs text-[#7d92b0] hover:text-[#e8002d] transition-all mt-2"
+                  className="flex items-center gap-2 w-full px-3 py-2 rounded-sm bg-falcon-border hover:bg-falcon-red/10 hover:border-falcon-red/30 border border-falcon-border text-xs text-falcon-muted hover:text-falcon-red transition-all mt-2"
                 >
                   <ExternalLink className="w-3.5 h-3.5" />
                   インシデントを開く
                 </a>
               )}
 
-              <div className="pt-2 border-t border-[#1e2d42] flex flex-col gap-2">
+              <div className="pt-2 border-t border-falcon-border flex flex-col gap-2">
                 <button
                   onClick={() => toggleMutation.mutate(selectedGroup.id)}
                   disabled={toggleMutation.isPending}
-                  className="flex items-center gap-2 w-full px-3 py-2 rounded bg-[#1e2d42] hover:bg-[#1e2d42]/80 text-xs text-[#7d92b0] hover:text-white transition-colors border border-[#1e2d42]"
+                  className="flex items-center gap-2 w-full px-3 py-2 rounded-sm bg-falcon-border hover:bg-falcon-border/80 text-xs text-falcon-muted hover:text-white transition-colors border border-falcon-border"
                 >
                   {toggleMutation.isPending ? (
                     <ToggleLeft className="w-3.5 h-3.5" />
@@ -255,7 +255,7 @@ export default function CorrelationRulesPage() {
                 </button>
                 <button
                   onClick={() => setDeleteConfirm(selectedGroup.id)}
-                  className="flex items-center gap-2 w-full px-3 py-2 rounded bg-[#e8002d]/5 hover:bg-[#e8002d]/15 text-xs text-[#e8002d] transition-colors border border-[#e8002d]/20"
+                  className="flex items-center gap-2 w-full px-3 py-2 rounded-sm bg-falcon-red/5 hover:bg-falcon-red/15 text-xs text-falcon-red transition-colors border border-falcon-red/20"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
                   削除
@@ -268,21 +268,21 @@ export default function CorrelationRulesPage() {
 
       {/* Delete Confirm Modal */}
       {deleteConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl w-full max-w-sm mx-4 shadow-2xl p-5">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs">
+          <div className="bg-falcon-surface border border-falcon-border rounded-xl w-full max-w-sm mx-4 shadow-2xl p-5">
             <h2 className="text-base font-semibold text-white mb-2">グループを削除しますか？</h2>
-            <p className="text-sm text-[#7d92b0] mb-5">この操作は取り消せません。</p>
+            <p className="text-sm text-falcon-muted mb-5">この操作は取り消せません。</p>
             <div className="flex justify-end gap-3">
               <button
                 onClick={() => setDeleteConfirm(null)}
-                className="px-4 py-2 text-sm text-[#7d92b0] hover:text-white rounded border border-[#1e2d42] transition-colors"
+                className="px-4 py-2 text-sm text-falcon-muted hover:text-white rounded-sm border border-falcon-border transition-colors"
               >
                 キャンセル
               </button>
               <button
                 onClick={() => deleteMutation.mutate(deleteConfirm)}
                 disabled={deleteMutation.isPending}
-                className="px-4 py-2 text-sm bg-[#e8002d] hover:bg-[#c8001f] text-white rounded font-medium transition-colors disabled:opacity-50"
+                className="px-4 py-2 text-sm bg-falcon-red hover:bg-[#c8001f] text-white rounded-sm font-medium transition-colors disabled:opacity-50"
               >
                 {deleteMutation.isPending ? '削除中...' : '削除'}
               </button>

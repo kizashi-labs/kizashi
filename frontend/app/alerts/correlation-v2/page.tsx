@@ -198,7 +198,7 @@ const statusColor: Record<CorrelationStatus, string> = {
   new: 'bg-red-500/20 text-red-300 border-red-500/30',
   investigating: 'bg-blue-500/20 text-blue-300 border-blue-500/30',
   confirmed: 'bg-orange-500/20 text-orange-300 border-orange-500/30',
-  false_positive: 'bg-[#1e2d42] text-[#7d92b0] border-[#1e2d42]',
+  false_positive: 'bg-falcon-border text-falcon-muted border-falcon-border',
   resolved: 'bg-green-500/20 text-green-300 border-green-500/30',
 }
 
@@ -224,7 +224,7 @@ const patternTypeColor: Record<PatternType, string> = {
 }
 
 function Badge({ text, cls }: { text: string; cls: string }) {
-  return <span className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium border ${cls}`}>{text}</span>
+  return <span className={`inline-flex items-center px-2 py-0.5 rounded-sm text-[11px] font-medium border ${cls}`}>{text}</span>
 }
 
 function timeAgo(ts: string) {
@@ -242,43 +242,43 @@ function GroupDetailModal({ group, onClose, onFP }: {
 }) {
   return (
     <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[#1e2d42]">
+      <div className="bg-falcon-surface border border-falcon-border rounded-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-falcon-border">
           <div>
             <div className="flex items-center gap-2 mb-1">
               <h3 className="text-white font-semibold">{group.group_id}</h3>
               <Badge text={severityColor[group.severity].includes('red') ? '重大' : group.severity === 'high' ? '高' : '中'} cls={severityColor[group.severity]} />
               <Badge text={chainStageLabel[group.attack_chain_stage]} cls={`border-0 ${chainStageColor[group.attack_chain_stage]}`} />
             </div>
-            <p className="text-xs text-[#7d92b0]">{group.alert_count}件のアラート · {group.time_span_minutes}分間 · 信頼度 {group.confidence}%</p>
+            <p className="text-xs text-falcon-muted">{group.alert_count}件のアラート · {group.time_span_minutes}分間 · 信頼度 {group.confidence}%</p>
           </div>
           <div className="flex items-center gap-2">
             {group.status !== 'false_positive' && (
-              <button onClick={onFP} className="flex items-center gap-1 px-3 py-1.5 text-xs border border-[#1e2d42] text-[#7d92b0] hover:text-[#e8002d] hover:border-[#e8002d]/40 rounded-lg transition-colors">
+              <button onClick={onFP} className="flex items-center gap-1 px-3 py-1.5 text-xs border border-falcon-border text-falcon-muted hover:text-falcon-red hover:border-falcon-red/40 rounded-lg transition-colors">
                 <ThumbsDown className="w-3.5 h-3.5" /> 誤検知
               </button>
             )}
-            <button onClick={onClose} className="text-[#7d92b0] hover:text-white"><X className="w-5 h-5" /></button>
+            <button onClick={onClose} className="text-falcon-muted hover:text-white"><X className="w-5 h-5" /></button>
           </div>
         </div>
         <div className="p-6 space-y-5">
           {/* Timeline */}
           <div>
-            <p className="text-xs text-[#7d92b0] font-medium mb-3">イベントタイムライン</p>
+            <p className="text-xs text-falcon-muted font-medium mb-3">イベントタイムライン</p>
             <div className="space-y-0">
               {group.event_timeline.map((ev, i) => (
                 <div key={ev.id} className="flex gap-3">
                   <div className="flex flex-col items-center">
-                    <div className="w-2.5 h-2.5 rounded-full bg-[#e8002d] mt-1.5 flex-shrink-0" />
-                    {i < group.event_timeline.length - 1 && <div className="w-px flex-1 bg-[#1e2d42] my-1 min-h-[16px]" />}
+                    <div className="w-2.5 h-2.5 rounded-full bg-falcon-red mt-1.5 shrink-0" />
+                    {i < group.event_timeline.length - 1 && <div className="w-px flex-1 bg-falcon-border my-1 min-h-[16px]" />}
                   </div>
                   <div className="flex-1 pb-3">
                     <div className="flex items-center gap-2 mb-0.5">
                       <span className="text-xs text-white font-medium">{ev.host}</span>
-                      <span className="text-[10px] text-[#e8002d] bg-[#e8002d]/10 px-1.5 py-0.5 rounded font-mono">{ev.technique}</span>
-                      <span className="text-[10px] text-[#3d5068] ml-auto">{timeAgo(ev.timestamp)}</span>
+                      <span className="text-[10px] text-falcon-red bg-falcon-red/10 px-1.5 py-0.5 rounded-sm font-mono">{ev.technique}</span>
+                      <span className="text-[10px] text-falcon-subtle ml-auto">{timeAgo(ev.timestamp)}</span>
                     </div>
-                    <p className="text-xs text-[#7d92b0]">{ev.description}</p>
+                    <p className="text-xs text-falcon-muted">{ev.description}</p>
                   </div>
                 </div>
               ))}
@@ -287,15 +287,15 @@ function GroupDetailModal({ group, onClose, onFP }: {
 
           {/* Attack chain visualization */}
           <div>
-            <p className="text-xs text-[#7d92b0] font-medium mb-3">ATT&CK チェーン</p>
+            <p className="text-xs text-falcon-muted font-medium mb-3">ATT&CK チェーン</p>
             <div className="flex items-center gap-2 overflow-x-auto pb-2">
               {group.mitre_techniques.map((t, i) => (
-                <div key={t} className="flex items-center gap-2 flex-shrink-0">
-                  <div className="bg-[#1e2d42] border border-[#e8002d]/30 rounded-lg px-3 py-2 text-center min-w-[80px]">
-                    <p className="text-xs font-mono text-[#e8002d]">{t}</p>
-                    <p className="text-[10px] text-[#7d92b0]">MITRE</p>
+                <div key={t} className="flex items-center gap-2 shrink-0">
+                  <div className="bg-falcon-border border border-falcon-red/30 rounded-lg px-3 py-2 text-center min-w-[80px]">
+                    <p className="text-xs font-mono text-falcon-red">{t}</p>
+                    <p className="text-[10px] text-falcon-muted">MITRE</p>
                   </div>
-                  {i < group.mitre_techniques.length - 1 && <ChevronRight className="w-4 h-4 text-[#3d5068]" />}
+                  {i < group.mitre_techniques.length - 1 && <ChevronRight className="w-4 h-4 text-falcon-subtle" />}
                 </div>
               ))}
             </div>
@@ -303,10 +303,10 @@ function GroupDetailModal({ group, onClose, onFP }: {
 
           {/* Involved hosts */}
           <div>
-            <p className="text-xs text-[#7d92b0] font-medium mb-2">関連ホスト</p>
+            <p className="text-xs text-falcon-muted font-medium mb-2">関連ホスト</p>
             <div className="flex flex-wrap gap-2">
               {group.involved_hosts.map(h => (
-                <span key={h} className="text-xs bg-[#1e2d42] text-[#e2e8f4] px-2 py-1 rounded font-mono">{h}</span>
+                <span key={h} className="text-xs bg-falcon-border text-falcon-text px-2 py-1 rounded-sm font-mono">{h}</span>
               ))}
             </div>
           </div>
@@ -314,11 +314,11 @@ function GroupDetailModal({ group, onClose, onFP }: {
           {/* Recommended actions */}
           {group.recommended_response.length > 0 && (
             <div>
-              <p className="text-xs text-[#7d92b0] font-medium mb-2">推奨対応</p>
+              <p className="text-xs text-falcon-muted font-medium mb-2">推奨対応</p>
               <ul className="space-y-1">
                 {group.recommended_response.map((r, i) => (
-                  <li key={i} className="flex items-start gap-2 text-xs text-[#e2e8f4]">
-                    <ChevronRight className="w-3.5 h-3.5 text-[#e8002d] mt-0.5 flex-shrink-0" />
+                  <li key={i} className="flex items-start gap-2 text-xs text-falcon-text">
+                    <ChevronRight className="w-3.5 h-3.5 text-falcon-red mt-0.5 shrink-0" />
                     {r}
                   </li>
                 ))}
@@ -341,21 +341,21 @@ function AddRuleModal({ onClose, onSave }: { onClose: () => void; onSave: (r: Pa
 
   return (
     <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl w-full max-w-lg">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[#1e2d42]">
+      <div className="bg-falcon-surface border border-falcon-border rounded-xl w-full max-w-lg">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-falcon-border">
           <h3 className="text-white font-semibold">相関ルール追加</h3>
-          <button onClick={onClose} className="text-[#7d92b0] hover:text-white"><X className="w-5 h-5" /></button>
+          <button onClick={onClose} className="text-falcon-muted hover:text-white"><X className="w-5 h-5" /></button>
         </div>
         <div className="p-6 space-y-4">
           <div>
-            <label className="text-xs text-[#7d92b0] mb-1 block">ルール名</label>
-            <input className="w-full bg-[#070d19] border border-[#1e2d42] rounded px-3 py-2 text-sm text-white focus:outline-none"
+            <label className="text-xs text-falcon-muted mb-1 block">ルール名</label>
+            <input className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-sm text-white focus:outline-hidden"
               value={name} onChange={e => setName(e.target.value)} />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="text-xs text-[#7d92b0] mb-1 block">パターンタイプ</label>
-              <select className="w-full bg-[#070d19] border border-[#1e2d42] rounded px-3 py-2 text-sm text-white focus:outline-none"
+              <label className="text-xs text-falcon-muted mb-1 block">パターンタイプ</label>
+              <select className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-sm text-white focus:outline-hidden"
                 value={patternType} onChange={e => setPatternType(e.target.value as PatternType)}>
                 <option value="sequence">シーケンス</option>
                 <option value="cluster">クラスター</option>
@@ -363,22 +363,22 @@ function AddRuleModal({ onClose, onSave }: { onClose: () => void; onSave: (r: Pa
               </select>
             </div>
             <div>
-              <label className="text-xs text-[#7d92b0] mb-1 block">時間ウィンドウ (分)</label>
-              <input type="number" className="w-full bg-[#070d19] border border-[#1e2d42] rounded px-3 py-2 text-sm text-white focus:outline-none"
+              <label className="text-xs text-falcon-muted mb-1 block">時間ウィンドウ (分)</label>
+              <input type="number" className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-sm text-white focus:outline-hidden"
                 value={window} onChange={e => setWindow(parseInt(e.target.value) || 30)} />
             </div>
           </div>
           <div>
-            <label className="text-xs text-[#7d92b0] mb-1 block">トリガー条件</label>
-            <textarea className="w-full bg-[#070d19] border border-[#1e2d42] rounded px-3 py-2 text-sm text-white focus:outline-none resize-none"
+            <label className="text-xs text-falcon-muted mb-1 block">トリガー条件</label>
+            <textarea className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-sm text-white focus:outline-hidden resize-none"
               rows={3} placeholder="例: auth.failure.count >= 10 AND auth.success WITHIN 5m"
               value={trigger} onChange={e => setTrigger(e.target.value)} />
           </div>
         </div>
-        <div className="flex justify-end gap-3 px-6 py-4 border-t border-[#1e2d42]">
-          <button onClick={onClose} className="px-4 py-2 text-sm text-[#7d92b0] hover:text-white">キャンセル</button>
+        <div className="flex justify-end gap-3 px-6 py-4 border-t border-falcon-border">
+          <button onClick={onClose} className="px-4 py-2 text-sm text-falcon-muted hover:text-white">キャンセル</button>
           <button onClick={() => onSave({ rule_name: name, pattern_type: patternType, trigger_condition: trigger, time_window_minutes: window, active: true })}
-            className="px-4 py-2 bg-[#e8002d] hover:bg-[#c0001f] text-white text-sm rounded-lg">保存</button>
+            className="px-4 py-2 bg-falcon-red hover:bg-[#c0001f] text-white text-sm rounded-lg">保存</button>
         </div>
       </div>
     </div>
@@ -423,18 +423,18 @@ export default function CorrelationV2Page() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-[#e8002d]/10 border border-[#e8002d]/30 flex items-center justify-center">
-            <GitMerge className="w-5 h-5 text-[#e8002d]" />
+          <div className="w-10 h-10 rounded-lg bg-falcon-red/10 border border-falcon-red/30 flex items-center justify-center">
+            <GitMerge className="w-5 h-5 text-falcon-red" />
           </div>
           <div>
             <h1 className="text-xl font-bold text-white">高度イベント相関分析 v2</h1>
-            <p className="text-xs text-[#7d92b0]">インテリジェント相関エンジン</p>
+            <p className="text-xs text-falcon-muted">インテリジェント相関エンジン</p>
           </div>
         </div>
         {tab === 'rules' && (
           <button
             onClick={() => setShowAddRule(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-[#e8002d] hover:bg-[#c0001f] text-white text-sm rounded-lg transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-falcon-red hover:bg-[#c0001f] text-white text-sm rounded-lg transition-colors"
           >
             <Plus className="w-4 h-4" /> ルール追加
           </button>
@@ -449,21 +449,21 @@ export default function CorrelationV2Page() {
           { label: '本日の相関検出', value: engineStatus.correlations_today, suffix: '件', color: 'text-orange-400', icon: <Activity className="w-4 h-4" /> },
           { label: '検出レイテンシ', value: engineStatus.detection_latency_ms, suffix: 'ms', color: 'text-purple-400', icon: <Clock className="w-4 h-4" /> },
         ].map(s => (
-          <div key={s.label} className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-4">
+          <div key={s.label} className="bg-falcon-surface border border-falcon-border rounded-xl p-4">
             <div className="flex items-center justify-between mb-2">
-              <p className="text-xs text-[#7d92b0]">{s.label}</p>
+              <p className="text-xs text-falcon-muted">{s.label}</p>
               <span className={`${s.color} opacity-60`}>{s.icon}</span>
             </div>
-            <p className={`text-2xl font-bold ${s.color}`}>{s.value}<span className="text-sm ml-1 font-normal text-[#7d92b0]">{s.suffix}</span></p>
+            <p className={`text-2xl font-bold ${s.color}`}>{s.value}<span className="text-sm ml-1 font-normal text-falcon-muted">{s.suffix}</span></p>
           </div>
         ))}
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 bg-[#0d1220] border border-[#1e2d42] rounded-lg p-1 w-fit">
+      <div className="flex gap-1 bg-falcon-surface border border-falcon-border rounded-lg p-1 w-fit">
         {(['groups', 'rules'] as const).map(t => (
           <button key={t} onClick={() => setTab(t)}
-            className={`px-4 py-1.5 rounded text-sm font-medium transition-colors ${tab === t ? 'bg-[#1d2f4a] text-white' : 'text-[#7d92b0] hover:text-white'}`}>
+            className={`px-4 py-1.5 rounded-sm text-sm font-medium transition-colors ${tab === t ? 'bg-falcon-active text-white' : 'text-falcon-muted hover:text-white'}`}>
             {t === 'groups' ? `相関グループ (${groups.length})` : `相関ルール (${rules.length})`}
           </button>
         ))}
@@ -471,36 +471,36 @@ export default function CorrelationV2Page() {
 
       {/* Correlation Groups */}
       {tab === 'groups' && (
-        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
+        <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-[#1e2d42]">
+              <tr className="border-b border-falcon-border">
                 {['グループID', 'アラート数', 'スパン', '関連ホスト', '攻撃チェーン', '信頼度', '重大度', 'ステータス', '操作'].map(h => (
-                  <th key={h} className="text-left text-xs text-[#7d92b0] font-medium px-4 py-3">{h}</th>
+                  <th key={h} className="text-left text-xs text-falcon-muted font-medium px-4 py-3">{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {groups.map(g => (
-                <tr key={g.id} className="border-b border-[#1e2d42]/50 hover:bg-[#1e2d42]/20 transition-colors">
-                  <td className="px-4 py-3 font-mono text-xs text-[#e8002d]">{g.group_id}</td>
+                <tr key={g.id} className="border-b border-falcon-border/50 hover:bg-falcon-border/20 transition-colors">
+                  <td className="px-4 py-3 font-mono text-xs text-falcon-red">{g.group_id}</td>
                   <td className="px-4 py-3 text-white font-bold">{g.alert_count}</td>
-                  <td className="px-4 py-3 text-[#7d92b0] text-xs">{g.time_span_minutes}分</td>
+                  <td className="px-4 py-3 text-falcon-muted text-xs">{g.time_span_minutes}分</td>
                   <td className="px-4 py-3">
-                    <span className="text-xs text-[#7d92b0]">{g.involved_hosts[0]}{g.involved_hosts.length > 1 && ` +${g.involved_hosts.length - 1}`}</span>
+                    <span className="text-xs text-falcon-muted">{g.involved_hosts[0]}{g.involved_hosts.length > 1 && ` +${g.involved_hosts.length - 1}`}</span>
                   </td>
                   <td className="px-4 py-3">
-                    <span className={`text-[11px] px-2 py-0.5 rounded ${chainStageColor[g.attack_chain_stage]}`}>
+                    <span className={`text-[11px] px-2 py-0.5 rounded-sm ${chainStageColor[g.attack_chain_stage]}`}>
                       {chainStageLabel[g.attack_chain_stage]}
                     </span>
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
-                      <div className="w-16 h-1.5 bg-[#1e2d42] rounded-full overflow-hidden">
-                        <div className={`h-full rounded-full ${g.confidence >= 85 ? 'bg-[#e8002d]' : g.confidence >= 70 ? 'bg-orange-400' : 'bg-yellow-400'}`}
+                      <div className="w-16 h-1.5 bg-falcon-border rounded-full overflow-hidden">
+                        <div className={`h-full rounded-full ${g.confidence >= 85 ? 'bg-falcon-red' : g.confidence >= 70 ? 'bg-orange-400' : 'bg-yellow-400'}`}
                           style={{ width: `${g.confidence}%` }} />
                       </div>
-                      <span className="text-xs text-[#7d92b0]">{g.confidence}%</span>
+                      <span className="text-xs text-falcon-muted">{g.confidence}%</span>
                     </div>
                   </td>
                   <td className="px-4 py-3"><Badge text={g.severity === 'critical' ? '重大' : g.severity === 'high' ? '高' : g.severity === 'medium' ? '中' : '低'} cls={severityColor[g.severity]} /></td>
@@ -508,12 +508,12 @@ export default function CorrelationV2Page() {
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-1">
                       <button onClick={() => setSelectedGroup(g)}
-                        className="flex items-center gap-1 text-xs text-[#7d92b0] hover:text-white px-2 py-1 border border-[#1e2d42] rounded transition-colors">
+                        className="flex items-center gap-1 text-xs text-falcon-muted hover:text-white px-2 py-1 border border-falcon-border rounded-sm transition-colors">
                         <Eye className="w-3 h-3" /> 詳細
                       </button>
                       {g.status !== 'false_positive' && (
                         <button onClick={() => markFP(g.id)}
-                          className="text-xs text-[#7d92b0] hover:text-[#e8002d] px-2 py-1 border border-[#1e2d42] rounded transition-colors">
+                          className="text-xs text-falcon-muted hover:text-falcon-red px-2 py-1 border border-falcon-border rounded-sm transition-colors">
                           誤検知
                         </button>
                       )}
@@ -528,30 +528,30 @@ export default function CorrelationV2Page() {
 
       {/* Correlation Rules */}
       {tab === 'rules' && (
-        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
+        <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-[#1e2d42]">
+              <tr className="border-b border-falcon-border">
                 {['ルール名', 'パターン', 'トリガー条件', '時間ウィンドウ', 'マッチ数', '状態'].map(h => (
-                  <th key={h} className="text-left text-xs text-[#7d92b0] font-medium px-4 py-3">{h}</th>
+                  <th key={h} className="text-left text-xs text-falcon-muted font-medium px-4 py-3">{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {rules.map(r => (
-                <tr key={r.id} className="border-b border-[#1e2d42]/50 hover:bg-[#1e2d42]/20 transition-colors">
+                <tr key={r.id} className="border-b border-falcon-border/50 hover:bg-falcon-border/20 transition-colors">
                   <td className="px-4 py-3 text-white font-medium">{r.rule_name}</td>
                   <td className="px-4 py-3"><Badge text={patternLabel[r.pattern_type]} cls={patternTypeColor[r.pattern_type]} /></td>
-                  <td className="px-4 py-3 text-[#7d92b0] text-xs max-w-xs truncate">{r.trigger_condition}</td>
-                  <td className="px-4 py-3 text-[#7d92b0]">{r.time_window_minutes}分</td>
+                  <td className="px-4 py-3 text-falcon-muted text-xs max-w-xs truncate">{r.trigger_condition}</td>
+                  <td className="px-4 py-3 text-falcon-muted">{r.time_window_minutes}分</td>
                   <td className="px-4 py-3 text-white font-bold">{r.match_count}</td>
                   <td className="px-4 py-3">
                     <button onClick={() => toggleRule(r.id)} className="flex items-center gap-2 group">
                       {r.active
                         ? <ToggleRight className="w-5 h-5 text-green-400 group-hover:text-green-300" />
-                        : <ToggleLeft className="w-5 h-5 text-[#3d5068] group-hover:text-[#7d92b0]" />
+                        : <ToggleLeft className="w-5 h-5 text-falcon-subtle group-hover:text-falcon-muted" />
                       }
-                      <span className={`text-xs ${r.active ? 'text-green-400' : 'text-[#7d92b0]'}`}>{r.active ? '有効' : '無効'}</span>
+                      <span className={`text-xs ${r.active ? 'text-green-400' : 'text-falcon-muted'}`}>{r.active ? '有効' : '無効'}</span>
                     </button>
                   </td>
                 </tr>

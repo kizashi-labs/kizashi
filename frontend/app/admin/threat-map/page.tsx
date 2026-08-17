@@ -304,11 +304,11 @@ export default function ThreatMapPage() {
                 <td className="px-4 py-3 text-sm text-zinc-400">{fmtDate(threat.last_seen)}</td>
                 <td className="px-4 py-3">
                   {threat.blocked ? (
-                    <span className="flex items-center gap-1 px-2 py-0.5 bg-red-900 text-red-300 rounded text-xs">
+                    <span className="flex items-center gap-1 px-2 py-0.5 bg-red-900 text-red-300 rounded-sm text-xs">
                       <Shield className="w-3 h-3" /> ブロック済み
                     </span>
                   ) : (
-                    <span className="px-2 py-0.5 bg-zinc-700 text-zinc-400 rounded text-xs">
+                    <span className="px-2 py-0.5 bg-zinc-700 text-zinc-400 rounded-sm text-xs">
                       アクティブ
                     </span>
                   )}

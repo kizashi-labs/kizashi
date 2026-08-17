@@ -63,7 +63,7 @@ const CATEGORY_LABELS: Record<ControlCategory, string> = {
 
 const STATUS_STYLES: Record<ControlStatus, string> = {
   passing: 'bg-green-900/40 text-green-400 border border-green-700/40',
-  failing: 'bg-[#e8002d]/20 text-[#e8002d] border border-[#e8002d]/30',
+  failing: 'bg-falcon-red/20 text-falcon-red border border-falcon-red/30',
   partial: 'bg-yellow-900/40 text-yellow-400 border border-yellow-700/40',
   not_tested: 'bg-gray-800 text-gray-400 border border-gray-700/40',
 }
@@ -113,13 +113,13 @@ function TestExecutionModal({ control, onClose, onSubmit }: {
 
   return (
     <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl w-full max-w-lg max-h-[85vh] overflow-y-auto">
-        <div className="flex items-center justify-between p-5 border-b border-[#1e2d42] sticky top-0 bg-[#0d1220]">
+      <div className="bg-falcon-surface border border-falcon-border rounded-xl w-full max-w-lg max-h-[85vh] overflow-y-auto">
+        <div className="flex items-center justify-between p-5 border-b border-falcon-border sticky top-0 bg-falcon-surface">
           <div>
             <h3 className="text-white font-bold">テスト実行</h3>
-            <p className="text-[#7d92b0] text-xs mt-0.5">{control.control_id} — {control.name}</p>
+            <p className="text-falcon-muted text-xs mt-0.5">{control.control_id} — {control.name}</p>
           </div>
-          <button onClick={onClose} className="text-[#7d92b0] hover:text-white"><X className="w-5 h-5" /></button>
+          <button onClick={onClose} className="text-falcon-muted hover:text-white"><X className="w-5 h-5" /></button>
         </div>
         <div className="p-5 space-y-5">
           {/* Procedure checklist */}
@@ -132,9 +132,9 @@ function TestExecutionModal({ control, onClose, onSubmit }: {
                     type="checkbox"
                     checked={checkedSteps.has(i)}
                     onChange={() => toggleStep(i)}
-                    className="mt-0.5 accent-[#e8002d]"
+                    className="mt-0.5 accent-falcon-red"
                   />
-                  <span className={`text-sm transition-colors ${checkedSteps.has(i) ? 'text-[#7d92b0] line-through' : 'text-[#e2e8f4]'}`}>
+                  <span className={`text-sm transition-colors ${checkedSteps.has(i) ? 'text-falcon-muted line-through' : 'text-falcon-text'}`}>
                     {step}
                   </span>
                 </label>
@@ -144,16 +144,16 @@ function TestExecutionModal({ control, onClose, onSubmit }: {
 
           {/* Evidence upload */}
           <div>
-            <label className="text-[#7d92b0] text-xs mb-1 block">エビデンスファイル（モック）</label>
+            <label className="text-falcon-muted text-xs mb-1 block">エビデンスファイル（モック）</label>
             <div className="flex items-center gap-2">
               <input
                 value={evidenceFile}
                 onChange={e => setEvidenceFile(e.target.value)}
                 placeholder="ファイル名または参照先..."
-                className="flex-1 bg-[#070d19] border border-[#1e2d42] rounded px-3 py-2 text-white text-sm
-                           focus:outline-none focus:border-[#e8002d]/50"
+                className="flex-1 bg-[#070d19] border border-falcon-border rounded px-3 py-2 text-white text-sm
+                           focus:outline-hidden focus:border-falcon-red/50"
               />
-              <button className="flex items-center gap-1.5 px-3 py-2 bg-[#161f33] border border-[#1e2d42] rounded text-[#7d92b0] text-sm hover:text-white hover:border-[#7d92b0]/40 transition-colors">
+              <button className="flex items-center gap-1.5 px-3 py-2 bg-falcon-raised border border-falcon-border rounded-sm text-falcon-muted text-sm hover:text-white hover:border-falcon-muted/40 transition-colors">
                 <Upload className="w-4 h-4" />
                 参照
               </button>
@@ -162,7 +162,7 @@ function TestExecutionModal({ control, onClose, onSubmit }: {
 
           {/* Pass/Fail/Partial */}
           <div>
-            <label className="text-[#7d92b0] text-xs mb-2 block">テスト結果</label>
+            <label className="text-falcon-muted text-xs mb-2 block">テスト結果</label>
             <div className="flex gap-3">
               {(['pass', 'partial', 'fail'] as TestResult[]).map(r => (
                 <label key={r} className="flex items-center gap-2 cursor-pointer">
@@ -172,10 +172,10 @@ function TestExecutionModal({ control, onClose, onSubmit }: {
                     value={r}
                     checked={result === r}
                     onChange={() => setResult(r)}
-                    className="accent-[#e8002d]"
+                    className="accent-falcon-red"
                   />
                   <span className={`text-sm font-medium ${
-                    r === 'pass' ? 'text-green-400' : r === 'fail' ? 'text-[#e8002d]' : 'text-yellow-400'
+                    r === 'pass' ? 'text-green-400' : r === 'fail' ? 'text-falcon-red' : 'text-yellow-400'
                   }`}>
                     {r === 'pass' ? '合格' : r === 'fail' ? '不合格' : '部分的'}
                   </span>
@@ -187,7 +187,7 @@ function TestExecutionModal({ control, onClose, onSubmit }: {
           {/* Score slider */}
           <div>
             <div className="flex items-center justify-between mb-2">
-              <label className="text-[#7d92b0] text-xs">スコア</label>
+              <label className="text-falcon-muted text-xs">スコア</label>
               <span className="text-white font-bold text-sm">{score}</span>
             </div>
             <input
@@ -196,33 +196,33 @@ function TestExecutionModal({ control, onClose, onSubmit }: {
               max={100}
               value={score}
               onChange={e => setScore(parseInt(e.target.value))}
-              className="w-full accent-[#e8002d]"
+              className="w-full accent-falcon-red"
             />
-            <div className="flex justify-between text-[#3d5068] text-xs mt-1">
+            <div className="flex justify-between text-falcon-subtle text-xs mt-1">
               <span>0</span><span>50</span><span>100</span>
             </div>
           </div>
 
           {/* Notes */}
           <div>
-            <label className="text-[#7d92b0] text-xs mb-1 block">備考</label>
+            <label className="text-falcon-muted text-xs mb-1 block">備考</label>
             <textarea
               value={notes}
               onChange={e => setNotes(e.target.value)}
               rows={3}
-              className="w-full bg-[#070d19] border border-[#1e2d42] rounded px-3 py-2 text-white text-sm
-                         focus:outline-none focus:border-[#e8002d]/50 resize-none"
+              className="w-full bg-[#070d19] border border-falcon-border rounded px-3 py-2 text-white text-sm
+                         focus:outline-hidden focus:border-falcon-red/50 resize-none"
               placeholder="テスト結果の詳細..."
             />
           </div>
         </div>
-        <div className="flex justify-end gap-3 p-5 border-t border-[#1e2d42]">
-          <button onClick={onClose} className="px-4 py-2 text-sm text-[#7d92b0] hover:text-white transition-colors">
+        <div className="flex justify-end gap-3 p-5 border-t border-falcon-border">
+          <button onClick={onClose} className="px-4 py-2 text-sm text-falcon-muted hover:text-white transition-colors">
             キャンセル
           </button>
           <button
             onClick={() => { onSubmit({ result, score, notes }); onClose() }}
-            className="flex items-center gap-2 px-4 py-2 text-sm bg-[#e8002d] text-white rounded font-medium hover:bg-[#c5001f] transition-colors"
+            className="flex items-center gap-2 px-4 py-2 text-sm bg-falcon-red text-white rounded-sm font-medium hover:bg-[#c5001f] transition-colors"
           >
             <Play className="w-4 h-4" />
             結果を提出
@@ -239,41 +239,41 @@ function ControlDetailModal({ control, onClose }: { control: Control; onClose: (
   const StatusIcon = STATUS_ICONS[control.status]
   return (
     <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl w-full max-w-2xl max-h-[85vh] overflow-y-auto">
-        <div className="flex items-start justify-between p-5 border-b border-[#1e2d42]">
+      <div className="bg-falcon-surface border border-falcon-border rounded-xl w-full max-w-2xl max-h-[85vh] overflow-y-auto">
+        <div className="flex items-start justify-between p-5 border-b border-falcon-border">
           <div>
             <div className="flex items-center gap-3 mb-1">
-              <span className="text-[#7d92b0] font-mono text-sm">{control.control_id}</span>
+              <span className="text-falcon-muted font-mono text-sm">{control.control_id}</span>
               <span className={`text-xs px-2.5 py-0.5 rounded-full font-medium ${STATUS_STYLES[control.status]}`}>
                 {STATUS_LABELS[control.status]}
               </span>
             </div>
             <h3 className="text-white font-bold text-lg">{control.name}</h3>
           </div>
-          <button onClick={onClose} className="text-[#7d92b0] hover:text-white"><X className="w-5 h-5" /></button>
+          <button onClick={onClose} className="text-falcon-muted hover:text-white"><X className="w-5 h-5" /></button>
         </div>
         <div className="p-5 space-y-6">
           <div>
-            <h4 className="text-[#7d92b0] text-xs mb-1">説明</h4>
-            <p className="text-[#e2e8f4] text-sm">{control.description}</p>
+            <h4 className="text-falcon-muted text-xs mb-1">説明</h4>
+            <p className="text-falcon-text text-sm">{control.description}</p>
           </div>
           <div className="grid grid-cols-2 gap-4">
-            <div className="bg-[#070d19] rounded-lg p-3 border border-[#1e2d42]">
-              <p className="text-[#7d92b0] text-xs mb-1">カテゴリ</p>
-              <span className={`text-xs px-2.5 py-1 rounded font-medium ${CATEGORY_STYLES[control.category]}`}>
+            <div className="bg-[#070d19] rounded-lg p-3 border border-falcon-border">
+              <p className="text-falcon-muted text-xs mb-1">カテゴリ</p>
+              <span className={`text-xs px-2.5 py-1 rounded-sm font-medium ${CATEGORY_STYLES[control.category]}`}>
                 {CATEGORY_LABELS[control.category]}
               </span>
             </div>
-            <div className="bg-[#070d19] rounded-lg p-3 border border-[#1e2d42]">
-              <p className="text-[#7d92b0] text-xs mb-1">テスト方法</p>
+            <div className="bg-[#070d19] rounded-lg p-3 border border-falcon-border">
+              <p className="text-falcon-muted text-xs mb-1">テスト方法</p>
               <p className="text-white text-sm font-medium">{METHOD_LABELS[control.test_method]}</p>
             </div>
-            <div className="bg-[#070d19] rounded-lg p-3 border border-[#1e2d42]">
-              <p className="text-[#7d92b0] text-xs mb-1">担当者</p>
+            <div className="bg-[#070d19] rounded-lg p-3 border border-falcon-border">
+              <p className="text-falcon-muted text-xs mb-1">担当者</p>
               <p className="text-white text-sm">{displayUser(control.assigned_to)}</p>
             </div>
-            <div className="bg-[#070d19] rounded-lg p-3 border border-[#1e2d42]">
-              <p className="text-[#7d92b0] text-xs mb-1">最終テスト</p>
+            <div className="bg-[#070d19] rounded-lg p-3 border border-falcon-border">
+              <p className="text-falcon-muted text-xs mb-1">最終テスト</p>
               <p className="text-white text-sm">{control.last_tested ?? '未実施'}</p>
             </div>
           </div>
@@ -281,45 +281,45 @@ function ControlDetailModal({ control, onClose }: { control: Control; onClose: (
             <h4 className="text-white font-semibold text-sm mb-2">フレームワーク対応</h4>
             <div className="flex flex-wrap gap-2">
               {control.frameworks.map(f => (
-                <span key={f} className="text-xs px-2.5 py-1 rounded bg-[#161f33] text-[#7d92b0] border border-[#1e2d42] font-mono">{f}</span>
+                <span key={f} className="text-xs px-2.5 py-1 rounded-sm bg-falcon-raised text-falcon-muted border border-falcon-border font-mono">{f}</span>
               ))}
             </div>
           </div>
           <div>
             <h4 className="text-white font-semibold text-sm mb-2">テスト履歴</h4>
             {control.test_history.length === 0 ? (
-              <p className="text-[#7d92b0] text-sm">テスト履歴なし</p>
+              <p className="text-falcon-muted text-sm">テスト履歴なし</p>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b border-[#1e2d42]">
+                    <tr className="border-b border-falcon-border">
                       {['日付', 'テスター', '結果', 'スコア', '備考', 'エビデンス'].map(h => (
-                        <th key={h} className="text-left text-[#7d92b0] text-xs pb-2 pr-3 font-medium">{h}</th>
+                        <th key={h} className="text-left text-falcon-muted text-xs pb-2 pr-3 font-medium">{h}</th>
                       ))}
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-[#1e2d42]">
+                  <tbody className="divide-y divide-falcon-border">
                     {control.test_history.map(th => (
                       <tr key={th.id}>
-                        <td className="py-2 pr-3 text-[#7d92b0] text-xs whitespace-nowrap">{th.date}</td>
-                        <td className="py-2 pr-3 text-[#e2e8f4] text-xs whitespace-nowrap">{th.tester}</td>
+                        <td className="py-2 pr-3 text-falcon-muted text-xs whitespace-nowrap">{th.date}</td>
+                        <td className="py-2 pr-3 text-falcon-text text-xs whitespace-nowrap">{th.tester}</td>
                         <td className="py-2 pr-3 text-xs">
                           <span className={`px-2 py-0.5 rounded-full font-medium ${
                             th.result === 'pass' ? 'bg-green-900/40 text-green-400' :
-                            th.result === 'fail' ? 'bg-[#e8002d]/20 text-[#e8002d]' :
+                            th.result === 'fail' ? 'bg-falcon-red/20 text-falcon-red' :
                             'bg-yellow-900/40 text-yellow-400'
                           }`}>
                             {th.result === 'pass' ? '合格' : th.result === 'fail' ? '不合格' : '部分的'}
                           </span>
                         </td>
                         <td className="py-2 pr-3 text-white font-medium text-xs">{th.score}</td>
-                        <td className="py-2 pr-3 text-[#7d92b0] text-xs max-w-[160px] truncate">{th.notes}</td>
+                        <td className="py-2 pr-3 text-falcon-muted text-xs max-w-[160px] truncate">{th.notes}</td>
                         <td className="py-2 text-xs">
                           {th.evidence_link ? (
-                            <a href={th.evidence_link} className="text-[#e8002d] hover:underline text-xs">表示</a>
+                            <a href={th.evidence_link} className="text-falcon-red hover:underline text-xs">表示</a>
                           ) : (
-                            <span className="text-[#3d5068]">—</span>
+                            <span className="text-falcon-subtle">—</span>
                           )}
                         </td>
                       </tr>
@@ -376,57 +376,57 @@ function AddControlModal({ onClose, onSubmit }: {
 
   return (
     <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl w-full max-w-lg max-h-[85vh] overflow-y-auto">
-        <div className="flex items-center justify-between p-5 border-b border-[#1e2d42] sticky top-0 bg-[#0d1220]">
+      <div className="bg-falcon-surface border border-falcon-border rounded-xl w-full max-w-lg max-h-[85vh] overflow-y-auto">
+        <div className="flex items-center justify-between p-5 border-b border-falcon-border sticky top-0 bg-falcon-surface">
           <h3 className="text-white font-bold">コントロール追加</h3>
-          <button onClick={onClose} className="text-[#7d92b0] hover:text-white"><X className="w-5 h-5" /></button>
+          <button onClick={onClose} className="text-falcon-muted hover:text-white"><X className="w-5 h-5" /></button>
         </div>
         <div className="p-5 space-y-4">
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-[#7d92b0] text-xs mb-1 block">コントロールID *</label>
+              <label className="text-falcon-muted text-xs mb-1 block">コントロールID *</label>
               <input
                 value={form.control_id}
                 onChange={e => setForm(p => ({ ...p, control_id: e.target.value }))}
-                className="w-full bg-[#070d19] border border-[#1e2d42] rounded px-3 py-2 text-white text-sm focus:outline-none focus:border-[#e8002d]/50"
+                className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-red/50"
                 placeholder="例: CC-016"
               />
             </div>
             <div>
-              <label className="text-[#7d92b0] text-xs mb-1 block">担当者</label>
+              <label className="text-falcon-muted text-xs mb-1 block">担当者</label>
               <input
                 value={form.assigned_to}
                 onChange={e => setForm(p => ({ ...p, assigned_to: e.target.value }))}
-                className="w-full bg-[#070d19] border border-[#1e2d42] rounded px-3 py-2 text-white text-sm focus:outline-none focus:border-[#e8002d]/50"
+                className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-red/50"
                 placeholder="例: 田中 太郎"
               />
             </div>
           </div>
           <div>
-            <label className="text-[#7d92b0] text-xs mb-1 block">コントロール名 *</label>
+            <label className="text-falcon-muted text-xs mb-1 block">コントロール名 *</label>
             <input
               value={form.name}
               onChange={e => setForm(p => ({ ...p, name: e.target.value }))}
-              className="w-full bg-[#070d19] border border-[#1e2d42] rounded px-3 py-2 text-white text-sm focus:outline-none focus:border-[#e8002d]/50"
+              className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-red/50"
               placeholder="コントロール名..."
             />
           </div>
           <div>
-            <label className="text-[#7d92b0] text-xs mb-1 block">説明</label>
+            <label className="text-falcon-muted text-xs mb-1 block">説明</label>
             <textarea
               value={form.description}
               onChange={e => setForm(p => ({ ...p, description: e.target.value }))}
               rows={2}
-              className="w-full bg-[#070d19] border border-[#1e2d42] rounded px-3 py-2 text-white text-sm focus:outline-none focus:border-[#e8002d]/50 resize-none"
+              className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-red/50 resize-none"
             />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-[#7d92b0] text-xs mb-1 block">カテゴリ</label>
+              <label className="text-falcon-muted text-xs mb-1 block">カテゴリ</label>
               <select
                 value={form.category}
                 onChange={e => setForm(p => ({ ...p, category: e.target.value as ControlCategory }))}
-                className="w-full bg-[#070d19] border border-[#1e2d42] rounded px-3 py-2 text-white text-sm focus:outline-none focus:border-[#e8002d]/50"
+                className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-red/50"
               >
                 <option value="preventive">予防的</option>
                 <option value="detective">発見的</option>
@@ -435,11 +435,11 @@ function AddControlModal({ onClose, onSubmit }: {
               </select>
             </div>
             <div>
-              <label className="text-[#7d92b0] text-xs mb-1 block">テスト方法</label>
+              <label className="text-falcon-muted text-xs mb-1 block">テスト方法</label>
               <select
                 value={form.test_method}
                 onChange={e => setForm(p => ({ ...p, test_method: e.target.value as TestMethod }))}
-                className="w-full bg-[#070d19] border border-[#1e2d42] rounded px-3 py-2 text-white text-sm focus:outline-none focus:border-[#e8002d]/50"
+                className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-red/50"
               >
                 <option value="automated">自動</option>
                 <option value="manual">手動</option>
@@ -448,7 +448,7 @@ function AddControlModal({ onClose, onSubmit }: {
             </div>
           </div>
           <div>
-            <label className="text-[#7d92b0] text-xs mb-2 block">フレームワーク（複数選択）</label>
+            <label className="text-falcon-muted text-xs mb-2 block">フレームワーク（複数選択）</label>
             <div className="flex flex-wrap gap-2">
               {FRAMEWORKS.map(f => (
                 <button
@@ -456,8 +456,8 @@ function AddControlModal({ onClose, onSubmit }: {
                   onClick={() => toggleFramework(f)}
                   className={`text-xs px-3 py-1.5 rounded font-mono font-medium transition-colors border ${
                     form.frameworks.includes(f)
-                      ? 'bg-[#e8002d]/20 text-[#e8002d] border-[#e8002d]/40'
-                      : 'bg-[#161f33] text-[#7d92b0] border-[#1e2d42]'
+                      ? 'bg-falcon-red/20 text-falcon-red border-falcon-red/40'
+                      : 'bg-falcon-raised text-falcon-muted border-falcon-border'
                   }`}
                 >
                   {f}
@@ -466,22 +466,22 @@ function AddControlModal({ onClose, onSubmit }: {
             </div>
           </div>
           <div>
-            <label className="text-[#7d92b0] text-xs mb-1 block">テスト手順（1行1ステップ）</label>
+            <label className="text-falcon-muted text-xs mb-1 block">テスト手順（1行1ステップ）</label>
             <textarea
               value={form.test_procedure}
               onChange={e => setForm(p => ({ ...p, test_procedure: e.target.value }))}
               rows={4}
-              className="w-full bg-[#070d19] border border-[#1e2d42] rounded px-3 py-2 text-white text-sm focus:outline-none focus:border-[#e8002d]/50 resize-none"
+              className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-red/50 resize-none"
               placeholder="ステップ1&#10;ステップ2&#10;ステップ3"
             />
           </div>
         </div>
-        <div className="flex justify-end gap-3 p-5 border-t border-[#1e2d42]">
-          <button onClick={onClose} className="px-4 py-2 text-sm text-[#7d92b0] hover:text-white transition-colors">キャンセル</button>
+        <div className="flex justify-end gap-3 p-5 border-t border-falcon-border">
+          <button onClick={onClose} className="px-4 py-2 text-sm text-falcon-muted hover:text-white transition-colors">キャンセル</button>
           <button
             onClick={handleSubmit}
             disabled={!form.control_id.trim() || !form.name.trim()}
-            className="px-4 py-2 text-sm bg-[#e8002d] text-white rounded font-medium hover:bg-[#c5001f] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="px-4 py-2 text-sm bg-falcon-red text-white rounded-sm font-medium hover:bg-[#c5001f] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             追加
           </button>
@@ -495,9 +495,9 @@ function AddControlModal({ onClose, onSubmit }: {
 
 function FrameworkCoverage({ controls }: { controls: Control[] }) {
   return (
-    <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-5 mb-6">
+    <div className="bg-falcon-surface border border-falcon-border rounded-lg p-5 mb-6">
       <h3 className="text-white font-semibold mb-4 flex items-center gap-2">
-        <BarChart3 className="w-4 h-4 text-[#e8002d]" />
+        <BarChart3 className="w-4 h-4 text-falcon-red" />
         フレームワークカバレッジ
       </h3>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
@@ -509,17 +509,17 @@ function FrameworkCoverage({ controls }: { controls: Control[] }) {
             <div key={fw}>
               <div className="flex items-center justify-between mb-2">
                 <span className="text-white font-mono font-semibold text-sm">{fw}</span>
-                <span className={`text-sm font-bold ${pct >= 80 ? 'text-green-400' : pct >= 60 ? 'text-yellow-400' : 'text-[#e8002d]'}`}>
+                <span className={`text-sm font-bold ${pct >= 80 ? 'text-green-400' : pct >= 60 ? 'text-yellow-400' : 'text-falcon-red'}`}>
                   {pct}%
                 </span>
               </div>
-              <div className="h-2 bg-[#1e2d42] rounded-full">
+              <div className="h-2 bg-falcon-border rounded-full">
                 <div
-                  className={`h-full rounded-full transition-all ${pct >= 80 ? 'bg-green-500' : pct >= 60 ? 'bg-yellow-500' : 'bg-[#e8002d]'}`}
+                  className={`h-full rounded-full transition-all ${pct >= 80 ? 'bg-green-500' : pct >= 60 ? 'bg-yellow-500' : 'bg-falcon-red'}`}
                   style={{ width: `${pct}%` }}
                 />
               </div>
-              <p className="text-[#7d92b0] text-xs mt-1">{passing} / {fwControls.length} 合格</p>
+              <p className="text-falcon-muted text-xs mt-1">{passing} / {fwControls.length} 合格</p>
             </div>
           )
         })}
@@ -595,25 +595,25 @@ export default function ControlTestingPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-lg bg-[#e8002d]/10 border border-[#e8002d]/30 flex items-center justify-center">
-            <FlaskConical className="w-5 h-5 text-[#e8002d]" />
+          <div className="w-9 h-9 rounded-lg bg-falcon-red/10 border border-falcon-red/30 flex items-center justify-center">
+            <FlaskConical className="w-5 h-5 text-falcon-red" />
           </div>
           <div>
             <h1 className="text-white font-bold text-xl">セキュリティコントロールテスト</h1>
-            <p className="text-[#7d92b0] text-sm">コントロールの検証・テスト結果管理</p>
+            <p className="text-falcon-muted text-sm">コントロールの検証・テスト結果管理</p>
           </div>
         </div>
         <div className="flex items-center gap-3">
           <button
             onClick={handleExportCSV}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg border border-[#1e2d42] text-[#7d92b0] text-sm hover:text-white hover:border-[#7d92b0]/40 transition-colors"
+            className="flex items-center gap-2 px-4 py-2 rounded-lg border border-falcon-border text-falcon-muted text-sm hover:text-white hover:border-falcon-muted/40 transition-colors"
           >
             <Download className="w-4 h-4" />
             CSVエクスポート
           </button>
           <button
             onClick={() => setShowAddModal(true)}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#e8002d] text-white text-sm font-medium hover:bg-[#c5001f] transition-colors"
+            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-falcon-red text-white text-sm font-medium hover:bg-[#c5001f] transition-colors"
           >
             <Plus className="w-4 h-4" />
             コントロール追加
@@ -626,15 +626,15 @@ export default function ControlTestingPage() {
         {[
           { label: '総コントロール数', value: controls.length, color: 'text-white', icon: Shield },
           { label: '合格率', value: `${passingPct}%`, color: 'text-green-400', icon: CheckCircle2 },
-          { label: '不合格', value: failingCount, color: 'text-[#e8002d]', icon: XCircle },
-          { label: '最終テスト', value: lastTestDate, color: 'text-[#7d92b0]', icon: Calendar },
+          { label: '不合格', value: failingCount, color: 'text-falcon-red', icon: XCircle },
+          { label: '最終テスト', value: lastTestDate, color: 'text-falcon-muted', icon: Calendar },
         ].map(({ label, value, color, icon: Icon }) => (
-          <div key={label} className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-4">
+          <div key={label} className="bg-falcon-surface border border-falcon-border rounded-lg p-4">
             <div className="flex items-center gap-3">
               <Icon className={`w-5 h-5 ${color}`} />
               <div>
                 <p className={`text-xl font-bold ${color}`}>{value}</p>
-                <p className="text-[#7d92b0] text-xs">{label}</p>
+                <p className="text-falcon-muted text-xs">{label}</p>
               </div>
             </div>
           </div>
@@ -645,22 +645,22 @@ export default function ControlTestingPage() {
       <FrameworkCoverage controls={controls} />
 
       {/* Filters */}
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-4 mb-4">
+      <div className="bg-falcon-surface border border-falcon-border rounded-lg p-4 mb-4">
         <div className="flex flex-wrap gap-3 items-center">
           <div className="relative flex-1 min-w-[200px]">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#7d92b0]" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-falcon-muted" />
             <input
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
               placeholder="コントロールIDまたは名前で検索..."
-              className="w-full bg-[#070d19] border border-[#1e2d42] rounded px-3 py-2 pl-9 text-white text-sm
-                         focus:outline-none focus:border-[#e8002d]/50 placeholder:text-[#3d5068]"
+              className="w-full bg-[#070d19] border border-falcon-border rounded px-3 py-2 pl-9 text-white text-sm
+                         focus:outline-hidden focus:border-falcon-red/50 placeholder:text-falcon-subtle"
             />
           </div>
           <select
             value={filterCategory}
             onChange={e => setFilterCategory(e.target.value as ControlCategory | '')}
-            className="bg-[#070d19] border border-[#1e2d42] rounded px-3 py-2 text-sm text-[#7d92b0] focus:outline-none focus:border-[#e8002d]/50"
+            className="bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-sm text-falcon-muted focus:outline-hidden focus:border-falcon-red/50"
           >
             <option value="">全カテゴリ</option>
             <option value="preventive">予防的</option>
@@ -671,7 +671,7 @@ export default function ControlTestingPage() {
           <select
             value={filterFramework}
             onChange={e => setFilterFramework(e.target.value as Framework | '')}
-            className="bg-[#070d19] border border-[#1e2d42] rounded px-3 py-2 text-sm text-[#7d92b0] focus:outline-none focus:border-[#e8002d]/50"
+            className="bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-sm text-falcon-muted focus:outline-hidden focus:border-falcon-red/50"
           >
             <option value="">全フレームワーク</option>
             {FRAMEWORKS.map(f => <option key={f} value={f}>{f}</option>)}
@@ -679,7 +679,7 @@ export default function ControlTestingPage() {
           <select
             value={filterStatus}
             onChange={e => setFilterStatus(e.target.value as ControlStatus | '')}
-            className="bg-[#070d19] border border-[#1e2d42] rounded px-3 py-2 text-sm text-[#7d92b0] focus:outline-none focus:border-[#e8002d]/50"
+            className="bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-sm text-falcon-muted focus:outline-hidden focus:border-falcon-red/50"
           >
             <option value="">全ステータス</option>
             <option value="passing">合格</option>
@@ -690,52 +690,52 @@ export default function ControlTestingPage() {
           {(searchTerm || filterCategory || filterFramework || filterStatus) && (
             <button
               onClick={() => { setSearchTerm(''); setFilterCategory(''); setFilterFramework(''); setFilterStatus('') }}
-              className="flex items-center gap-1 text-sm text-[#e8002d] hover:text-[#ff3355] transition-colors"
+              className="flex items-center gap-1 text-sm text-falcon-red hover:text-[#ff3355] transition-colors"
             >
               <X className="w-4 h-4" />
               クリア
             </button>
           )}
         </div>
-        <p className="text-[#7d92b0] text-xs mt-2">{filtered.length} / {controls.length} コントロールを表示</p>
+        <p className="text-falcon-muted text-xs mt-2">{filtered.length} / {controls.length} コントロールを表示</p>
       </div>
 
       {/* Controls table */}
       {isLoading ? (
         <div className="flex items-center justify-center h-48">
-          <div className="w-8 h-8 border-2 border-[#e8002d] border-t-transparent rounded-full animate-spin" />
+          <div className="w-8 h-8 border-2 border-falcon-red border-t-transparent rounded-full animate-spin" />
         </div>
       ) : (
-        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg overflow-hidden">
+        <div className="bg-falcon-surface border border-falcon-border rounded-lg overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="border-b border-[#1e2d42]">
+              <thead className="border-b border-falcon-border">
                 <tr>
                   {['ID', 'コントロール名', 'カテゴリ', 'フレームワーク', 'ステータス', '最終テスト', '方法', 'スコア', '担当者', 'アクション'].map(h => (
-                    <th key={h} className="text-left text-[#7d92b0] text-xs px-4 py-3 font-medium whitespace-nowrap">{h}</th>
+                    <th key={h} className="text-left text-falcon-muted text-xs px-4 py-3 font-medium whitespace-nowrap">{h}</th>
                   ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#1e2d42]">
+              <tbody className="divide-y divide-falcon-border">
                 {filtered.map(control => {
                   const StatusIcon = STATUS_ICONS[control.status]
                   return (
-                    <tr key={control.id} className="hover:bg-[#111827] transition-colors">
+                    <tr key={control.id} className="hover:bg-falcon-card transition-colors">
                       <td className="px-4 py-3">
-                        <span className="text-[#7d92b0] font-mono text-xs">{control.control_id}</span>
+                        <span className="text-falcon-muted font-mono text-xs">{control.control_id}</span>
                       </td>
                       <td className="px-4 py-3">
                         <span className="text-white font-medium text-sm">{control.name}</span>
                       </td>
                       <td className="px-4 py-3">
-                        <span className={`text-xs px-2 py-0.5 rounded font-medium ${CATEGORY_STYLES[control.category]}`}>
+                        <span className={`text-xs px-2 py-0.5 rounded-sm font-medium ${CATEGORY_STYLES[control.category]}`}>
                           {CATEGORY_LABELS[control.category]}
                         </span>
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex flex-wrap gap-1">
                           {control.frameworks.map(f => (
-                            <span key={f} className="text-[10px] px-1.5 py-0.5 rounded bg-[#1e2d42] text-[#7d92b0] font-mono">{f}</span>
+                            <span key={f} className="text-[10px] px-1.5 py-0.5 rounded-sm bg-falcon-border text-falcon-muted font-mono">{f}</span>
                           ))}
                         </div>
                       </td>
@@ -745,20 +745,20 @@ export default function ControlTestingPage() {
                           {STATUS_LABELS[control.status]}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-[#7d92b0] text-xs whitespace-nowrap">
+                      <td className="px-4 py-3 text-falcon-muted text-xs whitespace-nowrap">
                         {control.last_tested ?? '—'}
                       </td>
-                      <td className="px-4 py-3 text-[#7d92b0] text-xs">
+                      <td className="px-4 py-3 text-falcon-muted text-xs">
                         {METHOD_LABELS[control.test_method]}
                       </td>
                       <td className="px-4 py-3">
                         {control.status === 'not_tested' ? (
-                          <span className="text-[#3d5068] text-xs">—</span>
+                          <span className="text-falcon-subtle text-xs">—</span>
                         ) : (
                           <div className="flex items-center gap-2">
-                            <div className="w-16 h-1.5 bg-[#1e2d42] rounded-full">
+                            <div className="w-16 h-1.5 bg-falcon-border rounded-full">
                               <div
-                                className={`h-full rounded-full ${control.score >= 80 ? 'bg-green-500' : control.score >= 60 ? 'bg-yellow-500' : 'bg-[#e8002d]'}`}
+                                className={`h-full rounded-full ${control.score >= 80 ? 'bg-green-500' : control.score >= 60 ? 'bg-yellow-500' : 'bg-falcon-red'}`}
                                 style={{ width: `${control.score}%` }}
                               />
                             </div>
@@ -766,7 +766,7 @@ export default function ControlTestingPage() {
                           </div>
                         )}
                       </td>
-                      <td className="px-4 py-3 text-[#7d92b0] text-xs whitespace-nowrap">
+                      <td className="px-4 py-3 text-falcon-muted text-xs whitespace-nowrap">
                         {displayUser(control.assigned_to)}
                       </td>
                       <td className="px-4 py-3">
@@ -774,14 +774,14 @@ export default function ControlTestingPage() {
                           <button
                             onClick={() => setTestingControl(control)}
                             title="テスト実行"
-                            className="p-1.5 rounded text-[#7d92b0] hover:text-[#e8002d] hover:bg-[#e8002d]/10 transition-colors"
+                            className="p-1.5 rounded-sm text-falcon-muted hover:text-falcon-red hover:bg-falcon-red/10 transition-colors"
                           >
                             <Play className="w-3.5 h-3.5" />
                           </button>
                           <button
                             onClick={() => setSelectedControl(control)}
                             title="詳細表示"
-                            className="p-1.5 rounded text-[#7d92b0] hover:text-white hover:bg-[#1e2d42] transition-colors"
+                            className="p-1.5 rounded-sm text-falcon-muted hover:text-white hover:bg-falcon-border transition-colors"
                           >
                             <Eye className="w-3.5 h-3.5" />
                           </button>
@@ -792,8 +792,8 @@ export default function ControlTestingPage() {
                 })}
                 {filtered.length === 0 && (
                   <tr>
-                    <td colSpan={10} className="px-4 py-12 text-center text-[#7d92b0]">
-                      <FlaskConical className="w-10 h-10 mx-auto mb-2 text-[#3d5068]" />
+                    <td colSpan={10} className="px-4 py-12 text-center text-falcon-muted">
+                      <FlaskConical className="w-10 h-10 mx-auto mb-2 text-falcon-subtle" />
                       条件に一致するコントロールが見つかりません
                     </td>
                   </tr>

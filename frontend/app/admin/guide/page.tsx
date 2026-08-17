@@ -20,7 +20,7 @@ function CopyBtn({ text }: { text: string }) {
   return (
     <button
       onClick={handle}
-      className="p-1.5 rounded text-[#5a6a7a] hover:text-[#e2e8f4] hover:bg-[#1e2d42] transition-colors"
+      className="p-1.5 rounded-sm text-[#5a6a7a] hover:text-falcon-text hover:bg-falcon-border transition-colors"
     >
       {copied ? <Check className="w-3.5 h-3.5 text-[#22c55e]" /> : <Copy className="w-3.5 h-3.5" />}
     </button>
@@ -31,12 +31,12 @@ function CopyBtn({ text }: { text: string }) {
 
 function Code({ children, lang = 'bash' }: { children: string; lang?: string }) {
   return (
-    <div className="relative group rounded-lg bg-[#070d19] border border-[#1e2d42] overflow-hidden mb-4">
-      <div className="flex items-center justify-between px-3 py-1.5 border-b border-[#1e2d42] bg-[#0d1220]">
+    <div className="relative group rounded-lg bg-[#070d19] border border-falcon-border overflow-hidden mb-4">
+      <div className="flex items-center justify-between px-3 py-1.5 border-b border-falcon-border bg-falcon-surface">
         <span className="text-[10px] font-mono text-[#5a6a7a] uppercase">{lang}</span>
         <CopyBtn text={children} />
       </div>
-      <pre className="p-4 text-xs font-mono text-[#e2e8f4] overflow-x-auto leading-relaxed whitespace-pre-wrap">
+      <pre className="p-4 text-xs font-mono text-falcon-text overflow-x-auto leading-relaxed whitespace-pre-wrap">
         {children}
       </pre>
     </div>
@@ -47,9 +47,9 @@ function Code({ children, lang = 'bash' }: { children: string; lang?: string }) 
 
 function Callout({ type, children }: { type: 'info' | 'warn' | 'tip'; children: React.ReactNode }) {
   const styles = {
-    info: { bg: 'bg-[#3b82f6]/10 border-[#3b82f6]/30', icon: <Shield className="w-4 h-4 text-[#3b82f6] flex-shrink-0 mt-0.5" /> },
-    warn: { bg: 'bg-[#f59e0b]/10 border-[#f59e0b]/30', icon: <AlertTriangle className="w-4 h-4 text-[#f59e0b] flex-shrink-0 mt-0.5" /> },
-    tip:  { bg: 'bg-[#22c55e]/10 border-[#22c55e]/30', icon: <CheckCircle className="w-4 h-4 text-[#22c55e] flex-shrink-0 mt-0.5" /> },
+    info: { bg: 'bg-[#3b82f6]/10 border-[#3b82f6]/30', icon: <Shield className="w-4 h-4 text-[#3b82f6] shrink-0 mt-0.5" /> },
+    warn: { bg: 'bg-[#f59e0b]/10 border-[#f59e0b]/30', icon: <AlertTriangle className="w-4 h-4 text-[#f59e0b] shrink-0 mt-0.5" /> },
+    tip:  { bg: 'bg-[#22c55e]/10 border-[#22c55e]/30', icon: <CheckCircle className="w-4 h-4 text-[#22c55e] shrink-0 mt-0.5" /> },
   }
   const s = styles[type]
   return (
@@ -67,11 +67,11 @@ function Section({ id, title, icon, children }: {
 }) {
   return (
     <section id={id} className="mb-12 scroll-mt-6">
-      <div className="flex items-center gap-3 mb-5 pb-3 border-b border-[#1e2d42]">
-        <div className="w-8 h-8 rounded-lg bg-[#1e2d42] flex items-center justify-center text-[#e8002d]">
+      <div className="flex items-center gap-3 mb-5 pb-3 border-b border-falcon-border">
+        <div className="w-8 h-8 rounded-lg bg-falcon-border flex items-center justify-center text-falcon-red">
           {icon}
         </div>
-        <h2 className="text-lg font-semibold text-[#e2e8f4]">{title}</h2>
+        <h2 className="text-lg font-semibold text-falcon-text">{title}</h2>
       </div>
       <div className="text-sm text-[#8899aa] leading-relaxed space-y-4">
         {children}
@@ -81,7 +81,7 @@ function Section({ id, title, icon, children }: {
 }
 
 function H3({ children }: { children: React.ReactNode }) {
-  return <h3 className="text-sm font-semibold text-[#e2e8f4] mt-6 mb-2">{children}</h3>
+  return <h3 className="text-sm font-semibold text-falcon-text mt-6 mb-2">{children}</h3>
 }
 
 // ─── 目次 ─────────────────────────────────────────────────────────────────────
@@ -110,13 +110,13 @@ export default function AdminGuidePage() {
   }
 
   return (
-    <div className="flex h-full bg-[#080c14] text-[#e2e8f4]">
+    <div className="flex h-full bg-falcon-bg text-falcon-text">
 
       {/* ── 左サイドバー ─────────────────────────────────────────── */}
-      <aside className="w-56 flex-shrink-0 border-r border-[#1e2d42] sticky top-0 h-screen overflow-y-auto">
-        <div className="p-4 border-b border-[#1e2d42]">
+      <aside className="w-56 shrink-0 border-r border-falcon-border sticky top-0 h-screen overflow-y-auto">
+        <div className="p-4 border-b border-falcon-border">
           <div className="flex items-center gap-2">
-            <BookOpen className="w-4 h-4 text-[#e8002d]" />
+            <BookOpen className="w-4 h-4 text-falcon-red" />
             <span className="text-sm font-semibold">管理者ガイド</span>
           </div>
           <p className="text-[10px] text-[#5a6a7a] mt-1">Kizashi v2.x</p>
@@ -128,16 +128,16 @@ export default function AdminGuidePage() {
               onClick={() => scrollTo(item.id)}
               className={`w-full flex items-center gap-2 px-3 py-2 rounded text-xs transition-colors ${
                 activeId === item.id
-                  ? 'bg-[#1e2d42] text-[#e2e8f4]'
-                  : 'text-[#5a6a7a] hover:bg-[#111827] hover:text-[#8899aa]'
+                  ? 'bg-falcon-border text-falcon-text'
+                  : 'text-[#5a6a7a] hover:bg-falcon-card hover:text-[#8899aa]'
               }`}
             >
-              <span className="flex-shrink-0 w-4">{item.icon}</span>
+              <span className="shrink-0 w-4">{item.icon}</span>
               {item.label}
             </button>
           ))}
         </nav>
-        <div className="p-4 border-t border-[#1e2d42] mt-auto">
+        <div className="p-4 border-t border-falcon-border mt-auto">
           <Link href="/admin/api-docs" className="flex items-center gap-2 text-xs text-[#5a6a7a] hover:text-[#8899aa]">
             <ChevronRight className="w-3 h-3" />
             APIリファレンス
@@ -152,8 +152,8 @@ export default function AdminGuidePage() {
       {/* ── メインコンテンツ ──────────────────────────────────────── */}
       <main className="flex-1 overflow-y-auto">
         {/* ヘッダー */}
-        <div className="border-b border-[#1e2d42] p-6 bg-[#0d1220]">
-          <h1 className="text-2xl font-bold text-[#e2e8f4] mb-1">管理者ガイド</h1>
+        <div className="border-b border-falcon-border p-6 bg-falcon-surface">
+          <h1 className="text-2xl font-bold text-falcon-text mb-1">管理者ガイド</h1>
           <p className="text-sm text-[#5a6a7a]">Kizashi の導入・設定・運用に関するリファレンスガイド</p>
         </div>
 
@@ -166,7 +166,7 @@ export default function AdminGuidePage() {
             <div className="overflow-x-auto mb-4">
               <table className="w-full text-xs border-collapse">
                 <thead>
-                  <tr className="border-b border-[#1e2d42]">
+                  <tr className="border-b border-falcon-border">
                     <th className="text-left py-2 pr-4 text-[#5a6a7a]">項目</th>
                     <th className="text-left py-2 pr-4 text-[#5a6a7a]">最小要件</th>
                     <th className="text-left py-2 text-[#5a6a7a]">推奨</th>
@@ -180,8 +180,8 @@ export default function AdminGuidePage() {
                     ['OS',     'Ubuntu 22.04 / Debian 12', 'Ubuntu 22.04 LTS'],
                     ['Docker', '24.x',     '最新安定版'],
                   ].map(([item, min, rec]) => (
-                    <tr key={item} className="border-b border-[#1e2d42]/50">
-                      <td className="py-2 pr-4 text-[#e2e8f4] font-medium">{item}</td>
+                    <tr key={item} className="border-b border-falcon-border/50">
+                      <td className="py-2 pr-4 text-falcon-text font-medium">{item}</td>
                       <td className="py-2 pr-4">{min}</td>
                       <td className="py-2">{rec}</td>
                     </tr>
@@ -191,7 +191,7 @@ export default function AdminGuidePage() {
             </div>
 
             <H3>Docker Compose によるデプロイ</H3>
-            <p>本番環境では <code className="text-[#e8002d] font-mono text-xs">docker-compose.prod.yml</code> を使用します。</p>
+            <p>本番環境では <code className="text-falcon-red font-mono text-xs">docker-compose.prod.yml</code> を使用します。</p>
             <Code lang="bash">{`# リポジトリをクローン
 git clone https://github.com/your-org/edr-platform.git
 cd edr-platform/deploy
@@ -212,7 +212,7 @@ docker compose -f docker-compose.prod.yml logs -f api`}</Code>
             <div className="overflow-x-auto mb-4">
               <table className="w-full text-xs border-collapse">
                 <thead>
-                  <tr className="border-b border-[#1e2d42]">
+                  <tr className="border-b border-falcon-border">
                     <th className="text-left py-2 pr-4 text-[#5a6a7a]">変数名</th>
                     <th className="text-left py-2 text-[#5a6a7a]">説明</th>
                   </tr>
@@ -227,8 +227,8 @@ docker compose -f docker-compose.prod.yml logs -f api`}</Code>
                     ['ADMIN_PASSWORD',      '初期管理者パスワード'],
                     ['ENROLLMENT_TOKEN',    'エージェント登録トークン（hex文字列）'],
                   ].map(([k, v]) => (
-                    <tr key={k} className="border-b border-[#1e2d42]/50">
-                      <td className="py-2 pr-4"><code className="text-[#e8002d] font-mono text-xs">{k}</code></td>
+                    <tr key={k} className="border-b border-falcon-border/50">
+                      <td className="py-2 pr-4"><code className="text-falcon-red font-mono text-xs">{k}</code></td>
                       <td className="py-2">{v}</td>
                     </tr>
                   ))}
@@ -255,17 +255,17 @@ docker exec edr-caddy caddy trust`}</Code>
           <div ref={el => { refs.current['initial'] = el }}>
           <Section id="initial" title="初期設定" icon={<Settings className="w-4 h-4" />}>
             <H3>管理者アカウントへのログイン</H3>
-            <p>初回起動後、<code className="text-[#e8002d] font-mono text-xs">ADMIN_EMAIL</code> / <code className="text-[#e8002d] font-mono text-xs">ADMIN_PASSWORD</code> でログインします。</p>
+            <p>初回起動後、<code className="text-falcon-red font-mono text-xs">ADMIN_EMAIL</code> / <code className="text-falcon-red font-mono text-xs">ADMIN_PASSWORD</code> でログインします。</p>
             <ol className="list-decimal pl-5 space-y-1">
-              <li><code className="text-[#e2e8f4] font-mono text-xs">https://&#123;EDR_DOMAIN&#125;/login</code> にアクセス</li>
+              <li><code className="text-falcon-text font-mono text-xs">https://&#123;EDR_DOMAIN&#125;/login</code> にアクセス</li>
               <li>メールアドレスとパスワードを入力してログイン</li>
-              <li>セットアップウィザード（<code className="text-[#e2e8f4] font-mono text-xs">/admin/onboarding</code>）を完了</li>
+              <li>セットアップウィザード（<code className="text-falcon-text font-mono text-xs">/admin/onboarding</code>）を完了</li>
             </ol>
 
             <H3>ライセンスキーの有効化</H3>
             <p>商用利用には有効なライセンスキーが必要です。</p>
             <ol className="list-decimal pl-5 space-y-1">
-              <li>左サイドバー → <strong className="text-[#e2e8f4]">システム</strong> → <strong className="text-[#e2e8f4]">ライセンス</strong> を開く</li>
+              <li>左サイドバー → <strong className="text-falcon-text">システム</strong> → <strong className="text-falcon-text">ライセンス</strong> を開く</li>
               <li>発行されたライセンスキーを貼り付けて「有効化」をクリック</li>
               <li>エンドポイント数とプランが表示されることを確認</li>
             </ol>
@@ -275,7 +275,7 @@ docker exec edr-caddy caddy trust`}</Code>
             </Callout>
 
             <H3>テナント設定</H3>
-            <p>マルチテナント環境では、<strong className="text-[#e2e8f4]">テナント管理</strong> からテナントを作成し、各テナントにユーザーを割り当てます。</p>
+            <p>マルチテナント環境では、<strong className="text-falcon-text">テナント管理</strong> からテナントを作成し、各テナントにユーザーを割り当てます。</p>
             <Code lang="bash">{`# テナントID の確認（APIから）
 curl -H "Authorization: Bearer $TOKEN" \\
   https://edr.example.com/api/v1/admin/tenants | jq '.'`}</Code>
@@ -286,10 +286,10 @@ curl -H "Authorization: Bearer $TOKEN" \\
           <div ref={el => { refs.current['agents'] = el }}>
           <Section id="agents" title="エージェント管理" icon={<Terminal className="w-4 h-4" />}>
             <H3>エージェントのインストール</H3>
-            <p>インストール方法は 2 通りあります。エンロールメントトークンは <strong>設定 → エージェント配布</strong>（<code className="text-[#e8002d] font-mono text-xs">/agents/deploy</code>）で発行します。</p>
+            <p>インストール方法は 2 通りあります。エンロールメントトークンは <strong>設定 → エージェント配布</strong>（<code className="text-falcon-red font-mono text-xs">/agents/deploy</code>）で発行します。</p>
 
             <H3>方法 1: サーバーが生成するスクリプト</H3>
-            <p>トークンを埋め込んだインストールスクリプトをサーバー側で生成します。<code className="text-[#e8002d] font-mono text-xs">arch</code> は <code className="text-[#e8002d] font-mono text-xs">amd64</code> か <code className="text-[#e8002d] font-mono text-xs">arm64</code> です。</p>
+            <p>トークンを埋め込んだインストールスクリプトをサーバー側で生成します。<code className="text-falcon-red font-mono text-xs">arch</code> は <code className="text-falcon-red font-mono text-xs">amd64</code> か <code className="text-falcon-red font-mono text-xs">arm64</code> です。</p>
 
             <Code lang="bash">{`# Linux / macOS
 curl -fsSL "https://edr.example.com/api/v1/installer/linux/amd64?token=your-enrollment-token" \\
@@ -301,7 +301,7 @@ irm "https://edr.example.com/api/v1/installer/windows/amd64?token=your-enrollmen
 powershell -ExecutionPolicy Bypass -File Install-EDRAgent.ps1`}</Code>
 
             <H3>方法 2: リポジトリ同梱のインストーラ</H3>
-            <p>こちらは<strong>環境変数</strong>で受け取ります（<code className="text-[#e8002d] font-mono text-xs">--server</code> / <code className="text-[#e8002d] font-mono text-xs">--token</code> のようなフラグはありません）。watchdog による自動再起動とロールバックが付くのはこちらです。</p>
+            <p>こちらは<strong>環境変数</strong>で受け取ります（<code className="text-falcon-red font-mono text-xs">--server</code> / <code className="text-falcon-red font-mono text-xs">--token</code> のようなフラグはありません）。watchdog による自動再起動とロールバックが付くのはこちらです。</p>
 
             <Code lang="bash">{`# Linux / macOS
 sudo SERVER_URL=https://edr.example.com ENROLLMENT_TOKEN=your-enrollment-token \\
@@ -317,7 +317,7 @@ $env:ENROLLMENT_TOKEN = "your-enrollment-token"
             <div className="overflow-x-auto mb-4">
               <table className="w-full text-xs border-collapse">
                 <thead>
-                  <tr className="border-b border-[#1e2d42]">
+                  <tr className="border-b border-falcon-border">
                     <th className="text-left py-2 pr-4 text-[#5a6a7a]">ステータス</th>
                     <th className="text-left py-2 text-[#5a6a7a]">意味</th>
                   </tr>
@@ -328,8 +328,8 @@ $env:ENROLLMENT_TOKEN = "your-enrollment-token"
                     ['offline (灰)',  '最後のハートビートから5〜60分 — 一時的な切断'],
                     ['inactive (赤)', '最後のハートビートから60分以上 — 要確認'],
                   ].map(([s, d]) => (
-                    <tr key={s} className="border-b border-[#1e2d42]/50">
-                      <td className="py-2 pr-4 text-[#e2e8f4] font-mono font-medium text-xs">{s}</td>
+                    <tr key={s} className="border-b border-falcon-border/50">
+                      <td className="py-2 pr-4 text-falcon-text font-mono font-medium text-xs">{s}</td>
                       <td className="py-2">{d}</td>
                     </tr>
                   ))}
@@ -363,7 +363,7 @@ sudo /opt/kizashi/uninstall.sh
             <div className="overflow-x-auto mb-4">
               <table className="w-full text-xs border-collapse">
                 <thead>
-                  <tr className="border-b border-[#1e2d42]">
+                  <tr className="border-b border-falcon-border">
                     <th className="text-left py-2 pr-4 text-[#5a6a7a]">ロール</th>
                     <th className="text-left py-2 text-[#5a6a7a]">権限</th>
                   </tr>
@@ -374,8 +374,8 @@ sudo /opt/kizashi/uninstall.sh
                     ['analyst', 'アラート・インシデント・レポートの閲覧・操作。ルール管理を含む'],
                     ['viewer',  '読み取り専用。アラート・ダッシュボード・レポートの閲覧のみ'],
                   ].map(([r, d]) => (
-                    <tr key={r} className="border-b border-[#1e2d42]/50">
-                      <td className="py-2 pr-4"><code className="text-[#e8002d] font-mono text-xs">{r}</code></td>
+                    <tr key={r} className="border-b border-falcon-border/50">
+                      <td className="py-2 pr-4"><code className="text-falcon-red font-mono text-xs">{r}</code></td>
                       <td className="py-2">{d}</td>
                     </tr>
                   ))}
@@ -385,7 +385,7 @@ sudo /opt/kizashi/uninstall.sh
 
             <H3>ユーザーの招待</H3>
             <ol className="list-decimal pl-5 space-y-1">
-              <li><strong className="text-[#e2e8f4]">設定</strong> → <strong className="text-[#e2e8f4]">ユーザー管理</strong> に移動</li>
+              <li><strong className="text-falcon-text">設定</strong> → <strong className="text-falcon-text">ユーザー管理</strong> に移動</li>
               <li>「ユーザーを招待」ボタンをクリック</li>
               <li>メールアドレスとロールを設定して送信</li>
               <li>招待メールのリンクからアカウントを有効化</li>
@@ -395,7 +395,7 @@ sudo /opt/kizashi/uninstall.sh
             <p>管理者はシステム設定からテナント全体のMFA強制を有効化できます。</p>
             <Callout type="tip">
               <strong>推奨:</strong> 本番環境では全ユーザーにMFA（TOTP）を強制することを推奨します。
-              <strong className="text-[#e2e8f4]">設定</strong> → <strong className="text-[#e2e8f4]">セキュリティ</strong> → 「MFAを強制」をONにしてください。
+              <strong className="text-falcon-text">設定</strong> → <strong className="text-falcon-text">セキュリティ</strong> → 「MFAを強制」をONにしてください。
             </Callout>
 
             <H3>APIキーの管理</H3>
@@ -412,10 +412,10 @@ curl -H "X-API-Key: edr_live_xxxxx..." \\
             <H3>組み込みルールセット</H3>
             <p>プラットフォームには以下のルールセットが組み込まれています：</p>
             <ul className="list-disc pl-5 space-y-1">
-              <li><strong className="text-[#e2e8f4]">Sigma ルール</strong>: ATT&CK フレームワークに対応した汎用検知ルール（140+件）</li>
-              <li><strong className="text-[#e2e8f4]">YARA ルール</strong>: マルウェアファミリーのファイルシグネチャマッチング（87+件）</li>
-              <li><strong className="text-[#e2e8f4]">プロセス系譜ルール</strong>: ATT&CK テクニックに対応したプロセスチェーン分析（17件）</li>
-              <li><strong className="text-[#e2e8f4]">ML/UEBA ルール</strong>: 機械学習によるベースライン逸脱検知</li>
+              <li><strong className="text-falcon-text">Sigma ルール</strong>: ATT&CK フレームワークに対応した汎用検知ルール（140+件）</li>
+              <li><strong className="text-falcon-text">YARA ルール</strong>: マルウェアファミリーのファイルシグネチャマッチング（87+件）</li>
+              <li><strong className="text-falcon-text">プロセス系譜ルール</strong>: ATT&CK テクニックに対応したプロセスチェーン分析（17件）</li>
+              <li><strong className="text-falcon-text">ML/UEBA ルール</strong>: 機械学習によるベースライン逸脱検知</li>
             </ul>
 
             <H3>カスタムSigmaルールの追加</H3>
@@ -436,7 +436,7 @@ tags:
   - attack.t1562.004`}</Code>
 
             <H3>アラートしきい値の調整</H3>
-            <p>誤検知が多い場合は、<strong className="text-[#e2e8f4]">検知ルール</strong> → ルールを選択 → 「サプレッション」を追加して特定の条件を除外できます。</p>
+            <p>誤検知が多い場合は、<strong className="text-falcon-text">検知ルール</strong> → ルールを選択 → 「サプレッション」を追加して特定の条件を除外できます。</p>
             <Callout type="warn">
               ルールを無効化する前に、サプレッションの追加を検討してください。完全無効化は検知漏れのリスクがあります。
             </Callout>
@@ -449,17 +449,17 @@ tags:
             <H3>アラートのライフサイクル</H3>
             <div className="flex items-center gap-2 flex-wrap mb-4 text-xs">
               {['open', '→ in_progress', '→ resolved', '→ closed'].map((s, i) => (
-                <span key={i} className={`px-2 py-1 rounded font-mono ${i === 0 ? 'bg-[#3b82f6]/20 text-[#3b82f6]' : i === 3 ? 'bg-[#5a6a7a]/20 text-[#5a6a7a]' : 'bg-[#1e2d42] text-[#8899aa]'}`}>
+                <span key={i} className={`px-2 py-1 rounded-sm font-mono ${i === 0 ? 'bg-[#3b82f6]/20 text-[#3b82f6]' : i === 3 ? 'bg-[#5a6a7a]/20 text-[#5a6a7a]' : 'bg-falcon-border text-[#8899aa]'}`}>
                   {s}
                 </span>
               ))}
             </div>
             <ol className="list-decimal pl-5 space-y-1">
-              <li><strong className="text-[#e2e8f4]">トリアージ</strong>: アラートを開いてClaude AIの分析結果を確認</li>
-              <li><strong className="text-[#e2e8f4]">調査</strong>: タイムラインとプロセスツリーでイベントの文脈を把握</li>
-              <li><strong className="text-[#e2e8f4]">対応</strong>: ライブレスポンス機能でエンドポイントを分離またはプロセスを終了</li>
-              <li><strong className="text-[#e2e8f4]">記録</strong>: インシデントとしてエスカレーションしてコメント・根本原因を記録</li>
-              <li><strong className="text-[#e2e8f4]">クローズ</strong>: 対応完了後にアラートをresolvedに変更</li>
+              <li><strong className="text-falcon-text">トリアージ</strong>: アラートを開いてClaude AIの分析結果を確認</li>
+              <li><strong className="text-falcon-text">調査</strong>: タイムラインとプロセスツリーでイベントの文脈を把握</li>
+              <li><strong className="text-falcon-text">対応</strong>: ライブレスポンス機能でエンドポイントを分離またはプロセスを終了</li>
+              <li><strong className="text-falcon-text">記録</strong>: インシデントとしてエスカレーションしてコメント・根本原因を記録</li>
+              <li><strong className="text-falcon-text">クローズ</strong>: 対応完了後にアラートをresolvedに変更</li>
             </ol>
 
             <H3>通知設定</H3>
@@ -570,8 +570,8 @@ docker compose -f docker-compose.prod.yml logs -f postgres`}</Code>
                   a: 'APIコンテナ起動時に自動マイグレーションが実行されます。`docker logs edr-api`でエラーを確認し、migrations/フォルダの最新ファイルを確認してください。',
                 },
               ].map(item => (
-                <div key={item.q} className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-4">
-                  <p className="text-[#e2e8f4] font-medium text-xs mb-2 flex items-center gap-2">
+                <div key={item.q} className="bg-falcon-surface border border-falcon-border rounded-lg p-4">
+                  <p className="text-falcon-text font-medium text-xs mb-2 flex items-center gap-2">
                     <HelpCircle className="w-3.5 h-3.5 text-[#f59e0b]" />
                     {item.q}
                   </p>
@@ -588,8 +588,8 @@ docker compose -f docker-compose.prod.yml logs -f postgres`}</Code>
             </p>
             <ul className="list-disc pl-5 space-y-1">
               <li>エラーメッセージ（スクリーンショットまたはテキスト）</li>
-              <li>関連コンテナのログ（<code className="font-mono text-xs text-[#e2e8f4]">{'docker logs edr-api 2>&1 | tail -100'}</code>）</li>
-              <li>プラットフォームバージョン（<code className="font-mono text-xs text-[#e2e8f4]">GET /api/v1/health</code> のレスポンス）</li>
+              <li>関連コンテナのログ（<code className="font-mono text-xs text-falcon-text">{'docker logs edr-api 2>&1 | tail -100'}</code>）</li>
+              <li>プラットフォームバージョン（<code className="font-mono text-xs text-falcon-text">GET /api/v1/health</code> のレスポンス）</li>
               <li>再現手順</li>
             </ul>
           </Section>
@@ -598,7 +598,7 @@ docker compose -f docker-compose.prod.yml logs -f postgres`}</Code>
         </div>
 
         {/* フッター */}
-        <div className="border-t border-[#1e2d42] p-6 text-center">
+        <div className="border-t border-falcon-border p-6 text-center">
           <p className="text-xs text-[#5a6a7a]">
             Kizashi 管理者ガイド v2.x &mdash; 最終更新: 2026年3月21日
           </p>

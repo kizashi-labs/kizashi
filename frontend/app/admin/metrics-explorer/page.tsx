@@ -186,7 +186,7 @@ function LargeLineChart({
   height?: number
 }) {
   const width = 600
-  if (!points.length) return <div className="h-[120px] flex items-center justify-center text-[#3d5068] text-sm">データなし</div>
+  if (!points.length) return <div className="h-[120px] flex items-center justify-center text-falcon-subtle text-sm">データなし</div>
 
   const vals = points.map(p => p.value)
   const min = Math.min(...vals)
@@ -242,17 +242,17 @@ function MetricCard({ metric, index }: { metric: MetricSummary; index: number })
   const isGood = lowerIsBetter ? !isPositive : isPositive
 
   return (
-    <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-4">
+    <div className="bg-falcon-surface border border-falcon-border rounded-lg p-4">
       <div className="flex items-start justify-between mb-3">
         <div>
-          <p className="text-xs text-[#7d92b0] uppercase tracking-wide font-medium">{metric.label}</p>
-          <p className="text-2xl font-bold text-[#e2e8f4] mt-1">
+          <p className="text-xs text-falcon-muted uppercase tracking-wide font-medium">{metric.label}</p>
+          <p className="text-2xl font-bold text-falcon-text mt-1">
             {fmtVal(metric.current, metric.unit)}
           </p>
         </div>
         <div className={`flex items-center gap-1 text-xs font-medium px-1.5 py-0.5 rounded ${
           isNeutral
-            ? 'text-[#7d92b0] bg-[#161f33]'
+            ? 'text-falcon-muted bg-falcon-raised'
             : isGood
             ? 'text-green-400 bg-green-900/20'
             : 'text-red-400 bg-red-900/20'
@@ -266,7 +266,7 @@ function MetricCard({ metric, index }: { metric: MetricSummary; index: number })
         </div>
       </div>
       <MiniChart points={metric.points} chartType={metric.chart_type} color={color} width={220} height={44} />
-      <p className="text-xs text-[#3d5068] mt-2">前期比</p>
+      <p className="text-xs text-falcon-subtle mt-2">前期比</p>
     </div>
   )
 }
@@ -344,20 +344,20 @@ export default function MetricsExplorerPage() {
     <div className="p-6 space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-[#e2e8f4]">メトリクスエクスプローラー</h1>
-        <p className="text-[#7d92b0] text-sm mt-1">セキュリティメトリクスの時系列分析・カスタムクエリ</p>
+        <h1 className="text-2xl font-bold text-falcon-text">メトリクスエクスプローラー</h1>
+        <p className="text-falcon-muted text-sm mt-1">セキュリティメトリクスの時系列分析・カスタムクエリ</p>
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 border-b border-[#1e2d42]">
+      <div className="flex gap-1 border-b border-falcon-border">
         {([['dashboard', 'ダッシュボード'], ['query', 'カスタムクエリ']] as const).map(([key, label]) => (
           <button
             key={key}
             onClick={() => setTab(key)}
             className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px ${
               tab === key
-                ? 'border-[#e8002d] text-[#e2e8f4]'
-                : 'border-transparent text-[#7d92b0] hover:text-[#e2e8f4]'
+                ? 'border-falcon-red text-falcon-text'
+                : 'border-transparent text-falcon-muted hover:text-falcon-text'
             }`}
           >
             {label}
@@ -370,7 +370,7 @@ export default function MetricsExplorerPage() {
         <div className="space-y-6">
           {/* Time Range Selector */}
           <div className="flex items-center gap-2">
-            <span className="text-xs text-[#7d92b0]">期間:</span>
+            <span className="text-xs text-falcon-muted">期間:</span>
             {[
               ['1h', '1時間'],
               ['6h', '6時間'],
@@ -383,8 +383,8 @@ export default function MetricsExplorerPage() {
                 onClick={() => setTimeRange(val)}
                 className={`px-3 py-1.5 rounded text-xs font-medium transition-colors ${
                   timeRange === val
-                    ? 'bg-[#e8002d] text-white'
-                    : 'bg-[#0d1220] border border-[#1e2d42] text-[#7d92b0] hover:text-[#e2e8f4] hover:border-[#7d92b0]/40'
+                    ? 'bg-falcon-red text-white'
+                    : 'bg-falcon-surface border border-falcon-border text-falcon-muted hover:text-falcon-text hover:border-falcon-muted/40'
                 }`}
               >
                 {label}
@@ -394,7 +394,7 @@ export default function MetricsExplorerPage() {
 
           {/* Metrics Grid (2×3) */}
           {isLoading ? (
-            <div className="flex items-center justify-center h-32 text-[#7d92b0]">
+            <div className="flex items-center justify-center h-32 text-falcon-muted">
               <RefreshCw className="w-5 h-5 animate-spin mr-2" />読み込み中...
             </div>
           ) : (
@@ -406,27 +406,27 @@ export default function MetricsExplorerPage() {
           )}
 
           {/* API Endpoint Response Times */}
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg overflow-hidden">
-            <div className="px-4 py-3 border-b border-[#1e2d42] flex items-center gap-2">
-              <Server className="w-4 h-4 text-[#7d92b0]" />
-              <h2 className="text-[#e2e8f4] font-semibold text-sm">APIエンドポイント別レスポンスタイム</h2>
+          <div className="bg-falcon-surface border border-falcon-border rounded-lg overflow-hidden">
+            <div className="px-4 py-3 border-b border-falcon-border flex items-center gap-2">
+              <Server className="w-4 h-4 text-falcon-muted" />
+              <h2 className="text-falcon-text font-semibold text-sm">APIエンドポイント別レスポンスタイム</h2>
             </div>
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-[#070d19] border-b border-[#1e2d42]">
-                  <th className="px-4 py-3 text-left text-xs text-[#7d92b0] uppercase tracking-wide font-medium">エンドポイント</th>
-                  <th className="px-4 py-3 text-right text-xs text-[#7d92b0] uppercase tracking-wide font-medium">平均 (ms)</th>
-                  <th className="px-4 py-3 text-right text-xs text-[#7d92b0] uppercase tracking-wide font-medium">P95 (ms)</th>
-                  <th className="px-4 py-3 text-right text-xs text-[#7d92b0] uppercase tracking-wide font-medium">P99 (ms)</th>
-                  <th className="px-4 py-3 text-right text-xs text-[#7d92b0] uppercase tracking-wide font-medium">エラー率 (%)</th>
-                  <th className="px-4 py-3 text-right text-xs text-[#7d92b0] uppercase tracking-wide font-medium">req/min</th>
+                <tr className="bg-[#070d19] border-b border-falcon-border">
+                  <th className="px-4 py-3 text-left text-xs text-falcon-muted uppercase tracking-wide font-medium">エンドポイント</th>
+                  <th className="px-4 py-3 text-right text-xs text-falcon-muted uppercase tracking-wide font-medium">平均 (ms)</th>
+                  <th className="px-4 py-3 text-right text-xs text-falcon-muted uppercase tracking-wide font-medium">P95 (ms)</th>
+                  <th className="px-4 py-3 text-right text-xs text-falcon-muted uppercase tracking-wide font-medium">P99 (ms)</th>
+                  <th className="px-4 py-3 text-right text-xs text-falcon-muted uppercase tracking-wide font-medium">エラー率 (%)</th>
+                  <th className="px-4 py-3 text-right text-xs text-falcon-muted uppercase tracking-wide font-medium">req/min</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#1e2d42]">
+              <tbody className="divide-y divide-falcon-border">
                 {(summary.endpoints ?? []).map(ep => (
                   <tr key={ep.path} className="hover:bg-[#070d19]/50 transition-colors">
                     <td className="px-4 py-3">
-                      <code className="text-[#7d92b0] text-xs bg-[#161f33] px-2 py-0.5 rounded">{ep.path}</code>
+                      <code className="text-falcon-muted text-xs bg-falcon-raised px-2 py-0.5 rounded-sm">{ep.path}</code>
                     </td>
                     <td className="px-4 py-3 text-right">
                       <span className={`font-medium text-sm ${
@@ -435,16 +435,16 @@ export default function MetricsExplorerPage() {
                         'text-green-400'
                       }`}>{ep.avg_ms}</span>
                     </td>
-                    <td className="px-4 py-3 text-right text-[#7d92b0] text-sm">{ep.p95_ms}</td>
-                    <td className="px-4 py-3 text-right text-[#7d92b0] text-sm">{ep.p99_ms}</td>
+                    <td className="px-4 py-3 text-right text-falcon-muted text-sm">{ep.p95_ms}</td>
+                    <td className="px-4 py-3 text-right text-falcon-muted text-sm">{ep.p99_ms}</td>
                     <td className="px-4 py-3 text-right">
                       <span className={`text-sm font-medium ${
                         ep.error_rate > 1 ? 'text-red-400' :
                         ep.error_rate > 0.5 ? 'text-yellow-400' :
-                        'text-[#7d92b0]'
+                        'text-falcon-muted'
                       }`}>{ep.error_rate.toFixed(1)}%</span>
                     </td>
-                    <td className="px-4 py-3 text-right text-[#7d92b0] text-sm">{ep.requests_per_min}</td>
+                    <td className="px-4 py-3 text-right text-falcon-muted text-sm">{ep.requests_per_min}</td>
                   </tr>
                 ))}
               </tbody>
@@ -457,15 +457,15 @@ export default function MetricsExplorerPage() {
       {tab === 'query' && (
         <div className="space-y-6">
           {/* Query Builder */}
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-6">
-            <h2 className="text-[#e2e8f4] font-semibold mb-4">クエリ条件</h2>
+          <div className="bg-falcon-surface border border-falcon-border rounded-lg p-6">
+            <h2 className="text-falcon-text font-semibold mb-4">クエリ条件</h2>
             <div className="grid grid-cols-4 gap-4 items-end">
               {/* Metric name */}
               <div>
-                <label className="block text-xs text-[#7d92b0] mb-1.5">メトリクス</label>
+                <label className="block text-xs text-falcon-muted mb-1.5">メトリクス</label>
                 <select
-                  className="w-full bg-[#070d19] border border-[#1e2d42] rounded px-3 py-2 text-sm
-                             text-[#e2e8f4] focus:outline-none focus:border-[#1a6bff]"
+                  className="w-full bg-[#070d19] border border-falcon-border rounded px-3 py-2 text-sm
+                             text-falcon-text focus:outline-hidden focus:border-falcon-blue"
                   value={queryMetric}
                   onChange={e => setQueryMetric(e.target.value)}
                 >
@@ -478,11 +478,11 @@ export default function MetricsExplorerPage() {
 
               {/* From */}
               <div>
-                <label className="block text-xs text-[#7d92b0] mb-1.5">開始日時</label>
+                <label className="block text-xs text-falcon-muted mb-1.5">開始日時</label>
                 <input
                   type="datetime-local"
-                  className="w-full bg-[#070d19] border border-[#1e2d42] rounded px-3 py-2 text-sm
-                             text-[#e2e8f4] focus:outline-none focus:border-[#1a6bff]"
+                  className="w-full bg-[#070d19] border border-falcon-border rounded px-3 py-2 text-sm
+                             text-falcon-text focus:outline-hidden focus:border-falcon-blue"
                   value={queryFrom}
                   onChange={e => setQueryFrom(e.target.value)}
                 />
@@ -490,11 +490,11 @@ export default function MetricsExplorerPage() {
 
               {/* To */}
               <div>
-                <label className="block text-xs text-[#7d92b0] mb-1.5">終了日時</label>
+                <label className="block text-xs text-falcon-muted mb-1.5">終了日時</label>
                 <input
                   type="datetime-local"
-                  className="w-full bg-[#070d19] border border-[#1e2d42] rounded px-3 py-2 text-sm
-                             text-[#e2e8f4] focus:outline-none focus:border-[#1a6bff]"
+                  className="w-full bg-[#070d19] border border-falcon-border rounded px-3 py-2 text-sm
+                             text-falcon-text focus:outline-hidden focus:border-falcon-blue"
                   value={queryTo}
                   onChange={e => setQueryTo(e.target.value)}
                 />
@@ -502,10 +502,10 @@ export default function MetricsExplorerPage() {
 
               {/* Period */}
               <div>
-                <label className="block text-xs text-[#7d92b0] mb-1.5">集計期間</label>
+                <label className="block text-xs text-falcon-muted mb-1.5">集計期間</label>
                 <select
-                  className="w-full bg-[#070d19] border border-[#1e2d42] rounded px-3 py-2 text-sm
-                             text-[#e2e8f4] focus:outline-none focus:border-[#1a6bff]"
+                  className="w-full bg-[#070d19] border border-falcon-border rounded px-3 py-2 text-sm
+                             text-falcon-text focus:outline-hidden focus:border-falcon-blue"
                   value={queryPeriod}
                   onChange={e => setQueryPeriod(e.target.value)}
                 >
@@ -521,7 +521,7 @@ export default function MetricsExplorerPage() {
                 onClick={executeQuery}
                 disabled={!queryMetric || queryLoading}
                 className="flex items-center gap-2 px-4 py-2 rounded text-sm font-medium
-                           bg-[#e8002d] text-white hover:bg-[#c8001d]
+                           bg-falcon-red text-white hover:bg-[#c8001d]
                            disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 {queryLoading
@@ -533,8 +533,8 @@ export default function MetricsExplorerPage() {
                 <button
                   onClick={exportCsv}
                   className="flex items-center gap-2 px-4 py-2 rounded text-sm font-medium
-                             bg-[#161f33] border border-[#1e2d42] text-[#7d92b0]
-                             hover:text-[#e2e8f4] hover:border-[#7d92b0]/40 transition-colors"
+                             bg-falcon-raised border border-falcon-border text-falcon-muted
+                             hover:text-falcon-text hover:border-falcon-muted/40 transition-colors"
                 >
                   <Download className="w-4 h-4" />
                   CSVエクスポート
@@ -547,35 +547,35 @@ export default function MetricsExplorerPage() {
           {queryResult && (
             <div className="space-y-4">
               {/* Chart */}
-              <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-4">
+              <div className="bg-falcon-surface border border-falcon-border rounded-lg p-4">
                 <div className="flex items-center gap-2 mb-4">
-                  <BarChart3 className="w-4 h-4 text-[#7d92b0]" />
-                  <h3 className="text-[#e2e8f4] font-medium text-sm">
+                  <BarChart3 className="w-4 h-4 text-falcon-muted" />
+                  <h3 className="text-falcon-text font-medium text-sm">
                     {queryResult.metric} — 時系列グラフ
                   </h3>
-                  <span className="text-xs text-[#3d5068]">({queryResult.points.length} ポイント)</span>
+                  <span className="text-xs text-falcon-subtle">({queryResult.points.length} ポイント)</span>
                 </div>
                 <LargeLineChart points={queryResult.points} color="#1a6bff" height={140} />
               </div>
 
               {/* Data Table */}
-              <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg overflow-hidden">
-                <div className="px-4 py-3 border-b border-[#1e2d42]">
-                  <h3 className="text-[#e2e8f4] font-medium text-sm">データテーブル</h3>
+              <div className="bg-falcon-surface border border-falcon-border rounded-lg overflow-hidden">
+                <div className="px-4 py-3 border-b border-falcon-border">
+                  <h3 className="text-falcon-text font-medium text-sm">データテーブル</h3>
                 </div>
                 <div className="max-h-[300px] overflow-y-auto">
                   <table className="w-full text-sm">
                     <thead className="sticky top-0 bg-[#070d19]">
-                      <tr className="border-b border-[#1e2d42]">
-                        <th className="px-4 py-3 text-left text-xs text-[#7d92b0] uppercase tracking-wide font-medium">タイムスタンプ</th>
-                        <th className="px-4 py-3 text-right text-xs text-[#7d92b0] uppercase tracking-wide font-medium">値</th>
+                      <tr className="border-b border-falcon-border">
+                        <th className="px-4 py-3 text-left text-xs text-falcon-muted uppercase tracking-wide font-medium">タイムスタンプ</th>
+                        <th className="px-4 py-3 text-right text-xs text-falcon-muted uppercase tracking-wide font-medium">値</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-[#1e2d42]">
+                    <tbody className="divide-y divide-falcon-border">
                       {queryResult.points.map((pt, i) => (
                         <tr key={i} className="hover:bg-[#070d19]/50 transition-colors">
-                          <td className="px-4 py-2 text-[#7d92b0] text-xs font-mono">{fmtDateTime(pt.timestamp)}</td>
-                          <td className="px-4 py-2 text-right text-[#e2e8f4] font-medium">{pt.value}</td>
+                          <td className="px-4 py-2 text-falcon-muted text-xs font-mono">{fmtDateTime(pt.timestamp)}</td>
+                          <td className="px-4 py-2 text-right text-falcon-text font-medium">{pt.value}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -586,7 +586,7 @@ export default function MetricsExplorerPage() {
           )}
 
           {!queryResult && !queryLoading && (
-            <div className="flex flex-col items-center justify-center py-16 text-[#3d5068]">
+            <div className="flex flex-col items-center justify-center py-16 text-falcon-subtle">
               <Activity className="w-10 h-10 mb-3 opacity-40" />
               <p className="text-sm">メトリクスを選択してクエリを実行してください</p>
             </div>

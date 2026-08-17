@@ -65,7 +65,7 @@ function CommentBubble({
   return (
     <div className="flex items-start gap-3 group">
       {/* Avatar */}
-      <div className="w-8 h-8 rounded-full bg-gray-700 border border-gray-600 flex items-center justify-center flex-shrink-0 mt-0.5">
+      <div className="w-8 h-8 rounded-full bg-gray-700 border border-gray-600 flex items-center justify-center shrink-0 mt-0.5">
         <User className="w-4 h-4 text-gray-400" />
       </div>
 
@@ -83,11 +83,11 @@ function CommentBubble({
                 </span>
               )}
             </div>
-            <span className="text-xs text-gray-500 whitespace-nowrap flex-shrink-0">
+            <span className="text-xs text-gray-500 whitespace-nowrap shrink-0">
               {timeAgo(comment.created_at)}
             </span>
           </div>
-          <p className="text-sm text-gray-300 leading-relaxed whitespace-pre-wrap break-words">
+          <p className="text-sm text-gray-300 leading-relaxed whitespace-pre-wrap wrap-break-word">
             {comment.content}
           </p>
         </div>
@@ -240,9 +240,9 @@ export default function AlertComments({ alertId }: { alertId: string }) {
         <div className="space-y-4">
           {[...Array(3)].map((_, i) => (
             <div key={i} className="flex items-start gap-3 animate-pulse">
-              <div className="w-8 h-8 rounded-full bg-gray-700 flex-shrink-0" />
+              <div className="w-8 h-8 rounded-full bg-gray-700 shrink-0" />
               <div className="flex-1 space-y-2">
-                <div className="h-3 bg-gray-700 rounded w-24" />
+                <div className="h-3 bg-gray-700 rounded-sm w-24" />
                 <div className="h-14 bg-gray-700 rounded-xl" />
               </div>
             </div>
@@ -280,7 +280,7 @@ export default function AlertComments({ alertId }: { alertId: string }) {
           rows={3}
           className="w-full bg-gray-900 border border-gray-600 rounded-xl px-4 py-3 text-sm
                      text-gray-200 placeholder-gray-500 resize-none
-                     focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/30
+                     focus:outline-hidden focus:border-blue-500 focus:ring-1 focus:ring-blue-500/30
                      transition-colors"
         />
 

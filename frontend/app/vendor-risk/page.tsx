@@ -94,7 +94,7 @@ const CATEGORY_CONFIG: Record<VendorCategory, { label: string; color: string }> 
 
 const STATUS_CONFIG: Record<VendorStatus, { label: string; color: string }> = {
   active:       { label: 'アクティブ', color: 'bg-green-500/20 text-green-300 border border-green-500/30' },
-  inactive:     { label: '非アクティブ', color: 'bg-[#1e2d42] text-[#7d92b0] border border-[#1e2d42]' },
+  inactive:     { label: '非アクティブ', color: 'bg-falcon-border text-falcon-muted border border-falcon-border' },
   under_review: { label: 'レビュー中', color: 'bg-yellow-500/20 text-yellow-300 border border-yellow-500/30' },
   suspended:    { label: '停止中', color: 'bg-red-500/20 text-red-300 border border-red-500/30' },
 }
@@ -150,7 +150,7 @@ function RiskMatrix({ vendors }: { vendors: Vendor[] }) {
 
   return (
     <div className="overflow-x-auto">
-      <div className="mb-2 text-xs text-[#7d92b0]">発生可能性 → （X軸）　　影響度 ↑ （Y軸）</div>
+      <div className="mb-2 text-xs text-falcon-muted">発生可能性 → （X軸）　　影響度 ↑ （Y軸）</div>
       <svg width={svgW} height={svgH} className="block">
         {/* Grid cells */}
         {Array.from({ length: 5 }, (_, row) =>
@@ -208,7 +208,7 @@ function RiskMatrix({ vendors }: { vendors: Vendor[] }) {
       </svg>
 
       {/* Legend */}
-      <div className="flex items-center gap-4 mt-3 text-xs text-[#7d92b0]">
+      <div className="flex items-center gap-4 mt-3 text-xs text-falcon-muted">
         {Object.entries(tierColor).map(([tier, color]) => (
           <span key={tier} className="flex items-center gap-1.5">
             <span className="w-3 h-3 rounded-full inline-block" style={{ background: color }} />
@@ -227,13 +227,13 @@ function ScoreSlider({ label, value, onChange }: { label: string; value: number;
   return (
     <div>
       <div className="flex justify-between items-center mb-1">
-        <span className="text-sm text-[#7d92b0]">{label}</span>
+        <span className="text-sm text-falcon-muted">{label}</span>
         <span className={`text-sm font-bold tabular-nums ${color}`}>{value}</span>
       </div>
       <input
         type="range" min={0} max={100} value={value}
         onChange={e => onChange(Number(e.target.value))}
-        className="w-full h-1.5 rounded-full appearance-none bg-[#1e2d42] accent-[#e8002d] cursor-pointer"
+        className="w-full h-1.5 rounded-full appearance-none bg-falcon-border accent-falcon-red cursor-pointer"
       />
     </div>
   )
@@ -333,7 +333,7 @@ export default function VendorRiskPage() {
       {/* Header */}
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-white">サードパーティリスク管理</h1>
-        <p className="text-[#7d92b0] mt-1 text-sm">サプライチェーン・外部ベンダーのセキュリティリスク管理</p>
+        <p className="text-falcon-muted mt-1 text-sm">サプライチェーン・外部ベンダーのセキュリティリスク管理</p>
       </div>
 
       {/* Stats Row */}
@@ -344,11 +344,11 @@ export default function VendorRiskPage() {
           { label: '高リスク', value: stats.high_count, icon: <TrendingUp className="w-5 h-5" />, color: 'text-orange-400', bg: 'bg-orange-500/10' },
           { label: '今月評価期限', value: stats.assessment_due_this_month, icon: <Calendar className="w-5 h-5" />, color: 'text-yellow-400', bg: 'bg-yellow-500/10' },
         ].map(({ label, value, icon, color, bg }) => (
-          <div key={label} className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-4">
+          <div key={label} className="bg-falcon-surface border border-falcon-border rounded-lg p-4">
             <div className="flex items-center gap-3">
               <div className={`p-2 rounded-lg ${bg} ${color}`}>{icon}</div>
               <div>
-                <p className="text-[#7d92b0] text-xs">{label}</p>
+                <p className="text-falcon-muted text-xs">{label}</p>
                 <p className={`text-2xl font-bold ${color}`}>{value}</p>
               </div>
             </div>
@@ -357,7 +357,7 @@ export default function VendorRiskPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 mb-6 bg-[#0d1220] border border-[#1e2d42] rounded-lg p-1 w-fit">
+      <div className="flex gap-1 mb-6 bg-falcon-surface border border-falcon-border rounded-lg p-1 w-fit">
         {[
           { id: 'vendors', label: 'ベンダー一覧' },
           { id: 'assessments', label: 'リスク評価' },
@@ -366,7 +366,7 @@ export default function VendorRiskPage() {
             key={tab.id}
             onClick={() => setActiveTab(tab.id as typeof activeTab)}
             className={`px-4 py-2 rounded text-sm font-medium transition-colors ${
-              activeTab === tab.id ? 'bg-[#1d2f4a] text-white' : 'text-[#7d92b0] hover:text-white'
+              activeTab === tab.id ? 'bg-falcon-active text-white' : 'text-falcon-muted hover:text-white'
             }`}
           >
             {tab.label}
@@ -379,12 +379,12 @@ export default function VendorRiskPage() {
         <div className="space-y-4">
           {/* Filters + Add button */}
           <div className="flex items-center gap-3 flex-wrap">
-            <div className="flex items-center gap-2 text-[#7d92b0] text-sm">
+            <div className="flex items-center gap-2 text-falcon-muted text-sm">
               <Filter className="w-4 h-4" />
               <span>フィルター:</span>
             </div>
             <select value={tierFilter} onChange={e => setTierFilter(e.target.value)}
-              className="px-3 py-1.5 bg-[#0d1220] border border-[#1e2d42] rounded text-sm text-white focus:outline-none focus:border-[#7d92b0]/50">
+              className="px-3 py-1.5 bg-falcon-surface border border-falcon-border rounded-sm text-sm text-white focus:outline-hidden focus:border-falcon-muted/50">
               <option value="all">リスク階層: すべて</option>
               <option value="critical">クリティカル</option>
               <option value="high">高</option>
@@ -392,7 +392,7 @@ export default function VendorRiskPage() {
               <option value="low">低</option>
             </select>
             <select value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)}
-              className="px-3 py-1.5 bg-[#0d1220] border border-[#1e2d42] rounded text-sm text-white focus:outline-none focus:border-[#7d92b0]/50">
+              className="px-3 py-1.5 bg-falcon-surface border border-falcon-border rounded-sm text-sm text-white focus:outline-hidden focus:border-falcon-muted/50">
               <option value="all">カテゴリー: すべて</option>
               <option value="software">ソフトウェア</option>
               <option value="hardware">ハードウェア</option>
@@ -401,7 +401,7 @@ export default function VendorRiskPage() {
               <option value="contractor">コントラクター</option>
             </select>
             <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}
-              className="px-3 py-1.5 bg-[#0d1220] border border-[#1e2d42] rounded text-sm text-white focus:outline-none focus:border-[#7d92b0]/50">
+              className="px-3 py-1.5 bg-falcon-surface border border-falcon-border rounded-sm text-sm text-white focus:outline-hidden focus:border-falcon-muted/50">
               <option value="all">ステータス: すべて</option>
               <option value="active">アクティブ</option>
               <option value="inactive">非アクティブ</option>
@@ -410,14 +410,14 @@ export default function VendorRiskPage() {
             </select>
             {(tierFilter !== 'all' || categoryFilter !== 'all' || statusFilter !== 'all') && (
               <button onClick={() => { setTierFilter('all'); setCategoryFilter('all'); setStatusFilter('all') }}
-                className="flex items-center gap-1 px-2 py-1.5 text-xs text-[#7d92b0] hover:text-white">
+                className="flex items-center gap-1 px-2 py-1.5 text-xs text-falcon-muted hover:text-white">
                 <X className="w-3.5 h-3.5" /> クリア
               </button>
             )}
-            <span className="text-[#7d92b0] text-sm">{filteredVendors.length} 件</span>
+            <span className="text-falcon-muted text-sm">{filteredVendors.length} 件</span>
             <button
               onClick={() => setShowAddModal(true)}
-              className="ml-auto flex items-center gap-2 px-4 py-2 bg-[#e8002d] hover:bg-[#c0001f] text-white text-sm font-medium rounded transition-colors"
+              className="ml-auto flex items-center gap-2 px-4 py-2 bg-falcon-red hover:bg-[#c0001f] text-white text-sm font-medium rounded-sm transition-colors"
             >
               <Plus className="w-4 h-4" />
               ベンダー追加
@@ -425,11 +425,11 @@ export default function VendorRiskPage() {
           </div>
 
           {/* Vendors Table */}
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg overflow-hidden">
+          <div className="bg-falcon-surface border border-falcon-border rounded-lg overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="text-[#7d92b0] text-xs border-b border-[#1e2d42] bg-[#0a101d]">
+                  <tr className="text-falcon-muted text-xs border-b border-falcon-border bg-[#0a101d]">
                     <th className="text-left px-4 py-3">ベンダー名</th>
                     <th className="text-left px-4 py-3">カテゴリー</th>
                     <th className="text-left px-4 py-3">WEB</th>
@@ -441,7 +441,7 @@ export default function VendorRiskPage() {
                     <th className="text-left px-4 py-3">アクション</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#1e2d42]">
+                <tbody className="divide-y divide-falcon-border">
                   {filteredVendors.map(vendor => {
                     const tier = TIER_CONFIG[vendor.risk_tier]
                     const cat = CATEGORY_CONFIG[vendor.category]
@@ -458,14 +458,14 @@ export default function VendorRiskPage() {
                         <td className="px-4 py-3">
                           {vendor.website ? (
                             <a href={vendor.website} target="_blank" rel="noopener noreferrer"
-                              className="text-[#7d92b0] hover:text-blue-400 transition-colors">
+                              className="text-falcon-muted hover:text-blue-400 transition-colors">
                               <ExternalLink className="w-4 h-4" />
                             </a>
-                          ) : <span className="text-[#3d5068]">—</span>}
+                          ) : <span className="text-falcon-subtle">—</span>}
                         </td>
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2">
-                            <div className="flex-1 h-1.5 bg-[#1e2d42] rounded-full overflow-hidden">
+                            <div className="flex-1 h-1.5 bg-falcon-border rounded-full overflow-hidden">
                               <div className={`h-full rounded-full ${getRiskScoreColor(vendor.risk_score)}`}
                                 style={{ width: `${vendor.risk_score}%` }} />
                             </div>
@@ -480,17 +480,17 @@ export default function VendorRiskPage() {
                             {tier.label}
                           </span>
                         </td>
-                        <td className="px-4 py-3 text-[#7d92b0] text-xs">
+                        <td className="px-4 py-3 text-falcon-muted text-xs">
                           {vendor.last_assessment_date ? formatDate(vendor.last_assessment_date) : (
                             <span className="text-red-400">未評価</span>
                           )}
                         </td>
                         <td className="px-4 py-3 text-xs">
                           {vendor.next_assessment_due ? (
-                            <span className={overdue ? 'text-red-400 font-medium' : 'text-[#7d92b0]'}>
+                            <span className={overdue ? 'text-red-400 font-medium' : 'text-falcon-muted'}>
                               {overdue && '⚠ '}{formatDate(vendor.next_assessment_due)}
                             </span>
-                          ) : <span className="text-[#3d5068]">—</span>}
+                          ) : <span className="text-falcon-subtle">—</span>}
                         </td>
                         <td className="px-4 py-3">
                           <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${st.color}`}>{st.label}</span>
@@ -498,7 +498,7 @@ export default function VendorRiskPage() {
                         <td className="px-4 py-3">
                           <button
                             onClick={() => openAssessment(vendor)}
-                            className="flex items-center gap-1.5 px-3 py-1.5 bg-[#1d2f4a] hover:bg-[#243a5e] text-white text-xs rounded transition-colors"
+                            className="flex items-center gap-1.5 px-3 py-1.5 bg-falcon-active hover:bg-[#243a5e] text-white text-xs rounded-sm transition-colors"
                           >
                             <ClipboardList className="w-3.5 h-3.5" />
                             評価実施
@@ -518,36 +518,36 @@ export default function VendorRiskPage() {
       {activeTab === 'assessments' && (
         <div className="space-y-6">
           {/* Risk Matrix */}
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-5">
+          <div className="bg-falcon-surface border border-falcon-border rounded-lg p-5">
             <h3 className="text-white font-semibold mb-4 flex items-center gap-2">
-              <Shield className="w-4 h-4 text-[#e8002d]" />
+              <Shield className="w-4 h-4 text-falcon-red" />
               リスクマトリクス
             </h3>
             <RiskMatrix vendors={vendors} />
           </div>
 
           {/* Upcoming Assessments */}
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-5">
+          <div className="bg-falcon-surface border border-falcon-border rounded-lg p-5">
             <h3 className="text-white font-semibold mb-4 flex items-center gap-2">
               <Calendar className="w-4 h-4 text-yellow-400" />
               今後30日以内の評価予定
             </h3>
             {upcomingAssessments.length === 0 ? (
-              <p className="text-[#7d92b0] text-sm">今後30日以内の評価予定はありません</p>
+              <p className="text-falcon-muted text-sm">今後30日以内の評価予定はありません</p>
             ) : (
               <div className="space-y-2">
                 {upcomingAssessments.map(v => {
                   const overdue = isOverdue(v.next_assessment_due)
                   const tier = TIER_CONFIG[v.risk_tier]
                   return (
-                    <div key={v.id} className={`flex items-center gap-4 px-4 py-3 rounded-lg border ${overdue ? 'border-red-500/30 bg-red-500/5' : 'border-[#1e2d42] bg-[#070d19]'}`}>
-                      <span className={`text-xs font-medium ${overdue ? 'text-red-400' : 'text-[#7d92b0]'}`}>
+                    <div key={v.id} className={`flex items-center gap-4 px-4 py-3 rounded-lg border ${overdue ? 'border-red-500/30 bg-red-500/5' : 'border-falcon-border bg-[#070d19]'}`}>
+                      <span className={`text-xs font-medium ${overdue ? 'text-red-400' : 'text-falcon-muted'}`}>
                         {overdue ? '期限超過' : formatDate(v.next_assessment_due)}
                       </span>
                       <span className="text-white font-medium flex-1">{v.name}</span>
                       <span className={`text-xs px-2 py-0.5 rounded-full ${tier.bg} ${tier.color}`}>{tier.label}</span>
                       <button onClick={() => { openAssessment(v); }}
-                        className="flex items-center gap-1 px-3 py-1.5 bg-[#1d2f4a] hover:bg-[#243a5e] text-white text-xs rounded transition-colors">
+                        className="flex items-center gap-1 px-3 py-1.5 bg-falcon-active hover:bg-[#243a5e] text-white text-xs rounded-sm transition-colors">
                         <ClipboardList className="w-3.5 h-3.5" />
                         評価実施
                       </button>
@@ -559,14 +559,14 @@ export default function VendorRiskPage() {
           </div>
 
           {/* Assessment History */}
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg overflow-hidden">
-            <div className="px-5 py-4 border-b border-[#1e2d42]">
+          <div className="bg-falcon-surface border border-falcon-border rounded-lg overflow-hidden">
+            <div className="px-5 py-4 border-b border-falcon-border">
               <h3 className="text-white font-semibold">評価履歴</h3>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="text-[#7d92b0] text-xs border-b border-[#1e2d42] bg-[#0a101d]">
+                  <tr className="text-falcon-muted text-xs border-b border-falcon-border bg-[#0a101d]">
                     <th className="text-left px-4 py-3">ベンダー</th>
                     <th className="text-left px-4 py-3">評価者</th>
                     <th className="text-left px-4 py-3">総合スコア</th>
@@ -575,7 +575,7 @@ export default function VendorRiskPage() {
                     <th className="text-left px-4 py-3">評価日</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#1e2d42]">
+                <tbody className="divide-y divide-falcon-border">
                   {assessments.map(a => {
                     const tierChanged = a.previous_tier && a.previous_tier !== a.new_tier
                     const improved = a.previous_tier && tierChanged &&
@@ -583,30 +583,30 @@ export default function VendorRiskPage() {
                     return (
                       <tr key={a.id} className="hover:bg-[#0d1830]/40 transition-colors">
                         <td className="px-4 py-3 text-white font-medium">{a.vendor_name}</td>
-                        <td className="px-4 py-3 text-[#7d92b0]">{a.assessor}</td>
+                        <td className="px-4 py-3 text-falcon-muted">{a.assessor}</td>
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2">
                             <span className={`text-sm font-bold ${getRiskScoreTextColor(100 - a.overall_score)}`}>{a.overall_score}</span>
-                            <div className="w-16 h-1.5 bg-[#1e2d42] rounded-full overflow-hidden">
+                            <div className="w-16 h-1.5 bg-falcon-border rounded-full overflow-hidden">
                               <div className="h-full bg-blue-500 rounded-full" style={{ width: `${a.overall_score}%` }} />
                             </div>
                           </div>
                         </td>
                         <td className="px-4 py-3">
                           {!a.previous_tier ? (
-                            <span className="text-[#7d92b0] text-xs">初回</span>
+                            <span className="text-falcon-muted text-xs">初回</span>
                           ) : !tierChanged ? (
-                            <span className="flex items-center gap-1 text-[#7d92b0] text-xs"><Minus className="w-3.5 h-3.5" /> 変化なし</span>
+                            <span className="flex items-center gap-1 text-falcon-muted text-xs"><Minus className="w-3.5 h-3.5" /> 変化なし</span>
                           ) : improved ? (
                             <span className="flex items-center gap-1 text-green-400 text-xs"><TrendingDown className="w-3.5 h-3.5" /> 改善</span>
                           ) : (
                             <span className="flex items-center gap-1 text-red-400 text-xs"><TrendingUp className="w-3.5 h-3.5" /> 悪化</span>
                           )}
                         </td>
-                        <td className="px-4 py-3 text-[#7d92b0] text-xs max-w-[240px]">
+                        <td className="px-4 py-3 text-falcon-muted text-xs max-w-[240px]">
                           <span className="line-clamp-1">{a.findings}</span>
                         </td>
-                        <td className="px-4 py-3 text-[#7d92b0] text-xs whitespace-nowrap">
+                        <td className="px-4 py-3 text-falcon-muted text-xs whitespace-nowrap">
                           {formatDate(a.assessed_at)}
                         </td>
                       </tr>
@@ -621,25 +621,25 @@ export default function VendorRiskPage() {
 
       {/* ── Add Vendor Modal ── */}
       {showAddModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setShowAddModal(false)}>
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-6 w-full max-w-md shadow-2xl" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs" onClick={() => setShowAddModal(false)}>
+          <div className="bg-falcon-surface border border-falcon-border rounded-xl p-6 w-full max-w-md shadow-2xl" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-5">
               <h2 className="text-white font-semibold text-lg">ベンダー追加</h2>
-              <button onClick={() => setShowAddModal(false)} className="text-[#7d92b0] hover:text-white">
+              <button onClick={() => setShowAddModal(false)} className="text-falcon-muted hover:text-white">
                 <X className="w-5 h-5" />
               </button>
             </div>
             <div className="space-y-4">
               <div>
-                <label className="text-[#7d92b0] text-xs mb-1 block">ベンダー名 *</label>
+                <label className="text-falcon-muted text-xs mb-1 block">ベンダー名 *</label>
                 <input type="text" value={newVendor.name} onChange={e => setNewVendor(p => ({ ...p, name: e.target.value }))}
                   placeholder="例: Acme Corporation"
-                  className="w-full px-3 py-2 bg-[#070d19] border border-[#1e2d42] rounded text-sm text-white placeholder-[#3d5068] focus:outline-none focus:border-[#7d92b0]/50" />
+                  className="w-full px-3 py-2 bg-[#070d19] border border-falcon-border rounded-sm text-sm text-white placeholder-falcon-subtle focus:outline-hidden focus:border-falcon-muted/50" />
               </div>
               <div>
-                <label className="text-[#7d92b0] text-xs mb-1 block">カテゴリー</label>
+                <label className="text-falcon-muted text-xs mb-1 block">カテゴリー</label>
                 <select value={newVendor.category} onChange={e => setNewVendor(p => ({ ...p, category: e.target.value as VendorCategory }))}
-                  className="w-full px-3 py-2 bg-[#070d19] border border-[#1e2d42] rounded text-sm text-white focus:outline-none focus:border-[#7d92b0]/50">
+                  className="w-full px-3 py-2 bg-[#070d19] border border-falcon-border rounded-sm text-sm text-white focus:outline-hidden focus:border-falcon-muted/50">
                   <option value="software">ソフトウェア</option>
                   <option value="hardware">ハードウェア</option>
                   <option value="cloud">クラウド</option>
@@ -648,33 +648,33 @@ export default function VendorRiskPage() {
                 </select>
               </div>
               <div>
-                <label className="text-[#7d92b0] text-xs mb-1 block">ウェブサイト</label>
+                <label className="text-falcon-muted text-xs mb-1 block">ウェブサイト</label>
                 <input type="url" value={newVendor.website} onChange={e => setNewVendor(p => ({ ...p, website: e.target.value }))}
                   placeholder="https://example.com"
-                  className="w-full px-3 py-2 bg-[#070d19] border border-[#1e2d42] rounded text-sm text-white placeholder-[#3d5068] focus:outline-none focus:border-[#7d92b0]/50" />
+                  className="w-full px-3 py-2 bg-[#070d19] border border-falcon-border rounded-sm text-sm text-white placeholder-falcon-subtle focus:outline-hidden focus:border-falcon-muted/50" />
               </div>
               <div>
-                <label className="text-[#7d92b0] text-xs mb-1 block">連絡先メール</label>
+                <label className="text-falcon-muted text-xs mb-1 block">連絡先メール</label>
                 <input type="email" value={newVendor.contact_email} onChange={e => setNewVendor(p => ({ ...p, contact_email: e.target.value }))}
                   placeholder="security@vendor.com"
-                  className="w-full px-3 py-2 bg-[#070d19] border border-[#1e2d42] rounded text-sm text-white placeholder-[#3d5068] focus:outline-none focus:border-[#7d92b0]/50" />
+                  className="w-full px-3 py-2 bg-[#070d19] border border-falcon-border rounded-sm text-sm text-white placeholder-falcon-subtle focus:outline-hidden focus:border-falcon-muted/50" />
               </div>
               <div>
-                <label className="text-[#7d92b0] text-xs mb-1 block">備考</label>
+                <label className="text-falcon-muted text-xs mb-1 block">備考</label>
                 <textarea value={newVendor.notes} onChange={e => setNewVendor(p => ({ ...p, notes: e.target.value }))}
                   rows={3} placeholder="特記事項など..."
-                  className="w-full px-3 py-2 bg-[#070d19] border border-[#1e2d42] rounded text-sm text-white placeholder-[#3d5068] focus:outline-none focus:border-[#7d92b0]/50 resize-none" />
+                  className="w-full px-3 py-2 bg-[#070d19] border border-falcon-border rounded-sm text-sm text-white placeholder-falcon-subtle focus:outline-hidden focus:border-falcon-muted/50 resize-none" />
               </div>
             </div>
             <div className="flex gap-3 mt-6">
               <button onClick={() => setShowAddModal(false)}
-                className="flex-1 px-4 py-2 border border-[#1e2d42] text-[#7d92b0] hover:text-white rounded text-sm transition-colors">
+                className="flex-1 px-4 py-2 border border-falcon-border text-falcon-muted hover:text-white rounded-sm text-sm transition-colors">
                 キャンセル
               </button>
               <button
                 onClick={() => addVendorMutation.mutate(newVendor)}
                 disabled={!newVendor.name}
-                className="flex-1 px-4 py-2 bg-[#e8002d] hover:bg-[#c0001f] disabled:opacity-50 disabled:cursor-not-allowed text-white rounded text-sm font-medium transition-colors"
+                className="flex-1 px-4 py-2 bg-falcon-red hover:bg-[#c0001f] disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-sm text-sm font-medium transition-colors"
               >
                 追加
               </button>
@@ -685,14 +685,14 @@ export default function VendorRiskPage() {
 
       {/* ── Assessment Modal ── */}
       {assessingVendor && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setAssessingVendor(null)}>
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-6 w-full max-w-lg shadow-2xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs" onClick={() => setAssessingVendor(null)}>
+          <div className="bg-falcon-surface border border-falcon-border rounded-xl p-6 w-full max-w-lg shadow-2xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-5">
               <div>
                 <h2 className="text-white font-semibold text-lg">リスク評価: {assessingVendor.name}</h2>
-                <p className="text-[#7d92b0] text-xs mt-0.5">{CATEGORY_CONFIG[assessingVendor.category].label}</p>
+                <p className="text-falcon-muted text-xs mt-0.5">{CATEGORY_CONFIG[assessingVendor.category].label}</p>
               </div>
-              <button onClick={() => setAssessingVendor(null)} className="text-[#7d92b0] hover:text-white">
+              <button onClick={() => setAssessingVendor(null)} className="text-falcon-muted hover:text-white">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -710,17 +710,17 @@ export default function VendorRiskPage() {
                 onChange={v => setAssessmentScores(p => ({ ...p, incident_response: v }))} />
 
               {/* Overall computed */}
-              <div className="bg-[#070d19] border border-[#1e2d42] rounded-lg p-4">
+              <div className="bg-[#070d19] border border-falcon-border rounded-lg p-4">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-[#7d92b0] text-sm font-medium">総合スコア（自動計算）</span>
+                  <span className="text-falcon-muted text-sm font-medium">総合スコア（自動計算）</span>
                   <span className={`text-2xl font-bold tabular-nums ${getRiskScoreTextColor(overallScore)}`}>{overallScore}</span>
                 </div>
-                <div className="w-full h-2 bg-[#1e2d42] rounded-full overflow-hidden mb-2">
+                <div className="w-full h-2 bg-falcon-border rounded-full overflow-hidden mb-2">
                   <div className={`h-full rounded-full transition-all ${getRiskScoreColor(overallScore)}`}
                     style={{ width: `${overallScore}%` }} />
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-[#7d92b0] text-xs">判定リスク階層:</span>
+                  <span className="text-falcon-muted text-xs">判定リスク階層:</span>
                   <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${TIER_CONFIG[computedTier].bg} ${TIER_CONFIG[computedTier].color}`}>
                     {TIER_CONFIG[computedTier].label}
                   </span>
@@ -728,20 +728,20 @@ export default function VendorRiskPage() {
               </div>
 
               <div>
-                <label className="text-[#7d92b0] text-xs mb-1 block">評価所見・推奨事項</label>
+                <label className="text-falcon-muted text-xs mb-1 block">評価所見・推奨事項</label>
                 <textarea value={assessmentFindings} onChange={e => setAssessmentFindings(e.target.value)}
                   rows={4} placeholder="発見された問題点、推奨改善事項などを記載..."
-                  className="w-full px-3 py-2 bg-[#070d19] border border-[#1e2d42] rounded text-sm text-white placeholder-[#3d5068] focus:outline-none focus:border-[#7d92b0]/50 resize-none" />
+                  className="w-full px-3 py-2 bg-[#070d19] border border-falcon-border rounded-sm text-sm text-white placeholder-falcon-subtle focus:outline-hidden focus:border-falcon-muted/50 resize-none" />
               </div>
             </div>
 
             <div className="flex gap-3 mt-6">
               <button onClick={() => setAssessingVendor(null)}
-                className="flex-1 px-4 py-2 border border-[#1e2d42] text-[#7d92b0] hover:text-white rounded text-sm transition-colors">
+                className="flex-1 px-4 py-2 border border-falcon-border text-falcon-muted hover:text-white rounded-sm text-sm transition-colors">
                 キャンセル
               </button>
               <button onClick={submitAssessment}
-                className="flex-1 px-4 py-2 bg-[#e8002d] hover:bg-[#c0001f] text-white rounded text-sm font-medium transition-colors">
+                className="flex-1 px-4 py-2 bg-falcon-red hover:bg-[#c0001f] text-white rounded-sm text-sm font-medium transition-colors">
                 評価を保存
               </button>
             </div>

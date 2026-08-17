@@ -143,13 +143,13 @@ function formatDate(iso: string): string {
 }
 
 function mitreAlertBg(count: number): string {
-  if (count === 0) return 'bg-[#0d1220]'
+  if (count === 0) return 'bg-falcon-surface'
   if (count <= 5) return 'bg-yellow-500/15 border-yellow-500/30'
-  return 'bg-[#e8002d]/20 border-[#e8002d]/30'
+  return 'bg-falcon-red/20 border-falcon-red/30'
 }
 
 function mitreAlertText(count: number): string {
-  if (count === 0) return 'text-[#7d92b0]'
+  if (count === 0) return 'text-falcon-muted'
   if (count <= 5) return 'text-yellow-300'
   return 'text-red-300'
 }
@@ -200,7 +200,7 @@ function MiniGauge({ score }: { score: number }) {
   const offset = circumference - (score / 100) * circumference
   return (
     <div className="flex items-center gap-2">
-      <div className="relative w-10 h-10 flex-shrink-0">
+      <div className="relative w-10 h-10 shrink-0">
         <svg className="w-full h-full -rotate-90" viewBox="0 0 40 40">
           <circle cx="20" cy="20" r={r} fill="none" stroke="#374151" strokeWidth="4" />
           <circle
@@ -317,7 +317,7 @@ function RadarTooltipContent({ active, payload }: RadarTooltipProps) {
   if (!active || !payload || payload.length === 0) return null
   const { category, score } = payload[0].payload
   return (
-    <div className="bg-[#0d1220] border border-[#1e2d42] rounded px-2 py-1 text-xs text-[#7d92b0]">
+    <div className="bg-falcon-surface border border-falcon-border rounded-sm px-2 py-1 text-xs text-falcon-muted">
       <span className="font-semibold text-white">{category}</span>: {score}%
     </div>
   )
@@ -335,7 +335,7 @@ function DetailPanel({ score, onClose }: DetailPanelProps) {
   const radarData = buildRadarData(checks)
 
   return (
-    <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5 mt-2">
+    <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5 mt-2">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <ScoreGauge score={score.score} size={32} />
@@ -343,7 +343,7 @@ function DetailPanel({ score, onClose }: DetailPanelProps) {
             <p className="text-sm font-semibold text-white">
               エージェント: <span className="font-mono text-blue-300">{score.agent_id}</span>
             </p>
-            <p className="text-xs text-[#7d92b0]">
+            <p className="text-xs text-falcon-muted">
               {score.passed_checks} / {score.total_checks} チェック合格 —
               最終計算: {formatDate(score.computed_at)}
             </p>
@@ -351,7 +351,7 @@ function DetailPanel({ score, onClose }: DetailPanelProps) {
         </div>
         <button
           onClick={onClose}
-          className="text-[#7d92b0] hover:text-white transition-colors text-xs px-2 py-1"
+          className="text-falcon-muted hover:text-white transition-colors text-xs px-2 py-1"
         >
           閉じる ✕
         </button>
@@ -359,7 +359,7 @@ function DetailPanel({ score, onClose }: DetailPanelProps) {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         <div className="bg-[#070d19] rounded-lg p-4">
-          <p className="text-xs font-semibold text-[#7d92b0] uppercase tracking-widest mb-3">
+          <p className="text-xs font-semibold text-falcon-muted uppercase tracking-widest mb-3">
             重要度別スコア
           </p>
           {radarData.length > 0 ? (
@@ -388,30 +388,30 @@ function DetailPanel({ score, onClose }: DetailPanelProps) {
               </RadarChart>
             </ResponsiveContainer>
           ) : (
-            <div className="flex items-center justify-center h-[220px] text-[#7d92b0] text-sm">
+            <div className="flex items-center justify-center h-[220px] text-falcon-muted text-sm">
               チェックデータなし
             </div>
           )}
         </div>
 
         <div className="bg-[#070d19] rounded-lg overflow-hidden">
-          <p className="text-xs font-semibold text-[#7d92b0] uppercase tracking-widest px-4 pt-4 pb-2">
+          <p className="text-xs font-semibold text-falcon-muted uppercase tracking-widest px-4 pt-4 pb-2">
             チェック ({checks.length})
           </p>
           <div className="overflow-y-auto max-h-[240px]">
             <table className="w-full text-xs">
               <thead className="sticky top-0 bg-[#070d19]">
-                <tr className="text-[#7d92b0] border-b border-[#1e2d42]">
+                <tr className="text-falcon-muted border-b border-falcon-border">
                   <th className="px-3 py-2 text-left font-medium">ID</th>
                   <th className="px-3 py-2 text-left font-medium">タイトル</th>
                   <th className="px-3 py-2 text-left font-medium">重要度</th>
                   <th className="px-3 py-2 text-left font-medium">結果</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#1e2d42]">
+              <tbody className="divide-y divide-falcon-border">
                 {checks.map(check => (
-                  <tr key={check.id} className="hover:bg-[#1e2d42]/40">
-                    <td className="px-3 py-2 font-mono text-[#7d92b0] whitespace-nowrap">
+                  <tr key={check.id} className="hover:bg-falcon-border/40">
+                    <td className="px-3 py-2 font-mono text-falcon-muted whitespace-nowrap">
                       {check.id}
                     </td>
                     <td className="px-3 py-2 text-white max-w-[180px]">
@@ -445,23 +445,23 @@ interface FrameworkScoreCardProps {
 
 function FrameworkScoreCard({ name, score, description, icon }: FrameworkScoreCardProps) {
   const color = scoreColor(score)
-  const barColor = score >= 80 ? 'bg-green-500' : score >= 60 ? 'bg-yellow-500' : 'bg-[#e8002d]'
+  const barColor = score >= 80 ? 'bg-green-500' : score >= 60 ? 'bg-yellow-500' : 'bg-falcon-red'
 
   return (
-    <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5 flex flex-col gap-4">
+    <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5 flex flex-col gap-4">
       <div className="flex items-start justify-between">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <span className="text-[#7d92b0]">{icon}</span>
+            <span className="text-falcon-muted">{icon}</span>
             <span className="text-sm font-semibold text-white">{name}</span>
           </div>
-          <p className="text-xs text-[#7d92b0]">{description}</p>
+          <p className="text-xs text-falcon-muted">{description}</p>
         </div>
         <span className="text-2xl font-bold tabular-nums" style={{ color }}>
           {score}%
         </span>
       </div>
-      <div className="w-full h-2 bg-[#1e2d42] rounded-full overflow-hidden">
+      <div className="w-full h-2 bg-falcon-border rounded-full overflow-hidden">
         <div
           className={`h-full ${barColor} rounded-full transition-all duration-700`}
           style={{ width: `${score}%` }}
@@ -520,7 +520,7 @@ function OverviewTab() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-20 text-[#7d92b0]">
+      <div className="flex items-center justify-center py-20 text-falcon-muted">
         <RefreshCw size={18} className="animate-spin mr-2" /> フレームワークデータを読み込み中...
       </div>
     )
@@ -529,14 +529,14 @@ function OverviewTab() {
   return (
     <div className="space-y-6">
       {/* Overall score banner */}
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-6">
+      <div className="bg-falcon-surface border border-falcon-border rounded-xl p-6">
         <div className="flex flex-col sm:flex-row sm:items-center gap-6">
-          <div className="flex-shrink-0">
+          <div className="shrink-0">
             <ScoreGauge score={overallScore} size={52} />
           </div>
           <div className="flex-1">
             <h2 className="text-lg font-bold text-white mb-1">総合コンプライアンススコア</h2>
-            <p className="text-sm text-[#7d92b0] mb-3">
+            <p className="text-sm text-falcon-muted mb-3">
               4つのコンプライアンスフレームワークの平均スコア。検知カバレッジ・コントロール実装・マッピングされたアラートルールを反映します。
             </p>
             <div className="flex flex-wrap gap-3">
@@ -557,7 +557,7 @@ function OverviewTab() {
                 </span>
               )}
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs
-                               font-semibold bg-[#1e2d42] text-[#7d92b0]">
+                               font-semibold bg-falcon-border text-falcon-muted">
                 {([] as GapItem[]).filter(g => g.risk === 'Critical' || g.risk === 'High').length} クリティカル/高リスクギャップ
               </span>
             </div>
@@ -573,35 +573,35 @@ function OverviewTab() {
       </div>
 
       {/* Summary table */}
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
-        <div className="px-5 py-3 border-b border-[#1e2d42]">
+      <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
+        <div className="px-5 py-3 border-b border-falcon-border">
           <p className="text-sm font-semibold text-white">フレームワーク比較</p>
         </div>
         <table className="w-full text-sm">
           <thead>
-            <tr className="text-[#7d92b0] text-xs border-b border-[#1e2d42]">
+            <tr className="text-falcon-muted text-xs border-b border-falcon-border">
               <th className="px-5 py-3 text-left font-medium">フレームワーク</th>
               <th className="px-5 py-3 text-left font-medium">カバレッジ</th>
               <th className="px-5 py-3 text-left font-medium hidden sm:table-cell">ステータス</th>
               <th className="px-5 py-3 text-right font-medium">スコア</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-[#1e2d42]">
+          <tbody className="divide-y divide-falcon-border">
             {frameworkCards.map(card => (
-              <tr key={card.name} className="hover:bg-[#1e2d42]/30">
+              <tr key={card.name} className="hover:bg-falcon-border/30">
                 <td className="px-5 py-3 text-white font-medium">{card.name}</td>
                 <td className="px-5 py-3">
                   <div className="flex items-center gap-3">
-                    <div className="flex-1 h-1.5 bg-[#1e2d42] rounded-full max-w-[120px]">
+                    <div className="flex-1 h-1.5 bg-falcon-border rounded-full max-w-[120px]">
                       <div
                         className={`h-full rounded-full ${
                           card.score >= 80 ? 'bg-green-500' :
-                          card.score >= 60 ? 'bg-yellow-500' : 'bg-[#e8002d]'
+                          card.score >= 60 ? 'bg-yellow-500' : 'bg-falcon-red'
                         }`}
                         style={{ width: `${card.score}%` }}
                       />
                     </div>
-                    <span className="text-xs text-[#7d92b0] tabular-nums">{card.score}%</span>
+                    <span className="text-xs text-falcon-muted tabular-nums">{card.score}%</span>
                   </div>
                 </td>
                 <td className="px-5 py-3 hidden sm:table-cell">
@@ -651,7 +651,7 @@ function MitreTab() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-20 text-[#7d92b0]">
+      <div className="flex items-center justify-center py-20 text-falcon-muted">
         <RefreshCw size={18} className="animate-spin mr-2" /> MITRE ATT&CKデータを読み込み中...
       </div>
     )
@@ -677,23 +677,23 @@ function MitreTab() {
     <div className="space-y-5">
       {/* Stats row */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg px-4 py-3">
-          <p className="text-xs text-[#7d92b0] mb-1">対応タクティクス</p>
+        <div className="bg-falcon-surface border border-falcon-border rounded-lg px-4 py-3">
+          <p className="text-xs text-falcon-muted mb-1">対応タクティクス</p>
           <p className="text-xl font-bold text-white">{MITRE_TACTICS_LIST.length}</p>
         </div>
-        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg px-4 py-3">
-          <p className="text-xs text-[#7d92b0] mb-1">マッピング済みテクニック</p>
+        <div className="bg-falcon-surface border border-falcon-border rounded-lg px-4 py-3">
+          <p className="text-xs text-falcon-muted mb-1">マッピング済みテクニック</p>
           <p className="text-xl font-bold text-white">
             {coveredTechniques}
-            <span className="text-sm text-[#7d92b0] font-normal"> / {totalTechniques}</span>
+            <span className="text-sm text-falcon-muted font-normal"> / {totalTechniques}</span>
           </p>
         </div>
-        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg px-4 py-3">
-          <p className="text-xs text-[#7d92b0] mb-1">総アラート数</p>
-          <p className="text-xl font-bold text-[#e8002d]">{totalAlerts}</p>
+        <div className="bg-falcon-surface border border-falcon-border rounded-lg px-4 py-3">
+          <p className="text-xs text-falcon-muted mb-1">総アラート数</p>
+          <p className="text-xl font-bold text-falcon-red">{totalAlerts}</p>
         </div>
-        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg px-4 py-3">
-          <p className="text-xs text-[#7d92b0] mb-1">カバレッジ</p>
+        <div className="bg-falcon-surface border border-falcon-border rounded-lg px-4 py-3">
+          <p className="text-xs text-falcon-muted mb-1">カバレッジ</p>
           <p className="text-xl font-bold" style={{ color: scoreColor(Math.round((coveredTechniques / totalTechniques) * 100)) }}>
             {Math.round((coveredTechniques / totalTechniques) * 100)}%
           </p>
@@ -701,27 +701,27 @@ function MitreTab() {
       </div>
 
       {/* Legend */}
-      <div className="flex flex-wrap items-center gap-4 text-xs text-[#7d92b0]">
+      <div className="flex flex-wrap items-center gap-4 text-xs text-falcon-muted">
         <span className="font-medium text-white">アラート密度:</span>
         <span className="flex items-center gap-1.5">
-          <span className="w-4 h-4 rounded bg-[#0d1220] border border-[#1e2d42] inline-block" />
+          <span className="w-4 h-4 rounded-sm bg-falcon-surface border border-falcon-border inline-block" />
           0件
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="w-4 h-4 rounded bg-yellow-500/15 border border-yellow-500/30 inline-block" />
+          <span className="w-4 h-4 rounded-sm bg-yellow-500/15 border border-yellow-500/30 inline-block" />
           1〜5件
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="w-4 h-4 rounded bg-[#e8002d]/20 border border-[#e8002d]/30 inline-block" />
+          <span className="w-4 h-4 rounded-sm bg-falcon-red/20 border border-falcon-red/30 inline-block" />
           6件以上
         </span>
       </div>
 
       {/* Tactic matrix grid */}
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
-        <div className="px-5 py-3 border-b border-[#1e2d42]">
+      <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
+        <div className="px-5 py-3 border-b border-falcon-border">
           <p className="text-sm font-semibold text-white">タクティクス / テクニックマトリクス</p>
-          <p className="text-xs text-[#7d92b0] mt-0.5">
+          <p className="text-xs text-falcon-muted mt-0.5">
             タクティクスをクリックするとテクニック詳細が展開されます
           </p>
         </div>
@@ -741,8 +741,8 @@ function MitreTab() {
                   onClick={() => setExpandedTactic(isExpanded ? null : tacticName)}
                   className={`w-full text-left rounded-lg border p-2.5 transition-all ${
                     isExpanded
-                      ? 'bg-[#e8002d]/10 border-[#e8002d]/40'
-                      : 'bg-[#070d19] border-[#1e2d42] hover:border-[#e8002d]/30 hover:bg-[#1e2d42]/40'
+                      ? 'bg-falcon-red/10 border-falcon-red/40'
+                      : 'bg-[#070d19] border-falcon-border hover:border-falcon-red/30 hover:bg-falcon-border/40'
                   }`}
                 >
                   <p className="text-[10px] font-semibold text-white leading-tight mb-1.5 line-clamp-2">
@@ -752,7 +752,7 @@ function MitreTab() {
                     <span className={`text-xs font-bold tabular-nums ${mitreAlertText(tacticAlerts)}`}>
                       {tacticAlerts}
                     </span>
-                    <span className="text-[9px] text-[#7d92b0]">
+                    <span className="text-[9px] text-falcon-muted">
                       {coveredCount}/{techniques.length}
                     </span>
                   </div>
@@ -764,9 +764,9 @@ function MitreTab() {
                     {techniques.map(tech => (
                       <div
                         key={tech.id}
-                        className={`rounded border p-1.5 ${mitreAlertBg(tech.alert_count)}`}
+                        className={`rounded-sm border p-1.5 ${mitreAlertBg(tech.alert_count)}`}
                       >
-                        <p className="text-[9px] font-mono text-[#7d92b0] mb-0.5">{tech.id}</p>
+                        <p className="text-[9px] font-mono text-falcon-muted mb-0.5">{tech.id}</p>
                         <p className="text-[10px] text-white leading-tight line-clamp-2">{tech.name}</p>
                         <p className={`text-xs font-bold mt-1 ${mitreAlertText(tech.alert_count)}`}>
                           {tech.alert_count}件
@@ -782,14 +782,14 @@ function MitreTab() {
       </div>
 
       {/* Full technique table */}
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
-        <div className="px-5 py-3 border-b border-[#1e2d42]">
+      <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
+        <div className="px-5 py-3 border-b border-falcon-border">
           <p className="text-sm font-semibold text-white">全テクニック一覧</p>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-[#7d92b0] text-xs border-b border-[#1e2d42]">
+              <tr className="text-falcon-muted text-xs border-b border-falcon-border">
                 <th className="px-4 py-3 text-left font-medium">テクニックID</th>
                 <th className="px-4 py-3 text-left font-medium">テクニック名</th>
                 <th className="px-4 py-3 text-left font-medium">タクティクス</th>
@@ -797,15 +797,15 @@ function MitreTab() {
                 <th className="px-4 py-3 text-left font-medium hidden md:table-cell">カバレッジ</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#1e2d42]">
+            <tbody className="divide-y divide-falcon-border">
               {tactics.flatMap(tactic =>
                 tactic.techniques.map(tech => (
-                  <tr key={`${tactic.name}-${tech.id}`} className="hover:bg-[#1e2d42]/30">
+                  <tr key={`${tactic.name}-${tech.id}`} className="hover:bg-falcon-border/30">
                     <td className="px-4 py-2.5 font-mono text-blue-300 text-xs whitespace-nowrap">
                       {tech.id}
                     </td>
                     <td className="px-4 py-2.5 text-white text-xs">{tech.name}</td>
-                    <td className="px-4 py-2.5 text-[#7d92b0] text-xs whitespace-nowrap">
+                    <td className="px-4 py-2.5 text-falcon-muted text-xs whitespace-nowrap">
                       {tactic.name}
                     </td>
                     <td className="px-4 py-2.5 text-right">
@@ -819,7 +819,7 @@ function MitreTab() {
                           <CheckCircle size={11} /> カバー済み
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1 text-xs text-[#7d92b0]">
+                        <span className="inline-flex items-center gap-1 text-xs text-falcon-muted">
                           <XCircle size={11} /> 未カバー
                         </span>
                       )}
@@ -864,7 +864,7 @@ function CisTab() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-20 text-[#7d92b0]">
+      <div className="flex items-center justify-center py-20 text-falcon-muted">
         <RefreshCw size={18} className="animate-spin mr-2" /> CIS Controlsデータを読み込み中...
       </div>
     )
@@ -874,29 +874,29 @@ function CisTab() {
     <div className="space-y-5">
       {/* Stats */}
       <div className="grid grid-cols-3 gap-3">
-        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg px-4 py-3 text-center">
-          <p className="text-xs text-[#7d92b0] mb-1">実装済み</p>
+        <div className="bg-falcon-surface border border-falcon-border rounded-lg px-4 py-3 text-center">
+          <p className="text-xs text-falcon-muted mb-1">実装済み</p>
           <p className="text-2xl font-bold text-green-400">{implemented}</p>
         </div>
-        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg px-4 py-3 text-center">
-          <p className="text-xs text-[#7d92b0] mb-1">一部実装</p>
+        <div className="bg-falcon-surface border border-falcon-border rounded-lg px-4 py-3 text-center">
+          <p className="text-xs text-falcon-muted mb-1">一部実装</p>
           <p className="text-2xl font-bold text-yellow-400">{partial}</p>
         </div>
-        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg px-4 py-3 text-center">
-          <p className="text-xs text-[#7d92b0] mb-1">未実装</p>
+        <div className="bg-falcon-surface border border-falcon-border rounded-lg px-4 py-3 text-center">
+          <p className="text-xs text-falcon-muted mb-1">未実装</p>
           <p className="text-2xl font-bold text-red-400">{notImplemented}</p>
         </div>
       </div>
 
       {/* Progress bar summary */}
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
+      <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
         <div className="flex items-center justify-between mb-2">
           <p className="text-sm font-semibold text-white">CIS Controls v8 実装状況</p>
-          <p className="text-xs text-[#7d92b0]">
+          <p className="text-xs text-falcon-muted">
             {implemented} / {controls.length} 完全実装
           </p>
         </div>
-        <div className="w-full h-3 bg-[#1e2d42] rounded-full overflow-hidden flex">
+        <div className="w-full h-3 bg-falcon-border rounded-full overflow-hidden flex">
           <div
             className="h-full bg-green-500 transition-all duration-700"
             style={{ width: `${(implemented / controls.length) * 100}%` }}
@@ -910,35 +910,35 @@ function CisTab() {
             style={{ width: `${(notImplemented / controls.length) * 100}%` }}
           />
         </div>
-        <div className="flex gap-4 mt-2 text-xs text-[#7d92b0]">
+        <div className="flex gap-4 mt-2 text-xs text-falcon-muted">
           <span className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-sm bg-green-500 inline-block" />
+            <span className="w-2.5 h-2.5 rounded-xs bg-green-500 inline-block" />
             実装済み {Math.round((implemented / controls.length) * 100)}%
           </span>
           <span className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-sm bg-yellow-500 inline-block" />
+            <span className="w-2.5 h-2.5 rounded-xs bg-yellow-500 inline-block" />
             一部実装 {Math.round((partial / controls.length) * 100)}%
           </span>
           <span className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-sm bg-red-500/70 inline-block" />
+            <span className="w-2.5 h-2.5 rounded-xs bg-red-500/70 inline-block" />
             未実装 {Math.round((notImplemented / controls.length) * 100)}%
           </span>
         </div>
       </div>
 
       {/* Controls table */}
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
-        <div className="px-5 py-3 border-b border-[#1e2d42]">
+      <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
+        <div className="px-5 py-3 border-b border-falcon-border">
           <p className="text-sm font-semibold text-white">CIS Controls 一覧</p>
         </div>
-        <div className="divide-y divide-[#1e2d42]">
+        <div className="divide-y divide-falcon-border">
           {controls.map(control => {
             const style = STATUS_STYLE[control.status]
             return (
-              <div key={control.id} className="flex items-center gap-4 px-5 py-3 hover:bg-[#1e2d42]/30">
+              <div key={control.id} className="flex items-center gap-4 px-5 py-3 hover:bg-falcon-border/30">
                 {/* Control number */}
-                <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-[#070d19] border border-[#1e2d42]
-                               flex items-center justify-center text-xs font-bold text-[#7d92b0]">
+                <div className="shrink-0 w-8 h-8 rounded-lg bg-[#070d19] border border-falcon-border
+                               flex items-center justify-center text-xs font-bold text-falcon-muted">
                   {control.id}
                 </div>
 
@@ -948,13 +948,13 @@ function CisTab() {
                 </div>
 
                 {/* Alert count */}
-                <div className="flex-shrink-0 text-right hidden sm:block">
-                  <p className="text-xs text-[#7d92b0]">関連アラート</p>
+                <div className="shrink-0 text-right hidden sm:block">
+                  <p className="text-xs text-falcon-muted">関連アラート</p>
                   <p className="text-sm font-semibold text-white tabular-nums">{control.alert_count}</p>
                 </div>
 
                 {/* Status badge */}
-                <div className="flex-shrink-0">
+                <div className="shrink-0">
                   <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs
                                    font-semibold ${style.bg} ${style.text}`}>
                     <span className={`w-1.5 h-1.5 rounded-full ${style.dot}`} />
@@ -983,7 +983,7 @@ const NIST_FUNCTION_COLORS: Record<string, string> = {
 function NistCoverageBar({ coverage, color }: { coverage: number; color: string }) {
   return (
     <div className="flex items-center gap-2 flex-1">
-      <div className="flex-1 h-1.5 bg-[#1e2d42] rounded-full overflow-hidden">
+      <div className="flex-1 h-1.5 bg-falcon-border rounded-full overflow-hidden">
         <div
           className="h-full rounded-full transition-all duration-700"
           style={{ width: `${coverage}%`, backgroundColor: color }}
@@ -1015,7 +1015,7 @@ function NistTab() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-20 text-[#7d92b0]">
+      <div className="flex items-center justify-center py-20 text-falcon-muted">
         <RefreshCw size={18} className="animate-spin mr-2" /> NIST CSFデータを読み込み中...
       </div>
     )
@@ -1030,8 +1030,8 @@ function NistTab() {
           return (
             <div
               key={fn.id}
-              className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-4 text-center
-                         cursor-pointer hover:border-opacity-60 transition-all"
+              className="bg-falcon-surface border border-falcon-border rounded-xl p-4 text-center
+                         cursor-pointer hover:border-falcon-border/60 transition-all"
               style={{ borderColor: expandedFn === fn.id ? color : undefined }}
               onClick={() => setExpandedFn(expandedFn === fn.id ? null : fn.id)}
             >
@@ -1046,13 +1046,13 @@ function NistTab() {
               <p className="text-2xl font-bold tabular-nums" style={{ color }}>
                 {fn.coverage}%
               </p>
-              <div className="mt-2 w-full h-1.5 bg-[#1e2d42] rounded-full overflow-hidden">
+              <div className="mt-2 w-full h-1.5 bg-falcon-border rounded-full overflow-hidden">
                 <div
                   className="h-full rounded-full"
                   style={{ width: `${fn.coverage}%`, backgroundColor: color }}
                 />
               </div>
-              <p className="text-[10px] text-[#7d92b0] mt-1">
+              <p className="text-[10px] text-falcon-muted mt-1">
                 {fn.subcategories.length} サブカテゴリ
               </p>
             </div>
@@ -1065,13 +1065,13 @@ function NistTab() {
         if (expandedFn !== fn.id) return null
         const color = NIST_FUNCTION_COLORS[fn.id] ?? '#7d92b0'
         return (
-          <div key={fn.id} className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
+          <div key={fn.id} className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
             <div
-              className="px-5 py-3 border-b border-[#1e2d42] flex items-center gap-3"
+              className="px-5 py-3 border-b border-falcon-border flex items-center gap-3"
               style={{ borderLeftColor: color, borderLeftWidth: 3 }}
             >
               <span
-                className="text-xs font-bold px-2 py-0.5 rounded"
+                className="text-xs font-bold px-2 py-0.5 rounded-sm"
                 style={{ backgroundColor: `${color}20`, color }}
               >
                 {fn.id}
@@ -1079,17 +1079,17 @@ function NistTab() {
               <p className="text-sm font-semibold text-white">{fn.name}</p>
               <span className="ml-auto text-sm font-bold" style={{ color }}>全体 {fn.coverage}%</span>
             </div>
-            <div className="divide-y divide-[#1e2d42]">
+            <div className="divide-y divide-falcon-border">
               {fn.subcategories.map(sub => (
-                <div key={sub.id} className="flex items-center gap-4 px-5 py-3 hover:bg-[#1e2d42]/30">
-                  <div className="flex-shrink-0 w-16">
+                <div key={sub.id} className="flex items-center gap-4 px-5 py-3 hover:bg-falcon-border/30">
+                  <div className="shrink-0 w-16">
                     <span className="text-xs font-mono text-blue-300">{sub.id}</span>
                   </div>
                   <p className="text-sm text-white flex-1">{sub.name}</p>
-                  <div className="flex-shrink-0 w-44 hidden sm:block">
+                  <div className="shrink-0 w-44 hidden sm:block">
                     <NistCoverageBar coverage={sub.coverage} color={color} />
                   </div>
-                  <div className="flex-shrink-0">
+                  <div className="shrink-0">
                     {sub.coverage >= 70 ? (
                       <span className="text-xs text-green-400 flex items-center gap-1">
                         <CheckCircle size={11} /> 十分
@@ -1112,29 +1112,29 @@ function NistTab() {
       })}
 
       {/* All subcategories table */}
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
-        <div className="px-5 py-3 border-b border-[#1e2d42]">
+      <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
+        <div className="px-5 py-3 border-b border-falcon-border">
           <p className="text-sm font-semibold text-white">NIST CSF サブカテゴリ一覧</p>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-[#7d92b0] text-xs border-b border-[#1e2d42]">
+              <tr className="text-falcon-muted text-xs border-b border-falcon-border">
                 <th className="px-4 py-3 text-left font-medium">機能</th>
                 <th className="px-4 py-3 text-left font-medium">サブカテゴリ</th>
                 <th className="px-4 py-3 text-left font-medium">名称</th>
                 <th className="px-4 py-3 text-left font-medium">カバレッジ</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#1e2d42]">
+            <tbody className="divide-y divide-falcon-border">
               {functions.flatMap(fn =>
                 fn.subcategories.map(sub => {
                   const color = NIST_FUNCTION_COLORS[fn.id] ?? '#7d92b0'
                   return (
-                    <tr key={sub.id} className="hover:bg-[#1e2d42]/30">
+                    <tr key={sub.id} className="hover:bg-falcon-border/30">
                       <td className="px-4 py-2.5">
                         <span
-                          className="text-xs font-bold px-1.5 py-0.5 rounded"
+                          className="text-xs font-bold px-1.5 py-0.5 rounded-sm"
                           style={{ backgroundColor: `${color}20`, color }}
                         >
                           {fn.id}
@@ -1189,7 +1189,7 @@ function GapsTab() {
           { label: '低リスクギャップ',     count: lowCount,      color: 'text-blue-400', bg: 'bg-blue-500/10 border-blue-500/20' },
         ].map(item => (
           <div key={item.label} className={`${item.bg} border rounded-xl px-4 py-3`}>
-            <p className="text-xs text-[#7d92b0] mb-1">{item.label}</p>
+            <p className="text-xs text-falcon-muted mb-1">{item.label}</p>
             <p className={`text-2xl font-bold ${item.color}`}>{item.count}</p>
           </div>
         ))}
@@ -1197,13 +1197,13 @@ function GapsTab() {
 
       {/* Alert banner for critical gaps */}
       {criticalCount > 0 && (
-        <div className="flex items-start gap-3 p-4 bg-[#e8002d]/10 border border-[#e8002d]/30 rounded-xl">
-          <AlertCircle size={18} className="text-[#e8002d] flex-shrink-0 mt-0.5" />
+        <div className="flex items-start gap-3 p-4 bg-falcon-red/10 border border-falcon-red/30 rounded-xl">
+          <AlertCircle size={18} className="text-falcon-red shrink-0 mt-0.5" />
           <div>
             <p className="text-sm font-semibold text-white">
               {criticalCount}件のクリティカルギャップに即時対応が必要です
             </p>
-            <p className="text-xs text-[#7d92b0] mt-0.5">
+            <p className="text-xs text-falcon-muted mt-0.5">
               これらのコントロールはカバレッジがなく、セキュリティ態勢における最大のリスクです。早急に検知ルールまたはコントロールを実装してください。
             </p>
           </div>
@@ -1211,26 +1211,26 @@ function GapsTab() {
       )}
 
       {/* Gaps table */}
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
-        <div className="px-5 py-3 border-b border-[#1e2d42] flex items-center justify-between">
+      <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
+        <div className="px-5 py-3 border-b border-falcon-border flex items-center justify-between">
           <p className="text-sm font-semibold text-white">カバレッジギャップ</p>
-          <p className="text-xs text-[#7d92b0]">{sortedGaps.length}件（リスク順）</p>
+          <p className="text-xs text-falcon-muted">{sortedGaps.length}件（リスク順）</p>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-[#7d92b0] text-xs border-b border-[#1e2d42]">
+              <tr className="text-falcon-muted text-xs border-b border-falcon-border">
                 <th className="px-4 py-3 text-left font-medium">リスク</th>
                 <th className="px-4 py-3 text-left font-medium">フレームワーク</th>
                 <th className="px-4 py-3 text-left font-medium">コントロール / テクニック</th>
                 <th className="px-4 py-3 text-left font-medium hidden md:table-cell">説明</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#1e2d42]">
+            <tbody className="divide-y divide-falcon-border">
               {sortedGaps.map(gap => {
                 const riskStyle = RISK_STYLE[gap.risk]
                 return (
-                  <tr key={gap.id} className="hover:bg-[#1e2d42]/30">
+                  <tr key={gap.id} className="hover:bg-falcon-border/30">
                     <td className="px-4 py-3 whitespace-nowrap">
                       <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px]
                                        font-bold uppercase tracking-wider ${riskStyle.bg} ${riskStyle.text}`}>
@@ -1238,7 +1238,7 @@ function GapsTab() {
                       </span>
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap">
-                      <span className="text-xs text-[#7d92b0] bg-[#1e2d42] px-2 py-0.5 rounded">
+                      <span className="text-xs text-falcon-muted bg-falcon-border px-2 py-0.5 rounded-sm">
                         {gap.framework}
                       </span>
                     </td>
@@ -1246,7 +1246,7 @@ function GapsTab() {
                       <span className="text-sm text-white font-medium">{gap.control}</span>
                     </td>
                     <td className="px-4 py-3 hidden md:table-cell">
-                      <span className="text-xs text-[#7d92b0]">{gap.description}</span>
+                      <span className="text-xs text-falcon-muted">{gap.description}</span>
                     </td>
                   </tr>
                 )
@@ -1324,7 +1324,7 @@ function AgentScoresTab() {
     <div className="space-y-5">
       {/* Framework selector + bulk recompute */}
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex gap-1 bg-[#0d1220] border border-[#1e2d42] rounded-lg p-1">
+        <div className="flex gap-1 bg-falcon-surface border border-falcon-border rounded-lg p-1">
           {AGENT_FRAMEWORKS.map(fw => (
             <button
               key={fw}
@@ -1334,8 +1334,8 @@ function AgentScoresTab() {
               }}
               className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all duration-150 ${
                 selectedFramework === fw
-                  ? 'bg-[#e8002d] text-white shadow'
-                  : 'text-[#7d92b0] hover:text-white hover:bg-[#1e2d42]'
+                  ? 'bg-falcon-red text-white shadow-sm'
+                  : 'text-falcon-muted hover:text-white hover:bg-falcon-border'
               }`}
             >
               {fw}
@@ -1346,8 +1346,8 @@ function AgentScoresTab() {
         <button
           onClick={() => void handleBulkRecompute()}
           disabled={scores.length === 0 || recomputeMutation.isPending}
-          className="flex items-center gap-2 px-3 py-2 bg-[#0d1220] border border-[#1e2d42]
-                     hover:bg-[#1e2d42] disabled:opacity-50 disabled:cursor-not-allowed
+          className="flex items-center gap-2 px-3 py-2 bg-falcon-surface border border-falcon-border
+                     hover:bg-falcon-border disabled:opacity-50 disabled:cursor-not-allowed
                      rounded-lg text-sm text-white transition-colors"
         >
           <RefreshCw size={14} className={recomputeMutation.isPending ? 'animate-spin' : ''} />
@@ -1382,14 +1382,14 @@ function AgentScoresTab() {
       </div>
 
       {/* Agent table */}
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
-        <div className="px-5 py-3 border-b border-[#1e2d42] flex items-center justify-between">
+      <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
+        <div className="px-5 py-3 border-b border-falcon-border flex items-center justify-between">
           <p className="text-sm font-semibold text-white">
             エージェントスコア
-            <span className="ml-2 text-xs text-[#7d92b0] font-normal">({selectedFramework})</span>
+            <span className="ml-2 text-xs text-falcon-muted font-normal">({selectedFramework})</span>
           </p>
           {isLoading && (
-            <span className="text-xs text-[#7d92b0] flex items-center gap-1">
+            <span className="text-xs text-falcon-muted flex items-center gap-1">
               <RefreshCw size={12} className="animate-spin" /> 読み込み中...
             </span>
           )}
@@ -1398,11 +1398,11 @@ function AgentScoresTab() {
         {error ? (
           <div className="text-center py-16 text-red-400 text-sm">データの読み込みに失敗しました</div>
         ) : isLoading && scores.length === 0 ? (
-          <div className="text-center py-16 text-[#7d92b0] text-sm">読み込み中...</div>
+          <div className="text-center py-16 text-falcon-muted text-sm">読み込み中...</div>
         ) : scores.length === 0 ? (
-          <div className="text-center py-16 text-[#7d92b0] text-sm">スコアデータがありません</div>
+          <div className="text-center py-16 text-falcon-muted text-sm">スコアデータがありません</div>
         ) : (
-          <div className="divide-y divide-[#1e2d42]">
+          <div className="divide-y divide-falcon-border">
             {scores.map(score => {
               const isExpanded = expandedAgent === score.agent_id
               const isComputing = computingAgents.has(score.agent_id)
@@ -1411,11 +1411,11 @@ function AgentScoresTab() {
               return (
                 <div key={score.agent_id}>
                   <div
-                    className="flex items-center gap-4 px-5 py-3 hover:bg-[#1e2d42]/40
+                    className="flex items-center gap-4 px-5 py-3 hover:bg-falcon-border/40
                                cursor-pointer transition-colors"
                     onClick={() => handleRowClick(score.agent_id)}
                   >
-                    <div className="text-[#7d92b0] flex-shrink-0 w-4">
+                    <div className="text-falcon-muted shrink-0 w-4">
                       {isExpanded
                         ? <ChevronDown size={14} />
                         : <ChevronRight size={14} />
@@ -1426,20 +1426,20 @@ function AgentScoresTab() {
                       <p className="text-sm font-mono text-white truncate">{score.agent_id}</p>
                     </div>
 
-                    <div className="flex-shrink-0">
+                    <div className="shrink-0">
                       <MiniGauge score={score.score} />
                     </div>
 
-                    <div className="text-xs text-[#7d92b0] flex-shrink-0 w-28 text-center">
+                    <div className="text-xs text-falcon-muted shrink-0 w-28 text-center">
                       <span className="text-green-400 font-semibold">{score.passed_checks}</span>
-                      <span className="text-[#1e2d42]"> / </span>
+                      <span className="text-falcon-border"> / </span>
                       <span className="text-white">{score.total_checks}</span>
                       {failedChecks > 0 && (
                         <span className="ml-1 text-red-400">({failedChecks}件失敗)</span>
                       )}
                     </div>
 
-                    <div className="text-xs text-[#7d92b0] flex-shrink-0 w-28 hidden sm:block">
+                    <div className="text-xs text-falcon-muted shrink-0 w-28 hidden sm:block">
                       {formatDate(score.computed_at)}
                     </div>
 
@@ -1450,9 +1450,9 @@ function AgentScoresTab() {
                       }}
                       disabled={isComputing}
                       className="flex items-center gap-1 px-2.5 py-1.5 text-xs rounded
-                                 bg-[#1e2d42] hover:bg-[#2d3f58] text-white
+                                 bg-falcon-border hover:bg-[#2d3f58] text-white
                                  disabled:opacity-50 disabled:cursor-not-allowed
-                                 transition-colors flex-shrink-0"
+                                 transition-colors shrink-0"
                     >
                       <RefreshCw size={11} className={isComputing ? 'animate-spin' : ''} />
                       再計算
@@ -1474,7 +1474,7 @@ function AgentScoresTab() {
         )}
       </div>
 
-      <p className="text-xs text-[#7d92b0]/60 text-right">
+      <p className="text-xs text-falcon-muted/60 text-right">
         スコア = 合格チェック / 総チェック × 100 | 準拠閾値: ≥80 | フレームワーク: {selectedFramework}
       </p>
     </div>
@@ -1504,21 +1504,21 @@ export default function CompliancePage() {
 
   return (
     <div className="min-h-screen bg-[#070d19] text-white">
-      <div className="max-w-screen-xl mx-auto px-4 sm:px-6 py-8">
+      <div className="max-w-(--breakpoint-xl) mx-auto px-4 sm:px-6 py-8">
 
         {/* Page Header */}
         <div className="flex items-center gap-3 mb-6">
-          <div className="w-10 h-10 rounded-lg bg-[#e8002d]/15 flex items-center justify-center">
-            <Shield size={22} className="text-[#e8002d]" />
+          <div className="w-10 h-10 rounded-lg bg-falcon-red/15 flex items-center justify-center">
+            <Shield size={22} className="text-falcon-red" />
           </div>
           <div>
             <h1 className="text-2xl font-bold text-white">コンプライアンス</h1>
-            <p className="text-sm text-[#7d92b0]">フレームワークマッピング・カバレッジ分析・ギャップ評価</p>
+            <p className="text-sm text-falcon-muted">フレームワークマッピング・カバレッジ分析・ギャップ評価</p>
           </div>
         </div>
 
         {/* Tab bar */}
-        <div className="flex items-center gap-1 border-b border-[#1e2d42] mb-6 overflow-x-auto pb-px">
+        <div className="flex items-center gap-1 border-b border-falcon-border mb-6 overflow-x-auto pb-px">
           {MAIN_TABS.map(tab => (
             <button
               key={tab.id}
@@ -1526,15 +1526,15 @@ export default function CompliancePage() {
               className={`flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium whitespace-nowrap
                          border-b-2 transition-all duration-150 -mb-px ${
                 activeTab === tab.id
-                  ? 'border-[#e8002d] text-white'
-                  : 'border-transparent text-[#7d92b0] hover:text-white hover:border-[#1e2d42]'
+                  ? 'border-falcon-red text-white'
+                  : 'border-transparent text-falcon-muted hover:text-white hover:border-falcon-border'
               }`}
             >
               {tab.icon}
               {tab.label}
               {tab.id === 'gaps' && (
                 <span className="ml-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-bold
-                                 bg-[#e8002d]/20 text-[#e8002d]">
+                                 bg-falcon-red/20 text-falcon-red">
                   {([] as GapItem[]).filter(g => g.risk === 'Critical' || g.risk === 'High').length}
                 </span>
               )}
@@ -1546,7 +1546,7 @@ export default function CompliancePage() {
           <button
             onClick={() => setActiveTab('agent-scores')}
             className={`flex items-center gap-1.5 px-3 py-2 text-xs font-medium whitespace-nowrap
-                       rounded-lg transition-all ${activeTab === 'agent-scores' ? 'text-white bg-[#1e2d42]' : 'text-[#7d92b0] hover:text-white hover:bg-[#1e2d42]'}`}
+                       rounded-lg transition-all ${activeTab === 'agent-scores' ? 'text-white bg-falcon-border' : 'text-falcon-muted hover:text-white hover:bg-falcon-border'}`}
             title="エージェント別コンプライアンススコア"
           >
             <Users size={13} />

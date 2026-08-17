@@ -131,7 +131,7 @@ export default function DarkWebMonitorPage() {
           </div>
           <div>
             <h1 className="text-xl font-bold text-white">ダークウェブ監視</h1>
-            <p className="text-xs text-[#7d92b0] mt-0.5">
+            <p className="text-xs text-falcon-muted mt-0.5">
               ランサムウェアリークサイトの被害者リストと監視キーワードを照合
             </p>
           </div>
@@ -141,8 +141,8 @@ export default function DarkWebMonitorPage() {
             qc.invalidateQueries({ queryKey: ['darkweb-findings'] })
             qc.invalidateQueries({ queryKey: ['darkweb-status'] })
           }}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-[#7d92b0]
-                     bg-[#0d1220] border border-[#1e2d42] rounded-lg hover:bg-[#1d2f4a] transition-colors"
+          className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-falcon-muted
+                     bg-falcon-surface border border-falcon-border rounded-lg hover:bg-falcon-active transition-colors"
         >
           <RefreshCw className="w-3.5 h-3.5" />
           更新
@@ -154,19 +154,19 @@ export default function DarkWebMonitorPage() {
         {[
           { label: '監視サイト数', value: status?.active_sites ?? '—', sub: `全${status?.total_sites ?? 0}件`, color: 'text-blue-400' },
           { label: '監視キーワード', value: status?.total_monitors ?? '—', sub: '有効な監視対象', color: 'text-green-400' },
-          { label: '検知件数', value: status?.total_findings ?? '—', sub: '累計', color: status?.total_findings ? 'text-red-400' : 'text-[#7d92b0]' },
-          { label: 'Torプロキシ', value: status?.enabled ? '稼働中' : '停止', sub: 'ヘルスチェック', color: status?.enabled ? 'text-green-400' : 'text-[#3d5068]' },
+          { label: '検知件数', value: status?.total_findings ?? '—', sub: '累計', color: status?.total_findings ? 'text-red-400' : 'text-falcon-muted' },
+          { label: 'Torプロキシ', value: status?.enabled ? '稼働中' : '停止', sub: 'ヘルスチェック', color: status?.enabled ? 'text-green-400' : 'text-falcon-subtle' },
         ].map(({ label, value, sub, color }) => (
-          <div key={label} className="bg-[#0d1220] rounded-xl border border-[#1e2d42] px-4 py-3">
+          <div key={label} className="bg-falcon-surface rounded-xl border border-falcon-border px-4 py-3">
             <p className={`text-2xl font-bold ${color}`}>{value}</p>
-            <p className="text-xs text-[#7d92b0] mt-0.5">{label}</p>
-            <p className="text-[10px] text-[#3d5068] mt-0.5">{sub}</p>
+            <p className="text-xs text-falcon-muted mt-0.5">{label}</p>
+            <p className="text-[10px] text-falcon-subtle mt-0.5">{sub}</p>
           </div>
         ))}
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 mb-4 bg-[#0d1220] rounded-xl border border-[#1e2d42] p-1">
+      <div className="flex gap-1 mb-4 bg-falcon-surface rounded-xl border border-falcon-border p-1">
         {([
           ['findings', '検知結果'],
           ['monitors', '監視設定'],
@@ -176,7 +176,7 @@ export default function DarkWebMonitorPage() {
             key={id}
             onClick={() => setTab(id)}
             className={`flex-1 py-2 text-sm font-medium rounded-lg transition-colors ${
-              tab === id ? 'bg-[#1d2f4a] text-white' : 'text-[#3d5068] hover:text-[#7d92b0]'
+              tab === id ? 'bg-falcon-active text-white' : 'text-falcon-subtle hover:text-falcon-muted'
             }`}
           >
             {label}
@@ -191,47 +191,47 @@ export default function DarkWebMonitorPage() {
 
       {/* ── 検知結果タブ ── */}
       {tab === 'findings' && (
-        <div className="bg-[#0d1220] rounded-xl border border-[#1e2d42] overflow-hidden">
+        <div className="bg-falcon-surface rounded-xl border border-falcon-border overflow-hidden">
           {findingsLoading ? (
-            <div className="flex items-center justify-center py-16 text-[#3d5068]">
+            <div className="flex items-center justify-center py-16 text-falcon-subtle">
               <RefreshCw className="w-5 h-5 animate-spin mr-2" />読み込み中...
             </div>
           ) : findings.length === 0 ? (
             <div className="text-center py-16">
               <CheckCircle2 className="w-10 h-10 text-green-400/40 mx-auto mb-3" />
-              <p className="text-[#7d92b0] text-sm font-medium">検知結果なし</p>
-              <p className="text-[#3d5068] text-xs mt-1">
+              <p className="text-falcon-muted text-sm font-medium">検知結果なし</p>
+              <p className="text-falcon-subtle text-xs mt-1">
                 監視キーワードが設定され、スキャンが実行されると結果が表示されます
               </p>
             </div>
           ) : (
-            <div className="divide-y divide-[#1e2d42]">
+            <div className="divide-y divide-falcon-border">
               {findings.map(f => (
-                <div key={f.id} className="px-5 py-4 hover:bg-[#111827] transition-colors">
+                <div key={f.id} className="px-5 py-4 hover:bg-falcon-card transition-colors">
                   <div className="flex items-start gap-3">
-                    <AlertTriangle className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
+                    <AlertTriangle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap mb-1">
-                        <span className={`text-[10px] px-1.5 py-0.5 rounded border font-bold ${sevColor(f.severity)}`}>
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded-sm border font-bold ${sevColor(f.severity)}`}>
                           {sevLabel(f.severity)}
                         </span>
                         <span className={`text-[10px] px-1.5 py-0.5 rounded font-mono ${
                           f.source === 'ransomware_live'
                             ? 'bg-purple-900/30 text-purple-400'
-                            : 'bg-[#161f33] text-[#7d92b0]'
+                            : 'bg-falcon-raised text-falcon-muted'
                         }`}>
                           {f.source === 'ransomware_live' ? 'ransomware.live' : 'ransomwatch'}
                         </span>
                         {f.group_name && (
-                          <span className="text-[10px] text-[#7d92b0] bg-[#161f33] px-2 py-0.5 rounded font-mono">
+                          <span className="text-[10px] text-falcon-muted bg-falcon-raised px-2 py-0.5 rounded-sm font-mono">
                             {f.group_name}
                           </span>
                         )}
-                        <span className="text-[10px] text-[#3d5068] ml-auto">{fmtDate(f.found_at)}</span>
+                        <span className="text-[10px] text-falcon-subtle ml-auto">{fmtDate(f.found_at)}</span>
                       </div>
-                      <p className="text-sm text-[#e2e8f4] font-medium">{f.title}</p>
+                      <p className="text-sm text-falcon-text font-medium">{f.title}</p>
                       {f.description && (
-                        <p className="text-xs text-[#7d92b0] mt-1 leading-relaxed">{f.description}</p>
+                        <p className="text-xs text-falcon-muted mt-1 leading-relaxed">{f.description}</p>
                       )}
                     </div>
                   </div>
@@ -247,13 +247,13 @@ export default function DarkWebMonitorPage() {
         <div className="space-y-4">
           {/* 追加フォーム */}
           {canWrite && (
-            <div className="bg-[#0d1220] rounded-xl border border-[#1e2d42] p-4">
-              <p className="text-sm font-medium text-[#e2e8f4] mb-3">監視対象を追加</p>
+            <div className="bg-falcon-surface rounded-xl border border-falcon-border p-4">
+              <p className="text-sm font-medium text-falcon-text mb-3">監視対象を追加</p>
               <div className="flex gap-2 flex-wrap">
                 <select
                   value={newType}
                   onChange={e => setNewType(e.target.value as typeof newType)}
-                  className="bg-[#161f33] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-white focus:outline-none"
+                  className="bg-falcon-raised border border-falcon-border rounded-lg px-3 py-2 text-sm text-white focus:outline-hidden"
                 >
                   <option value="domain">ドメイン</option>
                   <option value="email">メール</option>
@@ -264,58 +264,58 @@ export default function DarkWebMonitorPage() {
                   onChange={e => setNewValue(e.target.value)}
                   placeholder={newType === 'domain' ? 'example.com' : newType === 'email' ? 'admin@example.com' : '株式会社〇〇'}
                   onKeyDown={e => e.key === 'Enter' && newValue && addMonitor.mutate()}
-                  className="flex-1 min-w-[200px] bg-[#161f33] border border-[#1e2d42] rounded-lg px-3 py-2
-                             text-sm text-white placeholder-[#3d5068] focus:outline-none focus:border-[#e8002d]/50"
+                  className="flex-1 min-w-[200px] bg-falcon-raised border border-falcon-border rounded-lg px-3 py-2
+                             text-sm text-white placeholder-falcon-subtle focus:outline-hidden focus:border-falcon-red/50"
                 />
                 <button
                   onClick={() => newValue && addMonitor.mutate()}
                   disabled={!newValue || addMonitor.isPending}
-                  className="flex items-center gap-1.5 px-4 py-2 bg-[#e8002d] hover:bg-[#c8001f]
+                  className="flex items-center gap-1.5 px-4 py-2 bg-falcon-red hover:bg-[#c8001f]
                              text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50"
                 >
                   <Plus className="w-4 h-4" />追加
                 </button>
               </div>
-              <p className="text-[10px] text-[#3d5068] mt-2">
+              <p className="text-[10px] text-falcon-subtle mt-2">
                 追加したキーワードは次回のスキャン（毎日3:00）から監視されます
               </p>
             </div>
           )}
 
           {/* 監視一覧 */}
-          <div className="bg-[#0d1220] rounded-xl border border-[#1e2d42] overflow-hidden">
+          <div className="bg-falcon-surface rounded-xl border border-falcon-border overflow-hidden">
             {monitors.length === 0 ? (
               <div className="text-center py-12">
-                <Eye className="w-8 h-8 text-[#1e2d42] mx-auto mb-2" />
-                <p className="text-[#7d92b0] text-sm">監視対象がまだ設定されていません</p>
-                <p className="text-[#3d5068] text-xs mt-1">
+                <Eye className="w-8 h-8 text-falcon-border mx-auto mb-2" />
+                <p className="text-falcon-muted text-sm">監視対象がまだ設定されていません</p>
+                <p className="text-falcon-subtle text-xs mt-1">
                   自社のドメイン・メールアドレス・会社名を追加してください
                 </p>
               </div>
             ) : (
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-[#1e2d42] bg-[#080c14]/40">
+                  <tr className="border-b border-falcon-border bg-falcon-bg/40">
                     {['タイプ', '値', '追加日', '操作'].map(h => (
-                      <th key={h} className="text-left px-4 py-3 text-xs text-[#7d92b0] font-medium">{h}</th>
+                      <th key={h} className="text-left px-4 py-3 text-xs text-falcon-muted font-medium">{h}</th>
                     ))}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#1e2d42]">
+                <tbody className="divide-y divide-falcon-border">
                   {monitors.map(m => (
-                    <tr key={m.id} className="hover:bg-[#111827] transition-colors">
+                    <tr key={m.id} className="hover:bg-falcon-card transition-colors">
                       <td className="px-4 py-3">
-                        <span className="text-xs px-2 py-0.5 rounded border bg-blue-900/30 text-blue-300 border-blue-700/40">
+                        <span className="text-xs px-2 py-0.5 rounded-sm border bg-blue-900/30 text-blue-300 border-blue-700/40">
                           {m.monitor_type}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-[#e2e8f4] font-mono text-sm">{m.value}</td>
-                      <td className="px-4 py-3 text-xs text-[#3d5068]">{fmtDate(m.created_at)}</td>
+                      <td className="px-4 py-3 text-falcon-text font-mono text-sm">{m.value}</td>
+                      <td className="px-4 py-3 text-xs text-falcon-subtle">{fmtDate(m.created_at)}</td>
                       <td className="px-4 py-3">
                         {canWrite && (
                           <button
                             onClick={() => deleteMonitor.mutate(m.id)}
-                            className="text-[#3d5068] hover:text-red-400 transition-colors"
+                            className="text-falcon-subtle hover:text-red-400 transition-colors"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
@@ -332,45 +332,45 @@ export default function DarkWebMonitorPage() {
 
       {/* ── サイト一覧タブ ── */}
       {tab === 'sites' && (
-        <div className="bg-[#0d1220] rounded-xl border border-[#1e2d42] overflow-hidden">
+        <div className="bg-falcon-surface rounded-xl border border-falcon-border overflow-hidden">
           {sitesLoading ? (
-            <div className="flex items-center justify-center py-16 text-[#3d5068]">
+            <div className="flex items-center justify-center py-16 text-falcon-subtle">
               <RefreshCw className="w-5 h-5 animate-spin mr-2" />読み込み中...
             </div>
           ) : sites.length === 0 ? (
             <div className="text-center py-12">
-              <Server className="w-8 h-8 text-[#1e2d42] mx-auto mb-2" />
-              <p className="text-[#7d92b0] text-sm">サイトデータがまだありません</p>
-              <p className="text-[#3d5068] text-xs mt-1">ransomwatch 同期後に表示されます（毎日3:00自動実行）</p>
+              <Server className="w-8 h-8 text-falcon-border mx-auto mb-2" />
+              <p className="text-falcon-muted text-sm">サイトデータがまだありません</p>
+              <p className="text-falcon-subtle text-xs mt-1">ransomwatch 同期後に表示されます（毎日3:00自動実行）</p>
             </div>
           ) : (
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-[#1e2d42] bg-[#080c14]/40">
+                <tr className="border-b border-falcon-border bg-falcon-bg/40">
                   {['グループ名', '.onion URL', '状態', '最終生存確認', '失敗回数'].map(h => (
-                    <th key={h} className="text-left px-4 py-3 text-xs text-[#7d92b0] font-medium">{h}</th>
+                    <th key={h} className="text-left px-4 py-3 text-xs text-falcon-muted font-medium">{h}</th>
                   ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#1e2d42]">
+              <tbody className="divide-y divide-falcon-border">
                 {sites.map((s, i) => (
-                  <tr key={i} className="hover:bg-[#111827] transition-colors">
-                    <td className="px-4 py-3 text-[#e2e8f4] font-medium capitalize">{s.group_name}</td>
-                    <td className="px-4 py-3 font-mono text-xs text-[#7d92b0] truncate max-w-[200px]">
+                  <tr key={i} className="hover:bg-falcon-card transition-colors">
+                    <td className="px-4 py-3 text-falcon-text font-medium capitalize">{s.group_name}</td>
+                    <td className="px-4 py-3 font-mono text-xs text-falcon-muted truncate max-w-[200px]">
                       {s.onion_url}
                     </td>
                     <td className="px-4 py-3">
                       <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
                         s.is_active
                           ? 'bg-green-900/30 text-green-400'
-                          : 'bg-[#1e2d42] text-[#3d5068]'
+                          : 'bg-falcon-border text-falcon-subtle'
                       }`}>
                         {s.is_active ? '有効' : '無効'}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-xs text-[#3d5068]">{fmtDate(s.last_alive_at)}</td>
+                    <td className="px-4 py-3 text-xs text-falcon-subtle">{fmtDate(s.last_alive_at)}</td>
                     <td className="px-4 py-3 text-xs">
-                      <span className={s.fail_count >= 3 ? 'text-orange-400' : 'text-[#3d5068]'}>
+                      <span className={s.fail_count >= 3 ? 'text-orange-400' : 'text-falcon-subtle'}>
                         {s.fail_count}
                       </span>
                     </td>

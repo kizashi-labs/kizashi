@@ -76,7 +76,7 @@ const RISK_LABELS: Record<RiskLevel, string> = {
 
 const STATUS_STYLES: Record<string, string> = {
   running: 'bg-green-900/40 text-green-300 border border-green-700/50',
-  stopped: 'bg-[#161f33] text-[#8899aa] border border-[#1e2d42]',
+  stopped: 'bg-falcon-raised text-[#8899aa] border border-falcon-border',
   unknown: 'bg-yellow-900/40 text-yellow-300 border border-yellow-700/50',
 }
 
@@ -92,13 +92,13 @@ function StatCard({ label, value, icon: Icon, color = '#7d92b0' }: {
   label: string; value: string | number; icon: React.ElementType; color?: string
 }) {
   return (
-    <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-4 flex items-center gap-4">
-      <div className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
+    <div className="bg-falcon-surface border border-falcon-border rounded-lg p-4 flex items-center gap-4">
+      <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0"
            style={{ backgroundColor: `${color}20` }}>
         <Icon className="w-5 h-5" style={{ color }} />
       </div>
       <div>
-        <p className="text-[#7d92b0] text-xs">{label}</p>
+        <p className="text-falcon-muted text-xs">{label}</p>
         <p className="text-white text-xl font-bold">{value}</p>
       </div>
     </div>
@@ -114,19 +114,19 @@ function AssetDetailPanel({ asset, onClose }: { asset: CloudAsset; onClose: () =
   const rs = RISK_STYLES[rl]
 
   return (
-    <div className="fixed inset-y-0 right-0 z-40 w-[420px] bg-[#0d1220] border-l border-[#1e2d42] flex flex-col shadow-2xl">
+    <div className="fixed inset-y-0 right-0 z-40 w-[420px] bg-falcon-surface border-l border-falcon-border flex flex-col shadow-2xl">
       {/* Header */}
-      <div className="flex items-center justify-between p-5 border-b border-[#1e2d42]">
+      <div className="flex items-center justify-between p-5 border-b border-falcon-border">
         <div>
           <h3 className="text-white font-bold">{asset.name}</h3>
           <div className="flex items-center gap-2 mt-1">
             <span className={`text-xs px-2 py-0.5 rounded-full border ${ps.bg} ${ps.text} ${ps.border}`}>
               {asset.provider}
             </span>
-            <span className="text-[#7d92b0] text-xs">{asset.asset_type}</span>
+            <span className="text-falcon-muted text-xs">{asset.asset_type}</span>
           </div>
         </div>
-        <button onClick={onClose} className="text-[#7d92b0] hover:text-white transition-colors">
+        <button onClick={onClose} className="text-falcon-muted hover:text-white transition-colors">
           <X className="w-5 h-5" />
         </button>
       </div>
@@ -134,7 +134,7 @@ function AssetDetailPanel({ asset, onClose }: { asset: CloudAsset; onClose: () =
       <div className="flex-1 overflow-y-auto p-5 space-y-5">
         {/* Basic info */}
         <div className="space-y-3">
-          <h4 className="text-[#7d92b0] text-xs font-semibold uppercase tracking-wide">基本情報</h4>
+          <h4 className="text-falcon-muted text-xs font-semibold uppercase tracking-wide">基本情報</h4>
           {[
             ['リージョン', asset.region],
             ['アカウント / サブスクリプション', asset.account_id],
@@ -142,7 +142,7 @@ function AssetDetailPanel({ asset, onClose }: { asset: CloudAsset; onClose: () =
             ['最終確認', fmtDateTime(asset.last_seen)],
           ].map(([label, value]) => (
             <div key={label as string} className="flex justify-between items-center">
-              <span className="text-[#7d92b0] text-sm">{label}</span>
+              <span className="text-falcon-muted text-sm">{label}</span>
               {label === 'ステータス' ? (
                 <span className={`text-xs px-2 py-0.5 rounded-full ${STATUS_STYLES[asset.status]}`}>
                   {STATUS_LABELS[asset.status]}
@@ -156,9 +156,9 @@ function AssetDetailPanel({ asset, onClose }: { asset: CloudAsset; onClose: () =
 
         {/* Risk */}
         <div className="space-y-3">
-          <h4 className="text-[#7d92b0] text-xs font-semibold uppercase tracking-wide">リスク評価</h4>
+          <h4 className="text-falcon-muted text-xs font-semibold uppercase tracking-wide">リスク評価</h4>
           <div className="flex items-center justify-between">
-            <span className="text-[#7d92b0] text-sm">リスクスコア</span>
+            <span className="text-falcon-muted text-sm">リスクスコア</span>
             <div className="flex items-center gap-2">
               <span className={`text-xs px-2 py-0.5 rounded-full border ${rs.bg} ${rs.text} ${rs.border}`}>
                 {RISK_LABELS[rl]}
@@ -166,7 +166,7 @@ function AssetDetailPanel({ asset, onClose }: { asset: CloudAsset; onClose: () =
               <span className={`text-lg font-bold ${rs.text}`}>{asset.risk_score}</span>
             </div>
           </div>
-          <div className="w-full h-2 bg-[#1e2d42] rounded-full overflow-hidden">
+          <div className="w-full h-2 bg-falcon-border rounded-full overflow-hidden">
             <div className="h-full rounded-full transition-all"
               style={{
                 width: `${asset.risk_score}%`,
@@ -177,10 +177,10 @@ function AssetDetailPanel({ asset, onClose }: { asset: CloudAsset; onClose: () =
           </div>
           {asset.risk_factors.length > 0 && (
             <div className="space-y-1.5">
-              <p className="text-[#7d92b0] text-xs">リスク要因:</p>
+              <p className="text-falcon-muted text-xs">リスク要因:</p>
               {asset.risk_factors.map((f, i) => (
                 <div key={i} className="flex items-center gap-2 text-xs text-orange-300">
-                  <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" />
+                  <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
                   {f}
                 </div>
               ))}
@@ -191,10 +191,10 @@ function AssetDetailPanel({ asset, onClose }: { asset: CloudAsset; onClose: () =
         {/* Tags */}
         {Object.keys(asset.tags).length > 0 && (
           <div className="space-y-2">
-            <h4 className="text-[#7d92b0] text-xs font-semibold uppercase tracking-wide">タグ</h4>
+            <h4 className="text-falcon-muted text-xs font-semibold uppercase tracking-wide">タグ</h4>
             <div className="flex flex-wrap gap-2">
               {Object.entries(asset.tags).map(([k, v]) => (
-                <span key={k} className="text-xs bg-[#161f33] border border-[#1e2d42] rounded px-2 py-0.5 text-[#7d92b0]">
+                <span key={k} className="text-xs bg-falcon-raised border border-falcon-border rounded-sm px-2 py-0.5 text-falcon-muted">
                   {k}: <span className="text-white">{v}</span>
                 </span>
               ))}
@@ -207,11 +207,11 @@ function AssetDetailPanel({ asset, onClose }: { asset: CloudAsset; onClose: () =
           <button
             onClick={() => setConfigExpanded(!configExpanded)}
             className="flex items-center justify-between w-full">
-            <h4 className="text-[#7d92b0] text-xs font-semibold uppercase tracking-wide">設定情報</h4>
-            <ChevronDown className={`w-4 h-4 text-[#7d92b0] transition-transform ${configExpanded ? 'rotate-180' : ''}`} />
+            <h4 className="text-falcon-muted text-xs font-semibold uppercase tracking-wide">設定情報</h4>
+            <ChevronDown className={`w-4 h-4 text-falcon-muted transition-transform ${configExpanded ? 'rotate-180' : ''}`} />
           </button>
           {configExpanded && (
-            <pre className="bg-[#070d19] border border-[#1e2d42] rounded-lg p-3 text-xs text-[#7d92b0] overflow-auto max-h-48 font-mono">
+            <pre className="bg-[#070d19] border border-falcon-border rounded-lg p-3 text-xs text-falcon-muted overflow-auto max-h-48 font-mono">
               {JSON.stringify(asset.config, null, 2)}
             </pre>
           )}
@@ -226,37 +226,37 @@ function AssetDetailPanel({ asset, onClose }: { asset: CloudAsset; onClose: () =
 function ProviderConfigModal({ config, onClose }: { config: ProviderConfig; onClose: () => void }) {
   const ps = PROVIDER_STYLES[config.provider]
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-6 w-full max-w-md">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs">
+      <div className="bg-falcon-surface border border-falcon-border rounded-xl p-6 w-full max-w-md">
         <div className="flex items-center justify-between mb-6">
           <h3 className="text-white font-bold text-lg flex items-center gap-2">
-            <Settings className="w-5 h-5 text-[#7d92b0]" />
+            <Settings className="w-5 h-5 text-falcon-muted" />
             {config.provider} 設定
           </h3>
-          <button onClick={onClose} className="text-[#7d92b0] hover:text-white transition-colors">
+          <button onClick={onClose} className="text-falcon-muted hover:text-white transition-colors">
             <X className="w-5 h-5" />
           </button>
         </div>
         <div className="space-y-4">
           {config.fields.map(field => (
             <div key={field.key}>
-              <label className="block text-[#7d92b0] text-xs mb-1.5">{field.label}</label>
+              <label className="block text-falcon-muted text-xs mb-1.5">{field.label}</label>
               <input
                 type={field.masked ? 'password' : 'text'}
                 defaultValue={field.value}
-                className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm
-                           focus:outline-none focus:border-[#e8002d]/50 font-mono"
+                className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm
+                           focus:outline-hidden focus:border-falcon-red/50 font-mono"
               />
             </div>
           ))}
         </div>
         <div className="flex gap-3 mt-6">
           <button onClick={onClose}
-            className="flex-1 px-4 py-2 border border-[#1e2d42] text-[#7d92b0] rounded-lg text-sm hover:bg-[#19253d] transition-colors">
+            className="flex-1 px-4 py-2 border border-falcon-border text-falcon-muted rounded-lg text-sm hover:bg-falcon-hover transition-colors">
             キャンセル
           </button>
           <button onClick={onClose}
-            className="flex-1 px-4 py-2 bg-[#e8002d] hover:bg-[#c0001f] text-white rounded-lg text-sm font-medium transition-colors">
+            className="flex-1 px-4 py-2 bg-falcon-red hover:bg-[#c0001f] text-white rounded-lg text-sm font-medium transition-colors">
             保存
           </button>
         </div>
@@ -312,10 +312,10 @@ function RiskDonutChart({ assets }: { assets: CloudAsset[] }) {
       <div className="space-y-2">
         {(['critical', 'high', 'medium', 'low'] as RiskLevel[]).map(level => (
           <div key={level} className="flex items-center gap-3">
-            <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: colors[level] }} />
-            <span className="text-[#7d92b0] text-sm w-20">{labels[level]}</span>
+            <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: colors[level] }} />
+            <span className="text-falcon-muted text-sm w-20">{labels[level]}</span>
             <span className="text-white font-bold text-sm">{counts[level]}</span>
-            <span className="text-[#7d92b0] text-xs">
+            <span className="text-falcon-muted text-xs">
               ({total > 0 ? Math.round((counts[level] / total) * 100) : 0}%)
             </span>
           </div>
@@ -436,10 +436,10 @@ export default function CloudAssetsPage() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-white flex items-center gap-3">
-            <Cloud className="w-7 h-7 text-[#e8002d]" />
+            <Cloud className="w-7 h-7 text-falcon-red" />
             クラウドアセット
           </h1>
-          <p className="text-[#7d92b0] text-sm mt-1">AWS・Azure・GCP リソースの統合管理</p>
+          <p className="text-falcon-muted text-sm mt-1">AWS・Azure・GCP リソースの統合管理</p>
         </div>
       </div>
 
@@ -453,12 +453,12 @@ export default function CloudAssetsPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 bg-[#0d1220] border border-[#1e2d42] rounded-lg p-1 w-fit mb-6">
+      <div className="flex gap-1 bg-falcon-surface border border-falcon-border rounded-lg p-1 w-fit mb-6">
         {([['assets', 'アセット一覧'], ['risk', 'リスク分析'], ['providers', 'プロバイダー設定']] as const).map(([key, label]) => (
           <button key={key}
             onClick={() => setActiveTab(key)}
             className={`px-4 py-2 rounded text-sm font-medium transition-colors ${
-              activeTab === key ? 'bg-[#1d2f4a] text-white' : 'text-[#7d92b0] hover:text-white'
+              activeTab === key ? 'bg-falcon-active text-white' : 'text-falcon-muted hover:text-white'
             }`}>
             {label}
           </button>
@@ -469,20 +469,20 @@ export default function CloudAssetsPage() {
       {activeTab === 'assets' && (
         <div>
           {/* Filter bar */}
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-4 mb-4 space-y-3">
+          <div className="bg-falcon-surface border border-falcon-border rounded-xl p-4 mb-4 space-y-3">
             {/* Provider pills */}
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-[#7d92b0] text-xs">プロバイダー:</span>
+              <span className="text-falcon-muted text-xs">プロバイダー:</span>
               {(['ALL', 'AWS', 'Azure', 'GCP'] as const).map(p => (
                 <button key={p}
                   onClick={() => setSelectedProvider(p)}
                   className={`px-3 py-1 rounded-full text-xs font-medium transition-colors border ${
                     selectedProvider === p
-                      ? p === 'ALL' ? 'bg-[#1d2f4a] text-white border-[#e8002d]/50'
+                      ? p === 'ALL' ? 'bg-falcon-active text-white border-falcon-red/50'
                         : p === 'AWS' ? 'bg-orange-900/60 text-orange-200 border-orange-600'
                         : p === 'Azure' ? 'bg-blue-900/60 text-blue-200 border-blue-600'
                         : 'bg-green-900/60 text-green-200 border-green-600'
-                      : 'bg-[#070d19] text-[#7d92b0] border-[#1e2d42] hover:border-[#2a3f5c]'
+                      : 'bg-[#070d19] text-falcon-muted border-falcon-border hover:border-[#2a3f5c]'
                   }`}>
                   {p}
                 </button>
@@ -492,14 +492,14 @@ export default function CloudAssetsPage() {
             <div className="flex items-center gap-3 flex-wrap">
               {/* Asset type multi-select */}
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-[#7d92b0] text-xs">タイプ:</span>
+                <span className="text-falcon-muted text-xs">タイプ:</span>
                 {ALL_TYPES.map(t => (
                   <button key={t}
                     onClick={() => toggleType(t)}
                     className={`px-2 py-0.5 rounded text-xs transition-colors border ${
                       selectedTypes.includes(t)
-                        ? 'bg-[#1d2f4a] text-white border-[#e8002d]/50'
-                        : 'bg-[#070d19] text-[#7d92b0] border-[#1e2d42] hover:border-[#2a3f5c]'
+                        ? 'bg-falcon-active text-white border-falcon-red/50'
+                        : 'bg-[#070d19] text-falcon-muted border-falcon-border hover:border-[#2a3f5c]'
                     }`}>
                     {t}
                   </button>
@@ -508,16 +508,16 @@ export default function CloudAssetsPage() {
 
               {/* Region */}
               <select value={selectedRegion} onChange={e => setSelectedRegion(e.target.value)}
-                className="bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-1.5 text-white text-xs
-                           focus:outline-none focus:border-[#e8002d]/50">
+                className="bg-[#070d19] border border-falcon-border rounded-lg px-3 py-1.5 text-white text-xs
+                           focus:outline-hidden focus:border-falcon-red/50">
                 <option value="all">全リージョン</option>
                 {allRegions.map(r => <option key={r} value={r}>{r}</option>)}
               </select>
 
               {/* Risk level */}
               <select value={selectedRisk} onChange={e => setSelectedRisk(e.target.value)}
-                className="bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-1.5 text-white text-xs
-                           focus:outline-none focus:border-[#e8002d]/50">
+                className="bg-[#070d19] border border-falcon-border rounded-lg px-3 py-1.5 text-white text-xs
+                           focus:outline-hidden focus:border-falcon-red/50">
                 <option value="all">全リスクレベル</option>
                 <option value="critical">クリティカル</option>
                 <option value="high">高</option>
@@ -528,19 +528,19 @@ export default function CloudAssetsPage() {
           </div>
 
           {/* Table */}
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
+          <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-[#1e2d42]">
+                <tr className="border-b border-falcon-border">
                   {['名前', 'プロバイダー', 'タイプ', 'リージョン', 'アカウント', 'リスク', 'ステータス', '最終確認', ''].map(h => (
-                    <th key={h} className="px-4 py-3 text-left text-xs text-[#7d92b0] font-medium">{h}</th>
+                    <th key={h} className="px-4 py-3 text-left text-xs text-falcon-muted font-medium">{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {filteredAssets.length === 0 ? (
                   <tr>
-                    <td colSpan={9} className="px-4 py-8 text-center text-[#7d92b0] text-sm">
+                    <td colSpan={9} className="px-4 py-8 text-center text-falcon-muted text-sm">
                       アセットがありません
                     </td>
                   </tr>
@@ -551,16 +551,16 @@ export default function CloudAssetsPage() {
                   return (
                     <tr key={asset.id}
                       onClick={() => setDetailAsset(asset)}
-                      className="border-b border-[#1e2d42]/50 hover:bg-[#19253d]/30 transition-colors cursor-pointer">
+                      className="border-b border-falcon-border/50 hover:bg-falcon-hover/30 transition-colors cursor-pointer">
                       <td className="px-4 py-3 text-white text-sm font-medium">{asset.name}</td>
                       <td className="px-4 py-3">
                         <span className={`text-xs px-2 py-0.5 rounded-full border ${ps.bg} ${ps.text} ${ps.border}`}>
                           {asset.provider}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-[#7d92b0] text-sm">{asset.asset_type}</td>
-                      <td className="px-4 py-3 text-[#7d92b0] text-sm">{asset.region}</td>
-                      <td className="px-4 py-3 text-[#7d92b0] text-xs font-mono truncate max-w-[120px]">{asset.account_id}</td>
+                      <td className="px-4 py-3 text-falcon-muted text-sm">{asset.asset_type}</td>
+                      <td className="px-4 py-3 text-falcon-muted text-sm">{asset.region}</td>
+                      <td className="px-4 py-3 text-falcon-muted text-xs font-mono truncate max-w-[120px]">{asset.account_id}</td>
                       <td className="px-4 py-3">
                         <span className={`text-xs px-2 py-0.5 rounded-full border font-bold ${rs.bg} ${rs.text} ${rs.border}`}>
                           {asset.risk_score}
@@ -571,9 +571,9 @@ export default function CloudAssetsPage() {
                           {STATUS_LABELS[asset.status]}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-[#7d92b0] text-xs">{fmtDateTime(asset.last_seen)}</td>
+                      <td className="px-4 py-3 text-falcon-muted text-xs">{fmtDateTime(asset.last_seen)}</td>
                       <td className="px-4 py-3">
-                        <ChevronRight className="w-4 h-4 text-[#3d5068]" />
+                        <ChevronRight className="w-4 h-4 text-falcon-subtle" />
                       </td>
                     </tr>
                   )
@@ -589,27 +589,27 @@ export default function CloudAssetsPage() {
         <div className="space-y-6">
           <div className="grid grid-cols-2 gap-6">
             {/* Donut */}
-            <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-6">
+            <div className="bg-falcon-surface border border-falcon-border rounded-xl p-6">
               <h3 className="text-white font-semibold mb-4">リスク分布</h3>
               <RiskDonutChart assets={assets} />
             </div>
 
             {/* Provider bars */}
-            <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-6">
+            <div className="bg-falcon-surface border border-falcon-border rounded-xl p-6">
               <h3 className="text-white font-semibold mb-4">プロバイダー別平均リスク</h3>
               <RiskByProviderChart assets={assets} />
             </div>
           </div>
 
           {/* Top 10 high risk */}
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-6">
+          <div className="bg-falcon-surface border border-falcon-border rounded-xl p-6">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-white font-semibold">高リスクアセット Top 10</h3>
               <button
                 onClick={() => highRiskAssets.forEach(a => riskCalcMutation.mutate(a.id))}
                 disabled={riskCalcMutation.isPending}
-                className="flex items-center gap-2 px-3 py-1.5 bg-[#e8002d]/10 hover:bg-[#e8002d]/20 border border-[#e8002d]/30
-                           text-[#e8002d] rounded-lg text-xs font-medium transition-colors disabled:opacity-50">
+                className="flex items-center gap-2 px-3 py-1.5 bg-falcon-red/10 hover:bg-falcon-red/20 border border-falcon-red/30
+                           text-falcon-red rounded-lg text-xs font-medium transition-colors disabled:opacity-50">
                 {riskCalcMutation.isPending
                   ? <RefreshCw className="w-3.5 h-3.5 animate-spin" />
                   : <RefreshCw className="w-3.5 h-3.5" />}
@@ -618,9 +618,9 @@ export default function CloudAssetsPage() {
             </div>
             <table className="w-full">
               <thead>
-                <tr className="border-b border-[#1e2d42]">
+                <tr className="border-b border-falcon-border">
                   {['#', '名前', 'プロバイダー', 'タイプ', 'リスクスコア', 'リスク要因'].map(h => (
-                    <th key={h} className="px-3 py-2 text-left text-xs text-[#7d92b0] font-medium">{h}</th>
+                    <th key={h} className="px-3 py-2 text-left text-xs text-falcon-muted font-medium">{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -630,30 +630,30 @@ export default function CloudAssetsPage() {
                   const rl = getRiskLevel(asset.risk_score)
                   const rs = RISK_STYLES[rl]
                   return (
-                    <tr key={asset.id} className="border-b border-[#1e2d42]/50 hover:bg-[#19253d]/20 transition-colors">
-                      <td className="px-3 py-3 text-[#7d92b0] text-sm">{i + 1}</td>
+                    <tr key={asset.id} className="border-b border-falcon-border/50 hover:bg-falcon-hover/20 transition-colors">
+                      <td className="px-3 py-3 text-falcon-muted text-sm">{i + 1}</td>
                       <td className="px-3 py-3 text-white text-sm font-medium">{asset.name}</td>
                       <td className="px-3 py-3">
                         <span className={`text-xs px-2 py-0.5 rounded-full border ${ps.bg} ${ps.text} ${ps.border}`}>
                           {asset.provider}
                         </span>
                       </td>
-                      <td className="px-3 py-3 text-[#7d92b0] text-sm">{asset.asset_type}</td>
+                      <td className="px-3 py-3 text-falcon-muted text-sm">{asset.asset_type}</td>
                       <td className="px-3 py-3">
                         <span className={`text-sm font-bold ${rs.text}`}>{asset.risk_score}</span>
                       </td>
                       <td className="px-3 py-3">
                         <div className="flex flex-wrap gap-1">
                           {asset.risk_factors.slice(0, 2).map((f, j) => (
-                            <span key={j} className="text-xs bg-orange-900/20 text-orange-300 border border-orange-700/30 px-1.5 py-0.5 rounded">
+                            <span key={j} className="text-xs bg-orange-900/20 text-orange-300 border border-orange-700/30 px-1.5 py-0.5 rounded-sm">
                               {f}
                             </span>
                           ))}
                           {asset.risk_factors.length > 2 && (
-                            <span className="text-xs text-[#7d92b0]">+{asset.risk_factors.length - 2}</span>
+                            <span className="text-xs text-falcon-muted">+{asset.risk_factors.length - 2}</span>
                           )}
                           {asset.risk_factors.length === 0 && (
-                            <span className="text-xs text-[#3d5068]">なし</span>
+                            <span className="text-xs text-falcon-subtle">なし</span>
                           )}
                         </div>
                       </td>
@@ -673,7 +673,7 @@ export default function CloudAssetsPage() {
             const ps = PROVIDER_STYLES[cfg.provider]
             return (
               <div key={cfg.provider}
-                className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-6">
+                className="bg-falcon-surface border border-falcon-border rounded-xl p-6">
                 {/* Provider header */}
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-3">
@@ -685,7 +685,7 @@ export default function CloudAssetsPage() {
                       <h3 className="text-white font-bold">{cfg.provider}</h3>
                       <div className="flex items-center gap-1.5 mt-0.5">
                         <div className={`w-2 h-2 rounded-full ${cfg.connected ? 'bg-green-400' : 'bg-red-500'}`} />
-                        <span className="text-xs text-[#7d92b0]">{cfg.connected ? '接続済み' : '未接続'}</span>
+                        <span className="text-xs text-falcon-muted">{cfg.connected ? '接続済み' : '未接続'}</span>
                       </div>
                     </div>
                   </div>
@@ -695,8 +695,8 @@ export default function CloudAssetsPage() {
                 <div className="space-y-3 mb-4">
                   {cfg.fields.map(field => (
                     <div key={field.key}>
-                      <p className="text-[#7d92b0] text-xs mb-1">{field.label}</p>
-                      <p className="text-white text-sm font-mono bg-[#070d19] border border-[#1e2d42] rounded px-2 py-1.5 truncate">
+                      <p className="text-falcon-muted text-xs mb-1">{field.label}</p>
+                      <p className="text-white text-sm font-mono bg-[#070d19] border border-falcon-border rounded-sm px-2 py-1.5 truncate">
                         {field.value}
                       </p>
                     </div>
@@ -704,14 +704,14 @@ export default function CloudAssetsPage() {
                 </div>
 
                 {/* Stats */}
-                <div className="flex items-center justify-between py-3 border-t border-b border-[#1e2d42] mb-4">
+                <div className="flex items-center justify-between py-3 border-t border-b border-falcon-border mb-4">
                   <div>
-                    <p className="text-[#7d92b0] text-xs">アセット数</p>
+                    <p className="text-falcon-muted text-xs">アセット数</p>
                     <p className="text-white font-bold">{cfg.asset_count}</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-[#7d92b0] text-xs">最終同期</p>
-                    <p className="text-[#7d92b0] text-xs">{fmtDateTime(cfg.last_sync)}</p>
+                    <p className="text-falcon-muted text-xs">最終同期</p>
+                    <p className="text-falcon-muted text-xs">{fmtDateTime(cfg.last_sync)}</p>
                   </div>
                 </div>
 
@@ -720,8 +720,8 @@ export default function CloudAssetsPage() {
                   <button
                     onClick={() => syncMutation.mutate(cfg.provider)}
                     disabled={syncingProvider === cfg.provider}
-                    className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-[#1d2f4a] hover:bg-[#243a5c]
-                               border border-[#1e2d42] text-white rounded-lg text-xs font-medium transition-colors disabled:opacity-50">
+                    className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-falcon-active hover:bg-[#243a5c]
+                               border border-falcon-border text-white rounded-lg text-xs font-medium transition-colors disabled:opacity-50">
                     {syncingProvider === cfg.provider
                       ? <RefreshCw className="w-3.5 h-3.5 animate-spin" />
                       : <RefreshCw className="w-3.5 h-3.5" />}
@@ -730,7 +730,7 @@ export default function CloudAssetsPage() {
                   <button
                     onClick={() => setConfigModal(cfg)}
                     className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-[#070d19]
-                               border border-[#1e2d42] text-[#7d92b0] hover:text-white rounded-lg text-xs font-medium transition-colors">
+                               border border-falcon-border text-falcon-muted hover:text-white rounded-lg text-xs font-medium transition-colors">
                     <Settings className="w-3.5 h-3.5" />
                     設定
                   </button>

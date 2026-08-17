@@ -130,25 +130,25 @@ function AddWebhookModal({ onClose, onSuccess }: AddWebhookModalProps) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs">
       <div className="bg-zinc-900 border border-zinc-700 rounded-xl shadow-2xl w-full max-w-lg mx-4">
         <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-700">
           <h2 className="text-lg font-semibold text-zinc-100">Webhook追加</h2>
           <button onClick={onClose} className="text-zinc-400 hover:text-zinc-200 transition-colors"><X className="h-5 w-5" /></button>
         </div>
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          {error && <div className="text-red-400 text-sm bg-red-900/20 border border-red-700/40 rounded px-3 py-2">{error}</div>}
+          {error && <div className="text-red-400 text-sm bg-red-900/20 border border-red-700/40 rounded-sm px-3 py-2">{error}</div>}
 
           <div className="grid grid-cols-2 gap-4">
             <div className="col-span-2">
               <label className="block text-xs text-zinc-400 mb-1">名前</label>
               <input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-                className="w-full bg-zinc-800 border border-zinc-600 rounded-lg px-3 py-2 text-zinc-100 text-sm focus:outline-none focus:border-blue-500" placeholder="マイWebhook" />
+                className="w-full bg-zinc-800 border border-zinc-600 rounded-lg px-3 py-2 text-zinc-100 text-sm focus:outline-hidden focus:border-blue-500" placeholder="マイWebhook" />
             </div>
             <div>
               <label className="block text-xs text-zinc-400 mb-1">プラットフォーム</label>
               <select value={form.platform} onChange={e => setForm(f => ({ ...f, platform: e.target.value as Webhook['platform'] }))}
-                className="w-full bg-zinc-800 border border-zinc-600 rounded-lg px-3 py-2 text-zinc-100 text-sm focus:outline-none focus:border-blue-500">
+                className="w-full bg-zinc-800 border border-zinc-600 rounded-lg px-3 py-2 text-zinc-100 text-sm focus:outline-hidden focus:border-blue-500">
                 <option value="slack">Slack</option>
                 <option value="teams">MS Teams</option>
                 <option value="pagerduty">PagerDuty</option>
@@ -158,19 +158,19 @@ function AddWebhookModal({ onClose, onSuccess }: AddWebhookModalProps) {
             <div>
               <label className="block text-xs text-zinc-400 mb-1">リトライ回数</label>
               <select value={form.retry_count} onChange={e => setForm(f => ({ ...f, retry_count: Number(e.target.value) }))}
-                className="w-full bg-zinc-800 border border-zinc-600 rounded-lg px-3 py-2 text-zinc-100 text-sm focus:outline-none focus:border-blue-500">
+                className="w-full bg-zinc-800 border border-zinc-600 rounded-lg px-3 py-2 text-zinc-100 text-sm focus:outline-hidden focus:border-blue-500">
                 {[1,2,3,4,5].map(n => <option key={n} value={n}>{n}</option>)}
               </select>
             </div>
             <div className="col-span-2">
               <label className="block text-xs text-zinc-400 mb-1">URL</label>
               <input value={form.url} onChange={e => setForm(f => ({ ...f, url: e.target.value }))}
-                className="w-full bg-zinc-800 border border-zinc-600 rounded-lg px-3 py-2 text-zinc-100 text-sm focus:outline-none focus:border-blue-500 font-mono" placeholder="https://hooks.example.com/..." />
+                className="w-full bg-zinc-800 border border-zinc-600 rounded-lg px-3 py-2 text-zinc-100 text-sm focus:outline-hidden focus:border-blue-500 font-mono" placeholder="https://hooks.example.com/..." />
             </div>
             <div className="col-span-2">
               <label className="block text-xs text-zinc-400 mb-1">シークレット（任意）</label>
               <input value={form.secret} onChange={e => setForm(f => ({ ...f, secret: e.target.value }))}
-                className="w-full bg-zinc-800 border border-zinc-600 rounded-lg px-3 py-2 text-zinc-100 text-sm focus:outline-none focus:border-blue-500" placeholder="HMAC署名シークレット" />
+                className="w-full bg-zinc-800 border border-zinc-600 rounded-lg px-3 py-2 text-zinc-100 text-sm focus:outline-hidden focus:border-blue-500" placeholder="HMAC署名シークレット" />
             </div>
           </div>
 
@@ -247,7 +247,7 @@ function WebhookCard({ webhook, onToggle, onTest, onDelete, testing }: WebhookCa
         {/* Events */}
         <div className="flex flex-wrap gap-1.5 mt-3">
           {webhook.events.map(ev => (
-            <span key={ev} className="text-xs font-mono px-2 py-0.5 rounded bg-zinc-800 text-zinc-400 border border-zinc-700">{ev}</span>
+            <span key={ev} className="text-xs font-mono px-2 py-0.5 rounded-sm bg-zinc-800 text-zinc-400 border border-zinc-700">{ev}</span>
           ))}
         </div>
 

@@ -111,7 +111,7 @@ function FieldBadge({ field }: { field?: string }) {
   }
   const cls = colours[field ?? ''] ?? 'bg-gray-700/50 text-gray-300 border-gray-600/40'
   return (
-    <span className={`text-xs px-2 py-0.5 rounded border ${cls}`}>
+    <span className={`text-xs px-2 py-0.5 rounded-sm border ${cls}`}>
       {fieldLabel(field)}
     </span>
   )
@@ -128,7 +128,7 @@ function MatchTypeBadge({ matchType }: { matchType?: string }) {
   }
   const cls = colours[matchType ?? ''] ?? 'bg-gray-700/60 text-gray-300'
   return (
-    <span className={`text-xs px-2 py-0.5 rounded font-mono ${cls}`}>
+    <span className={`text-xs px-2 py-0.5 rounded-sm font-mono ${cls}`}>
       {matchTypeLabel(matchType)}
     </span>
   )
@@ -184,7 +184,7 @@ function RuleForm({ initial, allRules, onSubmit, onCancel, isPending, isError, e
             onChange={e => set('name', e.target.value)}
             placeholder="例: 定期スキャン除外"
             className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm
-                       focus:outline-none focus:border-yellow-500 text-white placeholder-gray-600"
+                       focus:outline-hidden focus:border-yellow-500 text-white placeholder-gray-600"
           />
         </div>
 
@@ -196,7 +196,7 @@ function RuleForm({ initial, allRules, onSubmit, onCancel, isPending, isError, e
               value={form.field}
               onChange={e => set('field', e.target.value)}
               className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm
-                         focus:outline-none focus:border-yellow-500 text-white"
+                         focus:outline-hidden focus:border-yellow-500 text-white"
             >
               {FIELD_OPTIONS.map(o => (
                 <option key={o.value} value={o.value}>{o.label}</option>
@@ -209,7 +209,7 @@ function RuleForm({ initial, allRules, onSubmit, onCancel, isPending, isError, e
               value={form.match_type}
               onChange={e => set('match_type', e.target.value)}
               className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm
-                         focus:outline-none focus:border-yellow-500 text-white"
+                         focus:outline-hidden focus:border-yellow-500 text-white"
             >
               {MATCH_TYPE_OPTIONS.map(o => (
                 <option key={o.value} value={o.value}>{o.label}</option>
@@ -228,7 +228,7 @@ function RuleForm({ initial, allRules, onSubmit, onCancel, isPending, isError, e
                 : '例: mimikatz'
               }
               className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm
-                         font-mono focus:outline-none focus:border-yellow-500 text-white placeholder-gray-600"
+                         font-mono focus:outline-hidden focus:border-yellow-500 text-white placeholder-gray-600"
             />
           </div>
         </div>
@@ -252,7 +252,7 @@ function RuleForm({ initial, allRules, onSubmit, onCancel, isPending, isError, e
               value={form.expires_at}
               onChange={e => set('expires_at', e.target.value)}
               className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm
-                         focus:outline-none focus:border-yellow-500 text-white"
+                         focus:outline-hidden focus:border-yellow-500 text-white"
             />
           </div>
           <div className="flex items-end gap-3 pb-1">
@@ -265,7 +265,7 @@ function RuleForm({ initial, allRules, onSubmit, onCancel, isPending, isError, e
                   form.enabled ? 'bg-yellow-500' : 'bg-gray-600'
                 }`}
               >
-                <div className={`w-4 h-4 rounded-full bg-[#e2e8f4] mt-0.5 transition-transform shadow ${
+                <div className={`w-4 h-4 rounded-full bg-falcon-text mt-0.5 transition-transform shadow ${
                   form.enabled ? 'translate-x-5.5' : 'translate-x-0.5'
                 }`} />
               </div>
@@ -283,7 +283,7 @@ function RuleForm({ initial, allRules, onSubmit, onCancel, isPending, isError, e
             onChange={e => set('notes', e.target.value)}
             placeholder="このルールの目的や背景を記入..."
             className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm
-                       focus:outline-none focus:border-yellow-500 text-white placeholder-gray-600 resize-none"
+                       focus:outline-hidden focus:border-yellow-500 text-white placeholder-gray-600 resize-none"
           />
         </div>
 
@@ -503,7 +503,7 @@ export default function SuppressionsPage() {
               placeholder="名前・パターンで検索..."
               className="w-full pl-8 pr-8 py-1.5 text-sm border border-gray-700 rounded-lg
                          bg-gray-800 text-white placeholder-gray-600
-                         focus:outline-none focus:border-yellow-500"
+                         focus:outline-hidden focus:border-yellow-500"
             />
             {search && (
               <button

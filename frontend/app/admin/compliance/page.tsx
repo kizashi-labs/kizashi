@@ -169,7 +169,7 @@ function StatusBadge({ status }: { status: ControlStatus }) {
   const cfg = STATUS_CONFIG[status]
   const Icon = cfg.icon
   return (
-    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium border ${cfg.bg} ${cfg.iconColor}`}>
+    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-xs font-medium border ${cfg.bg} ${cfg.iconColor}`}>
       <Icon className="w-3 h-3" />
       {cfg.label}
     </span>
@@ -187,8 +187,8 @@ function StatusSelect({
     <select
       value={value}
       onChange={e => onChange(e.target.value as ControlStatus)}
-      className="text-xs bg-[#080c14] border border-[#1e2d42] rounded-lg px-2 py-1
-                 text-[#8899aa] focus:outline-none focus:border-blue-500"
+      className="text-xs bg-falcon-bg border border-falcon-border rounded-lg px-2 py-1
+                 text-[#8899aa] focus:outline-hidden focus:border-blue-500"
     >
       <option value="implemented">実装済み</option>
       <option value="partial">部分的</option>
@@ -226,12 +226,12 @@ function NistPanel({
         if (filterStatus !== 'all' && cats.length === 0) return null
 
         return (
-          <div key={fn.id} className="bg-[#0d1220] rounded-xl border border-[#1e2d42] overflow-hidden">
+          <div key={fn.id} className="bg-falcon-surface rounded-xl border border-falcon-border overflow-hidden">
             <button
               onClick={() => toggle(fn.id)}
-              className="w-full flex items-center gap-4 px-5 py-4 hover:bg-[#111827] transition-colors text-left"
+              className="w-full flex items-center gap-4 px-5 py-4 hover:bg-falcon-card transition-colors text-left"
             >
-              <div className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
+              <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0"
                 style={{ background: `${fn.color}22`, border: `1px solid ${fn.color}44` }}>
                 <span className="text-xs font-bold" style={{ color: fn.color }}>{fn.id}</span>
               </div>
@@ -241,7 +241,7 @@ function NistPanel({
                   <span className="text-xs text-[#5a6a7a]">({fn.nameJa})</span>
                 </div>
                 <div className="flex items-center gap-2 mt-1.5">
-                  <div className="w-36 h-1.5 bg-[#1e2d42] rounded-full overflow-hidden">
+                  <div className="w-36 h-1.5 bg-falcon-border rounded-full overflow-hidden">
                     <div className="h-full rounded-full transition-all" style={{ width: `${score}%`, background: fn.color }} />
                   </div>
                   <span className="text-xs font-bold" style={{ color: fn.color }}>{score}%</span>
@@ -250,19 +250,19 @@ function NistPanel({
                   </span>
                 </div>
               </div>
-              {isOpen ? <ChevronDown className="w-4 h-4 text-[#5a6a7a] flex-shrink-0" />
-                       : <ChevronRight className="w-4 h-4 text-[#5a6a7a] flex-shrink-0" />}
+              {isOpen ? <ChevronDown className="w-4 h-4 text-[#5a6a7a] shrink-0" />
+                       : <ChevronRight className="w-4 h-4 text-[#5a6a7a] shrink-0" />}
             </button>
 
             {isOpen && (
-              <div className="border-t border-[#1e2d42]">
+              <div className="border-t border-falcon-border">
                 {cats.map(cat => {
                   const st = statuses[cat.id] ?? 'not_implemented'
                   return (
                     <div key={cat.id}
-                      className="flex items-center justify-between px-5 py-3 border-b border-[#1e2d42]/60 last:border-0 hover:bg-[#080c14] transition-colors gap-4">
+                      className="flex items-center justify-between px-5 py-3 border-b border-falcon-border/60 last:border-0 hover:bg-falcon-bg transition-colors gap-4">
                       <div className="flex items-center gap-3 min-w-0 flex-1">
-                        <span className="text-xs font-mono text-[#5a6a7a] w-16 flex-shrink-0">{cat.id}</span>
+                        <span className="text-xs font-mono text-[#5a6a7a] w-16 shrink-0">{cat.id}</span>
                         <span className="text-sm text-[#c9d6e8] truncate">{cat.name}</span>
                       </div>
                       {editMode ? (
@@ -308,10 +308,10 @@ function IsoPanel({
   }
 
   return (
-    <div className="bg-[#0d1220] rounded-xl border border-[#1e2d42] overflow-hidden">
+    <div className="bg-falcon-surface rounded-xl border border-falcon-border overflow-hidden">
       <table className="w-full text-sm">
         <thead>
-          <tr className="border-b border-[#1e2d42] bg-[#080c14]/40">
+          <tr className="border-b border-falcon-border bg-falcon-bg/40">
             <th className="text-left px-5 py-3 text-xs font-medium text-[#5a6a7a] w-20">ID</th>
             <th className="text-left px-5 py-3 text-xs font-medium text-[#5a6a7a]">コントロール領域</th>
             <th className="text-right px-5 py-3 text-xs font-medium text-[#5a6a7a] w-28">コントロール数</th>
@@ -323,9 +323,9 @@ function IsoPanel({
             const st = statuses[d.id] ?? 'not_implemented'
             return (
               <tr key={d.id}
-                className="border-b border-[#1e2d42]/50 last:border-0 hover:bg-[#111827] transition-colors">
+                className="border-b border-falcon-border/50 last:border-0 hover:bg-falcon-card transition-colors">
                 <td className="px-5 py-3">
-                  <span className="font-mono text-xs text-[#5a6a7a] bg-[#1e2d42]/60 px-2 py-0.5 rounded">{d.id}</span>
+                  <span className="font-mono text-xs text-[#5a6a7a] bg-falcon-border/60 px-2 py-0.5 rounded-sm">{d.id}</span>
                 </td>
                 <td className="px-5 py-3 text-[#c9d6e8]">{d.name}</td>
                 <td className="px-5 py-3 text-right text-xs text-[#5a6a7a]">{d.controls}件</td>
@@ -433,9 +433,9 @@ export default function AdminCompliancePage() {
   if (isLoading) {
     return (
       <div className="p-6 space-y-4 animate-pulse">
-        <div className="h-8 bg-[#0d1220] rounded w-64" />
+        <div className="h-8 bg-falcon-surface rounded-sm w-64" />
         <div className="grid grid-cols-4 gap-4">
-          {[1, 2, 3, 4].map(i => <div key={i} className="h-32 bg-[#0d1220] rounded-xl border border-[#1e2d42]" />)}
+          {[1, 2, 3, 4].map(i => <div key={i} className="h-32 bg-falcon-surface rounded-xl border border-falcon-border" />)}
         </div>
       </div>
     )
@@ -461,7 +461,7 @@ export default function AdminCompliancePage() {
           <button
             onClick={() => refetch()}
             className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-[#8899aa]
-                       bg-[#111827] border border-[#1e2d42] rounded-lg hover:bg-[#1d2f4a] transition-colors"
+                       bg-falcon-card border border-falcon-border rounded-lg hover:bg-falcon-active transition-colors"
           >
             <RefreshCw className="w-4 h-4" />
             更新
@@ -469,7 +469,7 @@ export default function AdminCompliancePage() {
           <button
             onClick={exportCSV}
             className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-[#8899aa]
-                       bg-[#111827] border border-[#1e2d42] rounded-lg hover:bg-[#1d2f4a] transition-colors"
+                       bg-falcon-card border border-falcon-border rounded-lg hover:bg-falcon-active transition-colors"
           >
             <Download className="w-4 h-4" />
             CSV
@@ -478,7 +478,7 @@ export default function AdminCompliancePage() {
             <>
               <button
                 onClick={() => { setLocalData(data ?? null); setEditMode(false) }}
-                className="px-3 py-1.5 text-sm text-[#8899aa] bg-[#111827] border border-[#1e2d42] rounded-lg hover:bg-[#1d2f4a] transition-colors"
+                className="px-3 py-1.5 text-sm text-[#8899aa] bg-falcon-card border border-falcon-border rounded-lg hover:bg-falcon-active transition-colors"
               >
                 キャンセル
               </button>
@@ -496,7 +496,7 @@ export default function AdminCompliancePage() {
             <button
               onClick={() => setEditMode(true)}
               className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-[#8899aa]
-                         bg-[#111827] border border-[#1e2d42] rounded-lg hover:bg-[#1d2f4a] transition-colors"
+                         bg-falcon-card border border-falcon-border rounded-lg hover:bg-falcon-active transition-colors"
             >
               編集
             </button>
@@ -513,15 +513,15 @@ export default function AdminCompliancePage() {
 
       {/* Score gauges */}
       <div className="grid grid-cols-4 gap-4">
-        <div className="bg-[#0d1220] rounded-xl border border-[#1e2d42] p-5 flex flex-col items-center">
+        <div className="bg-falcon-surface rounded-xl border border-falcon-border p-5 flex flex-col items-center">
           <ScoreGauge score={nistScore} label="NIST CSF" color="#3b82f6" />
         </div>
-        <div className="bg-[#0d1220] rounded-xl border border-[#1e2d42] p-5 flex flex-col items-center">
+        <div className="bg-falcon-surface rounded-xl border border-falcon-border p-5 flex flex-col items-center">
           <ScoreGauge score={isoScore} label="ISO 27001" color="#10b981" />
         </div>
 
         {/* NIST function bars */}
-        <div className="col-span-2 bg-[#0d1220] rounded-xl border border-[#1e2d42] p-5">
+        <div className="col-span-2 bg-falcon-surface rounded-xl border border-falcon-border p-5">
           <div className="flex items-center gap-2 mb-4">
             <BarChart2 className="w-4 h-4 text-[#5a6a7a]" />
             <p className="text-xs font-medium text-[#8899aa] uppercase tracking-wider">NIST CSF 機能別スコア</p>
@@ -532,7 +532,7 @@ export default function AdminCompliancePage() {
               return (
                 <div key={fn.id} className="flex items-center gap-3">
                   <span className="text-xs font-mono text-[#5a6a7a] w-6">{fn.id}</span>
-                  <div className="flex-1 h-2 bg-[#1e2d42] rounded-full overflow-hidden">
+                  <div className="flex-1 h-2 bg-falcon-border rounded-full overflow-hidden">
                     <div className="h-full rounded-full transition-all"
                       style={{ width: `${score}%`, background: fn.color }} />
                   </div>
@@ -553,12 +553,12 @@ export default function AdminCompliancePage() {
               key={st}
               onClick={() => setFilter(filterStatus === st ? 'all' : st)}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium transition-colors ${
-                filterStatus === st ? cfg.bg + ' ' + cfg.iconColor : 'bg-[#111827] border-[#1e2d42] text-[#5a6a7a] hover:text-white'
+                filterStatus === st ? cfg.bg + ' ' + cfg.iconColor : 'bg-falcon-card border-falcon-border text-[#5a6a7a] hover:text-white'
               }`}
             >
               <Icon className="w-3.5 h-3.5" />
               {cfg.label}
-              <span className="ml-1 px-1.5 py-0.5 rounded-full bg-[#1e2d42] text-[#8899aa]">
+              <span className="ml-1 px-1.5 py-0.5 rounded-full bg-falcon-border text-[#8899aa]">
                 {counts[st]}
               </span>
             </button>
@@ -576,7 +576,7 @@ export default function AdminCompliancePage() {
       </div>
 
       {/* Framework tabs */}
-      <div className="flex items-center gap-1 bg-[#0d1220] rounded-xl border border-[#1e2d42] p-1 w-fit">
+      <div className="flex items-center gap-1 bg-falcon-surface rounded-xl border border-falcon-border p-1 w-fit">
         {(['nist', 'iso'] as FrameworkView[]).map(f => (
           <button
             key={f}

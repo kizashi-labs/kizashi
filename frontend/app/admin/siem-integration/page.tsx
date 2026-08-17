@@ -229,7 +229,7 @@ export default function SIEMIntegrationPage() {
             <div key={cfg.id} className={`bg-zinc-900 border rounded-xl p-5 ${cfg.enabled ? 'border-zinc-700' : 'border-zinc-800 opacity-60'}`}>
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-3">
-                  <span className={`px-2 py-0.5 rounded text-xs font-semibold ${typeStyle(cfg.type)}`}>
+                  <span className={`px-2 py-0.5 rounded-sm text-xs font-semibold ${typeStyle(cfg.type)}`}>
                     {typeLabel(cfg.type)}
                   </span>
                   <div>
@@ -342,12 +342,12 @@ export default function SIEMIntegrationPage() {
                   <label className="text-xs text-zinc-400 mb-1 block">名前 *</label>
                   <input value={formName} onChange={e => setFormName(e.target.value)}
                     placeholder="例: Splunk Production"
-                    className="w-full bg-zinc-800 border border-zinc-700 rounded-lg p-2 text-sm text-zinc-100 focus:outline-none focus:border-indigo-500" />
+                    className="w-full bg-zinc-800 border border-zinc-700 rounded-lg p-2 text-sm text-zinc-100 focus:outline-hidden focus:border-indigo-500" />
                 </div>
                 <div>
                   <label className="text-xs text-zinc-400 mb-1 block">種別</label>
                   <select value={formType} onChange={e => setFormType(e.target.value as SIEMType)}
-                    className="w-full bg-zinc-800 border border-zinc-700 rounded-lg p-2 text-sm text-zinc-100 focus:outline-none">
+                    className="w-full bg-zinc-800 border border-zinc-700 rounded-lg p-2 text-sm text-zinc-100 focus:outline-hidden">
                     <option value="splunk">Splunk HEC</option>
                     <option value="qradar">QRadar</option>
                     <option value="elastic">Elastic</option>
@@ -359,25 +359,25 @@ export default function SIEMIntegrationPage() {
                 <label className="text-xs text-zinc-400 mb-1 block">エンドポイント URL *</label>
                 <input value={formUrl} onChange={e => setFormUrl(e.target.value)}
                   placeholder="https://siem.example.com/api/..."
-                  className="w-full bg-zinc-800 border border-zinc-700 rounded-lg p-2 text-sm font-mono text-zinc-100 focus:outline-none focus:border-indigo-500" />
+                  className="w-full bg-zinc-800 border border-zinc-700 rounded-lg p-2 text-sm font-mono text-zinc-100 focus:outline-hidden focus:border-indigo-500" />
               </div>
               <div>
                 <label className="text-xs text-zinc-400 mb-1 block">APIキー / トークン</label>
                 <input type="password" value={formKey} onChange={e => setFormKey(e.target.value)}
                   placeholder="••••••••••••"
-                  className="w-full bg-zinc-800 border border-zinc-700 rounded-lg p-2 text-sm text-zinc-100 focus:outline-none focus:border-indigo-500" />
+                  className="w-full bg-zinc-800 border border-zinc-700 rounded-lg p-2 text-sm text-zinc-100 focus:outline-hidden focus:border-indigo-500" />
               </div>
               <div className="grid grid-cols-3 gap-4">
                 <div>
                   <label className="text-xs text-zinc-400 mb-1 block">インデックス / チャンネル</label>
                   <input value={formIndex} onChange={e => setFormIndex(e.target.value)}
                     placeholder="edr-alerts"
-                    className="w-full bg-zinc-800 border border-zinc-700 rounded-lg p-2 text-sm text-zinc-100 focus:outline-none" />
+                    className="w-full bg-zinc-800 border border-zinc-700 rounded-lg p-2 text-sm text-zinc-100 focus:outline-hidden" />
                 </div>
                 <div>
                   <label className="text-xs text-zinc-400 mb-1 block">フォーマット</label>
                   <select value={formFormat} onChange={e => setFormFormat(e.target.value as EventFormat)}
-                    className="w-full bg-zinc-800 border border-zinc-700 rounded-lg p-2 text-sm text-zinc-100 focus:outline-none">
+                    className="w-full bg-zinc-800 border border-zinc-700 rounded-lg p-2 text-sm text-zinc-100 focus:outline-hidden">
                     <option value="json">JSON</option>
                     <option value="cef">CEF</option>
                     <option value="leef">LEEF</option>
@@ -386,7 +386,7 @@ export default function SIEMIntegrationPage() {
                 <div>
                   <label className="text-xs text-zinc-400 mb-1 block">バッチサイズ</label>
                   <input type="number" value={formBatch} onChange={e => setFormBatch(e.target.value)} min="1" max="1000"
-                    className="w-full bg-zinc-800 border border-zinc-700 rounded-lg p-2 text-sm text-zinc-100 focus:outline-none" />
+                    className="w-full bg-zinc-800 border border-zinc-700 rounded-lg p-2 text-sm text-zinc-100 focus:outline-hidden" />
                 </div>
               </div>
               <div className="flex gap-2 pt-2 border-t border-zinc-700">

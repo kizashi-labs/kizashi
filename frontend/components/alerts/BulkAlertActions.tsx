@@ -65,8 +65,8 @@ function InlineNotification({ notif, onDismiss }: { notif: Notification; onDismi
                        : 'bg-red-900/40 border border-red-700/50 text-red-300'}`}
     >
       {isSuccess
-        ? <CheckCircle2 className="w-3.5 h-3.5 flex-shrink-0" />
-        : <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" />}
+        ? <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+        : <AlertTriangle className="w-3.5 h-3.5 shrink-0" />}
       <span>{notif.message}</span>
       <button
         onClick={onDismiss}
@@ -189,8 +189,8 @@ export function AlertRowCheckbox({
     <button
       onClick={handleToggle}
       aria-label={checked ? '選択解除' : '選択'}
-      className={`flex-shrink-0 w-4 h-4 transition-colors
-                  ${checked ? 'text-[#1a6bff]' : 'text-[#3d5068] hover:text-[#5a7aaa]'}`}
+      className={`shrink-0 w-4 h-4 transition-colors
+                  ${checked ? 'text-falcon-blue' : 'text-falcon-subtle hover:text-[#5a7aaa]'}`}
     >
       {checked ? <CheckSquare className="w-4 h-4" /> : <Square className="w-4 h-4" />}
     </button>
@@ -352,35 +352,35 @@ export default function BulkAlertActions({
                       ${loading ? 'opacity-80' : ''}`}
         >
           {/* Selection count badge */}
-          <span className="flex items-center gap-1.5 text-xs font-bold text-[#1a6bff] bg-[#1a6bff]/10
-                           border border-[#1a6bff]/30 rounded-full px-3 py-1 flex-shrink-0">
+          <span className="flex items-center gap-1.5 text-xs font-bold text-falcon-blue bg-falcon-blue/10
+                           border border-falcon-blue/30 rounded-full px-3 py-1 shrink-0">
             <CheckSquare className="w-3.5 h-3.5" />
             {count}件選択中
           </span>
 
           {/* Divider */}
-          <div className="h-5 w-px bg-[#2a3a5c] flex-shrink-0" />
+          <div className="h-5 w-px bg-[#2a3a5c] shrink-0" />
 
           {/* Select all / deselect */}
           <button
             onClick={handleSelectAll}
             disabled={loading}
-            className="text-xs text-[#7d92b0] hover:text-[#e2e8f4] transition-colors
+            className="text-xs text-falcon-muted hover:text-falcon-text transition-colors
                        px-2 py-1 rounded hover:bg-[#1a2540] disabled:opacity-50"
           >
             {allSelected ? '選択解除' : '全選択'}
           </button>
 
           {/* Divider */}
-          <div className="h-5 w-px bg-[#2a3a5c] flex-shrink-0" />
+          <div className="h-5 w-px bg-[#2a3a5c] shrink-0" />
 
           {/* Status actions */}
           <button
             onClick={() => handleBulkStatus('resolved')}
             disabled={loading}
             title="クローズ（解決済みに変更）"
-            className="flex items-center gap-1.5 text-xs text-[#00e676] bg-[#00c853]/10
-                       border border-[#00c853]/25 hover:bg-[#00c853]/20
+            className="flex items-center gap-1.5 text-xs text-[#00e676] bg-falcon-green/10
+                       border border-falcon-green/25 hover:bg-falcon-green/20
                        px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50"
           >
             <CheckCircle2 className="w-3.5 h-3.5" />
@@ -391,8 +391,8 @@ export default function BulkAlertActions({
             onClick={() => handleBulkStatus('investigating')}
             disabled={loading}
             title="調査中に変更"
-            className="flex items-center gap-1.5 text-xs text-[#ffb74d] bg-[#ff9800]/10
-                       border border-[#ff9800]/25 hover:bg-[#ff9800]/20
+            className="flex items-center gap-1.5 text-xs text-[#ffb74d] bg-falcon-amber/10
+                       border border-falcon-amber/25 hover:bg-falcon-amber/20
                        px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50"
           >
             <Loader2 className="w-3.5 h-3.5" />
@@ -403,8 +403,8 @@ export default function BulkAlertActions({
             onClick={() => handleBulkStatus('suppressed')}
             disabled={loading}
             title="抑制（suppressed）に変更"
-            className="flex items-center gap-1.5 text-xs text-[#7d92b0] bg-[#3d5068]/20
-                       border border-[#3d5068]/40 hover:bg-[#3d5068]/30
+            className="flex items-center gap-1.5 text-xs text-falcon-muted bg-falcon-subtle/20
+                       border border-falcon-subtle/40 hover:bg-falcon-subtle/30
                        px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50"
           >
             <XCircle className="w-3.5 h-3.5" />
@@ -412,7 +412,7 @@ export default function BulkAlertActions({
           </button>
 
           {/* Divider */}
-          <div className="h-5 w-px bg-[#2a3a5c] flex-shrink-0" />
+          <div className="h-5 w-px bg-[#2a3a5c] shrink-0" />
 
           {/* Tag dropdown */}
           <Dropdown
@@ -450,8 +450,8 @@ export default function BulkAlertActions({
               <button
                 disabled={loading}
                 onMouseEnter={fetchUsers}
-                className="flex items-center gap-1.5 text-xs text-[#5a99ff] bg-[#1a6bff]/10
-                           border border-[#1a6bff]/25 hover:bg-[#1a6bff]/20
+                className="flex items-center gap-1.5 text-xs text-[#5a99ff] bg-falcon-blue/10
+                           border border-falcon-blue/25 hover:bg-falcon-blue/20
                            px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50"
               >
                 <UserCheck className="w-3.5 h-3.5" />
@@ -462,7 +462,7 @@ export default function BulkAlertActions({
           >
             <div className="py-1 min-w-[200px]">
               {usersLoading ? (
-                <div className="flex items-center gap-2 px-4 py-3 text-xs text-[#7d92b0]">
+                <div className="flex items-center gap-2 px-4 py-3 text-xs text-falcon-muted">
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />
                   読み込み中...
                 </div>
@@ -473,7 +473,7 @@ export default function BulkAlertActions({
                   <button
                     key={user.id}
                     onClick={() => handleBulkAssign(user.id)}
-                    className="w-full text-left px-4 py-2 text-xs text-[#e2e8f4] hover:bg-[#253050] transition-colors"
+                    className="w-full text-left px-4 py-2 text-xs text-falcon-text hover:bg-[#253050] transition-colors"
                   >
                     <span className="block font-medium">{user.full_name}</span>
                     <span className="text-[#5a6a7a]">{user.email}</span>
@@ -518,8 +518,8 @@ export default function BulkAlertActions({
 
           {/* Loading spinner overlay */}
           {loading && (
-            <div className="flex items-center gap-1.5 text-xs text-[#7d92b0]">
-              <Loader2 className="w-3.5 h-3.5 animate-spin text-[#1a6bff]" />
+            <div className="flex items-center gap-1.5 text-xs text-falcon-muted">
+              <Loader2 className="w-3.5 h-3.5 animate-spin text-falcon-blue" />
               処理中...
             </div>
           )}

@@ -214,7 +214,7 @@ const CONTAIN_BADGE: Record<ContainStatus, string> = {
 }
 
 const EVT_ICON: Record<EventType, React.ReactNode> = {
-  alert: <AlertTriangle className="w-4 h-4 text-[#e8002d]" />,
+  alert: <AlertTriangle className="w-4 h-4 text-falcon-red" />,
   action: <Activity className="w-4 h-4 text-blue-400" />,
   note: <StickyNote className="w-4 h-4 text-yellow-400" />,
   escalation: <AlertOctagon className="w-4 h-4 text-orange-400" />,
@@ -242,7 +242,7 @@ function Avatar({ name, size = 'sm' }: { name: string; size?: 'sm' | 'md' }) {
   const color = colors[name.charCodeAt(0) % colors.length]
   const sz = size === 'sm' ? 'w-7 h-7 text-[10px]' : 'w-9 h-9 text-xs'
   return (
-    <div className={`${sz} rounded-full bg-gradient-to-br ${color} flex items-center justify-center font-bold text-white flex-shrink-0`}>
+    <div className={`${sz} rounded-full bg-linear-to-br ${color} flex items-center justify-center font-bold text-white shrink-0`}>
       {name[0]?.toUpperCase()}
     </div>
   )
@@ -331,19 +331,19 @@ export default function WarRoomPage() {
   if (!incident) return (
     <div className="min-h-screen bg-[#070d19] p-4">
       <div className="flex items-center gap-3 mb-6">
-        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#e8002d]/20 to-[#e8002d]/5 border border-[#e8002d]/30 flex items-center justify-center">
-          <AlertOctagon className="w-5 h-5 text-[#e8002d]" />
+        <div className="w-10 h-10 rounded-xl bg-linear-to-br from-falcon-red/20 to-falcon-red/5 border border-falcon-red/30 flex items-center justify-center">
+          <AlertOctagon className="w-5 h-5 text-falcon-red" />
         </div>
         <div>
           <h1 className="text-white font-bold text-xl">インシデント対応作戦室</h1>
-          <p className="text-[#7d92b0] text-sm">アクティブインシデントの指揮統制センター</p>
+          <p className="text-falcon-muted text-sm">アクティブインシデントの指揮統制センター</p>
         </div>
       </div>
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-16 flex flex-col items-center justify-center gap-4">
-        <AlertOctagon className="w-12 h-12 text-[#3d5068]" />
-        <p className="text-[#e2e8f4] font-semibold">対応中のインシデントはありません</p>
-        <p className="text-[#7d92b0] text-sm text-center">新しいインシデントが検知されると、ここに表示されます。<br />インシデントは「インシデント」ページから手動で作成することもできます。</p>
-        <a href="/incidents" className="mt-2 px-4 py-2 bg-[#1e2d42] hover:bg-[#2d3f58] border border-[#2d3f58] text-[#e2e8f4] text-sm rounded-lg transition-colors">
+      <div className="bg-falcon-surface border border-falcon-border rounded-xl p-16 flex flex-col items-center justify-center gap-4">
+        <AlertOctagon className="w-12 h-12 text-falcon-subtle" />
+        <p className="text-falcon-text font-semibold">対応中のインシデントはありません</p>
+        <p className="text-falcon-muted text-sm text-center">新しいインシデントが検知されると、ここに表示されます。<br />インシデントは「インシデント」ページから手動で作成することもできます。</p>
+        <a href="/incidents" className="mt-2 px-4 py-2 bg-falcon-border hover:bg-[#2d3f58] border border-[#2d3f58] text-falcon-text text-sm rounded-lg transition-colors">
           インシデント一覧へ
         </a>
       </div>
@@ -355,20 +355,20 @@ export default function WarRoomPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#e8002d]/20 to-[#e8002d]/5 border border-[#e8002d]/30 flex items-center justify-center">
-            <AlertOctagon className="w-5 h-5 text-[#e8002d]" />
+          <div className="w-10 h-10 rounded-xl bg-linear-to-br from-falcon-red/20 to-falcon-red/5 border border-falcon-red/30 flex items-center justify-center">
+            <AlertOctagon className="w-5 h-5 text-falcon-red" />
           </div>
           <div>
             <h1 className="text-white font-bold text-xl">インシデント対応作戦室</h1>
-            <p className="text-[#7d92b0] text-sm">アクティブインシデントの指揮統制センター</p>
+            <p className="text-falcon-muted text-sm">アクティブインシデントの指揮統制センター</p>
           </div>
         </div>
         {/* Incident Selector */}
         <div className="flex items-center gap-2 overflow-x-auto max-w-[60%] pb-1">
           {incidents.map(i => (
             <button key={i.id} onClick={() => setSelectedId(i.id)}
-              className={`flex-shrink-0 px-3 py-2 rounded-lg text-xs font-medium border transition-colors ${
-                selectedId === i.id ? 'bg-[#e8002d]/20 border-[#e8002d]/50 text-white' : 'bg-[#0d1220] border-[#1e2d42] text-[#7d92b0] hover:border-[#7d92b0]/40'
+              className={`shrink-0 px-3 py-2 rounded-lg text-xs font-medium border transition-colors ${
+                selectedId === i.id ? 'bg-falcon-red/20 border-falcon-red/50 text-white' : 'bg-falcon-surface border-falcon-border text-falcon-muted hover:border-falcon-muted/40'
               }`}>
               <span className={`inline-block w-1.5 h-1.5 rounded-full mr-1.5 ${i.severity === 'critical' ? 'bg-red-400 animate-pulse' : 'bg-orange-400'}`} />
               {i.id.slice(0, 8)}…
@@ -379,60 +379,60 @@ export default function WarRoomPage() {
 
       <div className="flex gap-4 h-[calc(100vh-140px)]">
         {/* ── Left Panel ──────────────────────────────────────────────────────── */}
-        <div className="w-[30%] flex-shrink-0 flex flex-col gap-3 overflow-y-auto">
+        <div className="w-[30%] shrink-0 flex flex-col gap-3 overflow-y-auto">
           {/* Summary */}
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-4">
+          <div className="bg-falcon-surface border border-falcon-border rounded-xl p-4">
             <div className="flex items-start justify-between mb-3">
               <div>
-                <p className="text-[#7d92b0] text-xs">{incident.id}</p>
+                <p className="text-falcon-muted text-xs">{incident.id}</p>
                 <h2 className="text-white font-semibold text-sm mt-0.5 leading-snug">{incident.title}</h2>
               </div>
-              <span className={`px-2 py-0.5 rounded text-xs font-medium ${SEV_BADGE[incident.severity]}`}>{incident.severity}</span>
+              <span className={`px-2 py-0.5 rounded-sm text-xs font-medium ${SEV_BADGE[incident.severity]}`}>{incident.severity}</span>
             </div>
             <div className="grid grid-cols-2 gap-2 text-xs">
               <div className="bg-[#070d19] rounded-lg p-2">
-                <p className="text-[#7d92b0]">ステータス</p>
+                <p className="text-falcon-muted">ステータス</p>
                 <p className="text-white font-medium mt-0.5">{incident.status}</p>
               </div>
               <div className="bg-[#070d19] rounded-lg p-2">
-                <p className="text-[#7d92b0]">経過時間</p>
+                <p className="text-falcon-muted">経過時間</p>
                 <p className="text-white font-medium mt-0.5">{elapsed(incident.created_at)}</p>
               </div>
               <div className="bg-[#070d19] rounded-lg p-2">
-                <p className="text-[#7d92b0]">影響資産</p>
+                <p className="text-falcon-muted">影響資産</p>
                 <p className="text-white font-medium mt-0.5">{assets.length}台</p>
               </div>
               <div className="bg-[#070d19] rounded-lg p-2">
-                <p className="text-[#7d92b0]">タイムライン</p>
+                <p className="text-falcon-muted">タイムライン</p>
                 <p className="text-white font-medium mt-0.5">{timeline.length}件</p>
               </div>
             </div>
           </div>
 
           {/* Responders */}
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-4">
+          <div className="bg-falcon-surface border border-falcon-border rounded-xl p-4">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
-                <Users className="w-4 h-4 text-[#7d92b0]" />
+                <Users className="w-4 h-4 text-falcon-muted" />
                 <span className="text-white text-sm font-medium">対応チーム</span>
               </div>
-              <button className="flex items-center gap-1 px-2 py-1 bg-[#e8002d]/10 hover:bg-[#e8002d]/20 border border-[#e8002d]/30 rounded text-xs text-[#e8002d]">
+              <button className="flex items-center gap-1 px-2 py-1 bg-falcon-red/10 hover:bg-falcon-red/20 border border-falcon-red/30 rounded-sm text-xs text-falcon-red">
                 <UserPlus className="w-3 h-3" />参加
               </button>
             </div>
-            <p className="text-[#7d92b0] text-xs mb-2">{incident.assigned_team}</p>
+            <p className="text-falcon-muted text-xs mb-2">{incident.assigned_team}</p>
             <div className="flex flex-wrap gap-2">
               {(incident.assigned_to ?? []).map(u => (
                 <div key={u} className="flex items-center gap-1.5">
                   <Avatar name={u} size="sm" />
-                  <span className="text-[#7d92b0] text-xs">{u}</span>
+                  <span className="text-falcon-muted text-xs">{u}</span>
                 </div>
               ))}
             </div>
           </div>
 
           {/* Escalation Path */}
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-4">
+          <div className="bg-falcon-surface border border-falcon-border rounded-xl p-4">
             <div className="flex items-center gap-2 mb-3">
               <AlertOctagon className="w-4 h-4 text-orange-400" />
               <span className="text-white text-sm font-medium">エスカレーションパス</span>
@@ -447,27 +447,27 @@ export default function WarRoomPage() {
               ].map((step, i) => (
                 <div key={i} className="flex items-center gap-2">
                   {step.done
-                    ? <CheckCircle className="w-4 h-4 text-green-400 flex-shrink-0" />
-                    : <div className="w-4 h-4 rounded-full border border-[#1e2d42] flex-shrink-0" />}
-                  <span className={step.done ? 'text-white' : 'text-[#3d5068]'}>{step.who}</span>
-                  <span className="ml-auto text-[#3d5068]">{step.when}</span>
+                    ? <CheckCircle className="w-4 h-4 text-green-400 shrink-0" />
+                    : <div className="w-4 h-4 rounded-full border border-falcon-border shrink-0" />}
+                  <span className={step.done ? 'text-white' : 'text-falcon-subtle'}>{step.who}</span>
+                  <span className="ml-auto text-falcon-subtle">{step.when}</span>
                 </div>
               ))}
             </div>
           </div>
 
           {/* Related Alerts */}
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-4">
+          <div className="bg-falcon-surface border border-falcon-border rounded-xl p-4">
             <div className="flex items-center gap-2 mb-3">
-              <AlertTriangle className="w-4 h-4 text-[#e8002d]" />
+              <AlertTriangle className="w-4 h-4 text-falcon-red" />
               <span className="text-white text-sm font-medium">関連アラート</span>
             </div>
             <div className="space-y-1.5">
               {(incident.alert_ids ?? []).map(id => (
                 <div key={id} className="flex items-center gap-2 px-2 py-1.5 bg-[#070d19] rounded-lg">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#e8002d] flex-shrink-0" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-falcon-red shrink-0" />
                   <span className="text-white text-xs">{id}</span>
-                  <button className="ml-auto text-[#7d92b0] text-[10px] hover:text-white">詳細 →</button>
+                  <button className="ml-auto text-falcon-muted text-[10px] hover:text-white">詳細 →</button>
                 </div>
               ))}
             </div>
@@ -475,9 +475,9 @@ export default function WarRoomPage() {
         </div>
 
         {/* ── Main Panel ──────────────────────────────────────────────────────── */}
-        <div className="flex-1 flex flex-col min-w-0 bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
+        <div className="flex-1 flex flex-col min-w-0 bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
           {/* Inner Tabs */}
-          <div className="flex border-b border-[#1e2d42] px-1 pt-1 gap-1 flex-shrink-0">
+          <div className="flex border-b border-falcon-border px-1 pt-1 gap-1 shrink-0">
             {([
               ['timeline', 'タイムライン', <Activity key="t" className="w-3.5 h-3.5" />],
               ['evidence', '証拠', <Archive key="e" className="w-3.5 h-3.5" />],
@@ -488,8 +488,8 @@ export default function WarRoomPage() {
               <button key={key} onClick={() => setInnerTab(key as typeof innerTab)}
                 className={`flex items-center gap-1.5 px-3 py-2.5 text-xs font-medium rounded-t-lg border-b-2 transition-colors ${
                   innerTab === key
-                    ? 'border-[#e8002d] text-white bg-[#070d19]'
-                    : 'border-transparent text-[#7d92b0] hover:text-white'
+                    ? 'border-falcon-red text-white bg-[#070d19]'
+                    : 'border-transparent text-falcon-muted hover:text-white'
                 }`}>
                 {icon}{label}
               </button>
@@ -505,50 +505,50 @@ export default function WarRoomPage() {
                     {(['all', 'alert', 'action', 'note', 'escalation', 'containment'] as const).map(f => (
                       <button key={f} onClick={() => setTimelineFilter(f)}
                         className={`px-3 py-1 rounded-lg text-xs border transition-colors ${
-                          timelineFilter === f ? 'bg-[#e8002d]/20 border-[#e8002d]/50 text-white' : 'bg-[#070d19] border-[#1e2d42] text-[#7d92b0]'
+                          timelineFilter === f ? 'bg-falcon-red/20 border-falcon-red/50 text-white' : 'bg-[#070d19] border-falcon-border text-falcon-muted'
                         }`}>{f === 'all' ? '全て' : f}</button>
                     ))}
                   </div>
                   <button onClick={() => setAddEventForm({ type: 'note', description: '' })}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-[#e8002d] hover:bg-[#c8001e] text-white rounded-lg text-xs">
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-falcon-red hover:bg-[#c8001e] text-white rounded-lg text-xs">
                     <Plus className="w-3.5 h-3.5" />イベント追加
                   </button>
                 </div>
 
                 {addEventForm && (
-                  <div className="bg-[#070d19] border border-[#e8002d]/30 rounded-xl p-4">
+                  <div className="bg-[#070d19] border border-falcon-red/30 rounded-xl p-4">
                     <div className="flex gap-3 mb-3">
                       <select value={addEventForm.type} onChange={e => setAddEventForm(p => p ? { ...p, type: e.target.value as EventType } : null)}
-                        className="bg-[#0d1220] border border-[#1e2d42] rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none">
+                        className="bg-falcon-surface border border-falcon-border rounded-lg px-3 py-1.5 text-sm text-white focus:outline-hidden">
                         {(['alert', 'action', 'note', 'escalation', 'containment'] as EventType[]).map(t => <option key={t} value={t}>{t}</option>)}
                       </select>
                     </div>
                     <textarea value={addEventForm.description} onChange={e => setAddEventForm(p => p ? { ...p, description: e.target.value } : null)}
                       rows={2} placeholder="イベント内容を入力..."
-                      className="w-full bg-[#0d1220] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-white resize-none focus:outline-none mb-3" />
+                      className="w-full bg-falcon-surface border border-falcon-border rounded-lg px-3 py-2 text-sm text-white resize-none focus:outline-hidden mb-3" />
                     <div className="flex gap-2 justify-end">
-                      <button onClick={() => setAddEventForm(null)} className="px-3 py-1.5 text-xs text-[#7d92b0] border border-[#1e2d42] rounded-lg">キャンセル</button>
-                      <button onClick={addEvent} className="px-3 py-1.5 text-xs bg-[#e8002d] text-white rounded-lg">追加</button>
+                      <button onClick={() => setAddEventForm(null)} className="px-3 py-1.5 text-xs text-falcon-muted border border-falcon-border rounded-lg">キャンセル</button>
+                      <button onClick={addEvent} className="px-3 py-1.5 text-xs bg-falcon-red text-white rounded-lg">追加</button>
                     </div>
                   </div>
                 )}
 
                 <div className="relative pl-6">
-                  <div className="absolute left-2 top-0 bottom-0 w-0.5 bg-[#1e2d42]" />
+                  <div className="absolute left-2 top-0 bottom-0 w-0.5 bg-falcon-border" />
                   <div className="space-y-4">
                     {filteredTimeline.map(ev => (
                       <div key={ev.id} className="relative">
-                        <div className="absolute -left-[18px] top-1 w-5 h-5 rounded-full bg-[#0d1220] border border-[#1e2d42] flex items-center justify-center">
+                        <div className="absolute left-[-18px] top-1 w-5 h-5 rounded-full bg-falcon-surface border border-falcon-border flex items-center justify-center">
                           {EVT_ICON[ev.type]}
                         </div>
-                        <div className="bg-[#070d19] border border-[#1e2d42] rounded-lg p-3">
+                        <div className="bg-[#070d19] border border-falcon-border rounded-lg p-3">
                           <div className="flex items-center gap-2 mb-1">
                             <Avatar name={ev.actor} size="sm" />
                             <span className="text-white text-xs font-medium">{ev.actor}</span>
-                            <span className="text-[#3d5068] text-xs ml-auto">{fmtTime(ev.timestamp)}</span>
+                            <span className="text-falcon-subtle text-xs ml-auto">{fmtTime(ev.timestamp)}</span>
                           </div>
-                          <p className="text-[#7d92b0] text-xs">{ev.action}</p>
-                          {ev.description && <p className="text-[#e2e8f4] text-xs mt-1 italic">{ev.description}</p>}
+                          <p className="text-falcon-muted text-xs">{ev.action}</p>
+                          {ev.description && <p className="text-falcon-text text-xs mt-1 italic">{ev.description}</p>}
                         </div>
                       </div>
                     ))}
@@ -561,25 +561,25 @@ export default function WarRoomPage() {
             {innerTab === 'evidence' && (
               <div className="space-y-4">
                 {/* Upload Area */}
-                <div className="border-2 border-dashed border-[#1e2d42] hover:border-[#e8002d]/40 rounded-xl p-6 text-center transition-colors cursor-pointer">
-                  <Upload className="w-8 h-8 text-[#3d5068] mx-auto mb-2" />
-                  <p className="text-[#7d92b0] text-sm">ファイルをドロップまたはクリックしてアップロード</p>
-                  <p className="text-[#3d5068] text-xs mt-1">または</p>
-                  <button className="mt-2 px-3 py-1.5 bg-[#1e2d42] hover:bg-[#253650] rounded-lg text-xs text-[#7d92b0]">テキストノートを追加</button>
+                <div className="border-2 border-dashed border-falcon-border hover:border-falcon-red/40 rounded-xl p-6 text-center transition-colors cursor-pointer">
+                  <Upload className="w-8 h-8 text-falcon-subtle mx-auto mb-2" />
+                  <p className="text-falcon-muted text-sm">ファイルをドロップまたはクリックしてアップロード</p>
+                  <p className="text-falcon-subtle text-xs mt-1">または</p>
+                  <button className="mt-2 px-3 py-1.5 bg-falcon-border hover:bg-[#253650] rounded-lg text-xs text-falcon-muted">テキストノートを追加</button>
                 </div>
 
                 <div className="space-y-2">
                   {evidence.map(ev => (
-                    <div key={ev.id} className="flex items-center gap-3 bg-[#070d19] border border-[#1e2d42] rounded-xl p-3">
-                      <div className="w-9 h-9 bg-[#0d1220] rounded-lg flex items-center justify-center flex-shrink-0">
+                    <div key={ev.id} className="flex items-center gap-3 bg-[#070d19] border border-falcon-border rounded-xl p-3">
+                      <div className="w-9 h-9 bg-falcon-surface rounded-lg flex items-center justify-center shrink-0">
                         {EV_ICON[ev.type]}
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-white text-sm truncate">{ev.name}</p>
-                        <p className="text-[#7d92b0] text-xs">{ev.added_by} · {fmtTime(ev.added_at)} · {ev.size}</p>
+                        <p className="text-falcon-muted text-xs">{ev.added_by} · {fmtTime(ev.added_at)} · {ev.size}</p>
                       </div>
-                      <span className="px-2 py-0.5 bg-[#1e2d42] rounded text-xs text-[#7d92b0]">{ev.type}</span>
-                      <button className="p-1.5 hover:bg-[#1e2d42] rounded text-[#7d92b0] hover:text-white transition-colors">
+                      <span className="px-2 py-0.5 bg-falcon-border rounded-sm text-xs text-falcon-muted">{ev.type}</span>
+                      <button className="p-1.5 hover:bg-falcon-border rounded-sm text-falcon-muted hover:text-white transition-colors">
                         <Download className="w-4 h-4" />
                       </button>
                     </div>
@@ -595,16 +595,16 @@ export default function WarRoomPage() {
                   {[...chatMessages].sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()).map(m => (
                     <div key={m.id} className={`${m.is_system ? 'flex justify-center' : 'flex items-start gap-2.5'}`}>
                       {m.is_system ? (
-                        <span className="text-[#3d5068] text-xs bg-[#070d19] px-3 py-1 rounded-full border border-[#1e2d42]">{m.message}</span>
+                        <span className="text-falcon-subtle text-xs bg-[#070d19] px-3 py-1 rounded-full border border-falcon-border">{m.message}</span>
                       ) : (
                         <>
                           <Avatar name={m.sender} size="sm" />
                           <div>
                             <div className="flex items-center gap-2 mb-1">
                               <span className="text-white text-xs font-medium">{m.sender}</span>
-                              <span className="text-[#3d5068] text-[10px]">{fmtTime(m.timestamp)}</span>
+                              <span className="text-falcon-subtle text-[10px]">{fmtTime(m.timestamp)}</span>
                             </div>
-                            <div className="bg-[#070d19] border border-[#1e2d42] rounded-xl px-3 py-2 text-sm text-[#e2e8f4] max-w-md">
+                            <div className="bg-[#070d19] border border-falcon-border rounded-xl px-3 py-2 text-sm text-falcon-text max-w-md">
                               {m.message}
                             </div>
                           </div>
@@ -614,12 +614,12 @@ export default function WarRoomPage() {
                   ))}
                   <div ref={chatEndRef} />
                 </div>
-                <div className="flex gap-2 flex-shrink-0">
+                <div className="flex gap-2 shrink-0">
                   <input value={chatInput} onChange={e => setChatInput(e.target.value)}
                     onKeyDown={e => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), sendChat())}
                     placeholder="メッセージを入力... (Enter送信)"
-                    className="flex-1 bg-[#070d19] border border-[#1e2d42] rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#e8002d]/50" />
-                  <button onClick={sendChat} className="p-2.5 bg-[#e8002d] hover:bg-[#c8001e] text-white rounded-xl transition-colors">
+                    className="flex-1 bg-[#070d19] border border-falcon-border rounded-xl px-4 py-2.5 text-sm text-white focus:outline-hidden focus:border-falcon-red/50" />
+                  <button onClick={sendChat} className="p-2.5 bg-falcon-red hover:bg-[#c8001e] text-white rounded-xl transition-colors">
                     <Send className="w-4 h-4" />
                   </button>
                 </div>
@@ -632,53 +632,53 @@ export default function WarRoomPage() {
                 <div className="flex items-center justify-between">
                   <div className="flex-1 mr-4">
                     <div className="flex items-center justify-between mb-1">
-                      <span className="text-[#7d92b0] text-xs">{tasksDone}/{tasksTotal} 完了</span>
+                      <span className="text-falcon-muted text-xs">{tasksDone}/{tasksTotal} 完了</span>
                       <span className="text-white text-xs font-medium">{tasksTotal > 0 ? Math.round(tasksDone / tasksTotal * 100) : 0}%</span>
                     </div>
-                    <div className="w-full bg-[#1e2d42] rounded-full h-2">
+                    <div className="w-full bg-falcon-border rounded-full h-2">
                       <div className="bg-green-500 h-2 rounded-full transition-all" style={{ width: `${tasksTotal > 0 ? tasksDone / tasksTotal * 100 : 0}%` }} />
                     </div>
                   </div>
                   <button onClick={() => setAddTaskForm(true)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-[#e8002d] hover:bg-[#c8001e] text-white rounded-lg text-xs">
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-falcon-red hover:bg-[#c8001e] text-white rounded-lg text-xs">
                     <Plus className="w-3.5 h-3.5" />タスク追加
                   </button>
                 </div>
 
                 {addTaskForm && (
-                  <div className="bg-[#070d19] border border-[#e8002d]/30 rounded-xl p-4 space-y-3">
+                  <div className="bg-[#070d19] border border-falcon-red/30 rounded-xl p-4 space-y-3">
                     <input value={newTask.description} onChange={e => setNewTask(p => ({ ...p, description: e.target.value }))}
                       placeholder="タスク内容..."
-                      className="w-full bg-[#0d1220] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-white focus:outline-none" />
+                      className="w-full bg-falcon-surface border border-falcon-border rounded-lg px-3 py-2 text-sm text-white focus:outline-hidden" />
                     <div className="grid grid-cols-3 gap-2">
                       <input value={newTask.assignee} onChange={e => setNewTask(p => ({ ...p, assignee: e.target.value }))}
                         placeholder="担当者"
-                        className="bg-[#0d1220] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-white focus:outline-none" />
+                        className="bg-falcon-surface border border-falcon-border rounded-lg px-3 py-2 text-sm text-white focus:outline-hidden" />
                       <input type="datetime-local" value={newTask.due_time} onChange={e => setNewTask(p => ({ ...p, due_time: e.target.value }))}
-                        className="bg-[#0d1220] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-white focus:outline-none" />
+                        className="bg-falcon-surface border border-falcon-border rounded-lg px-3 py-2 text-sm text-white focus:outline-hidden" />
                       <select value={newTask.priority} onChange={e => setNewTask(p => ({ ...p, priority: e.target.value as Priority }))}
-                        className="bg-[#0d1220] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-white focus:outline-none">
+                        className="bg-falcon-surface border border-falcon-border rounded-lg px-3 py-2 text-sm text-white focus:outline-hidden">
                         {(['critical', 'high', 'medium', 'low'] as Priority[]).map(p => <option key={p} value={p}>{p}</option>)}
                       </select>
                     </div>
                     <div className="flex gap-2 justify-end">
-                      <button onClick={() => setAddTaskForm(false)} className="px-3 py-1.5 text-xs text-[#7d92b0] border border-[#1e2d42] rounded-lg">キャンセル</button>
-                      <button onClick={addTask} className="px-3 py-1.5 text-xs bg-[#e8002d] text-white rounded-lg">追加</button>
+                      <button onClick={() => setAddTaskForm(false)} className="px-3 py-1.5 text-xs text-falcon-muted border border-falcon-border rounded-lg">キャンセル</button>
+                      <button onClick={addTask} className="px-3 py-1.5 text-xs bg-falcon-red text-white rounded-lg">追加</button>
                     </div>
                   </div>
                 )}
 
                 <div className="space-y-2">
                   {tasks.map(t => (
-                    <div key={t.id} className={`flex items-center gap-3 bg-[#070d19] border rounded-xl p-3 transition-colors ${t.done ? 'border-[#1e2d42] opacity-60' : 'border-[#1e2d42]'}`}>
-                      <button onClick={() => toggleTask(t.id)} className="flex-shrink-0">
+                    <div key={t.id} className={`flex items-center gap-3 bg-[#070d19] border rounded-xl p-3 transition-colors ${t.done ? 'border-falcon-border opacity-60' : 'border-falcon-border'}`}>
+                      <button onClick={() => toggleTask(t.id)} className="shrink-0">
                         {t.done
                           ? <CheckSquare className="w-5 h-5 text-green-400" />
-                          : <Square className="w-5 h-5 text-[#3d5068] hover:text-[#7d92b0]" />}
+                          : <Square className="w-5 h-5 text-falcon-subtle hover:text-falcon-muted" />}
                       </button>
                       <div className="flex-1 min-w-0">
-                        <p className={`text-sm ${t.done ? 'line-through text-[#3d5068]' : 'text-white'}`}>{t.description}</p>
-                        <p className="text-[#7d92b0] text-xs mt-0.5">{t.assignee} · 期限: {fmtTime(t.due_time)}</p>
+                        <p className={`text-sm ${t.done ? 'line-through text-falcon-subtle' : 'text-white'}`}>{t.description}</p>
+                        <p className="text-falcon-muted text-xs mt-0.5">{t.assignee} · 期限: {fmtTime(t.due_time)}</p>
                       </div>
                       <span className={`text-xs font-medium ${PRI_COLOR[t.priority]}`}>{t.priority}</span>
                     </div>
@@ -691,19 +691,19 @@ export default function WarRoomPage() {
             {innerTab === 'containment' && (
               <div className="space-y-4">
                 {/* Summary */}
-                <div className="flex items-center justify-between bg-[#070d19] border border-[#1e2d42] rounded-xl p-4">
+                <div className="flex items-center justify-between bg-[#070d19] border border-falcon-border rounded-xl p-4">
                   <div>
-                    <p className="text-[#7d92b0] text-xs mb-1">封じ込め状況</p>
+                    <p className="text-falcon-muted text-xs mb-1">封じ込め状況</p>
                     <div className="flex items-center gap-3">
                       <span className="text-white text-2xl font-bold">{containedCount}</span>
-                      <span className="text-[#7d92b0] text-sm">/ {assets.length} 台 封じ込め済み</span>
+                      <span className="text-falcon-muted text-sm">/ {assets.length} 台 封じ込め済み</span>
                     </div>
-                    <div className="w-48 bg-[#1e2d42] rounded-full h-1.5 mt-2">
+                    <div className="w-48 bg-falcon-border rounded-full h-1.5 mt-2">
                       <div className="bg-green-500 h-1.5 rounded-full" style={{ width: `${assets.length > 0 ? containedCount / assets.length * 100 : 0}%` }} />
                     </div>
                   </div>
                   <button onClick={() => setConfirmBulkContain(true)}
-                    className="px-4 py-2 bg-[#e8002d] hover:bg-[#c8001e] text-white rounded-lg text-sm font-medium">
+                    className="px-4 py-2 bg-falcon-red hover:bg-[#c8001e] text-white rounded-lg text-sm font-medium">
                     全資産を封じ込め
                   </button>
                 </div>
@@ -713,29 +713,29 @@ export default function WarRoomPage() {
                     <p className="text-white text-sm font-medium mb-2">全資産の封じ込めを実行しますか？</p>
                     <p className="text-red-300 text-xs mb-4">この操作により全{assets.length}台の端末がネットワークから隔離されます。</p>
                     <div className="flex gap-2">
-                      <button onClick={() => setConfirmBulkContain(false)} className="px-3 py-1.5 text-xs border border-[#1e2d42] text-[#7d92b0] rounded-lg">キャンセル</button>
-                      <button onClick={() => setConfirmBulkContain(false)} className="px-3 py-1.5 text-xs bg-[#e8002d] text-white rounded-lg">実行確認</button>
+                      <button onClick={() => setConfirmBulkContain(false)} className="px-3 py-1.5 text-xs border border-falcon-border text-falcon-muted rounded-lg">キャンセル</button>
+                      <button onClick={() => setConfirmBulkContain(false)} className="px-3 py-1.5 text-xs bg-falcon-red text-white rounded-lg">実行確認</button>
                     </div>
                   </div>
                 )}
 
-                <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
+                <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
                   <table className="w-full text-sm">
                     <thead>
-                      <tr className="border-b border-[#1e2d42]">
+                      <tr className="border-b border-falcon-border">
                         {['資産名', 'タイプ', 'IPアドレス', '封じ込め状態', '操作'].map(h => (
-                          <th key={h} className="text-left px-4 py-3 text-xs text-[#7d92b0]">{h}</th>
+                          <th key={h} className="text-left px-4 py-3 text-xs text-falcon-muted">{h}</th>
                         ))}
                       </tr>
                     </thead>
                     <tbody>
                       {assets.map(a => (
-                        <tr key={a.id} className="border-b border-[#1e2d42] hover:bg-[#070d19] transition-colors">
+                        <tr key={a.id} className="border-b border-falcon-border hover:bg-[#070d19] transition-colors">
                           <td className="px-4 py-3 text-white font-medium">{a.name}</td>
-                          <td className="px-4 py-3 text-[#7d92b0]">{a.type}</td>
-                          <td className="px-4 py-3 text-[#7d92b0] font-mono text-xs">{a.ip}</td>
+                          <td className="px-4 py-3 text-falcon-muted">{a.type}</td>
+                          <td className="px-4 py-3 text-falcon-muted font-mono text-xs">{a.ip}</td>
                           <td className="px-4 py-3">
-                            <span className={`px-2 py-0.5 rounded text-xs font-medium ${CONTAIN_BADGE[a.containment_status]}`}>
+                            <span className={`px-2 py-0.5 rounded-sm text-xs font-medium ${CONTAIN_BADGE[a.containment_status]}`}>
                               {a.containment_status}
                             </span>
                           </td>
@@ -743,7 +743,7 @@ export default function WarRoomPage() {
                             <div className="flex gap-1.5 flex-wrap">
                               {['隔離', 'ブロック', 'ファイル検疫', 'プロセス終了'].map(action => (
                                 <button key={action}
-                                  className="px-2 py-0.5 bg-[#070d19] hover:bg-[#1e2d42] border border-[#1e2d42] rounded text-[10px] text-[#7d92b0] transition-colors">
+                                  className="px-2 py-0.5 bg-[#070d19] hover:bg-falcon-border border border-falcon-border rounded-sm text-[10px] text-falcon-muted transition-colors">
                                   {action}
                                 </button>
                               ))}

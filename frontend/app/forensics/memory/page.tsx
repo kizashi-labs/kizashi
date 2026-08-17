@@ -189,14 +189,14 @@ const MOCK_ANALYSIS: AnalysisResults = {
 
 function StatusBadge({ status }: { status: MemoryDump['analysis_status'] }) {
   const cfg: Record<string, { cls: string; label: string }> = {
-    pending: { cls: 'bg-[#7d92b0]/20 text-[#7d92b0]', label: '待機中' },
-    analyzing: { cls: 'bg-[#1a6bff]/20 text-[#1a6bff]', label: '分析中' },
-    complete: { cls: 'bg-[#00c853]/20 text-[#00c853]', label: '完了' },
-    error: { cls: 'bg-[#e8002d]/20 text-[#e8002d]', label: 'エラー' },
+    pending: { cls: 'bg-falcon-muted/20 text-falcon-muted', label: '待機中' },
+    analyzing: { cls: 'bg-falcon-blue/20 text-falcon-blue', label: '分析中' },
+    complete: { cls: 'bg-falcon-green/20 text-falcon-green', label: '完了' },
+    error: { cls: 'bg-falcon-red/20 text-falcon-red', label: 'エラー' },
   }
   const c = cfg[status]
   return (
-    <span className={`text-[10px] font-bold px-2 py-0.5 rounded flex items-center gap-1 w-fit ${c.cls}`}>
+    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-sm flex items-center gap-1 w-fit ${c.cls}`}>
       {status === 'analyzing' && <Loader2 className="w-2.5 h-2.5 animate-spin" />}
       {c.label}
     </span>
@@ -205,29 +205,29 @@ function StatusBadge({ status }: { status: MemoryDump['analysis_status'] }) {
 
 function IndicatorChip({ type }: { type: ProcessEntry['indicators'][number] }) {
   const cfg: Record<string, { cls: string; label: string }> = {
-    hollowing: { cls: 'bg-[#e8002d]/20 text-[#e8002d] border-[#e8002d]/30', label: 'Hollowing' },
+    hollowing: { cls: 'bg-falcon-red/20 text-falcon-red border-falcon-red/30', label: 'Hollowing' },
     injection: { cls: 'bg-orange-500/20 text-orange-400 border-orange-500/30', label: 'Injection' },
     hidden: { cls: 'bg-purple-500/20 text-purple-400 border-purple-500/30', label: 'Hidden' },
     unsigned_dll: { cls: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30', label: 'Unsigned DLL' },
   }
   const c = cfg[type]
   return (
-    <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded border whitespace-nowrap ${c.cls}`}>{c.label}</span>
+    <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-sm border whitespace-nowrap ${c.cls}`}>{c.label}</span>
   )
 }
 
 function StringTypeBadge({ type }: { type: StringEntry['type'] }) {
   const cfg: Record<string, string> = {
-    url: 'bg-[#1a6bff]/20 text-[#1a6bff]',
+    url: 'bg-falcon-blue/20 text-falcon-blue',
     ip: 'bg-orange-500/20 text-orange-400',
     registry: 'bg-purple-500/20 text-purple-400',
-    command: 'bg-[#e8002d]/20 text-[#e8002d]',
+    command: 'bg-falcon-red/20 text-falcon-red',
     base64: 'bg-teal-500/20 text-teal-400',
     suspicious: 'bg-yellow-500/20 text-yellow-400',
   }
   const labels: Record<string, string> = { url: 'URL', ip: 'IP', registry: 'Registry', command: 'Command', base64: 'Base64', suspicious: 'Suspicious' }
   return (
-    <span className={`text-[9px] font-bold px-2 py-0.5 rounded uppercase ${cfg[type]}`}>{labels[type]}</span>
+    <span className={`text-[9px] font-bold px-2 py-0.5 rounded-sm uppercase ${cfg[type]}`}>{labels[type]}</span>
   )
 }
 
@@ -238,16 +238,16 @@ function ProcessDetailPanel({ proc, onClose }: { proc: ProcessEntry; onClose: ()
   const isSuspicious = proc.indicators.length > 0
 
   return (
-    <div className={`mt-2 mx-4 mb-2 rounded-lg border p-4 ${isSuspicious ? 'border-[#e8002d]/40 bg-[#e8002d]/5' : 'border-[#1e2d42] bg-[#070d19]'}`}>
+    <div className={`mt-2 mx-4 mb-2 rounded-lg border p-4 ${isSuspicious ? 'border-falcon-red/40 bg-falcon-red/5' : 'border-falcon-border bg-[#070d19]'}`}>
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <span className="text-white font-mono font-bold">{proc.process_name}</span>
-          <span className="text-[#3d5068] text-xs">(PID: {proc.pid})</span>
+          <span className="text-falcon-subtle text-xs">(PID: {proc.pid})</span>
           {proc.indicators.map(ind => <IndicatorChip key={ind} type={ind} />)}
         </div>
-        <button onClick={onClose} className="text-[#7d92b0] hover:text-white text-xs">閉じる</button>
+        <button onClick={onClose} className="text-falcon-muted hover:text-white text-xs">閉じる</button>
       </div>
-      <p className="text-[#3d5068] text-xs font-mono mb-3">{proc.path}</p>
+      <p className="text-falcon-subtle text-xs font-mono mb-3">{proc.path}</p>
       <div className="flex gap-2 mb-3">
         {(['dll', 'handles', 'conn', 'regions'] as const).map(t => {
           const labels = { dll: 'DLL一覧', handles: 'ハンドル', conn: 'ネットワーク', regions: 'メモリ領域' }
@@ -255,7 +255,7 @@ function ProcessDetailPanel({ proc, onClose }: { proc: ProcessEntry; onClose: ()
             <button
               key={t}
               onClick={() => setTab(t)}
-              className={`text-xs px-3 py-1 rounded transition-colors ${tab === t ? 'bg-[#e8002d] text-white' : 'bg-[#1e2d42] text-[#7d92b0] hover:text-white'}`}
+              className={`text-xs px-3 py-1 rounded-sm transition-colors ${tab === t ? 'bg-falcon-red text-white' : 'bg-falcon-border text-falcon-muted hover:text-white'}`}
             >
               {labels[t]}
             </button>
@@ -264,25 +264,25 @@ function ProcessDetailPanel({ proc, onClose }: { proc: ProcessEntry; onClose: ()
       </div>
       <div className="text-xs font-mono space-y-1">
         {tab === 'dll' && (proc.dlls ?? ['(DLL情報なし)']).map((d, i) => (
-          <div key={i} className={`py-1 border-b border-[#1e2d42] last:border-0 ${d.includes('UNSIGNED') ? 'text-[#e8002d]' : 'text-[#7d92b0]'}`}>{d}</div>
+          <div key={i} className={`py-1 border-b border-falcon-border last:border-0 ${d.includes('UNSIGNED') ? 'text-falcon-red' : 'text-falcon-muted'}`}>{d}</div>
         ))}
         {tab === 'handles' && (proc.handles ?? ['(ハンドル情報なし)']).map((h, i) => (
-          <div key={i} className="py-1 border-b border-[#1e2d42] last:border-0 text-[#7d92b0]">{h}</div>
+          <div key={i} className="py-1 border-b border-falcon-border last:border-0 text-falcon-muted">{h}</div>
         ))}
         {tab === 'conn' && (proc.connections ?? ['(接続情報なし)']).map((c, i) => (
-          <div key={i} className="py-1 border-b border-[#1e2d42] last:border-0 text-[#ff9800]">{c}</div>
+          <div key={i} className="py-1 border-b border-falcon-border last:border-0 text-falcon-amber">{c}</div>
         ))}
         {tab === 'regions' && (proc.memory_regions ?? []).map((r, i) => (
-          <div key={i} className={`py-1 border-b border-[#1e2d42] last:border-0 flex items-center gap-3 ${r.suspicious ? 'text-[#e8002d]' : 'text-[#7d92b0]'}`}>
+          <div key={i} className={`py-1 border-b border-falcon-border last:border-0 flex items-center gap-3 ${r.suspicious ? 'text-falcon-red' : 'text-falcon-muted'}`}>
             <span>{r.base}</span>
-            <span className="text-[#3d5068]">size: {r.size}</span>
-            <span className={`font-bold ${r.permissions === 'RWX' ? 'text-[#e8002d]' : ''}`}>{r.permissions}</span>
+            <span className="text-falcon-subtle">size: {r.size}</span>
+            <span className={`font-bold ${r.permissions === 'RWX' ? 'text-falcon-red' : ''}`}>{r.permissions}</span>
             <span>{r.type}</span>
             {r.suspicious && <AlertTriangle className="w-3 h-3" />}
           </div>
         ))}
         {tab === 'regions' && !proc.memory_regions?.length && (
-          <div className="text-[#3d5068]">(メモリ領域情報なし)</div>
+          <div className="text-falcon-subtle">(メモリ領域情報なし)</div>
         )}
       </div>
     </div>
@@ -304,20 +304,20 @@ function ProcessTab({ processes }: { processes: ProcessEntry[] }) {
     <div className="space-y-3">
       <div className="flex items-center gap-3">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#3d5068]" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-falcon-subtle" />
           <input
-            className="w-full bg-[#0d1220] border border-[#1e2d42] rounded-lg pl-9 pr-3 py-2 text-white text-sm focus:outline-none focus:border-[#1a6bff]"
+            className="w-full bg-falcon-surface border border-falcon-border rounded-lg pl-9 pr-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-blue"
             placeholder="プロセス名、パスで検索..."
             value={search}
             onChange={e => setSearch(e.target.value)}
           />
         </div>
-        <span className="text-xs text-[#3d5068]">{filtered.length} プロセス</span>
+        <span className="text-xs text-falcon-subtle">{filtered.length} プロセス</span>
       </div>
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
+      <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
         <table className="w-full text-xs">
           <thead>
-            <tr className="border-b border-[#1e2d42] text-[#3d5068]">
+            <tr className="border-b border-falcon-border text-falcon-subtle">
               <th className="text-left px-4 py-3">PID</th>
               <th className="text-left px-4 py-3">PPID</th>
               <th className="text-left px-4 py-3">プロセス名</th>
@@ -333,31 +333,31 @@ function ProcessTab({ processes }: { processes: ProcessEntry[] }) {
               <>
                 <tr
                   key={proc.pid}
-                  className={`border-b border-[#1e2d42] last:border-0 transition-colors cursor-pointer
-                    ${proc.indicators.length > 0 ? 'bg-[#e8002d]/5 hover:bg-[#e8002d]/10' : 'hover:bg-[#19253d]'}`}
+                  className={`border-b border-falcon-border last:border-0 transition-colors cursor-pointer
+                    ${proc.indicators.length > 0 ? 'bg-falcon-red/5 hover:bg-falcon-red/10' : 'hover:bg-falcon-hover'}`}
                   onClick={() => setExpanded(expanded === proc.pid ? null : proc.pid)}
                 >
                   <td className="px-4 py-2.5 font-mono text-white">{proc.pid}</td>
-                  <td className="px-4 py-2.5 font-mono text-[#3d5068]">{proc.ppid}</td>
+                  <td className="px-4 py-2.5 font-mono text-falcon-subtle">{proc.ppid}</td>
                   <td className="px-4 py-2.5">
-                    <span className={`font-medium font-mono ${proc.indicators.length > 0 ? 'text-[#e8002d]' : 'text-white'}`}>
+                    <span className={`font-medium font-mono ${proc.indicators.length > 0 ? 'text-falcon-red' : 'text-white'}`}>
                       {proc.process_name}
                     </span>
                   </td>
-                  <td className="px-4 py-2.5 font-mono text-[#7d92b0] max-w-[200px] truncate">{proc.path}</td>
-                  <td className="px-4 py-2.5 text-[#7d92b0]">{proc.user}</td>
-                  <td className="px-4 py-2.5 text-right text-[#7d92b0]">{proc.memory_mb} MB</td>
+                  <td className="px-4 py-2.5 font-mono text-falcon-muted max-w-[200px] truncate">{proc.path}</td>
+                  <td className="px-4 py-2.5 text-falcon-muted">{proc.user}</td>
+                  <td className="px-4 py-2.5 text-right text-falcon-muted">{proc.memory_mb} MB</td>
                   <td className="px-4 py-2.5">
                     <div className="flex flex-wrap gap-1">
                       {proc.indicators.map(ind => <IndicatorChip key={ind} type={ind} />)}
                     </div>
                   </td>
                   <td className="px-4 py-2.5">
-                    <ChevronRight className={`w-3 h-3 text-[#3d5068] transition-transform ${expanded === proc.pid ? 'rotate-90' : ''}`} />
+                    <ChevronRight className={`w-3 h-3 text-falcon-subtle transition-transform ${expanded === proc.pid ? 'rotate-90' : ''}`} />
                   </td>
                 </tr>
                 {expanded === proc.pid && (
-                  <tr key={`${proc.pid}-detail`} className="border-b border-[#1e2d42]">
+                  <tr key={`${proc.pid}-detail`} className="border-b border-falcon-border">
                     <td colSpan={8} className="p-0">
                       <ProcessDetailPanel proc={proc} onClose={() => setExpanded(null)} />
                     </td>
@@ -376,16 +376,16 @@ function NetworkTab({ connections }: { connections: NetworkConnectionEntry[] }) 
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-2 text-xs">
-        <AlertTriangle className="w-4 h-4 text-[#e8002d]" />
-        <span className="text-[#e8002d] font-medium">
+        <AlertTriangle className="w-4 h-4 text-falcon-red" />
+        <span className="text-falcon-red font-medium">
           {connections.filter(c => c.suspicious).length} 件の疑わしい接続
         </span>
-        <span className="text-[#3d5068]">— 既知のC2レンジへの接続をハイライト</span>
+        <span className="text-falcon-subtle">— 既知のC2レンジへの接続をハイライト</span>
       </div>
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
+      <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
         <table className="w-full text-xs">
           <thead>
-            <tr className="border-b border-[#1e2d42] text-[#3d5068]">
+            <tr className="border-b border-falcon-border text-falcon-subtle">
               <th className="text-left px-4 py-3">PID</th>
               <th className="text-left px-4 py-3">プロセス</th>
               <th className="text-left px-4 py-3">ローカルアドレス</th>
@@ -398,30 +398,30 @@ function NetworkTab({ connections }: { connections: NetworkConnectionEntry[] }) 
             {connections.map((c, i) => (
               <tr
                 key={i}
-                className={`border-b border-[#1e2d42] last:border-0 transition-colors
-                  ${c.suspicious ? 'bg-[#e8002d]/5 hover:bg-[#e8002d]/10' : 'hover:bg-[#19253d]'}`}
+                className={`border-b border-falcon-border last:border-0 transition-colors
+                  ${c.suspicious ? 'bg-falcon-red/5 hover:bg-falcon-red/10' : 'hover:bg-falcon-hover'}`}
               >
                 <td className="px-4 py-2.5 font-mono text-white">{c.pid}</td>
                 <td className="px-4 py-2.5">
-                  <span className={`font-mono font-medium ${c.suspicious ? 'text-[#e8002d]' : 'text-white'}`}>
+                  <span className={`font-mono font-medium ${c.suspicious ? 'text-falcon-red' : 'text-white'}`}>
                     {c.process}
                   </span>
                 </td>
-                <td className="px-4 py-2.5 font-mono text-[#7d92b0]">{c.local_addr}:{c.local_port}</td>
+                <td className="px-4 py-2.5 font-mono text-falcon-muted">{c.local_addr}:{c.local_port}</td>
                 <td className="px-4 py-2.5">
-                  <span className={`font-mono ${c.suspicious ? 'text-[#e8002d] font-bold' : 'text-[#7d92b0]'}`}>
+                  <span className={`font-mono ${c.suspicious ? 'text-falcon-red font-bold' : 'text-falcon-muted'}`}>
                     {c.remote_addr}:{c.remote_port}
                   </span>
-                  {c.suspicious && <AlertTriangle className="w-3 h-3 text-[#e8002d] inline ml-1" />}
+                  {c.suspicious && <AlertTriangle className="w-3 h-3 text-falcon-red inline ml-1" />}
                 </td>
                 <td className="px-4 py-2.5">
                   <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${
-                    c.state === 'ESTABLISHED' ? 'bg-[#00c853]/20 text-[#00c853]' :
-                    c.state === 'LISTEN' ? 'bg-[#1a6bff]/20 text-[#1a6bff]' :
-                    'bg-[#1e2d42] text-[#7d92b0]'
+                    c.state === 'ESTABLISHED' ? 'bg-falcon-green/20 text-falcon-green' :
+                    c.state === 'LISTEN' ? 'bg-falcon-blue/20 text-falcon-blue' :
+                    'bg-falcon-border text-falcon-muted'
                   }`}>{c.state}</span>
                 </td>
-                <td className="px-4 py-2.5 text-[#7d92b0]">{c.protocol}</td>
+                <td className="px-4 py-2.5 text-falcon-muted">{c.protocol}</td>
               </tr>
             ))}
           </tbody>
@@ -461,7 +461,7 @@ function StringsTab({ strings }: { strings: StringEntry[] }) {
             <button
               key={t}
               onClick={() => setFilter(t)}
-              className={`text-xs px-3 py-1 rounded transition-colors ${filter === t ? 'bg-[#e8002d] text-white' : 'bg-[#1e2d42] text-[#7d92b0] hover:text-white'}`}
+              className={`text-xs px-3 py-1 rounded-sm transition-colors ${filter === t ? 'bg-falcon-red text-white' : 'bg-falcon-border text-falcon-muted hover:text-white'}`}
             >
               {t === 'all' ? '全て' : t}
             </button>
@@ -470,18 +470,18 @@ function StringsTab({ strings }: { strings: StringEntry[] }) {
         {selected.size > 0 && (
           <button
             onClick={handleAddIOC}
-            className="ml-auto text-xs px-3 py-1.5 rounded bg-[#1a6bff] text-white hover:bg-blue-600 transition-colors flex items-center gap-1"
+            className="ml-auto text-xs px-3 py-1.5 rounded-sm bg-falcon-blue text-white hover:bg-blue-600 transition-colors flex items-center gap-1"
           >
             {addedToIOC ? <><CheckCircle className="w-3 h-3" /> IOC追加完了</> : <><Plus className="w-3 h-3" /> IOCに追加 ({selected.size})</>}
           </button>
         )}
       </div>
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
+      <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
         <table className="w-full text-xs">
           <thead>
-            <tr className="border-b border-[#1e2d42] text-[#3d5068]">
+            <tr className="border-b border-falcon-border text-falcon-subtle">
               <th className="px-4 py-3 w-8">
-                <input type="checkbox" className="accent-[#e8002d]" onChange={e => {
+                <input type="checkbox" className="accent-falcon-red" onChange={e => {
                   if (e.target.checked) setSelected(new Set(filtered.map(s => s.id)))
                   else setSelected(new Set())
                 }} />
@@ -494,20 +494,20 @@ function StringsTab({ strings }: { strings: StringEntry[] }) {
           </thead>
           <tbody>
             {filtered.map(s => (
-              <tr key={s.id} className={`border-b border-[#1e2d42] last:border-0 transition-colors ${selected.has(s.id) ? 'bg-[#1a6bff]/10' : 'hover:bg-[#19253d]'}`}>
+              <tr key={s.id} className={`border-b border-falcon-border last:border-0 transition-colors ${selected.has(s.id) ? 'bg-falcon-blue/10' : 'hover:bg-falcon-hover'}`}>
                 <td className="px-4 py-2.5">
-                  <input type="checkbox" checked={selected.has(s.id)} onChange={() => toggleSelect(s.id)} className="accent-[#e8002d]" />
+                  <input type="checkbox" checked={selected.has(s.id)} onChange={() => toggleSelect(s.id)} className="accent-falcon-red" />
                 </td>
                 <td className="px-4 py-2.5"><StringTypeBadge type={s.type} /></td>
-                <td className="px-4 py-2.5 font-mono text-[#7d92b0] max-w-[300px] truncate">
+                <td className="px-4 py-2.5 font-mono text-falcon-muted max-w-[300px] truncate">
                   {(s.type === 'url' || s.type === 'ip') ? (
-                    <span className="text-[#1a6bff] hover:underline cursor-pointer">{s.value}</span>
+                    <span className="text-falcon-blue hover:underline cursor-pointer">{s.value}</span>
                   ) : (
-                    <span className={s.type === 'command' ? 'text-[#e8002d]' : s.type === 'base64' ? 'text-teal-400' : ''}>{s.value}</span>
+                    <span className={s.type === 'command' ? 'text-falcon-red' : s.type === 'base64' ? 'text-teal-400' : ''}>{s.value}</span>
                   )}
                 </td>
                 <td className="px-4 py-2.5 text-white">{s.process} ({s.pid})</td>
-                <td className="px-4 py-2.5 font-mono text-[#3d5068]">{s.offset}</td>
+                <td className="px-4 py-2.5 font-mono text-falcon-subtle">{s.offset}</td>
               </tr>
             ))}
           </tbody>
@@ -528,12 +528,12 @@ function MalwareTab({ results, rwxRegions, suspSections }: {
       {/* YARA Results */}
       <div>
         <h4 className="text-white font-medium mb-3 flex items-center gap-2">
-          <Shield className="w-4 h-4 text-[#e8002d]" /> YARAスキャン結果
+          <Shield className="w-4 h-4 text-falcon-red" /> YARAスキャン結果
         </h4>
-        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
+        <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
           <table className="w-full text-xs">
             <thead>
-              <tr className="border-b border-[#1e2d42] text-[#3d5068]">
+              <tr className="border-b border-falcon-border text-falcon-subtle">
                 <th className="text-left px-4 py-3">ルール名</th>
                 <th className="text-left px-4 py-3">プロセス (PID)</th>
                 <th className="text-left px-4 py-3">リージョン</th>
@@ -543,17 +543,17 @@ function MalwareTab({ results, rwxRegions, suspSections }: {
             </thead>
             <tbody>
               {results.map((r, i) => (
-                <tr key={i} className="border-b border-[#1e2d42] last:border-0 hover:bg-[#19253d] transition-colors">
-                  <td className="px-4 py-2.5 font-mono text-[#e8002d] font-medium">{r.rule_name}</td>
+                <tr key={i} className="border-b border-falcon-border last:border-0 hover:bg-falcon-hover transition-colors">
+                  <td className="px-4 py-2.5 font-mono text-falcon-red font-medium">{r.rule_name}</td>
                   <td className="px-4 py-2.5 text-white">{r.process} ({r.pid})</td>
-                  <td className="px-4 py-2.5 font-mono text-[#7d92b0]">{r.region}</td>
+                  <td className="px-4 py-2.5 font-mono text-falcon-muted">{r.region}</td>
                   <td className="px-4 py-2.5 text-right">
-                    <span className={`font-bold ${r.score >= 90 ? 'text-[#e8002d]' : r.score >= 75 ? 'text-[#ff9800]' : 'text-yellow-400'}`}>
+                    <span className={`font-bold ${r.score >= 90 ? 'text-falcon-red' : r.score >= 75 ? 'text-falcon-amber' : 'text-yellow-400'}`}>
                       {r.score}
                     </span>
                   </td>
                   <td className="px-4 py-2.5">
-                    <span className="text-xs bg-[#e8002d]/20 text-[#e8002d] px-2 py-0.5 rounded">{r.malware_family}</span>
+                    <span className="text-xs bg-falcon-red/20 text-falcon-red px-2 py-0.5 rounded-sm">{r.malware_family}</span>
                   </td>
                 </tr>
               ))}
@@ -565,12 +565,12 @@ function MalwareTab({ results, rwxRegions, suspSections }: {
       {/* RWX Regions */}
       <div>
         <h4 className="text-white font-medium mb-3 flex items-center gap-2">
-          <AlertTriangle className="w-4 h-4 text-[#ff9800]" /> RWX メモリ領域 (コードインジェクション指標)
+          <AlertTriangle className="w-4 h-4 text-falcon-amber" /> RWX メモリ領域 (コードインジェクション指標)
         </h4>
-        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
+        <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
           <table className="w-full text-xs">
             <thead>
-              <tr className="border-b border-[#1e2d42] text-[#3d5068]">
+              <tr className="border-b border-falcon-border text-falcon-subtle">
                 <th className="text-left px-4 py-3">ベースアドレス</th>
                 <th className="text-left px-4 py-3">サイズ</th>
                 <th className="text-left px-4 py-3">権限</th>
@@ -579,13 +579,13 @@ function MalwareTab({ results, rwxRegions, suspSections }: {
             </thead>
             <tbody>
               {rwxRegions.map((r, i) => (
-                <tr key={i} className="border-b border-[#1e2d42] last:border-0 bg-[#ff9800]/5">
+                <tr key={i} className="border-b border-falcon-border last:border-0 bg-falcon-amber/5">
                   <td className="px-4 py-2.5 font-mono text-white">{r.base}</td>
-                  <td className="px-4 py-2.5 font-mono text-[#7d92b0]">{r.size}</td>
+                  <td className="px-4 py-2.5 font-mono text-falcon-muted">{r.size}</td>
                   <td className="px-4 py-2.5">
-                    <span className="font-mono font-bold text-[#ff9800] bg-[#ff9800]/20 px-2 py-0.5 rounded">{r.permissions}</span>
+                    <span className="font-mono font-bold text-falcon-amber bg-falcon-amber/20 px-2 py-0.5 rounded-sm">{r.permissions}</span>
                   </td>
-                  <td className="px-4 py-2.5 text-[#7d92b0]">{r.type}</td>
+                  <td className="px-4 py-2.5 text-falcon-muted">{r.type}</td>
                 </tr>
               ))}
             </tbody>
@@ -600,11 +600,11 @@ function MalwareTab({ results, rwxRegions, suspSections }: {
         </h4>
         <div className="space-y-2">
           {suspSections.map((s, i) => (
-            <div key={i} className="bg-[#0d1220] border border-purple-500/30 rounded-lg p-4 flex items-start gap-3">
-              <AlertTriangle className="w-4 h-4 text-purple-400 flex-shrink-0 mt-0.5" />
+            <div key={i} className="bg-falcon-surface border border-purple-500/30 rounded-lg p-4 flex items-start gap-3">
+              <AlertTriangle className="w-4 h-4 text-purple-400 shrink-0 mt-0.5" />
               <div>
                 <p className="text-white text-sm font-medium">{s.process} — <span className="font-mono">{s.section}</span></p>
-                <p className="text-[#7d92b0] text-xs mt-1">{s.note}</p>
+                <p className="text-falcon-muted text-xs mt-1">{s.note}</p>
               </div>
             </div>
           ))}
@@ -668,16 +668,16 @@ export default function MemoryForensicsPage() {
   ]
 
   return (
-    <div className="min-h-screen bg-[#070d19] text-[#7d92b0]">
+    <div className="min-h-screen bg-[#070d19] text-falcon-muted">
       {/* Header */}
-      <div className="border-b border-[#1e2d42] bg-[#0d1220] px-6 py-4">
+      <div className="border-b border-falcon-border bg-falcon-surface px-6 py-4">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-[#7c3aed] to-[#4c1d95] flex items-center justify-center">
+          <div className="w-9 h-9 rounded-lg bg-linear-to-br from-[#7c3aed] to-[#4c1d95] flex items-center justify-center">
             <Cpu className="w-5 h-5 text-white" />
           </div>
           <div>
             <h1 className="text-xl font-bold text-white">メモリフォレンジクス分析</h1>
-            <p className="text-xs text-[#3d5068] mt-0.5">Advanced Memory Forensics — プロセス・ネットワーク・文字列・YARAスキャン</p>
+            <p className="text-xs text-falcon-subtle mt-0.5">Advanced Memory Forensics — プロセス・ネットワーク・文字列・YARAスキャン</p>
           </div>
         </div>
       </div>
@@ -693,7 +693,7 @@ export default function MemoryForensicsPage() {
           {/* Upload Area */}
           <div
             className={`border-2 border-dashed rounded-xl p-6 mb-4 text-center transition-colors ${
-              dragging ? 'border-[#e8002d] bg-[#e8002d]/5' : 'border-[#1e2d42] hover:border-[#7d92b0]/40'
+              dragging ? 'border-falcon-red bg-falcon-red/5' : 'border-falcon-border hover:border-falcon-muted/40'
             }`}
             onDragOver={e => { e.preventDefault(); setDragging(true) }}
             onDragLeave={() => setDragging(false)}
@@ -706,22 +706,22 @@ export default function MemoryForensicsPage() {
               className="hidden"
               onChange={e => handleFileSelect(e.target.files)}
             />
-            <Upload className="w-8 h-8 text-[#3d5068] mx-auto mb-2" />
+            <Upload className="w-8 h-8 text-falcon-subtle mx-auto mb-2" />
             <p className="text-white font-medium mb-1">ダンプファイルをドロップ</p>
-            <p className="text-xs text-[#3d5068]">.dmp / .raw / .mem ファイルに対応</p>
+            <p className="text-xs text-falcon-subtle">.dmp / .raw / .mem ファイルに対応</p>
             <button
               onClick={() => fileInputRef.current?.click()}
-              className="mt-3 px-4 py-2 rounded-lg bg-[#e8002d] text-white text-sm hover:bg-[#c0001f] transition-colors"
+              className="mt-3 px-4 py-2 rounded-lg bg-falcon-red text-white text-sm hover:bg-[#c0001f] transition-colors"
             >
               ファイルを選択
             </button>
           </div>
 
           {/* Dumps Table */}
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
+          <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-[#1e2d42] text-[#3d5068] text-xs">
+                <tr className="border-b border-falcon-border text-falcon-subtle text-xs">
                   <th className="text-left px-4 py-3">ファイル名</th>
                   <th className="text-left px-4 py-3">ホスト名</th>
                   <th className="text-right px-4 py-3">サイズ</th>
@@ -735,8 +735,8 @@ export default function MemoryForensicsPage() {
                 {actualDumps.map(d => (
                   <tr
                     key={d.id}
-                    className={`border-b border-[#1e2d42] last:border-0 transition-colors cursor-pointer ${
-                      selectedDump === d.id ? 'bg-[#1d2f4a]' : 'hover:bg-[#19253d]'
+                    className={`border-b border-falcon-border last:border-0 transition-colors cursor-pointer ${
+                      selectedDump === d.id ? 'bg-falcon-active' : 'hover:bg-falcon-hover'
                     }`}
                     onClick={() => setSelectedDump(d.id)}
                   >
@@ -744,33 +744,33 @@ export default function MemoryForensicsPage() {
                       <span className="text-white font-mono text-xs">{d.filename}</span>
                     </td>
                     <td className="px-4 py-3 text-white font-medium">{d.hostname}</td>
-                    <td className="px-4 py-3 text-right text-[#7d92b0] font-mono">
+                    <td className="px-4 py-3 text-right text-falcon-muted font-mono">
                       {d.size_mb >= 1024 ? `${(d.size_mb / 1024).toFixed(0)} GB` : `${d.size_mb} MB`}
                     </td>
-                    <td className="px-4 py-3 text-xs text-[#7d92b0]">
+                    <td className="px-4 py-3 text-xs text-falcon-muted">
                       {new Date(d.acquisition_time).toLocaleString('ja-JP')}
                     </td>
-                    <td className="px-4 py-3 text-xs text-[#7d92b0]">{d.os} / {d.architecture}</td>
+                    <td className="px-4 py-3 text-xs text-falcon-muted">{d.os} / {d.architecture}</td>
                     <td className="px-4 py-3"><StatusBadge status={d.analysis_status} /></td>
                     <td className="px-4 py-3">
                       {d.analysis_status === 'pending' && (
                         <button
                           onClick={e => { e.stopPropagation(); startAnalysis(d.id) }}
                           disabled={analyzingId !== null}
-                          className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded bg-[#e8002d] text-white hover:bg-[#c0001f] disabled:opacity-50 transition-colors"
+                          className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-sm bg-falcon-red text-white hover:bg-[#c0001f] disabled:opacity-50 transition-colors"
                         >
                           <Play className="w-3 h-3" /> 分析開始
                         </button>
                       )}
                       {d.analysis_status === 'analyzing' && (
-                        <span className="flex items-center gap-1 text-xs text-[#1a6bff]">
+                        <span className="flex items-center gap-1 text-xs text-falcon-blue">
                           <Loader2 className="w-3 h-3 animate-spin" /> 処理中...
                         </span>
                       )}
                       {d.analysis_status === 'complete' && (
                         <button
                           onClick={e => { e.stopPropagation(); setSelectedDump(d.id) }}
-                          className="flex items-center gap-1 text-xs px-3 py-1.5 rounded bg-[#00c853]/20 text-[#00c853] hover:bg-[#00c853]/30 transition-colors"
+                          className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-sm bg-falcon-green/20 text-falcon-green hover:bg-falcon-green/30 transition-colors"
                         >
                           <Eye className="w-3 h-3" /> 結果表示
                         </button>
@@ -789,13 +789,13 @@ export default function MemoryForensicsPage() {
             <div className="flex items-center gap-3 mb-4">
               <div className="flex-1">
                 <h2 className="text-white font-semibold">分析結果: {selected.hostname}</h2>
-                <p className="text-xs text-[#3d5068] mt-0.5 font-mono">{selected.filename}</p>
+                <p className="text-xs text-falcon-subtle mt-0.5 font-mono">{selected.filename}</p>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-xs text-[#e8002d] bg-[#e8002d]/10 border border-[#e8002d]/30 px-3 py-1 rounded-lg font-medium">
+                <span className="text-xs text-falcon-red bg-falcon-red/10 border border-falcon-red/30 px-3 py-1 rounded-lg font-medium">
                   疑わしいプロセス: {results.processes.filter(p => p.indicators.length > 0).length}
                 </span>
-                <span className="text-xs text-[#ff9800] bg-[#ff9800]/10 border border-[#ff9800]/30 px-3 py-1 rounded-lg font-medium">
+                <span className="text-xs text-falcon-amber bg-falcon-amber/10 border border-falcon-amber/30 px-3 py-1 rounded-lg font-medium">
                   C2接続: {results.network_connections.filter(c => c.suspicious).length}
                 </span>
                 <span className="text-xs text-purple-400 bg-purple-500/10 border border-purple-500/30 px-3 py-1 rounded-lg font-medium">
@@ -805,25 +805,25 @@ export default function MemoryForensicsPage() {
             </div>
 
             {/* Analysis Sub-Tabs */}
-            <div className="flex gap-0 border-b border-[#1e2d42] mb-4">
+            <div className="flex gap-0 border-b border-falcon-border mb-4">
               {analysisTabs.map(t => (
                 <button
                   key={t.id}
                   onClick={() => setAnalysisTab(t.id)}
                   className={`px-5 py-3 text-sm font-medium border-b-2 transition-all ${
                     analysisTab === t.id
-                      ? 'border-[#e8002d] text-white'
-                      : 'border-transparent text-[#7d92b0] hover:text-[#e2e8f4]'
+                      ? 'border-falcon-red text-white'
+                      : 'border-transparent text-falcon-muted hover:text-falcon-text'
                   }`}
                 >
                   {t.label}
                   {t.id === 'malware' && results.yara_results.length > 0 && (
-                    <span className="ml-1.5 text-[9px] bg-[#e8002d] text-white px-1.5 py-0.5 rounded font-bold">
+                    <span className="ml-1.5 text-[9px] bg-falcon-red text-white px-1.5 py-0.5 rounded-sm font-bold">
                       {results.yara_results.length}
                     </span>
                   )}
                   {t.id === 'process' && results.processes.filter(p => p.indicators.length > 0).length > 0 && (
-                    <span className="ml-1.5 text-[9px] bg-[#ff9800] text-white px-1.5 py-0.5 rounded font-bold">
+                    <span className="ml-1.5 text-[9px] bg-falcon-amber text-white px-1.5 py-0.5 rounded-sm font-bold">
                       {results.processes.filter(p => p.indicators.length > 0).length}
                     </span>
                   )}
@@ -845,12 +845,12 @@ export default function MemoryForensicsPage() {
         )}
 
         {selected && selected.analysis_status !== 'complete' && (
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-12 text-center">
-            <Cpu className="w-12 h-12 text-[#3d5068] mx-auto mb-3" />
+          <div className="bg-falcon-surface border border-falcon-border rounded-xl p-12 text-center">
+            <Cpu className="w-12 h-12 text-falcon-subtle mx-auto mb-3" />
             <p className="text-white font-medium">
               {selected.analysis_status === 'pending' ? '分析待機中' : '分析中...'}
             </p>
-            <p className="text-xs text-[#3d5068] mt-1">
+            <p className="text-xs text-falcon-subtle mt-1">
               {selected.analysis_status === 'pending'
                 ? '「分析開始」ボタンをクリックして分析を開始してください'
                 : 'メモリダンプを解析しています。しばらくお待ちください'}
@@ -859,10 +859,10 @@ export default function MemoryForensicsPage() {
         )}
 
         {!selected && (
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-12 text-center">
-            <Cpu className="w-12 h-12 text-[#3d5068] mx-auto mb-3" />
+          <div className="bg-falcon-surface border border-falcon-border rounded-xl p-12 text-center">
+            <Cpu className="w-12 h-12 text-falcon-subtle mx-auto mb-3" />
             <p className="text-white font-medium">ダンプファイルを選択してください</p>
-            <p className="text-xs text-[#3d5068] mt-1">上のテーブルからメモリダンプを選択すると分析結果が表示されます</p>
+            <p className="text-xs text-falcon-subtle mt-1">上のテーブルからメモリダンプを選択すると分析結果が表示されます</p>
           </div>
         )}
       </div>

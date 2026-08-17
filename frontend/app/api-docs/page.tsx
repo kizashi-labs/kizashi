@@ -51,7 +51,7 @@ const METHOD_COLORS: Record<string, string> = {
 function MethodBadge({ method }: { method: string }) {
   const cls = METHOD_COLORS[method.toLowerCase()] ?? 'bg-zinc-800 text-zinc-300 border-zinc-700'
   return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded border text-[10px] font-bold uppercase tracking-wider flex-shrink-0 ${cls}`}>
+    <span className={`inline-flex items-center px-2 py-0.5 rounded-sm border text-[10px] font-bold uppercase tracking-wider shrink-0 ${cls}`}>
       {method.toUpperCase()}
     </span>
   )
@@ -89,7 +89,7 @@ function OperationRow({
   }
 
   return (
-    <div className="border border-[#1e2d42] rounded-lg overflow-hidden mb-2">
+    <div className="border border-falcon-border rounded-lg overflow-hidden mb-2">
       <button
         onClick={() => setOpen(o => !o)}
         className="w-full flex items-center gap-3 px-4 py-3 bg-[#0d1828] hover:bg-[#111f35] transition-colors text-left"
@@ -99,19 +99,19 @@ function OperationRow({
         {op.summary && (
           <span className="text-xs text-[#5a6a7a] hidden md:block truncate max-w-xs">{op.summary}</span>
         )}
-        {open ? <ChevronDown className="w-4 h-4 text-[#3d5068] flex-shrink-0" /> : <ChevronRight className="w-4 h-4 text-[#3d5068] flex-shrink-0" />}
+        {open ? <ChevronDown className="w-4 h-4 text-falcon-subtle shrink-0" /> : <ChevronRight className="w-4 h-4 text-falcon-subtle shrink-0" />}
       </button>
 
       {open && (
-        <div className="px-4 py-4 border-t border-[#1e2d42] bg-[#080c14] space-y-4">
+        <div className="px-4 py-4 border-t border-falcon-border bg-falcon-bg space-y-4">
           {/* Path + copy */}
           <div className="flex items-center gap-2">
-            <code className="flex-1 text-xs font-mono text-[#7d92b0] bg-[#0d1220] px-3 py-1.5 rounded border border-[#1e2d42]">
+            <code className="flex-1 text-xs font-mono text-falcon-muted bg-falcon-surface px-3 py-1.5 rounded-sm border border-falcon-border">
               {method.toUpperCase()} {path}
             </code>
             <button
               onClick={copyPath}
-              className="p-1.5 rounded text-[#3d5068] hover:text-white hover:bg-[#1e2d42] transition-colors"
+              className="p-1.5 rounded-sm text-falcon-subtle hover:text-white hover:bg-falcon-border transition-colors"
             >
               {copied ? <Check className="w-3.5 h-3.5 text-green-400" /> : <Copy className="w-3.5 h-3.5" />}
             </button>
@@ -119,19 +119,19 @@ function OperationRow({
 
           {/* Description */}
           {(op.description || op.summary) && (
-            <p className="text-sm text-[#7d92b0]">{op.description ?? op.summary}</p>
+            <p className="text-sm text-falcon-muted">{op.description ?? op.summary}</p>
           )}
 
           {/* Parameters */}
           {op.parameters && op.parameters.length > 0 && (
             <div>
-              <h4 className="text-xs font-semibold text-[#3d5068] uppercase tracking-wider mb-2">Parameters</h4>
+              <h4 className="text-xs font-semibold text-falcon-subtle uppercase tracking-wider mb-2">Parameters</h4>
               <div className="space-y-1.5">
                 {op.parameters.map(p => (
                   <div key={`${p.in}-${p.name}`} className="flex items-start gap-3 text-xs">
-                    <span className="font-mono text-[#a0bcd8] w-32 flex-shrink-0">{p.name}</span>
-                    <span className="text-[#3d5068] w-16 flex-shrink-0">{p.in}</span>
-                    <span className="text-[#3d5068] w-12 flex-shrink-0">{(p.schema as { type?: string })?.type ?? ''}</span>
+                    <span className="font-mono text-[#a0bcd8] w-32 shrink-0">{p.name}</span>
+                    <span className="text-falcon-subtle w-16 shrink-0">{p.in}</span>
+                    <span className="text-falcon-subtle w-12 shrink-0">{(p.schema as { type?: string })?.type ?? ''}</span>
                     {p.required && <span className="text-red-400 text-[10px] font-bold">required</span>}
                     {p.description && <span className="text-[#5a6a7a] flex-1">{p.description}</span>}
                   </div>
@@ -143,7 +143,7 @@ function OperationRow({
           {/* Request body */}
           {op.requestBody && (
             <div>
-              <h4 className="text-xs font-semibold text-[#3d5068] uppercase tracking-wider mb-2">
+              <h4 className="text-xs font-semibold text-falcon-subtle uppercase tracking-wider mb-2">
                 Request Body {op.requestBody.required && <span className="text-red-400 normal-case">(required)</span>}
               </h4>
               <div className="text-xs text-[#5a6a7a] font-mono">
@@ -155,7 +155,7 @@ function OperationRow({
           {/* Responses */}
           {op.responses && (
             <div>
-              <h4 className="text-xs font-semibold text-[#3d5068] uppercase tracking-wider mb-2">Responses</h4>
+              <h4 className="text-xs font-semibold text-falcon-subtle uppercase tracking-wider mb-2">Responses</h4>
               <div className="space-y-1">
                 {Object.entries(op.responses).map(([code, resp]) => (
                   <div key={code} className="flex items-center gap-3 text-xs">
@@ -191,11 +191,11 @@ function TagSection({
       >
         <div className="flex items-center gap-2 flex-1">
           {open
-            ? <ChevronDown className="w-4 h-4 text-[#e8002d]" />
-            : <ChevronRight className="w-4 h-4 text-[#e8002d]" />
+            ? <ChevronDown className="w-4 h-4 text-falcon-red" />
+            : <ChevronRight className="w-4 h-4 text-falcon-red" />
           }
           <h2 className="text-sm font-bold text-white uppercase tracking-wider">{tag}</h2>
-          <span className="text-xs text-[#3d5068] bg-[#0d1220] px-2 py-0.5 rounded-full border border-[#1e2d42]">
+          <span className="text-xs text-falcon-subtle bg-falcon-surface px-2 py-0.5 rounded-full border border-falcon-border">
             {operations.length}
           </span>
         </div>
@@ -280,13 +280,13 @@ export default function ApiDocsPage() {
           </h1>
           {spec && (
             <div className="flex items-center gap-4 mt-2">
-              <p className="text-[#7d92b0] text-sm">
-                {spec.info.title} <span className="text-[#3d5068]">v{spec.info.version}</span>
+              <p className="text-falcon-muted text-sm">
+                {spec.info.title} <span className="text-falcon-subtle">v{spec.info.version}</span>
               </p>
-              <span className="text-[#3d5068] text-xs bg-[#0d1220] px-2 py-0.5 rounded border border-[#1e2d42]">
+              <span className="text-falcon-subtle text-xs bg-falcon-surface px-2 py-0.5 rounded-sm border border-falcon-border">
                 OpenAPI {spec.openapi}
               </span>
-              <span className="text-[#3d5068] text-xs">
+              <span className="text-falcon-subtle text-xs">
                 {totalEndpoints} エンドポイント
               </span>
             </div>
@@ -295,22 +295,22 @@ export default function ApiDocsPage() {
 
         {/* Search */}
         <div className="relative mb-6">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#3d5068]" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-falcon-subtle" />
           <input
             type="text"
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="エンドポイントを検索... (パス、メソッド、概要)"
-            className="w-full pl-9 pr-4 py-2.5 bg-[#0d1220] border border-[#1e2d42] rounded-lg
-                       text-sm text-white placeholder-[#3d5068]
-                       focus:outline-none focus:border-[#3d5068] transition-colors"
+            className="w-full pl-9 pr-4 py-2.5 bg-falcon-surface border border-falcon-border rounded-lg
+                       text-sm text-white placeholder-falcon-subtle
+                       focus:outline-hidden focus:border-falcon-subtle transition-colors"
           />
         </div>
 
         {/* Auth info */}
         {spec && (
           <div className="mb-6 bg-blue-900/20 border border-blue-700/40 rounded-xl px-4 py-3 flex items-start gap-3">
-            <ExternalLink className="w-4 h-4 text-blue-400 flex-shrink-0 mt-0.5" />
+            <ExternalLink className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" />
             <div>
               <p className="text-blue-300 text-sm font-medium">認証</p>
               <p className="text-blue-200/70 text-xs mt-0.5">
@@ -350,7 +350,7 @@ export default function ApiDocsPage() {
               <TagSection tag="その他" operations={filterOps(untagged)} />
             )}
             {search && Object.keys(filteredTaggedOps).length === 0 && filterOps(untagged).length === 0 && (
-              <div className="text-center text-[#3d5068] py-12">
+              <div className="text-center text-falcon-subtle py-12">
                 <Search className="w-8 h-8 mx-auto mb-2 opacity-40" />
                 <p className="text-sm">「{search}」に一致するエンドポイントが見つかりません</p>
               </div>

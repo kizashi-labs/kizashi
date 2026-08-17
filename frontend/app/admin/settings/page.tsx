@@ -139,7 +139,7 @@ function Section({ title, icon: Icon, children }: {
 function Row({ label, desc, children }: { label: string; desc?: string; children: React.ReactNode }) {
   return (
     <div className="flex flex-col sm:flex-row sm:items-center gap-2 py-2 border-b border-zinc-800 last:border-0">
-      <div className="sm:w-56 flex-shrink-0">
+      <div className="sm:w-56 shrink-0">
         <div className="text-sm text-zinc-300">{label}</div>
         {desc && <div className="text-xs text-zinc-500 mt-0.5">{desc}</div>}
       </div>
@@ -156,7 +156,7 @@ function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean
       onClick={() => onChange(!checked)}
       className={`relative w-10 h-6 rounded-full transition-colors ${checked ? 'bg-red-600' : 'bg-zinc-700'}`}
     >
-      <span className={`absolute top-1 w-4 h-4 rounded-full bg-[#e2e8f4] shadow transition-transform ${checked ? 'left-5' : 'left-1'}`} />
+      <span className={`absolute top-1 w-4 h-4 rounded-full bg-falcon-text shadow-sm transition-transform ${checked ? 'left-5' : 'left-1'}`} />
     </button>
   )
 }
@@ -178,7 +178,7 @@ function Select<T extends string | number>({
         const match = options.find(o => String(o.value) === raw)
         if (match) onChange(match.value)
       }}
-      className="bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-1.5 text-sm text-zinc-200 focus:outline-none focus:border-zinc-500 transition-colors"
+      className="bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-1.5 text-sm text-zinc-200 focus:outline-hidden focus:border-zinc-500 transition-colors"
     >
       {options.map(o => (
         <option key={String(o.value)} value={String(o.value)}>{o.label}</option>

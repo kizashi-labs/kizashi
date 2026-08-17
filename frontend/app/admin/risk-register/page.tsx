@@ -92,7 +92,7 @@ const STATUS_STYLES: Record<RiskStatus, string> = {
   mitigated: 'bg-green-900/40 text-green-400 border-green-800/50',
   transferred: 'bg-purple-900/40 text-purple-400 border-purple-800/50',
   accepted: 'bg-yellow-900/40 text-yellow-400 border-yellow-800/50',
-  closed: 'bg-[#1e2d42] text-[#7d92b0] border-[#2e4060]',
+  closed: 'bg-falcon-border text-falcon-muted border-[#2e4060]',
 }
 
 const STATUS_LABELS: Record<RiskStatus, string> = {
@@ -134,7 +134,7 @@ function HeatMap({ risks }: { risks: Risk[] }) {
   })
   const cellColor = (count: number, row: number, col: number) => {
     const score = (row + 1) * (col + 1)
-    if (count === 0) return 'bg-[#0d1220]'
+    if (count === 0) return 'bg-falcon-surface'
     if (score > 15) return 'bg-red-900/80'
     if (score > 7) return 'bg-orange-900/80'
     if (score > 3) return 'bg-yellow-900/80'
@@ -145,17 +145,17 @@ function HeatMap({ risks }: { risks: Risk[] }) {
       <div className="flex items-center gap-1">
         <div className="w-6" />
         {['1', '2', '3', '4', '5'].map(i => (
-          <div key={i} className="w-8 text-center text-[9px] text-[#3d5068]">{i}</div>
+          <div key={i} className="w-8 text-center text-[9px] text-falcon-subtle">{i}</div>
         ))}
-        <div className="text-[9px] text-[#3d5068] ml-1">影響</div>
+        <div className="text-[9px] text-falcon-subtle ml-1">影響</div>
       </div>
       {[4, 3, 2, 1, 0].map(row => (
         <div key={row} className="flex items-center gap-1">
-          <div className="w-6 text-[9px] text-[#3d5068] text-right">{row + 1}</div>
+          <div className="w-6 text-[9px] text-falcon-subtle text-right">{row + 1}</div>
           {[0, 1, 2, 3, 4].map(col => (
             <div
               key={col}
-              className={`w-8 h-8 rounded border border-[#1e2d42] flex items-center justify-center text-[10px] font-bold text-white transition-colors
+              className={`w-8 h-8 rounded border border-falcon-border flex items-center justify-center text-[10px] font-bold text-white transition-colors
                 ${cellColor(matrix[row][col], row, col)}`}
             >
               {matrix[row][col] > 0 ? matrix[row][col] : ''}
@@ -163,7 +163,7 @@ function HeatMap({ risks }: { risks: Risk[] }) {
           ))}
         </div>
       ))}
-      <div className="text-[9px] text-[#3d5068] text-center ml-6">← 発生可能性</div>
+      <div className="text-[9px] text-falcon-subtle text-center ml-6">← 発生可能性</div>
     </div>
   )
 }
@@ -178,82 +178,82 @@ function RiskDetailModal({ risk, allRisks, onClose, onEdit }: {
 }) {
   const related = allRisks.filter(r => risk.related_risk_ids?.includes(r.id))
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl">
-        <div className="sticky top-0 bg-[#0d1220] border-b border-[#1e2d42] px-6 py-4 flex items-center justify-between z-10">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-50 p-4">
+      <div className="bg-falcon-surface border border-falcon-border rounded-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl">
+        <div className="sticky top-0 bg-falcon-surface border-b border-falcon-border px-6 py-4 flex items-center justify-between z-10">
           <div className="flex items-center gap-3">
-            <span className="text-sm font-mono font-bold text-[#e8002d]">{risk.risk_id}</span>
+            <span className="text-sm font-mono font-bold text-falcon-red">{risk.risk_id}</span>
             <h2 className="text-base font-bold text-white">{risk.title}</h2>
           </div>
           <div className="flex gap-2">
             <button
               onClick={onEdit}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded bg-[#e8002d]/10 text-[#e8002d] hover:bg-[#e8002d]/20 text-xs transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-sm bg-falcon-red/10 text-falcon-red hover:bg-falcon-red/20 text-xs transition-colors"
             >
               <Edit2 className="w-3.5 h-3.5" /> 編集
             </button>
-            <button onClick={onClose} className="p-1.5 rounded text-[#7d92b0] hover:text-white hover:bg-[#1e2d42]"><X className="w-4 h-4" /></button>
+            <button onClick={onClose} className="p-1.5 rounded-sm text-falcon-muted hover:text-white hover:bg-falcon-border"><X className="w-4 h-4" /></button>
           </div>
         </div>
         <div className="p-6 space-y-6">
           {/* Metadata */}
           <div className="grid grid-cols-2 gap-4">
-            <div className="bg-[#070d19] rounded-lg p-3 border border-[#1e2d42]">
-              <p className="text-xs text-[#7d92b0] mb-1">カテゴリ</p>
+            <div className="bg-[#070d19] rounded-lg p-3 border border-falcon-border">
+              <p className="text-xs text-falcon-muted mb-1">カテゴリ</p>
               <p className="text-sm font-medium text-white">{risk.category}</p>
             </div>
-            <div className="bg-[#070d19] rounded-lg p-3 border border-[#1e2d42]">
-              <p className="text-xs text-[#7d92b0] mb-1">オーナー</p>
+            <div className="bg-[#070d19] rounded-lg p-3 border border-falcon-border">
+              <p className="text-xs text-falcon-muted mb-1">オーナー</p>
               <p className="text-sm font-medium text-white">{risk.owner}</p>
             </div>
-            <div className="bg-[#070d19] rounded-lg p-3 border border-[#1e2d42]">
-              <p className="text-xs text-[#7d92b0] mb-1">脅威源</p>
+            <div className="bg-[#070d19] rounded-lg p-3 border border-falcon-border">
+              <p className="text-xs text-falcon-muted mb-1">脅威源</p>
               <p className="text-sm text-[#c8d6e8]">{risk.threat_source}</p>
             </div>
-            <div className="bg-[#070d19] rounded-lg p-3 border border-[#1e2d42]">
-              <p className="text-xs text-[#7d92b0] mb-1">脆弱性</p>
+            <div className="bg-[#070d19] rounded-lg p-3 border border-falcon-border">
+              <p className="text-xs text-falcon-muted mb-1">脆弱性</p>
               <p className="text-sm text-[#c8d6e8]">{risk.vulnerability}</p>
             </div>
           </div>
 
           {/* Description */}
           <div>
-            <p className="text-xs font-semibold text-[#7d92b0] mb-2">リスク説明</p>
+            <p className="text-xs font-semibold text-falcon-muted mb-2">リスク説明</p>
             <p className="text-sm text-[#c8d6e8]">{risk.description}</p>
           </div>
 
           {/* Risk factors */}
-          <div className="bg-[#070d19] rounded-lg p-4 border border-[#1e2d42]">
-            <p className="text-xs font-semibold text-[#7d92b0] mb-3">リスク係数</p>
+          <div className="bg-[#070d19] rounded-lg p-4 border border-falcon-border">
+            <p className="text-xs font-semibold text-falcon-muted mb-3">リスク係数</p>
             <div className="grid grid-cols-3 gap-4 text-center">
               <div>
-                <p className="text-xs text-[#7d92b0] mb-1">発生可能性</p>
+                <p className="text-xs text-falcon-muted mb-1">発生可能性</p>
                 <p className="text-2xl font-bold text-orange-400">{risk.likelihood}</p>
-                <p className="text-[10px] text-[#3d5068]">/ 5</p>
+                <p className="text-[10px] text-falcon-subtle">/ 5</p>
               </div>
-              <div className="flex items-center justify-center text-[#3d5068] text-xl">×</div>
+              <div className="flex items-center justify-center text-falcon-subtle text-xl">×</div>
               <div>
-                <p className="text-xs text-[#7d92b0] mb-1">影響度</p>
+                <p className="text-xs text-falcon-muted mb-1">影響度</p>
                 <p className="text-2xl font-bold text-orange-400">{risk.impact}</p>
-                <p className="text-[10px] text-[#3d5068]">/ 5</p>
+                <p className="text-[10px] text-falcon-subtle">/ 5</p>
               </div>
             </div>
-            <div className="mt-3 pt-3 border-t border-[#1e2d42] flex items-center justify-between">
-              <span className="text-xs text-[#7d92b0]">固有リスクスコア</span>
+            <div className="mt-3 pt-3 border-t border-falcon-border flex items-center justify-between">
+              <span className="text-xs text-falcon-muted">固有リスクスコア</span>
               <span className={`text-lg font-bold ${residualColor(risk.inherent_risk_score)}`}>{risk.inherent_risk_score}</span>
             </div>
           </div>
 
           {/* Controls */}
           <div>
-            <p className="text-xs font-semibold text-[#7d92b0] mb-2">現在のコントロール</p>
+            <p className="text-xs font-semibold text-falcon-muted mb-2">現在のコントロール</p>
             <div className="space-y-2">
               {risk.controls.map(c => (
-                <div key={c.id} className="flex items-center gap-3 p-2 bg-[#070d19] rounded border border-[#1e2d42]">
-                  <CheckCircle className="w-3.5 h-3.5 text-green-400 flex-shrink-0" />
+                <div key={c.id} className="flex items-center gap-3 p-2 bg-[#070d19] rounded-sm border border-falcon-border">
+                  <CheckCircle className="w-3.5 h-3.5 text-green-400 shrink-0" />
                   <span className="flex-1 text-sm text-[#c8d6e8]">{c.name}</span>
                   <div className="flex items-center gap-2">
-                    <div className="w-20 h-1.5 bg-[#1e2d42] rounded-full">
+                    <div className="w-20 h-1.5 bg-falcon-border rounded-full">
                       <div className="h-full bg-green-500 rounded-full" style={{ width: `${c.effectiveness}%` }} />
                     </div>
                     <span className="text-xs text-green-400 w-8 text-right">{c.effectiveness}%</span>
@@ -261,12 +261,12 @@ function RiskDetailModal({ risk, allRisks, onClose, onEdit }: {
                 </div>
               ))}
             </div>
-            <div className="mt-3 flex items-center justify-between p-3 bg-[#070d19] rounded border border-[#1e2d42]">
-              <span className="text-sm text-[#7d92b0]">コントロール有効性（平均）</span>
+            <div className="mt-3 flex items-center justify-between p-3 bg-[#070d19] rounded-sm border border-falcon-border">
+              <span className="text-sm text-falcon-muted">コントロール有効性（平均）</span>
               <span className="text-sm font-bold text-green-400">{risk.control_effectiveness}%</span>
             </div>
-            <div className="mt-2 flex items-center justify-between p-3 bg-[#070d19] rounded border border-[#1e2d42]">
-              <span className="text-sm text-[#7d92b0]">残存リスクスコア</span>
+            <div className="mt-2 flex items-center justify-between p-3 bg-[#070d19] rounded-sm border border-falcon-border">
+              <span className="text-sm text-falcon-muted">残存リスクスコア</span>
               <span className={`text-lg font-bold ${residualColor(risk.residual_risk_score)}`}>{risk.residual_risk_score}</span>
             </div>
           </div>
@@ -274,20 +274,20 @@ function RiskDetailModal({ risk, allRisks, onClose, onEdit }: {
           {/* Treatment plan */}
           {risk.treatment_plan.length > 0 && (
             <div>
-              <p className="text-xs font-semibold text-[#7d92b0] mb-2">対応計画</p>
+              <p className="text-xs font-semibold text-falcon-muted mb-2">対応計画</p>
               <div className="space-y-2">
                 {risk.treatment_plan.map(t => (
-                  <div key={t.id} className="p-3 bg-[#070d19] rounded border border-[#1e2d42]">
+                  <div key={t.id} className="p-3 bg-[#070d19] rounded-sm border border-falcon-border">
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-sm text-white">{t.action}</span>
-                      <span className="text-xs text-[#3d5068]">{t.due_date}</span>
+                      <span className="text-xs text-falcon-subtle">{t.due_date}</span>
                     </div>
                     <div className="flex items-center gap-3">
-                      <span className="text-xs text-[#7d92b0]">{t.owner}</span>
-                      <div className="flex-1 h-1.5 bg-[#1e2d42] rounded-full">
-                        <div className="h-full bg-[#e8002d] rounded-full transition-all" style={{ width: `${t.progress}%` }} />
+                      <span className="text-xs text-falcon-muted">{t.owner}</span>
+                      <div className="flex-1 h-1.5 bg-falcon-border rounded-full">
+                        <div className="h-full bg-falcon-red rounded-full transition-all" style={{ width: `${t.progress}%` }} />
                       </div>
-                      <span className="text-xs text-[#e8002d]">{t.progress}%</span>
+                      <span className="text-xs text-falcon-red">{t.progress}%</span>
                     </div>
                   </div>
                 ))}
@@ -297,13 +297,13 @@ function RiskDetailModal({ risk, allRisks, onClose, onEdit }: {
 
           {/* Risk history */}
           <div>
-            <p className="text-xs font-semibold text-[#7d92b0] mb-2">リスクスコア履歴</p>
+            <p className="text-xs font-semibold text-falcon-muted mb-2">リスクスコア履歴</p>
             <div className="space-y-1">
               {risk.risk_history.map((h, i) => (
-                <div key={i} className="flex items-center gap-3 py-1.5 border-b border-[#1e2d42]">
-                  <span className="text-xs text-[#3d5068] w-20">{h.date}</span>
+                <div key={i} className="flex items-center gap-3 py-1.5 border-b border-falcon-border">
+                  <span className="text-xs text-falcon-subtle w-20">{h.date}</span>
                   <span className={`text-sm font-bold w-6 ${residualColor(h.score)}`}>{h.score}</span>
-                  <span className="text-xs text-[#7d92b0]">{h.note}</span>
+                  <span className="text-xs text-falcon-muted">{h.note}</span>
                 </div>
               ))}
             </div>
@@ -312,11 +312,11 @@ function RiskDetailModal({ risk, allRisks, onClose, onEdit }: {
           {/* Related risks */}
           {related.length > 0 && (
             <div>
-              <p className="text-xs font-semibold text-[#7d92b0] mb-2">関連リスク</p>
+              <p className="text-xs font-semibold text-falcon-muted mb-2">関連リスク</p>
               <div className="space-y-1">
                 {related.map(r => (
-                  <div key={r.id} className="flex items-center gap-2 p-2 bg-[#070d19] rounded border border-[#1e2d42]">
-                    <span className="text-xs font-mono text-[#e8002d]">{r.risk_id}</span>
+                  <div key={r.id} className="flex items-center gap-2 p-2 bg-[#070d19] rounded-sm border border-falcon-border">
+                    <span className="text-xs font-mono text-falcon-red">{r.risk_id}</span>
                     <span className="text-sm text-[#c8d6e8]">{r.title}</span>
                     <span className={`ml-auto text-xs font-bold ${residualColor(r.residual_risk_score)}`}>{r.residual_risk_score}</span>
                   </div>
@@ -356,22 +356,22 @@ function RiskEditModal({ risk, onClose, onSave }: {
   const inherent = (form.likelihood ?? 1) * (form.impact ?? 1)
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl w-full max-w-xl max-h-[90vh] overflow-y-auto shadow-2xl">
-        <div className="sticky top-0 bg-[#0d1220] border-b border-[#1e2d42] px-6 py-4 flex items-center justify-between z-10">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-50 p-4">
+      <div className="bg-falcon-surface border border-falcon-border rounded-xl w-full max-w-xl max-h-[90vh] overflow-y-auto shadow-2xl">
+        <div className="sticky top-0 bg-falcon-surface border-b border-falcon-border px-6 py-4 flex items-center justify-between z-10">
           <h2 className="text-base font-bold text-white">{risk ? 'リスク編集' : '新規リスク登録'}</h2>
-          <button onClick={onClose} className="p-1.5 rounded text-[#7d92b0] hover:text-white hover:bg-[#1e2d42]"><X className="w-4 h-4" /></button>
+          <button onClick={onClose} className="p-1.5 rounded-sm text-falcon-muted hover:text-white hover:bg-falcon-border"><X className="w-4 h-4" /></button>
         </div>
         <div className="p-6 space-y-4">
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs text-[#7d92b0] mb-1 block">リスクID</label>
-              <input value={form.risk_id ?? ''} readOnly className="w-full bg-[#070d19] border border-[#1e2d42] rounded px-3 py-2 text-[#7d92b0] text-sm" />
+              <label className="text-xs text-falcon-muted mb-1 block">リスクID</label>
+              <input value={form.risk_id ?? ''} readOnly className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-falcon-muted text-sm" />
             </div>
             <div>
-              <label className="text-xs text-[#7d92b0] mb-1 block">カテゴリ *</label>
+              <label className="text-xs text-falcon-muted mb-1 block">カテゴリ *</label>
               <select value={form.category ?? 'Technical'} onChange={e => setForm(f => ({ ...f, category: e.target.value as RiskCategory }))}
-                className="w-full bg-[#070d19] border border-[#1e2d42] rounded px-3 py-2 text-white text-sm focus:outline-none">
+                className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-white text-sm focus:outline-hidden">
                 {(['Strategic', 'Operational', 'Compliance', 'Technical', 'Third-party'] as RiskCategory[]).map(c => (
                   <option key={c} value={c}>{c}</option>
                 ))}
@@ -379,55 +379,55 @@ function RiskEditModal({ risk, onClose, onSave }: {
             </div>
           </div>
           <div>
-            <label className="text-xs text-[#7d92b0] mb-1 block">タイトル *</label>
+            <label className="text-xs text-falcon-muted mb-1 block">タイトル *</label>
             <input value={form.title ?? ''} onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
-              className="w-full bg-[#070d19] border border-[#1e2d42] rounded px-3 py-2 text-white text-sm focus:outline-none focus:border-[#e8002d]/50" />
+              className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-red/50" />
           </div>
           <div>
-            <label className="text-xs text-[#7d92b0] mb-1 block">説明</label>
+            <label className="text-xs text-falcon-muted mb-1 block">説明</label>
             <textarea value={form.description ?? ''} onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-              rows={2} className="w-full bg-[#070d19] border border-[#1e2d42] rounded px-3 py-2 text-white text-sm focus:outline-none focus:border-[#e8002d]/50 resize-none" />
+              rows={2} className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-red/50 resize-none" />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs text-[#7d92b0] mb-1 block">脅威源</label>
+              <label className="text-xs text-falcon-muted mb-1 block">脅威源</label>
               <input value={form.threat_source ?? ''} onChange={e => setForm(f => ({ ...f, threat_source: e.target.value }))}
-                className="w-full bg-[#070d19] border border-[#1e2d42] rounded px-3 py-2 text-white text-sm focus:outline-none focus:border-[#e8002d]/50" />
+                className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-red/50" />
             </div>
             <div>
-              <label className="text-xs text-[#7d92b0] mb-1 block">オーナー</label>
+              <label className="text-xs text-falcon-muted mb-1 block">オーナー</label>
               <input value={form.owner ?? ''} onChange={e => setForm(f => ({ ...f, owner: e.target.value }))}
-                className="w-full bg-[#070d19] border border-[#1e2d42] rounded px-3 py-2 text-white text-sm focus:outline-none focus:border-[#e8002d]/50" />
+                className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-red/50" />
             </div>
           </div>
           <div className="grid grid-cols-3 gap-3">
             <div>
-              <label className="text-xs text-[#7d92b0] mb-1 block">発生可能性 (1-5)</label>
+              <label className="text-xs text-falcon-muted mb-1 block">発生可能性 (1-5)</label>
               <input type="number" min={1} max={5} value={form.likelihood ?? 3} onChange={e => setForm(f => ({ ...f, likelihood: +e.target.value }))}
-                className="w-full bg-[#070d19] border border-[#1e2d42] rounded px-3 py-2 text-white text-sm focus:outline-none" />
+                className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-white text-sm focus:outline-hidden" />
             </div>
             <div>
-              <label className="text-xs text-[#7d92b0] mb-1 block">影響度 (1-5)</label>
+              <label className="text-xs text-falcon-muted mb-1 block">影響度 (1-5)</label>
               <input type="number" min={1} max={5} value={form.impact ?? 3} onChange={e => setForm(f => ({ ...f, impact: +e.target.value }))}
-                className="w-full bg-[#070d19] border border-[#1e2d42] rounded px-3 py-2 text-white text-sm focus:outline-none" />
+                className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-white text-sm focus:outline-hidden" />
             </div>
             <div>
-              <label className="text-xs text-[#7d92b0] mb-1 block">固有スコア</label>
-              <div className={`px-3 py-2 rounded border border-[#1e2d42] text-sm font-bold ${residualColor(inherent)}`}>{inherent}</div>
+              <label className="text-xs text-falcon-muted mb-1 block">固有スコア</label>
+              <div className={`px-3 py-2 rounded-sm border border-falcon-border text-sm font-bold ${residualColor(inherent)}`}>{inherent}</div>
             </div>
           </div>
           <div>
-            <label className="text-xs text-[#7d92b0] mb-1 block">ステータス</label>
+            <label className="text-xs text-falcon-muted mb-1 block">ステータス</label>
             <select value={form.status ?? 'active'} onChange={e => setForm(f => ({ ...f, status: e.target.value as RiskStatus }))}
-              className="w-full bg-[#070d19] border border-[#1e2d42] rounded px-3 py-2 text-white text-sm focus:outline-none">
+              className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-white text-sm focus:outline-hidden">
               {Object.entries(STATUS_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
             </select>
           </div>
           <div className="flex gap-3 pt-2">
-            <button onClick={onClose} className="flex-1 py-2 rounded border border-[#1e2d42] text-[#7d92b0] hover:text-white text-sm transition-colors">キャンセル</button>
+            <button onClick={onClose} className="flex-1 py-2 rounded-sm border border-falcon-border text-falcon-muted hover:text-white text-sm transition-colors">キャンセル</button>
             <button
               onClick={() => onSave({ ...form, inherent_risk_score: inherent })}
-              className="flex-1 py-2 rounded bg-[#e8002d] text-white text-sm font-medium hover:bg-[#c00025] transition-colors"
+              className="flex-1 py-2 rounded-sm bg-falcon-red text-white text-sm font-medium hover:bg-[#c00025] transition-colors"
             >
               {risk ? '更新' : '登録'}
             </button>
@@ -526,19 +526,19 @@ export default function RiskRegisterPage() {
   return (
     <div className="min-h-screen bg-[#070d19] text-white flex flex-col">
       {/* Header */}
-      <div className="border-b border-[#1e2d42] px-6 py-4 flex items-center justify-between flex-shrink-0">
+      <div className="border-b border-falcon-border px-6 py-4 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded bg-[#e8002d]/10 border border-[#e8002d]/30 flex items-center justify-center">
-            <BookMarked className="w-4 h-4 text-[#e8002d]" />
+          <div className="w-8 h-8 rounded-sm bg-falcon-red/10 border border-falcon-red/30 flex items-center justify-center">
+            <BookMarked className="w-4 h-4 text-falcon-red" />
           </div>
           <div>
             <h1 className="text-lg font-bold text-white">セキュリティリスク台帳</h1>
-            <p className="text-xs text-[#7d92b0]">Security Risk Register — 企業リスク管理</p>
+            <p className="text-xs text-falcon-muted">Security Risk Register — 企業リスク管理</p>
           </div>
         </div>
         <button
           onClick={() => setEditRisk('new')}
-          className="flex items-center gap-2 px-4 py-2 rounded bg-[#e8002d] text-white hover:bg-[#c00025] text-sm font-medium transition-colors"
+          className="flex items-center gap-2 px-4 py-2 rounded-sm bg-falcon-red text-white hover:bg-[#c00025] text-sm font-medium transition-colors"
         >
           <Plus className="w-4 h-4" /> リスク登録
         </button>
@@ -554,9 +554,9 @@ export default function RiskRegisterPage() {
               { label: '高（High）', value: summary.high, color: 'text-orange-400', icon: AlertTriangle },
               { label: '中（Medium）', value: summary.medium, color: 'text-yellow-400', icon: MinusCircle },
             ].map(({ label, value, color, icon: Icon }) => (
-              <div key={label} className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-4">
+              <div key={label} className="bg-falcon-surface border border-falcon-border rounded-lg p-4">
                 <div className="flex items-center justify-between mb-2">
-                  <p className="text-xs text-[#7d92b0]">{label}</p>
+                  <p className="text-xs text-falcon-muted">{label}</p>
                   <Icon className={`w-4 h-4 ${color}`} />
                 </div>
                 <p className={`text-2xl font-bold ${color}`}>{value}</p>
@@ -567,66 +567,66 @@ export default function RiskRegisterPage() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Additional stats */}
             <div className="lg:col-span-2 grid grid-cols-3 gap-4">
-              <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-4">
-                <p className="text-xs text-[#7d92b0] mb-2">低（Low）</p>
+              <div className="bg-falcon-surface border border-falcon-border rounded-lg p-4">
+                <p className="text-xs text-falcon-muted mb-2">低（Low）</p>
                 <p className="text-2xl font-bold text-green-400">{summary.low}</p>
               </div>
-              <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-4">
-                <p className="text-xs text-[#7d92b0] mb-2">平均残存スコア</p>
+              <div className="bg-falcon-surface border border-falcon-border rounded-lg p-4">
+                <p className="text-xs text-falcon-muted mb-2">平均残存スコア</p>
                 <p className={`text-2xl font-bold ${residualColor(summary.avg)}`}>{summary.avg}</p>
               </div>
-              <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-4">
-                <p className="text-xs text-[#7d92b0] mb-2">リスク許容超過</p>
+              <div className="bg-falcon-surface border border-falcon-border rounded-lg p-4">
+                <p className="text-xs text-falcon-muted mb-2">リスク許容超過</p>
                 <p className="text-2xl font-bold text-red-400">{summary.exceeds}</p>
               </div>
             </div>
 
             {/* Heatmap */}
-            <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-4">
-              <p className="text-xs font-semibold text-[#7d92b0] mb-3">リスクマトリクス（プレビュー）</p>
+            <div className="bg-falcon-surface border border-falcon-border rounded-lg p-4">
+              <p className="text-xs font-semibold text-falcon-muted mb-3">リスクマトリクス（プレビュー）</p>
               <HeatMap risks={risks} />
             </div>
           </div>
 
           {/* Filters */}
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-4">
+          <div className="bg-falcon-surface border border-falcon-border rounded-lg p-4">
             <div className="flex flex-wrap gap-3 items-center">
               <div className="relative">
-                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#3d5068]" />
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-falcon-subtle" />
                 <input
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
                   placeholder="リスクを検索..."
-                  className="bg-[#070d19] border border-[#1e2d42] rounded pl-8 pr-3 py-1.5 text-sm text-white placeholder-[#3d5068] focus:outline-none focus:border-[#e8002d]/50 w-48"
+                  className="bg-[#070d19] border border-falcon-border rounded-sm pl-8 pr-3 py-1.5 text-sm text-white placeholder-falcon-subtle focus:outline-hidden focus:border-falcon-red/50 w-48"
                 />
               </div>
               <select value={filterCategory} onChange={e => setFilterCategory(e.target.value)}
-                className="bg-[#070d19] border border-[#1e2d42] rounded px-3 py-1.5 text-sm text-white focus:outline-none">
+                className="bg-[#070d19] border border-falcon-border rounded-sm px-3 py-1.5 text-sm text-white focus:outline-hidden">
                 <option value="all">全カテゴリ</option>
                 {(['Strategic', 'Operational', 'Compliance', 'Technical', 'Third-party'] as RiskCategory[]).map(c => (
                   <option key={c} value={c}>{c}</option>
                 ))}
               </select>
               <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}
-                className="bg-[#070d19] border border-[#1e2d42] rounded px-3 py-1.5 text-sm text-white focus:outline-none">
+                className="bg-[#070d19] border border-falcon-border rounded-sm px-3 py-1.5 text-sm text-white focus:outline-hidden">
                 <option value="all">全ステータス</option>
                 {Object.entries(STATUS_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
               </select>
               <select value={filterAppetite} onChange={e => setFilterAppetite(e.target.value)}
-                className="bg-[#070d19] border border-[#1e2d42] rounded px-3 py-1.5 text-sm text-white focus:outline-none">
+                className="bg-[#070d19] border border-falcon-border rounded-sm px-3 py-1.5 text-sm text-white focus:outline-hidden">
                 <option value="all">全リスク許容度</option>
                 {Object.entries(APPETITE_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
               </select>
-              <span className="text-xs text-[#3d5068] ml-auto">{filtered.length} 件</span>
+              <span className="text-xs text-falcon-subtle ml-auto">{filtered.length} 件</span>
             </div>
           </div>
 
           {/* Risk Table */}
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg overflow-hidden">
+          <div className="bg-falcon-surface border border-falcon-border rounded-lg overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead className="border-b border-[#1e2d42]">
-                  <tr className="text-xs text-[#7d92b0]">
+                <thead className="border-b border-falcon-border">
+                  <tr className="text-xs text-falcon-muted">
                     <th className="px-4 py-3 text-left font-semibold">ID</th>
                     <th className="px-4 py-3 text-left font-semibold">リスクタイトル</th>
                     <th className="px-4 py-3 text-left font-semibold">カテゴリ</th>
@@ -649,16 +649,16 @@ export default function RiskRegisterPage() {
                     return (
                       <tr
                         key={risk.id}
-                        className="border-b border-[#1e2d42] hover:bg-[#0a1018] cursor-pointer transition-colors"
+                        className="border-b border-falcon-border hover:bg-[#0a1018] cursor-pointer transition-colors"
                         onClick={() => setSelectedRisk(risk)}
                       >
-                        <td className="px-4 py-3 font-mono text-xs text-[#e8002d] font-bold">{risk.risk_id}</td>
+                        <td className="px-4 py-3 font-mono text-xs text-falcon-red font-bold">{risk.risk_id}</td>
                         <td className="px-4 py-3 max-w-xs">
                           <p className="text-white font-medium truncate">{risk.title}</p>
                         </td>
                         <td className="px-4 py-3">
-                          <span className="flex items-center gap-1.5 text-xs text-[#7d92b0]">
-                            <CatIcon className="w-3.5 h-3.5 text-[#3d5068]" />
+                          <span className="flex items-center gap-1.5 text-xs text-falcon-muted">
+                            <CatIcon className="w-3.5 h-3.5 text-falcon-subtle" />
                             {risk.category}
                           </span>
                         </td>
@@ -667,25 +667,25 @@ export default function RiskRegisterPage() {
                         </td>
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2 justify-center">
-                            <div className="w-16 h-1.5 bg-[#1e2d42] rounded-full">
+                            <div className="w-16 h-1.5 bg-falcon-border rounded-full">
                               <div className="h-full bg-green-500 rounded-full" style={{ width: `${risk.control_effectiveness}%` }} />
                             </div>
                             <span className="text-xs text-green-400">{risk.control_effectiveness}%</span>
                           </div>
                         </td>
                         <td className="px-4 py-3 text-center">
-                          <span className={`inline-block px-2 py-0.5 rounded border text-xs font-bold ${residualBg(risk.residual_risk_score)} ${residualColor(risk.residual_risk_score)}`}>
+                          <span className={`inline-block px-2 py-0.5 rounded-sm border text-xs font-bold ${residualBg(risk.residual_risk_score)} ${residualColor(risk.residual_risk_score)}`}>
                             {risk.residual_risk_score}
                           </span>
                         </td>
                         <td className="px-4 py-3 text-center">
-                          <span className={`px-2 py-0.5 rounded border text-xs ${APPETITE_STYLES[risk.risk_appetite]}`}>
+                          <span className={`px-2 py-0.5 rounded-sm border text-xs ${APPETITE_STYLES[risk.risk_appetite]}`}>
                             {APPETITE_LABELS[risk.risk_appetite]}
                           </span>
                         </td>
-                        <td className="px-4 py-3 text-xs text-[#7d92b0]">{risk.owner}</td>
+                        <td className="px-4 py-3 text-xs text-falcon-muted">{risk.owner}</td>
                         <td className="px-4 py-3">
-                          <span className={`px-2 py-0.5 rounded border text-xs ${STATUS_STYLES[risk.status]}`}>
+                          <span className={`px-2 py-0.5 rounded-sm border text-xs ${STATUS_STYLES[risk.status]}`}>
                             {STATUS_LABELS[risk.status]}
                           </span>
                         </td>
@@ -693,13 +693,13 @@ export default function RiskRegisterPage() {
                           <div className="flex items-center gap-1 justify-center">
                             <button
                               onClick={() => setSelectedRisk(risk)}
-                              className="p-1.5 rounded text-[#7d92b0] hover:text-white hover:bg-[#1e2d42] transition-colors"
+                              className="p-1.5 rounded-sm text-falcon-muted hover:text-white hover:bg-falcon-border transition-colors"
                             >
                               <ChevronRight className="w-3.5 h-3.5" />
                             </button>
                             <button
                               onClick={() => setEditRisk(risk)}
-                              className="p-1.5 rounded text-[#7d92b0] hover:text-[#e8002d] hover:bg-[#e8002d]/10 transition-colors"
+                              className="p-1.5 rounded-sm text-falcon-muted hover:text-falcon-red hover:bg-falcon-red/10 transition-colors"
                             >
                               <Edit2 className="w-3.5 h-3.5" />
                             </button>
@@ -710,7 +710,7 @@ export default function RiskRegisterPage() {
                   })}
                   {filtered.length === 0 && (
                     <tr>
-                      <td colSpan={10} className="px-4 py-12 text-center text-[#3d5068]">
+                      <td colSpan={10} className="px-4 py-12 text-center text-falcon-subtle">
                         <BookMarked className="w-8 h-8 mx-auto mb-2 opacity-40" />
                         リスクが見つかりません
                       </td>
@@ -722,54 +722,54 @@ export default function RiskRegisterPage() {
           </div>
 
           {/* Risk Appetite Configuration */}
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-5">
+          <div className="bg-falcon-surface border border-falcon-border rounded-lg p-5">
             <h3 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
-              <Target className="w-4 h-4 text-[#e8002d]" /> リスク許容度設定
+              <Target className="w-4 h-4 text-falcon-red" /> リスク許容度設定
             </h3>
             <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-4">
               {(Object.keys(appetite) as (keyof AppetiteConfig)[]).map(cat => (
-                <div key={cat} className="bg-[#070d19] rounded border border-[#1e2d42] p-3">
-                  <label className="text-xs text-[#7d92b0] mb-1 block">{cat}</label>
+                <div key={cat} className="bg-[#070d19] rounded-sm border border-falcon-border p-3">
+                  <label className="text-xs text-falcon-muted mb-1 block">{cat}</label>
                   <input
                     type="number"
                     min={1}
                     max={25}
                     value={appetite[cat]}
                     onChange={e => setAppetite(prev => ({ ...prev, [cat]: +e.target.value }))}
-                    className="w-full bg-transparent text-white text-lg font-bold focus:outline-none"
+                    className="w-full bg-transparent text-white text-lg font-bold focus:outline-hidden"
                   />
-                  <p className="text-[10px] text-[#3d5068]">/ 25</p>
+                  <p className="text-[10px] text-falcon-subtle">/ 25</p>
                 </div>
               ))}
             </div>
             <div>
-              <label className="text-xs text-[#7d92b0] mb-1 block">リスク許容度方針</label>
+              <label className="text-xs text-falcon-muted mb-1 block">リスク許容度方針</label>
               <textarea
                 value={appetiteStatement}
                 onChange={e => setAppetiteStatement(e.target.value)}
                 rows={2}
-                className="w-full bg-[#070d19] border border-[#1e2d42] rounded px-3 py-2 text-sm text-[#c8d6e8] focus:outline-none focus:border-[#e8002d]/50 resize-none"
+                className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-sm text-[#c8d6e8] focus:outline-hidden focus:border-falcon-red/50 resize-none"
               />
             </div>
           </div>
 
           {/* Board Reporting */}
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-5">
+          <div className="bg-falcon-surface border border-falcon-border rounded-lg p-5">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-sm font-semibold text-white flex items-center gap-2">
-                <BarChart2 className="w-4 h-4 text-[#e8002d]" /> 取締役会報告
+                <BarChart2 className="w-4 h-4 text-falcon-red" /> 取締役会報告
               </h3>
               <div className="flex gap-2">
                 <button
                   onClick={() => setShowBoardSection(!showBoardSection)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded bg-[#1e2d42] text-[#7d92b0] hover:bg-[#2e3d52] hover:text-white text-xs transition-colors"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-sm bg-falcon-border text-falcon-muted hover:bg-[#2e3d52] hover:text-white text-xs transition-colors"
                 >
                   {showBoardSection ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
                   詳細
                 </button>
                 <button
                   onClick={() => alert('取締役会報告PDFを生成中... (モック)')}
-                  className="flex items-center gap-2 px-4 py-1.5 rounded bg-[#e8002d] text-white hover:bg-[#c00025] text-xs font-medium transition-colors"
+                  className="flex items-center gap-2 px-4 py-1.5 rounded-sm bg-falcon-red text-white hover:bg-[#c00025] text-xs font-medium transition-colors"
                 >
                   <Download className="w-3.5 h-3.5" /> 取締役会報告用エクスポート
                 </button>
@@ -778,32 +778,32 @@ export default function RiskRegisterPage() {
             {showBoardSection && (
               <div className="space-y-4">
                 <div className="grid grid-cols-3 gap-4">
-                  <div className="bg-[#070d19] rounded border border-[#1e2d42] p-3">
-                    <p className="text-xs text-[#7d92b0] mb-1">リスク許容超過数</p>
+                  <div className="bg-[#070d19] rounded-sm border border-falcon-border p-3">
+                    <p className="text-xs text-falcon-muted mb-1">リスク許容超過数</p>
                     <p className="text-2xl font-bold text-red-400">{summary.exceeds}</p>
-                    <p className="text-[10px] text-[#3d5068]">前四半期比 +1</p>
+                    <p className="text-[10px] text-falcon-subtle">前四半期比 +1</p>
                   </div>
-                  <div className="bg-[#070d19] rounded border border-[#1e2d42] p-3">
-                    <p className="text-xs text-[#7d92b0] mb-1">平均残存リスク</p>
+                  <div className="bg-[#070d19] rounded-sm border border-falcon-border p-3">
+                    <p className="text-xs text-falcon-muted mb-1">平均残存リスク</p>
                     <p className={`text-2xl font-bold ${residualColor(summary.avg)}`}>{summary.avg}</p>
-                    <p className="text-[10px] text-[#3d5068]">前四半期比 -0.8</p>
+                    <p className="text-[10px] text-falcon-subtle">前四半期比 -0.8</p>
                   </div>
-                  <div className="bg-[#070d19] rounded border border-[#1e2d42] p-3">
-                    <p className="text-xs text-[#7d92b0] mb-1">低減済みリスク</p>
+                  <div className="bg-[#070d19] rounded-sm border border-falcon-border p-3">
+                    <p className="text-xs text-falcon-muted mb-1">低減済みリスク</p>
                     <p className="text-2xl font-bold text-green-400">{risks.filter(r => r.status === 'mitigated').length}</p>
-                    <p className="text-[10px] text-[#3d5068]">当四半期</p>
+                    <p className="text-[10px] text-falcon-subtle">当四半期</p>
                   </div>
                 </div>
                 <div>
-                  <p className="text-xs font-semibold text-[#7d92b0] mb-2">上位5リスク（残存スコア順）</p>
+                  <p className="text-xs font-semibold text-falcon-muted mb-2">上位5リスク（残存スコア順）</p>
                   <div className="space-y-1.5">
                     {top5.map((r, i) => (
-                      <div key={r.id} className="flex items-center gap-3 p-2 bg-[#070d19] rounded border border-[#1e2d42]">
-                        <span className="text-xs text-[#3d5068] w-4">{i + 1}</span>
-                        <span className="text-xs font-mono text-[#e8002d]">{r.risk_id}</span>
+                      <div key={r.id} className="flex items-center gap-3 p-2 bg-[#070d19] rounded-sm border border-falcon-border">
+                        <span className="text-xs text-falcon-subtle w-4">{i + 1}</span>
+                        <span className="text-xs font-mono text-falcon-red">{r.risk_id}</span>
                         <span className="flex-1 text-xs text-[#c8d6e8] truncate">{r.title}</span>
                         <span className={`text-xs font-bold ${residualColor(r.residual_risk_score)}`}>{r.residual_risk_score}</span>
-                        <span className={`px-1.5 py-0.5 rounded border text-[10px] ${APPETITE_STYLES[r.risk_appetite]}`}>{APPETITE_LABELS[r.risk_appetite]}</span>
+                        <span className={`px-1.5 py-0.5 rounded-sm border text-[10px] ${APPETITE_STYLES[r.risk_appetite]}`}>{APPETITE_LABELS[r.risk_appetite]}</span>
                       </div>
                     ))}
                   </div>

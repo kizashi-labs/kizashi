@@ -253,7 +253,7 @@ export default function SigmaRulesPage() {
             onChange={e => setImportYaml(e.target.value)}
             placeholder="Paste Sigma rule YAML here..."
             rows={10}
-            className="w-full bg-zinc-950 border border-zinc-700 rounded-lg p-3 text-sm font-mono text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-blue-500 resize-none"
+            className="w-full bg-zinc-950 border border-zinc-700 rounded-lg p-3 text-sm font-mono text-zinc-100 placeholder-zinc-600 focus:outline-hidden focus:border-blue-500 resize-none"
           />
           {importMsg && (
             <div className={`flex items-center gap-2 mt-2 text-sm ${importMsg.ok ? 'text-green-400' : 'text-red-400'}`}>
@@ -294,7 +294,7 @@ export default function SigmaRulesPage() {
               <select
                 value={testRuleId}
                 onChange={e => setTestRuleId(e.target.value)}
-                className="w-full bg-zinc-800 border border-zinc-700 rounded-lg p-2 text-sm text-zinc-100 focus:outline-none focus:border-blue-500 mb-3"
+                className="w-full bg-zinc-800 border border-zinc-700 rounded-lg p-2 text-sm text-zinc-100 focus:outline-hidden focus:border-blue-500 mb-3"
               >
                 <option value="">— Choose a rule —</option>
                 {displayRules.map(r => (
@@ -306,7 +306,7 @@ export default function SigmaRulesPage() {
                 value={testEvent}
                 onChange={e => setTestEvent(e.target.value)}
                 rows={8}
-                className="w-full bg-zinc-950 border border-zinc-700 rounded-lg p-3 text-sm font-mono text-zinc-100 focus:outline-none focus:border-blue-500 resize-none"
+                className="w-full bg-zinc-950 border border-zinc-700 rounded-lg p-3 text-sm font-mono text-zinc-100 focus:outline-hidden focus:border-blue-500 resize-none"
               />
               <button
                 onClick={handleTest}
@@ -330,7 +330,7 @@ export default function SigmaRulesPage() {
                       <p className="text-xs text-zinc-500 mt-2 mb-1">Matched fields:</p>
                       <div className="flex flex-wrap gap-1">
                         {testResult.matched_fields.map(f => (
-                          <span key={f} className="px-2 py-0.5 bg-red-900 text-red-300 rounded text-xs">{f}</span>
+                          <span key={f} className="px-2 py-0.5 bg-red-900 text-red-300 rounded-sm text-xs">{f}</span>
                         ))}
                       </div>
                     </div>
@@ -354,7 +354,7 @@ export default function SigmaRulesPage() {
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Search rules or tags..."
-            className="w-full bg-zinc-900 border border-zinc-700 rounded-lg pl-9 pr-3 py-2 text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-blue-500"
+            className="w-full bg-zinc-900 border border-zinc-700 rounded-lg pl-9 pr-3 py-2 text-sm text-zinc-100 placeholder-zinc-500 focus:outline-hidden focus:border-blue-500"
           />
         </div>
         <div className="relative">
@@ -362,7 +362,7 @@ export default function SigmaRulesPage() {
           <select
             value={tagFilter}
             onChange={e => setTagFilter(e.target.value)}
-            className="bg-zinc-900 border border-zinc-700 rounded-lg pl-9 pr-3 py-2 text-sm text-zinc-100 focus:outline-none focus:border-blue-500 appearance-none"
+            className="bg-zinc-900 border border-zinc-700 rounded-lg pl-9 pr-3 py-2 text-sm text-zinc-100 focus:outline-hidden focus:border-blue-500 appearance-none"
           >
             <option value="all">All Tags</option>
             {allTags.map(t => <option key={t} value={t}>{t}</option>)}
@@ -414,15 +414,15 @@ export default function SigmaRulesPage() {
                   <td className="px-4 py-3">
                     <div className="flex flex-wrap gap-1">
                       {rule.tags.slice(0, 3).map(t => (
-                        <span key={t} className={`px-1.5 py-0.5 rounded text-xs ${tagColor(t)}`}>{t}</span>
+                        <span key={t} className={`px-1.5 py-0.5 rounded-sm text-xs ${tagColor(t)}`}>{t}</span>
                       ))}
                       {rule.tags.length > 3 && (
-                        <span className="px-1.5 py-0.5 rounded text-xs bg-zinc-700 text-zinc-400">+{rule.tags.length - 3}</span>
+                        <span className="px-1.5 py-0.5 rounded-sm text-xs bg-zinc-700 text-zinc-400">+{rule.tags.length - 3}</span>
                       )}
                     </div>
                   </td>
                   <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
-                    <span className={`px-2 py-0.5 rounded text-xs font-bold ${severityColor(rule.severity)}`}>
+                    <span className={`px-2 py-0.5 rounded-sm text-xs font-bold ${severityColor(rule.severity)}`}>
                       {rule.severity} — {severityLabel(rule.severity)}
                     </span>
                   </td>
@@ -438,7 +438,7 @@ export default function SigmaRulesPage() {
                   <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
                     <button
                       onClick={() => handleDelete(rule.id)}
-                      className="p-1.5 hover:bg-zinc-700 rounded text-zinc-500 hover:text-red-400"
+                      className="p-1.5 hover:bg-zinc-700 rounded-sm text-zinc-500 hover:text-red-400"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>

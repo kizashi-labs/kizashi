@@ -76,7 +76,7 @@ function FormatBadge({ format }: { format: 'JSON' | 'Syslog' | 'CEF' }) {
     CEF:    'bg-purple-500/20 text-purple-400 border-purple-500/30',
   }
   return (
-    <span className={`text-[11px] font-mono px-2 py-0.5 rounded border ${colors[format]}`}>
+    <span className={`text-[11px] font-mono px-2 py-0.5 rounded-sm border ${colors[format]}`}>
       {format}
     </span>
   )
@@ -89,12 +89,12 @@ function MaskedToken({ token }: { token: string }) {
   const masked = token.slice(0, 8) + '••••••••••••••••' + token.slice(-4)
   return (
     <div className="flex items-center gap-1">
-      <span className="font-mono text-[11px] text-[#7d92b0]">
+      <span className="font-mono text-[11px] text-falcon-muted">
         {visible ? token : masked}
       </span>
       <button
         onClick={() => setVisible(v => !v)}
-        className="p-0.5 text-[#3d5068] hover:text-[#7d92b0] transition-colors"
+        className="p-0.5 text-falcon-subtle hover:text-falcon-muted transition-colors"
         title={visible ? 'Hide token' : 'Show token'}
       >
         {visible ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
@@ -187,11 +187,11 @@ function CreateSourceModal({ onClose, onCreated }: CreateModalProps) {
   }
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg w-full max-w-md p-6 shadow-2xl">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-50">
+      <div className="bg-falcon-surface border border-falcon-border rounded-lg w-full max-w-md p-6 shadow-2xl">
         <div className="flex items-center justify-between mb-5">
           <h2 className="text-white font-semibold text-base">ログソース作成</h2>
-          <button onClick={onClose} className="text-[#3d5068] hover:text-[#7d92b0] transition-colors">
+          <button onClick={onClose} className="text-falcon-subtle hover:text-falcon-muted transition-colors">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -199,66 +199,66 @@ function CreateSourceModal({ onClose, onCreated }: CreateModalProps) {
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Name */}
           <div>
-            <label className="block text-xs text-[#7d92b0] mb-1.5 font-medium">
-              ソース名 <span className="text-[#e8002d]">*</span>
+            <label className="block text-xs text-falcon-muted mb-1.5 font-medium">
+              ソース名 <span className="text-falcon-red">*</span>
             </label>
             <input
               value={name}
               onChange={e => { setName(e.target.value); setNameError('') }}
               placeholder="例: prod-web-server"
-              className="w-full bg-[#070d19] border border-[#1e2d42] rounded px-3 py-2
-                         text-sm text-[#e2e8f4] placeholder-[#3d5068]
-                         focus:outline-none focus:border-[#e8002d]/50 transition-colors"
+              className="w-full bg-[#070d19] border border-falcon-border rounded px-3 py-2
+                         text-sm text-falcon-text placeholder-falcon-subtle
+                         focus:outline-hidden focus:border-falcon-red/50 transition-colors"
               required
             />
             {nameError && (
-              <p className="text-xs text-[#e8002d] mt-1">{nameError}</p>
+              <p className="text-xs text-falcon-red mt-1">{nameError}</p>
             )}
-            <p className="text-[11px] text-[#3d5068] mt-1">英数字とハイフンのみ使用可</p>
+            <p className="text-[11px] text-falcon-subtle mt-1">英数字とハイフンのみ使用可</p>
           </div>
 
           {/* Description */}
           <div>
-            <label className="block text-xs text-[#7d92b0] mb-1.5 font-medium">説明</label>
+            <label className="block text-xs text-falcon-muted mb-1.5 font-medium">説明</label>
             <textarea
               value={description}
               onChange={e => setDescription(e.target.value)}
               placeholder="説明（任意）"
               rows={2}
-              className="w-full bg-[#070d19] border border-[#1e2d42] rounded px-3 py-2
-                         text-sm text-[#e2e8f4] placeholder-[#3d5068] resize-none
-                         focus:outline-none focus:border-[#e8002d]/50 transition-colors"
+              className="w-full bg-[#070d19] border border-falcon-border rounded px-3 py-2
+                         text-sm text-falcon-text placeholder-falcon-subtle resize-none
+                         focus:outline-hidden focus:border-falcon-red/50 transition-colors"
             />
           </div>
 
           {/* Format */}
           <div>
-            <label className="block text-xs text-[#7d92b0] mb-2 font-medium">ログフォーマット</label>
+            <label className="block text-xs text-falcon-muted mb-2 font-medium">ログフォーマット</label>
             <div className="flex gap-3">
               {(['JSON', 'Syslog', 'CEF'] as const).map(f => (
                 <label key={f} className="flex items-center gap-2 cursor-pointer">
                   <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center transition-colors
-                    ${format === f ? 'border-[#e8002d] bg-[#e8002d]/20' : 'border-[#3d5068]'}`}
+                    ${format === f ? 'border-falcon-red bg-falcon-red/20' : 'border-falcon-subtle'}`}
                     onClick={() => setFormat(f)}
                   >
-                    {format === f && <div className="w-2 h-2 rounded-full bg-[#e8002d]" />}
+                    {format === f && <div className="w-2 h-2 rounded-full bg-falcon-red" />}
                   </div>
-                  <span className="text-sm text-[#e2e8f4]">{f}</span>
+                  <span className="text-sm text-falcon-text">{f}</span>
                 </label>
               ))}
             </div>
           </div>
 
           {/* Token Note */}
-          <div className="bg-[#070d19] border border-[#1e2d42] rounded p-3">
-            <p className="text-[11px] text-[#7d92b0]">
+          <div className="bg-[#070d19] border border-falcon-border rounded-sm p-3">
+            <p className="text-[11px] text-falcon-muted">
               作成後に取り込みトークンが自動生成されます。
               このダイアログを閉じると再表示されないため、安全な場所に保存してください。
             </p>
           </div>
 
           {mutation.isError && (
-            <div className="bg-red-500/10 border border-red-500/30 rounded p-3">
+            <div className="bg-red-500/10 border border-red-500/30 rounded-sm p-3">
               <p className="text-xs text-red-400">{(mutation.error as Error).message}</p>
             </div>
           )}
@@ -267,14 +267,14 @@ function CreateSourceModal({ onClose, onCreated }: CreateModalProps) {
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-sm text-[#7d92b0] hover:text-[#e2e8f4] transition-colors"
+              className="px-4 py-2 text-sm text-falcon-muted hover:text-falcon-text transition-colors"
             >
               キャンセル
             </button>
             <button
               type="submit"
               disabled={mutation.isPending}
-              className="px-4 py-2 text-sm bg-[#e8002d] hover:bg-[#c0001e] text-white
+              className="px-4 py-2 text-sm bg-falcon-red hover:bg-[#c0001e] text-white
                          rounded font-medium transition-colors disabled:opacity-50"
             >
               {mutation.isPending ? '作成中...' : 'ソースを作成'}
@@ -297,31 +297,31 @@ interface TokenRevealProps {
 function TokenRevealModal({ source, token, onClose }: TokenRevealProps) {
   const { copied, copy } = useCopyToClipboard()
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg w-full max-w-md p-6 shadow-2xl">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-50">
+      <div className="bg-falcon-surface border border-falcon-border rounded-lg w-full max-w-md p-6 shadow-2xl">
         <div className="flex items-center gap-3 mb-4">
-          <div className="w-9 h-9 rounded-full bg-green-500/20 flex items-center justify-center flex-shrink-0">
+          <div className="w-9 h-9 rounded-full bg-green-500/20 flex items-center justify-center shrink-0">
             <CheckCircle2 className="w-5 h-5 text-green-400" />
           </div>
           <div>
             <h2 className="text-white font-semibold text-base">ソースを作成しました</h2>
-            <p className="text-xs text-[#7d92b0]">{source.name}</p>
+            <p className="text-xs text-falcon-muted">{source.name}</p>
           </div>
         </div>
 
-        <div className="bg-amber-500/10 border border-amber-500/30 rounded p-3 mb-4">
+        <div className="bg-amber-500/10 border border-amber-500/30 rounded-sm p-3 mb-4">
           <p className="text-xs text-amber-400 font-medium">
             このトークンを今すぐ保存してください — 再表示されません。
           </p>
         </div>
 
-        <div className="bg-[#070d19] border border-[#1e2d42] rounded p-3 mb-4">
-          <p className="text-[11px] text-[#7d92b0] mb-1">取り込みトークン</p>
+        <div className="bg-[#070d19] border border-falcon-border rounded-sm p-3 mb-4">
+          <p className="text-[11px] text-falcon-muted mb-1">取り込みトークン</p>
           <div className="flex items-center gap-2">
-            <code className="flex-1 text-[12px] font-mono text-[#e2e8f4] break-all">{token}</code>
+            <code className="flex-1 text-[12px] font-mono text-falcon-text break-all">{token}</code>
             <button
               onClick={() => copy(token, 'modal-token')}
-              className="flex-shrink-0 p-1.5 rounded bg-[#1e2d42] hover:bg-[#2a3f5c] text-[#7d92b0] transition-colors"
+              className="shrink-0 p-1.5 rounded-sm bg-falcon-border hover:bg-[#2a3f5c] text-falcon-muted transition-colors"
             >
               {copied === 'modal-token' ? <Check className="w-3.5 h-3.5 text-green-400" /> : <Copy className="w-3.5 h-3.5" />}
             </button>
@@ -330,7 +330,7 @@ function TokenRevealModal({ source, token, onClose }: TokenRevealProps) {
 
         <button
           onClick={onClose}
-          className="w-full py-2 text-sm bg-[#e8002d] hover:bg-[#c0001e] text-white rounded font-medium transition-colors"
+          className="w-full py-2 text-sm bg-falcon-red hover:bg-[#c0001e] text-white rounded-sm font-medium transition-colors"
         >
           トークンを保存しました
         </button>
@@ -350,32 +350,32 @@ interface DeleteModalProps {
 
 function DeleteModal({ source, onConfirm, onCancel, isPending }: DeleteModalProps) {
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg w-full max-w-sm p-6 shadow-2xl">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-50">
+      <div className="bg-falcon-surface border border-falcon-border rounded-lg w-full max-w-sm p-6 shadow-2xl">
         <div className="flex items-center gap-3 mb-4">
-          <div className="w-9 h-9 rounded-full bg-red-500/20 flex items-center justify-center flex-shrink-0">
+          <div className="w-9 h-9 rounded-full bg-red-500/20 flex items-center justify-center shrink-0">
             <AlertCircle className="w-5 h-5 text-red-400" />
           </div>
           <div>
             <h2 className="text-white font-semibold">ログソースを削除</h2>
-            <p className="text-xs text-[#7d92b0]">この操作は取り消せません</p>
+            <p className="text-xs text-falcon-muted">この操作は取り消せません</p>
           </div>
         </div>
-        <p className="text-sm text-[#7d92b0] mb-5">
+        <p className="text-sm text-falcon-muted mb-5">
           <span className="text-white font-medium">{source.name}</span> を削除しますか？
           すべての取り込み履歴が失われます。
         </p>
         <div className="flex gap-3">
           <button
             onClick={onCancel}
-            className="flex-1 py-2 text-sm border border-[#1e2d42] text-[#7d92b0] hover:text-[#e2e8f4] rounded transition-colors"
+            className="flex-1 py-2 text-sm border border-falcon-border text-falcon-muted hover:text-falcon-text rounded-sm transition-colors"
           >
             キャンセル
           </button>
           <button
             onClick={onConfirm}
             disabled={isPending}
-            className="flex-1 py-2 text-sm bg-red-600 hover:bg-red-700 text-white rounded font-medium transition-colors disabled:opacity-50"
+            className="flex-1 py-2 text-sm bg-red-600 hover:bg-red-700 text-white rounded-sm font-medium transition-colors disabled:opacity-50"
           >
             {isPending ? '削除中...' : '削除'}
           </button>
@@ -423,16 +423,16 @@ function SourceDetailPanel({ source, onRegenerateToken, isRegenerating }: Detail
   })
 
   return (
-    <div className="border-t border-[#1e2d42] bg-[#070d19]/60 p-5 space-y-5">
+    <div className="border-t border-falcon-border bg-[#070d19]/60 p-5 space-y-5">
       {/* Token Management */}
       <div>
-        <h4 className="text-xs font-semibold text-[#7d92b0] uppercase tracking-wider mb-3">取り込みトークン</h4>
-        <div className="flex items-center gap-2 bg-[#0d1220] border border-[#1e2d42] rounded p-3">
-          <code className="flex-1 font-mono text-[12px] text-[#e2e8f4] truncate">{source.token}</code>
+        <h4 className="text-xs font-semibold text-falcon-muted uppercase tracking-wider mb-3">取り込みトークン</h4>
+        <div className="flex items-center gap-2 bg-falcon-surface border border-falcon-border rounded-sm p-3">
+          <code className="flex-1 font-mono text-[12px] text-falcon-text truncate">{source.token}</code>
           <button
             onClick={() => copy(source.token, `token-${source.id}`)}
-            className="flex-shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 text-xs
-                       bg-[#1e2d42] hover:bg-[#2a3f5c] text-[#7d92b0] hover:text-[#e2e8f4]
+            className="shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 text-xs
+                       bg-falcon-border hover:bg-[#2a3f5c] text-falcon-muted hover:text-falcon-text
                        rounded transition-colors"
           >
             {copied === `token-${source.id}` ? (
@@ -452,14 +452,14 @@ function SourceDetailPanel({ source, onRegenerateToken, isRegenerating }: Detail
               再生成
             </button>
             {showRegenConfirm && (
-              <div className="absolute right-0 top-9 bg-[#0d1220] border border-[#1e2d42] rounded-lg p-3 shadow-xl z-10 w-56">
-                <p className="text-xs text-[#7d92b0] mb-3">
+              <div className="absolute right-0 top-9 bg-falcon-surface border border-falcon-border rounded-lg p-3 shadow-xl z-10 w-56">
+                <p className="text-xs text-falcon-muted mb-3">
                   再生成すると現在のトークンが無効になります。送信元のすべてのシステムでトークンの更新が必要です。
                 </p>
                 <div className="flex gap-2">
                   <button
                     onClick={() => setShowRegenConfirm(false)}
-                    className="flex-1 text-xs py-1.5 border border-[#1e2d42] text-[#7d92b0] rounded transition-colors hover:text-[#e2e8f4]"
+                    className="flex-1 text-xs py-1.5 border border-falcon-border text-falcon-muted rounded-sm transition-colors hover:text-falcon-text"
                   >
                     キャンセル
                   </button>
@@ -469,7 +469,7 @@ function SourceDetailPanel({ source, onRegenerateToken, isRegenerating }: Detail
                       onRegenerateToken(source.id)
                     }}
                     disabled={isRegenerating}
-                    className="flex-1 text-xs py-1.5 bg-amber-500 hover:bg-amber-600 text-black rounded font-medium transition-colors disabled:opacity-50"
+                    className="flex-1 text-xs py-1.5 bg-amber-500 hover:bg-amber-600 text-black rounded-sm font-medium transition-colors disabled:opacity-50"
                   >
                     確認
                   </button>
@@ -483,30 +483,30 @@ function SourceDetailPanel({ source, onRegenerateToken, isRegenerating }: Detail
       {/* 24h Ingestion Chart */}
       <div>
         <div className="flex items-center justify-between mb-3">
-          <h4 className="text-xs font-semibold text-[#7d92b0] uppercase tracking-wider">24時間の取り込み数</h4>
-          <span className="text-[11px] text-[#3d5068]">
+          <h4 className="text-xs font-semibold text-falcon-muted uppercase tracking-wider">24時間の取り込み数</h4>
+          <span className="text-[11px] text-falcon-subtle">
             合計: {fmtNumber(chartData.reduce((a, b) => a + b, 0))} イベント
           </span>
         </div>
-        <div className="bg-[#0d1220] border border-[#1e2d42] rounded p-3">
+        <div className="bg-falcon-surface border border-falcon-border rounded-sm p-3">
           <IngestChart data={chartData} />
           <div className="flex justify-between mt-1">
-            <span className="text-[10px] text-[#3d5068]">{hours[0]}</span>
-            <span className="text-[10px] text-[#3d5068]">{hours[11]}</span>
-            <span className="text-[10px] text-[#3d5068]">現在</span>
+            <span className="text-[10px] text-falcon-subtle">{hours[0]}</span>
+            <span className="text-[10px] text-falcon-subtle">{hours[11]}</span>
+            <span className="text-[10px] text-falcon-subtle">現在</span>
           </div>
         </div>
       </div>
 
       {/* Sample Command */}
       <div>
-        <h4 className="text-xs font-semibold text-[#7d92b0] uppercase tracking-wider mb-3">取り込みコマンド例</h4>
-        <div className="bg-[#070d19] border border-[#1e2d42] rounded">
-          <div className="flex items-center justify-between px-3 py-2 border-b border-[#1e2d42]">
-            <span className="text-[11px] text-[#3d5068] font-mono">bash</span>
+        <h4 className="text-xs font-semibold text-falcon-muted uppercase tracking-wider mb-3">取り込みコマンド例</h4>
+        <div className="bg-[#070d19] border border-falcon-border rounded-sm">
+          <div className="flex items-center justify-between px-3 py-2 border-b border-falcon-border">
+            <span className="text-[11px] text-falcon-subtle font-mono">bash</span>
             <button
               onClick={() => copy(curlCommand, `cmd-${source.id}`)}
-              className="flex items-center gap-1.5 text-xs text-[#7d92b0] hover:text-[#e2e8f4] transition-colors"
+              className="flex items-center gap-1.5 text-xs text-falcon-muted hover:text-falcon-text transition-colors"
             >
               {copied === `cmd-${source.id}` ? (
                 <><Check className="w-3.5 h-3.5 text-green-400" /> コピーしました</>
@@ -515,7 +515,7 @@ function SourceDetailPanel({ source, onRegenerateToken, isRegenerating }: Detail
               )}
             </button>
           </div>
-          <pre className="p-3 text-[11px] font-mono text-[#e2e8f4] overflow-x-auto whitespace-pre-wrap break-all leading-relaxed">
+          <pre className="p-3 text-[11px] font-mono text-falcon-text overflow-x-auto whitespace-pre-wrap break-all leading-relaxed">
             {curlCommand}
           </pre>
         </div>
@@ -633,8 +633,8 @@ export default function LogSourcesPage() {
       label: '今日の取り込み数',
       value: fmtNumber(data?.ingested_today ?? 0),
       icon: FileInput,
-      color: 'text-[#e8002d]',
-      bg: 'bg-[#e8002d]/10',
+      color: 'text-falcon-red',
+      bg: 'bg-falcon-red/10',
     },
     {
       label: '今日のエラー数',
@@ -651,18 +651,18 @@ export default function LogSourcesPage() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <div className="flex items-center gap-2.5 mb-1">
-            <div className="w-7 h-7 rounded bg-[#e8002d]/20 flex items-center justify-center">
-              <FileInput className="w-4 h-4 text-[#e8002d]" />
+            <div className="w-7 h-7 rounded-sm bg-falcon-red/20 flex items-center justify-center">
+              <FileInput className="w-4 h-4 text-falcon-red" />
             </div>
             <h1 className="text-xl font-bold text-white">ログソース</h1>
           </div>
-          <p className="text-sm text-[#7d92b0] ml-9">
+          <p className="text-sm text-falcon-muted ml-9">
             外部ログソースの取り込みエンドポイントと認証トークンを管理します
           </p>
         </div>
         <button
           onClick={() => setShowCreate(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-[#e8002d] hover:bg-[#c0001e]
+          className="flex items-center gap-2 px-4 py-2 bg-falcon-red hover:bg-[#c0001e]
                      text-white text-sm font-medium rounded transition-colors"
         >
           <Plus className="w-4 h-4" />
@@ -673,14 +673,14 @@ export default function LogSourcesPage() {
       {/* ── Stats Row ──────────────────────────────────────────────────────── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         {statsCards.map(({ label, value, icon: Icon, color, bg }) => (
-          <div key={label} className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-4">
+          <div key={label} className="bg-falcon-surface border border-falcon-border rounded-lg p-4">
             <div className="flex items-center gap-3">
-              <div className={`w-9 h-9 rounded ${bg} flex items-center justify-center flex-shrink-0`}>
+              <div className={`w-9 h-9 rounded-sm ${bg} flex items-center justify-center shrink-0`}>
                 <Icon className={`w-4.5 h-4.5 ${color}`} />
               </div>
               <div>
                 <p className="text-2xl font-bold text-white">{value}</p>
-                <p className="text-xs text-[#7d92b0]">{label}</p>
+                <p className="text-xs text-falcon-muted">{label}</p>
               </div>
             </div>
           </div>
@@ -688,31 +688,31 @@ export default function LogSourcesPage() {
       </div>
 
       {/* ── Sources Table ──────────────────────────────────────────────────── */}
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg overflow-hidden">
-        <div className="px-5 py-4 border-b border-[#1e2d42] flex items-center justify-between">
+      <div className="bg-falcon-surface border border-falcon-border rounded-lg overflow-hidden">
+        <div className="px-5 py-4 border-b border-falcon-border flex items-center justify-between">
           <h2 className="text-sm font-semibold text-white">ログソース</h2>
-          <span className="text-xs text-[#3d5068]">{sources.length} ソース</span>
+          <span className="text-xs text-falcon-subtle">{sources.length} ソース</span>
         </div>
 
         {isLoading && (
           <div className="py-16 text-center">
-            <div className="w-7 h-7 border-2 border-[#1e2d42] border-t-[#e8002d] rounded-full animate-spin mx-auto mb-3" />
-            <p className="text-sm text-[#3d5068]">ログソースを読み込み中...</p>
+            <div className="w-7 h-7 border-2 border-falcon-border border-t-falcon-red rounded-full animate-spin mx-auto mb-3" />
+            <p className="text-sm text-falcon-subtle">ログソースを読み込み中...</p>
           </div>
         )}
 
         {isError && (
           <div className="py-12 text-center">
             <AlertCircle className="w-8 h-8 text-red-400 mx-auto mb-3" />
-            <p className="text-sm text-[#7d92b0]">ログソースの読み込みに失敗しました</p>
+            <p className="text-sm text-falcon-muted">ログソースの読み込みに失敗しました</p>
           </div>
         )}
 
         {!isLoading && !isError && sources.length === 0 && (
           <div className="py-16 text-center">
-            <FileInput className="w-10 h-10 text-[#3d5068] mx-auto mb-3" />
-            <p className="text-sm text-[#7d92b0] mb-1">ログソースが設定されていません</p>
-            <p className="text-xs text-[#3d5068]">最初のログソースを作成して外部ログの取り込みを開始してください</p>
+            <FileInput className="w-10 h-10 text-falcon-subtle mx-auto mb-3" />
+            <p className="text-sm text-falcon-muted mb-1">ログソースが設定されていません</p>
+            <p className="text-xs text-falcon-subtle">最初のログソースを作成して外部ログの取り込みを開始してください</p>
           </div>
         )}
 
@@ -720,8 +720,8 @@ export default function LogSourcesPage() {
           <div>
             {/* Table Header */}
             <div className="grid grid-cols-[1fr_100px_80px_120px_160px_180px_120px] gap-4 px-5 py-2.5
-                            text-[11px] font-semibold uppercase tracking-wider text-[#3d5068]
-                            border-b border-[#1e2d42]">
+                            text-[11px] font-semibold uppercase tracking-wider text-falcon-subtle
+                            border-b border-falcon-border">
               <div>名前</div>
               <div>フォーマット</div>
               <div>ステータス</div>
@@ -735,7 +735,7 @@ export default function LogSourcesPage() {
             {sources.map(source => {
               const isExpanded = expandedId === source.id
               return (
-                <div key={source.id} className="border-b border-[#1e2d42] last:border-0">
+                <div key={source.id} className="border-b border-falcon-border last:border-0">
                   <div
                     className="grid grid-cols-[1fr_100px_80px_120px_160px_180px_120px] gap-4 px-5 py-3.5
                                 items-center hover:bg-[#0a1525] transition-colors cursor-pointer"
@@ -744,13 +744,13 @@ export default function LogSourcesPage() {
                     {/* Name */}
                     <div className="flex items-center gap-2 min-w-0">
                       {isExpanded
-                        ? <ChevronUp className="w-3.5 h-3.5 text-[#3d5068] flex-shrink-0" />
-                        : <ChevronDown className="w-3.5 h-3.5 text-[#3d5068] flex-shrink-0" />
+                        ? <ChevronUp className="w-3.5 h-3.5 text-falcon-subtle shrink-0" />
+                        : <ChevronDown className="w-3.5 h-3.5 text-falcon-subtle shrink-0" />
                       }
                       <div className="min-w-0">
-                        <p className="text-sm font-medium text-[#e2e8f4] truncate">{source.name}</p>
+                        <p className="text-sm font-medium text-falcon-text truncate">{source.name}</p>
                         {source.description && (
-                          <p className="text-[11px] text-[#3d5068] truncate">{source.description}</p>
+                          <p className="text-[11px] text-falcon-subtle truncate">{source.description}</p>
                         )}
                       </div>
                     </div>
@@ -765,12 +765,12 @@ export default function LogSourcesPage() {
                       <button
                         onClick={() => toggleMutation.mutate({ id: source.id, enabled: !source.enabled })}
                         className={`relative w-10 h-5.5 rounded-full transition-colors ${
-                          source.enabled ? 'bg-green-500' : 'bg-[#1e2d42]'
+                          source.enabled ? 'bg-green-500' : 'bg-falcon-border'
                         }`}
                         style={{ height: '22px' }}
                         title={source.enabled ? 'Disable source' : 'Enable source'}
                       >
-                        <span className={`absolute top-0.5 w-4.5 h-4.5 bg-[#e2e8f4] rounded-full shadow transition-transform ${
+                        <span className={`absolute top-0.5 w-4.5 h-4.5 bg-falcon-text rounded-full shadow transition-transform ${
                           source.enabled ? 'translate-x-5' : 'translate-x-0.5'
                         }`}
                           style={{ width: '18px', height: '18px', top: '2px', left: source.enabled ? '20px' : '2px', position: 'absolute', transition: 'left 0.15s' }}
@@ -779,12 +779,12 @@ export default function LogSourcesPage() {
                     </div>
 
                     {/* Total Ingested */}
-                    <div className="text-sm text-[#e2e8f4] font-mono">
+                    <div className="text-sm text-falcon-text font-mono">
                       {fmtNumber(source.total_ingested)}
                     </div>
 
                     {/* Last Received */}
-                    <div className="text-sm text-[#7d92b0]">
+                    <div className="text-sm text-falcon-muted">
                       {fmtTime(source.last_received_at)}
                     </div>
 
@@ -800,7 +800,7 @@ export default function LogSourcesPage() {
                     >
                       <button
                         onClick={() => copy(source.token, `row-token-${source.id}`)}
-                        className="p-1.5 rounded text-[#3d5068] hover:text-[#7d92b0] hover:bg-[#1e2d42] transition-colors"
+                        className="p-1.5 rounded-sm text-falcon-subtle hover:text-falcon-muted hover:bg-falcon-border transition-colors"
                         title="Copy token"
                       >
                         {copied === `row-token-${source.id}`
@@ -810,7 +810,7 @@ export default function LogSourcesPage() {
                       </button>
                       <button
                         onClick={() => setDeleteTarget(source)}
-                        className="p-1.5 rounded text-[#3d5068] hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                        className="p-1.5 rounded-sm text-falcon-subtle hover:text-red-400 hover:bg-red-500/10 transition-colors"
                         title="Delete source"
                       >
                         <Trash2 className="w-3.5 h-3.5" />

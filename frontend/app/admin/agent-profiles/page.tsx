@@ -82,7 +82,7 @@ const LOG_LEVELS = ['debug', 'info', 'warn', 'error'] as const
 
 const MonitorCheck = ({ enabled, label }: { enabled: boolean; label: string }) => (
   <div className="flex items-center gap-1.5 text-xs">
-    <CheckCircle className={`w-3.5 h-3.5 flex-shrink-0 ${enabled ? 'text-green-400' : 'text-zinc-700'}`} />
+    <CheckCircle className={`w-3.5 h-3.5 shrink-0 ${enabled ? 'text-green-400' : 'text-zinc-700'}`} />
     <span className={enabled ? 'text-zinc-300' : 'text-zinc-600'}>{label}</span>
   </div>
 )
@@ -180,7 +180,7 @@ export default function AgentProfilesPage() {
             type="number"
             value={config.collection_interval}
             onChange={e => setConfig({ ...config, collection_interval: Number(e.target.value) })}
-            className="w-full px-2.5 py-1.5 bg-zinc-950 border border-zinc-700 rounded text-sm text-zinc-200 focus:outline-none focus:border-zinc-500"
+            className="w-full px-2.5 py-1.5 bg-zinc-950 border border-zinc-700 rounded-sm text-sm text-zinc-200 focus:outline-hidden focus:border-zinc-500"
             min={5}
           />
         </div>
@@ -190,7 +190,7 @@ export default function AgentProfilesPage() {
             type="number"
             value={config.max_events_per_min}
             onChange={e => setConfig({ ...config, max_events_per_min: Number(e.target.value) })}
-            className="w-full px-2.5 py-1.5 bg-zinc-950 border border-zinc-700 rounded text-sm text-zinc-200 focus:outline-none focus:border-zinc-500"
+            className="w-full px-2.5 py-1.5 bg-zinc-950 border border-zinc-700 rounded-sm text-sm text-zinc-200 focus:outline-hidden focus:border-zinc-500"
             min={100}
           />
         </div>
@@ -200,7 +200,7 @@ export default function AgentProfilesPage() {
             type="number"
             value={config.heartbeat_interval}
             onChange={e => setConfig({ ...config, heartbeat_interval: Number(e.target.value) })}
-            className="w-full px-2.5 py-1.5 bg-zinc-950 border border-zinc-700 rounded text-sm text-zinc-200 focus:outline-none focus:border-zinc-500"
+            className="w-full px-2.5 py-1.5 bg-zinc-950 border border-zinc-700 rounded-sm text-sm text-zinc-200 focus:outline-hidden focus:border-zinc-500"
             min={10}
           />
         </div>
@@ -239,7 +239,7 @@ export default function AgentProfilesPage() {
                 type="checkbox"
                 checked={config[key as keyof ProfileConfig] as boolean}
                 onChange={e => setConfig({ ...config, [key]: e.target.checked })}
-                className="w-3.5 h-3.5 rounded accent-blue-500"
+                className="w-3.5 h-3.5 rounded-sm accent-blue-500"
               />
               <span className="text-sm text-zinc-300">{label}</span>
             </label>
@@ -254,7 +254,7 @@ export default function AgentProfilesPage() {
             value={config.file_monitor_paths}
             onChange={e => setConfig({ ...config, file_monitor_paths: e.target.value })}
             rows={4}
-            className="w-full px-2.5 py-1.5 bg-zinc-950 border border-zinc-700 rounded text-sm text-zinc-200 font-mono focus:outline-none focus:border-zinc-500 resize-none"
+            className="w-full px-2.5 py-1.5 bg-zinc-950 border border-zinc-700 rounded-sm text-sm text-zinc-200 font-mono focus:outline-hidden focus:border-zinc-500 resize-none"
           />
         </div>
       )}
@@ -286,7 +286,7 @@ export default function AgentProfilesPage() {
                     <select
                       value={pushAgentId}
                       onChange={e => setPushAgentId(e.target.value)}
-                      className="w-full appearance-none px-3 py-2 bg-zinc-800 border border-zinc-700 rounded text-sm text-zinc-200 focus:outline-none focus:border-blue-500/50 pr-8"
+                      className="w-full appearance-none px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-sm text-sm text-zinc-200 focus:outline-hidden focus:border-blue-500/50 pr-8"
                     >
                       <option value="">エージェントを選択...</option>
                       {agentsList.map(a => (
@@ -298,14 +298,14 @@ export default function AgentProfilesPage() {
                   <div className="flex gap-3">
                     <button
                       onClick={() => { setPushModalId(null); setPushAgentId('') }}
-                      className="flex-1 py-2 rounded border border-zinc-700 text-zinc-400 text-sm hover:text-zinc-200 transition-colors"
+                      className="flex-1 py-2 rounded-sm border border-zinc-700 text-zinc-400 text-sm hover:text-zinc-200 transition-colors"
                     >
                       キャンセル
                     </button>
                     <button
                       onClick={() => handlePush(pushModalId)}
                       disabled={!pushAgentId.trim() || pushLoading}
-                      className="flex-1 py-2 rounded bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
+                      className="flex-1 py-2 rounded-sm bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
                     >
                       {pushLoading ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
                       適用
@@ -353,7 +353,7 @@ export default function AgentProfilesPage() {
               <input
                 value={newProfileForm.name}
                 onChange={e => setNewProfileForm(f => ({ ...f, name: e.target.value }))}
-                className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded text-sm text-zinc-200 focus:outline-none focus:border-zinc-500"
+                className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-sm text-sm text-zinc-200 focus:outline-hidden focus:border-zinc-500"
                 placeholder="マイプロファイル"
               />
             </div>
@@ -362,7 +362,7 @@ export default function AgentProfilesPage() {
               <select
                 value={newProfileForm.os_type}
                 onChange={e => setNewProfileForm(f => ({ ...f, os_type: e.target.value as OSType }))}
-                className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded text-sm text-zinc-200 focus:outline-none focus:border-zinc-500"
+                className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-sm text-sm text-zinc-200 focus:outline-hidden focus:border-zinc-500"
               >
                 {(['Windows', 'Linux', 'macOS', 'All'] as OSType[]).map(os => (
                   <option key={os} value={os}>{os === 'All' ? '全OS' : os}</option>
@@ -374,7 +374,7 @@ export default function AgentProfilesPage() {
               <input
                 value={newProfileForm.description}
                 onChange={e => setNewProfileForm(f => ({ ...f, description: e.target.value }))}
-                className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded text-sm text-zinc-200 focus:outline-none focus:border-zinc-500"
+                className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-sm text-sm text-zinc-200 focus:outline-hidden focus:border-zinc-500"
                 placeholder="任意の説明"
               />
             </div>
@@ -387,7 +387,7 @@ export default function AgentProfilesPage() {
             <button
               onClick={handleCreateProfile}
               disabled={!newProfileForm.name}
-              className="px-5 py-2 rounded bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors"
+              className="px-5 py-2 rounded-sm bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors"
             >
               プロファイルを作成
             </button>
@@ -408,13 +408,13 @@ export default function AgentProfilesPage() {
               <div className="px-5 py-4 flex items-start justify-between gap-4">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1 flex-wrap">
-                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium border ${osCfg.className}`}>
+                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-[11px] font-medium border ${osCfg.className}`}>
                       {osCfg.icon}
                       {osCfg.label}
                     </span>
                     <span className="text-zinc-100 font-semibold">{profile.name}</span>
                     {profile.is_default && (
-                      <span className="px-2 py-0.5 rounded bg-blue-500/15 text-blue-400 border border-blue-500/30 text-[10px] font-medium">
+                      <span className="px-2 py-0.5 rounded-sm bg-blue-500/15 text-blue-400 border border-blue-500/30 text-[10px] font-medium">
                         デフォルト
                       </span>
                     )}
@@ -428,24 +428,24 @@ export default function AgentProfilesPage() {
                 </div>
 
                 {/* Actions */}
-                <div className="flex items-center gap-2 flex-shrink-0">
+                <div className="flex items-center gap-2 shrink-0">
                   <button
                     onClick={() => setPushModalId(profile.id)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded bg-zinc-800 text-zinc-300 hover:text-zinc-100 text-xs transition-colors"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-sm bg-zinc-800 text-zinc-300 hover:text-zinc-100 text-xs transition-colors"
                   >
                     <Upload className="w-3.5 h-3.5" />
                     エージェントに適用
                   </button>
                   <button
                     onClick={() => openEdit(profile)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded bg-zinc-800 text-zinc-300 hover:text-zinc-100 text-xs transition-colors"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-sm bg-zinc-800 text-zinc-300 hover:text-zinc-100 text-xs transition-colors"
                   >
                     <Edit3 className="w-3.5 h-3.5" />
                     編集
                   </button>
                   <button
                     onClick={() => setExpandedId(isExpanded && !isEditing ? null : profile.id)}
-                    className="p-1.5 rounded hover:bg-zinc-800 text-zinc-500 hover:text-zinc-300 transition-colors"
+                    className="p-1.5 rounded-sm hover:bg-zinc-800 text-zinc-500 hover:text-zinc-300 transition-colors"
                   >
                     {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                   </button>
@@ -462,13 +462,13 @@ export default function AgentProfilesPage() {
                       <div className="flex justify-end gap-3 mt-4">
                         <button
                           onClick={() => setEditingId(null)}
-                          className="px-4 py-2 rounded text-sm text-zinc-400 hover:text-zinc-200 transition-colors"
+                          className="px-4 py-2 rounded-sm text-sm text-zinc-400 hover:text-zinc-200 transition-colors"
                         >
                           キャンセル
                         </button>
                         <button
                           onClick={() => handleSaveEdit(profile.id)}
-                          className="px-4 py-2 rounded bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition-colors"
+                          className="px-4 py-2 rounded-sm bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition-colors"
                         >
                           変更を保存
                         </button>

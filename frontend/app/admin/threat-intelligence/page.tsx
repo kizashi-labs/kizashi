@@ -228,7 +228,7 @@ export default function ThreatIntelligencePage() {
             <h2 className="text-zinc-100 font-semibold">インテリジェンスフィード</h2>
             <button
               onClick={() => setShowAddFeed(v => !v)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded bg-zinc-800 text-zinc-300 hover:text-zinc-100 text-sm transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-sm bg-zinc-800 text-zinc-300 hover:text-zinc-100 text-sm transition-colors"
             >
               <Plus className="w-3.5 h-3.5" />
               フィード追加
@@ -249,7 +249,7 @@ export default function ThreatIntelligencePage() {
                   <input
                     value={feedForm.name}
                     onChange={e => setFeedForm(f => ({ ...f, name: e.target.value }))}
-                    className="w-full px-2.5 py-1.5 bg-zinc-900 border border-zinc-700 rounded text-sm text-zinc-200 focus:outline-none focus:border-blue-500/50"
+                    className="w-full px-2.5 py-1.5 bg-zinc-900 border border-zinc-700 rounded-sm text-sm text-zinc-200 focus:outline-hidden focus:border-blue-500/50"
                     placeholder="フィード名"
                   />
                 </div>
@@ -258,7 +258,7 @@ export default function ThreatIntelligencePage() {
                   <select
                     value={feedForm.type}
                     onChange={e => setFeedForm(f => ({ ...f, type: e.target.value as FeedType }))}
-                    className="w-full px-2.5 py-1.5 bg-zinc-900 border border-zinc-700 rounded text-sm text-zinc-200 focus:outline-none focus:border-blue-500/50"
+                    className="w-full px-2.5 py-1.5 bg-zinc-900 border border-zinc-700 rounded-sm text-sm text-zinc-200 focus:outline-hidden focus:border-blue-500/50"
                   >
                     {(['MISP', 'OpenCTI', 'CSV', 'Static'] as FeedType[]).map(t => (
                       <option key={t} value={t}>{t}</option>
@@ -271,7 +271,7 @@ export default function ThreatIntelligencePage() {
                 <input
                   value={feedForm.url}
                   onChange={e => setFeedForm(f => ({ ...f, url: e.target.value }))}
-                  className="w-full px-2.5 py-1.5 bg-zinc-900 border border-zinc-700 rounded text-sm text-zinc-200 focus:outline-none focus:border-blue-500/50"
+                  className="w-full px-2.5 py-1.5 bg-zinc-900 border border-zinc-700 rounded-sm text-sm text-zinc-200 focus:outline-hidden focus:border-blue-500/50"
                   placeholder="https://..."
                 />
               </div>
@@ -282,7 +282,7 @@ export default function ThreatIntelligencePage() {
                     type="password"
                     value={feedForm.api_key}
                     onChange={e => setFeedForm(f => ({ ...f, api_key: e.target.value }))}
-                    className="w-full px-2.5 py-1.5 bg-zinc-900 border border-zinc-700 rounded text-sm text-zinc-200 focus:outline-none focus:border-blue-500/50"
+                    className="w-full px-2.5 py-1.5 bg-zinc-900 border border-zinc-700 rounded-sm text-sm text-zinc-200 focus:outline-hidden focus:border-blue-500/50"
                     placeholder="任意"
                   />
                 </div>
@@ -292,7 +292,7 @@ export default function ThreatIntelligencePage() {
                     type="number"
                     value={feedForm.fetch_interval}
                     onChange={e => setFeedForm(f => ({ ...f, fetch_interval: Number(e.target.value) }))}
-                    className="w-full px-2.5 py-1.5 bg-zinc-900 border border-zinc-700 rounded text-sm text-zinc-200 focus:outline-none focus:border-blue-500/50"
+                    className="w-full px-2.5 py-1.5 bg-zinc-900 border border-zinc-700 rounded-sm text-sm text-zinc-200 focus:outline-hidden focus:border-blue-500/50"
                     min={5}
                   />
                 </div>
@@ -300,7 +300,7 @@ export default function ThreatIntelligencePage() {
               <button
                 onClick={handleAddFeed}
                 disabled={!feedForm.name || !feedForm.url}
-                className="w-full py-2 rounded bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                className="w-full py-2 rounded-sm bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors"
               >
                 フィード追加
               </button>
@@ -312,7 +312,7 @@ export default function ThreatIntelligencePage() {
               <div key={feed.id} className="p-3 bg-zinc-800/50 border border-zinc-700/50 rounded-lg">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
-                    <span className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium border ${FEED_TYPE_STYLE[feed.type]}`}>
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded-sm text-[11px] font-medium border ${FEED_TYPE_STYLE[feed.type]}`}>
                       {feed.type}
                     </span>
                     <span className="text-zinc-200 text-sm font-medium">{feed.name}</span>
@@ -325,7 +325,7 @@ export default function ThreatIntelligencePage() {
                     <button
                       onClick={() => handleSync(feed.id)}
                       disabled={syncingFeed === feed.id}
-                      className="flex items-center gap-1 px-2.5 py-1 rounded bg-zinc-700 text-zinc-300 hover:text-zinc-100 text-xs transition-colors disabled:opacity-50"
+                      className="flex items-center gap-1 px-2.5 py-1 rounded-sm bg-zinc-700 text-zinc-300 hover:text-zinc-100 text-xs transition-colors disabled:opacity-50"
                     >
                       <RefreshCw className={`w-3 h-3 ${syncingFeed === feed.id ? 'animate-spin' : ''}`} />
                       同期
@@ -353,13 +353,13 @@ export default function ThreatIntelligencePage() {
                 onChange={e => setLookupValue(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && handleLookup()}
                 placeholder="IP、ドメイン、ハッシュ、URLを入力"
-                className="w-full pl-9 pr-3 py-2 bg-zinc-800 border border-zinc-700 rounded text-sm text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-blue-500/50"
+                className="w-full pl-9 pr-3 py-2 bg-zinc-800 border border-zinc-700 rounded-sm text-sm text-zinc-200 placeholder-zinc-600 focus:outline-hidden focus:border-blue-500/50"
               />
             </div>
             <button
               onClick={handleLookup}
               disabled={lookupLoading || !lookupValue.trim()}
-              className="px-4 py-2 rounded bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors flex items-center gap-1.5"
+              className="px-4 py-2 rounded-sm bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors flex items-center gap-1.5"
             >
               {lookupLoading ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Search className="w-3.5 h-3.5" />}
               照合
@@ -380,11 +380,11 @@ export default function ThreatIntelligencePage() {
               {lookupResult.found && (
                 <div className="space-y-3">
                   <div className="flex items-center gap-3 flex-wrap">
-                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium border ${FEED_TYPE_STYLE['MISP']}`}>
+                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-[11px] font-medium border ${FEED_TYPE_STYLE['MISP']}`}>
                       {IOC_TYPE_ICON[lookupResult.type]}
                       {IOC_TYPE_LABEL[lookupResult.type]}
                     </span>
-                    <span className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium border ${SEVERITY_STYLE[lookupResult.severity]}`}>
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded-sm text-[11px] font-medium border ${SEVERITY_STYLE[lookupResult.severity]}`}>
                       {SEVERITY_LABEL[lookupResult.severity]}
                     </span>
                     <span className="text-xs text-zinc-500">ソース: {lookupResult.source}</span>
@@ -478,7 +478,7 @@ export default function ThreatIntelligencePage() {
                     </div>
                   </td>
                   <td className="px-5 py-3">
-                    <span className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium border ${SEVERITY_STYLE[ioc.severity]}`}>
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded-sm text-[11px] font-medium border ${SEVERITY_STYLE[ioc.severity]}`}>
                       {SEVERITY_LABEL[ioc.severity]}
                     </span>
                   </td>
@@ -501,7 +501,7 @@ export default function ThreatIntelligencePage() {
             <button
               onClick={() => setIocPage(p => Math.max(1, p - 1))}
               disabled={iocPage === 1}
-              className="p-1 rounded hover:bg-zinc-700 text-zinc-500 hover:text-zinc-300 disabled:opacity-30 transition-colors"
+              className="p-1 rounded-sm hover:bg-zinc-700 text-zinc-500 hover:text-zinc-300 disabled:opacity-30 transition-colors"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
@@ -509,7 +509,7 @@ export default function ThreatIntelligencePage() {
               <button
                 key={p}
                 onClick={() => setIocPage(p)}
-                className={`w-7 h-7 rounded text-xs transition-colors ${iocPage === p ? 'bg-zinc-700 text-zinc-100' : 'text-zinc-500 hover:text-zinc-300'}`}
+                className={`w-7 h-7 rounded-sm text-xs transition-colors ${iocPage === p ? 'bg-zinc-700 text-zinc-100' : 'text-zinc-500 hover:text-zinc-300'}`}
               >
                 {p}
               </button>
@@ -517,7 +517,7 @@ export default function ThreatIntelligencePage() {
             <button
               onClick={() => setIocPage(p => Math.min(totalPages, p + 1))}
               disabled={iocPage === totalPages}
-              className="p-1 rounded hover:bg-zinc-700 text-zinc-500 hover:text-zinc-300 disabled:opacity-30 transition-colors"
+              className="p-1 rounded-sm hover:bg-zinc-700 text-zinc-500 hover:text-zinc-300 disabled:opacity-30 transition-colors"
             >
               <ChevronRight className="w-4 h-4" />
             </button>

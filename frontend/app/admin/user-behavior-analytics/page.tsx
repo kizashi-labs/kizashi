@@ -98,9 +98,9 @@ function riskTextColor(score: number): string {
 }
 
 function heatmapColor(level: number): string {
-  if (level === 2) return 'bg-[#e8002d]'
+  if (level === 2) return 'bg-falcon-red'
   if (level === 1) return 'bg-orange-500/60'
-  return 'bg-[#1e2d42]'
+  return 'bg-falcon-border'
 }
 
 function initials(username: string): string {
@@ -199,10 +199,10 @@ export default function UserBehaviorAnalyticsPage() {
       {/* Header */}
       <div className="mb-6">
         <h1 className="text-2xl font-bold flex items-center gap-2">
-          <Users className="w-7 h-7 text-[#e8002d]" />
+          <Users className="w-7 h-7 text-falcon-red" />
           ユーザー行動分析
         </h1>
-        <p className="text-[#7d92b0] text-sm mt-0.5">内部脅威とアカウント侵害を検出</p>
+        <p className="text-falcon-muted text-sm mt-0.5">内部脅威とアカウント侵害を検出</p>
         {uebaScoresData?.scores && uebaScoresData.scores.length > 0 && (
           <p className="text-green-400 text-xs mt-1">ライブデータ: MLエンジンから {uebaScoresData.scores.length} エンティティ</p>
         )}
@@ -211,13 +211,13 @@ export default function UserBehaviorAnalyticsPage() {
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-3 mb-5">
         {/* Risk Filter Buttons */}
-        <div className="flex bg-[#0d1220] border border-[#1e2d42] rounded-lg p-0.5">
+        <div className="flex bg-falcon-surface border border-falcon-border rounded-lg p-0.5">
           {(['all', 'high', 'critical'] as RiskFilter[]).map((f) => (
             <button
               key={f}
               onClick={() => setRiskFilter(f)}
               className={`px-3 py-1.5 rounded-md text-sm font-medium capitalize transition-colors ${
-                riskFilter === f ? 'bg-[#e8002d] text-white' : 'text-[#7d92b0] hover:text-white'
+                riskFilter === f ? 'bg-falcon-red text-white' : 'text-falcon-muted hover:text-white'
               }`}
             >
               {f === 'all' ? 'すべて' : f === 'high' ? '高リスク' : 'クリティカル'}
@@ -229,7 +229,7 @@ export default function UserBehaviorAnalyticsPage() {
         <select
           value={selectedDept}
           onChange={(e) => setSelectedDept(e.target.value)}
-          className="bg-[#0d1220] border border-[#1e2d42] rounded-lg px-3 py-1.5 text-[#7d92b0] text-sm focus:outline-none focus:border-[#e8002d]"
+          className="bg-falcon-surface border border-falcon-border rounded-lg px-3 py-1.5 text-falcon-muted text-sm focus:outline-hidden focus:border-falcon-red"
         >
           {departments.map((d) => (
             <option key={d} value={d}>{d === 'all' ? 'すべての部署' : d}</option>
@@ -241,25 +241,25 @@ export default function UserBehaviorAnalyticsPage() {
         {/* Left Column */}
         <div className="flex-1 min-w-0 space-y-5">
           {/* Risk Score Leaderboard */}
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
-            <div className="px-4 py-3 border-b border-[#1e2d42]">
+          <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
+            <div className="px-4 py-3 border-b border-falcon-border">
               <h2 className="text-white font-semibold text-sm flex items-center gap-2">
-                <Activity className="w-4 h-4 text-[#e8002d]" /> リスクスコア上位
+                <Activity className="w-4 h-4 text-falcon-red" /> リスクスコア上位
               </h2>
             </div>
             {usersLoading ? (
-              <div className="p-8 text-center text-[#7d92b0]">読み込み中...</div>
+              <div className="p-8 text-center text-falcon-muted">読み込み中...</div>
             ) : (
-              <div className="divide-y divide-[#1e2d42]">
+              <div className="divide-y divide-falcon-border">
                 {filteredUsers.map((user) => {
                   const isHighRisk = user.risk_score >= 70
                   return (
                     <button
                       key={user.id}
                       onClick={() => setSelectedUser(selectedUser?.id === user.id ? null : user)}
-                      className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-[#111827] transition-colors text-left ${
+                      className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-falcon-card transition-colors text-left ${
                         isHighRisk ? 'bg-red-950/20' : ''
-                      } ${selectedUser?.id === user.id ? 'ring-1 ring-inset ring-[#e8002d]' : ''}`}
+                      } ${selectedUser?.id === user.id ? 'ring-1 ring-inset ring-falcon-red' : ''}`}
                     >
                       {/* Avatar */}
                       <div className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${avatarBg(user.risk_score)}`}>
@@ -269,7 +269,7 @@ export default function UserBehaviorAnalyticsPage() {
                       {/* Name / Dept */}
                       <div className="flex-1 min-w-0">
                         <p className="text-white text-sm font-medium truncate">{user.username}</p>
-                        <p className="text-[#7d92b0] text-xs">{user.department}</p>
+                        <p className="text-falcon-muted text-xs">{user.department}</p>
                       </div>
 
                       {/* Risk Bar */}
@@ -277,23 +277,23 @@ export default function UserBehaviorAnalyticsPage() {
                         <div className="flex items-center justify-between mb-0.5">
                           <span className={`text-xs font-bold ${riskTextColor(user.risk_score)}`}>{user.risk_score}</span>
                         </div>
-                        <div className="w-full bg-[#1e2d42] rounded-full h-1.5">
+                        <div className="w-full bg-falcon-border rounded-full h-1.5">
                           <div className={`h-1.5 rounded-full ${riskColor(user.risk_score)}`} style={{ width: `${user.risk_score}%` }} />
                         </div>
                       </div>
 
                       {/* Last Activity */}
                       <div className="w-28 shrink-0 hidden lg:block">
-                        <p className="text-[#7d92b0] text-xs">{new Date(user.last_activity).toLocaleDateString()}</p>
-                        <p className="text-[#7d92b0] text-xs">{new Date(user.last_activity).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                        <p className="text-falcon-muted text-xs">{new Date(user.last_activity).toLocaleDateString()}</p>
+                        <p className="text-falcon-muted text-xs">{new Date(user.last_activity).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
                       </div>
 
                       {/* Anomaly Count */}
                       <div className="w-12 shrink-0 text-center">
-                        <span className={`text-xs font-bold ${user.anomaly_count > 0 ? 'text-orange-400' : 'text-[#7d92b0]'}`}>
+                        <span className={`text-xs font-bold ${user.anomaly_count > 0 ? 'text-orange-400' : 'text-falcon-muted'}`}>
                           {user.anomaly_count}
                         </span>
-                        <p className="text-[#7d92b0] text-xs">異常</p>
+                        <p className="text-falcon-muted text-xs">異常</p>
                       </div>
 
                       {/* Trend */}
@@ -303,7 +303,7 @@ export default function UserBehaviorAnalyticsPage() {
                         ) : user.trend === 'down' ? (
                           <TrendingDown className="w-4 h-4 text-green-400" />
                         ) : (
-                          <Minus className="w-4 h-4 text-[#7d92b0]" />
+                          <Minus className="w-4 h-4 text-falcon-muted" />
                         )}
                       </div>
                     </button>
@@ -314,32 +314,32 @@ export default function UserBehaviorAnalyticsPage() {
           </div>
 
           {/* Anomaly Feed */}
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
-            <div className="px-4 py-3 border-b border-[#1e2d42]">
+          <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
+            <div className="px-4 py-3 border-b border-falcon-border">
               <h2 className="text-white font-semibold text-sm flex items-center gap-2">
                 <AlertTriangle className="w-4 h-4 text-orange-400" /> 異常フィード
               </h2>
             </div>
             {anomaliesLoading ? (
-              <div className="p-8 text-center text-[#7d92b0]">異常データ読み込み中...</div>
+              <div className="p-8 text-center text-falcon-muted">異常データ読み込み中...</div>
             ) : (
-              <div className="divide-y divide-[#1e2d42]">
+              <div className="divide-y divide-falcon-border">
                 {anomalies.map((anomaly) => (
-                  <div key={anomaly.id} className="px-4 py-3 hover:bg-[#111827] transition-colors">
+                  <div key={anomaly.id} className="px-4 py-3 hover:bg-falcon-card transition-colors">
                     <div className="flex items-start gap-3">
                       <div className="flex-1 min-w-0">
                         <div className="flex flex-wrap items-center gap-2 mb-1">
-                          <span className="text-[#7d92b0] text-xs">{formatDate(anomaly.timestamp)}</span>
+                          <span className="text-falcon-muted text-xs">{formatDate(anomaly.timestamp)}</span>
                           <span className="text-white text-xs font-medium">{anomaly.user}</span>
-                          <span className={`px-2 py-0.5 rounded text-xs font-medium ${ANOMALY_BADGE[anomaly.type]}`}>
+                          <span className={`px-2 py-0.5 rounded-sm text-xs font-medium ${ANOMALY_BADGE[anomaly.type]}`}>
                             {anomaly.type.replace(/_/g, ' ')}
                           </span>
                         </div>
-                        <p className="text-[#7d92b0] text-xs">{anomaly.description}</p>
+                        <p className="text-falcon-muted text-xs">{anomaly.description}</p>
                       </div>
                       <div className="shrink-0">
                         <span className="text-red-400 text-xs font-bold">+{anomaly.risk_delta}</span>
-                        <p className="text-[#7d92b0] text-xs">risk</p>
+                        <p className="text-falcon-muted text-xs">risk</p>
                       </div>
                     </div>
                   </div>
@@ -349,8 +349,8 @@ export default function UserBehaviorAnalyticsPage() {
           </div>
 
           {/* Process Lineage Check */}
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
-            <div className="px-4 py-3 border-b border-[#1e2d42]">
+          <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
+            <div className="px-4 py-3 border-b border-falcon-border">
               <h2 className="text-white font-semibold text-sm flex items-center gap-2">
                 <GitBranch className="w-4 h-4 text-blue-400" /> プロセス系譜チェック
               </h2>
@@ -358,23 +358,23 @@ export default function UserBehaviorAnalyticsPage() {
             <div className="p-4 space-y-3">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-[#7d92b0] text-xs mb-1">親プロセス</label>
+                  <label className="block text-falcon-muted text-xs mb-1">親プロセス</label>
                   <input
                     type="text"
                     value={parentProcess}
                     onChange={(e) => setParentProcess(e.target.value)}
                     placeholder="winword.exe"
-                    className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm placeholder-[#3d5068] focus:outline-none focus:border-[#e8002d] font-mono"
+                    className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm placeholder-falcon-subtle focus:outline-hidden focus:border-falcon-red font-mono"
                   />
                 </div>
                 <div>
-                  <label className="block text-[#7d92b0] text-xs mb-1">子プロセス</label>
+                  <label className="block text-falcon-muted text-xs mb-1">子プロセス</label>
                   <input
                     type="text"
                     value={childProcess}
                     onChange={(e) => setChildProcess(e.target.value)}
                     placeholder="powershell.exe"
-                    className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm placeholder-[#3d5068] focus:outline-none focus:border-[#e8002d] font-mono"
+                    className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm placeholder-falcon-subtle focus:outline-hidden focus:border-falcon-red font-mono"
                     onKeyDown={(e) => e.key === 'Enter' && handleAnalyzeLineage()}
                   />
                 </div>
@@ -382,7 +382,7 @@ export default function UserBehaviorAnalyticsPage() {
               <button
                 onClick={handleAnalyzeLineage}
                 disabled={lineageMutation.isPending || !parentProcess.trim() || !childProcess.trim()}
-                className="flex items-center gap-2 px-4 py-2 bg-[#e8002d] hover:bg-[#c0001f] disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors"
+                className="flex items-center gap-2 px-4 py-2 bg-falcon-red hover:bg-[#c0001f] disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors"
               >
                 {lineageMutation.isPending ? (
                   <><Loader2 className="w-4 h-4 animate-spin" /> 分析中...</>
@@ -406,9 +406,9 @@ export default function UserBehaviorAnalyticsPage() {
                   {lineageResult.suspicious ? (
                     <div>
                       <div className="flex items-center gap-2 mb-2">
-                        <span className="px-2 py-0.5 rounded text-xs font-bold bg-red-500/20 text-red-400">疑わしい</span>
+                        <span className="px-2 py-0.5 rounded-sm text-xs font-bold bg-red-500/20 text-red-400">疑わしい</span>
                         {lineageResult.detections[0]?.severity && (
-                          <span className="px-2 py-0.5 rounded text-xs font-medium bg-orange-500/20 text-orange-400">
+                          <span className="px-2 py-0.5 rounded-sm text-xs font-medium bg-orange-500/20 text-orange-400">
                             {lineageResult.detections[0].severity}
                           </span>
                         )}
@@ -416,7 +416,7 @@ export default function UserBehaviorAnalyticsPage() {
                       {lineageResult.detections.map((d, i) => (
                         <div key={i} className="space-y-0.5">
                           {d.rule && <p className="text-white text-xs font-medium">{d.rule}</p>}
-                          {d.reason && <p className="text-[#7d92b0] text-xs">{d.reason}</p>}
+                          {d.reason && <p className="text-falcon-muted text-xs">{d.reason}</p>}
                         </div>
                       ))}
                     </div>
@@ -435,46 +435,46 @@ export default function UserBehaviorAnalyticsPage() {
         {/* Right Column: User Detail Panel */}
         {selectedUser && (
           <div className="w-72 shrink-0">
-            <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden sticky top-6">
-              <div className="flex items-center justify-between px-4 py-3 border-b border-[#1e2d42]">
+            <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden sticky top-6">
+              <div className="flex items-center justify-between px-4 py-3 border-b border-falcon-border">
                 <h2 className="text-white font-semibold text-sm">ユーザー詳細</h2>
-                <button onClick={() => setSelectedUser(null)} className="text-[#7d92b0] hover:text-white">
+                <button onClick={() => setSelectedUser(null)} className="text-falcon-muted hover:text-white">
                   <X className="w-4 h-4" />
                 </button>
               </div>
 
-              <div className="p-4 border-b border-[#1e2d42]">
+              <div className="p-4 border-b border-falcon-border">
                 <div className="flex items-center gap-3 mb-3">
                   <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold ${avatarBg(selectedUser.risk_score)}`}>
                     {initials(selectedUser.username)}
                   </div>
                   <div>
                     <p className="text-white font-medium">{selectedUser.username}</p>
-                    <p className="text-[#7d92b0] text-xs">{selectedUser.department}</p>
+                    <p className="text-falcon-muted text-xs">{selectedUser.department}</p>
                   </div>
                 </div>
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-[#7d92b0] text-xs">リスクスコア</span>
+                  <span className="text-falcon-muted text-xs">リスクスコア</span>
                   <span className={`text-sm font-bold ${riskTextColor(selectedUser.risk_score)}`}>{selectedUser.risk_score}</span>
                 </div>
-                <div className="w-full bg-[#1e2d42] rounded-full h-2">
+                <div className="w-full bg-falcon-border rounded-full h-2">
                   <div className={`h-2 rounded-full ${riskColor(selectedUser.risk_score)}`} style={{ width: `${selectedUser.risk_score}%` }} />
                 </div>
               </div>
 
               {/* Activity Heatmap */}
-              <div className="p-4 border-b border-[#1e2d42]">
-                <p className="text-[#7d92b0] text-xs font-medium mb-2 uppercase tracking-wider">7日間のアクティビティ</p>
+              <div className="p-4 border-b border-falcon-border">
+                <p className="text-falcon-muted text-xs font-medium mb-2 uppercase tracking-wider">7日間のアクティビティ</p>
                 <div className="space-y-1">
                   {heatmap?.map((row, dayIdx) => (
                     <div key={dayIdx} className="flex items-center gap-1.5">
-                      <span className="text-[#7d92b0] text-xs w-7 shrink-0">{DAY_LABELS[dayIdx]}</span>
+                      <span className="text-falcon-muted text-xs w-7 shrink-0">{DAY_LABELS[dayIdx]}</span>
                       <div className="flex gap-0.5 flex-1">
                         {row.map((level, blockIdx) => (
                           <div
                             key={blockIdx}
                             title={level === 2 ? 'High' : level === 1 ? 'Medium' : 'Low'}
-                            className={`flex-1 h-3 rounded-sm ${heatmapColor(level)}`}
+                            className={`flex-1 h-3 rounded-xs ${heatmapColor(level)}`}
                           />
                         ))}
                       </div>
@@ -482,38 +482,38 @@ export default function UserBehaviorAnalyticsPage() {
                   ))}
                 </div>
                 <div className="flex items-center gap-3 mt-2">
-                  <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-sm bg-[#1e2d42]" /><span className="text-[#7d92b0] text-xs">低</span></div>
-                  <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-sm bg-orange-500/60" /><span className="text-[#7d92b0] text-xs">中</span></div>
-                  <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-sm bg-[#e8002d]" /><span className="text-[#7d92b0] text-xs">高</span></div>
+                  <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-xs bg-falcon-border" /><span className="text-falcon-muted text-xs">低</span></div>
+                  <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-xs bg-orange-500/60" /><span className="text-falcon-muted text-xs">中</span></div>
+                  <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-xs bg-falcon-red" /><span className="text-falcon-muted text-xs">高</span></div>
                 </div>
               </div>
 
               {/* Top Resources */}
-              <div className="p-4 border-b border-[#1e2d42]">
-                <p className="text-[#7d92b0] text-xs font-medium mb-2 uppercase tracking-wider">アクセスリソース上位</p>
+              <div className="p-4 border-b border-falcon-border">
+                <p className="text-falcon-muted text-xs font-medium mb-2 uppercase tracking-wider">アクセスリソース上位</p>
                 <div className="space-y-1">
                   {([] as string[]).map((r) => (
-                    <div key={r} className="text-xs text-[#7d92b0] font-mono truncate bg-[#070d19] rounded px-2 py-1">{r}</div>
+                    <div key={r} className="text-xs text-falcon-muted font-mono truncate bg-[#070d19] rounded-sm px-2 py-1">{r}</div>
                   ))}
                 </div>
               </div>
 
               {/* User Anomalies */}
               <div className="p-4">
-                <p className="text-[#7d92b0] text-xs font-medium mb-2 uppercase tracking-wider">最近の異常</p>
+                <p className="text-falcon-muted text-xs font-medium mb-2 uppercase tracking-wider">最近の異常</p>
                 {selectedUserAnomalies.length === 0 ? (
-                  <p className="text-[#7d92b0] text-xs">最近の異常はありません</p>
+                  <p className="text-falcon-muted text-xs">最近の異常はありません</p>
                 ) : (
                   <div className="space-y-2">
                     {selectedUserAnomalies.map((a) => (
                       <div key={a.id} className="bg-[#070d19] rounded-lg p-2">
                         <div className="flex items-center justify-between mb-1">
-                          <span className={`px-1.5 py-0.5 rounded text-xs ${ANOMALY_BADGE[a.type]}`}>
+                          <span className={`px-1.5 py-0.5 rounded-sm text-xs ${ANOMALY_BADGE[a.type]}`}>
                             {a.type.replace(/_/g, ' ')}
                           </span>
                           <span className="text-red-400 text-xs font-bold">+{a.risk_delta}</span>
                         </div>
-                        <p className="text-[#7d92b0] text-xs leading-snug">{a.description}</p>
+                        <p className="text-falcon-muted text-xs leading-snug">{a.description}</p>
                       </div>
                     ))}
                   </div>

@@ -77,7 +77,7 @@ const reqStatusLabel: Record<RequestStatus, string> = {
 }
 
 function Badge({ text, cls }: { text: string; cls: string }) {
-  return <span className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium border ${cls}`}>{text}</span>
+  return <span className={`inline-flex items-center px-2 py-0.5 rounded-sm text-[11px] font-medium border ${cls}`}>{text}</span>
 }
 
 function riskColor(score: number) {
@@ -104,21 +104,21 @@ function RequestDetailModal({ req, onClose, onApprove, onReject }: {
   const [showReject, setShowReject] = useState(false)
   return (
     <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl w-full max-w-md">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[#1e2d42]">
+      <div className="bg-falcon-surface border border-falcon-border rounded-xl w-full max-w-md">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-falcon-border">
           <h3 className="text-white font-semibold">アクセス申請詳細</h3>
-          <button onClick={onClose} className="text-[#7d92b0] hover:text-white"><X className="w-5 h-5" /></button>
+          <button onClick={onClose} className="text-falcon-muted hover:text-white"><X className="w-5 h-5" /></button>
         </div>
         <div className="p-6 space-y-3">
           <div className="grid grid-cols-2 gap-3 text-sm">
-            <div><p className="text-xs text-[#7d92b0]">申請者</p><p className="text-white">{req.requester}</p></div>
-            <div><p className="text-xs text-[#7d92b0]">申請日時</p><p className="text-white">{timeAgo(req.requested_at)}</p></div>
-            <div className="col-span-2"><p className="text-xs text-[#7d92b0]">申請アカウント</p><p className="text-white font-mono">{req.account_requested}</p></div>
-            <div><p className="text-xs text-[#7d92b0]">期間</p><p className="text-white">{req.duration_hours}時間</p></div>
-            <div><p className="text-xs text-[#7d92b0]">ステータス</p><Badge text={reqStatusLabel[req.status]} cls={reqStatusColor[req.status]} /></div>
-            <div className="col-span-2"><p className="text-xs text-[#7d92b0]">申請理由</p><p className="text-[#e2e8f4]">{req.reason}</p></div>
+            <div><p className="text-xs text-falcon-muted">申請者</p><p className="text-white">{req.requester}</p></div>
+            <div><p className="text-xs text-falcon-muted">申請日時</p><p className="text-white">{timeAgo(req.requested_at)}</p></div>
+            <div className="col-span-2"><p className="text-xs text-falcon-muted">申請アカウント</p><p className="text-white font-mono">{req.account_requested}</p></div>
+            <div><p className="text-xs text-falcon-muted">期間</p><p className="text-white">{req.duration_hours}時間</p></div>
+            <div><p className="text-xs text-falcon-muted">ステータス</p><Badge text={reqStatusLabel[req.status]} cls={reqStatusColor[req.status]} /></div>
+            <div className="col-span-2"><p className="text-xs text-falcon-muted">申請理由</p><p className="text-falcon-text">{req.reason}</p></div>
             {req.rejection_reason && (
-              <div className="col-span-2"><p className="text-xs text-[#7d92b0]">却下理由</p><p className="text-red-300">{req.rejection_reason}</p></div>
+              <div className="col-span-2"><p className="text-xs text-falcon-muted">却下理由</p><p className="text-red-300">{req.rejection_reason}</p></div>
             )}
           </div>
           {req.status === 'pending' && !showReject && (
@@ -134,12 +134,12 @@ function RequestDetailModal({ req, onClose, onApprove, onReject }: {
           {showReject && (
             <div className="space-y-2">
               <textarea
-                className="w-full bg-[#070d19] border border-[#1e2d42] rounded px-3 py-2 text-sm text-white resize-none focus:outline-none"
+                className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-sm text-white resize-none focus:outline-hidden"
                 rows={2} placeholder="却下理由を入力..." value={rejReason} onChange={e => setRejReason(e.target.value)}
               />
               <div className="flex gap-2">
                 <button onClick={() => onReject(rejReason)} className="flex-1 py-1.5 bg-red-700 text-white text-sm rounded-lg">却下確定</button>
-                <button onClick={() => setShowReject(false)} className="flex-1 py-1.5 border border-[#1e2d42] text-[#7d92b0] text-sm rounded-lg">戻る</button>
+                <button onClick={() => setShowReject(false)} className="flex-1 py-1.5 border border-falcon-border text-falcon-muted text-sm rounded-lg">戻る</button>
               </div>
             </div>
           )}
@@ -209,37 +209,37 @@ export default function PAGPage() {
     <div className="min-h-screen bg-[#070d19] p-6 space-y-6">
       {/* Header */}
       <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-lg bg-[#e8002d]/10 border border-[#e8002d]/30 flex items-center justify-center">
-          <Crown className="w-5 h-5 text-[#e8002d]" />
+        <div className="w-10 h-10 rounded-lg bg-falcon-red/10 border border-falcon-red/30 flex items-center justify-center">
+          <Crown className="w-5 h-5 text-falcon-red" />
         </div>
         <div>
           <h1 className="text-xl font-bold text-white">特権アクセスガバナンス</h1>
-          <p className="text-xs text-[#7d92b0]">特権アカウントの管理・承認・定期レビュー</p>
+          <p className="text-xs text-falcon-muted">特権アカウントの管理・承認・定期レビュー</p>
         </div>
       </div>
 
       {/* Stats */}
       <div className="grid grid-cols-4 gap-4">
         {stats.map(s => (
-          <div key={s.label} className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-4">
-            <p className="text-xs text-[#7d92b0] mb-1">{s.label}</p>
+          <div key={s.label} className="bg-falcon-surface border border-falcon-border rounded-xl p-4">
+            <p className="text-xs text-falcon-muted mb-1">{s.label}</p>
             <p className={`text-2xl font-bold ${s.color}`}>{s.value}</p>
           </div>
         ))}
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 bg-[#0d1220] border border-[#1e2d42] rounded-lg p-1 w-fit">
+      <div className="flex gap-1 bg-falcon-surface border border-falcon-border rounded-lg p-1 w-fit">
         {([
           ['accounts', '特権アカウント'],
           ['requests', 'アクセス申請'],
           ['reviews', '定期レビュー'],
         ] as const).map(([key, label]) => (
           <button key={key} onClick={() => setTab(key)}
-            className={`px-4 py-1.5 rounded text-sm font-medium transition-colors ${tab === key ? 'bg-[#1d2f4a] text-white' : 'text-[#7d92b0] hover:text-white'}`}>
+            className={`px-4 py-1.5 rounded-sm text-sm font-medium transition-colors ${tab === key ? 'bg-falcon-active text-white' : 'text-falcon-muted hover:text-white'}`}>
             {label}
             {key === 'requests' && requests.filter(r => r.status === 'pending').length > 0 && (
-              <span className="ml-1.5 bg-[#e8002d] text-white text-[10px] px-1.5 py-0.5 rounded-full">
+              <span className="ml-1.5 bg-falcon-red text-white text-[10px] px-1.5 py-0.5 rounded-full">
                 {requests.filter(r => r.status === 'pending').length}
               </span>
             )}
@@ -251,59 +251,59 @@ export default function PAGPage() {
       {tab === 'accounts' && (
         <>
           <div className="flex items-center gap-2">
-            <Filter className="w-4 h-4 text-[#7d92b0]" />
-            <span className="text-xs text-[#7d92b0]">タイプ:</span>
+            <Filter className="w-4 h-4 text-falcon-muted" />
+            <span className="text-xs text-falcon-muted">タイプ:</span>
             {(['all', 'admin', 'service', 'shared', 'break_glass'] as const).map(t => (
               <button key={t} onClick={() => setTypeFilter(t)}
-                className={`px-2 py-1 rounded text-xs transition-colors ${typeFilter === t ? 'bg-[#1d2f4a] text-white' : 'text-[#7d92b0] hover:text-white'}`}>
+                className={`px-2 py-1 rounded-sm text-xs transition-colors ${typeFilter === t ? 'bg-falcon-active text-white' : 'text-falcon-muted hover:text-white'}`}>
                 {t === 'all' ? '全て' : typeLabel[t]}
               </button>
             ))}
           </div>
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
+          <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-[#1e2d42]">
+                <tr className="border-b border-falcon-border">
                   {['アカウント', 'タイプ', 'オーナー', '最終使用', 'リスク', 'MFA', '録画', '状態'].map(h => (
-                    <th key={h} className="text-left text-xs text-[#7d92b0] font-medium px-4 py-3">{h}</th>
+                    <th key={h} className="text-left text-xs text-falcon-muted font-medium px-4 py-3">{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {filteredAccounts.map(a => (
-                  <tr key={a.id} className="border-b border-[#1e2d42]/50 hover:bg-[#1e2d42]/20 transition-colors">
+                  <tr key={a.id} className="border-b border-falcon-border/50 hover:bg-falcon-border/20 transition-colors">
                     <td className="px-4 py-3">
                       <p className="text-white font-medium text-xs font-mono">{a.account}</p>
-                      <p className="text-[10px] text-[#7d92b0]">{a.display_name}</p>
+                      <p className="text-[10px] text-falcon-muted">{a.display_name}</p>
                     </td>
                     <td className="px-4 py-3"><Badge text={typeLabel[a.type]} cls={typeColor[a.type]} /></td>
                     <td className="px-4 py-3">
                       <p className="text-xs text-white">{a.owner}</p>
-                      <p className="text-[10px] text-[#3d5068]">{a.department}</p>
+                      <p className="text-[10px] text-falcon-subtle">{a.department}</p>
                     </td>
-                    <td className="px-4 py-3 text-xs text-[#7d92b0]">{timeAgo(a.last_used)}</td>
+                    <td className="px-4 py-3 text-xs text-falcon-muted">{timeAgo(a.last_used)}</td>
                     <td className="px-4 py-3">
-                      <span className={`text-xs font-bold px-2 py-1 rounded ${riskColor(a.risk_score)}`}>{a.risk_score}</span>
+                      <span className={`text-xs font-bold px-2 py-1 rounded-sm ${riskColor(a.risk_score)}`}>{a.risk_score}</span>
                     </td>
                     <td className="px-4 py-3">
                       {a.mfa_enabled
                         ? <Smartphone className="w-4 h-4 text-green-400" />
-                        : <Smartphone className="w-4 h-4 text-[#3d5068]" />
+                        : <Smartphone className="w-4 h-4 text-falcon-subtle" />
                       }
                     </td>
                     <td className="px-4 py-3">
                       {a.session_recording_enabled
                         ? <Video className="w-4 h-4 text-blue-400" />
-                        : <Video className="w-4 h-4 text-[#3d5068]" />
+                        : <Video className="w-4 h-4 text-falcon-subtle" />
                       }
                     </td>
                     <td className="px-4 py-3">
                       <button onClick={() => toggleAccount(a.id)} className="flex items-center gap-1.5 group">
                         {a.active
                           ? <ToggleRight className="w-5 h-5 text-green-400 group-hover:text-green-300" />
-                          : <ToggleLeft className="w-5 h-5 text-[#3d5068] group-hover:text-[#7d92b0]" />
+                          : <ToggleLeft className="w-5 h-5 text-falcon-subtle group-hover:text-falcon-muted" />
                         }
-                        <span className={`text-xs ${a.active ? 'text-green-400' : 'text-[#7d92b0]'}`}>{a.active ? '有効' : '無効'}</span>
+                        <span className={`text-xs ${a.active ? 'text-green-400' : 'text-falcon-muted'}`}>{a.active ? '有効' : '無効'}</span>
                       </button>
                     </td>
                   </tr>
@@ -316,40 +316,40 @@ export default function PAGPage() {
 
       {/* Requests Tab */}
       {tab === 'requests' && (
-        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
+        <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-[#1e2d42]">
+              <tr className="border-b border-falcon-border">
                 {['申請者', '申請アカウント', '期間', '申請日時', 'ステータス', '操作'].map(h => (
-                  <th key={h} className="text-left text-xs text-[#7d92b0] font-medium px-4 py-3">{h}</th>
+                  <th key={h} className="text-left text-xs text-falcon-muted font-medium px-4 py-3">{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {requests.map(r => (
-                <tr key={r.id} className="border-b border-[#1e2d42]/50 hover:bg-[#1e2d42]/20 transition-colors">
+                <tr key={r.id} className="border-b border-falcon-border/50 hover:bg-falcon-border/20 transition-colors">
                   <td className="px-4 py-3">
                     <p className="text-white font-medium">{r.requester}</p>
-                    <p className="text-[10px] text-[#3d5068]">{r.requester_email}</p>
+                    <p className="text-[10px] text-falcon-subtle">{r.requester_email}</p>
                   </td>
-                  <td className="px-4 py-3 text-xs font-mono text-[#7d92b0]">{r.account_requested}</td>
-                  <td className="px-4 py-3 text-xs text-[#7d92b0]">{r.duration_hours}時間</td>
-                  <td className="px-4 py-3 text-xs text-[#7d92b0]">{timeAgo(r.requested_at)}</td>
+                  <td className="px-4 py-3 text-xs font-mono text-falcon-muted">{r.account_requested}</td>
+                  <td className="px-4 py-3 text-xs text-falcon-muted">{r.duration_hours}時間</td>
+                  <td className="px-4 py-3 text-xs text-falcon-muted">{timeAgo(r.requested_at)}</td>
                   <td className="px-4 py-3"><Badge text={reqStatusLabel[r.status]} cls={reqStatusColor[r.status]} /></td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
                       <button onClick={() => setDetailReq(r)}
-                        className="text-xs text-[#7d92b0] hover:text-white px-2 py-1 border border-[#1e2d42] rounded transition-colors">
+                        className="text-xs text-falcon-muted hover:text-white px-2 py-1 border border-falcon-border rounded-sm transition-colors">
                         詳細
                       </button>
                       {r.status === 'pending' && (
                         <>
                           <button onClick={() => approveReq(r.id)}
-                            className="text-xs text-green-400 hover:text-white px-2 py-1 border border-green-500/30 rounded transition-colors">
+                            className="text-xs text-green-400 hover:text-white px-2 py-1 border border-green-500/30 rounded-sm transition-colors">
                             承認
                           </button>
                           <button onClick={() => rejectReq(r.id, '手動却下')}
-                            className="text-xs text-red-400 hover:text-white px-2 py-1 border border-red-500/30 rounded transition-colors">
+                            className="text-xs text-red-400 hover:text-white px-2 py-1 border border-red-500/30 rounded-sm transition-colors">
                             却下
                           </button>
                         </>
@@ -366,32 +366,32 @@ export default function PAGPage() {
       {/* Reviews Tab */}
       {tab === 'reviews' && (
         <div className="space-y-3">
-          <p className="text-xs text-[#7d92b0]">四半期レビュー対象アカウント ({reviewItems.length}件)</p>
+          <p className="text-xs text-falcon-muted">四半期レビュー対象アカウント ({reviewItems.length}件)</p>
           {reviewItems.map(item => (
-            <div key={item.id} className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-4 flex items-center gap-4">
+            <div key={item.id} className="bg-falcon-surface border border-falcon-border rounded-xl p-4 flex items-center gap-4">
               <div className="flex-1 grid grid-cols-4 gap-4">
                 <div>
                   <p className="text-xs font-mono text-white">{item.account.account}</p>
-                  <p className="text-[10px] text-[#7d92b0]">{item.account.display_name}</p>
+                  <p className="text-[10px] text-falcon-muted">{item.account.display_name}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-[#7d92b0]">オーナー</p>
+                  <p className="text-xs text-falcon-muted">オーナー</p>
                   <p className="text-xs text-white">{item.account.owner}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-[#7d92b0]">レビュー期限</p>
+                  <p className="text-xs text-falcon-muted">レビュー期限</p>
                   <p className={`text-xs font-medium ${item.status === 'overdue' ? 'text-red-400' : 'text-yellow-400'}`}>
                     {new Date(item.review_due).toLocaleDateString('ja-JP')}
                     {item.status === 'overdue' && <span className="ml-1 text-[10px]">(期限超過)</span>}
                   </p>
                 </div>
                 <div>
-                  <p className="text-xs text-[#7d92b0]">リスクスコア</p>
-                  <span className={`text-xs font-bold px-2 py-0.5 rounded ${riskColor(item.account.risk_score)}`}>{item.account.risk_score}</span>
+                  <p className="text-xs text-falcon-muted">リスクスコア</p>
+                  <span className={`text-xs font-bold px-2 py-0.5 rounded-sm ${riskColor(item.account.risk_score)}`}>{item.account.risk_score}</span>
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <select className="bg-[#070d19] border border-[#1e2d42] rounded px-2 py-1 text-xs text-white focus:outline-none">
+                <select className="bg-[#070d19] border border-falcon-border rounded-sm px-2 py-1 text-xs text-white focus:outline-hidden">
                   <option value="">レビュアー割り当て</option>
                   <option>田中 健一</option>
                   <option>鈴木 美咲</option>

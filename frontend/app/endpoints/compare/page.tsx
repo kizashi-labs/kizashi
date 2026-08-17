@@ -72,46 +72,46 @@ function AgentSearchInput({
 
   return (
     <div ref={ref} className="relative">
-      <label className="block text-xs font-medium text-[#7d92b0] mb-1.5">{label}</label>
+      <label className="block text-xs font-medium text-falcon-muted mb-1.5">{label}</label>
       {selected ? (
-        <div className="flex items-center gap-2 px-3 py-2 bg-[#0d1220] border border-[#e8002d]/50 rounded-lg">
-          <Monitor className="w-4 h-4 text-[#e8002d] flex-shrink-0" />
+        <div className="flex items-center gap-2 px-3 py-2 bg-falcon-surface border border-falcon-red/50 rounded-lg">
+          <Monitor className="w-4 h-4 text-falcon-red shrink-0" />
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-white truncate">{selected.hostname}</p>
-            <p className="text-xs text-[#7d92b0]">{selected.os_type} · {(selected.ip_addresses ?? [])[0] ?? '—'}</p>
+            <p className="text-xs text-falcon-muted">{selected.os_type} · {(selected.ip_addresses ?? [])[0] ?? '—'}</p>
           </div>
           <button
             onClick={() => { setQ(''); setOpen(false); onSelect(null as unknown as AgentDetail) }}
-            className="text-[#7d92b0] hover:text-white transition-colors text-lg leading-none"
+            className="text-falcon-muted hover:text-white transition-colors text-lg leading-none"
           >
             ×
           </button>
         </div>
       ) : (
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#3d5068]" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-falcon-subtle" />
           <input
             value={q}
             onChange={e => { setQ(e.target.value); setOpen(true) }}
             onFocus={() => setOpen(true)}
             placeholder="ホスト名で検索..."
-            className="w-full pl-9 pr-4 py-2 text-sm border border-[#1e2d42] rounded-lg
-                       bg-[#0d1220] text-white placeholder-[#3d5068]
-                       focus:outline-none focus:border-[#e8002d]"
+            className="w-full pl-9 pr-4 py-2 text-sm border border-falcon-border rounded-lg
+                       bg-falcon-surface text-white placeholder-falcon-subtle
+                       focus:outline-hidden focus:border-falcon-red"
           />
           {open && results.length > 0 && (
-            <div className="absolute top-full left-0 right-0 mt-1 z-20 bg-[#0d1220] border border-[#1e2d42]
+            <div className="absolute top-full left-0 right-0 mt-1 z-20 bg-falcon-surface border border-falcon-border
                             rounded-lg shadow-xl overflow-hidden max-h-48 overflow-y-auto">
               {results.map(agent => (
                 <button
                   key={agent.id}
                   onClick={() => { onSelect(agent as AgentDetail); setQ(''); setOpen(false) }}
-                  className="w-full flex items-center gap-2.5 px-3 py-2.5 hover:bg-[#1e2d42] transition-colors text-left"
+                  className="w-full flex items-center gap-2.5 px-3 py-2.5 hover:bg-falcon-border transition-colors text-left"
                 >
-                  <Monitor className="w-4 h-4 text-[#3d5068] flex-shrink-0" />
+                  <Monitor className="w-4 h-4 text-falcon-subtle shrink-0" />
                   <div className="min-w-0">
                     <p className="text-sm text-white truncate">{agent.hostname}</p>
-                    <p className="text-xs text-[#7d92b0]">{agent.os_type} · {agent.status}</p>
+                    <p className="text-xs text-falcon-muted">{agent.os_type} · {agent.status}</p>
                   </div>
                 </button>
               ))}
@@ -158,12 +158,12 @@ function AlertRow({ alert }: { alert: Alert }) {
   return (
     <Link
       href={`/alerts/${alert.id}`}
-      className="flex items-center gap-2 py-1.5 px-2 hover:bg-[#1e2d42]/50 rounded transition-colors"
+      className="flex items-center gap-2 py-1.5 px-2 hover:bg-falcon-border/50 rounded-sm transition-colors"
     >
-      <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${
+      <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${
         alert.severity >= 9 ? 'bg-red-400' : alert.severity >= 7 ? 'bg-orange-400' : alert.severity >= 5 ? 'bg-amber-400' : 'bg-blue-400'
       }`} />
-      <span className="text-xs text-[#7d92b0] flex-1 truncate">{alert.title}</span>
+      <span className="text-xs text-falcon-muted flex-1 truncate">{alert.title}</span>
       <span className={`text-xs font-bold ${sevColor}`}>{alert.severity}</span>
     </Link>
   )
@@ -237,7 +237,7 @@ export default function EndpointComparePage() {
   }[] = [
     {
       section: '基本情報',
-      icon: <Monitor className="w-4 h-4 text-[#e8002d]" />,
+      icon: <Monitor className="w-4 h-4 text-falcon-red" />,
       fields: [
         { label: 'ホスト名', keyA: 'hostname' },
         { label: 'OS種別', keyA: 'os_type' },
@@ -255,7 +255,7 @@ export default function EndpointComparePage() {
             const s = String(v)
             const cls =
               s === 'online' ? 'text-green-400' :
-              s === 'offline' ? 'text-[#7d92b0]' :
+              s === 'offline' ? 'text-falcon-muted' :
               s === 'isolated' ? 'text-red-400' : 'text-orange-400'
             return <span className={`font-medium ${cls}`}>{s}</span>
           },
@@ -269,7 +269,7 @@ export default function EndpointComparePage() {
     },
     {
       section: 'セキュリティ状態',
-      icon: <ShieldAlert className="w-4 h-4 text-[#e8002d]" />,
+      icon: <ShieldAlert className="w-4 h-4 text-falcon-red" />,
       fields: [
         { label: 'アラート総数', keyA: 'alert_count' },
         { label: '未対応アラート', keyA: 'open_alert_count' },
@@ -283,7 +283,7 @@ export default function EndpointComparePage() {
     },
     {
       section: 'ソフトウェア',
-      icon: <Package className="w-4 h-4 text-[#e8002d]" />,
+      icon: <Package className="w-4 h-4 text-falcon-red" />,
       fields: [
         { label: 'インストール済みソフトウェア', keyA: 'installed_software_count' },
         { label: '期限切れパッケージ', keyA: 'outdated_packages' },
@@ -291,7 +291,7 @@ export default function EndpointComparePage() {
     },
     {
       section: 'エージェント設定',
-      icon: <Settings className="w-4 h-4 text-[#e8002d]" />,
+      icon: <Settings className="w-4 h-4 text-falcon-red" />,
       fields: [
         { label: 'ポリシー名', keyA: 'policy_id' },
         { label: 'グループ', keyA: 'group_id' },
@@ -317,18 +317,18 @@ export default function EndpointComparePage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <ArrowLeftRight className="w-6 h-6 text-[#e8002d]" />
+          <ArrowLeftRight className="w-6 h-6 text-falcon-red" />
           <div>
             <h1 className="text-2xl font-bold text-white">エンドポイント比較</h1>
-            <p className="text-sm text-[#7d92b0]">2つのエンドポイントを並べて比較</p>
+            <p className="text-sm text-falcon-muted">2つのエンドポイントを並べて比較</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
           {effA && effB && (
             <button
               onClick={copyComparison}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-[#7d92b0]
-                         bg-[#0d1220] border border-[#1e2d42] rounded-lg hover:bg-[#1e2d42] transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-falcon-muted
+                         bg-falcon-surface border border-falcon-border rounded-lg hover:bg-falcon-border transition-colors"
             >
               {copied ? <Check className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
               {copied ? 'コピー済み' : 'テキストでコピー'}
@@ -336,8 +336,8 @@ export default function EndpointComparePage() {
           )}
           <Link
             href="/endpoints"
-            className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-[#7d92b0]
-                       bg-[#0d1220] border border-[#1e2d42] rounded-lg hover:bg-[#1e2d42] transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-falcon-muted
+                       bg-falcon-surface border border-falcon-border rounded-lg hover:bg-falcon-border transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
             エンドポイントへ戻る
@@ -346,15 +346,15 @@ export default function EndpointComparePage() {
       </div>
 
       {/* Endpoint selectors */}
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-4 mb-6">
+      <div className="bg-falcon-surface border border-falcon-border rounded-xl p-4 mb-6">
         <div className="grid grid-cols-[1fr_auto_1fr] gap-4 items-end">
           <AgentSearchInput label="エンドポイント A" selected={agentA} onSelect={setAgentA} />
           <button
             onClick={swapAgents}
             disabled={!agentA && !agentB}
             title="A と B を入れ替え"
-            className="flex items-center justify-center w-10 h-10 rounded-lg border border-[#1e2d42]
-                       bg-[#070d19] text-[#7d92b0] hover:text-white hover:bg-[#1e2d42]
+            className="flex items-center justify-center w-10 h-10 rounded-lg border border-falcon-border
+                       bg-[#070d19] text-falcon-muted hover:text-white hover:bg-falcon-border
                        transition-colors disabled:opacity-40 disabled:cursor-not-allowed mb-0.5"
           >
             <ArrowLeftRight className="w-4 h-4" />
@@ -365,33 +365,33 @@ export default function EndpointComparePage() {
 
       {/* Comparison grid */}
       {(!effA || !effB) ? (
-        <div className="text-center py-20 bg-[#0d1220] border border-[#1e2d42] rounded-xl">
-          <ArrowLeftRight className="w-10 h-10 text-[#3d5068] mx-auto mb-3" />
-          <p className="text-[#7d92b0]">比較するエンドポイントを2つ選択してください</p>
+        <div className="text-center py-20 bg-falcon-surface border border-falcon-border rounded-xl">
+          <ArrowLeftRight className="w-10 h-10 text-falcon-subtle mx-auto mb-3" />
+          <p className="text-falcon-muted">比較するエンドポイントを2つ選択してください</p>
         </div>
       ) : (
         <div className="space-y-4">
           {/* Amber diff legend */}
           <div className="flex items-center gap-2 text-xs text-amber-300">
-            <div className="w-3 h-3 rounded bg-amber-900/40 border border-amber-700/50" />
+            <div className="w-3 h-3 rounded-sm bg-amber-900/40 border border-amber-700/50" />
             差分ハイライト — 値が異なる行を強調表示
           </div>
 
           {rows.map(section => (
-            <div key={section.section} className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
+            <div key={section.section} className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
               {/* Section header */}
-              <div className="flex items-center gap-2 px-4 py-3 border-b border-[#1e2d42] bg-[#070d19]/60">
+              <div className="flex items-center gap-2 px-4 py-3 border-b border-falcon-border bg-[#070d19]/60">
                 {section.icon}
                 <span className="text-sm font-semibold text-white">{section.section}</span>
               </div>
 
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-[#1e2d42]/60">
-                    <th className="text-left px-4 py-2.5 text-xs text-[#7d92b0] font-medium w-1/3">項目</th>
+                  <tr className="border-b border-falcon-border/60">
+                    <th className="text-left px-4 py-2.5 text-xs text-falcon-muted font-medium w-1/3">項目</th>
                     <th className="text-left px-4 py-2.5 text-xs font-medium text-white">
                       <div className="flex items-center gap-1.5">
-                        <span className="w-2 h-2 rounded-full bg-[#e8002d]" />
+                        <span className="w-2 h-2 rounded-full bg-falcon-red" />
                         {effA.hostname}
                       </div>
                     </th>
@@ -411,8 +411,8 @@ export default function EndpointComparePage() {
                     const normA = Array.isArray(valA) ? (valA as unknown[])[0] : valA
                     const normB = Array.isArray(valB) ? (valB as unknown[])[0] : valB
                     return (
-                      <tr key={field.label} className="border-b border-[#1e2d42]/40 last:border-0">
-                        <td className="px-4 py-3 text-xs text-[#7d92b0]">{field.label}</td>
+                      <tr key={field.label} className="border-b border-falcon-border/40 last:border-0">
+                        <td className="px-4 py-3 text-xs text-falcon-muted">{field.label}</td>
                         <CompareCell value={valA} otherValue={valB} render={field.render} />
                         <CompareCell value={valB} otherValue={valA} render={field.render} />
                       </tr>
@@ -424,32 +424,32 @@ export default function EndpointComparePage() {
           ))}
 
           {/* Recent alerts section */}
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
-            <div className="flex items-center gap-2 px-4 py-3 border-b border-[#1e2d42] bg-[#070d19]/60">
-              <Activity className="w-4 h-4 text-[#e8002d]" />
+          <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
+            <div className="flex items-center gap-2 px-4 py-3 border-b border-falcon-border bg-[#070d19]/60">
+              <Activity className="w-4 h-4 text-falcon-red" />
               <span className="text-sm font-semibold text-white">最近のアラート (直近5件)</span>
             </div>
-            <div className="grid grid-cols-2 divide-x divide-[#1e2d42]">
+            <div className="grid grid-cols-2 divide-x divide-falcon-border">
               {/* A alerts */}
               <div className="p-3">
-                <p className="text-xs text-[#7d92b0] font-medium mb-2 flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-[#e8002d]" />
+                <p className="text-xs text-falcon-muted font-medium mb-2 flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-falcon-red" />
                   {effA.hostname}
                 </p>
                 {(alertsA?.data ?? []).length === 0 ? (
-                  <p className="text-xs text-[#3d5068] px-2 py-1">アラートなし</p>
+                  <p className="text-xs text-falcon-subtle px-2 py-1">アラートなし</p>
                 ) : (
                   (alertsA?.data ?? []).map(a => <AlertRow key={a.id} alert={a} />)
                 )}
               </div>
               {/* B alerts */}
               <div className="p-3">
-                <p className="text-xs text-[#7d92b0] font-medium mb-2 flex items-center gap-1.5">
+                <p className="text-xs text-falcon-muted font-medium mb-2 flex items-center gap-1.5">
                   <span className="w-2 h-2 rounded-full bg-blue-500" />
                   {effB.hostname}
                 </p>
                 {(alertsB?.data ?? []).length === 0 ? (
-                  <p className="text-xs text-[#3d5068] px-2 py-1">アラートなし</p>
+                  <p className="text-xs text-falcon-subtle px-2 py-1">アラートなし</p>
                 ) : (
                   (alertsB?.data ?? []).map(a => <AlertRow key={a.id} alert={a} />)
                 )}

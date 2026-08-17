@@ -261,7 +261,7 @@ export default function SecurityScorecardPage() {
           <div className="flex items-center gap-2">
             <h2 className="text-zinc-100 font-semibold">コントロール</h2>
             {categoryFilter !== 'all' && (
-              <span className="px-2 py-0.5 rounded bg-zinc-700 text-zinc-300 text-xs">
+              <span className="px-2 py-0.5 rounded-sm bg-zinc-700 text-zinc-300 text-xs">
                 {categoryFilter}
                 <button onClick={() => setCategoryFilter('all')} className="ml-1.5 text-zinc-500 hover:text-zinc-300">×</button>
               </span>
@@ -271,7 +271,7 @@ export default function SecurityScorecardPage() {
             {(['Compliant', 'Partial', 'Non-compliant', 'Not assessed'] as ControlStatus[]).map(s => {
               const count = data.controls.filter(c => c.status === s && (categoryFilter === 'all' || c.category === categoryFilter)).length
               return (
-                <span key={s} className={`inline-flex items-center gap-1 px-2 py-0.5 rounded border ${STATUS_CONFIG[s].className}`}>
+                <span key={s} className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-sm border ${STATUS_CONFIG[s].className}`}>
                   {STATUS_CONFIG[s].icon}
                   {count}
                 </span>
@@ -297,7 +297,7 @@ export default function SecurityScorecardPage() {
                   <td className="px-5 py-3 text-zinc-300 text-sm">{ctrl.name}</td>
                   <td className="px-5 py-3 text-zinc-500 text-xs">{ctrl.category}</td>
                   <td className="px-5 py-3">
-                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium border ${STATUS_CONFIG[ctrl.status].className}`}>
+                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-[11px] font-medium border ${STATUS_CONFIG[ctrl.status].className}`}>
                       {STATUS_CONFIG[ctrl.status].icon}
                       {STATUS_CONFIG[ctrl.status].label}
                     </span>
@@ -333,11 +333,11 @@ export default function SecurityScorecardPage() {
         <ol className="space-y-3">
           {data.recommendations.map((rec, i) => (
             <li key={i} className="flex items-start gap-3 p-3 rounded-lg bg-zinc-800/40 border border-zinc-800">
-              <span className="flex-shrink-0 w-6 h-6 rounded-full bg-blue-500/20 text-blue-400 text-xs font-bold flex items-center justify-center">
+              <span className="shrink-0 w-6 h-6 rounded-full bg-blue-500/20 text-blue-400 text-xs font-bold flex items-center justify-center">
                 {i + 1}
               </span>
               <span className="text-zinc-300 text-sm flex-1">{rec}</span>
-              <ChevronRight className="w-4 h-4 text-zinc-600 flex-shrink-0 mt-0.5" />
+              <ChevronRight className="w-4 h-4 text-zinc-600 shrink-0 mt-0.5" />
             </li>
           ))}
         </ol>

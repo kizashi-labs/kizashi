@@ -146,7 +146,7 @@ function savePresets(presets: FilterPreset[]) {
 
 function SeverityBadge({ severity }: { severity: number }) {
   return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide ${SEVERITY_COLORS[severity] ?? 'bg-slate-700 text-slate-300'}`}>
+    <span className={`inline-flex items-center px-2 py-0.5 rounded-sm text-[10px] font-bold uppercase tracking-wide ${SEVERITY_COLORS[severity] ?? 'bg-slate-700 text-slate-300'}`}>
       {SEVERITY_LABELS[severity] ?? `SEV${severity}`}
     </span>
   )
@@ -166,11 +166,11 @@ function ResolutionModal({
   const [note, setNote] = useState('')
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-6 w-full max-w-md shadow-xl">
+      <div className="bg-falcon-surface border border-falcon-border rounded-lg p-6 w-full max-w-md shadow-xl">
         <h3 className="text-white font-semibold text-lg mb-1">アラートをクローズ</h3>
-        <p className="text-[#7d92b0] text-sm mb-4">{count} 件のアラートをクローズします。解決メモを入力してください。</p>
+        <p className="text-falcon-muted text-sm mb-4">{count} 件のアラートをクローズします。解決メモを入力してください。</p>
         <textarea
-          className="w-full bg-[#070d19] border border-[#1e2d42] rounded text-[#e2e8f4] text-sm p-3 resize-none focus:outline-none focus:border-[#e8002d]/50 h-28"
+          className="w-full bg-[#070d19] border border-falcon-border rounded-sm text-falcon-text text-sm p-3 resize-none focus:outline-hidden focus:border-falcon-red/50 h-28"
           placeholder="解決メモ（任意）"
           value={note}
           onChange={e => setNote(e.target.value)}
@@ -178,13 +178,13 @@ function ResolutionModal({
         <div className="flex gap-3 mt-4 justify-end">
           <button
             onClick={onCancel}
-            className="px-4 py-2 text-sm text-[#7d92b0] hover:text-white border border-[#1e2d42] rounded transition-colors"
+            className="px-4 py-2 text-sm text-falcon-muted hover:text-white border border-falcon-border rounded-sm transition-colors"
           >
             キャンセル
           </button>
           <button
             onClick={() => onConfirm(note)}
-            className="px-4 py-2 text-sm text-white bg-[#e8002d] hover:bg-[#c0001f] rounded transition-colors"
+            className="px-4 py-2 text-sm text-white bg-falcon-red hover:bg-[#c0001f] rounded-sm transition-colors"
           >
             クローズ実行
           </button>
@@ -208,23 +208,23 @@ function TagModal({
   const [tag, setTag] = useState('')
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-6 w-full max-w-sm shadow-xl">
+      <div className="bg-falcon-surface border border-falcon-border rounded-lg p-6 w-full max-w-sm shadow-xl">
         <h3 className="text-white font-semibold text-lg mb-1">タグを追加</h3>
-        <p className="text-[#7d92b0] text-sm mb-4">{count} 件のアラートにタグを追加します。</p>
+        <p className="text-falcon-muted text-sm mb-4">{count} 件のアラートにタグを追加します。</p>
         <input
-          className="w-full bg-[#070d19] border border-[#1e2d42] rounded text-[#e2e8f4] text-sm p-2 focus:outline-none focus:border-[#e8002d]/50"
+          className="w-full bg-[#070d19] border border-falcon-border rounded-sm text-falcon-text text-sm p-2 focus:outline-hidden focus:border-falcon-red/50"
           placeholder="タグ名を入力..."
           value={tag}
           onChange={e => setTag(e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter' && tag.trim()) onConfirm(tag.trim()) }}
         />
         <div className="flex gap-3 mt-4 justify-end">
-          <button onClick={onCancel} className="px-4 py-2 text-sm text-[#7d92b0] hover:text-white border border-[#1e2d42] rounded transition-colors">
+          <button onClick={onCancel} className="px-4 py-2 text-sm text-falcon-muted hover:text-white border border-falcon-border rounded-sm transition-colors">
             キャンセル
           </button>
           <button
             onClick={() => tag.trim() && onConfirm(tag.trim())}
-            className="px-4 py-2 text-sm text-white bg-[#1a6bff] hover:bg-[#0044cc] rounded transition-colors"
+            className="px-4 py-2 text-sm text-white bg-falcon-blue hover:bg-[#0044cc] rounded-sm transition-colors"
           >
             追加
           </button>
@@ -253,11 +253,11 @@ function AssignModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-6 w-full max-w-sm shadow-xl">
+      <div className="bg-falcon-surface border border-falcon-border rounded-lg p-6 w-full max-w-sm shadow-xl">
         <h3 className="text-white font-semibold text-lg mb-1">担当者を割り当て</h3>
-        <p className="text-[#7d92b0] text-sm mb-4">{count} 件のアラートに担当者を割り当てます。</p>
+        <p className="text-falcon-muted text-sm mb-4">{count} 件のアラートに担当者を割り当てます。</p>
         <select
-          className="w-full bg-[#070d19] border border-[#1e2d42] rounded text-[#e2e8f4] text-sm p-2 focus:outline-none focus:border-[#e8002d]/50"
+          className="w-full bg-[#070d19] border border-falcon-border rounded-sm text-falcon-text text-sm p-2 focus:outline-hidden focus:border-falcon-red/50"
           value={userId}
           onChange={e => setUserId(e.target.value)}
         >
@@ -267,12 +267,12 @@ function AssignModal({
           ))}
         </select>
         <div className="flex gap-3 mt-4 justify-end">
-          <button onClick={onCancel} className="px-4 py-2 text-sm text-[#7d92b0] hover:text-white border border-[#1e2d42] rounded transition-colors">
+          <button onClick={onCancel} className="px-4 py-2 text-sm text-falcon-muted hover:text-white border border-falcon-border rounded-sm transition-colors">
             キャンセル
           </button>
           <button
             onClick={() => userId && onConfirm(userId)}
-            className="px-4 py-2 text-sm text-white bg-[#1a6bff] hover:bg-[#0044cc] rounded transition-colors"
+            className="px-4 py-2 text-sm text-white bg-falcon-blue hover:bg-[#0044cc] rounded-sm transition-colors"
           >
             割り当て
           </button>
@@ -294,23 +294,23 @@ function SavePresetModal({
   const [name, setName] = useState('')
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-6 w-full max-w-sm shadow-xl">
+      <div className="bg-falcon-surface border border-falcon-border rounded-lg p-6 w-full max-w-sm shadow-xl">
         <h3 className="text-white font-semibold text-lg mb-1">フィルタープリセットを保存</h3>
-        <p className="text-[#7d92b0] text-sm mb-4">現在のフィルター条件をプリセットとして保存します。</p>
+        <p className="text-falcon-muted text-sm mb-4">現在のフィルター条件をプリセットとして保存します。</p>
         <input
-          className="w-full bg-[#070d19] border border-[#1e2d42] rounded text-[#e2e8f4] text-sm p-2 focus:outline-none focus:border-[#e8002d]/50"
+          className="w-full bg-[#070d19] border border-falcon-border rounded-sm text-falcon-text text-sm p-2 focus:outline-hidden focus:border-falcon-red/50"
           placeholder="プリセット名を入力..."
           value={name}
           onChange={e => setName(e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter' && name.trim()) onConfirm(name.trim()) }}
         />
         <div className="flex gap-3 mt-4 justify-end">
-          <button onClick={onCancel} className="px-4 py-2 text-sm text-[#7d92b0] hover:text-white border border-[#1e2d42] rounded transition-colors">
+          <button onClick={onCancel} className="px-4 py-2 text-sm text-falcon-muted hover:text-white border border-falcon-border rounded-sm transition-colors">
             キャンセル
           </button>
           <button
             onClick={() => name.trim() && onConfirm(name.trim())}
-            className="px-4 py-2 text-sm text-white bg-[#1a6bff] hover:bg-[#0044cc] rounded transition-colors"
+            className="px-4 py-2 text-sm text-white bg-falcon-blue hover:bg-[#0044cc] rounded-sm transition-colors"
           >
             保存
           </button>
@@ -338,7 +338,7 @@ function SortHeader({
   const active = sort.column === column
   return (
     <th
-      className={`px-3 py-2 text-left text-xs font-semibold text-[#7d92b0] uppercase tracking-wide cursor-pointer select-none hover:text-[#e2e8f4] transition-colors ${className ?? ''}`}
+      className={`px-3 py-2 text-left text-xs font-semibold text-falcon-muted uppercase tracking-wide cursor-pointer select-none hover:text-falcon-text transition-colors ${className ?? ''}`}
       onClick={() => onSort(column)}
     >
       <span className="flex items-center gap-1">
@@ -554,15 +554,15 @@ export default function TriagePage() {
     <div className="flex h-screen bg-[#070d19] overflow-hidden">
 
       {/* ── Left Sidebar: Filter Presets ─────────────────────────────────── */}
-      <aside className="w-56 flex-shrink-0 bg-[#0d1220] border-r border-[#1e2d42] flex flex-col overflow-hidden">
-        <div className="p-4 border-b border-[#1e2d42]">
+      <aside className="w-56 shrink-0 bg-falcon-surface border-r border-falcon-border flex flex-col overflow-hidden">
+        <div className="p-4 border-b border-falcon-border">
           <div className="flex items-center gap-2 mb-3">
-            <Filter className="w-4 h-4 text-[#e8002d]" />
-            <span className="text-[#e2e8f4] text-sm font-semibold">フィルタープリセット</span>
+            <Filter className="w-4 h-4 text-falcon-red" />
+            <span className="text-falcon-text text-sm font-semibold">フィルタープリセット</span>
           </div>
           <button
             onClick={() => setModal('save_preset')}
-            className="w-full flex items-center gap-1.5 px-3 py-1.5 rounded text-xs text-[#7d92b0] border border-[#1e2d42] hover:border-[#7d92b0]/40 hover:text-[#e2e8f4] transition-colors"
+            className="w-full flex items-center gap-1.5 px-3 py-1.5 rounded-sm text-xs text-falcon-muted border border-falcon-border hover:border-falcon-muted/40 hover:text-falcon-text transition-colors"
           >
             <Save className="w-3 h-3" />
             現在のフィルターを保存
@@ -575,14 +575,14 @@ export default function TriagePage() {
               <div key={preset.id} className="group flex items-center gap-1">
                 <button
                   onClick={() => applyPreset(preset)}
-                  className="flex-1 text-left px-3 py-2 rounded text-xs text-[#7d92b0] hover:bg-[#19253d] hover:text-[#e2e8f4] transition-colors truncate"
+                  className="flex-1 text-left px-3 py-2 rounded-sm text-xs text-falcon-muted hover:bg-falcon-hover hover:text-falcon-text transition-colors truncate"
                 >
                   {preset.name}
                 </button>
                 {!isDefault && (
                   <button
                     onClick={() => deletePreset(preset.id)}
-                    className="opacity-0 group-hover:opacity-100 p-1 text-[#3d5068] hover:text-[#e8002d] transition-all"
+                    className="opacity-0 group-hover:opacity-100 p-1 text-falcon-subtle hover:text-falcon-red transition-all"
                   >
                     <Trash2 className="w-3 h-3" />
                   </button>
@@ -597,19 +597,19 @@ export default function TriagePage() {
       <div className="flex-1 flex flex-col overflow-hidden">
 
         {/* ── Page Header ────────────────────────────────────────────────── */}
-        <div className="bg-[#0d1220] border-b border-[#1e2d42] px-6 py-4 flex-shrink-0">
+        <div className="bg-falcon-surface border-b border-falcon-border px-6 py-4 shrink-0">
           <div className="flex items-center gap-3 mb-4">
-            <div className="w-8 h-8 rounded bg-gradient-to-br from-[#e8002d] to-[#a80020] flex items-center justify-center">
+            <div className="w-8 h-8 rounded-sm bg-linear-to-br from-falcon-red to-falcon-red-dark flex items-center justify-center">
               <Layers className="w-4 h-4 text-white" />
             </div>
             <div>
               <h1 className="text-white font-bold text-lg leading-none">アラートトリアージ</h1>
-              <p className="text-[#7d92b0] text-xs mt-0.5">
+              <p className="text-falcon-muted text-xs mt-0.5">
                 {isLoading ? '読み込み中...' : `${total.toLocaleString()} 件のアラート`}
               </p>
             </div>
             {isFetching && !isLoading && (
-              <Loader2 className="w-4 h-4 text-[#7d92b0] animate-spin ml-2" />
+              <Loader2 className="w-4 h-4 text-falcon-muted animate-spin ml-2" />
             )}
           </div>
 
@@ -617,9 +617,9 @@ export default function TriagePage() {
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2">
             {/* Search */}
             <div className="relative lg:col-span-2">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#3d5068]" />
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-falcon-subtle" />
               <input
-                className="w-full bg-[#070d19] border border-[#1e2d42] rounded pl-8 pr-3 py-1.5 text-sm text-[#e2e8f4] placeholder:text-[#3d5068] focus:outline-none focus:border-[#e8002d]/50"
+                className="w-full bg-[#070d19] border border-falcon-border rounded-sm pl-8 pr-3 py-1.5 text-sm text-falcon-text placeholder:text-falcon-subtle focus:outline-hidden focus:border-falcon-red/50"
                 placeholder="タイトル、エージェント名で検索..."
                 value={filters.search}
                 onChange={e => updateFilter('search', e.target.value)}
@@ -628,7 +628,7 @@ export default function TriagePage() {
 
             {/* Agent */}
             <select
-              className="bg-[#070d19] border border-[#1e2d42] rounded px-3 py-1.5 text-sm text-[#e2e8f4] focus:outline-none focus:border-[#e8002d]/50"
+              className="bg-[#070d19] border border-falcon-border rounded-sm px-3 py-1.5 text-sm text-falcon-text focus:outline-hidden focus:border-falcon-red/50"
               value={filters.agent}
               onChange={e => { updateFilter('agent', e.target.value); setPage(1) }}
             >
@@ -640,10 +640,10 @@ export default function TriagePage() {
 
             {/* Date From */}
             <div className="relative">
-              <Calendar className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#3d5068]" />
+              <Calendar className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-falcon-subtle" />
               <input
                 type="date"
-                className="w-full bg-[#070d19] border border-[#1e2d42] rounded pl-8 pr-3 py-1.5 text-sm text-[#e2e8f4] focus:outline-none focus:border-[#e8002d]/50"
+                className="w-full bg-[#070d19] border border-falcon-border rounded-sm pl-8 pr-3 py-1.5 text-sm text-falcon-text focus:outline-hidden focus:border-falcon-red/50"
                 value={filters.dateFrom}
                 onChange={e => updateFilter('dateFrom', e.target.value)}
               />
@@ -651,10 +651,10 @@ export default function TriagePage() {
 
             {/* Date To */}
             <div className="relative">
-              <Calendar className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#3d5068]" />
+              <Calendar className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-falcon-subtle" />
               <input
                 type="date"
-                className="w-full bg-[#070d19] border border-[#1e2d42] rounded pl-8 pr-3 py-1.5 text-sm text-[#e2e8f4] focus:outline-none focus:border-[#e8002d]/50"
+                className="w-full bg-[#070d19] border border-falcon-border rounded-sm pl-8 pr-3 py-1.5 text-sm text-falcon-text focus:outline-hidden focus:border-falcon-red/50"
                 value={filters.dateTo}
                 onChange={e => updateFilter('dateTo', e.target.value)}
               />
@@ -664,15 +664,15 @@ export default function TriagePage() {
           {/* Severity + Status chips */}
           <div className="flex flex-wrap gap-2 mt-2">
             <div className="flex gap-1">
-              <span className="text-[#7d92b0] text-xs self-center mr-1">深刻度:</span>
+              <span className="text-falcon-muted text-xs self-center mr-1">深刻度:</span>
               {[5, 4, 3, 2, 1].map(sev => (
                 <button
                   key={sev}
                   onClick={() => toggleSeverity(sev)}
                   className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase transition-all border ${
                     filters.severities.includes(sev)
-                      ? 'border-[#e8002d]/60 opacity-100 ' + SEVERITY_COLORS[sev]
-                      : 'border-[#1e2d42] opacity-50 ' + SEVERITY_COLORS[sev]
+                      ? 'border-falcon-red/60 opacity-100 ' + SEVERITY_COLORS[sev]
+                      : 'border-falcon-border opacity-50 ' + SEVERITY_COLORS[sev]
                   }`}
                 >
                   {SEVERITY_LABELS[sev]}
@@ -680,15 +680,15 @@ export default function TriagePage() {
               ))}
             </div>
             <div className="flex gap-1 ml-4">
-              <span className="text-[#7d92b0] text-xs self-center mr-1">ステータス:</span>
+              <span className="text-falcon-muted text-xs self-center mr-1">ステータス:</span>
               {Object.entries(STATUS_LABELS).map(([key, label]) => (
                 <button
                   key={key}
                   onClick={() => toggleStatus(key)}
                   className={`px-2 py-0.5 rounded text-[10px] font-medium transition-all border ${
                     filters.statuses.includes(key)
-                      ? 'border-[#1a6bff]/60 bg-[#1a6bff]/20 text-white'
-                      : 'border-[#1e2d42] text-[#7d92b0]'
+                      ? 'border-falcon-blue/60 bg-falcon-blue/20 text-white'
+                      : 'border-falcon-border text-falcon-muted'
                   }`}
                 >
                   {label}
@@ -698,7 +698,7 @@ export default function TriagePage() {
             {(filters.severities.length > 0 || filters.statuses.length > 0 || filters.search || filters.agent || filters.dateFrom || filters.dateTo) && (
               <button
                 onClick={() => { setFilters(DEFAULT_FILTER); setPage(1) }}
-                className="ml-auto flex items-center gap-1 text-xs text-[#7d92b0] hover:text-[#e8002d] transition-colors"
+                className="ml-auto flex items-center gap-1 text-xs text-falcon-muted hover:text-falcon-red transition-colors"
               >
                 <X className="w-3 h-3" />
                 フィルタークリア
@@ -709,8 +709,8 @@ export default function TriagePage() {
 
         {/* ── Sticky Action Bar ─────────────────────────────────────────── */}
         {selected.size > 0 && (
-          <div className="flex-shrink-0 bg-[#0d1220] border-b border-[#e8002d]/30 px-6 py-2 flex items-center gap-3 flex-wrap">
-            <span className="text-[#e8002d] font-semibold text-sm">
+          <div className="shrink-0 bg-falcon-surface border-b border-falcon-red/30 px-6 py-2 flex items-center gap-3 flex-wrap">
+            <span className="text-falcon-red font-semibold text-sm">
               {selected.size} 件選択中
             </span>
             <div className="flex items-center gap-2 flex-wrap">
@@ -719,7 +719,7 @@ export default function TriagePage() {
               <button
                 onClick={() => setModal('assign')}
                 disabled={batchMutation.isPending}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-medium bg-[#1a6bff]/20 text-[#1a6bff] border border-[#1a6bff]/30 hover:bg-[#1a6bff]/30 transition-colors disabled:opacity-50"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-sm text-xs font-medium bg-falcon-blue/20 text-falcon-blue border border-falcon-blue/30 hover:bg-falcon-blue/30 transition-colors disabled:opacity-50"
               >
                 <UserCheck className="w-3.5 h-3.5" />
                 担当者割り当て
@@ -729,7 +729,7 @@ export default function TriagePage() {
               <button
                 onClick={() => setModal('close')}
                 disabled={batchMutation.isPending}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-medium bg-slate-700/50 text-slate-300 border border-slate-600/30 hover:bg-slate-700 transition-colors disabled:opacity-50"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-sm text-xs font-medium bg-slate-700/50 text-slate-300 border border-slate-600/30 hover:bg-slate-700 transition-colors disabled:opacity-50"
               >
                 <XCircle className="w-3.5 h-3.5" />
                 クローズ
@@ -739,7 +739,7 @@ export default function TriagePage() {
               <button
                 onClick={handleEscalate}
                 disabled={batchMutation.isPending}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-medium bg-orange-900/30 text-orange-400 border border-orange-700/30 hover:bg-orange-900/50 transition-colors disabled:opacity-50"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-sm text-xs font-medium bg-orange-900/30 text-orange-400 border border-orange-700/30 hover:bg-orange-900/50 transition-colors disabled:opacity-50"
               >
                 <TrendingUp className="w-3.5 h-3.5" />
                 エスカレート
@@ -749,7 +749,7 @@ export default function TriagePage() {
               <button
                 onClick={() => setModal('tag')}
                 disabled={batchMutation.isPending}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-medium bg-purple-900/30 text-purple-400 border border-purple-700/30 hover:bg-purple-900/50 transition-colors disabled:opacity-50"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-sm text-xs font-medium bg-purple-900/30 text-purple-400 border border-purple-700/30 hover:bg-purple-900/50 transition-colors disabled:opacity-50"
               >
                 <Tag className="w-3.5 h-3.5" />
                 タグ追加
@@ -759,7 +759,7 @@ export default function TriagePage() {
               <button
                 onClick={handleFalsePositive}
                 disabled={batchMutation.isPending}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-medium bg-yellow-900/30 text-yellow-400 border border-yellow-700/30 hover:bg-yellow-900/50 transition-colors disabled:opacity-50"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-sm text-xs font-medium bg-yellow-900/30 text-yellow-400 border border-yellow-700/30 hover:bg-yellow-900/50 transition-colors disabled:opacity-50"
               >
                 <ShieldOff className="w-3.5 h-3.5" />
                 誤検知
@@ -768,7 +768,7 @@ export default function TriagePage() {
               {/* Refresh */}
               <button
                 onClick={() => queryClient.invalidateQueries({ queryKey: ['triage-alerts'] })}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-medium text-[#7d92b0] border border-[#1e2d42] hover:text-[#e2e8f4] transition-colors"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-sm text-xs font-medium text-falcon-muted border border-falcon-border hover:text-falcon-text transition-colors"
               >
                 <RefreshCw className="w-3.5 h-3.5" />
                 更新
@@ -776,10 +776,10 @@ export default function TriagePage() {
             </div>
 
             {batchMutation.isPending && (
-              <Loader2 className="w-4 h-4 text-[#7d92b0] animate-spin ml-2" />
+              <Loader2 className="w-4 h-4 text-falcon-muted animate-spin ml-2" />
             )}
             {batchMutation.isError && (
-              <span className="text-[#e8002d] text-xs flex items-center gap-1">
+              <span className="text-falcon-red text-xs flex items-center gap-1">
                 <AlertTriangle className="w-3 h-3" />
                 操作に失敗しました
               </span>
@@ -787,7 +787,7 @@ export default function TriagePage() {
 
             <button
               onClick={() => setSelected(new Set())}
-              className="ml-auto text-[#7d92b0] hover:text-[#e8002d] transition-colors"
+              className="ml-auto text-falcon-muted hover:text-falcon-red transition-colors"
             >
               <X className="w-4 h-4" />
             </button>
@@ -797,18 +797,18 @@ export default function TriagePage() {
         {/* ── Table ─────────────────────────────────────────────────────── */}
         <div className="flex-1 overflow-auto">
           <table className="w-full border-collapse text-sm">
-            <thead className="sticky top-0 z-10 bg-[#0d1220] border-b border-[#1e2d42]">
+            <thead className="sticky top-0 z-10 bg-falcon-surface border-b border-falcon-border">
               <tr>
                 {/* Checkbox column */}
                 <th className="px-3 py-2 w-10">
                   <button
                     onClick={toggleAll}
-                    className="text-[#7d92b0] hover:text-[#e2e8f4] transition-colors"
+                    className="text-falcon-muted hover:text-falcon-text transition-colors"
                   >
                     {allSelected ? (
-                      <CheckSquare className="w-4 h-4 text-[#e8002d]" />
+                      <CheckSquare className="w-4 h-4 text-falcon-red" />
                     ) : someSelected ? (
-                      <CheckSquare className="w-4 h-4 text-[#e8002d] opacity-50" />
+                      <CheckSquare className="w-4 h-4 text-falcon-red opacity-50" />
                     ) : (
                       <Square className="w-4 h-4" />
                     )}
@@ -822,17 +822,17 @@ export default function TriagePage() {
                 <SortHeader label="担当者" column="assigned_to" sort={sort} onSort={handleSort} className="w-32" />
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#1e2d42]/60">
+            <tbody className="divide-y divide-falcon-border/60">
               {isLoading ? (
                 <tr>
-                  <td colSpan={7} className="py-20 text-center text-[#7d92b0]">
-                    <Loader2 className="w-8 h-8 animate-spin mx-auto mb-2 text-[#e8002d]" />
+                  <td colSpan={7} className="py-20 text-center text-falcon-muted">
+                    <Loader2 className="w-8 h-8 animate-spin mx-auto mb-2 text-falcon-red" />
                     <p className="text-sm">読み込み中...</p>
                   </td>
                 </tr>
               ) : alerts.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-20 text-center text-[#7d92b0]">
+                  <td colSpan={7} className="py-20 text-center text-falcon-muted">
                     <ShieldOff className="w-10 h-10 mx-auto mb-3 opacity-30" />
                     <p className="text-sm">アラートが見つかりません</p>
                     <p className="text-xs mt-1 opacity-60">フィルター条件を変更してください</p>
@@ -846,46 +846,46 @@ export default function TriagePage() {
                       key={alert.id}
                       className={`group transition-colors cursor-pointer ${
                         isSelected
-                          ? 'bg-[#1d2f4a]/60 hover:bg-[#1d2f4a]'
-                          : 'hover:bg-[#19253d]/50'
+                          ? 'bg-falcon-active/60 hover:bg-falcon-active'
+                          : 'hover:bg-falcon-hover/50'
                       }`}
                       onClick={() => toggleOne(alert.id)}
                     >
                       <td className="px-3 py-2.5 w-10" onClick={e => { e.stopPropagation(); toggleOne(alert.id) }}>
                         {isSelected ? (
-                          <CheckSquare className="w-4 h-4 text-[#e8002d]" />
+                          <CheckSquare className="w-4 h-4 text-falcon-red" />
                         ) : (
-                          <Square className="w-4 h-4 text-[#3d5068] group-hover:text-[#7d92b0]" />
+                          <Square className="w-4 h-4 text-falcon-subtle group-hover:text-falcon-muted" />
                         )}
                       </td>
                       <td className="px-3 py-2.5">
                         <SeverityBadge severity={alert.severity} />
                       </td>
                       <td className="px-3 py-2.5">
-                        <span className="text-[#e2e8f4] font-medium line-clamp-1">{alert.title}</span>
+                        <span className="text-falcon-text font-medium line-clamp-1">{alert.title}</span>
                         {alert.tags && alert.tags.length > 0 && (
                           <div className="flex gap-1 mt-0.5 flex-wrap">
                             {alert.tags.slice(0, 3).map(tag => (
-                              <span key={tag} className="px-1.5 py-0 rounded text-[9px] bg-purple-900/40 text-purple-400 border border-purple-700/20">
+                              <span key={tag} className="px-1.5 py-0 rounded-sm text-[9px] bg-purple-900/40 text-purple-400 border border-purple-700/20">
                                 {tag}
                               </span>
                             ))}
                           </div>
                         )}
                       </td>
-                      <td className="px-3 py-2.5 text-[#7d92b0] text-xs truncate max-w-[160px]">
+                      <td className="px-3 py-2.5 text-falcon-muted text-xs truncate max-w-[160px]">
                         {alert.agent_hostname || alert.agent_id?.slice(0, 8) || '-'}
                       </td>
                       <td className="px-3 py-2.5">
-                        <span className={`text-xs font-medium ${STATUS_COLORS[alert.status] ?? 'text-[#7d92b0]'}`}>
+                        <span className={`text-xs font-medium ${STATUS_COLORS[alert.status] ?? 'text-falcon-muted'}`}>
                           {STATUS_LABELS[alert.status] ?? alert.status}
                         </span>
                       </td>
-                      <td className="px-3 py-2.5 text-[#7d92b0] text-xs">
+                      <td className="px-3 py-2.5 text-falcon-muted text-xs">
                         {formatDate(alert.created_at)}
                       </td>
-                      <td className="px-3 py-2.5 text-[#7d92b0] text-xs truncate max-w-[128px]">
-                        {alert.assigned_to || <span className="text-[#3d5068]">未割り当て</span>}
+                      <td className="px-3 py-2.5 text-falcon-muted text-xs truncate max-w-[128px]">
+                        {alert.assigned_to || <span className="text-falcon-subtle">未割り当て</span>}
                       </td>
                     </tr>
                   )
@@ -896,8 +896,8 @@ export default function TriagePage() {
         </div>
 
         {/* ── Pagination ────────────────────────────────────────────────── */}
-        <div className="flex-shrink-0 bg-[#0d1220] border-t border-[#1e2d42] px-6 py-3 flex items-center justify-between">
-          <span className="text-[#7d92b0] text-xs">
+        <div className="shrink-0 bg-falcon-surface border-t border-falcon-border px-6 py-3 flex items-center justify-between">
+          <span className="text-falcon-muted text-xs">
             {total > 0
               ? `${((page - 1) * PER_PAGE + 1).toLocaleString()}–${Math.min(page * PER_PAGE, total).toLocaleString()} / ${total.toLocaleString()} 件`
               : '0 件'
@@ -907,7 +907,7 @@ export default function TriagePage() {
             <button
               onClick={() => setPage(p => Math.max(1, p - 1))}
               disabled={page <= 1}
-              className="p-1.5 rounded border border-[#1e2d42] text-[#7d92b0] hover:text-[#e2e8f4] hover:border-[#7d92b0]/40 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              className="p-1.5 rounded-sm border border-falcon-border text-falcon-muted hover:text-falcon-text hover:border-falcon-muted/40 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
@@ -929,8 +929,8 @@ export default function TriagePage() {
                     onClick={() => setPage(p)}
                     className={`w-7 h-7 rounded text-xs font-medium transition-colors ${
                       p === page
-                        ? 'bg-[#e8002d] text-white'
-                        : 'text-[#7d92b0] hover:text-[#e2e8f4] hover:bg-[#19253d]'
+                        ? 'bg-falcon-red text-white'
+                        : 'text-falcon-muted hover:text-falcon-text hover:bg-falcon-hover'
                     }`}
                   >
                     {p}
@@ -941,7 +941,7 @@ export default function TriagePage() {
             <button
               onClick={() => setPage(p => Math.min(totalPages, p + 1))}
               disabled={page >= totalPages}
-              className="p-1.5 rounded border border-[#1e2d42] text-[#7d92b0] hover:text-[#e2e8f4] hover:border-[#7d92b0]/40 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              className="p-1.5 rounded-sm border border-falcon-border text-falcon-muted hover:text-falcon-text hover:border-falcon-muted/40 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
             >
               <ChevronRight className="w-4 h-4" />
             </button>

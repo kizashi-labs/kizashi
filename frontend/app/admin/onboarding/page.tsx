@@ -64,7 +64,7 @@ function CopyButton({ text }: { text: string }) {
   return (
     <button
       onClick={handleCopy}
-      className="p-1.5 rounded text-zinc-500 hover:text-zinc-300 hover:bg-zinc-700 transition-colors"
+      className="p-1.5 rounded-sm text-zinc-500 hover:text-zinc-300 hover:bg-zinc-700 transition-colors"
       title="Copy"
     >
       {copied ? <Check className="w-3.5 h-3.5 text-green-400" /> : <Copy className="w-3.5 h-3.5" />}
@@ -77,7 +77,7 @@ function CopyButton({ text }: { text: string }) {
 function WelcomeStep() {
   return (
     <div className="text-center py-4">
-      <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-red-600 to-red-800 flex items-center justify-center mx-auto mb-6 shadow-lg shadow-red-900/40">
+      <div className="w-20 h-20 rounded-2xl bg-linear-to-br from-red-600 to-red-800 flex items-center justify-center mx-auto mb-6 shadow-lg shadow-red-900/40">
         <Shield className="w-10 h-10 text-white" />
       </div>
       <h2 className="text-2xl font-bold text-zinc-100 mb-3">Welcome to Kizashi</h2>
@@ -161,7 +161,7 @@ function DeployAgentStep({ onAgentsFound }: { onAgentsFound: (n: number) => void
 
       {/* Enrollment Token */}
       <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-3 mb-4 flex items-center gap-3">
-        <Key className="w-4 h-4 text-zinc-500 flex-shrink-0" />
+        <Key className="w-4 h-4 text-zinc-500 shrink-0" />
         <div className="flex-1 min-w-0">
           <p className="text-[10px] text-zinc-500 mb-0.5">Enrollment Token</p>
           <code className="text-xs font-mono text-zinc-300 break-all">
@@ -258,7 +258,7 @@ function NotificationsStep({ onConfigured }: { onConfigured: (v: boolean) => voi
             value={webhookUrl}
             onChange={e => setWebhookUrl(e.target.value)}
             placeholder="https://hooks.slack.com/services/..."
-            className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-red-500 transition-colors"
+            className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-zinc-200 placeholder-zinc-600 focus:outline-hidden focus:border-red-500 transition-colors"
           />
         </div>
         <div>
@@ -268,7 +268,7 @@ function NotificationsStep({ onConfigured }: { onConfigured: (v: boolean) => voi
             value={email}
             onChange={e => setEmail(e.target.value)}
             placeholder="security@yourcompany.com"
-            className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-red-500 transition-colors"
+            className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-zinc-200 placeholder-zinc-600 focus:outline-hidden focus:border-red-500 transition-colors"
           />
         </div>
 
@@ -340,7 +340,7 @@ function DetectionRulesStep() {
           onClick={() => setEnabledBuiltin(v => !v)}
           className={`relative w-10 h-6 rounded-full transition-colors ${enabledBuiltin ? 'bg-red-600' : 'bg-zinc-700'}`}
         >
-          <span className={`absolute top-1 w-4 h-4 rounded-full bg-[#e2e8f4] shadow transition-transform ${enabledBuiltin ? 'left-5' : 'left-1'}`} />
+          <span className={`absolute top-1 w-4 h-4 rounded-full bg-falcon-text shadow-sm transition-transform ${enabledBuiltin ? 'left-5' : 'left-1'}`} />
         </button>
       </div>
 

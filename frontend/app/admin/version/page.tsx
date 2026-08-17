@@ -67,17 +67,17 @@ const RELEASE_NOTES = `v2.4.1 (2026-04-12)
 
 function StatusBadge({ status }: { status: string }) {
   if (status === 'up-to-date') return (
-    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-green-500/20 text-green-400 border border-green-500/30">
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-xs font-medium bg-green-500/20 text-green-400 border border-green-500/30">
       <CheckCircle className="w-3 h-3" />最新
     </span>
   )
   if (status === 'critical') return (
-    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-red-500/20 text-red-400 border border-red-500/30">
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-xs font-medium bg-red-500/20 text-red-400 border border-red-500/30">
       <XCircle className="w-3 h-3" />要対応
     </span>
   )
   return (
-    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-yellow-500/20 text-yellow-400 border border-yellow-500/30">
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-xs font-medium bg-yellow-500/20 text-yellow-400 border border-yellow-500/30">
       <AlertTriangle className="w-3 h-3" />更新あり
     </span>
   )
@@ -85,12 +85,12 @@ function StatusBadge({ status }: { status: string }) {
 
 function BuildInfoItem({ icon: Icon, label, value }: { icon: any; label: string; value: string }) {
   return (
-    <div className="flex items-center gap-3 py-3 border-b border-[#1e2d42] last:border-0">
-      <div className="w-8 h-8 rounded-lg bg-[#1e2d42] flex items-center justify-center flex-shrink-0">
-        <Icon className="w-4 h-4 text-[#7d92b0]" />
+    <div className="flex items-center gap-3 py-3 border-b border-falcon-border last:border-0">
+      <div className="w-8 h-8 rounded-lg bg-falcon-border flex items-center justify-center shrink-0">
+        <Icon className="w-4 h-4 text-falcon-muted" />
       </div>
       <div className="min-w-0">
-        <p className="text-[#7d92b0] text-xs">{label}</p>
+        <p className="text-falcon-muted text-xs">{label}</p>
         <p className="text-white text-sm font-mono truncate">{value || '—'}</p>
       </div>
     </div>
@@ -148,16 +148,16 @@ export default function VersionPage() {
       <div className="mb-6 flex items-start justify-between">
         <div>
           <div className="flex items-center gap-3 mb-1">
-            <PackageCheck className="w-6 h-6 text-[#e8002d]" />
+            <PackageCheck className="w-6 h-6 text-falcon-red" />
             <h1 className="text-2xl font-bold text-white">バージョン管理</h1>
           </div>
-          <p className="text-[#7d92b0] text-sm">プラットフォームのバージョン情報とコンポーネントの更新状況を確認します。</p>
+          <p className="text-falcon-muted text-sm">プラットフォームのバージョン情報とコンポーネントの更新状況を確認します。</p>
         </div>
         <div className="flex items-center gap-2">
           <button
             onClick={() => refetch()}
             disabled={isFetching}
-            className="flex items-center gap-2 px-3 py-2 text-sm bg-[#0d1220] border border-[#1e2d42] text-[#7d92b0] hover:text-white rounded-lg transition-colors disabled:opacity-50"
+            className="flex items-center gap-2 px-3 py-2 text-sm bg-falcon-surface border border-falcon-border text-falcon-muted hover:text-white rounded-lg transition-colors disabled:opacity-50"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${isFetching ? 'animate-spin' : ''}`} />
             更新
@@ -165,7 +165,7 @@ export default function VersionPage() {
           <button
             onClick={() => checkMut.mutate()}
             disabled={checkMut.isPending}
-            className="flex items-center gap-2 px-4 py-2 text-sm bg-[#e8002d] hover:bg-[#c5001f] text-white rounded-lg transition-colors disabled:opacity-50"
+            className="flex items-center gap-2 px-4 py-2 text-sm bg-falcon-red hover:bg-[#c5001f] text-white rounded-lg transition-colors disabled:opacity-50"
           >
             <ArrowUpCircle className={`w-4 h-4 ${checkMut.isPending ? 'animate-bounce' : ''}`} />
             {checkMut.isPending ? 'チェック中...' : '更新確認'}
@@ -176,11 +176,11 @@ export default function VersionPage() {
       {/* ── Check result banner */}
       {checkResult && (
         <div className="mb-6 flex items-start gap-3 bg-green-900/20 border border-green-800/50 rounded-lg px-4 py-3">
-          <CheckCircle className="w-4 h-4 text-green-400 mt-0.5 flex-shrink-0" />
+          <CheckCircle className="w-4 h-4 text-green-400 mt-0.5 shrink-0" />
           <p className="text-green-300 text-sm">{checkResult}</p>
           <button
             onClick={() => setCheckResult(null)}
-            className="ml-auto text-[#7d92b0] hover:text-white transition-colors"
+            className="ml-auto text-falcon-muted hover:text-white transition-colors"
           >
             <XCircle className="w-4 h-4" />
           </button>
@@ -191,15 +191,15 @@ export default function VersionPage() {
         {/* ── Left column (2/3) */}
         <div className="lg:col-span-2 space-y-6">
           {/* Current version hero */}
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-6">
+          <div className="bg-falcon-surface border border-falcon-border rounded-xl p-6">
             <div className="flex items-center gap-4 mb-4">
-              <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-[#e8002d] to-[#a80020] flex items-center justify-center shadow-lg">
+              <div className="w-14 h-14 rounded-xl bg-linear-to-br from-falcon-red to-falcon-red-dark flex items-center justify-center shadow-lg">
                 <PackageCheck className="w-7 h-7 text-white" />
               </div>
               <div>
-                <p className="text-[#7d92b0] text-xs uppercase tracking-wider mb-1">現在のバージョン</p>
+                <p className="text-falcon-muted text-xs uppercase tracking-wider mb-1">現在のバージョン</p>
                 {isLoading ? (
-                  <div className="h-8 w-24 bg-[#1e2d42] rounded animate-pulse" />
+                  <div className="h-8 w-24 bg-falcon-border rounded-sm animate-pulse" />
                 ) : (
                   <p className="text-4xl font-bold text-white">{versionInfo.version ? `v${versionInfo.version}` : '—'}</p>
                 )}
@@ -212,23 +212,23 @@ export default function VersionPage() {
           </div>
 
           {/* Component versions table */}
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl">
-            <div className="px-5 py-4 border-b border-[#1e2d42] flex items-center justify-between">
+          <div className="bg-falcon-surface border border-falcon-border rounded-xl">
+            <div className="px-5 py-4 border-b border-falcon-border flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <Box className="w-4 h-4 text-[#7d92b0]" />
+                <Box className="w-4 h-4 text-falcon-muted" />
                 <h2 className="text-white font-semibold text-sm">コンポーネントバージョン</h2>
               </div>
               <div className="flex items-center gap-3">
-                <span className="text-xs text-green-400 bg-green-900/20 border border-green-800/40 px-2 py-0.5 rounded">
+                <span className="text-xs text-green-400 bg-green-900/20 border border-green-800/40 px-2 py-0.5 rounded-sm">
                   最新 {upToDate}
                 </span>
                 {updateAvailable > 0 && (
-                  <span className="text-xs text-yellow-400 bg-yellow-900/20 border border-yellow-800/40 px-2 py-0.5 rounded">
+                  <span className="text-xs text-yellow-400 bg-yellow-900/20 border border-yellow-800/40 px-2 py-0.5 rounded-sm">
                     更新あり {updateAvailable}
                   </span>
                 )}
                 {critical > 0 && (
-                  <span className="text-xs text-[#e8002d] bg-[#e8002d]/10 border border-[#e8002d]/20 px-2 py-0.5 rounded">
+                  <span className="text-xs text-falcon-red bg-falcon-red/10 border border-falcon-red/20 px-2 py-0.5 rounded-sm">
                     緊急 {critical}
                   </span>
                 )}
@@ -237,31 +237,31 @@ export default function VersionPage() {
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-[#1e2d42]">
-                    <th className="text-left px-5 py-3 text-xs font-medium text-[#7d92b0] uppercase tracking-wider">コンポーネント</th>
-                    <th className="text-left px-5 py-3 text-xs font-medium text-[#7d92b0] uppercase tracking-wider">現行バージョン</th>
-                    <th className="text-left px-5 py-3 text-xs font-medium text-[#7d92b0] uppercase tracking-wider">最新バージョン</th>
-                    <th className="text-left px-5 py-3 text-xs font-medium text-[#7d92b0] uppercase tracking-wider">状態</th>
+                  <tr className="border-b border-falcon-border">
+                    <th className="text-left px-5 py-3 text-xs font-medium text-falcon-muted uppercase tracking-wider">コンポーネント</th>
+                    <th className="text-left px-5 py-3 text-xs font-medium text-falcon-muted uppercase tracking-wider">現行バージョン</th>
+                    <th className="text-left px-5 py-3 text-xs font-medium text-falcon-muted uppercase tracking-wider">最新バージョン</th>
+                    <th className="text-left px-5 py-3 text-xs font-medium text-falcon-muted uppercase tracking-wider">状態</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#1e2d42]/50">
+                <tbody className="divide-y divide-falcon-border/50">
                   {COMPONENT_VERSIONS.map(comp => (
-                    <tr key={comp.name} className="hover:bg-[#19253d]/40 transition-colors">
+                    <tr key={comp.name} className="hover:bg-falcon-hover/40 transition-colors">
                       <td className="px-5 py-3.5">
                         <div className="flex items-center gap-2.5">
-                          <comp.icon className="w-4 h-4 text-[#3d5068] flex-shrink-0" />
-                          <span className="text-[#e2e8f4] font-medium">{comp.name}</span>
+                          <comp.icon className="w-4 h-4 text-falcon-subtle shrink-0" />
+                          <span className="text-falcon-text font-medium">{comp.name}</span>
                         </div>
                       </td>
                       <td className="px-5 py-3.5">
-                        <code className="text-white font-mono text-xs bg-[#070d19] px-2 py-0.5 rounded">
+                        <code className="text-white font-mono text-xs bg-[#070d19] px-2 py-0.5 rounded-sm">
                           {comp.current}
                         </code>
                       </td>
                       <td className="px-5 py-3.5">
                         <code className={`font-mono text-xs px-2 py-0.5 rounded ${
                           comp.current === comp.latest
-                            ? 'text-[#7d92b0] bg-[#070d19]'
+                            ? 'text-falcon-muted bg-[#070d19]'
                             : 'text-yellow-400 bg-yellow-900/20'
                         }`}>
                           {comp.latest}
@@ -278,13 +278,13 @@ export default function VersionPage() {
           </div>
 
           {/* Release notes */}
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl">
-            <div className="px-5 py-4 border-b border-[#1e2d42] flex items-center gap-3">
-              <GitCommit className="w-4 h-4 text-[#7d92b0]" />
+          <div className="bg-falcon-surface border border-falcon-border rounded-xl">
+            <div className="px-5 py-4 border-b border-falcon-border flex items-center gap-3">
+              <GitCommit className="w-4 h-4 text-falcon-muted" />
               <h2 className="text-white font-semibold text-sm">リリースノート{versionInfo.version ? ` — v${versionInfo.version}` : ''}</h2>
             </div>
             <div className="px-5 py-4">
-              <pre className="text-[#7d92b0] text-sm whitespace-pre-wrap font-mono leading-relaxed">
+              <pre className="text-falcon-muted text-sm whitespace-pre-wrap font-mono leading-relaxed">
                 {RELEASE_NOTES}
               </pre>
             </div>
@@ -294,16 +294,16 @@ export default function VersionPage() {
         {/* ── Right column (1/3) */}
         <div className="space-y-6">
           {/* Build info */}
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl">
-            <div className="px-5 py-4 border-b border-[#1e2d42] flex items-center gap-3">
-              <Code2 className="w-4 h-4 text-[#7d92b0]" />
+          <div className="bg-falcon-surface border border-falcon-border rounded-xl">
+            <div className="px-5 py-4 border-b border-falcon-border flex items-center gap-3">
+              <Code2 className="w-4 h-4 text-falcon-muted" />
               <h2 className="text-white font-semibold text-sm">ビルド情報</h2>
             </div>
             <div className="px-5 py-2">
               {isLoading ? (
                 <div className="space-y-3 py-2">
                   {[1, 2, 3, 4].map(i => (
-                    <div key={i} className="h-10 bg-[#1e2d42] rounded animate-pulse" />
+                    <div key={i} className="h-10 bg-falcon-border rounded-sm animate-pulse" />
                   ))}
                 </div>
               ) : (
@@ -342,9 +342,9 @@ export default function VersionPage() {
           </div>
 
           {/* Migration summary */}
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl">
-            <div className="px-5 py-4 border-b border-[#1e2d42] flex items-center gap-3">
-              <Database className="w-4 h-4 text-[#7d92b0]" />
+          <div className="bg-falcon-surface border border-falcon-border rounded-xl">
+            <div className="px-5 py-4 border-b border-falcon-border flex items-center gap-3">
+              <Database className="w-4 h-4 text-falcon-muted" />
               <h2 className="text-white font-semibold text-sm">マイグレーション状況</h2>
             </div>
             <div className="px-5 py-4 space-y-3">
@@ -352,7 +352,7 @@ export default function VersionPage() {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <CheckCircle className="w-4 h-4 text-green-400" />
-                  <span className="text-[#7d92b0] text-sm">適用済み</span>
+                  <span className="text-falcon-muted text-sm">適用済み</span>
                 </div>
                 <span className="text-green-400 font-bold text-lg">{0}</span>
               </div>
@@ -360,26 +360,26 @@ export default function VersionPage() {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <AlertTriangle className="w-4 h-4 text-yellow-400" />
-                  <span className="text-[#7d92b0] text-sm">未適用</span>
+                  <span className="text-falcon-muted text-sm">未適用</span>
                 </div>
-                <span className={`font-bold text-lg ${0 > 0 ? 'text-yellow-400' : 'text-[#3d5068]'}`}>
+                <span className={`font-bold text-lg ${0 > 0 ? 'text-yellow-400' : 'text-falcon-subtle'}`}>
                   {0}
                 </span>
               </div>
               {/* Failed */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <XCircle className="w-4 h-4 text-[#e8002d]" />
-                  <span className="text-[#7d92b0] text-sm">失敗</span>
+                  <XCircle className="w-4 h-4 text-falcon-red" />
+                  <span className="text-falcon-muted text-sm">失敗</span>
                 </div>
-                <span className={`font-bold text-lg ${0 > 0 ? 'text-[#e8002d]' : 'text-[#3d5068]'}`}>
+                <span className={`font-bold text-lg ${0 > 0 ? 'text-falcon-red' : 'text-falcon-subtle'}`}>
                   {0}
                 </span>
               </div>
 
               {/* Progress bar */}
               <div className="pt-2">
-                <div className="flex justify-between text-xs text-[#7d92b0] mb-1.5">
+                <div className="flex justify-between text-xs text-falcon-muted mb-1.5">
                   <span>完了率</span>
                   <span>
                     {Math.round(
@@ -388,7 +388,7 @@ export default function VersionPage() {
                     )}%
                   </span>
                 </div>
-                <div className="h-2 bg-[#1e2d42] rounded-full overflow-hidden">
+                <div className="h-2 bg-falcon-border rounded-full overflow-hidden">
                   <div
                     className="h-full bg-green-500 rounded-full transition-all"
                     style={{
@@ -404,31 +404,31 @@ export default function VersionPage() {
           </div>
 
           {/* Component status summary */}
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
+          <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
             <h2 className="text-white font-semibold text-sm mb-4">コンポーネント概要</h2>
             <div className="space-y-2">
               <div className="flex items-center gap-3 p-3 bg-green-900/10 border border-green-800/30 rounded-lg">
-                <CheckCircle className="w-4 h-4 text-green-400 flex-shrink-0" />
+                <CheckCircle className="w-4 h-4 text-green-400 shrink-0" />
                 <div className="flex-1 min-w-0">
                   <p className="text-green-400 text-xs font-medium">最新</p>
-                  <p className="text-[#7d92b0] text-xs">{upToDate} コンポーネント</p>
+                  <p className="text-falcon-muted text-xs">{upToDate} コンポーネント</p>
                 </div>
               </div>
               {updateAvailable > 0 && (
                 <div className="flex items-center gap-3 p-3 bg-yellow-900/10 border border-yellow-800/30 rounded-lg">
-                  <ArrowUpCircle className="w-4 h-4 text-yellow-400 flex-shrink-0" />
+                  <ArrowUpCircle className="w-4 h-4 text-yellow-400 shrink-0" />
                   <div className="flex-1 min-w-0">
                     <p className="text-yellow-400 text-xs font-medium">更新あり</p>
-                    <p className="text-[#7d92b0] text-xs">{updateAvailable} コンポーネント</p>
+                    <p className="text-falcon-muted text-xs">{updateAvailable} コンポーネント</p>
                   </div>
                 </div>
               )}
               {critical > 0 && (
-                <div className="flex items-center gap-3 p-3 bg-[#e8002d]/10 border border-[#e8002d]/20 rounded-lg">
-                  <XCircle className="w-4 h-4 text-[#e8002d] flex-shrink-0" />
+                <div className="flex items-center gap-3 p-3 bg-falcon-red/10 border border-falcon-red/20 rounded-lg">
+                  <XCircle className="w-4 h-4 text-falcon-red shrink-0" />
                   <div className="flex-1 min-w-0">
-                    <p className="text-[#e8002d] text-xs font-medium">緊急更新</p>
-                    <p className="text-[#7d92b0] text-xs">{critical} コンポーネント</p>
+                    <p className="text-falcon-red text-xs font-medium">緊急更新</p>
+                    <p className="text-falcon-muted text-xs">{critical} コンポーネント</p>
                   </div>
                 </div>
               )}

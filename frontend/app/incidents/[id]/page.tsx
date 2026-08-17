@@ -144,7 +144,7 @@ const STATUS_COLORS: Record<string, string> = {
   investigating: 'bg-orange-900/50 text-orange-300',
   contained: 'bg-yellow-900/50 text-yellow-300',
   resolved: 'bg-green-900/50 text-green-300',
-  closed: 'bg-[#161f33] text-[#8899aa]',
+  closed: 'bg-falcon-raised text-[#8899aa]',
 }
 
 const NEXT_STATUSES: Record<string, string[]> = {
@@ -346,17 +346,17 @@ export default function IncidentDetailPage({ params }: { params: { id: string } 
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#070d19] text-[#e2e8f4] flex items-center justify-center">
-        <div className="text-[#7d92b0]">読み込み中...</div>
+      <div className="min-h-screen bg-[#070d19] text-falcon-text flex items-center justify-center">
+        <div className="text-falcon-muted">読み込み中...</div>
       </div>
     )
   }
 
   if (!inc) {
     return (
-      <div className="min-h-screen bg-[#070d19] text-[#e2e8f4] flex flex-col items-center justify-center gap-4">
+      <div className="min-h-screen bg-[#070d19] text-falcon-text flex flex-col items-center justify-center gap-4">
         <Siren size={48} className="text-red-400 opacity-40" />
-        <p className="text-[#7d92b0]">インシデントが見つかりません</p>
+        <p className="text-falcon-muted">インシデントが見つかりません</p>
         <button
           onClick={() => router.push('/incidents')}
           className="text-blue-400 hover:underline text-sm"
@@ -371,35 +371,35 @@ export default function IncidentDetailPage({ params }: { params: { id: string } 
   const prevStatuses = PREV_STATUSES[inc.status] ?? []
 
   return (
-    <div className="min-h-screen bg-[#070d19] text-[#e2e8f4] p-6">
+    <div className="min-h-screen bg-[#070d19] text-falcon-text p-6">
       <div className="max-w-5xl mx-auto space-y-5">
 
         {/* Back button */}
         <button
           onClick={() => router.push('/incidents')}
-          className="flex items-center gap-1.5 text-[#7d92b0] hover:text-white text-sm transition-colors"
+          className="flex items-center gap-1.5 text-falcon-muted hover:text-white text-sm transition-colors"
         >
           <ChevronLeft size={16} />
           インシデント一覧
         </button>
 
         {/* Header card */}
-        <div className={`bg-[#0d1220] border rounded-xl p-5 ${severityBgBorder(inc.severity)}`}>
+        <div className={`bg-falcon-surface border rounded-xl p-5 ${severityBgBorder(inc.severity)}`}>
           <div className="flex items-start gap-3 flex-wrap">
-            <Siren className="text-red-400 flex-shrink-0 mt-0.5" size={22} />
+            <Siren className="text-red-400 shrink-0 mt-0.5" size={22} />
             <div className="flex-1 min-w-0">
-              <h1 className="text-xl font-bold leading-tight break-words">{inc.title}</h1>
+              <h1 className="text-xl font-bold leading-tight wrap-break-word">{inc.title}</h1>
               {inc.description && (
-                <p className="text-[#7d92b0] text-sm mt-1 leading-relaxed">{inc.description}</p>
+                <p className="text-falcon-muted text-sm mt-1 leading-relaxed">{inc.description}</p>
               )}
             </div>
-            <div className="flex items-center gap-2 flex-shrink-0">
+            <div className="flex items-center gap-2 shrink-0">
               <span className={`text-2xl font-bold ${severityColor(inc.severity)}`}>
                 {inc.severity}
               </span>
               <span
                 className={`text-xs px-2.5 py-1 rounded-full font-medium ${
-                  STATUS_COLORS[inc.status] ?? 'bg-[#161f33] text-[#7d92b0]'
+                  STATUS_COLORS[inc.status] ?? 'bg-falcon-raised text-falcon-muted'
                 }`}
               >
                 {STATUS_LABELS[inc.status] ?? inc.status}
@@ -429,7 +429,7 @@ export default function IncidentDetailPage({ params }: { params: { id: string } 
                   </button>
                   <button
                     onClick={() => setConfirmDelete(false)}
-                    className="px-3 py-1.5 text-xs rounded-lg border border-[#1e2d42] text-[#7d92b0] hover:bg-[#111827] transition-colors"
+                    className="px-3 py-1.5 text-xs rounded-lg border border-falcon-border text-falcon-muted hover:bg-falcon-card transition-colors"
                   >
                     キャンセル
                   </button>
@@ -440,15 +440,15 @@ export default function IncidentDetailPage({ params }: { params: { id: string } 
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-0 border-b border-[#1e2d42] overflow-x-auto">
+        <div className="flex gap-0 border-b border-falcon-border overflow-x-auto">
           {TABS.map(tab => (
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
               className={`flex items-center gap-1.5 px-3 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px whitespace-nowrap ${
                 activeTab === tab.key
-                  ? 'border-[#e8002d] text-white'
-                  : 'border-transparent text-[#7d92b0] hover:text-white'
+                  ? 'border-falcon-red text-white'
+                  : 'border-transparent text-falcon-muted hover:text-white'
               }`}
             >
               {tab.icon}
@@ -646,10 +646,10 @@ function KillChainStrip({ incidentId }: { incidentId: string }) {
   if (stageCount === 0) return null
 
   return (
-    <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
+    <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
       <div className="flex items-center gap-2 mb-4">
         <GitBranch size={14} className="text-red-400" />
-        <h2 className="text-sm font-semibold text-[#7d92b0] uppercase tracking-wider">
+        <h2 className="text-sm font-semibold text-falcon-muted uppercase tracking-wider">
           ATT&CK キルチェーン
         </h2>
         <span className="text-xs text-[#5a6a7a]">{stageCount} 戦術を観測</span>
@@ -661,25 +661,25 @@ function KillChainStrip({ incidentId }: { incidentId: string }) {
           return (
             <React.Fragment key={stage.key}>
               {idx > 0 && (
-                <div className="flex items-center flex-shrink-0">
-                  <span className={present || tacticTechniques[KILL_CHAIN_TACTICS[idx - 1].key] ? 'text-[#3d5068]' : 'text-[#1a2337]'}>›</span>
+                <div className="flex items-center shrink-0">
+                  <span className={present || tacticTechniques[KILL_CHAIN_TACTICS[idx - 1].key] ? 'text-falcon-subtle' : 'text-[#1a2337]'}>›</span>
                 </div>
               )}
               <div
-                className={`flex-shrink-0 min-w-[76px] rounded-lg border px-2 py-2 text-center transition-colors ${
+                className={`shrink-0 min-w-[76px] rounded-lg border px-2 py-2 text-center transition-colors ${
                   present
                     ? 'bg-red-900/25 border-red-700/50'
-                    : 'bg-[#070d19]/40 border-[#161f33]'
+                    : 'bg-[#070d19]/40 border-falcon-raised'
                 }`}
                 title={present ? `${stage.label}: ${Array.from(techs!).sort().join(', ')}` : `${stage.label}（未観測）`}
               >
-                <div className={`text-[11px] font-medium ${present ? 'text-red-300' : 'text-[#3d5068]'}`}>
+                <div className={`text-[11px] font-medium ${present ? 'text-red-300' : 'text-falcon-subtle'}`}>
                   {stage.label}
                 </div>
                 {present ? (
                   <div className="mt-1 flex flex-wrap gap-0.5 justify-center">
                     {Array.from(techs!).sort().slice(0, 3).map(tech => (
-                      <span key={tech} className="text-[9px] px-1 py-0.5 rounded bg-red-950/60 text-red-200 font-mono leading-none">
+                      <span key={tech} className="text-[9px] px-1 py-0.5 rounded-sm bg-red-950/60 text-red-200 font-mono leading-none">
                         {tech}
                       </span>
                     ))}
@@ -750,24 +750,24 @@ function LinkedAlertsCard({ incidentId }: { incidentId: string }) {
 
   if (isLoading) {
     return (
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5 animate-pulse">
-        <div className="h-4 bg-[#1e2d42] rounded w-1/3 mb-3" />
-        <div className="space-y-2">{[0, 1, 2].map(i => <div key={i} className="h-8 bg-[#161f33] rounded" />)}</div>
+      <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5 animate-pulse">
+        <div className="h-4 bg-falcon-border rounded-sm w-1/3 mb-3" />
+        <div className="space-y-2">{[0, 1, 2].map(i => <div key={i} className="h-8 bg-falcon-raised rounded-sm" />)}</div>
       </div>
     )
   }
 
   return (
-    <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
+    <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
       <div className="flex items-center gap-2 mb-3">
         <Link size={14} className="text-red-400" />
-        <h2 className="text-sm font-semibold text-[#7d92b0] uppercase tracking-wider">
+        <h2 className="text-sm font-semibold text-falcon-muted uppercase tracking-wider">
           リンクされたアラート
         </h2>
         <span className="text-xs text-[#5a6a7a]">{alerts.length}件</span>
         <button
           onClick={() => setShowLink(v => !v)}
-          className="ml-auto flex items-center gap-1 px-2 py-1 text-xs rounded-lg bg-[#111827] border border-[#1e2d42] text-[#7d92b0] hover:text-cyan-300 hover:border-cyan-700/60 transition-colors"
+          className="ml-auto flex items-center gap-1 px-2 py-1 text-xs rounded-lg bg-falcon-card border border-falcon-border text-falcon-muted hover:text-cyan-300 hover:border-cyan-700/60 transition-colors"
         >
           <PlusCircle size={12} />
           追加
@@ -780,7 +780,7 @@ function LinkedAlertsCard({ incidentId }: { incidentId: string }) {
             <select
               value={selectedAlertId}
               onChange={e => setSelectedAlertId(e.target.value)}
-              className="flex-1 px-3 py-1.5 text-xs bg-[#070d19] border border-[#1e2d42] rounded-lg text-[#c9d6e8] focus:outline-none focus:border-cyan-700/60"
+              className="flex-1 px-3 py-1.5 text-xs bg-[#070d19] border border-falcon-border rounded-lg text-[#c9d6e8] focus:outline-hidden focus:border-cyan-700/60"
             >
               <option value="">アラートを選択…</option>
               {availableAlerts.map(a => (
@@ -796,7 +796,7 @@ function LinkedAlertsCard({ incidentId }: { incidentId: string }) {
             >
               リンク
             </button>
-            <button onClick={() => setShowLink(false)} className="text-[#4a6080] hover:text-[#7d92b0]">
+            <button onClick={() => setShowLink(false)} className="text-[#4a6080] hover:text-falcon-muted">
               <X size={14} />
             </button>
           </div>
@@ -811,15 +811,15 @@ function LinkedAlertsCard({ incidentId }: { incidentId: string }) {
       ) : (
         <div className="space-y-2">
           {alerts.slice(0, 8).map(a => (
-            <div key={a.alert_id} className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-[#161f33] transition-colors group">
-              <span className={`text-sm font-bold flex-shrink-0 ${SEV_COLOR[a.severity] ?? 'text-[#5a6a7a]'}`}>
+            <div key={a.alert_id} className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-falcon-raised transition-colors group">
+              <span className={`text-sm font-bold shrink-0 ${SEV_COLOR[a.severity] ?? 'text-[#5a6a7a]'}`}>
                 {a.severity}
               </span>
-              <a href={`/alerts/${a.alert_id}`} className="text-xs text-[#e2e8f4] flex-1 truncate group-hover:text-white transition-colors">
+              <a href={`/alerts/${a.alert_id}`} className="text-xs text-falcon-text flex-1 truncate group-hover:text-white transition-colors">
                 {a.title}
               </a>
               {a.mitre_technique && (
-                <span className="flex-shrink-0 text-[10px] font-mono px-1.5 py-0.5 rounded bg-[#161f33] text-[#8ba3c7] border border-[#22304a]">
+                <span className="shrink-0 text-[10px] font-mono px-1.5 py-0.5 rounded-sm bg-falcon-raised text-[#8ba3c7] border border-[#22304a]">
                   {a.mitre_technique}
                 </span>
               )}
@@ -831,7 +831,7 @@ function LinkedAlertsCard({ incidentId }: { incidentId: string }) {
                 <X size={12} />
               </button>
               <a href={`/alerts/${a.alert_id}`}>
-                <ExternalLink size={11} className="text-[#3d5068] opacity-0 group-hover:opacity-100 transition-opacity" />
+                <ExternalLink size={11} className="text-falcon-subtle opacity-0 group-hover:opacity-100 transition-opacity" />
               </a>
             </div>
           ))}
@@ -875,7 +875,7 @@ function OverviewTab({
     investigating: 'bg-orange-800 hover:bg-orange-700 text-orange-100',
     contained: 'bg-yellow-800 hover:bg-yellow-700 text-yellow-100',
     resolved: 'bg-green-800 hover:bg-green-700 text-green-100',
-    closed: 'bg-[#1e2d42] hover:bg-[#253649] text-[#7d92b0]',
+    closed: 'bg-falcon-border hover:bg-[#253649] text-falcon-muted',
   }
 
   return (
@@ -888,15 +888,15 @@ function OverviewTab({
         )}
       </div>
 
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
-        <h2 className="text-sm font-semibold text-[#7d92b0] uppercase tracking-wider mb-4">
+      <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
+        <h2 className="text-sm font-semibold text-falcon-muted uppercase tracking-wider mb-4">
           インシデント情報
         </h2>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
           <InfoCell label="ステータス">
             <span
               className={`inline-block text-xs px-2.5 py-1 rounded-full font-medium ${
-                STATUS_COLORS[inc.status] ?? 'bg-[#161f33] text-[#7d92b0]'
+                STATUS_COLORS[inc.status] ?? 'bg-falcon-raised text-falcon-muted'
               }`}
             >
               {STATUS_LABELS[inc.status] ?? inc.status}
@@ -921,11 +921,11 @@ function OverviewTab({
           </InfoCell>
 
           <InfoCell label="作成日時">
-            <span className="text-[#7d92b0] text-xs">{formatDate(inc.created_at)}</span>
+            <span className="text-falcon-muted text-xs">{formatDate(inc.created_at)}</span>
           </InfoCell>
 
           <InfoCell label="更新日時">
-            <span className="text-[#7d92b0] text-xs">{formatDate(inc.updated_at)}</span>
+            <span className="text-falcon-muted text-xs">{formatDate(inc.updated_at)}</span>
           </InfoCell>
 
           {inc.resolved_at && (
@@ -943,8 +943,8 @@ function OverviewTab({
       <LinkedAlertsCard incidentId={inc.id} />
 
       {(nextStatuses.length > 0 || prevStatuses.length > 0) && (
-        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
-          <h2 className="text-sm font-semibold text-[#7d92b0] uppercase tracking-wider mb-3">
+        <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
+          <h2 className="text-sm font-semibold text-falcon-muted uppercase tracking-wider mb-3">
             ステータス遷移
           </h2>
           <div className="flex flex-wrap gap-2">
@@ -954,7 +954,7 @@ function OverviewTab({
                 onClick={() => onStatusChange(s)}
                 disabled={!canWrite || statusPending}
                 className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 ${
-                  TRANSITION_COLORS[s] ?? 'bg-[#1e2d42] hover:bg-[#253649] text-white'
+                  TRANSITION_COLORS[s] ?? 'bg-falcon-border hover:bg-[#253649] text-white'
                 }`}
               >
                 <Check size={13} />
@@ -966,7 +966,7 @@ function OverviewTab({
                 key={s}
                 onClick={() => onStatusChange(s)}
                 disabled={!canWrite || statusPending}
-                className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 bg-[#1a2035] hover:bg-[#222d45] border border-[#2d3f55] text-[#7d92b0] hover:text-[#c9d6e8]"
+                className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 bg-[#1a2035] hover:bg-[#222d45] border border-[#2d3f55] text-falcon-muted hover:text-[#c9d6e8]"
               >
                 ↩ {STATUS_LABELS[s] ?? s} に戻す
               </button>
@@ -976,16 +976,16 @@ function OverviewTab({
       )}
 
       {canWrite && (
-        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
-          <h2 className="text-sm font-semibold text-[#7d92b0] uppercase tracking-wider mb-3">
+        <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
+          <h2 className="text-sm font-semibold text-falcon-muted uppercase tracking-wider mb-3">
             担当者を変更
           </h2>
           <div className="flex gap-2">
             <select
               value={selectedAssignee}
               onChange={e => setSelectedAssignee(e.target.value)}
-              className="flex-1 bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm
-                         text-[#e2e8f4] focus:outline-none focus:border-blue-500"
+              className="flex-1 bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-sm
+                         text-falcon-text focus:outline-hidden focus:border-blue-500"
             >
               <option value="">未割当</option>
               {users.map(u => (
@@ -1041,7 +1041,7 @@ function CommentsTab({
   canWrite: boolean
 }) {
   return (
-    <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5 space-y-4">
+    <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5 space-y-4">
       <div className="flex items-center gap-2 mb-1">
         <MessageSquare size={16} className="text-blue-400" />
         <h2 className="font-semibold">コメント</h2>
@@ -1054,15 +1054,15 @@ function CommentsTab({
         <div className="space-y-3">
           {comments.map(c => (
             <div key={c.id} className="flex gap-3">
-              <div className="w-7 h-7 rounded-full bg-[#1d2f4a] border border-[#1e2d42] flex items-center justify-center flex-shrink-0 mt-0.5">
-                <User size={12} className="text-[#7d92b0]" />
+              <div className="w-7 h-7 rounded-full bg-falcon-active border border-falcon-border flex items-center justify-center shrink-0 mt-0.5">
+                <User size={12} className="text-falcon-muted" />
               </div>
-              <div className="flex-1 bg-[#070d19]/50 border border-[#1e2d42]/50 rounded-lg px-3 py-2.5">
+              <div className="flex-1 bg-[#070d19]/50 border border-falcon-border/50 rounded-lg px-3 py-2.5">
                 <div className="flex items-center gap-2 mb-1">
-                  <span className="text-xs font-semibold text-[#e2e8f4]">
+                  <span className="text-xs font-semibold text-falcon-text">
                     {c.user_name || truncateUUID(c.user_id)}
                   </span>
-                  <span className="text-[10px] text-[#3d5068] flex items-center gap-0.5 ml-auto">
+                  <span className="text-[10px] text-falcon-subtle flex items-center gap-0.5 ml-auto">
                     <Clock size={9} />
                     {formatDate(c.created_at)}
                   </span>
@@ -1072,14 +1072,14 @@ function CommentsTab({
                         if (confirm('このコメントを削除しますか？')) onDeleteComment(c.id)
                       }}
                       disabled={deletePending}
-                      className="text-[#3d5068] hover:text-red-400 transition-colors disabled:opacity-50 ml-1"
+                      className="text-falcon-subtle hover:text-red-400 transition-colors disabled:opacity-50 ml-1"
                       title="削除"
                     >
                       <Trash2 size={12} />
                     </button>
                   )}
                 </div>
-                <p className="text-sm text-[#7d92b0] whitespace-pre-wrap leading-relaxed">
+                <p className="text-sm text-falcon-muted whitespace-pre-wrap leading-relaxed">
                   {c.body}
                 </p>
               </div>
@@ -1089,7 +1089,7 @@ function CommentsTab({
       )}
 
       {canWrite && (
-        <div className="flex gap-2 pt-2 border-t border-[#1e2d42]">
+        <div className="flex gap-2 pt-2 border-t border-falcon-border">
           <textarea
             value={commentBody}
             onChange={e => setCommentBody(e.target.value)}
@@ -1100,9 +1100,9 @@ function CommentsTab({
             }}
             placeholder="コメントを入力... (Ctrl+Enter で送信)"
             rows={2}
-            className="flex-1 bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm
-                       text-[#e2e8f4] placeholder-[#5a6a7a] resize-none
-                       focus:outline-none focus:border-blue-500"
+            className="flex-1 bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-sm
+                       text-falcon-text placeholder-[#5a6a7a] resize-none
+                       focus:outline-hidden focus:border-blue-500"
           />
           <button
             onClick={onAddComment}
@@ -1137,7 +1137,7 @@ function NotesTab({
   canWrite: boolean
 }) {
   return (
-    <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5 space-y-4">
+    <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5 space-y-4">
       <div className="flex items-center gap-2 mb-1">
         <FileText size={16} className="text-purple-400" />
         <h2 className="font-semibold">ノート</h2>
@@ -1150,20 +1150,20 @@ function NotesTab({
         <div className="space-y-3">
           {notes.map(note => (
             <div key={note.id} className="flex gap-3">
-              <div className="w-7 h-7 rounded-full bg-[#1d2f4a] border border-[#1e2d42] flex items-center justify-center flex-shrink-0 mt-0.5">
-                <User size={12} className="text-[#7d92b0]" />
+              <div className="w-7 h-7 rounded-full bg-falcon-active border border-falcon-border flex items-center justify-center shrink-0 mt-0.5">
+                <User size={12} className="text-falcon-muted" />
               </div>
-              <div className="flex-1 bg-[#070d19]/50 border border-[#1e2d42]/50 rounded-lg px-3 py-2.5">
+              <div className="flex-1 bg-[#070d19]/50 border border-falcon-border/50 rounded-lg px-3 py-2.5">
                 <div className="flex items-center gap-2 mb-1">
-                  <span className="text-xs font-semibold text-[#e2e8f4]">
+                  <span className="text-xs font-semibold text-falcon-text">
                     {note.user_name || (note.user_id ? truncateUUID(note.user_id) : 'システム')}
                   </span>
-                  <span className="text-[10px] text-[#3d5068] flex items-center gap-0.5 ml-auto">
+                  <span className="text-[10px] text-falcon-subtle flex items-center gap-0.5 ml-auto">
                     <Clock size={9} />
                     {formatDate(note.created_at)}
                   </span>
                 </div>
-                <p className="text-sm text-[#7d92b0] whitespace-pre-wrap leading-relaxed">
+                <p className="text-sm text-falcon-muted whitespace-pre-wrap leading-relaxed">
                   {note.body}
                 </p>
               </div>
@@ -1173,7 +1173,7 @@ function NotesTab({
       )}
 
       {canWrite && (
-        <div className="flex gap-2 pt-2 border-t border-[#1e2d42]">
+        <div className="flex gap-2 pt-2 border-t border-falcon-border">
           <textarea
             value={noteBody}
             onChange={e => setNoteBody(e.target.value)}
@@ -1184,9 +1184,9 @@ function NotesTab({
             }}
             placeholder="ノートを追加... (Ctrl+Enter で送信)"
             rows={2}
-            className="flex-1 bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm
-                       text-[#e2e8f4] placeholder-[#5a6a7a] resize-none
-                       focus:outline-none focus:border-purple-500"
+            className="flex-1 bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-sm
+                       text-falcon-text placeholder-[#5a6a7a] resize-none
+                       focus:outline-hidden focus:border-purple-500"
           />
           <button
             onClick={onAddNote}
@@ -1277,7 +1277,7 @@ function TimelineTab({ inc }: { inc: Incident }) {
   ]
 
   return (
-    <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
+    <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
       <div className="flex items-center gap-2 mb-4 flex-wrap">
         <Clock size={16} className="text-blue-400" />
         <h2 className="font-semibold">タイムライン</h2>
@@ -1286,7 +1286,7 @@ function TimelineTab({ inc }: { inc: Incident }) {
         )}
         {/* Event type filter */}
         <div className="ml-auto flex items-center gap-1 flex-wrap">
-          <Filter size={11} className="text-[#3d5068]" />
+          <Filter size={11} className="text-falcon-subtle" />
           {FILTER_OPTS.map(opt => (
             <button
               key={opt.value}
@@ -1294,7 +1294,7 @@ function TimelineTab({ inc }: { inc: Incident }) {
               className={`text-[10px] px-2 py-0.5 rounded-full border transition-colors
                 ${filterType === opt.value
                   ? 'bg-blue-900/40 text-blue-300 border-blue-700/50'
-                  : 'text-[#5a6a7a] border-[#1e2d42] hover:text-[#8899aa]'}`}
+                  : 'text-[#5a6a7a] border-falcon-border hover:text-[#8899aa]'}`}
             >
               {opt.label}
             </button>
@@ -1304,14 +1304,14 @@ function TimelineTab({ inc }: { inc: Incident }) {
 
       {isLoading && (
         <div className="relative pl-6 space-y-6">
-          <div className="absolute left-2.5 top-2 bottom-2 w-px bg-[#1e2d42]" />
+          <div className="absolute left-2.5 top-2 bottom-2 w-px bg-falcon-border" />
           {[0, 1, 2].map(i => (
             <div key={i} className="relative flex gap-4 animate-pulse">
-              <div className="absolute -left-3.5 w-3 h-3 rounded-full bg-[#1e2d42] mt-1" />
+              <div className="absolute -left-3.5 w-3 h-3 rounded-full bg-falcon-border mt-1" />
               <div className="flex-1 space-y-2">
-                <div className="h-3.5 bg-[#1e2d42] rounded w-2/5" />
-                <div className="h-3 bg-[#161f33] rounded w-3/5" />
-                <div className="h-3 bg-[#161f33] rounded w-1/3" />
+                <div className="h-3.5 bg-falcon-border rounded-sm w-2/5" />
+                <div className="h-3 bg-falcon-raised rounded-sm w-3/5" />
+                <div className="h-3 bg-falcon-raised rounded-sm w-1/3" />
               </div>
             </div>
           ))}
@@ -1327,14 +1327,14 @@ function TimelineTab({ inc }: { inc: Incident }) {
 
       {!isLoading && filteredEvents.length > 0 && (
         <div className="relative pl-6">
-          <div className="absolute left-2.5 top-2 bottom-2 w-px bg-[#1e2d42]" />
+          <div className="absolute left-2.5 top-2 bottom-2 w-px bg-falcon-border" />
           <div className="space-y-6">
             {filteredEvents.map((ev, idx) => {
               const cfg = EVENT_CONFIG[ev.type] ?? EVENT_CONFIG.created
               return (
                 <div key={idx} className="relative flex gap-4">
                   <div
-                    className={`absolute -left-3.5 w-3 h-3 rounded-full border-2 border-[#070d19] ${cfg.dotColor} flex-shrink-0 mt-1`}
+                    className={`absolute -left-3.5 w-3 h-3 rounded-full border-2 border-[#070d19] ${cfg.dotColor} shrink-0 mt-1`}
                   />
                   <div className="flex-1 min-w-0">
                     <div className={`flex items-center gap-1.5 text-sm font-medium ${cfg.textColor}`}>
@@ -1343,14 +1343,14 @@ function TimelineTab({ inc }: { inc: Incident }) {
                     </div>
                     {ev.actor && (
                       <div className="flex items-center gap-1 mt-0.5">
-                        <User size={10} className="text-[#3d5068]" />
+                        <User size={10} className="text-falcon-subtle" />
                         <span className="text-[11px] text-[#5a6a7a]">{ev.actor}</span>
                       </div>
                     )}
-                    <div className="text-[10px] text-[#3d5068] mt-0.5 flex items-center gap-1">
+                    <div className="text-[10px] text-falcon-subtle mt-0.5 flex items-center gap-1">
                       <Clock size={9} />
                       <span>{formatRelativeTime(ev.ts)}</span>
-                      <span className="text-[#1e2d42]">·</span>
+                      <span className="text-falcon-border">·</span>
                       <span>{formatDate(ev.ts)}</span>
                     </div>
                   </div>
@@ -1374,7 +1374,7 @@ function commTypeIcon(t: string) {
     case 'Email': return <Mail size={14} className="text-blue-400" />
     case 'Slack': return <Slack size={14} className="text-purple-400" />
     case 'Call':  return <Phone size={14} className="text-green-400" />
-    default:      return <MessageSquare size={14} className="text-[#7d92b0]" />
+    default:      return <MessageSquare size={14} className="text-falcon-muted" />
   }
 }
 
@@ -1408,19 +1408,19 @@ function CommsTab({ incidentId }: { incidentId: string }) {
   return (
     <div className="space-y-4">
       {/* Add comm form */}
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
+      <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
         <div className="flex items-center gap-2 mb-4">
           <Mail size={16} className="text-blue-400" />
           <h2 className="font-semibold">外部コミュニケーションを記録</h2>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
           <div>
-            <label className="text-xs text-[#7d92b0] mb-1 block">種別</label>
+            <label className="text-xs text-falcon-muted mb-1 block">種別</label>
             <select
               value={type}
               onChange={e => setType(e.target.value as CommType)}
-              className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm
-                         text-[#e2e8f4] focus:outline-none focus:border-blue-500"
+              className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-sm
+                         text-falcon-text focus:outline-hidden focus:border-blue-500"
             >
               {COMM_TYPES.map(t => (
                 <option key={t} value={t}>{t}</option>
@@ -1428,27 +1428,27 @@ function CommsTab({ incidentId }: { incidentId: string }) {
             </select>
           </div>
           <div className="md:col-span-2">
-            <label className="text-xs text-[#7d92b0] mb-1 block">宛先 / 相手</label>
+            <label className="text-xs text-falcon-muted mb-1 block">宛先 / 相手</label>
             <input
               type="text"
               value={recipient}
               onChange={e => setRecipient(e.target.value)}
               placeholder="例: security-team@example.com"
-              className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm
-                         text-[#e2e8f4] placeholder-[#5a6a7a] focus:outline-none focus:border-blue-500"
+              className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-sm
+                         text-falcon-text placeholder-[#5a6a7a] focus:outline-hidden focus:border-blue-500"
             />
           </div>
         </div>
         <div className="mb-3">
-          <label className="text-xs text-[#7d92b0] mb-1 block">概要</label>
+          <label className="text-xs text-falcon-muted mb-1 block">概要</label>
           <textarea
             value={summary}
             onChange={e => setSummary(e.target.value)}
             placeholder="コミュニケーションの内容を簡潔に記述してください..."
             rows={3}
-            className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm
-                       text-[#e2e8f4] placeholder-[#5a6a7a] resize-none
-                       focus:outline-none focus:border-blue-500"
+            className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-sm
+                       text-falcon-text placeholder-[#5a6a7a] resize-none
+                       focus:outline-hidden focus:border-blue-500"
           />
         </div>
         <button
@@ -1465,7 +1465,7 @@ function CommsTab({ incidentId }: { incidentId: string }) {
       </div>
 
       {/* Comm list */}
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
+      <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
         <div className="flex items-center gap-2 mb-4">
           <h2 className="font-semibold">コミュニケーション履歴</h2>
           <span className="text-xs text-[#5a6a7a] ml-auto">{comms.length}件</span>
@@ -1491,24 +1491,24 @@ function CommsTab({ incidentId }: { incidentId: string }) {
             {comms.map(c => (
               <div
                 key={c.id}
-                className="flex gap-3 bg-[#070d19]/40 border border-[#1e2d42]/60 rounded-lg px-4 py-3"
+                className="flex gap-3 bg-[#070d19]/40 border border-falcon-border/60 rounded-lg px-4 py-3"
               >
                 <div className="mt-0.5">{commTypeIcon(c.type)}</div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-xs font-semibold text-white bg-[#1e2d42] px-2 py-0.5 rounded">
+                    <span className="text-xs font-semibold text-white bg-falcon-border px-2 py-0.5 rounded-sm">
                       {c.type}
                     </span>
-                    <span className="text-sm text-[#e2e8f4] truncate">{c.recipient}</span>
+                    <span className="text-sm text-falcon-text truncate">{c.recipient}</span>
                     <span className="text-[10px] text-[#5a6a7a] ml-auto flex items-center gap-1">
                       <Clock size={9} />
                       {formatDate(c.created_at)}
                     </span>
                   </div>
-                  <p className="text-sm text-[#7d92b0] mt-1.5 leading-relaxed">{c.summary}</p>
+                  <p className="text-sm text-falcon-muted mt-1.5 leading-relaxed">{c.summary}</p>
                   {c.logged_by_name && (
                     <div className="flex items-center gap-1 mt-1">
-                      <User size={10} className="text-[#3d5068]" />
+                      <User size={10} className="text-falcon-subtle" />
                       <span className="text-[10px] text-[#5a6a7a]">記録者: {c.logged_by_name}</span>
                     </div>
                   )}
@@ -1576,7 +1576,7 @@ function EscalationTab({ incidentId, users }: { incidentId: string; users: UserI
       <div className="flex justify-end">
         <button
           onClick={() => setShowModal(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-[#e8002d] hover:bg-red-700
+          className="flex items-center gap-2 px-4 py-2 bg-falcon-red hover:bg-red-700
                      rounded-lg text-sm font-medium transition-colors"
         >
           <ArrowUpCircle size={15} />
@@ -1585,7 +1585,7 @@ function EscalationTab({ incidentId, users }: { incidentId: string; users: UserI
       </div>
 
       {/* History */}
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
+      <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
         <div className="flex items-center gap-2 mb-5">
           <ArrowUpCircle size={16} className="text-red-400" />
           <h2 className="font-semibold">エスカレーション履歴</h2>
@@ -1596,13 +1596,13 @@ function EscalationTab({ incidentId, users }: { incidentId: string; users: UserI
 
         {isLoading && (
           <div className="relative pl-6 space-y-5">
-            <div className="absolute left-2.5 top-2 bottom-2 w-px bg-[#1e2d42]" />
+            <div className="absolute left-2.5 top-2 bottom-2 w-px bg-falcon-border" />
             {[0,1].map(i => (
               <div key={i} className="relative animate-pulse">
-                <div className="absolute -left-3.5 w-3 h-3 rounded-full bg-[#1e2d42] mt-1" />
+                <div className="absolute -left-3.5 w-3 h-3 rounded-full bg-falcon-border mt-1" />
                 <div className="space-y-2 pl-1">
-                  <div className="h-4 bg-[#1e2d42] rounded w-1/3" />
-                  <div className="h-3 bg-[#161f33] rounded w-2/3" />
+                  <div className="h-4 bg-falcon-border rounded-sm w-1/3" />
+                  <div className="h-3 bg-falcon-raised rounded-sm w-2/3" />
                 </div>
               </div>
             ))}
@@ -1618,18 +1618,18 @@ function EscalationTab({ incidentId, users }: { incidentId: string; users: UserI
 
         {!isLoading && escalations.length > 0 && (
           <div className="relative pl-6">
-            <div className="absolute left-2.5 top-2 bottom-2 w-px bg-[#1e2d42]" />
+            <div className="absolute left-2.5 top-2 bottom-2 w-px bg-falcon-border" />
             <div className="space-y-5">
               {escalations.map((e, idx) => (
                 <div key={e.id ?? idx} className="relative">
                   <div className="absolute -left-3.5 w-3 h-3 rounded-full bg-red-500 border-2 border-[#070d19] mt-1" />
-                  <div className="bg-[#070d19]/40 border border-[#1e2d42]/60 rounded-lg px-4 py-3 ml-1">
+                  <div className="bg-[#070d19]/40 border border-falcon-border/60 rounded-lg px-4 py-3 ml-1">
                     <div className="flex items-center gap-2 flex-wrap mb-2">
-                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${URGENCY_COLORS[e.urgency] ?? 'bg-[#1e2d42] text-[#7d92b0]'}`}>
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${URGENCY_COLORS[e.urgency] ?? 'bg-falcon-border text-falcon-muted'}`}>
                         {URGENCY_LABELS[e.urgency] ?? e.urgency}
                       </span>
                       {e.escalated_by_name && (
-                        <span className="text-xs text-[#7d92b0]">
+                        <span className="text-xs text-falcon-muted">
                           <User size={10} className="inline mr-0.5" />
                           {e.escalated_by_name}
                         </span>
@@ -1637,7 +1637,7 @@ function EscalationTab({ incidentId, users }: { incidentId: string; users: UserI
                       {e.escalated_to_name && (
                         <>
                           <ArrowUpCircle size={12} className="text-[#5a6a7a]" />
-                          <span className="text-xs text-[#e2e8f4]">{e.escalated_to_name}</span>
+                          <span className="text-xs text-falcon-text">{e.escalated_to_name}</span>
                         </>
                       )}
                       <span className="text-[10px] text-[#5a6a7a] ml-auto flex items-center gap-1">
@@ -1646,7 +1646,7 @@ function EscalationTab({ incidentId, users }: { incidentId: string; users: UserI
                       </span>
                     </div>
                     {e.reason && (
-                      <p className="text-sm text-[#7d92b0] leading-relaxed">{e.reason}</p>
+                      <p className="text-sm text-falcon-muted leading-relaxed">{e.reason}</p>
                     )}
                   </div>
                 </div>
@@ -1659,10 +1659,10 @@ function EscalationTab({ incidentId, users }: { incidentId: string; users: UserI
       {/* Escalation modal */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-6 w-full max-w-md mx-4 shadow-2xl">
+          <div className="bg-falcon-surface border border-falcon-border rounded-xl p-6 w-full max-w-md mx-4 shadow-2xl">
             <div className="flex items-center justify-between mb-5">
               <div className="flex items-center gap-2">
-                <AlertTriangle size={18} className="text-[#e8002d]" />
+                <AlertTriangle size={18} className="text-falcon-red" />
                 <h3 className="font-semibold text-lg">エスカレーション</h3>
               </div>
               <button
@@ -1675,12 +1675,12 @@ function EscalationTab({ incidentId, users }: { incidentId: string; users: UserI
 
             <div className="space-y-4">
               <div>
-                <label className="text-xs text-[#7d92b0] mb-1 block">エスカレーション先</label>
+                <label className="text-xs text-falcon-muted mb-1 block">エスカレーション先</label>
                 <select
                   value={targetUserId}
                   onChange={e => setTargetUserId(e.target.value)}
-                  className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm
-                             text-[#e2e8f4] focus:outline-none focus:border-[#e8002d]"
+                  className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-sm
+                             text-falcon-text focus:outline-hidden focus:border-falcon-red"
                 >
                   <option value="">ユーザーを選択...</option>
                   {users.map(u => (
@@ -1692,7 +1692,7 @@ function EscalationTab({ incidentId, users }: { incidentId: string; users: UserI
               </div>
 
               <div>
-                <label className="text-xs text-[#7d92b0] mb-1 block">緊急度</label>
+                <label className="text-xs text-falcon-muted mb-1 block">緊急度</label>
                 <div className="grid grid-cols-4 gap-2">
                   {URGENCY_LEVELS.map(u => (
                     <button
@@ -1700,8 +1700,8 @@ function EscalationTab({ incidentId, users }: { incidentId: string; users: UserI
                       onClick={() => setUrgency(u)}
                       className={`py-1.5 rounded-lg text-xs font-medium transition-colors border ${
                         urgency === u
-                          ? 'border-[#e8002d] ' + (URGENCY_COLORS[u] ?? '')
-                          : 'border-[#1e2d42] text-[#7d92b0] bg-[#070d19] hover:border-[#3d5068]'
+                          ? 'border-falcon-red ' + (URGENCY_COLORS[u] ?? '')
+                          : 'border-falcon-border text-falcon-muted bg-[#070d19] hover:border-falcon-subtle'
                       }`}
                     >
                       {URGENCY_LABELS[u]}
@@ -1711,23 +1711,23 @@ function EscalationTab({ incidentId, users }: { incidentId: string; users: UserI
               </div>
 
               <div>
-                <label className="text-xs text-[#7d92b0] mb-1 block">理由</label>
+                <label className="text-xs text-falcon-muted mb-1 block">理由</label>
                 <textarea
                   value={reason}
                   onChange={e => setReason(e.target.value)}
                   placeholder="エスカレーションの理由を記述してください..."
                   rows={4}
-                  className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm
-                             text-[#e2e8f4] placeholder-[#5a6a7a] resize-none
-                             focus:outline-none focus:border-[#e8002d]"
+                  className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-sm
+                             text-falcon-text placeholder-[#5a6a7a] resize-none
+                             focus:outline-hidden focus:border-falcon-red"
                 />
               </div>
 
               <div className="flex gap-3 pt-2">
                 <button
                   onClick={() => setShowModal(false)}
-                  className="flex-1 py-2 border border-[#1e2d42] text-[#7d92b0] hover:text-white
-                             hover:border-[#3d5068] rounded-lg text-sm transition-colors"
+                  className="flex-1 py-2 border border-falcon-border text-falcon-muted hover:text-white
+                             hover:border-falcon-subtle rounded-lg text-sm transition-colors"
                 >
                   キャンセル
                 </button>
@@ -1736,7 +1736,7 @@ function EscalationTab({ incidentId, users }: { incidentId: string; users: UserI
                     if (targetUserId && reason.trim()) escalateMutation.mutate()
                   }}
                   disabled={!targetUserId || !reason.trim() || escalateMutation.isPending}
-                  className="flex-1 py-2 bg-[#e8002d] hover:bg-red-700 disabled:opacity-50
+                  className="flex-1 py-2 bg-falcon-red hover:bg-red-700 disabled:opacity-50
                              rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-1.5"
                 >
                   <ArrowUpCircle size={14} />
@@ -1757,9 +1757,9 @@ const RESPONDER_ROLES = ['Lead', 'Analyst', 'Observer'] as const
 type ResponderRole = (typeof RESPONDER_ROLES)[number]
 
 const ROLE_COLORS: Record<string, string> = {
-  Lead:     'bg-[#e8002d]/20 text-red-300 border-red-900/50',
+  Lead:     'bg-falcon-red/20 text-red-300 border-red-900/50',
   Analyst:  'bg-blue-900/30 text-blue-300 border-blue-900/50',
-  Observer: 'bg-[#1e2d42] text-[#7d92b0] border-[#1e2d42]',
+  Observer: 'bg-falcon-border text-falcon-muted border-falcon-border',
 }
 
 const ROLE_LABELS: Record<string, string> = {
@@ -1805,7 +1805,7 @@ function RespondersTab({ incidentId, users }: { incidentId: string; users: UserI
   return (
     <div className="space-y-4">
       {/* Add responder */}
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
+      <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
         <div className="flex items-center gap-2 mb-4">
           <Users size={16} className="text-blue-400" />
           <h2 className="font-semibold">レスポンダーを追加</h2>
@@ -1814,8 +1814,8 @@ function RespondersTab({ incidentId, users }: { incidentId: string; users: UserI
           <select
             value={selectedUser}
             onChange={e => setSelectedUser(e.target.value)}
-            className="flex-1 min-w-[200px] bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm
-                       text-[#e2e8f4] focus:outline-none focus:border-blue-500"
+            className="flex-1 min-w-[200px] bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-sm
+                       text-falcon-text focus:outline-hidden focus:border-blue-500"
           >
             <option value="">ユーザーを選択...</option>
             {availableUsers.map(u => (
@@ -1832,7 +1832,7 @@ function RespondersTab({ incidentId, users }: { incidentId: string; users: UserI
                 className={`px-3 py-2 rounded-lg text-xs font-medium border transition-colors ${
                   role === r
                     ? ROLE_COLORS[r]
-                    : 'border-[#1e2d42] text-[#7d92b0] bg-[#070d19] hover:border-[#3d5068]'
+                    : 'border-falcon-border text-falcon-muted bg-[#070d19] hover:border-falcon-subtle'
                 }`}
               >
                 {ROLE_LABELS[r]}
@@ -1852,7 +1852,7 @@ function RespondersTab({ incidentId, users }: { incidentId: string; users: UserI
       </div>
 
       {/* Responders list */}
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
+      <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
         <div className="flex items-center gap-2 mb-4">
           <Shield size={16} className="text-green-400" />
           <h2 className="font-semibold">担当レスポンダー</h2>
@@ -1875,14 +1875,14 @@ function RespondersTab({ incidentId, users }: { incidentId: string; users: UserI
         )}
 
         {!isLoading && responders.length > 0 && (
-          <div className="divide-y divide-[#1e2d42]">
+          <div className="divide-y divide-falcon-border">
             {responders.map((r, idx) => (
               <div key={r.id ?? idx} className="flex items-center gap-3 py-3">
-                <div className="w-9 h-9 rounded-full bg-[#1d2f4a] border border-[#1e2d42] flex items-center justify-center flex-shrink-0">
-                  <User size={15} className="text-[#7d92b0]" />
+                <div className="w-9 h-9 rounded-full bg-falcon-active border border-falcon-border flex items-center justify-center shrink-0">
+                  <User size={15} className="text-falcon-muted" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="text-sm font-medium text-[#e2e8f4]">
+                  <div className="text-sm font-medium text-falcon-text">
                     {r.user_name || r.user_email || truncateUUID(r.user_id)}
                   </div>
                   {r.user_email && r.user_name && (
@@ -1900,7 +1900,7 @@ function RespondersTab({ incidentId, users }: { incidentId: string; users: UserI
                     if (confirm('このレスポンダーを削除しますか？')) removeMutation.mutate(r.id)
                   }}
                   disabled={removeMutation.isPending}
-                  className="text-[#3d5068] hover:text-red-400 transition-colors disabled:opacity-50"
+                  className="text-falcon-subtle hover:text-red-400 transition-colors disabled:opacity-50"
                   title="削除"
                 >
                   <Trash2 size={14} />
@@ -2027,8 +2027,8 @@ function PlaybookTab({ inc }: { inc: Incident }) {
         </div>
         <button
           onClick={exportMarkdown}
-          className="flex items-center gap-1.5 px-3 py-1.5 border border-[#1e2d42] text-[#7d92b0]
-                     hover:text-white hover:border-[#3d5068] rounded-lg text-xs transition-colors"
+          className="flex items-center gap-1.5 px-3 py-1.5 border border-falcon-border text-falcon-muted
+                     hover:text-white hover:border-falcon-subtle rounded-lg text-xs transition-colors"
         >
           <Download size={13} />
           Markdown出力
@@ -2036,12 +2036,12 @@ function PlaybookTab({ inc }: { inc: Incident }) {
       </div>
 
       {/* Progress bar */}
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-4">
+      <div className="bg-falcon-surface border border-falcon-border rounded-xl p-4">
         <div className="flex items-center justify-between mb-2">
-          <span className="text-xs text-[#7d92b0]">全体進捗</span>
+          <span className="text-xs text-falcon-muted">全体進捗</span>
           <span className="text-xs font-bold text-white">{progress}%</span>
         </div>
-        <div className="h-2.5 bg-[#1e2d42] rounded-full overflow-hidden">
+        <div className="h-2.5 bg-falcon-border rounded-full overflow-hidden">
           <div
             className={`h-full rounded-full transition-all duration-500 ${
               progress === 100 ? 'bg-green-500' : progress >= 60 ? 'bg-yellow-500' : 'bg-cyan-500'
@@ -2075,7 +2075,7 @@ function PlaybookTab({ inc }: { inc: Incident }) {
             className={`px-3 py-1 rounded-full text-xs border transition-colors ${
               activePhase === p
                 ? 'bg-cyan-900/40 border-cyan-600/60 text-cyan-300'
-                : 'border-[#1e2d42] text-[#7d92b0] hover:text-white hover:border-[#2a3d5a]'
+                : 'border-falcon-border text-falcon-muted hover:text-white hover:border-[#2a3d5a]'
             }`}
           >
             {p}
@@ -2088,15 +2088,15 @@ function PlaybookTab({ inc }: { inc: Incident }) {
         const phaseSteps = grouped[phase] ?? []
         if (phaseSteps.length === 0) return null
         return (
-          <div key={phase} className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
-            <div className={`flex items-center gap-2 px-4 py-2.5 border-b border-[#1e2d42] ${PHASE_COLORS[phase]}`}>
+          <div key={phase} className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
+            <div className={`flex items-center gap-2 px-4 py-2.5 border-b border-falcon-border ${PHASE_COLORS[phase]}`}>
               <span className={`w-2 h-2 rounded-full ${PHASE_DOT[phase]}`} />
               <span className="text-xs font-semibold uppercase tracking-wide">{phase}</span>
               <span className="text-xs opacity-60 ml-auto">
                 {phaseSteps.filter(s => s.done).length}/{phaseSteps.length}
               </span>
             </div>
-            <div className="divide-y divide-[#1e2d42]/50">
+            <div className="divide-y divide-falcon-border/50">
               {phaseSteps.map(step => (
                 <div
                   key={step.id}
@@ -2106,12 +2106,12 @@ function PlaybookTab({ inc }: { inc: Incident }) {
                 >
                   <button
                     onClick={() => toggle(step.id)}
-                    className={`mt-0.5 w-4 h-4 rounded border flex-shrink-0 flex items-center justify-center transition-colors ${
+                    className={`mt-0.5 w-4 h-4 rounded border shrink-0 flex items-center justify-center transition-colors ${
                       step.done
                         ? 'bg-green-600 border-green-600'
                         : step.required
                         ? 'border-cyan-600 hover:border-green-500'
-                        : 'border-[#3d5068] hover:border-[#7d92b0]'
+                        : 'border-falcon-subtle hover:border-falcon-muted'
                     }`}
                   >
                     {step.done && <Check size={10} className="text-white" />}
@@ -2122,12 +2122,12 @@ function PlaybookTab({ inc }: { inc: Incident }) {
                         {step.title}
                       </span>
                       {step.required && !step.done && (
-                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-red-900/30 border border-red-700/40 text-red-400">
+                        <span className="text-[10px] px-1.5 py-0.5 rounded-sm bg-red-900/30 border border-red-700/40 text-red-400">
                           必須
                         </span>
                       )}
                       {step.ttp && (
-                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#1e2d42] text-[#7d92b0] font-mono">
+                        <span className="text-[10px] px-1.5 py-0.5 rounded-sm bg-falcon-border text-falcon-muted font-mono">
                           {step.ttp}
                         </span>
                       )}
@@ -2276,8 +2276,8 @@ function PostMortemTab({ inc }: { inc: Incident }) {
         </h2>
         <button
           onClick={exportMarkdown}
-          className="flex items-center gap-1.5 px-3 py-1.5 border border-[#1e2d42] text-[#7d92b0]
-                     hover:text-white hover:border-[#3d5068] rounded-lg text-xs transition-colors"
+          className="flex items-center gap-1.5 px-3 py-1.5 border border-falcon-border text-falcon-muted
+                     hover:text-white hover:border-falcon-subtle rounded-lg text-xs transition-colors"
         >
           <Download size={13} />
           Markdownでエクスポート
@@ -2287,7 +2287,7 @@ function PostMortemTab({ inc }: { inc: Incident }) {
       {isLoading && (
         <div className="space-y-3">
           {[0,1,2,3].map(i => (
-            <div key={i} className="h-20 bg-[#0d1220] border border-[#1e2d42] rounded-xl animate-pulse" />
+            <div key={i} className="h-20 bg-falcon-surface border border-falcon-border rounded-xl animate-pulse" />
           ))}
         </div>
       )}
@@ -2295,14 +2295,14 @@ function PostMortemTab({ inc }: { inc: Incident }) {
       {!isLoading && (
         <>
           {/* Timeline reconstruction */}
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
-            <h3 className="text-sm font-semibold text-[#7d92b0] uppercase tracking-wider mb-3">
+          <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
+            <h3 className="text-sm font-semibold text-falcon-muted uppercase tracking-wider mb-3">
               タイムライン再構成
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div className="bg-[#070d19]/50 rounded-lg p-3 text-sm">
                 <div className="text-xs text-[#5a6a7a] mb-1">インシデント発生</div>
-                <div className="text-[#e2e8f4]">{formatDate(inc.created_at)}</div>
+                <div className="text-falcon-text">{formatDate(inc.created_at)}</div>
               </div>
               {inc.resolved_at && (
                 <div className="bg-[#070d19]/50 rounded-lg p-3 text-sm">
@@ -2317,15 +2317,15 @@ function PostMortemTab({ inc }: { inc: Incident }) {
                   value={durationMinutes}
                   onChange={e => setDurationMinutes(Number(e.target.value))}
                   min={0}
-                  className="w-full bg-transparent text-[#e2e8f4] focus:outline-none"
+                  className="w-full bg-transparent text-falcon-text focus:outline-hidden"
                 />
               </div>
             </div>
           </div>
 
           {/* Root cause */}
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
-            <h3 className="text-sm font-semibold text-[#7d92b0] uppercase tracking-wider mb-3">
+          <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
+            <h3 className="text-sm font-semibold text-falcon-muted uppercase tracking-wider mb-3">
               根本原因
             </h3>
             <textarea
@@ -2333,48 +2333,48 @@ function PostMortemTab({ inc }: { inc: Incident }) {
               onChange={e => setRootCause(e.target.value)}
               placeholder="インシデントの根本原因を詳細に記述してください..."
               rows={5}
-              className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2.5 text-sm
-                         text-[#e2e8f4] placeholder-[#5a6a7a] resize-y
-                         focus:outline-none focus:border-indigo-500"
+              className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2.5 text-sm
+                         text-falcon-text placeholder-[#5a6a7a] resize-y
+                         focus:outline-hidden focus:border-indigo-500"
             />
           </div>
 
           {/* Impact assessment */}
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
-            <h3 className="text-sm font-semibold text-[#7d92b0] uppercase tracking-wider mb-3">
+          <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
+            <h3 className="text-sm font-semibold text-falcon-muted uppercase tracking-wider mb-3">
               影響評価
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="text-xs text-[#7d92b0] mb-1 block">影響を受けたシステム</label>
+                <label className="text-xs text-falcon-muted mb-1 block">影響を受けたシステム</label>
                 <textarea
                   value={affectedSystems}
                   onChange={e => setAffectedSystems(e.target.value)}
                   placeholder="例: 認証サーバー, 顧客データベース..."
                   rows={3}
-                  className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm
-                             text-[#e2e8f4] placeholder-[#5a6a7a] resize-none
-                             focus:outline-none focus:border-indigo-500"
+                  className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-sm
+                             text-falcon-text placeholder-[#5a6a7a] resize-none
+                             focus:outline-hidden focus:border-indigo-500"
                 />
               </div>
               <div>
-                <label className="text-xs text-[#7d92b0] mb-1 block">影響を受けたユーザー</label>
+                <label className="text-xs text-falcon-muted mb-1 block">影響を受けたユーザー</label>
                 <textarea
                   value={affectedUsers}
                   onChange={e => setAffectedUsers(e.target.value)}
                   placeholder="例: 全社員 (約500名), 外部顧客..."
                   rows={3}
-                  className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm
-                             text-[#e2e8f4] placeholder-[#5a6a7a] resize-none
-                             focus:outline-none focus:border-indigo-500"
+                  className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-sm
+                             text-falcon-text placeholder-[#5a6a7a] resize-none
+                             focus:outline-hidden focus:border-indigo-500"
                 />
               </div>
             </div>
           </div>
 
           {/* Lessons learned */}
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
-            <h3 className="text-sm font-semibold text-[#7d92b0] uppercase tracking-wider mb-3">
+          <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
+            <h3 className="text-sm font-semibold text-falcon-muted uppercase tracking-wider mb-3">
               教訓
             </h3>
             <textarea
@@ -2382,17 +2382,17 @@ function PostMortemTab({ inc }: { inc: Incident }) {
               onChange={e => setLessonsLearned(e.target.value)}
               placeholder="このインシデントから学んだことを記述してください..."
               rows={5}
-              className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2.5 text-sm
-                         text-[#e2e8f4] placeholder-[#5a6a7a] resize-y
-                         focus:outline-none focus:border-indigo-500"
+              className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2.5 text-sm
+                         text-falcon-text placeholder-[#5a6a7a] resize-y
+                         focus:outline-hidden focus:border-indigo-500"
             />
           </div>
 
           {/* Action items */}
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
+          <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
             <div className="flex items-center gap-2 mb-4">
               <ListChecks size={16} className="text-green-400" />
-              <h3 className="text-sm font-semibold text-[#7d92b0] uppercase tracking-wider">
+              <h3 className="text-sm font-semibold text-falcon-muted uppercase tracking-wider">
                 アクションアイテム
               </h3>
               <span className="text-xs text-[#5a6a7a] ml-auto">
@@ -2408,24 +2408,24 @@ function PostMortemTab({ inc }: { inc: Incident }) {
                 {actionItems.map(item => (
                   <div
                     key={item.id}
-                    className="flex items-center gap-3 bg-[#070d19]/40 border border-[#1e2d42]/60 rounded-lg px-3 py-2.5"
+                    className="flex items-center gap-3 bg-[#070d19]/40 border border-falcon-border/60 rounded-lg px-3 py-2.5"
                   >
                     <button
                       onClick={() => toggleActionItem(item.id)}
-                      className={`w-4 h-4 rounded border flex-shrink-0 flex items-center justify-center transition-colors ${
+                      className={`w-4 h-4 rounded border shrink-0 flex items-center justify-center transition-colors ${
                         item.done
                           ? 'bg-green-600 border-green-600'
-                          : 'border-[#3d5068] hover:border-green-600'
+                          : 'border-falcon-subtle hover:border-green-600'
                       }`}
                     >
                       {item.done && <Check size={11} className="text-white" />}
                     </button>
-                    <span className={`flex-1 text-sm ${item.done ? 'line-through text-[#5a6a7a]' : 'text-[#e2e8f4]'}`}>
+                    <span className={`flex-1 text-sm ${item.done ? 'line-through text-[#5a6a7a]' : 'text-falcon-text'}`}>
                       {item.text}
                     </span>
                     <button
                       onClick={() => removeActionItem(item.id)}
-                      className="text-[#3d5068] hover:text-red-400 transition-colors"
+                      className="text-falcon-subtle hover:text-red-400 transition-colors"
                     >
                       <Trash2 size={13} />
                     </button>
@@ -2442,8 +2442,8 @@ function PostMortemTab({ inc }: { inc: Incident }) {
                 onChange={e => setNewActionText(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter') addActionItem() }}
                 placeholder="新しいアクションアイテムを追加..."
-                className="flex-1 bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm
-                           text-[#e2e8f4] placeholder-[#5a6a7a] focus:outline-none focus:border-green-500"
+                className="flex-1 bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-sm
+                           text-falcon-text placeholder-[#5a6a7a] focus:outline-hidden focus:border-green-500"
               />
               <button
                 onClick={addActionItem}

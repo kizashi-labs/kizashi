@@ -40,7 +40,7 @@ const CAMPAIGN_STATUS_STYLES: Record<string, string> = {
   active:    'bg-green-900/40 text-green-300 border border-green-700/50',
   draft:     'bg-yellow-900/40 text-yellow-300 border border-yellow-700/50',
   completed: 'bg-blue-900/40 text-blue-300 border border-blue-700/50',
-  cancelled: 'bg-[#161f33] text-[#8899aa] border border-[#1e2d42]',
+  cancelled: 'bg-falcon-raised text-[#8899aa] border border-falcon-border',
 }
 
 const DECISION_STYLES: Record<string, string> = {
@@ -57,13 +57,13 @@ function StatCard({ label, value, icon: Icon, color = '#7d92b0' }: {
   label: string; value: string | number; icon: React.ElementType; color?: string
 }) {
   return (
-    <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-4 flex items-center gap-4">
-      <div className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
+    <div className="bg-falcon-surface border border-falcon-border rounded-lg p-4 flex items-center gap-4">
+      <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0"
            style={{ backgroundColor: `${color}20` }}>
         <Icon className="w-5 h-5" style={{ color }} />
       </div>
       <div>
-        <p className="text-[#7d92b0] text-xs">{label}</p>
+        <p className="text-falcon-muted text-xs">{label}</p>
         <p className="text-white text-xl font-bold">{value}</p>
       </div>
     </div>
@@ -79,76 +79,76 @@ function CreateCampaignModal({ onClose, onSave }: {
   const [form, setForm] = useState<CreateCampaignPayload>({ ...EMPTY_FORM })
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl w-full max-w-md">
-        <div className="flex items-center justify-between p-6 border-b border-[#1e2d42]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
+      <div className="bg-falcon-surface border border-falcon-border rounded-xl w-full max-w-md">
+        <div className="flex items-center justify-between p-6 border-b border-falcon-border">
           <h3 className="text-white font-bold text-lg flex items-center gap-2">
-            <ClipboardCheck className="w-5 h-5 text-[#e8002d]" />
+            <ClipboardCheck className="w-5 h-5 text-falcon-red" />
             New Review Campaign
           </h3>
-          <button onClick={onClose} className="text-[#7d92b0] hover:text-white transition-colors">
+          <button onClick={onClose} className="text-falcon-muted hover:text-white transition-colors">
             <X className="w-5 h-5" />
           </button>
         </div>
 
         <div className="p-6 space-y-4">
           <div>
-            <label className="block text-[#7d92b0] text-xs mb-1.5">Campaign Name <span className="text-[#e8002d]">*</span></label>
+            <label className="block text-falcon-muted text-xs mb-1.5">Campaign Name <span className="text-falcon-red">*</span></label>
             <input
               type="text"
               value={form.name}
               onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
               placeholder="e.g. Q2 2026 Access Review"
-              className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm
-                         placeholder:text-[#3d5068] focus:outline-none focus:border-[#e8002d]/50"
+              className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm
+                         placeholder:text-falcon-subtle focus:outline-hidden focus:border-falcon-red/50"
             />
           </div>
 
           <div>
-            <label className="block text-[#7d92b0] text-xs mb-1.5">Description</label>
+            <label className="block text-falcon-muted text-xs mb-1.5">Description</label>
             <textarea
               value={form.description}
               onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
               rows={2}
               placeholder="Brief description of this review campaign"
-              className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm
-                         placeholder:text-[#3d5068] focus:outline-none focus:border-[#e8002d]/50 resize-none"
+              className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm
+                         placeholder:text-falcon-subtle focus:outline-hidden focus:border-falcon-red/50 resize-none"
             />
           </div>
 
           <div>
-            <label className="block text-[#7d92b0] text-xs mb-1.5">Reviewer <span className="text-[#e8002d]">*</span></label>
+            <label className="block text-falcon-muted text-xs mb-1.5">Reviewer <span className="text-falcon-red">*</span></label>
             <input
               type="text"
               value={form.reviewer}
               onChange={e => setForm(f => ({ ...f, reviewer: e.target.value }))}
               placeholder="Reviewer name or team"
-              className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm
-                         placeholder:text-[#3d5068] focus:outline-none focus:border-[#e8002d]/50"
+              className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm
+                         placeholder:text-falcon-subtle focus:outline-hidden focus:border-falcon-red/50"
             />
           </div>
 
           <div>
-            <label className="block text-[#7d92b0] text-xs mb-1.5">Due Date <span className="text-[#e8002d]">*</span></label>
+            <label className="block text-falcon-muted text-xs mb-1.5">Due Date <span className="text-falcon-red">*</span></label>
             <input
               type="date"
               value={form.due_date}
               onChange={e => setForm(f => ({ ...f, due_date: e.target.value }))}
-              className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm
-                         focus:outline-none focus:border-[#e8002d]/50"
+              className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm
+                         focus:outline-hidden focus:border-falcon-red/50"
             />
           </div>
         </div>
 
-        <div className="flex gap-3 p-6 border-t border-[#1e2d42]">
+        <div className="flex gap-3 p-6 border-t border-falcon-border">
           <button onClick={onClose}
-            className="flex-1 px-4 py-2 border border-[#1e2d42] text-[#7d92b0] rounded-lg text-sm hover:bg-[#19253d] transition-colors">
+            className="flex-1 px-4 py-2 border border-falcon-border text-falcon-muted rounded-lg text-sm hover:bg-falcon-hover transition-colors">
             Cancel
           </button>
           <button
             onClick={() => onSave(form)}
             disabled={!form.name.trim() || !form.reviewer.trim() || !form.due_date}
-            className="flex-1 px-4 py-2 bg-[#e8002d] hover:bg-[#c0001f] disabled:opacity-50 disabled:cursor-not-allowed
+            className="flex-1 px-4 py-2 bg-falcon-red hover:bg-[#c0001f] disabled:opacity-50 disabled:cursor-not-allowed
                        text-white rounded-lg text-sm font-medium transition-colors">
             Create Campaign
           </button>
@@ -199,14 +199,14 @@ export default function AccessReviewPage() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-white flex items-center gap-3">
-            <ClipboardCheck className="w-7 h-7 text-[#e8002d]" />
+            <ClipboardCheck className="w-7 h-7 text-falcon-red" />
             Access Review
           </h1>
-          <p className="text-[#7d92b0] text-sm mt-1">Periodic user access certification and review campaigns</p>
+          <p className="text-falcon-muted text-sm mt-1">Periodic user access certification and review campaigns</p>
         </div>
         <button
           onClick={() => setShowCreate(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-[#e8002d] hover:bg-[#c0001f] text-white rounded-lg text-sm font-medium transition-colors"
+          className="flex items-center gap-2 px-4 py-2 bg-falcon-red hover:bg-[#c0001f] text-white rounded-lg text-sm font-medium transition-colors"
         >
           <Plus className="w-4 h-4" />
           New Campaign
@@ -222,31 +222,31 @@ export default function AccessReviewPage() {
       </div>
 
       {/* Review Campaigns */}
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden mb-6">
-        <div className="px-4 py-3 border-b border-[#1e2d42] flex items-center justify-between">
+      <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden mb-6">
+        <div className="px-4 py-3 border-b border-falcon-border flex items-center justify-between">
           <h2 className="text-white font-semibold text-sm flex items-center gap-2">
-            <Users className="w-4 h-4 text-[#7d92b0]" />
+            <Users className="w-4 h-4 text-falcon-muted" />
             Review Campaigns
           </h2>
         </div>
         <table className="w-full">
           <thead>
-            <tr className="border-b border-[#1e2d42]">
+            <tr className="border-b border-falcon-border">
               {['Campaign Name', 'Status', 'Reviewer', 'Due Date', 'Actions'].map(h => (
-                <th key={h} className="px-4 py-3 text-left text-xs text-[#7d92b0] font-medium">{h}</th>
+                <th key={h} className="px-4 py-3 text-left text-xs text-falcon-muted font-medium">{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {campaigns.map(c => (
               <tr key={c.id}
-                className={`border-b border-[#1e2d42]/50 hover:bg-[#19253d]/30 transition-colors cursor-pointer ${selectedCampaign?.id === c.id ? 'bg-[#19253d]/20' : ''}`}
+                className={`border-b border-falcon-border/50 hover:bg-falcon-hover/30 transition-colors cursor-pointer ${selectedCampaign?.id === c.id ? 'bg-falcon-hover/20' : ''}`}
                 onClick={() => setSelectedCampaign(c)}
               >
                 <td className="px-4 py-3">
                   <p className="text-white text-sm font-medium">{c.name}</p>
                   {c.description && (
-                    <p className="text-[#7d92b0] text-xs mt-0.5 truncate max-w-[280px]">{c.description}</p>
+                    <p className="text-falcon-muted text-xs mt-0.5 truncate max-w-[280px]">{c.description}</p>
                   )}
                 </td>
                 <td className="px-4 py-3">
@@ -254,9 +254,9 @@ export default function AccessReviewPage() {
                     {c.status}
                   </span>
                 </td>
-                <td className="px-4 py-3 text-[#7d92b0] text-sm">{c.reviewer}</td>
+                <td className="px-4 py-3 text-falcon-muted text-sm">{c.reviewer}</td>
                 <td className="px-4 py-3">
-                  <span className="flex items-center gap-1.5 text-[#7d92b0] text-sm">
+                  <span className="flex items-center gap-1.5 text-falcon-muted text-sm">
                     <Calendar className="w-3.5 h-3.5" />
                     {c.due_date}
                   </span>
@@ -264,7 +264,7 @@ export default function AccessReviewPage() {
                 <td className="px-4 py-3">
                   <button
                     onClick={e => { e.stopPropagation(); setSelectedCampaign(c) }}
-                    className="text-xs px-3 py-1.5 bg-[#1e2d42] hover:bg-[#2a3f5c] text-[#7d92b0] hover:text-white rounded-lg transition-colors"
+                    className="text-xs px-3 py-1.5 bg-falcon-border hover:bg-[#2a3f5c] text-falcon-muted hover:text-white rounded-lg transition-colors"
                   >
                     View Items
                   </button>
@@ -276,31 +276,31 @@ export default function AccessReviewPage() {
       </div>
 
       {/* Review Items */}
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
-        <div className="px-4 py-3 border-b border-[#1e2d42] flex items-center gap-2">
-          <ClipboardCheck className="w-4 h-4 text-[#7d92b0]" />
+      <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
+        <div className="px-4 py-3 border-b border-falcon-border flex items-center gap-2">
+          <ClipboardCheck className="w-4 h-4 text-falcon-muted" />
           <h2 className="text-white font-semibold text-sm">
             Review Items
             {selectedCampaign && (
-              <span className="text-[#7d92b0] font-normal ml-2">— {selectedCampaign.name}</span>
+              <span className="text-falcon-muted font-normal ml-2">— {selectedCampaign.name}</span>
             )}
           </h2>
         </div>
         <table className="w-full">
           <thead>
-            <tr className="border-b border-[#1e2d42]">
+            <tr className="border-b border-falcon-border">
               {['User', 'Resource', 'Permission', 'Decision'].map(h => (
-                <th key={h} className="px-4 py-3 text-left text-xs text-[#7d92b0] font-medium">{h}</th>
+                <th key={h} className="px-4 py-3 text-left text-xs text-falcon-muted font-medium">{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {items.map(item => (
-              <tr key={item.id} className="border-b border-[#1e2d42]/50 hover:bg-[#19253d]/30 transition-colors">
+              <tr key={item.id} className="border-b border-falcon-border/50 hover:bg-falcon-hover/30 transition-colors">
                 <td className="px-4 py-3 text-white text-sm font-medium font-mono">{item.user}</td>
-                <td className="px-4 py-3 text-[#7d92b0] text-sm">{item.resource}</td>
+                <td className="px-4 py-3 text-falcon-muted text-sm">{item.resource}</td>
                 <td className="px-4 py-3">
-                  <span className="text-xs px-2 py-0.5 rounded bg-[#1e2d42] text-[#7d92b0]">{item.permission}</span>
+                  <span className="text-xs px-2 py-0.5 rounded-sm bg-falcon-border text-falcon-muted">{item.permission}</span>
                 </td>
                 <td className="px-4 py-3">
                   <span className={`text-xs px-2 py-0.5 rounded-full capitalize ${DECISION_STYLES[item.decision]}`}>

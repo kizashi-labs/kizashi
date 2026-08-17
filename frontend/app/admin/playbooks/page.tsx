@@ -161,7 +161,7 @@ const INCIDENT_TYPE_STYLES: Record<string, string> = {
 
   ddos:        'bg-yellow-900/40 text-yellow-300 border border-yellow-700/50',
 
-  general:     'bg-[#161f33] text-[#8899aa] border border-[#1e2d42]',
+  general:     'bg-falcon-raised text-[#8899aa] border border-falcon-border',
 
 }
 
@@ -221,7 +221,7 @@ const STATUS_STYLES: Record<string, string> = {
 
   completed:   'bg-green-900/40 text-green-300 border border-green-700/50',
 
-  cancelled:   'bg-[#161f33] text-[#8899aa] border border-[#1e2d42]',
+  cancelled:   'bg-falcon-raised text-[#8899aa] border border-falcon-border',
 
 }
 
@@ -285,9 +285,9 @@ function StatCard({ label, value, icon: Icon, color = '#7d92b0' }: {
 
   return (
 
-    <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-4 flex items-center gap-4">
+    <div className="bg-falcon-surface border border-falcon-border rounded-lg p-4 flex items-center gap-4">
 
-      <div className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
+      <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0"
 
            style={{ backgroundColor: `${color}20` }}>
 
@@ -297,7 +297,7 @@ function StatCard({ label, value, icon: Icon, color = '#7d92b0' }: {
 
       <div>
 
-        <p className="text-[#7d92b0] text-xs">{label}</p>
+        <p className="text-falcon-muted text-xs">{label}</p>
 
         <p className="text-white text-xl font-bold">{value}</p>
 
@@ -343,15 +343,15 @@ function ExecuteModal({ playbook, onClose }: { playbook: Playbook; onClose: () =
 
     return (
 
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs">
 
-        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-8 w-full max-w-md text-center">
+        <div className="bg-falcon-surface border border-falcon-border rounded-xl p-8 w-full max-w-md text-center">
 
           <CheckCircle className="w-12 h-12 text-green-400 mx-auto mb-4" />
 
           <h3 className="text-white font-bold text-lg mb-2">実行開始</h3>
 
-          <p className="text-[#7d92b0] text-sm mb-6">
+          <p className="text-falcon-muted text-sm mb-6">
 
             プレイブック「{playbook.name}」をインシデント {incidentId} で実行開始しました。
 
@@ -359,7 +359,7 @@ function ExecuteModal({ playbook, onClose }: { playbook: Playbook; onClose: () =
 
           <button onClick={onClose}
 
-            className="px-6 py-2 bg-[#e8002d] hover:bg-[#c0001f] text-white rounded-lg text-sm font-medium transition-colors">
+            className="px-6 py-2 bg-falcon-red hover:bg-[#c0001f] text-white rounded-lg text-sm font-medium transition-colors">
 
             閉じる
 
@@ -377,9 +377,9 @@ function ExecuteModal({ playbook, onClose }: { playbook: Playbook; onClose: () =
 
   return (
 
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs">
 
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-6 w-full max-w-md">
+      <div className="bg-falcon-surface border border-falcon-border rounded-xl p-6 w-full max-w-md">
 
         <div className="flex items-center justify-between mb-6">
 
@@ -391,7 +391,7 @@ function ExecuteModal({ playbook, onClose }: { playbook: Playbook; onClose: () =
 
           </h3>
 
-          <button onClick={onClose} className="text-[#7d92b0] hover:text-white transition-colors">
+          <button onClick={onClose} className="text-falcon-muted hover:text-white transition-colors">
 
             <X className="w-5 h-5" />
 
@@ -399,21 +399,21 @@ function ExecuteModal({ playbook, onClose }: { playbook: Playbook; onClose: () =
 
         </div>
 
-        <div className="bg-[#070d19] border border-[#1e2d42] rounded-lg p-3 mb-4">
+        <div className="bg-[#070d19] border border-falcon-border rounded-lg p-3 mb-4">
 
-          <p className="text-[#7d92b0] text-xs mb-1">プレイブック</p>
+          <p className="text-falcon-muted text-xs mb-1">プレイブック</p>
 
           <p className="text-white font-medium text-sm">{playbook.name}</p>
 
-          <p className="text-[#7d92b0] text-xs mt-1">{playbook.steps.length} ステップ</p>
+          <p className="text-falcon-muted text-xs mt-1">{playbook.steps.length} ステップ</p>
 
         </div>
 
         <div className="mb-6">
 
-          <label className="block text-[#7d92b0] text-xs mb-1.5">
+          <label className="block text-falcon-muted text-xs mb-1.5">
 
-            インシデント ID <span className="text-[#e8002d]">*</span>
+            インシデント ID <span className="text-falcon-red">*</span>
 
           </label>
 
@@ -427,9 +427,9 @@ function ExecuteModal({ playbook, onClose }: { playbook: Playbook; onClose: () =
 
             placeholder="例: INC-2026-0318"
 
-            className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm
+            className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm
 
-                       placeholder:text-[#3d5068] focus:outline-none focus:border-[#e8002d]/50"
+                       placeholder:text-falcon-subtle focus:outline-hidden focus:border-falcon-red/50"
 
           />
 
@@ -439,7 +439,7 @@ function ExecuteModal({ playbook, onClose }: { playbook: Playbook; onClose: () =
 
           <button onClick={onClose}
 
-            className="flex-1 px-4 py-2 border border-[#1e2d42] text-[#7d92b0] rounded-lg text-sm hover:bg-[#19253d] transition-colors">
+            className="flex-1 px-4 py-2 border border-falcon-border text-falcon-muted rounded-lg text-sm hover:bg-falcon-hover transition-colors">
 
             キャンセル
 
@@ -553,13 +553,13 @@ function PlaybookFormModal({ initial, onClose, onSave }: {
 
   return (
 
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
 
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+      <div className="bg-falcon-surface border border-falcon-border rounded-xl w-full max-w-2xl max-h-[90vh] flex flex-col">
 
         {/* Header */}
 
-        <div className="flex items-center justify-between p-6 border-b border-[#1e2d42] flex-shrink-0">
+        <div className="flex items-center justify-between p-6 border-b border-falcon-border shrink-0">
 
           <h3 className="text-white font-bold text-lg">
 
@@ -567,7 +567,7 @@ function PlaybookFormModal({ initial, onClose, onSave }: {
 
           </h3>
 
-          <button onClick={onClose} className="text-[#7d92b0] hover:text-white transition-colors">
+          <button onClick={onClose} className="text-falcon-muted hover:text-white transition-colors">
 
             <X className="w-5 h-5" />
 
@@ -579,7 +579,7 @@ function PlaybookFormModal({ initial, onClose, onSave }: {
 
         {/* Tab selector */}
 
-        <div className="flex border-b border-[#1e2d42] flex-shrink-0 px-6">
+        <div className="flex border-b border-falcon-border shrink-0 px-6">
 
           {(['basic', 'steps'] as const).map(s => (
 
@@ -591,9 +591,9 @@ function PlaybookFormModal({ initial, onClose, onSave }: {
 
                 section === s
 
-                  ? 'border-[#e8002d] text-white'
+                  ? 'border-falcon-red text-white'
 
-                  : 'border-transparent text-[#7d92b0] hover:text-white'
+                  : 'border-transparent text-falcon-muted hover:text-white'
 
               }`}>
 
@@ -617,15 +617,15 @@ function PlaybookFormModal({ initial, onClose, onSave }: {
 
               <div>
 
-                <label className="block text-[#7d92b0] text-xs mb-1.5">名前 <span className="text-[#e8002d]">*</span></label>
+                <label className="block text-falcon-muted text-xs mb-1.5">名前 <span className="text-falcon-red">*</span></label>
 
                 <input type="text" value={form.name}
 
                   onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
 
-                  className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm
+                  className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm
 
-                             focus:outline-none focus:border-[#e8002d]/50 placeholder:text-[#3d5068]"
+                             focus:outline-hidden focus:border-falcon-red/50 placeholder:text-falcon-subtle"
 
                   placeholder="プレイブック名" />
 
@@ -633,7 +633,7 @@ function PlaybookFormModal({ initial, onClose, onSave }: {
 
               <div>
 
-                <label className="block text-[#7d92b0] text-xs mb-1.5">説明</label>
+                <label className="block text-falcon-muted text-xs mb-1.5">説明</label>
 
                 <textarea value={form.description}
 
@@ -641,9 +641,9 @@ function PlaybookFormModal({ initial, onClose, onSave }: {
 
                   rows={3}
 
-                  className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm
+                  className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm
 
-                             focus:outline-none focus:border-[#e8002d]/50 placeholder:text-[#3d5068] resize-none"
+                             focus:outline-hidden focus:border-falcon-red/50 placeholder:text-falcon-subtle resize-none"
 
                   placeholder="プレイブックの説明" />
 
@@ -653,15 +653,15 @@ function PlaybookFormModal({ initial, onClose, onSave }: {
 
                 <div>
 
-                  <label className="block text-[#7d92b0] text-xs mb-1.5">インシデントタイプ</label>
+                  <label className="block text-falcon-muted text-xs mb-1.5">インシデントタイプ</label>
 
                   <select value={form.incident_type}
 
                     onChange={e => setForm(f => ({ ...f, incident_type: e.target.value as Playbook['incident_type'] }))}
 
-                    className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm
+                    className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm
 
-                               focus:outline-none focus:border-[#e8002d]/50">
+                               focus:outline-hidden focus:border-falcon-red/50">
 
                     {Object.entries(INCIDENT_TYPE_LABELS).map(([v, l]) => (
 
@@ -675,7 +675,7 @@ function PlaybookFormModal({ initial, onClose, onSave }: {
 
                 <div>
 
-                  <label className="block text-[#7d92b0] text-xs mb-1.5">
+                  <label className="block text-falcon-muted text-xs mb-1.5">
 
                     重大度しきい値: <span className="text-white font-bold">{form.severity_threshold}</span>
 
@@ -685,9 +685,9 @@ function PlaybookFormModal({ initial, onClose, onSave }: {
 
                     onChange={e => setForm(f => ({ ...f, severity_threshold: Number(e.target.value) }))}
 
-                    className="w-full accent-[#e8002d]" />
+                    className="w-full accent-falcon-red" />
 
-                  <div className="flex justify-between text-[#3d5068] text-xs mt-1">
+                  <div className="flex justify-between text-falcon-subtle text-xs mt-1">
 
                     <span>1</span><span>10</span>
 
@@ -701,13 +701,13 @@ function PlaybookFormModal({ initial, onClose, onSave }: {
 
                 <label className="flex items-center gap-3 cursor-pointer">
 
-                  <span className="text-[#7d92b0] text-sm">自動割り当て</span>
+                  <span className="text-falcon-muted text-sm">自動割り当て</span>
 
                   <button onClick={() => setForm(f => ({ ...f, auto_assign: !f.auto_assign }))}
 
-                    className={`w-10 h-5 rounded-full transition-colors relative ${form.auto_assign ? 'bg-[#e8002d]' : 'bg-[#1e2d42]'}`}>
+                    className={`w-10 h-5 rounded-full transition-colors relative ${form.auto_assign ? 'bg-falcon-red' : 'bg-falcon-border'}`}>
 
-                    <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-[#e2e8f4] transition-all ${form.auto_assign ? 'left-5' : 'left-0.5'}`} />
+                    <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-falcon-text transition-all ${form.auto_assign ? 'left-5' : 'left-0.5'}`} />
 
                   </button>
 
@@ -715,13 +715,13 @@ function PlaybookFormModal({ initial, onClose, onSave }: {
 
                 <label className="flex items-center gap-3 cursor-pointer">
 
-                  <span className="text-[#7d92b0] text-sm">有効</span>
+                  <span className="text-falcon-muted text-sm">有効</span>
 
                   <button onClick={() => setForm(f => ({ ...f, enabled: !f.enabled }))}
 
-                    className={`w-10 h-5 rounded-full transition-colors relative ${form.enabled ? 'bg-green-600' : 'bg-[#1e2d42]'}`}>
+                    className={`w-10 h-5 rounded-full transition-colors relative ${form.enabled ? 'bg-green-600' : 'bg-falcon-border'}`}>
 
-                    <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-[#e2e8f4] transition-all ${form.enabled ? 'left-5' : 'left-0.5'}`} />
+                    <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-falcon-text transition-all ${form.enabled ? 'left-5' : 'left-0.5'}`} />
 
                   </button>
 
@@ -737,7 +737,7 @@ function PlaybookFormModal({ initial, onClose, onSave }: {
 
               {form.steps.length === 0 && (
 
-                <div className="text-center py-8 text-[#7d92b0]">
+                <div className="text-center py-8 text-falcon-muted">
 
                   <BookOpen className="w-8 h-8 mx-auto mb-2 opacity-40" />
 
@@ -749,13 +749,13 @@ function PlaybookFormModal({ initial, onClose, onSave }: {
 
               {form.steps.map((step, idx) => (
 
-                <div key={step.id} className="bg-[#070d19] border border-[#1e2d42] rounded-lg p-4">
+                <div key={step.id} className="bg-[#070d19] border border-falcon-border rounded-lg p-4">
 
                   <div className="flex items-center gap-3 mb-3">
 
-                    <GripVertical className="w-4 h-4 text-[#3d5068] cursor-grab flex-shrink-0" />
+                    <GripVertical className="w-4 h-4 text-falcon-subtle cursor-grab shrink-0" />
 
-                    <span className="w-6 h-6 rounded-full bg-[#1e2d42] text-[#7d92b0] text-xs flex items-center justify-center font-bold flex-shrink-0">
+                    <span className="w-6 h-6 rounded-full bg-falcon-border text-falcon-muted text-xs flex items-center justify-center font-bold shrink-0">
 
                       {idx + 1}
 
@@ -767,13 +767,13 @@ function PlaybookFormModal({ initial, onClose, onSave }: {
 
                       placeholder="ステップタイトル"
 
-                      className="flex-1 bg-[#0d1220] border border-[#1e2d42] rounded px-2 py-1.5 text-white text-sm
+                      className="flex-1 bg-falcon-surface border border-falcon-border rounded px-2 py-1.5 text-white text-sm
 
-                                 focus:outline-none focus:border-[#e8002d]/50 placeholder:text-[#3d5068]" />
+                                 focus:outline-hidden focus:border-falcon-red/50 placeholder:text-falcon-subtle" />
 
                     <button onClick={() => removeStep(idx)}
 
-                      className="text-[#7d92b0] hover:text-red-400 transition-colors flex-shrink-0">
+                      className="text-falcon-muted hover:text-red-400 transition-colors shrink-0">
 
                       <X className="w-4 h-4" />
 
@@ -789,9 +789,9 @@ function PlaybookFormModal({ initial, onClose, onSave }: {
 
                     rows={2}
 
-                    className="w-full bg-[#0d1220] border border-[#1e2d42] rounded px-2 py-1.5 text-white text-sm
+                    className="w-full bg-falcon-surface border border-falcon-border rounded px-2 py-1.5 text-white text-sm
 
-                               focus:outline-none focus:border-[#e8002d]/50 placeholder:text-[#3d5068] resize-none mb-3" />
+                               focus:outline-hidden focus:border-falcon-red/50 placeholder:text-falcon-subtle resize-none mb-3" />
 
                   <div className="flex items-center gap-4">
 
@@ -799,9 +799,9 @@ function PlaybookFormModal({ initial, onClose, onSave }: {
 
                       onChange={e => updateStep(idx, 'type', e.target.value)}
 
-                      className="bg-[#0d1220] border border-[#1e2d42] rounded px-2 py-1.5 text-white text-xs
+                      className="bg-falcon-surface border border-falcon-border rounded px-2 py-1.5 text-white text-xs
 
-                                 focus:outline-none focus:border-[#e8002d]/50">
+                                 focus:outline-hidden focus:border-falcon-red/50">
 
                       {Object.entries(STEP_TYPE_LABELS).map(([v, l]) => (
 
@@ -811,17 +811,17 @@ function PlaybookFormModal({ initial, onClose, onSave }: {
 
                     </select>
 
-                    <label className="flex items-center gap-2 cursor-pointer text-xs text-[#7d92b0]">
+                    <label className="flex items-center gap-2 cursor-pointer text-xs text-falcon-muted">
 
                       <button onClick={() => updateStep(idx, 'required', !step.required)}
 
-                        className="flex-shrink-0">
+                        className="shrink-0">
 
                         {step.required
 
-                          ? <CheckSquare className="w-4 h-4 text-[#e8002d]" />
+                          ? <CheckSquare className="w-4 h-4 text-falcon-red" />
 
-                          : <Square className="w-4 h-4 text-[#3d5068]" />}
+                          : <Square className="w-4 h-4 text-falcon-subtle" />}
 
                       </button>
 
@@ -837,9 +837,9 @@ function PlaybookFormModal({ initial, onClose, onSave }: {
 
               <button onClick={addStep}
 
-                className="w-full py-3 border border-dashed border-[#1e2d42] rounded-lg text-[#7d92b0]
+                className="w-full py-3 border border-dashed border-falcon-border rounded-lg text-falcon-muted
 
-                           hover:border-[#e8002d]/50 hover:text-white transition-colors flex items-center justify-center gap-2 text-sm">
+                           hover:border-falcon-red/50 hover:text-white transition-colors flex items-center justify-center gap-2 text-sm">
 
                 <Plus className="w-4 h-4" />
 
@@ -857,11 +857,11 @@ function PlaybookFormModal({ initial, onClose, onSave }: {
 
         {/* Footer */}
 
-        <div className="flex gap-3 p-6 border-t border-[#1e2d42] flex-shrink-0">
+        <div className="flex gap-3 p-6 border-t border-falcon-border shrink-0">
 
           <button onClick={onClose}
 
-            className="flex-1 px-4 py-2 border border-[#1e2d42] text-[#7d92b0] rounded-lg text-sm hover:bg-[#19253d] transition-colors">
+            className="flex-1 px-4 py-2 border border-falcon-border text-falcon-muted rounded-lg text-sm hover:bg-falcon-hover transition-colors">
 
             キャンセル
 
@@ -871,7 +871,7 @@ function PlaybookFormModal({ initial, onClose, onSave }: {
 
             disabled={!form.name.trim()}
 
-            className="flex-1 px-4 py-2 bg-[#e8002d] hover:bg-[#c0001f] disabled:opacity-50 disabled:cursor-not-allowed
+            className="flex-1 px-4 py-2 bg-falcon-red hover:bg-[#c0001f] disabled:opacity-50 disabled:cursor-not-allowed
 
                        text-white rounded-lg text-sm font-medium transition-colors">
 
@@ -1017,19 +1017,19 @@ export default function PlaybooksPage() {
 
           <h1 className="text-2xl font-bold text-white flex items-center gap-3">
 
-            <BookOpen className="w-7 h-7 text-[#e8002d]" />
+            <BookOpen className="w-7 h-7 text-falcon-red" />
 
             インシデントプレイブック
 
           </h1>
 
-          <p className="text-[#7d92b0] text-sm mt-1">インシデント対応手順書の管理・実行</p>
+          <p className="text-falcon-muted text-sm mt-1">インシデント対応手順書の管理・実行</p>
 
         </div>
 
         <button onClick={() => setShowCreate(true)}
 
-          className="flex items-center gap-2 px-4 py-2 bg-[#e8002d] hover:bg-[#c0001f] text-white rounded-lg text-sm font-medium transition-colors">
+          className="flex items-center gap-2 px-4 py-2 bg-falcon-red hover:bg-[#c0001f] text-white rounded-lg text-sm font-medium transition-colors">
 
           <Plus className="w-4 h-4" />
 
@@ -1059,7 +1059,7 @@ export default function PlaybooksPage() {
 
       {/* Tabs */}
 
-      <div className="flex gap-1 bg-[#0d1220] border border-[#1e2d42] rounded-lg p-1 w-fit mb-6">
+      <div className="flex gap-1 bg-falcon-surface border border-falcon-border rounded-lg p-1 w-fit mb-6">
 
         {([['list', 'プレイブック一覧'], ['history', '実行履歴']] as const).map(([key, label]) => (
 
@@ -1071,9 +1071,9 @@ export default function PlaybooksPage() {
 
               activeTab === key
 
-                ? 'bg-[#1d2f4a] text-white'
+                ? 'bg-falcon-active text-white'
 
-                : 'text-[#7d92b0] hover:text-white'
+                : 'text-falcon-muted hover:text-white'
 
             }`}>
 
@@ -1101,7 +1101,7 @@ export default function PlaybooksPage() {
 
               <div key={pb.id}
 
-                className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5 hover:border-[#2a3f5c] transition-colors">
+                className="bg-falcon-surface border border-falcon-border rounded-xl p-5 hover:border-[#2a3f5c] transition-colors">
 
                 {/* Card header */}
 
@@ -1121,7 +1121,7 @@ export default function PlaybooksPage() {
 
                     </div>
 
-                    <p className="text-[#7d92b0] text-xs line-clamp-2">{pb.description}</p>
+                    <p className="text-falcon-muted text-xs line-clamp-2">{pb.description}</p>
 
                   </div>
 
@@ -1135,9 +1135,9 @@ export default function PlaybooksPage() {
 
                   <div className="flex items-center gap-1.5">
 
-                    <AlertTriangle className="w-3.5 h-3.5 text-[#7d92b0]" />
+                    <AlertTriangle className="w-3.5 h-3.5 text-falcon-muted" />
 
-                    <span className="text-[#7d92b0] text-xs">重大度しきい値:</span>
+                    <span className="text-falcon-muted text-xs">重大度しきい値:</span>
 
                     <span className={`text-xs font-bold px-1.5 py-0.5 rounded ${
 
@@ -1153,9 +1153,9 @@ export default function PlaybooksPage() {
 
                   <div className="flex items-center gap-1.5">
 
-                    <BookOpen className="w-3.5 h-3.5 text-[#7d92b0]" />
+                    <BookOpen className="w-3.5 h-3.5 text-falcon-muted" />
 
-                    <span className="text-[#7d92b0] text-xs">{pb.steps.length} ステップ</span>
+                    <span className="text-falcon-muted text-xs">{pb.steps.length} ステップ</span>
 
                   </div>
 
@@ -1181,11 +1181,11 @@ export default function PlaybooksPage() {
 
                   <label className="flex items-center gap-2 cursor-pointer">
 
-                    <span className="text-[#7d92b0] text-xs">自動割り当て</span>
+                    <span className="text-falcon-muted text-xs">自動割り当て</span>
 
-                    <div className={`w-8 h-4 rounded-full relative transition-colors ${pb.auto_assign ? 'bg-[#e8002d]' : 'bg-[#1e2d42]'}`}>
+                    <div className={`w-8 h-4 rounded-full relative transition-colors ${pb.auto_assign ? 'bg-falcon-red' : 'bg-falcon-border'}`}>
 
-                      <span className={`absolute top-0.5 w-3 h-3 rounded-full bg-[#e2e8f4] transition-all ${pb.auto_assign ? 'left-4' : 'left-0.5'}`} />
+                      <span className={`absolute top-0.5 w-3 h-3 rounded-full bg-falcon-text transition-all ${pb.auto_assign ? 'left-4' : 'left-0.5'}`} />
 
                     </div>
 
@@ -1193,11 +1193,11 @@ export default function PlaybooksPage() {
 
                   <label className="flex items-center gap-2 cursor-pointer">
 
-                    <span className="text-[#7d92b0] text-xs">有効</span>
+                    <span className="text-falcon-muted text-xs">有効</span>
 
-                    <div className={`w-8 h-4 rounded-full relative transition-colors ${pb.enabled ? 'bg-green-600' : 'bg-[#1e2d42]'}`}>
+                    <div className={`w-8 h-4 rounded-full relative transition-colors ${pb.enabled ? 'bg-green-600' : 'bg-falcon-border'}`}>
 
-                      <span className={`absolute top-0.5 w-3 h-3 rounded-full bg-[#e2e8f4] transition-all ${pb.enabled ? 'left-4' : 'left-0.5'}`} />
+                      <span className={`absolute top-0.5 w-3 h-3 rounded-full bg-falcon-text transition-all ${pb.enabled ? 'left-4' : 'left-0.5'}`} />
 
                     </div>
 
@@ -1225,9 +1225,9 @@ export default function PlaybooksPage() {
 
                   <button onClick={() => setEditTarget(pb)}
 
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-[#161f33] hover:bg-[#19253d] border border-[#1e2d42]
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-falcon-raised hover:bg-falcon-hover border border-falcon-border
 
-                               text-[#7d92b0] hover:text-white rounded-lg text-xs font-medium transition-colors">
+                               text-falcon-muted hover:text-white rounded-lg text-xs font-medium transition-colors">
 
                     <Edit2 className="w-3.5 h-3.5" />
 
@@ -1273,13 +1273,13 @@ export default function PlaybooksPage() {
 
             <div className="flex items-center gap-2">
 
-              <Filter className="w-4 h-4 text-[#7d92b0]" />
+              <Filter className="w-4 h-4 text-falcon-muted" />
 
               <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}
 
-                className="bg-[#0d1220] border border-[#1e2d42] rounded-lg px-3 py-1.5 text-white text-sm
+                className="bg-falcon-surface border border-falcon-border rounded-lg px-3 py-1.5 text-white text-sm
 
-                           focus:outline-none focus:border-[#e8002d]/50">
+                           focus:outline-hidden focus:border-falcon-red/50">
 
                 <option value="all">全ステータス</option>
 
@@ -1295,9 +1295,9 @@ export default function PlaybooksPage() {
 
             <select value={playbookFilter} onChange={e => setPlaybookFilter(e.target.value)}
 
-              className="bg-[#0d1220] border border-[#1e2d42] rounded-lg px-3 py-1.5 text-white text-sm
+              className="bg-falcon-surface border border-falcon-border rounded-lg px-3 py-1.5 text-white text-sm
 
-                         focus:outline-none focus:border-[#e8002d]/50">
+                         focus:outline-hidden focus:border-falcon-red/50">
 
               <option value="all">全プレイブック</option>
 
@@ -1315,17 +1315,17 @@ export default function PlaybooksPage() {
 
           {/* Table */}
 
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
+          <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
 
             <table className="w-full">
 
               <thead>
 
-                <tr className="border-b border-[#1e2d42]">
+                <tr className="border-b border-falcon-border">
 
                   {['プレイブック名', 'インシデントID', 'ステータス', '進捗', '実行者', '開始日時', '所要時間'].map(h => (
 
-                    <th key={h} className="px-4 py-3 text-left text-xs text-[#7d92b0] font-medium">{h}</th>
+                    <th key={h} className="px-4 py-3 text-left text-xs text-falcon-muted font-medium">{h}</th>
 
                   ))}
 
@@ -1339,7 +1339,7 @@ export default function PlaybooksPage() {
 
                   <tr>
 
-                    <td colSpan={7} className="px-4 py-8 text-center text-[#7d92b0] text-sm">
+                    <td colSpan={7} className="px-4 py-8 text-center text-falcon-muted text-sm">
 
                       実行履歴がありません
 
@@ -1349,7 +1349,7 @@ export default function PlaybooksPage() {
 
                 ) : filteredExecutions.map(ex => (
 
-                  <tr key={ex.id} className="border-b border-[#1e2d42]/50 hover:bg-[#19253d]/30 transition-colors">
+                  <tr key={ex.id} className="border-b border-falcon-border/50 hover:bg-falcon-hover/30 transition-colors">
 
                     <td className="px-4 py-3 text-white text-sm font-medium">{ex.playbook_name}</td>
 
@@ -1357,7 +1357,7 @@ export default function PlaybooksPage() {
 
                       <a href={`/incidents/${ex.incident_id}`}
 
-                        className="text-[#1a6bff] hover:text-[#4488ff] text-sm transition-colors font-mono">
+                        className="text-falcon-blue hover:text-[#4488ff] text-sm transition-colors font-mono">
 
                         {ex.incident_id}
 
@@ -1379,25 +1379,25 @@ export default function PlaybooksPage() {
 
                       <div className="flex items-center gap-2">
 
-                        <div className="w-20 h-1.5 bg-[#1e2d42] rounded-full overflow-hidden">
+                        <div className="w-20 h-1.5 bg-falcon-border rounded-full overflow-hidden">
 
-                          <div className="h-full bg-[#e8002d] rounded-full transition-all"
+                          <div className="h-full bg-falcon-red rounded-full transition-all"
 
                             style={{ width: `${Math.round((ex.steps_done / ex.total_steps) * 100)}%` }} />
 
                         </div>
 
-                        <span className="text-[#7d92b0] text-xs">{ex.steps_done}/{ex.total_steps}</span>
+                        <span className="text-falcon-muted text-xs">{ex.steps_done}/{ex.total_steps}</span>
 
                       </div>
 
                     </td>
 
-                    <td className="px-4 py-3 text-[#7d92b0] text-sm">{ex.started_by}</td>
+                    <td className="px-4 py-3 text-falcon-muted text-sm">{ex.started_by}</td>
 
-                    <td className="px-4 py-3 text-[#7d92b0] text-sm">{fmtDateTime(ex.started_at)}</td>
+                    <td className="px-4 py-3 text-falcon-muted text-sm">{fmtDateTime(ex.started_at)}</td>
 
-                    <td className="px-4 py-3 text-[#7d92b0] text-sm">{calcDuration(ex.started_at, ex.ended_at)}</td>
+                    <td className="px-4 py-3 text-falcon-muted text-sm">{calcDuration(ex.started_at, ex.ended_at)}</td>
 
                   </tr>
 

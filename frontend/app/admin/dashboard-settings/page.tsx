@@ -17,6 +17,11 @@ interface Widget {
   description: string
   icon: React.ElementType
   color: string
+  // 並び替えプレビュー用の淡色版。Tailwind v4 で bg-opacity-* が廃止され、
+  // 不透明度は色ユーティリティのスラッシュ記法に統合された。`${widget.color}/30`
+  // と補間してもソース上にリテラルが現れず、スキャナがクラスを見つけられない
+  // ので、生成させたい文字列をそのままここに置く。
+  colorDim: string
 }
 
 interface LayoutItem {
@@ -28,18 +33,18 @@ interface LayoutItem {
 // ─── Widget Catalog ───────────────────────────────────────────────────────────
 
 const WIDGET_CATALOG: Widget[] = [
-  { id: 'alert-trend', name: 'アラートトレンドチャート', description: '7日/30日のアラート時系列グラフ', icon: BarChart2, color: 'bg-blue-700' },
-  { id: 'agent-status', name: 'エージェントステータス', description: 'オンライン/オフライン/停滞エージェント数', icon: Activity, color: 'bg-green-700' },
-  { id: 'top-threats', name: '上位脅威', description: '今週検出された上位10脅威タイプ', icon: AlertTriangle, color: 'bg-red-700' },
-  { id: 'detection-stats', name: '検知統計', description: 'ルールマッチ数と検知率', icon: Shield, color: 'bg-purple-700' },
-  { id: 'recent-alerts', name: '最近のアラート', description: '最新10件の高/重大アラート', icon: List, color: 'bg-orange-700' },
-  { id: 'system-health', name: 'システムヘルス', description: 'CPU・メモリ・キュー深度', icon: Heart, color: 'bg-teal-700' },
-  { id: 'ueba-risk', name: 'UEBAリスクスコア', description: '行動リスクスコア上位ユーザー', icon: Brain, color: 'bg-violet-700' },
-  { id: 'threat-map', name: '脅威マッププレビュー', description: '脅威発生源を示すミニワールドマップ', icon: Globe2, color: 'bg-cyan-700' },
-  { id: 'compliance-score', name: 'コンプライアンススコア', description: 'コンプライアンス態勢の概要', icon: CheckSquare, color: 'bg-lime-700' },
-  { id: 'incident-count', name: 'インシデント数', description: 'オープン/進行中/解決済みインシデント', icon: Layers, color: 'bg-amber-700' },
-  { id: 'alert-digest', name: 'アラートダイジェスト', description: '全アラートの日次サマリー', icon: Bell, color: 'bg-pink-700' },
-  { id: 'sla-status', name: 'SLAステータス', description: '対応SLA準拠率', icon: CheckCircle, color: 'bg-emerald-700' },
+  { id: 'alert-trend', name: 'アラートトレンドチャート', description: '7日/30日のアラート時系列グラフ', icon: BarChart2, color: 'bg-blue-700', colorDim: 'bg-blue-700/30' },
+  { id: 'agent-status', name: 'エージェントステータス', description: 'オンライン/オフライン/停滞エージェント数', icon: Activity, color: 'bg-green-700', colorDim: 'bg-green-700/30' },
+  { id: 'top-threats', name: '上位脅威', description: '今週検出された上位10脅威タイプ', icon: AlertTriangle, color: 'bg-red-700', colorDim: 'bg-red-700/30' },
+  { id: 'detection-stats', name: '検知統計', description: 'ルールマッチ数と検知率', icon: Shield, color: 'bg-purple-700', colorDim: 'bg-purple-700/30' },
+  { id: 'recent-alerts', name: '最近のアラート', description: '最新10件の高/重大アラート', icon: List, color: 'bg-orange-700', colorDim: 'bg-orange-700/30' },
+  { id: 'system-health', name: 'システムヘルス', description: 'CPU・メモリ・キュー深度', icon: Heart, color: 'bg-teal-700', colorDim: 'bg-teal-700/30' },
+  { id: 'ueba-risk', name: 'UEBAリスクスコア', description: '行動リスクスコア上位ユーザー', icon: Brain, color: 'bg-violet-700', colorDim: 'bg-violet-700/30' },
+  { id: 'threat-map', name: '脅威マッププレビュー', description: '脅威発生源を示すミニワールドマップ', icon: Globe2, color: 'bg-cyan-700', colorDim: 'bg-cyan-700/30' },
+  { id: 'compliance-score', name: 'コンプライアンススコア', description: 'コンプライアンス態勢の概要', icon: CheckSquare, color: 'bg-lime-700', colorDim: 'bg-lime-700/30' },
+  { id: 'incident-count', name: 'インシデント数', description: 'オープン/進行中/解決済みインシデント', icon: Layers, color: 'bg-amber-700', colorDim: 'bg-amber-700/30' },
+  { id: 'alert-digest', name: 'アラートダイジェスト', description: '全アラートの日次サマリー', icon: Bell, color: 'bg-pink-700', colorDim: 'bg-pink-700/30' },
+  { id: 'sla-status', name: 'SLAステータス', description: '対応SLA準拠率', icon: CheckCircle, color: 'bg-emerald-700', colorDim: 'bg-emerald-700/30' },
 ]
 
 const DEFAULT_LAYOUT: LayoutItem[] = [
@@ -189,7 +194,7 @@ export default function DashboardSettingsPage() {
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="ウィジェットを検索..."
-              className="w-full bg-zinc-900 border border-zinc-700 rounded-lg pl-3 pr-3 py-2 text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-blue-500"
+              className="w-full bg-zinc-900 border border-zinc-700 rounded-lg pl-3 pr-3 py-2 text-sm text-zinc-100 placeholder-zinc-500 focus:outline-hidden focus:border-blue-500"
             />
           </div>
           <div className="grid grid-cols-3 gap-3">
@@ -255,11 +260,11 @@ export default function DashboardSettingsPage() {
                   className="bg-zinc-900 border border-zinc-700 rounded-xl p-3 flex items-center gap-3"
                 >
                   {/* Position badge */}
-                  <div className="w-6 h-6 bg-zinc-800 rounded-full flex items-center justify-center text-xs text-zinc-500 flex-shrink-0">
+                  <div className="w-6 h-6 bg-zinc-800 rounded-full flex items-center justify-center text-xs text-zinc-500 shrink-0">
                     {idx + 1}
                   </div>
                   {/* Widget icon */}
-                  <div className={`${widget.color} rounded-lg p-1.5 flex-shrink-0`}>
+                  <div className={`${widget.color} rounded-lg p-1.5 shrink-0`}>
                     <widget.icon className="w-4 h-4 text-white" />
                   </div>
                   {/* Name + size select */}
@@ -268,7 +273,7 @@ export default function DashboardSettingsPage() {
                     <select
                       value={item.size}
                       onChange={e => updateSize(item.widget_id, e.target.value as WidgetSize)}
-                      className="mt-1 bg-zinc-800 border border-zinc-700 rounded-lg px-2 py-0.5 text-xs text-zinc-400 focus:outline-none w-full"
+                      className="mt-1 bg-zinc-800 border border-zinc-700 rounded-lg px-2 py-0.5 text-xs text-zinc-400 focus:outline-hidden w-full"
                     >
                       {(Object.keys(SIZE_LABELS) as WidgetSize[]).map(s => (
                         <option key={s} value={s}>{SIZE_LABELS[s]}</option>
@@ -280,14 +285,14 @@ export default function DashboardSettingsPage() {
                     <button
                       onClick={() => moveWidget(item.widget_id, 'up')}
                       disabled={idx === 0}
-                      className="p-1 hover:bg-zinc-700 disabled:opacity-20 rounded"
+                      className="p-1 hover:bg-zinc-700 disabled:opacity-20 rounded-sm"
                     >
                       <ChevronUp className="w-3.5 h-3.5 text-zinc-400" />
                     </button>
                     <button
                       onClick={() => moveWidget(item.widget_id, 'down')}
                       disabled={idx === sortedLayout.length - 1}
-                      className="p-1 hover:bg-zinc-700 disabled:opacity-20 rounded"
+                      className="p-1 hover:bg-zinc-700 disabled:opacity-20 rounded-sm"
                     >
                       <ChevronDown className="w-3.5 h-3.5 text-zinc-400" />
                     </button>
@@ -295,7 +300,7 @@ export default function DashboardSettingsPage() {
                   {/* Remove */}
                   <button
                     onClick={() => removeWidget(item.widget_id)}
-                    className="p-1.5 hover:bg-zinc-700 rounded text-zinc-600 hover:text-red-400"
+                    className="p-1.5 hover:bg-zinc-700 rounded-sm text-zinc-600 hover:text-red-400"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
@@ -315,7 +320,7 @@ export default function DashboardSettingsPage() {
                   return (
                     <div key={item.widget_id} className="flex items-center gap-2">
                       <span className="text-xs text-zinc-700 w-4">{idx + 1}</span>
-                      <div className={`${widthClass} ${widget.color} bg-opacity-30 rounded px-2 py-1 flex items-center gap-1.5`}>
+                      <div className={`${widthClass} ${widget.colorDim} rounded-sm px-2 py-1 flex items-center gap-1.5`}>
                         <widget.icon className="w-3 h-3 text-white opacity-60" />
                         <span className="text-xs text-white opacity-70 truncate">{widget.name}</span>
                       </div>

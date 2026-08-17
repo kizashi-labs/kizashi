@@ -188,18 +188,18 @@ export default function ContainerSecurityPage() {
       {/* Header */}
       <div className="flex items-start justify-between mb-6">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-[#e8002d]/20 border border-[#e8002d]/30 flex items-center justify-center">
-            <Box className="w-5 h-5 text-[#e8002d]" />
+          <div className="w-10 h-10 rounded-lg bg-falcon-red/20 border border-falcon-red/30 flex items-center justify-center">
+            <Box className="w-5 h-5 text-falcon-red" />
           </div>
           <div>
             <h1 className="text-2xl font-bold text-white">コンテナセキュリティ</h1>
-            <p className="text-sm text-[#7d92b0]">イメージスキャン &amp; ランタイム保護</p>
+            <p className="text-sm text-falcon-muted">イメージスキャン &amp; ランタイム保護</p>
           </div>
         </div>
         <button
           onClick={() => scanAllMutation.mutate()}
           disabled={scanAllMutation.isPending || imagesLoading}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#e8002d] hover:bg-[#c0001f] text-white text-sm font-medium transition-colors disabled:opacity-50"
+          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-falcon-red hover:bg-[#c0001f] text-white text-sm font-medium transition-colors disabled:opacity-50"
         >
           {scanAllMutation.isPending
             ? <Loader2 className="w-4 h-4 animate-spin" />
@@ -212,20 +212,20 @@ export default function ContainerSecurityPage() {
       <div className="grid grid-cols-5 gap-4 mb-6">
         {statsLoading
           ? Array.from({ length: 5 }).map((_, i) => (
-              <div key={i} className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-4 animate-pulse">
-                <div className="h-3 w-24 bg-[#1e2d42] rounded mb-3" />
-                <div className="h-7 w-10 bg-[#1e2d42] rounded" />
+              <div key={i} className="bg-falcon-surface border border-falcon-border rounded-xl p-4 animate-pulse">
+                <div className="h-3 w-24 bg-falcon-border rounded-sm mb-3" />
+                <div className="h-7 w-10 bg-falcon-border rounded-sm" />
               </div>
             ))
           : [
-              { label: '総イメージ数',             value: displayStats.total_images,             color: 'text-[#7d92b0]'  },
+              { label: '総イメージ数',             value: displayStats.total_images,             color: 'text-falcon-muted'  },
               { label: '重大脆弱性',              value: displayStats.critical_vulnerabilities, color: 'text-red-400'    },
               { label: 'スキャン済み',            value: displayStats.scanned,                  color: 'text-green-400'  },
               { label: 'ランタイムイベント(24h)', value: displayStats.runtime_events_24h,        color: 'text-orange-400' },
               { label: '重大イベント',            value: displayStats.critical_events,           color: 'text-red-400'    },
             ].map(({ label, value, color }) => (
-              <div key={label} className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-4">
-                <p className="text-xs text-[#7d92b0] mb-2">{label}</p>
+              <div key={label} className="bg-falcon-surface border border-falcon-border rounded-xl p-4">
+                <p className="text-xs text-falcon-muted mb-2">{label}</p>
                 <p className={`text-2xl font-bold ${color}`}>{value}</p>
               </div>
             ))
@@ -233,7 +233,7 @@ export default function ContainerSecurityPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 mb-6 bg-[#0d1220] border border-[#1e2d42] rounded-lg p-1 w-fit">
+      <div className="flex gap-1 mb-6 bg-falcon-surface border border-falcon-border rounded-lg p-1 w-fit">
         {([
           ['images',   'コンテナイメージ'],
           ['events',   'ランタイムイベント'],
@@ -243,7 +243,7 @@ export default function ContainerSecurityPage() {
             key={tab}
             onClick={() => setActiveTab(tab)}
             className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
-              activeTab === tab ? 'bg-[#1e2d42] text-white' : 'text-[#7d92b0] hover:text-white'
+              activeTab === tab ? 'bg-falcon-border text-white' : 'text-falcon-muted hover:text-white'
             }`}
           >
             {label}
@@ -253,18 +253,18 @@ export default function ContainerSecurityPage() {
 
       {/* Images Tab */}
       {activeTab === 'images' && (
-        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
+        <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
           {imagesLoading ? (
             <div className="flex items-center justify-center py-16 gap-2">
-              <Loader2 className="w-5 h-5 text-[#e8002d] animate-spin" />
-              <span className="text-sm text-[#7d92b0]">イメージ読込中...</span>
+              <Loader2 className="w-5 h-5 text-falcon-red animate-spin" />
+              <span className="text-sm text-falcon-muted">イメージ読込中...</span>
             </div>
           ) : (
             <table className="w-full">
               <thead>
-                <tr className="border-b border-[#1e2d42]">
+                <tr className="border-b border-falcon-border">
                   {['レジストリ / リポジトリ:タグ', '脆弱性', 'スキャン状態', '最終スキャン', 'サイズ', '操作'].map(h => (
-                    <th key={h} className="text-left text-xs text-[#7d92b0] font-medium px-4 py-3">{h}</th>
+                    <th key={h} className="text-left text-xs text-falcon-muted font-medium px-4 py-3">{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -275,10 +275,10 @@ export default function ContainerSecurityPage() {
                   return (
                     <tr
                       key={img.id}
-                      className={`border-b border-[#1e2d42]/60 last:border-0 transition-colors hover:bg-[#070d19]/50 ${hasCritical ? 'border-l-2 border-l-red-500' : ''}`}
+                      className={`border-b border-falcon-border/60 last:border-0 transition-colors hover:bg-[#070d19]/50 ${hasCritical ? 'border-l-2 border-l-red-500' : ''}`}
                     >
                       <td className="px-4 py-3">
-                        <p className="text-xs text-[#7d92b0]">{img.registry}</p>
+                        <p className="text-xs text-falcon-muted">{img.registry}</p>
                         <p className="text-sm text-white font-mono">{img.repo}:{img.tag}</p>
                       </td>
                       <td className="px-4 py-3">
@@ -304,13 +304,13 @@ export default function ContainerSecurityPage() {
                           {sc.label}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-xs text-[#7d92b0]">{fmtDate(img.last_scanned)}</td>
-                      <td className="px-4 py-3 text-xs text-[#7d92b0]">{fmtSize(img.size_mb)}</td>
+                      <td className="px-4 py-3 text-xs text-falcon-muted">{fmtDate(img.last_scanned)}</td>
+                      <td className="px-4 py-3 text-xs text-falcon-muted">{fmtSize(img.size_mb)}</td>
                       <td className="px-4 py-3">
                         <button
                           onClick={() => scanMutation.mutate(img.id)}
                           disabled={scanningIds.has(img.id) || scanAllMutation.isPending}
-                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#1e2d42] hover:bg-[#2a3a52] text-[#7d92b0] hover:text-white text-xs font-medium transition-colors disabled:opacity-50"
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-falcon-border hover:bg-[#2a3a52] text-falcon-muted hover:text-white text-xs font-medium transition-colors disabled:opacity-50"
                         >
                           {scanningIds.has(img.id)
                             ? <Loader2 className="w-3 h-3 animate-spin" />
@@ -331,50 +331,50 @@ export default function ContainerSecurityPage() {
       {activeTab === 'policies' && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <p className="text-sm text-[#7d92b0]">
+            <p className="text-sm text-falcon-muted">
               コンテナのセキュリティポリシーを管理します。ポリシーはイメージのプル・コンテナ起動時に評価されます。
             </p>
           </div>
 
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
+          <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
             {policiesLoading ? (
               <div className="flex items-center justify-center py-16 gap-2">
-                <Loader2 className="w-5 h-5 text-[#e8002d] animate-spin" />
-                <span className="text-sm text-[#7d92b0]">ポリシー読込中...</span>
+                <Loader2 className="w-5 h-5 text-falcon-red animate-spin" />
+                <span className="text-sm text-falcon-muted">ポリシー読込中...</span>
               </div>
             ) : (
               <table className="w-full">
                 <thead>
-                  <tr className="border-b border-[#1e2d42]">
+                  <tr className="border-b border-falcon-border">
                     {['ポリシー名', 'タイプ', '説明', 'アクション', '有効'].map(h => (
-                      <th key={h} className="text-left text-xs text-[#7d92b0] font-medium px-4 py-3">{h}</th>
+                      <th key={h} className="text-left text-xs text-falcon-muted font-medium px-4 py-3">{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {policies.length === 0 ? (
                     <tr>
-                      <td colSpan={5} className="px-4 py-12 text-center text-sm text-[#7d92b0]">
+                      <td colSpan={5} className="px-4 py-12 text-center text-sm text-falcon-muted">
                         ポリシーが設定されていません。
                       </td>
                     </tr>
                   ) : policies.map(pol => {
                     const typeMeta = POLICY_TYPE_META[pol.policy_type] ?? { label: pol.policy_type, color: '#7d92b0' }
                     return (
-                      <tr key={pol.id} className="border-b border-[#1e2d42]/60 last:border-0 hover:bg-[#070d19]/50 transition-colors">
+                      <tr key={pol.id} className="border-b border-falcon-border/60 last:border-0 hover:bg-[#070d19]/50 transition-colors">
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2">
-                            <Shield className="w-4 h-4 flex-shrink-0" style={{ color: typeMeta.color }} />
+                            <Shield className="w-4 h-4 shrink-0" style={{ color: typeMeta.color }} />
                             <span className="text-sm text-white font-medium">{pol.name}</span>
                           </div>
                         </td>
                         <td className="px-4 py-3">
-                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs border font-mono"
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-sm text-xs border font-mono"
                                 style={{ color: typeMeta.color, backgroundColor: `${typeMeta.color}15`, borderColor: `${typeMeta.color}40` }}>
                             {typeMeta.label}
                           </span>
                         </td>
-                        <td className="px-4 py-3 text-xs text-[#7d92b0] max-w-xs">
+                        <td className="px-4 py-3 text-xs text-falcon-muted max-w-xs">
                           <span className="line-clamp-2">{pol.description}</span>
                         </td>
                         <td className="px-4 py-3">
@@ -395,7 +395,7 @@ export default function ContainerSecurityPage() {
                           >
                             {pol.is_enabled
                               ? <ToggleRight className="w-6 h-6 text-green-400" />
-                              : <ToggleLeft className="w-6 h-6 text-[#3d5068]" />}
+                              : <ToggleLeft className="w-6 h-6 text-falcon-subtle" />}
                           </button>
                         </td>
                       </tr>
@@ -415,47 +415,47 @@ export default function ContainerSecurityPage() {
             <select
               value={severityFilter}
               onChange={e => setSeverityFilter(e.target.value as Severity | 'all')}
-              className="bg-[#0d1220] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-[#7d92b0] focus:outline-none focus:border-[#e8002d]/50"
+              className="bg-falcon-surface border border-falcon-border rounded-lg px-3 py-2 text-sm text-falcon-muted focus:outline-hidden focus:border-falcon-red/50"
             >
               <option value="all">全重要度</option>
               {(['critical', 'high', 'medium', 'low'] as Severity[]).map(s => (
                 <option key={s} value={s}>{SEVERITY_CONFIG[s].label}</option>
               ))}
             </select>
-            <span className="text-xs text-[#7d92b0] ml-auto">{events.length} 件</span>
+            <span className="text-xs text-falcon-muted ml-auto">{events.length} 件</span>
           </div>
 
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
+          <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
             {eventsLoading ? (
               <div className="flex items-center justify-center py-16 gap-2">
-                <Loader2 className="w-5 h-5 text-[#e8002d] animate-spin" />
-                <span className="text-sm text-[#7d92b0]">イベント読込中...</span>
+                <Loader2 className="w-5 h-5 text-falcon-red animate-spin" />
+                <span className="text-sm text-falcon-muted">イベント読込中...</span>
               </div>
             ) : (
               <table className="w-full">
                 <thead>
-                  <tr className="border-b border-[#1e2d42]">
+                  <tr className="border-b border-falcon-border">
                     {['コンテナ / Pod', 'イメージ', '名前空間', 'イベントタイプ', '重要度', '説明', 'タイムスタンプ'].map(h => (
-                      <th key={h} className="text-left text-xs text-[#7d92b0] font-medium px-4 py-3">{h}</th>
+                      <th key={h} className="text-left text-xs text-falcon-muted font-medium px-4 py-3">{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {events.length === 0 ? (
                     <tr>
-                      <td colSpan={7} className="px-4 py-10 text-center text-sm text-[#7d92b0]">ランタイムイベントがありません。</td>
+                      <td colSpan={7} className="px-4 py-10 text-center text-sm text-falcon-muted">ランタイムイベントがありません。</td>
                     </tr>
                   ) : events.map(ev => (
-                    <tr key={ev.id} className="border-b border-[#1e2d42]/60 last:border-0 hover:bg-[#070d19]/50 transition-colors">
+                    <tr key={ev.id} className="border-b border-falcon-border/60 last:border-0 hover:bg-[#070d19]/50 transition-colors">
                       <td className="px-4 py-3">
-                        <p className="text-xs text-[#7d92b0]">{ev.pod}</p>
+                        <p className="text-xs text-falcon-muted">{ev.pod}</p>
                         <p className="text-sm text-white font-mono">{ev.container}</p>
                       </td>
-                      <td className="px-4 py-3 text-xs text-[#7d92b0] font-mono max-w-[180px] truncate" title={ev.image}>
+                      <td className="px-4 py-3 text-xs text-falcon-muted font-mono max-w-[180px] truncate" title={ev.image}>
                         {ev.image}
                       </td>
                       <td className="px-4 py-3">
-                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs border font-mono bg-[#070d19] border-[#1e2d42] text-[#7d92b0]">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-sm text-xs border font-mono bg-[#070d19] border-falcon-border text-falcon-muted">
                           {ev.namespace}
                         </span>
                       </td>
@@ -469,10 +469,10 @@ export default function ContainerSecurityPage() {
                           {SEVERITY_CONFIG[ev.severity].label}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-xs text-[#7d92b0] max-w-[260px]">
+                      <td className="px-4 py-3 text-xs text-falcon-muted max-w-[260px]">
                         <span title={ev.description} className="line-clamp-2">{ev.description}</span>
                       </td>
-                      <td className="px-4 py-3 text-xs text-[#7d92b0] whitespace-nowrap">{fmtDate(ev.timestamp)}</td>
+                      <td className="px-4 py-3 text-xs text-falcon-muted whitespace-nowrap">{fmtDate(ev.timestamp)}</td>
                     </tr>
                   ))}
                 </tbody>

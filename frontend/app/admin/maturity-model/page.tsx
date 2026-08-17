@@ -154,7 +154,7 @@ function DomainAccordion({ domain, onUpdatePractice, onUpdateTarget }: {
   const lCfg = MATURITY_LEVEL_DESCRIPTIONS[domain.current_level]
 
   return (
-    <div className={`bg-[#0d1220] border rounded-xl overflow-hidden transition-colors ${levelBg(domain.current_level)}`}>
+    <div className={`bg-falcon-surface border rounded-xl overflow-hidden transition-colors ${levelBg(domain.current_level)}`}>
       <button
         onClick={() => setOpen(!open)}
         className="w-full flex items-center justify-between px-5 py-4 hover:bg-[#070d19]/30 transition-colors"
@@ -163,32 +163,32 @@ function DomainAccordion({ domain, onUpdatePractice, onUpdateTarget }: {
           <span className={`text-lg font-bold ${levelColor(domain.current_level)}`}>{domain.current_level}</span>
           <div className="text-left">
             <p className="text-white font-medium text-sm">{domain.name}</p>
-            <p className="text-[#7d92b0] text-xs">{domain.description}</p>
+            <p className="text-falcon-muted text-xs">{domain.description}</p>
           </div>
         </div>
         <div className="flex items-center gap-3">
           <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${lCfg.bg} ${lCfg.color}`}>
             Lv {domain.current_level}
           </span>
-          <span className="text-xs text-[#3d5068]">→ 目標: Lv {domain.target_level}</span>
-          {open ? <ChevronDown className="w-4 h-4 text-[#7d92b0]" /> : <ChevronRight className="w-4 h-4 text-[#7d92b0]" />}
+          <span className="text-xs text-falcon-subtle">→ 目標: Lv {domain.target_level}</span>
+          {open ? <ChevronDown className="w-4 h-4 text-falcon-muted" /> : <ChevronRight className="w-4 h-4 text-falcon-muted" />}
         </div>
       </button>
 
       {open && (
-        <div className="px-5 pb-5 border-t border-[#1e2d42]/50">
-          <p className="text-sm text-[#e2e8f4] mt-4 mb-4">{domain.justification}</p>
+        <div className="px-5 pb-5 border-t border-falcon-border/50">
+          <p className="text-sm text-falcon-text mt-4 mb-4">{domain.justification}</p>
 
           <div className="grid grid-cols-2 gap-4 mb-4">
             {/* Current level practices */}
             <div>
-              <p className="text-xs text-[#7d92b0] mb-2 font-medium uppercase tracking-wider">現レベルのプラクティス</p>
+              <p className="text-xs text-falcon-muted mb-2 font-medium uppercase tracking-wider">現レベルのプラクティス</p>
               <div className="space-y-2">
                 {domain.current_practices.map(p => (
                   <label key={p.id} className="flex items-start gap-2 cursor-pointer">
                     <input type="checkbox" checked={p.completed} onChange={e => onUpdatePractice(domain.id, p.id, false, e.target.checked)}
-                      className="mt-0.5 accent-[#e8002d]" />
-                    <span className={`text-xs ${p.completed ? 'text-[#e2e8f4]' : 'text-[#7d92b0]'}`}>{p.text}</span>
+                      className="mt-0.5 accent-falcon-red" />
+                    <span className={`text-xs ${p.completed ? 'text-falcon-text' : 'text-falcon-muted'}`}>{p.text}</span>
                   </label>
                 ))}
               </div>
@@ -196,13 +196,13 @@ function DomainAccordion({ domain, onUpdatePractice, onUpdateTarget }: {
 
             {/* Next level practices */}
             <div>
-              <p className="text-xs text-[#7d92b0] mb-2 font-medium uppercase tracking-wider">次レベルへのプラクティス</p>
+              <p className="text-xs text-falcon-muted mb-2 font-medium uppercase tracking-wider">次レベルへのプラクティス</p>
               <div className="space-y-2">
                 {domain.next_level_practices.map(p => (
                   <label key={p.id} className="flex items-start gap-2 cursor-pointer">
                     <input type="checkbox" checked={p.completed} onChange={e => onUpdatePractice(domain.id, p.id, true, e.target.checked)}
                       className="mt-0.5 accent-blue-500" />
-                    <span className={`text-xs ${p.completed ? 'text-blue-300' : 'text-[#7d92b0]'}`}>{p.text}</span>
+                    <span className={`text-xs ${p.completed ? 'text-blue-300' : 'text-falcon-muted'}`}>{p.text}</span>
                   </label>
                 ))}
               </div>
@@ -210,17 +210,17 @@ function DomainAccordion({ domain, onUpdatePractice, onUpdateTarget }: {
           </div>
 
           {/* Gap */}
-          <div className="p-3 bg-[#070d19] rounded-lg border border-[#1e2d42] mb-3">
-            <p className="text-xs text-[#7d92b0] mb-1 font-medium">次レベルへのギャップ</p>
-            <p className="text-sm text-[#e2e8f4]">{domain.gap_description}</p>
+          <div className="p-3 bg-[#070d19] rounded-lg border border-falcon-border mb-3">
+            <p className="text-xs text-falcon-muted mb-1 font-medium">次レベルへのギャップ</p>
+            <p className="text-sm text-falcon-text">{domain.gap_description}</p>
           </div>
 
           {/* Evidence */}
           <div className="mb-3">
-            <p className="text-xs text-[#7d92b0] mb-2 font-medium">レベル昇格に必要なエビデンス</p>
+            <p className="text-xs text-falcon-muted mb-2 font-medium">レベル昇格に必要なエビデンス</p>
             <div className="flex flex-wrap gap-1.5">
               {domain.evidence_required.map(e => (
-                <span key={e} className="text-xs px-2 py-0.5 rounded bg-[#1e2d42] text-[#7d92b0] border border-[#2a3f5a]">{e}</span>
+                <span key={e} className="text-xs px-2 py-0.5 rounded-sm bg-falcon-border text-falcon-muted border border-[#2a3f5a]">{e}</span>
               ))}
             </div>
           </div>
@@ -235,9 +235,9 @@ function DomainAccordion({ domain, onUpdatePractice, onUpdateTarget }: {
           {showCriteria && (
             <div className="grid grid-cols-5 gap-2 mb-3">
               {([1, 2, 3, 4, 5] as MaturityLevel[]).map(l => (
-                <div key={l} className={`p-2 rounded border text-xs ${domain.current_level === l ? levelBg(l) : 'border-[#1e2d42] bg-[#070d19]'}`}>
+                <div key={l} className={`p-2 rounded-sm border text-xs ${domain.current_level === l ? levelBg(l) : 'border-falcon-border bg-[#070d19]'}`}>
                   <p className={`font-bold mb-1 ${levelColor(l)}`}>Lv {l}</p>
-                  <p className="text-[#7d92b0] leading-relaxed">{domain.level_criteria[l]}</p>
+                  <p className="text-falcon-muted leading-relaxed">{domain.level_criteria[l]}</p>
                 </div>
               ))}
             </div>
@@ -245,11 +245,11 @@ function DomainAccordion({ domain, onUpdatePractice, onUpdateTarget }: {
 
           {/* Target level selector */}
           <div className="flex items-center gap-3">
-            <p className="text-xs text-[#7d92b0]">次回目標レベル:</p>
+            <p className="text-xs text-falcon-muted">次回目標レベル:</p>
             <div className="flex gap-1">
               {([1, 2, 3, 4, 5] as MaturityLevel[]).map(l => (
                 <button key={l} onClick={() => onUpdateTarget(domain.id, l)}
-                  className={`w-7 h-7 rounded text-xs font-bold transition-colors ${domain.target_level === l ? `${levelBg(l)} ${levelColor(l)}` : 'bg-[#070d19] border border-[#1e2d42] text-[#3d5068] hover:text-white'}`}>
+                  className={`w-7 h-7 rounded-sm text-xs font-bold transition-colors ${domain.target_level === l ? `${levelBg(l)} ${levelColor(l)}` : 'bg-[#070d19] border border-falcon-border text-falcon-subtle hover:text-white'}`}>
                   {l}
                 </button>
               ))}
@@ -303,41 +303,41 @@ export default function MaturityModelPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-[#e8002d] to-[#a80020] flex items-center justify-center">
+          <div className="w-10 h-10 rounded-lg bg-linear-to-br from-falcon-red to-falcon-red-dark flex items-center justify-center">
             <TrendingUp className="w-5 h-5 text-white" />
           </div>
           <div>
             <h1 className="text-white text-2xl font-bold">セキュリティ成熟度評価</h1>
-            <p className="text-[#7d92b0] text-sm">CMMI ベースのセキュリティ成熟度モデル (SMM)</p>
+            <p className="text-falcon-muted text-sm">CMMI ベースのセキュリティ成熟度モデル (SMM)</p>
           </div>
         </div>
         <button onClick={handleExportReport}
-          className="flex items-center gap-2 px-4 py-2 bg-[#0d1220] border border-[#1e2d42] text-[#7d92b0] rounded-lg text-sm hover:text-white transition-colors">
+          className="flex items-center gap-2 px-4 py-2 bg-falcon-surface border border-falcon-border text-falcon-muted rounded-lg text-sm hover:text-white transition-colors">
           <Download className="w-4 h-4" /> 評価レポートを出力
         </button>
       </div>
 
       {/* Maturity info banner */}
-      <div className="p-3 bg-[#0d1220] border border-[#1e2d42] rounded-lg mb-6 flex items-start gap-2">
-        <Info className="w-4 h-4 text-blue-400 flex-shrink-0 mt-0.5" />
-        <p className="text-xs text-[#7d92b0]">成熟度モデル: <span className="text-[#e2e8f4]">Level 1 (初期)</span> → <span className="text-[#e2e8f4]">Level 2 (管理)</span> → <span className="text-[#e2e8f4]">Level 3 (定義)</span> → <span className="text-[#e2e8f4]">Level 4 (定量管理)</span> → <span className="text-[#e2e8f4]">Level 5 (最適化)</span></p>
+      <div className="p-3 bg-falcon-surface border border-falcon-border rounded-lg mb-6 flex items-start gap-2">
+        <Info className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" />
+        <p className="text-xs text-falcon-muted">成熟度モデル: <span className="text-falcon-text">Level 1 (初期)</span> → <span className="text-falcon-text">Level 2 (管理)</span> → <span className="text-falcon-text">Level 3 (定義)</span> → <span className="text-falcon-text">Level 4 (定量管理)</span> → <span className="text-falcon-text">Level 5 (最適化)</span></p>
       </div>
 
       {/* Overall level + radar */}
       <div className="grid grid-cols-3 gap-4 mb-6">
-        <div className={`col-span-1 bg-[#0d1220] border rounded-xl p-5 flex flex-col items-center justify-center ${levelBg(overallLevelRounded)}`}>
-          <p className="text-xs text-[#7d92b0] mb-2 uppercase tracking-wider">総合成熟度レベル</p>
+        <div className={`col-span-1 bg-falcon-surface border rounded-xl p-5 flex flex-col items-center justify-center ${levelBg(overallLevelRounded)}`}>
+          <p className="text-xs text-falcon-muted mb-2 uppercase tracking-wider">総合成熟度レベル</p>
           <div className={`text-6xl font-black mb-2 ${overallCfg.color}`}>{overallLevelRounded}</div>
           <p className={`text-sm font-semibold mb-2 ${overallCfg.color}`}>{overallCfg.label}</p>
-          <p className="text-xs text-[#7d92b0] text-center leading-relaxed">{overallCfg.description}</p>
-          <p className="mt-3 text-xs text-[#3d5068]">平均スコア: {overallLevel.toFixed(2)}</p>
+          <p className="text-xs text-falcon-muted text-center leading-relaxed">{overallCfg.description}</p>
+          <p className="mt-3 text-xs text-falcon-subtle">平均スコア: {overallLevel.toFixed(2)}</p>
         </div>
-        <div className="col-span-2 bg-[#0d1220] border border-[#1e2d42] rounded-xl p-4">
-          <p className="text-xs text-[#7d92b0] mb-2 font-medium uppercase tracking-wider text-center">ドメイン別スコア (レーダー)</p>
+        <div className="col-span-2 bg-falcon-surface border border-falcon-border rounded-xl p-4">
+          <p className="text-xs text-falcon-muted mb-2 font-medium uppercase tracking-wider text-center">ドメイン別スコア (レーダー)</p>
           <RadarChart domains={domains} />
           <div className="flex items-center justify-center gap-4 mt-1">
-            <div className="flex items-center gap-1.5"><div className="w-3 h-0.5 bg-[#e8002d]" /><span className="text-xs text-[#7d92b0]">現在</span></div>
-            <div className="flex items-center gap-1.5"><div className="w-3 h-0.5 border-t border-indigo-400 border-dashed" /><span className="text-xs text-[#7d92b0]">目標</span></div>
+            <div className="flex items-center gap-1.5"><div className="w-3 h-0.5 bg-falcon-red" /><span className="text-xs text-falcon-muted">現在</span></div>
+            <div className="flex items-center gap-1.5"><div className="w-3 h-0.5 border-t border-indigo-400 border-dashed" /><span className="text-xs text-falcon-muted">目標</span></div>
           </div>
         </div>
       </div>
@@ -345,11 +345,11 @@ export default function MaturityModelPage() {
       {/* Domain scores summary */}
       <div className="grid grid-cols-4 gap-3 mb-6">
         {domains.map(d => (
-          <div key={d.id} className={`bg-[#0d1220] border rounded-xl p-3 ${levelBg(d.current_level)}`}>
-            <p className="text-xs text-[#7d92b0] mb-1 truncate">{d.name}</p>
+          <div key={d.id} className={`bg-falcon-surface border rounded-xl p-3 ${levelBg(d.current_level)}`}>
+            <p className="text-xs text-falcon-muted mb-1 truncate">{d.name}</p>
             <div className="flex items-center justify-between">
               <span className={`text-xl font-bold ${levelColor(d.current_level)}`}>{d.current_level}</span>
-              <span className="text-xs text-[#3d5068]">→{d.target_level}</span>
+              <span className="text-xs text-falcon-subtle">→{d.target_level}</span>
             </div>
           </div>
         ))}
@@ -364,7 +364,7 @@ export default function MaturityModelPage() {
           { key: 'benchmark', label: '業界比較' },
         ].map(t => (
           <button key={t.key} onClick={() => setActiveSection(t.key as any)}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${activeSection === t.key ? 'bg-[#e8002d] text-white' : 'bg-[#0d1220] border border-[#1e2d42] text-[#7d92b0] hover:text-white'}`}>
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${activeSection === t.key ? 'bg-falcon-red text-white' : 'bg-falcon-surface border border-falcon-border text-falcon-muted hover:text-white'}`}>
             {t.label}
           </button>
         ))}
@@ -381,12 +381,12 @@ export default function MaturityModelPage() {
 
       {/* History Section */}
       {activeSection === 'history' && (
-        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
+        <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-[#1e2d42]">
+              <tr className="border-b border-falcon-border">
                 {['評価日', '総合レベル', '主な改善点', '評価者'].map(h => (
-                  <th key={h} className="text-left text-xs text-[#7d92b0] font-medium px-4 py-3">{h}</th>
+                  <th key={h} className="text-left text-xs text-falcon-muted font-medium px-4 py-3">{h}</th>
                 ))}
               </tr>
             </thead>
@@ -395,11 +395,11 @@ export default function MaturityModelPage() {
                 const prev = ([] as HistoricalAssessment[])[idx + 1]
                 const delta = prev ? h.overall_level - prev.overall_level : null
                 return (
-                  <tr key={h.id} className="border-b border-[#1e2d42]/50 hover:bg-[#070d19]/50 transition-colors">
+                  <tr key={h.id} className="border-b border-falcon-border/50 hover:bg-[#070d19]/50 transition-colors">
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
-                        <Calendar className="w-3.5 h-3.5 text-[#7d92b0]" />
-                        <span className="text-sm text-[#e2e8f4]">{h.date}</span>
+                        <Calendar className="w-3.5 h-3.5 text-falcon-muted" />
+                        <span className="text-sm text-falcon-text">{h.date}</span>
                       </div>
                     </td>
                     <td className="px-4 py-3">
@@ -415,13 +415,13 @@ export default function MaturityModelPage() {
                     <td className="px-4 py-3">
                       <ul className="space-y-1">
                         {h.key_improvements.map((k, i) => (
-                          <li key={i} className="flex items-start gap-1.5 text-xs text-[#7d92b0]">
-                            <CheckCircle className="w-3 h-3 text-green-400 flex-shrink-0 mt-0.5" />{k}
+                          <li key={i} className="flex items-start gap-1.5 text-xs text-falcon-muted">
+                            <CheckCircle className="w-3 h-3 text-green-400 shrink-0 mt-0.5" />{k}
                           </li>
                         ))}
                       </ul>
                     </td>
-                    <td className="px-4 py-3 text-sm text-[#7d92b0]">{h.assessor}</td>
+                    <td className="px-4 py-3 text-sm text-falcon-muted">{h.assessor}</td>
                   </tr>
                 )
               })}
@@ -434,24 +434,24 @@ export default function MaturityModelPage() {
       {activeSection === 'roadmap' && (
         <div className="space-y-3">
           {([] as RoadmapItem[]).map(item => (
-            <div key={item.priority} className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-4 flex items-start gap-4">
-              <div className="w-8 h-8 rounded-full bg-[#e8002d]/20 border border-[#e8002d]/30 flex items-center justify-center flex-shrink-0">
-                <span className="text-sm font-bold text-[#e8002d]">{item.priority}</span>
+            <div key={item.priority} className="bg-falcon-surface border border-falcon-border rounded-xl p-4 flex items-start gap-4">
+              <div className="w-8 h-8 rounded-full bg-falcon-red/20 border border-falcon-red/30 flex items-center justify-center shrink-0">
+                <span className="text-sm font-bold text-falcon-red">{item.priority}</span>
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-white font-medium text-sm mb-1">{item.action}</p>
-                <p className="text-xs text-[#7d92b0]">{item.domain}</p>
+                <p className="text-xs text-falcon-muted">{item.domain}</p>
               </div>
-              <div className="flex items-center gap-2 flex-shrink-0">
+              <div className="flex items-center gap-2 shrink-0">
                 <div>
-                  <p className="text-[9px] text-[#3d5068] mb-0.5">工数</p>
+                  <p className="text-[9px] text-falcon-subtle mb-0.5">工数</p>
                   <span className={`text-xs font-medium ${EFFORT_CONFIG[item.effort].color}`}>{EFFORT_CONFIG[item.effort].label}</span>
                 </div>
                 <div>
-                  <p className="text-[9px] text-[#3d5068] mb-0.5">効果</p>
+                  <p className="text-[9px] text-falcon-subtle mb-0.5">効果</p>
                   <span className={`text-xs font-medium ${IMPACT_CONFIG[item.impact].color}`}>{IMPACT_CONFIG[item.impact].label}</span>
                 </div>
-                <span className="text-xs text-[#7d92b0] bg-[#1e2d42] px-2 py-0.5 rounded">{item.timeline}</span>
+                <span className="text-xs text-falcon-muted bg-falcon-border px-2 py-0.5 rounded-sm">{item.timeline}</span>
               </div>
             </div>
           ))}
@@ -460,26 +460,26 @@ export default function MaturityModelPage() {
 
       {/* Benchmark Section */}
       {activeSection === 'benchmark' && (
-        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
-          <p className="text-xs text-[#7d92b0] mb-4 font-medium uppercase tracking-wider flex items-center gap-2">
+        <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
+          <p className="text-xs text-falcon-muted mb-4 font-medium uppercase tracking-wider flex items-center gap-2">
             <Award className="w-3.5 h-3.5" /> 業界平均との比較 (スコア / 5)
           </p>
           <div className="space-y-4">
             {Object.entries(INDUSTRY_BENCHMARK).map(([domain, scores]) => (
               <div key={domain}>
                 <div className="flex items-center justify-between mb-1.5">
-                  <p className="text-sm text-[#e2e8f4]">{domain}</p>
+                  <p className="text-sm text-falcon-text">{domain}</p>
                   <div className="flex items-center gap-3 text-xs">
-                    <span className="text-[#e8002d] font-bold">自社: {scores.ours}</span>
-                    <span className="text-[#7d92b0]">業界: {scores.industry}</span>
+                    <span className="text-falcon-red font-bold">自社: {scores.ours}</span>
+                    <span className="text-falcon-muted">業界: {scores.industry}</span>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <div className="flex-1 h-3 bg-[#1e2d42] rounded-full overflow-hidden relative">
+                  <div className="flex-1 h-3 bg-falcon-border rounded-full overflow-hidden relative">
                     {/* Industry average */}
                     <div className="absolute h-full rounded-full bg-[#2a3f5a]" style={{ width: `${(scores.industry / 5) * 100}%` }} />
                     {/* Ours */}
-                    <div className={`absolute h-full rounded-full ${scores.ours >= scores.industry ? 'bg-green-500' : 'bg-[#e8002d]'}`} style={{ width: `${(scores.ours / 5) * 100}%` }} />
+                    <div className={`absolute h-full rounded-full ${scores.ours >= scores.industry ? 'bg-green-500' : 'bg-falcon-red'}`} style={{ width: `${(scores.ours / 5) * 100}%` }} />
                   </div>
                   <span className={`text-xs font-medium w-10 text-right ${scores.ours >= scores.industry ? 'text-green-400' : 'text-red-400'}`}>
                     {scores.ours >= scores.industry ? '+' : ''}{(scores.ours - scores.industry).toFixed(1)}
@@ -488,18 +488,18 @@ export default function MaturityModelPage() {
               </div>
             ))}
           </div>
-          <div className="flex items-center gap-4 mt-4 text-xs text-[#7d92b0]">
-            <div className="flex items-center gap-1.5"><div className="w-3 h-2 bg-[#e8002d] rounded" /><span>自社</span></div>
-            <div className="flex items-center gap-1.5"><div className="w-3 h-2 bg-[#2a3f5a] rounded" /><span>業界平均</span></div>
+          <div className="flex items-center gap-4 mt-4 text-xs text-falcon-muted">
+            <div className="flex items-center gap-1.5"><div className="w-3 h-2 bg-falcon-red rounded-sm" /><span>自社</span></div>
+            <div className="flex items-center gap-1.5"><div className="w-3 h-2 bg-[#2a3f5a] rounded-sm" /><span>業界平均</span></div>
           </div>
         </div>
       )}
 
       {toast && (
-        <div className="fixed bottom-6 right-6 z-50 max-w-sm bg-[#0d1220] border border-green-500/50 rounded-lg p-4 shadow-xl flex items-center gap-3">
-          <CheckCircle className="w-4 h-4 text-green-400 flex-shrink-0" />
-          <p className="text-sm text-[#e2e8f4] flex-1">{toast}</p>
-          <button onClick={() => setToast(null)} className="text-[#7d92b0] hover:text-white"><X className="w-4 h-4" /></button>
+        <div className="fixed bottom-6 right-6 z-50 max-w-sm bg-falcon-surface border border-green-500/50 rounded-lg p-4 shadow-xl flex items-center gap-3">
+          <CheckCircle className="w-4 h-4 text-green-400 shrink-0" />
+          <p className="text-sm text-falcon-text flex-1">{toast}</p>
+          <button onClick={() => setToast(null)} className="text-falcon-muted hover:text-white"><X className="w-4 h-4" /></button>
         </div>
       )}
     </div>

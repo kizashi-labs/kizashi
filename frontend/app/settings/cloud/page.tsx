@@ -141,7 +141,7 @@ export default function CloudMonitoringPage() {
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
                       <h3 className="font-semibold text-white">{intg.name}</h3>
-                      <span className={`px-2 py-0.5 rounded text-xs ${PROVIDER_COLORS[intg.provider] ?? 'bg-gray-500/20 text-gray-300'}`}>
+                      <span className={`px-2 py-0.5 rounded-sm text-xs ${PROVIDER_COLORS[intg.provider] ?? 'bg-gray-500/20 text-gray-300'}`}>
                         {intg.provider.toUpperCase()}
                       </span>
                       {intg.enabled ? (
@@ -174,7 +174,7 @@ export default function CloudMonitoringPage() {
                   </div>
                   <div className="flex gap-2 ml-4">
                     <button onClick={() => handleTest(intg.id)} disabled={testing[intg.id]}
-                      className="px-2 py-1 bg-gray-700/50 hover:bg-gray-700 text-gray-300 rounded text-xs disabled:opacity-50">
+                      className="px-2 py-1 bg-gray-700/50 hover:bg-gray-700 text-gray-300 rounded-sm text-xs disabled:opacity-50">
                       {testing[intg.id] ? 'テスト中...' : '接続テスト'}
                     </button>
                     <button onClick={() => handleToggle(intg)}
@@ -186,7 +186,7 @@ export default function CloudMonitoringPage() {
                       {intg.enabled ? '無効化' : '有効化'}
                     </button>
                     <button onClick={() => handleDelete(intg.id)}
-                      className="px-2 py-1 bg-red-700/20 hover:bg-red-700/40 text-red-400 rounded text-xs">
+                      className="px-2 py-1 bg-red-700/20 hover:bg-red-700/40 text-red-400 rounded-sm text-xs">
                       <Trash2 size={12} />
                     </button>
                   </div>

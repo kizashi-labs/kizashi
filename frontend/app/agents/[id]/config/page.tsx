@@ -167,7 +167,7 @@ function PathListEditor({
     <div className="space-y-2">
       {paths.map((p, i) => (
         <div key={i} className="flex items-center gap-2">
-          <code className="flex-1 bg-gray-900 border border-gray-700 rounded px-2 py-1.5 text-xs text-green-300 font-mono">
+          <code className="flex-1 bg-gray-900 border border-gray-700 rounded-sm px-2 py-1.5 text-xs text-green-300 font-mono">
             {p}
           </code>
           <button
@@ -186,11 +186,11 @@ function PathListEditor({
           onKeyDown={e => { if (e.key === 'Enter') add() }}
           placeholder={placeholder ?? 'パスを入力...'}
           className="flex-1 bg-gray-900 border border-gray-700 rounded px-3 py-1.5 text-sm text-white
-                     placeholder-gray-600 focus:outline-none focus:border-blue-500 transition-colors"
+                     placeholder-gray-600 focus:outline-hidden focus:border-blue-500 transition-colors"
         />
         <button
           onClick={add}
-          className="p-1.5 rounded bg-gray-700 hover:bg-gray-600 text-gray-300 transition-colors"
+          className="p-1.5 rounded-sm bg-gray-700 hover:bg-gray-600 text-gray-300 transition-colors"
         >
           <Plus className="w-4 h-4" />
         </button>
@@ -295,7 +295,7 @@ function ProcessTab({
             process_monitor: { ...pm, poll_interval_seconds: Number(e.target.value) },
           })}
           className="w-40 bg-gray-900 border border-gray-700 rounded px-3 py-2 text-sm text-white
-                     focus:outline-none focus:border-blue-500 transition-colors"
+                     focus:outline-hidden focus:border-blue-500 transition-colors"
         />
         <p className="text-xs text-gray-500 mt-1">推奨: 30〜60秒</p>
       </div>
@@ -313,7 +313,7 @@ function ProcessTab({
             process_monitor: { ...pm, max_processes: Number(e.target.value) },
           })}
           className="w-40 bg-gray-900 border border-gray-700 rounded px-3 py-2 text-sm text-white
-                     focus:outline-none focus:border-blue-500 transition-colors"
+                     focus:outline-hidden focus:border-blue-500 transition-colors"
         />
         <p className="text-xs text-gray-500 mt-1">同時に追跡するプロセスの上限</p>
       </div>
@@ -364,7 +364,7 @@ function ResourcesTab({
             resource_limits: { ...rl, memory_limit_mb: Number(e.target.value) },
           })}
           className="w-40 bg-gray-900 border border-gray-700 rounded px-3 py-2 text-sm text-white
-                     focus:outline-none focus:border-blue-500 transition-colors"
+                     focus:outline-hidden focus:border-blue-500 transition-colors"
         />
         <p className="text-xs text-gray-500 mt-1">エージェントプロセスの最大メモリ使用量</p>
       </div>
@@ -396,7 +396,7 @@ function LoggingTab({
             logging: { ...lg, level: e.target.value as 'debug' | 'info' | 'warn' | 'error' },
           })}
           className="w-64 bg-gray-900 border border-gray-700 rounded px-3 py-2 text-sm text-white
-                     focus:outline-none focus:border-blue-500 transition-colors"
+                     focus:outline-hidden focus:border-blue-500 transition-colors"
         >
           {levels.map(l => (
             <option key={l.value} value={l.value}>{l.label}</option>
@@ -417,7 +417,7 @@ function LoggingTab({
             logging: { ...lg, max_log_size_mb: Number(e.target.value) },
           })}
           className="w-40 bg-gray-900 border border-gray-700 rounded px-3 py-2 text-sm text-white
-                     focus:outline-none focus:border-blue-500 transition-colors"
+                     focus:outline-hidden focus:border-blue-500 transition-colors"
         />
         <p className="text-xs text-gray-500 mt-1">ローテーション前の最大ログファイルサイズ</p>
       </div>
@@ -565,7 +565,7 @@ export default function AgentConfigPage() {
       {/* ── Header ── */}
       <div className="bg-gray-800 rounded-xl border border-gray-700 p-5">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 bg-blue-700 rounded-lg flex items-center justify-center flex-shrink-0">
+          <div className="w-9 h-9 bg-blue-700 rounded-lg flex items-center justify-center shrink-0">
             <Settings className="w-5 h-5 text-white" />
           </div>
           <div>
@@ -582,13 +582,13 @@ export default function AgentConfigPage() {
       {/* ── Push result banner ── */}
       {pushResult === 'success' && (
         <div className="flex items-center gap-3 p-4 bg-green-900/30 border border-green-700/50 rounded-xl text-green-300 text-sm">
-          <CheckCircle className="w-4 h-4 flex-shrink-0" />
+          <CheckCircle className="w-4 h-4 shrink-0" />
           設定をエージェントにプッシュしました。次回ポーリング時に反映されます。
         </div>
       )}
       {pushResult === 'error' && (
         <div className="flex items-center gap-3 p-4 bg-red-900/30 border border-red-700/50 rounded-xl text-red-300 text-sm">
-          <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+          <AlertTriangle className="w-4 h-4 shrink-0" />
           {pushError ?? 'プッシュに失敗しました'}
         </div>
       )}
@@ -618,7 +618,7 @@ export default function AgentConfigPage() {
           </div>
         ) : configError && !rawConfig ? (
           <div className="flex items-center gap-2 p-5 text-yellow-300 text-sm">
-            <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+            <AlertTriangle className="w-4 h-4 shrink-0" />
             {configError} — デフォルト設定を表示しています
           </div>
         ) : !isEditing ? (
@@ -756,7 +756,7 @@ export default function AgentConfigPage() {
                       {formatTime(cmd.created_at)}
                     </td>
                     <td className="px-5 py-2.5">
-                      <span className={`px-2 py-0.5 rounded text-xs font-medium ${statusStyle(cmd.status)}`}>
+                      <span className={`px-2 py-0.5 rounded-sm text-xs font-medium ${statusStyle(cmd.status)}`}>
                         {cmd.status ?? '—'}
                       </span>
                     </td>

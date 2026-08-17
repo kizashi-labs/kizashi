@@ -154,24 +154,24 @@ export default function IPBlocklistPage() {
       <div className="flex items-start justify-between mb-6">
         <div>
           <div className="flex items-center gap-3 mb-1">
-            <div className="w-8 h-8 rounded bg-[#e8002d]/10 border border-[#e8002d]/30 flex items-center justify-center">
-              <Globe className="w-4 h-4 text-[#e8002d]" />
+            <div className="w-8 h-8 rounded-sm bg-falcon-red/10 border border-falcon-red/30 flex items-center justify-center">
+              <Globe className="w-4 h-4 text-falcon-red" />
             </div>
             <h1 className="text-xl font-bold text-white">IPブロックリスト管理</h1>
           </div>
-          <p className="text-[#7d92b0] text-sm ml-11">IPアドレスおよびCIDR範囲のブロック/許可リスト</p>
+          <p className="text-falcon-muted text-sm ml-11">IPアドレスおよびCIDR範囲のブロック/許可リスト</p>
         </div>
         <div className="flex items-center gap-2">
           <button
             onClick={() => setShowBulkModal(true)}
-            className="flex items-center gap-2 px-3 py-2 text-sm text-[#7d92b0] border border-[#1e2d42] rounded hover:bg-[#0d1220] hover:text-white transition-colors"
+            className="flex items-center gap-2 px-3 py-2 text-sm text-falcon-muted border border-falcon-border rounded-sm hover:bg-falcon-surface hover:text-white transition-colors"
           >
             <Upload className="w-4 h-4" />
             一括インポート
           </button>
           <button
             onClick={() => setShowAddModal(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-[#e8002d] hover:bg-[#c8001f] text-white text-sm font-medium rounded transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-falcon-red hover:bg-[#c8001f] text-white text-sm font-medium rounded-sm transition-colors"
           >
             <Plus className="w-4 h-4" />
             エントリを追加
@@ -182,15 +182,15 @@ export default function IPBlocklistPage() {
       {/* Stats */}
       <div className="grid grid-cols-4 gap-4 mb-6">
         {[
-          { label: '総エントリ', value: stats.total, icon: BarChart2, color: 'text-[#7d92b0]' },
+          { label: '総エントリ', value: stats.total, icon: BarChart2, color: 'text-falcon-muted' },
           { label: 'アクティブ', value: stats.active, icon: CheckCircle2, color: 'text-green-400' },
           { label: '期限切れ', value: stats.expired, icon: Clock, color: 'text-orange-400' },
-          { label: '今日ブロック数', value: (stats.todayBlocked ?? 0).toLocaleString(), icon: AlertTriangle, color: 'text-[#e8002d]' },
+          { label: '今日ブロック数', value: (stats.todayBlocked ?? 0).toLocaleString(), icon: AlertTriangle, color: 'text-falcon-red' },
         ].map(({ label, value, icon: Icon, color }) => (
-          <div key={label} className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-4 flex items-center gap-3">
-            <Icon className={`w-5 h-5 flex-shrink-0 ${color}`} />
+          <div key={label} className="bg-falcon-surface border border-falcon-border rounded-lg p-4 flex items-center gap-3">
+            <Icon className={`w-5 h-5 shrink-0 ${color}`} />
             <div>
-              <p className="text-[#7d92b0] text-xs mb-0.5">{label}</p>
+              <p className="text-falcon-muted text-xs mb-0.5">{label}</p>
               <p className="text-2xl font-bold text-white">{value}</p>
             </div>
           </div>
@@ -198,15 +198,15 @@ export default function IPBlocklistPage() {
       </div>
 
       {/* Filters */}
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg px-4 py-3 mb-4 flex flex-wrap items-center gap-4">
+      <div className="bg-falcon-surface border border-falcon-border rounded-lg px-4 py-3 mb-4 flex flex-wrap items-center gap-4">
         <div className="relative flex-1 min-w-[180px] max-w-xs">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#3d5068]" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-falcon-subtle" />
           <input
             type="text"
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="IP / 説明を検索..."
-            className="w-full bg-[#070d19] border border-[#1e2d42] rounded pl-9 pr-3 py-2 text-sm text-white placeholder-[#3d5068] focus:outline-none focus:border-[#e8002d]/50"
+            className="w-full bg-[#070d19] border border-falcon-border rounded-sm pl-9 pr-3 py-2 text-sm text-white placeholder-falcon-subtle focus:outline-hidden focus:border-falcon-red/50"
           />
         </div>
         <div className="flex items-center gap-1">
@@ -216,89 +216,89 @@ export default function IPBlocklistPage() {
               onClick={() => setTypeFilter(t)}
               className={`px-3 py-1.5 text-xs rounded font-medium transition-colors ${
                 typeFilter === t
-                  ? 'bg-[#e8002d] text-white'
-                  : 'text-[#7d92b0] hover:text-white hover:bg-[#1e2d42]'
+                  ? 'bg-falcon-red text-white'
+                  : 'text-falcon-muted hover:text-white hover:bg-falcon-border'
               }`}
             >
               {t === 'all' ? 'すべて' : t === 'block' ? 'ブロック' : '許可'}
             </button>
           ))}
         </div>
-        <label className="flex items-center gap-2 text-xs text-[#7d92b0] cursor-pointer select-none">
+        <label className="flex items-center gap-2 text-xs text-falcon-muted cursor-pointer select-none">
           <input
             type="checkbox"
             checked={showExpired}
             onChange={e => setShowExpired(e.target.checked)}
-            className="rounded border-[#1e2d42] bg-[#070d19] accent-[#e8002d]"
+            className="rounded-sm border-falcon-border bg-[#070d19] accent-falcon-red"
           />
           期限切れを表示
         </label>
-        <span className="ml-auto text-xs text-[#7d92b0]">{filtered.length} 件</span>
+        <span className="ml-auto text-xs text-falcon-muted">{filtered.length} 件</span>
       </div>
 
       {/* Table */}
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg overflow-hidden">
+      <div className="bg-falcon-surface border border-falcon-border rounded-lg overflow-hidden">
         {isLoading ? (
-          <div className="p-10 text-center text-[#7d92b0] text-sm">読み込み中...</div>
+          <div className="p-10 text-center text-falcon-muted text-sm">読み込み中...</div>
         ) : filtered.length === 0 ? (
-          <div className="p-10 text-center text-[#7d92b0] text-sm">エントリが見つかりません</div>
+          <div className="p-10 text-center text-falcon-muted text-sm">エントリが見つかりません</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-[#1e2d42]">
+                <tr className="border-b border-falcon-border">
                   {['IP / CIDR', 'タイプ', '説明', '追加日', '有効期限', 'アクション数', '操作'].map(h => (
-                    <th key={h} className="px-4 py-3 text-left text-xs font-medium text-[#7d92b0] uppercase tracking-wider whitespace-nowrap">
+                    <th key={h} className="px-4 py-3 text-left text-xs font-medium text-falcon-muted uppercase tracking-wider whitespace-nowrap">
                       {h}
                     </th>
                   ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#1e2d42]">
+              <tbody className="divide-y divide-falcon-border">
                 {filtered.map(entry => (
                   <tr
                     key={entry.id}
                     className={`hover:bg-[#0a1628] transition-colors ${entry.is_expired ? 'opacity-50' : ''}`}
                   >
                     <td className="px-4 py-3">
-                      <span className="font-mono text-sm text-[#e2e8f4]">{entry.ip_or_cidr}</span>
+                      <span className="font-mono text-sm text-falcon-text">{entry.ip_or_cidr}</span>
                     </td>
                     <td className="px-4 py-3">
                       {entry.entry_type === 'block' ? (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-[#e8002d]/10 text-[#e8002d] border border-[#e8002d]/20">
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-xs font-medium bg-falcon-red/10 text-falcon-red border border-falcon-red/20">
                           <ShieldOff className="w-3 h-3" /> ブロック
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-green-500/10 text-green-400 border border-green-500/20">
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-xs font-medium bg-green-500/10 text-green-400 border border-green-500/20">
                           <Shield className="w-3 h-3" /> 許可
                         </span>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-xs text-[#7d92b0] max-w-[200px] truncate">
-                      {entry.description ?? <span className="text-[#3d5068]">—</span>}
+                    <td className="px-4 py-3 text-xs text-falcon-muted max-w-[200px] truncate">
+                      {entry.description ?? <span className="text-falcon-subtle">—</span>}
                     </td>
-                    <td className="px-4 py-3 text-xs text-[#7d92b0] whitespace-nowrap">
+                    <td className="px-4 py-3 text-xs text-falcon-muted whitespace-nowrap">
                       {formatDate(entry.created_at)}
                     </td>
                     <td className="px-4 py-3 text-xs whitespace-nowrap">
                       {entry.expires_at ? (
-                        <span className={entry.is_expired ? 'text-orange-400' : 'text-[#7d92b0]'}>
+                        <span className={entry.is_expired ? 'text-orange-400' : 'text-falcon-muted'}>
                           {entry.is_expired && <Clock className="w-3 h-3 inline mr-1" />}
                           {formatDate(entry.expires_at)}
                         </span>
                       ) : (
-                        <span className="text-[#3d5068]">—</span>
+                        <span className="text-falcon-subtle">—</span>
                       )}
                     </td>
                     <td className="px-4 py-3">
-                      <span className={`text-sm font-bold ${entry.hit_count > 500 ? 'text-[#e8002d]' : entry.hit_count > 100 ? 'text-orange-400' : 'text-white'}`}>
+                      <span className={`text-sm font-bold ${entry.hit_count > 500 ? 'text-falcon-red' : entry.hit_count > 100 ? 'text-orange-400' : 'text-white'}`}>
                         {(entry.hit_count ?? 0).toLocaleString()}
                       </span>
                     </td>
                     <td className="px-4 py-3">
                       <button
                         onClick={() => setDeleteConfirm(entry.id)}
-                        className="p-1.5 rounded text-[#7d92b0] hover:text-[#e8002d] hover:bg-[#e8002d]/10 transition-colors"
+                        className="p-1.5 rounded-sm text-falcon-muted hover:text-falcon-red hover:bg-falcon-red/10 transition-colors"
                         title="削除"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
@@ -314,30 +314,30 @@ export default function IPBlocklistPage() {
 
       {/* Add Modal */}
       {showAddModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl w-full max-w-md mx-4 shadow-2xl">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-[#1e2d42]">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs">
+          <div className="bg-falcon-surface border border-falcon-border rounded-xl w-full max-w-md mx-4 shadow-2xl">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-falcon-border">
               <h2 className="text-base font-semibold text-white flex items-center gap-2">
-                <Globe className="w-4 h-4 text-[#e8002d]" />
+                <Globe className="w-4 h-4 text-falcon-red" />
                 エントリを追加
               </h2>
-              <button onClick={() => setShowAddModal(false)} className="p-1 rounded text-[#7d92b0] hover:text-white hover:bg-[#1e2d42] transition-colors">
+              <button onClick={() => setShowAddModal(false)} className="p-1 rounded-sm text-falcon-muted hover:text-white hover:bg-falcon-border transition-colors">
                 <X className="w-4 h-4" />
               </button>
             </div>
             <div className="px-5 py-4 space-y-4">
               <div>
-                <label className="block text-xs font-medium text-[#7d92b0] mb-1.5">IP アドレス / CIDR <span className="text-[#e8002d]">*</span></label>
+                <label className="block text-xs font-medium text-falcon-muted mb-1.5">IP アドレス / CIDR <span className="text-falcon-red">*</span></label>
                 <input
                   type="text"
                   value={form.ip_or_cidr}
                   onChange={e => setForm(f => ({ ...f, ip_or_cidr: e.target.value }))}
                   placeholder="例: 192.168.1.100 または 10.0.0.0/8"
-                  className="w-full bg-[#070d19] border border-[#1e2d42] rounded px-3 py-2 text-sm text-white placeholder-[#3d5068] focus:outline-none focus:border-[#e8002d]/50 font-mono"
+                  className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-sm text-white placeholder-falcon-subtle focus:outline-hidden focus:border-falcon-red/50 font-mono"
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-[#7d92b0] mb-1.5">タイプ</label>
+                <label className="block text-xs font-medium text-falcon-muted mb-1.5">タイプ</label>
                 <div className="flex gap-3">
                   {(['block', 'allow'] as const).map(t => (
                     <label key={t} className="flex items-center gap-2 cursor-pointer">
@@ -347,9 +347,9 @@ export default function IPBlocklistPage() {
                         value={t}
                         checked={form.entry_type === t}
                         onChange={() => setForm(f => ({ ...f, entry_type: t }))}
-                        className="accent-[#e8002d]"
+                        className="accent-falcon-red"
                       />
-                      <span className="text-sm text-[#e2e8f4]">
+                      <span className="text-sm text-falcon-text">
                         {t === 'block' ? 'ブロック' : '許可'}
                       </span>
                     </label>
@@ -357,36 +357,36 @@ export default function IPBlocklistPage() {
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-medium text-[#7d92b0] mb-1.5">説明</label>
+                <label className="block text-xs font-medium text-falcon-muted mb-1.5">説明</label>
                 <input
                   type="text"
                   value={form.description}
                   onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
                   placeholder="例: 不正アクセス試行"
-                  className="w-full bg-[#070d19] border border-[#1e2d42] rounded px-3 py-2 text-sm text-white placeholder-[#3d5068] focus:outline-none focus:border-[#e8002d]/50"
+                  className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-sm text-white placeholder-falcon-subtle focus:outline-hidden focus:border-falcon-red/50"
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-[#7d92b0] mb-1.5">有効期限（任意）</label>
+                <label className="block text-xs font-medium text-falcon-muted mb-1.5">有効期限（任意）</label>
                 <input
                   type="date"
                   value={form.expires_at}
                   onChange={e => setForm(f => ({ ...f, expires_at: e.target.value }))}
-                  className="w-full bg-[#070d19] border border-[#1e2d42] rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-[#e8002d]/50"
+                  className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-sm text-white focus:outline-hidden focus:border-falcon-red/50"
                 />
               </div>
             </div>
-            <div className="flex justify-end gap-3 px-5 py-4 border-t border-[#1e2d42]">
+            <div className="flex justify-end gap-3 px-5 py-4 border-t border-falcon-border">
               <button
                 onClick={() => setShowAddModal(false)}
-                className="px-4 py-2 text-sm text-[#7d92b0] hover:text-white rounded border border-[#1e2d42] transition-colors"
+                className="px-4 py-2 text-sm text-falcon-muted hover:text-white rounded-sm border border-falcon-border transition-colors"
               >
                 キャンセル
               </button>
               <button
                 onClick={() => addMutation.mutate(form)}
                 disabled={!form.ip_or_cidr.trim() || addMutation.isPending}
-                className="px-4 py-2 text-sm bg-[#e8002d] hover:bg-[#c8001f] text-white rounded font-medium transition-colors disabled:opacity-50"
+                className="px-4 py-2 text-sm bg-falcon-red hover:bg-[#c8001f] text-white rounded-sm font-medium transition-colors disabled:opacity-50"
               >
                 {addMutation.isPending ? '追加中...' : '追加'}
               </button>
@@ -397,20 +397,20 @@ export default function IPBlocklistPage() {
 
       {/* Bulk Import Modal */}
       {showBulkModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl w-full max-w-lg mx-4 shadow-2xl">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-[#1e2d42]">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs">
+          <div className="bg-falcon-surface border border-falcon-border rounded-xl w-full max-w-lg mx-4 shadow-2xl">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-falcon-border">
               <h2 className="text-base font-semibold text-white flex items-center gap-2">
-                <Upload className="w-4 h-4 text-[#e8002d]" />
+                <Upload className="w-4 h-4 text-falcon-red" />
                 一括インポート
               </h2>
-              <button onClick={() => setShowBulkModal(false)} className="p-1 rounded text-[#7d92b0] hover:text-white hover:bg-[#1e2d42] transition-colors">
+              <button onClick={() => setShowBulkModal(false)} className="p-1 rounded-sm text-falcon-muted hover:text-white hover:bg-falcon-border transition-colors">
                 <X className="w-4 h-4" />
               </button>
             </div>
             <div className="px-5 py-4 space-y-4">
               <div>
-                <label className="block text-xs font-medium text-[#7d92b0] mb-1.5">タイプ</label>
+                <label className="block text-xs font-medium text-falcon-muted mb-1.5">タイプ</label>
                 <div className="flex gap-3">
                   {(['block', 'allow'] as const).map(t => (
                     <label key={t} className="flex items-center gap-2 cursor-pointer">
@@ -420,15 +420,15 @@ export default function IPBlocklistPage() {
                         value={t}
                         checked={bulkType === t}
                         onChange={() => setBulkType(t)}
-                        className="accent-[#e8002d]"
+                        className="accent-falcon-red"
                       />
-                      <span className="text-sm text-[#e2e8f4]">{t === 'block' ? 'ブロック' : '許可'}</span>
+                      <span className="text-sm text-falcon-text">{t === 'block' ? 'ブロック' : '許可'}</span>
                     </label>
                   ))}
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-medium text-[#7d92b0] mb-1.5">
+                <label className="block text-xs font-medium text-falcon-muted mb-1.5">
                   IPアドレス（1行に1エントリ）
                 </label>
                 <textarea
@@ -436,24 +436,24 @@ export default function IPBlocklistPage() {
                   onChange={e => setBulkText(e.target.value)}
                   rows={10}
                   placeholder={'192.168.1.1\n10.0.0.0/8\n172.16.5.23'}
-                  className="w-full bg-[#070d19] border border-[#1e2d42] rounded px-3 py-2 text-sm text-white placeholder-[#3d5068] focus:outline-none focus:border-[#e8002d]/50 font-mono resize-none"
+                  className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-sm text-white placeholder-falcon-subtle focus:outline-hidden focus:border-falcon-red/50 font-mono resize-none"
                 />
-                <p className="text-xs text-[#7d92b0] mt-1">
+                <p className="text-xs text-falcon-muted mt-1">
                   {bulkText.split('\n').filter(l => l.trim()).length} 件のエントリ
                 </p>
               </div>
             </div>
-            <div className="flex justify-end gap-3 px-5 py-4 border-t border-[#1e2d42]">
+            <div className="flex justify-end gap-3 px-5 py-4 border-t border-falcon-border">
               <button
                 onClick={() => setShowBulkModal(false)}
-                className="px-4 py-2 text-sm text-[#7d92b0] hover:text-white rounded border border-[#1e2d42] transition-colors"
+                className="px-4 py-2 text-sm text-falcon-muted hover:text-white rounded-sm border border-falcon-border transition-colors"
               >
                 キャンセル
               </button>
               <button
                 onClick={handleBulkImport}
                 disabled={!bulkText.trim() || bulkMutation.isPending}
-                className="px-4 py-2 text-sm bg-[#e8002d] hover:bg-[#c8001f] text-white rounded font-medium transition-colors disabled:opacity-50"
+                className="px-4 py-2 text-sm bg-falcon-red hover:bg-[#c8001f] text-white rounded-sm font-medium transition-colors disabled:opacity-50"
               >
                 {bulkMutation.isPending ? 'インポート中...' : 'インポート'}
               </button>
@@ -464,21 +464,21 @@ export default function IPBlocklistPage() {
 
       {/* Delete Confirm Modal */}
       {deleteConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl w-full max-w-sm mx-4 shadow-2xl p-5">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs">
+          <div className="bg-falcon-surface border border-falcon-border rounded-xl w-full max-w-sm mx-4 shadow-2xl p-5">
             <h2 className="text-base font-semibold text-white mb-2">エントリを削除しますか？</h2>
-            <p className="text-sm text-[#7d92b0] mb-5">この操作は取り消せません。</p>
+            <p className="text-sm text-falcon-muted mb-5">この操作は取り消せません。</p>
             <div className="flex justify-end gap-3">
               <button
                 onClick={() => setDeleteConfirm(null)}
-                className="px-4 py-2 text-sm text-[#7d92b0] hover:text-white rounded border border-[#1e2d42] transition-colors"
+                className="px-4 py-2 text-sm text-falcon-muted hover:text-white rounded-sm border border-falcon-border transition-colors"
               >
                 キャンセル
               </button>
               <button
                 onClick={() => deleteMutation.mutate(deleteConfirm)}
                 disabled={deleteMutation.isPending}
-                className="px-4 py-2 text-sm bg-[#e8002d] hover:bg-[#c8001f] text-white rounded font-medium transition-colors disabled:opacity-50"
+                className="px-4 py-2 text-sm bg-falcon-red hover:bg-[#c8001f] text-white rounded-sm font-medium transition-colors disabled:opacity-50"
               >
                 {deleteMutation.isPending ? '削除中...' : '削除'}
               </button>

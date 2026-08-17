@@ -161,10 +161,10 @@ function CostDetailModal({ incident, onClose }: { incident: Incident; onClose: (
 
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl w-full max-w-2xl max-h-[85vh] overflow-y-auto">
-        <div className="sticky top-0 bg-[#0d1220] border-b border-[#1e2d42] p-4 flex items-center justify-between">
+      <div className="bg-falcon-surface border border-falcon-border rounded-xl w-full max-w-2xl max-h-[85vh] overflow-y-auto">
+        <div className="sticky top-0 bg-falcon-surface border-b border-falcon-border p-4 flex items-center justify-between">
           <h3 className="text-white font-semibold">コスト詳細: {incident.id}</h3>
-          <button onClick={onClose} className="text-[#7d92b0] hover:text-white transition-colors">
+          <button onClick={onClose} className="text-falcon-muted hover:text-white transition-colors">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -175,8 +175,8 @@ function CostDetailModal({ incident, onClose }: { incident: Incident; onClose: (
             <div className="flex items-center gap-3 flex-wrap">
               <SeverityBadge severity={incident.severity} />
               <StatusBadge status={incident.status} />
-              <span className="text-[#7d92b0] text-sm">{incident.date}</span>
-              <span className="text-[#7d92b0] text-sm flex items-center gap-1">
+              <span className="text-falcon-muted text-sm">{incident.date}</span>
+              <span className="text-falcon-muted text-sm flex items-center gap-1">
                 <Clock className="w-3 h-3" />{incident.hours_spent}時間
               </span>
             </div>
@@ -185,36 +185,36 @@ function CostDetailModal({ incident, onClose }: { incident: Incident; onClose: (
           {/* Cost summary */}
           <div className="grid grid-cols-3 gap-3">
             <div className="bg-[#070d19] rounded-lg p-3 text-center">
-              <p className="text-[#7d92b0] text-xs mb-1">直接コスト</p>
+              <p className="text-falcon-muted text-xs mb-1">直接コスト</p>
               <p className="text-white font-bold text-sm">{fmt(incident.direct_cost)}</p>
             </div>
             <div className="bg-[#070d19] rounded-lg p-3 text-center">
-              <p className="text-[#7d92b0] text-xs mb-1">間接コスト</p>
+              <p className="text-falcon-muted text-xs mb-1">間接コスト</p>
               <p className="text-white font-bold text-sm">{fmt(incident.indirect_cost)}</p>
             </div>
-            <div className="bg-[#070d19] rounded-lg p-3 text-center border border-[#e8002d]/30">
-              <p className="text-[#7d92b0] text-xs mb-1">合計コスト</p>
-              <p className="text-[#e8002d] font-bold text-sm">{fmt(incident.total_cost)}</p>
+            <div className="bg-[#070d19] rounded-lg p-3 text-center border border-falcon-red/30">
+              <p className="text-falcon-muted text-xs mb-1">合計コスト</p>
+              <p className="text-falcon-red font-bold text-sm">{fmt(incident.total_cost)}</p>
             </div>
           </div>
 
           {/* Breakdown */}
           <div>
-            <p className="text-[#7d92b0] text-sm font-medium mb-3">コスト内訳</p>
+            <p className="text-falcon-muted text-sm font-medium mb-3">コスト内訳</p>
             <div className="space-y-2.5">
               {breakdownItems.map(item => (
                 <div key={item.label}>
                   <div className="flex items-center justify-between mb-1">
-                    <span className="text-sm text-[#7d92b0]">{item.label}</span>
+                    <span className="text-sm text-falcon-muted">{item.label}</span>
                     <span className="text-sm text-white font-medium">{fmt(item.value)}</span>
                   </div>
-                  <div className="h-2 bg-[#1e2d42] rounded-full overflow-hidden">
+                  <div className="h-2 bg-falcon-border rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-[#e8002d] rounded-full"
+                      className="h-full bg-falcon-red rounded-full"
                       style={{ width: `${item.pct.toFixed(1)}%` }}
                     />
                   </div>
-                  <p className="text-xs text-[#7d92b0] mt-0.5 text-right">{item.pct.toFixed(1)}%</p>
+                  <p className="text-xs text-falcon-muted mt-0.5 text-right">{item.pct.toFixed(1)}%</p>
                 </div>
               ))}
             </div>
@@ -259,17 +259,17 @@ export default function IncidentCostPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="p-2 rounded-lg bg-[#0d1220] border border-[#1e2d42]">
-            <TrendingUp className="w-6 h-6 text-[#e8002d]" />
+          <div className="p-2 rounded-lg bg-falcon-surface border border-falcon-border">
+            <TrendingUp className="w-6 h-6 text-falcon-red" />
           </div>
           <div>
             <h1 className="text-2xl font-bold text-white">インシデントコスト追跡</h1>
-            <p className="text-sm text-[#7d92b0] mt-0.5">セキュリティインシデントの財務的影響分析</p>
+            <p className="text-sm text-falcon-muted mt-0.5">セキュリティインシデントの財務的影響分析</p>
           </div>
         </div>
         <button
           onClick={() => refetch()}
-          className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#0d1220] border border-[#1e2d42] text-[#7d92b0] hover:text-white hover:border-[#e8002d] transition-colors text-sm"
+          className="flex items-center gap-2 px-3 py-2 rounded-lg bg-falcon-surface border border-falcon-border text-falcon-muted hover:text-white hover:border-falcon-red transition-colors text-sm"
         >
           <RefreshCw className="w-4 h-4" />
           更新
@@ -284,28 +284,28 @@ export default function IncidentCostPage() {
           { label: '平均解決コスト',       value: fmt(d.avg_resolution_cost), icon: TrendingUp,   color: '#3b82f6', sub: 'インシデントあたり' },
           { label: '回避できたコスト',     value: fmt(d.avoided_cost),        icon: ShieldOff,    color: '#22c55e', sub: 'セキュリティ対策による回避額' },
         ].map(card => (
-          <div key={card.label} className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-4">
+          <div key={card.label} className="bg-falcon-surface border border-falcon-border rounded-xl p-4">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-[#7d92b0] text-sm">{card.label}</span>
+              <span className="text-falcon-muted text-sm">{card.label}</span>
               <card.icon className="w-5 h-5" style={{ color: card.color }} />
             </div>
             <p className="text-xl font-bold text-white">{card.value}</p>
-            <p className="text-xs text-[#7d92b0] mt-1">{card.sub}</p>
+            <p className="text-xs text-falcon-muted mt-1">{card.sub}</p>
           </div>
         ))}
       </div>
 
       {/* Tabs */}
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
-        <div className="flex border-b border-[#1e2d42]">
+      <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
+        <div className="flex border-b border-falcon-border">
           {tabs.map(t => (
             <button
               key={t.key}
               onClick={() => setActiveTab(t.key)}
               className={`px-6 py-3 text-sm font-medium transition-colors ${
                 activeTab === t.key
-                  ? 'text-white border-b-2 border-[#e8002d]'
-                  : 'text-[#7d92b0] hover:text-white'
+                  ? 'text-white border-b-2 border-falcon-red'
+                  : 'text-falcon-muted hover:text-white'
               }`}
             >
               {t.label}
@@ -318,30 +318,30 @@ export default function IncidentCostPage() {
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-[#1e2d42]">
+                <tr className="border-b border-falcon-border">
                   {['インシデント', '重大度', '日付', 'ステータス', '直接コスト', '間接コスト', '合計コスト', '時間', ''].map(h => (
-                    <th key={h} className="text-left px-4 py-3 text-[#7d92b0] text-xs font-medium uppercase tracking-wider whitespace-nowrap">{h}</th>
+                    <th key={h} className="text-left px-4 py-3 text-falcon-muted text-xs font-medium uppercase tracking-wider whitespace-nowrap">{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {d.incidents.map(inc => (
-                  <tr key={inc.id} className="border-b border-[#1e2d42] hover:bg-[#070d19] transition-colors">
+                  <tr key={inc.id} className="border-b border-falcon-border hover:bg-[#070d19] transition-colors">
                     <td className="px-4 py-3">
                       <p className="text-white text-sm font-medium max-w-xs truncate">{inc.title}</p>
-                      <p className="text-[#7d92b0] text-xs">{inc.id}</p>
+                      <p className="text-falcon-muted text-xs">{inc.id}</p>
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap"><SeverityBadge severity={inc.severity} /></td>
-                    <td className="px-4 py-3 text-[#7d92b0] text-sm whitespace-nowrap">{inc.date}</td>
+                    <td className="px-4 py-3 text-falcon-muted text-sm whitespace-nowrap">{inc.date}</td>
                     <td className="px-4 py-3 whitespace-nowrap"><StatusBadge status={inc.status} /></td>
                     <td className="px-4 py-3 text-white text-sm whitespace-nowrap">{fmt(inc.direct_cost)}</td>
-                    <td className="px-4 py-3 text-[#7d92b0] text-sm whitespace-nowrap">{fmt(inc.indirect_cost)}</td>
-                    <td className="px-4 py-3 text-[#e8002d] font-semibold text-sm whitespace-nowrap">{fmt(inc.total_cost)}</td>
-                    <td className="px-4 py-3 text-[#7d92b0] text-sm whitespace-nowrap">{inc.hours_spent}h</td>
+                    <td className="px-4 py-3 text-falcon-muted text-sm whitespace-nowrap">{fmt(inc.indirect_cost)}</td>
+                    <td className="px-4 py-3 text-falcon-red font-semibold text-sm whitespace-nowrap">{fmt(inc.total_cost)}</td>
+                    <td className="px-4 py-3 text-falcon-muted text-sm whitespace-nowrap">{inc.hours_spent}h</td>
                     <td className="px-4 py-3">
                       <button
                         onClick={() => setSelectedIncident(inc)}
-                        className="flex items-center gap-1 text-xs text-[#7d92b0] hover:text-white border border-[#1e2d42] hover:border-[#e8002d] px-2 py-1 rounded transition-colors"
+                        className="flex items-center gap-1 text-xs text-falcon-muted hover:text-white border border-falcon-border hover:border-falcon-red px-2 py-1 rounded-sm transition-colors"
                       >
                         詳細<ChevronRight className="w-3 h-3" />
                       </button>
@@ -358,18 +358,18 @@ export default function IncidentCostPage() {
           <div className="p-6 space-y-6">
             {/* Horizontal Bar Chart */}
             <div className="space-y-3">
-              <p className="text-[#7d92b0] text-sm font-medium">カテゴリ別総コスト</p>
+              <p className="text-falcon-muted text-sm font-medium">カテゴリ別総コスト</p>
               {d.categories
                 .sort((a, b) => b.total_cost - a.total_cost)
                 .map(cat => (
                   <div key={cat.category} className="space-y-1">
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-white font-medium w-28 shrink-0">{cat.category}</span>
-                      <span className="text-[#7d92b0]">{fmt(cat.total_cost)}</span>
+                      <span className="text-falcon-muted">{fmt(cat.total_cost)}</span>
                     </div>
-                    <div className="h-6 bg-[#070d19] rounded overflow-hidden">
+                    <div className="h-6 bg-[#070d19] rounded-sm overflow-hidden">
                       <div
-                        className="h-full bg-gradient-to-r from-[#e8002d] to-[#f97316] rounded transition-all duration-500 flex items-center justify-end pr-2"
+                        className="h-full bg-linear-to-r from-falcon-red to-[#f97316] rounded-sm transition-all duration-500 flex items-center justify-end pr-2"
                         style={{ width: `${(cat.total_cost / maxCategoryCost) * 100}%` }}
                       >
                         <span className="text-white text-xs font-semibold">{cat.incident_count}件</span>
@@ -383,18 +383,18 @@ export default function IncidentCostPage() {
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="border-b border-[#1e2d42]">
+                  <tr className="border-b border-falcon-border">
                     {['カテゴリ', 'インシデント数', '総コスト', '平均コスト', '最高コスト'].map(h => (
-                      <th key={h} className="text-left px-4 py-3 text-[#7d92b0] text-xs font-medium uppercase tracking-wider">{h}</th>
+                      <th key={h} className="text-left px-4 py-3 text-falcon-muted text-xs font-medium uppercase tracking-wider">{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {d.categories.map(cat => (
-                    <tr key={cat.category} className="border-b border-[#1e2d42] hover:bg-[#070d19] transition-colors">
+                    <tr key={cat.category} className="border-b border-falcon-border hover:bg-[#070d19] transition-colors">
                       <td className="px-4 py-3 text-white text-sm font-medium">{cat.category}</td>
-                      <td className="px-4 py-3 text-[#7d92b0] text-sm">{cat.incident_count}件</td>
-                      <td className="px-4 py-3 text-[#e8002d] font-semibold text-sm">{fmt(cat.total_cost)}</td>
+                      <td className="px-4 py-3 text-falcon-muted text-sm">{cat.incident_count}件</td>
+                      <td className="px-4 py-3 text-falcon-red font-semibold text-sm">{fmt(cat.total_cost)}</td>
                       <td className="px-4 py-3 text-white text-sm">{fmt(cat.avg_cost)}</td>
                       <td className="px-4 py-3 text-white text-sm">{fmt(cat.max_cost)}</td>
                     </tr>
@@ -410,20 +410,20 @@ export default function IncidentCostPage() {
           <div className="p-6 space-y-6">
             {/* Bar Chart */}
             <div className="space-y-1">
-              <p className="text-[#7d92b0] text-sm font-medium mb-3">月次インシデントコスト推移</p>
+              <p className="text-falcon-muted text-sm font-medium mb-3">月次インシデントコスト推移</p>
               <div className="flex items-end gap-2 h-48">
                 {d.monthly.map(m => (
                   <div key={m.month} className="flex-1 flex flex-col items-center gap-1 group">
                     <div className="relative w-full flex flex-col justify-end" style={{ height: '168px' }}>
                       <div
-                        className="w-full bg-gradient-to-t from-[#e8002d] to-[#f97316] rounded-t transition-all duration-500"
+                        className="w-full bg-linear-to-t from-falcon-red to-[#f97316] rounded-t transition-all duration-500"
                         style={{ height: `${(m.total_cost / maxMonthlyCost) * 100}%` }}
                       />
-                      <div className="absolute -top-6 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-[#0d1220] border border-[#1e2d42] rounded px-2 py-1 text-xs text-white whitespace-nowrap z-10">
+                      <div className="absolute -top-6 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-falcon-surface border border-falcon-border rounded-sm px-2 py-1 text-xs text-white whitespace-nowrap z-10">
                         {fmt(m.total_cost)}
                       </div>
                     </div>
-                    <span className="text-[#7d92b0] text-xs">{m.month.slice(5)}月</span>
+                    <span className="text-falcon-muted text-xs">{m.month.slice(5)}月</span>
                   </div>
                 ))}
               </div>
@@ -433,21 +433,21 @@ export default function IncidentCostPage() {
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="border-b border-[#1e2d42]">
+                  <tr className="border-b border-falcon-border">
                     {['月', 'インシデント数', '総コスト', '前月比'].map(h => (
-                      <th key={h} className="text-left px-4 py-3 text-[#7d92b0] text-xs font-medium uppercase tracking-wider">{h}</th>
+                      <th key={h} className="text-left px-4 py-3 text-falcon-muted text-xs font-medium uppercase tracking-wider">{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {d.monthly.map(m => (
-                    <tr key={m.month} className="border-b border-[#1e2d42] hover:bg-[#070d19] transition-colors">
+                    <tr key={m.month} className="border-b border-falcon-border hover:bg-[#070d19] transition-colors">
                       <td className="px-4 py-3 text-white text-sm">{m.month}</td>
-                      <td className="px-4 py-3 text-[#7d92b0] text-sm">{m.incident_count}件</td>
+                      <td className="px-4 py-3 text-falcon-muted text-sm">{m.incident_count}件</td>
                       <td className="px-4 py-3 text-white font-medium text-sm">{fmt(m.total_cost)}</td>
                       <td className="px-4 py-3">
                         {m.prev_change_pct === null ? (
-                          <span className="text-[#7d92b0] text-sm">—</span>
+                          <span className="text-falcon-muted text-sm">—</span>
                         ) : (
                           <span className={`text-sm font-medium ${m.prev_change_pct > 0 ? 'text-red-400' : 'text-green-400'}`}>
                             {m.prev_change_pct > 0 ? '▲' : '▼'}{Math.abs(m.prev_change_pct)}%
@@ -464,38 +464,38 @@ export default function IncidentCostPage() {
       </div>
 
       {/* ROI Calculator */}
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-6">
+      <div className="bg-falcon-surface border border-falcon-border rounded-xl p-6">
         <div className="flex items-center gap-2 mb-4">
-          <Calculator className="w-5 h-5 text-[#e8002d]" />
+          <Calculator className="w-5 h-5 text-falcon-red" />
           <h2 className="text-lg font-semibold text-white">ROI計算機</h2>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
           <div>
-            <label className="block text-[#7d92b0] text-sm mb-2">セキュリティ投資額 (¥)</label>
+            <label className="block text-falcon-muted text-sm mb-2">セキュリティ投資額 (¥)</label>
             <input
               type="text"
               value={parseInt(investmentInput || '0').toLocaleString('ja-JP')}
               onChange={e => setInvestmentInput(e.target.value.replace(/[^0-9]/g, ''))}
-              className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white focus:outline-none focus:border-[#e8002d] text-sm"
+              className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white focus:outline-hidden focus:border-falcon-red text-sm"
               placeholder="例: 10,000,000"
             />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="bg-[#070d19] rounded-lg p-3 text-center">
-              <p className="text-[#7d92b0] text-xs mb-1">投資対回避コスト比率</p>
+              <p className="text-falcon-muted text-xs mb-1">投資対回避コスト比率</p>
               <p className="text-xl font-bold text-green-400">{roiRatio}x</p>
             </div>
             <div className="bg-[#070d19] rounded-lg p-3 text-center">
-              <p className="text-[#7d92b0] text-xs mb-1">ROI</p>
-              <p className={`text-xl font-bold ${typeof roiPct === 'string' && roiPct !== '—' && parseFloat(roiPct) > 0 ? 'text-green-400' : 'text-[#7d92b0]'}`}>
+              <p className="text-falcon-muted text-xs mb-1">ROI</p>
+              <p className={`text-xl font-bold ${typeof roiPct === 'string' && roiPct !== '—' && parseFloat(roiPct) > 0 ? 'text-green-400' : 'text-falcon-muted'}`}>
                 {roiPct !== '—' ? `${parseFloat(roiPct) > 0 ? '+' : ''}${roiPct}%` : '—'}
               </p>
             </div>
           </div>
           <div className="bg-[#070d19] rounded-lg p-3">
-            <p className="text-[#7d92b0] text-xs mb-1">回避できたコスト総額</p>
+            <p className="text-falcon-muted text-xs mb-1">回避できたコスト総額</p>
             <p className="text-lg font-bold text-green-400">{fmt(d.avoided_cost)}</p>
-            <p className="text-xs text-[#7d92b0] mt-1">セキュリティ対策実施による推定回避額</p>
+            <p className="text-xs text-falcon-muted mt-1">セキュリティ対策実施による推定回避額</p>
           </div>
         </div>
       </div>
@@ -510,8 +510,8 @@ export default function IncidentCostPage() {
 
       {isLoading && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-6 flex items-center gap-3">
-            <RefreshCw className="w-5 h-5 text-[#e8002d] animate-spin" />
+          <div className="bg-falcon-surface border border-falcon-border rounded-xl p-6 flex items-center gap-3">
+            <RefreshCw className="w-5 h-5 text-falcon-red animate-spin" />
             <span className="text-white">データを読み込み中...</span>
           </div>
         </div>

@@ -88,7 +88,7 @@ function ScoreCircle({ score, label, color }: { score: number; label: string; co
           <span className="text-sm font-semibold" style={{ color: gradeColor }}>{grade}</span>
         </div>
       </div>
-      <span className="text-sm text-[#7d92b0]">{label}</span>
+      <span className="text-sm text-falcon-muted">{label}</span>
     </div>
   )
 }
@@ -105,7 +105,7 @@ function ScoreBar({ score, color }: { score: number; color: string }) {
   const barColor = color || getColor(score)
   return (
     <div className="flex items-center gap-2 min-w-[120px]">
-      <div className="flex-1 h-2 bg-[#1e2d42] rounded-full overflow-hidden">
+      <div className="flex-1 h-2 bg-falcon-border rounded-full overflow-hidden">
         <div
           className="h-full rounded-full transition-all duration-500"
           style={{ width: `${score}%`, backgroundColor: barColor }}
@@ -196,23 +196,23 @@ export default function SecurityScorecardPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="p-2 rounded-lg bg-[#0d1220] border border-[#1e2d42]">
-            <BarChart2 className="w-6 h-6 text-[#e8002d]" />
+          <div className="p-2 rounded-lg bg-falcon-surface border border-falcon-border">
+            <BarChart2 className="w-6 h-6 text-falcon-red" />
           </div>
           <div>
             <h1 className="text-2xl font-bold text-white">セキュリティスコアカード比較</h1>
-            <p className="text-sm text-[#7d92b0] mt-0.5">期間別セキュリティスコアの比較・分析</p>
+            <p className="text-sm text-falcon-muted mt-0.5">期間別セキュリティスコアの比較・分析</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
           <button
             onClick={() => refetch()}
-            className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#0d1220] border border-[#1e2d42] text-[#7d92b0] hover:text-white hover:border-[#e8002d] transition-colors text-sm"
+            className="flex items-center gap-2 px-3 py-2 rounded-lg bg-falcon-surface border border-falcon-border text-falcon-muted hover:text-white hover:border-falcon-red transition-colors text-sm"
           >
             <RefreshCw className="w-4 h-4" />
             更新
           </button>
-          <button className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#e8002d] text-white text-sm font-medium hover:bg-[#cc0027] transition-colors">
+          <button className="flex items-center gap-2 px-4 py-2 rounded-lg bg-falcon-red text-white text-sm font-medium hover:bg-[#cc0027] transition-colors">
             <Download className="w-4 h-4" />
             PDF出力
           </button>
@@ -220,31 +220,31 @@ export default function SecurityScorecardPage() {
       </div>
 
       {/* Period Selector */}
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-4">
+      <div className="bg-falcon-surface border border-falcon-border rounded-xl p-4">
         <div className="flex items-center gap-4 flex-wrap">
-          <span className="text-[#7d92b0] text-sm font-medium">比較期間:</span>
+          <span className="text-falcon-muted text-sm font-medium">比較期間:</span>
           <div className="flex items-center gap-2">
-            <label className="text-[#7d92b0] text-sm">期間 A</label>
+            <label className="text-falcon-muted text-sm">期間 A</label>
             <input
               type="month"
               value={periodA}
               onChange={e => setPeriodA(e.target.value)}
-              className="bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-1.5 text-white text-sm focus:outline-none focus:border-[#e8002d]"
+              className="bg-[#070d19] border border-falcon-border rounded-lg px-3 py-1.5 text-white text-sm focus:outline-hidden focus:border-falcon-red"
             />
           </div>
-          <span className="text-[#7d92b0] font-bold">vs</span>
+          <span className="text-falcon-muted font-bold">vs</span>
           <div className="flex items-center gap-2">
-            <label className="text-[#7d92b0] text-sm">期間 B</label>
+            <label className="text-falcon-muted text-sm">期間 B</label>
             <input
               type="month"
               value={periodB}
               onChange={e => setPeriodB(e.target.value)}
-              className="bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-1.5 text-white text-sm focus:outline-none focus:border-[#e8002d]"
+              className="bg-[#070d19] border border-falcon-border rounded-lg px-3 py-1.5 text-white text-sm focus:outline-hidden focus:border-falcon-red"
             />
           </div>
           <button
             onClick={() => refetch()}
-            className="px-4 py-1.5 rounded-lg bg-[#e8002d] text-white text-sm font-medium hover:bg-[#cc0027] transition-colors"
+            className="px-4 py-1.5 rounded-lg bg-falcon-red text-white text-sm font-medium hover:bg-[#cc0027] transition-colors"
           >
             比較実行
           </button>
@@ -252,7 +252,7 @@ export default function SecurityScorecardPage() {
       </div>
 
       {/* Overall Score Comparison */}
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-6">
+      <div className="bg-falcon-surface border border-falcon-border rounded-xl p-6">
         <h2 className="text-lg font-semibold text-white mb-6">総合スコア比較</h2>
         <div className="flex items-center justify-center gap-16 flex-wrap">
           <ScoreCircle score={scorecard.overall_a} label={`${periodA} (期間A)`} color="#3b82f6" />
@@ -262,16 +262,16 @@ export default function SecurityScorecardPage() {
             ) : scorecard.delta < 0 ? (
               <TrendingDown className="w-10 h-10 text-red-400" />
             ) : (
-              <Minus className="w-10 h-10 text-[#7d92b0]" />
+              <Minus className="w-10 h-10 text-falcon-muted" />
             )}
             <span
               className={`text-2xl font-bold ${
-                scorecard.delta > 0 ? 'text-green-400' : scorecard.delta < 0 ? 'text-red-400' : 'text-[#7d92b0]'
+                scorecard.delta > 0 ? 'text-green-400' : scorecard.delta < 0 ? 'text-red-400' : 'text-falcon-muted'
               }`}
             >
               {scorecard.delta > 0 ? '+' : ''}{scorecard.delta}
             </span>
-            <span className="text-xs text-[#7d92b0]">スコア変化</span>
+            <span className="text-xs text-falcon-muted">スコア変化</span>
           </div>
           <ScoreCircle score={scorecard.overall_b} label={`${periodB} (期間B)`} color="#22c55e" />
         </div>
@@ -279,20 +279,20 @@ export default function SecurityScorecardPage() {
         {/* Overall progress bars summary */}
         <div className="mt-6 grid grid-cols-2 gap-4 max-w-xl mx-auto">
           <div className="space-y-1">
-            <div className="flex justify-between text-xs text-[#7d92b0]">
+            <div className="flex justify-between text-xs text-falcon-muted">
               <span>期間A スコア</span>
               <span>{scorecard.overall_a} / 100</span>
             </div>
-            <div className="h-2 bg-[#1e2d42] rounded-full overflow-hidden">
+            <div className="h-2 bg-falcon-border rounded-full overflow-hidden">
               <div className="h-full bg-blue-500 rounded-full" style={{ width: `${scorecard.overall_a}%` }} />
             </div>
           </div>
           <div className="space-y-1">
-            <div className="flex justify-between text-xs text-[#7d92b0]">
+            <div className="flex justify-between text-xs text-falcon-muted">
               <span>期間B スコア</span>
               <span>{scorecard.overall_b} / 100</span>
             </div>
-            <div className="h-2 bg-[#1e2d42] rounded-full overflow-hidden">
+            <div className="h-2 bg-falcon-border rounded-full overflow-hidden">
               <div className="h-full bg-green-500 rounded-full" style={{ width: `${scorecard.overall_b}%` }} />
             </div>
           </div>
@@ -300,26 +300,26 @@ export default function SecurityScorecardPage() {
       </div>
 
       {/* Category Breakdown Table */}
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
-        <div className="p-4 border-b border-[#1e2d42]">
+      <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
+        <div className="p-4 border-b border-falcon-border">
           <h2 className="text-lg font-semibold text-white">カテゴリ別スコア比較</h2>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-[#1e2d42]">
-                <th className="text-left px-4 py-3 text-[#7d92b0] text-xs font-medium uppercase tracking-wider">カテゴリ</th>
-                <th className="text-left px-4 py-3 text-[#7d92b0] text-xs font-medium uppercase tracking-wider">ウェイト</th>
-                <th className="px-4 py-3 text-[#7d92b0] text-xs font-medium uppercase tracking-wider text-center">期間A スコア</th>
-                <th className="px-4 py-3 text-[#7d92b0] text-xs font-medium uppercase tracking-wider text-center">期間B スコア</th>
-                <th className="px-4 py-3 text-[#7d92b0] text-xs font-medium uppercase tracking-wider text-center">変化</th>
+              <tr className="border-b border-falcon-border">
+                <th className="text-left px-4 py-3 text-falcon-muted text-xs font-medium uppercase tracking-wider">カテゴリ</th>
+                <th className="text-left px-4 py-3 text-falcon-muted text-xs font-medium uppercase tracking-wider">ウェイト</th>
+                <th className="px-4 py-3 text-falcon-muted text-xs font-medium uppercase tracking-wider text-center">期間A スコア</th>
+                <th className="px-4 py-3 text-falcon-muted text-xs font-medium uppercase tracking-wider text-center">期間B スコア</th>
+                <th className="px-4 py-3 text-falcon-muted text-xs font-medium uppercase tracking-wider text-center">変化</th>
               </tr>
             </thead>
             <tbody>
               {scorecard.categories.map((cat, idx) => (
-                <tr key={idx} className="border-b border-[#1e2d42] hover:bg-[#070d19] transition-colors">
+                <tr key={idx} className="border-b border-falcon-border hover:bg-[#070d19] transition-colors">
                   <td className="px-4 py-3 text-white text-sm font-medium">{cat.category}</td>
-                  <td className="px-4 py-3 text-[#7d92b0] text-sm">{cat.weight}%</td>
+                  <td className="px-4 py-3 text-falcon-muted text-sm">{cat.weight}%</td>
                   <td className="px-4 py-3">
                     <ScoreBar score={cat.score_a} color="#3b82f6" />
                   </td>
@@ -329,7 +329,7 @@ export default function SecurityScorecardPage() {
                   <td className="px-4 py-3 text-center">
                     <span
                       className={`inline-flex items-center gap-1 text-sm font-semibold ${
-                        cat.delta > 0 ? 'text-green-400' : cat.delta < 0 ? 'text-red-400' : 'text-[#7d92b0]'
+                        cat.delta > 0 ? 'text-green-400' : cat.delta < 0 ? 'text-red-400' : 'text-falcon-muted'
                       }`}
                     >
                       {cat.delta > 0 ? <ArrowUp className="w-3 h-3" /> : cat.delta < 0 ? <ArrowDown className="w-3 h-3" /> : <Minus className="w-3 h-3" />}
@@ -344,16 +344,16 @@ export default function SecurityScorecardPage() {
       </div>
 
       {/* Score History Chart */}
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-6">
+      <div className="bg-falcon-surface border border-falcon-border rounded-xl p-6">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold text-white">スコア推移 (6ヶ月)</h2>
-          <div className="flex items-center gap-4 text-xs text-[#7d92b0]">
+          <div className="flex items-center gap-4 text-xs text-falcon-muted">
             <div className="flex items-center gap-1.5">
-              <div className="w-3 h-0.5 bg-blue-500 rounded" />
+              <div className="w-3 h-0.5 bg-blue-500 rounded-sm" />
               <span>期間A トレンド</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <div className="w-3 h-0.5 bg-green-500 rounded" />
+              <div className="w-3 h-0.5 bg-green-500 rounded-sm" />
               <span>期間B トレンド</span>
             </div>
           </div>
@@ -362,12 +362,12 @@ export default function SecurityScorecardPage() {
       </div>
 
       {/* Recommendations */}
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
-        <div className="p-4 border-b border-[#1e2d42]">
+      <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
+        <div className="p-4 border-b border-falcon-border">
           <h2 className="text-lg font-semibold text-white">90点達成のための改善提案</h2>
-          <p className="text-sm text-[#7d92b0] mt-1">以下の対策を実施することでスコアが向上します</p>
+          <p className="text-sm text-falcon-muted mt-1">以下の対策を実施することでスコアが向上します</p>
         </div>
-        <div className="divide-y divide-[#1e2d42]">
+        <div className="divide-y divide-falcon-border">
           {scorecard.recommendations.map(rec => (
             <div key={rec.id} className="p-4 hover:bg-[#070d19] transition-colors">
               <div className="flex items-start justify-between gap-4">
@@ -382,18 +382,18 @@ export default function SecurityScorecardPage() {
                   <div>
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="text-white text-sm font-medium">{rec.title}</span>
-                      <span className="text-xs px-2 py-0.5 rounded-full bg-[#1e2d42] text-[#7d92b0]">{rec.category}</span>
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-falcon-border text-falcon-muted">{rec.category}</span>
                     </div>
-                    <p className="text-sm text-[#7d92b0] mt-1">{rec.description}</p>
+                    <p className="text-sm text-falcon-muted mt-1">{rec.description}</p>
                   </div>
                 </div>
                 <div className="flex flex-col items-end gap-1 shrink-0">
                   <div className="flex items-center gap-1">
-                    <span className="text-xs text-[#7d92b0]">インパクト:</span>
+                    <span className="text-xs text-falcon-muted">インパクト:</span>
                     <span className="text-sm font-bold text-white">{rec.impact}/10</span>
                   </div>
                   <div className="flex items-center gap-1">
-                    <span className="text-xs text-[#7d92b0]">工数:</span>
+                    <span className="text-xs text-falcon-muted">工数:</span>
                     <span
                       className="text-xs font-semibold"
                       style={{ color: effortLabel[rec.effort].color }}
@@ -411,8 +411,8 @@ export default function SecurityScorecardPage() {
       {/* Loading overlay */}
       {isLoading && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-6 flex items-center gap-3">
-            <RefreshCw className="w-5 h-5 text-[#e8002d] animate-spin" />
+          <div className="bg-falcon-surface border border-falcon-border rounded-xl p-6 flex items-center gap-3">
+            <RefreshCw className="w-5 h-5 text-falcon-red animate-spin" />
             <span className="text-white">データを読み込み中...</span>
           </div>
         </div>

@@ -97,10 +97,10 @@ export default function TrainingMgmtPage() {
       {/* ヘッダー */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <BookOpen className="w-7 h-7 text-[#e8002d]" />
+          <BookOpen className="w-7 h-7 text-falcon-red" />
           <h1 className="text-2xl font-bold">セキュリティトレーニング管理</h1>
         </div>
-        <button onClick={() => setShowEnrollModal(true)} className="flex items-center gap-2 px-4 py-2 bg-[#e8002d] hover:bg-[#c0001f] rounded-lg text-sm font-medium transition-colors">
+        <button onClick={() => setShowEnrollModal(true)} className="flex items-center gap-2 px-4 py-2 bg-falcon-red hover:bg-[#c0001f] rounded-lg text-sm font-medium transition-colors">
           <Plus className="w-4 h-4" /> 新規プログラム
         </button>
       </div>
@@ -108,21 +108,21 @@ export default function TrainingMgmtPage() {
       {/* 統計カード */}
       <div className="grid grid-cols-5 gap-4 mb-6">
         {stats.map(s => (
-          <div key={s.label} className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-4 flex items-center gap-3">
-            <s.icon className={`w-8 h-8 ${s.color} flex-shrink-0`} />
+          <div key={s.label} className="bg-falcon-surface border border-falcon-border rounded-lg p-4 flex items-center gap-3">
+            <s.icon className={`w-8 h-8 ${s.color} shrink-0`} />
             <div>
               <div className="text-lg font-bold">{s.value}</div>
-              <div className="text-xs text-[#7d92b0]">{s.label}</div>
+              <div className="text-xs text-falcon-muted">{s.label}</div>
             </div>
           </div>
         ))}
       </div>
 
       {/* タブ */}
-      <div className="flex gap-1 mb-4 bg-[#0d1220] border border-[#1e2d42] rounded-lg p-1 w-fit">
+      <div className="flex gap-1 mb-4 bg-falcon-surface border border-falcon-border rounded-lg p-1 w-fit">
         {(['programs', 'enrollments', 'stats'] as const).map(tab => (
           <button key={tab} onClick={() => setActiveTab(tab)}
-            className={`px-5 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === tab ? 'bg-[#1e2d42] text-white' : 'text-[#7d92b0] hover:text-white'}`}>
+            className={`px-5 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === tab ? 'bg-falcon-border text-white' : 'text-falcon-muted hover:text-white'}`}>
             {tab === 'programs' ? 'プログラム' : tab === 'enrollments' ? '受講状況' : '統計'}
           </button>
         ))}
@@ -130,10 +130,10 @@ export default function TrainingMgmtPage() {
 
       {/* タブ1: プログラム */}
       {activeTab === 'programs' && (
-        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
+        <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-[#1e2d42] text-[#7d92b0]">
+              <tr className="border-b border-falcon-border text-falcon-muted">
                 {['プログラム名','タイプ','所要時間','合格スコア','有効期間','有効','アクション'].map(h => (
                   <th key={h} className="px-4 py-3 text-left font-medium">{h}</th>
                 ))}
@@ -143,38 +143,38 @@ export default function TrainingMgmtPage() {
               {programs.map(p => (
                 <>
                   <tr key={p.id} onClick={() => setExpandedRow(expandedRow === p.id ? null : p.id)}
-                    className="border-b border-[#1e2d42]/50 hover:bg-[#1e2d42]/30 cursor-pointer transition-colors">
+                    className="border-b border-falcon-border/50 hover:bg-falcon-border/30 cursor-pointer transition-colors">
                     <td className="px-4 py-3 font-medium flex items-center gap-2">
-                      {expandedRow === p.id ? <ChevronDown className="w-4 h-4 text-[#7d92b0]" /> : <ChevronRight className="w-4 h-4 text-[#7d92b0]" />}
+                      {expandedRow === p.id ? <ChevronDown className="w-4 h-4 text-falcon-muted" /> : <ChevronRight className="w-4 h-4 text-falcon-muted" />}
                       {p.name}
                     </td>
                     <td className="px-4 py-3"><span className={`px-2 py-0.5 rounded-full text-xs ${TYPE_BADGES[p.type].cls}`}>{TYPE_BADGES[p.type].label}</span></td>
-                    <td className="px-4 py-3 text-[#7d92b0]">{p.duration_min}分</td>
-                    <td className="px-4 py-3 text-[#7d92b0]">{p.pass_score}点</td>
-                    <td className="px-4 py-3 text-[#7d92b0]">{p.validity_days}日</td>
+                    <td className="px-4 py-3 text-falcon-muted">{p.duration_min}分</td>
+                    <td className="px-4 py-3 text-falcon-muted">{p.pass_score}点</td>
+                    <td className="px-4 py-3 text-falcon-muted">{p.validity_days}日</td>
                     <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
                       <button onClick={() => toggleMutation.mutate({ id: p.id, active: !p.active })}>
-                        {p.active ? <ToggleRight className="w-6 h-6 text-green-400" /> : <ToggleLeft className="w-6 h-6 text-[#7d92b0]" />}
+                        {p.active ? <ToggleRight className="w-6 h-6 text-green-400" /> : <ToggleLeft className="w-6 h-6 text-falcon-muted" />}
                       </button>
                     </td>
-                    <td className="px-4 py-3 text-[#7d92b0]">…</td>
+                    <td className="px-4 py-3 text-falcon-muted">…</td>
                   </tr>
                   {expandedRow === p.id && (
-                    <tr key={`${p.id}-exp`} className="bg-[#070d19]/60 border-b border-[#1e2d42]/50">
+                    <tr key={`${p.id}-exp`} className="bg-[#070d19]/60 border-b border-falcon-border/50">
                       <td colSpan={7} className="px-6 py-4">
                         <div className="grid grid-cols-2 gap-6">
                           <div>
-                            <p className="text-xs text-[#7d92b0] mb-1">説明</p>
+                            <p className="text-xs text-falcon-muted mb-1">説明</p>
                             <p className="text-sm">{p.description}</p>
-                            <p className="text-xs text-[#7d92b0] mt-3 mb-1">対象</p>
+                            <p className="text-xs text-falcon-muted mt-3 mb-1">対象</p>
                             <p className="text-sm">{p.target_audience}</p>
-                            <p className="text-xs text-[#7d92b0] mt-3 mb-1">必須ロール</p>
-                            <div className="flex flex-wrap gap-1">{p.required_for_roles.map(r => <span key={r} className="px-2 py-0.5 bg-[#1e2d42] rounded text-xs">{r}</span>)}</div>
+                            <p className="text-xs text-falcon-muted mt-3 mb-1">必須ロール</p>
+                            <div className="flex flex-wrap gap-1">{p.required_for_roles.map(r => <span key={r} className="px-2 py-0.5 bg-falcon-border rounded-sm text-xs">{r}</span>)}</div>
                           </div>
                           <div>
-                            <p className="text-xs text-[#7d92b0] mb-2">モジュール</p>
+                            <p className="text-xs text-falcon-muted mb-2">モジュール</p>
                             <ul className="space-y-1">{p.modules.map((m, i) => (
-                              <li key={i} className="flex items-center gap-2 text-sm"><CheckCircle className="w-3.5 h-3.5 text-green-400 flex-shrink-0" />{m}</li>
+                              <li key={i} className="flex items-center gap-2 text-sm"><CheckCircle className="w-3.5 h-3.5 text-green-400 shrink-0" />{m}</li>
                             ))}</ul>
                           </div>
                         </div>
@@ -193,22 +193,22 @@ export default function TrainingMgmtPage() {
         <div>
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
-              <span className="text-sm text-[#7d92b0]">ステータス:</span>
+              <span className="text-sm text-falcon-muted">ステータス:</span>
               {['全て','enrolled','in_progress','completed','failed','expired'].map(s => (
                 <button key={s} onClick={() => setStatusFilter(s)}
-                  className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${statusFilter === s ? 'bg-[#e8002d] text-white' : 'bg-[#1e2d42] text-[#7d92b0] hover:text-white'}`}>
+                  className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${statusFilter === s ? 'bg-falcon-red text-white' : 'bg-falcon-border text-falcon-muted hover:text-white'}`}>
                   {s === '全て' ? '全て' : STATUS_BADGES[s]?.label ?? s}
                 </button>
               ))}
             </div>
-            <button onClick={() => setShowEnrollModal(true)} className="flex items-center gap-2 px-3 py-1.5 bg-[#1e2d42] hover:bg-[#2a3f5f] rounded-lg text-sm transition-colors">
+            <button onClick={() => setShowEnrollModal(true)} className="flex items-center gap-2 px-3 py-1.5 bg-falcon-border hover:bg-[#2a3f5f] rounded-lg text-sm transition-colors">
               <Plus className="w-4 h-4" /> 受講登録
             </button>
           </div>
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
+          <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-[#1e2d42] text-[#7d92b0]">
+                <tr className="border-b border-falcon-border text-falcon-muted">
                   {['受講者','プログラム名','ステータス','進捗','スコア','開始日','完了日','有効期限'].map(h => (
                     <th key={h} className="px-4 py-3 text-left font-medium">{h}</th>
                   ))}
@@ -218,9 +218,9 @@ export default function TrainingMgmtPage() {
                 {filteredEnrollments.map(e => {
                   const sb = STATUS_BADGES[e.status]
                   return (
-                    <tr key={e.id} className="border-b border-[#1e2d42]/50 hover:bg-[#1e2d42]/20 transition-colors">
+                    <tr key={e.id} className="border-b border-falcon-border/50 hover:bg-falcon-border/20 transition-colors">
                       <td className="px-4 py-3 font-medium">{e.user_name}</td>
-                      <td className="px-4 py-3 text-[#7d92b0] max-w-[180px] truncate">{e.program_name}</td>
+                      <td className="px-4 py-3 text-falcon-muted max-w-[180px] truncate">{e.program_name}</td>
                       <td className="px-4 py-3">
                         <span className={`px-2 py-0.5 rounded-full text-xs flex items-center gap-1 w-fit ${sb.cls}`}>
                           {sb.pulse && <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />}
@@ -228,15 +228,15 @@ export default function TrainingMgmtPage() {
                         </span>
                       </td>
                       <td className="px-4 py-3 w-32">
-                        <div className="w-full bg-[#1e2d42] rounded-full h-1.5">
+                        <div className="w-full bg-falcon-border rounded-full h-1.5">
                           <div className={`h-1.5 rounded-full transition-all ${e.status === 'completed' ? 'bg-green-400' : 'bg-blue-400'}`} style={{ width: `${e.progress}%` }} />
                         </div>
-                        <span className="text-xs text-[#7d92b0] mt-0.5 block">{e.progress}%</span>
+                        <span className="text-xs text-falcon-muted mt-0.5 block">{e.progress}%</span>
                       </td>
-                      <td className="px-4 py-3 text-[#7d92b0]">{e.score ?? '—'}</td>
-                      <td className="px-4 py-3 text-[#7d92b0]">{e.started_at}</td>
-                      <td className="px-4 py-3 text-[#7d92b0]">{e.completed_at ?? '—'}</td>
-                      <td className="px-4 py-3 text-[#7d92b0]">{e.expires_at ?? '—'}</td>
+                      <td className="px-4 py-3 text-falcon-muted">{e.score ?? '—'}</td>
+                      <td className="px-4 py-3 text-falcon-muted">{e.started_at}</td>
+                      <td className="px-4 py-3 text-falcon-muted">{e.completed_at ?? '—'}</td>
+                      <td className="px-4 py-3 text-falcon-muted">{e.expires_at ?? '—'}</td>
                     </tr>
                   )
                 })}
@@ -250,13 +250,13 @@ export default function TrainingMgmtPage() {
       {activeTab === 'stats' && (
         <div className="grid grid-cols-2 gap-6">
           {/* プログラム別完了率 */}
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
+          <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
             <h3 className="font-semibold mb-4 flex items-center gap-2"><BarChart2 className="w-4 h-4 text-blue-400" />プログラム別完了率</h3>
             <div className="space-y-3">
               {[{ name: 'セキュリティ基礎意識向上', rate: 72 },{ name: 'フィッシングシミュレーション', rate: 58 },{ name: 'SOCアナリスト技術', rate: 45 },{ name: 'GDPR/個人情報保護', rate: 61 }].map(p => (
                 <div key={p.name}>
-                  <div className="flex justify-between text-xs text-[#7d92b0] mb-1"><span>{p.name}</span><span>{p.rate}%</span></div>
-                  <div className="w-full bg-[#1e2d42] rounded-full h-2">
+                  <div className="flex justify-between text-xs text-falcon-muted mb-1"><span>{p.name}</span><span>{p.rate}%</span></div>
+                  <div className="w-full bg-falcon-border rounded-full h-2">
                     <div className="h-2 rounded-full bg-blue-500" style={{ width: `${p.rate}%` }} />
                   </div>
                 </div>
@@ -265,7 +265,7 @@ export default function TrainingMgmtPage() {
           </div>
 
           {/* 月次完了トレンド */}
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
+          <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
             <h3 className="font-semibold mb-4 flex items-center gap-2"><BarChart2 className="w-4 h-4 text-green-400" />月次完了トレンド</h3>
             <div className="flex items-end gap-2 h-32">
               {MONTHLY_DATA.map(m => {
@@ -273,9 +273,9 @@ export default function TrainingMgmtPage() {
                 const heightPct = (m.count / maxCount) * 100
                 return (
                   <div key={m.month} className="flex-1 flex flex-col items-center gap-1">
-                    <span className="text-xs text-[#7d92b0]">{m.count}</span>
+                    <span className="text-xs text-falcon-muted">{m.count}</span>
                     <div className="w-full bg-green-500/80 rounded-t" style={{ height: `${heightPct}%` }} />
-                    <span className="text-xs text-[#7d92b0]">{m.month}</span>
+                    <span className="text-xs text-falcon-muted">{m.month}</span>
                   </div>
                 )
               })}
@@ -283,15 +283,15 @@ export default function TrainingMgmtPage() {
           </div>
 
           {/* 期限切れ間近 */}
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
+          <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
             <h3 className="font-semibold mb-4 flex items-center gap-2"><Clock className="w-4 h-4 text-orange-400" />期限切れ間近の認定 (30日以内)</h3>
             <table className="w-full text-sm">
-              <thead><tr className="text-[#7d92b0] text-xs"><th className="text-left py-1">氏名</th><th className="text-left py-1">プログラム</th><th className="text-left py-1">期限</th><th className="text-left py-1">残日数</th></tr></thead>
+              <thead><tr className="text-falcon-muted text-xs"><th className="text-left py-1">氏名</th><th className="text-left py-1">プログラム</th><th className="text-left py-1">期限</th><th className="text-left py-1">残日数</th></tr></thead>
               <tbody>{EXPIRING_CERTS.map(c => (
-                <tr key={c.name} className="border-t border-[#1e2d42]/50">
+                <tr key={c.name} className="border-t border-falcon-border/50">
                   <td className="py-2">{c.name}</td>
-                  <td className="py-2 text-[#7d92b0] text-xs">{c.program}</td>
-                  <td className="py-2 text-[#7d92b0]">{c.expires}</td>
+                  <td className="py-2 text-falcon-muted text-xs">{c.program}</td>
+                  <td className="py-2 text-falcon-muted">{c.expires}</td>
                   <td className="py-2"><span className="text-orange-400 font-medium">{c.days}日</span></td>
                 </tr>
               ))}</tbody>
@@ -299,7 +299,7 @@ export default function TrainingMgmtPage() {
           </div>
 
           {/* リスクカバレッジ */}
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
+          <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
             <h3 className="font-semibold mb-4 flex items-center gap-2"><AlertTriangle className="w-4 h-4 text-red-400" />低完了率部署 (80%未満)</h3>
             <div className="space-y-3">
               {DEPT_RISK.map(d => (
@@ -319,27 +319,27 @@ export default function TrainingMgmtPage() {
       {/* 受講登録モーダル */}
       {showEnrollModal && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-6 w-[420px]">
+          <div className="bg-falcon-surface border border-falcon-border rounded-xl p-6 w-[420px]">
             <div className="flex items-center justify-between mb-5">
               <h2 className="font-semibold text-lg">受講登録</h2>
-              <button onClick={() => setShowEnrollModal(false)} className="text-[#7d92b0] hover:text-white"><X className="w-5 h-5" /></button>
+              <button onClick={() => setShowEnrollModal(false)} className="text-falcon-muted hover:text-white"><X className="w-5 h-5" /></button>
             </div>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm text-[#7d92b0] mb-1">ユーザー</label>
-                <select className="w-full bg-[#1e2d42] border border-[#2a3f5f] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-[#e8002d]">
+                <label className="block text-sm text-falcon-muted mb-1">ユーザー</label>
+                <select className="w-full bg-falcon-border border border-[#2a3f5f] rounded-lg px-3 py-2 text-sm text-white focus:outline-hidden focus:border-falcon-red">
                   <option>田中 太郎</option><option>鈴木 花子</option><option>佐藤 次郎</option><option>山田 美咲</option>
                 </select>
               </div>
               <div>
-                <label className="block text-sm text-[#7d92b0] mb-1">プログラム</label>
-                <select className="w-full bg-[#1e2d42] border border-[#2a3f5f] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-[#e8002d]">
+                <label className="block text-sm text-falcon-muted mb-1">プログラム</label>
+                <select className="w-full bg-falcon-border border border-[#2a3f5f] rounded-lg px-3 py-2 text-sm text-white focus:outline-hidden focus:border-falcon-red">
                   {programs.map(p => <option key={p.id}>{p.name}</option>)}
                 </select>
               </div>
               <div className="flex gap-3 pt-2">
-                <button onClick={() => setShowEnrollModal(false)} className="flex-1 px-4 py-2 bg-[#1e2d42] hover:bg-[#2a3f5f] rounded-lg text-sm transition-colors">キャンセル</button>
-                <button onClick={() => setShowEnrollModal(false)} className="flex-1 px-4 py-2 bg-[#e8002d] hover:bg-[#c0001f] rounded-lg text-sm transition-colors">登録</button>
+                <button onClick={() => setShowEnrollModal(false)} className="flex-1 px-4 py-2 bg-falcon-border hover:bg-[#2a3f5f] rounded-lg text-sm transition-colors">キャンセル</button>
+                <button onClick={() => setShowEnrollModal(false)} className="flex-1 px-4 py-2 bg-falcon-red hover:bg-[#c0001f] rounded-lg text-sm transition-colors">登録</button>
               </div>
             </div>
           </div>

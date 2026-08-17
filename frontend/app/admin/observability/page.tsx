@@ -80,17 +80,17 @@ function Toggle({
         aria-checked={checked}
         onClick={() => onChange(!checked)}
         className={`relative w-10 h-5 rounded-full transition-colors duration-200 ${
-          checked ? 'bg-[#e8002d]' : 'bg-[#1e2d42]'
+          checked ? 'bg-falcon-red' : 'bg-falcon-border'
         }`}
       >
         <span
-          className={`absolute top-0.5 w-4 h-4 rounded-full bg-[#e2e8f4] shadow transition-transform duration-200 ${
+          className={`absolute top-0.5 w-4 h-4 rounded-full bg-falcon-text shadow transition-transform duration-200 ${
             checked ? 'translate-x-5' : 'translate-x-0.5'
           }`}
         />
       </button>
       {label && (
-        <span className={`text-sm font-medium ${checked ? 'text-[#e2e8f4]' : 'text-[#7d92b0]'}`}>
+        <span className={`text-sm font-medium ${checked ? 'text-falcon-text' : 'text-falcon-muted'}`}>
           {label}
         </span>
       )}
@@ -110,10 +110,10 @@ function SectionCard({
   badge?: React.ReactNode
 }) {
   return (
-    <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg overflow-hidden">
-      <div className="flex items-center gap-3 px-5 py-4 border-b border-[#1e2d42]">
-        <Icon className="w-5 h-5 text-[#e8002d]" />
-        <h2 className="text-[#e2e8f4] font-semibold text-base">{title}</h2>
+    <div className="bg-falcon-surface border border-falcon-border rounded-lg overflow-hidden">
+      <div className="flex items-center gap-3 px-5 py-4 border-b border-falcon-border">
+        <Icon className="w-5 h-5 text-falcon-red" />
+        <h2 className="text-falcon-text font-semibold text-base">{title}</h2>
         {badge && <div className="ml-auto">{badge}</div>}
       </div>
       <div className="p-5 space-y-4">{children}</div>
@@ -148,7 +148,7 @@ function TestButton({
         onClick={handleTest}
         disabled={loading}
         className="flex items-center gap-2 px-3 py-1.5 rounded text-sm font-medium
-                   bg-[#1e2d42] text-[#7d92b0] hover:bg-[#243448] hover:text-[#e2e8f4]
+                   bg-falcon-border text-falcon-muted hover:bg-[#243448] hover:text-falcon-text
                    disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
       >
         {loading ? (
@@ -161,7 +161,7 @@ function TestButton({
       {result && (
         <span
           className={`flex items-center gap-1.5 text-xs font-medium ${
-            result.success ? 'text-[#00c853]' : 'text-[#e8002d]'
+            result.success ? 'text-falcon-green' : 'text-falcon-red'
           }`}
         >
           {result.success ? (
@@ -246,8 +246,8 @@ export default function ObservabilityPage() {
   }
 
   const inputCls =
-    'w-full px-3 py-2 rounded bg-[#070d19] border border-[#1e2d42] text-[#e2e8f4] text-sm placeholder-[#3d5068] focus:outline-none focus:border-[#3d6baa] transition-colors'
-  const labelCls = 'block text-xs font-medium text-[#7d92b0] mb-1.5'
+    'w-full px-3 py-2 rounded-sm bg-[#070d19] border border-falcon-border text-falcon-text text-sm placeholder-falcon-subtle focus:outline-hidden focus:border-[#3d6baa] transition-colors'
+  const labelCls = 'block text-xs font-medium text-falcon-muted mb-1.5'
   const selectCls = `${inputCls} cursor-pointer`
 
   return (
@@ -255,16 +255,16 @@ export default function ObservabilityPage() {
       {/* Toast */}
       {toast && (
         <div className="fixed top-4 right-4 z-50 flex items-center gap-2 px-4 py-3 rounded-lg
-                        bg-[#0d1220] border border-[#1e2d42] shadow-lg text-[#e2e8f4] text-sm animate-fade-in">
-          <CheckCircle className="w-4 h-4 text-[#00c853]" />
+                        bg-falcon-surface border border-falcon-border shadow-lg text-falcon-text text-sm animate-fade-in">
+          <CheckCircle className="w-4 h-4 text-falcon-green" />
           {toast}
         </div>
       )}
 
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-[#e2e8f4]">オブザーバビリティ設定</h1>
-        <p className="text-sm text-[#7d92b0] mt-1">
+        <h1 className="text-2xl font-bold text-falcon-text">オブザーバビリティ設定</h1>
+        <p className="text-sm text-falcon-muted mt-1">
           トレーシング・メトリクス・ログの外部エクスポート設定
         </p>
       </div>
@@ -330,21 +330,21 @@ export default function ObservabilityPage() {
             <div>
               <label className={labelCls}>
                 サンプリングレート —{' '}
-                <span className="text-[#e2e8f4] font-semibold">
+                <span className="text-falcon-text font-semibold">
                   {config.tracing.sample_rate}% のリクエストをサンプリング
                 </span>
               </label>
               <div className="flex items-center gap-3">
-                <span className="text-xs text-[#3d5068] w-4">0%</span>
+                <span className="text-xs text-falcon-subtle w-4">0%</span>
                 <input
                   type="range"
                   min={0}
                   max={100}
                   value={config.tracing.sample_rate}
                   onChange={(e) => setTracing({ sample_rate: Number(e.target.value) })}
-                  className="flex-1 accent-[#e8002d] cursor-pointer"
+                  className="flex-1 accent-falcon-red cursor-pointer"
                 />
-                <span className="text-xs text-[#3d5068] w-8">100%</span>
+                <span className="text-xs text-falcon-subtle w-8">100%</span>
               </div>
             </div>
 
@@ -354,7 +354,7 @@ export default function ObservabilityPage() {
                 <label className={labelCls + ' mb-0'}>認証ヘッダー</label>
                 <button
                   onClick={addHeader}
-                  className="flex items-center gap-1 text-xs text-[#7d92b0] hover:text-[#e2e8f4] transition-colors"
+                  className="flex items-center gap-1 text-xs text-falcon-muted hover:text-falcon-text transition-colors"
                 >
                   <Plus className="w-3.5 h-3.5" />
                   追加
@@ -379,20 +379,20 @@ export default function ObservabilityPage() {
                     />
                     <button
                       onClick={() => removeHeader(i)}
-                      className="p-1.5 rounded hover:bg-[#1e2d42] text-[#7d92b0] hover:text-[#e8002d] transition-colors"
+                      className="p-1.5 rounded-sm hover:bg-falcon-border text-falcon-muted hover:text-falcon-red transition-colors"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
                   </div>
                 ))}
                 {config.tracing.headers.length === 0 && (
-                  <p className="text-xs text-[#3d5068] italic">ヘッダーが未設定です</p>
+                  <p className="text-xs text-falcon-subtle italic">ヘッダーが未設定です</p>
                 )}
               </div>
             </div>
           </div>
 
-          <div className="pt-2 border-t border-[#1e2d42]">
+          <div className="pt-2 border-t border-falcon-border">
             <TestButton section="tracing" onTest={testConnection} />
           </div>
         </SectionCard>
@@ -412,28 +412,28 @@ export default function ObservabilityPage() {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className={labelCls}>メトリクスエンドポイント</label>
-              <div className="flex items-center gap-2 px-3 py-2 rounded bg-[#070d19] border border-[#1e2d42]">
-                <span className="text-[#7d92b0] text-sm font-mono">{config.metrics.metrics_path}</span>
-                <span className="ml-auto text-[10px] text-[#3d5068] bg-[#1e2d42] px-1.5 py-0.5 rounded">
+              <div className="flex items-center gap-2 px-3 py-2 rounded-sm bg-[#070d19] border border-falcon-border">
+                <span className="text-falcon-muted text-sm font-mono">{config.metrics.metrics_path}</span>
+                <span className="ml-auto text-[10px] text-falcon-subtle bg-falcon-border px-1.5 py-0.5 rounded-sm">
                   読み取り専用
                 </span>
               </div>
             </div>
             <div>
               <label className={labelCls}>スクレイプ間隔</label>
-              <div className="flex items-center gap-2 px-3 py-2 rounded bg-[#070d19] border border-[#1e2d42]">
-                <span className="text-[#e2e8f4] text-sm font-mono">
+              <div className="flex items-center gap-2 px-3 py-2 rounded-sm bg-[#070d19] border border-falcon-border">
+                <span className="text-falcon-text text-sm font-mono">
                   {config.metrics.scrape_interval_seconds}s
                 </span>
               </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-4 p-3 rounded bg-[#070d19] border border-[#1e2d42]">
-            <BarChart3 className="w-8 h-8 text-[#e8002d]" />
+          <div className="flex items-center gap-4 p-3 rounded-sm bg-[#070d19] border border-falcon-border">
+            <BarChart3 className="w-8 h-8 text-falcon-red" />
             <div>
-              <p className="text-2xl font-bold text-[#e2e8f4]">{config.metrics.metrics_count}</p>
-              <p className="text-xs text-[#7d92b0]">メトリクスをエクスポート中</p>
+              <p className="text-2xl font-bold text-falcon-text">{config.metrics.metrics_count}</p>
+              <p className="text-xs text-falcon-muted">メトリクスをエクスポート中</p>
             </div>
             <div className="ml-auto">
               <a
@@ -441,7 +441,7 @@ export default function ObservabilityPage() {
                 target="_blank"
                 rel="noreferrer"
                 className="flex items-center gap-2 px-3 py-1.5 rounded text-sm font-medium
-                           bg-[#1e2d42] text-[#7d92b0] hover:bg-[#243448] hover:text-[#e2e8f4] transition-colors"
+                           bg-falcon-border text-falcon-muted hover:bg-[#243448] hover:text-falcon-text transition-colors"
               >
                 <ExternalLink className="w-3.5 h-3.5" />
                 メトリクスエンドポイントを開く
@@ -449,7 +449,7 @@ export default function ObservabilityPage() {
             </div>
           </div>
 
-          <div className="pt-2 border-t border-[#1e2d42]">
+          <div className="pt-2 border-t border-falcon-border">
             <TestButton section="metrics" onTest={testConnection} />
           </div>
         </SectionCard>
@@ -501,9 +501,9 @@ export default function ObservabilityPage() {
                     onChange={(e) =>
                       setLogging({ outputs: { ...config.logging.outputs, [key]: e.target.checked } })
                     }
-                    className="w-4 h-4 rounded accent-[#e8002d] cursor-pointer"
+                    className="w-4 h-4 rounded-sm accent-falcon-red cursor-pointer"
                   />
-                  <span className="text-sm text-[#e2e8f4]">{label}</span>
+                  <span className="text-sm text-falcon-text">{label}</span>
                 </label>
               ))}
             </div>
@@ -525,7 +525,7 @@ export default function ObservabilityPage() {
 
           {/* External config (conditional) */}
           {config.logging.outputs.external && (
-            <div className="space-y-3 animate-fade-in p-3 rounded bg-[#070d19] border border-[#1e2d42]">
+            <div className="space-y-3 animate-fade-in p-3 rounded-sm bg-[#070d19] border border-falcon-border">
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className={labelCls}>外部エンドポイント URL</label>
@@ -552,18 +552,18 @@ export default function ObservabilityPage() {
                   </select>
                 </div>
               </div>
-              <div className="pt-2 border-t border-[#1e2d42]">
+              <div className="pt-2 border-t border-falcon-border">
                 <TestButton section="logging" onTest={testConnection} />
               </div>
             </div>
           )}
 
           {/* Sampling */}
-          <div className="p-3 rounded bg-[#070d19] border border-[#1e2d42] space-y-3">
+          <div className="p-3 rounded-sm bg-[#070d19] border border-falcon-border space-y-3">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-[#e2e8f4]">大量ログのサンプリング</p>
-                <p className="text-xs text-[#7d92b0] mt-0.5">
+                <p className="text-sm font-medium text-falcon-text">大量ログのサンプリング</p>
+                <p className="text-xs text-falcon-muted mt-0.5">
                   高トラフィック時にログを間引いてパフォーマンスを維持
                 </p>
               </div>
@@ -576,21 +576,21 @@ export default function ObservabilityPage() {
               <div className="animate-fade-in">
                 <label className={labelCls}>
                   サンプリングレート —{' '}
-                  <span className="text-[#e2e8f4] font-semibold">
+                  <span className="text-falcon-text font-semibold">
                     {config.logging.sampling_rate}%
                   </span>
                 </label>
                 <div className="flex items-center gap-3">
-                  <span className="text-xs text-[#3d5068] w-4">1%</span>
+                  <span className="text-xs text-falcon-subtle w-4">1%</span>
                   <input
                     type="range"
                     min={1}
                     max={100}
                     value={config.logging.sampling_rate}
                     onChange={(e) => setLogging({ sampling_rate: Number(e.target.value) })}
-                    className="flex-1 accent-[#e8002d] cursor-pointer"
+                    className="flex-1 accent-falcon-red cursor-pointer"
                   />
-                  <span className="text-xs text-[#3d5068] w-8">100%</span>
+                  <span className="text-xs text-falcon-subtle w-8">100%</span>
                 </div>
               </div>
             )}
@@ -603,7 +603,7 @@ export default function ObservabilityPage() {
             onClick={() => saveMutation.mutate(config)}
             disabled={saveMutation.isPending}
             className="flex items-center gap-2 px-5 py-2.5 rounded-lg font-semibold text-sm
-                       bg-[#e8002d] hover:bg-[#c0001f] text-white transition-colors
+                       bg-falcon-red hover:bg-[#c0001f] text-white transition-colors
                        disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {saveMutation.isPending ? (

@@ -191,7 +191,7 @@ function MiniGauge({ value, label, size = 56 }: { value: number; label: string; 
           {value}%
         </text>
       </svg>
-      <span className="text-[#7d92b0] text-xs">{label}</span>
+      <span className="text-falcon-muted text-xs">{label}</span>
     </div>
   )
 }
@@ -213,20 +213,20 @@ function AgentCard({ agent }: { agent: AgentWithScore }) {
             {agent.hostname || '—'}
           </p>
           {agent.os && (
-            <span className="inline-block mt-1 px-1.5 py-0.5 text-[10px] bg-[#1e2d42] text-[#7d92b0] rounded font-mono">
+            <span className="inline-block mt-1 px-1.5 py-0.5 text-[10px] bg-falcon-border text-falcon-muted rounded-sm font-mono">
               {agent.os}
             </span>
           )}
         </div>
-        <div className="flex items-center gap-1.5 ml-2 flex-shrink-0">
+        <div className="flex items-center gap-1.5 ml-2 shrink-0">
           <span
-            className={`w-2 h-2 rounded-full flex-shrink-0 ${
+            className={`w-2 h-2 rounded-full shrink-0 ${
               agent.status === 'online' ? 'bg-green-400' :
               agent.status === 'offline' ? 'bg-red-400' : 'bg-yellow-400'
             }`}
           />
           <span
-            className="text-[10px] font-bold px-1.5 py-0.5 rounded"
+            className="text-[10px] font-bold px-1.5 py-0.5 rounded-sm"
             style={{ color: scoreColor, background: `${scoreColor}22` }}
           >
             {score}
@@ -243,7 +243,7 @@ function AgentCard({ agent }: { agent: AgentWithScore }) {
 
       {/* Footer */}
       <div className="mt-2 pt-2 border-t border-[#1e3050]">
-        <p className="text-[10px] text-[#7d92b0] truncate">
+        <p className="text-[10px] text-falcon-muted truncate">
           最終確認: {timeAgo(agent.last_seen)}
         </p>
       </div>
@@ -486,7 +486,7 @@ export default function AgentHealthPage() {
       {/* ── Header ──────────────────────────────────────────────── */}
       <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
         <div className="flex items-center gap-3">
-          <Activity className="w-6 h-6 text-blue-400 flex-shrink-0" />
+          <Activity className="w-6 h-6 text-blue-400 shrink-0" />
           <div>
             <h1 className="text-xl font-bold text-white">エージェント健全性ダッシュボード</h1>
             <p className="text-xs text-gray-500 mt-0.5">
@@ -530,28 +530,28 @@ export default function AgentHealthPage() {
           {/* ── Health stat chips row ────────────────────────────── */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
             <div className="bg-gray-800 rounded-xl border border-green-800/40 p-3 flex items-center gap-3">
-              <div className="w-3 h-3 rounded-full bg-green-400 flex-shrink-0" />
+              <div className="w-3 h-3 rounded-full bg-green-400 shrink-0" />
               <div>
                 <p className="text-xs text-gray-400">正常</p>
                 <p className="text-xl font-bold text-green-400">{healthyCnt}</p>
               </div>
             </div>
             <div className="bg-gray-800 rounded-xl border border-yellow-800/40 p-3 flex items-center gap-3">
-              <div className="w-3 h-3 rounded-full bg-yellow-400 flex-shrink-0" />
+              <div className="w-3 h-3 rounded-full bg-yellow-400 shrink-0" />
               <div>
                 <p className="text-xs text-gray-400">警告</p>
                 <p className="text-xl font-bold text-yellow-400">{warningCnt}</p>
               </div>
             </div>
             <div className="bg-gray-800 rounded-xl border border-red-800/40 p-3 flex items-center gap-3">
-              <div className="w-3 h-3 rounded-full bg-red-400 flex-shrink-0" />
+              <div className="w-3 h-3 rounded-full bg-red-400 shrink-0" />
               <div>
                 <p className="text-xs text-gray-400">クリティカル</p>
                 <p className="text-xl font-bold text-red-400">{criticalCnt}</p>
               </div>
             </div>
             <div className="bg-gray-800 rounded-xl border border-gray-700 p-3 flex items-center gap-3">
-              <div className="w-3 h-3 rounded-full bg-gray-500 flex-shrink-0" />
+              <div className="w-3 h-3 rounded-full bg-gray-500 shrink-0" />
               <div>
                 <p className="text-xs text-gray-400">オフライン</p>
                 <p className="text-xl font-bold text-gray-400">{offlineCnt}</p>
@@ -650,7 +650,7 @@ export default function AgentHealthPage() {
                 <select
                   value={sortField}
                   onChange={e => setSortField(e.target.value as SortField)}
-                  className="appearance-none pl-3 pr-8 py-1.5 text-xs text-gray-300 bg-gray-800 border border-gray-700 rounded-lg hover:border-gray-500 focus:outline-none focus:border-blue-500 cursor-pointer"
+                  className="appearance-none pl-3 pr-8 py-1.5 text-xs text-gray-300 bg-gray-800 border border-gray-700 rounded-lg hover:border-gray-500 focus:outline-hidden focus:border-blue-500 cursor-pointer"
                 >
                   {sortOptions.map(opt => (
                     <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -767,7 +767,7 @@ export default function AgentHealthPage() {
                         </td>
                         <td className="px-4 py-3 text-right">
                           <span
-                            className={`inline-block px-2 py-0.5 rounded text-xs font-bold tabular-nums ${healthBg(agent.healthScore)}`}
+                            className={`inline-block px-2 py-0.5 rounded-sm text-xs font-bold tabular-nums ${healthBg(agent.healthScore)}`}
                           >
                             {agent.healthScore}
                           </span>
@@ -780,7 +780,7 @@ export default function AgentHealthPage() {
                         <td className="px-4 py-3">
                           <Link
                             href={`/endpoints/${agent.id}`}
-                            className="inline-flex items-center gap-1 px-2.5 py-1 text-xs text-blue-400 bg-blue-900/30 border border-blue-700/50 rounded hover:bg-blue-900/50 transition-colors whitespace-nowrap"
+                            className="inline-flex items-center gap-1 px-2.5 py-1 text-xs text-blue-400 bg-blue-900/30 border border-blue-700/50 rounded-sm hover:bg-blue-900/50 transition-colors whitespace-nowrap"
                           >
                             <ExternalLink className="w-3 h-3" />
                             詳細

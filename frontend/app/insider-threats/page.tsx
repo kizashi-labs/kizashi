@@ -290,7 +290,7 @@ function ActivityHeatmap({ data, baseline }: { data: number[][], baseline: numbe
   const maxVal = Math.max(...data.flat(), 1)
 
   const getCellColor = (dayIdx: number, hourIdx: number, value: number): string => {
-    if (value === 0) return 'fill-[#1e2d42]'
+    if (value === 0) return 'fill-falcon-border'
     const baselineHour = baseline[hourIdx] ?? 0
     const isAnomaly = value > baselineHour * 2.5 && value >= 3
     if (isAnomaly) return 'fill-red-500'
@@ -318,7 +318,7 @@ function ActivityHeatmap({ data, baseline }: { data: number[][], baseline: numbe
             x={labelW + h * (cellW + gap) + cellW / 2}
             y={labelH - 4}
             textAnchor="middle"
-            className="fill-[#7d92b0]"
+            className="fill-falcon-muted"
             fontSize={9}
           >
             {h}
@@ -331,7 +331,7 @@ function ActivityHeatmap({ data, baseline }: { data: number[][], baseline: numbe
             x={labelW - 4}
             y={labelH + di * (cellH + gap) + cellH / 2 + 4}
             textAnchor="end"
-            className="fill-[#7d92b0]"
+            className="fill-falcon-muted"
             fontSize={9}
           >
             {day}
@@ -352,15 +352,15 @@ function ActivityHeatmap({ data, baseline }: { data: number[][], baseline: numbe
           ))
         )}
       </svg>
-      <div className="flex items-center gap-4 mt-2 text-xs text-[#7d92b0]">
+      <div className="flex items-center gap-4 mt-2 text-xs text-falcon-muted">
         <span className="flex items-center gap-1">
-          <span className="w-3 h-3 rounded-sm bg-blue-500/70 inline-block" /> 通常アクティビティ
+          <span className="w-3 h-3 rounded-xs bg-blue-500/70 inline-block" /> 通常アクティビティ
         </span>
         <span className="flex items-center gap-1">
-          <span className="w-3 h-3 rounded-sm bg-red-500 inline-block" /> 異常検知
+          <span className="w-3 h-3 rounded-xs bg-red-500 inline-block" /> 異常検知
         </span>
         <span className="flex items-center gap-1">
-          <span className="w-3 h-3 rounded-sm bg-[#1e2d42] inline-block border border-[#1e2d42]" /> 非アクティブ
+          <span className="w-3 h-3 rounded-xs bg-falcon-border inline-block border border-falcon-border" /> 非アクティブ
         </span>
       </div>
     </div>
@@ -499,7 +499,7 @@ export default function InsiderThreatsPage() {
       {/* Header */}
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-white">内部脅威検知</h1>
-        <p className="text-[#7d92b0] mt-1 text-sm">
+        <p className="text-falcon-muted mt-1 text-sm">
           異常な権限昇格・時間外アクセス・大量データアクセスの検知
         </p>
       </div>
@@ -512,11 +512,11 @@ export default function InsiderThreatsPage() {
           { label: '権限昇格', value: stats.privilege_escalations, icon: <TrendingUp className="w-5 h-5" />, color: 'text-orange-400', bg: 'bg-orange-500/10' },
           { label: '大量アクセスイベント', value: stats.bulk_data_events, icon: <Database className="w-5 h-5" />, color: 'text-blue-400', bg: 'bg-blue-500/10' },
         ].map(({ label, value, icon, color, bg }) => (
-          <div key={label} className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-4">
+          <div key={label} className="bg-falcon-surface border border-falcon-border rounded-lg p-4">
             <div className="flex items-center gap-3">
               <div className={`p-2 rounded-lg ${bg} ${color}`}>{icon}</div>
               <div>
-                <p className="text-[#7d92b0] text-xs">{label}</p>
+                <p className="text-falcon-muted text-xs">{label}</p>
                 <p className={`text-2xl font-bold ${color}`}>{value}</p>
               </div>
             </div>
@@ -525,7 +525,7 @@ export default function InsiderThreatsPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 mb-6 bg-[#0d1220] border border-[#1e2d42] rounded-lg p-1 w-fit">
+      <div className="flex gap-1 mb-6 bg-falcon-surface border border-falcon-border rounded-lg p-1 w-fit">
         {[
           { id: 'alerts', label: 'アラート' },
           { id: 'behavior', label: 'ユーザー行動分析' },
@@ -536,8 +536,8 @@ export default function InsiderThreatsPage() {
             onClick={() => setActiveTab(tab.id as typeof activeTab)}
             className={`px-4 py-2 rounded text-sm font-medium transition-colors ${
               activeTab === tab.id
-                ? 'bg-[#1d2f4a] text-white'
-                : 'text-[#7d92b0] hover:text-white'
+                ? 'bg-falcon-active text-white'
+                : 'text-falcon-muted hover:text-white'
             }`}
           >
             {tab.label}
@@ -550,24 +550,24 @@ export default function InsiderThreatsPage() {
         <div className="space-y-4">
           {/* Filters */}
           <div className="flex items-center gap-3 flex-wrap">
-            <div className="flex items-center gap-2 text-[#7d92b0] text-sm">
+            <div className="flex items-center gap-2 text-falcon-muted text-sm">
               <Filter className="w-4 h-4" />
               <span>フィルター:</span>
             </div>
             <div className="relative">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#7d92b0]" />
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-falcon-muted" />
               <input
                 type="text"
                 placeholder="ユーザー名・タイトル検索..."
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
-                className="pl-8 pr-3 py-1.5 bg-[#0d1220] border border-[#1e2d42] rounded text-sm text-white placeholder-[#7d92b0] focus:outline-none focus:border-[#7d92b0]/50 w-48"
+                className="pl-8 pr-3 py-1.5 bg-falcon-surface border border-falcon-border rounded-sm text-sm text-white placeholder-falcon-muted focus:outline-hidden focus:border-falcon-muted/50 w-48"
               />
             </div>
             <select
               value={threatTypeFilter}
               onChange={e => setThreatTypeFilter(e.target.value)}
-              className="px-3 py-1.5 bg-[#0d1220] border border-[#1e2d42] rounded text-sm text-white focus:outline-none focus:border-[#7d92b0]/50"
+              className="px-3 py-1.5 bg-falcon-surface border border-falcon-border rounded-sm text-sm text-white focus:outline-hidden focus:border-falcon-muted/50"
             >
               <option value="all">脅威タイプ: すべて</option>
               <option value="after_hours">時間外アクセス</option>
@@ -578,7 +578,7 @@ export default function InsiderThreatsPage() {
             <select
               value={severityFilter}
               onChange={e => setSeverityFilter(e.target.value)}
-              className="px-3 py-1.5 bg-[#0d1220] border border-[#1e2d42] rounded text-sm text-white focus:outline-none focus:border-[#7d92b0]/50"
+              className="px-3 py-1.5 bg-falcon-surface border border-falcon-border rounded-sm text-sm text-white focus:outline-hidden focus:border-falcon-muted/50"
             >
               <option value="all">重要度: すべて</option>
               <option value="critical">クリティカル</option>
@@ -589,7 +589,7 @@ export default function InsiderThreatsPage() {
             <select
               value={dateRange}
               onChange={e => setDateRange(e.target.value)}
-              className="px-3 py-1.5 bg-[#0d1220] border border-[#1e2d42] rounded text-sm text-white focus:outline-none focus:border-[#7d92b0]/50"
+              className="px-3 py-1.5 bg-falcon-surface border border-falcon-border rounded-sm text-sm text-white focus:outline-hidden focus:border-falcon-muted/50"
             >
               <option value="1d">過去24時間</option>
               <option value="7d">過去7日間</option>
@@ -598,17 +598,17 @@ export default function InsiderThreatsPage() {
             {(threatTypeFilter !== 'all' || severityFilter !== 'all' || searchQuery) && (
               <button
                 onClick={() => { setThreatTypeFilter('all'); setSeverityFilter('all'); setSearchQuery('') }}
-                className="flex items-center gap-1 px-2 py-1.5 text-xs text-[#7d92b0] hover:text-white"
+                className="flex items-center gap-1 px-2 py-1.5 text-xs text-falcon-muted hover:text-white"
               >
                 <X className="w-3.5 h-3.5" /> クリア
               </button>
             )}
-            <span className="text-[#7d92b0] text-sm ml-auto">{filteredAlerts.length} 件</span>
+            <span className="text-falcon-muted text-sm ml-auto">{filteredAlerts.length} 件</span>
           </div>
 
           {/* Alert Cards */}
           {filteredAlerts.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-20 text-[#7d92b0]">
+            <div className="flex flex-col items-center justify-center py-20 text-falcon-muted">
               <Shield className="w-12 h-12 mb-4 opacity-30" />
               <p className="text-lg font-medium">現在検知された内部脅威はありません</p>
               <p className="text-sm mt-1 opacity-70">フィルターを変更するか、後で再確認してください</p>
@@ -621,10 +621,10 @@ export default function InsiderThreatsPage() {
                 return (
                   <div
                     key={alert.id}
-                    className={`bg-[#0d1220] border rounded-lg overflow-hidden flex ${typeConf.bg}`}
+                    className={`bg-falcon-surface border rounded-lg overflow-hidden flex ${typeConf.bg}`}
                   >
                     {/* Color strip */}
-                    <div className={`w-1 flex-shrink-0 ${
+                    <div className={`w-1 shrink-0 ${
                       alert.severity === 'critical' ? 'bg-red-500' :
                       alert.severity === 'high' ? 'bg-orange-500' :
                       alert.severity === 'medium' ? 'bg-yellow-500' : 'bg-green-500'
@@ -632,7 +632,7 @@ export default function InsiderThreatsPage() {
                     <div className="flex-1 p-4">
                       <div className="flex items-start gap-4">
                         {/* Icon */}
-                        <div className={`p-2 rounded-lg flex-shrink-0 mt-0.5 ${typeConf.color} bg-[#070d19]`}>
+                        <div className={`p-2 rounded-lg shrink-0 mt-0.5 ${typeConf.color} bg-[#070d19]`}>
                           {typeConf.icon}
                         </div>
                         {/* Content */}
@@ -649,29 +649,29 @@ export default function InsiderThreatsPage() {
                                 </span>
                               </div>
                               <h3 className="text-white font-semibold">{alert.title}</h3>
-                              <p className="text-[#7d92b0] text-sm mt-1">{alert.description}</p>
+                              <p className="text-falcon-muted text-sm mt-1">{alert.description}</p>
                             </div>
-                            <div className="flex flex-col items-end gap-2 flex-shrink-0">
-                              <span className="text-[#7d92b0] text-xs whitespace-nowrap">
+                            <div className="flex flex-col items-end gap-2 shrink-0">
+                              <span className="text-falcon-muted text-xs whitespace-nowrap">
                                 {formatTimestamp(alert.timestamp)}
                               </span>
                               <Link
                                 href={`/timeline?user=${alert.user_id}`}
-                                className="flex items-center gap-1 px-3 py-1.5 bg-[#1d2f4a] hover:bg-[#243a5e] text-white text-xs rounded transition-colors"
+                                className="flex items-center gap-1 px-3 py-1.5 bg-falcon-active hover:bg-[#243a5e] text-white text-xs rounded-sm transition-colors"
                               >
                                 <Eye className="w-3.5 h-3.5" />
                                 調査
                               </Link>
                             </div>
                           </div>
-                          <div className="flex items-center gap-4 mt-2 text-xs text-[#7d92b0]">
+                          <div className="flex items-center gap-4 mt-2 text-xs text-falcon-muted">
                             <span className="flex items-center gap-1">
                               <User className="w-3.5 h-3.5" />
                               {alert.username}
-                              {alert.department && <span className="text-[#3d5068]">({alert.department})</span>}
+                              {alert.department && <span className="text-falcon-subtle">({alert.department})</span>}
                             </span>
                             <span className="font-mono">{alert.ip_address}</span>
-                            <span className="truncate max-w-[200px] font-mono text-[#3d5068]">{alert.resource}</span>
+                            <span className="truncate max-w-[200px] font-mono text-falcon-subtle">{alert.resource}</span>
                           </div>
                         </div>
                       </div>
@@ -689,11 +689,11 @@ export default function InsiderThreatsPage() {
         <div className="space-y-6">
           {/* User Selector */}
           <div className="flex items-center gap-3">
-            <label className="text-[#7d92b0] text-sm font-medium">分析対象ユーザー:</label>
+            <label className="text-falcon-muted text-sm font-medium">分析対象ユーザー:</label>
             <select
               value={selectedUserId}
               onChange={e => setSelectedUserId(e.target.value)}
-              className="px-3 py-2 bg-[#0d1220] border border-[#1e2d42] rounded text-sm text-white focus:outline-none focus:border-[#7d92b0]/50 w-72"
+              className="px-3 py-2 bg-falcon-surface border border-falcon-border rounded-sm text-sm text-white focus:outline-hidden focus:border-falcon-muted/50 w-72"
             >
               <option value="">ユーザーを選択してください...</option>
               {usersList.map(u => (
@@ -705,7 +705,7 @@ export default function InsiderThreatsPage() {
           </div>
 
           {!selectedUserId ? (
-            <div className="flex flex-col items-center justify-center py-20 text-[#7d92b0]">
+            <div className="flex flex-col items-center justify-center py-20 text-falcon-muted">
               <Activity className="w-12 h-12 mb-4 opacity-30" />
               <p className="text-lg font-medium">ユーザーを選択してください</p>
               <p className="text-sm mt-1 opacity-70">上のドロップダウンから分析するユーザーを選択します</p>
@@ -715,7 +715,7 @@ export default function InsiderThreatsPage() {
               {/* Left: Heatmap + Timeline */}
               <div className="col-span-2 space-y-6">
                 {/* Heatmap */}
-                <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-5">
+                <div className="bg-falcon-surface border border-falcon-border rounded-lg p-5">
                   <h3 className="text-white font-semibold mb-4 flex items-center gap-2">
                     <Activity className="w-4 h-4 text-blue-400" />
                     アクティビティヒートマップ（過去7日間）
@@ -727,7 +727,7 @@ export default function InsiderThreatsPage() {
                 </div>
 
                 {/* Recent Actions Table */}
-                <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-5">
+                <div className="bg-falcon-surface border border-falcon-border rounded-lg p-5">
                   <h3 className="text-white font-semibold mb-4 flex items-center gap-2">
                     <Clock className="w-4 h-4 text-amber-400" />
                     最近の操作ログ
@@ -735,7 +735,7 @@ export default function InsiderThreatsPage() {
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                       <thead>
-                        <tr className="text-[#7d92b0] text-xs border-b border-[#1e2d42]">
+                        <tr className="text-falcon-muted text-xs border-b border-falcon-border">
                           <th className="text-left pb-2 pr-4">操作</th>
                           <th className="text-left pb-2 pr-4">リソース</th>
                           <th className="text-left pb-2 pr-4">日時</th>
@@ -743,26 +743,26 @@ export default function InsiderThreatsPage() {
                           <th className="text-left pb-2">異常スコア</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-[#1e2d42]">
+                      <tbody className="divide-y divide-falcon-border">
                         {behavior.recent_actions.map((action, i) => (
                           <tr key={i} className={`${action.anomaly_score > 0.7 ? 'bg-red-500/5' : ''}`}>
                             <td className="py-2 pr-4">
-                              <span className="font-mono text-xs bg-[#070d19] px-2 py-0.5 rounded text-blue-300">
+                              <span className="font-mono text-xs bg-[#070d19] px-2 py-0.5 rounded-sm text-blue-300">
                                 {action.action}
                               </span>
                             </td>
-                            <td className="py-2 pr-4 font-mono text-xs text-[#7d92b0] max-w-[200px] truncate">
+                            <td className="py-2 pr-4 font-mono text-xs text-falcon-muted max-w-[200px] truncate">
                               {action.resource}
                             </td>
-                            <td className="py-2 pr-4 text-[#7d92b0] text-xs whitespace-nowrap">
+                            <td className="py-2 pr-4 text-falcon-muted text-xs whitespace-nowrap">
                               {formatTimestamp(action.timestamp)}
                             </td>
-                            <td className="py-2 pr-4 font-mono text-xs text-[#7d92b0]">
+                            <td className="py-2 pr-4 font-mono text-xs text-falcon-muted">
                               {action.ip_address}
                             </td>
                             <td className="py-2">
                               <div className="flex items-center gap-2">
-                                <div className="w-20 h-1.5 bg-[#1e2d42] rounded-full overflow-hidden">
+                                <div className="w-20 h-1.5 bg-falcon-border rounded-full overflow-hidden">
                                   <div
                                     className={`h-full rounded-full ${
                                       action.anomaly_score > 0.7 ? 'bg-red-500' :
@@ -789,27 +789,27 @@ export default function InsiderThreatsPage() {
 
               {/* Right: Risk Gauge + User Info */}
               <div className="space-y-4">
-                <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-5">
+                <div className="bg-falcon-surface border border-falcon-border rounded-lg p-5">
                   <h3 className="text-white font-semibold mb-4 text-center">リスクスコアゲージ</h3>
                   <RiskGauge score={behavior.risk_score} />
                 </div>
-                <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-5">
+                <div className="bg-falcon-surface border border-falcon-border rounded-lg p-5">
                   <h3 className="text-white font-semibold mb-3">ユーザー情報</h3>
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
-                      <span className="text-[#7d92b0]">ユーザー名</span>
+                      <span className="text-falcon-muted">ユーザー名</span>
                       <span className="text-white font-mono">{behavior.user.username}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-[#7d92b0]">氏名</span>
+                      <span className="text-falcon-muted">氏名</span>
                       <span className="text-white">{behavior.user.full_name}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-[#7d92b0]">部署</span>
+                      <span className="text-falcon-muted">部署</span>
                       <span className="text-white">{behavior.user.department}</span>
                     </div>
-                    <div className="pt-2 border-t border-[#1e2d42]">
-                      <p className="text-[#7d92b0] text-xs mb-2">リスク要因</p>
+                    <div className="pt-2 border-t border-falcon-border">
+                      <p className="text-falcon-muted text-xs mb-2">リスク要因</p>
                       <div className="flex flex-wrap gap-1">
                         {behavior.user.risk_factors.map((f, i) => (
                           <span key={i} className="text-xs bg-red-500/10 text-red-300 border border-red-500/20 px-2 py-0.5 rounded-full">
@@ -828,41 +828,41 @@ export default function InsiderThreatsPage() {
 
       {/* ── Risk Users Tab ── */}
       {activeTab === 'risk_users' && (
-        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg overflow-hidden">
-          <div className="px-5 py-4 border-b border-[#1e2d42]">
+        <div className="bg-falcon-surface border border-falcon-border rounded-lg overflow-hidden">
+          <div className="px-5 py-4 border-b border-falcon-border">
             <h3 className="text-white font-semibold">リスクユーザーランキング</h3>
-            <p className="text-[#7d92b0] text-xs mt-0.5">スコアが高いユーザーを優先的に調査してください</p>
+            <p className="text-falcon-muted text-xs mt-0.5">スコアが高いユーザーを優先的に調査してください</p>
           </div>
-          <div className="divide-y divide-[#1e2d42]">
+          <div className="divide-y divide-falcon-border">
             {riskUsers.map((user, index) => (
               <div key={user.id} className="px-5 py-4 flex items-center gap-5 hover:bg-[#0d1830]/40 transition-colors">
                 {/* Rank */}
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 ${
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold shrink-0 ${
                   index === 0 ? 'bg-red-500/20 text-red-400' :
                   index === 1 ? 'bg-orange-500/20 text-orange-400' :
                   index === 2 ? 'bg-yellow-500/20 text-yellow-400' :
-                  'bg-[#1e2d42] text-[#7d92b0]'
+                  'bg-falcon-border text-falcon-muted'
                 }`}>
                   {index + 1}
                 </div>
 
                 {/* Avatar + Name */}
-                <div className="flex items-center gap-3 w-48 flex-shrink-0">
-                  <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#1a6bff] to-[#0044cc] flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+                <div className="flex items-center gap-3 w-48 shrink-0">
+                  <div className="w-9 h-9 rounded-full bg-linear-to-br from-falcon-blue to-[#0044cc] flex items-center justify-center text-white font-bold text-sm shrink-0">
                     {user.full_name[0]}
                   </div>
                   <div className="min-w-0">
                     <p className="text-white text-sm font-medium truncate">{user.full_name}</p>
-                    <p className="text-[#7d92b0] text-xs truncate">{user.department}</p>
+                    <p className="text-falcon-muted text-xs truncate">{user.department}</p>
                   </div>
                 </div>
 
                 {/* Risk Score */}
-                <div className="flex-shrink-0 w-16 text-center">
+                <div className="shrink-0 w-16 text-center">
                   <p className={`text-3xl font-bold tabular-nums ${getRiskColor(user.risk_score)}`}>
                     {user.risk_score}
                   </p>
-                  <div className="w-full h-1 bg-[#1e2d42] rounded-full mt-1 overflow-hidden">
+                  <div className="w-full h-1 bg-falcon-border rounded-full mt-1 overflow-hidden">
                     <div
                       className={`h-full rounded-full ${getRiskBgColor(user.risk_score)}`}
                       style={{ width: `${user.risk_score}%` }}
@@ -873,29 +873,29 @@ export default function InsiderThreatsPage() {
                 {/* Risk Factors */}
                 <div className="flex-1 flex flex-wrap gap-1">
                   {user.risk_factors.map((f, i) => (
-                    <span key={i} className="text-xs bg-[#1e2d42] text-[#7d92b0] px-2 py-0.5 rounded-full">
+                    <span key={i} className="text-xs bg-falcon-border text-falcon-muted px-2 py-0.5 rounded-full">
                       {f}
                     </span>
                   ))}
                 </div>
 
                 {/* Last Anomaly */}
-                <div className="text-xs text-[#7d92b0] w-28 flex-shrink-0 text-right">
+                <div className="text-xs text-falcon-muted w-28 shrink-0 text-right">
                   <p>最終異常:</p>
                   <p className="text-white">{formatTimestamp(user.last_anomaly)}</p>
                 </div>
 
                 {/* Trend */}
-                <div className="flex-shrink-0 w-8 flex justify-center">
+                <div className="shrink-0 w-8 flex justify-center">
                   {user.risk_trend === 'up'     && <ArrowUp   className="w-5 h-5 text-red-400" />}
                   {user.risk_trend === 'down'   && <ArrowDown className="w-5 h-5 text-green-400" />}
-                  {user.risk_trend === 'stable' && <Minus     className="w-5 h-5 text-[#7d92b0]" />}
+                  {user.risk_trend === 'stable' && <Minus     className="w-5 h-5 text-falcon-muted" />}
                 </div>
 
                 {/* Action */}
                 <button
                   onClick={() => { setSelectedUserId(user.id); setActiveTab('behavior') }}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-[#1d2f4a] hover:bg-[#243a5e] text-white text-xs rounded transition-colors flex-shrink-0"
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-falcon-active hover:bg-[#243a5e] text-white text-xs rounded-sm transition-colors shrink-0"
                 >
                   <Search className="w-3.5 h-3.5" />
                   調査開始

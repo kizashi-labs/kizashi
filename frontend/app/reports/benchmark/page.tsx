@@ -205,10 +205,10 @@ function ScoreRing({ score, label, color }: { score: number; label: string; colo
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
           <span className="text-white font-bold text-2xl leading-none">{score}</span>
-          <span className="text-[#7d92b0] text-[10px] mt-0.5">/ 100</span>
+          <span className="text-falcon-muted text-[10px] mt-0.5">/ 100</span>
         </div>
       </div>
-      <span className="text-[#7d92b0] text-xs text-center">{label}</span>
+      <span className="text-falcon-muted text-xs text-center">{label}</span>
     </div>
   )
 }
@@ -247,27 +247,27 @@ export default function BenchmarkPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#e8002d]/20 to-[#e8002d]/5 border border-[#e8002d]/30 flex items-center justify-center">
-            <Award className="w-5 h-5 text-[#e8002d]" />
+          <div className="w-10 h-10 rounded-xl bg-linear-to-br from-falcon-red/20 to-falcon-red/5 border border-falcon-red/30 flex items-center justify-center">
+            <Award className="w-5 h-5 text-falcon-red" />
           </div>
           <div>
             <h1 className="text-white font-bold text-xl">セキュリティベンチマーク比較</h1>
-            <p className="text-[#7d92b0] text-sm">業界標準との比較分析とギャップ特定</p>
+            <p className="text-falcon-muted text-sm">業界標準との比較分析とギャップ特定</p>
           </div>
         </div>
         <div className="flex items-center gap-3">
           {/* Comparison selector */}
-          <div className="flex gap-1 bg-[#0d1220] border border-[#1e2d42] rounded-xl p-1">
+          <div className="flex gap-1 bg-falcon-surface border border-falcon-border rounded-xl p-1">
             {(['industry_average', 'top_quartile', 'last_year', 'custom'] as ComparisonTarget[]).map(c => (
               <button key={c} onClick={() => setComparison(c)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${comparison === c ? 'bg-[#e8002d] text-white' : 'text-[#7d92b0] hover:text-white'}`}>
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${comparison === c ? 'bg-falcon-red text-white' : 'text-falcon-muted hover:text-white'}`}>
                 {compLabel[c]}
               </button>
             ))}
           </div>
           {/* Industry selector */}
           <select value={industry} onChange={e => setIndustry(e.target.value as Industry)}
-            className="bg-[#0d1220] border border-[#1e2d42] rounded-xl px-3 py-2 text-sm text-[#7d92b0] focus:outline-none">
+            className="bg-falcon-surface border border-falcon-border rounded-xl px-3 py-2 text-sm text-falcon-muted focus:outline-hidden">
             {(Object.entries(industryLabel) as [Industry, string][]).map(([k, v]) => (
               <option key={k} value={k}>{v}</option>
             ))}
@@ -275,14 +275,14 @@ export default function BenchmarkPage() {
           {/* Export */}
           <div className="relative">
             <button onClick={() => setShowExportMenu(v => !v)}
-              className="flex items-center gap-2 px-4 py-2 bg-[#0d1220] border border-[#1e2d42] hover:border-[#7d92b0]/40 text-[#7d92b0] hover:text-white rounded-xl text-sm transition-colors">
+              className="flex items-center gap-2 px-4 py-2 bg-falcon-surface border border-falcon-border hover:border-falcon-muted/40 text-falcon-muted hover:text-white rounded-xl text-sm transition-colors">
               <Download className="w-4 h-4" />ベンチマーク報告書
             </button>
             {showExportMenu && (
-              <div className="absolute right-0 top-full mt-1 bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden z-10 min-w-[160px] shadow-2xl">
+              <div className="absolute right-0 top-full mt-1 bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden z-10 min-w-[160px] shadow-2xl">
                 {['PDF形式', 'Excel形式', 'PowerPoint形式'].map(fmt => (
                   <button key={fmt} onClick={() => setShowExportMenu(false)}
-                    className="w-full text-left px-4 py-2.5 text-sm text-[#7d92b0] hover:bg-[#1e2d42] hover:text-white transition-colors">{fmt}</button>
+                    className="w-full text-left px-4 py-2.5 text-sm text-falcon-muted hover:bg-falcon-border hover:text-white transition-colors">{fmt}</button>
                 ))}
               </div>
             )}
@@ -291,9 +291,9 @@ export default function BenchmarkPage() {
       </div>
 
       {/* Overall Score */}
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-6 mb-6">
+      <div className="bg-falcon-surface border border-falcon-border rounded-xl p-6 mb-6">
         <h2 className="text-white font-semibold text-sm mb-6 flex items-center gap-2">
-          <BarChart3 className="w-4 h-4 text-[#e8002d]" />総合スコア比較
+          <BarChart3 className="w-4 h-4 text-falcon-red" />総合スコア比較
         </h2>
         <div className="flex items-center justify-center gap-16">
           <ScoreRing score={data.overall_our} label="自組織スコア" color="#e8002d" />
@@ -308,8 +308,8 @@ export default function BenchmarkPage() {
                 {data.overall_delta >= 0 ? '+' : ''}{data.overall_delta}
               </span>
             </div>
-            <span className="text-[#7d92b0] text-xs">vs {compLabel[comparison]}</span>
-            <div className="flex items-center gap-1 text-xs text-[#7d92b0]">
+            <span className="text-falcon-muted text-xs">vs {compLabel[comparison]}</span>
+            <div className="flex items-center gap-1 text-xs text-falcon-muted">
               <Star className="w-3 h-3 text-yellow-400" />
               <span className="text-white font-medium">{data.overall_percentile}パーセンタイル</span>
             </div>
@@ -320,19 +320,19 @@ export default function BenchmarkPage() {
 
       <div className="grid grid-cols-3 gap-5 mb-5">
         {/* Radar Chart */}
-        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5 flex flex-col items-center">
+        <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5 flex flex-col items-center">
           <h2 className="text-white font-semibold text-sm mb-4 self-start flex items-center gap-2">
-            <Shield className="w-4 h-4 text-[#e8002d]" />レーダーチャート
+            <Shield className="w-4 h-4 text-falcon-red" />レーダーチャート
           </h2>
           <RadarChart data={data} />
           <div className="flex items-center gap-5 mt-3 text-xs">
-            <div className="flex items-center gap-1.5"><div className="w-3 h-0.5 bg-[#e8002d]" /><span className="text-[#7d92b0]">自組織</span></div>
-            <div className="flex items-center gap-1.5"><div className="w-3 h-0.5 bg-[#7d92b0] border-dashed" style={{ borderTop: '1.5px dashed #7d92b0', height: 0 }} /><span className="text-[#7d92b0]">{compLabel[comparison]}</span></div>
+            <div className="flex items-center gap-1.5"><div className="w-3 h-0.5 bg-falcon-red" /><span className="text-falcon-muted">自組織</span></div>
+            <div className="flex items-center gap-1.5"><div className="w-3 h-0.5 bg-falcon-muted border-dashed" style={{ borderTop: '1.5px dashed #7d92b0', height: 0 }} /><span className="text-falcon-muted">{compLabel[comparison]}</span></div>
           </div>
         </div>
 
         {/* Strengths */}
-        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
+        <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
           <h2 className="text-white font-semibold text-sm mb-4 flex items-center gap-2">
             <CheckCircle className="w-4 h-4 text-green-400" />強みカテゴリ Top 3
           </h2>
@@ -344,11 +344,11 @@ export default function BenchmarkPage() {
                   <span className="text-white text-sm font-medium">{c.label}</span>
                 </div>
                 <div className="flex items-center justify-between text-xs">
-                  <span className="text-[#7d92b0]">自組織: <span className="text-white font-medium">{c.our_score}</span></span>
+                  <span className="text-falcon-muted">自組織: <span className="text-white font-medium">{c.our_score}</span></span>
                   <span className="text-green-400 font-medium">+{c.delta} pts</span>
-                  <span className="text-[#7d92b0]">{c.percentile}%ile</span>
+                  <span className="text-falcon-muted">{c.percentile}%ile</span>
                 </div>
-                <div className="mt-2 w-full bg-[#1e2d42] rounded-full h-1.5">
+                <div className="mt-2 w-full bg-falcon-border rounded-full h-1.5">
                   <div className="bg-green-500 h-1.5 rounded-full" style={{ width: `${c.our_score}%` }} />
                 </div>
               </div>
@@ -357,9 +357,9 @@ export default function BenchmarkPage() {
         </div>
 
         {/* Gaps */}
-        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
+        <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
           <h2 className="text-white font-semibold text-sm mb-4 flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 text-[#e8002d]" />改善が必要なカテゴリ
+            <AlertCircle className="w-4 h-4 text-falcon-red" />改善が必要なカテゴリ
           </h2>
           <div className="space-y-3">
             {gaps.map((c, i) => (
@@ -370,16 +370,16 @@ export default function BenchmarkPage() {
                   <span className="ml-auto text-red-400 text-xs font-medium">{c.delta} pts</span>
                 </div>
                 {c.recommended_action && (
-                  <p className="text-[#7d92b0] text-xs leading-relaxed mb-2">{c.recommended_action}</p>
+                  <p className="text-falcon-muted text-xs leading-relaxed mb-2">{c.recommended_action}</p>
                 )}
                 <div className="flex items-center justify-between text-xs">
-                  <span className="text-[#7d92b0]">自組織: <span className="text-white">{c.our_score}</span></span>
-                  <span className="text-[#7d92b0]">目標: <span className="text-white">{c.benchmark_score}</span></span>
-                  <span className="text-[#7d92b0]">{c.percentile}%ile</span>
+                  <span className="text-falcon-muted">自組織: <span className="text-white">{c.our_score}</span></span>
+                  <span className="text-falcon-muted">目標: <span className="text-white">{c.benchmark_score}</span></span>
+                  <span className="text-falcon-muted">{c.percentile}%ile</span>
                 </div>
-                <div className="mt-2 relative w-full bg-[#1e2d42] rounded-full h-1.5">
+                <div className="mt-2 relative w-full bg-falcon-border rounded-full h-1.5">
                   <div className="bg-red-500 h-1.5 rounded-full" style={{ width: `${c.our_score}%` }} />
-                  <div className="absolute top-0 h-full w-0.5 bg-[#7d92b0]" style={{ left: `${c.benchmark_score}%` }} />
+                  <div className="absolute top-0 h-full w-0.5 bg-falcon-muted" style={{ left: `${c.benchmark_score}%` }} />
                 </div>
               </div>
             ))}
@@ -388,39 +388,39 @@ export default function BenchmarkPage() {
       </div>
 
       {/* Category Comparison Table */}
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden mb-5">
-        <div className="px-5 py-4 border-b border-[#1e2d42] flex items-center gap-2">
-          <Building2 className="w-4 h-4 text-[#e8002d]" />
+      <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden mb-5">
+        <div className="px-5 py-4 border-b border-falcon-border flex items-center gap-2">
+          <Building2 className="w-4 h-4 text-falcon-red" />
           <h2 className="text-white font-semibold text-sm">カテゴリ別スコア比較 — {industryLabel[industry]} 業界</h2>
         </div>
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-[#1e2d42]">
+            <tr className="border-b border-falcon-border">
               {['カテゴリ', '自組織', compLabel[comparison], '差分', 'パーセンタイル', 'トレンド', '前年比'].map(h => (
-                <th key={h} className="text-left px-4 py-3 text-xs text-[#7d92b0] font-medium">{h}</th>
+                <th key={h} className="text-left px-4 py-3 text-xs text-falcon-muted font-medium">{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {data.categories.map(c => (
-              <tr key={c.key} className="border-b border-[#1e2d42]/50 hover:bg-[#0a1320] transition-colors">
+              <tr key={c.key} className="border-b border-falcon-border/50 hover:bg-[#0a1320] transition-colors">
                 <td className="px-4 py-3 text-white font-medium">{c.label}</td>
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-2">
-                    <div className="w-16 bg-[#1e2d42] rounded-full h-1.5">
+                    <div className="w-16 bg-falcon-border rounded-full h-1.5">
                       <div className={`h-1.5 rounded-full ${c.delta >= 0 ? 'bg-green-500' : 'bg-red-500'}`}
                         style={{ width: `${c.our_score}%` }} />
                     </div>
                     <span className="text-white font-medium w-6 text-right">{c.our_score}</span>
                   </div>
                 </td>
-                <td className="px-4 py-3 text-[#7d92b0]">{c.benchmark_score}</td>
+                <td className="px-4 py-3 text-falcon-muted">{c.benchmark_score}</td>
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-1">
                     {c.delta > 0 ? <ArrowUp className="w-3.5 h-3.5 text-green-400" /> :
                       c.delta < 0 ? <ArrowDown className="w-3.5 h-3.5 text-red-400" /> :
-                        <Minus className="w-3.5 h-3.5 text-[#7d92b0]" />}
-                    <span className={`font-semibold text-xs ${c.delta > 0 ? 'text-green-400' : c.delta < 0 ? 'text-red-400' : 'text-[#7d92b0]'}`}>
+                        <Minus className="w-3.5 h-3.5 text-falcon-muted" />}
+                    <span className={`font-semibold text-xs ${c.delta > 0 ? 'text-green-400' : c.delta < 0 ? 'text-red-400' : 'text-falcon-muted'}`}>
                       {c.delta > 0 ? '+' : ''}{c.delta}
                     </span>
                   </div>
@@ -433,7 +433,7 @@ export default function BenchmarkPage() {
                 <td className="px-4 py-3">
                   {c.trend === 'up' ? <TrendingUp className="w-4 h-4 text-green-400" /> :
                     c.trend === 'down' ? <TrendingDown className="w-4 h-4 text-red-400" /> :
-                      <Minus className="w-4 h-4 text-[#7d92b0]" />}
+                      <Minus className="w-4 h-4 text-falcon-muted" />}
                 </td>
                 <td className="px-4 py-3">
                   <span className="text-green-400 text-xs font-medium">+{c.yoy_change}</span>
@@ -445,21 +445,21 @@ export default function BenchmarkPage() {
       </div>
 
       {/* YoY Progress */}
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
+      <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
         <h2 className="text-white font-semibold text-sm mb-4 flex items-center gap-2">
-          <TrendingUp className="w-4 h-4 text-[#e8002d]" />前年比進捗 (12ヶ月変化)
+          <TrendingUp className="w-4 h-4 text-falcon-red" />前年比進捗 (12ヶ月変化)
         </h2>
         <div className="grid grid-cols-3 gap-3">
           {data.categories.map(c => (
-            <div key={c.key} className="bg-[#070d19] border border-[#1e2d42] rounded-xl p-3">
+            <div key={c.key} className="bg-[#070d19] border border-falcon-border rounded-xl p-3">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-[#7d92b0] text-xs">{c.label}</span>
+                <span className="text-falcon-muted text-xs">{c.label}</span>
                 <span className="text-green-400 text-xs font-medium">+{c.yoy_change}</span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-[#3d5068] text-xs w-8 text-right">{c.our_score - c.yoy_change}</span>
-                <div className="flex-1 relative h-2 bg-[#1e2d42] rounded-full">
-                  <div className="absolute left-0 top-0 h-full bg-[#1e2d42] rounded-full" style={{ width: `${c.our_score - c.yoy_change}%` }} />
+                <span className="text-falcon-subtle text-xs w-8 text-right">{c.our_score - c.yoy_change}</span>
+                <div className="flex-1 relative h-2 bg-falcon-border rounded-full">
+                  <div className="absolute left-0 top-0 h-full bg-falcon-border rounded-full" style={{ width: `${c.our_score - c.yoy_change}%` }} />
                   <div className="absolute top-0 h-full bg-green-500 rounded-r-full" style={{ left: `${c.our_score - c.yoy_change}%`, width: `${c.yoy_change}%` }} />
                 </div>
                 <span className="text-white text-xs font-medium w-6">{c.our_score}</span>

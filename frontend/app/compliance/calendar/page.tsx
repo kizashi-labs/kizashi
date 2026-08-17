@@ -195,7 +195,7 @@ const STATUS_LABELS: Record<EventStatus, string> = {
 
 const STATUS_COLORS: Record<EventStatus, string> = {
   upcoming: 'bg-blue-500/20 text-blue-400',
-  overdue: 'bg-[#e8002d]/20 text-[#e8002d]',
+  overdue: 'bg-falcon-red/20 text-falcon-red',
   completed: 'bg-green-500/20 text-green-400',
 }
 
@@ -245,30 +245,30 @@ function EventModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={onClose}>
       <div
-        className="bg-[#0d1220] border border-[#1e2d42] rounded-lg w-full max-w-lg"
+        className="bg-falcon-surface border border-falcon-border rounded-lg w-full max-w-lg"
         onClick={e => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[#1e2d42]">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-falcon-border">
           <h2 className="text-white font-semibold text-lg">イベント追加</h2>
-          <button onClick={onClose} className="text-[#7d92b0] hover:text-white"><X className="w-5 h-5" /></button>
+          <button onClick={onClose} className="text-falcon-muted hover:text-white"><X className="w-5 h-5" /></button>
         </div>
         <div className="px-6 py-4 space-y-4">
           <div>
-            <label className="text-[#7d92b0] text-xs mb-1 block">イベントタイトル</label>
+            <label className="text-falcon-muted text-xs mb-1 block">イベントタイトル</label>
             <input
               value={form.title}
               onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
-              className="w-full bg-[#070d19] border border-[#1e2d42] rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-[#4a6fa5]"
+              className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-sm text-white focus:outline-hidden focus:border-[#4a6fa5]"
               placeholder="SOC2監査など"
             />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-[#7d92b0] text-xs mb-1 block">カテゴリー</label>
+              <label className="text-falcon-muted text-xs mb-1 block">カテゴリー</label>
               <select
                 value={form.category}
                 onChange={e => setForm(f => ({ ...f, category: e.target.value as EventCategory }))}
-                className="w-full bg-[#070d19] border border-[#1e2d42] rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-[#4a6fa5]"
+                className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-sm text-white focus:outline-hidden focus:border-[#4a6fa5]"
               >
                 <option value="audit">監査</option>
                 <option value="certification">認証</option>
@@ -277,31 +277,31 @@ function EventModal({
               </select>
             </div>
             <div>
-              <label className="text-[#7d92b0] text-xs mb-1 block">期限日</label>
+              <label className="text-falcon-muted text-xs mb-1 block">期限日</label>
               <input
                 type="date"
                 value={form.due_date}
                 onChange={e => setForm(f => ({ ...f, due_date: e.target.value }))}
-                className="w-full bg-[#070d19] border border-[#1e2d42] rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-[#4a6fa5]"
+                className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-sm text-white focus:outline-hidden focus:border-[#4a6fa5]"
               />
             </div>
           </div>
           <div>
-            <label className="text-[#7d92b0] text-xs mb-1 block">担当者</label>
+            <label className="text-falcon-muted text-xs mb-1 block">担当者</label>
             <input
               value={form.assignee}
               onChange={e => setForm(f => ({ ...f, assignee: e.target.value }))}
-              className="w-full bg-[#070d19] border border-[#1e2d42] rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-[#4a6fa5]"
+              className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-sm text-white focus:outline-hidden focus:border-[#4a6fa5]"
               placeholder="担当者名"
             />
           </div>
           <div>
-            <label className="text-[#7d92b0] text-xs mb-1 block">メモ</label>
+            <label className="text-falcon-muted text-xs mb-1 block">メモ</label>
             <textarea
               value={form.notes}
               onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
               rows={3}
-              className="w-full bg-[#070d19] border border-[#1e2d42] rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-[#4a6fa5] resize-none"
+              className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-sm text-white focus:outline-hidden focus:border-[#4a6fa5] resize-none"
               placeholder="追加メモ・詳細"
             />
           </div>
@@ -311,15 +311,15 @@ function EventModal({
                 type="checkbox"
                 checked={form.recurring}
                 onChange={e => setForm(f => ({ ...f, recurring: e.target.checked }))}
-                className="accent-[#e8002d]"
+                className="accent-falcon-red"
               />
-              <span className="text-[#7d92b0] text-sm">繰り返しイベント</span>
+              <span className="text-falcon-muted text-sm">繰り返しイベント</span>
             </label>
             {form.recurring && (
               <select
                 value={form.recurring_period}
                 onChange={e => setForm(f => ({ ...f, recurring_period: e.target.value as RecurringPeriod }))}
-                className="mt-2 w-full bg-[#070d19] border border-[#1e2d42] rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-[#4a6fa5]"
+                className="mt-2 w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-sm text-white focus:outline-hidden focus:border-[#4a6fa5]"
               >
                 <option value="annual">年次</option>
                 <option value="quarterly">四半期</option>
@@ -328,14 +328,14 @@ function EventModal({
             )}
           </div>
         </div>
-        <div className="px-6 py-4 border-t border-[#1e2d42] flex justify-end gap-3">
-          <button onClick={onClose} className="px-4 py-2 text-sm text-[#7d92b0] hover:text-white transition-colors">
+        <div className="px-6 py-4 border-t border-falcon-border flex justify-end gap-3">
+          <button onClick={onClose} className="px-4 py-2 text-sm text-falcon-muted hover:text-white transition-colors">
             キャンセル
           </button>
           <button
             onClick={() => { onSave(form); onClose() }}
             disabled={!form.title || !form.due_date}
-            className="px-4 py-2 text-sm bg-[#e8002d] hover:bg-[#c0001f] text-white rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-4 py-2 text-sm bg-falcon-red hover:bg-[#c0001f] text-white rounded-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             追加
           </button>
@@ -386,12 +386,12 @@ function MonthCalendar({
     <div>
       <div className="grid grid-cols-7 mb-1">
         {['日', '月', '火', '水', '木', '金', '土'].map(d => (
-          <div key={d} className="text-center text-xs text-[#3d5068] py-2">{d}</div>
+          <div key={d} className="text-center text-xs text-falcon-subtle py-2">{d}</div>
         ))}
       </div>
       <div className="grid grid-cols-7 gap-0.5">
         {cells.map((day, i) => {
-          if (!day) return <div key={i} className="h-16 bg-[#070d19]/30 rounded" />
+          if (!day) return <div key={i} className="h-16 bg-[#070d19]/30 rounded-sm" />
           const evs = eventsByDay[day] ?? []
           const isToday = isCurrentMonth && day === todayDate
           const isSelected = selectedDay === day
@@ -401,14 +401,14 @@ function MonthCalendar({
               onClick={() => onDaySelect(isSelected ? null : day)}
               className={`h-16 p-1 rounded cursor-pointer transition-colors border
                 ${isSelected
-                  ? 'bg-[#1d2f4a] border-[#4a6fa5]'
+                  ? 'bg-falcon-active border-[#4a6fa5]'
                   : isToday
-                    ? 'bg-[#e8002d]/10 border-[#e8002d]/40'
-                    : 'bg-[#0d1220] border-[#1e2d42] hover:bg-[#19253d]'
+                    ? 'bg-falcon-red/10 border-falcon-red/40'
+                    : 'bg-falcon-surface border-falcon-border hover:bg-falcon-hover'
                 }`}
             >
               <p className={`text-xs font-medium mb-1 ${
-                isToday ? 'text-[#e8002d]' : isSelected ? 'text-white' : 'text-[#7d92b0]'
+                isToday ? 'text-falcon-red' : isSelected ? 'text-white' : 'text-falcon-muted'
               }`}>
                 {day}
               </p>
@@ -422,7 +422,7 @@ function MonthCalendar({
                   />
                 ))}
                 {evs.length > 3 && (
-                  <span className="text-[9px] text-[#3d5068]">+{evs.length - 3}</span>
+                  <span className="text-[9px] text-falcon-subtle">+{evs.length - 3}</span>
                 )}
               </div>
             </div>
@@ -537,14 +537,14 @@ export default function ComplianceCalendarPage() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-            <CalendarDays className="w-6 h-6 text-[#e8002d]" />
+            <CalendarDays className="w-6 h-6 text-falcon-red" />
             コンプライアンスカレンダー
           </h1>
-          <p className="text-[#7d92b0] text-sm mt-1">監査・規制対応・証明書更新の期限管理</p>
+          <p className="text-falcon-muted text-sm mt-1">監査・規制対応・証明書更新の期限管理</p>
         </div>
         <button
           onClick={() => setShowAddModal(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-[#e8002d] hover:bg-[#c0001f] text-white rounded text-sm font-medium transition-colors"
+          className="flex items-center gap-2 px-4 py-2 bg-falcon-red hover:bg-[#c0001f] text-white rounded-sm text-sm font-medium transition-colors"
         >
           <Plus className="w-4 h-4" />
           イベント追加
@@ -555,13 +555,13 @@ export default function ComplianceCalendarPage() {
       <div className="grid grid-cols-4 gap-4 mb-6">
         {[
           { label: '今月のイベント', value: thisMonth.length, icon: CalendarDays, color: 'text-blue-400' },
-          { label: '期限超過', value: overdueCount, icon: AlertCircle, color: 'text-[#e8002d]' },
+          { label: '期限超過', value: overdueCount, icon: AlertCircle, color: 'text-falcon-red' },
           { label: '今週の期限', value: dueThisWeek, icon: Clock, color: 'text-orange-400' },
           { label: '今月完了', value: completedThisMonth, icon: CheckCircle, color: 'text-green-400' },
         ].map(({ label, value, icon: Icon, color }) => (
-          <div key={label} className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-4">
+          <div key={label} className="bg-falcon-surface border border-falcon-border rounded-lg p-4">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-[#7d92b0] text-xs">{label}</span>
+              <span className="text-falcon-muted text-xs">{label}</span>
               <Icon className={`w-4 h-4 ${color}`} />
             </div>
             <p className={`text-2xl font-bold ${color}`}>{value}</p>
@@ -570,15 +570,15 @@ export default function ComplianceCalendarPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 mb-4 border-b border-[#1e2d42]">
+      <div className="flex gap-1 mb-4 border-b border-falcon-border">
         {([['calendar', 'カレンダービュー'], ['list', 'イベント一覧']] as const).map(([id, label]) => (
           <button
             key={id}
             onClick={() => setActiveTab(id)}
             className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px ${
               activeTab === id
-                ? 'text-white border-[#e8002d]'
-                : 'text-[#7d92b0] border-transparent hover:text-white'
+                ? 'text-white border-falcon-red'
+                : 'text-falcon-muted border-transparent hover:text-white'
             }`}
           >
             {label}
@@ -591,12 +591,12 @@ export default function ComplianceCalendarPage() {
         <div className="flex gap-6">
           {/* Main calendar */}
           <div className="flex-1">
-            <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-4 mb-4">
+            <div className="bg-falcon-surface border border-falcon-border rounded-lg p-4 mb-4">
               {/* Month navigation */}
               <div className="flex items-center justify-between mb-4">
                 <button
                   onClick={prevMonth}
-                  className="p-2 text-[#7d92b0] hover:text-white hover:bg-[#1e2d42] rounded transition-colors"
+                  className="p-2 text-falcon-muted hover:text-white hover:bg-falcon-border rounded-sm transition-colors"
                 >
                   <ChevronLeft className="w-4 h-4" />
                 </button>
@@ -605,7 +605,7 @@ export default function ComplianceCalendarPage() {
                 </h2>
                 <button
                   onClick={nextMonth}
-                  className="p-2 text-[#7d92b0] hover:text-white hover:bg-[#1e2d42] rounded transition-colors"
+                  className="p-2 text-falcon-muted hover:text-white hover:bg-falcon-border rounded-sm transition-colors"
                 >
                   <ChevronRight className="w-4 h-4" />
                 </button>
@@ -621,16 +621,16 @@ export default function ComplianceCalendarPage() {
             </div>
 
             {/* Legend */}
-            <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-3">
+            <div className="bg-falcon-surface border border-falcon-border rounded-lg p-3">
               <div className="flex items-center gap-6 flex-wrap">
-                <span className="text-[#7d92b0] text-xs font-medium">凡例:</span>
+                <span className="text-falcon-muted text-xs font-medium">凡例:</span>
                 {[
                   { color: '#e8002d', label: '期限超過' },
                   { color: '#f97316', label: '今週期限' },
                   { color: '#3b82f6', label: '予定' },
                   { color: '#22c55e', label: '完了' },
                 ].map(({ color, label }) => (
-                  <div key={label} className="flex items-center gap-1.5 text-xs text-[#7d92b0]">
+                  <div key={label} className="flex items-center gap-1.5 text-xs text-falcon-muted">
                     <div className="w-3 h-3 rounded-full" style={{ backgroundColor: color }} />
                     {label}
                   </div>
@@ -640,26 +640,26 @@ export default function ComplianceCalendarPage() {
 
             {/* Selected day events */}
             {selectedDay && (
-              <div className="mt-4 bg-[#0d1220] border border-[#1e2d42] rounded-lg p-4">
+              <div className="mt-4 bg-falcon-surface border border-falcon-border rounded-lg p-4">
                 <h3 className="text-white font-semibold mb-3">
                   {calYear}年{monthNames[calMonth]}{selectedDay}日 のイベント
                 </h3>
                 {selectedDayEvents.length === 0 ? (
-                  <p className="text-[#3d5068] text-sm">この日のイベントはありません</p>
+                  <p className="text-falcon-subtle text-sm">この日のイベントはありません</p>
                 ) : (
                   <div className="space-y-2">
                     {selectedDayEvents.map(ev => (
-                      <div key={ev.id} className="flex items-center justify-between p-3 bg-[#070d19] rounded border border-[#1e2d42]">
+                      <div key={ev.id} className="flex items-center justify-between p-3 bg-[#070d19] rounded-sm border border-falcon-border">
                         <div>
                           <p className="text-white text-sm font-medium">{ev.title}</p>
                           <div className="flex items-center gap-2 mt-1">
-                            <span className={`px-1.5 py-0.5 rounded text-xs ${CATEGORY_COLORS[ev.category]}`}>
+                            <span className={`px-1.5 py-0.5 rounded-sm text-xs ${CATEGORY_COLORS[ev.category]}`}>
                               {CATEGORY_LABELS[ev.category]}
                             </span>
-                            <span className="text-xs text-[#3d5068]">{ev.assignee}</span>
+                            <span className="text-xs text-falcon-subtle">{ev.assignee}</span>
                           </div>
                         </div>
-                        <span className={`px-2 py-0.5 rounded text-xs ${STATUS_COLORS[ev.status]}`}>
+                        <span className={`px-2 py-0.5 rounded-sm text-xs ${STATUS_COLORS[ev.status]}`}>
                           {STATUS_LABELS[ev.status]}
                         </span>
                       </div>
@@ -671,31 +671,31 @@ export default function ComplianceCalendarPage() {
           </div>
 
           {/* Side panel: monthly summary */}
-          <div className="w-72 flex-shrink-0">
-            <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-4">
+          <div className="w-72 shrink-0">
+            <div className="bg-falcon-surface border border-falcon-border rounded-lg p-4">
               <h3 className="text-white font-semibold mb-3 text-sm">
                 今月のサマリー
-                <span className="ml-2 text-xs text-[#7d92b0]">({thisMonthEvents.length}件)</span>
+                <span className="ml-2 text-xs text-falcon-muted">({thisMonthEvents.length}件)</span>
               </h3>
               {thisMonthEvents.length === 0 ? (
-                <p className="text-[#3d5068] text-sm">今月のイベントはありません</p>
+                <p className="text-falcon-subtle text-sm">今月のイベントはありません</p>
               ) : (
                 <div className="space-y-2 max-h-[600px] overflow-y-auto">
                   {thisMonthEvents
                     .sort((a, b) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime())
                     .map(ev => (
-                      <div key={ev.id} className="p-2.5 bg-[#070d19] rounded border border-[#1e2d42]">
+                      <div key={ev.id} className="p-2.5 bg-[#070d19] rounded-sm border border-falcon-border">
                         <div className="flex items-start justify-between gap-2">
                           <p className="text-sm text-white font-medium leading-tight">{ev.title}</p>
-                          <span className={`px-1.5 py-0.5 rounded text-[10px] whitespace-nowrap flex-shrink-0 ${STATUS_COLORS[ev.status]}`}>
+                          <span className={`px-1.5 py-0.5 rounded-sm text-[10px] whitespace-nowrap shrink-0 ${STATUS_COLORS[ev.status]}`}>
                             {STATUS_LABELS[ev.status]}
                           </span>
                         </div>
                         <div className="flex items-center justify-between mt-1.5">
-                          <span className={`px-1.5 py-0.5 rounded text-[10px] ${CATEGORY_COLORS[ev.category]}`}>
+                          <span className={`px-1.5 py-0.5 rounded-sm text-[10px] ${CATEGORY_COLORS[ev.category]}`}>
                             {CATEGORY_LABELS[ev.category]}
                           </span>
-                          <span className="text-[10px] text-[#3d5068]">
+                          <span className="text-[10px] text-falcon-subtle">
                             {new Date(ev.due_date).getDate()}日
                           </span>
                         </div>
@@ -714,11 +714,11 @@ export default function ComplianceCalendarPage() {
         <div>
           {/* Filters */}
           <div className="flex items-center gap-3 mb-4">
-            <Filter className="w-4 h-4 text-[#7d92b0]" />
+            <Filter className="w-4 h-4 text-falcon-muted" />
             <select
               value={filterCategory}
               onChange={e => setFilterCategory(e.target.value as EventCategory | '')}
-              className="bg-[#0d1220] border border-[#1e2d42] rounded px-3 py-1.5 text-sm text-white focus:outline-none"
+              className="bg-falcon-surface border border-falcon-border rounded-sm px-3 py-1.5 text-sm text-white focus:outline-hidden"
             >
               <option value="">すべてのカテゴリー</option>
               <option value="audit">監査</option>
@@ -729,7 +729,7 @@ export default function ComplianceCalendarPage() {
             <select
               value={filterStatus}
               onChange={e => setFilterStatus(e.target.value as EventStatus | '')}
-              className="bg-[#0d1220] border border-[#1e2d42] rounded px-3 py-1.5 text-sm text-white focus:outline-none"
+              className="bg-falcon-surface border border-falcon-border rounded-sm px-3 py-1.5 text-sm text-white focus:outline-hidden"
             >
               <option value="">すべてのステータス</option>
               <option value="upcoming">予定</option>
@@ -738,12 +738,12 @@ export default function ComplianceCalendarPage() {
             </select>
           </div>
 
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg overflow-hidden">
+          <div className="bg-falcon-surface border border-falcon-border rounded-lg overflow-hidden">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-[#1e2d42]">
+                <tr className="border-b border-falcon-border">
                   {['イベントタイトル', 'カテゴリー', '期限日', '担当者', 'ステータス', 'メモ', '操作'].map(h => (
-                    <th key={h} className="px-4 py-3 text-left text-xs text-[#7d92b0] font-medium">{h}</th>
+                    <th key={h} className="px-4 py-3 text-left text-xs text-falcon-muted font-medium">{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -754,43 +754,43 @@ export default function ComplianceCalendarPage() {
                     const dueDate = new Date(ev.due_date)
                     const isOverdue = ev.status === 'overdue'
                     return (
-                      <tr key={ev.id} className="border-b border-[#1e2d42] hover:bg-[#070d19] transition-colors">
+                      <tr key={ev.id} className="border-b border-falcon-border hover:bg-[#070d19] transition-colors">
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2">
                             <span className="text-white font-medium">{ev.title}</span>
                             {ev.recurring && (
-                              <span title="繰り返しイベント"><RotateCcw className="w-3 h-3 text-[#3d5068]" /></span>
+                              <span title="繰り返しイベント"><RotateCcw className="w-3 h-3 text-falcon-subtle" /></span>
                             )}
                           </div>
                         </td>
                         <td className="px-4 py-3">
-                          <span className={`px-2 py-0.5 rounded text-xs ${CATEGORY_COLORS[ev.category]}`}>
+                          <span className={`px-2 py-0.5 rounded-sm text-xs ${CATEGORY_COLORS[ev.category]}`}>
                             {CATEGORY_LABELS[ev.category]}
                           </span>
                         </td>
-                        <td className={`px-4 py-3 text-sm font-medium ${isOverdue ? 'text-[#e8002d]' : 'text-[#7d92b0]'}`}>
+                        <td className={`px-4 py-3 text-sm font-medium ${isOverdue ? 'text-falcon-red' : 'text-falcon-muted'}`}>
                           {dueDate.toLocaleDateString('ja-JP', { year: 'numeric', month: 'short', day: 'numeric' })}
                         </td>
-                        <td className="px-4 py-3 text-[#7d92b0]">{ev.assignee}</td>
+                        <td className="px-4 py-3 text-falcon-muted">{ev.assignee}</td>
                         <td className="px-4 py-3">
-                          <span className={`px-2 py-0.5 rounded text-xs ${STATUS_COLORS[ev.status]}`}>
+                          <span className={`px-2 py-0.5 rounded-sm text-xs ${STATUS_COLORS[ev.status]}`}>
                             {STATUS_LABELS[ev.status]}
                           </span>
                         </td>
                         <td className="px-4 py-3 max-w-[200px]">
-                          <p className="text-[#7d92b0] text-xs truncate" title={ev.notes}>
+                          <p className="text-falcon-muted text-xs truncate" title={ev.notes}>
                             {ev.notes || '-'}
                           </p>
                         </td>
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-1">
-                            <button className="p-1.5 text-[#7d92b0] hover:text-white hover:bg-[#1e2d42] rounded transition-colors" title="編集">
+                            <button className="p-1.5 text-falcon-muted hover:text-white hover:bg-falcon-border rounded-sm transition-colors" title="編集">
                               <Edit2 className="w-3.5 h-3.5" />
                             </button>
                             {ev.status !== 'completed' && (
                               <button
                                 onClick={() => completeMut.mutate(ev.id)}
-                                className="p-1.5 text-[#7d92b0] hover:text-green-400 hover:bg-green-400/10 rounded transition-colors"
+                                className="p-1.5 text-falcon-muted hover:text-green-400 hover:bg-green-400/10 rounded-sm transition-colors"
                                 title="完了にする"
                               >
                                 <CheckCircle className="w-3.5 h-3.5" />
@@ -798,7 +798,7 @@ export default function ComplianceCalendarPage() {
                             )}
                             <button
                               onClick={() => deleteMut.mutate(ev.id)}
-                              className="p-1.5 text-[#7d92b0] hover:text-[#e8002d] hover:bg-[#e8002d]/10 rounded transition-colors"
+                              className="p-1.5 text-falcon-muted hover:text-falcon-red hover:bg-falcon-red/10 rounded-sm transition-colors"
                               title="削除"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
@@ -810,7 +810,7 @@ export default function ComplianceCalendarPage() {
                   })}
                 {filteredEvents.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="px-4 py-8 text-center text-[#3d5068] text-sm">
+                    <td colSpan={7} className="px-4 py-8 text-center text-falcon-subtle text-sm">
                       イベントが見つかりません
                     </td>
                   </tr>

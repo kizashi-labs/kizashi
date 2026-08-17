@@ -383,13 +383,13 @@ export default function MLAnalyticsPage() {
 
         <h1 className="text-2xl font-bold flex items-center gap-2">
 
-          <Brain className="w-7 h-7 text-[#e8002d]" />
+          <Brain className="w-7 h-7 text-falcon-red" />
 
           ML Behavioral Analytics
 
         </h1>
 
-        <p className="text-[#7d92b0] text-sm mt-0.5">AI-powered threat detection</p>
+        <p className="text-falcon-muted text-sm mt-0.5">AI-powered threat detection</p>
 
       </div>
 
@@ -399,13 +399,13 @@ export default function MLAnalyticsPage() {
 
       <div>
 
-        <h2 className="text-sm font-semibold text-[#7d92b0] uppercase tracking-wider mb-3">Model Status</h2>
+        <h2 className="text-sm font-semibold text-falcon-muted uppercase tracking-wider mb-3">Model Status</h2>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
 
           {/* Isolation Forest */}
 
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-4">
+          <div className="bg-falcon-surface border border-falcon-border rounded-xl p-4">
 
             <div className="flex items-center justify-between mb-3">
 
@@ -417,7 +417,7 @@ export default function MLAnalyticsPage() {
 
               </div>
 
-              <span className="px-2 py-0.5 rounded text-xs font-medium bg-green-500/20 text-green-400">Trained</span>
+              <span className="px-2 py-0.5 rounded-sm text-xs font-medium bg-green-500/20 text-green-400">Trained</span>
 
             </div>
 
@@ -425,7 +425,7 @@ export default function MLAnalyticsPage() {
 
               <div className="flex justify-between">
 
-                <span className="text-[#7d92b0] text-xs">Trees</span>
+                <span className="text-falcon-muted text-xs">Trees</span>
 
                 <span className="text-white text-xs font-mono">100</span>
 
@@ -433,7 +433,7 @@ export default function MLAnalyticsPage() {
 
               <div className="flex justify-between">
 
-                <span className="text-[#7d92b0] text-xs">Sample Size</span>
+                <span className="text-falcon-muted text-xs">Sample Size</span>
 
                 <span className="text-white text-xs font-mono">256</span>
 
@@ -447,7 +447,7 @@ export default function MLAnalyticsPage() {
 
           {/* UEBA Scorer */}
 
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-4">
+          <div className="bg-falcon-surface border border-falcon-border rounded-xl p-4">
 
             <div className="flex items-center justify-between mb-3">
 
@@ -459,13 +459,13 @@ export default function MLAnalyticsPage() {
 
               </div>
 
-              <span className="px-2 py-0.5 rounded text-xs font-medium bg-green-500/20 text-green-400">Active</span>
+              <span className="px-2 py-0.5 rounded-sm text-xs font-medium bg-green-500/20 text-green-400">Active</span>
 
             </div>
 
             {uebaLoading ? (
 
-              <div className="flex items-center gap-2 text-[#7d92b0] text-xs">
+              <div className="flex items-center gap-2 text-falcon-muted text-xs">
 
                 <Loader2 className="w-3 h-3 animate-spin" /> Loading…
 
@@ -477,7 +477,7 @@ export default function MLAnalyticsPage() {
 
                 <div className="flex justify-between">
 
-                  <span className="text-[#7d92b0] text-xs">Entities Tracked</span>
+                  <span className="text-falcon-muted text-xs">Entities Tracked</span>
 
                   <span className="text-white text-xs font-mono">{scores.length}</span>
 
@@ -485,7 +485,7 @@ export default function MLAnalyticsPage() {
 
                 <div className="flex justify-between">
 
-                  <span className="text-[#7d92b0] text-xs">High Risk (≥70)</span>
+                  <span className="text-falcon-muted text-xs">High Risk (≥70)</span>
 
                   <span className={`text-xs font-mono font-bold ${highRiskCount > 0 ? 'text-red-400' : 'text-green-400'}`}>
 
@@ -505,7 +505,7 @@ export default function MLAnalyticsPage() {
 
           {/* Process Lineage */}
 
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-4">
+          <div className="bg-falcon-surface border border-falcon-border rounded-xl p-4">
 
             <div className="flex items-center justify-between mb-3">
 
@@ -517,7 +517,7 @@ export default function MLAnalyticsPage() {
 
               </div>
 
-              <span className="px-2 py-0.5 rounded text-xs font-medium bg-green-500/20 text-green-400">Active</span>
+              <span className="px-2 py-0.5 rounded-sm text-xs font-medium bg-green-500/20 text-green-400">Active</span>
 
             </div>
 
@@ -525,7 +525,7 @@ export default function MLAnalyticsPage() {
 
               <div className="flex justify-between">
 
-                <span className="text-[#7d92b0] text-xs">Rules Active</span>
+                <span className="text-falcon-muted text-xs">Rules Active</span>
 
                 <span className="text-white text-xs font-mono">17</span>
 
@@ -533,7 +533,7 @@ export default function MLAnalyticsPage() {
 
               <div className="flex justify-between">
 
-                <span className="text-[#7d92b0] text-xs">Last Detection</span>
+                <span className="text-falcon-muted text-xs">Last Detection</span>
 
                 <span className="text-orange-400 text-xs font-mono">
 
@@ -561,9 +561,9 @@ export default function MLAnalyticsPage() {
 
       <div>
 
-        <h2 className="text-sm font-semibold text-[#7d92b0] uppercase tracking-wider mb-3">UEBA Risk Leaderboard</h2>
+        <h2 className="text-sm font-semibold text-falcon-muted uppercase tracking-wider mb-3">UEBA Risk Leaderboard</h2>
 
-        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
+        <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
 
           <div className="overflow-x-auto">
 
@@ -571,29 +571,29 @@ export default function MLAnalyticsPage() {
 
               <thead>
 
-                <tr className="border-b border-[#1e2d42]">
+                <tr className="border-b border-falcon-border">
 
-                  <th className="text-left text-[#7d92b0] text-xs font-medium px-4 py-3 uppercase tracking-wider">Entity ID</th>
+                  <th className="text-left text-falcon-muted text-xs font-medium px-4 py-3 uppercase tracking-wider">Entity ID</th>
 
-                  <th className="text-left text-[#7d92b0] text-xs font-medium px-4 py-3 uppercase tracking-wider">Type</th>
+                  <th className="text-left text-falcon-muted text-xs font-medium px-4 py-3 uppercase tracking-wider">Type</th>
 
-                  <th className="text-left text-[#7d92b0] text-xs font-medium px-4 py-3 uppercase tracking-wider w-48">Risk Score</th>
+                  <th className="text-left text-falcon-muted text-xs font-medium px-4 py-3 uppercase tracking-wider w-48">Risk Score</th>
 
-                  <th className="text-left text-[#7d92b0] text-xs font-medium px-4 py-3 uppercase tracking-wider">Alerts</th>
+                  <th className="text-left text-falcon-muted text-xs font-medium px-4 py-3 uppercase tracking-wider">Alerts</th>
 
-                  <th className="text-left text-[#7d92b0] text-xs font-medium px-4 py-3 uppercase tracking-wider">Failed Logins</th>
+                  <th className="text-left text-falcon-muted text-xs font-medium px-4 py-3 uppercase tracking-wider">Failed Logins</th>
 
-                  <th className="text-left text-[#7d92b0] text-xs font-medium px-4 py-3 uppercase tracking-wider">Data Transfer</th>
+                  <th className="text-left text-falcon-muted text-xs font-medium px-4 py-3 uppercase tracking-wider">Data Transfer</th>
 
                 </tr>
 
               </thead>
 
-              <tbody className="divide-y divide-[#1e2d42]">
+              <tbody className="divide-y divide-falcon-border">
 
                 {sortedScores.map((s, i) => (
 
-                  <tr key={i} className="hover:bg-[#111827] transition-colors">
+                  <tr key={i} className="hover:bg-falcon-card transition-colors">
 
                     <td className="px-4 py-3">
 
@@ -619,7 +619,7 @@ export default function MLAnalyticsPage() {
 
                       <div className="flex items-center gap-2">
 
-                        <div className="flex-1 bg-[#1e2d42] rounded-full h-1.5">
+                        <div className="flex-1 bg-falcon-border rounded-full h-1.5">
 
                           <div
 
@@ -643,7 +643,7 @@ export default function MLAnalyticsPage() {
 
                     <td className="px-4 py-3">
 
-                      <span className={`text-sm ${s.alert_count > 0 ? 'text-orange-400 font-medium' : 'text-[#7d92b0]'}`}>
+                      <span className={`text-sm ${s.alert_count > 0 ? 'text-orange-400 font-medium' : 'text-falcon-muted'}`}>
 
                         {s.alert_count}
 
@@ -653,7 +653,7 @@ export default function MLAnalyticsPage() {
 
                     <td className="px-4 py-3">
 
-                      <span className={`text-sm ${s.failed_logins > 3 ? 'text-red-400 font-medium' : 'text-[#7d92b0]'}`}>
+                      <span className={`text-sm ${s.failed_logins > 3 ? 'text-red-400 font-medium' : 'text-falcon-muted'}`}>
 
                         {s.failed_logins}
 
@@ -663,7 +663,7 @@ export default function MLAnalyticsPage() {
 
                     <td className="px-4 py-3">
 
-                      <span className={`text-sm ${s.data_transfer_gb > 1 ? 'text-yellow-400' : 'text-[#7d92b0]'}`}>
+                      <span className={`text-sm ${s.data_transfer_gb > 1 ? 'text-yellow-400' : 'text-falcon-muted'}`}>
 
                         {s.data_transfer_gb.toFixed(2)} GB
 
@@ -691,13 +691,13 @@ export default function MLAnalyticsPage() {
 
       <div>
 
-        <h2 className="text-sm font-semibold text-[#7d92b0] uppercase tracking-wider mb-3">Process Lineage Analyzer</h2>
+        <h2 className="text-sm font-semibold text-falcon-muted uppercase tracking-wider mb-3">Process Lineage Analyzer</h2>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
 
           {/* Left: Check Process Relationship */}
 
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-4">
+          <div className="bg-falcon-surface border border-falcon-border rounded-xl p-4">
 
             <h3 className="text-white font-semibold text-sm mb-4 flex items-center gap-2">
 
@@ -711,7 +711,7 @@ export default function MLAnalyticsPage() {
 
               <div>
 
-                <label className="block text-[#7d92b0] text-xs mb-1">Parent Process</label>
+                <label className="block text-falcon-muted text-xs mb-1">Parent Process</label>
 
                 <input
 
@@ -723,7 +723,7 @@ export default function MLAnalyticsPage() {
 
                   placeholder="winword.exe"
 
-                  className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm placeholder-[#3d5068] focus:outline-none focus:border-[#e8002d] font-mono"
+                  className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm placeholder-falcon-subtle focus:outline-hidden focus:border-falcon-red font-mono"
 
                 />
 
@@ -731,7 +731,7 @@ export default function MLAnalyticsPage() {
 
               <div>
 
-                <label className="block text-[#7d92b0] text-xs mb-1">Child Process</label>
+                <label className="block text-falcon-muted text-xs mb-1">Child Process</label>
 
                 <input
 
@@ -743,7 +743,7 @@ export default function MLAnalyticsPage() {
 
                   placeholder="powershell.exe"
 
-                  className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm placeholder-[#3d5068] focus:outline-none focus:border-[#e8002d] font-mono"
+                  className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm placeholder-falcon-subtle focus:outline-hidden focus:border-falcon-red font-mono"
 
                   onKeyDown={(e) => e.key === 'Enter' && handleAnalyzeLineage()}
 
@@ -757,7 +757,7 @@ export default function MLAnalyticsPage() {
 
                 disabled={lineageMutation.isPending || !parentProcess.trim() || !childProcess.trim()}
 
-                className="flex items-center gap-2 px-4 py-2 bg-[#e8002d] hover:bg-[#c0001f] disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors"
+                className="flex items-center gap-2 px-4 py-2 bg-falcon-red hover:bg-[#c0001f] disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors"
 
               >
 
@@ -805,11 +805,11 @@ export default function MLAnalyticsPage() {
 
                       <div className="flex flex-wrap items-center gap-2">
 
-                        <span className="px-2 py-0.5 rounded text-xs font-bold bg-red-500/20 text-red-400">SUSPICIOUS</span>
+                        <span className="px-2 py-0.5 rounded-sm text-xs font-bold bg-red-500/20 text-red-400">SUSPICIOUS</span>
 
                         {lineageResult.detections[0]?.severity && (
 
-                          <span className={`px-2 py-0.5 rounded text-xs font-medium ${attackSeverityBadge(lineageResult.detections[0].severity)}`}>
+                          <span className={`px-2 py-0.5 rounded-sm text-xs font-medium ${attackSeverityBadge(lineageResult.detections[0].severity)}`}>
 
                             {lineageResult.detections[0].severity}
 
@@ -825,7 +825,7 @@ export default function MLAnalyticsPage() {
 
                           {d.rule && <p className="text-white text-xs font-medium">{d.rule}</p>}
 
-                          {d.reason && <p className="text-[#7d92b0] text-xs leading-relaxed">{d.reason}</p>}
+                          {d.reason && <p className="text-falcon-muted text-xs leading-relaxed">{d.reason}</p>}
 
                         </div>
 
@@ -857,7 +857,7 @@ export default function MLAnalyticsPage() {
 
           {/* Right: Common Attack Patterns */}
 
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-4">
+          <div className="bg-falcon-surface border border-falcon-border rounded-xl p-4">
 
             <h3 className="text-white font-semibold text-sm mb-4 flex items-center gap-2">
 
@@ -885,7 +885,7 @@ export default function MLAnalyticsPage() {
 
                   }}
 
-                  className="w-full flex items-center gap-3 p-3 bg-[#070d19] hover:bg-[#111827] border border-[#1e2d42] hover:border-[#e8002d]/30 rounded-lg transition-colors text-left group"
+                  className="w-full flex items-center gap-3 p-3 bg-[#070d19] hover:bg-falcon-card border border-falcon-border hover:border-falcon-red/30 rounded-lg transition-colors text-left group"
 
                 >
 
@@ -895,7 +895,7 @@ export default function MLAnalyticsPage() {
 
                       <span className="text-white">{pattern.parent}</span>
 
-                      <span className="text-[#3d5068]">→</span>
+                      <span className="text-falcon-subtle">→</span>
 
                       <span className="text-orange-300">{pattern.child}</span>
 
@@ -905,9 +905,9 @@ export default function MLAnalyticsPage() {
 
                   <div className="flex items-center gap-2 shrink-0">
 
-                    <span className="text-[#7d92b0] text-xs font-mono">{pattern.mitre}</span>
+                    <span className="text-falcon-muted text-xs font-mono">{pattern.mitre}</span>
 
-                    <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${attackSeverityBadge(pattern.severity)}`}>
+                    <span className={`px-1.5 py-0.5 rounded-sm text-xs font-medium ${attackSeverityBadge(pattern.severity)}`}>
 
                       {pattern.severity}
 
@@ -921,7 +921,7 @@ export default function MLAnalyticsPage() {
 
             </div>
 
-            <p className="text-[#3d5068] text-xs mt-3">Click a pattern to pre-fill the analyzer</p>
+            <p className="text-falcon-subtle text-xs mt-3">Click a pattern to pre-fill the analyzer</p>
 
           </div>
 
@@ -935,9 +935,9 @@ export default function MLAnalyticsPage() {
 
       <div>
 
-        <h2 className="text-sm font-semibold text-[#7d92b0] uppercase tracking-wider mb-3">Anomaly Score Calculator</h2>
+        <h2 className="text-sm font-semibold text-falcon-muted uppercase tracking-wider mb-3">Anomaly Score Calculator</h2>
 
-        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-4">
+        <div className="bg-falcon-surface border border-falcon-border rounded-xl p-4">
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
@@ -959,7 +959,7 @@ export default function MLAnalyticsPage() {
 
                   <div key={field.key}>
 
-                    <label className="block text-[#7d92b0] text-xs mb-1">{field.label}</label>
+                    <label className="block text-falcon-muted text-xs mb-1">{field.label}</label>
 
                     <input
 
@@ -977,7 +977,7 @@ export default function MLAnalyticsPage() {
 
                       placeholder={field.placeholder}
 
-                      className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm placeholder-[#3d5068] focus:outline-none focus:border-[#e8002d] font-mono"
+                      className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm placeholder-falcon-subtle focus:outline-hidden focus:border-falcon-red font-mono"
 
                     />
 
@@ -993,7 +993,7 @@ export default function MLAnalyticsPage() {
 
                 disabled={anomalyMutation.isPending}
 
-                className="mt-4 flex items-center gap-2 px-4 py-2 bg-[#e8002d] hover:bg-[#c0001f] disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors"
+                className="mt-4 flex items-center gap-2 px-4 py-2 bg-falcon-red hover:bg-[#c0001f] disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors"
 
               >
 
@@ -1031,13 +1031,13 @@ export default function MLAnalyticsPage() {
 
                 <div className="text-center">
 
-                  <div className="w-32 h-32 rounded-full border-4 border-[#1e2d42] flex items-center justify-center mb-4">
+                  <div className="w-32 h-32 rounded-full border-4 border-falcon-border flex items-center justify-center mb-4">
 
-                    <span className="text-[#3d5068] text-lg font-mono">—</span>
+                    <span className="text-falcon-subtle text-lg font-mono">—</span>
 
                   </div>
 
-                  <p className="text-[#7d92b0] text-sm">Enter features and calculate</p>
+                  <p className="text-falcon-muted text-sm">Enter features and calculate</p>
 
                 </div>
 
@@ -1045,7 +1045,7 @@ export default function MLAnalyticsPage() {
 
               {anomalyMutation.isPending && (
 
-                <Loader2 className="w-12 h-12 animate-spin text-[#e8002d]" />
+                <Loader2 className="w-12 h-12 animate-spin text-falcon-red" />
 
               )}
 
@@ -1063,7 +1063,7 @@ export default function MLAnalyticsPage() {
 
                     <div className="relative mb-6">
 
-                      <div className="w-full bg-[#1e2d42] rounded-full h-4 overflow-hidden">
+                      <div className="w-full bg-falcon-border rounded-full h-4 overflow-hidden">
 
                         <div
 
@@ -1095,7 +1095,7 @@ export default function MLAnalyticsPage() {
 
                     <div className={`text-lg font-semibold mb-1 ${colors.text}`}>{colors.label}</div>
 
-                    <div className="text-[#7d92b0] text-sm">
+                    <div className="text-falcon-muted text-sm">
 
                       {anomalyResult.is_anomaly ? 'Anomalous behavior detected' : 'Behavior within normal range'}
 
@@ -1103,7 +1103,7 @@ export default function MLAnalyticsPage() {
 
                     {/* Scale legend */}
 
-                    <div className="flex justify-between mt-4 text-xs text-[#7d92b0]">
+                    <div className="flex justify-between mt-4 text-xs text-falcon-muted">
 
                       <span className="text-green-400">0.00 Normal</span>
 
@@ -1133,31 +1133,31 @@ export default function MLAnalyticsPage() {
 
       <div>
 
-        <h2 className="text-sm font-semibold text-[#7d92b0] uppercase tracking-wider mb-3">Behavioral Detections Feed</h2>
+        <h2 className="text-sm font-semibold text-falcon-muted uppercase tracking-wider mb-3">Behavioral Detections Feed</h2>
 
-        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
+        <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
 
-          <div className="divide-y divide-[#1e2d42]">
+          <div className="divide-y divide-falcon-border">
 
             {behavioralAlerts.length === 0 ? (
 
-              <div className="p-8 text-center text-[#7d92b0]">No behavioral detections found</div>
+              <div className="p-8 text-center text-falcon-muted">No behavioral detections found</div>
 
             ) : (
 
               behavioralAlerts.map((alert) => (
 
-                <div key={alert.id} className="px-4 py-3 flex items-center gap-4 hover:bg-[#111827] transition-colors">
+                <div key={alert.id} className="px-4 py-3 flex items-center gap-4 hover:bg-falcon-card transition-colors">
 
                   <div className="shrink-0">
 
-                    <Clock className="w-4 h-4 text-[#3d5068]" />
+                    <Clock className="w-4 h-4 text-falcon-subtle" />
 
                   </div>
 
                   <div className="w-36 shrink-0">
 
-                    <p className="text-[#7d92b0] text-xs">{formatTs(alert.timestamp)}</p>
+                    <p className="text-falcon-muted text-xs">{formatTs(alert.timestamp)}</p>
 
                   </div>
 
@@ -1167,7 +1167,7 @@ export default function MLAnalyticsPage() {
 
                       <span className="text-white text-sm font-mono font-medium">{alert.entity}</span>
 
-                      <span className="px-2 py-0.5 rounded text-xs font-medium bg-[#1e2d42] text-[#7d92b0]">
+                      <span className="px-2 py-0.5 rounded-sm text-xs font-medium bg-falcon-border text-falcon-muted">
 
                         {alert.detection_type.replace(/_/g, ' ')}
 
@@ -1179,7 +1179,7 @@ export default function MLAnalyticsPage() {
 
                   <div className="shrink-0">
 
-                    <span className={`px-2 py-0.5 rounded text-xs font-medium ${severityBadge(alert.severity)}`}>
+                    <span className={`px-2 py-0.5 rounded-sm text-xs font-medium ${severityBadge(alert.severity)}`}>
 
                       {alert.severity}
 

@@ -123,14 +123,14 @@ function BarChart({ rows, groupBy }: { rows: Record<string, string | number>[]; 
     <div className="space-y-2">
       {vals.map(({ label, count }) => (
         <div key={label} className="flex items-center gap-3">
-          <span className="text-xs font-mono text-[#7d92b0] w-32 truncate">{label}</span>
-          <div className="flex-1 h-5 bg-[#1e2d42] rounded overflow-hidden">
+          <span className="text-xs font-mono text-falcon-muted w-32 truncate">{label}</span>
+          <div className="flex-1 h-5 bg-falcon-border rounded-sm overflow-hidden">
             <div
-              className="h-full bg-gradient-to-r from-[#e8002d] to-[#a80020] rounded transition-all duration-500"
+              className="h-full bg-linear-to-r from-falcon-red to-falcon-red-dark rounded-sm transition-all duration-500"
               style={{ width: `${(count / max) * 100}%` }}
             />
           </div>
-          <span className="text-xs font-mono text-[#e2e8f4] w-10 text-right">{count.toLocaleString()}</span>
+          <span className="text-xs font-mono text-falcon-text w-10 text-right">{count.toLocaleString()}</span>
         </div>
       ))}
     </div>
@@ -150,31 +150,31 @@ function SaveModal({
 }) {
   const [name, setName] = useState('')
   const [desc, setDesc] = useState('')
-  const inputCls = 'w-full px-3 py-2 rounded bg-[#070d19] border border-[#1e2d42] text-[#e2e8f4] text-sm placeholder-[#3d5068] focus:outline-none focus:border-[#3d6baa] transition-colors'
+  const inputCls = 'w-full px-3 py-2 rounded-sm bg-[#070d19] border border-falcon-border text-falcon-text text-sm placeholder-falcon-subtle focus:outline-hidden focus:border-[#3d6baa] transition-colors'
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl w-full max-w-md shadow-2xl">
-        <div className="flex items-center gap-3 px-6 py-4 border-b border-[#1e2d42]">
-          <Save className="w-5 h-5 text-[#e8002d]" />
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
+      <div className="bg-falcon-surface border border-falcon-border rounded-xl w-full max-w-md shadow-2xl">
+        <div className="flex items-center gap-3 px-6 py-4 border-b border-falcon-border">
+          <Save className="w-5 h-5 text-falcon-red" />
           <h3 className="text-white font-semibold">クエリを保存</h3>
-          <button onClick={onClose} className="ml-auto text-[#7d92b0] hover:text-[#e2e8f4]"><X className="w-5 h-5" /></button>
+          <button onClick={onClose} className="ml-auto text-falcon-muted hover:text-falcon-text"><X className="w-5 h-5" /></button>
         </div>
         <div className="p-6 space-y-4">
           <div>
-            <label className="block text-xs font-medium text-[#7d92b0] mb-1.5">クエリ名</label>
+            <label className="block text-xs font-medium text-falcon-muted mb-1.5">クエリ名</label>
             <input className={inputCls} placeholder="例: 高重要度アラート検索" value={name} onChange={e => setName(e.target.value)} />
           </div>
           <div>
-            <label className="block text-xs font-medium text-[#7d92b0] mb-1.5">説明</label>
+            <label className="block text-xs font-medium text-falcon-muted mb-1.5">説明</label>
             <input className={inputCls} placeholder="このクエリの説明" value={desc} onChange={e => setDesc(e.target.value)} />
           </div>
         </div>
-        <div className="flex justify-end gap-3 px-6 py-4 border-t border-[#1e2d42]">
-          <button onClick={onClose} className="px-4 py-2 rounded text-sm text-[#7d92b0] hover:text-[#e2e8f4]">キャンセル</button>
+        <div className="flex justify-end gap-3 px-6 py-4 border-t border-falcon-border">
+          <button onClick={onClose} className="px-4 py-2 rounded-sm text-sm text-falcon-muted hover:text-falcon-text">キャンセル</button>
           <button
             onClick={() => onSave(name, desc)}
             disabled={isPending || !name}
-            className="flex items-center gap-2 px-5 py-2 rounded bg-[#e8002d] hover:bg-[#c0001f] text-white text-sm font-medium disabled:opacity-50"
+            className="flex items-center gap-2 px-5 py-2 rounded-sm bg-falcon-red hover:bg-[#c0001f] text-white text-sm font-medium disabled:opacity-50"
           >
             {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
             保存
@@ -312,9 +312,9 @@ export default function SiemQueryBuilderPage() {
 
   const fields = SOURCE_FIELDS[queryState.data_source]
 
-  const inputCls = 'px-3 py-2 rounded bg-[#070d19] border border-[#1e2d42] text-[#e2e8f4] text-sm placeholder-[#3d5068] focus:outline-none focus:border-[#3d6baa] transition-colors'
+  const inputCls = 'px-3 py-2 rounded-sm bg-[#070d19] border border-falcon-border text-falcon-text text-sm placeholder-falcon-subtle focus:outline-hidden focus:border-[#3d6baa] transition-colors'
   const selectCls = `${inputCls} cursor-pointer`
-  const labelCls = 'block text-xs font-medium text-[#7d92b0] mb-1.5'
+  const labelCls = 'block text-xs font-medium text-falcon-muted mb-1.5'
 
   function formatLastRun(iso: string) {
     const d = new Date(iso)
@@ -326,8 +326,8 @@ export default function SiemQueryBuilderPage() {
 
       {/* Toast */}
       {toast && (
-        <div className="fixed top-4 right-4 z-50 flex items-center gap-2 px-4 py-3 rounded-lg bg-[#0d1220] border border-[#1e2d42] shadow-lg text-[#e2e8f4] text-sm">
-          <CheckCircle className="w-4 h-4 text-[#00c853]" />
+        <div className="fixed top-4 right-4 z-50 flex items-center gap-2 px-4 py-3 rounded-lg bg-falcon-surface border border-falcon-border shadow-lg text-falcon-text text-sm">
+          <CheckCircle className="w-4 h-4 text-falcon-green" />
           {toast}
         </div>
       )}
@@ -348,7 +348,7 @@ export default function SiemQueryBuilderPage() {
         </div>
         <div>
           <h1 className="text-2xl font-bold text-white">SIEMクエリビルダー</h1>
-          <p className="text-sm text-[#7d92b0] mt-0.5">ビジュアルクエリビルダーとSQL直接編集でSIEMデータを検索</p>
+          <p className="text-sm text-falcon-muted mt-0.5">ビジュアルクエリビルダーとSQL直接編集でSIEMデータを検索</p>
         </div>
       </div>
 
@@ -356,12 +356,12 @@ export default function SiemQueryBuilderPage() {
       <div className="flex flex-col xl:flex-row gap-6">
 
         {/* ── Left: Query Builder (60%) ────────────────────────── */}
-        <div className="flex-[3] space-y-5 min-w-0">
+        <div className="flex-3 space-y-5 min-w-0">
 
           {/* Builder Card */}
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg overflow-hidden">
-            <div className="flex items-center gap-3 px-5 py-4 border-b border-[#1e2d42]">
-              <Code2 className="w-5 h-5 text-[#e8002d]" />
+          <div className="bg-falcon-surface border border-falcon-border rounded-lg overflow-hidden">
+            <div className="flex items-center gap-3 px-5 py-4 border-b border-falcon-border">
+              <Code2 className="w-5 h-5 text-falcon-red" />
               <h2 className="text-white font-semibold">クエリビルダー</h2>
               <div className="ml-auto flex items-center gap-2">
                 <button
@@ -369,7 +369,7 @@ export default function SiemQueryBuilderPage() {
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-medium border transition-colors ${
                     rawMode
                       ? 'bg-[#4a90e2]/10 border-[#4a90e2]/30 text-[#4a90e2]'
-                      : 'bg-[#1e2d42] border-[#1e2d42] text-[#7d92b0] hover:text-[#e2e8f4]'
+                      : 'bg-falcon-border border-falcon-border text-falcon-muted hover:text-falcon-text'
                   }`}
                 >
                   <Code2 className="w-3.5 h-3.5" />
@@ -389,7 +389,7 @@ export default function SiemQueryBuilderPage() {
                   spellCheck={false}
                   placeholder="SELECT * FROM events WHERE ..."
                 />
-                <p className="text-xs text-[#3d5068] mt-2">Raw SQLモードではビジュアルビルダーの設定は無視されます</p>
+                <p className="text-xs text-falcon-subtle mt-2">Raw SQLモードではビジュアルビルダーの設定は無視されます</p>
               </div>
             ) : (
               /* Visual Builder Mode */
@@ -417,15 +417,15 @@ export default function SiemQueryBuilderPage() {
                   </div>
                   <div>
                     <label className={labelCls}>期間</label>
-                    <div className="flex items-center gap-1 bg-[#070d19] border border-[#1e2d42] rounded overflow-hidden">
+                    <div className="flex items-center gap-1 bg-[#070d19] border border-falcon-border rounded-sm overflow-hidden">
                       {TIME_RANGES.map(tr => (
                         <button
                           key={tr.value}
                           onClick={() => setQueryState(q => ({ ...q, time_range: tr.value }))}
                           className={`flex-1 py-2 text-xs font-medium transition-colors ${
                             queryState.time_range === tr.value
-                              ? 'bg-[#e8002d] text-white'
-                              : 'text-[#7d92b0] hover:text-[#e2e8f4] hover:bg-[#1e2d42]'
+                              ? 'bg-falcon-red text-white'
+                              : 'text-falcon-muted hover:text-falcon-text hover:bg-falcon-border'
                           }`}
                         >
                           {tr.label}
@@ -441,7 +441,7 @@ export default function SiemQueryBuilderPage() {
                     <label className={`${labelCls} mb-0`}>条件フィルター</label>
                     <button
                       onClick={addCondition}
-                      className="flex items-center gap-1 text-xs text-[#7d92b0] hover:text-[#e2e8f4] transition-colors"
+                      className="flex items-center gap-1 text-xs text-falcon-muted hover:text-falcon-text transition-colors"
                     >
                       <Plus className="w-3.5 h-3.5" />
                       条件を追加
@@ -449,7 +449,7 @@ export default function SiemQueryBuilderPage() {
                   </div>
                   <div className="space-y-2">
                     {queryState.conditions.length === 0 && (
-                      <div className="flex items-center justify-center py-4 border border-dashed border-[#1e2d42] rounded text-xs text-[#3d5068]">
+                      <div className="flex items-center justify-center py-4 border border-dashed border-falcon-border rounded-sm text-xs text-falcon-subtle">
                         条件なし — すべてのレコードが対象
                       </div>
                     )}
@@ -457,7 +457,7 @@ export default function SiemQueryBuilderPage() {
                       <div key={cond.id} className="flex items-center gap-2 flex-wrap">
                         {i > 0 && (
                           <select
-                            className={`${selectCls} w-16 flex-shrink-0`}
+                            className={`${selectCls} w-16 shrink-0`}
                             value={cond.connector}
                             onChange={e => updateCondition(cond.id, { connector: e.target.value as AndOr })}
                           >
@@ -465,7 +465,7 @@ export default function SiemQueryBuilderPage() {
                             <option value="OR">OR</option>
                           </select>
                         )}
-                        {i === 0 && <span className="w-16 text-xs text-[#3d5068] text-center flex-shrink-0">WHERE</span>}
+                        {i === 0 && <span className="w-16 text-xs text-falcon-subtle text-center shrink-0">WHERE</span>}
 
                         <select
                           className={`${selectCls} flex-1 min-w-[120px]`}
@@ -476,7 +476,7 @@ export default function SiemQueryBuilderPage() {
                         </select>
 
                         <select
-                          className={`${selectCls} w-32 flex-shrink-0`}
+                          className={`${selectCls} w-32 shrink-0`}
                           value={cond.operator}
                           onChange={e => updateCondition(cond.id, { operator: e.target.value as Operator })}
                         >
@@ -493,7 +493,7 @@ export default function SiemQueryBuilderPage() {
 
                         <button
                           onClick={() => removeCondition(cond.id)}
-                          className="p-2 rounded hover:bg-[#1e2d42] text-[#7d92b0] hover:text-[#e8002d] transition-colors flex-shrink-0"
+                          className="p-2 rounded-sm hover:bg-falcon-border text-falcon-muted hover:text-falcon-red transition-colors shrink-0"
                         >
                           <X className="w-3.5 h-3.5" />
                         </button>
@@ -534,10 +534,10 @@ export default function SiemQueryBuilderPage() {
             {!rawMode && (
               <div className="px-5 pb-4">
                 <div className="flex items-center gap-2 mb-2">
-                  <Code2 className="w-3.5 h-3.5 text-[#7d92b0]" />
-                  <span className="text-xs text-[#7d92b0] font-medium">生成クエリ プレビュー</span>
+                  <Code2 className="w-3.5 h-3.5 text-falcon-muted" />
+                  <span className="text-xs text-falcon-muted font-medium">生成クエリ プレビュー</span>
                 </div>
-                <pre className="p-3 bg-[#070d19] border border-[#1e2d42] rounded text-xs font-mono text-[#4a90e2] overflow-x-auto whitespace-pre-wrap">
+                <pre className="p-3 bg-[#070d19] border border-falcon-border rounded-sm text-xs font-mono text-[#4a90e2] overflow-x-auto whitespace-pre-wrap">
                   {generatedSQL}
                 </pre>
               </div>
@@ -545,29 +545,29 @@ export default function SiemQueryBuilderPage() {
           </div>
 
           {/* Saved Queries */}
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg overflow-hidden">
-            <div className="flex items-center gap-3 px-5 py-4 border-b border-[#1e2d42]">
-              <BookOpen className="w-5 h-5 text-[#e8002d]" />
+          <div className="bg-falcon-surface border border-falcon-border rounded-lg overflow-hidden">
+            <div className="flex items-center gap-3 px-5 py-4 border-b border-falcon-border">
+              <BookOpen className="w-5 h-5 text-falcon-red" />
               <h2 className="text-white font-semibold">保存済みクエリ</h2>
-              <span className="ml-auto text-xs text-[#7d92b0] bg-[#1e2d42] px-2 py-0.5 rounded">{savedList.length}件</span>
+              <span className="ml-auto text-xs text-falcon-muted bg-falcon-border px-2 py-0.5 rounded-sm">{savedList.length}件</span>
             </div>
             {loadingSaved ? (
-              <div className="flex items-center justify-center h-20 text-[#7d92b0] text-sm">
+              <div className="flex items-center justify-center h-20 text-falcon-muted text-sm">
                 <Loader2 className="w-4 h-4 animate-spin mr-2" /> 読み込み中...
               </div>
             ) : (
-              <div className="divide-y divide-[#1e2d42]">
+              <div className="divide-y divide-falcon-border">
                 {savedList.map(sq => (
-                  <div key={sq.id} className="flex items-center gap-4 px-5 py-3 hover:bg-[#111827] transition-colors">
+                  <div key={sq.id} className="flex items-center gap-4 px-5 py-3 hover:bg-falcon-card transition-colors">
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-[#e2e8f4] truncate">{sq.name}</p>
-                      <p className="text-xs text-[#7d92b0] truncate mt-0.5">{sq.description}</p>
-                      <p className="text-[10px] text-[#3d5068] mt-0.5">最終実行: {formatLastRun(sq.last_run)}</p>
+                      <p className="text-sm font-medium text-falcon-text truncate">{sq.name}</p>
+                      <p className="text-xs text-falcon-muted truncate mt-0.5">{sq.description}</p>
+                      <p className="text-[10px] text-falcon-subtle mt-0.5">最終実行: {formatLastRun(sq.last_run)}</p>
                     </div>
-                    <div className="flex items-center gap-2 flex-shrink-0">
+                    <div className="flex items-center gap-2 shrink-0">
                       <button
                         onClick={() => loadSavedQuery(sq)}
-                        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded text-xs font-medium bg-[#1e2d42] text-[#7d92b0] hover:text-[#e2e8f4] hover:bg-[#243448] transition-colors"
+                        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-sm text-xs font-medium bg-falcon-border text-falcon-muted hover:text-falcon-text hover:bg-[#243448] transition-colors"
                       >
                         <Eye className="w-3 h-3" />
                         ロード
@@ -575,7 +575,7 @@ export default function SiemQueryBuilderPage() {
                       <button
                         onClick={() => deleteQueryMutation.mutate(sq.id)}
                         disabled={deleteQueryMutation.isPending}
-                        className="p-1.5 rounded hover:bg-[#1e2d42] text-[#7d92b0] hover:text-[#e8002d] transition-colors"
+                        className="p-1.5 rounded-sm hover:bg-falcon-border text-falcon-muted hover:text-falcon-red transition-colors"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
@@ -588,15 +588,15 @@ export default function SiemQueryBuilderPage() {
         </div>
 
         {/* ── Right: Results (40%) ──────────────────────────────── */}
-        <div className="flex-[2] space-y-4 min-w-0">
+        <div className="flex-2 space-y-4 min-w-0">
 
           {/* Execute Panel */}
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-5">
+          <div className="bg-falcon-surface border border-falcon-border rounded-lg p-5">
             <div className="flex items-center gap-3 flex-wrap">
               <button
                 onClick={handleExecute}
                 disabled={isExecuting}
-                className="flex items-center gap-2 px-6 py-2.5 rounded-lg bg-[#e8002d] hover:bg-[#c0001f] text-white font-semibold text-sm transition-colors disabled:opacity-50"
+                className="flex items-center gap-2 px-6 py-2.5 rounded-lg bg-falcon-red hover:bg-[#c0001f] text-white font-semibold text-sm transition-colors disabled:opacity-50"
               >
                 {isExecuting
                   ? <><Loader2 className="w-4 h-4 animate-spin" /> 実行中...</>
@@ -604,7 +604,7 @@ export default function SiemQueryBuilderPage() {
               </button>
               <button
                 onClick={() => setShowSaveModal(true)}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-[#1e2d42] hover:bg-[#243448] text-[#7d92b0] hover:text-[#e2e8f4] font-medium text-sm transition-colors"
+                className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-falcon-border hover:bg-[#243448] text-falcon-muted hover:text-falcon-text font-medium text-sm transition-colors"
               >
                 <Save className="w-4 h-4" />
                 保存
@@ -612,13 +612,13 @@ export default function SiemQueryBuilderPage() {
             </div>
 
             {results && (
-              <div className="flex items-center gap-6 mt-4 pt-4 border-t border-[#1e2d42] flex-wrap">
+              <div className="flex items-center gap-6 mt-4 pt-4 border-t border-falcon-border flex-wrap">
                 <div className="flex items-center gap-2">
-                  <CheckCircle className="w-4 h-4 text-[#00c853]" />
+                  <CheckCircle className="w-4 h-4 text-falcon-green" />
                   <span className="text-sm font-semibold text-white">{(results.total ?? 0).toLocaleString()}件ヒット</span>
                 </div>
-                <span className="text-xs text-[#7d92b0]">実行時間: <span className="font-mono text-[#e2e8f4]">{results.execution_ms}ms</span></span>
-                <span className="text-xs text-[#7d92b0]">表示: <span className="font-mono text-[#e2e8f4]">{results.rows.length}件</span></span>
+                <span className="text-xs text-falcon-muted">実行時間: <span className="font-mono text-falcon-text">{results.execution_ms}ms</span></span>
+                <span className="text-xs text-falcon-muted">表示: <span className="font-mono text-falcon-text">{results.rows.length}件</span></span>
                 <div className="flex items-center gap-2 ml-auto">
                   {queryState.group_by && (
                     <button
@@ -626,7 +626,7 @@ export default function SiemQueryBuilderPage() {
                       className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded text-xs font-medium border transition-colors ${
                         showChart
                           ? 'bg-[#4a90e2]/10 border-[#4a90e2]/30 text-[#4a90e2]'
-                          : 'bg-[#1e2d42] border-[#1e2d42] text-[#7d92b0] hover:text-[#e2e8f4]'
+                          : 'bg-falcon-border border-falcon-border text-falcon-muted hover:text-falcon-text'
                       }`}
                     >
                       <BarChart2 className="w-3.5 h-3.5" />
@@ -635,14 +635,14 @@ export default function SiemQueryBuilderPage() {
                   )}
                   <button
                     onClick={exportCSV}
-                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded text-xs font-medium bg-[#1e2d42] text-[#7d92b0] hover:text-[#e2e8f4] transition-colors"
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-sm text-xs font-medium bg-falcon-border text-falcon-muted hover:text-falcon-text transition-colors"
                   >
                     <Download className="w-3.5 h-3.5" />
                     CSV
                   </button>
                   <button
                     onClick={exportJSON}
-                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded text-xs font-medium bg-[#1e2d42] text-[#7d92b0] hover:text-[#e2e8f4] transition-colors"
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-sm text-xs font-medium bg-falcon-border text-falcon-muted hover:text-falcon-text transition-colors"
                   >
                     <Download className="w-3.5 h-3.5" />
                     JSON
@@ -654,23 +654,23 @@ export default function SiemQueryBuilderPage() {
 
           {/* Results */}
           {isExecuting && (
-            <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg flex items-center justify-center h-48 text-[#7d92b0] text-sm">
+            <div className="bg-falcon-surface border border-falcon-border rounded-lg flex items-center justify-center h-48 text-falcon-muted text-sm">
               <Loader2 className="w-5 h-5 animate-spin mr-2" />
               クエリを実行しています...
             </div>
           )}
 
           {results && !isExecuting && (
-            <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg overflow-hidden">
-              <div className="flex items-center gap-3 px-5 py-4 border-b border-[#1e2d42]">
-                <Database className="w-4 h-4 text-[#e8002d]" />
+            <div className="bg-falcon-surface border border-falcon-border rounded-lg overflow-hidden">
+              <div className="flex items-center gap-3 px-5 py-4 border-b border-falcon-border">
+                <Database className="w-4 h-4 text-falcon-red" />
                 <h3 className="text-white font-semibold text-sm">クエリ結果</h3>
               </div>
 
               {/* Bar Chart */}
               {showChart && queryState.group_by && (
-                <div className="px-5 py-4 border-b border-[#1e2d42]">
-                  <p className="text-xs font-semibold text-[#7d92b0] uppercase tracking-wider mb-3">
+                <div className="px-5 py-4 border-b border-falcon-border">
+                  <p className="text-xs font-semibold text-falcon-muted uppercase tracking-wider mb-3">
                     {queryState.group_by} 別 集計
                   </p>
                   <BarChart rows={results.rows} groupBy={queryState.group_by} />
@@ -680,20 +680,20 @@ export default function SiemQueryBuilderPage() {
               {/* Results Table */}
               <div className="overflow-x-auto max-h-[500px] overflow-y-auto">
                 <table className="w-full text-xs">
-                  <thead className="sticky top-0 bg-[#0d1220] z-10">
-                    <tr className="border-b border-[#1e2d42]">
+                  <thead className="sticky top-0 bg-falcon-surface z-10">
+                    <tr className="border-b border-falcon-border">
                       {results.columns.map(col => (
-                        <th key={col} className="px-4 py-2.5 text-left text-[10px] font-semibold text-[#7d92b0] uppercase tracking-wider whitespace-nowrap">
+                        <th key={col} className="px-4 py-2.5 text-left text-[10px] font-semibold text-falcon-muted uppercase tracking-wider whitespace-nowrap">
                           {col}
                         </th>
                       ))}
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-[#1e2d42]">
+                  <tbody className="divide-y divide-falcon-border">
                     {results.rows.map((row, i) => (
-                      <tr key={i} className="hover:bg-[#111827] transition-colors">
+                      <tr key={i} className="hover:bg-falcon-card transition-colors">
                         {results.columns.map(col => (
-                          <td key={col} className="px-4 py-2 font-mono text-[11px] text-[#e2e8f4] whitespace-nowrap max-w-[160px] truncate">
+                          <td key={col} className="px-4 py-2 font-mono text-[11px] text-falcon-text whitespace-nowrap max-w-[160px] truncate">
                             {String(row[col] ?? '')}
                           </td>
                         ))}
@@ -706,10 +706,10 @@ export default function SiemQueryBuilderPage() {
           )}
 
           {!results && !isExecuting && (
-            <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg flex flex-col items-center justify-center h-64 text-center p-8">
-              <Database className="w-12 h-12 text-[#1e2d42] mb-4" />
-              <p className="text-sm font-medium text-[#7d92b0]">クエリを実行してください</p>
-              <p className="text-xs text-[#3d5068] mt-1">左側でクエリを設定し、「クエリ実行」ボタンを押してください</p>
+            <div className="bg-falcon-surface border border-falcon-border rounded-lg flex flex-col items-center justify-center h-64 text-center p-8">
+              <Database className="w-12 h-12 text-falcon-border mb-4" />
+              <p className="text-sm font-medium text-falcon-muted">クエリを実行してください</p>
+              <p className="text-xs text-falcon-subtle mt-1">左側でクエリを設定し、「クエリ実行」ボタンを押してください</p>
             </div>
           )}
         </div>

@@ -115,8 +115,8 @@ function TabButton({ active, onClick, children }: { active: boolean; onClick: ()
       onClick={onClick}
       className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
         active
-          ? 'border-[#e8002d] text-white'
-          : 'border-transparent text-[#7d92b0] hover:text-[#e2e8f4] hover:border-[#1e2d42]'
+          ? 'border-falcon-red text-white'
+          : 'border-transparent text-falcon-muted hover:text-falcon-text hover:border-falcon-border'
       }`}
     >
       {children}
@@ -127,7 +127,7 @@ function TabButton({ active, onClick, children }: { active: boolean; onClick: ()
 function Badge({ color, children }: { color?: string; children: React.ReactNode }) {
   return (
     <span
-      className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium"
+      className="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium"
       style={{ backgroundColor: color ? color + '22' : '#1e2d4290', color: color ?? '#7d92b0', border: `1px solid ${color ?? '#1e2d42'}55` }}
     >
       {children}
@@ -194,7 +194,7 @@ function PermissionMatrixTab() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-white font-semibold text-lg">パーミッションマトリクス</h2>
-          <p className="text-[#7d92b0] text-sm mt-0.5">ロールごとの権限を管理します。チェックボックスをクリックして変更してください。</p>
+          <p className="text-falcon-muted text-sm mt-0.5">ロールごとの権限を管理します。チェックボックスをクリックして変更してください。</p>
         </div>
         <button
           onClick={() => saveMutation.mutate(matrix)}
@@ -203,8 +203,8 @@ function PermissionMatrixTab() {
             saveSuccess
               ? 'bg-green-600/20 text-green-400 border border-green-600/30'
               : localMatrix !== null
-              ? 'bg-[#e8002d] hover:bg-[#c0001f] text-white'
-              : 'bg-[#1e2d42] text-[#7d92b0] cursor-not-allowed'
+              ? 'bg-falcon-red hover:bg-[#c0001f] text-white'
+              : 'bg-falcon-border text-falcon-muted cursor-not-allowed'
           }`}
         >
           {saveSuccess ? (
@@ -215,24 +215,24 @@ function PermissionMatrixTab() {
         </button>
       </div>
 
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg overflow-hidden">
+      <div className="bg-falcon-surface border border-falcon-border rounded-lg overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-[#1e2d42]">
-                <th className="text-left px-4 py-3 text-[#7d92b0] font-medium w-48 sticky left-0 bg-[#0d1220] z-10">
+              <tr className="border-b border-falcon-border">
+                <th className="text-left px-4 py-3 text-falcon-muted font-medium w-48 sticky left-0 bg-falcon-surface z-10">
                   権限
                 </th>
                 {roles.map(role => (
                   <th key={role.name} className="px-4 py-3 text-center min-w-[110px]">
                     <div className="flex flex-col items-center gap-1">
                       <span
-                        className="font-semibold text-xs px-2 py-0.5 rounded"
+                        className="font-semibold text-xs px-2 py-0.5 rounded-sm"
                         style={{ backgroundColor: (role.color ?? '#3b82f6') + '22', color: role.color ?? '#3b82f6' }}
                       >
                         {role.name}
                       </span>
-                      <span className="text-[#3d5068] text-[10px]">{role.member_count}人</span>
+                      <span className="text-falcon-subtle text-[10px]">{role.member_count}人</span>
                     </div>
                   </th>
                 ))}
@@ -242,9 +242,9 @@ function PermissionMatrixTab() {
               {PERMISSION_CATEGORIES.map((cat, catIdx) => (
                 <>
                   {/* Category header row */}
-                  <tr key={`cat-${cat.category}`} className="bg-[#070d19]/50 border-t border-[#1e2d42]">
+                  <tr key={`cat-${cat.category}`} className="bg-[#070d19]/50 border-t border-falcon-border">
                     <td className="px-4 py-2 sticky left-0 bg-[#070d19]/80 z-10">
-                      <span className="text-[#7d92b0] text-xs font-semibold uppercase tracking-wider">
+                      <span className="text-falcon-muted text-xs font-semibold uppercase tracking-wider">
                         {cat.label}
                       </span>
                     </td>
@@ -258,10 +258,10 @@ function PermissionMatrixTab() {
                             onClick={() => toggleCategoryForRole(role.name, catPerms, allOn)}
                             className={`text-[10px] px-2 py-0.5 rounded transition-colors ${
                               allOn
-                                ? 'bg-[#e8002d]/20 text-[#e8002d] hover:bg-[#e8002d]/30'
+                                ? 'bg-falcon-red/20 text-falcon-red hover:bg-falcon-red/30'
                                 : someOn
                                 ? 'bg-yellow-500/10 text-yellow-400 hover:bg-yellow-500/20'
-                                : 'bg-[#1e2d42] text-[#7d92b0] hover:bg-[#1e2d42]/80'
+                                : 'bg-falcon-border text-falcon-muted hover:bg-falcon-border/80'
                             }`}
                           >
                             {allOn ? '全解除' : someOn ? '一部' : '全付与'}
@@ -274,13 +274,13 @@ function PermissionMatrixTab() {
                   {cat.permissions.map((perm, permIdx) => (
                     <tr
                       key={perm.id}
-                      className={`border-t border-[#1e2d42]/50 hover:bg-[#0d1220]/80 transition-colors ${
+                      className={`border-t border-falcon-border/50 hover:bg-falcon-surface/80 transition-colors ${
                         permIdx % 2 === 0 ? '' : 'bg-[#070d19]/20'
                       }`}
                     >
                       <td className="px-4 py-2.5 sticky left-0 bg-inherit z-10">
-                        <span className="text-[#e2e8f4] text-xs">{perm.label}</span>
-                        <span className="ml-2 text-[#3d5068] text-[10px] font-mono">{perm.id}</span>
+                        <span className="text-falcon-text text-xs">{perm.label}</span>
+                        <span className="ml-2 text-falcon-subtle text-[10px] font-mono">{perm.id}</span>
                       </td>
                       {roles.map(role => {
                         const checked = hasPermission(role.name, perm.id)
@@ -290,8 +290,8 @@ function PermissionMatrixTab() {
                               onClick={() => togglePermission(role.name, perm.id)}
                               className={`w-5 h-5 rounded border transition-all flex items-center justify-center mx-auto ${
                                 checked
-                                  ? 'bg-[#e8002d] border-[#e8002d]'
-                                  : 'bg-transparent border-[#1e2d42] hover:border-[#7d92b0]'
+                                  ? 'bg-falcon-red border-falcon-red'
+                                  : 'bg-transparent border-falcon-border hover:border-falcon-muted'
                               }`}
                               title={checked ? '権限を削除' : '権限を付与'}
                             >
@@ -311,7 +311,7 @@ function PermissionMatrixTab() {
 
       {localMatrix !== null && (
         <div className="flex items-center gap-2 text-sm text-yellow-400 bg-yellow-400/10 border border-yellow-400/20 rounded-lg px-4 py-2.5">
-          <AlertCircle className="w-4 h-4 flex-shrink-0" />
+          <AlertCircle className="w-4 h-4 shrink-0" />
           未保存の変更があります。「マトリクスを保存」ボタンをクリックして変更を反映してください。
         </div>
       )}
@@ -350,11 +350,11 @@ function RolesTab() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-white font-semibold text-lg">ロール管理</h2>
-          <p className="text-[#7d92b0] text-sm mt-0.5">ロールの作成・編集・削除を行います。システムロールは削除できません。</p>
+          <p className="text-falcon-muted text-sm mt-0.5">ロールの作成・編集・削除を行います。システムロールは削除できません。</p>
         </div>
         <button
           onClick={() => setShowCreateModal(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-[#e8002d] hover:bg-[#c0001f] text-white rounded text-sm font-medium transition-colors"
+          className="flex items-center gap-2 px-4 py-2 bg-falcon-red hover:bg-[#c0001f] text-white rounded-sm text-sm font-medium transition-colors"
         >
           <Plus className="w-4 h-4" />
           ロール作成
@@ -365,11 +365,11 @@ function RolesTab() {
         {roles.map(role => (
           <div
             key={role.name}
-            className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-4 flex items-center gap-4 hover:border-[#1e2d42]/80 transition-colors"
+            className="bg-falcon-surface border border-falcon-border rounded-lg p-4 flex items-center gap-4 hover:border-falcon-border/80 transition-colors"
           >
             {/* Color dot */}
             <div
-              className="w-3 h-3 rounded-full flex-shrink-0"
+              className="w-3 h-3 rounded-full shrink-0"
               style={{ backgroundColor: role.color ?? '#6b7280' }}
             />
 
@@ -381,20 +381,20 @@ function RolesTab() {
                   <Badge color="#3b82f6">システム</Badge>
                 )}
               </div>
-              <p className="text-[#7d92b0] text-sm mt-0.5 truncate">{role.description}</p>
+              <p className="text-falcon-muted text-sm mt-0.5 truncate">{role.description}</p>
             </div>
 
             {/* Member count */}
-            <div className="flex items-center gap-1.5 text-[#7d92b0] text-sm flex-shrink-0">
+            <div className="flex items-center gap-1.5 text-falcon-muted text-sm shrink-0">
               <Users className="w-4 h-4" />
               <span>{role.member_count}人</span>
             </div>
 
             {/* Actions */}
-            <div className="flex items-center gap-2 flex-shrink-0">
+            <div className="flex items-center gap-2 shrink-0">
               <button
                 onClick={() => setEditingRole(role)}
-                className="p-1.5 rounded text-[#7d92b0] hover:text-[#e2e8f4] hover:bg-[#1e2d42] transition-colors"
+                className="p-1.5 rounded-sm text-falcon-muted hover:text-falcon-text hover:bg-falcon-border transition-colors"
                 title="編集"
               >
                 <Edit2 className="w-4 h-4" />
@@ -402,7 +402,7 @@ function RolesTab() {
               {!SYSTEM_ROLES.includes(role.name) && (
                 <button
                   onClick={() => setDeleteConfirm(role.name)}
-                  className="p-1.5 rounded text-[#7d92b0] hover:text-red-400 hover:bg-red-900/20 transition-colors"
+                  className="p-1.5 rounded-sm text-falcon-muted hover:text-red-400 hover:bg-red-900/20 transition-colors"
                   title="削除"
                 >
                   <Trash2 className="w-4 h-4" />
@@ -416,23 +416,23 @@ function RolesTab() {
       {/* Delete confirmation */}
       {deleteConfirm && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-6 max-w-sm w-full mx-4 shadow-xl">
+          <div className="bg-falcon-surface border border-falcon-border rounded-lg p-6 max-w-sm w-full mx-4 shadow-xl">
             <h3 className="text-white font-semibold mb-2">ロールを削除しますか？</h3>
-            <p className="text-[#7d92b0] text-sm mb-4">
+            <p className="text-falcon-muted text-sm mb-4">
               ロール <span className="text-white font-medium">「{deleteConfirm}」</span> を削除します。
               このロールが割り当てられているユーザーは viewer に変更されます。
             </p>
             <div className="flex gap-3 justify-end">
               <button
                 onClick={() => setDeleteConfirm(null)}
-                className="px-4 py-2 text-sm text-[#7d92b0] hover:text-white border border-[#1e2d42] hover:border-[#7d92b0] rounded transition-colors"
+                className="px-4 py-2 text-sm text-falcon-muted hover:text-white border border-falcon-border hover:border-falcon-muted rounded-sm transition-colors"
               >
                 キャンセル
               </button>
               <button
                 onClick={() => deleteMutation.mutate(deleteConfirm)}
                 disabled={deleteMutation.isPending}
-                className="px-4 py-2 text-sm bg-red-700 hover:bg-red-600 text-white rounded transition-colors"
+                className="px-4 py-2 text-sm bg-red-700 hover:bg-red-600 text-white rounded-sm transition-colors"
               >
                 削除する
               </button>
@@ -501,12 +501,12 @@ function RoleModal({
 
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-6 max-w-md w-full mx-4 shadow-xl">
+      <div className="bg-falcon-surface border border-falcon-border rounded-lg p-6 max-w-md w-full mx-4 shadow-xl">
         <div className="flex items-center justify-between mb-5">
           <h3 className="text-white font-semibold text-lg">
             {role ? 'ロールを編集' : '新規ロール作成'}
           </h3>
-          <button onClick={onClose} className="text-[#7d92b0] hover:text-white transition-colors">
+          <button onClick={onClose} className="text-falcon-muted hover:text-white transition-colors">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -514,34 +514,34 @@ function RoleModal({
         <div className="space-y-4">
           {/* Name */}
           <div>
-            <label className="block text-sm text-[#7d92b0] mb-1.5">ロール名 <span className="text-[#e8002d]">*</span></label>
+            <label className="block text-sm text-falcon-muted mb-1.5">ロール名 <span className="text-falcon-red">*</span></label>
             <input
               value={name}
               onChange={e => setName(e.target.value)}
               disabled={!!role}
               placeholder="例: security_ops"
-              className="w-full bg-[#070d19] border border-[#1e2d42] rounded px-3 py-2 text-white text-sm
-                         focus:outline-none focus:border-[#e8002d]/50 placeholder:text-[#3d5068]
+              className="w-full bg-[#070d19] border border-falcon-border rounded px-3 py-2 text-white text-sm
+                         focus:outline-hidden focus:border-falcon-red/50 placeholder:text-falcon-subtle
                          disabled:opacity-50 disabled:cursor-not-allowed"
             />
           </div>
 
           {/* Description */}
           <div>
-            <label className="block text-sm text-[#7d92b0] mb-1.5">説明</label>
+            <label className="block text-sm text-falcon-muted mb-1.5">説明</label>
             <textarea
               value={description}
               onChange={e => setDescription(e.target.value)}
               rows={2}
               placeholder="このロールの用途を記述してください"
-              className="w-full bg-[#070d19] border border-[#1e2d42] rounded px-3 py-2 text-white text-sm
-                         focus:outline-none focus:border-[#e8002d]/50 placeholder:text-[#3d5068] resize-none"
+              className="w-full bg-[#070d19] border border-falcon-border rounded px-3 py-2 text-white text-sm
+                         focus:outline-hidden focus:border-falcon-red/50 placeholder:text-falcon-subtle resize-none"
             />
           </div>
 
           {/* Color picker */}
           <div>
-            <label className="block text-sm text-[#7d92b0] mb-1.5">カラー</label>
+            <label className="block text-sm text-falcon-muted mb-1.5">カラー</label>
             <div className="flex gap-2 flex-wrap">
               {ROLE_COLORS.map(c => (
                 <button
@@ -564,24 +564,24 @@ function RoleModal({
                   type="checkbox"
                   checked={useBaseRole}
                   onChange={e => setUseBaseRole(e.target.checked)}
-                  className="accent-[#e8002d]"
+                  className="accent-falcon-red"
                 />
-                <span className="text-sm text-[#7d92b0]">既存ロールをベースにする</span>
+                <span className="text-sm text-falcon-muted">既存ロールをベースにする</span>
               </label>
               {useBaseRole && (
                 <div className="mt-2 relative">
                   <select
                     value={basedOnRole}
                     onChange={e => setBasedOnRole(e.target.value)}
-                    className="w-full bg-[#070d19] border border-[#1e2d42] rounded px-3 py-2 text-white text-sm
-                               focus:outline-none focus:border-[#e8002d]/50 appearance-none pr-8"
+                    className="w-full bg-[#070d19] border border-falcon-border rounded px-3 py-2 text-white text-sm
+                               focus:outline-hidden focus:border-falcon-red/50 appearance-none pr-8"
                   >
                     <option value="">ベースロールを選択</option>
                     {existingRoles.map(r => (
                       <option key={r.name} value={r.name}>{r.name}</option>
                     ))}
                   </select>
-                  <ChevronDown className="absolute right-2 top-2.5 w-4 h-4 text-[#7d92b0] pointer-events-none" />
+                  <ChevronDown className="absolute right-2 top-2.5 w-4 h-4 text-falcon-muted pointer-events-none" />
                 </div>
               )}
             </div>
@@ -597,14 +597,14 @@ function RoleModal({
         <div className="flex gap-3 justify-end mt-6">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-sm text-[#7d92b0] hover:text-white border border-[#1e2d42] hover:border-[#7d92b0] rounded transition-colors"
+            className="px-4 py-2 text-sm text-falcon-muted hover:text-white border border-falcon-border hover:border-falcon-muted rounded-sm transition-colors"
           >
             キャンセル
           </button>
           <button
             onClick={handleSave}
             disabled={saving}
-            className="px-4 py-2 text-sm bg-[#e8002d] hover:bg-[#c0001f] text-white rounded transition-colors disabled:opacity-50"
+            className="px-4 py-2 text-sm bg-falcon-red hover:bg-[#c0001f] text-white rounded-sm transition-colors disabled:opacity-50"
           >
             {saving ? '保存中...' : role ? '変更を保存' : 'ロールを作成'}
           </button>
@@ -666,18 +666,18 @@ function UserRoleAssignmentTab() {
     <div className="space-y-4">
       <div>
         <h2 className="text-white font-semibold text-lg">ユーザーロール割り当て</h2>
-        <p className="text-[#7d92b0] text-sm mt-0.5">ユーザーごとのロールを変更できます。変更後に「保存」をクリックしてください。</p>
+        <p className="text-falcon-muted text-sm mt-0.5">ユーザーごとのロールを変更できます。変更後に「保存」をクリックしてください。</p>
       </div>
 
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg overflow-hidden">
+      <div className="bg-falcon-surface border border-falcon-border rounded-lg overflow-hidden">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-[#1e2d42] bg-[#070d19]/50">
-              <th className="text-left px-4 py-3 text-[#7d92b0] font-medium">ユーザー</th>
-              <th className="text-left px-4 py-3 text-[#7d92b0] font-medium">メールアドレス</th>
-              <th className="text-left px-4 py-3 text-[#7d92b0] font-medium">現在のロール</th>
-              <th className="text-left px-4 py-3 text-[#7d92b0] font-medium">変更後のロール</th>
-              <th className="px-4 py-3 text-[#7d92b0] font-medium text-right">操作</th>
+            <tr className="border-b border-falcon-border bg-[#070d19]/50">
+              <th className="text-left px-4 py-3 text-falcon-muted font-medium">ユーザー</th>
+              <th className="text-left px-4 py-3 text-falcon-muted font-medium">メールアドレス</th>
+              <th className="text-left px-4 py-3 text-falcon-muted font-medium">現在のロール</th>
+              <th className="text-left px-4 py-3 text-falcon-muted font-medium">変更後のロール</th>
+              <th className="px-4 py-3 text-falcon-muted font-medium text-right">操作</th>
             </tr>
           </thead>
           <tbody>
@@ -689,21 +689,21 @@ function UserRoleAssignmentTab() {
               return (
                 <tr
                   key={user.id}
-                  className={`border-t border-[#1e2d42]/50 hover:bg-[#070d19]/30 transition-colors ${
+                  className={`border-t border-falcon-border/50 hover:bg-[#070d19]/30 transition-colors ${
                     idx % 2 === 0 ? '' : 'bg-[#070d19]/10'
                   }`}
                 >
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2.5">
-                      <div className="w-7 h-7 rounded-full bg-gradient-to-br from-[#1a6bff] to-[#0044cc] flex items-center justify-center flex-shrink-0">
+                      <div className="w-7 h-7 rounded-full bg-linear-to-br from-falcon-blue to-[#0044cc] flex items-center justify-center shrink-0">
                         <span className="text-[10px] font-bold text-white">
                           {(user.full_name || user.email)?.[0]?.toUpperCase() ?? 'U'}
                         </span>
                       </div>
-                      <span className="text-[#e2e8f4]">{user.full_name}</span>
+                      <span className="text-falcon-text">{user.full_name}</span>
                     </div>
                   </td>
-                  <td className="px-4 py-3 text-[#7d92b0]">{user.email}</td>
+                  <td className="px-4 py-3 text-falcon-muted">{user.email}</td>
                   <td className="px-4 py-3">
                     <Badge color={getRoleColor(user.role)}>{user.role}</Badge>
                   </td>
@@ -712,14 +712,14 @@ function UserRoleAssignmentTab() {
                       <select
                         value={currentRole}
                         onChange={e => handleRoleChange(user.id, e.target.value)}
-                        className="w-full bg-[#070d19] border border-[#1e2d42] rounded px-3 py-1.5 text-white text-xs
-                                   focus:outline-none focus:border-[#e8002d]/50 appearance-none pr-7"
+                        className="w-full bg-[#070d19] border border-falcon-border rounded px-3 py-1.5 text-white text-xs
+                                   focus:outline-hidden focus:border-falcon-red/50 appearance-none pr-7"
                       >
                         {roles.map(r => (
                           <option key={r.name} value={r.name}>{r.name}</option>
                         ))}
                       </select>
-                      <ChevronDown className="absolute right-2 top-2 w-3.5 h-3.5 text-[#7d92b0] pointer-events-none" />
+                      <ChevronDown className="absolute right-2 top-2 w-3.5 h-3.5 text-falcon-muted pointer-events-none" />
                     </div>
                   </td>
                   <td className="px-4 py-3 text-right">
@@ -730,8 +730,8 @@ function UserRoleAssignmentTab() {
                         wasSaved
                           ? 'bg-green-600/20 text-green-400 border border-green-600/30'
                           : hasChange
-                          ? 'bg-[#e8002d] hover:bg-[#c0001f] text-white'
-                          : 'bg-[#1e2d42] text-[#7d92b0] cursor-not-allowed opacity-50'
+                          ? 'bg-falcon-red hover:bg-[#c0001f] text-white'
+                          : 'bg-falcon-border text-falcon-muted cursor-not-allowed opacity-50'
                       }`}
                     >
                       {isSaving ? (
@@ -771,21 +771,21 @@ export default function RBACPage() {
     <div className="min-h-screen bg-[#070d19] p-6">
       {/* Page Header */}
       <div className="flex items-start gap-4 mb-6">
-        <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-[#e8002d] to-[#a80020] flex items-center justify-center shadow-lg flex-shrink-0">
+        <div className="w-10 h-10 rounded-lg bg-linear-to-br from-falcon-red to-falcon-red-dark flex items-center justify-center shadow-lg shrink-0">
           <Shield className="w-5 h-5 text-white" />
         </div>
         <div>
           <h1 className="text-xl font-bold text-white">RBAC 権限管理</h1>
-          <p className="text-[#7d92b0] text-sm mt-0.5">
+          <p className="text-falcon-muted text-sm mt-0.5">
             ロールベースのアクセス制御 — ロールと権限のマトリクスを管理します
           </p>
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg overflow-hidden">
+      <div className="bg-falcon-surface border border-falcon-border rounded-lg overflow-hidden">
         {/* Tab bar */}
-        <div className="flex border-b border-[#1e2d42] overflow-x-auto">
+        <div className="flex border-b border-falcon-border overflow-x-auto">
           {TABS.map(tab => (
             <TabButton
               key={tab.id}

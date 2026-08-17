@@ -251,7 +251,7 @@ export default function DevicesPage() {
               <select
                 value={agentId}
                 onChange={e => { setAgentId(e.target.value); resetOffset() }}
-                className="w-full appearance-none bg-gray-900 border border-gray-700 rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:border-blue-500 transition-colors pr-8"
+                className="w-full appearance-none bg-gray-900 border border-gray-700 rounded-lg px-3 py-1.5 text-sm text-white focus:outline-hidden focus:border-blue-500 transition-colors pr-8"
               >
                 <option value="">すべて</option>
                 {agentsList.map(a => (
@@ -270,7 +270,7 @@ export default function DevicesPage() {
               onChange={e => { setAction(e.target.value); resetOffset() }}
               className="bg-gray-900 border border-gray-700 rounded-lg px-3 py-1.5
                          text-sm text-white
-                         focus:outline-none focus:border-blue-500 transition-colors"
+                         focus:outline-hidden focus:border-blue-500 transition-colors"
             >
               <option value="">すべて</option>
               <option value="connected">connected</option>
@@ -286,7 +286,7 @@ export default function DevicesPage() {
               onChange={e => { setDeviceType(e.target.value); resetOffset() }}
               className="bg-gray-900 border border-gray-700 rounded-lg px-3 py-1.5
                          text-sm text-white
-                         focus:outline-none focus:border-blue-500 transition-colors"
+                         focus:outline-hidden focus:border-blue-500 transition-colors"
             >
               <option value="">すべて</option>
               <option value="usb">usb</option>

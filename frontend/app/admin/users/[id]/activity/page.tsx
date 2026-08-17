@@ -203,7 +203,7 @@ function TimelineEntry({ log, isLast }: { log: AuditLog; isLast: boolean }) {
       {/* Icon dot */}
       <div
         className={`relative z-10 w-8 h-8 rounded-full border-2 border-gray-900 ${style.dotColor}
-                    flex items-center justify-center flex-shrink-0`}
+                    flex items-center justify-center shrink-0`}
       >
         {style.icon}
       </div>
@@ -217,7 +217,7 @@ function TimelineEntry({ log, isLast }: { log: AuditLog; isLast: boolean }) {
             </p>
             <p className="text-xs text-gray-500 mt-0.5">{style.label}</p>
           </div>
-          <div className="text-right flex-shrink-0">
+          <div className="text-right shrink-0">
             <p className="text-xs text-gray-400 whitespace-nowrap">
               {new Date(log.created_at).toLocaleString('ja-JP')}
             </p>
@@ -227,7 +227,7 @@ function TimelineEntry({ log, isLast }: { log: AuditLog; isLast: boolean }) {
 
         {log.ip_address && (
           <div className="flex items-center gap-1.5 mt-2 pt-2 border-t border-gray-700">
-            <Globe className="w-3 h-3 text-gray-500 flex-shrink-0" />
+            <Globe className="w-3 h-3 text-gray-500 shrink-0" />
             <span className="text-xs text-gray-500 font-mono">{log.ip_address}</span>
           </div>
         )}
@@ -243,7 +243,7 @@ function PageSkeleton() {
     <div className="min-h-screen bg-gray-900 p-6 space-y-6 animate-pulse">
       <div className="flex items-center gap-3">
         <div className="w-28 h-9 bg-gray-800 rounded-lg" />
-        <div className="h-8 bg-gray-800 rounded w-64" />
+        <div className="h-8 bg-gray-800 rounded-sm w-64" />
       </div>
       <div className="grid grid-cols-4 gap-4">
         {[...Array(4)].map((_, i) => <div key={i} className="h-28 bg-gray-800 rounded-xl" />)}
@@ -312,7 +312,7 @@ export default function UserActivityPage() {
 
   return (
     <div className="min-h-screen bg-gray-900">
-      <div className="max-w-screen-xl mx-auto p-6 space-y-6">
+      <div className="max-w-(--breakpoint-xl) mx-auto p-6 space-y-6">
 
         {/* ── Header ─────────────────────────────────────────────── */}
         <div className="flex items-center gap-3 flex-wrap">
@@ -320,7 +320,7 @@ export default function UserActivityPage() {
             onClick={() => router.push('/admin/users')}
             className="flex items-center gap-1.5 px-3 py-2 text-sm text-gray-400 bg-gray-800
                        border border-gray-700 rounded-lg hover:bg-gray-700 hover:text-gray-200
-                       transition-colors flex-shrink-0"
+                       transition-colors shrink-0"
           >
             <ArrowLeft className="w-4 h-4" />
             ユーザー管理
@@ -328,7 +328,7 @@ export default function UserActivityPage() {
 
           <div className="flex items-center gap-3 min-w-0">
             <div className="w-9 h-9 rounded-full bg-blue-900/40 border border-blue-700/50
-                            flex items-center justify-center flex-shrink-0">
+                            flex items-center justify-center shrink-0">
               <User className="w-5 h-5 text-blue-400" />
             </div>
             <div className="min-w-0">
@@ -416,7 +416,7 @@ export default function UserActivityPage() {
             <div className="space-y-4 animate-pulse">
               {[...Array(5)].map((_, i) => (
                 <div key={i} className="flex items-start gap-4">
-                  <div className="w-8 h-8 rounded-full bg-gray-700 flex-shrink-0" />
+                  <div className="w-8 h-8 rounded-full bg-gray-700 shrink-0" />
                   <div className="flex-1 h-20 bg-gray-700 rounded-xl" />
                 </div>
               ))}

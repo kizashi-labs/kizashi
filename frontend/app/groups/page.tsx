@@ -90,12 +90,12 @@ const severityColor: Record<string, string> = {
 
 function StatCard({ icon, label, value, sub }: { icon: React.ReactNode; label: string; value: string | number; sub?: string }) {
   return (
-    <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-4 flex items-center gap-4">
+    <div className="bg-falcon-surface border border-falcon-border rounded-xl p-4 flex items-center gap-4">
       <div className="p-2.5 bg-[#131d30] rounded-lg">{icon}</div>
       <div>
-        <p className="text-[#7d92b0] text-xs">{label}</p>
+        <p className="text-falcon-muted text-xs">{label}</p>
         <p className="text-white text-xl font-bold mt-0.5">{value}</p>
-        {sub && <p className="text-[#7d92b0] text-xs mt-0.5">{sub}</p>}
+        {sub && <p className="text-falcon-muted text-xs mt-0.5">{sub}</p>}
       </div>
     </div>
   )
@@ -147,24 +147,24 @@ function GroupDetailPanel({
   const unassignedPolicies = ALL_POLICIES.filter(p => !detail.policies.find(dp => dp.id === p.id))
 
   return (
-    <div className="flex flex-col h-full bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
+    <div className="flex flex-col h-full bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
       {/* Panel header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-[#1e2d42]">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-falcon-border">
         <div className="flex items-center gap-3">
-          <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: group.color }} />
+          <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: group.color }} />
           <span className="text-white font-semibold text-sm">{group.name}</span>
-          <span className="text-[#7d92b0] text-xs">{group.description}</span>
+          <span className="text-falcon-muted text-xs">{group.description}</span>
         </div>
-        <button onClick={onClose} className="p-1 text-[#7d92b0] hover:text-white rounded transition-colors">
+        <button onClick={onClose} className="p-1 text-falcon-muted hover:text-white rounded-sm transition-colors">
           <X className="w-4 h-4" />
         </button>
       </div>
 
       {/* Tags */}
       {group.tags && group.tags.length > 0 && (
-        <div className="flex flex-wrap gap-1 px-4 py-2 border-b border-[#1e2d42]">
+        <div className="flex flex-wrap gap-1 px-4 py-2 border-b border-falcon-border">
           {group.tags.map(tag => (
-            <span key={tag} className="px-2 py-0.5 rounded-full text-[10px] bg-[#131d30] text-[#7d92b0] border border-[#1e2d42]">
+            <span key={tag} className="px-2 py-0.5 rounded-full text-[10px] bg-[#131d30] text-falcon-muted border border-falcon-border">
               #{tag}
             </span>
           ))}
@@ -172,21 +172,21 @@ function GroupDetailPanel({
       )}
 
       {/* Tabs */}
-      <div className="flex border-b border-[#1e2d42] px-2">
+      <div className="flex border-b border-falcon-border px-2">
         {(['members', 'policies', 'alerts', 'stats'] as const).map(t => (
           <button
             key={t}
             onClick={() => setTab(t)}
             className={`px-4 py-2.5 text-xs font-medium capitalize transition-colors border-b-2 -mb-px ${
               tab === t
-                ? 'text-white border-[#e8002d]'
-                : 'text-[#7d92b0] border-transparent hover:text-white'
+                ? 'text-white border-falcon-red'
+                : 'text-falcon-muted border-transparent hover:text-white'
             }`}
           >
             {TAB_LABELS[t]}
-            {t === 'members' && <span className="ml-1.5 text-[10px] bg-[#1e2d42] px-1.5 py-0.5 rounded-full">{detail.members.length}</span>}
+            {t === 'members' && <span className="ml-1.5 text-[10px] bg-falcon-border px-1.5 py-0.5 rounded-full">{detail.members.length}</span>}
             {t === 'alerts' && detail.alerts.length > 0 && (
-              <span className="ml-1.5 text-[10px] bg-[#e8002d]/20 text-[#e8002d] px-1.5 py-0.5 rounded-full">{detail.alerts.length}</span>
+              <span className="ml-1.5 text-[10px] bg-falcon-red/20 text-falcon-red px-1.5 py-0.5 rounded-full">{detail.alerts.length}</span>
             )}
           </button>
         ))}
@@ -199,25 +199,25 @@ function GroupDetailPanel({
           <>
             {onAddMember && <AddEndpointBar onAdd={onAddMember} />}
             {detail.members.length === 0 ? (
-              <p className="text-[#7d92b0] text-sm text-center py-8">このグループにエンドポイントはありません</p>
+              <p className="text-falcon-muted text-sm text-center py-8">このグループにエンドポイントはありません</p>
             ) : (
               <div className="space-y-1">
                 {detail.members.map(m => (
-                  <div key={m.agent_id} className="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-[#0a1020] border border-[#1e2d42] group">
+                  <div key={m.agent_id} className="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-[#0a1020] border border-falcon-border group">
                     <GripVertical className="w-3.5 h-3.5 text-[#3a4d62] cursor-grab" />
-                    <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${m.status === 'online' ? 'bg-emerald-400' : 'bg-[#3a4d62]'}`} />
-                    <Monitor className="w-3.5 h-3.5 text-[#7d92b0] flex-shrink-0" />
+                    <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${m.status === 'online' ? 'bg-emerald-400' : 'bg-[#3a4d62]'}`} />
+                    <Monitor className="w-3.5 h-3.5 text-falcon-muted shrink-0" />
                     <div className="flex-1 min-w-0">
                       <p className="text-white text-xs font-medium">{m.hostname}</p>
-                      <p className="text-[#7d92b0] text-[10px]">{m.ip_address} · {m.os}</p>
+                      <p className="text-falcon-muted text-[10px]">{m.ip_address} · {m.os}</p>
                     </div>
-                    <span className={`text-[10px] px-1.5 py-0.5 rounded ${m.status === 'online' ? 'bg-emerald-900/30 text-emerald-400' : 'bg-[#1e2d42] text-[#7d92b0]'}`}>
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded-sm ${m.status === 'online' ? 'bg-emerald-900/30 text-emerald-400' : 'bg-falcon-border text-falcon-muted'}`}>
                       {STATUS_LABELS[m.status] ?? m.status}
                     </span>
                     {onRemoveMember && (
                       <button
                         onClick={() => onRemoveMember(m.agent_id)}
-                        className="opacity-0 group-hover:opacity-100 p-1 text-[#7d92b0] hover:text-red-400 rounded transition-all"
+                        className="opacity-0 group-hover:opacity-100 p-1 text-falcon-muted hover:text-red-400 rounded-sm transition-all"
                         title="グループから削除"
                       >
                         <X className="w-3.5 h-3.5" />
@@ -233,25 +233,25 @@ function GroupDetailPanel({
         {/* Policies Tab */}
         {tab === 'policies' && (
           <>
-            <p className="text-[#7d92b0] text-xs">このグループに適用中のポリシー</p>
+            <p className="text-falcon-muted text-xs">このグループに適用中のポリシー</p>
             {detail.policies.length === 0 ? (
-              <p className="text-[#7d92b0] text-sm text-center py-4">割り当てられたポリシーはありません</p>
+              <p className="text-falcon-muted text-sm text-center py-4">割り当てられたポリシーはありません</p>
             ) : (
               <div className="space-y-1">
                 {detail.policies.map(p => (
-                  <div key={p.id} className="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-[#0a1020] border border-[#1e2d42] group">
-                    <ShieldCheck className={`w-4 h-4 flex-shrink-0 ${p.enabled ? 'text-emerald-400' : 'text-[#3a4d62]'}`} />
+                  <div key={p.id} className="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-[#0a1020] border border-falcon-border group">
+                    <ShieldCheck className={`w-4 h-4 shrink-0 ${p.enabled ? 'text-emerald-400' : 'text-[#3a4d62]'}`} />
                     <div className="flex-1 min-w-0">
                       <p className="text-white text-xs font-medium">{p.name}</p>
-                      <p className="text-[#7d92b0] text-[10px] capitalize">{p.type}</p>
+                      <p className="text-falcon-muted text-[10px] capitalize">{p.type}</p>
                     </div>
-                    <span className={`text-[10px] px-1.5 py-0.5 rounded ${p.enabled ? 'bg-emerald-900/30 text-emerald-400' : 'bg-[#1e2d42] text-[#7d92b0]'}`}>
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded-sm ${p.enabled ? 'bg-emerald-900/30 text-emerald-400' : 'bg-falcon-border text-falcon-muted'}`}>
                       {p.enabled ? '有効' : '無効'}
                     </span>
                     {onRemovePolicy && (
                       <button
                         onClick={() => onRemovePolicy(p.id)}
-                        className="opacity-0 group-hover:opacity-100 p-1 text-[#7d92b0] hover:text-red-400 rounded transition-all"
+                        className="opacity-0 group-hover:opacity-100 p-1 text-falcon-muted hover:text-red-400 rounded-sm transition-all"
                         title="ポリシーを削除"
                       >
                         <X className="w-3.5 h-3.5" />
@@ -263,18 +263,18 @@ function GroupDetailPanel({
             )}
             {onAddPolicy && unassignedPolicies.length > 0 && (
               <>
-                <p className="text-[#7d92b0] text-xs mt-4">ポリシーを追加</p>
+                <p className="text-falcon-muted text-xs mt-4">ポリシーを追加</p>
                 <div className="space-y-1">
                   {unassignedPolicies.map(p => (
-                    <div key={p.id} className="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-[#070d19] border border-[#1e2d42] border-dashed">
-                      <ShieldCheck className="w-4 h-4 text-[#3a4d62] flex-shrink-0" />
+                    <div key={p.id} className="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-[#070d19] border border-falcon-border border-dashed">
+                      <ShieldCheck className="w-4 h-4 text-[#3a4d62] shrink-0" />
                       <div className="flex-1 min-w-0">
-                        <p className="text-[#7d92b0] text-xs">{p.name}</p>
+                        <p className="text-falcon-muted text-xs">{p.name}</p>
                         <p className="text-[#3a4d62] text-[10px] capitalize">{p.type}</p>
                       </div>
                       <button
                         onClick={() => onAddPolicy(p.id)}
-                        className="text-[10px] px-2 py-1 bg-[#1e2d42] hover:bg-[#e8002d]/20 hover:text-[#e8002d] text-[#7d92b0] rounded transition-colors"
+                        className="text-[10px] px-2 py-1 bg-falcon-border hover:bg-falcon-red/20 hover:text-falcon-red text-falcon-muted rounded-sm transition-colors"
                       >
                         + 追加
                       </button>
@@ -292,19 +292,19 @@ function GroupDetailPanel({
             {detail.alerts.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-8 gap-2">
                 <CheckCircle className="w-8 h-8 text-emerald-400 opacity-50" />
-                <p className="text-[#7d92b0] text-sm">最近のアラートはありません</p>
+                <p className="text-falcon-muted text-sm">最近のアラートはありません</p>
               </div>
             ) : (
               <div className="space-y-1.5">
                 {detail.alerts.map(a => (
-                  <div key={a.id} className="px-3 py-2.5 rounded-lg bg-[#0a1020] border border-[#1e2d42]">
+                  <div key={a.id} className="px-3 py-2.5 rounded-lg bg-[#0a1020] border border-falcon-border">
                     <div className="flex items-start justify-between gap-2">
                       <p className="text-white text-xs font-medium">{a.title}</p>
-                      <span className={`text-[10px] px-1.5 py-0.5 rounded flex-shrink-0 ${severityColor[a.severity]}`}>
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded-sm shrink-0 ${severityColor[a.severity]}`}>
                         {SEVERITY_LABELS[a.severity] ?? a.severity}
                       </span>
                     </div>
-                    <p className="text-[#7d92b0] text-[10px] mt-1">
+                    <p className="text-falcon-muted text-[10px] mt-1">
                       {a.hostname} · {new Date(a.created_at).toLocaleString('ja-JP', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                     </p>
                   </div>
@@ -318,23 +318,23 @@ function GroupDetailPanel({
         {tab === 'stats' && (
           <div className="space-y-4">
             {/* Online ratio */}
-            <div className="bg-[#0a1020] border border-[#1e2d42] rounded-lg p-4">
-              <p className="text-[#7d92b0] text-xs mb-3">エンドポイント状態</p>
+            <div className="bg-[#0a1020] border border-falcon-border rounded-lg p-4">
+              <p className="text-falcon-muted text-xs mb-3">エンドポイント状態</p>
               <div className="flex items-center gap-4">
                 <div className="flex items-center gap-2">
                   <Wifi className="w-4 h-4 text-emerald-400" />
                   <span className="text-white text-lg font-bold">{detail.stats.online_count}</span>
-                  <span className="text-[#7d92b0] text-xs">オンライン</span>
+                  <span className="text-falcon-muted text-xs">オンライン</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <WifiOff className="w-4 h-4 text-[#7d92b0]" />
+                  <WifiOff className="w-4 h-4 text-falcon-muted" />
                   <span className="text-white text-lg font-bold">{detail.stats.offline_count}</span>
-                  <span className="text-[#7d92b0] text-xs">オフライン</span>
+                  <span className="text-falcon-muted text-xs">オフライン</span>
                 </div>
               </div>
               {/* ratio bar */}
               {(detail.stats.online_count + detail.stats.offline_count) > 0 && (
-                <div className="mt-3 h-1.5 bg-[#1e2d42] rounded-full overflow-hidden">
+                <div className="mt-3 h-1.5 bg-falcon-border rounded-full overflow-hidden">
                   <div
                     className="h-full bg-emerald-400 rounded-full transition-all"
                     style={{ width: `${(detail.stats.online_count / (detail.stats.online_count + detail.stats.offline_count)) * 100}%` }}
@@ -344,16 +344,16 @@ function GroupDetailPanel({
             </div>
 
             {/* Alert trend */}
-            <div className="bg-[#0a1020] border border-[#1e2d42] rounded-lg p-4">
+            <div className="bg-[#0a1020] border border-falcon-border rounded-lg p-4">
               <div className="flex items-center justify-between mb-3">
-                <p className="text-[#7d92b0] text-xs">アラート推移（過去7日間）</p>
-                <TrendingUp className="w-3.5 h-3.5 text-[#7d92b0]" />
+                <p className="text-falcon-muted text-xs">アラート推移（過去7日間）</p>
+                <TrendingUp className="w-3.5 h-3.5 text-falcon-muted" />
               </div>
               <Sparkline data={trend} color={group.color} />
               <div className="flex justify-between mt-1">
                 {days.map((d, i) => (
                   <div key={d} className="flex flex-col items-center gap-1">
-                    <span className="text-[9px] text-[#7d92b0]">{trend[i]}</span>
+                    <span className="text-[9px] text-falcon-muted">{trend[i]}</span>
                     <span className="text-[9px] text-[#3a4d62]">{d}</span>
                   </div>
                 ))}
@@ -361,8 +361,8 @@ function GroupDetailPanel({
             </div>
 
             {/* Bar chart */}
-            <div className="bg-[#0a1020] border border-[#1e2d42] rounded-lg p-4">
-              <p className="text-[#7d92b0] text-xs mb-3">日別アラート件数</p>
+            <div className="bg-[#0a1020] border border-falcon-border rounded-lg p-4">
+              <p className="text-falcon-muted text-xs mb-3">日別アラート件数</p>
               <div className="flex items-end gap-2 h-20">
                 {trend.map((v, i) => (
                   <div key={i} className="flex-1 flex flex-col items-center gap-1">
@@ -446,18 +446,18 @@ function AddEndpointBar({ onAdd }: { onAdd: (agentId: string) => void }) {
             onChange={e => handleInput(e.target.value)}
             onFocus={() => setOpen(true)}
             placeholder="ホスト名で検索..."
-            className="w-full pl-8 pr-3 py-2 bg-[#070d19] border border-[#1e2d42] rounded-lg text-white text-xs
-                       placeholder-[#3a4d62] focus:outline-none focus:border-[#e8002d]/50"
+            className="w-full pl-8 pr-3 py-2 bg-[#070d19] border border-falcon-border rounded-lg text-white text-xs
+                       placeholder-[#3a4d62] focus:outline-hidden focus:border-falcon-red/50"
           />
         </div>
         {/* Unassigned toggle */}
         <button
           onClick={() => { setUnassignedOnly(v => !v); setOpen(true) }}
           title={unassignedOnly ? '未所属エンドポイントのみ表示' : 'すべて表示'}
-          className={`flex-shrink-0 px-2.5 py-2 rounded-lg text-xs font-medium border transition-colors ${
+          className={`shrink-0 px-2.5 py-2 rounded-lg text-xs font-medium border transition-colors ${
             unassignedOnly
-              ? 'border-[#e8002d]/50 bg-[#e8002d]/10 text-[#e8002d]'
-              : 'border-[#1e2d42] bg-[#070d19] text-[#7d92b0] hover:text-white'
+              ? 'border-falcon-red/50 bg-falcon-red/10 text-falcon-red'
+              : 'border-falcon-border bg-[#070d19] text-falcon-muted hover:text-white'
           }`}
         >
           未所属のみ
@@ -466,7 +466,7 @@ function AddEndpointBar({ onAdd }: { onAdd: (agentId: string) => void }) {
 
       {/* Dropdown */}
       {open && (
-        <div className="absolute top-full left-0 right-0 mt-1 bg-[#0d1220] border border-[#1e2d42] rounded-lg overflow-hidden z-20 shadow-xl max-h-64 overflow-y-auto">
+        <div className="absolute top-full left-0 right-0 mt-1 bg-falcon-surface border border-falcon-border rounded-lg overflow-hidden z-20 shadow-xl max-h-64 overflow-y-auto">
           {searching ? (
             <p className="text-xs text-[#3a4d62] px-3 py-3 text-center">検索中...</p>
           ) : results.length === 0 ? (
@@ -478,13 +478,13 @@ function AddEndpointBar({ onAdd }: { onAdd: (agentId: string) => void }) {
               <button
                 key={a.id}
                 onClick={() => handleAdd(a.id)}
-                className="w-full flex items-center gap-3 px-3 py-2 hover:bg-[#1e2d42] text-left transition-colors"
+                className="w-full flex items-center gap-3 px-3 py-2 hover:bg-falcon-border text-left transition-colors"
               >
-                <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${a.status === 'online' ? 'bg-green-400' : 'bg-gray-500'}`} />
+                <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${a.status === 'online' ? 'bg-green-400' : 'bg-gray-500'}`} />
                 <span className="text-xs text-white font-medium">{a.hostname}</span>
                 <span className="text-xs text-[#3a4d62] ml-auto">{a.status}</span>
                 {!a.group_id && (
-                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-yellow-900/30 text-yellow-400 ml-1">未所属</span>
+                  <span className="text-[10px] px-1.5 py-0.5 rounded-sm bg-yellow-900/30 text-yellow-400 ml-1">未所属</span>
                 )}
               </button>
             ))
@@ -510,44 +510,44 @@ function CreateGroupModal({
 
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl w-full max-w-md shadow-2xl">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-[#1e2d42]">
+      <div className="bg-falcon-surface border border-falcon-border rounded-xl w-full max-w-md shadow-2xl">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-falcon-border">
           <h2 className="text-white font-semibold text-sm">新規グループ作成</h2>
-          <button onClick={onClose} className="p-1 text-[#7d92b0] hover:text-white rounded">
+          <button onClick={onClose} className="p-1 text-falcon-muted hover:text-white rounded-sm">
             <X className="w-4 h-4" />
           </button>
         </div>
         <div className="p-5 space-y-4">
           <div>
-            <label className="text-[#7d92b0] text-xs block mb-1.5">グループ名 *</label>
+            <label className="text-falcon-muted text-xs block mb-1.5">グループ名 *</label>
             <input
               autoFocus
               value={form.name}
               onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
               placeholder="例: Windows サーバー"
-              className="w-full bg-[#070d19] text-white px-3 py-2 rounded-lg border border-[#1e2d42]
-                         text-sm focus:outline-none focus:border-[#e8002d]/60 placeholder-[#3a4d62]"
+              className="w-full bg-[#070d19] text-white px-3 py-2 rounded-lg border border-falcon-border
+                         text-sm focus:outline-hidden focus:border-falcon-red/60 placeholder-[#3a4d62]"
             />
           </div>
           <div>
-            <label className="text-[#7d92b0] text-xs block mb-1.5">説明</label>
+            <label className="text-falcon-muted text-xs block mb-1.5">説明</label>
             <textarea
               value={form.description}
               onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
               placeholder="説明（任意）"
               rows={2}
-              className="w-full bg-[#070d19] text-white px-3 py-2 rounded-lg border border-[#1e2d42]
-                         text-sm focus:outline-none focus:border-[#e8002d]/60 placeholder-[#3a4d62] resize-none"
+              className="w-full bg-[#070d19] text-white px-3 py-2 rounded-lg border border-falcon-border
+                         text-sm focus:outline-hidden focus:border-falcon-red/60 placeholder-[#3a4d62] resize-none"
             />
           </div>
           <div>
-            <label className="text-[#7d92b0] text-xs block mb-2">バッジカラー</label>
+            <label className="text-falcon-muted text-xs block mb-2">バッジカラー</label>
             <div className="flex gap-2 flex-wrap">
               {COLORS.map(c => (
                 <button
                   key={c}
                   onClick={() => setForm(f => ({ ...f, color: c }))}
-                  className={`w-7 h-7 rounded-full transition-transform ${form.color === c ? 'ring-2 ring-white ring-offset-1 ring-offset-[#0d1220] scale-110' : 'hover:scale-105'}`}
+                  className={`w-7 h-7 rounded-full transition-transform ${form.color === c ? 'ring-2 ring-white ring-offset-1 ring-offset-falcon-surface scale-110' : 'hover:scale-105'}`}
                   style={{ backgroundColor: c }}
                   title={c}
                 />
@@ -558,7 +558,7 @@ function CreateGroupModal({
             <button
               onClick={() => onCreate(form)}
               disabled={!form.name.trim() || isPending}
-              className="flex-1 py-2 bg-[#e8002d] hover:bg-[#b5001e] text-white text-sm rounded-lg
+              className="flex-1 py-2 bg-falcon-red hover:bg-[#b5001e] text-white text-sm rounded-lg
                          disabled:opacity-50 transition-colors font-medium"
             >
               {isPending ? (
@@ -570,7 +570,7 @@ function CreateGroupModal({
             </button>
             <button
               onClick={onClose}
-              className="px-4 py-2 bg-[#1e2d42] hover:bg-[#243550] text-[#7d92b0] text-sm rounded-lg transition-colors"
+              className="px-4 py-2 bg-falcon-border hover:bg-[#243550] text-falcon-muted text-sm rounded-lg transition-colors"
             >
               キャンセル
             </button>
@@ -597,20 +597,20 @@ function DeleteConfirmBar({
   return (
     <div className="flex items-center justify-between px-4 py-3 bg-red-900/10 border border-red-900/40 rounded-lg">
       <div className="flex items-center gap-2 text-red-400 text-xs">
-        <AlertCircle className="w-4 h-4 flex-shrink-0" />
+        <AlertCircle className="w-4 h-4 shrink-0" />
         <span><strong>{group.name}</strong> を削除しますか？ {group.endpoint_count}台のエンドポイントの割り当てが解除されます。</span>
       </div>
-      <div className="flex gap-2 flex-shrink-0">
+      <div className="flex gap-2 shrink-0">
         <button
           onClick={onConfirm}
           disabled={isDeleting}
-          className="px-3 py-1 bg-[#e8002d] hover:bg-[#b5001e] text-white text-xs rounded-lg disabled:opacity-50 transition-colors"
+          className="px-3 py-1 bg-falcon-red hover:bg-[#b5001e] text-white text-xs rounded-lg disabled:opacity-50 transition-colors"
         >
           {isDeleting ? '削除中...' : '削除'}
         </button>
         <button
           onClick={onCancel}
-          className="px-3 py-1 bg-[#1e2d42] hover:bg-[#243550] text-[#7d92b0] text-xs rounded-lg transition-colors"
+          className="px-3 py-1 bg-falcon-border hover:bg-[#243550] text-falcon-muted text-xs rounded-lg transition-colors"
         >
           キャンセル
         </button>
@@ -755,12 +755,12 @@ export default function GroupsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-white">エンドポイントグループ</h1>
-          <p className="text-[#7d92b0] text-sm mt-1">エンドポイントをグループ化し、ポリシー・アラートを管理します</p>
+          <p className="text-falcon-muted text-sm mt-1">エンドポイントをグループ化し、ポリシー・アラートを管理します</p>
         </div>
         {canWrite && (
           <button
             onClick={() => setShowCreate(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-[#e8002d] hover:bg-[#b5001e] text-white text-sm rounded-lg transition-colors font-medium"
+            className="flex items-center gap-2 px-4 py-2 bg-falcon-red hover:bg-[#b5001e] text-white text-sm rounded-lg transition-colors font-medium"
           >
             <Plus className="w-4 h-4" />
             グループを作成
@@ -771,7 +771,7 @@ export default function GroupsPage() {
       {/* Error banner */}
       {error && (
         <div className="flex items-center gap-2 text-red-400 text-sm bg-red-900/20 border border-red-700/50 rounded-lg px-4 py-3">
-          <AlertCircle className="w-4 h-4 flex-shrink-0" />
+          <AlertCircle className="w-4 h-4 shrink-0" />
           {error}
           <button onClick={() => setError(null)} className="ml-auto"><X className="w-3.5 h-3.5" /></button>
         </div>
@@ -798,7 +798,7 @@ export default function GroupsPage() {
           sub="割り当て済み"
         />
         <StatCard
-          icon={<Bell className="w-5 h-5 text-[#e8002d]" />}
+          icon={<Bell className="w-5 h-5 text-falcon-red" />}
           label="本日のグループアラート"
           value={alertsToday}
           sub="全グループ合計"
@@ -808,10 +808,10 @@ export default function GroupsPage() {
       {/* Tag filter */}
       {allTags.length > 0 && (
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-xs text-[#7d92b0]">タグ:</span>
+          <span className="text-xs text-falcon-muted">タグ:</span>
           <button
             onClick={() => setTagFilter(null)}
-            className={`px-2.5 py-1 rounded-full text-xs border transition-colors ${!tagFilter ? 'bg-[#1e2d42] text-white border-[#3d5068]' : 'bg-transparent text-[#7d92b0] border-[#1e2d42] hover:border-[#3d5068]'}`}
+            className={`px-2.5 py-1 rounded-full text-xs border transition-colors ${!tagFilter ? 'bg-falcon-border text-white border-falcon-subtle' : 'bg-transparent text-falcon-muted border-falcon-border hover:border-falcon-subtle'}`}
           >
             すべて
           </button>
@@ -819,7 +819,7 @@ export default function GroupsPage() {
             <button
               key={tag}
               onClick={() => setTagFilter(tagFilter === tag ? null : tag)}
-              className={`px-2.5 py-1 rounded-full text-xs border transition-colors ${tagFilter === tag ? 'bg-[#1e2d42] text-white border-[#3d5068]' : 'bg-transparent text-[#7d92b0] border-[#1e2d42] hover:border-[#3d5068]'}`}
+              className={`px-2.5 py-1 rounded-full text-xs border transition-colors ${tagFilter === tag ? 'bg-falcon-border text-white border-falcon-subtle' : 'bg-transparent text-falcon-muted border-falcon-border hover:border-falcon-subtle'}`}
             >
               #{tag}
             </button>
@@ -831,26 +831,26 @@ export default function GroupsPage() {
       <div className={`grid gap-4 ${selectedId ? 'grid-cols-1 lg:grid-cols-2' : 'grid-cols-1'}`}>
 
         {/* Left: Group list */}
-        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
-          <div className="px-4 py-3 border-b border-[#1e2d42] flex items-center justify-between">
+        <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
+          <div className="px-4 py-3 border-b border-falcon-border flex items-center justify-between">
             <span className="text-white font-medium text-sm">グループ</span>
-            <span className="text-[#7d92b0] text-xs">全{groups.length}件</span>
+            <span className="text-falcon-muted text-xs">全{groups.length}件</span>
           </div>
 
           {isLoading ? (
             <div className="flex items-center justify-center py-16">
-              <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-[#e8002d]" />
+              <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-falcon-red" />
             </div>
           ) : groups.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 gap-3 text-[#7d92b0]">
+            <div className="flex flex-col items-center justify-center py-16 gap-3 text-falcon-muted">
               <Layers className="w-10 h-10 opacity-20" />
               <p className="text-sm">グループがまだありません</p>
-              <button onClick={() => setShowCreate(true)} className="text-[#e8002d] hover:text-red-300 text-sm transition-colors">
+              <button onClick={() => setShowCreate(true)} className="text-falcon-red hover:text-red-300 text-sm transition-colors">
                 最初のグループを作成
               </button>
             </div>
           ) : (
-            <div className="divide-y divide-[#1e2d42]">
+            <div className="divide-y divide-falcon-border">
               {groups.map(group => {
                 const isSelected = selectedId === group.id
                 const isDeleteTarget = deleteId === group.id
@@ -865,7 +865,7 @@ export default function GroupsPage() {
                     >
                       {/* Color badge */}
                       <div
-                        className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                        className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
                         style={{ backgroundColor: `${group.color}22`, border: `1px solid ${group.color}55` }}
                       >
                         <Layers className="w-5 h-5" style={{ color: group.color }} />
@@ -876,16 +876,16 @@ export default function GroupsPage() {
                         <div className="flex items-center gap-2">
                           <span className="text-white font-medium text-sm">{group.name}</span>
                           {group.alert_count > 0 && (
-                            <span className="text-[10px] bg-[#e8002d]/20 text-[#e8002d] px-1.5 py-0.5 rounded-full">
+                            <span className="text-[10px] bg-falcon-red/20 text-falcon-red px-1.5 py-0.5 rounded-full">
                               {group.alert_count}件のアラート
                             </span>
                           )}
                         </div>
-                        <p className="text-[#7d92b0] text-xs mt-0.5 truncate">{group.description || '説明なし'}</p>
+                        <p className="text-falcon-muted text-xs mt-0.5 truncate">{group.description || '説明なし'}</p>
                         {group.tags && group.tags.length > 0 && (
                           <div className="flex gap-1 mt-1 flex-wrap">
                             {group.tags.map(tag => (
-                              <span key={tag} className="px-1.5 py-0.5 rounded text-[9px] bg-[#131d30] text-[#5a6a7a] border border-[#1e2d42]">
+                              <span key={tag} className="px-1.5 py-0.5 rounded-sm text-[9px] bg-[#131d30] text-[#5a6a7a] border border-falcon-border">
                                 #{tag}
                               </span>
                             ))}
@@ -894,7 +894,7 @@ export default function GroupsPage() {
                       </div>
 
                       {/* Counts */}
-                      <div className="flex items-center gap-3 text-xs text-[#7d92b0] flex-shrink-0">
+                      <div className="flex items-center gap-3 text-xs text-falcon-muted shrink-0">
                         <div className="flex items-center gap-1">
                           <Monitor className="w-3 h-3" />
                           <span className="text-white font-medium">{group.endpoint_count}</span>
@@ -910,7 +910,7 @@ export default function GroupsPage() {
                       {canWrite && (
                         <button
                           onClick={e => { e.stopPropagation(); setDeleteId(group.id) }}
-                          className="p-1.5 text-[#3a4d62] hover:text-red-400 hover:bg-red-900/20 rounded transition-colors opacity-0 group-hover:opacity-100"
+                          className="p-1.5 text-[#3a4d62] hover:text-red-400 hover:bg-red-900/20 rounded-sm transition-colors opacity-0 group-hover:opacity-100"
                           title="グループを削除"
                         >
                           <Trash2 className="w-3.5 h-3.5" />

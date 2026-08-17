@@ -184,9 +184,9 @@ const EMPTY_SOC_ANALYTICS: SOCAnalytics = {
 
 const dispositionColor: Record<string, string> = {
   resolved: 'bg-green-500/20 text-green-300',
-  escalated: 'bg-[#e8002d]/20 text-[#e8002d]',
+  escalated: 'bg-falcon-red/20 text-falcon-red',
   false_positive: 'bg-amber-500/20 text-amber-300',
-  suppressed: 'bg-[#7d92b0]/20 text-[#7d92b0]',
+  suppressed: 'bg-falcon-muted/20 text-falcon-muted',
 }
 
 const dispositionLabel: Record<string, string> = {
@@ -282,17 +282,17 @@ function AlertFlowSection({ flow }: { flow: AlertFlowNode[] }) {
     <div className="grid grid-cols-3 gap-4">
       {/* Sources */}
       <div>
-        <p className="text-[#7d92b0] text-xs mb-2 font-medium">アラートソース</p>
+        <p className="text-falcon-muted text-xs mb-2 font-medium">アラートソース</p>
         <div className="space-y-1.5">
           {sources.map(s => {
             const t = sourceTotal(s)
             return (
-              <div key={s} className="bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2">
+              <div key={s} className="bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2">
                 <div className="flex justify-between text-xs mb-1">
                   <span className="text-white font-medium">{s}</span>
-                  <span className="text-[#7d92b0]">{t.toLocaleString()}</span>
+                  <span className="text-falcon-muted">{t.toLocaleString()}</span>
                 </div>
-                <div className="h-1 bg-[#1e2d42] rounded-full overflow-hidden">
+                <div className="h-1 bg-falcon-border rounded-full overflow-hidden">
                   <div className="h-full bg-blue-400 rounded-full" style={{ width: `${t / total * 100}%` }} />
                 </div>
               </div>
@@ -303,19 +303,19 @@ function AlertFlowSection({ flow }: { flow: AlertFlowNode[] }) {
 
       {/* Severities */}
       <div>
-        <p className="text-[#7d92b0] text-xs mb-2 font-medium">重大度</p>
+        <p className="text-falcon-muted text-xs mb-2 font-medium">重大度</p>
         <div className="space-y-1.5">
           {severities.map(s => {
             const t = severityTotal(s)
             return (
-              <div key={s} className="bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2">
+              <div key={s} className="bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2">
                 <div className="flex justify-between text-xs mb-1">
                   <span className="font-medium" style={{ color: sevColor[s] }}>
                     {s === 'critical' ? 'クリティカル' : s === 'high' ? '高' : s === 'medium' ? '中' : '低'}
                   </span>
-                  <span className="text-[#7d92b0]">{t.toLocaleString()}</span>
+                  <span className="text-falcon-muted">{t.toLocaleString()}</span>
                 </div>
-                <div className="h-1 bg-[#1e2d42] rounded-full overflow-hidden">
+                <div className="h-1 bg-falcon-border rounded-full overflow-hidden">
                   <div className="h-full rounded-full" style={{ width: `${t / total * 100}%`, backgroundColor: sevColor[s] }} />
                 </div>
               </div>
@@ -326,17 +326,17 @@ function AlertFlowSection({ flow }: { flow: AlertFlowNode[] }) {
 
       {/* Dispositions */}
       <div>
-        <p className="text-[#7d92b0] text-xs mb-2 font-medium">処理結果</p>
+        <p className="text-falcon-muted text-xs mb-2 font-medium">処理結果</p>
         <div className="space-y-1.5">
           {dispositions.map(d => {
             const t = dispositionTotal(d)
             return (
-              <div key={d} className="bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2">
+              <div key={d} className="bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2">
                 <div className="flex justify-between text-xs mb-1">
                   <span className={`font-medium ${dispositionColor[d].split(' ')[1]}`}>{dispositionLabel[d]}</span>
-                  <span className="text-[#7d92b0]">{t.toLocaleString()}</span>
+                  <span className="text-falcon-muted">{t.toLocaleString()}</span>
                 </div>
-                <div className="h-1 bg-[#1e2d42] rounded-full overflow-hidden">
+                <div className="h-1 bg-falcon-border rounded-full overflow-hidden">
                   <div className={`h-full rounded-full ${dispositionColor[d].split(' ')[0]}`} style={{ width: `${t / total * 100}%` }} />
                 </div>
               </div>
@@ -388,23 +388,23 @@ export default function SOCAnalyticsPage() {
       {/* ── Header ── */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-[#e8002d]/20 border border-[#e8002d]/30 flex items-center justify-center">
-            <BarChart3 className="w-5 h-5 text-[#e8002d]" />
+          <div className="w-10 h-10 rounded-lg bg-falcon-red/20 border border-falcon-red/30 flex items-center justify-center">
+            <BarChart3 className="w-5 h-5 text-falcon-red" />
           </div>
           <div>
             <h1 className="text-white font-bold text-xl">SOC運用分析</h1>
-            <p className="text-[#7d92b0] text-sm">SOC Operations Analytics Dashboard</p>
+            <p className="text-falcon-muted text-sm">SOC Operations Analytics Dashboard</p>
           </div>
         </div>
         <div className="flex items-center gap-3">
           {/* Period selector */}
-          <div className="flex bg-[#0d1220] border border-[#1e2d42] rounded-lg p-0.5">
+          <div className="flex bg-falcon-surface border border-falcon-border rounded-lg p-0.5">
             {(['today', 'week', 'month', 'quarter'] as Period[]).map(p => (
               <button
                 key={p}
                 onClick={() => setPeriod(p)}
                 className={`px-3 py-1.5 rounded text-xs font-medium transition-all ${
-                  period === p ? 'bg-[#e8002d] text-white' : 'text-[#7d92b0] hover:text-white'
+                  period === p ? 'bg-falcon-red text-white' : 'text-falcon-muted hover:text-white'
                 }`}
               >
                 {p === 'today' ? '本日' : p === 'week' ? '週次' : p === 'month' ? '月次' : '四半期'}
@@ -413,7 +413,7 @@ export default function SOCAnalyticsPage() {
           </div>
           <button
             onClick={handleExport}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-[#0d1220] border border-[#1e2d42] hover:border-[#7d92b0]/40 text-[#7d92b0] hover:text-white text-xs rounded-lg transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-falcon-surface border border-falcon-border hover:border-falcon-muted/40 text-falcon-muted hover:text-white text-xs rounded-lg transition-colors"
           >
             <Download className="w-3.5 h-3.5" />
             エクスポート
@@ -457,30 +457,30 @@ export default function SOCAnalyticsPage() {
             value: `${kpi.false_positive_rate.toFixed(1)}%`,
             delta: null,
             icon: XCircle,
-            color: 'text-[#e8002d]',
+            color: 'text-falcon-red',
           },
         ].map(({ label, sublabel, value, delta, icon: Icon, color }) => (
-          <div key={label} className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-4">
+          <div key={label} className="bg-falcon-surface border border-falcon-border rounded-xl p-4">
             <div className="flex items-center justify-between mb-1">
               <div className="flex items-center gap-1.5">
                 <Icon className={`w-3.5 h-3.5 ${color}`} />
-                <span className="text-[#7d92b0] text-xs font-medium">{label}</span>
+                <span className="text-falcon-muted text-xs font-medium">{label}</span>
               </div>
               {delta !== null && (
-                <span className={`text-xs font-bold flex items-center gap-0.5 ${delta < 0 ? 'text-green-400' : 'text-[#e8002d]'}`}>
+                <span className={`text-xs font-bold flex items-center gap-0.5 ${delta < 0 ? 'text-green-400' : 'text-falcon-red'}`}>
                   {delta < 0 ? <TrendingDown className="w-3 h-3" /> : <TrendingUp className="w-3 h-3" />}
                   {Math.abs(delta).toFixed(1)}
                 </span>
               )}
             </div>
             <p className="text-white font-bold text-xl mt-2">{value}</p>
-            <p className="text-[#3d5068] text-xs mt-0.5">{sublabel}</p>
+            <p className="text-falcon-subtle text-xs mt-0.5">{sublabel}</p>
           </div>
         ))}
       </div>
 
       {/* ── Section Tabs ── */}
-      <div className="flex gap-0 bg-[#0d1220] border border-[#1e2d42] rounded-xl p-1">
+      <div className="flex gap-0 bg-falcon-surface border border-falcon-border rounded-xl p-1">
         {[
           { id: 'flow' as const, label: 'アラートフロー', icon: Activity },
           { id: 'analyst' as const, label: 'アナリスト効率', icon: Users },
@@ -492,8 +492,8 @@ export default function SOCAnalyticsPage() {
             onClick={() => setActiveSection(id)}
             className={`flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
               activeSection === id
-                ? 'bg-[#1d2f4a] text-white'
-                : 'text-[#7d92b0] hover:text-white'
+                ? 'bg-falcon-active text-white'
+                : 'text-falcon-muted hover:text-white'
             }`}
           >
             <Icon className="w-4 h-4" />
@@ -505,11 +505,11 @@ export default function SOCAnalyticsPage() {
       {/* ── Alert Flow Section ── */}
       {activeSection === 'flow' && (
         <div className="space-y-6">
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
+          <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
             <div className="flex items-center gap-2 mb-4">
-              <Activity className="w-4 h-4 text-[#e8002d]" />
+              <Activity className="w-4 h-4 text-falcon-red" />
               <h2 className="text-white font-semibold">アラートフロー分析</h2>
-              <span className="text-[#7d92b0] text-xs ml-auto">
+              <span className="text-falcon-muted text-xs ml-auto">
                 総アラート: {alert_flow.reduce((a, f) => a + f.count, 0).toLocaleString()}
               </span>
             </div>
@@ -517,10 +517,10 @@ export default function SOCAnalyticsPage() {
           </div>
 
           {/* Volume vs Capacity */}
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
+          <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
-                <BarChart3 className="w-4 h-4 text-[#e8002d]" />
+                <BarChart3 className="w-4 h-4 text-falcon-red" />
                 <h2 className="text-white font-semibold">アラート量 vs 処理能力</h2>
               </div>
               <div className="flex items-center gap-4 text-xs">
@@ -535,15 +535,15 @@ export default function SOCAnalyticsPage() {
               height={80}
             />
             <div className="flex justify-between mt-1">
-              <span className="text-[#3d5068] text-xs">{slicedMetrics[0]?.date}</span>
-              <span className="text-[#3d5068] text-xs">{slicedMetrics[slicedMetrics.length - 1]?.date}</span>
+              <span className="text-falcon-subtle text-xs">{slicedMetrics[0]?.date}</span>
+              <span className="text-falcon-subtle text-xs">{slicedMetrics[slicedMetrics.length - 1]?.date}</span>
             </div>
           </div>
 
           {/* Triage Backlog */}
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
+          <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
             <div className="flex items-center gap-2 mb-4">
-              <Clock className="w-4 h-4 text-[#e8002d]" />
+              <Clock className="w-4 h-4 text-falcon-red" />
               <h2 className="text-white font-semibold">トリアージバックログトレンド</h2>
             </div>
             <LineChart
@@ -553,10 +553,10 @@ export default function SOCAnalyticsPage() {
               height={60}
             />
             <div className="flex justify-between mt-1">
-              <span className="text-[#3d5068] text-xs">{slicedMetrics[0]?.date}</span>
-              <span className="text-[#3d5068] text-xs">{slicedMetrics[slicedMetrics.length - 1]?.date}</span>
+              <span className="text-falcon-subtle text-xs">{slicedMetrics[0]?.date}</span>
+              <span className="text-falcon-subtle text-xs">{slicedMetrics[slicedMetrics.length - 1]?.date}</span>
             </div>
-            <p className="text-[#7d92b0] text-xs mt-2">
+            <p className="text-falcon-muted text-xs mt-2">
               現在のバックログ: <span className="text-white font-medium">{slicedMetrics[slicedMetrics.length - 1]?.backlog}件</span>
               　平均: <span className="text-white font-medium">{Math.round(slicedMetrics.reduce((a, d) => a + d.backlog, 0) / slicedMetrics.length)}件</span>
             </p>
@@ -567,54 +567,54 @@ export default function SOCAnalyticsPage() {
       {/* ── Analyst Efficiency Section ── */}
       {activeSection === 'analyst' && (
         <div className="space-y-6">
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
-            <div className="px-5 py-4 border-b border-[#1e2d42] flex items-center gap-2">
-              <Users className="w-4 h-4 text-[#e8002d]" />
+          <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
+            <div className="px-5 py-4 border-b border-falcon-border flex items-center gap-2">
+              <Users className="w-4 h-4 text-falcon-red" />
               <h2 className="text-white font-semibold">アナリスト別パフォーマンス</h2>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="border-b border-[#1e2d42]">
+                  <tr className="border-b border-falcon-border">
                     {['アナリスト', 'ティア', '処理件数', '中央値トリアージ', 'エスカレーション率', 'FP率', '稼働時間'].map(h => (
-                      <th key={h} className="text-left px-4 py-3 text-[#7d92b0] text-xs font-medium uppercase tracking-wider whitespace-nowrap">{h}</th>
+                      <th key={h} className="text-left px-4 py-3 text-falcon-muted text-xs font-medium uppercase tracking-wider whitespace-nowrap">{h}</th>
                     ))}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#1e2d42]">
+                <tbody className="divide-y divide-falcon-border">
                   {[...analysts].sort((a, b) => b.alerts_handled - a.alerts_handled).map(a => (
                     <tr key={a.id} className="hover:bg-[#0a1020] transition-colors">
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
-                          <div className="w-7 h-7 rounded-full bg-gradient-to-br from-[#1a6bff] to-[#0044cc] flex items-center justify-center text-white text-xs font-bold">
+                          <div className="w-7 h-7 rounded-full bg-linear-to-br from-falcon-blue to-[#0044cc] flex items-center justify-center text-white text-xs font-bold">
                             {a.name[0]}
                           </div>
                           <span className="text-white text-sm">{a.name}</span>
                         </div>
                       </td>
                       <td className="px-4 py-3">
-                        <span className={`inline-flex px-2 py-0.5 rounded border text-xs font-medium ${tierColor[a.tier]}`}>{a.tier}</span>
+                        <span className={`inline-flex px-2 py-0.5 rounded-sm border text-xs font-medium ${tierColor[a.tier]}`}>{a.tier}</span>
                       </td>
                       <td className="px-4 py-3">
                         <span className="text-white text-sm font-medium">{a.alerts_handled}</span>
                       </td>
                       <td className="px-4 py-3">
-                        <span className={`text-sm ${a.median_triage_min < 8 ? 'text-green-400' : a.median_triage_min < 12 ? 'text-amber-400' : 'text-[#e8002d]'}`}>
+                        <span className={`text-sm ${a.median_triage_min < 8 ? 'text-green-400' : a.median_triage_min < 12 ? 'text-amber-400' : 'text-falcon-red'}`}>
                           {a.median_triage_min}分
                         </span>
                       </td>
                       <td className="px-4 py-3">
-                        <span className={`text-sm ${a.escalation_rate < 10 ? 'text-green-400' : a.escalation_rate < 15 ? 'text-amber-400' : 'text-[#e8002d]'}`}>
+                        <span className={`text-sm ${a.escalation_rate < 10 ? 'text-green-400' : a.escalation_rate < 15 ? 'text-amber-400' : 'text-falcon-red'}`}>
                           {a.escalation_rate}%
                         </span>
                       </td>
                       <td className="px-4 py-3">
-                        <span className={`text-sm ${a.fp_rate < 15 ? 'text-green-400' : a.fp_rate < 20 ? 'text-amber-400' : 'text-[#e8002d]'}`}>
+                        <span className={`text-sm ${a.fp_rate < 15 ? 'text-green-400' : a.fp_rate < 20 ? 'text-amber-400' : 'text-falcon-red'}`}>
                           {a.fp_rate}%
                         </span>
                       </td>
                       <td className="px-4 py-3">
-                        <span className="text-[#7d92b0] text-sm">{a.availability_hours}h</span>
+                        <span className="text-falcon-muted text-sm">{a.availability_hours}h</span>
                       </td>
                     </tr>
                   ))}
@@ -624,11 +624,11 @@ export default function SOCAnalyticsPage() {
           </div>
 
           {/* Team Velocity */}
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
+          <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
             <div className="flex items-center gap-2 mb-4">
-              <TrendingUp className="w-4 h-4 text-[#e8002d]" />
+              <TrendingUp className="w-4 h-4 text-falcon-red" />
               <h2 className="text-white font-semibold">チーム処理速度トレンド</h2>
-              <span className="text-[#7d92b0] text-xs ml-auto">アラート/人時</span>
+              <span className="text-falcon-muted text-xs ml-auto">アラート/人時</span>
             </div>
             <LineChart
               data={velocityPoints}
@@ -639,9 +639,9 @@ export default function SOCAnalyticsPage() {
           </div>
 
           {/* Skill Utilization */}
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
+          <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
             <div className="flex items-center gap-2 mb-4">
-              <Award className="w-4 h-4 text-[#e8002d]" />
+              <Award className="w-4 h-4 text-falcon-red" />
               <h2 className="text-white font-semibold">スキル活用状況</h2>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -650,21 +650,21 @@ export default function SOCAnalyticsPage() {
                 { tier: 'L2', label: '深掘り調査', categories: ['APT', 'ランサムウェア', 'ラテラルムーブ'], color: 'text-purple-400' },
                 { tier: 'L3', label: '高度分析・フォレンジクス', categories: ['ゼロデイ', 'サプライチェーン', '標的型攻撃'], color: 'text-amber-400' },
               ].map(({ tier, label, categories, color }) => (
-                <div key={tier} className="bg-[#070d19] border border-[#1e2d42] rounded-lg p-4">
+                <div key={tier} className="bg-[#070d19] border border-falcon-border rounded-lg p-4">
                   <div className="flex items-center gap-2 mb-3">
                     <span className={`font-bold text-lg ${color}`}>{tier}</span>
-                    <span className="text-[#7d92b0] text-xs">{label}</span>
+                    <span className="text-falcon-muted text-xs">{label}</span>
                   </div>
                   <div className="space-y-1.5">
                     {categories.map(cat => (
                       <div key={cat} className="flex items-center gap-2">
-                        <ChevronRight className="w-3 h-3 text-[#3d5068] flex-shrink-0" />
-                        <span className="text-[#7d92b0] text-sm">{cat}</span>
+                        <ChevronRight className="w-3 h-3 text-falcon-subtle shrink-0" />
+                        <span className="text-falcon-muted text-sm">{cat}</span>
                       </div>
                     ))}
                   </div>
-                  <div className="mt-3 pt-3 border-t border-[#1e2d42]">
-                    <p className="text-xs text-[#7d92b0]">担当アナリスト: <span className={`font-medium ${color}`}>{analysts.filter(a => a.tier === tier).length}名</span></p>
+                  <div className="mt-3 pt-3 border-t border-falcon-border">
+                    <p className="text-xs text-falcon-muted">担当アナリスト: <span className={`font-medium ${color}`}>{analysts.filter(a => a.tier === tier).length}名</span></p>
                   </div>
                 </div>
               ))}
@@ -685,28 +685,28 @@ export default function SOCAnalyticsPage() {
             ].map(({ label, value, desc, icon: Icon }) => {
               const color = value >= 80 ? '#22c55e' : value >= 60 ? '#f59e0b' : '#e8002d'
               return (
-                <div key={label} className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
+                <div key={label} className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
                   <div className="flex items-center gap-2 mb-3">
                     <Icon className="w-4 h-4" style={{ color }} />
-                    <span className="text-[#7d92b0] text-xs">{label}</span>
+                    <span className="text-falcon-muted text-xs">{label}</span>
                   </div>
                   <div className="flex items-end gap-2 mb-3">
                     <span className="text-white font-bold text-3xl">{value.toFixed(1)}</span>
                     <span style={{ color }} className="text-lg font-medium mb-0.5">%</span>
                   </div>
-                  <div className="h-2 bg-[#1e2d42] rounded-full overflow-hidden mb-2">
+                  <div className="h-2 bg-falcon-border rounded-full overflow-hidden mb-2">
                     <div className="h-full rounded-full" style={{ width: `${value}%`, backgroundColor: color }} />
                   </div>
-                  <p className="text-[#3d5068] text-xs">{desc}</p>
+                  <p className="text-falcon-subtle text-xs">{desc}</p>
                 </div>
               )
             })}
           </div>
 
           {/* Radar-like chart approximation */}
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
+          <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
             <div className="flex items-center gap-2 mb-4">
-              <Shield className="w-4 h-4 text-[#e8002d]" />
+              <Shield className="w-4 h-4 text-falcon-red" />
               <h2 className="text-white font-semibold">インシデント品質スコアカード</h2>
             </div>
             <div className="space-y-3">
@@ -720,8 +720,8 @@ export default function SOCAnalyticsPage() {
                 const color = value >= target ? '#22c55e' : value >= target * 0.8 ? '#f59e0b' : '#e8002d'
                 return (
                   <div key={label} className="flex items-center gap-4">
-                    <span className="text-[#7d92b0] text-sm w-48 flex-shrink-0">{label}</span>
-                    <div className="flex-1 h-3 bg-[#1e2d42] rounded-full overflow-hidden relative">
+                    <span className="text-falcon-muted text-sm w-48 shrink-0">{label}</span>
+                    <div className="flex-1 h-3 bg-falcon-border rounded-full overflow-hidden relative">
                       <div className="h-full rounded-full transition-all" style={{ width: `${value}%`, backgroundColor: color }} />
                       {/* Target line */}
                       <div
@@ -731,7 +731,7 @@ export default function SOCAnalyticsPage() {
                     </div>
                     <div className="flex items-center gap-2 w-24 text-right">
                       <span className="font-medium text-sm" style={{ color }}>{value.toFixed(1)}%</span>
-                      <span className="text-[#3d5068] text-xs">目標 {target}%</span>
+                      <span className="text-falcon-subtle text-xs">目標 {target}%</span>
                     </div>
                   </div>
                 )
@@ -745,13 +745,13 @@ export default function SOCAnalyticsPage() {
       {activeSection === 'efficiency' && (
         <div className="space-y-6">
           {/* Automation Rate */}
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
+          <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
             <div className="flex items-center gap-2 mb-4">
-              <Bot className="w-4 h-4 text-[#e8002d]" />
+              <Bot className="w-4 h-4 text-falcon-red" />
               <h2 className="text-white font-semibold">自動化率</h2>
             </div>
             <div className="flex items-center gap-6">
-              <div className="relative w-24 h-24 flex-shrink-0">
+              <div className="relative w-24 h-24 shrink-0">
                 <svg viewBox="0 0 36 36" className="w-full h-full -rotate-90">
                   <circle cx="18" cy="18" r="15.9" fill="none" stroke="#1e2d42" strokeWidth="3" />
                   <circle
@@ -769,28 +769,28 @@ export default function SOCAnalyticsPage() {
               </div>
               <div>
                 <p className="text-white font-semibold text-lg mb-1">自動処理率 {efficiency.automation_rate.toFixed(1)}%</p>
-                <p className="text-[#7d92b0] text-sm">全アラートの {efficiency.automation_rate.toFixed(1)}% が自動的に処理されています</p>
-                <p className="text-[#3d5068] text-sm mt-1">目標: 60% <span className="text-amber-400 ml-2">改善余地あり</span></p>
+                <p className="text-falcon-muted text-sm">全アラートの {efficiency.automation_rate.toFixed(1)}% が自動的に処理されています</p>
+                <p className="text-falcon-subtle text-sm mt-1">目標: 60% <span className="text-amber-400 ml-2">改善余地あり</span></p>
               </div>
             </div>
           </div>
 
           {/* Top Rules */}
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
-            <div className="px-5 py-4 border-b border-[#1e2d42] flex items-center gap-2">
-              <Filter className="w-4 h-4 text-[#e8002d]" />
+          <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
+            <div className="px-5 py-4 border-b border-falcon-border flex items-center gap-2">
+              <Filter className="w-4 h-4 text-falcon-red" />
               <h2 className="text-white font-semibold">ルール有効性 (トップ10)</h2>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="border-b border-[#1e2d42]">
+                  <tr className="border-b border-falcon-border">
                     {['ルール名', 'TP率', '総アラート', '抑制数', '抑制率'].map(h => (
-                      <th key={h} className="text-left px-4 py-3 text-[#7d92b0] text-xs font-medium uppercase tracking-wider">{h}</th>
+                      <th key={h} className="text-left px-4 py-3 text-falcon-muted text-xs font-medium uppercase tracking-wider">{h}</th>
                     ))}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#1e2d42]">
+                <tbody className="divide-y divide-falcon-border">
                   {efficiency.rules.map((r, i) => {
                     const suppressionRate = ((r.suppressed / r.total_alerts) * 100).toFixed(1)
                     const color = r.true_positive_rate >= 80 ? '#22c55e' : r.true_positive_rate >= 60 ? '#f59e0b' : '#e8002d'
@@ -798,22 +798,22 @@ export default function SOCAnalyticsPage() {
                       <tr key={r.id} className="hover:bg-[#0a1020] transition-colors">
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2">
-                            <span className="text-[#3d5068] text-xs w-5">{i + 1}</span>
+                            <span className="text-falcon-subtle text-xs w-5">{i + 1}</span>
                             <span className="text-white text-sm">{r.name}</span>
                           </div>
                         </td>
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2">
-                            <div className="w-16 h-1.5 bg-[#1e2d42] rounded-full overflow-hidden">
+                            <div className="w-16 h-1.5 bg-falcon-border rounded-full overflow-hidden">
                               <div className="h-full rounded-full" style={{ width: `${r.true_positive_rate}%`, backgroundColor: color }} />
                             </div>
                             <span className="text-sm font-medium" style={{ color }}>{r.true_positive_rate}%</span>
                           </div>
                         </td>
                         <td className="px-4 py-3"><span className="text-white text-sm">{r.total_alerts}</span></td>
-                        <td className="px-4 py-3"><span className="text-[#7d92b0] text-sm">{r.suppressed}</span></td>
+                        <td className="px-4 py-3"><span className="text-falcon-muted text-sm">{r.suppressed}</span></td>
                         <td className="px-4 py-3">
-                          <span className={`text-sm ${Number(suppressionRate) > 40 ? 'text-amber-400' : 'text-[#7d92b0]'}`}>
+                          <span className={`text-sm ${Number(suppressionRate) > 40 ? 'text-amber-400' : 'text-falcon-muted'}`}>
                             {suppressionRate}%
                           </span>
                         </td>
@@ -826,9 +826,9 @@ export default function SOCAnalyticsPage() {
           </div>
 
           {/* Tool Usage */}
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
+          <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
             <div className="flex items-center gap-2 mb-4">
-              <Zap className="w-4 h-4 text-[#e8002d]" />
+              <Zap className="w-4 h-4 text-falcon-red" />
               <h2 className="text-white font-semibold">ツール使用統計</h2>
             </div>
             <div className="space-y-3">
@@ -836,16 +836,16 @@ export default function SOCAnalyticsPage() {
                 const maxUsage = Math.max(...efficiency.tools.map(x => x.usage_count))
                 return (
                   <div key={t.name} className="flex items-center gap-4">
-                    <span className="text-[#7d92b0] text-sm w-32 flex-shrink-0">{t.name}</span>
-                    <div className="flex-1 h-2 bg-[#1e2d42] rounded-full overflow-hidden">
+                    <span className="text-falcon-muted text-sm w-32 shrink-0">{t.name}</span>
+                    <div className="flex-1 h-2 bg-falcon-border rounded-full overflow-hidden">
                       <div
-                        className="h-full bg-[#e8002d]/60 rounded-full"
+                        className="h-full bg-falcon-red/60 rounded-full"
                         style={{ width: `${(t.usage_count / maxUsage) * 100}%` }}
                       />
                     </div>
                     <div className="flex items-center gap-3 text-xs">
                       <span className="text-white font-medium w-12 text-right">{(t.usage_count ?? 0).toLocaleString()}</span>
-                      <span className="text-[#3d5068] w-16">avg {t.avg_session_min}分</span>
+                      <span className="text-falcon-subtle w-16">avg {t.avg_session_min}分</span>
                     </div>
                   </div>
                 )

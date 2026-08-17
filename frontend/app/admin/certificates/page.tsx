@@ -96,18 +96,18 @@ function CertModal({
   )
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl w-full max-w-lg shadow-2xl">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[#1e2d42]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
+      <div className="bg-falcon-surface border border-falcon-border rounded-xl w-full max-w-lg shadow-2xl">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-falcon-border">
           <h2 className="text-white font-semibold text-base">{initial ? '証明書編集' : '証明書追加'}</h2>
-          <button onClick={onClose} className="text-[#7d92b0] hover:text-white transition-colors"><X className="w-5 h-5" /></button>
+          <button onClick={onClose} className="text-falcon-muted hover:text-white transition-colors"><X className="w-5 h-5" /></button>
         </div>
 
         <div className="px-6 py-4 space-y-4 max-h-[65vh] overflow-y-auto">
           <div>
-            <label className="block text-xs text-[#7d92b0] mb-1.5">ドメイン *</label>
+            <label className="block text-xs text-falcon-muted mb-1.5">ドメイン *</label>
             <input
-              className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-white placeholder-[#3d5068] focus:outline-none focus:border-[#e8002d]/60 font-mono"
+              className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-sm text-white placeholder-falcon-subtle focus:outline-hidden focus:border-falcon-red/60 font-mono"
               placeholder="example.com または *.example.com"
               value={form.domain}
               onChange={e => setForm(f => ({ ...f, domain: e.target.value }))}
@@ -116,8 +116,8 @@ function CertModal({
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs text-[#7d92b0] mb-1.5">種別</label>
-              <select className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-white focus:outline-none"
+              <label className="block text-xs text-falcon-muted mb-1.5">種別</label>
+              <select className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-sm text-white focus:outline-hidden"
                 value={form.type} onChange={e => setForm(f => ({ ...f, type: e.target.value as CertType }))}>
                 <option value="single">Single</option>
                 <option value="wildcard">Wildcard</option>
@@ -126,9 +126,9 @@ function CertModal({
               </select>
             </div>
             <div>
-              <label className="block text-xs text-[#7d92b0] mb-1.5">発行者</label>
+              <label className="block text-xs text-falcon-muted mb-1.5">発行者</label>
               <input
-                className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-white placeholder-[#3d5068] focus:outline-none"
+                className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-sm text-white placeholder-falcon-subtle focus:outline-hidden"
                 placeholder="Let's Encrypt"
                 value={form.issuer}
                 onChange={e => setForm(f => ({ ...f, issuer: e.target.value }))}
@@ -138,57 +138,57 @@ function CertModal({
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs text-[#7d92b0] mb-1.5">有効期限 (開始)</label>
+              <label className="block text-xs text-falcon-muted mb-1.5">有効期限 (開始)</label>
               <input type="date"
-                className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-white focus:outline-none"
+                className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-sm text-white focus:outline-hidden"
                 value={form.valid_from} onChange={e => setForm(f => ({ ...f, valid_from: e.target.value }))}
               />
             </div>
             <div>
-              <label className="block text-xs text-[#7d92b0] mb-1.5">有効期限 (終了)</label>
+              <label className="block text-xs text-falcon-muted mb-1.5">有効期限 (終了)</label>
               <input type="date"
-                className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-white focus:outline-none"
+                className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-sm text-white focus:outline-hidden"
                 value={form.valid_to} onChange={e => setForm(f => ({ ...f, valid_to: e.target.value }))}
               />
             </div>
           </div>
 
           <div className="flex items-center gap-3">
-            <input type="checkbox" id="auto_renew" className="w-4 h-4 accent-[#e8002d]"
+            <input type="checkbox" id="auto_renew" className="w-4 h-4 accent-falcon-red"
               checked={form.auto_renew}
               onChange={e => setForm(f => ({ ...f, auto_renew: e.target.checked }))}
             />
-            <label htmlFor="auto_renew" className="text-sm text-[#7d92b0] cursor-pointer">自動更新を有効化</label>
+            <label htmlFor="auto_renew" className="text-sm text-falcon-muted cursor-pointer">自動更新を有効化</label>
           </div>
 
           <div>
-            <label className="block text-xs text-[#7d92b0] mb-1.5">備考</label>
+            <label className="block text-xs text-falcon-muted mb-1.5">備考</label>
             <textarea rows={2}
-              className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-white placeholder-[#3d5068] focus:outline-none resize-none"
+              className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-sm text-white placeholder-falcon-subtle focus:outline-hidden resize-none"
               value={form.notes}
               onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
             />
           </div>
 
           <div>
-            <label className="block text-xs text-[#7d92b0] mb-1.5">PEMファイル (任意)</label>
-            <label className="w-full border-2 border-dashed border-[#1e2d42] rounded-lg p-4 flex flex-col items-center gap-2 cursor-pointer hover:border-[#7d92b0]/40 transition-all">
-              <Upload className="w-5 h-5 text-[#3d5068]" />
-              <p className="text-xs text-[#3d5068]">クリックしてPEMファイルをアップロード</p>
+            <label className="block text-xs text-falcon-muted mb-1.5">PEMファイル (任意)</label>
+            <label className="w-full border-2 border-dashed border-falcon-border rounded-lg p-4 flex flex-col items-center gap-2 cursor-pointer hover:border-falcon-muted/40 transition-all">
+              <Upload className="w-5 h-5 text-falcon-subtle" />
+              <p className="text-xs text-falcon-subtle">クリックしてPEMファイルをアップロード</p>
               <input type="file" accept=".pem,.crt,.cer" className="hidden" />
             </label>
           </div>
         </div>
 
-        <div className="flex gap-3 px-6 py-4 border-t border-[#1e2d42]">
+        <div className="flex gap-3 px-6 py-4 border-t border-falcon-border">
           <button onClick={onClose}
-            className="flex-1 px-4 py-2 rounded-lg border border-[#1e2d42] text-[#7d92b0] hover:text-white transition-all text-sm">
+            className="flex-1 px-4 py-2 rounded-lg border border-falcon-border text-falcon-muted hover:text-white transition-all text-sm">
             キャンセル
           </button>
           <button
             onClick={() => { if (form.domain) { onSave(form); onClose() } }}
             disabled={!form.domain}
-            className="flex-1 px-4 py-2 rounded-lg bg-[#e8002d] hover:bg-[#c0001f] text-white font-medium transition-all text-sm disabled:opacity-50"
+            className="flex-1 px-4 py-2 rounded-lg bg-falcon-red hover:bg-[#c0001f] text-white font-medium transition-all text-sm disabled:opacity-50"
           >
             {initial ? '更新' : '追加'}
           </button>
@@ -202,14 +202,14 @@ function CertModal({
 
 function DetailModal({ cert, onClose }: { cert: Certificate; onClose: () => void }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl w-full max-w-lg shadow-2xl">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-[#1e2d42]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
+      <div className="bg-falcon-surface border border-falcon-border rounded-xl w-full max-w-lg shadow-2xl">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-falcon-border">
           <div className="flex items-center gap-2">
-            <Lock className="w-4 h-4 text-[#e8002d]" />
+            <Lock className="w-4 h-4 text-falcon-red" />
             <h2 className="text-white font-semibold text-sm font-mono">{cert.domain}</h2>
           </div>
-          <button onClick={onClose} className="text-[#7d92b0] hover:text-white transition-colors"><X className="w-4 h-4" /></button>
+          <button onClick={onClose} className="text-falcon-muted hover:text-white transition-colors"><X className="w-4 h-4" /></button>
         </div>
 
         <div className="px-5 py-4 space-y-4 max-h-[70vh] overflow-y-auto">
@@ -222,8 +222,8 @@ function DetailModal({ cert, onClose }: { cert: Certificate; onClose: () => void
               { label: '残り日数',        value: daysText(cert.days_remaining), colored: true },
               { label: '自動更新',        value: cert.auto_renew ? '有効' : '無効' },
             ].map(row => (
-              <div key={row.label} className="bg-[#070d19] border border-[#1e2d42] rounded-lg p-2.5">
-                <p className="text-[#3d5068] mb-0.5">{row.label}</p>
+              <div key={row.label} className="bg-[#070d19] border border-falcon-border rounded-lg p-2.5">
+                <p className="text-falcon-subtle mb-0.5">{row.label}</p>
                 <p className={`font-medium ${row.colored ? daysColor(cert.days_remaining) : 'text-white'}`}>
                   {row.value}
                 </p>
@@ -232,39 +232,39 @@ function DetailModal({ cert, onClose }: { cert: Certificate; onClose: () => void
           </div>
 
           <div>
-            <p className="text-xs text-[#7d92b0] mb-2">Subject Alternative Names</p>
+            <p className="text-xs text-falcon-muted mb-2">Subject Alternative Names</p>
             <div className="flex flex-wrap gap-1.5">
               {cert.sans.map(san => (
-                <span key={san} className="text-[10px] px-2 py-0.5 rounded bg-[#1e2d42] text-[#7d92b0] font-mono">{san}</span>
+                <span key={san} className="text-[10px] px-2 py-0.5 rounded-sm bg-falcon-border text-falcon-muted font-mono">{san}</span>
               ))}
             </div>
           </div>
 
           <div>
-            <p className="text-xs text-[#7d92b0] mb-2">フィンガープリント</p>
-            <p className="text-[10px] font-mono text-[#7d92b0] bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 break-all">
+            <p className="text-xs text-falcon-muted mb-2">フィンガープリント</p>
+            <p className="text-[10px] font-mono text-falcon-muted bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 break-all">
               {cert.fingerprint}
             </p>
           </div>
 
           <div>
-            <p className="text-xs text-[#7d92b0] mb-2">チェーン情報</p>
-            <p className="text-[10px] font-mono text-[#7d92b0] bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2">
+            <p className="text-xs text-falcon-muted mb-2">チェーン情報</p>
+            <p className="text-[10px] font-mono text-falcon-muted bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2">
               {cert.chain}
             </p>
           </div>
 
           {cert.notes && (
             <div>
-              <p className="text-xs text-[#7d92b0] mb-1">備考</p>
+              <p className="text-xs text-falcon-muted mb-1">備考</p>
               <p className="text-xs text-white">{cert.notes}</p>
             </div>
           )}
         </div>
 
-        <div className="px-5 py-3 border-t border-[#1e2d42] flex justify-end">
+        <div className="px-5 py-3 border-t border-falcon-border flex justify-end">
           <button onClick={onClose}
-            className="px-4 py-2 rounded-lg bg-[#1e2d42] hover:bg-[#1e2d42]/80 text-white text-sm transition-all">
+            className="px-4 py-2 rounded-lg bg-falcon-border hover:bg-falcon-border/80 text-white text-sm transition-all">
             閉じる
           </button>
         </div>
@@ -362,7 +362,7 @@ export default function CertificatesPage() {
     <div className="min-h-screen bg-[#070d19] p-6">
       {/* Toast */}
       {toastMsg && (
-        <div className="fixed top-4 right-4 z-50 px-4 py-2.5 rounded-lg bg-[#0d1220] border border-[#1e2d42] text-white text-sm shadow-xl">
+        <div className="fixed top-4 right-4 z-50 px-4 py-2.5 rounded-lg bg-falcon-surface border border-falcon-border text-white text-sm shadow-xl">
           {toastMsg}
         </div>
       )}
@@ -370,17 +370,17 @@ export default function CertificatesPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-[#e8002d] to-[#a80020] flex items-center justify-center">
+          <div className="w-9 h-9 rounded-lg bg-linear-to-br from-falcon-red to-falcon-red-dark flex items-center justify-center">
             <Lock className="w-5 h-5 text-white" />
           </div>
           <div>
             <h1 className="text-xl font-bold text-white">証明書管理</h1>
-            <p className="text-xs text-[#7d92b0] mt-0.5">SSL/TLS証明書の一元管理・更新管理</p>
+            <p className="text-xs text-falcon-muted mt-0.5">SSL/TLS証明書の一元管理・更新管理</p>
           </div>
         </div>
         <button
           onClick={() => { setEditItem(null); setShowModal(true) }}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#e8002d] hover:bg-[#c0001f] text-white text-sm font-medium transition-all"
+          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-falcon-red hover:bg-[#c0001f] text-white text-sm font-medium transition-all"
         >
           <Plus className="w-4 h-4" />
           証明書追加
@@ -395,24 +395,24 @@ export default function CertificatesPage() {
           { label: '期限切れ',          value: expiredCount, icon: X,              color: 'text-red-400',    icon_bg: 'bg-red-500/20' },
           { label: 'ワイルドカード',     value: wildcards,   icon: Shield,         color: 'text-purple-400', icon_bg: 'bg-purple-500/20' },
         ].map(stat => (
-          <div key={stat.label} className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-4 flex items-center gap-4">
-            <div className={`w-10 h-10 rounded-lg ${stat.icon_bg} flex items-center justify-center flex-shrink-0`}>
+          <div key={stat.label} className="bg-falcon-surface border border-falcon-border rounded-xl p-4 flex items-center gap-4">
+            <div className={`w-10 h-10 rounded-lg ${stat.icon_bg} flex items-center justify-center shrink-0`}>
               <stat.icon className={`w-5 h-5 ${stat.color}`} />
             </div>
             <div>
               <div className={`text-2xl font-bold ${stat.color}`}>{stat.value}</div>
-              <div className="text-xs text-[#7d92b0] mt-0.5">{stat.label}</div>
+              <div className="text-xs text-falcon-muted mt-0.5">{stat.label}</div>
             </div>
           </div>
         ))}
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 mb-5 bg-[#0d1220] border border-[#1e2d42] rounded-xl p-1 w-fit">
+      <div className="flex gap-1 mb-5 bg-falcon-surface border border-falcon-border rounded-xl p-1 w-fit">
         {(['certs', 'history'] as const).map(tab => (
           <button key={tab} onClick={() => setActiveTab(tab)}
             className={`flex items-center gap-2 px-5 py-2 rounded-lg text-sm font-medium transition-all ${
-              activeTab === tab ? 'bg-[#1e2d42] text-white' : 'text-[#7d92b0] hover:text-white'
+              activeTab === tab ? 'bg-falcon-border text-white' : 'text-falcon-muted hover:text-white'
             }`}
           >
             {tab === 'certs'
@@ -425,25 +425,25 @@ export default function CertificatesPage() {
 
       {/* Certificates Tab */}
       {activeTab === 'certs' && (
-        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl">
-          <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4 border-b border-[#1e2d42]">
+        <div className="bg-falcon-surface border border-falcon-border rounded-xl">
+          <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4 border-b border-falcon-border">
             <div className="flex flex-wrap items-center gap-2">
-              <Filter className="w-3.5 h-3.5 text-[#7d92b0]" />
-              <select className="bg-[#070d19] border border-[#1e2d42] rounded-lg px-2.5 py-1.5 text-xs text-[#7d92b0] focus:outline-none"
+              <Filter className="w-3.5 h-3.5 text-falcon-muted" />
+              <select className="bg-[#070d19] border border-falcon-border rounded-lg px-2.5 py-1.5 text-xs text-falcon-muted focus:outline-hidden"
                 value={filterType} onChange={e => setFilterType(e.target.value)}>
                 <option value="all">全種別</option>
                 {(['single', 'wildcard', 'SAN', 'self-signed'] as CertType[]).map(t => (
                   <option key={t} value={t}>{t}</option>
                 ))}
               </select>
-              <select className="bg-[#070d19] border border-[#1e2d42] rounded-lg px-2.5 py-1.5 text-xs text-[#7d92b0] focus:outline-none"
+              <select className="bg-[#070d19] border border-falcon-border rounded-lg px-2.5 py-1.5 text-xs text-falcon-muted focus:outline-hidden"
                 value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
                 <option value="all">全ステータス</option>
                 {(Object.keys(STATUS_LABELS) as CertStatus[]).map(s => (
                   <option key={s} value={s}>{STATUS_LABELS[s]}</option>
                 ))}
               </select>
-              <select className="bg-[#070d19] border border-[#1e2d42] rounded-lg px-2.5 py-1.5 text-xs text-[#7d92b0] focus:outline-none"
+              <select className="bg-[#070d19] border border-falcon-border rounded-lg px-2.5 py-1.5 text-xs text-falcon-muted focus:outline-hidden"
                 value={filterExpiry} onChange={e => setFilterExpiry(e.target.value)}>
                 <option value="all">全期限</option>
                 <option value="expired">期限切れ</option>
@@ -452,14 +452,14 @@ export default function CertificatesPage() {
               </select>
               <button
                 onClick={() => setSortDir(d => d === 'asc' ? 'desc' : 'asc')}
-                className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-[#070d19] border border-[#1e2d42] text-xs text-[#7d92b0] hover:text-white transition-all"
+                className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-[#070d19] border border-falcon-border text-xs text-falcon-muted hover:text-white transition-all"
               >
                 残日数 {sortDir === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
               </button>
             </div>
             {selected.size > 0 && (
               <button onClick={handleBulkRenew}
-                className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#e8002d] hover:bg-[#c0001f] text-white text-xs font-medium transition-all">
+                className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-falcon-red hover:bg-[#c0001f] text-white text-xs font-medium transition-all">
                 <RefreshCw className="w-3.5 h-3.5" />
                 一括更新 ({selected.size}件)
               </button>
@@ -469,34 +469,34 @@ export default function CertificatesPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm min-w-[1000px]">
               <thead>
-                <tr className="border-b border-[#1e2d42]">
+                <tr className="border-b border-falcon-border">
                   <th className="px-4 py-3 w-10">
-                    <input type="checkbox" className="w-3.5 h-3.5 accent-[#e8002d]"
+                    <input type="checkbox" className="w-3.5 h-3.5 accent-falcon-red"
                       checked={selected.size === filtered.length && filtered.length > 0}
                       onChange={e => setSelected(e.target.checked ? new Set(filtered.map(c => c.id)) : new Set())}
                     />
                   </th>
                   {['ドメイン', '種別', '発行者', '有効開始', '有効終了', '残り日数', '自動更新', 'ステータス', '操作'].map(h => (
-                    <th key={h} className="px-4 py-3 text-left text-xs text-[#7d92b0] font-medium whitespace-nowrap">{h}</th>
+                    <th key={h} className="px-4 py-3 text-left text-xs text-falcon-muted font-medium whitespace-nowrap">{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {filtered.map(cert => (
-                  <tr key={cert.id} className="border-b border-[#1e2d42]/60 hover:bg-[#070d19]/60 transition-colors">
+                  <tr key={cert.id} className="border-b border-falcon-border/60 hover:bg-[#070d19]/60 transition-colors">
                     <td className="px-4 py-3">
-                      <input type="checkbox" className="w-3.5 h-3.5 accent-[#e8002d]"
+                      <input type="checkbox" className="w-3.5 h-3.5 accent-falcon-red"
                         checked={selected.has(cert.id)}
                         onChange={() => toggleSelect(cert.id)}
                       />
                     </td>
                     <td className="px-4 py-3 text-white text-xs font-medium font-mono">{cert.domain}</td>
                     <td className="px-4 py-3">
-                      <span className={`text-[10px] px-1.5 py-0.5 rounded border ${TYPE_COLORS[cert.type]}`}>{cert.type}</span>
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded-sm border ${TYPE_COLORS[cert.type]}`}>{cert.type}</span>
                     </td>
-                    <td className="px-4 py-3 text-xs text-[#7d92b0] whitespace-nowrap">{cert.issuer}</td>
-                    <td className="px-4 py-3 text-xs text-[#7d92b0] whitespace-nowrap">{cert.valid_from}</td>
-                    <td className="px-4 py-3 text-xs text-[#7d92b0] whitespace-nowrap">{cert.valid_to}</td>
+                    <td className="px-4 py-3 text-xs text-falcon-muted whitespace-nowrap">{cert.issuer}</td>
+                    <td className="px-4 py-3 text-xs text-falcon-muted whitespace-nowrap">{cert.valid_from}</td>
+                    <td className="px-4 py-3 text-xs text-falcon-muted whitespace-nowrap">{cert.valid_to}</td>
                     <td className="px-4 py-3">
                       <span className={`text-xs ${daysColor(cert.days_remaining)}`}>
                         {daysText(cert.days_remaining)}
@@ -512,18 +512,18 @@ export default function CertificatesPage() {
                       </span>
                     </td>
                     <td className="px-4 py-3">
-                      <span className={`text-[10px] px-1.5 py-0.5 rounded border ${STATUS_COLORS[cert.status]}`}>
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded-sm border ${STATUS_COLORS[cert.status]}`}>
                         {STATUS_LABELS[cert.status]}
                       </span>
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-1.5">
                         <button onClick={() => setDetailItem(cert)}
-                          className="p-1.5 rounded-md bg-[#1e2d42]/60 hover:bg-[#1e2d42] text-[#7d92b0] hover:text-white transition-all" title="詳細">
+                          className="p-1.5 rounded-md bg-falcon-border/60 hover:bg-falcon-border text-falcon-muted hover:text-white transition-all" title="詳細">
                           <Info className="w-3.5 h-3.5" />
                         </button>
                         <button onClick={() => { setEditItem(cert); setShowModal(true) }}
-                          className="p-1.5 rounded-md bg-[#1e2d42]/60 hover:bg-[#1e2d42] text-[#7d92b0] hover:text-white transition-all" title="編集">
+                          className="p-1.5 rounded-md bg-falcon-border/60 hover:bg-falcon-border text-falcon-muted hover:text-white transition-all" title="編集">
                           <Edit2 className="w-3.5 h-3.5" />
                         </button>
                         <button onClick={() => deleteMutation.mutate(cert.id)}
@@ -537,7 +537,7 @@ export default function CertificatesPage() {
               </tbody>
             </table>
             {filtered.length === 0 && (
-              <div className="text-center py-12 text-[#3d5068] text-sm">
+              <div className="text-center py-12 text-falcon-subtle text-sm">
                 条件に合う証明書が見つかりません
               </div>
             )}
@@ -547,25 +547,25 @@ export default function CertificatesPage() {
 
       {/* Renewal History Tab */}
       {activeTab === 'history' && (
-        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl">
-          <div className="px-5 py-4 border-b border-[#1e2d42]">
+        <div className="bg-falcon-surface border border-falcon-border rounded-xl">
+          <div className="px-5 py-4 border-b border-falcon-border">
             <h2 className="text-white font-semibold text-sm">更新履歴</h2>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-[#1e2d42]">
+                <tr className="border-b border-falcon-border">
                   {['ドメイン', '更新日時', '新有効期限', '方法', 'ステータス'].map(h => (
-                    <th key={h} className="px-4 py-3 text-left text-xs text-[#7d92b0] font-medium">{h}</th>
+                    <th key={h} className="px-4 py-3 text-left text-xs text-falcon-muted font-medium">{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {([] as RenewalRecord[]).map(rec => (
-                  <tr key={rec.id} className="border-b border-[#1e2d42]/60 hover:bg-[#070d19]/60 transition-colors">
+                  <tr key={rec.id} className="border-b border-falcon-border/60 hover:bg-[#070d19]/60 transition-colors">
                     <td className="px-4 py-3 text-white text-xs font-mono font-medium">{rec.domain}</td>
-                    <td className="px-4 py-3 text-xs text-[#7d92b0]">{rec.renewed_at}</td>
-                    <td className="px-4 py-3 text-xs text-[#7d92b0]">{rec.new_expiry}</td>
+                    <td className="px-4 py-3 text-xs text-falcon-muted">{rec.renewed_at}</td>
+                    <td className="px-4 py-3 text-xs text-falcon-muted">{rec.new_expiry}</td>
                     <td className="px-4 py-3">
                       <span className={`text-[10px] px-1.5 py-0.5 rounded border ${
                         rec.method === 'auto'

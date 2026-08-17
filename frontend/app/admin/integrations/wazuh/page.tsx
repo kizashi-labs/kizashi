@@ -107,7 +107,7 @@ function TextInput({
       onChange={e => onChange(e.target.value)}
       placeholder={placeholder}
       className={`w-full bg-gray-900 border border-gray-600 rounded-lg px-3 py-2.5 text-sm
-                  text-gray-200 placeholder-gray-500 focus:outline-none focus:border-blue-500
+                  text-gray-200 placeholder-gray-500 focus:outline-hidden focus:border-blue-500
                   focus:ring-1 focus:ring-blue-500/30 transition-colors ${className}`}
     />
   )
@@ -128,7 +128,7 @@ function ToggleRow({
 }) {
   return (
     <label className="flex items-start gap-3 cursor-pointer group">
-      <div className="relative mt-0.5 flex-shrink-0">
+      <div className="relative mt-0.5 shrink-0">
         <input
           type="checkbox"
           checked={checked}
@@ -141,7 +141,7 @@ function ToggleRow({
           }`}
         >
           <div
-            className={`absolute top-1 w-4 h-4 rounded-full bg-[#e2e8f4] shadow transition-transform ${
+            className={`absolute top-1 w-4 h-4 rounded-full bg-falcon-text shadow transition-transform ${
               checked ? 'translate-x-5' : 'translate-x-1'
             }`}
           />
@@ -207,13 +207,13 @@ export default function WazuhIntegrationPage() {
 
   return (
     <div className="min-h-screen bg-gray-900">
-      <div className="max-w-screen-lg mx-auto p-6 space-y-6">
+      <div className="max-w-(--breakpoint-lg) mx-auto p-6 space-y-6">
 
         {/* ── Header ──────────────────────────────────────────────── */}
         <div>
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-orange-900/40 border border-orange-700/50
-                            flex items-center justify-center flex-shrink-0">
+                            flex items-center justify-center shrink-0">
               <Link2 className="w-5 h-5 text-orange-400" />
             </div>
             <div>
@@ -469,7 +469,7 @@ export default function WazuhIntegrationPage() {
                   <tr key={agent.id} className="hover:bg-gray-700/20 transition-colors">
                     <td className="px-6 py-3">
                       <div className="flex items-center gap-2">
-                        <Monitor className="w-3.5 h-3.5 text-gray-500 flex-shrink-0" />
+                        <Monitor className="w-3.5 h-3.5 text-gray-500 shrink-0" />
                         <span className="text-gray-200 font-medium">{agent.name}</span>
                         <span className="text-xs text-gray-600 font-mono">#{agent.id}</span>
                       </div>

@@ -76,8 +76,8 @@ const WIDGET_PALETTE: { category: string; widgets: WidgetDef[] }[] = [
 function AlertCountPreview() {
   return (
     <div className="flex flex-col items-center justify-center py-4">
-      <div className="text-5xl font-black text-[#e8002d]">47</div>
-      <div className="text-xs text-[#7d92b0] mt-1">過去24時間のアラート</div>
+      <div className="text-5xl font-black text-falcon-red">47</div>
+      <div className="text-xs text-falcon-muted mt-1">過去24時間のアラート</div>
     </div>
   )
 }
@@ -86,19 +86,19 @@ function AgentStatusPreview() {
   return (
     <div className="flex items-center justify-center gap-6 py-4">
       <div className="flex items-center gap-2 text-sm">
-        <span className="w-3 h-3 rounded-full bg-[#00c853]" />
+        <span className="w-3 h-3 rounded-full bg-falcon-green" />
         <span className="text-white font-bold">298</span>
-        <span className="text-[#7d92b0] text-xs">オンライン</span>
+        <span className="text-falcon-muted text-xs">オンライン</span>
       </div>
       <div className="flex items-center gap-2 text-sm">
         <span className="w-3 h-3 rounded-full bg-[#ffd740]" />
         <span className="text-white font-bold">21</span>
-        <span className="text-[#7d92b0] text-xs">警告</span>
+        <span className="text-falcon-muted text-xs">警告</span>
       </div>
       <div className="flex items-center gap-2 text-sm">
-        <span className="w-3 h-3 rounded-full bg-[#e8002d]" />
+        <span className="w-3 h-3 rounded-full bg-falcon-red" />
         <span className="text-white font-bold">12</span>
-        <span className="text-[#7d92b0] text-xs">オフライン</span>
+        <span className="text-falcon-muted text-xs">オフライン</span>
       </div>
     </div>
   )
@@ -108,8 +108,8 @@ function RiskScorePreview() {
   return (
     <div className="flex flex-col items-center justify-center py-4">
       <div className="text-5xl font-black text-[#ffd740]">63</div>
-      <div className="text-xs text-[#7d92b0] mt-1">組織リスクスコア</div>
-      <div className="mt-2 text-xs px-2 py-0.5 rounded bg-[#ffd740]/20 text-[#ffd740]">中リスク</div>
+      <div className="text-xs text-falcon-muted mt-1">組織リスクスコア</div>
+      <div className="mt-2 text-xs px-2 py-0.5 rounded-sm bg-[#ffd740]/20 text-[#ffd740]">中リスク</div>
     </div>
   )
 }
@@ -135,7 +135,7 @@ function AlertTrendPreview() {
         <polygon points={area} fill="url(#trendGrad)" />
         <polyline points={points} fill="none" stroke="#e8002d" strokeWidth="2" strokeLinejoin="round" />
       </svg>
-      <div className="text-xs text-[#7d92b0] text-center">過去12時間</div>
+      <div className="text-xs text-falcon-muted text-center">過去12時間</div>
     </div>
   )
 }
@@ -151,9 +151,9 @@ function TopThreatsPreview() {
     <div className="px-2 py-2 space-y-1.5">
       {threats.map(t => (
         <div key={t.name} className="flex items-center gap-2 text-xs">
-          <span className="text-[#7d92b0] w-24 truncate">{t.name}</span>
-          <div className="flex-1 h-3 bg-[#1e2d42] rounded overflow-hidden">
-            <div className="h-full rounded" style={{ width: `${(t.count / max) * 100}%`, background: t.color }} />
+          <span className="text-falcon-muted w-24 truncate">{t.name}</span>
+          <div className="flex-1 h-3 bg-falcon-border rounded-sm overflow-hidden">
+            <div className="h-full rounded-sm" style={{ width: `${(t.count / max) * 100}%`, background: t.color }} />
           </div>
           <span className="text-white w-5 text-right">{t.count}</span>
         </div>
@@ -173,10 +173,10 @@ function SeverityDistPreview() {
     <div className="px-2 py-2 space-y-1.5">
       {items.map(item => (
         <div key={item.label} className="flex items-center gap-2 text-xs">
-          <span className="w-2.5 h-2.5 rounded-sm" style={{ background: item.color }} />
-          <span className="text-[#7d92b0] w-14">{item.label}</span>
-          <div className="flex-1 h-2.5 bg-[#1e2d42] rounded overflow-hidden">
-            <div className="h-full rounded" style={{ width: `${item.pct}%`, background: item.color }} />
+          <span className="w-2.5 h-2.5 rounded-xs" style={{ background: item.color }} />
+          <span className="text-falcon-muted w-14">{item.label}</span>
+          <div className="flex-1 h-2.5 bg-falcon-border rounded-sm overflow-hidden">
+            <div className="h-full rounded-sm" style={{ width: `${item.pct}%`, background: item.color }} />
           </div>
           <span className="text-[#c8d6ea] w-8 text-right">{item.pct}%</span>
         </div>
@@ -195,15 +195,15 @@ function RecentAlertsPreview() {
   return (
     <div className="px-1 py-1">
       <table className="w-full text-xs">
-        <thead><tr className="text-[#7d92b0] border-b border-[#1e2d42]">
+        <thead><tr className="text-falcon-muted border-b border-falcon-border">
           <th className="pb-1 text-left">ID</th>
           <th className="pb-1 text-left">タイトル</th>
           <th className="pb-1 text-right">深刻度</th>
         </tr></thead>
-        <tbody className="divide-y divide-[#1e2d42]">
+        <tbody className="divide-y divide-falcon-border">
           {rows.map(r => (
             <tr key={r.id}>
-              <td className="py-1 text-[#e8002d] font-mono">{r.id}</td>
+              <td className="py-1 text-falcon-red font-mono">{r.id}</td>
               <td className="py-1 text-white truncate max-w-[100px]">{r.title}</td>
               <td className="py-1 text-right" style={{ color: sevColor[r.sev] || '#7d92b0' }}>{r.sev}</td>
             </tr>
@@ -223,15 +223,15 @@ function ActiveIncidentsPreview() {
   return (
     <div className="px-1 py-1">
       <table className="w-full text-xs">
-        <thead><tr className="text-[#7d92b0] border-b border-[#1e2d42]">
+        <thead><tr className="text-falcon-muted border-b border-falcon-border">
           <th className="pb-1 text-left">ID</th>
           <th className="pb-1 text-left">タイトル</th>
           <th className="pb-1 text-right">状態</th>
         </tr></thead>
-        <tbody className="divide-y divide-[#1e2d42]">
+        <tbody className="divide-y divide-falcon-border">
           {rows.map(r => (
             <tr key={r.id}>
-              <td className="py-1 text-[#e8002d] font-mono">{r.id}</td>
+              <td className="py-1 text-falcon-red font-mono">{r.id}</td>
               <td className="py-1 text-white truncate max-w-[100px]">{r.title}</td>
               <td className="py-1 text-right text-[#ffd740]">{r.status}</td>
             </tr>
@@ -251,12 +251,12 @@ function TopAgentsPreview() {
   return (
     <div className="px-1 py-1">
       <table className="w-full text-xs">
-        <thead><tr className="text-[#7d92b0] border-b border-[#1e2d42]">
+        <thead><tr className="text-falcon-muted border-b border-falcon-border">
           <th className="pb-1 text-left">ホスト</th>
           <th className="pb-1 text-center">アラート</th>
           <th className="pb-1 text-right">リスク</th>
         </tr></thead>
-        <tbody className="divide-y divide-[#1e2d42]">
+        <tbody className="divide-y divide-falcon-border">
           {rows.map(r => (
             <tr key={r.host}>
               <td className="py-1 text-white font-mono text-[10px]">{r.host}</td>
@@ -277,17 +277,17 @@ function FreeTextPreview({ widgetUid, texts, onTextChange }: { widgetUid: string
       onChange={e => onTextChange(widgetUid, e.target.value)}
       placeholder="テキストを入力..."
       rows={3}
-      className="w-full bg-[#070d19] border border-[#1e2d42] rounded px-3 py-2 text-sm text-[#c8d6ea] resize-none focus:outline-none focus:border-[#e8002d]"
+      className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-sm text-[#c8d6ea] resize-none focus:outline-hidden focus:border-falcon-red"
     />
   )
 }
 
 function SectionHeaderPreview() {
-  return <div className="text-base font-bold text-white py-2 border-b border-[#1e2d42]">セクション名</div>
+  return <div className="text-base font-bold text-white py-2 border-b border-falcon-border">セクション名</div>
 }
 
 function DividerPreview() {
-  return <hr className="border-[#1e2d42] my-2" />
+  return <hr className="border-falcon-border my-2" />
 }
 
 const WIDGET_PREVIEWS: Record<string, React.ComponentType<any>> = {
@@ -373,7 +373,7 @@ export default function ReportBuilderPage() {
       return <FreeTextPreview widgetUid={w.uid} texts={freeTexts} onTextChange={handleFreeTextChange} />
     }
     const Comp = WIDGET_PREVIEWS[w.type]
-    return Comp ? <Comp /> : <div className="text-[#7d92b0] text-xs py-3 text-center">プレビューなし</div>
+    return Comp ? <Comp /> : <div className="text-falcon-muted text-xs py-3 text-center">プレビューなし</div>
   }
 
   // Group widgets into rows of 2 for half-size, full-size takes full row
@@ -406,28 +406,28 @@ export default function ReportBuilderPage() {
       {/* Config Modal */}
       {configModal && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-6 w-80 space-y-4">
+          <div className="bg-falcon-surface border border-falcon-border rounded-xl p-6 w-80 space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="font-semibold text-white">ウィジェット設定</h3>
-              <button onClick={() => setConfigModal(null)}><X className="w-4 h-4 text-[#7d92b0]" /></button>
+              <button onClick={() => setConfigModal(null)}><X className="w-4 h-4 text-falcon-muted" /></button>
             </div>
             <div className="space-y-3">
               <div>
-                <label className="text-xs text-[#7d92b0] mb-1 block">タイトル</label>
+                <label className="text-xs text-falcon-muted mb-1 block">タイトル</label>
                 <input
                   value={configDraft.title}
                   onChange={e => setConfigDraft(p => ({ ...p, title: e.target.value }))}
-                  className="w-full bg-[#070d19] border border-[#1e2d42] rounded px-3 py-1.5 text-sm text-white focus:outline-none focus:border-[#e8002d]"
+                  className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-1.5 text-sm text-white focus:outline-hidden focus:border-falcon-red"
                 />
               </div>
               <div>
-                <label className="text-xs text-[#7d92b0] mb-1 block">サイズ</label>
+                <label className="text-xs text-falcon-muted mb-1 block">サイズ</label>
                 <div className="flex gap-2">
                   {(['half', 'full'] as const).map(s => (
                     <button
                       key={s}
                       onClick={() => setConfigDraft(p => ({ ...p, size: s }))}
-                      className={`flex-1 py-1.5 rounded text-xs font-medium border transition-colors ${configDraft.size === s ? 'bg-[#e8002d]/20 border-[#e8002d] text-[#e8002d]' : 'border-[#1e2d42] text-[#7d92b0]'}`}
+                      className={`flex-1 py-1.5 rounded-sm text-xs font-medium border transition-colors ${configDraft.size === s ? 'bg-falcon-red/20 border-falcon-red text-falcon-red' : 'border-falcon-border text-falcon-muted'}`}
                     >
                       {s === 'half' ? '1/2幅' : '全幅'}
                     </button>
@@ -437,7 +437,7 @@ export default function ReportBuilderPage() {
             </div>
             <button
               onClick={applyConfig}
-              className="w-full py-2 bg-[#e8002d] hover:bg-[#c0001e] rounded text-white text-sm font-medium transition-colors"
+              className="w-full py-2 bg-falcon-red hover:bg-[#c0001e] rounded-sm text-white text-sm font-medium transition-colors"
             >
               適用
             </button>
@@ -452,27 +452,27 @@ export default function ReportBuilderPage() {
             <div className="flex items-center justify-between mb-6">
               <div>
                 <h1 className="text-2xl font-bold text-white">{reportTitle}</h1>
-                {reportDesc && <p className="text-[#7d92b0] text-sm mt-1">{reportDesc}</p>}
+                {reportDesc && <p className="text-falcon-muted text-sm mt-1">{reportDesc}</p>}
                 {(dateFrom || dateTo) && (
-                  <p className="text-xs text-[#7d92b0] mt-1">{dateFrom} 〜 {dateTo}</p>
+                  <p className="text-xs text-falcon-muted mt-1">{dateFrom} 〜 {dateTo}</p>
                 )}
               </div>
               <button
                 onClick={() => setPreviewOpen(false)}
-                className="flex items-center gap-2 px-4 py-2 bg-[#1e2d42] hover:bg-[#2d3f58] rounded text-white text-sm transition-colors"
+                className="flex items-center gap-2 px-4 py-2 bg-falcon-border hover:bg-[#2d3f58] rounded-sm text-white text-sm transition-colors"
               >
                 <X className="w-4 h-4" /> 閉じる
               </button>
             </div>
             {grid.length === 0 ? (
-              <div className="text-center text-[#7d92b0] py-16">ウィジェットが追加されていません</div>
+              <div className="text-center text-falcon-muted py-16">ウィジェットが追加されていません</div>
             ) : (
               <div className="space-y-4">
                 {grid.map((row, ri) => (
                   <div key={ri} className={`grid gap-4 ${row.length === 2 ? 'grid-cols-2' : 'grid-cols-1'}`}>
                     {row.map(w => (
-                      <div key={w.uid} className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-4">
-                        <h3 className="text-sm font-semibold text-white mb-3 border-b border-[#1e2d42] pb-2">{w.title}</h3>
+                      <div key={w.uid} className="bg-falcon-surface border border-falcon-border rounded-xl p-4">
+                        <h3 className="text-sm font-semibold text-white mb-3 border-b border-falcon-border pb-2">{w.title}</h3>
                         {renderWidgetPreview(w)}
                       </div>
                     ))}
@@ -486,25 +486,25 @@ export default function ReportBuilderPage() {
 
       <div className="flex h-screen">
         {/* Left Panel — Palette */}
-        <div className="w-64 flex-shrink-0 bg-[#0d1220] border-r border-[#1e2d42] flex flex-col">
-          <div className="px-4 py-4 border-b border-[#1e2d42]">
+        <div className="w-64 shrink-0 bg-falcon-surface border-r border-falcon-border flex flex-col">
+          <div className="px-4 py-4 border-b border-falcon-border">
             <h2 className="text-sm font-semibold text-white">ウィジェットパレット</h2>
-            <p className="text-xs text-[#7d92b0] mt-0.5">クリックして追加</p>
+            <p className="text-xs text-falcon-muted mt-0.5">クリックして追加</p>
           </div>
           <div className="flex-1 overflow-y-auto p-3 space-y-4">
             {WIDGET_PALETTE.map(group => (
               <div key={group.category}>
-                <div className="text-[10px] text-[#3d5068] uppercase tracking-wider mb-2 px-1">{group.category}</div>
+                <div className="text-[10px] text-falcon-subtle uppercase tracking-wider mb-2 px-1">{group.category}</div>
                 <div className="space-y-1">
                   {group.widgets.map(def => (
                     <button
                       key={def.id}
                       onClick={() => addWidget(def)}
-                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left text-sm text-[#c8d6ea] hover:bg-[#1e2d42] hover:text-white transition-colors group"
+                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left text-sm text-[#c8d6ea] hover:bg-falcon-border hover:text-white transition-colors group"
                     >
-                      <span className="text-[#7d92b0] group-hover:text-[#e8002d] transition-colors">{def.icon}</span>
+                      <span className="text-falcon-muted group-hover:text-falcon-red transition-colors">{def.icon}</span>
                       <span className="flex-1 truncate">{def.label}</span>
-                      <Plus className="w-3.5 h-3.5 text-[#3d5068] group-hover:text-[#e8002d] flex-shrink-0" />
+                      <Plus className="w-3.5 h-3.5 text-falcon-subtle group-hover:text-falcon-red shrink-0" />
                     </button>
                   ))}
                 </div>
@@ -516,54 +516,54 @@ export default function ReportBuilderPage() {
         {/* Right Panel — Canvas */}
         <div className="flex-1 flex flex-col overflow-hidden">
           {/* Metadata Bar */}
-          <div className="bg-[#0d1220] border-b border-[#1e2d42] px-5 py-3 space-y-2">
+          <div className="bg-falcon-surface border-b border-falcon-border px-5 py-3 space-y-2">
             <div className="flex items-center gap-3">
-              <h1 className="text-sm font-semibold text-[#7d92b0] flex-shrink-0">カスタムレポートビルダー</h1>
+              <h1 className="text-sm font-semibold text-falcon-muted shrink-0">カスタムレポートビルダー</h1>
               <div className="flex items-center gap-2 flex-1">
                 <input
                   value={reportTitle}
                   onChange={e => setReportTitle(e.target.value)}
                   placeholder="レポートタイトル"
-                  className="flex-1 bg-[#070d19] border border-[#1e2d42] rounded px-3 py-1.5 text-sm text-white focus:outline-none focus:border-[#e8002d] min-w-0"
+                  className="flex-1 bg-[#070d19] border border-falcon-border rounded-sm px-3 py-1.5 text-sm text-white focus:outline-hidden focus:border-falcon-red min-w-0"
                 />
                 <input
                   type="date"
                   value={dateFrom}
                   onChange={e => setDateFrom(e.target.value)}
-                  className="bg-[#070d19] border border-[#1e2d42] rounded px-3 py-1.5 text-xs text-[#c8d6ea] focus:outline-none focus:border-[#e8002d] w-36"
+                  className="bg-[#070d19] border border-falcon-border rounded-sm px-3 py-1.5 text-xs text-[#c8d6ea] focus:outline-hidden focus:border-falcon-red w-36"
                 />
-                <span className="text-[#7d92b0] text-xs">〜</span>
+                <span className="text-falcon-muted text-xs">〜</span>
                 <input
                   type="date"
                   value={dateTo}
                   onChange={e => setDateTo(e.target.value)}
-                  className="bg-[#070d19] border border-[#1e2d42] rounded px-3 py-1.5 text-xs text-[#c8d6ea] focus:outline-none focus:border-[#e8002d] w-36"
+                  className="bg-[#070d19] border border-falcon-border rounded-sm px-3 py-1.5 text-xs text-[#c8d6ea] focus:outline-hidden focus:border-falcon-red w-36"
                 />
               </div>
               {/* Action buttons */}
-              <div className="flex items-center gap-2 flex-shrink-0">
+              <div className="flex items-center gap-2 shrink-0">
                 <button
                   onClick={() => setPreviewOpen(true)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-[#1e2d42] hover:bg-[#2d3f58] rounded text-xs text-white transition-colors"
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-falcon-border hover:bg-[#2d3f58] rounded-sm text-xs text-white transition-colors"
                 >
                   <Eye className="w-3.5 h-3.5" /> プレビュー
                 </button>
                 <button
                   onClick={() => window.print()}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-[#1e2d42] hover:bg-[#2d3f58] rounded text-xs text-white transition-colors"
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-falcon-border hover:bg-[#2d3f58] rounded-sm text-xs text-white transition-colors"
                 >
                   <Printer className="w-3.5 h-3.5" /> PDFエクスポート
                 </button>
                 <button
                   onClick={() => saveMutation.mutate()}
                   disabled={saveMutation.isPending}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-[#e8002d] hover:bg-[#c0001e] rounded text-xs text-white transition-colors disabled:opacity-50"
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-falcon-red hover:bg-[#c0001e] rounded-sm text-xs text-white transition-colors disabled:opacity-50"
                 >
                   <Save className="w-3.5 h-3.5" /> テンプレート保存
                 </button>
                 <button
                   onClick={() => { setWidgets([]); setFreeTexts({}) }}
-                  className="flex items-center gap-1.5 px-3 py-1.5 border border-[#1e2d42] hover:border-[#e8002d] rounded text-xs text-[#7d92b0] hover:text-[#e8002d] transition-colors"
+                  className="flex items-center gap-1.5 px-3 py-1.5 border border-falcon-border hover:border-falcon-red rounded-sm text-xs text-falcon-muted hover:text-falcon-red transition-colors"
                 >
                   <X className="w-3.5 h-3.5" /> クリア
                 </button>
@@ -574,20 +574,20 @@ export default function ReportBuilderPage() {
               onChange={e => setReportDesc(e.target.value)}
               placeholder="レポートの説明 (オプション)"
               rows={1}
-              className="w-full bg-[#070d19] border border-[#1e2d42] rounded px-3 py-1.5 text-xs text-[#c8d6ea] resize-none focus:outline-none focus:border-[#e8002d]"
+              className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-1.5 text-xs text-[#c8d6ea] resize-none focus:outline-hidden focus:border-falcon-red"
             />
-            {saveMsg && <p className="text-xs text-[#00c853]">{saveMsg}</p>}
+            {saveMsg && <p className="text-xs text-falcon-green">{saveMsg}</p>}
           </div>
 
           {/* Canvas */}
           <div className="flex-1 overflow-y-auto p-5">
             {widgets.length === 0 ? (
               <div className="h-full flex flex-col items-center justify-center text-center gap-3">
-                <div className="w-16 h-16 rounded-full bg-[#1e2d42] flex items-center justify-center">
-                  <Plus className="w-8 h-8 text-[#3d5068]" />
+                <div className="w-16 h-16 rounded-full bg-falcon-border flex items-center justify-center">
+                  <Plus className="w-8 h-8 text-falcon-subtle" />
                 </div>
-                <p className="text-[#7d92b0] text-sm">左のパレットからウィジェットを追加してください</p>
-                <p className="text-[#3d5068] text-xs">クリックするとキャンバスに配置されます</p>
+                <p className="text-falcon-muted text-sm">左のパレットからウィジェットを追加してください</p>
+                <p className="text-falcon-subtle text-xs">クリックするとキャンバスに配置されます</p>
               </div>
             ) : (
               <div className="space-y-4">
@@ -598,35 +598,35 @@ export default function ReportBuilderPage() {
                       return (
                         <div
                           key={w.uid}
-                          className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden hover:border-[#2d3f58] transition-colors group"
+                          className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden hover:border-[#2d3f58] transition-colors group"
                         >
                           {/* Widget header */}
-                          <div className="flex items-center justify-between px-4 py-2 bg-[#0a1020] border-b border-[#1e2d42]">
+                          <div className="flex items-center justify-between px-4 py-2 bg-[#0a1020] border-b border-falcon-border">
                             <span className="text-sm font-medium text-white truncate">{w.title}</span>
                             <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                               <button
                                 onClick={() => moveWidget(w.uid, 'up')}
                                 disabled={globalIdx === 0}
-                                className="p-1 rounded hover:bg-[#1e2d42] text-[#7d92b0] disabled:opacity-30"
+                                className="p-1 rounded-sm hover:bg-falcon-border text-falcon-muted disabled:opacity-30"
                               >
                                 <ChevronUp className="w-3.5 h-3.5" />
                               </button>
                               <button
                                 onClick={() => moveWidget(w.uid, 'down')}
                                 disabled={globalIdx === widgets.length - 1}
-                                className="p-1 rounded hover:bg-[#1e2d42] text-[#7d92b0] disabled:opacity-30"
+                                className="p-1 rounded-sm hover:bg-falcon-border text-falcon-muted disabled:opacity-30"
                               >
                                 <ChevronDown className="w-3.5 h-3.5" />
                               </button>
                               <button
                                 onClick={() => openConfig(w)}
-                                className="p-1 rounded hover:bg-[#1e2d42] text-[#7d92b0] hover:text-white"
+                                className="p-1 rounded-sm hover:bg-falcon-border text-falcon-muted hover:text-white"
                               >
                                 <Settings className="w-3.5 h-3.5" />
                               </button>
                               <button
                                 onClick={() => removeWidget(w.uid)}
-                                className="p-1 rounded hover:bg-[#e8002d]/20 text-[#7d92b0] hover:text-[#e8002d]"
+                                className="p-1 rounded-sm hover:bg-falcon-red/20 text-falcon-muted hover:text-falcon-red"
                               >
                                 <Trash2 className="w-3.5 h-3.5" />
                               </button>

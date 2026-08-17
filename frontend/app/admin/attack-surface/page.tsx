@@ -131,51 +131,51 @@ function AddAssetModal({ onClose, onAdd }: {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl w-full max-w-lg p-6">
+      <div className="bg-falcon-surface border border-falcon-border rounded-xl w-full max-w-lg p-6">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-white font-semibold text-lg">資産追加</h2>
-          <button onClick={onClose} className="text-[#7d92b0] hover:text-white"><X className="w-5 h-5" /></button>
+          <button onClick={onClose} className="text-falcon-muted hover:text-white"><X className="w-5 h-5" /></button>
         </div>
         <div className="space-y-4">
           <div>
-            <label className="text-xs text-[#7d92b0] mb-1 block">タイプ</label>
+            <label className="text-xs text-falcon-muted mb-1 block">タイプ</label>
             <select value={form.type} onChange={e => setForm(p => ({ ...p, type: e.target.value as AssetType }))}
-              className="w-full bg-[#070d19] border border-[#1e2d42] rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-[#e8002d]/50">
+              className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-sm text-white focus:outline-hidden focus:border-falcon-red/50">
               {(Object.keys(ASSET_TYPE_CONFIG) as AssetType[]).map(t => (
                 <option key={t} value={t}>{ASSET_TYPE_CONFIG[t].label}</option>
               ))}
             </select>
           </div>
           <div>
-            <label className="text-xs text-[#7d92b0] mb-1 block">値</label>
+            <label className="text-xs text-falcon-muted mb-1 block">値</label>
             <input value={form.value} onChange={e => setForm(p => ({ ...p, value: e.target.value }))}
               placeholder="example.com / 192.168.1.1 / ..."
-              className="w-full bg-[#070d19] border border-[#1e2d42] rounded px-3 py-2 text-sm text-white font-mono focus:outline-none focus:border-[#e8002d]/50" />
+              className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-sm text-white font-mono focus:outline-hidden focus:border-falcon-red/50" />
           </div>
           <div>
-            <label className="text-xs text-[#7d92b0] mb-1 block">リスクスコア: <span className={riskTextColor(form.risk_score)}>{form.risk_score}</span></label>
+            <label className="text-xs text-falcon-muted mb-1 block">リスクスコア: <span className={riskTextColor(form.risk_score)}>{form.risk_score}</span></label>
             <input type="range" min={0} max={100} value={form.risk_score} onChange={e => setForm(p => ({ ...p, risk_score: Number(e.target.value) }))}
-              className="w-full accent-[#e8002d]" />
+              className="w-full accent-falcon-red" />
           </div>
           <div className="flex gap-6">
-            <label className="flex items-center gap-2 text-sm text-[#7d92b0] cursor-pointer">
-              <button onClick={() => setForm(p => ({ ...p, is_known: !p.is_known }))} className="text-[#7d92b0]">
+            <label className="flex items-center gap-2 text-sm text-falcon-muted cursor-pointer">
+              <button onClick={() => setForm(p => ({ ...p, is_known: !p.is_known }))} className="text-falcon-muted">
                 {form.is_known ? <ToggleRight className="w-6 h-6 text-green-400" /> : <ToggleLeft className="w-6 h-6" />}
               </button>
               既知の資産
             </label>
-            <label className="flex items-center gap-2 text-sm text-[#7d92b0] cursor-pointer">
-              <button onClick={() => setForm(p => ({ ...p, is_monitored: !p.is_monitored }))} className="text-[#7d92b0]">
+            <label className="flex items-center gap-2 text-sm text-falcon-muted cursor-pointer">
+              <button onClick={() => setForm(p => ({ ...p, is_monitored: !p.is_monitored }))} className="text-falcon-muted">
                 {form.is_monitored ? <ToggleRight className="w-6 h-6 text-green-400" /> : <ToggleLeft className="w-6 h-6" />}
               </button>
               監視中
             </label>
           </div>
           <div>
-            <label className="text-xs text-[#7d92b0] mb-1 block">タグ</label>
+            <label className="text-xs text-falcon-muted mb-1 block">タグ</label>
             <div className="flex gap-2 mb-2 flex-wrap">
               {form.tags.map(t => (
-                <span key={t} className="flex items-center gap-1 bg-[#1e2d42] text-[#7d92b0] text-xs px-2 py-0.5 rounded-full">
+                <span key={t} className="flex items-center gap-1 bg-falcon-border text-falcon-muted text-xs px-2 py-0.5 rounded-full">
                   {t}
                   <button onClick={() => setForm(p => ({ ...p, tags: p.tags.filter(x => x !== t) }))} className="hover:text-white">
                     <X className="w-2.5 h-2.5" />
@@ -187,15 +187,15 @@ function AddAssetModal({ onClose, onAdd }: {
               <input value={tagInput} onChange={e => setTagInput(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addTag())}
                 placeholder="タグを入力..."
-                className="flex-1 bg-[#070d19] border border-[#1e2d42] rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-[#e8002d]/50" />
-              <button onClick={addTag} className="px-3 py-2 bg-[#1e2d42] text-[#7d92b0] rounded text-sm hover:text-white">追加</button>
+                className="flex-1 bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-sm text-white focus:outline-hidden focus:border-falcon-red/50" />
+              <button onClick={addTag} className="px-3 py-2 bg-falcon-border text-falcon-muted rounded-sm text-sm hover:text-white">追加</button>
             </div>
           </div>
         </div>
         <div className="flex gap-3 mt-6">
-          <button onClick={onClose} className="flex-1 py-2 rounded border border-[#1e2d42] text-[#7d92b0] hover:text-white text-sm transition-colors">キャンセル</button>
+          <button onClick={onClose} className="flex-1 py-2 rounded-sm border border-falcon-border text-falcon-muted hover:text-white text-sm transition-colors">キャンセル</button>
           <button onClick={() => { if (form.value) { onAdd(form); onClose() } }}
-            className="flex-1 py-2 rounded bg-[#e8002d] text-white text-sm font-medium hover:bg-[#c8001e] transition-colors">追加</button>
+            className="flex-1 py-2 rounded-sm bg-falcon-red text-white text-sm font-medium hover:bg-[#c8001e] transition-colors">追加</button>
         </div>
       </div>
     </div>
@@ -212,38 +212,38 @@ function NewScanModal({ onClose, onStart }: {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl w-full max-w-lg p-6">
+      <div className="bg-falcon-surface border border-falcon-border rounded-xl w-full max-w-lg p-6">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-white font-semibold text-lg">新規スキャン</h2>
-          <button onClick={onClose} className="text-[#7d92b0] hover:text-white"><X className="w-5 h-5" /></button>
+          <button onClick={onClose} className="text-falcon-muted hover:text-white"><X className="w-5 h-5" /></button>
         </div>
         <div className="space-y-4">
           <div>
-            <label className="text-xs text-[#7d92b0] mb-1 block">スキャンタイプ</label>
+            <label className="text-xs text-falcon-muted mb-1 block">スキャンタイプ</label>
             <select value={form.scan_type} onChange={e => setForm(p => ({ ...p, scan_type: e.target.value as ScanType }))}
-              className="w-full bg-[#070d19] border border-[#1e2d42] rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-[#e8002d]/50">
+              className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-sm text-white focus:outline-hidden focus:border-falcon-red/50">
               {(Object.keys(SCAN_TYPE_CONFIG) as ScanType[]).map(t => (
                 <option key={t} value={t}>{SCAN_TYPE_CONFIG[t].label}</option>
               ))}
             </select>
           </div>
           <div>
-            <label className="text-xs text-[#7d92b0] mb-1 block">ターゲット (ドメインまたはIP/CIDR)</label>
+            <label className="text-xs text-falcon-muted mb-1 block">ターゲット (ドメインまたはIP/CIDR)</label>
             <input value={form.target} onChange={e => setForm(p => ({ ...p, target: e.target.value }))}
               placeholder="example.com / 192.168.1.0/24"
-              className="w-full bg-[#070d19] border border-[#1e2d42] rounded px-3 py-2 text-sm text-white font-mono focus:outline-none focus:border-[#e8002d]/50" />
+              className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-sm text-white font-mono focus:outline-hidden focus:border-falcon-red/50" />
           </div>
           <div>
-            <label className="text-xs text-[#7d92b0] mb-1 block">説明 (任意)</label>
+            <label className="text-xs text-falcon-muted mb-1 block">説明 (任意)</label>
             <textarea value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))}
               rows={3} placeholder="スキャンの目的や背景..."
-              className="w-full bg-[#070d19] border border-[#1e2d42] rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-[#e8002d]/50 resize-none" />
+              className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-sm text-white focus:outline-hidden focus:border-falcon-red/50 resize-none" />
           </div>
         </div>
         <div className="flex gap-3 mt-6">
-          <button onClick={onClose} className="flex-1 py-2 rounded border border-[#1e2d42] text-[#7d92b0] hover:text-white text-sm transition-colors">キャンセル</button>
+          <button onClick={onClose} className="flex-1 py-2 rounded-sm border border-falcon-border text-falcon-muted hover:text-white text-sm transition-colors">キャンセル</button>
           <button onClick={() => { if (form.target) { onStart(form); onClose() } }}
-            className="flex-1 py-2 rounded bg-[#e8002d] text-white text-sm font-medium hover:bg-[#c8001e] transition-colors flex items-center justify-center gap-2">
+            className="flex-1 py-2 rounded-sm bg-falcon-red text-white text-sm font-medium hover:bg-[#c8001e] transition-colors flex items-center justify-center gap-2">
             <Play className="w-4 h-4" /> スキャン開始
           </button>
         </div>
@@ -373,12 +373,12 @@ export default function AttackSurfacePage() {
     <div className="min-h-screen bg-[#070d19] p-6">
       {/* Header */}
       <div className="flex items-center gap-3 mb-6">
-        <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-[#e8002d] to-[#a80020] flex items-center justify-center">
+        <div className="w-10 h-10 rounded-lg bg-linear-to-br from-falcon-red to-falcon-red-dark flex items-center justify-center">
           <ScanSearch className="w-5 h-5 text-white" />
         </div>
         <div>
           <h1 className="text-white text-2xl font-bold">攻撃面管理</h1>
-          <p className="text-[#7d92b0] text-sm">発見された外部・内部資産のリスク管理</p>
+          <p className="text-falcon-muted text-sm">発見された外部・内部資産のリスク管理</p>
         </div>
       </div>
 
@@ -390,10 +390,10 @@ export default function AttackSurfacePage() {
           { label: '高リスク資産', value: stats.high_risk_assets, icon: Shield, color: 'text-red-400' },
           { label: '最終スキャン', value: fmt(stats.last_scan_time), icon: Clock, color: 'text-green-400', small: true },
         ].map(c => (
-          <div key={c.label} className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-4">
+          <div key={c.label} className="bg-falcon-surface border border-falcon-border rounded-xl p-4">
             <div className="flex items-center gap-2 mb-2">
               <c.icon className={`w-4 h-4 ${c.color}`} />
-              <span className="text-[#7d92b0] text-xs">{c.label}</span>
+              <span className="text-falcon-muted text-xs">{c.label}</span>
             </div>
             <p className={`font-bold ${c.color} ${(c as any).small ? 'text-base' : 'text-3xl'}`}>{c.value}</p>
           </div>
@@ -405,7 +405,7 @@ export default function AttackSurfacePage() {
         {[{ key: 'assets', label: '発見資産' }, { key: 'scans', label: 'スキャン管理' }].map(t => (
           <button key={t.key} onClick={() => setTab(t.key as any)}
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-              tab === t.key ? 'bg-[#e8002d] text-white' : 'bg-[#0d1220] border border-[#1e2d42] text-[#7d92b0] hover:text-white'
+              tab === t.key ? 'bg-falcon-red text-white' : 'bg-falcon-surface border border-falcon-border text-falcon-muted hover:text-white'
             }`}>{t.label}</button>
         ))}
       </div>
@@ -419,8 +419,8 @@ export default function AttackSurfacePage() {
               <button key={t} onClick={() => setAssetTypeFilter(t)}
                 className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
                   assetTypeFilter === t
-                    ? 'bg-[#e8002d] text-white'
-                    : 'bg-[#0d1220] border border-[#1e2d42] text-[#7d92b0] hover:text-white'
+                    ? 'bg-falcon-red text-white'
+                    : 'bg-falcon-surface border border-falcon-border text-falcon-muted hover:text-white'
                 }`}>
                 {t === 'all' ? 'すべて' : ASSET_TYPE_CONFIG[t].label}
               </button>
@@ -430,41 +430,41 @@ export default function AttackSurfacePage() {
           {/* Tag Filters */}
           {allTags.length > 0 && (
             <div className="flex items-center gap-2 mb-4 flex-wrap">
-              <span className="text-xs text-[#7d92b0] flex items-center gap-1"><Tag className="w-3 h-3" /> タグ:</span>
+              <span className="text-xs text-falcon-muted flex items-center gap-1"><Tag className="w-3 h-3" /> タグ:</span>
               {allTags.map(t => (
                 <button key={t} onClick={() => setTagFilters(prev => prev.includes(t) ? prev.filter(x => x !== t) : [...prev, t])}
                   className={`px-2 py-0.5 rounded-full text-xs transition-colors ${
-                    tagFilters.includes(t) ? 'bg-blue-600 text-white' : 'bg-[#0d1220] border border-[#1e2d42] text-[#7d92b0] hover:text-white'
+                    tagFilters.includes(t) ? 'bg-blue-600 text-white' : 'bg-falcon-surface border border-falcon-border text-falcon-muted hover:text-white'
                   }`}>{t}</button>
               ))}
               {tagFilters.length > 0 && (
-                <button onClick={() => setTagFilters([])} className="text-xs text-[#7d92b0] hover:text-white ml-2">クリア</button>
+                <button onClick={() => setTagFilters([])} className="text-xs text-falcon-muted hover:text-white ml-2">クリア</button>
               )}
             </div>
           )}
 
           {/* Toolbar */}
           <div className="flex items-center justify-between mb-4">
-            <p className="text-[#7d92b0] text-sm">{filteredAssets.length} 件</p>
+            <p className="text-falcon-muted text-sm">{filteredAssets.length} 件</p>
             <div className="flex gap-2">
               <button onClick={handleExportCSV}
-                className="flex items-center gap-2 px-3 py-2 bg-[#0d1220] border border-[#1e2d42] text-[#7d92b0] rounded-lg text-sm hover:text-white transition-colors">
+                className="flex items-center gap-2 px-3 py-2 bg-falcon-surface border border-falcon-border text-falcon-muted rounded-lg text-sm hover:text-white transition-colors">
                 <Download className="w-4 h-4" /> CSV
               </button>
               <button onClick={() => setShowAddAsset(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-[#e8002d] text-white rounded-lg text-sm font-medium hover:bg-[#c8001e] transition-colors">
+                className="flex items-center gap-2 px-4 py-2 bg-falcon-red text-white rounded-lg text-sm font-medium hover:bg-[#c8001e] transition-colors">
                 <Plus className="w-4 h-4" /> 資産追加
               </button>
             </div>
           </div>
 
           {/* Assets Table */}
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden mb-6">
+          <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden mb-6">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-[#1e2d42]">
+                <tr className="border-b border-falcon-border">
                   {['タイプ', '値', 'リスク', '既知', '監視', 'タグ', '初回検出', '最終確認', '操作'].map(h => (
-                    <th key={h} className="text-left text-xs text-[#7d92b0] font-medium px-4 py-3">{h}</th>
+                    <th key={h} className="text-left text-xs text-falcon-muted font-medium px-4 py-3">{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -474,7 +474,7 @@ export default function AttackSurfacePage() {
                   const AssetIcon = tc.icon
                   return (
                     <tr key={asset.id}
-                      className={`border-b border-[#1e2d42]/50 hover:bg-[#070d19]/50 transition-colors ${!asset.is_known ? 'bg-yellow-900/5' : ''}`}>
+                      className={`border-b border-falcon-border/50 hover:bg-[#070d19]/50 transition-colors ${!asset.is_known ? 'bg-yellow-900/5' : ''}`}>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-1.5">
                           <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium ${tc.bg} ${tc.text}`}>
@@ -482,7 +482,7 @@ export default function AttackSurfacePage() {
                             {tc.label}
                           </span>
                           {!asset.is_known && (
-                            <span className="text-xs px-1.5 py-0.5 rounded bg-yellow-900/50 text-yellow-300 font-medium">未確認</span>
+                            <span className="text-xs px-1.5 py-0.5 rounded-sm bg-yellow-900/50 text-yellow-300 font-medium">未確認</span>
                           )}
                         </div>
                       </td>
@@ -491,7 +491,7 @@ export default function AttackSurfacePage() {
                       </td>
                       <td className="px-4 py-3 min-w-[120px]">
                         <div className="flex items-center gap-2">
-                          <div className="flex-1 h-1.5 bg-[#1e2d42] rounded-full overflow-hidden">
+                          <div className="flex-1 h-1.5 bg-falcon-border rounded-full overflow-hidden">
                             <div className={`h-full rounded-full ${riskColor(asset.risk_score)}`} style={{ width: `${asset.risk_score}%` }} />
                           </div>
                           <span className={`text-xs font-bold ${riskTextColor(asset.risk_score)}`}>{asset.risk_score}</span>
@@ -499,29 +499,29 @@ export default function AttackSurfacePage() {
                       </td>
                       <td className="px-4 py-3">
                         <button onClick={() => handleToggleKnown(asset)}>
-                          {asset.is_known ? <ToggleRight className="w-5 h-5 text-green-400" /> : <ToggleLeft className="w-5 h-5 text-[#3d5068]" />}
+                          {asset.is_known ? <ToggleRight className="w-5 h-5 text-green-400" /> : <ToggleLeft className="w-5 h-5 text-falcon-subtle" />}
                         </button>
                       </td>
                       <td className="px-4 py-3">
                         <button onClick={() => handleToggleMonitored(asset)}>
-                          {asset.is_monitored ? <ToggleRight className="w-5 h-5 text-blue-400" /> : <ToggleLeft className="w-5 h-5 text-[#3d5068]" />}
+                          {asset.is_monitored ? <ToggleRight className="w-5 h-5 text-blue-400" /> : <ToggleLeft className="w-5 h-5 text-falcon-subtle" />}
                         </button>
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex flex-wrap gap-1">
                           {asset.tags.map(t => (
-                            <span key={t} className="text-xs bg-[#1e2d42] text-[#7d92b0] px-1.5 py-0.5 rounded-full">{t}</span>
+                            <span key={t} className="text-xs bg-falcon-border text-falcon-muted px-1.5 py-0.5 rounded-full">{t}</span>
                           ))}
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-xs text-[#7d92b0] whitespace-nowrap">{fmt(asset.first_seen)}</td>
-                      <td className="px-4 py-3 text-xs text-[#7d92b0] whitespace-nowrap">{fmt(asset.last_seen)}</td>
+                      <td className="px-4 py-3 text-xs text-falcon-muted whitespace-nowrap">{fmt(asset.first_seen)}</td>
+                      <td className="px-4 py-3 text-xs text-falcon-muted whitespace-nowrap">{fmt(asset.last_seen)}</td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
-                          <button onClick={() => setEditAsset(asset)} className="text-[#7d92b0] hover:text-white transition-colors">
+                          <button onClick={() => setEditAsset(asset)} className="text-falcon-muted hover:text-white transition-colors">
                             <Edit2 className="w-3.5 h-3.5" />
                           </button>
-                          <button onClick={() => handleDeleteAsset(asset)} className="text-[#7d92b0] hover:text-red-400 transition-colors">
+                          <button onClick={() => handleDeleteAsset(asset)} className="text-falcon-muted hover:text-red-400 transition-colors">
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
                         </div>
@@ -531,11 +531,11 @@ export default function AttackSurfacePage() {
                 })}
               </tbody>
             </table>
-            {filteredAssets.length === 0 && <div className="text-center py-12 text-[#7d92b0] text-sm">条件に一致する資産がありません</div>}
+            {filteredAssets.length === 0 && <div className="text-center py-12 text-falcon-muted text-sm">条件に一致する資産がありません</div>}
           </div>
 
           {/* Stats — Asset count by type */}
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
+          <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
             <h3 className="text-white font-semibold text-sm mb-4">資産タイプ別分布</h3>
             <div className="space-y-3">
               {(Object.entries(stats.by_type) as [AssetType, number][]).map(([type, count]) => {
@@ -543,11 +543,11 @@ export default function AttackSurfacePage() {
                 const pct = typeMaxCount > 0 ? (count / typeMaxCount) * 100 : 0
                 return (
                   <div key={type} className="flex items-center gap-3">
-                    <span className={`text-xs font-medium ${tc.text} w-24 flex-shrink-0`}>{tc.label}</span>
-                    <div className="flex-1 h-2 bg-[#1e2d42] rounded-full overflow-hidden">
+                    <span className={`text-xs font-medium ${tc.text} w-24 shrink-0`}>{tc.label}</span>
+                    <div className="flex-1 h-2 bg-falcon-border rounded-full overflow-hidden">
                       <div className={`h-full rounded-full ${tc.bg.replace('/40', '')}`} style={{ width: `${pct}%` }} />
                     </div>
-                    <span className="text-xs text-[#7d92b0] w-6 text-right">{count}</span>
+                    <span className="text-xs text-falcon-muted w-6 text-right">{count}</span>
                   </div>
                 )
               })}
@@ -566,27 +566,27 @@ export default function AttackSurfacePage() {
               { label: '平均検出数/スキャン', value: avgAssetsPerScan, color: 'text-green-400' },
               { label: '今週の新規発見', value: newAssetsThisWeek, color: 'text-yellow-400' },
             ].map(c => (
-              <div key={c.label} className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-4">
-                <p className="text-xs text-[#7d92b0] mb-1">{c.label}</p>
+              <div key={c.label} className="bg-falcon-surface border border-falcon-border rounded-xl p-4">
+                <p className="text-xs text-falcon-muted mb-1">{c.label}</p>
                 <p className={`text-3xl font-bold ${c.color}`}>{c.value}</p>
               </div>
             ))}
           </div>
 
           <div className="flex justify-between items-center mb-4">
-            <p className="text-[#7d92b0] text-sm">{localScans.length} 件のスキャン履歴</p>
+            <p className="text-falcon-muted text-sm">{localScans.length} 件のスキャン履歴</p>
             <button onClick={() => setShowNewScan(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-[#e8002d] text-white rounded-lg text-sm font-medium hover:bg-[#c8001e] transition-colors">
+              className="flex items-center gap-2 px-4 py-2 bg-falcon-red text-white rounded-lg text-sm font-medium hover:bg-[#c8001e] transition-colors">
               <Plus className="w-4 h-4" /> 新規スキャン
             </button>
           </div>
 
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
+          <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-[#1e2d42]">
+                <tr className="border-b border-falcon-border">
                   {['タイプ', 'ターゲット', 'ステータス', '発見数', '新規', '所要時間', '開始時刻'].map(h => (
-                    <th key={h} className="text-left text-xs text-[#7d92b0] font-medium px-4 py-3">{h}</th>
+                    <th key={h} className="text-left text-xs text-falcon-muted font-medium px-4 py-3">{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -595,13 +595,13 @@ export default function AttackSurfacePage() {
                   const sc = SCAN_TYPE_CONFIG[scan.scan_type]
                   const ss = SCAN_STATUS_CONFIG[scan.status]
                   return (
-                    <tr key={scan.id} className="border-b border-[#1e2d42]/50 hover:bg-[#070d19]/50 transition-colors">
+                    <tr key={scan.id} className="border-b border-falcon-border/50 hover:bg-[#070d19]/50 transition-colors">
                       <td className="px-4 py-3">
                         <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${sc.bg} ${sc.text}`}>{sc.label}</span>
                       </td>
                       <td className="px-4 py-3">
                         <span className="text-white text-xs font-mono">{scan.target}</span>
-                        {scan.description && <p className="text-[#7d92b0] text-xs truncate max-w-[180px]">{scan.description}</p>}
+                        {scan.description && <p className="text-falcon-muted text-xs truncate max-w-[180px]">{scan.description}</p>}
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex flex-col gap-1">
@@ -610,7 +610,7 @@ export default function AttackSurfacePage() {
                             {ss.label}
                           </span>
                           {scan.status === 'running' && (
-                            <div className="w-24 h-1 bg-[#1e2d42] rounded-full overflow-hidden">
+                            <div className="w-24 h-1 bg-falcon-border rounded-full overflow-hidden">
                               <div className="h-full bg-blue-400 rounded-full animate-pulse" style={{ width: '60%' }} />
                             </div>
                           )}
@@ -618,12 +618,12 @@ export default function AttackSurfacePage() {
                       </td>
                       <td className="px-4 py-3 text-xs text-white font-semibold">{scan.assets_found}</td>
                       <td className="px-4 py-3">
-                        <span className={`text-xs font-semibold ${scan.new_assets > 0 ? 'text-yellow-300 bg-yellow-900/40 px-2 py-0.5 rounded' : 'text-[#7d92b0]'}`}>
+                        <span className={`text-xs font-semibold ${scan.new_assets > 0 ? 'text-yellow-300 bg-yellow-900/40 px-2 py-0.5 rounded-sm' : 'text-falcon-muted'}`}>
                           {scan.new_assets > 0 ? `+${scan.new_assets}` : '0'}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-xs text-[#7d92b0] font-mono">{fmtDuration(scan.duration)}</td>
-                      <td className="px-4 py-3 text-xs text-[#7d92b0] whitespace-nowrap">{fmt(scan.started_at)}</td>
+                      <td className="px-4 py-3 text-xs text-falcon-muted font-mono">{fmtDuration(scan.duration)}</td>
+                      <td className="px-4 py-3 text-xs text-falcon-muted whitespace-nowrap">{fmt(scan.started_at)}</td>
                     </tr>
                   )
                 })}
@@ -639,10 +639,10 @@ export default function AttackSurfacePage() {
 
       {/* Toast */}
       {toast && (
-        <div className="fixed bottom-6 right-6 z-50 max-w-sm bg-[#0d1220] border border-green-500/50 rounded-lg p-4 shadow-xl flex items-center gap-3">
-          <Shield className="w-4 h-4 text-green-400 flex-shrink-0" />
-          <p className="text-sm text-[#e2e8f4] flex-1">{toast}</p>
-          <button onClick={() => setToast(null)} className="text-[#7d92b0] hover:text-white"><X className="w-4 h-4" /></button>
+        <div className="fixed bottom-6 right-6 z-50 max-w-sm bg-falcon-surface border border-green-500/50 rounded-lg p-4 shadow-xl flex items-center gap-3">
+          <Shield className="w-4 h-4 text-green-400 shrink-0" />
+          <p className="text-sm text-falcon-text flex-1">{toast}</p>
+          <button onClick={() => setToast(null)} className="text-falcon-muted hover:text-white"><X className="w-4 h-4" /></button>
         </div>
       )}
     </div>

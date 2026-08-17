@@ -80,19 +80,19 @@ function StepItem({ step, index }: { step: string; index: number }) {
   return (
     <li
       className={`flex items-start gap-3 p-3 rounded border cursor-pointer transition-all
-        ${checked ? 'bg-green-900/20 border-green-800/40 opacity-70' : 'bg-[#0d1220] border-[#1e2d42] hover:border-[#2e4060]'}`}
+        ${checked ? 'bg-green-900/20 border-green-800/40 opacity-70' : 'bg-falcon-surface border-falcon-border hover:border-[#2e4060]'}`}
       onClick={() => setChecked(!checked)}
     >
-      <span className="flex-shrink-0 mt-0.5">
+      <span className="shrink-0 mt-0.5">
         {checked
           ? <CheckSquare className="w-4 h-4 text-green-400" />
-          : <Square className="w-4 h-4 text-[#3d5068]" />}
+          : <Square className="w-4 h-4 text-falcon-subtle" />}
       </span>
       <span className="flex items-start gap-2">
-        <span className="flex-shrink-0 w-5 h-5 rounded-full bg-[#e8002d]/20 text-[#e8002d] text-[11px] font-bold flex items-center justify-center mt-0.5">
+        <span className="shrink-0 w-5 h-5 rounded-full bg-falcon-red/20 text-falcon-red text-[11px] font-bold flex items-center justify-center mt-0.5">
           {index + 1}
         </span>
-        <span className={`text-sm ${checked ? 'line-through text-[#3d5068]' : 'text-[#c8d6e8]'}`}>{step}</span>
+        <span className={`text-sm ${checked ? 'line-through text-falcon-subtle' : 'text-[#c8d6e8]'}`}>{step}</span>
       </span>
     </li>
   )
@@ -124,36 +124,36 @@ function ArticleViewer({
       {/* Main content */}
       <div className="flex-1 overflow-y-auto space-y-6">
         {/* Header */}
-        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-5">
+        <div className="bg-falcon-surface border border-falcon-border rounded-lg p-5">
           <div className="flex items-start justify-between gap-4 mb-3">
             <h1 className="text-xl font-bold text-white">{article.title}</h1>
-            <div className="flex gap-2 flex-shrink-0">
+            <div className="flex gap-2 shrink-0">
               <button
                 onClick={() => alert('PDF生成中... (モック)')}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded bg-[#1e2d42] text-[#7d92b0] hover:bg-[#2e3d52] hover:text-white text-xs transition-colors"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-sm bg-falcon-border text-falcon-muted hover:bg-[#2e3d52] hover:text-white text-xs transition-colors"
               >
                 <Download className="w-3.5 h-3.5" /> PDFでエクスポート
               </button>
               <button
                 onClick={onEdit}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded bg-[#e8002d]/10 text-[#e8002d] hover:bg-[#e8002d]/20 text-xs transition-colors"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-sm bg-falcon-red/10 text-falcon-red hover:bg-falcon-red/20 text-xs transition-colors"
               >
                 <Edit2 className="w-3.5 h-3.5" /> 編集
               </button>
             </div>
           </div>
-          <div className="flex flex-wrap gap-3 text-xs text-[#7d92b0]">
-            <span className={`px-2 py-0.5 rounded border text-xs font-medium ${CATEGORY_COLORS[article.category]}`}>
+          <div className="flex flex-wrap gap-3 text-xs text-falcon-muted">
+            <span className={`px-2 py-0.5 rounded-sm border text-xs font-medium ${CATEGORY_COLORS[article.category]}`}>
               {CATEGORY_LABELS[article.category]}
             </span>
             <span className="flex items-center gap-1"><User className="w-3 h-3" /> {article.author}</span>
             <span className="flex items-center gap-1"><Hash className="w-3 h-3" /> v{article.version}</span>
             <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {article.last_updated}</span>
           </div>
-          <p className="mt-3 text-sm text-[#7d92b0]">{article.description}</p>
+          <p className="mt-3 text-sm text-falcon-muted">{article.description}</p>
           <div className="flex flex-wrap gap-1 mt-3">
             {article.tags.map(tag => (
-              <span key={tag} className="px-2 py-0.5 bg-[#1e2d42] text-[#7d92b0] rounded text-xs">#{tag}</span>
+              <span key={tag} className="px-2 py-0.5 bg-falcon-border text-falcon-muted rounded-sm text-xs">#{tag}</span>
             ))}
           </div>
         </div>
@@ -163,13 +163,13 @@ function ArticleViewer({
           <div
             key={section.id}
             ref={el => { sectionRefs.current[section.id] = el }}
-            className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-5"
+            className="bg-falcon-surface border border-falcon-border rounded-lg p-5"
           >
             <h2 className="text-base font-semibold text-white mb-3 flex items-center gap-2">
-              <span className="w-1 h-4 bg-[#e8002d] rounded-full inline-block" />
+              <span className="w-1 h-4 bg-falcon-red rounded-full inline-block" />
               {section.heading}
             </h2>
-            <p className="text-sm text-[#7d92b0] mb-3">{section.content}</p>
+            <p className="text-sm text-falcon-muted mb-3">{section.content}</p>
             {section.steps && (
               <ul className="space-y-2">
                 {section.steps.map((step, i) => (
@@ -181,12 +181,12 @@ function ArticleViewer({
         ))}
 
         {/* Version history */}
-        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-5">
+        <div className="bg-falcon-surface border border-falcon-border rounded-lg p-5">
           <button
             onClick={() => setShowVersionHistory(!showVersionHistory)}
             className="flex items-center gap-2 text-sm font-semibold text-white w-full"
           >
-            <GitBranch className="w-4 h-4 text-[#e8002d]" />
+            <GitBranch className="w-4 h-4 text-falcon-red" />
             バージョン履歴
             {showVersionHistory ? <ChevronDown className="w-4 h-4 ml-auto" /> : <ChevronRight className="w-4 h-4 ml-auto" />}
           </button>
@@ -196,15 +196,15 @@ function ArticleViewer({
                 <div
                   key={v.version}
                   onClick={() => setActiveVersion(activeVersion === v.version ? null : v.version)}
-                  className={`p-3 rounded border cursor-pointer transition-colors ${activeVersion === v.version ? 'border-[#e8002d]/40 bg-[#e8002d]/5' : 'border-[#1e2d42] hover:border-[#2e4060]'}`}
+                  className={`p-3 rounded-sm border cursor-pointer transition-colors ${activeVersion === v.version ? 'border-falcon-red/40 bg-falcon-red/5' : 'border-falcon-border hover:border-[#2e4060]'}`}
                 >
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-mono font-bold text-[#e8002d]">v{v.version}</span>
-                    <span className="text-xs text-[#3d5068]">{v.updated_at}</span>
-                    <span className="text-xs text-[#7d92b0]">{v.author}</span>
+                    <span className="text-xs font-mono font-bold text-falcon-red">v{v.version}</span>
+                    <span className="text-xs text-falcon-subtle">{v.updated_at}</span>
+                    <span className="text-xs text-falcon-muted">{v.author}</span>
                   </div>
                   {activeVersion === v.version && (
-                    <p className="mt-2 text-xs text-[#c8d6e8] border-t border-[#1e2d42] pt-2">{v.changes}</p>
+                    <p className="mt-2 text-xs text-[#c8d6e8] border-t border-falcon-border pt-2">{v.changes}</p>
                   )}
                 </div>
               ))}
@@ -214,18 +214,18 @@ function ArticleViewer({
 
         {/* Related articles */}
         {related.length > 0 && (
-          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-5">
+          <div className="bg-falcon-surface border border-falcon-border rounded-lg p-5">
             <h3 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
-              <FileText className="w-4 h-4 text-[#e8002d]" /> 関連手順書
+              <FileText className="w-4 h-4 text-falcon-red" /> 関連手順書
             </h3>
             <div className="space-y-2">
               {related.map(r => (
-                <div key={r.id} className="flex items-center gap-3 p-2 rounded border border-[#1e2d42] hover:border-[#2e4060]">
-                  <span className={`px-1.5 py-0.5 rounded border text-[10px] ${CATEGORY_COLORS[r.category]}`}>
+                <div key={r.id} className="flex items-center gap-3 p-2 rounded-sm border border-falcon-border hover:border-[#2e4060]">
+                  <span className={`px-1.5 py-0.5 rounded-sm border text-[10px] ${CATEGORY_COLORS[r.category]}`}>
                     {CATEGORY_LABELS[r.category]}
                   </span>
                   <span className="text-sm text-[#c8d6e8]">{r.title}</span>
-                  <span className="ml-auto text-xs text-[#3d5068]">v{r.version}</span>
+                  <span className="ml-auto text-xs text-falcon-subtle">v{r.version}</span>
                 </div>
               ))}
             </div>
@@ -234,15 +234,15 @@ function ArticleViewer({
       </div>
 
       {/* Table of contents sidebar */}
-      <div className="w-48 flex-shrink-0">
-        <div className="sticky top-0 bg-[#0d1220] border border-[#1e2d42] rounded-lg p-3">
-          <p className="text-xs font-semibold text-[#7d92b0] uppercase tracking-wider mb-3">目次</p>
+      <div className="w-48 shrink-0">
+        <div className="sticky top-0 bg-falcon-surface border border-falcon-border rounded-lg p-3">
+          <p className="text-xs font-semibold text-falcon-muted uppercase tracking-wider mb-3">目次</p>
           <ul className="space-y-1">
             {tocItems.map(item => (
               <li key={item.id}>
                 <button
                   onClick={() => scrollToSection(item.id)}
-                  className="w-full text-left text-xs text-[#7d92b0] hover:text-white py-1 px-2 rounded hover:bg-[#1e2d42] transition-colors"
+                  className="w-full text-left text-xs text-falcon-muted hover:text-white py-1 px-2 rounded-sm hover:bg-falcon-border transition-colors"
                 >
                   {item.heading}
                 </button>
@@ -321,10 +321,10 @@ function ArticleEditor({
   return (
     <div className="flex flex-col h-full">
       {/* Editor toolbar */}
-      <div className="flex items-center gap-3 mb-4 pb-4 border-b border-[#1e2d42]">
+      <div className="flex items-center gap-3 mb-4 pb-4 border-b border-falcon-border">
         <button
           onClick={() => setPreview(!preview)}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs transition-colors ${preview ? 'bg-[#1e2d42] text-white' : 'text-[#7d92b0] hover:text-white'}`}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-sm text-xs transition-colors ${preview ? 'bg-falcon-border text-white' : 'text-falcon-muted hover:text-white'}`}
         >
           {preview ? <Edit2 className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
           {preview ? '編集モード' : 'プレビュー'}
@@ -332,41 +332,41 @@ function ArticleEditor({
         <div className="flex-1" />
         <button
           onClick={() => onSave({ title, description, category, tags: tags.split(',').map(t => t.trim()).filter(Boolean), sections, status: 'draft' })}
-          className="flex items-center gap-1.5 px-4 py-1.5 rounded bg-[#1e2d42] text-[#7d92b0] hover:bg-[#2e3d52] hover:text-white text-xs transition-colors"
+          className="flex items-center gap-1.5 px-4 py-1.5 rounded-sm bg-falcon-border text-falcon-muted hover:bg-[#2e3d52] hover:text-white text-xs transition-colors"
         >
           <Save className="w-3.5 h-3.5" /> 下書き保存
         </button>
         <button
           onClick={() => onSave({ title, description, category, tags: tags.split(',').map(t => t.trim()).filter(Boolean), sections, status: 'published' })}
-          className="flex items-center gap-1.5 px-4 py-1.5 rounded bg-[#e8002d] text-white hover:bg-[#c00025] text-xs transition-colors"
+          className="flex items-center gap-1.5 px-4 py-1.5 rounded-sm bg-falcon-red text-white hover:bg-[#c00025] text-xs transition-colors"
         >
           <Send className="w-3.5 h-3.5" /> 公開
         </button>
-        <button onClick={onCancel} className="p-1.5 rounded text-[#7d92b0] hover:text-white hover:bg-[#1e2d42] transition-colors">
+        <button onClick={onCancel} className="p-1.5 rounded-sm text-falcon-muted hover:text-white hover:bg-falcon-border transition-colors">
           <X className="w-4 h-4" />
         </button>
       </div>
 
       <div className="flex-1 overflow-y-auto space-y-4">
         {/* Metadata */}
-        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-4 space-y-3">
-          <h3 className="text-xs font-semibold text-[#7d92b0] uppercase tracking-wider">メタデータ</h3>
+        <div className="bg-falcon-surface border border-falcon-border rounded-lg p-4 space-y-3">
+          <h3 className="text-xs font-semibold text-falcon-muted uppercase tracking-wider">メタデータ</h3>
           <div>
-            <label className="text-xs text-[#7d92b0] mb-1 block">タイトル</label>
+            <label className="text-xs text-falcon-muted mb-1 block">タイトル</label>
             <input
               value={title}
               onChange={e => setTitle(e.target.value)}
-              className="w-full bg-[#070d19] border border-[#1e2d42] rounded px-3 py-2 text-white text-sm focus:outline-none focus:border-[#e8002d]/50"
+              className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-red/50"
               placeholder="手順書タイトル"
             />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs text-[#7d92b0] mb-1 block">カテゴリ</label>
+              <label className="text-xs text-falcon-muted mb-1 block">カテゴリ</label>
               <select
                 value={category}
                 onChange={e => setCategory(e.target.value as Runbook['category'])}
-                className="w-full bg-[#070d19] border border-[#1e2d42] rounded px-3 py-2 text-white text-sm focus:outline-none focus:border-[#e8002d]/50"
+                className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-red/50"
               >
                 <option value="incident_response">Incident Response</option>
                 <option value="threat_hunting">Threat Hunting</option>
@@ -376,22 +376,22 @@ function ArticleEditor({
               </select>
             </div>
             <div>
-              <label className="text-xs text-[#7d92b0] mb-1 block">タグ（カンマ区切り）</label>
+              <label className="text-xs text-falcon-muted mb-1 block">タグ（カンマ区切り）</label>
               <input
                 value={tags}
                 onChange={e => setTags(e.target.value)}
-                className="w-full bg-[#070d19] border border-[#1e2d42] rounded px-3 py-2 text-white text-sm focus:outline-none focus:border-[#e8002d]/50"
+                className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-red/50"
                 placeholder="tag1, tag2"
               />
             </div>
           </div>
           <div>
-            <label className="text-xs text-[#7d92b0] mb-1 block">説明</label>
+            <label className="text-xs text-falcon-muted mb-1 block">説明</label>
             <textarea
               value={description}
               onChange={e => setDescription(e.target.value)}
               rows={2}
-              className="w-full bg-[#070d19] border border-[#1e2d42] rounded px-3 py-2 text-white text-sm focus:outline-none focus:border-[#e8002d]/50 resize-none"
+              className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-red/50 resize-none"
               placeholder="手順書の概要..."
             />
           </div>
@@ -399,45 +399,45 @@ function ArticleEditor({
 
         {/* Sections */}
         {sections.map((section, idx) => (
-          <div key={section.id} className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-4 space-y-3">
+          <div key={section.id} className="bg-falcon-surface border border-falcon-border rounded-lg p-4 space-y-3">
             <div className="flex items-center gap-2">
-              <span className="text-xs font-mono text-[#3d5068]">§{idx + 1}</span>
+              <span className="text-xs font-mono text-falcon-subtle">§{idx + 1}</span>
               <input
                 value={section.heading}
                 onChange={e => updateSection(section.id, 'heading', e.target.value)}
-                className="flex-1 bg-transparent border-b border-[#1e2d42] text-white text-sm font-semibold py-0.5 focus:outline-none focus:border-[#e8002d]/50"
+                className="flex-1 bg-transparent border-b border-falcon-border text-white text-sm font-semibold py-0.5 focus:outline-hidden focus:border-falcon-red/50"
               />
-              <button onClick={() => moveSection(section.id, 'up')} className="p-1 text-[#3d5068] hover:text-[#7d92b0]"><ArrowUp className="w-3.5 h-3.5" /></button>
-              <button onClick={() => moveSection(section.id, 'down')} className="p-1 text-[#3d5068] hover:text-[#7d92b0]"><ArrowDown className="w-3.5 h-3.5" /></button>
-              <button onClick={() => removeSection(section.id)} className="p-1 text-[#3d5068] hover:text-red-400"><Trash2 className="w-3.5 h-3.5" /></button>
+              <button onClick={() => moveSection(section.id, 'up')} className="p-1 text-falcon-subtle hover:text-falcon-muted"><ArrowUp className="w-3.5 h-3.5" /></button>
+              <button onClick={() => moveSection(section.id, 'down')} className="p-1 text-falcon-subtle hover:text-falcon-muted"><ArrowDown className="w-3.5 h-3.5" /></button>
+              <button onClick={() => removeSection(section.id)} className="p-1 text-falcon-subtle hover:text-red-400"><Trash2 className="w-3.5 h-3.5" /></button>
             </div>
             <textarea
               value={section.content}
               onChange={e => updateSection(section.id, 'content', e.target.value)}
               rows={3}
-              className="w-full bg-[#070d19] border border-[#1e2d42] rounded px-3 py-2 text-[#c8d6e8] text-sm focus:outline-none focus:border-[#e8002d]/50 resize-y"
+              className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-[#c8d6e8] text-sm focus:outline-hidden focus:border-falcon-red/50 resize-y"
               placeholder="セクション内容..."
             />
             {/* Steps */}
             {section.steps && (
               <div className="space-y-2">
-                <p className="text-xs text-[#7d92b0] font-semibold">手順ステップ</p>
+                <p className="text-xs text-falcon-muted font-semibold">手順ステップ</p>
                 {section.steps.map((step, i) => (
                   <div key={i} className="flex items-center gap-2">
-                    <span className="text-xs text-[#e8002d] font-bold w-5 text-center">{i + 1}</span>
+                    <span className="text-xs text-falcon-red font-bold w-5 text-center">{i + 1}</span>
                     <input
                       value={step}
                       onChange={e => updateStep(section.id, i, e.target.value)}
-                      className="flex-1 bg-[#070d19] border border-[#1e2d42] rounded px-2 py-1 text-[#c8d6e8] text-xs focus:outline-none focus:border-[#e8002d]/50"
+                      className="flex-1 bg-[#070d19] border border-falcon-border rounded-sm px-2 py-1 text-[#c8d6e8] text-xs focus:outline-hidden focus:border-falcon-red/50"
                     />
-                    <button onClick={() => removeStep(section.id, i)} className="p-1 text-[#3d5068] hover:text-red-400"><X className="w-3 h-3" /></button>
+                    <button onClick={() => removeStep(section.id, i)} className="p-1 text-falcon-subtle hover:text-red-400"><X className="w-3 h-3" /></button>
                   </div>
                 ))}
               </div>
             )}
             <button
               onClick={() => addStepToSection(section.id)}
-              className="flex items-center gap-1 text-xs text-[#3d5068] hover:text-[#7d92b0] transition-colors"
+              className="flex items-center gap-1 text-xs text-falcon-subtle hover:text-falcon-muted transition-colors"
             >
               <Plus className="w-3 h-3" /> ステップを追加
             </button>
@@ -446,7 +446,7 @@ function ArticleEditor({
 
         <button
           onClick={addSection}
-          className="w-full flex items-center justify-center gap-2 p-3 rounded border border-dashed border-[#1e2d42] text-[#3d5068] hover:border-[#e8002d]/40 hover:text-[#e8002d] transition-colors text-sm"
+          className="w-full flex items-center justify-center gap-2 p-3 rounded-sm border border-dashed border-falcon-border text-falcon-subtle hover:border-falcon-red/40 hover:text-falcon-red transition-colors text-sm"
         >
           <Plus className="w-4 h-4" /> セクションを追加
         </button>
@@ -508,19 +508,19 @@ export default function RunbookPage() {
   return (
     <div className="min-h-screen bg-[#070d19] text-white flex flex-col">
       {/* Header */}
-      <div className="border-b border-[#1e2d42] px-6 py-4 flex items-center justify-between flex-shrink-0">
+      <div className="border-b border-falcon-border px-6 py-4 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded bg-[#e8002d]/10 border border-[#e8002d]/30 flex items-center justify-center">
-            <BookOpen className="w-4 h-4 text-[#e8002d]" />
+          <div className="w-8 h-8 rounded-sm bg-falcon-red/10 border border-falcon-red/30 flex items-center justify-center">
+            <BookOpen className="w-4 h-4 text-falcon-red" />
           </div>
           <div>
             <h1 className="text-lg font-bold text-white">セキュリティ運用手順書</h1>
-            <p className="text-xs text-[#7d92b0]">Security Operations Runbook — SOP管理</p>
+            <p className="text-xs text-falcon-muted">Security Operations Runbook — SOP管理</p>
           </div>
         </div>
         <button
           onClick={() => { setSelectedArticle(null); setViewMode('edit') }}
-          className="flex items-center gap-2 px-4 py-2 rounded bg-[#e8002d] text-white hover:bg-[#c00025] text-sm font-medium transition-colors"
+          className="flex items-center gap-2 px-4 py-2 rounded-sm bg-falcon-red text-white hover:bg-[#c00025] text-sm font-medium transition-colors"
         >
           <Plus className="w-4 h-4" /> 新規作成
         </button>
@@ -528,15 +528,15 @@ export default function RunbookPage() {
 
       <div className="flex flex-1 overflow-hidden">
         {/* Left Sidebar */}
-        <aside className="w-56 flex-shrink-0 border-r border-[#1e2d42] flex flex-col">
-          <div className="p-3 border-b border-[#1e2d42]">
+        <aside className="w-56 shrink-0 border-r border-falcon-border flex flex-col">
+          <div className="p-3 border-b border-falcon-border">
             <div className="relative">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#3d5068]" />
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-falcon-subtle" />
               <input
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
                 placeholder="手順書を検索..."
-                className="w-full bg-[#0d1220] border border-[#1e2d42] rounded pl-8 pr-3 py-2 text-sm text-white placeholder-[#3d5068] focus:outline-none focus:border-[#e8002d]/50"
+                className="w-full bg-falcon-surface border border-falcon-border rounded-sm pl-8 pr-3 py-2 text-sm text-white placeholder-falcon-subtle focus:outline-hidden focus:border-falcon-red/50"
               />
             </div>
           </div>
@@ -546,11 +546,11 @@ export default function RunbookPage() {
                 key={key}
                 onClick={() => setSelectedCategory(key)}
                 className={`w-full flex items-center gap-2.5 px-3 py-2 rounded text-sm transition-colors mb-0.5
-                  ${selectedCategory === key ? 'bg-[#1d2f4a] text-white' : 'text-[#7d92b0] hover:bg-[#19253d] hover:text-white'}`}
+                  ${selectedCategory === key ? 'bg-falcon-active text-white' : 'text-falcon-muted hover:bg-falcon-hover hover:text-white'}`}
               >
-                <Icon className={`w-4 h-4 flex-shrink-0 ${selectedCategory === key ? 'text-[#e8002d]' : 'text-[#3d5068]'}`} />
+                <Icon className={`w-4 h-4 shrink-0 ${selectedCategory === key ? 'text-falcon-red' : 'text-falcon-subtle'}`} />
                 <span className="flex-1 text-left">{label}</span>
-                <span className="text-xs text-[#3d5068] bg-[#0d1220] px-1.5 py-0.5 rounded">
+                <span className="text-xs text-falcon-subtle bg-falcon-surface px-1.5 py-0.5 rounded-sm">
                   {categoryCounts[key] ?? 0}
                 </span>
               </button>
@@ -572,7 +572,7 @@ export default function RunbookPage() {
             <div className="flex-1 overflow-hidden flex flex-col p-6">
               <button
                 onClick={() => { setSelectedArticle(null); setViewMode('list') }}
-                className="flex items-center gap-1.5 text-xs text-[#7d92b0] hover:text-white mb-4 transition-colors"
+                className="flex items-center gap-1.5 text-xs text-falcon-muted hover:text-white mb-4 transition-colors"
               >
                 <ChevronRight className="w-3.5 h-3.5 rotate-180" /> 一覧に戻る
               </button>
@@ -587,7 +587,7 @@ export default function RunbookPage() {
           ) : (
             <div className="flex-1 overflow-y-auto p-6">
               <div className="flex items-center justify-between mb-4">
-                <p className="text-sm text-[#7d92b0]">
+                <p className="text-sm text-falcon-muted">
                   {filteredArticles.length} 件の手順書
                 </p>
               </div>
@@ -595,24 +595,24 @@ export default function RunbookPage() {
                 {filteredArticles.map(article => (
                   <div
                     key={article.id}
-                    className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-4 hover:border-[#2e4060] transition-colors"
+                    className="bg-falcon-surface border border-falcon-border rounded-lg p-4 hover:border-[#2e4060] transition-colors"
                   >
                     <div className="flex items-start gap-4">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1 flex-wrap">
-                          <span className={`px-2 py-0.5 rounded border text-xs font-medium ${CATEGORY_COLORS[article.category]}`}>
+                          <span className={`px-2 py-0.5 rounded-sm border text-xs font-medium ${CATEGORY_COLORS[article.category]}`}>
                             {CATEGORY_LABELS[article.category]}
                           </span>
-                          <span className="text-xs text-[#3d5068]">v{article.version}</span>
+                          <span className="text-xs text-falcon-subtle">v{article.version}</span>
                           {article.status === 'draft' && (
-                            <span className="px-1.5 py-0.5 bg-yellow-900/30 text-yellow-400 rounded text-xs border border-yellow-800/40">下書き</span>
+                            <span className="px-1.5 py-0.5 bg-yellow-900/30 text-yellow-400 rounded-sm text-xs border border-yellow-800/40">下書き</span>
                           )}
                         </div>
                         <h3 className="text-sm font-semibold text-white mb-1">{article.title}</h3>
-                        <p className="text-xs text-[#7d92b0] line-clamp-1">{article.description}</p>
-                        <div className="flex items-center gap-4 mt-2 text-xs text-[#3d5068]">
+                        <p className="text-xs text-falcon-muted line-clamp-1">{article.description}</p>
+                        <div className="flex items-center gap-4 mt-2 text-xs text-falcon-subtle">
                           <span className="flex items-center gap-1">
-                            <div className="w-5 h-5 rounded-full bg-gradient-to-br from-[#1a6bff] to-[#0044cc] flex items-center justify-center text-[9px] font-bold text-white">
+                            <div className="w-5 h-5 rounded-full bg-linear-to-br from-falcon-blue to-[#0044cc] flex items-center justify-center text-[9px] font-bold text-white">
                               {article.author_initials}
                             </div>
                             {article.author}
@@ -621,20 +621,20 @@ export default function RunbookPage() {
                         </div>
                         <div className="flex flex-wrap gap-1 mt-2">
                           {article.tags.map(tag => (
-                            <span key={tag} className="px-1.5 py-0.5 bg-[#1e2d42] text-[#7d92b0] rounded text-[10px]">#{tag}</span>
+                            <span key={tag} className="px-1.5 py-0.5 bg-falcon-border text-falcon-muted rounded-sm text-[10px]">#{tag}</span>
                           ))}
                         </div>
                       </div>
-                      <div className="flex gap-2 flex-shrink-0">
+                      <div className="flex gap-2 shrink-0">
                         <button
                           onClick={() => { setSelectedArticle(article); setViewMode('view') }}
-                          className="flex items-center gap-1.5 px-3 py-1.5 rounded bg-[#1e2d42] text-[#7d92b0] hover:bg-[#2e3d52] hover:text-white text-xs transition-colors"
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-sm bg-falcon-border text-falcon-muted hover:bg-[#2e3d52] hover:text-white text-xs transition-colors"
                         >
                           <Eye className="w-3.5 h-3.5" /> 閲覧
                         </button>
                         <button
                           onClick={() => { setSelectedArticle(article); setViewMode('edit') }}
-                          className="flex items-center gap-1.5 px-3 py-1.5 rounded bg-[#e8002d]/10 text-[#e8002d] hover:bg-[#e8002d]/20 text-xs transition-colors"
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-sm bg-falcon-red/10 text-falcon-red hover:bg-falcon-red/20 text-xs transition-colors"
                         >
                           <Edit2 className="w-3.5 h-3.5" /> 編集
                         </button>
@@ -643,7 +643,7 @@ export default function RunbookPage() {
                   </div>
                 ))}
                 {filteredArticles.length === 0 && (
-                  <div className="text-center py-16 text-[#3d5068]">
+                  <div className="text-center py-16 text-falcon-subtle">
                     <BookOpen className="w-10 h-10 mx-auto mb-3 opacity-40" />
                     <p>手順書が見つかりません</p>
                   </div>

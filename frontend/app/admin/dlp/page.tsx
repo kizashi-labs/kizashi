@@ -143,13 +143,13 @@ function RuleModal({
     setForm(f => ({ ...f, [k]: v }))
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl w-[560px] max-h-[90vh] overflow-y-auto shadow-2xl">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[#1e2d42]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs">
+      <div className="bg-falcon-surface border border-falcon-border rounded-xl w-[560px] max-h-[90vh] overflow-y-auto shadow-2xl">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-falcon-border">
           <h3 className="text-white font-semibold text-lg">
             {rule ? 'DLPルール編集' : 'DLPルール追加'}
           </h3>
-          <button onClick={onClose} className="text-[#7d92b0] hover:text-white transition-colors">
+          <button onClick={onClose} className="text-falcon-muted hover:text-white transition-colors">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -157,9 +157,9 @@ function RuleModal({
         <div className="px-6 py-5 space-y-4">
           {/* Name */}
           <div>
-            <label className="block text-xs text-[#7d92b0] mb-1.5">ルール名 *</label>
+            <label className="block text-xs text-falcon-muted mb-1.5">ルール名 *</label>
             <input
-              className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-[#1a6bff]/60"
+              className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-sm text-white focus:outline-hidden focus:border-falcon-blue/60"
               value={form.name}
               onChange={e => set('name', e.target.value)}
               placeholder="例: クレジットカード検知"
@@ -168,9 +168,9 @@ function RuleModal({
 
           {/* Description */}
           <div>
-            <label className="block text-xs text-[#7d92b0] mb-1.5">説明</label>
+            <label className="block text-xs text-falcon-muted mb-1.5">説明</label>
             <textarea
-              className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-[#1a6bff]/60 resize-none"
+              className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-sm text-white focus:outline-hidden focus:border-falcon-blue/60 resize-none"
               rows={2}
               value={form.description}
               onChange={e => set('description', e.target.value)}
@@ -179,9 +179,9 @@ function RuleModal({
 
           {/* Pattern */}
           <div>
-            <label className="block text-xs text-[#7d92b0] mb-1.5">パターン *</label>
+            <label className="block text-xs text-falcon-muted mb-1.5">パターン *</label>
             <input
-              className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-white font-mono focus:outline-none focus:border-[#1a6bff]/60"
+              className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-sm text-white font-mono focus:outline-hidden focus:border-falcon-blue/60"
               value={form.pattern}
               onChange={e => set('pattern', e.target.value)}
               placeholder="\b\d{4}[-\s]?\d{4}...\b"
@@ -191,9 +191,9 @@ function RuleModal({
           <div className="grid grid-cols-2 gap-4">
             {/* Pattern Type */}
             <div>
-              <label className="block text-xs text-[#7d92b0] mb-1.5">パターンタイプ</label>
+              <label className="block text-xs text-falcon-muted mb-1.5">パターンタイプ</label>
               <select
-                className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-[#1a6bff]/60"
+                className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-sm text-white focus:outline-hidden focus:border-falcon-blue/60"
                 value={form.pattern_type}
                 onChange={e => set('pattern_type', e.target.value as PatternType)}
               >
@@ -205,9 +205,9 @@ function RuleModal({
 
             {/* Data Category */}
             <div>
-              <label className="block text-xs text-[#7d92b0] mb-1.5">データカテゴリ</label>
+              <label className="block text-xs text-falcon-muted mb-1.5">データカテゴリ</label>
               <select
-                className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-[#1a6bff]/60"
+                className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-sm text-white focus:outline-hidden focus:border-falcon-blue/60"
                 value={form.data_category}
                 onChange={e => set('data_category', e.target.value as DataCategory)}
               >
@@ -223,9 +223,9 @@ function RuleModal({
           <div className="grid grid-cols-2 gap-4">
             {/* Action */}
             <div>
-              <label className="block text-xs text-[#7d92b0] mb-1.5">アクション</label>
+              <label className="block text-xs text-falcon-muted mb-1.5">アクション</label>
               <select
-                className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-[#1a6bff]/60"
+                className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-sm text-white focus:outline-hidden focus:border-falcon-blue/60"
                 value={form.action}
                 onChange={e => set('action', e.target.value as DLPAction)}
               >
@@ -237,14 +237,14 @@ function RuleModal({
 
             {/* Severity */}
             <div>
-              <label className="block text-xs text-[#7d92b0] mb-1.5">
+              <label className="block text-xs text-falcon-muted mb-1.5">
                 深刻度: <span className={`font-bold ${severityColor(form.severity)}`}>{form.severity}</span>
               </label>
               <input
                 type="range" min={1} max={10}
                 value={form.severity}
                 onChange={e => set('severity', Number(e.target.value))}
-                className="w-full accent-[#e8002d]"
+                className="w-full accent-falcon-red"
               />
             </div>
           </div>
@@ -253,28 +253,28 @@ function RuleModal({
           <div className="flex items-center gap-3">
             <button
               onClick={() => set('enabled', !form.enabled)}
-              className="flex items-center gap-2 text-sm text-[#7d92b0] hover:text-white transition-colors"
+              className="flex items-center gap-2 text-sm text-falcon-muted hover:text-white transition-colors"
             >
               {form.enabled
                 ? <ToggleRight className="w-6 h-6 text-green-400" />
-                : <ToggleLeft className="w-6 h-6 text-[#3d5068]" />
+                : <ToggleLeft className="w-6 h-6 text-falcon-subtle" />
               }
               <span>{form.enabled ? '有効' : '無効'}</span>
             </button>
           </div>
         </div>
 
-        <div className="flex justify-end gap-3 px-6 py-4 border-t border-[#1e2d42]">
+        <div className="flex justify-end gap-3 px-6 py-4 border-t border-falcon-border">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-sm text-[#7d92b0] hover:text-white border border-[#1e2d42] rounded-lg transition-colors"
+            className="px-4 py-2 text-sm text-falcon-muted hover:text-white border border-falcon-border rounded-lg transition-colors"
           >
             キャンセル
           </button>
           <button
             onClick={() => onSave(form)}
             disabled={!form.name || !form.pattern}
-            className="px-4 py-2 text-sm bg-[#e8002d] hover:bg-[#c0001f] text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-4 py-2 text-sm bg-falcon-red hover:bg-[#c0001f] text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {rule ? '更新' : '追加'}
           </button>
@@ -422,12 +422,12 @@ export default function DLPPage() {
         {/* ── Header ── */}
         <div className="mb-6">
           <div className="flex items-center gap-3 mb-1">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#e8002d] to-[#a80020] flex items-center justify-center shadow-lg">
+            <div className="w-8 h-8 rounded-lg bg-linear-to-br from-falcon-red to-falcon-red-dark flex items-center justify-center shadow-lg">
               <ShieldOff className="w-4 h-4 text-white" />
             </div>
             <h1 className="text-2xl font-bold text-white">データ損失防止 (DLP)</h1>
           </div>
-          <p className="text-[#7d92b0] text-sm ml-11">
+          <p className="text-falcon-muted text-sm ml-11">
             機密データの漏洩を検知・防止するルールと違反ログを管理します
           </p>
         </div>
@@ -440,9 +440,9 @@ export default function DLPPage() {
             { label: '今週の違反', value: displayStats.violations_this_week, icon: Calendar, color: 'text-orange-400', bg: 'bg-orange-900/20 border-orange-700/30' },
             { label: 'ブロック済み', value: displayStats.blocked_actions, icon: Lock, color: 'text-green-400', bg: 'bg-green-900/20 border-green-700/30' },
           ].map(s => (
-            <div key={s.label} className={`rounded-xl p-4 border ${s.bg} bg-[#0d1220]`}>
+            <div key={s.label} className={`rounded-xl p-4 border ${s.bg} bg-falcon-surface`}>
               <div className="flex items-center justify-between mb-2">
-                <span className="text-xs text-[#7d92b0]">{s.label}</span>
+                <span className="text-xs text-falcon-muted">{s.label}</span>
                 <s.icon className={`w-4 h-4 ${s.color}`} />
               </div>
               <p className={`text-3xl font-bold ${s.color}`}>{s.value}</p>
@@ -451,15 +451,15 @@ export default function DLPPage() {
         </div>
 
         {/* ── Tabs ── */}
-        <div className="flex gap-1 mb-5 border-b border-[#1e2d42]">
+        <div className="flex gap-1 mb-5 border-b border-falcon-border">
           {([['rules', 'DLPルール'], ['violations', '違反ログ']] as const).map(([k, label]) => (
             <button
               key={k}
               onClick={() => setActiveTab(k)}
               className={`px-5 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px
                 ${activeTab === k
-                  ? 'border-[#e8002d] text-white'
-                  : 'border-transparent text-[#7d92b0] hover:text-white'
+                  ? 'border-falcon-red text-white'
+                  : 'border-transparent text-falcon-muted hover:text-white'
                 }`}
             >
               {label}
@@ -471,22 +471,22 @@ export default function DLPPage() {
         {activeTab === 'rules' && (
           <div>
             <div className="flex items-center justify-between mb-4">
-              <p className="text-sm text-[#7d92b0]">{displayRules.length} ルール</p>
+              <p className="text-sm text-falcon-muted">{displayRules.length} ルール</p>
               <button
                 onClick={() => { setEditRule(undefined); setShowModal(true) }}
-                className="flex items-center gap-2 px-4 py-2 bg-[#e8002d] hover:bg-[#c0001f] text-white text-sm font-medium rounded-lg transition-colors"
+                className="flex items-center gap-2 px-4 py-2 bg-falcon-red hover:bg-[#c0001f] text-white text-sm font-medium rounded-lg transition-colors"
               >
                 <Plus className="w-4 h-4" />
                 ルール追加
               </button>
             </div>
 
-            <div className="bg-[#0d1220] rounded-xl border border-[#1e2d42] overflow-hidden">
+            <div className="bg-falcon-surface rounded-xl border border-falcon-border overflow-hidden">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-[#1e2d42]">
+                  <tr className="border-b border-falcon-border">
                     {['名前', 'パターン', 'タイプ', 'カテゴリ', 'アクション', '深刻度', '有効', '操作'].map(h => (
-                      <th key={h} className="text-left px-4 py-3 text-xs text-[#7d92b0] font-medium">{h}</th>
+                      <th key={h} className="text-left px-4 py-3 text-xs text-falcon-muted font-medium">{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -495,37 +495,37 @@ export default function DLPPage() {
                     const ab = actionBadge(rule.action)
                     const ActionIcon = ab.icon
                     return (
-                      <tr key={rule.id} className="border-b border-[#1e2d42]/50 hover:bg-[#131d31]/50 transition-colors">
+                      <tr key={rule.id} className="border-b border-falcon-border/50 hover:bg-[#131d31]/50 transition-colors">
                         {/* Name */}
                         <td className="px-4 py-3">
                           <p className="text-white font-medium">{rule.name}</p>
-                          <p className="text-xs text-[#7d92b0] truncate max-w-[160px]">{rule.description}</p>
+                          <p className="text-xs text-falcon-muted truncate max-w-[160px]">{rule.description}</p>
                         </td>
 
                         {/* Pattern */}
                         <td className="px-4 py-3">
-                          <code className="text-[#7d92b0] text-xs font-mono bg-[#070d19] px-2 py-1 rounded max-w-[180px] block truncate">
+                          <code className="text-falcon-muted text-xs font-mono bg-[#070d19] px-2 py-1 rounded-sm max-w-[180px] block truncate">
                             {rule.pattern}
                           </code>
                         </td>
 
                         {/* Pattern Type */}
                         <td className="px-4 py-3">
-                          <span className={`text-xs px-2 py-0.5 rounded border capitalize ${patternTypeBadge(rule.pattern_type)}`}>
+                          <span className={`text-xs px-2 py-0.5 rounded-sm border capitalize ${patternTypeBadge(rule.pattern_type)}`}>
                             {rule.pattern_type}
                           </span>
                         </td>
 
                         {/* Data Category */}
                         <td className="px-4 py-3">
-                          <span className={`text-xs px-2 py-0.5 rounded border uppercase ${dataCategoryBadge(rule.data_category)}`}>
+                          <span className={`text-xs px-2 py-0.5 rounded-sm border uppercase ${dataCategoryBadge(rule.data_category)}`}>
                             {rule.data_category}
                           </span>
                         </td>
 
                         {/* Action */}
                         <td className="px-4 py-3">
-                          <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded border capitalize ${ab.cls}`}>
+                          <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-sm border capitalize ${ab.cls}`}>
                             <ActionIcon className="w-3 h-3" />
                             {rule.action}
                           </span>
@@ -534,7 +534,7 @@ export default function DLPPage() {
                         {/* Severity */}
                         <td className="px-4 py-3">
                           <span className={`text-lg font-bold ${severityColor(rule.severity)}`}>{rule.severity}</span>
-                          <span className="text-[#3d5068] text-xs">/10</span>
+                          <span className="text-falcon-subtle text-xs">/10</span>
                         </td>
 
                         {/* Toggle */}
@@ -542,7 +542,7 @@ export default function DLPPage() {
                           <button onClick={() => toggleRule.mutate(rule.id)}>
                             {rule.enabled
                               ? <ToggleRight className="w-6 h-6 text-green-400 hover:text-green-300 transition-colors" />
-                              : <ToggleLeft className="w-6 h-6 text-[#3d5068] hover:text-[#7d92b0] transition-colors" />
+                              : <ToggleLeft className="w-6 h-6 text-falcon-subtle hover:text-falcon-muted transition-colors" />
                             }
                           </button>
                         </td>
@@ -552,13 +552,13 @@ export default function DLPPage() {
                           <div className="flex items-center gap-2">
                             <button
                               onClick={() => { setEditRule(rule); setShowModal(true) }}
-                              className="text-[#7d92b0] hover:text-[#1a6bff] transition-colors"
+                              className="text-falcon-muted hover:text-falcon-blue transition-colors"
                             >
                               <Pencil className="w-4 h-4" />
                             </button>
                             <button
                               onClick={() => { if (confirm(`ルール「${rule.name}」を削除しますか？`)) deleteRule.mutate(rule.id) }}
-                              className="text-[#7d92b0] hover:text-[#e8002d] transition-colors"
+                              className="text-falcon-muted hover:text-falcon-red transition-colors"
                             >
                               <Trash2 className="w-4 h-4" />
                             </button>
@@ -577,13 +577,13 @@ export default function DLPPage() {
         {activeTab === 'violations' && (
           <div>
             {/* Filters */}
-            <div className="bg-[#0d1220] rounded-xl border border-[#1e2d42] p-4 mb-4">
+            <div className="bg-falcon-surface rounded-xl border border-falcon-border p-4 mb-4">
               <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
                 {/* Search */}
                 <div className="relative lg:col-span-1">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#3d5068]" />
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-falcon-subtle" />
                   <input
-                    className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg pl-8 pr-3 py-2 text-sm text-white placeholder-[#3d5068] focus:outline-none focus:border-[#1a6bff]/60"
+                    className="w-full bg-[#070d19] border border-falcon-border rounded-lg pl-8 pr-3 py-2 text-sm text-white placeholder-falcon-subtle focus:outline-hidden focus:border-falcon-blue/60"
                     placeholder="ホスト・ファイル検索..."
                     value={searchViolation}
                     onChange={e => setSearchViolation(e.target.value)}
@@ -592,7 +592,7 @@ export default function DLPPage() {
 
                 {/* Rule filter */}
                 <select
-                  className="bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-[#1a6bff]/60"
+                  className="bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-sm text-white focus:outline-hidden focus:border-falcon-blue/60"
                   value={filterRule}
                   onChange={e => setFilterRule(e.target.value)}
                 >
@@ -602,7 +602,7 @@ export default function DLPPage() {
 
                 {/* Agent filter */}
                 <select
-                  className="bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-[#1a6bff]/60"
+                  className="bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-sm text-white focus:outline-hidden focus:border-falcon-blue/60"
                   value={filterAgent}
                   onChange={e => setFilterAgent(e.target.value)}
                 >
@@ -612,7 +612,7 @@ export default function DLPPage() {
 
                 {/* Action filter */}
                 <select
-                  className="bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-[#1a6bff]/60"
+                  className="bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-sm text-white focus:outline-hidden focus:border-falcon-blue/60"
                   value={filterAction}
                   onChange={e => setFilterAction(e.target.value)}
                 >
@@ -625,7 +625,7 @@ export default function DLPPage() {
                 {/* Export */}
                 <button
                   onClick={exportCsv}
-                  className="flex items-center justify-center gap-2 px-4 py-2 bg-[#131d31] border border-[#1e2d42] hover:border-[#7d92b0]/40 text-[#7d92b0] hover:text-white text-sm rounded-lg transition-colors"
+                  className="flex items-center justify-center gap-2 px-4 py-2 bg-[#131d31] border border-falcon-border hover:border-falcon-muted/40 text-falcon-muted hover:text-white text-sm rounded-lg transition-colors"
                 >
                   <Download className="w-4 h-4" />
                   CSV出力
@@ -634,24 +634,24 @@ export default function DLPPage() {
 
               {/* Date range */}
               <div className="flex items-center gap-3 mt-3">
-                <Calendar className="w-4 h-4 text-[#3d5068]" />
+                <Calendar className="w-4 h-4 text-falcon-subtle" />
                 <input
                   type="date"
-                  className="bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:border-[#1a6bff]/60"
+                  className="bg-[#070d19] border border-falcon-border rounded-lg px-3 py-1.5 text-sm text-white focus:outline-hidden focus:border-falcon-blue/60"
                   value={filterDateFrom}
                   onChange={e => setFilterDateFrom(e.target.value)}
                 />
-                <span className="text-[#3d5068]">〜</span>
+                <span className="text-falcon-subtle">〜</span>
                 <input
                   type="date"
-                  className="bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:border-[#1a6bff]/60"
+                  className="bg-[#070d19] border border-falcon-border rounded-lg px-3 py-1.5 text-sm text-white focus:outline-hidden focus:border-falcon-blue/60"
                   value={filterDateTo}
                   onChange={e => setFilterDateTo(e.target.value)}
                 />
                 {(filterRule || filterAgent || filterAction || filterDateFrom || filterDateTo || searchViolation) && (
                   <button
                     onClick={() => { setFilterRule(''); setFilterAgent(''); setFilterAction(''); setFilterDateFrom(''); setFilterDateTo(''); setSearchViolation('') }}
-                    className="flex items-center gap-1 text-xs text-[#7d92b0] hover:text-white transition-colors"
+                    className="flex items-center gap-1 text-xs text-falcon-muted hover:text-white transition-colors"
                   >
                     <X className="w-3 h-3" /> フィルターをクリア
                   </button>
@@ -660,15 +660,15 @@ export default function DLPPage() {
             </div>
 
             <div className="flex items-center justify-between mb-3">
-              <p className="text-sm text-[#7d92b0]">{filteredViolations.length} 件の違反</p>
+              <p className="text-sm text-falcon-muted">{filteredViolations.length} 件の違反</p>
             </div>
 
-            <div className="bg-[#0d1220] rounded-xl border border-[#1e2d42] overflow-hidden">
+            <div className="bg-falcon-surface rounded-xl border border-falcon-border overflow-hidden">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-[#1e2d42]">
+                  <tr className="border-b border-falcon-border">
                     {['ルール名', 'エージェント', 'ファイルパス', 'プロセス', 'マッチパターン', 'アクション', '検知日時'].map(h => (
-                      <th key={h} className="text-left px-4 py-3 text-xs text-[#7d92b0] font-medium">{h}</th>
+                      <th key={h} className="text-left px-4 py-3 text-xs text-falcon-muted font-medium">{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -677,33 +677,33 @@ export default function DLPPage() {
                     const ab = actionBadge(v.action_taken)
                     const ActionIcon = ab.icon
                     return (
-                      <tr key={v.id} className="border-b border-[#1e2d42]/50 hover:bg-[#131d31]/50 transition-colors">
+                      <tr key={v.id} className="border-b border-falcon-border/50 hover:bg-[#131d31]/50 transition-colors">
                         <td className="px-4 py-3 text-white font-medium">{v.rule_name}</td>
-                        <td className="px-4 py-3 text-[#7d92b0] font-mono text-xs">{v.agent_hostname}</td>
+                        <td className="px-4 py-3 text-falcon-muted font-mono text-xs">{v.agent_hostname}</td>
                         <td className="px-4 py-3">
-                          <p className="text-[#7d92b0] text-xs font-mono max-w-[200px] truncate" title={v.file_path}>
+                          <p className="text-falcon-muted text-xs font-mono max-w-[200px] truncate" title={v.file_path}>
                             {v.file_path}
                           </p>
                         </td>
-                        <td className="px-4 py-3 text-[#7d92b0] text-xs">{v.process_name}</td>
+                        <td className="px-4 py-3 text-falcon-muted text-xs">{v.process_name}</td>
                         <td className="px-4 py-3">
-                          <code className="text-orange-300 text-xs font-mono bg-[#070d19] px-2 py-0.5 rounded">
+                          <code className="text-orange-300 text-xs font-mono bg-[#070d19] px-2 py-0.5 rounded-sm">
                             {maskPattern(v.matched_pattern)}
                           </code>
                         </td>
                         <td className="px-4 py-3">
-                          <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded border capitalize ${ab.cls}`}>
+                          <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-sm border capitalize ${ab.cls}`}>
                             <ActionIcon className="w-3 h-3" />
                             {v.action_taken}
                           </span>
                         </td>
-                        <td className="px-4 py-3 text-[#7d92b0] text-xs whitespace-nowrap">{fmtDate(v.detected_at)}</td>
+                        <td className="px-4 py-3 text-falcon-muted text-xs whitespace-nowrap">{fmtDate(v.detected_at)}</td>
                       </tr>
                     )
                   })}
                   {filteredViolations.length === 0 && (
                     <tr>
-                      <td colSpan={7} className="px-4 py-10 text-center text-[#3d5068]">
+                      <td colSpan={7} className="px-4 py-10 text-center text-falcon-subtle">
                         <CheckCircle className="w-8 h-8 mx-auto mb-2 text-green-700/50" />
                         <p>条件に一致する違反ログはありません</p>
                       </td>

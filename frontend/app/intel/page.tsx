@@ -46,7 +46,7 @@ function StatCard({ icon: Icon, label, value, color }: {
   color: string
 }) {
   return (
-    <div className="bg-[#111827] border border-[#1e2d42] rounded-xl px-4 py-3 flex items-center gap-3">
+    <div className="bg-falcon-card border border-falcon-border rounded-xl px-4 py-3 flex items-center gap-3">
       <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${color}`}>
         <Icon className="w-5 h-5" />
       </div>
@@ -175,7 +175,7 @@ export default function IntelHubPage() {
 
       {/* IOC Type breakdown */}
       {iocStats?.by_type && Object.keys(iocStats.by_type).length > 0 && (
-        <div className="bg-[#111827] border border-[#1e2d42] rounded-xl p-4">
+        <div className="bg-falcon-card border border-falcon-border rounded-xl p-4">
           <p className="text-xs font-medium text-[#8899aa] mb-3 uppercase tracking-wider">IOCタイプ内訳</p>
           <div className="flex flex-wrap gap-3">
             {Object.entries(iocStats.by_type).map(([type, count]) => (
@@ -200,16 +200,16 @@ export default function IntelHubPage() {
             <Link
               key={card.href}
               href={card.href}
-              className={`bg-[#111827] border border-[#1e2d42] rounded-xl p-4 flex items-start gap-3
+              className={`bg-falcon-card border border-falcon-border rounded-xl p-4 flex items-start gap-3
                           transition-all hover:bg-[#0f1c2e] ${card.accent} group`}
             >
-              <div className={`w-10 h-10 rounded-lg border flex items-center justify-center flex-shrink-0 ${card.color}`}>
+              <div className={`w-10 h-10 rounded-lg border flex items-center justify-center shrink-0 ${card.color}`}>
                 <card.icon className="w-5 h-5" />
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between">
                   <p className="font-semibold text-white text-sm">{card.title}</p>
-                  <ChevronRight className="w-4 h-4 text-[#3d5068] group-hover:text-[#8899aa] transition-colors flex-shrink-0" />
+                  <ChevronRight className="w-4 h-4 text-falcon-subtle group-hover:text-[#8899aa] transition-colors shrink-0" />
                 </div>
                 <p className="text-xs text-[#5a6a7a] mt-1 leading-relaxed">{card.description}</p>
               </div>
@@ -220,8 +220,8 @@ export default function IntelHubPage() {
 
       {/* Recent campaigns */}
       {(campaignData?.data ?? []).length > 0 && (
-        <div className="bg-[#111827] border border-[#1e2d42] rounded-xl overflow-hidden">
-          <div className="flex items-center justify-between px-4 py-3 border-b border-[#1e2d42]">
+        <div className="bg-falcon-card border border-falcon-border rounded-xl overflow-hidden">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-falcon-border">
             <p className="text-sm font-semibold text-white flex items-center gap-2">
               <GitBranch className="w-4 h-4 text-orange-400" />
               最近の脅威キャンペーン
@@ -230,10 +230,10 @@ export default function IntelHubPage() {
               すべて表示 →
             </Link>
           </div>
-          <div className="divide-y divide-[#1e2d42]">
+          <div className="divide-y divide-falcon-border">
             {campaignData!.data.slice(0, 5).map(c => (
-              <div key={c.id} className="px-4 py-2.5 flex items-center gap-3 hover:bg-[#161f33] transition-colors">
-                <div className={`w-2 h-2 rounded-full flex-shrink-0 ${c.active ? 'bg-red-400 animate-pulse' : 'bg-[#3d5068]'}`} />
+              <div key={c.id} className="px-4 py-2.5 flex items-center gap-3 hover:bg-falcon-raised transition-colors">
+                <div className={`w-2 h-2 rounded-full shrink-0 ${c.active ? 'bg-red-400 animate-pulse' : 'bg-falcon-subtle'}`} />
                 <span className="text-sm text-white flex-1 truncate">{c.name}</span>
                 {c.threat_actor && (
                   <span className="text-xs text-[#5a6a7a] truncate max-w-[120px]">{c.threat_actor}</span>
@@ -241,7 +241,7 @@ export default function IntelHubPage() {
                 <span className={`text-xs px-2 py-0.5 rounded-full ${
                   c.active
                     ? 'bg-red-900/40 text-red-300'
-                    : 'bg-[#161f33] text-[#5a6a7a]'
+                    : 'bg-falcon-raised text-[#5a6a7a]'
                 }`}>
                   {c.active ? '進行中' : '終了'}
                 </span>
