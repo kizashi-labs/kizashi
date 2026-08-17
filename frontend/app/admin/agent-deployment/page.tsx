@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useState, useEffect, useCallback } from 'react'
 import {
   Monitor, Apple, Server, ChevronRight, ChevronLeft,
@@ -891,14 +892,14 @@ spec:
                   <ChevronLeft className="w-4 h-4" /> 戻る
                 </button>
                 {verifyStatus === 'connected' && (
-                  <a
+                  <Link
                     href="/endpoints"
                     className="flex items-center gap-2 px-5 py-2.5 rounded-lg font-medium text-sm
                       bg-falcon-green/20 text-falcon-green border border-falcon-green/30
                       hover:bg-falcon-green/30 transition-all"
                   >
                     エンドポイント一覧へ <ChevronRight className="w-4 h-4" />
-                  </a>
+                  </Link>
                 )}
               </div>
             </div>

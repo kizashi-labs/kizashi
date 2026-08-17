@@ -1003,7 +1003,7 @@ export default function EndpointDetailPage() {
         const expandAll = () => setTreeExpanded(new Set(procs.map(p => p.id)))
         const collapseAll = () => setTreeExpanded(new Set())
 
-        function renderNode(node: ProcessNode, depth: number, isLast: boolean, prefixSegments: boolean[]): JSX.Element | null {
+        function renderNode(node: ProcessNode, depth: number, isLast: boolean, prefixSegments: boolean[]): React.JSX.Element | null {
           if (searchLower && !matchedIds.has(node.id)) return null
           const children = (pidMap.get(node.pid) ?? []).filter(c => !searchLower || matchedIds.has(c.id))
           const isExp = searchLower ? true : treeExpanded.has(node.id)
@@ -1194,7 +1194,7 @@ export default function EndpointDetailPage() {
             <div className="flex items-center gap-2">
               <span className="text-sm font-medium text-[#8899aa]">脆弱性 ({vulnData?.total ?? 0}件)</span>
             </div>
-            <a href="/vulnerabilities" className="text-xs text-[#5a6a7a] hover:text-[#8899aa]">管理 →</a>
+            <Link href="/vulnerabilities" className="text-xs text-[#5a6a7a] hover:text-[#8899aa]">管理 →</Link>
           </div>
           {!vulnData?.data?.length ? (
             <p className="text-center text-[#5a6a7a] py-10 text-sm">脆弱性データがありません</p>

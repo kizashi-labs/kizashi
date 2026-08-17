@@ -242,8 +242,7 @@ export default function SettingsPage() {
         <button
           onClick={() => update.mutate(current)}
           disabled={update.isPending}
-          className="flex items-center gap-2 px-4 py-2 bg-falcon-blue hover:bg-[#1557d4]
-                     text-white text-sm rounded-lg transition-colors disabled:opacity-50"
+          className="flex items-center gap-2 px-4 py-2 bg-falcon-blue hover:bg-[#1557d4] text-white text-sm rounded-lg transition-colors disabled:opacity-50"
         >
           {saved ? <Check className="w-4 h-4" /> : <Settings className="w-4 h-4" />}
           {saved ? '保存しました' : '変更を保存'}
@@ -376,8 +375,7 @@ export default function SettingsPage() {
             <button
               onClick={() => regenToken.mutate()}
               disabled={regenToken.isPending}
-              className="flex items-center gap-1.5 px-3 py-2 bg-falcon-border hover:bg-falcon-hover
-                         text-white text-sm rounded-lg transition-colors disabled:opacity-50 whitespace-nowrap"
+              className="flex items-center gap-1.5 px-3 py-2 bg-falcon-border hover:bg-falcon-hover text-white text-sm rounded-lg transition-colors disabled:opacity-50 whitespace-nowrap"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${regenToken.isPending ? 'animate-spin' : ''}`} />
               再生成
@@ -531,8 +529,7 @@ WAZUH_SKIP_TLS=${current.wazuh_skip_tls || 'true'}`
         <div className="mt-3">
           <NextLink
             href="/settings/siem"
-            className="inline-flex items-center gap-2 px-4 py-2 text-sm bg-falcon-surface border border-falcon-border
-                       rounded-lg text-falcon-text hover:border-blue-500/40 hover:text-blue-300 transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2 text-sm bg-falcon-surface border border-falcon-border rounded-lg text-falcon-text hover:border-blue-500/40 hover:text-blue-300 transition-colors"
           >
             <Radio className="w-4 h-4" />
             SIEMターゲットを管理する
@@ -549,8 +546,7 @@ WAZUH_SKIP_TLS=${current.wazuh_skip_tls || 'true'}`
         <div className="mt-3">
           <NextLink
             href="/notifications"
-            className="inline-flex items-center gap-2 px-4 py-2 text-sm bg-falcon-surface border border-falcon-border
-                       rounded-lg text-falcon-text hover:border-blue-500/40 hover:text-blue-300 transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2 text-sm bg-falcon-surface border border-falcon-border rounded-lg text-falcon-text hover:border-blue-500/40 hover:text-blue-300 transition-colors"
           >
             <Bell className="w-4 h-4" />
             通知チャンネルを管理する
@@ -715,7 +711,9 @@ function MFASettings() {
             bgColor="#ffffff"
             fgColor="#111827"
             level="M"
-            includeMargin={false}
+            // qrcode.react v4 で includeMargin は marginSize に置き換わった。
+            // includeMargin={false} と marginSize={0} が同じ余白なしを指す。
+            marginSize={0}
           />
         </div>
 
@@ -858,8 +856,7 @@ function MFASettings() {
       <button
         onClick={() => setupMutation.mutate()}
         disabled={setupMutation.isPending}
-        className="flex items-center gap-2 px-4 py-2 bg-falcon-blue hover:bg-[#1557d4]
-                   text-white text-sm rounded-lg transition-colors disabled:opacity-50"
+        className="flex items-center gap-2 px-4 py-2 bg-falcon-blue hover:bg-[#1557d4] text-white text-sm rounded-lg transition-colors disabled:opacity-50"
       >
         <Smartphone className="w-4 h-4" />
         {setupMutation.isPending ? '準備中...' : 'MFAを設定する'}

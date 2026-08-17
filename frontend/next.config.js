@@ -32,7 +32,10 @@ const nextConfig = {
   compress: true,
   poweredByHeader: false,
   reactStrictMode: true,
-  optimizeFonts: false,
+  // optimizeFonts は Next.js 15 で廃止された（自動フォント最適化そのものが
+  // 組み込みになり、無効化オプションが無くなった）。このプロジェクトは
+  // next/font を使わず globals.css の --font-inter でシステムフォント
+  // スタックを指定しているので、いずれにせよ最適化対象が無い。
   images: {
     remotePatterns: [
       { protocol: 'https', hostname: 'avatars.githubusercontent.com' },

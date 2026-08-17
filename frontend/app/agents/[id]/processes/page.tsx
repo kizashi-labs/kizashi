@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, use } from 'react'
 import Link from 'next/link'
 import { useQuery } from '@tanstack/react-query'
 import { apiFetch } from '@/lib/api'
@@ -133,8 +133,10 @@ function RuleSeverityBadge({ severity }: { severity: string }) {
 
 // ─── メインページ ─────────────────────────────────────────────────────────────
 
-export default function ProcessesPage({ params }: { params: { id: string } }) {
-  const agentId = params.id
+// Next.js 15 以降、動的セグメントの params は Promise で渡る。
+// クライアントコンポーネントでは React の use() で解決する。
+export default function ProcessesPage({ params }: { params: Promise<{ id: string }> }) {
+  const agentId = use(params).id
   const [search, setSearch] = useState('')
   const [autoRefresh, setAutoRefresh] = useState(true)
 

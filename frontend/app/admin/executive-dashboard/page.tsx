@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useQuery } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
 import { apiFetch } from '@/lib/api'
@@ -529,12 +530,12 @@ export default function ExecutiveDashboardPage() {
             <h2 className="text-white font-semibold text-sm">最近の高優先度アラート</h2>
             <p className="text-falcon-muted text-xs mt-0.5">直近の重大・高重大度アラート5件</p>
           </div>
-          <a
+          <Link
             href="/alerts"
             className="flex items-center gap-1 text-xs text-falcon-muted hover:text-white transition-colors"
           >
             すべて表示 <ChevronRight className="w-3.5 h-3.5" />
-          </a>
+          </Link>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">

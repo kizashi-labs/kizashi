@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect, useMemo, use } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { apiFetch } from '@/lib/api'
 import { useCanWrite } from '@/lib/auth'
@@ -218,8 +218,10 @@ const TABS: { key: TabKey; label: string; icon: React.ReactNode }[] = [
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
-export default function IncidentDetailPage({ params }: { params: { id: string } }) {
-  const { id } = params
+// Next.js 15 以降、動的セグメントの params は Promise で渡る。
+// クライアントコンポーネントでは React の use() で解決する。
+export default function IncidentDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params)
   const router = useRouter()
   const qc = useQueryClient()
   const canWrite = useCanWrite()

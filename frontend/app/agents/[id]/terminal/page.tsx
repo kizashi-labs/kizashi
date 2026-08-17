@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback, use } from 'react'
 import { useRouter } from 'next/navigation'
 import { apiFetch, apiFetchList } from '@/lib/api'
 import { Agent } from '@/types/api'
@@ -117,9 +117,11 @@ function sessionStateBadge(state: SessionState) {
 
 // ─── Main component ───────────────────────────────────────────
 
-export default function TerminalPage({ params }: { params: { id: string } }) {
+// Next.js 15 以降、動的セグメントの params は Promise で渡る。
+// クライアントコンポーネントでは React の use() で解決する。
+export default function TerminalPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter()
-  const agentId = params.id
+  const agentId = use(params).id
 
   // Agent & session state
   const [agent, setAgent] = useState<Agent | null>(null)

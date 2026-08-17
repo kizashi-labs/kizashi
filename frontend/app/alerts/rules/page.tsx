@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { apiFetch } from '@/lib/api'
@@ -587,13 +588,13 @@ export default function AlertRulesPage() {
         {/* Tab-specific action buttons */}
         <div className="ml-auto flex items-center gap-2">
           {activeTab === 'sigma' && (
-            <a
+            <Link
               href="/rules"
               className="flex items-center gap-2 px-3 py-2 bg-falcon-red/10 border border-falcon-red/30 text-falcon-red rounded-lg text-sm hover:bg-falcon-red/20 transition-colors"
             >
               <Upload className="w-4 h-4" />
               インポート
-            </a>
+            </Link>
           )}
           {activeTab === 'custom' && (
             <button

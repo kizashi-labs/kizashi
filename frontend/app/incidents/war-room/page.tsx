@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useState, useRef, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { apiFetch } from '@/lib/api'
@@ -343,9 +344,9 @@ export default function WarRoomPage() {
         <AlertOctagon className="w-12 h-12 text-falcon-subtle" />
         <p className="text-falcon-text font-semibold">対応中のインシデントはありません</p>
         <p className="text-falcon-muted text-sm text-center">新しいインシデントが検知されると、ここに表示されます。<br />インシデントは「インシデント」ページから手動で作成することもできます。</p>
-        <a href="/incidents" className="mt-2 px-4 py-2 bg-falcon-border hover:bg-[#2d3f58] border border-[#2d3f58] text-falcon-text text-sm rounded-lg transition-colors">
+        <Link href="/incidents" className="mt-2 px-4 py-2 bg-falcon-border hover:bg-[#2d3f58] border border-[#2d3f58] text-falcon-text text-sm rounded-lg transition-colors">
           インシデント一覧へ
-        </a>
+        </Link>
       </div>
     </div>
   )

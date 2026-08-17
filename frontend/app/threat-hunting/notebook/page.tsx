@@ -1,5 +1,6 @@
 'use client'
 
+import type React from 'react'
 import { useState, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { apiFetch } from '@/lib/api'
@@ -256,7 +257,7 @@ function MiniPieChart({ data }: { data: { label: string; value: number; color: s
     <div className="flex items-center gap-6">
       <div className="relative w-20 h-20">
         <svg viewBox="0 0 36 36" className="w-full h-full -rotate-90">
-          {data.reduce<{ offset: number; els: JSX.Element[] }>((acc, d, i) => {
+          {data.reduce<{ offset: number; els: React.JSX.Element[] }>((acc, d, i) => {
             const pct = total ? (d.value / total) * 100 : 0
             acc.els.push(
               <circle

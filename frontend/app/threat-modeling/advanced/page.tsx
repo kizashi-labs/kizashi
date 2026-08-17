@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { apiFetch } from '@/lib/api'
@@ -544,10 +545,10 @@ function PASTATab({ pasta }: { pasta: PASTAData }) {
                 <span className="text-blue-400 text-sm font-medium">脆弱性スキャナーとの連携</span>
               </div>
               <p className="text-falcon-muted text-xs">脆弱性管理モジュールから最新のスキャン結果を参照してください。CVSS 7.0以上の脆弱性が4件検出されています。</p>
-              <a href="/vulnerabilities" className="inline-flex items-center gap-1.5 mt-3 text-xs text-blue-400 hover:text-blue-300 transition-colors">
+              <Link href="/vulnerabilities" className="inline-flex items-center gap-1.5 mt-3 text-xs text-blue-400 hover:text-blue-300 transition-colors">
                 <ArrowRight className="w-3.5 h-3.5" />
                 脆弱性管理ページへ
-              </a>
+              </Link>
             </div>
           </div>
         )}
