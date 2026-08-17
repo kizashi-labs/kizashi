@@ -22,19 +22,11 @@ func NewAutonomousPolicyHandler(pool *pgxpool.Pool) *AutonomousPolicyHandler {
 }
 
 func (h *AutonomousPolicyHandler) checkPoliciesTable(c *gin.Context) bool {
-	ctx := c.Request.Context()
-	var exists bool
-	err := h.pool.QueryRow(ctx,
-		`SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name='autonomous_response_policies')`).Scan(&exists)
-	return err == nil && exists
+	return tableIsThere(c.Request.Context(), h.pool, "autonomous_response_policies")
 }
 
 func (h *AutonomousPolicyHandler) checkExecutionsTable(c *gin.Context) bool {
-	ctx := c.Request.Context()
-	var exists bool
-	err := h.pool.QueryRow(ctx,
-		`SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name='autonomous_response_executions')`).Scan(&exists)
-	return err == nil && exists
+	return tableIsThere(c.Request.Context(), h.pool, "autonomous_response_executions")
 }
 
 // ListPolicies returns all autonomous response policies.
@@ -401,18 +393,22 @@ func (h *AutonomousPolicyHandler) GetStats(c *gin.Context) {
 	}
 	// Avg response time (seconds between started_at and completed_at)
 	var avgResponseTime float64
-	_ = h.pool.QueryRow(ctx,
+	if !ReadOK(c, h.pool.QueryRow(ctx,
 		`SELECT COALESCE(AVG(EXTRACT(EPOCH FROM (completed_at - started_at))),0)
-		 FROM autonomous_response_executions
-		 WHERE status='completed' AND started_at IS NOT NULL AND completed_at IS NOT NULL`,
-	).Scan(&avgResponseTime)
+			 FROM autonomous_response_executions
+			 WHERE status='completed' AND started_at IS NOT NULL AND completed_at IS NOT NULL`,
+	).Scan(&avgResponseTime)) {
+		return
+	}
 	// Policy counts
 	var totalPolicies, activePolicies int
 	if h.checkPoliciesTable(c) {
-		_ = h.pool.QueryRow(ctx,
-			`SELECT COUNT(*), SUM(CASE WHEN is_active THEN 1 ELSE 0 END)
-			 FROM autonomous_response_policies`,
-		).Scan(&totalPolicies, &activePolicies)
+		if !ReadOK(c, h.pool.QueryRow(ctx,
+			`SELECT COUNT(*), COALESCE(SUM(CASE WHEN is_active THEN 1 ELSE 0 END), 0)
+				 FROM autonomous_response_policies`,
+		).Scan(&totalPolicies, &activePolicies)) {
+			return
+		}
 	}
 	c.JSON(http.StatusOK, gin.H{
 		"executions_by_status": execsByStatus,

@@ -29,13 +29,28 @@ func NewNotificationHistoryStore(db *DB) *NotificationHistoryStore {
 }
 
 // Insert records a notification attempt.
+//
+// **channel_id が空のときは NULL を入れます。** 列は uuid で NULL を許し
+// ますが、Go の空文字列をそのまま渡すと pgx が uuid として符号化できず
+// `invalid input syntax for type uuid: ""` で必ず失敗します —— つまり
+// **チャンネルIDを持たない通知は、1件も記録できませんでした。**
+// （検査を書こうとして、この経路が一度も通らないことに気づきました。）
 func (s *NotificationHistoryStore) Insert(ctx context.Context, e *NotificationHistoryEntry) error {
 	_, err := s.db.Pool().Exec(ctx, `
 		INSERT INTO notification_history
 			(channel_id, channel_name, channel_type, subject, body, status, error_msg, sent_at)
 		VALUES ($1,$2,$3,$4,$5,$6,$7,NOW())`,
-		e.ChannelID, e.ChannelName, e.ChannelType, e.Subject, e.Body, e.Status, e.ErrorMsg)
+		nilIfBlank(e.ChannelID), e.ChannelName, e.ChannelType, e.Subject, e.Body, e.Status, e.ErrorMsg)
 	return err
+}
+
+// nilIfBlank returns nil for an empty string so a nullable uuid column
+// receives NULL rather than "".
+func nilIfBlank(s string) interface{} {
+	if s == "" {
+		return nil
+	}
+	return s
 }
 
 // List returns recent notification history, newest first.
@@ -63,6 +78,9 @@ func (s *NotificationHistoryStore) List(ctx context.Context, limit, offset int) 
 			&e.Subject, &e.Body, &e.Status, &e.ErrorMsg, &e.SentAt); err == nil {
 			entries = append(entries, e)
 		}
+	}
+	if err := rows.Err(); err != nil {
+		return nil, 0, err
 	}
 	if entries == nil {
 		entries = []*NotificationHistoryEntry{}
@@ -106,6 +124,9 @@ func (s *NotificationHistoryStore) Stats(ctx context.Context, days int) (map[str
 			if err := rows.Scan(&r.Name, &r.Count); err == nil {
 				byChannel = append(byChannel, r)
 			}
+		}
+		if err := rows.Err(); err != nil {
+			return nil, err
 		}
 	}
 	if byChannel == nil {

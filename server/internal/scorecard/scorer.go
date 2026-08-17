@@ -4,35 +4,67 @@ package scorecard
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+
+	"github.com/edr-platform/server/internal/backup"
 )
+
+// The four values Control.Status may take. The first three are findings about
+// the customer's posture; the fourth says no finding was reached, and is the
+// only honest answer when the evidence query did not run.
+const (
+	StatusCompliant    = "compliant"
+	StatusPartial      = "partial"
+	StatusNonCompliant = "non_compliant"
+	StatusNotAssessed  = "not_assessed"
+)
+
+// ErrNothingAssessed is returned when not one control could be evaluated —
+// every evidence query failed. There is no score to report in that case, and
+// saying so is different from reporting zero.
+var ErrNothingAssessed = errors.New("scorecard: no control could be assessed")
 
 // Control represents a single compliance control assessment.
 type Control struct {
-	ID           string    `json:"id"`
-	Framework    string    `json:"framework"` // NIST_CSF or ISO27001
-	Category     string    `json:"category"`
-	Name         string    `json:"name"`
-	Description  string    `json:"description"`
-	Weight       float64   `json:"weight"`
-	Score        float64   `json:"score"`  // 0-100
-	Status       string    `json:"status"` // compliant/partial/non_compliant/not_assessed
-	Evidence     string    `json:"evidence,omitempty"`
+	ID          string  `json:"id"`
+	Framework   string  `json:"framework"` // NIST_CSF or ISO27001
+	Category    string  `json:"category"`
+	Name        string  `json:"name"`
+	Description string  `json:"description"`
+	Weight      float64 `json:"weight"`
+	Score       float64 `json:"score"` // 0-100, meaningless unless Status != not_assessed
+	Status      string  `json:"status"`
+	Evidence    string  `json:"evidence,omitempty"`
+	// Error carries the reason the evidence query did not run, when it did not.
+	// It is what separates "we looked and found nothing" from "we could not
+	// look" — the two used to be indistinguishable in the response.
+	Error        string    `json:"error,omitempty"`
 	LastAssessed time.Time `json:"last_assessed"`
 }
 
+// assessed reports whether this control carries a finding about the customer's
+// posture, as opposed to a record that no finding was reached.
+func (c *Control) assessed() bool { return c.Status != StatusNotAssessed }
+
 // Scorecard holds the complete compliance scorecard for an organization.
 type Scorecard struct {
-	OrganizationID  string             `json:"organization_id"`
-	Framework       string             `json:"framework"`
-	OverallScore    float64            `json:"overall_score"`
-	CategoryScores  map[string]float64 `json:"category_scores"`
-	Controls        []*Control         `json:"controls"`
-	GeneratedAt     time.Time          `json:"generated_at"`
-	Recommendations []string           `json:"recommendations"`
+	OrganizationID string             `json:"organization_id"`
+	Framework      string             `json:"framework"`
+	OverallScore   float64            `json:"overall_score"`
+	CategoryScores map[string]float64 `json:"category_scores"`
+	Controls       []*Control         `json:"controls"`
+	// AssessedControls and TotalControls are the coverage behind OverallScore.
+	// OverallScore averages only the controls that were assessed, so it must
+	// never be read without them: 90 out of 3 assessed controls is not the same
+	// claim as 90 out of 25, and the JSON now says which one it is.
+	AssessedControls int       `json:"assessed_controls"`
+	TotalControls    int       `json:"total_controls"`
+	GeneratedAt      time.Time `json:"generated_at"`
+	Recommendations  []string  `json:"recommendations"`
 }
 
 // Scorer calculates compliance scorecards by querying the database.
@@ -43,6 +75,48 @@ type Scorer struct {
 // NewScorer creates a new Scorer.
 func NewScorer(pool *pgxpool.Pool) *Scorer {
 	return &Scorer{pool: pool}
+}
+
+// ─── Evidence gathering ───────────────────────────────────────────────────────
+//
+// Every control below is scored from a COUNT or an aggregate. Those queries used
+// to be written `_ = s.pool.QueryRow(...).Scan(&n)`, which left n at zero when
+// the query failed — and zero is a value each control already had a meaning for.
+// A dropped connection therefore produced "No hardening baselines configured,
+// non_compliant" rather than an error, and the whole scorecard came back with a
+// headline number. Measured against a database where every query failed:
+//
+//	NIST CSF overall  42.5 (healthy)  ->  35.3 (every query failing)
+//	ISO 27001 overall 50.0 (healthy)  ->  46.9 (every query failing)
+//
+// Seven points and three points. Nothing in the response said the difference was
+// an outage rather than a posture, and the report is read by auditors.
+//
+// The two helpers below make that impossible to write by accident: countOf
+// returns the error, and unassessed is the only way to leave a control without a
+// finding.
+
+// countOf runs a scalar query and returns its single value.
+func (s *Scorer) countOf(ctx context.Context, q string, args ...any) (int, error) {
+	var n int
+	if err := s.pool.QueryRow(ctx, q, args...).Scan(&n); err != nil {
+		return 0, err
+	}
+	return n, nil
+}
+
+// unassessed records that a control could not be evaluated, and why. It clears
+// the score rather than leaving a stale one, because a score attached to a
+// not_assessed control is exactly the confusion this is here to prevent.
+func unassessed(err error, reason string, controls ...*Control) {
+	for _, c := range controls {
+		c.Score = 0
+		c.Status = StatusNotAssessed
+		c.Evidence = reason
+		if err != nil {
+			c.Error = err.Error()
+		}
+	}
 }
 
 // ─── NIST CSF ─────────────────────────────────────────────────────────────────
@@ -80,6 +154,9 @@ func (s *Scorer) CalculateNISTCSF(ctx context.Context) (*Scorecard, error) {
 	s.calculateScores(sc)
 	sc.Recommendations = s.GetRecommendations(sc)
 
+	if sc.AssessedControls == 0 {
+		return sc, ErrNothingAssessed
+	}
 	return sc, nil
 }
 
@@ -122,81 +199,96 @@ func (s *Scorer) scoreIdentify(ctx context.Context) []*Control {
 	for _, ctrl := range controls {
 		ctrl.LastAssessed = now
 		ctrl.Score = 0
-		ctrl.Status = "not_assessed"
+		ctrl.Status = StatusNotAssessed
 	}
 
 	if s.pool == nil {
+		unassessed(nil, noDatabase, controls...)
 		return controls
 	}
 
-	// ID.AM-1: Check asset inventory table
-	var assetCount int
-	err := s.pool.QueryRow(ctx, `SELECT COUNT(*) FROM agents`).Scan(&assetCount)
-	if err == nil {
+	// ID.AM-1: Check asset inventory table.
+	//
+	// The asset count is also the denominator for ID.AM-2 and ID.AM-5, so losing
+	// it costs three controls rather than one. It used to cost none visibly:
+	// assetCount stayed 0, the two ratios were taken against assetCount+1, and
+	// "1 software package for 1 asset" scored 100/compliant off a failed query.
+	assetCount, err := s.countOf(ctx, `SELECT COUNT(*) FROM agents`)
+	if err != nil {
+		unassessed(err, "asset inventory could not be read", controls[0], controls[1], controls[2])
+	} else {
 		controls[0].Evidence = fmt.Sprintf("%d assets inventoried", assetCount)
 		if assetCount > 0 {
 			controls[0].Score = 100
-			controls[0].Status = "compliant"
+			controls[0].Status = StatusCompliant
 		} else {
 			controls[0].Score = 0
-			controls[0].Status = "non_compliant"
+			controls[0].Status = StatusNonCompliant
 		}
-	}
 
-	// ID.AM-2: Check software inventory
-	var swCount int
-	err = s.pool.QueryRow(ctx, `SELECT COUNT(*) FROM endpoint_software`).Scan(&swCount)
-	if err == nil {
-		controls[1].Evidence = fmt.Sprintf("%d software packages inventoried", swCount)
-		if swCount > 0 {
+		// ID.AM-2: Check software inventory. An empty inventory is a finding —
+		// it used to leave the control at its initial not_assessed while
+		// carrying the evidence "0 software packages inventoried", so a real
+		// answer of zero was reported as never having looked.
+		swCount, err := s.countOf(ctx, `SELECT COUNT(*) FROM endpoint_software`)
+		if err != nil {
+			unassessed(err, "software inventory could not be read", controls[1])
+		} else {
+			controls[1].Evidence = fmt.Sprintf("%d software packages inventoried", swCount)
 			controls[1].Score = minFloat(float64(swCount)/float64(assetCount+1)*100, 100)
 			controls[1].Status = statusFromScore(controls[1].Score)
 		}
-	}
 
-	// ID.AM-5: Check asset criticality scoring
-	var critCount int
-	_ = s.pool.QueryRow(ctx, `
-		SELECT COUNT(*) FROM asset_criticality_scores
-	`).Scan(&critCount)
-	if critCount > 0 {
-		controls[2].Score = minFloat(float64(critCount)/float64(assetCount+1)*100, 100)
-		controls[2].Evidence = fmt.Sprintf("%d assets scored for criticality", critCount)
-		controls[2].Status = statusFromScore(controls[2].Score)
-	} else {
-		controls[2].Score = 40
-		controls[2].Status = "partial"
-		controls[2].Evidence = "No asset criticality scoring configured"
+		// ID.AM-5: Check asset criticality scoring
+		critCount, err := s.countOf(ctx, `SELECT COUNT(*) FROM asset_criticality_scores`)
+		if err != nil {
+			unassessed(err, "asset criticality scores could not be read", controls[2])
+		} else if critCount > 0 {
+			controls[2].Score = minFloat(float64(critCount)/float64(assetCount+1)*100, 100)
+			controls[2].Evidence = fmt.Sprintf("%d assets scored for criticality", critCount)
+			controls[2].Status = statusFromScore(controls[2].Score)
+		} else {
+			controls[2].Score = 40
+			controls[2].Status = StatusPartial
+			controls[2].Evidence = "No asset criticality scoring configured"
+		}
 	}
 
 	// ID.RA-1: Check vulnerability findings
-	var vulnCount int
-	_ = s.pool.QueryRow(ctx, `SELECT COUNT(*) FROM vulnerabilities`).Scan(&vulnCount)
-	if vulnCount >= 0 {
+	if vulnCount, err := s.countOf(ctx, `SELECT COUNT(*) FROM vulnerabilities`); err != nil {
+		unassessed(err, "vulnerability findings could not be read", controls[3])
+	} else {
 		controls[3].Evidence = fmt.Sprintf("%d vulnerabilities tracked", vulnCount)
 		if vulnCount > 0 {
 			controls[3].Score = 80
-			controls[3].Status = "compliant"
+			controls[3].Status = StatusCompliant
 		} else {
 			controls[3].Score = 40
-			controls[3].Status = "partial"
+			controls[3].Status = StatusPartial
 		}
 	}
 
 	// ID.RA-5: Check threat intel IOC count
-	var iocCount int
-	_ = s.pool.QueryRow(ctx, `SELECT COUNT(*) FROM threat_intel_iocs`).Scan(&iocCount)
-	controls[4].Evidence = fmt.Sprintf("%d threat IOCs tracked", iocCount)
-	if iocCount > 0 {
-		controls[4].Score = 85
-		controls[4].Status = "compliant"
+	if iocCount, err := s.countOf(ctx, `SELECT COUNT(*) FROM threat_intel_iocs`); err != nil {
+		unassessed(err, "threat intelligence indicators could not be read", controls[4])
 	} else {
-		controls[4].Score = 30
-		controls[4].Status = "partial"
+		controls[4].Evidence = fmt.Sprintf("%d threat IOCs tracked", iocCount)
+		if iocCount > 0 {
+			controls[4].Score = 85
+			controls[4].Status = StatusCompliant
+		} else {
+			controls[4].Score = 30
+			controls[4].Status = StatusPartial
+		}
 	}
 
 	return controls
 }
+
+// noDatabase is the reason recorded when the Scorer has no pool at all. The
+// framework functions used to hand out a flat 55-65 in this case, which is a
+// posture claim made without looking at anything.
+const noDatabase = "no database connection configured"
 
 // scoreProtect scores the Protect function controls.
 func (s *Scorer) scoreProtect(ctx context.Context) []*Control {
@@ -236,91 +328,105 @@ func (s *Scorer) scoreProtect(ctx context.Context) []*Control {
 	now := time.Now().UTC()
 	for _, ctrl := range controls {
 		ctrl.LastAssessed = now
+		ctrl.Score = 0
+		ctrl.Status = StatusNotAssessed
 	}
 
 	if s.pool == nil {
-		for _, ctrl := range controls {
-			ctrl.Score = 60
-			ctrl.Status = "partial"
-		}
+		unassessed(nil, noDatabase, controls...)
 		return controls
 	}
 
-	// PR.AC-1: Check MFA and user management
-	var mfaCount int
-	_ = s.pool.QueryRow(ctx, `SELECT COUNT(*) FROM users WHERE mfa_enabled = true`).Scan(&mfaCount)
-	var totalUsers int
-	_ = s.pool.QueryRow(ctx, `SELECT COUNT(*) FROM users`).Scan(&totalUsers)
-	if totalUsers > 0 {
+	// PR.AC-1: Check MFA and user management. Both halves of the rate are
+	// needed: with only one, a failure on the denominator turned into "0 users"
+	// and a flat 60/partial.
+	mfaCount, mfaErr := s.countOf(ctx, `SELECT COUNT(*) FROM users WHERE mfa_enabled = true`)
+	totalUsers, usersErr := s.countOf(ctx, `SELECT COUNT(*) FROM users`)
+	switch {
+	case mfaErr != nil:
+		unassessed(mfaErr, "MFA enrolment could not be read", controls[0])
+	case usersErr != nil:
+		unassessed(usersErr, "user directory could not be read", controls[0])
+	case totalUsers > 0:
 		mfaRate := float64(mfaCount) / float64(totalUsers) * 100
 		controls[0].Score = mfaRate
 		controls[0].Evidence = fmt.Sprintf("%d/%d users have MFA enabled (%.0f%%)", mfaCount, totalUsers, mfaRate)
 		controls[0].Status = statusFromScore(mfaRate)
-	} else {
+	default:
 		controls[0].Score = 60
-		controls[0].Status = "partial"
+		controls[0].Status = StatusPartial
+		controls[0].Evidence = "No users defined"
 	}
 
 	// PR.DS-1: Check encryption management
-	var encCount int
-	_ = s.pool.QueryRow(ctx, `SELECT COUNT(*) FROM endpoint_encryption`).Scan(&encCount)
-	if encCount > 0 {
+	if encCount, err := s.countOf(ctx, `SELECT COUNT(*) FROM endpoint_encryption`); err != nil {
+		unassessed(err, "endpoint encryption state could not be read", controls[1])
+	} else if encCount > 0 {
 		controls[1].Score = 80
 		controls[1].Evidence = fmt.Sprintf("%d endpoints with encryption configured", encCount)
-		controls[1].Status = "compliant"
+		controls[1].Status = StatusCompliant
 	} else {
 		controls[1].Score = 40
-		controls[1].Status = "partial"
+		controls[1].Status = StatusPartial
 		controls[1].Evidence = "No encryption management data found"
 	}
 
 	// PR.IP-1: Check endpoint hardening baselines
-	var baselineCount int
-	_ = s.pool.QueryRow(ctx, `SELECT COUNT(*) FROM hardening_baselines`).Scan(&baselineCount)
-	if baselineCount > 0 {
+	baselineCount, err := s.countOf(ctx, `SELECT COUNT(*) FROM hardening_baselines`)
+	switch {
+	case err != nil:
+		unassessed(err, "hardening baselines could not be read", controls[2])
+	case baselineCount > 0:
 		// Check compliance rate across per-agent assessment roll-ups.
 		var passedChecks, totalChecks int
-		_ = s.pool.QueryRow(ctx, `
+		if err := s.pool.QueryRow(ctx, `
 			SELECT COALESCE(SUM(passed_checks),0), COALESCE(SUM(passed_checks + failed_checks),0)
 			FROM hardening_assessments
-		`).Scan(&passedChecks, &totalChecks)
-		if totalChecks > 0 {
+		`).Scan(&passedChecks, &totalChecks); err != nil {
+			unassessed(err, "hardening assessment results could not be read", controls[2])
+		} else if totalChecks > 0 {
 			rate := float64(passedChecks) / float64(totalChecks) * 100
 			controls[2].Score = rate
 			controls[2].Evidence = fmt.Sprintf("%.0f%% hardening compliance (%d/%d checks passed)", rate, passedChecks, totalChecks)
 			controls[2].Status = statusFromScore(rate)
 		} else {
 			controls[2].Score = 70
-			controls[2].Status = "partial"
+			controls[2].Status = StatusPartial
+			controls[2].Evidence = fmt.Sprintf("%d baselines defined but never assessed", baselineCount)
 		}
-	} else {
+	default:
 		controls[2].Score = 30
-		controls[2].Status = "non_compliant"
+		controls[2].Status = StatusNonCompliant
 		controls[2].Evidence = "No hardening baselines configured"
 	}
 
 	// PR.IP-3: Check agent config profiles
-	var profileCount int
-	_ = s.pool.QueryRow(ctx, `SELECT COUNT(*) FROM agent_config_profiles`).Scan(&profileCount)
-	controls[3].Evidence = fmt.Sprintf("%d agent configuration profiles defined", profileCount)
-	if profileCount > 0 {
-		controls[3].Score = 80
-		controls[3].Status = "compliant"
+	if profileCount, err := s.countOf(ctx, `SELECT COUNT(*) FROM agent_config_profiles`); err != nil {
+		unassessed(err, "agent configuration profiles could not be read", controls[3])
 	} else {
-		controls[3].Score = 50
-		controls[3].Status = "partial"
+		controls[3].Evidence = fmt.Sprintf("%d agent configuration profiles defined", profileCount)
+		if profileCount > 0 {
+			controls[3].Score = 80
+			controls[3].Status = StatusCompliant
+		} else {
+			controls[3].Score = 50
+			controls[3].Status = StatusPartial
+		}
 	}
 
 	// PR.PT-1: Check audit logs
-	var auditCount int
-	_ = s.pool.QueryRow(ctx, `SELECT COUNT(*) FROM audit_logs WHERE created_at > NOW() - INTERVAL '7 days'`).Scan(&auditCount)
-	controls[4].Evidence = fmt.Sprintf("%d audit log entries in last 7 days", auditCount)
-	if auditCount > 0 {
-		controls[4].Score = 90
-		controls[4].Status = "compliant"
+	if auditCount, err := s.countOf(ctx,
+		`SELECT COUNT(*) FROM audit_logs WHERE created_at > NOW() - INTERVAL '7 days'`); err != nil {
+		unassessed(err, "audit log could not be read", controls[4])
 	} else {
-		controls[4].Score = 20
-		controls[4].Status = "non_compliant"
+		controls[4].Evidence = fmt.Sprintf("%d audit log entries in last 7 days", auditCount)
+		if auditCount > 0 {
+			controls[4].Score = 90
+			controls[4].Status = StatusCompliant
+		} else {
+			controls[4].Score = 20
+			controls[4].Status = StatusNonCompliant
+		}
 	}
 
 	return controls
@@ -364,83 +470,97 @@ func (s *Scorer) scoreDetect(ctx context.Context) []*Control {
 	now := time.Now().UTC()
 	for _, ctrl := range controls {
 		ctrl.LastAssessed = now
+		ctrl.Score = 0
+		ctrl.Status = StatusNotAssessed
 	}
 
 	if s.pool == nil {
-		for _, ctrl := range controls {
-			ctrl.Score = 65
-			ctrl.Status = "partial"
-		}
+		unassessed(nil, noDatabase, controls...)
 		return controls
 	}
 
 	// DE.AE-1: UEBA baselines
-	var uebaBaselines int
-	_ = s.pool.QueryRow(ctx, `SELECT COUNT(*) FROM ueba_baselines`).Scan(&uebaBaselines)
-	controls[0].Evidence = fmt.Sprintf("%d UEBA behavioral baselines established", uebaBaselines)
-	if uebaBaselines > 0 {
-		controls[0].Score = 80
-		controls[0].Status = "compliant"
+	if uebaBaselines, err := s.countOf(ctx, `SELECT COUNT(*) FROM ueba_baselines`); err != nil {
+		unassessed(err, "UEBA baselines could not be read", controls[0])
 	} else {
-		controls[0].Score = 30
-		controls[0].Status = "partial"
+		controls[0].Evidence = fmt.Sprintf("%d UEBA behavioral baselines established", uebaBaselines)
+		if uebaBaselines > 0 {
+			controls[0].Score = 80
+			controls[0].Status = StatusCompliant
+		} else {
+			controls[0].Score = 30
+			controls[0].Status = StatusPartial
+		}
 	}
 
 	// DE.AE-3: Correlation rules count
-	var corrCount int
-	_ = s.pool.QueryRow(ctx, `SELECT COUNT(*) FROM correlation_rules WHERE enabled = true`).Scan(&corrCount)
-	controls[1].Evidence = fmt.Sprintf("%d active correlation rules", corrCount)
-	if corrCount >= 5 {
-		controls[1].Score = 90
-		controls[1].Status = "compliant"
-	} else if corrCount > 0 {
-		controls[1].Score = 60
-		controls[1].Status = "partial"
+	if corrCount, err := s.countOf(ctx,
+		`SELECT COUNT(*) FROM correlation_rules WHERE enabled = true`); err != nil {
+		unassessed(err, "correlation rules could not be read", controls[1])
 	} else {
-		controls[1].Score = 20
-		controls[1].Status = "non_compliant"
+		controls[1].Evidence = fmt.Sprintf("%d active correlation rules", corrCount)
+		switch {
+		case corrCount >= 5:
+			controls[1].Score = 90
+			controls[1].Status = StatusCompliant
+		case corrCount > 0:
+			controls[1].Score = 60
+			controls[1].Status = StatusPartial
+		default:
+			controls[1].Score = 20
+			controls[1].Status = StatusNonCompliant
+		}
 	}
 
 	// DE.CM-1: Network events count
-	var netEvents int
-	_ = s.pool.QueryRow(ctx, `
+	if netEvents, err := s.countOf(ctx, `
 		SELECT COUNT(*) FROM events
 		WHERE event_type = 'network' AND time > NOW() - INTERVAL '1 day'
-	`).Scan(&netEvents)
-	controls[2].Evidence = fmt.Sprintf("%d network events in last 24h", netEvents)
-	if netEvents > 0 {
-		controls[2].Score = 85
-		controls[2].Status = "compliant"
+	`); err != nil {
+		unassessed(err, "network telemetry could not be read", controls[2])
 	} else {
-		controls[2].Score = 40
-		controls[2].Status = "partial"
+		controls[2].Evidence = fmt.Sprintf("%d network events in last 24h", netEvents)
+		if netEvents > 0 {
+			controls[2].Score = 85
+			controls[2].Status = StatusCompliant
+		} else {
+			controls[2].Score = 40
+			controls[2].Status = StatusPartial
+		}
 	}
 
 	// DE.CM-4: Sigma rules enabled
-	var sigmaRules int
-	_ = s.pool.QueryRow(ctx, `SELECT COUNT(*) FROM detection_rules WHERE enabled = true`).Scan(&sigmaRules)
-	controls[3].Evidence = fmt.Sprintf("%d Sigma detection rules enabled", sigmaRules)
-	if sigmaRules >= 10 {
-		controls[3].Score = 95
-		controls[3].Status = "compliant"
-	} else if sigmaRules > 0 {
-		controls[3].Score = 70
-		controls[3].Status = "partial"
+	if sigmaRules, err := s.countOf(ctx,
+		`SELECT COUNT(*) FROM detection_rules WHERE enabled = true`); err != nil {
+		unassessed(err, "detection rules could not be read", controls[3])
 	} else {
-		controls[3].Score = 20
-		controls[3].Status = "non_compliant"
+		controls[3].Evidence = fmt.Sprintf("%d Sigma detection rules enabled", sigmaRules)
+		switch {
+		case sigmaRules >= 10:
+			controls[3].Score = 95
+			controls[3].Status = StatusCompliant
+		case sigmaRules > 0:
+			controls[3].Score = 70
+			controls[3].Status = StatusPartial
+		default:
+			controls[3].Score = 20
+			controls[3].Status = StatusNonCompliant
+		}
 	}
 
 	// DE.DP-4: Alert notifications configured
-	var notifChannels int
-	_ = s.pool.QueryRow(ctx, `SELECT COUNT(*) FROM notification_channels WHERE enabled = true`).Scan(&notifChannels)
-	controls[4].Evidence = fmt.Sprintf("%d active notification channels", notifChannels)
-	if notifChannels > 0 {
-		controls[4].Score = 85
-		controls[4].Status = "compliant"
+	if notifChannels, err := s.countOf(ctx,
+		`SELECT COUNT(*) FROM notification_channels WHERE enabled = true`); err != nil {
+		unassessed(err, "notification channels could not be read", controls[4])
 	} else {
-		controls[4].Score = 30
-		controls[4].Status = "partial"
+		controls[4].Evidence = fmt.Sprintf("%d active notification channels", notifChannels)
+		if notifChannels > 0 {
+			controls[4].Score = 85
+			controls[4].Status = StatusCompliant
+		} else {
+			controls[4].Score = 30
+			controls[4].Status = StatusPartial
+		}
 	}
 
 	return controls
@@ -484,96 +604,116 @@ func (s *Scorer) scoreRespond(ctx context.Context) []*Control {
 	now := time.Now().UTC()
 	for _, ctrl := range controls {
 		ctrl.LastAssessed = now
+		ctrl.Score = 0
+		ctrl.Status = StatusNotAssessed
 	}
 
 	if s.pool == nil {
-		for _, ctrl := range controls {
-			ctrl.Score = 60
-			ctrl.Status = "partial"
-		}
+		unassessed(nil, noDatabase, controls...)
 		return controls
 	}
 
 	// RS.RP-1: Playbooks defined
-	var playbookCount int
-	_ = s.pool.QueryRow(ctx, `SELECT COUNT(*) FROM playbooks`).Scan(&playbookCount)
-	controls[0].Evidence = fmt.Sprintf("%d incident response playbooks defined", playbookCount)
-	if playbookCount >= 3 {
-		controls[0].Score = 85
-		controls[0].Status = "compliant"
-	} else if playbookCount > 0 {
-		controls[0].Score = 60
-		controls[0].Status = "partial"
+	if playbookCount, err := s.countOf(ctx, `SELECT COUNT(*) FROM playbooks`); err != nil {
+		unassessed(err, "response playbooks could not be read", controls[0])
 	} else {
-		controls[0].Score = 20
-		controls[0].Status = "non_compliant"
+		controls[0].Evidence = fmt.Sprintf("%d incident response playbooks defined", playbookCount)
+		switch {
+		case playbookCount >= 3:
+			controls[0].Score = 85
+			controls[0].Status = StatusCompliant
+		case playbookCount > 0:
+			controls[0].Score = 60
+			controls[0].Status = StatusPartial
+		default:
+			controls[0].Score = 20
+			controls[0].Status = StatusNonCompliant
+		}
 	}
 
 	// RS.CO-2: Incident creation rate
-	var incidentCount int
-	_ = s.pool.QueryRow(ctx, `SELECT COUNT(*) FROM incidents WHERE created_at > NOW() - INTERVAL '30 days'`).Scan(&incidentCount)
-	controls[1].Evidence = fmt.Sprintf("%d incidents reported in last 30 days", incidentCount)
-	if incidentCount > 0 {
-		controls[1].Score = 80
-		controls[1].Status = "compliant"
+	if incidentCount, err := s.countOf(ctx,
+		`SELECT COUNT(*) FROM incidents WHERE created_at > NOW() - INTERVAL '30 days'`); err != nil {
+		unassessed(err, "incident history could not be read", controls[1])
 	} else {
-		controls[1].Score = 50
-		controls[1].Status = "partial"
+		controls[1].Evidence = fmt.Sprintf("%d incidents reported in last 30 days", incidentCount)
+		if incidentCount > 0 {
+			controls[1].Score = 80
+			controls[1].Status = StatusCompliant
+		} else {
+			controls[1].Score = 50
+			controls[1].Status = StatusPartial
+		}
 	}
 
-	// RS.AN-1: Alert resolution rate (from average resolution time)
+	// RS.AN-1: Alert resolution rate (from average resolution time).
+	//
+	// COALESCE makes "no resolved alerts" and "query failed" both arrive as 0.0,
+	// and the control read 0.0 as a real finding — "Average alert resolution
+	// time: 0.0 hours", scored 30/partial. Only the error tells them apart.
 	var avgResolutionH float64
-	_ = s.pool.QueryRow(ctx, `
+	if err := s.pool.QueryRow(ctx, `
 		SELECT COALESCE(AVG(EXTRACT(EPOCH FROM (resolved_at - created_at))/3600), 0)
 		FROM alerts
 		WHERE resolved_at IS NOT NULL
 		  AND created_at > NOW() - INTERVAL '30 days'
-	`).Scan(&avgResolutionH)
-	controls[2].Evidence = fmt.Sprintf("Average alert resolution time: %.1f hours", avgResolutionH)
-	if avgResolutionH > 0 && avgResolutionH <= 4 {
-		controls[2].Score = 95
-		controls[2].Status = "compliant"
-	} else if avgResolutionH > 0 && avgResolutionH <= 24 {
-		controls[2].Score = 75
-		controls[2].Status = "partial"
-	} else if avgResolutionH > 0 {
-		controls[2].Score = 50
-		controls[2].Status = "partial"
+	`).Scan(&avgResolutionH); err != nil {
+		unassessed(err, "alert resolution times could not be read", controls[2])
 	} else {
-		controls[2].Score = 30
-		controls[2].Status = "partial"
+		switch {
+		case avgResolutionH <= 0:
+			controls[2].Score = 30
+			controls[2].Status = StatusPartial
+			controls[2].Evidence = "No alerts resolved in last 30 days"
+		case avgResolutionH <= 4:
+			controls[2].Score = 95
+			controls[2].Status = StatusCompliant
+			controls[2].Evidence = fmt.Sprintf("Average alert resolution time: %.1f hours", avgResolutionH)
+		case avgResolutionH <= 24:
+			controls[2].Score = 75
+			controls[2].Status = StatusPartial
+			controls[2].Evidence = fmt.Sprintf("Average alert resolution time: %.1f hours", avgResolutionH)
+		default:
+			controls[2].Score = 50
+			controls[2].Status = StatusPartial
+			controls[2].Evidence = fmt.Sprintf("Average alert resolution time: %.1f hours", avgResolutionH)
+		}
 	}
 
 	// RS.MI-1: Isolation/quarantine actions
-	var isolationCount int
-	_ = s.pool.QueryRow(ctx, `
+	if isolationCount, err := s.countOf(ctx, `
 		SELECT COUNT(*) FROM response_actions
 		WHERE action_type IN ('isolate', 'quarantine')
 		  AND executed_at > NOW() - INTERVAL '30 days'
-	`).Scan(&isolationCount)
-	controls[3].Evidence = fmt.Sprintf("%d containment actions in last 30 days", isolationCount)
-	if isolationCount > 0 {
-		controls[3].Score = 80
-		controls[3].Status = "compliant"
+	`); err != nil {
+		unassessed(err, "containment actions could not be read", controls[3])
 	} else {
-		controls[3].Score = 50
-		controls[3].Status = "partial"
+		controls[3].Evidence = fmt.Sprintf("%d containment actions in last 30 days", isolationCount)
+		if isolationCount > 0 {
+			controls[3].Score = 80
+			controls[3].Status = StatusCompliant
+		} else {
+			controls[3].Score = 50
+			controls[3].Status = StatusPartial
+		}
 	}
 
 	// RS.IM-1: Post-incident tracking
-	var resolvedIncidents int
-	_ = s.pool.QueryRow(ctx, `
+	if resolvedIncidents, err := s.countOf(ctx, `
 		SELECT COUNT(*) FROM incidents
 		WHERE status IN ('resolved', 'closed')
 		  AND created_at > NOW() - INTERVAL '90 days'
-	`).Scan(&resolvedIncidents)
-	controls[4].Evidence = fmt.Sprintf("%d incidents resolved in last 90 days", resolvedIncidents)
-	if resolvedIncidents > 0 {
-		controls[4].Score = 75
-		controls[4].Status = "partial"
+	`); err != nil {
+		unassessed(err, "resolved incidents could not be read", controls[4])
 	} else {
-		controls[4].Score = 40
-		controls[4].Status = "partial"
+		controls[4].Evidence = fmt.Sprintf("%d incidents resolved in last 90 days", resolvedIncidents)
+		if resolvedIncidents > 0 {
+			controls[4].Score = 75
+			controls[4].Status = StatusPartial
+		} else {
+			controls[4].Score = 40
+			controls[4].Status = StatusPartial
+		}
 	}
 
 	return controls
@@ -619,44 +759,67 @@ func (s *Scorer) scoreRecover(ctx context.Context) []*Control {
 		ctrl.LastAssessed = now
 	}
 
-	// RC.RP-1: Static score if no recovery table
-	controls[0].Score = 60
-	controls[0].Status = "partial"
-	controls[0].Evidence = "Recovery plan documentation not linked to system"
-
-	controls[1].Score = 55
-	controls[1].Status = "partial"
-	controls[1].Evidence = "Lessons learned process not automated"
-
-	controls[2].Score = 65
-	controls[2].Status = "partial"
-	controls[2].Evidence = "Notification channels configured for recovery communication"
+	// RC.RP-1, RC.IM-1, RC.CO-3 and RC.CO-1 have no evidence source. Each used to
+	// carry a fixed score — 60, 55, 65 and 50 — alongside evidence that said as
+	// much: "Recovery plan documentation not linked to system". A number derived
+	// from nothing was averaged in as though it had been assessed.
+	//
+	// That was the load-bearing half of this category. Once the queries above
+	// started reporting their failures, a completely dead database scored 58.1
+	// overall — better than the 42.5 a working one scored — because these four
+	// constants were the only controls left standing. They are not findings and
+	// no longer count as any.
+	unassessed(nil, "Recovery plan documentation not linked to system", controls[0])
+	unassessed(nil, "Lessons learned process not automated", controls[1])
+	unassessed(nil, "Recovery communication is not tracked by this platform", controls[2])
 
 	// RC.RP-2: Check backup history
-	if s.pool != nil {
-		var backupCount int
-		_ = s.pool.QueryRow(ctx, `
-			SELECT COUNT(*) FROM backup_manifests
-			WHERE created_at > NOW() - INTERVAL '30 days' AND status = 'success'
-		`).Scan(&backupCount)
+	if s.pool == nil {
+		unassessed(nil, noDatabase, controls[3])
+	} else if backupCount, err := s.recentSuccessfulBackups(ctx); err != nil {
+		unassessed(err, "backup history could not be read", controls[3])
+	} else {
 		controls[3].Evidence = fmt.Sprintf("%d successful backups in last 30 days", backupCount)
 		if backupCount > 0 {
 			controls[3].Score = 85
-			controls[3].Status = "compliant"
+			controls[3].Status = StatusCompliant
 		} else {
 			controls[3].Score = 30
-			controls[3].Status = "non_compliant"
+			controls[3].Status = StatusNonCompliant
 		}
-	} else {
-		controls[3].Score = 60
-		controls[3].Status = "partial"
 	}
 
-	controls[4].Score = 50
-	controls[4].Status = "partial"
-	controls[4].Evidence = "Manual PR management process"
+	unassessed(nil, "Manual PR management process — not tracked by this platform", controls[4])
 
 	return controls
+}
+
+// recentSuccessfulBackups counts backups from the last 30 days that finished and
+// were verified. It is the single evidence source behind NIST CSF RC.RP-2 and
+// ISO 27001 A.17.1.1–A.17.1.3, which previously each carried their own copy of
+// the query.
+//
+// Two things were wrong with those copies. They filtered on
+// `status = 'success'`, a word no producer writes — internal/backup writes
+// backup.StatusCompleted and so does the column default — so the count was
+// structurally zero and all four controls scored 30/non_compliant on every
+// deployment, no matter how many backups had succeeded. And they looked only at
+// backup_manifests, the logical config export; the nightly pg_dump that
+// scheduler.BackupScheduler records in `backups` was not evidence of anything.
+//
+// UNION ALL rather than two counts summed in Go: one round trip, and the two
+// tables' timestamp columns differ (created_at vs started_at), which is easier
+// to get right once here than in each caller.
+func (s *Scorer) recentSuccessfulBackups(ctx context.Context) (int, error) {
+	return s.countOf(ctx, `
+		SELECT COUNT(*) FROM (
+			SELECT 1 FROM backup_manifests
+			WHERE created_at > NOW() - INTERVAL '30 days' AND status = $1
+			UNION ALL
+			SELECT 1 FROM backups
+			WHERE started_at > NOW() - INTERVAL '30 days' AND status = $1
+		) AS verified_backups
+	`, backup.StatusCompleted)
 }
 
 // ─── ISO 27001 ────────────────────────────────────────────────────────────────
@@ -676,6 +839,9 @@ func (s *Scorer) CalculateISO27001(ctx context.Context) (*Scorecard, error) {
 	s.calculateScores(sc)
 	sc.Recommendations = s.GetRecommendations(sc)
 
+	if sc.AssessedControls == 0 {
+		return sc, ErrNothingAssessed
+	}
 	return sc, nil
 }
 
@@ -785,14 +951,11 @@ func (s *Scorer) buildISO27001Controls(ctx context.Context) []*Control {
 	for _, ctrl := range controls {
 		ctrl.LastAssessed = now
 		ctrl.Score = 0
-		ctrl.Status = "not_assessed"
+		ctrl.Status = StatusNotAssessed
 	}
 
 	if s.pool == nil {
-		for _, ctrl := range controls {
-			ctrl.Score = 55
-			ctrl.Status = "partial"
-		}
+		unassessed(nil, noDatabase, controls...)
 		return controls
 	}
 
@@ -814,90 +977,129 @@ func (s *Scorer) scoreISO27001Controls(ctx context.Context, controls []*Control)
 	}
 
 	// A.8.1.1: Asset inventory
-	var assetCount int
-	_ = s.pool.QueryRow(ctx, `SELECT COUNT(*) FROM agents`).Scan(&assetCount)
 	if ctrl := find("A.8.1.1"); ctrl != nil {
-		ctrl.Evidence = fmt.Sprintf("%d assets in inventory", assetCount)
-		ctrl.Score = floatIf(assetCount > 0, 85, 10)
-		ctrl.Status = statusFromScore(ctrl.Score)
+		if assetCount, err := s.countOf(ctx, `SELECT COUNT(*) FROM agents`); err != nil {
+			unassessed(err, "asset inventory could not be read", ctrl)
+		} else {
+			ctrl.Evidence = fmt.Sprintf("%d assets in inventory", assetCount)
+			ctrl.Score = floatIf(assetCount > 0, 85, 10)
+			ctrl.Status = statusFromScore(ctrl.Score)
+		}
 	}
 
 	// A.9.4.2: MFA
-	var mfaCount, totalUsers int
-	_ = s.pool.QueryRow(ctx, `SELECT COUNT(*) FROM users WHERE mfa_enabled = true`).Scan(&mfaCount)
-	_ = s.pool.QueryRow(ctx, `SELECT COUNT(*) FROM users`).Scan(&totalUsers)
 	if ctrl := find("A.9.4.2"); ctrl != nil {
-		if totalUsers > 0 {
+		mfaCount, mfaErr := s.countOf(ctx, `SELECT COUNT(*) FROM users WHERE mfa_enabled = true`)
+		totalUsers, usersErr := s.countOf(ctx, `SELECT COUNT(*) FROM users`)
+		switch {
+		case mfaErr != nil:
+			unassessed(mfaErr, "MFA enrolment could not be read", ctrl)
+		case usersErr != nil:
+			unassessed(usersErr, "user directory could not be read", ctrl)
+		case totalUsers > 0:
 			rate := float64(mfaCount) / float64(totalUsers) * 100
 			ctrl.Score = rate
 			ctrl.Evidence = fmt.Sprintf("%d/%d users have MFA (%.0f%%)", mfaCount, totalUsers, rate)
-		} else {
+			ctrl.Status = statusFromScore(ctrl.Score)
+		default:
 			ctrl.Score = 40
 			ctrl.Evidence = "No users found"
+			ctrl.Status = statusFromScore(ctrl.Score)
 		}
-		ctrl.Status = statusFromScore(ctrl.Score)
 	}
 
 	// A.12.4.1: Audit logging
-	var auditCount int
-	_ = s.pool.QueryRow(ctx, `SELECT COUNT(*) FROM audit_logs WHERE created_at > NOW() - INTERVAL '7 days'`).Scan(&auditCount)
 	if ctrl := find("A.12.4.1"); ctrl != nil {
-		ctrl.Evidence = fmt.Sprintf("%d audit entries in last 7 days", auditCount)
-		ctrl.Score = floatIf(auditCount > 0, 90, 20)
-		ctrl.Status = statusFromScore(ctrl.Score)
+		if auditCount, err := s.countOf(ctx,
+			`SELECT COUNT(*) FROM audit_logs WHERE created_at > NOW() - INTERVAL '7 days'`); err != nil {
+			unassessed(err, "audit log could not be read", ctrl)
+		} else {
+			ctrl.Evidence = fmt.Sprintf("%d audit entries in last 7 days", auditCount)
+			ctrl.Score = floatIf(auditCount > 0, 90, 20)
+			ctrl.Status = statusFromScore(ctrl.Score)
+		}
 	}
 
 	// A.12.6.1: Vulnerability management
-	var vulnCount int
-	_ = s.pool.QueryRow(ctx, `SELECT COUNT(*) FROM vulnerabilities`).Scan(&vulnCount)
 	if ctrl := find("A.12.6.1"); ctrl != nil {
-		ctrl.Evidence = fmt.Sprintf("%d vulnerabilities tracked", vulnCount)
-		ctrl.Score = floatIf(vulnCount > 0, 80, 35)
-		ctrl.Status = statusFromScore(ctrl.Score)
+		if vulnCount, err := s.countOf(ctx, `SELECT COUNT(*) FROM vulnerabilities`); err != nil {
+			unassessed(err, "vulnerability findings could not be read", ctrl)
+		} else {
+			ctrl.Evidence = fmt.Sprintf("%d vulnerabilities tracked", vulnCount)
+			ctrl.Score = floatIf(vulnCount > 0, 80, 35)
+			ctrl.Status = statusFromScore(ctrl.Score)
+		}
 	}
 
 	// A.16.1.2: Incident reporting
-	var incidentCount int
-	_ = s.pool.QueryRow(ctx, `SELECT COUNT(*) FROM incidents WHERE created_at > NOW() - INTERVAL '30 days'`).Scan(&incidentCount)
 	if ctrl := find("A.16.1.2"); ctrl != nil {
-		ctrl.Evidence = fmt.Sprintf("%d incidents reported in last 30 days", incidentCount)
-		ctrl.Score = floatIf(incidentCount > 0, 85, 45)
-		ctrl.Status = statusFromScore(ctrl.Score)
+		if incidentCount, err := s.countOf(ctx,
+			`SELECT COUNT(*) FROM incidents WHERE created_at > NOW() - INTERVAL '30 days'`); err != nil {
+			unassessed(err, "incident history could not be read", ctrl)
+		} else {
+			ctrl.Evidence = fmt.Sprintf("%d incidents reported in last 30 days", incidentCount)
+			ctrl.Score = floatIf(incidentCount > 0, 85, 45)
+			ctrl.Status = statusFromScore(ctrl.Score)
+		}
 	}
 
 	// A.17.1.1-A.17.1.3: Continuity (backup-based)
-	var backupCount int
-	_ = s.pool.QueryRow(ctx, `
-		SELECT COUNT(*) FROM backup_manifests
-		WHERE created_at > NOW() - INTERVAL '30 days' AND status = 'success'
-	`).Scan(&backupCount)
-	contScore := floatIf(backupCount > 0, 75, 30)
+	continuity := []*Control{}
 	for _, id := range []string{"A.17.1.1", "A.17.1.2", "A.17.1.3"} {
 		if ctrl := find(id); ctrl != nil {
+			continuity = append(continuity, ctrl)
+		}
+	}
+	if backupCount, err := s.recentSuccessfulBackups(ctx); err != nil {
+		unassessed(err, "backup history could not be read", continuity...)
+	} else {
+		contScore := floatIf(backupCount > 0, 75, 30)
+		for _, ctrl := range continuity {
 			ctrl.Score = contScore
 			ctrl.Evidence = fmt.Sprintf("%d successful backups in last 30 days", backupCount)
 			ctrl.Status = statusFromScore(ctrl.Score)
 		}
 	}
 
-	// Fill any remaining not_assessed with partial scores
+	// The remaining controls — policy, roles, teleworking, cryptography, and the
+	// rest of the clauses this platform holds no evidence for — used to be filled
+	// in with a flat 55/partial and the evidence "Manual assessment required".
+	// Nineteen of the twenty-six controls, which is to say most of the ISO 27001
+	// score was a constant. They stay not_assessed now and are left out of the
+	// average, so the score reports what the platform actually measured and
+	// assessed_controls says how much of the standard that covers.
 	for _, ctrl := range controls {
-		if ctrl.Status == "not_assessed" {
-			ctrl.Score = 55
-			ctrl.Status = "partial"
-			ctrl.Evidence = "Manual assessment required"
+		if ctrl.Status == StatusNotAssessed && ctrl.Evidence == "" {
+			ctrl.Evidence = "No automated evidence source — manual assessment required"
 		}
 	}
 }
 
 // ─── Scoring Helpers ──────────────────────────────────────────────────────────
 
-// calculateScores computes category and overall weighted scores.
+// calculateScores computes category and overall weighted scores over the
+// controls that were actually assessed.
+//
+// Unassessed controls used to be averaged in at their score of zero, which made
+// "we could not read the audit log" cost exactly as much as "there is no audit
+// log". Losing the two Identify queries dropped that category from 51.1 to 21.1
+// on a database that had not changed. Excluding them means a failure moves
+// AssessedControls rather than the score, and the two are separately visible.
+//
+// A category where nothing could be assessed is omitted from CategoryScores
+// rather than reported as zero, for the same reason.
 func (s *Scorer) calculateScores(sc *Scorecard) {
 	categoryWeights := make(map[string]float64)
 	categoryScores := make(map[string]float64)
 
+	sc.TotalControls = len(sc.Controls)
+	sc.AssessedControls = 0
+	sc.OverallScore = 0
 	for _, ctrl := range sc.Controls {
+		if !ctrl.assessed() {
+			continue
+		}
+		sc.AssessedControls++
 		categoryWeights[ctrl.Category] += ctrl.Weight
 		categoryScores[ctrl.Category] += ctrl.Score * ctrl.Weight
 	}
@@ -927,9 +1129,21 @@ func (s *Scorer) GetRecommendations(sc *Scorecard) []string {
 		cat   string
 	}
 
+	// Counted from the controls rather than read from sc.AssessedControls, which
+	// only calculateScores fills in: recommendations must not depend on having
+	// been called in the right order.
+	assessed := 0
 	var candidates []scoredControl
 	for _, ctrl := range sc.Controls {
-		if ctrl.Status != "compliant" {
+		if !ctrl.assessed() {
+			// An unassessed control has no score to improve on. It used to sort
+			// to the very front — score zero beats every real finding — so a
+			// failed query produced the page's top recommendation, phrased as
+			// advice about the customer's posture.
+			continue
+		}
+		assessed++
+		if ctrl.Status != StatusCompliant {
 			candidates = append(candidates, scoredControl{
 				name:  ctrl.Name,
 				score: ctrl.Score,
@@ -955,6 +1169,9 @@ func (s *Scorer) GetRecommendations(sc *Scorecard) []string {
 	}
 
 	if len(recommendations) == 0 {
+		if assessed == 0 {
+			return []string{"No control could be assessed. Check the platform's database connectivity before reading this report."}
+		}
 		recommendations = append(recommendations, "All assessed controls are compliant. Continue regular reviews.")
 	}
 	return recommendations

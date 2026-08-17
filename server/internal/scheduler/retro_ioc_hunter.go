@@ -54,7 +54,7 @@ func NewRetroIOCHunter(pool *pgxpool.Pool, nc *nats.Conn, lookbackDays int, inte
 // Run hunts once on startup, then every interval, until ctx is cancelled.
 func (h *RetroIOCHunter) Run(ctx context.Context) {
 	slog.Info("レトロアクティブIOCハンター起動", "lookback", h.lookback, "interval", h.interval)
-	h.hunt(ctx)
+	trackRun(ctx, "retro_ioc_hunter", h.hunt)
 	ticker := time.NewTicker(h.interval)
 	defer ticker.Stop()
 	for {
@@ -62,7 +62,7 @@ func (h *RetroIOCHunter) Run(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			h.hunt(ctx)
+			trackRun(ctx, "retro_ioc_hunter", h.hunt)
 		}
 	}
 }
@@ -75,20 +75,56 @@ func (h *RetroIOCHunter) hunt(ctx context.Context) {
 		return // table missing or unreadable — skip silently (idempotent next run)
 	}
 
-	ips, domains := h.loadNewIOCs(ctx, watermark)
-	if len(ips) == 0 && len(domains) == 0 {
+	ips, domains, hashes, complete := h.loadNewIOCs(ctx, watermark)
+	if len(ips) == 0 && len(domains) == 0 && len(hashes) == 0 {
+		if !complete {
+			// 「新規IOCなし」と「IOCを読めなかった」は同じ空集合です。
+			// 後者で watermark を進めると、読めなかったIOCは照合済みとして
+			// 二度と対象になりません。
+			slog.Warn("レトロIOCハンター: IOCを読み切れなかったため watermark を進めません")
+			return
+		}
 		slog.Debug("レトロIOCハンター: 新規IOCなし")
 		h.advanceWatermark(ctx) // still advance so the window does not grow unbounded
 		return
 	}
-	slog.Info("レトロIOCハンター: 新規IOCを履歴照合します", "ips", len(ips), "domains", len(domains))
+	slog.Info("レトロIOCハンター: 新規IOCを履歴照合します",
+		"ips", len(ips), "domains", len(domains), "hashes", len(hashes))
 
 	matches := 0
-	matches += h.huntField(ctx, "network", "dst_ip", ips, ipDomainThreat(ips))
-	matches += h.huntField(ctx, "dns", "query", domains, ipDomainThreat(domains))
+	scan := func(eventType, field string, lower bool, iocs iocMeta) {
+		n, ok := h.huntField(ctx, eventType, field, lower, iocs, ipDomainThreat(iocs))
+		matches += n
+		complete = complete && ok
+	}
+	scan("network", "dst_ip", false, ips)
+	scan("dns", "query", true, domains)
+
+	// Hash IOCs were previously hunted by nothing. scheduler.IOCMatcher claimed
+	// to do it every minute but guarded on a process_events table that no
+	// migration creates, so no hash was ever compared against a process; that
+	// worker is gone. detection.IOCMatcher covers hashes on live events in
+	// cmd/detection, which leaves history — the half this component exists for.
+	//
+	// Hashes are carried by process, file and image_load events, under the three
+	// key names addHashes writes. Compared lowercased, as detection.IOCMatcher
+	// does, because feeds and agents disagree on case.
+	for _, eventType := range []string{"process", "file", "image_load"} {
+		for _, field := range []string{"sha256", "md5", "sha1"} {
+			scan(eventType, field, true, hashes)
+		}
+	}
 
 	if matches > 0 {
 		slog.Warn("レトロIOCハンター: 過去のイベントにIOC一致を検出", "matches", matches)
+	}
+	// watermark は「ここまでは照合し終えた」という宣言です。読み切れていない
+	// パスで進めると、その区間は永久に未照合のまま「照合済み」になります。
+	// 進めなければ次回やり直せます — 窓が広がるコストの方がはるかに安いです。
+	if !complete {
+		slog.Warn("レトロIOCハンター: 履歴を読み切れなかったため watermark を進めません。" +
+			"次回のパスでやり直します")
+		return
 	}
 	h.advanceWatermark(ctx)
 }
@@ -106,7 +142,7 @@ func (h *RetroIOCHunter) loadWatermark(ctx context.Context) (time.Time, bool) {
 	var wm time.Time
 	err := h.pool.QueryRow(ctx, `SELECT last_hunted_at FROM ioc_hunt_state WHERE id = 1`).Scan(&wm)
 	if err != nil {
-		slog.Debug("レトロIOCハンター: watermark取得をスキップ", "error", err)
+		fail(ctx, err, "レトロIOCハンター: watermark取得をスキップ")
 		return time.Time{}, false
 	}
 	return wm, true
@@ -118,34 +154,69 @@ func (h *RetroIOCHunter) advanceWatermark(ctx context.Context) {
 	_, err := h.pool.Exec(ctx,
 		`UPDATE ioc_hunt_state SET last_hunted_at = NOW(), updated_at = NOW() WHERE id = 1`)
 	if err != nil {
-		slog.Warn("レトロIOCハンター: watermark前進に失敗", "error", err)
+		fail(ctx, err, "レトロIOCハンター: watermark前進に失敗")
 	}
 }
 
 // loadNewIOCs loads active IOCs whose first_seen is newer than the watermark,
 // partitioned into ip and domain value→threatLevel maps. Hash IOCs are omitted:
 // the events store does not carry a file-hash field to match against.
-func (h *RetroIOCHunter) loadNewIOCs(ctx context.Context, watermark time.Time) (ips, domains iocMeta) {
+// complete=false means the IOC set is a partial one — the caller must not treat
+// this pass as having covered everything, because the watermark it would advance
+// says exactly that.
+func (h *RetroIOCHunter) loadNewIOCs(ctx context.Context, watermark time.Time) (ips, domains, hashes iocMeta, complete bool) {
 	ips = iocMeta{}
 	domains = iocMeta{}
+	hashes = iocMeta{}
+	// Reads `type`, `is_active` and `severity` — the same three columns
+	// cmd/detection's ListActiveIOCs uses for live matching.
+	//
+	// It used to read ioc_type, enabled and threat_level, which are the other
+	// half of three duplicated pairs on this table, and the wrong half of each:
+	//
+	//	type      NOT NULL, CHECK (hash|ip|domain|url|email)
+	//	ioc_type  nullable, unconstrained — 4 of the 6 writers never set it,
+	//	          including manual adds (store/ioc.go) and the TAXII and STIX
+	//	          importers
+	//	is_active what store.SetActive toggles, and what live matching filters on
+	//	enabled   never updated by anything after insert
+	//	severity  1-10, set by every importer
+	//	threat_level  defaults to 5 and is left there by every path but one
+	//
+	// The nullable column was the serious one. A NULL ioc_type fails the Scan
+	// below, and in pgx a scan error ends the iteration — so a single manually
+	// added indicator did not merely skip itself, it aborted the whole batch
+	// and every IOC ordered after it went unhunted. Measured: one well-formed
+	// domain IOC loaded on its own; adding one NULL-ioc_type row ahead of it by
+	// first_seen dropped the load to nothing.
+	//
+	// The other two were quieter. Deactivating an indicator through the API
+	// clears is_active, which this never consulted, so retro hunting carried on
+	// alerting on it. And every retro alert took its severity from
+	// threat_level's default rather than the severity the feed actually set.
 	rows, err := h.pool.Query(ctx, `
-		SELECT value, ioc_type, COALESCE(threat_level, 3)
+		SELECT value, type, COALESCE(severity, 5)
 		FROM ioc_entries
-		WHERE enabled = true AND first_seen > $1
+		WHERE is_active = true AND first_seen > $1
 		ORDER BY first_seen
 		LIMIT $2`,
 		watermark, h.maxNewIOCs,
 	)
 	if err != nil {
-		slog.Debug("レトロIOCハンター: 新規IOC読み込みをスキップ", "error", err)
-		return ips, domains
+		fail(ctx, err, "レトロIOCハンター: 新規IOCを読み込めませんでした")
+		return ips, domains, hashes, false
 	}
 	defer rows.Close()
 	for rows.Next() {
 		var value, iocType string
 		var threat int
-		if rows.Scan(&value, &iocType, &threat) != nil {
-			continue
+		if err := rows.Scan(&value, &iocType, &threat); err != nil {
+			// pgx ends iteration on a scan error, so this is the end of the
+			// batch whatever we do — say so rather than returning a silently
+			// truncated IOC set as though it were complete.
+			fail(ctx, err, "レトロIOCハンター: IOC行の読み取りに失敗しました。"+
+				"このバッチの残りは処理されません")
+			return ips, domains, hashes, false
 		}
 		value = strings.TrimSpace(value)
 		if value == "" {
@@ -156,27 +227,39 @@ func (h *RetroIOCHunter) loadNewIOCs(ctx context.Context, watermark time.Time) (
 			ips[value] = threat
 		case "domain", "hostname":
 			domains[strings.ToLower(value)] = threat
+		case "hash", "md5", "sha1", "sha256":
+			// The same vocabulary detection.IOCMatcher groups under "hash".
+			hashes[strings.ToLower(value)] = threat
 		}
 	}
-	return ips, domains
+	// 途中で失敗した反復は短いIOC集合を残します。watermark を進めると、
+	// 読めなかったぶんのIOCは「照合済み」になり二度と対象になりません。
+	if err := rows.Err(); err != nil {
+		fail(ctx, err, "レトロIOCハンター: IOC一覧の走査に失敗しました。"+
+			"このパスは未完了として扱います")
+		return ips, domains, hashes, false
+	}
+	return ips, domains, hashes, true
 }
 
 // huntField scans historical events of eventType whose raw_data->>field matches any
 // of the given IOC values, creating a deduplicated retro alert per matching event.
 // Returns the number of alerts created.
-func (h *RetroIOCHunter) huntField(ctx context.Context, eventType, field string, iocs, threat iocMeta) int {
+// complete=false means this scan did not cover the whole window it claimed to.
+func (h *RetroIOCHunter) huntField(ctx context.Context, eventType, field string, lower bool, iocs, threat iocMeta) (created int, complete bool) {
 	if len(iocs) == 0 {
-		return 0
+		return 0, true
 	}
 	values := make([]string, 0, len(iocs))
 	for v := range iocs {
 		values = append(values, v)
 	}
 
-	// Match historical events against the new-IOC value set. LOWER() on the dns
-	// query mirrors the lowercased domain keys; dst_ip is compared as-is.
+	// Match historical events against the new-IOC value set. `lower` mirrors the
+	// lowercased keys the caller built — domains and hashes are folded, dst_ip is
+	// compared as-is.
 	expr := "raw_data->>'" + field + "'"
-	if eventType == "dns" {
+	if lower {
 		expr = "LOWER(" + expr + ")"
 	}
 	// NB: the events hypertable's identifier column is event_id (there is no `id`).
@@ -192,12 +275,11 @@ func (h *RetroIOCHunter) huntField(ctx context.Context, eventType, field string,
 	rows, err := h.pool.Query(ctx, q, eventType,
 		fmt.Sprintf("%d seconds", int(h.lookback.Seconds())), values, h.maxMatches)
 	if err != nil {
-		slog.Warn("レトロIOCハンター: 履歴スキャン失敗", "event_type", eventType, "error", err)
-		return 0
+		fail(ctx, err, "レトロIOCハンター: 履歴スキャン失敗", "event_type", eventType)
+		return 0, false
 	}
 	defer rows.Close()
 
-	created := 0
 	for rows.Next() {
 		var eventID, agentID, matched string
 		var ts time.Time
@@ -213,7 +295,15 @@ func (h *RetroIOCHunter) huntField(ctx context.Context, eventType, field string,
 			created++
 		}
 	}
-	return created
+	// 切り詰められた履歴スキャンは「一致なし」と見分けがつきません。
+	// この状態で watermark を進めると、走査できなかった区間は
+	// 二度と照合されません。
+	if err := rows.Err(); err != nil {
+		fail(ctx, err, "レトロIOCハンター: 履歴の走査が途中で終わりました。"+
+			"このパスは未完了として扱います", "event_type", eventType, "field", field)
+		return created, false
+	}
+	return created, true
 }
 
 // createRetroAlert inserts a deduplicated retro-hunt alert. Dedup keys on the
@@ -229,12 +319,15 @@ func (h *RetroIOCHunter) createRetroAlert(ctx context.Context, eventID, agentID,
 		return false
 	}
 
+	// alerts.severity is CHECK (1..10) and ioc_entries.severity uses the same
+	// scale. This used to clamp at 5, so a retro hit on a critical indicator
+	// could not produce an alert above the middle of the range.
 	severity := threat
 	if severity < 1 {
 		severity = 3
 	}
-	if severity > 5 {
-		severity = 5
+	if severity > 10 {
+		severity = 10
 	}
 
 	title := fmt.Sprintf("[RETRO] 過去のIOC一致: %s に %s へのアクセス", eventType, value)
@@ -261,7 +354,7 @@ func (h *RetroIOCHunter) createRetroAlert(ctx context.Context, eventID, agentID,
 		).Scan(&alertID)
 	}
 	if err != nil {
-		slog.Error("レトロIOCアラート作成に失敗", "title", title, "error", err)
+		fail(ctx, err, "レトロIOCアラート作成に失敗", "title", title)
 		return false
 	}
 	slog.Info("レトロIOCアラートを作成", "alert_id", alertID, "value", value, "event_type", eventType)

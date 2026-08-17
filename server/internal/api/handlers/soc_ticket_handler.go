@@ -25,11 +25,7 @@ func NewSOCTicketHandler(pool *pgxpool.Pool) *SOCTicketHandler {
 }
 
 func (h *SOCTicketHandler) ticketTableExists(c *gin.Context) bool {
-	ctx := c.Request.Context()
-	var exists bool
-	_ = h.pool.QueryRow(ctx,
-		`SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name='soc_tickets')`).Scan(&exists)
-	return exists
+	return tableIsThere(c.Request.Context(), h.pool, "soc_tickets")
 }
 
 func generateTicketNumber() string {
@@ -168,7 +164,9 @@ func (h *SOCTicketHandler) List(c *gin.Context) {
 		}
 	}
 	if err := rows.Err(); err != nil {
-		slog.Warn("row iteration error", "error", err)
+		slog.Error("rows.Err: 結果の読み出しが途中で失敗しました", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "チケット一覧の取得に失敗しました"})
+		return
 	}
 	if result == nil {
 		result = []socTicket{}
@@ -202,12 +200,13 @@ func (h *SOCTicketHandler) Get(c *gin.Context) {
 		CreatedAt string  `json:"created_at"`
 	}
 	var comments []comment
-	var commentTableExists bool
-	_ = h.pool.QueryRow(ctx,
-		`SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name='soc_ticket_comments')`).Scan(&commentTableExists)
+	commentTableExists := tableIsThere(ctx, h.pool, "soc_ticket_comments")
 	if commentTableExists {
-		crows, _ := h.pool.Query(ctx,
+		crows, err := h.pool.Query(ctx,
 			`SELECT id, ticket_id, content, author_id, created_at FROM soc_ticket_comments WHERE ticket_id=$1 ORDER BY created_at`, id)
+		if !ReadOK(c, err) {
+			return
+		}
 		if crows != nil {
 			defer crows.Close()
 			for crows.Next() {
@@ -351,9 +350,7 @@ func (h *SOCTicketHandler) Close(c *gin.Context) {
 // POST /api/v1/soc/tickets/:id/comments
 func (h *SOCTicketHandler) AddComment(c *gin.Context) {
 	ctx := c.Request.Context()
-	var commentTableExists bool
-	_ = h.pool.QueryRow(ctx,
-		`SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name='soc_ticket_comments')`).Scan(&commentTableExists)
+	commentTableExists := tableIsThere(ctx, h.pool, "soc_ticket_comments")
 	if !commentTableExists {
 		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "テーブルが存在しません"})
 		return
@@ -399,19 +396,19 @@ func (h *SOCTicketHandler) CreateFromAlert(c *gin.Context) {
 
 	// Fetch alert
 	var alertTitle, alertDesc, alertSeverity string
-	var alertTableExists bool
-	_ = h.pool.QueryRow(ctx,
-		`SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name='alerts')`).Scan(&alertTableExists)
+	alertTableExists := tableIsThere(ctx, h.pool, "alerts")
 
 	priority := "medium"
 	title := "アラートからのチケット"
 	description := ""
 
 	if alertTableExists {
-		_ = h.pool.QueryRow(ctx,
+		if !ReadOK(c, h.pool.QueryRow(ctx,
 			`SELECT COALESCE(title,''), COALESCE(description,''), CAST(severity AS TEXT) FROM alerts WHERE id=$1`,
 			body.AlertID,
-		).Scan(&alertTitle, &alertDesc, &alertSeverity)
+		).Scan(&alertTitle, &alertDesc, &alertSeverity)) {
+			return
+		}
 		if alertTitle != "" {
 			title = alertTitle
 		}
@@ -471,14 +468,16 @@ func (h *SOCTicketHandler) GetStats(c *gin.Context) {
 
 	var open, closed, inProgress, slaBreached int
 	var avgResolutionMin float64
-	_ = h.pool.QueryRow(ctx,
+	if !ReadOK(c, h.pool.QueryRow(ctx,
 		`SELECT
-		  COUNT(*) FILTER (WHERE status='open'),
-		  COUNT(*) FILTER (WHERE status='closed'),
-		  COUNT(*) FILTER (WHERE status='in_progress'),
-		  COALESCE(AVG(EXTRACT(EPOCH FROM (resolved_at - created_at))/60) FILTER (WHERE resolved_at IS NOT NULL), 0),
-		  COUNT(*) FILTER (WHERE sla_due_at < NOW() AND status != 'closed')
-		 FROM soc_tickets`).Scan(&open, &closed, &inProgress, &avgResolutionMin, &slaBreached)
+			  COUNT(*) FILTER (WHERE status='open'),
+			  COUNT(*) FILTER (WHERE status='closed'),
+			  COUNT(*) FILTER (WHERE status='in_progress'),
+			  COALESCE(AVG(EXTRACT(EPOCH FROM (resolved_at - created_at))/60) FILTER (WHERE resolved_at IS NOT NULL), 0),
+			  COUNT(*) FILTER (WHERE sla_due_at < NOW() AND status != 'closed')
+			 FROM soc_tickets`).Scan(&open, &closed, &inProgress, &avgResolutionMin, &slaBreached)) {
+		return
+	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"open":               open,

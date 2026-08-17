@@ -69,7 +69,7 @@ func (s *CurateScheduler) Run(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			s.tick(ctx)
+			trackRun(ctx, "curate_scheduler", s.tick)
 		}
 	}
 }
@@ -78,7 +78,7 @@ func (s *CurateScheduler) tick(ctx context.Context) {
 	// 0) Self-heal the quarantined⟹disabled invariant: a manual/API enable batch can
 	// re-enable an FP-quarantined rule without clearing its state, so it keeps firing.
 	if n, err := s.svc.ReconcileQuarantined(ctx); err != nil {
-		slog.Warn("CurateScheduler: 隔離整合の是正に失敗", "error", err)
+		fail(ctx, err, "CurateScheduler: 隔離整合の是正に失敗")
 	} else if n > 0 {
 		metrics.CurateQuarantineReconciled.Add(float64(n))
 		slog.Warn("CurateScheduler: 隔離済みなのに有効だったルールを再無効化しました", "count", n)
@@ -86,7 +86,7 @@ func (s *CurateScheduler) tick(ctx context.Context) {
 
 	// 1) Backstop: disable any curate-enabled rule that turned noisy.
 	if quarantined, err := s.svc.MonitorFP(ctx, s.fpWindow, s.fpThreshold); err != nil {
-		slog.Warn("CurateScheduler: FP監視に失敗", "error", err)
+		fail(ctx, err, "CurateScheduler: FP監視に失敗")
 	} else if len(quarantined) > 0 {
 		slog.Info("CurateScheduler: 騒がしいルールを自動隔離しました", "count", len(quarantined))
 	}
@@ -98,7 +98,7 @@ func (s *CurateScheduler) tick(ctx context.Context) {
 	if s.inertTicks >= s.inertEvery {
 		s.inertTicks = 0
 		if inert, err := s.svc.InertRules(ctx, 7*24*time.Hour, 7*24*time.Hour); err != nil {
-			slog.Warn("CurateScheduler: 発火0カナリアに失敗", "error", err)
+			fail(ctx, err, "CurateScheduler: 発火0カナリアに失敗")
 		} else {
 			metrics.CurateInertRules.Set(float64(len(inert)))
 			if len(inert) > 0 {
@@ -117,7 +117,7 @@ func (s *CurateScheduler) tick(ctx context.Context) {
 		// or one whose telemetry coverage regressed. Driven to 0 on 2026-07-03; a rise
 		// means the field contract of the enabled set is rotting.
 		if fg, err := s.svc.FalseGreenRules(ctx); err != nil {
-			slog.Warn("CurateScheduler: false-greenカナリアに失敗", "error", err)
+			fail(ctx, err, "CurateScheduler: false-greenカナリアに失敗")
 		} else {
 			metrics.CurateFalseGreenRules.Set(float64(len(fg)))
 			if len(fg) > 0 {
@@ -135,7 +135,7 @@ func (s *CurateScheduler) tick(ctx context.Context) {
 		// how many false-green rules exist; this says which agent field to emit next to
 		// resurrect the most of them (emit field X → N rules). A live recall roadmap.
 		if inert, gaps, err := s.svc.FieldGapReport(ctx); err != nil {
-			slog.Warn("CurateScheduler: field-gapカナリアに失敗", "error", err)
+			fail(ctx, err, "CurateScheduler: field-gapカナリアに失敗")
 		} else if len(gaps) > 0 {
 			for _, g := range gaps {
 				metrics.CurateFieldGap.WithLabelValues(g.Field).Set(float64(g.Rules))
@@ -159,7 +159,7 @@ func (s *CurateScheduler) tick(ctx context.Context) {
 	}
 	res, err := s.svc.RunRound(ctx, nil, s.perCategoryCap)
 	if err != nil {
-		slog.Warn("CurateScheduler: curateラウンドに失敗", "error", err)
+		fail(ctx, err, "CurateScheduler: curateラウンドに失敗")
 		return
 	}
 	if res.Enabled > 0 {

@@ -375,31 +375,9 @@ func TestFetchPublicIP_RefetchesAfterExpiry(t *testing.T) {
 
 func TestHeartbeatRequest_ZeroValue(t *testing.T) {
 	var req HeartbeatRequest
-	if req.AgentID != "" || req.CPUUsage != 0 || req.EventsBuffered != 0 {
+	// CPUUsage は *float64 です。**ゼロ値は 0 ではなく nil**で、
+	// 「測っていない」を意味します。0 だと「アイドル」という測定値です。
+	if req.AgentID != "" || req.CPUUsage != nil || req.EventsBuffered != 0 {
 		t.Error("zero-value HeartbeatRequest should have empty/zero fields")
-	}
-}
-
-func TestHeartbeatResponse_ConfigUpdateField(t *testing.T) {
-	tests := []struct {
-		available bool
-		version   uint64
-	}{
-		{true, 5},
-		{false, 0},
-		{true, 999},
-	}
-
-	for _, tc := range tests {
-		resp := HeartbeatResponse{
-			ConfigUpdateAvailable: tc.available,
-			LatestConfigVersion:   tc.version,
-		}
-		if resp.ConfigUpdateAvailable != tc.available {
-			t.Errorf("ConfigUpdateAvailable = %v, want %v", resp.ConfigUpdateAvailable, tc.available)
-		}
-		if resp.LatestConfigVersion != tc.version {
-			t.Errorf("LatestConfigVersion = %d, want %d", resp.LatestConfigVersion, tc.version)
-		}
 	}
 }

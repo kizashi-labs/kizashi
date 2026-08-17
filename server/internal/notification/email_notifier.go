@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/edr-platform/server/internal/mailhdr"
+	"github.com/edr-platform/server/internal/metrics"
 	"log/slog"
 	"net"
 	"net/smtp"
@@ -112,7 +113,7 @@ func (n *EmailNotifier) Start(ctx context.Context) {
 		}()
 	})
 	if err != nil {
-		slog.Warn("メール通知用NATSサブスクリプション失敗", "error", err)
+		metrics.BackgroundFailed("email_notifier", err, "メール通知用NATSサブスクリプション失敗")
 		return
 	}
 	defer sub.Unsubscribe()

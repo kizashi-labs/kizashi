@@ -133,6 +133,9 @@ func (s *ComplianceScoreStore) ListAll(ctx context.Context) ([]*ComplianceScore,
 		}
 		scores = append(scores, sc)
 	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
 	if scores == nil {
 		scores = []*ComplianceScore{}
 	}

@@ -61,6 +61,9 @@ func (s *ReportTemplateStore) List(ctx context.Context) ([]*ReportTemplate, erro
 		}
 		templates = append(templates, t)
 	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
 	if templates == nil {
 		templates = []*ReportTemplate{}
 	}
@@ -191,14 +194,15 @@ func scanReportTemplate(row rowScanner) (*ReportTemplate, error) {
 	}
 
 	if err := json.Unmarshal([]byte(sectionsJSON), &t.Sections); err != nil {
-		t.Sections = []ReportTemplateSection{}
+		// 節が空のテンプレートは、白紙のレポートを出します。
+		return nil, fmt.Errorf("レポートテンプレートの節を読めませんでした: %w", err)
 	}
 	if t.Sections == nil {
 		t.Sections = []ReportTemplateSection{}
 	}
 
 	if err := json.Unmarshal([]byte(variablesJSON), &t.Variables); err != nil {
-		t.Variables = map[string]interface{}{}
+		return nil, fmt.Errorf("レポートテンプレートの変数を読めませんでした: %w", err)
 	}
 	if t.Variables == nil {
 		t.Variables = map[string]interface{}{}

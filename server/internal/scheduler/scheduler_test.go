@@ -4,38 +4,6 @@ import (
 	"testing"
 )
 
-// ─── NewAlertAggregator ───────────────────────────────────────────────────────
-
-func TestNewAlertAggregator_NotNil(t *testing.T) {
-	a := NewAlertAggregator(nil)
-	if a == nil {
-		t.Fatal("NewAlertAggregator は nil を返すべきではありません")
-	}
-}
-
-func TestNewAlertAggregator_PoolNil(t *testing.T) {
-	a := NewAlertAggregator(nil)
-	if a.pool != nil {
-		t.Error("pool=nil で作成したとき pool は nil であるべきです")
-	}
-}
-
-// ─── NewIOCMatcher ────────────────────────────────────────────────────────────
-
-func TestNewIOCMatcher_NotNil(t *testing.T) {
-	m := NewIOCMatcher(nil, nil)
-	if m == nil {
-		t.Fatal("NewIOCMatcher は nil を返すべきではありません")
-	}
-}
-
-func TestNewIOCMatcher_PoolNil(t *testing.T) {
-	m := NewIOCMatcher(nil, nil)
-	if m.pool != nil {
-		t.Error("pool=nil で作成したとき pool は nil であるべきです")
-	}
-}
-
 // ─── NewInsiderThreatDetector ─────────────────────────────────────────────────
 
 func TestNewInsiderThreatDetector_NotNil(t *testing.T) {

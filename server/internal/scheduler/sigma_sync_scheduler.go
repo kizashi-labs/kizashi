@@ -54,7 +54,7 @@ func NewSigmaSyncScheduler(ruleStore *store.RuleStore, githubToken string, pub R
 func (s *SigmaSyncScheduler) Run(ctx context.Context) {
 	slog.Info("SigmaSyncScheduler: 開始", "interval", s.interval)
 
-	s.runOnce(ctx)
+	trackRun(ctx, "sigma_sync_scheduler", s.runOnce)
 
 	ticker := time.NewTicker(s.interval)
 	defer ticker.Stop()
@@ -64,7 +64,7 @@ func (s *SigmaSyncScheduler) Run(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			s.runOnce(ctx)
+			trackRun(ctx, "sigma_sync_scheduler", s.runOnce)
 		}
 	}
 }
@@ -83,7 +83,7 @@ func (s *SigmaSyncScheduler) runOnce(ctx context.Context) {
 	// 2026-06-25 — "too many clients"). Operators enable curated subsets via the
 	// rules API. nil paths → DefaultSyncPaths (telemetry-mapped categories only).
 	if err := s.syncer.Sync(ctx, false, nil); err != nil {
-		slog.Error("SigmaSyncScheduler: 同期に失敗しました", "error", err)
+		fail(ctx, err, "SigmaSyncScheduler: 同期に失敗しました")
 		return
 	}
 	st := s.syncer.Status()
@@ -97,7 +97,7 @@ func (s *SigmaSyncScheduler) runOnce(ctx context.Context) {
 	// Reload the live rule set only when something actually changed.
 	if s.publisher != nil && (st.Imported > 0 || st.Updated > 0) {
 		if err := s.publisher.Publish("rules.invalidate", []byte("{}")); err != nil {
-			slog.Warn("SigmaSyncScheduler: rules.invalidate発行失敗", "error", err)
+			fail(ctx, err, "SigmaSyncScheduler: rules.invalidate発行失敗")
 		} else {
 			slog.Info("SigmaSyncScheduler: rules.invalidate を発行しました（検知エンジン再読込）")
 		}

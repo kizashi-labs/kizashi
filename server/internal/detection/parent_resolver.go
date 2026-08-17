@@ -1,12 +1,16 @@
 // Package detection — parent_resolver.go resolves a process's parent image name
 // from its PPID so that Sigma ParentImage rules can fire.
 //
-// The agent telemetry carries pid/ppid but not the parent image name (the proto
-// ProcessEvent has no parent field). Without resolution, ParentImage-based rules
-// (e.g. "WMI Spawning Command Shell", Office-spawns-script) silently never match.
-// This lightweight per-agent pid→name cache reconstructs the parent name from the
-// PPID of recently-seen processes and injects it as "parent_process", which the
-// pipeline's Sigma alias layer maps to ParentImage.
+// The agent now resolves the parent on the endpoint (collector.ParentResolver)
+// and ingestion writes parent_image / parent_name, so this is the fallback
+// rather than the only source: it covers events from an older agent, and event
+// shapes that carry no parent. When the event already names a parent, enrich
+// leaves it alone — the endpoint saw the parent alive, which this cache cannot.
+//
+// It remains useful because it is the only option for a parent this server has
+// seen but the agent could not name. It cannot replace the endpoint's answer: a
+// parent that started before the correlation window is not in this cache, and
+// the reconstruction never leaves this process's memory.
 package detection
 
 import (
@@ -105,7 +109,15 @@ func (r *parentResolver) lookup(agentID string, pid uint64) string {
 }
 
 func hasParent(event map[string]any) bool {
-	for _, k := range []string{"parent_process", "parentImagePath", "parent_image_path", "ParentImage"} {
+	// parent_image / parent_name come from the agent, which resolved the parent
+	// on the endpoint while it was still alive. That answer is better than
+	// anything this cache can reconstruct — it covers a parent that started
+	// before the correlation window — so it must be recognised here, or the
+	// resolver would inject its own guess alongside it.
+	for _, k := range []string{
+		"parent_image", "parent_name",
+		"parent_process", "parentImagePath", "parent_image_path", "ParentImage",
+	} {
 		if s, _ := event[k].(string); s != "" {
 			return true
 		}

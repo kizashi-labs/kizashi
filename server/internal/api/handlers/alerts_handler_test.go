@@ -53,14 +53,21 @@ func TestCSVField_EmptyString(t *testing.T) {
 // ─── parseTimeParam tests ────────────────────────────────────────────────────
 
 func TestParseTimeParam_EmptyReturnsNil(t *testing.T) {
-	if got := parseTimeParam(""); got != nil {
+	got, err := parseTimeParam("")
+	if err != nil {
+		t.Fatalf("空文字列は「指定なし」です: %v", err)
+	}
+	if got != nil {
 		t.Fatalf("空文字列はnilを返すべきです、got %v", got)
 	}
 }
 
 func TestParseTimeParam_ValidRFC3339(t *testing.T) {
 	input := "2026-03-17T10:00:00Z"
-	got := parseTimeParam(input)
+	got, err := parseTimeParam(input)
+	if err != nil {
+		t.Fatalf("有効な時刻でエラーになりました: %v", err)
+	}
 	if got == nil {
 		t.Fatal("有効な時刻はnilでないはずです")
 	}
@@ -70,15 +77,37 @@ func TestParseTimeParam_ValidRFC3339(t *testing.T) {
 	}
 }
 
-func TestParseTimeParam_InvalidReturnsNil(t *testing.T) {
-	if got := parseTimeParam("not-a-date"); got != nil {
-		t.Fatalf("無効な日時はnilを返すべきです、got %v", got)
+// この検査は以前「無効な日時はnilを返すべきです」でした。nil は「指定なし」
+// と同じ意味なので、期間の絞り込みだけが黙って消え、全期間が返ります。
+// 欠陥を仕様として固定していたので、向きを反転させました。
+func TestParseTimeParam_InvalidIsAnError(t *testing.T) {
+	got, err := parseTimeParam("not-a-date")
+	if err == nil {
+		t.Fatalf("無効な日時はエラーにすべきです、got %v", got)
+	}
+	if got != nil {
+		t.Fatalf("エラーのとき時刻は返さないでください、got %v", got)
+	}
+}
+
+// 「指定なし」と「読めなかった」が同じ値にならないこと。
+func TestAnAbsentBoundAndAnUnreadableBoundAreDifferent(t *testing.T) {
+	absent, absentErr := parseTimeParam("")
+	_, brokenErr := parseTimeParam("2026-03-17")
+	if absent != nil || absentErr != nil {
+		t.Fatalf("指定なし: got %v, %v", absent, absentErr)
+	}
+	if brokenErr == nil {
+		t.Fatal("日付だけの値 2026-03-17 は RFC3339 ではありません。エラーにすべきです")
 	}
 }
 
 func TestParseTimeParam_WithOffset(t *testing.T) {
 	input := "2026-03-17T19:00:00+09:00"
-	got := parseTimeParam(input)
+	got, err := parseTimeParam(input)
+	if err != nil {
+		t.Fatalf("オフセット付きでエラーになりました: %v", err)
+	}
 	if got == nil {
 		t.Fatal("タイムゾーンオフセット付きはnilでないはずです")
 	}

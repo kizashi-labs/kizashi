@@ -88,7 +88,13 @@ func extractIOCFromPattern(pattern string) (string, string, bool) {
 }
 
 // iocEntriesTableExists checks whether the ioc_entries table exists in the database.
-func (h *STIXHandler) iocEntriesTableExists(c *gin.Context) bool {
+//
+// 確認できなかったときは error を返します。以前は false を返していたので、
+// 「テーブルが無い」と「確認できなかった」が同じ扱いでした。取り込みは
+// indicator を1件も入れないまま成功として応答し、書き出しは空の STIX
+// バンドルを 200 で返します。受け取った外部ツールにとって、空のバンドルは
+// 「このプラットフォームには指標が無い」という答えです。
+func (h *STIXHandler) iocEntriesTableExists(c *gin.Context) (bool, error) {
 	var exists bool
 	err := h.pool.QueryRow(c.Request.Context(),
 		`SELECT EXISTS (
@@ -96,9 +102,9 @@ func (h *STIXHandler) iocEntriesTableExists(c *gin.Context) bool {
 			WHERE table_schema = 'public' AND table_name = 'ioc_entries'
 		)`).Scan(&exists)
 	if err != nil {
-		return false
+		return false, err
 	}
-	return exists
+	return exists, nil
 }
 
 // Import handles POST /api/v1/threat-intel/stix/import.
@@ -121,7 +127,14 @@ func (h *STIXHandler) Import(c *gin.Context) {
 		return
 	}
 
-	tableExists := h.iocEntriesTableExists(c)
+	tableExists, err := h.iocEntriesTableExists(c)
+	if err != nil {
+		slog.Error("stix: ioc_entries の有無を確認できませんでした", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "取り込み先を確認できませんでした。取り込みは行っていません",
+		})
+		return
+	}
 	if !tableExists {
 		slog.Warn("ioc_entries table does not exist; indicator objects will be skipped")
 	}
@@ -329,7 +342,15 @@ type stixExportIndicator struct {
 // letting external tooling consume this platform's intelligence.
 // Query params: limit (default 1000, max 10000), type (ip|domain|url|hash).
 func (h *STIXHandler) Export(c *gin.Context) {
-	if !h.iocEntriesTableExists(c) {
+	exists, err := h.iocEntriesTableExists(c)
+	if err != nil {
+		slog.Error("stix: ioc_entries の有無を確認できませんでした", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "指標を読み出せませんでした。空のバンドルは返しません",
+		})
+		return
+	}
+	if !exists {
 		c.JSON(http.StatusOK, emptyStixBundle())
 		return
 	}
@@ -389,6 +410,10 @@ func (h *STIXHandler) Export(c *gin.Context) {
 			Created:     created.UTC().Format(time.RFC3339),
 			Modified:    updated.UTC().Format(time.RFC3339),
 		})
+	}
+	if err := rows.Err(); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
 	}
 
 	c.Header("Content-Type", "application/stix+json;version=2.1")

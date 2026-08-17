@@ -130,46 +130,57 @@ func TestPacketCaptureFilter_BPFExpressions(t *testing.T) {
 	}
 }
 
-// TestPacketCaptureStatusTransition_CompletedSetsTimestamp は
-// completed/failed/cancelled ステータスが完了時刻を必要とするロジックを確認する
-func TestPacketCaptureStatusTransition_CompletedSetsTimestamp(t *testing.T) {
-	// UpdateStatus の completedAt ロジックを純粋に再現する
-	terminalStatuses := []string{"completed", "failed", "cancelled"}
-	for _, status := range terminalStatuses {
-		var completedAt *time.Time
-		if status == "completed" || status == "failed" || status == "cancelled" {
-			now := time.Now().UTC()
-			completedAt = &now
-		}
-		if completedAt == nil {
-			t.Errorf("ステータス %q は completedAt を設定するべき", status)
-		}
+// 状態遷移が入れる時刻。**本物を呼びます。**
+//
+// 以前ここには `UpdateStatus` の2つの分岐を**検査の本文で書き直した**
+// ものが置いてありました —— `if status == "running" { startedAt = &now }`
+// を検査の中で実行して、そのあと `startedAt != nil` を確かめる。
+// 製品を1行も通りません。
+func TestCaptureTimestampsFor(t *testing.T) {
+	now := time.Date(2026, 8, 11, 12, 0, 0, 0, time.UTC)
+	cases := []struct {
+		status              string
+		wantStart, wantDone bool
+	}{
+		{"running", true, false},
+		{"completed", false, true},
+		{"failed", false, true},
+		{"cancelled", false, true},
+		// **始まってもいない状態に時刻は入りません。**
+		{"pending", false, false},
+		{"", false, false},
+		{"unknown", false, false},
+	}
+	for _, tc := range cases {
+		t.Run(tc.status, func(t *testing.T) {
+			start, done := captureTimestampsFor(tc.status, now)
+			if (start != nil) != tc.wantStart {
+				t.Errorf("startedAt = %v, want set=%v", start, tc.wantStart)
+			}
+			if (done != nil) != tc.wantDone {
+				t.Errorf("completedAt = %v, want set=%v。**終了時刻が入らないと、"+
+					"取得の終わったキャプチャがいつまでも「実行中」に見えます**",
+					done, tc.wantDone)
+			}
+			if start != nil && !start.Equal(now) {
+				t.Errorf("startedAt = %v, want %v", start, now)
+			}
+			if done != nil && !done.Equal(now) {
+				t.Errorf("completedAt = %v, want %v", done, now)
+			}
+		})
 	}
 }
 
-// TestPacketCaptureStatusTransition_RunningSetStartedAt は
-// running ステータスが開始時刻を必要とするロジックを確認する
-func TestPacketCaptureStatusTransition_RunningSetStartedAt(t *testing.T) {
-	// UpdateStatus の startedAt ロジックを純粋に再現する
-	var startedAt *time.Time
-	targetStatus := "running"
-	if targetStatus == "running" {
-		now := time.Now().UTC()
-		startedAt = &now
-	}
-	if startedAt == nil {
-		t.Error("running ステータスは startedAt を設定するべき")
-	}
-
-	// pending ステータスは startedAt を設定しない
-	var noStart *time.Time
-	status := "pending"
-	if status == "running" {
-		now := time.Now().UTC()
-		noStart = &now
-	}
-	if noStart != nil {
-		t.Error("pending ステータスは startedAt を設定するべきでない")
+// 開始と終了が、同時に入らないこと。
+//
+// **1回の更新で両方入ると、実行時間が常に 0 になります。**
+func TestCaptureTimestampsAreNotBothSet(t *testing.T) {
+	now := time.Now().UTC()
+	for _, st := range []string{"running", "completed", "failed", "cancelled", "pending"} {
+		if a, b := captureTimestampsFor(st, now); a != nil && b != nil {
+			t.Errorf("%q で両方が入っています", st)
+		}
 	}
 }
 

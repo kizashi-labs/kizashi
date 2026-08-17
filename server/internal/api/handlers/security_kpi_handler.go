@@ -22,19 +22,11 @@ func NewSecurityKPIHandler(pool *pgxpool.Pool) *SecurityKPIHandler {
 }
 
 func (h *SecurityKPIHandler) kpiTableExists(c *gin.Context) bool {
-	ctx := c.Request.Context()
-	var exists bool
-	err := h.pool.QueryRow(ctx,
-		`SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name='security_kpi_definitions')`).Scan(&exists)
-	return err == nil && exists
+	return tableIsThere(c.Request.Context(), h.pool, "security_kpi_definitions")
 }
 
 func (h *SecurityKPIHandler) measurementsTableExists(c *gin.Context) bool {
-	ctx := c.Request.Context()
-	var exists bool
-	err := h.pool.QueryRow(ctx,
-		`SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name='security_kpi_measurements')`).Scan(&exists)
-	return err == nil && exists
+	return tableIsThere(c.Request.Context(), h.pool, "security_kpi_measurements")
 }
 
 type kpiDefinition struct {
@@ -172,7 +164,9 @@ func (h *SecurityKPIHandler) ListKPIs(c *gin.Context) {
 		result = append(result, k)
 	}
 	if err := rows.Err(); err != nil {
-		slog.Warn("row iteration error", "error", err)
+		slog.Error("rows.Err: 結果の読み出しが途中で失敗しました", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to list KPIs"})
+		return
 	}
 	rows.Close()
 
@@ -184,7 +178,13 @@ func (h *SecurityKPIHandler) ListKPIs(c *gin.Context) {
 			`SELECT value FROM security_kpi_measurements
 			 WHERE kpi_id=$1 ORDER BY period DESC LIMIT 2`, result[i].ID)
 		if err != nil {
-			continue
+			// 飛ばすと、その KPI は current_value=null / status=no_data で
+			// 描かれます。すぐ上のコメントが書いているとおり、それは
+			// 「まだ測っていない KPI」の表示です。測れなかったのと同じ形に
+			// なるので、達成できていない指標が未測定に見えます。
+			slog.Error("security_kpi: 測定値を読めませんでした", "kpi", result[i].ID, "error", err)
+			ReadFailure(c, err, gin.H{"kpis": []any{}})
+			return
 		}
 		var vals []float64
 		for mRows.Next() {
@@ -192,6 +192,16 @@ func (h *SecurityKPIHandler) ListKPIs(c *gin.Context) {
 			if err := mRows.Scan(&v); err == nil {
 				vals = append(vals, v)
 			}
+		}
+		if err := mRows.Err(); err != nil {
+			slog.Error("rows.Err: 結果の読み出しが途中で失敗しました", "error", err)
+			// 飛ばすと、その KPI は current_value=null / status=no_data で
+			// 描かれます。すぐ上のコメントが書いているとおり、それは
+			// 「まだ測っていない KPI」の表示です。測れなかったのと同じ形に
+			// なるので、達成できていない指標が未測定に見えます。
+			slog.Error("security_kpi: 測定値を読めませんでした", "kpi", result[i].ID, "error", err)
+			ReadFailure(c, err, gin.H{"kpis": []any{}})
+			return
 		}
 		mRows.Close()
 		if len(vals) == 0 {
@@ -426,7 +436,9 @@ func (h *SecurityKPIHandler) GetMeasurements(c *gin.Context) {
 		result = append(result, m)
 	}
 	if err := rows.Err(); err != nil {
-		slog.Warn("row iteration error", "error", err)
+		slog.Error("rows.Err: 結果の読み出しが途中で失敗しました", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to list measurements"})
+		return
 	}
 	if result == nil {
 		result = []kpiMeasurement{}
@@ -477,7 +489,9 @@ func (h *SecurityKPIHandler) GetDashboard(c *gin.Context) {
 		kpis = append(kpis, k)
 	}
 	if err := rows.Err(); err != nil {
-		slog.Warn("row iteration error", "error", err)
+		slog.Error("rows.Err: 結果の読み出しが途中で失敗しました", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load KPIs"})
+		return
 	}
 	rows.Close()
 
@@ -488,7 +502,9 @@ func (h *SecurityKPIHandler) GetDashboard(c *gin.Context) {
 			 WHERE kpi_id=$1 ORDER BY period DESC LIMIT 3`,
 			kpis[i].ID)
 		if err != nil {
-			continue
+			slog.Error("security_kpi: 測定値を読めませんでした", "kpi", kpis[i].ID, "error", err)
+			ReadFailure(c, err, gin.H{"kpis": []any{}})
+			return
 		}
 		var vals []float64
 		for mRows.Next() {
@@ -498,7 +514,9 @@ func (h *SecurityKPIHandler) GetDashboard(c *gin.Context) {
 			}
 		}
 		if err := mRows.Err(); err != nil {
-			slog.Warn("row iteration error", "error", err)
+			slog.Error("security_kpi: 測定値を読めませんでした", "kpi", kpis[i].ID, "error", err)
+			ReadFailure(c, err, gin.H{"kpis": []any{}})
+			return
 		}
 		mRows.Close()
 

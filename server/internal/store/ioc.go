@@ -3,11 +3,41 @@ package store
 import (
 	"context"
 	"fmt"
-	"log/slog"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )
+
+// IOC alerts carry no structured back-reference to the indicator that produced
+// them: alerts has no ioc_id, rule_id is uuid-typed and is left NULL on the IOC
+// path, and the value is written to neither raw_event nor a column of its own.
+// The only durable link is the alert title, which both producers build as a
+// fixed prefix followed by the matched value.
+//
+// There are two producers and they do not use the same prefix:
+//
+//	detection.AlertPipeline.createAlertFromIOC  (server-api)     "Known IOC detected: "
+//	detection.Engine  (server-detect)                            "既知IOC検出: "
+//
+// Whichever service processes an event writes its own wording, so every reader
+// that knows only one prefix silently halves its counts. IOCStore.TopHits knew
+// only the first, and undercounted by exactly the share of traffic handled by
+// the detection engine.
+//
+// These constants are the single definition. Both producers build their titles
+// from them and both readers match on them, so the two can no longer drift.
+// Changing one of these strings does not raise an error anywhere — it makes IOC
+// statistics quietly go to zero — so they are pinned by a test.
+const (
+	// IOCAlertTitlePrefixEN is the title prefix written by server-api.
+	IOCAlertTitlePrefixEN = "Known IOC detected: "
+	// IOCAlertTitlePrefixJA is the title prefix written by server-detect.
+	IOCAlertTitlePrefixJA = "既知IOC検出: "
+)
+
+// iocAlertTitleMatch matches an alert produced by either IOC path. The alias a
+// must be bound to alerts.
+const iocAlertTitleMatch = `(a.title LIKE '` + IOCAlertTitlePrefixEN + `%' OR a.title LIKE '` + IOCAlertTitlePrefixJA + `%')`
 
 // IOCEntry represents a single indicator of compromise.
 type IOCEntry struct {
@@ -33,24 +63,36 @@ func NewIOCStore(db *DB) *IOCStore {
 }
 
 // List returns paginated IOC entries with optional type filter and search.
-func (s *IOCStore) List(ctx context.Context, iocType, search string, activeOnly bool, limit, offset int) ([]*IOCEntry, int, error) {
+// iocListWhere builds the WHERE clause and arguments for List.
+//
+// **切り出してあるのは、検査が本物を呼べるようにするためです。**
+// 公開はしません —— `List` からしか使わないので、公開すると
+// `TestStoreSymbolsAreReachable` の数が1つ増えます。
+// 検査ファイルには `buildIOCWhere` という同じ組み立ての写しが置いて
+// ありました。写しを試しても、こちらは無傷のまま壊せます。
+func iocListWhere(iocType, search string, activeOnly bool) (string, []interface{}) {
 	where := "WHERE 1=1"
 	args := []interface{}{}
-	argIdx := 1
 
 	if iocType != "" {
-		where += fmt.Sprintf(" AND i.type = $%d", argIdx)
+		where += fmt.Sprintf(" AND i.type = $%d", len(args)+1)
 		args = append(args, iocType)
-		argIdx++
 	}
 	if activeOnly {
+		// **値を取らない条件です。** ここで番号を進めると、次の条件の
+		// プレースホルダが引数とずれます。
 		where += " AND i.is_active = TRUE"
 	}
 	if search != "" {
-		where += fmt.Sprintf(" AND i.value ILIKE $%d", argIdx)
+		where += fmt.Sprintf(" AND i.value ILIKE $%d", len(args)+1)
 		args = append(args, "%"+search+"%")
-		argIdx++
 	}
+	return where, args
+}
+
+func (s *IOCStore) List(ctx context.Context, iocType, search string, activeOnly bool, limit, offset int) ([]*IOCEntry, int, error) {
+	where, args := iocListWhere(iocType, search, activeOnly)
+	argIdx := len(args) + 1
 
 	var total int
 	countArgs := make([]interface{}, len(args))
@@ -91,6 +133,9 @@ func (s *IOCStore) List(ctx context.Context, iocType, search string, activeOnly 
 		}
 		e.AddedBy = addedBy
 		entries = append(entries, e)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, 0, err
 	}
 	if entries == nil {
 		entries = []*IOCEntry{}
@@ -175,21 +220,28 @@ func (s *IOCStore) Stats(ctx context.Context) (*IOCStats, error) {
 		stats.Total += total
 		stats.Active += active
 	}
+	// 部分結果を完全な一覧として返さない（scan_truncation_guard_test.go 参照）
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
 
-	// 直近 7 日の IOC 由来アラート数。
+	// Count IOC-triggered alerts in last 7 days.
 	//
-	// 以前は rule_id = 'ioc-match' で数えていたが、alerts.rule_id は uuid 列で、
-	// 文字列と比較すると毎回 `invalid input syntax for type uuid` になっていた。
-	// エラーは捨てられていたので、画面には常に 0 が出ていた。
+	// **プレフィクスは 2 つある。** server-api は "Known IOC detected: "、
+	// server-detect は "既知IOC検出: " を書くので、片方だけで数えると
+	// もう片方が処理した分がまるごと落ちる。定数で両方を突き合わせる。
 	//
-	// IOC 経路では rule_id は設定されない。上の TopHits と同じく、確実に残る
-	// 手掛かりは title だけなので、createAlertFromIOC の書式と対で突き合わせる
-	// (片方だけ変えるとエラーにならず件数が黙って 0 になる)。
+	// This matched `rule_id = 'ioc-match'`. alerts.rule_id is uuid, so the
+	// comparison failed with 22P02 on every call, and the row was scanned with
+	// `_ =` — Alerts7d has always been 0. The sentinel it looked for was removed
+	// from the producer some time ago precisely because it made the INSERT fail;
+	// the reader was never updated, and nothing said so.
 	if err := s.pool.QueryRow(ctx, `
-		SELECT COUNT(*) FROM alerts
-		WHERE title LIKE 'Known IOC detected: %' AND created_at > NOW() - INTERVAL '7 days'`,
+		SELECT COUNT(*) FROM alerts a
+		WHERE `+iocAlertTitleMatch+`
+		  AND a.created_at > NOW() - INTERVAL '7 days'`,
 	).Scan(&stats.Alerts7d); err != nil {
-		slog.Warn("IOC: 直近 7 日のアラート数の取得に失敗しました", "error", err)
+		return nil, fmt.Errorf("iocstore: count IOC alerts (7d): %w", err)
 	}
 
 	return stats, nil
@@ -247,26 +299,27 @@ func (s *IOCStore) TopHits(ctx context.Context, limit int) ([]IOCTopHit, error) 
 	//
 	// 以前は alerts.src_ip / dst_ip / file_hash / domain を突き合わせていたが、
 	// alerts にその 4 列はいずれも存在せず、このクエリは毎回
-	// `column a.src_ip does not exist` で失敗していた。
+	// `column a.src_ip does not exist` で失敗していた。そのため title で
+	// 突き合わせる方式に変えた。
 	//
-	// 実際には IOC マッチのアラートは detection.AlertPipeline.createAlertFromIOC が
-	// 作っており、そこで確実に残る手掛かりは title だけ:
+	// ただしその時点では突き合わせ先が createAlertFromIOC (server-api) の
+	// 英語プレフィックスだけで、server-detect 側の Engine が書く
+	// 「既知IOC検出: 」を見ていなかった。両者は同じ IOC に対して同じ alerts
+	// テーブルに書くので、どちらのサービスがそのイベントを処理したかで件数が
+	// 変わる — 実測で、片方だけを見ると 2 件のうち 1 件しか数えられない。
 	//
-	//     title = "Known IOC detected: " || <IOC の値>
-	//
-	// rule_id は IOC 経路では設定されず、値は raw_event にも別列にも入らない。
-	// そのため title の完全一致で突き合わせる。プレフィックスは
-	// createAlertFromIOC 側の書式と対で維持すること (片方だけ変えると、
-	// エラーにはならず件数が黙って 0 になる)。
+	// プレフィックスは IOCAlertTitlePrefixEN / JA に一本化した。生成側も
+	// この定数から title を組み立てるので、もう片方だけが変わることはない。
 	rows, err := s.pool.Query(ctx, `
 		SELECT i.value, i.type, COUNT(DISTINCT a.id) AS hit_count, MAX(a.created_at) AS last_seen
 		FROM ioc_entries i
-		JOIN alerts a ON a.title = 'Known IOC detected: ' || i.value
+		JOIN alerts a
+		  ON a.title = ANY (ARRAY[$2 || i.value, $3 || i.value])
 		WHERE i.is_active = true
 		  AND a.created_at >= NOW() - INTERVAL '30 days'
 		GROUP BY i.value, i.type
 		ORDER BY hit_count DESC
-		LIMIT $1`, limit)
+		LIMIT $1`, limit, IOCAlertTitlePrefixEN, IOCAlertTitlePrefixJA)
 	if err != nil {
 		return nil, err
 	}

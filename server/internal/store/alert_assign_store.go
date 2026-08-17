@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -78,6 +79,9 @@ func (s *AlertAssignRuleStore) List(ctx context.Context) ([]*AlertAssignRule, er
 			continue
 		}
 		rules = append(rules, r)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
 	}
 	if rules == nil {
 		rules = []*AlertAssignRule{}
@@ -179,6 +183,12 @@ func (s *AlertAssignRuleStore) FindMatch(ctx context.Context, alertSeverity, rul
 		var cond alertAssignConditions
 		if len(condRaw) > 0 {
 			if err := json.Unmarshal(condRaw, &cond); err != nil {
+				// 条件が読めない割り当てルールを黙って飛ばすと、その
+				// ルールは存在しないのと同じになります。担当者が付かない
+				// アラートが出続けても、原因はどこにも出ません。
+				// この関数は (string, bool) しか返せないので、記録します。
+				slog.Error("割り当てルールの条件を読めませんでした。このルールは適用されません",
+					"assignee", aid, "error", err)
 				continue
 			}
 		}
@@ -203,6 +213,16 @@ func (s *AlertAssignRuleStore) FindMatch(ctx context.Context, alertSeverity, rul
 		if severityOK && ruleOK {
 			return aid, true
 		}
+	}
+	// 途中で失敗した反復は、優先度の低いルールを見ないまま「該当なし」に
+	// なります。この関数にエラー戻り値は無いので、せめて記録は残します。
+	// 黙って未割り当てになったアラートは、誰も待っていないことに誰も
+	// 気づけません。
+	if err := rows.Err(); err != nil {
+		slog.Warn("alert_assign_rules: ルールの走査に失敗しました。"+
+			"このアラートは自動割り当てされません",
+			"severity", alertSeverity, "rule_id", ruleID, "error", err)
+		return "", false
 	}
 	return "", false
 }

@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -21,10 +22,7 @@ func NewNetworkAnomaliesHandler(pool *pgxpool.Pool) *NetworkAnomaliesHandler {
 }
 
 func (h *NetworkAnomaliesHandler) tableExists(c *gin.Context) bool {
-	var ok bool
-	_ = h.pool.QueryRow(c.Request.Context(),
-		`SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name='network_anomalies')`).Scan(&ok)
-	return ok
+	return tableIsThere(c.Request.Context(), h.pool, "network_anomalies")
 }
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -71,7 +69,7 @@ func (h *NetworkAnomaliesHandler) List(c *gin.Context) {
 			ORDER BY created_at DESC LIMIT 100
 		`)
 		if err != nil {
-			c.JSON(http.StatusOK, gin.H{"anomalies": []interface{}{}})
+			ReadFailure(c, err, gin.H{"anomalies": []interface{}{}})
 			return
 		}
 		defer rows.Close()
@@ -89,6 +87,11 @@ func (h *NetworkAnomaliesHandler) List(c *gin.Context) {
 			a.DetectedAt = ts.Format(time.RFC3339)
 			anomalies = append(anomalies, a)
 		}
+		if err := rows.Err(); err != nil {
+			slog.Warn("List: 結果セットの読み取りが途中で終わりました。応答は不完全です", "error", err)
+			c.JSON(http.StatusOK, gin.H{"anomalies": []interface{}{}})
+			return
+		}
 		if anomalies == nil {
 			anomalies = []netAnomaly{}
 		}
@@ -105,7 +108,7 @@ func (h *NetworkAnomaliesHandler) List(c *gin.Context) {
 		ORDER BY detected_at DESC LIMIT 200
 	`)
 	if err != nil {
-		c.JSON(http.StatusOK, gin.H{"anomalies": []interface{}{}})
+		ReadFailure(c, err, gin.H{"anomalies": []interface{}{}})
 		return
 	}
 	defer rows.Close()
@@ -124,6 +127,11 @@ func (h *NetworkAnomaliesHandler) List(c *gin.Context) {
 		a.DetectedAt = ts.Format(time.RFC3339)
 		anomalies = append(anomalies, a)
 	}
+	if err := rows.Err(); err != nil {
+		slog.Warn("List: 結果セットの読み取りが途中で終わりました。応答は不完全です", "error", err)
+		c.JSON(http.StatusOK, gin.H{"anomalies": []interface{}{}})
+		return
+	}
 	if anomalies == nil {
 		anomalies = []netAnomaly{}
 	}
@@ -137,20 +145,30 @@ func (h *NetworkAnomaliesHandler) GetStats(c *gin.Context) {
 	stats := netAnomalyStats{}
 
 	if h.tableExists(c) {
-		_ = h.pool.QueryRow(ctx,
-			`SELECT COUNT(*) FROM network_anomalies WHERE detected_at >= CURRENT_DATE`).Scan(&stats.AnomaliesToday)
-		_ = h.pool.QueryRow(ctx,
-			`SELECT COUNT(*) FROM network_anomalies WHERE type='traffic_spike' AND detected_at >= CURRENT_DATE`).Scan(&stats.TrafficSpikes)
-		_ = h.pool.QueryRow(ctx,
-			`SELECT COUNT(*) FROM network_anomalies WHERE type='new_port' AND detected_at >= CURRENT_DATE`).Scan(&stats.SuspiciousPorts)
-		_ = h.pool.QueryRow(ctx,
-			`SELECT COUNT(*) FROM network_anomalies WHERE type='beaconing' AND detected_at >= CURRENT_DATE`).Scan(&stats.C2BeaconingAlerts)
+		if !ReadOK(c, h.pool.QueryRow(ctx,
+			`SELECT COUNT(*) FROM network_anomalies WHERE detected_at >= CURRENT_DATE`).Scan(&stats.AnomaliesToday)) {
+			return
+		}
+		if !ReadOK(c, h.pool.QueryRow(ctx,
+			`SELECT COUNT(*) FROM network_anomalies WHERE type='traffic_spike' AND detected_at >= CURRENT_DATE`).Scan(&stats.TrafficSpikes)) {
+			return
+		}
+		if !ReadOK(c, h.pool.QueryRow(ctx,
+			`SELECT COUNT(*) FROM network_anomalies WHERE type='new_port' AND detected_at >= CURRENT_DATE`).Scan(&stats.SuspiciousPorts)) {
+			return
+		}
+		if !ReadOK(c, h.pool.QueryRow(ctx,
+			`SELECT COUNT(*) FROM network_anomalies WHERE type='beaconing' AND detected_at >= CURRENT_DATE`).Scan(&stats.C2BeaconingAlerts)) {
+			return
+		}
 	} else {
 		// Derive from alerts
-		_ = h.pool.QueryRow(ctx,
+		if !ReadOK(c, h.pool.QueryRow(ctx,
 			`SELECT COUNT(*) FROM alerts
-			 WHERE (title ILIKE '%network%' OR title ILIKE '%traffic%' OR title ILIKE '%beaconing%')
-			 AND created_at >= CURRENT_DATE`).Scan(&stats.AnomaliesToday)
+				 WHERE (title ILIKE '%network%' OR title ILIKE '%traffic%' OR title ILIKE '%beaconing%')
+				 AND created_at >= CURRENT_DATE`).Scan(&stats.AnomaliesToday)) {
+			return
+		}
 	}
 
 	c.JSON(http.StatusOK, stats)
@@ -166,8 +184,10 @@ func (h *NetworkAnomaliesHandler) Suppress(c *gin.Context) {
 	}
 	ctx := c.Request.Context()
 	if h.tableExists(c) {
-		_, _ = h.pool.Exec(ctx,
-			`UPDATE network_anomalies SET suppressed=true WHERE id=$1`, id)
+		if _, err := h.pool.Exec(ctx,
+			`UPDATE network_anomalies SET suppressed=true WHERE id=$1`, id); !WriteOK(c, err) {
+			return
+		}
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "Anomaly suppressed"})
 }

@@ -570,34 +570,9 @@ func TestVulnFilter_DefaultLimit(t *testing.T) {
 	}
 }
 
-// buildVulnWhere は VulnStore.List の WHERE 句構築を再現するヘルパー
+// buildVulnWhere は **本物を呼びます。**
 func buildVulnWhere(f VulnFilter) (string, []interface{}) {
-	where := "WHERE 1=1"
-	args := []interface{}{}
-	i := 1
-
-	if f.AgentID != "" {
-		where += fmt.Sprintf(" AND v.agent_id = $%d::uuid", i)
-		args = append(args, f.AgentID)
-		i++
-	}
-	if f.Severity != "" {
-		where += fmt.Sprintf(" AND v.severity = $%d", i)
-		args = append(args, f.Severity)
-		i++
-	}
-	if f.Status != "" {
-		where += fmt.Sprintf(" AND v.status = $%d", i)
-		args = append(args, f.Status)
-		i++
-	}
-	if f.Search != "" {
-		where += fmt.Sprintf(" AND (v.cve_id ILIKE $%d OR v.title ILIKE $%d OR v.affected_package ILIKE $%d)", i, i, i)
-		args = append(args, "%"+f.Search+"%")
-		i++
-	}
-	_ = i
-	return where, args
+	return vulnListWhere(f)
 }
 
 // TestBuildVulnWhere_EmptyFilter は全フィルターが空のとき "WHERE 1=1" であることを確認する
@@ -668,5 +643,42 @@ func TestBuildVulnWhere_AllFilters(t *testing.T) {
 	// agent_id(1) + severity(1) + status(1) + search(1) = 4 引数
 	if len(args) != 4 {
 		t.Errorf("全フィルターで引数 4 件のはず: got %d (%v)", len(args), args)
+	}
+}
+
+// 脆弱性の絞り込みが、反転していないこと。
+//
+// **深刻度の絞り込みが `!=` になると、`critical` を選んだ担当者に
+// critical 以外が全部出ます。** 画面は絞り込めているように見えます。
+func TestVulnFiltersAreNotInverted(t *testing.T) {
+	where, args := vulnListWhere(VulnFilter{Severity: "critical", Status: "open"})
+	if len(args) != 2 {
+		t.Fatalf("args = %v, want 2 件", args)
+	}
+	for _, want := range []string{"v.severity = $1", "v.status = $2"} {
+		if !strings.Contains(where, want) {
+			t.Errorf("%q がありません: %q", want, where)
+		}
+	}
+	if strings.Contains(where, "!=") || strings.Contains(where, "<>") {
+		t.Errorf("否定の比較が入っています: %q", where)
+	}
+}
+
+// 検索が、CVE番号・題名・パッケージ名の3つに当たること。
+//
+// **同じ引数を3箇所で使います。** 番号を分けると引数が足りません。
+func TestVulnSearchUsesOneArgumentThreeTimes(t *testing.T) {
+	where, args := vulnListWhere(VulnFilter{Search: "openssl"})
+	if len(args) != 1 {
+		t.Fatalf("args = %v, want 1 件", args)
+	}
+	for _, col := range []string{"v.cve_id ILIKE $1", "v.title ILIKE $1", "v.affected_package ILIKE $1"} {
+		if !strings.Contains(where, col) {
+			t.Errorf("%q に当たっていません: %q", col, where)
+		}
+	}
+	if strings.Contains(where, "$2") {
+		t.Errorf("引数の数を超えるプレースホルダがあります: %q", where)
 	}
 }

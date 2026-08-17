@@ -14,11 +14,14 @@ package detection
 
 import (
 	"context"
+	"github.com/edr-platform/server/internal/metrics"
 	"log/slog"
 	"net"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/edr-platform/server/internal/tick"
 )
 
 // IOCRecord is the minimal IOC data held in the cache.
@@ -78,7 +81,7 @@ func (m *IOCMatcher) Start(ctx context.Context) {
 			case <-ctx.Done():
 				return
 			case <-ticker.C:
-				m.refresh(ctx)
+				tick.Run(ctx, "ioc_matcher_refresh", m.refresh)
 			}
 		}
 	}()
@@ -92,7 +95,7 @@ func (m *IOCMatcher) RefreshNow(ctx context.Context) {
 func (m *IOCMatcher) refresh(ctx context.Context) {
 	entries, err := m.loader.ListActiveIOCs(ctx)
 	if err != nil {
-		slog.Warn("IOCキャッシュのリフレッシュに失敗しました", "error", err)
+		tick.FailComponent(ctx, "ioc_matcher", err, "IOCキャッシュのリフレッシュに失敗しました")
 		return
 	}
 
@@ -193,16 +196,32 @@ func (m *IOCMatcher) CheckEvent(flat map[string]interface{}) []IOCMatch {
 	}
 
 	// ── Hash: process / file events ───────────────────────────
+	//
+	// **「一致しなかった」と「照合するものが無かった」を数え分けます。**
+	// ハッシュの無いイベントは、この照合を素通りします —— 既知マルウェア
+	// に当たらなかったのと、当てるものが届かなかったのが、どちらも
+	// 「一致0件」になります。
+	//
+	// これは実際に起きていました。エージェントは実行ファイルのハッシュを
+	// 計算していましたが、proto に載せていませんでした。受け側
+	// (`ingestion.addHashes`) は用意されていて、**届くものが無いまま
+	// 動いていました。** 直したので届きますが、届かない端末
+	// （読めないファイル、権限不足）は残ります。
 	if hashes := m.byType["hash"]; len(hashes) > 0 {
+		sawHash := false
 		for _, field := range []string{
 			"sha256", "sha256Hash", "md5", "md5Hash",
 			"fileSha256", "fileHash", "imageSha256",
 		} {
 			if val, ok := stringVal(flat, field); ok && val != "" {
+				sawHash = true
 				if rec, hit := hashes[strings.ToLower(val)]; hit {
 					matches = append(matches, IOCMatch{IOC: *rec, MatchedOn: field, Value: val})
 				}
 			}
+		}
+		if !sawHash && hashableEvent(flat) {
+			noteHashAbsent()
 		}
 	}
 
@@ -249,4 +268,24 @@ func stringVal(m map[string]interface{}, key string) (string, bool) {
 	}
 	s, ok := v.(string)
 	return s, ok && s != ""
+}
+
+// noteHashAbsent は差し替え可能です。**検査から数を読むためだけ**に
+// 変数にしてあります —— prometheus の testutil を入れると依存が増えるので、
+// 数え上げの側を差し替えます。
+var noteHashAbsent = func() { metrics.IOCHashAbsent.Inc() }
+
+// hashableEvent reports whether this event is one we would expect a hash on.
+//
+// **ネットワークイベントにハッシュが無いのは当たり前です。** 数えるのは
+// プロセスとファイル —— 実行ファイルがあり、エージェントが実際に
+// ハッシュを計算している種類だけです。全部数えると、当たり前の欠落が
+// 本物の欠落を埋めます。
+func hashableEvent(flat map[string]interface{}) bool {
+	t, _ := stringVal(flat, "event_type")
+	switch t {
+	case "process", "file", "image_load":
+		return true
+	}
+	return false
 }

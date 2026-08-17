@@ -26,8 +26,10 @@ func (covStubStore) UpdateLastSeen(ctx context.Context, agentID, hostname string
 	return nil
 }
 func (covStubStore) UpdateProtectionMode(ctx context.Context, agentID, mode string) error { return nil }
-func (covStubStore) UpdateTelemetryMode(ctx context.Context, agentID, mode string) error  { return nil }
-func (covStubStore) UpdateMetrics(ctx context.Context, agentID string, cpu, memMB float64) error {
+func (covStubStore) UpdateTelemetryMode(ctx context.Context, agentID, mode, detail string) error {
+	return nil
+}
+func (covStubStore) UpdateMetrics(ctx context.Context, agentID string, cpu, memMB, totalMB *float64) error {
 	return nil
 }
 func (covStubStore) ResolveAgentOfflineAlerts(ctx context.Context, agentID string) error { return nil }

@@ -2,6 +2,9 @@ package store
 
 import (
 	"context"
+	"errors"
+	"fmt"
+	"github.com/jackc/pgx/v5"
 	"time"
 )
 
@@ -30,11 +33,23 @@ func NewNotificationPrefStore(db *DB) *NotificationPrefStore {
 
 // GetByUserID returns the preferences for userID.
 // If no row exists, a default struct is returned (not an error).
-func (s *NotificationPrefStore) GetByUserID(ctx context.Context, userID string) (*NotificationPrefs, error) {
-	p := &NotificationPrefs{
+// defaultNotificationPrefs は、まだ設定していない利用者に返す既定です。
+//
+// **切り出してあるのは、検査が本物を呼べるようにするためです。** 検査
+// ファイルには、この構造体をそのまま書き写したものが置いてありました。
+//
+// `MinSeverity` は `critical` です —— **既定が緩いと、設定していない
+// 利用者に通知が溢れます。厳しいと、届くはずのものが届きません。**
+// どちらも「設定を変えたつもりが効いていない」と見分けが付きません。
+func defaultNotificationPrefs(userID string) *NotificationPrefs {
+	return &NotificationPrefs{
 		UserID:      userID,
 		MinSeverity: "critical",
 	}
+}
+
+func (s *NotificationPrefStore) GetByUserID(ctx context.Context, userID string) (*NotificationPrefs, error) {
+	p := defaultNotificationPrefs(userID)
 	err := s.db.Pool().QueryRow(ctx, `
 		SELECT id::text, email_enabled, COALESCE(email_address,''),
 		       min_severity, notify_incidents, notify_agent_offline,
@@ -44,10 +59,16 @@ func (s *NotificationPrefStore) GetByUserID(ctx context.Context, userID string) 
 		Scan(&p.ID, &p.EmailEnabled, &p.EmailAddress,
 			&p.MinSeverity, &p.NotifyIncidents, &p.NotifyAgentOffline,
 			&p.CreatedAt, &p.UpdatedAt)
-	if err != nil {
-		// No row yet — return defaults without error
+	if errors.Is(err, pgx.ErrNoRows) {
+		// まだ設定していない。既定値で返します。
 		p.ID = ""
 		return p, nil
+	}
+	if err != nil {
+		// 以前はどんな失敗も「まだ設定していない」でした。既定は
+		// MinSeverity: critical なので、利用者が high まで通知するように
+		// していても、読めなかっただけで critical だけになります。
+		return nil, fmt.Errorf("通知設定を読めませんでした: %w", err)
 	}
 	return p, nil
 }
@@ -119,6 +140,9 @@ func (s *NotificationPrefStore) ListEmailEnabled(ctx context.Context, severity s
 			&p.CreatedAt, &p.UpdatedAt); err == nil {
 			result = append(result, p)
 		}
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
 	}
 	if result == nil {
 		result = []*NotificationPrefs{}

@@ -84,7 +84,12 @@ func (h *HuntHandler) DeleteSavedHunt(c *gin.Context) {
 // POST /api/v1/threat-hunting/saved/:id/run
 func (h *HuntHandler) RecordRun(c *gin.Context) {
 	id := c.Param("id")
-	h.Store.RecordRun(c.Request.Context(), id)
+	// **この要求は「記録する」ことそのものです。** 書けていないのに
+	// "recorded" と答えるのは、何もしていないのに「しました」と
+	// 言うのと同じです。
+	if err := h.Store.RecordRun(c.Request.Context(), id); !WriteOK(c, err) {
+		return
+	}
 	c.JSON(http.StatusOK, gin.H{"message": "recorded"})
 }
 
@@ -167,7 +172,9 @@ func (h *HuntHandler) Search(c *gin.Context) {
 
 	countQuery := `SELECT COUNT(*) FROM events e LEFT JOIN agents a ON a.id = e.agent_id ` + where
 	var total int
-	_ = h.Pool.QueryRow(ctx, countQuery, args...).Scan(&total)
+	if !ReadOK(c, h.Pool.QueryRow(ctx, countQuery, args...).Scan(&total)) {
+		return
+	}
 
 	dataQuery := `
 		SELECT e.event_id, e.event_type, COALESCE(a.hostname, e.agent_id::text) AS hostname,

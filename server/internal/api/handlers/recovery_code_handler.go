@@ -25,13 +25,7 @@ func NewRecoveryCodeHandler(pool *pgxpool.Pool) *RecoveryCodeHandler {
 
 // recoveryTableExists checks whether the recovery_codes table is present in the DB.
 func (h *RecoveryCodeHandler) recoveryTableExists(c *gin.Context) bool {
-	var exists bool
-	err := h.pool.QueryRow(c.Request.Context(),
-		`SELECT EXISTS (
-			SELECT 1 FROM information_schema.tables
-			WHERE table_schema = 'public' AND table_name = 'recovery_codes'
-		)`).Scan(&exists)
-	return err == nil && exists
+	return tableIsThere(c.Request.Context(), h.pool, "recovery_codes")
 }
 
 // generateRecoveryCodes creates 10 random recovery codes in XXXX-XXXX-XXXX format.
@@ -74,10 +68,12 @@ func (h *RecoveryCodeHandler) Generate(c *gin.Context) {
 		now := time.Now().UTC()
 		for _, code := range codes {
 			hash := hashCode(code)
-			_, _ = h.pool.Exec(c.Request.Context(),
+			if _, err := h.pool.Exec(c.Request.Context(),
 				`INSERT INTO recovery_codes (user_id, code_hash, created_at) VALUES ($1, $2, $3)`,
 				userIDStr, hash, now,
-			)
+			); !WriteOK(c, err) {
+				return
+			}
 		}
 	}
 
@@ -153,7 +149,7 @@ func (h *RecoveryCodeHandler) ListStatus(c *gin.Context) {
 		userIDStr,
 	).Scan(&total, &used)
 	if err != nil {
-		c.JSON(http.StatusOK, gin.H{"total": 0, "used": 0, "remaining": 0})
+		ReadFailure(c, err, gin.H{"total": 0, "used": 0, "remaining": 0})
 		return
 	}
 
@@ -178,19 +174,23 @@ func (h *RecoveryCodeHandler) Regenerate(c *gin.Context) {
 
 	if h.pool != nil && h.recoveryTableExists(c) {
 		// Invalidate all existing codes
-		_, _ = h.pool.Exec(c.Request.Context(),
+		if _, err := h.pool.Exec(c.Request.Context(),
 			`UPDATE recovery_codes SET used = true WHERE user_id = $1 AND used = false`,
 			userIDStr,
-		)
+		); !WriteOK(c, err) {
+			return
+		}
 
 		// Insert new codes
 		now := time.Now().UTC()
 		for _, code := range codes {
 			hash := hashCode(code)
-			_, _ = h.pool.Exec(c.Request.Context(),
+			if _, err := h.pool.Exec(c.Request.Context(),
 				`INSERT INTO recovery_codes (user_id, code_hash, created_at) VALUES ($1, $2, $3)`,
 				userIDStr, hash, now,
-			)
+			); !WriteOK(c, err) {
+				return
+			}
 		}
 	}
 

@@ -67,10 +67,7 @@ const ipbCols = `id, name, description, incident_type, severity_threshold, steps
 func (h *IncidentPlaybookHandler) List(c *gin.Context) {
 	ctx := c.Request.Context()
 
-	var exists bool
-	_ = h.pool.QueryRow(ctx, `SELECT EXISTS (
-		SELECT 1 FROM information_schema.tables WHERE table_name = 'incident_playbooks'
-	)`).Scan(&exists)
+	exists := tableIsThere(ctx, h.pool, "incident_playbooks")
 	if !exists {
 		c.JSON(http.StatusOK, gin.H{"data": []interface{}{}, "total": 0})
 		return
@@ -93,7 +90,9 @@ func (h *IncidentPlaybookHandler) List(c *gin.Context) {
 		}
 	}
 	if err := rows.Err(); err != nil {
-		slog.Warn("row iteration error", "error", err)
+		slog.Error("rows.Err: 結果の読み出しが途中で失敗しました", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to list incident playbooks"})
+		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{"data": playbooks, "total": len(playbooks)})
@@ -302,9 +301,11 @@ func (h *IncidentPlaybookHandler) Execute(c *gin.Context) {
 	}
 
 	// Increment usage count
-	_, _ = h.pool.Exec(ctx,
+	if _, err := h.pool.Exec(ctx,
 		`UPDATE incident_playbooks SET usage_count = usage_count + 1 WHERE id = $1`, id,
-	)
+	); !WriteOK(c, err) {
+		return
+	}
 
 	c.JSON(http.StatusCreated, gin.H{
 		"execution_id": execID,
@@ -409,9 +410,11 @@ func (h *IncidentPlaybookHandler) CompleteStep(c *gin.Context) {
 
 	// Get playbook steps to check if all required steps are done
 	var stepsRaw []byte
-	_ = h.pool.QueryRow(ctx,
+	if !ReadOK(c, h.pool.QueryRow(ctx,
 		`SELECT steps FROM incident_playbooks WHERE id = $1`, playbookID,
-	).Scan(&stepsRaw)
+	).Scan(&stepsRaw)) {
+		return
+	}
 
 	type playbookStep struct {
 		ID       string `json:"id"`
@@ -470,7 +473,7 @@ func (h *IncidentPlaybookHandler) ListExecutions(c *gin.Context) {
 		ORDER BY e.created_at DESC LIMIT 50
 	`)
 	if err != nil {
-		c.JSON(http.StatusOK, gin.H{"executions": []any{}})
+		ReadFailure(c, err, gin.H{"executions": []any{}})
 		return
 	}
 	defer rows.Close()
@@ -500,7 +503,9 @@ func (h *IncidentPlaybookHandler) ListExecutions(c *gin.Context) {
 		list = append(list, e)
 	}
 	if err := rows.Err(); err != nil {
-		slog.Warn("row iteration error", "error", err)
+		slog.Error("rows.Err: 結果の読み出しが途中で失敗しました", "error", err)
+		ReadFailure(c, err, gin.H{"executions": []any{}})
+		return
 	}
 	if list == nil {
 		list = []Exec{}

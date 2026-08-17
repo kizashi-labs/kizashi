@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"encoding/pem"
 	"fmt"
+	"github.com/edr-platform/server/internal/metrics"
 	"io"
 	"log/slog"
 	"net"
@@ -54,6 +55,24 @@ type Server struct {
 	// shutdown is closed by ListenAndServe when the server is stopping, so
 	// long-lived EventStream handlers return promptly and GracefulStop can drain.
 	shutdown chan struct{}
+
+	// uninstallGuard supplies the tenant's uninstall-password material for the
+	// heartbeat reply, or nil when none is configured.
+	//
+	// **HTTP だけに載せると、この機能は本番では動きません。**
+	// `FallbackSender` は gRPC を先に試すので、gRPC が生きている通常時
+	// （つまりほぼ全ての端末）に HTTP の応答は使われません。保護設定は
+	// 「必要になる前に端末に置いてある」ことが前提で、アンインストールの
+	// 検証は通信が切れた状態でも走ります —— そのとき取りに行く機会は
+	// ありません。両方の経路で運びます（transport_parity_test.go）。
+	uninstallGuard func(ctx context.Context, agentID string) map[string]any
+}
+
+// SetUninstallGuardProvider wires the uninstall-password material into the gRPC
+// heartbeat reply. A func rather than a store handle so this package keeps no
+// dependency on uninstall protection and stays constructible without it.
+func (s *Server) SetUninstallGuardProvider(f func(ctx context.Context, agentID string) map[string]any) {
+	s.uninstallGuard = f
 }
 
 // gracefulStopTimeout bounds how long a shutdown waits for in-flight RPCs to drain
@@ -66,8 +85,8 @@ type AgentStore interface {
 	UpsertAgent(ctx context.Context, agent *AgentRecord) error
 	UpdateLastSeen(ctx context.Context, agentID, hostname string, ips []string, agentVersion, osVersion, osType string) error
 	UpdateProtectionMode(ctx context.Context, agentID, mode string) error
-	UpdateTelemetryMode(ctx context.Context, agentID, mode string) error
-	UpdateMetrics(ctx context.Context, agentID string, cpuUsage, memoryUsageMB float64) error
+	UpdateTelemetryMode(ctx context.Context, agentID, mode, detail string) error
+	UpdateMetrics(ctx context.Context, agentID string, cpuUsage, memoryUsageMB, totalMemoryMB *float64) error
 	ResolveAgentOfflineAlerts(ctx context.Context, agentID string) error
 	GetAgentByID(ctx context.Context, id string) (*AgentRecord, error)
 	SignCSR(ctx context.Context, enrollToken, agentID, csr string) (signedCert, caCert string, err error)
@@ -124,47 +143,6 @@ func NewServer(store AgentStore, pool *pgxpool.Pool, nc *nats.Conn, commander Co
 	// duplicate delivery from a generic commands.> subscription.
 
 	return s
-}
-
-// EnsureStreams creates required JetStream streams if they don't exist.
-// Should be called once at startup before accepting connections.
-func EnsureStreams(nc *nats.Conn) error {
-	js, err := nc.JetStream()
-	if err != nil {
-		return fmt.Errorf("JetStream コンテキストの取得に失敗: %w", err)
-	}
-
-	streams := []struct {
-		name     string
-		subjects []string
-		maxAge   time.Duration
-	}{
-		{"EVENTS", []string{"events.>"}, 7 * 24 * time.Hour},
-		{"ALERTS", []string{"alerts.>"}, 30 * 24 * time.Hour},
-		{"COMMANDS", []string{"commands.>"}, 1 * time.Hour},
-	}
-
-	for _, s := range streams {
-		_, err := js.StreamInfo(s.name)
-		if err == nil {
-			continue // already exists
-		}
-		_, err = js.AddStream(&nats.StreamConfig{
-			Name:       s.name,
-			Subjects:   s.subjects,
-			Storage:    nats.FileStorage,
-			Retention:  nats.LimitsPolicy,
-			MaxAge:     s.maxAge,
-			MaxBytes:   -1, // no per-stream limit; server manages storage
-			Replicas:   1,
-			Duplicates: 5 * time.Minute,
-		})
-		if err != nil {
-			return fmt.Errorf("ストリーム '%s' の作成に失敗: %w", s.name, err)
-		}
-		slog.Info("NATSストリームを作成しました", "name", s.name)
-	}
-	return nil
 }
 
 // ListenAndServe starts the gRPC server and registers the IngestionService. On
@@ -420,12 +398,50 @@ func (s *Server) Heartbeat(ctx context.Context, req *v1.HeartbeatRequest) (*v1.H
 	// as x-os-version).
 	protectionMode := ""
 	telemetryMode := ""
+	telemetryDetail := ""
 	if md, ok := metadata.FromIncomingContext(ctx); ok {
 		if vals := md.Get("x-protection-mode"); len(vals) > 0 {
 			protectionMode = vals[0]
 		}
 		if vals := md.Get("x-telemetry-mode"); len(vals) > 0 {
 			telemetryMode = vals[0]
+		}
+		if vals := md.Get("x-telemetry-detail"); len(vals) > 0 {
+			telemetryDetail = vals[0]
+		}
+	}
+
+	// **隔離状態の突き合わせは、この経路には無いままでした。**
+	//
+	// HTTP のハートビートは `should_unisolate` を返しますが、`FallbackSender`
+	// は gRPC を先に試すので、**gRPC が生きている通常時、その指示は端末に
+	// 届きません。** 直る条件（gRPC が落ちている）と直らない条件
+	// （gRPC は生きていて指示だけが落ちた）が入れ替わっていました。
+	//
+	// proto を増やさずに済む形（`x-edr-keepalive` と同じ）で、応答の
+	// メタデータに載せます。**DB が唯一の真実**で、指示の送信は速い経路、
+	// 届かなければ次のハートビートが直します。
+	if agent, aerr := s.store.GetAgentByID(ctx, agentID); aerr == nil {
+		reported := "online"
+		if req.GetStatus() == v1.HeartbeatRequest_AGENT_STATUS_ISOLATED {
+			reported = "isolated"
+		}
+		for _, h := range isolationHeaders(agent.Status, reported) {
+			_ = grpc.SetHeader(ctx, metadata.Pairs(h, "1"))
+		}
+	}
+
+	// UninstallGuard も同じ経路で運ぶ。構造体なので JSON にして 1 ヘッダに
+	// 載せる（`x-edr-keepalive` / `x-edr-should-isolate` と同じく proto を
+	// 増やさずに済ませる）。送れなかった回は何も載せない —— 端末は手持ちの
+	// 設定をそのまま保持するので、古い設定が消えることはない。
+	if s.uninstallGuard != nil {
+		if guard := s.uninstallGuard(ctx, agentID); guard != nil {
+			if b, err := json.Marshal(guard); err != nil {
+				slog.Warn("[uninstall] 保護設定を応答に載せられませんでした", "agent", agentID, "error", err)
+			} else {
+				_ = grpc.SetHeader(ctx, metadata.Pairs("x-edr-uninstall-guard", string(b)))
+			}
 		}
 	}
 
@@ -446,13 +462,17 @@ func (s *Server) Heartbeat(ctx context.Context, req *v1.HeartbeatRequest) (*v1.H
 	// Record the effective collection mechanism (best-effort; non-fatal). Kept
 	// separate from the protection tier so a capable-but-degraded endpoint —
 	// eBPF-capable host silently running /proc polling — is visible in the fleet.
-	if err := s.store.UpdateTelemetryMode(ctx, agentID, telemetryMode); err != nil {
+	if err := s.store.UpdateTelemetryMode(ctx, agentID, telemetryMode, telemetryDetail); err != nil {
 		slog.Warn("テレメトリモード更新失敗", "agent", agentID, "error", err)
 	}
 
 	// Persist reported CPU/memory usage for the fleet health alerter
 	// (best-effort; non-fatal).
-	if err := s.store.UpdateMetrics(ctx, agentID, req.GetCpuUsage(), req.GetMemoryUsageMb()); err != nil {
+	// req.CpuUsage は optional です。**送られていなければ測れていない**ので、
+	// nil をそのまま渡して列を NULL のままにします。GetCpuUsage() を使うと
+	// 未測定が 0（＝アイドル）に化けます。
+	if err := s.store.UpdateMetrics(ctx, agentID,
+		req.CpuUsage, req.MemoryUsageMb, req.TotalMemoryMb); err != nil {
 		slog.Warn("メトリクス更新失敗", "agent", agentID, "error", err)
 	}
 
@@ -548,7 +568,7 @@ func (s *Server) publishEventBatch(ctx context.Context, agentID string, batch *v
 	for _, p := range prepped {
 		data, err := s.marshalEventPayload(agentID, platform, p.evtType, p.eventID, p.evt)
 		if err != nil {
-			slog.Warn("イベントペイロードのシリアライズに失敗しました", "agent", agentID, "type", p.evtType, "error", err)
+			metrics.BackgroundFailed("event_publish", err, "イベントペイロードのシリアライズに失敗しました", "agent", agentID, "type", p.evtType)
 			continue
 		}
 		// Topic: events.<agentID>.<type>  (detection engine subscribes to events.>)
@@ -1181,6 +1201,24 @@ func normalizeEventData(evt *v1.Event) []byte {
 		if v := p.GetLogonId(); v != "" {
 			m["logon_id"] = v
 		}
+		// The parent, resolved on the endpoint while it was still alive. Only
+		// emitted when the agent could name it: an absent parent is absent, not
+		// an empty string, so a reader can tell "unknown" from "no parent".
+		if v := p.GetParentName(); v != "" {
+			m["parent_name"] = v
+		}
+		if v := p.GetParentImage(); v != "" {
+			m["parent_image"] = v
+		}
+		// Containment. Only emitted for a process actually in a container, so
+		// privileged/host_network are absent rather than false for the host's
+		// own processes — "not privileged" and "not in a container" are
+		// different facts, and cloudruntime filters on the flags being true.
+		if id := p.GetContainerId(); id != "" {
+			m["container_id"] = id
+			m["privileged"] = p.GetContainerPrivileged()
+			m["host_network"] = p.GetContainerHostNetwork()
+		}
 		// Suspicious environment variables (LD_PRELOAD etc.) for dynamic-linker
 		// hijacking detection. `environment` is the joined form Sigma rules match.
 		if env := p.GetEnvVars(); len(env) > 0 {
@@ -1276,6 +1314,28 @@ func normalizeEventData(evt *v1.Event) []byte {
 		// Emitted only when present so non-Windows auth events stay unchanged.
 		if lt := a.GetLogonType(); lt != "" {
 			m["logon_type"] = lt
+		}
+		// Raw Security-log event id (4624/4625/4634/4672/4765/4766/4768/4769), and
+		// the Kerberos service-ticket fields from 4769. Emitted only when present,
+		// so an event that is not a Kerberos ticket request has no target_spn key
+		// rather than an empty one — the Kerberoasting query can then filter on the
+		// key's presence and mean it.
+		//
+		// event_id は数値で入れる。読む側 (auth_attack / SID-History の門) が
+		// toFloat64 を通しており、文字列を受け取らない。
+		//
+		// Note this is NOT the same as making every `EventID:` Sigma rule live —
+		// the alias to the Sigma field name is applied selectively in
+		// addPipelineSigmaAliases, for the reason documented there. This map is the
+		// honest record of what the agent reported.
+		if id := a.GetEventId(); id != 0 {
+			m["event_id"] = float64(id)
+		}
+		if v := a.GetTargetSpn(); v != "" {
+			m["target_spn"] = v
+		}
+		if v := a.GetTicketEncryptionType(); v != "" {
+			m["ticket_encryption_type"] = v
 		}
 	case v1.EventType_EVENT_TYPE_IMAGE_LOAD:
 		il := evt.GetImageLoad()
@@ -1507,6 +1567,8 @@ func authActionString(a v1.AuthEvent_AuthAction) string {
 		return "privilege"
 	case v1.AuthEvent_AUTH_ACTION_FAILED:
 		return "failed"
+	case v1.AuthEvent_AUTH_ACTION_SERVICE_TICKET:
+		return "kerberos_service_ticket"
 	default:
 		return "unknown"
 	}
@@ -1527,6 +1589,25 @@ func processActionString(a v1.ProcessEvent_ProcessAction) string {
 	default:
 		return "existing"
 	}
+}
+
+// isolationHeaders returns the response-metadata keys that tell an agent to
+// reconcile its isolation state.
+//
+// **切り出してあるのは、両方向あることを直接確かめるため**です。元は
+// gRPC の経路に突き合わせが1つも無く、`FallbackSender` は gRPC を先に
+// 試すので、**gRPC が生きている通常時、HTTP 側の巻き戻しは端末に
+// 届きませんでした。**
+func isolationHeaders(dbStatus, reportedStatus string) []string {
+	dbIsolated := dbStatus == "isolated"
+	reportedIsolated := reportedStatus == "isolated"
+	switch {
+	case dbIsolated && !reportedIsolated:
+		return []string{"x-edr-should-isolate"}
+	case !dbIsolated && reportedIsolated:
+		return []string{"x-edr-should-unisolate"}
+	}
+	return nil
 }
 
 // applyCommandAcks closes the audit rows for commands the agent has finished.

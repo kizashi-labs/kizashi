@@ -34,6 +34,7 @@ import (
 	"github.com/edr-platform/server/internal/enrichment"
 	"github.com/edr-platform/server/internal/hunting"
 	"github.com/edr-platform/server/internal/investigation"
+	"github.com/edr-platform/server/internal/isolation"
 	"github.com/edr-platform/server/internal/license"
 	"github.com/edr-platform/server/internal/metrics"
 	"github.com/edr-platform/server/internal/ml"
@@ -51,7 +52,6 @@ import (
 	"github.com/edr-platform/server/internal/suppression"
 	edrsync "github.com/edr-platform/server/internal/sync"
 	"github.com/edr-platform/server/internal/telemetry"
-	"github.com/edr-platform/server/internal/tenant"
 	"github.com/edr-platform/server/internal/threatintel"
 	"github.com/edr-platform/server/internal/watchlist"
 	"github.com/edr-platform/server/internal/webhooks"
@@ -203,6 +203,50 @@ func main() {
 	reportStore := store.NewReportStore(db)
 	responseActionStore := store.NewResponseActionStore(db)
 	commander := store.NewCommandStore(db, nc)
+
+	// AUTO_RESPONSE_ENABLED は server-detect だけの設定ではない。自動修復エンジンは
+	// この api プロセスにあり、以前はこのスイッチを一切見ずに隔離していた。
+	// 両プロセスに同じ値を渡すこと。
+	autoResponse := getEnv("AUTO_RESPONSE_ENABLED", "true") == "true"
+	isoDryRun := getEnv("AUTO_ISOLATE_DRY_RUN", "") == "true"
+	if !autoResponse {
+		slog.Warn("AUTO_RESPONSE_ENABLED=false のため、無人経路からの隔離は行いません")
+	}
+	if isoDryRun {
+		slog.Warn("自動隔離はドライランです。隔離は実行されず、記録だけ残ります")
+	}
+	// AUTO_ISOLATE_EXEMPT はこれまで detection にしか実装が無く、api 経由の
+	// 隔離（プレイブック・自動修復・API 呼び出し）には安全弁が一つも無かった。
+	// 環境変数だけが両方に配られていたので、外形上は効いているように見える。
+	// 判定は isolation.IsExempt に一本化してある。
+	var isoExempt []string
+	for _, h := range strings.Split(os.Getenv("AUTO_ISOLATE_EXEMPT"), ",") {
+		if h = strings.TrimSpace(h); h != "" {
+			isoExempt = append(isoExempt, h)
+		}
+	}
+	if len(isoExempt) > 0 {
+		slog.Info("自動隔離の除外リストを読み込みました", "件数", len(isoExempt),
+			"対象", isoExempt)
+	}
+	// ホスト名で指定できるようにするための解決手段。呼び出し側の記入に頼ると
+	// 記入し忘れた経路だけ除外が効かなくなる。
+	exemptResolver := func(ctx context.Context, agentID string) string {
+		if agentID == "" {
+			return ""
+		}
+		a, err := agentStore.GetAgentByID(ctx, agentID)
+		if err != nil || a == nil {
+			return ""
+		}
+		return a.Hostname
+	}
+	gatekeeper := isolation.New(commander, responseActionStore, isolation.Config{
+		UnattendedEnabled: autoResponse,
+		DryRun:            isoDryRun,
+		Exempt:            isoExempt,
+		HostnameResolver:  exemptResolver,
+	})
 	quarantineStore := store.NewQuarantineStore(db)
 	iocStore := store.NewIOCStore(db)
 	ipBlockStore := store.NewIPBlockStore(db)
@@ -255,6 +299,7 @@ func main() {
 	// ─── Handlers ─────────────────────────────────────────────
 	agentHandler := handlers.NewAgentHandler(agentStore, commander)
 	agentHandler.ResponseActions = responseActionStore
+	agentHandler.Isolator = gatekeeper
 	agentHandler.Alerts = alertStore
 	agentHandler.Quarantine = quarantineStore
 	agentHandler.Pool = pool
@@ -1079,19 +1124,17 @@ func main() {
 	go scheduler.NewMDMCredentialExpiryChecker(pool, nc).Run(ctx)
 	slog.Info("MDM資格情報有効期限チェッカーを開始しました")
 
-	// ─── IOC Matcher Scheduler ────────────────────────────────
-	go scheduler.NewIOCMatcher(pool, nc).Run(ctx)
-	slog.Info("IOCマッチャースケジューラーを開始しました")
-
 	// ─── Retroactive IOC Hunter ───────────────────────────────
-	// Live matcher covers "new events × all IOCs"; this covers "historical
-	// events × newly-added IOCs" so a freshly-synced feed (e.g. ThreatFox)
-	// surfaces intrusions that already happened. 30-day lookback, 6h cadence.
+	// detection.IOCMatcher (in cmd/detection) covers "new events × all IOCs";
+	// this covers "historical events × newly-added IOCs" so a freshly-synced
+	// feed (e.g. ThreatFox) surfaces intrusions that already happened.
+	// 30-day lookback, 6h cadence.
 	go scheduler.NewRetroIOCHunter(pool, nc, 30, 6*time.Hour).Run(ctx)
 	slog.Info("レトロアクティブIOCハンターを開始しました")
 
 	// ─── Remediation Engine (早期初期化: Detection Pipeline が参照するため) ──
 	earlyRemediationEngine := remediation.NewEngine(pool, nc)
+	earlyRemediationEngine.SetIsolator(gatekeeper)
 	remediation.LoadBuiltins(earlyRemediationEngine)
 	if err := earlyRemediationEngine.LoadExclusionsFromDB(ctx); err != nil {
 		slog.Warn("自動修復エンジン: 除外リストの読み込みに失敗しました", "error", err)
@@ -1158,10 +1201,6 @@ func main() {
 
 	// ─── System Settings Handler ──────────────────────────────
 	h.SystemSettings = handlers.NewSystemSettingsHandler(pool)
-
-	// ─── Alert Aggregator Scheduler ───────────────────────────
-	go scheduler.NewAlertAggregator(pool).Run(ctx)
-	slog.Info("アラートアグリゲーターを開始しました")
 
 	// ─── SOC デイリーブリーフィング（毎朝8時）────────────────
 	var natsPub func(string, []byte) error
@@ -1233,9 +1272,12 @@ func main() {
 	go handlers.NewAlertEnrichmentPipeline(pool).Run(ctx)
 	slog.Info("アラートエンリッチメントパイプラインを開始しました")
 
-	// ─── Report Generator Scheduler ───────────────────────────
-	go scheduler.NewReportGenerator(pool, getEnv("REPORT_DIR", "./reports")).Run(ctx)
-	slog.Info("レポートジェネレーターを開始しました")
+	// スケジュールレポートの実行は reports.Scheduler が担当する (下方で起動)。
+	// ここには scheduler.ReportGenerator という 2 つめのループが存在していたが、
+	// 同じ scheduled_reports テーブルを、存在しない列名 (next_run_at) で読み書き
+	// していた。次回実行時刻の絞り込みが効かず、有効なレポートを 5 分ごとに
+	// 無条件で再生成し続けていた (実測: 3 tick で 3 本、next_run が翌日でも生成)。
+	// 生成物の記録先も存在しない reports テーブルで、recipients も未使用だった。
 
 	// ─── Dead Agent Cleanup Scheduler ─────────────────────────
 	go scheduler.NewDeadAgentCleanup(pool, nc).Run(ctx)
@@ -1360,10 +1402,6 @@ func main() {
 
 	// ─── Vulnerability Remediation Tracking (Task #407) ───────
 	h.VulnRemediation = handlers.NewVulnRemediationHandler(pool)
-
-	// ─── Threat Hunt Automator (Task #409) ────────────────────
-	go scheduler.NewThreatHuntAutomator(pool, nc).Run(ctx)
-	slog.Info("脅威ハントオートメーターを開始しました")
 
 	// ─── Third-Party/Supply Chain Risk Management (Task #411) ─
 	h.VendorRisk = handlers.NewVendorRiskHandler(pool)
@@ -1581,7 +1619,7 @@ func main() {
 	h.TrainingMgmt = handlers.NewTrainingMgmtHandler(pool)
 
 	// ─── Quarantine Actions (Migration 156) ───────────────────────
-	h.QuarantineActions = handlers.NewQuarantineActionsHandlerWithCommander(pool, commander)
+	h.QuarantineActions = handlers.NewQuarantineActionsHandlerWithIsolator(pool, gatekeeper)
 
 	// ─── Security SLA (Migration 157) ─────────────────────────────
 	h.SecuritySLA = handlers.NewSecuritySLAHandler(pool)
@@ -1678,11 +1716,6 @@ func main() {
 	scorecardScorer := scorecard.NewScorer(pool)
 	h.Scorecard = handlers.NewScorecardHandler(scorecardScorer)
 	slog.Info("セキュリティスコアカードスコアラーを初期化しました")
-
-	// ─── Organization Store (multi-tenant) ───────────────────
-	orgStore := tenant.NewStore(pool)
-	h.Org = handlers.NewOrgHandler(orgStore)
-	slog.Info("マルチテナント組織ストアを初期化しました")
 
 	// ─── GeoIP Threat Map ─────────────────────────────────────
 	h.GeoIP = handlers.NewGeoIPHandler(pool)

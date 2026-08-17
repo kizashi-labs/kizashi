@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
+	"regexp"
 	"strings"
 	"time"
 
@@ -49,6 +51,45 @@ type RuleFilter struct {
 }
 
 // ListEnabled returns all enabled detection rules.
+// ruleListWhere builds the WHERE clause and arguments for List.
+//
+// **切り出してあるのは、検査が本物を呼べるようにするためです。**
+// 検査ファイルには同じ組み立ての写しが置いてあり、そちらだけが試されて
+// いました。公開はしません —— `List` からしか使わないので、公開すると
+// `TestStoreSymbolsAreReachable` の数が増えます。
+func ruleListWhere(filter RuleFilter) (string, []interface{}) {
+	var conditions []string
+	var args []interface{}
+
+	// プレースホルダの番号は args の本数から出します。
+	//
+	// **別にカウンタを持つと、条件を足したときに片方だけ増やせてしまいます。**
+	// 実際、最後の `i++` は誰も読まないまま残っていました（golangci-lint の
+	// ineffassign が見つけました）。番号と引数がずれると、SQL は通って
+	// 結果だけが違うので、いちばん気づきにくい形です。
+	ph := func() string { return fmt.Sprintf("$%d", len(args)+1) }
+
+	if filter.Type != "" {
+		conditions = append(conditions, "type = "+ph())
+		args = append(args, filter.Type)
+	}
+	if filter.Enabled != nil {
+		conditions = append(conditions, "enabled = "+ph())
+		args = append(args, *filter.Enabled)
+	}
+	if filter.Search != "" {
+		p := ph() // 2か所で同じ番号を使うので、append の前に取ります。
+		conditions = append(conditions, fmt.Sprintf("(name ILIKE %s OR description ILIKE %s)", p, p))
+		args = append(args, "%"+filter.Search+"%")
+	}
+
+	where := ""
+	if len(conditions) > 0 {
+		where = "WHERE " + strings.Join(conditions, " AND ")
+	}
+	return where, args
+}
+
 func (s *RuleStore) ListEnabled(ctx context.Context) ([]*RuleRow, error) {
 	rows, err := s.pool.Query(ctx, `
 		SELECT id, name, type, platform, severity, content,
@@ -76,35 +117,17 @@ func (s *RuleStore) ListEnabled(ctx context.Context) ([]*RuleRow, error) {
 		}
 		rules = append(rules, &r)
 	}
+	// 部分結果を完全な一覧として返さない（scan_truncation_guard_test.go 参照）
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
 	return rules, nil
 }
 
 // List returns rules with optional filtering and pagination.
 func (s *RuleStore) List(ctx context.Context, filter RuleFilter) ([]*RuleRow, int, error) {
-	var conditions []string
-	var args []interface{}
-	i := 1
-
-	if filter.Type != "" {
-		conditions = append(conditions, fmt.Sprintf("type = $%d", i))
-		args = append(args, filter.Type)
-		i++
-	}
-	if filter.Enabled != nil {
-		conditions = append(conditions, fmt.Sprintf("enabled = $%d", i))
-		args = append(args, *filter.Enabled)
-		i++
-	}
-	if filter.Search != "" {
-		conditions = append(conditions, fmt.Sprintf("(name ILIKE $%d OR description ILIKE $%d)", i, i))
-		args = append(args, "%"+filter.Search+"%")
-		i++
-	}
-
-	where := ""
-	if len(conditions) > 0 {
-		where = "WHERE " + strings.Join(conditions, " AND ")
-	}
+	where, args := ruleListWhere(filter)
+	i := len(args) + 1
 
 	var total int
 	if err := s.pool.QueryRow(ctx, "SELECT COUNT(*) FROM rules "+where, args...).Scan(&total); err != nil {
@@ -145,6 +168,10 @@ func (s *RuleStore) List(ctx context.Context, filter RuleFilter) ([]*RuleRow, in
 		}
 		rules = append(rules, &r)
 	}
+	// 部分結果を完全な一覧として返さない（scan_truncation_guard_test.go 参照）
+	if err := rows.Err(); err != nil {
+		return nil, 0, err
+	}
 	return rules, total, nil
 }
 
@@ -170,8 +197,55 @@ func (s *RuleStore) Get(ctx context.Context, id string) (*RuleRow, error) {
 	return &r, nil
 }
 
+// normalizeMITRETags converts raw Sigma tags into ATT&CK technique IDs and drops
+// everything that is not a technique.
+//
+// mitre_tags is compared by exact string on the scoring and attribution paths, so
+// "attack.t1059.004" does NOT match "T1059.004": a rule stored that way fires but
+// contributes nothing to technique attribution, and its alerts can end up with a
+// TACTIC name ("attack.execution") in mitre_technique. Found live 2026-08-03 on 25
+// enabled rules — silent, because the rule works and only the attribution is lost.
+//
+// Normalizing here rather than only in each caller means it holds for every write
+// path. The SigmaHQ importer already normalizes, so this is a no-op for it; the
+// paths that did not are exactly the ones that produced those 25 rows.
+//
+// Order is preserved: the first technique tag is treated as a rule's primary
+// technique (see detection/sigma_builtins.go), so reordering changes meaning.
+// Duplicates created by normalization collapse onto their first occurrence.
+func normalizeMITRETags(tags []string) []string {
+	if len(tags) == 0 {
+		return tags
+	}
+	out := make([]string, 0, len(tags))
+	seen := make(map[string]struct{}, len(tags))
+	for _, tag := range tags {
+		lower := strings.ToLower(tag)
+		norm := tag
+		switch {
+		case techniqueTagRe.MatchString(lower):
+			norm = strings.ToUpper(strings.TrimPrefix(lower, "attack."))
+		case strings.HasPrefix(lower, "attack."):
+			// A tactic/group/software tag. Not a technique, so it must not sit in a
+			// field whose consumers assume technique IDs.
+			continue
+		}
+		if _, dup := seen[norm]; dup {
+			continue
+		}
+		seen[norm] = struct{}{}
+		out = append(out, norm)
+	}
+	return out
+}
+
+// techniqueTagRe matches Sigma technique tags such as "attack.t1059" and
+// "attack.t1059.004".
+var techniqueTagRe = regexp.MustCompile(`^attack\.t[0-9]{4}(\.[0-9]{3})?$`)
+
 // Create inserts a new rule.
 func (s *RuleStore) Create(ctx context.Context, r *RuleRow) error {
+	r.MITRETags = normalizeMITRETags(r.MITRETags)
 	_, err := s.pool.Exec(ctx, `
 		INSERT INTO rules (
 			id, name, type, platform, severity, content,
@@ -189,6 +263,7 @@ func (s *RuleStore) Create(ctx context.Context, r *RuleRow) error {
 
 // Update updates an existing rule.
 func (s *RuleStore) Update(ctx context.Context, r *RuleRow) error {
+	r.MITRETags = normalizeMITRETags(r.MITRETags)
 	_, err := s.pool.Exec(ctx, `
 		UPDATE rules SET
 			name              = $2,
@@ -312,8 +387,19 @@ func (s *NotificationStore) ListChannels(ctx context.Context) ([]*NotifChannelRo
 			continue
 		}
 		ch.Config = make(map[string]string)
-		_ = json.Unmarshal(configJSON, &ch.Config)
+		if err := json.Unmarshal(configJSON, &ch.Config); err != nil {
+			// 設定が読めないチャネルを空の Config のまま返すと、送信先が
+			// 空のセンダーが作られ、コンソールでは「有効」に見えたまま
+			// アラートごとに送信が失敗します。読めないものは返しません。
+			slog.Warn("notification: チャネル設定を解釈できませんでした。このチャネルは無効として扱います",
+				"channel", ch.Name, "type", ch.Type, "id", ch.ID, "error", err)
+			continue
+		}
 		channels = append(channels, &ch)
+	}
+	// 部分結果を完全な一覧として返さない（scan_truncation_guard_test.go 参照）
+	if err := rows.Err(); err != nil {
+		return nil, err
 	}
 	return channels, nil
 }

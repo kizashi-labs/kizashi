@@ -233,13 +233,15 @@ func (h *LogIngestionHandler) Ingest(c *gin.Context) {
 	}
 
 	// Update log_sources stats
-	_, _ = h.pool.Exec(ctx,
+	if _, err := h.pool.Exec(ctx,
 		`UPDATE log_sources
-		SET total_ingested = total_ingested + 1,
-		    last_received_at = $1
-		WHERE name = $2`,
+			SET total_ingested = total_ingested + 1,
+			    last_received_at = $1
+			WHERE name = $2`,
 		now, sourceName,
-	)
+	); !WriteOK(c, err) {
+		return
+	}
 
 	c.JSON(http.StatusAccepted, gin.H{
 		"id":     logID,
@@ -292,7 +294,9 @@ func (h *LogIngestionHandler) ListSources(c *gin.Context) {
 		sources = append(sources, s)
 	}
 	if err := rows.Err(); err != nil {
-		slog.Warn("row iteration error", "error", err)
+		slog.Error("rows.Err: 結果の読み出しが途中で失敗しました", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to list log sources"})
+		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{"sources": sources, "total": len(sources)})
@@ -378,27 +382,33 @@ func (h *LogIngestionHandler) GetSourceStats(c *gin.Context) {
 
 	// Count logs in last 24 hours
 	var last24hCount int64
-	_ = h.pool.QueryRow(ctx,
+	if !ReadOK(c, h.pool.QueryRow(ctx,
 		`SELECT COUNT(*) FROM ingested_logs
-		WHERE source_name = $1 AND event_time >= NOW() - INTERVAL '24 hours'`,
+			WHERE source_name = $1 AND event_time >= NOW() - INTERVAL '24 hours'`,
 		sourceName,
-	).Scan(&last24hCount)
+	).Scan(&last24hCount)) {
+		return
+	}
 
 	// Count errors in last 24 hours
 	var errorCount int64
-	_ = h.pool.QueryRow(ctx,
+	if !ReadOK(c, h.pool.QueryRow(ctx,
 		`SELECT COUNT(*) FROM ingested_logs
-		WHERE source_name = $1 AND error_msg IS NOT NULL AND event_time >= NOW() - INTERVAL '24 hours'`,
+			WHERE source_name = $1 AND error_msg IS NOT NULL AND event_time >= NOW() - INTERVAL '24 hours'`,
 		sourceName,
-	).Scan(&errorCount)
+	).Scan(&errorCount)) {
+		return
+	}
 
 	// Count unprocessed logs
 	var unprocessedCount int64
-	_ = h.pool.QueryRow(ctx,
+	if !ReadOK(c, h.pool.QueryRow(ctx,
 		`SELECT COUNT(*) FROM ingested_logs
-		WHERE source_name = $1 AND processed = false`,
+			WHERE source_name = $1 AND processed = false`,
 		sourceName,
-	).Scan(&unprocessedCount)
+	).Scan(&unprocessedCount)) {
+		return
+	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"source_name":      sourceName,

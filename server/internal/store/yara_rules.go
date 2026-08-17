@@ -134,6 +134,9 @@ func (s *YARAStore) List(ctx context.Context, f YARAListFilter) ([]*YARARule, in
 		}
 		rules = append(rules, r)
 	}
+	if err := rows.Err(); err != nil {
+		return nil, 0, err
+	}
 	if rules == nil {
 		rules = []*YARARule{}
 	}
@@ -178,8 +181,14 @@ func (s *YARAStore) Upsert(ctx context.Context, in UpsertYARARuleInput) (created
 	}
 
 	// Check existence before upsert to determine created vs updated.
+	// **読めなかった空文字は「新規」に倒れます。** 呼び出し側はそれを
+	// 「作成しました」として利用者に返します。行が無いのは別（本当に
+	// 新規）なので、そこは通します。
 	var existingID string
-	_ = s.pool.QueryRow(ctx, `SELECT id FROM yara_rules WHERE name = $1`, in.Name).Scan(&existingID)
+	if err := s.pool.QueryRow(ctx, `SELECT id FROM yara_rules WHERE name = $1`, in.Name).
+		Scan(&existingID); err != nil && !errors.Is(err, pgx.ErrNoRows) {
+		return false, fmt.Errorf("既存のYARAルールを確認できません: %w", err)
+	}
 	isNew := existingID == ""
 
 	cat := in.Category
@@ -326,6 +335,9 @@ func (s *YARAStore) ListEnabled(ctx context.Context) ([]*YARARule, error) {
 			continue
 		}
 		rules = append(rules, r)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
 	}
 	if rules == nil {
 		rules = []*YARARule{}

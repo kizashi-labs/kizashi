@@ -1,7 +1,6 @@
 package store
 
 import (
-	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -231,32 +230,34 @@ func TestNilIfEmpty_IOCAddedBy(t *testing.T) {
 
 // ─── IOC クエリビルダー ロジックテスト ────────────────────────────────────────
 
-// buildIOCWhere は ioc.go の List メソッド内と同等のWHERE句構築を再現するヘルパー
+// buildIOCWhere は **本物を呼びます。**
+//
+// 以前ここには List の組み立てを書き写したものが置いてありました。
+// 写しを試しても、製品の側は無傷のまま壊せます。
 func buildIOCWhere(iocType, search string, activeOnly bool) (string, []interface{}) {
-	where := "WHERE 1=1"
-	args := []interface{}{}
-	argIdx := 1
-
-	if iocType != "" {
-		where += " AND i.type = $" + itoa(argIdx)
-		args = append(args, iocType)
-		argIdx++
-	}
-	if activeOnly {
-		where += " AND i.is_active = TRUE"
-	}
-	if search != "" {
-		where += " AND i.value ILIKE $" + itoa(argIdx)
-		args = append(args, "%"+search+"%")
-		argIdx++
-	}
-	_ = argIdx
-	return where, args
+	return iocListWhere(iocType, search, activeOnly)
 }
 
-// itoa はテスト専用の簡易 int→string 変換
-func itoa(n int) string {
-	return strconv.Itoa(n)
+// **値を取らない条件が、プレースホルダの番号を進めないこと。**
+// `is_active` は値を取りません。ここで番号を進めると、そのあとの
+// `search` が $2 を指すのに引数は1つしかなく、**一覧が丸ごと落ちます。**
+func TestIOCPlaceholdersStayInStepWithArgs(t *testing.T) {
+	where, args := iocListWhere("ip", "1.2.3", true)
+	if len(args) != 2 {
+		t.Fatalf("args = %v, want 2 件", args)
+	}
+	if !strings.Contains(where, "$1") || !strings.Contains(where, "$2") {
+		t.Errorf("$1 と $2 が揃っていません: %q", where)
+	}
+	if strings.Contains(where, "$3") {
+		t.Errorf("引数の数を超えるプレースホルダがあります: %q", where)
+	}
+	// is_active だけのとき、引数は増えません。
+	where, args = iocListWhere("", "", true)
+	if len(args) != 0 || strings.Contains(where, "$") {
+		t.Errorf("activeOnly だけで引数/プレースホルダが増えています: %q %v",
+			where, args)
+	}
 }
 
 // TestBuildIOCWhere_EmptyFilter は全てのフィルターが空の場合の WHERE 句を確認する

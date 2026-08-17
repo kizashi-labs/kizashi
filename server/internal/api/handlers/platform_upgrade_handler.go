@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"encoding/json"
+	"github.com/edr-platform/server/internal/metrics"
 	"log/slog"
 	"net/http"
 	"runtime"
@@ -61,10 +62,7 @@ func (h *PlatformUpgradeHandler) RecordStartup(ctx context.Context) {
 	defer cancel()
 
 	// Ensure the table exists before trying to insert (migrations may not have run yet).
-	var tableExists bool
-	_ = h.pool.QueryRow(ctx2,
-		`SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name='platform_versions')`,
-	).Scan(&tableExists)
+	tableExists := tableIsThere(ctx2, h.pool, "platform_versions")
 	if !tableExists {
 		slog.Warn("platform_versions テーブルが存在しません — マイグレーションをまだ実行していない可能性があります")
 		return
@@ -85,7 +83,7 @@ func (h *PlatformUpgradeHandler) RecordStartup(ctx context.Context) {
 		VALUES ($1, $2, 'system', 'active', '起動時に自動記録')
 	`, h.version, h.buildDate)
 	if err != nil {
-		slog.Warn("プラットフォームバージョンの記録に失敗しました", "error", err, "version", h.version)
+		metrics.BackgroundFailed("platform_version_record", err, "プラットフォームバージョンの記録に失敗しました", "version", h.version)
 		return
 	}
 	slog.Info("プラットフォームバージョンをDBに記録しました", "version", h.version, "build_date", h.buildDate)
@@ -141,7 +139,9 @@ func (h *PlatformUpgradeHandler) GetVersion(c *gin.Context) {
 	if err := h.pool.Ping(ctx); err != nil {
 		pgStatus = "degraded"
 	} else {
-		_ = h.pool.QueryRow(ctx, `SELECT version()`).Scan(&pgFull)
+		if !ReadOK(c, h.pool.QueryRow(ctx, `SELECT version()`).Scan(&pgFull)) {
+			return
+		}
 	}
 	pgVer := pgShortVersion(pgFull)
 	if pgVer == "" {
@@ -179,7 +179,7 @@ func (h *PlatformUpgradeHandler) GetUpgrades(c *gin.Context) {
 		ORDER BY created_at DESC
 	`)
 	if err != nil {
-		c.JSON(http.StatusOK, []interface{}{})
+		ReadFailure(c, err, []interface{}{})
 		return
 	}
 	defer rows.Close()
@@ -208,6 +208,11 @@ func (h *PlatformUpgradeHandler) GetUpgrades(c *gin.Context) {
 			p.ChangelogDetails = json.RawMessage(`[]`)
 		}
 		list = append(list, p)
+	}
+	if err := rows.Err(); err != nil {
+		slog.Warn("GetUpgrades: 結果セットの読み取りが途中で終わりました。応答は不完全です", "error", err)
+		c.JSON(http.StatusOK, []interface{}{})
+		return
 	}
 	if list == nil {
 		list = []pkg{}
@@ -283,7 +288,7 @@ func (h *PlatformUpgradeHandler) GetSchedule(c *gin.Context) {
 		ORDER BY scheduled_at DESC
 	`)
 	if err != nil {
-		c.JSON(http.StatusOK, []interface{}{})
+		ReadFailure(c, err, []interface{}{})
 		return
 	}
 	defer rows.Close()
@@ -307,6 +312,11 @@ func (h *PlatformUpgradeHandler) GetSchedule(c *gin.Context) {
 		}
 		s.ScheduledAt = at.Format(time.RFC3339)
 		list = append(list, s)
+	}
+	if err := rows.Err(); err != nil {
+		slog.Warn("GetSchedule: 結果セットの読み取りが途中で終わりました。応答は不完全です", "error", err)
+		c.JSON(http.StatusOK, []interface{}{})
+		return
 	}
 	if list == nil {
 		list = []sched{}
@@ -370,7 +380,7 @@ func (h *PlatformUpgradeHandler) GetHistory(c *gin.Context) {
 		LIMIT 50
 	`)
 	if err != nil {
-		c.JSON(http.StatusOK, []interface{}{})
+		ReadFailure(c, err, []interface{}{})
 		return
 	}
 	defer rows.Close()
@@ -398,6 +408,11 @@ func (h *PlatformUpgradeHandler) GetHistory(c *gin.Context) {
 		hh.CompletedAt = at.Format(time.RFC3339)
 		list = append(list, hh)
 	}
+	if err := rows.Err(); err != nil {
+		slog.Warn("GetHistory: 結果セットの読み取りが途中で終わりました。応答は不完全です", "error", err)
+		c.JSON(http.StatusOK, []interface{}{})
+		return
+	}
 	if list == nil {
 		list = []hist{}
 	}
@@ -420,7 +435,7 @@ func (h *PlatformUpgradeHandler) GetAgentVersions(c *gin.Context) {
 		LIMIT 20
 	`)
 	if err != nil {
-		c.JSON(http.StatusOK, []interface{}{})
+		ReadFailure(c, err, []interface{}{})
 		return
 	}
 	defer rows.Close()
@@ -437,6 +452,11 @@ func (h *PlatformUpgradeHandler) GetAgentVersions(c *gin.Context) {
 			continue
 		}
 		list = append(list, d)
+	}
+	if err := rows.Err(); err != nil {
+		slog.Warn("GetAgentVersions: 結果セットの読み取りが途中で終わりました。応答は不完全です", "error", err)
+		c.JSON(http.StatusOK, []interface{}{})
+		return
 	}
 	if list == nil {
 		list = []dist{}

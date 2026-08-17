@@ -425,36 +425,42 @@ describe("apiKeys.revoke(id)", () => {
 
 // ─── liveResponse ─────────────────────────────────────────────────────────────
 
-describe("liveResponse.list()", () => {
-  it("calls GET /api/v1/live-response/sessions", async () => {
+// **この3つは、サーバに無い宛先を留めていました。**
+//
+// 検査はクライアントの実装から書かれていて、サーバの経路と突き合わせた
+// ものは1つもありませんでした —— **緑のまま、呼べば必ず 404** です。
+// セッションは端末ごと（`/agents/:id/live-response/sessions`）です。
+
+describe("liveResponse.list(agentId)", () => {
+  it("calls GET /api/v1/agents/:id/live-response/sessions", async () => {
     vi.mocked(fetch).mockResolvedValueOnce(mockJsonResponse({ data: [], total: 0 }));
-    await client.liveResponse.list();
+    await client.liveResponse.list("agent-007");
     const [url, init] = vi.mocked(fetch).mock.calls[0] as [string, RequestInit];
-    expect(url).toMatch(/\/api\/v1\/live-response\/sessions$/);
+    expect(url).toMatch(/\/api\/v1\/agents\/agent-007\/live-response\/sessions$/);
     expect(init.method).toBe("GET");
   });
 });
 
 describe("liveResponse.open(agentId)", () => {
-  it("calls POST /api/v1/live-response/sessions with agent_id in body", async () => {
+  it("calls POST /api/v1/agents/:id/live-response/sessions", async () => {
     vi.mocked(fetch).mockResolvedValueOnce(
       mockJsonResponse({ id: "sess-1", agent_id: "agent-007" })
     );
     await client.liveResponse.open("agent-007");
     const [url, init] = vi.mocked(fetch).mock.calls[0] as [string, RequestInit];
-    expect(url).toMatch(/\/api\/v1\/live-response\/sessions$/);
+    expect(url).toMatch(/\/api\/v1\/agents\/agent-007\/live-response\/sessions$/);
     expect(init.method).toBe("POST");
-    const body = JSON.parse(init.body as string);
-    expect(body.agent_id).toBe("agent-007");
   });
 });
 
-describe("liveResponse.exec(sessionId, command)", () => {
-  it("calls POST /api/v1/live-response/sessions/:id/exec with command in body", async () => {
+describe("liveResponse.exec(agentId, sessionId, command)", () => {
+  it("calls POST /api/v1/agents/:id/live-response/sessions/:sid/exec with command in body", async () => {
     vi.mocked(fetch).mockResolvedValueOnce(mockJsonResponse({ output: "uid=0(root)" }));
-    await client.liveResponse.exec("sess-1", "id");
+    await client.liveResponse.exec("agent-007", "sess-1", "id");
     const [url, init] = vi.mocked(fetch).mock.calls[0] as [string, RequestInit];
-    expect(url).toMatch(/\/api\/v1\/live-response\/sessions\/sess-1\/exec$/);
+    expect(url).toMatch(
+      /\/api\/v1\/agents\/agent-007\/live-response\/sessions\/sess-1\/exec$/
+    );
     expect(init.method).toBe("POST");
     const body = JSON.parse(init.body as string);
     expect(body.command).toBe("id");
@@ -464,14 +470,14 @@ describe("liveResponse.exec(sessionId, command)", () => {
 // ─── incidents.update ─────────────────────────────────────────────────────────
 
 describe("incidents.update(id, data)", () => {
-  it("calls PATCH /api/v1/incidents/:id", async () => {
+  it("calls PUT /api/v1/incidents/:id", async () => {
     vi.mocked(fetch).mockResolvedValueOnce(
       mockJsonResponse({ id: "inc-1", status: "investigating" })
     );
     await client.incidents.update("inc-1", { status: "investigating" });
     const [url, init] = vi.mocked(fetch).mock.calls[0] as [string, RequestInit];
     expect(url).toMatch(/\/api\/v1\/incidents\/inc-1$/);
-    expect(init.method).toBe("PATCH");
+    expect(init.method).toBe("PUT");
   });
 
   it("sends status and assigned_to in body", async () => {
@@ -518,14 +524,14 @@ describe("rules.get(id)", () => {
 // ─── rules.update ─────────────────────────────────────────────────────────────
 
 describe("rules.update(id, data)", () => {
-  it("calls PATCH /api/v1/rules/:id", async () => {
+  it("calls PUT /api/v1/rules/:id", async () => {
     vi.mocked(fetch).mockResolvedValueOnce(
       mockJsonResponse({ id: "rule-1", name: "updated", type: "sigma", condition: "...", enabled: false })
     );
     await client.rules.update("rule-1", { enabled: false });
     const [url, init] = vi.mocked(fetch).mock.calls[0] as [string, RequestInit];
     expect(url).toMatch(/\/api\/v1\/rules\/rule-1$/);
-    expect(init.method).toBe("PATCH");
+    expect(init.method).toBe("PUT");
   });
 
   it("sends only provided fields in body", async () => {

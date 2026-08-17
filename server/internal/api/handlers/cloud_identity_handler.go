@@ -62,7 +62,9 @@ func (h *CloudIdentityHandler) ListProviders(c *gin.Context) {
 		providers = append(providers, p)
 	}
 	if err := rows.Err(); err != nil {
-		slog.Warn("row iteration error", "error", err)
+		slog.Error("rows.Err: 結果の読み出しが途中で失敗しました", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": dbErrMsg(err)})
+		return
 	}
 	if providers == nil {
 		providers = []Provider{}
@@ -170,13 +172,15 @@ func (h *CloudIdentityHandler) SyncProvider(c *gin.Context) {
 		return
 	}
 
-	_, _ = h.pool.Exec(c.Request.Context(), `
-		UPDATE cloud_identity_providers
-		SET sync_status='synced', last_sync=NOW(),
-		    user_count=0, group_count=0, error_msg=NULL, updated_at=NOW()
-		WHERE id=$1`,
+	if _, err := h.pool.Exec(c.Request.Context(), `
+			UPDATE cloud_identity_providers
+			SET sync_status='synced', last_sync=NOW(),
+			    user_count=0, group_count=0, error_msg=NULL, updated_at=NOW()
+			WHERE id=$1`,
 		id,
-	)
+	); !WriteOK(c, err) {
+		return
+	}
 
 	c.JSON(http.StatusAccepted, gin.H{"message": "同期を開始しました", "sync_status": "syncing"})
 }
@@ -250,7 +254,9 @@ func (h *CloudIdentityHandler) ListIdentities(c *gin.Context) {
 		identities = append(identities, i)
 	}
 	if err := rows.Err(); err != nil {
-		slog.Warn("row iteration error", "error", err)
+		slog.Error("rows.Err: 結果の読み出しが途中で失敗しました", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": dbErrMsg(err)})
+		return
 	}
 	if identities == nil {
 		identities = []Identity{}
@@ -359,7 +365,9 @@ func (h *CloudIdentityHandler) GetStats(c *gin.Context) {
 		byProvider = append(byProvider, s)
 	}
 	if err := rows.Err(); err != nil {
-		slog.Warn("row iteration error", "error", err)
+		slog.Error("rows.Err: 結果の読み出しが途中で失敗しました", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": dbErrMsg(err)})
+		return
 	}
 	rows.Close()
 	if byProvider == nil {
@@ -368,11 +376,13 @@ func (h *CloudIdentityHandler) GetStats(c *gin.Context) {
 
 	// Overall risk summary
 	var totalIdentities, totalRisky, totalLinked int
-	_ = h.pool.QueryRow(ctx, `
-		SELECT COUNT(*),
-		       SUM(CASE WHEN jsonb_array_length(risk_indicators) > 0 THEN 1 ELSE 0 END),
-		       SUM(CASE WHEN local_user_id IS NOT NULL THEN 1 ELSE 0 END)
-		FROM federated_identities`).Scan(&totalIdentities, &totalRisky, &totalLinked)
+	if !ReadOK(c, h.pool.QueryRow(ctx, `
+			SELECT COUNT(*),
+			       COALESCE(SUM(CASE WHEN jsonb_array_length(risk_indicators) > 0 THEN 1 ELSE 0 END), 0),
+			       COALESCE(SUM(CASE WHEN local_user_id IS NOT NULL THEN 1 ELSE 0 END), 0)
+			FROM federated_identities`).Scan(&totalIdentities, &totalRisky, &totalLinked)) {
+		return
+	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"by_provider":      byProvider,

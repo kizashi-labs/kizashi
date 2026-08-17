@@ -18,6 +18,19 @@ import (
 	"time"
 )
 
+const (
+	// commandTimeout bounds a single command's runtime.
+	commandTimeout = 30 * time.Second
+	// waitDelay is how long Run waits after the timeout before force-closing
+	// the output pipes and returning, so a grandchild process that inherited
+	// them cannot keep the call blocked forever.
+	waitDelay = 5 * time.Second
+	// maxConcurrentCommands caps commands running at once. A command that
+	// hangs for its full timeout occupies one slot; the rest stay available so
+	// the session remains usable.
+	maxConcurrentCommands = 4
+)
+
 // LiveResponseStartPayload is the JSON carried in the collect_artifact target field.
 type LiveResponseStartPayload struct {
 	Type        string `json:"type"`
@@ -57,6 +70,14 @@ func (p *LiveResponsePoller) run(ctx context.Context) {
 	ticker := time.NewTicker(1 * time.Second)
 	defer ticker.Stop()
 
+	// Commands run in their own goroutine so that one that refuses to die
+	// cannot stall the poll loop — previously a single hung command blocked
+	// the loop forever and the whole session went silent, including the 401
+	// check that ends an expired session. The server hands out each command
+	// exactly once (DequeuePendingCommands flips pending→running in a single
+	// UPDATE...RETURNING), so running them concurrently cannot double-execute.
+	sem := make(chan struct{}, maxConcurrentCommands)
+
 	for {
 		select {
 		case <-ctx.Done():
@@ -69,7 +90,15 @@ func (p *LiveResponsePoller) run(ctx context.Context) {
 				continue
 			}
 			for _, cmd := range cmds {
-				p.executeAndReport(ctx, cmd)
+				select {
+				case sem <- struct{}{}:
+					go func(c pendingCommand) {
+						defer func() { <-sem }()
+						p.executeAndReport(ctx, c)
+					}(cmd)
+				case <-ctx.Done():
+					return
+				}
 			}
 		}
 	}
@@ -113,18 +142,24 @@ func (p *LiveResponsePoller) poll(ctx context.Context) ([]pendingCommand, error)
 }
 
 func (p *LiveResponsePoller) executeAndReport(ctx context.Context, cmd pendingCommand) {
-	output, exitCode, hasError := p.execute(cmd.Input)
-	p.report(ctx, cmd.ID, cmd.Input, output, exitCode, hasError)
+	output, exitCode, hasError := p.execute(ctx, cmd.Input)
+	// Report on a context of its own: when the session is closed mid-command
+	// the parent ctx is already cancelled, and reusing it would discard the
+	// output we just collected.
+	reportCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 20*time.Second)
+	defer cancel()
+	p.report(reportCtx, cmd.ID, cmd.Input, output, exitCode, hasError)
 }
 
-func (p *LiveResponsePoller) execute(input string) (output string, exitCode int, hasError bool) {
+func (p *LiveResponsePoller) execute(ctx context.Context, input string) (output string, exitCode int, hasError bool) {
 	input = strings.TrimSpace(input)
 	if input == "" {
 		return "", 0, false
 	}
 
-	// 30-second timeout per command
-	cmdCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	// 30-second timeout per command. Derived from the session context so that
+	// closing the session also tears down anything still running.
+	cmdCtx, cancel := context.WithTimeout(ctx, commandTimeout)
 	defer cancel()
 
 	var c *exec.Cmd
@@ -137,9 +172,17 @@ func (p *LiveResponsePoller) execute(input string) (output string, exitCode int,
 	var buf bytes.Buffer
 	c.Stdout = &buf
 	c.Stderr = &buf
+	// Without WaitDelay, Run blocks indefinitely when the killed process
+	// leaves a grandchild holding the output pipe — killing the shell does not
+	// close a pipe its children inherited, so Wait never returns even though
+	// cmdCtx expired. WaitDelay force-closes the pipes and gives up.
+	c.WaitDelay = waitDelay
 
 	err := c.Run()
 	out := buf.String()
+	if cmdCtx.Err() != nil {
+		out += fmt.Sprintf("\n[コマンドを中断しました: %v]", cmdCtx.Err())
+	}
 	// Truncate to 64KB to avoid overwhelming the server
 	if len(out) > 64*1024 {
 		out = out[:64*1024] + "\n[出力が切り捨てられました]"

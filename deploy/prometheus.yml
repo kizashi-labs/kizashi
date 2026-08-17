@@ -6,17 +6,35 @@ global:
     service:     'edr-platform'
 
 # アラートルールファイル
+#
+# /etc/prometheus/alerts.yml は一度「存在しない死んだ参照」として消されまし
+# たが、docker-compose.monitoring.yml は今もそこに prometheus_alerts.yml を
+# マウントしています。参照だけが消えた結果、**19本のアラートがどこからも
+# 読まれない**状態になっていました。中身は EDRApiDown / PostgresDown /
+# NATSDown / EDRDetectionDown — いちばん基本的な「落ちている」の検知です。
+# rules/ 配下の2ファイルとは1本も重複しません。
+#
+# マウントと参照がずれていないことは scripts/check_prometheus_rules.py が
+# 見ています。
 rule_files:
-  # /etc/prometheus/alerts.yml は存在しない死んだ参照だったため削除。実体は
-  # rules/ 配下の2ファイル(docker-compose がこのディレクトリをマウントする)。
   - /etc/prometheus/rules/edr-recording-rules.yml
   - /etc/prometheus/rules/edr-alerts.yml
+  - /etc/prometheus/alerts.yml
 
-# Alertmanager への接続 (任意 — Slack/Email 通知が必要な場合)
-# alerting:
-#   alertmanagers:
-#     - static_configs:
-#         - targets: ['alertmanager:9093']
+# Alertmanager への接続
+#
+# ここがコメントのままだったあいだ、上の3ファイル30本は評価され、発火し、
+# Prometheus の画面に赤く出て、**そこで終わっていました。** ルールが在ること
+# と、誰かに届くことは別です。ファイルが在ることと読まれることが別だったのと
+# 同じ形が、1段上でもう一度ありました。
+#
+# alertmanager は docker-compose.monitoring.yml の monitoring ネットワークに
+# います。参照と実体がずれていないことは scripts/check_prometheus_rules.py が
+# 見ています。
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ['alertmanager:9093']
 
 scrape_configs:
   # ─── EDR API サービス ───────────────────────

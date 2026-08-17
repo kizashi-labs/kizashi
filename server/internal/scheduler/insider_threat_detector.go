@@ -9,6 +9,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/nats-io/nats.go"
+
+	"github.com/edr-platform/server/internal/store"
 )
 
 // InsiderThreatDetector detects insider threat patterns by periodically analyzing audit logs.
@@ -29,7 +31,7 @@ func (d *InsiderThreatDetector) Run(ctx context.Context) {
 	defer ticker.Stop()
 
 	// Run once immediately
-	d.detect(ctx)
+	trackRun(ctx, "insider_threat_detector", d.detect)
 
 	for {
 		select {
@@ -37,7 +39,7 @@ func (d *InsiderThreatDetector) Run(ctx context.Context) {
 			slog.Info("インサイダー脅威検知スケジューラーを停止しました")
 			return
 		case <-ticker.C:
-			d.detect(ctx)
+			trackRun(ctx, "insider_threat_detector", d.detect)
 		}
 	}
 }
@@ -50,10 +52,7 @@ func (d *InsiderThreatDetector) detect(ctx context.Context) {
 }
 
 func (d *InsiderThreatDetector) auditTableExists(ctx context.Context) bool {
-	var exists bool
-	err := d.pool.QueryRow(ctx,
-		`SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name='audit_logs')`).Scan(&exists)
-	return err == nil && exists
+	return store.TableIsThere(ctx, d.pool, "audit_logs")
 }
 
 func (d *InsiderThreatDetector) detectAfterHoursAccess(ctx context.Context) {
@@ -76,6 +75,9 @@ func (d *InsiderThreatDetector) detectAfterHoursAccess(ctx context.Context) {
 		GROUP BY user_id
 		HAVING COUNT(*) > $1`, threshold)
 	if err != nil {
+		// 黙って戻ると、検知が回らなかった回と、何も見つから
+		// なかった回が同じになります。次のティックまで誰も気づきません。
+		fail(ctx, err, "時間外アクセスの検知: 対象を取得できませんでした")
 		return
 	}
 	defer rows.Close()
@@ -94,6 +96,9 @@ func (d *InsiderThreatDetector) detectAfterHoursAccess(ctx context.Context) {
 		description := fmt.Sprintf("深夜時間帯（22:00-06:00）に %d 件のアクセスが検出されました", r.Count)
 		d.createAlert(ctx, "時間外アクセス異常検知", description, 3, userID)
 	}
+	if err := rows.Err(); err != nil {
+		fail(ctx, err, "時間外アクセスの走査が途中で終わりました。検出漏れがあります")
+	}
 }
 
 func (d *InsiderThreatDetector) detectPrivilegeEscalation(ctx context.Context) {
@@ -108,6 +113,9 @@ func (d *InsiderThreatDetector) detectPrivilegeEscalation(ctx context.Context) {
 		  AND (action = 'role_change' OR action = 'permission_grant')
 		ORDER BY created_at DESC`)
 	if err != nil {
+		// 黙って戻ると、検知が回らなかった回と、何も見つから
+		// なかった回が同じになります。次のティックまで誰も気づきません。
+		fail(ctx, err, "権限昇格の検知: 対象を取得できませんでした")
 		return
 	}
 	defer rows.Close()
@@ -125,6 +133,9 @@ func (d *InsiderThreatDetector) detectPrivilegeEscalation(ctx context.Context) {
 			continue
 		}
 		events = append(events, e)
+	}
+	if err := rows.Err(); err != nil {
+		fail(ctx, err, "権限昇格イベントの走査が途中で終わりました。検出漏れがあります")
 	}
 	rows.Close()
 
@@ -156,6 +167,9 @@ func (d *InsiderThreatDetector) detectBulkDataAccess(ctx context.Context) {
 		GROUP BY user_id
 		HAVING COUNT(*) > $1`, threshold)
 	if err != nil {
+		// 黙って戻ると、検知が回らなかった回と、何も見つから
+		// なかった回が同じになります。次のティックまで誰も気づきません。
+		fail(ctx, err, "大量データアクセスの検知: 対象を取得できませんでした")
 		return
 	}
 	defer rows.Close()
@@ -172,6 +186,9 @@ func (d *InsiderThreatDetector) detectBulkDataAccess(ctx context.Context) {
 		}
 		description := fmt.Sprintf("ユーザーが15分間で %d 件のアクションを実行しました（大量データアクセスパターン）", count)
 		d.createAlert(ctx, "大量データアクセス検知", description, 4, userID)
+	}
+	if err := rows.Err(); err != nil {
+		fail(ctx, err, "大量データアクセスの走査が途中で終わりました。検出漏れがあります")
 	}
 }
 
@@ -191,6 +208,9 @@ func (d *InsiderThreatDetector) detectFailedLoginSpike(ctx context.Context) {
 		GROUP BY user_id
 		HAVING COUNT(*) > $1`, threshold)
 	if err != nil {
+		// 黙って戻ると、検知が回らなかった回と、何も見つから
+		// なかった回が同じになります。次のティックまで誰も気づきません。
+		fail(ctx, err, "ログイン失敗の急増の検知: 対象を取得できませんでした")
 		return
 	}
 	defer rows.Close()
@@ -208,6 +228,9 @@ func (d *InsiderThreatDetector) detectFailedLoginSpike(ctx context.Context) {
 		description := fmt.Sprintf("同一ユーザーのログイン失敗が15分間で %d 回検出されました", count)
 		d.createAlert(ctx, "ログイン失敗急増検知", description, 3, userID)
 	}
+	if err := rows.Err(); err != nil {
+		fail(ctx, err, "ログイン失敗スパイクの走査が途中で終わりました。検出漏れがあります")
+	}
 }
 
 func (d *InsiderThreatDetector) createAlert(ctx context.Context, title, description string, severity int, userID *uuid.UUID) {
@@ -215,7 +238,7 @@ func (d *InsiderThreatDetector) createAlert(ctx context.Context, title, descript
 	err := d.pool.QueryRow(ctx,
 		`SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name='alerts')`).Scan(&alertsExist)
 	if err != nil || !alertsExist {
-		slog.Warn("alertsテーブルが存在しないため、アラートを作成できません", "title", title)
+		fail(ctx, err, "alertsテーブルが存在しないため、アラートを作成できません", "title", title)
 		return
 	}
 
@@ -226,7 +249,7 @@ func (d *InsiderThreatDetector) createAlert(ctx context.Context, title, descript
 		title, description, severity,
 	).Scan(&alertID)
 	if err != nil {
-		slog.Error("インサイダー脅威アラートの作成に失敗しました", "error", err, "title", title)
+		fail(ctx, err, "インサイダー脅威アラートの作成に失敗しました", "title", title)
 		return
 	}
 
@@ -236,7 +259,7 @@ func (d *InsiderThreatDetector) createAlert(ctx context.Context, title, descript
 	if d.nc != nil {
 		payload := []byte(`{"id":"` + alertID + `","title":"` + title + `","severity":` + itoa(severity) + `}`)
 		if err := d.nc.Publish("alerts.new", payload); err != nil {
-			slog.Warn("NATSへのアラート送信に失敗しました", "error", err)
+			fail(ctx, err, "NATSへのアラート送信に失敗しました")
 		}
 	}
 }

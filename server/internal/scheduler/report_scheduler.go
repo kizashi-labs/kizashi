@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/tls"
+	"encoding/json"
 	"fmt"
 	"github.com/edr-platform/server/internal/mailhdr"
 	"log/slog"
@@ -80,7 +81,7 @@ func (s *ReportScheduler) Run(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			s.processDue(ctx)
+			trackRun(ctx, "report_scheduler", s.processDue)
 		}
 	}
 }
@@ -88,18 +89,18 @@ func (s *ReportScheduler) Run(ctx context.Context) {
 func (s *ReportScheduler) processDue(ctx context.Context) {
 	due, err := s.scheduleStore.GetDue(ctx)
 	if err != nil {
-		slog.Error("期限切れレポートの取得に失敗しました", "error", err)
+		fail(ctx, err, "期限切れレポートの取得に失敗しました")
 		return
 	}
 	for _, sched := range due {
 		if err := s.deliver(ctx, sched); err != nil {
-			slog.Error("レポートメール送信に失敗しました", "id", sched.ID, "name", sched.Name, "error", err)
+			fail(ctx, err, "レポートメール送信に失敗しました", "id", sched.ID, "name", sched.Name)
 		}
 		// Always advance next_run_at so the record is not re-processed in a
 		// tight loop even when delivery failed.
 		next := store.ComputeNextRun(sched, time.Now().UTC())
 		if err := s.scheduleStore.MarkRun(ctx, sched.ID, next); err != nil {
-			slog.Warn("MarkRunに失敗しました", "id", sched.ID, "error", err)
+			fail(ctx, err, "MarkRunに失敗しました", "id", sched.ID)
 		}
 	}
 }
@@ -126,7 +127,7 @@ func (s *ReportScheduler) deliver(ctx context.Context, sched *store.ReportSchedu
 	var lastErr error
 	for _, recipient := range sched.Recipients {
 		if err := s.sendEmail(ctx, recipient, subject, html); err != nil {
-			slog.Warn("レポートメール送信失敗", "to", recipient, "error", err)
+			fail(ctx, err, "レポートメール送信失敗", "to", recipient)
 			lastErr = err
 		} else {
 			slog.Info("レポートメールを送信しました", "to", recipient, "schedule", sched.Name)
@@ -165,6 +166,9 @@ func (s *ReportScheduler) generateReport(ctx context.Context, sched *store.Repor
 			}
 			sb.WriteString(fmt.Sprintf("  %s: %d件\n", sev, cnt))
 		}
+		if err := rows.Err(); err != nil {
+			return "", fmt.Errorf("アラート一覧の走査に失敗しました: %w", err)
+		}
 		if !any {
 			sb.WriteString("  (アラートなし)\n")
 		}
@@ -187,6 +191,9 @@ func (s *ReportScheduler) generateReport(ctx context.Context, sched *store.Repor
 			}
 			sb.WriteString(fmt.Sprintf("  %s: %d台\n", status, cnt))
 		}
+		if err := rows.Err(); err != nil {
+			return "", fmt.Errorf("エージェント一覧の走査に失敗しました: %w", err)
+		}
 		if !any {
 			sb.WriteString("  (エージェントなし)\n")
 		}
@@ -208,6 +215,9 @@ func (s *ReportScheduler) generateReport(ctx context.Context, sched *store.Repor
 				continue
 			}
 			sb.WriteString(fmt.Sprintf("  %s: %d件\n", status, cnt))
+		}
+		if err := rows.Err(); err != nil {
+			return "", fmt.Errorf("インシデント一覧の走査に失敗しました: %w", err)
 		}
 		if !any {
 			sb.WriteString("  (インシデントなし)\n")
@@ -242,6 +252,9 @@ func (s *ReportScheduler) generateReport(ctx context.Context, sched *store.Repor
 			}
 			sb.WriteString(fmt.Sprintf("  %s: %d台\n", status, cnt))
 		}
+		if err := agentRows.Err(); err != nil {
+			return "", fmt.Errorf("エージェント集計の走査に失敗しました: %w", err)
+		}
 		if !anyAgent {
 			sb.WriteString("  (エージェントなし)\n")
 		}
@@ -272,19 +285,29 @@ func (s *ReportScheduler) generateReport(ctx context.Context, sched *store.Repor
 			}
 			sb.WriteString(fmt.Sprintf("  %s: %d件\n", ruleName, cnt))
 		}
+		if err := alertRows.Err(); err != nil {
+			return "", fmt.Errorf("アラート集計の走査に失敗しました: %w", err)
+		}
 		if !anyAlert {
 			sb.WriteString("  (アラートなし)\n")
 		}
 
 	case "compliance":
-		var complianceStatus string
+		// この節には3つの誤りがありました。列名は setting_value ではなく value
+		// (42703 で文ごと拒否)、キーは 'compliance_status' ではなく
+		// 'admin.compliance.status'、そして中身は文字列ではなく
+		// {nist_csf:{管理策→状態}, iso_27001:{...}, last_assessed} という JSON です。
+		// 3つとも直さないと、この節は毎回「コンプライアンスデータなし」でした。
+		var raw []byte
 		err := s.pool.QueryRow(ctx,
-			`SELECT setting_value FROM system_settings WHERE key = 'compliance_status'`).
-			Scan(&complianceStatus)
+			`SELECT value FROM system_settings WHERE key = $1`, complianceStatusSettingKey).
+			Scan(&raw)
 		if err != nil {
-			complianceStatus = "コンプライアンスデータなし"
+			fail(ctx, err, "report: コンプライアンス状況の取得に失敗しました")
+			sb.WriteString("コンプライアンス状況:\n  コンプライアンスデータなし\n")
+		} else {
+			sb.WriteString(summarizeComplianceStatus(ctx, raw))
 		}
-		sb.WriteString(fmt.Sprintf("コンプライアンス状況:\n  %s\n", complianceStatus))
 
 	default:
 		sb.WriteString("このレポート種別のデータは現在準備中です。\n")
@@ -292,6 +315,84 @@ func (s *ReportScheduler) generateReport(ctx context.Context, sched *store.Repor
 
 	sb.WriteString("\n\nEDR Platform 自動レポートシステム\n")
 	return sb.String(), nil
+}
+
+// complianceStatusSettingKey is the system_settings key the compliance console
+// writes to. It must stay in step with handlers.complianceStatusKey — reading a
+// different key here is how this section came to report "no data" forever.
+const complianceStatusSettingKey = "admin.compliance.status"
+
+// complianceStatusLabels renders the four control states the console stores.
+// An unrecognised state is passed through rather than dropped, so a state added
+// to the console shows up as itself instead of vanishing from the total.
+var complianceStatusLabels = map[string]string{
+	"implemented":     "実装済み",
+	"partial":         "一部実装",
+	"not_implemented": "未実装",
+	"not_applicable":  "対象外",
+}
+
+// complianceFrameworks are the frameworks the console assesses, in report order.
+var complianceFrameworks = []struct{ key, label string }{
+	{"nist_csf", "NIST CSF"},
+	{"iso_27001", "ISO 27001"},
+}
+
+// summarizeComplianceStatus turns the stored assessment into report text: one
+// line per framework counting controls by state, plus the assessment date.
+//
+// It counts rather than dumping the JSON because the stored object holds one
+// entry per control — 20-odd for NIST CSF alone — and pasting that into a
+// scheduled email is not a report.
+func summarizeComplianceStatus(ctx context.Context, raw []byte) string {
+	var doc struct {
+		NIST         map[string]string `json:"nist_csf"`
+		ISO          map[string]string `json:"iso_27001"`
+		LastAssessed string            `json:"last_assessed"`
+	}
+	if err := json.Unmarshal(raw, &doc); err != nil {
+		fail(ctx, err, "report: コンプライアンス状況の解析に失敗しました")
+		return "コンプライアンス状況:\n  コンプライアンスデータなし\n"
+	}
+	byFramework := map[string]map[string]string{
+		"nist_csf":  doc.NIST,
+		"iso_27001": doc.ISO,
+	}
+
+	var sb strings.Builder
+	sb.WriteString("コンプライアンス状況:\n")
+	any := false
+	for _, fw := range complianceFrameworks {
+		controls := byFramework[fw.key]
+		if len(controls) == 0 {
+			continue
+		}
+		any = true
+		counts := map[string]int{}
+		for _, state := range controls {
+			counts[state]++
+		}
+		// Ordered so two reports of the same assessment read the same way.
+		parts := make([]string, 0, len(counts))
+		for _, state := range []string{"implemented", "partial", "not_implemented", "not_applicable"} {
+			if n := counts[state]; n > 0 {
+				parts = append(parts, fmt.Sprintf("%s %d件", complianceStatusLabels[state], n))
+				delete(counts, state)
+			}
+		}
+		for state, n := range counts {
+			parts = append(parts, fmt.Sprintf("%s %d件", state, n))
+		}
+		sb.WriteString(fmt.Sprintf("  %s (%d管理策): %s\n",
+			fw.label, len(controls), strings.Join(parts, " / ")))
+	}
+	if !any {
+		return "コンプライアンス状況:\n  コンプライアンスデータなし\n"
+	}
+	if doc.LastAssessed != "" {
+		sb.WriteString(fmt.Sprintf("  最終評価日: %s\n", doc.LastAssessed))
+	}
+	return sb.String()
 }
 
 // buildReportEmail wraps plain-text content in a dark-branded Kizashi HTML layout.

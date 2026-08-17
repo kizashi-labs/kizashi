@@ -35,12 +35,7 @@ type TimelineEvent struct {
 }
 
 func (h *TimelineHandler) timelineTableExists(ctx context.Context, table string) bool {
-	var exists bool
-	err := h.pool.QueryRow(ctx,
-		`SELECT EXISTS(SELECT 1 FROM pg_tables WHERE schemaname='public' AND tablename=$1)`,
-		table,
-	).Scan(&exists)
-	return err == nil && exists
+	return tableIsThere(ctx, h.pool, table)
 }
 
 // GetTimeline handles GET /api/v1/timeline
@@ -118,6 +113,10 @@ func (h *TimelineHandler) GetTimeline(c *gin.Context) {
 			FROM alerts`)
 	}
 	if hasAudit {
+		// audit_logs に resource 列は無い。006 が作るのは resource_id（解決済みの
+		// :id パラメータ）で、resource を持つのは別テーブルの audit_events。
+		// この UNION 全体がエラーになるため、監査行だけでなく**アラート行も含めた
+		// タイムライン全体**が空になっていた。
 		unionParts = append(unionParts, `
 			SELECT id::text AS eid, 'audit' AS etype,
 			       COALESCE(action,'') || CASE WHEN resource_id IS NOT NULL THEN ' ' || resource_id ELSE '' END AS etitle,
@@ -162,7 +161,11 @@ func (h *TimelineHandler) GetTimeline(c *gin.Context) {
 
 	var total int
 	if err := h.pool.QueryRow(ctx, countQuery, countArgs...).Scan(&total); err != nil {
-		total = 0
+		// total = 0 のまま返すと、件数表示と実際に返した行数が食い違います。
+		// 「全部で0件」と書かれた下に行が並ぶので、読む側は行のほうを信じます。
+		slog.Error("timeline: 総件数を取得できませんでした", "error", err)
+		ReadFailure(c, err, gin.H{"events": []any{}, "total": 0})
+		return
 	}
 
 	rows, err := h.pool.Query(ctx, dataQuery, dataArgs...)

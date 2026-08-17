@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"sync"
 	"time"
 
 	"github.com/edr-platform/agent/internal/collector"
@@ -33,6 +34,12 @@ type Executor struct {
 	edrServer  string
 	// Ack sends command acknowledgement back to the server
 	ack AckSender
+
+	// lastIsolate は直近に成功した隔離の条件。ルールが外部から消された場合に
+	// 同じ条件で貼り直すために保持する。許可 IP を覚えていないと、再適用で
+	// EDR サーバへの経路まで塞ぎかねない（コマンドチャネルを失う）。
+	isoMu       sync.Mutex
+	lastIsolate *IsolateCmd
 }
 
 // AckSender sends command acknowledgements.
@@ -129,6 +136,11 @@ func (e *Executor) Isolate(ctx context.Context, cmd IsolateCmd) {
 		return
 	}
 
+	e.isoMu.Lock()
+	saved := cmd
+	e.lastIsolate = &saved
+	e.isoMu.Unlock()
+
 	slog.Warn("✓ エンドポイントが隔離されました（ルールの存在を確認）",
 		"allowed_ips", allowedIPs,
 		"reason", cmd.Reason,
@@ -162,6 +174,10 @@ func (e *Executor) Unisolate(ctx context.Context, cmd UnisolateCmd) {
 			"unisolate reported success but firewall rules are still present")
 		return
 	}
+
+	e.isoMu.Lock()
+	e.lastIsolate = nil
+	e.isoMu.Unlock()
 
 	slog.Info("✓ 隔離を解除しました（ルールの消失を確認）")
 	e.ackSuccess(ctx, cmd.CommandID, nil)
@@ -220,7 +236,24 @@ func (e *Executor) QuarantineFile(ctx context.Context, cmd QuarantineFileCmd) {
 	// Report to server so /quarantine UI can list and offer Restore.
 	// quarantine_id is also persisted via the request body so future
 	// restore commands can reference the local quarantine entry.
-	e.reportQuarantineToServer(ctx, cmd.AlertID, cmd.Path, fileSize, fileHash, quarantineID)
+	// **記録が届かなかったことを、ack に載せます。**
+	//
+	// ファイルは端末で隔離されています。届かなかったのは記録だけです。
+	// 以前はここで黙って戻り、その下の ackSuccess が無条件に成功を
+	// 返していました。サーバには「隔離成功」が残り、**`/quarantine` の
+	// 一覧にはその項目がありません** —— 隔離されたファイルが、画面から
+	// 復元できない状態になります。
+	//
+	// 隔離そのものは成功なので ack は成功のままです。**失敗しているのは
+	// 「一覧に出ること」で、それは別の事実です。**
+	if err := e.reportQuarantineToServer(ctx, cmd.AlertID, cmd.Path, fileSize, fileHash, quarantineID); err != nil {
+		slog.Error("隔離は成功しましたが、サーバに記録できませんでした。"+
+			"**このファイルは /quarantine の一覧に出ず、画面から復元できません**",
+			"path", cmd.Path, "quarantine_id", quarantineID, "error", err)
+		e.ackSuccess(ctx, cmd.CommandID,
+			[]byte(quarantineID+" (未記録: サーバの隔離一覧に出ません)"))
+		return
+	}
 
 	e.ackSuccess(ctx, cmd.CommandID, []byte(quarantineID))
 }
@@ -281,6 +314,16 @@ func (e *Executor) sendAckWithRetry(ctx context.Context, commandID string, succe
 }
 
 func extractIP(serverURL string) string {
+	return ServerHost(serverURL)
+}
+
+// ServerHost returns the host to keep reachable while isolated.
+//
+// **写しを持たないために公開しています。** 隔離するときに EDR サーバへの
+// 経路を残さないと、**次のハートビートも届かず、解除の指示も受け取れ
+// ません** —— 隔離の入口はコマンドとハートビートの2つになったので、
+// 同じ答えを2箇所で出す必要がありました。
+func ServerHost(serverURL string) string {
 	u, err := url.Parse(serverURL)
 	if err != nil || u.Hostname() == "" {
 		return serverURL
@@ -308,11 +351,15 @@ func hashFileSHA256Pre(path string) (string, error) {
 // quarantined locally so it appears in /quarantine and can later be
 // restored via the UI. Hits the unauthenticated agent-facing endpoint
 // /api/v1/agents/:id/quarantine-result (the protected /quarantine POST
-// is for human/UI callers). Failures are logged but non-fatal — the
-// local quarantine itself already succeeded.
-func (e *Executor) reportQuarantineToServer(ctx context.Context, alertID, path string, size int64, hash, quarantineID string) {
+// is for human/UI callers).
+//
+// **失敗は error で返します。** 端末側の隔離はすでに成功しているので
+// 隔離コマンド自体は失敗しませんが、記録が届かないと `/quarantine` の
+// 一覧にその項目が出ません —— 隔離されたファイルが画面から復元できなく
+// なります。呼び出し側はこれを ack に載せます。
+func (e *Executor) reportQuarantineToServer(ctx context.Context, alertID, path string, size int64, hash, quarantineID string) error {
 	if e.edrServer == "" {
-		return
+		return nil // サーバの宛先が無い構成。記録先が無いのは失敗ではありません
 	}
 	body, err := json.Marshal(map[string]interface{}{
 		"alert_id":      alertID,
@@ -322,27 +369,71 @@ func (e *Executor) reportQuarantineToServer(ctx context.Context, alertID, path s
 		"quarantine_id": quarantineID,
 	})
 	if err != nil {
-		slog.Warn("server検疫レポートのJSON生成に失敗", "error", err)
-		return
+		return fmt.Errorf("隔離レポートの JSON を作れません: %w", err)
 	}
 	endpoint := fmt.Sprintf("%s/api/v1/agents/%s/quarantine-result", e.edrServer, e.agentID)
 	rctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 	req, err := http.NewRequestWithContext(rctx, http.MethodPost, endpoint, bytes.NewReader(body))
 	if err != nil {
-		slog.Warn("server検疫レポートのリクエスト生成に失敗", "error", err)
-		return
+		return fmt.Errorf("隔離レポートのリクエストを作れません: %w", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		slog.Warn("server検疫レポートの送信に失敗", "error", err)
-		return
+		return fmt.Errorf("隔離レポートを送れません: %w", err)
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode >= 400 {
-		slog.Warn("server検疫レポートが拒否されました", "status", resp.StatusCode, "path", path)
-		return
+		// **2xx でないのは、届いていないのと同じです。** 以前はここも
+		// 記録だけして戻っていました。
+		return fmt.Errorf("隔離レポートが拒否されました: HTTP %d", resp.StatusCode)
 	}
 	slog.Info("✓ server に検疫結果を報告しました", "path", path, "quarantine_id", quarantineID)
+	return nil
+}
+
+// CheckIsolationDrift compares the intended isolation state with the host's
+// actual firewall state, and re-applies the rules when they have gone missing.
+//
+// 隔離は「一度掛けたら効き続ける」ものではない。iptables -F、ポリシーの再適用、
+// ファイアウォールサービスの再起動、管理者の手作業——ルールが消える経路はいくらでも
+// ある。#733 で適用直後の検証は入れたが、その後に消えた場合は誰も気づかない。
+// エージェントは「隔離中」と言い続け、コンソールも封じ込め済みと表示する。
+//
+// 逆向き（隔離していないはずなのにルールがある）は再適用しない。管理者が意図して
+// 入れたルールを消す権利はエージェントに無いし、消せば通信を壊しかねない。報告に留める。
+func (e *Executor) CheckIsolationDrift(ctx context.Context) {
+	e.isoMu.Lock()
+	want := e.lastIsolate
+	e.isoMu.Unlock()
+
+	actual, err := e.isolation.VerifyIsolation()
+	if err != nil {
+		slog.Warn("隔離状態を確認できませんでした", "error", err)
+		return
+	}
+
+	switch {
+	case want != nil && !actual:
+		slog.Error("隔離ルールが消えています。再適用します",
+			"reason", want.Reason, "alert_id", want.AlertID)
+		allowed := append(want.AllowedIPs, extractIP(e.edrServer))
+		if err := e.isolation.Isolate(allowed, nil); err != nil {
+			slog.Error("隔離ルールの再適用に失敗しました", "error", err)
+			return
+		}
+		ok, verr := e.isolation.VerifyIsolation()
+		if verr != nil || !ok {
+			slog.Error("再適用しましたが、ルールを確認できませんでした",
+				"error", verr, "確認", ok)
+			return
+		}
+		slog.Warn("✓ 隔離ルールを再適用しました（ルールの存在を確認）")
+
+	case want == nil && actual:
+		// 起動時の照合が拾う場合もあるが、稼働中に現れたものはここで見える。
+		// 消さずに報告する。
+		slog.Warn("隔離していないはずですが、隔離ルールが存在します")
+	}
 }

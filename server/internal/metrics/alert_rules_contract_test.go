@@ -31,14 +31,52 @@ import (
 
 var edrMetricRef = regexp.MustCompile(`edr_[a-z0-9_]+`)
 
-// alertRulesPath locates deploy/prometheus_alerts.yml from this package.
-func alertRulesPath(t *testing.T) string {
+// alertRulesPaths locates every rule file prometheus.yml loads.
+//
+// 以前は deploy/prometheus_alerts.yml だけを見ていました。実際に読み込まれる
+// のは3ファイルで、rules/edr-alerts.yml の分（背景処理・スケジューラの警報を
+// 含む）はこの契約の外にありました。1ファイルだけを見る検査は、そのファイル
+// について正しく、残りについて何も言いません。
+func alertRulesPaths(t *testing.T) []string {
 	t.Helper()
-	p := filepath.Join("..", "..", "..", "deploy", "prometheus_alerts.yml")
-	if _, err := os.Stat(p); err != nil {
-		t.Skipf("アラートルールが見つかりません (%s): %v", p, err)
+	base := filepath.Join("..", "..", "..", "deploy")
+	want := []string{
+		filepath.Join(base, "prometheus_alerts.yml"),
+		filepath.Join(base, "prometheus", "rules", "edr-alerts.yml"),
 	}
-	return p
+	var out []string
+	for _, p := range want {
+		if _, err := os.Stat(p); err == nil {
+			out = append(out, p)
+		}
+	}
+	if len(out) == 0 {
+		t.Skip("アラートルールが見つかりません")
+	}
+	return out
+}
+
+// declaredMetricNames reads the names promauto registers in this package.
+//
+// /metrics に出るのは「一度でも観測された」系列だけです。ラベル付きの
+// CounterVec は、最初の観測まで1行も出ません — edr_alerts_total{severity}
+// がそれで、起動直後は存在しないので「出していない名前」に見えます。
+// 宣言を読めば、打ち間違いは拾ったまま、空の CounterVec を誤判定しません。
+func declaredMetricNames(t *testing.T) map[string]bool {
+	t.Helper()
+	raw, err := os.ReadFile("metrics.go")
+	if err != nil {
+		t.Fatalf("metrics.go を読めません: %v", err)
+	}
+	decl := regexp.MustCompile(`Name:\s*"(edr_[a-z0-9_]+)"`)
+	names := map[string]bool{}
+	for _, m := range decl.FindAllStringSubmatch(string(raw), -1) {
+		names[m[1]] = true
+		for _, suf := range []string{"_total", "_bucket", "_sum", "_count"} {
+			names[m[1]+suf] = true
+		}
+	}
+	return names
 }
 
 // exportedMetricNames returns every metric name the /metrics endpoint actually
@@ -78,18 +116,35 @@ func exportedMetricNames(t *testing.T) map[string]bool {
 // TestAlertRulesReferenceRealMetrics fails when deploy/prometheus_alerts.yml
 // names an edr_* metric the server does not export.
 func TestAlertRulesReferenceRealMetrics(t *testing.T) {
-	raw, err := os.ReadFile(alertRulesPath(t))
-	if err != nil {
-		t.Fatalf("アラートルールを読めません: %v", err)
-	}
 	exported := exportedMetricNames(t)
+	for name := range declaredMetricNames(t) {
+		exported[name] = true
+	}
+
+	var missing []string
+	seen := map[string]bool{}
+	for _, path := range alertRulesPaths(t) {
+		raw, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatalf("アラートルールを読めません (%s): %v", path, err)
+		}
+		inExprBlock = false
+		missing = append(missing, missingMetrics(string(raw), exported, seen, path)...)
+	}
+	sort.Strings(missing)
+	for _, name := range missing {
+		t.Errorf("アラートルールが %s。"+
+			"存在しないメトリクスを参照するルールは永久に沈黙し、正常な状態と区別できません", name)
+	}
+}
+
+func missingMetrics(raw string, exported, seen map[string]bool, where string) []string {
+	var missing []string
 
 	// Only `expr:` lines reference metrics. Group names (edr_api, edr_host, …) and
 	// prose in annotations are not queries, so scanning the whole file would
 	// produce false failures.
-	var missing []string
-	seen := map[string]bool{}
-	for _, line := range strings.Split(string(raw), "\n") {
+	for _, line := range strings.Split(raw, "\n") {
 		trimmed := strings.TrimSpace(line)
 		if strings.HasPrefix(trimmed, "#") {
 			continue
@@ -102,14 +157,10 @@ func TestAlertRulesReferenceRealMetrics(t *testing.T) {
 				continue
 			}
 			seen[name] = true
-			missing = append(missing, name)
+			missing = append(missing, name+" ("+where+") を参照していますが、そんなメトリクスはありません")
 		}
 	}
-	sort.Strings(missing)
-	for _, name := range missing {
-		t.Errorf("アラートルールが %q を参照していますが、/metrics はこの名前を出力していません。"+
-			"存在しないメトリクスを参照するルールは永久に沈黙し、正常な状態と区別できません", name)
-	}
+	return missing
 }
 
 // exprState tracks whether the current line belongs to an `expr:` block, which
@@ -135,6 +186,44 @@ func isExprContext(trimmed string) bool {
 	return inExprBlock
 }
 
+// 契約が全部のルールファイルに当たっていること。
+//
+// 以前は deploy/prometheus_alerts.yml だけを読んでいて、rules/edr-alerts.yml
+// にある9本（今は12本）はこの契約の外にありました。1ファイルを落としても、
+// 残りが健全なら何も落ちません — 走査の範囲が狭まったことは、違反が無いのと
+// 同じ形をしています。
+func TestTheContractCoversEveryRuleFile(t *testing.T) {
+	paths := alertRulesPaths(t)
+	var joined string
+	for _, p := range paths {
+		joined += p + "\n"
+	}
+	for _, want := range []string{"prometheus_alerts.yml", "edr-alerts.yml"} {
+		if !strings.Contains(joined, want) {
+			t.Errorf("%s を読んでいません。そのファイルのルールは検査されません", want)
+		}
+	}
+
+	// 各ファイルからアラートを1本ずつ、実際に読めていること。
+	seen := map[string]bool{}
+	for _, p := range paths {
+		raw, err := os.ReadFile(p)
+		if err != nil {
+			t.Fatalf("%s を読めません: %v", p, err)
+		}
+		for _, name := range []string{"EDRApiDown", "EDRBackgroundComponentFailing"} {
+			if strings.Contains(string(raw), "alert: "+name) {
+				seen[name] = true
+			}
+		}
+	}
+	for _, name := range []string{"EDRApiDown", "EDRBackgroundComponentFailing"} {
+		if !seen[name] {
+			t.Errorf("アラート %q がどのファイルからも見えていません", name)
+		}
+	}
+}
+
 // TestDetectionPipelineAlertsExist pins the specific rules added for the
 // detection pipeline. The 2026-07-26 Windows measurement could not distinguish
 // "server-detect produced no detections" from "there was nothing to detect",
@@ -143,11 +232,14 @@ func isExprContext(trimmed string) bool {
 // DetectionLastEventTimestamp) and Prometheus already scraped detection:8081 —
 // only the rules that fire on them were missing.
 func TestDetectionPipelineAlertsExist(t *testing.T) {
-	raw, err := os.ReadFile(alertRulesPath(t))
-	if err != nil {
-		t.Fatalf("アラートルールを読めません: %v", err)
+	var body string
+	for _, p := range alertRulesPaths(t) {
+		raw, err := os.ReadFile(p)
+		if err != nil {
+			t.Fatalf("アラートルールを読めません (%s): %v", p, err)
+		}
+		body += string(raw)
 	}
-	body := string(raw)
 	for _, name := range []string{
 		"EDRDetectionDown",
 		"EDRDetectionPipelineStalled",

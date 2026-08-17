@@ -10,7 +10,8 @@ import "testing"
 //
 //	第 1 波  SID-History Added (4765/4766) — EventID は既知の名前だが、agent の
 //	         購読述語に 4765/4766 が無く、AuthEvent はワイヤ上に EventID を
-//	         持たない。**移設を見送った**
+//	         持たなかった。**移設を見送った**（2026-08-14 に proto・購読・parse・
+//	         ingestion・別名層の 5 箇所を通して着地。sid_history_test.go を参照）
 //	第 3 波  macOS Sudoers or Passwd Modification — TargetFilename は解決するが、
 //	         darwin/file_collector.go の既定監視パスに /etc が無かった。
 //	         **収集側に /etc を足して有効化した**（Linux 側は元から /etc を
@@ -34,11 +35,20 @@ func TestDarkTechniqueWave3RulesFire(t *testing.T) {
 			},
 		},
 		{
+			// ★ 2026-08-13: `shutdown -r now` から `reboot -f` に差し替えた。
+			//
+			// 移設当初はここに `shutdown -r now` を置いていたが、FP ソークで
+			// dev-machine と macbook に計 6 件出た——OS 更新後の再起動そのもので、
+			// **通常の再起動は攻撃ではない**。migration 428 で「強制・sync 飛ばし」を
+			// 要求する形に狭め、良性側は linux_shutdown_test.go が沈黙を固定する。
+			//
+			// つまりこのケースは、狭める前は*誤検知を「発火すべき」として固定して
+			// いた*。macOS の T1497 (#740) と同じ形である。
 			title: "Unix System Shutdown or Reboot",
 			event: map[string]interface{}{
 				"type":         "process",
-				"image":        "/sbin/shutdown",
-				"command_line": `shutdown -r now`,
+				"image":        "/sbin/reboot",
+				"command_line": `reboot -f`,
 			},
 		},
 		{

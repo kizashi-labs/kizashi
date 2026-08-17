@@ -101,6 +101,9 @@ func (s *CustomAlertRuleStore) List(ctx context.Context) ([]*CustomAlertRule, er
 		}
 		rules = append(rules, r)
 	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
 	if rules == nil {
 		rules = []*CustomAlertRule{}
 	}
@@ -269,6 +272,9 @@ func (s *CustomAlertRuleStore) ListEnabled(ctx context.Context) ([]*CustomAlertR
 			continue
 		}
 		rules = append(rules, r)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
 	}
 	if rules == nil {
 		rules = []*CustomAlertRule{}

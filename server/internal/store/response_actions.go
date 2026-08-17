@@ -60,6 +60,10 @@ const (
 	StatusWarning = "warning"
 	// StatusCancelled は利用者またはエージェントが中止した状態。
 	StatusCancelled = "cancelled"
+	// StatusSuppressed は安全弁が「実行しない」と判断した状態（migration 431）。
+	// failure でも cancelled でもない: 失敗したのではなく、実行しないことが
+	// 正しい動作だった。どの安全弁が止めたかは details.outcome に入る。
+	StatusSuppressed = "suppressed"
 )
 
 // Record inserts a response action record and returns its id.
@@ -73,7 +77,9 @@ func (s *ResponseActionStore) Record(ctx context.Context, agentID, actionType, s
 		var err error
 		detailsJSON, err = json.Marshal(details)
 		if err != nil {
-			detailsJSON = nil
+			// 対応内容を落として記録だけ残すと、あとから「何をしたか」が
+			// 分からない対応履歴になります。
+			return "", fmt.Errorf("対応内容を記録用に変換できませんでした: %w", err)
 		}
 	}
 	if status == "" {
@@ -199,8 +205,35 @@ func (s *ResponseActionStore) List(ctx context.Context, agentID string, limit, o
 		}
 		actions = append(actions, a)
 	}
+	if err := rows.Err(); err != nil {
+		return nil, 0, err
+	}
 	if actions == nil {
 		actions = []*ResponseAction{}
 	}
 	return actions, total, nil
+}
+
+// RecentContainment reports whether a containment command was actually
+// dispatched to this agent within the given window.
+//
+// It exists so the detection engines can tell "the endpoint's firewall just
+// changed because WE changed it" from "the endpoint's firewall just changed and
+// we have no idea why". Only StatusDispatched counts: a suppressed or failed
+// isolation never reached the endpoint, so it cannot explain anything observed
+// there. See detection.SelfRemediationSuppressor.
+func (s *ResponseActionStore) RecentContainment(ctx context.Context, agentID string, within time.Duration) (bool, error) {
+	var exists bool
+	err := s.pool.QueryRow(ctx, `
+		SELECT EXISTS (
+			SELECT 1 FROM response_actions
+			WHERE agent_id = $1::uuid
+			  AND action_type IN ('isolate', 'unisolate')
+			  AND status_text = $2
+			  AND executed_at > NOW() - $3::interval
+		)`, agentID, StatusDispatched, within.String()).Scan(&exists)
+	if err != nil {
+		return false, fmt.Errorf("直近の封じ込め操作の照会に失敗しました: %w", err)
+	}
+	return exists, nil
 }

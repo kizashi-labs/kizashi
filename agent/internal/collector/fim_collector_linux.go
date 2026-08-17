@@ -27,6 +27,17 @@ func defaultFIMRules() []FIMRule {
 		{Path: "/root/.profile", Recursive: false},
 		{Path: "/home/*/.bashrc", Recursive: false},
 		{Path: "/home/*/.bash_profile", Recursive: false},
+		// **`.bash_login` は監視されていませんでした。** builtin ルール
+		// "Linux Shell Init File Modification (FIM)" は description でこの
+		// ファイルを名指ししていますが、FIM が一度もハッシュしないので、
+		// このファイルに対しては**発火のしようがありません**。ルールの
+		// 側だけを見ると被覆済みに見えるのが、この抜けの厄介なところです。
+		//
+		// bash はログインシェルで `.bash_profile` → `.bash_login` →
+		// `.profile` の順に**最初に見つかった1つだけ**を読みます。前2つが
+		// 無い環境では `.bash_login` が唯一の実行経路になります。
+		{Path: "/home/*/.bash_login", Recursive: false},
+		{Path: "/root/.bash_login", Recursive: false},
 		{Path: "/home/*/.profile", Recursive: false},
 		{Path: "/home/*/.zshrc", Recursive: false},
 		{Path: "/etc/profile.d", Recursive: false},

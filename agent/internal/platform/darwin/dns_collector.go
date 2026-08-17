@@ -50,9 +50,14 @@ func (c *DarwinDNSCollector) capture(ctx context.Context, out chan<- collector.D
 	)
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
+		// ここは記録すら無く戻っていました。**DNS の監視が黙って止まり、
+		// ログにも何も残りません。** 問い合わせが1件も来ないことと、
+		// 収集が始まらなかったことの区別がつきません。
+		sensorUnavailable(sensorDNS, "tcpdump の出力を取れません ("+c.iface+")", err)
 		return
 	}
 	if err := cmd.Start(); err != nil {
+		sensorUnavailable(sensorDNS, "tcpdump を起動できません ("+c.iface+")", err)
 		return
 	}
 

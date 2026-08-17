@@ -5,6 +5,7 @@ package compliance
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
 	"time"
 
@@ -224,16 +225,21 @@ func (c *Checker) AssessAgent(ctx context.Context, agentID string) (*AgentCompli
 	}
 	avRunning := avEvents > 0
 
-	// ディスク暗号化。実表は endpoint_encryption (列は encrypted / reported_at)。
+	// ディスク暗号化 / ファイアウォール / 未対応の重大脆弱性。
 	//
-	// 以前は endpoint_hardening.disk_encryption_enabled を読んでいたが、
-	// endpoint_hardening はどの migration も作っていない。クエリは毎回
-	// `relation "endpoint_hardening" does not exist` で失敗し、エラーは
-	// `_ =` で捨てられるため encryptionEnabled は false のまま —
-	// 全エージェントが恒久的に「暗号化されていない」と判定されていた。
+	// 旧実装は `endpoint_hardening` と `vuln_findings` を引いていたが、どちらの名前の
+	// テーブルもマイグレーションのどこにも作られていない。クエリは毎回エラーになり、
+	// 握り潰された結果:
+	//   - 暗号化 / ファイアウォール → false のまま「未対応」として全ホストを不合格に
+	//   - 重大脆弱性 → 0 件のまま patchOK = true、つまり「測れていない」を「合格」として報告
+	// 後者が一番まずい向きの誤りだった。
 	//
-	// 行が無い場合は「暗号化されていない」ではなく「報告が無い」。
-	// 不明を fail にすると、収集していないことを非準拠として主張してしまう。
+	// **行が無い / 取得に失敗した場合は false ではなく unknown にする。** これは表記では
+	// なく採点の問題で、unknown は分母から外れる（fail は外れない）。「まだ判っていない」を
+	// 「未対応」として数えると、本当に未対応なホストと区別がつかなくなる。
+
+	// 実表は endpoint_encryption (362)。agent_id が主キーなので 1 エージェント 1 行だが、
+	// 将来行が増えても最新を採るよう reported_at で並べる。
 	var encryptionEnabled bool
 	encryptionKnown := true
 	if err := c.pool.QueryRow(ctx, `
@@ -244,43 +250,69 @@ func (c *Checker) AssessAgent(ctx context.Context, agentID string) (*AgentCompli
 		agentID,
 	).Scan(&encryptionEnabled); err != nil {
 		if !errors.Is(err, pgx.ErrNoRows) {
-			slog.Warn("compliance: ディスク暗号化状態の取得に失敗", "agent_id", agentID, "error", err)
+			slog.Warn("compliance: ディスク暗号化の判定ができません（未計測として採点対象外）",
+				"agent_id", agentID, "error", err)
 		}
 		encryptionKnown = false
 	}
 
-	// ファイアウォールの状態を持つ列は、どのテーブルにも存在しない
-	// (information_schema 全体を当たって確認済み)。エージェントが収集して
-	// いないため、判定材料が無い。
-	//
-	// 以前は endpoint_hardening.firewall_enabled を読んで失敗し、false =
-	// 「ファイアウォール未検出」として全エージェントを不合格にしていた。
-	// 収集経路が無いことを非準拠として報告するのは誤りなので unknown にする
-	// (unknown は pass にも fail にも数えられない)。
-	firewallEnabled := false
+	// ファイアウォールの状態を持つ「列」はどのテーブルにも無いが、データ自体は存在する。
+	// エージェントのハードニングコレクタが Check{ID: "firewall"} を出し
+	// (agent/internal/hardening/collector_windows.go)、それを router.go の
+	// ハードニングレポート受け口が hardening_assessments.findings に JSONB 配列として
+	// 書いている (171)。列だけを探すと「収集経路が無い」と誤って結論するので注意。
+	// 最新の評価行の firewall チェックだけを見る。
+	var firewallEnabled, firewallKnown bool
+	if err := c.pool.QueryRow(ctx, `
+		SELECT (f->>'passed')::boolean
+		FROM hardening_assessments ha,
+		     LATERAL jsonb_array_elements(COALESCE(ha.findings, '[]'::jsonb)) AS f
+		WHERE ha.agent_id = $1::uuid
+		  AND jsonb_typeof(COALESCE(ha.findings, '[]'::jsonb)) = 'array'
+		  AND f->>'id' = 'firewall'
+		  AND f->>'passed' IS NOT NULL
+		ORDER BY ha.assessed_at DESC NULLS LAST, ha.created_at DESC
+		LIMIT 1`,
+		agentID,
+	).Scan(&firewallEnabled); err != nil {
+		if !errors.Is(err, pgx.ErrNoRows) {
+			slog.Warn("compliance: ファイアウォールの判定ができません（未計測として採点対象外）",
+				"agent_id", agentID, "error", err)
+		}
+	} else {
+		firewallKnown = true
+	}
 
-	// 未対応の重大脆弱性 (30 日超)。実表は vulnerability_findings
-	// (時刻列は first_seen)。vuln_findings は存在しない。
+	// 未対応の重大脆弱性 (30 日超)。
 	//
-	// status の実際の値は open / in_progress / resolved / accepted /
-	// false_positive で 'patched' は無い。以前の `status != 'patched'` は
-	// 全件に一致してしまうため、未対応を表す 2 値で絞る。
+	// vulnerabilities (016) と vulnerability_findings (161) の両方が実在するが、
+	// **本番で書かれているのは vulnerabilities のほう**である:
+	//   internal/scheduler/vulnerability_scanner.go / internal/sync/wazuh.go /
+	//   internal/store/vulnerabilities.go がここに INSERT する。
+	// vulnerability_findings に書く本番経路は存在しない (テストのみ)。空の表を読むと
+	// 常に 0 件 = 合格になり、上に書いた「測れていないを合格として報告する」誤りに戻る。
 	//
-	// ここが特に危険だった: クエリが失敗しても criticalVulns は 0 のままで、
-	// patchOK = true となり「パッチ適用状況は良好」と報告していた。
-	// 測れていないことを合格として出すのは、最も避けるべき向きの誤りなので、
-	// 取得に失敗したら unknown にする。
+	// 時刻列は detected_at。status の CHECK 値は open / mitigated / patched / accepted
+	// で、**数えてよいのは open だけ**。patched は当然として、accepted は
+	// リスク受容済み、mitigated は緩和策適用済みで、どちらも「放置された重大
+	// 脆弱性」ではない。
+	//
+	// `status != 'patched'` と書くと accepted と mitigated まで数に入る。
+	// 判定としては安全側に倒れるように見えるが、**受容も緩和も済んでいる
+	// ホストが未対応として並ぶと、本当に open な 1 件が埋もれる**。
+	// 実 DB のある CI (checker_db_test.go) が open/patched/accepted の 3 件を
+	// 入れて 1 件を期待しており、`!= 'patched'` では 2 件になる。
 	var criticalVulns int
 	patchKnown := true
 	if err := c.pool.QueryRow(ctx, `
-		SELECT COUNT(*) FROM vulnerability_findings
+		SELECT COUNT(*) FROM vulnerabilities
 		WHERE agent_id = $1
 		  AND severity = 'critical'
-		  AND status IN ('open', 'in_progress')
-		  AND first_seen < NOW() - INTERVAL '30 days'`,
+		  AND status = 'open'
+		  AND detected_at < NOW() - INTERVAL '30 days'`,
 		agentID,
 	).Scan(&criticalVulns); err != nil {
-		slog.Warn("compliance: 未対応の重大脆弱性数の取得に失敗", "agent_id", agentID, "error", err)
+		slog.Warn("compliance: 未修正の重大脆弱性の集計に失敗", "agent_id", agentID, "error", err)
 		patchKnown = false
 	}
 	patchOK := criticalVulns == 0
@@ -299,32 +331,44 @@ func (c *Checker) AssessAgent(ctx context.Context, agentID string) (*AgentCompli
 	}
 
 	checkEvidence := map[string]string{
-		"agent_alive":      "Last seen: " + lastSeen.Format(time.RFC3339),
-		"events_flowing":   "Recent events in last hour: " + itoa(recentEvents),
-		"av_running":       "AV process events in last 24h: " + itoa(avEvents),
-		"firewall_enabled": "No data available",
-		"disk_encryption":  encryptionEvidence(encryptionKnown, encryptionEnabled),
-		"logging_enabled":  boolStr(eventsFlowing, "Events are flowing", "No events in last hour"),
-		"patch_status":     patchEvidence(patchKnown, criticalVulns),
-		"admin_accounts":   "No data available",
-		"password_policy":  "No data available",
-		"screen_lock":      "No data available",
+		"agent_alive":    "Last seen: " + lastSeen.Format(time.RFC3339),
+		"events_flowing": "Recent events in last hour: " + itoa(recentEvents),
+		"av_running":     "AV process events in last 24h: " + itoa(avEvents),
+		"firewall_enabled": hardeningEvidence(firewallKnown, firewallEnabled,
+			"Firewall enabled", "Firewall disabled"),
+		"disk_encryption": hardeningEvidence(encryptionKnown, encryptionEnabled,
+			"Disk encryption active", "Disk encryption off"),
+		"logging_enabled": boolStr(eventsFlowing, "Events are flowing", "No events in last hour"),
+		"patch_status": knownStr(patchKnown,
+			"Critical unpatched vulns >30d: "+itoa(criticalVulns),
+			"Vulnerability data unavailable"),
+		"admin_accounts":  "No data available",
+		"password_policy": "No data available",
+		"screen_lock":     "No data available",
 	}
 
-	// unknown は pass にも fail にも数えない。測っていない項目を
-	// どちらかに倒すと、準拠・非準拠のいずれかを根拠なく主張することになる。
+	// unknown は pass にも fail にも数えず、スコアの分母から外れる。測っていない項目を
+	// どちらかに倒すと、準拠・非準拠のいずれかを根拠なく主張することになる。実際に未対応な
+	// ホストと「まだ報告が来ていないだけ」のホストが同じ点数になると、スコアが是正すべき
+	// 対象を指さなくなる。
 	unknownChecks := map[string]bool{
 		"admin_accounts":  true,
 		"password_policy": true,
 		"screen_lock":     true,
-		// ファイアウォールの状態はどこにも保存されていない (収集経路が無い)。
-		"firewall_enabled": true,
 	}
+	// 取得に失敗したら「未対応 0 件」ではなく不明。0 のままだと patchOK が
+	// true になり、何も測れていない端末を「良好」と報告してしまう。
+	if !patchKnown {
+		unknownChecks["patch_status"] = true
+	}
+	// A hardening check this platform does not collect is unknown, not failed.
+	// The Linux collector reports no firewall or disk-encryption check at all,
+	// and an agent that has never sent a hardening report has none either.
 	if !encryptionKnown {
 		unknownChecks["disk_encryption"] = true
 	}
-	if !patchKnown {
-		unknownChecks["patch_status"] = true
+	if !firewallKnown {
+		unknownChecks["firewall_enabled"] = true
 	}
 
 	var checks []*ComplianceCheck
@@ -392,7 +436,7 @@ func (c *Checker) GetFleetCompliance(ctx context.Context) ([]AgentCompliance, er
 		LIMIT 200`)
 	if err != nil {
 		slog.Warn("compliance: GetFleetCompliance agent list failed", "error", err)
-		return []AgentCompliance{}, nil
+		return nil, err
 	}
 	defer rows.Close()
 
@@ -403,12 +447,21 @@ func (c *Checker) GetFleetCompliance(ctx context.Context) ([]AgentCompliance, er
 			agentIDs = append(agentIDs, id)
 		}
 	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
 
 	var results []AgentCompliance
 	for _, id := range agentIDs {
 		ac, err := c.AssessAgent(ctx, id)
-		if err != nil || ac == nil {
-			continue
+		if err != nil {
+			// 評価できなかった端末を黙って外すと、その端末は分母からも
+			// 消えます。準拠率は「評価できた端末だけの準拠率」になり、
+			// 分子と分母が同時に減るので、数字は動かないことすらあります。
+			return nil, fmt.Errorf("端末 %s の準拠状況を評価できませんでした: %w", id, err)
+		}
+		if ac == nil {
+			continue // 評価対象の情報が無い端末。0件は事実です。
 		}
 		// Strip individual checks from the fleet summary to keep payload small.
 		ac.Checks = nil
@@ -422,18 +475,27 @@ func (c *Checker) GetFleetCompliance(ctx context.Context) ([]AgentCompliance, er
 }
 
 // GetComplianceStats returns fleet-wide compliance statistics.
-func (c *Checker) GetComplianceStats(ctx context.Context) ComplianceStats {
+//
+// 読めなかったときは error を返します。以前はゼロ値の stats を返していて、
+// 画面には FleetScore 0、PassRate 0 と出ます。準拠率0%は、準拠率を測る
+// 画面が出しうる最も強い主張です。読めなかっただけのときにそれを出すと、
+// 見た人は対応を始めます。
+func (c *Checker) GetComplianceStats(ctx context.Context) (ComplianceStats, error) {
 	stats := ComplianceStats{
 		TopFailures: []string{},
 		ByCategory:  map[string]int{},
 	}
 	if c.pool == nil {
-		return stats
+		return stats, nil
 	}
 
 	fleet, err := c.GetFleetCompliance(ctx)
-	if err != nil || len(fleet) == 0 {
-		return stats
+	if err != nil {
+		return stats, err
+	}
+	if len(fleet) == 0 {
+		// 端末が1台も無い = 測る対象が無い。ゼロは事実です。
+		return stats, nil
 	}
 
 	totalScore := 0
@@ -453,7 +515,7 @@ func (c *Checker) GetComplianceStats(ctx context.Context) ComplianceStats {
 		stats.FailRate = 1 - stats.PassRate
 	}
 
-	return stats
+	return stats, nil
 }
 
 // ── helpers ──────────────────────────────────────────────────────────────────
@@ -484,19 +546,21 @@ func boolStr(b bool, trueVal, falseVal string) string {
 	return falseVal
 }
 
-// encryptionEvidence / patchEvidence は「測れなかった」を「該当なし」と
-// 書かないための分岐。unknown の項目に断定的な根拠文を出すと、状態表示と
-// 根拠がずれる (0 件と表示されているのに unknown、など)。
-func encryptionEvidence(known, enabled bool) string {
-	if !known {
-		return "No data available"
+// knownStr renders evidence for a check whose data source may have no row yet.
+// The unmeasured wording has to be distinguishable from a measured failure —
+// a reader who cannot tell them apart cannot act on either.
+func knownStr(known bool, measured, unmeasured string) string {
+	if known {
+		return measured
 	}
-	return boolStr(enabled, "Disk encryption active", "Encryption not detected")
+	return unmeasured
 }
 
-func patchEvidence(known bool, criticalVulns int) string {
-	if !known {
-		return "No data available"
+// hardeningEvidence describes a hardening control, keeping "not assessed"
+// distinct from "assessed and failing".
+func hardeningEvidence(assessed, passed bool, yes, no string) string {
+	if !assessed {
+		return "Not assessed on this platform"
 	}
-	return "Critical unpatched vulns >30d: " + itoa(criticalVulns)
+	return boolStr(passed, yes, no)
 }

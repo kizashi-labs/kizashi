@@ -22,19 +22,11 @@ func NewHoneypotHandler(pool *pgxpool.Pool) *HoneypotHandler {
 }
 
 func (h *HoneypotHandler) checkTable(c *gin.Context) bool {
-	ctx := c.Request.Context()
-	var exists bool
-	err := h.pool.QueryRow(ctx,
-		`SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name='honeypots')`).Scan(&exists)
-	return err == nil && exists
+	return tableIsThere(c.Request.Context(), h.pool, "honeypots")
 }
 
 func (h *HoneypotHandler) checkAccessTable(c *gin.Context) bool {
-	ctx := c.Request.Context()
-	var exists bool
-	err := h.pool.QueryRow(ctx,
-		`SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name='honeypot_accesses')`).Scan(&exists)
-	return err == nil && exists
+	return tableIsThere(c.Request.Context(), h.pool, "honeypot_accesses")
 }
 
 // List returns all honeypots.
@@ -94,7 +86,9 @@ func (h *HoneypotHandler) List(c *gin.Context) {
 		result = append(result, hp)
 	}
 	if err := rows.Err(); err != nil {
-		slog.Warn("row iteration error", "error", err)
+		slog.Error("rows.Err: 結果の読み出しが途中で失敗しました", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "honeypotの一覧取得に失敗しました"})
+		return
 	}
 	if result == nil {
 		result = []honeypot{}
@@ -340,7 +334,9 @@ func (h *HoneypotHandler) GetAccesses(c *gin.Context) {
 		result = append(result, a)
 	}
 	if err := rows.Err(); err != nil {
-		slog.Warn("row iteration error", "error", err)
+		slog.Error("rows.Err: 結果の読み出しが途中で失敗しました", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "アクセス記録の取得に失敗しました"})
+		return
 	}
 	if result == nil {
 		result = []access{}
@@ -364,13 +360,15 @@ func (h *HoneypotHandler) SimulateAccess(c *gin.Context) {
 		UserAgent  string `json:"user_agent"`
 		Payload    string `json:"payload"`
 	}
-	if err := c.ShouldBindJSON(&body); err != nil {
-		body.SourceIP = "192.168.1.100"
-		body.Method = "GET"
-		body.Path = "/"
+	// これはおとりへのアクセス記録を書く処理です。以前は本文が読めないと
+	// 送信元 192.168.1.100 / GET / を作って記録していました。あとから見た
+	// 人には、その IP から実際にアクセスがあったとしか読めません。
+	if !OptionalBody(c, &body) {
+		return
 	}
 	if body.SourceIP == "" {
-		body.SourceIP = "192.168.1.100"
+		c.JSON(http.StatusBadRequest, gin.H{"error": "source_ip は必須です。記録する送信元を作ることはできません"})
+		return
 	}
 
 	ctx := c.Request.Context()
@@ -409,9 +407,7 @@ func (h *HoneypotHandler) SimulateAccess(c *gin.Context) {
 	if alertOnAccess {
 		alertTitle := fmt.Sprintf("ハニーポットアクセス検出: %s", hpName)
 		alertDesc := fmt.Sprintf("ハニーポット '%s' に %s からアクセスがありました", hpName, body.SourceIP)
-		var alertExists bool
-		_ = h.pool.QueryRow(ctx,
-			`SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name='alerts')`).Scan(&alertExists)
+		alertExists := tableIsThere(ctx, h.pool, "alerts")
 		if alertExists {
 			if _, err := h.pool.Exec(ctx,
 				`INSERT INTO alerts (title, description, severity, status, source)
@@ -441,15 +437,19 @@ func (h *HoneypotHandler) GetStats(c *gin.Context) {
 	ctx := c.Request.Context()
 
 	var total, active int
-	_ = h.pool.QueryRow(ctx, `SELECT COUNT(*), COUNT(*) FILTER (WHERE enabled) FROM honeypots`).Scan(&total, &active)
+	if !ReadOK(c, h.pool.QueryRow(ctx, `SELECT COUNT(*), COUNT(*) FILTER (WHERE enabled) FROM honeypots`).Scan(&total, &active)) {
+		return
+	}
 
 	var accessesToday, accessesWeek int
 	if h.checkAccessTable(c) {
-		_ = h.pool.QueryRow(ctx,
+		if !ReadOK(c, h.pool.QueryRow(ctx,
 			`SELECT
-			  COUNT(*) FILTER (WHERE accessed_at >= NOW() - INTERVAL '1 day'),
-			  COUNT(*) FILTER (WHERE accessed_at >= NOW() - INTERVAL '7 days')
-			 FROM honeypot_accesses`).Scan(&accessesToday, &accessesWeek)
+				  COUNT(*) FILTER (WHERE accessed_at >= NOW() - INTERVAL '1 day'),
+				  COUNT(*) FILTER (WHERE accessed_at >= NOW() - INTERVAL '7 days')
+				 FROM honeypot_accesses`).Scan(&accessesToday, &accessesWeek)) {
+			return
+		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{

@@ -69,7 +69,13 @@ func TestLiveEnricher_AbuseIPDB(t *testing.T) {
 	}
 }
 
-func TestLiveEnricher_ProviderErrorSkipped(t *testing.T) {
+// 答えなかった提供元は、集計から黙って外れないこと。
+//
+// この検査は以前 ProviderErrorSkipped という名前で、Found=false だけを
+// 確かめていました。それは「全部の提供元が答えて、誰もこの指標を知らな
+// かった」場合とまったく同じ形です。評判サービスが全部落ちていても、
+// その IP は「知られていない」＝清潔として扱われます。
+func TestLiveEnricher_ProviderErrorIsReportedNotSkipped(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusForbidden) // simulate bad key / rate limit
 	}))
@@ -78,6 +84,35 @@ func TestLiveEnricher_ProviderErrorSkipped(t *testing.T) {
 	r := e.Enrich(context.Background(), "abc", "hash")
 	if r.Found {
 		t.Errorf("expected no result when providers error, got %+v", r)
+	}
+	if len(r.Unreachable) == 0 {
+		t.Fatalf("答えなかった提供元が報告されていません: %+v", r)
+	}
+	for _, want := range []string{"VirusTotal", "AlienVault OTX"} {
+		found := false
+		for _, got := range r.Unreachable {
+			if got == want {
+				found = true
+			}
+		}
+		if !found {
+			t.Errorf("%s が Unreachable にありません: %v", want, r.Unreachable)
+		}
+	}
+}
+
+// 全部が答えて「知らない」と言った場合は、Unreachable は空であること。
+// 上の検査だけだと「常に全部を Unreachable に入れる」でも通ります。
+func TestLiveEnricher_AnsweredButUnknownIsNotUnreachable(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{}`))
+	}))
+	defer srv.Close()
+	e := newTestEnricher(srv.URL)
+	r := e.Enrich(context.Background(), "abc", "hash")
+	if len(r.Unreachable) != 0 {
+		t.Errorf("答えた提供元が Unreachable に入っています: %v", r.Unreachable)
 	}
 }
 

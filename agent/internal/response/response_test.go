@@ -1,12 +1,15 @@
 // Package response — ユニットテスト
 // コマンド型・ヘルパー関数・アクションパースロジックをテストする。
-// ネットワーク接続・プロセスキル・実際のファイル移動は行わない。
+// プロセスキル・実際のファイル移動は行わない。サーバへの通信は
+// httptest のローカル受け口に向けます（外には出ません）。
 package response
 
 import (
 	"context"
 	"encoding/json"
 	"errors"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"github.com/edr-platform/agent/internal/collector"
@@ -284,12 +287,17 @@ type mockAckSender struct {
 	calls   int
 	success bool
 	errMsg  string
+	// result は ack に載せて返した中身です。**成功/失敗の2値だけでは
+	// 足りません** —— 隔離そのものは成功していて、サーバへの記録だけが
+	// 落ちた、という状態はここにしか出ません（quarantine_report_test.go）。
+	result []byte
 }
 
-func (m *mockAckSender) SendAck(_ context.Context, _ string, success bool, errMsg string, _ []byte) error {
+func (m *mockAckSender) SendAck(_ context.Context, _ string, success bool, errMsg string, result []byte) error {
 	m.calls++
 	m.success = success
 	m.errMsg = errMsg
+	m.result = result
 	return nil
 }
 
@@ -299,7 +307,8 @@ type mockIsolationManager struct {
 	isolateErr   error
 	unisolateErr error
 	// verifyLies が true なら、Isolate が成功しても実態は「入っていない」を返す。
-	// 「コマンドは成功したがルールが無い」を再現するため。
+	// 「コマンドは成功したがルールが無い」という応答を返すだけの差し替えで、
+	// その食い違いをどう扱うかの判定は製品側にある。
 	verifyLies bool
 	verifyErr  error
 }
@@ -520,7 +529,17 @@ func TestExecutor_Unisolate_Success(t *testing.T) {
 }
 
 // TestExecutor_QuarantineFile_Success はQuarantineFileが成功する場合を確認する。
+//
+// **宛先は本物の受け口です。** 以前は "http://edr:8080" —— 名前解決の
+// できないホストを指していました。隔離は成功、サーバへの記録は失敗、
+// という状態を「成功」の名前でテストしていたことになります。
+// 記録が落ちたときの振る舞いは quarantine_report_test.go で別に見ます。
 func TestExecutor_QuarantineFile_Success(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+
 	ack := &mockAckSender{}
 	quar := &mockFileQuarantine{quarantineID: "quar-xyz-789"}
 	exec := NewExecutor(
@@ -528,7 +547,7 @@ func TestExecutor_QuarantineFile_Success(t *testing.T) {
 		&mockProcessManager{},
 		quar,
 		"agent-001",
-		"http://edr:8080",
+		srv.URL,
 		ack,
 	)
 
@@ -544,6 +563,10 @@ func TestExecutor_QuarantineFile_Success(t *testing.T) {
 	}
 	if !ack.success {
 		t.Error("QuarantineFile成功時にack.successがfalse")
+	}
+	if string(ack.result) != "quar-xyz-789" {
+		t.Errorf("ack の中身 = %q, want %q —— 記録まで通ったときは"+
+			"隔離IDだけが返るべきです", ack.result, "quar-xyz-789")
 	}
 }
 

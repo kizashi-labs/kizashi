@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/edr-platform/server/internal/metrics"
 	"html"
 	"log/slog"
 	"strconv"
@@ -16,6 +17,10 @@ import (
 	"github.com/edr-platform/server/internal/email"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
+
+	"github.com/edr-platform/server/internal/store"
+
+	"github.com/edr-platform/server/internal/tick"
 )
 
 // ScheduledReport defines a repeating report job.
@@ -135,10 +140,7 @@ func (s *Scheduler) AddSchedule(ctx context.Context, report *ScheduledReport) er
 
 	// Persist to DB if available
 	if s.pool != nil {
-		var tableExists bool
-		_ = s.pool.QueryRow(ctx, `
-			SELECT EXISTS(SELECT 1 FROM pg_tables WHERE schemaname='public' AND tablename='scheduled_reports')`,
-		).Scan(&tableExists)
+		tableExists := store.TableIsThere(ctx, s.pool, "scheduled_reports")
 		if tableExists {
 			_, err = s.pool.Exec(ctx, `
 				INSERT INTO scheduled_reports (id, name, report_type, schedule, format, recipients,
@@ -173,17 +175,19 @@ func (s *Scheduler) RemoveSchedule(ctx context.Context, id string) error {
 	if !found {
 		return fmt.Errorf("スケジュール %s が見つかりません", id)
 	}
-	s.reports = newReports
 
-	if s.pool != nil {
-		var tableExists bool
-		_ = s.pool.QueryRow(ctx, `
-			SELECT EXISTS(SELECT 1 FROM pg_tables WHERE schemaname='public' AND tablename='scheduled_reports')`,
-		).Scan(&tableExists)
-		if tableExists {
-			_, _ = s.pool.Exec(ctx, `DELETE FROM scheduled_reports WHERE id = $1`, id)
+	// **DB を先に消します。**
+	//
+	// 記憶から先に消して DELETE を捨てていました。消えたように見えて、
+	// **次の再起動で読み直され、また配信が始まります。** 順序を入れ替えて
+	// あるのは、書けなかったときに記憶と DB を食い違わせないためです ——
+	// 消せなかったなら、消えていないと答えます。
+	if s.pool != nil && store.TableIsThere(ctx, s.pool, "scheduled_reports") {
+		if _, err := s.pool.Exec(ctx, `DELETE FROM scheduled_reports WHERE id = $1`, id); err != nil {
+			return fmt.Errorf("スケジュールを削除できませんでした（再起動で戻ります）: %w", err)
 		}
 	}
+	s.reports = newReports
 	slog.Info("scheduler: removed schedule", "id", id)
 	return nil
 }
@@ -192,10 +196,7 @@ func (s *Scheduler) RemoveSchedule(ctx context.Context, id string) error {
 func (s *Scheduler) ListSchedules(ctx context.Context) ([]*ScheduledReport, error) {
 	// Try to load from DB first
 	if s.pool != nil {
-		var tableExists bool
-		_ = s.pool.QueryRow(ctx, `
-			SELECT EXISTS(SELECT 1 FROM pg_tables WHERE schemaname='public' AND tablename='scheduled_reports')`,
-		).Scan(&tableExists)
+		tableExists := store.TableIsThere(ctx, s.pool, "scheduled_reports")
 		if tableExists {
 			rows, err := s.pool.Query(ctx, `
 				SELECT id, name, report_type, schedule, format,
@@ -210,6 +211,9 @@ func (s *Scheduler) ListSchedules(ctx context.Context) ([]*ScheduledReport, erro
 						&r.Recipients, &r.Enabled, &r.LastRun, &r.NextRun, &r.CreatedAt); err == nil {
 						dbReports = append(dbReports, r)
 					}
+				}
+				if err := rows.Err(); err != nil {
+					return nil, err
 				}
 				if dbReports != nil {
 					return dbReports, nil
@@ -237,6 +241,20 @@ func (s *Scheduler) UpdateSchedule(ctx context.Context, report *ScheduledReport)
 	}
 	report.NextRun = nextRun
 
+	// **DB を先に書きます。** 記憶だけ書き換えて UPDATE を捨てると、
+	// 名前も宛先も次回実行も、次の再起動で古い値に戻ります。
+	if s.pool != nil && store.TableIsThere(ctx, s.pool, "scheduled_reports") {
+		if _, err := s.pool.Exec(ctx, `
+				UPDATE scheduled_reports SET
+					name=$2, report_type=$3, schedule=$4, format=$5,
+					recipients=$6, enabled=$7, next_run=$8, updated_at=NOW()
+				WHERE id=$1`,
+			report.ID, report.Name, report.ReportType, report.Schedule, report.Format,
+			report.Recipients, report.Enabled, report.NextRun); err != nil {
+			return fmt.Errorf("スケジュールを更新できませんでした（再起動で戻ります）: %w", err)
+		}
+	}
+
 	s.mu.Lock()
 	for i, r := range s.reports {
 		if r.ID == report.ID {
@@ -245,27 +263,21 @@ func (s *Scheduler) UpdateSchedule(ctx context.Context, report *ScheduledReport)
 		}
 	}
 	s.mu.Unlock()
-
-	if s.pool != nil {
-		var tableExists bool
-		_ = s.pool.QueryRow(ctx, `
-			SELECT EXISTS(SELECT 1 FROM pg_tables WHERE schemaname='public' AND tablename='scheduled_reports')`,
-		).Scan(&tableExists)
-		if tableExists {
-			_, _ = s.pool.Exec(ctx, `
-				UPDATE scheduled_reports SET
-					name=$2, report_type=$3, schedule=$4, format=$5,
-					recipients=$6, enabled=$7, next_run=$8, updated_at=NOW()
-				WHERE id=$1`,
-				report.ID, report.Name, report.ReportType, report.Schedule, report.Format,
-				report.Recipients, report.Enabled, report.NextRun)
-		}
-	}
 	return nil
 }
 
 // ToggleSchedule enables or disables a scheduled report.
 func (s *Scheduler) ToggleSchedule(ctx context.Context, id string, enabled bool) error {
+	// **DB を先に書きます。** 止めたはずのレポートが、再起動でまた
+	// 有効になります —— 画面は記憶を映すので、止まったように見えます。
+	if s.pool != nil && store.TableIsThere(ctx, s.pool, "scheduled_reports") {
+		if _, err := s.pool.Exec(ctx,
+			`UPDATE scheduled_reports SET enabled=$2, updated_at=NOW() WHERE id=$1`,
+			id, enabled); err != nil {
+			return fmt.Errorf("スケジュールの有効・無効を切り替えられませんでした（再起動で戻ります）: %w", err)
+		}
+	}
+
 	s.mu.Lock()
 	for _, r := range s.reports {
 		if r.ID == id {
@@ -274,16 +286,6 @@ func (s *Scheduler) ToggleSchedule(ctx context.Context, id string, enabled bool)
 		}
 	}
 	s.mu.Unlock()
-
-	if s.pool != nil {
-		var tableExists bool
-		_ = s.pool.QueryRow(ctx, `
-			SELECT EXISTS(SELECT 1 FROM pg_tables WHERE schemaname='public' AND tablename='scheduled_reports')`,
-		).Scan(&tableExists)
-		if tableExists {
-			_, _ = s.pool.Exec(ctx, `UPDATE scheduled_reports SET enabled=$2, updated_at=NOW() WHERE id=$1`, id, enabled)
-		}
-	}
 	return nil
 }
 
@@ -300,7 +302,7 @@ func (s *Scheduler) Run(ctx context.Context) {
 			slog.Info("scheduler: stopping")
 			return
 		case now := <-ticker.C:
-			s.checkAndRun(ctx, now)
+			tick.Run(ctx, "report_scheduler", func(ctx context.Context) { s.checkAndRun(ctx, now) })
 		}
 	}
 }
@@ -339,7 +341,7 @@ func (s *Scheduler) runReport(ctx context.Context, r *ScheduledReport, now time.
 
 	result, err := s.generator.Generate(ctx, spec)
 	if err != nil {
-		slog.Warn("scheduler: report generation failed", "id", r.ID, "error", err)
+		tick.Fail(ctx, err, "scheduler: report generation failed", "id", r.ID)
 	} else {
 		slog.Info("scheduler: report generated",
 			"id", r.ID, "name", r.Name,
@@ -350,8 +352,8 @@ func (s *Scheduler) runReport(ctx context.Context, r *ScheduledReport, now time.
 	// Send the report to each recipient via SMTP (gracefully skips if SMTP is not configured).
 	for _, recipient := range r.Recipients {
 		if err := s.sendReportEmail(ctx, recipient, r, result); err != nil {
-			slog.Warn("scheduler: レポートメール送信に失敗しました",
-				"id", r.ID, "recipient", recipient, "error", err)
+			tick.Fail(ctx, err, "scheduler: レポートメール送信に失敗しました",
+				"id", r.ID, "recipient", recipient)
 		} else {
 			slog.Info("scheduler: レポートメールを送信しました",
 				"id", r.ID, "recipient", recipient)
@@ -361,7 +363,7 @@ func (s *Scheduler) runReport(ctx context.Context, r *ScheduledReport, now time.
 	// Update last_run and compute next_run
 	nextRun, err := parseCron(r.Schedule)
 	if err != nil {
-		slog.Warn("scheduler: failed to compute next run", "id", r.ID, "error", err)
+		tick.Fail(ctx, err, "scheduler: failed to compute next run", "id", r.ID)
 		nextRun = now.Add(24 * time.Hour)
 	}
 
@@ -376,14 +378,17 @@ func (s *Scheduler) runReport(ctx context.Context, r *ScheduledReport, now time.
 	s.mu.Unlock()
 
 	if s.pool != nil {
-		var tableExists bool
-		_ = s.pool.QueryRow(ctx, `
-			SELECT EXISTS(SELECT 1 FROM pg_tables WHERE schemaname='public' AND tablename='scheduled_reports')`,
-		).Scan(&tableExists)
+		tableExists := store.TableIsThere(ctx, s.pool, "scheduled_reports")
 		if tableExists {
-			_, _ = s.pool.Exec(ctx, `
+			// **記憶の側は上で進めてあります。** ここが書けないと、
+			// 次の再起動で `last_run`／`next_run` が古いまま読み直され、
+			// **同じ期間のレポートをもう一度送ります。**
+			if _, err := s.pool.Exec(ctx, `
 				UPDATE scheduled_reports SET last_run=$2, next_run=$3, updated_at=NOW() WHERE id=$1`,
-				r.ID, now, nextRun)
+				r.ID, now, nextRun); err != nil {
+				tick.Fail(ctx, err, "scheduler: 実行時刻を記録できませんでした。再起動後に同じレポートをもう一度送ります",
+					"id", r.ID)
+			}
 		}
 	}
 }
@@ -417,10 +422,7 @@ func (s *Scheduler) LoadFromDB(ctx context.Context) {
 	if s.pool == nil {
 		return
 	}
-	var tableExists bool
-	_ = s.pool.QueryRow(ctx, `
-		SELECT EXISTS(SELECT 1 FROM pg_tables WHERE schemaname='public' AND tablename='scheduled_reports')`,
-	).Scan(&tableExists)
+	tableExists := store.TableIsThere(ctx, s.pool, "scheduled_reports")
 	if !tableExists {
 		return
 	}
@@ -430,7 +432,7 @@ func (s *Scheduler) LoadFromDB(ctx context.Context) {
 		       COALESCE(recipients,'{}'), enabled, last_run, next_run, created_at
 		FROM scheduled_reports WHERE enabled = true ORDER BY created_at`)
 	if err != nil {
-		slog.Warn("scheduler: failed to load from DB", "error", err)
+		metrics.BackgroundFailed("report_scheduler_load", err, "scheduler: failed to load from DB")
 		return
 	}
 	defer rows.Close()
@@ -443,6 +445,9 @@ func (s *Scheduler) LoadFromDB(ctx context.Context) {
 			&r.Recipients, &r.Enabled, &r.LastRun, &r.NextRun, &r.CreatedAt); err == nil {
 			s.reports = append(s.reports, r)
 		}
+	}
+	if err := rows.Err(); err != nil {
+		slog.Error("レポートスケジュールの読み込みが途中で終わりました。読めなかったスケジュールは実行されません", "error", err)
 	}
 	slog.Info("scheduler: loaded schedules from DB", "count", len(s.reports))
 }

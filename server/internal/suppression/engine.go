@@ -13,6 +13,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/edr-platform/server/internal/metrics"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -56,6 +57,34 @@ type Engine struct {
 	rules           []*SuppressionRule
 	pool            *pgxpool.Pool
 	totalSuppressed int64
+	lastLoad        LoadStats
+}
+
+// LoadStats records what the last LoadFromDB did with each row it saw.
+//
+// The three rejection reasons are kept apart rather than summed because they
+// mean different things to whoever configured the rule: a row that will not
+// scan is a schema or data problem, conditions that will not parse are a
+// malformed rule, and an empty condition set is a rule that was saved before it
+// was finished. All three present identically — "the alert I suppressed keeps
+// firing" — so the distinction has to come from here.
+type LoadStats struct {
+	Loaded          int
+	Unreadable      int
+	Unparseable     int
+	EmptyConditions int
+}
+
+// Rejected counts the enabled rules that did not join the running set.
+func (s LoadStats) Rejected() int {
+	return s.Unreadable + s.Unparseable + s.EmptyConditions
+}
+
+// LastLoad reports what the most recent LoadFromDB made of the stored rules.
+func (e *Engine) LastLoad() LoadStats {
+	e.mu.RLock()
+	defer e.mu.RUnlock()
+	return e.lastLoad
 }
 
 // NewEngine creates a new Engine backed by the given pool.
@@ -74,17 +103,22 @@ func (e *Engine) LoadFromDB(ctx context.Context) error {
 		SELECT id, name, COALESCE(description,''), enabled, conditions,
 		       COALESCE(duration_seconds,0), expires_at, hit_count, created_at
 		FROM suppression_rules
+		-- **旗が2つあります**（cmd/detection/adapter.go の同じ注記を参照）。
+		-- ここだけ enabled を見ると、コンソール側で is_active=false にした
+		-- ルールが「読み込み済み」として数えられます。
 		WHERE enabled = true
+		  AND COALESCE(is_active, TRUE) = TRUE
 		ORDER BY created_at
 	`)
 	if err != nil {
 		// Table may not exist yet — graceful degradation.
 		slog.Debug("suppression: could not load rules from DB", "error", err)
-		return nil
+		return err
 	}
 	defer rows.Close()
 
 	var loaded []*SuppressionRule
+	var stats LoadStats
 	for rows.Next() {
 		var (
 			r         SuppressionRule
@@ -94,18 +128,58 @@ func (e *Engine) LoadFromDB(ctx context.Context) error {
 		)
 		if err := rows.Scan(&r.ID, &r.Name, &r.Description, &r.Enabled,
 			&condJSON, &durationS, &expiresAt, &r.HitCount, &r.CreatedAt); err != nil {
+			// A row that will not scan is a rule the operator configured and
+			// can see in the console, dropped from the running set without a
+			// word. They go on believing the alert is suppressed.
+			stats.Unreadable++
+			slog.Warn("suppression: ルールを読み込めませんでした", "error", err)
 			continue
 		}
 		r.Duration = time.Duration(durationS) * time.Second
 		r.ExpiresAt = expiresAt
-		_ = json.Unmarshal(condJSON, &r.Conditions)
+		if err := json.Unmarshal(condJSON, &r.Conditions); err != nil {
+			// Same again, one step later. matchesAll ends with
+			// `return len(conds) > 0`, so a rule whose conditions failed to
+			// parse matches nothing rather than everything — the dangerous
+			// direction is already closed. What is left is that the rule is
+			// inert while looking enabled, which is only visible as "the alert
+			// I suppressed keeps firing".
+			stats.Unparseable++
+			slog.Warn("suppression: 条件を解釈できませんでした。このルールは何も抑制しません",
+				"rule", r.Name, "id", r.ID, "error", err)
+			continue
+		}
+		if len(r.Conditions) == 0 {
+			// Not an error, but not a usable rule either: an empty condition
+			// set can never match, so keeping it in the running set only
+			// invites someone to conclude that suppression is broken.
+			stats.EmptyConditions++
+			slog.Warn("suppression: 条件が空のルールです。何も抑制しません",
+				"rule", r.Name, "id", r.ID)
+			continue
+		}
 		loaded = append(loaded, &r)
 	}
+	if err := rows.Err(); err != nil {
+		// **途中まで読めた分を「全部読めた」として置き換えません。**
+		// 置き換えると `stats.Loaded` が本当の件数として記録され、
+		// 抑制されるはずのアラートが抑制されないまま、誰も気づきません。
+		slog.Error("suppression: ルールの走査が途中で失敗しました", "error", err)
+		return err
+	}
+
+	stats.Loaded = len(loaded)
 
 	e.mu.Lock()
 	e.rules = loaded
+	e.lastLoad = stats
 	e.mu.Unlock()
 
+	if n := stats.Rejected(); n > 0 {
+		slog.Warn("suppression: 有効化されているのに動作しないルールがあります",
+			"loaded", stats.Loaded, "unreadable", stats.Unreadable,
+			"unparseable", stats.Unparseable, "empty_conditions", stats.EmptyConditions)
+	}
 	slog.Info("suppression: loaded rules from DB", "count", len(loaded))
 	return nil
 }
@@ -137,11 +211,21 @@ func (e *Engine) ShouldSuppress(alert map[string]interface{}) (bool, string) {
 	return false, ""
 }
 
+// incrementHit records that this rule suppressed something.
+//
+// **この数は「効いていないルール」を見つけるためのものです。** 落ちると
+// ヒット0のまま残り、実際は毎日抑制しているルールが「もう要らない」と
+// 判断されます。呼び出し側は評価の途中（error を受け取る口がありません）
+// なので、報告先は部品ごとの件数です。
 func (e *Engine) incrementHit(id string) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	_, _ = e.pool.Exec(ctx,
-		`UPDATE suppression_rules SET hit_count = hit_count + 1, updated_at = NOW() WHERE id = $1`, id)
+	if _, err := e.pool.Exec(ctx,
+		`UPDATE suppression_rules SET hit_count = hit_count + 1, updated_at = NOW() WHERE id = $1`, id); err != nil {
+		metrics.BackgroundFailed("suppression_hit_count", err,
+			"抑制ルールのヒット数を更新できませんでした。効いているルールが0件に見えます",
+			"rule_id", id)
+	}
 }
 
 // AddRule inserts a new rule into the engine and DB.
@@ -163,8 +247,10 @@ func (e *Engine) AddRule(rule *SuppressionRule) error {
 		durationS = int64(rule.Duration.Seconds())
 	}
 	err = e.pool.QueryRow(ctx, `
-		INSERT INTO suppression_rules (name, description, enabled, conditions, duration_seconds, expires_at)
-		VALUES ($1, $2, $3, $4, $5, $6)
+		-- **両方の旗に同じ値を書きます。** 片方だけ書くと、書かなかった側の
+		-- 既定 (TRUE) が残り、無効にしたつもりのルールが適用され続けます。
+		INSERT INTO suppression_rules (name, description, enabled, is_active, conditions, duration_seconds, expires_at)
+		VALUES ($1, $2, $3, $3, $4, $5, $6)
 		RETURNING id`,
 		rule.Name, rule.Description, rule.Enabled, condJSON, durationS, rule.ExpiresAt,
 	).Scan(&rule.ID)
@@ -192,7 +278,7 @@ func (e *Engine) UpdateRule(id string, updated *SuppressionRule) error {
 		}
 		_, err = e.pool.Exec(ctx, `
 			UPDATE suppression_rules
-			SET name=$1, description=$2, enabled=$3, conditions=$4,
+			SET name=$1, description=$2, enabled=$3, is_active=$3, conditions=$4,
 			    duration_seconds=$5, expires_at=$6, updated_at=NOW()
 			WHERE id=$7`,
 			updated.Name, updated.Description, updated.Enabled, condJSON,

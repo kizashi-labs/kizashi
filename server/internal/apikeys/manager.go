@@ -37,8 +37,21 @@ type APIKey struct {
 	ExpiresAt *time.Time `json:"expires_at"`
 	LastUsed  *time.Time `json:"last_used"`
 	Enabled   bool       `json:"enabled"`
-	CreatedAt time.Time  `json:"created_at"`
+	// DisabledReason is why the key is off. Empty while it is enabled.
+	// A disabled key without one predates the column.
+	DisabledReason string    `json:"disabled_reason,omitempty"`
+	CreatedAt      time.Time `json:"created_at"`
 }
+
+// Why a key is disabled. Both paths that switch a key off record one, so
+// "enabled = false" is never the whole answer: an operator deciding whether to
+// re-enable a key or go looking for a compromise needs to know which happened.
+const (
+	// DisabledReasonRevoked — an operator turned it off deliberately.
+	DisabledReasonRevoked = "revoked"
+	// DisabledReasonInactive — APIKeyRotator retired it after 90 days unused.
+	DisabledReasonInactive = "inactive_90_days"
+)
 
 // Manager handles API key operations backed by the database.
 type Manager struct {
@@ -148,6 +161,10 @@ func (m *Manager) Validate(ctx context.Context, rawKey string) (*APIKey, error) 
 			return &k, nil
 		}
 	}
+	// 部分結果を完全な一覧として返さない（scan_truncation_guard_test.go 参照）
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
 	return nil, fmt.Errorf("invalid or expired api key")
 }
 
@@ -156,7 +173,7 @@ func (m *Manager) List(ctx context.Context, userID string) ([]*APIKey, error) {
 	rows, err := m.pool.Query(ctx, `
 		SELECT id, name, key_prefix,
 		       COALESCE(user_id::text,''), COALESCE(role,'analyst'), COALESCE(scopes,'{}'),
-		       expires_at, last_used, enabled, created_at
+		       expires_at, last_used, enabled, COALESCE(disabled_reason,''), created_at
 		FROM api_keys
 		WHERE user_id = $1::uuid
 		ORDER BY created_at DESC`,
@@ -172,11 +189,15 @@ func (m *Manager) List(ctx context.Context, userID string) ([]*APIKey, error) {
 		if err := rows.Scan(
 			&k.ID, &k.Name, &k.KeyPrefix,
 			&k.UserID, &k.Role, &k.Scopes,
-			&k.ExpiresAt, &k.LastUsed, &k.Enabled, &k.CreatedAt,
+			&k.ExpiresAt, &k.LastUsed, &k.Enabled, &k.DisabledReason, &k.CreatedAt,
 		); err != nil {
 			continue
 		}
 		keys = append(keys, k)
+	}
+	// 部分結果を完全な一覧として返さない（scan_truncation_guard_test.go 参照）
+	if err := rows.Err(); err != nil {
+		return nil, err
 	}
 	if keys == nil {
 		keys = []*APIKey{}
@@ -189,7 +210,7 @@ func (m *Manager) ListAll(ctx context.Context) ([]*APIKey, error) {
 	rows, err := m.pool.Query(ctx, `
 		SELECT id, name, key_prefix,
 		       COALESCE(user_id::text,''), COALESCE(role,'analyst'), COALESCE(scopes,'{}'),
-		       expires_at, last_used, enabled, created_at
+		       expires_at, last_used, enabled, COALESCE(disabled_reason,''), created_at
 		FROM api_keys
 		ORDER BY created_at DESC`)
 	if err != nil {
@@ -203,11 +224,15 @@ func (m *Manager) ListAll(ctx context.Context) ([]*APIKey, error) {
 		if err := rows.Scan(
 			&k.ID, &k.Name, &k.KeyPrefix,
 			&k.UserID, &k.Role, &k.Scopes,
-			&k.ExpiresAt, &k.LastUsed, &k.Enabled, &k.CreatedAt,
+			&k.ExpiresAt, &k.LastUsed, &k.Enabled, &k.DisabledReason, &k.CreatedAt,
 		); err != nil {
 			continue
 		}
 		keys = append(keys, k)
+	}
+	// 部分結果を完全な一覧として返さない（scan_truncation_guard_test.go 参照）
+	if err := rows.Err(); err != nil {
+		return nil, err
 	}
 	if keys == nil {
 		keys = []*APIKey{}
@@ -215,10 +240,14 @@ func (m *Manager) ListAll(ctx context.Context) ([]*APIKey, error) {
 	return keys, nil
 }
 
-// Revoke disables an API key by ID.
+// Revoke disables an API key by ID, recording that a person did it.
+//
+// Without the reason this is indistinguishable from the rotator retiring an
+// unused key, and the two call for opposite responses.
 func (m *Manager) Revoke(ctx context.Context, id string) error {
 	tag, err := m.pool.Exec(ctx,
-		"UPDATE api_keys SET enabled = false WHERE id = $1", id)
+		"UPDATE api_keys SET enabled = false, disabled_reason = $2 WHERE id = $1",
+		id, DisabledReasonRevoked)
 	if err != nil {
 		return fmt.Errorf("failed to revoke key: %w", err)
 	}

@@ -75,8 +75,8 @@ func (a *Analyzer) DetectInjection(ctx context.Context, hours int) ([]*MemoryArt
 			COALESCE(a.hostname, ''),
 			COALESCE(e.raw_data->>'process_name', ''),
 			COALESCE((e.raw_data->>'pid')::int, 0),
-			COALESCE(e.raw_data->>'parent_process_name', ''),
-			COALESCE(e.raw_data->>'cmdline', ''),
+			COALESCE(e.raw_data->>'parent_name', ''),
+			COALESCE(e.raw_data->>'command_line', ''),
 			e.time,
 			e.raw_data
 		FROM events e
@@ -86,14 +86,14 @@ func (a *Analyzer) DetectInjection(ctx context.Context, hours int) ([]*MemoryArt
 		  AND (
 		      -- svchost spawned by non-services parent
 		      (lower(e.raw_data->>'process_name') = 'svchost.exe'
-		       AND lower(e.raw_data->>'parent_process_name') NOT IN ('services.exe','svchost.exe','')
+		       AND lower(e.raw_data->>'parent_name') NOT IN ('services.exe','svchost.exe','')
 		      )
 		      OR
 		      -- cmdline with hex shellcode-like pattern (>\x40 hex chars)
-		      (e.raw_data->>'cmdline' ~ '[0-9a-fA-F]{80,}')
+		      (e.raw_data->>'command_line' ~ '[0-9a-fA-F]{80,}')
 		      OR
 		      -- cmdline with large base64 blob
-		      (e.raw_data->>'cmdline' ~ '[A-Za-z0-9+/]{100,}={0,2}')
+		      (e.raw_data->>'command_line' ~ '[A-Za-z0-9+/]{100,}={0,2}')
 		  )
 		ORDER BY e.time DESC
 		LIMIT 500`,
@@ -101,7 +101,7 @@ func (a *Analyzer) DetectInjection(ctx context.Context, hours int) ([]*MemoryArt
 	)
 	if err != nil {
 		slog.Warn("memforensics: DetectInjection query failed", "error", err)
-		return []*MemoryArtifact{}, nil
+		return nil, err
 	}
 	defer rows.Close()
 
@@ -174,6 +174,10 @@ func (a *Analyzer) DetectInjection(ctx context.Context, hours int) ([]*MemoryArt
 
 		artifacts = append(artifacts, art)
 	}
+	// 部分結果を完全な一覧として返さない（scan_truncation_guard_test.go 参照）
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
 
 	if artifacts == nil {
 		return []*MemoryArtifact{}, nil
@@ -189,6 +193,12 @@ func (a *Analyzer) DetectReflectiveLoad(ctx context.Context, hours int) ([]*Memo
 	}
 
 	// DetectInjection と同じ列名・間隔の取り違えがあり、常に 0 件だった。
+	//
+	// さらに二重に届いていなかった。event_type 'module_load' は
+	// events_event_type_check が許可しない値で、そもそも該当行が存在し得ない。
+	// ingestion が付ける型は 'image_load'、モジュールのパスを入れるキーは
+	// 'image_loaded' (ImageLoadEvent.image_path を正規化時に改名している)。
+	// 型・キーのどちらか一方だけ直しても 0 件のままなので、両方を直す。
 	rows, err := a.pool.Query(ctx, `
 		SELECT
 			e.event_id,
@@ -196,26 +206,26 @@ func (a *Analyzer) DetectReflectiveLoad(ctx context.Context, hours int) ([]*Memo
 			COALESCE(a.hostname, ''),
 			COALESCE(e.raw_data->>'process_name', ''),
 			COALESCE((e.raw_data->>'pid')::int, 0),
-			COALESCE(e.raw_data->>'loaded_module', ''),
+			COALESCE(e.raw_data->>'image_loaded', ''),
 			e.time,
 			e.raw_data
 		FROM events e
 		LEFT JOIN agents a ON a.id = e.agent_id
-		WHERE e.event_type = 'module_load'
+		WHERE e.event_type = 'image_load'
 		  AND e.time > NOW() - make_interval(hours => $1)
-		  AND e.raw_data ? 'loaded_module'
-		  AND e.raw_data->>'loaded_module' <> ''
-		  AND lower(e.raw_data->>'loaded_module') NOT LIKE '%\\system32\\%'
-		  AND lower(e.raw_data->>'loaded_module') NOT LIKE '%\\syswow64\\%'
-		  AND lower(e.raw_data->>'loaded_module') NOT LIKE '%/system32/%'
-		  AND lower(e.raw_data->>'loaded_module') NOT LIKE '%/syswow64/%'
+		  AND e.raw_data ? 'image_loaded'
+		  AND e.raw_data->>'image_loaded' <> ''
+		  AND lower(e.raw_data->>'image_loaded') NOT LIKE '%\\system32\\%'
+		  AND lower(e.raw_data->>'image_loaded') NOT LIKE '%\\syswow64\\%'
+		  AND lower(e.raw_data->>'image_loaded') NOT LIKE '%/system32/%'
+		  AND lower(e.raw_data->>'image_loaded') NOT LIKE '%/syswow64/%'
 		ORDER BY e.time DESC
 		LIMIT 500`,
 		hours,
 	)
 	if err != nil {
 		slog.Warn("memforensics: DetectReflectiveLoad query failed", "error", err)
-		return []*MemoryArtifact{}, nil
+		return nil, err
 	}
 	defer rows.Close()
 
@@ -270,6 +280,10 @@ func (a *Analyzer) DetectReflectiveLoad(ctx context.Context, hours int) ([]*Memo
 
 		artifacts = append(artifacts, art)
 	}
+	// 部分結果を完全な一覧として返さない（scan_truncation_guard_test.go 参照）
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
 
 	if artifacts == nil {
 		return []*MemoryArtifact{}, nil
@@ -303,7 +317,7 @@ func (a *Analyzer) GetArtifacts(ctx context.Context, agentID string, hours int) 
 	rows, err := a.pool.Query(ctx, query, args...)
 	if err != nil {
 		slog.Warn("memforensics: GetArtifacts query failed", "error", err)
-		return []*MemoryArtifact{}, nil
+		return nil, err
 	}
 	defer rows.Close()
 
@@ -323,6 +337,10 @@ func (a *Analyzer) GetArtifacts(ctx context.Context, agentID string, hours int) 
 		}
 		art.Indicators = indicators
 		artifacts = append(artifacts, art)
+	}
+	// 部分結果を完全な一覧として返さない（scan_truncation_guard_test.go 参照）
+	if err := rows.Err(); err != nil {
+		return nil, err
 	}
 
 	if artifacts == nil {
@@ -362,6 +380,9 @@ func (a *Analyzer) GetStats(ctx context.Context) MemForensicsStats {
 			if err := rows.Scan(&typeName, &count); err == nil {
 				stats.ByType[typeName] = count
 			}
+		}
+		if err := rows.Err(); err != nil {
+			slog.Error("メモリフォレンジックの集計が途中で終わりました。統計は実際より小さく出ます", "error", err)
 		}
 	}
 

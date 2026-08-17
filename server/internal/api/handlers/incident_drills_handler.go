@@ -36,7 +36,10 @@ func parseScheduledAt(s string) time.Time {
 // List handles GET /api/v1/admin/incident-drills
 func (h *IncidentDrillsHandler) List(c *gin.Context) {
 	ctx := c.Request.Context()
-	tenantID := c.GetString("tenant_id")
+	tenantID, ok := TenantOrAbort(c)
+	if !ok {
+		return
+	}
 
 	rows, err := h.pool.Query(ctx, `
 		SELECT id, name, drill_type, scenario, scenario_template, status,
@@ -45,7 +48,7 @@ func (h *IncidentDrillsHandler) List(c *gin.Context) {
 		       overall_score, key_findings, best_performer,
 		       areas_for_improvement, score_breakdown
 		FROM incident_drills
-		WHERE tenant_id = $1::uuid
+		WHERE tenant_id = NULLIF($1,'')::uuid
 		ORDER BY scheduled_at DESC`, tenantID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": dbErrMsg(err)})
@@ -95,13 +98,20 @@ func (h *IncidentDrillsHandler) List(c *gin.Context) {
 			"score_breakdown":       scoreBreakdown,
 		})
 	}
+	if err := rows.Err(); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": dbErrMsg(err)})
+		return
+	}
 	c.JSON(http.StatusOK, gin.H{"drills": drills})
 }
 
 // Create handles POST /api/v1/admin/incident-drills
 func (h *IncidentDrillsHandler) Create(c *gin.Context) {
 	ctx := c.Request.Context()
-	tenantID := c.GetString("tenant_id")
+	tenantID, ok := TenantOrAbort(c)
+	if !ok {
+		return
+	}
 
 	var req struct {
 		Name             string   `json:"name"`
@@ -178,7 +188,10 @@ func (h *IncidentDrillsHandler) Create(c *gin.Context) {
 // record completion (status + scorecard) or edit a scheduled drill.
 func (h *IncidentDrillsHandler) Update(c *gin.Context) {
 	ctx := c.Request.Context()
-	tenantID := c.GetString("tenant_id")
+	tenantID, ok := TenantOrAbort(c)
+	if !ok {
+		return
+	}
 	id := c.Param("id")
 
 	var req struct {
@@ -213,7 +226,7 @@ func (h *IncidentDrillsHandler) Update(c *gin.Context) {
 			areas_for_improvement = COALESCE($7::jsonb, areas_for_improvement),
 			score_breakdown       = COALESCE($8::jsonb, score_breakdown),
 			updated_at            = NOW()
-		WHERE id = $1::uuid AND tenant_id = $2::uuid`,
+		WHERE id = $1::uuid AND tenant_id = NULLIF($2,'')::uuid`,
 		id, tenantID, req.Status, req.OverallScore, req.KeyFindings, req.BestPerformer,
 		areas, breakdown)
 	if err != nil {
@@ -230,11 +243,14 @@ func (h *IncidentDrillsHandler) Update(c *gin.Context) {
 // Delete handles DELETE /api/v1/admin/incident-drills/:id
 func (h *IncidentDrillsHandler) Delete(c *gin.Context) {
 	ctx := c.Request.Context()
-	tenantID := c.GetString("tenant_id")
+	tenantID, ok := TenantOrAbort(c)
+	if !ok {
+		return
+	}
 	id := c.Param("id")
 
 	ct, err := h.pool.Exec(ctx,
-		`DELETE FROM incident_drills WHERE id = $1::uuid AND tenant_id = $2::uuid`, id, tenantID)
+		`DELETE FROM incident_drills WHERE id = $1::uuid AND tenant_id = NULLIF($2,'')::uuid`, id, tenantID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": dbErrMsg(err)})
 		return

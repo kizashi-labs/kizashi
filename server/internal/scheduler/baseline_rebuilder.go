@@ -41,7 +41,7 @@ func (r *BaselineRebuilder) Run(ctx context.Context) {
 	case <-time.After(30 * time.Second):
 	}
 
-	r.rebuild(ctx)
+	trackRun(ctx, "baseline_rebuilder", r.rebuild)
 
 	ticker := time.NewTicker(6 * time.Hour)
 	defer ticker.Stop()
@@ -50,21 +50,13 @@ func (r *BaselineRebuilder) Run(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			r.rebuild(ctx)
+			trackRun(ctx, "baseline_rebuilder", r.rebuild)
 		}
 	}
 }
 
 func (r *BaselineRebuilder) tableExists(ctx context.Context) bool {
-	var exists bool
-	_ = r.pool.QueryRow(ctx, `
-		SELECT EXISTS (
-		    SELECT 1 FROM information_schema.tables
-		    WHERE table_schema = 'public'
-		      AND table_name = 'agent_behavioral_baselines'
-		)
-	`).Scan(&exists)
-	return exists
+	return store.TableIsThere(ctx, r.pool, "agent_behavioral_baselines")
 }
 
 func (r *BaselineRebuilder) rebuild(ctx context.Context) {
@@ -72,8 +64,12 @@ func (r *BaselineRebuilder) rebuild(ctx context.Context) {
 
 	cfg, err := r.bStore.GetConfig(ctx)
 	if err != nil {
-		slog.Error("ベースライン設定取得エラー", "error", err)
-		cfg = &store.BaselineConfig{LearningPeriodDays: 30}
+		// 既定の30日で作り直すと、7日や90日を設定したテナントでは、
+		// 誰も選んでいない期間のベースラインが保存されます。以後の
+		// 逸脱判定はその土台の上で行われます。次の周回でやり直せるので、
+		// 作らずに戻ります。
+		fail(ctx, err, "ベースライン再構築: 設定を読めないため今回は作り直しません")
+		return
 	}
 
 	// アクティブなエージェント一覧を取得
@@ -83,7 +79,7 @@ func (r *BaselineRebuilder) rebuild(ctx context.Context) {
 		   OR status = 'online'
 	`)
 	if err != nil {
-		slog.Error("エージェント一覧取得エラー", "error", err)
+		fail(ctx, err, "エージェント一覧取得エラー")
 		return
 	}
 	defer rows.Close()
@@ -95,6 +91,9 @@ func (r *BaselineRebuilder) rebuild(ctx context.Context) {
 			agentIDs = append(agentIDs, id)
 		}
 	}
+	if err := rows.Err(); err != nil {
+		fail(ctx, err, "エージェント一覧の走査が途中で終わりました。今回のパスでベースラインを再構築しないエージェントがあります")
+	}
 	rows.Close()
 
 	if len(agentIDs) == 0 {
@@ -104,8 +103,15 @@ func (r *BaselineRebuilder) rebuild(ctx context.Context) {
 
 	var succeeded, failed int
 	for _, agentID := range agentIDs {
-		// 既存の除外ルールを保持する
-		exclusionRules := r.bStore.GetExclusionRules(ctx, agentID)
+		// 既存の除外ルールを保持する。読めないまま再構築すると、
+		// 除外ルールが空のベースラインで上書きしてしまいます。
+		exclusionRules, err := r.bStore.GetExclusionRules(ctx, agentID)
+		if err != nil {
+			fail(ctx, err, "ベースライン再構築: 除外ルールを読めないため飛ばしました",
+				"agent_id", agentID)
+			failed++
+			continue
+		}
 
 		baseline, err := r.engine.BuildEnrichedBaseline(
 			ctx,

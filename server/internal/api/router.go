@@ -486,8 +486,11 @@ type Handlers struct {
 	// Security Scorecard (NIST CSF / ISO 27001)
 	Scorecard *handlers.ScorecardHandler
 
-	// Migration 183: Organization Management (multi-tenant)
-	Org *handlers.OrgHandler
+	// Multi-tenant management lives on TenantHandler (/tenants) and
+	// MultiTenantHandler (/admin/tenants), both of which read the `tenants`
+	// table every tenant_id foreign key points at. There was a third handler
+	// here backed by a parallel `organizations` table that nothing referenced;
+	// migration 380 removed it.
 
 	// Migration 183: AI Assistant (Claude integration)
 
@@ -4130,23 +4133,11 @@ func (s *Server) registerRoutes() {
 		}
 	}
 
-	// Migration 183: Organization Management (multi-tenant)
-	if s.handlers.Org != nil {
-		orgAdmin := protected.Group("/admin/organizations")
-		orgAdmin.Use(adminMiddleware())
-		{
-			orgAdmin.GET("", s.handlers.Org.ListOrgs)
-			orgAdmin.POST("", s.handlers.Org.CreateOrg)
-			orgAdmin.GET("/:id", s.handlers.Org.GetOrg)
-			orgAdmin.PUT("/:id", s.handlers.Org.UpdateOrg)
-			orgAdmin.DELETE("/:id", s.handlers.Org.DeleteOrg)
-		}
-		orgSelf := protected.Group("/org")
-		{
-			orgSelf.GET("/current", s.handlers.Org.GetCurrentOrg)
-			orgSelf.PUT("/settings", s.handlers.Org.UpdateOrgSettings)
-		}
-	}
+	// /admin/organizations, /org/current and /org/settings were removed with
+	// migration 380. They served a parallel `organizations` table that no
+	// foreign key pointed at, so the agent, user and alert counts they reported
+	// were structurally zero and an organization created through them could
+	// never own anything. Tenant management is /admin/tenants.
 
 	// Migration 183: GeoIP Threat Map
 	if s.handlers.GeoIP != nil {

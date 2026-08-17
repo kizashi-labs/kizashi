@@ -1,8 +1,12 @@
 package store
 
 import (
+	"context"
+	"os"
 	"strings"
 	"testing"
+
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 // ─── PushToken 構造体テスト ────────────────────────────────────────────────────
@@ -59,33 +63,58 @@ func TestPushToken_ValidPlatforms(t *testing.T) {
 	}
 }
 
-// TestPushToken_PlatformValidation は有効・無効なプラットフォームの判定ロジックを確認する
-func TestPushToken_PlatformValidation(t *testing.T) {
-	// isValidPushPlatform をインラインで再現するヘルパーロジック
-	isValid := func(platform string) bool {
-		return platform == "ios" || platform == "android"
-	}
+// プラットフォームの検証は **Go にありません。** `mobile_push_tokens` の
+// `platform` 列に CHECK 制約があり、そこが唯一の関門です:
+//
+//	platform TEXT NOT NULL CHECK (platform IN ('ios', 'android'))
+//
+// 検査ファイルには `isValidPushPlatform` という Go の判定を**検査の中で
+// 定義して**、それを試すものが置いてありました。**製品を1行も通りません。**
+//
+// 制約の方を留めます。緩められたら落ちて、通知の送り先を見直す番だと
+// 分かります。
+func TestOnlyKnownPushPlatformsCanBeStored(t *testing.T) {
+	db := covTestDBLocal(t)
+	ctx := context.Background()
 
-	validCases := []struct {
-		platform string
-		want     bool
-	}{
-		{"ios", true},
-		{"android", true},
-		{"IOS", false},     // 大文字は無効
-		{"Android", false}, // 大文字混在は無効
-		{"web", false},     // 未知のプラットフォーム
-		{"windows", false}, // 未知のプラットフォーム
-		{"", false},        // 空文字は無効
-		{"ios\n", false},   // 末尾改行あり
+	var def string
+	err := db.QueryRow(ctx, `
+		SELECT pg_get_constraintdef(oid) FROM pg_constraint
+		WHERE conrelid = 'mobile_push_tokens'::regclass AND contype = 'c'
+		  AND pg_get_constraintdef(oid) LIKE '%platform%'`).Scan(&def)
+	if err != nil {
+		t.Fatalf("platform の制約が見つかりません: %v。**知らない値が入ると、"+
+			"通知の送り先として使われます**", err)
 	}
-
-	for _, tc := range validCases {
-		got := isValid(tc.platform)
-		if got != tc.want {
-			t.Errorf("isValid(%q) = %v, want %v", tc.platform, got, tc.want)
+	for _, want := range []string{"ios", "android"} {
+		if !strings.Contains(def, "'"+want+"'") {
+			t.Errorf("制約に %q がありません: %s", want, def)
 		}
 	}
+
+	// 第三の値が入れられないこと。
+	_, err = db.Exec(ctx, `
+		INSERT INTO mobile_push_tokens (user_id, platform, token)
+		VALUES ('55555555-5555-5555-5555-555555555555'::uuid, 'web', 'probe')`)
+	if err == nil {
+		_, _ = db.Exec(ctx, "DELETE FROM mobile_push_tokens WHERE token = 'probe'")
+		t.Error("'web' が入りました。**制約が唯一の関門です**")
+	}
+}
+
+// covTestDBLocal opens the shared migrated database, or skips.
+func covTestDBLocal(t *testing.T) *pgxpool.Pool {
+	t.Helper()
+	url := os.Getenv("TEST_DATABASE_URL")
+	if url == "" {
+		t.Skip("TEST_DATABASE_URL not set - skipping DB constraint test")
+	}
+	pool, err := pgxpool.New(context.Background(), url)
+	if err != nil {
+		t.Fatalf("connect: %v", err)
+	}
+	t.Cleanup(pool.Close)
+	return pool
 }
 
 // TestPushToken_TokenNonEmpty は Token フィールドが空でないことを前提とする

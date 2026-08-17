@@ -50,38 +50,54 @@ func (e *Engine) BuildEnrichedBaseline(
 
 	// ─── データポイント数 ──────────────────────────────────────────
 	var dataPoints int64
-	_ = e.pool.QueryRow(ctx, `
-		SELECT COUNT(*)
-		FROM events
-		WHERE agent_id = $1::uuid
-		  AND time >= $2
-	`, agentID, since).Scan(&dataPoints)
+	if err := e.pool.QueryRow(ctx, `
+			SELECT COUNT(*)
+			FROM events
+			WHERE agent_id = $1::uuid
+			  AND time >= $2
+		`, agentID, since).Scan(&dataPoints); err != nil {
+		return nil, fmt.Errorf("数えられませんでした: %w", err)
+	}
 
 	// ─── アクティビティヒートマップ (7日 × 24時間) ─────────────────
-	activeHours := buildHeatmap(ctx, e, agentID)
+	activeHours, err := buildHeatmap(ctx, e, agentID)
+	if err != nil {
+		// すぐ下の2本と同じ理由です。空のヒートマップは「その端末は
+		// いつも静か」と読まれ、いつもと違う時間帯の活動を見つけるための
+		// 図が、平坦であることを根拠にしてしまいます。
+		return nil, fmt.Errorf("活動時間帯 を取得できませんでした: %w", err)
+	}
 
 	// ─── 典型的プロセス (top 50) ──────────────────────────────────
 	typicalProcesses, err := buildTypicalProcesses(ctx, e, agentID, since)
 	if err != nil {
-		typicalProcesses = []ProcessEntry{}
+		// 空のベースラインは「その端末には特徴が無い」と読まれ、
+		// 以後の逸脱判定の土台になります。取れなかったことを伝えます。
+		return nil, fmt.Errorf("典型的なプロセス を取得できませんでした: %w", err)
 	}
 
 	// ─── 典型的ネットワーク宛先 (top 30) ─────────────────────────
 	typicalDests, err := buildTypicalDests(ctx, e, agentID, since)
 	if err != nil {
-		typicalDests = []NetworkDest{}
+		// 空のベースラインは「その端末には特徴が無い」と読まれ、
+		// 以後の逸脱判定の土台になります。取れなかったことを伝えます。
+		return nil, fmt.Errorf("典型的な通信先 を取得できませんでした: %w", err)
 	}
 
 	// ─── 典型的ディレクトリ (top 20) ────────────────────────────
 	typicalDirs, err := buildTypicalDirs(ctx, e, agentID, since)
 	if err != nil {
-		typicalDirs = []string{}
+		// 空のベースラインは「その端末には特徴が無い」と読まれ、
+		// 以後の逸脱判定の土台になります。取れなかったことを伝えます。
+		return nil, fmt.Errorf("典型的なディレクトリ を取得できませんでした: %w", err)
 	}
 
 	// ─── 最近の逸脱 ───────────────────────────────────────────────
 	recentDevs, err := buildRecentDeviations(ctx, e, agentID)
 	if err != nil {
-		recentDevs = []Deviation{}
+		// 空のベースラインは「その端末には特徴が無い」と読まれ、
+		// 以後の逸脱判定の土台になります。取れなかったことを伝えます。
+		return nil, fmt.Errorf("最近の逸脱 を取得できませんでした: %w", err)
 	}
 
 	// ─── 信頼スコアとステータス ───────────────────────────────────
@@ -132,7 +148,7 @@ func (e *Engine) BuildEnrichedBaseline(
 }
 
 // buildHeatmap は直近7日間のイベントを (曜日 × 時間) でカウントし 0-100 に正規化した配列を返す。
-func buildHeatmap(ctx context.Context, e *Engine, agentID string) [7][24]int {
+func buildHeatmap(ctx context.Context, e *Engine, agentID string) ([7][24]int, error) {
 	var matrix [7][24]int
 
 	sevenDaysAgo := time.Now().AddDate(0, 0, -7)
@@ -146,7 +162,7 @@ func buildHeatmap(ctx context.Context, e *Engine, agentID string) [7][24]int {
 		GROUP BY dow, hr
 	`, agentID, sevenDaysAgo)
 	if err != nil {
-		return matrix
+		return matrix, err
 	}
 	defer rows.Close()
 
@@ -163,6 +179,11 @@ func buildHeatmap(ctx context.Context, e *Engine, agentID string) [7][24]int {
 			}
 		}
 	}
+	if err := rows.Err(); err != nil {
+		// 読めなかった時間帯は「活動なし」になります。そこでの活動が
+		// 以後ずっと異常として扱われるので、途中までの図は返しません。
+		return matrix, err
+	}
 
 	// 0-100 に正規化
 	if maxVal > 0 {
@@ -172,7 +193,7 @@ func buildHeatmap(ctx context.Context, e *Engine, agentID string) [7][24]int {
 			}
 		}
 	}
-	return matrix
+	return matrix, nil
 }
 
 // buildTypicalProcesses は上位50プロセスを頻度付きで返す。
@@ -207,6 +228,10 @@ func buildTypicalProcesses(ctx context.Context, e *Engine, agentID string, since
 		}
 		rawRows = append(rawRows, r)
 		total += r.cnt
+	}
+	// 部分結果を完全な一覧として返さない（scan_truncation_guard_test.go 参照）
+	if err := rows.Err(); err != nil {
+		return nil, err
 	}
 
 	if total == 0 {
@@ -254,6 +279,10 @@ func buildTypicalDests(ctx context.Context, e *Engine, agentID string, since tim
 		d.VolumeMB = math.Round(vol*100) / 100
 		entries = append(entries, d)
 	}
+	// 部分結果を完全な一覧として返さない（scan_truncation_guard_test.go 参照）
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
 	return entries, nil
 }
 
@@ -262,14 +291,14 @@ func buildTypicalDirs(ctx context.Context, e *Engine, agentID string, since time
 	rows, err := e.pool.Query(ctx, `
 		SELECT DISTINCT
 		    regexp_replace(
-		        raw_data->>'file_path',
+		        raw_data->>'path',
 		        '[^/\\]*$', ''
 		    ) AS dir
 		FROM events
 		WHERE agent_id = $1::uuid
 		  AND event_type = 'file'
 		  AND time >= $2
-		  AND raw_data->>'file_path' IS NOT NULL
+		  AND raw_data->>'path' IS NOT NULL
 		ORDER BY dir
 		LIMIT 20
 	`, agentID, since)
@@ -287,6 +316,10 @@ func buildTypicalDirs(ctx context.Context, e *Engine, agentID string, since time
 		if strings.TrimSpace(d) != "" {
 			dirs = append(dirs, d)
 		}
+	}
+	// 部分結果を完全な一覧として返さない（scan_truncation_guard_test.go 参照）
+	if err := rows.Err(); err != nil {
+		return nil, err
 	}
 	return dirs, nil
 }
@@ -320,6 +353,10 @@ func buildRecentDeviations(ctx context.Context, e *Engine, agentID string) ([]De
 			Severity:    zScoreToSeverity(zScore),
 			DetectedAt:  detectedAt.Format(time.RFC3339),
 		})
+	}
+	// 部分結果を完全な一覧として返さない（scan_truncation_guard_test.go 参照）
+	if err := rows.Err(); err != nil {
+		return nil, err
 	}
 	return devs, nil
 }

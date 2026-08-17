@@ -3,6 +3,7 @@ package xdr
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"strings"
 	"sync"
 	"time"
@@ -236,6 +237,9 @@ func (e *Engine) SeedFromDB(ctx context.Context) {
 				Data:      map[string]interface{}{"title": title},
 			})
 		}
+		if err := alertRows.Err(); err != nil {
+			slog.Error("XDRシードのアラート走査が途中で終わりました。相関の対象から漏れるアラートがあります", "error", err)
+		}
 	}
 
 	// ── Endpoint events from device_events (last 24 h) ──────────────────
@@ -270,6 +274,9 @@ func (e *Engine) SeedFromDB(ctx context.Context) {
 				Severity:  sev,
 				Data:      map[string]interface{}{"device_type": devType, "action": action},
 			})
+		}
+		if err := devRows.Err(); err != nil {
+			slog.Error("XDRシードのデバイスイベント走査が途中で終わりました。相関の対象から漏れるイベントがあります", "error", err)
 		}
 	}
 }

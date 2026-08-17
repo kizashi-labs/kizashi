@@ -84,6 +84,18 @@ func (s *DailyBriefingScheduler) WithEmail(host, port, user, pass, from, to stri
 }
 
 // Run starts the daily briefing loop. Fires once at the configured hour each day.
+// collectAndDeliver は1回分の送信。tick の中身を関数にしてあるのは、
+// trackRun に渡すためと、「起きたが送れなかった」も1回の実行として
+// 数えるためです。
+func (s *DailyBriefingScheduler) collectAndDeliver(ctx context.Context) {
+	summary, err := s.collect(ctx)
+	if err != nil {
+		fail(ctx, err, "DailyBriefingScheduler: データ収集に失敗しました")
+		return
+	}
+	s.deliver(ctx, summary)
+}
+
 func (s *DailyBriefingScheduler) Run(ctx context.Context) {
 	slog.Info("DailyBriefingScheduler: 開始", "hour", s.hour)
 	for {
@@ -100,12 +112,7 @@ func (s *DailyBriefingScheduler) Run(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-time.After(wait):
-			summary, err := s.collect(ctx)
-			if err != nil {
-				slog.Error("DailyBriefingScheduler: データ収集に失敗しました", "error", err)
-				continue
-			}
-			s.deliver(summary)
+			trackRun(ctx, "daily_briefing_scheduler", s.collectAndDeliver)
 		}
 	}
 }
@@ -114,30 +121,29 @@ func (s *DailyBriefingScheduler) Run(ctx context.Context) {
 func (s *DailyBriefingScheduler) collect(ctx context.Context) (*BriefingSummary, error) {
 	summary := &BriefingSummary{GeneratedAt: time.Now()}
 
-	// 緊急アラート（severity>=7, open）
-	_ = s.pool.QueryRow(ctx,
-		`SELECT COUNT(*) FROM alerts WHERE severity >= 7 AND status = 'open'`).
-		Scan(&summary.UrgentAlerts)
-
-	// 未処理インシデント（open/investigating/contained）
-	_ = s.pool.QueryRow(ctx,
-		`SELECT COUNT(*) FROM incidents WHERE status IN ('open','investigating','contained')`).
-		Scan(&summary.OpenIncidents)
-
-	// 本日の新規アラート数
-	_ = s.pool.QueryRow(ctx,
-		`SELECT COUNT(*) FROM alerts WHERE created_at >= CURRENT_DATE`).
-		Scan(&summary.NewAlertsToday)
-
-	// 本日自動クローズされた誤検知数
-	_ = s.pool.QueryRow(ctx,
-		`SELECT COUNT(*) FROM alerts WHERE status = 'false_positive' AND updated_at >= CURRENT_DATE`).
-		Scan(&summary.AutoClosedToday)
-
-	// オフラインエンドポイント
-	_ = s.pool.QueryRow(ctx,
-		`SELECT COUNT(*) FROM agents WHERE status = 'offline' AND last_seen >= NOW() - INTERVAL '7 days'`).
-		Scan(&summary.OfflineEndpoints)
+	// **数えられなかった 0 を、そのまま朝のメールに書いていました。**
+	// 「緊急アラート 0件」は読んだ人にとって最も安心できる行で、
+	// 読めなかったこととは区別がつきません。数えられないなら送りません。
+	for _, c := range []struct {
+		what string
+		sql  string
+		into *int
+	}{
+		{"緊急アラート", `SELECT COUNT(*) FROM alerts WHERE severity >= 7 AND status = 'open'`,
+			&summary.UrgentAlerts},
+		{"未処理インシデント", `SELECT COUNT(*) FROM incidents WHERE status IN ('open','investigating','contained')`,
+			&summary.OpenIncidents},
+		{"本日の新規アラート", `SELECT COUNT(*) FROM alerts WHERE created_at >= CURRENT_DATE`,
+			&summary.NewAlertsToday},
+		{"本日の自動クローズ", `SELECT COUNT(*) FROM alerts WHERE status = 'false_positive' AND updated_at >= CURRENT_DATE`,
+			&summary.AutoClosedToday},
+		{"オフラインエンドポイント", `SELECT COUNT(*) FROM agents WHERE status = 'offline' AND last_seen >= NOW() - INTERVAL '7 days'`,
+			&summary.OfflineEndpoints},
+	} {
+		if err := s.pool.QueryRow(ctx, c.sql).Scan(c.into); err != nil {
+			return nil, fmt.Errorf("%sを数えられません: %w", c.what, err)
+		}
+	}
 
 	// 上位MITREテクニック（直近24時間）
 	rows, err := s.pool.Query(ctx,
@@ -154,6 +160,9 @@ func (s *DailyBriefingScheduler) collect(ctx context.Context) (*BriefingSummary,
 				summary.TopTechniques = append(summary.TopTechniques,
 					fmt.Sprintf("%s (%d件)", tech, cnt))
 			}
+		}
+		if err := rows.Err(); err != nil {
+			return nil, fmt.Errorf("ブリーフィング集計の走査に失敗しました: %w", err)
 		}
 	}
 
@@ -176,7 +185,7 @@ func (s *DailyBriefingScheduler) recommendAction(b *BriefingSummary) string {
 }
 
 // deliver logs the briefing, publishes to NATS, and sends to Slack/Webhook if configured.
-func (s *DailyBriefingScheduler) deliver(b *BriefingSummary) {
+func (s *DailyBriefingScheduler) deliver(ctx context.Context, b *BriefingSummary) {
 	msg := fmt.Sprintf(
 		"\n=== SOC デイリーブリーフィング %s ===\n"+
 			"📊 本日の新規アラート: %d件\n"+
@@ -200,25 +209,25 @@ func (s *DailyBriefingScheduler) deliver(b *BriefingSummary) {
 
 	if s.publish != nil {
 		if err := s.publish("soc.daily_briefing", []byte(msg)); err != nil {
-			slog.Warn("DailyBriefingScheduler: NATS送信に失敗しました", "error", err)
+			fail(ctx, err, "DailyBriefingScheduler: NATS送信に失敗しました")
 		}
 	}
 
 	if s.slackURL != "" {
-		s.sendSlack(b)
+		s.sendSlack(ctx, b)
 	}
 
 	if s.webhookURL != "" {
-		s.sendWebhook(b)
+		s.sendWebhook(ctx, b)
 	}
 
 	if s.emailCfg != nil {
-		s.sendEmail(b, msg)
+		s.sendEmail(ctx, b, msg)
 	}
 }
 
 // sendSlack posts the briefing as a Slack Incoming Webhook message.
-func (s *DailyBriefingScheduler) sendSlack(b *BriefingSummary) {
+func (s *DailyBriefingScheduler) sendSlack(ctx context.Context, b *BriefingSummary) {
 	urgentStr := ""
 	if b.UrgentAlerts > 0 {
 		urgentStr = fmt.Sprintf("*⚠️ 緊急アラート %d件* の対応が必要です。\n", b.UrgentAlerts)
@@ -255,7 +264,7 @@ func (s *DailyBriefingScheduler) sendSlack(b *BriefingSummary) {
 
 	resp, err := http.Post(s.slackURL, "application/json", bytes.NewReader(body)) //nolint:noctx
 	if err != nil {
-		slog.Warn("DailyBriefingScheduler: Slack送信に失敗しました", "error", err)
+		fail(ctx, err, "DailyBriefingScheduler: Slack送信に失敗しました")
 		return
 	}
 	defer resp.Body.Close()
@@ -267,11 +276,11 @@ func (s *DailyBriefingScheduler) sendSlack(b *BriefingSummary) {
 }
 
 // sendWebhook posts the briefing as JSON to a generic webhook endpoint.
-func (s *DailyBriefingScheduler) sendWebhook(b *BriefingSummary) {
+func (s *DailyBriefingScheduler) sendWebhook(ctx context.Context, b *BriefingSummary) {
 	body, _ := json.Marshal(b)
 	resp, err := http.Post(s.webhookURL, "application/json", bytes.NewReader(body)) //nolint:noctx
 	if err != nil {
-		slog.Warn("DailyBriefingScheduler: Webhook送信に失敗しました", "error", err)
+		fail(ctx, err, "DailyBriefingScheduler: Webhook送信に失敗しました")
 		return
 	}
 	defer resp.Body.Close()
@@ -309,7 +318,7 @@ func SendEmailViaSMTP(cfg *EmailConfig, subject, body string) error {
 }
 
 // sendEmail sends the daily briefing via SMTP.
-func (s *DailyBriefingScheduler) sendEmail(b *BriefingSummary, plainText string) {
+func (s *DailyBriefingScheduler) sendEmail(ctx context.Context, b *BriefingSummary, plainText string) {
 	cfg := s.emailCfg
 	subject := fmt.Sprintf("SOC デイリーブリーフィング %s", b.GeneratedAt.Format("2006/01/02"))
 
@@ -334,7 +343,7 @@ func (s *DailyBriefingScheduler) sendEmail(b *BriefingSummary, plainText string)
 
 	addr := cfg.Host + ":" + cfg.Port
 	if err := smtp.SendMail(addr, auth, cfg.From, recipients, []byte(body)); err != nil {
-		slog.Warn("DailyBriefingScheduler: メール送信に失敗しました", "error", err)
+		fail(ctx, err, "DailyBriefingScheduler: メール送信に失敗しました")
 		return
 	}
 	slog.Info("DailyBriefingScheduler: メール送信成功", "to", cfg.To)

@@ -21,19 +21,11 @@ func NewDataClassificationHandler(pool *pgxpool.Pool) *DataClassificationHandler
 }
 
 func (h *DataClassificationHandler) labelsTableExists(c *gin.Context) bool {
-	ctx := c.Request.Context()
-	var exists bool
-	err := h.pool.QueryRow(ctx,
-		`SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name='data_classification_labels')`).Scan(&exists)
-	return err == nil && exists
+	return tableIsThere(c.Request.Context(), h.pool, "data_classification_labels")
 }
 
 func (h *DataClassificationHandler) assetsTableExists(c *gin.Context) bool {
-	ctx := c.Request.Context()
-	var exists bool
-	err := h.pool.QueryRow(ctx,
-		`SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name='data_assets')`).Scan(&exists)
-	return err == nil && exists
+	return tableIsThere(c.Request.Context(), h.pool, "data_assets")
 }
 
 type classificationLabel struct {
@@ -415,12 +407,8 @@ func (h *DataClassificationHandler) ScanAsset(c *gin.Context) {
 func (h *DataClassificationHandler) GetStats(c *gin.Context) {
 	ctx := c.Request.Context()
 
-	// Check tables
-	var labelsExist, assetsExist bool
-	_ = h.pool.QueryRow(ctx,
-		`SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name='data_classification_labels')`).Scan(&labelsExist)
-	_ = h.pool.QueryRow(ctx,
-		`SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name='data_assets')`).Scan(&assetsExist)
+	labelsExist := tableIsThere(ctx, h.pool, "data_classification_labels")
+	assetsExist := tableIsThere(ctx, h.pool, "data_assets")
 
 	if !labelsExist || !assetsExist {
 		c.JSON(http.StatusOK, gin.H{
@@ -491,12 +479,14 @@ func (h *DataClassificationHandler) GetStats(c *gin.Context) {
 
 	// PII/PHI/PCI counts
 	var total, piiCount, phiCount, pciCount int
-	_ = h.pool.QueryRow(ctx,
+	if !ReadOK(c, h.pool.QueryRow(ctx,
 		`SELECT COUNT(*),
-		        COUNT(*) FILTER (WHERE pii_detected),
-		        COUNT(*) FILTER (WHERE phi_detected),
-		        COUNT(*) FILTER (WHERE pci_detected)
-		 FROM data_assets`).Scan(&total, &piiCount, &phiCount, &pciCount)
+			        COUNT(*) FILTER (WHERE pii_detected),
+			        COUNT(*) FILTER (WHERE phi_detected),
+			        COUNT(*) FILTER (WHERE pci_detected)
+			 FROM data_assets`).Scan(&total, &piiCount, &phiCount, &pciCount)) {
+		return
+	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"by_label":  byLabel,
@@ -516,7 +506,7 @@ func (h *DataClassificationHandler) ListPolicies(c *gin.Context) {
 		FROM data_classification_policies ORDER BY classification_level, name
 	`)
 	if err != nil {
-		c.JSON(http.StatusOK, gin.H{"policies": []any{}})
+		ReadFailure(c, err, gin.H{"policies": []any{}})
 		return
 	}
 	defer rows.Close()
@@ -563,7 +553,7 @@ func (h *DataClassificationHandler) ListFindings(c *gin.Context) {
 		ORDER BY f.created_at DESC LIMIT 200
 	`, level)
 	if err != nil {
-		c.JSON(http.StatusOK, gin.H{"findings": []any{}})
+		ReadFailure(c, err, gin.H{"findings": []any{}})
 		return
 	}
 	defer rows.Close()

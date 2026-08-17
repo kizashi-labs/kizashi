@@ -54,18 +54,13 @@ func defaultIncidentStatus(s string) string {
 func (h *IncidentHandler) List(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	perPage, _ := strconv.Atoi(c.DefaultQuery("per_page", "20"))
-	if page < 1 {
-		page = 1
-	}
-	if perPage < 1 || perPage > 200 {
-		perPage = 20
-	}
+	page, perPage, offset := clampPageParams(page, perPage, 20, 200)
 
 	status := c.Query("status")
 	incidents, total, err := h.Store.List(
 		c.Request.Context(),
 		status,
-		perPage, (page-1)*perPage,
+		perPage, offset,
 	)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "インシデント一覧の取得に失敗しました"})
@@ -95,7 +90,10 @@ func (h *IncidentHandler) Get(c *gin.Context) {
 	}
 	alerts, err := h.Store.ListAlerts(c.Request.Context(), id)
 	if err != nil {
-		alerts = []*store.IncidentAlert{}
+		// インシデントを構成しているのはアラートです。取得できないまま
+		// 200 を返すと、詳細画面は「アラート0件のインシデント」になります。
+		ReadFailure(c, err, gin.H{"incident": inc, "alerts": []any{}})
+		return
 	}
 	c.JSON(http.StatusOK, gin.H{"incident": inc, "alerts": alerts})
 }
@@ -170,7 +168,8 @@ func (h *IncidentHandler) Create(c *gin.Context) {
 				configs = append(configs, r)
 			}
 			if err := rows.Err(); err != nil {
-				slog.Warn("row iteration error", "error", err)
+				slog.Warn("SOAR auto-ticket: soar_configs クエリに失敗しました", "error", err)
+				return
 			}
 			rows.Close()
 

@@ -2,7 +2,6 @@ package store
 
 import (
 	"encoding/json"
-	"strings"
 	"testing"
 	"time"
 )
@@ -88,32 +87,15 @@ func TestDefaultPrefs_DashboardPrefsEmptyObject(t *testing.T) {
 
 // ─── UserPreferences Upsert フォールバックロジックテスト ──────────────────────
 
-// applyPrefsDefaults は Upsert メソッドのデフォルト適用ロジックを再現するヘルパー（テスト専用）
-func applyPrefsDefaults(prefs UserPreferences) UserPreferences {
-	if prefs.Theme == "" {
-		prefs.Theme = "dark"
-	}
-	if prefs.Language == "" {
-		prefs.Language = "ja"
-	}
-	if prefs.Timezone == "" {
-		prefs.Timezone = "Asia/Tokyo"
-	}
-	if prefs.ItemsPerPage <= 0 {
-		prefs.ItemsPerPage = 20
-	}
-	if prefs.Notifications == nil {
-		prefs.Notifications = json.RawMessage(`{"email":true,"browser":true,"digest":false}`)
-	}
-	if prefs.DashboardPrefs == nil {
-		prefs.DashboardPrefs = json.RawMessage(`{}`)
-	}
-	return prefs
-}
+// applyPrefsDefaults は **本物を呼びます。**
+//
+// 以前ここには `Upsert` の既定値をそのまま書き写したものが置いてありました。
+// 製品側の "dark" を "light" に変えても、落ちる検査はありません ——
+// 試していたのは、検査自身の写しです。
 
 // TestApplyPrefsDefaults_EmptyPrefs は空の設定に全デフォルトが適用されることを確認する
 func TestApplyPrefsDefaults_EmptyPrefs(t *testing.T) {
-	prefs := applyPrefsDefaults(UserPreferences{})
+	prefs := applyPreferenceDefaults(UserPreferences{})
 
 	if prefs.Theme != "dark" {
 		t.Errorf("Theme = %q, want \"dark\"", prefs.Theme)
@@ -138,7 +120,7 @@ func TestApplyPrefsDefaults_EmptyPrefs(t *testing.T) {
 // TestApplyPrefsDefaults_PreservesExistingValues は既存の値がデフォルトで上書きされないことを確認する
 func TestApplyPrefsDefaults_PreservesExistingValues(t *testing.T) {
 	customNotifs := json.RawMessage(`{"email":false,"browser":true,"digest":true}`)
-	prefs := applyPrefsDefaults(UserPreferences{
+	prefs := applyPreferenceDefaults(UserPreferences{
 		Theme:         "light",
 		Language:      "en",
 		Timezone:      "UTC",
@@ -165,7 +147,7 @@ func TestApplyPrefsDefaults_PreservesExistingValues(t *testing.T) {
 
 // TestApplyPrefsDefaults_ZeroItemsPerPage は ItemsPerPage が 0 のときデフォルト値になることを確認する
 func TestApplyPrefsDefaults_ZeroItemsPerPage(t *testing.T) {
-	prefs := applyPrefsDefaults(UserPreferences{ItemsPerPage: 0})
+	prefs := applyPreferenceDefaults(UserPreferences{ItemsPerPage: 0})
 	if prefs.ItemsPerPage != 20 {
 		t.Errorf("ItemsPerPage = %d, want 20", prefs.ItemsPerPage)
 	}
@@ -173,7 +155,7 @@ func TestApplyPrefsDefaults_ZeroItemsPerPage(t *testing.T) {
 
 // TestApplyPrefsDefaults_NegativeItemsPerPage は ItemsPerPage が負のときデフォルト値になることを確認する
 func TestApplyPrefsDefaults_NegativeItemsPerPage(t *testing.T) {
-	prefs := applyPrefsDefaults(UserPreferences{ItemsPerPage: -5})
+	prefs := applyPreferenceDefaults(UserPreferences{ItemsPerPage: -5})
 	if prefs.ItemsPerPage != 20 {
 		t.Errorf("ItemsPerPage = %d, want 20（負の値はデフォルトになるべき）", prefs.ItemsPerPage)
 	}
@@ -292,64 +274,17 @@ func TestSuppressionRuleEntry_IsExpired(t *testing.T) {
 	}
 }
 
-// TestSuppressionRuleEntry_ShouldSuppress は抑制条件の評価ロジックを確認する
-// ルールが有効かつ期限内かつパターンが一致する場合に抑制する
-func TestSuppressionRuleEntry_ShouldSuppress(t *testing.T) {
-	// shouldSuppress はルールが特定のアラートを抑制すべきか判定するヘルパー（テスト専用）
-	shouldSuppress := func(rule SuppressionRuleEntry, fieldValue string) bool {
-		if !rule.Enabled {
-			return false
-		}
-		if rule.ExpiresAt != nil && time.Now().After(*rule.ExpiresAt) {
-			return false
-		}
-		return strings.Contains(fieldValue, rule.Pattern)
-	}
+// `SuppressionRuleEntry` の抑制判定は、**製品のどこにもありません。**
+// ここには `shouldSuppress` という判定を検査の中で定義して、それを試す
+// ものが置いてありました。
+//
+// この型が乗っている `alert_suppression_rules` テーブルは、**読む側が
+// どこにもありません**（判断待ちの一覧にあります）。実際に効いている
+// 抑制は `suppression_rules` の側で、そちらは
+// `suppression_flags_test.go` と `internal/suppression` が試しています。
+//
+// **繋ぐ先がないものを繋いだふりはしません。** 消しました。
 
-	future := time.Now().Add(24 * time.Hour)
-	rule := SuppressionRuleEntry{
-		Pattern:    "test-process",
-		MatchField: "process_name",
-		Enabled:    true,
-		ExpiresAt:  &future,
-	}
-
-	cases := []struct {
-		fieldValue string
-		suppress   bool
-	}{
-		{"test-process.exe", true},
-		{"my-test-process", true},
-		{"production-service", false},
-		{"", false},
-	}
-
-	for _, tc := range cases {
-		got := shouldSuppress(rule, tc.fieldValue)
-		if got != tc.suppress {
-			t.Errorf("shouldSuppress(%q) = %v, want %v", tc.fieldValue, got, tc.suppress)
-		}
-	}
-}
-
-// TestSuppressionRuleEntry_DisabledRuleDoesNotSuppress は無効なルールが抑制しないことを確認する
-func TestSuppressionRuleEntry_DisabledRuleDoesNotSuppress(t *testing.T) {
-	disabledRule := SuppressionRuleEntry{
-		Pattern: "malware",
-		Enabled: false,
-	}
-	shouldSuppress := func(rule SuppressionRuleEntry, fieldValue string) bool {
-		if !rule.Enabled {
-			return false
-		}
-		return strings.Contains(fieldValue, rule.Pattern)
-	}
-	if shouldSuppress(disabledRule, "malware-alert") {
-		t.Error("無効なルールはアラートを抑制すべきでない")
-	}
-}
-
-// TestSuppressionRuleEntry_AgentScopedRule は特定エージェント向けルールのスコープを確認する
 func TestSuppressionRuleEntry_AgentScopedRule(t *testing.T) {
 	agentID := "agent-specific-001"
 	rule := SuppressionRuleEntry{

@@ -51,7 +51,7 @@ func (c *DataRetentionCleaner) Run(ctx context.Context) {
 	case <-ctx.Done():
 		return
 	case <-time.After(5 * time.Minute):
-		c.runOnce(ctx)
+		trackRun(ctx, "data_retention_cleaner", c.runOnce)
 	}
 
 	for {
@@ -64,7 +64,7 @@ func (c *DataRetentionCleaner) Run(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-time.After(next.Sub(now)):
-			c.runOnce(ctx)
+			trackRun(ctx, "data_retention_cleaner", c.runOnce)
 		}
 	}
 }
@@ -88,7 +88,7 @@ func (c *DataRetentionCleaner) cleanAlerts(ctx context.Context) {
 		cutoff,
 	)
 	if err != nil {
-		slog.Warn("DataRetentionCleaner: アラート削除に失敗しました", "error", err)
+		fail(ctx, err, "DataRetentionCleaner: アラート削除に失敗しました")
 		return
 	}
 	deleted := tag.RowsAffected()
@@ -109,7 +109,7 @@ func (c *DataRetentionCleaner) cleanPlaybookRuns(ctx context.Context) {
 		cutoff,
 	)
 	if err != nil {
-		slog.Warn("DataRetentionCleaner: Playbook実行ログ削除に失敗しました", "error", err)
+		fail(ctx, err, "DataRetentionCleaner: Playbook実行ログ削除に失敗しました")
 		return
 	}
 	deleted := tag.RowsAffected()
@@ -130,7 +130,7 @@ func (c *DataRetentionCleaner) cleanDarkwebFindings(ctx context.Context) {
 		cutoff,
 	)
 	if err != nil {
-		slog.Warn("DataRetentionCleaner: ダークウェブ検知結果削除に失敗しました", "error", err)
+		fail(ctx, err, "DataRetentionCleaner: ダークウェブ検知結果削除に失敗しました")
 		return
 	}
 	deleted := tag.RowsAffected()

@@ -66,36 +66,44 @@ type AuditFilter struct {
 }
 
 // List returns audit logs newest-first with pagination and optional filters.
-func (s *AuditStore) List(ctx context.Context, limit, offset int, f AuditFilter) ([]*AuditLog, int, error) {
+// auditListWhere builds the WHERE clause and arguments for List.
+//
+// **切り出してあるのは、検査が本物を呼べるようにするためです。**
+// 公開はしません —— `List` からしか使わないので、公開すると
+// `TestStoreSymbolsAreReachable` の数が1つ増えます。
+// 検査ファイルには `buildAuditWhere` という写しが置いてありましたが、
+// **`UserID` と `Action` の絞り込みがありません** —— 5つのうち2つが、
+// 写しには存在しないまま「確かめた」ことになっていました。
+func auditListWhere(f AuditFilter) (string, []interface{}) {
 	conds := []string{"1=1"}
 	args := []interface{}{}
-	idx := 1
 
 	if f.UserID != "" {
-		conds = append(conds, fmt.Sprintf("user_id = $%d", idx))
+		conds = append(conds, fmt.Sprintf("user_id = $%d", len(args)+1))
 		args = append(args, f.UserID)
-		idx++
 	}
 	if f.UserEmail != "" {
-		conds = append(conds, fmt.Sprintf("user_email ILIKE $%d", idx))
+		conds = append(conds, fmt.Sprintf("user_email ILIKE $%d", len(args)+1))
 		args = append(args, "%"+f.UserEmail+"%")
-		idx++
 	}
 	if f.Action != "" {
-		conds = append(conds, fmt.Sprintf("action = $%d", idx))
+		conds = append(conds, fmt.Sprintf("action = $%d", len(args)+1))
 		args = append(args, f.Action)
-		idx++
 	}
 	if f.Method != "" {
-		conds = append(conds, fmt.Sprintf("action ILIKE $%d", idx))
+		conds = append(conds, fmt.Sprintf("action ILIKE $%d", len(args)+1))
 		args = append(args, f.Method+"%")
-		idx++
 	}
 	if f.OnlyErrors {
+		// **値を取らない条件です。** 番号は進めません。
 		conds = append(conds, "status_code >= 400")
 	}
+	return "WHERE " + strings.Join(conds, " AND "), args
+}
 
-	where := "WHERE " + strings.Join(conds, " AND ")
+func (s *AuditStore) List(ctx context.Context, limit, offset int, f AuditFilter) ([]*AuditLog, int, error) {
+	where, args := auditListWhere(f)
+	idx := len(args) + 1
 
 	var total int
 	countArgs := make([]interface{}, len(args))
@@ -133,6 +141,10 @@ func (s *AuditStore) List(ctx context.Context, limit, offset int, f AuditFilter)
 		}
 		_ = json.Unmarshal([]byte(detailsJSON), &l.Details)
 		logs = append(logs, &l)
+	}
+	// 部分結果を完全な一覧として返さない（scan_truncation_guard_test.go 参照）
+	if err := rows.Err(); err != nil {
+		return nil, 0, err
 	}
 	return logs, total, nil
 }

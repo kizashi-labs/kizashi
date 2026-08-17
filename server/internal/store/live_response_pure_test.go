@@ -2,7 +2,6 @@ package store
 
 import (
 	"encoding/json"
-	"strings"
 	"testing"
 	"time"
 )
@@ -199,72 +198,10 @@ func TestCreateQueuedCommandInput_CommandTypes(t *testing.T) {
 
 // ─── コマンドキュー WHERE 句ビルダーテスト ────────────────────────────────────
 
-// buildCmdQueueFilter はコマンドキュークエリのフィルターを構築するヘルパー（テスト専用）
-func buildCmdQueueFilter(agentID, status string, limit int) (string, []interface{}, int) {
-	where := "WHERE 1=1"
-	var args []interface{}
-	argIdx := 1
-
-	if agentID != "" {
-		where += " AND agent_id = $" + itoa(argIdx)
-		args = append(args, agentID)
-		argIdx++
-	}
-	if status != "" {
-		where += " AND status = $" + itoa(argIdx)
-		args = append(args, status)
-		argIdx++
-	}
-	if limit <= 0 {
-		limit = 50
-	}
-	return where, args, limit
-}
-
-// TestBuildCmdQueueFilter_AgentIDOnly は agentID のみのフィルターを確認する
-func TestBuildCmdQueueFilter_AgentIDOnly(t *testing.T) {
-	where, args, limit := buildCmdQueueFilter("agent-001", "", 0)
-	if !strings.Contains(where, "agent_id") {
-		t.Errorf("agent_id 条件が含まれるべき: %q", where)
-	}
-	if len(args) != 1 || args[0] != "agent-001" {
-		t.Errorf("args = %v, want [agent-001]", args)
-	}
-	if limit != 50 {
-		t.Errorf("limit のデフォルト = %d, want 50", limit)
-	}
-}
-
-// TestBuildCmdQueueFilter_StatusFilter は status フィルターが追加されることを確認する
-func TestBuildCmdQueueFilter_StatusFilter(t *testing.T) {
-	where, args, _ := buildCmdQueueFilter("agent-002", "pending", 10)
-	if !strings.Contains(where, "agent_id") {
-		t.Errorf("agent_id 条件が含まれるべき: %q", where)
-	}
-	if !strings.Contains(where, "status") {
-		t.Errorf("status 条件が含まれるべき: %q", where)
-	}
-	if len(args) != 2 {
-		t.Errorf("引数数 = %d, want 2", len(args))
-	}
-}
-
-// TestBuildCmdQueueFilter_DefaultLimit は limit が 0 以下のとき 50 にデフォルトされることを確認する
-func TestBuildCmdQueueFilter_DefaultLimit(t *testing.T) {
-	cases := []struct {
-		input    int
-		expected int
-	}{
-		{0, 50},
-		{-1, 50},
-		{-100, 50},
-		{10, 10},
-		{100, 100},
-	}
-	for _, tc := range cases {
-		_, _, got := buildCmdQueueFilter("agent-x", "", tc.input)
-		if got != tc.expected {
-			t.Errorf("limit(%d) = %d, want %d", tc.input, got, tc.expected)
-		}
-	}
-}
+// コマンドキューの絞り込みには、**製品側に対応する組み立てがありません。**
+//
+// `CmdQueueStore` にあるのは `ListByAgent`（`WHERE agent_id=$1` の固定）と
+// `Get` だけで、`buildCmdQueueFilter` が言うような agentID + status の
+// 組み立てはどこにもありません。**製品に無い約束を確かめていました。**
+//
+// 消すだけにします。**繋ぐ先がないものを繋いだふりはしません。**

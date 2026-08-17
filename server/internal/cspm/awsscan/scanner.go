@@ -107,6 +107,7 @@ func (s *Scanner) runOne(ctx context.Context, c Check, clients *Clients, res *Sc
 
 	mu.Lock()
 	defer mu.Unlock()
+	complete := true
 	for _, r := range out {
 		if r.Status == StatusUnknown {
 			// 未計測は所見にしない。件数に混ぜると
@@ -114,8 +115,15 @@ func (s *Scanner) runOne(ctx context.Context, c Check, clients *Clients, res *Sc
 			res.Errors = append(res.Errors, ScanError{
 				CheckID: c.ID, Region: r.Region, Message: r.Evidence,
 			})
+			// 1 件でも読めなければ、この組の資源一覧は不完全とみなす。
+			// 読めなかった資源は「消えた」のと見分けが付かないため、
+			// 部分的な結果で所見を閉じてはいけない。
+			complete = false
 			continue
 		}
 		res.Results = append(res.Results, r)
+	}
+	if complete {
+		res.Completed = append(res.Completed, CheckScope{CheckID: c.ID, Region: clients.Region})
 	}
 }

@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/edr-platform/server/internal/metrics"
 	"github.com/edr-platform/server/internal/store"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -102,8 +103,18 @@ func (h *ReportHandler) generateReport(jobID, reportType string, from, to time.T
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
+	// **この goroutine の3つの書き込みが、ジョブの状態のすべてです。**
+	// 呼び出し側はもう 202 を返しています。落ちると:
+	//
+	//	SetRunning  ジョブは `pending` のまま —— 動いていません、に見える
+	//	Fail        失敗したジョブが `running` のまま **永久に**
+	//	Complete    出来上がったレポートが `running` のまま、取り出せない
 	if h.ReportStore != nil {
-		_ = h.ReportStore.SetRunning(ctx, jobID)
+		if err := h.ReportStore.SetRunning(ctx, jobID); err != nil {
+			metrics.BackgroundFailed("report_job", err,
+				"レポートジョブを実行中にできませんでした。pending のまま見えます",
+				"job_id", jobID, "type", reportType)
+		}
 	}
 
 	var content interface{}
@@ -139,14 +150,22 @@ func (h *ReportHandler) generateReport(jobID, reportType string, from, to time.T
 		return
 	}
 	if genErr != "" {
-		_ = h.ReportStore.Fail(ctx, jobID, genErr)
+		if err := h.ReportStore.Fail(ctx, jobID, genErr); err != nil {
+			metrics.BackgroundFailed("report_job", err,
+				"レポートジョブの失敗を記録できませんでした。running のまま残ります",
+				"job_id", jobID, "type", reportType)
+		}
 	} else {
 		payload := map[string]interface{}{
 			"generated_at": time.Now(),
 			"period":       map[string]interface{}{"from": from, "to": to},
 			"summary":      content,
 		}
-		_ = h.ReportStore.Complete(ctx, jobID, payload)
+		if err := h.ReportStore.Complete(ctx, jobID, payload); err != nil {
+			metrics.BackgroundFailed("report_job", err,
+				"出来上がったレポートを保存できませんでした。running のまま取り出せません",
+				"job_id", jobID, "type", reportType)
+		}
 	}
 }
 

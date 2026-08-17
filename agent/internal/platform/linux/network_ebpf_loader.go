@@ -7,10 +7,12 @@ import (
 	"encoding/binary"
 	"fmt"
 	"net"
+	"time"
 
 	"github.com/cilium/ebpf/link"
 	"github.com/cilium/ebpf/ringbuf"
 	"github.com/cilium/ebpf/rlimit"
+	"github.com/google/uuid"
 
 	"github.com/edr-platform/agent/internal/collector"
 )
@@ -113,7 +115,16 @@ func parseNetEvent(raw []byte) (collector.NetworkEvent, bool) {
 	pid := binary.NativeEndian.Uint32(raw[nePIDOff : nePIDOff+4])
 	dstPort := binary.NativeEndian.Uint16(raw[neDstPortOff : neDstPortOff+2])
 	comm := nullTerminated(raw[neCommOff : neCommOff+16])
+	// ID and Timestamp are load-bearing, not decoration: ingestion derives the
+	// JetStream dedup message-ID from the event ID, falling back to
+	// agent+type+timestamp-second+batch-index when it is empty. A port scan emits
+	// its connects inside a single second, so ID-less events collapse onto one
+	// message-ID and the stream's duplicate window discards all but the first —
+	// the scan detector then sees ONE destination port instead of twenty and never
+	// reaches its threshold, while the DB still shows every row.
 	return collector.NetworkEvent{
+		ID:          uuid.New().String(),
+		Timestamp:   time.Now(),
 		DstIP:       dstIP,
 		DstPort:     dstPort,
 		Protocol:    "tcp",

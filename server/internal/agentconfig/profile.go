@@ -72,24 +72,40 @@ func (s *Store) CreateProfile(ctx context.Context, profile *Profile) (*Profile, 
 		return profile, nil
 	}
 
-	_, err = s.pool.Exec(ctx, `
+	// **INSERT と「他の既定を外す」は1つの変更です。**
+	//
+	// 外す方だけ `_, _ =` で捨てていました。捨てると、同じ OS に
+	// `is_default = true` が2つ残り、**どちらが配られるかは行の順序次第**
+	// になります。片方だけ効いた状態を残さないよう、同じ transaction に
+	// 入れます。
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("beginning profile insert: %w", err)
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+
+	if _, err = tx.Exec(ctx, `
 		INSERT INTO agent_config_profiles (id, name, description, os_type, config, is_default, created_at, updated_at)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 	`, profile.ID, profile.Name, profile.Description, profile.OSType,
-		configJSON, profile.IsDefault, profile.CreatedAt, profile.UpdatedAt)
-	if err != nil {
+		configJSON, profile.IsDefault, profile.CreatedAt, profile.UpdatedAt); err != nil {
 		return nil, fmt.Errorf("inserting profile: %w", err)
 	}
 
 	// If this is default, unset other defaults for same OS type
 	if profile.IsDefault {
-		_, _ = s.pool.Exec(ctx, `
+		if _, err = tx.Exec(ctx, `
 			UPDATE agent_config_profiles
 			SET is_default = false
 			WHERE os_type = $1 AND id != $2
-		`, profile.OSType, profile.ID)
+		`, profile.OSType, profile.ID); err != nil {
+			return nil, fmt.Errorf("unsetting other defaults: %w", err)
+		}
 	}
 
+	if err := tx.Commit(ctx); err != nil {
+		return nil, fmt.Errorf("committing profile insert: %w", err)
+	}
 	return profile, nil
 }
 
@@ -129,7 +145,7 @@ func (s *Store) ListProfiles(ctx context.Context) ([]*Profile, error) {
 	`)
 	if err != nil {
 		slog.Warn("agentconfig: failed to list profiles, returning defaults", "error", err)
-		return DefaultProfiles(), nil
+		return nil, err
 	}
 	defer rows.Close()
 
@@ -144,6 +160,9 @@ func (s *Store) ListProfiles(ctx context.Context) ([]*Profile, error) {
 			}
 			profiles = append(profiles, &p)
 		}
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
 	}
 	if len(profiles) == 0 {
 		return DefaultProfiles(), nil
@@ -164,22 +183,35 @@ func (s *Store) UpdateProfile(ctx context.Context, id string, updates *Profile) 
 	}
 
 	now := time.Now().UTC()
-	_, err = s.pool.Exec(ctx, `
+
+	// CreateProfile と同じ理由で1つの transaction にします。
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("beginning profile update: %w", err)
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+
+	if _, err = tx.Exec(ctx, `
 		UPDATE agent_config_profiles
 		SET name=$2, description=$3, os_type=$4, config=$5, is_default=$6, updated_at=$7
 		WHERE id=$1
 	`, id, updates.Name, updates.Description, updates.OSType,
-		configJSON, updates.IsDefault, now)
-	if err != nil {
+		configJSON, updates.IsDefault, now); err != nil {
 		return nil, fmt.Errorf("updating profile: %w", err)
 	}
 
 	if updates.IsDefault {
-		_, _ = s.pool.Exec(ctx, `
+		if _, err = tx.Exec(ctx, `
 			UPDATE agent_config_profiles
 			SET is_default = false
 			WHERE os_type = $1 AND id != $2
-		`, updates.OSType, id)
+		`, updates.OSType, id); err != nil {
+			return nil, fmt.Errorf("unsetting other defaults: %w", err)
+		}
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return nil, fmt.Errorf("committing profile update: %w", err)
 	}
 
 	updates.ID = id
@@ -282,6 +314,9 @@ func (s *Store) ListAgentsByOSType(ctx context.Context, osType string) ([]string
 		if rows.Scan(&id) == nil {
 			ids = append(ids, id)
 		}
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
 	}
 	return ids, nil
 }

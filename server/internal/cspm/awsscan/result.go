@@ -80,6 +80,23 @@ type ScanResult struct {
 	Results    []Result
 	// Errors は「検査できなかった」項目の記録。所見ではない。
 	Errors []ScanError
+	// Completed は最後まで実行できた (項目, リージョン) の組。
+	// 1 件でも未計測が出た組は入らない。
+	//
+	// これが要るのは、消えた資源の所見を閉じるため。資源が削除されると
+	// API 応答から消えるので pass も fail も生成されず、Results を見るだけでは
+	// 「無くなった」と「今回は読めなかった」の区別が付かない。前者は閉じる
+	// べきで、後者は絶対に閉じてはいけない (権限が外れた瞬間に全所見が
+	// 消えて「問題なし」に見える)。組ごとに完走の可否を持てば区別できる。
+	Completed []CheckScope
+}
+
+// CheckScope は 1 つの検査項目が走った範囲。
+// アカウント単位の項目でも、実行に使ったリージョンを Region に入れる
+// (所見の region 列と揃える必要があるため)。
+type CheckScope struct {
+	CheckID string
+	Region  string
 }
 
 // ScanError は検査そのものが実行できなかった記録。

@@ -11,6 +11,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/edr-platform/agent/internal/hostmetrics"
 )
 
 // Reporter sends periodic heartbeat messages to the EDR server.
@@ -24,6 +26,7 @@ type Reporter struct {
 	isolated  func() bool
 	buffered  func() int
 	unisolate func() error
+	isolate   func(reason string) error
 	// protectionMode is the host's detected kernel-protection tier
 	// (enforce/observe/poll), reported each heartbeat. Set via SetProtectionMode
 	// after construction so the constructor signature stays stable.
@@ -34,12 +37,23 @@ type Reporter struct {
 	// lacks the ebpf tag or a consumer fails to load, and that difference is
 	// invisible without this. Read through a func so each heartbeat picks up the
 	// current value rather than one latched at startup.
-	telemetryMode func() string
+	telemetryMode   func() string
+	telemetryDetail func() string
+	// cpu samples the endpoint's CPU utilisation. Nil-safe: an unsupported
+	// platform simply never reports the field.
+	cpu *hostmetrics.CPUSampler
 	// applyGuard persists uninstall-guard material handed back by the server.
 	// Injected rather than called directly so this package keeps no dependency
 	// on the on-disk layout, and so tests can observe delivery without touching
 	// a filesystem. Nil until SetUninstallGuardApplier is called.
 	applyGuard func(*UninstallGuardMaterial) error
+}
+
+// SetIsolateFunc sets what to run when the server says this host should be
+// isolated but is not. **コンストラクタを増やさずに後から差します** ——
+// 既存の呼び出しを書き換えずに済ませるためです。
+func (r *Reporter) SetIsolateFunc(f func(reason string) error) {
+	r.isolate = f
 }
 
 // SetUninstallGuardApplier installs the callback that persists uninstall-guard
@@ -61,6 +75,18 @@ func (r *Reporter) SetTelemetryModeFunc(f func() string) {
 	r.telemetryMode = f
 }
 
+// SetTelemetryDetailFunc sets the source of the per-sensor breakdown reported
+// alongside the aggregate mode.
+//
+// The aggregate answers "is this endpoint degraded?" and is deliberately
+// pessimistic, so a single degraded sensor turns the whole agent into "poll". That
+// is the right alarm but a useless diagnosis: an operator seeing "poll" still has
+// to log onto the host to learn WHICH sensor fell back and why. Sending the
+// breakdown turns a page-and-investigate into a read.
+func (r *Reporter) SetTelemetryDetailFunc(f func() string) {
+	r.telemetryDetail = f
+}
+
 // HeartbeatSender abstracts the transport layer.
 type HeartbeatSender interface {
 	SendHeartbeat(ctx context.Context, req *HeartbeatRequest) (*HeartbeatResponse, error)
@@ -78,24 +104,62 @@ type HeartbeatRequest struct {
 	Hostname       string
 	IPAddresses    []string
 	EventsBuffered int
-	CPUUsage       float64
-	MemoryUsageMB  float64
+	// CPUUsage is nil when the endpoint's CPU could not be measured.
+	//
+	// **0 では表せません。** 0 は「アイドル」という測定値で、高CPUを
+	// 探す側からは「問題なし」に見えます。全端末が恒久的に 0 を送って
+	// いたので、フリート健全性アラータの高CPU判定は一度も発火できません
+	// でした。
+	CPUUsage *float64
+	// MemoryUsageMB / TotalMemoryMB are the ENDPOINT's memory, not the agent's.
+	//
+	// **以前は `runtime.MemStats.Sys` —— エージェント自身の Go ランタイムが
+	// OS から取った量を送っていました。** サーバはそれを端末のメモリ使用量
+	// として保存し、フリート健全性アラータが使用率として読みます。
+	// 測れていないのではなく、別のものを測っていました。
+	//
+	// nil は「測れなかった」です。
+	MemoryUsageMB  *float64
+	TotalMemoryMB  *float64
 	Status         string // online|isolated|error
 	ConfigVersion  uint64
 	ProtectionMode string // enforce|observe|poll (kernel protection tier — host capability)
 	TelemetryMode  string // ebpf|poll|off (collection mechanism actually in use)
+	// TelemetryDetail is the per-sensor breakdown, e.g.
+	// "file=poll(eBPF非対応) network=ebpf process=ebpf". Free-form and for humans:
+	// alerting keys off TelemetryMode, this explains it.
+	TelemetryDetail string
 }
 
 // HeartbeatResponse from the server.
+// HeartbeatResponse is what the server tells the agent back.
+//
+// **`ConfigUpdateAvailable` / `LatestConfigVersion` / `PendingCommandCount`
+// を消しました (2026-08-12)。** 端末は読んで `slog.Info` に出していましたが、
+// **どのサーバも設定していませんでした** —— gRPC は
+// `v1.HeartbeatResponse{}` を空で返し、HTTP の応答にはそもそも項目が
+// ありません。その2行のログは一度も出たことがありません。
+//
+// 埋める先もありません。**コマンドは NATS から EventStream 経由で
+// 押し出す設計**で、数えるキューがありません。設定は `GetConfig` が
+// 版 1 を固定で返すだけです。つまりこの3つは、**この系が採っていない
+// 方式（端末が問い合わせて取りに行く形）の名残**でした。
+//
+// proto は触っていません。サーバが設定するようになったら、対応表
+// （`transport_parity_test.go`）に足してください。
 type HeartbeatResponse struct {
-	ConfigUpdateAvailable bool
-	LatestConfigVersion   uint64
-	PendingCommandCount   int
 	// ShouldUnisolate is set by the server when the DB shows the agent should no
 	// longer be isolated (e.g. an admin clicked "unisolate") but the agent is still
 	// reporting status=isolated. This allows the agent to self-unisolate even when
 	// the gRPC command stream is unavailable.
 	ShouldUnisolate bool
+
+	// ShouldIsolate is the other half. **無かったので、隔離コマンドが
+	// 端末に届かなかったとき、その端末は二度と隔離されませんでした** ——
+	// サーバの DB も画面も「隔離済み」のままです。巻き戻しが片側に
+	// しか無いと、直る失敗と直らない失敗ができます。
+	ShouldIsolate bool
+
 	// UninstallGuard carries the tenant's uninstall-password material (a PBKDF2
 	// salt and digest — never the password). Nil when the tenant has not set
 	// one, or when talking to a server that predates the feature.
@@ -132,6 +196,7 @@ func NewReporter(agentID, version string, osVersion func() string, hostname stri
 		isolated:  isolated,
 		buffered:  buffered,
 		unisolate: unisolate,
+		cpu:       hostmetrics.NewCPUSampler(),
 	}
 }
 
@@ -162,6 +227,7 @@ func (r *Reporter) sendOnce(ctx context.Context) {
 		status = "isolated"
 	}
 
+	used, total := hostMemory()
 	req := &HeartbeatRequest{
 		AgentID:      r.agentID,
 		AgentVersion: r.version,
@@ -172,14 +238,19 @@ func (r *Reporter) sendOnce(ctx context.Context) {
 		Hostname:       r.hostname,
 		IPAddresses:    getLocalIPs(),
 		EventsBuffered: 0,
-		CPUUsage:       getCPUUsage(),
-		MemoryUsageMB:  getMemUsageMB(),
+		CPUUsage:       r.cpuPercent(),
+		MemoryUsageMB:  used,
+		TotalMemoryMB:  total,
 		Status:         status,
 		ProtectionMode: r.protectionMode,
 	}
 
 	if r.telemetryMode != nil {
 		req.TelemetryMode = r.telemetryMode()
+	}
+
+	if r.telemetryDetail != nil {
+		req.TelemetryDetail = r.telemetryDetail()
 	}
 
 	if r.buffered != nil {
@@ -192,11 +263,13 @@ func (r *Reporter) sendOnce(ctx context.Context) {
 		return
 	}
 
-	if resp.ConfigUpdateAvailable {
-		slog.Info("config update available", "version", resp.LatestConfigVersion)
-	}
-	if resp.PendingCommandCount > 0 {
-		slog.Info("pending commands from server", "count", resp.PendingCommandCount)
+	if resp.ShouldIsolate && r.isolate != nil {
+		slog.Warn("サーバーからの隔離指示を受信しました（ハートビート経由）")
+		if err := r.isolate("heartbeat reconcile"); err != nil {
+			slog.Error("ハートビート経由の隔離に失敗しました", "error", err)
+		} else {
+			slog.Warn("ハートビート経由の隔離が完了しました")
+		}
 	}
 	// Persist the uninstall guard before anything else that could fail: the
 	// whole point is for it to be on disk ahead of the moment it is needed, and
@@ -218,16 +291,41 @@ func (r *Reporter) sendOnce(ctx context.Context) {
 
 // ─── System Metrics ───────────────────────────────────────────
 
-func getCPUUsage() float64 {
-	// Simplified - real implementation reads /proc/stat on Linux,
-	// GetSystemTimes on Windows, host_cpu_load_info on macOS
-	return 0.0
+// cpuPercent returns the endpoint's CPU utilisation, or nil if it could not be
+// measured on this platform.
+//
+// **以前はここが `return 0.0` の仮実装でした** —— コメントは
+// 「real implementation reads /proc/stat on Linux, GetSystemTimes on Windows,
+// host_cpu_load_info on macOS」と、実装されていないことを正しく書いて
+// いましたが、返り値は測定値の顔をしていました。
+//
+// Linux は /proc/stat を実際に読みます。Windows と macOS はまだ実装が
+// ありません —— **nil を返し、ハートビートはその欄を送りません。**
+// サーバは NULL のままにするので、「測っていない」と「0%」が分かれます。
+func (r *Reporter) cpuPercent() *float64 {
+	if r.cpu == nil {
+		return nil
+	}
+	pct, ok := r.cpu.Percent()
+	if !ok {
+		return nil
+	}
+	return &pct
 }
 
-func getMemUsageMB() float64 {
-	var ms runtime.MemStats
-	runtime.ReadMemStats(&ms)
-	return float64(ms.Sys) / 1024 / 1024
+// hostMemory returns the endpoint's used and total memory, or (nil, nil) when
+// this platform cannot measure it.
+//
+// **以前は `runtime.MemStats.Sys` を返していました** —— エージェント自身の
+// Go ランタイムが OS から取った量です。端末のメモリ使用量として保存され、
+// アラータが `memory_usage_mb / total_memory_mb * 100` で読みます。
+// 分子は別物、分母は誰も書いていない、という状態でした。
+func hostMemory() (used, total *float64) {
+	u, t, ok := hostmetrics.Memory()
+	if !ok {
+		return nil, nil
+	}
+	return &u, &t
 }
 
 func getLocalIPs() []string {

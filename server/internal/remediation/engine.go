@@ -15,11 +15,13 @@ import (
 	"sync"
 	"time"
 
+	"github.com/edr-platform/server/internal/isolation"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/nats-io/nats.go"
 
 	"github.com/edr-platform/server/internal/metrics"
+	"github.com/edr-platform/server/internal/store"
 )
 
 // RuleTrigger defines what events activate a RemediationRule.
@@ -100,6 +102,21 @@ type Engine struct {
 	rules      []*RemediationRule
 	logs       []ExecutionLog
 	exclusions []RemediationExclusion
+	// exclusionsUnreadable records that a load was attempted and failed.
+	//
+	// The list names the hosts that must never be auto-remediated, and this
+	// engine isolates hosts from the network. An empty list and an unread list
+	// are the same value and opposite meanings: "nothing is excluded" versus
+	// "we could not find out what is excluded". Treating the second as the
+	// first is how a domain controller gets isolated by a rule the operator
+	// had explicitly told not to touch it.
+	//
+	// Deliberately NOT "no load has happened yet". An engine with no database,
+	// or one whose exclusions were added in memory, has a list that is
+	// perfectly well known — gating on "loaded" instead would silently disable
+	// auto-remediation for every construction path that does not call the
+	// loader, which is a second silent failure rather than a fix for the first.
+	exclusionsUnreadable bool
 	// lastExec tracks last execution time per (rule, agent) to enforce cooldown.
 	// Keyed per-agent — NOT per-rule-globally — so cooldown only throttles repeated
 	// action on the SAME host. A rule-global cooldown would let the first isolated
@@ -108,6 +125,19 @@ type Engine struct {
 	lastExec         map[string]time.Time
 	pendingRollbacks sync.Map // key: executionID → *rollbackEntry
 	mu               sync.RWMutex
+
+	// isolator is the only way this engine may take an endpoint off the network.
+	// nil なら隔離アクションは実行されない（黙って成功にはしない）。
+	isolator Isolator
+}
+
+// Isolator is the subset of isolation.Gatekeeper this engine needs.
+//
+// インターフェースで受けるのは、隔離を伴わないテストで Gatekeeper 一式を
+// 組み立てずに済ませるため。実体は常に *isolation.Gatekeeper。
+type Isolator interface {
+	Isolate(ctx context.Context, req isolation.Request) (isolation.Result, error)
+	Unisolate(ctx context.Context, req isolation.Request) (isolation.Result, error)
 }
 
 // NewEngine creates a new remediation Engine.
@@ -117,6 +147,13 @@ func NewEngine(pool *pgxpool.Pool, natsConn *nats.Conn) *Engine {
 		natsConn: natsConn,
 		lastExec: make(map[string]time.Time),
 	}
+}
+
+// SetIsolator wires the isolation gatekeeper. 呼ばないと隔離アクションは動かない。
+func (e *Engine) SetIsolator(i Isolator) {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	e.isolator = i
 }
 
 // AddRule adds or replaces a remediation rule.
@@ -261,18 +298,29 @@ func (e *Engine) LoadExclusionsFromDB(ctx context.Context) error {
 	if e.pool == nil {
 		return nil
 	}
+	// この存在確認のエラーは捨てられません。捨てると exists が false のまま残り、
+	// 「マイグレーション未適用」と同じ扱いで nil を返します。呼び出し側は成功と
+	// 受け取り、除外リストは空のまま — 「触るな」と指定されたホストが
+	// すべて自動修復の対象になります。
 	var exists bool
-	_ = e.pool.QueryRow(ctx,
+	if err := e.pool.QueryRow(ctx,
 		`SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name='remediation_exclusions')`,
-	).Scan(&exists)
+	).Scan(&exists); err != nil {
+		e.markExclusionsUnreadable()
+		return fmt.Errorf("remediation: 除外テーブルの存在確認に失敗しました: %w", err)
+	}
 	if !exists {
-		return nil // migration not yet run
+		// マイグレーション未適用は「除外が設定されていない」であって
+		// 「読めなかった」ではありません。
+		e.applyExclusions(nil)
+		return nil
 	}
 
 	rows, err := e.pool.Query(ctx,
 		`SELECT id::text, hostname_pattern, reason, created_by, created_at
 		 FROM remediation_exclusions ORDER BY created_at`)
 	if err != nil {
+		e.markExclusionsUnreadable()
 		return fmt.Errorf("remediation: failed to load exclusions: %w", err)
 	}
 	defer rows.Close()
@@ -281,15 +329,21 @@ func (e *Engine) LoadExclusionsFromDB(ctx context.Context) error {
 	for rows.Next() {
 		var ex RemediationExclusion
 		if err := rows.Scan(&ex.ID, &ex.HostnamePattern, &ex.Reason, &ex.CreatedBy, &ex.CreatedAt); err != nil {
-			slog.Warn("remediation: failed to scan exclusion row", "error", err)
-			continue
+			// 1行落とすと、その1台だけが黙って自動修復の対象に戻ります。
+			// 部分的に読めた除外リストは、読めなかったのと同じ扱いにします。
+			e.markExclusionsUnreadable()
+			return fmt.Errorf("remediation: 除外行を読み取れませんでした: %w", err)
 		}
 		loaded = append(loaded, ex)
 	}
+	// 途中で失敗した反復は短いリストを残します。ここを見ないと、
+	// 切り詰められた除外リストを完全なものとして採用します。
+	if err := rows.Err(); err != nil {
+		e.markExclusionsUnreadable()
+		return fmt.Errorf("remediation: 除外リストの走査に失敗しました: %w", err)
+	}
 
-	e.mu.Lock()
-	e.exclusions = loaded
-	e.mu.Unlock()
+	e.applyExclusions(loaded)
 
 	slog.Info("remediation: 除外リストをDBから読み込みました", "count", len(loaded))
 	return nil
@@ -367,17 +421,50 @@ func (e *Engine) ListExclusions() []RemediationExclusion {
 // IsExcluded returns true if hostname matches any exclusion pattern.
 // Empty hostname never matches (pass the real hostname to benefit from exclusions).
 func (e *Engine) IsExcluded(hostname string) bool {
+	e.mu.RLock()
+	unreadable := e.exclusionsUnreadable
+	exclusions := e.exclusions
+	e.mu.RUnlock()
+
+	if unreadable {
+		// 除外リストの読み込みが失敗しています。この状態で自動修復を走らせると、
+		// 除外指定のあるホストにも作用します。実行しない方を選びます —
+		// 実行しないのは復旧可能ですが、インシデント中に無関係なホストを
+		// 隔離するのは復旧できません。
+		slog.Warn("remediation: 除外リストを読めていないため自動修復を見送りました",
+			"hostname", hostname)
+		return true
+	}
 	if hostname == "" {
 		return false
 	}
-	e.mu.RLock()
-	defer e.mu.RUnlock()
-	for _, ex := range e.exclusions {
+	for _, ex := range exclusions {
 		if matched, _ := filepath.Match(ex.HostnamePattern, hostname); matched {
 			return true
 		}
 	}
 	return false
+}
+
+// applyExclusions installs a list the engine actually managed to read, and with
+// it the statement that the list is known. Both success paths of
+// LoadExclusionsFromDB go through here — "the table is not there" is as
+// definite an answer as a row set — so the flag can only be cleared by an
+// answer, never by the absence of one.
+func (e *Engine) applyExclusions(loaded []RemediationExclusion) {
+	e.mu.Lock()
+	e.exclusions = loaded
+	e.exclusionsUnreadable = false
+	e.mu.Unlock()
+}
+
+// markExclusionsUnreadable records that the exclusion list could not be read,
+// so IsExcluded stops letting auto-remediation act on hosts whose exemptions it
+// cannot see. Cleared by the next successful load.
+func (e *Engine) markExclusionsUnreadable() {
+	e.mu.Lock()
+	e.exclusionsUnreadable = true
+	e.mu.Unlock()
 }
 
 // ─── Rule management ─────────────────────────────────────────────────────────
@@ -565,34 +652,51 @@ func (e *Engine) dispatchAction(ctx context.Context, action RemediationAction, a
 	return result
 }
 
+// actionIsolateNetwork asks the Gatekeeper to isolate the endpoint.
+//
+// ここは以前 NATS へ直接 publish していて、成功の意味が「publish できた」だった。
+// response_actions に行が残らず、安全弁も AUTO_RESPONSE_ENABLED も通らなかったため、
+// 2026-08-13 に AUTO_ISOLATE_DRY_RUN=true の環境で実際に端末を隔離した。
+// 送出は internal/isolation.Gatekeeper だけが行う。
 func (e *Engine) actionIsolateNetwork(ctx context.Context, agentID, alertID string) (bool, string) {
-	if e.natsConn == nil {
-		return false, "NATS not available"
+	if e.isolator == nil {
+		return false, "isolation gatekeeper not configured"
 	}
-	subject := fmt.Sprintf("commands.%s.isolate", agentID)
-	payload, _ := json.Marshal(map[string]interface{}{
-		"agent_id": agentID,
-		"reason":   "auto-remediation",
-		"alert_id": alertID,
+	res, err := e.isolator.Isolate(ctx, isolation.Request{
+		AgentID: agentID,
+		Reason:  "auto-remediation",
+		AlertID: alertID,
+		Origin:  isolation.OriginRemediation,
+		Label:   "remediation",
 	})
-	if err := e.natsConn.Publish(subject, payload); err != nil {
-		return false, fmt.Sprintf("NATS publish failed: %v", err)
+	if err != nil {
+		return false, fmt.Sprintf("isolation dispatch failed: %v", err)
+	}
+	if !res.Outcome.Executed() {
+		// 抑止は失敗ではない。success=false にするのは「隔離されていない」ことを
+		// 実行ログにも正しく残すため。理由は Message で読める。
+		return false, fmt.Sprintf("isolation suppressed (%s): %s", res.Outcome, res.Reason)
 	}
 	return true, fmt.Sprintf("isolation command sent to agent %s", agentID)
 }
 
 // actionUnisolateNetwork sends an un-isolation command (used by auto-rollback).
 func (e *Engine) actionUnisolateNetwork(ctx context.Context, agentID, alertID string) (bool, string) {
-	if e.natsConn == nil {
-		return false, "NATS not available"
+	if e.isolator == nil {
+		return false, "isolation gatekeeper not configured"
 	}
-	subject := fmt.Sprintf("commands.%s.unisolate", agentID)
-	payload, _ := json.Marshal(map[string]interface{}{
-		"agent_id": agentID,
-		"reason":   "auto-remediation rollback",
+	res, err := e.isolator.Unisolate(ctx, isolation.Request{
+		AgentID: agentID,
+		Reason:  "auto-remediation rollback",
+		AlertID: alertID,
+		Origin:  isolation.OriginRemediation,
+		Label:   "remediation rollback",
 	})
-	if err := e.natsConn.Publish(subject, payload); err != nil {
-		return false, fmt.Sprintf("NATS publish failed: %v", err)
+	if err != nil {
+		return false, fmt.Sprintf("un-isolation dispatch failed: %v", err)
+	}
+	if !res.Outcome.Executed() {
+		return false, fmt.Sprintf("un-isolation suppressed (%s): %s", res.Outcome, res.Reason)
 	}
 	return true, fmt.Sprintf("un-isolation command sent to agent %s", agentID)
 }
@@ -775,10 +879,7 @@ func (e *Engine) executionIsolated(log ExecutionLog) bool {
 }
 
 func (e *Engine) persistLog(ctx context.Context, log ExecutionLog) {
-	var exists bool
-	_ = e.pool.QueryRow(ctx,
-		`SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name='remediation_logs')`,
-	).Scan(&exists)
+	exists := store.TableIsThere(ctx, e.pool, "remediation_logs")
 	if !exists {
 		return
 	}
@@ -797,10 +898,7 @@ func (e *Engine) persistLog(ctx context.Context, log ExecutionLog) {
 }
 
 func (e *Engine) fetchLogsFromDB(ctx context.Context, limit int) ([]ExecutionLog, error) {
-	var exists bool
-	_ = e.pool.QueryRow(ctx,
-		`SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name='remediation_logs')`,
-	).Scan(&exists)
+	exists := store.TableIsThere(ctx, e.pool, "remediation_logs")
 	if !exists {
 		return e.localLogs(limit), nil
 	}
@@ -826,6 +924,9 @@ func (e *Engine) fetchLogsFromDB(ctx context.Context, limit int) ([]ExecutionLog
 			continue
 		}
 		out = append(out, l)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
 	}
 	return out, nil
 }

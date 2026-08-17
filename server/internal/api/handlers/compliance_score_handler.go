@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -56,28 +57,51 @@ func (h *ComplianceScoreHandler) ComputeScore(c *gin.Context) {
 	agentID := c.Param("agent_id")
 
 	result, err := compliance.ScoreAgent(c.Request.Context(), h.pool, agentID)
+	if errors.Is(err, compliance.ErrNothingAssessed) {
+		// Nothing was measured, so nothing is stored. Answering 503 rather than
+		// 500 says the assessment can be retried — and, unlike the previous
+		// behaviour, does not leave a fabricated score of 100 behind.
+		c.JSON(http.StatusServiceUnavailable, gin.H{
+			"error": "コンプライアンス判定を実行できませんでした。スコアは更新していません"})
+		return
+	}
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": dbErrMsg(err)})
 		return
 	}
 
 	// Build details JSON
+	//
+	// assessed travels with each check because passed=false alone cannot say
+	// whether the check failed or could not be run, and the stored record is
+	// what an auditor reads months later.
 	type checkJSON struct {
 		ID       string `json:"id"`
 		Title    string `json:"title"`
 		Severity string `json:"severity"`
 		Passed   bool   `json:"passed"`
+		Assessed bool   `json:"assessed"`
 	}
 	type detailsJSON struct {
 		Checks []checkJSON `json:"checks"`
+		// Assessed / Declared record how much of the benchmark this score is
+		// actually about. A 100 over three of eight checks is a different claim
+		// from a 100 over eight.
+		Assessed int `json:"assessed_checks"`
+		Declared int `json:"declared_checks"`
 	}
-	d := detailsJSON{Checks: make([]checkJSON, len(result.Checks))}
+	d := detailsJSON{
+		Checks:   make([]checkJSON, len(result.Checks)),
+		Assessed: result.Assessed,
+		Declared: len(result.Checks),
+	}
 	for i, ch := range result.Checks {
 		d.Checks[i] = checkJSON{
 			ID:       ch.ID,
 			Title:    ch.Title,
 			Severity: ch.Severity,
 			Passed:   ch.Passed,
+			Assessed: ch.Assessed,
 		}
 	}
 	detailsBytes, _ := json.Marshal(d)

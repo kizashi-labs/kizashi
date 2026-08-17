@@ -43,13 +43,7 @@ func (h *AuditSignHandler) computeHMAC(data []byte) string {
 }
 
 func (h *AuditSignHandler) auditTableExists(c *gin.Context) bool {
-	var exists bool
-	if err := h.pool.QueryRow(c.Request.Context(),
-		`SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name='audit_logs')`).
-		Scan(&exists); err != nil {
-		slog.Warn("audit_sign: audit_logs テーブル確認に失敗しました", "error", err)
-	}
-	return exists
+	return tableIsThere(c.Request.Context(), h.pool, "audit_logs")
 }
 
 // ExportSigned handles GET /admin/audit/signed-export
@@ -124,7 +118,13 @@ func (h *AuditSignHandler) ExportSigned(c *gin.Context) {
 		records = append(records, r)
 	}
 	if err := rows.Err(); err != nil {
-		slog.Warn("row iteration error", "error", err)
+		// **署名付きの書き出しでは、いちばん危ない形です。**
+		// 途中までの記録に HMAC を付けると、**欠けた記録が「本物である」と
+		// 証明されます。** 署名は「改竄されていない」しか言えないので、
+		// 受け取った側は全件揃っていると読みます。
+		slog.Error("signed audit export: rows.Err", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "監査ログの読み出しが途中で失敗しました。署名付き書き出しは中止します"})
+		return
 	}
 	if records == nil {
 		records = []auditSignRecord{}

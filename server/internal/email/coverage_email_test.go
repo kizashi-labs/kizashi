@@ -4,15 +4,23 @@ import "testing"
 
 // Exercises the pure template renderers (no SMTP / network).
 func TestRenderTemplates(t *testing.T) {
-	out := renderTemplate("Hello {{.name}}, code {{.code}}", map[string]string{"name": "Cov", "code": "123"})
+	out, err := renderTemplate("Hello {{.name}}, code {{.code}}", map[string]string{"name": "Cov", "code": "123"})
+	if err != nil {
+		t.Fatalf("renderTemplate: %v", err)
+	}
 	if out == "" {
 		t.Fatalf("renderTemplate returned empty")
 	}
-	// Invalid template falls back gracefully rather than panicking.
-	_ = renderTemplate("{{.unclosed", map[string]string{})
+	// 壊れたテンプレートは落ちませんが、黙って空を返すのもやめました。
+	if _, err := renderTemplate("{{.unclosed", map[string]string{}); err == nil {
+		t.Error("壊れたテンプレートがエラーになっていません")
+	}
 
-	dyn := renderTemplateDynamic("Items: {{range .Items}}{{.}} {{end}}",
+	dyn, err := renderTemplateDynamic("Items: {{range .Items}}{{.}} {{end}}",
 		struct{ Items []string }{Items: []string{"a", "b"}})
+	if err != nil {
+		t.Fatalf("renderTemplateDynamic: %v", err)
+	}
 	if dyn == "" {
 		t.Fatalf("renderTemplateDynamic returned empty")
 	}

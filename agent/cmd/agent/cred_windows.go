@@ -4,6 +4,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"os"
@@ -14,8 +15,13 @@ import (
 
 	"github.com/edr-platform/agent/internal/collector"
 	winplat "github.com/edr-platform/agent/internal/platform/windows"
+	"github.com/edr-platform/agent/internal/telemetry"
 	syswin "golang.org/x/sys/windows"
 )
+
+// sensorCredLsass — ハートビートに載るセンサー名。サーバの
+// UpdateTelemetryMode が agents.telemetry_mode に書きます。
+const sensorCredLsass = "cred_lsass"
 
 // runCredService runs LSASS credential-access detection (M3). It registers the
 // lsass.exe PID with the KizashiPrevention driver, whose ObRegisterCallbacks
@@ -32,14 +38,23 @@ import (
 func runCredService(ctx context.Context, sender collector.EventSender, agentID string) {
 	client := winplat.NewCredClient()
 	if err := client.Start(); err != nil {
-		slog.Info("[cred] KizashiPrevention ドライバ未ロード — LSASS監視なしで継続", "error", err)
+		// ドライバが無い端末では、この関数は何もせず戻ります。**戻ったこと
+		// を端末の外に出さないと、資格情報アクセスの監視が動いていない端末
+		// を SOC から数えられません。** ログ1行はその端末の中にしか残らず、
+		// 「攻撃されていない」と「見えていない」が同じ姿になります。
+		telemetry.Set(sensorCredLsass, telemetry.ModeFailed,
+			"KizashiPrevention ドライバ未ロード: "+err.Error())
+		slog.Warn("[cred] KizashiPrevention ドライバ未ロード — LSASS監視なしで継続", "error", err)
 		return
 	}
 	defer client.Close()
 
-	lsassPID := findLsassPID()
-	if lsassPID == 0 {
-		slog.Warn("[cred] lsass.exe PID を特定できませんでした")
+	lsassPID, err := findLsassPID()
+	if err != nil {
+		telemetry.Set(sensorCredLsass, telemetry.ModeFailed,
+			"lsass.exe の PID を特定できません: "+err.Error())
+		slog.Warn("[cred] lsass.exe PID を特定できませんでした。"+
+			"**この端末では資格情報アクセスを見ていません**", "error", err)
 		return
 	}
 
@@ -51,10 +66,15 @@ func runCredService(ctx context.Context, sender collector.EventSender, agentID s
 		mode = winplat.PathModeEnforce
 		modeStr = "enforce（lsassへのPROCESS_VM_READを剥奪）"
 	}
-	if err := client.WatchLsass(uint32(lsassPID), mode); err != nil {
+	if err := client.WatchLsass(lsassPID, mode); err != nil {
+		telemetry.Set(sensorCredLsass, telemetry.ModeFailed,
+			"lsass PID をドライバに登録できません: "+err.Error())
 		slog.Warn("[cred] lsass PID登録失敗", "error", err)
 		return
 	}
+	// ここまで来たら見えています。前回の失敗が残っていると直っても赤い
+	// ままなので、消します。
+	telemetry.Forget(sensorCredLsass)
 	slog.Info("[cred] LSASS認証情報アクセス検知(Obコールバック)を起動しました", "mode", modeStr, "lsass_pid", lsassPID)
 
 	// Processes that legitimately open LSASS with VM_READ (AV/EDR/system) — and the
@@ -107,24 +127,40 @@ func runCredService(ctx context.Context, sender collector.EventSender, agentID s
 	}
 }
 
-// findLsassPID returns the PID of lsass.exe via a Toolhelp32 snapshot, or 0.
-func findLsassPID() int {
+// findLsassPID returns the PID of lsass.exe via a Toolhelp32 snapshot.
+//
+// **0 を返していました。** スナップショットが取れなかった、先頭が読めな
+// かった、走査が途中で終わった —— どれも同じ 0 で、呼び出し側からは
+// 「lsass.exe が見つからなかった」と区別がつきません。
+//
+// その区別が効くのはここです。lsass.exe は Windows に必ずいるので、
+// 「見つからない」は実際には起きません。**0 が返るときは、ほぼ必ず探せ
+// なかったときです。** それを「対象なし」として黙って戻ると、資格情報
+// アクセスの監視が丸ごと立ち上がっていない端末が、何も起きていない端末と
+// 同じ姿になります —— イベントが来ない、アラートも出ない、画面は緑。
+func findLsassPID() (uint32, error) {
 	snap, err := syswin.CreateToolhelp32Snapshot(syswin.TH32CS_SNAPPROCESS, 0)
 	if err != nil {
-		return 0
+		return 0, fmt.Errorf("プロセス一覧のスナップショットを取れません: %w", err)
 	}
 	defer syswin.CloseHandle(snap)
 	var e syswin.ProcessEntry32
 	e.Size = uint32(unsafe.Sizeof(e))
 	if err := syswin.Process32First(snap, &e); err != nil {
-		return 0
+		return 0, fmt.Errorf("プロセス一覧の先頭を読めません: %w", err)
 	}
 	for {
 		if strings.EqualFold(syswin.UTF16ToString(e.ExeFile[:]), "lsass.exe") {
-			return int(e.ProcessID)
+			return e.ProcessID, nil
 		}
 		if err := syswin.Process32Next(snap, &e); err != nil {
-			return 0
+			// ERROR_NO_MORE_FILES は走査の正常な終わりです。ここに来たと
+			// いうことは、最後まで見て lsass.exe が無かったということ ——
+			// 走査そのものが途中で壊れたのとは別の話なので、分けます。
+			if errors.Is(err, syswin.ERROR_NO_MORE_FILES) {
+				return 0, errors.New("プロセス一覧に lsass.exe がいません")
+			}
+			return 0, fmt.Errorf("プロセス一覧の走査が途中で終わりました: %w", err)
 		}
 	}
 }

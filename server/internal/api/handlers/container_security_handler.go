@@ -296,10 +296,14 @@ func (h *ContainerSecurityHandler) GetStats(c *gin.Context) {
 	}
 
 	var totalPolicies, activePolicies, totalViolations int
-	_ = h.pool.QueryRow(ctx, `SELECT COUNT(*), COUNT(*) FILTER (WHERE is_active) FROM k8s_security_policies`).
-		Scan(&totalPolicies, &activePolicies)
-	_ = h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM k8s_policy_violations WHERE status='open'`).
-		Scan(&totalViolations)
+	if !ReadOK(c, h.pool.QueryRow(ctx, `SELECT COUNT(*), COUNT(*) FILTER (WHERE is_active) FROM k8s_security_policies`).
+		Scan(&totalPolicies, &activePolicies)) {
+		return
+	}
+	if !ReadOK(c, h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM k8s_policy_violations WHERE status='open'`).
+		Scan(&totalViolations)) {
+		return
+	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"total_policies":      totalPolicies,
@@ -320,7 +324,7 @@ func (h *ContainerSecurityHandler) ListImages(c *gin.Context) {
 		FROM container_images ORDER BY critical_vulns DESC, vulnerability_count DESC
 	`)
 	if err != nil {
-		c.JSON(http.StatusOK, gin.H{"images": []any{}})
+		ReadFailure(c, err, gin.H{"images": []any{}})
 		return
 	}
 	defer rows.Close()
@@ -379,7 +383,7 @@ func (h *ContainerSecurityHandler) ListRuntimeEvents(c *gin.Context) {
 		ORDER BY created_at DESC LIMIT 100
 	`, severity)
 	if err != nil {
-		c.JSON(http.StatusOK, gin.H{"events": []any{}})
+		ReadFailure(c, err, gin.H{"events": []any{}})
 		return
 	}
 	defer rows.Close()

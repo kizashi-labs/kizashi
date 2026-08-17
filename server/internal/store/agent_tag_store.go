@@ -33,6 +33,10 @@ func (s *AgentTagStore) ListByAgent(ctx context.Context, agentID string) ([]stri
 		}
 		tags = append(tags, tag)
 	}
+	// 部分結果を完全な一覧として返さない（scan_truncation_guard_test.go 参照）
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
 	if tags == nil {
 		tags = []string{}
 	}
@@ -72,6 +76,10 @@ func (s *AgentTagStore) ListByTag(ctx context.Context, tag string) ([]string, er
 		}
 		agentIDs = append(agentIDs, id)
 	}
+	// 部分結果を完全な一覧として返さない（scan_truncation_guard_test.go 参照）
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
 	if agentIDs == nil {
 		agentIDs = []string{}
 	}
@@ -94,6 +102,10 @@ func (s *AgentTagStore) AllTags(ctx context.Context) ([]string, error) {
 			continue
 		}
 		tags = append(tags, tag)
+	}
+	// 部分結果を完全な一覧として返さない（scan_truncation_guard_test.go 参照）
+	if err := rows.Err(); err != nil {
+		return nil, err
 	}
 	if tags == nil {
 		tags = []string{}

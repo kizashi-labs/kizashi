@@ -21,7 +21,7 @@ func (h *EndpointHardeningHandler) ListBaselines(c *gin.Context) {
 		FROM hardening_baselines ORDER BY os_type, framework, name
 	`)
 	if err != nil {
-		c.JSON(http.StatusOK, gin.H{"baselines": []any{}})
+		ReadFailure(c, err, gin.H{"baselines": []any{}})
 		return
 	}
 	defer rows.Close()
@@ -47,7 +47,9 @@ func (h *EndpointHardeningHandler) ListBaselines(c *gin.Context) {
 		list = append(list, b)
 	}
 	if err := rows.Err(); err != nil {
-		slog.Warn("row iteration error", "error", err)
+		slog.Error("rows.Err: 結果の読み出しが途中で失敗しました", "error", err)
+		ReadFailure(c, err, gin.H{"baselines": []any{}})
+		return
 	}
 	if list == nil {
 		list = []Baseline{}
@@ -65,7 +67,7 @@ func (h *EndpointHardeningHandler) ListAssessments(c *gin.Context) {
 		ORDER BY a.created_at DESC LIMIT 100
 	`)
 	if err != nil {
-		c.JSON(http.StatusOK, gin.H{"assessments": []any{}})
+		ReadFailure(c, err, gin.H{"assessments": []any{}})
 		return
 	}
 	defer rows.Close()
@@ -99,7 +101,9 @@ func (h *EndpointHardeningHandler) ListAssessments(c *gin.Context) {
 		list = append(list, a)
 	}
 	if err := rows.Err(); err != nil {
-		slog.Warn("row iteration error", "error", err)
+		slog.Error("rows.Err: 結果の読み出しが途中で失敗しました", "error", err)
+		ReadFailure(c, err, gin.H{"assessments": []any{}})
+		return
 	}
 	if list == nil {
 		list = []Assessment{}

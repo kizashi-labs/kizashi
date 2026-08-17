@@ -102,59 +102,69 @@ func (h *SOCMetricsHandler) Summary(c *gin.Context) {
 	}
 
 	// ── Core KPIs ─────────────────────────────────────────
-	_ = h.Pool.QueryRow(ctx, fmt.Sprintf(`
-		SELECT
-			COUNT(*) AS total,
-			COUNT(*) FILTER (WHERE status NOT IN ('resolved','false_positive')) AS open,
-			COUNT(*) FILTER (WHERE status = 'resolved') AS resolved
-		FROM alerts
-		WHERE created_at >= NOW() - INTERVAL '%d days'`, days)).
-		Scan(&totalAlerts, &openAlerts, &resolvedAlerts)
+	if !ReadOK(c, h.Pool.QueryRow(ctx, fmt.Sprintf(`
+			SELECT
+				COUNT(*) AS total,
+				COUNT(*) FILTER (WHERE status NOT IN ('resolved','false_positive')) AS open,
+				COUNT(*) FILTER (WHERE status = 'resolved') AS resolved
+			FROM alerts
+			WHERE created_at >= NOW() - INTERVAL '%d days'`, days)).
+		Scan(&totalAlerts, &openAlerts, &resolvedAlerts)) {
+		return
+	}
 
 	// MTTR: time from alert creation to first 'resolved' status change (accurate)
-	_ = h.Pool.QueryRow(ctx, fmt.Sprintf(`
-		SELECT COALESCE(AVG(
-			EXTRACT(EPOCH FROM (asc2.changed_at - a.created_at)) / 3600
-		), 0)
-		FROM alerts a
-		JOIN (
-			SELECT DISTINCT ON (alert_id) alert_id, changed_at
-			FROM alert_status_changes
-			WHERE to_status = 'resolved'
-			ORDER BY alert_id, changed_at ASC
-		) asc2 ON asc2.alert_id = a.id
-		WHERE a.created_at >= NOW() - INTERVAL '%d days'`, days)).Scan(&mttrHrs)
+	if !ReadOK(c, h.Pool.QueryRow(ctx, fmt.Sprintf(`
+			SELECT COALESCE(AVG(
+				EXTRACT(EPOCH FROM (asc2.changed_at - a.created_at)) / 3600
+			), 0)
+			FROM alerts a
+			JOIN (
+				SELECT DISTINCT ON (alert_id) alert_id, changed_at
+				FROM alert_status_changes
+				WHERE to_status = 'resolved'
+				ORDER BY alert_id, changed_at ASC
+			) asc2 ON asc2.alert_id = a.id
+			WHERE a.created_at >= NOW() - INTERVAL '%d days'`, days)).Scan(&mttrHrs)) {
+		return
+	}
 
 	// MTTD: time from alert creation to first triage ('investigating' or 'in_progress' status)
-	_ = h.Pool.QueryRow(ctx, fmt.Sprintf(`
-		SELECT COALESCE(AVG(
-			EXTRACT(EPOCH FROM (asc2.changed_at - a.created_at)) / 3600
-		), 0)
-		FROM alerts a
-		JOIN (
-			SELECT DISTINCT ON (alert_id) alert_id, changed_at
-			FROM alert_status_changes
-			WHERE to_status IN ('investigating', 'in_progress')
-			ORDER BY alert_id, changed_at ASC
-		) asc2 ON asc2.alert_id = a.id
-		WHERE a.created_at >= NOW() - INTERVAL '%d days'`, days)).Scan(&mttdHrs)
+	if !ReadOK(c, h.Pool.QueryRow(ctx, fmt.Sprintf(`
+			SELECT COALESCE(AVG(
+				EXTRACT(EPOCH FROM (asc2.changed_at - a.created_at)) / 3600
+			), 0)
+			FROM alerts a
+			JOIN (
+				SELECT DISTINCT ON (alert_id) alert_id, changed_at
+				FROM alert_status_changes
+				WHERE to_status IN ('investigating', 'in_progress')
+				ORDER BY alert_id, changed_at ASC
+			) asc2 ON asc2.alert_id = a.id
+			WHERE a.created_at >= NOW() - INTERVAL '%d days'`, days)).Scan(&mttdHrs)) {
+		return
+	}
 
 	// False positive rate
 	var fpCount int
-	_ = h.Pool.QueryRow(ctx, fmt.Sprintf(`
-		SELECT COUNT(*) FROM alerts
-		WHERE created_at >= NOW() - INTERVAL '%d days'
-		  AND status = 'false_positive'`, days)).Scan(&fpCount)
+	if !ReadOK(c, h.Pool.QueryRow(ctx, fmt.Sprintf(`
+			SELECT COUNT(*) FROM alerts
+			WHERE created_at >= NOW() - INTERVAL '%d days'
+			  AND status = 'false_positive'`, days)).Scan(&fpCount)) {
+		return
+	}
 	if totalAlerts > 0 {
 		falsePositiveRate = float64(fpCount) / float64(totalAlerts) * 100
 	}
 
 	// Today stats
-	_ = h.Pool.QueryRow(ctx, `
-		SELECT
-			COUNT(*) FILTER (WHERE status='resolved' AND DATE(updated_at) = CURRENT_DATE),
-			COUNT(*) FILTER (WHERE DATE(created_at) = CURRENT_DATE)
-		FROM alerts`).Scan(&resolvedToday, &createdToday)
+	if !ReadOK(c, h.Pool.QueryRow(ctx, `
+			SELECT
+				COUNT(*) FILTER (WHERE status='resolved' AND DATE(updated_at) = CURRENT_DATE),
+				COUNT(*) FILTER (WHERE DATE(created_at) = CURRENT_DATE)
+			FROM alerts`).Scan(&resolvedToday, &createdToday)) {
+		return
+	}
 
 	// ── Daily volume (last N days) ──────────────────────────
 	rows, err := h.Pool.Query(ctx, fmt.Sprintf(`
@@ -281,12 +291,14 @@ func (h *SOCMetricsHandler) ShiftHandover(c *gin.Context) {
 	var topAlerts []AlertSummary
 
 	if h.Pool != nil {
-		_ = h.Pool.QueryRow(ctx, fmt.Sprintf(`
-			SELECT
-				COUNT(*) FILTER (WHERE created_at >= NOW()-INTERVAL '%d hours') AS new,
-				COUNT(*) FILTER (WHERE status='resolved' AND updated_at >= NOW()-INTERVAL '%d hours') AS resolved,
-				COUNT(*) FILTER (WHERE severity >= 9 AND status NOT IN ('resolved','false_positive')) AS crit
-			FROM alerts`, hours, hours)).Scan(&newCount, &resolvedCount, &critCount)
+		if !ReadOK(c, h.Pool.QueryRow(ctx, fmt.Sprintf(`
+				SELECT
+					COUNT(*) FILTER (WHERE created_at >= NOW()-INTERVAL '%d hours') AS new,
+					COUNT(*) FILTER (WHERE status='resolved' AND updated_at >= NOW()-INTERVAL '%d hours') AS resolved,
+					COUNT(*) FILTER (WHERE severity >= 9 AND status NOT IN ('resolved','false_positive')) AS crit
+				FROM alerts`, hours, hours)).Scan(&newCount, &resolvedCount, &critCount)) {
+			return
+		}
 
 		// alerts に agent_hostname 列は無い。ホスト名は agents から JOIN で引く。
 		rows, err := h.Pool.Query(ctx, `
@@ -383,18 +395,22 @@ func (h *SOCMetricsHandler) FrontendMetrics(c *gin.Context) {
 
 	if h.Pool != nil {
 		// ── Funnel ──────────────────────────────────────────────────────────
-		_ = h.Pool.QueryRow(ctx, fmt.Sprintf(`
-			SELECT
-				COUNT(*)                                                AS total,
-				COUNT(*) FILTER (WHERE status != 'open')               AS triaged,
-				COUNT(*) FILTER (WHERE severity >= 7)                  AS escalated,
-				COUNT(*) FILTER (WHERE status = 'resolved')            AS resolved
-			FROM alerts
-			WHERE created_at >= NOW() - INTERVAL '%d days'`, days)).
-			Scan(&funnelTotal, &funnelTriaged, &funnelEscalated, &funnelResolved)
-		_ = h.Pool.QueryRow(ctx, fmt.Sprintf(`
-			SELECT COUNT(*) FROM incidents
-			WHERE created_at >= NOW() - INTERVAL '%d days'`, days)).Scan(&funnelIncidents)
+		if !ReadOK(c, h.Pool.QueryRow(ctx, fmt.Sprintf(`
+				SELECT
+					COUNT(*)                                                AS total,
+					COUNT(*) FILTER (WHERE status != 'open')               AS triaged,
+					COUNT(*) FILTER (WHERE severity >= 7)                  AS escalated,
+					COUNT(*) FILTER (WHERE status = 'resolved')            AS resolved
+				FROM alerts
+				WHERE created_at >= NOW() - INTERVAL '%d days'`, days)).
+			Scan(&funnelTotal, &funnelTriaged, &funnelEscalated, &funnelResolved)) {
+			return
+		}
+		if !ReadOK(c, h.Pool.QueryRow(ctx, fmt.Sprintf(`
+				SELECT COUNT(*) FROM incidents
+				WHERE created_at >= NOW() - INTERVAL '%d days'`, days)).Scan(&funnelIncidents)) {
+			return
+		}
 
 		// ── Analysts ────────────────────────────────────────────────────────
 		rows, err := h.Pool.Query(ctx, fmt.Sprintf(`
@@ -454,6 +470,9 @@ func (h *SOCMetricsHandler) FrontendMetrics(c *gin.Context) {
 					bucketMap[lbl] = cnt
 				}
 			}
+			if err := rows2.Err(); err != nil {
+				slog.Warn("FrontendMetrics: rows2 の読み取りが途中で終わりました。この区画は不完全です", "error", err)
+			}
 			rows2.Close()
 		}
 		for _, lbl := range bucketLabels {
@@ -461,18 +480,20 @@ func (h *SOCMetricsHandler) FrontendMetrics(c *gin.Context) {
 		}
 
 		// ── SLA compliance ───────────────────────────────────────────────────
-		_ = h.Pool.QueryRow(ctx, fmt.Sprintf(`
-			SELECT COUNT(*),
-				COUNT(*) FILTER (WHERE
-					(severity >= 9 AND EXTRACT(EPOCH FROM (updated_at-created_at))/60 <= 60) OR
-					(severity BETWEEN 7 AND 8 AND EXTRACT(EPOCH FROM (updated_at-created_at))/60 <= 240) OR
-					(severity BETWEEN 4 AND 6 AND EXTRACT(EPOCH FROM (updated_at-created_at))/60 <= 480) OR
-					(severity <= 3 AND EXTRACT(EPOCH FROM (updated_at-created_at))/60 <= 2880)
-				)
-			FROM alerts
-			WHERE status = 'resolved'
-			  AND created_at >= NOW() - INTERVAL '%d days'`, days)).
-			Scan(&totalResolved, &withinSLA)
+		if !ReadOK(c, h.Pool.QueryRow(ctx, fmt.Sprintf(`
+				SELECT COUNT(*),
+					COUNT(*) FILTER (WHERE
+						(severity >= 9 AND EXTRACT(EPOCH FROM (updated_at-created_at))/60 <= 60) OR
+						(severity BETWEEN 7 AND 8 AND EXTRACT(EPOCH FROM (updated_at-created_at))/60 <= 240) OR
+						(severity BETWEEN 4 AND 6 AND EXTRACT(EPOCH FROM (updated_at-created_at))/60 <= 480) OR
+						(severity <= 3 AND EXTRACT(EPOCH FROM (updated_at-created_at))/60 <= 2880)
+					)
+				FROM alerts
+				WHERE status = 'resolved'
+				  AND created_at >= NOW() - INTERVAL '%d days'`, days)).
+			Scan(&totalResolved, &withinSLA)) {
+			return
+		}
 		if totalResolved > 0 {
 			slaCompliance = math.Round(float64(withinSLA)/float64(totalResolved)*1000) / 10
 		}
@@ -508,6 +529,9 @@ func (h *SOCMetricsHandler) FrontendMetrics(c *gin.Context) {
 					categories = append(categories, r)
 				}
 			}
+			if err := rows3.Err(); err != nil {
+				slog.Warn("FrontendMetrics: rows3 の読み取りが途中で終わりました。この区画は不完全です", "error", err)
+			}
 			rows3.Close()
 		}
 
@@ -527,6 +551,9 @@ func (h *SOCMetricsHandler) FrontendMetrics(c *gin.Context) {
 					mttrCurrent[sev] = avg
 				}
 			}
+			if err := rows4.Err(); err != nil {
+				slog.Warn("FrontendMetrics: rows4 の読み取りが途中で終わりました。この区画は不完全です", "error", err)
+			}
 			rows4.Close()
 		}
 		// MTTR previous 30d (for comparison)
@@ -544,6 +571,9 @@ func (h *SOCMetricsHandler) FrontendMetrics(c *gin.Context) {
 				if rows5.Scan(&sev, &avg) == nil {
 					mttrPrev[sev] = avg
 				}
+			}
+			if err := rows5.Err(); err != nil {
+				slog.Warn("FrontendMetrics: rows5 の読み取りが途中で終わりました。この区画は不完全です", "error", err)
 			}
 			rows5.Close()
 		}
@@ -575,33 +605,43 @@ func (h *SOCMetricsHandler) FrontendMetrics(c *gin.Context) {
 					openIncidents = append(openIncidents, r)
 				}
 			}
+			if err := rows6.Err(); err != nil {
+				slog.Warn("FrontendMetrics: rows6 の読み取りが途中で終わりました。この区画は不完全です", "error", err)
+			}
 			rows6.Close()
 		}
 
 		// ── Resolution methods ───────────────────────────────────────────────
-		_ = h.Pool.QueryRow(ctx, fmt.Sprintf(`
-			SELECT
-				COUNT(*) FILTER (WHERE status = 'auto_resolved')                            AS auto_res,
-				COUNT(*) FILTER (WHERE status = 'resolved' AND assigned_to IS NOT NULL)     AS analyst,
-				COUNT(*) FILTER (WHERE status = 'false_positive')                           AS fp,
-				(SELECT COUNT(DISTINCT ia.alert_id)
-				 FROM incident_alerts ia
-				 JOIN alerts a2 ON a2.id::text = ia.alert_id
-				 WHERE a2.created_at >= NOW() - INTERVAL '%d days'
-				   AND a2.status IN ('resolved','auto_resolved'))                           AS escalated
-			FROM alerts
-			WHERE created_at >= NOW() - INTERVAL '%d days'`, days, days)).
-			Scan(&resAutoCount, &resAnalystCount, &resFpCount, &resEscCount)
+		if !ReadOK(c, h.Pool.QueryRow(ctx, fmt.Sprintf(`
+				SELECT
+					COUNT(*) FILTER (WHERE status = 'auto_resolved')                            AS auto_res,
+					COUNT(*) FILTER (WHERE status = 'resolved' AND assigned_to IS NOT NULL)     AS analyst,
+					COUNT(*) FILTER (WHERE status = 'false_positive')                           AS fp,
+					(SELECT COUNT(DISTINCT ia.alert_id)
+					 FROM incident_alerts ia
+					 JOIN alerts a2 ON a2.id::text = ia.alert_id
+					 WHERE a2.created_at >= NOW() - INTERVAL '%d days'
+					   AND a2.status IN ('resolved','auto_resolved'))                           AS escalated
+				FROM alerts
+				WHERE created_at >= NOW() - INTERVAL '%d days'`, days, days)).
+			Scan(&resAutoCount, &resAnalystCount, &resFpCount, &resEscCount)) {
+			return
+		}
 		// Unassigned resolved goes to auto bucket
-		_ = h.Pool.QueryRow(ctx, fmt.Sprintf(`
-			SELECT COUNT(*) FILTER (WHERE status = 'resolved' AND assigned_to IS NULL)
-			FROM alerts WHERE created_at >= NOW() - INTERVAL '%d days'`, days)).
-			Scan(new(int)) // capture into auto bucket below
+		if !ReadOK(c, h.Pool.QueryRow(ctx, fmt.Sprintf(`
+				SELECT COUNT(*) FILTER (WHERE status = 'resolved' AND assigned_to IS NULL)
+				FROM alerts WHERE created_at >= NOW() - INTERVAL '%d days'`, days)).
+			// 読み捨てです（下の resUnassigned が同じ値を数え直します）。
+			Scan(new(int))) {
+			return
+		}
 		var resUnassigned int
-		_ = h.Pool.QueryRow(ctx, fmt.Sprintf(`
-			SELECT COUNT(*) FROM alerts
-			WHERE created_at >= NOW() - INTERVAL '%d days'
-			  AND status = 'resolved' AND assigned_to IS NULL`, days)).Scan(&resUnassigned)
+		if !ReadOK(c, h.Pool.QueryRow(ctx, fmt.Sprintf(`
+				SELECT COUNT(*) FROM alerts
+				WHERE created_at >= NOW() - INTERVAL '%d days'
+				  AND status = 'resolved' AND assigned_to IS NULL`, days)).Scan(&resUnassigned)) {
+			return
+		}
 		resAutoCount += resUnassigned
 	}
 

@@ -1,6 +1,9 @@
 package collector
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 func TestIsMemoryScanAllowlisted(t *testing.T) {
 	cases := []struct {
@@ -90,5 +93,96 @@ func TestMaxRegionScanBytesBounded(t *testing.T) {
 	if maxRegionScanBytes > 16<<20 {
 		t.Errorf("read cap %d exceeds 16MiB — a scan cycle walks every process, so "+
 			"a large cap multiplies across regions", maxRegionScanBytes)
+	}
+}
+
+func TestShannonEntropy(t *testing.T) {
+	// 512 KiB of a single repeated byte: one symbol, zero bits of surprise.
+	zeros := make([]byte, 512<<10)
+	if h := shannonEntropy(zeros); h != 0 {
+		t.Errorf("shannonEntropy(all-zero) = %v, want 0", h)
+	}
+
+	// Every byte value equally often is the 8.0 ceiling by construction.
+	uniform := make([]byte, 256*64)
+	for i := range uniform {
+		uniform[i] = byte(i % 256)
+	}
+	if h := shannonEntropy(uniform); h != 8 {
+		t.Errorf("shannonEntropy(uniform) = %v, want exactly 8", h)
+	}
+
+	// Two symbols in equal proportion is exactly 1 bit/byte — this pins the
+	// units. A version that summed natural logs would return 0.693 here and
+	// still pass both cases above.
+	half := make([]byte, 4096)
+	for i := range half {
+		half[i] = byte(i % 2)
+	}
+	if h := shannonEntropy(half); h != 1 {
+		t.Errorf("shannonEntropy(two symbols, equal) = %v, want exactly 1", h)
+	}
+
+	if h := shannonEntropy(nil); h != 0 {
+		t.Errorf("shannonEntropy(nil) = %v, want 0", h)
+	}
+}
+
+func TestAnnotateEntropy(t *testing.T) {
+	// Unreadable region: Entropy stays 0 and the reason is untouched. This is
+	// the case that must not read as "low entropy" anywhere downstream.
+	f := MemoryFinding{Reason: "RWX private実行領域（インジェクションの可能性）"}
+	before := f.Reason
+	annotateEntropy(&f, nil)
+	if f.Entropy != 0 || f.Reason != before {
+		t.Errorf("empty data: got entropy=%v reason=%q, want 0 and unchanged", f.Entropy, f.Reason)
+	}
+
+	// Packed/encrypted shape: measured, and the reason says so.
+	packed := make([]byte, 128<<10)
+	for i := range packed {
+		packed[i] = byte(i % 256)
+	}
+	f = MemoryFinding{Reason: "RWX private実行領域（インジェクションの可能性）"}
+	annotateEntropy(&f, packed)
+	if f.Entropy < highEntropyThreshold {
+		t.Errorf("packed data: entropy = %v, want >= %v", f.Entropy, highEntropyThreshold)
+	}
+	if f.Reason == before {
+		t.Error("packed data: reason was not annotated")
+	}
+	if !strings.Contains(f.Reason, before) {
+		t.Errorf("packed data: reason %q dropped the original classification", f.Reason)
+	}
+
+	// Low-entropy shape: measured, but the reason must stay clean — otherwise
+	// every content-scanned region carries the corroboration text and the text
+	// stops meaning anything.
+	sparse := make([]byte, 128<<10)
+	f = MemoryFinding{Reason: before}
+	annotateEntropy(&f, sparse)
+	if f.Entropy != 0 {
+		t.Errorf("sparse data: entropy = %v, want 0", f.Entropy)
+	}
+	if f.Reason != before {
+		t.Errorf("sparse data: reason = %q, want unchanged", f.Reason)
+	}
+}
+
+// Entropy annotates; it must never promote. A region the size floors drop stays
+// dropped however high its entropy is — a 4 KiB RWX page full of packed-looking
+// bytes is also what a JIT constant pool looks like.
+func TestEntropyDoesNotBypassSizeFloor(t *testing.T) {
+	f := MemoryFinding{RWX: true, Size: 4096}
+	packed := make([]byte, 64<<10)
+	for i := range packed {
+		packed[i] = byte(i % 256)
+	}
+	annotateEntropy(&f, packed)
+	if f.Entropy < highEntropyThreshold {
+		t.Fatalf("test setup: entropy = %v, want high", f.Entropy)
+	}
+	if shouldEmitMemoryFinding(f) {
+		t.Error("high entropy promoted a finding below the size floor")
 	}
 }

@@ -60,20 +60,16 @@ type taxiiCollection struct {
 }
 
 func (h *TAXIIHandler) tableExists(c *gin.Context, table string) bool {
-	var exists bool
-	err := h.pool.QueryRow(c.Request.Context(),
-		`SELECT EXISTS (
-			SELECT 1 FROM information_schema.tables
-			WHERE table_schema = 'public' AND table_name = $1
-		)`, table).Scan(&exists)
-	return err == nil && exists
+	return tableIsThere(c.Request.Context(), h.pool, table)
 }
 
 // GetCollections handles GET /taxii2/api1/collections/
 func (h *TAXIIHandler) GetCollections(c *gin.Context) {
 	iocCount := 0
 	if h.tableExists(c, "ioc_entries") {
-		_ = h.pool.QueryRow(c.Request.Context(), `SELECT COUNT(*) FROM ioc_entries`).Scan(&iocCount)
+		if !ReadOK(c, h.pool.QueryRow(c.Request.Context(), `SELECT COUNT(*) FROM ioc_entries`).Scan(&iocCount)) {
+			return
+		}
 	}
 
 	collections := []taxiiCollection{
@@ -237,7 +233,9 @@ func (h *TAXIIHandler) GetObjects(c *gin.Context) {
 			}
 		}
 		if err := pgrows.Err(); err != nil {
-			slog.Warn("row iteration error", "error", err)
+			slog.Error("rows.Err: 結果の読み出しが途中で失敗しました", "error", err)
+			taxiiJSON(c, http.StatusInternalServerError, gin.H{"title": "Internal Server Error", "description": err.Error()})
+			return
 		}
 	} else {
 		pgrows, qErr := h.pool.Query(c.Request.Context(),
@@ -255,7 +253,9 @@ func (h *TAXIIHandler) GetObjects(c *gin.Context) {
 			}
 		}
 		if err := pgrows.Err(); err != nil {
-			slog.Warn("row iteration error", "error", err)
+			slog.Error("rows.Err: 結果の読み出しが途中で失敗しました", "error", err)
+			taxiiJSON(c, http.StatusInternalServerError, gin.H{"title": "Internal Server Error", "description": err.Error()})
+			return
 		}
 	}
 
@@ -344,7 +344,9 @@ func (h *TAXIIHandler) serveThreatActors(c *gin.Context, limit int, addedAfter s
 		objects = append(objects, buildStixActor(id, stixID, name, actorType, desc, aliases, malwareTypes, labels, created, modified))
 	}
 	if err := rows.Err(); err != nil {
-		slog.Warn("threat-actors row iteration error", "error", err)
+		slog.Error("rows.Err: 結果の読み出しが途中で失敗しました", "error", err)
+		taxiiJSON(c, http.StatusInternalServerError, gin.H{"title": "Internal Server Error", "description": err.Error()})
+		return
 	}
 	taxiiJSON(c, http.StatusOK, gin.H{"type": "bundle", "id": "bundle--" + uuid.New().String(), "objects": objects})
 }

@@ -67,18 +67,55 @@ func TestRoleWeight_UnknownRoleNotDefined(t *testing.T) {
 
 // ─── ロール権限比較ロジックテスト ─────────────────────────────────────────────
 
-// hasRolePure は HasRole メソッドの純粋なロジック部分を再現するヘルパー（テスト専用）
-// DB アクセスなしでロール比較のみを行う
+// hasRolePure は **本物を呼びます。**
+//
+// 以前ここには HasRole の比較を書き写したものが置いてありました。
+// 測りました (2026-08-11): 製品側の `>=` を `<=` に変えても、**落ちる検査は
+// ありませんでした** —— viewer が tenant_admin の要件を満たし、
+// tenant_admin が満たさなくなっても緑のままです。試していたのは、
+// 検査自身の写しです。
+//
+// 2つ目の戻り値（比較が成立したか）は、写しにしかない区別でした。
+// 本物は「知らないロールは満たさない」で false を返します。
 func hasRolePure(currentRole, requiredRole string) (bool, bool) {
-	requiredWeight, requiredOk := roleWeight[requiredRole]
-	if !requiredOk {
-		return false, false // 不明な required ロール
+	_, requiredOk := roleWeight[requiredRole]
+	_, currentOk := roleWeight[currentRole]
+	if !requiredOk || !currentOk {
+		return false, false
 	}
-	currentWeight, currentOk := roleWeight[currentRole]
-	if !currentOk {
-		return false, false // 不明な current ロール
+	return roleAtLeast(currentRole, requiredRole), true
+}
+
+// 知らないロールを、強い方に倒さないこと。
+//
+// **roleAtLeast は本物の判定です。** 知らない値が来たときに true を
+// 返すと、綴りを間違えたロール名がすべての要件を満たします。
+func TestRoleAtLeastRefusesUnknownRoles(t *testing.T) {
+	for _, tc := range []struct{ current, required string }{
+		{"superadmin", "viewer"},
+		{"tenant_admin", "superadmin"},
+		{"", "viewer"},
+		{"viewer", ""},
+	} {
+		if roleAtLeast(tc.current, tc.required) {
+			t.Errorf("roleAtLeast(%q, %q) = true。**知らないロールを"+
+				"満たしていることにしています**", tc.current, tc.required)
+		}
 	}
-	return currentWeight >= requiredWeight, true
+}
+
+// 順序が、強い方から弱い方へ効くこと。**反転していないこと。**
+func TestRoleAtLeastIsNotInverted(t *testing.T) {
+	if !roleAtLeast("tenant_admin", "viewer") {
+		t.Error("tenant_admin が viewer の要件を満たしていません")
+	}
+	if roleAtLeast("viewer", "tenant_admin") {
+		t.Error("**viewer が tenant_admin の要件を満たしています。** " +
+			"判定が反転しています")
+	}
+	if !roleAtLeast("analyst", "analyst") {
+		t.Error("同じロールが自分の要件を満たしていません")
+	}
 }
 
 // TestHasRolePure_AdminMeetsAllRequirements は tenant_admin が全ロール要件を満たすことを確認する

@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -48,7 +49,7 @@ func (h *EncryptionMgmtHandler) ListEndpointStatus(c *gin.Context) {
 		LEFT JOIN endpoint_encryption e ON e.agent_id = ag.id
 		ORDER BY ag.hostname`)
 	if err != nil {
-		c.JSON(http.StatusOK, gin.H{"endpoints": []any{}, "total": 0})
+		ReadFailure(c, err, gin.H{"endpoints": []any{}, "total": 0})
 		return
 	}
 	defer rows.Close()
@@ -84,21 +85,28 @@ func (h *EncryptionMgmtHandler) ListEndpointStatus(c *gin.Context) {
 		}
 		statuses = append(statuses, entry)
 	}
+	if err := rows.Err(); err != nil {
+		slog.Warn("ListEndpointStatus: 結果セットの読み取りが途中で終わりました。応答は不完全です", "error", err)
+		c.JSON(http.StatusOK, gin.H{"endpoints": []any{}, "total": 0})
+		return
+	}
 	c.JSON(http.StatusOK, gin.H{"endpoints": statuses, "total": len(statuses)})
 }
 
 // GetStats returns fleet-wide encryption coverage from endpoint_encryption.
 func (h *EncryptionMgmtHandler) GetStats(c *gin.Context) {
 	var total, encrypted, unencrypted, unknown int
-	_ = h.pool.QueryRow(c.Request.Context(), `
-		SELECT
-		  COUNT(*),
-		  COUNT(*) FILTER (WHERE e.encrypted IS TRUE),
-		  COUNT(*) FILTER (WHERE e.encrypted IS FALSE),
-		  COUNT(*) FILTER (WHERE e.encrypted IS NULL)
-		FROM agents ag
-		LEFT JOIN endpoint_encryption e ON e.agent_id = ag.id
-	`).Scan(&total, &encrypted, &unencrypted, &unknown)
+	if !ReadOK(c, h.pool.QueryRow(c.Request.Context(), `
+			SELECT
+			  COUNT(*),
+			  COUNT(*) FILTER (WHERE e.encrypted IS TRUE),
+			  COUNT(*) FILTER (WHERE e.encrypted IS FALSE),
+			  COUNT(*) FILTER (WHERE e.encrypted IS NULL)
+			FROM agents ag
+			LEFT JOIN endpoint_encryption e ON e.agent_id = ag.id
+		`).Scan(&total, &encrypted, &unencrypted, &unknown)) {
+		return
+	}
 
 	rate := 0.0
 	if total > 0 {

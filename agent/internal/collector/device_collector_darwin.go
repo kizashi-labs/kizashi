@@ -4,8 +4,11 @@ package collector
 
 import (
 	"encoding/json"
+	"fmt"
 	"os/exec"
 	"strings"
+
+	"github.com/edr-platform/agent/internal/telemetry"
 )
 
 // listDevices enumerates connected USB devices on macOS via
@@ -20,8 +23,15 @@ import (
 func listDevices() ([]DeviceInfo, error) {
 	out, err := exec.Command("system_profiler", "-json", "SPUSBDataType").Output()
 	if err != nil {
-		// system_profiler missing or errored — degrade gracefully (no events).
-		return nil, nil
+		// **「USB デバイスが0台」ではなく「数えられなかった」です。**
+		//
+		// 呼び出し側 (device_collector.poll) は返ってきた一覧を
+		// 現在の状態として扱うので、0件は「何も繋がっていない」に
+		// なります。**USB は持ち出しの経路なので、繋がっていないことと
+		// 見えていないことの区別が要ります。**
+		telemetry.Set(sensorMacDevice, telemetry.ModeFailed,
+			"system_profiler を実行できません")
+		return nil, fmt.Errorf("USB デバイス一覧を取れません: %w", err)
 	}
 	return parseSystemProfilerUSB(out), nil
 }
@@ -92,3 +102,6 @@ func extractHexID(s string) string {
 	tok = strings.TrimPrefix(tok, "0X")
 	return strings.ToLower(tok)
 }
+
+// sensorMacDevice — ハートビートに載る名前。
+const sensorMacDevice = "macos_usb_device"

@@ -149,41 +149,60 @@ func (s *Sender) dialAndSend(from, to string, msg []byte) error {
 
 // SendInvitation sends a user-invitation email.
 func (s *Sender) SendInvitation(ctx context.Context, toEmail, inviteURL string) error {
-	body := renderTemplate(inviteTmpl, map[string]string{
+	body, err := renderTemplate(inviteTmpl, map[string]string{
 		"Email":     toEmail,
 		"InviteURL": inviteURL,
 	})
+	if err != nil {
+		return err
+	}
 	return s.Send(ctx, toEmail, "[Kizashi] ユーザー招待", body)
 }
 
 // SendPasswordReset sends a password-reset email.
 func (s *Sender) SendPasswordReset(ctx context.Context, toEmail, displayName, resetURL string) error {
-	body := renderTemplate(passwordResetTmpl, map[string]string{
+	body, err := renderTemplate(passwordResetTmpl, map[string]string{
 		"Name":     displayName,
 		"ResetURL": resetURL,
 	})
+	if err != nil {
+		return err
+	}
 	return s.Send(ctx, toEmail, "[Kizashi] パスワードリセット", body)
 }
 
 // SendEmailVerification sends an email-address verification email.
 func (s *Sender) SendEmailVerification(ctx context.Context, toEmail, verifyURL string) error {
-	body := renderTemplate(verifyTmpl, map[string]string{
+	body, err := renderTemplate(verifyTmpl, map[string]string{
 		"Email":     toEmail,
 		"VerifyURL": verifyURL,
 	})
+	if err != nil {
+		return err
+	}
 	return s.Send(ctx, toEmail, "[Kizashi] メールアドレスの確認", body)
 }
 
 // ─── HTML templates ───────────────────────────────────────────────────────────
 
-func renderTemplate(tmplStr string, data map[string]string) string {
+// renderTemplate renders one of the built-in HTML templates.
+//
+// 以前は解析に失敗すると "" を返し、Execute の失敗も捨てていました。
+// 呼び出し側はそれをそのまま Send に渡すので、本文が空のメールが
+// 送られます。パスワード再設定の案内が白紙で届く、という形です。
+func renderTemplate(tmplStr string, data map[string]string) (string, error) {
 	t, err := template.New("").Parse(tmplStr)
 	if err != nil {
-		return ""
+		return "", fmt.Errorf("メール本文のテンプレートを解析できませんでした: %w", err)
 	}
 	var buf bytes.Buffer
-	_ = t.Execute(&buf, data)
-	return buf.String()
+	if err := t.Execute(&buf, data); err != nil {
+		return "", fmt.Errorf("メール本文を組み立てられませんでした: %w", err)
+	}
+	if buf.Len() == 0 {
+		return "", fmt.Errorf("メール本文が空です")
+	}
+	return buf.String(), nil
 }
 
 const emailBase = `<!DOCTYPE html>
@@ -297,14 +316,19 @@ var verifyTmpl = wrapBase(`
 
 // renderTemplateDynamic is like renderTemplate but accepts any data value,
 // allowing structs, map[string]interface{}, etc.
-func renderTemplateDynamic(tmplStr string, data interface{}) string {
+func renderTemplateDynamic(tmplStr string, data interface{}) (string, error) {
 	t, err := template.New("").Parse(tmplStr)
 	if err != nil {
-		return ""
+		return "", fmt.Errorf("メール本文のテンプレートを解析できませんでした: %w", err)
 	}
 	var buf bytes.Buffer
-	_ = t.Execute(&buf, data)
-	return buf.String()
+	if err := t.Execute(&buf, data); err != nil {
+		return "", fmt.Errorf("メール本文を組み立てられませんでした: %w", err)
+	}
+	if buf.Len() == 0 {
+		return "", fmt.Errorf("メール本文が空です")
+	}
+	return buf.String(), nil
 }
 
 // ─── SendAlertNotification ────────────────────────────────────────────────────
@@ -325,7 +349,7 @@ func (s *Sender) SendAlertNotification(ctx context.Context, toEmail, alertTitle,
 		severityLabel = "MEDIUM"
 	}
 
-	body := renderTemplateDynamic(alertNotifTmpl, map[string]interface{}{
+	body, err := renderTemplateDynamic(alertNotifTmpl, map[string]interface{}{
 		"Title":         alertTitle,
 		"Hostname":      hostname,
 		"RuleName":      ruleName,
@@ -334,6 +358,9 @@ func (s *Sender) SendAlertNotification(ctx context.Context, toEmail, alertTitle,
 		"SeverityColor": severityColor,
 		"SeverityLabel": severityLabel,
 	})
+	if err != nil {
+		return err
+	}
 	subject := fmt.Sprintf("[Kizashi] 🚨 セキュリティアラート — %s", alertTitle)
 	return s.Send(ctx, toEmail, subject, body)
 }
@@ -343,7 +370,7 @@ func (s *Sender) SendAlertNotification(ctx context.Context, toEmail, alertTitle,
 // SendWeeklyDigest sends a weekly security digest email.
 func (s *Sender) SendWeeklyDigest(ctx context.Context, toEmail string, totalAlerts, criticalCount, highCount, resolvedCount int, periodStart, periodEnd string) error {
 	period := fmt.Sprintf("%s 〜 %s", periodStart, periodEnd)
-	body := renderTemplateDynamic(weeklyDigestTmpl, map[string]interface{}{
+	body, err := renderTemplateDynamic(weeklyDigestTmpl, map[string]interface{}{
 		"TotalAlerts":   totalAlerts,
 		"CriticalCount": criticalCount,
 		"HighCount":     highCount,
@@ -351,6 +378,9 @@ func (s *Sender) SendWeeklyDigest(ctx context.Context, toEmail string, totalAler
 		"PeriodStart":   periodStart,
 		"PeriodEnd":     periodEnd,
 	})
+	if err != nil {
+		return err
+	}
 	subject := fmt.Sprintf("[Kizashi] 週次セキュリティダイジェスト — %s", period)
 	return s.Send(ctx, toEmail, subject, body)
 }
@@ -359,10 +389,13 @@ func (s *Sender) SendWeeklyDigest(ctx context.Context, toEmail string, totalAler
 
 // SendOnboardingWelcome sends a welcome / quick-start guide email to a new user.
 func (s *Sender) SendOnboardingWelcome(ctx context.Context, toEmail, displayName, loginURL string) error {
-	body := renderTemplateDynamic(onboardingTmpl, map[string]interface{}{
+	body, err := renderTemplateDynamic(onboardingTmpl, map[string]interface{}{
 		"Name":     displayName,
 		"LoginURL": loginURL,
 	})
+	if err != nil {
+		return err
+	}
 	return s.Send(ctx, toEmail, "[Kizashi] ようこそ！セットアップガイド", body)
 }
 

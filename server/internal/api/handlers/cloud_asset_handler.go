@@ -78,10 +78,7 @@ func scanCloudAsset(row interface{ Scan(...any) error }) (*cloudAsset, error) {
 func (h *CloudAssetHandler) List(c *gin.Context) {
 	ctx := c.Request.Context()
 
-	var exists bool
-	_ = h.pool.QueryRow(ctx, `SELECT EXISTS (
-		SELECT 1 FROM information_schema.tables WHERE table_name = 'cloud_assets'
-	)`).Scan(&exists)
+	exists := tableIsThere(ctx, h.pool, "cloud_assets")
 	if !exists {
 		c.JSON(http.StatusOK, gin.H{"data": []interface{}{}, "total": 0})
 		return
@@ -129,7 +126,9 @@ func (h *CloudAssetHandler) List(c *gin.Context) {
 	}
 
 	var total int
-	_ = h.pool.QueryRow(ctx, countQuery).Scan(&total)
+	if !ReadOK(c, h.pool.QueryRow(ctx, countQuery).Scan(&total)) {
+		return
+	}
 
 	query += ` ORDER BY risk_score DESC, created_at DESC LIMIT $` + strconv.Itoa(n) + ` OFFSET $` + strconv.Itoa(n+1)
 	args = append(args, limit, offset)
@@ -149,7 +148,9 @@ func (h *CloudAssetHandler) List(c *gin.Context) {
 		}
 	}
 	if err := rows.Err(); err != nil {
-		slog.Warn("row iteration error", "error", err)
+		slog.Error("rows.Err: 結果の読み出しが途中で失敗しました", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to list cloud assets"})
+		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
@@ -267,10 +268,7 @@ func (h *CloudAssetHandler) Delete(c *gin.Context) {
 func (h *CloudAssetHandler) GetStats(c *gin.Context) {
 	ctx := c.Request.Context()
 
-	var exists bool
-	_ = h.pool.QueryRow(ctx, `SELECT EXISTS (
-		SELECT 1 FROM information_schema.tables WHERE table_name = 'cloud_assets'
-	)`).Scan(&exists)
+	exists := tableIsThere(ctx, h.pool, "cloud_assets")
 	if !exists {
 		c.JSON(http.StatusOK, gin.H{"providers": []interface{}{}, "asset_types": []interface{}{}, "risk_buckets": gin.H{}})
 		return
@@ -320,9 +318,15 @@ func (h *CloudAssetHandler) GetStats(c *gin.Context) {
 	}
 
 	var lowCount, medCount, highCount int
-	_ = h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM cloud_assets WHERE risk_score < 30`).Scan(&lowCount)
-	_ = h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM cloud_assets WHERE risk_score >= 30 AND risk_score < 70`).Scan(&medCount)
-	_ = h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM cloud_assets WHERE risk_score >= 70`).Scan(&highCount)
+	if !ReadOK(c, h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM cloud_assets WHERE risk_score < 30`).Scan(&lowCount)) {
+		return
+	}
+	if !ReadOK(c, h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM cloud_assets WHERE risk_score >= 30 AND risk_score < 70`).Scan(&medCount)) {
+		return
+	}
+	if !ReadOK(c, h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM cloud_assets WHERE risk_score >= 70`).Scan(&highCount)) {
+		return
+	}
 
 	if providers == nil {
 		providers = []providerStat{}

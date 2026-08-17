@@ -156,25 +156,33 @@ func (g *Generator) GenerateExecutiveSummary(ctx context.Context, spec *ReportSp
 	}
 
 	// Alert counts
-	_ = g.pool.QueryRow(ctx, `
-		SELECT COUNT(*) FROM alerts
-		WHERE created_at BETWEEN $1 AND $2
-	`, spec.DateRange.Start, spec.DateRange.End).Scan(&data.TotalAlerts)
+	if err := g.pool.QueryRow(ctx, `
+			SELECT COUNT(*) FROM alerts
+			WHERE created_at BETWEEN $1 AND $2
+		`, spec.DateRange.Start, spec.DateRange.End).Scan(&data.TotalAlerts); err != nil {
+		return nil, fmt.Errorf("数えられないため報告を作りません: %w", err)
+	}
 
-	_ = g.pool.QueryRow(ctx, `
-		SELECT COUNT(*) FROM alerts
-		WHERE status = 'open' AND created_at BETWEEN $1 AND $2
-	`, spec.DateRange.Start, spec.DateRange.End).Scan(&data.OpenAlerts)
+	if err := g.pool.QueryRow(ctx, `
+			SELECT COUNT(*) FROM alerts
+			WHERE status = 'open' AND created_at BETWEEN $1 AND $2
+		`, spec.DateRange.Start, spec.DateRange.End).Scan(&data.OpenAlerts); err != nil {
+		return nil, fmt.Errorf("数えられないため報告を作りません: %w", err)
+	}
 
-	_ = g.pool.QueryRow(ctx, `
-		SELECT COUNT(*) FROM alerts
-		WHERE status IN ('resolved','closed') AND created_at BETWEEN $1 AND $2
-	`, spec.DateRange.Start, spec.DateRange.End).Scan(&data.ResolvedAlerts)
+	if err := g.pool.QueryRow(ctx, `
+			SELECT COUNT(*) FROM alerts
+			WHERE status IN ('resolved','closed') AND created_at BETWEEN $1 AND $2
+		`, spec.DateRange.Start, spec.DateRange.End).Scan(&data.ResolvedAlerts); err != nil {
+		return nil, fmt.Errorf("数えられないため報告を作りません: %w", err)
+	}
 
-	_ = g.pool.QueryRow(ctx, `
-		SELECT COUNT(*) FROM alerts
-		WHERE severity >= 9 AND created_at BETWEEN $1 AND $2
-	`, spec.DateRange.Start, spec.DateRange.End).Scan(&data.CriticalAlerts)
+	if err := g.pool.QueryRow(ctx, `
+			SELECT COUNT(*) FROM alerts
+			WHERE severity >= 9 AND created_at BETWEEN $1 AND $2
+		`, spec.DateRange.Start, spec.DateRange.End).Scan(&data.CriticalAlerts); err != nil {
+		return nil, fmt.Errorf("数えられないため報告を作りません: %w", err)
+	}
 
 	if data.TotalAlerts > 0 {
 		data.ResolutionRate = float64(data.ResolvedAlerts) / float64(data.TotalAlerts) * 100
@@ -194,6 +202,9 @@ func (g *Generator) GenerateExecutiveSummary(ctx context.Context, spec *ReportSp
 			if rows.Scan(&sev, &cnt) == nil {
 				data.AlertsBySeverity[sev] = cnt
 			}
+		}
+		if err := rows.Err(); err != nil {
+			return nil, err
 		}
 	}
 
@@ -220,6 +231,9 @@ func (g *Generator) GenerateExecutiveSummary(ctx context.Context, spec *ReportSp
 				data.TopThreats = append(data.TopThreats, te)
 			}
 		}
+		if err := threatRows.Err(); err != nil {
+			return nil, err
+		}
 	}
 
 	// Top agents by alert count
@@ -238,15 +252,24 @@ func (g *Generator) GenerateExecutiveSummary(ctx context.Context, spec *ReportSp
 				data.TopAgents = append(data.TopAgents, ae)
 			}
 		}
+		if err := agentRows.Err(); err != nil {
+			return nil, err
+		}
 	}
 
 	// Agent health stats
-	_ = g.pool.QueryRow(ctx, `SELECT COUNT(*) FROM agents`).Scan(&data.AgentHealth.Total)
-	_ = g.pool.QueryRow(ctx, `SELECT COUNT(*) FROM agents WHERE status = 'online'`).Scan(&data.AgentHealth.Online)
+	if err := g.pool.QueryRow(ctx, `SELECT COUNT(*) FROM agents`).Scan(&data.AgentHealth.Total); err != nil {
+		return nil, fmt.Errorf("数えられないため報告を作りません: %w", err)
+	}
+	if err := g.pool.QueryRow(ctx, `SELECT COUNT(*) FROM agents WHERE status = 'online'`).Scan(&data.AgentHealth.Online); err != nil {
+		return nil, fmt.Errorf("数えられないため報告を作りません: %w", err)
+	}
 	// 'inactive'(30日以上未確認の退役扱い)も offline に含める。除外すると
 	// 直下の Stale = Total - Online - Offline に紛れ込み、退役ホストが
 	// 「状態不明」として計上される。
-	_ = g.pool.QueryRow(ctx, `SELECT COUNT(*) FROM agents WHERE status IN ('offline', 'inactive')`).Scan(&data.AgentHealth.Offline)
+	if err := g.pool.QueryRow(ctx, `SELECT COUNT(*) FROM agents WHERE status IN ('offline', 'inactive')`).Scan(&data.AgentHealth.Offline); err != nil {
+		return nil, fmt.Errorf("数えられないため報告を作りません: %w", err)
+	}
 	data.AgentHealth.Stale = data.AgentHealth.Total - data.AgentHealth.Online - data.AgentHealth.Offline
 
 	return data, nil
@@ -292,14 +315,27 @@ func (g *Generator) GenerateComplianceReport(ctx context.Context, spec *ReportSp
 		return data, nil
 	}
 
-	// Query endpoint hardening table
+	// Query endpoint hardening results.
+	//
+	// 旧実装は `endpoint_hardening_assessments` を `check_name` 列で集計していたが、
+	// この表はマイグレーション 364（ハードニングスキーマの統合）で DROP されている
+	// （そもそも 363 の時点でも列は check_id で、check_name は存在しなかった）。
+	// クエリは毎回エラーになり、Controls が空のまま下の「データが無い場合の既定値」に
+	// 落ちて、**中身ゼロのコンプライアンスレポートが常に 65.0 点を表示していた**。
+	//
+	// 統合後の実体は 171 の hardening_assessments で、チェック単位の結果は
+	// findings JSONB（エージェントが送る {id,title,passed,details} の配列）に入る。
+	// 横持ちなので LATERAL で展開してからチェック単位に集計する。
 	rows, err := g.pool.Query(ctx, `
 		SELECT
-			COALESCE(check_name, 'Unknown') as check_name,
-			SUM(CASE WHEN passed THEN 1 ELSE 0 END) as passed,
-			SUM(CASE WHEN NOT passed THEN 1 ELSE 0 END) as failed
-		FROM endpoint_hardening_assessments
-		WHERE assessed_at BETWEEN $1 AND $2
+			COALESCE(NULLIF(f->>'title',''), NULLIF(f->>'id',''), 'Unknown') AS check_name,
+			SUM(CASE WHEN (f->>'passed')::boolean THEN 1 ELSE 0 END) AS passed,
+			SUM(CASE WHEN (f->>'passed')::boolean THEN 0 ELSE 1 END) AS failed
+		FROM hardening_assessments ha,
+		     LATERAL jsonb_array_elements(COALESCE(ha.findings, '[]'::jsonb)) AS f
+		WHERE ha.assessed_at BETWEEN $1 AND $2
+		  AND jsonb_typeof(COALESCE(ha.findings, '[]'::jsonb)) = 'array'
+		  AND f->>'passed' IS NOT NULL
 		GROUP BY check_name
 		ORDER BY check_name
 		LIMIT 50
@@ -313,16 +349,26 @@ func (g *Generator) GenerateComplianceReport(ctx context.Context, spec *ReportSp
 		for rows.Next() {
 			var ctrl ComplianceControlRow
 			var passed, failed int
-			if rows.Scan(&ctrl.ControlName, &passed, &failed) == nil {
-				ctrl.Passed = passed
-				ctrl.Failed = failed
-				if passed+failed > 0 {
-					ctrl.PassRate = float64(passed) / float64(passed+failed) * 100
-				}
-				data.Controls = append(data.Controls, ctrl)
-				totalPassed += passed
-				totalFailed += failed
+			if err := rows.Scan(&ctrl.ControlName, &passed, &failed); err != nil {
+				// pgx では Scan の失敗が Rows を fatal にして閉じる。ここで続行しても
+				// 残りの行は二度と読めないので、部分集計を全体として提示しないよう抜ける。
+				slog.Error("reports: ハードニング集計の走査に失敗しました（レポートは不完全）",
+					"error", err)
+				break
 			}
+			ctrl.Passed = passed
+			ctrl.Failed = failed
+			if passed+failed > 0 {
+				ctrl.PassRate = float64(passed) / float64(passed+failed) * 100
+			}
+			data.Controls = append(data.Controls, ctrl)
+			totalPassed += passed
+			totalFailed += failed
+		}
+		if err := rows.Err(); err != nil {
+			// 途中までの集計をレポートとして出さない。準拠率は分母が
+			// 欠けたまま「良好」に見えてしまう。
+			return nil, fmt.Errorf("reports: ハードニング集計の走査: %w", err)
 		}
 		if totalPassed+totalFailed > 0 {
 			data.OverallScore = float64(totalPassed) / float64(totalPassed+totalFailed) * 100
@@ -331,7 +377,9 @@ func (g *Generator) GenerateComplianceReport(ctx context.Context, spec *ReportSp
 		}
 	}
 
-	_ = g.pool.QueryRow(ctx, `SELECT COUNT(*) FROM agents`).Scan(&data.TotalEndpoints)
+	if err := g.pool.QueryRow(ctx, `SELECT COUNT(*) FROM agents`).Scan(&data.TotalEndpoints); err != nil {
+		return nil, fmt.Errorf("数えられないため報告を作りません: %w", err)
+	}
 
 	// Default score if no data
 	if data.OverallScore == 0 && len(data.Controls) == 0 {
@@ -375,25 +423,31 @@ func (g *Generator) GenerateIncidentReport(ctx context.Context, spec *ReportSpec
 		return data, nil
 	}
 
-	_ = g.pool.QueryRow(ctx, `
-		SELECT COUNT(*) FROM incidents
-		WHERE created_at BETWEEN $1 AND $2
-	`, spec.DateRange.Start, spec.DateRange.End).Scan(&data.TotalIncidents)
+	if err := g.pool.QueryRow(ctx, `
+			SELECT COUNT(*) FROM incidents
+			WHERE created_at BETWEEN $1 AND $2
+		`, spec.DateRange.Start, spec.DateRange.End).Scan(&data.TotalIncidents); err != nil {
+		return nil, fmt.Errorf("数えられないため報告を作りません: %w", err)
+	}
 
-	_ = g.pool.QueryRow(ctx, `
-		SELECT COUNT(*) FROM incidents
-		WHERE status = 'open' AND created_at BETWEEN $1 AND $2
-	`, spec.DateRange.Start, spec.DateRange.End).Scan(&data.OpenIncidents)
+	if err := g.pool.QueryRow(ctx, `
+			SELECT COUNT(*) FROM incidents
+			WHERE status = 'open' AND created_at BETWEEN $1 AND $2
+		`, spec.DateRange.Start, spec.DateRange.End).Scan(&data.OpenIncidents); err != nil {
+		return nil, fmt.Errorf("数えられないため報告を作りません: %w", err)
+	}
 
 	data.ClosedIncidents = data.TotalIncidents - data.OpenIncidents
 
 	// Average resolution time
-	_ = g.pool.QueryRow(ctx, `
-		SELECT COALESCE(AVG(EXTRACT(EPOCH FROM (resolved_at - created_at))/3600), 0)
-		FROM incidents
-		WHERE resolved_at IS NOT NULL
-		  AND created_at BETWEEN $1 AND $2
-	`, spec.DateRange.Start, spec.DateRange.End).Scan(&data.AvgResolutionH)
+	if err := g.pool.QueryRow(ctx, `
+			SELECT COALESCE(AVG(EXTRACT(EPOCH FROM (resolved_at - created_at))/3600), 0)
+			FROM incidents
+			WHERE resolved_at IS NOT NULL
+			  AND created_at BETWEEN $1 AND $2
+		`, spec.DateRange.Start, spec.DateRange.End).Scan(&data.AvgResolutionH); err != nil {
+		return nil, fmt.Errorf("数えられないため報告を作りません: %w", err)
+	}
 
 	// Incident list
 	rows, err := g.pool.Query(ctx, `
@@ -406,7 +460,7 @@ func (g *Generator) GenerateIncidentReport(ctx context.Context, spec *ReportSpec
 	`, spec.DateRange.Start, spec.DateRange.End)
 	if err != nil {
 		slog.Warn("reports: incident query failed", "error", err)
-		return data, nil
+		return nil, err
 	}
 	defer rows.Close()
 	for rows.Next() {
@@ -415,6 +469,9 @@ func (g *Generator) GenerateIncidentReport(ctx context.Context, spec *ReportSpec
 			ir.AffectedIDs = []string{}
 			data.Incidents = append(data.Incidents, ir)
 		}
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
 	}
 
 	return data, nil
@@ -493,6 +550,9 @@ func (g *Generator) GenerateThreatSummary(ctx context.Context, spec *ReportSpec)
 				data.TotalIOCMatches += entry.Hits
 			}
 		}
+		if err := ruleRows.Err(); err != nil {
+			return nil, err
+		}
 	}
 
 	// MITRE ATT&CK tactic breakdown
@@ -529,7 +589,11 @@ func (g *Generator) GenerateThreatSummary(ctx context.Context, spec *ReportSpec)
 			byTactic[tactic] += cnt
 		}
 		if err := mitreRows.Err(); err != nil {
-			slog.Warn("reports: mitre technique row iteration failed", "error", err)
+			// **途中までの集計でレポートを作りません。** レポートは
+			// 配られ、そのあと誰も数え直しません。
+			slog.Error("reports: MITRE 集計の走査が途中で失敗しました", "error", err)
+			mitreRows.Close()
+			return nil, err
 		}
 		mitreRows.Close()
 
@@ -569,6 +633,9 @@ func (g *Generator) GenerateThreatSummary(ctx context.Context, spec *ReportSpec)
 			if typeRows.Scan(&t, &cnt) == nil {
 				data.ThreatsByType[t] = cnt
 			}
+		}
+		if err := typeRows.Err(); err != nil {
+			return nil, err
 		}
 	}
 

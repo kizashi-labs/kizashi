@@ -60,6 +60,24 @@ func (m *Monitor) DetectRuntimeThreats(ctx context.Context, hours int) ([]*Runti
 	// コンテナランタイム脅威は常に「検出 0 件」に見えていた。
 	// 間隔も make_interval(hours => $1) で組む: ($1 || ' hours')::interval は $1 を
 	// text 推論させ、pgx が int の hours をエンコードできず実行時に失敗する。
+	//
+	// 型とキーにも取り違えがあった。
+	//
+	// event_type は IN ('container_event', 'process', 'container_process') だった。
+	// container_event と container_process はどちらも events_event_type_check が
+	// 許可しない値で、該当行は永久に存在しない。実際に一致し得たのは 'process'
+	// だけで、そこは残す — コンテナ内のプロセスもプロセスイベントとして届く。
+	//
+	// そしてコマンドラインを 'cmdline' で読んでいた。ingestion が書くのは
+	// 'command_line'。クリプトマイナー検知 (xmrig/stratum+tcp/cryptonight) と
+	// コンテナ脱出検知 (/proc/1/root) はこのキーだけで判定するので、両方とも
+	// 一度も発火していない。この2つは通常のプロセスイベントで判定できるため、
+	// キー名を直すだけで機能する。
+	//
+	// 一方 privileged / host_network / container_id / container_name / image_name
+	// はエージェントが収集していなかった。前3者はエンドポイントの /proc から
+	// 導出できるようになった (agent/internal/collector/container.go)。
+	// container_name / image_name はコンテナランタイムAPIが必要で、まだ無い。
 	rows, err := m.pool.Query(ctx, `
 		SELECT
 			e.event_id,
@@ -68,25 +86,25 @@ func (m *Monitor) DetectRuntimeThreats(ctx context.Context, hours int) ([]*Runti
 			COALESCE(e.raw_data->>'image_name', ''),
 			COALESCE(e.agent_id::text, ''),
 			COALESCE(e.raw_data->>'process_name', ''),
-			COALESCE(e.raw_data->>'cmdline', ''),
+			COALESCE(e.raw_data->>'command_line', ''),
 			COALESCE((e.raw_data->>'privileged')::boolean, false),
 			COALESCE((e.raw_data->>'host_network')::boolean, false),
 			e.time,
 			e.raw_data
 		FROM events e
-		WHERE e.event_type IN ('container_event', 'process', 'container_process')
+		WHERE e.event_type = 'process'
 		  AND e.time > NOW() - make_interval(hours => $1)
 		  AND (
 		      -- Crypto miner indicators
 		      (lower(e.raw_data->>'process_name') IN ('xmrig','minerd','cryptonight','nbminer','t-rex','phoenixminer'))
 		      OR
-		      (lower(e.raw_data->>'cmdline') LIKE '%xmrig%'
-		       OR lower(e.raw_data->>'cmdline') LIKE '%stratum+tcp%'
-		       OR lower(e.raw_data->>'cmdline') LIKE '%cryptonight%'
+		      (lower(e.raw_data->>'command_line') LIKE '%xmrig%'
+		       OR lower(e.raw_data->>'command_line') LIKE '%stratum+tcp%'
+		       OR lower(e.raw_data->>'command_line') LIKE '%cryptonight%'
 		      )
 		      OR
 		      -- Container escape via /proc/1/root
-		      (e.raw_data->>'cmdline' LIKE '%/proc/1/root%')
+		      (e.raw_data->>'command_line' LIKE '%/proc/1/root%')
 		      OR
 		      -- Privileged container with shell
 		      ((e.raw_data->>'privileged')::boolean = true
@@ -104,7 +122,7 @@ func (m *Monitor) DetectRuntimeThreats(ctx context.Context, hours int) ([]*Runti
 	)
 	if err != nil {
 		slog.Warn("cloudruntime: DetectRuntimeThreats query failed", "error", err)
-		return []*RuntimeThreat{}, nil
+		return nil, err
 	}
 	defer rows.Close()
 
@@ -146,6 +164,10 @@ func (m *Monitor) DetectRuntimeThreats(ctx context.Context, hours int) ([]*Runti
 			CmdLine:       cmdline,
 		}
 		threats = append(threats, threat)
+	}
+	// 部分結果を完全な一覧として返さない（scan_truncation_guard_test.go 参照）
+	if err := rows.Err(); err != nil {
+		return nil, err
 	}
 
 	if threats == nil {
@@ -218,13 +240,17 @@ func (m *Monitor) GetRuntimeStats(ctx context.Context) RuntimeStats {
 	}
 
 	// Count total container events with threats in last 30d.
+	//
+	// 上と同じく、存在し得ない event_type ('container_event' / 'container_process')
+	// を並べていた。コンテナ内のプロセスは 'process' イベントとして届き、
+	// container_id はそこに載る。
 	_ = m.pool.QueryRow(ctx, `
 		SELECT COUNT(DISTINCT e.event_id) FROM events e
-		WHERE e.event_type IN ('container_event','process','container_process')
+		WHERE e.event_type = 'process'
 		  AND e.time > NOW() - INTERVAL '30 days'
 		  AND (
 		      lower(e.raw_data->>'process_name') IN ('xmrig','minerd','cryptonight','nbminer','t-rex')
-		      OR e.raw_data->>'cmdline' LIKE '%/proc/1/root%'
+		      OR e.raw_data->>'command_line' LIKE '%/proc/1/root%'
 		      OR ((e.raw_data->>'privileged')::boolean = true
 		          AND lower(e.raw_data->>'process_name') IN ('bash','sh','zsh'))
 		  )`,
@@ -234,7 +260,7 @@ func (m *Monitor) GetRuntimeStats(ctx context.Context) RuntimeStats {
 	_ = m.pool.QueryRow(ctx, `
 		SELECT COUNT(DISTINCT e.raw_data->>'container_id')
 		FROM events e
-		WHERE e.event_type IN ('container_event','process','container_process')
+		WHERE e.event_type = 'process'
 		  AND e.time > NOW() - INTERVAL '30 days'
 		  AND e.raw_data ? 'container_id'
 		  AND e.raw_data->>'container_id' <> ''`,

@@ -52,7 +52,9 @@ func (h *RiskActionHandler) List(c *gin.Context) {
 		rules = append(rules, r)
 	}
 	if err := rows.Err(); err != nil {
-		slog.Warn("row iteration error", "error", err)
+		slog.Error("rows.Err: 結果の読み出しが途中で失敗しました", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "リスクアクションルール一覧の取得に失敗しました"})
+		return
 	}
 	if rules == nil {
 		rules = []RiskActionRule{}

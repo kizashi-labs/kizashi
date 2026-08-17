@@ -29,17 +29,11 @@ func NewTrainingHandlerWithNATS(pool *pgxpool.Pool, nc *nats.Conn) *TrainingHand
 }
 
 func (h *TrainingHandler) campaignsTableExists(ctx context.Context) bool {
-	var exists bool
-	_ = h.pool.QueryRow(ctx,
-		`SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name='training_campaigns')`).Scan(&exists)
-	return exists
+	return tableIsThere(ctx, h.pool, "training_campaigns")
 }
 
 func (h *TrainingHandler) resultsTableExists(ctx context.Context) bool {
-	var exists bool
-	_ = h.pool.QueryRow(ctx,
-		`SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name='training_results')`).Scan(&exists)
-	return exists
+	return tableIsThere(ctx, h.pool, "training_results")
 }
 
 // ListCampaigns — GET /training/campaigns
@@ -102,7 +96,9 @@ func (h *TrainingHandler) ListCampaigns(c *gin.Context) {
 		result = append(result, camp)
 	}
 	if err := rows.Err(); err != nil {
-		slog.Warn("row iteration error", "error", err)
+		slog.Error("rows.Err: 結果の読み出しが途中で失敗しました", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "キャンペーン一覧の取得に失敗しました"})
+		return
 	}
 	if result == nil {
 		result = []campaign{}
@@ -143,12 +139,14 @@ func (h *TrainingHandler) GetCampaign(c *gin.Context) {
 	resultsSummary := gin.H{"total": 0, "clicked": 0, "completed": 0}
 	if h.resultsTableExists(ctx) {
 		var total, clicked, completed int
-		_ = h.pool.QueryRow(ctx,
+		if !ReadOK(c, h.pool.QueryRow(ctx,
 			`SELECT COUNT(*),
-			        COUNT(*) FILTER (WHERE action='clicked'),
-			        COUNT(*) FILTER (WHERE completed_training=true)
-			 FROM training_results WHERE campaign_id=$1`, campID).
-			Scan(&total, &clicked, &completed)
+				        COUNT(*) FILTER (WHERE action='clicked'),
+				        COUNT(*) FILTER (WHERE completed_training=true)
+				 FROM training_results WHERE campaign_id=$1`, campID).
+			Scan(&total, &clicked, &completed)) {
+			return
+		}
 		resultsSummary = gin.H{"total": total, "clicked": clicked, "completed": completed}
 	}
 
@@ -234,8 +232,10 @@ func (h *TrainingHandler) LaunchCampaign(c *gin.Context) {
 		return
 	}
 
-	_, _ = h.pool.Exec(ctx,
-		`UPDATE training_campaigns SET sent_count=$1 WHERE id=$2`, targetCount, id)
+	if _, err := h.pool.Exec(ctx,
+		`UPDATE training_campaigns SET sent_count=$1 WHERE id=$2`, targetCount, id); !WriteOK(c, err) {
+		return
+	}
 
 	if h.nc != nil {
 		if err := h.nc.Publish("training.campaign.launched", []byte(`{"campaign_id":"`+id+`"}`)); err != nil {
@@ -257,14 +257,13 @@ func (h *TrainingHandler) GetResults(c *gin.Context) {
 	id := c.Param("id")
 	limit, _ := strconv.Atoi(c.DefaultQuery("per_page", "50"))
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
-	if page < 1 {
-		page = 1
-	}
-	offset := (page - 1) * limit
+	page, limit, offset := clampPageParams(page, limit, 50, 200)
 
 	var total int
-	_ = h.pool.QueryRow(ctx,
-		`SELECT COUNT(*) FROM training_results WHERE campaign_id=$1`, id).Scan(&total)
+	if !ReadOK(c, h.pool.QueryRow(ctx,
+		`SELECT COUNT(*) FROM training_results WHERE campaign_id=$1`, id).Scan(&total)) {
+		return
+	}
 
 	rows, err := h.pool.Query(ctx,
 		`SELECT id, campaign_id, user_id, email, action, action_at,
@@ -307,12 +306,14 @@ func (h *TrainingHandler) GetResults(c *gin.Context) {
 		results = append(results, r)
 	}
 	if err := rows.Err(); err != nil {
-		slog.Warn("row iteration error", "error", err)
+		slog.Error("rows.Err: 結果の読み出しが途中で失敗しました", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "結果の取得に失敗しました"})
+		return
 	}
 	if results == nil {
 		results = []result{}
 	}
-	c.JSON(http.StatusOK, gin.H{"results": results, "total": total, "page": page})
+	c.JSON(http.StatusOK, gin.H{"results": results, "total": total, "page": page, "per_page": limit})
 }
 
 // GetStats — GET /training/stats
@@ -328,20 +329,24 @@ func (h *TrainingHandler) GetStats(c *gin.Context) {
 	}
 
 	var campaignsThisMonth int
-	_ = h.pool.QueryRow(ctx,
+	if !ReadOK(c, h.pool.QueryRow(ctx,
 		`SELECT COUNT(*) FROM training_campaigns
-		 WHERE created_at >= date_trunc('month', NOW())`).Scan(&campaignsThisMonth)
+			 WHERE created_at >= date_trunc('month', NOW())`).Scan(&campaignsThisMonth)) {
+		return
+	}
 
 	var avgClickRate, avgCompletionRate float64
 	if h.resultsTableExists(ctx) {
-		_ = h.pool.QueryRow(ctx,
+		if !ReadOK(c, h.pool.QueryRow(ctx,
 			`SELECT
-			   COALESCE(AVG(CASE WHEN target_count > 0 THEN clicked_count::float / target_count ELSE 0 END) * 100, 0),
-			   COALESCE(AVG(CASE WHEN sent_count > 0 THEN
-			       (SELECT COUNT(*) FROM training_results tr WHERE tr.campaign_id=tc.id AND tr.completed_training=true)::float / sent_count
-			   ELSE 0 END) * 100, 0)
-			 FROM training_campaigns tc WHERE status IN ('running','completed')`).
-			Scan(&avgClickRate, &avgCompletionRate)
+				   COALESCE(AVG(CASE WHEN target_count > 0 THEN clicked_count::float / target_count ELSE 0 END) * 100, 0),
+				   COALESCE(AVG(CASE WHEN sent_count > 0 THEN
+				       (SELECT COUNT(*) FROM training_results tr WHERE tr.campaign_id=tc.id AND tr.completed_training=true)::float / sent_count
+				   ELSE 0 END) * 100, 0)
+				 FROM training_campaigns tc WHERE status IN ('running','completed')`).
+			Scan(&avgClickRate, &avgCompletionRate)) {
+			return
+		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{
@@ -377,10 +382,12 @@ func (h *TrainingHandler) SimulateClick(c *gin.Context) {
 		return
 	}
 	// Update campaign clicked_count
-	_, _ = h.pool.Exec(ctx,
+	if _, err := h.pool.Exec(ctx,
 		`UPDATE training_campaigns SET clicked_count = (
-		   SELECT COUNT(*) FROM training_results WHERE campaign_id=$1 AND action='clicked'
-		 ) WHERE id=$1`, id)
+			   SELECT COUNT(*) FROM training_results WHERE campaign_id=$1 AND action='clicked'
+			 ) WHERE id=$1`, id); !WriteOK(c, err) {
+		return
+	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "クリックをシミュレートしました"})
 }

@@ -5,10 +5,14 @@ package collector
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io/fs"
+	"math"
 	"strings"
 	"time"
 
+	"github.com/edr-platform/agent/internal/telemetry"
 	v1 "github.com/edr-platform/proto/agent/v1"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -24,7 +28,13 @@ type MemoryFinding struct {
 	Unbacked    bool   `json:"unbacked"`     // executable but not file/image-backed
 	RWX         bool   `json:"rwx"`          // writable + executable
 	YARAMatched bool   `json:"yara_matched"` // curated in-memory YARA rule hit
-	Reason      string `json:"reason"`
+	// Entropy is the Shannon entropy (0-8 bits/byte) of the region's leading
+	// bytes — a content measure that corroborates a suspicion the enumeration
+	// could only make from metadata. 0 means "not measured": the region was
+	// never content-scanned (not RWX, guarded, or unreadable). **0 is not
+	// "low entropy"**, and nothing downstream may read it as such.
+	Entropy float64 `json:"entropy"`
+	Reason  string  `json:"reason"`
 }
 
 // maxRegionScanBytes caps how much of a suspicious memory region is read and
@@ -49,6 +59,67 @@ func shouldContentScan(rwx, guarded bool) bool {
 	return rwx && !guarded
 }
 
+const (
+	// entropySampleSize is how many leading bytes of an already-read region are
+	// measured. The region read is capped at maxRegionScanBytes (4 MiB) for YARA;
+	// entropy converges long before that, so measuring the whole buffer would cost
+	// 64x the work for the same number.
+	entropySampleSize = 64 << 10
+	// highEntropyThreshold is where a region's bytes stop looking like code and
+	// start looking like ciphertext or compressed data — the shape of packed
+	// shellcode. x86 code sits around 6.0-6.5; encrypted payloads approach 8.0.
+	highEntropyThreshold = 7.0
+)
+
+// shannonEntropy returns the Shannon entropy of b in bits per byte (0-8).
+// Uniform-random bytes approach 8.0; a single repeated byte is 0. Empty input
+// is 0 — the caller must not treat that as a measurement.
+func shannonEntropy(b []byte) float64 {
+	if len(b) == 0 {
+		return 0
+	}
+	var counts [256]int
+	for _, c := range b {
+		counts[c]++
+	}
+	n := float64(len(b))
+	var h float64
+	for _, c := range counts {
+		if c == 0 {
+			continue
+		}
+		p := float64(c) / n
+		h -= p * math.Log2(p)
+	}
+	return h
+}
+
+// annotateEntropy measures data (the bytes already read for the YARA pass, so
+// this costs no extra I/O) and records the result on f.
+//
+// Enumeration can only say "this region's *metadata* looks odd" — RWX, or
+// executable with no file behind it. Both shapes occur in healthy processes,
+// which is why the size floors in shouldEmitMemoryFinding exist at all. Entropy
+// is the first thing here that looks at what the region actually *contains*, so
+// it is what separates "unusual allocation" from "there is packed code in it".
+//
+// It only annotates; it never promotes a finding on its own. A region that
+// would be dropped by the size floor is still dropped — high entropy in a
+// 4 KiB RWX page is what a JIT'd constant pool looks like too.
+func annotateEntropy(f *MemoryFinding, data []byte) {
+	if len(data) == 0 {
+		return
+	}
+	sample := data
+	if len(sample) > entropySampleSize {
+		sample = sample[:entropySampleSize]
+	}
+	f.Entropy = shannonEntropy(sample)
+	if f.Entropy >= highEntropyThreshold {
+		f.Reason += fmt.Sprintf("／高エントロピー%.2f（暗号化・圧縮シェルコードの裏取り）", f.Entropy)
+	}
+}
+
 // MemoryScanStats reports what one scan cycle actually cost. It exists because
 // the default-ON decision (#511) had to be made on measured overhead rather than
 // estimates, and it stays because the same numbers are what diagnose a host whose
@@ -63,13 +134,25 @@ type MemoryScanStats struct {
 	ProcessesEnumerated int // PIDs seen (/proc entries, Toolhelp snapshot)
 	ProcessesScanned    int // PIDs whose regions were actually walked
 	SkippedAllowlisted  int // JIT/managed-runtime allowlist hits
-	SkippedUnreadable   int // open/read denied (no SeDebugPrivilege, process exited)
-	RegionsExamined     int // memory regions inspected across all processes
-	RegionsYARAScanned  int // regions whose bytes were read and YARA-scanned
-	BytesYARAScanned    int64
-	RawFindings         int // suspicious regions before the size-floor policy
-	EmittedFindings     int // regions actually reported as events
-	Duration            time.Duration
+
+	// SkippedUnreadable — **開こうとして断られた** PID の数。
+	//
+	// 以前はここに「終了したプロセス」も混ざっていました。両方を
+	// 1つの数に入れると、**この数は使えません** —— プロセスは走査中に
+	// 普通に終了するので、健全な端末でも毎周期ゼロになりません。
+	// 混ざったままでは「見えていない端末」を判定できず、実際どこも
+	// 判定していませんでした。
+	SkippedUnreadable int
+
+	// SkippedGone — 走査するまでに終了していた PID の数。
+	// **正常です。** 見えていないことではありません。
+	SkippedGone        int
+	RegionsExamined    int // memory regions inspected across all processes
+	RegionsYARAScanned int // regions whose bytes were read and YARA-scanned
+	BytesYARAScanned   int64
+	RawFindings        int // suspicious regions before the size-floor policy
+	EmittedFindings    int // regions actually reported as events
+	Duration           time.Duration
 
 	// Slowest single process in the cycle — identifies the one address space
 	// (huge heap, thousands of regions) that dominates the cycle cost, which the
@@ -89,6 +172,41 @@ func (s *MemoryScanStats) observeProcess(pid int, name string, regions int, d ti
 	}
 }
 
+// memScanSensor は telemetry に登録する名前です。
+const memScanSensor = "memscan"
+
+// report — 走査できなかったことを、端末の外に出します。
+//
+// **この数値はこれまで端末の中だけにありました。** 出ていたのは
+// `slog.Debug` の1行で、既定のログ水準では出ません。読む人もいません。
+//
+// 何が見えなくなるか: このスキャナは RWX / 非バック実行領域 ——
+// **コード注入とシェルコード**を探します。開けなかったプロセスの中は
+// 見ていません。サーバから見ると、注入されていない端末と、
+// 中を見られなかった端末が**同じ姿**です。
+//
+// これが効くのは Windows です。MemoryScanStats のコメントが言うとおり、
+// **SeDebugPrivilege が無いとシステムプロセスはほぼ開けません。**
+//
+// 数えるのは「断られた」ものだけです。**終了していたプロセスは
+// 数えません** —— 走査中に終了するのは正常で、混ぜると健全な端末まで
+// 毎周期赤くなり、本当に見えていない端末がその中に埋もれます。
+// （FIM で「存在しないパス」を数えなかったのと同じ判断です。）
+func (s MemoryScanStats) report() {
+	switch {
+	case s.ProcessesEnumerated == 0:
+		telemetry.Set(memScanSensor, telemetry.ModeFailed,
+			"プロセスを1件も列挙できませんでした")
+	case s.SkippedUnreadable > 0:
+		telemetry.Set(memScanSensor, telemetry.ModeFailed,
+			fmt.Sprintf("開けなかったプロセス %d 件 / 列挙 %d 件",
+				s.SkippedUnreadable, s.ProcessesEnumerated))
+	default:
+		// 直ったら赤も消します。**直らない赤は、赤でないのと同じです。**
+		telemetry.Forget(memScanSensor)
+	}
+}
+
 // LogArgs renders the stats as slog key/value pairs for the per-cycle load line.
 func (s MemoryScanStats) LogArgs() []any {
 	return []any{
@@ -97,6 +215,7 @@ func (s MemoryScanStats) LogArgs() []any {
 		"procs_scanned", s.ProcessesScanned,
 		"skipped_allowlisted", s.SkippedAllowlisted,
 		"skipped_unreadable", s.SkippedUnreadable,
+		"skipped_gone", s.SkippedGone,
 		"regions_examined", s.RegionsExamined,
 		"regions_yara_scanned", s.RegionsYARAScanned,
 		"yara_bytes", s.BytesYARAScanned,
@@ -201,4 +320,35 @@ func BuildMemoryEvent(agentID string, f MemoryFinding) *v1.EventBatch {
 			Type:      v1.EventType_EVENT_TYPE_LOG,
 		}},
 	}
+}
+
+// skipReason — 1プロセスを走査できなかった理由。
+//
+// **「開けなかった」の中に2つ入っていました。** 混ぜると、健全な端末でも
+// 毎周期ゼロにならない数になり、「中を見られていない端末」の判定に
+// 使えません。
+type skipReason int
+
+const (
+	// skipNone — 走査できました。
+	skipNone skipReason = iota
+	// skipGone — 走査するまでにプロセスが終了していました。**正常です。**
+	skipGone
+	// skipDenied — 開こうとして断られました。**この中は見ていません。**
+	skipDenied
+)
+
+// classifySkip maps an open error to the reason.
+//
+// **既定は skipDenied です。** 分からない失敗を「正常」に倒すと、
+// 見えていないことが健全と同じ姿になります —— このキャンペーンが
+// 扱ってきた失敗そのものです。
+func classifySkip(err error) skipReason {
+	if err == nil {
+		return skipNone
+	}
+	if errors.Is(err, fs.ErrNotExist) {
+		return skipGone
+	}
+	return skipDenied
 }

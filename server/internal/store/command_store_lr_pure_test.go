@@ -2,48 +2,25 @@ package store
 
 import (
 	"encoding/json"
+	"os"
 	"strings"
 	"testing"
 )
 
-// ─── コマンドタイプ分類ヘルパー（テスト専用）──────────────────────────────────
-// command_store_lr.go / live_response_store.go で使用されるコマンドタイプを
-// 純粋関数として分類・検証するヘルパーを定義する。
-
-// isLiveResponseCommandType はコマンドタイプがライブレスポンス関連かどうかを判定する
-func isLiveResponseCommandType(cmdType string) bool {
-	switch cmdType {
-	case "shell", "file_get", "file_put", "process_list",
-		"process_kill", "file_delete", "memory_dump":
-		return true
-	}
-	return false
-}
-
-// isReadOnlyCommand は読み取り専用コマンドかどうかを判定する
-// 読み取り専用は副作用がないため安全に実行可能
-func isReadOnlyCommand(cmdType string) bool {
-	switch cmdType {
-	case "process_list", "file_get", "shell":
-		return true
-	}
-	return false
-}
-
-// isDestructiveCommand は破壊的なコマンドかどうかを判定する
-func isDestructiveCommand(cmdType string) bool {
-	switch cmdType {
-	case "file_delete", "process_kill", "memory_dump":
-		return true
-	}
-	return false
-}
-
-// liveResponseNATSSubject は NATS サブジェクト文字列を生成する
-// EnqueueLiveResponseStart と同じパターン: "commands.<agentID>.live_response_start"
-func liveResponseNATSSubject(agentID string) string {
-	return "commands." + agentID + ".live_response_start"
-}
+// コマンド種別の分類（`isLiveResponseCommandType` /
+// `isReadOnlyCommand` / `isDestructiveCommand`）は、**製品のどこにも
+// ありません。** 検査の中だけで定義され、それ自身が試されていました。
+//
+// そのうえ中身が危うい。`shell` を「読み取り専用（副作用がないため安全に
+// 実行可能）」に分類しています —— **`shell` は任意のコマンドを実行します。**
+// この分類が権限判定に繋がっていたら、そのまま穴になります。繋がって
+// いないので今は何も壊れていませんが、**「安全」と書かれた一覧が残って
+// いるだけで、次に誰かが使います。**
+//
+// 消しました。分類が要るなら、それは製品側に足す話です
+// （判断待ちの一覧にあります）。
+//
+// NATS のサブジェクト組み立ては本物 (`liveResponseSubject`) に向けました。
 
 // ─── LiveResponseStartPayload テスト ─────────────────────────────────────────
 
@@ -138,7 +115,7 @@ func TestLiveResponseStartPayload_JSONFieldNames(t *testing.T) {
 // NATS サブジェクトにエージェントIDが含まれることを確認する
 func TestLiveResponseNATSSubject_ContainsAgentID(t *testing.T) {
 	agentID := "agent-uuid-001"
-	subject := liveResponseNATSSubject(agentID)
+	subject := liveResponseSubject(agentID)
 	if !strings.Contains(subject, agentID) {
 		t.Errorf("NATSサブジェクトにエージェントIDが含まれるべき: %q", subject)
 	}
@@ -147,7 +124,7 @@ func TestLiveResponseNATSSubject_ContainsAgentID(t *testing.T) {
 // TestLiveResponseNATSSubject_HasCorrectPrefix は
 // NATS サブジェクトが "commands." で始まることを確認する
 func TestLiveResponseNATSSubject_HasCorrectPrefix(t *testing.T) {
-	subject := liveResponseNATSSubject("agent-001")
+	subject := liveResponseSubject("agent-001")
 	if !strings.HasPrefix(subject, "commands.") {
 		t.Errorf("NATSサブジェクトは \"commands.\" で始まるべき: %q", subject)
 	}
@@ -156,7 +133,7 @@ func TestLiveResponseNATSSubject_HasCorrectPrefix(t *testing.T) {
 // TestLiveResponseNATSSubject_HasCorrectSuffix は
 // NATS サブジェクトが ".live_response_start" で終わることを確認する
 func TestLiveResponseNATSSubject_HasCorrectSuffix(t *testing.T) {
-	subject := liveResponseNATSSubject("agent-001")
+	subject := liveResponseSubject("agent-001")
 	if !strings.HasSuffix(subject, ".live_response_start") {
 		t.Errorf("NATSサブジェクトは \".live_response_start\" で終わるべき: %q", subject)
 	}
@@ -165,8 +142,8 @@ func TestLiveResponseNATSSubject_HasCorrectSuffix(t *testing.T) {
 // TestLiveResponseNATSSubject_DifferentAgentsHaveDifferentSubjects は
 // 異なるエージェントIDが異なるサブジェクトを生成することを確認する
 func TestLiveResponseNATSSubject_DifferentAgentsHaveDifferentSubjects(t *testing.T) {
-	s1 := liveResponseNATSSubject("agent-aaa")
-	s2 := liveResponseNATSSubject("agent-bbb")
+	s1 := liveResponseSubject("agent-aaa")
+	s2 := liveResponseSubject("agent-bbb")
 	if s1 == s2 {
 		t.Error("異なるエージェントIDは異なるNATSサブジェクトを生成するべき")
 	}
@@ -175,64 +152,6 @@ func TestLiveResponseNATSSubject_DifferentAgentsHaveDifferentSubjects(t *testing
 // ─── コマンドタイプ分類テスト ─────────────────────────────────────────────────
 
 // TestIsLiveResponseCommandType_ValidTypes は有効なライブレスポンスコマンドタイプを確認する
-func TestIsLiveResponseCommandType_ValidTypes(t *testing.T) {
-	validTypes := []string{
-		"shell", "file_get", "file_put",
-		"process_list", "process_kill",
-		"file_delete", "memory_dump",
-	}
-	for _, ct := range validTypes {
-		if !isLiveResponseCommandType(ct) {
-			t.Errorf("isLiveResponseCommandType(%q) = false, want true", ct)
-		}
-	}
-}
-
-// TestIsLiveResponseCommandType_InvalidType は無効なコマンドタイプが false を返すことを確認する
-func TestIsLiveResponseCommandType_InvalidType(t *testing.T) {
-	invalidTypes := []string{"", "unknown", "SHELL", "File_Get", "collect_artifact"}
-	for _, ct := range invalidTypes {
-		if isLiveResponseCommandType(ct) {
-			t.Errorf("isLiveResponseCommandType(%q) = true, want false", ct)
-		}
-	}
-}
-
-// TestIsReadOnlyCommand_ClassifiesCorrectly は読み取り専用コマンドの分類を確認する
-func TestIsReadOnlyCommand_ClassifiesCorrectly(t *testing.T) {
-	readOnly := []string{"process_list", "file_get", "shell"}
-	for _, ct := range readOnly {
-		if !isReadOnlyCommand(ct) {
-			t.Errorf("isReadOnlyCommand(%q) = false, want true", ct)
-		}
-	}
-	notReadOnly := []string{"file_put", "process_kill", "file_delete", "memory_dump"}
-	for _, ct := range notReadOnly {
-		if isReadOnlyCommand(ct) {
-			t.Errorf("isReadOnlyCommand(%q) = true, want false", ct)
-		}
-	}
-}
-
-// TestIsDestructiveCommand_ClassifiesCorrectly は破壊的コマンドの分類を確認する
-func TestIsDestructiveCommand_ClassifiesCorrectly(t *testing.T) {
-	destructive := []string{"file_delete", "process_kill", "memory_dump"}
-	for _, ct := range destructive {
-		if !isDestructiveCommand(ct) {
-			t.Errorf("isDestructiveCommand(%q) = false, want true", ct)
-		}
-	}
-	safe := []string{"shell", "file_get", "file_put", "process_list"}
-	for _, ct := range safe {
-		if isDestructiveCommand(ct) {
-			t.Errorf("isDestructiveCommand(%q) = true, want false", ct)
-		}
-	}
-}
-
-// ─── QueuedCommand 構造体テスト ───────────────────────────────────────────────
-
-// TestQueuedCommand_ZeroValue は QueuedCommand のゼロ値フィールドを確認する
 func TestQueuedCommand_ZeroValue(t *testing.T) {
 	var cmd QueuedCommand
 	if cmd.ID != "" {
@@ -281,4 +200,56 @@ func TestQueuedCommand_ExitCodeZeroMeansSuccess(t *testing.T) {
 	if *cmd.ExitCode != 0 {
 		t.Errorf("ExitCode = %d, want 0", *cmd.ExitCode)
 	}
+}
+
+// 送る側のサブジェクトが、受け取る側の購読パターンに一致すること。
+//
+// **文字列が2箇所にあります。** 片方だけ変えると購読が外れ、ライブ
+// レスポンスの開始要求が届きません —— 画面からは「エージェントが応答
+// しない」と同じ姿になります。
+//
+// 受け取る側は `cmd/ingestion` の `commands.*.live_response_start` です。
+// あそこは package main なので呼べません。**パターンの側を読みます** ——
+// 読めなければ落とします。読めないことを「一致した」と同じ結果には
+// しません。
+func TestTheSubjectMatchesWhatIngestionSubscribesTo(t *testing.T) {
+	const path = "../../cmd/ingestion/main.go"
+	src, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("%s を読めません: %v。**購読側と照合できません**", path, err)
+	}
+	const quoted = `"commands.*.live_response_start"`
+	if !strings.Contains(string(src), quoted) {
+		t.Fatalf("%s に %s がありません。購読側が変わったのなら、"+
+			"送る側 (liveResponseSubject) も見直してください", path, quoted)
+	}
+
+	pattern := strings.Trim(quoted, `"`)
+	subject := liveResponseSubject("11111111-2222-3333-4444-555555555555")
+	if !natsSubjectMatches(pattern, subject) {
+		t.Errorf("送る側 %q が購読パターン %q に一致しません", subject, pattern)
+	}
+	// `*` は1トークンだけです。**この前提が崩れると、上の一致は
+	// 何も言っていないことになります。**
+	if natsSubjectMatches(pattern, "commands.a.b.live_response_start") {
+		t.Error("`*` が複数トークンに一致しています")
+	}
+	if natsSubjectMatches(pattern, "commands.a.other") {
+		t.Error("末尾が違うのに一致しています")
+	}
+}
+
+// natsSubjectMatches implements NATS' single-token `*` wildcard.
+func natsSubjectMatches(pattern, subject string) bool {
+	p := strings.Split(pattern, ".")
+	s := strings.Split(subject, ".")
+	if len(p) != len(s) {
+		return false
+	}
+	for i := range p {
+		if p[i] != "*" && p[i] != s[i] {
+			return false
+		}
+	}
+	return true
 }

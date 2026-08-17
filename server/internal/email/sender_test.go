@@ -10,7 +10,10 @@ import (
 func TestRenderTemplate_BasicSubstitution(t *testing.T) {
 	tmpl := "Hello {{.Name}}, your URL is {{.URL}}"
 	data := map[string]string{"Name": "Alice", "URL": "https://example.com"}
-	got := renderTemplate(tmpl, data)
+	got, err := renderTemplate(tmpl, data)
+	if err != nil {
+		t.Fatalf("render: %v", err)
+	}
 	if !strings.Contains(got, "Alice") {
 		t.Errorf("置換後に 'Alice' が含まれるべき: %q", got)
 	}
@@ -23,27 +26,45 @@ func TestRenderTemplate_MissingKey(t *testing.T) {
 	// Goのtemplateはmapにキーが存在しない場合空文字列を返す
 	tmpl := "Hello {{.MissingKey}}"
 	data := map[string]string{}
-	got := renderTemplate(tmpl, data)
+	got, err := renderTemplate(tmpl, data)
+	if err != nil {
+		t.Fatalf("render: %v", err)
+	}
 	// エラーにならず、空文字列で置換される
 	if got == "" {
 		t.Error("テンプレートは空でなく部分的に描画されるべき")
 	}
 }
 
-func TestRenderTemplate_InvalidTemplate(t *testing.T) {
-	// 無効なテンプレート構文 → 空文字列を返す
+// 以前この検査は「無効なテンプレートは空文字列を返すべき」でした。
+// 空文字列は呼び出し側でそのまま Send に渡ります。パスワード再設定の
+// 案内が白紙で届く、という契約が固定されていたことになります。
+func TestAnUnrenderableTemplateDoesNotBecomeAnEmptyEmail(t *testing.T) {
 	tmpl := "{{.Name" // 閉じ括弧なし
 	data := map[string]string{"Name": "test"}
-	got := renderTemplate(tmpl, data)
+	got, err := renderTemplate(tmpl, data)
+	if err == nil {
+		t.Fatal("無効なテンプレートがエラーになっていません。" +
+			"呼び出し側は本文が空のまま送信します")
+	}
 	if got != "" {
-		t.Errorf("無効なテンプレートは空文字列を返すべき: got %q", got)
+		t.Errorf("失敗したのに本文を返しています: %q", got)
+	}
+}
+
+func TestAnEmptyBodyIsRefused(t *testing.T) {
+	if _, err := renderTemplate("", map[string]string{}); err == nil {
+		t.Error("本文が空のまま通しています")
 	}
 }
 
 func TestRenderTemplate_EmptyData(t *testing.T) {
 	tmpl := "No placeholders here."
 	data := map[string]string{}
-	got := renderTemplate(tmpl, data)
+	got, err := renderTemplate(tmpl, data)
+	if err != nil {
+		t.Fatalf("render: %v", err)
+	}
 	if got != "No placeholders here." {
 		t.Errorf("プレースホルダーなしは元のテキストをそのまま返すべき: got %q", got)
 	}
@@ -52,7 +73,10 @@ func TestRenderTemplate_EmptyData(t *testing.T) {
 func TestRenderTemplate_MultipleKeys(t *testing.T) {
 	tmpl := "{{.A}} + {{.B}} = {{.C}}"
 	data := map[string]string{"A": "1", "B": "2", "C": "3"}
-	got := renderTemplate(tmpl, data)
+	got, err := renderTemplate(tmpl, data)
+	if err != nil {
+		t.Fatalf("render: %v", err)
+	}
 	want := "1 + 2 = 3"
 	if got != want {
 		t.Errorf("got %q, want %q", got, want)
@@ -68,7 +92,10 @@ func TestRenderTemplateDynamic_WithStruct(t *testing.T) {
 	}
 	tmpl := "{{.Title}}: {{.Message}}"
 	data := Data{Title: "Alert", Message: "Threat detected"}
-	got := renderTemplateDynamic(tmpl, data)
+	got, err := renderTemplateDynamic(tmpl, data)
+	if err != nil {
+		t.Fatalf("render: %v", err)
+	}
 	if !strings.Contains(got, "Alert") {
 		t.Errorf("構造体フィールドが描画されるべき: got %q", got)
 	}
@@ -80,22 +107,31 @@ func TestRenderTemplateDynamic_WithStruct(t *testing.T) {
 func TestRenderTemplateDynamic_WithMap(t *testing.T) {
 	tmpl := "{{index . \"key\"}}"
 	data := map[string]interface{}{"key": "value123"}
-	got := renderTemplateDynamic(tmpl, data)
+	got, err := renderTemplateDynamic(tmpl, data)
+	if err != nil {
+		t.Fatalf("render: %v", err)
+	}
 	if !strings.Contains(got, "value123") {
 		t.Errorf("mapの値が描画されるべき: got %q", got)
 	}
 }
 
-func TestRenderTemplateDynamic_InvalidTemplate(t *testing.T) {
-	got := renderTemplateDynamic("{{.Unclosed", "data")
+func TestAnUnrenderableDynamicTemplateIsAnError(t *testing.T) {
+	got, err := renderTemplateDynamic("{{.Unclosed", "data")
+	if err == nil {
+		t.Fatal("無効なテンプレートがエラーになっていません")
+	}
 	if got != "" {
-		t.Errorf("無効なテンプレートは空文字列を返すべき: got %q", got)
+		t.Errorf("失敗したのに本文を返しています: %q", got)
 	}
 }
 
 func TestRenderTemplateDynamic_NilData(t *testing.T) {
 	// nil データでもパニックしないこと
-	got := renderTemplateDynamic("Hello world", nil)
+	got, err := renderTemplateDynamic("Hello world", nil)
+	if err != nil {
+		t.Fatalf("render: %v", err)
+	}
 	if got != "Hello world" {
 		t.Errorf("nilデータでも静的テキストは描画されるべき: got %q", got)
 	}

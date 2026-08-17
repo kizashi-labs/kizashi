@@ -44,14 +44,24 @@ type DeviceEventFilter struct {
 }
 
 // List returns device events matching the filter with total count for pagination.
-func (s *DeviceEventStore) List(ctx context.Context, f DeviceEventFilter) ([]*DeviceEvent, int, error) {
-	if f.Limit <= 0 {
-		f.Limit = 50
+// clampDeviceEventLimit bounds one page of device events.
+//
+// **0 を通すと 0 件返ります** —— 画面では「デバイスの記録が無い」と
+// 見分けが付きません。上限が無いと、1回の要求で全件を読みにいきます。
+func clampDeviceEventLimit(limit int) int {
+	if limit <= 0 {
+		return 50
 	}
-	if f.Limit > 500 {
-		f.Limit = 500
+	if limit > 500 {
+		return 500
 	}
+	return limit
+}
 
+// deviceEventListWhere builds the WHERE clause and arguments for List.
+//
+// 公開はしません（`TestStoreSymbolsAreReachable`）。
+func deviceEventListWhere(f DeviceEventFilter) (string, []interface{}) {
 	where := "WHERE 1=1"
 	args := []interface{}{}
 	idx := 1
@@ -81,6 +91,14 @@ func (s *DeviceEventStore) List(ctx context.Context, f DeviceEventFilter) ([]*De
 		args = append(args, *f.Until)
 		idx++
 	}
+	_ = idx
+	return where, args
+}
+
+func (s *DeviceEventStore) List(ctx context.Context, f DeviceEventFilter) ([]*DeviceEvent, int, error) {
+	f.Limit = clampDeviceEventLimit(f.Limit)
+	where, args := deviceEventListWhere(f)
+	idx := len(args) + 1
 
 	var total int
 	if err := s.pool.QueryRow(ctx,
@@ -123,6 +141,10 @@ func (s *DeviceEventStore) List(ctx context.Context, f DeviceEventFilter) ([]*De
 		e.RawData = rawData
 		events = append(events, &e)
 	}
+	// 部分結果を完全な一覧として返さない（scan_truncation_guard_test.go 参照）
+	if err := rows.Err(); err != nil {
+		return nil, 0, err
+	}
 	if events == nil {
 		events = []*DeviceEvent{}
 	}
@@ -160,6 +182,10 @@ func (s *DeviceEventStore) Stats(ctx context.Context, since time.Time) ([]Device
 			continue
 		}
 		result = append(result, r)
+	}
+	// 部分結果を完全な一覧として返さない（scan_truncation_guard_test.go 参照）
+	if err := rows.Err(); err != nil {
+		return nil, err
 	}
 	if result == nil {
 		result = []DeviceEventStatRow{}

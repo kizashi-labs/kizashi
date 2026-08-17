@@ -2,11 +2,32 @@ package scheduler
 
 import (
 	"context"
-	"github.com/edr-platform/server/internal/detection"
 	"log/slog"
 	"time"
 
+	"github.com/edr-platform/server/internal/backup"
+	"github.com/edr-platform/server/internal/detection"
+	"github.com/edr-platform/server/internal/store"
+
 	"github.com/jackc/pgx/v5/pgxpool"
+)
+
+// Recover (RC) scoring bands. The values match the ones the previous
+// backup_schedules check would have produced, so a deployment that was already
+// backing up does not see its NIST score move for a reason unrelated to its
+// posture — only deployments that were being scored on a table that never
+// existed do.
+const (
+	// recoverScoreFloor: no completed backup on record at all.
+	recoverScoreFloor = 30.0
+	// recoverScoreStale: backups have succeeded, but not recently enough to
+	// count as a live recovery capability.
+	recoverScoreStale = 50.0
+	// recoverScoreFresh: a backup completed within recoverFreshWindow.
+	recoverScoreFresh = 80.0
+	// recoverFreshWindow matches BackupScheduler's default 24h interval with
+	// room to spare, and its retention of the last 7 backups.
+	recoverFreshWindow = 7 * 24 * time.Hour
 )
 
 // ComplianceScorer periodically calculates compliance scores and stores history.
@@ -27,7 +48,7 @@ func (s *ComplianceScorer) Run(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			s.calculate(ctx)
+			trackRun(ctx, "compliance_scorer", s.calculate)
 		}
 	}
 }
@@ -41,7 +62,7 @@ func (s *ComplianceScorer) calculate(ctx context.Context) {
 			WHERE table_schema = 'public' AND table_name = 'compliance_scores'
 		)`).Scan(&exists)
 	if err != nil || !exists {
-		slog.Warn("コンプライアンススコアテーブルが存在しません、スキップします")
+		fail(ctx, err, "コンプライアンススコアテーブルが存在しません、スキップします")
 		return
 	}
 
@@ -63,7 +84,7 @@ func (s *ComplianceScorer) calculate(ctx context.Context) {
 		WHERE mitre_technique IS NOT NULL AND mitre_technique != ''
 	`)
 	if err != nil {
-		slog.Error("MITREスコア計算エラー", "error", err)
+		fail(ctx, err, "MITREスコア計算エラー")
 	} else {
 		tactics := map[string]struct{}{}
 		for rows.Next() {
@@ -77,7 +98,7 @@ func (s *ComplianceScorer) calculate(ctx context.Context) {
 			}
 		}
 		if err := rows.Err(); err != nil {
-			slog.Error("MITREスコア計算エラー", "error", err)
+			fail(ctx, err, "MITREスコア計算エラー")
 		}
 		rows.Close()
 		coveredTactics = len(tactics)
@@ -94,8 +115,12 @@ func (s *ComplianceScorer) calculate(ctx context.Context) {
 	err = s.pool.QueryRow(ctx,
 		`SELECT COUNT(*) FROM rules WHERE enabled = TRUE`).Scan(&enabledRules)
 	if err != nil {
-		slog.Error("CISスコア計算エラー", "error", err)
-		enabledRules = 0
+		// 0 で続けると CIS スコアは 0 になり、compliance_scores に
+		// 時刻付きで保存されます。障害が終わっても、その記録は残ります。
+		// internal/compliance/scorer.go は同じ形を ErrNothingAssessed で
+		// 拒んでいます。こちらだけが作っていました。
+		fail(ctx, err, "コンプライアンススコア: 有効ルール数を数えられないため記録しません")
+		return
 	}
 	cisScore := float64(enabledRules) / 18.0 * 100.0
 	if cisScore > 95.0 {
@@ -105,11 +130,21 @@ func (s *ComplianceScorer) calculate(ctx context.Context) {
 	// 4. Calculate NIST CSF score (5 Functions: Identify / Protect / Detect / Respond / Recover)
 	//
 	// ID (Identify): オンラインエージェント率 → アセット把握度
+	// **数えられなかった 0 と、本当の 0 は同じ形です。** ここで読み違えると
+	// スコアはそのまま履歴テーブルに書かれ、あとから「その日は本当に
+	// 低かった」と読まれます。有効ルール数（上）だけがこの形になって
+	// いて、残りは `_ =` で捨てていました。
 	var totalAgents, onlineAgents int
-	_ = s.pool.QueryRow(ctx, `SELECT COUNT(*) FROM agents`).Scan(&totalAgents)
-	_ = s.pool.QueryRow(ctx, `
+	if err := s.pool.QueryRow(ctx, `SELECT COUNT(*) FROM agents`).Scan(&totalAgents); err != nil {
+		fail(ctx, err, "コンプライアンススコア: エージェント数を数えられないため記録しません")
+		return
+	}
+	if err := s.pool.QueryRow(ctx, `
 		SELECT COUNT(*) FROM agents WHERE last_seen >= NOW() - INTERVAL '10 minutes'`,
-	).Scan(&onlineAgents)
+	).Scan(&onlineAgents); err != nil {
+		fail(ctx, err, "コンプライアンススコア: オンライン数を数えられないため記録しません")
+		return
+	}
 	identifyScore := 0.0
 	if totalAgents > 0 {
 		identifyScore = float64(onlineAgents) / float64(totalAgents) * 100.0
@@ -117,7 +152,10 @@ func (s *ComplianceScorer) calculate(ctx context.Context) {
 
 	// PR (Protect): 有効ルール率
 	var totalRules int
-	_ = s.pool.QueryRow(ctx, `SELECT COUNT(*) FROM rules`).Scan(&totalRules)
+	if err := s.pool.QueryRow(ctx, `SELECT COUNT(*) FROM rules`).Scan(&totalRules); err != nil {
+		fail(ctx, err, "コンプライアンススコア: ルール総数を数えられないため記録しません")
+		return
+	}
 	protectScore := 0.0
 	if totalRules > 0 {
 		protectScore = float64(enabledRules) / float64(totalRules) * 100.0
@@ -125,10 +163,16 @@ func (s *ComplianceScorer) calculate(ctx context.Context) {
 
 	// DE (Detect): アラート検知率（直近7日でアラートが存在すれば上昇）
 	var alertCount, recentAlerts int
-	_ = s.pool.QueryRow(ctx, `SELECT COUNT(*) FROM alerts`).Scan(&alertCount)
-	_ = s.pool.QueryRow(ctx, `
+	if err := s.pool.QueryRow(ctx, `SELECT COUNT(*) FROM alerts`).Scan(&alertCount); err != nil {
+		fail(ctx, err, "コンプライアンススコア: アラート総数を数えられないため記録しません")
+		return
+	}
+	if err := s.pool.QueryRow(ctx, `
 		SELECT COUNT(*) FROM alerts WHERE created_at >= NOW() - INTERVAL '7 days'`,
-	).Scan(&recentAlerts)
+	).Scan(&recentAlerts); err != nil {
+		fail(ctx, err, "コンプライアンススコア: 直近アラート数を数えられないため記録しません")
+		return
+	}
 	detectScore := 40.0
 	if alertCount > 0 {
 		detectScore = 70.0
@@ -139,43 +183,36 @@ func (s *ComplianceScorer) calculate(ctx context.Context) {
 
 	// RS (Respond): アラート解決率
 	var resolvedAlerts int
-	_ = s.pool.QueryRow(ctx, `
+	if err := s.pool.QueryRow(ctx, `
 		SELECT COUNT(*) FROM alerts WHERE status IN ('resolved','closed')`,
-	).Scan(&resolvedAlerts)
+	).Scan(&resolvedAlerts); err != nil {
+		fail(ctx, err, "コンプライアンススコア: 解決済みアラート数を数えられないため記録しません")
+		return
+	}
 	respondScore := 0.0
 	if alertCount > 0 {
 		respondScore = float64(resolvedAlerts) / float64(alertCount) * 100.0
 	}
 
-	// RC (Recover): バックアップ設定の有無をbackup_schedulesテーブルで確認
-	var backupCount int
-	_ = s.pool.QueryRow(ctx, `
-		SELECT COUNT(*) FROM information_schema.tables
-		WHERE table_schema='public' AND table_name='backup_schedules'`).Scan(&backupCount)
-	recoverScore := 30.0
-	if backupCount > 0 {
-		var scheduledBackups int
-		_ = s.pool.QueryRow(ctx, `SELECT COUNT(*) FROM backup_schedules WHERE enabled = true`).Scan(&scheduledBackups)
-		if scheduledBackups > 0 {
-			recoverScore = 80.0
-		} else {
-			recoverScore = 50.0
-		}
-	}
+	recoverScore := s.recoverScore(ctx)
 
 	// NIST CSF 総合スコア (各ファンクションを均等に重み付け)
 	nistScore := (identifyScore + protectScore + detectScore + respondScore + recoverScore) / 5.0
 
 	// 5. ISO 27001 score: 監査ログ・インシデント管理・ポリシー策定を考慮
-	var auditLogCount int
-	_ = s.pool.QueryRow(ctx, `
-		SELECT COUNT(*) FROM information_schema.tables
-		WHERE table_schema='public' AND table_name='audit_logs'`).Scan(&auditLogCount)
+	// **確認できなかったことを「テーブルが無い」と答えていました。**
+	// どちらの `_ =` も、DB が一時的に応答しないだけで recentAuditLogs を
+	// 0 のままにします。ISO 27001 のスコアはそこで 20 点低く計算され、
+	// **そのまま履歴テーブルに書かれます** —— 監査ログが在るのに
+	// 「A.12.4 監査ログ 未達」として残ります。
 	var recentAuditLogs int
-	if auditLogCount > 0 {
-		_ = s.pool.QueryRow(ctx, `
+	if store.TableIsThere(ctx, s.pool, "audit_logs") {
+		if err := s.pool.QueryRow(ctx, `
 			SELECT COUNT(*) FROM audit_logs WHERE created_at >= NOW() - INTERVAL '30 days'`,
-		).Scan(&recentAuditLogs)
+		).Scan(&recentAuditLogs); err != nil {
+			fail(ctx, err, "コンプライアンススコア: 監査ログを数えられないため記録しません")
+			return
+		}
 	}
 
 	// ISO 27001スコア算出ロジック
@@ -245,7 +282,7 @@ func (s *ComplianceScorer) calculate(ctx context.Context) {
 			VALUES ($1, $2, $3::jsonb, NOW())
 		`, fs.framework, fs.score, fs.details)
 		if err != nil {
-			slog.Error("コンプライアンススコア保存エラー", "framework", fs.framework, "error", err)
+			fail(ctx, err, "コンプライアンススコア保存エラー", "framework", fs.framework)
 		}
 	}
 
@@ -255,7 +292,7 @@ func (s *ComplianceScorer) calculate(ctx context.Context) {
 		WHERE calculated_at < NOW() - INTERVAL '30 days'
 	`)
 	if err != nil {
-		slog.Error("コンプライアンス履歴クリーンアップエラー", "error", err)
+		fail(ctx, err, "コンプライアンス履歴クリーンアップエラー")
 	}
 
 	slog.Info("コンプライアンススコアを計算しました",
@@ -308,4 +345,42 @@ func itoa(i int) string {
 		buf[pos] = '-'
 	}
 	return string(buf[pos:])
+}
+
+// recoverScore scores the NIST CSF Recover function from backup evidence.
+//
+// This used to ask whether a backup_schedules table existed and had an
+// enabled row. No migration creates that table, so the guard was false on
+// every deployment and Recover was pinned at 30.0 for ever — the floor,
+// dragging the whole NIST score down by a fixed amount no operator could
+// affect however diligently they backed up.
+//
+// It is scored from evidence instead: BackupScheduler records each pg_dump
+// in `backups`, marking StatusCompleted only after the dump passes its
+// integrity check. Whether recovery is actually possible is a better answer
+// to RC than whether a configuration row exists, and it is an answer this
+// database can give.
+//
+// The status is passed as a parameter rather than written as a literal.
+// A sibling reader once counted `status = 'success'`, a word nothing has
+// ever written, and reported 30/non_compliant for four controls on every
+// deployment — see internal/backup/status.go.
+func (s *ComplianceScorer) recoverScore(ctx context.Context) float64 {
+	recoverScore := recoverScoreFloor
+	var lastBackup *time.Time
+	if err := s.pool.QueryRow(ctx,
+		`SELECT MAX(finished_at) FROM backups WHERE status = $1`,
+		backup.StatusCompleted,
+	).Scan(&lastBackup); err != nil {
+		// Not silent: a scoring input that cannot be read must not look like a
+		// measured zero.
+		fail(ctx, err, "コンプライアンススコア: バックアップ実績の取得に失敗しました")
+	} else if lastBackup != nil {
+		if time.Since(*lastBackup) <= recoverFreshWindow {
+			recoverScore = recoverScoreFresh
+		} else {
+			recoverScore = recoverScoreStale
+		}
+	}
+	return recoverScore
 }

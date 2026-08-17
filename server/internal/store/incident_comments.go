@@ -56,6 +56,9 @@ func (s *IncidentCommentStore) List(ctx context.Context, incidentID string) ([]I
 		}
 		comments = append(comments, c)
 	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
 	if comments == nil {
 		comments = []IncidentComment{}
 	}

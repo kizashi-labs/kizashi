@@ -22,19 +22,11 @@ func NewRansomwareHandler(pool *pgxpool.Pool) *RansomwareHandler {
 }
 
 func (h *RansomwareHandler) checkConfigTable(c *gin.Context) bool {
-	ctx := c.Request.Context()
-	var exists bool
-	err := h.pool.QueryRow(ctx,
-		`SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name='ransomware_protection_config')`).Scan(&exists)
-	return err == nil && exists
+	return tableIsThere(c.Request.Context(), h.pool, "ransomware_protection_config")
 }
 
 func (h *RansomwareHandler) checkEventsTable(c *gin.Context) bool {
-	ctx := c.Request.Context()
-	var exists bool
-	err := h.pool.QueryRow(ctx,
-		`SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name='ransomware_events')`).Scan(&exists)
-	return err == nil && exists
+	return tableIsThere(c.Request.Context(), h.pool, "ransomware_events")
 }
 
 type ransomwareConfig struct {
@@ -202,23 +194,25 @@ func (h *RansomwareHandler) UpdateConfig(c *gin.Context) {
 		}
 	} else {
 		// Row may not have been inserted (conflict) — update existing
-		_, _ = h.pool.Exec(ctx,
+		if _, err := h.pool.Exec(ctx,
 			`UPDATE ransomware_protection_config SET
-			 enabled=COALESCE($1, enabled),
-			 protected_folders=$2,
-			 allowed_apps=$3,
-			 backup_enabled=COALESCE($4, backup_enabled),
-			 backup_interval_hours=COALESCE($5, backup_interval_hours),
-			 canary_files_enabled=COALESCE($6, canary_files_enabled),
-			 canary_file_paths=$7,
-			 entropy_detection=COALESCE($8, entropy_detection),
-			 entropy_threshold=COALESCE($9, entropy_threshold),
-			 updated_at=NOW()
-			 WHERE id=(SELECT id FROM ransomware_protection_config LIMIT 1)`,
+				 enabled=COALESCE($1, enabled),
+				 protected_folders=$2,
+				 allowed_apps=$3,
+				 backup_enabled=COALESCE($4, backup_enabled),
+				 backup_interval_hours=COALESCE($5, backup_interval_hours),
+				 canary_files_enabled=COALESCE($6, canary_files_enabled),
+				 canary_file_paths=$7,
+				 entropy_detection=COALESCE($8, entropy_detection),
+				 entropy_threshold=COALESCE($9, entropy_threshold),
+				 updated_at=NOW()
+				 WHERE id=(SELECT id FROM ransomware_protection_config LIMIT 1)`,
 			body.Enabled, pfJSON, appsJSON, body.BackupEnabled,
 			body.BackupIntervalHours, body.CanaryFilesEnabled, canaryJSON,
 			body.EntropyDetection, body.EntropyThreshold,
-		)
+		); !WriteOK(c, err) {
+			return
+		}
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "Config updated"})
 }
@@ -386,7 +380,9 @@ func (h *RansomwareHandler) ListEvents(c *gin.Context) {
 		result = append(result, ev)
 	}
 	if err := rows.Err(); err != nil {
-		slog.Warn("row iteration error", "error", err)
+		slog.Error("rows.Err: 結果の読み出しが途中で失敗しました", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to list events"})
+		return
 	}
 	if result == nil {
 		result = []ransomwareEvent{}
@@ -430,7 +426,9 @@ func (h *RansomwareHandler) GetStats(c *gin.Context) {
 		total7d += cnt
 	}
 	if err := rows.Err(); err != nil {
-		slog.Warn("row iteration error", "error", err)
+		slog.Error("rows.Err: 結果の読み出しが途中で失敗しました", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get stats"})
+		return
 	}
 	rows.Close()
 

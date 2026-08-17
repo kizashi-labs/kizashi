@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/edr-platform/server/internal/intel"
+	"github.com/edr-platform/server/internal/metrics"
 	"github.com/edr-platform/server/internal/store"
 	"github.com/gin-gonic/gin"
 )
@@ -198,7 +199,13 @@ func (h *ThreatFeedHandler) Sync(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("同期に失敗しました: %v", err)})
 		return
 	}
-	_ = h.Store.MarkSynced(c.Request.Context(), id, count)
+	// **同期は済んでいて、残るのは記録だけです。** 落ちると画面の
+	// 「最終同期」が止まったまま、IOC だけが増えます。
+	if err := h.Store.MarkSynced(c.Request.Context(), id, count); err != nil {
+		metrics.BackgroundFailed("threat_feed_sync", err,
+			"フィードの同期完了を記録できませんでした。画面の最終同期が止まって見えます",
+			"feed_id", id, "imported", count)
+	}
 	if count > 0 {
 		h.publishInvalidate()
 	}

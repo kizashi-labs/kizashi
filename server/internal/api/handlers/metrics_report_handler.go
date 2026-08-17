@@ -77,7 +77,9 @@ func (h *MetricsReportHandler) ListSchedules(c *gin.Context) {
 		schedules = append(schedules, s)
 	}
 	if err := rows.Err(); err != nil {
-		slog.Warn("row iteration error", "error", err)
+		slog.Error("rows.Err: 結果の読み出しが途中で失敗しました", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": dbErrMsg(err)})
+		return
 	}
 	if schedules == nil {
 		schedules = []Schedule{}
@@ -266,7 +268,9 @@ func (h *MetricsReportHandler) ListReports(c *gin.Context) {
 		reports = append(reports, r)
 	}
 	if err := rows.Err(); err != nil {
-		slog.Warn("row iteration error", "error", err)
+		slog.Error("rows.Err: 結果の読み出しが途中で失敗しました", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": dbErrMsg(err)})
+		return
 	}
 	if reports == nil {
 		reports = []Report{}
@@ -308,12 +312,14 @@ func (h *MetricsReportHandler) GenerateReport(c *gin.Context) {
 		return
 	}
 
-	_, _ = h.pool.Exec(c.Request.Context(), `
-		UPDATE generated_reports
-		SET status='completed', file_size_kb=0, generated_at=NOW()
-		WHERE id=$1`,
+	if _, err := h.pool.Exec(c.Request.Context(), `
+			UPDATE generated_reports
+			SET status='completed', file_size_kb=0, generated_at=NOW()
+			WHERE id=$1`,
 		id,
-	)
+	); !WriteOK(c, err) {
+		return
+	}
 
 	c.JSON(http.StatusAccepted, gin.H{"id": id, "status": "pending", "message": "レポート生成を開始しました"})
 }
@@ -403,7 +409,9 @@ func (h *MetricsReportHandler) GetStats(c *gin.Context) {
 		byType = append(byType, s)
 	}
 	if err := rows.Err(); err != nil {
-		slog.Warn("row iteration error", "error", err)
+		slog.Error("rows.Err: 結果の読み出しが途中で失敗しました", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": dbErrMsg(err)})
+		return
 	}
 	rows.Close()
 	if byType == nil {
@@ -437,7 +445,9 @@ func (h *MetricsReportHandler) GetStats(c *gin.Context) {
 		trend = append(trend, tp)
 	}
 	if err := trendRows.Err(); err != nil {
-		slog.Warn("row iteration error", "error", err)
+		slog.Error("rows.Err: 結果の読み出しが途中で失敗しました", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": dbErrMsg(err)})
+		return
 	}
 	if trend == nil {
 		trend = []TrendPoint{}
@@ -445,7 +455,9 @@ func (h *MetricsReportHandler) GetStats(c *gin.Context) {
 
 	// Active schedule count
 	var scheduleCount int
-	_ = h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM report_schedules_v2 WHERE is_active=true`).Scan(&scheduleCount)
+	if !ReadOK(c, h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM report_schedules_v2 WHERE is_active=true`).Scan(&scheduleCount)) {
+		return
+	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"by_type":          byType,

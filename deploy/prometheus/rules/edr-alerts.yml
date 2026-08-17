@@ -21,7 +21,7 @@ groups:
             {{ $value | humanizePercentage }} of registered agents are currently
             offline (threshold: 10%). Check network connectivity and agent health.
             Affected instance: {{ $labels.instance }}.
-          runbook_url: "https://wiki.internal/runbooks/edr-agents-offline"
+          runbook_url: "https://github.com/kizashi-labs/kizashi/blob/main/docs/ops/%E7%9B%A3%E8%A6%96%E3%83%A9%E3%83%B3%E3%83%96%E3%83%83%E3%82%AF.md#edragentsoffline"
 
   - name: edr_api_alerts
     rules:
@@ -42,7 +42,7 @@ groups:
             The API 5xx error rate is {{ $value | humanizePercentage }}
             (threshold: 5%). Investigate recent deployments, database connectivity,
             and upstream dependencies.
-          runbook_url: "https://wiki.internal/runbooks/edr-api-high-error-rate"
+          runbook_url: "https://github.com/kizashi-labs/kizashi/blob/main/docs/ops/%E7%9B%A3%E8%A6%96%E3%83%A9%E3%83%B3%E3%83%96%E3%83%83%E3%82%AF.md#edrhighapierrorrate"
 
       # Fire when P95 latency exceeds 2 seconds for 5 consecutive minutes.
       - alert: EDRAPIHighLatency
@@ -62,7 +62,7 @@ groups:
             The P95 request latency is {{ $value | humanizeDuration }}
             (threshold: 2s). Review slow query logs, connection pool exhaustion,
             and resource contention.
-          runbook_url: "https://wiki.internal/runbooks/edr-api-high-latency"
+          runbook_url: "https://github.com/kizashi-labs/kizashi/blob/main/docs/ops/%E7%9B%A3%E8%A6%96%E3%83%A9%E3%83%B3%E3%83%96%E3%83%83%E3%82%AF.md#edrapihighlatency"
 
   - name: edr_infrastructure_alerts
     rules:
@@ -84,7 +84,7 @@ groups:
             {{ $labels.instance }} at mountpoint {{ $labels.mountpoint }}
             (threshold: 20% free). Immediate action required to avoid database
             write failures.
-          runbook_url: "https://wiki.internal/runbooks/edr-disk-space-low"
+          runbook_url: "https://github.com/kizashi-labs/kizashi/blob/main/docs/ops/%E7%9B%A3%E8%A6%96%E3%83%A9%E3%83%B3%E3%83%96%E3%83%83%E3%82%AF.md#edrdiskspacelow"
 
       # Fire when any NATS JetStream consumer has more than 10,000
       # pending (unacknowledged) messages — indicating a stuck or slow consumer.
@@ -101,7 +101,7 @@ groups:
             Consumer {{ $labels.consumer_name }} on stream {{ $labels.stream_name }}
             has {{ $value | humanize }} pending messages (threshold: 10,000).
             The consumer may be stuck or processing too slowly.
-          runbook_url: "https://wiki.internal/runbooks/edr-nats-queue-depth"
+          runbook_url: "https://github.com/kizashi-labs/kizashi/blob/main/docs/ops/%E7%9B%A3%E8%A6%96%E3%83%A9%E3%83%B3%E3%83%96%E3%83%83%E3%82%AF.md#edrnatsqueuedepth"
 
   # ──────────────────────────────────────────────────────────────────────
   # Detection-pipeline health — the "silent break" class where a detection
@@ -128,7 +128,6 @@ groups:
             into the alerts table ({{ $value | humanize }}/s over 15m). Detections are
             being silently lost. Likely a DB-constraint break (non-UUID rule_id → 22P02,
             CHECK violation, or param-cast 42P08). Check recent rule/schema changes.
-          runbook_url: "https://wiki.internal/runbooks/edr-detection-insert-failures"
 
       # Canary for total detection-pipeline death: on an active fleet at least one
       # source fires within an hour. Zero detections across ALL sources for 1h means
@@ -147,7 +146,6 @@ groups:
             baseline/memory/credential_access/process_block) in the last hour. On an
             active fleet this is abnormal — check ingestion, JetStream consumers
             (detection-engine / alert-pipeline), and the event flow end-to-end.
-          runbook_url: "https://wiki.internal/runbooks/edr-detection-pipeline-silent"
 
       # Curate self-policing: enabled Sigma rules that never fire are silently inert
       # (a broken field reference, a missing alias) — the class of failure that let
@@ -167,7 +165,6 @@ groups:
             silently inert (referencing a field the telemetry never emits, a broken
             alias, or a category with no matching activity). Check the CurateScheduler
             log for the sample list and verify with the field-contract gate.
-          runbook_url: "https://wiki.internal/runbooks/edr-curate-inert-rules"
 
       # Curate hygiene: the reconciler had to re-disable rules that were quarantined
       # (auto-flagged FP) yet still enabled — an enable path is re-enabling them
@@ -186,4 +183,180 @@ groups:
             enabled=true (an FP rule that kept firing). The reconciler re-disabled
             them, but an enable path (manual batch / category-wide UPDATE) is
             re-enabling quarantined rules without clearing their state — fix that path.
-          runbook_url: "https://wiki.internal/runbooks/edr-curate-quarantine-reenabled"
+
+  # ──────────────────────────────────────────────────────────────────────
+  # Background work that fails without producing a symptom
+  #
+  # These three exist because absence is the symptom of every one of them.
+  # A notification nobody was paged about, a document that never reached
+  # Elasticsearch, a scheduler that wakes and gives up — none of them make a
+  # list shorter or a count wrong. The console stays consistent with an
+  # environment where the thing never needed doing.
+  #
+  # THRESHOLDS HERE ARE STARTING VALUES, NOT DECISIONS. They are deliberately
+  # conservative (fire early rather than late) because the failure mode being
+  # covered is invisibility. Tune `for:` and the comparison against how noisy
+  # your deployment actually is — see docs/判断待ちの一覧.md section F.
+  # ──────────────────────────────────────────────────────────────────────
+  - name: edr_silent_failure_alerts
+    rules:
+      # A background component gave up on a pass. Labelled by component so the
+      # dead path is identifiable: notify, es_shipper, event_forwarder,
+      # webhook_notifier, virustotal_enrichment, alert_dedup, ioc_matcher, …
+      #
+      # Any sustained non-zero rate means that path is dropping work. The one
+      # that matters most is `notify`: the alert exists in the console and
+      # nobody was paged, which looks exactly like a quiet night.
+      - alert: EDRBackgroundComponentFailing
+        expr: |
+          sum by (component) (rate(edr_background_failures_total[15m])) > 0
+        for: 10m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "EDR background component '{{ $labels.component }}' is dropping work"
+          description: >
+            Component '{{ $labels.component }}' has been giving up on its work for
+            10 minutes ({{ $value | humanize }}/s over 15m). Nothing about this is
+            visible in the console — a notification that was not sent, a document
+            that did not reach the SIEM, and an environment with nothing to send
+            all look the same. Check the component's logs for the reason.
+
+      # A scheduler that runs and never succeeds.
+      #
+      # edr_scheduler_runs_total climbing says the worker is alive. It says
+      # nothing about whether the tick did its job: the counter increments
+      # whether the tick renewed forty certificates or returned on its first
+      # query error. The gap between last_run and last_success is the signal
+      # that was not previously expressible.
+      #
+      # 3600s = an hour without a successful tick. Several workers run on a
+      # 15-minute interval and a few are daily; if you have daily workers that
+      # matter, either raise this or add a per-scheduler override.
+      - alert: EDRSchedulerRunningWithoutSucceeding
+        expr: |
+          (
+            edr_scheduler_last_run_timestamp_seconds
+            - on (scheduler) edr_scheduler_last_success_timestamp_seconds
+          ) > 3600
+        for: 15m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "EDR scheduler '{{ $labels.scheduler }}' is running but not succeeding"
+          description: >
+            '{{ $labels.scheduler }}' has woken up and given up for over an hour
+            ({{ $value | humanizeDuration }} since its last successful tick) while
+            its run counter keeps climbing. Certificate renewal failing since
+            Tuesday looks identical, from every signal except this one, to
+            certificate renewal with nothing to renew.
+
+      # A scheduler that has never succeeded at all since the process started.
+      # The subtraction above cannot fire for these: last_success is absent, so
+      # the vector has no matching sample and the expression yields nothing.
+      - alert: EDRSchedulerNeverSucceeded
+        expr: |
+          edr_scheduler_runs_total > 3
+          unless on (scheduler) edr_scheduler_last_success_timestamp_seconds
+        for: 30m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "EDR scheduler '{{ $labels.scheduler }}' has never completed a tick"
+          description: >
+            '{{ $labels.scheduler }}' has run {{ $value | humanize }} times and has
+            never once finished its work. A worker in this state is indistinguishable
+            from a healthy one by run count alone.
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # バックアップ
+  #
+  # 指標は前からあり、手順も監視ランブックに書いてあり、metrics.go の
+  # コメントは閾値まで書いていました（"alert when … exceeds … e.g. > 48h"）。
+  # **アラートだけが無く、誰も評価していませんでした。**
+  #
+  # この形はこの一連の作業で何度も出ています。部品が全部そろっていて、
+  # それらを繋ぐものだけが無い。壊れたバックアップは、要るときにしか
+  # 気づけません。
+  - name: edr_backup_alerts
+    rules:
+      - alert: EDRBackupStale
+        # 検証に通ったバックアップが48時間ない状態。
+        # gauge は最初の成功まで 0 なので、0 のときは「まだ一度も成功して
+        # いない」であって「1970年から古い」ではありません。分けて出します。
+        expr: |
+          edr_backup_last_success_timestamp_seconds > 0
+          and
+          (time() - edr_backup_last_success_timestamp_seconds) > 172800
+        for: 30m
+        labels:
+          severity: critical
+          team: platform
+        annotations:
+          summary: "検証に通った DB バックアップが 48 時間ありません"
+          description: >
+            最後に整合性検証を通ったバックアップから
+            {{ $value | humanizeDuration }} が経過しています。pg_dump が
+            exit 0 でも、切り詰められたダンプは成功に数えていません。
+            **壊れたバックアップは、復旧が必要になるまで気づけません。**
+          runbook_url: "https://github.com/kizashi-labs/kizashi/blob/main/docs/ops/%E7%9B%A3%E8%A6%96%E3%83%A9%E3%83%B3%E3%83%96%E3%83%83%E3%82%AF.md#edrbackupstale"
+
+      - alert: EDRBackupNeverSucceeded
+        # 一度も成功していない状態。上の式は 0 を除いているので、
+        # ここが無いと「バックアップが一度も取れていない」が無音になります。
+        expr: edr_backup_last_success_timestamp_seconds == 0
+        for: 6h
+        labels:
+          severity: critical
+          team: platform
+        annotations:
+          summary: "DB バックアップが一度も成功していません"
+          description: >
+            プロセス開始から一度も、検証に通ったバックアップがありません。
+            古いバックアップがあるのではなく、**ありません。**
+          runbook_url: "https://github.com/kizashi-labs/kizashi/blob/main/docs/ops/%E7%9B%A3%E8%A6%96%E3%83%A9%E3%83%B3%E3%83%96%E3%83%83%E3%82%AF.md#edrbackupneversucceeded"
+
+      - alert: EDRBackupFailing
+        expr: increase(edr_backup_failures_total[6h]) > 0
+        for: 5m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "DB バックアップが失敗しています"
+          description: >
+            直近6時間で {{ $value | humanize }} 回、pg_dump の失敗または
+            整合性検査の不合格がありました。まだ古い成功が残っていても、
+            新しいものは取れていません。
+          runbook_url: "https://github.com/kizashi-labs/kizashi/blob/main/docs/ops/%E7%9B%A3%E8%A6%96%E3%83%A9%E3%83%B3%E3%83%96%E3%83%83%E3%82%AF.md#edrbackupfailing"
+
+      - alert: EDRHashIOCHasNothingToMatch
+        # ハッシュ照合に届いたイベントのうち、ハッシュを1つも持って
+        # いなかった割合。**「既知マルウェアに当たらなかった」と
+        # 「当てるものが無かった」は、どちらも一致0件です。**
+        #
+        # エージェントは実行ファイルのハッシュを計算していましたが、
+        # proto に載せていませんでした。受け側 (ingestion.addHashes) は
+        # 用意されていて、届くものが無いまま動いていました。直しましたが、
+        # 届かない端末（読めないファイル、権限不足、未対応の経路）は残ります。
+        #
+        # 閾値は「半分以上が無い」。**0 でないこと自体は異常ではありません。**
+        # 恒久的に高いときだけ鳴らしたいので for も長めにします。
+        expr: >
+          increase(edr_ioc_hash_absent_total[1h])
+          / clamp_min(increase(edr_events_ingested_total[1h]), 1) > 0.5
+        for: 2h
+        labels:
+          severity: warning
+          team: detection
+        annotations:
+          summary: "ハッシュ照合に、照合するものが届いていません"
+          description: >
+            直近1時間のイベントの半分以上が、ハッシュを1つも持たずに
+            ハッシュ IOC 照合に届いています。**既知マルウェアの検知は、
+            その分だけ動いていません。** 一致0件は「安全」ではなく
+            「確かめられていない」です。
+          runbook_url: "https://github.com/kizashi-labs/kizashi/blob/main/docs/ops/%E7%9B%A3%E8%A6%96%E3%83%A9%E3%83%B3%E3%83%96%E3%83%83%E3%82%AF.md#edrhashiochasnothingtomatch"

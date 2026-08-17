@@ -74,12 +74,10 @@ func TestNotificationPrefs_FieldAssignment(t *testing.T) {
 // TestNotificationPrefs_DefaultMinSeverity は GetByUserID が行なしの場合に
 // MinSeverity のデフォルト値が "critical" であることを確認する
 func TestNotificationPrefs_DefaultMinSeverity(t *testing.T) {
-	// notification_prefs.go の GetByUserID 内でデフォルト構築するロジックを再現する
+	// **本物を呼びます。** 以前ここには同じ構造体を書き写したものが
+	// 置いてありました。
 	userID := "user-no-prefs"
-	p := &NotificationPrefs{
-		UserID:      userID,
-		MinSeverity: "critical",
-	}
+	p := defaultNotificationPrefs(userID)
 
 	if p.UserID != userID {
 		t.Errorf("UserID = %q, want %q", p.UserID, userID)

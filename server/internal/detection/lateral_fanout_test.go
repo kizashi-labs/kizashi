@@ -23,6 +23,35 @@ func TestLateralFanout_FiresOnManyHosts(t *testing.T) {
 	}
 }
 
+func TestLateralFanout_InternalDominantHigherSeverity(t *testing.T) {
+	base := time.Unix(1_700_000_000, 0)
+	// Internal-dominant fan-out (RFC1918 destinations) is higher-confidence lateral
+	// movement → severity 8. The same shape to external hosts stays at the base
+	// severity 7 (more often benign admin/CI tooling). Neither is filtered out —
+	// coverage holds; only confidence/severity differs.
+	internal := newLateralFanoutScorer()
+	internalSev := 0
+	for i := 0; i < lateralMinHosts; i++ {
+		if m := internal.Observe("a", fmt.Sprintf("10.0.0.%d", i+1), 445, base.Add(time.Duration(i)*time.Second)); len(m) > 0 {
+			internalSev = m[0].Severity
+		}
+	}
+	if internalSev != 8 {
+		t.Fatalf("internal-dominant fan-out should be severity 8, got %d", internalSev)
+	}
+
+	external := newLateralFanoutScorer()
+	externalSev := 0
+	for i := 0; i < lateralMinHosts; i++ {
+		if m := external.Observe("b", fmt.Sprintf("93.184.216.%d", i+1), 22, base.Add(time.Duration(i)*time.Second)); len(m) > 0 {
+			externalSev = m[0].Severity
+		}
+	}
+	if externalSev != 7 {
+		t.Fatalf("external-dominant fan-out should stay severity 7, got %d", externalSev)
+	}
+}
+
 func TestLateralFanout_NonServicePortIgnored(t *testing.T) {
 	d := newLateralFanoutScorer()
 	base := time.Unix(1_700_000_000, 0)

@@ -13,6 +13,8 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/nats-io/nats.go"
+
+	"github.com/edr-platform/server/internal/tick"
 )
 
 // vtRateLimit is the number of requests allowed per minute on the VT free tier.
@@ -92,17 +94,53 @@ func (e *VTEnricher) Run(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			e.pollUnenriched(ctx)
+			tick.Run(ctx, "virustotal_enrichment", e.pollUnenriched)
 		}
 	}
 }
 
+// vtSectionKey is this enricher's section of the shared alerts.enrichment
+// column. Writing under a key rather than replacing the object is what lets the
+// alert-enrichment pipeline and this enricher coexist; the previous
+// `SET enrichment = $1` erased whatever the other had written.
+const vtSectionKey = "virustotal"
+
+// storeSection merges this enricher's findings into alerts.enrichment.
+func (e *VTEnricher) storeSection(ctx context.Context, alertID string, section map[string]interface{}) {
+	payload, err := json.Marshal(map[string]interface{}{vtSectionKey: section})
+	if err != nil {
+		tick.FailComponent(ctx, "virustotal_enrichment", err, "エンリッチメントデータのシリアライズに失敗しました")
+		return
+	}
+	if _, err := e.pool.Exec(ctx,
+		`UPDATE alerts SET enrichment = COALESCE(enrichment, '{}'::jsonb) || $1::jsonb WHERE id = $2`,
+		payload, alertID); err != nil {
+		tick.Fail(ctx, err, "エンリッチメントデータの保存に失敗しました", "id", alertID)
+	}
+}
+
+// vtCandidateWhere selects the alerts this enricher still has work to do on:
+// "not yet looked at by VirusTotal", not "enrichment is empty". alerts.
+// enrichment is shared — AlertActionHandler.Enrich writes {"status":"pending"}
+// when an operator asks for enrichment, and the alert-enrichment pipeline
+// writes its own section. Selecting on `enrichment IS NULL` meant that the
+// moment either of them touched an alert, this enricher was excluded from it
+// for ever, so pressing "enrich" in the console guaranteed the alert would
+// never be enriched by VirusTotal.
+//
+// It is a constant rather than inline SQL so a test can apply the real
+// predicate to a single row instead of restating it and drifting from it.
+// $1 is the section key.
+const vtCandidateWhere = `WHERE NOT (COALESCE(enrichment, '{}'::jsonb) ? $1)
+		   AND created_at > NOW() - INTERVAL '24 hours'`
+
 // pollUnenriched queries for recent alerts without enrichment data and enriches them.
 func (e *VTEnricher) pollUnenriched(ctx context.Context) {
 	rows, err := e.pool.Query(ctx,
-		`SELECT id FROM alerts WHERE enrichment IS NULL AND created_at > NOW() - INTERVAL '24 hours' ORDER BY created_at DESC LIMIT 20`)
+		`SELECT id FROM alerts `+vtCandidateWhere+`
+		 ORDER BY created_at DESC LIMIT 20`, vtSectionKey)
 	if err != nil {
-		slog.Warn("未エンリッチアラートのポーリングに失敗しました", "error", err)
+		tick.FailComponent(ctx, "virustotal_enrichment", err, "未エンリッチアラートのポーリングに失敗しました")
 		return
 	}
 	defer rows.Close()
@@ -113,6 +151,9 @@ func (e *VTEnricher) pollUnenriched(ctx context.Context) {
 		if err := rows.Scan(&id); err == nil {
 			ids = append(ids, id)
 		}
+	}
+	if err := rows.Err(); err != nil {
+		tick.Fail(ctx, err, "未エンリッチのハッシュ一覧の走査が途中で終わりました。今回のポーリングで照会しないハッシュがあります")
 	}
 	rows.Close()
 
@@ -130,7 +171,7 @@ func (e *VTEnricher) enrichAlert(ctx context.Context, alertID string) {
 		`SELECT COALESCE(description,''), COALESCE(title,'') FROM alerts WHERE id = $1`, alertID).
 		Scan(&description, &title)
 	if err != nil {
-		slog.Debug("エンリッチメント用アラートの取得に失敗しました", "id", alertID, "error", err)
+		tick.FailComponent(ctx, "virustotal_enrichment", err, "エンリッチメント用アラートの取得に失敗しました", "id", alertID)
 		return
 	}
 
@@ -141,9 +182,10 @@ func (e *VTEnricher) enrichAlert(ctx context.Context, alertID string) {
 	ip := extractIP(text)
 
 	if hash == "" && ip == "" {
-		// Nothing to enrich; mark as checked with empty object so we don't re-query.
-		_, _ = e.pool.Exec(ctx,
-			`UPDATE alerts SET enrichment = '{}' WHERE id = $1 AND enrichment IS NULL`, alertID)
+		// Nothing to look up. Record an empty section so this alert is not
+		// re-examined on every tick, without disturbing anything else in the
+		// column.
+		e.storeSection(ctx, alertID, map[string]interface{}{"checked_at": time.Now().UTC().Format(time.RFC3339)})
 		return
 	}
 
@@ -152,7 +194,7 @@ func (e *VTEnricher) enrichAlert(ctx context.Context, alertID string) {
 	if hash != "" {
 		result, vtErr := e.vtLookup(ctx, fmt.Sprintf("https://www.virustotal.com/api/v3/files/%s", strings.ToLower(hash)))
 		if vtErr != nil {
-			slog.Warn("VTファイルハッシュ照会に失敗しました", "hash", hash, "error", vtErr)
+			tick.Fail(ctx, vtErr, "VTファイルハッシュ照会に失敗しました", "hash", hash)
 		} else if result != nil {
 			enrichmentData["file"] = result
 			enrichmentData["hash"] = hash
@@ -162,7 +204,7 @@ func (e *VTEnricher) enrichAlert(ctx context.Context, alertID string) {
 	if ip != "" {
 		result, vtErr := e.vtLookup(ctx, fmt.Sprintf("https://www.virustotal.com/api/v3/ip_addresses/%s", ip))
 		if vtErr != nil {
-			slog.Warn("VT IP照会に失敗しました", "ip", ip, "error", vtErr)
+			tick.Fail(ctx, vtErr, "VT IP照会に失敗しました", "ip", ip)
 		} else if result != nil {
 			enrichmentData["ip"] = result
 			enrichmentData["ip_address"] = ip
@@ -170,19 +212,7 @@ func (e *VTEnricher) enrichAlert(ctx context.Context, alertID string) {
 	}
 
 	enrichmentData["enriched_at"] = time.Now().UTC().Format(time.RFC3339)
-
-	enrichJSON, err := json.Marshal(enrichmentData)
-	if err != nil {
-		slog.Warn("エンリッチメントデータのシリアライズに失敗しました", "error", err)
-		return
-	}
-
-	_, err = e.pool.Exec(ctx,
-		`UPDATE alerts SET enrichment = $1 WHERE id = $2`, enrichJSON, alertID)
-	if err != nil {
-		slog.Warn("エンリッチメントデータの保存に失敗しました", "id", alertID, "error", err)
-		return
-	}
+	e.storeSection(ctx, alertID, enrichmentData)
 
 	slog.Info("アラートをエンリッチしました", "alert_id", alertID, "hash", hash, "ip", ip)
 }
@@ -294,3 +324,20 @@ func extractIP(text string) string {
 	}
 	return ""
 }
+
+// SweepLockKey serialises test packages that write alerts.enrichment.
+//
+// `go test ./...` runs packages concurrently against one database, and the
+// producers that share this column sweep it globally: AlertEnrichmentPipeline
+// selects the 20 newest alerts that are unenriched or flagged pending, with no
+// tenant or fixture scoping, and this enricher's poller does the same for its
+// own section. A fixture seeded by one package is therefore fair game for the
+// other package's sweep — measured directly: internal/api/handlers running its
+// pipeline test rewrote this package's fixtures mid-assertion, turning
+// {"status":"pending"} into {"status":"done"} and replacing the context section.
+//
+// Any test that runs one of those sweeps, or seeds a row one of them could
+// select, must hold pg_advisory_lock(SweepLockKey) on a dedicated connection
+// for its duration. The value is arbitrary; it only has to be unique among the
+// advisory locks this codebase takes.
+const SweepLockKey int64 = 0x656e72696368 // "enrich" in ASCII

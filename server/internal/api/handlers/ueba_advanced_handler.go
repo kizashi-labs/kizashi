@@ -7,12 +7,15 @@ package handlers
 // only needs one handler type.
 
 import (
+	"errors"
 	"log/slog"
 	"net/http"
 	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 )
 
 // ListAnomalies GET /anomalies
@@ -77,11 +80,23 @@ func (h *UEBAHandler) ListAnomalies(c *gin.Context) {
 	anomalies := []Anomaly{}
 	for rows.Next() {
 		var a Anomaly
-		if rows.Scan(&a.ID, &a.Username, &a.AnomalyType, &a.Severity, &a.Score,
+		// created_at is timestamptz; CreatedAt is a string for the JSON shape, and
+		// pgx cannot put one in the other. Scanning it directly failed with
+		// "cannot scan timestamptz (OID 1184) in binary format into *string" on
+		// the first row, and pgx records that on the Rows, so rows.Err() below
+		// turned it into a 500. This endpoint therefore worked only while
+		// ueba_anomalies was empty — which is exactly the state the read-only
+		// smoke tests leave it in. GetUserBehavior in this same file already
+		// scans into time.Time and formats; this now matches it.
+		var createdAt time.Time
+		if err := rows.Scan(&a.ID, &a.Username, &a.AnomalyType, &a.Severity, &a.Score,
 			&a.BaselineValue, &a.ActualValue, &a.Description, &a.Details,
-			&a.Status, &a.ReviewedBy, &a.CreatedAt) == nil {
-			anomalies = append(anomalies, a)
+			&a.Status, &a.ReviewedBy, &createdAt); err != nil {
+			slog.Warn("UEBA異常の読み出しに失敗しました", "error", err)
+			continue
 		}
+		a.CreatedAt = createdAt.UTC().Format(time.RFC3339)
+		anomalies = append(anomalies, a)
 	}
 	if err := rows.Err(); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": dbErrMsg(err)})
@@ -109,7 +124,18 @@ func (h *UEBAHandler) GetAnomaly(c *gin.Context) {
 		ReviewedBy    string      `json:"reviewed_by,omitempty"`
 		CreatedAt     string      `json:"created_at"`
 	}
+	// A non-uuid reaches Postgres as 22P02, which the single error path below
+	// used to report as "anomaly not found" — the same answer a real miss gets.
+	if _, err := uuid.Parse(id); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "IDの形式が不正です"})
+		return
+	}
+
 	var a Anomaly
+	// Same timestamptz-into-string fault as ListAnomalies, and worse here: the
+	// scan error was reported as 404, so an anomaly that exists was indexed as
+	// one that does not.
+	var createdAt time.Time
 	err := h.Pool.QueryRow(ctx, `SELECT id, username, anomaly_type, severity, score,
 		COALESCE(baseline_value,0), COALESCE(actual_value,0),
 		COALESCE(description,''), details, status,
@@ -117,11 +143,17 @@ func (h *UEBAHandler) GetAnomaly(c *gin.Context) {
 		FROM ueba_anomalies WHERE id = $1`, id).
 		Scan(&a.ID, &a.Username, &a.AnomalyType, &a.Severity, &a.Score,
 			&a.BaselineValue, &a.ActualValue, &a.Description, &a.Details,
-			&a.Status, &a.ReviewedBy, &a.CreatedAt)
-	if err != nil {
+			&a.Status, &a.ReviewedBy, &createdAt)
+	if errors.Is(err, pgx.ErrNoRows) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "anomaly not found"})
 		return
 	}
+	if err != nil {
+		slog.Warn("UEBA異常の読み出しに失敗しました", "id", id, "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": dbErrMsg(err)})
+		return
+	}
+	a.CreatedAt = createdAt.UTC().Format(time.RFC3339)
 	c.JSON(http.StatusOK, a)
 }
 
@@ -190,10 +222,17 @@ func (h *UEBAHandler) ListBaselines(c *gin.Context) {
 	baselines := []Baseline{}
 	for rows.Next() {
 		var b Baseline
-		if rows.Scan(&b.ID, &b.UserID, &b.Username, &b.MetricName,
-			&b.BaselineValue, &b.StdDeviation, &b.SampleDays, &b.UpdatedAt) == nil {
-			baselines = append(baselines, b)
+		// Same fault as ListAnomalies: updated_at is timestamptz and UpdatedAt is
+		// a string, which pgx cannot bridge. The endpoint returned 500 as soon as
+		// ueba_baselines held a row.
+		var updatedAt time.Time
+		if err := rows.Scan(&b.ID, &b.UserID, &b.Username, &b.MetricName,
+			&b.BaselineValue, &b.StdDeviation, &b.SampleDays, &updatedAt); err != nil {
+			slog.Warn("UEBAベースラインの読み出しに失敗しました", "error", err)
+			continue
 		}
+		b.UpdatedAt = updatedAt.UTC().Format(time.RFC3339)
+		baselines = append(baselines, b)
 	}
 	if err := rows.Err(); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": dbErrMsg(err)})
@@ -227,14 +266,18 @@ func (h *UEBAHandler) GetUserProfile(c *gin.Context) {
 
 	// Recent anomaly count (last 30 days)
 	var recentCount int
-	_ = h.Pool.QueryRow(ctx, `SELECT COUNT(*) FROM ueba_anomalies
-		WHERE username = $1 AND created_at >= NOW() - INTERVAL '30 days'`, username).Scan(&recentCount)
+	if !ReadOK(c, h.Pool.QueryRow(ctx, `SELECT COUNT(*) FROM ueba_anomalies
+			WHERE username = $1 AND created_at >= NOW() - INTERVAL '30 days'`, username).Scan(&recentCount)) {
+		return
+	}
 
 	// Risk score: sum of anomaly scores (capped at 100)
 	var riskScore float64
-	_ = h.Pool.QueryRow(ctx, `SELECT COALESCE(SUM(score),0) FROM ueba_anomalies
-		WHERE username = $1 AND status NOT IN ('false_positive') AND created_at >= NOW() - INTERVAL '30 days'`,
-		username).Scan(&riskScore)
+	if !ReadOK(c, h.Pool.QueryRow(ctx, `SELECT COALESCE(SUM(score),0) FROM ueba_anomalies
+			WHERE username = $1 AND status NOT IN ('false_positive') AND created_at >= NOW() - INTERVAL '30 days'`,
+		username).Scan(&riskScore)) {
+		return
+	}
 	if riskScore > 100 {
 		riskScore = 100
 	}
@@ -318,7 +361,9 @@ func (h *UEBAHandler) GetStats(c *gin.Context) {
 	}
 
 	var total int
-	_ = h.Pool.QueryRow(ctx, `SELECT COUNT(*) FROM ueba_anomalies`).Scan(&total)
+	if !ReadOK(c, h.Pool.QueryRow(ctx, `SELECT COUNT(*) FROM ueba_anomalies`).Scan(&total)) {
+		return
+	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"total":            total,
@@ -352,25 +397,29 @@ func (h *UEBAHandler) ListUsers(c *gin.Context) {
 		LastSeen   string  `json:"last_seen"`
 	}
 
+	// users に username 列は無い（実在するのは email / full_name）。
+	// insider_threat_handler.go の同じ結合と同様、以前はクエリ全体が
+	// `column u.username does not exist` で失敗し、空配列が返っていた。
+	// ua.username は OS ユーザ名でコンソールアカウントとは別の名前空間のため、
+	// 結合キーが無い。UEBA 側の値だけで答える。
 	rows, err := h.Pool.Query(ctx, `
 		SELECT
-			COALESCE(u.id::text, ua.username) AS id,
+			ua.username AS id,
 			ua.username,
-			COALESCE(u.email, '') AS email,
+			'' AS email,
 			LEAST(COALESCE(SUM(ua.score), 0), 100) AS risk_score,
 			COUNT(*) AS anomalies,
-			COALESCE(u.role, '') AS department,
+			'' AS department,
 			MAX(ua.created_at) AS last_seen
 		FROM ueba_anomalies ua
-		LEFT JOIN users u ON u.email = ua.username
 		WHERE ua.status != 'false_positive'
 		  AND ua.created_at >= NOW() - INTERVAL '30 days'
-		GROUP BY ua.username, u.id, u.email, u.role
+		GROUP BY ua.username
 		ORDER BY risk_score DESC
 		LIMIT $1
 	`, limit)
 	if err != nil {
-		c.JSON(http.StatusOK, []UebaUser{})
+		ReadFailure(c, err, []UebaUser{})
 		return
 	}
 	defer rows.Close()
@@ -384,6 +433,11 @@ func (h *UEBAHandler) ListUsers(c *gin.Context) {
 		}
 		u.LastSeen = lastSeen.Format(time.RFC3339)
 		users = append(users, u)
+	}
+	if err := rows.Err(); err != nil {
+		slog.Warn("ListUsers: 結果セットの読み取りが途中で終わりました。応答は不完全です", "error", err)
+		c.JSON(http.StatusOK, []UebaUser{})
+		return
 	}
 	if users == nil {
 		users = []UebaUser{}
@@ -414,7 +468,7 @@ func (h *UEBAHandler) GetUserBehavior(c *gin.Context) {
 		ORDER BY created_at DESC LIMIT 50
 	`, userID)
 	if err != nil {
-		c.JSON(http.StatusOK, []BehaviorEvent{})
+		ReadFailure(c, err, []BehaviorEvent{})
 		return
 	}
 	defer rows.Close()
@@ -428,6 +482,11 @@ func (h *UEBAHandler) GetUserBehavior(c *gin.Context) {
 		}
 		e.CreatedAt = ts.Format(time.RFC3339)
 		events = append(events, e)
+	}
+	if err := rows.Err(); err != nil {
+		slog.Warn("GetUserBehavior: 結果セットの読み取りが途中で終わりました。応答は不完全です", "error", err)
+		c.JSON(http.StatusOK, []BehaviorEvent{})
+		return
 	}
 	if events == nil {
 		events = []BehaviorEvent{}

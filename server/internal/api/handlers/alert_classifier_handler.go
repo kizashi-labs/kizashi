@@ -60,13 +60,7 @@ func (h *AlertClassifierHandler) ClassifyAlert(c *gin.Context) {
 	ctx := c.Request.Context()
 
 	// Check if alerts table exists.
-	var tableExists bool
-	_ = h.pool.QueryRow(ctx,
-		`SELECT EXISTS (
-			SELECT 1 FROM pg_tables
-			WHERE schemaname = 'public' AND tablename = 'alerts'
-		)`,
-	).Scan(&tableExists)
+	tableExists := tableIsThere(ctx, h.pool, "alerts")
 	if !tableExists {
 		c.JSON(http.StatusOK, gin.H{
 			"alert_id":         alertID,
@@ -115,7 +109,11 @@ func (h *AlertClassifierHandler) BulkClassify(c *gin.Context) {
 	var req struct {
 		Limit int `json:"limit"`
 	}
-	if err := c.ShouldBindJSON(&req); err != nil || req.Limit <= 0 {
+	// 本文が壊れているときに既定の100件で走らせません。分類は書き込みです。
+	if !OptionalBody(c, &req) {
+		return
+	}
+	if req.Limit <= 0 {
 		req.Limit = 100
 	}
 	if req.Limit > 1000 {
@@ -125,15 +123,11 @@ func (h *AlertClassifierHandler) BulkClassify(c *gin.Context) {
 	ctx := c.Request.Context()
 
 	// Check if alerts table exists.
-	var tableExists bool
-	_ = h.pool.QueryRow(ctx,
-		`SELECT EXISTS (
-			SELECT 1 FROM pg_tables
-			WHERE schemaname = 'public' AND tablename = 'alerts'
-		)`,
-	).Scan(&tableExists)
+	tableExists := tableIsThere(ctx, h.pool, "alerts")
 	if !tableExists {
-		c.JSON(http.StatusOK, gin.H{"processed": 0, "classified": 0, "skipped": 0})
+		// 0 件という数字は正しいのですが、**200 なので「分類は走った、
+		// 対象が無かった」と読めます。** 走っていません。
+		FeatureNotInstalled(c, "アラートの一括分類")
 		return
 	}
 
@@ -163,7 +157,9 @@ func (h *AlertClassifierHandler) BulkClassify(c *gin.Context) {
 		}
 	}
 	if err := rows.Err(); err != nil {
-		slog.Warn("row iteration error", "error", err)
+		slog.Error("rows.Err: 結果の読み出しが途中で失敗しました", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to query alerts"})
+		return
 	}
 	rows.Close()
 

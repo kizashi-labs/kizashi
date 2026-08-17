@@ -14,6 +14,7 @@ import (
 const (
 	telemetrySensorProcess = "process"
 	telemetrySensorNetwork = "network"
+	telemetrySensorFile    = "file"
 )
 
 // errEBPFUnsupported is the reason recorded when the host never qualified for

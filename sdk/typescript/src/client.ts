@@ -361,8 +361,15 @@ export class KizashiEDRClient {
 
   /** Live response session management methods. */
   readonly liveResponse: {
-    /** Returns all active live-response sessions. */
-    list(): Promise<ListResponse<LiveResponseSession>>;
+    /**
+     * Returns the active live-response sessions on an agent.
+     *
+     * **セッションは端末ごとです。** 以前このメソッドは端末を受け取らず
+     * `/api/v1/live-response/sessions` を叩いていました —— サーバに
+     * その経路はなく、**呼ぶと必ず 404 でした**。
+     * @param agentId - Target agent UUID.
+     */
+    list(agentId: string): Promise<ListResponse<LiveResponseSession>>;
     /**
      * Opens a new live-response session on an agent.
      * @param agentId - Target agent UUID.
@@ -370,10 +377,11 @@ export class KizashiEDRClient {
     open(agentId: string): Promise<LiveResponseSession>;
     /**
      * Executes a command in an active session.
+     * @param agentId   - Target agent UUID.
      * @param sessionId - Session UUID.
      * @param command   - Shell command to run.
      */
-    exec(sessionId: string, command: string): Promise<CommandResult>;
+    exec(agentId: string, sessionId: string, command: string): Promise<CommandResult>;
   };
 
   /** Indicator of Compromise (IOC / threat-intel) methods. */
@@ -396,7 +404,7 @@ export class KizashiEDRClient {
     this.alerts = {
       list: (filter?) => this.request<ListResponse<Alert>>("GET", "/api/v1/alerts", { query: filter }),
       get: (id) => this.request<Alert>("GET", `/api/v1/alerts/${id}`),
-      update: (id, data) => this.request<Alert>("PATCH", `/api/v1/alerts/${id}`, { body: data }),
+      update: (id, data) => this.request<Alert>("PUT", `/api/v1/alerts/${id}`, { body: data }),
     };
 
     this.agents = {
@@ -410,7 +418,7 @@ export class KizashiEDRClient {
       list: () => this.request<ListResponse<Incident>>("GET", "/api/v1/incidents"),
       get: (id) => this.request<Incident>("GET", `/api/v1/incidents/${id}`),
       create: (data) => this.request<Incident>("POST", "/api/v1/incidents", { body: data }),
-      update: (id, data) => this.request<Incident>("PATCH", `/api/v1/incidents/${id}`, { body: data }),
+      update: (id, data) => this.request<Incident>("PUT", `/api/v1/incidents/${id}`, { body: data }),
     };
 
     this.rules = {
@@ -424,14 +432,14 @@ export class KizashiEDRClient {
       },
       get: (id) => this.request<SigmaRule>("GET", `/api/v1/rules/${id}`),
       create: (data) => this.request<SigmaRule>("POST", "/api/v1/rules", { body: data }),
-      update: (id, data) => this.request<SigmaRule>("PATCH", `/api/v1/rules/${id}`, { body: data }),
+      update: (id, data) => this.request<SigmaRule>("PUT", `/api/v1/rules/${id}`, { body: data }),
       delete: (id) => this.request<void>("DELETE", `/api/v1/rules/${id}`),
     };
 
     this.ioc = {
-      list: () => this.request<IOCEntry[]>("GET", "/api/v1/threat-intel/ioc"),
+      list: () => this.request<IOCEntry[]>("GET", "/api/v1/ioc"),
       import: (entries) =>
-        this.request<void>("POST", "/api/v1/threat-intel/ioc/import", { body: { entries } }),
+        this.request<void>("POST", "/api/v1/ioc/import", { body: { entries } }),
     };
 
     this.vulnerabilities = {
@@ -448,15 +456,22 @@ export class KizashiEDRClient {
     };
 
     this.liveResponse = {
-      list: () => this.request<ListResponse<LiveResponseSession>>("GET", "/api/v1/live-response/sessions"),
+      list: (agentId) =>
+        this.request<ListResponse<LiveResponseSession>>(
+          "GET",
+          `/api/v1/agents/${agentId}/live-response/sessions`,
+        ),
       open: (agentId) =>
-        this.request<LiveResponseSession>("POST", "/api/v1/live-response/sessions", {
-          body: { agent_id: agentId },
-        }),
-      exec: (sessionId, command) =>
-        this.request<CommandResult>("POST", `/api/v1/live-response/sessions/${sessionId}/exec`, {
-          body: { command },
-        }),
+        this.request<LiveResponseSession>(
+          "POST",
+          `/api/v1/agents/${agentId}/live-response/sessions`,
+        ),
+      exec: (agentId, sessionId, command) =>
+        this.request<CommandResult>(
+          "POST",
+          `/api/v1/agents/${agentId}/live-response/sessions/${sessionId}/exec`,
+          { body: { command } },
+        ),
     };
   }
 

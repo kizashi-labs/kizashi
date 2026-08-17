@@ -7,28 +7,43 @@ import (
 	"net/http/httptest"
 	"os"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 
 	"github.com/edr-platform/server/internal/api/handlers"
+	"github.com/edr-platform/server/internal/isolation"
 	"github.com/edr-platform/server/internal/store"
 )
 
-// testDB opens a *store.DB for integration tests against TEST_DATABASE_URL.
+// testDB returns the package's shared *store.DB for integration tests
+// against TEST_DATABASE_URL.
 // Skips the test when the env var is unset (same gate as testPool).
+//
+// **共有する理由と、共有しても振る舞いが変わらない根拠は `testPool`
+// の側に書いてあります。** こちらは `store.Connect` を通るので、
+// `PrepareConn`（接続ごとの `app.tenant_id`）も本番と同じ形で効きます。
+var (
+	sharedDBOnce sync.Once
+	sharedDB     *store.DB
+	sharedDBErr  error
+)
+
 func testDB(t *testing.T) *store.DB {
 	t.Helper()
 	url := os.Getenv("TEST_DATABASE_URL")
 	if url == "" {
 		t.Skip("TEST_DATABASE_URL not set - skipping DB integration tests")
 	}
-	db, err := store.Connect(context.Background(), url)
-	if err != nil {
-		t.Fatalf("failed to connect to test database: %v", err)
+	sharedDBOnce.Do(func() {
+		sharedDB, sharedDBErr = store.Connect(context.Background(), url)
+	})
+	if sharedDBErr != nil {
+		t.Fatalf("failed to connect to test database: %v", sharedDBErr)
 	}
-	t.Cleanup(db.Close)
-	return db
+	return sharedDB
 }
 
 // TestAgentHandler_Integration_CRUD exercises the agent List/Get/Delete handlers
@@ -193,19 +208,44 @@ func TestAgentHandler_Integration_ProtectionSummary(t *testing.T) {
 	}
 }
 
+// passthroughIsolator accepts every request without touching NATS. テナント・
+// ガードを見るテストに、隔離の安全弁や送出の都合を持ち込まないための stub。
+type passthroughIsolator struct {
+	isolated []string
+}
+
+func (p *passthroughIsolator) Isolate(_ context.Context, req isolation.Request) (isolation.Result, error) {
+	p.isolated = append(p.isolated, req.AgentID)
+	return isolation.Result{Outcome: isolation.OutcomeDispatched, ActionID: "row-1"}, nil
+}
+
+func (p *passthroughIsolator) Unisolate(_ context.Context, _ isolation.Request) (isolation.Result, error) {
+	return isolation.Result{Outcome: isolation.OutcomeDispatched, ActionID: "row-1"}, nil
+}
+
 // TestAgentHandler_Integration_TenantGuard verifies the application-layer
 // defense-in-depth tenant check on response-action endpoints (isolate/kill).
 // A cross-tenant caller must get 404 BEFORE any command is dispatched, even
 // though the test connects as a superuser (RLS bypassed) — proving the guard
-// does not rely on RLS. Same-tenant and single-tenant (no tenant_id) callers
-// proceed normally.
+// does not rely on RLS. Same-tenant callers proceed normally.
+//
+// テナントを名乗らない呼び出しは 400 です。**以前はここが 200 でした** ——
+// 見出しには「single-tenant」と書いてありましたが、この検査が作る端末は
+// ownerTenant のもので、単一テナント構成の話ではありませんでした。
+// 本当にテナントの無い端末（tenant_id が NULL）は最後の節で見ています。
 func TestAgentHandler_Integration_TenantGuard(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	db := testDB(t)
 	agentStore := store.NewAgentStore(db)
-	// Commander nil: the same-tenant path returns 200 without dispatching a real
-	// command, which is exactly what we want to assert the guard let it through.
 	h := handlers.NewAgentHandler(agentStore, nil)
+	iso := &passthroughIsolator{}
+	// 隔離が「通った」ことを 200 で見るには、隔離経路が結線されている必要がある。
+	//
+	// 以前はここを nil のままにして「Commander nil なので送出せずに 200」を
+	// 通過の証拠にしていた。その 200 こそが、実行していないのに成功と報告する
+	// 形そのものだったので、結線漏れは 503 で断るようにした（P5-36）。
+	// このテストが見たいのはテナント・ガードなので、隔離側は素通しの stub にする。
+	h.Isolator = iso
 
 	const id = "b2b2b2b2-c3c3-d4d4-e5e5-f6f6f6f6f6f6"
 	const ownerTenant = "00000000-0000-0000-0000-000000000001" // default tenant (exists → satisfies FK)
@@ -248,22 +288,55 @@ func TestAgentHandler_Integration_TenantGuard(t *testing.T) {
 		return w
 	}
 
-	// ── Cross-tenant caller → 404 (guard blocks before any dispatch) ──────────
+	// ── Cross-tenant caller → 404 (guard blocks before the gatekeeper) ────────
 	if w := post(newRouter(otherTenant), "/agents/"+id+"/isolate", `{}`); w.Code != http.StatusNotFound {
 		t.Errorf("cross-tenant isolate: expected 404, got %d: %s", w.Code, w.Body.String())
+	}
+	// 404 を返しただけでは足りない。ガードは隔離が「実行される前に」効く必要がある。
+	// 状態コードだけを見ていると、隔離してから 404 を返しても気づけない。
+	if len(iso.isolated) != 0 {
+		t.Errorf("クロステナントの要求が隔離まで到達した: %v", iso.isolated)
 	}
 	// kill-process is guarded too; the guard runs before JSON/PID validation.
 	if w := post(newRouter(otherTenant), "/agents/"+id+"/kill-process", `{"pid":1234}`); w.Code != http.StatusNotFound {
 		t.Errorf("cross-tenant kill: expected 404, got %d: %s", w.Code, w.Body.String())
 	}
 
-	// ── Same-tenant caller → proceeds (200; Commander nil so no dispatch) ─────
+	// ── Same-tenant caller → proceeds (200, and actually reaches the gatekeeper) ─
 	if w := post(newRouter(ownerTenant), "/agents/"+id+"/isolate", `{}`); w.Code != http.StatusOK {
 		t.Errorf("same-tenant isolate: expected 200, got %d: %s", w.Code, w.Body.String())
 	}
+	if len(iso.isolated) != 1 {
+		t.Errorf("同一テナントの隔離が隔離経路に届いていない: %v", iso.isolated)
+	}
 
-	// ── Single-tenant (no tenant_id) → no-op guard, proceeds (200) ────────────
-	if w := post(newRouter(""), "/agents/"+id+"/isolate", `{}`); w.Code != http.StatusOK {
-		t.Errorf("single-tenant isolate: expected 200, got %d: %s", w.Code, w.Body.String())
+	// ── テナントを名乗らない呼び出し → 400 ────────────────────────────────────
+	//
+	// **ここは 200 を期待していました。** 見出しは「Single-tenant (no
+	// tenant_id) → no-op guard」でしたが、**この検査が作った端末は
+	// ownerTenant のものです。** 単一テナント構成の話ではありません ——
+	// 持ち主のいる端末を、名乗らない相手が操作できる、という形でした。
+	//
+	// 「この配備にテナントが無い」と「この呼び出し元が名乗れない」を
+	// 同じ `tid == ""` で表していたのが元です。APIキー認証は構成に
+	// 関係なく空を置くので、**後者だけが実際に起きます。**
+	if w := post(newRouter(""), "/agents/"+id+"/isolate", `{}`); w.Code != http.StatusBadRequest {
+		t.Errorf("テナントを名乗らない隔離: expected 400, got %d: %s", w.Code, w.Body.String())
+	}
+
+	// ── 本当にテナントの無い端末 → 素通し (200) ──────────────────────────────
+	// 単一テナント構成はこちらです。行に持ち主が書かれていません。
+	untenanted := uuid.NewString()
+	if _, err := db.Pool().Exec(context.Background(),
+		`INSERT INTO agents (id, hostname, os_type, status, source, settings, tenant_id)
+		 VALUES ($1, $2, 'linux', 'online', 'agent', '{}'::jsonb, NULL)`,
+		untenanted, "untenanted-host"); err != nil {
+		t.Fatalf("テナント無しの端末を作れません: %v", err)
+	}
+	defer func() {
+		_, _ = db.Pool().Exec(context.Background(), `DELETE FROM agents WHERE id = $1`, untenanted)
+	}()
+	if w := post(newRouter(""), "/agents/"+untenanted+"/isolate", `{}`); w.Code != http.StatusOK {
+		t.Errorf("テナントの無い端末の隔離: expected 200, got %d: %s", w.Code, w.Body.String())
 	}
 }

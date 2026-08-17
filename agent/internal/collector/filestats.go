@@ -21,9 +21,12 @@
 package collector
 
 import (
+	"context"
+	"log/slog"
 	"sort"
 	"sync"
 	"sync/atomic"
+	"time"
 )
 
 // FileEmitStat is the per-action tally at the sensor boundary.
@@ -89,4 +92,48 @@ func FileEmitActions() []string {
 	fileEmitMu.RUnlock()
 	sort.Strings(actions)
 	return actions
+}
+
+// LogFileEmitStats writes the per-action tallies to the agent log.
+//
+// The counters are also exposed on the health server's /metrics, but that
+// endpoint is unreachable in practice: agent/internal/health is imported by
+// nothing, so NewHTTPServer is never called and the agent listens on no port.
+// Publishing the numbers only there would have repeated the exact defect this
+// instrumentation exists to investigate — a value that is computed, stored, and
+// read by no one. The log is the one output path the agent demonstrably has.
+func LogFileEmitStats() {
+	snap := FileEmitSnapshot()
+	if len(snap) == 0 {
+		return
+	}
+	attrs := make([]any, 0, len(snap)*2)
+	for _, action := range FileEmitActions() {
+		st := snap[action]
+		attrs = append(attrs, action, [2]uint64{st.Generated, st.Dropped})
+	}
+	slog.Info("[file-stats] action別の生成数/取りこぼし数（センサ境界で計測）", attrs...)
+}
+
+// ReportFileEmitStats logs the tallies every interval until ctx is done. A zero
+// or negative interval disables reporting.
+//
+// It logs on a ticker rather than once at shutdown because the question being
+// answered — "does this sensor ever produce a delete?" — needs an answer from a
+// running agent, not from one that has been stopped.
+func ReportFileEmitStats(ctx context.Context, interval time.Duration) {
+	if interval <= 0 {
+		return
+	}
+	t := time.NewTicker(interval)
+	defer t.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			LogFileEmitStats() // final tally on shutdown
+			return
+		case <-t.C:
+			LogFileEmitStats()
+		}
+	}
 }

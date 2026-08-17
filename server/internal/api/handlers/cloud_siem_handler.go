@@ -58,7 +58,9 @@ func (h *CloudSIEMHandler) ListLogSources(c *gin.Context) {
 		sources = append(sources, s)
 	}
 	if err := rows.Err(); err != nil {
-		slog.Warn("cloud_siem: log sources rows error", "error", err)
+		slog.Error("rows.Err: 結果の読み出しが途中で失敗しました", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": dbErrMsg(err)})
+		return
 	}
 	if sources == nil {
 		sources = []LogSource{}
@@ -474,18 +476,24 @@ func (h *CloudSIEMHandler) GetStats(c *gin.Context) {
 		}
 	}
 	if err := typeRows.Err(); err != nil {
-		slog.Warn("row iteration error", "error", err)
+		slog.Error("rows.Err: 結果の読み出しが途中で失敗しました", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": dbErrMsg(err)})
+		return
 	}
 
 	// Rule counts
 	var totalRules, activeRules int
-	_ = h.pool.QueryRow(ctx, `SELECT COUNT(*), COUNT(*) FILTER (WHERE is_active) FROM siem_detection_rules`).
-		Scan(&totalRules, &activeRules)
+	if !ReadOK(c, h.pool.QueryRow(ctx, `SELECT COUNT(*), COUNT(*) FILTER (WHERE is_active) FROM siem_detection_rules`).
+		Scan(&totalRules, &activeRules)) {
+		return
+	}
 
 	// Daily volume total
 	var totalVolumeMB int64
-	_ = h.pool.QueryRow(ctx, `SELECT COALESCE(SUM(daily_volume_mb),0) FROM siem_log_sources WHERE is_active`).
-		Scan(&totalVolumeMB)
+	if !ReadOK(c, h.pool.QueryRow(ctx, `SELECT COALESCE(SUM(daily_volume_mb),0) FROM siem_log_sources WHERE is_active`).
+		Scan(&totalVolumeMB)) {
+		return
+	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"sources_by_type": sourcesByType,

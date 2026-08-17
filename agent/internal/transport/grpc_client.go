@@ -832,12 +832,15 @@ func (c *GRPCClient) SendHeartbeat(ctx context.Context, req *heartbeat.Heartbeat
 		AgentVersion:   req.AgentVersion,
 		IpAddresses:    req.IPAddresses,
 		EventsBuffered: uint64(req.EventsBuffered),
-		CpuUsage:       req.CPUUsage,
-		MemoryUsageMb:  req.MemoryUsageMB,
-		Status:         status,
-		ConfigVersion:  req.ConfigVersion,
-		Hostname:       req.Hostname,
-		OsVersion:      req.OSVersion,
+		// nil のときは欄ごと送りません。**サーバは NULL のままにします。**
+		// 0 を送ると「アイドル」という測定値になり、測っていないことが
+		// 「問題なし」に化けます。
+		CpuUsage:      req.CPUUsage,
+		MemoryUsageMb: req.MemoryUsageMB,
+		Status:        status,
+		ConfigVersion: req.ConfigVersion,
+		Hostname:      req.Hostname,
+		OsVersion:     req.OSVersion,
 	}
 
 	// Also pass os_version as gRPC metadata so the server can read it
@@ -862,6 +865,12 @@ func (c *GRPCClient) SendHeartbeat(ctx context.Context, req *heartbeat.Heartbeat
 	if req.TelemetryMode != "" {
 		ctx = metadata.AppendToOutgoingContext(ctx, "x-telemetry-mode", req.TelemetryMode)
 	}
+	// Per-sensor breakdown explaining the mode. The aggregate says the endpoint is
+	// degraded; this says which sensor and why, which is the difference between an
+	// alert an operator can act on and one that starts an SSH session.
+	if req.TelemetryDetail != "" {
+		ctx = metadata.AppendToOutgoingContext(ctx, "x-telemetry-detail", req.TelemetryDetail)
+	}
 
 	// Capture the response header: a keepalive-capable server stamps x-edr-keepalive.
 	// Heartbeat is a unary RPC on its own HTTP/2 stream, so this reply lands even
@@ -869,19 +878,49 @@ func (c *GRPCClient) SendHeartbeat(ctx context.Context, req *heartbeat.Heartbeat
 	// arm from stream-open and catch a downstream half-open from birth (see
 	// runRecvWatchdog / serverKeepalive).
 	var respHeader metadata.MD
-	resp, err := client.Heartbeat(ctx, protoReq, grpc.Header(&respHeader))
-	if err != nil {
+	// **応答の本体は使いません。** 中身（`config_update_available` /
+	// `latest_config_version` / `pending_commands`）はサーバが一度も
+	// 設定したことがなく、端末側の受け皿ごと消しました。RPC が成功した
+	// ことと、応答ヘッダだけを見ます。
+	if _, err := client.Heartbeat(ctx, protoReq, grpc.Header(&respHeader)); err != nil {
 		return nil, err
 	}
 	if vals := respHeader.Get("x-edr-keepalive"); len(vals) > 0 && vals[0] == "1" {
 		c.serverKeepalive.Store(true)
 	}
 
+	// **隔離状態の突き合わせは、この経路には無いままでした。**
+	// `FallbackSender` は gRPC を先に試すので、gRPC が生きている通常時、
+	// HTTP の `should_unisolate` は端末に届きません —— つまり直る条件と
+	// 直らない条件が入れ替わっていました。proto を増やさずに済む形
+	// （`x-edr-keepalive` と同じ）で、応答ヘッダから読みます。
 	return &heartbeat.HeartbeatResponse{
-		ConfigUpdateAvailable: resp.GetConfigUpdateAvailable(),
-		LatestConfigVersion:   resp.GetLatestConfigVersion(),
-		PendingCommandCount:   len(resp.GetPendingCommands()),
+		ShouldIsolate:   headerSaysIsolate(respHeader),
+		ShouldUnisolate: headerSaysUnisolate(respHeader),
+		UninstallGuard:  headerUninstallGuard(respHeader),
 	}, nil
+}
+
+// headerUninstallGuard reads the uninstall-password material off the reply.
+//
+// **HTTP にしか無いままだと、この機能は届きません。** `FallbackSender` は
+// gRPC を先に試すので、gRPC が生きている通常時は HTTP の応答が使われず、
+// 保護設定は端末に一度も置かれません。検証はネットワークが切れた状態でも
+// 走るので、そのとき取りに行くことはできません。
+//
+// 読めなかったときは nil を返します。**古い設定を消しません** —— 端末は
+// 手持ちの設定を保持し、次のハートビートで受け取り直します。
+func headerUninstallGuard(md metadata.MD) *heartbeat.UninstallGuardMaterial {
+	vals := md.Get("x-edr-uninstall-guard")
+	if len(vals) == 0 || vals[0] == "" {
+		return nil
+	}
+	var g heartbeat.UninstallGuardMaterial
+	if err := json.Unmarshal([]byte(vals[0]), &g); err != nil {
+		slog.Warn("アンインストール保護設定を読めませんでした（今回は適用しません）", "error", err)
+		return nil
+	}
+	return &g
 }
 
 // IsConnected returns the current connection state.
@@ -1141,8 +1180,23 @@ func (c *GRPCClient) drainBuffer(ctx context.Context) {
 		}
 
 		rawBatch, err := c.buffer.ReadBatch(batchSize)
-		if err != nil || len(rawBatch) == 0 {
+		// 「読めなかった」と「もう無い」を分けます。
+		//
+		// 以前は `err != nil || len(rawBatch) == 0` の1本でした。オフライン中に
+		// 溜めたイベントを読み出せなかったとき、**バッファが空だったのと同じ
+		// 扱いで黙って戻ります。** イベントはディスクに残ったまま、この
+		// ドレインでは二度と試されず、記録も残りません。
+		//
+		// サーバから見ると、その端末は「切れていて、報告することが何も
+		// 無かった」ように見えます。溜めた分が丸ごと出てこないことと、
+		// 本当に何も起きなかったことの区別がつきません。
+		if err != nil {
+			slog.Error("オフラインバッファを読み出せませんでした。"+
+				"溜めたイベントは送られていません", "error", err)
 			return
+		}
+		if len(rawBatch) == 0 {
+			return // 送るものが無い
 		}
 
 		for _, raw := range rawBatch {
@@ -1251,4 +1305,19 @@ func fixWindowsPath(p string) string {
 		"\f", `\f`, // form-feed (0x0C) ← was \f in path
 		"\b", `\b`, // backspace (0x08) ← was \b in path
 	).Replace(p)
+}
+
+// headerSaysIsolate / headerSaysUnisolate read the isolation reconcile flags
+// off the heartbeat's response metadata.
+//
+// **切り出してあるのは、両方向読んでいることを確かめるため**です。
+// この経路は元は何も読んでおらず、`FallbackSender` が gRPC を先に試す
+// ので、**gRPC が生きている通常時、サーバの巻き戻しは端末に届いて
+// いませんでした。**
+func headerSaysIsolate(md metadata.MD) bool {
+	return len(md.Get("x-edr-should-isolate")) > 0
+}
+
+func headerSaysUnisolate(md metadata.MD) bool {
+	return len(md.Get("x-edr-should-unisolate")) > 0
 }

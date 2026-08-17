@@ -4,6 +4,7 @@ package geoip
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log/slog"
 	"net"
 	"net/http"
@@ -24,6 +25,46 @@ type Location struct {
 	Longitude   float64 `json:"longitude"`
 	ISP         string  `json:"isp"`
 	IsThreat    bool    `json:"is_threat"`
+
+	// Unavailable は「引けなかった」。CountryCode: "XX" は脅威マップで
+	// 読み飛ばされるので、引けなかった IP は地図から消えます。ip-api.com
+	// の無料枠は毎分45件なので、混んだ時間帯にはこれが常態になり得ます。
+	// 地図は「その国への通信は無い」ように見えます。
+	Unavailable       bool   `json:"unavailable,omitempty"`
+	UnavailableReason string `json:"unavailable_reason,omitempty"`
+}
+
+// mapPlacement は、引いた位置を脅威マップでどう扱うかです。
+//
+// 判定を関数に出しているのは、地図の組み立てが DB を要るループの中にあり、
+// 「引けなかった宛先を数える」行を消しても誰も気づかなかったからです。
+// 実際に消して確かめました。
+type mapPlacement int
+
+const (
+	mapPlot       mapPlacement = iota // 地図に載せる
+	mapSkip                           // 載せないが、載らないのが正しい（内部・国不明）
+	mapUnresolved                     // 引けなかった。載らないが、載らないのは正しくない
+)
+
+func classifyForMap(loc *Location) mapPlacement {
+	if loc == nil {
+		return mapUnresolved
+	}
+	if loc.Unavailable {
+		return mapUnresolved
+	}
+	if loc.CountryCode == "INT" || loc.CountryCode == "XX" {
+		return mapSkip
+	}
+	return mapPlot
+}
+
+func unavailableLocation(ip string, err error) *Location {
+	return &Location{
+		IP: ip, Country: "Unknown", CountryCode: "XX",
+		Unavailable: true, UnavailableReason: err.Error(),
+	}
 }
 
 // ThreatMapEntry aggregates connection data per country.
@@ -91,23 +132,26 @@ func (l *Locator) LookupCtx(ctx context.Context, ip string) *Location {
 	url := "http://ip-api.com/json/" + ip + "?fields=status,country,countryCode,regionName,city,isp,lat,lon,proxy,query"
 	req, err := http.NewRequestWithContext(reqCtx, http.MethodGet, url, nil)
 	if err != nil {
-		return &Location{IP: ip, Country: "Unknown", CountryCode: "XX"}
+		return unavailableLocation(ip, err)
 	}
 	req.Header.Set("Accept", "application/json")
 
 	resp, err := geoHTTPClient.Do(req)
 	if err != nil {
-		slog.Debug("geoip: lookup failed", "ip", ip, "error", err)
-		return &Location{IP: ip, Country: "Unknown", CountryCode: "XX"}
+		return unavailableLocation(ip, err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return &Location{IP: ip, Country: "Unknown", CountryCode: "XX"}
+		return unavailableLocation(ip, fmt.Errorf("ip-api が HTTP %d を返しました", resp.StatusCode))
 	}
 
 	var raw ipAPIResponse
-	if err := json.NewDecoder(resp.Body).Decode(&raw); err != nil || raw.Status != "success" {
+	if err := json.NewDecoder(resp.Body).Decode(&raw); err != nil {
+		return unavailableLocation(ip, err)
+	}
+	if raw.Status != "success" {
+		// API が「この IP は引けない」と答えた場合。引けなかったのとは違います。
 		return &Location{IP: ip, Country: "Unknown", CountryCode: "XX"}
 	}
 
@@ -140,7 +184,7 @@ func (l *Locator) GetThreatMapData(ctx context.Context, pool *pgxpool.Pool, hour
 	)
 	if err != nil {
 		slog.Warn("geoip: threat map query failed", "err", err)
-		return []ThreatMapEntry{}, nil
+		return nil, err
 	}
 	defer rows.Close()
 
@@ -149,6 +193,10 @@ func (l *Locator) GetThreatMapData(ctx context.Context, pool *pgxpool.Pool, hour
 	}
 	byCountry := make(map[string]*agg)
 
+	// 引けなかった宛先の数。地図から静かに消えると「その国への通信は
+	// 無い」と読めるので、消えた件数だけは持ち帰ります。
+	unresolved := 0
+
 	for rows.Next() {
 		var dstIP string
 		var cnt int
@@ -156,7 +204,11 @@ func (l *Locator) GetThreatMapData(ctx context.Context, pool *pgxpool.Pool, hour
 			continue
 		}
 		loc := l.LookupCtx(ctx, dstIP)
-		if loc.CountryCode == "INT" || loc.CountryCode == "XX" {
+		switch classifyForMap(loc) {
+		case mapUnresolved:
+			unresolved += cnt
+			continue
+		case mapSkip:
 			continue
 		}
 		a, ok := byCountry[loc.CountryCode]
@@ -173,6 +225,13 @@ func (l *Locator) GetThreatMapData(ctx context.Context, pool *pgxpool.Pool, hour
 		if loc.IsThreat {
 			a.entry.ThreatCount += cnt
 		}
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	if unresolved > 0 {
+		slog.Warn("geoip: 位置を引けなかった宛先を脅威マップから除きました。地図はその分だけ実際より空です",
+			"connections", unresolved)
 	}
 
 	result := make([]ThreatMapEntry, 0, len(byCountry))
@@ -196,7 +255,7 @@ func (l *Locator) GetTopThreats(ctx context.Context, pool *pgxpool.Pool) ([]Thre
 	)
 	if err != nil {
 		slog.Warn("geoip: top threats query failed", "err", err)
-		return []ThreatEntry{}, nil
+		return nil, err
 	}
 	defer rows.Close()
 
@@ -212,6 +271,10 @@ func (l *Locator) GetTopThreats(ctx context.Context, pool *pgxpool.Pool) ([]Thre
 		}
 		loc := l.LookupCtx(ctx, srcIP)
 		entries = append(entries, ThreatEntry{IP: srcIP, Location: *loc, Count: cnt})
+	}
+	// 部分結果を完全な一覧として返さない（scan_truncation_guard_test.go 参照）
+	if err := rows.Err(); err != nil {
+		return nil, err
 	}
 	if entries == nil {
 		return []ThreatEntry{}, nil

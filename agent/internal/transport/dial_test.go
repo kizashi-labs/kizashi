@@ -63,7 +63,7 @@ func TestDialBlocking_ReturnsOnceReady(t *testing.T) {
 	t.Cleanup(func() { _ = conn.Close() })
 
 	// 戻った時点で READY になっていること。ここが Idle のままだと
-	// 「接続済み」と報告しつつ実際は未接続、という以前の懸念が再現する。
+	// 「接続済み」と報告しつつ実際は未接続、という以前の懸念がぶり返します。
 	if got := conn.GetState().String(); got != "READY" {
 		t.Errorf("戻り時点の状態 = %s, want READY", got)
 	}

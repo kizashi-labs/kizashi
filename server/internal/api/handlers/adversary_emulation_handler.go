@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -118,7 +119,7 @@ func (h *AdversaryEmulationHandler) ListPlans(c *gin.Context) {
 		       time_window, rules_of_engagement, preconditions, created_at
 		FROM emulation_plans ORDER BY created_at DESC`)
 	if err != nil {
-		c.JSON(http.StatusOK, []emulationPlan{})
+		ReadFailure(c, err, []emulationPlan{})
 		return
 	}
 	defer rows.Close()
@@ -130,6 +131,11 @@ func (h *AdversaryEmulationHandler) ListPlans(c *gin.Context) {
 			continue
 		}
 		plans = append(plans, p)
+	}
+	if err := rows.Err(); err != nil {
+		slog.Warn("ListPlans: 結果セットの読み取りが途中で終わりました。応答は不完全です", "error", err)
+		c.JSON(http.StatusOK, []emulationPlan{})
+		return
 	}
 	c.JSON(http.StatusOK, plans)
 }
@@ -263,7 +269,7 @@ func (h *AdversaryEmulationHandler) ListExecutions(c *gin.Context) {
 		       detection_rate, phase_results, gap_analysis, notes
 		FROM emulation_executions ORDER BY executed_at DESC`)
 	if err != nil {
-		c.JSON(http.StatusOK, []emulationExecution{})
+		ReadFailure(c, err, []emulationExecution{})
 		return
 	}
 	defer rows.Close()
@@ -287,6 +293,11 @@ func (h *AdversaryEmulationHandler) ListExecutions(c *gin.Context) {
 			e.GapAnalysis = []aeGap{}
 		}
 		results = append(results, e)
+	}
+	if err := rows.Err(); err != nil {
+		slog.Warn("ListExecutions: 結果セットの読み取りが途中で終わりました。応答は不完全です", "error", err)
+		c.JSON(http.StatusOK, []emulationExecution{})
+		return
 	}
 	c.JSON(http.StatusOK, results)
 }
@@ -348,8 +359,10 @@ func (h *AdversaryEmulationHandler) CreateExecution(c *gin.Context) {
 	}
 
 	// Stamp the plan's last_executed time (best effort).
-	_, _ = h.pool.Exec(c.Request.Context(),
-		`UPDATE emulation_plans SET last_executed=$1 WHERE id=$2`, executedAt, body.PlanID)
+	if _, err := h.pool.Exec(c.Request.Context(),
+		`UPDATE emulation_plans SET last_executed=$1 WHERE id=$2`, executedAt, body.PlanID); !WriteOK(c, err) {
+		return
+	}
 
 	body.ID = id
 	body.ExecutedAt = executedAt.UTC().Format(time.RFC3339)

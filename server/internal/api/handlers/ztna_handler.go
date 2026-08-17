@@ -16,8 +16,7 @@ func NewZTNAHandler(pool *pgxpool.Pool) *ZTNAHandler { return &ZTNAHandler{pool:
 
 func (h *ZTNAHandler) ListPolicies(c *gin.Context) {
 	ctx := c.Request.Context()
-	var exists bool
-	_ = h.pool.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM pg_tables WHERE schemaname='public' AND tablename='ztna_policies')`).Scan(&exists)
+	exists := tableIsThere(ctx, h.pool, "ztna_policies")
 	if !exists {
 		c.JSON(http.StatusOK, gin.H{"policies": []interface{}{}, "total": 0})
 		return
@@ -52,7 +51,9 @@ func (h *ZTNAHandler) ListPolicies(c *gin.Context) {
 		policies = append(policies, p)
 	}
 	if err := rows.Err(); err != nil {
-		slog.Warn("row iteration error", "error", err)
+		slog.Error("rows.Err: 結果の読み出しが途中で失敗しました", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "データの取得に失敗しました"})
+		return
 	}
 	if policies == nil {
 		policies = []gin.H{}
@@ -74,8 +75,7 @@ func (h *ZTNAHandler) CreatePolicy(c *gin.Context) {
 
 func (h *ZTNAHandler) GetAccessLogs(c *gin.Context) {
 	ctx := c.Request.Context()
-	var exists bool
-	_ = h.pool.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM pg_tables WHERE schemaname='public' AND tablename='ztna_access_logs')`).Scan(&exists)
+	exists := tableIsThere(ctx, h.pool, "ztna_access_logs")
 	if !exists {
 		c.JSON(http.StatusOK, gin.H{"logs": []interface{}{}, "total": 0})
 		return
@@ -106,7 +106,9 @@ func (h *ZTNAHandler) GetAccessLogs(c *gin.Context) {
 		})
 	}
 	if err := rows.Err(); err != nil {
-		slog.Warn("row iteration error", "error", err)
+		slog.Error("rows.Err: 結果の読み出しが途中で失敗しました", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "データの取得に失敗しました"})
+		return
 	}
 	if logs == nil {
 		logs = []gin.H{}
@@ -116,8 +118,7 @@ func (h *ZTNAHandler) GetAccessLogs(c *gin.Context) {
 
 func (h *ZTNAHandler) GetDevicePosture(c *gin.Context) {
 	ctx := c.Request.Context()
-	var exists bool
-	_ = h.pool.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM pg_tables WHERE schemaname='public' AND tablename='ztna_device_posture')`).Scan(&exists)
+	exists := tableIsThere(ctx, h.pool, "ztna_device_posture")
 	if !exists {
 		c.JSON(http.StatusOK, gin.H{"devices": []interface{}{}, "total": 0})
 		return
@@ -147,7 +148,9 @@ func (h *ZTNAHandler) GetDevicePosture(c *gin.Context) {
 		})
 	}
 	if err := rows.Err(); err != nil {
-		slog.Warn("row iteration error", "error", err)
+		slog.Error("rows.Err: 結果の読み出しが途中で失敗しました", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "データの取得に失敗しました"})
+		return
 	}
 	if devices == nil {
 		devices = []gin.H{}
@@ -158,28 +161,43 @@ func (h *ZTNAHandler) GetDevicePosture(c *gin.Context) {
 func (h *ZTNAHandler) GetStats(c *gin.Context) {
 	ctx := c.Request.Context()
 
-	var policiesExists, logsExists, postureExists bool
-	_ = h.pool.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM pg_tables WHERE schemaname='public' AND tablename='ztna_policies')`).Scan(&policiesExists)
-	_ = h.pool.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM pg_tables WHERE schemaname='public' AND tablename='ztna_access_logs')`).Scan(&logsExists)
-	_ = h.pool.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM pg_tables WHERE schemaname='public' AND tablename='ztna_device_posture')`).Scan(&postureExists)
+	policiesExists := tableIsThere(ctx, h.pool, "ztna_policies")
+	logsExists := tableIsThere(ctx, h.pool, "ztna_access_logs")
+	postureExists := tableIsThere(ctx, h.pool, "ztna_device_posture")
 
 	var activePolicies, totalToday, allowed, denied, challenged int
 	var avgRiskScore float64
 	var compliantDevices, nonCompliantDevices int
 
 	if policiesExists {
-		_ = h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM ztna_policies WHERE enabled = true`).Scan(&activePolicies)
+		if !ReadOK(c, h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM ztna_policies WHERE enabled = true`).Scan(&activePolicies)) {
+			return
+		}
 	}
 	if logsExists {
-		_ = h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM ztna_access_logs WHERE DATE(timestamp) = CURRENT_DATE`).Scan(&totalToday)
-		_ = h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM ztna_access_logs WHERE decision = 'allow' AND DATE(timestamp) = CURRENT_DATE`).Scan(&allowed)
-		_ = h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM ztna_access_logs WHERE decision = 'deny' AND DATE(timestamp) = CURRENT_DATE`).Scan(&denied)
-		_ = h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM ztna_access_logs WHERE decision = 'challenge' AND DATE(timestamp) = CURRENT_DATE`).Scan(&challenged)
-		_ = h.pool.QueryRow(ctx, `SELECT COALESCE(AVG(risk_score), 0) FROM ztna_access_logs WHERE DATE(timestamp) = CURRENT_DATE`).Scan(&avgRiskScore)
+		if !ReadOK(c, h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM ztna_access_logs WHERE DATE(timestamp) = CURRENT_DATE`).Scan(&totalToday)) {
+			return
+		}
+		if !ReadOK(c, h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM ztna_access_logs WHERE decision = 'allow' AND DATE(timestamp) = CURRENT_DATE`).Scan(&allowed)) {
+			return
+		}
+		if !ReadOK(c, h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM ztna_access_logs WHERE decision = 'deny' AND DATE(timestamp) = CURRENT_DATE`).Scan(&denied)) {
+			return
+		}
+		if !ReadOK(c, h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM ztna_access_logs WHERE decision = 'challenge' AND DATE(timestamp) = CURRENT_DATE`).Scan(&challenged)) {
+			return
+		}
+		if !ReadOK(c, h.pool.QueryRow(ctx, `SELECT COALESCE(AVG(risk_score), 0) FROM ztna_access_logs WHERE DATE(timestamp) = CURRENT_DATE`).Scan(&avgRiskScore)) {
+			return
+		}
 	}
 	if postureExists {
-		_ = h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM ztna_device_posture WHERE status = 'compliant'`).Scan(&compliantDevices)
-		_ = h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM ztna_device_posture WHERE status = 'non-compliant'`).Scan(&nonCompliantDevices)
+		if !ReadOK(c, h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM ztna_device_posture WHERE status = 'compliant'`).Scan(&compliantDevices)) {
+			return
+		}
+		if !ReadOK(c, h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM ztna_device_posture WHERE status = 'non-compliant'`).Scan(&nonCompliantDevices)) {
+			return
+		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{

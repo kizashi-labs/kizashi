@@ -105,3 +105,24 @@ func RunMigrations(ctx context.Context, pool *pgxpool.Pool, migrationsDir string
 	}
 	return nil
 }
+
+// MigrationState reports how many migrations the database has applied and which
+// one is newest. Both come from schema_migrations, so they describe the DATABASE
+// rather than the binary — which is exactly what is needed to answer "is this
+// deployment running the code I think it is?".
+//
+// A build identifier alone cannot answer that. On 2026-08-03 a deployment served
+// traffic for days with an image whose migration set stopped 20+ files short of the
+// repository, and nothing surfaced it: the API looked healthy, the version string
+// looked plausible, and the missing migrations were rule definitions whose absence
+// only shows up as detections that never fire. The applied count and newest file
+// are cheap, unambiguous, and impossible to fake by rebuilding with a stale context.
+func MigrationState(ctx context.Context, pool *pgxpool.Pool) (count int, latest string, err error) {
+	err = pool.QueryRow(ctx, `
+		SELECT count(*), coalesce(max(version), '')
+		FROM schema_migrations`).Scan(&count, &latest)
+	if err != nil {
+		return 0, "", fmt.Errorf("query migration state: %w", err)
+	}
+	return count, latest, nil
+}

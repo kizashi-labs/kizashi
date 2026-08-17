@@ -200,6 +200,11 @@ func (h *SuppressionHandler) Candidates(c *gin.Context) {
 		s.LastSeen = last.Format(time.RFC3339)
 		candidates = append(candidates, s)
 	}
+	if err := rows.Err(); err != nil {
+		slog.Warn("suppressions: candidates query failed", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "候補の取得に失敗しました"})
+		return
+	}
 	if candidates == nil {
 		candidates = []SuppressCandidate{}
 	}

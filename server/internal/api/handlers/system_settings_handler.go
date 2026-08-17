@@ -170,7 +170,7 @@ func (h *SystemSettingsHandler) GetMaintenanceMode(c *gin.Context) {
 		Scan(&rawValue)
 	if err != nil {
 		// Default to false if not found
-		c.JSON(http.StatusOK, gin.H{"enabled": false})
+		ReadFailure(c, err, gin.H{"enabled": false})
 		return
 	}
 

@@ -18,7 +18,8 @@ type processStatRaw struct {
 	pid      int
 	name     string
 	cpuTotal uint64 // cumulative CPU time in centiseconds
-	memKB    uint64 // resident set size in kB
+	memKB    uint64 // resident set size in kB (mem == memMeasured のときだけ)
+	mem      memState
 }
 
 // readProcessStatsRaw returns raw CPU and memory stats for all running
@@ -61,7 +62,7 @@ func readProcessStatsRaw() ([]processStatRaw, uint64, error) {
 		if err != nil {
 			continue
 		}
-		memKB, _ := strconv.ParseUint(fields[1], 10, 64)
+		memKB, mem := parsePSRSS(fields[1])
 		cpuTotal := parsePSTime(fields[2])
 		// `ps -o comm` prints the full executable path on macOS; reduce it
 		// to a short process name to match the Linux collector's output.
@@ -72,6 +73,7 @@ func readProcessStatsRaw() ([]processStatRaw, uint64, error) {
 			name:     name,
 			cpuTotal: cpuTotal,
 			memKB:    memKB,
+			mem:      mem,
 		})
 	}
 
@@ -82,6 +84,19 @@ func readProcessStatsRaw() ([]processStatRaw, uint64, error) {
 	// collector's uint64 deltaTotal subtraction and zero out every CPU%.
 	totalCentis := uint64(runtime.NumCPU()) * uint64(monotonicCentis())
 	return stats, totalCentis, nil
+}
+
+// parsePSRSS reads the RSS column of `ps -o rss`.
+//
+// **数値として読めなかった RSS を 0 として載せません。** 0 は「常駐
+// メモリが無い」という測定値で、読めなかったこととは別です。以前は
+// ParseUint のエラーを捨てて 0 を返していました。
+func parsePSRSS(field string) (uint64, memState) {
+	kb, err := strconv.ParseUint(field, 10, 64)
+	if err != nil {
+		return 0, memUnknown
+	}
+	return kb, memMeasured
 }
 
 // parsePSTime converts a macOS `ps` TIME field into centiseconds.

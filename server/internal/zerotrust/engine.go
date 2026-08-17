@@ -2,11 +2,14 @@ package zerotrust
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"log/slog"
 	"math"
 	"sync"
 	"time"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -239,21 +242,47 @@ func (e *Engine) collectPosture(ctx context.Context, agentID string) (*DevicePos
 		posture.AgentHealthy = agentVersion != "" && time.Since(lastSeen) < 24*time.Hour
 	}
 
-	// Check active alert count
-	var alertCount int
-	_ = e.pool.QueryRow(ctx, `
+	// Check active alert count.
+	//
+	// このエラーは捨てられません。捨てるとカウントが0のまま残り、その端末は
+	// 「未解決の重大アラート無し」として扱われます。しかもこの数値は
+	// calculateScore に二重に効きます — NoActiveAlerts で +10、さらに
+	// ActiveAlertCount 由来のペナルティが最大 -30。つまり問い合わせが失敗した
+	// 端末は、重大アラートを6件抱えた端末に対して最大40点有利になります。
+	//
+	// CheckAccess の閾値は admin と live_response が80、api と reports が50。
+	// 40点は、その両方を跨ぐ幅です。判定できないときに通してしまう向きの
+	// 失敗なので、ここは必ず「不明」に倒します。
+	if err := e.pool.QueryRow(ctx, `
         SELECT COUNT(*) FROM alerts
         WHERE agent_id::text = $1 AND status = 'open' AND severity >= 7
-    `, agentID).Scan(&alertCount)
-	posture.ActiveAlertCount = alertCount
-	posture.NoActiveAlerts = alertCount == 0
+    `, agentID).Scan(&posture.ActiveAlertCount); err != nil {
+		slog.Warn("zerotrust: 未解決アラート数を取得できませんでした",
+			"agent_id", agentID, "error", err)
+		return nil, fmt.Errorf("zerotrust: alert count for %s: %w", agentID, err)
+	}
+	posture.NoActiveAlerts = posture.ActiveAlertCount == 0
 
-	// Check compliance data from DB (stored by compliance checker)
+	// Check compliance data from DB.
+	//
+	// 以前は system_metadata の 'compliance_score_<agent_id>' を読んでいましたが、
+	// このキーを書くコードはツリーのどこにもありません。端末別のコンプライアンス
+	// スコアは compliance_scores (agent_id, framework, score) にあり、これは
+	// handlers.ComputeScore が書きます。読み先が違ったため CompliancePassed は
+	// 常に false で、その帰結として DiskEncrypted も常に false — 全端末が恒久的に
+	// 15点を失っていました。
+	//
+	// 行が無いのは「まだ評価していない」という正当な状態なので、これは
+	// 不明として扱い、エラーにはしません。
 	var compliancePct float64
 	err2 := e.pool.QueryRow(ctx, `
-        SELECT COALESCE((value->>'score')::float, 0)
-        FROM system_metadata WHERE key = 'compliance_score_' || $1
+        SELECT score FROM compliance_scores
+        WHERE agent_id = $1 AND framework = 'CIS'
     `, agentID).Scan(&compliancePct)
+	if err2 != nil && !errors.Is(err2, pgx.ErrNoRows) {
+		slog.Warn("zerotrust: コンプライアンススコアを取得できませんでした",
+			"agent_id", agentID, "error", err2)
+	}
 	posture.CompliancePassed = err2 == nil && compliancePct >= 70
 
 	// Determine posture from collected telemetry

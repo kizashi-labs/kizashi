@@ -12,6 +12,8 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
+
+	"github.com/edr-platform/server/internal/store"
 )
 
 // Condition is a single field comparison used within a CorrelationRule.
@@ -408,10 +410,7 @@ func (e *Engine) persistIncident(ctx context.Context, inc *Incident) {
 
 func (e *Engine) fetchIncidentsFromDB(ctx context.Context, limit int) ([]*Incident, error) {
 	// Check table existence for graceful degradation
-	var exists bool
-	_ = e.pool.QueryRow(ctx,
-		`SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name='incidents')`,
-	).Scan(&exists)
+	exists := store.TableIsThere(ctx, e.pool, "incidents")
 	if !exists {
 		return e.localIncidents(limit), nil
 	}
@@ -448,6 +447,9 @@ func (e *Engine) fetchIncidentsFromDB(ctx context.Context, limit int) ([]*Incide
 			inc.RuleID = *ruleID
 		}
 		out = append(out, inc)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
 	}
 	return out, nil
 }

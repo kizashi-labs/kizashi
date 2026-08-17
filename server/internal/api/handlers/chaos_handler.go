@@ -56,14 +56,17 @@ func (h *ChaosHandler) captureMetrics(ctx context.Context) map[string]float64 {
 // ListExperiments handles GET /api/v1/admin/chaos/experiments
 func (h *ChaosHandler) ListExperiments(c *gin.Context) {
 	ctx := c.Request.Context()
-	tenantID := c.GetString("tenant_id")
+	tenantID, ok := TenantOrAbort(c)
+	if !ok {
+		return
+	}
 
 	rows, err := h.pool.Query(ctx, `
 		SELECT id, name, category, description, severity_impact, target_type,
 		       estimated_duration_min, is_safe, hypothesis, blast_radius,
 		       rollback_procedure, steady_state_metrics, execution_steps
 		FROM chaos_experiments
-		WHERE tenant_id = $1::uuid
+		WHERE tenant_id = NULLIF($1,'')::uuid
 		ORDER BY created_at ASC`, tenantID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": dbErrMsg(err)})
@@ -90,20 +93,27 @@ func (h *ChaosHandler) ListExperiments(c *gin.Context) {
 			"rollback_procedure": rollback, "steady_state_metrics": steady, "execution_steps": steps,
 		})
 	}
+	if err := rows.Err(); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": dbErrMsg(err)})
+		return
+	}
 	c.JSON(http.StatusOK, out)
 }
 
 // ListRuns handles GET /api/v1/admin/chaos/runs
 func (h *ChaosHandler) ListRuns(c *gin.Context) {
 	ctx := c.Request.Context()
-	tenantID := c.GetString("tenant_id")
+	tenantID, ok := TenantOrAbort(c)
+	if !ok {
+		return
+	}
 
 	rows, err := h.pool.Query(ctx, `
 		SELECT id, experiment_id, experiment_name, executed_by, started_at, duration_min,
 		       scope, result, findings_summary, hypothesis_actual,
 		       metrics_before, metrics_after, rollback_taken, lessons_learned
 		FROM chaos_runs
-		WHERE tenant_id = $1::uuid
+		WHERE tenant_id = NULLIF($1,'')::uuid
 		ORDER BY started_at DESC`, tenantID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": dbErrMsg(err)})
@@ -134,19 +144,26 @@ func (h *ChaosHandler) ListRuns(c *gin.Context) {
 			"lessons_learned": lessons,
 		})
 	}
+	if err := rows.Err(); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": dbErrMsg(err)})
+		return
+	}
 	c.JSON(http.StatusOK, out)
 }
 
 // ListApprovals handles GET /api/v1/admin/chaos/approvals
 func (h *ChaosHandler) ListApprovals(c *gin.Context) {
 	ctx := c.Request.Context()
-	tenantID := c.GetString("tenant_id")
+	tenantID, ok := TenantOrAbort(c)
+	if !ok {
+		return
+	}
 
 	rows, err := h.pool.Query(ctx, `
 		SELECT id, experiment_id, experiment_name, requested_by, justification,
 		       approvers, status, requested_at
 		FROM chaos_approvals
-		WHERE tenant_id = $1::uuid
+		WHERE tenant_id = NULLIF($1,'')::uuid
 		ORDER BY requested_at DESC`, tenantID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": dbErrMsg(err)})
@@ -171,6 +188,10 @@ func (h *ChaosHandler) ListApprovals(c *gin.Context) {
 			"approvers": approvers, "status": status, "requested_at": requestedAt,
 		})
 	}
+	if err := rows.Err(); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": dbErrMsg(err)})
+		return
+	}
 	c.JSON(http.StatusOK, out)
 }
 
@@ -178,7 +199,10 @@ func (h *ChaosHandler) ListApprovals(c *gin.Context) {
 // A run starts with result 'inconclusive' (no automated outcome engine).
 func (h *ChaosHandler) CreateRun(c *gin.Context) {
 	ctx := c.Request.Context()
-	tenantID := c.GetString("tenant_id")
+	tenantID, ok := TenantOrAbort(c)
+	if !ok {
+		return
+	}
 
 	var req struct {
 		ExperimentID string `json:"experiment_id"`
@@ -197,7 +221,7 @@ func (h *ChaosHandler) CreateRun(c *gin.Context) {
 	var expName string
 	var duration int
 	if err := h.pool.QueryRow(ctx,
-		`SELECT name, estimated_duration_min FROM chaos_experiments WHERE id = $1::uuid AND tenant_id = $2::uuid`,
+		`SELECT name, estimated_duration_min FROM chaos_experiments WHERE id = $1::uuid AND tenant_id = NULLIF($2,'')::uuid`,
 		req.ExperimentID, tenantID).Scan(&expName, &duration); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "実験が見つかりません"})
 		return
@@ -246,7 +270,10 @@ func (h *ChaosHandler) CreateRun(c *gin.Context) {
 // CreateApproval handles POST /api/v1/admin/chaos/approvals
 func (h *ChaosHandler) CreateApproval(c *gin.Context) {
 	ctx := c.Request.Context()
-	tenantID := c.GetString("tenant_id")
+	tenantID, ok := TenantOrAbort(c)
+	if !ok {
+		return
+	}
 
 	var req struct {
 		ExperimentID  string   `json:"experiment_id"`
@@ -266,9 +293,11 @@ func (h *ChaosHandler) CreateApproval(c *gin.Context) {
 	}
 
 	var expName string
-	_ = h.pool.QueryRow(ctx,
+	if !ReadOK(c, h.pool.QueryRow(ctx,
 		`SELECT name FROM chaos_experiments WHERE id = $1::uuid AND tenant_id = $2::uuid`,
-		req.ExperimentID, tenantID).Scan(&expName)
+		req.ExperimentID, tenantID).Scan(&expName)) {
+		return
+	}
 
 	requestedBy := h.displayName(c)
 	approversJSON, _ := json.Marshal(req.Approvers)
@@ -295,7 +324,10 @@ func (h *ChaosHandler) CreateApproval(c *gin.Context) {
 // UpdateApproval handles PUT /api/v1/admin/chaos/approvals/:id
 func (h *ChaosHandler) UpdateApproval(c *gin.Context) {
 	ctx := c.Request.Context()
-	tenantID := c.GetString("tenant_id")
+	tenantID, ok := TenantOrAbort(c)
+	if !ok {
+		return
+	}
 	id := c.Param("id")
 
 	var req struct {
@@ -311,7 +343,7 @@ func (h *ChaosHandler) UpdateApproval(c *gin.Context) {
 	}
 
 	ct, err := h.pool.Exec(ctx,
-		`UPDATE chaos_approvals SET status = $3 WHERE id = $1::uuid AND tenant_id = $2::uuid`,
+		`UPDATE chaos_approvals SET status = $3 WHERE id = $1::uuid AND tenant_id = NULLIF($2,'')::uuid`,
 		id, tenantID, req.Status)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": dbErrMsg(err)})

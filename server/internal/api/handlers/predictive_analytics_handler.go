@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"math"
 	"net/http"
@@ -22,6 +23,26 @@ func NewPredictiveAnalyticsHandler(pool *pgxpool.Pool) *PredictiveAnalyticsHandl
 	return &PredictiveAnalyticsHandler{pool: pool}
 }
 
+// alerts.severity is a smallint scored 1–10, and the platform bands it as
+// critical 9–10 / high 7–8 / medium 4–6 / low 1–3. That banding is the one used
+// by ops_report_handler, soar_handler and every notification channel; it is
+// written out here as SQL predicates because three of the statements in this
+// file compared the column against the *labels* instead:
+//
+//	WHERE severity = 'high'                    -> 22P02 invalid input syntax for smallint
+//	WHERE severity = 'medium'                  -> 22P02
+//	FILTER (WHERE severity IN ('critical','high')) -> 22P02
+//
+// None of them could ever run. See the notes on fetchStats and GetTrends for
+// what each one cost.
+const (
+	sevCritical = `severity >= 9`
+	sevHigh     = `severity BETWEEN 7 AND 8`
+	sevMedium   = `severity BETWEEN 4 AND 6`
+	// sevHighOrAbove covers critical and high together (7–10).
+	sevHighOrAbove = `severity >= 7`
+)
+
 // riskStats holds the raw counts used across multiple endpoints.
 type riskStats struct {
 	totalAgents    int
@@ -34,52 +55,96 @@ type riskStats struct {
 	openIncidents  int
 }
 
-func (h *PredictiveAnalyticsHandler) fetchStats(ctx context.Context) riskStats {
+// fetchStats reads the counts every predictive endpoint is derived from.
+//
+// It returns an error when any read fails rather than reporting the zero value
+// as a measurement. Two of these statements compared the smallint severity
+// column against the strings 'high' and 'medium' and failed with 22P02 on every
+// call, and because each row was scanned with `_ =` the failure was invisible:
+// highAlerts and mediumAlerts were permanently 0. computeVulnRisk weights them
+// 2 and 1 against critical's 4, so a fleet carrying 500 high-severity alerts and
+// no criticals reported a vulnerability risk of exactly 0.00 — and
+// GetRiskForecast extrapolated that 0 out to 90 days, listed "高優先度アラート数: 0"
+// among its key drivers, and labelled the whole thing data_source "live".
+//
+// A count that could not be read is not a count of zero. Callers decide what to
+// do with the difference; they may no longer be unable to see it.
+func (h *PredictiveAnalyticsHandler) fetchStats(ctx context.Context) (riskStats, error) {
 	var s riskStats
 	if h.pool == nil {
-		return s
+		return s, fmt.Errorf("predictive: no database pool configured")
 	}
 
-	// エージェント数
-	_ = h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM agents`).Scan(&s.totalAgents)
-	_ = h.pool.QueryRow(ctx, `
-		SELECT COUNT(*) FROM agents
-		WHERE last_seen < NOW() - INTERVAL '10 minutes'`).Scan(&s.offlineAgents)
+	read := func(dest *int, name, sql string) error {
+		if err := h.pool.QueryRow(ctx, sql).Scan(dest); err != nil {
+			return fmt.Errorf("predictive: read %s: %w", name, err)
+		}
+		return nil
+	}
 
-	// 重大度別アラート数（直近30日）
-	_ = h.pool.QueryRow(ctx, `
-		SELECT COUNT(*) FROM alerts
-		WHERE severity >= 9 AND created_at >= NOW() - INTERVAL '30 days'`,
-	).Scan(&s.criticalAlerts)
-	_ = h.pool.QueryRow(ctx, `
-		SELECT COUNT(*) FROM alerts
-		WHERE severity BETWEEN 7 AND 8 AND created_at >= NOW() - INTERVAL '30 days'`,
-	).Scan(&s.highAlerts)
-	_ = h.pool.QueryRow(ctx, `
-		SELECT COUNT(*) FROM alerts
-		WHERE severity BETWEEN 4 AND 6 AND created_at >= NOW() - INTERVAL '30 days'`,
-	).Scan(&s.mediumAlerts)
+	for _, q := range []struct {
+		dest *int
+		name string
+		sql  string
+	}{
+		{&s.totalAgents, "total agents", `SELECT COUNT(*) FROM agents`},
+		{&s.offlineAgents, "offline agents", `
+			SELECT COUNT(*) FROM agents
+			WHERE last_seen < NOW() - INTERVAL '10 minutes'`},
 
-	// 直近7日・30日アラート総数
-	_ = h.pool.QueryRow(ctx, `
-		SELECT COUNT(*) FROM alerts WHERE created_at >= NOW() - INTERVAL '7 days'`,
-	).Scan(&s.totalAlerts7d)
-	_ = h.pool.QueryRow(ctx, `
-		SELECT COUNT(*) FROM alerts WHERE created_at >= NOW() - INTERVAL '30 days'`,
-	).Scan(&s.totalAlerts30d)
+		// 重大度別アラート数（直近30日）
+		{&s.criticalAlerts, "critical alerts", `
+			SELECT COUNT(*) FROM alerts
+			WHERE ` + sevCritical + ` AND created_at >= NOW() - INTERVAL '30 days'`},
+		{&s.highAlerts, "high alerts", `
+			SELECT COUNT(*) FROM alerts
+			WHERE ` + sevHigh + ` AND created_at >= NOW() - INTERVAL '30 days'`},
+		{&s.mediumAlerts, "medium alerts", `
+			SELECT COUNT(*) FROM alerts
+			WHERE ` + sevMedium + ` AND created_at >= NOW() - INTERVAL '30 days'`},
+
+		// 直近7日・30日アラート総数
+		{&s.totalAlerts7d, "alerts (7d)", `
+			SELECT COUNT(*) FROM alerts WHERE created_at >= NOW() - INTERVAL '7 days'`},
+		{&s.totalAlerts30d, "alerts (30d)", `
+			SELECT COUNT(*) FROM alerts WHERE created_at >= NOW() - INTERVAL '30 days'`},
+	} {
+		if err := read(q.dest, q.name, q.sql); err != nil {
+			return s, err
+		}
+	}
 
 	// オープンインシデント（incidentsテーブルが存在する場合のみ）
 	var hasIncidents bool
-	_ = h.pool.QueryRow(ctx, `
+	if err := h.pool.QueryRow(ctx, `
 		SELECT EXISTS(SELECT 1 FROM pg_tables WHERE schemaname='public' AND tablename='incidents')`,
-	).Scan(&hasIncidents)
+	).Scan(&hasIncidents); err != nil {
+		return s, fmt.Errorf("predictive: probe incidents table: %w", err)
+	}
 	if hasIncidents {
-		_ = h.pool.QueryRow(ctx, `
-			SELECT COUNT(*) FROM incidents WHERE status NOT IN ('resolved','closed')`,
-		).Scan(&s.openIncidents)
+		if err := read(&s.openIncidents, "open incidents", `
+			SELECT COUNT(*) FROM incidents WHERE status NOT IN ('resolved','closed')`); err != nil {
+			return s, err
+		}
 	}
 
-	return s
+	return s, nil
+}
+
+// statsOrAbort reads the stats and, on failure, answers 503 and reports false.
+// A predictive score derived from counts that could not be read is a number with
+// nothing behind it, and these endpoints advertise data_source "live".
+func (h *PredictiveAnalyticsHandler) statsOrAbort(c *gin.Context) (riskStats, bool) {
+	s, err := h.fetchStats(c.Request.Context())
+	if err != nil {
+		slog.Error("predictive: risk statistics unavailable", "error", err)
+		c.JSON(http.StatusServiceUnavailable, gin.H{
+			"error":  "リスク統計を取得できませんでした",
+			"detail": err.Error(),
+		})
+		return s, false
+	}
+	return s, true
 }
 
 // computeVulnRisk derives a 0–1 vulnerability risk score from alert distribution.
@@ -120,8 +185,10 @@ func computeAgentHealthRisk(s riskStats) float64 {
 
 // GET /api/v1/admin/predictive/predictions
 func (h *PredictiveAnalyticsHandler) ListPredictions(c *gin.Context) {
-	ctx := c.Request.Context()
-	s := h.fetchStats(ctx)
+	s, ok := h.statsOrAbort(c)
+	if !ok {
+		return
+	}
 	now := time.Now()
 
 	vulnRisk := computeVulnRisk(s)
@@ -196,8 +263,10 @@ func (h *PredictiveAnalyticsHandler) ListPredictions(c *gin.Context) {
 
 // GET /api/v1/admin/predictive/models
 func (h *PredictiveAnalyticsHandler) ListModels(c *gin.Context) {
-	ctx := c.Request.Context()
-	s := h.fetchStats(ctx)
+	s, ok := h.statsOrAbort(c)
+	if !ok {
+		return
+	}
 
 	// データ量からモデルメタ情報を導出
 	trainingSamples := s.totalAlerts30d * 365 // 年間推定
@@ -240,8 +309,10 @@ func (h *PredictiveAnalyticsHandler) ListModels(c *gin.Context) {
 // POST /api/v1/admin/predictive/models/:id/generate
 func (h *PredictiveAnalyticsHandler) GeneratePredictions(c *gin.Context) {
 	id := c.Param("id")
-	ctx := c.Request.Context()
-	s := h.fetchStats(ctx)
+	s, ok := h.statsOrAbort(c)
+	if !ok {
+		return
+	}
 
 	baseRisk := computeVulnRisk(s)
 	if id == "model-incident" {
@@ -273,6 +344,13 @@ func (h *PredictiveAnalyticsHandler) GeneratePredictions(c *gin.Context) {
 }
 
 // GET /api/v1/admin/predictive/trends
+//
+// NOT ROUTED. router.go registers predictions, predictions/generate, models,
+// accuracy and risk-forecast under /admin/predictive; this path is not among
+// them, so the handler is unreachable and its 22P02 never cost anything live.
+// It is repaired rather than deleted because whether the trend endpoint should
+// exist is a product question — but nothing here should be read as evidence
+// that it works, because nothing has ever called it.
 func (h *PredictiveAnalyticsHandler) GetTrends(c *gin.Context) {
 	ctx := c.Request.Context()
 
@@ -282,28 +360,67 @@ func (h *PredictiveAnalyticsHandler) GetTrends(c *gin.Context) {
 		anomalyCount int
 	}
 
+	// The anomaly filter compared the smallint severity column against the
+	// strings 'critical' and 'high', so the whole statement failed with 22P02 on
+	// every request. `if err == nil` then skipped the loop without logging, rows
+	// stayed empty, and the 30-day loop below filled every single day from the
+	// zero value of dayRow: 30 days of alert_count 0, anomaly_count 0, risk_score
+	// 0.00 and patch_compliance 1.00. A flat, perfect month, indistinguishable
+	// from a genuinely quiet one, on the strength of a query that never ran.
+	//
+	// A chart of thirty fabricated days is worse than no chart, so a failed read
+	// is now an error rather than a shape.
+	//
+	// Reporting that error immediately exposed a second, independent reason this
+	// endpoint could never have produced data: `DATE(created_at)` yields a date
+	// (OID 1082) and the scan target is a string, which pgx rejects in binary
+	// format. So even with the severity filter corrected, every row would have
+	// been discarded by `_ = dbRows.Scan(...)` and the月 would still have come
+	// out flat. The cast makes the column the text the row expects — and the
+	// 'YYYY-MM-DD' it produces is exactly the key format dateMap is looked up
+	// with below.
+	if h.pool == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "トレンドを取得できませんでした"})
+		return
+	}
 	var rows []dayRow
-	if h.pool != nil {
-		dbRows, err := h.pool.Query(ctx, `
-			SELECT
-				DATE(created_at) AS day,
-				COUNT(*) AS alert_count,
-				COUNT(*) FILTER (WHERE severity >= 7) AS anomaly_count
-			FROM alerts
-			WHERE created_at >= NOW() - INTERVAL '30 days'
-			GROUP BY day
-			ORDER BY day ASC`)
-		if err == nil {
-			defer dbRows.Close()
-			for dbRows.Next() {
-				var r dayRow
-				_ = dbRows.Scan(&r.date, &r.alertCount, &r.anomalyCount)
-				rows = append(rows, r)
-			}
-			if err := dbRows.Err(); err != nil {
-				slog.Warn("row iteration error", "error", err)
-			}
+	dbRows, err := h.pool.Query(ctx, `
+		SELECT
+			DATE(created_at)::text AS day,
+			COUNT(*) AS alert_count,
+			COUNT(*) FILTER (WHERE `+sevHighOrAbove+`) AS anomaly_count
+		FROM alerts
+		WHERE created_at >= NOW() - INTERVAL '30 days'
+		GROUP BY day
+		ORDER BY day ASC`)
+	if err != nil {
+		slog.Error("predictive: trend query failed", "error", err)
+		c.JSON(http.StatusServiceUnavailable, gin.H{
+			"error":  "トレンドを取得できませんでした",
+			"detail": err.Error(),
+		})
+		return
+	}
+	defer dbRows.Close()
+	for dbRows.Next() {
+		var r dayRow
+		if err := dbRows.Scan(&r.date, &r.alertCount, &r.anomalyCount); err != nil {
+			slog.Error("predictive: trend row scan failed", "error", err)
+			c.JSON(http.StatusServiceUnavailable, gin.H{
+				"error":  "トレンドを取得できませんでした",
+				"detail": err.Error(),
+			})
+			return
 		}
+		rows = append(rows, r)
+	}
+	if err := dbRows.Err(); err != nil {
+		slog.Error("predictive: trend row iteration failed", "error", err)
+		c.JSON(http.StatusServiceUnavailable, gin.H{
+			"error":  "トレンドを取得できませんでした",
+			"detail": err.Error(),
+		})
+		return
 	}
 
 	// 30日分のマップを構築（データのない日は0）
@@ -359,18 +476,33 @@ func (h *PredictiveAnalyticsHandler) GetModels(c *gin.Context) {
 // GET /api/v1/admin/predictive/accuracy
 func (h *PredictiveAnalyticsHandler) GetAccuracyReport(c *gin.Context) {
 	ctx := c.Request.Context()
-	s := h.fetchStats(ctx)
+	s, ok := h.statsOrAbort(c)
+	if !ok {
+		return
+	}
 
 	// アラート解決率を精度の代替指標として使用
 	var resolvedAlerts, totalAlerts30d int
-	if h.pool != nil {
-		_ = h.pool.QueryRow(ctx, `
+	for _, q := range []struct {
+		dest *int
+		sql  string
+	}{
+		{&totalAlerts30d, `
 			SELECT COUNT(*) FROM alerts
-			WHERE created_at >= NOW() - INTERVAL '30 days'`).Scan(&totalAlerts30d)
-		_ = h.pool.QueryRow(ctx, `
+			WHERE created_at >= NOW() - INTERVAL '30 days'`},
+		{&resolvedAlerts, `
 			SELECT COUNT(*) FROM alerts
 			WHERE created_at >= NOW() - INTERVAL '30 days'
-			  AND status IN ('resolved','closed')`).Scan(&resolvedAlerts)
+			  AND status IN ('resolved','closed')`},
+	} {
+		if err := h.pool.QueryRow(ctx, q.sql).Scan(q.dest); err != nil {
+			slog.Error("predictive: accuracy report unavailable", "error", err)
+			c.JSON(http.StatusServiceUnavailable, gin.H{
+				"error":  "精度レポートを取得できませんでした",
+				"detail": err.Error(),
+			})
+			return
+		}
 	}
 
 	resolutionRate := 0.0
@@ -403,8 +535,10 @@ func (h *PredictiveAnalyticsHandler) GetAccuracyReport(c *gin.Context) {
 
 // GET /api/v1/admin/predictive/risk-forecast
 func (h *PredictiveAnalyticsHandler) GetRiskForecast(c *gin.Context) {
-	ctx := c.Request.Context()
-	s := h.fetchStats(ctx)
+	s, ok := h.statsOrAbort(c)
+	if !ok {
+		return
+	}
 
 	current := computeVulnRisk(s)
 	// 単純な線形外挿（実データ不足時は保守的な推定）

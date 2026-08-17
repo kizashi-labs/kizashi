@@ -162,7 +162,9 @@ func (h *AutoRemediationHandler) GetActionHistory(c *gin.Context) {
 		actions = append(actions, a)
 	}
 	if err := rows.Err(); err != nil {
-		slog.Warn("row iteration error", "error", err)
+		slog.Error("rows.Err: 結果の読み出しが途中で失敗しました", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": dbErrMsg(err)})
+		return
 	}
 	if actions == nil {
 		actions = []RemediationAction{}
@@ -253,9 +255,11 @@ func (h *AutoRemediationHandler) GetStats(c *gin.Context) {
 	}
 
 	var actionsToday int
-	_ = h.pool.QueryRow(ctx,
+	if !ReadOK(c, h.pool.QueryRow(ctx,
 		`SELECT COUNT(*) FROM remediation_actions WHERE executed_at >= NOW() - INTERVAL '24 hours'`,
-	).Scan(&actionsToday)
+	).Scan(&actionsToday)) {
+		return
+	}
 
 	rows, err := h.pool.Query(ctx,
 		`SELECT action_type, COUNT(*) FROM remediation_actions GROUP BY action_type`,
@@ -276,9 +280,11 @@ func (h *AutoRemediationHandler) GetStats(c *gin.Context) {
 	}
 
 	var totalSuccess, total int
-	_ = h.pool.QueryRow(ctx,
+	if !ReadOK(c, h.pool.QueryRow(ctx,
 		`SELECT COUNT(*) FILTER (WHERE status = 'success'), COUNT(*) FROM remediation_actions`,
-	).Scan(&totalSuccess, &total)
+	).Scan(&totalSuccess, &total)) {
+		return
+	}
 
 	var successRate float64
 	if total > 0 {

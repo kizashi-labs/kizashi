@@ -20,14 +20,9 @@ func NewMetricsAPIHandler(pool *pgxpool.Pool) *MetricsAPIHandler {
 	return &MetricsAPIHandler{pool: pool}
 }
 
-// tableExists checks if a table exists in pg_tables.
+// tableExists は tableIsThere に委ねます（確認の失敗を「無い」に倒しません）。
 func (h *MetricsAPIHandler) tableExists(ctx context.Context, table string) bool {
-	var exists bool
-	err := h.pool.QueryRow(ctx,
-		`SELECT EXISTS(SELECT 1 FROM pg_tables WHERE schemaname='public' AND tablename=$1)`,
-		table,
-	).Scan(&exists)
-	return err == nil && exists
+	return tableIsThere(ctx, h.pool, table)
 }
 
 // AlertTrends handles GET /api/v1/metrics/alert-trends?period=hour|day|week

@@ -2,14 +2,25 @@ package behavioral
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
+
+// ErrAgentNotFound は、その端末が agents に無いことを表します。
+//
+// **「端末が登録されていない」と「データベースが落ちている」は別の話です。**
+// 以前はどちらも `数えられませんでした` で返り、
+// `POST /admin/behavioral/baselines/:agent_id` は 500 と
+// 「データベース操作に失敗しました」を返していました —— **端末 ID を打ち
+// 間違えただけで、障害が起きたように見えます。**
+var ErrAgentNotFound = errors.New("そのエージェントは登録されていません")
 
 // kernelThreadPrefixes are well-known Linux kernel worker/daemon thread name
 // prefixes. Their names carry dynamic suffixes — CPU id, worker id, workqueue
@@ -190,9 +201,14 @@ func (e *Engine) BuildBaseline(ctx context.Context, agentID string, lookbackDays
 	}
 
 	// Get hostname
-	_ = e.pool.QueryRow(ctx,
+	if err := e.pool.QueryRow(ctx,
 		`SELECT COALESCE(hostname, $1) FROM agents WHERE id::text = $1`, agentID,
-	).Scan(&baseline.Hostname)
+	).Scan(&baseline.Hostname); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, fmt.Errorf("%w: %s", ErrAgentNotFound, agentID)
+		}
+		return nil, fmt.Errorf("ホスト名を読めませんでした: %w", err)
+	}
 
 	// Count events by category per hour
 	rows, err := e.pool.Query(ctx, `
@@ -217,6 +233,10 @@ func (e *Engine) BuildBaseline(ctx context.Context, agentID string, lookbackDays
 		}
 		cat := eventTypeToCategory(evtType)
 		categoryHourly[cat] = append(categoryHourly[cat], float64(cnt))
+	}
+	// 部分結果を完全な一覧として返さない（scan_truncation_guard_test.go 参照）
+	if err := rows.Err(); err != nil {
+		return nil, err
 	}
 
 	for cat, samples := range categoryHourly {
@@ -246,15 +266,18 @@ func (e *Engine) BuildBaseline(ctx context.Context, agentID string, lookbackDays
 				baseline.TypicalProcesses[pname] = float64(cnt) / totalHours
 			}
 		}
+		if err := procRows.Err(); err != nil {
+			return nil, err
+		}
 	}
 
 	// Build typical DNS domains
 	dnsRows, err := e.pool.Query(ctx, `
-        SELECT raw_data->>'domain' as domain, COUNT(*) as cnt
+        SELECT raw_data->>'query' as domain, COUNT(*) as cnt
         FROM events
         WHERE agent_id::text = $1 AND event_type = 'dns' AND time >= $2
-          AND raw_data->>'domain' IS NOT NULL
-        GROUP BY raw_data->>'domain'
+          AND raw_data->>'query' IS NOT NULL
+        GROUP BY raw_data->>'query'
         ORDER BY cnt DESC
         LIMIT 100
     `, agentID, since)
@@ -267,6 +290,9 @@ func (e *Engine) BuildBaseline(ctx context.Context, agentID string, lookbackDays
 			if err := dnsRows.Scan(&domain, &cnt); err == nil && domain != "" {
 				baseline.TypicalDomains[domain] = float64(cnt) / totalHours
 			}
+		}
+		if err := dnsRows.Err(); err != nil {
+			return nil, err
 		}
 	}
 

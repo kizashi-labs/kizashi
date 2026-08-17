@@ -38,6 +38,34 @@ import (
 	"github.com/edr-platform/server/internal/store"
 )
 
+// CSPM（クラウド設定の姿勢管理）の宛先です。
+//
+// **中身がありません。** ここは DB もクラウドの API も1度も見ず、
+// その場で作ったアカウントと検出を 200 で返していました（実測
+// 2026-08-12）:
+//
+//	{"cloud_provider": "aws", "account_id": "123456789012",
+//	 "account_name": "Production Account", "posture_score": 7.8,
+//	 "critical_findings": 3, "last_scanned_at": time.Now().Add(-1 * time.Hour)}
+//
+//	{"resource_type": "S3_Bucket", "resource_id": "prod-data-bucket",
+//	 "check_name": "S3バケット公開アクセス", "severity": "critical",
+//	 "description": "S3バケットがパブリックアクセスを許可しています"}
+//
+// **「1時間前にスキャンして critical 3件」は、対応を始めさせる形です。**
+// 存在しない `prod-data-bucket` の公開設定を、誰かが探しに行きます。
+// `123456789012` は AWS の例示用アカウント ID です。
+//
+// `StartScan` は「スキャンを開始しました」と答えて、**何も始めません**。
+//
+// いまは 501 を返します。約束は `not_implemented_test.go` にあります:
+//
+//	200 + []  まだ何も起きていない（待てばよい）
+//	500       読めなかった（もう一度試す価値がある）
+//	501       これを作るものが無い（待っても変わらない）
+//
+// 作るとしたら、まずクラウド各社の設定 API を読む経路からです ——
+// 保管するテーブルも、評価するルールもありません。
 type CSPMEnhancedHandler struct{ pool *pgxpool.Pool }
 
 func NewCSPMEnhancedHandler(pool *pgxpool.Pool) *CSPMEnhancedHandler {
@@ -268,10 +296,6 @@ func (h *CSPMEnhancedHandler) SetCredentials(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"account_id": id, "role_arn": req.RoleARN, "regions": req.Regions})
 }
 
-// scanTimeout は 1 回のスキャンの上限。リージョン数 × 項目数だけ
-// API を呼ぶので、全リージョンだと数分かかる。
-const scanTimeout = 15 * time.Minute
-
 // StartScan はアカウント単位のスキャンを開始する。
 // POST /api/v1/admin/cspm-enhanced/accounts/:id/scan
 //
@@ -334,63 +358,13 @@ func (h *CSPMEnhancedHandler) StartScan(c *gin.Context) {
 	}
 
 	// リクエストの context は応答を返した時点で切れるので、実行側には渡さない。
-	go runAWSScan(cs, id, creds, acct.Regions)
+	go awsscan.RunAndPersist(cs, id, creds, acct.Regions)
 
 	c.JSON(http.StatusAccepted, gin.H{
 		"account_id":  id,
 		"scan_status": "scanning",
 		"message":     "スキャンを開始しました。進行状況は GET /accounts の scan_status を参照してください。",
 	})
-}
-
-// runAWSScan は実際の検査を行い、結果を保存する。
-//
-// 失敗しても scan_status を 'completed' にしないこと。「検査した結果 0 件」と
-// 「検査できなかった」が区別できなくなり、権限設定のミスが画面上は
-// 「問題なし」になる。
-func runAWSScan(cs *store.CSPMStore, accountUUID string, creds awsscan.Credentials, regions []string) {
-	ctx, cancel := context.WithTimeout(context.Background(), scanTimeout)
-	defer cancel()
-
-	scanner := awsscan.NewScanner()
-	scanner.Regions = regions
-
-	res, err := scanner.Scan(ctx, creds)
-	if err != nil {
-		slog.Error("CSPM(AWS): スキャンに失敗しました", "account", accountUUID, "error", err)
-		if serr := cs.SetScanStatus(ctx, accountUUID, "error", err); serr != nil {
-			slog.Error("CSPM(AWS): 失敗状態の記録にも失敗しました", "account", accountUUID, "error", serr)
-		}
-		return
-	}
-
-	upserted, resolved, err := awsscan.Persist(ctx, cs, accountUUID, res)
-	if err != nil {
-		slog.Error("CSPM(AWS): 所見の保存に失敗しました", "account", accountUUID, "error", err)
-		if serr := cs.SetScanStatus(ctx, accountUUID, "error", err); serr != nil {
-			slog.Error("CSPM(AWS): 失敗状態の記録にも失敗しました", "account", accountUUID, "error", serr)
-		}
-		return
-	}
-
-	slog.Info("CSPM(AWS): スキャンが完了しました",
-		"account", accountUUID, "aws_account", res.AccountID,
-		"regions", len(res.Regions), "findings", upserted, "resolved", resolved,
-		"unmeasured", len(res.Errors), "duration", res.FinishedAt.Sub(res.StartedAt))
-
-	// 読めなかった項目は 1 件ずつ理由を出す。件数だけでは
-	// 「権限が足りないのか」「応答の読み方が違うのか」を切り分けられず、
-	// unknown のまま放置される。unknown は所見にならないので、
-	// ここに出さないと存在自体が見えなくなる。
-	for _, e := range res.Errors {
-		slog.Warn("CSPM(AWS): 検査できなかった項目があります",
-			"account", accountUUID, "check_id", e.CheckID,
-			"region", e.Region, "reason", e.Message)
-	}
-
-	if err := cs.SetScanStatus(ctx, accountUUID, "completed", nil); err != nil {
-		slog.Error("CSPM(AWS): 完了状態の記録に失敗しました", "account", accountUUID, "error", err)
-	}
 }
 
 // GetStats は CSPM の集計を返す。

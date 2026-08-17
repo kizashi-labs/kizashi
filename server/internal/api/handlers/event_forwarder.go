@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/edr-platform/server/internal/metrics"
 	"log/slog"
 	"net/http"
 	"time"
@@ -56,7 +57,7 @@ func (ef *EventForwarder) Start(ctx context.Context) {
 			ef.handleMessage(ctx, msg.Subject, msg.Data)
 		})
 		if err != nil {
-			slog.Warn("EventForwarder: NATSサブスクライブに失敗しました", "subject", subject, "error", err)
+			metrics.BackgroundFailed("event_forwarder", err, "EventForwarder: NATSサブスクライブに失敗しました", "subject", subject)
 			continue
 		}
 		subs = append(subs, sub)
@@ -81,7 +82,7 @@ func (ef *EventForwarder) handleMessage(ctx context.Context, subject string, pay
 	// Validate JSON payload
 	var raw json.RawMessage
 	if err := json.Unmarshal(payload, &raw); err != nil {
-		slog.Warn("EventForwarder: 不正なJSONペイロード", "subject", subject, "error", err)
+		metrics.BackgroundFailed("event_forwarder", err, "EventForwarder: 不正なJSONペイロード", "subject", subject)
 		return
 	}
 
@@ -89,7 +90,7 @@ func (ef *EventForwarder) handleMessage(ctx context.Context, subject string, pay
 	webhooks, err := ef.queryWebhooks(ctx)
 	if err != nil {
 		// Table may not exist yet — log and return gracefully
-		slog.Warn("EventForwarder: webhook_configsのクエリに失敗しました", "error", err)
+		metrics.BackgroundFailed("event_forwarder", err, "EventForwarder: webhook_configsのクエリに失敗しました")
 		return
 	}
 
@@ -143,8 +144,8 @@ func (ef *EventForwarder) deliver(wh webhookConfig, subject string, payload []by
 
 	req, err := http.NewRequest(http.MethodPost, wh.URL, bytes.NewReader(payload))
 	if err != nil {
-		slog.Warn("EventForwarder: HTTPリクエスト作成失敗",
-			"webhook_id", wh.ID, "url", wh.URL, "error", err)
+		metrics.BackgroundFailed("event_forwarder", err, "EventForwarder: HTTPリクエスト作成失敗",
+			"webhook_id", wh.ID, "url", wh.URL)
 		return
 	}
 
@@ -156,8 +157,8 @@ func (ef *EventForwarder) deliver(wh webhookConfig, subject string, payload []by
 
 	resp, err := client.Do(req)
 	if err != nil {
-		slog.Warn("EventForwarder: Webhook送信エラー",
-			"webhook_id", wh.ID, "url", wh.URL, "subject", subject, "error", err)
+		metrics.BackgroundFailed("event_forwarder", err, "EventForwarder: Webhook送信エラー",
+			"webhook_id", wh.ID, "url", wh.URL, "subject", subject)
 		return
 	}
 	defer resp.Body.Close()

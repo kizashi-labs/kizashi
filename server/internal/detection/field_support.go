@@ -25,7 +25,8 @@ import (
 func SupportedSigmaFields() map[string]bool {
 	// Kitchen-sink native event: a union of every field normalizeEventData emits
 	// for process/network/dns/registry/auth/image_load/script/file events, plus
-	// the parent fields the parentResolver injects and the hash fields.
+	// the parent fields (from the agent, and those the server-side parentResolver
+	// injects as a fallback) and the hash fields.
 	kitchen := map[string]interface{}{
 		// process
 		"process_name": "x.exe", "pid": float64(1), "ppid": float64(2),
@@ -35,7 +36,12 @@ func SupportedSigmaFields() map[string]bool {
 		// Product/Company via the alias layer.
 		"original_file_name": "orig.exe", "file_description": "desc",
 		"product_name": "prod", "company_name": "co",
-		// parent (parentResolver)
+		// parent. parent_image / parent_name come from the agent, which resolves
+		// the parent on the endpoint (collector.ParentResolver); the other two are
+		// what the server-side parentResolver injects as a fallback. Before the
+		// agent carried a parent at all, every ParentImage rule was structurally
+		// dark — the field had no telemetry behind it on any path.
+		"parent_image": "p.exe", "parent_name": "p.exe",
 		"parent_image_path": "p.exe", "parent_process": "p.exe", "parent_command_line": "p",
 		// hashes
 		"md5": "m", "sha1": "s1", "sha256": "s2", "imphash": "ih",

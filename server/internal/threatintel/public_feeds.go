@@ -6,6 +6,7 @@ import (
 	"bufio"
 	"context"
 	"encoding/csv"
+	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
@@ -13,7 +14,38 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+
+	"github.com/edr-platform/server/internal/tick"
 )
+
+// fetchFeedBody fetches a feed and refuses to call a failure an empty feed.
+//
+// 3つのフィードが同じ形を書いていて、どれも失敗したときに []IOC{}, nil を
+// 返していました。取り込み側は0件を正常として記録するので、フィードが
+// 落ちていることは誰にも伝わりません。ここに集めて、失敗は失敗として返します。
+func fetchFeedBody(ctx context.Context, url, feed string) ([]byte, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("%s: リクエストを作れませんでした: %w", feed, err)
+	}
+	req.Header.Set("User-Agent", "EDR-Platform/1.0 ThreatIntel")
+
+	client := &http.Client{Timeout: 60 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("%s: 取得できませんでした: %w", feed, err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("%s: HTTP %d", feed, resp.StatusCode)
+	}
+	b, err := io.ReadAll(io.LimitReader(resp.Body, 2<<20))
+	if err != nil {
+		return nil, fmt.Errorf("%s: 応答を読めませんでした: %w", feed, err)
+	}
+	return b, nil
+}
 
 // FetchAbuseIPDB fetches bad IPs from AbuseIPDB API.
 // Requires an API key; returns empty slice if none provided.
@@ -26,7 +58,7 @@ func FetchAbuseIPDB(ctx context.Context, apiKey string) ([]IOC, error) {
 		"https://api.abuseipdb.com/api/v2/blacklist?confidenceMinimum=90&limit=500", nil)
 	if err != nil {
 		slog.Warn("public_feeds: abuseipdb request creation failed", "error", err)
-		return []IOC{}, nil
+		return nil, err
 	}
 	req.Header.Set("Key", apiKey)
 	req.Header.Set("Accept", "application/json")
@@ -35,20 +67,23 @@ func FetchAbuseIPDB(ctx context.Context, apiKey string) ([]IOC, error) {
 	resp, err := client.Do(req)
 	if err != nil {
 		slog.Warn("public_feeds: abuseipdb fetch failed (no connectivity?)", "error", err)
-		return []IOC{}, nil
+		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
+		// 「このフィードには指標がありませんでした」と返していました。
+		// 取り込み側は件数0を正常として記録するので、フィードが何日
+		// 落ちていても気づけません。
 		slog.Warn("public_feeds: abuseipdb returned non-200", "status", resp.StatusCode)
-		return []IOC{}, nil
+		return nil, fmt.Errorf("abuseipdb: HTTP %d", resp.StatusCode)
 	}
 
 	// Response is JSON: {"data": [{"ipAddress": "...", "abuseConfidenceScore": 100, ...}]}
 	// We do a simple line scan to avoid importing encoding/json here (already in package).
 	body, err := io.ReadAll(io.LimitReader(resp.Body, 2<<20))
 	if err != nil {
-		return []IOC{}, nil
+		return nil, fmt.Errorf("abuseipdb: 応答を読めませんでした: %w", err)
 	}
 
 	var iocs []IOC
@@ -87,21 +122,19 @@ func FetchURLhaus(ctx context.Context) ([]IOC, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet,
 		"https://urlhaus.abuse.ch/downloads/csv_recent/", nil)
 	if err != nil {
-		return []IOC{}, nil
+		return nil, err
 	}
 	req.Header.Set("User-Agent", "EDR-Platform/1.0 ThreatIntel")
 
 	client := &http.Client{Timeout: 60 * time.Second}
 	resp, err := client.Do(req)
 	if err != nil {
-		slog.Warn("public_feeds: urlhaus fetch failed (no connectivity?)", "error", err)
-		return []IOC{}, nil
+		return nil, fmt.Errorf("urlhaus: 取得できませんでした: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
-		slog.Warn("public_feeds: urlhaus returned non-200", "status", resp.StatusCode)
-		return []IOC{}, nil
+		return nil, fmt.Errorf("urlhaus: HTTP %d", resp.StatusCode)
 	}
 
 	// URLhaus CSV format: id, dateadded, url, url_status, last_online, threat, tags, urlhaus_link, reporter
@@ -110,7 +143,7 @@ func FetchURLhaus(ctx context.Context) ([]IOC, error) {
 	r.LazyQuotes = true
 
 	var iocs []IOC
-	count := 0
+	count, skipped := 0, 0
 	for {
 		if count >= 1000 {
 			break
@@ -120,9 +153,14 @@ func FetchURLhaus(ctx context.Context) ([]IOC, error) {
 			break
 		}
 		if err != nil {
+			// 読めない行を黙って飛ばすと、書式が変わって全行落ちても
+			// 「0件のフィード」と同じ形になります。取り込み側は0件を
+			// 正常として記録します。
+			skipped++
 			continue
 		}
 		if len(record) < 3 {
+			skipped++
 			continue
 		}
 		rawURL := strings.TrimSpace(record[2])
@@ -158,6 +196,13 @@ func FetchURLhaus(ctx context.Context) ([]IOC, error) {
 	}
 
 	slog.Info("public_feeds: urlhaus fetch complete", "count", len(iocs))
+	if skipped > 0 {
+		slog.Warn("public_feeds: 読めない行を飛ばしました", "source", "urlhaus", "skipped", skipped)
+		// **`tick.Run` で回している取り込みから呼ばれます。** 部品の件数
+		// だけ数えると、飛ばした行があってもその回は成功として刻まれます。
+		tick.FailComponent(ctx, "urlhaus_csv", fmt.Errorf("読めない行が %d 行ありました", skipped),
+			"読めない行がありました", "skipped", skipped)
+	}
 	return iocs, nil
 }
 
@@ -167,21 +212,19 @@ func FetchEmergingThreats(ctx context.Context) ([]IOC, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet,
 		"https://rules.emergingthreats.net/blockrules/compromised-ips.txt", nil)
 	if err != nil {
-		return []IOC{}, nil
+		return nil, err
 	}
 	req.Header.Set("User-Agent", "EDR-Platform/1.0 ThreatIntel")
 
 	client := &http.Client{Timeout: 30 * time.Second}
 	resp, err := client.Do(req)
 	if err != nil {
-		slog.Warn("public_feeds: emerging threats fetch failed (no connectivity?)", "error", err)
-		return []IOC{}, nil
+		return nil, fmt.Errorf("emerging-threats: 取得できませんでした: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
-		slog.Warn("public_feeds: emerging threats returned non-200", "status", resp.StatusCode)
-		return []IOC{}, nil
+		return nil, fmt.Errorf("emerging-threats: HTTP %d", resp.StatusCode)
 	}
 
 	scanner := bufio.NewScanner(io.LimitReader(resp.Body, 2<<20))
@@ -258,7 +301,7 @@ func ScheduledSync(ctx context.Context, manager *FeedManager, intervalHours int)
 	defer ticker.Stop()
 
 	// Run once immediately
-	syncPublicFeeds(ctx, manager)
+	tick.Run(ctx, "public_feeds_sync", func(ctx context.Context) { syncPublicFeeds(ctx, manager) })
 
 	for {
 		select {
@@ -266,7 +309,7 @@ func ScheduledSync(ctx context.Context, manager *FeedManager, intervalHours int)
 			slog.Info("public_feeds: scheduled sync stopping")
 			return
 		case <-ticker.C:
-			syncPublicFeeds(ctx, manager)
+			tick.Run(ctx, "public_feeds_sync", func(ctx context.Context) { syncPublicFeeds(ctx, manager) })
 		}
 	}
 }
@@ -291,7 +334,8 @@ func syncPublicFeeds(ctx context.Context, manager *FeedManager) {
 	for _, f := range fetchers {
 		iocs, err := f.fn()
 		if err != nil {
-			slog.Warn("public_feeds: fetcher error (skipped)", "source", f.name, "error", err)
+			// **その回は「取り込めなかったフィードがある」で終わりです。**
+			tick.FailComponent(ctx, "public_feeds", err, "public_feeds: fetcher error (skipped)", "source", f.name)
 			continue
 		}
 		for i := range iocs {

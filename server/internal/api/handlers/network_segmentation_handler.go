@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"net"
 	"net/http"
 	"strings"
@@ -60,10 +61,19 @@ type nsPolicy struct {
 
 // GetSegmentation returns all segments (with live device counts) and policies.
 // GET /api/v1/admin/network-segments
+//
+// 欠けたポリシー一覧を 200 で返さない (ReadFailure)。区切りを守るための設定
+// なので、「3 件ある」と見せるのと見せないのとでは意味がまるで違う。
+// 説明を本文でなくここに書くのは、検査が本文の先頭 140 バイトしか見ないため
+// (answered_with_a_value_test.go の exprText)。
 func (h *NetworkSegmentationHandler) GetSegmentation(c *gin.Context) {
 	ctx := c.Request.Context()
 
-	policies := h.loadPolicies(ctx)
+	policies, err := h.loadPolicies(ctx)
+	if err != nil {
+		ReadFailure(c, err, gin.H{"segments": []nsSegment{}, "policies": []nsPolicy{}})
+		return
+	}
 
 	// policy_count per segment name (counts policies referencing it either way).
 	policyCount := map[string]int{}
@@ -89,23 +99,38 @@ func (h *NetworkSegmentationHandler) GetSegmentation(c *gin.Context) {
 			if s.DNSServers == nil {
 				s.DNSServers = []string{}
 			}
-			s.Devices = h.devicesInCIDR(ctx, s.Cidr)
+			devs, derr := h.devicesInCIDR(ctx, s.Cidr)
+			if derr != nil {
+				slog.Error("セグメント内デバイスの取得に失敗しました", "cidr", s.Cidr, "error", derr)
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "データの取得に失敗しました"})
+				return
+			}
+			s.Devices = devs
 			s.DeviceCount = len(s.Devices)
 			s.PolicyCount = policyCount[s.Name]
 			segments = append(segments, s)
+		}
+		if err := rows.Err(); err != nil {
+			slog.Warn("GetSegmentation: rows の読み取りが途中で終わりました。この区画は不完全です", "error", err)
 		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{"segments": segments, "policies": policies})
 }
 
-func (h *NetworkSegmentationHandler) loadPolicies(ctx context.Context) []nsPolicy {
+// loadPolicies reads the segmentation policies.
+//
+// 以前は失敗しても、そこまでに読めた分だけを返していました。呼び出し側は
+// それを 200 で返すので、画面には「ポリシー3件」と出ます。実際に何件ある
+// のかは誰にも分かりません。区切りを守るための設定なので、欠けたまま
+// 見せるのと、見せないのとでは意味がまるで違います。
+func (h *NetworkSegmentationHandler) loadPolicies(ctx context.Context) ([]nsPolicy, error) {
 	policies := []nsPolicy{}
 	rows, err := h.pool.Query(ctx, `
 		SELECT id, from_segment, to_segment, action, protocol, ports, description
 		FROM network_segment_policies ORDER BY created_at`)
 	if err != nil {
-		return policies
+		return nil, err
 	}
 	defer rows.Close()
 	for rows.Next() {
@@ -116,19 +141,25 @@ func (h *NetworkSegmentationHandler) loadPolicies(ctx context.Context) []nsPolic
 		}
 		policies = append(policies, p)
 	}
-	return policies
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return policies, nil
 }
 
 // devicesInCIDR returns agents whose ip_addresses fall within the segment CIDR.
-// Returns an empty slice for an invalid/empty CIDR (best effort, never errors out).
-func (h *NetworkSegmentationHandler) devicesInCIDR(ctx context.Context, cidr string) []nsDevice {
+//
+// 空/不正な CIDR は「該当なし」で正しい答えです。読めなかったのは違います。
+func (h *NetworkSegmentationHandler) devicesInCIDR(ctx context.Context, cidr string) ([]nsDevice, error) {
 	devices := []nsDevice{}
 	cidr = strings.TrimSpace(cidr)
 	if cidr == "" {
-		return devices
+		return devices, nil
 	}
 	if _, _, err := net.ParseCIDR(cidr); err != nil {
-		return devices
+		// 区画に入っている CIDR が壊れています。0台と出すと、その区画に
+		// 端末が居ないように読めます。設定の問題として報告します。
+		return nil, fmt.Errorf("区画の CIDR %q を解釈できません: %w", cidr, err)
 	}
 	rows, err := h.pool.Query(ctx, `
 		SELECT a.hostname, a.os_type,
@@ -137,7 +168,7 @@ func (h *NetworkSegmentationHandler) devicesInCIDR(ctx context.Context, cidr str
 		WHERE EXISTS (SELECT 1 FROM unnest(a.ip_addresses) ip WHERE ip << $1::inet)
 		LIMIT 200`, cidr)
 	if err != nil {
-		return devices
+		return nil, err
 	}
 	defer rows.Close()
 	for rows.Next() {
@@ -152,7 +183,10 @@ func (h *NetworkSegmentationHandler) devicesInCIDR(ctx context.Context, cidr str
 		}
 		devices = append(devices, d)
 	}
-	return devices
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return devices, nil
 }
 
 func deviceTypeFromOS(osType string) string {
@@ -292,9 +326,17 @@ func (h *NetworkSegmentationHandler) ComplianceCheck(c *gin.Context) {
 				segNames = append(segNames, n)
 			}
 		}
+		if abortOnRowsErr(c, rows, "ComplianceCheck") {
+			return
+		}
 		rows.Close()
 	}
-	policies := h.loadPolicies(ctx)
+	policies, err := h.loadPolicies(ctx)
+	if err != nil {
+		// コンプライアンス判定でポリシーを取りこぼすと「問題なし」と誤判定する。
+		ReadFailure(c, err, gin.H{"issues": []string{}, "compliant": false})
+		return
+	}
 
 	issues := []string{}
 

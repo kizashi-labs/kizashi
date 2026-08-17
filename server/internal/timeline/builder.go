@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/edr-platform/server/internal/metrics"
 	"log/slog"
 	"sort"
 	"strings"
@@ -287,7 +288,10 @@ func (b *Builder) BuildAgentTimeline(ctx context.Context, agentID string, hours 
 			}
 			var data map[string]interface{}
 			if err := json.Unmarshal([]byte(rawStr), &data); err != nil {
-				data = map[string]interface{}{}
+				// 中身が読めないまま {} を入れると、タイトルも分類も空の
+				// 行がタイムラインに並びます。「何も無かった時刻」と
+				// 「読めなかった出来事」が同じ見え方になります。
+				return nil, fmt.Errorf("タイムラインの出来事を読めませんでした: %w", err)
 			}
 
 			ev := &TimelineEvent{
@@ -303,6 +307,10 @@ func (b *Builder) BuildAgentTimeline(ctx context.Context, agentID string, hours 
 				RelatedIDs:  []string{},
 			}
 			events = append(events, ev)
+		}
+		// 部分結果を完全な一覧として返さない（scan_truncation_guard_test.go 参照）
+		if err := rows.Err(); err != nil {
+			return nil, err
 		}
 		rows.Close()
 		// Update hostname on events
@@ -355,6 +363,10 @@ func (b *Builder) BuildAgentTimeline(ctx context.Context, agentID string, hours 
 				RelatedIDs:  []string{},
 			}
 			events = append(events, ev)
+		}
+		// 部分結果を完全な一覧として返さない（scan_truncation_guard_test.go 参照）
+		if err := alertRows.Err(); err != nil {
+			return nil, err
 		}
 		alertRows.Close()
 	}
@@ -418,7 +430,7 @@ func (b *Builder) BuildIncidentTimeline(ctx context.Context, incidentID string) 
 		SELECT alert_id::text FROM incident_alerts WHERE incident_id = $1::uuid`, incidentID)
 	if err != nil {
 		slog.Warn("timeline: incident_alerts query failed", "error", err)
-		return &Timeline{Events: []*TimelineEvent{}, AttackPhases: []string{}}, nil
+		return nil, err
 	}
 	defer rows.Close()
 
@@ -428,6 +440,9 @@ func (b *Builder) BuildIncidentTimeline(ctx context.Context, incidentID string) 
 		if err := rows.Scan(&id); err == nil {
 			alertIDs = append(alertIDs, id)
 		}
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
 	}
 	rows.Close()
 
@@ -484,7 +499,7 @@ func (b *Builder) BuildIncidentTimeline(ctx context.Context, incidentID string) 
 			ORDER BY time ASC
 			LIMIT 300`, info.agentID, from, to)
 		if err != nil {
-			slog.Warn("timeline: incident events query failed", "agent_id", info.agentID, "error", err)
+			metrics.BackgroundFailed("incident_timeline", err, "timeline: incident events query failed", "agent_id", info.agentID)
 			continue
 		}
 		for evRows.Next() {
@@ -500,7 +515,10 @@ func (b *Builder) BuildIncidentTimeline(ctx context.Context, incidentID string) 
 			}
 			var data map[string]interface{}
 			if err := json.Unmarshal([]byte(rawStr), &data); err != nil {
-				data = map[string]interface{}{}
+				// 中身が読めないまま {} を入れると、タイトルも分類も空の
+				// 行がタイムラインに並びます。「何も無かった時刻」と
+				// 「読めなかった出来事」が同じ見え方になります。
+				return nil, fmt.Errorf("タイムラインの出来事を読めませんでした: %w", err)
 			}
 			ev := &TimelineEvent{
 				ID:          id,
@@ -515,6 +533,10 @@ func (b *Builder) BuildIncidentTimeline(ctx context.Context, incidentID string) 
 				RelatedIDs:  []string{},
 			}
 			allEvents = append(allEvents, ev)
+		}
+		// 部分結果を完全な一覧として返さない（scan_truncation_guard_test.go 参照）
+		if err := evRows.Err(); err != nil {
+			return nil, err
 		}
 		evRows.Close()
 	}
@@ -537,7 +559,10 @@ func (b *Builder) BuildIncidentTimeline(ctx context.Context, incidentID string) 
 			WHERE al.id = $1::uuid`, aid,
 		).Scan(&id, &title, &severity, &ruleName, &agentID, &ts)
 		if err != nil {
-			continue
+			// 飛ばすと、そのアラートはインシデントの時系列から消えます。
+			// 時系列は「何がいつ起きたか」を確定させるために見る図なので、
+			// 抜けたことが分からないまま抜けるのがいちばん困ります。
+			return nil, fmt.Errorf("インシデントの時系列: アラート %s を読めませんでした: %w", aid, err)
 		}
 		ev := &TimelineEvent{
 			ID:          id,
@@ -612,7 +637,7 @@ func (b *Builder) BuildAlertTimeline(ctx context.Context, alertID string) (*Time
 	).Scan(&agentID, &title, &severity, &ruleName, &ts)
 	if err != nil {
 		slog.Warn("timeline: alert not found", "alert_id", alertID, "error", err)
-		return &Timeline{Events: []*TimelineEvent{}, AttackPhases: []string{}}, nil
+		return nil, err
 	}
 
 	from := ts.Add(-6 * time.Hour)
@@ -662,7 +687,7 @@ func (b *Builder) BuildAlertTimeline(ctx context.Context, alertID string) (*Time
 				}
 				var data map[string]interface{}
 				if err := json.Unmarshal([]byte(rawStr), &data); err != nil {
-					data = map[string]interface{}{}
+					return nil, fmt.Errorf("タイムラインの出来事を読めませんでした: %w", err)
 				}
 				ev := &TimelineEvent{
 					ID:          id,
@@ -677,6 +702,10 @@ func (b *Builder) BuildAlertTimeline(ctx context.Context, alertID string) (*Time
 					RelatedIDs:  []string{},
 				}
 				events = append(events, ev)
+			}
+			// 部分結果を完全な一覧として返さない（scan_truncation_guard_test.go 参照）
+			if err := evRows.Err(); err != nil {
+				return nil, err
 			}
 			evRows.Close()
 		}

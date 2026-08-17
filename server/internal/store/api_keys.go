@@ -22,6 +22,16 @@ type APIKey struct {
 	ExpiresAt  *time.Time `json:"expires_at"`
 	Revoked    bool       `json:"revoked"`
 	CreatedAt  time.Time  `json:"created_at"`
+	// TenantID is the tenant the key's owner belongs to.
+	//
+	// `api_keys` にテナントの列はありません。鍵は利用者に紐づき、利用者は
+	// テナントに紐づくので、`users` から引きます。**鍵そのものに持たせて
+	// いないのは意図ではなく、単に繋がっていなかっただけです** ——
+	// 認証層は無条件に空文字を置いていました。
+	//
+	// 引けなかったとき（利用者の行が消えている等）は空のままにします。
+	// **空を「全テナント」と読み替えないのが、この一連の直しの要点です。**
+	TenantID string `json:"-"`
 }
 
 // APIKeyStore handles API key database operations.
@@ -78,12 +88,19 @@ func (s *APIKeyStore) FindByKey(ctx context.Context, rawKey string) (*APIKey, er
 	keyHash := hashKey(rawKey)
 
 	var k APIKey
+	// 鍵の持ち主のテナントも一緒に引きます。LEFT JOIN なので、利用者の
+	// 行が無ければ tenant は NULL のままで、鍵は「テナント不明」として
+	// 扱われます（拒否される側に倒れます）。
+	var tenant *string
 	err := s.pool.QueryRow(ctx, `
-		SELECT id, user_id, name, key_prefix, scopes, last_used_at, expires_at, revoked, created_at
-		FROM api_keys
-		WHERE key_hash = $1
-		  AND NOT revoked
-		  AND (expires_at IS NULL OR expires_at > NOW())`,
+		SELECT k.id, k.user_id, k.name, k.key_prefix, k.scopes,
+		       k.last_used_at, k.expires_at, k.revoked, k.created_at,
+		       u.tenant_id::text
+		FROM api_keys k
+		LEFT JOIN users u ON u.id = k.user_id
+		WHERE k.key_hash = $1
+		  AND NOT k.revoked
+		  AND (k.expires_at IS NULL OR k.expires_at > NOW())`,
 		keyHash,
 	).Scan(
 		&k.ID,
@@ -95,9 +112,13 @@ func (s *APIKeyStore) FindByKey(ctx context.Context, rawKey string) (*APIKey, er
 		&k.ExpiresAt,
 		&k.Revoked,
 		&k.CreatedAt,
+		&tenant,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("APIキーが見つかりません: %w", err)
+	}
+	if tenant != nil {
+		k.TenantID = *tenant
 	}
 	return &k, nil
 }

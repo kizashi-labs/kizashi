@@ -20,9 +20,11 @@ import (
 
 	"github.com/edr-platform/server/internal/behavioral"
 	detectionrules "github.com/edr-platform/server/internal/detection/rules"
+	"github.com/edr-platform/server/internal/isolation"
 	"github.com/edr-platform/server/internal/metrics"
 	"github.com/edr-platform/server/internal/ml"
 	"github.com/edr-platform/server/internal/notification"
+	"github.com/edr-platform/server/internal/store"
 	"github.com/google/uuid"
 	"github.com/nats-io/nats.go"
 	"github.com/nats-io/nats.go/jetstream"
@@ -50,7 +52,7 @@ type SIEMAlertPayload struct {
 
 // SuppressionHitCounter increments the hit count for a suppression rule.
 type SuppressionHitCounter interface {
-	IncrHitCount(ctx context.Context, ruleID string)
+	IncrHitCount(ctx context.Context, ruleID string) error
 }
 
 // Engine is the central detection and auto-response orchestrator.
@@ -59,40 +61,41 @@ type Engine struct {
 	js             jetstream.JetStream
 	store          DetectionStore
 	aiAgent        *AIAgent
-	commander      AgentCommander
+	isolator       Isolator
 	rules          *detectionrules.RuleEngine
 	notifier       *notification.Dispatcher // nil = notifications disabled
 	playbooks      *PlaybookRunner          // nil = playbooks disabled
 	iocMatcher     *IOCMatcher              // nil = IOC matching disabled
 	suppression    *SuppressionMatcher      // nil = suppression disabled
 	suppressionHit SuppressionHitCounter    // nil = hit count tracking disabled
-	siemForwarder  SIEMForwarder            // nil = SIEM forwarding disabled
-	behavioral     *ml.BehavioralEngine     // nil = ML behavioral analysis disabled
-	parents        *parentResolver          // resolves parent image PATH from ppid for ParentImage rules
-	netScan        *NetworkScanDetector     // stateful port-scan / fan-out detection (T1046)
-	dnsAgg         *DNSTunnelAggregator     // stateful cross-query DNS tunneling detection (T1071.004)
-	dnsFastFlux    *DNSFastFluxDetector     // stateful fast-flux infrastructure detection (T1568.001)
-	killChain      *KillChainScorer         // cross-signal kill-chain risk scoring
-	c2corr         *C2Correlator            // multi-signal C2 destination correlation
-	resLinker      *ResolutionLinker        // DNS-resolution bridge (domain↔IP) for C2 correlation
-	procThreat     *ProcessThreatCorrelator // per-PID compromise↔C2 correlation (active-implant confirmation)
-	ransomCorr     *RansomwareCorrelator    // composite ransomware-precursor scoring (host-wide)
-	discovery      *DiscoveryScorer         // host-enumeration burst + kill-chain discovery-stage feed
-	authAttack     *AuthAttackScorer        // real-time brute-force / password-spray detection (T1110)
-	fileBurst      *FileBurstScorer         // ransomware-style mass file-modification burst (T1486)
-	lateralFanout  *LateralFanoutScorer     // lateral-movement fan-out to many hosts on service ports (T1021)
-	exfilVol       *ExfilVolumeDetector     // bulk data-exfiltration by volume to external hosts (T1048)
-	cryptoMiner    *CryptoMinerScorer       // sustained-high-CPU resource hijacking / cryptomining (T1496)
-	baseline       *behavioral.Engine       // nil = per-agent baseline checks disabled
-	baselineAlerts bool                     // gate baseline unknown-process alerts
-	baselineSeen   map[string]struct{}      // dedup: agentID|process already alerted
-	baselineMu     sync.Mutex
-	alertDedup     map[string]time.Time // dedup: agentID|title → last save time
-	alertDedupMu   sync.Mutex
-	mu             sync.RWMutex
-	config         EngineConfig
-	// isoGuard は自動隔離の安全弁（冷却期間・時間あたり上限・ドライラン）。
-	isoGuard *isolationGuard
+	// selfRemediation drops alerts caused by our own containment. nil = disabled.
+	selfRemediation *SelfRemediationSuppressor
+	siemForwarder   SIEMForwarder            // nil = SIEM forwarding disabled
+	behavioral      *ml.BehavioralEngine     // nil = ML behavioral analysis disabled
+	parents         *parentResolver          // resolves parent image PATH from ppid for ParentImage rules
+	netScan         *NetworkScanDetector     // stateful port-scan / fan-out detection (T1046)
+	dnsAgg          *DNSTunnelAggregator     // stateful cross-query DNS tunneling detection (T1071.004)
+	dnsFastFlux     *DNSFastFluxDetector     // stateful fast-flux infrastructure detection (T1568.001)
+	killChain       *KillChainScorer         // cross-signal kill-chain risk scoring
+	countryEnrich   *countryEnricher         // async country_code enrichment (nil = disabled)
+	c2corr          *C2Correlator            // multi-signal C2 destination correlation
+	resLinker       *ResolutionLinker        // DNS-resolution bridge (domain↔IP) for C2 correlation
+	procThreat      *ProcessThreatCorrelator // per-PID compromise↔C2 correlation (active-implant confirmation)
+	ransomCorr      *RansomwareCorrelator    // composite ransomware-precursor scoring (host-wide)
+	discovery       *DiscoveryScorer         // host-enumeration burst + kill-chain discovery-stage feed
+	authAttack      *AuthAttackScorer        // real-time brute-force / password-spray detection (T1110)
+	fileBurst       *FileBurstScorer         // ransomware-style mass file-modification burst (T1486)
+	lateralFanout   *LateralFanoutScorer     // lateral-movement fan-out to many hosts on service ports (T1021)
+	exfilVol        *ExfilVolumeDetector     // bulk data-exfiltration by volume to external hosts (T1048)
+	cryptoMiner     *CryptoMinerScorer       // sustained-high-CPU resource hijacking / cryptomining (T1496)
+	baseline        *behavioral.Engine       // nil = per-agent baseline checks disabled
+	baselineAlerts  bool                     // gate baseline unknown-process alerts
+	baselineSeen    map[string]struct{}      // dedup: agentID|process already alerted
+	baselineMu      sync.Mutex
+	alertDedup      map[string]time.Time // dedup: agentID|title → last save time
+	alertDedupMu    sync.Mutex
+	mu              sync.RWMutex
+	config          EngineConfig
 }
 
 // alertDedupWindow は同一 (エージェント+アラート題名) の再発火を抑制する時間窓。
@@ -149,6 +152,11 @@ func (e *Engine) isDuplicateAlert(key string) bool {
 }
 
 // SetSuppressionHitCounter attaches a hit counter for suppression rule tracking.
+// SetSelfRemediationSuppressor wires the self-inflicted-alert filter. nil は無効。
+func (e *Engine) SetSelfRemediationSuppressor(s *SelfRemediationSuppressor) {
+	e.selfRemediation = s
+}
+
 func (e *Engine) SetSuppressionHitCounter(c SuppressionHitCounter) {
 	e.suppressionHit = c
 }
@@ -175,12 +183,39 @@ type EngineConfig struct {
 	// Minimum alert severity required to trigger auto-isolation (1-10, default 9).
 	// A rule must also have auto_isolate=true. Set to 0 to disable threshold enforcement.
 	AutoIsolateSeverityThreshold int
-	// AutoIsolateCooldown は同じ端末を再び自動隔離するまでの最短間隔（既定 30m）。
-	AutoIsolateCooldown time.Duration
-	// AutoIsolateHourlyBudget は 1 時間あたりに自動隔離を許す台数（既定 3）。
-	AutoIsolateHourlyBudget int
-	// AutoIsolateDryRun が true なら、隔離せず「隔離するはずだった」ことだけ記録する。
-	AutoIsolateDryRun bool
+
+	// AutoIsolateExempt lists agent IDs and hostnames that must never be isolated
+	// automatically, however severe the finding.
+	//
+	// It exists because isolation is not reversible from the outside: the agent
+	// firewalls everything except the EDR server, so isolating a host also cuts the
+	// operator's SSH/RDP to it. On a host that runs the platform itself — a lab box,
+	// a single-node deployment, a jump host — an auto-isolation is an outage plus a
+	// lockout, and recovering needs out-of-band access (SSM, serial console) that may
+	// not exist.
+	//
+	// Suppression rules cannot express this: they drop the ALERT, so exempting a host
+	// that way would also blind detection on it, and their SeverityMax matches
+	// severity <= N — the opposite of the high-severity band that isolates. This list
+	// suppresses only the RESPONSE; detection, alerting and scoring are untouched.
+	//
+	// Matching is exact on agent ID and case-insensitive exact on hostname.
+	//
+	// 冷却期間・時間あたり上限・ドライランはここには無い。isolation.Config が持つ。
+	// 隔離を行うのは Gatekeeper だけなので、安全弁の設定も Gatekeeper 側にあるほうが、
+	// 経路ごとに設定が分かれる余地が無い。この除外リストだけがここに残っているのは、
+	// 軸が違うためである — 安全弁は隔離の総量を抑えるが、これは特定の端末を対象から
+	// 外す。総量に余裕があっても除外対象は隔離されない。
+	AutoIsolateExempt []string
+
+	// GeoIPEnrichEnabled turns on asynchronous country_code enrichment of external
+	// network destinations (ip-api.com, non-blocking, cached). Off by default; needs
+	// outbound egress from the detection service to resolve countries.
+	GeoIPEnrichEnabled bool
+	// UEBAAnomalyThreshold is the accumulated behavioral risk score (0-100) at or
+	// above which a standalone UEBA anomaly alert is raised, independent of any
+	// signature match. 0 (default) disables the standalone alert.
+	UEBAAnomalyThreshold float64
 }
 
 type DetectionStore interface {
@@ -207,7 +242,13 @@ type StoredAlert struct {
 	// MITRETags is the FULL set of ATT&CK techniques the matching rule maps to
 	// (a correlation alert like the discovery burst covers many). Persisted to
 	// ai_mitre_tags so each detected technique is credited, not just MITRETech.
-	MITRETags    []string
+	MITRETags []string
+	// AutoIsolate carries the MATCH's isolation intent, which is not always
+	// recoverable from the rules table. Heuristic detectors (ransomware /
+	// process-threat / C2 correlators) emit matches with RuleID "" — there is no DB
+	// row to look the flag up on — so without this field their `AutoIsolate: true`
+	// was silently discarded. See applyRuleBasedResponse.
+	AutoIsolate  bool
 	AnomalyScore float64
 	RawEvent     json.RawMessage
 	AIAnalysis   *ThreatAnalysis
@@ -238,7 +279,7 @@ func NewEngine(
 	nc *nats.Conn,
 	store DetectionStore,
 	aiAgent *AIAgent,
-	commander AgentCommander,
+	isolator Isolator,
 	rules *detectionrules.RuleEngine,
 	notifier *notification.Dispatcher,
 	playbooks *PlaybookRunner,
@@ -251,23 +292,22 @@ func NewEngine(
 		return nil, fmt.Errorf("JetStream初期化に失敗しました: %w", err)
 	}
 	return &Engine{
-		nats:        nc,
-		js:          js,
-		store:       store,
-		aiAgent:     aiAgent,
-		commander:   commander,
-		rules:       rules,
-		notifier:    notifier,
-		playbooks:   playbooks,
-		iocMatcher:  iocMatcher,
-		suppression: suppression,
-		isoGuard: newIsolationGuard(
-			config.AutoIsolateCooldown, config.AutoIsolateHourlyBudget, config.AutoIsolateDryRun),
+		nats:          nc,
+		js:            js,
+		store:         store,
+		aiAgent:       aiAgent,
+		isolator:      isolator,
+		rules:         rules,
+		notifier:      notifier,
+		playbooks:     playbooks,
+		iocMatcher:    iocMatcher,
+		suppression:   suppression,
 		parents:       newParentResolver(),
 		netScan:       newNetworkScanDetector(),
 		dnsAgg:        newDNSTunnelAggregator(),
 		dnsFastFlux:   newDNSFastFluxDetector(),
 		killChain:     newKillChainScorer(),
+		countryEnrich: maybeCountryEnricher(config),
 		c2corr:        newC2Correlator(),
 		resLinker:     newResolutionLinker(),
 		procThreat:    newProcessThreatCorrelator(),
@@ -368,6 +408,10 @@ func (e *Engine) Start(ctx context.Context) error {
 	cloudSub, err := e.nats.Subscribe("cloud.events.>", func(msg *nats.Msg) {
 		payload, err := ParseCloudEvent(msg.Data)
 		if err != nil {
+			// 読めなかったクラウドイベントは検知に回りません。黙って
+			// 捨てると、その分だけ「何も起きなかった」ことになります。
+			slog.Error("detection: クラウドイベントを解釈できませんでした",
+				"subject", msg.Subject, "bytes", len(msg.Data), "error", err)
 			return
 		}
 
@@ -884,7 +928,7 @@ func (e *Engine) monitorConsumerLag(ctx context.Context, consumer jetstream.Cons
 		case <-ticker.C:
 			info, err := consumer.Info(ctx)
 			if err != nil {
-				slog.Debug("consumer info の取得に失敗しました", "error", err)
+				metrics.BackgroundFailed("consumer_lag", err, "consumer info の取得に失敗しました")
 				continue
 			}
 			metrics.DetectionConsumerPending.Set(float64(info.NumPending))
@@ -940,9 +984,14 @@ func (e *Engine) processEventData(ctx context.Context, data []byte) error {
 				// the previous "ioc-match" sentinel made the INSERT silently fail.
 				// Rule identity is captured in RuleName.
 				RuleName: "IOCマッチ: " + hit.IOC.Type,
+				// title は store の定数から組み立てる。IOC とアラートを結ぶ
+				// 手掛かりは title だけで、store.IOCStats / TopHits はこの
+				// プレフィックスで突き合わせている (server-api 側は
+				// IOCAlertTitlePrefixEN を使う)。直接書くとエラーにはならず
+				// IOC 統計が黙って 0 になる。
 				Severity: iocSeverity(hit.IOC),
 				Status:   "open",
-				Title:    "既知IOC検出: " + hit.Value,
+				Title:    store.IOCAlertTitlePrefixJA + hit.Value,
 				Description: fmt.Sprintf("フィールド %s が既知の脅威インジケーター (%s) に一致しました。信頼度 %d/100。%s",
 					hit.MatchedOn, hit.IOC.Type, hit.IOC.Confidence, hit.IOC.Description),
 				MITRETech: "T1071", // C2/IOC matches often map to Application Layer Protocol
@@ -951,11 +1000,9 @@ func (e *Engine) processEventData(ctx context.Context, data []byte) error {
 			}
 			// Check suppression rules before saving the alert
 			if e.suppression != nil {
-				if suppressed, ruleName, ruleID := e.suppression.IsSuppressed(iocAlert); suppressed {
+				if suppressed, ruleName, ruleID := e.suppression.IsSuppressed(iocAlert, SuppressionContextFrom(flatEvent)); suppressed {
 					slog.Debug("IOCアラートが抑制されました", "rule", ruleName, "ioc_type", hit.IOC.Type, "value", hit.Value)
-					if e.suppressionHit != nil {
-						e.suppressionHit.IncrHitCount(ctx, ruleID)
-					}
+					e.noteSuppressionHit(ctx, ruleID)
 					continue
 				}
 			}
@@ -1155,6 +1202,14 @@ func (e *Engine) processEventData(ctx context.Context, data []byte) error {
 		}
 	}
 
+	// Non-blocking country_code enrichment for external network destinations
+	// (opt-in). MUST run before rule evaluation so country-aware rules and detectors
+	// see country_code; it only serves cache hits and enqueues cold IPs, never doing
+	// I/O inline. No-op when disabled (countryEnrich is nil — Enrich is nil-safe).
+	if eventEnvelope.Type == "network" {
+		e.countryEnrich.Enrich(flatEvent)
+	}
+
 	// Run detection rules
 	matches, err := e.rules.Evaluate(ctx, flatEvent)
 	if err != nil {
@@ -1330,7 +1385,15 @@ func (e *Engine) processEventData(ctx context.Context, data []byte) error {
 	// spray T1110.003). A single failed login is not an attack; these are
 	// rate/fan-out phenomena the per-event Sigma rule cannot see. Matches feed the
 	// kill chain (credential-access stage) below.
-	if e.authAttack != nil && eventEnvelope.Type == "auth" {
+	//
+	// アカウント操作イベント(4765/4766 = SID-History 付与)はログオンではないので
+	// **ここに入れてはならない**。4766(付与失敗)は success=false を持つため、
+	// そのまま渡すと authSucceeded() が失敗ログオンとして数え、ブルートフォース／
+	// パスワードスプレーの誤検知になる。4648 を取り込んで「失敗の連続のあとの成功
+	// ＝アカウント侵害」を捏造した 2026-08-05 の実機事故と同じ形である。
+	// auth_parse.go の 4648 のコメントが「復活させるなら AuthAttackScorer 側の
+	// 除外もセットで要る」と書いていた、その除外がこれにあたる。
+	if e.authAttack != nil && eventEnvelope.Type == "auth" && !isAccountManagementAuth(flatEvent) {
 		src, _ := flatEvent["source_ip"].(string)
 		user, _ := flatEvent["username"].(string)
 		success := authSucceeded(flatEvent)
@@ -1354,13 +1417,13 @@ func (e *Engine) processEventData(ctx context.Context, data []byte) error {
 		// NOT "action" (that key is process-event-only). Reading "action" here left
 		// the ransomware detector INERT in production — it always saw "" and counted
 		// nothing. Read "operation" first, keeping "action" as a fallback for the
-		// flat/replay event shape. (isDestructiveFileAction is substring/case-
+		// flat/replay event shape. (IsDestructiveFileAction is substring/case-
 		// insensitive, so the FILE_ACTION_* enum form matches.)
 		action, _ := flatEvent["operation"].(string)
 		if action == "" {
 			action, _ = flatEvent["action"].(string)
 		}
-		burst := e.fileBurst.Observe(eventEnvelope.AgentID, proc, path, action, evTime)
+		burst := e.fileBurst.Observe(eventEnvelope.AgentID, eventEnvelope.Platform, proc, path, action, evTime)
 		matches = append(matches, burst...)
 		// Feed the burst to the ransomware correlator as its encryption-phase axis.
 		// On its own the burst is severity 8 and never isolates (benign builds and
@@ -1423,6 +1486,7 @@ func (e *Engine) processEventData(ctx context.Context, data []byte) error {
 			RuleID:      match.RuleID,
 			RuleName:    match.RuleName,
 			Severity:    match.Severity,
+			AutoIsolate: match.AutoIsolate,
 			Status:      "open",
 			Title:       match.Title,
 			Description: match.Description,
@@ -1446,18 +1510,30 @@ func (e *Engine) processEventData(ctx context.Context, data []byte) error {
 		// distinct correlation variants (e.g. "4段" vs "5段" kill-chain) stay separate.
 		// Runs before suppression/save/response so duplicates skip the full pipeline,
 		// matching AlertPipeline semantics.
-		if e.isDuplicateAlert(alert.AgentID + "\x00" + alert.Title) {
+		// A detector that reports a CHANGING set (see RuleMatch.DedupKey) adds it to
+		// the key, so a report naming new findings is not collapsed into the previous
+		// one. Empty DedupKey keeps the historical (agent, title) behaviour.
+		dedupKey := alert.AgentID + "\x00" + alert.Title
+		if match.DedupKey != "" {
+			dedupKey += "\x00" + match.DedupKey
+		}
+		if e.isDuplicateAlert(dedupKey) {
 			metrics.AlertsDeduped.WithLabelValues(sourceLabel(match.RuleType)).Inc()
+			continue
+		}
+
+		// Our own containment changes the endpoint's firewall, which the
+		// firewall-modification rules then detect. See
+		// self_remediation_suppression.go.
+		if e.selfRemediation.IsSelfInflicted(ctx, alert) {
 			continue
 		}
 
 		// Check suppression rules before saving
 		if e.suppression != nil {
-			if suppressed, ruleName, ruleID := e.suppression.IsSuppressed(alert); suppressed {
+			if suppressed, ruleName, ruleID := e.suppression.IsSuppressed(alert, SuppressionContextFrom(flatEvent)); suppressed {
 				slog.Debug("アラートが抑制されました", "suppression_rule", ruleName, "rule", match.RuleName, "agent", alert.AgentID)
-				if e.suppressionHit != nil {
-					e.suppressionHit.IncrHitCount(ctx, ruleID)
-				}
+				e.noteSuppressionHit(ctx, ruleID)
 				continue
 			}
 		}
@@ -1567,7 +1643,55 @@ func (e *Engine) enrichAnomalyScore(alert *StoredAlert) {
 		feat.FailedLogins = 1
 	}
 	e.behavioral.UEBA.UpdateProfile(alert.AgentID, "agent", feat)
-	alert.AnomalyScore = e.behavioral.UEBA.GetRiskScore(alert.AgentID) / 100.0
+	risk := e.behavioral.UEBA.GetRiskScore(alert.AgentID) // 0-100
+	alert.AnomalyScore = risk / 100.0
+	// Standalone UEBA anomaly alert (opt-in): when the entity's accumulated
+	// behavioral risk crosses the configured threshold, raise a dedicated triage
+	// alert regardless of which signature drove this update. No-op when disabled.
+	e.maybeEmitUEBAAnomaly(alert, risk, ts)
+}
+
+// maybeEmitUEBAAnomaly raises a standalone behavioral-anomaly alert when the entity's
+// UEBA risk score (0-100) is at or above the configured UEBAAnomalyThreshold. Opt-in:
+// a threshold of 0 disables it. Deduped per agent (via the shared alert-dedup window)
+// so a persistently anomalous entity yields one alert per window, not a storm. It is
+// independent of signature matches — surfacing insider-threat / compromised-account
+// patterns that no individual rule fires on.
+func (e *Engine) maybeEmitUEBAAnomaly(src *StoredAlert, risk float64, ts time.Time) {
+	if e.config.UEBAAnomalyThreshold <= 0 || risk < e.config.UEBAAnomalyThreshold || src == nil || src.AgentID == "" {
+		return
+	}
+	if e.store == nil || e.isDuplicateAlert("ueba-anomaly|"+src.AgentID) {
+		return
+	}
+	sev := 6
+	if risk >= 90 {
+		sev = 8
+	} else if risk >= 75 {
+		sev = 7
+	}
+	alert := &StoredAlert{
+		ID:       generateAlertID(),
+		AgentID:  src.AgentID,
+		Hostname: src.Hostname,
+		OS:       src.OS,
+		// RuleID intentionally empty: alerts.rule_id is uuid-typed and this is a
+		// scorer-emitted finding, not a DB rule.
+		RuleName: "UEBA行動異常: 累積リスクスコア閾値超過",
+		Severity: sev,
+		Status:   "open",
+		Title:    fmt.Sprintf("[UEBA] エンティティの行動リスクが高水準 (スコア %d/100)", int(risk)),
+		Description: fmt.Sprintf("エージェント %s の累積行動リスクスコアが %d に達し、設定閾値 %d を超過しました。個々のルールには現れないインサイダー脅威/侵害アカウントの兆候を示します。",
+			src.AgentID, int(risk), int(e.config.UEBAAnomalyThreshold)),
+		MITRETech:    "T1078",
+		MITRETags:    []string{"T1078"},
+		AnomalyScore: risk / 100.0,
+		CreatedAt:    ts,
+		UpdatedAt:    ts,
+	}
+	if err := e.store.SaveAlert(context.Background(), alert); err != nil {
+		slog.Error("UEBA anomaly alert save failed", "error", err)
+	}
 }
 
 func (e *Engine) applyRuleBasedResponse(ctx context.Context, alert *StoredAlert, evt *EventEnvelope, match *detectionrules.RuleMatch) {
@@ -1575,10 +1699,12 @@ func (e *Engine) applyRuleBasedResponse(ctx context.Context, alert *StoredAlert,
 		return
 	}
 
-	// Auto-isolation is authorised by EITHER source:
+	// Auto-isolation is authorised by ANY of three sources:
 	//
 	//  1. The DB rule the alert came from (rules.auto_isolate), looked up by ID.
 	//  2. The match itself (RuleMatch.AutoIsolate), set by the stateful correlators.
+	//  3. The stored alert's own flag (StoredAlert.AutoIsolate), which carries the
+	//     match's intent when the alert reaches here without its RuleMatch.
 	//
 	// Only (1) used to be consulted, and it is reachable only when alert.RuleID
 	// identifies a loaded DB rule. The correlators — ransomware_correlator,
@@ -1589,9 +1715,18 @@ func (e *Engine) applyRuleBasedResponse(ctx context.Context, alert *StoredAlert,
 	// pre-encryption ransomware sequence, a C2 channel confirmed on ≥N orthogonal
 	// axes, an implant showing both host-compromise behaviour and C2 on one PID) —
 	// precisely the cases where isolation is meant to be automatic, and precisely
-	// the cases that never fired. Honour the match's own flag so those decisions
-	// take effect, while keeping the DB-rule path intact.
-	autoIsolate := match != nil && match.AutoIsolate
+	// the cases that never fired. Honour those decisions, while keeping the
+	// DB-rule path intact.
+	//
+	// This deliberately has no switch of its own. An earlier version of this fix put
+	// heuristic isolation behind an off-by-default AUTO_ISOLATE_HEURISTIC, on the
+	// reasoning that isolation is not reversible from the outside. That was the wrong
+	// shape: a response that looks wired but is inert unless someone finds an
+	// undocumented env var is the same defect this function had in the first place,
+	// just spelled differently. The operator's opt-in is already three controls deep —
+	// AutoResponseEnabled, AutoIsolateSeverityThreshold, and the exemption list below,
+	// on top of the Gatekeeper's own safety valves.
+	autoIsolate := alert.AutoIsolate || (match != nil && match.AutoIsolate)
 	ruleLabel := alert.RuleName
 
 	e.mu.RLock()
@@ -1606,35 +1741,53 @@ func (e *Engine) applyRuleBasedResponse(ctx context.Context, alert *StoredAlert,
 	// Immediate isolation for critical rules
 	threshold := e.config.AutoIsolateSeverityThreshold
 	if autoIsolate && alert.Severity >= threshold {
-		// The DB-rule path guaranteed a non-nil commander implicitly (a loaded rule
+		// The DB-rule path guaranteed a non-nil isolator implicitly (a loaded rule
 		// meant a fully wired engine); the correlator path does not, so check.
-		if e.commander == nil {
+		if e.isolator == nil {
 			return
 		}
 
-		// severity は検知器が自分で決める値なので、誤検知が 10 を出せばそのまま
-		// 端末が止まる。判定の質はここでは直せないので、被害の大きさを抑える。
-		if e.isoGuard != nil {
-			if v := e.isoGuard.allow(alert.AgentID); !v.allow {
-				e.isoGuard.logRefusal(alert.AgentID, ruleLabel, v.reason)
-				return
-			}
-			if e.isoGuard.isDryRun() {
-				// 何が止まるはずだったかを先に見るための状態。実際には隔離しない。
-				slog.Warn("自動隔離（ドライラン）: 実際には隔離していません",
-					"agent", alert.AgentID, "rule", ruleLabel, "severity", alert.Severity)
-				return
-			}
+		// Say so loudly rather than skipping quietly: an operator who configured the
+		// exemption still needs to know the host WOULD have been isolated, and a
+		// silent skip is indistinguishable from a response path that is broken.
+		//
+		// This check lives here rather than in the Gatekeeper on purpose. The
+		// Gatekeeper's valves bound the VOLUME of isolation; this list removes a
+		// specific endpoint from the target set entirely, and it must hold even when
+		// the volume budget has room to spare.
+		if e.isAutoIsolateExempt(alert) {
+			slog.Warn("自動隔離を除外設定によりスキップしました（検知とアラートは通常どおり）",
+				"agent", alert.AgentID, "hostname", alert.Hostname,
+				"rule", ruleLabel, "severity", alert.Severity)
+			return
 		}
 
+		// 安全弁（冷却期間・時間あたり上限・ドライラン）と response_actions への
+		// 記録は Gatekeeper が行う。ここで判断を重ねない。severity は検知器が
+		// 自分で決める値なので、誤検知が 10 を出せばここには必ず到達する。
 		reason := fmt.Sprintf("ルールベース自動隔離: %s (重大度: %d)", ruleLabel, alert.Severity)
-		if err := e.commander.IsolateEndpoint(ctx, alert.AgentID, reason, alert.ID, ""); err != nil {
+		res, err := e.isolator.Isolate(ctx, isolation.Request{
+			AgentID: alert.AgentID,
+			Reason:  reason,
+			AlertID: alert.ID,
+			Origin:  isolation.OriginRule,
+			Label:   ruleLabel,
+		})
+		if err != nil {
 			slog.Error("auto isolate failed", "agent", alert.AgentID, "error", err)
-		} else {
+			return
+		}
+		if res.Outcome.Executed() {
 			e.logAction(ctx, alert.ID, alert.AgentID, "isolate", "", reason, "auto_rule", true, "")
-			slog.Info("endpoint isolated", "agent", alert.AgentID, "rule", ruleLabel)
 		}
 	}
+}
+
+// isAutoIsolateExempt reports whether this endpoint is on the never-isolate list.
+func (e *Engine) isAutoIsolateExempt(alert *StoredAlert) bool {
+	// 判定は isolation 側と共有する。同じ規則を 2 箇所に書くと、一方だけ直った
+	// 状態が生まれる。安全弁を二重に持つのは良いが、実装まで二重に持たない。
+	return isolation.IsExempt(e.config.AutoIsolateExempt, alert.Hostname, alert.AgentID)
 }
 
 // runAIAnalysis sends the alert to Claude for deep analysis.
@@ -1658,7 +1811,7 @@ func (e *Engine) runAIAnalysis(ctx context.Context, stored *StoredAlert, evt *Ev
 
 	analysis, err := e.aiAgent.AnalyzeThreat(aiCtx, alert)
 	if err != nil {
-		slog.Error("AI analysis failed", "alert", stored.ID, "error", err)
+		metrics.BackgroundFailed("detection_ai", err, "AI analysis failed", "alert", stored.ID)
 		return
 	}
 
@@ -2007,4 +2160,25 @@ func detEnvInt(key string, def int) int {
 		}
 	}
 	return def
+}
+
+// noteSuppressionHit records that a rule suppressed something, and reports if
+// it could not.
+//
+// **1イベントごとです。** 呼び出し側は次のイベントなので、部品ごとの
+// 件数が跡になります。落ちるとヒット0のまま残り、**実際は毎日抑制して
+// いるルールが「もう要らない」と判断されます。**
+//
+// 切り出してあるのは、**通る木では `err != nil` のどちらの枝も通らない**
+// からです —— `err != nil` を `err == nil` に反転する変異が、直接呼べる
+// ようにするまで生き残りました（`suppression_hit_report_test.go`）。
+func (e *Engine) noteSuppressionHit(ctx context.Context, ruleID string) {
+	if e.suppressionHit == nil {
+		return
+	}
+	if err := e.suppressionHit.IncrHitCount(ctx, ruleID); err != nil {
+		metrics.BackgroundFailed("suppression_hit_count", err,
+			"抑制ルールのヒット数を更新できませんでした。効いているルールが0件に見えます",
+			"rule_id", ruleID)
+	}
 }

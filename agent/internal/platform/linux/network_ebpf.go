@@ -27,7 +27,7 @@ type EBPFNetworkCollector struct {
 // tracing and degrades to /proc/net polling.
 func NewEBPFNetworkCollector() *EBPFNetworkCollector {
 	return &EBPFNetworkCollector{
-		useEBPF:  isEBPFSupported(),
+		useEBPF:  ebpfUsable(),
 		fallback: NewProcNetCollector(),
 	}
 }

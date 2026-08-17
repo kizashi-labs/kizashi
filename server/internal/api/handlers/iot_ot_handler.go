@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -21,10 +22,7 @@ func NewIoTOTHandler(pool *pgxpool.Pool) *IoTOTHandler {
 }
 
 func (h *IoTOTHandler) tableExists(c *gin.Context, name string) bool {
-	var ok bool
-	_ = h.pool.QueryRow(c.Request.Context(),
-		`SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name=$1)`, name).Scan(&ok)
-	return ok
+	return tableIsThere(c.Request.Context(), h.pool, name)
 }
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -73,8 +71,15 @@ func (h *IoTOTHandler) ListDevices(c *gin.Context) {
 	// Check if extended columns exist
 	hasProtocol := h.tableExists(c, "iot_devices") // always true here; check column instead
 	var colExists bool
-	_ = h.pool.QueryRow(ctx,
+	// **確認できなかったことを「列が無い」と答えていました。** `_ =` で
+	// 捨てていたので、DB が応答しないだけで縮小版のクエリに落ち、
+	// protocol / network_zone などが既定値で返っていました ——
+	// 画面には「そういう機器」として並びます。
+	// `probeAnswer` は確認できなければ「在る」と答えます。列が本当に
+	// 無ければ確認は成功して false を返し、今まで通り縮小版に落ちます。
+	colErr := h.pool.QueryRow(ctx,
 		`SELECT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='iot_devices' AND column_name='protocol')`).Scan(&colExists)
+	colExists = probeAnswer(colExists, colErr)
 
 	var query string
 	if colExists {
@@ -105,7 +110,7 @@ func (h *IoTOTHandler) ListDevices(c *gin.Context) {
 
 	rows, err := h.pool.Query(ctx, query)
 	if err != nil {
-		c.JSON(http.StatusOK, []iotDevice{})
+		ReadFailure(c, err, []iotDevice{})
 		return
 	}
 	defer rows.Close()
@@ -137,6 +142,11 @@ func (h *IoTOTHandler) ListDevices(c *gin.Context) {
 		}
 		devices = append(devices, d)
 	}
+	if err := rows.Err(); err != nil {
+		slog.Warn("ListDevices: 結果セットの読み取りが途中で終わりました。応答は不完全です", "error", err)
+		c.JSON(http.StatusOK, []iotDevice{})
+		return
+	}
 	if devices == nil {
 		devices = []iotDevice{}
 	}
@@ -159,7 +169,7 @@ func (h *IoTOTHandler) ListAnomalies(c *gin.Context) {
 		FROM iot_ot_anomalies ORDER BY timestamp DESC LIMIT 200
 	`)
 	if err != nil {
-		c.JSON(http.StatusOK, []iotAnomaly{})
+		ReadFailure(c, err, []iotAnomaly{})
 		return
 	}
 	defer rows.Close()
@@ -176,6 +186,11 @@ func (h *IoTOTHandler) ListAnomalies(c *gin.Context) {
 		}
 		a.Timestamp = ts.Format(time.RFC3339)
 		anomalies = append(anomalies, a)
+	}
+	if err := rows.Err(); err != nil {
+		slog.Warn("ListAnomalies: 結果セットの読み取りが途中で終わりました。応答は不完全です", "error", err)
+		c.JSON(http.StatusOK, []iotAnomaly{})
+		return
 	}
 	if anomalies == nil {
 		anomalies = []iotAnomaly{}

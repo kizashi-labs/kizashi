@@ -22,10 +22,7 @@ func NewVulnHandler(s *store.VulnStore) *VulnHandler {
 func (h *VulnHandler) List(c *gin.Context) {
 	limit, _ := strconv.Atoi(c.DefaultQuery("per_page", "50"))
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
-	if page < 1 {
-		page = 1
-	}
-	offset := (page - 1) * limit
+	page, limit, offset := clampPageParams(page, limit, 50, 200)
 
 	f := store.VulnFilter{
 		AgentID:  c.Query("agent_id"),
@@ -41,7 +38,7 @@ func (h *VulnHandler) List(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "脆弱性一覧の取得に失敗しました"})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"data": vulns, "total": total, "page": page})
+	c.JSON(http.StatusOK, gin.H{"data": vulns, "total": total, "page": page, "per_page": limit})
 }
 
 // Stats returns open vulnerability counts by severity.

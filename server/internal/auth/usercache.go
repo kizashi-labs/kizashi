@@ -2,6 +2,9 @@ package auth
 
 import (
 	"context"
+	"errors"
+	"github.com/jackc/pgx/v5"
+	"log/slog"
 	"sync"
 	"time"
 
@@ -44,9 +47,21 @@ func (c *UserStatusCache) IsActive(ctx context.Context, userID string) bool {
 	err := c.pool.QueryRow(ctx,
 		"SELECT is_active FROM users WHERE id = $1", userID,
 	).Scan(&active)
+	if errors.Is(err, pgx.ErrNoRows) {
+		// そのユーザーがもう存在しない。トークンは通しません。
+		// 以前はここも DB 障害と同じ「通す」でした。削除したユーザーの
+		// トークンが、期限切れまで有効なままになります。
+		slog.Warn("usercache: 存在しないユーザーのトークンを拒否しました", "user", userID)
+		return false
+	}
 	if err != nil {
-		// Unknown user or DB error: allow through to avoid false lockouts.
-		// JWT expiry still protects against indefinitely stale tokens.
+		// DB 障害のときは通します。ここは意図した fail-open です ——
+		// データベースが落ちている間、全員を締め出すほうが被害が大きい。
+		// ただし黙って通すのはやめました。無効化したはずの利用者が通り
+		// 続けている時間帯が、ログにも何にも残らないからです。
+		// JWT の期限は依然として効きます。
+		slog.Error("usercache: 利用者の状態を確認できないまま通しました（fail-open）",
+			"user", userID, "error", err)
 		return true
 	}
 

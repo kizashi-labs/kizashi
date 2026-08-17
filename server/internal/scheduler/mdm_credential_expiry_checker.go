@@ -45,9 +45,9 @@ func (c *MDMCredentialExpiryChecker) Run(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-timer.C:
-			c.check(ctx)
+			trackRun(ctx, "mdm_credential_expiry_checker", c.check)
 		case <-ticker.C:
-			c.check(ctx)
+			trackRun(ctx, "mdm_credential_expiry_checker", c.check)
 		}
 	}
 }
@@ -72,7 +72,7 @@ func (c *MDMCredentialExpiryChecker) check(ctx context.Context) {
 		)
 	`).Scan(&hasColumn)
 	if err != nil {
-		slog.Warn("mdm_integrations列の存在確認に失敗しました", "error", err)
+		fail(ctx, err, "mdm_integrations列の存在確認に失敗しました")
 		return
 	}
 	if !hasColumn {
@@ -89,7 +89,7 @@ func (c *MDMCredentialExpiryChecker) check(ctx context.Context) {
 		WHERE enabled = true AND credential_expiry IS NOT NULL
 	`)
 	if err != nil {
-		slog.Error("MDM統合一覧の取得に失敗しました", "error", err)
+		fail(ctx, err, "MDM統合一覧の取得に失敗しました")
 		return
 	}
 	defer rows.Close()
@@ -101,6 +101,9 @@ func (c *MDMCredentialExpiryChecker) check(ctx context.Context) {
 			continue
 		}
 		items = append(items, r)
+	}
+	if err := rows.Err(); err != nil {
+		fail(ctx, err, "MDM統合一覧の走査が途中で終わりました。期限切れ警告が出ない統合があります")
 	}
 	rows.Close()
 
@@ -175,7 +178,7 @@ func (c *MDMCredentialExpiryChecker) maybeCreateAlert(
 		RETURNING id::text
 	`, title, description, severity).Scan(&alertID)
 	if err != nil {
-		slog.Error("MDM資格情報アラートの作成に失敗しました", "integration", it.integType, "error", err)
+		fail(ctx, err, "MDM資格情報アラートの作成に失敗しました", "integration", it.integType)
 		return
 	}
 
@@ -195,7 +198,7 @@ func (c *MDMCredentialExpiryChecker) maybeCreateAlert(
 			"expires":     it.expiry.Format(time.RFC3339),
 		})
 		if pubErr := c.nc.Publish("alerts.new", payload); pubErr != nil {
-			slog.Warn("alerts.new NATSパブリッシュに失敗しました", "error", pubErr)
+			fail(ctx, pubErr, "alerts.new NATSパブリッシュに失敗しました")
 		}
 	}
 }

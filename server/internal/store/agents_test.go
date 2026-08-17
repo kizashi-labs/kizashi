@@ -1,7 +1,6 @@
 package store
 
 import (
-	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -63,36 +62,50 @@ func TestAgentFilter_FieldAssignment(t *testing.T) {
 }
 
 // ─── buildAgentWhere ライクなロジックテスト（ListAgents内の条件ビルダー）─────
-// ListAgentsはDB呼び出しを含むため直接テストできないが、
-// フィルターが生成する条件の文字列を手動で再現してテストする
-
-// buildAgentWhereConditions は agents.go の ListAgents 内と同じロジックで
-// WHERE句の条件リストと引数を構築するヘルパー（テスト専用）
+// buildAgentWhereConditions は **本物を呼びます。**
+//
+// 以前ここには写しが置いてありましたが、検索の条件が
+// `"(hostname ILIKE $%d OR ...)"` —— **文字どおり `OR ...`** でした。
+// 本物はホスト名と IP アドレスの2箇所で**同じ番号**を使います。
 func buildAgentWhereConditions(filter AgentFilter) ([]string, []interface{}) {
-	var conditions []string
-	var args []interface{}
-	i := 1
+	where, args := agentListWhere(filter)
+	if where == "" {
+		return nil, args
+	}
+	return strings.Split(strings.TrimPrefix(where, "WHERE "), " AND "), args
+}
 
-	if filter.OSType != "" {
-		conditions = append(conditions, fmt.Sprintf("os_type = $%d", i))
-		args = append(args, filter.OSType)
-		i++
+// 検索が、ホスト名と IP アドレスの両方に当たること。
+//
+// **同じ引数を2箇所で使います。** 番号を2つに分けると引数が1つ足りず、
+// 端末の一覧が丸ごと落ちます。
+func TestAgentSearchMatchesHostnameAndIP(t *testing.T) {
+	where, args := agentListWhere(AgentFilter{Search: "10.0.0"})
+	if len(args) != 1 {
+		t.Fatalf("args = %v, want 1 件（同じ値を2箇所で使います）", args)
 	}
-	if filter.Status != "" {
-		conditions = append(conditions, fmt.Sprintf("status = $%d", i))
-		args = append(args, filter.Status)
-		i++
+	if !strings.Contains(where, "hostname ILIKE $1") {
+		t.Errorf("ホスト名に当たっていません: %q", where)
 	}
-	if filter.GroupID != "" {
-		conditions = append(conditions, fmt.Sprintf("group_id = $%d", i))
-		args = append(args, filter.GroupID)
-		i++
+	if !strings.Contains(where, "ip_addresses") {
+		t.Errorf("IP アドレスに当たっていません: %q", where)
 	}
-	if filter.Search != "" {
-		conditions = append(conditions, fmt.Sprintf("(hostname ILIKE $%d OR ...)", i))
-		args = append(args, "%"+filter.Search+"%")
+	if strings.Contains(where, "$2") {
+		t.Errorf("引数の数を超えるプレースホルダがあります: %q", where)
 	}
-	return conditions, args
+}
+
+// 条件が無いときは WHERE 句そのものを出さないこと。
+//
+// **`WHERE` だけの文字列は構文エラーです。**
+func TestAgentEmptyFilterProducesNoWhereClause(t *testing.T) {
+	where, args := agentListWhere(AgentFilter{})
+	if where != "" {
+		t.Errorf("where = %q, want 空", where)
+	}
+	if len(args) != 0 {
+		t.Errorf("args = %v, want 空", args)
+	}
 }
 
 // TestAgentFilter_EmptyFilterProducesNoClauses は空フィルターが条件なしになることを確認する

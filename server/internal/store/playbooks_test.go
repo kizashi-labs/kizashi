@@ -338,15 +338,16 @@ func TestPlaybookRun_FailedRun(t *testing.T) {
 
 // ─── containsStr と条件マッチングロジックテスト ──────────────────────────────
 
-// playbookMatchesSeverity は PlaybookConditions の severity 条件マッチングを再現するヘルパー
+// playbookMatchesSeverity は **本物を呼びます。**
+//
+// 以前ここには `matches` の重要度の部分を書き写したものが置いてあり、
+// そちらだけが試されていました。**プレイブックが動くかどうかの判定です**
+// —— 条件が合わなければ、自動対応は一度も走りません。走らなかったことは、
+// 画面では「対応が要らなかった」と同じ姿になります。
+//
+// 他の条件は空にして呼びます（空 = 指定なし）。
 func playbookMatchesSeverity(cond PlaybookConditions, severity int) bool {
-	if cond.MinSeverity > 0 && severity < cond.MinSeverity {
-		return false
-	}
-	if cond.MaxSeverity > 0 && severity > cond.MaxSeverity {
-		return false
-	}
-	return true
+	return cond.matches(severity, "", "", "", "")
 }
 
 // TestPlaybookMatchesSeverity_InRange は範囲内の severity がマッチすることを確認する
@@ -403,27 +404,9 @@ func TestContainsStr_PlaybookRuleName(t *testing.T) {
 
 // ─── Playbook 条件マッチングの複合テスト ─────────────────────────────────────
 
-// playbookMatchesAll は Playbook の全条件がアラートにマッチするかを再現するヘルパー
+// playbookMatchesAll は **本物を呼びます。**
 func playbookMatchesAll(cond PlaybookConditions, severity int, ruleName, hostname, mitreTechnique, status string) bool {
-	if cond.MinSeverity > 0 && severity < cond.MinSeverity {
-		return false
-	}
-	if cond.MaxSeverity > 0 && severity > cond.MaxSeverity {
-		return false
-	}
-	if cond.RuleName != "" && !containsStr(ruleName, cond.RuleName) {
-		return false
-	}
-	if cond.Hostname != "" && !containsStr(hostname, cond.Hostname) {
-		return false
-	}
-	if cond.MITRETechnique != "" && !containsStr(mitreTechnique, cond.MITRETechnique) {
-		return false
-	}
-	if cond.Status != "" && status != cond.Status {
-		return false
-	}
-	return true
+	return cond.matches(severity, ruleName, hostname, mitreTechnique, status)
 }
 
 // TestPlaybookMatchesAll_AllConditions は全条件が一致するアラートがマッチすることを確認する

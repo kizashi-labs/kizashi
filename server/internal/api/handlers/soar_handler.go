@@ -36,10 +36,14 @@ type soarConfig struct {
 }
 
 // maskConfig は認証情報フィールドを *** でマスクした map を返します
+//
+// 読めなかったときは空の map ではなく、読めなかったと書いた map を返します。
+// 空の設定は「この連携は未設定」と読めます。設定済みの連携が未設定に見えると、
+// 入れ直そうとした人が、既にある接続先を上書きします。
 func maskConfig(raw json.RawMessage) map[string]interface{} {
 	var m map[string]interface{}
 	if err := json.Unmarshal(raw, &m); err != nil {
-		return map[string]interface{}{}
+		return map[string]interface{}{"_unreadable": true, "_error": err.Error()}
 	}
 	sensitiveKeys := map[string]bool{
 		"api_token": true,
@@ -100,7 +104,9 @@ func (h *SOARHandler) ListConfigs(c *gin.Context) {
 		})
 	}
 	if err := rows.Err(); err != nil {
-		slog.Warn("row iteration error", "error", err)
+		slog.Error("rows.Err: 結果の読み出しが途中で失敗しました", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "SOAR設定の取得に失敗しました"})
+		return
 	}
 	if results == nil {
 		results = []outItem{}
@@ -319,12 +325,26 @@ func (h *SOARHandler) CreateTicket(c *gin.Context) {
 	}
 
 	// 2. 紐付きアラートを取得してdescriptionに追加
+	//
+	// 二重に実行不能だった。incident_alerts.alert_id は text、alerts.id は uuid で、
+	// 両者を直接比較すると 42883 (operator does not exist: text = uuid) になる。
+	// それを直すと次に a.hostname が無いことが出る — alerts にホスト名の列は無く、
+	// agents 側にある。Postgres は最初のエラーしか報告しないため、片方だけ直しても
+	// 実行できるようにはならない。
+	//
+	// エラーは `if err == nil` で握り潰されるので、SOAR プレイブックに渡る
+	// インシデント説明文からは「関連アラート」の節が常に丸ごと欠落していた。
 	rows, err := h.pool.Query(ctx, `
-		SELECT a.title, a.severity, a.hostname
+		SELECT a.title, a.severity, COALESCE(ag.hostname, '')
 		FROM alerts a
-		JOIN incident_alerts ia ON ia.alert_id = a.id
+		JOIN incident_alerts ia ON ia.alert_id = a.id::text
+		LEFT JOIN agents ag ON ag.id = a.agent_id
 		WHERE ia.incident_id = $1
 		LIMIT 10`, incidentID)
+	if err != nil {
+		slog.Warn("soar: 関連アラートの取得に失敗しました",
+			"incident_id", incidentID, "error", err)
+	}
 	if err == nil {
 		defer rows.Close()
 		alertLines := ""

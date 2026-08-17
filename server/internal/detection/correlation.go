@@ -11,6 +11,8 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+
+	"github.com/edr-platform/server/internal/tick"
 )
 
 // maxLinkedAlertsPerRun bounds how many constituent alerts a single correlation
@@ -77,7 +79,7 @@ func NewCorrelationEngineWithConfig(pool *pgxpool.Pool, ic IncidentCreator, thre
 // Run executes the correlation check every 5 minutes until ctx is cancelled.
 func (ce *CorrelationEngine) Run(ctx context.Context) {
 	// Run once on startup
-	ce.runOnce(ctx)
+	tick.Run(ctx, "correlation_engine", ce.runOnce)
 
 	ticker := time.NewTicker(5 * time.Minute)
 	defer ticker.Stop()
@@ -87,7 +89,7 @@ func (ce *CorrelationEngine) Run(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			ce.runOnce(ctx)
+			tick.Run(ctx, "correlation_engine", ce.runOnce)
 		}
 	}
 }
@@ -124,7 +126,7 @@ func (ce *CorrelationEngine) runOnce(ctx context.Context) {
 		HAVING COUNT(*) >= $2
 	`, ce.window.String(), ce.threshold)
 	if err != nil {
-		slog.Warn("CorrelationEngine: クエリエラー (無視します)", "error", err)
+		tick.FailComponent(ctx, "correlation", err, "CorrelationEngine: クエリエラー (無視します)")
 		return
 	}
 	defer rows.Close()
@@ -133,7 +135,7 @@ func (ce *CorrelationEngine) runOnce(ctx context.Context) {
 	for rows.Next() {
 		var a agentActivity
 		if err := rows.Scan(&a.agentID, &a.techniques, &a.alertIDs, &a.count); err != nil {
-			slog.Warn("CorrelationEngine: 行スキャンエラー", "error", err)
+			tick.Fail(ctx, err, "CorrelationEngine: 行スキャンエラー")
 			continue
 		}
 		a.techniques = sortedNonEmpty(a.techniques)
@@ -145,7 +147,7 @@ func (ce *CorrelationEngine) runOnce(ctx context.Context) {
 		activity = append(activity, a)
 	}
 	if err := rows.Err(); err != nil {
-		slog.Warn("CorrelationEngine: 行イテレーションエラー", "error", err)
+		tick.Fail(ctx, err, "CorrelationEngine: 行イテレーションエラー")
 	}
 
 	for _, a := range activity {
@@ -191,8 +193,10 @@ func (ce *CorrelationEngine) upsertCase(ctx context.Context, a agentActivity) {
 		// agent-level group so subsequent runs absorb into it.
 		id, e := ce.incidentStore.CreateCorrelationIncident(ctx, a.agentID, a.techniques, a.count)
 		if e != nil {
-			slog.Error("CorrelationEngine: インシデント自動作成に失敗しました",
-				"agent_id", a.agentID, "techniques", a.techniques, "alert_count", a.count, "error", e)
+			// **ここは `tick.Run` で回している仕事の中です。** 部品の
+			// 件数だけ数えると、この回は成功として刻まれます。
+			tick.FailComponent(ctx, "correlation", e, "CorrelationEngine: インシデント自動作成に失敗しました",
+				"agent_id", a.agentID, "techniques", a.techniques, "alert_count", a.count)
 			return
 		}
 		incidentID = id

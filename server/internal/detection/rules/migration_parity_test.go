@@ -44,6 +44,12 @@ var relocatedParityRules = map[string]string{
 	"T1018 powerview computer":           "Remote System and Domain Controller Discovery",
 	"T1021.006 winrs":                    "WinRM Lateral Movement (winrs / PowerShell Remoting)",
 	"T1021.006 enter-pssession":          "WinRM Lateral Movement (winrs / PowerShell Remoting)",
+
+	// migration 430. T1552.003 は同じ検知を 4 本持っていた（builtin 2 本 +
+	// DB 2 本）。技法 dedup が 1 行にまとめるため 4 本あることが観測できず、
+	// #746 で 3 本だけ狭めて誤検知が残るという実害が出ている。builtin 1 本に
+	// 統合し、DB 側 2 本（350 の parity 行と 386 の wave3 行）を無効化した。
+	"T1552.003 bash history": "Shell History Credential Search",
 }
 
 func TestMigrationCloudADParityRulesFire(t *testing.T) {

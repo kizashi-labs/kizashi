@@ -75,12 +75,18 @@ func newFileBurstScorer() *FileBurstScorer {
 	return &FileBurstScorer{keys: make(map[string]*fileBurstState)}
 }
 
-// isDestructiveFileAction reports whether a file action mutates or destroys
+// IsDestructiveFileAction reports whether a file action mutates or destroys
 // existing data (the ransomware signature). Plain "create" and "read"/"open" are
 // excluded so ordinary file production does not trip the detector. Matching is
 // case-insensitive and substring-based to tolerate telemetry variants
 // ("modify"/"modified"/"write"/"WriteFile", "rename"/"renamed", "delete"/"unlink").
-func isDestructiveFileAction(action string) bool {
+//
+// Exported because internal/threatgraph needs the same answer when it decides
+// whether a process merely read a file or changed it. It previously compared
+// the action against the literals "write"/"create"/"delete", none of which
+// ingestion ever writes — it writes the proto enum name, e.g.
+// "FILE_ACTION_MODIFY" — so every file edge in the graph was "accessed".
+func IsDestructiveFileAction(action string) bool {
 	a := strings.ToLower(action)
 	switch {
 	case strings.Contains(a, "modif"), strings.Contains(a, "write"), strings.Contains(a, "overwrit"),
@@ -92,11 +98,44 @@ func isDestructiveFileAction(action string) bool {
 	}
 }
 
+// systemChurnPrefixes are OS/package/service-owned trees whose constant rewriting is
+// normal operation, not impact. Ransomware is defined by what it destroys — user and
+// business DATA — so counting these paths only manufactures false positives.
+//
+// This filter is keyed on the PATH rather than on the process name deliberately: a
+// process allowlist ("ignore systemd/dpkg/…") would be trivially bypassed by naming a
+// dropper `systemd`, whereas an attacker cannot hold data to ransom without touching
+// the data. Excluding these trees costs almost nothing in coverage — a real encryption
+// run that reaches /etc has invariably already swept /home, /srv or the share it was
+// after — and removes the entire class of service-churn false positives (observed live:
+// systemd rewriting 60 files in 30s raised a severity-9 ransomware alert).
+var systemChurnPrefixes = []string{
+	// Linux / Unix
+	"/etc/", "/usr/", "/bin/", "/sbin/", "/lib/", "/lib64/", "/boot/",
+	"/var/lib/", "/var/log/", "/var/cache/", "/var/spool/", "/var/run/",
+	"/run/", "/proc/", "/sys/", "/dev/", "/snap/", "/tmp/", "/var/tmp/",
+	// Windows
+	`c:\windows\`, `c:\program files\`, `c:\program files (x86)\`, `c:\programdata\`,
+}
+
+// isSystemChurnPath reports whether path lives in an OS/service-owned tree that must
+// not contribute to the ransomware burst count. Matching is case-insensitive so the
+// Windows prefixes hold regardless of how the agent cased the path.
+func isSystemChurnPath(path string) bool {
+	p := strings.ToLower(path)
+	for _, pre := range systemChurnPrefixes {
+		if strings.HasPrefix(p, pre) {
+			return true
+		}
+	}
+	return false
+}
+
 // Observe records one file operation and returns a T1486 match when one process
 // has destructively touched fileBurstMinFiles distinct files within the window.
-// Non-destructive actions and empty paths are ignored. now is injected for
-// deterministic tests.
-func (d *FileBurstScorer) Observe(agentID, procName, path, action string, now time.Time) []*detectionrules.RuleMatch {
+// Non-destructive actions, empty paths, and OS/service-owned paths (see
+// systemChurnPrefixes) are ignored. now is injected for deterministic tests.
+func (d *FileBurstScorer) Observe(agentID, platform, procName, path, action string, now time.Time) []*detectionrules.RuleMatch {
 	// Count every offer at the detector boundary, before any filtering. Without
 	// this, "the events never reached the detector" and "they reached it and the
 	// window never filled" look identical from outside the process — which is
@@ -105,15 +144,28 @@ func (d *FileBurstScorer) Observe(agentID, procName, path, action string, now ti
 	if label == "" {
 		label = "unknown"
 	}
+	plat := metrics.PlatformLabel(platform)
 	if path == "" {
-		metrics.FileBurstObservations.WithLabelValues(label, "ignored_path").Inc()
+		metrics.FileBurstObservations.WithLabelValues(plat, label, "ignored_path").Inc()
 		return nil
 	}
-	if !isDestructiveFileAction(action) {
-		metrics.FileBurstObservations.WithLabelValues(label, "ignored_action").Inc()
+	// 名前はこちらの公開版。threatgraph/graph.go が
+	// detection.IsDestructiveFileAction を呼んでいるので、小文字に戻すと
+	// パッケージ外から消える。ラベルは main の platform 付き 3 つ。
+	if !IsDestructiveFileAction(action) {
+		metrics.FileBurstObservations.WithLabelValues(plat, label, "ignored_action").Inc()
 		return nil
 	}
-	metrics.FileBurstObservations.WithLabelValues(label, "counted").Inc()
+	// System churn (package manager caches, browser profiles, log rotation …) is
+	// filtered here rather than left to the threshold: it is high-rate by nature
+	// and would fill the window on its own. Counted under its own reason so the
+	// instrumentation above still distinguishes "never arrived" from "arrived and
+	// was deliberately dropped".
+	if isSystemChurnPath(path) {
+		metrics.FileBurstObservations.WithLabelValues(plat, label, "ignored_churn").Inc()
+		return nil
+	}
+	metrics.FileBurstObservations.WithLabelValues(plat, label, "counted").Inc()
 	// No collector populates the actor for file events yet, so an empty procName is
 	// the PRODUCTION norm, not an edge case: the key degenerates to one bucket per
 	// host. Track that explicitly and score it on rate concentration instead of raw
@@ -154,7 +206,7 @@ func (d *FileBurstScorer) Observe(agentID, procName, path, action string, now ti
 	if hostScoped {
 		scope = "host"
 	}
-	metrics.FileBurstBucketPaths.WithLabelValues(scope).Set(float64(n))
+	metrics.FileBurstBucketPaths.WithLabelValues(plat, scope).Set(float64(n))
 	if n < fileBurstMinFiles {
 		return nil
 	}
@@ -169,6 +221,17 @@ func (d *FileBurstScorer) Observe(agentID, procName, path, action string, now ti
 	subject := fmt.Sprintf("プロセス '%s'", src)
 	if hostScoped {
 		subject = "ホスト全体(プロセス特定不可)"
+	}
+	// Count the distinct directories the burst spans. Context, not a gate:
+	// ransomware traversing a user's data tree hits many directories, so a wide
+	// spread strengthens the hypothesis, while a burst confined to one directory (a
+	// single-folder encryptor, or a benign bulk rewrite) is still reported — the file
+	// count alone already crossed the threshold. Reported in the description only:
+	// the title deliberately carries no observed values so the rule keeps a stable
+	// identity for dedup and suppression.
+	dirs := map[string]struct{}{}
+	for p := range st.paths {
+		dirs[fileParentDir(p)] = struct{}{}
 	}
 	return []*detectionrules.RuleMatch{{
 		RuleID:   "",
@@ -187,10 +250,21 @@ func (d *FileBurstScorer) Observe(agentID, procName, path, action string, now ti
 		// isolate. Benign builds and backups never produce those other axes.
 		Severity: 8,
 		Title:    fmt.Sprintf("[HEURISTIC] ランサムウェアの疑い: %s が%d秒内に多数のファイルを破壊的操作", subject, winSec),
-		Description: fmt.Sprintf("%s が%d秒以内に%d個の異なるファイルを改変/リネーム/削除。拡張子やツールに依存せずファイル操作のレートで判定するため、既知シグネチャの無いランサムウェアの暗号化フェーズにも反応(T1486)。",
-			subject, winSec, n),
+		Description: fmt.Sprintf("%s が%d秒以内に%d個の異なるファイルを%dディレクトリにまたがって改変/リネーム/削除。拡張子やツールに依存せずファイル操作のレートで判定するため、既知シグネチャの無いランサムウェアの暗号化フェーズにも反応(T1486)。",
+			subject, winSec, n, len(dirs)),
 		MITRETags: []string{"T1486"},
 	}}
+}
+
+// fileParentDir returns the directory portion of a path, tolerating both '/' and '\'
+// separators (file telemetry may originate on Linux or Windows). Returns "" for a bare
+// filename so directory-spread context degrades gracefully.
+func fileParentDir(p string) string {
+	i := strings.LastIndexAny(p, `/\`)
+	if i <= 0 {
+		return ""
+	}
+	return p[:i]
 }
 
 func (d *FileBurstScorer) evictStale(nowUnix, maxAgeSec int64) {

@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
+	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -42,6 +44,11 @@ type Playbook struct {
 	CreatedByName string             `json:"created_by_name,omitempty"`
 	CreatedAt     time.Time          `json:"created_at"`
 	UpdatedAt     time.Time          `json:"updated_at"`
+	// ConfigError is set when the stored conditions or actions could not be
+	// decoded. The console path (List/Get) still returns the playbook so an
+	// operator can see and repair it — hiding it would leave them unable to fix
+	// what they cannot see — while ListActiveForAlert refuses to run it.
+	ConfigError string `json:"config_error,omitempty"`
 }
 
 // PlaybookRun records a single execution of a playbook.
@@ -98,20 +105,46 @@ func (s *PlaybookStore) List(ctx context.Context, activeOnly bool) ([]*Playbook,
 			&createdBy, &p.CreatedByName,
 			&p.CreatedAt, &p.UpdatedAt,
 		); err != nil {
+			slog.Warn("プレイブックの行を読み取れませんでした（一覧から欠落します）", "error", err)
 			continue
 		}
-		_ = json.Unmarshal(condJSON, &p.Conditions)
-		_ = json.Unmarshal(actJSON, &p.Actions)
+		p.ConfigError = decodePlaybookConfig(condJSON, actJSON, &p.Conditions, &p.Actions)
 		if p.Actions == nil {
 			p.Actions = []PlaybookAction{}
 		}
 		p.CreatedBy = createdBy
 		playbooks = append(playbooks, p)
 	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("playbooks: 一覧の走査に失敗しました: %w", err)
+	}
 	if playbooks == nil {
 		playbooks = []*Playbook{}
 	}
 	return playbooks, nil
+}
+
+// decodePlaybookConfig decodes the two jsonb blobs and reports, in one string
+// an operator can read, whichever of them could not be decoded.
+//
+// A conditions blob that will not decode leaves the zero value, and the zero
+// value means "no filter on anything" — which is why the runner treats it as a
+// reason to skip rather than a reason to match. The console needs the opposite
+// treatment: it has to show the playbook, or nobody can repair it.
+func decodePlaybookConfig(condJSON, actJSON []byte, cond *PlaybookConditions, actions *[]PlaybookAction) string {
+	var problems []string
+	if err := json.Unmarshal(condJSON, cond); err != nil {
+		*cond = PlaybookConditions{}
+		problems = append(problems, fmt.Sprintf("条件を解釈できません: %v", err))
+	}
+	if err := json.Unmarshal(actJSON, actions); err != nil {
+		*actions = nil
+		problems = append(problems, fmt.Sprintf("アクションを解釈できません: %v", err))
+	}
+	if len(problems) == 0 {
+		return ""
+	}
+	return strings.Join(problems, " / ") + "（このプレイブックは実行されません）"
 }
 
 // Get retrieves a single playbook.
@@ -139,8 +172,7 @@ func (s *PlaybookStore) Get(ctx context.Context, id string) (*Playbook, error) {
 	if err != nil {
 		return nil, err
 	}
-	_ = json.Unmarshal(condJSON, &p.Conditions)
-	_ = json.Unmarshal(actJSON, &p.Actions)
+	p.ConfigError = decodePlaybookConfig(condJSON, actJSON, &p.Conditions, &p.Actions)
 	if p.Actions == nil {
 		p.Actions = []PlaybookAction{}
 	}
@@ -210,6 +242,14 @@ func (s *PlaybookStore) SetActive(ctx context.Context, id string, active bool) e
 }
 
 // ListActiveForAlert returns active playbooks whose conditions match the given alert fields.
+//
+// 読めなかったプレイブックは「条件なし」ではなく「対象外」です。
+// 下の各フィルタは MinSeverity > 0 / RuleName != "" のようにゼロ値を
+// 「指定なし」として扱うので、conditions の解釈に失敗して cond がゼロ値の
+// まま残ると、フィルタが1つも効かず全アラートにマッチします。
+// 「重大度9以上、ホスト dc-* のみ」と設定されたプレイブックが、
+// 設定を読めなかったというだけで全ホストの全アラートで発火する
+// — しかもその1手目が isolate_endpoint でありえます。
 func (s *PlaybookStore) ListActiveForAlert(ctx context.Context, severity int, ruleName, hostname, mitreTechnique, status string) ([]*Playbook, error) {
 	rows, err := s.pool.Query(ctx, `
 		SELECT id, conditions, actions
@@ -222,48 +262,105 @@ func (s *PlaybookStore) ListActiveForAlert(ctx context.Context, severity int, ru
 	defer rows.Close()
 
 	var matched []*Playbook
+	var rejected int
 	for rows.Next() {
 		var id string
 		var condJSON, actJSON []byte
 		if err := rows.Scan(&id, &condJSON, &actJSON); err != nil {
+			rejected++
+			slog.Warn("プレイブックの行を読み取れませんでした（このプレイブックは実行されません）",
+				"error", err)
 			continue
 		}
-		var cond PlaybookConditions
-		_ = json.Unmarshal(condJSON, &cond)
-
-		// Apply condition filters
-		if cond.MinSeverity > 0 && severity < cond.MinSeverity {
+		pb, err := playbookForAlert(id, condJSON, actJSON, severity, ruleName, hostname, mitreTechnique, status)
+		if err != nil {
+			rejected++
+			slog.Error("プレイブックの設定を解釈できないため実行対象から除外しました",
+				"playbook", id, "error", err)
 			continue
 		}
-		if cond.MaxSeverity > 0 && severity > cond.MaxSeverity {
-			continue
+		if pb != nil {
+			matched = append(matched, pb)
 		}
-		if cond.RuleName != "" && !containsStr(ruleName, cond.RuleName) {
-			continue
-		}
-		if cond.Hostname != "" && !containsStr(hostname, cond.Hostname) {
-			continue
-		}
-		if cond.MITRETechnique != "" && !containsStr(mitreTechnique, cond.MITRETechnique) {
-			continue
-		}
-		if cond.Status != "" && status != cond.Status {
-			continue
-		}
-
-		var actions []PlaybookAction
-		_ = json.Unmarshal(actJSON, &actions)
-
-		matched = append(matched, &Playbook{ID: id, Conditions: cond, Actions: actions})
+	}
+	// 途中で失敗した反復は短い一致リストを残します。ここを見ないと、
+	// 発火すべきプレイブックが黙って実行されません。
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("playbooks: 有効なプレイブックの走査に失敗しました: %w", err)
+	}
+	if rejected > 0 {
+		slog.Warn("設定を読めないプレイブックを実行対象から除外しました",
+			"rejected", rejected, "matched", len(matched))
+	}
+	// 部分結果を完全な一覧として返さない（scan_truncation_guard_test.go 参照）
+	if err := rows.Err(); err != nil {
+		return nil, err
 	}
 	return matched, nil
 }
 
+// playbookForAlert decides what one stored row means for one alert:
+// a playbook to run, no match, or a configuration that cannot be read.
+//
+// The three outcomes are deliberately distinct return values rather than the
+// single "nil means no match" the loop used to infer, because two of them used
+// to collapse into the third. An undecodable conditions blob left cond at its
+// zero value, and matches() reads the zero value as "no filter on anything" —
+// so the row that could not be read became the row that matches every alert.
+func playbookForAlert(
+	id string,
+	condJSON, actJSON []byte,
+	severity int,
+	ruleName, hostname, mitreTechnique, status string,
+) (*Playbook, error) {
+	var cond PlaybookConditions
+	if err := json.Unmarshal(condJSON, &cond); err != nil {
+		return nil, fmt.Errorf("条件を解釈できません: %w", err)
+	}
+	if !cond.matches(severity, ruleName, hostname, mitreTechnique, status) {
+		return nil, nil
+	}
+	// アクションが読めないプレイブックは、アクション0件で実行され、
+	// 「成功」として実行ログに残り、run_count も増えます。
+	// 何もしていないのに動いているように見える状態です。
+	var actions []PlaybookAction
+	if err := json.Unmarshal(actJSON, &actions); err != nil {
+		return nil, fmt.Errorf("アクションを解釈できません: %w", err)
+	}
+	return &Playbook{ID: id, Conditions: cond, Actions: actions}, nil
+}
+
+// matches applies the condition filters. Every filter treats its zero value as
+// "not specified", so the zero-value PlaybookConditions matches everything —
+// which is correct for a playbook the operator deliberately left unscoped, and
+// catastrophic for one whose scope merely failed to decode. Only the caller can
+// tell those apart, so only the caller may construct the conditions.
+func (c PlaybookConditions) matches(severity int, ruleName, hostname, mitreTechnique, status string) bool {
+	switch {
+	case c.MinSeverity > 0 && severity < c.MinSeverity:
+		return false
+	case c.MaxSeverity > 0 && severity > c.MaxSeverity:
+		return false
+	case c.RuleName != "" && !containsStr(ruleName, c.RuleName):
+		return false
+	case c.Hostname != "" && !containsStr(hostname, c.Hostname):
+		return false
+	case c.MITRETechnique != "" && !containsStr(mitreTechnique, c.MITRETechnique):
+		return false
+	case c.Status != "" && status != c.Status:
+		return false
+	}
+	return true
+}
+
 // RecordRun logs a playbook execution.
 func (s *PlaybookStore) RecordRun(ctx context.Context, run *PlaybookRun) error {
-	actJSON, _ := json.Marshal(run.ActionsRun)
+	actJSON, err := json.Marshal(run.ActionsRun)
+	if err != nil {
+		return fmt.Errorf("playbooks: 実行ログのアクション列を書き出せませんでした: %w", err)
+	}
 	errMsg := run.ErrorMsg
-	_, err := s.pool.Exec(ctx, `
+	_, err = s.pool.Exec(ctx, `
 		INSERT INTO playbook_runs (playbook_id, alert_id, actions_run, success, error_msg)
 		VALUES ($1::uuid, $2, $3, $4, $5)`,
 		run.PlaybookID, run.AlertID, string(actJSON), run.Success, errMsg,
@@ -298,10 +395,20 @@ func (s *PlaybookStore) ListRuns(ctx context.Context, playbookID string, limit i
 		r := &PlaybookRun{}
 		var actJSON []byte
 		if err := rows.Scan(&r.ID, &r.PlaybookID, &r.AlertID, &actJSON, &r.Success, &r.ErrorMsg, &r.RanAt); err != nil {
+			slog.Warn("プレイブック実行履歴の行を読み取れませんでした（履歴から欠落します）", "error", err)
 			continue
 		}
-		_ = json.Unmarshal(actJSON, &r.ActionsRun)
+		if err := json.Unmarshal(actJSON, &r.ActionsRun); err != nil {
+			// nil のまま返すと、その実行は「何のアクションも行わなかった
+			// 実行」として履歴に並びます。隔離したのかしていないのかを
+			// あとから確かめるための履歴なので、読めなかったことを
+			// そのまま返します。
+			return nil, fmt.Errorf("playbooks: 実行 %s のアクション列を解釈できませんでした: %w", r.ID, err)
+		}
 		runs = append(runs, r)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("playbooks: 実行履歴の走査に失敗しました: %w", err)
 	}
 	if runs == nil {
 		runs = []*PlaybookRun{}

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/edr-platform/server/internal/metrics"
 	"io"
 	"log/slog"
 	"net/http"
@@ -113,7 +114,7 @@ func (h *EventStreamHandler) streamFromNATS(
 				}
 			})
 			if err != nil {
-				slog.Warn("NATSサブスクライブに失敗しました", "subject", subj, "error", err)
+				metrics.BackgroundFailed("event_stream", err, "NATSサブスクライブに失敗しました", "subject", subj)
 				continue
 			}
 			subs = append(subs, sub)

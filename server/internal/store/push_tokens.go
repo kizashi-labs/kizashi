@@ -44,6 +44,10 @@ func (s *PushTokenStore) GetByUserID(ctx context.Context, userID string) ([]Push
 		}
 		tokens = append(tokens, t)
 	}
+	// 部分結果を完全な一覧として返さない（scan_truncation_guard_test.go 参照）
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
 	return tokens, nil
 }
 
@@ -60,6 +64,10 @@ func (s *PushTokenStore) GetAllTokens(ctx context.Context) ([]PushToken, error) 
 			continue
 		}
 		tokens = append(tokens, t)
+	}
+	// 部分結果を完全な一覧として返さない（scan_truncation_guard_test.go 参照）
+	if err := rows.Err(); err != nil {
+		return nil, err
 	}
 	return tokens, nil
 }

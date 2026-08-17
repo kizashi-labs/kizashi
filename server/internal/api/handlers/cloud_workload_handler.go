@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -23,10 +24,7 @@ func NewCloudWorkloadHandler(pool *pgxpool.Pool) *CloudWorkloadHandler {
 }
 
 func (h *CloudWorkloadHandler) tableExists(c *gin.Context, name string) bool {
-	var ok bool
-	_ = h.pool.QueryRow(c.Request.Context(),
-		`SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name=$1)`, name).Scan(&ok)
-	return ok
+	return tableIsThere(c.Request.Context(), h.pool, name)
 }
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -108,7 +106,7 @@ func (h *CloudWorkloadHandler) ListWorkloads(c *gin.Context) {
 		rows, err = h.pool.Query(ctx, baseQuery+` ORDER BY threats_count DESC, last_seen DESC LIMIT 200`)
 	}
 	if err != nil {
-		c.JSON(http.StatusOK, []cloudWorkload{})
+		ReadFailure(c, err, []cloudWorkload{})
 		return
 	}
 	defer rows.Close()
@@ -127,6 +125,11 @@ func (h *CloudWorkloadHandler) ListWorkloads(c *gin.Context) {
 		}
 		w.LastSeen = lastSeen.Format(time.RFC3339)
 		workloads = append(workloads, w)
+	}
+	if err := rows.Err(); err != nil {
+		slog.Warn("ListWorkloads: 結果セットの読み取りが途中で終わりました。応答は不完全です", "error", err)
+		c.JSON(http.StatusOK, []cloudWorkload{})
+		return
 	}
 	if workloads == nil {
 		workloads = []cloudWorkload{}
@@ -153,7 +156,7 @@ func (h *CloudWorkloadHandler) ListThreats(c *gin.Context) {
 		FROM cloud_runtime_threats ORDER BY timestamp DESC LIMIT 200
 	`)
 	if err != nil {
-		c.JSON(http.StatusOK, []cloudThreat{})
+		ReadFailure(c, err, []cloudThreat{})
 		return
 	}
 	defer rows.Close()
@@ -171,6 +174,11 @@ func (h *CloudWorkloadHandler) ListThreats(c *gin.Context) {
 		}
 		t.Timestamp = ts.Format(time.RFC3339)
 		threats = append(threats, t)
+	}
+	if err := rows.Err(); err != nil {
+		slog.Warn("ListThreats: 結果セットの読み取りが途中で終わりました。応答は不完全です", "error", err)
+		c.JSON(http.StatusOK, []cloudThreat{})
+		return
 	}
 	if threats == nil {
 		threats = []cloudThreat{}
@@ -194,7 +202,7 @@ func (h *CloudWorkloadHandler) ListMisconfigs(c *gin.Context) {
 		FROM cloud_misconfigurations WHERE status='open' ORDER BY severity, created_at DESC LIMIT 200
 	`)
 	if err != nil {
-		c.JSON(http.StatusOK, []cloudMisconfig{})
+		ReadFailure(c, err, []cloudMisconfig{})
 		return
 	}
 	defer rows.Close()
@@ -209,6 +217,11 @@ func (h *CloudWorkloadHandler) ListMisconfigs(c *gin.Context) {
 			continue
 		}
 		misconfigs = append(misconfigs, m)
+	}
+	if err := rows.Err(); err != nil {
+		slog.Warn("ListMisconfigs: 結果セットの読み取りが途中で終わりました。応答は不完全です", "error", err)
+		c.JSON(http.StatusOK, []cloudMisconfig{})
+		return
 	}
 	if misconfigs == nil {
 		misconfigs = []cloudMisconfig{}

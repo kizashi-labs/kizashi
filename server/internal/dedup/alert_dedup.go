@@ -9,6 +9,8 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+
+	"github.com/edr-platform/server/internal/tick"
 )
 
 // AlertDeduplicator merges duplicate alerts to reduce noise.
@@ -44,7 +46,7 @@ func (d *AlertDeduplicator) Run(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			d.tick(ctx)
+			tick.Run(ctx, "alert_dedup", d.tick)
 		}
 	}
 }
@@ -114,7 +116,13 @@ func (d *AlertDeduplicator) deduplicate(ctx context.Context) {
             source,
             COALESCE(agent_id::TEXT, ''),
             COUNT(*) as cnt,
-            MIN(id::TEXT) as keep_id,
+            -- The surviving alert is the earliest one, so its created_at is
+            -- when the condition was first seen. This was MIN(id::TEXT), which
+            -- orders v4 uuids — effectively picking at random, so the alert
+            -- that survived a merge could be the newest and the group's first
+            -- sighting was lost. deduplicateByTechnique below already selects
+            -- deliberately; the two passes now agree that the choice matters.
+            (ARRAY_AGG(id::TEXT ORDER BY created_at ASC, id ASC))[1] as keep_id,
             ARRAY_AGG(id::TEXT ORDER BY created_at) as all_ids
         FROM alerts
         WHERE status = 'open'
@@ -126,7 +134,7 @@ func (d *AlertDeduplicator) deduplicate(ctx context.Context) {
 		fmt.Sprintf("%d seconds", int(d.windowSize.Seconds())),
 	)
 	if err != nil {
-		slog.Debug("重複排除クエリ失敗 (dedup_keyカラム未存在の可能性)", "error", err)
+		tick.FailComponent(ctx, "alert_dedup", err, "重複排除クエリ失敗 (dedup_keyカラム未存在の可能性)")
 		return
 	}
 	defer rows.Close()
@@ -145,6 +153,9 @@ func (d *AlertDeduplicator) deduplicate(ctx context.Context) {
 		}
 		groups = append(groups, g)
 	}
+	if err := rows.Err(); err != nil {
+		tick.Fail(ctx, err, "重複アラート群の走査が途中で終わりました。今回のパスでまとめられない重複が残ります")
+	}
 	rows.Close()
 
 	for _, g := range groups {
@@ -158,21 +169,34 @@ func (d *AlertDeduplicator) deduplicate(ctx context.Context) {
 			}
 		}
 
-		// Update kept alert
-		_, _ = d.pool.Exec(ctx,
+		// Update kept alert.
+		//
+		// **これが書けないと、次の周回が同じ群をもう一度まとめようと
+		// します** —— 抽出は `dedup_key IS NULL` で絞るためです。
+		if _, err := d.pool.Exec(ctx,
 			`UPDATE alerts SET dedup_key=$1, dedup_count=COALESCE(dedup_count,0)+$2, updated_at=NOW()
              WHERE id=$3::UUID`,
 			key, len(dupIDs), g.keepID,
-		)
+		); err != nil {
+			tick.Fail(ctx, err, "統合先アラートに重複の印を付けられませんでした",
+				"title", g.title, "kept", g.keepID)
+		}
 
-		// Close duplicate alerts
+		// Close duplicate alerts. See closeOutcome for why this is
+		// aggregated per group rather than reported per row.
+		var closed closeOutcome
 		for _, dupID := range dupIDs {
-			_, _ = d.pool.Exec(ctx,
+			_, err := d.pool.Exec(ctx,
 				`UPDATE alerts SET status='resolved', dedup_key=$1,
                  description=COALESCE(description,'') || ' [重複排除: ' || $2 || ' に統合]',
                  updated_at=NOW() WHERE id=$3::UUID`,
 				key, g.keepID, dupID,
 			)
+			closed.add(err)
+		}
+		if closed.needsReporting() {
+			tick.Fail(ctx, closed.last, "重複アラートを閉じられませんでした。画面には重複が並んだままです",
+				"title", g.title, "failed", closed.failed, "of", closed.total)
 		}
 
 		if len(dupIDs) > 0 {
@@ -180,6 +204,32 @@ func (d *AlertDeduplicator) deduplicate(ctx context.Context) {
 		}
 	}
 }
+
+// closeOutcome is what closing one group's duplicates came to.
+//
+// **群ごとに1回だけ報告するための集計です。** 1件ずつ `tick.Fail` に
+// 出すと、DB が応答しないときログが群の数だけ溢れます。回に落ちるのは
+// 「この群を閉じ切れなかった」1つで十分です。
+//
+// 判定を型にしてあるのは、**通る木では `failed` が 0 のままだから**です
+// —— `if closeErrs > 0` を潰す変異は、木がきれいなあいだ何も変えません。
+type closeOutcome struct {
+	failed int
+	total  int
+	last   error
+}
+
+// add records one duplicate's result.
+func (o *closeOutcome) add(err error) {
+	o.total++
+	if err != nil {
+		o.failed++
+		o.last = err
+	}
+}
+
+// needsReporting reports whether this group left duplicates open.
+func (o closeOutcome) needsReporting() bool { return o.failed > 0 }
 
 // deduplicateByTechnique merges CROSS-ENGINE duplicates: the API builtin Sigma engine and
 // the detection-server DB rule engine often both alert on the SAME event under DIFFERENT
@@ -238,7 +288,7 @@ func (d *AlertDeduplicator) deduplicateByTechnique(ctx context.Context) {
 		fmt.Sprintf("%d seconds", int(d.techniqueWindow.Seconds())),
 	)
 	if err != nil {
-		slog.Debug("technique重複排除クエリ失敗", "error", err)
+		tick.FailComponent(ctx, "alert_dedup", err, "technique重複排除クエリ失敗")
 		return
 	}
 	defer rows.Close()
@@ -256,6 +306,9 @@ func (d *AlertDeduplicator) deduplicateByTechnique(ctx context.Context) {
 		}
 		groups = append(groups, g)
 	}
+	if err := rows.Err(); err != nil {
+		tick.Fail(ctx, err, "technique重複群の走査が途中で終わりました。今回のパスでまとめられない重複が残ります")
+	}
 	rows.Close()
 
 	for _, g := range groups {
@@ -272,19 +325,28 @@ func (d *AlertDeduplicator) deduplicateByTechnique(ctx context.Context) {
 		}
 
 		// Keep the highest-severity alert; tag it with the technique dedup key + count.
-		_, _ = d.pool.Exec(ctx,
+		if _, err := d.pool.Exec(ctx,
 			`UPDATE alerts SET dedup_key=$1, dedup_count=COALESCE(dedup_count,0)+$2, updated_at=NOW()
              WHERE id=$3::UUID`,
 			key, len(dupIDs), g.keepID,
-		)
+		); err != nil {
+			tick.Fail(ctx, err, "統合先アラートに重複の印を付けられませんでした",
+				"technique", g.technique, "kept", g.keepID)
+		}
 		// Resolve the cross-engine duplicates, linking them to the kept alert.
+		var closed closeOutcome
 		for _, dupID := range dupIDs {
-			_, _ = d.pool.Exec(ctx,
+			_, err := d.pool.Exec(ctx,
 				`UPDATE alerts SET status='resolved', dedup_key=$1,
                  description=COALESCE(description,'') || ' [二重エンジン重複排除: ' || $2 || ' に統合]',
                  updated_at=NOW() WHERE id=$3::UUID`,
 				key, g.keepID, dupID,
 			)
+			closed.add(err)
+		}
+		if closed.needsReporting() {
+			tick.Fail(ctx, closed.last, "二重エンジンの重複アラートを閉じられませんでした。画面には重複が並んだままです",
+				"technique", g.technique, "failed", closed.failed, "of", closed.total)
 		}
 		slog.Info("二重エンジン重複アラートを統合", "technique", g.technique, "merged", len(dupIDs), "kept", g.keepID)
 	}

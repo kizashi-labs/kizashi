@@ -21,7 +21,7 @@ func (h *SecuritySLAHandler) ListPolicies(c *gin.Context) {
 		FROM sla_policies ORDER BY severity, name
 	`)
 	if err != nil {
-		c.JSON(http.StatusOK, gin.H{"policies": []any{}})
+		ReadFailure(c, err, gin.H{"policies": []any{}})
 		return
 	}
 	defer rows.Close()
@@ -47,7 +47,9 @@ func (h *SecuritySLAHandler) ListPolicies(c *gin.Context) {
 		list = append(list, p)
 	}
 	if err := rows.Err(); err != nil {
-		slog.Warn("row iteration error", "error", err)
+		slog.Error("rows.Err: 結果の読み出しが途中で失敗しました", "error", err)
+		ReadFailure(c, err, gin.H{"policies": []any{}})
+		return
 	}
 	if list == nil {
 		list = []Policy{}

@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -21,10 +22,7 @@ func NewRBACHandler(pool *pgxpool.Pool) *RBACHandler {
 }
 
 func (h *RBACHandler) tableExists(c *gin.Context, name string) bool {
-	var ok bool
-	_ = h.pool.QueryRow(c.Request.Context(),
-		`SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name=$1)`, name).Scan(&ok)
-	return ok
+	return tableIsThere(c.Request.Context(), h.pool, name)
 }
 
 // ── Types ──────────────────────────────────────────────────────────────────────
@@ -50,7 +48,7 @@ func (h *RBACHandler) ListRoles(c *gin.Context) {
 		rows, err := h.pool.Query(ctx,
 			`SELECT role, COUNT(*) AS cnt FROM users GROUP BY role`)
 		if err != nil {
-			c.JSON(http.StatusOK, gin.H{"roles": []interface{}{}})
+			ReadFailure(c, err, gin.H{"roles": []interface{}{}})
 			return
 		}
 		defer rows.Close()
@@ -66,6 +64,11 @@ func (h *RBACHandler) ListRoles(c *gin.Context) {
 			r.IsSystem = true
 			r.CreatedAt = time.Now().Format(time.RFC3339)
 			roles = append(roles, r)
+		}
+		if err := rows.Err(); err != nil {
+			slog.Warn("ListRoles: 結果セットの読み取りが途中で終わりました。応答は不完全です", "error", err)
+			c.JSON(http.StatusOK, gin.H{"roles": []interface{}{}})
+			return
 		}
 		if roles == nil {
 			roles = []rbacRole{}
@@ -93,6 +96,10 @@ func (h *RBACHandler) ListRoles(c *gin.Context) {
 		}
 		r.CreatedAt = createdAt.Format(time.RFC3339)
 		roles = append(roles, r)
+	}
+	if err := rows.Err(); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to list roles"})
+		return
 	}
 	if roles == nil {
 		roles = []rbacRole{}
@@ -209,9 +216,17 @@ func (h *RBACHandler) GetPermissions(c *gin.Context) {
 		}
 		var perms []string
 		if err := json.Unmarshal(permsJSON, &perms); err != nil {
-			perms = []string{}
+			// 権限0件は「何もできないロール」として読まれます。読めなかった
+			// ことと、権限を与えていないことは別です。
+			slog.Error("rbac: ロールの権限を読めませんでした", "role", role, "error", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "権限の読み込みに失敗しました"})
+			return
 		}
 		matrix[role] = perms
+	}
+	if err := rows.Err(); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load permissions"})
+		return
 	}
 	c.JSON(http.StatusOK, gin.H{"matrix": matrix})
 }
@@ -226,8 +241,10 @@ func (h *RBACHandler) UpdatePermissions(c *gin.Context) {
 	}
 
 	if !h.tableExists(c, "rbac_permissions") {
-		// Accept but silently discard if table doesn't exist
-		c.JSON(http.StatusOK, gin.H{"message": "Permissions saved"})
+		// **「Accept but silently discard」と書いてありました。**
+		// 権限表を保存したつもりの管理者に、保存していないことは
+		// 伝わりません。
+		FeatureNotInstalled(c, "権限設定の保存")
 		return
 	}
 
