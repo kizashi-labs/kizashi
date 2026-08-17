@@ -744,12 +744,23 @@ jobs:
       # Vitest unit/component tests (frontend/tests/**). Previously these were
       # never run in CI — only lint, typecheck, build, and the separate
       # Playwright e2e job ran — so component and lib-level regressions could
-      # merge undetected. `npm test` maps to `vitest run` (see package.json).
+      # merge undetected.
       # Now that the Playwright e2e job runs nightly (integration.yml) rather than
       # per-push, this is the frontend's only per-push behavioral safety net.
-      - name: Unit tests (Vitest)
+      #
+      # `npm test` ではなく test:coverage を呼ぶ。走るテストは同じで、
+      # 追加でカバレッジ計測の経路も踏む。この差は実測 1 秒（6s → 7s）。
+      #
+      # わざわざそうするのは、test:coverage が実際に壊れていた実績が
+      # あるため。vitest.config.ts に coverage 設定があり package.json に
+      # スクリプトもあるのに、プロバイダ (@vitest/coverage-v8) が
+      # devDependencies に無く、叩けば落ちる状態だった。CI が npm test しか
+      # 呼んでいなかったので誰も気づけない。ここで踏んでおけば同じ壊れ方は
+      # しない。閾値ゲートは置いていない（server 側の Check coverage
+      # threshold のような下限は、フロントには未設定）。
+      - name: Unit tests (Vitest, with coverage)
         working-directory: frontend
-        run: npm test
+        run: npm run test:coverage
 
       - name: Build
         working-directory: frontend
