@@ -541,6 +541,35 @@ class TestLiveResponse:
         assert body["command"] == "id"
 
 
+class TestAlertsUpdate:
+    """alerts.update は検査が 1 つも無く、PATCH を送っていました。
+
+    サーバに在るのは `PUT /alerts/:id` だけなので、呼べば必ず失敗します。
+    incidents / rules は同じ誤りが検査で見つかりましたが、ここは検査そのものが
+    無かったため残っていました。**検査の無いメソッドは、壊れていても緑です。**
+    """
+
+    def setup_method(self):
+        self.client = KizashiEDRClient(base_url=BASE_URL, api_key=API_KEY)
+
+    @patch("urllib.request.urlopen")
+    def test_update_calls_put(self, mock_urlopen):
+        mock_urlopen.return_value = _make_response({"id": "alert-1", "status": "investigating"})
+        self.client.alerts.update("alert-1", status="investigating")
+        req: urllib.request.Request = mock_urlopen.call_args[0][0]
+        assert req.full_url == f"{BASE_URL}/api/v1/alerts/alert-1"
+        assert req.get_method() == "PUT"
+
+    @patch("urllib.request.urlopen")
+    def test_update_sends_status_and_assigned_to_in_body(self, mock_urlopen):
+        mock_urlopen.return_value = _make_response({"id": "alert-1", "status": "resolved"})
+        self.client.alerts.update("alert-1", status="resolved", assigned_to="alice")
+        req: urllib.request.Request = mock_urlopen.call_args[0][0]
+        body = json.loads(req.data.decode("utf-8"))
+        assert body["status"] == "resolved"
+        assert body["assigned_to"] == "alice"
+
+
 class TestIncidentsUpdate:
     def setup_method(self):
         self.client = KizashiEDRClient(base_url=BASE_URL, api_key=API_KEY)
