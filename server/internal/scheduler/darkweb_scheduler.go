@@ -252,6 +252,12 @@ func (s *DarkWebScheduler) checkPostMatches(ctx context.Context) {
 	// 監視キーワード取得
 	rows, err := s.pool.Query(ctx, `SELECT id, monitor_type, value FROM darkweb_monitors WHERE enabled = TRUE`)
 	if err != nil || rows == nil {
+		// 監視キーワードを読めなければ、この回は照合を1件もしていません。
+		// 黙って戻ると「回っているが何もしていない」が外から見えなくなります。
+		if err == nil {
+			err = errNoRowsReturned
+		}
+		fail(ctx, err, "DarkWebScheduler: 監視キーワードを読めませんでした")
 		return
 	}
 	type monitor struct{ id, mtype, value string }
@@ -431,7 +437,10 @@ func (s *DarkWebScheduler) createAlert(ctx context.Context, title, description s
 		severity, title, description,
 	)
 	if err != nil {
-		slog.Warn("DarkWebScheduler: アラート登録に失敗しました", "error", err)
+		// 登録できなければ、その検知は SOC のキューにも一覧にも出ません
+		// —— 見つけた意味がその場で消えます。Warn は運用の設定で最初に
+		// 切られる段なので、回の失敗として上げます。
+		fail(ctx, err, "DarkWebScheduler: アラート登録に失敗しました")
 	}
 }
 

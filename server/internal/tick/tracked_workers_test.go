@@ -1777,8 +1777,6 @@ var reachableSlogWarnReasons = map[string]string{
 		"`tick.FailComponent` に出します。",
 	"threatintel/public_feeds.go:FetchURLhaus": "直後に " +
 		"`tick.FailComponent` を呼んでいます（飛ばした行数つき）。",
-	"updater/applier.go:Apply": "3 か所とも `return err` か、直後の " +
-		"`failWithReason`／`MarkRolledBack` が記録します。",
 
 	// ── 回の話ではないもの ───────────────────────────────────────────
 	"api/handlers/errs.go:dbErrMsg": "応答に出す前にサーバ側へ残すための" +
@@ -1799,8 +1797,6 @@ var reachableSlogWarnReasons = map[string]string{
 		"**検出**／読み切れなかったので watermark を進めない、という判断の" +
 		"記録（読めなかったこと自体は読み出し側が `fail` に出します）。",
 	"scheduler/retro_rule_hunter.go:hunt": "同上（ルール一致の検出）。",
-	"scheduler/darkweb_scheduler.go:syncRansomwareLive": "監視キーワードの" +
-		"**検出**。",
 	"scheduler/hunt_scheduler.go:runScheduledHunts": "`scheduled` 列が無い" +
 		"配置での案内。**この検査の元になった欠陥そのもの**で、" +
 		"「動いているが0件」を見えるようにするための行です。",
@@ -1820,7 +1816,10 @@ var reachableSlogWarnReasons = map[string]string{
 // 実測 (2026-08-12): 30 → 9、`internal/scheduler` を入れて 24、
 // `cert_expiry_checker` の2つを `fail` に移して 22。
 // 24 → 25 (#764)。同上。
-const reachableSlogWarnSites = 25
+// 25 → 21 (#52)。本流の部分同期で 3 か所が消え、`darkweb_scheduler.go:createAlert`
+// を `fail` に移して 1 減った。**下げる方向にしか動かさないこと。**
+// 上げるときは、その 1 件を Warn に留めてよい理由を上の一覧に書くのが先。
+const reachableSlogWarnSites = 21
 
 func TestTrackedWorkersDoNotDowngradeToWarn(t *testing.T) {
 	found := reachableLogSites(t, "Warn", warnScanSkip)
@@ -1875,9 +1874,6 @@ var silentErrorBranchReasons = map[string]string{
 	"scheduler/agent_health_alerter.go:checkDegradedSensors": "`rows.Scan` の失敗。" +
 		"**pgx はそこで結果セットを終えるので**、直後の `rows.Err()` が " +
 		"`fail` に出します。",
-	"api/handlers/mobile_compliance_scanner.go:scan": "`rows.Scan` の失敗。" +
-		"**pgx はそこで結果セットを終えるので**、直後の `rows.Err()` が " +
-		"`tick.FailComponent` に出します。",
 	"dedup/alert_dedup.go:deduplicate": "`rows.Scan` の失敗。**pgx は" +
 		"そこで結果セットを終えるので**、直後の `rows.Err()` が " +
 		"`tick.Fail` に出します。",
@@ -1919,16 +1915,15 @@ var silentErrorBranchReasons = map[string]string{
 	// ── 形が違うもの ─────────────────────────────────────────────────
 	"scheduler/hunt_scheduler.go:executeHunt": "`execErr = err` で受けて" +
 		"います。**捨てていません** —— 呼び出し側がそれを記録します。",
-	"scheduler/darkweb_scheduler.go:syncRansomwareLive": "発見日時の" +
-		"パース失敗を「古いデータ」として飛ばす、という判断（コメントに" +
-		"書いてあります）。",
 }
 
 // 実測 (2026-08-12): 4 か所 → `internal/scheduler` を入れて 25。
 // すべて理由つきです。
 // 26 → 28 (#543)。増えた 2 件は agent_health_alerter の行走査で、
 // どちらも直後の rows.Err() が fail に出す（理由は上の一覧）。
-const silentErrorBranchSites = 28
+// 28 → 26 (#52)。本流の部分同期で 2 か所が消えた。ここも下げる方向にしか
+// 動かさないこと。
+const silentErrorBranchSites = 26
 
 func TestTrackedWorkersDoNotSwallowErrorsSilently(t *testing.T) {
 	found := reachableSilentErrorBranches(t)
