@@ -27,6 +27,15 @@ on:
 permissions:
   contents: write
 
+# ここも **打ち切らない**（cancel-in-progress: false）。
+#
+# 3 プラットフォームぶんのパッケージをビルドしてから GitHub Release に
+# 添付する。途中で切ると、資産が一部だけ付いた Release が残る。
+# タグ単位で直列化するだけにして、始まった実行は完走させる。
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   # ── Linux: .deb and .rpm ───────────────────────────────────────────────────
   linux-packages:

@@ -20,6 +20,14 @@ permissions:
   contents: write      # Needed to commit badge JSON to the repo
   pull-requests: write # Needed to post PR comments
 
+# 打ち切ってよい。contents: write は付いているが、実際にはバッジ JSON を
+# badges/coverage.json として artifact に上げるだけで、リポジトリへの
+# commit は行っていない（上のコメントは実装と食い違っている）。PR コメント
+# は後続の実行が新しい数値で投稿し直すので、途中で切って困らない。
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   coverage:
     name: Go Coverage Report

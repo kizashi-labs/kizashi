@@ -47,6 +47,16 @@ on:
   #     - 'proto/**'
   #     - '.github/workflows/agent-ebpf.yml'
 
+# ここは **打ち切らない**（cancel-in-progress: false）。
+#
+# このワークフローはビルドしたバイナリを downloads/ に git add / commit /
+# push する。途中で切ると、コミット済みだが push 前、あるいは push の
+# リトライ中といった中途半端な状態で終わる。同時に 2 本走れば同じブランチへの
+# push が競合する。直列化だけして、始まった実行は最後まで走らせる。
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   build-ebpf:
     name: Build edr-agent-linux-amd64-ebpf

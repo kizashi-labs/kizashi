@@ -29,6 +29,13 @@ on:
     - cron: '0 0 * * 1'
   workflow_dispatch:
 
+# 同じ ref で新しい実行が始まったら、先行する実行は打ち切る。
+# 解析して artifact を上げるだけで、リポジトリにも Release にも書き込まない
+# ため、途中で切っても中途半端な状態は残らない。
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   scorecard:
     name: Offline scorecard + regression gate

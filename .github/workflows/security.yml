@@ -19,6 +19,13 @@ on:
   # Run on demand with: gh workflow run security.yml --ref main
   workflow_dispatch: {}
 
+# 打ち切ってよい。SARIF は同じ category で上書きされるので、後続の実行が
+# 出す結果が最新として残る。古い実行を最後まで走らせても Security タブに
+# 反映されるのは結局あとから来る方で、意味がない。
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   # ── Filesystem scan (dependencies / secrets) ──────────────────
   trivy-fs:
