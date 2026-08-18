@@ -27,6 +27,15 @@ on:
 permissions:
   contents: write
 
+# ここも **打ち切らない**（cancel-in-progress: false）。
+#
+# 3 プラットフォームぶんのパッケージをビルドしてから GitHub Release に
+# 添付する。途中で切ると、資産が一部だけ付いた Release が残る。
+# タグ単位で直列化するだけにして、始まった実行は完走させる。
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   # ── Linux: .deb and .rpm ───────────────────────────────────────────────────
   linux-packages:
@@ -38,9 +47,9 @@ jobs:
           - { goarch: amd64, arch: amd64 }
           - { goarch: arm64, arch: arm64 }
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
-      - uses: actions/setup-go@v7
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
         with:
           go-version-file: agent/go.mod
           cache-dependency-path: agent/go.sum
@@ -143,7 +152,7 @@ jobs:
         working-directory: packaging/nfpm/out
         run: for f in *.deb *.rpm; do sha256sum "$f" > "$f.sha256"; done
 
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: linux-packages-${{ matrix.arch }}
           path: packaging/nfpm/out/
@@ -153,9 +162,9 @@ jobs:
     name: msi — x64
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
-      - uses: actions/setup-go@v7
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
         with:
           go-version-file: agent/go.mod
           cache-dependency-path: agent/go.sum
@@ -262,7 +271,7 @@ jobs:
         working-directory: packaging/windows
         run: for f in *.msi; do sha256sum "$f" > "$f.sha256"; done
 
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: windows-msi
           path: |
@@ -279,9 +288,9 @@ jobs:
           - { goarch: amd64, arch: x86_64 }
           - { goarch: arm64, arch: arm64 }
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
-      - uses: actions/setup-go@v7
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
         with:
           go-version-file: agent/go.mod
           cache-dependency-path: agent/go.sum
@@ -399,7 +408,7 @@ jobs:
         working-directory: packaging/macos
         run: for f in *.pkg; do shasum -a 256 "$f" > "$f.sha256"; done
 
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: macos-pkg-${{ matrix.arch }}
           path: |
@@ -413,7 +422,7 @@ jobs:
     needs: [linux-packages, windows-msi, macos-pkg]
     if: startsWith(github.ref, 'refs/tags/v')
     steps:
-      - uses: actions/download-artifact@v8
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           path: packages/
           merge-multiple: true
@@ -421,7 +430,7 @@ jobs:
       - name: List
         run: ls -la packages/
 
-      - uses: softprops/action-gh-release@v3
+      - uses: softprops/action-gh-release@3d0d9888cb7fd7b750713d6e236d1fcb99157228 # v3
         with:
           files: packages/*
           fail_on_unmatched_files: true

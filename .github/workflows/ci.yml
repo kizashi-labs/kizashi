@@ -46,7 +46,7 @@ jobs:
       rules:    ${{ steps.filter.outputs.rules }}
       all:      ${{ steps.filter.outputs.all }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 0
 
@@ -94,6 +94,26 @@ jobs:
 
           # CI 定義・proto・共通設定が変わったら全部走らせる。
           # proto は agent と server の両方が依存し、ズレると実行時にしか露見しない。
+          #
+          # scripts/ はここに入れていない。CI はこのディレクトリのものを
+          # 実行しないので、触るたびに全ジョブを回すのは消費の無駄になる
+          # （Actions の予算はこのファイルの冒頭に書いたとおり実際に枯渇させた）。
+          # ただし scripts/verify.sh だけは、このワークフローと
+          # merge-gate.yml / security.yml のゲートを 1:1 で再現したもの。
+          # **ここのジョブやステップを足し引きしたら、あちらも合わせて直す
+          # こと。** 片方だけ変わると「ローカルで緑なのに CI で落ちる」、
+          # あるいはもっと悪い「ローカルで緑だが CI にしか無い検査を通して
+          # いない」状態になる。
+          #
+          # 追従は目視で確認しないこと。ステップ名を機械的に列挙して 1 行ずつ
+          # 消し込む。初版はこの手順を踏まなかったために 7 件取りこぼした
+          # （golangci-lint 丸ごと、TEST_DATABASE_URL / NATS_URL、
+          # integration タグの E2E、migration 適用、eBPF バインディングの
+          # 鮮度検査、クロスコンパイル）。詳細は
+          # docs/CI・デプロイ運用とコスト最適化.md の 6-1-1。
+          #
+          #   awk '/^  [a-z][a-z0-9_-]*:[ \t]*$/ {print "JOB " $1}
+          #        /^      - name: / {print "  " $0}' .github/workflows/ci.yml
           all=false
           if has '^\.github/workflows/' || has '^proto/' || has '^docker-compose' || has '^Makefile'; then
             all=true
@@ -118,6 +138,13 @@ jobs:
     needs: changes
     if: needs.changes.outputs.server == 'true' || needs.changes.outputs.all == 'true'
     runs-on: ubuntu-latest
+    # カバレッジの表を PR にコメントするので pull-requests: write が要る
+    # （旧 coverage.yml から移設。下の「Post coverage comment on PR」を参照）。
+    # ジョブ単位で付ける。トップレベルに置くと他のジョブの既定権限まで
+    # 上書きしてしまう。
+    permissions:
+      contents: read
+      pull-requests: write
     services:
       postgres:
         image: timescale/timescaledb:latest-pg16
@@ -141,13 +168,13 @@ jobs:
           --health-retries 5
 
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           # golangci-lint の --new-from-merge-base に必要（origin/main との比較）。
           fetch-depth: 0
 
       - name: Set up Go
-        uses: actions/setup-go@v7
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
         with:
           go-version-file: server/go.mod
           cache-dependency-path: server/go.sum
@@ -213,7 +240,7 @@ jobs:
       # アクションはビルド済みリリースバイナリを取得するので、リンタ側の依存解決が
       # そもそも起きない。この故障クラスが構造的に消える。version も固定する。
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@v9
+        uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9
         with:
           version: v2.12.2
           working-directory: server
@@ -274,23 +301,170 @@ jobs:
         working-directory: server
         run: go tool cover -html=coverage.out -o coverage.html
 
+      # ── ここから下は旧 coverage.yml から移設した「報告」部分 ────────
+      #
+      # 以前は coverage.yml が別ワークフローとして postgres と nats を立て、
+      # migration を流し、同じ go test -race をもう一度走らせてから、この
+      # 表とバッジと PR コメントを作っていた。実測 5分24秒で、push と
+      # pull_request の両方で発火し、しかも needs: changes を持たないので
+      # frontend だけの変更でもサーバテストが丸ごと走っていた。
+      # Codecov へのアップロードも二重だった。
+      #
+      # 成果物はどれも coverage.out の後処理でしかない。既にこのジョブが
+      # coverage.out を持っているので、ここでやれば追加コストは数秒で済む。
+      - name: Generate per-package coverage table
+        id: coverage_table
+        working-directory: server
+        run: |
+          go tool cover -func=coverage.out > coverage_func.txt
+          cat coverage_func.txt
+
+          TOTAL_LINE=$(grep '^total:' coverage_func.txt)
+          COVERAGE_PCT=$(echo "$TOTAL_LINE" | awk '{print $3}' | tr -d '%')
+          echo "coverage_pct=${COVERAGE_PCT}" >> "$GITHUB_OUTPUT"
+          echo "total_line=${TOTAL_LINE}" >> "$GITHUB_OUTPUT"
+
+          # ゲート値はこのジョブの「Check coverage threshold」ステップ名から
+          # 読む。数値を二重に書かないための仕掛けで、coverage.yml が別
+          # ワークフローだった頃からのもの。当時は独自に "40%" を持っていて、
+          # 実ゲート 35% を通っている PR に「❌ Fail」と出し続けていた。
+          #
+          # server-test のブロックに限定して探すのは、agent-test にも同名の
+          # ステップが 30% 版で存在し、素朴な grep ではジョブの並び次第で
+          # 静かに別の数字を拾うため。同居した今も同じ。
+          #
+          # ここから下のコメントで、探索対象と同じ「ステップ名＋括弧つきの
+          # 百分率」という綴りを書かないこと。awk がこのブロックを丸ごと
+          # 渡す以上、コメント中のリテラルも grep にマッチしてしまい、
+          # head -1 の順序次第で誤った値を拾う。まさにこの仕掛けが防ごうと
+          # している事故を、説明文で再現することになる。
+          GATE=$(awk '/^  server-test:/{f=1}
+                      f && /^  [a-z][a-z0-9-]*:[[:space:]]*$/ && !/^  server-test:/{f=0}
+                      f' ../.github/workflows/ci.yml \
+            | grep -oE 'Check coverage threshold \(([0-9]+)%\)' | grep -oE '[0-9]+' | head -1)
+          if [ -z "$GATE" ]; then
+            echo "::warning::ci.yml からカバレッジのゲート値を読めませんでした。合否を出さずに報告します。"
+          fi
+          echo "gate_pct=${GATE}" >> "$GITHUB_OUTPUT"
+
+      # shields.io 互換のバッジ JSON。現状これを参照している場所は無く
+      # （README のバッジは静的な shields.io のもの）、artifact に入るだけ。
+      - name: Generate coverage badge JSON
+        id: badge
+        working-directory: server
+        run: |
+          PCT="${{ steps.coverage_table.outputs.coverage_pct }}"
+          echo "Coverage: ${PCT}%"
+
+          if awk "BEGIN { exit !($PCT >= 80) }"; then
+            COLOR="brightgreen"
+          elif awk "BEGIN { exit !($PCT >= 60) }"; then
+            COLOR="green"
+          elif awk "BEGIN { exit !($PCT >= 40) }"; then
+            COLOR="yellow"
+          else
+            COLOR="red"
+          fi
+
+          mkdir -p ../badges
+          cat > ../badges/coverage.json << EOF
+          {
+            "schemaVersion": 1,
+            "label": "coverage",
+            "message": "${PCT}%",
+            "color": "${COLOR}"
+          }
+          EOF
+          echo "badge_color=${COLOR}" >> "$GITHUB_OUTPUT"
+
       - name: Upload coverage report
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: server-coverage
           path: |
             server/coverage.out
             server/coverage.html
+            server/coverage_func.txt
+            badges/coverage.json
           retention-days: 14
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v7
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7
         continue-on-error: true   # Non-blocking if token not configured
         with:
           files: server/coverage.out
           flags: server
           name: server-coverage
           token: ${{ secrets.CODECOV_TOKEN }}
+
+      - name: Post coverage comment on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const pct    = '${{ steps.coverage_table.outputs.coverage_pct }}';
+            const gate   = '${{ steps.coverage_table.outputs.gate_pct }}';
+            const color  = '${{ steps.badge.outputs.badge_color }}';
+            const sha    = context.payload.pull_request.head.sha.slice(0, 7);
+
+            const colorEmoji = {
+              brightgreen: '🟢',
+              green:       '🟢',
+              yellow:      '🟡',
+              red:         '🔴',
+            }[color] || '⚪';
+
+            // ゲート値は同じジョブの「Check coverage threshold」から読んで
+            // いる。読めなかったときは合否を出さない — 通っている PR に
+            // 誤った「❌ Fail」を出すと、緑のビルドが壊れて見える。
+            const passes = gate !== '' && parseFloat(pct) >= parseFloat(gate);
+
+            const rows = [
+              `| **Total coverage** | \`${pct}%\` |`,
+            ];
+            if (gate !== '') {
+              rows.push(`| **Gate** | \`${gate}%\` |`);
+              rows.push(`| **Status** | ${passes ? '✅ Pass' : '❌ Fail'} |`);
+            }
+
+            const body = [
+              `## ${colorEmoji} Coverage Report — \`${sha}\``,
+              '',
+              `| Metric | Value |`,
+              `|--------|-------|`,
+              ...rows,
+              '',
+              '> Full HTML report is available as a workflow artifact.',
+              '> The build-blocking gate is the `Check coverage threshold`',
+              '> step in this same job.',
+            ].join('\n');
+
+            const { data: comments } = await github.rest.issues.listComments({
+              owner:      context.repo.owner,
+              repo:       context.repo.repo,
+              issue_number: context.payload.pull_request.number,
+            });
+
+            const existing = comments.find(
+              c => c.user.type === 'Bot' && c.body.includes('Coverage Report')
+            );
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner:      context.repo.owner,
+                repo:       context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner:      context.repo.owner,
+                repo:       context.repo.repo,
+                issue_number: context.payload.pull_request.number,
+                body,
+              });
+            }
 
       - name: Build all services
         working-directory: server
@@ -316,10 +490,10 @@ jobs:
     if: needs.changes.outputs.rules == 'true' || needs.changes.outputs.all == 'true'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Set up Go
-        uses: actions/setup-go@v7
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
         with:
           go-version-file: server/go.mod
           cache-dependency-path: server/go.sum
@@ -360,10 +534,10 @@ jobs:
             suffix: ""
             tags: ""
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Set up Go
-        uses: actions/setup-go@v7
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
         with:
           go-version-file: agent/go.mod
           cache-dependency-path: agent/go.sum
@@ -432,7 +606,7 @@ jobs:
         run: go build -ldflags="-s -w" -o edr-watchdog-${{ matrix.goos }}-${{ matrix.goarch }}${{ matrix.suffix }} ./cmd/watchdog/...
 
       - name: Upload agent binaries
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: agent-${{ matrix.goos }}-${{ matrix.goarch }}
           path: agent/edr-*
@@ -450,10 +624,10 @@ jobs:
     if: needs.changes.outputs.agent == 'true' || needs.changes.outputs.all == 'true'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Set up Go
-        uses: actions/setup-go@v7
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
         with:
           go-version-file: agent/go.mod
           cache-dependency-path: agent/go.sum
@@ -576,7 +750,7 @@ jobs:
         run: go tool cover -html=coverage.out -o coverage.html
 
       - name: Upload coverage report
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: agent-coverage
           path: |
@@ -585,7 +759,7 @@ jobs:
           retention-days: 14
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v7
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7
         continue-on-error: true   # Non-blocking if token not configured
         with:
           files: agent/coverage.out
@@ -662,10 +836,10 @@ jobs:
     if: needs.changes.outputs.server == 'true' || needs.changes.outputs.all == 'true'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Set up Go
-        uses: actions/setup-go@v7
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
         with:
           go-version-file: server/go.mod
           cache-dependency-path: server/go.sum
@@ -703,10 +877,10 @@ jobs:
     if: needs.changes.outputs.agent == 'true' || needs.changes.outputs.all == 'true'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Set up Go
-        uses: actions/setup-go@v7
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
         with:
           go-version-file: agent/go.mod
           cache-dependency-path: agent/go.sum
@@ -729,9 +903,9 @@ jobs:
     if: needs.changes.outputs.frontend == 'true' || needs.changes.outputs.all == 'true'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version: "24"
           cache: npm
@@ -784,7 +958,7 @@ jobs:
         run: npm run build
 
       - name: Upload build
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: frontend-build
           path: frontend/.next/standalone
@@ -802,10 +976,10 @@ jobs:
     if: needs.changes.outputs.sdk == 'true' || needs.changes.outputs.all == 'true'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Set up Python
-        uses: actions/setup-python@v7
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
         with:
           python-version: "3.11"
 
@@ -817,7 +991,7 @@ jobs:
         working-directory: sdk/python
         run: pytest -q
 
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version: "24"
           cache: npm
@@ -854,7 +1028,7 @@ jobs:
           --health-retries 5
 
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Create test table and insert data
         run: |

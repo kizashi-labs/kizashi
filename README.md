@@ -220,6 +220,42 @@ connectors and deception **are** included here.
 If you need any of these, or you want to use Kizashi without the obligations of the
 AGPL, a commercial license is available — see below.
 
+## Running the checks locally
+
+`scripts/verify.sh` runs the same gates CI does, so you can get the same answer
+before pushing — and keep working if Actions is unavailable.
+
+```sh
+scripts/verify.sh              # only the areas you changed, fast checks
+scripts/verify.sh --full       # adds builds, govulncheck, Semgrep, image scans
+scripts/verify.sh --all        # every area, ignoring what changed
+scripts/verify.sh --list       # show what would run, without running it
+scripts/verify.sh server       # one area (agent/server/frontend/sdk/rules/security)
+```
+
+Checks whose prerequisites are missing are reported as **SKIP with a reason**,
+never silently dropped — "it passed" and "it never ran" must not look alike.
+Optional prerequisites:
+
+| Check | Needs |
+|---|---|
+| `server` tests, coverage gate, migrations, synthetic-injection E2E | `DATABASE_URL` pointing at a reachable Postgres |
+| NATS-dependent ingestion/scheduler tests | `NATS_URL` pointing at a reachable NATS |
+| golangci-lint (`--new-from-merge-base`) | `golangci-lint` v2.12.2 — CI's version, built with a Go at least as new as `server/go.mod` |
+| Detection rule validation | `yara` CLI |
+| `ebpf prevention` build, staticcheck, binding-drift check | `clang`, `/sys/kernel/btf/vmlinux`, `bpftool` |
+| Python SDK tests | `pip install -r sdk/python/requirements-dev.txt` |
+| Secret scanning | `gitleaks` CLI |
+| Dependency / SAST scanning | `trivy`, `semgrep` (image scans also need a running Docker daemon) |
+
+The backup/restore integrity test creates and drops its own throwaway database, so
+it never touches the schema `DATABASE_URL` points at.
+
+What stays CI-only: the collision radar's sweep over *other people's* open PRs (needs
+the GitHub API — your own branch's migration numbers are checked locally), the macOS
+ESF native build, the nightly Playwright E2E, and the reporting paths (SARIF upload,
+Codecov, the coverage PR comment).
+
 ## Contributing
 
 Contributions are welcome. Please read [`CLA.md`](CLA.md) first: a one-time
@@ -415,6 +451,42 @@ AGPL のソース開示義務を受け入れられない組織向けに、**商�
 上記「含まれないもの」の機能についても同様です。ご相談は
 [Issue](https://github.com/kizashi-labs/kizashi/issues/new)（`licensing` ラベル）から。
 公開の場に商談の詳細を書く必要はありません。必要なものだけ書いていただければ、こちらから対応します。
+
+## ローカルでの検証
+
+`scripts/verify.sh` は CI と同じゲートを手元で流します。push する前に同じ
+結論を得られますし、Actions が使えないときでも作業を止めずに済みます。
+
+```sh
+scripts/verify.sh              # 変更した領域だけを高速に
+scripts/verify.sh --full       # ビルド・govulncheck・Semgrep・イメージ走査まで
+scripts/verify.sh --all        # 変更に関係なく全領域
+scripts/verify.sh --list       # 実行せず、何が走るかだけ表示
+scripts/verify.sh server       # 領域を指定（agent/server/frontend/sdk/rules/security）
+```
+
+前提が足りない検査は**理由つきの SKIP として必ず表示**し、黙って飛ばしません。
+「通った」と「そもそも走っていない」が同じに見えてはいけないためです。
+任意の前提:
+
+| 検査 | 必要なもの |
+|---|---|
+| server のテスト・カバレッジ下限・migration 適用・synthetic injection E2E | 到達可能な Postgres を指す `DATABASE_URL` |
+| NATS 依存の ingestion / scheduler テスト | 到達可能な NATS を指す `NATS_URL` |
+| golangci-lint（`--new-from-merge-base`） | CI と同じ `golangci-lint` v2.12.2。`server/go.mod` 以上の Go でビルドされたもの |
+| 検知ルール検証 | `yara` CLI |
+| `ebpf prevention` のビルド・staticcheck・バインディング鮮度検査 | `clang`、`/sys/kernel/btf/vmlinux`、`bpftool` |
+| Python SDK テスト | `pip install -r sdk/python/requirements-dev.txt` |
+| シークレット走査 | `gitleaks` CLI |
+| 依存脆弱性 / SAST 走査 | `trivy`、`semgrep`（イメージ走査は起動中の Docker デーモンも要る） |
+
+バックアップ復元テストは使い捨ての DB を自分で作って自分で消します。
+`DATABASE_URL` が指すスキーマには触れません。
+
+CI 専用のまま残るもの: collision radar のうち**他人の開いている PR**を見る部分
+（GitHub API が要る。自分の枝が追加した番号はローカルで検査します）、macOS ESF の
+ネイティブビルド、夜間の Playwright E2E、そして報告経路（SARIF アップロード、
+Codecov、カバレッジの PR コメント）。
 
 ## 貢献
 

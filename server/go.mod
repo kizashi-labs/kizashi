@@ -21,7 +21,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/websocket v1.5.3
 	github.com/jackc/pgx/v5 v5.10.0
-	github.com/nats-io/nats.go v1.52.0
+	github.com/nats-io/nats.go v1.53.1
 	github.com/pquerna/otp v1.5.0
 	github.com/prometheus/client_golang v1.24.1
 	github.com/prometheus/client_model v0.6.2
@@ -35,10 +35,10 @@ require (
 	go.opentelemetry.io/otel/metric v1.45.0
 	go.opentelemetry.io/otel/sdk v1.45.0
 	go.opentelemetry.io/otel/trace v1.45.0
-	golang.org/x/crypto v0.54.0
-	golang.org/x/net v0.57.0
+	golang.org/x/crypto v0.55.0
+	golang.org/x/net v0.58.0
 	golang.org/x/sys v0.47.0
-	golang.org/x/text v0.40.0
+	golang.org/x/text v0.41.0
 	google.golang.org/grpc v1.83.0
 	google.golang.org/protobuf v1.36.12
 	gopkg.in/yaml.v3 v3.0.1
