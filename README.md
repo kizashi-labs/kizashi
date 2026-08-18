@@ -220,6 +220,33 @@ connectors and deception **are** included here.
 If you need any of these, or you want to use Kizashi without the obligations of the
 AGPL, a commercial license is available — see below.
 
+## Running the checks locally
+
+`scripts/verify.sh` runs the same gates CI does, so you can get the same answer
+before pushing — and keep working if Actions is unavailable.
+
+```sh
+scripts/verify.sh              # only the areas you changed, fast checks
+scripts/verify.sh --full       # adds builds and govulncheck
+scripts/verify.sh --all        # every area, ignoring what changed
+scripts/verify.sh --list       # show what would run, without running it
+scripts/verify.sh server       # a single area (agent/server/frontend/sdk/rules)
+```
+
+Checks whose prerequisites are missing are reported as **SKIP with a reason**,
+never silently dropped — "it passed" and "it never ran" must not look alike.
+Optional prerequisites:
+
+| Check | Needs |
+|---|---|
+| `server` tests + coverage gate | `DATABASE_URL` pointing at a reachable Postgres |
+| Detection rule validation | `yara` CLI |
+| `ebpf prevention` build and staticcheck | `clang`, `/sys/kernel/btf/vmlinux`, `bpftool` |
+| Python SDK tests | `pip install -r sdk/python/requirements-dev.txt` |
+
+Trivy, Semgrep, Gitleaks, the backup/restore test and the PR collision radar stay
+CI-only — they need scanners, service containers or the GitHub API.
+
 ## Contributing
 
 Contributions are welcome. Please read [`CLA.md`](CLA.md) first: a one-time
@@ -415,6 +442,33 @@ AGPL のソース開示義務を受け入れられない組織向けに、**商�
 上記「含まれないもの」の機能についても同様です。ご相談は
 [Issue](https://github.com/kizashi-labs/kizashi/issues/new)（`licensing` ラベル）から。
 公開の場に商談の詳細を書く必要はありません。必要なものだけ書いていただければ、こちらから対応します。
+
+## ローカルでの検証
+
+`scripts/verify.sh` は CI と同じゲートを手元で流します。push する前に同じ
+結論を得られますし、Actions が使えないときでも作業を止めずに済みます。
+
+```sh
+scripts/verify.sh              # 変更した領域だけを高速に
+scripts/verify.sh --full       # ビルドと govulncheck まで含める
+scripts/verify.sh --all        # 変更に関係なく全領域
+scripts/verify.sh --list       # 実行せず、何が走るかだけ表示
+scripts/verify.sh server       # 領域を指定（agent/server/frontend/sdk/rules）
+```
+
+前提が足りない検査は**理由つきの SKIP として必ず表示**し、黙って飛ばしません。
+「通った」と「そもそも走っていない」が同じに見えてはいけないためです。
+任意の前提:
+
+| 検査 | 必要なもの |
+|---|---|
+| server のテストとカバレッジ下限 | 到達可能な Postgres を指す `DATABASE_URL` |
+| 検知ルール検証 | `yara` CLI |
+| `ebpf prevention` のビルドと staticcheck | `clang`、`/sys/kernel/btf/vmlinux`、`bpftool` |
+| Python SDK テスト | `pip install -r sdk/python/requirements-dev.txt` |
+
+Trivy・Semgrep・Gitleaks・バックアップ復元テスト・PR collision radar は CI 専用です
+（スキャナ本体、サービスコンテナ、GitHub API が要るため）。
 
 ## 貢献
 
