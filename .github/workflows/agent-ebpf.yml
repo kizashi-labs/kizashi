@@ -75,10 +75,10 @@ jobs:
         run: |
           echo "::warning title=一時措置が残っています::agent-ebpf.yml は Actions 予算枯渇のため週次で動作しています（本来は main への agent/proto 変更ごと）。予算が回復済みなら、ヘッダの手順で schedule を push トリガに戻してください。防御版バイナリの陳腐化が最大7日まで許容されている状態です。"
 
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Set up Go
-        uses: actions/setup-go@v7
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
         with:
           go-version-file: agent/go.mod
           cache-dependency-path: agent/go.sum
@@ -156,7 +156,7 @@ jobs:
           ls -la edr-agent-linux-amd64-ebpf
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: agent-linux-amd64-ebpf
           path: agent/edr-agent-linux-amd64-ebpf
