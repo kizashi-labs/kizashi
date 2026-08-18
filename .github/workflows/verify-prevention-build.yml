@@ -32,14 +32,20 @@ on:
         type: boolean
         default: false
 
+# workflow_dispatch 専用。人が意図して起動する検証なので打ち切らない。
+# 同時に 2 本走らせても意味が無いぶん、直列化だけしておく。
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   linux-prevention:
     name: Linux — build & test with "ebpf prevention"
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
-      - uses: actions/setup-go@v7
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
         with:
           go-version-file: agent/go.mod
           cache-dependency-path: agent/go.sum
@@ -96,9 +102,9 @@ jobs:
     runs-on: macos-14
     if: inputs.include_macos
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
-      - uses: actions/setup-go@v7
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
         with:
           go-version-file: agent/go.mod
           cache-dependency-path: agent/go.sum

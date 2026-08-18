@@ -25,7 +25,14 @@
 package darwin
 
 /*
-#cgo LDFLAGS: -framework EndpointSecurity -framework Foundation
+// EndpointSecurity は framework ではなくライブラリとして提供される
+// (libEndpointSecurity.tbd)。`-framework EndpointSecurity` は
+// `ld: framework 'EndpointSecurity' not found` で落ちる——Xcode 15.4 の
+// MacOSX.sdk には EndpointSecurity.framework ディレクトリ自体が無く、
+// ヘッダは usr/include/EndpointSecurity/ にある。
+// audit_token_to_pid() の実体は libbsm にあるので -lbsm も要る
+// (ヘッダだけ include してあり、コンパイルは通ってリンクで落ちていた)。
+#cgo LDFLAGS: -lEndpointSecurity -lbsm -framework Foundation
 #include <EndpointSecurity/EndpointSecurity.h>
 #include <stdlib.h>
 // <bsm/libbsm.h> declares audit_token_to_pid(); without it modern clang
