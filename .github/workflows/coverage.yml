@@ -16,9 +16,18 @@ on:
       - 'LICENSE'
       - '.gitignore'
 
+# contents は read で足りる。
+#
+# 以前は「バッジ JSON をリポジトリへ commit するため write が要る」と
+# 書いてあったが、実装はそうなっていない。badges/coverage.json を生成して
+# upload-artifact に含めるだけで、commit も push もしない。書き込み権限は
+# 誰も使っていなかった。
+#
+# pull-requests: write は本当に要る。github-script でカバレッジの表を
+# PR にコメントする。
 permissions:
-  contents: write      # Needed to commit badge JSON to the repo
-  pull-requests: write # Needed to post PR comments
+  contents: read
+  pull-requests: write
 
 # 打ち切ってよい。contents: write は付いているが、実際にはバッジ JSON を
 # badges/coverage.json として artifact に上げるだけで、リポジトリへの
@@ -57,7 +66,9 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
-          # Need full history so we can commit the badge update back to main
+          # 「バッジ更新を main に commit するため」と書いてあったが、
+          # この workflow は commit しない（上の permissions の項を参照）。
+          # 全履歴は Codecov のために残す。base コミットとの比較に履歴を使う。
           fetch-depth: 0
 
       - name: Set up Go
