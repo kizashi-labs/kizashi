@@ -80,7 +80,7 @@ paths-ignore:
 > **CI にゲートを足したら、そのゲートが守る変更を含む PR で実際に走ったかを一度確認すること。**
 > ジョブが緑なのと、ジョブが実行されたのは違う。
 
-> 補足: 残る課金源は push/PR で走る `ci.yml`/`coverage.yml`/`security.yml`。**開発で push/PR しなければ Actions はほぼ動かない**。Actions 課金はアカウント単位の共通プール（リポジトリ別請求ではない）で、本リポジトリの重い CI（E2E Playwright・Trivy 4イメージ等）がアカウントの分数をほぼ独占している（他リポジトリは workflow がほぼ無く無消費）。
+> 補足: 残る課金源は push/PR で走る `ci.yml`/`security.yml`（`coverage.yml` は 2-5 で廃止）。**開発で push/PR しなければ Actions はほぼ動かない**。Actions 課金はアカウント単位の共通プール（リポジトリ別請求ではない）で、本リポジトリの重い CI（E2E Playwright・Trivy 4イメージ等）がアカウントの分数をほぼ独占している（他リポジトリは workflow がほぼ無く無消費）。
 
 ### 2-4. 解析ツールのバージョン固定と FP soak の直列化（PR #609 / #637, 2026-08-03）
 
@@ -135,6 +135,29 @@ run が同時に走ると互いのアラートを数え合って測定が汚染�
 
 
 ---
+
+### 2-5. coverage.yml を ci.yml に畳んで廃止（2026-08-18）
+
+`coverage.yml` は `ci.yml` の `server-test` と**同じサーバテスト一式を丸ごと二度**走らせていた。
+postgres と nats を立て、migration を流し、同じ `go test -race` を実行し、Codecov にも二重に上げていた。
+固有の成果物はパッケージ別の表・バッジ JSON・PR コメントの 3 つだけで、どれも `coverage.out` の後処理でしかない。
+
+さらに `needs: changes` を持たないため、**frontend だけの変更でもサーバテストが丸ごと走っていた**。
+
+実測 **5分24秒/回**、`push` と `pull_request` の両方で発火。
+
+→ 報告部分を `ci.yml` の `server-test` に移設し、`coverage.yml` を削除した。
+`server-test` は既に `coverage.out` を持っているので追加コストは数秒。
+サーバを触らない PR では**カバレッジ計測ごと走らなくなる**。
+
+移設にあたり `server-test` にジョブ単位で `permissions: pull-requests: write` を付けた
+（PR コメント用）。トップレベルには置かない — 他ジョブの既定権限まで上書きしてしまう。
+
+> 罠: ゲート値は「`Check coverage threshold` ステップ名の括弧内」を grep して取っている
+> （数値を二重に書かないための仕掛け）。`agent-test` にも同名ステップが 30% 版で存在するため
+> `server-test` ブロックに限定して探す。**この探索対象と同じ綴りをブロック内のコメントに書かないこと。**
+> awk がブロックを丸ごと渡す以上、コメント中のリテラルも grep にマッチし、`head -1` の順序次第で
+> 誤った値を拾う。移設作業中に実際に踏んだ（コメントに `(30%)` と書いてしまい、マッチが 2 件になった）。
 
 ## 3. デプロイ手順（バッチデプロイ）
 
@@ -281,8 +304,29 @@ Actions 予算が枯渇すると全ジョブが2秒で失敗する（annotations
 ### 6-1. ローカル検証根拠マージ（main 無保護を活用）
 
 main はブランチ保護なしなので、CI 赤でも `gh pr merge --squash` で統合できる。**CI と同等のチェックを
-ローカルで回し、それを根拠にマージ**する:
-- Go: `go build ./...` / `go test ./...` / `go vet ./...` / `gofmt -l`
+ローカルで回し、それを根拠にマージ**する。
+
+```sh
+scripts/verify.sh              # 変更した領域だけを高速に
+scripts/verify.sh --full       # ビルドと govulncheck まで
+scripts/verify.sh --all        # 変更に関係なく全領域
+scripts/verify.sh --list       # 実行せず、何が走るかだけ表示
+```
+
+`scripts/verify.sh` は `ci.yml` / `merge-gate.yml` のゲートを 1:1 で再現する
+（2026-08-18 追加）。以前ここには `go build` / `go test` / `go vet` / `gofmt -l` と書いてあったが、
+それでは **staticcheck・OpenAPI 同期・カバレッジ下限・frontend の lint/型/mock guard/ビルド・
+検知ルール検証・SDK テストが抜ける**。「ローカルで緑だから」の根拠としては弱すぎた。
+
+**前提が足りない検査は理由つきの SKIP として必ず表示される。** 通ったのか走らなかったのかを
+取り違えないため。マージの根拠にするときは、まとめの SKIP 一覧に目を通すこと。
+DB・`yara`・`bpftool`・`pytest` が無い環境では、それぞれサーバのテスト／検知ルール検証／
+`ebpf prevention` の検証／Python SDK テストが飛ぶ。
+
+Trivy・Semgrep・Gitleaks・バックアップ復元テスト・PR collision radar は CI 専用で、
+このスクリプトの対象外（実行のたびに末尾で列挙される）。予算復旧後、溜まった変更に対して
+これらが初めて走る点は意識しておく。
+
 - 低リスク変更（特に **CI が一切コンパイルしない部分**＝build タグ付きコード・`.bpf.c` 等）は安全度が高い。
 - Linux 実行前防御 Ph1〜Ph6（`prevention` タグ＋`.bpf.c`、ci.yml はタグ無しビルドのため非コンパイル）は
   この方式で全マージ（PR #226〜#233）。実機検証は EC2 ローカルビルドで予算非依存に実施。
