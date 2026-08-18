@@ -48,6 +48,11 @@ permissions:
   contents: read
   pull-requests: read
 
+# 権限は read のみで副作用が無いため、先行する実行は打ち切ってよい。
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   consistency:
     # ↓ ブランチ保護が使えるプランに移った場合、必須に指定するのはこの名前です。

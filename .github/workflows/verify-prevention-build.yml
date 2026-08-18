@@ -32,6 +32,12 @@ on:
         type: boolean
         default: false
 
+# workflow_dispatch 専用。人が意図して起動する検証なので打ち切らない。
+# 同時に 2 本走らせても意味が無いぶん、直列化だけしておく。
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   linux-prevention:
     name: Linux — build & test with "ebpf prevention"
