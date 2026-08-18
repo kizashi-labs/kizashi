@@ -94,6 +94,15 @@ jobs:
 
           # CI 定義・proto・共通設定が変わったら全部走らせる。
           # proto は agent と server の両方が依存し、ズレると実行時にしか露見しない。
+          #
+          # scripts/ はここに入れていない。CI はこのディレクトリのものを
+          # 実行しないので、触るたびに全ジョブを回すのは消費の無駄になる
+          # （Actions の予算はこのファイルの冒頭に書いたとおり実際に枯渇させた）。
+          # ただし scripts/verify.sh だけは、このワークフローと coverage.yml /
+          # merge-gate.yml のゲートを 1:1 で再現したもの。**ここのジョブや
+          # ステップを足し引きしたら、あちらも合わせて直すこと。** 片方だけ
+          # 変わると「ローカルで緑なのに CI で落ちる」、あるいはもっと悪い
+          # 「ローカルで緑だが CI にしか無い検査を通していない」状態になる。
           all=false
           if has '^\.github/workflows/' || has '^proto/' || has '^docker-compose' || has '^Makefile'; then
             all=true
