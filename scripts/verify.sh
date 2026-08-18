@@ -6,7 +6,8 @@
 #   scripts/verify.sh                  変更のあった領域だけを fast で検証
 #   scripts/verify.sh --full           ビルドと脆弱性検査まで含める
 #   scripts/verify.sh --all            変更に関係なく全領域
-#   scripts/verify.sh server frontend  領域を明示（agent / server / frontend / sdk / rules）
+#   scripts/verify.sh server frontend  領域を明示
+#                                      （agent / server / frontend / sdk / rules / security）
 #   scripts/verify.sh --list           何を実行して何を飛ばすかだけ表示する
 #
 # ── なぜこれが要るか ────────────────────────────────────────────
@@ -15,9 +16,9 @@
 # 関係なく push 前に同じ結論を得られる。
 #
 # ── 追従の義務 ──────────────────────────────────────────────────
-# ここは .github/workflows/ の ci.yml と merge-gate.yml を 1:1 で写した
-# もの。**あちらのジョブやステップを足し引きしたら、ここも合わせて直す
-# こと。** 片方だけ変わると「ローカルで緑なのに CI で落ちる」、あるいは
+# ここは .github/workflows/ の ci.yml・merge-gate.yml・security.yml を 1:1 で
+# 写したもの。**あちらのジョブやステップを足し引きしたら、ここも合わせて
+# 直すこと。** 片方だけ変わると「ローカルで緑なのに CI で落ちる」、あるいは
 # もっと悪い「ローカルで緑だが、CI にしか無い検査を通していない」状態に
 # なる。ci.yml 側の changes ジョブにも同じ注意書きを置いてある。
 #
@@ -47,6 +48,7 @@ cd "$REPO_ROOT"
 # このリポジトリでは実際に踏んでいる（ci.yml の staticcheck の項を参照）。
 STATICCHECK_VERSION="v0.7.0"
 GOVULNCHECK_VERSION="v1.6.0"
+GOLANGCI_VERSION="v2.12.2"
 SERVER_COVERAGE_MIN=35
 AGENT_COVERAGE_MIN=30
 
@@ -62,7 +64,7 @@ while [ $# -gt 0 ]; do
     --all)   FORCE_ALL=true ;;
     --list)  LIST_ONLY=true ;;
     -h|--help) sed -n '2,20p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
-    agent|server|frontend|sdk|rules) AREAS+=("$1") ;;
+    agent|server|frontend|sdk|rules|security) AREAS+=("$1") ;;
     *) echo "不明な引数: $1（--help を参照）" >&2; exit 2 ;;
   esac
   shift
@@ -99,6 +101,27 @@ run() {
   rm -f "$log"
 }
 
+# run_show <ラベル> <作業ディレクトリ> <コマンド...>
+# run と同じだが、成功時にも出力の末尾を見せる。
+#
+# 「報告のみでゲートではない」検査（Trivy / Semgrep）用。CI 側もこれらを
+# exit-code で落としていないので、ここで落とすと CI より厳しくなり
+# 1:1 の写しでなくなる。とはいえ結果を隠したら走らせる意味が無いので、
+# 通っても中身を出す。
+run_show() {
+  local label="$1" dir="$2"; shift 2
+  if $LIST_ONLY; then printf '  %sRUN %s  %s\n' "$C_DIM" "$C_OFF" "$label"; return 0; fi
+  local log; log="$(mktemp)"
+  if (cd "$dir" && "$@") >"$log" 2>&1; then
+    pass "$label"
+    printf '%s' "$C_DIM"; tail -n 30 "$log" | sed 's/^/        /'; printf '%s' "$C_OFF"
+  else
+    fail "$label"
+    printf '%s' "$C_DIM"; tail -n 30 "$log" | sed 's/^/        /'; printf '%s' "$C_OFF"
+  fi
+  rm -f "$log"
+}
+
 have() { command -v "$1" >/dev/null 2>&1; }
 
 # モジュールの go ディレクティブを返す。
@@ -127,12 +150,12 @@ section() { printf '\n%s── %s %s\n' "$C_BLD" "$1" "$C_OFF"; }
 detect_areas() {
   local files base
   base="$(git merge-base HEAD origin/main 2>/dev/null || true)"
-  if [ -z "$base" ]; then echo "agent server frontend sdk rules"; return; fi
+  if [ -z "$base" ]; then echo "agent server frontend sdk rules security"; return; fi
   files="$(git diff --name-only "$base"...HEAD 2>/dev/null; git status --porcelain | awk '{print $2}')"
   if [ -z "$files" ]; then echo ""; return; fi
   # CI 定義・proto・共通設定が動いたら全部
   if grep -qE '^\.github/workflows/|^proto/|^docker-compose|^Makefile|^scripts/verify\.sh' <<<"$files"; then
-    echo "agent server frontend sdk rules"; return
+    echo "agent server frontend sdk rules security"; return
   fi
   local out=""
   grep -qE '^agent/'                    <<<"$files" && out="$out agent"
@@ -140,12 +163,15 @@ detect_areas() {
   grep -qE '^frontend/'                 <<<"$files" && out="$out frontend"
   grep -qE '^sdk/'                      <<<"$files" && out="$out sdk"
   grep -qE '^rules/|^server/migrations/' <<<"$files" && out="$out rules"
+  # security.yml の paths-ignore（docs/**, **/*.md, LICENSE, .gitignore）を
+  # 裏返したもの。それ以外が 1 つでも動けば security.yml は回る。
+  grep -vqE '^docs/|\.md$|^LICENSE$|^\.gitignore$' <<<"$files" && out="$out security"
   echo "$out"
 }
 
 if [ ${#AREAS[@]} -eq 0 ]; then
   if $FORCE_ALL; then
-    AREAS=(agent server frontend sdk rules)
+    AREAS=(agent server frontend sdk rules security)
   else
     read -r -a AREAS <<<"$(detect_areas)"
     if [ ${#AREAS[@]} -eq 0 ]; then
@@ -171,18 +197,94 @@ if wants server; then
     gorun "OpenAPI 同期" server go run ./cmd/openapi-sync -check
     gorun "staticcheck"  server go run "honnef.co/go/tools/cmd/staticcheck@$STATICCHECK_VERSION" ./...
 
+    # golangci-lint。errcheck/gosec/bodyclose 等を .golangci.yml で足してある
+    # 実際のゲートで、CI では --new-from-merge-base=origin/main で「新規・変更
+    # コードだけ」を見ている。既存バックログが大きいので、全体スキャンにすると
+    # 通らない。ここも同じ引数にする。
+    #
+    # ここで `go install` に落とさないこと。ci.yml が公式アクション（ビルド済み
+    # バイナリ）を使っているのは、リンタ側の依存解決が 403 になってコード変更
+    # ゼロで CI が落ちた事故（2026-08-03, unqueryvet v1.5.4）を構造的に消すため。
+    # 同じ穴をローカルに掘り直す意味はない。入っていなければ SKIP。
+    if ! have golangci-lint; then
+      skip "golangci-lint (--new-from-merge-base)" \
+        "golangci-lint がありません（CI は $GOLANGCI_VERSION。リリースバイナリを入れてください）"
+    elif ! git rev-parse --verify -q origin/main >/dev/null; then
+      skip "golangci-lint (--new-from-merge-base)" "origin/main がありません（git fetch origin main）"
+    else
+      # 版の確認。golangci-lint は「自分をビルドした Go」より新しい Go を
+      # 対象にした module を解析できず、`can't load config` で落ちる。
+      # staticcheck の項と同じ故障クラス（ツールが古いだけで、コードは無傷）。
+      # これを FAIL として出すと、直せない赤が毎回並ぶ。原因を名指しして
+      # SKIP にする — 実行していないことは、まとめに必ず残る。
+      gcl_line="$(golangci-lint version 2>&1)"
+      gcl_v="$(grep -oE 'version [0-9]+\.[0-9]+\.[0-9]+' <<<"$gcl_line" | awk '{print $2}')"
+      gcl_go="$(grep -oE 'built with go[0-9.]+' <<<"$gcl_line" | sed 's/built with go//')"
+      mod_go="$(awk '/^go /{print $2; exit}' server/go.mod)"
+      oldest="$(printf '%s\n%s\n' "${gcl_go:-0}" "$mod_go" | sort -V | head -1)"
+
+      if [ "$gcl_go" = "$oldest" ] && [ "$gcl_go" != "$mod_go" ]; then
+        skip "golangci-lint (--new-from-merge-base)" \
+          "手元の golangci-lint は go${gcl_go} ビルドで、server は go${mod_go} 対象（解析できません）。CI と同じ $GOLANGCI_VERSION を入れてください"
+      else
+        [ "v$gcl_v" = "$GOLANGCI_VERSION" ] || \
+          printf '  %s※ golangci-lint %s（CI は %s）。版差で結果がずれることがあります。%s\n' \
+            "$C_YEL" "${gcl_v:-不明}" "$GOLANGCI_VERSION" "$C_OFF"
+        run "golangci-lint (--new-from-merge-base)" server \
+          golangci-lint run --new-from-merge-base=origin/main ./...
+      fi
+    fi
+
     # CI は postgres と nats をサービスコンテナで用意する。無い場合、依存する
     # テストは落ちる。落ちた理由が「DB が無いから」なのか実際の退行なのかを
     # 取り違えないよう、事前に到達性を見て切り分ける。
     if [ -n "${DATABASE_URL:-}" ] && have psql && psql "$DATABASE_URL" -c 'select 1' >/dev/null 2>&1; then
+      # CI は毎回まっさらな postgres に migrations/*.sql を全部流してから
+      # テストする。手元の DB が古いスキーマのままだと、CI で通るテストが
+      # ここでだけ落ちる（あるいはその逆）。同じ手順で追いつかせる。
+      # 適用済みのものは重複エラーになるので、CI と同じく無視する。
+      run "migrations の適用" server bash -c '
+        for f in migrations/*.sql; do psql "$DATABASE_URL" -f "$f" >/dev/null 2>&1 || true; done
+        echo "$(ls migrations/*.sql | wc -l) 本を流しました（既適用分のエラーは無視）。"'
+
+      # TEST_DATABASE_URL は「DB を張るハンドラ統合テスト」を起こすスイッチ。
+      # 設定しないと該当テストは t.Skip() で静かに消える。CI は DATABASE_URL と
+      # 同じ移行済み DB を指しているので、ここでも揃える。**これを外すと
+      # 「ローカルで緑だが CI にしかない検査を通していない」状態そのものになる。**
+      TEST_DB_URL="${TEST_DATABASE_URL:-$DATABASE_URL}"
+
+      # NATS も同じ。NATS_URL が無いと ingestion / scheduler の coverage テストが
+      # 自分から Skip する。到達できないなら、その事実を SKIP として残す。
+      NATS_ENV=()
+      nats_hostport="${NATS_URL:-}"; nats_hostport="${nats_hostport#nats://}"
+      if [ -n "${NATS_URL:-}" ] \
+         && (exec 3<>"/dev/tcp/${nats_hostport%%:*}/${nats_hostport##*:}") 2>/dev/null; then
+        NATS_ENV=("NATS_URL=$NATS_URL")
+      else
+        skip "NATS 依存のテスト（ingestion / scheduler）" \
+          "NATS_URL 未設定 / 到達できません（テスト側が自分で Skip します）"
+      fi
+
       gorun "go test (race, coverage)" server \
+        env "TEST_DATABASE_URL=$TEST_DB_URL" ${NATS_ENV[@]+"${NATS_ENV[@]}"} \
         go test -race -timeout 120s -coverprofile=coverage.out -covermode=atomic ./...
+
+      # ci.yml の「Synthetic injection E2E」。integration タグで上のユニット実行
+      # から外してある別ステップで、作った event を本物の AlertPipeline に流して
+      # Postgres に alert 行が落ちることを見る。ルールが不活性になった／INSERT が
+      # 失敗した、という純ロジックのテストでは見えない壊れ方を捕まえる担当。
+      gorun "Synthetic injection E2E (integration)" server \
+        env ${NATS_ENV[@]+"${NATS_ENV[@]}"} \
+        go test -tags integration -race -timeout 120s ./internal/detection/...
+
       gorun "カバレッジ下限 ${SERVER_COVERAGE_MIN}%" server bash -c "
         pct=\$(go tool cover -func=coverage.out | awk '/^total:/{print \$3}' | tr -d '%')
         echo \"total: \${pct}%\"
         awk \"BEGIN{ exit !(\$pct < $SERVER_COVERAGE_MIN) }\" && { echo '下限割れ'; exit 1; }; exit 0"
     else
-      skip "go test (race, coverage)" "DATABASE_URL 未設定 / DB に接続できません"
+      skip "migrations の適用"                  "DATABASE_URL 未設定 / DB に接続できません"
+      skip "go test (race, coverage)"           "DATABASE_URL 未設定 / DB に接続できません"
+      skip "Synthetic injection E2E (integration)" "DATABASE_URL 未設定 / DB に接続できません"
       skip "カバレッジ下限 ${SERVER_COVERAGE_MIN}%" "テストを実行していないため"
     fi
 
@@ -198,6 +300,106 @@ if wants server; then
         skip "govulncheck" "vuln.go.dev に到達できません"
       fi
     fi
+  fi
+
+  # merge-gate.yml の radar ジョブのうち、**ローカルで意味のある半分**。
+  #
+  # radar は「開いている PR 全部」を新しい main と突き合わせるので、
+  # 全体は GitHub API 無しには再現できない。だがそのうち自分の枝について
+  # の判定 —「この枝が追加した migration 番号が、既に main にもあるか」—
+  # は git だけで出せる。そして自分が踏む衝突は、事実上そこにしかない。
+  #
+  # radar は PR 上では落とさない（他人の PR の番号で自分の PR が赤くなる
+  # のを避けるため）。ここでは自分の枝の話なので落とす。マージしてから
+  # main を赤くするより、push 前に番号を取り直すほうが安い。
+  #
+  # go を必要としないので、go が無い環境でもこれだけは走る。
+  if ! git rev-parse --verify -q origin/main >/dev/null; then
+    skip "migration 番号の衝突（origin/main と）" "origin/main がありません（git fetch origin main）"
+  else
+    run "migration 番号の衝突（origin/main と）" . bash -c '
+      set -uo pipefail
+      base="$(git merge-base HEAD origin/main)"
+      # この枝が追加/リネームした migration
+      added="$(git diff --name-only --diff-filter=AR "$base"...HEAD -- "server/migrations/*.sql" 2>/dev/null || true)"
+      # 未コミットの新規ファイルも見る。push 前に気づくのが目的なので、
+      # まだコミットしていない番号を見逃したら意味が半分になる。
+      added="$added
+$(git status --porcelain -- "server/migrations/*.sql" | awk "/^\\?\\?|^A/ {print \$2}")"
+      added="$(printf "%s\n" "$added" | sed "/^$/d" | sort -u)"
+      if [ -z "$added" ]; then echo "追加された migration はありません。"; exit 0; fi
+
+      main_nums="$(git ls-tree --name-only origin/main server/migrations/ \
+        | sed "s|.*/||; s|_.*||" | sed "/^$/d" | sort -u)"
+
+      rc=0
+      for f in $added; do
+        num="$(basename "$f" | sed "s|_.*||")"
+        if printf "%s\n" "$main_nums" | grep -qx "$num"; then
+          echo "衝突: $(basename "$f") の番号 $num は既に origin/main にあります。"
+          rc=1
+        fi
+      done
+      if [ "$rc" -ne 0 ]; then
+        echo "番号を取り直してください。冪等でない migration をリネームしない原則は docs/debt/P2.md の P2-6 を参照。"
+      else
+        echo "追加した番号 ($(printf "%s " $added | sed "s|server/migrations/||g")) に衝突はありません。"
+      fi
+      exit "$rc"'
+  fi
+
+  # ci.yml の backup-test ジョブ。
+  #
+  # CI は postgres サービスコンテナの使い捨て DB を相手にしているので
+  # restore.sh --force（pg_restore --clean --if-exists）を無造作に流せる。
+  # 手元で同じことを DATABASE_URL に対してやると、開発中の DB を消す。
+  # そこで **その場で使い捨ての DB を作って、そこだけで完結させる**。
+  # 触るのは自分で CREATE して自分で DROP するものだけ。
+  if [ -z "${DATABASE_URL:-}" ]; then
+    skip "バックアップ/リストアの整合性" "DATABASE_URL 未設定"
+  elif ! have psql || ! have pg_dump || ! have pg_restore; then
+    skip "バックアップ/リストアの整合性" "psql / pg_dump / pg_restore のいずれかがありません"
+  elif ! [[ "${DATABASE_URL%%\?*}" =~ ^[a-z+]+://[^/]+/[^/]+$ ]]; then
+    skip "バックアップ/リストアの整合性" "DATABASE_URL から DB 名を切り出せません"
+  else
+    run "バックアップ/リストアの整合性" . bash -c '
+      set -euo pipefail
+      body="${DATABASE_URL%%\?*}"
+      query=""
+      case "$DATABASE_URL" in *\?*) query="?${DATABASE_URL#*\?}" ;; esac
+      prefix="${body%/*}"
+      tmpdb="verify_backup_$$"
+      admin_url="$prefix/postgres$query"
+      tmp_url="$prefix/$tmpdb$query"
+
+      psql "$admin_url" -v ON_ERROR_STOP=1 -q -c "CREATE DATABASE $tmpdb" >/dev/null
+      workdir="$(mktemp -d)"
+      cleanup() {
+        rm -rf "$workdir"
+        psql "$admin_url" -q -c "DROP DATABASE IF EXISTS $tmpdb" >/dev/null 2>&1 || true
+      }
+      trap cleanup EXIT
+
+      # 以下は ci.yml の backup-test と同じ順序・同じ主張。
+      psql "$tmp_url" -v ON_ERROR_STOP=1 -q \
+        -c "CREATE TABLE backup_test (id serial, val text); INSERT INTO backup_test VALUES (1, '"'"'hello'"'"');"
+
+      DATABASE_URL="$tmp_url" BACKUP_DIR="$workdir" BACKUP_DEST=local \
+        bash deploy/backup/backup.sh --local
+
+      ls -la "$workdir"
+      test -f "$workdir"/edr_backup_*.dump.gz
+      test -f "$workdir"/edr_backup_*.dump.gz.sha256
+      ( cd "$workdir" && sha256sum --check edr_backup_*.dump.gz.sha256 )
+
+      psql "$tmp_url" -v ON_ERROR_STOP=1 -q -c "DROP TABLE backup_test;"
+      backup_file="$(ls "$workdir"/edr_backup_*.dump.gz | head -1)"
+      DATABASE_URL="$tmp_url" bash deploy/backup/restore.sh --force "$backup_file"
+
+      # restore.sh は pg_restore の非ゼロ終了を warn に落とすので、
+      # 実際の主張はここ。データが戻っていなければ落ちる。
+      psql "$tmp_url" -t -A -c "SELECT val FROM backup_test WHERE id=1;" | grep -qx hello
+      echo "リストア後のデータを確認しました。"'
   fi
 fi
 
@@ -227,6 +429,46 @@ if wants agent; then
     # `ebpf prevention` を検証できない。ここを黙って飛ばすと、出荷する
     # 構成だけ未検証のまま緑に見える。
     if have clang && [ -r /sys/kernel/btf/vmlinux ] && have bpftool; then
+      # ci.yml の agent-build にある「コミット済みバインディングのドリフト検査」。
+      # NetworkMonitor / FilelessMonitor のバインディングはリポジトリに入って
+      # いて、出荷する Linux エージェント（-tags ebpf）はそれを埋め込む。
+      # .bpf.c を変えて再生成し忘れると、**ビルドは通るのに古いオブジェクトを
+      # 出荷する**。ビルドもテストもこれを見つけられない。
+      #
+      # .o は BTF 由来のデバッグ情報がホストごとに変わるので、C ソースだけから
+      # 決まる .go 側だけを見る（CI と同じ）。生成物はここで書き換えるので、
+      # 検査後に必ず元へ戻す。
+      gorun "コミット済み eBPF バインディングの鮮度" agent bash -c '
+        set -uo pipefail
+        # 判定に使うのは .go だけだが、**書き戻すのは .o も含めた全部**。
+        # .o はコミットされていて、再生成すると BTF 由来の差分で必ず汚れる。
+        # 検査のために作業ツリーを汚したままにしない。
+        gen=(internal/platform/linux/networkmonitor_bpf*.go
+             internal/platform/linux/filelessmonitor_bpf*.go)
+        touched=(internal/platform/linux/networkmonitor_bpf*
+                 internal/platform/linux/filelessmonitor_bpf*)
+        # vmlinux.h は .gitignore 済み。もともと無ければ、作ったものは消す。
+        had_vmlinux=false; [ -f ebpf/vmlinux.h ] && had_vmlinux=true
+        restore() {
+          git checkout -- "${touched[@]}" 2>/dev/null || true
+          $had_vmlinux || rm -f ebpf/vmlinux.h
+        }
+        trap restore EXIT
+        bpftool btf dump file /sys/kernel/btf/vmlinux format c > ebpf/vmlinux.h || exit 1
+        ( cd internal/platform/linux
+          for pair in "NetworkMonitor network_monitor" "FilelessMonitor fileless_monitor"; do
+            set -- $pair
+            GOPACKAGE=linux go run github.com/cilium/ebpf/cmd/bpf2go \
+              -tags ebpf -cc clang \
+              -cflags "-O2 -g -target bpf -D__TARGET_ARCH_x86" \
+              "$1" "../../../ebpf/$2.bpf.c" || exit 1
+          done ) || exit 1
+        if ! git diff --exit-code -- "${gen[@]}"; then
+          echo "コミット済みの bpf2go バインディングが古くなっています。再生成してコミットしてください。"
+          exit 1
+        fi
+        echo "バインディングは .bpf.c と一致しています。"'
+
       gorun "staticcheck (ebpf)" agent \
         go run "honnef.co/go/tools/cmd/staticcheck@$STATICCHECK_VERSION" -tags ebpf ./...
       gorun "staticcheck (ebpf prevention)" agent \
@@ -252,6 +494,23 @@ if wants agent; then
       GOOS=darwin  GOARCH=arm64 go vet -tags "esf prevention" ./...'
 
     if [ "$MODE" = "full" ]; then
+      # ci.yml の agent-build の matrix。上の vet はコンパイラの型検査までで、
+      # リンクは通っていない。出荷する 3 構成が本当にリンクまで通るかは
+      # ビルドしないと分からない（tags は matrix と同じ。Linux だけ ebpf）。
+      gorun "クロスコンパイル（windows/linux/darwin）" agent bash -c '
+        set -e
+        out="$(mktemp -d)"; trap "rm -rf $out" EXIT
+        build() { # <goos> <goarch> <tags> <suffix>
+          GOOS="$1" GOARCH="$2" CGO_ENABLED=0 \
+            go build -tags "$3" -ldflags="-s -w" -o "$out/edr-agent-$1-$2$4" ./cmd/agent/...
+          GOOS="$1" GOARCH="$2" CGO_ENABLED=0 \
+            go build -ldflags="-s -w" -o "$out/edr-watchdog-$1-$2$4" ./cmd/watchdog/...
+        }
+        build windows amd64 ""     .exe
+        build linux   amd64 "ebpf" ""
+        build darwin  arm64 ""     ""
+        ls -la "$out"'
+
       if $LIST_ONLY || curl -sSf -o /dev/null --max-time 10 https://vuln.go.dev/index/db.json 2>/dev/null; then
         gorun "govulncheck" agent go run "golang.org/x/vuln/cmd/govulncheck@$GOVULNCHECK_VERSION" ./...
       else
@@ -312,6 +571,101 @@ if wants sdk; then
   fi
 fi
 
+# ── security ─────────────────────────────────────────────────────
+# security.yml の写し。
+#
+# ここのツールは 1 つも「勝手に入れない」。pytest の項と同じ理由で、
+# 検証スクリプトが開発機に何かを常駐させるべきではない。入っていなければ
+# 入れ方を添えて SKIP する。CI 側はピン留めしたバイナリ / コンテナを毎回
+# 取り直しているので、版が一致するとは限らない点も明示しておく。
+if wants security; then
+  section "security (secret / dependency scanning)"
+
+  # ── gitleaks ────────────────────────────────────────────────
+  # security.yml と同じ引数。--exit-code 1 なので、これは**本物のゲート**。
+  if ! have gitleaks; then
+    skip "Gitleaks（履歴のシークレット走査）" \
+      "gitleaks CLI がありません（CI は v8.30.1 のリリースバイナリを取得して実行）"
+  elif [ ! -f .gitleaks.toml ]; then
+    skip "Gitleaks（履歴のシークレット走査）" ".gitleaks.toml がありません"
+  else
+    run "Gitleaks（履歴のシークレット走査）" . \
+      gitleaks detect --source . --config .gitleaks.toml --redact --no-banner --exit-code 1
+  fi
+
+  # ── Trivy filesystem ────────────────────────────────────────
+  # security.yml の trivy-fs は exit-code を渡していない。つまり CI でも
+  # **落ちない**（SARIF を Security タブに上げるだけ）。ここで落とすと CI より
+  # 厳しくなり写しでなくなるので、同じく報告に留めて中身だけ見せる。
+  if ! have trivy; then
+    skip "Trivy fs（CRITICAL/HIGH・報告のみ）" \
+      "trivy CLI がありません（https://trivy.dev/latest/getting-started/installation/）"
+  else
+    # --exit-code は渡さない（既定の 0 のまま）。渡すと「指摘があった」と
+    # 「trivy 自体が落ちた」がどちらも非ゼロになって区別できない。
+    # 非ゼロ = ツールの失敗、と読める状態にしておく。
+    run_show "Trivy fs（CRITICAL/HIGH・報告のみ。CI もゲートにしていない）" . bash -c '
+      out="$(mktemp)"
+      trap "rm -f $out" EXIT
+      trivy fs --severity CRITICAL,HIGH --ignore-unfixed \
+        --no-progress --quiet --format table --output "$out" . || exit $?
+      if [ -s "$out" ]; then
+        echo "指摘あり（CI もこれではゲートしません。Security タブへの報告のみ）:"
+        cat "$out"
+      else
+        echo "CRITICAL/HIGH の指摘はありません。"
+      fi'
+  fi
+
+  # ── Semgrep / Trivy image は --full でだけ ───────────────────
+  if [ "$MODE" = "full" ]; then
+    # semgrep.yml と同じ 4 ルールセット。--error を外してあるのも CI と同じ
+    # （129 件の未トリアージがあるため、まだゲートに戻せていない）。
+    if ! have semgrep; then
+      skip "Semgrep SAST（報告のみ）" "semgrep CLI がありません（pipx install semgrep）"
+    elif ! curl -sSf -o /dev/null --max-time 10 https://semgrep.dev/ 2>/dev/null; then
+      skip "Semgrep SAST（報告のみ）" "semgrep.dev に到達できません（ルールセットの取得に要る）"
+    else
+      run_show "Semgrep SAST（報告のみ。CI もゲートにしていない）" . \
+        semgrep scan --config p/golang --config p/security-audit \
+                     --config p/secrets --config p/owasp-top-ten \
+                     --quiet --metrics off .
+    fi
+
+    # trivy-image は CI では main への push でしか走らない（PR では回さない）。
+    # ローカルの --full はそれより広いが、ここで見えるほうが「main に入って
+    # から初めて赤くなる」より安い。
+    if ! have trivy; then
+      skip "Trivy image（3 イメージ・報告のみ）" "trivy CLI がありません"
+    elif ! have docker || ! docker info >/dev/null 2>&1; then
+      skip "Trivy image（3 イメージ・報告のみ）" "docker デーモンに接続できません"
+    else
+      run_show "Trivy image（3 イメージ・報告のみ。CI は main への push でのみ実行）" . bash -c '
+        set -u
+        rc=0
+        scan() { # <名前> <context> <dockerfile> <target>
+          local tag="edr-$1:scan"
+          if [ -n "$4" ]; then
+            docker build -q --target "$4" -f "$3" -t "$tag" "$2" >/dev/null || return 1
+          else
+            docker build -q -f "$3" -t "$tag" "$2" >/dev/null || return 1
+          fi
+          echo "── $1"
+          trivy image --severity CRITICAL,HIGH --ignore-unfixed --exit-code 0 \
+            --no-progress --quiet --format table "$tag"
+        }
+        scan server-api    . server/Dockerfile   api       || rc=1
+        scan server-ingest . server/Dockerfile   ingestion || rc=1
+        scan frontend      frontend frontend/Dockerfile "" || rc=1
+        [ "$rc" -eq 0 ] || echo "イメージのビルドに失敗したものがあります。"
+        exit "$rc"'
+    fi
+  else
+    skip "Semgrep SAST"  "--full でのみ実行（ルールセットの取得に時間がかかる）"
+    skip "Trivy image"   "--full でのみ実行（3 イメージのビルドに時間がかかる）"
+  fi
+fi
+
 # ── まとめ ───────────────────────────────────────────────────────
 printf '\n%s── まとめ %s\n' "$C_BLD" "$C_OFF"
 printf '  %sPASS %d%s   %sFAIL %d%s   %sSKIP %d%s\n' \
@@ -327,12 +681,16 @@ fi
 
 cat <<'NOTE'
 
-  そもそもこのスクリプトの対象外（CI 専用。ローカルでは再現しない）:
-    - Trivy のファイルシステム / イメージスキャン（trivy と docker が要る）
-    - Semgrep SAST（semgrep.dev からルールセットを取得する）
-    - Gitleaks（リリースバイナリを取得する）
-    - Backup & Restore 整合性テスト（postgres サービスが要る）
-    - Open PR collision radar（GitHub API を叩く）
+  そもそもこのスクリプトの対象外（ローカルでは原理的に再現しない）:
+    - Open PR collision radar の「他人の PR」の部分（GitHub API が要る）
+      自分の枝が追加した番号と main の突き合わせは server の項で実行する。
+      落ちるのは「マージすると main が赤くなる」経路だけで、それは自分で
+      直せる側。他人の開いている PR 同士の衝突は main への push で出る。
+    - macOS ESF のネイティブビルド（macOS ホストと EndpointSecurity SDK が要る）
+      Linux では verify-prevention-build.yml を手動起動するしかない。
+    - Playwright E2E（ci.yml ではなく integration.yml の夜間実行）
+    - SARIF の GitHub Security タブへのアップロード、Codecov への送信、
+      カバレッジ表の PR コメント（どれもゲートではなく報告経路）
 NOTE
 
 [ "$N_FAIL" -eq 0 ]

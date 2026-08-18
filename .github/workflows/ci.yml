@@ -99,10 +99,21 @@ jobs:
           # 実行しないので、触るたびに全ジョブを回すのは消費の無駄になる
           # （Actions の予算はこのファイルの冒頭に書いたとおり実際に枯渇させた）。
           # ただし scripts/verify.sh だけは、このワークフローと
-          # merge-gate.yml のゲートを 1:1 で再現したもの。**ここのジョブや
-          # ステップを足し引きしたら、あちらも合わせて直すこと。** 片方だけ
-          # 変わると「ローカルで緑なのに CI で落ちる」、あるいはもっと悪い
-          # 「ローカルで緑だが CI にしか無い検査を通していない」状態になる。
+          # merge-gate.yml / security.yml のゲートを 1:1 で再現したもの。
+          # **ここのジョブやステップを足し引きしたら、あちらも合わせて直す
+          # こと。** 片方だけ変わると「ローカルで緑なのに CI で落ちる」、
+          # あるいはもっと悪い「ローカルで緑だが CI にしか無い検査を通して
+          # いない」状態になる。
+          #
+          # 追従は目視で確認しないこと。ステップ名を機械的に列挙して 1 行ずつ
+          # 消し込む。初版はこの手順を踏まなかったために 7 件取りこぼした
+          # （golangci-lint 丸ごと、TEST_DATABASE_URL / NATS_URL、
+          # integration タグの E2E、migration 適用、eBPF バインディングの
+          # 鮮度検査、クロスコンパイル）。詳細は
+          # docs/CI・デプロイ運用とコスト最適化.md の 6-1-1。
+          #
+          #   awk '/^  [a-z][a-z0-9_-]*:[ \t]*$/ {print "JOB " $1}
+          #        /^      - name: / {print "  " $0}' .github/workflows/ci.yml
           all=false
           if has '^\.github/workflows/' || has '^proto/' || has '^docker-compose' || has '^Makefile'; then
             all=true

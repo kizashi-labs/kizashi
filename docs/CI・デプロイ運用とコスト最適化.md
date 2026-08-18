@@ -333,12 +333,12 @@ main はブランチ保護なしなので、CI 赤でも `gh pr merge --squash` 
 
 ```sh
 scripts/verify.sh              # 変更した領域だけを高速に
-scripts/verify.sh --full       # ビルドと govulncheck まで
+scripts/verify.sh --full       # ビルド・govulncheck・Semgrep・イメージ走査まで
 scripts/verify.sh --all        # 変更に関係なく全領域
 scripts/verify.sh --list       # 実行せず、何が走るかだけ表示
 ```
 
-`scripts/verify.sh` は `ci.yml` / `merge-gate.yml` のゲートを 1:1 で再現する
+`scripts/verify.sh` は `ci.yml` / `merge-gate.yml` / `security.yml` のゲートを 1:1 で再現する
 （2026-08-18 追加）。以前ここには `go build` / `go test` / `go vet` / `gofmt -l` と書いてあったが、
 それでは **staticcheck・OpenAPI 同期・カバレッジ下限・frontend の lint/型/mock guard/ビルド・
 検知ルール検証・SDK テストが抜ける**。「ローカルで緑だから」の根拠としては弱すぎた。
@@ -348,9 +348,41 @@ scripts/verify.sh --list       # 実行せず、何が走るかだけ表示
 DB・`yara`・`bpftool`・`pytest` が無い環境では、それぞれサーバのテスト／検知ルール検証／
 `ebpf prevention` の検証／Python SDK テストが飛ぶ。
 
-Trivy・Semgrep・Gitleaks・バックアップ復元テスト・PR collision radar は CI 専用で、
-このスクリプトの対象外（実行のたびに末尾で列挙される）。予算復旧後、溜まった変更に対して
-これらが初めて走る点は意識しておく。
+#### 6-1-1. 初版に開いていた穴（2026-08-18 に塞いだ）
+
+初版は「ci.yml の 1:1 の写し」と称していたが、実際には ci.yml のステップを 1 つずつ突き合わせて
+いなかった。突き合わせた結果、**ゲートとして CI にあるのにローカルに無いもの**が 7 件見つかった。
+どれも「ローカルで緑だが、CI にしか無い検査を通していない」側の穴で、いちばん危ない種類:
+
+| 抜けていたもの | なぜ効くか |
+|---|---|
+| `golangci-lint --new-from-merge-base=origin/main` | errcheck/gosec/bodyclose 等の実ゲート。丸ごと無かった |
+| `migrations/*.sql` の適用 | CI は毎回まっさらな DB に全部流してからテストする。手元が古いスキーマだと結論が食い違う |
+| `TEST_DATABASE_URL` | DB を張るハンドラ統合テストのスイッチ。未設定だと該当テストが `t.Skip()` で**静かに**消える |
+| `NATS_URL` | 同上（ingestion / scheduler の coverage テスト） |
+| Synthetic injection E2E（`-tags integration`） | ルールが不活性・INSERT 失敗という「純ロジックのテストに見えない壊れ方」の担当 |
+| コミット済み eBPF バインディングの鮮度検査 | `.bpf.c` を変えて再生成し忘れると、**ビルドは通るのに古いオブジェクトを出荷する** |
+| クロスコンパイル 3 構成 | `go vet` は型検査まで。リンクが通るかは別の話 |
+
+教訓は手順のほう: **「写した」と書くときは、写し元のステップ一覧を機械的に出して 1 行ずつ消し込む。**
+記憶で書くと、いちばん大事な差分（`t.Skip()` で静かに消える種類）から落ちる。
+
+#### 6-1-2. いまローカルで回るもの／回らないもの
+
+Gitleaks（`.gitleaks.toml` を適用した実ゲート）、Trivy fs、Semgrep、Trivy イメージ走査、
+バックアップ復元テスト、そして collision radar のうち**自分の枝の migration 番号**の突き合わせは、
+`security` 領域および `server` 領域として**ローカルでも回る**ようになった。
+
+- バックアップ復元テストは使い捨ての DB を自分で `CREATE` して自分で `DROP` する。
+  `restore.sh` は `pg_restore --clean --if-exists` なので、`DATABASE_URL` が指す DB に
+  そのまま流すと開発中のスキーマを消す。そこは踏まない作りにしてある。
+- Trivy fs と Semgrep は**報告のみ**。security.yml 側も `exit-code` を渡しておらず
+  ゲートになっていないので、ここで落とすと写しでなくなる。結果は毎回表示する。
+- Semgrep とイメージ走査は `--full` のときだけ（ルールセット取得と 3 イメージのビルドが重い）。
+
+CI 専用のまま残るのは、collision radar のうち**他人の開いている PR** を見る部分（GitHub API）、
+macOS ESF のネイティブビルド、夜間の Playwright E2E、報告経路（SARIF・Codecov・PR コメント）。
+実行のたびに末尾で列挙される。予算復旧後、溜まった変更に対してこれらが初めて走る点は意識しておく。
 
 - 低リスク変更（特に **CI が一切コンパイルしない部分**＝build タグ付きコード・`.bpf.c` 等）は安全度が高い。
 - Linux 実行前防御 Ph1〜Ph6（`prevention` タグ＋`.bpf.c`、ci.yml はタグ無しビルドのため非コンパイル）は
