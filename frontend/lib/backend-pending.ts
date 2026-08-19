@@ -84,6 +84,7 @@ export const BACKEND_PENDING_ROUTES = new Set<string>([
   // 出していました。** （この註に経路を引用符で書かないこと ——
   // 判定はこの Set の範囲にある引用符付きの文字列を全部拾います）
   '/admin/identity-risk',
+  '/admin/integrations/ldap',
   '/admin/log-forwarding',
   '/admin/marketplace',
   '/admin/maturity-model',
