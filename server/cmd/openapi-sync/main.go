@@ -206,8 +206,25 @@ func CollectRoutes(src string) []Route {
 		return nil, false
 	}
 
+	// ルート登録がヘルパ関数へ切り出されている場合、その仮引数は
+	// ルート変数からの連鎖では解決できない。router.go には
+	//   s.registerPlatformUpgradeRoutes(protected)
+	//   func (s *Server) registerPlatformUpgradeRoutes(protected *gin.RouterGroup)
+	// という形があり、admin/remediation・admin/platform・threat-intel/darkweb の
+	// 23 登録がまるごと抽出から漏れていた（lookup 失敗は continue で捨てられる
+	// ので件数にも出ない）。呼び出し側の実引数を仮引数に束縛して解決する。
+	// ヘルパ関数の仮引数を束縛するとき、実引数（例: protected）は別の関数で
+	// 定義されていてスコープからは消えている。ファイル全体の定義表を別に持つ。
+	allGroups := map[string]*groupInfo{}
+	callArg := map[string]string{}
+	for _, m := range regexp.MustCompile(`s\.(\w+)\(\s*(\w+)\s*\)`).FindAllStringSubmatch(src, -1) {
+		callArg[m[1]] = m[2]
+	}
+	funcParam := regexp.MustCompile(`^func \(s \*Server\) (\w+)\((\w+) \*gin\.RouterGroup`)
+
 	seen := map[string]bool{}
 	var out []Route
+	var unresolved []string
 
 	for _, raw := range strings.Split(src, "\n") {
 		// コメントアウトされた登録を拾わない。router.go には
@@ -215,6 +232,17 @@ func CollectRoutes(src string) []Route {
 		// これを数えると存在しないパスのスタブを生成してしまう。
 		line := stripLineComment(raw)
 		switch {
+		case funcParam.MatchString(line):
+			m := funcParam.FindStringSubmatch(line)
+			if arg, ok := callArg[m[1]]; ok {
+				g, ok2 := lookup(arg)
+				if !ok2 {
+					g, ok2 = allGroups[arg]
+				}
+				if ok2 {
+					scopes[len(scopes)-1][m[2]] = &groupInfo{prefix: g.prefix, authReq: g.authReq}
+				}
+			}
 		case groupRe.MatchString(line):
 			m := groupRe.FindStringSubmatch(line)
 			parent := m[2]
@@ -222,10 +250,12 @@ func CollectRoutes(src string) []Route {
 				parent = parent[i+1:] // s.router → router
 			}
 			if pg, ok := lookup(parent); ok {
-				scopes[len(scopes)-1][m[1]] = &groupInfo{
+				gi := &groupInfo{
 					prefix:  joinPath(pg.prefix, m[3]),
 					authReq: pg.authReq || strings.Contains(m[4], "authMiddleware"),
 				}
+				scopes[len(scopes)-1][m[1]] = gi
+				allGroups[m[1]] = gi
 			}
 		case useRe.MatchString(line):
 			m := useRe.FindStringSubmatch(line)
@@ -236,6 +266,9 @@ func CollectRoutes(src string) []Route {
 			m := routeRe.FindStringSubmatch(line)
 			g, ok := lookup(m[1])
 			if !ok {
+				// 解決できない登録は「実装にあるのに仕様書に載らない」乖離を生む。
+				// 黙って捨てると検査自体が嘘をつくので数える。
+				unresolved = append(unresolved, m[1]+" "+m[2]+" "+m[3])
 				continue
 			}
 			p := toOpenAPIPath(joinPath(g.prefix, m[3]))
@@ -252,12 +285,24 @@ func CollectRoutes(src string) []Route {
 			})
 		}
 
-		for _, c := range raw {
+		// 波括弧はコードのものだけ数える。文字列やコメントの中の { } まで数えると
+		// スコープがずれ、以降のグループ定義が失われる。router.go には
+		// `func(c *gin.Context) { c.Set(...)` を含む文字列が 18 箇所あり、
+		// admin/remediation・admin/platform・threat-intel/darkweb の 3 グループ
+		// 23 登録が、この理由で丸ごと抽出から漏れていた。
+		for _, c := range stripStringsAndComments(raw) {
 			if c == '{' {
 				scopes = append(scopes, map[string]*groupInfo{})
 			} else if c == '}' && len(scopes) > 1 {
 				scopes = scopes[:len(scopes)-1]
 			}
+		}
+	}
+
+	if len(unresolved) > 0 {
+		fmt.Fprintf(os.Stderr, "!! グループを解決できず抽出から漏れた登録が %d 件あります。\n", len(unresolved))
+		for _, u := range unresolved {
+			fmt.Fprintf(os.Stderr, "!!   %s\n", u)
 		}
 	}
 
@@ -315,4 +360,39 @@ func methodOrder(m string) int {
 		return r
 	}
 	return 99
+}
+
+// stripStringsAndComments は Go ソースの 1 行から、文字列・ルーンリテラル・
+// 行コメントの中身を空白に置き換える。波括弧の対応を数える対象を、コード上の
+// { } だけに限るため。
+func stripStringsAndComments(line string) string {
+	out := make([]rune, 0, len(line))
+	var quote rune
+	esc := false
+	rs := []rune(line)
+	for i := 0; i < len(rs); i++ {
+		c := rs[i]
+		if quote != 0 {
+			switch {
+			case esc:
+				esc = false
+			case c == '\\':
+				esc = true
+			case c == quote:
+				quote = 0
+			}
+			out = append(out, ' ')
+			continue
+		}
+		if c == '"' || c == '\'' || c == '`' {
+			quote = c
+			out = append(out, ' ')
+			continue
+		}
+		if c == '/' && i+1 < len(rs) && rs[i+1] == '/' {
+			break
+		}
+		out = append(out, c)
+	}
+	return string(out)
 }

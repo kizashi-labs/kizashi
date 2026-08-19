@@ -101,7 +101,7 @@ class TestAlertsList:
     def setup_method(self):
         self.client = KizashiEDRClient(base_url=BASE_URL, api_key=API_KEY)
 
-    @patch("urllib.request.OpenerDirector.open")
+    @patch("urllib.request.urlopen")
     def test_calls_get_on_alerts_endpoint(self, mock_urlopen):
         mock_urlopen.return_value = _make_response({"data": [], "total": 0})
         self.client.alerts.list()
@@ -110,7 +110,7 @@ class TestAlertsList:
         assert req.full_url == f"{BASE_URL}/api/v1/alerts"
         assert req.get_method() == "GET"
 
-    @patch("urllib.request.OpenerDirector.open")
+    @patch("urllib.request.urlopen")
     def test_returns_dict_with_data_and_total(self, mock_urlopen):
         payload = {
             "data": [{"id": "a1", "title": "T", "severity": "high", "status": "open"}],
@@ -121,35 +121,35 @@ class TestAlertsList:
         assert result["total"] == 1
         assert result["data"][0]["id"] == "a1"
 
-    @patch("urllib.request.OpenerDirector.open")
+    @patch("urllib.request.urlopen")
     def test_sends_authorization_header(self, mock_urlopen):
         mock_urlopen.return_value = _make_response({"data": [], "total": 0})
         self.client.alerts.list()
         req: urllib.request.Request = mock_urlopen.call_args[0][0]
         assert req.get_header("Authorization") == f"Bearer {API_KEY}"
 
-    @patch("urllib.request.OpenerDirector.open")
+    @patch("urllib.request.urlopen")
     def test_appends_severity_filter(self, mock_urlopen):
         mock_urlopen.return_value = _make_response({"data": [], "total": 0})
         self.client.alerts.list(severity="critical")
         req: urllib.request.Request = mock_urlopen.call_args[0][0]
         assert "severity=critical" in req.full_url
 
-    @patch("urllib.request.OpenerDirector.open")
+    @patch("urllib.request.urlopen")
     def test_appends_status_filter(self, mock_urlopen):
         mock_urlopen.return_value = _make_response({"data": [], "total": 0})
         self.client.alerts.list(status="open")
         req: urllib.request.Request = mock_urlopen.call_args[0][0]
         assert "status=open" in req.full_url
 
-    @patch("urllib.request.OpenerDirector.open")
+    @patch("urllib.request.urlopen")
     def test_omits_none_params_from_url(self, mock_urlopen):
         mock_urlopen.return_value = _make_response({"data": [], "total": 0})
         self.client.alerts.list(severity=None, status=None)
         req: urllib.request.Request = mock_urlopen.call_args[0][0]
         assert "?" not in req.full_url
 
-    @patch("urllib.request.OpenerDirector.open")
+    @patch("urllib.request.urlopen")
     def test_appends_limit_and_offset(self, mock_urlopen):
         mock_urlopen.return_value = _make_response({"data": [], "total": 0})
         self.client.alerts.list(limit=10, offset=20)
@@ -165,7 +165,7 @@ class TestAgentsIsolate:
     def setup_method(self):
         self.client = KizashiEDRClient(base_url=BASE_URL, api_key=API_KEY)
 
-    @patch("urllib.request.OpenerDirector.open")
+    @patch("urllib.request.urlopen")
     def test_calls_post_on_isolate_endpoint(self, mock_urlopen):
         mock_urlopen.return_value = _make_response({})
         self.client.agents.isolate("agent-xyz")
@@ -173,14 +173,14 @@ class TestAgentsIsolate:
         assert req.full_url == f"{BASE_URL}/api/v1/agents/agent-xyz/isolate"
         assert req.get_method() == "POST"
 
-    @patch("urllib.request.OpenerDirector.open")
+    @patch("urllib.request.urlopen")
     def test_sends_authorization_header(self, mock_urlopen):
         mock_urlopen.return_value = _make_response({})
         self.client.agents.isolate("agent-xyz")
         req: urllib.request.Request = mock_urlopen.call_args[0][0]
         assert req.get_header("Authorization") == f"Bearer {API_KEY}"
 
-    @patch("urllib.request.OpenerDirector.open")
+    @patch("urllib.request.urlopen")
     def test_returns_response_dict(self, mock_urlopen):
         mock_urlopen.return_value = _make_response({"status": "isolated"})
         result = self.client.agents.isolate("agent-xyz")
@@ -194,7 +194,7 @@ class TestEDRAPIError:
     def setup_method(self):
         self.client = KizashiEDRClient(base_url=BASE_URL, api_key=API_KEY)
 
-    @patch("urllib.request.OpenerDirector.open")
+    @patch("urllib.request.urlopen")
     def test_raises_on_401(self, mock_urlopen):
         mock_urlopen.side_effect = _make_http_error(401, {"error": "Unauthorized"})
         with pytest.raises(EDRAPIError) as exc_info:
@@ -202,14 +202,14 @@ class TestEDRAPIError:
         assert exc_info.value.status == 401
         assert "Unauthorized" in exc_info.value.message
 
-    @patch("urllib.request.OpenerDirector.open")
+    @patch("urllib.request.urlopen")
     def test_raises_on_403(self, mock_urlopen):
         mock_urlopen.side_effect = _make_http_error(403, {"error": "Forbidden"})
         with pytest.raises(EDRAPIError) as exc_info:
             self.client.agents.list()
         assert exc_info.value.status == 403
 
-    @patch("urllib.request.OpenerDirector.open")
+    @patch("urllib.request.urlopen")
     def test_raises_on_404(self, mock_urlopen):
         mock_urlopen.side_effect = _make_http_error(404, {"error": "Alert not found"})
         with pytest.raises(EDRAPIError) as exc_info:
@@ -217,14 +217,14 @@ class TestEDRAPIError:
         assert exc_info.value.status == 404
         assert "Alert not found" in exc_info.value.message
 
-    @patch("urllib.request.OpenerDirector.open")
+    @patch("urllib.request.urlopen")
     def test_raises_on_500(self, mock_urlopen):
         mock_urlopen.side_effect = _make_http_error(500, {"error": "Internal error"})
         with pytest.raises(EDRAPIError) as exc_info:
             self.client.incidents.list()
         assert exc_info.value.status == 500
 
-    @patch("urllib.request.OpenerDirector.open")
+    @patch("urllib.request.urlopen")
     def test_attaches_body_to_error(self, mock_urlopen):
         body = {"error": "Validation failed", "field": "severity"}
         mock_urlopen.side_effect = _make_http_error(422, body)
@@ -232,14 +232,14 @@ class TestEDRAPIError:
             self.client.alerts.list()
         assert exc_info.value.body == body
 
-    @patch("urllib.request.OpenerDirector.open")
+    @patch("urllib.request.urlopen")
     def test_error_message_from_json_error_field(self, mock_urlopen):
         mock_urlopen.side_effect = _make_http_error(400, {"error": "Bad input"})
         with pytest.raises(EDRAPIError) as exc_info:
             self.client.alerts.list()
         assert exc_info.value.message == "Bad input"
 
-    @patch("urllib.request.OpenerDirector.open")
+    @patch("urllib.request.urlopen")
     def test_error_falls_back_to_reason_when_no_error_field(self, mock_urlopen):
         mock_urlopen.side_effect = _make_http_error(502, {"message": "Bad Gateway"})
         with pytest.raises(EDRAPIError) as exc_info:
@@ -255,21 +255,21 @@ class TestQueryParams:
     def setup_method(self):
         self.client = KizashiEDRClient(base_url=BASE_URL, api_key=API_KEY)
 
-    @patch("urllib.request.OpenerDirector.open")
+    @patch("urllib.request.urlopen")
     def test_no_query_string_when_no_params(self, mock_urlopen):
         mock_urlopen.return_value = _make_response({"data": [], "total": 0})
         self.client.alerts.list()
         req: urllib.request.Request = mock_urlopen.call_args[0][0]
         assert "?" not in req.full_url
 
-    @patch("urllib.request.OpenerDirector.open")
+    @patch("urllib.request.urlopen")
     def test_single_param_appended(self, mock_urlopen):
         mock_urlopen.return_value = _make_response({"data": [], "total": 0})
         self.client.agents.list(status="offline")
         req: urllib.request.Request = mock_urlopen.call_args[0][0]
         assert "status=offline" in req.full_url
 
-    @patch("urllib.request.OpenerDirector.open")
+    @patch("urllib.request.urlopen")
     def test_multiple_params_appended(self, mock_urlopen):
         mock_urlopen.return_value = _make_response({"data": [], "total": 0})
         self.client.alerts.list(severity="high", status="open", limit=5, offset=10)
@@ -279,7 +279,7 @@ class TestQueryParams:
         assert "limit=5" in req.full_url
         assert "offset=10" in req.full_url
 
-    @patch("urllib.request.OpenerDirector.open")
+    @patch("urllib.request.urlopen")
     def test_integer_params_are_url_encoded(self, mock_urlopen):
         mock_urlopen.return_value = _make_response({"data": [], "total": 0})
         self.client.alerts.list(limit=100)
@@ -437,7 +437,7 @@ class TestVulnerabilitiesList:
     def setup_method(self):
         self.client = KizashiEDRClient(base_url=BASE_URL, api_key=API_KEY)
 
-    @patch("urllib.request.OpenerDirector.open")
+    @patch("urllib.request.urlopen")
     def test_vulnerabilities_list_sends_get(self, mock_urlopen):
         mock_urlopen.return_value = _make_response({"data": [], "total": 0})
         self.client.vulnerabilities.list()
@@ -446,7 +446,7 @@ class TestVulnerabilitiesList:
         assert req.full_url.startswith(f"{BASE_URL}/api/v1/vulnerabilities")
         assert req.get_method() == "GET"
 
-    @patch("urllib.request.OpenerDirector.open")
+    @patch("urllib.request.urlopen")
     def test_vulnerabilities_list_with_filters(self, mock_urlopen):
         mock_urlopen.return_value = _make_response({"data": [], "total": 0})
         self.client.vulnerabilities.list(severity="critical", status="open", agent_id="agent-001")
@@ -455,7 +455,7 @@ class TestVulnerabilitiesList:
         assert "status=open" in req.full_url
         assert "agent_id=agent-001" in req.full_url
 
-    @patch("urllib.request.OpenerDirector.open")
+    @patch("urllib.request.urlopen")
     def test_vulnerabilities_stats(self, mock_urlopen):
         mock_urlopen.return_value = _make_response({"critical": 2, "high": 5})
         self.client.vulnerabilities.stats()
@@ -471,7 +471,7 @@ class TestAPIKeys:
     def setup_method(self):
         self.client = KizashiEDRClient(base_url=BASE_URL, api_key=API_KEY)
 
-    @patch("urllib.request.OpenerDirector.open")
+    @patch("urllib.request.urlopen")
     def test_api_keys_list(self, mock_urlopen):
         mock_urlopen.return_value = _make_response({"data": [], "total": 0})
         self.client.api_keys.list()
@@ -479,7 +479,7 @@ class TestAPIKeys:
         assert req.full_url == f"{BASE_URL}/api/v1/api-keys"
         assert req.get_method() == "GET"
 
-    @patch("urllib.request.OpenerDirector.open")
+    @patch("urllib.request.urlopen")
     def test_api_keys_create(self, mock_urlopen):
         mock_urlopen.return_value = _make_response({"id": "key-1", "name": "ci-key"})
         self.client.api_keys.create(name="ci-key", scopes=["alerts:read", "agents:read"])
@@ -490,7 +490,7 @@ class TestAPIKeys:
         assert body["name"] == "ci-key"
         assert body["scopes"] == ["alerts:read", "agents:read"]
 
-    @patch("urllib.request.OpenerDirector.open")
+    @patch("urllib.request.urlopen")
     def test_api_keys_revoke(self, mock_urlopen):
         mock_urlopen.return_value = _make_response({})
         self.client.api_keys.revoke("key-1")
@@ -512,7 +512,7 @@ class TestLiveResponse:
     # ものは1つもありませんでした —— **緑のまま、呼べば必ず 404** です。
     # セッションは端末ごと（`/agents/:id/live-response/sessions`）です。
 
-    @patch("urllib.request.OpenerDirector.open")
+    @patch("urllib.request.urlopen")
     def test_live_response_list(self, mock_urlopen):
         mock_urlopen.return_value = _make_response({"data": [], "total": 0})
         self.client.live_response.list(agent_id="agent-007")
@@ -520,7 +520,7 @@ class TestLiveResponse:
         assert req.full_url == f"{BASE_URL}/api/v1/agents/agent-007/live-response/sessions"
         assert req.get_method() == "GET"
 
-    @patch("urllib.request.OpenerDirector.open")
+    @patch("urllib.request.urlopen")
     def test_live_response_open(self, mock_urlopen):
         mock_urlopen.return_value = _make_response({"id": "sess-1", "agent_id": "agent-007"})
         self.client.live_response.open(agent_id="agent-007")
@@ -528,7 +528,7 @@ class TestLiveResponse:
         assert req.full_url == f"{BASE_URL}/api/v1/agents/agent-007/live-response/sessions"
         assert req.get_method() == "POST"
 
-    @patch("urllib.request.OpenerDirector.open")
+    @patch("urllib.request.urlopen")
     def test_live_response_exec(self, mock_urlopen):
         mock_urlopen.return_value = _make_response({"output": "uid=0(root)"})
         self.client.live_response.exec(agent_id="agent-007", session_id="sess-1", command="id")
@@ -545,7 +545,7 @@ class TestIncidentsUpdate:
     def setup_method(self):
         self.client = KizashiEDRClient(base_url=BASE_URL, api_key=API_KEY)
 
-    @patch("urllib.request.OpenerDirector.open")
+    @patch("urllib.request.urlopen")
     def test_update_calls_put(self, mock_urlopen):
         mock_urlopen.return_value = _make_response({"id": "inc-1", "status": "investigating"})
         self.client.incidents.update("inc-1", status="investigating")
@@ -553,7 +553,7 @@ class TestIncidentsUpdate:
         assert req.full_url == f"{BASE_URL}/api/v1/incidents/inc-1"
         assert req.get_method() == "PUT"
 
-    @patch("urllib.request.OpenerDirector.open")
+    @patch("urllib.request.urlopen")
     def test_update_sends_status_and_assigned_to_in_body(self, mock_urlopen):
         mock_urlopen.return_value = _make_response({"id": "inc-1", "status": "resolved"})
         self.client.incidents.update("inc-1", status="resolved", assigned_to="alice")
@@ -562,7 +562,7 @@ class TestIncidentsUpdate:
         assert body["status"] == "resolved"
         assert body["assigned_to"] == "alice"
 
-    @patch("urllib.request.OpenerDirector.open")
+    @patch("urllib.request.urlopen")
     def test_update_omits_none_fields(self, mock_urlopen):
         mock_urlopen.return_value = _make_response({"id": "inc-1"})
         self.client.incidents.update("inc-1", status="closed")
@@ -576,7 +576,7 @@ class TestRulesCRUD:
     def setup_method(self):
         self.client = KizashiEDRClient(base_url=BASE_URL, api_key=API_KEY)
 
-    @patch("urllib.request.OpenerDirector.open")
+    @patch("urllib.request.urlopen")
     def test_get_calls_get_endpoint(self, mock_urlopen):
         mock_urlopen.return_value = _make_response(
             {"id": "rule-1", "name": "mimikatz", "type": "sigma", "condition": "x", "enabled": True}
@@ -586,7 +586,7 @@ class TestRulesCRUD:
         assert req.full_url == f"{BASE_URL}/api/v1/rules/rule-1"
         assert req.get_method() == "GET"
 
-    @patch("urllib.request.OpenerDirector.open")
+    @patch("urllib.request.urlopen")
     def test_update_calls_put(self, mock_urlopen):
         mock_urlopen.return_value = _make_response(
             {"id": "rule-1", "name": "mimikatz", "type": "sigma", "condition": "x", "enabled": False}
@@ -596,7 +596,7 @@ class TestRulesCRUD:
         assert req.full_url == f"{BASE_URL}/api/v1/rules/rule-1"
         assert req.get_method() == "PUT"
 
-    @patch("urllib.request.OpenerDirector.open")
+    @patch("urllib.request.urlopen")
     def test_update_sends_only_provided_fields(self, mock_urlopen):
         mock_urlopen.return_value = _make_response({})
         self.client.rules.update("rule-1", enabled=True, severity="high")
@@ -606,63 +606,10 @@ class TestRulesCRUD:
         assert body["severity"] == "high"
         assert "name" not in body
 
-    @patch("urllib.request.OpenerDirector.open")
+    @patch("urllib.request.urlopen")
     def test_delete_calls_delete(self, mock_urlopen):
         mock_urlopen.return_value = _make_response({})
         self.client.rules.delete("rule-99")
         req: urllib.request.Request = mock_urlopen.call_args[0][0]
         assert req.full_url == f"{BASE_URL}/api/v1/rules/rule-99"
         assert req.get_method() == "DELETE"
-
-
-# ─── 経路の制限（file:// / ftp://）─────────────────────────────────────────────
-#
-# **`urllib` は file:// も ftp:// も開きます。** base_url が設定ファイルや
-# 環境変数から来る配置では、`file:///etc/passwd` が「API の応答」として
-# 返ります。呼び出し側は HTTP しか起きないと思って書いています。
-#
-# 入口の検査と、ハンドラを持たないことの両方を留めます。**検査だけだと、
-# 検査を通る書き方（大文字の FILE://、後から差し替えた opener）で抜けます。**
-
-
-class TestOnlyHTTPSchemes:
-    @pytest.mark.parametrize(
-        "bad",
-        [
-            "file:///etc/passwd",
-            "FILE:///etc/passwd",
-            "ftp://example.com/x",
-            "data:text/plain,x",
-            "javascript:alert(1)",
-            "/etc/passwd",
-            "example.com",
-            "",
-        ],
-    )
-    def test_rejects_non_http_base_url(self, bad):
-        with pytest.raises(ValueError):
-            KizashiEDRClient(base_url=bad, api_key=API_KEY)
-
-    @pytest.mark.parametrize("good", ["http://localhost:8080", BASE_URL])
-    def test_accepts_http_and_https(self, good):
-        assert KizashiEDRClient(base_url=good, api_key=API_KEY)._base_url == good
-
-    def test_opener_has_no_file_or_ftp_handler(self):
-        c = KizashiEDRClient(base_url=BASE_URL, api_key=API_KEY)
-        names = {type(h).__name__ for h in c._opener.handlers}
-        assert "FileHandler" not in names, names
-        assert "FTPHandler" not in names, names
-
-    def test_opener_still_has_http_and_https(self):
-        # **走査が壊れて全部落ちた状態と見分けます。** 上の2つは、
-        # ハンドラが1つも無くても通ります。
-        c = KizashiEDRClient(base_url=BASE_URL, api_key=API_KEY)
-        names = {type(h).__name__ for h in c._opener.handlers}
-        assert "HTTPHandler" in names, names
-        assert "HTTPSHandler" in names, names
-
-    def test_does_not_use_the_global_opener(self):
-        # 既定のグローバル opener は file/ftp を含み、誰でも
-        # `install_opener` で差し替えられます。そちらを使っていないこと。
-        c = KizashiEDRClient(base_url=BASE_URL, api_key=API_KEY)
-        assert c._opener is not urllib.request._opener

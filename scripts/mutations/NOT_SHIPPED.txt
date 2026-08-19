@@ -1,0 +1,28 @@
+# この配置が同梱しないファイル。scripts/public-snapshot/adjust-mutations.py が
+# 生成する。手で編集しない（次の生成で上書きされる）。
+#
+# run_mutations.py --check は、ここに載っているファイルが「無い」ことだけを
+# 対象外として扱う。**載っているのに木にある場合は失敗する** —— 一覧が古く
+# なったまま、消したはずのゲートが黙って戻ることを防ぐため。
+docs/ops/監視ランブック.md
+frontend/tests/lib/backend-pending-coverage.test.ts
+frontend/tests/lib/mutation-failure-surface.test.ts
+frontend/tests/lib/raw-fetch.test.ts
+frontend/tests/lib/server-routes.test.ts
+frontend/tests/lib/silent-writes.test.ts
+server/internal/api/handlers/answered_with_a_value_test.go
+server/internal/api/handlers/discarded_read_test.go
+server/internal/api/handlers/discarded_write_reasons_test.go
+server/internal/api/handlers/discarded_write_test.go
+server/internal/api/handlers/mdm_integration_handler.go
+server/internal/api/handlers/mobile_compliance_scanner.go
+server/internal/api/handlers/skipped_row_test.go
+server/internal/api/handlers/system_updates_handler.go
+server/internal/billing/handler.go
+server/internal/ldap/connector.go
+server/internal/scheduler/bare_log_and_return_test.go
+server/internal/scheduler/billing_grace_worker.go
+server/internal/store/reachable_test.go
+server/internal/tick/background_failed_test.go
+server/internal/tick/tracked_workers_test.go
+server/internal/updater/applier.go

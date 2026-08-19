@@ -105,7 +105,7 @@ CASES = [
      '件数を 0 に落とす（**走査が何も見つけなくても緑になります**）'),
 
     # ── Warn の一覧が古くならないこと ────────────────────────────────────
-    (W, 'const reachableSlogWarnSites = 22', 'const reachableSlogWarnSites = 23',
+    (W, 'const reachableSlogWarnSites = 25', 'const reachableSlogWarnSites = 26',
      '`fail` に移した2つを、まだ Warn だったことにする'),
 ]
 

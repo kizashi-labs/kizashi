@@ -167,6 +167,38 @@ func TestMigrationSigmaRevivedRulesFire(t *testing.T) {
 	if err != nil {
 		t.Fatalf("extract: %v", err)
 	}
+	// ★ enabled の絞り込みより前に取り出す。下の `rules[:0]` は同じ配列を
+	// 上書きして絞り込む書き方なので、絞り込んだ後に rules を走査すると
+	// 上書き済みの内容を見ることになる。
+	//
+	// LSASS ダンプ（migration 003）は migration 448 で enabled=false にした。
+	// 実測で全期間 0 件、しかも TargetImage が basename で届くため原理的に
+	// 一致しない（docs/results/live-20260818-jp-duplicate-rules-inert.md）。
+	// enabled だけを積むエンジンには載らないので、このルールが守っている
+	// GrantedAccess エイリアスの回帰ロックだけを別エンジンで維持する。
+	//
+	// ルールを消さずに検査を残すのは、守っている対象がルールではなく
+	// **エイリアス設定**だからである。alias が壊れれば、同じ Sysmon 語彙を使う
+	// 他のルールも黙って死ぬ。
+	disabledEngine := NewRuleEngine()
+	var foundLSASS bool
+	for _, r := range rules {
+		if r.Name == "LSASSメモリダンプ（資格情報窃取）" {
+			// enabled=false のまま渡すとエンジンが積まない。複製して立てる。
+			// migration の内容そのものは変えない。
+			d := *r
+			d.Enabled = true
+			disabledEngine.LoadRules([]*DetectionRule{&d})
+			foundLSASS = true
+		}
+	}
+	if !foundLSASS {
+		t.Fatal("migration から LSASSメモリダンプ（資格情報窃取）を取り出せなかった。" +
+			"名前が変わったなら、このテストが守っているのは名前ではなく " +
+			"GrantedAccess/TargetImage のエイリアスなので、対象を張り替えること")
+	}
+	disabledEngine.SetPlatformGate(false)
+
 	enabled := rules[:0]
 	for _, r := range rules {
 		if r.Enabled {
@@ -178,27 +210,28 @@ func TestMigrationSigmaRevivedRulesFire(t *testing.T) {
 	e.SetPlatformGate(false)
 
 	cases := []struct {
-		name  string
-		event map[string]interface{}
+		name   string
+		event  map[string]interface{}
+		engine *RuleEngine
 	}{
 		{"LSASS dump (TargetImage/GrantedAccess → target_image/access_mask)", map[string]interface{}{
 			"type": "credential_access", "agent_id": "h",
 			"target_image": `C:\Windows\System32\lsass.exe`, "access_mask": "0x1410",
-		}},
+		}, disabledEngine},
 		{"Registry Run key (TargetObject/Details → key_path/value_data)", map[string]interface{}{
 			"type": "registry", "agent_id": "h",
 			"key_path":   `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`,
 			"value_data": `C:\Users\Public\evil.exe`, "operation": "modify",
-		}},
+		}, e},
 		{"Process Hollowing (SourceImage/TargetImage → source_image/target_image)", map[string]interface{}{
 			"type": "process", "agent_id": "h",
 			"target_image": `C:\Windows\System32\svchost.exe`,
 			"source_image": `C:\Users\Public\injector.exe`,
-		}},
+		}, e},
 	}
 	for _, c := range cases {
 		t.Run(c.name[:12], func(t *testing.T) {
-			m, err := e.Evaluate(context.Background(), c.event)
+			m, err := c.engine.Evaluate(context.Background(), c.event)
 			if err != nil {
 				t.Fatalf("Evaluate: %v", err)
 			}
@@ -207,4 +240,26 @@ func TestMigrationSigmaRevivedRulesFire(t *testing.T) {
 			}
 		})
 	}
+
+	// ★ここまでは全部フルパスで駆動している。センサが実際に出すのは basename で
+	// （agent/internal/collector/credential_access.go の設計）、この差が
+	// 「テストは緑なのに production では一度も発火しない」を作っていた。
+	//
+	// この断言が落ちたなら RuleEngine 側に basename 正規化が入ったということ。
+	// その場合はまず docs/results/live-20260818-jp-duplicate-rules-inert.md を
+	// 読むこと——このルールを到達可能にすると Windows Defender (MsMpEng.exe) の
+	// LSASS アクセスで発火し、auto_isolate 付きなら自動隔離の誤検知になる。
+	t.Run("basename では一致しない", func(t *testing.T) {
+		m, err := disabledEngine.Evaluate(context.Background(), map[string]interface{}{
+			"type": "credential_access", "agent_id": "h",
+			"target_image": "lsass.exe", "access_mask": "0x1410",
+		})
+		if err != nil {
+			t.Fatalf("Evaluate: %v", err)
+		}
+		if len(m) != 0 {
+			t.Error("basename の target_image で LSASS ダンプ が発火した。" +
+				"basename 正規化を入れたなら migration 448 の意図を確認すること")
+		}
+	})
 }

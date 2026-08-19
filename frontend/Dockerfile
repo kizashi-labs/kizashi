@@ -1,13 +1,13 @@
 # syntax=docker/dockerfile:1
 # EDR Platform — Frontend Next.js build
 
-FROM node:26-alpine AS deps
+FROM node:24-alpine AS deps
 WORKDIR /app
 COPY package.json package-lock.json* ./
 RUN npm install --legacy-peer-deps && \
     npm install --no-save @next/swc-linux-x64-musl 2>/dev/null || true
 
-FROM node:26-alpine AS builder
+FROM node:24-alpine AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
@@ -25,7 +25,7 @@ ENV NEXT_TELEMETRY_DISABLED=1
 
 RUN npm run build
 
-FROM node:26-alpine AS runner
+FROM node:24-alpine AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production

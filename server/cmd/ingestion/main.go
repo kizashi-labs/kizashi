@@ -194,21 +194,7 @@ func main() {
 		mux.HandleFunc("/healthz", health.LivenessHandler())
 		mux.HandleFunc("/readyz", health.ReadinessHandler(db.Pool(), nc))
 		metricsPort := getEnv("METRICS_PORT", "8082")
-
-		// detection 側と同じ形です。**`http.ListenAndServe` は時間制限を
-		// 1つも持ちません** —— ヘッダを 1バイトずつ送る接続がそのまま
-		// 居座ります。TLS を張っていない理由も同じで、ここは compose の
-		// 内部網だけに出ている収集口です。**公開する場合は、ここを TLS に
-		// してから出してください。**
-		srv := &http.Server{
-			Addr:              ":" + metricsPort,
-			Handler:           mux,
-			ReadHeaderTimeout: 5 * time.Second,
-			ReadTimeout:       15 * time.Second,
-			WriteTimeout:      30 * time.Second,
-			IdleTimeout:       60 * time.Second,
-		}
-		if err := srv.ListenAndServe(); err != nil {
+		if err := http.ListenAndServe(":"+metricsPort, mux); err != nil {
 			slog.Warn("メトリクスサーバーエラー", "error", err)
 		}
 	}()

@@ -175,11 +175,11 @@ CASES = [
      '端末のリスクスコアが、読めなかった脆弱性 0 件で計算される'
      '（**危険な端末が安全に見えます**）'),
 
-    (T, 'const discardedHandlerReads = 6', 'const discardedHandlerReads = 400',
+    (T, 'const discardedHandlerReads = 9', 'const discardedHandlerReads = 400',
      '留めている数を実測から引き離す（増えても気づかなくなる）'),
     (T, 'const discardedHandlerReadsShown = 0', 'const discardedHandlerReadsShown = 400',
      '応答に入る数を留めなくなる'),
-    (T, 'const discardedHandlerReadsAggregate = 4', 'const discardedHandlerReadsAggregate = 400',
+    (T, 'const discardedHandlerReadsAggregate = 6', 'const discardedHandlerReadsAggregate = 400',
      '集計の数を留めなくなる'),
     (T, '\tcase got < want:\n\t\treturn pinShrank\n', '',
      '減っても留めている数を下げさせなくなる（**次に増えても'

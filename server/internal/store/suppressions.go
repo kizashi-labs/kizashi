@@ -10,12 +10,32 @@ import (
 )
 
 // SuppressionConditions defines the matching criteria for a suppression rule.
+//
+// **ここに無いキーは、書き戻しで消えます。** conditions は JSONB なので、
+// 読み手（detection.PoolSuppressionLoader の SELECT）が知っているキーを
+// この構造体が知らないと、UI や API から同じ行を更新した瞬間に
+// json.Marshal がそのキーを落とし、**条件がひとつ緩くなった状態で**
+// 保存されます。抑制でそれが起きると、絞り込みが消えて対象が広がる方向に
+// 外れる——最も気づきにくい壊れ方です。
+//
+// そのため、読み手のキーとここのタグが一致していることを
+// TestSuppressionConditionKeysMatchTheReader が検査します。
+// キーを増やすときは loader・matcher・この構造体の 3 箇所を揃えてください。
 type SuppressionConditions struct {
 	RuleName       string `json:"rule_name,omitempty"`
 	Hostname       string `json:"hostname,omitempty"`
 	SeverityMax    int    `json:"severity_max,omitempty"`
 	MITRETechnique string `json:"mitre_technique,omitempty"`
 	AgentID        string `json:"agent_id,omitempty"`
+	// HostnameRegex は Hostname の部分一致では表せない「フリート命名」を
+	// 絞るための Go(RE2) 正規表現です。アンカー付きの多分岐
+	// （例: `(?i)^(k8s-node-|kube-|ci-runner-)`）を 1 行で書けます。
+	// コンパイルできない値は**一致しません**（＝抑制しません）。
+	HostnameRegex string `json:"hostname_regex,omitempty"`
+	// CommandLine / ParentProcess は detection 側が読んでいたのに
+	// ここに無く、書き戻しで消える状態でした（本 PR で追加）。
+	CommandLine   string `json:"command_line_contains,omitempty"`
+	ParentProcess string `json:"parent_process,omitempty"`
 }
 
 // SuppressionRule represents a rule that suppresses matching alerts.

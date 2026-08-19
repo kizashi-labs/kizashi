@@ -2,6 +2,7 @@ package detection
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 )
 
@@ -65,6 +66,21 @@ func (b SuppressionBreadth) String() string {
 // A SeverityMax at or above it excludes nothing.
 const maxAlertSeverity = 10
 
+// hostnameRegexProbes are deliberately dissimilar hostnames used to detect a
+// hostname_regex that narrows nothing.
+//
+// 正規表現は「短い＝広い」が成り立たない。`.*` は 2 文字で全部に当たり、
+// `(?i)^(k8s-node-|kube-|ci-runner-|.*-build-|docker-host-|containerd-)` は
+// 60 文字を超えるが狭い。長さで測ると必ず間違える。
+//
+// そこで**当ててみる**。互いに何も共有しない 3 つのホスト名すべてに一致する
+// パターンは、現実のフリートでも全ホストに当たると見なす。`.*`・`^`・`(?i)`・
+// `.` はここで落ちる。逆に `-dev-` や `^k8s-node-` は落ちない。
+//
+// これは推定であって証明ではない。判定を誤る方向は「広いのに narrow と言う」
+// ではなく「狭いのに広いと言う」——警告が 1 行増えるだけで、アラートは消えない。
+var hostnameRegexProbes = []string{"prod-db-01", "zz9-alpha", "Q"}
+
 // minCommandLineFragment is the shortest command-line substring treated as a
 // real condition. Command lines are long free-form strings, so a short fragment
 // matches almost everything — the same failure mode as a one-character rule_name,
@@ -88,6 +104,7 @@ const minCommandLineFragment = 8
 func ClassifySuppression(r SuppressionRule) (SuppressionBreadth, string) {
 	ruleName := strings.TrimSpace(r.RuleName)
 	hostname := strings.TrimSpace(r.Hostname)
+	hostRe := strings.TrimSpace(r.HostnameRegex)
 	tech := strings.ToUpper(strings.TrimSpace(r.MITRETechnique))
 	agentID := strings.TrimSpace(r.AgentID)
 	cmdline := strings.TrimSpace(r.CommandLine)
@@ -108,6 +125,21 @@ func ClassifySuppression(r SuppressionRule) (SuppressionBreadth, string) {
 		if len(hostname) <= 1 {
 			degenerate = append(degenerate,
 				fmt.Sprintf("hostname=%q は 1 文字の部分文字列で、ほぼ全てのホスト名に含まれる", hostname))
+		}
+	}
+	if hostRe != "" {
+		populated = append(populated, "hostname_regex")
+		switch re := compileHostnameRegex(hostRe); {
+		case re == nil:
+			// コンパイルできないパターンは matches() で一致しないので
+			// 「何も絞らない」ではなく「何にも当たらない」。ただし
+			// **条件として数えない**: これ 1 本だけのルールを narrow と
+			// 呼ぶと、直した瞬間に何が起きるかが見えなくなる。
+			degenerate = append(degenerate,
+				fmt.Sprintf("hostname_regex=%q はコンパイルできない（このルールは何も抑制しない）", hostRe))
+		case matchesAllProbes(re):
+			degenerate = append(degenerate,
+				fmt.Sprintf("hostname_regex=%q は互いに無関係なホスト名すべてに一致する。ホストを絞っていない", hostRe))
 		}
 	}
 	if tech != "" {
@@ -159,7 +191,7 @@ func ClassifySuppression(r SuppressionRule) (SuppressionBreadth, string) {
 	}
 
 	// 具体的な条件がひとつでもあれば narrow。無ければ wide。
-	if specific := specificConditions(ruleName, hostname, tech, agentID, r.SeverityMax); len(specific) > 0 {
+	if specific := specificConditions(ruleName, hostname, hostRe, tech, agentID, r.SeverityMax); len(specific) > 0 {
 		return SuppressionNarrow, "絞り込み: " + strings.Join(specific, " / ")
 	}
 
@@ -178,12 +210,19 @@ func ClassifySuppression(r SuppressionRule) (SuppressionBreadth, string) {
 //	agent_id         完全一致。1 台に閉じるので、他がどれだけ緩くても被害は 1 台
 //	rule_name  >=4   部分文字列。3 文字以下は語をまたいで当たる（"exe" 等）
 //	hostname   >=3   部分文字列。ホスト名は接頭辞で群を成すので 3 文字で群を切れる
+//	hostname_regex   コンパイルでき、かつ「無関係なホスト名すべて」には
+//	                 当たらないもの。長さでは測れない（`.*` は 2 文字で全部に当たる）
 //	mitre      >=5   前方一致。"T1003" は 1 技法だが "T10" は T1003/T1059/… に当たる
 //	severity   1..3  低ノイズ帯だけを落とす、意図の明確な運用。7 以上は wide 扱い
-func specificConditions(ruleName, hostname, tech, agentID string, severityMax int) []string {
+func specificConditions(ruleName, hostname, hostRe, tech, agentID string, severityMax int) []string {
 	var out []string
 	if agentID != "" {
 		out = append(out, "agent_id（1 台に限定）")
+	}
+	if hostRe != "" {
+		if re := compileHostnameRegex(hostRe); re != nil && !matchesAllProbes(re) {
+			out = append(out, fmt.Sprintf("hostname_regex=%q", hostRe))
+		}
 	}
 	if len(ruleName) >= 4 {
 		out = append(out, fmt.Sprintf("rule_name=%q", ruleName))
@@ -198,4 +237,15 @@ func specificConditions(ruleName, hostname, tech, agentID string, severityMax in
 		out = append(out, fmt.Sprintf("severity_max=%d（低ノイズ帯のみ）", severityMax))
 	}
 	return out
+}
+
+// matchesAllProbes reports whether re matches every probe hostname, i.e. it
+// does not narrow the fleet at all.
+func matchesAllProbes(re *regexp.Regexp) bool {
+	for _, h := range hostnameRegexProbes {
+		if !re.MatchString(h) {
+			return false
+		}
+	}
+	return true
 }

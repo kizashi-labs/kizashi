@@ -3,6 +3,7 @@ package detection
 import (
 	"context"
 	"log/slog"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -12,10 +13,22 @@ import (
 
 // SuppressionRule is the detection engine's view of a suppression rule.
 type SuppressionRule struct {
-	ID             string
-	Name           string
-	RuleName       string // match alert.RuleName (substring, case-insensitive)
-	Hostname       string // match alert.Hostname (substring, case-insensitive)
+	ID       string
+	Name     string
+	RuleName string // match alert.RuleName (substring, case-insensitive)
+	Hostname string // match alert.Hostname (substring, case-insensitive)
+	// HostnameRegex matches alert.Hostname with a Go (RE2) regular expression.
+	//
+	// **部分一致では書けないものがあるから足した。** フリートの命名は
+	// `^(k8s-node-|kube-|ci-runner-)` のような「アンカー付きの多分岐」で
+	// 表される。Hostname（部分一致）でこれを表そうとすると、行を分割するか、
+	// アンカーを捨てて `dev-` のような断片にするしかない。後者は
+	// `prod-dev-tools-01` にも当たる——**絞り込みが緩む方向に外れる**。
+	//
+	// コンパイルできないパターンは**一致しない**（＝抑制しない）。抑制で
+	// 迷ったときは常に「抑制しない方向」に倒す: 余計に届いたアラートは
+	// 消せるが、落ちたアラートは戻らない。
+	HostnameRegex  string
 	SeverityMax    int    // suppress if alert.Severity <= SeverityMax (0 = disabled)
 	MITRETechnique string // match alert.MITRETech (exact or prefix)
 	AgentID        string // match alert.AgentID (exact)
@@ -30,6 +43,42 @@ type SuppressionRule struct {
 	// without excluding the same binary launched by anything else.
 	ParentProcess string
 	ExpiresAt     *time.Time
+}
+
+// hostnameRegexCache memoises compiled hostname_regex patterns.
+//
+// パターンはルール行に由来するので数は小さく、アラート 1 件ごとに
+// コンパイルし直す理由が無い。**キャッシュは「壊れたパターン」も覚える**
+// （nil を入れる）——壊れたパターンを毎回コンパイルし直して毎回失敗する、
+// という静かに高くつく形を避けるため。
+var hostnameRegexCache sync.Map // pattern(string) -> *regexp.Regexp（nil = コンパイル失敗）
+
+// compileHostnameRegex returns the compiled pattern, or nil when it does not compile.
+//
+// Go の regexp は RE2 なので、線形時間で、破滅的バックトラックが無い。
+// 運用者が書いた式で検知パイプラインが詰まることは無い。
+func compileHostnameRegex(pattern string) *regexp.Regexp {
+	if pattern == "" {
+		return nil
+	}
+	if v, ok := hostnameRegexCache.Load(pattern); ok {
+		re, _ := v.(*regexp.Regexp)
+		return re
+	}
+	// **ここでは記録しない。** この関数は tick.Run で回している定期リフレッシュ
+	// から到達するので、ログ 1 行で済ませると「動いているつもりの仕事が
+	// 黙って失敗している」形になる（internal/tick の検査が留めている）。
+	// 壊れた式は ClassifySuppression が catch-all と判定し、load() が
+	// 適用しないものとして 1 度だけ報告する。**報告は 1 箇所に置く。**
+	//
+	// 代入もしない。regexp.Compile は失敗時に nil を返すので
+	// `if err != nil { re = nil }` は元から冗長で、しかも「失敗を値に
+	// 置き換えて先へ進む」形そのものだった。
+	re, _ := regexp.Compile(pattern)
+	// **nil も憶える。** 壊れた式を毎回コンパイルし直して毎回失敗する、
+	// という静かに高くつく形を避けるため。
+	hostnameRegexCache.Store(pattern, re)
+	return re
 }
 
 // SuppressionContext carries the parts of the triggering event that the alert
@@ -138,6 +187,11 @@ func (m *SuppressionMatcher) load(ctx context.Context) error {
 	kept := make([]SuppressionRule, 0, len(rules))
 	var wide, rejected int
 	for _, r := range rules {
+		// コンパイルできない hostname_regex もここで落ちる。
+		// ClassifySuppression が「絞り込みにならない条件」として数え、
+		// それしか条件が無ければ catch-all になるので、**判定も報告も
+		// 下の 1 箇所に集まる**。ここで別のログを足すと、同じ失敗が
+		// 2 度報告され、tick.Run の仕事がログだけで終わる形になる。
 		switch breadth, why := ClassifySuppression(r); breadth {
 		case SuppressionCatchAll:
 			rejected++
@@ -206,6 +260,15 @@ func (m *SuppressionMatcher) matches(r SuppressionRule, alert *StoredAlert, sctx
 	}
 	if r.Hostname != "" {
 		if !strings.Contains(strings.ToLower(alert.Hostname), strings.ToLower(r.Hostname)) {
+			return false
+		}
+	}
+	if r.HostnameRegex != "" {
+		// コンパイル失敗は「一致しない」。**「条件を無視して先へ進む」に
+		// してはいけない** —— そうすると rule_name だけが残り、
+		// 絞ったつもりのルールが全ホストで抑制する。
+		re := compileHostnameRegex(r.HostnameRegex)
+		if re == nil || !re.MatchString(alert.Hostname) {
 			return false
 		}
 	}

@@ -129,7 +129,6 @@ groups:
             being silently lost. Likely a DB-constraint break (non-UUID rule_id → 22P02,
             CHECK violation, or param-cast 42P08). Check recent rule/schema changes.
 
-          runbook_url: "https://github.com/kizashi-labs/kizashi/blob/main/docs/ops/%E7%9B%A3%E8%A6%96%E3%83%A9%E3%83%B3%E3%83%96%E3%83%83%E3%82%AF.md#edrdetectioninsertfailures"
       # Canary for total detection-pipeline death: on an active fleet at least one
       # source fires within an hour. Zero detections across ALL sources for 1h means
       # the pipeline (ingestion → JetStream → engine/AlertPipeline) has gone dark.
@@ -148,7 +147,6 @@ groups:
             active fleet this is abnormal — check ingestion, JetStream consumers
             (detection-engine / alert-pipeline), and the event flow end-to-end.
 
-          runbook_url: "https://github.com/kizashi-labs/kizashi/blob/main/docs/ops/%E7%9B%A3%E8%A6%96%E3%83%A9%E3%83%B3%E3%83%96%E3%83%83%E3%82%AF.md#edrdetectionpipelinesilent"
       # Curate self-policing: enabled Sigma rules that never fire are silently inert
       # (a broken field reference, a missing alias) — the class of failure that let
       # auth/network rules sit dead for weeks. The curate scheduler's canary counts
@@ -168,7 +166,6 @@ groups:
             alias, or a category with no matching activity). Check the CurateScheduler
             log for the sample list and verify with the field-contract gate.
 
-          runbook_url: "https://github.com/kizashi-labs/kizashi/blob/main/docs/ops/%E7%9B%A3%E8%A6%96%E3%83%A9%E3%83%B3%E3%83%96%E3%83%83%E3%82%AF.md#edrcurateinertrules"
       # Curate hygiene: the reconciler had to re-disable rules that were quarantined
       # (auto-flagged FP) yet still enabled — an enable path is re-enabling them
       # without clearing state, so FP rules keep firing until the next reconcile tick.
@@ -187,7 +184,6 @@ groups:
             them, but an enable path (manual batch / category-wide UPDATE) is
             re-enabling quarantined rules without clearing their state — fix that path.
 
-          runbook_url: "https://github.com/kizashi-labs/kizashi/blob/main/docs/ops/%E7%9B%A3%E8%A6%96%E3%83%A9%E3%83%B3%E3%83%96%E3%83%83%E3%82%AF.md#edrcuratequarantinereenabled"
   # ──────────────────────────────────────────────────────────────────────
   # Background work that fails without producing a symptom
   #
@@ -227,7 +223,6 @@ groups:
             that did not reach the SIEM, and an environment with nothing to send
             all look the same. Check the component's logs for the reason.
 
-          runbook_url: "https://github.com/kizashi-labs/kizashi/blob/main/docs/ops/%E7%9B%A3%E8%A6%96%E3%83%A9%E3%83%B3%E3%83%96%E3%83%83%E3%82%AF.md#edrbackgroundcomponentfailing"
       # A scheduler that runs and never succeeds.
       #
       # edr_scheduler_runs_total climbing says the worker is alive. It says
@@ -258,7 +253,6 @@ groups:
             Tuesday looks identical, from every signal except this one, to
             certificate renewal with nothing to renew.
 
-          runbook_url: "https://github.com/kizashi-labs/kizashi/blob/main/docs/ops/%E7%9B%A3%E8%A6%96%E3%83%A9%E3%83%B3%E3%83%96%E3%83%83%E3%82%AF.md#edrschedulerrunningwithoutsucceeding"
       # A scheduler that has never succeeded at all since the process started.
       # The subtraction above cannot fire for these: last_success is absent, so
       # the vector has no matching sample and the expression yields nothing.
@@ -277,7 +271,6 @@ groups:
             never once finished its work. A worker in this state is indistinguishable
             from a healthy one by run count alone.
 
-          runbook_url: "https://github.com/kizashi-labs/kizashi/blob/main/docs/ops/%E7%9B%A3%E8%A6%96%E3%83%A9%E3%83%B3%E3%83%96%E3%83%83%E3%82%AF.md#edrschedulerneversucceeded"
   # ─────────────────────────────────────────────────────────────────────────
   # バックアップ
   #

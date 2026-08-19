@@ -36,7 +36,6 @@ jobs:
   trivy-fs:
     name: Trivy Filesystem Scan
     runs-on: ubuntu-latest
-    timeout-minutes: 15
     permissions:
       contents: read
       security-events: write
@@ -69,7 +68,6 @@ jobs:
   trivy-image:
     name: Trivy Image Scan (${{ matrix.service }})
     runs-on: ubuntu-latest
-    timeout-minutes: 25
     if: github.event_name == 'push'
     permissions:
       contents: read
@@ -134,7 +132,6 @@ jobs:
   semgrep:
     name: Semgrep SAST
     runs-on: ubuntu-latest
-    timeout-minutes: 20
     permissions:
       contents: read
       security-events: write
@@ -183,12 +180,10 @@ jobs:
   gitleaks:
     name: Gitleaks — Secret Scanning
     runs-on: ubuntu-latest
-    timeout-minutes: 10
     permissions:
       contents: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-        timeout-minutes: 10
         with:
           fetch-depth: 0   # Full history needed for commit-range scanning
 
@@ -196,7 +191,6 @@ jobs:
       # setup-go / go install に依存させないことで、他の Go ジョブと共有の
       # ツールチェーン設定リスクから独立した決定的なシークレットゲートにする。
       - name: Run gitleaks (repo .gitleaks.toml allowlist applied)
-        timeout-minutes: 10
         env:
           GITLEAKS_VERSION: "8.30.1"
         run: |

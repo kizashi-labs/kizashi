@@ -165,7 +165,7 @@ CASES = [
      'MDM 同期の記録の失敗が誰にも届かなくなる'),
 
     # ── 件数 ─────────────────────────────────────────────────────────────
-    (DW, 'const discardedWritesTotal = 0', 'const discardedWritesTotal = 16',
+    (DW, 'const discardedWritesTotal = 1', 'const discardedWritesTotal = 16',
      '直した 7 か所を、まだ捨てていることにする'),
 ]
 

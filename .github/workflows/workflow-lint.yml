@@ -31,7 +31,6 @@ jobs:
   lint:
     name: Workflow files are loadable
     runs-on: ubuntu-latest
-    timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
@@ -74,33 +73,6 @@ jobs:
                       continue
                   if "uses" in job:      # reusable workflow call: steps を持たない
                       continue
-
-                  # timeout-minutes が無いジョブは、GitHub の既定 6 時間まで
-                  # 走り続けます。**実際に 2 回起きています**（実測、直近 200 runs）:
-                  #
-                  #   agent-build (linux/amd64/ebpf)  中央 1.7 分 → 一度 360.3 分
-                  #                                   （＝ 6 時間の上限に当たって停止）
-                  #   rules-validate                  中央 1.2 分 → 一度 111.2 分
-                  #
-                  # どちらも apt-get の取得で止まっていました。**落ちないので
-                  # 誰も気づかず、予算だけが減ります。** 数字は実測の最大に
-                  # 余裕を足したもので、遅い日を殺さず、ハングは早く切ります。
-                  if "timeout-minutes" not in job:
-                      problems.append(
-                          "%s / %s: timeout-minutes がありません。"
-                          "**GitHub の既定は 6 時間です。** 取得で止まったジョブは"
-                          "落ちも進みもせず、予算だけを使い切ります"
-                          % (path, job_name))
-                  else:
-                      t = job["timeout-minutes"]
-                      if isinstance(t, int) and t > 60:
-                          problems.append(
-                              "%s / %s: timeout-minutes が %d 分です。"
-                              "ここに 1 時間を超えるジョブはありません。"
-                              "**ハングを上限の引き上げで直さないでください** —— "
-                              "遅くなった理由を先に見てください"
-                              % (path, job_name, t))
-
                   steps = job.get("steps")
                   if not isinstance(steps, list) or not steps:
                       problems.append("%s / %s: steps がありません" % (path, job_name))

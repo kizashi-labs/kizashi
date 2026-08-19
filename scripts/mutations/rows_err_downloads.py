@@ -118,7 +118,7 @@ CASES = [
      '捨てている関数も「報告している」に数える'),
     (A, '\tanswerContinueCeiling = 75', '\tanswerContinueCeiling = 1000',
      'continue の上限を実測から引き離す'),
-    (A, '\tconst continueOutsideRowsErr = 87', '\tconst continueOutsideRowsErr = 1000',
+    (A, '\tconst continueOutsideRowsErr = 88', '\tconst continueOutsideRowsErr = 1000',
      '外に出た continue の数を実測から引き離す'),
 ]
 

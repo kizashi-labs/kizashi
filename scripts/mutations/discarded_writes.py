@@ -122,7 +122,7 @@ CASES = [
     # ── 走査そのもの ─────────────────────────────────────────────────────
     (T, 'const discardedWritesThatClaimSuccess = 0', 'const discardedWritesThatClaimSuccess = 100',
      '「成功として答えている」件数を留めなくなる'),
-    (T, 'const discardedWritesTotal = 0', 'const discardedWritesTotal = 500',
+    (T, 'const discardedWritesTotal = 1', 'const discardedWritesTotal = 500',
      '全体の件数を留めなくなる'),
     (T, 'const writeScanRoot = "../.."', 'const writeScanRoot = ".."',
      '走査の根を1つ上までにする（**`internal/api` しか見ず、5 か所に'
