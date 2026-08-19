@@ -7,17 +7,17 @@ export const metadata = {
 
 export default function PrivacyPage() {
   return (
-    <div className="min-h-screen bg-falcon-bg text-falcon-text">
-      <header className="border-b border-falcon-border px-6 py-4 flex items-center gap-3">
-        <Shield className="w-5 h-5 text-falcon-red" />
-        <span className="font-semibold text-sm text-falcon-text">Kizashi</span>
+    <div className="min-h-screen bg-[#080c14] text-[#e2e8f4]">
+      <header className="border-b border-[#1e2d42] px-6 py-4 flex items-center gap-3">
+        <Shield className="w-5 h-5 text-[#e8002d]" />
+        <span className="font-semibold text-sm text-[#e2e8f4]">Kizashi</span>
         <Link href="/login" className="ml-auto text-xs text-[#5a6a7a] hover:text-[#8899aa]">
           ログインに戻る
         </Link>
       </header>
 
       <main className="max-w-3xl mx-auto px-6 py-12">
-        <h1 className="text-2xl font-bold text-falcon-text mb-2">プライバシーポリシー</h1>
+        <h1 className="text-2xl font-bold text-[#e2e8f4] mb-2">プライバシーポリシー</h1>
         <p className="text-xs text-[#5a6a7a] mb-8">最終更新日: 2026年3月21日</p>
 
         <div className="space-y-8 text-[#8899aa] leading-relaxed text-sm">
@@ -78,9 +78,9 @@ export default function PrivacyPage() {
                 { name: 'Amazon Web Services', purpose: 'インフラストラクチャ', policy: 'https://aws.amazon.com/privacy/' },
                 { name: 'Anthropic (Claude)', purpose: 'AI アシスタント機能', policy: 'https://www.anthropic.com/privacy' },
               ].map(p => (
-                <div key={p.name} className="flex items-start gap-3 bg-falcon-surface border border-falcon-border rounded-sm p-3">
+                <div key={p.name} className="flex items-start gap-3 bg-[#0d1220] border border-[#1e2d42] rounded-sm p-3">
                   <div className="flex-1">
-                    <p className="text-falcon-text text-xs font-medium">{p.name}</p>
+                    <p className="text-[#e2e8f4] text-xs font-medium">{p.name}</p>
                     <p className="text-[#5a6a7a] text-xs">{p.purpose}</p>
                   </div>
                 </div>
@@ -117,7 +117,7 @@ export default function PrivacyPage() {
 
         </div>
 
-        <div className="mt-12 pt-6 border-t border-falcon-border flex gap-4 text-xs text-[#5a6a7a]">
+        <div className="mt-12 pt-6 border-t border-[#1e2d42] flex gap-4 text-xs text-[#5a6a7a]">
           <Link href="/terms" className="hover:text-[#8899aa]">利用規約</Link>
           <Link href="/login" className="hover:text-[#8899aa]">ログイン</Link>
         </div>
@@ -129,7 +129,7 @@ export default function PrivacyPage() {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section>
-      <h2 className="text-base font-semibold text-falcon-text mb-3">{title}</h2>
+      <h2 className="text-base font-semibold text-[#e2e8f4] mb-3">{title}</h2>
       <div className="space-y-2">{children}</div>
     </section>
   )
@@ -138,7 +138,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 function SubSection({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="mt-2">
-      <p className="text-falcon-text text-xs font-medium mb-1">{title}</p>
+      <p className="text-[#e2e8f4] text-xs font-medium mb-1">{title}</p>
       {children}
     </div>
   )

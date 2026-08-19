@@ -1,8 +1,13 @@
 # 環境変数・機密情報
+#
+# .env の派生ファイルは「除外すべき名前を列挙する」方式にすると必ず漏れる。手で退避を
+# 作るとき、その場で思いついた接尾辞が付くためで、実際に本番ホスト上に
+# `.env.bak-rls-07290557` という退避が存在し、旧 JWT_SECRET と DB パスワードを含んだまま
+# 追跡対象になりうる状態だった（`.env.backup.*` は除外済みだったのに、この命名は素通り）。
+# `.env.save` `.env.orig` `.env.20260803` なども同様に漏れる。
+# したがって allowlist 方式にする: .env.* は既定で除外し、テンプレートだけを明示的に許可。
 .env
-.env.local
-.env.production
-.env.*.local
+.env.*
 !.env.example
 !.env.*.example
 
@@ -115,9 +120,6 @@ downloads/
 *.bak
 *.bak.*
 
-# Local-only env backup snapshots (manual backups, not the canonical .env)
-.env.backup.*
-
 # Built agent binaries (use scripts/build-agent.sh; CI also produces these)
 # `make build` (agent/Makefile) outputs the bare names; the cross-compile
 # targets output the -<os>-<arch> variants. Ignore all so build artifacts are
@@ -142,3 +144,8 @@ agent/ebpf/vmlinux.h
 # Go coverage artifacts (go test -coverprofile / make coverage)
 server/coverage.out
 server/coverage.html
+
+# 変異ハーネスの復元用 journal (scripts/mutate.py)。
+# 実行中だけ存在します。残っていれば、前回が戻し切れていない印です。
+.mutate-journal.json
+.mutate-*.tmp

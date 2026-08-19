@@ -11,6 +11,8 @@ import {
   Tooltip, ResponsiveContainer, CartesianGrid, Legend,
   PieChart, Pie, Cell,
 } from 'recharts'
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+
 import { apiFetch, apiFetchList } from '@/lib/api'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -178,7 +180,7 @@ function KPICard({
           <span className="text-sm text-gray-400 mb-0.5">{unit}</span>
         )}
       </div>
-      <div className="flex items-center gap-2 min-h-4.5">
+      <div className="flex items-center gap-2 min-h-[1.125rem]">
         {sub && <span className="text-xs text-gray-500">{sub}</span>}
         {trend}
       </div>
@@ -355,6 +357,7 @@ export default function SOCMetricsPage() {
 
   return (
     <div className="min-h-screen bg-gray-900 p-6 space-y-6">
+      <PageDataUnavailable />
 
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">

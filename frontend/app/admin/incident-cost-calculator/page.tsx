@@ -11,6 +11,8 @@ import {
   Building2, FileText, Lock, Globe,
 } from 'lucide-react'
 
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type IncidentType = 'ransomware' | 'data_breach' | 'ddos' | 'insider_threat' | 'supply_chain' | 'phishing'
@@ -125,16 +127,16 @@ function NumInput({ label, value, onChange, unit, min, placeholder }: {
 }) {
   return (
     <div>
-      <label className="block text-xs text-falcon-muted mb-1">{label}</label>
+      <label className="block text-xs text-[#7d92b0] mb-1">{label}</label>
       <div className="flex items-center gap-1">
-        {unit && <span className="text-falcon-muted text-sm">{unit}</span>}
+        {unit && <span className="text-[#7d92b0] text-sm">{unit}</span>}
         <input
           type="number"
           min={min ?? 0}
           value={value || ''}
           placeholder={placeholder ?? '0'}
           onChange={e => onChange(Number(e.target.value))}
-          className="flex-1 bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-red w-full"
+          className="flex-1 bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-[#e8002d] w-full"
         />
       </div>
     </div>
@@ -145,7 +147,7 @@ function CostRow({ label, value, indent }: { label: string; value: number; inden
   if (value === 0) return null
   return (
     <div className={`flex items-center justify-between py-1.5 ${indent ? 'pl-4' : ''}`}>
-      <span className={`text-xs ${indent ? 'text-falcon-muted' : 'text-[#a8c0d8]'}`}>{label}</span>
+      <span className={`text-xs ${indent ? 'text-[#7d92b0]' : 'text-[#a8c0d8]'}`}>{label}</span>
       <span className="text-white text-xs font-mono">{fmtJPY(value)}</span>
     </div>
   )
@@ -203,19 +205,20 @@ export default function IncidentCostCalculatorPage() {
 
   return (
     <div className="min-h-screen bg-[#070d19] p-6 space-y-6">
+      <PageDataUnavailable />
       {/* Header */}
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-2xl font-bold text-white flex items-center gap-3">
-            <Calculator className="w-7 h-7 text-falcon-red" />
+            <Calculator className="w-7 h-7 text-[#e8002d]" />
             インシデントコスト計算機
           </h1>
-          <p className="text-falcon-muted text-sm mt-1">セキュリティインシデントの直接・間接コストをインタラクティブに試算</p>
+          <p className="text-[#7d92b0] text-sm mt-1">セキュリティインシデントの直接・間接コストをインタラクティブに試算</p>
         </div>
       </div>
 
       {/* Mode tabs */}
-      <div className="flex border-b border-falcon-border">
+      <div className="flex border-b border-[#1e2d42]">
         {[
           { id: 'new', label: '新規試算' },
           { id: 'history', label: '過去インシデント分析' },
@@ -223,7 +226,7 @@ export default function IncidentCostCalculatorPage() {
           <button
             key={t.id}
             onClick={() => setMode(t.id as 'new' | 'history')}
-            className={`px-5 py-3 text-sm font-medium transition-colors ${mode === t.id ? 'text-white border-b-2 border-falcon-red' : 'text-falcon-muted hover:text-white'}`}
+            className={`px-5 py-3 text-sm font-medium transition-colors ${mode === t.id ? 'text-white border-b-2 border-[#e8002d]' : 'text-[#7d92b0] hover:text-white'}`}
           >
             {t.label}
           </button>
@@ -242,12 +245,12 @@ export default function IncidentCostCalculatorPage() {
                   key={type}
                   onClick={() => setSelectedType(type)}
                   className={`border rounded-xl p-3 text-left transition-all ${
-                    selectedType === type ? color : 'border-falcon-border bg-falcon-surface hover:border-falcon-muted/40'
+                    selectedType === type ? color : 'border-[#1e2d42] bg-[#0d1220] hover:border-[#7d92b0]/40'
                   }`}
                 >
-                  <Icon className={`w-5 h-5 mb-2 ${selectedType === type ? '' : 'text-falcon-muted'}`} />
+                  <Icon className={`w-5 h-5 mb-2 ${selectedType === type ? '' : 'text-[#7d92b0]'}`} />
                   <p className={`text-xs font-semibold ${selectedType === type ? '' : 'text-white'}`}>{label}</p>
-                  <p className="text-[10px] text-falcon-muted mt-0.5 leading-tight">{description}</p>
+                  <p className="text-[10px] text-[#7d92b0] mt-0.5 leading-tight">{description}</p>
                 </button>
               ))}
             </div>
@@ -258,28 +261,28 @@ export default function IncidentCostCalculatorPage() {
               {/* Left: Input form */}
               <div className="lg:col-span-2 space-y-4">
                 {/* Direct Costs */}
-                <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
-                  <div className="px-5 py-4 border-b border-falcon-border flex items-center gap-2">
+                <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
+                  <div className="px-5 py-4 border-b border-[#1e2d42] flex items-center gap-2">
                     <DollarSign className="w-4 h-4 text-red-400" />
                     <h3 className="text-white font-semibold">直接コスト</h3>
                   </div>
                   <div className="p-5 space-y-5">
                     {/* Labor */}
                     <div>
-                      <p className="text-falcon-muted text-xs font-medium uppercase mb-3">対応工数</p>
+                      <p className="text-[#7d92b0] text-xs font-medium uppercase mb-3">対応工数</p>
                       <div className="grid grid-cols-3 gap-3">
                         <NumInput label="アナリスト数" value={direct.analyst_count} onChange={v => updateDirect('analyst_count', v)} min={1} />
                         <NumInput label="対応時間 (h)" value={direct.analyst_hours} onChange={v => updateDirect('analyst_hours', v)} />
                         <NumInput label="時間単価 (¥)" value={direct.analyst_rate} onChange={v => updateDirect('analyst_rate', v)} unit="¥" />
                       </div>
-                      <div className="mt-2 text-right text-xs text-falcon-muted">
+                      <div className="mt-2 text-right text-xs text-[#7d92b0]">
                         小計: <span className="text-white font-mono">{fmtJPYFull(laborCost)}</span>
                       </div>
                     </div>
 
                     {/* Tools */}
                     <div>
-                      <p className="text-falcon-muted text-xs font-medium uppercase mb-3">ツール・サービス</p>
+                      <p className="text-[#7d92b0] text-xs font-medium uppercase mb-3">ツール・サービス</p>
                       <div className="grid grid-cols-3 gap-3">
                         <NumInput label="外部IR支援 (¥)" value={direct.ir_services} onChange={v => updateDirect('ir_services', v)} unit="¥" />
                         <NumInput label="フォレンジック (¥)" value={direct.forensics} onChange={v => updateDirect('forensics', v)} unit="¥" />
@@ -289,7 +292,7 @@ export default function IncidentCostCalculatorPage() {
 
                     {/* Recovery */}
                     <div>
-                      <p className="text-falcon-muted text-xs font-medium uppercase mb-3">システム復旧</p>
+                      <p className="text-[#7d92b0] text-xs font-medium uppercase mb-3">システム復旧</p>
                       <div className="grid grid-cols-2 gap-3">
                         <NumInput label="ハードウェア交換 (¥)" value={direct.hardware_replacement} onChange={v => updateDirect('hardware_replacement', v)} unit="¥" />
                         <NumInput label="ソフトウェア交換 (¥)" value={direct.software_replacement} onChange={v => updateDirect('software_replacement', v)} unit="¥" />
@@ -298,7 +301,7 @@ export default function IncidentCostCalculatorPage() {
 
                     {/* Legal */}
                     <div>
-                      <p className="text-falcon-muted text-xs font-medium uppercase mb-3">法的費用</p>
+                      <p className="text-[#7d92b0] text-xs font-medium uppercase mb-3">法的費用</p>
                       <div className="grid grid-cols-1 gap-3">
                         <NumInput label="通知・法的費用 (¥)" value={direct.legal_notification} onChange={v => updateDirect('legal_notification', v)} unit="¥" />
                       </div>
@@ -307,34 +310,34 @@ export default function IncidentCostCalculatorPage() {
                 </div>
 
                 {/* Indirect Costs */}
-                <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
-                  <div className="px-5 py-4 border-b border-falcon-border flex items-center gap-2">
+                <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
+                  <div className="px-5 py-4 border-b border-[#1e2d42] flex items-center gap-2">
                     <TrendingUp className="w-4 h-4 text-orange-400" />
                     <h3 className="text-white font-semibold">間接コスト</h3>
                   </div>
                   <div className="p-5 space-y-5">
                     {/* Productivity */}
                     <div>
-                      <p className="text-falcon-muted text-xs font-medium uppercase mb-3">生産性損失</p>
+                      <p className="text-[#7d92b0] text-xs font-medium uppercase mb-3">生産性損失</p>
                       <div className="grid grid-cols-3 gap-3">
                         <NumInput label="ダウンタイム (h)" value={indirect.downtime_hours} onChange={v => updateIndirect('downtime_hours', v)} />
                         <NumInput label="影響ユーザー数" value={indirect.affected_users} onChange={v => updateIndirect('affected_users', v)} />
                         <NumInput label="時間生産性 (¥)" value={indirect.hourly_productivity} onChange={v => updateIndirect('hourly_productivity', v)} unit="¥" />
                       </div>
-                      <div className="mt-2 text-right text-xs text-falcon-muted">
+                      <div className="mt-2 text-right text-xs text-[#7d92b0]">
                         小計: <span className="text-white font-mono">{fmtJPYFull(productivityLoss)}</span>
                       </div>
                     </div>
 
                     {/* Business loss */}
                     <div>
-                      <p className="text-falcon-muted text-xs font-medium uppercase mb-3">機会損失</p>
+                      <p className="text-[#7d92b0] text-xs font-medium uppercase mb-3">機会損失</p>
                       <NumInput label="事業機会損失 (¥)" value={indirect.lost_business} onChange={v => updateIndirect('lost_business', v)} unit="¥" />
                     </div>
 
                     {/* Reputation */}
                     <div>
-                      <p className="text-falcon-muted text-xs font-medium uppercase mb-3">レピュテーション損失</p>
+                      <p className="text-[#7d92b0] text-xs font-medium uppercase mb-3">レピュテーション損失</p>
                       <div className="flex gap-2">
                         {REPUTATION_LEVELS.map(({ level, label, multiplier }) => (
                           <button
@@ -345,25 +348,25 @@ export default function IncidentCostCalculatorPage() {
                                 ? level === 0 ? 'border-green-500/50 bg-green-500/10 text-green-400'
                                 : level === 1 ? 'border-yellow-500/50 bg-yellow-500/10 text-yellow-400'
                                 : 'border-red-500/50 bg-red-500/10 text-red-400'
-                                : 'border-falcon-border text-falcon-muted hover:border-falcon-muted/40'
+                                : 'border-[#1e2d42] text-[#7d92b0] hover:border-[#7d92b0]/40'
                             }`}
                           >
                             {label}
                           </button>
                         ))}
                       </div>
-                      <div className="mt-2 text-right text-xs text-falcon-muted">
+                      <div className="mt-2 text-right text-xs text-[#7d92b0]">
                         推定: <span className="text-white font-mono">{fmtJPYFull(repCost)}</span>
                       </div>
                     </div>
 
                     {/* Regulation */}
                     <div>
-                      <p className="text-falcon-muted text-xs font-medium uppercase mb-3">規制制裁 (推定値)</p>
+                      <p className="text-[#7d92b0] text-xs font-medium uppercase mb-3">規制制裁 (推定値)</p>
                       <select
                         value={indirect.regulation}
                         onChange={e => updateIndirect('regulation', e.target.value as RegulationFine)}
-                        className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-red"
+                        className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-[#e8002d]"
                       >
                         {Object.entries(REGULATION_FINES).map(([key, { label, estimate }]) => (
                           <option key={key} value={key}>
@@ -375,7 +378,7 @@ export default function IncidentCostCalculatorPage() {
 
                     {/* Data breach specific */}
                     <div>
-                      <p className="text-falcon-muted text-xs font-medium uppercase mb-3">漏洩レコード数 (データ侵害の場合)</p>
+                      <p className="text-[#7d92b0] text-xs font-medium uppercase mb-3">漏洩レコード数 (データ侵害の場合)</p>
                       <NumInput
                         label="影響レコード数"
                         value={indirect.affected_records}
@@ -387,11 +390,11 @@ export default function IncidentCostCalculatorPage() {
                 </div>
 
                 {/* Prevention ROI */}
-                <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
-                  <div className="px-5 py-4 border-b border-falcon-border flex items-center gap-2">
+                <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
+                  <div className="px-5 py-4 border-b border-[#1e2d42] flex items-center gap-2">
                     <Shield className="w-4 h-4 text-green-400" />
                     <h3 className="text-white font-semibold">予防コスト比較</h3>
-                    <span className="text-falcon-muted text-xs ml-auto">このインシデントをどれだけ防げたか</span>
+                    <span className="text-[#7d92b0] text-xs ml-auto">このインシデントをどれだけ防げたか</span>
                   </div>
                   <div className="p-5">
                     <div className="space-y-3">
@@ -399,11 +402,11 @@ export default function IncidentCostCalculatorPage() {
                         const saves = Math.round(grandTotal * (saves_pct[selectedType] / 100))
                         const roi = cost_jpy > 0 ? Math.round((saves - cost_jpy) / cost_jpy * 100) : 0
                         return (
-                          <div key={investment} className="border border-falcon-border rounded-lg p-3 bg-[#070d19]">
+                          <div key={investment} className="border border-[#1e2d42] rounded-lg p-3 bg-[#070d19]">
                             <div className="flex items-start justify-between gap-3">
                               <div className="flex-1">
                                 <p className="text-white text-xs font-medium">{investment}</p>
-                                <p className="text-falcon-muted text-xs mt-0.5">投資: {fmtJPY(cost_jpy)}</p>
+                                <p className="text-[#7d92b0] text-xs mt-0.5">投資: {fmtJPY(cost_jpy)}</p>
                               </div>
                               <div className="text-right">
                                 <p className="text-green-400 text-sm font-bold">{fmtJPY(saves)} 節約</p>
@@ -412,13 +415,13 @@ export default function IncidentCostCalculatorPage() {
                                 </p>
                               </div>
                             </div>
-                            <div className="mt-2 h-1.5 bg-falcon-border rounded-full overflow-hidden">
+                            <div className="mt-2 h-1.5 bg-[#1e2d42] rounded-full overflow-hidden">
                               <div
                                 className="h-full rounded-full bg-green-500"
                                 style={{ width: `${saves_pct[selectedType]}%` }}
                               />
                             </div>
-                            <p className="text-falcon-muted text-[10px] mt-1">{saves_pct[selectedType]}% 軽減可能</p>
+                            <p className="text-[#7d92b0] text-[10px] mt-1">{saves_pct[selectedType]}% 軽減可能</p>
                           </div>
                         )
                       })}
@@ -429,10 +432,10 @@ export default function IncidentCostCalculatorPage() {
 
               {/* Right: Running total */}
               <div className="space-y-4">
-                <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden sticky top-4">
-                  <div className="px-5 py-4 border-b border-falcon-border">
+                <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden sticky top-4">
+                  <div className="px-5 py-4 border-b border-[#1e2d42]">
                     <h3 className="text-white font-semibold flex items-center gap-2">
-                      <Calculator className="w-4 h-4 text-falcon-red" />
+                      <Calculator className="w-4 h-4 text-[#e8002d]" />
                       試算結果
                     </h3>
                   </div>
@@ -451,7 +454,7 @@ export default function IncidentCostCalculatorPage() {
                       </div>
                     </div>
 
-                    <div className="border-t border-falcon-border" />
+                    <div className="border-t border-[#1e2d42]" />
 
                     {/* Indirect subtotal */}
                     <div>
@@ -467,21 +470,21 @@ export default function IncidentCostCalculatorPage() {
                       </div>
                     </div>
 
-                    <div className="border-t-2 border-falcon-border" />
+                    <div className="border-t-2 border-[#1e2d42]" />
 
                     {/* Grand total */}
-                    <div className="bg-[#070d19] border border-falcon-border rounded-lg p-4 space-y-2">
+                    <div className="bg-[#070d19] border border-[#1e2d42] rounded-lg p-4 space-y-2">
                       <div className="flex items-center justify-between">
-                        <span className="text-falcon-muted text-sm">合計 (¥)</span>
+                        <span className="text-[#7d92b0] text-sm">合計 (¥)</span>
                         <span className="text-2xl font-bold text-white font-mono">{fmtJPY(grandTotal)}</span>
                       </div>
                       <div className="flex items-center justify-between">
-                        <span className="text-falcon-muted text-xs">米ドル換算 ($1=¥{JPY_TO_USD})</span>
+                        <span className="text-[#7d92b0] text-xs">米ドル換算 ($1=¥{JPY_TO_USD})</span>
                         <span className="text-lg font-bold text-blue-400 font-mono">{fmtUSD(grandTotal)}</span>
                       </div>
                       {costPerRecord > 0 && (
-                        <div className="flex items-center justify-between border-t border-falcon-border pt-2 mt-2">
-                          <span className="text-falcon-muted text-xs">1レコードあたり</span>
+                        <div className="flex items-center justify-between border-t border-[#1e2d42] pt-2 mt-2">
+                          <span className="text-[#7d92b0] text-xs">1レコードあたり</span>
                           <span className="text-yellow-400 font-mono text-sm">{fmtJPY(costPerRecord)}</span>
                         </div>
                       )}
@@ -489,13 +492,13 @@ export default function IncidentCostCalculatorPage() {
 
                     {/* Benchmark comparison */}
                     {benchmark && (
-                      <div className="border border-falcon-border rounded-lg p-3 bg-[#070d19]">
-                        <p className="text-falcon-muted text-xs mb-2 flex items-center gap-1">
+                      <div className="border border-[#1e2d42] rounded-lg p-3 bg-[#070d19]">
+                        <p className="text-[#7d92b0] text-xs mb-2 flex items-center gap-1">
                           <BarChart2 className="w-3 h-3" />業界平均比較
                         </p>
                         <div className="flex items-center justify-between mb-1">
-                          <span className="text-falcon-muted text-xs">業界平均</span>
-                          <span className="text-falcon-muted text-xs font-mono">{fmtJPY(benchmark.avg_jpy)}</span>
+                          <span className="text-[#7d92b0] text-xs">業界平均</span>
+                          <span className="text-[#7d92b0] text-xs font-mono">{fmtJPY(benchmark.avg_jpy)}</span>
                         </div>
                         <div className="flex items-center justify-between mb-2">
                           <span className="text-white text-xs">今回の試算</span>
@@ -503,13 +506,13 @@ export default function IncidentCostCalculatorPage() {
                             {fmtJPY(grandTotal)}
                           </span>
                         </div>
-                        <div className="h-1 bg-falcon-border rounded-full overflow-hidden">
+                        <div className="h-1 bg-[#1e2d42] rounded-full overflow-hidden">
                           <div
                             className={`h-full rounded-full ${grandTotal > benchmark.avg_jpy ? 'bg-red-500' : 'bg-green-500'}`}
                             style={{ width: `${Math.min((grandTotal / benchmark.avg_jpy) * 100, 200) / 2}%` }}
                           />
                         </div>
-                        <p className="text-falcon-muted text-[10px] mt-1.5 italic">{benchmark.description}</p>
+                        <p className="text-[#7d92b0] text-[10px] mt-1.5 italic">{benchmark.description}</p>
                       </div>
                     )}
 
@@ -520,11 +523,11 @@ export default function IncidentCostCalculatorPage() {
                         placeholder="計算名 (任意)"
                         value={calcName}
                         onChange={e => setCalcName(e.target.value)}
-                        className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-red"
+                        className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-[#e8002d]"
                       />
                       <button
                         onClick={handleSave}
-                        className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-falcon-red text-white text-sm hover:bg-[#c0001f] transition-colors font-medium"
+                        className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-[#e8002d] text-white text-sm hover:bg-[#c0001f] transition-colors font-medium"
                       >
                         <Save className="w-4 h-4" />試算結果を保存
                       </button>
@@ -539,8 +542,8 @@ export default function IncidentCostCalculatorPage() {
                 </div>
 
                 {/* Industry benchmarks */}
-                <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
-                  <div className="px-5 py-4 border-b border-falcon-border">
+                <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
+                  <div className="px-5 py-4 border-b border-[#1e2d42]">
                     <h3 className="text-white text-sm font-semibold flex items-center gap-2">
                       <Info className="w-4 h-4 text-blue-400" />業界平均コスト
                     </h3>
@@ -549,13 +552,13 @@ export default function IncidentCostCalculatorPage() {
                     {Object.entries(INDUSTRY_BENCHMARKS).map(([type, { avg_jpy }]) => {
                       const info = INCIDENT_TYPES.find(t => t.type === type)
                       return (
-                        <div key={type} className="flex items-center justify-between py-1.5 border-b border-falcon-border/50 last:border-0">
-                          <span className="text-falcon-muted text-xs">{info?.label ?? type}</span>
+                        <div key={type} className="flex items-center justify-between py-1.5 border-b border-[#1e2d42]/50 last:border-0">
+                          <span className="text-[#7d92b0] text-xs">{info?.label ?? type}</span>
                           <span className="text-white text-xs font-mono">{fmtJPY(avg_jpy)}</span>
                         </div>
                       )
                     })}
-                    <p className="text-falcon-subtle text-[10px] mt-2">※ IBM/Ponemon/BSI 2024レポートより</p>
+                    <p className="text-[#3d5068] text-[10px] mt-2">※ IBM/Ponemon/BSI 2024レポートより</p>
                   </div>
                 </div>
               </div>
@@ -563,7 +566,7 @@ export default function IncidentCostCalculatorPage() {
           )}
 
           {!selectedType && (
-            <div className="text-center py-16 text-falcon-muted">
+            <div className="text-center py-16 text-[#7d92b0]">
               <Calculator className="w-12 h-12 mx-auto mb-3 opacity-30" />
               <p className="text-sm">インシデント種別を選択してコスト試算を開始してください</p>
             </div>
@@ -586,31 +589,31 @@ export default function IncidentCostCalculatorPage() {
                     <button
                       key={calc.id}
                       onClick={() => setSelectedSaved(calc)}
-                      className="border border-falcon-border rounded-xl p-4 bg-falcon-surface hover:border-falcon-muted/40 text-left transition-all group"
+                      className="border border-[#1e2d42] rounded-xl p-4 bg-[#0d1220] hover:border-[#7d92b0]/40 text-left transition-all group"
                     >
                       <div className="flex items-start justify-between mb-3">
                         <div className="flex items-center gap-2">
-                          <Icon className="w-4 h-4 text-falcon-muted" />
-                          <span className="text-xs text-falcon-muted">{typeInfo?.label}</span>
+                          <Icon className="w-4 h-4 text-[#7d92b0]" />
+                          <span className="text-xs text-[#7d92b0]">{typeInfo?.label}</span>
                         </div>
-                        <span className="text-falcon-muted text-xs">{calc.date}</span>
+                        <span className="text-[#7d92b0] text-xs">{calc.date}</span>
                       </div>
                       <p className="text-white font-medium text-sm mb-2">{calc.name}</p>
                       <p className="text-2xl font-bold text-white font-mono">{fmtJPY(calc.total_jpy)}</p>
-                      <p className="text-falcon-muted text-xs mt-1">{fmtUSD(calc.total_jpy)} USD</p>
+                      <p className="text-[#7d92b0] text-xs mt-1">{fmtUSD(calc.total_jpy)} USD</p>
                       <div className={`mt-3 flex items-center gap-1 text-xs ${vsAvg > 0 ? 'text-red-400' : 'text-green-400'}`}>
                         {vsAvg > 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingUp className="w-3 h-3 rotate-180" />}
                         業界平均比 {vsAvg > 0 ? '+' : ''}{vsAvg}%
                       </div>
-                      <ChevronRight className="w-4 h-4 text-falcon-subtle group-hover:text-falcon-muted mt-2" />
+                      <ChevronRight className="w-4 h-4 text-[#3d5068] group-hover:text-[#7d92b0] mt-2" />
                     </button>
                   )
                 })}
               </div>
 
               {/* Industry benchmarks */}
-              <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
-                <div className="px-5 py-4 border-b border-falcon-border">
+              <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
+                <div className="px-5 py-4 border-b border-[#1e2d42]">
                   <h3 className="text-white font-semibold">業界平均コスト ベンチマーク</h3>
                 </div>
                 <div className="p-5">
@@ -619,14 +622,14 @@ export default function IncidentCostCalculatorPage() {
                       const typeInfo = INCIDENT_TYPES.find(t => t.type === type)
                       const Icon = typeInfo?.icon ?? Calculator
                       return (
-                        <div key={type} className="border border-falcon-border rounded-lg p-4 bg-[#070d19]">
+                        <div key={type} className="border border-[#1e2d42] rounded-lg p-4 bg-[#070d19]">
                           <div className="flex items-center gap-2 mb-2">
-                            <Icon className="w-4 h-4 text-falcon-muted" />
+                            <Icon className="w-4 h-4 text-[#7d92b0]" />
                             <span className="text-white text-sm font-medium">{typeInfo?.label}</span>
                           </div>
                           <p className="text-xl font-bold text-white font-mono">{fmtJPY(avg_jpy)}</p>
-                          <p className="text-falcon-muted text-xs mt-0.5">{fmtUSD(avg_jpy)} USD</p>
-                          <p className="text-falcon-subtle text-[10px] mt-2">{description}</p>
+                          <p className="text-[#7d92b0] text-xs mt-0.5">{fmtUSD(avg_jpy)} USD</p>
+                          <p className="text-[#3d5068] text-[10px] mt-2">{description}</p>
                         </div>
                       )
                     })}
@@ -639,7 +642,7 @@ export default function IncidentCostCalculatorPage() {
             <div className="space-y-6">
               <button
                 onClick={() => setSelectedSaved(null)}
-                className="flex items-center gap-2 text-falcon-muted hover:text-white text-sm transition-colors"
+                className="flex items-center gap-2 text-[#7d92b0] hover:text-white text-sm transition-colors"
               >
                 <ChevronRight className="w-4 h-4 rotate-180" />一覧に戻る
               </button>
@@ -647,7 +650,7 @@ export default function IncidentCostCalculatorPage() {
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Detail */}
                 <div className="space-y-4">
-                  <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
+                  <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
                     <h3 className="text-white font-semibold mb-4">{selectedSaved.name}</h3>
                     <div className="space-y-3">
                       {[
@@ -656,8 +659,8 @@ export default function IncidentCostCalculatorPage() {
                         ['合計コスト', fmtJPYFull(selectedSaved.total_jpy)],
                         ['USD換算', fmtUSD(selectedSaved.total_jpy)],
                       ].map(([k, v]) => (
-                        <div key={k} className="flex items-center justify-between py-2 border-b border-falcon-border/50 last:border-0">
-                          <span className="text-falcon-muted text-sm">{k}</span>
+                        <div key={k} className="flex items-center justify-between py-2 border-b border-[#1e2d42]/50 last:border-0">
+                          <span className="text-[#7d92b0] text-sm">{k}</span>
                           <span className="text-white text-sm font-medium">{v}</span>
                         </div>
                       ))}
@@ -667,7 +670,7 @@ export default function IncidentCostCalculatorPage() {
 
                 {/* Comparison + ROI */}
                 <div className="space-y-4">
-                  <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
+                  <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
                     <h3 className="text-white font-semibold mb-4 flex items-center gap-2">
                       <BarChart2 className="w-4 h-4 text-blue-400" />業界平均比較
                     </h3>
@@ -678,11 +681,11 @@ export default function IncidentCostCalculatorPage() {
                       return (
                         <div className="space-y-3">
                           {[
-                            ['業界平均', bm.avg_jpy, 'text-falcon-muted'],
+                            ['業界平均', bm.avg_jpy, 'text-[#7d92b0]'],
                             ['このインシデント', selectedSaved.total_jpy, 'text-white'],
                           ].map(([label, val, color]) => (
                             <div key={label as string} className="flex items-center justify-between">
-                              <span className="text-falcon-muted text-xs">{label as string}</span>
+                              <span className="text-[#7d92b0] text-xs">{label as string}</span>
                               <span className={`text-sm font-mono font-bold ${color as string}`}>{fmtJPY(val as number)}</span>
                             </div>
                           ))}
@@ -697,7 +700,7 @@ export default function IncidentCostCalculatorPage() {
                     })()}
                   </div>
 
-                  <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
+                  <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
                     <h3 className="text-white font-semibold mb-4 flex items-center gap-2">
                       <Shield className="w-4 h-4 text-green-400" />ROI分析 — 投資対効果
                     </h3>
@@ -706,11 +709,11 @@ export default function IncidentCostCalculatorPage() {
                         const saves = Math.round(selectedSaved.total_jpy * (saves_pct[selectedSaved.incident_type] / 100))
                         const roi = cost_jpy > 0 ? Math.round((saves - cost_jpy) / cost_jpy * 100) : 0
                         return (
-                          <div key={investment} className="border border-falcon-border rounded-lg p-3">
+                          <div key={investment} className="border border-[#1e2d42] rounded-lg p-3">
                             <div className="flex items-start justify-between gap-2">
                               <div>
                                 <p className="text-white text-xs font-medium">{investment}</p>
-                                <p className="text-falcon-muted text-xs">投資額: {fmtJPY(cost_jpy)}</p>
+                                <p className="text-[#7d92b0] text-xs">投資額: {fmtJPY(cost_jpy)}</p>
                               </div>
                               <div className="text-right shrink-0">
                                 <p className="text-green-400 text-xs font-bold">{fmtJPY(saves)} 節約</p>

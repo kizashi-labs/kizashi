@@ -174,14 +174,10 @@ jobs:
 
             for f in $files; do
               num="$(basename "$f" | sed 's|_.*||')"
-              # ci.yml の changes ジョブと同じ理由でパイプを使わない。
-              # `grep -q` は一致した時点で終了するので、左側がパイプバッファ
-              # (約 64KB) を超えていると `echo` が EPIPE を受け、pipefail が
-              # それを拾って **一致しているのに false を返す**。
-              #
-              # ここは今日はまだ安全（番号 450 件で約 2KB）。だが番号は増え
-              # 続けるうえ、**壊れ方が「衝突を見逃す」＝ゲートの偽陰性**で、
-              # 静かに通してしまう側に倒れる。先に塞いでおく。
+              # here-string にするのは ci.yml と同じ理由です (pipefail + `grep -q`
+              # の SIGPIPE で、**一致したときに「一致しなかった」を返す**)。
+              # main_nums は今は小さいので実害は出ていませんが、番号が増えれば
+              # 「衝突しているのに衝突していないと言う」門になります。
               if grep -qx "$num" <<<"$main_nums"; then
                 echo "::${level}::PR #$pr が追加する $(basename "$f") の番号 $num は、すでに main にあります。マージすると main が赤くなります。"
                 collisions=$((collisions + 1))

@@ -114,13 +114,8 @@ function DeployAgentStep({ onAgentsFound }: { onAgentsFound: (n: number) => void
   const serverUrl = typeof window !== 'undefined' ? window.location.origin : ''
 
   useEffect(() => {
-    // 以前は GET /api/v1/admin/enrollment-token を叩いていたが、この経路は
-    // ルータに存在しない（openapi-sync の乖離検査で発覚）。実装は
-    // POST /api/v1/settings/enrollment-token で、呼ぶたびに再生成される。
-    apiFetch<{ token?: string; enrollment_token?: string }>('/api/v1/settings/enrollment-token', {
-      method: 'POST',
-    })
-      .then(d => setEnrollToken(d.enrollment_token ?? d.token ?? ''))
+    apiFetch<{ token?: string; enrollment_token?: string }>('/api/v1/admin/enrollment-token')
+      .then(d => setEnrollToken(d.token ?? d.enrollment_token ?? ''))
       .catch(() => {})
       .finally(() => setTokenLoading(false))
   }, [])
@@ -340,7 +335,7 @@ function DetectionRulesStep() {
           onClick={() => setEnabledBuiltin(v => !v)}
           className={`relative w-10 h-6 rounded-full transition-colors ${enabledBuiltin ? 'bg-red-600' : 'bg-zinc-700'}`}
         >
-          <span className={`absolute top-1 w-4 h-4 rounded-full bg-falcon-text shadow-sm transition-transform ${enabledBuiltin ? 'left-5' : 'left-1'}`} />
+          <span className={`absolute top-1 w-4 h-4 rounded-full bg-[#e2e8f4] shadow-sm transition-transform ${enabledBuiltin ? 'left-5' : 'left-1'}`} />
         </button>
       </div>
 

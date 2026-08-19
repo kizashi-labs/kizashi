@@ -22,8 +22,8 @@ export default function ChangePasswordPage() {
   // 認証状態が確定するまで待つ
   if (authLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-falcon-bg">
-        <div className="w-6 h-6 border-2 border-falcon-red/30 border-t-falcon-red rounded-full animate-spin" />
+      <div className="min-h-screen flex items-center justify-center bg-[#080c14]">
+        <div className="w-6 h-6 border-2 border-[#e8002d]/30 border-t-[#e8002d] rounded-full animate-spin" />
       </div>
     )
   }
@@ -96,16 +96,15 @@ export default function ChangePasswordPage() {
   const strengthColor = ['', 'bg-red-500', 'bg-orange-500', 'bg-yellow-500', 'bg-green-500', 'bg-emerald-400'][strength]
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-falcon-bg px-4">
+    <div className="min-h-screen flex items-center justify-center bg-[#080c14] px-4">
       <div className="w-full max-w-sm">
         {/* Header */}
         <div className="flex flex-col items-center mb-8">
-          <div className="w-14 h-14 rounded-xl bg-linear-to-br from-falcon-red to-falcon-red-dark
-                          flex items-center justify-center shadow-lg mb-4">
+          <div className="w-14 h-14 rounded-xl bg-linear-to-br from-[#e8002d] to-[#a80020] flex items-center justify-center shadow-lg mb-4">
             <Shield className="w-7 h-7 text-white" strokeWidth={1.5} />
           </div>
           <h1 className="text-white font-bold text-xl mb-1">パスワードの変更</h1>
-          <p className="text-falcon-muted text-sm text-center">
+          <p className="text-[#7d92b0] text-sm text-center">
             初回ログインのため、新しいパスワードを設定してください。
           </p>
         </div>
@@ -114,11 +113,11 @@ export default function ChangePasswordPage() {
           {/* Current password (non-admin only) */}
           {!isAdmin && (
             <div>
-              <label className="block text-[10px] font-semibold tracking-widest uppercase text-falcon-muted mb-2">
+              <label className="block text-[10px] font-semibold tracking-widest uppercase text-[#7d92b0] mb-2">
                 現在のパスワード
               </label>
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-falcon-subtle" />
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#3d5068]" />
                 <input
                   type={showCurrent ? 'text' : 'password'}
                   value={currentPassword}
@@ -126,16 +125,13 @@ export default function ChangePasswordPage() {
                   required
                   autoFocus
                   autoComplete="current-password"
-                  className="w-full bg-falcon-surface border border-falcon-border text-falcon-text rounded
-                             pl-9 pr-10 py-2.5 text-sm
-                             focus:outline-hidden focus:border-falcon-blue focus:ring-1 focus:ring-falcon-blue/30
-                             placeholder-falcon-subtle transition-colors"
+                  className="w-full bg-[#0d1220] border border-[#1e2d42] text-[#e2e8f4] rounded-sm pl-9 pr-10 py-2.5 text-sm focus:outline-hidden focus:border-[#1a6bff] focus:ring-1 focus:ring-[#1a6bff]/30 placeholder-[#3d5068] transition-colors"
                   placeholder="現在のパスワード"
                 />
                 <button
                   type="button"
                   onClick={() => setShowCurrent(v => !v)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-falcon-subtle hover:text-falcon-muted"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#3d5068] hover:text-[#7d92b0]"
                 >
                   {showCurrent ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
@@ -145,11 +141,11 @@ export default function ChangePasswordPage() {
 
           {/* New password */}
           <div>
-            <label className="block text-[10px] font-semibold tracking-widest uppercase text-falcon-muted mb-2">
+            <label className="block text-[10px] font-semibold tracking-widest uppercase text-[#7d92b0] mb-2">
               新しいパスワード
             </label>
             <div className="relative">
-              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-falcon-subtle" />
+              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#3d5068]" />
               <input
                 type={showNew ? 'text' : 'password'}
                 value={newPassword}
@@ -157,16 +153,13 @@ export default function ChangePasswordPage() {
                 required
                 autoFocus={isAdmin}
                 autoComplete="new-password"
-                className="w-full bg-falcon-surface border border-falcon-border text-falcon-text rounded
-                           pl-9 pr-10 py-2.5 text-sm
-                           focus:outline-hidden focus:border-falcon-blue focus:ring-1 focus:ring-falcon-blue/30
-                           placeholder-falcon-subtle transition-colors"
+                className="w-full bg-[#0d1220] border border-[#1e2d42] text-[#e2e8f4] rounded-sm pl-9 pr-10 py-2.5 text-sm focus:outline-hidden focus:border-[#1a6bff] focus:ring-1 focus:ring-[#1a6bff]/30 placeholder-[#3d5068] transition-colors"
                 placeholder="8文字以上"
               />
               <button
                 type="button"
                 onClick={() => setShowNew(v => !v)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-falcon-subtle hover:text-falcon-muted"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-[#3d5068] hover:text-[#7d92b0]"
               >
                 {showNew ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
@@ -179,7 +172,7 @@ export default function ChangePasswordPage() {
                     <div
                       key={i}
                       className={`h-1 flex-1 rounded-full transition-colors ${
-                        i <= strength ? strengthColor : 'bg-falcon-border'
+                        i <= strength ? strengthColor : 'bg-[#1e2d42]'
                       }`}
                     />
                   ))}
@@ -191,43 +184,42 @@ export default function ChangePasswordPage() {
 
           {/* Confirm */}
           <div>
-            <label className="block text-[10px] font-semibold tracking-widest uppercase text-falcon-muted mb-2">
+            <label className="block text-[10px] font-semibold tracking-widest uppercase text-[#7d92b0] mb-2">
               パスワードの確認
             </label>
             <div className="relative">
-              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-falcon-subtle" />
+              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#3d5068]" />
               <input
                 type={showConfirm ? 'text' : 'password'}
                 value={confirm}
                 onChange={e => setConfirm(e.target.value)}
                 required
                 autoComplete="new-password"
-                className={`w-full bg-falcon-surface border text-falcon-text rounded
+                className={`w-full bg-[#0d1220] border text-[#e2e8f4] rounded-sm
                            pl-9 pr-10 py-2.5 text-sm
                            focus:outline-hidden focus:ring-1 transition-colors
-                           placeholder-falcon-subtle
+                           placeholder-[#3d5068]
                            ${confirm && newPassword !== confirm
-                             ? 'border-falcon-red focus:border-falcon-red focus:ring-falcon-red/30'
-                             : 'border-falcon-border focus:border-falcon-blue focus:ring-falcon-blue/30'}`}
+                             ? 'border-[#e8002d] focus:border-[#e8002d] focus:ring-[#e8002d]/30'
+                             : 'border-[#1e2d42] focus:border-[#1a6bff] focus:ring-[#1a6bff]/30'}`}
                 placeholder="もう一度入力"
               />
               <button
                 type="button"
                 onClick={() => setShowConfirm(v => !v)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-falcon-subtle hover:text-falcon-muted"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-[#3d5068] hover:text-[#7d92b0]"
               >
                 {showConfirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
             {confirm && newPassword !== confirm && (
-              <p className="mt-1 text-[11px] text-falcon-red">パスワードが一致しません</p>
+              <p className="mt-1 text-[11px] text-[#e8002d]">パスワードが一致しません</p>
             )}
           </div>
 
           {error && (
-            <div className="flex items-start gap-2 px-3 py-2.5 rounded bg-falcon-red/10
-                            border border-falcon-red/30 text-[#ff4d6d] text-sm">
-              <span className="text-falcon-red mt-0.5 shrink-0">▲</span>
+            <div className="flex items-start gap-2 px-3 py-2.5 rounded-sm bg-[#e8002d]/10 border border-[#e8002d]/30 text-[#ff4d6d] text-sm">
+              <span className="text-[#e8002d] mt-0.5 shrink-0">▲</span>
               {error}
             </div>
           )}
@@ -235,9 +227,7 @@ export default function ChangePasswordPage() {
           <button
             type="submit"
             disabled={isLoading || newPassword !== confirm || newPassword.length < 8}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2.5
-                       bg-falcon-blue hover:bg-[#1557cc] text-white text-sm font-semibold
-                       rounded transition-colors disabled:opacity-40 disabled:cursor-not-allowed mt-2"
+            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-[#1a6bff] hover:bg-[#1557cc] text-white text-sm font-semibold rounded-sm transition-colors disabled:opacity-40 disabled:cursor-not-allowed mt-2"
           >
             {isLoading ? (
               <>
@@ -253,7 +243,7 @@ export default function ChangePasswordPage() {
           </button>
         </form>
 
-        <p className="text-falcon-subtle text-[10px] text-center mt-8 uppercase tracking-widest">
+        <p className="text-[#3d5068] text-[10px] text-center mt-8 uppercase tracking-widest">
           KIZASHI EDR · Secure Access
         </p>
       </div>

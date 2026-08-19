@@ -8,6 +8,8 @@ import {
   Database, BarChart2, ArrowUp, Archive, HardDrive,
 } from 'lucide-react'
 
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 interface ExportHistoryEntry {
@@ -199,56 +201,57 @@ export default function AuditExportPage() {
 
   return (
     <div className="min-h-screen bg-[#070d19] p-6 space-y-6">
+      <PageDataUnavailable />
 
       {/* Header */}
       <div className="flex items-center gap-3">
-        <div className="w-8 h-8 rounded-sm bg-falcon-red/10 border border-falcon-red/30 flex items-center justify-center">
-          <FileInput className="w-4 h-4 text-falcon-red" />
+        <div className="w-8 h-8 rounded-sm bg-[#e8002d]/10 border border-[#e8002d]/30 flex items-center justify-center">
+          <FileInput className="w-4 h-4 text-[#e8002d]" />
         </div>
         <div>
           <h1 className="text-xl font-bold text-white">監査ログエクスポート</h1>
-          <p className="text-falcon-muted text-sm">監査ログの手動エクスポートと自動アーカイブスケジュールを管理します</p>
+          <p className="text-[#7d92b0] text-sm">監査ログの手動エクスポートと自動アーカイブスケジュールを管理します</p>
         </div>
       </div>
 
       {/* Stats cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-falcon-surface border border-falcon-border rounded-lg p-4">
+        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-4">
           <div className="flex items-center gap-2 mb-2">
-            <BarChart2 className="w-4 h-4 text-falcon-red" />
-            <span className="text-xs text-falcon-muted">今月のログ件数</span>
+            <BarChart2 className="w-4 h-4 text-[#e8002d]" />
+            <span className="text-xs text-[#7d92b0]">今月のログ件数</span>
           </div>
           <p className="text-2xl font-bold text-white">{thisMonthRecords.toLocaleString()}</p>
         </div>
-        <div className="bg-falcon-surface border border-falcon-border rounded-lg p-4">
+        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-4">
           <div className="flex items-center gap-2 mb-2">
             <ArrowUp className={`w-4 h-4 ${monthDelta >= 0 ? 'text-green-400' : 'text-red-400'}`} />
-            <span className="text-xs text-falcon-muted">先月比</span>
+            <span className="text-xs text-[#7d92b0]">先月比</span>
           </div>
           <p className={`text-2xl font-bold ${monthDelta >= 0 ? 'text-green-400' : 'text-red-400'}`}>
             {monthDelta >= 0 ? '+' : ''}{monthDelta}%
           </p>
         </div>
-        <div className="bg-falcon-surface border border-falcon-border rounded-lg p-4">
+        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-4">
           <div className="flex items-center gap-2 mb-2">
             <Archive className="w-4 h-4 text-blue-400" />
-            <span className="text-xs text-falcon-muted">保存済みアーカイブ数</span>
+            <span className="text-xs text-[#7d92b0]">保存済みアーカイブ数</span>
           </div>
           <p className="text-2xl font-bold text-white">{totalArchives}</p>
         </div>
-        <div className="bg-falcon-surface border border-falcon-border rounded-lg p-4">
+        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-4">
           <div className="flex items-center gap-2 mb-2">
             <HardDrive className="w-4 h-4 text-purple-400" />
-            <span className="text-xs text-falcon-muted">総容量</span>
+            <span className="text-xs text-[#7d92b0]">総容量</span>
           </div>
           <p className="text-2xl font-bold text-white">{formatBytes(totalBytes)}</p>
         </div>
       </div>
 
       {/* Export Now panel */}
-      <div className="bg-falcon-surface border border-falcon-border rounded-lg overflow-hidden">
-        <div className="px-5 py-4 border-b border-falcon-border flex items-center gap-2">
-          <Download className="w-4 h-4 text-falcon-red" />
+      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg overflow-hidden">
+        <div className="px-5 py-4 border-b border-[#1e2d42] flex items-center gap-2">
+          <Download className="w-4 h-4 text-[#e8002d]" />
           <h2 className="text-sm font-semibold text-white">今すぐエクスポート</h2>
         </div>
         <div className="p-5 space-y-5">
@@ -256,7 +259,7 @@ export default function AuditExportPage() {
           {/* Date range */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-medium text-falcon-muted mb-1.5">
+              <label className="block text-xs font-medium text-[#7d92b0] mb-1.5">
                 <Calendar className="inline w-3 h-3 mr-1" />
                 開始日
               </label>
@@ -264,11 +267,11 @@ export default function AuditExportPage() {
                 type="date"
                 value={startDate}
                 onChange={e => setStartDate(e.target.value)}
-                className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-sm text-white focus:outline-hidden focus:border-falcon-red/50 scheme-dark"
+                className="w-full bg-[#070d19] border border-[#1e2d42] rounded-sm px-3 py-2 text-sm text-white focus:outline-hidden focus:border-[#e8002d]/50 [color-scheme:dark]"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-falcon-muted mb-1.5">
+              <label className="block text-xs font-medium text-[#7d92b0] mb-1.5">
                 <Calendar className="inline w-3 h-3 mr-1" />
                 終了日
               </label>
@@ -276,14 +279,14 @@ export default function AuditExportPage() {
                 type="date"
                 value={endDate}
                 onChange={e => setEndDate(e.target.value)}
-                className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-sm text-white focus:outline-hidden focus:border-falcon-red/50 scheme-dark"
+                className="w-full bg-[#070d19] border border-[#1e2d42] rounded-sm px-3 py-2 text-sm text-white focus:outline-hidden focus:border-[#e8002d]/50 [color-scheme:dark]"
               />
             </div>
           </div>
 
           {/* Format */}
           <div>
-            <label className="block text-xs font-medium text-falcon-muted mb-2">フォーマット</label>
+            <label className="block text-xs font-medium text-[#7d92b0] mb-2">フォーマット</label>
             <div className="flex gap-2">
               {([
                 { value: 'json', label: 'JSON', desc: '汎用JSON' },
@@ -294,10 +297,10 @@ export default function AuditExportPage() {
                   key={f.value}
                   type="button"
                   onClick={() => setExportFormat(f.value)}
-                  className={`px-4 py-2 rounded border text-xs font-medium transition-colors ${
+                  className={`px-4 py-2 rounded-sm border text-xs font-medium transition-colors ${
                     exportFormat === f.value
-                      ? 'bg-falcon-red border-falcon-red text-white'
-                      : 'bg-[#070d19] border-falcon-border text-falcon-muted hover:border-falcon-muted/40 hover:text-white'
+                      ? 'bg-[#e8002d] border-[#e8002d] text-white'
+                      : 'bg-[#070d19] border-[#1e2d42] text-[#7d92b0] hover:border-[#7d92b0]/40 hover:text-white'
                   }`}
                 >
                   <span className="font-semibold">{f.label}</span>
@@ -309,9 +312,9 @@ export default function AuditExportPage() {
 
           {/* Event types */}
           <div>
-            <label className="block text-xs font-medium text-falcon-muted mb-2">
+            <label className="block text-xs font-medium text-[#7d92b0] mb-2">
               イベントタイプ
-              <span className="ml-2 text-falcon-subtle font-normal">(未選択 = すべて)</span>
+              <span className="ml-2 text-[#3d5068] font-normal">(未選択 = すべて)</span>
             </label>
             <div className="flex flex-wrap gap-2">
               {EVENT_TYPES.map(et => {
@@ -319,10 +322,10 @@ export default function AuditExportPage() {
                 return (
                   <label
                     key={et.value}
-                    className={`flex items-center gap-2 px-3 py-1.5 rounded border cursor-pointer text-xs transition-colors ${
+                    className={`flex items-center gap-2 px-3 py-1.5 rounded-sm border cursor-pointer text-xs transition-colors ${
                       checked
-                        ? 'bg-falcon-red/10 border-falcon-red/40 text-falcon-red'
-                        : 'bg-[#070d19] border-falcon-border text-falcon-muted hover:border-falcon-muted/40 hover:text-white'
+                        ? 'bg-[#e8002d]/10 border-[#e8002d]/40 text-[#e8002d]'
+                        : 'bg-[#070d19] border-[#1e2d42] text-[#7d92b0] hover:border-[#7d92b0]/40 hover:text-white'
                     }`}
                   >
                     <input
@@ -332,7 +335,7 @@ export default function AuditExportPage() {
                       className="sr-only"
                     />
                     <span className={`w-3 h-3 rounded-xs border flex items-center justify-center shrink-0 ${
-                      checked ? 'bg-falcon-red border-falcon-red' : 'border-falcon-border'
+                      checked ? 'bg-[#e8002d] border-[#e8002d]' : 'border-[#1e2d42]'
                     }`}>
                       {checked && (
                         <svg viewBox="0 0 12 12" className="w-2.5 h-2.5 text-white fill-current">
@@ -349,27 +352,27 @@ export default function AuditExportPage() {
 
           {/* Actor filter */}
           <div>
-            <label className="block text-xs font-medium text-falcon-muted mb-1.5">
+            <label className="block text-xs font-medium text-[#7d92b0] mb-1.5">
               アクターフィルター
-              <span className="ml-2 text-falcon-subtle font-normal">(メール / ユーザーID)</span>
+              <span className="ml-2 text-[#3d5068] font-normal">(メール / ユーザーID)</span>
             </label>
             <input
               type="text"
               value={actorFilter}
               onChange={e => setActorFilter(e.target.value)}
               placeholder="admin@example.com"
-              className="w-full max-w-sm bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-sm text-white placeholder-falcon-subtle focus:outline-hidden focus:border-falcon-red/50"
+              className="w-full max-w-sm bg-[#070d19] border border-[#1e2d42] rounded-sm px-3 py-2 text-sm text-white placeholder-[#3d5068] focus:outline-hidden focus:border-[#e8002d]/50"
             />
           </div>
 
           {exportError && (
-            <p className="text-xs text-falcon-red">{exportError}</p>
+            <p className="text-xs text-[#e8002d]">{exportError}</p>
           )}
 
           <div className="flex justify-end pt-1">
             <button
               onClick={handleExport}
-              className="flex items-center gap-2 px-5 py-2.5 bg-falcon-red hover:bg-[#c8001f] text-white text-sm font-medium rounded-sm transition-colors"
+              className="flex items-center gap-2 px-5 py-2.5 bg-[#e8002d] hover:bg-[#c8001f] text-white text-sm font-medium rounded-sm transition-colors"
             >
               <Download className="w-4 h-4" />
               エクスポート
@@ -379,23 +382,23 @@ export default function AuditExportPage() {
       </div>
 
       {/* Auto-Archive Schedule panel */}
-      <div className="bg-falcon-surface border border-falcon-border rounded-lg overflow-hidden">
-        <div className="px-5 py-4 border-b border-falcon-border flex items-center justify-between">
+      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg overflow-hidden">
+        <div className="px-5 py-4 border-b border-[#1e2d42] flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Clock className="w-4 h-4 text-blue-400" />
             <h2 className="text-sm font-semibold text-white">自動アーカイブスケジュール</h2>
           </div>
           {/* Enable toggle */}
           <div className="flex items-center gap-2">
-            <span className="text-xs text-falcon-muted">{archiveEnabled ? '有効' : '無効'}</span>
+            <span className="text-xs text-[#7d92b0]">{archiveEnabled ? '有効' : '無効'}</span>
             <button
               type="button"
               onClick={() => setArchiveEnabled(v => !v)}
               className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
-                archiveEnabled ? 'bg-falcon-red' : 'bg-falcon-border'
+                archiveEnabled ? 'bg-[#e8002d]' : 'bg-[#1e2d42]'
               }`}
             >
-              <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-falcon-text transition-transform ${
+              <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-[#e2e8f4] transition-transform ${
                 archiveEnabled ? 'translate-x-4' : 'translate-x-1'
               }`} />
             </button>
@@ -406,7 +409,7 @@ export default function AuditExportPage() {
 
           {/* Frequency */}
           <div>
-            <label className="block text-xs font-medium text-falcon-muted mb-2">頻度</label>
+            <label className="block text-xs font-medium text-[#7d92b0] mb-2">頻度</label>
             <div className="flex gap-2">
               {([
                 { value: 'daily',   label: '毎日' },
@@ -417,10 +420,10 @@ export default function AuditExportPage() {
                   key={f.value}
                   type="button"
                   onClick={() => setFrequency(f.value)}
-                  className={`px-4 py-2 rounded border text-sm font-medium transition-colors ${
+                  className={`px-4 py-2 rounded-sm border text-sm font-medium transition-colors ${
                     frequency === f.value
-                      ? 'bg-falcon-red border-falcon-red text-white'
-                      : 'bg-[#070d19] border-falcon-border text-falcon-muted hover:border-falcon-muted/40 hover:text-white'
+                      ? 'bg-[#e8002d] border-[#e8002d] text-white'
+                      : 'bg-[#070d19] border-[#1e2d42] text-[#7d92b0] hover:border-[#7d92b0]/40 hover:text-white'
                   }`}
                 >
                   {f.label}
@@ -431,17 +434,17 @@ export default function AuditExportPage() {
 
           {/* Retention */}
           <div>
-            <label className="block text-xs font-medium text-falcon-muted mb-2">保持期間</label>
+            <label className="block text-xs font-medium text-[#7d92b0] mb-2">保持期間</label>
             <div className="flex gap-2 flex-wrap">
               {RETENTION_OPTIONS.map(r => (
                 <button
                   key={r.value}
                   type="button"
                   onClick={() => setRetentionDays(r.value)}
-                  className={`px-4 py-2 rounded border text-sm font-medium transition-colors ${
+                  className={`px-4 py-2 rounded-sm border text-sm font-medium transition-colors ${
                     retentionDays === r.value
-                      ? 'bg-falcon-red border-falcon-red text-white'
-                      : 'bg-[#070d19] border-falcon-border text-falcon-muted hover:border-falcon-muted/40 hover:text-white'
+                      ? 'bg-[#e8002d] border-[#e8002d] text-white'
+                      : 'bg-[#070d19] border-[#1e2d42] text-[#7d92b0] hover:border-[#7d92b0]/40 hover:text-white'
                   }`}
                 >
                   {r.label}
@@ -452,7 +455,7 @@ export default function AuditExportPage() {
 
           {/* Storage */}
           <div>
-            <label className="block text-xs font-medium text-falcon-muted mb-2">
+            <label className="block text-xs font-medium text-[#7d92b0] mb-2">
               <Settings2 className="inline w-3 h-3 mr-1" />
               ストレージ
             </label>
@@ -465,10 +468,10 @@ export default function AuditExportPage() {
                   key={s.value}
                   type="button"
                   onClick={() => setStorage(s.value)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded border text-sm font-medium transition-colors ${
+                  className={`flex items-center gap-2 px-4 py-2 rounded-sm border text-sm font-medium transition-colors ${
                     storage === s.value
-                      ? 'bg-falcon-red border-falcon-red text-white'
-                      : 'bg-[#070d19] border-falcon-border text-falcon-muted hover:border-falcon-muted/40 hover:text-white'
+                      ? 'bg-[#e8002d] border-[#e8002d] text-white'
+                      : 'bg-[#070d19] border-[#1e2d42] text-[#7d92b0] hover:border-[#7d92b0]/40 hover:text-white'
                   }`}
                 >
                   <span>{s.icon}</span>
@@ -481,25 +484,25 @@ export default function AuditExportPage() {
             {storage === 's3' && (
               <div className="space-y-3 pl-1">
                 <div>
-                  <label className="block text-xs font-medium text-falcon-muted mb-1.5">
-                    S3バケット名 <span className="text-falcon-red">*</span>
+                  <label className="block text-xs font-medium text-[#7d92b0] mb-1.5">
+                    S3バケット名 <span className="text-[#e8002d]">*</span>
                   </label>
                   <input
                     type="text"
                     value={s3Bucket}
                     onChange={e => setS3Bucket(e.target.value)}
                     placeholder="my-audit-logs-bucket"
-                    className="w-full max-w-sm bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-sm text-white font-mono placeholder-falcon-subtle focus:outline-hidden focus:border-falcon-red/50"
+                    className="w-full max-w-sm bg-[#070d19] border border-[#1e2d42] rounded-sm px-3 py-2 text-sm text-white font-mono placeholder-[#3d5068] focus:outline-hidden focus:border-[#e8002d]/50"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-falcon-muted mb-1.5">プレフィックス</label>
+                  <label className="block text-xs font-medium text-[#7d92b0] mb-1.5">プレフィックス</label>
                   <input
                     type="text"
                     value={s3Prefix}
                     onChange={e => setS3Prefix(e.target.value)}
                     placeholder="audit-logs/"
-                    className="w-full max-w-sm bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-sm text-white font-mono placeholder-falcon-subtle focus:outline-hidden focus:border-falcon-red/50"
+                    className="w-full max-w-sm bg-[#070d19] border border-[#1e2d42] rounded-sm px-3 py-2 text-sm text-white font-mono placeholder-[#3d5068] focus:outline-hidden focus:border-[#e8002d]/50"
                   />
                 </div>
               </div>
@@ -507,7 +510,7 @@ export default function AuditExportPage() {
           </div>
 
           {configError && (
-            <p className="text-xs text-falcon-red">{configError}</p>
+            <p className="text-xs text-[#e8002d]">{configError}</p>
           )}
           {configSaved && (
             <p className="text-xs text-green-400">設定を保存しました</p>
@@ -517,7 +520,7 @@ export default function AuditExportPage() {
             <button
               onClick={handleSaveConfig}
               disabled={saveConfigMutation.isPending}
-              className="flex items-center gap-2 px-5 py-2.5 bg-falcon-red hover:bg-[#c8001f] text-white text-sm font-medium rounded-sm transition-colors disabled:opacity-50"
+              className="flex items-center gap-2 px-5 py-2.5 bg-[#e8002d] hover:bg-[#c8001f] text-white text-sm font-medium rounded-sm transition-colors disabled:opacity-50"
             >
               <Database className="w-4 h-4" />
               {saveConfigMutation.isPending ? '保存中...' : '設定を保存'}
@@ -527,63 +530,63 @@ export default function AuditExportPage() {
 
         {/* Disabled overlay message */}
         {!archiveEnabled && (
-          <div className="px-5 pb-4 text-xs text-falcon-subtle">
+          <div className="px-5 pb-4 text-xs text-[#3d5068]">
             自動アーカイブを使用するには上部のトグルで有効にしてください。
           </div>
         )}
       </div>
 
       {/* Recent Exports table */}
-      <div className="bg-falcon-surface border border-falcon-border rounded-lg overflow-hidden">
-        <div className="px-5 py-4 border-b border-falcon-border flex items-center gap-2">
-          <Archive className="w-4 h-4 text-falcon-muted" />
+      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg overflow-hidden">
+        <div className="px-5 py-4 border-b border-[#1e2d42] flex items-center gap-2">
+          <Archive className="w-4 h-4 text-[#7d92b0]" />
           <h2 className="text-sm font-semibold text-white">最近のエクスポート</h2>
-          <span className="ml-auto text-xs text-falcon-muted">{exports.length} 件</span>
+          <span className="ml-auto text-xs text-[#7d92b0]">{exports.length} 件</span>
         </div>
 
         {historyLoading ? (
-          <div className="p-8 text-center text-falcon-muted text-sm">読み込み中...</div>
+          <div className="p-8 text-center text-[#7d92b0] text-sm">読み込み中...</div>
         ) : exports.length === 0 ? (
           <div className="p-12 text-center">
-            <Archive className="w-10 h-10 text-falcon-border mx-auto mb-3" />
-            <p className="text-falcon-muted text-sm">エクスポート履歴がありません</p>
+            <Archive className="w-10 h-10 text-[#1e2d42] mx-auto mb-3" />
+            <p className="text-[#7d92b0] text-sm">エクスポート履歴がありません</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-falcon-border">
-                  <th className="px-4 py-3 text-left text-xs font-medium text-falcon-muted uppercase tracking-wider">ファイル名</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-falcon-muted uppercase tracking-wider">期間</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-falcon-muted uppercase tracking-wider">件数</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-falcon-muted uppercase tracking-wider">サイズ</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-falcon-muted uppercase tracking-wider">作成日</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-falcon-muted uppercase tracking-wider">ダウンロード</th>
+                <tr className="border-b border-[#1e2d42]">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-[#7d92b0] uppercase tracking-wider">ファイル名</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-[#7d92b0] uppercase tracking-wider">期間</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-[#7d92b0] uppercase tracking-wider">件数</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-[#7d92b0] uppercase tracking-wider">サイズ</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-[#7d92b0] uppercase tracking-wider">作成日</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-[#7d92b0] uppercase tracking-wider">ダウンロード</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-falcon-border">
+              <tbody className="divide-y divide-[#1e2d42]">
                 {exports.map(entry => (
                   <tr key={entry.id} className="hover:bg-[#0a1628] transition-colors">
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
-                        <span className="text-xs px-1.5 py-0.5 rounded-sm bg-[#070d19] border border-falcon-border text-falcon-muted font-mono shrink-0">
+                        <span className="text-xs px-1.5 py-0.5 rounded-sm bg-[#070d19] border border-[#1e2d42] text-[#7d92b0] font-mono shrink-0">
                           {entry.format}
                         </span>
-                        <span className="text-xs font-mono text-falcon-text truncate max-w-[240px]" title={entry.file_name}>
+                        <span className="text-xs font-mono text-[#e2e8f4] truncate max-w-[240px]" title={entry.file_name}>
                           {entry.file_name}
                         </span>
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-xs text-falcon-muted whitespace-nowrap">
+                    <td className="px-4 py-3 text-xs text-[#7d92b0] whitespace-nowrap">
                       {entry.start_date} 〜 {entry.end_date}
                     </td>
                     <td className="px-4 py-3 text-sm text-white font-medium">
                       {(entry.record_count ?? 0).toLocaleString()}
                     </td>
-                    <td className="px-4 py-3 text-xs text-falcon-muted">
+                    <td className="px-4 py-3 text-xs text-[#7d92b0]">
                       {formatBytes(entry.file_size_bytes)}
                     </td>
-                    <td className="px-4 py-3 text-xs text-falcon-muted whitespace-nowrap">
+                    <td className="px-4 py-3 text-xs text-[#7d92b0] whitespace-nowrap">
                       {formatDate(entry.created_at)}
                     </td>
                     <td className="px-4 py-3">
@@ -591,13 +594,13 @@ export default function AuditExportPage() {
                         <a
                           href={entry.download_url}
                           download
-                          className="flex items-center gap-1.5 text-xs text-falcon-muted hover:text-falcon-red transition-colors px-2 py-1 rounded-sm hover:bg-falcon-red/10"
+                          className="flex items-center gap-1.5 text-xs text-[#7d92b0] hover:text-[#e8002d] transition-colors px-2 py-1 rounded-sm hover:bg-[#e8002d]/10"
                         >
                           <Download className="w-3.5 h-3.5" />
                           DL
                         </a>
                       ) : (
-                        <span className="text-xs text-falcon-subtle">—</span>
+                        <span className="text-xs text-[#3d5068]">—</span>
                       )}
                     </td>
                   </tr>

@@ -10,6 +10,8 @@ import {
   Calendar, User, Zap, BookOpen, Flag, Timer, ArrowRight,
 } from 'lucide-react'
 
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type DrillType = 'tabletop' | 'technical' | 'communication' | 'full_scale'
@@ -158,23 +160,23 @@ function ExecutionModal({ drill, onClose, onComplete }: ExecutionModalProps) {
   const formatTime = (secs: number) => `${String(Math.floor(secs / 60)).padStart(2, '0')}:${String(secs % 60).padStart(2, '0')}`
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-xs p-4">
-      <div className="bg-falcon-surface border border-falcon-border rounded-xl w-full max-w-5xl max-h-[95vh] overflow-y-auto shadow-2xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl w-full max-w-5xl max-h-[95vh] overflow-y-auto shadow-2xl">
         {/* Header */}
-        <div className="flex items-center justify-between p-5 border-b border-falcon-border bg-[#070d19] rounded-t-xl">
+        <div className="flex items-center justify-between p-5 border-b border-[#1e2d42] bg-[#070d19] rounded-t-xl">
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
-              <PlayCircle className="w-5 h-5 text-falcon-red" />
+              <PlayCircle className="w-5 h-5 text-[#e8002d]" />
               <h2 className="text-white font-bold text-lg">{drill.name}</h2>
             </div>
             <span className={`px-2 py-0.5 rounded-sm text-xs font-medium ${TYPE_BADGE[drill.drill_type]}`}>{TYPE_LABEL[drill.drill_type]}</span>
           </div>
           <div className="flex items-center gap-4">
             {/* Timer */}
-            <div className="flex items-center gap-2 bg-falcon-border rounded-lg px-4 py-2">
-              <Timer className="w-4 h-4 text-falcon-muted" />
+            <div className="flex items-center gap-2 bg-[#1e2d42] rounded-lg px-4 py-2">
+              <Timer className="w-4 h-4 text-[#7d92b0]" />
               <span className="text-white font-mono font-bold text-xl">{formatTime(elapsed)}</span>
-              <span className="text-falcon-muted text-xs">/ {drill.duration_minutes}分</span>
+              <span className="text-[#7d92b0] text-xs">/ {drill.duration_minutes}分</span>
             </div>
             <button onClick={() => setRunning(r => !r)} className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${running ? 'bg-yellow-500/10 border border-yellow-500/30 text-yellow-400' : 'bg-green-500/10 border border-green-500/30 text-green-400'}`}>
               {running ? '一時停止' : 'タイマー開始'}
@@ -184,41 +186,41 @@ function ExecutionModal({ drill, onClose, onComplete }: ExecutionModalProps) {
 
         <div className="grid grid-cols-3 gap-0 h-full">
           {/* Left: Scenario Injects */}
-          <div className="col-span-1 border-r border-falcon-border p-4">
+          <div className="col-span-1 border-r border-[#1e2d42] p-4">
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-white font-semibold text-sm">シナリオインジェクト</h3>
-              <button onClick={revealNextInject} className="flex items-center gap-1 px-2 py-1 bg-falcon-red text-white text-xs rounded-sm hover:bg-[#c0001f] transition-colors">
+              <button onClick={revealNextInject} className="flex items-center gap-1 px-2 py-1 bg-[#e8002d] text-white text-xs rounded-sm hover:bg-[#c0001f] transition-colors">
                 <Zap className="w-3 h-3" />次のイベント
               </button>
             </div>
             <div className="space-y-3">
               {injects.map((inject, idx) => (
-                <div key={inject.id} className={`p-3 rounded-lg border transition-all ${inject.revealed ? 'border-falcon-red/30 bg-falcon-red/5' : 'border-falcon-border bg-[#070d19] opacity-50'}`}>
+                <div key={inject.id} className={`p-3 rounded-lg border transition-all ${inject.revealed ? 'border-[#e8002d]/30 bg-[#e8002d]/5' : 'border-[#1e2d42] bg-[#070d19] opacity-50'}`}>
                   <div className="flex items-center gap-2 mb-1">
-                    <span className={`text-xs font-mono ${inject.revealed ? 'text-falcon-red' : 'text-falcon-subtle'}`}>T+{inject.time_offset}分</span>
-                    {inject.revealed && <span className="text-[9px] bg-falcon-red/20 text-falcon-red px-1 rounded-sm">公開済み</span>}
+                    <span className={`text-xs font-mono ${inject.revealed ? 'text-[#e8002d]' : 'text-[#3d5068]'}`}>T+{inject.time_offset}分</span>
+                    {inject.revealed && <span className="text-[9px] bg-[#e8002d]/20 text-[#e8002d] px-1 rounded-sm">公開済み</span>}
                   </div>
-                  <p className={`text-xs font-medium mb-1 ${inject.revealed ? 'text-white' : 'text-falcon-subtle'}`}>{inject.label}</p>
-                  {inject.revealed && <p className="text-falcon-muted text-xs">{inject.description}</p>}
+                  <p className={`text-xs font-medium mb-1 ${inject.revealed ? 'text-white' : 'text-[#3d5068]'}`}>{inject.label}</p>
+                  {inject.revealed && <p className="text-[#7d92b0] text-xs">{inject.description}</p>}
                 </div>
               ))}
             </div>
           </div>
 
           {/* Middle: Response Log */}
-          <div className="col-span-1 border-r border-falcon-border p-4">
+          <div className="col-span-1 border-r border-[#1e2d42] p-4">
             <h3 className="text-white font-semibold text-sm mb-3">対応ログ</h3>
             <div className="flex gap-2 mb-3">
-              <input value={newAction} onChange={e => setNewAction(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') addResponseLog() }} placeholder="対応アクションを記録..." className="flex-1 bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-xs focus:outline-hidden focus:border-falcon-red/50" />
-              <button onClick={addResponseLog} className="px-2 py-2 bg-falcon-border text-white rounded-lg hover:bg-[#243347] transition-colors">
+              <input value={newAction} onChange={e => setNewAction(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') addResponseLog() }} placeholder="対応アクションを記録..." className="flex-1 bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-xs focus:outline-hidden focus:border-[#e8002d]/50" />
+              <button onClick={addResponseLog} className="px-2 py-2 bg-[#1e2d42] text-white rounded-lg hover:bg-[#243347] transition-colors">
                 <ArrowRight className="w-4 h-4" />
               </button>
             </div>
             <div className="space-y-2 max-h-72 overflow-y-auto">
-              {responseLog.length === 0 && <p className="text-falcon-subtle text-xs text-center py-4">対応アクションを記録してください</p>}
+              {responseLog.length === 0 && <p className="text-[#3d5068] text-xs text-center py-4">対応アクションを記録してください</p>}
               {responseLog.map((log, idx) => (
-                <div key={idx} className="flex gap-2 p-2 bg-[#070d19] border border-falcon-border rounded-sm text-xs">
-                  <span className="text-falcon-red font-mono shrink-0">{formatTime(log.time)}</span>
+                <div key={idx} className="flex gap-2 p-2 bg-[#070d19] border border-[#1e2d42] rounded-sm text-xs">
+                  <span className="text-[#e8002d] font-mono shrink-0">{formatTime(log.time)}</span>
                   <span className="text-white">{log.action}</span>
                 </div>
               ))}
@@ -232,19 +234,19 @@ function ExecutionModal({ drill, onClose, onComplete }: ExecutionModalProps) {
               <span className={`text-lg font-bold ${scoreColor((totalScore / maxScore) * 100)}`}>{totalScore}/{maxScore}</span>
             </div>
             <div className="mb-3 bg-[#070d19] rounded-full h-2">
-              <div className="bg-falcon-red h-2 rounded-full transition-all duration-300" style={{ width: `${(totalScore / maxScore) * 100}%` }} />
+              <div className="bg-[#e8002d] h-2 rounded-full transition-all duration-300" style={{ width: `${(totalScore / maxScore) * 100}%` }} />
             </div>
             <div className="space-y-2">
               {['検知 (Detection)', '封じ込め (Containment)', 'コミュニケーション (Communication)', 'ドキュメント (Documentation)'].map(cat => (
                 <div key={cat}>
-                  <p className="text-falcon-muted text-xs font-medium mb-1">{cat}</p>
+                  <p className="text-[#7d92b0] text-xs font-medium mb-1">{cat}</p>
                   {rubric.filter(c => c.category === cat).map(c => (
                     <label key={c.id} className="flex items-start gap-2 p-2 rounded-sm hover:bg-[#070d19] cursor-pointer group">
-                      <input type="checkbox" checked={c.checked} onChange={() => setRubric(r => r.map(x => x.id === c.id ? { ...x, checked: !x.checked } : x))} className="mt-0.5 accent-falcon-red" />
+                      <input type="checkbox" checked={c.checked} onChange={() => setRubric(r => r.map(x => x.id === c.id ? { ...x, checked: !x.checked } : x))} className="mt-0.5 accent-[#e8002d]" />
                       <div className="flex-1 min-w-0">
-                        <p className={`text-xs ${c.checked ? 'text-white line-through' : 'text-falcon-muted'}`}>{c.description}</p>
+                        <p className={`text-xs ${c.checked ? 'text-white line-through' : 'text-[#7d92b0]'}`}>{c.description}</p>
                       </div>
-                      <span className="text-falcon-subtle text-xs shrink-0">{c.max_points}点</span>
+                      <span className="text-[#3d5068] text-xs shrink-0">{c.max_points}点</span>
                     </label>
                   ))}
                 </div>
@@ -254,19 +256,19 @@ function ExecutionModal({ drill, onClose, onComplete }: ExecutionModalProps) {
         </div>
 
         {/* Footer */}
-        <div className="flex justify-between items-center p-5 border-t border-falcon-border bg-[#070d19] rounded-b-xl">
+        <div className="flex justify-between items-center p-5 border-t border-[#1e2d42] bg-[#070d19] rounded-b-xl">
           <div className="flex items-center gap-4">
             <div className="text-sm">
-              <span className="text-falcon-muted">参加者: </span>
+              <span className="text-[#7d92b0]">参加者: </span>
               <span className="text-white">{drill.participants.join(', ')}</span>
             </div>
             <div className="text-sm">
-              <span className="text-falcon-muted">ファシリテーター: </span>
+              <span className="text-[#7d92b0]">ファシリテーター: </span>
               <span className="text-white">{drill.facilitator}</span>
             </div>
           </div>
           <div className="flex gap-3">
-            <button onClick={onClose} className="px-4 py-2 text-falcon-muted text-sm hover:text-white rounded-lg hover:bg-falcon-border transition-colors">閉じる</button>
+            <button onClick={onClose} className="px-4 py-2 text-[#7d92b0] text-sm hover:text-white rounded-lg hover:bg-[#1e2d42] transition-colors">閉じる</button>
             <button onClick={() => {
               const cats = Array.from(new Set(rubric.map(r => r.category)))
               const breakdown: Record<string, number> = {}
@@ -279,7 +281,7 @@ function ExecutionModal({ drill, onClose, onComplete }: ExecutionModalProps) {
               const scorePct = maxScore ? Math.round((totalScore / maxScore) * 100) : 0
               onComplete(drill.id, scorePct, breakdown)
               onClose()
-            }} className="px-4 py-2 bg-falcon-red text-white text-sm font-medium rounded-lg hover:bg-[#c0001f] transition-colors flex items-center gap-2">
+            }} className="px-4 py-2 bg-[#e8002d] text-white text-sm font-medium rounded-lg hover:bg-[#c0001f] transition-colors flex items-center gap-2">
               <Flag className="w-4 h-4" />訓練終了
             </button>
           </div>
@@ -317,93 +319,93 @@ function CreateDrillModal({ onClose, onSave }: CreateDrillModalProps) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
-      <div className="bg-falcon-surface border border-falcon-border rounded-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl">
-        <div className="flex items-center justify-between p-5 border-b border-falcon-border">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl">
+        <div className="flex items-center justify-between p-5 border-b border-[#1e2d42]">
           <h2 className="text-white font-semibold text-lg">新規訓練作成</h2>
-          <button onClick={onClose} className="text-falcon-muted hover:text-white p-1 rounded-sm hover:bg-falcon-border transition-colors"><X className="w-5 h-5" /></button>
+          <button onClick={onClose} className="text-[#7d92b0] hover:text-white p-1 rounded-sm hover:bg-[#1e2d42] transition-colors"><X className="w-5 h-5" /></button>
         </div>
         <div className="p-5 space-y-4">
           <div>
-            <label className="block text-falcon-muted text-sm mb-1.5">訓練名 *</label>
-            <input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-red/50" placeholder="例: Q2 ランサムウェア対応訓練" />
+            <label className="block text-[#7d92b0] text-sm mb-1.5">訓練名 *</label>
+            <input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-[#e8002d]/50" placeholder="例: Q2 ランサムウェア対応訓練" />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-falcon-muted text-sm mb-1.5">訓練タイプ</label>
-              <select value={form.drill_type} onChange={e => setForm(f => ({ ...f, drill_type: e.target.value as DrillType }))} className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-red/50">
+              <label className="block text-[#7d92b0] text-sm mb-1.5">訓練タイプ</label>
+              <select value={form.drill_type} onChange={e => setForm(f => ({ ...f, drill_type: e.target.value as DrillType }))} className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-[#e8002d]/50">
                 {(Object.keys(TYPE_LABEL) as DrillType[]).map(t => <option key={t} value={t}>{TYPE_LABEL[t]}</option>)}
               </select>
             </div>
             <div>
-              <label className="block text-falcon-muted text-sm mb-1.5">シナリオテンプレート</label>
-              <select value={form.scenario_template} onChange={e => setForm(f => ({ ...f, scenario_template: e.target.value, scenario: SCENARIO_TEMPLATES.find(s => s.value === e.target.value)?.label ?? '' }))} className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-red/50">
+              <label className="block text-[#7d92b0] text-sm mb-1.5">シナリオテンプレート</label>
+              <select value={form.scenario_template} onChange={e => setForm(f => ({ ...f, scenario_template: e.target.value, scenario: SCENARIO_TEMPLATES.find(s => s.value === e.target.value)?.label ?? '' }))} className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-[#e8002d]/50">
                 {SCENARIO_TEMPLATES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
               </select>
             </div>
           </div>
           <div>
-            <label className="block text-falcon-muted text-sm mb-1.5">シナリオ説明</label>
-            <input value={form.scenario} onChange={e => setForm(f => ({ ...f, scenario: e.target.value }))} className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-red/50" placeholder="シナリオの詳細..." />
+            <label className="block text-[#7d92b0] text-sm mb-1.5">シナリオ説明</label>
+            <input value={form.scenario} onChange={e => setForm(f => ({ ...f, scenario: e.target.value }))} className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-[#e8002d]/50" placeholder="シナリオの詳細..." />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-falcon-muted text-sm mb-1.5">実施予定日時</label>
-              <input type="datetime-local" value={form.scheduled_at} onChange={e => setForm(f => ({ ...f, scheduled_at: e.target.value }))} className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-red/50" />
+              <label className="block text-[#7d92b0] text-sm mb-1.5">実施予定日時</label>
+              <input type="datetime-local" value={form.scheduled_at} onChange={e => setForm(f => ({ ...f, scheduled_at: e.target.value }))} className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-[#e8002d]/50" />
             </div>
             <div>
-              <label className="block text-falcon-muted text-sm mb-1.5">ファシリテーター</label>
-              <input value={form.facilitator} onChange={e => setForm(f => ({ ...f, facilitator: e.target.value }))} className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-red/50" placeholder="担当者名" />
+              <label className="block text-[#7d92b0] text-sm mb-1.5">ファシリテーター</label>
+              <input value={form.facilitator} onChange={e => setForm(f => ({ ...f, facilitator: e.target.value }))} className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-[#e8002d]/50" placeholder="担当者名" />
             </div>
           </div>
           {/* Participants */}
           <div>
-            <label className="block text-falcon-muted text-sm mb-1.5">参加者・グループ</label>
+            <label className="block text-[#7d92b0] text-sm mb-1.5">参加者・グループ</label>
             <div className="flex gap-2 mb-2">
-              <input value={form.participants_input} onChange={e => setForm(f => ({ ...f, participants_input: e.target.value }))} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addParticipant() } }} className="flex-1 bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-red/50" placeholder="例: SOCチーム" />
-              <button onClick={addParticipant} className="px-3 py-2 bg-falcon-border text-white rounded-lg text-sm hover:bg-[#243347] transition-colors">追加</button>
+              <input value={form.participants_input} onChange={e => setForm(f => ({ ...f, participants_input: e.target.value }))} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addParticipant() } }} className="flex-1 bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-[#e8002d]/50" placeholder="例: SOCチーム" />
+              <button onClick={addParticipant} className="px-3 py-2 bg-[#1e2d42] text-white rounded-lg text-sm hover:bg-[#243347] transition-colors">追加</button>
             </div>
             <div className="flex flex-wrap gap-2">
               {form.participants.map(p => (
-                <span key={p} className="flex items-center gap-1 px-2 py-1 bg-falcon-border rounded-sm text-xs text-white">
-                  {p}<button onClick={() => setForm(f => ({ ...f, participants: f.participants.filter(x => x !== p) }))} className="text-falcon-muted hover:text-falcon-red ml-1"><X className="w-3 h-3" /></button>
+                <span key={p} className="flex items-center gap-1 px-2 py-1 bg-[#1e2d42] rounded-sm text-xs text-white">
+                  {p}<button onClick={() => setForm(f => ({ ...f, participants: f.participants.filter(x => x !== p) }))} className="text-[#7d92b0] hover:text-[#e8002d] ml-1"><X className="w-3 h-3" /></button>
                 </span>
               ))}
             </div>
           </div>
           {/* Objectives */}
           <div>
-            <label className="block text-falcon-muted text-sm mb-1.5">訓練目標</label>
+            <label className="block text-[#7d92b0] text-sm mb-1.5">訓練目標</label>
             <div className="flex gap-2 mb-2">
-              <input value={form.objectives_input} onChange={e => setForm(f => ({ ...f, objectives_input: e.target.value }))} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addObjective() } }} className="flex-1 bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-red/50" placeholder="例: 感染端末の隔離手順確認" />
-              <button onClick={addObjective} className="px-3 py-2 bg-falcon-border text-white rounded-lg text-sm hover:bg-[#243347] transition-colors">追加</button>
+              <input value={form.objectives_input} onChange={e => setForm(f => ({ ...f, objectives_input: e.target.value }))} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addObjective() } }} className="flex-1 bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-[#e8002d]/50" placeholder="例: 感染端末の隔離手順確認" />
+              <button onClick={addObjective} className="px-3 py-2 bg-[#1e2d42] text-white rounded-lg text-sm hover:bg-[#243347] transition-colors">追加</button>
             </div>
             <div className="space-y-1">
               {form.objectives.map((o, i) => (
-                <div key={i} className="flex items-center gap-2 px-2 py-1 bg-[#070d19] border border-falcon-border rounded-sm text-xs">
+                <div key={i} className="flex items-center gap-2 px-2 py-1 bg-[#070d19] border border-[#1e2d42] rounded-sm text-xs">
                   <span className="text-white flex-1">{o}</span>
-                  <button onClick={() => setForm(f => ({ ...f, objectives: f.objectives.filter((_, idx) => idx !== i) }))} className="text-falcon-muted hover:text-falcon-red"><X className="w-3 h-3" /></button>
+                  <button onClick={() => setForm(f => ({ ...f, objectives: f.objectives.filter((_, idx) => idx !== i) }))} className="text-[#7d92b0] hover:text-[#e8002d]"><X className="w-3 h-3" /></button>
                 </div>
               ))}
             </div>
           </div>
           {/* Duration */}
           <div className="flex items-center gap-6">
-            <label className="flex items-center gap-2 text-sm text-falcon-muted cursor-pointer">
-              <input type="checkbox" checked={form.is_timed} onChange={e => setForm(f => ({ ...f, is_timed: e.target.checked }))} className="accent-falcon-red" />
+            <label className="flex items-center gap-2 text-sm text-[#7d92b0] cursor-pointer">
+              <input type="checkbox" checked={form.is_timed} onChange={e => setForm(f => ({ ...f, is_timed: e.target.checked }))} className="accent-[#e8002d]" />
               タイムリミットあり
             </label>
             {form.is_timed && (
               <div className="flex items-center gap-2">
-                <input type="number" value={form.duration_minutes} onChange={e => setForm(f => ({ ...f, duration_minutes: Number(e.target.value) }))} min={15} max={480} step={15} className="w-20 bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-red/50" />
-                <span className="text-falcon-muted text-sm">分</span>
+                <input type="number" value={form.duration_minutes} onChange={e => setForm(f => ({ ...f, duration_minutes: Number(e.target.value) }))} min={15} max={480} step={15} className="w-20 bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-[#e8002d]/50" />
+                <span className="text-[#7d92b0] text-sm">分</span>
               </div>
             )}
           </div>
         </div>
-        <div className="flex justify-end gap-3 p-5 border-t border-falcon-border">
-          <button onClick={onClose} className="px-4 py-2 text-falcon-muted text-sm hover:text-white rounded-lg hover:bg-falcon-border transition-colors">キャンセル</button>
-          <button onClick={() => onSave({ ...form, participants_count: form.participants.length, status: 'scheduled' })} className="px-4 py-2 bg-falcon-red text-white text-sm font-medium rounded-lg hover:bg-[#c0001f] transition-colors">作成</button>
+        <div className="flex justify-end gap-3 p-5 border-t border-[#1e2d42]">
+          <button onClick={onClose} className="px-4 py-2 text-[#7d92b0] text-sm hover:text-white rounded-lg hover:bg-[#1e2d42] transition-colors">キャンセル</button>
+          <button onClick={() => onSave({ ...form, participants_count: form.participants.length, status: 'scheduled' })} className="px-4 py-2 bg-[#e8002d] text-white text-sm font-medium rounded-lg hover:bg-[#c0001f] transition-colors">作成</button>
         </div>
       </div>
     </div>
@@ -414,23 +416,23 @@ function CreateDrillModal({ onClose, onSave }: CreateDrillModalProps) {
 
 function ScorecardModal({ drill, onClose }: { drill: Drill; onClose: () => void }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
-      <div className="bg-falcon-surface border border-falcon-border rounded-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl">
-        <div className="flex items-center justify-between p-5 border-b border-falcon-border">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl">
+        <div className="flex items-center justify-between p-5 border-b border-[#1e2d42]">
           <h2 className="text-white font-semibold text-lg">{drill.name} — スコアカード詳細</h2>
-          <button onClick={onClose} className="text-falcon-muted hover:text-white p-1 rounded-sm hover:bg-falcon-border transition-colors"><X className="w-5 h-5" /></button>
+          <button onClick={onClose} className="text-[#7d92b0] hover:text-white p-1 rounded-sm hover:bg-[#1e2d42] transition-colors"><X className="w-5 h-5" /></button>
         </div>
         <div className="p-5 space-y-5">
           {/* Overall */}
           <div className="flex items-center gap-6">
             <div className="text-center">
               <p className={`text-5xl font-bold ${scoreColor(drill.overall_score ?? 0)}`}>{drill.overall_score}%</p>
-              <p className="text-falcon-muted text-xs mt-1">総合スコア</p>
+              <p className="text-[#7d92b0] text-xs mt-1">総合スコア</p>
             </div>
             <div className="flex-1 space-y-2">
               {drill.score_breakdown && Object.entries(drill.score_breakdown).map(([cat, score]) => (
                 <div key={cat} className="flex items-center gap-3">
-                  <span className="text-falcon-muted text-xs w-28 shrink-0">{cat}</span>
+                  <span className="text-[#7d92b0] text-xs w-28 shrink-0">{cat}</span>
                   <div className="flex-1 bg-[#070d19] rounded-full h-2">
                     <div className={`h-2 rounded-full transition-all duration-500 ${score >= 85 ? 'bg-green-500' : score >= 70 ? 'bg-yellow-500' : 'bg-red-500'}`} style={{ width: `${score}%` }} />
                   </div>
@@ -441,37 +443,37 @@ function ScorecardModal({ drill, onClose }: { drill: Drill; onClose: () => void 
           </div>
           {/* Details */}
           <div className="grid grid-cols-2 gap-4">
-            <div className="p-4 bg-[#070d19] border border-falcon-border rounded-lg">
-              <p className="text-falcon-muted text-xs mb-2">主な発見事項</p>
+            <div className="p-4 bg-[#070d19] border border-[#1e2d42] rounded-lg">
+              <p className="text-[#7d92b0] text-xs mb-2">主な発見事項</p>
               <p className="text-white text-sm">{drill.key_findings}</p>
             </div>
-            <div className="p-4 bg-[#070d19] border border-falcon-border rounded-lg">
-              <p className="text-falcon-muted text-xs mb-2">最優秀参加者</p>
+            <div className="p-4 bg-[#070d19] border border-[#1e2d42] rounded-lg">
+              <p className="text-[#7d92b0] text-xs mb-2">最優秀参加者</p>
               <p className="text-white text-sm flex items-center gap-2"><Award className="w-4 h-4 text-yellow-400" />{drill.best_performer}</p>
             </div>
           </div>
-          <div className="p-4 bg-[#070d19] border border-falcon-border rounded-lg">
-            <p className="text-falcon-muted text-xs mb-2">改善が必要な領域</p>
+          <div className="p-4 bg-[#070d19] border border-[#1e2d42] rounded-lg">
+            <p className="text-[#7d92b0] text-xs mb-2">改善が必要な領域</p>
             <div className="space-y-1">
               {(drill.areas_for_improvement ?? []).map((a, i) => (
                 <div key={i} className="flex items-center gap-2 text-sm">
-                  <span className="w-2 h-2 rounded-full bg-falcon-red shrink-0" />
+                  <span className="w-2 h-2 rounded-full bg-[#e8002d] shrink-0" />
                   <span className="text-white">{a}</span>
                 </div>
               ))}
             </div>
           </div>
           <div className="grid grid-cols-3 gap-3">
-            <div className="p-3 bg-[#070d19] border border-falcon-border rounded-lg text-center">
-              <p className="text-falcon-muted text-xs">参加者数</p>
+            <div className="p-3 bg-[#070d19] border border-[#1e2d42] rounded-lg text-center">
+              <p className="text-[#7d92b0] text-xs">参加者数</p>
               <p className="text-white font-bold text-xl mt-1">{drill.participants_count}</p>
             </div>
-            <div className="p-3 bg-[#070d19] border border-falcon-border rounded-lg text-center">
-              <p className="text-falcon-muted text-xs">実施日</p>
+            <div className="p-3 bg-[#070d19] border border-[#1e2d42] rounded-lg text-center">
+              <p className="text-[#7d92b0] text-xs">実施日</p>
               <p className="text-white text-sm mt-1">{formatDate(drill.scheduled_at)}</p>
             </div>
-            <div className="p-3 bg-[#070d19] border border-falcon-border rounded-lg text-center">
-              <p className="text-falcon-muted text-xs">所要時間</p>
+            <div className="p-3 bg-[#070d19] border border-[#1e2d42] rounded-lg text-center">
+              <p className="text-[#7d92b0] text-xs">所要時間</p>
               <p className="text-white font-bold text-xl mt-1">{drill.duration_minutes}分</p>
             </div>
           </div>
@@ -504,7 +506,7 @@ function TrendChart({ drills }: { drills: Drill[] }) {
   const pathD = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ')
 
   return (
-    <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
+    <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
       <h3 className="text-white font-semibold text-sm mb-3">スコアトレンド (直近8回)</h3>
       <svg width="100%" viewBox={`0 0 ${w} ${h + 20}`} className="overflow-visible">
         {[60, 70, 80, 90, 100].map(y => {
@@ -597,6 +599,7 @@ export default function IncidentDrillsPage() {
 
   return (
     <div className="min-h-screen bg-[#070d19] p-6">
+      <PageDataUnavailable />
       {toast && (
         <div className={`fixed top-6 right-6 z-50 flex items-center gap-2 px-4 py-3 rounded-lg shadow-xl border text-sm font-medium ${toast.type === 'success' ? 'bg-green-500/10 border-green-500/30 text-green-400' : 'bg-red-500/10 border-red-500/30 text-red-400'}`}>
           {toast.type === 'success' ? <CheckCircle className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
@@ -607,15 +610,15 @@ export default function IncidentDrillsPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-falcon-surface border border-falcon-border flex items-center justify-center">
-            <PlayCircle className="w-5 h-5 text-falcon-red" />
+          <div className="w-10 h-10 rounded-lg bg-[#0d1220] border border-[#1e2d42] flex items-center justify-center">
+            <PlayCircle className="w-5 h-5 text-[#e8002d]" />
           </div>
           <div>
             <h1 className="text-white font-bold text-xl">インシデント訓練シミュレーション</h1>
-            <p className="text-falcon-muted text-sm">インシデント対応力強化のための訓練管理</p>
+            <p className="text-[#7d92b0] text-sm">インシデント対応力強化のための訓練管理</p>
           </div>
         </div>
-        <button onClick={() => setShowCreateModal(true)} className="flex items-center gap-2 px-4 py-2 bg-falcon-red text-white text-sm font-medium rounded-lg hover:bg-[#c0001f] transition-colors">
+        <button onClick={() => setShowCreateModal(true)} className="flex items-center gap-2 px-4 py-2 bg-[#e8002d] text-white text-sm font-medium rounded-lg hover:bg-[#c0001f] transition-colors">
           <Plus className="w-4 h-4" />新規訓練作成
         </button>
       </div>
@@ -628,12 +631,12 @@ export default function IncidentDrillsPage() {
           { label: 'トレーニング受講者', value: totalParticipants, icon: Users, color: 'text-blue-400', suffix: '人' },
           { label: '次回予定訓練', value: scheduledDrills.length > 0 ? new Date(scheduledDrills.sort((a, b) => new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime())[0].scheduled_at).toLocaleDateString('ja-JP', { month: 'short', day: 'numeric' }) : '未定', icon: Calendar, color: 'text-purple-400', isDate: true },
         ].map((c, i) => (
-          <div key={i} className="bg-falcon-surface border border-falcon-border rounded-xl p-4 flex items-center gap-4">
+          <div key={i} className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-4 flex items-center gap-4">
             <div className="w-10 h-10 rounded-lg bg-[#070d19] flex items-center justify-center shrink-0">
               <c.icon className={`w-5 h-5 ${c.color}`} />
             </div>
             <div>
-              <p className="text-falcon-muted text-xs">{c.label}</p>
+              <p className="text-[#7d92b0] text-xs">{c.label}</p>
               <p className="text-white font-bold text-2xl">{(c as any).isDate ? c.value : `${c.value}${c.suffix ?? ''}`}</p>
             </div>
           </div>
@@ -641,9 +644,9 @@ export default function IncidentDrillsPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 mb-6 bg-falcon-surface border border-falcon-border rounded-lg p-1 w-fit">
+      <div className="flex gap-1 mb-6 bg-[#0d1220] border border-[#1e2d42] rounded-lg p-1 w-fit">
         {(['drills', 'scorecard'] as const).map(tab => (
-          <button key={tab} onClick={() => setActiveTab(tab)} className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === tab ? 'bg-falcon-border text-white' : 'text-falcon-muted hover:text-white'}`}>
+          <button key={tab} onClick={() => setActiveTab(tab)} className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === tab ? 'bg-[#1e2d42] text-white' : 'text-[#7d92b0] hover:text-white'}`}>
             {tab === 'drills' ? '訓練管理' : 'スコアカード'}
           </button>
         ))}
@@ -651,16 +654,16 @@ export default function IncidentDrillsPage() {
 
       {/* Drills Management Tab */}
       {activeTab === 'drills' && (
-        <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
+        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-falcon-border">
+              <tr className="border-b border-[#1e2d42]">
                 {['訓練名', 'タイプ', 'シナリオ', 'ステータス', '予定日時', '参加者', 'ファシリテーター', 'アクション'].map(h => (
-                  <th key={h} className="px-4 py-3 text-left text-xs font-medium text-falcon-muted uppercase tracking-wider">{h}</th>
+                  <th key={h} className="px-4 py-3 text-left text-xs font-medium text-[#7d92b0] uppercase tracking-wider">{h}</th>
                 ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-falcon-border">
+            <tbody className="divide-y divide-[#1e2d42]">
               {drills.map(d => (
                 <tr key={d.id} className="hover:bg-[#0d1826] transition-colors">
                   <td className="px-4 py-3">
@@ -672,15 +675,15 @@ export default function IncidentDrillsPage() {
                   <td className="px-4 py-3">
                     <span className={`px-2 py-0.5 rounded-sm text-xs font-medium ${TYPE_BADGE[d.drill_type]}`}>{TYPE_LABEL[d.drill_type]}</span>
                   </td>
-                  <td className="px-4 py-3 text-falcon-muted text-sm max-w-[180px]">
+                  <td className="px-4 py-3 text-[#7d92b0] text-sm max-w-[180px]">
                     <span className="truncate block">{d.scenario}</span>
                   </td>
                   <td className="px-4 py-3">
                     <span className={`px-2 py-0.5 rounded-sm text-xs font-medium ${STATUS_BADGE[d.status]}`}>{STATUS_LABEL[d.status]}</span>
                   </td>
-                  <td className="px-4 py-3 text-falcon-muted text-sm">{formatDate(d.scheduled_at)}</td>
-                  <td className="px-4 py-3 text-falcon-muted text-sm">{d.participants_count}名</td>
-                  <td className="px-4 py-3 text-falcon-muted text-sm">{d.facilitator}</td>
+                  <td className="px-4 py-3 text-[#7d92b0] text-sm">{formatDate(d.scheduled_at)}</td>
+                  <td className="px-4 py-3 text-[#7d92b0] text-sm">{d.participants_count}名</td>
+                  <td className="px-4 py-3 text-[#7d92b0] text-sm">{d.facilitator}</td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-1">
                       {d.status === 'scheduled' && (
@@ -693,7 +696,7 @@ export default function IncidentDrillsPage() {
                           <Award className="w-3 h-3" />詳細
                         </button>
                       )}
-                      <button onClick={() => handleDeleteDrill(d.id)} className="p-1.5 rounded-sm hover:bg-falcon-border text-falcon-muted hover:text-falcon-red transition-colors"><Trash2 className="w-3.5 h-3.5" /></button>
+                      <button onClick={() => handleDeleteDrill(d.id)} className="p-1.5 rounded-sm hover:bg-[#1e2d42] text-[#7d92b0] hover:text-[#e8002d] transition-colors"><Trash2 className="w-3.5 h-3.5" /></button>
                     </div>
                   </td>
                 </tr>
@@ -706,44 +709,44 @@ export default function IncidentDrillsPage() {
       {/* Scorecard Tab */}
       {activeTab === 'scorecard' && (
         <div className="space-y-6">
-          <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
+          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-falcon-border">
+                <tr className="border-b border-[#1e2d42]">
                   {['訓練名', '実施日', '総合スコア', '主な発見事項', '参加者数', '最優秀', '改善領域', '詳細'].map(h => (
-                    <th key={h} className="px-4 py-3 text-left text-xs font-medium text-falcon-muted uppercase tracking-wider">{h}</th>
+                    <th key={h} className="px-4 py-3 text-left text-xs font-medium text-[#7d92b0] uppercase tracking-wider">{h}</th>
                   ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-falcon-border">
+              <tbody className="divide-y divide-[#1e2d42]">
                 {completedDrills.sort((a, b) => new Date(b.scheduled_at).getTime() - new Date(a.scheduled_at).getTime()).map(d => (
                   <tr key={d.id} className="hover:bg-[#0d1826] transition-colors">
                     <td className="px-4 py-3">
                       <p className="text-white text-sm font-medium">{d.name}</p>
                       <span className={`px-1.5 py-0.5 rounded-sm text-xs ${TYPE_BADGE[d.drill_type]}`}>{TYPE_LABEL[d.drill_type]}</span>
                     </td>
-                    <td className="px-4 py-3 text-falcon-muted text-sm">{formatDate(d.scheduled_at)}</td>
+                    <td className="px-4 py-3 text-[#7d92b0] text-sm">{formatDate(d.scheduled_at)}</td>
                     <td className="px-4 py-3">
                       <span className={`text-xl font-bold ${scoreColor(d.overall_score ?? 0)}`}>{d.overall_score}%</span>
                     </td>
-                    <td className="px-4 py-3 text-falcon-muted text-xs max-w-[180px]">
+                    <td className="px-4 py-3 text-[#7d92b0] text-xs max-w-[180px]">
                       <span className="line-clamp-2">{d.key_findings}</span>
                     </td>
-                    <td className="px-4 py-3 text-falcon-muted text-sm">{d.participants_count}名</td>
+                    <td className="px-4 py-3 text-[#7d92b0] text-sm">{d.participants_count}名</td>
                     <td className="px-4 py-3 text-white text-sm">
                       <div className="flex items-center gap-1"><Award className="w-3 h-3 text-yellow-400" />{d.best_performer}</div>
                     </td>
                     <td className="px-4 py-3">
                       <div className="space-y-0.5">
                         {(d.areas_for_improvement ?? []).slice(0, 2).map((a, i) => (
-                          <p key={i} className="text-falcon-muted text-xs flex items-center gap-1">
-                            <span className="w-1.5 h-1.5 rounded-full bg-falcon-red shrink-0" />{a}
+                          <p key={i} className="text-[#7d92b0] text-xs flex items-center gap-1">
+                            <span className="w-1.5 h-1.5 rounded-full bg-[#e8002d] shrink-0" />{a}
                           </p>
                         ))}
                       </div>
                     </td>
                     <td className="px-4 py-3">
-                      <button onClick={() => setViewingScorecard(d)} className="p-1.5 rounded-sm hover:bg-falcon-border text-falcon-muted hover:text-white transition-colors">
+                      <button onClick={() => setViewingScorecard(d)} className="p-1.5 rounded-sm hover:bg-[#1e2d42] text-[#7d92b0] hover:text-white transition-colors">
                         <ChevronRight className="w-4 h-4" />
                       </button>
                     </td>
@@ -756,14 +759,14 @@ export default function IncidentDrillsPage() {
           {/* Trend Chart + Gap Analysis */}
           <div className="grid grid-cols-2 gap-4">
             <TrendChart drills={drills} />
-            <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
+            <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
               <h3 className="text-white font-semibold text-sm mb-4">カテゴリ別平均スコア</h3>
               <div className="space-y-3">
                 {Object.entries(categoryScores).map(([cat, scores]) => {
                   const avg = scores.length > 0 ? Math.round(scores.reduce((s, v) => s + v, 0) / scores.length) : 0
                   return (
                     <div key={cat} className="flex items-center gap-3">
-                      <span className="text-falcon-muted text-xs w-32 shrink-0">{cat}</span>
+                      <span className="text-[#7d92b0] text-xs w-32 shrink-0">{cat}</span>
                       <div className="flex-1 bg-[#070d19] rounded-full h-2">
                         <div className={`h-2 rounded-full transition-all duration-500 ${avg >= 85 ? 'bg-green-500' : avg >= 70 ? 'bg-yellow-500' : 'bg-red-500'}`} style={{ width: `${avg}%` }} />
                       </div>
@@ -772,16 +775,16 @@ export default function IncidentDrillsPage() {
                   )
                 })}
               </div>
-              <div className="mt-4 pt-4 border-t border-falcon-border">
-                <p className="text-falcon-muted text-xs mb-2">改善優先領域</p>
+              <div className="mt-4 pt-4 border-t border-[#1e2d42]">
+                <p className="text-[#7d92b0] text-xs mb-2">改善優先領域</p>
                 {Object.entries(categoryScores)
                   .map(([cat, scores]) => ({ cat, avg: scores.length > 0 ? Math.round(scores.reduce((s, v) => s + v, 0) / scores.length) : 0 }))
                   .filter(x => x.avg < 75)
                   .map(x => (
                     <div key={x.cat} className="flex items-center gap-2 text-xs mb-1">
-                      <AlertCircle className="w-3 h-3 text-falcon-red" />
+                      <AlertCircle className="w-3 h-3 text-[#e8002d]" />
                       <span className="text-white">{x.cat}</span>
-                      <span className="text-falcon-muted">— 継続的なトレーニングが必要</span>
+                      <span className="text-[#7d92b0]">— 継続的なトレーニングが必要</span>
                     </div>
                   ))}
               </div>

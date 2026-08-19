@@ -8,6 +8,8 @@ import {
   RefreshCw, Filter, ChevronDown,
 } from 'lucide-react'
 
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type EventType = 'phishing' | 'malware' | 'spam' | 'bec' | 'data_leak' | 'suspicious' | 'clean'
@@ -142,23 +144,24 @@ export default function EmailSecurityPage() {
 
   return (
     <div className="min-h-screen bg-[#070d19] text-white">
+      <PageDataUnavailable />
       <div className="max-w-[1400px] mx-auto px-6 py-6">
 
         {/* Header */}
         <div className="mb-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-linear-to-br from-falcon-red to-falcon-red-dark flex items-center justify-center shadow-lg">
+              <div className="w-8 h-8 rounded-lg bg-linear-to-br from-[#e8002d] to-[#a80020] flex items-center justify-center shadow-lg">
                 <Mail className="w-4 h-4 text-white" />
               </div>
               <div>
                 <h1 className="text-2xl font-bold text-white">Email Security</h1>
-                <p className="text-falcon-muted text-sm">Phishing, malware &amp; BEC protection</p>
+                <p className="text-[#7d92b0] text-sm">Phishing, malware &amp; BEC protection</p>
               </div>
             </div>
             <button
               onClick={() => refetchStats()}
-              className="flex items-center gap-2 px-3 py-2 text-sm text-falcon-muted hover:text-white border border-falcon-border hover:border-falcon-muted/40 rounded-lg transition-colors"
+              className="flex items-center gap-2 px-3 py-2 text-sm text-[#7d92b0] hover:text-white border border-[#1e2d42] hover:border-[#7d92b0]/40 rounded-lg transition-colors"
             >
               <RefreshCw className="w-4 h-4" />
               Refresh
@@ -169,9 +172,9 @@ export default function EmailSecurityPage() {
         {/* Stats Row */}
         <div className="grid grid-cols-5 gap-4 mb-6">
           {statCards.map(s => (
-            <div key={s.label} className={`rounded-xl p-4 border ${s.bg} bg-falcon-surface`}>
+            <div key={s.label} className={`rounded-xl p-4 border ${s.bg} bg-[#0d1220]`}>
               <div className="flex items-center justify-between mb-2">
-                <span className="text-xs text-falcon-muted">{s.label}</span>
+                <span className="text-xs text-[#7d92b0]">{s.label}</span>
                 <s.icon className={`w-4 h-4 ${s.color}`} />
               </div>
               <p className={`text-3xl font-bold ${s.color}`}>
@@ -182,15 +185,15 @@ export default function EmailSecurityPage() {
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-1 mb-5 border-b border-falcon-border">
+        <div className="flex gap-1 mb-5 border-b border-[#1e2d42]">
           {(['events', 'policies'] as const).map(tab => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
               className={`px-5 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px capitalize
                 ${activeTab === tab
-                  ? 'border-falcon-red text-white'
-                  : 'border-transparent text-falcon-muted hover:text-white'
+                  ? 'border-[#e8002d] text-white'
+                  : 'border-transparent text-[#7d92b0] hover:text-white'
                 }`}
             >
               {tab === 'events' ? 'Email Events' : 'Policies'}
@@ -203,7 +206,7 @@ export default function EmailSecurityPage() {
           <div>
             {/* Filter bar */}
             <div className="flex items-center gap-3 mb-4">
-              <div className="flex items-center gap-2 text-falcon-muted">
+              <div className="flex items-center gap-2 text-[#7d92b0]">
                 <Filter className="w-4 h-4" />
                 <span className="text-sm">Event Type:</span>
               </div>
@@ -211,7 +214,7 @@ export default function EmailSecurityPage() {
                 <select
                   value={eventTypeFilter}
                   onChange={e => setEventTypeFilter(e.target.value)}
-                  className="bg-falcon-surface border border-falcon-border rounded-lg pl-3 pr-8 py-2 text-sm text-white focus:outline-hidden focus:border-falcon-red/60 appearance-none cursor-pointer"
+                  className="bg-[#0d1220] border border-[#1e2d42] rounded-lg pl-3 pr-8 py-2 text-sm text-white focus:outline-hidden focus:border-[#e8002d]/60 appearance-none cursor-pointer"
                 >
                   <option value="all">All Types</option>
                   <option value="phishing">Phishing</option>
@@ -221,17 +224,17 @@ export default function EmailSecurityPage() {
                   <option value="data_leak">Data Leak</option>
                   <option value="suspicious">Suspicious</option>
                 </select>
-                <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-falcon-muted pointer-events-none" />
+                <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-[#7d92b0] pointer-events-none" />
               </div>
-              <span className="text-xs text-falcon-muted ml-auto">{displayEvents.length} events</span>
+              <span className="text-xs text-[#7d92b0] ml-auto">{displayEvents.length} events</span>
             </div>
 
-            <div className="bg-falcon-surface rounded-xl border border-falcon-border overflow-hidden">
+            <div className="bg-[#0d1220] rounded-xl border border-[#1e2d42] overflow-hidden">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-falcon-border">
+                  <tr className="border-b border-[#1e2d42]">
                     {['Sender', 'Recipient', 'Subject', 'Event Type', 'Threat Score', 'Action Taken', 'Source IP', 'Timestamp'].map(h => (
-                      <th key={h} className="text-left px-4 py-3 text-xs text-falcon-muted font-medium whitespace-nowrap">{h}</th>
+                      <th key={h} className="text-left px-4 py-3 text-xs text-[#7d92b0] font-medium whitespace-nowrap">{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -239,7 +242,7 @@ export default function EmailSecurityPage() {
                   {displayEvents.map(evt => (
                     <tr
                       key={evt.id}
-                      className={`border-b border-falcon-border/50 transition-colors
+                      className={`border-b border-[#1e2d42]/50 transition-colors
                         ${evt.threat_score >= 70
                           ? 'bg-red-950/20 hover:bg-red-950/30'
                           : 'hover:bg-[#131d31]/50'
@@ -249,7 +252,7 @@ export default function EmailSecurityPage() {
                         <span className="text-white text-xs font-mono">{evt.sender}</span>
                       </td>
                       <td className="px-4 py-3">
-                        <span className="text-falcon-muted text-xs font-mono">{evt.recipient}</span>
+                        <span className="text-[#7d92b0] text-xs font-mono">{evt.recipient}</span>
                       </td>
                       <td className="px-4 py-3 max-w-[180px]">
                         <span className="text-white text-xs block truncate" title={evt.subject}>
@@ -263,7 +266,7 @@ export default function EmailSecurityPage() {
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
-                          <div className="w-16 h-1.5 bg-falcon-border rounded-full overflow-hidden">
+                          <div className="w-16 h-1.5 bg-[#1e2d42] rounded-full overflow-hidden">
                             <div
                               className={`h-full rounded-full ${threatScoreColor(evt.threat_score)}`}
                               style={{ width: `${evt.threat_score}%` }}
@@ -280,10 +283,10 @@ export default function EmailSecurityPage() {
                         </span>
                       </td>
                       <td className="px-4 py-3">
-                        <span className="text-falcon-muted text-xs font-mono">{evt.source_ip}</span>
+                        <span className="text-[#7d92b0] text-xs font-mono">{evt.source_ip}</span>
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap">
-                        <span className="text-falcon-muted text-xs">{fmtDate(evt.timestamp)}</span>
+                        <span className="text-[#7d92b0] text-xs">{fmtDate(evt.timestamp)}</span>
                       </td>
                     </tr>
                   ))}
@@ -297,20 +300,20 @@ export default function EmailSecurityPage() {
         {activeTab === 'policies' && (
           <div>
             <div className="flex items-center justify-between mb-4">
-              <p className="text-sm text-falcon-muted">{displayPolicies.length} policies configured</p>
+              <p className="text-sm text-[#7d92b0]">{displayPolicies.length} policies configured</p>
             </div>
-            <div className="bg-falcon-surface rounded-xl border border-falcon-border overflow-hidden">
+            <div className="bg-[#0d1220] rounded-xl border border-[#1e2d42] overflow-hidden">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-falcon-border">
+                  <tr className="border-b border-[#1e2d42]">
                     {['Name', 'Type', 'Action', 'Priority', 'Enabled'].map(h => (
-                      <th key={h} className="text-left px-4 py-3 text-xs text-falcon-muted font-medium">{h}</th>
+                      <th key={h} className="text-left px-4 py-3 text-xs text-[#7d92b0] font-medium">{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {displayPolicies.map(pol => (
-                    <tr key={pol.id} className="border-b border-falcon-border/50 hover:bg-[#131d31]/50 transition-colors">
+                    <tr key={pol.id} className="border-b border-[#1e2d42]/50 hover:bg-[#131d31]/50 transition-colors">
                       <td className="px-4 py-3">
                         <span className="text-white font-medium">{pol.name}</span>
                       </td>
@@ -320,7 +323,7 @@ export default function EmailSecurityPage() {
                         </span>
                       </td>
                       <td className="px-4 py-3">
-                        <span className="text-falcon-muted text-sm">{pol.action}</span>
+                        <span className="text-[#7d92b0] text-sm">{pol.action}</span>
                       </td>
                       <td className="px-4 py-3">
                         <span className="text-white font-mono text-sm">P{pol.priority}</span>
@@ -329,9 +332,9 @@ export default function EmailSecurityPage() {
                         <span className={`inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full font-medium
                           ${pol.enabled
                             ? 'bg-green-900/30 text-green-400 border border-green-700/40'
-                            : 'bg-falcon-border/60 text-falcon-muted border border-falcon-border'
+                            : 'bg-[#1e2d42]/60 text-[#7d92b0] border border-[#1e2d42]'
                           }`}>
-                          <span className={`w-1.5 h-1.5 rounded-full ${pol.enabled ? 'bg-green-400' : 'bg-falcon-muted'}`} />
+                          <span className={`w-1.5 h-1.5 rounded-full ${pol.enabled ? 'bg-green-400' : 'bg-[#7d92b0]'}`} />
                           {pol.enabled ? 'Enabled' : 'Disabled'}
                         </span>
                       </td>

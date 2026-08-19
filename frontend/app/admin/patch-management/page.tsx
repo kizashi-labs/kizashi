@@ -10,6 +10,8 @@ import {
 } from 'lucide-react'
 
 
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface PatchDeployment {
@@ -73,7 +75,7 @@ function SeverityBadge({ severity }: { severity: PatchDeployment['severity'] }) 
 
 function StatusBadge({ status }: { status: PatchDeployment['status'] }) {
   const map = {
-    draft: 'bg-falcon-border text-falcon-muted border border-[#2a3f5c]',
+    draft: 'bg-[#1e2d42] text-[#7d92b0] border border-[#2a3f5c]',
     scheduled: 'bg-blue-900/30 text-blue-300 border border-blue-700/30',
     deploying: 'bg-yellow-900/30 text-yellow-300 border border-yellow-700/30',
     completed: 'bg-green-900/30 text-green-300 border border-green-700/30',
@@ -85,7 +87,7 @@ function StatusBadge({ status }: { status: PatchDeployment['status'] }) {
 
 function ResultStatusBadge({ status }: { status: PatchResult['status'] }) {
   const map = {
-    pending: 'bg-falcon-border text-falcon-muted',
+    pending: 'bg-[#1e2d42] text-[#7d92b0]',
     success: 'bg-green-900/30 text-green-300',
     failed: 'bg-red-900/30 text-red-300',
     rebooting: 'bg-yellow-900/30 text-yellow-300',
@@ -104,7 +106,7 @@ function OSBadge({ os }: { os: string }) {
     Linux: 'bg-orange-900/30 text-orange-300',
     macOS: 'bg-gray-900/40 text-gray-300',
   }
-  return <span className={`px-2 py-0.5 rounded-sm text-[11px] font-medium ${map[os] ?? 'bg-falcon-border text-falcon-muted'}`}>{os === 'all' ? 'すべて' : os}</span>
+  return <span className={`px-2 py-0.5 rounded-sm text-[11px] font-medium ${map[os] ?? 'bg-[#1e2d42] text-[#7d92b0]'}`}>{os === 'all' ? 'すべて' : os}</span>
 }
 
 function formatDuration(seconds?: number): string {
@@ -166,17 +168,17 @@ function DonutChart({ success, failed, pending }: { success: number; failed: num
       <div className="space-y-2 text-sm">
         <div className="flex items-center gap-2">
           <span className="w-3 h-3 rounded-full bg-green-500 shrink-0" />
-          <span className="text-falcon-muted">成功</span>
+          <span className="text-[#7d92b0]">成功</span>
           <span className="text-white font-semibold ml-auto pl-4">{success}</span>
         </div>
         <div className="flex items-center gap-2">
-          <span className="w-3 h-3 rounded-full bg-falcon-red shrink-0" />
-          <span className="text-falcon-muted">失敗</span>
+          <span className="w-3 h-3 rounded-full bg-[#e8002d] shrink-0" />
+          <span className="text-[#7d92b0]">失敗</span>
           <span className="text-white font-semibold ml-auto pl-4">{failed}</span>
         </div>
         <div className="flex items-center gap-2">
-          <span className="w-3 h-3 rounded-full bg-falcon-muted shrink-0" />
-          <span className="text-falcon-muted">待機中</span>
+          <span className="w-3 h-3 rounded-full bg-[#7d92b0] shrink-0" />
+          <span className="text-[#7d92b0]">待機中</span>
           <span className="text-white font-semibold ml-auto pl-4">{pending}</span>
         </div>
       </div>
@@ -214,40 +216,40 @@ function CreateModal({ onClose, onSubmit, loading }: CreateModalProps) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs">
-      <div className="bg-falcon-surface border border-falcon-border rounded-xl w-full max-w-lg shadow-2xl mx-4 max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-falcon-border">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl w-full max-w-lg shadow-2xl mx-4 max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[#1e2d42]">
           <h2 className="text-white font-semibold text-base">パッチ作成</h2>
-          <button onClick={onClose} className="text-falcon-muted hover:text-white transition-colors"><X className="w-5 h-5" /></button>
+          <button onClick={onClose} className="text-[#7d92b0] hover:text-white transition-colors"><X className="w-5 h-5" /></button>
         </div>
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div>
-            <label className="block text-xs text-falcon-muted mb-1.5">パッチ名 *</label>
+            <label className="block text-xs text-[#7d92b0] mb-1.5">パッチ名 *</label>
             <input
               required
               value={form.name}
               onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-              className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-sm text-white placeholder-falcon-subtle focus:outline-hidden focus:border-falcon-blue transition-colors"
+              className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-white placeholder-[#3d5068] focus:outline-hidden focus:border-[#1a6bff] transition-colors"
               placeholder="例: Windows Server 累積更新"
             />
           </div>
           <div>
-            <label className="block text-xs text-falcon-muted mb-1.5">説明</label>
+            <label className="block text-xs text-[#7d92b0] mb-1.5">説明</label>
             <textarea
               value={form.description}
               onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
               rows={2}
-              className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-sm text-white placeholder-falcon-subtle focus:outline-hidden focus:border-falcon-blue transition-colors resize-none"
+              className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-white placeholder-[#3d5068] focus:outline-hidden focus:border-[#1a6bff] transition-colors resize-none"
               placeholder="パッチの説明..."
             />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs text-falcon-muted mb-1.5">パッチ種別</label>
+              <label className="block text-xs text-[#7d92b0] mb-1.5">パッチ種別</label>
               <select
                 value={form.patch_type}
                 onChange={e => setForm(f => ({ ...f, patch_type: e.target.value as PatchDeployment['patch_type'] }))}
-                className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-sm text-white focus:outline-hidden focus:border-falcon-blue transition-colors"
+                className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-white focus:outline-hidden focus:border-[#1a6bff] transition-colors"
               >
                 <option value="security">セキュリティ</option>
                 <option value="feature">機能</option>
@@ -255,11 +257,11 @@ function CreateModal({ onClose, onSubmit, loading }: CreateModalProps) {
               </select>
             </div>
             <div>
-              <label className="block text-xs text-falcon-muted mb-1.5">深刻度</label>
+              <label className="block text-xs text-[#7d92b0] mb-1.5">深刻度</label>
               <select
                 value={form.severity}
                 onChange={e => setForm(f => ({ ...f, severity: e.target.value as PatchDeployment['severity'] }))}
-                className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-sm text-white focus:outline-hidden focus:border-falcon-blue transition-colors"
+                className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-white focus:outline-hidden focus:border-[#1a6bff] transition-colors"
               >
                 <option value="critical">緊急</option>
                 <option value="high">高</option>
@@ -269,30 +271,30 @@ function CreateModal({ onClose, onSubmit, loading }: CreateModalProps) {
             </div>
           </div>
           <div>
-            <label className="block text-xs text-falcon-muted mb-1.5">KBアーティクル</label>
+            <label className="block text-xs text-[#7d92b0] mb-1.5">KBアーティクル</label>
             <input
               value={form.kb_article}
               onChange={e => setForm(f => ({ ...f, kb_article: e.target.value }))}
-              className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-sm text-white placeholder-falcon-subtle focus:outline-hidden focus:border-falcon-blue transition-colors"
+              className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-white placeholder-[#3d5068] focus:outline-hidden focus:border-[#1a6bff] transition-colors"
               placeholder="例: KB5035857"
             />
           </div>
           <div>
-            <label className="block text-xs text-falcon-muted mb-1.5">CVE ID (カンマ区切り)</label>
+            <label className="block text-xs text-[#7d92b0] mb-1.5">CVE ID (カンマ区切り)</label>
             <textarea
               value={form.cve_ids}
               onChange={e => setForm(f => ({ ...f, cve_ids: e.target.value }))}
               rows={2}
-              className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-sm text-white placeholder-falcon-subtle focus:outline-hidden focus:border-falcon-blue transition-colors resize-none"
+              className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-white placeholder-[#3d5068] focus:outline-hidden focus:border-[#1a6bff] transition-colors resize-none"
               placeholder="CVE-2026-0001, CVE-2026-0002"
             />
           </div>
           <div>
-            <label className="block text-xs text-falcon-muted mb-1.5">対象OS</label>
+            <label className="block text-xs text-[#7d92b0] mb-1.5">対象OS</label>
             <select
               value={form.target_os}
               onChange={e => setForm(f => ({ ...f, target_os: e.target.value as PatchDeployment['target_os'] }))}
-              className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-sm text-white focus:outline-hidden focus:border-falcon-blue transition-colors"
+              className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-white focus:outline-hidden focus:border-[#1a6bff] transition-colors"
             >
               <option value="all">すべて</option>
               <option value="windows">Windows</option>
@@ -302,34 +304,34 @@ function CreateModal({ onClose, onSubmit, loading }: CreateModalProps) {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs text-falcon-muted mb-1.5">配布ウィンドウ (分)</label>
+              <label className="block text-xs text-[#7d92b0] mb-1.5">配布ウィンドウ (分)</label>
               <input
                 type="number"
                 min={10}
                 max={480}
                 value={form.deployment_window_minutes}
                 onChange={e => setForm(f => ({ ...f, deployment_window_minutes: Number(e.target.value) }))}
-                className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-sm text-white focus:outline-hidden focus:border-falcon-blue transition-colors"
+                className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-white focus:outline-hidden focus:border-[#1a6bff] transition-colors"
               />
             </div>
             <div className="flex items-end pb-2">
               <label className="flex items-center gap-2 cursor-pointer">
                 <div
                   onClick={() => setForm(f => ({ ...f, require_reboot: !f.require_reboot }))}
-                  className={`relative w-10 h-5 rounded-full transition-colors ${form.require_reboot ? 'bg-falcon-blue' : 'bg-falcon-border'}`}
+                  className={`relative w-10 h-5 rounded-full transition-colors ${form.require_reboot ? 'bg-[#1a6bff]' : 'bg-[#1e2d42]'}`}
                 >
-                  <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-falcon-text transition-transform ${form.require_reboot ? 'translate-x-5' : 'translate-x-0.5'}`} />
+                  <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-[#e2e8f4] transition-transform ${form.require_reboot ? 'translate-x-5' : 'translate-x-0.5'}`} />
                 </div>
-                <span className="text-xs text-falcon-muted">再起動必要</span>
+                <span className="text-xs text-[#7d92b0]">再起動必要</span>
               </label>
             </div>
           </div>
           <div className="flex justify-end gap-3 pt-2">
-            <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-falcon-muted hover:text-white transition-colors">キャンセル</button>
+            <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-[#7d92b0] hover:text-white transition-colors">キャンセル</button>
             <button
               type="submit"
               disabled={loading}
-              className="px-5 py-2 bg-falcon-blue hover:bg-[#1557d4] text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2"
+              className="px-5 py-2 bg-[#1a6bff] hover:bg-[#1557d4] text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2"
             >
               {loading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
               作成
@@ -346,29 +348,29 @@ function CreateModal({ onClose, onSubmit, loading }: CreateModalProps) {
 function ScheduleModal({ patch, onClose, onSchedule, loading }: { patch: PatchDeployment; onClose: () => void; onSchedule: (dt: string) => void; loading: boolean }) {
   const [datetime, setDatetime] = useState('')
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs">
-      <div className="bg-falcon-surface border border-falcon-border rounded-xl w-full max-w-sm shadow-2xl mx-4">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-falcon-border">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl w-full max-w-sm shadow-2xl mx-4">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[#1e2d42]">
           <h2 className="text-white font-semibold text-base">スケジュール設定</h2>
-          <button onClick={onClose} className="text-falcon-muted hover:text-white"><X className="w-5 h-5" /></button>
+          <button onClick={onClose} className="text-[#7d92b0] hover:text-white"><X className="w-5 h-5" /></button>
         </div>
         <div className="p-6 space-y-4">
-          <p className="text-sm text-falcon-muted">{patch.name}</p>
+          <p className="text-sm text-[#7d92b0]">{patch.name}</p>
           <div>
-            <label className="block text-xs text-falcon-muted mb-1.5">配布日時</label>
+            <label className="block text-xs text-[#7d92b0] mb-1.5">配布日時</label>
             <input
               type="datetime-local"
               value={datetime}
               onChange={e => setDatetime(e.target.value)}
-              className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-sm text-white focus:outline-hidden focus:border-falcon-blue transition-colors"
+              className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-white focus:outline-hidden focus:border-[#1a6bff] transition-colors"
             />
           </div>
           <div className="flex justify-end gap-3">
-            <button onClick={onClose} className="px-4 py-2 text-sm text-falcon-muted hover:text-white transition-colors">キャンセル</button>
+            <button onClick={onClose} className="px-4 py-2 text-sm text-[#7d92b0] hover:text-white transition-colors">キャンセル</button>
             <button
               disabled={!datetime || loading}
               onClick={() => onSchedule(new Date(datetime).toISOString())}
-              className="px-5 py-2 bg-falcon-blue hover:bg-[#1557d4] text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2"
+              className="px-5 py-2 bg-[#1a6bff] hover:bg-[#1557d4] text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2"
             >
               {loading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
               スケジュール
@@ -384,24 +386,24 @@ function ScheduleModal({ patch, onClose, onSchedule, loading }: { patch: PatchDe
 
 function DeployModal({ patch, onClose, onDeploy, loading }: { patch: PatchDeployment; onClose: () => void; onDeploy: () => void; loading: boolean }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs">
-      <div className="bg-falcon-surface border border-falcon-border rounded-xl w-full max-w-sm shadow-2xl mx-4">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-falcon-border">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl w-full max-w-sm shadow-2xl mx-4">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[#1e2d42]">
           <h2 className="text-white font-semibold text-base">今すぐ配布</h2>
-          <button onClick={onClose} className="text-falcon-muted hover:text-white"><X className="w-5 h-5" /></button>
+          <button onClick={onClose} className="text-[#7d92b0] hover:text-white"><X className="w-5 h-5" /></button>
         </div>
         <div className="p-6 space-y-4">
           <div className="flex items-start gap-3 p-3 bg-yellow-900/20 border border-yellow-700/30 rounded-lg">
             <AlertTriangle className="w-4 h-4 text-yellow-400 mt-0.5 shrink-0" />
             <p className="text-sm text-yellow-300">このパッチを今すぐすべての対象エンドポイントに配布します。この操作は取り消せません。</p>
           </div>
-          <p className="text-sm text-falcon-muted"><span className="text-white font-medium">{patch.name}</span> を配布しますか？</p>
+          <p className="text-sm text-[#7d92b0]"><span className="text-white font-medium">{patch.name}</span> を配布しますか？</p>
           <div className="flex justify-end gap-3">
-            <button onClick={onClose} className="px-4 py-2 text-sm text-falcon-muted hover:text-white transition-colors">キャンセル</button>
+            <button onClick={onClose} className="px-4 py-2 text-sm text-[#7d92b0] hover:text-white transition-colors">キャンセル</button>
             <button
               disabled={loading}
               onClick={onDeploy}
-              className="px-5 py-2 bg-falcon-red hover:bg-[#c00025] text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2"
+              className="px-5 py-2 bg-[#e8002d] hover:bg-[#c00025] text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2"
             >
               {loading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
               今すぐ配布
@@ -427,12 +429,12 @@ function DeploymentCard({
   onResults: (p: PatchDeployment) => void
 }) {
   return (
-    <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5 space-y-4 hover:border-[#2a3f5c] transition-colors">
+    <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5 space-y-4 hover:border-[#2a3f5c] transition-colors">
       {/* Header */}
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <h3 className="text-white font-semibold text-sm leading-tight">{patch.name}</h3>
-          {patch.description && <p className="text-falcon-muted text-xs mt-1">{patch.description}</p>}
+          {patch.description && <p className="text-[#7d92b0] text-xs mt-1">{patch.description}</p>}
         </div>
         <StatusBadge status={patch.status} />
       </div>
@@ -450,7 +452,7 @@ function DeploymentCard({
       {/* KB + CVEs */}
       <div className="flex flex-wrap items-center gap-2 text-xs">
         {patch.kb_article && (
-          <a href={`#kb-${patch.kb_article}`} className="flex items-center gap-1 text-falcon-blue hover:text-blue-300 transition-colors">
+          <a href={`#kb-${patch.kb_article}`} className="flex items-center gap-1 text-[#1a6bff] hover:text-blue-300 transition-colors">
             <ExternalLink className="w-3 h-3" />
             {patch.kb_article}
           </a>
@@ -463,13 +465,13 @@ function DeploymentCard({
       {/* Progress bar for deploying */}
       {patch.status === 'deploying' && patch.progress !== undefined && (
         <div className="space-y-1">
-          <div className="flex justify-between text-xs text-falcon-muted">
+          <div className="flex justify-between text-xs text-[#7d92b0]">
             <span>配布進捗</span>
             <span>{patch.progress}%</span>
           </div>
-          <div className="h-1.5 bg-falcon-border rounded-full overflow-hidden">
+          <div className="h-1.5 bg-[#1e2d42] rounded-full overflow-hidden">
             <div
-              className="h-full bg-linear-to-r from-falcon-blue to-[#00a8ff] rounded-full transition-all duration-500"
+              className="h-full bg-linear-to-r from-[#1a6bff] to-[#00a8ff] rounded-full transition-all duration-500"
               style={{ width: `${patch.progress}%` }}
             />
           </div>
@@ -478,18 +480,18 @@ function DeploymentCard({
 
       {/* Scheduled time */}
       {patch.scheduled_at && (
-        <div className="flex items-center gap-1.5 text-xs text-falcon-muted">
+        <div className="flex items-center gap-1.5 text-xs text-[#7d92b0]">
           <Clock className="w-3.5 h-3.5" />
           <span>配布予定: {formatDate(patch.scheduled_at)}</span>
         </div>
       )}
 
       {/* Actions */}
-      <div className="flex flex-wrap gap-2 pt-1 border-t border-falcon-border">
+      <div className="flex flex-wrap gap-2 pt-1 border-t border-[#1e2d42]">
         {patch.status === 'draft' && (
           <button
             onClick={() => onSchedule(patch)}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-falcon-border hover:bg-[#253650] text-falcon-muted hover:text-white text-xs rounded-lg transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-[#1e2d42] hover:bg-[#253650] text-[#7d92b0] hover:text-white text-xs rounded-lg transition-colors"
           >
             <Calendar className="w-3.5 h-3.5" />スケジュール
           </button>
@@ -497,7 +499,7 @@ function DeploymentCard({
         {(patch.status === 'draft' || patch.status === 'scheduled') && (
           <button
             onClick={() => onDeploy(patch)}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-falcon-red/20 hover:bg-falcon-red/30 text-falcon-red hover:text-red-300 text-xs rounded-lg transition-colors border border-falcon-red/30"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-[#e8002d]/20 hover:bg-[#e8002d]/30 text-[#e8002d] hover:text-red-300 text-xs rounded-lg transition-colors border border-[#e8002d]/30"
           >
             <Play className="w-3.5 h-3.5" />今すぐ配布
           </button>
@@ -505,7 +507,7 @@ function DeploymentCard({
         {(patch.status === 'completed' || patch.status === 'deploying' || patch.status === 'failed') && (
           <button
             onClick={() => onResults(patch)}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-falcon-border hover:bg-[#253650] text-falcon-muted hover:text-white text-xs rounded-lg transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-[#1e2d42] hover:bg-[#253650] text-[#7d92b0] hover:text-white text-xs rounded-lg transition-colors"
           >
             <BarChart2 className="w-3.5 h-3.5" />結果確認
           </button>
@@ -600,23 +602,24 @@ export default function PatchManagementPage() {
     { label: '配布待ち', value: stats.pending, icon: Clock, color: 'text-yellow-300', bg: 'bg-yellow-900/20 border-yellow-700/30' },
     { label: '配布中', value: stats.deploying, icon: stats.deploying > 0 ? Loader2 : Send, color: 'text-blue-300', bg: 'bg-blue-900/20 border-blue-700/30', spin: stats.deploying > 0 },
     { label: '今月完了', value: stats.completed_this_month, icon: CheckCircle, color: 'text-green-300', bg: 'bg-green-900/20 border-green-700/30' },
-    { label: '成功率', value: `${stats.success_rate}%`, icon: Shield, color: 'text-falcon-red', bg: 'bg-red-900/20 border-red-700/30' },
+    { label: '成功率', value: `${stats.success_rate}%`, icon: Shield, color: 'text-[#e8002d]', bg: 'bg-red-900/20 border-red-700/30' },
   ]
 
   return (
     <div className="min-h-screen bg-[#070d19] p-6 space-y-6">
+      <PageDataUnavailable />
       {/* Header */}
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-white tracking-tight flex items-center gap-2">
-            <Package className="w-6 h-6 text-falcon-red" />
+            <Package className="w-6 h-6 text-[#e8002d]" />
             パッチ管理
           </h1>
-          <p className="text-falcon-muted text-sm mt-1">セキュリティパッチの配布・適用状況の追跡</p>
+          <p className="text-[#7d92b0] text-sm mt-1">セキュリティパッチの配布・適用状況の追跡</p>
         </div>
         <button
           onClick={() => setShowCreate(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-falcon-red hover:bg-[#c00025] text-white text-sm font-medium rounded-lg transition-colors shadow-lg shadow-red-900/20"
+          className="flex items-center gap-2 px-4 py-2 bg-[#e8002d] hover:bg-[#c00025] text-white text-sm font-medium rounded-lg transition-colors shadow-lg shadow-red-900/20"
         >
           <Plus className="w-4 h-4" />
           パッチ作成
@@ -626,18 +629,18 @@ export default function PatchManagementPage() {
       {/* Stats Row */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {STAT_CARDS.map(card => (
-          <div key={card.label} className={`bg-falcon-surface border rounded-xl p-4 flex items-center gap-3 ${card.bg}`}>
+          <div key={card.label} className={`bg-[#0d1220] border rounded-xl p-4 flex items-center gap-3 ${card.bg}`}>
             <card.icon className={`w-8 h-8 shrink-0 ${card.color} ${card.spin ? 'animate-spin' : ''}`} />
             <div>
               <p className="text-2xl font-bold text-white">{card.value}</p>
-              <p className="text-xs text-falcon-muted">{card.label}</p>
+              <p className="text-xs text-[#7d92b0]">{card.label}</p>
             </div>
           </div>
         ))}
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 bg-falcon-surface border border-falcon-border rounded-lg p-1 w-fit">
+      <div className="flex gap-1 bg-[#0d1220] border border-[#1e2d42] rounded-lg p-1 w-fit">
         {[
           { key: 'deployments', label: 'パッチ配布' },
           { key: 'results', label: '適用状況' },
@@ -647,8 +650,8 @@ export default function PatchManagementPage() {
             onClick={() => setActiveTab(tab.key as 'deployments' | 'results')}
             className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
               activeTab === tab.key
-                ? 'bg-falcon-border text-white'
-                : 'text-falcon-muted hover:text-white'
+                ? 'bg-[#1e2d42] text-white'
+                : 'text-[#7d92b0] hover:text-white'
             }`}
           >
             {tab.label}
@@ -661,7 +664,7 @@ export default function PatchManagementPage() {
         <div>
           {loadingDeps ? (
             <div className="flex items-center justify-center py-20">
-              <Loader2 className="w-8 h-8 animate-spin text-falcon-blue" />
+              <Loader2 className="w-8 h-8 animate-spin text-[#1a6bff]" />
             </div>
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -685,11 +688,11 @@ export default function PatchManagementPage() {
           {/* Deployment selector */}
           <div className="flex flex-wrap items-center gap-4">
             <div className="flex items-center gap-2">
-              <label className="text-sm text-falcon-muted">配布選択:</label>
+              <label className="text-sm text-[#7d92b0]">配布選択:</label>
               <select
                 value={selectedDeploymentId}
                 onChange={e => setSelectedDeploymentId(e.target.value)}
-                className="bg-falcon-surface border border-falcon-border rounded-lg px-3 py-1.5 text-sm text-white focus:outline-hidden focus:border-falcon-blue transition-colors"
+                className="bg-[#0d1220] border border-[#1e2d42] rounded-lg px-3 py-1.5 text-sm text-white focus:outline-hidden focus:border-[#1a6bff] transition-colors"
               >
                 {deployments.map(d => (
                   <option key={d.id} value={d.id}>{d.name}</option>
@@ -697,11 +700,11 @@ export default function PatchManagementPage() {
               </select>
             </div>
             <div className="flex items-center gap-2">
-              <Filter className="w-4 h-4 text-falcon-muted" />
+              <Filter className="w-4 h-4 text-[#7d92b0]" />
               <select
                 value={resultFilter}
                 onChange={e => setResultFilter(e.target.value)}
-                className="bg-falcon-surface border border-falcon-border rounded-lg px-3 py-1.5 text-sm text-white focus:outline-hidden focus:border-falcon-blue transition-colors"
+                className="bg-[#0d1220] border border-[#1e2d42] rounded-lg px-3 py-1.5 text-sm text-white focus:outline-hidden focus:border-[#1a6bff] transition-colors"
               >
                 <option value="all">すべて</option>
                 <option value="success">成功</option>
@@ -714,27 +717,27 @@ export default function PatchManagementPage() {
 
           {/* Summary Donut */}
           {allResults.length > 0 && (
-            <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
+            <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
               <h3 className="text-white font-semibold text-sm mb-4">適用サマリー</h3>
               <DonutChart success={successCount} failed={failedCount} pending={pendingCount} />
             </div>
           )}
 
           {/* Results Table */}
-          <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
+          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-falcon-border">
+                  <tr className="border-b border-[#1e2d42]">
                     {['ホスト名', 'OS', 'ステータス', 'エラー', '開始', '完了', '所要時間', '操作'].map(h => (
-                      <th key={h} className="px-4 py-3 text-left text-xs font-medium text-falcon-muted uppercase tracking-wider whitespace-nowrap">{h}</th>
+                      <th key={h} className="px-4 py-3 text-left text-xs font-medium text-[#7d92b0] uppercase tracking-wider whitespace-nowrap">{h}</th>
                     ))}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-falcon-border">
+                <tbody className="divide-y divide-[#1e2d42]">
                   {filteredResults.length === 0 ? (
                     <tr>
-                      <td colSpan={8} className="px-4 py-8 text-center text-falcon-muted text-sm">
+                      <td colSpan={8} className="px-4 py-8 text-center text-[#7d92b0] text-sm">
                         {allResults.length === 0 ? 'このデプロイメントの結果がありません' : 'フィルター条件に一致するデータがありません'}
                       </td>
                     </tr>
@@ -744,14 +747,14 @@ export default function PatchManagementPage() {
                       <td className="px-4 py-3"><OSBadge os={result.os_type} /></td>
                       <td className="px-4 py-3"><ResultStatusBadge status={result.status} /></td>
                       <td className="px-4 py-3 text-red-400 text-xs max-w-[160px] truncate">{result.error_message ?? '—'}</td>
-                      <td className="px-4 py-3 text-falcon-muted text-xs whitespace-nowrap">{formatDate(result.started_at)}</td>
-                      <td className="px-4 py-3 text-falcon-muted text-xs whitespace-nowrap">{formatDate(result.completed_at)}</td>
-                      <td className="px-4 py-3 text-falcon-muted text-xs whitespace-nowrap">{formatDuration(result.duration_seconds)}</td>
+                      <td className="px-4 py-3 text-[#7d92b0] text-xs whitespace-nowrap">{formatDate(result.started_at)}</td>
+                      <td className="px-4 py-3 text-[#7d92b0] text-xs whitespace-nowrap">{formatDate(result.completed_at)}</td>
+                      <td className="px-4 py-3 text-[#7d92b0] text-xs whitespace-nowrap">{formatDuration(result.duration_seconds)}</td>
                       <td className="px-4 py-3">
                         {result.status === 'failed' && (
                           <button
                             onClick={() => retryMutation.mutate(result.id)}
-                            className="flex items-center gap-1 px-2.5 py-1 bg-falcon-border hover:bg-[#253650] text-falcon-muted hover:text-white text-xs rounded-sm transition-colors"
+                            className="flex items-center gap-1 px-2.5 py-1 bg-[#1e2d42] hover:bg-[#253650] text-[#7d92b0] hover:text-white text-xs rounded-sm transition-colors"
                           >
                             <RotateCcw className="w-3 h-3" />再試行
                           </button>

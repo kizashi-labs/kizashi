@@ -12,6 +12,9 @@ import {
   History, CheckCircle, XCircle, Pencil, X, Check, Tag, Trash2
 } from 'lucide-react'
 import Link from 'next/link'
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+import { PageSaveFailed } from '@/components/PageSaveFailed'
+
 import { AgentStatusBadge, OSIcon } from '@/components/ui/badges'
 import { useCanWrite } from '@/lib/auth'
 import type { Agent } from '@/types/api'
@@ -483,6 +486,8 @@ export default function EndpointDetailPage() {
 
   return (
     <div className="p-6 space-y-6">
+      <PageDataUnavailable />
+      <PageSaveFailed className="mb-4" />
       {/* Header */}
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-3">
@@ -508,8 +513,7 @@ export default function EndpointDetailPage() {
             type="button"
             onClick={() => scan.mutate()}
             disabled={scan.isPending}
-            className="flex items-center gap-1.5 px-3 py-2 bg-falcon-raised hover:bg-falcon-active
-                       text-white text-sm rounded-lg transition-colors disabled:opacity-50"
+            className="flex items-center gap-1.5 px-3 py-2 bg-[#161f33] hover:bg-[#1d2f4a] text-white text-sm rounded-lg transition-colors disabled:opacity-50"
           >
             <Scan className="w-4 h-4" />
             {scan.isPending ? 'スキャン送信中...' : 'スキャン'}
@@ -520,8 +524,7 @@ export default function EndpointDetailPage() {
           <button
             onClick={() => { if (confirm(`「${agent.hostname}」を削除しますか？この操作は取り消せません。`)) deleteAgent.mutate() }}
             disabled={deleteAgent.isPending}
-            className="flex items-center gap-1.5 px-3 py-2 bg-falcon-raised hover:bg-red-900/40
-                       text-[#8899aa] hover:text-red-400 text-sm rounded-lg transition-colors disabled:opacity-50"
+            className="flex items-center gap-1.5 px-3 py-2 bg-[#161f33] hover:bg-red-900/40 text-[#8899aa] hover:text-red-400 text-sm rounded-lg transition-colors disabled:opacity-50"
           >
             <Trash2 className="w-4 h-4" />
             削除
@@ -532,8 +535,7 @@ export default function EndpointDetailPage() {
             <button
               onClick={() => { if (confirm('隔離を解除しますか？')) unisolate.mutate() }}
               disabled={unisolate.isPending}
-              className="flex items-center gap-1.5 px-3 py-2 bg-green-600 hover:bg-green-500
-                         text-white text-sm rounded-lg transition-colors disabled:opacity-50"
+              className="flex items-center gap-1.5 px-3 py-2 bg-green-600 hover:bg-green-500 text-white text-sm rounded-lg transition-colors disabled:opacity-50"
             >
               <ShieldCheck className="w-4 h-4" />
               隔離解除
@@ -542,8 +544,7 @@ export default function EndpointDetailPage() {
             <button
               onClick={() => { if (confirm(`${agent.hostname} を隔離しますか？`)) isolate.mutate() }}
               disabled={isolate.isPending || agent.status === 'offline'}
-              className="flex items-center gap-1.5 px-3 py-2 bg-falcon-red hover:bg-[#b5001e]
-                         text-white text-sm rounded-lg transition-colors disabled:opacity-50"
+              className="flex items-center gap-1.5 px-3 py-2 bg-[#e8002d] hover:bg-[#b5001e] text-white text-sm rounded-lg transition-colors disabled:opacity-50"
             >
               <ShieldAlert className="w-4 h-4" />
               隔離
@@ -581,7 +582,7 @@ export default function EndpointDetailPage() {
       </div>
 
       {/* Tabs */}
-      <div className="border-b border-falcon-border">
+      <div className="border-b border-[#1e2d42]">
         <div className="flex gap-0">
           {tabs.map(tab => (
             <button
@@ -602,7 +603,7 @@ export default function EndpointDetailPage() {
       {/* Tab content */}
       {activeTab === 'overview' && (
         <div className="space-y-4">
-          <div className="bg-falcon-card rounded-xl border border-falcon-border p-5 space-y-4">
+          <div className="bg-[#111827] rounded-xl border border-[#1e2d42] p-5 space-y-4">
             <h2 className="text-white font-semibold">システム情報</h2>
             <dl className="grid grid-cols-2 gap-x-8 gap-y-3 text-sm">
               {[
@@ -612,7 +613,7 @@ export default function EndpointDetailPage() {
                 ['バージョン',     agent.agent_version ?? '不明'],
                 ['ステータス',     agent.status],
               ].map(([label, value]) => (
-                <div key={label} className="flex justify-between border-b border-falcon-border pb-2">
+                <div key={label} className="flex justify-between border-b border-[#1e2d42] pb-2">
                   <dt className="text-[#8899aa]">{label}</dt>
                   <dd className="text-white font-mono text-xs">{value}</dd>
                 </div>
@@ -633,7 +634,7 @@ export default function EndpointDetailPage() {
           </div>
 
           {/* Tags & Group editing */}
-          <div className="bg-falcon-card rounded-xl border border-falcon-border p-5">
+          <div className="bg-[#111827] rounded-xl border border-[#1e2d42] p-5">
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-white font-semibold flex items-center gap-2">
                 <Tag className="w-4 h-4 text-[#8899aa]" />
@@ -642,8 +643,7 @@ export default function EndpointDetailPage() {
               {canWrite && (!editingMeta ? (
                 <button
                   onClick={openEditMeta}
-                  className="flex items-center gap-1 text-xs text-[#8899aa] hover:text-white
-                             px-2 py-1 rounded bg-falcon-raised hover:bg-falcon-active transition-colors"
+                  className="flex items-center gap-1 text-xs text-[#8899aa] hover:text-white px-2 py-1 rounded-sm bg-[#161f33] hover:bg-[#1d2f4a] transition-colors"
                 >
                   <Pencil className="w-3 h-3" />
                   編集
@@ -653,16 +653,14 @@ export default function EndpointDetailPage() {
                   <button
                     onClick={saveEditMeta}
                     disabled={updateMeta.isPending}
-                    className="flex items-center gap-1 text-xs text-green-300 bg-green-900/40
-                               px-2 py-1 rounded hover:bg-green-900/60 transition-colors disabled:opacity-50"
+                    className="flex items-center gap-1 text-xs text-green-300 bg-green-900/40 px-2 py-1 rounded-sm hover:bg-green-900/60 transition-colors disabled:opacity-50"
                   >
                     <Check className="w-3 h-3" />
                     保存
                   </button>
                   <button
                     onClick={() => setEditingMeta(false)}
-                    className="flex items-center gap-1 text-xs text-[#8899aa] bg-falcon-raised
-                               px-2 py-1 rounded hover:bg-falcon-active transition-colors"
+                    className="flex items-center gap-1 text-xs text-[#8899aa] bg-[#161f33] px-2 py-1 rounded-sm hover:bg-[#1d2f4a] transition-colors"
                   >
                     <X className="w-3 h-3" />
                     キャンセル
@@ -679,8 +677,7 @@ export default function EndpointDetailPage() {
                     value={tagInput}
                     onChange={e => setTagInput(e.target.value)}
                     placeholder="例: critical, windows, production"
-                    className="w-full bg-falcon-bg text-white px-3 py-2 rounded-lg border border-falcon-border
-                               text-sm focus:outline-hidden focus:border-falcon-blue font-mono"
+                    className="w-full bg-[#080c14] text-white px-3 py-2 rounded-lg border border-[#1e2d42] text-sm focus:outline-hidden focus:border-[#1a6bff] font-mono"
                   />
                 </div>
                 <div>
@@ -688,8 +685,7 @@ export default function EndpointDetailPage() {
                   <select
                     value={groupInput}
                     onChange={e => setGroupInput(e.target.value)}
-                    className="w-full bg-falcon-bg text-white px-3 py-2 rounded-lg border border-falcon-border
-                               text-sm focus:outline-hidden focus:border-falcon-blue"
+                    className="w-full bg-[#080c14] text-white px-3 py-2 rounded-lg border border-[#1e2d42] text-sm focus:outline-hidden focus:border-[#1a6bff]"
                   >
                     <option value="">— 未割り当て</option>
                     {(groupsData?.data ?? []).map(g => (
@@ -741,8 +737,8 @@ export default function EndpointDetailPage() {
       )}
 
       {activeTab === 'processes' && (
-        <div className="bg-falcon-card rounded-xl border border-falcon-border overflow-hidden">
-          <div className="flex items-center justify-between px-4 py-3 border-b border-falcon-border">
+        <div className="bg-[#111827] rounded-xl border border-[#1e2d42] overflow-hidden">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-[#1e2d42]">
             <div>
               <h2 className="text-white font-semibold text-sm">実行中のプロセス</h2>
               {processStats?.updated_at && (
@@ -756,7 +752,7 @@ export default function EndpointDetailPage() {
                 value={processSearch}
                 onChange={e => setProcessSearch(e.target.value)}
                 placeholder="プロセスを検索..."
-                className="text-xs bg-falcon-bg border border-falcon-border rounded-sm px-2 py-1 text-white placeholder-[#5a6a7a] w-48 focus:outline-hidden focus:border-[#2e4d7a]"
+                className="text-xs bg-[#080c14] border border-[#1e2d42] rounded-sm px-2 py-1 text-white placeholder-[#5a6a7a] w-48 focus:outline-hidden focus:border-[#2e4d7a]"
               />
               <button
                 onClick={() => qc.invalidateQueries({ queryKey: ['agent-processes', id] })}
@@ -771,7 +767,7 @@ export default function EndpointDetailPage() {
           ) : (
             <table className="w-full text-xs">
               <thead>
-                <tr className="text-left text-[#8899aa] border-b border-falcon-border bg-falcon-bg/30">
+                <tr className="text-left text-[#8899aa] border-b border-[#1e2d42] bg-[#080c14]/30">
                   <th className="px-4 py-2">タイムスタンプ</th>
                   <th className="px-4 py-2">イメージ</th>
                   <th className="px-4 py-2">PID</th>
@@ -783,7 +779,7 @@ export default function EndpointDetailPage() {
                   <th className="px-4 py-2">操作</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-falcon-border">
+              <tbody className="divide-y divide-[#1e2d42]">
                 {(processes?.data ?? []).filter(p =>
                   !processSearch ||
                   p.image.toLowerCase().includes(processSearch.toLowerCase()) ||
@@ -794,7 +790,7 @@ export default function EndpointDetailPage() {
                   const imgBasename = p.image.split(/[/\\]/).pop() ?? p.image
                   const parentBasename = p.parent_image.split(/[/\\]/).pop() ?? p.parent_image
                   return (
-                    <tr key={p.id} className="hover:bg-falcon-hover/30 transition-colors group">
+                    <tr key={p.id} className="hover:bg-[#19253d]/30 transition-colors group">
                       <td className="px-4 py-2 font-mono text-[#5a6a7a] whitespace-nowrap">
                         {new Date(p.timestamp).toLocaleTimeString('ja-JP')}
                       </td>
@@ -804,7 +800,7 @@ export default function EndpointDetailPage() {
                         const st = statsMap[String(p.pid)]
                         const cpu = st?.cpu_pct ?? null
                         const mem = st?.mem_mb ?? null
-                        const cpuColor = cpu === null ? 'text-falcon-subtle' : cpu >= 50 ? 'text-red-400' : cpu >= 20 ? 'text-yellow-400' : 'text-[#8899aa]'
+                        const cpuColor = cpu === null ? 'text-[#3d5068]' : cpu >= 50 ? 'text-red-400' : cpu >= 20 ? 'text-yellow-400' : 'text-[#8899aa]'
                         return (
                           <>
                             <td className={`px-4 py-2 font-mono text-right ${cpuColor}`}>
@@ -829,8 +825,7 @@ export default function EndpointDetailPage() {
                             <button
                               onClick={() => killProcess.mutate(Number(p.pid))}
                               disabled={killProcess.isPending}
-                              className="text-xs px-2 py-0.5 bg-falcon-red hover:bg-[#b5001e]
-                                         text-white rounded transition-colors disabled:opacity-50"
+                              className="text-xs px-2 py-0.5 bg-[#e8002d] hover:bg-[#b5001e] text-white rounded-sm transition-colors disabled:opacity-50"
                             >
                               {killProcess.isPending ? '...' : '確認'}
                             </button>
@@ -845,8 +840,7 @@ export default function EndpointDetailPage() {
                           p.pid && agent?.status !== 'isolated' ? (
                             <button
                               onClick={() => setKillConfirmPid(Number(p.pid))}
-                              className="text-xs text-red-400 hover:text-red-300 opacity-0
-                                         group-hover:opacity-100 transition-opacity"
+                              className="text-xs text-red-400 hover:text-red-300 opacity-0 group-hover:opacity-100 transition-opacity"
                               title="プロセスを終了"
                             >
                               <XCircle className="w-3.5 h-3.5" />
@@ -866,14 +860,13 @@ export default function EndpointDetailPage() {
       {activeTab === 'alerts' && (
         <div className="space-y-2">
           {(alerts?.data ?? []).length === 0 ? (
-            <div className="text-center py-12 text-[#5a6a7a] bg-falcon-card rounded-xl border border-falcon-border text-sm">
+            <div className="text-center py-12 text-[#5a6a7a] bg-[#111827] rounded-xl border border-[#1e2d42] text-sm">
               アラートはありません
             </div>
           ) : (
             (alerts?.data ?? []).map(alert => (
               <Link key={alert.id} href={`/alerts/${alert.id}`}
-                className="flex items-center justify-between p-4 bg-falcon-card rounded-xl
-                           border border-falcon-border hover:border-falcon-border transition-colors"
+                className="flex items-center justify-between p-4 bg-[#111827] rounded-xl border border-[#1e2d42] hover:border-[#1e2d42] transition-colors"
               >
                 <div className="flex items-center gap-3">
                   <AlertTriangle className={`w-4 h-4 ${
@@ -886,7 +879,7 @@ export default function EndpointDetailPage() {
                   <span className={`px-2 py-0.5 rounded-full ${
                     alert.status === 'open' ? 'bg-red-900/40 text-red-400' :
                     alert.status === 'resolved' ? 'bg-green-900/40 text-green-400' :
-                    'bg-falcon-raised text-[#8899aa]'
+                    'bg-[#161f33] text-[#8899aa]'
                   }`}>{alert.status}</span>
                   <span>{formatDistanceToNow(parseISO(alert.created_at), { addSuffix: true, locale: ja })}</span>
                 </div>
@@ -897,8 +890,8 @@ export default function EndpointDetailPage() {
       )}
 
       {activeTab === 'events' && (
-        <div className="bg-falcon-card rounded-xl border border-falcon-border overflow-hidden">
-          <div className="flex items-center justify-between px-4 py-3 border-b border-falcon-border">
+        <div className="bg-[#111827] rounded-xl border border-[#1e2d42] overflow-hidden">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-[#1e2d42]">
             <div className="flex items-center gap-2">
               <FileText className="w-4 h-4 text-[#8899aa]" />
               <h2 className="text-white font-semibold text-sm">最近のイベント</h2>
@@ -930,15 +923,15 @@ export default function EndpointDetailPage() {
           ) : (
             <table className="w-full text-xs">
               <thead>
-                <tr className="text-left text-[#8899aa] border-b border-falcon-border bg-falcon-bg/30">
+                <tr className="text-left text-[#8899aa] border-b border-[#1e2d42] bg-[#080c14]/30">
                   <th className="px-4 py-2">タイムスタンプ</th>
                   <th className="px-4 py-2">種別</th>
                   <th className="px-4 py-2">概要</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-falcon-border">
+              <tbody className="divide-y divide-[#1e2d42]">
                 {(recentEvents?.data ?? []).map(ev => (
-                  <tr key={ev.id} className="hover:bg-falcon-raised transition-colors">
+                  <tr key={ev.id} className="hover:bg-[#161f33] transition-colors">
                     <td className="px-4 py-2 font-mono text-[#5a6a7a] whitespace-nowrap">
                       {new Date(ev.timestamp).toLocaleString('ja-JP')}
                     </td>
@@ -1029,7 +1022,7 @@ export default function EndpointDetailPage() {
             <div key={node.id}>
               <div
                 title={`${node.image}\nPID: ${node.pid}  PPID: ${node.ppid}\n${node.timestamp ? new Date(node.timestamp).toLocaleString('ja-JP') : ''}`}
-                className={`flex items-center gap-0 py-0.5 px-1 rounded-sm hover:bg-falcon-hover/50 cursor-pointer group ${isSusp ? 'bg-red-950/20' : ''}`}
+                className={`flex items-center gap-0 py-0.5 px-1 rounded-sm hover:bg-[#19253d]/50 cursor-pointer group ${isSusp ? 'bg-red-950/20' : ''}`}
                 onClick={() => !searchLower && setTreeExpanded(prev => { const n = new Set(prev); n.has(node.id) ? n.delete(node.id) : n.add(node.id); return n })}
               >
                 {/* Tree connectors */}
@@ -1050,7 +1043,7 @@ export default function EndpointDetailPage() {
                 </span>
 
                 {/* Process name */}
-                <span className={`text-xs font-semibold shrink-0 ${isSusp ? 'text-red-300' : 'text-falcon-text'}`}>
+                <span className={`text-xs font-semibold shrink-0 ${isSusp ? 'text-red-300' : 'text-[#e2e8f4]'}`}>
                   {imgName}
                 </span>
 
@@ -1079,9 +1072,9 @@ export default function EndpointDetailPage() {
         }
 
         return (
-          <div className="bg-falcon-card rounded-xl border border-falcon-border">
+          <div className="bg-[#111827] rounded-xl border border-[#1e2d42]">
             {/* Header */}
-            <div className="flex items-center justify-between px-4 py-3 border-b border-falcon-border gap-3 flex-wrap">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-[#1e2d42] gap-3 flex-wrap">
               <span className="text-sm font-medium text-[#8899aa]">プロセスツリー</span>
               <div className="flex items-center gap-2 flex-1 max-w-xs">
                 <input
@@ -1089,19 +1082,19 @@ export default function EndpointDetailPage() {
                   placeholder="検索 (プロセス名/PID/コマンド)..."
                   value={treeSearch}
                   onChange={e => setTreeSearch(e.target.value)}
-                  className="flex-1 bg-falcon-bg border border-falcon-border rounded-sm px-2 py-1 text-xs text-[#8899aa] placeholder-[#5a6a7a] focus:outline-hidden focus:border-falcon-blue"
+                  className="flex-1 bg-[#080c14] border border-[#1e2d42] rounded-sm px-2 py-1 text-xs text-[#8899aa] placeholder-[#5a6a7a] focus:outline-hidden focus:border-[#1a6bff]"
                 />
                 {treeSearch && (
                   <button onClick={() => setTreeSearch('')} className="text-[#5a6a7a] hover:text-[#8899aa] text-xs">✕</button>
                 )}
               </div>
               <div className="flex items-center gap-2">
-                <button onClick={expandAll} className="text-[10px] text-[#5a6a7a] hover:text-[#8899aa] px-2 py-1 border border-falcon-border rounded-sm transition-colors">すべて展開</button>
-                <button onClick={collapseAll} className="text-[10px] text-[#5a6a7a] hover:text-[#8899aa] px-2 py-1 border border-falcon-border rounded-sm transition-colors">すべて折りたたむ</button>
-                <div className="flex border border-falcon-border rounded-lg overflow-hidden text-xs">
+                <button onClick={expandAll} className="text-[10px] text-[#5a6a7a] hover:text-[#8899aa] px-2 py-1 border border-[#1e2d42] rounded-sm transition-colors">すべて展開</button>
+                <button onClick={collapseAll} className="text-[10px] text-[#5a6a7a] hover:text-[#8899aa] px-2 py-1 border border-[#1e2d42] rounded-sm transition-colors">すべて折りたたむ</button>
+                <div className="flex border border-[#1e2d42] rounded-lg overflow-hidden text-xs">
                   {[1, 4, 12, 24].map(h => (
                     <button key={h} onClick={() => setTreeHours(h)}
-                      className={`px-2.5 py-1.5 transition-colors ${treeHours === h ? 'bg-falcon-blue text-white' : 'text-[#8899aa] hover:bg-falcon-hover'}`}>
+                      className={`px-2.5 py-1.5 transition-colors ${treeHours === h ? 'bg-[#1a6bff] text-white' : 'text-[#8899aa] hover:bg-[#19253d]'}`}>
                       {h}h
                     </button>
                   ))}
@@ -1111,7 +1104,7 @@ export default function EndpointDetailPage() {
 
             {/* Stats bar */}
             {procs.length > 0 && (
-              <div className="flex items-center gap-6 px-4 py-2 bg-falcon-bg/40 border-b border-falcon-border/50 text-[10px]">
+              <div className="flex items-center gap-6 px-4 py-2 bg-[#080c14]/40 border-b border-[#1e2d42]/50 text-[10px]">
                 <span className="text-[#5a6a7a]">合計: <span className="text-[#8899aa] font-semibold">{procs.length}</span> プロセス</span>
                 <span className="text-[#5a6a7a]">ユニーク実行ファイル: <span className="text-[#8899aa] font-semibold">{uniqueExe}</span></span>
                 <span className="text-[#5a6a7a]">疑わしい: <span className={`font-semibold ${suspCount > 0 ? 'text-red-400' : 'text-green-400'}`}>{suspCount}</span></span>
@@ -1133,12 +1126,12 @@ export default function EndpointDetailPage() {
       })()}
 
       {activeTab === 'software' && (
-        <div className="bg-falcon-card rounded-xl border border-falcon-border overflow-hidden">
-          <div className="flex items-center justify-between px-4 py-3 border-b border-falcon-border">
+        <div className="bg-[#111827] rounded-xl border border-[#1e2d42] overflow-hidden">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-[#1e2d42]">
             <span className="text-sm font-medium text-[#8899aa]">インストール済みソフトウェア ({softwareData?.total ?? 0}件)</span>
             <div className="flex items-center gap-2">
               <input
-                className="bg-falcon-raised border border-falcon-border rounded-sm px-3 py-1.5 text-xs text-white w-44"
+                className="bg-[#161f33] border border-[#1e2d42] rounded-sm px-3 py-1.5 text-xs text-white w-44"
                 placeholder="名前で絞り込み..."
                 value={swSearch}
                 onChange={e => setSwSearch(e.target.value)}
@@ -1164,7 +1157,7 @@ export default function EndpointDetailPage() {
           ) : (
             <table className="w-full text-xs">
               <thead>
-                <tr className="border-b border-falcon-border text-[#8899aa]">
+                <tr className="border-b border-[#1e2d42] text-[#8899aa]">
                   <th className="text-left px-4 py-2">名前</th>
                   <th className="text-left px-4 py-2">バージョン</th>
                   <th className="text-left px-4 py-2">ベンダー</th>
@@ -1175,8 +1168,8 @@ export default function EndpointDetailPage() {
                 {softwareData.data
                   .filter(sw => !swSearch || sw.name.toLowerCase().includes(swSearch.toLowerCase()))
                   .map(sw => (
-                    <tr key={sw.id} className="border-b border-falcon-border/50 hover:bg-falcon-hover/30">
-                      <td className="px-4 py-2 text-falcon-text font-medium">{sw.name}</td>
+                    <tr key={sw.id} className="border-b border-[#1e2d42]/50 hover:bg-[#19253d]/30">
+                      <td className="px-4 py-2 text-[#e2e8f4] font-medium">{sw.name}</td>
                       <td className="px-4 py-2 text-[#8899aa] font-mono">{sw.version || '—'}</td>
                       <td className="px-4 py-2 text-[#8899aa]">{sw.vendor || '—'}</td>
                       <td className="px-4 py-2 text-[#5a6a7a]">{sw.install_date || '—'}</td>
@@ -1189,8 +1182,8 @@ export default function EndpointDetailPage() {
       )}
 
       {activeTab === 'vulnerabilities' && (
-        <div className="bg-falcon-card rounded-xl border border-falcon-border overflow-hidden">
-          <div className="flex items-center justify-between px-4 py-3 border-b border-falcon-border">
+        <div className="bg-[#111827] rounded-xl border border-[#1e2d42] overflow-hidden">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-[#1e2d42]">
             <div className="flex items-center gap-2">
               <span className="text-sm font-medium text-[#8899aa]">脆弱性 ({vulnData?.total ?? 0}件)</span>
             </div>
@@ -1201,7 +1194,7 @@ export default function EndpointDetailPage() {
           ) : (
             <table className="w-full text-xs">
               <thead>
-                <tr className="border-b border-falcon-border text-[#8899aa]">
+                <tr className="border-b border-[#1e2d42] text-[#8899aa]">
                   <th className="text-left px-4 py-2">CVE ID</th>
                   <th className="text-left px-4 py-2">タイトル</th>
                   <th className="text-left px-4 py-2">重大度</th>
@@ -1220,9 +1213,9 @@ export default function EndpointDetailPage() {
                     v.status === 'patched' ? 'text-green-400' :
                     v.status === 'mitigated' ? 'text-yellow-400' : 'text-[#8899aa]'
                   return (
-                    <tr key={v.id} className="border-b border-falcon-border/50 hover:bg-falcon-hover/30">
-                      <td className="px-4 py-2 font-mono text-falcon-blue">{v.cve_id}</td>
-                      <td className="px-4 py-2 text-falcon-text max-w-xs truncate">{v.title}</td>
+                    <tr key={v.id} className="border-b border-[#1e2d42]/50 hover:bg-[#19253d]/30">
+                      <td className="px-4 py-2 font-mono text-[#1a6bff]">{v.cve_id}</td>
+                      <td className="px-4 py-2 text-[#e2e8f4] max-w-xs truncate">{v.title}</td>
                       <td className="px-4 py-2">
                         <span className={`px-1.5 py-0.5 rounded-sm border text-[10px] font-semibold ${sevColor}`}>
                           {v.severity}
@@ -1244,8 +1237,8 @@ export default function EndpointDetailPage() {
       )}
 
       {activeTab === 'response-history' && (
-        <div className="bg-falcon-card rounded-xl border border-falcon-border overflow-hidden">
-          <div className="flex items-center gap-2 px-4 py-3 border-b border-falcon-border">
+        <div className="bg-[#111827] rounded-xl border border-[#1e2d42] overflow-hidden">
+          <div className="flex items-center gap-2 px-4 py-3 border-b border-[#1e2d42]">
             <History className="w-4 h-4 text-[#8899aa]" />
             <h2 className="text-white font-semibold text-sm">対応アクション履歴</h2>
             {displayRows.length > 0 && (
@@ -1260,7 +1253,7 @@ export default function EndpointDetailPage() {
           ) : (
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-left text-[#8899aa] text-xs border-b border-falcon-border">
+                <tr className="text-left text-[#8899aa] text-xs border-b border-[#1e2d42]">
                   <th className="px-4 py-3 w-8"></th>
                   <th className="px-4 py-3">アクション</th>
                   <th className="px-4 py-3">結果</th>
@@ -1269,7 +1262,7 @@ export default function EndpointDetailPage() {
                   <th className="px-4 py-3">完了</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-falcon-border">
+              <tbody className="divide-y divide-[#1e2d42]">
                 {displayRows.map(row => {
                   if (row.type === 'other') {
                     const action = row.action
@@ -1290,17 +1283,17 @@ export default function EndpointDetailPage() {
                       (action.action_type === 'isolate' && det.reason) ? det.reason :
                       ''
                     return (
-                      <tr key={row.key} className="hover:bg-falcon-raised transition-colors">
+                      <tr key={row.key} className="hover:bg-[#161f33] transition-colors">
                         <td className="px-4 py-3"></td>
                         <td className="px-4 py-3">
                           <div className="flex flex-col gap-1">
-                            <span className={`text-xs px-2 py-1 rounded font-mono w-fit ${
+                            <span className={`text-xs px-2 py-1 rounded-sm font-mono w-fit ${
                               action.action_type === 'isolate'        ? 'bg-red-900/40 text-red-300' :
                               action.action_type === 'unisolate'      ? 'bg-green-900/40 text-green-300' :
                               action.action_type === 'kill_process'   ? 'bg-orange-900/40 text-orange-300' :
                               action.action_type === 'quarantine_file'? 'bg-yellow-900/40 text-yellow-300' :
                               action.action_type === 'restore_file'   ? 'bg-blue-900/40 text-blue-300' :
-                              'bg-falcon-raised text-[#8899aa]'
+                              'bg-[#161f33] text-[#8899aa]'
                             }`}>
                               {actionLabel}
                             </span>
@@ -1356,7 +1349,7 @@ export default function EndpointDetailPage() {
                         className={`cursor-pointer transition-colors ${
                           detected
                             ? 'bg-red-900/15 hover:bg-red-900/25 border-l-4 border-red-500'
-                            : 'hover:bg-falcon-raised'
+                            : 'hover:bg-[#161f33]'
                         }`}
                       >
                         <td className="px-4 py-3 text-[#5a6a7a]">
@@ -1368,7 +1361,7 @@ export default function EndpointDetailPage() {
                               フルスキャン
                             </span>
                             {row.scanType && row.scanType !== 'full' && (
-                              <span className="text-[10px] text-falcon-muted">({row.scanType})</span>
+                              <span className="text-[10px] text-[#7d92b0]">({row.scanType})</span>
                             )}
                           </div>
                         </td>
@@ -1384,9 +1377,7 @@ export default function EndpointDetailPage() {
                                   onClick={() => scanCancel.mutate()}
                                   disabled={scanCancel.isPending}
                                   title="このスキャンを停止します"
-                                  className="flex items-center gap-1 px-1.5 py-0.5 text-[11px] text-amber-300
-                                             bg-amber-900/30 border border-amber-700/50 rounded hover:bg-amber-900/50
-                                             disabled:opacity-50 transition-colors"
+                                  className="flex items-center gap-1 px-1.5 py-0.5 text-[11px] text-amber-300 bg-amber-900/30 border border-amber-700/50 rounded-sm hover:bg-amber-900/50 disabled:opacity-50 transition-colors"
                                 >
                                   <XCircle className="w-3 h-3" />
                                   停止
@@ -1400,15 +1391,15 @@ export default function EndpointDetailPage() {
                             </div>
                           ) : row.status === 'timeout' ? (
                             <div className="flex items-center gap-1.5">
-                              <Clock className="w-3.5 h-3.5 text-falcon-muted" />
-                              <span className="text-xs text-falcon-muted">タイムアウト</span>
+                              <Clock className="w-3.5 h-3.5 text-[#7d92b0]" />
+                              <span className="text-xs text-[#7d92b0]">タイムアウト</span>
                             </div>
                           ) : detected ? (
                             <div className="flex items-center gap-2">
                               <span className="px-2 py-1 rounded-sm bg-red-900/50 border border-red-500/50 text-red-200 text-xs font-bold">
                                 ⚠ 検知 {row.matched}件
                               </span>
-                              <span className="text-[11px] text-falcon-muted">{row.scanned ?? 0}件中</span>
+                              <span className="text-[11px] text-[#7d92b0]">{row.scanned ?? 0}件中</span>
                             </div>
                           ) : row.status === 'failed' ? (
                             <div className="flex items-center gap-1.5">
@@ -1454,7 +1445,7 @@ export default function EndpointDetailPage() {
                                   <div key={i} className="flex items-center gap-3 px-3 py-2 bg-red-900/20 border border-red-700/30 rounded-sm">
                                     <AlertTriangle className="w-4 h-4 text-red-400 shrink-0" />
                                     <div className="flex-1 min-w-0">
-                                      <div className="text-falcon-text font-mono text-xs truncate" title={m.file}>{m.file}</div>
+                                      <div className="text-[#e2e8f4] font-mono text-xs truncate" title={m.file}>{m.file}</div>
                                       <div className="text-[10px] text-purple-300 mt-0.5">YARAルール: {m.rule}</div>
                                       {m.sha256 && (
                                         <div className="text-[10px] text-[#5a6a7a] mt-0.5 font-mono" title={`SHA256: ${m.sha256}${m.size ? ` (${m.size.toLocaleString()} bytes)` : ''}`}>
@@ -1507,10 +1498,10 @@ export default function EndpointDetailPage() {
       {activeTab === 'live-response' && (
         <div className="space-y-4">
           {/* Full terminal session link */}
-          <div className="bg-falcon-card rounded-xl border border-green-500/30 p-4 flex items-center justify-between">
+          <div className="bg-[#111827] rounded-xl border border-green-500/30 p-4 flex items-center justify-between">
             <div>
-              <h3 className="text-sm font-semibold text-falcon-text mb-0.5">インタラクティブターミナル</h3>
-              <p className="text-xs text-falcon-muted">リアルタイムシェルセッションを開きます</p>
+              <h3 className="text-sm font-semibold text-[#e2e8f4] mb-0.5">インタラクティブターミナル</h3>
+              <p className="text-xs text-[#7d92b0]">リアルタイムシェルセッションを開きます</p>
             </div>
             <Link
               href={`/live-response/${id}`}
@@ -1521,15 +1512,14 @@ export default function EndpointDetailPage() {
           </div>
 
           {/* Quick actions */}
-          <div className="bg-falcon-card rounded-xl border border-falcon-border p-4">
+          <div className="bg-[#111827] rounded-xl border border-[#1e2d42] p-4">
             <h3 className="text-sm font-semibold text-[#8899aa] mb-3">クイックアクション</h3>
             <div className="flex flex-wrap gap-2">
               {canWrite && (
               <button
                 onClick={() => scan.mutate()}
                 disabled={scan.isPending}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-blue-300 bg-blue-900/30
-                           border border-blue-700/50 rounded-lg hover:bg-blue-900/50 disabled:opacity-50 transition-colors"
+                className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-blue-300 bg-blue-900/30 border border-blue-700/50 rounded-lg hover:bg-blue-900/50 disabled:opacity-50 transition-colors"
               >
                 <Scan className="w-4 h-4" />
                 {scan.isPending ? 'スキャン送信中...' : 'フルスキャン'}
@@ -1540,8 +1530,7 @@ export default function EndpointDetailPage() {
                 onClick={() => scanCancel.mutate()}
                 disabled={scanCancel.isPending}
                 title="実行中のフルスキャンを停止します"
-                className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-amber-300 bg-amber-900/30
-                           border border-amber-700/50 rounded-lg hover:bg-amber-900/50 disabled:opacity-50 transition-colors"
+                className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-amber-300 bg-amber-900/30 border border-amber-700/50 rounded-lg hover:bg-amber-900/50 disabled:opacity-50 transition-colors"
               >
                 <XCircle className="w-4 h-4" />
                 {scanCancel.isPending ? '停止中...' : 'スキャン停止'}
@@ -1553,8 +1542,7 @@ export default function EndpointDetailPage() {
                   if (confirm(`${agent.hostname} を隔離しますか？`)) isolate.mutate()
                 }}
                 disabled={isolate.isPending || agent.status === 'isolated'}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-red-300 bg-red-900/30
-                           border border-red-700/50 rounded-lg hover:bg-red-900/50 disabled:opacity-50 transition-colors"
+                className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-red-300 bg-red-900/30 border border-red-700/50 rounded-lg hover:bg-red-900/50 disabled:opacity-50 transition-colors"
               >
                 <ShieldAlert className="w-4 h-4" />
                 ネットワーク隔離
@@ -1567,8 +1555,7 @@ export default function EndpointDetailPage() {
                   if (path?.trim()) executeQuarantine.mutate(path.trim())
                 }}
                 disabled={executeQuarantine.isPending}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-yellow-300 bg-yellow-900/30
-                           border border-yellow-700/50 rounded-lg hover:bg-yellow-900/50 disabled:opacity-50 transition-colors"
+                className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-yellow-300 bg-yellow-900/30 border border-yellow-700/50 rounded-lg hover:bg-yellow-900/50 disabled:opacity-50 transition-colors"
               >
                 ファイル隔離
               </button>
@@ -1577,8 +1564,7 @@ export default function EndpointDetailPage() {
                 <button
                   onClick={() => unisolate.mutate()}
                   disabled={unisolate.isPending}
-                  className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-green-300 bg-green-900/30
-                             border border-green-700/50 rounded-lg hover:bg-green-900/50 disabled:opacity-50 transition-colors"
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-green-300 bg-green-900/30 border border-green-700/50 rounded-lg hover:bg-green-900/50 disabled:opacity-50 transition-colors"
                 >
                   <ShieldCheck className="w-4 h-4" />
                   隔離解除
@@ -1589,7 +1575,7 @@ export default function EndpointDetailPage() {
 
           {/* Command input */}
           {canWrite && (
-          <div className="bg-falcon-card rounded-xl border border-falcon-border p-4">
+          <div className="bg-[#111827] rounded-xl border border-[#1e2d42] p-4">
             <h3 className="text-sm font-semibold text-[#8899aa] mb-2">コマンド実行</h3>
             <p className="text-xs text-[#5a6a7a] mb-3">
               利用可能コマンド: <code className="text-blue-300">scan</code>、
@@ -1604,21 +1590,19 @@ export default function EndpointDetailPage() {
                 onChange={e => setLrCommand(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter') handleLrCommand() }}
                 placeholder="コマンドを入力..."
-                className="flex-1 text-sm font-mono bg-falcon-bg border border-falcon-border rounded-lg px-3 py-2
-                           text-falcon-text placeholder-[#5a6a7a] focus:outline-hidden focus:border-green-500"
+                className="flex-1 text-sm font-mono bg-[#080c14] border border-[#1e2d42] rounded-lg px-3 py-2 text-[#e2e8f4] placeholder-[#5a6a7a] focus:outline-hidden focus:border-green-500"
               />
               <button
                 onClick={handleLrCommand}
                 disabled={!lrCommand.trim()}
-                className="px-3 py-2 text-sm bg-green-700 text-white rounded-lg
-                           hover:bg-green-600 disabled:opacity-50 transition-colors"
+                className="px-3 py-2 text-sm bg-green-700 text-white rounded-lg hover:bg-green-600 disabled:opacity-50 transition-colors"
               >
                 実行
               </button>
             </div>
 
             {/* Output console */}
-            <div className="mt-3 bg-falcon-bg rounded-lg border border-falcon-border p-3 font-mono text-xs min-h-[120px] max-h-60 overflow-y-auto">
+            <div className="mt-3 bg-[#080c14] rounded-lg border border-[#1e2d42] p-3 font-mono text-xs min-h-[120px] max-h-60 overflow-y-auto">
               {lrOutput.length === 0 ? (
                 <span className="text-[#5a6a7a]">コマンドの実行ログがここに表示されます</span>
               ) : (
@@ -1649,8 +1633,8 @@ export default function EndpointDetailPage() {
                 <button
                   key={h}
                   onClick={() => setTimelineHours(h)}
-                  className={`px-2.5 py-1 rounded text-xs font-medium transition-colors ${
-                    timelineHours === h ? 'bg-falcon-blue text-white' : 'bg-falcon-raised text-[#8899aa] hover:bg-falcon-active'
+                  className={`px-2.5 py-1 rounded-sm text-xs font-medium transition-colors ${
+                    timelineHours === h ? 'bg-[#1a6bff] text-white' : 'bg-[#161f33] text-[#8899aa] hover:bg-[#1d2f4a]'
                   }`}
                 >
                   {h < 24 ? `${h}h` : `${h/24}d`}
@@ -1676,8 +1660,8 @@ export default function EndpointDetailPage() {
                         ? ['alert','process','network','file','auth','dns'].filter(x => x !== t)
                         : prev.includes(t) ? (prev.length === 1 ? [] : prev.filter(x => x !== t)) : [...prev, t]
                     )}
-                    className={`px-2 py-0.5 rounded border text-xs transition-all ${
-                      active ? (COLORS[t] ?? 'bg-falcon-raised text-[#8899aa] border-falcon-border') : 'bg-falcon-card text-[#5a6a7a] border-falcon-border opacity-50'
+                    className={`px-2 py-0.5 rounded-sm border text-xs transition-all ${
+                      active ? (COLORS[t] ?? 'bg-[#161f33] text-[#8899aa] border-[#1e2d42]') : 'bg-[#111827] text-[#5a6a7a] border-[#1e2d42] opacity-50'
                     }`}
                   >
                     {t}
@@ -1694,7 +1678,7 @@ export default function EndpointDetailPage() {
           {/* Timeline list */}
           <div className="relative">
             {/* Vertical line */}
-            <div className="absolute left-[22px] top-0 bottom-0 w-px bg-falcon-border" />
+            <div className="absolute left-[22px] top-0 bottom-0 w-px bg-[#1e2d42]" />
 
             <div className="space-y-1">
               {(timelineData?.items ?? []).length === 0 && !timelineFetching && (
@@ -1711,13 +1695,13 @@ export default function EndpointDetailPage() {
                   auth:    { dot: 'bg-indigo-500', badge: 'bg-indigo-900/40 text-indigo-300 border-indigo-700/50', label: 'AUTH' },
                   dns:     { dot: 'bg-purple-500', badge: 'bg-purple-900/40 text-purple-300 border-purple-700/50', label: 'DNS' },
                 }
-                const s = CAT_STYLES[item.category] ?? { dot: 'bg-[#5a6a7a]', badge: 'bg-falcon-raised text-[#8899aa] border-falcon-border', label: item.category.toUpperCase() }
+                const s = CAT_STYLES[item.category] ?? { dot: 'bg-[#5a6a7a]', badge: 'bg-[#161f33] text-[#8899aa] border-[#1e2d42]', label: item.category.toUpperCase() }
                 const SEV_COLOR: Record<number,string> = { 4:'text-red-400', 3:'text-orange-400', 2:'text-yellow-400', 1:'text-blue-400' }
                 return (
-                  <div key={item.id} className="flex gap-3 pl-1 py-1.5 group hover:bg-falcon-card/40 rounded-lg pr-2">
+                  <div key={item.id} className="flex gap-3 pl-1 py-1.5 group hover:bg-[#111827]/40 rounded-lg pr-2">
                     {/* Dot */}
                     <div className="shrink-0 mt-1.5">
-                      <div className={`w-3.5 h-3.5 rounded-full ring-2 ring-falcon-bg ${s.dot}`} />
+                      <div className={`w-3.5 h-3.5 rounded-full ring-2 ring-[#080c14] ${s.dot}`} />
                     </div>
                     {/* Content */}
                     <div className="flex-1 min-w-0">
@@ -1725,7 +1709,7 @@ export default function EndpointDetailPage() {
                         <span className={`text-[10px] px-1.5 py-0.5 rounded-sm border font-mono font-semibold ${s.badge}`}>
                           {s.label}
                         </span>
-                        <span className="text-sm text-falcon-text truncate flex-1">{item.title}</span>
+                        <span className="text-sm text-[#e2e8f4] truncate flex-1">{item.title}</span>
                         {item.severity != null && item.severity > 0 && (
                           <span className={`text-xs font-mono ${SEV_COLOR[item.severity] ?? 'text-[#8899aa]'}`}>
                             Sev{item.severity}
@@ -1763,7 +1747,7 @@ const EVENT_TYPE_STYLES: Record<string, string> = {
 }
 
 function EventTypeBadge({ type }: { type: string }) {
-  const cls = EVENT_TYPE_STYLES[type] ?? 'bg-falcon-raised text-[#8899aa] border-falcon-border'
+  const cls = EVENT_TYPE_STYLES[type] ?? 'bg-[#161f33] text-[#8899aa] border-[#1e2d42]'
   return (
     <span className={`px-2 py-0.5 rounded-full text-xs border font-mono ${cls}`}>
       {type}
@@ -1796,7 +1780,7 @@ function InfoCard({ icon: Icon, label, value }: {
   value: string
 }) {
   return (
-    <div className="bg-falcon-card rounded-xl border border-falcon-border p-4">
+    <div className="bg-[#111827] rounded-xl border border-[#1e2d42] p-4">
       <div className="flex items-center gap-2 mb-1">
         <Icon className="w-4 h-4 text-[#8899aa]" />
         <span className="text-[#8899aa] text-xs">{label}</span>

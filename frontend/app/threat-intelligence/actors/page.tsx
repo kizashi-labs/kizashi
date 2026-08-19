@@ -9,6 +9,9 @@ import {
   Clock, CheckCircle2, XCircle, Activity, Layers, Database,
   Flag, Crosshair, Eye, RefreshCw,
 } from 'lucide-react'
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+import { PageSaveFailed } from '@/components/PageSaveFailed'
+
 import { USE_MOCK, m } from '@/lib/mock'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -412,7 +415,7 @@ const MOTIVATION_LABELS: Record<Motivation, string> = {
 }
 
 const SOPHISTICATION_COLORS: Record<Sophistication, string> = {
-  'nation-state': 'bg-falcon-red/20 text-falcon-red border border-falcon-red/30',
+  'nation-state': 'bg-[#e8002d]/20 text-[#e8002d] border border-[#e8002d]/30',
   'advanced': 'bg-orange-900/40 text-orange-300 border border-orange-700/40',
   'intermediate': 'bg-yellow-900/40 text-yellow-300 border border-yellow-700/40',
   'basic': 'bg-gray-900/40 text-gray-400 border border-gray-700/40',
@@ -432,7 +435,7 @@ const RELATION_LABELS: Record<RelationType, string> = {
 }
 
 const CAMPAIGN_STATUS_STYLES: Record<string, string> = {
-  ongoing: 'bg-falcon-red/20 text-falcon-red',
+  ongoing: 'bg-[#e8002d]/20 text-[#e8002d]',
   concluded: 'bg-gray-800 text-gray-400',
   suspected: 'bg-yellow-900/40 text-yellow-300',
 }
@@ -443,15 +446,14 @@ function ActorCard({ actor, onClick }: { actor: ThreatActor; onClick: () => void
   return (
     <button
       onClick={onClick}
-      className="w-full text-left bg-falcon-surface border border-falcon-border rounded-lg p-4
-                 hover:border-falcon-red/40 hover:bg-falcon-card transition-all duration-150 group"
+      className="w-full text-left bg-[#0d1220] border border-[#1e2d42] rounded-lg p-4 hover:border-[#e8002d]/40 hover:bg-[#111827] transition-all duration-150 group"
     >
       {/* Header row */}
       <div className="flex items-start justify-between mb-3">
         <div>
           <div className="flex items-center gap-2">
             <span className="text-lg">{actor.origin_flag}</span>
-            <h3 className="text-white font-bold text-sm group-hover:text-falcon-red transition-colors">
+            <h3 className="text-white font-bold text-sm group-hover:text-[#e8002d] transition-colors">
               {actor.name}
             </h3>
             <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
@@ -462,21 +464,21 @@ function ActorCard({ actor, onClick }: { actor: ThreatActor; onClick: () => void
               {actor.status === 'active' ? '活動中' : '非活動'}
             </span>
           </div>
-          <p className="text-falcon-muted text-xs mt-1">{actor.origin_country}</p>
+          <p className="text-[#7d92b0] text-xs mt-1">{actor.origin_country}</p>
         </div>
-        <ChevronRight className="w-4 h-4 text-falcon-subtle group-hover:text-falcon-red transition-colors mt-1" />
+        <ChevronRight className="w-4 h-4 text-[#3d5068] group-hover:text-[#e8002d] transition-colors mt-1" />
       </div>
 
       {/* Aliases */}
       {actor.aliases.length > 0 && (
         <div className="flex flex-wrap gap-1 mb-3">
           {actor.aliases.slice(0, 3).map(alias => (
-            <span key={alias} className="text-[10px] px-2 py-0.5 rounded-sm bg-falcon-raised text-falcon-muted border border-falcon-border">
+            <span key={alias} className="text-[10px] px-2 py-0.5 rounded-sm bg-[#161f33] text-[#7d92b0] border border-[#1e2d42]">
               {alias}
             </span>
           ))}
           {actor.aliases.length > 3 && (
-            <span className="text-[10px] px-2 py-0.5 rounded-sm bg-falcon-raised text-falcon-muted">
+            <span className="text-[10px] px-2 py-0.5 rounded-sm bg-[#161f33] text-[#7d92b0]">
               +{actor.aliases.length - 3}
             </span>
           )}
@@ -496,7 +498,7 @@ function ActorCard({ actor, onClick }: { actor: ThreatActor; onClick: () => void
       </div>
 
       {/* Stats row */}
-      <div className="flex items-center gap-4 text-xs text-falcon-muted mb-3">
+      <div className="flex items-center gap-4 text-xs text-[#7d92b0] mb-3">
         <span className="flex items-center gap-1">
           <Calendar className="w-3 h-3" />
           {actor.first_seen}年〜
@@ -510,12 +512,12 @@ function ActorCard({ actor, onClick }: { actor: ThreatActor; onClick: () => void
       {/* Target sectors */}
       <div className="flex flex-wrap gap-1 mb-2">
         {actor.target_sectors.slice(0, 3).map(s => (
-          <span key={s} className="text-[10px] px-1.5 py-0.5 rounded-sm bg-falcon-border text-falcon-muted">
+          <span key={s} className="text-[10px] px-1.5 py-0.5 rounded-sm bg-[#1e2d42] text-[#7d92b0]">
             {s}
           </span>
         ))}
         {actor.target_sectors.length > 3 && (
-          <span className="text-[10px] px-1.5 py-0.5 rounded-sm bg-falcon-border text-falcon-muted">
+          <span className="text-[10px] px-1.5 py-0.5 rounded-sm bg-[#1e2d42] text-[#7d92b0]">
             +{actor.target_sectors.length - 3}
           </span>
         )}
@@ -524,13 +526,13 @@ function ActorCard({ actor, onClick }: { actor: ThreatActor; onClick: () => void
       {/* Malware families */}
       <div className="flex flex-wrap gap-1">
         {actor.malware_families.slice(0, 2).map(m => (
-          <span key={m.name} className="text-[10px] px-1.5 py-0.5 rounded-sm bg-falcon-red/10 text-falcon-red/80 border border-falcon-red/20">
+          <span key={m.name} className="text-[10px] px-1.5 py-0.5 rounded-sm bg-[#e8002d]/10 text-[#e8002d]/80 border border-[#e8002d]/20">
             <Bug className="w-2.5 h-2.5 inline mr-0.5" />
             {m.name}
           </span>
         ))}
         {actor.malware_families.length > 2 && (
-          <span className="text-[10px] px-1.5 py-0.5 rounded-sm bg-falcon-red/10 text-falcon-red/80">
+          <span className="text-[10px] px-1.5 py-0.5 rounded-sm bg-[#e8002d]/10 text-[#e8002d]/80">
             +{actor.malware_families.length - 2}
           </span>
         )}
@@ -555,9 +557,9 @@ function ActorDetailModal({ actor, onClose }: { actor: ThreatActor; onClose: () 
 
   return (
     <div className="fixed inset-0 z-50 bg-black/80 flex items-start justify-center overflow-y-auto py-8 px-4">
-      <div className="bg-[#070d19] border border-falcon-border rounded-xl w-full max-w-4xl">
+      <div className="bg-[#070d19] border border-[#1e2d42] rounded-xl w-full max-w-4xl">
         {/* Modal header */}
-        <div className="flex items-start justify-between p-6 border-b border-falcon-border">
+        <div className="flex items-start justify-between p-6 border-b border-[#1e2d42]">
           <div className="flex items-center gap-3">
             <span className="text-3xl">{actor.origin_flag}</span>
             <div>
@@ -574,24 +576,24 @@ function ActorDetailModal({ actor, onClose }: { actor: ThreatActor; onClose: () 
                   {SOPHISTICATION_LABELS[actor.sophistication]}
                 </span>
               </div>
-              <p className="text-falcon-muted text-sm mt-1">{actor.origin_country} · {actor.sponsorship === 'state' ? '国家支援' : actor.sponsorship === 'criminal' ? '犯罪組織' : '独立'}</p>
+              <p className="text-[#7d92b0] text-sm mt-1">{actor.origin_country} · {actor.sponsorship === 'state' ? '国家支援' : actor.sponsorship === 'criminal' ? '犯罪組織' : '独立'}</p>
             </div>
           </div>
-          <button onClick={onClose} className="text-falcon-muted hover:text-white p-1">
+          <button onClick={onClose} className="text-[#7d92b0] hover:text-white p-1">
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-1 px-6 pt-4 border-b border-falcon-border">
+        <div className="flex gap-1 px-6 pt-4 border-b border-[#1e2d42]">
           {tabs.map(tab => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={`px-4 py-2 text-sm rounded-t font-medium transition-colors ${
                 activeTab === tab.id
-                  ? 'text-white border-b-2 border-falcon-red'
-                  : 'text-falcon-muted hover:text-white'
+                  ? 'text-white border-b-2 border-[#e8002d]'
+                  : 'text-[#7d92b0] hover:text-white'
               }`}
             >
               {tab.label}
@@ -607,23 +609,23 @@ function ActorDetailModal({ actor, onClose }: { actor: ThreatActor; onClose: () 
             <div className="space-y-6">
               <div>
                 <h3 className="text-white font-semibold mb-2">説明</h3>
-                <p className="text-falcon-muted text-sm leading-relaxed">{actor.description}</p>
+                <p className="text-[#7d92b0] text-sm leading-relaxed">{actor.description}</p>
               </div>
               <div className="grid grid-cols-2 gap-4">
-                <div className="bg-falcon-surface rounded-lg p-4 border border-falcon-border">
-                  <p className="text-falcon-muted text-xs mb-1">帰属信頼度</p>
+                <div className="bg-[#0d1220] rounded-lg p-4 border border-[#1e2d42]">
+                  <p className="text-[#7d92b0] text-xs mb-1">帰属信頼度</p>
                   <div className="flex items-center gap-3">
-                    <div className="flex-1 h-2 bg-falcon-border rounded-full">
+                    <div className="flex-1 h-2 bg-[#1e2d42] rounded-full">
                       <div
-                        className="h-full rounded-full bg-falcon-red"
+                        className="h-full rounded-full bg-[#e8002d]"
                         style={{ width: `${actor.attribution_confidence}%` }}
                       />
                     </div>
                     <span className="text-white font-bold text-sm">{actor.attribution_confidence}%</span>
                   </div>
                 </div>
-                <div className="bg-falcon-surface rounded-lg p-4 border border-falcon-border">
-                  <p className="text-falcon-muted text-xs mb-1">スポンサーシップ</p>
+                <div className="bg-[#0d1220] rounded-lg p-4 border border-[#1e2d42]">
+                  <p className="text-[#7d92b0] text-xs mb-1">スポンサーシップ</p>
                   <p className="text-white font-semibold">
                     {actor.sponsorship === 'state' ? '国家支援' : actor.sponsorship === 'criminal' ? '犯罪組織' : '独立系'}
                   </p>
@@ -633,7 +635,7 @@ function ActorDetailModal({ actor, onClose }: { actor: ThreatActor; onClose: () 
                 <h3 className="text-white font-semibold mb-2">既知のエイリアス</h3>
                 <div className="flex flex-wrap gap-2">
                   {actor.aliases.map(alias => (
-                    <span key={alias} className="text-sm px-3 py-1 rounded-sm bg-falcon-raised text-falcon-muted border border-falcon-border">
+                    <span key={alias} className="text-sm px-3 py-1 rounded-sm bg-[#161f33] text-[#7d92b0] border border-[#1e2d42]">
                       {alias}
                     </span>
                   ))}
@@ -653,7 +655,7 @@ function ActorDetailModal({ actor, onClose }: { actor: ThreatActor; onClose: () 
                 <h3 className="text-white font-semibold mb-2">標的セクター</h3>
                 <div className="flex flex-wrap gap-2">
                   {actor.target_sectors.map(s => (
-                    <span key={s} className="text-sm px-3 py-1 rounded-sm bg-falcon-border text-falcon-muted">
+                    <span key={s} className="text-sm px-3 py-1 rounded-sm bg-[#1e2d42] text-[#7d92b0]">
                       {s}
                     </span>
                   ))}
@@ -665,16 +667,16 @@ function ActorDetailModal({ actor, onClose }: { actor: ThreatActor; onClose: () 
           {/* TTPs tab */}
           {activeTab === 'ttps' && (
             <div className="space-y-4">
-              <p className="text-falcon-muted text-sm">MITRE ATT&CKフレームワークに基づくTTP（戦術・技術・手順）</p>
+              <p className="text-[#7d92b0] text-sm">MITRE ATT&CKフレームワークに基づくTTP（戦術・技術・手順）</p>
               {Object.entries(actor.ttps).map(([tactic, techniques]) => (
-                <div key={tactic} className="bg-falcon-surface rounded-lg p-4 border border-falcon-border">
+                <div key={tactic} className="bg-[#0d1220] rounded-lg p-4 border border-[#1e2d42]">
                   <h4 className="text-white font-semibold text-sm mb-3 flex items-center gap-2">
-                    <Target className="w-4 h-4 text-falcon-red" />
+                    <Target className="w-4 h-4 text-[#e8002d]" />
                     {tactic}
                   </h4>
                   <div className="flex flex-wrap gap-2">
                     {techniques.map(technique => (
-                      <span key={technique} className="text-xs px-2.5 py-1 rounded-sm bg-falcon-raised text-falcon-muted border border-falcon-border font-mono">
+                      <span key={technique} className="text-xs px-2.5 py-1 rounded-sm bg-[#161f33] text-[#7d92b0] border border-[#1e2d42] font-mono">
                         {technique}
                       </span>
                     ))}
@@ -688,46 +690,46 @@ function ActorDetailModal({ actor, onClose }: { actor: ThreatActor; onClose: () 
           {activeTab === 'infra' && (
             <div className="space-y-6">
               <div className="grid grid-cols-2 gap-4">
-                <div className="bg-falcon-surface rounded-lg p-4 border border-falcon-border">
+                <div className="bg-[#0d1220] rounded-lg p-4 border border-[#1e2d42]">
                   <h4 className="text-white font-semibold text-sm mb-3 flex items-center gap-2">
-                    <Globe className="w-4 h-4 text-falcon-red" />
+                    <Globe className="w-4 h-4 text-[#e8002d]" />
                     C2ドメイン
                   </h4>
                   <ul className="space-y-1.5">
                     {actor.infrastructure.domains.map(d => (
-                      <li key={d} className="text-xs text-falcon-muted font-mono bg-falcon-raised px-2 py-1.5 rounded-sm">{d}</li>
+                      <li key={d} className="text-xs text-[#7d92b0] font-mono bg-[#161f33] px-2 py-1.5 rounded-sm">{d}</li>
                     ))}
                   </ul>
                 </div>
-                <div className="bg-falcon-surface rounded-lg p-4 border border-falcon-border">
+                <div className="bg-[#0d1220] rounded-lg p-4 border border-[#1e2d42]">
                   <h4 className="text-white font-semibold text-sm mb-3 flex items-center gap-2">
-                    <Database className="w-4 h-4 text-falcon-red" />
+                    <Database className="w-4 h-4 text-[#e8002d]" />
                     既知のIPアドレス
                   </h4>
                   <ul className="space-y-1.5">
                     {actor.infrastructure.ips.map(ip => (
-                      <li key={ip} className="text-xs text-falcon-muted font-mono bg-falcon-raised px-2 py-1.5 rounded-sm">{ip}</li>
+                      <li key={ip} className="text-xs text-[#7d92b0] font-mono bg-[#161f33] px-2 py-1.5 rounded-sm">{ip}</li>
                     ))}
                   </ul>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
-                <div className="bg-falcon-surface rounded-lg p-4 border border-falcon-border">
+                <div className="bg-[#0d1220] rounded-lg p-4 border border-[#1e2d42]">
                   <h4 className="text-white font-semibold text-sm mb-3">ホスティングプロバイダー</h4>
                   <ul className="space-y-1.5">
                     {actor.infrastructure.hosting_providers.map(h => (
-                      <li key={h} className="text-xs text-falcon-muted">{h}</li>
+                      <li key={h} className="text-xs text-[#7d92b0]">{h}</li>
                     ))}
                   </ul>
                 </div>
-                <div className="bg-falcon-surface rounded-lg p-4 border border-falcon-border">
+                <div className="bg-[#0d1220] rounded-lg p-4 border border-[#1e2d42]">
                   <h4 className="text-white font-semibold text-sm mb-3 flex items-center gap-2">
-                    <Flag className="w-4 h-4 text-falcon-red" />
+                    <Flag className="w-4 h-4 text-[#e8002d]" />
                     ジオロケーション
                   </h4>
                   <ul className="space-y-1.5">
                     {actor.infrastructure.geolocations.map(g => (
-                      <li key={g} className="text-xs text-falcon-muted">{g}</li>
+                      <li key={g} className="text-xs text-[#7d92b0]">{g}</li>
                     ))}
                   </ul>
                 </div>
@@ -738,29 +740,29 @@ function ActorDetailModal({ actor, onClose }: { actor: ThreatActor; onClose: () 
           {/* Malware tab */}
           {activeTab === 'malware' && (
             <div>
-              <p className="text-falcon-muted text-sm mb-4">このアクターと関連するマルウェアファミリー</p>
+              <p className="text-[#7d92b0] text-sm mb-4">このアクターと関連するマルウェアファミリー</p>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b border-falcon-border">
-                      <th className="text-left text-falcon-muted text-xs pb-3 font-medium">名前</th>
-                      <th className="text-left text-falcon-muted text-xs pb-3 font-medium">タイプ</th>
-                      <th className="text-left text-falcon-muted text-xs pb-3 font-medium">初観測</th>
-                      <th className="text-left text-falcon-muted text-xs pb-3 font-medium">精巧度</th>
+                    <tr className="border-b border-[#1e2d42]">
+                      <th className="text-left text-[#7d92b0] text-xs pb-3 font-medium">名前</th>
+                      <th className="text-left text-[#7d92b0] text-xs pb-3 font-medium">タイプ</th>
+                      <th className="text-left text-[#7d92b0] text-xs pb-3 font-medium">初観測</th>
+                      <th className="text-left text-[#7d92b0] text-xs pb-3 font-medium">精巧度</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-falcon-border">
+                  <tbody className="divide-y divide-[#1e2d42]">
                     {actor.malware_families.map(m => (
                       <tr key={m.name}>
                         <td className="py-3 text-white font-medium">
                           <div className="flex items-center gap-2">
-                            <Bug className="w-3.5 h-3.5 text-falcon-red" />
+                            <Bug className="w-3.5 h-3.5 text-[#e8002d]" />
                             {m.name}
                           </div>
                         </td>
-                        <td className="py-3 text-falcon-muted">{m.type}</td>
-                        <td className="py-3 text-falcon-muted">{m.first_seen}</td>
-                        <td className="py-3 text-falcon-muted">{m.sophistication}</td>
+                        <td className="py-3 text-[#7d92b0]">{m.type}</td>
+                        <td className="py-3 text-[#7d92b0]">{m.first_seen}</td>
+                        <td className="py-3 text-[#7d92b0]">{m.sophistication}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -772,14 +774,14 @@ function ActorDetailModal({ actor, onClose }: { actor: ThreatActor; onClose: () 
           {/* Campaigns tab */}
           {activeTab === 'campaigns' && (
             <div>
-              <p className="text-falcon-muted text-sm mb-4">確認されているキャンペーン履歴</p>
+              <p className="text-[#7d92b0] text-sm mb-4">確認されているキャンペーン履歴</p>
               <div className="space-y-3">
                 {actor.campaigns.map((c, i) => (
-                  <div key={i} className="flex gap-4 bg-falcon-surface rounded-lg p-4 border border-falcon-border">
+                  <div key={i} className="flex gap-4 bg-[#0d1220] rounded-lg p-4 border border-[#1e2d42]">
                     <div className="flex flex-col items-center">
-                      <div className="w-3 h-3 rounded-full bg-falcon-red mt-1" />
+                      <div className="w-3 h-3 rounded-full bg-[#e8002d] mt-1" />
                       {i < actor.campaigns.length - 1 && (
-                        <div className="w-0.5 flex-1 bg-falcon-border mt-1" />
+                        <div className="w-0.5 flex-1 bg-[#1e2d42] mt-1" />
                       )}
                     </div>
                     <div className="flex-1">
@@ -789,10 +791,10 @@ function ActorDetailModal({ actor, onClose }: { actor: ThreatActor; onClose: () 
                           {c.status === 'ongoing' ? '進行中' : c.status === 'concluded' ? '終了' : '疑い'}
                         </span>
                       </div>
-                      <p className="text-falcon-muted text-xs mb-2">{c.date}</p>
+                      <p className="text-[#7d92b0] text-xs mb-2">{c.date}</p>
                       <div className="flex flex-wrap gap-1">
                         {c.targeted_sectors.map(s => (
-                          <span key={s} className="text-xs px-2 py-0.5 rounded-sm bg-falcon-border text-falcon-muted">{s}</span>
+                          <span key={s} className="text-xs px-2 py-0.5 rounded-sm bg-[#1e2d42] text-[#7d92b0]">{s}</span>
                         ))}
                       </div>
                     </div>
@@ -806,16 +808,16 @@ function ActorDetailModal({ actor, onClose }: { actor: ThreatActor; onClose: () 
           {activeTab === 'related' && (
             <div>
               {actor.related_actors.length === 0 ? (
-                <p className="text-falcon-muted text-sm text-center py-8">関連アクターは登録されていません</p>
+                <p className="text-[#7d92b0] text-sm text-center py-8">関連アクターは登録されていません</p>
               ) : (
                 <div className="space-y-3">
                   {actor.related_actors.map(r => (
-                    <div key={r.id} className="flex items-center justify-between bg-falcon-surface rounded-lg p-4 border border-falcon-border">
+                    <div key={r.id} className="flex items-center justify-between bg-[#0d1220] rounded-lg p-4 border border-[#1e2d42]">
                       <div className="flex items-center gap-3">
-                        <Link2 className="w-4 h-4 text-falcon-red" />
+                        <Link2 className="w-4 h-4 text-[#e8002d]" />
                         <span className="text-white font-medium">{r.name}</span>
                       </div>
-                      <span className="text-xs px-2.5 py-1 rounded-full bg-falcon-border text-falcon-muted">
+                      <span className="text-xs px-2.5 py-1 rounded-full bg-[#1e2d42] text-[#7d92b0]">
                         {RELATION_LABELS[r.relationship]}
                       </span>
                     </div>
@@ -823,11 +825,10 @@ function ActorDetailModal({ actor, onClose }: { actor: ThreatActor; onClose: () 
                 </div>
               )}
               {/* IOC cross-reference */}
-              <div className="mt-6 pt-6 border-t border-falcon-border">
+              <div className="mt-6 pt-6 border-t border-[#1e2d42]">
                 <a
                   href="/ioc"
-                  className="flex items-center gap-2 px-4 py-2.5 rounded bg-falcon-red/10 border border-falcon-red/30
-                             text-falcon-red text-sm font-medium hover:bg-falcon-red/20 transition-colors w-fit"
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-sm bg-[#e8002d]/10 border border-[#e8002d]/30 text-[#e8002d] text-sm font-medium hover:bg-[#e8002d]/20 transition-colors w-fit"
                 >
                   <ExternalLink className="w-4 h-4" />
                   IOCを検索
@@ -887,42 +888,42 @@ function AddActorModal({ onClose, onSubmit }: { onClose: () => void; onSubmit: (
 
   return (
     <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
-      <div className="bg-falcon-surface border border-falcon-border rounded-xl w-full max-w-lg">
-        <div className="flex items-center justify-between p-5 border-b border-falcon-border">
+      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl w-full max-w-lg">
+        <div className="flex items-center justify-between p-5 border-b border-[#1e2d42]">
           <h3 className="text-white font-bold">新規アクター追加</h3>
-          <button onClick={onClose} className="text-falcon-muted hover:text-white"><X className="w-5 h-5" /></button>
+          <button onClick={onClose} className="text-[#7d92b0] hover:text-white"><X className="w-5 h-5" /></button>
         </div>
         <div className="p-5 space-y-4 max-h-[70vh] overflow-y-auto">
           <div>
-            <label className="text-falcon-muted text-xs mb-1 block">アクター名 *</label>
+            <label className="text-[#7d92b0] text-xs mb-1 block">アクター名 *</label>
             <input
               value={form.name}
               onChange={e => setForm(p => ({ ...p, name: e.target.value }))}
-              className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-red/50"
+              className="w-full bg-[#070d19] border border-[#1e2d42] rounded-sm px-3 py-2 text-white text-sm focus:outline-hidden focus:border-[#e8002d]/50"
               placeholder="例: APT-UNKNOWN"
             />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-falcon-muted text-xs mb-1 block">出身国</label>
+              <label className="text-[#7d92b0] text-xs mb-1 block">出身国</label>
               <input
                 value={form.origin_country}
                 onChange={e => setForm(p => ({ ...p, origin_country: e.target.value }))}
-                className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-red/50"
+                className="w-full bg-[#070d19] border border-[#1e2d42] rounded-sm px-3 py-2 text-white text-sm focus:outline-hidden focus:border-[#e8002d]/50"
                 placeholder="例: 中国"
               />
             </div>
             <div>
-              <label className="text-falcon-muted text-xs mb-1 block">国旗絵文字</label>
+              <label className="text-[#7d92b0] text-xs mb-1 block">国旗絵文字</label>
               <input
                 value={form.origin_flag}
                 onChange={e => setForm(p => ({ ...p, origin_flag: e.target.value }))}
-                className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-red/50"
+                className="w-full bg-[#070d19] border border-[#1e2d42] rounded-sm px-3 py-2 text-white text-sm focus:outline-hidden focus:border-[#e8002d]/50"
               />
             </div>
           </div>
           <div>
-            <label className="text-falcon-muted text-xs mb-2 block">動機</label>
+            <label className="text-[#7d92b0] text-xs mb-2 block">動機</label>
             <div className="flex flex-wrap gap-2">
               {MOTIVATIONS.map(m => (
                 <button
@@ -931,7 +932,7 @@ function AddActorModal({ onClose, onSubmit }: { onClose: () => void; onSubmit: (
                   className={`text-xs px-3 py-1.5 rounded-full font-medium transition-colors ${
                     form.motivation.includes(m)
                       ? MOTIVATION_COLORS[m]
-                      : 'bg-falcon-raised text-falcon-muted border border-falcon-border'
+                      : 'bg-[#161f33] text-[#7d92b0] border border-[#1e2d42]'
                   }`}
                 >
                   {MOTIVATION_LABELS[m]}
@@ -941,11 +942,11 @@ function AddActorModal({ onClose, onSubmit }: { onClose: () => void; onSubmit: (
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-falcon-muted text-xs mb-1 block">精巧度</label>
+              <label className="text-[#7d92b0] text-xs mb-1 block">精巧度</label>
               <select
                 value={form.sophistication}
                 onChange={e => setForm(p => ({ ...p, sophistication: e.target.value as Sophistication }))}
-                className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-red/50"
+                className="w-full bg-[#070d19] border border-[#1e2d42] rounded-sm px-3 py-2 text-white text-sm focus:outline-hidden focus:border-[#e8002d]/50"
               >
                 <option value="nation-state">国家レベル</option>
                 <option value="advanced">高度</option>
@@ -954,11 +955,11 @@ function AddActorModal({ onClose, onSubmit }: { onClose: () => void; onSubmit: (
               </select>
             </div>
             <div>
-              <label className="text-falcon-muted text-xs mb-1 block">スポンサーシップ</label>
+              <label className="text-[#7d92b0] text-xs mb-1 block">スポンサーシップ</label>
               <select
                 value={form.sponsorship}
                 onChange={e => setForm(p => ({ ...p, sponsorship: e.target.value as Sponsorship }))}
-                className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-red/50"
+                className="w-full bg-[#070d19] border border-[#1e2d42] rounded-sm px-3 py-2 text-white text-sm focus:outline-hidden focus:border-[#e8002d]/50"
               >
                 <option value="state">国家支援</option>
                 <option value="criminal">犯罪組織</option>
@@ -967,43 +968,42 @@ function AddActorModal({ onClose, onSubmit }: { onClose: () => void; onSubmit: (
             </div>
           </div>
           <div>
-            <label className="text-falcon-muted text-xs mb-1 block">初観測年</label>
+            <label className="text-[#7d92b0] text-xs mb-1 block">初観測年</label>
             <input
               type="number"
               value={form.first_seen}
               onChange={e => setForm(p => ({ ...p, first_seen: parseInt(e.target.value) }))}
-              className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-red/50"
+              className="w-full bg-[#070d19] border border-[#1e2d42] rounded-sm px-3 py-2 text-white text-sm focus:outline-hidden focus:border-[#e8002d]/50"
             />
           </div>
           <div>
-            <label className="text-falcon-muted text-xs mb-1 block">標的セクター (カンマ区切り)</label>
+            <label className="text-[#7d92b0] text-xs mb-1 block">標的セクター (カンマ区切り)</label>
             <input
               value={form.target_sectors}
               onChange={e => setForm(p => ({ ...p, target_sectors: e.target.value }))}
-              className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-red/50"
+              className="w-full bg-[#070d19] border border-[#1e2d42] rounded-sm px-3 py-2 text-white text-sm focus:outline-hidden focus:border-[#e8002d]/50"
               placeholder="例: 金融, 政府, テクノロジー"
             />
           </div>
           <div>
-            <label className="text-falcon-muted text-xs mb-1 block">説明</label>
+            <label className="text-[#7d92b0] text-xs mb-1 block">説明</label>
             <textarea
               value={form.description}
               onChange={e => setForm(p => ({ ...p, description: e.target.value }))}
               rows={3}
-              className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-red/50 resize-none"
+              className="w-full bg-[#070d19] border border-[#1e2d42] rounded-sm px-3 py-2 text-white text-sm focus:outline-hidden focus:border-[#e8002d]/50 resize-none"
               placeholder="アクターの概要..."
             />
           </div>
         </div>
-        <div className="flex justify-end gap-3 p-5 border-t border-falcon-border">
-          <button onClick={onClose} className="px-4 py-2 text-sm text-falcon-muted hover:text-white transition-colors">
+        <div className="flex justify-end gap-3 p-5 border-t border-[#1e2d42]">
+          <button onClick={onClose} className="px-4 py-2 text-sm text-[#7d92b0] hover:text-white transition-colors">
             キャンセル
           </button>
           <button
             onClick={handleSubmit}
             disabled={!form.name.trim()}
-            className="px-4 py-2 text-sm bg-falcon-red text-white rounded font-medium
-                       hover:bg-[#c5001f] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="px-4 py-2 text-sm bg-[#e8002d] text-white rounded-sm font-medium hover:bg-[#c5001f] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             追加
           </button>
@@ -1057,27 +1057,29 @@ export default function ThreatActorsPage() {
 
   return (
     <div className="min-h-screen bg-[#070d19] p-6">
+      <PageDataUnavailable />
+      <PageSaveFailed className="mb-4" />
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-lg bg-falcon-red/10 border border-falcon-red/30 flex items-center justify-center">
-            <Users className="w-5 h-5 text-falcon-red" />
+          <div className="w-9 h-9 rounded-lg bg-[#e8002d]/10 border border-[#e8002d]/30 flex items-center justify-center">
+            <Users className="w-5 h-5 text-[#e8002d]" />
           </div>
           <div>
             <h1 className="text-white font-bold text-xl">脅威アクタープロファイル</h1>
-            <p className="text-falcon-muted text-sm">脅威アクターの追跡・プロファイリング</p>
+            <p className="text-[#7d92b0] text-sm">脅威アクターの追跡・プロファイリング</p>
           </div>
         </div>
         <div className="flex items-center gap-3">
           <button
             onClick={() => queryClient.invalidateQueries({ queryKey: ['threat-actors'] })}
-            className="p-2 rounded-lg border border-falcon-border text-falcon-muted hover:text-white hover:border-falcon-muted/40 transition-colors"
+            className="p-2 rounded-lg border border-[#1e2d42] text-[#7d92b0] hover:text-white hover:border-[#7d92b0]/40 transition-colors"
           >
             <RefreshCw className="w-4 h-4" />
           </button>
           <button
             onClick={() => setShowAddModal(true)}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-falcon-red text-white text-sm font-medium hover:bg-[#c5001f] transition-colors"
+            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#e8002d] text-white text-sm font-medium hover:bg-[#c5001f] transition-colors"
           >
             <Plus className="w-4 h-4" />
             新規アクター追加
@@ -1089,16 +1091,16 @@ export default function ThreatActorsPage() {
       <div className="grid grid-cols-4 gap-4 mb-6">
         {[
           { label: '総アクター数', value: actors.length, icon: Users, color: 'text-white' },
-          { label: '活動中', value: activeCount, icon: Activity, color: 'text-falcon-red' },
+          { label: '活動中', value: activeCount, icon: Activity, color: 'text-[#e8002d]' },
           { label: '国家レベル', value: nationStateCount, icon: Shield, color: 'text-orange-400' },
           { label: '追跡対象セクター', value: allSectors.length, icon: Target, color: 'text-blue-400' },
         ].map(({ label, value, icon: Icon, color }) => (
-          <div key={label} className="bg-falcon-surface border border-falcon-border rounded-lg p-4">
+          <div key={label} className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-4">
             <div className="flex items-center gap-3">
               <Icon className={`w-5 h-5 ${color}`} />
               <div>
                 <p className={`text-xl font-bold ${color}`}>{value}</p>
-                <p className="text-falcon-muted text-xs">{label}</p>
+                <p className="text-[#7d92b0] text-xs">{label}</p>
               </div>
             </div>
           </div>
@@ -1106,22 +1108,21 @@ export default function ThreatActorsPage() {
       </div>
 
       {/* Filters */}
-      <div className="bg-falcon-surface border border-falcon-border rounded-lg p-4 mb-6">
+      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-4 mb-6">
         <div className="flex flex-wrap gap-3 items-center">
           <div className="relative flex-1 min-w-[200px]">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-falcon-muted" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#7d92b0]" />
             <input
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
               placeholder="アクター名またはエイリアスで検索..."
-              className="w-full bg-[#070d19] border border-falcon-border rounded px-3 py-2 pl-9 text-white text-sm
-                         focus:outline-hidden focus:border-falcon-red/50 placeholder:text-falcon-subtle"
+              className="w-full bg-[#070d19] border border-[#1e2d42] rounded-sm px-3 py-2 pl-9 text-white text-sm focus:outline-hidden focus:border-[#e8002d]/50 placeholder:text-[#3d5068]"
             />
           </div>
           <select
             value={filterOrigin}
             onChange={e => setFilterOrigin(e.target.value)}
-            className="bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-sm text-falcon-muted focus:outline-hidden focus:border-falcon-red/50 min-w-[140px]"
+            className="bg-[#070d19] border border-[#1e2d42] rounded-sm px-3 py-2 text-sm text-[#7d92b0] focus:outline-hidden focus:border-[#e8002d]/50 min-w-[140px]"
           >
             <option value="">全地域</option>
             {allOrigins.map(o => <option key={o} value={o}>{o}</option>)}
@@ -1129,7 +1130,7 @@ export default function ThreatActorsPage() {
           <select
             value={filterMotivation}
             onChange={e => setFilterMotivation(e.target.value as Motivation | '')}
-            className="bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-sm text-falcon-muted focus:outline-hidden focus:border-falcon-red/50 min-w-[140px]"
+            className="bg-[#070d19] border border-[#1e2d42] rounded-sm px-3 py-2 text-sm text-[#7d92b0] focus:outline-hidden focus:border-[#e8002d]/50 min-w-[140px]"
           >
             <option value="">全動機</option>
             <option value="espionage">諜報</option>
@@ -1140,7 +1141,7 @@ export default function ThreatActorsPage() {
           <select
             value={filterSector}
             onChange={e => setFilterSector(e.target.value)}
-            className="bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-sm text-falcon-muted focus:outline-hidden focus:border-falcon-red/50 min-w-[140px]"
+            className="bg-[#070d19] border border-[#1e2d42] rounded-sm px-3 py-2 text-sm text-[#7d92b0] focus:outline-hidden focus:border-[#e8002d]/50 min-w-[140px]"
           >
             <option value="">全セクター</option>
             {allSectors.map(s => <option key={s} value={s}>{s}</option>)}
@@ -1148,7 +1149,7 @@ export default function ThreatActorsPage() {
           <select
             value={filterSophistication}
             onChange={e => setFilterSophistication(e.target.value as Sophistication | '')}
-            className="bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-sm text-falcon-muted focus:outline-hidden focus:border-falcon-red/50 min-w-[140px]"
+            className="bg-[#070d19] border border-[#1e2d42] rounded-sm px-3 py-2 text-sm text-[#7d92b0] focus:outline-hidden focus:border-[#e8002d]/50 min-w-[140px]"
           >
             <option value="">全精巧度</option>
             <option value="nation-state">国家レベル</option>
@@ -1159,20 +1160,20 @@ export default function ThreatActorsPage() {
           {(searchTerm || filterOrigin || filterMotivation || filterSector || filterSophistication) && (
             <button
               onClick={() => { setSearchTerm(''); setFilterOrigin(''); setFilterMotivation(''); setFilterSector(''); setFilterSophistication('') }}
-              className="flex items-center gap-1 text-sm text-falcon-red hover:text-[#ff3355] transition-colors"
+              className="flex items-center gap-1 text-sm text-[#e8002d] hover:text-[#ff3355] transition-colors"
             >
               <X className="w-4 h-4" />
               クリア
             </button>
           )}
         </div>
-        <p className="text-falcon-muted text-xs mt-2">{filtered.length} / {actors.length} アクターを表示</p>
+        <p className="text-[#7d92b0] text-xs mt-2">{filtered.length} / {actors.length} アクターを表示</p>
       </div>
 
       {/* Actors grid */}
       {isLoading ? (
         <div className="flex items-center justify-center h-48">
-          <div className="w-8 h-8 border-2 border-falcon-red border-t-transparent rounded-full animate-spin" />
+          <div className="w-8 h-8 border-2 border-[#e8002d] border-t-transparent rounded-full animate-spin" />
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4">
@@ -1180,8 +1181,8 @@ export default function ThreatActorsPage() {
             <ActorCard key={actor.id} actor={actor} onClick={() => setSelectedActor(actor)} />
           ))}
           {filtered.length === 0 && (
-            <div className="col-span-full text-center py-16 text-falcon-muted">
-              <Users className="w-12 h-12 mx-auto mb-3 text-falcon-subtle" />
+            <div className="col-span-full text-center py-16 text-[#7d92b0]">
+              <Users className="w-12 h-12 mx-auto mb-3 text-[#3d5068]" />
               <p>条件に一致するアクターが見つかりません</p>
             </div>
           )}

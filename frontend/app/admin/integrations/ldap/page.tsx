@@ -16,6 +16,8 @@ import {
   AlertTriangle,
 } from 'lucide-react'
 
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface LdapConfig {
@@ -149,7 +151,7 @@ function ToggleRow({
           }`}
         >
           <div
-            className={`absolute top-1 w-4 h-4 rounded-full bg-falcon-text shadow transition-transform ${
+            className={`absolute top-1 w-4 h-4 rounded-full bg-[#e2e8f4] shadow-sm transition-transform ${
               checked ? 'translate-x-5' : 'translate-x-1'
             }`}
           />
@@ -254,13 +256,13 @@ export default function LdapIntegrationPage() {
 
   return (
     <div className="min-h-screen bg-gray-900">
-      <div className="max-w-(--breakpoint-lg) mx-auto p-6 space-y-6">
+      <PageDataUnavailable />
+      <div className="max-w-screen-lg mx-auto p-6 space-y-6">
 
         {/* ── Header ──────────────────────────────────────────────── */}
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-blue-900/40 border border-blue-700/50
-                            flex items-center justify-center shrink-0">
+            <div className="w-10 h-10 rounded-xl bg-blue-900/40 border border-blue-700/50 flex items-center justify-center shrink-0">
               <Server className="w-5 h-5 text-blue-400" />
             </div>
             <div>
@@ -275,9 +277,7 @@ export default function LdapIntegrationPage() {
           <button
             onClick={handleSave}
             disabled={saveStatus === 'saving'}
-            className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700
-                       text-white text-sm font-medium rounded-lg transition-colors
-                       disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {saveStatus === 'saving' ? (
               <Loader2 className="w-4 h-4 animate-spin" />
@@ -318,9 +318,7 @@ export default function LdapIntegrationPage() {
                   onChange={e => set('port', Number(e.target.value))}
                   min={1}
                   max={65535}
-                  className="w-full bg-gray-900 border border-gray-600 rounded-lg px-3 py-2.5 text-sm
-                             text-gray-200 focus:outline-hidden focus:border-blue-500
-                             focus:ring-1 focus:ring-blue-500/30 transition-colors [appearance:textfield]"
+                  className="w-full bg-gray-900 border border-gray-600 rounded-lg px-3 py-2.5 text-sm text-gray-200 focus:outline-hidden focus:border-blue-500 focus:ring-1 focus:ring-blue-500/30 transition-colors [appearance:textfield]"
                 />
               </div>
             </div>
@@ -361,8 +359,7 @@ export default function LdapIntegrationPage() {
                 <button
                   type="button"
                   onClick={() => setShowPassword(v => !v)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500
-                             hover:text-gray-300 transition-colors"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition-colors"
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
@@ -382,10 +379,7 @@ export default function LdapIntegrationPage() {
               <button
                 onClick={handleTest}
                 disabled={testStatus === 'testing' || !config.host}
-                className="flex items-center gap-2 px-4 py-2 text-sm font-medium
-                           bg-gray-700 hover:bg-gray-600 border border-gray-600
-                           text-gray-200 rounded-lg transition-colors
-                           disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-gray-700 hover:bg-gray-600 border border-gray-600 text-gray-200 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {testStatus === 'testing' ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -494,10 +488,7 @@ export default function LdapIntegrationPage() {
                 value={config.sync_interval}
                 onChange={e => set('sync_interval', e.target.value as LdapConfig['sync_interval'])}
                 disabled={!config.sync_enabled}
-                className="w-full max-w-xs bg-gray-900 border border-gray-600 rounded-lg px-3 py-2.5 text-sm
-                           text-gray-200 focus:outline-hidden focus:border-blue-500
-                           focus:ring-1 focus:ring-blue-500/30 transition-colors
-                           disabled:opacity-40 disabled:cursor-not-allowed scheme-dark"
+                className="w-full max-w-xs bg-gray-900 border border-gray-600 rounded-lg px-3 py-2.5 text-sm text-gray-200 focus:outline-hidden focus:border-blue-500 focus:ring-1 focus:ring-blue-500/30 transition-colors disabled:opacity-40 disabled:cursor-not-allowed [color-scheme:dark]"
               >
                 <option value="">無効</option>
                 <option value="hourly">1時間ごと</option>
@@ -533,9 +524,7 @@ export default function LdapIntegrationPage() {
                 <button
                   onClick={handleSync}
                   disabled={syncStatus === 'syncing'}
-                  className="flex items-center gap-2 px-5 py-2.5 text-sm font-medium
-                             bg-blue-600 hover:bg-blue-700 text-white rounded-lg
-                             transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex items-center gap-2 px-5 py-2.5 text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {syncStatus === 'syncing' ? (
                     <Loader2 className="w-4 h-4 animate-spin" />

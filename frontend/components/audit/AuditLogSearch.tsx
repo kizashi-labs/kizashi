@@ -103,9 +103,7 @@ function TextInput({
         value={value}
         onChange={e => onChange(e.target.value)}
         placeholder={placeholder}
-        className="w-full bg-gray-900 border border-gray-600 rounded-lg px-3 py-2 text-sm
-                   text-gray-200 placeholder-gray-600 focus:outline-hidden focus:border-blue-500
-                   focus:ring-1 focus:ring-blue-500/30 transition-colors"
+        className="w-full bg-gray-900 border border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-200 placeholder-gray-600 focus:outline-hidden focus:border-blue-500 focus:ring-1 focus:ring-blue-500/30 transition-colors"
       />
       {hint && <p className="text-xs text-gray-600 mt-1">{hint}</p>}
     </div>
@@ -122,8 +120,7 @@ function FilterChip({
   onRemove: () => void
 }) {
   return (
-    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs
-                     bg-blue-900/30 text-blue-300 border border-blue-700/50">
+    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs bg-blue-900/30 text-blue-300 border border-blue-700/50">
       {label}
       <button
         onClick={onRemove}
@@ -244,9 +241,7 @@ export function AuditLogSearch({ onSearch }: Props) {
             onChange={e => set('search', e.target.value)}
             onKeyDown={e => e.key === 'Enter' && !e.nativeEvent.isComposing && handleSearch()}
             placeholder="アクション、リソースID、IPアドレスを検索..."
-            className="w-full bg-gray-900 border border-gray-600 rounded-lg pl-10 pr-4 py-2.5 text-sm
-                       text-gray-200 placeholder-gray-600 focus:outline-hidden focus:border-blue-500
-                       focus:ring-1 focus:ring-blue-500/30 transition-colors"
+            className="w-full bg-gray-900 border border-gray-600 rounded-lg pl-10 pr-4 py-2.5 text-sm text-gray-200 placeholder-gray-600 focus:outline-hidden focus:border-blue-500 focus:ring-1 focus:ring-blue-500/30 transition-colors"
           />
         </div>
 
@@ -263,8 +258,7 @@ export function AuditLogSearch({ onSearch }: Props) {
           <Filter className="w-4 h-4" />
           詳細フィルター
           {hasFilters && !expanded && (
-            <span className="ml-0.5 inline-flex items-center justify-center w-5 h-5 rounded-full
-                             bg-blue-600 text-white text-[10px] font-bold leading-none">
+            <span className="ml-0.5 inline-flex items-center justify-center w-5 h-5 rounded-full bg-blue-600 text-white text-[10px] font-bold leading-none">
               {activeCount}
             </span>
           )}
@@ -274,8 +268,7 @@ export function AuditLogSearch({ onSearch }: Props) {
         {/* Search button */}
         <button
           onClick={handleSearch}
-          className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700
-                     text-white text-sm font-medium rounded-lg transition-colors whitespace-nowrap"
+          className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors whitespace-nowrap"
         >
           <Search className="w-4 h-4" />
           検索
@@ -291,8 +284,7 @@ export function AuditLogSearch({ onSearch }: Props) {
           ))}
           <button
             onClick={clearFilters}
-            className="ml-auto text-xs text-gray-500 hover:text-white transition-colors
-                       flex items-center gap-1 px-2 py-1 rounded hover:bg-gray-700"
+            className="ml-auto text-xs text-gray-500 hover:text-white transition-colors flex items-center gap-1 px-2 py-1 rounded-sm hover:bg-gray-700"
           >
             <X className="w-3 h-3" />
             すべてクリア
@@ -312,9 +304,7 @@ export function AuditLogSearch({ onSearch }: Props) {
                 type="datetime-local"
                 value={filters.from_date ?? ''}
                 onChange={e => set('from_date', e.target.value)}
-                className="w-full bg-gray-900 border border-gray-600 rounded-lg px-3 py-2 text-sm
-                           text-gray-200 focus:outline-hidden focus:border-blue-500
-                           focus:ring-1 focus:ring-blue-500/30 transition-colors scheme-dark"
+                className="w-full bg-gray-900 border border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-200 focus:outline-hidden focus:border-blue-500 focus:ring-1 focus:ring-blue-500/30 transition-colors [color-scheme:dark]"
               />
             </div>
             <div>
@@ -323,9 +313,7 @@ export function AuditLogSearch({ onSearch }: Props) {
                 type="datetime-local"
                 value={filters.to_date ?? ''}
                 onChange={e => set('to_date', e.target.value)}
-                className="w-full bg-gray-900 border border-gray-600 rounded-lg px-3 py-2 text-sm
-                           text-gray-200 focus:outline-hidden focus:border-blue-500
-                           focus:ring-1 focus:ring-blue-500/30 transition-colors scheme-dark"
+                className="w-full bg-gray-900 border border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-200 focus:outline-hidden focus:border-blue-500 focus:ring-1 focus:ring-blue-500/30 transition-colors [color-scheme:dark]"
               />
             </div>
           </div>
@@ -358,9 +346,7 @@ export function AuditLogSearch({ onSearch }: Props) {
               <select
                 value={filters.resource_type ?? ''}
                 onChange={e => set('resource_type', e.target.value)}
-                className="w-full bg-gray-900 border border-gray-600 rounded-lg px-3 py-2 text-sm
-                           text-gray-200 focus:outline-hidden focus:border-blue-500
-                           focus:ring-1 focus:ring-blue-500/30 transition-colors scheme-dark"
+                className="w-full bg-gray-900 border border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-200 focus:outline-hidden focus:border-blue-500 focus:ring-1 focus:ring-blue-500/30 transition-colors [color-scheme:dark]"
               >
                 {RESOURCE_TYPE_OPTIONS.map(opt => (
                   <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -419,16 +405,14 @@ export function AuditLogSearch({ onSearch }: Props) {
           <div className="flex items-center justify-between pt-1 border-t border-gray-700">
             <button
               onClick={clearFilters}
-              className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-white
-                         transition-colors px-3 py-2 rounded-lg hover:bg-gray-700"
+              className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-white transition-colors px-3 py-2 rounded-lg hover:bg-gray-700"
             >
               <X className="w-4 h-4" />
               フィルタークリア
             </button>
             <button
               onClick={handleSearch}
-              className="flex items-center gap-2 px-6 py-2 bg-blue-600 hover:bg-blue-700
-                         text-white text-sm font-medium rounded-lg transition-colors"
+              className="flex items-center gap-2 px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
             >
               <Search className="w-4 h-4" />
               検索

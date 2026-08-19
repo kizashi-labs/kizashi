@@ -23,6 +23,7 @@ Kizashi の SOAR（Security Orchestration, Automation and Response）機能で�
 7. [プレイブックによる高度な自動化](#7-プレイブックによる高度な自動化)
 8. [推奨設定パターン](#8-推奨設定パターン)
 9. [注意事項とベストプラクティス](#9-注意事項とベストプラクティス)
+10. [隔離による締め出しからの復旧](#10-隔離による締め出しからの復旧)
 
 ---
 
@@ -348,6 +349,61 @@ AUTO_ISOLATE_MIN_SEVERITY=7
 - 自動隔離の発動件数と誤検知件数の比率
 - 除外リストが適切に維持されているか
 - `auto_isolate=true` のルールが過剰になっていないか
+
+---
+
+## 10. 隔離による締め出しからの復旧
+
+自動隔離は本番既定で SSH（tcp/22）を遮断します。誤検知で隔離が発動すると、そのホストへ**新規に SSH 接続できなくなります**。既存の SSH セッションは `ESTABLISHED` として許可されるため生き残るので、**接続できないと気づいた時点で、開いているセッションを閉じないでください。** それが最短の復旧経路です。
+
+### 事前対策
+
+| 対策 | 内容 |
+|---|---|
+| `EDR_ISOLATION_ALLOW_SSH=true` | 検証・ステージング環境では隔離中も tcp/22 を許可。エージェントの systemd ユニットに `Environment=` で設定し、エージェント再起動で反映 |
+| SSM Session Manager | インスタンスプロファイルに `AmazonSSMManagedInstanceCore` を付与。SSH を経由しないため隔離の影響を受けない |
+| EC2 Serial Console | 事前に OS ユーザーのパスワードを設定しておく（未設定だとログインできない） |
+| 除外リスト | § 4 のとおり、隔離されると困るホストは登録しておく |
+
+### 手動での隔離解除
+
+既存セッション・SSM・シリアルコンソールのいずれかで入り、次を実行します。冪等なので繰り返し実行して構いません。
+
+```bash
+for c in INPUT OUTPUT FORWARD; do
+  while sudo iptables -C $c -j EDR_ISOLATE 2>/dev/null; do sudo iptables -D $c -j EDR_ISOLATE; done
+done
+sudo iptables -F EDR_ISOLATE 2>/dev/null
+sudo iptables -X EDR_ISOLATE 2>/dev/null
+sudo nft delete table inet edr_isolate 2>/dev/null
+echo "残存 jump: $(sudo iptables -S | grep -c EDR_ISOLATE)"
+```
+
+`残存 jump: 0` で解除完了です。続けて再発火を止めます。
+
+```bash
+cd <compose のディレクトリ>
+printf 'services:\n  detection:\n    environment:\n      AUTO_RESPONSE_ENABLED: "false"\n' > docker-compose.override.yml
+docker compose up -d detection
+docker compose exec -T detection env | grep AUTO_
+```
+
+どの手段でも入れない場合はインスタンスの停止→起動でルールが消えます（`EDR_ISOLATE` は永続化されません）。ただし起動後に detection が既定のまま上がって再発火し得るため、入れ次第すぐ上の override を作成してください。
+
+### サーバーからの隔離解除が届かないケース
+
+**EDR サーバー自身をコンテナで動かしているホストが隔離された場合、UI からの「隔離解除」が届かないことがあります。** 隔離チェーンがホワイトリストするのはエージェント設定上のサーバーアドレスですが、ホストから公開ポートへの通信は nat でコンテナ IP に DNAT された後に filter の OUTPUT を通るため、DNAT 後の宛先がホワイトリストと一致せず、エージェントのコマンドチャネルが切れます。この構成では上記の手動解除が本命の復旧手段です。
+
+### 設定変更を既存の隔離に反映させる
+
+`EDR_ISOLATION_ALLOW_SSH` はエージェント起動時にのみ読み込まれ、通常はチェーンの**構築時**にしか参照されません。したがって「隔離が発動 → その後に設定を有効化」の順序では、既存チェーンは tcp/22 を遮断したままになります。エージェントは起動時にこれを検出して SSH 許可ルールをチェーン先頭へ挿入し直しますが（隔離自体は解除しません）、**反映にはエージェントの再起動が必要**です。
+
+```bash
+sudo systemctl restart <エージェントのユニット名>
+sudo iptables -S EDR_ISOLATE | grep 'dport 22'
+```
+
+なお、この設定を隔離発動後に有効化する運用は最後の手段です。恒久的には事前対策の表にある SSM かシリアルコンソールを用意してください。
 
 ---
 

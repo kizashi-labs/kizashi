@@ -23,6 +23,18 @@ type FileMonitorOpenatArgs struct {
 	Mode        int32
 }
 
+// Names of all BPF objects in the ELF.
+//
+// Used for safe lookups in a Collection or CollectionSpec.
+const (
+	FileMonitorMapFileEvents         = "file_events"
+	FileMonitorMapOpenatMap          = "openat_map"
+	FileMonitorProgHandleOpenatEnter = "handle_openat_enter"
+	FileMonitorProgHandleOpenatExit  = "handle_openat_exit"
+	FileMonitorProgHandleVfsRename   = "handle_vfs_rename"
+	FileMonitorProgHandleVfsUnlink   = "handle_vfs_unlink"
+)
+
 // LoadFileMonitor returns the embedded CollectionSpec for FileMonitor.
 func LoadFileMonitor() (*ebpf.CollectionSpec, error) {
 	reader := bytes.NewReader(_FileMonitorBytes)
@@ -43,7 +55,7 @@ func LoadFileMonitor() (*ebpf.CollectionSpec, error) {
 //	*FileMonitorMaps
 //
 // See ebpf.CollectionSpec.LoadAndAssign documentation for details.
-func LoadFileMonitorObjects(obj interface{}, opts *ebpf.CollectionOptions) error {
+func LoadFileMonitorObjects(obj any, opts *ebpf.CollectionOptions) error {
 	spec, err := LoadFileMonitor()
 	if err != nil {
 		return err

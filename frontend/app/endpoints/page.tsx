@@ -9,10 +9,12 @@ import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import type { Agent, PaginatedResponse } from '@/types/api'
 import { apiFetch } from '@/lib/api'
+import { DataUnavailable } from '@/components/DataUnavailable'
 import { AgentStatusBadge, OSIcon } from '@/components/ui/badges'
 import { usePlan } from '@/lib/usePlan'
 import { useCanWrite } from '@/lib/auth'
 import { Monitor, ShieldAlert, ShieldCheck, Search, RefreshCw, Wifi, WifiOff, PowerOff, Layers, X, TrendingUp, Download, Terminal, BarChart2, Trash2 } from 'lucide-react'
+import { PageSaveFailed } from '@/components/PageSaveFailed'
 
 interface AgentGroup {
   id: string
@@ -41,6 +43,9 @@ function PreventionReadinessCard() {
         by_os?: Record<string, Record<string, number>>
         total: number
         enforce_ready_pct: number
+        // Effective collection mechanism, distinct from the capability tiers above.
+        telemetry_by_mode?: Record<string, number>
+        ebpf_effective_pct?: number
       }>('/api/v1/agents-protection-summary'),
     staleTime: 60_000,
   })
@@ -53,7 +58,7 @@ function PreventionReadinessCard() {
     { key: 'unreported', label: '未申告', color: 'text-[#5a6a7a]', bar: '#374151' },
   ]
   return (
-    <div className="bg-falcon-card rounded-xl border border-falcon-border p-4 mb-6">
+    <div className="bg-[#111827] rounded-xl border border-[#1e2d42] p-4 mb-6">
       <div className="flex items-center gap-2 mb-3">
         <ShieldCheck className="w-4 h-4 text-green-400" />
         <h2 className="text-sm font-semibold text-[#8899aa]">カーネル能動防御レディネス（Linux eBPF LSM / Windows ドライバ）</h2>
@@ -79,7 +84,7 @@ function PreventionReadinessCard() {
         ))}
       </div>
       {data.by_os && Object.keys(data.by_os).length > 0 && (
-        <div className="mt-3 pt-3 border-t border-falcon-border space-y-1.5">
+        <div className="mt-3 pt-3 border-t border-[#1e2d42] space-y-1.5">
           <p className="text-[10px] uppercase tracking-wide text-[#5a6a7a] mb-1">OS 別内訳</p>
           {Object.entries(data.by_os)
             .sort((a, b) => a[0].localeCompare(b[0]))
@@ -108,6 +113,57 @@ function PreventionReadinessCard() {
               )
             })}
         </div>
+      )}
+      <TelemetryModeRow byMode={data.telemetry_by_mode} pct={data.ebpf_effective_pct} />
+    </div>
+  )
+}
+
+// ── Effective collection mechanism ────────────────────────────────
+// protection_mode above is host CAPABILITY; this is what the collectors ACTUALLY
+// ended up running on. The two diverge exactly where it hurts: an eBPF-capable host
+// whose sensors fell back to userspace polling reports enforce-ready while it is
+// collecting blind — port scans of closed ports (T1046) become structurally
+// invisible and file events lose process attribution, so ransomware detection can no
+// longer name the process. That state ran unnoticed for days (2026-08-03) because
+// the number existed and nothing displayed it.
+//
+// `poll` is therefore rendered as a warning rather than a neutral tier, and the row
+// is hidden entirely when no agent reports a mode — Windows/macOS agents do not, and
+// a permanent "0 / unknown" row would just be noise.
+function TelemetryModeRow({ byMode, pct }: { byMode?: Record<string, number>; pct?: number }) {
+  if (!byMode) return null
+  const reporting = (byMode.ebpf || 0) + (byMode.poll || 0) + (byMode.off || 0)
+  if (reporting === 0) return null
+  const degraded = byMode.poll || 0
+  return (
+    <div className="mt-3 pt-3 border-t border-[#1e2d42]">
+      <div className="flex items-center gap-2">
+        <p className="text-[10px] uppercase tracking-wide text-[#5a6a7a]">実効テレメトリ（実際の収集方式）</p>
+        <span className="ml-auto text-xs text-[#5a6a7a]">
+          eBPF 実効率 <span className="text-white font-bold">{pct ?? 0}%</span>
+        </span>
+      </div>
+      <div className="flex items-center gap-4 mt-2 text-xs">
+        <span className="text-[#8899aa]">
+          eBPF <span className="text-green-400 font-bold tabular-nums">{byMode.ebpf || 0}</span>
+        </span>
+        <span className="text-[#8899aa]">
+          ポーリング{' '}
+          <span className={`font-bold tabular-nums ${degraded > 0 ? 'text-amber-400' : 'text-[#5a6a7a]'}`}>
+            {degraded}
+          </span>
+        </span>
+        <span className="text-[#8899aa]">
+          無効 <span className="text-[#5a6a7a] font-bold tabular-nums">{byMode.off || 0}</span>
+        </span>
+      </div>
+      {degraded > 0 && (
+        <p className="mt-2 text-[11px] text-amber-400/90 leading-relaxed">
+          {degraded} 台のセンサーが eBPF からポーリングに降格しています。閉じたポートへの接続（ポートスキャン
+          T1046）が観測できず、ファイルイベントにプロセス帰属が付きません。該当エージェントには
+          「センサー降格」アラートが上がっています。
+        </p>
       )}
     </div>
   )
@@ -139,7 +195,7 @@ function AnomalyBoardCard() {
   const clamp01 = (v: number) => (Number.isFinite(v) ? Math.min(Math.max(v, 0), 1) : 0)
   const riskColor = (v: number) => (v >= 0.7 ? '#ef4444' : v >= 0.4 ? '#f59e0b' : '#3b82f6')
   return (
-    <div className="bg-falcon-card rounded-xl border border-falcon-border p-4 mb-6">
+    <div className="bg-[#111827] rounded-xl border border-[#1e2d42] p-4 mb-6">
       <div className="flex items-center gap-2 mb-3">
         <TrendingUp className="w-4 h-4 text-amber-400" />
         <h2 className="text-sm font-semibold text-[#8899aa]">UEBA 振る舞い異常スコア（直近7日）</h2>
@@ -187,7 +243,7 @@ function RiskRankingView({
 
   if (ranked.length === 0) {
     return (
-      <div className="text-center py-16 bg-falcon-card rounded-xl border border-falcon-border">
+      <div className="text-center py-16 bg-[#111827] rounded-xl border border-[#1e2d42]">
         <TrendingUp className="w-10 h-10 text-[#5a6a7a] mx-auto mb-2" />
         <p className="text-[#5a6a7a] text-sm">リスクスコアデータがありません</p>
       </div>
@@ -212,7 +268,7 @@ function RiskRankingView({
           const style = riskStyle(level)
           const label = level === 'critical' ? 'クリティカル' : level === 'high' ? '高' : level === 'medium' ? '中' : '低'
           return (
-            <div key={level} className="bg-falcon-card rounded-xl border border-falcon-border p-4 flex items-center gap-3">
+            <div key={level} className="bg-[#111827] rounded-xl border border-[#1e2d42] p-4 flex items-center gap-3">
               <div className="w-3 h-8 rounded-full shrink-0" style={{ background: style.bar }} />
               <div>
                 <p className="text-xs text-[#5a6a7a]">{label}</p>
@@ -224,7 +280,7 @@ function RiskRankingView({
       </div>
 
       {/* Risk bar chart */}
-      <div className="bg-falcon-card rounded-xl border border-falcon-border p-5">
+      <div className="bg-[#111827] rounded-xl border border-[#1e2d42] p-5">
         <div className="flex items-center gap-2 mb-4">
           <BarChart2 className="w-4 h-4 text-[#5a6a7a]" />
           <h2 className="text-sm font-semibold text-[#8899aa]">Top 20 高リスクエンドポイント</h2>
@@ -240,7 +296,7 @@ function RiskRankingView({
                   className="text-sm text-[#c9d6e8] hover:text-white transition-colors w-40 truncate shrink-0">
                   {a.hostname}
                 </Link>
-                <div className="flex-1 h-2 bg-falcon-border rounded-full overflow-hidden">
+                <div className="flex-1 h-2 bg-[#1e2d42] rounded-full overflow-hidden">
                   <div className="h-full rounded-full transition-all"
                     style={{ width: `${pct}%`, background: style.bar }} />
                 </div>
@@ -291,11 +347,11 @@ function VirtualAgentTable({
   const totalHeight = rowVirtualizer.getTotalSize()
 
   return (
-    <div className="bg-falcon-card rounded-xl border border-falcon-border overflow-hidden">
+    <div className="bg-[#111827] rounded-xl border border-[#1e2d42] overflow-hidden">
       {/* Sticky header */}
       <table className="w-full text-sm table-fixed">
         <thead>
-          <tr className="border-b border-falcon-border bg-falcon-bg/40">
+          <tr className="border-b border-[#1e2d42] bg-[#080c14]/40">
             <th className="text-left px-4 py-3 text-xs font-medium text-[#8899aa] w-[22%]">ホスト名</th>
             <th className="text-left px-4 py-3 text-xs font-medium text-[#8899aa] w-[14%]">OS</th>
             <th className="text-left px-4 py-3 text-xs font-medium text-[#8899aa] w-[11%]">ステータス</th>
@@ -329,11 +385,11 @@ function VirtualAgentTable({
                   right: 0,
                   height: VIRTUAL_ROW_H,
                 }}
-                className="flex items-center border-b border-falcon-border/50 hover:bg-falcon-hover/30 transition-colors text-sm px-4 gap-4"
+                className="flex items-center border-b border-[#1e2d42]/50 hover:bg-[#19253d]/30 transition-colors text-sm px-4 gap-4"
               >
                 <div className="w-[22%] min-w-0">
                   <Link href={`/endpoints/${agent.id}`}
-                    className="font-medium text-falcon-text hover:text-blue-400 transition-colors truncate block">
+                    className="font-medium text-[#e2e8f4] hover:text-blue-400 transition-colors truncate block">
                     {agent.hostname}
                   </Link>
                   {agent.status === 'isolated' && (
@@ -390,9 +446,7 @@ function VirtualAgentTable({
                     }}
                     disabled={deleteAgent.isPending}
                     title="エージェントを削除"
-                    className="flex items-center justify-center text-xs text-gray-400 hover:text-red-400
-                               bg-transparent hover:bg-red-900/20 border border-transparent hover:border-red-700/50
-                               rounded-lg p-1.5 transition-colors disabled:opacity-50"
+                    className="flex items-center justify-center text-xs text-gray-400 hover:text-red-400 bg-transparent hover:bg-red-900/20 border border-transparent hover:border-red-700/50 rounded-lg p-1.5 transition-colors disabled:opacity-50"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
@@ -443,7 +497,7 @@ function EndpointsInner() {
     per_page: '200',
   })
 
-  const { data, isLoading, isError } = useQuery<PaginatedResponse<Agent>>({
+  const { data, isLoading, isError, error, refetch } = useQuery<PaginatedResponse<Agent>>({
     queryKey: ['agents', osFilter, statusFilter, groupFilter],
     queryFn: () => apiFetch<PaginatedResponse<Agent>>(`/api/v1/agents?${apiParams}`),
     refetchInterval: 15_000,
@@ -512,6 +566,11 @@ function EndpointsInner() {
 
   return (
     <div className="p-6">
+      <PageSaveFailed className="mb-4" />
+      {/* 下の集計は取得に失敗すると 0台 を表示します。
+          その 0 が事実かどうかをここで言う。 */}
+      <DataUnavailable error={error} what="エンドポイント" onRetry={refetch} className="mb-4" />
+
       {/* Freeプラン エージェント上限インライン警告 */}
       {isAtFreeLimit && (
         <div className="mb-4 flex items-center gap-3 px-4 py-3 bg-red-950/40 border border-red-600/40 rounded-xl">
@@ -522,7 +581,7 @@ function EndpointsInner() {
           <a href="/admin/license" className="text-red-300 underline text-sm font-bold hover:text-red-200">
             Liteプランへアップグレード
           </a>
-          <span className="text-falcon-subtle text-xs ml-auto">¥500/台/月〜 · 最小5台</span>
+          <span className="text-[#3d5068] text-xs ml-auto">¥500/台/月〜 · 最小5台</span>
         </div>
       )}
       {isNearFreeLimit && !isAtFreeLimit && (
@@ -543,7 +602,7 @@ function EndpointsInner() {
           <p className="text-sm text-[#8899aa]">
             {counts.total}台 · オンライン {counts.online}台 · 隔離中 {counts.isolated}台
             {plan === 'free' && (
-              <span className="ml-2 text-falcon-subtle">
+              <span className="ml-2 text-[#3d5068]">
                 · Freeプラン {agentUsed}/{agentLimit}台
               </span>
             )}
@@ -553,17 +612,14 @@ function EndpointsInner() {
           <button
             onClick={exportCSV}
             disabled={agents.length === 0}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-[#8899aa]
-                       bg-falcon-raised border border-falcon-border rounded-lg hover:bg-falcon-active
-                       transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-[#8899aa] bg-[#161f33] border border-[#1e2d42] rounded-lg hover:bg-[#1d2f4a] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
             <Download className="w-4 h-4" />
             CSV出力
           </button>
           <button
             onClick={() => qc.invalidateQueries({ queryKey: ['agents'] })}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-[#8899aa]
-                       bg-falcon-raised border border-falcon-border rounded-lg hover:bg-falcon-active transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-[#8899aa] bg-[#161f33] border border-[#1e2d42] rounded-lg hover:bg-[#1d2f4a] transition-colors"
           >
             <RefreshCw className="w-4 h-4" />
             更新
@@ -572,12 +628,12 @@ function EndpointsInner() {
       </div>
 
       {/* View tabs */}
-      <div className="flex items-center gap-1 mb-6 border-b border-falcon-border">
+      <div className="flex items-center gap-1 mb-6 border-b border-[#1e2d42]">
         <button
           onClick={() => setActiveView('list')}
           className={`flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
             activeView === 'list'
-              ? 'border-falcon-blue text-white'
+              ? 'border-[#1a6bff] text-white'
               : 'border-transparent text-[#5a6a7a] hover:text-[#c9d6e8]'
           }`}
         >
@@ -588,7 +644,7 @@ function EndpointsInner() {
           onClick={() => setActiveView('risk')}
           className={`flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
             activeView === 'risk'
-              ? 'border-falcon-blue text-white'
+              ? 'border-[#1a6bff] text-white'
               : 'border-transparent text-[#5a6a7a] hover:text-[#c9d6e8]'
           }`}
         >
@@ -619,7 +675,7 @@ function EndpointsInner() {
           { label: '隔離中',       value: counts.isolated, icon: ShieldAlert, color: 'text-red-400' },
           { label: '非アクティブ', value: counts.inactive, icon: PowerOff,    color: 'text-[#5c6f8a]' },
         ].map(({ label, value, icon: Icon, color }) => (
-          <div key={label} className="bg-falcon-card rounded-xl border border-falcon-border p-3 flex items-center gap-3">
+          <div key={label} className="bg-[#111827] rounded-xl border border-[#1e2d42] p-3 flex items-center gap-3">
             <Icon className={`w-5 h-5 ${color}`} />
             <div>
               <p className="text-xs text-[#5a6a7a]">{label}</p>
@@ -645,17 +701,14 @@ function EndpointsInner() {
             defaultValue=""
             placeholder="ホスト名・IPアドレスで検索..."
             onInput={e => setSearch((e.target as HTMLInputElement).value)}
-            className="w-full pl-9 pr-4 py-2 text-sm border border-falcon-border rounded-xl
-                       bg-falcon-card text-white placeholder-[#5a6a7a]
-                       focus:outline-hidden focus:border-falcon-blue"
+            className="w-full pl-9 pr-4 py-2 text-sm border border-[#1e2d42] rounded-xl bg-[#111827] text-white placeholder-[#5a6a7a] focus:outline-hidden focus:border-[#1a6bff]"
           />
         </div>
 
         <select
           value={groupFilter}
           onChange={e => setGroupFilter(e.target.value)}
-          className="text-sm border border-falcon-border rounded-xl px-3 py-2
-                     bg-falcon-card text-[#8899aa] focus:outline-hidden focus:border-falcon-blue"
+          className="text-sm border border-[#1e2d42] rounded-xl px-3 py-2 bg-[#111827] text-[#8899aa] focus:outline-hidden focus:border-[#1a6bff]"
         >
           <option value="">グループ: すべて</option>
           {(groupsData?.data ?? []).map(g => (
@@ -666,8 +719,7 @@ function EndpointsInner() {
         <select
           value={osFilter}
           onChange={e => setOS(e.target.value)}
-          className="text-sm border border-falcon-border rounded-xl px-3 py-2
-                     bg-falcon-card text-[#8899aa] focus:outline-hidden focus:border-falcon-blue"
+          className="text-sm border border-[#1e2d42] rounded-xl px-3 py-2 bg-[#111827] text-[#8899aa] focus:outline-hidden focus:border-[#1a6bff]"
         >
           <option value="">OS: すべて</option>
           <option value="windows">Windows</option>
@@ -678,8 +730,7 @@ function EndpointsInner() {
         <select
           value={statusFilter}
           onChange={e => setStatus(e.target.value)}
-          className="text-sm border border-falcon-border rounded-xl px-3 py-2
-                     bg-falcon-card text-[#8899aa] focus:outline-hidden focus:border-falcon-blue"
+          className="text-sm border border-[#1e2d42] rounded-xl px-3 py-2 bg-[#111827] text-[#8899aa] focus:outline-hidden focus:border-[#1a6bff]"
         >
           <option value="">ステータス: すべて</option>
           <option value="online">オンライン</option>
@@ -692,8 +743,7 @@ function EndpointsInner() {
         {(search || osFilter || statusFilter || groupFilter) && (
           <button
             onClick={() => { setSearch(''); setOS(''); setStatus(''); setGroupFilter(''); if (searchInputRef.current) searchInputRef.current.value = '' }}
-            className="flex items-center gap-1 text-xs text-[#8899aa] hover:text-white
-                       px-2 py-1 rounded-lg hover:bg-falcon-hover transition-colors"
+            className="flex items-center gap-1 text-xs text-[#8899aa] hover:text-white px-2 py-1 rounded-lg hover:bg-[#19253d] transition-colors"
             title="フィルターをすべてクリア"
           >
             <X className="w-3.5 h-3.5" />
@@ -706,16 +756,16 @@ function EndpointsInner() {
       {isLoading ? (
         <div className="space-y-2">
           {[...Array(10)].map((_, i) => (
-            <div key={i} className="h-14 bg-falcon-card rounded-xl border border-falcon-border animate-pulse" />
+            <div key={i} className="h-14 bg-[#111827] rounded-xl border border-[#1e2d42] animate-pulse" />
           ))}
         </div>
       ) : isError ? (
-        <div className="text-center py-16 bg-falcon-card rounded-xl border border-falcon-red/30">
-          <p className="text-falcon-red text-sm font-medium">エンドポイントデータの取得に失敗しました</p>
+        <div className="text-center py-16 bg-[#111827] rounded-xl border border-[#e8002d]/30">
+          <p className="text-[#e8002d] text-sm font-medium">エンドポイントデータの取得に失敗しました</p>
           <p className="text-[#5a6a7a] text-xs mt-1">ネットワーク接続またはサーバーの状態を確認してください</p>
         </div>
       ) : agents.length === 0 ? (
-        <div className="text-center py-16 bg-falcon-card rounded-xl border border-falcon-border">
+        <div className="text-center py-16 bg-[#111827] rounded-xl border border-[#1e2d42]">
           <Monitor className="w-10 h-10 text-[#5a6a7a] mx-auto mb-2" />
           <p className="text-[#5a6a7a] text-sm">エンドポイントが見つかりません</p>
         </div>
@@ -731,10 +781,10 @@ function EndpointsInner() {
           canWrite={canWrite}
         />
       ) : (
-        <div className="bg-falcon-card rounded-xl border border-falcon-border overflow-hidden">
+        <div className="bg-[#111827] rounded-xl border border-[#1e2d42] overflow-hidden">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-falcon-border bg-falcon-bg/40">
+              <tr className="border-b border-[#1e2d42] bg-[#080c14]/40">
                 <th className="text-left px-4 py-3 text-xs font-medium text-[#8899aa] whitespace-nowrap">ホスト名</th>
                 <th className="text-left px-4 py-3 text-xs font-medium text-[#8899aa] whitespace-nowrap">OS</th>
                 <th className="text-left px-4 py-3 text-xs font-medium text-[#8899aa] whitespace-nowrap">ステータス</th>
@@ -752,10 +802,10 @@ function EndpointsInner() {
                 const isOffline = agent.status === 'offline'
                 return (
                 <tr key={agent.id}
-                  className={`border-b border-falcon-border/50 last:border-0 transition-colors ${
+                  className={`border-b border-[#1e2d42]/50 last:border-0 transition-colors ${
                     isOffline
                       ? 'bg-red-950/20 hover:bg-red-950/30 border-l-2 border-l-red-600/50'
-                      : 'hover:bg-falcon-hover/30'
+                      : 'hover:bg-[#19253d]/30'
                   }`}>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
@@ -763,7 +813,7 @@ function EndpointsInner() {
                         <span className="shrink-0 w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" title="オフライン" />
                       )}
                       <Link href={`/endpoints/${agent.id}`}
-                        className={`font-medium transition-colors ${isOffline ? 'text-[#9aacbe] hover:text-red-400' : 'text-falcon-text hover:text-blue-400'}`}>
+                        className={`font-medium transition-colors ${isOffline ? 'text-[#9aacbe] hover:text-red-400' : 'text-[#e2e8f4] hover:text-blue-400'}`}>
                         {agent.hostname}
                       </Link>
                     </div>
@@ -826,9 +876,7 @@ function EndpointsInner() {
                         <button
                           onClick={() => unisolate.mutate(agent.id)}
                           disabled={unisolate.isPending}
-                          className="flex items-center gap-1 text-xs text-green-300 bg-green-900/30
-                                     border border-green-700/50 rounded-lg px-2 py-1 whitespace-nowrap
-                                     hover:bg-green-900/50 transition-colors disabled:opacity-50"
+                          className="flex items-center gap-1 text-xs text-green-300 bg-green-900/30 border border-green-700/50 rounded-lg px-2 py-1 whitespace-nowrap hover:bg-green-900/50 transition-colors disabled:opacity-50"
                         >
                           <ShieldCheck className="w-3 h-3" />
                           隔離解除
@@ -841,9 +889,7 @@ function EndpointsInner() {
                             }
                           }}
                           disabled={isolate.isPending || agent.status === 'offline'}
-                          className="flex items-center gap-1 text-xs text-red-300 bg-red-900/30
-                                     border border-red-700/50 rounded-lg px-2 py-1 whitespace-nowrap
-                                     hover:bg-red-900/50 transition-colors disabled:opacity-50"
+                          className="flex items-center gap-1 text-xs text-red-300 bg-red-900/30 border border-red-700/50 rounded-lg px-2 py-1 whitespace-nowrap hover:bg-red-900/50 transition-colors disabled:opacity-50"
                         >
                           <ShieldAlert className="w-3 h-3" />
                           隔離
@@ -853,9 +899,7 @@ function EndpointsInner() {
                         <Link
                           href={`/live-response/${agent.id}`}
                           title="ライブレスポンス"
-                          className="flex items-center gap-1 text-xs text-green-400 hover:text-green-300
-                                     bg-green-900/20 border border-green-800/50 rounded-lg px-2 py-1
-                                     hover:bg-green-900/40 transition-colors"
+                          className="flex items-center gap-1 text-xs text-green-400 hover:text-green-300 bg-green-900/20 border border-green-800/50 rounded-lg px-2 py-1 hover:bg-green-900/40 transition-colors"
                         >
                           <Terminal className="w-3 h-3" />
                           LR
@@ -876,9 +920,7 @@ function EndpointsInner() {
                         }}
                         disabled={deleteAgent.isPending}
                         title="エージェントを削除"
-                        className="flex items-center justify-center text-xs text-gray-400 hover:text-red-400
-                                   bg-transparent hover:bg-red-900/20 border border-transparent hover:border-red-700/50
-                                   rounded-lg p-1.5 transition-colors disabled:opacity-50"
+                        className="flex items-center justify-center text-xs text-gray-400 hover:text-red-400 bg-transparent hover:bg-red-900/20 border border-transparent hover:border-red-700/50 rounded-lg p-1.5 transition-colors disabled:opacity-50"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
@@ -902,7 +944,7 @@ export default function EndpointsPage() {
     <Suspense fallback={
       <div className="p-6 space-y-2">
         {[...Array(8)].map((_, i) => (
-          <div key={i} className="h-14 bg-falcon-card rounded-xl border border-falcon-border animate-pulse" />
+          <div key={i} className="h-14 bg-[#111827] rounded-xl border border-[#1e2d42] animate-pulse" />
         ))}
       </div>
     }>

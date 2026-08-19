@@ -96,7 +96,7 @@ func (s *DarkWebScheduler) WithAlertNotify(slackURL, webhookURL string, ec *emai
 }
 
 // sendUrgentAlert は検知時に即時通知を送信する。
-func (s *DarkWebScheduler) sendUrgentAlert(title, description string) {
+func (s *DarkWebScheduler) sendUrgentAlert(ctx context.Context, title, description string) {
 	if s.slackURL != "" {
 		body, _ := json.Marshal(map[string]any{
 			"text": fmt.Sprintf(":rotating_light: *ダークウェブ検知アラート*\n*%s*\n%s", title, description),
@@ -106,7 +106,7 @@ func (s *DarkWebScheduler) sendUrgentAlert(title, description string) {
 			resp.Body.Close()
 			slog.Info("DarkWebScheduler: Slack緊急通知を送信しました", "title", title)
 		} else {
-			slog.Warn("DarkWebScheduler: Slack緊急通知に失敗しました", "error", err)
+			fail(ctx, err, "DarkWebScheduler: Slack緊急通知に失敗しました")
 		}
 	}
 	if s.webhookURL != "" {
@@ -126,7 +126,7 @@ func (s *DarkWebScheduler) sendUrgentAlert(title, description string) {
 		subject := fmt.Sprintf("[緊急] ダークウェブ検知: %s", title)
 		body := fmt.Sprintf("%s\n\n%s", title, description)
 		if err := SendEmailViaSMTP(s.emailCfg, subject, body); err != nil {
-			slog.Warn("DarkWebScheduler: 緊急メール送信に失敗しました", "error", err)
+			fail(ctx, err, "DarkWebScheduler: 緊急メール送信に失敗しました")
 		} else {
 			slog.Info("DarkWebScheduler: 緊急メール送信成功", "to", s.emailCfg.To)
 		}
@@ -191,20 +191,20 @@ func (s *DarkWebScheduler) syncRansomwatch(ctx context.Context) {
 	client := &http.Client{Timeout: 30 * time.Second}
 	resp, err := client.Get(s.ransomwatchURL)
 	if err != nil {
-		slog.Warn("DarkWebScheduler: ransomwatch 取得に失敗しました", "error", err)
+		fail(ctx, err, "DarkWebScheduler: ransomwatch 取得に失敗しました")
 		return
 	}
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		slog.Warn("DarkWebScheduler: ransomwatch 読み込みに失敗しました", "error", err)
+		fail(ctx, err, "DarkWebScheduler: ransomwatch 読み込みに失敗しました")
 		return
 	}
 
 	var groups []rwGroup
 	if err := json.Unmarshal(body, &groups); err != nil {
-		slog.Warn("DarkWebScheduler: ransomwatch パースに失敗しました", "error", err)
+		fail(ctx, err, "DarkWebScheduler: ransomwatch パースに失敗しました")
 		return
 	}
 
@@ -236,14 +236,19 @@ func (s *DarkWebScheduler) syncRansomwatch(ctx context.Context) {
 
 	// 取得したグループデータをキャッシュとして保存（posts照合用）
 	rawJSON, _ := json.Marshal(groups)
-	_, _ = s.pool.Exec(ctx, `
+	// **書けないと、次の照合が「キャッシュがまだ無い」として静かに
+	// 戻ります**（読み出し側は直しましたが、書けていないことは
+	// こちらでしか分かりません）。
+	if _, err := s.pool.Exec(ctx, `
 		INSERT INTO darkweb_ransomware_sites (group_name, onion_url, source, raw_posts)
 		SELECT 'ransomwatch_cache', '__cache__', 'system', $1
 		WHERE NOT EXISTS (SELECT 1 FROM darkweb_ransomware_sites WHERE onion_url = '__cache__')
 		ON CONFLICT (onion_url) DO UPDATE SET
 			raw_posts = $1, updated_at = NOW()`,
 		rawJSON,
-	)
+	); err != nil {
+		fail(ctx, err, "darkweb: 投稿一覧のキャッシュを保存できませんでした")
+	}
 
 	slog.Info("DarkWebScheduler: ransomwatch 同期完了", "groups", len(groups), "added", added, "skipped", skipped)
 }
@@ -254,12 +259,13 @@ func (s *DarkWebScheduler) checkPostMatches(ctx context.Context) {
 	// 監視キーワード取得
 	rows, err := s.pool.Query(ctx, `SELECT id, monitor_type, value FROM darkweb_monitors WHERE enabled = TRUE`)
 	if err != nil || rows == nil {
-		// 監視キーワードを読めなければ、この回は照合を1件もしていません。
-		// 黙って戻ると「回っているが何もしていない」が外から見えなくなります。
 		if err == nil {
 			err = errNoRowsReturned
 		}
-		fail(ctx, err, "DarkWebScheduler: 監視キーワードを読めませんでした")
+		// **照合対象が0件だったのではなく、読めていません。**
+		// ダークウェブ監視は「何も出ていない」が正常な画面なので、
+		// この回が何もしていないことは外から区別できません。
+		fail(ctx, err, "ダークウェブ: 照合対象を取得できませんでした")
 		return
 	}
 	type monitor struct{ id, mtype, value string }
@@ -270,25 +276,25 @@ func (s *DarkWebScheduler) checkPostMatches(ctx context.Context) {
 			monitors = append(monitors, m)
 		}
 	}
+	if err := rows.Err(); err != nil {
+		fail(ctx, err, "監視キーワードの走査が途中で終わりました。今回のパスで照合しないキーワードがあります")
+	}
 	rows.Close()
 	if len(monitors) == 0 {
 		return
 	}
 
-	// キャッシュされた groups.json を取得。
-	//
-	// **error を捨てると「読めなかった」と「まだ無い」が同じ形になります。**
-	// どちらでも rawPosts は空で、そのまま戻ると照合が 1 件も行われません
-	// —— 外からは「照合したが一致なし」と区別が付きません。
-	// 「まだ無い」だけが黙って戻ってよい理由です。
+	// キャッシュされた groups.json を取得
+	// **読めなかったことと「キャッシュがまだ無い」が同じ形でした。**
+	// どちらも長さ 0 で、そのまま静かに戻ります —— 照合は行われません。
 	var rawPosts []byte
 	switch err := s.pool.QueryRow(ctx,
 		`SELECT raw_posts FROM darkweb_ransomware_sites WHERE onion_url = '__cache__'`,
 	).Scan(&rawPosts); {
 	case errors.Is(err, pgx.ErrNoRows):
-		return // まだ同期されていない
+		return // まだ一度も同期していません。失敗ではありません。
 	case err != nil:
-		fail(ctx, err, "DarkWebScheduler: 被害者リストのキャッシュを読めませんでした")
+		fail(ctx, err, "darkweb: キャッシュした投稿一覧を読めず、照合を行いませんでした")
 		return
 	}
 	if len(rawPosts) == 0 {
@@ -297,7 +303,10 @@ func (s *DarkWebScheduler) checkPostMatches(ctx context.Context) {
 
 	var groups []rwGroup
 	if err := json.Unmarshal(rawPosts, &groups); err != nil {
-		fail(ctx, err, "DarkWebScheduler: 被害者リストのキャッシュを解釈できませんでした")
+		// 読み飛ばすと、監視キーワードに一致する投稿があっても照合され
+		// ません。ダークウェブ監視は「何も出ていない」が正常な画面なので、
+		// 動いていないことと区別がつきません。
+		fail(ctx, err, "darkweb: キャッシュした投稿一覧を解釈できず、照合を行いませんでした")
 		return
 	}
 
@@ -339,17 +348,23 @@ func (s *DarkWebScheduler) checkPostMatches(ctx context.Context) {
 					continue
 				}
 
-				_, _ = s.pool.Exec(ctx, `
+				// **書けないと、被害の検知行が残りません。** 下の
+				// アラートと通知は出るので、**画面には出たのに一覧には
+				// 無い**という食い違いになります。
+				if _, err := s.pool.Exec(ctx, `
 					INSERT INTO darkweb_findings
 					    (source, group_name, severity, title, description, monitor_value)
 					VALUES ($1, $2, $3, $4, $5, $6)`,
 					"ransomwatch_posts", g.Name, 9,
 					alertTitle, desc, m.value,
-				)
+				); err != nil {
+					fail(ctx, err, "darkweb: 検知行を保存できませんでした",
+						"group", g.Name, "keyword", m.value)
+				}
 				// アラートページにも登録
 				s.createAlert(ctx, alertTitle, desc, 9)
 				// 即時通知
-				s.sendUrgentAlert(alertTitle, desc)
+				s.sendUrgentAlert(ctx, alertTitle, desc)
 				slog.Warn("DarkWebScheduler: 被害者リストにキーワードを検出しました",
 					"group", g.Name, "post", post.PostTitle, "keyword", m.value,
 				)
@@ -365,7 +380,7 @@ func (s *DarkWebScheduler) healthCheck(ctx context.Context) {
 
 	torDialer, err := s.buildTorDialer()
 	if err != nil {
-		slog.Warn("DarkWebScheduler: Tor ダイヤラー作成に失敗しました", "error", err)
+		fail(ctx, err, "DarkWebScheduler: Tor ダイヤラー作成に失敗しました")
 		return
 	}
 
@@ -376,6 +391,8 @@ func (s *DarkWebScheduler) healthCheck(ctx context.Context) {
 		ORDER BY last_checked_at ASC NULLS FIRST
 		LIMIT 50`)
 	if err != nil {
+		// 黙って戻ると、回らなかった回と何も無かった回が同じになります。
+		fail(ctx, err, "ダークウェブ: 投稿の照合対象を取得できませんでした")
 		return
 	}
 	defer rows.Close()
@@ -390,6 +407,9 @@ func (s *DarkWebScheduler) healthCheck(ctx context.Context) {
 		if rows.Scan(&s.id, &s.group, &s.url, &s.fails) == nil {
 			sites = append(sites, s)
 		}
+	}
+	if err := rows.Err(); err != nil {
+		fail(ctx, err, "監視対象サイトの走査が途中で終わりました。今回のパスで疎通確認しないサイトがあります")
 	}
 	rows.Close()
 
@@ -412,19 +432,28 @@ func (s *DarkWebScheduler) healthCheck(ctx context.Context) {
 		isAlive := err == nil && resp.StatusCode < 500
 
 		if isAlive {
-			_, _ = s.pool.Exec(ctx, `
+			// **書けないと、死活の記録が古いままになります** ——
+			// 5回連続で落ちたサイトを無効化する判断が、その古い
+			// fail_count の上で行われます。
+			if _, err := s.pool.Exec(ctx, `
 				UPDATE darkweb_ransomware_sites
 				SET fail_count = 0, is_active = TRUE,
 				    last_alive_at = NOW(), last_checked_at = NOW()
-				WHERE id = $1`, site.id)
+				WHERE id = $1`, site.id); err != nil {
+				fail(ctx, err, "darkweb: サイトの死活を記録できませんでした",
+					"group", site.group)
+			}
 			alive++
 		} else {
 			newFails := site.fails + 1
 			isActive := newFails < 5
-			_, _ = s.pool.Exec(ctx, `
+			if _, err := s.pool.Exec(ctx, `
 				UPDATE darkweb_ransomware_sites
 				SET fail_count = $1, is_active = $2, last_checked_at = NOW()
-				WHERE id = $3`, newFails, isActive, site.id)
+				WHERE id = $3`, newFails, isActive, site.id); err != nil {
+				fail(ctx, err, "darkweb: サイトの死活を記録できませんでした",
+					"group", site.group)
+			}
 			dead++
 			if !isActive {
 				slog.Info("DarkWebScheduler: サイトを無効化しました",
@@ -451,9 +480,6 @@ func (s *DarkWebScheduler) createAlert(ctx context.Context, title, description s
 		severity, title, description,
 	)
 	if err != nil {
-		// 登録できなければ、その検知は SOC のキューにも一覧にも出ません
-		// —— 見つけた意味がその場で消えます。Warn は運用の設定で最初に
-		// 切られる段なので、回の失敗として上げます。
 		fail(ctx, err, "DarkWebScheduler: アラート登録に失敗しました")
 	}
 }
@@ -471,26 +497,28 @@ func (s *DarkWebScheduler) syncRansomwareLive(ctx context.Context) {
 	client := &http.Client{Timeout: 180 * time.Second} // victims.json は数MB超のため余裕を持たせる
 	resp, err := client.Get(ransomwareLiveURL)
 	if err != nil {
-		slog.Warn("DarkWebScheduler: ransomware.live 取得に失敗しました", "error", err)
+		fail(ctx, err, "DarkWebScheduler: ransomware.live 取得に失敗しました")
 		return
 	}
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		slog.Warn("DarkWebScheduler: ransomware.live 読み込みに失敗しました", "error", err)
+		fail(ctx, err, "DarkWebScheduler: ransomware.live 読み込みに失敗しました")
 		return
 	}
 
 	var victims []rlVictim
 	if err := json.Unmarshal(body, &victims); err != nil {
-		slog.Warn("DarkWebScheduler: ransomware.live パースに失敗しました", "error", err)
+		fail(ctx, err, "DarkWebScheduler: ransomware.live パースに失敗しました")
 		return
 	}
 
 	// 監視キーワード取得
 	rows, err := s.pool.Query(ctx, `SELECT monitor_type, value FROM darkweb_monitors WHERE enabled = TRUE`)
 	if err != nil {
+		// 黙って戻ると、回らなかった回と何も無かった回が同じになります。
+		fail(ctx, err, "ダークウェブ: 監視元の死活を確認できませんでした")
 		return
 	}
 	type monitor struct{ mtype, value string }
@@ -500,6 +528,9 @@ func (s *DarkWebScheduler) syncRansomwareLive(ctx context.Context) {
 		if rows.Scan(&m.mtype, &m.value) == nil {
 			monitors = append(monitors, m)
 		}
+	}
+	if err := rows.Err(); err != nil {
+		fail(ctx, err, "監視キーワードの走査が途中で終わりました。今回のパスで照合しないキーワードがあります")
 	}
 	rows.Close()
 	if len(monitors) == 0 {
@@ -593,17 +624,21 @@ func (s *DarkWebScheduler) syncRansomwareLive(ctx context.Context) {
 				"website":  v.Website,
 			})
 			rlTitle := fmt.Sprintf("[ransomware.live 被害確認] %s — %s (%s)", v.GroupName, v.PostTitle, country)
-			_, _ = s.pool.Exec(ctx, `
+			// 同上（ransomware.live 側）。
+			if _, err := s.pool.Exec(ctx, `
 				INSERT INTO darkweb_findings
 				    (source, group_name, severity, title, description, monitor_value, raw_data)
 				VALUES ($1, $2, $3, $4, $5, $6, $7)`,
 				"ransomware_live", v.GroupName, 9,
 				rlTitle, desc, m.value, rawData,
-			)
+			); err != nil {
+				fail(ctx, err, "darkweb: 検知行を保存できませんでした",
+					"group", v.GroupName, "keyword", m.value)
+			}
 			// アラートページにも登録
 			s.createAlert(ctx, rlTitle, desc, 9)
 			// 即時通知
-			s.sendUrgentAlert(rlTitle, desc)
+			s.sendUrgentAlert(ctx, rlTitle, desc)
 			matched++
 			slog.Warn("DarkWebScheduler: ransomware.live でキーワードを検出しました",
 				"group", v.GroupName, "victim", v.PostTitle, "keyword", m.value, "country", country,

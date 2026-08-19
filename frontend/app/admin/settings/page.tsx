@@ -156,7 +156,7 @@ function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean
       onClick={() => onChange(!checked)}
       className={`relative w-10 h-6 rounded-full transition-colors ${checked ? 'bg-red-600' : 'bg-zinc-700'}`}
     >
-      <span className={`absolute top-1 w-4 h-4 rounded-full bg-falcon-text shadow-sm transition-transform ${checked ? 'left-5' : 'left-1'}`} />
+      <span className={`absolute top-1 w-4 h-4 rounded-full bg-[#e2e8f4] shadow-sm transition-transform ${checked ? 'left-5' : 'left-1'}`} />
     </button>
   )
 }

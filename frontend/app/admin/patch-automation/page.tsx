@@ -9,6 +9,9 @@ import {
 } from 'lucide-react'
 
 
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+import { PageSaveFailed } from '@/components/PageSaveFailed'
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type Severity = 'critical' | 'high' | 'medium' | 'low'
@@ -61,19 +64,19 @@ export default function PatchAutomationPage() {
 
   const { data: policies = [] } = useQuery<PatchPolicy[]>({
     queryKey: ['patch-policies'],
-    queryFn: () => apiFetchList<PatchPolicy>('/api/v1/admin/patch-automation/policies').catch(() => []),
+    queryFn: () => apiFetchList<PatchPolicy>('/api/v1/admin/patch-automation/policies'),
     staleTime: 30_000,
   })
 
   const { data: jobs = [] } = useQuery<PatchJob[]>({
     queryKey: ['patch-jobs'],
-    queryFn: () => apiFetchList<PatchJob>('/api/v1/admin/patch-automation/jobs').catch(() => []),
+    queryFn: () => apiFetchList<PatchJob>('/api/v1/admin/patch-automation/jobs'),
     staleTime: 15_000,
   })
 
   const { data: missing = [] } = useQuery<MissingPatch[]>({
     queryKey: ['missing-patches'],
-    queryFn: () => apiFetchList<MissingPatch>('/api/v1/admin/patch-automation/missing-patches').catch(() => []),
+    queryFn: () => apiFetchList<MissingPatch>('/api/v1/admin/patch-automation/missing-patches'),
     staleTime: 60_000,
   })
 
@@ -110,34 +113,36 @@ export default function PatchAutomationPage() {
 
   return (
     <div className="min-h-screen bg-[#070d19] text-white">
+      <PageDataUnavailable />
+      <PageSaveFailed className="mb-4" />
       <div className="max-w-[1400px] mx-auto px-6 py-6">
 
         {/* Header */}
         <div className="mb-6">
           <div className="flex items-center gap-3 mb-1">
-            <div className="w-8 h-8 rounded-lg bg-linear-to-br from-falcon-red to-falcon-red-dark flex items-center justify-center">
+            <div className="w-8 h-8 rounded-lg bg-linear-to-br from-[#e8002d] to-[#a80020] flex items-center justify-center">
               <Wrench className="w-4 h-4 text-white" />
             </div>
             <h1 className="text-2xl font-bold">パッチ管理自動化</h1>
           </div>
-          <p className="text-falcon-muted text-sm ml-11">エンドポイントのパッチポリシー・適用ジョブ・未適用パッチを管理します</p>
+          <p className="text-[#7d92b0] text-sm ml-11">エンドポイントのパッチポリシー・適用ジョブ・未適用パッチを管理します</p>
         </div>
 
         {/* Stats */}
         <div className="grid grid-cols-5 gap-4 mb-6">
           {STATS.map(s => (
             <div key={s.label} className={`rounded-xl p-4 border ${s.bg}`}>
-              <p className="text-xs text-falcon-muted mb-1">{s.label}</p>
+              <p className="text-xs text-[#7d92b0] mb-1">{s.label}</p>
               <p className={`text-2xl font-bold ${s.color}`}>{s.value}</p>
             </div>
           ))}
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-1 mb-5 border-b border-falcon-border">
+        <div className="flex gap-1 mb-5 border-b border-[#1e2d42]">
           {([['policies', 'パッチポリシー'], ['jobs', 'パッチジョブ'], ['missing', '未適用パッチ']] as const).map(([k, label]) => (
             <button key={k} onClick={() => setTab(k)}
-              className={`px-5 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px ${tab === k ? 'border-falcon-red text-white' : 'border-transparent text-falcon-muted hover:text-white'}`}>
+              className={`px-5 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px ${tab === k ? 'border-[#e8002d] text-white' : 'border-transparent text-[#7d92b0] hover:text-white'}`}>
               {label}
             </button>
           ))}
@@ -147,18 +152,18 @@ export default function PatchAutomationPage() {
         {tab === 'policies' && (
           <div>
             <div className="flex justify-end mb-4">
-              <button className="flex items-center gap-2 px-4 py-2 bg-falcon-red hover:bg-[#c0001f] text-white text-sm font-medium rounded-lg transition-colors">
+              <button className="flex items-center gap-2 px-4 py-2 bg-[#e8002d] hover:bg-[#c0001f] text-white text-sm font-medium rounded-lg transition-colors">
                 <Plus className="w-4 h-4" /> 新規ポリシー
               </button>
             </div>
             <div className="space-y-3">
               {policies.map(p => (
-                <div key={p.id} className="bg-falcon-surface rounded-xl border border-falcon-border overflow-hidden">
+                <div key={p.id} className="bg-[#0d1220] rounded-xl border border-[#1e2d42] overflow-hidden">
                   <div className="flex items-center justify-between px-5 py-4">
                     <div className="flex items-center gap-4">
                       <div>
                         <p className="text-white font-medium">{p.name}</p>
-                        <p className="text-xs text-falcon-muted mt-0.5">{p.window}</p>
+                        <p className="text-xs text-[#7d92b0] mt-0.5">{p.window}</p>
                       </div>
                       <div className="flex gap-1.5">
                         {p.severities.map(s => (
@@ -173,21 +178,21 @@ export default function PatchAutomationPage() {
                       <button onClick={() => togglePolicy.mutate(p.id)}>
                         {p.enabled
                           ? <ToggleRight className="w-6 h-6 text-green-400 hover:text-green-300 transition-colors" />
-                          : <ToggleLeft className="w-6 h-6 text-falcon-subtle hover:text-falcon-muted transition-colors" />}
+                          : <ToggleLeft className="w-6 h-6 text-[#3d5068] hover:text-[#7d92b0] transition-colors" />}
                       </button>
                       <button onClick={() => setExpandedPolicy(expandedPolicy === p.id ? null : p.id)}
-                        className="text-falcon-muted hover:text-white transition-colors">
+                        className="text-[#7d92b0] hover:text-white transition-colors">
                         {expandedPolicy === p.id ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                       </button>
                     </div>
                   </div>
                   {expandedPolicy === p.id && (
-                    <div className="border-t border-falcon-border px-5 py-4 bg-[#070d19]/50">
+                    <div className="border-t border-[#1e2d42] px-5 py-4 bg-[#070d19]/50">
                       <div className="grid grid-cols-3 gap-4 text-sm">
-                        <div><p className="text-xs text-falcon-muted mb-1">ポリシーID</p><p className="text-white font-mono">{p.id}</p></div>
-                        <div><p className="text-xs text-falcon-muted mb-1">メンテナンスウィンドウ</p><p className="text-white">{p.window}</p></div>
-                        <div><p className="text-xs text-falcon-muted mb-1">自動承認</p><p className="text-white">{p.auto_approve ? 'はい' : 'いいえ'}</p></div>
-                        <div><p className="text-xs text-falcon-muted mb-1">対象深刻度</p>
+                        <div><p className="text-xs text-[#7d92b0] mb-1">ポリシーID</p><p className="text-white font-mono">{p.id}</p></div>
+                        <div><p className="text-xs text-[#7d92b0] mb-1">メンテナンスウィンドウ</p><p className="text-white">{p.window}</p></div>
+                        <div><p className="text-xs text-[#7d92b0] mb-1">自動承認</p><p className="text-white">{p.auto_approve ? 'はい' : 'いいえ'}</p></div>
+                        <div><p className="text-xs text-[#7d92b0] mb-1">対象深刻度</p>
                           <div className="flex gap-1 mt-1">{p.severities.map(s => <span key={s} className={`text-xs px-2 py-0.5 rounded-sm border capitalize ${severityCls[s]}`}>{s}</span>)}</div>
                         </div>
                       </div>
@@ -206,45 +211,45 @@ export default function PatchAutomationPage() {
               <div className="flex gap-2">
                 {(['全て', 'pending', 'approved', 'running', 'completed', 'failed'] as const).map(f => (
                   <button key={f} onClick={() => setJobFilter(f)}
-                    className={`px-3 py-1.5 text-xs rounded-lg border transition-colors ${jobFilter === f ? 'bg-falcon-red border-falcon-red text-white' : 'bg-falcon-surface border-falcon-border text-falcon-muted hover:text-white'}`}>
+                    className={`px-3 py-1.5 text-xs rounded-lg border transition-colors ${jobFilter === f ? 'bg-[#e8002d] border-[#e8002d] text-white' : 'bg-[#0d1220] border-[#1e2d42] text-[#7d92b0] hover:text-white'}`}>
                     {f}
                   </button>
                 ))}
               </div>
               <button onClick={() => setShowNewJobForm(v => !v)}
-                className="flex items-center gap-2 px-4 py-2 bg-falcon-red hover:bg-[#c0001f] text-white text-sm font-medium rounded-lg transition-colors">
+                className="flex items-center gap-2 px-4 py-2 bg-[#e8002d] hover:bg-[#c0001f] text-white text-sm font-medium rounded-lg transition-colors">
                 <Plus className="w-4 h-4" /> 新規ジョブ作成
               </button>
             </div>
 
             {showNewJobForm && (
-              <div className="bg-falcon-surface rounded-xl border border-falcon-border p-5 mb-4">
+              <div className="bg-[#0d1220] rounded-xl border border-[#1e2d42] p-5 mb-4">
                 <p className="text-white font-medium mb-4">新規パッチジョブ作成</p>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs text-falcon-muted mb-1.5">ジョブ名</label>
-                    <input className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-sm text-white focus:outline-hidden focus:border-falcon-blue/60" placeholder="例: 緊急パッチ適用" />
+                    <label className="block text-xs text-[#7d92b0] mb-1.5">ジョブ名</label>
+                    <input className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-white focus:outline-hidden focus:border-[#1a6bff]/60" placeholder="例: 緊急パッチ適用" />
                   </div>
                   <div>
-                    <label className="block text-xs text-falcon-muted mb-1.5">ポリシー選択</label>
-                    <select className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-sm text-white focus:outline-hidden focus:border-falcon-blue/60">
+                    <label className="block text-xs text-[#7d92b0] mb-1.5">ポリシー選択</label>
+                    <select className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-white focus:outline-hidden focus:border-[#1a6bff]/60">
                       {policies.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                     </select>
                   </div>
                 </div>
                 <div className="flex justify-end gap-3 mt-4">
-                  <button onClick={() => setShowNewJobForm(false)} className="px-4 py-2 text-sm text-falcon-muted hover:text-white border border-falcon-border rounded-lg transition-colors">キャンセル</button>
-                  <button className="px-4 py-2 text-sm bg-falcon-red hover:bg-[#c0001f] text-white rounded-lg transition-colors">作成</button>
+                  <button onClick={() => setShowNewJobForm(false)} className="px-4 py-2 text-sm text-[#7d92b0] hover:text-white border border-[#1e2d42] rounded-lg transition-colors">キャンセル</button>
+                  <button className="px-4 py-2 text-sm bg-[#e8002d] hover:bg-[#c0001f] text-white rounded-lg transition-colors">作成</button>
                 </div>
               </div>
             )}
 
-            <div className="bg-falcon-surface rounded-xl border border-falcon-border overflow-hidden">
+            <div className="bg-[#0d1220] rounded-xl border border-[#1e2d42] overflow-hidden">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-falcon-border">
+                  <tr className="border-b border-[#1e2d42]">
                     {['ジョブ名', 'ステータス', '対象', '適用済み', '失敗', '再起動待ち', '進捗', '開始時刻', '操作'].map(h => (
-                      <th key={h} className="text-left px-4 py-3 text-xs text-falcon-muted font-medium">{h}</th>
+                      <th key={h} className="text-left px-4 py-3 text-xs text-[#7d92b0] font-medium">{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -252,7 +257,7 @@ export default function PatchAutomationPage() {
                   {filteredJobs.map(j => {
                     const pct = j.total_endpoints > 0 ? Math.round((j.patched_count / j.total_endpoints) * 100) : 0
                     return (
-                      <tr key={j.id} className="border-b border-falcon-border/50 hover:bg-[#131d31]/50 transition-colors">
+                      <tr key={j.id} className="border-b border-[#1e2d42]/50 hover:bg-[#131d31]/50 transition-colors">
                         <td className="px-4 py-3 text-white font-medium">{j.name}</td>
                         <td className="px-4 py-3">
                           <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-sm border capitalize ${jobStatusCls[j.status]} ${j.status === 'running' ? 'animate-pulse' : ''}`}>
@@ -260,19 +265,19 @@ export default function PatchAutomationPage() {
                             {j.status}
                           </span>
                         </td>
-                        <td className="px-4 py-3 text-falcon-muted">{j.total_endpoints}</td>
+                        <td className="px-4 py-3 text-[#7d92b0]">{j.total_endpoints}</td>
                         <td className="px-4 py-3 text-green-400">{j.patched_count}</td>
                         <td className="px-4 py-3 text-red-400">{j.failed_count}</td>
                         <td className="px-4 py-3 text-yellow-400">{j.pending_reboot}</td>
                         <td className="px-4 py-3 min-w-[120px]">
                           <div className="flex items-center gap-2">
-                            <div className="flex-1 bg-falcon-border rounded-full h-1.5">
+                            <div className="flex-1 bg-[#1e2d42] rounded-full h-1.5">
                               <div className={`h-1.5 rounded-full ${pct === 100 ? 'bg-green-400' : 'bg-blue-400'}`} style={{ width: `${pct}%` }} />
                             </div>
-                            <span className="text-xs text-falcon-muted w-8 text-right">{pct}%</span>
+                            <span className="text-xs text-[#7d92b0] w-8 text-right">{pct}%</span>
                           </div>
                         </td>
-                        <td className="px-4 py-3 text-falcon-muted text-xs whitespace-nowrap">{fmtDate(j.started_at)}</td>
+                        <td className="px-4 py-3 text-[#7d92b0] text-xs whitespace-nowrap">{fmtDate(j.started_at)}</td>
                         <td className="px-4 py-3">
                           {j.status === 'pending' && (
                             <button onClick={() => approveJob.mutate(j.id)}
@@ -299,57 +304,57 @@ export default function PatchAutomationPage() {
                 <AlertTriangle className="w-5 h-5 text-red-400" />
                 <div>
                   <p className="text-white font-medium">未適用パッチ リスクサマリー</p>
-                  <p className="text-xs text-falcon-muted mt-0.5">クリティカル {criticalMissing} 件 — 即時対応が必要です</p>
+                  <p className="text-xs text-[#7d92b0] mt-0.5">クリティカル {criticalMissing} 件 — 即時対応が必要です</p>
                 </div>
               </div>
-              <button className="flex items-center gap-2 px-4 py-2 bg-falcon-red hover:bg-[#c0001f] text-white text-sm font-medium rounded-lg transition-colors">
+              <button className="flex items-center gap-2 px-4 py-2 bg-[#e8002d] hover:bg-[#c0001f] text-white text-sm font-medium rounded-lg transition-colors">
                 <Play className="w-4 h-4" /> 一括適用 (Critical)
               </button>
             </div>
 
             <div className="flex items-center justify-between mb-4">
-              <p className="text-sm text-falcon-muted">並び替え:</p>
+              <p className="text-sm text-[#7d92b0]">並び替え:</p>
               <div className="flex gap-2">
                 {[['severity', '深刻度'], ['days', '未適用日数'], ['endpoints', '影響エンドポイント数']] as const as [string, string][]}
                 {(['severity', 'days', 'endpoints'] as const).map((s, i) => (
                   <button key={s} onClick={() => setMissingSort(s)}
-                    className={`px-3 py-1.5 text-xs rounded-lg border transition-colors ${missingSort === s ? 'bg-falcon-red border-falcon-red text-white' : 'bg-falcon-surface border-falcon-border text-falcon-muted hover:text-white'}`}>
+                    className={`px-3 py-1.5 text-xs rounded-lg border transition-colors ${missingSort === s ? 'bg-[#e8002d] border-[#e8002d] text-white' : 'bg-[#0d1220] border-[#1e2d42] text-[#7d92b0] hover:text-white'}`}>
                     {['深刻度', '未適用日数', '影響エンドポイント数'][i]}
                   </button>
                 ))}
               </div>
             </div>
 
-            <div className="bg-falcon-surface rounded-xl border border-falcon-border overflow-hidden">
+            <div className="bg-[#0d1220] rounded-xl border border-[#1e2d42] overflow-hidden">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-falcon-border">
+                  <tr className="border-b border-[#1e2d42]">
                     {['パッチID', 'CVE', '深刻度', 'タイトル', '影響EP', 'リリース日', '未適用日数', '対応'].map(h => (
-                      <th key={h} className="text-left px-4 py-3 text-xs text-falcon-muted font-medium">{h}</th>
+                      <th key={h} className="text-left px-4 py-3 text-xs text-[#7d92b0] font-medium">{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {sortedMissing.map(p => (
-                    <tr key={p.id} className="border-b border-falcon-border/50 hover:bg-[#131d31]/50 transition-colors">
+                    <tr key={p.id} className="border-b border-[#1e2d42]/50 hover:bg-[#131d31]/50 transition-colors">
                       <td className="px-4 py-3 text-white font-mono text-xs">{p.id}</td>
                       <td className="px-4 py-3">
-                        <span className="text-xs font-mono text-falcon-muted bg-[#070d19] px-2 py-0.5 rounded-sm">{p.cve}</span>
+                        <span className="text-xs font-mono text-[#7d92b0] bg-[#070d19] px-2 py-0.5 rounded-sm">{p.cve}</span>
                       </td>
                       <td className="px-4 py-3">
                         <span className={`text-xs px-2 py-0.5 rounded-sm border capitalize ${severityCls[p.severity]}`}>{p.severity}</span>
                       </td>
                       <td className="px-4 py-3 text-white text-xs max-w-[200px] truncate">{p.title}</td>
                       <td className="px-4 py-3 text-white font-medium">{p.affected_endpoints}</td>
-                      <td className="px-4 py-3 text-falcon-muted text-xs whitespace-nowrap">{p.release_date}</td>
+                      <td className="px-4 py-3 text-[#7d92b0] text-xs whitespace-nowrap">{p.release_date}</td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-1.5">
-                          <Clock className="w-3.5 h-3.5 text-falcon-subtle" />
+                          <Clock className="w-3.5 h-3.5 text-[#3d5068]" />
                           <span className={`text-xs font-medium ${daysMissingColor(p.days_missing)}`}>{p.days_missing}日</span>
                         </div>
                       </td>
                       <td className="px-4 py-3">
-                        <button className="flex items-center gap-1 px-3 py-1 text-xs bg-falcon-blue/20 hover:bg-falcon-blue/40 text-blue-300 border border-blue-700/50 rounded-lg transition-colors">
+                        <button className="flex items-center gap-1 px-3 py-1 text-xs bg-[#1a6bff]/20 hover:bg-[#1a6bff]/40 text-blue-300 border border-blue-700/50 rounded-lg transition-colors">
                           <Play className="w-3 h-3" /> 適用
                         </button>
                       </td>

@@ -12,6 +12,14 @@ import (
 	"github.com/cilium/ebpf"
 )
 
+// Names of all BPF objects in the ELF.
+//
+// Used for safe lookups in a Collection or CollectionSpec.
+const (
+	LibraryMonitorMapLibEvents     = "lib_events"
+	LibraryMonitorProgHandleDlopen = "handle_dlopen"
+)
+
 // LoadLibraryMonitor returns the embedded CollectionSpec for LibraryMonitor.
 func LoadLibraryMonitor() (*ebpf.CollectionSpec, error) {
 	reader := bytes.NewReader(_LibraryMonitorBytes)
@@ -32,7 +40,7 @@ func LoadLibraryMonitor() (*ebpf.CollectionSpec, error) {
 //	*LibraryMonitorMaps
 //
 // See ebpf.CollectionSpec.LoadAndAssign documentation for details.
-func LoadLibraryMonitorObjects(obj interface{}, opts *ebpf.CollectionOptions) error {
+func LoadLibraryMonitorObjects(obj any, opts *ebpf.CollectionOptions) error {
 	spec, err := LoadLibraryMonitor()
 	if err != nil {
 		return err

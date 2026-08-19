@@ -208,11 +208,11 @@ export function IncidentTimeline({ incidentId }: IncidentTimelineProps) {
   const items     = detail ? buildTimeline(detail, notes) : []
 
   return (
-    <div className="bg-falcon-card border border-falcon-border rounded-xl p-5">
+    <div className="bg-[#111827] border border-[#1e2d42] rounded-xl p-5">
       {/* Section header */}
       <div className="flex items-center gap-2 mb-5">
         <Activity size={18} className="text-yellow-400" />
-        <h2 className="font-semibold text-falcon-text">タイムライン</h2>
+        <h2 className="font-semibold text-[#e2e8f4]">タイムライン</h2>
         {!isLoading && (
           <span className="text-xs text-[#5a6a7a] ml-auto">{items.length} 件のイベント</span>
         )}
@@ -238,7 +238,7 @@ export function IncidentTimeline({ incidentId }: IncidentTimelineProps) {
                 {/* Left column: dot + line */}
                 <div className="flex flex-col items-center shrink-0 w-6">
                   {/* Dot */}
-                  <div className={`w-3 h-3 rounded-full mt-1 shrink-0 ring-2 ring-falcon-card ${TYPE_DOT[item.type]}`} />
+                  <div className={`w-3 h-3 rounded-full mt-1 shrink-0 ring-2 ring-[#111827] ${TYPE_DOT[item.type]}`} />
                   {/* Connector line */}
                   {!isLast && (
                     <div className={`flex-1 w-px border-l-2 border-dashed mt-1 mb-0 ${TYPE_LINE[item.type]}`} style={{ minHeight: '2rem' }} />
@@ -258,14 +258,14 @@ export function IncidentTimeline({ incidentId }: IncidentTimelineProps) {
                         {severityLabel(item.severity)} Lv{item.severity}
                       </span>
                     )}
-                    <span className="ml-auto text-[10px] text-falcon-subtle flex items-center gap-0.5 font-mono shrink-0">
+                    <span className="ml-auto text-[10px] text-[#3d5068] flex items-center gap-0.5 font-mono shrink-0">
                       <Clock size={9} />
                       {new Date(item.timestamp).toLocaleString('ja-JP')}
                     </span>
                   </div>
 
                   {/* Title */}
-                  <p className="text-sm font-medium text-falcon-text leading-snug">{item.title}</p>
+                  <p className="text-sm font-medium text-[#e2e8f4] leading-snug">{item.title}</p>
 
                   {/* Description */}
                   {item.description && (
@@ -274,7 +274,7 @@ export function IncidentTimeline({ incidentId }: IncidentTimelineProps) {
 
                   {/* User attribution */}
                   {item.user && (
-                    <div className="flex items-center gap-1 mt-1.5 text-[10px] text-falcon-subtle">
+                    <div className="flex items-center gap-1 mt-1.5 text-[10px] text-[#3d5068]">
                       <User size={9} />
                       {item.user}
                     </div>
@@ -287,7 +287,7 @@ export function IncidentTimeline({ incidentId }: IncidentTimelineProps) {
       )}
 
       {/* Add Comment form */}
-      <div className="mt-5 pt-4 border-t border-falcon-border">
+      <div className="mt-5 pt-4 border-t border-[#1e2d42]">
         <p className="text-xs text-[#5a6a7a] mb-2 flex items-center gap-1">
           <MessageSquare size={11} />
           コメントを追加
@@ -303,16 +303,12 @@ export function IncidentTimeline({ incidentId }: IncidentTimelineProps) {
             }}
             placeholder="コメントを入力... (Ctrl+Enter で送信)"
             rows={2}
-            className="flex-1 bg-falcon-bg border border-falcon-border rounded-lg px-3 py-2 text-sm
-                       text-falcon-text placeholder-falcon-subtle resize-none
-                       focus:outline-hidden focus:border-yellow-600/60 transition-colors"
+            className="flex-1 bg-[#080c14] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-[#e2e8f4] placeholder-[#3d5068] resize-none focus:outline-hidden focus:border-yellow-600/60 transition-colors"
           />
           <button
             onClick={() => commentBody.trim() && addCommentMutation.mutate(commentBody.trim())}
             disabled={!commentBody.trim() || addCommentMutation.isPending}
-            className="self-end flex items-center gap-1.5 px-4 py-2 text-sm
-                       bg-yellow-700 hover:bg-yellow-600 text-white rounded-lg
-                       disabled:opacity-50 transition-colors shrink-0"
+            className="self-end flex items-center gap-1.5 px-4 py-2 text-sm bg-yellow-700 hover:bg-yellow-600 text-white rounded-lg disabled:opacity-50 transition-colors shrink-0"
           >
             <Send size={13} />
             {addCommentMutation.isPending ? '送信中...' : '送信'}

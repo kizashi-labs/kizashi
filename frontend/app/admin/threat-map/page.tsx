@@ -6,6 +6,8 @@ import { apiFetch } from '@/lib/api'
 import { Globe2, Shield, Activity, AlertTriangle } from 'lucide-react'
 import { WorldMap, latLonToPercent } from '@/components/WorldMap'
 
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface ThreatOrigin {
@@ -118,6 +120,7 @@ export default function ThreatMapPage() {
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100 p-6">
+      <PageDataUnavailable />
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">

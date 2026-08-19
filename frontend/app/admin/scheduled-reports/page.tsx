@@ -10,6 +10,9 @@ import {
 } from 'lucide-react'
 
 
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+import { usePersist, SaveFailed } from '@/lib/persist'
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type ReportType = 'executive_summary' | 'compliance' | 'incident_report' | 'threat_summary'
@@ -102,6 +105,7 @@ export default function ScheduledReportsPage() {
   })
 
   const [localSchedules, setLocalSchedules] = useState<ReportSchedule[]>([])
+  const { persist, saveError } = usePersist()
 
   // Sync API data into local state when a real (non-mock) response arrives
   useEffect(() => {
@@ -110,22 +114,23 @@ export default function ScheduledReportsPage() {
     }
   }, [schedules])
 
+  // 定期レポートは、届かなくなったことに誰も気づかない種類の機能です。
+  // 有効にしたつもりのスケジュールが保存されていなければ、報告書は
+  // 来月も再来月も届きません。
   const handleToggle = async (id: string) => {
-    try {
-      await apiFetch(`/api/v1/admin/reports/schedules/${id}/toggle`, { method: 'PUT' })
-    } catch { /* ok */ }
-    setLocalSchedules(prev =>
-      prev.map(s => s.id === id ? { ...s, enabled: !s.enabled } : s)
-    )
+    if (await persist('スケジュールの有効/無効', `/api/v1/admin/reports/schedules/${id}/toggle`, { method: 'PUT' })) {
+      setLocalSchedules(prev =>
+        prev.map(s => s.id === id ? { ...s, enabled: !s.enabled } : s)
+      )
+    }
   }
 
   const handleDelete = async (id: string) => {
     setDeletingId(id)
-    try {
-      await apiFetch(`/api/v1/admin/reports/schedules/${id}`, { method: 'DELETE' })
-    } catch { /* ok */ }
-    setLocalSchedules(prev => prev.filter(s => s.id !== id))
+    const ok = await persist('スケジュールの削除', `/api/v1/admin/reports/schedules/${id}`, { method: 'DELETE' })
     setDeletingId(null)
+    if (!ok) return
+    setLocalSchedules(prev => prev.filter(s => s.id !== id))
     showToast('success', 'Schedule deleted')
   }
 
@@ -175,12 +180,10 @@ export default function ScheduledReportsPage() {
       enabled: true, last_run: null,
       next_run: new Date(Date.now() + 86400000).toISOString(),
     }
-    try {
-      await apiFetch('/api/v1/admin/reports/schedules', {
-        method: 'POST',
-        body: JSON.stringify(newSchedule),
-      })
-    } catch { /* ok */ }
+    if (!(await persist('スケジュール', '/api/v1/admin/reports/schedules', {
+      method: 'POST',
+      body: JSON.stringify(newSchedule),
+    }))) return
     setLocalSchedules(prev => [...prev, newSchedule])
     setShowModal(false)
     setForm({ name: '', report_type: 'executive_summary', preset: 'weekly', custom_cron: '', format: 'json', recipient_input: '', recipients: [] })
@@ -210,6 +213,8 @@ export default function ScheduledReportsPage() {
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100 p-6">
+      <PageDataUnavailable />
+      <SaveFailed error={saveError} />
       {/* Toast */}
       {toast && (
         <div className={`fixed top-4 right-4 z-50 flex items-center gap-2 px-4 py-3 rounded-xl border shadow-xl text-sm font-medium transition-all ${
@@ -348,7 +353,7 @@ export default function ScheduledReportsPage() {
 
       {/* Create Modal */}
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
           <div className="bg-zinc-900 border border-zinc-800 rounded-2xl w-full max-w-lg shadow-2xl max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between p-5 border-b border-zinc-800">
               <h2 className="text-lg font-semibold text-zinc-100">Create Schedule</h2>

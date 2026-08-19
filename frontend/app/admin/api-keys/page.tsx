@@ -9,6 +9,9 @@ import {
   Eye, EyeOff
 } from 'lucide-react'
 
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+import { SaveFailed, saveErrorOf } from '@/lib/persist'
+
 // ── Types ──────────────────────────────────────────────────────────────────────
 
 type KeyStatus = 'active' | 'expired' | 'revoked'
@@ -166,7 +169,7 @@ function GenerateModal({ onClose, onCreated }: GenerateModalProps) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
       <div className="bg-zinc-900 border border-zinc-700 rounded-xl shadow-2xl w-full max-w-lg mx-4">
         <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-700">
           <h2 className="text-lg font-semibold text-zinc-100">新規APIキー発行</h2>
@@ -258,7 +261,7 @@ function ShowKeyModal({ keyData, onClose }: ShowKeyModalProps) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
       <div className="bg-zinc-900 border border-zinc-700 rounded-xl shadow-2xl w-full max-w-lg mx-4">
         <div className="px-6 py-4 border-b border-zinc-700">
           <div className="flex items-center gap-2 text-yellow-400 mb-1">
@@ -322,7 +325,10 @@ export default function ApiKeysPage() {
   })
 
   const revokeMut = useMutation({
-    mutationFn: (id: string) => apiFetch(`/api/v1/apikeys/${id}`, { method: 'DELETE' }).catch(() => {}),
+    // .catch(() => {}) が失敗を成功に変えていました。APIキーの失効が
+    // 効かないまま「失効しました」になるので、生きている鍵を止めたと
+    // 思い込みます。
+    mutationFn: (id: string) => apiFetch(`/api/v1/apikeys/${id}`, { method: 'DELETE' }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-apikeys'] }),
   })
 
@@ -334,6 +340,8 @@ export default function ApiKeysPage() {
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100 p-6">
+      <PageDataUnavailable />
+      <SaveFailed error={saveErrorOf('APIキーの失効', revokeMut)} />
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">

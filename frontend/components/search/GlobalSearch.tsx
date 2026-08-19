@@ -243,20 +243,19 @@ export function GlobalSearch({ open, onClose }: Props) {
       onClick={onClose}
     >
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-falcon-bg/80 backdrop-blur-md" />
+      <div className="absolute inset-0 bg-[#080c14]/80 backdrop-blur-md" />
 
       {/* Modal */}
       <div
-        className="relative w-full max-w-2xl bg-falcon-card border border-falcon-border
-                   rounded-md shadow-falcon-modal overflow-hidden animate-slide-in"
+        className="relative w-full max-w-2xl bg-[#111827] border border-[#1e2d42] rounded-md shadow-falcon-modal overflow-hidden animate-slide-in"
         onClick={e => e.stopPropagation()}
       >
         {/* Header with input */}
-        <div className="flex items-center gap-3 px-4 py-3 border-b border-falcon-border">
+        <div className="flex items-center gap-3 px-4 py-3 border-b border-[#1e2d42]">
           <div className="flex items-center gap-2 shrink-0">
             {loading
-              ? <Loader2 className="w-4 h-4 text-falcon-red animate-spin" />
-              : <Search className="w-4 h-4 text-falcon-subtle" />
+              ? <Loader2 className="w-4 h-4 text-[#e8002d] animate-spin" />
+              : <Search className="w-4 h-4 text-[#3d5068]" />
             }
           </div>
           <input
@@ -265,20 +264,18 @@ export function GlobalSearch({ open, onClose }: Props) {
             name="global-search"
             autoComplete="off"
             placeholder="アラート、エンドポイント、インシデントを検索..."
-            className="flex-1 bg-transparent text-falcon-text placeholder-falcon-subtle
-                       text-sm outline-hidden font-medium"
+            className="flex-1 bg-transparent text-[#e2e8f4] placeholder-[#3d5068] text-sm outline-hidden font-medium"
           />
           <div className="flex items-center gap-2 shrink-0">
             {query && (
               <button
                 onClick={() => { if (inputRef.current) inputRef.current.value = ''; setQuery(''); setApiResults([]) }}
-                className="text-falcon-subtle hover:text-falcon-muted transition-colors"
+                className="text-[#3d5068] hover:text-[#7d92b0] transition-colors"
               >
                 <X className="w-3.5 h-3.5" />
               </button>
             )}
-            <kbd className="inline-flex items-center px-1.5 py-0.5 bg-falcon-raised border border-falcon-border
-                            rounded text-[10px] text-falcon-subtle font-mono">
+            <kbd className="inline-flex items-center px-1.5 py-0.5 bg-[#161f33] border border-[#1e2d42] rounded-sm text-[10px] text-[#3d5068] font-mono">
               ESC
             </kbd>
           </div>
@@ -288,13 +285,13 @@ export function GlobalSearch({ open, onClose }: Props) {
         <div className="max-h-[440px] overflow-y-auto">
           {query.length >= 2 && !loading && results.length === 0 && (
             <div className="px-4 py-12 text-center">
-              <Search className="w-8 h-8 text-falcon-border mx-auto mb-3" />
-              <p className="text-falcon-subtle text-sm">「{query}」に一致する結果なし</p>
+              <Search className="w-8 h-8 text-[#1e2d42] mx-auto mb-3" />
+              <p className="text-[#3d5068] text-sm">「{query}」に一致する結果なし</p>
             </div>
           )}
           {query.length < 2 && (
             <div className="px-4 py-10">
-              <p className="text-falcon-subtle text-xs text-center uppercase tracking-widest">
+              <p className="text-[#3d5068] text-xs text-center uppercase tracking-widest">
                 2文字以上入力してください
               </p>
               {/* Quick navigation hints */}
@@ -302,8 +299,7 @@ export function GlobalSearch({ open, onClose }: Props) {
                 {Object.entries(TYPE_CONFIG).map(([type, cfg]) => {
                   const Icon = cfg.icon
                   return (
-                    <div key={type} className="flex items-center gap-2 px-3 py-2 rounded bg-falcon-raised
-                                               border border-falcon-border text-falcon-subtle">
+                    <div key={type} className="flex items-center gap-2 px-3 py-2 rounded-sm bg-[#161f33] border border-[#1e2d42] text-[#3d5068]">
                       <Icon className="w-3.5 h-3.5 shrink-0" style={{ color: cfg.color }} />
                       <span className="text-[11px]">{cfg.label}</span>
                     </div>
@@ -320,13 +316,12 @@ export function GlobalSearch({ open, onClose }: Props) {
             return (
               <div key={type}>
                 {/* Group header */}
-                <div className="flex items-center gap-2 px-4 py-1.5 bg-falcon-raised/50
-                                border-b border-falcon-border/50 sticky top-0">
+                <div className="flex items-center gap-2 px-4 py-1.5 bg-[#161f33]/50 border-b border-[#1e2d42]/50 sticky top-0">
                   <TypeIcon className="w-3 h-3 shrink-0" style={{ color: cfg.color }} />
-                  <span className="text-[10px] font-bold text-falcon-muted uppercase tracking-widest">
+                  <span className="text-[10px] font-bold text-[#7d92b0] uppercase tracking-widest">
                     {cfg.label}
                   </span>
-                  <span className="text-[10px] text-falcon-subtle ml-auto font-mono">{items.length}</span>
+                  <span className="text-[10px] text-[#3d5068] ml-auto font-mono">{items.length}</span>
                 </div>
                 {/* Items */}
                 {items.map(r => {
@@ -340,8 +335,8 @@ export function GlobalSearch({ open, onClose }: Props) {
                       onClick={() => navigate(r)}
                       onMouseEnter={() => setSelected(idx)}
                       className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-colors
-                                  border-b border-falcon-border/30 last:border-0 group ${
-                        isSelected ? 'bg-falcon-active' : 'hover:bg-falcon-hover'
+                                  border-b border-[#1e2d42]/30 last:border-0 group ${
+                        isSelected ? 'bg-[#1d2f4a]' : 'hover:bg-[#19253d]'
                       }`}
                     >
                       {/* Type icon */}
@@ -349,9 +344,9 @@ export function GlobalSearch({ open, onClose }: Props) {
 
                       {/* Content */}
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm text-falcon-text truncate font-medium">{r.title}</p>
+                        <p className="text-sm text-[#e2e8f4] truncate font-medium">{r.title}</p>
                         {r.subtitle && (
-                          <p className="text-[11px] text-falcon-subtle truncate font-mono mt-0.5">{r.subtitle}</p>
+                          <p className="text-[11px] text-[#3d5068] truncate font-mono mt-0.5">{r.subtitle}</p>
                         )}
                       </div>
 
@@ -364,11 +359,11 @@ export function GlobalSearch({ open, onClose }: Props) {
                           </span>
                         )}
                         {r.status && (
-                          <span className="text-[10px] text-falcon-subtle bg-falcon-raised px-1.5 py-0.5 rounded-sm font-mono">
+                          <span className="text-[10px] text-[#3d5068] bg-[#161f33] px-1.5 py-0.5 rounded-sm font-mono">
                             {r.status}
                           </span>
                         )}
-                        <ArrowRight className={`w-3.5 h-3.5 transition-opacity text-falcon-subtle ${
+                        <ArrowRight className={`w-3.5 h-3.5 transition-opacity text-[#3d5068] ${
                           isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
                         }`} />
                       </div>
@@ -382,16 +377,15 @@ export function GlobalSearch({ open, onClose }: Props) {
 
         {/* Footer */}
         {results.length > 0 && (
-          <div className="flex items-center gap-4 px-4 py-2 border-t border-falcon-border
-                          bg-falcon-raised/50 text-[10px] text-falcon-subtle">
+          <div className="flex items-center gap-4 px-4 py-2 border-t border-[#1e2d42] bg-[#161f33]/50 text-[10px] text-[#3d5068]">
             <span className="flex items-center gap-1">
-              <kbd className="font-mono bg-falcon-border px-1 rounded-sm">↑↓</kbd> 移動
+              <kbd className="font-mono bg-[#1e2d42] px-1 rounded-sm">↑↓</kbd> 移動
             </span>
             <span className="flex items-center gap-1">
-              <kbd className="font-mono bg-falcon-border px-1 rounded-sm">↵</kbd> 開く
+              <kbd className="font-mono bg-[#1e2d42] px-1 rounded-sm">↵</kbd> 開く
             </span>
             <span className="flex items-center gap-1">
-              <kbd className="font-mono bg-falcon-border px-1 rounded-sm">Esc</kbd> 閉じる
+              <kbd className="font-mono bg-[#1e2d42] px-1 rounded-sm">Esc</kbd> 閉じる
             </span>
             <span className="ml-auto font-mono">{results.length} 件</span>
           </div>

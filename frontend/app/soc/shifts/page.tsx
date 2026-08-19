@@ -9,6 +9,10 @@ import {
   RefreshCw, FileText, Calendar, BarChart2, X
 } from 'lucide-react'
 
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+import { PageSaveFailed } from '@/components/PageSaveFailed'
+import { usePersist, SaveFailed } from '@/lib/persist'
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type ShiftStatus = 'active' | 'completed' | 'cancelled'
@@ -213,14 +217,14 @@ function StartShiftModal({ onClose, onStart }: { onClose: () => void; onStart: (
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs">
-      <div className="bg-falcon-surface border border-falcon-border rounded-lg w-full max-w-md mx-4 shadow-2xl">
-        <div className="flex items-center justify-between p-5 border-b border-falcon-border">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg w-full max-w-md mx-4 shadow-2xl">
+        <div className="flex items-center justify-between p-5 border-b border-[#1e2d42]">
           <h3 className="text-white font-semibold text-lg flex items-center gap-2">
             <Play className="w-5 h-5 text-green-400" />
             シフト開始
           </h3>
-          <button onClick={onClose} className="text-falcon-muted hover:text-white transition-colors">
+          <button onClick={onClose} className="text-[#7d92b0] hover:text-white transition-colors">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -228,22 +232,22 @@ function StartShiftModal({ onClose, onStart }: { onClose: () => void; onStart: (
         <div className="p-5 space-y-4">
           {/* Shift name */}
           <div>
-            <label className="block text-xs text-falcon-muted mb-1.5 font-medium">シフト名</label>
+            <label className="block text-xs text-[#7d92b0] mb-1.5 font-medium">シフト名</label>
             <input
               value={name}
               onChange={e => setName(e.target.value)}
-              className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-sm text-white focus:outline-hidden focus:border-falcon-subtle focus:ring-1 focus:ring-falcon-subtle"
+              className="w-full bg-[#070d19] border border-[#1e2d42] rounded-sm px-3 py-2 text-sm text-white focus:outline-hidden focus:border-[#3d5068] focus:ring-1 focus:ring-[#3d5068]"
               placeholder="夜間シフト 2026-03-18"
             />
           </div>
 
           {/* Lead analyst */}
           <div>
-            <label className="block text-xs text-falcon-muted mb-1.5 font-medium">リードアナリスト</label>
+            <label className="block text-xs text-[#7d92b0] mb-1.5 font-medium">リードアナリスト</label>
             <select
               value={leadId}
               onChange={e => setLeadId(e.target.value)}
-              className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-sm text-white focus:outline-hidden focus:border-falcon-subtle"
+              className="w-full bg-[#070d19] border border-[#1e2d42] rounded-sm px-3 py-2 text-sm text-white focus:outline-hidden focus:border-[#3d5068]"
             >
               {([] as TeamMember[]).map(u => (
                 <option key={u.id} value={u.id}>{u.name} — {u.role}</option>
@@ -253,20 +257,20 @@ function StartShiftModal({ onClose, onStart }: { onClose: () => void; onStart: (
 
           {/* Team members */}
           <div>
-            <label className="block text-xs text-falcon-muted mb-1.5 font-medium">チームメンバー（複数選択）</label>
+            <label className="block text-xs text-[#7d92b0] mb-1.5 font-medium">チームメンバー（複数選択）</label>
             <div className="space-y-1.5">
               {([] as TeamMember[]).filter(u => u.id !== leadId).map(u => (
-                <label key={u.id} className="flex items-center gap-2.5 px-3 py-2 rounded-sm border border-falcon-border hover:border-falcon-subtle cursor-pointer transition-colors">
+                <label key={u.id} className="flex items-center gap-2.5 px-3 py-2 rounded-sm border border-[#1e2d42] hover:border-[#3d5068] cursor-pointer transition-colors">
                   <input
                     type="checkbox"
                     checked={teamIds.includes(u.id)}
                     onChange={() => toggleTeam(u.id)}
-                    className="accent-falcon-red"
+                    className="accent-[#e8002d]"
                   />
                   <Avatar name={u.name} size="sm" />
                   <div>
                     <p className="text-sm text-white">{u.name}</p>
-                    <p className="text-[10px] text-falcon-muted">{u.role}</p>
+                    <p className="text-[10px] text-[#7d92b0]">{u.role}</p>
                   </div>
                 </label>
               ))}
@@ -274,8 +278,8 @@ function StartShiftModal({ onClose, onStart }: { onClose: () => void; onStart: (
           </div>
         </div>
 
-        <div className="flex gap-3 p-5 border-t border-falcon-border">
-          <button onClick={onClose} className="flex-1 px-4 py-2 rounded-sm border border-falcon-border text-sm text-falcon-muted hover:text-white hover:border-falcon-subtle transition-colors">
+        <div className="flex gap-3 p-5 border-t border-[#1e2d42]">
+          <button onClick={onClose} className="flex-1 px-4 py-2 rounded-sm border border-[#1e2d42] text-sm text-[#7d92b0] hover:text-white hover:border-[#3d5068] transition-colors">
             キャンセル
           </button>
           <button
@@ -296,14 +300,14 @@ function StartShiftModal({ onClose, onStart }: { onClose: () => void; onStart: (
 function EndShiftModal({ shift, onClose, onEnd }: { shift: Shift; onClose: () => void; onEnd: () => void }) {
   const pendingTasks = shift.tasks.filter(t => !t.completed)
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs">
-      <div className="bg-falcon-surface border border-falcon-border rounded-lg w-full max-w-md mx-4 shadow-2xl">
-        <div className="flex items-center justify-between p-5 border-b border-falcon-border">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg w-full max-w-md mx-4 shadow-2xl">
+        <div className="flex items-center justify-between p-5 border-b border-[#1e2d42]">
           <h3 className="text-white font-semibold text-lg flex items-center gap-2">
-            <StopCircle className="w-5 h-5 text-falcon-red" />
+            <StopCircle className="w-5 h-5 text-[#e8002d]" />
             シフト終了確認
           </h3>
-          <button onClick={onClose} className="text-falcon-muted hover:text-white transition-colors">
+          <button onClick={onClose} className="text-[#7d92b0] hover:text-white transition-colors">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -326,25 +330,25 @@ function EndShiftModal({ shift, onClose, onEnd }: { shift: Shift; onClose: () =>
             </div>
           )}
 
-          <div className="bg-[#070d19] border border-falcon-border rounded-sm p-3">
-            <p className="text-xs text-falcon-muted mb-1 font-medium">引継ぎメモ（プレビュー）</p>
+          <div className="bg-[#070d19] border border-[#1e2d42] rounded-sm p-3">
+            <p className="text-xs text-[#7d92b0] mb-1 font-medium">引継ぎメモ（プレビュー）</p>
             <p className="text-sm text-white whitespace-pre-line line-clamp-4">
               {shift.handover_notes || '（メモなし）'}
             </p>
           </div>
 
-          <p className="text-sm text-falcon-muted">
+          <p className="text-sm text-[#7d92b0]">
             シフトを終了してよろしいですか？引継ぎ事項は次のシフトに引き渡されます。
           </p>
         </div>
 
-        <div className="flex gap-3 p-5 border-t border-falcon-border">
-          <button onClick={onClose} className="flex-1 px-4 py-2 rounded-sm border border-falcon-border text-sm text-falcon-muted hover:text-white hover:border-falcon-subtle transition-colors">
+        <div className="flex gap-3 p-5 border-t border-[#1e2d42]">
+          <button onClick={onClose} className="flex-1 px-4 py-2 rounded-sm border border-[#1e2d42] text-sm text-[#7d92b0] hover:text-white hover:border-[#3d5068] transition-colors">
             キャンセル
           </button>
           <button
             onClick={onEnd}
-            className="flex-1 px-4 py-2 rounded-sm bg-falcon-red hover:bg-[#c0001f] text-white text-sm font-medium transition-colors flex items-center justify-center gap-2"
+            className="flex-1 px-4 py-2 rounded-sm bg-[#e8002d] hover:bg-[#c0001f] text-white text-sm font-medium transition-colors flex items-center justify-center gap-2"
           >
             <StopCircle className="w-4 h-4" />
             シフト終了
@@ -362,50 +366,50 @@ function HistoryRow({ shift }: { shift: Shift }) {
   return (
     <>
       <tr
-        className="border-b border-falcon-border hover:bg-falcon-surface cursor-pointer transition-colors"
+        className="border-b border-[#1e2d42] hover:bg-[#0d1220] cursor-pointer transition-colors"
         onClick={() => setExpanded(e => !e)}
       >
         <td className="px-4 py-3 text-sm text-white font-medium">{shift.name}</td>
-        <td className="px-4 py-3 text-sm text-falcon-muted">{formatDateTime(shift.started_at)}</td>
+        <td className="px-4 py-3 text-sm text-[#7d92b0]">{formatDateTime(shift.started_at)}</td>
         <td className="px-4 py-3">
           <div className="flex items-center gap-1.5">
             <Avatar name={shift.lead_name} size="sm" />
             <span className="text-sm text-white">{shift.lead_name}</span>
           </div>
         </td>
-        <td className="px-4 py-3 text-sm text-falcon-muted text-center">{shift.team.length + 1}</td>
-        <td className="px-4 py-3 text-sm text-falcon-muted">{formatDuration(shift.started_at, shift.ended_at)}</td>
-        <td className="px-4 py-3 text-sm text-falcon-muted text-center">{shift.metrics.alerts_resolved}</td>
-        <td className="px-4 py-3 text-sm text-falcon-muted text-center">{shift.metrics.open_incidents}</td>
+        <td className="px-4 py-3 text-sm text-[#7d92b0] text-center">{shift.team.length + 1}</td>
+        <td className="px-4 py-3 text-sm text-[#7d92b0]">{formatDuration(shift.started_at, shift.ended_at)}</td>
+        <td className="px-4 py-3 text-sm text-[#7d92b0] text-center">{shift.metrics.alerts_resolved}</td>
+        <td className="px-4 py-3 text-sm text-[#7d92b0] text-center">{shift.metrics.open_incidents}</td>
         <td className="px-4 py-3 max-w-[180px]">
-          <span className="text-xs text-falcon-muted line-clamp-2">{shift.handover_notes || '—'}</span>
+          <span className="text-xs text-[#7d92b0] line-clamp-2">{shift.handover_notes || '—'}</span>
         </td>
         <td className="px-4 py-3">
           <span className="text-xs px-2 py-0.5 rounded-sm bg-green-900/30 text-green-400 border border-green-800/40">完了</span>
         </td>
-        <td className="px-4 py-3 text-falcon-subtle">
+        <td className="px-4 py-3 text-[#3d5068]">
           {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
         </td>
       </tr>
       {expanded && (
-        <tr className="border-b border-falcon-border bg-[#070d19]/60">
+        <tr className="border-b border-[#1e2d42] bg-[#070d19]/60">
           <td colSpan={10} className="px-6 py-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <p className="text-xs text-falcon-muted font-medium mb-2">引継ぎメモ（全文）</p>
-                <div className="bg-falcon-surface border border-falcon-border rounded-sm p-3">
+                <p className="text-xs text-[#7d92b0] font-medium mb-2">引継ぎメモ（全文）</p>
+                <div className="bg-[#0d1220] border border-[#1e2d42] rounded-sm p-3">
                   <p className="text-sm text-white whitespace-pre-line">{shift.handover_notes || '（メモなし）'}</p>
                 </div>
               </div>
               <div>
-                <p className="text-xs text-falcon-muted font-medium mb-2">引継ぎタスク ({shift.tasks.length}件)</p>
+                <p className="text-xs text-[#7d92b0] font-medium mb-2">引継ぎタスク ({shift.tasks.length}件)</p>
                 {shift.tasks.length === 0 ? (
-                  <p className="text-sm text-falcon-subtle italic">タスクなし</p>
+                  <p className="text-sm text-[#3d5068] italic">タスクなし</p>
                 ) : (
                   <div className="space-y-1.5">
                     {shift.tasks.map(t => (
-                      <div key={t.id} className="flex items-center gap-2 p-2 rounded-sm bg-falcon-surface border border-falcon-border">
-                        <CheckCircle className={`w-4 h-4 shrink-0 ${t.completed ? 'text-green-400' : 'text-falcon-subtle'}`} />
+                      <div key={t.id} className="flex items-center gap-2 p-2 rounded-sm bg-[#0d1220] border border-[#1e2d42]">
+                        <CheckCircle className={`w-4 h-4 shrink-0 ${t.completed ? 'text-green-400' : 'text-[#3d5068]'}`} />
                         <span className="flex-1 text-sm text-white">{t.description}</span>
                         <span className={`text-[10px] px-1.5 py-0.5 rounded-sm ${PRIORITY_STYLES[t.priority]}`}>{PRIORITY_LABELS[t.priority]}</span>
                       </div>
@@ -448,7 +452,7 @@ function ShiftCalendar({ allShifts }: { allShifts: Shift[] }) {
 
   const statusBadge = (s: Shift) => {
     if (s.status === 'active') return 'bg-green-900/40 border-green-700/60 text-green-300'
-    return 'bg-[#131d30] border-falcon-border text-falcon-muted'
+    return 'bg-[#131d30] border-[#1e2d42] text-[#7d92b0]'
   }
 
   const summary = {
@@ -468,9 +472,9 @@ function ShiftCalendar({ allShifts }: { allShifts: Shift[] }) {
           { label: '平均アラート解決数', value: summary.avgResolved, color: 'text-green-400' },
           { label: '参加アナリスト', value: summary.activeAnalysts, color: 'text-purple-400' },
         ].map(({ label, value, color }) => (
-          <div key={label} className="bg-falcon-surface border border-falcon-border rounded-lg p-4 text-center">
+          <div key={label} className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-4 text-center">
             <p className={`text-3xl font-bold ${color}`}>{value}</p>
-            <p className="text-xs text-falcon-muted mt-1">{label}</p>
+            <p className="text-xs text-[#7d92b0] mt-1">{label}</p>
           </div>
         ))}
       </div>
@@ -485,27 +489,27 @@ function ShiftCalendar({ allShifts }: { allShifts: Shift[] }) {
               key={di}
               className={`rounded-lg border p-2 min-h-[160px] ${
                 isCurrentDay
-                  ? 'border-falcon-red/50 bg-falcon-surface'
-                  : 'border-falcon-border bg-[#070d19]'
+                  ? 'border-[#e8002d]/50 bg-[#0d1220]'
+                  : 'border-[#1e2d42] bg-[#070d19]'
               }`}
             >
               {/* Day header */}
               <div className="mb-2 text-center">
-                <p className={`text-[10px] font-medium ${isCurrentDay ? 'text-falcon-red' : 'text-falcon-muted'}`}>
+                <p className={`text-[10px] font-medium ${isCurrentDay ? 'text-[#e8002d]' : 'text-[#7d92b0]'}`}>
                   {DAY_LABELS[day.getDay()]}
                 </p>
-                <p className={`text-lg font-bold leading-none ${isCurrentDay ? 'text-white' : 'text-falcon-muted'}`}>
+                <p className={`text-lg font-bold leading-none ${isCurrentDay ? 'text-white' : 'text-[#7d92b0]'}`}>
                   {day.getDate()}
                 </p>
                 {isCurrentDay && (
-                  <span className="text-[9px] text-falcon-red font-medium">今日</span>
+                  <span className="text-[9px] text-[#e8002d] font-medium">今日</span>
                 )}
               </div>
 
               {/* Shifts */}
               <div className="space-y-1">
                 {shifts.length === 0 ? (
-                  <p className="text-[9px] text-falcon-subtle text-center pt-4">—</p>
+                  <p className="text-[9px] text-[#3d5068] text-center pt-4">—</p>
                 ) : (
                   shifts.map(shift => (
                     <div
@@ -536,17 +540,17 @@ function ShiftCalendar({ allShifts }: { allShifts: Shift[] }) {
       </div>
 
       {/* Legend */}
-      <div className="flex items-center gap-4 text-xs text-falcon-muted">
+      <div className="flex items-center gap-4 text-xs text-[#7d92b0]">
         <div className="flex items-center gap-1.5">
           <div className="w-3 h-3 rounded-sm border bg-green-900/40 border-green-700/60" />
           <span>稼働中</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <div className="w-3 h-3 rounded-sm border bg-[#131d30] border-falcon-border" />
+          <div className="w-3 h-3 rounded-sm border bg-[#131d30] border-[#1e2d42]" />
           <span>完了</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <div className="w-3 h-3 rounded-sm border border-falcon-red/50 bg-falcon-surface" />
+          <div className="w-3 h-3 rounded-sm border border-[#e8002d]/50 bg-[#0d1220]" />
           <span>本日</span>
         </div>
       </div>
@@ -569,10 +573,7 @@ export default function ShiftsPage() {
 
   const { data: currentShift, isLoading: loadingCurrent } = useQuery<Shift | null>({
     queryKey: ['soc-shift-current'],
-    queryFn: async () => {
-      try { return await apiFetch('/api/v1/soc/shifts/current') }
-      catch { return null }
-    },
+    queryFn: () => apiFetch('/api/v1/soc/shifts/current'),
     refetchInterval: 60_000,
     staleTime: 30_000,
   })
@@ -581,8 +582,7 @@ export default function ShiftsPage() {
     queryKey: ['soc-shift-stats', currentShift?.id],
     queryFn: async () => {
       if (!currentShift) return { open_alerts: 0, open_incidents: 0, tickets_created: 0, alerts_resolved: 0 } satisfies ShiftStats
-      try { return await apiFetch(`/api/v1/soc/shifts/${currentShift.id}/stats`) }
-      catch { return { open_alerts: 0, open_incidents: 0, tickets_created: 0, alerts_resolved: 0 } satisfies ShiftStats }
+      return await apiFetch(`/api/v1/soc/shifts/${currentShift.id}/stats`)
     },
     enabled: !!currentShift,
     refetchInterval: 60_000,
@@ -591,16 +591,14 @@ export default function ShiftsPage() {
 
   const { data: historyShifts } = useQuery<Shift[]>({
     queryKey: ['soc-shifts-history'],
-    queryFn: async () => {
-      try { return await apiFetchList<Shift>('/api/v1/soc/shifts') }
-      catch { return [] as Shift[] }
-    },
+    queryFn: () => apiFetchList<Shift>('/api/v1/soc/shifts'),
     staleTime: 30_000,
   })
 
   // Local state derived from currentShift
   const [localShift, setLocalShift] = useState<Shift | null>(null)
   const [notesSaving, setNotesSaving] = useState(false)
+  const { persist, saveError } = usePersist()
   const [notesSaved, setNotesSaved] = useState(false)
 
   // ── Mutations ─────────────────────────────────────────────────
@@ -617,7 +615,7 @@ export default function ShiftsPage() {
 
   const endMutation = useMutation({
     mutationFn: (id: string) =>
-      apiFetch(`/api/v1/soc/shifts/${id}/end`, { method: 'POST' }).catch(() => ({ success: true })),
+      apiFetch(`/api/v1/soc/shifts/${id}/end`, { method: 'POST' }),
     onSuccess: () => {
       setLocalShift(null)
       setShowEndModal(false)
@@ -630,12 +628,17 @@ export default function ShiftsPage() {
     if (!localShift) return
     setNotesSaving(true)
     try {
-      await apiFetch(`/api/v1/soc/shifts/${localShift.id}/notes`, {
+      // 引き継ぎメモです。.catch(() => {}) の直後に「保存しました」の印を
+      // 出していたので、保存できていないメモを書いた人は保存できたと思い、
+      // 次のシフトの担当者は空のメモを受け取ります。交代時に伝わらなかった
+      // ことは、伝わらなかったと分かるまで誰も気づきません。
+      if (await persist('引き継ぎメモ', `/api/v1/soc/shifts/${localShift.id}/notes`, {
         method: 'PUT',
         body: JSON.stringify({ notes: localShift.handover_notes }),
-      }).catch(() => {})
-      setNotesSaved(true)
-      setTimeout(() => setNotesSaved(false), 2000)
+      })) {
+        setNotesSaved(true)
+        setTimeout(() => setNotesSaved(false), 2000)
+      }
     } finally {
       setNotesSaving(false)
     }
@@ -674,6 +677,9 @@ export default function ShiftsPage() {
 
   return (
     <div className="flex-1 overflow-auto bg-[#070d19] p-6 space-y-6">
+      <PageDataUnavailable />
+      <PageSaveFailed />
+      <SaveFailed error={saveError} />
       {/* ── Modals ─────────────────────────────────────────────── */}
       {showStartModal && (
         <StartShiftModal
@@ -692,7 +698,7 @@ export default function ShiftsPage() {
       {/* ── Header ─────────────────────────────────────────────── */}
       <div>
         <h1 className="text-2xl font-bold text-white">シフト引継ぎ</h1>
-        <p className="text-sm text-falcon-muted mt-1">SOCシフトの開始・終了・引継ぎ事項の管理</p>
+        <p className="text-sm text-[#7d92b0] mt-1">SOCシフトの開始・終了・引継ぎ事項の管理</p>
       </div>
 
       {/* ── Active Shift Banner ─────────────────────────────────── */}
@@ -704,8 +710,8 @@ export default function ShiftsPage() {
           </div>
           <div className="flex-1 min-w-0">
             <span className="text-white font-medium">{activeShift.name}</span>
-            <span className="text-falcon-muted text-sm ml-3">リード: {activeShift.lead_name}</span>
-            <span className="text-falcon-muted text-sm ml-3 shrink-0">
+            <span className="text-[#7d92b0] text-sm ml-3">リード: {activeShift.lead_name}</span>
+            <span className="text-[#7d92b0] text-sm ml-3 shrink-0">
               <Clock className="w-3.5 h-3.5 inline mr-1" />
               {formatElapsed(activeShift.started_at)} 経過
             </span>
@@ -714,23 +720,23 @@ export default function ShiftsPage() {
             {[activeShift.lead_name, ...activeShift.team.map(m => m.name)].map(name => (
               <Avatar key={name} name={name} size="sm" />
             ))}
-            <span className="text-xs text-falcon-muted ml-1">({activeShift.team.length + 1}名)</span>
+            <span className="text-xs text-[#7d92b0] ml-1">({activeShift.team.length + 1}名)</span>
           </div>
           <button
             onClick={() => setShowEndModal(true)}
-            className="px-4 py-2 rounded-sm bg-falcon-red hover:bg-[#c0001f] text-white text-sm font-medium transition-colors flex items-center gap-2"
+            className="px-4 py-2 rounded-sm bg-[#e8002d] hover:bg-[#c0001f] text-white text-sm font-medium transition-colors flex items-center gap-2"
           >
             <StopCircle className="w-4 h-4" />
             シフト終了
           </button>
         </div>
       ) : (
-        <div className="bg-falcon-surface border border-falcon-border rounded-lg p-8 text-center">
-          <div className="w-16 h-16 rounded-full bg-[#070d19] border border-falcon-border flex items-center justify-center mx-auto mb-4">
-            <Play className="w-8 h-8 text-falcon-subtle" />
+        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-8 text-center">
+          <div className="w-16 h-16 rounded-full bg-[#070d19] border border-[#1e2d42] flex items-center justify-center mx-auto mb-4">
+            <Play className="w-8 h-8 text-[#3d5068]" />
           </div>
           <p className="text-white font-semibold mb-1">現在アクティブなシフトはありません</p>
-          <p className="text-sm text-falcon-muted mb-4">新しいシフトを開始してSOC運用を記録してください</p>
+          <p className="text-sm text-[#7d92b0] mb-4">新しいシフトを開始してSOC運用を記録してください</p>
           <button
             onClick={() => setShowStartModal(true)}
             className="px-6 py-2.5 rounded-sm bg-green-700 hover:bg-green-600 text-white text-sm font-medium transition-colors flex items-center gap-2 mx-auto"
@@ -742,7 +748,7 @@ export default function ShiftsPage() {
       )}
 
       {/* ── Tabs ───────────────────────────────────────────────── */}
-      <div className="flex gap-0 border-b border-falcon-border">
+      <div className="flex gap-0 border-b border-[#1e2d42]">
         {([
           { key: 'current',  label: '現在のシフト' },
           { key: 'history',  label: 'シフト履歴' },
@@ -753,8 +759,8 @@ export default function ShiftsPage() {
             onClick={() => setTab(key)}
             className={`px-5 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors ${
               tab === key
-                ? 'border-falcon-red text-white'
-                : 'border-transparent text-falcon-muted hover:text-white'
+                ? 'border-[#e8002d] text-white'
+                : 'border-transparent text-[#7d92b0] hover:text-white'
             }`}
           >
             {label}
@@ -767,23 +773,23 @@ export default function ShiftsPage() {
         <div className="space-y-6">
           {!activeShift ? (
             <div className="text-center py-12">
-              <p className="text-falcon-muted">アクティブなシフトはありません。「シフト開始」ボタンから新しいシフトを開始してください。</p>
+              <p className="text-[#7d92b0]">アクティブなシフトはありません。「シフト開始」ボタンから新しいシフトを開始してください。</p>
             </div>
           ) : (
             <>
               {/* Shift summary card */}
-              <div className="bg-falcon-surface border border-falcon-border rounded-lg p-5">
+              <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-5">
                 <div className="flex items-start justify-between mb-4">
                   <div>
                     <h2 className="text-lg font-semibold text-white">{activeShift.name}</h2>
-                    <p className="text-sm text-falcon-muted mt-0.5">
+                    <p className="text-sm text-[#7d92b0] mt-0.5">
                       <Calendar className="w-3.5 h-3.5 inline mr-1" />
                       開始: {formatDateTime(activeShift.started_at)} — 経過: {formatElapsed(activeShift.started_at)}
                     </p>
                   </div>
                   <button
                     onClick={() => setShowStartModal(false)}
-                    className="text-xs text-falcon-muted flex items-center gap-1 hover:text-white transition-colors"
+                    className="text-xs text-[#7d92b0] flex items-center gap-1 hover:text-white transition-colors"
                   >
                     <RefreshCw className="w-3.5 h-3.5" />
                     リフレッシュ
@@ -792,17 +798,17 @@ export default function ShiftsPage() {
 
                 <div className="flex flex-wrap gap-4">
                   <div>
-                    <p className="text-xs text-falcon-muted mb-1.5">リードアナリスト</p>
+                    <p className="text-xs text-[#7d92b0] mb-1.5">リードアナリスト</p>
                     <div className="flex items-center gap-2">
                       <Avatar name={activeShift.lead_name} size="md" />
                       <div>
                         <p className="text-sm text-white font-medium">{activeShift.lead_name}</p>
-                        <p className="text-xs text-falcon-muted">Lead</p>
+                        <p className="text-xs text-[#7d92b0]">Lead</p>
                       </div>
                     </div>
                   </div>
                   <div>
-                    <p className="text-xs text-falcon-muted mb-1.5">チームメンバー</p>
+                    <p className="text-xs text-[#7d92b0] mb-1.5">チームメンバー</p>
                     <div className="flex items-center gap-2 flex-wrap">
                       {activeShift.team.map(m => (
                         <div key={m.id} className="flex items-center gap-1.5">
@@ -819,34 +825,34 @@ export default function ShiftsPage() {
               <div>
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="text-sm font-medium text-white flex items-center gap-2">
-                    <BarChart2 className="w-4 h-4 text-falcon-red" />
+                    <BarChart2 className="w-4 h-4 text-[#e8002d]" />
                     ライブメトリクス
                   </h3>
-                  <span className="text-xs text-falcon-subtle">60秒ごとに自動更新</span>
+                  <span className="text-xs text-[#3d5068]">60秒ごとに自動更新</span>
                 </div>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                   {[
-                    { label: 'オープンアラート', value: shiftStats?.open_alerts ?? activeShift.metrics.open_alerts, color: 'text-falcon-red' },
+                    { label: 'オープンアラート', value: shiftStats?.open_alerts ?? activeShift.metrics.open_alerts, color: 'text-[#e8002d]' },
                     { label: 'オープンインシデント', value: shiftStats?.open_incidents ?? activeShift.metrics.open_incidents, color: 'text-orange-400' },
                     { label: '今日作成チケット', value: shiftStats?.tickets_created ?? activeShift.metrics.tickets_created, color: 'text-blue-400' },
                     { label: '解決済みアラート', value: shiftStats?.alerts_resolved ?? activeShift.metrics.alerts_resolved, color: 'text-green-400' },
                   ].map(({ label, value, color }) => (
-                    <div key={label} className="bg-falcon-surface border border-falcon-border rounded-lg p-4 text-center">
+                    <div key={label} className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-4 text-center">
                       <p className={`text-3xl font-bold ${color}`}>{value}</p>
-                      <p className="text-xs text-falcon-muted mt-1">{label}</p>
+                      <p className="text-xs text-[#7d92b0] mt-1">{label}</p>
                     </div>
                   ))}
                 </div>
               </div>
 
               {/* Handover notes */}
-              <div className="bg-falcon-surface border border-falcon-border rounded-lg p-5">
+              <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-5">
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="text-sm font-medium text-white flex items-center gap-2">
-                    <FileText className="w-4 h-4 text-falcon-red" />
+                    <FileText className="w-4 h-4 text-[#e8002d]" />
                     引継ぎメモ
                   </h3>
-                  <span className={`text-xs transition-opacity duration-300 ${notesSaved ? 'text-green-400 opacity-100' : 'text-falcon-subtle opacity-60'}`}>
+                  <span className={`text-xs transition-opacity duration-300 ${notesSaved ? 'text-green-400 opacity-100' : 'text-[#3d5068] opacity-60'}`}>
                     {notesSaving ? '保存中...' : notesSaved ? '保存済み' : 'フォーカスを外すと自動保存'}
                   </span>
                 </div>
@@ -856,21 +862,21 @@ export default function ShiftsPage() {
                   onChange={e => setLocalShift(s => s ? { ...s, handover_notes: e.target.value } : s)}
                   onBlur={saveNotes}
                   rows={6}
-                  className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2.5 text-sm text-white resize-y focus:outline-hidden focus:border-falcon-subtle focus:ring-1 focus:ring-falcon-subtle placeholder-falcon-subtle"
+                  className="w-full bg-[#070d19] border border-[#1e2d42] rounded-sm px-3 py-2.5 text-sm text-white resize-y focus:outline-hidden focus:border-[#3d5068] focus:ring-1 focus:ring-[#3d5068] placeholder-[#3d5068]"
                   placeholder="引継ぎ事項を入力してください..."
                 />
               </div>
 
               {/* Pending tasks */}
-              <div className="bg-falcon-surface border border-falcon-border rounded-lg p-5">
+              <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-5">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-sm font-medium text-white flex items-center gap-2">
-                    <CheckCircle className="w-4 h-4 text-falcon-red" />
+                    <CheckCircle className="w-4 h-4 text-[#e8002d]" />
                     引継ぎタスク ({activeShift.tasks.length}件)
                   </h3>
                   <button
                     onClick={addTask}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-sm bg-[#070d19] border border-falcon-border text-xs text-falcon-muted hover:text-white hover:border-falcon-subtle transition-colors"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-sm bg-[#070d19] border border-[#1e2d42] text-xs text-[#7d92b0] hover:text-white hover:border-[#3d5068] transition-colors"
                   >
                     <Plus className="w-3.5 h-3.5" />
                     タスク追加
@@ -878,21 +884,21 @@ export default function ShiftsPage() {
                 </div>
 
                 {activeShift.tasks.length === 0 ? (
-                  <p className="text-sm text-falcon-subtle italic text-center py-4">タスクはありません</p>
+                  <p className="text-sm text-[#3d5068] italic text-center py-4">タスクはありません</p>
                 ) : (
                   <div className="space-y-2">
                     {activeShift.tasks.map(task => (
-                      <div key={task.id} className="flex items-center gap-3 p-3 rounded-sm bg-[#070d19] border border-falcon-border">
+                      <div key={task.id} className="flex items-center gap-3 p-3 rounded-sm bg-[#070d19] border border-[#1e2d42]">
                         <input
                           type="checkbox"
                           checked={task.completed}
                           onChange={e => updateTask(task.id, { completed: e.target.checked })}
-                          className="accent-falcon-red w-4 h-4 shrink-0"
+                          className="accent-[#e8002d] w-4 h-4 shrink-0"
                         />
                         <input
                           value={task.description}
                           onChange={e => updateTask(task.id, { description: e.target.value })}
-                          className={`flex-1 bg-transparent text-sm focus:outline-hidden ${task.completed ? 'line-through text-falcon-subtle' : 'text-white'}`}
+                          className={`flex-1 bg-transparent text-sm focus:outline-hidden ${task.completed ? 'line-through text-[#3d5068]' : 'text-white'}`}
                           placeholder="タスクの説明..."
                         />
                         <select
@@ -901,14 +907,14 @@ export default function ShiftsPage() {
                             const u = ([] as TeamMember[]).find(u => u.id === e.target.value)
                             if (u) updateTask(task.id, { assignee_id: u.id, assignee_name: u.name })
                           }}
-                          className="bg-falcon-surface border border-falcon-border rounded-sm px-2 py-1 text-xs text-falcon-muted focus:outline-hidden"
+                          className="bg-[#0d1220] border border-[#1e2d42] rounded-sm px-2 py-1 text-xs text-[#7d92b0] focus:outline-hidden"
                         >
                           {([] as TeamMember[]).map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
                         </select>
                         <select
                           value={task.priority}
                           onChange={e => updateTask(task.id, { priority: e.target.value as TaskPriority })}
-                          className="bg-falcon-surface border border-falcon-border rounded-sm px-2 py-1 text-xs text-falcon-muted focus:outline-hidden"
+                          className="bg-[#0d1220] border border-[#1e2d42] rounded-sm px-2 py-1 text-xs text-[#7d92b0] focus:outline-hidden"
                         >
                           <option value="critical">クリティカル</option>
                           <option value="high">高</option>
@@ -920,7 +926,7 @@ export default function ShiftsPage() {
                         </span>
                         <button
                           onClick={() => removeTask(task.id)}
-                          className="text-falcon-subtle hover:text-falcon-red transition-colors"
+                          className="text-[#3d5068] hover:text-[#e8002d] transition-colors"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
@@ -934,7 +940,7 @@ export default function ShiftsPage() {
               <div className="flex justify-end">
                 <button
                   onClick={() => setShowEndModal(true)}
-                  className="px-6 py-2.5 rounded-sm bg-falcon-red hover:bg-[#c0001f] text-white font-medium text-sm transition-colors flex items-center gap-2"
+                  className="px-6 py-2.5 rounded-sm bg-[#e8002d] hover:bg-[#c0001f] text-white font-medium text-sm transition-colors flex items-center gap-2"
                 >
                   <StopCircle className="w-4 h-4" />
                   シフト終了
@@ -950,41 +956,41 @@ export default function ShiftsPage() {
         <div className="space-y-4">
           {/* Date range filter */}
           <div className="flex items-center gap-3 flex-wrap">
-            <span className="text-sm text-falcon-muted">期間:</span>
+            <span className="text-sm text-[#7d92b0]">期間:</span>
             <input
               type="date"
               value={dateFrom}
               onChange={e => setDateFrom(e.target.value)}
-              className="bg-falcon-surface border border-falcon-border rounded-sm px-3 py-1.5 text-sm text-white focus:outline-hidden focus:border-falcon-subtle"
+              className="bg-[#0d1220] border border-[#1e2d42] rounded-sm px-3 py-1.5 text-sm text-white focus:outline-hidden focus:border-[#3d5068]"
             />
-            <span className="text-falcon-subtle">—</span>
+            <span className="text-[#3d5068]">—</span>
             <input
               type="date"
               value={dateTo}
               onChange={e => setDateTo(e.target.value)}
-              className="bg-falcon-surface border border-falcon-border rounded-sm px-3 py-1.5 text-sm text-white focus:outline-hidden focus:border-falcon-subtle"
+              className="bg-[#0d1220] border border-[#1e2d42] rounded-sm px-3 py-1.5 text-sm text-white focus:outline-hidden focus:border-[#3d5068]"
             />
             {(dateFrom || dateTo) && (
-              <button onClick={() => { setDateFrom(''); setDateTo('') }} className="text-xs text-falcon-muted hover:text-white transition-colors">
+              <button onClick={() => { setDateFrom(''); setDateTo('') }} className="text-xs text-[#7d92b0] hover:text-white transition-colors">
                 クリア
               </button>
             )}
           </div>
 
-          <div className="bg-falcon-surface border border-falcon-border rounded-lg overflow-hidden">
+          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-falcon-border bg-[#070d19]">
+                  <tr className="border-b border-[#1e2d42] bg-[#070d19]">
                     {['シフト名', '日時', 'リード', 'チーム', '勤務時間', 'アラート解決', 'インシデント', '引継ぎメモ', 'ステータス', ''].map(h => (
-                      <th key={h} className="px-4 py-3 text-left text-xs text-falcon-muted font-medium whitespace-nowrap">{h}</th>
+                      <th key={h} className="px-4 py-3 text-left text-xs text-[#7d92b0] font-medium whitespace-nowrap">{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {filteredHistory.length === 0 ? (
                     <tr>
-                      <td colSpan={10} className="px-4 py-8 text-center text-falcon-muted text-sm">
+                      <td colSpan={10} className="px-4 py-8 text-center text-[#7d92b0] text-sm">
                         該当するシフトはありません
                       </td>
                     </tr>

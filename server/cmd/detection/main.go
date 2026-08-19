@@ -153,11 +153,13 @@ func main() {
 	if !autoResponse {
 		slog.Warn("AUTO_RESPONSE_ENABLED=false のため、無人経路からの隔離は行いません")
 	}
-	// 除外リストはエンジン側でも見ているが、Gatekeeper にも渡す。エンジンの
-	// 検査は「どのルールが隔離しようとしたか」を含む詳しい記録を残せる位置に
-	// あり、Gatekeeper の検査はそこを通らない経路（プレイブック・自動修復・
-	// API 呼び出し）に対する最後の関門になる。判定そのものは
-	// isolation.IsExempt に一本化してあるので、二つが食い違うことはない。
+	// 除外の判定は Gatekeeper に一本化する。以前はエンジン側にも同じ検査があり、
+	// 「エンジンのほうが詳しい記録を残せる位置にある」と説明されていたが、これは
+	// 事実に反していた。エンジンの検査は slog.Warn を出して return するだけで
+	// response_actions には何も書かず、しかもエンジン側が先に効くため Gatekeeper の
+	// 記録つきの検査に到達しなかった。結果として「除外された端末では、隔離条件を
+	// 満たしたという事実が DB から復元できない」状態になっていた（2026-08-18 の
+	// 棚卸しで検出。docs/results/live-20260818-auto-isolate-rule-inventory.md §4-1）。
 	var autoIsolateExempt []string
 	for _, h := range strings.Split(os.Getenv("AUTO_ISOLATE_EXEMPT"), ",") {
 		if h = strings.TrimSpace(h); h != "" {
@@ -168,12 +170,28 @@ func main() {
 		slog.Info("自動隔離の除外対象を設定しました", "entries", len(autoIsolateExempt),
 			"対象", autoIsolateExempt)
 	}
+	// ホスト名で指定できるようにするための解決手段。呼び出し側の記入に頼ると
+	// 記入し忘れた経路だけ除外が効かなくなる。cmd/api には最初からあったが
+	// こちらには無く、AUTO_ISOLATE_EXEMPT にホスト名を書いた場合、
+	// server-detect 側の除外は AI トリアージ・プレイブック経路で効いていなかった。
+	exemptAgentStore := store.NewAgentStore(db)
+	exemptResolver := func(ctx context.Context, agentID string) string {
+		if agentID == "" {
+			return ""
+		}
+		a, err := exemptAgentStore.GetAgentByID(ctx, agentID)
+		if err != nil || a == nil {
+			return ""
+		}
+		return a.Hostname
+	}
 	gatekeeper := isolation.New(commander, store.NewResponseActionStore(db), isolation.Config{
 		UnattendedEnabled: autoResponse,
 		Cooldown:          isoCooldown,
 		HourlyBudget:      isoBudget,
 		DryRun:            isoDryRun,
 		Exempt:            autoIsolateExempt,
+		HostnameResolver:  exemptResolver,
 	})
 
 	// ─── AI Agent ─────────────────────────────────────────────
@@ -320,7 +338,6 @@ func main() {
 		AIAnalysisMinAnomalyScore:    0.6,
 		AIAnalysisConcurrency:        5,
 		AutoIsolateSeverityThreshold: autoIsolateThreshold,
-		AutoIsolateExempt:            autoIsolateExempt,
 		GeoIPEnrichEnabled:           getEnv("GEOIP_ENRICH_ENABLED", "false") == "true",
 		UEBAAnomalyThreshold:         getEnvFloat("UEBA_ANOMALY_THRESHOLD", 0),
 	}

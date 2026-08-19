@@ -12,6 +12,8 @@ import {
   Layers, Box, Hash, ExternalLink,
 } from 'lucide-react'
 
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type CloudProvider = 'aws' | 'azure' | 'gcp'
@@ -322,26 +324,26 @@ function WorkloadDetailModal({ workload, onClose }: { workload: Workload; onClos
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 overflow-y-auto py-4">
-      <div className="w-full max-w-3xl mx-4 bg-falcon-surface border border-falcon-border rounded-xl shadow-2xl">
-        <div className="flex items-start justify-between p-5 border-b border-falcon-border">
+      <div className="w-full max-w-3xl mx-4 bg-[#0d1220] border border-[#1e2d42] rounded-xl shadow-2xl">
+        <div className="flex items-start justify-between p-5 border-b border-[#1e2d42]">
           <div>
             <div className="flex items-center gap-2 mb-1">
               <span className={`text-xs px-2 py-0.5 rounded-sm border ${prot.cls}`}>{prot.label}</span>
               <span className={`text-xs font-medium ${PROVIDER_COLORS[workload.provider]}`}>{workload.provider.toUpperCase()}</span>
             </div>
             <h2 className="text-lg font-bold text-white">{workload.workload_name}</h2>
-            <p className="text-xs text-falcon-muted mt-0.5">{workload.region} · {workload.instance_id}</p>
+            <p className="text-xs text-[#7d92b0] mt-0.5">{workload.region} · {workload.instance_id}</p>
           </div>
-          <button onClick={onClose} className="text-falcon-muted hover:text-white"><X className="w-5 h-5" /></button>
+          <button onClick={onClose} className="text-[#7d92b0] hover:text-white"><X className="w-5 h-5" /></button>
         </div>
-        <div className="flex border-b border-falcon-border">
+        <div className="flex border-b border-[#1e2d42]">
           {[
             { id: 'events', label: `ランタイムイベント (${workload.runtime_events.length})` },
             { id: 'vulns', label: `脆弱性 (${workload.vulnerabilities.length})` },
             { id: 'config', label: `設定問題 (${workload.config_issues.length})` },
           ].map(t => (
             <button key={t.id} onClick={() => setTab(t.id as typeof tab)}
-              className={`px-4 py-2.5 text-sm border-b-2 transition-colors ${tab === t.id ? 'border-falcon-red text-white' : 'border-transparent text-falcon-muted hover:text-white'}`}>
+              className={`px-4 py-2.5 text-sm border-b-2 transition-colors ${tab === t.id ? 'border-[#e8002d] text-white' : 'border-transparent text-[#7d92b0] hover:text-white'}`}>
               {t.label}
             </button>
           ))}
@@ -349,19 +351,19 @@ function WorkloadDetailModal({ workload, onClose }: { workload: Workload; onClos
         <div className="p-4 max-h-[50vh] overflow-y-auto">
           {tab === 'events' && (
             workload.runtime_events.length === 0
-              ? <p className="text-sm text-falcon-muted text-center py-6">ランタイムイベントなし</p>
+              ? <p className="text-sm text-[#7d92b0] text-center py-6">ランタイムイベントなし</p>
               : workload.runtime_events.map((e, i) => {
                 const sev = getSeverityBadge(e.severity as Severity)
                 return (
-                  <div key={i} className="flex gap-3 mb-3 bg-[#070d19] border border-falcon-border rounded-lg p-3">
-                    <AlertTriangle className="w-4 h-4 text-falcon-red mt-0.5 shrink-0" />
+                  <div key={i} className="flex gap-3 mb-3 bg-[#070d19] border border-[#1e2d42] rounded-lg p-3">
+                    <AlertTriangle className="w-4 h-4 text-[#e8002d] mt-0.5 shrink-0" />
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-0.5">
                         <span className="text-sm font-medium text-white">{e.type}</span>
                         <span className={`text-xs px-1.5 py-0.5 rounded-sm ${sev.cls}`}>{sev.label}</span>
                       </div>
-                      <p className="text-xs text-falcon-muted">{e.description}</p>
-                      <p className="text-xs text-falcon-subtle mt-1">{e.timestamp} · {e.process}</p>
+                      <p className="text-xs text-[#7d92b0]">{e.description}</p>
+                      <p className="text-xs text-[#3d5068] mt-1">{e.timestamp} · {e.process}</p>
                     </div>
                   </div>
                 )
@@ -369,19 +371,19 @@ function WorkloadDetailModal({ workload, onClose }: { workload: Workload; onClos
           )}
           {tab === 'vulns' && (
             workload.vulnerabilities.length === 0
-              ? <p className="text-sm text-falcon-muted text-center py-6">脆弱性なし</p>
+              ? <p className="text-sm text-[#7d92b0] text-center py-6">脆弱性なし</p>
               : workload.vulnerabilities.map((v, i) => {
                 const sev = getSeverityBadge(v.severity)
                 return (
-                  <div key={i} className="flex gap-3 mb-3 bg-[#070d19] border border-falcon-border rounded-lg p-3">
+                  <div key={i} className="flex gap-3 mb-3 bg-[#070d19] border border-[#1e2d42] rounded-lg p-3">
                     <Shield className="w-4 h-4 text-orange-400 mt-0.5 shrink-0" />
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-0.5">
                         <span className="text-sm font-mono text-white">{v.cve}</span>
                         <span className={`text-xs px-1.5 py-0.5 rounded-sm ${sev.cls}`}>{sev.label}</span>
-                        <span className="text-xs text-falcon-muted">CVSS {v.cvss}</span>
+                        <span className="text-xs text-[#7d92b0]">CVSS {v.cvss}</span>
                       </div>
-                      <p className="text-xs text-falcon-muted">{v.description}</p>
+                      <p className="text-xs text-[#7d92b0]">{v.description}</p>
                     </div>
                   </div>
                 )
@@ -389,18 +391,18 @@ function WorkloadDetailModal({ workload, onClose }: { workload: Workload; onClos
           )}
           {tab === 'config' && (
             workload.config_issues.length === 0
-              ? <p className="text-sm text-falcon-muted text-center py-6">設定問題なし</p>
+              ? <p className="text-sm text-[#7d92b0] text-center py-6">設定問題なし</p>
               : workload.config_issues.map((c, i) => {
                 const sev = getSeverityBadge(c.severity as Severity)
                 return (
-                  <div key={i} className="flex gap-3 mb-3 bg-[#070d19] border border-falcon-border rounded-lg p-3">
+                  <div key={i} className="flex gap-3 mb-3 bg-[#070d19] border border-[#1e2d42] rounded-lg p-3">
                     <Settings className="w-4 h-4 text-yellow-400 mt-0.5 shrink-0" />
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-0.5">
                         <span className="text-sm font-medium text-white">{c.issue}</span>
                         <span className={`text-xs px-1.5 py-0.5 rounded-sm ${sev.cls}`}>{sev.label}</span>
                       </div>
-                      <p className="text-xs text-falcon-muted">{c.description}</p>
+                      <p className="text-xs text-[#7d92b0]">{c.description}</p>
                     </div>
                   </div>
                 )
@@ -418,8 +420,8 @@ function ThreatDetailModal({ threat, onClose }: { threat: RuntimeThreat; onClose
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 overflow-y-auto py-4">
-      <div className="w-full max-w-2xl mx-4 bg-falcon-surface border border-falcon-border rounded-xl shadow-2xl">
-        <div className="flex items-start justify-between p-5 border-b border-falcon-border">
+      <div className="w-full max-w-2xl mx-4 bg-[#0d1220] border border-[#1e2d42] rounded-xl shadow-2xl">
+        <div className="flex items-start justify-between p-5 border-b border-[#1e2d42]">
           <div>
             <div className="flex items-center gap-2 mb-1">
               <span className={`text-xs px-2 py-0.5 rounded-sm ${tt.cls}`}>{tt.label}</span>
@@ -427,45 +429,45 @@ function ThreatDetailModal({ threat, onClose }: { threat: RuntimeThreat; onClose
               {threat.auto_blocked && <span className="text-xs px-2 py-0.5 rounded-sm bg-green-900/40 text-green-400">自動ブロック</span>}
             </div>
             <h2 className="text-lg font-bold text-white">{threat.workload_name}</h2>
-            <p className="text-xs text-falcon-muted mt-0.5">{threat.timestamp}</p>
+            <p className="text-xs text-[#7d92b0] mt-0.5">{threat.timestamp}</p>
           </div>
-          <button onClick={onClose} className="text-falcon-muted hover:text-white"><X className="w-5 h-5" /></button>
+          <button onClick={onClose} className="text-[#7d92b0] hover:text-white"><X className="w-5 h-5" /></button>
         </div>
         <div className="p-5 space-y-4 max-h-[70vh] overflow-y-auto">
-          <div className="bg-[#070d19] border border-falcon-border rounded-lg p-3">
-            <h3 className="text-xs font-semibold text-falcon-muted mb-2">コマンドライン</h3>
+          <div className="bg-[#070d19] border border-[#1e2d42] rounded-lg p-3">
+            <h3 className="text-xs font-semibold text-[#7d92b0] mb-2">コマンドライン</h3>
             <code className="text-xs font-mono text-green-400 break-all">{threat.cmdline}</code>
           </div>
-          <div className="bg-[#070d19] border border-falcon-border rounded-lg p-3">
-            <h3 className="text-xs font-semibold text-falcon-muted mb-2">プロセスツリー</h3>
+          <div className="bg-[#070d19] border border-[#1e2d42] rounded-lg p-3">
+            <h3 className="text-xs font-semibold text-[#7d92b0] mb-2">プロセスツリー</h3>
             <div className="space-y-1">
               {threat.process_tree.map((p, i) => (
                 <div key={i} className="flex items-center gap-2">
-                  <span className="text-falcon-subtle">{' '.repeat(i * 2)}{'└─'}</span>
-                  <span className={`text-xs font-mono ${i === threat.process_tree.length - 1 ? 'text-falcon-red' : 'text-falcon-muted'}`}>{p}</span>
+                  <span className="text-[#3d5068]">{' '.repeat(i * 2)}{'└─'}</span>
+                  <span className={`text-xs font-mono ${i === threat.process_tree.length - 1 ? 'text-[#e8002d]' : 'text-[#7d92b0]'}`}>{p}</span>
                 </div>
               ))}
             </div>
           </div>
           {threat.network_connections.length > 0 && (
-            <div className="bg-[#070d19] border border-falcon-border rounded-lg p-3">
-              <h3 className="text-xs font-semibold text-falcon-muted mb-2">ネットワーク接続</h3>
+            <div className="bg-[#070d19] border border-[#1e2d42] rounded-lg p-3">
+              <h3 className="text-xs font-semibold text-[#7d92b0] mb-2">ネットワーク接続</h3>
               {threat.network_connections.map((nc, i) => (
                 <div key={i} className="flex items-center gap-2 text-xs">
-                  <span className="font-mono text-falcon-muted">{nc.src}</span>
-                  <span className="text-falcon-subtle">→</span>
-                  <span className="font-mono text-falcon-red">{nc.dst}</span>
-                  <span className="text-falcon-subtle">({nc.proto})</span>
+                  <span className="font-mono text-[#7d92b0]">{nc.src}</span>
+                  <span className="text-[#3d5068]">→</span>
+                  <span className="font-mono text-[#e8002d]">{nc.dst}</span>
+                  <span className="text-[#3d5068]">({nc.proto})</span>
                 </div>
               ))}
             </div>
           )}
-          <div className="bg-[#070d19] border border-falcon-border rounded-lg p-3">
-            <h3 className="text-xs font-semibold text-falcon-muted mb-2">推奨対応</h3>
+          <div className="bg-[#070d19] border border-[#1e2d42] rounded-lg p-3">
+            <h3 className="text-xs font-semibold text-[#7d92b0] mb-2">推奨対応</h3>
             <ol className="space-y-1">
               {threat.recommended_response.map((r, i) => (
-                <li key={i} className="text-xs text-falcon-muted flex gap-2">
-                  <span className="text-falcon-red font-bold shrink-0">{i + 1}.</span>
+                <li key={i} className="text-xs text-[#7d92b0] flex gap-2">
+                  <span className="text-[#e8002d] font-bold shrink-0">{i + 1}.</span>
                   {r}
                 </li>
               ))}
@@ -545,30 +547,31 @@ export default function CloudWorkloadPage() {
 
   return (
     <div className="min-h-screen bg-[#070d19] p-6 space-y-6">
+      <PageDataUnavailable />
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-falcon-red/10 border border-falcon-red/20 flex items-center justify-center">
-            <Cloud className="w-5 h-5 text-falcon-red" />
+          <div className="w-10 h-10 rounded-lg bg-[#e8002d]/10 border border-[#e8002d]/20 flex items-center justify-center">
+            <Cloud className="w-5 h-5 text-[#e8002d]" />
           </div>
           <div>
             <h1 className="text-2xl font-bold text-white">クラウドワークロード保護</h1>
-            <p className="text-sm text-falcon-muted">マルチクラウドランタイム保護・脅威検出</p>
+            <p className="text-sm text-[#7d92b0]">マルチクラウドランタイム保護・脅威検出</p>
           </div>
         </div>
-        <button className="p-2 border border-falcon-border rounded-sm text-falcon-muted hover:text-white hover:border-falcon-muted/40 transition-colors">
+        <button className="p-2 border border-[#1e2d42] rounded-sm text-[#7d92b0] hover:text-white hover:border-[#7d92b0]/40 transition-colors">
           <RefreshCw className="w-4 h-4" />
         </button>
       </div>
 
       {/* Provider Tabs */}
-      <div className="flex gap-1 p-1 bg-falcon-surface border border-falcon-border rounded-lg w-fit">
+      <div className="flex gap-1 p-1 bg-[#0d1220] border border-[#1e2d42] rounded-lg w-fit">
         {(['aws', 'azure', 'gcp'] as CloudProvider[]).map(p => (
           <button
             key={p}
             onClick={() => setProvider(p)}
-            className={`px-5 py-2 text-sm font-semibold rounded transition-colors ${
-              provider === p ? 'bg-falcon-border text-white' : 'text-falcon-muted hover:text-white'
+            className={`px-5 py-2 text-sm font-semibold rounded-sm transition-colors ${
+              provider === p ? 'bg-[#1e2d42] text-white' : 'text-[#7d92b0] hover:text-white'
             }`}
           >
             {p.toUpperCase()}
@@ -581,17 +584,17 @@ export default function CloudWorkloadPage() {
         {(Object.entries(stats.byType) as [WorkloadType, { count: number; protected: number }][]).map(([type, d]) => {
           const pct = d.count ? Math.round((d.protected / d.count) * 100) : 100
           return (
-            <div key={type} className="bg-falcon-surface border border-falcon-border rounded-lg p-4">
+            <div key={type} className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-4">
               <div className="flex items-center gap-2 mb-2">
-                <span className="text-falcon-muted">{TYPE_ICONS[type]}</span>
-                <span className="text-sm text-falcon-muted">{TYPE_LABELS[type]}</span>
+                <span className="text-[#7d92b0]">{TYPE_ICONS[type]}</span>
+                <span className="text-sm text-[#7d92b0]">{TYPE_LABELS[type]}</span>
               </div>
               <div className="text-2xl font-bold text-white mb-1">{d.count}</div>
               <div className="flex items-center gap-1.5">
-                <div className="flex-1 h-1 bg-falcon-border rounded-full overflow-hidden">
+                <div className="flex-1 h-1 bg-[#1e2d42] rounded-full overflow-hidden">
                   <div className={`h-full rounded-full ${pct === 100 ? 'bg-green-500' : pct >= 60 ? 'bg-yellow-500' : 'bg-red-500'}`} style={{ width: `${pct}%` }} />
                 </div>
-                <span className="text-xs text-falcon-muted">{pct}%保護</span>
+                <span className="text-xs text-[#7d92b0]">{pct}%保護</span>
               </div>
             </div>
           )
@@ -600,7 +603,7 @@ export default function CloudWorkloadPage() {
 
       {/* Coverage + Threat summary */}
       <div className="grid grid-cols-2 gap-4">
-        <div className="bg-falcon-surface border border-falcon-border rounded-lg p-4 flex items-center gap-4">
+        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-4 flex items-center gap-4">
           <div className="relative w-16 h-16 shrink-0">
             <svg className="w-full h-full -rotate-90" viewBox="0 0 36 36">
               <circle cx="18" cy="18" r="15" fill="none" stroke="#1e2d42" strokeWidth="3" />
@@ -612,14 +615,14 @@ export default function CloudWorkloadPage() {
           </div>
           <div>
             <p className="text-sm font-medium text-white">保護カバレッジ</p>
-            <p className="text-xs text-falcon-muted">{allProviderWorkloads.filter(w => w.protection_status === 'protected').length} / {allProviderWorkloads.length} ワークロード保護済み</p>
+            <p className="text-xs text-[#7d92b0]">{allProviderWorkloads.filter(w => w.protection_status === 'protected').length} / {allProviderWorkloads.length} ワークロード保護済み</p>
           </div>
         </div>
-        <div className="bg-falcon-surface border border-falcon-border rounded-lg p-4">
-          <p className="text-sm text-falcon-muted mb-2">本日のランタイム脅威</p>
+        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-4">
+          <p className="text-sm text-[#7d92b0] mb-2">本日のランタイム脅威</p>
           <div className="flex items-end gap-2">
             <span className="text-3xl font-bold text-white">{stats.todayThreats}</span>
-            <span className="text-sm text-falcon-muted mb-1">件検出</span>
+            <span className="text-sm text-[#7d92b0] mb-1">件検出</span>
           </div>
           <div className="flex gap-2 mt-1">
             <span className="text-xs px-2 py-0.5 rounded-sm bg-red-900/40 text-red-400">Critical: {stats.critical}</span>
@@ -629,7 +632,7 @@ export default function CloudWorkloadPage() {
       </div>
 
       {/* Main Section Tabs */}
-      <div className="flex gap-0.5 border-b border-falcon-border">
+      <div className="flex gap-0.5 border-b border-[#1e2d42]">
         {[
           { id: 'workloads', label: 'ワークロード一覧' },
           { id: 'threats', label: `脅威検出 (${threats.length})` },
@@ -640,7 +643,7 @@ export default function CloudWorkloadPage() {
             key={tab.id}
             onClick={() => setMainTab(tab.id as typeof mainTab)}
             className={`px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors ${
-              mainTab === tab.id ? 'border-falcon-red text-white' : 'border-transparent text-falcon-muted hover:text-white'
+              mainTab === tab.id ? 'border-[#e8002d] text-white' : 'border-transparent text-[#7d92b0] hover:text-white'
             }`}
           >
             {tab.label}
@@ -653,16 +656,16 @@ export default function CloudWorkloadPage() {
         <div className="space-y-4">
           <div className="flex flex-wrap gap-3">
             <div className="relative flex-1 min-w-[200px]">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-falcon-subtle" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#3d5068]" />
               <input
-                className="w-full pl-9 pr-3 py-2 bg-falcon-surface border border-falcon-border rounded-sm text-sm text-white placeholder-falcon-subtle focus:outline-hidden focus:border-falcon-red/50"
+                className="w-full pl-9 pr-3 py-2 bg-[#0d1220] border border-[#1e2d42] rounded-sm text-sm text-white placeholder-[#3d5068] focus:outline-hidden focus:border-[#e8002d]/50"
                 placeholder="ワークロード名で検索..."
                 value={search}
                 onChange={e => setSearch(e.target.value)}
               />
             </div>
             <select
-              className="bg-falcon-surface border border-falcon-border rounded-sm px-3 py-2 text-sm text-falcon-muted focus:outline-hidden"
+              className="bg-[#0d1220] border border-[#1e2d42] rounded-sm px-3 py-2 text-sm text-[#7d92b0] focus:outline-hidden"
               value={filterType}
               onChange={e => setFilterType(e.target.value)}
             >
@@ -670,7 +673,7 @@ export default function CloudWorkloadPage() {
               {Object.entries(TYPE_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
             </select>
             <select
-              className="bg-falcon-surface border border-falcon-border rounded-sm px-3 py-2 text-sm text-falcon-muted focus:outline-hidden"
+              className="bg-[#0d1220] border border-[#1e2d42] rounded-sm px-3 py-2 text-sm text-[#7d92b0] focus:outline-hidden"
               value={filterProtection}
               onChange={e => setFilterProtection(e.target.value)}
             >
@@ -680,42 +683,42 @@ export default function CloudWorkloadPage() {
               <option value="partial">部分的</option>
             </select>
           </div>
-          <div className="bg-falcon-surface border border-falcon-border rounded-lg overflow-hidden">
+          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-falcon-border bg-[#070d19]/60">
+                  <tr className="border-b border-[#1e2d42] bg-[#070d19]/60">
                     {['ワークロード', 'タイプ', 'リージョン', '保護状態', 'エージェント', '最終確認', '脅威', 'タグ', ''].map(h => (
-                      <th key={h} className="text-left py-3 px-3 text-xs text-falcon-muted font-medium whitespace-nowrap">{h}</th>
+                      <th key={h} className="text-left py-3 px-3 text-xs text-[#7d92b0] font-medium whitespace-nowrap">{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {workloads.length === 0 ? (
-                    <tr><td colSpan={9} className="text-center py-8 text-falcon-muted">ワークロードなし</td></tr>
+                    <tr><td colSpan={9} className="text-center py-8 text-[#7d92b0]">ワークロードなし</td></tr>
                   ) : workloads.map(w => {
                     const prot = getProtectionBadge(w.protection_status)
                     return (
                       <tr
                         key={w.id}
-                        className="border-b border-falcon-border/40 hover:bg-[#070d19]/60 cursor-pointer group"
+                        className="border-b border-[#1e2d42]/40 hover:bg-[#070d19]/60 cursor-pointer group"
                         onClick={() => setSelectedWorkload(w)}
                       >
-                        <td className="py-2.5 px-3 font-medium text-white group-hover:text-falcon-red transition-colors">{w.workload_name}</td>
+                        <td className="py-2.5 px-3 font-medium text-white group-hover:text-[#e8002d] transition-colors">{w.workload_name}</td>
                         <td className="py-2.5 px-3">
-                          <span className="flex items-center gap-1.5 text-xs text-falcon-muted">
+                          <span className="flex items-center gap-1.5 text-xs text-[#7d92b0]">
                             {TYPE_ICONS[w.type]}
                             {TYPE_LABELS[w.type]}
                           </span>
                         </td>
-                        <td className="py-2.5 px-3 text-xs text-falcon-muted">{w.region}</td>
+                        <td className="py-2.5 px-3 text-xs text-[#7d92b0]">{w.region}</td>
                         <td className="py-2.5 px-3">
                           <span className={`text-xs px-2 py-0.5 rounded-sm border ${prot.cls}`}>{prot.label}</span>
                         </td>
-                        <td className="py-2.5 px-3 text-xs font-mono text-falcon-muted">
-                          {w.agent_version ?? <span className="text-falcon-subtle">未インストール</span>}
+                        <td className="py-2.5 px-3 text-xs font-mono text-[#7d92b0]">
+                          {w.agent_version ?? <span className="text-[#3d5068]">未インストール</span>}
                         </td>
-                        <td className="py-2.5 px-3 text-xs text-falcon-muted">
+                        <td className="py-2.5 px-3 text-xs text-[#7d92b0]">
                           {new Date(w.last_seen).toLocaleString('ja-JP', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}
                         </td>
                         <td className="py-2.5 px-3">
@@ -724,18 +727,18 @@ export default function CloudWorkloadPage() {
                               <AlertTriangle className="w-3 h-3" />{w.threats_count}
                             </span>
                           ) : (
-                            <span className="text-xs text-falcon-subtle">—</span>
+                            <span className="text-xs text-[#3d5068]">—</span>
                           )}
                         </td>
                         <td className="py-2.5 px-3">
                           <div className="flex gap-1 flex-wrap max-w-[120px]">
                             {w.tags.slice(0, 2).map(t => (
-                              <span key={t} className="text-xs px-1.5 py-0.5 bg-falcon-border rounded-sm text-falcon-muted">{t}</span>
+                              <span key={t} className="text-xs px-1.5 py-0.5 bg-[#1e2d42] rounded-sm text-[#7d92b0]">{t}</span>
                             ))}
                           </div>
                         </td>
                         <td className="py-2.5 px-3">
-                          <ChevronRight className="w-4 h-4 text-falcon-subtle group-hover:text-falcon-muted" />
+                          <ChevronRight className="w-4 h-4 text-[#3d5068] group-hover:text-[#7d92b0]" />
                         </td>
                       </tr>
                     )
@@ -749,29 +752,29 @@ export default function CloudWorkloadPage() {
 
       {/* Threats Tab */}
       {mainTab === 'threats' && (
-        <div className="bg-falcon-surface border border-falcon-border rounded-lg overflow-hidden">
+        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-falcon-border bg-[#070d19]/60">
+                <tr className="border-b border-[#1e2d42] bg-[#070d19]/60">
                   {['時刻', 'ワークロード', '脅威タイプ', '深刻度', 'プロセス', '自動ブロック', ''].map(h => (
-                    <th key={h} className="text-left py-3 px-3 text-xs text-falcon-muted font-medium whitespace-nowrap">{h}</th>
+                    <th key={h} className="text-left py-3 px-3 text-xs text-[#7d92b0] font-medium whitespace-nowrap">{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {threats.length === 0 ? (
-                  <tr><td colSpan={7} className="text-center py-8 text-falcon-muted">脅威なし</td></tr>
+                  <tr><td colSpan={7} className="text-center py-8 text-[#7d92b0]">脅威なし</td></tr>
                 ) : threats.map(t => {
                   const tt = getThreatTypeBadge(t.threat_type)
                   const sev = getSeverityBadge(t.severity)
                   return (
                     <tr
                       key={t.id}
-                      className="border-b border-falcon-border/40 hover:bg-[#070d19]/60 cursor-pointer group"
+                      className="border-b border-[#1e2d42]/40 hover:bg-[#070d19]/60 cursor-pointer group"
                       onClick={() => setSelectedThreat(t)}
                     >
-                      <td className="py-2.5 px-3 text-xs text-falcon-muted whitespace-nowrap">
+                      <td className="py-2.5 px-3 text-xs text-[#7d92b0] whitespace-nowrap">
                         {new Date(t.timestamp).toLocaleString('ja-JP', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}
                       </td>
                       <td className="py-2.5 px-3 font-medium text-white">{t.workload_name}</td>
@@ -781,7 +784,7 @@ export default function CloudWorkloadPage() {
                       <td className="py-2.5 px-3">
                         <span className={`text-xs px-2 py-0.5 rounded-sm ${sev.cls}`}>{sev.label}</span>
                       </td>
-                      <td className="py-2.5 px-3 text-xs font-mono text-falcon-muted">{t.process}</td>
+                      <td className="py-2.5 px-3 text-xs font-mono text-[#7d92b0]">{t.process}</td>
                       <td className="py-2.5 px-3">
                         {t.auto_blocked
                           ? <span className="text-xs px-2 py-0.5 rounded-sm bg-green-900/40 text-green-400">ブロック済</span>
@@ -789,7 +792,7 @@ export default function CloudWorkloadPage() {
                         }
                       </td>
                       <td className="py-2.5 px-3">
-                        <Eye className="w-4 h-4 text-falcon-subtle group-hover:text-falcon-muted" />
+                        <Eye className="w-4 h-4 text-[#3d5068] group-hover:text-[#7d92b0]" />
                       </td>
                     </tr>
                   )
@@ -808,7 +811,7 @@ export default function CloudWorkloadPage() {
             const isFixed = fixedMisconfigs.has(m.id) || m.status === 'fixed'
             const isSuppressed = m.status === 'suppressed'
             return (
-              <div key={m.id} className={`bg-falcon-surface border rounded-lg p-4 ${isFixed ? 'border-green-700/30 opacity-60' : isSuppressed ? 'border-falcon-border opacity-50' : 'border-falcon-border'}`}>
+              <div key={m.id} className={`bg-[#0d1220] border rounded-lg p-4 ${isFixed ? 'border-green-700/30 opacity-60' : isSuppressed ? 'border-[#1e2d42] opacity-50' : 'border-[#1e2d42]'}`}>
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
@@ -817,11 +820,11 @@ export default function CloudWorkloadPage() {
                       {isFixed && <span className="text-xs px-2 py-0.5 rounded-sm bg-green-900/40 text-green-400">修正済み</span>}
                       {isSuppressed && <span className="text-xs px-2 py-0.5 rounded-sm bg-slate-700/40 text-slate-400">抑制</span>}
                     </div>
-                    <p className="text-xs text-falcon-muted mb-0.5"><span className="text-white">{m.workload_name}</span> · {m.region ?? ''}</p>
-                    <p className="text-xs text-falcon-muted mb-2">{m.description}</p>
+                    <p className="text-xs text-[#7d92b0] mb-0.5"><span className="text-white">{m.workload_name}</span> · {m.region ?? ''}</p>
+                    <p className="text-xs text-[#7d92b0] mb-2">{m.description}</p>
                     <div className="flex items-start gap-1">
                       <CheckCircle2 className="w-3 h-3 text-green-400 mt-0.5 shrink-0" />
-                      <p className="text-xs text-falcon-muted">{m.remediation}</p>
+                      <p className="text-xs text-[#7d92b0]">{m.remediation}</p>
                     </div>
                   </div>
                   {m.quick_fixable && !isFixed && !isSuppressed && (
@@ -845,7 +848,7 @@ export default function CloudWorkloadPage() {
           <h3 className="text-base font-semibold text-white">CISベンチマーク — {provider.toUpperCase()}</h3>
           <div className="grid gap-3">
             {cisScores.map(score => (
-              <div key={score.category} className="bg-falcon-surface border border-falcon-border rounded-lg p-4">
+              <div key={score.category} className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-4">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm text-white">{score.category}</span>
                   <div className="flex items-center gap-3">
@@ -856,7 +859,7 @@ export default function CloudWorkloadPage() {
                     </span>
                   </div>
                 </div>
-                <div className="h-2 bg-falcon-border rounded-full overflow-hidden">
+                <div className="h-2 bg-[#1e2d42] rounded-full overflow-hidden">
                   <div
                     className={`h-full rounded-full ${score.score >= 80 ? 'bg-green-500' : score.score >= 60 ? 'bg-yellow-500' : 'bg-red-500'}`}
                     style={{ width: `${score.score}%` }}
@@ -864,7 +867,7 @@ export default function CloudWorkloadPage() {
                 </div>
               </div>
             ))}
-            <div className="bg-falcon-surface border border-falcon-red/20 rounded-lg p-4">
+            <div className="bg-[#0d1220] border border-[#e8002d]/20 rounded-lg p-4">
               <div className="flex items-center justify-between">
                 <span className="text-sm font-bold text-white">総合スコア</span>
                 <span className={`text-xl font-bold ${

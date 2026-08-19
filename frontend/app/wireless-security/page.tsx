@@ -9,6 +9,8 @@ import {
   Radio, Cpu, Printer, Camera, Activity,
   ChevronRight, AlertOctagon, Bell, Clock,
 } from 'lucide-react'
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 type SecurityType = 'Open' | 'WEP' | 'WPA' | 'WPA2' | 'WPA3'
@@ -135,13 +137,13 @@ function formatDate(d: string): string {
 function DeviceDetailPanel({ device, onClose }: { device: IoTDevice; onClose: () => void }) {
   const typeConf = DEVICE_TYPE_CONFIG[device.device_type]
   return (
-    <div className="fixed inset-y-0 right-0 z-50 w-96 bg-falcon-surface border-l border-falcon-border shadow-2xl overflow-y-auto">
-      <div className="px-5 py-4 border-b border-falcon-border flex items-center justify-between">
+    <div className="fixed inset-y-0 right-0 z-50 w-96 bg-[#0d1220] border-l border-[#1e2d42] shadow-2xl overflow-y-auto">
+      <div className="px-5 py-4 border-b border-[#1e2d42] flex items-center justify-between">
         <div>
           <h2 className="text-white font-semibold">{device.device_name}</h2>
-          <p className="text-falcon-muted text-xs mt-0.5">{device.manufacturer}</p>
+          <p className="text-[#7d92b0] text-xs mt-0.5">{device.manufacturer}</p>
         </div>
-        <button onClick={onClose} className="text-falcon-muted hover:text-white p-1"><X className="w-5 h-5" /></button>
+        <button onClick={onClose} className="text-[#7d92b0] hover:text-white p-1"><X className="w-5 h-5" /></button>
       </div>
       <div className="p-5 space-y-5">
         {/* Basic info */}
@@ -156,10 +158,10 @@ function DeviceDetailPanel({ device, onClose }: { device: IoTDevice; onClose: ()
             ['管理状態', device.is_managed
               ? <span key="m" className="flex items-center gap-1 text-green-400"><CheckCircle className="w-3.5 h-3.5" />管理済み</span>
               : <span key="um" className="flex items-center gap-1 text-red-400"><XCircle className="w-3.5 h-3.5" />未管理</span>],
-            ['最終確認', <span key="ls" className="text-falcon-muted">{formatDate(device.last_seen)}</span>],
+            ['最終確認', <span key="ls" className="text-[#7d92b0]">{formatDate(device.last_seen)}</span>],
           ].map(([label, val], i) => (
-            <div key={i} className="flex justify-between items-center py-1.5 border-b border-falcon-border/50">
-              <span className="text-falcon-muted">{label}</span>
+            <div key={i} className="flex justify-between items-center py-1.5 border-b border-[#1e2d42]/50">
+              <span className="text-[#7d92b0]">{label}</span>
               {val}
             </div>
           ))}
@@ -170,10 +172,10 @@ function DeviceDetailPanel({ device, onClose }: { device: IoTDevice; onClose: ()
           <h3 className="text-white font-medium mb-2 text-sm">オープンポート</h3>
           <div className="flex flex-wrap gap-2">
             {device.open_ports.map(port => (
-              <span key={port} className={`text-xs px-2.5 py-1 rounded font-mono font-medium ${
+              <span key={port} className={`text-xs px-2.5 py-1 rounded-sm font-mono font-medium ${
                 port === 23 ? 'bg-red-500/20 text-red-300 border border-red-500/30' :
                 port === 80 ? 'bg-orange-500/20 text-orange-300 border border-orange-500/30' :
-                'bg-falcon-border text-falcon-muted'
+                'bg-[#1e2d42] text-[#7d92b0]'
               }`}>
                 {port}
                 {port === 23 && ' (Telnet)'}
@@ -214,7 +216,7 @@ function DeviceDetailPanel({ device, onClose }: { device: IoTDevice; onClose: ()
                       'bg-yellow-500/20 text-yellow-300'
                     }`}>{vuln.severity}</span>
                   </div>
-                  <p className="text-falcon-muted text-xs">{vuln.description}</p>
+                  <p className="text-[#7d92b0] text-xs">{vuln.description}</p>
                 </div>
               ))}
             </div>
@@ -315,10 +317,11 @@ export default function WirelessSecurityPage() {
 
   return (
     <div className="min-h-screen bg-[#070d19] p-6">
+      <PageDataUnavailable />
       {/* Header */}
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-white">ワイヤレス/IoTセキュリティ</h1>
-        <p className="text-falcon-muted mt-1 text-sm">不正アクセスポイント・IoTデバイスの検知と管理</p>
+        <p className="text-[#7d92b0] mt-1 text-sm">不正アクセスポイント・IoTデバイスの検知と管理</p>
       </div>
 
       {/* Stats Row */}
@@ -329,11 +332,11 @@ export default function WirelessSecurityPage() {
           { label: 'IoTデバイス', value: stats.iot_devices, icon: <Cpu className="w-5 h-5" />, color: 'text-blue-400', bg: 'bg-blue-500/10' },
           { label: '高リスクIoT', value: stats.high_risk_iot, icon: <AlertTriangle className="w-5 h-5" />, color: 'text-red-400', bg: 'bg-red-500/10' },
         ].map(({ label, value, icon, color, bg }) => (
-          <div key={label} className="bg-falcon-surface border border-falcon-border rounded-lg p-4">
+          <div key={label} className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-4">
             <div className="flex items-center gap-3">
               <div className={`p-2 rounded-lg ${bg} ${color}`}>{icon}</div>
               <div>
-                <p className="text-falcon-muted text-xs">{label}</p>
+                <p className="text-[#7d92b0] text-xs">{label}</p>
                 <p className={`text-2xl font-bold ${color}`}>{value}</p>
               </div>
             </div>
@@ -342,7 +345,7 @@ export default function WirelessSecurityPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 mb-6 bg-falcon-surface border border-falcon-border rounded-lg p-1 w-fit">
+      <div className="flex gap-1 mb-6 bg-[#0d1220] border border-[#1e2d42] rounded-lg p-1 w-fit">
         {[
           { id: 'wireless', label: 'ワイヤレスネットワーク' },
           { id: 'iot', label: 'IoTデバイス' },
@@ -351,8 +354,8 @@ export default function WirelessSecurityPage() {
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id as typeof activeTab)}
-            className={`px-4 py-2 rounded text-sm font-medium transition-colors ${
-              activeTab === tab.id ? 'bg-falcon-active text-white' : 'text-falcon-muted hover:text-white'
+            className={`px-4 py-2 rounded-sm text-sm font-medium transition-colors ${
+              activeTab === tab.id ? 'bg-[#1d2f4a] text-white' : 'text-[#7d92b0] hover:text-white'
             }`}
           >
             {tab.label}
@@ -365,24 +368,24 @@ export default function WirelessSecurityPage() {
         <div className="space-y-4">
           {/* Filters */}
           <div className="flex items-center gap-3 flex-wrap">
-            <div className="flex items-center gap-2 text-falcon-muted text-sm">
+            <div className="flex items-center gap-2 text-[#7d92b0] text-sm">
               <Filter className="w-4 h-4" />
               <span>フィルター:</span>
             </div>
             <select value={authorizedFilter} onChange={e => setAuthorizedFilter(e.target.value)}
-              className="px-3 py-1.5 bg-falcon-surface border border-falcon-border rounded-sm text-sm text-white focus:outline-hidden focus:border-falcon-muted/50">
+              className="px-3 py-1.5 bg-[#0d1220] border border-[#1e2d42] rounded-sm text-sm text-white focus:outline-hidden focus:border-[#7d92b0]/50">
               <option value="all">承認状態: すべて</option>
               <option value="authorized">承認済み</option>
               <option value="unauthorized">未承認</option>
             </select>
             <select value={rogueFilter} onChange={e => setRogueFilter(e.target.value)}
-              className="px-3 py-1.5 bg-falcon-surface border border-falcon-border rounded-sm text-sm text-white focus:outline-hidden focus:border-falcon-muted/50">
+              className="px-3 py-1.5 bg-[#0d1220] border border-[#1e2d42] rounded-sm text-sm text-white focus:outline-hidden focus:border-[#7d92b0]/50">
               <option value="all">不正AP: すべて</option>
               <option value="rogue">不正のみ</option>
               <option value="non_rogue">正規のみ</option>
             </select>
             <select value={freqFilter} onChange={e => setFreqFilter(e.target.value)}
-              className="px-3 py-1.5 bg-falcon-surface border border-falcon-border rounded-sm text-sm text-white focus:outline-hidden focus:border-falcon-muted/50">
+              className="px-3 py-1.5 bg-[#0d1220] border border-[#1e2d42] rounded-sm text-sm text-white focus:outline-hidden focus:border-[#7d92b0]/50">
               <option value="all">周波数: すべて</option>
               <option value="2.4GHz">2.4GHz</option>
               <option value="5GHz">5GHz</option>
@@ -390,19 +393,19 @@ export default function WirelessSecurityPage() {
             </select>
             {(authorizedFilter !== 'all' || rogueFilter !== 'all' || freqFilter !== 'all') && (
               <button onClick={() => { setAuthorizedFilter('all'); setRogueFilter('all'); setFreqFilter('all') }}
-                className="flex items-center gap-1 px-2 py-1.5 text-xs text-falcon-muted hover:text-white">
+                className="flex items-center gap-1 px-2 py-1.5 text-xs text-[#7d92b0] hover:text-white">
                 <X className="w-3.5 h-3.5" /> クリア
               </button>
             )}
-            <span className="text-falcon-muted text-sm">{filteredNetworks.length} 件</span>
+            <span className="text-[#7d92b0] text-sm">{filteredNetworks.length} 件</span>
           </div>
 
           {/* Networks Table */}
-          <div className="bg-falcon-surface border border-falcon-border rounded-lg overflow-hidden">
+          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="text-falcon-muted text-xs border-b border-falcon-border bg-[#0a101d]">
+                  <tr className="text-[#7d92b0] text-xs border-b border-[#1e2d42] bg-[#0a101d]">
                     <th className="text-left px-4 py-3">SSID</th>
                     <th className="text-left px-4 py-3">BSSID</th>
                     <th className="text-left px-4 py-3">CH</th>
@@ -417,7 +420,7 @@ export default function WirelessSecurityPage() {
                     <th className="text-left px-4 py-3">アクション</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-falcon-border">
+                <tbody className="divide-y divide-[#1e2d42]">
                   {filteredNetworks.map(net => {
                     const secConf = SECURITY_TYPE_CONFIG[net.security_type]
                     const freqConf = FREQ_CONFIG[net.frequency]
@@ -429,9 +432,9 @@ export default function WirelessSecurityPage() {
                           <span className="text-white font-medium">{net.ssid}</span>
                         </td>
                         <td className="px-4 py-3">
-                          <span className="font-mono text-xs text-falcon-muted">{net.bssid}</span>
+                          <span className="font-mono text-xs text-[#7d92b0]">{net.bssid}</span>
                         </td>
-                        <td className="px-4 py-3 text-falcon-muted text-xs">{net.channel}</td>
+                        <td className="px-4 py-3 text-[#7d92b0] text-xs">{net.channel}</td>
                         <td className="px-4 py-3">
                           <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${freqConf.color}`}>{net.frequency}</span>
                         </td>
@@ -440,27 +443,27 @@ export default function WirelessSecurityPage() {
                         </td>
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2">
-                            <div className="flex-1 h-1.5 bg-falcon-border rounded-full overflow-hidden">
+                            <div className="flex-1 h-1.5 bg-[#1e2d42] rounded-full overflow-hidden">
                               <div className={`h-full rounded-full ${sigColor}`} style={{ width: `${sigPct}%` }} />
                             </div>
-                            <span className="text-xs font-mono text-falcon-muted w-12 text-right">{net.signal_strength} dBm</span>
+                            <span className="text-xs font-mono text-[#7d92b0] w-12 text-right">{net.signal_strength} dBm</span>
                           </div>
                         </td>
-                        <td className="px-4 py-3 text-falcon-muted text-xs">{net.vendor}</td>
+                        <td className="px-4 py-3 text-[#7d92b0] text-xs">{net.vendor}</td>
                         <td className="px-4 py-3">
                           {net.is_authorized
                             ? <span className="flex items-center gap-1 text-green-400 text-xs"><CheckCircle className="w-3.5 h-3.5" />承認済み</span>
-                            : <span className="flex items-center gap-1 text-falcon-muted text-xs"><XCircle className="w-3.5 h-3.5" />未承認</span>}
+                            : <span className="flex items-center gap-1 text-[#7d92b0] text-xs"><XCircle className="w-3.5 h-3.5" />未承認</span>}
                         </td>
                         <td className="px-4 py-3">
                           {net.is_rogue ? (
                             <span className="flex items-center gap-1 text-xs bg-red-500/20 text-red-300 border border-red-500/30 px-2 py-0.5 rounded-full">
                               <AlertTriangle className="w-3 h-3" /> 不正AP
                             </span>
-                          ) : <span className="text-falcon-subtle text-xs">—</span>}
+                          ) : <span className="text-[#3d5068] text-xs">—</span>}
                         </td>
-                        <td className="px-4 py-3 text-falcon-muted text-xs whitespace-nowrap">{formatDate(net.first_seen)}</td>
-                        <td className="px-4 py-3 text-falcon-muted text-xs whitespace-nowrap">{formatDate(net.last_seen)}</td>
+                        <td className="px-4 py-3 text-[#7d92b0] text-xs whitespace-nowrap">{formatDate(net.first_seen)}</td>
+                        <td className="px-4 py-3 text-[#7d92b0] text-xs whitespace-nowrap">{formatDate(net.last_seen)}</td>
                         <td className="px-4 py-3">
                           {!net.is_authorized && (
                             <button
@@ -487,12 +490,12 @@ export default function WirelessSecurityPage() {
         <div className="space-y-4">
           {/* Filters */}
           <div className="flex items-center gap-3 flex-wrap">
-            <div className="flex items-center gap-2 text-falcon-muted text-sm">
+            <div className="flex items-center gap-2 text-[#7d92b0] text-sm">
               <Filter className="w-4 h-4" />
               <span>フィルター:</span>
             </div>
             <select value={deviceTypeFilter} onChange={e => setDeviceTypeFilter(e.target.value)}
-              className="px-3 py-1.5 bg-falcon-surface border border-falcon-border rounded-sm text-sm text-white focus:outline-hidden focus:border-falcon-muted/50">
+              className="px-3 py-1.5 bg-[#0d1220] border border-[#1e2d42] rounded-sm text-sm text-white focus:outline-hidden focus:border-[#7d92b0]/50">
               <option value="all">デバイスタイプ: すべて</option>
               <option value="camera">カメラ</option>
               <option value="sensor">センサー</option>
@@ -502,32 +505,32 @@ export default function WirelessSecurityPage() {
               <option value="unknown">不明</option>
             </select>
             <select value={managedFilter} onChange={e => setManagedFilter(e.target.value)}
-              className="px-3 py-1.5 bg-falcon-surface border border-falcon-border rounded-sm text-sm text-white focus:outline-hidden focus:border-falcon-muted/50">
+              className="px-3 py-1.5 bg-[#0d1220] border border-[#1e2d42] rounded-sm text-sm text-white focus:outline-hidden focus:border-[#7d92b0]/50">
               <option value="all">管理状態: すべて</option>
               <option value="managed">管理済み</option>
               <option value="unmanaged">未管理</option>
             </select>
             <div className="flex items-center gap-2">
-              <span className="text-falcon-muted text-sm">リスクスコア最小値:</span>
+              <span className="text-[#7d92b0] text-sm">リスクスコア最小値:</span>
               <input type="number" value={minRiskFilter} min={0} max={100}
                 onChange={e => setMinRiskFilter(Number(e.target.value))}
-                className="w-16 px-2 py-1.5 bg-falcon-surface border border-falcon-border rounded-sm text-sm text-white focus:outline-hidden focus:border-falcon-muted/50" />
+                className="w-16 px-2 py-1.5 bg-[#0d1220] border border-[#1e2d42] rounded-sm text-sm text-white focus:outline-hidden focus:border-[#7d92b0]/50" />
             </div>
             {(deviceTypeFilter !== 'all' || managedFilter !== 'all' || minRiskFilter > 0) && (
               <button onClick={() => { setDeviceTypeFilter('all'); setManagedFilter('all'); setMinRiskFilter(0) }}
-                className="flex items-center gap-1 px-2 py-1.5 text-xs text-falcon-muted hover:text-white">
+                className="flex items-center gap-1 px-2 py-1.5 text-xs text-[#7d92b0] hover:text-white">
                 <X className="w-3.5 h-3.5" /> クリア
               </button>
             )}
-            <span className="text-falcon-muted text-sm">{filteredIoT.length} 件</span>
+            <span className="text-[#7d92b0] text-sm">{filteredIoT.length} 件</span>
           </div>
 
           {/* IoT Table */}
-          <div className="bg-falcon-surface border border-falcon-border rounded-lg overflow-hidden">
+          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="text-falcon-muted text-xs border-b border-falcon-border bg-[#0a101d]">
+                  <tr className="text-[#7d92b0] text-xs border-b border-[#1e2d42] bg-[#0a101d]">
                     <th className="text-left px-4 py-3">IPアドレス</th>
                     <th className="text-left px-4 py-3">MACアドレス</th>
                     <th className="text-left px-4 py-3">デバイス名</th>
@@ -541,7 +544,7 @@ export default function WirelessSecurityPage() {
                     <th className="text-left px-4 py-3">詳細</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-falcon-border">
+                <tbody className="divide-y divide-[#1e2d42]">
                   {filteredIoT.map(device => {
                     const typeConf = DEVICE_TYPE_CONFIG[device.device_type]
                     const dangerousPorts = hasDangerousPort(device.open_ports)
@@ -551,7 +554,7 @@ export default function WirelessSecurityPage() {
                           <span className="font-mono text-xs text-white">{device.ip_address}</span>
                         </td>
                         <td className="px-4 py-3">
-                          <span className="font-mono text-xs text-falcon-muted">{device.mac_address}</span>
+                          <span className="font-mono text-xs text-[#7d92b0]">{device.mac_address}</span>
                         </td>
                         <td className="px-4 py-3">
                           <span className="text-white font-medium">{device.device_name}</span>
@@ -561,19 +564,19 @@ export default function WirelessSecurityPage() {
                             {typeConf.icon} {typeConf.label}
                           </span>
                         </td>
-                        <td className="px-4 py-3 text-falcon-muted text-xs">{device.manufacturer}</td>
+                        <td className="px-4 py-3 text-[#7d92b0] text-xs">{device.manufacturer}</td>
                         <td className="px-4 py-3">
-                          <span className="font-mono text-xs text-falcon-muted">{device.firmware_version}</span>
+                          <span className="font-mono text-xs text-[#7d92b0]">{device.firmware_version}</span>
                         </td>
                         <td className="px-4 py-3">
-                          <span className={`text-xs font-bold ${dangerousPorts ? 'text-red-400' : 'text-falcon-muted'}`}>
+                          <span className={`text-xs font-bold ${dangerousPorts ? 'text-red-400' : 'text-[#7d92b0]'}`}>
                             {device.open_ports.length}
                             {dangerousPorts && ' ⚠'}
                           </span>
                         </td>
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2">
-                            <div className="flex-1 h-1.5 bg-falcon-border rounded-full overflow-hidden">
+                            <div className="flex-1 h-1.5 bg-[#1e2d42] rounded-full overflow-hidden">
                               <div className={`h-full rounded-full ${getRiskScoreColor(device.risk_score)}`}
                                 style={{ width: `${device.risk_score}%` }} />
                             </div>
@@ -587,11 +590,11 @@ export default function WirelessSecurityPage() {
                             ? <span className="flex items-center gap-1 text-green-400 text-xs"><CheckCircle className="w-3.5 h-3.5" />管理済み</span>
                             : <span className="flex items-center gap-1 text-red-400 text-xs"><XCircle className="w-3.5 h-3.5" />未管理</span>}
                         </td>
-                        <td className="px-4 py-3 text-falcon-muted text-xs whitespace-nowrap">{formatDate(device.last_seen)}</td>
+                        <td className="px-4 py-3 text-[#7d92b0] text-xs whitespace-nowrap">{formatDate(device.last_seen)}</td>
                         <td className="px-4 py-3">
                           <button
                             onClick={() => setSelectedDevice(device)}
-                            className="flex items-center gap-1.5 px-3 py-1.5 bg-falcon-active hover:bg-[#243a5e] text-white text-xs rounded-sm transition-colors"
+                            className="flex items-center gap-1.5 px-3 py-1.5 bg-[#1d2f4a] hover:bg-[#243a5e] text-white text-xs rounded-sm transition-colors"
                           >
                             <Eye className="w-3.5 h-3.5" />
                             詳細
@@ -609,18 +612,18 @@ export default function WirelessSecurityPage() {
 
       {/* ── Security Alerts Tab ── */}
       {activeTab === 'alerts' && (
-        <div className="bg-falcon-surface border border-falcon-border rounded-lg overflow-hidden">
-          <div className="px-5 py-4 border-b border-falcon-border flex items-center gap-2">
-            <Bell className="w-4 h-4 text-falcon-red" />
+        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg overflow-hidden">
+          <div className="px-5 py-4 border-b border-[#1e2d42] flex items-center gap-2">
+            <Bell className="w-4 h-4 text-[#e8002d]" />
             <h3 className="text-white font-semibold">セキュリティアラート</h3>
-            <span className="text-xs bg-falcon-red/20 text-red-300 border border-falcon-red/30 px-2 py-0.5 rounded-full ml-2">
+            <span className="text-xs bg-[#e8002d]/20 text-red-300 border border-[#e8002d]/30 px-2 py-0.5 rounded-full ml-2">
               {alerts.filter(a => a.status === 'open').length} 未対処
             </span>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-falcon-muted text-xs border-b border-falcon-border bg-[#0a101d]">
+                <tr className="text-[#7d92b0] text-xs border-b border-[#1e2d42] bg-[#0a101d]">
                   <th className="text-left px-4 py-3">タイプ</th>
                   <th className="text-left px-4 py-3">対象</th>
                   <th className="text-left px-4 py-3">深刻度</th>
@@ -630,7 +633,7 @@ export default function WirelessSecurityPage() {
                   <th className="text-left px-4 py-3">アクション</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-falcon-border">
+              <tbody className="divide-y divide-[#1e2d42]">
                 {alerts.map(alert => {
                   const sevConf = SEVERITY_CONFIG[alert.severity]
                   return (
@@ -640,7 +643,7 @@ export default function WirelessSecurityPage() {
                       <td className="px-4 py-3">
                         <span className="text-white font-medium text-xs">{alert.type}</span>
                       </td>
-                      <td className="px-4 py-3 text-falcon-muted text-xs max-w-[200px]">
+                      <td className="px-4 py-3 text-[#7d92b0] text-xs max-w-[200px]">
                         <span className="truncate block">{alert.target_name}</span>
                       </td>
                       <td className="px-4 py-3">
@@ -649,10 +652,10 @@ export default function WirelessSecurityPage() {
                           {sevConf.label}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-falcon-muted text-xs max-w-[280px]">
+                      <td className="px-4 py-3 text-[#7d92b0] text-xs max-w-[280px]">
                         <span className="line-clamp-2">{alert.description}</span>
                       </td>
-                      <td className="px-4 py-3 text-falcon-muted text-xs whitespace-nowrap">
+                      <td className="px-4 py-3 text-[#7d92b0] text-xs whitespace-nowrap">
                         <div className="flex items-center gap-1">
                           <Clock className="w-3 h-3" />
                           {formatDate(alert.detected_at)}
@@ -685,18 +688,18 @@ export default function WirelessSecurityPage() {
 
       {/* ── Authorize Confirmation Dialog ── */}
       {confirmingNetworkId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs" onClick={() => setConfirmingNetworkId(null)}>
-          <div className="bg-falcon-surface border border-falcon-border rounded-xl p-6 w-full max-w-sm shadow-2xl" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setConfirmingNetworkId(null)}>
+          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-6 w-full max-w-sm shadow-2xl" onClick={e => e.stopPropagation()}>
             <div className="flex items-center gap-3 mb-4">
               <div className="p-2 bg-green-500/10 rounded-lg text-green-400"><CheckCircle className="w-6 h-6" /></div>
               <h2 className="text-white font-semibold">ネットワークを承認</h2>
             </div>
-            <p className="text-falcon-muted text-sm mb-6">
+            <p className="text-[#7d92b0] text-sm mb-6">
               このネットワークを承認済みとして登録します。この操作は取り消せません。続行しますか？
             </p>
             <div className="flex gap-3">
               <button onClick={() => setConfirmingNetworkId(null)}
-                className="flex-1 px-4 py-2 border border-falcon-border text-falcon-muted hover:text-white rounded-sm text-sm transition-colors">
+                className="flex-1 px-4 py-2 border border-[#1e2d42] text-[#7d92b0] hover:text-white rounded-sm text-sm transition-colors">
                 キャンセル
               </button>
               <button

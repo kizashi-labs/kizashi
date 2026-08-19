@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import {
   Building2, Plus, ChevronDown, ChevronUp, ChevronRight,
   Check, X, RefreshCw, Users, Cpu,
@@ -12,10 +12,30 @@ import { apiFetch, apiFetchList } from '@/lib/api'
 
 type Plan = 'enterprise' | 'pro' | 'starter' | 'free'
 
-interface OrgSettings {
-  ssoAllowed: boolean
-  retentionDays: number
-}
+// This screen used to be backed by /api/v1/admin/organizations, which read a
+// parallel `organizations` table that no foreign key pointed at. Migration 380
+// removed it: every tenant_id in the schema references `tenants`, so an
+// organization created here could never own an agent, a user or an alert, and
+// the counts it displayed were structurally zero.
+//
+// It now reads /api/v1/admin/tenants. Three things were broken on this side
+// too and are fixed by the move:
+//
+//   * The API answers snake_case (agent_limit, agent_count, is_active) and the
+//     interface below declared camelCase, so every numeric column rendered as
+//     undefined. adaptTenant does the mapping explicitly now.
+//   * toggleEnabled mutated local state and showed "組織を更新しました" without
+//     calling anything. Disabling an organization did nothing.
+//   * On a failed create the page fabricated a local row with a made-up id and
+//     added it to the list, so a rejected creation looked like a successful
+//     one until reload.
+//
+// ssoAllowed and retentionDays are gone with the table. They lived in
+// organizations.settings, whose four keys appeared in their own Go struct
+// definition and nowhere else — and this form POSTed "sso_allowed", which did
+// not even match the "allow_sso" JSON tag it was aimed at. Nothing has ever
+// read them, so the fields are removed rather than re-pointed at a column that
+// would go on not being read.
 
 interface Organization {
   id: string
@@ -28,7 +48,6 @@ interface Organization {
   userCount: number
   enabled: boolean
   createdAt: string
-  settings: OrgSettings
 }
 
 interface CreateOrgForm {
@@ -37,8 +56,38 @@ interface CreateOrgForm {
   plan: Plan
   agentLimit: number
   userLimit: number
-  ssoAllowed: boolean
-  retentionDays: number
+}
+
+// The shape /api/v1/admin/tenants actually returns.
+interface TenantRow {
+  id?: string
+  name?: string
+  slug?: string
+  plan?: string
+  max_agents?: number
+  max_users?: number
+  agent_count?: number
+  user_count?: number
+  is_active?: boolean
+  created_at?: string
+}
+
+const PLANS: Plan[] = ['enterprise', 'pro', 'starter', 'free']
+
+function adaptTenant(t: TenantRow): Organization {
+  const plan = String(t.plan ?? 'free') as Plan
+  return {
+    id: String(t.id ?? ''),
+    name: String(t.name ?? ''),
+    slug: String(t.slug ?? ''),
+    plan: PLANS.includes(plan) ? plan : 'free',
+    agentLimit: Number(t.max_agents ?? 0),
+    userLimit: Number(t.max_users ?? 0),
+    agentCount: Number(t.agent_count ?? 0),
+    userCount: Number(t.user_count ?? 0),
+    enabled: t.is_active !== false,
+    createdAt: String(t.created_at ?? '').slice(0, 10),
+  }
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -92,10 +141,9 @@ function CreateOrgModal({ onClose, onCreated }: {
     plan: 'starter',
     agentLimit: 100,
     userLimit: 20,
-    ssoAllowed: false,
-    retentionDays: 90,
   })
   const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
 
   const handleNameChange = (name: string) => {
     setForm(p => ({ ...p, name, slug: slugify(name) }))
@@ -105,43 +153,32 @@ function CreateOrgModal({ onClose, onCreated }: {
     e.preventDefault()
     if (!form.name || !form.slug) return
     setSaving(true)
+    setError('')
     try {
-      const result = await apiFetch<Organization>('/api/v1/admin/organizations', {
+      const result = await apiFetch<TenantRow>('/api/v1/admin/tenants', {
         method: 'POST',
         body: JSON.stringify({
           name: form.name,
           slug: form.slug,
           plan: form.plan,
-          agent_limit: form.agentLimit,
-          user_limit: form.userLimit,
-          settings: { sso_allowed: form.ssoAllowed, retention_days: form.retentionDays },
+          max_agents: form.agentLimit,
+          max_users: form.userLimit,
         }),
       })
-      onCreated(result)
-    } catch {
-      // Mock: create locally
-      const mockOrg: Organization = {
-        id: `org-${Date.now()}`,
-        name: form.name,
-        slug: form.slug,
-        plan: form.plan,
-        agentLimit: form.agentLimit,
-        userLimit: form.userLimit,
-        agentCount: 0,
-        userCount: 0,
-        enabled: true,
-        createdAt: new Date().toISOString().slice(0, 10),
-        settings: { ssoAllowed: form.ssoAllowed, retentionDays: form.retentionDays },
-      }
-      onCreated(mockOrg)
+      onCreated(adaptTenant(result))
+    } catch (e) {
+      // A rejected creation is reported. This used to fabricate a local row
+      // with a made-up id and hand it to onCreated, so a failure was
+      // indistinguishable from a success until the page was reloaded.
+      setError(e instanceof Error ? e.message : '組織の作成に失敗しました')
     }
     setSaving(false)
   }
 
-  const inputCls = 'w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-zinc-200 placeholder-zinc-600 focus:outline-hidden focus:border-zinc-500 transition-colors'
+  const inputCls = 'w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-zinc-500 transition-colors'
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
       <div className="bg-zinc-900 border border-zinc-800 rounded-2xl w-full max-w-md shadow-2xl">
         <div className="flex items-center justify-between p-5 border-b border-zinc-800">
           <h2 className="text-base font-semibold text-zinc-100">組織を作成</h2>
@@ -208,29 +245,12 @@ function CreateOrgModal({ onClose, onCreated }: {
               />
             </div>
           </div>
-          <div>
-            <label className="block text-xs text-zinc-400 mb-1.5">データ保持日数</label>
-            <input
-              type="number"
-              min={1}
-              value={form.retentionDays}
-              onChange={e => setForm(p => ({ ...p, retentionDays: Number(e.target.value) }))}
-              className={inputCls}
-            />
-          </div>
-          <div className="flex items-center justify-between py-2 border-t border-zinc-800">
-            <div>
-              <div className="text-sm text-zinc-300">SSO許可</div>
-              <div className="text-xs text-zinc-500">この組織でのSSOログインを許可します</div>
+          {error && (
+            <div className="flex items-start gap-2 px-3 py-2 rounded-lg bg-red-950/60 border border-red-900 text-red-300 text-xs">
+              <X className="w-4 h-4 shrink-0 mt-0.5" />
+              <span>{error}</span>
             </div>
-            <button
-              type="button"
-              onClick={() => setForm(p => ({ ...p, ssoAllowed: !p.ssoAllowed }))}
-              className={`relative w-10 h-6 rounded-full transition-colors ${form.ssoAllowed ? 'bg-red-600' : 'bg-zinc-700'}`}
-            >
-              <span className={`absolute top-1 w-4 h-4 rounded-full bg-falcon-text shadow-sm transition-transform ${form.ssoAllowed ? 'left-5' : 'left-1'}`} />
-            </button>
-          </div>
+          )}
 
           <div className="flex justify-end gap-2 pt-2">
             <button
@@ -264,11 +284,13 @@ export default function OrganizationsPage() {
   const [toast, setToast] = useState('')
   const [toastVisible, setToastVisible] = useState(false)
 
-  useEffect(() => {
-    apiFetchList<Organization>('/api/v1/admin/organizations')
-      .then(data => { if (Array.isArray(data) && data.length) setOrgs(data) })
-      .catch(() => { /* use mock */ })
+  const reload = useCallback(() => {
+    apiFetchList<TenantRow>('/api/v1/admin/tenants')
+      .then(data => { if (Array.isArray(data)) setOrgs(data.map(adaptTenant)) })
+      .catch(() => { /* leave the list as it is; the toast reports write failures */ })
   }, [])
+
+  useEffect(() => { reload() }, [reload])
 
   const showToast = (msg: string) => {
     setToast(msg)
@@ -276,9 +298,23 @@ export default function OrganizationsPage() {
     setTimeout(() => setToastVisible(false), 3000)
   }
 
+  // This used to flip local state and announce success without calling
+  // anything, so disabling an organization did nothing and said it had.
   const toggleEnabled = async (orgId: string) => {
-    setOrgs(prev => prev.map(o => o.id === orgId ? { ...o, enabled: !o.enabled } : o))
-    showToast('組織を更新しました')
+    const target = orgs.find(o => o.id === orgId)
+    if (!target) return
+    const next = !target.enabled
+    try {
+      await apiFetch(`/api/v1/admin/tenants/${orgId}`, {
+        method: 'PUT',
+        body: JSON.stringify({ is_active: next }),
+      })
+      setOrgs(prev => prev.map(o => o.id === orgId ? { ...o, enabled: next } : o))
+      showToast(next ? '組織を有効化しました' : '組織を無効化しました')
+    } catch {
+      showToast('組織の更新に失敗しました')
+      reload()
+    }
   }
 
   const currentOrg = orgs.find(o => o.id === currentOrgId)
@@ -411,7 +447,7 @@ export default function OrganizationsPage() {
                         onClick={() => toggleEnabled(org.id)}
                         className={`relative w-9 h-5 rounded-full transition-colors ${org.enabled ? 'bg-green-600' : 'bg-zinc-700'}`}
                       >
-                        <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-falcon-text shadow-sm transition-transform ${org.enabled ? 'left-4' : 'left-0.5'}`} />
+                        <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-[#e2e8f4] shadow-sm transition-transform ${org.enabled ? 'left-4' : 'left-0.5'}`} />
                       </button>
                     </td>
                     <td className="px-4 py-3 text-xs text-zinc-500">{org.createdAt}</td>
@@ -438,14 +474,12 @@ export default function OrganizationsPage() {
                             <div className="text-zinc-200 font-medium">{org.userCount}</div>
                           </div>
                           <div>
-                            <div className="text-xs text-zinc-500 mb-0.5">SSO許可</div>
-                            <div className={`font-medium ${org.settings.ssoAllowed ? 'text-green-400' : 'text-zinc-500'}`}>
-                              {org.settings.ssoAllowed ? 'はい' : 'いいえ'}
-                            </div>
+                            <div className="text-xs text-zinc-500 mb-0.5">エージェント上限</div>
+                            <div className="text-zinc-200 font-medium tabular-nums">{org.agentLimit}</div>
                           </div>
                           <div>
-                            <div className="text-xs text-zinc-500 mb-0.5">データ保持期間</div>
-                            <div className="text-zinc-200 font-medium">{org.settings.retentionDays} 日</div>
+                            <div className="text-xs text-zinc-500 mb-0.5">ユーザー上限</div>
+                            <div className="text-zinc-200 font-medium tabular-nums">{org.userLimit}</div>
                           </div>
                         </div>
                         <div className="mt-3 flex items-center gap-2">

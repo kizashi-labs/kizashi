@@ -10,6 +10,8 @@ import {
 } from 'lucide-react'
 
 
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+
 // ── Types ──────────────────────────────────────────────────────────────────
 
 interface HealthDetailed {
@@ -117,7 +119,7 @@ function formatNumber(n: number): string {
 
 function Card({ children, className = '' }: { children: React.ReactNode; className?: string }) {
   return (
-    <div className={`bg-falcon-surface rounded-xl border border-falcon-border ${className}`}>
+    <div className={`bg-[#0d1220] rounded-xl border border-[#1e2d42] ${className}`}>
       {children}
     </div>
   )
@@ -137,17 +139,17 @@ function ArcGauge({
   trend?: number
 }) {
   const pct    = Math.min(100, Math.max(0, value))
-  const color  = pct >= 80 ? '#e8002d' : pct >= 60 ? '#f59e0b' : '#00c853'
-  const angle  = (pct / 100) * 220 - 110   // arc from -110deg to +110deg (220 span)
-  const toRad  = (deg: number) => (deg * Math.PI) / 180
+  const color = pct >= 80 ? '#e8002d' : pct >= 60 ? '#f59e0b' : '#00c853'
+  const angle = (pct / 100) * 220 - 110   // arc from -110deg to +110deg (220 span)
+  const toRad = (deg: number) => (deg * Math.PI) / 180
 
   const R   = 52
-  const cx  = 64
-  const cy  = 72
+  const cx = 64
+  const cy = 72
 
   function arcPath(startDeg: number, endDeg: number, r: number) {
-    const s  = toRad(startDeg)
-    const e  = toRad(endDeg)
+    const s = toRad(startDeg)
+    const e = toRad(endDeg)
     const x1 = cx + r * Math.cos(s)
     const y1 = cy + r * Math.sin(s)
     const x2 = cx + r * Math.cos(e)
@@ -188,7 +190,7 @@ function ArcGauge({
           {unit}
         </text>
       </svg>
-      <p className="text-falcon-muted text-xs font-medium text-center -mt-2">{label}</p>
+      <p className="text-[#7d92b0] text-xs font-medium text-center -mt-2">{label}</p>
       {trend !== undefined && (
         <div className={`flex items-center gap-0.5 text-xs mt-1 ${trend > 0 ? 'text-red-400' : 'text-green-400'}`}>
           {trend > 0 ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />}
@@ -379,14 +381,14 @@ export default function ServerHealthPage() {
   // Also fetch uptime + metrics summary (fire-and-forget with mock fallback)
   const { data: _uptime } = useQuery({
     queryKey: ['server-uptime'],
-    queryFn: () => apiFetch('/api/v1/health/uptime').catch(() => null),
+    queryFn: () => apiFetch('/api/v1/health/uptime'),
     refetchInterval: 10_000,
     retry: false,
   })
 
   const { data: _metricsSummary } = useQuery({
     queryKey: ['metrics-summary'],
-    queryFn: () => apiFetch('/api/v1/metrics/summary').catch(() => null),
+    queryFn: () => apiFetch('/api/v1/metrics/summary'),
     refetchInterval: 10_000,
     retry: false,
   })
@@ -408,24 +410,25 @@ export default function ServerHealthPage() {
   }), [history])
 
   // Latest value vs 5-minutes-ago for trend
-  const cpuTrend  = history.length >= 6 ? h.resources.cpu_percent - history[history.length - 6].cpu : 0
-  const memTrend  = history.length >= 6 ? h.resources.memory_percent - history[history.length - 6].mem : 0
+  const cpuTrend = history.length >= 6 ? h.resources.cpu_percent - history[history.length - 6].cpu : 0
+  const memTrend = history.length >= 6 ? h.resources.memory_percent - history[history.length - 6].mem : 0
 
   return (
     <div className="min-h-screen bg-[#070d19] p-6">
+      <PageDataUnavailable />
       <div className="max-w-7xl mx-auto space-y-6">
 
         {/* ── Header ───────────────────────────────────── */}
         <div className="flex items-start justify-between">
           <div>
             <h1 className="text-2xl font-bold text-white flex items-center gap-3">
-              <Server className="w-6 h-6 text-falcon-red" />
+              <Server className="w-6 h-6 text-[#e8002d]" />
               サーバーリソース監視
             </h1>
-            <p className="text-falcon-muted text-sm mt-1">EDRプラットフォームサーバーのリソース使用状況</p>
+            <p className="text-[#7d92b0] text-sm mt-1">EDRプラットフォームサーバーのリソース使用状況</p>
           </div>
-          <div className="flex items-center gap-2 text-falcon-muted text-xs bg-falcon-surface border border-falcon-border rounded-lg px-3 py-2">
-            <RefreshCw className={`w-3 h-3 ${isLoading ? 'animate-spin text-falcon-red' : 'text-falcon-subtle'}`} />
+          <div className="flex items-center gap-2 text-[#7d92b0] text-xs bg-[#0d1220] border border-[#1e2d42] rounded-lg px-3 py-2">
+            <RefreshCw className={`w-3 h-3 ${isLoading ? 'animate-spin text-[#e8002d]' : 'text-[#3d5068]'}`} />
             最終更新: {secAgo}秒前
           </div>
         </div>
@@ -437,8 +440,8 @@ export default function ServerHealthPage() {
           {/* CPU */}
           <Card className="p-5 flex flex-col items-center">
             <div className="flex items-center gap-1.5 mb-3 self-start">
-              <Cpu className="w-3.5 h-3.5 text-falcon-muted" />
-              <span className="text-falcon-muted text-xs font-medium">CPU 使用率</span>
+              <Cpu className="w-3.5 h-3.5 text-[#7d92b0]" />
+              <span className="text-[#7d92b0] text-xs font-medium">CPU 使用率</span>
             </div>
             <ArcGauge value={h.resources.cpu_percent} label="CPU Usage" trend={cpuTrend} />
             <div className="mt-3 w-full">
@@ -454,8 +457,8 @@ export default function ServerHealthPage() {
           {/* Memory */}
           <Card className="p-5 flex flex-col items-center">
             <div className="flex items-center gap-1.5 mb-3 self-start">
-              <MemoryStick className="w-3.5 h-3.5 text-falcon-muted" />
-              <span className="text-falcon-muted text-xs font-medium">メモリ使用率</span>
+              <MemoryStick className="w-3.5 h-3.5 text-[#7d92b0]" />
+              <span className="text-[#7d92b0] text-xs font-medium">メモリ使用率</span>
             </div>
             <ArcGauge value={h.resources.memory_percent} label="Memory Usage" trend={memTrend} />
             <div className="mt-3 w-full">
@@ -471,26 +474,26 @@ export default function ServerHealthPage() {
           {/* Disk */}
           <Card className="p-5 flex flex-col items-center">
             <div className="flex items-center gap-1.5 mb-3 self-start">
-              <HardDrive className="w-3.5 h-3.5 text-falcon-muted" />
-              <span className="text-falcon-muted text-xs font-medium">ディスク使用率</span>
+              <HardDrive className="w-3.5 h-3.5 text-[#7d92b0]" />
+              <span className="text-[#7d92b0] text-xs font-medium">ディスク使用率</span>
             </div>
             <ArcGauge value={h.resources.disk_percent} label="Disk Usage" />
             <div className="mt-3 w-full h-7 flex items-center justify-center">
-              <span className="text-falcon-subtle text-xs">静的使用量</span>
+              <span className="text-[#3d5068] text-xs">静的使用量</span>
             </div>
           </Card>
 
           {/* NATS msg/s */}
           <Card className="p-5 flex flex-col items-center">
             <div className="flex items-center gap-1.5 mb-3 self-start">
-              <Radio className="w-3.5 h-3.5 text-falcon-muted" />
-              <span className="text-falcon-muted text-xs font-medium">NATS メッセージ/秒</span>
+              <Radio className="w-3.5 h-3.5 text-[#7d92b0]" />
+              <span className="text-[#7d92b0] text-xs font-medium">NATS メッセージ/秒</span>
             </div>
             <div className="flex-1 flex flex-col items-center justify-center py-4">
               <p className="text-4xl font-bold text-white tabular-nums">
                 {h.resources.nats_msg_per_sec.toLocaleString('ja-JP')}
               </p>
-              <p className="text-falcon-muted text-xs mt-1">msg/s</p>
+              <p className="text-[#7d92b0] text-xs mt-1">msg/s</p>
             </div>
             <div className="mt-2 w-full">
               <Sparkline
@@ -516,17 +519,17 @@ export default function ServerHealthPage() {
                 <StatusDot ok={h.services.postgres.status === 'connected'} />
                 <span className="text-white text-sm font-medium">PostgreSQL</span>
               </div>
-              <Database className="w-4 h-4 text-falcon-subtle" />
+              <Database className="w-4 h-4 text-[#3d5068]" />
             </div>
             <p className={`text-xs font-medium mb-1 ${
               h.services.postgres.status === 'connected' ? 'text-green-400' : 'text-red-400'
             }`}>
               {h.services.postgres.status === 'connected' ? '接続済み' : '切断'}
             </p>
-            <p className="text-falcon-muted text-xs">
+            <p className="text-[#7d92b0] text-xs">
               レイテンシ: <span className="text-white">{h.services.postgres.latency_ms}ms</span>
             </p>
-            <a href="/admin/migrations" className="text-falcon-subtle text-xs hover:text-falcon-muted mt-2 inline-block">
+            <a href="/admin/migrations" className="text-[#3d5068] text-xs hover:text-[#7d92b0] mt-2 inline-block">
               詳細 →
             </a>
           </Card>
@@ -538,15 +541,15 @@ export default function ServerHealthPage() {
                 <StatusDot ok={h.services.nats.status === 'connected'} />
                 <span className="text-white text-sm font-medium">NATS JetStream</span>
               </div>
-              <Radio className="w-4 h-4 text-falcon-subtle" />
+              <Radio className="w-4 h-4 text-[#3d5068]" />
             </div>
             <p className="text-green-400 text-xs font-medium mb-1">接続済み</p>
-            <p className="text-falcon-muted text-xs">
+            <p className="text-[#7d92b0] text-xs">
               Streams: <span className="text-white">{h.services.nats.streams}</span>
               {' · '}
               Consumers: <span className="text-white">{h.services.nats.consumers}</span>
             </p>
-            <span className="text-falcon-subtle text-xs mt-2 inline-block">詳細 →</span>
+            <span className="text-[#3d5068] text-xs mt-2 inline-block">詳細 →</span>
           </Card>
 
           {/* API Server */}
@@ -556,14 +559,14 @@ export default function ServerHealthPage() {
                 <StatusDot ok={h.services.api.status === 'running'} />
                 <span className="text-white text-sm font-medium">API サーバー</span>
               </div>
-              <Server className="w-4 h-4 text-falcon-subtle" />
+              <Server className="w-4 h-4 text-[#3d5068]" />
             </div>
             <p className="text-green-400 text-xs font-medium mb-1">稼働中</p>
-            <p className="text-falcon-muted text-xs">
+            <p className="text-[#7d92b0] text-xs">
               稼働時間: <span className="text-white">{formatUptime(h.services.api.uptime_seconds)}</span>
             </p>
-            <p className="text-falcon-subtle text-xs mt-0.5">v{h.services.api.version}</p>
-            <a href="/admin/version" className="text-falcon-subtle text-xs hover:text-falcon-muted mt-2 inline-block">
+            <p className="text-[#3d5068] text-xs mt-0.5">v{h.services.api.version}</p>
+            <a href="/admin/version" className="text-[#3d5068] text-xs hover:text-[#7d92b0] mt-2 inline-block">
               詳細 →
             </a>
           </Card>
@@ -575,16 +578,16 @@ export default function ServerHealthPage() {
                 <StatusDot ok={h.services.schedulers.status === 'running'} />
                 <span className="text-white text-sm font-medium">バックグラウンド</span>
               </div>
-              <Activity className="w-4 h-4 text-falcon-subtle" />
+              <Activity className="w-4 h-4 text-[#3d5068]" />
             </div>
             <p className="text-green-400 text-xs font-medium mb-1">実行中</p>
-            <p className="text-falcon-muted text-xs">
+            <p className="text-[#7d92b0] text-xs">
               スケジューラー:{' '}
               <span className="text-white">
                 {h.services.schedulers.running} / {h.services.schedulers.total}
               </span> 稼働中
             </p>
-            <span className="text-falcon-subtle text-xs mt-2 inline-block">詳細 →</span>
+            <span className="text-[#3d5068] text-xs mt-2 inline-block">詳細 →</span>
           </Card>
         </div>
 
@@ -593,7 +596,7 @@ export default function ServerHealthPage() {
         ══════════════════════════════════════════════ */}
         <Card className="p-5">
           <div className="flex items-center gap-2 mb-5">
-            <TrendingUp className="w-4 h-4 text-falcon-red" />
+            <TrendingUp className="w-4 h-4 text-[#e8002d]" />
             <h2 className="text-white font-semibold text-sm">リソース履歴 (直近 60 分)</h2>
           </div>
 
@@ -601,7 +604,7 @@ export default function ServerHealthPage() {
             {/* CPU */}
             <div>
               <div className="flex items-center justify-between mb-2">
-                <p className="text-falcon-muted text-xs font-medium">CPU 使用率 (%)</p>
+                <p className="text-[#7d92b0] text-xs font-medium">CPU 使用率 (%)</p>
                 <span className="text-xs text-white">{h.resources.cpu_percent}%</span>
               </div>
               <div className="bg-[#070d19] rounded-lg p-3">
@@ -616,7 +619,7 @@ export default function ServerHealthPage() {
             {/* Memory */}
             <div>
               <div className="flex items-center justify-between mb-2">
-                <p className="text-falcon-muted text-xs font-medium">メモリ使用率 (%)</p>
+                <p className="text-[#7d92b0] text-xs font-medium">メモリ使用率 (%)</p>
                 <span className="text-xs text-white">{h.resources.memory_percent}%</span>
               </div>
               <div className="bg-[#070d19] rounded-lg p-3">
@@ -631,15 +634,15 @@ export default function ServerHealthPage() {
             {/* Network I/O */}
             <div>
               <div className="flex items-center justify-between mb-2">
-                <p className="text-falcon-muted text-xs font-medium">ネットワーク I/O (MB/s)</p>
+                <p className="text-[#7d92b0] text-xs font-medium">ネットワーク I/O (MB/s)</p>
                 <div className="flex items-center gap-4 text-xs">
                   <span className="flex items-center gap-1">
                     <span className="w-2 h-2 rounded-full bg-green-400 inline-block" />
-                    <span className="text-falcon-muted">受信</span>
+                    <span className="text-[#7d92b0]">受信</span>
                   </span>
                   <span className="flex items-center gap-1">
                     <span className="w-2 h-2 rounded-full bg-orange-400 inline-block" />
-                    <span className="text-falcon-muted">送信</span>
+                    <span className="text-[#7d92b0]">送信</span>
                   </span>
                 </div>
               </div>
@@ -665,7 +668,7 @@ export default function ServerHealthPage() {
           {/* Database stats */}
           <Card className="p-5">
             <div className="flex items-center gap-2 mb-5">
-              <Database className="w-4 h-4 text-falcon-red" />
+              <Database className="w-4 h-4 text-[#e8002d]" />
               <h2 className="text-white font-semibold text-sm">データベース統計</h2>
             </div>
 
@@ -673,12 +676,12 @@ export default function ServerHealthPage() {
               {/* Connections */}
               <div>
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-falcon-muted text-xs">アクティブ接続</span>
+                  <span className="text-[#7d92b0] text-xs">アクティブ接続</span>
                   <span className="text-white text-xs font-mono">
                     {h.database.active_connections} / {h.database.max_connections}
                   </span>
                 </div>
-                <div className="w-full bg-falcon-border rounded-full h-1.5">
+                <div className="w-full bg-[#1e2d42] rounded-full h-1.5">
                   <div
                     className={`h-1.5 rounded-full transition-all ${
                       h.database.active_connections / h.database.max_connections > 0.8
@@ -697,33 +700,33 @@ export default function ServerHealthPage() {
               {/* Stats row */}
               <div className="grid grid-cols-2 gap-3">
                 <div className="bg-[#070d19] rounded-lg p-3">
-                  <p className="text-falcon-muted text-xs mb-1">スロークエリ (1h)</p>
+                  <p className="text-[#7d92b0] text-xs mb-1">スロークエリ (1h)</p>
                   <p className={`text-lg font-bold ${h.database.slow_queries_1h > 10 ? 'text-red-400' : 'text-white'}`}>
                     {h.database.slow_queries_1h}
                   </p>
                 </div>
                 <div className="bg-[#070d19] rounded-lg p-3">
-                  <p className="text-falcon-muted text-xs mb-1">DB サイズ</p>
+                  <p className="text-[#7d92b0] text-xs mb-1">DB サイズ</p>
                   <p className="text-lg font-bold text-white">{formatBytes(h.database.size_bytes)}</p>
                 </div>
               </div>
 
               {/* Top tables */}
               <div>
-                <p className="text-falcon-muted text-xs font-medium mb-2">上位 5 テーブル</p>
+                <p className="text-[#7d92b0] text-xs font-medium mb-2">上位 5 テーブル</p>
                 <div className="overflow-x-auto">
                   <table className="w-full text-xs">
                     <thead>
-                      <tr className="text-falcon-subtle border-b border-falcon-border">
+                      <tr className="text-[#3d5068] border-b border-[#1e2d42]">
                         <th className="pb-1.5 text-left font-medium">テーブル</th>
                         <th className="pb-1.5 text-right font-medium">行数</th>
                         <th className="pb-1.5 text-right font-medium">サイズ</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-falcon-border">
+                    <tbody className="divide-y divide-[#1e2d42]">
                       {h.database.top_tables.map(t => (
                         <tr key={t.name} className="text-white">
-                          <td className="py-1.5 pr-3 font-mono text-falcon-muted">{t.name}</td>
+                          <td className="py-1.5 pr-3 font-mono text-[#7d92b0]">{t.name}</td>
                           <td className="py-1.5 pr-3 text-right tabular-nums">{formatNumber(t.rows)}</td>
                           <td className="py-1.5 text-right tabular-nums">{formatBytes(t.size_bytes)}</td>
                         </tr>
@@ -738,7 +741,7 @@ export default function ServerHealthPage() {
           {/* NATS/JetStream */}
           <Card className="p-5">
             <div className="flex items-center gap-2 mb-5">
-              <Radio className="w-4 h-4 text-falcon-red" />
+              <Radio className="w-4 h-4 text-[#e8002d]" />
               <h2 className="text-white font-semibold text-sm">NATS / JetStream</h2>
             </div>
 
@@ -746,20 +749,20 @@ export default function ServerHealthPage() {
               {/* Rates */}
               <div className="grid grid-cols-3 gap-3">
                 <div className="bg-[#070d19] rounded-lg p-3">
-                  <p className="text-falcon-muted text-xs mb-1">クライアント</p>
+                  <p className="text-[#7d92b0] text-xs mb-1">クライアント</p>
                   <p className="text-lg font-bold text-white">{h.nats.connected_clients}</p>
                 </div>
                 <div className="bg-[#070d19] rounded-lg p-3">
                   <div className="flex items-center gap-1 mb-1">
                     <ArrowDown className="w-3 h-3 text-green-400" />
-                    <p className="text-falcon-muted text-xs">IN/s</p>
+                    <p className="text-[#7d92b0] text-xs">IN/s</p>
                   </div>
                   <p className="text-lg font-bold text-white">{h.nats.msg_in_rate}</p>
                 </div>
                 <div className="bg-[#070d19] rounded-lg p-3">
                   <div className="flex items-center gap-1 mb-1">
                     <ArrowUp className="w-3 h-3 text-orange-400" />
-                    <p className="text-falcon-muted text-xs">OUT/s</p>
+                    <p className="text-[#7d92b0] text-xs">OUT/s</p>
                   </div>
                   <p className="text-lg font-bold text-white">{h.nats.msg_out_rate}</p>
                 </div>
@@ -767,7 +770,7 @@ export default function ServerHealthPage() {
 
               {/* Streams */}
               <div>
-                <p className="text-falcon-muted text-xs font-medium mb-2">ストリーム一覧</p>
+                <p className="text-[#7d92b0] text-xs font-medium mb-2">ストリーム一覧</p>
                 <div className="space-y-1.5">
                   {h.nats.streams.map(s => (
                     <div key={s.name}
@@ -777,7 +780,7 @@ export default function ServerHealthPage() {
                         <span className="w-1.5 h-1.5 rounded-full bg-green-400 shrink-0" />
                         <span className="text-white text-xs font-mono font-medium">{s.name}</span>
                       </div>
-                      <div className="flex items-center gap-4 text-xs text-falcon-muted">
+                      <div className="flex items-center gap-4 text-xs text-[#7d92b0]">
                         <span title="メッセージ数">
                           <span className="text-white">{formatNumber(s.messages)}</span> msgs
                         </span>

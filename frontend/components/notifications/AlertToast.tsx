@@ -58,7 +58,7 @@ function ToastItem({ toast, onClose }: ToastItemProps) {
       `}
     >
       {/* Severity bar (auto-drain) */}
-      <div className="h-0.5 w-full bg-falcon-border">
+      <div className="h-0.5 w-full bg-[#1e2d42]">
         <div
           className={`h-full ${cfg.bar}`}
           style={{
@@ -74,7 +74,7 @@ function ToastItem({ toast, onClose }: ToastItemProps) {
             <span className={`text-[10px] font-bold font-mono ${cfg.text}`}>{cfg.label}</span>
             <span className="text-[10px] text-[#5a6a7a] font-mono">{toast.alert.Hostname}</span>
           </div>
-          <p className="text-sm text-falcon-text font-medium leading-snug truncate">{toast.alert.Title}</p>
+          <p className="text-sm text-[#e2e8f4] font-medium leading-snug truncate">{toast.alert.Title}</p>
           {toast.alert.RuleName && (
             <p className="text-[11px] text-[#5a6a7a] truncate mt-0.5">{toast.alert.RuleName}</p>
           )}
@@ -88,7 +88,7 @@ function ToastItem({ toast, onClose }: ToastItemProps) {
         </div>
         <button
           onClick={() => onClose(toast.id)}
-          className="text-falcon-subtle hover:text-falcon-muted transition-colors shrink-0"
+          className="text-[#3d5068] hover:text-[#7d92b0] transition-colors shrink-0"
         >
           <X className="w-3.5 h-3.5" />
         </button>

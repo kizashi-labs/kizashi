@@ -8,6 +8,9 @@ import {
   CheckCircle, AlertCircle, XCircle, Minus,
   Calendar, ChevronRight, BookOpen,
 } from 'lucide-react'
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+import { PageSaveFailed } from '@/components/PageSaveFailed'
+
 import { USE_MOCK, m } from '@/lib/mock'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -126,14 +129,14 @@ const STATUS_CONFIG: Record<ImplementationStatus, { label: string; color: string
   implemented:     { label: '実装済み',   color: 'text-green-400',  bg: 'bg-green-500/10',  border: 'border-green-500/30',  icon: CheckCircle },
   partial:         { label: '部分実装',   color: 'text-amber-400',  bg: 'bg-amber-500/10',  border: 'border-amber-500/30',  icon: AlertCircle },
   not_implemented: { label: '未実装',     color: 'text-red-400',    bg: 'bg-red-500/10',    border: 'border-red-500/30',    icon: XCircle },
-  na:              { label: 'N/A',        color: 'text-falcon-muted',  bg: 'bg-falcon-border',     border: 'border-falcon-border',     icon: Minus },
+  na:              { label: 'N/A',        color: 'text-[#7d92b0]',  bg: 'bg-[#1e2d42]',     border: 'border-[#1e2d42]',     icon: Minus },
 }
 
 const MATRIX_CELL: Record<ImplementationStatus, string> = {
   implemented: 'bg-green-500/20 text-green-400',
   partial: 'bg-amber-500/20 text-amber-400',
   not_implemented: 'bg-red-500/20 text-red-400',
-  na: 'bg-falcon-border/50 text-falcon-subtle',
+  na: 'bg-[#1e2d42]/50 text-[#3d5068]',
 }
 
 function StatusBadge({ status }: { status: ImplementationStatus }) {
@@ -177,31 +180,31 @@ function EditControlModal({ control, onClose, onSave }: { control: RegulatoryCon
     last_review_date: control.last_review_date ?? '',
   })
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs">
-      <div className="bg-falcon-surface border border-falcon-border rounded-xl w-full max-w-lg mx-4 shadow-2xl">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-falcon-border">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl w-full max-w-lg mx-4 shadow-2xl">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[#1e2d42]">
           <div>
             <h2 className="text-white font-semibold">{control.article_id} — {control.title}</h2>
-            <p className="text-xs text-falcon-muted mt-0.5">{FRAMEWORK_LABELS[control.framework]}</p>
+            <p className="text-xs text-[#7d92b0] mt-0.5">{FRAMEWORK_LABELS[control.framework]}</p>
           </div>
-          <button onClick={onClose} className="text-falcon-muted hover:text-white transition-colors"><X className="w-5 h-5" /></button>
+          <button onClick={onClose} className="text-[#7d92b0] hover:text-white transition-colors"><X className="w-5 h-5" /></button>
         </div>
         <div className="px-6 py-5 space-y-4">
-          <p className="text-xs text-falcon-muted bg-[#070d19] border border-falcon-border rounded-lg p-3">{control.description}</p>
+          <p className="text-xs text-[#7d92b0] bg-[#070d19] border border-[#1e2d42] rounded-lg p-3">{control.description}</p>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs text-falcon-muted mb-1">適用有無</label>
+              <label className="block text-xs text-[#7d92b0] mb-1">適用有無</label>
               <select value={form.applicable} onChange={e => setForm(p => ({ ...p, applicable: e.target.value as Applicable }))}
-                className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-red/50">
+                className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-[#e8002d]/50">
                 <option value="yes">適用</option>
                 <option value="no">非適用</option>
                 <option value="partial">部分適用</option>
               </select>
             </div>
             <div>
-              <label className="block text-xs text-falcon-muted mb-1">実装ステータス</label>
+              <label className="block text-xs text-[#7d92b0] mb-1">実装ステータス</label>
               <select value={form.implementation_status} onChange={e => setForm(p => ({ ...p, implementation_status: e.target.value as ImplementationStatus }))}
-                className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-red/50">
+                className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-[#e8002d]/50">
                 <option value="implemented">実装済み</option>
                 <option value="partial">部分実装</option>
                 <option value="not_implemented">未実装</option>
@@ -210,27 +213,27 @@ function EditControlModal({ control, onClose, onSave }: { control: RegulatoryCon
             </div>
           </div>
           <div>
-            <label className="block text-xs text-falcon-muted mb-1">エビデンス</label>
+            <label className="block text-xs text-[#7d92b0] mb-1">エビデンス</label>
             <textarea value={form.evidence} onChange={e => setForm(p => ({ ...p, evidence: e.target.value }))} rows={3}
-              className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-red/50 resize-none" />
+              className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-[#e8002d]/50 resize-none" />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs text-falcon-muted mb-1">オーナー</label>
+              <label className="block text-xs text-[#7d92b0] mb-1">オーナー</label>
               <input value={form.owner} onChange={e => setForm(p => ({ ...p, owner: e.target.value }))}
-                className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-red/50" />
+                className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-[#e8002d]/50" />
             </div>
             <div>
-              <label className="block text-xs text-falcon-muted mb-1">最終レビュー日</label>
+              <label className="block text-xs text-[#7d92b0] mb-1">最終レビュー日</label>
               <input type="date" value={form.last_review_date} onChange={e => setForm(p => ({ ...p, last_review_date: e.target.value }))}
-                className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-red/50" />
+                className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-[#e8002d]/50" />
             </div>
           </div>
         </div>
-        <div className="flex justify-end gap-3 px-6 py-4 border-t border-falcon-border">
-          <button onClick={onClose} className="px-4 py-2 rounded-lg text-sm text-falcon-muted hover:text-white border border-falcon-border transition-colors">キャンセル</button>
+        <div className="flex justify-end gap-3 px-6 py-4 border-t border-[#1e2d42]">
+          <button onClick={onClose} className="px-4 py-2 rounded-lg text-sm text-[#7d92b0] hover:text-white border border-[#1e2d42] transition-colors">キャンセル</button>
           <button onClick={() => { onSave(form); onClose() }}
-            className="px-4 py-2 rounded-lg text-sm bg-falcon-red hover:bg-[#c0001f] text-white font-medium transition-colors">保存</button>
+            className="px-4 py-2 rounded-lg text-sm bg-[#e8002d] hover:bg-[#c0001f] text-white font-medium transition-colors">保存</button>
         </div>
       </div>
     </div>
@@ -304,20 +307,22 @@ export default function RegulatoryMappingPage() {
   const fwScore = (fw: Framework) => scoreControls(controls.filter(c => c.framework === fw))
 
   return (
-    <div className="min-h-screen bg-[#070d19] text-falcon-muted">
+    <div className="min-h-screen bg-[#070d19] text-[#7d92b0]">
+      <PageDataUnavailable />
+      <PageSaveFailed className="mb-4" />
       {/* Header */}
-      <div className="border-b border-falcon-border px-8 py-6">
+      <div className="border-b border-[#1e2d42] px-8 py-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-falcon-red/10 border border-falcon-red/20 flex items-center justify-center">
-              <Scale className="w-5 h-5 text-falcon-red" />
+            <div className="w-10 h-10 rounded-xl bg-[#e8002d]/10 border border-[#e8002d]/20 flex items-center justify-center">
+              <Scale className="w-5 h-5 text-[#e8002d]" />
             </div>
             <div>
               <h1 className="text-xl font-bold text-white">規制コンプライアンスマッピング</h1>
-              <p className="text-xs text-falcon-muted mt-0.5">GDPR / PCI-DSS / HIPAA / SOX / ISO 27001 対応状況管理</p>
+              <p className="text-xs text-[#7d92b0] mt-0.5">GDPR / PCI-DSS / HIPAA / SOX / ISO 27001 対応状況管理</p>
             </div>
           </div>
-          <button className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-falcon-muted hover:text-white border border-falcon-border hover:border-falcon-muted/50 transition-colors">
+          <button className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-[#7d92b0] hover:text-white border border-[#1e2d42] hover:border-[#7d92b0]/50 transition-colors">
             <Download className="w-4 h-4" /> ギャップレポート出力
           </button>
         </div>
@@ -331,8 +336,8 @@ export default function RegulatoryMappingPage() {
             const g = gradeFromScore(score)
             return (
               <button key={fw} onClick={() => setActiveFramework(fw)}
-                className={`p-4 rounded-xl border text-left transition-all ${activeFramework === fw ? 'bg-falcon-active border-falcon-red/30' : 'bg-falcon-surface border-falcon-border hover:border-falcon-muted/30'}`}>
-                <p className="text-xs font-bold text-falcon-muted uppercase tracking-wider">{FRAMEWORK_LABELS[fw]}</p>
+                className={`p-4 rounded-xl border text-left transition-all ${activeFramework === fw ? 'bg-[#1d2f4a] border-[#e8002d]/30' : 'bg-[#0d1220] border-[#1e2d42] hover:border-[#7d92b0]/30'}`}>
+                <p className="text-xs font-bold text-[#7d92b0] uppercase tracking-wider">{FRAMEWORK_LABELS[fw]}</p>
                 <div className="flex items-baseline gap-1 mt-1.5">
                   <span className="text-2xl font-black text-white">{score}%</span>
                   <span className={`text-sm font-bold ${g.color}`}>{g.letter}</span>
@@ -347,10 +352,10 @@ export default function RegulatoryMappingPage() {
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-1 border-b border-falcon-border">
+        <div className="flex gap-1 border-b border-[#1e2d42]">
           {[...FRAMEWORKS.map(f => ({ key: f as string, label: FRAMEWORK_LABELS[f] })), { key: 'gap', label: 'ギャップ分析' }].map(t => (
             <button key={t.key} onClick={() => setActiveFramework(t.key as Framework | 'gap')}
-              className={`px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors ${activeFramework === t.key ? 'border-falcon-red text-white' : 'border-transparent text-falcon-muted hover:text-white'}`}>
+              className={`px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors ${activeFramework === t.key ? 'border-[#e8002d] text-white' : 'border-transparent text-[#7d92b0] hover:text-white'}`}>
               {t.label}
             </button>
           ))}
@@ -362,14 +367,14 @@ export default function RegulatoryMappingPage() {
             {/* Score + Filter */}
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2">
-                <span className="text-sm text-falcon-muted">スコア:</span>
+                <span className="text-sm text-[#7d92b0]">スコア:</span>
                 <span className="text-lg font-bold text-white">{fwScore(activeFramework)}%</span>
                 <span className={`font-bold ${gradeFromScore(fwScore(activeFramework)).color}`}>{gradeFromScore(fwScore(activeFramework)).letter}</span>
               </div>
               <div className="flex gap-1 ml-auto">
                 {(['all', 'implemented', 'partial', 'not_implemented', 'na'] as const).map(s => (
                   <button key={s} onClick={() => setFilterStatus(s)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${filterStatus === s ? 'bg-falcon-red text-white' : 'bg-falcon-surface text-falcon-muted border border-falcon-border hover:text-white'}`}>
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${filterStatus === s ? 'bg-[#e8002d] text-white' : 'bg-[#0d1220] text-[#7d92b0] border border-[#1e2d42] hover:text-white'}`}>
                     {s === 'all' ? 'すべて' : STATUS_CONFIG[s].label}
                   </button>
                 ))}
@@ -377,45 +382,45 @@ export default function RegulatoryMappingPage() {
             </div>
 
             {/* Controls Table */}
-            <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
+            <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-falcon-border">
+                  <tr className="border-b border-[#1e2d42]">
                     {['条文ID','タイトル','適用','実装ステータス','エビデンス','オーナー','最終レビュー','次回レビュー','操作'].map(h => (
-                      <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-falcon-muted uppercase tracking-wider whitespace-nowrap">{h}</th>
+                      <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-[#7d92b0] uppercase tracking-wider whitespace-nowrap">{h}</th>
                     ))}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-falcon-border">
+                <tbody className="divide-y divide-[#1e2d42]">
                   {filtered.map(c => (
                     <tr key={c.id} className="hover:bg-[#070d19]/50 transition-colors">
                       <td className="px-4 py-3">
-                        <span className="font-mono text-xs text-falcon-red bg-falcon-red/5 border border-falcon-red/20 px-1.5 py-0.5 rounded-sm">{c.article_id}</span>
+                        <span className="font-mono text-xs text-[#e8002d] bg-[#e8002d]/5 border border-[#e8002d]/20 px-1.5 py-0.5 rounded-sm">{c.article_id}</span>
                       </td>
                       <td className="px-4 py-3">
                         <p className="text-white font-medium text-xs">{c.title}</p>
-                        <p className="text-falcon-subtle text-[10px] mt-0.5 max-w-[200px] truncate">{c.description}</p>
+                        <p className="text-[#3d5068] text-[10px] mt-0.5 max-w-[200px] truncate">{c.description}</p>
                       </td>
                       <td className="px-4 py-3">
-                        <span className={`text-xs px-2 py-0.5 rounded-sm border ${c.applicable === 'yes' ? 'bg-green-500/10 text-green-400 border-green-500/30' : c.applicable === 'partial' ? 'bg-amber-500/10 text-amber-400 border-amber-500/30' : 'bg-falcon-border text-falcon-subtle border-falcon-border'}`}>
+                        <span className={`text-xs px-2 py-0.5 rounded-sm border ${c.applicable === 'yes' ? 'bg-green-500/10 text-green-400 border-green-500/30' : c.applicable === 'partial' ? 'bg-amber-500/10 text-amber-400 border-amber-500/30' : 'bg-[#1e2d42] text-[#3d5068] border-[#1e2d42]'}`}>
                           {c.applicable === 'yes' ? '適用' : c.applicable === 'partial' ? '部分' : '非適用'}
                         </span>
                       </td>
                       <td className="px-4 py-3"><StatusBadge status={c.implementation_status} /></td>
-                      <td className="px-4 py-3 text-xs text-falcon-muted max-w-[150px] truncate">{c.evidence || '—'}</td>
-                      <td className="px-4 py-3 text-xs text-falcon-muted">{c.owner}</td>
-                      <td className="px-4 py-3 text-xs text-falcon-muted">{c.last_review_date ?? '—'}</td>
+                      <td className="px-4 py-3 text-xs text-[#7d92b0] max-w-[150px] truncate">{c.evidence || '—'}</td>
+                      <td className="px-4 py-3 text-xs text-[#7d92b0]">{c.owner}</td>
+                      <td className="px-4 py-3 text-xs text-[#7d92b0]">{c.last_review_date ?? '—'}</td>
                       <td className="px-4 py-3 text-xs">
                         {c.next_review_date ? (
                           <span className={(() => {
                             const diff = (new Date(c.next_review_date).getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
-                            return diff <= 7 ? 'text-red-400' : diff <= 30 ? 'text-amber-400' : 'text-falcon-muted'
+                            return diff <= 7 ? 'text-red-400' : diff <= 30 ? 'text-amber-400' : 'text-[#7d92b0]'
                           })()}>{c.next_review_date}</span>
                         ) : '—'}
                       </td>
                       <td className="px-4 py-3">
                         <button onClick={() => setEditingControl(c)}
-                          className="p-1.5 rounded-sm hover:bg-falcon-border text-falcon-muted hover:text-white transition-colors">
+                          className="p-1.5 rounded-sm hover:bg-[#1e2d42] text-[#7d92b0] hover:text-white transition-colors">
                           <Pencil className="w-3.5 h-3.5" />
                         </button>
                       </td>
@@ -424,7 +429,7 @@ export default function RegulatoryMappingPage() {
                 </tbody>
               </table>
               {filtered.length === 0 && (
-                <div className="py-12 text-center text-falcon-subtle">
+                <div className="py-12 text-center text-[#3d5068]">
                   <Filter className="w-8 h-8 mx-auto mb-2 opacity-50" />
                   <p>条件に一致するコントロールがありません</p>
                 </div>
@@ -433,7 +438,7 @@ export default function RegulatoryMappingPage() {
 
             {/* Upcoming Reviews */}
             {upcoming.length > 0 && (
-              <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
+              <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
                 <div className="flex items-center gap-2 mb-4">
                   <Calendar className="w-4 h-4 text-amber-400" />
                   <h3 className="text-sm font-semibold text-white">30日以内にレビュー期限のコントロール</h3>
@@ -442,12 +447,12 @@ export default function RegulatoryMappingPage() {
                   {upcoming.filter(c => c.framework === activeFramework).slice(0, 5).map(c => {
                     const diff = Math.ceil((new Date(c.next_review_date!).getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
                     return (
-                      <div key={c.id} className="flex items-center gap-3 p-2.5 rounded-lg bg-[#070d19] border border-falcon-border">
+                      <div key={c.id} className="flex items-center gap-3 p-2.5 rounded-lg bg-[#070d19] border border-[#1e2d42]">
                         <span className={`text-xs font-bold w-16 text-right shrink-0 ${diff <= 7 ? 'text-red-400' : 'text-amber-400'}`}>{diff}日後</span>
-                        <span className="font-mono text-xs text-falcon-red">{c.article_id}</span>
+                        <span className="font-mono text-xs text-[#e8002d]">{c.article_id}</span>
                         <span className="text-xs text-white">{c.title}</span>
                         <StatusBadge status={c.implementation_status} />
-                        <span className="text-xs text-falcon-subtle ml-auto">{c.owner}</span>
+                        <span className="text-xs text-[#3d5068] ml-auto">{c.owner}</span>
                       </div>
                     )
                   })}
@@ -460,22 +465,22 @@ export default function RegulatoryMappingPage() {
         {/* Gap Analysis Tab */}
         {activeFramework === 'gap' && (
           <div className="space-y-4">
-            <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
-              <div className="px-4 py-3 border-b border-falcon-border">
+            <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
+              <div className="px-4 py-3 border-b border-[#1e2d42]">
                 <h3 className="text-sm font-semibold text-white">クロスフレームワーク ギャップ分析マトリクス</h3>
-                <p className="text-xs text-falcon-muted mt-0.5">各コントロール領域の実装状況をフレームワーク横断で比較</p>
+                <p className="text-xs text-[#7d92b0] mt-0.5">各コントロール領域の実装状況をフレームワーク横断で比較</p>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b border-falcon-border">
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-falcon-muted uppercase tracking-wider w-48">コントロール領域</th>
+                    <tr className="border-b border-[#1e2d42]">
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-[#7d92b0] uppercase tracking-wider w-48">コントロール領域</th>
                       {gapFrameworks.map(fw => (
-                        <th key={fw} className="px-4 py-3 text-center text-xs font-semibold text-falcon-muted uppercase tracking-wider">{FRAMEWORK_LABELS[fw]}</th>
+                        <th key={fw} className="px-4 py-3 text-center text-xs font-semibold text-[#7d92b0] uppercase tracking-wider">{FRAMEWORK_LABELS[fw]}</th>
                       ))}
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-falcon-border">
+                  <tbody className="divide-y divide-[#1e2d42]">
                     {matrixRows.map(row => (
                       <tr key={row.label} className="hover:bg-[#070d19]/50">
                         <td className="px-4 py-3 text-xs text-white font-medium">{row.label}</td>
@@ -497,14 +502,14 @@ export default function RegulatoryMappingPage() {
                 </table>
               </div>
               {/* Legend */}
-              <div className="px-4 py-3 border-t border-falcon-border flex items-center gap-4">
-                <span className="text-xs text-falcon-subtle">凡例:</span>
+              <div className="px-4 py-3 border-t border-[#1e2d42] flex items-center gap-4">
+                <span className="text-xs text-[#3d5068]">凡例:</span>
                 {(Object.keys(STATUS_CONFIG) as ImplementationStatus[]).map(s => {
                   const cfg = STATUS_CONFIG[s]; const Icon = cfg.icon
                   return (
                     <div key={s} className="flex items-center gap-1">
                       <span className={`inline-flex items-center justify-center w-5 h-5 rounded-sm ${MATRIX_CELL[s]}`}><Icon className="w-3 h-3" /></span>
-                      <span className="text-xs text-falcon-muted">{cfg.label}</span>
+                      <span className="text-xs text-[#7d92b0]">{cfg.label}</span>
                     </div>
                   )
                 })}
@@ -519,7 +524,7 @@ export default function RegulatoryMappingPage() {
                 const partial = fwCtrls.filter(c => c.implementation_status === 'partial').length
                 const notImpl = fwCtrls.filter(c => c.implementation_status === 'not_implemented').length
                 return (
-                  <div key={fw} className="bg-falcon-surface border border-falcon-border rounded-xl p-4">
+                  <div key={fw} className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-4">
                     <p className="text-xs font-bold text-white mb-3">{FRAMEWORK_LABELS[fw]}</p>
                     <div className="space-y-1.5">
                       <div className="flex justify-between text-[10px]">

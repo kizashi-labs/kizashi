@@ -16,6 +16,9 @@ import {
   FileArchive,
 } from 'lucide-react'
 
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+import { PageSaveFailed } from '@/components/PageSaveFailed'
+
 // ─── 型定義 ───────────────────────────────────────────────────────────────────
 
 interface Agent {
@@ -295,6 +298,8 @@ export default function ForensicsPage() {
 
   return (
     <div className="min-h-screen bg-gray-950 text-gray-100 p-6">
+      <PageDataUnavailable />
+      <PageSaveFailed className="mb-4" />
       <div className="max-w-7xl mx-auto space-y-6">
 
         {/* ── ヘッダー ── */}

@@ -9,6 +9,9 @@ import {
   Cpu, Package
 } from 'lucide-react'
 
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+import { PageSaveFailed } from '@/components/PageSaveFailed'
+
 interface Settings {
   enrollment_token?: string
   server_url?: string
@@ -126,6 +129,8 @@ services:
 
   return (
     <div className="p-6 space-y-6 max-w-4xl">
+      <PageDataUnavailable />
+      <PageSaveFailed className="mb-4" />
       <div>
         <h1 className="text-2xl font-bold text-white flex items-center gap-2">
           <Download className="w-6 h-6 text-blue-400" />
@@ -135,7 +140,7 @@ services:
       </div>
 
       {/* Enrollment Token */}
-      <div className="bg-falcon-card border border-falcon-border rounded-xl p-5">
+      <div className="bg-[#111827] border border-[#1e2d42] rounded-xl p-5">
         <div className="flex items-center justify-between mb-4">
           <div>
             <h2 className="text-white font-semibold flex items-center gap-2">
@@ -147,8 +152,7 @@ services:
           <button
             onClick={() => regenMutation.mutate()}
             disabled={regenMutation.isPending}
-            className="flex items-center gap-2 px-3 py-1.5 bg-falcon-raised hover:bg-falcon-active
-                       text-[#8899aa] hover:text-white rounded-lg text-sm transition-colors"
+            className="flex items-center gap-2 px-3 py-1.5 bg-[#161f33] hover:bg-[#1d2f4a] text-[#8899aa] hover:text-white rounded-lg text-sm transition-colors"
           >
             <RefreshCw className={`w-4 h-4 ${regenMutation.isPending ? 'animate-spin' : ''}`} />
             再生成
@@ -156,20 +160,19 @@ services:
         </div>
 
         <div className="flex items-center gap-2">
-          <code className="flex-1 bg-falcon-bg border border-falcon-border rounded-lg px-4 py-3
-                           text-sm font-mono text-green-400 break-all">
+          <code className="flex-1 bg-[#080c14] border border-[#1e2d42] rounded-lg px-4 py-3 text-sm font-mono text-green-400 break-all">
             {showToken ? (token || '(未生成)') : maskedToken}
           </code>
           <button
             onClick={() => setShowToken(!showToken)}
-            className="p-2.5 bg-falcon-raised hover:bg-falcon-active rounded-lg text-[#8899aa] hover:text-white transition-colors"
+            className="p-2.5 bg-[#161f33] hover:bg-[#1d2f4a] rounded-lg text-[#8899aa] hover:text-white transition-colors"
           >
             {showToken ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
           </button>
           <button
             onClick={() => copyText(token, 'token')}
             disabled={!token}
-            className="p-2.5 bg-falcon-raised hover:bg-falcon-active rounded-lg text-[#8899aa] hover:text-white transition-colors disabled:opacity-50"
+            className="p-2.5 bg-[#161f33] hover:bg-[#1d2f4a] rounded-lg text-[#8899aa] hover:text-white transition-colors disabled:opacity-50"
           >
             {copied === 'token' ? <Check className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
           </button>
@@ -183,11 +186,11 @@ services:
         )}
 
         <div className="mt-4 grid grid-cols-2 gap-3">
-          <div className="bg-falcon-bg rounded-lg p-3">
+          <div className="bg-[#080c14] rounded-lg p-3">
             <p className="text-[#5a6a7a] text-xs mb-1">サーバーURL</p>
             <p className="text-white text-sm font-mono">{serverURL}</p>
           </div>
-          <div className="bg-falcon-bg rounded-lg p-3">
+          <div className="bg-[#080c14] rounded-lg p-3">
             <p className="text-[#5a6a7a] text-xs mb-1">トークン有効期限</p>
             <p className="text-white text-sm">無期限（再生成まで有効）</p>
           </div>
@@ -195,7 +198,7 @@ services:
       </div>
 
       {/* Architecture overview */}
-      <div className="bg-falcon-card border border-falcon-border rounded-xl p-5">
+      <div className="bg-[#111827] border border-[#1e2d42] rounded-xl p-5">
         <h2 className="text-white font-semibold mb-4 flex items-center gap-2">
           <Cpu className="w-4 h-4 text-purple-400" />
           エージェントアーキテクチャ
@@ -207,27 +210,27 @@ services:
             { label: 'ネットワーク監視', desc: 'WFP / netlink', color: 'purple' },
             { label: 'DNS監視', desc: 'ETW / /proc/net', color: 'yellow' },
           ].map(({ label, desc, color }) => (
-            <div key={label} className="bg-falcon-bg rounded-lg p-3 text-center">
+            <div key={label} className="bg-[#080c14] rounded-lg p-3 text-center">
               <div className={`text-${color}-400 font-medium text-sm`}>{label}</div>
               <div className="text-[#5a6a7a] text-xs mt-1">{desc}</div>
             </div>
           ))}
         </div>
         <div className="mt-3 flex items-center justify-center gap-2 text-[#5a6a7a] text-sm">
-          <div className="flex-1 border-t border-falcon-border" />
+          <div className="flex-1 border-t border-[#1e2d42]" />
           <ChevronRight className="w-4 h-4" />
           <span>mTLS gRPC</span>
           <ChevronRight className="w-4 h-4" />
           <span>インジェスションサーバー (:9090)</span>
           <ChevronRight className="w-4 h-4" />
           <span>検知エンジン (NATS)</span>
-          <div className="flex-1 border-t border-falcon-border" />
+          <div className="flex-1 border-t border-[#1e2d42]" />
         </div>
       </div>
 
       {/* Installation Instructions */}
-      <div className="bg-falcon-card border border-falcon-border rounded-xl">
-        <div className="flex border-b border-falcon-border">
+      <div className="bg-[#111827] border border-[#1e2d42] rounded-xl">
+        <div className="flex border-b border-[#1e2d42]">
           {[
             { key: 'linux',   label: 'Linux',   icon: Terminal },
             { key: 'windows', label: 'Windows', icon: Monitor  },
@@ -263,7 +266,7 @@ services:
                     コピー
                   </button>
                 </div>
-                <pre className="bg-falcon-bg rounded-lg p-4 text-sm font-mono text-green-300 overflow-x-auto whitespace-pre-wrap break-all">
+                <pre className="bg-[#080c14] rounded-lg p-4 text-sm font-mono text-green-300 overflow-x-auto whitespace-pre-wrap break-all">
                   {linuxOneliner}
                 </pre>
               </div>
@@ -279,7 +282,7 @@ services:
                     コピー
                   </button>
                 </div>
-                <pre className="bg-falcon-bg rounded-lg p-4 text-sm font-mono text-green-300 overflow-x-auto whitespace-pre-wrap">
+                <pre className="bg-[#080c14] rounded-lg p-4 text-sm font-mono text-green-300 overflow-x-auto whitespace-pre-wrap">
                   {linuxInstallScript}
                 </pre>
               </div>
@@ -309,7 +312,7 @@ services:
                     コピー
                   </button>
                 </div>
-                <pre className="bg-falcon-bg rounded-lg p-4 text-sm font-mono text-blue-300 overflow-x-auto whitespace-pre-wrap">
+                <pre className="bg-[#080c14] rounded-lg p-4 text-sm font-mono text-blue-300 overflow-x-auto whitespace-pre-wrap">
                   {windowsScript}
                 </pre>
               </div>
@@ -351,7 +354,7 @@ services:
                     コピー
                   </button>
                 </div>
-                <pre className="bg-falcon-bg rounded-lg p-4 text-sm font-mono text-green-300 overflow-x-auto whitespace-pre-wrap break-all">
+                <pre className="bg-[#080c14] rounded-lg p-4 text-sm font-mono text-green-300 overflow-x-auto whitespace-pre-wrap break-all">
                   {macosOneliner}
                 </pre>
               </div>
@@ -367,7 +370,7 @@ services:
                     コピー
                   </button>
                 </div>
-                <pre className="bg-falcon-bg rounded-lg p-4 text-sm font-mono text-green-300 overflow-x-auto whitespace-pre-wrap">
+                <pre className="bg-[#080c14] rounded-lg p-4 text-sm font-mono text-green-300 overflow-x-auto whitespace-pre-wrap">
                   {macosInstallScript}
                 </pre>
               </div>
@@ -383,7 +386,7 @@ services:
                     コピー
                   </button>
                 </div>
-                <pre className="bg-falcon-bg rounded-lg p-4 text-sm font-mono text-purple-300 overflow-x-auto whitespace-pre-wrap">
+                <pre className="bg-[#080c14] rounded-lg p-4 text-sm font-mono text-purple-300 overflow-x-auto whitespace-pre-wrap">
                   {macosBrewScript}
                 </pre>
               </div>
@@ -437,14 +440,14 @@ services:
                     コピー
                   </button>
                 </div>
-                <pre className="bg-falcon-bg rounded-lg p-4 text-sm font-mono text-yellow-300 overflow-x-auto whitespace-pre-wrap">
+                <pre className="bg-[#080c14] rounded-lg p-4 text-sm font-mono text-yellow-300 overflow-x-auto whitespace-pre-wrap">
                   {dockerScript}
                 </pre>
               </div>
 
               <div>
                 <p className="text-[#8899aa] text-sm font-medium mb-2">エージェントのビルド</p>
-                <pre className="bg-falcon-bg rounded-lg p-4 text-sm font-mono text-green-300 overflow-x-auto">
+                <pre className="bg-[#080c14] rounded-lg p-4 text-sm font-mono text-green-300 overflow-x-auto">
 {`# Linux向けビルド
 cd agent
 make build-linux
@@ -471,7 +474,7 @@ docker build -f agent/Dockerfile -t edr-platform/agent:latest .`}
       </div>
 
       {/* Build from source */}
-      <div className="bg-falcon-card border border-falcon-border rounded-xl p-5">
+      <div className="bg-[#111827] border border-[#1e2d42] rounded-xl p-5">
         <h2 className="text-white font-semibold mb-4 flex items-center gap-2">
           <Package className="w-4 h-4 text-green-400" />
           ソースからビルド
@@ -482,7 +485,7 @@ docker build -f agent/Dockerfile -t edr-platform/agent:latest .`}
             { os: 'Windows (amd64)', cmd: 'make build-windows', color: 'blue', output: 'agent.exe, watchdog.exe' },
             { os: 'macOS (amd64)', cmd: 'make build-darwin', color: 'purple', output: 'agent-darwin, watchdog-darwin' },
           ].map(({ os, cmd, color, output }) => (
-            <div key={os} className="bg-falcon-bg rounded-lg p-4">
+            <div key={os} className="bg-[#080c14] rounded-lg p-4">
               <p className={`text-${color}-400 font-medium text-sm mb-2`}>{os}</p>
               <code className="text-[#8899aa] text-xs font-mono block mb-2">{cmd}</code>
               <p className="text-[#5a6a7a] text-xs">出力: {output}</p>
@@ -490,7 +493,7 @@ docker build -f agent/Dockerfile -t edr-platform/agent:latest .`}
           ))}
         </div>
         <div className="mt-3">
-          <pre className="bg-falcon-bg rounded-lg p-4 text-sm font-mono text-[#8899aa] overflow-x-auto">
+          <pre className="bg-[#080c14] rounded-lg p-4 text-sm font-mono text-[#8899aa] overflow-x-auto">
 {`# 全プラットフォーム向けビルド
 cd agent
 make all

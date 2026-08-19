@@ -4,6 +4,8 @@ import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { apiFetch } from '@/lib/api'
 import { Lock, Loader2, CheckCircle, XCircle } from 'lucide-react'
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+
 // ── Types ──────────────────────────────────────────────────────────────────────
 
 type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
@@ -74,7 +76,7 @@ function RiskScoreBar({ score }: { score: number }) {
   const textColor = score >= 80 ? 'text-red-400' : score >= 60 ? 'text-orange-400' : score >= 40 ? 'text-yellow-400' : 'text-green-400'
   return (
     <div className="flex items-center gap-2">
-      <div className="w-20 h-2 bg-falcon-border rounded-full overflow-hidden">
+      <div className="w-20 h-2 bg-[#1e2d42] rounded-full overflow-hidden">
         <div className={`h-full rounded-full ${color} transition-all`} style={{ width: `${score}%` }} />
       </div>
       <span className={`text-xs font-mono font-semibold ${textColor}`}>{score}</span>
@@ -90,29 +92,19 @@ export default function ApiSecurityPage() {
 
   const { data: stats, isLoading: statsLoading } = useQuery<ApiSecurityStats>({
     queryKey: ['api-security-stats'],
-    queryFn: async () => {
-      try { return await apiFetch('/api/v1/admin/api-security/stats') }
-      catch { return {} as any }
-    },
+    queryFn: () => apiFetch('/api/v1/admin/api-security/stats'),
   })
 
   const { data: endpoints = [], isLoading: endpointsLoading } = useQuery<ApiEndpoint[]>({
     queryKey: ['api-security-endpoints'],
-    queryFn: async () => {
-      try { return await apiFetch('/api/v1/admin/api-security/endpoints') }
-      catch { return [] }
-    },
+    queryFn: () => apiFetch('/api/v1/admin/api-security/endpoints'),
   })
 
   const { data: events = [], isLoading: eventsLoading } = useQuery<SecurityEvent[]>({
     queryKey: ['api-security-events', eventTypeFilter],
     queryFn: async () => {
-      try {
-        const params = eventTypeFilter !== 'all' ? `?event_type=${eventTypeFilter}` : ''
-        return await apiFetch(`/api/v1/admin/api-security/events${params}`)
-      } catch {
-        return []
-      }
+      const params = eventTypeFilter !== 'all' ? `?event_type=${eventTypeFilter}` : ''
+      return await apiFetch(`/api/v1/admin/api-security/events${params}`)
     },
   })
 
@@ -121,14 +113,15 @@ export default function ApiSecurityPage() {
 
   return (
     <div className="min-h-screen bg-[#070d19] p-6">
+      <PageDataUnavailable />
       {/* Header */}
       <div className="flex items-center gap-3 mb-6">
-        <div className="w-10 h-10 rounded-lg bg-falcon-red/20 border border-falcon-red/30 flex items-center justify-center">
-          <Lock className="w-5 h-5 text-falcon-red" />
+        <div className="w-10 h-10 rounded-lg bg-[#e8002d]/20 border border-[#e8002d]/30 flex items-center justify-center">
+          <Lock className="w-5 h-5 text-[#e8002d]" />
         </div>
         <div>
           <h1 className="text-2xl font-bold text-white">APIセキュリティ監視</h1>
-          <p className="text-sm text-falcon-muted">リアルタイムAPI脅威検知</p>
+          <p className="text-sm text-[#7d92b0]">リアルタイムAPI脅威検知</p>
         </div>
       </div>
 
@@ -136,20 +129,20 @@ export default function ApiSecurityPage() {
       <div className="grid grid-cols-5 gap-4 mb-6">
         {statsLoading
           ? Array.from({ length: 5 }).map((_, i) => (
-              <div key={i} className="bg-falcon-surface border border-falcon-border rounded-xl p-4 animate-pulse">
-                <div className="h-3 w-24 bg-falcon-border rounded-sm mb-3" />
-                <div className="h-7 w-10 bg-falcon-border rounded-sm" />
+              <div key={i} className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-4 animate-pulse">
+                <div className="h-3 w-24 bg-[#1e2d42] rounded-sm mb-3" />
+                <div className="h-7 w-10 bg-[#1e2d42] rounded-sm" />
               </div>
             ))
           : [
-              { label: '総エンドポイント',     value: displayStats.total_endpoints,     color: 'text-falcon-muted'  },
+              { label: '総エンドポイント',     value: displayStats.total_endpoints,     color: 'text-[#7d92b0]'  },
               { label: '高リスク',            value: displayStats.high_risk_endpoints, color: 'text-red-400'    },
               { label: 'イベント(24h)',         value: displayStats.events_24h,          color: 'text-orange-400' },
               { label: '認証失敗(24h)',  value: displayStats.auth_failures_24h,   color: 'text-yellow-400' },
               { label: 'レート制限(24h)',   value: displayStats.rate_limited_24h,    color: 'text-blue-400'   },
             ].map(({ label, value, color }) => (
-              <div key={label} className="bg-falcon-surface border border-falcon-border rounded-xl p-4">
-                <p className="text-xs text-falcon-muted mb-2">{label}</p>
+              <div key={label} className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-4">
+                <p className="text-xs text-[#7d92b0] mb-2">{label}</p>
                 <p className={`text-2xl font-bold ${color}`}>{value}</p>
               </div>
             ))
@@ -157,13 +150,13 @@ export default function ApiSecurityPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 mb-6 bg-falcon-surface border border-falcon-border rounded-lg p-1 w-fit">
+      <div className="flex gap-1 mb-6 bg-[#0d1220] border border-[#1e2d42] rounded-lg p-1 w-fit">
         {(['endpoints', 'events'] as const).map(tab => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
             className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
-              activeTab === tab ? 'bg-falcon-border text-white' : 'text-falcon-muted hover:text-white'
+              activeTab === tab ? 'bg-[#1e2d42] text-white' : 'text-[#7d92b0] hover:text-white'
             }`}
           >
             {tab === 'endpoints' ? 'APIエンドポイント' : 'セキュリティイベント'}
@@ -173,25 +166,25 @@ export default function ApiSecurityPage() {
 
       {/* Endpoints Tab */}
       {activeTab === 'endpoints' && (
-        <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
+        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
           {endpointsLoading ? (
             <div className="flex items-center justify-center py-16 gap-2">
-              <Loader2 className="w-5 h-5 text-falcon-red animate-spin" />
-              <span className="text-sm text-falcon-muted">読込中...</span>
+              <Loader2 className="w-5 h-5 text-[#e8002d] animate-spin" />
+              <span className="text-sm text-[#7d92b0]">読込中...</span>
             </div>
           ) : (
             <table className="w-full">
               <thead>
-                <tr className="border-b border-falcon-border">
+                <tr className="border-b border-[#1e2d42]">
                   {['サービス', 'メソッド', 'パス', '認証必須', 'レート制限', 'リスクレベル', '有効'].map(h => (
-                    <th key={h} className="text-left text-xs text-falcon-muted font-medium px-4 py-3">{h}</th>
+                    <th key={h} className="text-left text-xs text-[#7d92b0] font-medium px-4 py-3">{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {endpoints.map(ep => (
-                  <tr key={ep.id} className="border-b border-falcon-border/60 last:border-0 hover:bg-[#070d19]/50 transition-colors">
-                    <td className="px-4 py-3 text-sm text-falcon-muted font-mono">{ep.service}</td>
+                  <tr key={ep.id} className="border-b border-[#1e2d42]/60 last:border-0 hover:bg-[#070d19]/50 transition-colors">
+                    <td className="px-4 py-3 text-sm text-[#7d92b0] font-mono">{ep.service}</td>
                     <td className="px-4 py-3">
                       <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs border font-bold ${METHOD_CONFIG[ep.method]}`}>
                         {ep.method}
@@ -203,15 +196,15 @@ export default function ApiSecurityPage() {
                         ? <CheckCircle className="w-4 h-4 text-green-400 inline" />
                         : <XCircle className="w-4 h-4 text-red-400 inline" />}
                     </td>
-                    <td className="px-4 py-3 text-xs text-falcon-muted font-mono">{ep.rate_limit}</td>
+                    <td className="px-4 py-3 text-xs text-[#7d92b0] font-mono">{ep.rate_limit}</td>
                     <td className="px-4 py-3">
                       <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs border font-medium ${RISK_CONFIG[ep.risk_level].cls}`}>
                         {RISK_CONFIG[ep.risk_level].label}
                       </span>
                     </td>
                     <td className="px-4 py-3">
-                      <div className={`w-8 h-4 rounded-full transition-colors ${ep.enabled ? 'bg-falcon-red' : 'bg-falcon-border'}`}>
-                        <div className={`w-3 h-3 rounded-full bg-falcon-text mt-0.5 transition-transform ${ep.enabled ? 'translate-x-4' : 'translate-x-0.5'}`} />
+                      <div className={`w-8 h-4 rounded-full transition-colors ${ep.enabled ? 'bg-[#e8002d]' : 'bg-[#1e2d42]'}`}>
+                        <div className={`w-3 h-3 rounded-full bg-[#e2e8f4] mt-0.5 transition-transform ${ep.enabled ? 'translate-x-4' : 'translate-x-0.5'}`} />
                       </div>
                     </td>
                   </tr>
@@ -229,46 +222,46 @@ export default function ApiSecurityPage() {
             <select
               value={eventTypeFilter}
               onChange={e => setEventTypeFilter(e.target.value as EventType | 'all')}
-              className="bg-falcon-surface border border-falcon-border rounded-lg px-3 py-2 text-sm text-falcon-muted focus:outline-hidden focus:border-falcon-red/50"
+              className="bg-[#0d1220] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-[#7d92b0] focus:outline-hidden focus:border-[#e8002d]/50"
             >
               <option value="all">全イベントタイプ</option>
               {(Object.keys(EVENT_TYPE_CONFIG) as EventType[]).map(t => (
                 <option key={t} value={t}>{EVENT_TYPE_CONFIG[t].label}</option>
               ))}
             </select>
-            <span className="text-xs text-falcon-muted ml-auto">{events.length} 件</span>
+            <span className="text-xs text-[#7d92b0] ml-auto">{events.length} 件</span>
           </div>
 
-          <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
+          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
             {eventsLoading ? (
               <div className="flex items-center justify-center py-16 gap-2">
-                <Loader2 className="w-5 h-5 text-falcon-red animate-spin" />
-                <span className="text-sm text-falcon-muted">イベント読込中...</span>
+                <Loader2 className="w-5 h-5 text-[#e8002d] animate-spin" />
+                <span className="text-sm text-[#7d92b0]">イベント読込中...</span>
               </div>
             ) : (
               <table className="w-full">
                 <thead>
-                  <tr className="border-b border-falcon-border">
+                  <tr className="border-b border-[#1e2d42]">
                     {['サービス', 'パス', 'イベントタイプ', '送信元IP', 'ステータス', 'リスクスコア', 'タイムスタンプ'].map(h => (
-                      <th key={h} className="text-left text-xs text-falcon-muted font-medium px-4 py-3">{h}</th>
+                      <th key={h} className="text-left text-xs text-[#7d92b0] font-medium px-4 py-3">{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {events.length === 0 ? (
                     <tr>
-                      <td colSpan={7} className="px-4 py-10 text-center text-sm text-falcon-muted">イベントがありません。</td>
+                      <td colSpan={7} className="px-4 py-10 text-center text-sm text-[#7d92b0]">イベントがありません。</td>
                     </tr>
                   ) : events.map(ev => (
-                    <tr key={ev.id} className="border-b border-falcon-border/60 last:border-0 hover:bg-[#070d19]/50 transition-colors">
-                      <td className="px-4 py-3 text-sm text-falcon-muted font-mono">{ev.service}</td>
+                    <tr key={ev.id} className="border-b border-[#1e2d42]/60 last:border-0 hover:bg-[#070d19]/50 transition-colors">
+                      <td className="px-4 py-3 text-sm text-[#7d92b0] font-mono">{ev.service}</td>
                       <td className="px-4 py-3 text-sm text-white font-mono">{ev.path}</td>
                       <td className="px-4 py-3">
                         <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs border font-medium ${EVENT_TYPE_CONFIG[ev.event_type].cls}`}>
                           {EVENT_TYPE_CONFIG[ev.event_type].label}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-xs text-falcon-muted font-mono">{ev.source_ip}</td>
+                      <td className="px-4 py-3 text-xs text-[#7d92b0] font-mono">{ev.source_ip}</td>
                       <td className="px-4 py-3">
                         <span className={`text-xs font-mono font-semibold ${ev.status_code >= 500 ? 'text-red-400' : ev.status_code >= 400 ? 'text-orange-400' : 'text-green-400'}`}>
                           {ev.status_code}
@@ -277,7 +270,7 @@ export default function ApiSecurityPage() {
                       <td className="px-4 py-3">
                         <RiskScoreBar score={ev.risk_score} />
                       </td>
-                      <td className="px-4 py-3 text-xs text-falcon-muted whitespace-nowrap">{fmtDate(ev.timestamp)}</td>
+                      <td className="px-4 py-3 text-xs text-[#7d92b0] whitespace-nowrap">{fmtDate(ev.timestamp)}</td>
                     </tr>
                   ))}
                 </tbody>

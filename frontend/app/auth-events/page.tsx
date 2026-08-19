@@ -13,6 +13,8 @@ import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
   LineChart, Line, CartesianGrid, Legend
 } from 'recharts'
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+
 import { apiFetch } from '@/lib/api'
 
 const TIME_RANGES = [
@@ -46,7 +48,7 @@ function StatCard({ label, value, sub, icon: Icon, color }: {
   icon: React.ElementType; color: string
 }) {
   return (
-    <div className="bg-falcon-card rounded-xl border border-falcon-border p-4 flex items-center gap-4">
+    <div className="bg-[#111827] rounded-xl border border-[#1e2d42] p-4 flex items-center gap-4">
       <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${color}`}>
         <Icon className="w-5 h-5 text-white" />
       </div>
@@ -104,6 +106,7 @@ export default function AuthEventsPage() {
 
   return (
     <div className="p-6 space-y-6">
+      <PageDataUnavailable />
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -123,7 +126,7 @@ export default function AuthEventsPage() {
               className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
                 hours === r.hours
                   ? 'bg-indigo-600 text-white'
-                  : 'bg-falcon-card text-[#8899aa] hover:bg-falcon-hover'
+                  : 'bg-[#111827] text-[#8899aa] hover:bg-[#19253d]'
               }`}
             >
               {r.label}
@@ -147,9 +150,9 @@ export default function AuthEventsPage() {
               icon={ShieldCheck} color="bg-green-600" />
             <StatCard label="失敗" value={data?.failure ?? 0}
               sub={data && data.total > 0 ? `${Math.round((data.failure / data.total) * 100)}%` : ''}
-              icon={ShieldX} color="bg-falcon-red" />
+              icon={ShieldX} color="bg-[#e8002d]" />
             <StatCard label="ユーザー数" value={data?.top_users.length ?? 0}
-              icon={Users} color="bg-falcon-blue" />
+              icon={Users} color="bg-[#1a6bff]" />
           </div>
 
           {/* Brute force warning */}
@@ -168,7 +171,7 @@ export default function AuthEventsPage() {
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Hourly chart */}
-            <div className="bg-falcon-card rounded-xl border border-falcon-border p-5">
+            <div className="bg-[#111827] rounded-xl border border-[#1e2d42] p-5">
               <div className="flex items-center gap-2 mb-4">
                 <TrendingUp className="w-4 h-4 text-indigo-400" />
                 <h2 className="text-sm font-semibold text-white">認証イベント推移</h2>
@@ -194,7 +197,7 @@ export default function AuthEventsPage() {
             </div>
 
             {/* Top users */}
-            <div className="bg-falcon-card rounded-xl border border-falcon-border p-5">
+            <div className="bg-[#111827] rounded-xl border border-[#1e2d42] p-5">
               <div className="flex items-center gap-2 mb-4">
                 <Users className="w-4 h-4 text-blue-400" />
                 <h2 className="text-sm font-semibold text-white">上位ユーザー</h2>
@@ -208,7 +211,7 @@ export default function AuthEventsPage() {
                     return (
                       <div key={u.username} className="flex items-center gap-3">
                         <span className="text-sm text-[#8899aa] font-mono w-36 truncate">{u.username}</span>
-                        <div className="flex-1 bg-falcon-raised rounded-full h-2 overflow-hidden">
+                        <div className="flex-1 bg-[#161f33] rounded-full h-2 overflow-hidden">
                           <div className="h-full flex">
                             <div
                               className="bg-green-500 h-full"
@@ -233,7 +236,7 @@ export default function AuthEventsPage() {
           </div>
 
           {/* Top agents */}
-          <div className="bg-falcon-card rounded-xl border border-falcon-border p-5">
+          <div className="bg-[#111827] rounded-xl border border-[#1e2d42] p-5">
             <div className="flex items-center gap-2 mb-4">
               <Monitor className="w-4 h-4 text-purple-400" />
               <h2 className="text-sm font-semibold text-white">上位エンドポイント（認証イベント数）</h2>
@@ -256,8 +259,8 @@ export default function AuthEventsPage() {
           </div>
 
           {/* Recent events table */}
-          <div className="bg-falcon-card rounded-xl border border-falcon-border overflow-hidden">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-falcon-border">
+          <div className="bg-[#111827] rounded-xl border border-[#1e2d42] overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-[#1e2d42]">
               <div className="flex items-center gap-2">
                 <Clock className="w-4 h-4 text-[#8899aa]" />
                 <h2 className="text-sm font-semibold text-white">直近の認証イベント</h2>
@@ -269,9 +272,7 @@ export default function AuthEventsPage() {
                     value={userSearch}
                     onChange={e => setUserSearch(e.target.value)}
                     placeholder="ユーザー・ホスト検索..."
-                    className="pl-8 pr-3 py-1 text-xs border border-falcon-border rounded-lg
-                               bg-falcon-raised text-white placeholder-[#5a6a7a] w-40
-                               focus:outline-hidden focus:border-indigo-500"
+                    className="pl-8 pr-3 py-1 text-xs border border-[#1e2d42] rounded-lg bg-[#161f33] text-white placeholder-[#5a6a7a] w-40 focus:outline-hidden focus:border-indigo-500"
                   />
                 </div>
                 {(['all', 'success', 'failure'] as const).map(f => (
@@ -281,7 +282,7 @@ export default function AuthEventsPage() {
                     className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${
                       outcomeFilter === f
                         ? 'bg-indigo-600 text-white'
-                        : 'bg-falcon-raised text-[#8899aa] hover:bg-falcon-active'
+                        : 'bg-[#161f33] text-[#8899aa] hover:bg-[#1d2f4a]'
                     }`}
                   >
                     {f === 'all' ? 'すべて' : f === 'success' ? '成功' : '失敗'}
@@ -290,8 +291,7 @@ export default function AuthEventsPage() {
                 <button
                   onClick={exportCSV}
                   disabled={recent.length === 0}
-                  className="flex items-center gap-1 px-2.5 py-1 text-xs border border-falcon-border
-                             text-[#8899aa] rounded-lg hover:bg-falcon-active disabled:opacity-40 transition-colors"
+                  className="flex items-center gap-1 px-2.5 py-1 text-xs border border-[#1e2d42] text-[#8899aa] rounded-lg hover:bg-[#1d2f4a] disabled:opacity-40 transition-colors"
                 >
                   <Download className="w-3.5 h-3.5" />CSV
                 </button>
@@ -300,7 +300,7 @@ export default function AuthEventsPage() {
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-falcon-border text-xs text-[#8899aa]">
+                  <tr className="border-b border-[#1e2d42] text-xs text-[#8899aa]">
                     <th className="px-4 py-3 text-left">日時</th>
                     <th className="px-4 py-3 text-left">エンドポイント</th>
                     <th className="px-4 py-3 text-left">ユーザー</th>
@@ -314,12 +314,12 @@ export default function AuthEventsPage() {
                       <td colSpan={5} className="px-4 py-8 text-center text-[#5a6a7a]">データなし</td>
                     </tr>
                   ) : recent.slice(0, 50).map(e => (
-                    <tr key={e.id} className="border-b border-falcon-border/50 hover:bg-falcon-raised/30">
+                    <tr key={e.id} className="border-b border-[#1e2d42]/50 hover:bg-[#161f33]/30">
                       <td className="px-4 py-2.5 text-[#8899aa] font-mono text-xs whitespace-nowrap">
                         {e.timestamp ? format(parseISO(e.timestamp), 'MM/dd HH:mm:ss', { locale: ja }) : '-'}
                       </td>
                       <td className="px-4 py-2.5 text-[#8899aa]">{e.hostname || e.agent_id}</td>
-                      <td className="px-4 py-2.5 font-mono text-falcon-text">{e.username}</td>
+                      <td className="px-4 py-2.5 font-mono text-[#e2e8f4]">{e.username}</td>
                       <td className="px-4 py-2.5 text-[#8899aa]">{e.logon_type || '-'}</td>
                       <td className="px-4 py-2.5">
                         {e.outcome === 'success' ? (

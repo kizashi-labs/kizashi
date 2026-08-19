@@ -185,8 +185,7 @@ function PathListEditor({
           onChange={e => setInput(e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter') add() }}
           placeholder={placeholder ?? 'パスを入力...'}
-          className="flex-1 bg-gray-900 border border-gray-700 rounded px-3 py-1.5 text-sm text-white
-                     placeholder-gray-600 focus:outline-hidden focus:border-blue-500 transition-colors"
+          className="flex-1 bg-gray-900 border border-gray-700 rounded-sm px-3 py-1.5 text-sm text-white placeholder-gray-600 focus:outline-hidden focus:border-blue-500 transition-colors"
         />
         <button
           onClick={add}
@@ -221,8 +220,7 @@ function CollectorsTab({
       {items.map(({ key, label, desc }) => (
         <label
           key={key}
-          className="flex items-start gap-3 p-3 bg-gray-900 rounded-lg border border-gray-700
-                     cursor-pointer hover:border-gray-600 transition-colors"
+          className="flex items-start gap-3 p-3 bg-gray-900 rounded-lg border border-gray-700 cursor-pointer hover:border-gray-600 transition-colors"
         >
           <input
             type="checkbox"
@@ -294,8 +292,7 @@ function ProcessTab({
             ...config,
             process_monitor: { ...pm, poll_interval_seconds: Number(e.target.value) },
           })}
-          className="w-40 bg-gray-900 border border-gray-700 rounded px-3 py-2 text-sm text-white
-                     focus:outline-hidden focus:border-blue-500 transition-colors"
+          className="w-40 bg-gray-900 border border-gray-700 rounded-sm px-3 py-2 text-sm text-white focus:outline-hidden focus:border-blue-500 transition-colors"
         />
         <p className="text-xs text-gray-500 mt-1">推奨: 30〜60秒</p>
       </div>
@@ -312,8 +309,7 @@ function ProcessTab({
             ...config,
             process_monitor: { ...pm, max_processes: Number(e.target.value) },
           })}
-          className="w-40 bg-gray-900 border border-gray-700 rounded px-3 py-2 text-sm text-white
-                     focus:outline-hidden focus:border-blue-500 transition-colors"
+          className="w-40 bg-gray-900 border border-gray-700 rounded-sm px-3 py-2 text-sm text-white focus:outline-hidden focus:border-blue-500 transition-colors"
         />
         <p className="text-xs text-gray-500 mt-1">同時に追跡するプロセスの上限</p>
       </div>
@@ -363,8 +359,7 @@ function ResourcesTab({
             ...config,
             resource_limits: { ...rl, memory_limit_mb: Number(e.target.value) },
           })}
-          className="w-40 bg-gray-900 border border-gray-700 rounded px-3 py-2 text-sm text-white
-                     focus:outline-hidden focus:border-blue-500 transition-colors"
+          className="w-40 bg-gray-900 border border-gray-700 rounded-sm px-3 py-2 text-sm text-white focus:outline-hidden focus:border-blue-500 transition-colors"
         />
         <p className="text-xs text-gray-500 mt-1">エージェントプロセスの最大メモリ使用量</p>
       </div>
@@ -395,8 +390,7 @@ function LoggingTab({
             ...config,
             logging: { ...lg, level: e.target.value as 'debug' | 'info' | 'warn' | 'error' },
           })}
-          className="w-64 bg-gray-900 border border-gray-700 rounded px-3 py-2 text-sm text-white
-                     focus:outline-hidden focus:border-blue-500 transition-colors"
+          className="w-64 bg-gray-900 border border-gray-700 rounded-sm px-3 py-2 text-sm text-white focus:outline-hidden focus:border-blue-500 transition-colors"
         >
           {levels.map(l => (
             <option key={l.value} value={l.value}>{l.label}</option>
@@ -416,8 +410,7 @@ function LoggingTab({
             ...config,
             logging: { ...lg, max_log_size_mb: Number(e.target.value) },
           })}
-          className="w-40 bg-gray-900 border border-gray-700 rounded px-3 py-2 text-sm text-white
-                     focus:outline-hidden focus:border-blue-500 transition-colors"
+          className="w-40 bg-gray-900 border border-gray-700 rounded-sm px-3 py-2 text-sm text-white focus:outline-hidden focus:border-blue-500 transition-colors"
         />
         <p className="text-xs text-gray-500 mt-1">ローテーション前の最大ログファイルサイズ</p>
       </div>
@@ -603,8 +596,7 @@ export default function AgentConfigPage() {
           {!isEditing && !configLoading && (
             <button
               onClick={() => { setIsEditing(true); setPushResult(null) }}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-700 hover:bg-gray-600
-                         text-sm text-gray-300 hover:text-white transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-700 hover:bg-gray-600 text-sm text-gray-300 hover:text-white transition-colors"
             >
               <Edit2 className="w-3.5 h-3.5" />
               編集
@@ -687,8 +679,7 @@ export default function AgentConfigPage() {
                   <button
                     onClick={handlePush}
                     disabled={pushing}
-                    className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500
-                               text-white text-sm font-medium transition-colors disabled:opacity-50"
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium transition-colors disabled:opacity-50"
                   >
                     {pushing ? (
                       <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -708,8 +699,7 @@ export default function AgentConfigPage() {
             ) : (
               <button
                 onClick={() => setShowConfirm(true)}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-500
-                           text-white text-sm font-medium transition-colors"
+                className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium transition-colors"
               >
                 <Send className="w-4 h-4" />
                 設定をプッシュ

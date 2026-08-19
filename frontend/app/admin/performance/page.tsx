@@ -31,7 +31,7 @@ function RatingBadge({ rating }: { rating: VitalEntry['rating'] | 'unknown' }) {
     good:              { label: '良好', cls: 'bg-emerald-900/30 text-emerald-300 border-emerald-700/40', icon: CheckCircle },
     'needs-improvement': { label: '改善が必要', cls: 'bg-yellow-900/30 text-yellow-300 border-yellow-700/40', icon: AlertTriangle },
     poor:              { label: '不良', cls: 'bg-red-900/30 text-red-400 border-red-700/40', icon: XCircle },
-    unknown:           { label: '計測中…', cls: 'bg-falcon-border text-falcon-muted border-falcon-border', icon: Activity },
+    unknown:           { label: '計測中…', cls: 'bg-[#1e2d42] text-[#7d92b0] border-[#1e2d42]', icon: Activity },
   }
   const { label, cls, icon: Icon } = map[rating]
   return (
@@ -44,12 +44,12 @@ function RatingBadge({ rating }: { rating: VitalEntry['rating'] | 'unknown' }) {
 
 function GaugeBar({ value, good, poor, max }: { value: number | null; good: number; poor: number; max: number }) {
   if (value === null) {
-    return <div className="h-2 bg-falcon-border rounded-full" />
+    return <div className="h-2 bg-[#1e2d42] rounded-full" />
   }
   const pct = Math.min((value / max) * 100, 100)
   const color = value <= good ? '#22c55e' : value <= poor ? '#f59e0b' : '#e8002d'
   return (
-    <div className="relative h-2 bg-falcon-border rounded-full overflow-hidden">
+    <div className="relative h-2 bg-[#1e2d42] rounded-full overflow-hidden">
       {/* Good zone */}
       <div className="absolute inset-y-0 left-0 bg-emerald-900/30" style={{ width: `${(good / max) * 100}%` }} />
       {/* Current value */}
@@ -158,26 +158,26 @@ export default function PerformancePage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-white">フロントエンドパフォーマンス</h1>
-          <p className="text-sm text-falcon-muted mt-1">
+          <p className="text-sm text-[#7d92b0] mt-1">
             Core Web Vitals のリアルタイム計測 — 現在のブラウザセッション
           </p>
         </div>
         <div className="flex items-center gap-2">
           {lastUpdated && (
-            <span className="text-xs text-falcon-subtle">
+            <span className="text-xs text-[#3d5068]">
               更新: {lastUpdated.toLocaleTimeString('ja-JP')}
             </span>
           )}
           <button
             onClick={refresh}
-            className="flex items-center gap-1.5 text-xs text-falcon-muted hover:text-white border border-falcon-border hover:border-[#2d3f55] px-3 py-1.5 rounded-lg transition-colors"
+            className="flex items-center gap-1.5 text-xs text-[#7d92b0] hover:text-white border border-[#1e2d42] hover:border-[#2d3f55] px-3 py-1.5 rounded-lg transition-colors"
           >
             <RefreshCw className="w-3.5 h-3.5" />
             更新
           </button>
           <button
             onClick={handleClear}
-            className="flex items-center gap-1.5 text-xs text-falcon-muted hover:text-red-400 border border-falcon-border hover:border-red-900/50 px-3 py-1.5 rounded-lg transition-colors"
+            className="flex items-center gap-1.5 text-xs text-[#7d92b0] hover:text-red-400 border border-[#1e2d42] hover:border-red-900/50 px-3 py-1.5 rounded-lg transition-colors"
           >
             <Trash2 className="w-3.5 h-3.5" />
             クリア
@@ -186,25 +186,25 @@ export default function PerformancePage() {
       </div>
 
       {/* Overall score */}
-      <div className="bg-[#0a1628] border border-falcon-border rounded-xl p-5 flex items-center gap-6">
+      <div className="bg-[#0a1628] border border-[#1e2d42] rounded-xl p-5 flex items-center gap-6">
         <div className="text-center w-24 shrink-0">
-          <div className={`text-5xl font-bold ${overallScore === null ? 'text-falcon-subtle' : overallScore >= 80 ? 'text-emerald-400' : overallScore >= 50 ? 'text-yellow-400' : 'text-red-400'}`}>
+          <div className={`text-5xl font-bold ${overallScore === null ? 'text-[#3d5068]' : overallScore >= 80 ? 'text-emerald-400' : overallScore >= 50 ? 'text-yellow-400' : 'text-red-400'}`}>
             {overallScore === null ? '—' : overallScore}
           </div>
-          <div className="text-xs text-falcon-subtle mt-1">総合スコア</div>
+          <div className="text-xs text-[#3d5068] mt-1">総合スコア</div>
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-3 mb-2">
-            <BarChart3 className="w-4 h-4 text-falcon-muted" />
+            <BarChart3 className="w-4 h-4 text-[#7d92b0]" />
             <span className="text-sm font-semibold text-white">Core Web Vitals サマリー</span>
           </div>
           <div className="flex items-center gap-4 text-xs">
             <span className="text-emerald-400">● 良好: {summaries.filter(s => s.rating === 'good').length}</span>
             <span className="text-yellow-400">● 改善が必要: {summaries.filter(s => s.rating === 'needs-improvement').length}</span>
             <span className="text-red-400">● 不良: {summaries.filter(s => s.rating === 'poor').length}</span>
-            <span className="text-falcon-subtle">● 計測中: {summaries.filter(s => s.rating === 'unknown').length}</span>
+            <span className="text-[#3d5068]">● 計測中: {summaries.filter(s => s.rating === 'unknown').length}</span>
           </div>
-          <p className="text-xs text-falcon-subtle mt-2">
+          <p className="text-xs text-[#3d5068] mt-2">
             ページをリロード・ナビゲートするとデータが蓄積されます。計測はクライアントサイドのみ（本番では analytics サービスへの送信を推奨）。
           </p>
         </div>
@@ -215,37 +215,37 @@ export default function PerformancePage() {
         {summaries.map(({ name, value, rating, unit, description, icon: Icon, good, poor }) => {
           const max = unit === 'score' ? poor * 3 : poor * 2
           return (
-            <div key={name} className="bg-[#0a1628] border border-falcon-border rounded-xl p-5">
+            <div key={name} className="bg-[#0a1628] border border-[#1e2d42] rounded-xl p-5">
               <div className="flex items-start justify-between mb-3">
                 <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 bg-falcon-border rounded-lg flex items-center justify-center">
-                    <Icon className="w-4 h-4 text-falcon-muted" />
+                  <div className="w-8 h-8 bg-[#1e2d42] rounded-lg flex items-center justify-center">
+                    <Icon className="w-4 h-4 text-[#7d92b0]" />
                   </div>
                   <div>
                     <div className="text-sm font-bold text-white">{name}</div>
-                    <div className="text-xs text-falcon-subtle truncate max-w-[150px]">{description.split('—')[0].trim()}</div>
+                    <div className="text-xs text-[#3d5068] truncate max-w-[150px]">{description.split('—')[0].trim()}</div>
                   </div>
                 </div>
                 <RatingBadge rating={rating} />
               </div>
 
               <div className="mb-3">
-                <div className={`text-3xl font-bold ${rating === 'good' ? 'text-emerald-400' : rating === 'needs-improvement' ? 'text-yellow-400' : rating === 'poor' ? 'text-red-400' : 'text-falcon-subtle'}`}>
+                <div className={`text-3xl font-bold ${rating === 'good' ? 'text-emerald-400' : rating === 'needs-improvement' ? 'text-yellow-400' : rating === 'poor' ? 'text-red-400' : 'text-[#3d5068]'}`}>
                   {formatValue(value, unit)}
                 </div>
               </div>
 
               <GaugeBar value={value} good={good} poor={poor} max={max} />
 
-              <div className="flex justify-between text-[10px] text-falcon-subtle mt-1">
+              <div className="flex justify-between text-[10px] text-[#3d5068] mt-1">
                 <span>良好 ≤ {formatValue(good, unit)}</span>
                 <span>不良 &gt; {formatValue(poor, unit)}</span>
               </div>
 
               {/* Mini history */}
               {historyByMetric[name] && historyByMetric[name].length > 1 && (
-                <div className="mt-3 pt-3 border-t border-falcon-border">
-                  <div className="text-xs text-falcon-subtle mb-1.5">計測履歴 ({historyByMetric[name].length}件)</div>
+                <div className="mt-3 pt-3 border-t border-[#1e2d42]">
+                  <div className="text-xs text-[#3d5068] mb-1.5">計測履歴 ({historyByMetric[name].length}件)</div>
                   <div className="flex items-end gap-0.5 h-6">
                     {historyByMetric[name].slice(-20).map((v, i) => {
                       const pct = Math.min((v.value / max) * 100, 100)
@@ -268,12 +268,12 @@ export default function PerformancePage() {
       </div>
 
       {/* Thresholds reference */}
-      <div className="bg-[#0a1628] border border-falcon-border rounded-xl p-5">
+      <div className="bg-[#0a1628] border border-[#1e2d42] rounded-xl p-5">
         <h2 className="text-sm font-semibold text-white mb-3">Google Core Web Vitals 基準値</h2>
         <div className="overflow-x-auto">
-          <table className="w-full text-xs text-falcon-muted">
+          <table className="w-full text-xs text-[#7d92b0]">
             <thead>
-              <tr className="text-falcon-subtle border-b border-falcon-border">
+              <tr className="text-[#3d5068] border-b border-[#1e2d42]">
                 <th className="text-left py-2 pr-4">指標</th>
                 <th className="text-left py-2 pr-4">説明</th>
                 <th className="text-left py-2 pr-4 text-emerald-400">良好</th>
@@ -281,11 +281,11 @@ export default function PerformancePage() {
                 <th className="text-left py-2 text-red-400">不良</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-falcon-border">
+            <tbody className="divide-y divide-[#1e2d42]">
               {summaries.map(s => (
                 <tr key={s.name}>
                   <td className="py-2 pr-4 font-bold text-white">{s.name}</td>
-                  <td className="py-2 pr-4 text-falcon-subtle">{s.description.split('—')[1]?.trim()}</td>
+                  <td className="py-2 pr-4 text-[#3d5068]">{s.description.split('—')[1]?.trim()}</td>
                   <td className="py-2 pr-4 text-emerald-400">≤ {formatValue(s.good, s.unit)}</td>
                   <td className="py-2 pr-4 text-yellow-400">≤ {formatValue(s.poor, s.unit)}</td>
                   <td className="py-2 text-red-400">&gt; {formatValue(s.poor, s.unit)}</td>
@@ -297,7 +297,7 @@ export default function PerformancePage() {
       </div>
 
       {vitals.length === 0 && (
-        <div className="text-center py-12 text-falcon-subtle">
+        <div className="text-center py-12 text-[#3d5068]">
           <Activity className="w-12 h-12 mx-auto mb-3 opacity-30" />
           <p className="text-sm">データを収集中です。ページを操作してください。</p>
           <p className="text-xs mt-1">LCP・FCP は自動計測、CLS はレイアウトシフト時、INP はインタラクション時に記録されます。</p>

@@ -5,6 +5,8 @@ import { useQuery } from '@tanstack/react-query'
 import { apiFetch } from '@/lib/api'
 import { RefreshCw, Database, CheckCircle, Clock, XCircle } from 'lucide-react'
 
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+
 interface Migration {
   id: string
   name: string
@@ -42,9 +44,9 @@ function StatusBadge({ status }: { status: Migration['status'] }) {
 }
 
 export default function MigrationsPage() {
-  const { data, isLoading, refetch, isFetching } = useQuery<MigrationsResponse>({
+  const { data = { migrations: [] }, isLoading, refetch, isFetching } = useQuery<MigrationsResponse>({
     queryKey: ['admin', 'migrations'],
-    queryFn: () => apiFetch<MigrationsResponse>('/api/v1/admin/migrations').catch(() => ({ migrations: [] })),
+    queryFn: () => apiFetch<MigrationsResponse>('/api/v1/admin/migrations'),
     retry: false,
   })
 
@@ -56,6 +58,7 @@ export default function MigrationsPage() {
 
   return (
     <div className="min-h-screen bg-gray-900 p-6">
+      <PageDataUnavailable />
       {/* Header */}
       <div className="mb-6">
         <div className="flex items-center gap-3 mb-2">

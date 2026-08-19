@@ -11,6 +11,9 @@ import {
   Check, Info, ArrowRight, Search, Layers,
 } from 'lucide-react'
 
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+import { VerdictUnavailable } from '@/components/VerdictUnavailable'
+
 // ─── Types ─────────────────────────────────────────────────────────────────
 
 type OSType = 'windows' | 'linux' | 'macos'
@@ -87,7 +90,7 @@ const STATUS_LABELS: Record<EnrollmentStatus, { label: string; color: string }> 
 const ACTION_LABELS: Record<RuleAction, { label: string; color: string }> = {
   auto_approve: { label: '自動承認', color: 'bg-green-500/15 border-green-500/25 text-green-400' },
   auto_deny: { label: '自動拒否', color: 'bg-red-500/15 border-red-500/25 text-red-400' },
-  manual: { label: '手動', color: 'bg-falcon-border border-[#2a3f5c] text-falcon-muted' },
+  manual: { label: '手動', color: 'bg-[#1e2d42] border-[#2a3f5c] text-[#7d92b0]' },
 }
 
 // ─── Stats ───────────────────────────────────────────────────────────────────
@@ -112,7 +115,7 @@ function StatsRow({ requests }: { requests: EnrollmentRequest[] }) {
           <Icon className={`w-5 h-5 ${color} shrink-0`} />
           <div>
             <p className={`text-2xl font-bold ${color}`}>{value}</p>
-            <p className="text-xs text-falcon-muted">{label}</p>
+            <p className="text-xs text-[#7d92b0]">{label}</p>
           </div>
         </div>
       ))}
@@ -135,36 +138,36 @@ function DenyModal({
 
   return (
     <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
-      <div className="bg-falcon-surface border border-falcon-border rounded-lg w-full max-w-md">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-falcon-border">
+      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg w-full max-w-md">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-[#1e2d42]">
           <div className="flex items-center gap-2">
             <XCircle className="w-4 h-4 text-red-400" />
             <h2 className="text-white font-semibold text-sm">登録リクエスト拒否</h2>
           </div>
-          <button onClick={onClose} className="text-falcon-muted hover:text-white transition-colors">
+          <button onClick={onClose} className="text-[#7d92b0] hover:text-white transition-colors">
             <X className="w-4 h-4" />
           </button>
         </div>
         <div className="p-5 space-y-4">
-          <div className="p-3 rounded-sm bg-[#070d19] border border-falcon-border">
-            <p className="text-xs text-falcon-muted">対象ホスト</p>
+          <div className="p-3 rounded-sm bg-[#070d19] border border-[#1e2d42]">
+            <p className="text-xs text-[#7d92b0]">対象ホスト</p>
             <p className="text-white font-medium text-sm mt-0.5">{request.hostname}</p>
-            <p className="text-falcon-muted text-xs">{request.ip_address}</p>
+            <p className="text-[#7d92b0] text-xs">{request.ip_address}</p>
           </div>
           <div>
-            <label className="block text-xs text-falcon-muted mb-1.5">拒否理由 *</label>
+            <label className="block text-xs text-[#7d92b0] mb-1.5">拒否理由 *</label>
             <textarea
               value={reason}
               onChange={e => setReason(e.target.value)}
               rows={3}
               placeholder="拒否の理由を入力してください..."
-              className="w-full px-3 py-2 rounded-sm bg-[#070d19] border border-falcon-border text-white text-sm placeholder-falcon-subtle focus:outline-hidden focus:border-red-500/50 resize-none"
+              className="w-full px-3 py-2 rounded-sm bg-[#070d19] border border-[#1e2d42] text-white text-sm placeholder-[#3d5068] focus:outline-hidden focus:border-red-500/50 resize-none"
             />
           </div>
           <div className="flex gap-2 justify-end">
             <button
               onClick={onClose}
-              className="px-4 py-2 rounded-sm text-sm text-falcon-muted bg-falcon-border hover:bg-[#2a3f5c] transition-colors"
+              className="px-4 py-2 rounded-sm text-sm text-[#7d92b0] bg-[#1e2d42] hover:bg-[#2a3f5c] transition-colors"
             >
               キャンセル
             </button>
@@ -217,45 +220,45 @@ function AddRuleModal({
 
   return (
     <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
-      <div className="bg-falcon-surface border border-falcon-border rounded-lg w-full max-w-lg">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-falcon-border">
+      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg w-full max-w-lg">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-[#1e2d42]">
           <div className="flex items-center gap-2">
-            <Plus className="w-4 h-4 text-falcon-red" />
+            <Plus className="w-4 h-4 text-[#e8002d]" />
             <h2 className="text-white font-semibold text-sm">承認ルール追加</h2>
           </div>
-          <button onClick={onClose} className="text-falcon-muted hover:text-white transition-colors">
+          <button onClick={onClose} className="text-[#7d92b0] hover:text-white transition-colors">
             <X className="w-4 h-4" />
           </button>
         </div>
         <div className="p-5 space-y-4 max-h-[70vh] overflow-y-auto">
           <div>
-            <label className="block text-xs text-falcon-muted mb-1.5">ルール名 *</label>
+            <label className="block text-xs text-[#7d92b0] mb-1.5">ルール名 *</label>
             <input
               type="text"
               value={form.name}
               onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
               placeholder="例: Finance PC Auto-Approve"
-              className="w-full px-3 py-2 rounded-sm bg-[#070d19] border border-falcon-border text-white text-sm placeholder-falcon-subtle focus:outline-hidden focus:border-falcon-red/50"
+              className="w-full px-3 py-2 rounded-sm bg-[#070d19] border border-[#1e2d42] text-white text-sm placeholder-[#3d5068] focus:outline-hidden focus:border-[#e8002d]/50"
             />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs text-falcon-muted mb-1.5">マッチフィールド</label>
+              <label className="block text-xs text-[#7d92b0] mb-1.5">マッチフィールド</label>
               <select
                 value={form.match_field}
                 onChange={e => setForm(f => ({ ...f, match_field: e.target.value as MatchField }))}
-                className="w-full px-3 py-2 rounded-sm bg-[#070d19] border border-falcon-border text-white text-sm focus:outline-hidden focus:border-falcon-red/50"
+                className="w-full px-3 py-2 rounded-sm bg-[#070d19] border border-[#1e2d42] text-white text-sm focus:outline-hidden focus:border-[#e8002d]/50"
               >
                 <option value="hostname">ホスト名</option>
                 <option value="ip_address">IPアドレス</option>
               </select>
             </div>
             <div>
-              <label className="block text-xs text-falcon-muted mb-1.5">アクション</label>
+              <label className="block text-xs text-[#7d92b0] mb-1.5">アクション</label>
               <select
                 value={form.action}
                 onChange={e => setForm(f => ({ ...f, action: e.target.value as RuleAction }))}
-                className="w-full px-3 py-2 rounded-sm bg-[#070d19] border border-falcon-border text-white text-sm focus:outline-hidden focus:border-falcon-red/50"
+                className="w-full px-3 py-2 rounded-sm bg-[#070d19] border border-[#1e2d42] text-white text-sm focus:outline-hidden focus:border-[#e8002d]/50"
               >
                 <option value="auto_approve">自動承認</option>
                 <option value="auto_deny">自動拒否</option>
@@ -264,34 +267,34 @@ function AddRuleModal({
             </div>
           </div>
           <div>
-            <label className="block text-xs text-falcon-muted mb-1.5">マッチパターン (正規表現) *</label>
+            <label className="block text-xs text-[#7d92b0] mb-1.5">マッチパターン (正規表現) *</label>
             <input
               type="text"
               value={form.match_pattern}
               onChange={e => setForm(f => ({ ...f, match_pattern: e.target.value }))}
               placeholder="例: ^DESKTOP-FINANCE-\\d+$"
-              className="w-full px-3 py-2 rounded-sm bg-[#070d19] border border-falcon-border text-white text-sm font-mono placeholder-falcon-subtle focus:outline-hidden focus:border-falcon-red/50"
+              className="w-full px-3 py-2 rounded-sm bg-[#070d19] border border-[#1e2d42] text-white text-sm font-mono placeholder-[#3d5068] focus:outline-hidden focus:border-[#e8002d]/50"
             />
-            <p className="text-[10px] text-falcon-subtle mt-1">正規表現を使用できます</p>
+            <p className="text-[10px] text-[#3d5068] mt-1">正規表現を使用できます</p>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs text-falcon-muted mb-1.5">優先度 (低いほど高優先)</label>
+              <label className="block text-xs text-[#7d92b0] mb-1.5">優先度 (低いほど高優先)</label>
               <input
                 type="number"
                 value={form.priority}
                 onChange={e => setForm(f => ({ ...f, priority: Number(e.target.value) }))}
                 min={1}
                 max={100}
-                className="w-full px-3 py-2 rounded-sm bg-[#070d19] border border-falcon-border text-white text-sm focus:outline-hidden focus:border-falcon-red/50"
+                className="w-full px-3 py-2 rounded-sm bg-[#070d19] border border-[#1e2d42] text-white text-sm focus:outline-hidden focus:border-[#e8002d]/50"
               />
             </div>
             <div>
-              <label className="block text-xs text-falcon-muted mb-1.5">割り当てグループ</label>
+              <label className="block text-xs text-[#7d92b0] mb-1.5">割り当てグループ</label>
               <select
                 value={form.assign_group_id}
                 onChange={e => setForm(f => ({ ...f, assign_group_id: e.target.value }))}
-                className="w-full px-3 py-2 rounded-sm bg-[#070d19] border border-falcon-border text-white text-sm focus:outline-hidden focus:border-falcon-red/50"
+                className="w-full px-3 py-2 rounded-sm bg-[#070d19] border border-[#1e2d42] text-white text-sm focus:outline-hidden focus:border-[#e8002d]/50"
               >
                 <option value="">グループなし</option>
                 {groups.map(g => (
@@ -301,26 +304,26 @@ function AddRuleModal({
             </div>
           </div>
           <div>
-            <label className="block text-xs text-falcon-muted mb-1.5">割り当てタグ (カンマ区切り)</label>
+            <label className="block text-xs text-[#7d92b0] mb-1.5">割り当てタグ (カンマ区切り)</label>
             <input
               type="text"
               value={form.assign_tags}
               onChange={e => setForm(f => ({ ...f, assign_tags: e.target.value }))}
               placeholder="例: windows, finance, managed"
-              className="w-full px-3 py-2 rounded-sm bg-[#070d19] border border-falcon-border text-white text-sm placeholder-falcon-subtle focus:outline-hidden focus:border-falcon-red/50"
+              className="w-full px-3 py-2 rounded-sm bg-[#070d19] border border-[#1e2d42] text-white text-sm placeholder-[#3d5068] focus:outline-hidden focus:border-[#e8002d]/50"
             />
           </div>
           <div className="flex gap-2 justify-end pt-2">
             <button
               onClick={onClose}
-              className="px-4 py-2 rounded-sm text-sm text-falcon-muted bg-falcon-border hover:bg-[#2a3f5c] transition-colors"
+              className="px-4 py-2 rounded-sm text-sm text-[#7d92b0] bg-[#1e2d42] hover:bg-[#2a3f5c] transition-colors"
             >
               キャンセル
             </button>
             <button
               onClick={handleSubmit}
               disabled={!form.name || !form.match_pattern}
-              className="px-4 py-2 rounded-sm text-sm bg-falcon-red text-white hover:bg-[#c00025] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              className="px-4 py-2 rounded-sm text-sm bg-[#e8002d] text-white hover:bg-[#c00025] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
             >
               追加
             </button>
@@ -344,6 +347,7 @@ export default function EnrollmentPage() {
   const [mockRequests, setMockRequests] = useState<EnrollmentRequest[]>([])
   const [mockRules, setMockRules] = useState<EnrollmentRule[]>([])
   const [preToken, setPreToken] = useState<string | null>(null)
+  const [preTokenError, setPreTokenError] = useState<string | null>(null)
   const [copiedKey, setCopiedKey] = useState<string | null>(null)
   const [testerInput, setTesterInput] = useState('')
   const [testerResult, setTesterResult] = useState<{ rule: EnrollmentRule; action: RuleAction } | null | 'no-match'>(null)
@@ -407,11 +411,18 @@ export default function EnrollmentPage() {
   }
 
   const handleGenerateToken = async () => {
+    setPreTokenError(null)
     try {
       const data = await apiFetch('/admin/enrollment/pre-token', { method: 'POST' })
       setPreToken((data as { token: string }).token)
-    } catch {
-      setPreToken(`pre-enroll-${Math.random().toString(36).substring(2, 18).toUpperCase()}`)
+    } catch (e) {
+      // ここは `pre-enroll-` + 乱数16文字をブラウザ側で作っていました。
+      // 発行された事前登録トークンとして画面に出て、そのまま下の curl
+      // コマンドに埋め込まれます。運用担当はそれを端末で実行しますが、
+      // そのトークンを知っているサーバはありません。登録は失敗し、
+      // 原因はトークンが偽物であることだと画面のどこにも書かれていません。
+      setPreToken(null)
+      setPreTokenError(e instanceof Error ? e.message : '不明なエラー')
     }
   }
 
@@ -465,20 +476,21 @@ export default function EnrollmentPage() {
 
   return (
     <div className="min-h-screen bg-[#070d19] p-6">
+      <PageDataUnavailable />
       {/* Header */}
       <div className="mb-6">
-        <div className="flex items-center gap-2 text-falcon-subtle text-xs mb-3">
+        <div className="flex items-center gap-2 text-[#3d5068] text-xs mb-3">
           <span>管理</span>
           <ChevronRight className="w-3 h-3" />
-          <span className="text-falcon-muted">エージェント登録承認</span>
+          <span className="text-[#7d92b0]">エージェント登録承認</span>
         </div>
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-falcon-red/10 border border-falcon-red/20 flex items-center justify-center">
-            <UserCheck className="w-5 h-5 text-falcon-red" />
+          <div className="w-10 h-10 rounded-lg bg-[#e8002d]/10 border border-[#e8002d]/20 flex items-center justify-center">
+            <UserCheck className="w-5 h-5 text-[#e8002d]" />
           </div>
           <div>
             <h1 className="text-xl font-bold text-white">エージェント登録承認</h1>
-            <p className="text-sm text-falcon-muted">新規エンドポイントの登録リクエスト承認・自動承認ルール管理</p>
+            <p className="text-sm text-[#7d92b0]">新規エンドポイントの登録リクエスト承認・自動承認ルール管理</p>
           </div>
         </div>
       </div>
@@ -487,15 +499,15 @@ export default function EnrollmentPage() {
       <StatsRow requests={mockRequests} />
 
       {/* Tabs */}
-      <div className="flex gap-1 mb-5 bg-falcon-surface border border-falcon-border rounded-lg p-1 w-fit">
+      <div className="flex gap-1 mb-5 bg-[#0d1220] border border-[#1e2d42] rounded-lg p-1 w-fit">
         {(['pending', 'rules'] as const).map(tab => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
-            className={`px-5 py-2 rounded text-sm font-medium transition-all ${
+            className={`px-5 py-2 rounded-sm text-sm font-medium transition-all ${
               activeTab === tab
-                ? 'bg-falcon-red text-white shadow-sm'
-                : 'text-falcon-muted hover:text-white'
+                ? 'bg-[#e8002d] text-white shadow-sm'
+                : 'text-[#7d92b0] hover:text-white'
             }`}
           >
             {tab === 'pending' ? '承認待ち' : '承認ルール'}
@@ -509,13 +521,13 @@ export default function EnrollmentPage() {
           {/* Filters */}
           <div className="flex items-center gap-3 flex-wrap">
             <div className="flex items-center gap-1.5">
-              <Filter className="w-3.5 h-3.5 text-falcon-subtle" />
-              <span className="text-xs text-falcon-muted">フィルター:</span>
+              <Filter className="w-3.5 h-3.5 text-[#3d5068]" />
+              <span className="text-xs text-[#7d92b0]">フィルター:</span>
             </div>
             <select
               value={statusFilter}
               onChange={e => setStatusFilter(e.target.value as typeof statusFilter)}
-              className="px-3 py-1.5 rounded-sm bg-falcon-surface border border-falcon-border text-falcon-muted text-sm focus:outline-hidden focus:border-falcon-red/50"
+              className="px-3 py-1.5 rounded-sm bg-[#0d1220] border border-[#1e2d42] text-[#7d92b0] text-sm focus:outline-hidden focus:border-[#e8002d]/50"
             >
               <option value="all">全ステータス</option>
               <option value="pending">承認待ち</option>
@@ -525,7 +537,7 @@ export default function EnrollmentPage() {
             <select
               value={osFilter}
               onChange={e => setOsFilter(e.target.value as typeof osFilter)}
-              className="px-3 py-1.5 rounded-sm bg-falcon-surface border border-falcon-border text-falcon-muted text-sm focus:outline-hidden focus:border-falcon-red/50"
+              className="px-3 py-1.5 rounded-sm bg-[#0d1220] border border-[#1e2d42] text-[#7d92b0] text-sm focus:outline-hidden focus:border-[#e8002d]/50"
             >
               <option value="all">全OS</option>
               <option value="windows">Windows</option>
@@ -544,11 +556,11 @@ export default function EnrollmentPage() {
           </div>
 
           {/* Table */}
-          <div className="bg-falcon-surface border border-falcon-border rounded-lg overflow-hidden">
+          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-falcon-border">
+                  <tr className="border-b border-[#1e2d42]">
                     <th className="px-4 py-3 text-left w-8">
                       <input
                         type="checkbox"
@@ -560,11 +572,11 @@ export default function EnrollmentPage() {
                             setSelectedIds(new Set())
                           }
                         }}
-                        className="accent-falcon-red"
+                        className="accent-[#e8002d]"
                       />
                     </th>
                     {['ホスト名', 'IPアドレス', 'OS', 'Machine ID', 'トークン', 'リクエスト時刻', '自動承認', 'ステータス', '操作'].map(h => (
-                      <th key={h} className="text-left px-4 py-3 text-xs text-falcon-subtle uppercase tracking-wider font-medium whitespace-nowrap">
+                      <th key={h} className="text-left px-4 py-3 text-xs text-[#3d5068] uppercase tracking-wider font-medium whitespace-nowrap">
                         {h}
                       </th>
                     ))}
@@ -576,7 +588,7 @@ export default function EnrollmentPage() {
                     const st = STATUS_LABELS[req.status]
                     const isPending = req.status === 'pending'
                     return (
-                      <tr key={req.id} className="border-b border-falcon-border/50 hover:bg-[#0d1825] transition-colors">
+                      <tr key={req.id} className="border-b border-[#1e2d42]/50 hover:bg-[#0d1825] transition-colors">
                         <td className="px-4 py-3">
                           {isPending && (
                             <input
@@ -587,29 +599,29 @@ export default function EnrollmentPage() {
                                 e.target.checked ? next.add(req.id) : next.delete(req.id)
                                 setSelectedIds(next)
                               }}
-                              className="accent-falcon-red"
+                              className="accent-[#e8002d]"
                             />
                           )}
                         </td>
                         <td className="px-4 py-3 text-white font-medium text-sm whitespace-nowrap">{req.hostname}</td>
-                        <td className="px-4 py-3 text-falcon-muted text-sm font-mono whitespace-nowrap">{req.ip_address}</td>
+                        <td className="px-4 py-3 text-[#7d92b0] text-sm font-mono whitespace-nowrap">{req.ip_address}</td>
                         <td className="px-4 py-3">
                           <span className={`px-2 py-0.5 rounded-sm text-xs border ${os.color}`}>{os.label}</span>
                         </td>
                         <td className="px-4 py-3">
-                          <span className="text-xs font-mono text-falcon-muted" title={req.machine_id}>
+                          <span className="text-xs font-mono text-[#7d92b0]" title={req.machine_id}>
                             {truncateMachineId(req.machine_id)}
                           </span>
                         </td>
                         <td className="px-4 py-3">
-                          <span className="text-xs font-mono text-falcon-subtle">{maskToken(req.enrollment_token)}</span>
+                          <span className="text-xs font-mono text-[#3d5068]">{maskToken(req.enrollment_token)}</span>
                         </td>
-                        <td className="px-4 py-3 text-falcon-muted text-xs whitespace-nowrap">{formatDate(req.request_time)}</td>
+                        <td className="px-4 py-3 text-[#7d92b0] text-xs whitespace-nowrap">{formatDate(req.request_time)}</td>
                         <td className="px-4 py-3">
                           {req.auto_approved ? (
                             <span className="px-2 py-0.5 rounded-sm text-xs bg-blue-500/15 border border-blue-500/25 text-blue-400">自動</span>
                           ) : (
-                            <span className="px-2 py-0.5 rounded-sm text-xs bg-falcon-border border border-[#2a3f5c] text-falcon-subtle">手動</span>
+                            <span className="px-2 py-0.5 rounded-sm text-xs bg-[#1e2d42] border border-[#2a3f5c] text-[#3d5068]">手動</span>
                           )}
                         </td>
                         <td className="px-4 py-3">
@@ -644,7 +656,7 @@ export default function EnrollmentPage() {
                             </a>
                           )}
                           {req.status === 'denied' && req.deny_reason && (
-                            <span className="text-xs text-falcon-muted italic" title={req.deny_reason}>
+                            <span className="text-xs text-[#7d92b0] italic" title={req.deny_reason}>
                               {req.deny_reason.substring(0, 20)}...
                             </span>
                           )}
@@ -654,7 +666,7 @@ export default function EnrollmentPage() {
                   })}
                   {displayRequests.length === 0 && (
                     <tr>
-                      <td colSpan={10} className="px-4 py-8 text-center text-falcon-subtle text-sm">
+                      <td colSpan={10} className="px-4 py-8 text-center text-[#3d5068] text-sm">
                         条件に一致するリクエストはありません
                       </td>
                     </tr>
@@ -665,43 +677,48 @@ export default function EnrollmentPage() {
           </div>
 
           {/* Pre-enrollment Token */}
-          <div className="bg-falcon-surface border border-falcon-border rounded-lg p-5">
+          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-5">
             <h2 className="text-sm font-semibold text-white flex items-center gap-2 mb-4">
-              <Shield className="w-4 h-4 text-falcon-red" />
+              <Shield className="w-4 h-4 text-[#e8002d]" />
               登録トークン生成
             </h2>
-            <p className="text-xs text-falcon-muted mb-4">
+            <p className="text-xs text-[#7d92b0] mb-4">
               事前登録トークンを発行することで、エンドポイントが登録リクエストを送信できます。
             </p>
             <button
               onClick={handleGenerateToken}
-              className="flex items-center gap-2 px-4 py-2 rounded-sm text-sm bg-falcon-red text-white hover:bg-[#c00025] transition-colors mb-4"
+              className="flex items-center gap-2 px-4 py-2 rounded-sm text-sm bg-[#e8002d] text-white hover:bg-[#c00025] transition-colors mb-4"
             >
               <RefreshCw className="w-3.5 h-3.5" />
               トークン生成
             </button>
 
+            {preTokenError && (
+              <div className="mb-3">
+                <VerdictUnavailable what="事前登録トークンの発行" detail={preTokenError} />
+              </div>
+            )}
             {preToken && (
               <div className="space-y-3">
-                <div className="flex items-center gap-2 p-3 rounded-sm bg-[#070d19] border border-falcon-border">
+                <div className="flex items-center gap-2 p-3 rounded-sm bg-[#070d19] border border-[#1e2d42]">
                   <code className="flex-1 text-xs font-mono text-green-400 break-all">{preToken}</code>
                   <button
                     onClick={() => handleCopy(preToken, 'token')}
-                    className="p-1.5 rounded-sm hover:bg-falcon-border text-falcon-muted hover:text-white transition-colors shrink-0"
+                    className="p-1.5 rounded-sm hover:bg-[#1e2d42] text-[#7d92b0] hover:text-white transition-colors shrink-0"
                   >
                     {copiedKey === 'token' ? <CheckCircle className="w-3.5 h-3.5 text-green-400" /> : <Copy className="w-3.5 h-3.5" />}
                   </button>
                 </div>
                 {curlCommand && (
                   <div>
-                    <p className="text-xs text-falcon-subtle mb-1.5">登録コマンド:</p>
+                    <p className="text-xs text-[#3d5068] mb-1.5">登録コマンド:</p>
                     <div className="relative">
-                      <pre className="text-xs text-[#a8c0d6] font-mono bg-[#070d19] border border-falcon-border rounded-sm p-3 pr-10 overflow-x-auto whitespace-pre">
+                      <pre className="text-xs text-[#a8c0d6] font-mono bg-[#070d19] border border-[#1e2d42] rounded-sm p-3 pr-10 overflow-x-auto whitespace-pre">
                         {curlCommand}
                       </pre>
                       <button
                         onClick={() => handleCopy(curlCommand, 'curl')}
-                        className="absolute top-2 right-2 p-1.5 rounded-sm hover:bg-falcon-border text-falcon-muted hover:text-white transition-colors"
+                        className="absolute top-2 right-2 p-1.5 rounded-sm hover:bg-[#1e2d42] text-[#7d92b0] hover:text-white transition-colors"
                       >
                         {copiedKey === 'curl' ? <CheckCircle className="w-3.5 h-3.5 text-green-400" /> : <Copy className="w-3.5 h-3.5" />}
                       </button>
@@ -717,21 +734,21 @@ export default function EnrollmentPage() {
       {/* Rules Tab */}
       {activeTab === 'rules' && (
         <div className="space-y-4">
-          <div className="bg-falcon-surface border border-falcon-border rounded-lg overflow-hidden">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-falcon-border">
+          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-[#1e2d42]">
               <h2 className="text-sm font-semibold text-white flex items-center gap-2">
-                <Layers className="w-4 h-4 text-falcon-red" />
+                <Layers className="w-4 h-4 text-[#e8002d]" />
                 承認ルール ({mockRules.length})
               </h2>
               <button
                 onClick={() => setAddRuleOpen(true)}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-sm text-xs bg-falcon-red text-white hover:bg-[#c00025] transition-colors"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-sm text-xs bg-[#e8002d] text-white hover:bg-[#c00025] transition-colors"
               >
                 <Plus className="w-3.5 h-3.5" />
                 ルール追加
               </button>
             </div>
-            <div className="divide-y divide-falcon-border">
+            <div className="divide-y divide-[#1e2d42]">
               {mockRules.map(rule => {
                 const act = ACTION_LABELS[rule.action]
                 return (
@@ -741,27 +758,27 @@ export default function EnrollmentPage() {
                         <div className="flex items-center gap-2 mb-2 flex-wrap">
                           <span className="text-white font-medium text-sm">{rule.name}</span>
                           <span className={`px-2 py-0.5 rounded-sm text-xs border ${act.color}`}>{act.label}</span>
-                          <span className="px-2 py-0.5 rounded-sm text-xs bg-falcon-border border border-[#2a3f5c] text-falcon-muted">
+                          <span className="px-2 py-0.5 rounded-sm text-xs bg-[#1e2d42] border border-[#2a3f5c] text-[#7d92b0]">
                             優先度 {rule.priority}
                           </span>
-                          <span className="px-2 py-0.5 rounded-sm text-xs bg-falcon-border border border-[#2a3f5c] text-falcon-muted">
+                          <span className="px-2 py-0.5 rounded-sm text-xs bg-[#1e2d42] border border-[#2a3f5c] text-[#7d92b0]">
                             {rule.match_field === 'hostname' ? 'ホスト名' : 'IPアドレス'}
                           </span>
                         </div>
                         <div className="flex items-center gap-2 mb-2">
-                          <ArrowRight className="w-3 h-3 text-falcon-subtle shrink-0" />
-                          <code className="text-xs font-mono text-[#a8c0d6] bg-[#070d19] border border-falcon-border px-2 py-0.5 rounded-sm">
+                          <ArrowRight className="w-3 h-3 text-[#3d5068] shrink-0" />
+                          <code className="text-xs font-mono text-[#a8c0d6] bg-[#070d19] border border-[#1e2d42] px-2 py-0.5 rounded-sm">
                             {rule.match_pattern}
                           </code>
                         </div>
                         <div className="flex items-center gap-2 flex-wrap">
                           {rule.assign_group_name && (
-                            <span className="text-xs text-falcon-muted">
+                            <span className="text-xs text-[#7d92b0]">
                               グループ: <span className="text-[#a8c0d6]">{rule.assign_group_name}</span>
                             </span>
                           )}
                           {rule.assign_tags.map(tag => (
-                            <span key={tag} className="px-1.5 py-0.5 rounded-sm text-[10px] bg-falcon-border text-falcon-muted">
+                            <span key={tag} className="px-1.5 py-0.5 rounded-sm text-[10px] bg-[#1e2d42] text-[#7d92b0]">
                               {tag}
                             </span>
                           ))}
@@ -770,17 +787,17 @@ export default function EnrollmentPage() {
                       <div className="flex items-center gap-2 shrink-0">
                         <button
                           onClick={() => handleToggleRule(rule.id)}
-                          className="text-falcon-muted hover:text-white transition-colors"
+                          className="text-[#7d92b0] hover:text-white transition-colors"
                           title={rule.enabled ? '無効化' : '有効化'}
                         >
                           {rule.enabled
                             ? <ToggleRight className="w-5 h-5 text-green-400" />
-                            : <ToggleLeft className="w-5 h-5 text-falcon-subtle" />
+                            : <ToggleLeft className="w-5 h-5 text-[#3d5068]" />
                           }
                         </button>
                         <button
                           onClick={() => handleDeleteRule(rule.id)}
-                          className="p-1.5 rounded-sm hover:bg-red-500/10 text-falcon-muted hover:text-red-400 transition-colors"
+                          className="p-1.5 rounded-sm hover:bg-red-500/10 text-[#7d92b0] hover:text-red-400 transition-colors"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
@@ -790,7 +807,7 @@ export default function EnrollmentPage() {
                 )
               })}
               {mockRules.length === 0 && (
-                <div className="px-5 py-8 text-center text-falcon-subtle text-sm">
+                <div className="px-5 py-8 text-center text-[#3d5068] text-sm">
                   承認ルールはまだ設定されていません
                 </div>
               )}
@@ -798,12 +815,12 @@ export default function EnrollmentPage() {
           </div>
 
           {/* Rule Tester */}
-          <div className="bg-falcon-surface border border-falcon-border rounded-lg p-5">
+          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-5">
             <h2 className="text-sm font-semibold text-white flex items-center gap-2 mb-4">
-              <Search className="w-4 h-4 text-falcon-red" />
+              <Search className="w-4 h-4 text-[#e8002d]" />
               ルールテスター
             </h2>
-            <p className="text-xs text-falcon-muted mb-3">
+            <p className="text-xs text-[#7d92b0] mb-3">
               ホスト名またはIPアドレスを入力して、どのルールがマッチするか確認します
             </p>
             <div className="flex gap-2">
@@ -812,12 +829,12 @@ export default function EnrollmentPage() {
                 value={testerInput}
                 onChange={e => { setTesterInput(e.target.value); setTesterResult(null) }}
                 placeholder="例: DESKTOP-FINANCE-07 または 192.168.10.35"
-                className="flex-1 px-3 py-2 rounded-sm bg-[#070d19] border border-falcon-border text-white text-sm placeholder-falcon-subtle focus:outline-hidden focus:border-falcon-red/50"
+                className="flex-1 px-3 py-2 rounded-sm bg-[#070d19] border border-[#1e2d42] text-white text-sm placeholder-[#3d5068] focus:outline-hidden focus:border-[#e8002d]/50"
               />
               <button
                 onClick={handleRuleTester}
                 disabled={!testerInput}
-                className="px-4 py-2 rounded-sm text-sm bg-falcon-red text-white hover:bg-[#c00025] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                className="px-4 py-2 rounded-sm text-sm bg-[#e8002d] text-white hover:bg-[#c00025] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
               >
                 テスト
               </button>
@@ -825,28 +842,28 @@ export default function EnrollmentPage() {
             {testerResult !== null && (
               <div className="mt-3">
                 {testerResult === 'no-match' ? (
-                  <div className="flex items-center gap-2 p-3 rounded-sm bg-falcon-border border border-[#2a3f5c]">
+                  <div className="flex items-center gap-2 p-3 rounded-sm bg-[#1e2d42] border border-[#2a3f5c]">
                     <AlertTriangle className="w-4 h-4 text-yellow-400 shrink-0" />
-                    <p className="text-xs text-falcon-muted">
+                    <p className="text-xs text-[#7d92b0]">
                       マッチするルールなし — デフォルトアクション: <span className="text-yellow-400">手動承認</span>
                     </p>
                   </div>
                 ) : (
-                  <div className={`flex items-start gap-3 p-3 rounded border ${
+                  <div className={`flex items-start gap-3 p-3 rounded-sm border ${
                     testerResult.action === 'auto_approve'
                       ? 'bg-green-500/10 border-green-500/20'
                       : testerResult.action === 'auto_deny'
                       ? 'bg-red-500/10 border-red-500/20'
-                      : 'bg-falcon-border border-[#2a3f5c]'
+                      : 'bg-[#1e2d42] border-[#2a3f5c]'
                   }`}>
                     <CheckCircle className={`w-4 h-4 shrink-0 mt-0.5 ${
                       testerResult.action === 'auto_approve' ? 'text-green-400'
                       : testerResult.action === 'auto_deny' ? 'text-red-400'
-                      : 'text-falcon-muted'
+                      : 'text-[#7d92b0]'
                     }`} />
                     <div>
                       <p className="text-sm text-white font-medium">ルールマッチ: <span className="text-[#a8c0d6]">{testerResult.rule.name}</span></p>
-                      <p className="text-xs text-falcon-muted mt-1">
+                      <p className="text-xs text-[#7d92b0] mt-1">
                         アクション: <span className={`${ACTION_LABELS[testerResult.action].color} px-1.5 py-0.5 rounded-sm border text-xs`}>
                           {ACTION_LABELS[testerResult.action].label}
                         </span>

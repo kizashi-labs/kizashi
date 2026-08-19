@@ -8,6 +8,8 @@ import {
   ChevronLeft, ChevronRight, ChevronDown,
 } from 'lucide-react'
 
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+
 // ── Types ────────────────────────────────────────────────────────────────────
 
 interface DeviceEvent {
@@ -194,6 +196,7 @@ export default function DevicesPage() {
 
   return (
     <div className="p-6 space-y-6 max-w-7xl">
+      <PageDataUnavailable />
 
       {/* Header */}
       <div className="flex items-center justify-between">
@@ -209,9 +212,7 @@ export default function DevicesPage() {
         <button
           onClick={handleRefresh}
           disabled={isFetching}
-          className="flex items-center gap-2 px-3 py-1.5 bg-gray-800 hover:bg-gray-700
-                     border border-gray-700 text-gray-400 hover:text-white rounded-lg
-                     text-sm transition-colors disabled:opacity-50"
+          className="flex items-center gap-2 px-3 py-1.5 bg-gray-800 hover:bg-gray-700 border border-gray-700 text-gray-400 hover:text-white rounded-lg text-sm transition-colors disabled:opacity-50"
         >
           <RefreshCw className={`w-4 h-4 ${isFetching ? 'animate-spin' : ''}`} />
           更新
@@ -268,9 +269,7 @@ export default function DevicesPage() {
             <select
               value={action}
               onChange={e => { setAction(e.target.value); resetOffset() }}
-              className="bg-gray-900 border border-gray-700 rounded-lg px-3 py-1.5
-                         text-sm text-white
-                         focus:outline-hidden focus:border-blue-500 transition-colors"
+              className="bg-gray-900 border border-gray-700 rounded-lg px-3 py-1.5 text-sm text-white focus:outline-hidden focus:border-blue-500 transition-colors"
             >
               <option value="">すべて</option>
               <option value="connected">connected</option>
@@ -284,9 +283,7 @@ export default function DevicesPage() {
             <select
               value={deviceType}
               onChange={e => { setDeviceType(e.target.value); resetOffset() }}
-              className="bg-gray-900 border border-gray-700 rounded-lg px-3 py-1.5
-                         text-sm text-white
-                         focus:outline-hidden focus:border-blue-500 transition-colors"
+              className="bg-gray-900 border border-gray-700 rounded-lg px-3 py-1.5 text-sm text-white focus:outline-hidden focus:border-blue-500 transition-colors"
             >
               <option value="">すべて</option>
               <option value="usb">usb</option>
@@ -329,8 +326,7 @@ export default function DevicesPage() {
                     <td className="px-4 py-3">
                       <span
                         title={ev.agent_id}
-                        className="font-mono text-blue-300 text-xs bg-blue-900/20
-                                   border border-blue-800/40 rounded px-1.5 py-0.5"
+                        className="font-mono text-blue-300 text-xs bg-blue-900/20 border border-blue-800/40 rounded-sm px-1.5 py-0.5"
                       >
                         {truncate(ev.agent_id)}
                       </span>
@@ -368,9 +364,7 @@ export default function DevicesPage() {
             <button
               onClick={() => setOffset(Math.max(0, offset - PAGE_LIMIT))}
               disabled={offset === 0 || isFetching}
-              className="flex items-center gap-1 px-3 py-1.5 bg-gray-800 hover:bg-gray-700
-                         border border-gray-700 text-gray-400 hover:text-white rounded-lg
-                         text-sm transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              className="flex items-center gap-1 px-3 py-1.5 bg-gray-800 hover:bg-gray-700 border border-gray-700 text-gray-400 hover:text-white rounded-lg text-sm transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             >
               <ChevronLeft className="w-4 h-4" />
               前へ
@@ -378,9 +372,7 @@ export default function DevicesPage() {
             <button
               onClick={() => setOffset(offset + PAGE_LIMIT)}
               disabled={!eventsData?.has_more || isFetching}
-              className="flex items-center gap-1 px-3 py-1.5 bg-gray-800 hover:bg-gray-700
-                         border border-gray-700 text-gray-400 hover:text-white rounded-lg
-                         text-sm transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              className="flex items-center gap-1 px-3 py-1.5 bg-gray-800 hover:bg-gray-700 border border-gray-700 text-gray-400 hover:text-white rounded-lg text-sm transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             >
               次へ
               <ChevronRight className="w-4 h-4" />

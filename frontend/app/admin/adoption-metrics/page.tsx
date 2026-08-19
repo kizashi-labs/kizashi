@@ -10,6 +10,8 @@ import {
   CheckCircle2, RefreshCw, Siren,
 } from 'lucide-react'
 
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+
 interface AdoptionMetrics {
   agents: { total: number; online: number; offline: number }
   alerts: { total: number; open: number; critical: number; weekly_new: number; weekly_resolved: number }
@@ -26,13 +28,13 @@ function StatCard({
   sub?: string; color?: string; href?: string
 }) {
   return (
-    <div className="bg-falcon-surface border border-falcon-border rounded-xl p-4">
+    <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-4">
       <div className="flex items-center gap-2 mb-3">
         <Icon className="w-4 h-4" style={{ color }} />
-        <span className="text-xs text-falcon-subtle">{label}</span>
+        <span className="text-xs text-[#3d5068]">{label}</span>
       </div>
       <p className="text-3xl font-bold text-white tabular-nums" style={{ color }}>{value}</p>
-      {sub && <p className="text-xs text-falcon-subtle mt-1">{sub}</p>}
+      {sub && <p className="text-xs text-[#3d5068] mt-1">{sub}</p>}
     </div>
   )
 }
@@ -58,21 +60,21 @@ export default function AdoptionMetricsPage() {
 
   return (
     <div className="min-h-screen bg-[#070d19] p-6">
+      <PageDataUnavailable />
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <div className="p-2 bg-falcon-red/10 rounded-lg border border-falcon-red/20">
-            <TrendingUp className="w-5 h-5 text-falcon-red" />
+          <div className="p-2 bg-[#e8002d]/10 rounded-lg border border-[#e8002d]/20">
+            <TrendingUp className="w-5 h-5 text-[#e8002d]" />
           </div>
           <div>
             <h1 className="text-xl font-bold text-white">利用状況ダッシュボード</h1>
-            <p className="text-xs text-falcon-subtle mt-0.5">プロダクト採用状況・セキュリティ運用メトリクス</p>
+            <p className="text-xs text-[#3d5068] mt-0.5">プロダクト採用状況・セキュリティ運用メトリクス</p>
           </div>
         </div>
         <button
           onClick={() => refetch()}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-falcon-muted
-                     bg-falcon-surface border border-falcon-border rounded-lg hover:bg-falcon-active transition-colors"
+          className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-[#7d92b0] bg-[#0d1220] border border-[#1e2d42] rounded-lg hover:bg-[#1d2f4a] transition-colors"
         >
           <RefreshCw className={`w-3.5 h-3.5 ${isFetching ? 'animate-spin' : ''}`} />
           更新
@@ -80,13 +82,13 @@ export default function AdoptionMetricsPage() {
       </div>
 
       {isError && (
-        <div className="mb-4 px-4 py-3 rounded-lg bg-falcon-red/10 border border-falcon-red/30 text-sm text-falcon-red">
+        <div className="mb-4 px-4 py-3 rounded-lg bg-[#e8002d]/10 border border-[#e8002d]/30 text-sm text-[#e8002d]">
           データの取得に失敗しました
         </div>
       )}
 
       {/* エンドポイント統計 */}
-      <h2 className="text-sm font-semibold text-falcon-muted mb-3 flex items-center gap-2">
+      <h2 className="text-sm font-semibold text-[#7d92b0] mb-3 flex items-center gap-2">
         <Monitor className="w-4 h-4" /> エンドポイント
       </h2>
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
@@ -101,7 +103,7 @@ export default function AdoptionMetricsPage() {
       </div>
 
       {/* アラート統計 */}
-      <h2 className="text-sm font-semibold text-falcon-muted mb-3 flex items-center gap-2">
+      <h2 className="text-sm font-semibold text-[#7d92b0] mb-3 flex items-center gap-2">
         <AlertTriangle className="w-4 h-4" /> アラート・インシデント
       </h2>
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
@@ -116,14 +118,14 @@ export default function AdoptionMetricsPage() {
       </div>
 
       {/* アラートトレンドグラフ */}
-      <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5 mb-6">
-        <h3 className="text-sm font-medium text-falcon-text mb-4">直近7日間のアラート数推移</h3>
+      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5 mb-6">
+        <h3 className="text-sm font-medium text-[#e2e8f4] mb-4">直近7日間のアラート数推移</h3>
         {isLoading ? (
-          <div className="h-40 flex items-center justify-center text-falcon-subtle">
+          <div className="h-40 flex items-center justify-center text-[#3d5068]">
             <RefreshCw className="w-5 h-5 animate-spin" />
           </div>
         ) : data?.alert_trend.length === 0 ? (
-          <div className="h-40 flex items-center justify-center text-falcon-subtle text-sm">
+          <div className="h-40 flex items-center justify-center text-[#3d5068] text-sm">
             データなし（7日以内のアラートがありません）
           </div>
         ) : (
@@ -145,13 +147,13 @@ export default function AdoptionMetricsPage() {
 
       {/* ダークウェブ & ルール */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
-          <h3 className="text-sm font-medium text-falcon-muted mb-3 flex items-center gap-2">
+        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
+          <h3 className="text-sm font-medium text-[#7d92b0] mb-3 flex items-center gap-2">
             <Globe className="w-4 h-4 text-purple-400" />
             ダークウェブ監視
           </h3>
           <p className="text-3xl font-bold text-purple-400">{data?.darkweb.findings ?? '—'}</p>
-          <p className="text-xs text-falcon-subtle mt-1">累計検知件数（被害者リスト掲載確認）</p>
+          <p className="text-xs text-[#3d5068] mt-1">累計検知件数（被害者リスト掲載確認）</p>
           {data?.darkweb.findings ? (
             <p className="text-xs text-red-400 mt-2">
               ⚠ {data.darkweb.findings}件の検知があります — アラートを確認してください
@@ -161,9 +163,9 @@ export default function AdoptionMetricsPage() {
           )}
         </div>
 
-        <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
-          <h3 className="text-sm font-medium text-falcon-muted mb-3 flex items-center gap-2">
-            <Shield className="w-4 h-4 text-falcon-red" />
+        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
+          <h3 className="text-sm font-medium text-[#7d92b0] mb-3 flex items-center gap-2">
+            <Shield className="w-4 h-4 text-[#e8002d]" />
             検知ルール統計
           </h3>
           <div className="space-y-2">
@@ -173,10 +175,10 @@ export default function AdoptionMetricsPage() {
             ].map(({ label, total, enabled, color }) => (
               <div key={label}>
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs text-falcon-muted">{label}</span>
-                  <span className="text-xs text-falcon-subtle">{enabled} / {total} 有効</span>
+                  <span className="text-xs text-[#7d92b0]">{label}</span>
+                  <span className="text-xs text-[#3d5068]">{enabled} / {total} 有効</span>
                 </div>
-                <div className="h-2 bg-falcon-border rounded-full overflow-hidden">
+                <div className="h-2 bg-[#1e2d42] rounded-full overflow-hidden">
                   <div
                     className="h-full rounded-full"
                     style={{ width: `${total > 0 ? Math.round(enabled/total*100) : 0}%`, backgroundColor: color }}

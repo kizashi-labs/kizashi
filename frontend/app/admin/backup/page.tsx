@@ -9,6 +9,8 @@ import {
   HardDrive, X, Info
 } from 'lucide-react'
 
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+
 // ── Types ──────────────────────────────────────────────────────────────────────
 
 interface BackupRecord {
@@ -74,9 +76,7 @@ export default function BackupPage() {
 
   const { data: backups = [] } = useQuery<BackupRecord[]>({
     queryKey: ['admin-backups'],
-    queryFn: async () => {
-      try { return await apiFetchList<BackupRecord>('/api/v1/admin/backup/list') } catch { return [] }
-    },
+    queryFn: () => apiFetchList<BackupRecord>('/api/v1/admin/backup/list'),
   })
 
   const restoreMut = useMutation({
@@ -147,6 +147,7 @@ export default function BackupPage() {
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100 p-6">
+      <PageDataUnavailable />
       {/* Header */}
       <div className="flex items-center gap-3 mb-6">
         <div className="h-10 w-10 rounded-xl bg-indigo-900/40 border border-indigo-700/40 flex items-center justify-center">

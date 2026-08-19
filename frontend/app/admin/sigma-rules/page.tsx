@@ -10,6 +10,10 @@ import {
 } from 'lucide-react'
 
 
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+import { VerdictUnavailable } from '@/components/VerdictUnavailable'
+import { usePersist, SaveFailed } from '@/lib/persist'
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface SigmaRule {
@@ -67,6 +71,7 @@ function fmtDate(iso: string | null): string {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function SigmaRulesPage() {
+  const [exportError, setExportError] = useState('')
   const [search, setSearch] = useState('')
   const [tagFilter, setTagFilter] = useState('all')
   const [enabledFilter, setEnabledFilter] = useState<'all' | 'enabled'>('all')
@@ -79,19 +84,15 @@ export default function SigmaRulesPage() {
   const [testRuleId, setTestRuleId] = useState('')
   const [testEvent, setTestEvent] = useState('{\n  "Image": "C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe",\n  "CommandLine": "powershell.exe -enc SQBFAFgA",\n  "User": "DOMAIN\\\\user"\n}')
   const [testResult, setTestResult] = useState<TestResult | null>(null)
+  const [testError, setTestError] = useState<string | null>(null)
   const [testing, setTesting] = useState(false)
   const [rules, setRules] = useState<SigmaRule[]>([])
+  const { persist, saveError } = usePersist()
   const [stats] = useState<SigmaStats>({} as SigmaStats)
 
   const { data: fetchedRules } = useQuery<SigmaRule[]>({
     queryKey: ['sigma-rules'],
-    queryFn: async () => {
-      try {
-        return await apiFetchList<SigmaRule>('/api/v1/admin/sigma/rules')
-      } catch {
-        return []
-      }
-    },
+    queryFn: () => apiFetchList<SigmaRule>('/api/v1/admin/sigma/rules'),
   })
 
   const displayRules = rules
@@ -106,19 +107,19 @@ export default function SigmaRulesPage() {
     return matchSearch && matchTag && matchEnabled
   })
 
+  // 検知ルールの有効/無効と削除。保存できないまま画面が変わると、
+  // 切ったつもりのルールが鳴り続け、入れたつもりのルールが鳴りません。
   async function handleToggle(id: string) {
-    try {
-      await apiFetch(`/api/v1/admin/sigma/rules/${id}/toggle`, { method: 'PUT' })
-    } catch {}
-    setRules(prev => prev.map(r => r.id === id ? { ...r, enabled: !r.enabled } : r))
+    if (await persist('ルールの有効/無効', `/api/v1/admin/sigma/rules/${id}/toggle`, { method: 'PUT' })) {
+      setRules(prev => prev.map(r => r.id === id ? { ...r, enabled: !r.enabled } : r))
+    }
   }
 
   async function handleDelete(id: string) {
     if (!confirm('Delete this rule?')) return
-    try {
-      await apiFetch(`/api/v1/admin/sigma/rules/${id}`, { method: 'DELETE' })
-    } catch {}
-    setRules(prev => prev.filter(r => r.id !== id))
+    if (await persist('ルールの削除', `/api/v1/admin/sigma/rules/${id}`, { method: 'DELETE' })) {
+      setRules(prev => prev.filter(r => r.id !== id))
+    }
   }
 
   async function handleImport() {
@@ -139,23 +140,29 @@ export default function SigmaRulesPage() {
   }
 
   async function handleExport() {
+    // fetch は 4xx/5xx で reject しません。res.ok を見ないと、サーバが
+    // 返したエラー本文がそのまま sigma-rules.yaml になります。
+    //
+    // 失敗時は画面上の displayRules を同じ名前で保存していました。
+    // 書き出したつもりのファイルは、いま絞り込んで表示されている分だけ
+    // です。取り込み直すと、表示外のルールが消えます。
     try {
-      const blob = await fetch('/api/v1/admin/sigma/rules/export', {
+      const res = await fetch('/api/v1/admin/sigma/rules/export', {
         headers: { Authorization: `Bearer ${localStorage.getItem('edr_token') || ''}` },
-      }).then(r => r.blob())
+      })
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      const blob = await res.blob()
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
       a.download = 'sigma-rules.yaml'
       a.click()
-    } catch {
-      const content = displayRules.map(r => r.yaml_content).join('\n---\n')
-      const blob = new Blob([content], { type: 'text/yaml' })
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = 'sigma-rules.yaml'
-      a.click()
+      URL.revokeObjectURL(url)
+    } catch (e) {
+      setExportError(
+        `ルールを書き出せませんでした（${e instanceof Error ? e.message : String(e)}）。` +
+        'ファイルは作成していません'
+      )
     }
   }
 
@@ -163,6 +170,7 @@ export default function SigmaRulesPage() {
     if (!testRuleId) return
     setTesting(true)
     setTestResult(null)
+    setTestError(null)
     try {
       let parsed: unknown
       try { parsed = JSON.parse(testEvent) } catch { parsed = {} }
@@ -171,13 +179,14 @@ export default function SigmaRulesPage() {
         body: JSON.stringify({ event: parsed }),
       })
       setTestResult(result)
-    } catch {
-      const rule = displayRules.find(r => r.id === testRuleId)
-      setTestResult({
-        matched: Math.random() > 0.4,
-        rule_name: rule?.name || '',
-        matched_fields: ['CommandLine', 'Image'],
-      })
+    } catch (e) {
+      // ここは matched: Math.random() > 0.4 でした。検知ルールがイベントに
+      // 一致するかを確かめる機能が、確かめられなかったときに 6:4 の
+      // コイン投げで MATCHED / NOT MATCHED を返し、根拠として
+      // ['CommandLine', 'Image'] という固定の項目名まで添えていました。
+      // このエンドポイントは admin 権限が要るので、権限の無い解析者には
+      // 常に 403 が返り、常に作り物の判定が出ます。
+      setTestError(e instanceof Error ? e.message : '不明なエラー')
     } finally {
       setTesting(false)
     }
@@ -185,6 +194,13 @@ export default function SigmaRulesPage() {
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100 p-6">
+      {exportError && (
+        <div className="mb-4 rounded-lg border border-red-800 bg-red-950/40 px-4 py-3 text-sm text-red-200">
+          {exportError}
+        </div>
+      )}
+      <PageDataUnavailable />
+      <SaveFailed error={saveError} />
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
@@ -318,7 +334,9 @@ export default function SigmaRulesPage() {
             </div>
             <div>
               <label className="text-xs text-zinc-400 mb-1 block">Result</label>
-              {testResult ? (
+              {testError ? (
+                <VerdictUnavailable what="ルールのテスト" detail={testError} />
+              ) : testResult ? (
                 <div className={`rounded-xl p-4 border ${testResult.matched ? 'bg-red-950 border-red-700' : 'bg-green-950 border-green-700'}`}>
                   <div className={`flex items-center gap-2 text-lg font-bold mb-2 ${testResult.matched ? 'text-red-300' : 'text-green-300'}`}>
                     {testResult.matched ? <AlertTriangle className="w-5 h-5" /> : <CheckCircle className="w-5 h-5" />}

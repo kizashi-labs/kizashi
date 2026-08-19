@@ -16,7 +16,6 @@ import (
 // stop an authorised isolation from happening, and the alert-side carrier of the
 // intent:
 //
-//   - the exemption list (isAutoIsolateExempt)
 //   - a nil commander
 //   - StoredAlert.AutoIsolate, which is what survives into the persisted alert
 //     when there is no match to read the flag off
@@ -63,33 +62,11 @@ func TestHeuristicIsolationRespectsSeverityThreshold(t *testing.T) {
 	}
 }
 
-// The exemption list is the control that protects a host which must never be cut
-// off — the platform's own box, a jump host, a colocated verification machine.
-// Isolation cannot be undone from outside the isolated host, so recovering one
-// needs out-of-band access.
-func TestHeuristicIsolationRespectsExemptList(t *testing.T) {
-	e, cmd := newIsolationEngine()
-	e.config.AutoIsolateExempt = []string{"VICTIM-01"} // 大文字小文字は無視される
-	e.applyRuleBasedResponse(context.Background(), heuristicAlert(), &EventEnvelope{}, nil)
-	if len(cmd.isolated) != 0 {
-		t.Error("除外設定のホストを隔離しました。隔離は外部から取り消せないため、" +
-			"プラットフォーム自身や踏み台を隔離すると復旧に帯域外アクセスが要る")
-	}
-}
-
-// Exemption must not be reachable only through the alert; a match-authorised
-// isolation has to honour it too.
-func TestExemptListAppliesToMatchAuthorisedIsolation(t *testing.T) {
-	e, cmd := newIsolationEngine()
-	e.config.AutoIsolateExempt = []string{"agent-1"}
-	a := heuristicAlert()
-	a.AutoIsolate = false
-	e.applyRuleBasedResponse(context.Background(), a, &EventEnvelope{},
-		&detectionrules.RuleMatch{RuleID: "", Severity: 10, AutoIsolate: true})
-	if len(cmd.isolated) != 0 {
-		t.Error("match 経由の隔離が除外リストを迂回しました")
-	}
-}
+// 除外リスト（AUTO_ISOLATE_EXEMPT）の検査は auto_isolate_exempt_test.go にある。
+// あちらは fake の isolator ではなく実物の Gatekeeper を Engine の後ろに置いており、
+// 「除外されること」と「除外が response_actions に記録されること」の両方を見る。
+// ここで fake を相手に再検査しても、Engine が自分で除外しなくなった事実しか
+// 分からない。
 
 // The DB-rule path implied a wired engine (a loaded rule meant a commander); the
 // correlator path does not.

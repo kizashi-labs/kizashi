@@ -163,7 +163,7 @@ export default function MFABackupCodesPage() {
             {codes.map((item, idx) => (
               <div
                 key={idx}
-                className={`bg-gray-700 rounded px-4 py-2 flex items-center justify-between ${
+                className={`bg-gray-700 rounded-sm px-4 py-2 flex items-center justify-between ${
                   item.used ? 'opacity-50' : ''
                 }`}
               >

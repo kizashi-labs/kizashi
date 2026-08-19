@@ -104,14 +104,13 @@ function AgentCheckboxList({
   }
 
   return (
-    <div className="rounded-lg border border-falcon-border overflow-hidden">
+    <div className="rounded-lg border border-[#1e2d42] overflow-hidden">
       {/* Select-all header */}
       <div
-        className="flex items-center gap-3 px-4 py-2.5 bg-[#0d1628] border-b border-falcon-border
-                   cursor-pointer hover:bg-[#111c2e] transition-colors select-none"
+        className="flex items-center gap-3 px-4 py-2.5 bg-[#0d1628] border-b border-[#1e2d42] cursor-pointer hover:bg-[#111c2e] transition-colors select-none"
         onClick={onToggleAll}
       >
-        <span className={`shrink-0 ${allSelected ? 'text-falcon-blue' : 'text-falcon-subtle'}`}>
+        <span className={`shrink-0 ${allSelected ? 'text-[#1a6bff]' : 'text-[#3d5068]'}`}>
           {allSelected
             ? <CheckSquare className="w-4 h-4" />
             : <Square className="w-4 h-4" />}
@@ -120,7 +119,7 @@ function AgentCheckboxList({
           全選択 ({agents.length}件)
         </span>
         {selected.size > 0 && (
-          <span className="ml-auto text-xs text-falcon-blue font-semibold">
+          <span className="ml-auto text-xs text-[#1a6bff] font-semibold">
             {selected.size}件選択中
           </span>
         )}
@@ -135,10 +134,10 @@ function AgentCheckboxList({
               key={agent.id}
               onClick={() => onToggle(agent.id)}
               className={`flex items-center gap-3 px-4 py-2.5 cursor-pointer transition-colors select-none
-                          border-b border-falcon-border/50 last:border-b-0
-                          ${checked ? 'bg-falcon-blue/10' : 'hover:bg-falcon-raised'}`}
+                          border-b border-[#1e2d42]/50 last:border-b-0
+                          ${checked ? 'bg-[#1a6bff]/10' : 'hover:bg-[#161f33]'}`}
             >
-              <span className={`shrink-0 ${checked ? 'text-falcon-blue' : 'text-falcon-subtle'}`}>
+              <span className={`shrink-0 ${checked ? 'text-[#1a6bff]' : 'text-[#3d5068]'}`}>
                 {checked
                   ? <CheckSquare className="w-4 h-4" />
                   : <Square className="w-4 h-4" />}
@@ -152,7 +151,7 @@ function AgentCheckboxList({
                   className={`text-xs px-2 py-0.5 rounded-full shrink-0
                               ${agent.status === 'online'
                                 ? 'bg-green-900/40 text-green-400'
-                                : 'bg-falcon-raised text-[#5a6a7a]'}`}
+                                : 'bg-[#161f33] text-[#5a6a7a]'}`}
                 >
                   {agent.status}
                 </span>
@@ -333,9 +332,9 @@ export default function GroupBulkOperations({ groupId, groupName }: GroupBulkOpe
   // ── Render ─────────────────────────────────────────────────────────────────
 
   return (
-    <div className="bg-gray-800 rounded-xl border border-falcon-border overflow-hidden">
+    <div className="bg-gray-800 rounded-xl border border-[#1e2d42] overflow-hidden">
       {/* Card header */}
-      <div className="px-5 py-4 border-b border-falcon-border">
+      <div className="px-5 py-4 border-b border-[#1e2d42]">
         <h2 className="text-base font-semibold text-white flex items-center gap-2">
           <Users className="w-4 h-4 text-[#8899aa]" />
           {groupName} — エージェント管理
@@ -346,13 +345,13 @@ export default function GroupBulkOperations({ groupId, groupName }: GroupBulkOpe
       </div>
 
       {/* Tabs */}
-      <div className="flex border-b border-falcon-border">
+      <div className="flex border-b border-[#1e2d42]">
         <button
           onClick={() => { setActiveTab('add'); setResult(null) }}
           className={`flex items-center gap-2 px-5 py-3 text-sm font-medium transition-colors
                       ${activeTab === 'add'
-                        ? 'text-white border-b-2 border-falcon-blue bg-falcon-blue/5'
-                        : 'text-[#8899aa] hover:text-white hover:bg-falcon-raised'}`}
+                        ? 'text-white border-b-2 border-[#1a6bff] bg-[#1a6bff]/5'
+                        : 'text-[#8899aa] hover:text-white hover:bg-[#161f33]'}`}
         >
           <UserPlus className="w-4 h-4" />
           エージェントを追加
@@ -362,7 +361,7 @@ export default function GroupBulkOperations({ groupId, groupName }: GroupBulkOpe
           className={`flex items-center gap-2 px-5 py-3 text-sm font-medium transition-colors
                       ${activeTab === 'remove'
                         ? 'text-white border-b-2 border-red-500 bg-red-500/5'
-                        : 'text-[#8899aa] hover:text-white hover:bg-falcon-raised'}`}
+                        : 'text-[#8899aa] hover:text-white hover:bg-[#161f33]'}`}
         >
           <UserMinus className="w-4 h-4" />
           エージェントを削除
@@ -390,8 +389,7 @@ export default function GroupBulkOperations({ groupId, groupName }: GroupBulkOpe
                 placeholder="ホスト名またはIPで検索..."
                 value={addSearch}
                 onChange={(e) => setAddSearch(e.target.value)}
-                className="w-full bg-falcon-card text-white text-sm pl-9 pr-4 py-2 rounded-lg
-                           border border-falcon-border focus:outline-hidden focus:border-falcon-blue"
+                className="w-full bg-[#111827] text-white text-sm pl-9 pr-4 py-2 rounded-lg border border-[#1e2d42] focus:outline-hidden focus:border-[#1a6bff]"
               />
             </div>
 
@@ -409,9 +407,7 @@ export default function GroupBulkOperations({ groupId, groupName }: GroupBulkOpe
             <button
               onClick={handleAdd}
               disabled={addSelected.size === 0 || submitting}
-              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium
-                         bg-falcon-blue text-white hover:bg-[#1557d4] transition-colors
-                         disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium bg-[#1a6bff] text-white hover:bg-[#1557d4] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {submitting ? (
                 <>
@@ -441,8 +437,7 @@ export default function GroupBulkOperations({ groupId, groupName }: GroupBulkOpe
                 placeholder="ホスト名またはIPで検索..."
                 value={removeSearch}
                 onChange={(e) => setRemoveSearch(e.target.value)}
-                className="w-full bg-falcon-card text-white text-sm pl-9 pr-4 py-2 rounded-lg
-                           border border-falcon-border focus:outline-hidden focus:border-red-500/60"
+                className="w-full bg-[#111827] text-white text-sm pl-9 pr-4 py-2 rounded-lg border border-[#1e2d42] focus:outline-hidden focus:border-red-500/60"
               />
             </div>
 
@@ -460,9 +455,7 @@ export default function GroupBulkOperations({ groupId, groupName }: GroupBulkOpe
             <button
               onClick={handleRemove}
               disabled={removeSelected.size === 0 || submitting}
-              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium
-                         bg-red-600/90 text-white hover:bg-red-600 transition-colors
-                         disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium bg-red-600/90 text-white hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {submitting ? (
                 <>

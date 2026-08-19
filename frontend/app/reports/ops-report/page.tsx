@@ -295,10 +295,10 @@ export default function OpsReportPage() {
 
       <div className="min-h-screen bg-[#070d19]">
         {/* ── Config Bar (no-print) ──────────────────────────────── */}
-        <div className="no-print sticky top-0 z-10 bg-falcon-surface border-b border-falcon-border px-6 py-3">
+        <div className="no-print sticky top-0 z-10 bg-[#0d1220] border-b border-[#1e2d42] px-6 py-3">
           <div className="flex items-center gap-4 flex-wrap">
             <div className="flex items-center gap-2">
-              <FileText className="w-4 h-4 text-falcon-red" />
+              <FileText className="w-4 h-4 text-[#e8002d]" />
               <span className="text-white font-semibold text-sm">セキュリティオペレーションレポート</span>
             </div>
 
@@ -308,8 +308,8 @@ export default function OpsReportPage() {
                 <button
                   key={p}
                   onClick={() => setPeriod(p)}
-                  className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
-                    config.period === p ? 'bg-falcon-red text-white' : 'bg-falcon-border text-falcon-muted hover:text-white'
+                  className={`px-3 py-1 rounded-sm text-xs font-medium transition-colors ${
+                    config.period === p ? 'bg-[#e8002d] text-white' : 'bg-[#1e2d42] text-[#7d92b0] hover:text-white'
                   }`}
                 >
                   {p === 'daily' ? '日次' : p === 'weekly' ? '週次' : '月次'}
@@ -323,14 +323,14 @@ export default function OpsReportPage() {
                 type="date"
                 value={config.dateFrom}
                 onChange={e => setConfig(prev => ({ ...prev, dateFrom: e.target.value }))}
-                className="bg-[#070d19] border border-falcon-border rounded-sm px-2 py-1 text-xs text-falcon-text focus:outline-hidden"
+                className="bg-[#070d19] border border-[#1e2d42] rounded-sm px-2 py-1 text-xs text-[#e2e8f4] focus:outline-hidden"
               />
-              <span className="text-falcon-subtle text-xs">〜</span>
+              <span className="text-[#3d5068] text-xs">〜</span>
               <input
                 type="date"
                 value={config.dateTo}
                 onChange={e => setConfig(prev => ({ ...prev, dateTo: e.target.value }))}
-                className="bg-[#070d19] border border-falcon-border rounded-sm px-2 py-1 text-xs text-falcon-text focus:outline-hidden"
+                className="bg-[#070d19] border border-[#1e2d42] rounded-sm px-2 py-1 text-xs text-[#e2e8f4] focus:outline-hidden"
               />
             </div>
 
@@ -342,9 +342,9 @@ export default function OpsReportPage() {
                     type="checkbox"
                     checked={config.sections[s.key]}
                     onChange={() => toggleSection(s.key)}
-                    className="accent-falcon-red w-3 h-3"
+                    className="accent-[#e8002d] w-3 h-3"
                   />
-                  <span className="text-falcon-muted text-xs">{s.label}</span>
+                  <span className="text-[#7d92b0] text-xs">{s.label}</span>
                 </label>
               ))}
             </div>
@@ -353,14 +353,14 @@ export default function OpsReportPage() {
               <button
                 onClick={handleGenerate}
                 disabled={generating}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-sm bg-falcon-border hover:bg-[#2a3d5a] text-falcon-text text-xs font-medium transition-colors disabled:opacity-50"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-sm bg-[#1e2d42] hover:bg-[#2a3d5a] text-[#e2e8f4] text-xs font-medium transition-colors disabled:opacity-50"
               >
                 <RefreshCw className={`w-3.5 h-3.5 ${generating ? 'animate-spin' : ''}`} />
                 レポート生成
               </button>
               <button
                 onClick={() => window.print()}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-sm bg-falcon-red hover:bg-[#c0001f] text-white text-xs font-medium transition-colors"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-sm bg-[#e8002d] hover:bg-[#c0001f] text-white text-xs font-medium transition-colors"
               >
                 <Printer className="w-3.5 h-3.5" />
                 印刷/PDF
@@ -373,13 +373,13 @@ export default function OpsReportPage() {
         <div className="print-area max-w-5xl mx-auto p-8">
 
           {/* 表紙 */}
-          <div className="mb-12 border-b border-falcon-border pb-10">
+          <div className="mb-12 border-b border-[#1e2d42] pb-10">
             <div className="flex items-center gap-4 mb-6">
-              <div className="w-12 h-12 rounded-sm bg-falcon-red/20 flex items-center justify-center">
-                <Shield className="w-7 h-7 text-falcon-red" />
+              <div className="w-12 h-12 rounded-sm bg-[#e8002d]/20 flex items-center justify-center">
+                <Shield className="w-7 h-7 text-[#e8002d]" />
               </div>
               <div>
-                <p className="text-falcon-muted text-sm">Kizashi</p>
+                <p className="text-[#7d92b0] text-sm">Kizashi</p>
                 <h1 className="text-white text-2xl font-bold">EDRプラットフォーム セキュリティレポート</h1>
               </div>
             </div>
@@ -392,9 +392,9 @@ export default function OpsReportPage() {
                 { label: 'テナント', value: 'Kizashi Demo Org' },
                 { label: '機密分類', value: '社外秘' },
               ].map(({ label, value }) => (
-                <div key={label} className="bg-falcon-surface border border-falcon-border rounded-sm p-3">
-                  <p className="text-falcon-muted text-xs">{label}</p>
-                  <p className="text-falcon-text text-sm font-medium mt-1">{value}</p>
+                <div key={label} className="bg-[#0d1220] border border-[#1e2d42] rounded-sm p-3">
+                  <p className="text-[#7d92b0] text-xs">{label}</p>
+                  <p className="text-[#e2e8f4] text-sm font-medium mt-1">{value}</p>
                 </div>
               ))}
             </div>
@@ -404,7 +404,7 @@ export default function OpsReportPage() {
           {config.sections.executive && (
             <section className="mb-10">
               <h2 className="text-white text-lg font-bold mb-4 flex items-center gap-2">
-                <TrendingUp className="w-5 h-5 text-falcon-red" />
+                <TrendingUp className="w-5 h-5 text-[#e8002d]" />
                 エグゼクティブサマリー
               </h2>
 
@@ -412,39 +412,39 @@ export default function OpsReportPage() {
               <div className="grid grid-cols-4 gap-4 mb-6">
                 {[
                   { label: '総インシデント', value: data.metrics.total_incidents, icon: AlertCircle, color: 'text-orange-400', sub: `解決済み: ${data.metrics.resolved_incidents}` },
-                  { label: '重大アラート', value: data.metrics.critical_alerts, icon: AlertTriangle, color: 'text-falcon-red', sub: '深刻度9-10' },
+                  { label: '重大アラート', value: data.metrics.critical_alerts, icon: AlertTriangle, color: 'text-[#e8002d]', sub: '深刻度9-10' },
                   { label: 'エージェントカバレッジ', value: `${data.metrics.agent_coverage_pct}%`, icon: Monitor, color: 'text-emerald-400', sub: '全エンドポイント比' },
                   { label: '平均修復時間', value: `${data.metrics.mttr_minutes}分`, icon: Clock, color: 'text-blue-400', sub: 'MTTR' },
                 ].map(({ label, value, icon: Icon, color, sub }) => (
-                  <div key={label} className="print-kpi-box bg-falcon-surface border border-falcon-border rounded-lg p-4">
+                  <div key={label} className="print-kpi-box bg-[#0d1220] border border-[#1e2d42] rounded-lg p-4">
                     <div className="flex items-center gap-2 mb-2">
                       <Icon className={`w-4 h-4 ${color}`} />
-                      <span className="text-falcon-muted text-xs">{label}</span>
+                      <span className="text-[#7d92b0] text-xs">{label}</span>
                     </div>
                     <p className="text-white text-2xl font-bold">{value}</p>
-                    <p className="text-falcon-muted text-xs mt-1">{sub}</p>
+                    <p className="text-[#7d92b0] text-xs mt-1">{sub}</p>
                   </div>
                 ))}
               </div>
 
               {/* Security Posture Grade */}
-              <div className="bg-falcon-surface border border-falcon-border rounded-lg p-5 flex items-center gap-6">
+              <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-5 flex items-center gap-6">
                 <div className="shrink-0 text-center">
-                  <div className="w-20 h-20 rounded-full border-4 border-falcon-red flex items-center justify-center">
+                  <div className="w-20 h-20 rounded-full border-4 border-[#e8002d] flex items-center justify-center">
                     <span className="text-white text-3xl font-black">{data.metrics.posture_grade}</span>
                   </div>
-                  <p className="text-falcon-muted text-xs mt-2">セキュリティポスチャー</p>
+                  <p className="text-[#7d92b0] text-xs mt-2">セキュリティポスチャー</p>
                 </div>
                 <div className="flex-1">
-                  <p className="text-falcon-text text-sm font-medium mb-2">総合評価</p>
-                  <p className="text-falcon-muted text-sm">
+                  <p className="text-[#e2e8f4] text-sm font-medium mb-2">総合評価</p>
+                  <p className="text-[#7d92b0] text-sm">
                     今期のセキュリティポスチャーは <strong className="text-white">B+</strong> と評価されました。
                     重大インシデントへの対応速度は改善傾向にありますが、エンドポイントカバレッジとコンプライアンス維持に引き続き注力が必要です。
                   </p>
                   <div className="flex gap-4 mt-3">
                     <span className="text-xs text-emerald-400">+ 前期比 MTTR 12%改善</span>
                     <span className="text-xs text-amber-400">△ NIST CSF スコア要注意</span>
-                    <span className="text-xs text-falcon-red">! オフラインエージェント増加</span>
+                    <span className="text-xs text-[#e8002d]">! オフラインエージェント増加</span>
                   </div>
                 </div>
               </div>
@@ -455,27 +455,27 @@ export default function OpsReportPage() {
           {config.sections.alerts && (
             <section className="mb-10">
               <h2 className="text-white text-lg font-bold mb-4 flex items-center gap-2">
-                <AlertTriangle className="w-5 h-5 text-falcon-red" />
+                <AlertTriangle className="w-5 h-5 text-[#e8002d]" />
                 アラート統計
               </h2>
               <div className="flex gap-6">
                 <div className="flex-1">
-                  <div className="bg-falcon-surface border border-falcon-border rounded-lg overflow-hidden">
+                  <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg overflow-hidden">
                     <table className="w-full text-sm">
                       <thead>
-                        <tr className="border-b border-falcon-border bg-[#070d19]">
+                        <tr className="border-b border-[#1e2d42] bg-[#070d19]">
                           {['深刻度', '総数', '解決済み', '未解決', '解決率'].map(h => (
-                            <th key={h} className="px-4 py-2.5 text-left text-falcon-muted text-xs font-medium">{h}</th>
+                            <th key={h} className="px-4 py-2.5 text-left text-[#7d92b0] text-xs font-medium">{h}</th>
                           ))}
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-falcon-border">
+                      <tbody className="divide-y divide-[#1e2d42]">
                         {data.alert_stats.map((s, i) => (
                           <tr key={i} className="hover:bg-[#0a1525]">
-                            <td className="px-4 py-2.5 text-xs font-medium text-falcon-text">{s.severity}</td>
-                            <td className="px-4 py-2.5 text-xs text-falcon-text font-bold">{s.count}</td>
+                            <td className="px-4 py-2.5 text-xs font-medium text-[#e2e8f4]">{s.severity}</td>
+                            <td className="px-4 py-2.5 text-xs text-[#e2e8f4] font-bold">{s.count}</td>
                             <td className="px-4 py-2.5 text-xs text-emerald-400">{s.resolved}</td>
-                            <td className="px-4 py-2.5 text-xs text-falcon-red">{s.pending}</td>
+                            <td className="px-4 py-2.5 text-xs text-[#e8002d]">{s.pending}</td>
                             <td className="px-4 py-2.5 text-xs">
                               <span className={`font-medium ${s.count > 0 && (s.resolved / s.count) > 0.9 ? 'text-emerald-400' : 'text-amber-400'}`}>
                                 {s.count > 0 ? Math.round((s.resolved / s.count) * 100) : 0}%
@@ -483,18 +483,18 @@ export default function OpsReportPage() {
                             </td>
                           </tr>
                         ))}
-                        <tr className="border-t-2 border-falcon-subtle bg-[#070d19]">
-                          <td className="px-4 py-2.5 text-xs font-bold text-falcon-text">合計</td>
-                          <td className="px-4 py-2.5 text-xs font-bold text-falcon-text">
+                        <tr className="border-t-2 border-[#3d5068] bg-[#070d19]">
+                          <td className="px-4 py-2.5 text-xs font-bold text-[#e2e8f4]">合計</td>
+                          <td className="px-4 py-2.5 text-xs font-bold text-[#e2e8f4]">
                             {data.alert_stats.reduce((a, s) => a + s.count, 0)}
                           </td>
                           <td className="px-4 py-2.5 text-xs text-emerald-400 font-bold">
                             {data.alert_stats.reduce((a, s) => a + s.resolved, 0)}
                           </td>
-                          <td className="px-4 py-2.5 text-xs text-falcon-red font-bold">
+                          <td className="px-4 py-2.5 text-xs text-[#e8002d] font-bold">
                             {data.alert_stats.reduce((a, s) => a + s.pending, 0)}
                           </td>
-                          <td className="px-4 py-2.5 text-xs text-falcon-muted">—</td>
+                          <td className="px-4 py-2.5 text-xs text-[#7d92b0]">—</td>
                         </tr>
                       </tbody>
                     </table>
@@ -511,35 +511,35 @@ export default function OpsReportPage() {
           {config.sections.incidents && (
             <section className="mb-10">
               <h2 className="text-white text-lg font-bold mb-4 flex items-center gap-2">
-                <AlertCircle className="w-5 h-5 text-falcon-red" />
+                <AlertCircle className="w-5 h-5 text-[#e8002d]" />
                 インシデントサマリー
               </h2>
               <div className="flex gap-4 mb-4">
                 {[
-                  { label: '未解決', value: data.metrics.open_incidents, color: 'text-falcon-red' },
+                  { label: '未解決', value: data.metrics.open_incidents, color: 'text-[#e8002d]' },
                   { label: '解決済み', value: data.metrics.resolved_incidents, color: 'text-emerald-400' },
                   { label: 'MTTR', value: `${data.metrics.mttr_minutes}分`, color: 'text-blue-400' },
                 ].map(({ label, value, color }) => (
-                  <div key={label} className="bg-falcon-surface border border-falcon-border rounded-lg px-5 py-3 flex items-center gap-3">
+                  <div key={label} className="bg-[#0d1220] border border-[#1e2d42] rounded-lg px-5 py-3 flex items-center gap-3">
                     <span className={`text-xl font-bold ${color}`}>{value}</span>
-                    <span className="text-falcon-muted text-xs">{label}</span>
+                    <span className="text-[#7d92b0] text-xs">{label}</span>
                   </div>
                 ))}
               </div>
-              <div className="bg-falcon-surface border border-falcon-border rounded-lg overflow-hidden">
+              <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg overflow-hidden">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b border-falcon-border bg-[#070d19]">
+                    <tr className="border-b border-[#1e2d42] bg-[#070d19]">
                       {['ID', 'タイトル', '深刻度', 'ステータス', '発生日', '修復時間'].map(h => (
-                        <th key={h} className="px-4 py-2.5 text-left text-falcon-muted text-xs font-medium">{h}</th>
+                        <th key={h} className="px-4 py-2.5 text-left text-[#7d92b0] text-xs font-medium">{h}</th>
                       ))}
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-falcon-border">
+                  <tbody className="divide-y divide-[#1e2d42]">
                     {data.incidents.map(inc => (
                       <tr key={inc.id} className="hover:bg-[#0a1525]">
-                        <td className="px-4 py-2.5 text-xs font-mono text-falcon-muted">{inc.id}</td>
-                        <td className="px-4 py-2.5 text-xs text-falcon-text max-w-[200px]">
+                        <td className="px-4 py-2.5 text-xs font-mono text-[#7d92b0]">{inc.id}</td>
+                        <td className="px-4 py-2.5 text-xs text-[#e2e8f4] max-w-[200px]">
                           <span className="truncate block">{inc.title}</span>
                         </td>
                         <td className="px-4 py-2.5 text-xs">
@@ -548,16 +548,16 @@ export default function OpsReportPage() {
                           </span>
                         </td>
                         <td className="px-4 py-2.5 text-xs">
-                          <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                          <span className={`px-1.5 py-0.5 rounded-sm text-[10px] font-medium ${
                             inc.status === 'closed' ? 'bg-emerald-500/20 text-emerald-400' :
                             inc.status === 'investigating' ? 'bg-amber-500/20 text-amber-400' :
-                            'bg-falcon-red/20 text-falcon-red'
+                            'bg-[#e8002d]/20 text-[#e8002d]'
                           }`}>
                             {inc.status === 'closed' ? '解決済み' : inc.status === 'investigating' ? '調査中' : '未対応'}
                           </span>
                         </td>
-                        <td className="px-4 py-2.5 text-xs text-falcon-muted">{inc.created_at}</td>
-                        <td className="px-4 py-2.5 text-xs text-falcon-muted">
+                        <td className="px-4 py-2.5 text-xs text-[#7d92b0]">{inc.created_at}</td>
+                        <td className="px-4 py-2.5 text-xs text-[#7d92b0]">
                           {inc.mttr_minutes ? `${inc.mttr_minutes}分` : '—'}
                         </td>
                       </tr>
@@ -572,34 +572,34 @@ export default function OpsReportPage() {
           {config.sections.endpoints && (
             <section className="mb-10">
               <h2 className="text-white text-lg font-bold mb-4 flex items-center gap-2">
-                <Monitor className="w-5 h-5 text-falcon-red" />
+                <Monitor className="w-5 h-5 text-[#e8002d]" />
                 エンドポイント状態
               </h2>
               <div className="flex gap-4 mb-4">
                 {data.agent_statuses.map(s => (
-                  <div key={s.status} className="bg-falcon-surface border border-falcon-border rounded-lg px-5 py-3 flex items-center gap-3">
+                  <div key={s.status} className="bg-[#0d1220] border border-[#1e2d42] rounded-lg px-5 py-3 flex items-center gap-3">
                     <span className="text-xl font-bold text-white">{s.count}</span>
-                    <span className="text-falcon-muted text-xs">{s.status}</span>
+                    <span className="text-[#7d92b0] text-xs">{s.status}</span>
                   </div>
                 ))}
               </div>
-              <div className="bg-falcon-surface border border-falcon-border rounded-lg overflow-hidden">
-                <div className="px-4 py-3 border-b border-falcon-border">
-                  <span className="text-falcon-text text-xs font-semibold">オフラインエージェント一覧 (上位5件)</span>
+              <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg overflow-hidden">
+                <div className="px-4 py-3 border-b border-[#1e2d42]">
+                  <span className="text-[#e2e8f4] text-xs font-semibold">オフラインエージェント一覧 (上位5件)</span>
                 </div>
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b border-falcon-border bg-[#070d19]">
+                    <tr className="border-b border-[#1e2d42] bg-[#070d19]">
                       {['ホスト名', '最終確認', '経過時間'].map(h => (
-                        <th key={h} className="px-4 py-2.5 text-left text-falcon-muted text-xs font-medium">{h}</th>
+                        <th key={h} className="px-4 py-2.5 text-left text-[#7d92b0] text-xs font-medium">{h}</th>
                       ))}
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-falcon-border">
+                  <tbody className="divide-y divide-[#1e2d42]">
                     {data.offline_agents.map(a => (
                       <tr key={a.hostname} className="hover:bg-[#0a1525]">
-                        <td className="px-4 py-2.5 text-xs font-mono text-falcon-text">{a.hostname}</td>
-                        <td className="px-4 py-2.5 text-xs text-falcon-muted">
+                        <td className="px-4 py-2.5 text-xs font-mono text-[#e2e8f4]">{a.hostname}</td>
+                        <td className="px-4 py-2.5 text-xs text-[#7d92b0]">
                           {new Date(a.last_seen).toLocaleString('ja-JP')}
                         </td>
                         <td className="px-4 py-2.5 text-xs text-amber-400">
@@ -617,22 +617,22 @@ export default function OpsReportPage() {
           {config.sections.threat_intel && (
             <section className="mb-10">
               <h2 className="text-white text-lg font-bold mb-4 flex items-center gap-2">
-                <Target className="w-5 h-5 text-falcon-red" />
+                <Target className="w-5 h-5 text-[#e8002d]" />
                 脅威インテリジェンス
               </h2>
               <div className="grid grid-cols-3 gap-4">
                 {[
                   { label: '総IOC数', value: (data.threat_intel?.ioc_count ?? 0).toLocaleString(), icon: AlertTriangle, color: 'text-orange-400' },
-                  { label: '新規脅威 (本期間)', value: data.threat_intel.new_threats, icon: TrendingUp, color: 'text-falcon-red' },
+                  { label: '新規脅威 (本期間)', value: data.threat_intel.new_threats, icon: TrendingUp, color: 'text-[#e8002d]' },
                   { label: 'ブロック済みIOC', value: (data.threat_intel?.blocked ?? 0).toLocaleString(), icon: CheckCircle, color: 'text-emerald-400' },
                 ].map(({ label, value, icon: Icon, color }) => (
-                  <div key={label} className="bg-falcon-surface border border-falcon-border rounded-lg p-5 flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-full bg-falcon-border flex items-center justify-center shrink-0">
+                  <div key={label} className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-5 flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-full bg-[#1e2d42] flex items-center justify-center shrink-0">
                       <Icon className={`w-5 h-5 ${color}`} />
                     </div>
                     <div>
                       <p className="text-white text-xl font-bold">{value}</p>
-                      <p className="text-falcon-muted text-xs mt-0.5">{label}</p>
+                      <p className="text-[#7d92b0] text-xs mt-0.5">{label}</p>
                     </div>
                   </div>
                 ))}
@@ -644,25 +644,25 @@ export default function OpsReportPage() {
           {config.sections.compliance && (
             <section className="mb-10">
               <h2 className="text-white text-lg font-bold mb-4 flex items-center gap-2">
-                <CheckCircle className="w-5 h-5 text-falcon-red" />
+                <CheckCircle className="w-5 h-5 text-[#e8002d]" />
                 コンプライアンス
               </h2>
-              <div className="bg-falcon-surface border border-falcon-border rounded-lg overflow-hidden">
+              <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg overflow-hidden">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b border-falcon-border bg-[#070d19]">
+                    <tr className="border-b border-[#1e2d42] bg-[#070d19]">
                       {['フレームワーク', 'スコア', '合格コントロール', '全コントロール', '評価'].map(h => (
-                        <th key={h} className="px-4 py-2.5 text-left text-falcon-muted text-xs font-medium">{h}</th>
+                        <th key={h} className="px-4 py-2.5 text-left text-[#7d92b0] text-xs font-medium">{h}</th>
                       ))}
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-falcon-border">
+                  <tbody className="divide-y divide-[#1e2d42]">
                     {data.compliance.map(c => (
                       <tr key={c.framework} className="hover:bg-[#0a1525]">
-                        <td className="px-4 py-2.5 text-xs font-semibold text-falcon-text">{c.framework}</td>
+                        <td className="px-4 py-2.5 text-xs font-semibold text-[#e2e8f4]">{c.framework}</td>
                         <td className="px-4 py-2.5 text-xs">
                           <div className="flex items-center gap-2">
-                            <div className="w-24 h-2 bg-falcon-border rounded-full overflow-hidden">
+                            <div className="w-24 h-2 bg-[#1e2d42] rounded-full overflow-hidden">
                               <div
                                 className="h-full rounded-full"
                                 style={{
@@ -671,13 +671,13 @@ export default function OpsReportPage() {
                                 }}
                               />
                             </div>
-                            <span className="font-bold text-falcon-text">{c.score}%</span>
+                            <span className="font-bold text-[#e2e8f4]">{c.score}%</span>
                           </div>
                         </td>
                         <td className="px-4 py-2.5 text-xs text-emerald-400 font-medium">{c.controls_passed}</td>
-                        <td className="px-4 py-2.5 text-xs text-falcon-muted">{c.controls_total}</td>
+                        <td className="px-4 py-2.5 text-xs text-[#7d92b0]">{c.controls_total}</td>
                         <td className="px-4 py-2.5 text-xs">
-                          <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                          <span className={`px-1.5 py-0.5 rounded-sm text-[10px] font-medium ${
                             c.status === '良好' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-400'
                           }`}>
                             {c.status}
@@ -695,16 +695,16 @@ export default function OpsReportPage() {
           {config.sections.recommendations && (
             <section className="mb-10">
               <h2 className="text-white text-lg font-bold mb-4 flex items-center gap-2">
-                <BarChart2 className="w-5 h-5 text-falcon-red" />
+                <BarChart2 className="w-5 h-5 text-[#e8002d]" />
                 推奨事項
               </h2>
-              <div className="bg-falcon-surface border border-falcon-border rounded-lg p-5 space-y-3">
+              <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-5 space-y-3">
                 {data.recommendations.map((rec, i) => (
                   <div key={i} className="flex items-start gap-3">
-                    <span className="shrink-0 w-6 h-6 rounded-full bg-falcon-red/20 text-falcon-red text-xs font-bold flex items-center justify-center">
+                    <span className="shrink-0 w-6 h-6 rounded-full bg-[#e8002d]/20 text-[#e8002d] text-xs font-bold flex items-center justify-center">
                       {i + 1}
                     </span>
-                    <p className="text-falcon-muted text-sm">{rec}</p>
+                    <p className="text-[#7d92b0] text-sm">{rec}</p>
                   </div>
                 ))}
               </div>
@@ -715,19 +715,19 @@ export default function OpsReportPage() {
           {config.sections.appendix && (
             <section className="mb-10">
               <h2 className="text-white text-lg font-bold mb-4 flex items-center gap-2">
-                <FileText className="w-5 h-5 text-falcon-red" />
+                <FileText className="w-5 h-5 text-[#e8002d]" />
                 付録: 技術詳細
               </h2>
-              <div className="bg-falcon-surface border border-falcon-border rounded-lg overflow-hidden">
+              <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg overflow-hidden">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b border-falcon-border bg-[#070d19]">
+                    <tr className="border-b border-[#1e2d42] bg-[#070d19]">
                       {['項目', '値', '備考'].map(h => (
-                        <th key={h} className="px-4 py-2.5 text-left text-falcon-muted text-xs font-medium">{h}</th>
+                        <th key={h} className="px-4 py-2.5 text-left text-[#7d92b0] text-xs font-medium">{h}</th>
                       ))}
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-falcon-border">
+                  <tbody className="divide-y divide-[#1e2d42]">
                     {[
                       ['エージェントバージョン', '3.2.1', '最新バージョン適用率 94.2%'],
                       ['収集ログ総量', '2.4 TB', '本期間累計'],
@@ -738,9 +738,9 @@ export default function OpsReportPage() {
                       ['Webhook配信数', '18,441', '配信成功率: 99.7%'],
                     ].map(([item, value, note]) => (
                       <tr key={item} className="hover:bg-[#0a1525]">
-                        <td className="px-4 py-2.5 text-xs text-falcon-text font-medium">{item}</td>
-                        <td className="px-4 py-2.5 text-xs text-falcon-muted">{value}</td>
-                        <td className="px-4 py-2.5 text-xs text-falcon-subtle">{note}</td>
+                        <td className="px-4 py-2.5 text-xs text-[#e2e8f4] font-medium">{item}</td>
+                        <td className="px-4 py-2.5 text-xs text-[#7d92b0]">{value}</td>
+                        <td className="px-4 py-2.5 text-xs text-[#3d5068]">{note}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -748,7 +748,7 @@ export default function OpsReportPage() {
               </div>
 
               {/* Report footer */}
-              <div className="mt-8 pt-4 border-t border-falcon-border flex items-center justify-between text-falcon-subtle text-xs">
+              <div className="mt-8 pt-4 border-t border-[#1e2d42] flex items-center justify-between text-[#3d5068] text-xs">
                 <span>Kizashi — セキュリティオペレーションレポート</span>
                 <span>生成日時: {new Date().toLocaleString('ja-JP')}</span>
               </div>

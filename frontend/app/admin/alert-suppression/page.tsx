@@ -8,6 +8,9 @@ import {
   ToggleLeft, ToggleRight, AlertTriangle, Clock, Shield,
 } from 'lucide-react'
 
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+import { usePersist, SaveFailed } from '@/lib/persist'
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type Operator = 'equals' | 'contains' | 'starts_with' | 'ends_with' | 'regex' | 'not_equals'
@@ -66,6 +69,7 @@ function ExpiryBadge({ expires_at }: { expires_at: string | null }) {
 
 export default function AlertSuppressionPage() {
   const [rules, setRules] = useState<SuppressionRule[]>([])
+  const { persist, saveError } = usePersist()
   const [stats] = useState<SuppressionStats>({} as SuppressionStats)
   const [testJson, setTestJson] = useState('{\n  "source_ip": "10.0.1.50",\n  "process_name": "nessusagent",\n  "alert_title": "Port scan detected",\n  "severity": "medium"\n}')
   const [testResult, setTestResult] = useState<TestResult | null>(null)
@@ -82,26 +86,27 @@ export default function AlertSuppressionPage() {
   const [durationHours, setDurationHours] = useState('24')
   const [submitting, setSubmitting] = useState(false)
 
-  const { data: rulesData } = useQuery<SuppressionRule[]>({
+  const { data: rulesData = [] } = useQuery<SuppressionRule[]>({
     queryKey: ['suppression-rules'],
-    queryFn: () => apiFetchList<SuppressionRule>('/api/v1/admin/suppression/rules').catch(() => []),
+    queryFn: () => apiFetchList<SuppressionRule>('/api/v1/admin/suppression/rules'),
   })
 
   useEffect(() => { if (rulesData) setRules(rulesData) }, [rulesData])
 
+  // 抑制ルールの有効/無効と削除。保存できなくても画面だけが変わって
+  // いました。抑制はアラートを出さなくする設定なので、切ったつもりの
+  // ルールが効いたままだと、出るはずのアラートが出ません。
   async function handleToggle(id: string) {
-    try {
-      await apiFetch(`/api/v1/admin/suppression/rules/${id}/toggle`, { method: 'PUT' })
-    } catch {}
-    setRules(prev => prev.map(r => r.id === id ? { ...r, enabled: !r.enabled } : r))
+    if (await persist('抑制ルールの有効/無効', `/api/v1/admin/suppression/rules/${id}/toggle`, { method: 'PUT' })) {
+      setRules(prev => prev.map(r => r.id === id ? { ...r, enabled: !r.enabled } : r))
+    }
   }
 
   async function handleDelete(id: string) {
     if (!confirm('Delete this suppression rule?')) return
-    try {
-      await apiFetch(`/api/v1/admin/suppression/rules/${id}`, { method: 'DELETE' })
-    } catch {}
-    setRules(prev => prev.filter(r => r.id !== id))
+    if (await persist('抑制ルールの削除', `/api/v1/admin/suppression/rules/${id}`, { method: 'DELETE' })) {
+      setRules(prev => prev.filter(r => r.id !== id))
+    }
   }
 
   async function handleTest() {
@@ -146,9 +151,10 @@ export default function AlertSuppressionPage() {
       ? new Date(Date.now() + parseInt(durationHours) * 3600_000).toISOString()
       : null
     const payload = { name: newName, description: newDesc, conditions: newConditions, expires_at: expiresAt }
-    try {
-      await apiFetch('/api/v1/admin/suppression/rules', { method: 'POST', body: JSON.stringify(payload) })
-    } catch {}
+    if (!(await persist('抑制ルール', '/api/v1/admin/suppression/rules', { method: 'POST', body: JSON.stringify(payload) }))) {
+      setSubmitting(false)
+      return
+    }
     const newRule: SuppressionRule = {
       id: `sup-${Date.now()}`,
       name: newName,
@@ -168,6 +174,8 @@ export default function AlertSuppressionPage() {
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100 p-6">
+      <PageDataUnavailable />
+      <SaveFailed error={saveError} />
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">

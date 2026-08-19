@@ -455,11 +455,7 @@ for key in keys["api_keys"]:
 
 SDK を使わずに直接 REST API を呼び出す場合は、OpenAPI 仕様を参照してください。
 
-- **OpenAPI 仕様**: [`docs/openapi.yaml`](openapi.yaml)（1,117 パス・1,459 操作・全 operationId 付き）
-  - うち 178 操作は要求/応答の形状まで手書きで、CI が実装との一致を検証しています
-  - 残りは `x-generated: true` の自動生成で、**パス・メソッド・認証要否・パス
-    パラメータが実装と一致すること**だけを保証します（形状は未記載）
-  - 再生成: `cd server && go run ./cmd/openapi-sync`
+- **OpenAPI 仕様**: [`docs/openapi.yaml`](openapi.yaml)（113パス・164操作・全 operationId 付き）
 - **Swagger UI**: サーバー起動中に `http://localhost:8080/swagger/` からブラウザで確認可能
 
 ### curl 例
@@ -475,8 +471,8 @@ TOKEN=$(curl -s -X POST https://edr.example.com/api/v1/auth/login \
 curl -s "https://edr.example.com/api/v1/alerts?status=open&severity_min=7" \
   -H "Authorization: Bearer $TOKEN" | jq .
 
-# インシデント更新（PATCH ではなく PUT。PATCH は実装されていません）
-curl -s -X PUT "https://edr.example.com/api/v1/incidents/INC-001" \
+# インシデント更新
+curl -s -X PATCH "https://edr.example.com/api/v1/incidents/INC-001" \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"status":"investigating","assigned_to":"analyst@example.com"}' | jq .

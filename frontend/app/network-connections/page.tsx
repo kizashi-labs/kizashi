@@ -8,6 +8,8 @@ import {
   Search, Filter, Wifi,
 } from 'lucide-react'
 
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface RawEvent {
@@ -112,7 +114,7 @@ function StatCard({
   }
   const cls = colorMap[color]
   return (
-    <div className="bg-falcon-card rounded-xl border border-falcon-border p-4">
+    <div className="bg-[#111827] rounded-xl border border-[#1e2d42] p-4">
       <div className="flex items-center gap-3">
         <div className={`p-2 rounded-lg ${cls}`}>
           <Icon className={`w-5 h-5 ${cls.split(' ')[0]}`} />
@@ -145,7 +147,7 @@ function DirectionBadge({ direction }: { direction?: string }) {
   if (!direction) return <span className="text-[#5a6a7a] text-xs">—</span>
   const isIn = direction.toLowerCase() === 'inbound'
   return (
-    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium
+    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-xs font-medium
       ${isIn ? 'bg-blue-900/40 text-blue-300' : 'bg-orange-900/40 text-orange-300'}`}>
       {isIn ? <ArrowDownLeft className="w-3 h-3" /> : <ArrowUpRight className="w-3 h-3" />}
       {isIn ? 'inbound' : 'outbound'}
@@ -281,6 +283,7 @@ export default function NetworkConnectionsPage() {
 
   return (
     <div className="p-6 space-y-6">
+      <PageDataUnavailable />
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div className="flex items-center gap-3">
@@ -299,7 +302,7 @@ export default function NetworkConnectionsPage() {
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors border ${
               autoRefresh
                 ? 'border-blue-600 bg-blue-900/30 text-blue-300'
-                : 'border-falcon-border bg-falcon-card text-[#8899aa] hover:bg-falcon-hover'
+                : 'border-[#1e2d42] bg-[#111827] text-[#8899aa] hover:bg-[#19253d]'
             }`}
           >
             <Wifi className="w-4 h-4" />
@@ -309,8 +312,7 @@ export default function NetworkConnectionsPage() {
           <button
             onClick={() => refetch()}
             disabled={isFetching}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-falcon-card border border-falcon-border
-                       hover:bg-falcon-hover text-white text-sm rounded-lg transition-colors disabled:opacity-50"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-[#111827] border border-[#1e2d42] hover:bg-[#19253d] text-white text-sm rounded-lg transition-colors disabled:opacity-50"
           >
             <RefreshCw className={`w-4 h-4 ${isFetching ? 'animate-spin' : ''}`} />
             更新
@@ -337,8 +339,7 @@ export default function NetworkConnectionsPage() {
             placeholder="IP・ホスト名・プロセス検索..."
             value={search}
             onChange={e => handleSearchChange(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 bg-falcon-card border border-falcon-border rounded-lg
-                       text-white text-sm placeholder-[#5a6a7a] focus:outline-hidden focus:border-falcon-blue"
+            className="w-full pl-9 pr-4 py-2 bg-[#111827] border border-[#1e2d42] rounded-lg text-white text-sm placeholder-[#5a6a7a] focus:outline-hidden focus:border-[#1a6bff]"
           />
         </div>
 
@@ -346,8 +347,7 @@ export default function NetworkConnectionsPage() {
         <select
           value={agentFilter}
           onChange={e => { setAgentFilter(e.target.value); setPage(1) }}
-          className="px-3 py-2 bg-falcon-card border border-falcon-border rounded-lg text-sm text-white
-                     focus:outline-hidden focus:border-falcon-blue min-w-[160px]"
+          className="px-3 py-2 bg-[#111827] border border-[#1e2d42] rounded-lg text-sm text-white focus:outline-hidden focus:border-[#1a6bff] min-w-[160px]"
         >
           <option value="all">すべてのエージェント</option>
           {agents.map(a => (
@@ -356,7 +356,7 @@ export default function NetworkConnectionsPage() {
         </select>
 
         {/* Protocol */}
-        <div className="flex rounded-lg overflow-hidden border border-falcon-border">
+        <div className="flex rounded-lg overflow-hidden border border-[#1e2d42]">
           {(['ALL', 'TCP', 'UDP'] as const).map(p => (
             <button
               key={p}
@@ -364,7 +364,7 @@ export default function NetworkConnectionsPage() {
               className={`px-3 py-2 text-sm transition-colors ${
                 protocolFilter === p
                   ? 'bg-blue-700 text-white'
-                  : 'bg-falcon-card text-[#8899aa] hover:bg-falcon-hover hover:text-white'
+                  : 'bg-[#111827] text-[#8899aa] hover:bg-[#19253d] hover:text-white'
               }`}
             >
               {p}
@@ -373,7 +373,7 @@ export default function NetworkConnectionsPage() {
         </div>
 
         {/* Direction */}
-        <div className="flex rounded-lg overflow-hidden border border-falcon-border">
+        <div className="flex rounded-lg overflow-hidden border border-[#1e2d42]">
           {([
             { val: 'ALL',      label: '方向: ALL' },
             { val: 'inbound',  label: 'inbound'  },
@@ -385,7 +385,7 @@ export default function NetworkConnectionsPage() {
               className={`px-3 py-2 text-sm transition-colors ${
                 directionFilter === d.val
                   ? 'bg-blue-700 text-white'
-                  : 'bg-falcon-card text-[#8899aa] hover:bg-falcon-hover hover:text-white'
+                  : 'bg-[#111827] text-[#8899aa] hover:bg-[#19253d] hover:text-white'
               }`}
             >
               {d.label}
@@ -397,8 +397,7 @@ export default function NetworkConnectionsPage() {
         <select
           value={stateFilter}
           onChange={e => handleFilterChange(setStateFilter, e.target.value)}
-          className="px-3 py-2 bg-falcon-card border border-falcon-border rounded-lg text-sm text-white
-                     focus:outline-hidden focus:border-falcon-blue min-w-[150px]"
+          className="px-3 py-2 bg-[#111827] border border-[#1e2d42] rounded-lg text-sm text-white focus:outline-hidden focus:border-[#1a6bff] min-w-[150px]"
         >
           <option value="ALL">状態: ALL</option>
           {uniqueStates.map(s => (
@@ -408,7 +407,7 @@ export default function NetworkConnectionsPage() {
       </div>
 
       {/* Table */}
-      <div className="bg-falcon-card rounded-xl border border-falcon-border overflow-hidden">
+      <div className="bg-[#111827] rounded-xl border border-[#1e2d42] overflow-hidden">
         {isLoading ? (
           <div className="flex items-center justify-center py-20">
             <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-blue-500" />
@@ -422,7 +421,7 @@ export default function NetworkConnectionsPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-left text-[#8899aa] border-b border-falcon-border bg-[#0d1526]">
+                <tr className="text-left text-[#8899aa] border-b border-[#1e2d42] bg-[#0d1526]">
                   <th className="px-4 py-3 font-medium whitespace-nowrap">日時</th>
                   <th className="px-4 py-3 font-medium whitespace-nowrap">エージェント</th>
                   <th className="px-4 py-3 font-medium whitespace-nowrap">送信元 IP:ポート</th>
@@ -435,7 +434,7 @@ export default function NetworkConnectionsPage() {
                   <th className="px-4 py-3 font-medium whitespace-nowrap">受信</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-falcon-border">
+              <tbody className="divide-y divide-[#1e2d42]">
                 {paginated.map(ev => {
                   const conn     = parseConn(ev.raw_data ?? ev.raw_event)
                   const hostname = hostnameMap[ev.agent_id] ?? ev.agent_id.slice(0, 12)
@@ -443,7 +442,7 @@ export default function NetworkConnectionsPage() {
                   return (
                     <tr
                       key={ev.id}
-                      className={`transition-colors hover:bg-falcon-raised ${
+                      className={`transition-colors hover:bg-[#161f33] ${
                         suspicious ? 'bg-yellow-900/10 hover:bg-yellow-900/20' : ''
                       }`}
                     >
@@ -549,8 +548,7 @@ export default function NetworkConnectionsPage() {
             <button
               onClick={() => setPage(p => Math.max(1, p - 1))}
               disabled={page === 1}
-              className="px-3 py-1.5 bg-falcon-card border border-falcon-border rounded-lg
-                         hover:bg-falcon-hover disabled:opacity-40 transition-colors"
+              className="px-3 py-1.5 bg-[#111827] border border-[#1e2d42] rounded-lg hover:bg-[#19253d] disabled:opacity-40 transition-colors"
             >
               前へ
             </button>
@@ -560,8 +558,7 @@ export default function NetworkConnectionsPage() {
             <button
               onClick={() => setPage(p => Math.min(totalPages, p + 1))}
               disabled={page >= totalPages}
-              className="px-3 py-1.5 bg-falcon-card border border-falcon-border rounded-lg
-                         hover:bg-falcon-hover disabled:opacity-40 transition-colors"
+              className="px-3 py-1.5 bg-[#111827] border border-[#1e2d42] rounded-lg hover:bg-[#19253d] disabled:opacity-40 transition-colors"
             >
               次へ
             </button>

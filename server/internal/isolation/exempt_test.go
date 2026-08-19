@@ -39,6 +39,19 @@ func TestExemptStopsUnattendedIsolation(t *testing.T) {
 		t.Errorf("除外対象にコマンドが送出された (%d 件)", len(sender.isolated))
 	}
 
+	// 除外は「記録して隔離しない」であって「黙って何もしない」ではない。
+	// 記録が無いと、あとから「隔離条件を満たしたが除外された」を数えられず、
+	// ドライランを外す前の見積りが除外ホスト分だけ構造的に欠ける。
+	if audit.n == 0 {
+		t.Fatal("除外が response_actions に記録されていない")
+	}
+	if got := audit.statuses[0]; got != "suppressed" {
+		t.Errorf("status = %q, want %q", got, "suppressed")
+	}
+	if got := audit.details[0]["outcome"]; got != string(OutcomeExempt) {
+		t.Errorf("details.outcome = %q, want %q", got, OutcomeExempt)
+	}
+
 	// 除外に載っていない端末は従来どおり隔離される。除外が広く効きすぎて
 	// いないことの確認（安全弁が全部止めてしまうのも欠陥である）。
 	res, err = gk.Isolate(context.Background(), Request{

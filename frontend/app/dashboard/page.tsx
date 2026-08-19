@@ -16,6 +16,9 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+import { PageSaveFailed } from '@/components/PageSaveFailed'
+
 // ── Types ────────────────────────────────────────────────────────
 
 type WidgetType =
@@ -328,17 +331,17 @@ function QuickStatsWidget({
           const Icon = s.icon
           return (
             <Link key={s.label} href={s.href}
-              className="bg-falcon-hover/60 rounded-lg p-3 flex flex-col gap-1.5 hover:bg-falcon-active transition-colors cursor-pointer group">
+              className="bg-[#19253d]/60 rounded-lg p-3 flex flex-col gap-1.5 hover:bg-[#1d2f4a] transition-colors cursor-pointer group">
               <div className="flex items-center gap-1.5">
                 <Icon className="w-3.5 h-3.5 shrink-0" style={{ color: s.color }} />
-                <span className="text-[11px] text-falcon-subtle truncate">{s.label}</span>
+                <span className="text-[11px] text-[#3d5068] truncate">{s.label}</span>
               </div>
               <span className="text-2xl font-bold tabular-nums leading-none" style={{ color: s.color }}>
                 {s.value}
               </span>
               <div className="flex items-center justify-between mt-auto">
-                <span className="text-[10px] text-falcon-subtle">{s.sub}</span>
-                <span className="text-[10px] text-falcon-subtle group-hover:text-white transition-colors">→</span>
+                <span className="text-[10px] text-[#3d5068]">{s.sub}</span>
+                <span className="text-[10px] text-[#3d5068] group-hover:text-white transition-colors">→</span>
               </div>
             </Link>
           )
@@ -350,8 +353,8 @@ function QuickStatsWidget({
           { label: 'MTTD（平均検知時間）', value: fmtHours(kpi?.mttd_hours), color: '#1a6bff' },
           { label: 'MTTR（平均対応時間）', value: fmtHours(kpi?.mttr_hours), color: '#00c853' },
         ].map(m => (
-          <div key={m.label} className="bg-falcon-surface rounded-lg px-3 py-1.5 flex items-center justify-between border border-falcon-border">
-            <span className="text-[10px] text-falcon-subtle">{m.label}</span>
+          <div key={m.label} className="bg-[#0d1220] rounded-lg px-3 py-1.5 flex items-center justify-between border border-[#1e2d42]">
+            <span className="text-[10px] text-[#3d5068]">{m.label}</span>
             <span className="text-sm font-bold tabular-nums" style={{ color: m.color }}>{m.value}</span>
           </div>
         ))}
@@ -363,7 +366,7 @@ function QuickStatsWidget({
 function AlertSummaryWidget({ alerts }: { alerts: AlertItem[] }) {
   if (alerts.length === 0) {
     return (
-      <div className="flex items-center justify-center h-full text-falcon-subtle text-sm">
+      <div className="flex items-center justify-center h-full text-[#3d5068] text-sm">
         アラートなし
       </div>
     )
@@ -371,20 +374,20 @@ function AlertSummaryWidget({ alerts }: { alerts: AlertItem[] }) {
   return (
     <div className="space-y-1.5 overflow-auto max-h-56">
       {alerts.map(a => (
-        <div key={a.id} className="flex items-center gap-3 px-3 py-2 rounded-lg bg-falcon-hover/50 hover:bg-falcon-active transition-colors">
+        <div key={a.id} className="flex items-center gap-3 px-3 py-2 rounded-lg bg-[#19253d]/50 hover:bg-[#1d2f4a] transition-colors">
           <span
             className="w-2 h-2 rounded-full shrink-0"
             style={{ background: severityColor(a.severity) }}
           />
           <div className="flex-1 min-w-0">
-            <p className="text-xs font-medium text-falcon-text truncate">{a.title}</p>
-            <p className="text-[10px] text-falcon-subtle mt-0.5">{formatDate(a.created_at)}</p>
+            <p className="text-xs font-medium text-[#e2e8f4] truncate">{a.title}</p>
+            <p className="text-[10px] text-[#3d5068] mt-0.5">{formatDate(a.created_at)}</p>
           </div>
           <span className="text-[10px] font-semibold shrink-0 px-1.5 py-0.5 rounded-sm"
                 style={{ color: severityColor(a.severity), background: `${severityColor(a.severity)}22` }}>
             {severityLabel(a.severity)}
           </span>
-          <span className="text-[10px] text-falcon-subtle shrink-0">{a.status}</span>
+          <span className="text-[10px] text-[#3d5068] shrink-0">{a.status}</span>
         </div>
       ))}
     </div>
@@ -403,7 +406,7 @@ function AgentStatusWidget({ agents, total }: { agents: AgentItem[]; total: numb
 
   if (total === 0) {
     return (
-      <div className="flex items-center justify-center h-full text-falcon-subtle text-sm">
+      <div className="flex items-center justify-center h-full text-[#3d5068] text-sm">
         エージェントなし
       </div>
     )
@@ -428,7 +431,7 @@ function AgentStatusWidget({ agents, total }: { agents: AgentItem[]; total: numb
       </ResponsiveContainer>
       <div className="text-center">
         <span className="text-2xl font-bold text-white">{online}</span>
-        <span className="text-falcon-subtle text-xs ml-1">/ {total} オンライン</span>
+        <span className="text-[#3d5068] text-xs ml-1">/ {total} オンライン</span>
       </div>
     </div>
   )
@@ -437,7 +440,7 @@ function AgentStatusWidget({ agents, total }: { agents: AgentItem[]; total: numb
 function IncidentListWidget({ incidents }: { incidents: IncidentItem[] }) {
   if (incidents.length === 0) {
     return (
-      <div className="flex items-center justify-center h-full text-falcon-subtle text-sm">
+      <div className="flex items-center justify-center h-full text-[#3d5068] text-sm">
         オープンインシデントなし
       </div>
     )
@@ -445,12 +448,12 @@ function IncidentListWidget({ incidents }: { incidents: IncidentItem[] }) {
   return (
     <div className="space-y-1.5 overflow-auto max-h-56">
       {incidents.map(inc => (
-        <div key={inc.id} className="flex items-center gap-3 px-3 py-2 rounded-lg bg-falcon-hover/50 hover:bg-falcon-active transition-colors">
+        <div key={inc.id} className="flex items-center gap-3 px-3 py-2 rounded-lg bg-[#19253d]/50 hover:bg-[#1d2f4a] transition-colors">
           <span
             className="w-2 h-2 rounded-full shrink-0"
             style={{ background: severityColor(inc.severity) }}
           />
-          <p className="text-xs font-medium text-falcon-text flex-1 truncate">{inc.title}</p>
+          <p className="text-xs font-medium text-[#e2e8f4] flex-1 truncate">{inc.title}</p>
           <span className="text-[10px] shrink-0 px-1.5 py-0.5 rounded-sm font-semibold"
                 style={{ color: severityColor(inc.severity), background: `${severityColor(inc.severity)}22` }}>
             {severityLabel(inc.severity)}
@@ -464,7 +467,7 @@ function IncidentListWidget({ incidents }: { incidents: IncidentItem[] }) {
 function ComplianceScoreWidget({ scores }: { scores: ComplianceScore[] }) {
   if (scores.length === 0) {
     return (
-      <div className="flex items-center justify-center h-full text-falcon-subtle text-sm">
+      <div className="flex items-center justify-center h-full text-[#3d5068] text-sm">
         コンプライアンスデータなし
       </div>
     )
@@ -494,7 +497,7 @@ function ComplianceScoreWidget({ scores }: { scores: ComplianceScore[] }) {
             {Math.round(avg)}
           </span>
         </div>
-        <span className="text-xs text-falcon-subtle mt-2">平均スコア</span>
+        <span className="text-xs text-[#3d5068] mt-2">平均スコア</span>
         <span className="text-[10px] text-gray-600 mt-0.5">{scores.length} エージェント</span>
       </div>
       <div className="flex-1">
@@ -569,7 +572,7 @@ function AlertTrendWidget() {
     return (
       <div className="space-y-2 animate-pulse">
         {Array.from({ length: 7 }).map((_, i) => (
-          <div key={i} className="h-6 bg-falcon-hover/60 rounded-sm" />
+          <div key={i} className="h-6 bg-[#19253d]/60 rounded-sm" />
         ))}
       </div>
     )
@@ -577,7 +580,7 @@ function AlertTrendWidget() {
 
   if (trend.length === 0) {
     return (
-      <div className="flex items-center justify-center h-full text-falcon-subtle text-sm">
+      <div className="flex items-center justify-center h-full text-[#3d5068] text-sm">
         データなし
       </div>
     )
@@ -598,8 +601,8 @@ function AlertTrendWidget() {
         })()
         return (
           <div key={day.date} className="flex items-center gap-2 text-xs">
-            <span className="text-falcon-subtle w-12 shrink-0 tabular-nums">{label}</span>
-            <div className="flex-1 h-5 bg-falcon-hover/50 rounded-sm overflow-hidden relative">
+            <span className="text-[#3d5068] w-12 shrink-0 tabular-nums">{label}</span>
+            <div className="flex-1 h-5 bg-[#19253d]/50 rounded-sm overflow-hidden relative">
               <div
                 className="absolute left-0 top-0 h-full rounded-sm transition-all duration-300"
                 style={{ width: `${pct}%`, background: '#e8002d66' }}
@@ -611,7 +614,7 @@ function AlertTrendWidget() {
                 />
               )}
             </div>
-            <span className="text-falcon-muted w-6 text-right shrink-0 tabular-nums font-medium">{day.count}</span>
+            <span className="text-[#7d92b0] w-6 text-right shrink-0 tabular-nums font-medium">{day.count}</span>
           </div>
         )
       })}
@@ -633,7 +636,7 @@ function TopEndpointsWidget() {
     return (
       <div className="space-y-2 animate-pulse">
         {Array.from({ length: 5 }).map((_, i) => (
-          <div key={i} className="h-9 bg-falcon-hover/60 rounded-sm" />
+          <div key={i} className="h-9 bg-[#19253d]/60 rounded-sm" />
         ))}
       </div>
     )
@@ -641,7 +644,7 @@ function TopEndpointsWidget() {
 
   if (endpoints.length === 0) {
     return (
-      <div className="flex items-center justify-center h-full text-falcon-subtle text-sm">
+      <div className="flex items-center justify-center h-full text-[#3d5068] text-sm">
         データなし
       </div>
     )
@@ -653,10 +656,10 @@ function TopEndpointsWidget() {
         <a
           key={ep.agent_id}
           href={`/endpoints/${ep.agent_id}`}
-          className="flex items-center gap-2 px-3 py-2 rounded-lg bg-falcon-hover/50 hover:bg-falcon-active transition-colors group"
+          className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#19253d]/50 hover:bg-[#1d2f4a] transition-colors group"
         >
-          <span className="text-xs font-bold text-falcon-subtle w-4 shrink-0">{i + 1}</span>
-          <span className="flex-1 text-xs font-medium text-falcon-text truncate group-hover:text-white transition-colors">
+          <span className="text-xs font-bold text-[#3d5068] w-4 shrink-0">{i + 1}</span>
+          <span className="flex-1 text-xs font-medium text-[#e2e8f4] truncate group-hover:text-white transition-colors">
             {ep.hostname}
           </span>
           <span
@@ -665,7 +668,7 @@ function TopEndpointsWidget() {
           >
             {ep.alert_count}
           </span>
-          <span className="text-[10px] text-falcon-subtle shrink-0 hidden sm:block">
+          <span className="text-[10px] text-[#3d5068] shrink-0 hidden sm:block">
             {(() => {
               try {
                 return new Date(ep.last_alert).toLocaleString('ja-JP', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
@@ -691,15 +694,15 @@ function DetectionRateWidget() {
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center h-full gap-3 animate-pulse">
-        <div className="w-20 h-20 rounded-full bg-falcon-hover/60" />
-        <div className="w-32 h-4 bg-falcon-hover/60 rounded-sm" />
+        <div className="w-20 h-20 rounded-full bg-[#19253d]/60" />
+        <div className="w-32 h-4 bg-[#19253d]/60 rounded-sm" />
       </div>
     )
   }
 
   if (!data) {
     return (
-      <div className="flex items-center justify-center h-full text-falcon-subtle text-sm">
+      <div className="flex items-center justify-center h-full text-[#3d5068] text-sm">
         データなし
       </div>
     )
@@ -716,19 +719,19 @@ function DetectionRateWidget() {
         </span>
         <span className="text-xl font-bold" style={{ color: rateColor }}>%</span>
       </div>
-      <p className="text-xs text-falcon-subtle">解決率</p>
+      <p className="text-xs text-[#3d5068]">解決率</p>
       <div className="flex gap-6 text-center">
         <div>
-          <p className="text-sm font-semibold text-falcon-text tabular-nums">
+          <p className="text-sm font-semibold text-[#e2e8f4] tabular-nums">
             {data.avg_resolution_hours != null ? `${data.avg_resolution_hours.toFixed(1)}h` : '—'}
           </p>
-          <p className="text-[10px] text-falcon-subtle mt-0.5">平均解決時間</p>
+          <p className="text-[10px] text-[#3d5068] mt-0.5">平均解決時間</p>
         </div>
         <div>
           <p className="text-sm font-semibold tabular-nums" style={{ color: '#e8002d' }}>
             {data.open_critical ?? 0}
           </p>
-          <p className="text-[10px] text-falcon-subtle mt-0.5">未解決クリティカル</p>
+          <p className="text-[10px] text-[#3d5068] mt-0.5">未解決クリティカル</p>
         </div>
       </div>
     </div>
@@ -766,7 +769,7 @@ function RecentAlertsWidget({ alerts }: { alerts: AlertItem[] }) {
   const recent = alerts.slice(0, 3)
   if (recent.length === 0) {
     return (
-      <div className="flex items-center justify-center h-full text-falcon-subtle text-sm">
+      <div className="flex items-center justify-center h-full text-[#3d5068] text-sm">
         アラートなし
       </div>
     )
@@ -774,14 +777,14 @@ function RecentAlertsWidget({ alerts }: { alerts: AlertItem[] }) {
   return (
     <div className="space-y-2">
       {recent.map(a => (
-        <div key={a.id} className="px-3 py-2 rounded-lg bg-falcon-hover/50 border-l-2"
+        <div key={a.id} className="px-3 py-2 rounded-lg bg-[#19253d]/50 border-l-2"
              style={{ borderColor: severityColor(a.severity) }}>
-          <p className="text-xs font-medium text-falcon-text truncate">{a.title}</p>
+          <p className="text-xs font-medium text-[#e2e8f4] truncate">{a.title}</p>
           <div className="flex items-center gap-2 mt-1">
             <span className="text-[10px]" style={{ color: severityColor(a.severity) }}>
               {severityLabel(a.severity)}
             </span>
-            <span className="text-[10px] text-falcon-subtle">{formatDate(a.created_at)}</span>
+            <span className="text-[10px] text-[#3d5068]">{formatDate(a.created_at)}</span>
           </div>
         </div>
       ))}
@@ -793,7 +796,7 @@ function ActiveIncidentsWidget({ incidents }: { incidents: IncidentItem[] }) {
   const active = incidents.filter(i => i.status === 'open' || i.status === 'investigating')
   if (active.length === 0) {
     return (
-      <div className="flex items-center justify-center h-full text-falcon-subtle text-sm">
+      <div className="flex items-center justify-center h-full text-[#3d5068] text-sm">
         アクティブインシデントなし
       </div>
     )
@@ -802,12 +805,12 @@ function ActiveIncidentsWidget({ incidents }: { incidents: IncidentItem[] }) {
     <div className="space-y-1.5">
       <div className="flex items-center gap-2 mb-3">
         <span className="text-2xl font-bold text-orange-400">{active.length}</span>
-        <span className="text-xs text-falcon-subtle">件アクティブ</span>
+        <span className="text-xs text-[#3d5068]">件アクティブ</span>
       </div>
       {active.slice(0, 4).map(inc => (
         <div key={inc.id} className="flex items-center gap-2 text-xs">
           <span className="w-2 h-2 rounded-full shrink-0" style={{ background: severityColor(inc.severity) }} />
-          <span className="flex-1 text-falcon-muted truncate">{inc.title}</span>
+          <span className="flex-1 text-[#7d92b0] truncate">{inc.title}</span>
         </div>
       ))}
     </div>
@@ -826,7 +829,7 @@ function SecurityScoreWidget({ scores }: { scores: ComplianceScore[] }) {
       <TrendingUp className="w-8 h-8" style={{ color }} />
       <div className="text-center">
         <p className="text-4xl font-extrabold tabular-nums" style={{ color }}>{avg}</p>
-        <p className="text-xs text-falcon-subtle mt-1">セキュリティスコア</p>
+        <p className="text-xs text-[#3d5068] mt-1">セキュリティスコア</p>
       </div>
       <span className="px-3 py-1 rounded-full text-xs font-semibold"
             style={{ background: `${color}22`, color }}>
@@ -850,7 +853,7 @@ function ThreatFeedsWidget() {
     return (
       <div className="space-y-2 animate-pulse">
         {Array.from({ length: 3 }).map((_, i) => (
-          <div key={i} className="h-8 bg-falcon-hover/60 rounded-sm" />
+          <div key={i} className="h-8 bg-[#19253d]/60 rounded-sm" />
         ))}
       </div>
     )
@@ -858,7 +861,7 @@ function ThreatFeedsWidget() {
 
   if (feeds.length === 0) {
     return (
-      <div className="flex items-center justify-center h-full text-falcon-subtle text-sm">
+      <div className="flex items-center justify-center h-full text-[#3d5068] text-sm">
         フィードなし
       </div>
     )
@@ -867,11 +870,11 @@ function ThreatFeedsWidget() {
   return (
     <div className="space-y-1.5">
       {feeds.slice(0, 5).map(feed => (
-        <div key={feed.name} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-falcon-hover/50">
+        <div key={feed.name} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#19253d]/50">
           <span className={`w-2 h-2 rounded-full shrink-0 ${feed.enabled ? 'bg-green-400' : 'bg-gray-600'}`} />
-          <span className="flex-1 text-xs text-falcon-text truncate">{feed.name}</span>
+          <span className="flex-1 text-xs text-[#e2e8f4] truncate">{feed.name}</span>
           {feed.last_sync && (
-            <span className="text-[10px] text-falcon-subtle">{formatDate(feed.last_sync)}</span>
+            <span className="text-[10px] text-[#3d5068]">{formatDate(feed.last_sync)}</span>
           )}
         </div>
       ))}
@@ -884,7 +887,11 @@ function ThreatFeedsWidget() {
 function NistScoreWidget() {
   const { user } = useAuth()
   const isAdmin = user?.role === 'admin'
-  const { data, isLoading } = useQuery<{ score?: number; nist_score?: number }>({
+  const { data, isLoading } = useQuery<{
+    score?: number | null
+    nist_score?: number | null
+    nist_coverage?: { assessed?: number; total?: number }
+  }>({
     queryKey: ['dashboard-nist-score'],
     queryFn: () => apiFetch('/api/v1/admin/scorecard/summary'),
     refetchInterval: 300_000,
@@ -892,20 +899,25 @@ function NistScoreWidget() {
     enabled: isAdmin,
   })
 
-  const score = data?.score ?? data?.nist_score ?? 78 // mock fallback
-  const color = score >= 80 ? '#00c853' : score >= 60 ? '#ff9800' : '#e8002d'
-  const label = score >= 80 ? 'Good' : score >= 60 ? 'Fair' : 'At Risk'
+  // nist_score is null when no control could be assessed — the compliance
+  // queries behind it failed. This used to fall through `?? 78` to an unguarded
+  // hardcoded score, so an outage was displayed as "78 / Good".
+  const raw = data?.score ?? data?.nist_score
+  const score = typeof raw === 'number' ? raw : null
+  const coverage = data?.nist_coverage
+  const color = score === null ? '#3d5068' : score >= 80 ? '#00c853' : score >= 60 ? '#ff9800' : '#e8002d'
+  const label = score === null ? '未計測' : score >= 80 ? 'Good' : score >= 60 ? 'Fair' : 'At Risk'
 
   // SVG arc gauge
   const radius = 36
   const circumference = 2 * Math.PI * radius
-  const strokeDash = circumference * (score / 100)
+  const strokeDash = score === null ? 0 : circumference * (score / 100)
 
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center h-full gap-2 animate-pulse">
-        <div className="w-20 h-20 rounded-full bg-falcon-hover/60" />
-        <div className="w-16 h-3 bg-falcon-hover/60 rounded-sm" />
+        <div className="w-20 h-20 rounded-full bg-[#19253d]/60" />
+        <div className="w-16 h-3 bg-[#19253d]/60 rounded-sm" />
       </div>
     )
   }
@@ -925,8 +937,15 @@ function NistScoreWidget() {
         />
       </svg>
       <div className="text-center -mt-2">
-        <p className="text-3xl font-extrabold tabular-nums" style={{ color }}>{score}</p>
-        <p className="text-[10px] text-falcon-subtle mt-0.5 uppercase tracking-wider">NIST CSF Score</p>
+        <p className="text-3xl font-extrabold tabular-nums" style={{ color }}>
+          {score === null ? '—' : Math.round(score)}
+        </p>
+        <p className="text-[10px] text-[#3d5068] mt-0.5 uppercase tracking-wider">NIST CSF Score</p>
+        {score !== null && coverage?.total ? (
+          <p className="text-[10px] text-[#3d5068] mt-0.5 tabular-nums">
+            {coverage.assessed ?? 0}/{coverage.total} 評価済み
+          </p>
+        ) : null}
       </div>
       <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold"
             style={{ background: `${color}22`, color }}>
@@ -958,13 +977,13 @@ function ActiveIncidentsCountWidget({ incidents }: { incidents: IncidentItem[] }
       <div className="flex items-center gap-3">
         <div className="flex flex-col">
           <span className="text-4xl font-extrabold tabular-nums text-orange-400">{count}</span>
-          <span className="text-[11px] text-falcon-subtle mt-0.5">open incidents</span>
+          <span className="text-[11px] text-[#3d5068] mt-0.5">open incidents</span>
         </div>
       </div>
       {mostRecent && (
         <div className="px-3 py-2 rounded-lg bg-orange-900/20 border border-orange-800/40">
           <p className="text-[10px] text-orange-400 uppercase tracking-wider font-semibold mb-0.5">Most Recent</p>
-          <p className="text-xs text-falcon-text truncate">{mostRecent.title}</p>
+          <p className="text-xs text-[#e2e8f4] truncate">{mostRecent.title}</p>
         </div>
       )}
       <Link
@@ -980,21 +999,20 @@ function ActiveIncidentsCountWidget({ incidents }: { incidents: IncidentItem[] }
 function AIInsightWidget() {
   return (
     <div className="flex items-start gap-4 h-full py-1">
-      <div className="shrink-0 w-10 h-10 rounded-full bg-blue-900/30 border border-blue-500/30
-                      flex items-center justify-center mt-0.5">
+      <div className="shrink-0 w-10 h-10 rounded-full bg-blue-900/30 border border-blue-500/30 flex items-center justify-center mt-0.5">
         <Bot className="w-5 h-5 text-blue-400" />
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 mb-1.5">
-          <p className="text-sm font-semibold text-falcon-text">AI Security Insight</p>
+          <p className="text-sm font-semibold text-[#e2e8f4]">AI Security Insight</p>
           <span className="text-[9px] bg-blue-900/40 text-blue-400 border border-blue-500/30 px-1.5 py-0.5 rounded-full uppercase tracking-wider">
             Live
           </span>
         </div>
-        <p className="text-sm text-falcon-muted leading-relaxed">
+        <p className="text-sm text-[#7d92b0] leading-relaxed">
           No critical threats detected in the last 24 hours. <span className="text-orange-400 font-medium">3 alerts</span> require investigation.
         </p>
-        <p className="text-[10px] text-falcon-subtle mt-2">Updated just now · Powered by Falcon AI</p>
+        <p className="text-[10px] text-[#3d5068] mt-2">Updated just now · Powered by Falcon AI</p>
       </div>
     </div>
   )
@@ -1016,8 +1034,8 @@ function WatchlistHitsWidget() {
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center h-full gap-2 animate-pulse">
-        <div className="w-16 h-12 bg-falcon-hover/60 rounded-sm" />
-        <div className="w-20 h-3 bg-falcon-hover/60 rounded-sm" />
+        <div className="w-16 h-12 bg-[#19253d]/60 rounded-sm" />
+        <div className="w-20 h-3 bg-[#19253d]/60 rounded-sm" />
       </div>
     )
   }
@@ -1026,10 +1044,10 @@ function WatchlistHitsWidget() {
 
   return (
     <div className="flex flex-col items-center justify-center h-full gap-2 py-2">
-      <Bookmark className="w-6 h-6 text-falcon-subtle" />
+      <Bookmark className="w-6 h-6 text-[#3d5068]" />
       <div className="text-center">
         <p className="text-4xl font-extrabold tabular-nums" style={{ color }}>{hits}</p>
-        <p className="text-[11px] text-falcon-subtle mt-1">Watchlist Hits Today</p>
+        <p className="text-[11px] text-[#3d5068] mt-1">Watchlist Hits Today</p>
       </div>
       <Link
         href="/admin/watchlist"
@@ -1057,33 +1075,30 @@ function SocQueueSummaryWidget() {
   const week   = data?.week?.length   ?? 0
 
   if (isLoading) {
-    return <div className="flex items-center justify-center h-full text-falcon-subtle text-sm">読み込み中...</div>
+    return <div className="flex items-center justify-center h-full text-[#3d5068] text-sm">読み込み中...</div>
   }
 
   return (
     <div className="flex flex-col gap-3 h-full py-1">
       <div className="flex items-center justify-between">
-        <p className="text-xs text-falcon-subtle font-medium">SOC ワークキュー</p>
+        <p className="text-xs text-[#3d5068] font-medium">SOC ワークキュー</p>
         <Link href="/soc-queue" className="text-xs text-blue-400 hover:text-blue-300 transition-colors">
           キューを開く →
         </Link>
       </div>
       <div className="flex gap-3 flex-1">
         <Link href="/soc-queue"
-          className="flex-1 flex flex-col items-center justify-center gap-1 rounded-lg border
-                     border-red-500/30 bg-red-500/10 hover:bg-red-500/20 transition-colors cursor-pointer">
+          className="flex-1 flex flex-col items-center justify-center gap-1 rounded-lg border border-red-500/30 bg-red-500/10 hover:bg-red-500/20 transition-colors cursor-pointer">
           <span className="text-2xl font-bold text-red-400">{urgent}</span>
           <span className="text-xs text-red-400/80">緊急</span>
         </Link>
         <Link href="/soc-queue"
-          className="flex-1 flex flex-col items-center justify-center gap-1 rounded-lg border
-                     border-orange-500/30 bg-orange-500/10 hover:bg-orange-500/20 transition-colors cursor-pointer">
+          className="flex-1 flex flex-col items-center justify-center gap-1 rounded-lg border border-orange-500/30 bg-orange-500/10 hover:bg-orange-500/20 transition-colors cursor-pointer">
           <span className="text-2xl font-bold text-orange-400">{today}</span>
           <span className="text-xs text-orange-400/80">今日中</span>
         </Link>
         <Link href="/soc-queue"
-          className="flex-1 flex flex-col items-center justify-center gap-1 rounded-lg border
-                     border-blue-500/30 bg-blue-500/10 hover:bg-blue-500/20 transition-colors cursor-pointer">
+          className="flex-1 flex flex-col items-center justify-center gap-1 rounded-lg border border-blue-500/30 bg-blue-500/10 hover:bg-blue-500/20 transition-colors cursor-pointer">
           <span className="text-2xl font-bold text-blue-400">{week}</span>
           <span className="text-xs text-blue-400/80">今週中</span>
         </Link>
@@ -1102,35 +1117,31 @@ function SocQueueSummaryWidget() {
 function QuickActionsWidget() {
   return (
     <div className="flex items-center gap-3 h-full py-1 flex-wrap">
-      <p className="text-xs text-falcon-subtle w-full font-medium">Quick Actions</p>
+      <p className="text-xs text-[#3d5068] w-full font-medium">Quick Actions</p>
       <Link
         href="/threat-hunting"
-        className="flex items-center gap-2 px-4 py-2 rounded-lg bg-falcon-active border border-blue-500/30
-                   text-sm font-medium text-blue-400 hover:bg-[#253d5e] hover:text-blue-300 transition-all"
+        className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#1d2f4a] border border-blue-500/30 text-sm font-medium text-blue-400 hover:bg-[#253d5e] hover:text-blue-300 transition-all"
       >
         <Crosshair className="w-4 h-4" />
         Start Hunt
       </Link>
       <Link
         href="/reports/builder"
-        className="flex items-center gap-2 px-4 py-2 rounded-lg bg-falcon-active border border-green-500/30
-                   text-sm font-medium text-green-400 hover:bg-[#1a3323] hover:text-green-300 transition-all"
+        className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#1d2f4a] border border-green-500/30 text-sm font-medium text-green-400 hover:bg-[#1a3323] hover:text-green-300 transition-all"
       >
         <FileText className="w-4 h-4" />
         Create Report
       </Link>
       <Link
         href="/ioc"
-        className="flex items-center gap-2 px-4 py-2 rounded-lg bg-falcon-active border border-orange-500/30
-                   text-sm font-medium text-orange-400 hover:bg-[#3a2510] hover:text-orange-300 transition-all"
+        className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#1d2f4a] border border-orange-500/30 text-sm font-medium text-orange-400 hover:bg-[#3a2510] hover:text-orange-300 transition-all"
       >
         <Search className="w-4 h-4" />
         Check IOC
       </Link>
       <Link
         href="/admin/security-scorecard"
-        className="flex items-center gap-2 px-4 py-2 rounded-lg bg-falcon-active border border-purple-500/30
-                   text-sm font-medium text-purple-400 hover:bg-[#2a1a40] hover:text-purple-300 transition-all"
+        className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#1d2f4a] border border-purple-500/30 text-sm font-medium text-purple-400 hover:bg-[#2a1a40] hover:text-purple-300 transition-all"
       >
         <ShieldCheck className="w-4 h-4" />
         View Scorecard
@@ -1143,32 +1154,56 @@ function QuickActionsWidget() {
 
 interface GeoThreat { country: string; flag: string; count: number; severity: 'critical' | 'high' | 'medium' | 'low' }
 
-const FALLBACK_GEO_THREATS: GeoThreat[] = [
-  { country: 'China',         flag: '🇨🇳', count: 142, severity: 'critical' },
-  { country: 'Russia',        flag: '🇷🇺', count: 89,  severity: 'high' },
-  { country: 'North Korea',   flag: '🇰🇵', count: 54,  severity: 'critical' },
-  { country: 'United States', flag: '🇺🇸', count: 38,  severity: 'medium' },
-  { country: 'Iran',          flag: '🇮🇷', count: 27,  severity: 'high' },
-]
+// 読み込み中のプレースホルダの高さ。以前は Math.random() で、描画のたびに
+// 変わっていました。骨組みとしては動きますが、このファイルに乱数が
+// 一つでもあると「表示している数字が作り物か」を機械的に確かめられません。
+const SKELETON_BAR_HEIGHTS = [45, 70, 35, 85, 55, 25, 65]
+
+/**
+ * ウィジェット単位の「出せません」。
+ *
+ * 作り物を出すよりは何も出さない方がましで、何も出さないよりは
+ * 「出せない」と言う方がましです。
+ */
+function WidgetUnavailable({ what }: { what: string }) {
+  return (
+    <div className="flex flex-col items-center justify-center h-28 text-center gap-1">
+      <p className="text-xs text-[#7d92b0]">{what}は取得できません</p>
+      <p className="text-[10px] text-[#3d5068]">
+        このデータを生成する処理がまだありません
+      </p>
+    </div>
+  )
+}
+
+// ここには FALLBACK_GEO_THREATS という配列がありました。中国142件 critical、
+// ロシア89件、北朝鮮54件 — 発明された攻撃元です。API が失敗したときだけでなく
+// 空を返したときにも表示され、しかも alerts に src_country 列は存在しないので、
+// この問い合わせは必ず失敗します。つまり SOC のダッシュボードに出ていた
+// 攻撃元の国は、一度も本物だったことがありません。
+//
+// 空の状態より悪いのはこちらです。空は「まだ何も無い」ですが、これは
+// 「北朝鮮から54件来ている」という、事実でない具体的な主張です。
 
 function ThreatMapWidget() {
-  const { data, isLoading } = useQuery<{ data?: GeoThreat[]; threats?: GeoThreat[] }>({
+  const { data, isLoading, error } = useQuery<{ data?: GeoThreat[]; threats?: GeoThreat[] }>({
     queryKey: ['dashboard-threat-map'],
-    queryFn: () => apiFetch<{ data?: GeoThreat[]; threats?: GeoThreat[] }>('/api/v1/alerts/geo-stats').catch(() => ({
-      data: FALLBACK_GEO_THREATS,
-    })),
+    queryFn: () => apiFetch<{ data?: GeoThreat[]; threats?: GeoThreat[] }>('/api/v1/alerts/geo-stats'),
     refetchInterval: 300_000,
     retry: false,
   })
 
-  const raw: GeoThreat[] = data?.data ?? data?.threats ?? []
-  const threats: GeoThreat[] = raw.length > 0 ? raw : FALLBACK_GEO_THREATS
+  const threats: GeoThreat[] = data?.data ?? data?.threats ?? []
   const maxCount = Math.max(...threats.map(t => t.count), 1)
+
+  if (error) {
+    return <WidgetUnavailable what="攻撃元の国別分布" />
+  }
 
   if (isLoading) {
     return (
       <div className="space-y-2 animate-pulse">
-        {[1, 2, 3, 4, 5].map(i => <div key={i} className="h-8 bg-falcon-hover/60 rounded-sm" />)}
+        {[1, 2, 3, 4, 5].map(i => <div key={i} className="h-8 bg-[#19253d]/60 rounded-sm" />)}
       </div>
     )
   }
@@ -1178,14 +1213,14 @@ function ThreatMapWidget() {
 
   return (
     <div className="space-y-2">
-      <p className="text-[10px] text-falcon-subtle uppercase tracking-wider mb-3">
+      <p className="text-[10px] text-[#3d5068] uppercase tracking-wider mb-3">
         トップ送信元国 (直近 24h)
       </p>
       {threats.slice(0, 6).map(t => (
         <div key={t.country} className="flex items-center gap-2">
           <span className="text-base shrink-0">{t.flag}</span>
-          <span className="text-xs text-falcon-text w-28 truncate shrink-0">{t.country}</span>
-          <div className="flex-1 h-1.5 bg-falcon-hover rounded-full overflow-hidden">
+          <span className="text-xs text-[#e2e8f4] w-28 truncate shrink-0">{t.country}</span>
+          <div className="flex-1 h-1.5 bg-[#19253d] rounded-full overflow-hidden">
             <div className="h-full rounded-full transition-all"
               style={{ width: `${(t.count / maxCount) * 100}%`, background: severityColor(t.severity) }} />
           </div>
@@ -1228,7 +1263,7 @@ function KillChainWidget() {
     return (
       <div className="flex items-end gap-1 h-28 animate-pulse">
         {KILL_CHAIN_STAGES.map(s => (
-          <div key={s.id} className="flex-1 bg-falcon-hover/60 rounded-t" style={{ height: `${Math.random() * 100}%` }} />
+          <div key={s.id} className="flex-1 bg-[#19253d]/60 rounded-t" style={{ height: `${SKELETON_BAR_HEIGHTS[KILL_CHAIN_STAGES.indexOf(s) % SKELETON_BAR_HEIGHTS.length]}%` }} />
         ))}
       </div>
     )
@@ -1236,7 +1271,7 @@ function KillChainWidget() {
 
   return (
     <div>
-      <p className="text-[10px] text-falcon-subtle uppercase tracking-wider mb-3">
+      <p className="text-[10px] text-[#3d5068] uppercase tracking-wider mb-3">
         Kill Chain ステージ別検知数
       </p>
       <div className="flex items-end gap-1 h-24">
@@ -1245,7 +1280,7 @@ function KillChainWidget() {
           const pct = maxVal > 0 ? (val / maxVal) * 100 : 0
           return (
             <div key={s.id} className="flex-1 flex flex-col items-center gap-1">
-              <span className="text-[9px] text-falcon-subtle tabular-nums">{val || ''}</span>
+              <span className="text-[9px] text-[#3d5068] tabular-nums">{val || ''}</span>
               <div className="w-full rounded-t transition-all"
                 style={{ height: `${Math.max(pct, val > 0 ? 8 : 0)}%`, background: s.color, opacity: 0.8 }} />
             </div>
@@ -1255,7 +1290,7 @@ function KillChainWidget() {
       <div className="flex gap-1 mt-1">
         {KILL_CHAIN_STAGES.map(s => (
           <div key={s.id} className="flex-1 text-center">
-            <p className="text-[8px] text-falcon-subtle truncate">{s.label}</p>
+            <p className="text-[8px] text-[#3d5068] truncate">{s.label}</p>
           </div>
         ))}
       </div>
@@ -1288,14 +1323,14 @@ function IocHitsWidget() {
   if (isLoading) {
     return (
       <div className="space-y-2 animate-pulse">
-        {[1, 2, 3].map(i => <div key={i} className="h-9 bg-falcon-hover/60 rounded-sm" />)}
+        {[1, 2, 3].map(i => <div key={i} className="h-9 bg-[#19253d]/60 rounded-sm" />)}
       </div>
     )
   }
 
   if (hits.length === 0) {
     return (
-      <div className="flex items-center justify-center h-full text-falcon-subtle text-sm">
+      <div className="flex items-center justify-center h-full text-[#3d5068] text-sm">
         IOCマッチなし
       </div>
     )
@@ -1308,15 +1343,15 @@ function IocHitsWidget() {
 
   return (
     <div className="space-y-1.5">
-      <p className="text-[10px] text-falcon-subtle uppercase tracking-wider mb-2">
+      <p className="text-[10px] text-[#3d5068] uppercase tracking-wider mb-2">
         Top IOCマッチ (直近 24h)
       </p>
       {hits.slice(0, 5).map((h, i) => (
-        <div key={i} className="flex items-center gap-2 px-2 py-1.5 rounded-sm bg-falcon-hover/50">
+        <div key={i} className="flex items-center gap-2 px-2 py-1.5 rounded-sm bg-[#19253d]/50">
           <span className={`text-[9px] px-1.5 py-0.5 rounded-sm font-semibold shrink-0 ${typeColor(h.type)}`}>
             {h.type.toUpperCase()}
           </span>
-          <span className="text-xs text-falcon-text font-mono flex-1 truncate">{h.value}</span>
+          <span className="text-xs text-[#e2e8f4] font-mono flex-1 truncate">{h.value}</span>
           <span className="text-xs font-bold text-red-400 shrink-0">{h.hit_count}</span>
         </div>
       ))}
@@ -1329,28 +1364,23 @@ function IocHitsWidget() {
 interface HeatmapCell { day: number; hour: number; count: number }
 
 function AlertHeatmapWidget() {
-  const { data, isLoading } = useQuery<{ data?: HeatmapCell[] }>({
+  const { data, isLoading, error: heatmapError } = useQuery<{ data?: HeatmapCell[] }>({
     queryKey: ['dashboard-alert-heatmap'],
-    queryFn: () => apiFetch<{ data?: HeatmapCell[] }>('/api/v1/alerts/heatmap').catch(() => {
-      // Generate plausible mock data — higher volume on weekdays, business hours + midnight spikes
-      const cells: HeatmapCell[] = []
-      for (let d = 0; d < 7; d++) {
-        for (let h = 0; h < 24; h++) {
-          const isWeekday = d > 0 && d < 6
-          const isBizHour = h >= 9 && h <= 17
-          const isMidnight = h >= 0 && h <= 2
-          const base = isWeekday ? 3 : 1
-          const mult = isBizHour ? 3 : isMidnight ? 2 : 1
-          cells.push({ day: d, hour: h, count: Math.floor(base * mult * (0.5 + Math.random())) })
-        }
-      }
-      return { data: cells }
-    }),
+    // ここには「もっともらしいモックデータ」を生成する catch がありました。
+    // 平日と業務時間に山を作り、乱数で件数を振った 7×24 の格子です。
+    // /api/v1/alerts/heatmap にはルートが存在しないので毎回 404 になり、
+    // つまりこのヒートマップに出ていた件数は、一度も本物だったことが
+    // ありません。時間帯ごとのアラート傾向は SOC がシフトを決める材料です。
+    queryFn: () => apiFetch<{ data?: HeatmapCell[] }>('/api/v1/alerts/heatmap'),
     staleTime: 300_000,
     retry: false,
   })
 
   const cells: HeatmapCell[] = data?.data ?? []
+
+  if (heatmapError) {
+    return <WidgetUnavailable what="時間帯別のアラート分布" />
+  }
 
   const DAYS = ['日', '月', '火', '水', '木', '金', '土']
   const maxCount = cells.length > 0 ? Math.max(...cells.map(c => c.count), 1) : 1
@@ -1365,18 +1395,18 @@ function AlertHeatmapWidget() {
   }
 
   if (isLoading) {
-    return <div className="h-32 bg-falcon-hover/40 rounded-sm animate-pulse" />
+    return <div className="h-32 bg-[#19253d]/40 rounded-sm animate-pulse" />
   }
 
   return (
     <div>
-      <p className="text-[10px] text-falcon-subtle uppercase tracking-wider mb-3">
+      <p className="text-[10px] text-[#3d5068] uppercase tracking-wider mb-3">
         アラート発生パターン (曜日 × 時間帯)
       </p>
       {/* Hour axis header */}
       <div className="flex items-center gap-0.5 mb-1 ml-6">
         {Array.from({ length: 24 }, (_, h) => (
-          <div key={h} className="flex-1 text-center text-[8px] text-falcon-subtle">
+          <div key={h} className="flex-1 text-center text-[8px] text-[#3d5068]">
             {h % 6 === 0 ? `${h}h` : ''}
           </div>
         ))}
@@ -1412,7 +1442,7 @@ function AlertHeatmapWidget() {
         ].map(({ color, label }) => (
           <div key={label} className="flex items-center gap-1">
             <div className="w-3 h-2 rounded-xs" style={{ backgroundColor: color }} />
-            <span className="text-[9px] text-falcon-subtle">{label}</span>
+            <span className="text-[9px] text-[#3d5068]">{label}</span>
           </div>
         ))}
       </div>
@@ -1446,11 +1476,11 @@ function WidgetCard({
       : 'col-span-1'
 
   return (
-    <div className={`bg-falcon-surface rounded-xl border flex flex-col overflow-hidden transition-all ${colSpan} ${
-      editMode ? 'border-blue-500/60 ring-1 ring-blue-500/20' : 'border-falcon-border'
+    <div className={`bg-[#0d1220] rounded-xl border flex flex-col overflow-hidden transition-all ${colSpan} ${
+      editMode ? 'border-blue-500/60 ring-1 ring-blue-500/20' : 'border-[#1e2d42]'
     }`}>
       {/* Title bar */}
-      <div className="flex items-center gap-2 px-4 py-3 border-b border-falcon-border bg-falcon-surface/80 select-none">
+      <div className="flex items-center gap-2 px-4 py-3 border-b border-[#1e2d42] bg-[#0d1220]/80 select-none">
         {editMode && (
           <GripVertical className="w-4 h-4 text-blue-400/70 shrink-0 cursor-grab" />
         )}
@@ -1458,13 +1488,13 @@ function WidgetCard({
           <GripVertical className="w-4 h-4 text-gray-600 shrink-0" />
         )}
         <Icon className="w-4 h-4 text-blue-400 shrink-0" />
-        <span className="text-sm font-semibold text-falcon-text flex-1">{WIDGET_LABELS[widget.type]}</span>
+        <span className="text-sm font-semibold text-[#e2e8f4] flex-1">{WIDGET_LABELS[widget.type]}</span>
 
         {/* Minimize toggle */}
         {!editMode && (
           <button
             onClick={onMinimize}
-            className="p-1 rounded-sm text-falcon-subtle hover:text-falcon-muted hover:bg-falcon-active transition-colors"
+            className="p-1 rounded-sm text-[#3d5068] hover:text-[#7d92b0] hover:bg-[#1d2f4a] transition-colors"
             title={minimized ? '展開' : '最小化'}
           >
             {minimized ? (
@@ -1483,7 +1513,7 @@ function WidgetCard({
         {editMode && (
           <button
             onClick={onHide}
-            className="p-1 rounded-sm text-falcon-subtle hover:text-red-400 hover:bg-red-900/30 transition-colors"
+            className="p-1 rounded-sm text-[#3d5068] hover:text-red-400 hover:bg-red-900/30 transition-colors"
             title="ウィジェットを非表示"
           >
             <X className="w-3.5 h-3.5" />
@@ -1593,19 +1623,19 @@ export default function DashboardPage() {
   }, [visibleWidgets])
 
   // ── Data queries ─────────────────────────────────────────────
-  const { data: alerts = [], isLoading: alertsLoading, isError: alertsError } = useQuery<AlertItem[]>({
+  const { data: alerts = [], isLoading: alertsLoading } = useQuery<AlertItem[]>({
     queryKey: ['dashboard-alerts'],
     queryFn: () => apiFetchList<AlertItem>('/api/v1/alerts?limit=5&sort=desc'),
     refetchInterval: 30_000,
   })
 
-  const { data: agentsRaw = [], isLoading: agentsLoading, isError: agentsError } = useQuery<AgentItem[]>({
+  const { data: agentsRaw = [], isLoading: agentsLoading } = useQuery<AgentItem[]>({
     queryKey: ['dashboard-agents'],
     queryFn: () => apiFetchList<AgentItem>('/api/v1/agents?limit=5&status=online'),
     refetchInterval: 30_000,
   })
 
-  const { data: incidents = [], isLoading: incidentsLoading, isError: incidentsError } = useQuery<IncidentItem[]>({
+  const { data: incidents = [], isLoading: incidentsLoading } = useQuery<IncidentItem[]>({
     queryKey: ['dashboard-incidents'],
     queryFn: () => apiFetchList<IncidentItem>('/api/v1/incidents?status=open&per_page=5'),
     refetchInterval: 30_000,
@@ -1619,7 +1649,6 @@ export default function DashboardPage() {
   })
 
   const isLoading = alertsLoading || agentsLoading || incidentsLoading
-  const hasDataError = alertsError || agentsError || incidentsError
 
   const refreshAll = () => {
     qc.invalidateQueries({ queryKey: ['dashboard-alerts'] })
@@ -1691,26 +1720,25 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-gray-900 p-6" onClick={() => setShowAddDropdown(false)}>
-      {/* API エラーバナー */}
-      {hasDataError && (
-        <div className="mb-4 px-4 py-3 rounded-lg bg-falcon-red/10 border border-falcon-red/30 flex items-center gap-2">
-          <span className="text-falcon-red text-xs font-medium">⚠ 一部のデータ取得に失敗しています。表示が最新でない可能性があります。</span>
-        </div>
-      )}
+      {/* 以前ここには「表示が最新でない可能性があります」と出る帯があり、
+          対象は20本あるクエリのうち3本だけでした。取得できていないことと
+          古いことは別で、0件と出ているカードが古い0なのか不明な0なのかは
+          運用上まったく違います。 */}
+      <PageDataUnavailable className="mb-4" />
+      <PageSaveFailed className="mb-4" />
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
           <LayoutDashboard className="w-6 h-6 text-blue-400" />
           <div>
             <h1 className="text-xl font-bold text-white">ダッシュボード</h1>
-            <p className="text-xs text-falcon-subtle mt-0.5">セキュリティ概況</p>
+            <p className="text-xs text-[#3d5068] mt-0.5">セキュリティ概況</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
           <button
             onClick={refreshAll}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-falcon-subtle
-                       bg-falcon-surface border border-falcon-border rounded-lg hover:bg-falcon-active hover:text-white transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-[#3d5068] bg-[#0d1220] border border-[#1e2d42] rounded-lg hover:bg-[#1d2f4a] hover:text-white transition-colors"
             title="データを更新"
           >
             <RefreshCw className="w-4 h-4" />
@@ -1722,8 +1750,7 @@ export default function DashboardPage() {
               {/* Reset Layout button */}
               <button
                 onClick={resetLayout}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-falcon-subtle
-                           bg-falcon-surface border border-falcon-border rounded-lg hover:bg-falcon-active hover:text-white transition-colors"
+                className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-[#3d5068] bg-[#0d1220] border border-[#1e2d42] rounded-lg hover:bg-[#1d2f4a] hover:text-white transition-colors"
                 title="レイアウトをデフォルトに戻す"
               >
                 <RotateCcw className="w-4 h-4" />
@@ -1735,18 +1762,17 @@ export default function DashboardPage() {
                 <div className="relative">
                   <button
                     onClick={e => { e.stopPropagation(); setShowAddDropdown(v => !v) }}
-                    className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-falcon-subtle
-                               bg-falcon-surface border border-falcon-border rounded-lg hover:bg-falcon-active hover:text-white transition-colors"
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-[#3d5068] bg-[#0d1220] border border-[#1e2d42] rounded-lg hover:bg-[#1d2f4a] hover:text-white transition-colors"
                   >
                     <Plus className="w-4 h-4" />
                     ウィジェット追加
                   </button>
                   {showAddDropdown && (
                     <div
-                      className="absolute right-0 top-10 z-50 bg-falcon-surface border border-gray-600 rounded-xl shadow-xl py-1 min-w-[200px]"
+                      className="absolute right-0 top-10 z-50 bg-[#0d1220] border border-gray-600 rounded-xl shadow-xl py-1 min-w-[200px]"
                       onClick={e => e.stopPropagation()}
                     >
-                      <p className="text-[10px] text-falcon-subtle uppercase tracking-wider px-3 py-1.5">
+                      <p className="text-[10px] text-[#3d5068] uppercase tracking-wider px-3 py-1.5">
                         非表示のウィジェット
                       </p>
                       {hiddenWidgets.map(w => {
@@ -1755,8 +1781,7 @@ export default function DashboardPage() {
                           <button
                             key={w.id}
                             onClick={() => { showWidget(w.id); setShowAddDropdown(false) }}
-                            className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-falcon-muted
-                                       hover:bg-falcon-active hover:text-white transition-colors"
+                            className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-[#7d92b0] hover:bg-[#1d2f4a] hover:text-white transition-colors"
                           >
                             <Icon className="w-4 h-4 text-blue-400 shrink-0" />
                             {WIDGET_LABELS[w.type]}
@@ -1777,7 +1802,7 @@ export default function DashboardPage() {
               className={`flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg border transition-colors ${
                 editMode
                   ? 'bg-blue-600 border-blue-500 text-white hover:bg-blue-500'
-                  : 'bg-falcon-surface border-falcon-border text-falcon-subtle hover:bg-falcon-active hover:text-white'
+                  : 'bg-[#0d1220] border-[#1e2d42] text-[#3d5068] hover:bg-[#1d2f4a] hover:text-white'
               }`}
             >
               <Settings2 className="w-4 h-4" />
@@ -1801,12 +1826,12 @@ export default function DashboardPage() {
       {/* Loading state */}
       {isLoading && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 animate-pulse">
-          <div className="col-span-1 sm:col-span-2 lg:col-span-3 h-32 bg-falcon-surface rounded-xl border border-falcon-border" />
-          <div className="col-span-1 sm:col-span-2 h-48 bg-falcon-surface rounded-xl border border-falcon-border" />
-          <div className="col-span-1 h-48 bg-falcon-surface rounded-xl border border-falcon-border" />
-          <div className="col-span-1 sm:col-span-2 h-48 bg-falcon-surface rounded-xl border border-falcon-border" />
-          <div className="col-span-1 h-48 bg-falcon-surface rounded-xl border border-falcon-border" />
-          <div className="col-span-1 sm:col-span-2 lg:col-span-3 h-40 bg-falcon-surface rounded-xl border border-falcon-border" />
+          <div className="col-span-1 sm:col-span-2 lg:col-span-3 h-32 bg-[#0d1220] rounded-xl border border-[#1e2d42]" />
+          <div className="col-span-1 sm:col-span-2 h-48 bg-[#0d1220] rounded-xl border border-[#1e2d42]" />
+          <div className="col-span-1 h-48 bg-[#0d1220] rounded-xl border border-[#1e2d42]" />
+          <div className="col-span-1 sm:col-span-2 h-48 bg-[#0d1220] rounded-xl border border-[#1e2d42]" />
+          <div className="col-span-1 h-48 bg-[#0d1220] rounded-xl border border-[#1e2d42]" />
+          <div className="col-span-1 sm:col-span-2 lg:col-span-3 h-40 bg-[#0d1220] rounded-xl border border-[#1e2d42]" />
         </div>
       )}
 
@@ -1842,8 +1867,8 @@ export default function DashboardPage() {
 
       {/* Hidden widgets summary when in edit mode */}
       {editMode && hiddenWidgets.length > 0 && (
-        <div className="mt-6 p-4 bg-falcon-surface/50 border border-dashed border-falcon-border rounded-xl">
-          <p className="text-xs text-falcon-subtle mb-3 flex items-center gap-1.5">
+        <div className="mt-6 p-4 bg-[#0d1220]/50 border border-dashed border-[#1e2d42] rounded-xl">
+          <p className="text-xs text-[#3d5068] mb-3 flex items-center gap-1.5">
             <EyeOff className="w-3.5 h-3.5" />
             非表示のウィジェット ({hiddenWidgets.length}件)
           </p>
@@ -1854,9 +1879,7 @@ export default function DashboardPage() {
                 <button
                   key={w.id}
                   onClick={() => showWidget(w.id)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-falcon-hover/60
-                             border border-gray-600 text-falcon-subtle hover:text-white hover:border-blue-500
-                             hover:bg-blue-900/20 transition-all text-xs"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#19253d]/60 border border-gray-600 text-[#3d5068] hover:text-white hover:border-blue-500 hover:bg-blue-900/20 transition-all text-xs"
                 >
                   <Plus className="w-3 h-3" />
                   <Icon className="w-3 h-3" />

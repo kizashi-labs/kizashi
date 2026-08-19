@@ -9,6 +9,9 @@ import {
 } from 'lucide-react'
 
 
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+import { usePersist, SaveFailed } from '@/lib/persist'
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type SIEMType = 'splunk' | 'qradar' | 'elastic' | 'webhook'
@@ -112,13 +115,11 @@ export default function SIEMIntegrationPage() {
   const [formFormat, setFormFormat] = useState<EventFormat>('json')
   const [formBatch, setFormBatch] = useState('100')
   const [submitting, setSubmitting] = useState(false)
+  const { persist, saveError } = usePersist()
 
   useQuery<SIEMConfig[]>({
     queryKey: ['siem-configs'],
-    queryFn: async () => {
-      try { return await apiFetchList<SIEMConfig>('/api/v1/admin/siem/configs') }
-      catch { return {} as any }
-    },
+    queryFn: () => apiFetchList<SIEMConfig>('/api/v1/admin/siem/configs'),
   })
 
   function addToast(ok: boolean, text: string) {
@@ -127,9 +128,12 @@ export default function SIEMIntegrationPage() {
     setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 4000)
   }
 
+  // 転送設定の有効/無効。失敗を捨ててからトグルを反転させていたので、
+  // 転送が止まったまま「有効」に見えます。
   async function handleToggle(id: string) {
-    try { await apiFetch(`/api/v1/admin/siem/configs/${id}/toggle`, { method: 'PUT' }) } catch {}
-    setConfigs(prev => prev.map(c => c.id === id ? { ...c, enabled: !c.enabled } : c))
+    if (await persist('SIEM転送の有効/無効', `/api/v1/admin/siem/configs/${id}/toggle`, { method: 'PUT' })) {
+      setConfigs(prev => prev.map(c => c.id === id ? { ...c, enabled: !c.enabled } : c))
+    }
   }
 
   async function handleTest(id: string) {
@@ -141,9 +145,10 @@ export default function SIEMIntegrationPage() {
       } else {
         addToast(false, `接続失敗: ${result.message}`)
       }
-    } catch {
-      const latency = Math.floor(Math.random() * 150) + 20
-      addToast(true, `接続成功 — レイテンシ ${latency}ms`)
+    } catch (e) {
+      // 失敗したテストが「接続成功 — レイテンシ 87ms」と表示していました。
+      // 数値まで添えてあるので、確かめた結果に見えます。
+      addToast(false, `接続テストを実行できませんでした: ${e instanceof Error ? e.message : '不明なエラー'}`)
     } finally {
       setTestingId(null)
     }
@@ -156,7 +161,12 @@ export default function SIEMIntegrationPage() {
       name: formName, type: formType, url: formUrl, api_key: formKey,
       index_channel: formIndex, format: formFormat, batch_size: parseInt(formBatch),
     }
-    try { await apiFetch('/api/v1/admin/siem/configs', { method: 'POST', body: JSON.stringify(payload) }) } catch {}
+    const ok = await persist(`連携「${payload.name}」`, '/api/v1/admin/siem/configs', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    })
+    setSubmitting(false)
+    if (!ok) return
     const newConfig: SIEMConfig = {
       id: `siem-${Date.now()}`,
       ...payload,
@@ -169,12 +179,13 @@ export default function SIEMIntegrationPage() {
     setFormName(''); setFormType('splunk'); setFormUrl(''); setFormKey('')
     setFormIndex(''); setFormFormat('json'); setFormBatch('100')
     setShowAddForm(false)
-    setSubmitting(false)
     addToast(true, `連携「${newConfig.name}」を追加しました`)
   }
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100 p-6">
+      <PageDataUnavailable />
+      <SaveFailed error={saveError} />
       {/* Toasts */}
       <div className="fixed top-4 right-4 z-50 space-y-2">
         {toasts.map(t => (

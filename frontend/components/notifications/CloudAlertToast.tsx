@@ -75,7 +75,7 @@ function CloudToastItem({ toast, onClose }: ToastItemProps) {
       `}
     >
       {/* Drain bar */}
-      <div className="h-0.5 w-full bg-falcon-border">
+      <div className="h-0.5 w-full bg-[#1e2d42]">
         <div
           className={`h-full ${toast.suspicious ? 'bg-red-500' : 'bg-orange-500'}`}
           style={{ animation: `toast-drain ${TOAST_TTL_MS}ms linear forwards` }}
@@ -91,7 +91,7 @@ function CloudToastItem({ toast, onClose }: ToastItemProps) {
               <span className="text-[10px] font-bold font-mono text-red-400 animate-pulse">⚠ SUSPICIOUS</span>
             )}
           </div>
-          <p className="text-sm text-falcon-text font-medium leading-snug truncate">{toast.event.event_type}</p>
+          <p className="text-sm text-[#e2e8f4] font-medium leading-snug truncate">{toast.event.event_type}</p>
           <div className="flex flex-col gap-0.5 mt-0.5">
             {username && (
               <p className="text-[11px] text-[#5a6a7a] truncate">User: {username}</p>
@@ -115,7 +115,7 @@ function CloudToastItem({ toast, onClose }: ToastItemProps) {
         </div>
         <button
           onClick={() => onClose(toast.id)}
-          className="text-falcon-subtle hover:text-falcon-muted transition-colors shrink-0"
+          className="text-[#3d5068] hover:text-[#7d92b0] transition-colors shrink-0"
         >
           <X className="w-3.5 h-3.5" />
         </button>

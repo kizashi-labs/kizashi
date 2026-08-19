@@ -3,10 +3,14 @@
 import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { apiFetch } from '@/lib/api'
+import { USE_MOCK } from '@/lib/mock'
 import {
   Activity, X, AlertTriangle, Shield, User, Search,
   CheckCircle, XCircle, ArrowUpCircle, ChevronDown, Filter
 } from 'lucide-react'
+
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+import { usePersist, SaveFailed } from '@/lib/persist'
 
 // ── Types ──────────────────────────────────────────────────────────
 
@@ -105,16 +109,16 @@ function AnomalyDetailModal({ anomaly, onClose, onAction }: {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-      <div className="bg-falcon-surface border border-falcon-border rounded-xl w-full max-w-2xl p-6 max-h-[90vh] overflow-y-auto">
+      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl w-full max-w-2xl p-6 max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
             <h2 className="text-white font-semibold text-lg">異常詳細</h2>
             <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${tc.bg} ${tc.text}`}>{tc.label}</span>
           </div>
-          <button onClick={onClose} className="text-falcon-muted hover:text-white"><X className="w-5 h-5" /></button>
+          <button onClick={onClose} className="text-[#7d92b0] hover:text-white"><X className="w-5 h-5" /></button>
         </div>
 
-        <p className="text-falcon-text text-sm mb-6 bg-[#070d19] p-3 rounded-lg border border-falcon-border">{anomaly.description}</p>
+        <p className="text-[#e2e8f4] text-sm mb-6 bg-[#070d19] p-3 rounded-lg border border-[#1e2d42]">{anomaly.description}</p>
 
         <div className="grid grid-cols-3 gap-4 mb-6">
           {[
@@ -122,16 +126,16 @@ function AnomalyDetailModal({ anomaly, onClose, onAction }: {
             ['タイムスタンプ', fmt(anomaly.timestamp)],
             ['スコア', String(anomaly.score)],
           ].map(([k, v]) => (
-            <div key={k} className="bg-[#070d19] rounded-lg p-3 border border-falcon-border">
-              <p className="text-xs text-falcon-muted mb-1">{k}</p>
+            <div key={k} className="bg-[#070d19] rounded-lg p-3 border border-[#1e2d42]">
+              <p className="text-xs text-[#7d92b0] mb-1">{k}</p>
               <p className={`text-sm font-semibold ${k === 'スコア' ? scoreColor(anomaly.score) : 'text-white'}`}>{v}</p>
             </div>
           ))}
         </div>
 
         {/* Baseline vs Actual Chart */}
-        <div className="bg-[#070d19] rounded-lg p-4 border border-falcon-border mb-4">
-          <p className="text-xs text-falcon-muted mb-3 font-medium uppercase tracking-wider">ベースライン vs 実際の値 ({anomaly.baseline_label})</p>
+        <div className="bg-[#070d19] rounded-lg p-4 border border-[#1e2d42] mb-4">
+          <p className="text-xs text-[#7d92b0] mb-3 font-medium uppercase tracking-wider">ベースライン vs 実際の値 ({anomaly.baseline_label})</p>
           <div className="space-y-3">
             {[
               { label: 'ベースライン', value: anomaly.baseline_value, color: 'bg-blue-500' },
@@ -141,8 +145,8 @@ function AnomalyDetailModal({ anomaly, onClose, onAction }: {
               const pct = max > 0 ? (row.value / max) * 100 : 0
               return (
                 <div key={row.label} className="flex items-center gap-3">
-                  <span className="text-xs text-falcon-muted w-28 shrink-0">{row.label}</span>
-                  <div className="flex-1 h-3 bg-falcon-border rounded-full overflow-hidden">
+                  <span className="text-xs text-[#7d92b0] w-28 shrink-0">{row.label}</span>
+                  <div className="flex-1 h-3 bg-[#1e2d42] rounded-full overflow-hidden">
                     <div className={`h-full rounded-full ${row.color} transition-all`} style={{ width: `${pct}%` }} />
                   </div>
                   <span className="text-xs text-white font-mono w-16 text-right">{row.value}</span>
@@ -153,13 +157,13 @@ function AnomalyDetailModal({ anomaly, onClose, onAction }: {
         </div>
 
         {/* ML Feature Importance */}
-        <div className="bg-[#070d19] rounded-lg p-4 border border-falcon-border mb-4">
-          <p className="text-xs text-falcon-muted mb-3 font-medium uppercase tracking-wider">MLモデル — 特徴重要度</p>
+        <div className="bg-[#070d19] rounded-lg p-4 border border-[#1e2d42] mb-4">
+          <p className="text-xs text-[#7d92b0] mb-3 font-medium uppercase tracking-wider">MLモデル — 特徴重要度</p>
           <div className="space-y-2">
             {anomaly.ml_features.map(f => (
               <div key={f.name} className="flex items-center gap-3">
-                <span className="text-xs text-falcon-muted font-mono w-40 shrink-0">{f.name}</span>
-                <div className="flex-1 h-2 bg-falcon-border rounded-full overflow-hidden">
+                <span className="text-xs text-[#7d92b0] font-mono w-40 shrink-0">{f.name}</span>
+                <div className="flex-1 h-2 bg-[#1e2d42] rounded-full overflow-hidden">
                   <div className="h-full rounded-full bg-purple-500" style={{ width: `${f.importance * 100}%` }} />
                 </div>
                 <span className="text-xs text-purple-300 font-mono w-10 text-right">{(f.importance * 100).toFixed(0)}%</span>
@@ -170,11 +174,11 @@ function AnomalyDetailModal({ anomaly, onClose, onAction }: {
 
         {/* Related Events */}
         {anomaly.related_events.length > 0 && (
-          <div className="bg-[#070d19] rounded-lg p-4 border border-falcon-border mb-6">
-            <p className="text-xs text-falcon-muted mb-3 font-medium uppercase tracking-wider">関連イベント</p>
+          <div className="bg-[#070d19] rounded-lg p-4 border border-[#1e2d42] mb-6">
+            <p className="text-xs text-[#7d92b0] mb-3 font-medium uppercase tracking-wider">関連イベント</p>
             <div className="flex flex-wrap gap-2">
               {anomaly.related_events.map(e => (
-                <span key={e} className="text-xs font-mono bg-falcon-border text-falcon-muted px-2 py-1 rounded-sm">{e}</span>
+                <span key={e} className="text-xs font-mono bg-[#1e2d42] text-[#7d92b0] px-2 py-1 rounded-sm">{e}</span>
               ))}
             </div>
           </div>
@@ -191,7 +195,7 @@ function AnomalyDetailModal({ anomaly, onClose, onAction }: {
             <XCircle className="w-4 h-4" /> 誤検知
           </button>
           <button onClick={() => { onAction(anomaly.id, 'reviewed'); onClose() }}
-            className="flex-1 py-2 rounded-sm bg-falcon-red text-white text-sm font-medium hover:bg-[#c8001e] transition-colors flex items-center justify-center gap-2">
+            className="flex-1 py-2 rounded-sm bg-[#e8002d] text-white text-sm font-medium hover:bg-[#c8001e] transition-colors flex items-center justify-center gap-2">
             <ArrowUpCircle className="w-4 h-4" /> エスカレート
           </button>
         </div>
@@ -214,20 +218,25 @@ function UserProfileCard({ username, anomalies }: { username: string; anomalies:
     rjohnson: '営業部門', schen: '人事部門', hlee: 'マーケティング部門', kpatel: 'セキュリティ部門',
   }
 
-  // Activity heatmap: 7 days x 24 hours (mock)
-  const heatmap = Array.from({ length: 7 }, (_, day) =>
-    Array.from({ length: 24 }, (_, hr) => {
-      const base = (hr >= 9 && hr <= 18) ? 0.7 : 0.1
-      return Math.min(1, base + Math.random() * 0.3)
-    })
-  )
+  // 7日×24時間の活動ヒートマップ。
+  //
+  // 以前は営業時間を濃く、それ以外を薄くした乱数で作っていました。
+  // UEBA のヒートマップは「いつもと違う時間帯に動いている」を見る図なので、
+  // 作った濃淡は、探しているものそのものを偽装します。
+  const heatmap = USE_MOCK
+    ? Array.from({ length: 7 }, () =>
+        Array.from({ length: 24 }, (_, hr) =>
+          Math.min(1, (hr >= 9 && hr <= 18 ? 0.7 : 0.1) + Math.random() * 0.3)
+        )
+      )
+    : []
 
   const days = ['月', '火', '水', '木', '金', '土', '日']
   const circumference = 2 * Math.PI * 28
   const dashOffset = circumference * (1 - riskScore / 100)
 
   return (
-    <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
+    <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
       {/* Profile header */}
       <div className="flex items-start gap-5 mb-6">
         <div className="shrink-0">
@@ -243,12 +252,12 @@ function UserProfileCard({ username, anomalies }: { username: string; anomalies:
               <span className={`text-sm font-bold ${riskScore >= 70 ? 'text-red-400' : riskScore >= 40 ? 'text-yellow-400' : 'text-green-400'}`}>{riskScore}</span>
             </div>
           </div>
-          <p className="text-xs text-falcon-muted text-center mt-1">リスク</p>
+          <p className="text-xs text-[#7d92b0] text-center mt-1">リスク</p>
         </div>
         <div>
           <h3 className="text-white font-semibold text-lg">{username}</h3>
-          <p className="text-falcon-muted text-sm">{departments[username] ?? '不明'}</p>
-          <p className="text-falcon-muted text-sm mt-1">異常検知: <span className="text-white font-semibold">{userAnomalies.length}</span> 件</p>
+          <p className="text-[#7d92b0] text-sm">{departments[username] ?? '不明'}</p>
+          <p className="text-[#7d92b0] text-sm mt-1">異常検知: <span className="text-white font-semibold">{userAnomalies.length}</span> 件</p>
           <div className="flex flex-wrap gap-1 mt-2">
             {topTypes.map(t => {
               const tc = ANOMALY_TYPE_CONFIG[t]
@@ -260,22 +269,22 @@ function UserProfileCard({ username, anomalies }: { username: string; anomalies:
 
       {/* Baselines */}
       <h4 className="text-white text-sm font-semibold mb-3">行動ベースライン</h4>
-      <div className="bg-[#070d19] rounded-lg border border-falcon-border overflow-hidden mb-5">
+      <div className="bg-[#070d19] rounded-lg border border-[#1e2d42] overflow-hidden mb-5">
         <table className="w-full">
           <thead>
-            <tr className="border-b border-falcon-border">
+            <tr className="border-b border-[#1e2d42]">
               {['メトリクス', 'ベースライン', '標準偏差', '更新日'].map(h => (
-                <th key={h} className="text-left text-xs text-falcon-muted font-medium px-3 py-2">{h}</th>
+                <th key={h} className="text-left text-xs text-[#7d92b0] font-medium px-3 py-2">{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {([] as UserBaseline[]).map(b => (
-              <tr key={b.metric_name} className="border-b border-falcon-border/50">
-                <td className="px-3 py-2 text-xs text-falcon-text">{b.metric_name}</td>
+              <tr key={b.metric_name} className="border-b border-[#1e2d42]/50">
+                <td className="px-3 py-2 text-xs text-[#e2e8f4]">{b.metric_name}</td>
                 <td className="px-3 py-2 text-xs text-white font-mono">{b.baseline_value} {b.unit}</td>
-                <td className="px-3 py-2 text-xs text-falcon-muted font-mono">±{b.std_deviation}</td>
-                <td className="px-3 py-2 text-xs text-falcon-muted">{new Date(b.last_updated).toLocaleDateString('ja-JP')}</td>
+                <td className="px-3 py-2 text-xs text-[#7d92b0] font-mono">±{b.std_deviation}</td>
+                <td className="px-3 py-2 text-xs text-[#7d92b0]">{new Date(b.last_updated).toLocaleDateString('ja-JP')}</td>
               </tr>
             ))}
           </tbody>
@@ -289,13 +298,13 @@ function UserProfileCard({ username, anomalies }: { username: string; anomalies:
           <div className="w-6" />
           {Array.from({ length: 24 }, (_, hr) => (
             <div key={hr} className="w-4 text-center">
-              {hr % 6 === 0 && <span className="text-[8px] text-falcon-subtle">{hr}</span>}
+              {hr % 6 === 0 && <span className="text-[8px] text-[#3d5068]">{hr}</span>}
             </div>
           ))}
         </div>
         {heatmap.map((row, dayIdx) => (
           <div key={dayIdx} className="flex items-center gap-1 mb-0.5">
-            <span className="text-[9px] text-falcon-muted w-6 text-center">{days[dayIdx]}</span>
+            <span className="text-[9px] text-[#7d92b0] w-6 text-center">{days[dayIdx]}</span>
             {row.map((intensity, hr) => (
               <div key={hr} className="w-4 h-4 rounded-xs"
                 style={{ backgroundColor: `rgba(232, 0, 45, ${intensity * 0.8})`, minWidth: '16px' }}
@@ -304,13 +313,13 @@ function UserProfileCard({ username, anomalies }: { username: string; anomalies:
           </div>
         ))}
         <div className="flex items-center gap-2 mt-2">
-          <span className="text-xs text-falcon-muted">低</span>
+          <span className="text-xs text-[#7d92b0]">低</span>
           <div className="flex gap-0.5">
             {[0.1, 0.3, 0.5, 0.7, 0.9].map(v => (
               <div key={v} className="w-3 h-3 rounded-xs" style={{ backgroundColor: `rgba(232, 0, 45, ${v * 0.8})` }} />
             ))}
           </div>
-          <span className="text-xs text-falcon-muted">高</span>
+          <span className="text-xs text-[#7d92b0]">高</span>
         </div>
       </div>
 
@@ -321,8 +330,8 @@ function UserProfileCard({ username, anomalies }: { username: string; anomalies:
           const tc = ANOMALY_TYPE_CONFIG[a.anomaly_type]
           const sc = SEVERITY_CONFIG[a.severity]
           return (
-            <div key={a.id} className="flex items-center gap-3 py-1.5 border-b border-falcon-border/50 last:border-0">
-              <span className="text-xs text-falcon-muted w-24 shrink-0">{fmt(a.timestamp)}</span>
+            <div key={a.id} className="flex items-center gap-3 py-1.5 border-b border-[#1e2d42]/50 last:border-0">
+              <span className="text-xs text-[#7d92b0] w-24 shrink-0">{fmt(a.timestamp)}</span>
               <span className={`text-xs px-1.5 py-0.5 rounded-full ${tc.bg} ${tc.text} shrink-0`}>{tc.label}</span>
               <span className={`text-xs px-1.5 py-0.5 rounded-sm font-bold ${sc.bg} ${sc.text} shrink-0`}>{sc.label}</span>
               <span className={`text-xs font-bold ml-auto ${scoreColor(a.score)}`}>{a.score}</span>
@@ -345,6 +354,7 @@ export default function UEBAPage() {
   const [filterUser, setFilterUser] = useState('')
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [localAnomalies, setLocalAnomalies] = useState<Anomaly[]>([])
+  const { persist, saveError } = usePersist()
   const [userSearch, setUserSearch] = useState('')
   const [activeUser, setActiveUser] = useState<string | null>(null)
   const [toast, setToast] = useState<string | null>(null)
@@ -368,9 +378,10 @@ export default function UEBAPage() {
   const anomalies: Anomaly[] = anomaliesData ?? localAnomalies
 
   const handleStatusUpdate = async (id: string, status: AnomalyStatus) => {
-    try { await apiFetch(`/api/v1/admin/ueba/anomalies/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) }) } catch {}
-    setLocalAnomalies(prev => prev.map(a => a.id === id ? { ...a, status } : a))
-    showToast('ステータスを更新しました')
+    if (await persist('異常のステータス', `/api/v1/admin/ueba/anomalies/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) })) {
+      setLocalAnomalies(prev => prev.map(a => a.id === id ? { ...a, status } : a))
+      showToast('ステータスを更新しました')
+    }
   }
 
   const handleBulkAction = (status: AnomalyStatus) => {
@@ -395,14 +406,16 @@ export default function UEBAPage() {
 
   return (
     <div className="min-h-screen bg-[#070d19] p-6">
+      <PageDataUnavailable />
+      <SaveFailed error={saveError} />
       {/* Header */}
       <div className="flex items-center gap-3 mb-6">
-        <div className="w-10 h-10 rounded-lg bg-linear-to-br from-falcon-red to-falcon-red-dark flex items-center justify-center">
+        <div className="w-10 h-10 rounded-lg bg-linear-to-br from-[#e8002d] to-[#a80020] flex items-center justify-center">
           <Activity className="w-5 h-5 text-white" />
         </div>
         <div>
           <h1 className="text-white text-2xl font-bold">ユーザー行動分析 (UEBA)</h1>
-          <p className="text-falcon-muted text-sm">機械学習による異常行動検知と内部脅威分析</p>
+          <p className="text-[#7d92b0] text-sm">機械学習による異常行動検知と内部脅威分析</p>
         </div>
       </div>
 
@@ -414,8 +427,8 @@ export default function UEBAPage() {
           { label: '異常ユーザー数', value: usersWithAnomalies, color: 'text-orange-400' },
           { label: '平均リスクスコア', value: avgScore, color: 'text-yellow-400' },
         ].map(c => (
-          <div key={c.label} className="bg-falcon-surface border border-falcon-border rounded-xl p-4">
-            <p className="text-xs text-falcon-muted mb-2">{c.label}</p>
+          <div key={c.label} className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-4">
+            <p className="text-xs text-[#7d92b0] mb-2">{c.label}</p>
             <p className={`text-3xl font-bold ${c.color}`}>{c.value}</p>
           </div>
         ))}
@@ -426,7 +439,7 @@ export default function UEBAPage() {
         {[{ key: 'anomalies', label: '異常検知' }, { key: 'profiles', label: 'ユーザープロファイル' }].map(t => (
           <button key={t.key} onClick={() => setTab(t.key as any)}
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-              tab === t.key ? 'bg-falcon-red text-white' : 'bg-falcon-surface border border-falcon-border text-falcon-muted hover:text-white'
+              tab === t.key ? 'bg-[#e8002d] text-white' : 'bg-[#0d1220] border border-[#1e2d42] text-[#7d92b0] hover:text-white'
             }`}>{t.label}</button>
         ))}
       </div>
@@ -436,50 +449,50 @@ export default function UEBAPage() {
         <div>
           {/* Filters */}
           <div className="flex flex-wrap gap-3 mb-4">
-            <div className="flex items-center gap-2 bg-falcon-surface border border-falcon-border rounded-lg px-3 py-2">
-              <Filter className="w-3.5 h-3.5 text-falcon-muted" />
+            <div className="flex items-center gap-2 bg-[#0d1220] border border-[#1e2d42] rounded-lg px-3 py-2">
+              <Filter className="w-3.5 h-3.5 text-[#7d92b0]" />
               <select value={filterType} onChange={e => setFilterType(e.target.value as any)}
-                className="bg-transparent text-sm text-falcon-muted focus:outline-hidden focus:text-white">
+                className="bg-transparent text-sm text-[#7d92b0] focus:outline-hidden focus:text-white">
                 <option value="">全タイプ</option>
                 {(Object.keys(ANOMALY_TYPE_CONFIG) as AnomalyType[]).map(t => (
                   <option key={t} value={t}>{ANOMALY_TYPE_CONFIG[t].label}</option>
                 ))}
               </select>
             </div>
-            <div className="flex items-center gap-2 bg-falcon-surface border border-falcon-border rounded-lg px-3 py-2">
+            <div className="flex items-center gap-2 bg-[#0d1220] border border-[#1e2d42] rounded-lg px-3 py-2">
               <select value={filterSeverity} onChange={e => setFilterSeverity(e.target.value as any)}
-                className="bg-transparent text-sm text-falcon-muted focus:outline-hidden focus:text-white">
+                className="bg-transparent text-sm text-[#7d92b0] focus:outline-hidden focus:text-white">
                 <option value="">全重要度</option>
                 {(['low','medium','high','critical'] as Severity[]).map(s => (
                   <option key={s} value={s}>{SEVERITY_CONFIG[s].label}</option>
                 ))}
               </select>
             </div>
-            <div className="flex items-center gap-2 bg-falcon-surface border border-falcon-border rounded-lg px-3 py-2">
+            <div className="flex items-center gap-2 bg-[#0d1220] border border-[#1e2d42] rounded-lg px-3 py-2">
               <select value={filterStatus} onChange={e => setFilterStatus(e.target.value as any)}
-                className="bg-transparent text-sm text-falcon-muted focus:outline-hidden focus:text-white">
+                className="bg-transparent text-sm text-[#7d92b0] focus:outline-hidden focus:text-white">
                 <option value="">全ステータス</option>
                 {(['open','reviewed','false_positive','confirmed'] as AnomalyStatus[]).map(s => (
                   <option key={s} value={s}>{STATUS_CONFIG[s].label}</option>
                 ))}
               </select>
             </div>
-            <div className="flex items-center gap-2 bg-falcon-surface border border-falcon-border rounded-lg px-3 py-2">
-              <User className="w-3.5 h-3.5 text-falcon-muted" />
+            <div className="flex items-center gap-2 bg-[#0d1220] border border-[#1e2d42] rounded-lg px-3 py-2">
+              <User className="w-3.5 h-3.5 text-[#7d92b0]" />
               <input value={filterUser} onChange={e => setFilterUser(e.target.value)}
                 placeholder="ユーザー名で検索..."
-                className="bg-transparent text-sm text-falcon-muted focus:outline-hidden focus:text-white w-36" />
+                className="bg-transparent text-sm text-[#7d92b0] focus:outline-hidden focus:text-white w-36" />
             </div>
             {(filterType || filterSeverity || filterStatus || filterUser) && (
               <button onClick={() => { setFilterType(''); setFilterSeverity(''); setFilterStatus(''); setFilterUser('') }}
-                className="text-xs text-falcon-muted hover:text-white px-3 border border-falcon-border rounded-lg">リセット</button>
+                className="text-xs text-[#7d92b0] hover:text-white px-3 border border-[#1e2d42] rounded-lg">リセット</button>
             )}
           </div>
 
           {/* Bulk Actions */}
           {selectedIds.size > 0 && (
-            <div className="flex items-center gap-3 mb-4 p-3 bg-falcon-surface border border-falcon-border rounded-lg">
-              <span className="text-sm text-falcon-muted">{selectedIds.size}件を選択</span>
+            <div className="flex items-center gap-3 mb-4 p-3 bg-[#0d1220] border border-[#1e2d42] rounded-lg">
+              <span className="text-sm text-[#7d92b0]">{selectedIds.size}件を選択</span>
               <button onClick={() => handleBulkAction('reviewed')}
                 className="px-3 py-1.5 bg-blue-900/40 text-blue-300 border border-blue-700/30 rounded-sm text-xs hover:bg-blue-900/60 transition-colors">
                 レビュー済みにする
@@ -492,18 +505,18 @@ export default function UEBAPage() {
           )}
 
           {/* Table */}
-          <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
+          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-falcon-border">
+                <tr className="border-b border-[#1e2d42]">
                   <th className="px-4 py-3">
                     <input type="checkbox"
                       checked={selectedIds.size === filteredAnomalies.length && filteredAnomalies.length > 0}
                       onChange={e => setSelectedIds(e.target.checked ? new Set(filteredAnomalies.map(a => a.id)) : new Set())}
-                      className="accent-falcon-red" />
+                      className="accent-[#e8002d]" />
                   </th>
                   {['タイムスタンプ', 'ユーザー', 'タイプ', '重要度', 'スコア', 'ベースライン', '実際', 'ステータス', '操作'].map(h => (
-                    <th key={h} className="text-left text-xs text-falcon-muted font-medium px-4 py-3">{h}</th>
+                    <th key={h} className="text-left text-xs text-[#7d92b0] font-medium px-4 py-3">{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -513,7 +526,7 @@ export default function UEBAPage() {
                   const sc = SEVERITY_CONFIG[a.severity]
                   const stc = STATUS_CONFIG[a.status]
                   return (
-                    <tr key={a.id} className="border-b border-falcon-border/50 hover:bg-[#070d19]/50 transition-colors">
+                    <tr key={a.id} className="border-b border-[#1e2d42]/50 hover:bg-[#070d19]/50 transition-colors">
                       <td className="px-4 py-3">
                         <input type="checkbox" checked={selectedIds.has(a.id)}
                           onChange={e => {
@@ -521,9 +534,9 @@ export default function UEBAPage() {
                             e.target.checked ? next.add(a.id) : next.delete(a.id)
                             setSelectedIds(next)
                           }}
-                          className="accent-falcon-red" />
+                          className="accent-[#e8002d]" />
                       </td>
-                      <td className="px-4 py-3 text-xs text-falcon-muted whitespace-nowrap">{fmt(a.timestamp)}</td>
+                      <td className="px-4 py-3 text-xs text-[#7d92b0] whitespace-nowrap">{fmt(a.timestamp)}</td>
                       <td className="px-4 py-3">
                         <button onClick={() => { setActiveUser(a.username); setTab('profiles') }}
                           className="text-blue-400 text-xs hover:underline font-mono">{a.username}</button>
@@ -537,21 +550,21 @@ export default function UEBAPage() {
                       <td className="px-4 py-3">
                         <span className={`text-sm font-bold ${scoreColor(a.score)}`}>{a.score}</span>
                       </td>
-                      <td className="px-4 py-3 text-xs text-falcon-muted font-mono">{a.baseline_value}</td>
+                      <td className="px-4 py-3 text-xs text-[#7d92b0] font-mono">{a.baseline_value}</td>
                       <td className="px-4 py-3 text-xs text-white font-mono font-semibold">{a.actual_value}</td>
                       <td className="px-4 py-3">
                         <span className={`text-xs px-2 py-0.5 rounded-sm font-medium ${stc.bg} ${stc.text}`}>{stc.label}</span>
                       </td>
                       <td className="px-4 py-3">
                         <button onClick={() => setSelectedAnomaly(a)}
-                          className="text-xs text-falcon-muted hover:text-white transition-colors">詳細</button>
+                          className="text-xs text-[#7d92b0] hover:text-white transition-colors">詳細</button>
                       </td>
                     </tr>
                   )
                 })}
               </tbody>
             </table>
-            {filteredAnomalies.length === 0 && <div className="text-center py-12 text-falcon-muted text-sm">条件に一致する異常がありません</div>}
+            {filteredAnomalies.length === 0 && <div className="text-center py-12 text-[#7d92b0] text-sm">条件に一致する異常がありません</div>}
           </div>
         </div>
       )}
@@ -561,20 +574,20 @@ export default function UEBAPage() {
         <div>
           <div className="flex items-center gap-3 mb-6">
             <div className="relative flex-1 max-w-sm">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-falcon-muted" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#7d92b0]" />
               <input
                 value={userSearch}
                 onChange={e => setUserSearch(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && userSearch.trim() && setActiveUser(userSearch.trim())}
                 placeholder="ユーザー名を入力してEnter..."
-                className="w-full bg-falcon-surface border border-falcon-border rounded-lg pl-10 pr-4 py-2 text-sm text-white focus:outline-hidden focus:border-falcon-red/50"
+                className="w-full bg-[#0d1220] border border-[#1e2d42] rounded-lg pl-10 pr-4 py-2 text-sm text-white focus:outline-hidden focus:border-[#e8002d]/50"
               />
             </div>
             <div className="flex flex-wrap gap-2">
               {Array.from(new Set(anomalies.map(a => a.username))).map(u => (
                 <button key={u} onClick={() => { setActiveUser(u); setUserSearch(u) }}
                   className={`px-3 py-1.5 rounded-lg text-xs font-mono transition-colors ${
-                    activeUser === u ? 'bg-falcon-red text-white' : 'bg-falcon-surface border border-falcon-border text-falcon-muted hover:text-white'
+                    activeUser === u ? 'bg-[#e8002d] text-white' : 'bg-[#0d1220] border border-[#1e2d42] text-[#7d92b0] hover:text-white'
                   }`}>{u}</button>
               ))}
             </div>
@@ -583,8 +596,8 @@ export default function UEBAPage() {
           {activeUser ? (
             <UserProfileCard username={activeUser} anomalies={anomalies} />
           ) : (
-            <div className="text-center py-20 text-falcon-muted">
-              <User className="w-12 h-12 mx-auto mb-3 text-falcon-subtle" />
+            <div className="text-center py-20 text-[#7d92b0]">
+              <User className="w-12 h-12 mx-auto mb-3 text-[#3d5068]" />
               <p className="text-sm">ユーザー名を入力するか、上のボタンからユーザーを選択してください</p>
             </div>
           )}
@@ -601,10 +614,10 @@ export default function UEBAPage() {
       )}
 
       {toast && (
-        <div className="fixed bottom-6 right-6 z-50 max-w-sm bg-falcon-surface border border-green-500/50 rounded-lg p-4 shadow-xl flex items-center gap-3">
+        <div className="fixed bottom-6 right-6 z-50 max-w-sm bg-[#0d1220] border border-green-500/50 rounded-lg p-4 shadow-xl flex items-center gap-3">
           <CheckCircle className="w-4 h-4 text-green-400 shrink-0" />
-          <p className="text-sm text-falcon-text flex-1">{toast}</p>
-          <button onClick={() => setToast(null)} className="text-falcon-muted hover:text-white"><X className="w-4 h-4" /></button>
+          <p className="text-sm text-[#e2e8f4] flex-1">{toast}</p>
+          <button onClick={() => setToast(null)} className="text-[#7d92b0] hover:text-white"><X className="w-4 h-4" /></button>
         </div>
       )}
     </div>

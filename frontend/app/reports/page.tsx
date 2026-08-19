@@ -19,6 +19,9 @@ import {
   ChevronRight,
 } from 'lucide-react'
 
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+import { PageSaveFailed } from '@/components/PageSaveFailed'
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface ReportSchedule {
@@ -232,9 +235,7 @@ function AlertExportCard() {
 
       <button
         onClick={handleDownload}
-        className="mt-auto flex items-center justify-center gap-2 w-full px-4 py-2.5
-                   bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-medium
-                   transition-colors"
+        className="mt-auto flex items-center justify-center gap-2 w-full px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-medium transition-colors"
       >
         <Download className="w-4 h-4" />
         ダウンロード
@@ -288,9 +289,7 @@ function ComplianceExportCard() {
 
       <button
         onClick={handleDownload}
-        className="flex items-center justify-center gap-2 w-full px-4 py-2.5
-                   bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-medium
-                   transition-colors"
+        className="flex items-center justify-center gap-2 w-full px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-medium transition-colors"
       >
         <Download className="w-4 h-4" />
         ダウンロード
@@ -317,9 +316,9 @@ function ReportPreviewModal({ report, onClose }: { report: GeneratedReport; onCl
   const generatedAt = report.completed_at ?? report.requested_at
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-xs p-4">
-      <div className="bg-falcon-surface border border-falcon-border rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl">
-        <div className="flex items-start justify-between gap-4 p-5 border-b border-falcon-border">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl">
+        <div className="flex items-start justify-between gap-4 p-5 border-b border-[#1e2d42]">
           <div className="flex items-start gap-3 min-w-0">
             <div className={`p-2 rounded-lg shrink-0 ${
               report.type === 'alerts' ? 'bg-orange-900/30' :
@@ -344,7 +343,7 @@ function ReportPreviewModal({ report, onClose }: { report: GeneratedReport; onCl
         </div>
 
         <div className="overflow-y-auto flex-1 p-5 space-y-4">
-          <div className="bg-[#070d19] border border-falcon-border rounded-xl p-4 space-y-2 text-sm text-gray-300">
+          <div className="bg-[#070d19] border border-[#1e2d42] rounded-xl p-4 space-y-2 text-sm text-gray-300">
             <div className="flex items-center gap-2">
               <Calendar className="w-4 h-4 text-gray-500" />
               <span>生成日時: {formatDateTime(generatedAt)}</span>
@@ -363,7 +362,7 @@ function ReportPreviewModal({ report, onClose }: { report: GeneratedReport; onCl
           <div className="text-center text-xs text-gray-600 py-2">完全なレポートはダウンロードしてご確認ください</div>
         </div>
 
-        <div className="flex gap-2 p-4 border-t border-falcon-border">
+        <div className="flex gap-2 p-4 border-t border-[#1e2d42]">
           {report.download_url && (
             <button
               onClick={() => downloadViaAnchor(report.download_url!, `report_${report.id}.pdf`)}
@@ -488,7 +487,7 @@ function ScheduleForm({ onSubmit, onCancel, isPending }: ScheduleFormProps) {
           aria-label="有効化"
         >
           <span
-            className={`inline-block h-4 w-4 transform rounded-full bg-falcon-text shadow transition-transform ${
+            className={`inline-block h-4 w-4 transform rounded-full bg-[#e2e8f4] shadow-sm transition-transform ${
               enabled ? 'translate-x-4' : 'translate-x-0.5'
             }`}
           />
@@ -500,8 +499,7 @@ function ScheduleForm({ onSubmit, onCancel, isPending }: ScheduleFormProps) {
         <button
           type="submit"
           disabled={isPending || !name.trim()}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white
-                     rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+          className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
         >
           {isPending && (
             <RefreshCw className="w-4 h-4 animate-spin" />
@@ -564,8 +562,7 @@ function ScheduleCard({ schedule, onDelete, isDeleting, canWrite = true }: Sched
             <button
               onClick={() => onDelete(schedule.id)}
               disabled={isDeleting}
-              className="text-xs px-2.5 py-1 bg-red-700 hover:bg-red-600 text-white rounded-lg
-                         transition-colors disabled:opacity-50"
+              className="text-xs px-2.5 py-1 bg-red-700 hover:bg-red-600 text-white rounded-lg transition-colors disabled:opacity-50"
             >
               削除する
             </button>
@@ -579,8 +576,7 @@ function ScheduleCard({ schedule, onDelete, isDeleting, canWrite = true }: Sched
         ) : (
           <button
             onClick={() => setConfirmDelete(true)}
-            className="shrink-0 p-1.5 text-gray-600 hover:text-red-400 transition-colors rounded-lg
-                       hover:bg-red-900/20"
+            className="shrink-0 p-1.5 text-gray-600 hover:text-red-400 transition-colors rounded-lg hover:bg-red-900/20"
             title="削除"
           >
             <Trash2 className="w-4 h-4" />
@@ -672,6 +668,8 @@ export default function ReportsPage() {
 
   return (
     <div className="min-h-screen bg-gray-900 p-6 space-y-8">
+      <PageDataUnavailable />
+      <PageSaveFailed className="mb-4" />
       {previewReport && (
         <ReportPreviewModal report={previewReport} onClose={() => setPreviewReport(null)} />
       )}
@@ -724,7 +722,7 @@ export default function ReportsPage() {
                   <tr key={r.id} className="hover:bg-gray-700/30 transition-colors">
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
-                        <div className={`p-1.5 rounded ${
+                        <div className={`p-1.5 rounded-sm ${
                           r.type === 'alerts' ? 'bg-orange-900/30' :
                           r.type === 'compliance' ? 'bg-blue-900/30' : 'bg-purple-900/30'
                         }`}>
@@ -751,8 +749,7 @@ export default function ReportsPage() {
                       <div className="flex items-center justify-end gap-1">
                         <button
                           onClick={() => setPreviewReport(r)}
-                          className="flex items-center gap-1 px-2.5 py-1.5 bg-gray-700 hover:bg-gray-600
-                                     text-gray-300 hover:text-white text-xs rounded-lg transition-colors"
+                          className="flex items-center gap-1 px-2.5 py-1.5 bg-gray-700 hover:bg-gray-600 text-gray-300 hover:text-white text-xs rounded-lg transition-colors"
                         >
                           <Eye className="w-3.5 h-3.5" />プレビュー
                         </button>
@@ -790,8 +787,7 @@ export default function ReportsPage() {
             {canWrite && (
               <button
                 onClick={() => setShowForm(v => !v)}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500
-                           text-white rounded-lg text-sm font-medium transition-colors"
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-medium transition-colors"
               >
                 <Plus className="w-4 h-4" />
                 新しいスケジュールを追加

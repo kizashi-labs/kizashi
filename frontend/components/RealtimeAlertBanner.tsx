@@ -35,7 +35,7 @@ export function RealtimeAlertBanner() {
 
   const severityColor = (severity: string) => {
     switch (severity) {
-      case 'critical': return 'border-falcon-red bg-red-950/40'
+      case 'critical': return 'border-[#e8002d] bg-red-950/40'
       case 'high': return 'border-orange-500 bg-orange-950/40'
       case 'medium': return 'border-yellow-500 bg-yellow-950/40'
       default: return 'border-blue-500 bg-blue-950/40'
@@ -47,27 +47,27 @@ export function RealtimeAlertBanner() {
       {/* Connection status indicator */}
       <div className="flex items-center gap-2 justify-end">
         <div className={`w-2 h-2 rounded-full ${wsConnected ? 'bg-green-400 animate-pulse' : 'bg-gray-500'}`} />
-        <span className="text-xs text-falcon-muted">{wsConnected ? 'Live' : 'Offline'}</span>
+        <span className="text-xs text-[#7d92b0]">{wsConnected ? 'Live' : 'Offline'}</span>
       </div>
 
       {/* Alert notifications */}
       {notifications.map(n => (
         <div
           key={n.id}
-          className={`border rounded-lg p-3 ${severityColor(n.severity)} backdrop-blur-xs shadow-lg`}
+          className={`border rounded-lg p-3 ${severityColor(n.severity)} backdrop-blur-sm shadow-lg`}
         >
           <div className="flex items-start justify-between gap-2">
             <div className="flex items-center gap-2 min-w-0">
-              <AlertTriangle className="w-4 h-4 shrink-0 text-falcon-red" />
+              <AlertTriangle className="w-4 h-4 shrink-0 text-[#e8002d]" />
               <div className="min-w-0">
                 <div className="text-xs font-semibold text-white uppercase tracking-wide">{n.severity}</div>
                 <div className="text-sm text-white truncate">{n.title}</div>
-                <div className="text-xs text-falcon-muted">{new Date(n.timestamp).toLocaleTimeString()}</div>
+                <div className="text-xs text-[#7d92b0]">{new Date(n.timestamp).toLocaleTimeString()}</div>
               </div>
             </div>
             <button
               onClick={() => dismiss(n.id)}
-              className="shrink-0 text-falcon-muted hover:text-white"
+              className="shrink-0 text-[#7d92b0] hover:text-white"
             >
               <X className="w-4 h-4" />
             </button>

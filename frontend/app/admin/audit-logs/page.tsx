@@ -8,6 +8,8 @@ import {
   CheckCircle, XCircle, Filter,
 } from 'lucide-react'
 
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type Action = 'create' | 'update' | 'delete' | 'login' | 'logout' | 'export' | 'view' | 'execute'
@@ -61,6 +63,7 @@ function fmtDate(iso: string): string {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function AuditLogsPage() {
+  const [exportError, setExportError] = useState('')
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [filterUser, setFilterUser] = useState('')
   const [filterAction, setFilterAction] = useState('all')
@@ -68,9 +71,9 @@ export default function AuditLogsPage() {
   const [filterStart, setFilterStart] = useState('')
   const [filterEnd, setFilterEnd] = useState('')
 
-  const { data: apiEvents } = useQuery<AuditEvent[]>({
+  const { data: apiEvents = [] } = useQuery<AuditEvent[]>({
     queryKey: ['audit-events'],
-    queryFn: () => apiFetchList<AuditEvent>('/api/v1/admin/audit/events').catch(() => []),
+    queryFn: () => apiFetchList<AuditEvent>('/api/v1/admin/audit/events'),
     staleTime: 30_000,
     retry: 0,
   })
@@ -114,21 +117,28 @@ export default function AuditLogsPage() {
     if (filterResource !== 'all') params.set('resource', filterResource)
     if (filterStart) params.set('start', filterStart)
     if (filterEnd) params.set('end', filterEnd)
+    // fetch は 4xx/5xx で reject しません。res.ok を見ないと、サーバが
+    // 返したエラー本文がそのまま audit-export.csv になります。
+    //
+    // 失敗時に画面上の filtered から CSV を組み立てて同じ名前で保存して
+    // いました。監査に出すファイルが、いま絞り込んで見えている行に
+    // すり替わります。件数も並びも「それらしい」ので、受け取った側に
+    // 見分ける手がかりはありません。
     try {
-      const blob = await fetch(`/api/v1/admin/audit/export?${params}`, {
+      const res = await fetch(`/api/v1/admin/audit/export?${params}`, {
         headers: { Authorization: `Bearer ${localStorage.getItem('edr_token') || ''}` },
-      }).then(r => r.blob())
+      })
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      const blob = await res.blob()
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url; a.download = 'audit-export.csv'; a.click()
-    } catch {
-      const headers = ['timestamp', 'user', 'action', 'resource', 'resource_id', 'ip', 'risk_score', 'success']
-      const rows = filtered.map(e => headers.map(h => JSON.stringify((e as unknown as Record<string, unknown>)[h] ?? '')).join(','))
-      const csv = [headers.join(','), ...rows].join('\n')
-      const blob = new Blob([csv], { type: 'text/csv' })
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url; a.download = 'audit-export.csv'; a.click()
+      URL.revokeObjectURL(url)
+    } catch (e) {
+      setExportError(
+        `監査ログを書き出せませんでした（${e instanceof Error ? e.message : String(e)}）。` +
+        'ファイルは作成していません'
+      )
     }
   }
 
@@ -139,6 +149,12 @@ export default function AuditLogsPage() {
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100 p-6">
+      <PageDataUnavailable />
+      {exportError && (
+        <div className="mb-4 rounded-lg border border-red-800 bg-red-950/40 px-4 py-3 text-sm text-red-200">
+          {exportError}
+        </div>
+      )}
       {/* ヘッダー */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">

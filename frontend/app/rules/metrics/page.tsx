@@ -12,7 +12,10 @@ import {
   Play, X, Loader2, ChevronUp, ChevronDown,
   CheckCircle2, Calendar,
 } from 'lucide-react'
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+
 import { apiFetch } from '@/lib/api'
+import { USE_MOCK } from '@/lib/mock'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -78,7 +81,7 @@ function alertCountColor(count: number): string {
   if (count >= 100) return 'text-red-400'
   if (count >= 50) return 'text-orange-400'
   if (count >= 10) return 'text-yellow-400'
-  return 'text-falcon-text'
+  return 'text-[#e2e8f4]'
 }
 
 function fpRateColor(rate: number): string {
@@ -93,7 +96,7 @@ function severityColor(severity: string): { cls: string; label: string } {
     case 'high': return { cls: 'bg-orange-900/40 text-orange-400', label: 'HIGH' }
     case 'medium': return { cls: 'bg-yellow-900/40 text-yellow-400', label: 'MEDIUM' }
     case 'low': return { cls: 'bg-blue-900/40 text-blue-400', label: 'LOW' }
-    default: return { cls: 'bg-falcon-border text-falcon-muted', label: severity.toUpperCase() }
+    default: return { cls: 'bg-[#1e2d42] text-[#7d92b0]', label: severity.toUpperCase() }
   }
 }
 
@@ -132,9 +135,9 @@ interface StatCardProps {
   sub?: string
 }
 
-function StatCard({ label, value, icon, color = 'text-falcon-blue', sub }: StatCardProps) {
+function StatCard({ label, value, icon, color = 'text-[#1a6bff]', sub }: StatCardProps) {
   return (
-    <div className="bg-gray-800 rounded-xl p-5 border border-falcon-border">
+    <div className="bg-gray-800 rounded-xl p-5 border border-[#1e2d42]">
       <div className="flex items-start justify-between">
         <div>
           <p className="text-[#8899aa] text-xs font-medium mb-1">{label}</p>
@@ -157,10 +160,10 @@ interface TestModalProps {
 
 function TestResultModal({ ruleName, result, onClose }: TestModalProps) {
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-50 p-4">
-      <div className="bg-falcon-card rounded-2xl border border-falcon-border w-full max-w-2xl shadow-2xl">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-[#111827] rounded-2xl border border-[#1e2d42] w-full max-w-2xl shadow-2xl">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-falcon-border">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[#1e2d42]">
           <div className="flex items-center gap-3">
             <CheckCircle2 className="w-5 h-5 text-green-400" />
             <div>
@@ -178,7 +181,7 @@ function TestResultModal({ ruleName, result, onClose }: TestModalProps) {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-2 gap-4 px-6 py-4 border-b border-falcon-border">
+        <div className="grid grid-cols-2 gap-4 px-6 py-4 border-b border-[#1e2d42]">
           <div className="bg-[#0d1628] rounded-lg p-4 text-center">
             <p className="text-[#8899aa] text-xs mb-1">チェックしたイベント数</p>
             <p className="text-white text-2xl font-bold">
@@ -220,11 +223,10 @@ function TestResultModal({ ruleName, result, onClose }: TestModalProps) {
         )}
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-falcon-border flex justify-end">
+        <div className="px-6 py-4 border-t border-[#1e2d42] flex justify-end">
           <button
             onClick={onClose}
-            className="px-5 py-2 bg-falcon-raised text-[#8899aa] rounded-lg hover:bg-falcon-active
-                       hover:text-white transition-colors text-sm"
+            className="px-5 py-2 bg-[#161f33] text-[#8899aa] rounded-lg hover:bg-[#1d2f4a] hover:text-white transition-colors text-sm"
           >
             閉じる
           </button>
@@ -237,10 +239,10 @@ function TestResultModal({ ruleName, result, onClose }: TestModalProps) {
 // ── Sort icon helper ──────────────────────────────────────────────────────────
 
 function SortIcon({ active, dir }: { active: boolean; dir: SortDir }) {
-  if (!active) return <ChevronDown className="w-3.5 h-3.5 text-falcon-subtle" />
+  if (!active) return <ChevronDown className="w-3.5 h-3.5 text-[#3d5068]" />
   return dir === 'asc'
-    ? <ChevronUp className="w-3.5 h-3.5 text-falcon-blue" />
-    : <ChevronDown className="w-3.5 h-3.5 text-falcon-blue" />
+    ? <ChevronUp className="w-3.5 h-3.5 text-[#1a6bff]" />
+    : <ChevronDown className="w-3.5 h-3.5 text-[#1a6bff]" />
 }
 
 // ── Generate mock daily data when backend doesn't provide it ──────────────────
@@ -364,9 +366,12 @@ export default function RuleMetricsPage() {
   // ── Daily volume line chart ────────────────────────────────────────────────
 
   const days = dateRange === '7d' ? 7 : dateRange === '90d' ? 90 : 30
+  // サーバが日次の内訳を返さないとき、以前は合計を日数で割って
+  // ±30%の乱数を掛けた線を描いていました。合計は本物なので、線も本物に
+  // 見えます。「14日に跳ねている」は、そこから調査が始まる観察です。
   const dailyData = useMemo(() => {
     if (stats?.daily_counts?.length) return stats.daily_counts
-    return buildDailyData(rules, days)
+    return USE_MOCK ? buildDailyData(rules, days) : []
   }, [stats, rules, days])
 
   // ── Rule test ──────────────────────────────────────────────────────────────
@@ -391,11 +396,12 @@ export default function RuleMetricsPage() {
 
   return (
     <div className="min-h-screen bg-gray-900 p-6 space-y-6">
+      <PageDataUnavailable />
       {/* ── Header ── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-            <TrendingUp className="w-6 h-6 text-falcon-blue" />
+            <TrendingUp className="w-6 h-6 text-[#1a6bff]" />
             ルールパフォーマンス
           </h1>
           <p className="text-[#8899aa] text-sm mt-1">
@@ -404,7 +410,7 @@ export default function RuleMetricsPage() {
         </div>
 
         {/* Date range selector */}
-        <div className="flex items-center gap-2 bg-gray-800 rounded-lg p-1 border border-falcon-border">
+        <div className="flex items-center gap-2 bg-gray-800 rounded-lg p-1 border border-[#1e2d42]">
           <Calendar className="w-4 h-4 text-[#5a6a7a] ml-2" />
           {(['7d', '30d', '90d'] as DateRange[]).map((r) => (
             <button
@@ -412,7 +418,7 @@ export default function RuleMetricsPage() {
               onClick={() => setDateRange(r)}
               className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors
                           ${dateRange === r
-                            ? 'bg-falcon-blue text-white'
+                            ? 'bg-[#1a6bff] text-white'
                             : 'text-[#8899aa] hover:text-white'}`}
             >
               {r === '7d' ? '7日' : r === '30d' ? '30日' : '90日'}
@@ -427,7 +433,7 @@ export default function RuleMetricsPage() {
           label="総ルール数"
           value={totalRules.toLocaleString()}
           icon={<Shield className="w-5 h-5" />}
-          color="text-falcon-blue"
+          color="text-[#1a6bff]"
           sub={`${activeRules}件アクティブ`}
         />
         <StatCard
@@ -454,16 +460,15 @@ export default function RuleMetricsPage() {
       </div>
 
       {/* ── Rule performance table ── */}
-      <div className="bg-gray-800 rounded-xl border border-falcon-border overflow-hidden">
-        <div className="px-5 py-4 border-b border-falcon-border flex items-center justify-between">
+      <div className="bg-gray-800 rounded-xl border border-[#1e2d42] overflow-hidden">
+        <div className="px-5 py-4 border-b border-[#1e2d42] flex items-center justify-between">
           <h2 className="text-white font-semibold">ルール別パフォーマンス</h2>
           <span className="text-[#5a6a7a] text-xs">{rules.length}件</span>
         </div>
 
         {/* Error from test */}
         {testError && (
-          <div className="mx-5 mt-4 flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm
-                          bg-red-900/40 border border-red-700/50 text-red-300">
+          <div className="mx-5 mt-4 flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm bg-red-900/40 border border-red-700/50 text-red-300">
             <AlertTriangle className="w-4 h-4 shrink-0" />
             <span className="flex-1">{testError}</span>
             <button onClick={() => setTestError(null)}>
@@ -475,7 +480,7 @@ export default function RuleMetricsPage() {
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-falcon-border">
+              <tr className="border-b border-[#1e2d42]">
                 {/* ルール名 */}
                 <th className="text-left px-5 py-3">
                   <button
@@ -538,10 +543,10 @@ export default function RuleMetricsPage() {
             <tbody>
               {rulesLoading ? (
                 [...Array(8)].map((_, i) => (
-                  <tr key={i} className="border-b border-falcon-border/50">
+                  <tr key={i} className="border-b border-[#1e2d42]/50">
                     {[...Array(8)].map((_, j) => (
                       <td key={j} className="px-4 py-3">
-                        <div className="h-4 bg-falcon-raised rounded-sm animate-pulse" />
+                        <div className="h-4 bg-[#161f33] rounded-sm animate-pulse" />
                       </td>
                     ))}
                   </tr>
@@ -564,7 +569,7 @@ export default function RuleMetricsPage() {
                   return (
                     <tr
                       key={rule.id}
-                      className="border-b border-falcon-border/50 hover:bg-falcon-raised transition-colors"
+                      className="border-b border-[#1e2d42]/50 hover:bg-[#161f33] transition-colors"
                     >
                       {/* Name */}
                       <td className="px-5 py-3">
@@ -601,7 +606,7 @@ export default function RuleMetricsPage() {
                             {fp.toFixed(1)}%
                           </span>
                         ) : (
-                          <span className="text-falcon-subtle text-xs">—</span>
+                          <span className="text-[#3d5068] text-xs">—</span>
                         )}
                       </td>
 
@@ -612,7 +617,7 @@ export default function RuleMetricsPage() {
                             {formatDate(rule.last_triggered)}
                           </span>
                         ) : (
-                          <span className="text-falcon-subtle text-xs">—</span>
+                          <span className="text-[#3d5068] text-xs">—</span>
                         )}
                       </td>
 
@@ -622,10 +627,10 @@ export default function RuleMetricsPage() {
                           className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full
                                       ${rule.enabled
                                         ? 'bg-green-900/40 text-green-400'
-                                        : 'bg-falcon-raised text-[#5a6a7a]'}`}
+                                        : 'bg-[#161f33] text-[#5a6a7a]'}`}
                         >
                           <span
-                            className={`w-1.5 h-1.5 rounded-full ${rule.enabled ? 'bg-green-400' : 'bg-falcon-subtle'}`}
+                            className={`w-1.5 h-1.5 rounded-full ${rule.enabled ? 'bg-green-400' : 'bg-[#3d5068]'}`}
                           />
                           {rule.enabled ? '有効' : '無効'}
                         </span>
@@ -637,10 +642,7 @@ export default function RuleMetricsPage() {
                           onClick={() => runTest(rule)}
                           disabled={isTesting || testingRuleId !== null}
                           title="テスト実行（過去24時間）"
-                          className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg
-                                     bg-falcon-blue/10 border border-falcon-blue/30 text-[#5a99ff]
-                                     hover:bg-falcon-blue/20 transition-colors
-                                     disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-[#1a6bff]/10 border border-[#1a6bff]/30 text-[#5a99ff] hover:bg-[#1a6bff]/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           {isTesting ? (
                             <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -662,7 +664,7 @@ export default function RuleMetricsPage() {
       {/* ── Charts row ── */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
         {/* Top 10 bar chart */}
-        <div className="bg-gray-800 rounded-xl border border-falcon-border p-5">
+        <div className="bg-gray-800 rounded-xl border border-[#1e2d42] p-5">
           <h2 className="text-white font-semibold mb-4 text-sm">
             アラート数 Top 10 ルール
           </h2>
@@ -714,7 +716,7 @@ export default function RuleMetricsPage() {
         </div>
 
         {/* Daily volume line chart */}
-        <div className="bg-gray-800 rounded-xl border border-falcon-border p-5">
+        <div className="bg-gray-800 rounded-xl border border-[#1e2d42] p-5">
           <h2 className="text-white font-semibold mb-4 text-sm">
             アラート発生ボリューム（過去{days}日）
           </h2>

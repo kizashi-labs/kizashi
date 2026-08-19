@@ -11,6 +11,11 @@ import {
 } from 'lucide-react'
 
 
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+import { PageSaveFailed } from '@/components/PageSaveFailed'
+import { VerdictUnavailable } from '@/components/VerdictUnavailable'
+import { SaveFailed, saveErrorOf } from '@/lib/persist'
+
 // ── Types ──────────────────────────────────────────────────────────────────────
 
 type Category = 'alerts' | 'events' | 'endpoints' | 'network'
@@ -106,27 +111,28 @@ function CategoryBadge({ category }: { category: Category }) {
 interface RunResultPanelProps {
   search: SavedSearch
   result: RunResult | null
+  error: string | null
   loading: boolean
   onClose: () => void
 }
 
-function RunResultPanel({ search, result, loading, onClose }: RunResultPanelProps) {
+function RunResultPanel({ search, result, error, loading, onClose }: RunResultPanelProps) {
   return (
     <div className="fixed inset-0 z-50 flex">
-      <div className="flex-1 bg-black/60 backdrop-blur-xs" onClick={onClose} />
-      <div className="w-[480px] bg-falcon-surface border-l border-falcon-border flex flex-col shadow-2xl">
+      <div className="flex-1 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="w-[480px] bg-[#0d1220] border-l border-[#1e2d42] flex flex-col shadow-2xl">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-falcon-border">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[#1e2d42]">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-falcon-red/15 flex items-center justify-center">
-              <Play className="w-4 h-4 text-falcon-red" />
+            <div className="w-8 h-8 rounded-lg bg-[#e8002d]/15 flex items-center justify-center">
+              <Play className="w-4 h-4 text-[#e8002d]" />
             </div>
             <div>
               <h3 className="text-white font-semibold text-sm">検索実行結果</h3>
-              <p className="text-falcon-muted text-xs mt-0.5 truncate max-w-[280px]">{search.name}</p>
+              <p className="text-[#7d92b0] text-xs mt-0.5 truncate max-w-[280px]">{search.name}</p>
             </div>
           </div>
-          <button onClick={onClose} className="text-falcon-muted hover:text-white transition-colors p-1">
+          <button onClick={onClose} className="text-[#7d92b0] hover:text-white transition-colors p-1">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -135,37 +141,39 @@ function RunResultPanel({ search, result, loading, onClose }: RunResultPanelProp
         <div className="flex-1 p-6 space-y-5 overflow-y-auto">
           {loading ? (
             <div className="flex flex-col items-center justify-center gap-3 py-16">
-              <div className="w-10 h-10 border-2 border-falcon-red border-t-transparent rounded-full animate-spin" />
-              <p className="text-falcon-muted text-sm">検索を実行中...</p>
+              <div className="w-10 h-10 border-2 border-[#e8002d] border-t-transparent rounded-full animate-spin" />
+              <p className="text-[#7d92b0] text-sm">検索を実行中...</p>
             </div>
+          ) : error ? (
+            <VerdictUnavailable what="保存済み検索の実行" detail={error} />
           ) : result ? (
             <>
               {/* Result count */}
-              <div className="bg-[#070d19] rounded-xl border border-falcon-border p-5 text-center">
-                <p className="text-falcon-muted text-xs mb-2">マッチした件数</p>
+              <div className="bg-[#070d19] rounded-xl border border-[#1e2d42] p-5 text-center">
+                <p className="text-[#7d92b0] text-xs mb-2">マッチした件数</p>
                 <p className="text-5xl font-bold text-white">{(result.result_count ?? 0).toLocaleString()}</p>
-                <p className="text-falcon-muted text-xs mt-2">件のレコード</p>
+                <p className="text-[#7d92b0] text-xs mt-2">件のレコード</p>
               </div>
 
               {/* Stats */}
               <div className="grid grid-cols-2 gap-3">
-                <div className="bg-[#070d19] rounded-lg border border-falcon-border p-3">
-                  <p className="text-falcon-muted text-xs mb-1">実行時間</p>
+                <div className="bg-[#070d19] rounded-lg border border-[#1e2d42] p-3">
+                  <p className="text-[#7d92b0] text-xs mb-1">実行時間</p>
                   <p className="text-white font-semibold">{result.elapsed_ms} ms</p>
                 </div>
-                <div className="bg-[#070d19] rounded-lg border border-falcon-border p-3">
-                  <p className="text-falcon-muted text-xs mb-1">実行日時</p>
+                <div className="bg-[#070d19] rounded-lg border border-[#1e2d42] p-3">
+                  <p className="text-[#7d92b0] text-xs mb-1">実行日時</p>
                   <p className="text-white font-semibold text-xs">{fmtDateTime(result.executed_at)}</p>
                 </div>
               </div>
 
               {/* Query */}
               <div>
-                <p className="text-falcon-muted text-xs font-medium mb-2 flex items-center gap-1.5">
+                <p className="text-[#7d92b0] text-xs font-medium mb-2 flex items-center gap-1.5">
                   <Hash className="w-3.5 h-3.5" />
                   実行クエリ
                 </p>
-                <div className="bg-[#070d19] rounded-lg border border-falcon-border p-3">
+                <div className="bg-[#070d19] rounded-lg border border-[#1e2d42] p-3">
                   <code className="text-green-400 text-xs font-mono break-all">{search.query}</code>
                 </div>
               </div>
@@ -204,19 +212,19 @@ function SearchModal({ mode, initial, onSubmit, onClose, loading }: SearchModalP
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-xs" onClick={onClose} />
-      <div className="relative w-full max-w-lg bg-falcon-surface border border-falcon-border rounded-xl shadow-2xl">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative w-full max-w-lg bg-[#0d1220] border border-[#1e2d42] rounded-xl shadow-2xl">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-falcon-border">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[#1e2d42]">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-falcon-blue/15 flex items-center justify-center">
-              <BookMarked className="w-4 h-4 text-falcon-blue" />
+            <div className="w-8 h-8 rounded-lg bg-[#1a6bff]/15 flex items-center justify-center">
+              <BookMarked className="w-4 h-4 text-[#1a6bff]" />
             </div>
             <h3 className="text-white font-semibold">
               {mode === 'create' ? '保存済み検索を作成' : '保存済み検索を編集'}
             </h3>
           </div>
-          <button onClick={onClose} className="text-falcon-muted hover:text-white transition-colors">
+          <button onClick={onClose} className="text-[#7d92b0] hover:text-white transition-colors">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -225,101 +233,94 @@ function SearchModal({ mode, initial, onSubmit, onClose, loading }: SearchModalP
         <div className="px-6 py-5 space-y-4">
           {/* Name */}
           <div>
-            <label className="block text-falcon-muted text-xs font-medium mb-1.5">
-              検索名 <span className="text-falcon-red">*</span>
+            <label className="block text-[#7d92b0] text-xs font-medium mb-1.5">
+              検索名 <span className="text-[#e8002d]">*</span>
             </label>
             <input
               type="text"
               value={form.name}
               onChange={e => set('name', e.target.value)}
               placeholder="例: クリティカルアラート - 過去24時間"
-              className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white
-                         text-sm placeholder-[#3d5275] focus:outline-hidden focus:border-falcon-blue transition-colors"
+              className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm placeholder-[#3d5275] focus:outline-hidden focus:border-[#1a6bff] transition-colors"
             />
           </div>
 
           {/* Query */}
           <div>
-            <label className="block text-falcon-muted text-xs font-medium mb-1.5">
-              クエリ <span className="text-falcon-red">*</span>
+            <label className="block text-[#7d92b0] text-xs font-medium mb-1.5">
+              クエリ <span className="text-[#e8002d]">*</span>
             </label>
             <textarea
               rows={4}
               value={form.query}
               onChange={e => set('query', e.target.value)}
               placeholder="severity:critical AND timestamp:>now-24h"
-              className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white
-                         text-sm placeholder-[#3d5275] font-mono focus:outline-hidden focus:border-falcon-blue
-                         transition-colors resize-none"
+              className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm placeholder-[#3d5275] font-mono focus:outline-hidden focus:border-[#1a6bff] transition-colors resize-none"
             />
           </div>
 
           {/* Category */}
           <div>
-            <label className="block text-falcon-muted text-xs font-medium mb-1.5">カテゴリ</label>
+            <label className="block text-[#7d92b0] text-xs font-medium mb-1.5">カテゴリ</label>
             <div className="relative">
               <select
                 value={form.category}
                 onChange={e => set('category', e.target.value as Category)}
-                className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white
-                           text-sm appearance-none focus:outline-hidden focus:border-falcon-blue transition-colors pr-8"
+                className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm appearance-none focus:outline-hidden focus:border-[#1a6bff] transition-colors pr-8"
               >
                 <option value="alerts">アラート</option>
                 <option value="events">イベント</option>
                 <option value="endpoints">エンドポイント</option>
                 <option value="network">ネットワーク</option>
               </select>
-              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-falcon-muted pointer-events-none" />
+              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#7d92b0] pointer-events-none" />
             </div>
           </div>
 
           {/* Description */}
           <div>
-            <label className="block text-falcon-muted text-xs font-medium mb-1.5">説明</label>
+            <label className="block text-[#7d92b0] text-xs font-medium mb-1.5">説明</label>
             <input
               type="text"
               value={form.description}
               onChange={e => set('description', e.target.value)}
               placeholder="この検索の目的や使用方法を説明..."
-              className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white
-                         text-sm placeholder-[#3d5275] focus:outline-hidden focus:border-falcon-blue transition-colors"
+              className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm placeholder-[#3d5275] focus:outline-hidden focus:border-[#1a6bff] transition-colors"
             />
           </div>
 
           {/* Shared toggle */}
           <div className="flex items-center justify-between py-2">
             <div className="flex items-center gap-2">
-              <Share2 className="w-4 h-4 text-falcon-muted" />
+              <Share2 className="w-4 h-4 text-[#7d92b0]" />
               <div>
                 <p className="text-white text-sm">チームで共有</p>
-                <p className="text-falcon-muted text-xs">有効にするとすべてのユーザーが使用できます</p>
+                <p className="text-[#7d92b0] text-xs">有効にするとすべてのユーザーが使用できます</p>
               </div>
             </div>
             <button
               type="button"
               onClick={() => set('shared', !form.shared)}
-              className={`w-10 h-5 rounded-full transition-colors relative ${form.shared ? 'bg-falcon-blue' : 'bg-falcon-border'}`}
+              className={`w-10 h-5 rounded-full transition-colors relative ${form.shared ? 'bg-[#1a6bff]' : 'bg-[#1e2d42]'}`}
             >
-              <span className={`absolute top-0.5 w-4 h-4 bg-falcon-text rounded-full shadow transition-transform
+              <span className={`absolute top-0.5 w-4 h-4 bg-[#e2e8f4] rounded-full shadow-sm transition-transform
                                ${form.shared ? 'translate-x-5' : 'translate-x-0.5'}`} />
             </button>
           </div>
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-falcon-border">
+        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-[#1e2d42]">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-sm text-falcon-muted hover:text-white border border-falcon-border
-                       hover:border-[#2d4060] rounded-lg transition-colors"
+            className="px-4 py-2 text-sm text-[#7d92b0] hover:text-white border border-[#1e2d42] hover:border-[#2d4060] rounded-lg transition-colors"
           >
             キャンセル
           </button>
           <button
             onClick={() => onSubmit(form)}
             disabled={!valid || loading}
-            className="px-4 py-2 text-sm text-white bg-falcon-blue hover:bg-[#1558e0] rounded-lg
-                       transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
+            className="px-4 py-2 text-sm text-white bg-[#1a6bff] hover:bg-[#1558e0] rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
           >
             {loading && <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />}
             {mode === 'create' ? '作成' : '保存'}
@@ -340,28 +341,28 @@ function DeleteModal({ search, onConfirm, onClose, loading }: {
 }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-xs" onClick={onClose} />
-      <div className="relative w-full max-w-sm bg-falcon-surface border border-falcon-border rounded-xl shadow-2xl p-6">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative w-full max-w-sm bg-[#0d1220] border border-[#1e2d42] rounded-xl shadow-2xl p-6">
         <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 rounded-full bg-falcon-red/15 flex items-center justify-center shrink-0">
-            <Trash2 className="w-5 h-5 text-falcon-red" />
+          <div className="w-10 h-10 rounded-full bg-[#e8002d]/15 flex items-center justify-center shrink-0">
+            <Trash2 className="w-5 h-5 text-[#e8002d]" />
           </div>
           <div>
             <h3 className="text-white font-semibold">削除の確認</h3>
-            <p className="text-falcon-muted text-xs mt-0.5">この操作は元に戻せません</p>
+            <p className="text-[#7d92b0] text-xs mt-0.5">この操作は元に戻せません</p>
           </div>
         </div>
-        <p className="text-falcon-muted text-sm mb-5">
+        <p className="text-[#7d92b0] text-sm mb-5">
           「<span className="text-white font-medium">{search.name}</span>」を削除します。よろしいですか？
         </p>
         <div className="flex items-center justify-end gap-3">
-          <button onClick={onClose} className="px-4 py-2 text-sm text-falcon-muted hover:text-white border border-falcon-border hover:border-[#2d4060] rounded-lg transition-colors">
+          <button onClick={onClose} className="px-4 py-2 text-sm text-[#7d92b0] hover:text-white border border-[#1e2d42] hover:border-[#2d4060] rounded-lg transition-colors">
             キャンセル
           </button>
           <button
             onClick={onConfirm}
             disabled={loading}
-            className="px-4 py-2 text-sm text-white bg-falcon-red hover:bg-[#c20026] rounded-lg transition-colors disabled:opacity-40 flex items-center gap-2"
+            className="px-4 py-2 text-sm text-white bg-[#e8002d] hover:bg-[#c20026] rounded-lg transition-colors disabled:opacity-40 flex items-center gap-2"
           >
             {loading && <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />}
             削除する
@@ -389,13 +390,14 @@ export default function SavedSearchesPage() {
   // Run panel state
   const [runTarget, setRunTarget]   = useState<SavedSearch | null>(null)
   const [runResult, setRunResult]   = useState<RunResult | null>(null)
+  const [runError, setRunError]     = useState<string | null>(null)
   const [runLoading, setRunLoading] = useState(false)
 
   // ── API Queries ──────────────────────────────────────────────────────────────
 
   const { data: searches = [], isLoading, refetch } = useQuery<SavedSearch[]>({
     queryKey: ['admin-saved-searches'],
-    queryFn: () => apiFetchList<SavedSearch>('/api/v1/admin/saved-searches').catch(() => []),
+    queryFn: () => apiFetchList<SavedSearch>('/api/v1/admin/saved-searches'),
     staleTime: 30_000,
   })
 
@@ -404,13 +406,7 @@ export default function SavedSearchesPage() {
       apiFetch<SavedSearch>('/api/v1/admin/saved-searches', {
         method: 'POST',
         body: JSON.stringify(payload),
-      }).catch(() => ({
-        id: String(Date.now()),
-        ...payload,
-        created_by: 'admin@example.com',
-        created_at: new Date().toISOString(),
-        run_count: 0,
-      } as SavedSearch)),
+      }),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['admin-saved-searches'] }); setShowCreate(false) },
   })
 
@@ -419,13 +415,15 @@ export default function SavedSearchesPage() {
       apiFetch<SavedSearch>(`/api/v1/admin/saved-searches/${id}`, {
         method: 'PUT',
         body: JSON.stringify(payload),
-      }).catch(() => ({ id, ...payload, created_by: 'admin@example.com', created_at: new Date().toISOString(), run_count: 0 } as SavedSearch)),
+      }),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['admin-saved-searches'] }); setEditTarget(null) },
   })
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) =>
-      apiFetch(`/api/v1/admin/saved-searches/${id}`, { method: 'DELETE' }).catch(() => null),
+      // .catch(() => null) で失敗が成功になり、削除できていないのに
+      // 一覧から消えたように見えていました。
+      apiFetch(`/api/v1/admin/saved-searches/${id}`, { method: 'DELETE' }),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['admin-saved-searches'] }); setDeleteTarget(null) },
   })
 
@@ -434,18 +432,17 @@ export default function SavedSearchesPage() {
   async function handleRun(search: SavedSearch) {
     setRunTarget(search)
     setRunResult(null)
+    setRunError(null)
     setRunLoading(true)
     try {
       const result = await apiFetch<RunResult>(`/api/v1/admin/saved-searches/${search.id}/run`, { method: 'POST' })
       setRunResult(result)
-    } catch {
-      // Mock result
-      setRunResult({
-        search_id: search.id,
-        result_count: Math.floor(Math.random() * 5000) + 50,
-        elapsed_ms: Math.floor(Math.random() * 400) + 80,
-        executed_at: new Date().toISOString(),
-      })
+    } catch (e) {
+      // ここは result_count: Math.floor(Math.random() * 5000) + 50 でした。
+      // 検索が実行できなかったときに「3,412件マッチ・210ms」のような
+      // 具体的な結果を大きな数字で表示していました。ハンティングの
+      // クエリを評価している人が、その件数を根拠に次を決めます。
+      setRunError(e instanceof Error ? e.message : '不明なエラー')
     } finally {
       setRunLoading(false)
     }
@@ -477,6 +474,9 @@ export default function SavedSearchesPage() {
 
   return (
     <div className="min-h-screen bg-[#070d19] text-white">
+      <PageDataUnavailable />
+      <PageSaveFailed />
+      <SaveFailed error={saveErrorOf('保存済み検索', deleteMutation)} />
       {/* Modals */}
       {showCreate && (
         <SearchModal
@@ -508,22 +508,22 @@ export default function SavedSearchesPage() {
         <RunResultPanel
           search={runTarget}
           result={runResult}
+          error={runError}
           loading={runLoading}
-          onClose={() => { setRunTarget(null); setRunResult(null) }}
+          onClose={() => { setRunTarget(null); setRunResult(null); setRunError(null) }}
         />
       )}
 
-      <div className="max-w-(--breakpoint-xl) mx-auto px-6 py-8 space-y-6">
+      <div className="max-w-screen-xl mx-auto px-6 py-8 space-y-6">
         {/* Page Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <div className="w-10 h-10 rounded-xl bg-falcon-blue/15 border border-falcon-blue/30
-                            flex items-center justify-center">
-              <BookMarked className="w-5 h-5 text-falcon-blue" />
+            <div className="w-10 h-10 rounded-xl bg-[#1a6bff]/15 border border-[#1a6bff]/30 flex items-center justify-center">
+              <BookMarked className="w-5 h-5 text-[#1a6bff]" />
             </div>
             <div>
               <h1 className="text-xl font-bold text-white">保存済み検索</h1>
-              <p className="text-falcon-muted text-sm mt-0.5">
+              <p className="text-[#7d92b0] text-sm mt-0.5">
                 よく使う検索クエリを保存・管理します
               </p>
             </div>
@@ -531,16 +531,14 @@ export default function SavedSearchesPage() {
           <div className="flex items-center gap-2">
             <button
               onClick={() => refetch()}
-              className="p-2 text-falcon-muted hover:text-white border border-falcon-border hover:border-[#2d4060]
-                         rounded-lg transition-colors"
+              className="p-2 text-[#7d92b0] hover:text-white border border-[#1e2d42] hover:border-[#2d4060] rounded-lg transition-colors"
               title="更新"
             >
               <RefreshCw className="w-4 h-4" />
             </button>
             <button
               onClick={() => setShowCreate(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-falcon-blue hover:bg-[#1558e0] text-white
-                         text-sm font-medium rounded-lg transition-colors"
+              className="flex items-center gap-2 px-4 py-2 bg-[#1a6bff] hover:bg-[#1558e0] text-white text-sm font-medium rounded-lg transition-colors"
             >
               <Plus className="w-4 h-4" />
               新規作成
@@ -551,23 +549,23 @@ export default function SavedSearchesPage() {
         {/* Stats Row */}
         <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
           {/* Total */}
-          <div className="bg-falcon-surface border border-falcon-border rounded-xl p-4 col-span-1">
-            <p className="text-falcon-muted text-xs mb-1">合計</p>
+          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-4 col-span-1">
+            <p className="text-[#7d92b0] text-xs mb-1">合計</p>
             <p className="text-2xl font-bold text-white">{stats.total}</p>
           </div>
           {/* Shared */}
-          <div className="bg-falcon-surface border border-falcon-border rounded-xl p-4 col-span-1">
-            <p className="text-falcon-muted text-xs mb-1">共有中</p>
+          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-4 col-span-1">
+            <p className="text-[#7d92b0] text-xs mb-1">共有中</p>
             <p className="text-2xl font-bold text-white">{stats.shared}</p>
           </div>
           {/* Category counts */}
           {(['alerts', 'events', 'endpoints', 'network'] as Category[]).map(cat => {
             const Icon = CATEGORY_ICONS[cat]
             return (
-              <div key={cat} className="bg-falcon-surface border border-falcon-border rounded-xl p-4">
+              <div key={cat} className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-4">
                 <div className="flex items-center gap-1.5 mb-1">
-                  <Icon className="w-3.5 h-3.5 text-falcon-muted" />
-                  <p className="text-falcon-muted text-xs">{CATEGORY_LABELS[cat]}</p>
+                  <Icon className="w-3.5 h-3.5 text-[#7d92b0]" />
+                  <p className="text-[#7d92b0] text-xs">{CATEGORY_LABELS[cat]}</p>
                 </div>
                 <p className="text-2xl font-bold text-white">{stats.byCategory[cat]}</p>
               </div>
@@ -578,64 +576,61 @@ export default function SavedSearchesPage() {
         {/* Filters */}
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1 max-w-sm">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-falcon-muted" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#7d92b0]" />
             <input
               type="text"
               value={nameFilter}
               onChange={e => setNameFilter(e.target.value)}
               placeholder="名前またはクエリで検索..."
-              className="w-full bg-falcon-surface border border-falcon-border rounded-lg pl-9 pr-3 py-2 text-white
-                         text-sm placeholder-[#3d5275] focus:outline-hidden focus:border-falcon-blue transition-colors"
+              className="w-full bg-[#0d1220] border border-[#1e2d42] rounded-lg pl-9 pr-3 py-2 text-white text-sm placeholder-[#3d5275] focus:outline-hidden focus:border-[#1a6bff] transition-colors"
             />
           </div>
           <div className="relative">
-            <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-falcon-muted" />
+            <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#7d92b0]" />
             <select
               value={categoryFilter}
               onChange={e => setCategoryFilter(e.target.value as Category | '')}
-              className="bg-falcon-surface border border-falcon-border rounded-lg pl-9 pr-8 py-2 text-white
-                         text-sm appearance-none focus:outline-hidden focus:border-falcon-blue transition-colors"
+              className="bg-[#0d1220] border border-[#1e2d42] rounded-lg pl-9 pr-8 py-2 text-white text-sm appearance-none focus:outline-hidden focus:border-[#1a6bff] transition-colors"
             >
               {CATEGORY_OPTIONS.map(opt => (
                 <option key={opt.value} value={opt.value}>{opt.label}</option>
               ))}
             </select>
-            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-falcon-muted pointer-events-none" />
+            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-[#7d92b0] pointer-events-none" />
           </div>
           {(nameFilter || categoryFilter) && (
             <button
               onClick={() => { setNameFilter(''); setCategoryFilter('') }}
-              className="flex items-center gap-1.5 px-3 py-2 text-sm text-falcon-muted hover:text-white
-                         border border-falcon-border hover:border-[#2d4060] rounded-lg transition-colors"
+              className="flex items-center gap-1.5 px-3 py-2 text-sm text-[#7d92b0] hover:text-white border border-[#1e2d42] hover:border-[#2d4060] rounded-lg transition-colors"
             >
               <X className="w-3.5 h-3.5" />
               クリア
             </button>
           )}
-          <p className="flex items-center text-falcon-muted text-sm ml-auto">
+          <p className="flex items-center text-[#7d92b0] text-sm ml-auto">
             <SlidersHorizontal className="w-3.5 h-3.5 mr-1.5" />
             {filtered.length} / {searches.length} 件
           </p>
         </div>
 
         {/* Table */}
-        <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
+        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
           {isLoading ? (
             <div className="flex items-center justify-center h-48">
-              <div className="w-7 h-7 border-2 border-falcon-red border-t-transparent rounded-full animate-spin" />
+              <div className="w-7 h-7 border-2 border-[#e8002d] border-t-transparent rounded-full animate-spin" />
             </div>
           ) : filtered.length === 0 ? (
             <div className="flex flex-col items-center justify-center gap-3 h-48">
               <BookMarked className="w-10 h-10 text-[#3d5275]" />
-              <p className="text-falcon-muted">保存済み検索が見つかりません</p>
+              <p className="text-[#7d92b0]">保存済み検索が見つかりません</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="border-b border-falcon-border">
+                  <tr className="border-b border-[#1e2d42]">
                     {['名前 / クエリ', 'カテゴリ', '作成者', '最終実行', '実行数', '共有', '操作'].map(h => (
-                      <th key={h} className="text-left px-4 py-3 text-falcon-muted text-xs font-medium whitespace-nowrap">
+                      <th key={h} className="text-left px-4 py-3 text-[#7d92b0] text-xs font-medium whitespace-nowrap">
                         {h}
                       </th>
                     ))}
@@ -645,13 +640,13 @@ export default function SavedSearchesPage() {
                   {filtered.map((s, i) => (
                     <tr
                       key={s.id}
-                      className={`border-b border-falcon-border/50 hover:bg-falcon-card/60 transition-colors
+                      className={`border-b border-[#1e2d42]/50 hover:bg-[#111827]/60 transition-colors
                                   ${i === filtered.length - 1 ? 'border-0' : ''}`}
                     >
                       {/* Name / Query */}
                       <td className="px-4 py-3 max-w-[280px]">
                         <p className="text-white text-sm font-medium truncate">{s.name}</p>
-                        <p className="text-falcon-muted text-xs font-mono truncate mt-0.5">{s.query}</p>
+                        <p className="text-[#7d92b0] text-xs font-mono truncate mt-0.5">{s.query}</p>
                         {s.description && (
                           <p className="text-[#4d6480] text-xs truncate mt-0.5">{s.description}</p>
                         )}
@@ -665,8 +660,8 @@ export default function SavedSearchesPage() {
                       {/* Created by */}
                       <td className="px-4 py-3 whitespace-nowrap">
                         <div className="flex items-center gap-1.5">
-                          <User className="w-3.5 h-3.5 text-falcon-muted shrink-0" />
-                          <span className="text-falcon-muted text-xs truncate max-w-[120px]">{s.created_by}</span>
+                          <User className="w-3.5 h-3.5 text-[#7d92b0] shrink-0" />
+                          <span className="text-[#7d92b0] text-xs truncate max-w-[120px]">{s.created_by}</span>
                         </div>
                         <p className="text-[#4d6480] text-xs mt-0.5">{fmtDate(s.created_at)}</p>
                       </td>
@@ -674,15 +669,15 @@ export default function SavedSearchesPage() {
                       {/* Last run */}
                       <td className="px-4 py-3 whitespace-nowrap">
                         <div className="flex items-center gap-1.5">
-                          <Clock className="w-3.5 h-3.5 text-falcon-muted" />
-                          <span className="text-falcon-muted text-xs">{fmtDateTime(s.last_run)}</span>
+                          <Clock className="w-3.5 h-3.5 text-[#7d92b0]" />
+                          <span className="text-[#7d92b0] text-xs">{fmtDateTime(s.last_run)}</span>
                         </div>
                       </td>
 
                       {/* Run count */}
                       <td className="px-4 py-3 whitespace-nowrap">
                         <div className="flex items-center gap-1.5">
-                          <Hash className="w-3.5 h-3.5 text-falcon-muted" />
+                          <Hash className="w-3.5 h-3.5 text-[#7d92b0]" />
                           <span className="text-white text-sm font-medium">{s.run_count}</span>
                         </div>
                       </td>
@@ -705,24 +700,21 @@ export default function SavedSearchesPage() {
                           <button
                             onClick={() => handleRun(s)}
                             title="実行"
-                            className="p-1.5 text-falcon-muted hover:text-green-400 hover:bg-green-900/20
-                                       rounded-lg transition-colors"
+                            className="p-1.5 text-[#7d92b0] hover:text-green-400 hover:bg-green-900/20 rounded-lg transition-colors"
                           >
                             <Play className="w-4 h-4" />
                           </button>
                           <button
                             onClick={() => setEditTarget(s)}
                             title="編集"
-                            className="p-1.5 text-falcon-muted hover:text-falcon-blue hover:bg-falcon-blue/10
-                                       rounded-lg transition-colors"
+                            className="p-1.5 text-[#7d92b0] hover:text-[#1a6bff] hover:bg-[#1a6bff]/10 rounded-lg transition-colors"
                           >
                             <Edit2 className="w-4 h-4" />
                           </button>
                           <button
                             onClick={() => setDeleteTarget(s)}
                             title="削除"
-                            className="p-1.5 text-falcon-muted hover:text-falcon-red hover:bg-falcon-red/10
-                                       rounded-lg transition-colors"
+                            className="p-1.5 text-[#7d92b0] hover:text-[#e8002d] hover:bg-[#e8002d]/10 rounded-lg transition-colors"
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>

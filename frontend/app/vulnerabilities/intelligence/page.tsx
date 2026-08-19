@@ -9,6 +9,8 @@ import {
   TrendingUp, Eye, Package, Target, Info, RefreshCw,
   BarChart2, ArrowRight,
 } from 'lucide-react'
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+
 import { USE_MOCK, m } from '@/lib/mock'
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -776,39 +778,39 @@ function CVEDetailModal({ cve, onClose }: { cve: CVEDetail; onClose: () => void 
   return (
     <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4" onClick={onClose}>
       <div
-        className="bg-falcon-surface border border-falcon-border rounded-xl w-full max-w-5xl max-h-[92vh] flex flex-col"
+        className="bg-[#0d1220] border border-[#1e2d42] rounded-xl w-full max-w-5xl max-h-[92vh] flex flex-col"
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-start gap-4 p-6 border-b border-falcon-border">
+        <div className="flex items-start gap-4 p-6 border-b border-[#1e2d42]">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-3 mb-2 flex-wrap">
-              <span className="font-mono text-falcon-red text-lg font-bold">{cve.id}</span>
+              <span className="font-mono text-[#e8002d] text-lg font-bold">{cve.id}</span>
               <Badge cls={sev.cls}>{sev.label}</Badge>
               <span className={`text-2xl font-bold ${cvssColor(cve.cvss_score)}`}>{cve.cvss_score.toFixed(1)}</span>
               {cve.in_wild && <Badge cls="bg-red-900/60 border-red-700 text-red-300 animate-pulse">野外悪用中</Badge>}
               {cve.exploit_available && cve.exploit_type && <Badge cls={EXPLOIT_TYPE_CONFIG[cve.exploit_type].cls}>{cve.exploit_type}</Badge>}
             </div>
             <h2 className="text-white font-semibold text-lg leading-tight">{cve.title}</h2>
-            <p className="text-falcon-muted text-xs mt-1 font-mono">{cve.cvss_vector}</p>
+            <p className="text-[#7d92b0] text-xs mt-1 font-mono">{cve.cvss_vector}</p>
           </div>
           <div className="flex items-center gap-2 shrink-0">
-            <a href={`/assets/vulnerabilities?cve=${cve.id}`} className="flex items-center gap-1.5 px-3 py-1.5 rounded-sm bg-[#1a2540] border border-falcon-border text-falcon-muted hover:text-white hover:border-falcon-red text-sm transition-colors">
+            <a href={`/assets/vulnerabilities?cve=${cve.id}`} className="flex items-center gap-1.5 px-3 py-1.5 rounded-sm bg-[#1a2540] border border-[#1e2d42] text-[#7d92b0] hover:text-white hover:border-[#e8002d] text-sm transition-colors">
               <Eye className="w-3.5 h-3.5" /> 影響資産を確認
             </a>
-            <button onClick={onClose} className="p-2 rounded-sm hover:bg-falcon-border text-falcon-muted hover:text-white transition-colors">
+            <button onClick={onClose} className="p-2 rounded-sm hover:bg-[#1e2d42] text-[#7d92b0] hover:text-white transition-colors">
               <X className="w-5 h-5" />
             </button>
           </div>
         </div>
 
         {/* Section tabs */}
-        <div className="flex gap-1 px-6 pt-3 border-b border-falcon-border">
+        <div className="flex gap-1 px-6 pt-3 border-b border-[#1e2d42]">
           {sections.map(s => (
             <button
               key={s}
               onClick={() => setActiveSection(s)}
-              className={`px-3 py-2 text-sm font-medium rounded-t transition-colors ${activeSection === s ? 'text-white border-b-2 border-falcon-red' : 'text-falcon-muted hover:text-white'}`}
+              className={`px-3 py-2 text-sm font-medium rounded-t transition-colors ${activeSection === s ? 'text-white border-b-2 border-[#e8002d]' : 'text-[#7d92b0] hover:text-white'}`}
             >
               {sectionLabels[s]}
             </button>
@@ -820,36 +822,36 @@ function CVEDetailModal({ cve, onClose }: { cve: CVEDetail; onClose: () => void 
           {activeSection === 'overview' && (
             <div className="space-y-6">
               <div>
-                <h3 className="text-falcon-muted text-xs uppercase tracking-wider mb-2">説明</h3>
+                <h3 className="text-[#7d92b0] text-xs uppercase tracking-wider mb-2">説明</h3>
                 <p className="text-white text-sm leading-relaxed">{cve.description}</p>
               </div>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="bg-[#070d19] rounded-lg p-4 border border-falcon-border">
-                  <p className="text-falcon-muted text-xs mb-1">Attack Vector</p>
+                <div className="bg-[#070d19] rounded-lg p-4 border border-[#1e2d42]">
+                  <p className="text-[#7d92b0] text-xs mb-1">Attack Vector</p>
                   <Badge cls={av.cls}>{av.label}</Badge>
                 </div>
-                <div className="bg-[#070d19] rounded-lg p-4 border border-falcon-border">
-                  <p className="text-falcon-muted text-xs mb-1">Attack Complexity</p>
+                <div className="bg-[#070d19] rounded-lg p-4 border border-[#1e2d42]">
+                  <p className="text-[#7d92b0] text-xs mb-1">Attack Complexity</p>
                   <Badge cls={cve.attack_complexity === 'low' ? 'bg-red-900/40 border-red-700 text-red-300' : 'bg-green-900/40 border-green-700 text-green-300'}>
                     {cve.attack_complexity === 'low' ? 'Low' : 'High'}
                   </Badge>
                 </div>
-                <div className="bg-[#070d19] rounded-lg p-4 border border-falcon-border">
-                  <p className="text-falcon-muted text-xs mb-1">公開日</p>
+                <div className="bg-[#070d19] rounded-lg p-4 border border-[#1e2d42]">
+                  <p className="text-[#7d92b0] text-xs mb-1">公開日</p>
                   <p className="text-white text-sm">{cve.published_date}</p>
                 </div>
-                <div className="bg-[#070d19] rounded-lg p-4 border border-falcon-border">
-                  <p className="text-falcon-muted text-xs mb-1">影響製品数</p>
+                <div className="bg-[#070d19] rounded-lg p-4 border border-[#1e2d42]">
+                  <p className="text-[#7d92b0] text-xs mb-1">影響製品数</p>
                   <p className="text-white text-sm font-bold">{cve.affected_products.reduce((sum, p) => sum + p.versions.length, 0)}</p>
                 </div>
               </div>
               <div>
-                <h3 className="text-falcon-muted text-xs uppercase tracking-wider mb-3">スコア内訳</h3>
+                <h3 className="text-[#7d92b0] text-xs uppercase tracking-wider mb-3">スコア内訳</h3>
                 <div className="space-y-3">
                   {scoreComponents.map(c => (
                     <div key={c.label}>
                       <div className="flex justify-between text-xs mb-1">
-                        <span className="text-falcon-muted">{c.label}</span>
+                        <span className="text-[#7d92b0]">{c.label}</span>
                         <span className="text-white">{c.value}%</span>
                       </div>
                       <div className="h-2 bg-[#0a1628] rounded-full overflow-hidden">
@@ -864,10 +866,10 @@ function CVEDetailModal({ cve, onClose }: { cve: CVEDetail; onClose: () => void 
               </div>
               {cve.related_cves.length > 0 && (
                 <div>
-                  <h3 className="text-falcon-muted text-xs uppercase tracking-wider mb-2">関連CVE</h3>
+                  <h3 className="text-[#7d92b0] text-xs uppercase tracking-wider mb-2">関連CVE</h3>
                   <div className="flex flex-wrap gap-2">
                     {cve.related_cves.map(id => (
-                      <span key={id} className="font-mono text-falcon-red text-sm bg-red-900/10 border border-red-900/30 rounded-sm px-2 py-1">{id}</span>
+                      <span key={id} className="font-mono text-[#e8002d] text-sm bg-red-900/10 border border-red-900/30 rounded-sm px-2 py-1">{id}</span>
                     ))}
                   </div>
                 </div>
@@ -878,16 +880,16 @@ function CVEDetailModal({ cve, onClose }: { cve: CVEDetail; onClose: () => void 
           {activeSection === 'products' && (
             <div className="space-y-4">
               {cve.affected_products.map((p, i) => (
-                <div key={i} className="bg-[#070d19] rounded-lg p-4 border border-falcon-border">
+                <div key={i} className="bg-[#070d19] rounded-lg p-4 border border-[#1e2d42]">
                   <div className="flex items-center gap-2 mb-3">
-                    <Package className="w-4 h-4 text-falcon-red" />
+                    <Package className="w-4 h-4 text-[#e8002d]" />
                     <span className="text-white font-semibold">{p.vendor}</span>
-                    <ChevronRight className="w-3.5 h-3.5 text-falcon-subtle" />
-                    <span className="text-falcon-muted">{p.product}</span>
+                    <ChevronRight className="w-3.5 h-3.5 text-[#3d5068]" />
+                    <span className="text-[#7d92b0]">{p.product}</span>
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {p.versions.map((v, j) => (
-                      <span key={j} className="font-mono text-xs bg-[#0a1628] border border-falcon-border text-falcon-muted rounded-sm px-2 py-1">{v}</span>
+                      <span key={j} className="font-mono text-xs bg-[#0a1628] border border-[#1e2d42] text-[#7d92b0] rounded-sm px-2 py-1">{v}</span>
                     ))}
                   </div>
                 </div>
@@ -903,48 +905,48 @@ function CVEDetailModal({ cve, onClose }: { cve: CVEDetail; onClose: () => void 
           {activeSection === 'exploit' && (
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
-                <div className="bg-[#070d19] rounded-lg p-4 border border-falcon-border">
-                  <p className="text-falcon-muted text-xs mb-2">エクスプロイト状況</p>
+                <div className="bg-[#070d19] rounded-lg p-4 border border-[#1e2d42]">
+                  <p className="text-[#7d92b0] text-xs mb-2">エクスプロイト状況</p>
                   {cve.exploit_available && cve.exploit_type
                     ? <Badge cls={EXPLOIT_TYPE_CONFIG[cve.exploit_type].cls}>{cve.exploit_type}</Badge>
                     : <Badge cls="bg-gray-900/40 border-gray-700 text-gray-300">なし</Badge>
                   }
                 </div>
-                <div className="bg-[#070d19] rounded-lg p-4 border border-falcon-border">
-                  <p className="text-falcon-muted text-xs mb-2">野外での悪用</p>
+                <div className="bg-[#070d19] rounded-lg p-4 border border-[#1e2d42]">
+                  <p className="text-[#7d92b0] text-xs mb-2">野外での悪用</p>
                   {cve.in_wild
                     ? <Badge cls="bg-red-900/60 border-red-700 text-red-300 animate-pulse">確認済み</Badge>
                     : <Badge cls="bg-green-900/40 border-green-700 text-green-300">未確認</Badge>
                   }
                 </div>
                 {cve.exploit_published_date && (
-                  <div className="bg-[#070d19] rounded-lg p-4 border border-falcon-border">
-                    <p className="text-falcon-muted text-xs mb-2">エクスプロイト公開日</p>
+                  <div className="bg-[#070d19] rounded-lg p-4 border border-[#1e2d42]">
+                    <p className="text-[#7d92b0] text-xs mb-2">エクスプロイト公開日</p>
                     <p className="text-white text-sm">{cve.exploit_published_date}</p>
                   </div>
                 )}
                 {cve.first_exploited_date && (
-                  <div className="bg-[#070d19] rounded-lg p-4 border border-falcon-border">
-                    <p className="text-falcon-muted text-xs mb-2">野外初確認日</p>
+                  <div className="bg-[#070d19] rounded-lg p-4 border border-[#1e2d42]">
+                    <p className="text-[#7d92b0] text-xs mb-2">野外初確認日</p>
                     <p className="text-white text-sm">{cve.first_exploited_date}</p>
                   </div>
                 )}
               </div>
               {cve.threat_actor && (
                 <div className="bg-red-900/20 border border-red-800/40 rounded-lg p-4">
-                  <p className="text-falcon-muted text-xs mb-1">脅威アクター</p>
+                  <p className="text-[#7d92b0] text-xs mb-1">脅威アクター</p>
                   <p className="text-red-300 font-semibold">{cve.threat_actor}</p>
-                  {cve.campaign && <p className="text-falcon-muted text-sm mt-1">キャンペーン: <span className="text-white">{cve.campaign}</span></p>}
+                  {cve.campaign && <p className="text-[#7d92b0] text-sm mt-1">キャンペーン: <span className="text-white">{cve.campaign}</span></p>}
                 </div>
               )}
               {cve.exploit_sources && cve.exploit_sources.length > 0 && (
                 <div>
-                  <h3 className="text-falcon-muted text-xs uppercase tracking-wider mb-2">参照URL</h3>
+                  <h3 className="text-[#7d92b0] text-xs uppercase tracking-wider mb-2">参照URL</h3>
                   <div className="space-y-2">
                     {cve.exploit_sources.map((url, i) => (
-                      <div key={i} className="flex items-center gap-2 bg-[#070d19] border border-falcon-border rounded-sm p-3">
-                        <ExternalLink className="w-3.5 h-3.5 text-falcon-subtle shrink-0" />
-                        <span className="text-falcon-muted text-sm font-mono break-all">{url}</span>
+                      <div key={i} className="flex items-center gap-2 bg-[#070d19] border border-[#1e2d42] rounded-sm p-3">
+                        <ExternalLink className="w-3.5 h-3.5 text-[#3d5068] shrink-0" />
+                        <span className="text-[#7d92b0] text-sm font-mono break-all">{url}</span>
                       </div>
                     ))}
                   </div>
@@ -955,16 +957,16 @@ function CVEDetailModal({ cve, onClose }: { cve: CVEDetail; onClose: () => void 
 
           {activeSection === 'patch' && (
             <div className="space-y-4">
-              <div className="bg-[#070d19] rounded-lg p-4 border border-falcon-border">
-                <p className="text-falcon-muted text-xs mb-2">パッチ状況</p>
+              <div className="bg-[#070d19] rounded-lg p-4 border border-[#1e2d42]">
+                <p className="text-[#7d92b0] text-xs mb-2">パッチ状況</p>
                 {cve.patch_available
                   ? <Badge cls="bg-green-900/40 border-green-700 text-green-300">利用可能</Badge>
                   : <Badge cls="bg-red-900/60 border-red-700 text-red-300">未提供</Badge>
                 }
               </div>
               {cve.patch_info && (
-                <div className="bg-[#070d19] rounded-lg p-4 border border-falcon-border">
-                  <p className="text-falcon-muted text-xs mb-2">パッチ情報</p>
+                <div className="bg-[#070d19] rounded-lg p-4 border border-[#1e2d42]">
+                  <p className="text-[#7d92b0] text-xs mb-2">パッチ情報</p>
                   <p className="text-white text-sm">{cve.patch_info}</p>
                 </div>
               )}
@@ -975,8 +977,8 @@ function CVEDetailModal({ cve, onClose }: { cve: CVEDetail; onClose: () => void 
                 </div>
               )}
               {cve.vendor_advisory && (
-                <div className="bg-[#070d19] rounded-lg p-4 border border-falcon-border">
-                  <p className="text-falcon-muted text-xs mb-2">ベンダーアドバイザリ</p>
+                <div className="bg-[#070d19] rounded-lg p-4 border border-[#1e2d42]">
+                  <p className="text-[#7d92b0] text-xs mb-2">ベンダーアドバイザリ</p>
                   <p className="text-white text-sm font-mono">{cve.vendor_advisory}</p>
                 </div>
               )}
@@ -985,7 +987,7 @@ function CVEDetailModal({ cve, onClose }: { cve: CVEDetail; onClose: () => void 
 
           {activeSection === 'timeline' && (
             <div className="relative pl-8">
-              <div className="absolute left-4 top-0 bottom-0 w-px bg-falcon-border" />
+              <div className="absolute left-4 top-0 bottom-0 w-px bg-[#1e2d42]" />
               {timelineEvents.map((ev, i) => {
                 const Icon = ev.icon
                 return (
@@ -993,9 +995,9 @@ function CVEDetailModal({ cve, onClose }: { cve: CVEDetail; onClose: () => void 
                     <div className={`absolute -left-4 w-8 h-8 rounded-full ${ev.color} flex items-center justify-center -translate-x-1/2`}>
                       <Icon className="w-4 h-4 text-white" />
                     </div>
-                    <div className="bg-[#070d19] border border-falcon-border rounded-lg p-4 ml-4">
+                    <div className="bg-[#070d19] border border-[#1e2d42] rounded-lg p-4 ml-4">
                       <p className="text-white font-semibold text-sm">{ev.label}</p>
-                      <p className="text-falcon-muted text-sm mt-0.5">{ev.date}</p>
+                      <p className="text-[#7d92b0] text-sm mt-0.5">{ev.date}</p>
                     </div>
                   </div>
                 )
@@ -1006,16 +1008,16 @@ function CVEDetailModal({ cve, onClose }: { cve: CVEDetail; onClose: () => void 
           {activeSection === 'mitre' && (
             <div className="space-y-3">
               {cve.mitre_techniques.length === 0 && (
-                <p className="text-falcon-muted text-sm">マッピングなし</p>
+                <p className="text-[#7d92b0] text-sm">マッピングなし</p>
               )}
               {cve.mitre_techniques.map((t, i) => (
-                <div key={i} className="bg-[#070d19] rounded-lg p-4 border border-falcon-border flex items-center gap-4">
+                <div key={i} className="bg-[#070d19] rounded-lg p-4 border border-[#1e2d42] flex items-center gap-4">
                   <div className="shrink-0 bg-red-900/20 border border-red-900/30 rounded-lg p-3">
-                    <Target className="w-5 h-5 text-falcon-red" />
+                    <Target className="w-5 h-5 text-[#e8002d]" />
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
-                      <span className="font-mono text-falcon-red text-sm font-bold">{t.technique_id}</span>
+                      <span className="font-mono text-[#e8002d] text-sm font-bold">{t.technique_id}</span>
                       <Badge cls="bg-purple-900/40 border-purple-700 text-purple-300">{t.tactic}</Badge>
                     </div>
                     <p className="text-white text-sm mt-0.5">{t.technique_name}</p>
@@ -1098,39 +1100,40 @@ export default function VulnerabilityIntelligencePage() {
 
   return (
     <div className="min-h-screen bg-[#070d19] p-6">
+      <PageDataUnavailable />
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-lg bg-red-900/30 border border-red-800/40 flex items-center justify-center">
-            <Bug className="w-5 h-5 text-falcon-red" />
+            <Bug className="w-5 h-5 text-[#e8002d]" />
           </div>
           <div>
             <h1 className="text-white text-xl font-bold">脆弱性インテリジェンス</h1>
-            <p className="text-falcon-muted text-sm">CVEデータベース・エクスプロイト分析・優先度管理</p>
+            <p className="text-[#7d92b0] text-sm">CVEデータベース・エクスプロイト分析・優先度管理</p>
           </div>
         </div>
-        <button className="flex items-center gap-2 px-4 py-2 bg-falcon-surface border border-falcon-border rounded-lg text-falcon-muted hover:text-white hover:border-falcon-muted/50 transition-colors text-sm">
+        <button className="flex items-center gap-2 px-4 py-2 bg-[#0d1220] border border-[#1e2d42] rounded-lg text-[#7d92b0] hover:text-white hover:border-[#7d92b0]/50 transition-colors text-sm">
           <RefreshCw className="w-4 h-4" /> 更新
         </button>
       </div>
 
       {/* CVE Search Bar */}
-      <div className="bg-falcon-surface border border-falcon-border rounded-xl p-4 mb-6">
-        <p className="text-falcon-muted text-xs uppercase tracking-wider mb-3">CVE検索</p>
+      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-4 mb-6">
+        <p className="text-[#7d92b0] text-xs uppercase tracking-wider mb-3">CVE検索</p>
         <div className="flex gap-3">
           <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-falcon-subtle" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#3d5068]" />
             <input
               value={cveSearch}
               onChange={e => setCveSearch(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && handleCveSearch()}
               placeholder="CVE-YYYY-NNNNN を入力..."
-              className="w-full bg-[#070d19] border border-falcon-border rounded-lg pl-10 pr-4 py-3 text-white placeholder-falcon-subtle focus:outline-hidden focus:border-falcon-red/50 font-mono text-sm transition-colors"
+              className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg pl-10 pr-4 py-3 text-white placeholder-[#3d5068] focus:outline-hidden focus:border-[#e8002d]/50 font-mono text-sm transition-colors"
             />
           </div>
           <button
             onClick={handleCveSearch}
-            className="px-6 py-3 bg-falcon-red text-white rounded-lg font-semibold hover:bg-[#c0001f] transition-colors text-sm"
+            className="px-6 py-3 bg-[#e8002d] text-white rounded-lg font-semibold hover:bg-[#c0001f] transition-colors text-sm"
           >
             詳細検索
           </button>
@@ -1147,10 +1150,10 @@ export default function VulnerabilityIntelligencePage() {
         ].map(s => {
           const Icon = s.icon
           return (
-            <div key={s.label} className={`bg-falcon-surface border rounded-xl p-4 ${s.bg}`}>
+            <div key={s.label} className={`bg-[#0d1220] border rounded-xl p-4 ${s.bg}`}>
               <div className="flex items-center gap-2 mb-2">
                 <Icon className={`w-4 h-4 ${s.color}`} />
-                <span className="text-falcon-muted text-xs">{s.label}</span>
+                <span className="text-[#7d92b0] text-xs">{s.label}</span>
               </div>
               <p className={`text-3xl font-bold ${s.color}`}>{s.value}</p>
             </div>
@@ -1159,7 +1162,7 @@ export default function VulnerabilityIntelligencePage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 mb-6 bg-falcon-surface border border-falcon-border rounded-lg p-1 w-fit">
+      <div className="flex gap-1 mb-6 bg-[#0d1220] border border-[#1e2d42] rounded-lg p-1 w-fit">
         {([
           { key: 'database', label: 'CVEデータベース' },
           { key: 'exploits', label: 'エクスプロイト分析' },
@@ -1168,7 +1171,7 @@ export default function VulnerabilityIntelligencePage() {
           <button
             key={t.key}
             onClick={() => setActiveTab(t.key)}
-            className={`px-4 py-2 rounded-sm text-sm font-medium transition-colors ${activeTab === t.key ? 'bg-falcon-red text-white' : 'text-falcon-muted hover:text-white'}`}
+            className={`px-4 py-2 rounded-sm text-sm font-medium transition-colors ${activeTab === t.key ? 'bg-[#e8002d] text-white' : 'text-[#7d92b0] hover:text-white'}`}
           >
             {t.label}
           </button>
@@ -1179,20 +1182,20 @@ export default function VulnerabilityIntelligencePage() {
       {activeTab === 'database' && (
         <div className="space-y-4">
           {/* Filters */}
-          <div className="flex flex-wrap gap-3 bg-falcon-surface border border-falcon-border rounded-xl p-4">
+          <div className="flex flex-wrap gap-3 bg-[#0d1220] border border-[#1e2d42] rounded-xl p-4">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-falcon-subtle" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#3d5068]" />
               <input
                 value={searchInput}
                 onChange={e => setSearchInput(e.target.value)}
                 placeholder="CVE ID / タイトル検索..."
-                className="bg-[#070d19] border border-falcon-border rounded-lg pl-9 pr-4 py-2 text-white placeholder-falcon-subtle focus:outline-hidden focus:border-falcon-red/50 text-sm w-56 transition-colors"
+                className="bg-[#070d19] border border-[#1e2d42] rounded-lg pl-9 pr-4 py-2 text-white placeholder-[#3d5068] focus:outline-hidden focus:border-[#e8002d]/50 text-sm w-56 transition-colors"
               />
             </div>
             <select
               value={filterSeverity}
               onChange={e => setFilterSeverity(e.target.value as Severity | 'all')}
-              className="bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-falcon-muted text-sm focus:outline-hidden focus:border-falcon-red/50"
+              className="bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-[#7d92b0] text-sm focus:outline-hidden focus:border-[#e8002d]/50"
             >
               <option value="all">全重要度</option>
               <option value="critical">Critical</option>
@@ -1203,7 +1206,7 @@ export default function VulnerabilityIntelligencePage() {
             <select
               value={filterAV}
               onChange={e => setFilterAV(e.target.value as AttackVector | 'all')}
-              className="bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-falcon-muted text-sm focus:outline-hidden focus:border-falcon-red/50"
+              className="bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-[#7d92b0] text-sm focus:outline-hidden focus:border-[#e8002d]/50"
             >
               <option value="all">全Attack Vector</option>
               <option value="network">Network</option>
@@ -1214,27 +1217,27 @@ export default function VulnerabilityIntelligencePage() {
             <select
               value={filterExploit}
               onChange={e => setFilterExploit(e.target.value as 'all' | 'yes' | 'no')}
-              className="bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-falcon-muted text-sm focus:outline-hidden focus:border-falcon-red/50"
+              className="bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-[#7d92b0] text-sm focus:outline-hidden focus:border-[#e8002d]/50"
             >
               <option value="all">全エクスプロイト</option>
               <option value="yes">あり</option>
               <option value="no">なし</option>
             </select>
-            <span className="ml-auto text-falcon-muted text-sm self-center">{filteredCves.length}件</span>
+            <span className="ml-auto text-[#7d92b0] text-sm self-center">{filteredCves.length}件</span>
           </div>
 
           {/* Table */}
-          <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
+          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="border-b border-falcon-border">
+                  <tr className="border-b border-[#1e2d42]">
                     {['CVE ID', 'タイトル', 'CVSS', 'Attack Vector', '複雑度', '重要度', '公開日', 'エクスプロイト', '野外', 'パッチ', '製品数'].map(h => (
-                      <th key={h} className="text-left text-falcon-muted text-xs font-medium uppercase tracking-wider px-4 py-3 whitespace-nowrap">{h}</th>
+                      <th key={h} className="text-left text-[#7d92b0] text-xs font-medium uppercase tracking-wider px-4 py-3 whitespace-nowrap">{h}</th>
                     ))}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-falcon-border">
+                <tbody className="divide-y divide-[#1e2d42]">
                   {filteredCves.map(cve => {
                     const sev = SEV_CONFIG[cve.severity]
                     const av = AV_CONFIG[cve.attack_vector]
@@ -1243,7 +1246,7 @@ export default function VulnerabilityIntelligencePage() {
                         <td className="px-4 py-3">
                           <button
                             onClick={() => setSelectedCVE(cve)}
-                            className="font-mono text-falcon-red text-sm font-bold hover:underline whitespace-nowrap"
+                            className="font-mono text-[#e8002d] text-sm font-bold hover:underline whitespace-nowrap"
                           >
                             {cve.id}
                           </button>
@@ -1261,19 +1264,19 @@ export default function VulnerabilityIntelligencePage() {
                           </Badge>
                         </td>
                         <td className="px-4 py-3"><Badge cls={sev.cls}>{sev.label}</Badge></td>
-                        <td className="px-4 py-3 text-falcon-muted text-sm whitespace-nowrap">{cve.published_date}</td>
+                        <td className="px-4 py-3 text-[#7d92b0] text-sm whitespace-nowrap">{cve.published_date}</td>
                         <td className="px-4 py-3">
                           {cve.exploit_available
                             ? <Badge cls={`${cve.exploit_type ? EXPLOIT_TYPE_CONFIG[cve.exploit_type].cls : 'bg-orange-900/60 border-orange-700 text-orange-300'} ${cve.exploit_type === 'Weaponized' ? 'animate-pulse' : ''}`}>
                                 {cve.exploit_type ?? 'あり'}
                               </Badge>
-                            : <span className="text-falcon-subtle text-xs">—</span>
+                            : <span className="text-[#3d5068] text-xs">—</span>
                           }
                         </td>
                         <td className="px-4 py-3">
                           {cve.in_wild
                             ? <span className="inline-block w-2 h-2 rounded-full bg-red-500 animate-pulse" title="野外悪用確認" />
-                            : <span className="inline-block w-2 h-2 rounded-full bg-falcon-border" />
+                            : <span className="inline-block w-2 h-2 rounded-full bg-[#1e2d42]" />
                           }
                         </td>
                         <td className="px-4 py-3">
@@ -1282,7 +1285,7 @@ export default function VulnerabilityIntelligencePage() {
                             : <XCircle className="w-4 h-4 text-red-400" />
                           }
                         </td>
-                        <td className="px-4 py-3 text-falcon-muted text-sm">
+                        <td className="px-4 py-3 text-[#7d92b0] text-sm">
                           {cve.affected_products.reduce((sum, p) => sum + p.versions.length, 0)}
                         </td>
                       </tr>
@@ -1299,42 +1302,42 @@ export default function VulnerabilityIntelligencePage() {
       {activeTab === 'exploits' && (
         <div className="space-y-6">
           {/* Exploited in Wild List */}
-          <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
-            <div className="px-6 py-4 border-b border-falcon-border">
+          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
+            <div className="px-6 py-4 border-b border-[#1e2d42]">
               <h2 className="text-white font-semibold flex items-center gap-2">
-                <AlertTriangle className="w-4 h-4 text-falcon-red" /> 野外悪用確認済みCVE ({exploitedCves.length}件)
+                <AlertTriangle className="w-4 h-4 text-[#e8002d]" /> 野外悪用確認済みCVE ({exploitedCves.length}件)
               </h2>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="border-b border-falcon-border">
+                  <tr className="border-b border-[#1e2d42]">
                     {['CVE ID', 'タイトル', '初確認日', '脅威アクター', 'キャンペーン', '推定影響組織', 'CVSS', 'パッチ'].map(h => (
-                      <th key={h} className="text-left text-falcon-muted text-xs font-medium uppercase tracking-wider px-4 py-3 whitespace-nowrap">{h}</th>
+                      <th key={h} className="text-left text-[#7d92b0] text-xs font-medium uppercase tracking-wider px-4 py-3 whitespace-nowrap">{h}</th>
                     ))}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-falcon-border">
+                <tbody className="divide-y divide-[#1e2d42]">
                   {exploitedCves.map(cve => (
                     <tr key={cve.id} className="hover:bg-[#0a1628] transition-colors">
                       <td className="px-4 py-3">
-                        <button onClick={() => setSelectedCVE(cve)} className="font-mono text-falcon-red text-sm font-bold hover:underline">
+                        <button onClick={() => setSelectedCVE(cve)} className="font-mono text-[#e8002d] text-sm font-bold hover:underline">
                           {cve.id}
                         </button>
                       </td>
                       <td className="px-4 py-3"><p className="text-white text-sm max-w-[200px] truncate">{cve.title}</p></td>
-                      <td className="px-4 py-3 text-falcon-muted text-sm whitespace-nowrap">{cve.first_exploited_date ?? '—'}</td>
+                      <td className="px-4 py-3 text-[#7d92b0] text-sm whitespace-nowrap">{cve.first_exploited_date ?? '—'}</td>
                       <td className="px-4 py-3">
                         {cve.threat_actor
                           ? <span className="text-red-300 text-sm font-medium">{cve.threat_actor}</span>
-                          : <span className="text-falcon-subtle text-sm">不明</span>
+                          : <span className="text-[#3d5068] text-sm">不明</span>
                         }
                       </td>
-                      <td className="px-4 py-3 text-falcon-muted text-sm">{cve.campaign ?? '—'}</td>
+                      <td className="px-4 py-3 text-[#7d92b0] text-sm">{cve.campaign ?? '—'}</td>
                       <td className="px-4 py-3">
                         {cve.affected_orgs_estimate
                           ? <span className="text-orange-300 text-sm font-medium">{(cve.affected_orgs_estimate ?? 0).toLocaleString()}</span>
-                          : <span className="text-falcon-subtle text-sm">—</span>
+                          : <span className="text-[#3d5068] text-sm">—</span>
                         }
                       </td>
                       <td className="px-4 py-3">
@@ -1355,9 +1358,9 @@ export default function VulnerabilityIntelligencePage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Monthly Trend */}
-            <div className="bg-falcon-surface border border-falcon-border rounded-xl p-6">
+            <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-6">
               <h3 className="text-white font-semibold mb-4 flex items-center gap-2">
-                <TrendingUp className="w-4 h-4 text-falcon-red" /> エクスプロイトトレンド（月別）
+                <TrendingUp className="w-4 h-4 text-[#e8002d]" /> エクスプロイトトレンド（月別）
               </h3>
               <div className="flex items-end gap-3 h-32">
                 {monthlyTrend.map(m => {
@@ -1365,9 +1368,9 @@ export default function VulnerabilityIntelligencePage() {
                   const pct = (m.count / maxVal) * 100
                   return (
                     <div key={m.month} className="flex-1 flex flex-col items-center gap-1">
-                      <span className="text-falcon-muted text-xs">{m.count}</span>
+                      <span className="text-[#7d92b0] text-xs">{m.count}</span>
                       <div className="w-full bg-[#070d19] rounded-t" style={{ height: `${pct}%`, minHeight: 4, background: `linear-gradient(to top, #e8002d, #ff4d4d)` }} />
-                      <span className="text-falcon-subtle text-xs">{m.month}</span>
+                      <span className="text-[#3d5068] text-xs">{m.month}</span>
                     </div>
                   )
                 })}
@@ -1375,15 +1378,15 @@ export default function VulnerabilityIntelligencePage() {
             </div>
 
             {/* Top Targeted Products */}
-            <div className="bg-falcon-surface border border-falcon-border rounded-xl p-6">
+            <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-6">
               <h3 className="text-white font-semibold mb-4 flex items-center gap-2">
-                <BarChart2 className="w-4 h-4 text-falcon-red" /> 標的製品 Top 8
+                <BarChart2 className="w-4 h-4 text-[#e8002d]" /> 標的製品 Top 8
               </h3>
               <div className="space-y-3">
                 {topProducts.map(p => (
                   <div key={p.name}>
                     <div className="flex justify-between text-xs mb-1">
-                      <span className="text-falcon-muted">{p.name}</span>
+                      <span className="text-[#7d92b0]">{p.name}</span>
                       <span className="text-white">{p.count}</span>
                     </div>
                     <div className="h-2 bg-[#070d19] rounded-full overflow-hidden">
@@ -1399,13 +1402,13 @@ export default function VulnerabilityIntelligencePage() {
           </div>
 
           {/* Weaponization Timeline Scatter */}
-          <div className="bg-falcon-surface border border-falcon-border rounded-xl p-6">
+          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-6">
             <h3 className="text-white font-semibold mb-4 flex items-center gap-2">
-              <Clock className="w-4 h-4 text-falcon-red" /> CVE公開からエクスプロイト化までの日数
+              <Clock className="w-4 h-4 text-[#e8002d]" /> CVE公開からエクスプロイト化までの日数
             </h3>
-            <div className="relative h-40 bg-[#070d19] rounded-lg border border-falcon-border overflow-hidden">
+            <div className="relative h-40 bg-[#070d19] rounded-lg border border-[#1e2d42] overflow-hidden">
               {/* Axes labels */}
-              <div className="absolute bottom-2 left-4 right-4 flex justify-between text-falcon-subtle text-xs">
+              <div className="absolute bottom-2 left-4 right-4 flex justify-between text-[#3d5068] text-xs">
                 <span>0日</span><span>30日</span><span>60日</span><span>90日</span><span>120日+</span>
               </div>
               {/* Scatter dots */}
@@ -1428,7 +1431,7 @@ export default function VulnerabilityIntelligencePage() {
               {[['Weaponized', '#e8002d'], ['Active', '#f97316'], ['PoC', '#eab308']].map(([label, color]) => (
                 <div key={label} className="flex items-center gap-1.5">
                   <span className="w-2.5 h-2.5 rounded-full" style={{ background: color }} />
-                  <span className="text-falcon-muted text-xs">{label}</span>
+                  <span className="text-[#7d92b0] text-xs">{label}</span>
                 </div>
               ))}
             </div>
@@ -1440,12 +1443,12 @@ export default function VulnerabilityIntelligencePage() {
       {activeTab === 'queue' && (
         <div className="space-y-4">
           {/* Formula */}
-          <div className="bg-falcon-surface border border-falcon-border rounded-xl p-4">
+          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-4">
             <div className="flex items-center gap-3">
-              <Shield className="w-4 h-4 text-falcon-red shrink-0" />
-              <p className="text-falcon-muted text-sm">
+              <Shield className="w-4 h-4 text-[#e8002d] shrink-0" />
+              <p className="text-[#7d92b0] text-sm">
                 優先度スコア計算式:
-                <span className="ml-2 font-mono text-white bg-[#070d19] border border-falcon-border rounded-sm px-3 py-1">
+                <span className="ml-2 font-mono text-white bg-[#070d19] border border-[#1e2d42] rounded-sm px-3 py-1">
                   (CVSS × 0.4) + (Exploit × 30) + (露出度 × 0.3)
                 </span>
               </p>
@@ -1453,17 +1456,17 @@ export default function VulnerabilityIntelligencePage() {
           </div>
 
           {/* Table */}
-          <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
+          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="border-b border-falcon-border">
+                  <tr className="border-b border-[#1e2d42]">
                     {['CVE', '優先度スコア', '影響資産数', 'エクスプロイト', 'パッチ経過日数', 'SLA期限', '担当者', 'ステータス', '操作'].map(h => (
-                      <th key={h} className="text-left text-falcon-muted text-xs font-medium uppercase tracking-wider px-4 py-3 whitespace-nowrap">{h}</th>
+                      <th key={h} className="text-left text-[#7d92b0] text-xs font-medium uppercase tracking-wider px-4 py-3 whitespace-nowrap">{h}</th>
                     ))}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-falcon-border">
+                <tbody className="divide-y divide-[#1e2d42]">
                   {m(MOCK_PRIORITY_QUEUE).map(item => {
                     const es = EXPLOIT_STATUS_CONFIG[item.exploit_status]
                     const scoreColor = item.priority_score >= 50 ? 'text-red-400' : item.priority_score >= 30 ? 'text-orange-400' : 'text-yellow-400'
@@ -1475,7 +1478,7 @@ export default function VulnerabilityIntelligencePage() {
                               const cve = cves.find(c => c.id === item.cve_id)
                               if (cve) setSelectedCVE(cve)
                             }}
-                            className="font-mono text-falcon-red text-sm font-bold hover:underline whitespace-nowrap"
+                            className="font-mono text-[#e8002d] text-sm font-bold hover:underline whitespace-nowrap"
                           >
                             {item.cve_id}
                           </button>
@@ -1490,10 +1493,10 @@ export default function VulnerabilityIntelligencePage() {
                         <td className="px-4 py-3">
                           {item.days_since_patch !== null
                             ? <span className={`text-sm font-medium ${item.days_since_patch > 30 ? 'text-red-400' : 'text-yellow-400'}`}>{item.days_since_patch}日</span>
-                            : <span className="text-falcon-subtle text-sm">未適用</span>
+                            : <span className="text-[#3d5068] text-sm">未適用</span>
                           }
                         </td>
-                        <td className="px-4 py-3 text-falcon-muted text-sm whitespace-nowrap">{item.sla_deadline}</td>
+                        <td className="px-4 py-3 text-[#7d92b0] text-sm whitespace-nowrap">{item.sla_deadline}</td>
                         <td className="px-4 py-3 text-white text-sm">{item.assignee}</td>
                         <td className="px-4 py-3">
                           <Badge cls={item.status === 'in_progress' ? 'bg-blue-900/40 border-blue-700 text-blue-300' : item.status === 'resolved' ? 'bg-green-900/40 border-green-700 text-green-300' : 'bg-gray-900/40 border-gray-700 text-gray-300'}>
@@ -1501,7 +1504,7 @@ export default function VulnerabilityIntelligencePage() {
                           </Badge>
                         </td>
                         <td className="px-4 py-3">
-                          <button className="px-3 py-1.5 bg-falcon-red/10 border border-falcon-red/30 text-falcon-red hover:bg-falcon-red/20 rounded-sm text-xs font-medium transition-colors whitespace-nowrap">
+                          <button className="px-3 py-1.5 bg-[#e8002d]/10 border border-[#e8002d]/30 text-[#e8002d] hover:bg-[#e8002d]/20 rounded-sm text-xs font-medium transition-colors whitespace-nowrap">
                             修復タスク作成
                           </button>
                         </td>

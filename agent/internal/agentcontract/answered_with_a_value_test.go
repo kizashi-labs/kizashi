@@ -145,6 +145,7 @@ const (
 	// このエディションは攻撃実証用の PoC コマンド (wininject / wincred /
 	// wintamper / prevention / winprev / etw-verify) を同梱しないため、
 	// 数えられる QA 道具が少ない。上限もその実数に合わせてある。
+	// ずれたときは、このテストが出力する実数に合わせて更新する。
 	harnessCeiling = 5
 
 	// **0 になりました。** 開始時は10件で、内訳は Windows の ETW 7本と

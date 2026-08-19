@@ -24,6 +24,9 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+import { PageSaveFailed } from '@/components/PageSaveFailed'
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type TabId = 'email' | 'webhook' | 'soar' | 'browser' | 'briefing';
@@ -180,8 +183,8 @@ function EmailTab({ onToast }: { onToast: (t: ToastState) => void }) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center">
         <AlertCircle className="w-8 h-8 text-red-400 mb-3" />
-        <p className="text-sm text-falcon-text font-medium">設定の取得に失敗しました</p>
-        <p className="text-xs text-falcon-muted mt-1">しばらくしてから再試行してください</p>
+        <p className="text-sm text-[#e2e8f4] font-medium">設定の取得に失敗しました</p>
+        <p className="text-xs text-[#7d92b0] mt-1">しばらくしてから再試行してください</p>
       </div>
     );
   }
@@ -189,10 +192,10 @@ function EmailTab({ onToast }: { onToast: (t: ToastState) => void }) {
   return (
     <div className="space-y-6">
       {/* Enable toggle */}
-      <div className="flex items-center justify-between p-4 bg-[#0d1525] border border-falcon-border rounded-xl">
+      <div className="flex items-center justify-between p-4 bg-[#0d1525] border border-[#1e2d42] rounded-xl">
         <div>
-          <p className="text-sm font-medium text-falcon-text">メール通知を有効にする</p>
-          <p className="text-xs text-falcon-muted mt-0.5">
+          <p className="text-sm font-medium text-[#e2e8f4]">メール通知を有効にする</p>
+          <p className="text-xs text-[#7d92b0] mt-0.5">
             設定した条件でメールアドレスに通知を送信します
           </p>
         </div>
@@ -217,7 +220,7 @@ function EmailTab({ onToast }: { onToast: (t: ToastState) => void }) {
       >
         {/* Email address */}
         <div>
-          <label className="block text-xs text-falcon-muted mb-1.5">
+          <label className="block text-xs text-[#7d92b0] mb-1.5">
             通知先メールアドレス <span className="text-red-400">*</span>
           </label>
           <input
@@ -225,17 +228,17 @@ function EmailTab({ onToast }: { onToast: (t: ToastState) => void }) {
             value={form.email_address}
             onChange={(e) => update('email_address', e.target.value)}
             placeholder="alerts@example.com"
-            className="w-full px-3 py-2 bg-falcon-bg border border-falcon-border rounded-lg text-sm text-falcon-text placeholder-falcon-muted focus:outline-hidden focus:border-blue-500 transition-colors"
+            className="w-full px-3 py-2 bg-[#080c14] border border-[#1e2d42] rounded-lg text-sm text-[#e2e8f4] placeholder-[#7d92b0] focus:outline-hidden focus:border-blue-500 transition-colors"
           />
         </div>
 
         {/* Min severity */}
         <div>
-          <label className="block text-xs text-falcon-muted mb-1.5">最小重大度</label>
+          <label className="block text-xs text-[#7d92b0] mb-1.5">最小重大度</label>
           <select
             value={form.min_severity}
             onChange={(e) => update('min_severity', e.target.value)}
-            className="w-full px-3 py-2 bg-falcon-bg border border-falcon-border rounded-lg text-sm text-falcon-text focus:outline-hidden focus:border-blue-500 transition-colors"
+            className="w-full px-3 py-2 bg-[#080c14] border border-[#1e2d42] rounded-lg text-sm text-[#e2e8f4] focus:outline-hidden focus:border-blue-500 transition-colors"
           >
             {SEVERITY_OPTIONS.map((o) => (
               <option key={o.value} value={o.value}>
@@ -243,14 +246,14 @@ function EmailTab({ onToast }: { onToast: (t: ToastState) => void }) {
               </option>
             ))}
           </select>
-          <p className="text-xs text-falcon-muted mt-1.5">
+          <p className="text-xs text-[#7d92b0] mt-1.5">
             選択した重大度以上のイベントのみ通知します
           </p>
         </div>
 
         {/* Event checkboxes */}
         <div>
-          <p className="text-xs text-falcon-muted mb-3">通知イベント</p>
+          <p className="text-xs text-[#7d92b0] mb-3">通知イベント</p>
           <div className="space-y-3">
             <label className="flex items-center gap-3 cursor-pointer group">
               <input
@@ -260,10 +263,10 @@ function EmailTab({ onToast }: { onToast: (t: ToastState) => void }) {
                 className="w-4 h-4 accent-blue-500"
               />
               <div>
-                <p className="text-sm text-falcon-text group-hover:text-white transition-colors">
+                <p className="text-sm text-[#e2e8f4] group-hover:text-white transition-colors">
                   インシデント通知
                 </p>
-                <p className="text-xs text-falcon-muted">
+                <p className="text-xs text-[#7d92b0]">
                   インシデントが作成または更新されたときに通知します
                 </p>
               </div>
@@ -276,10 +279,10 @@ function EmailTab({ onToast }: { onToast: (t: ToastState) => void }) {
                 className="w-4 h-4 accent-blue-500"
               />
               <div>
-                <p className="text-sm text-falcon-text group-hover:text-white transition-colors">
+                <p className="text-sm text-[#e2e8f4] group-hover:text-white transition-colors">
                   エージェントオフライン通知
                 </p>
-                <p className="text-xs text-falcon-muted">
+                <p className="text-xs text-[#7d92b0]">
                   監視対象のエージェントがオフラインになったときに通知します
                 </p>
               </div>
@@ -289,7 +292,7 @@ function EmailTab({ onToast }: { onToast: (t: ToastState) => void }) {
       </div>
 
       {/* Save button */}
-      <div className="flex items-center justify-between pt-2 border-t border-falcon-border">
+      <div className="flex items-center justify-between pt-2 border-t border-[#1e2d42]">
         {isDirty && (
           <p className="text-xs text-yellow-400 flex items-center gap-1.5">
             <AlertCircle className="w-3.5 h-3.5" />
@@ -349,29 +352,29 @@ function WebhookTab() {
       {/* Summary stats */}
       {targets.length > 0 && (
         <div className="grid grid-cols-3 gap-3">
-          <div className="bg-[#0d1525] border border-falcon-border rounded-xl px-4 py-3">
-            <p className="text-xs text-falcon-muted mb-1">設定数</p>
-            <p className="text-xl font-bold text-falcon-text">{targets.length}</p>
+          <div className="bg-[#0d1525] border border-[#1e2d42] rounded-xl px-4 py-3">
+            <p className="text-xs text-[#7d92b0] mb-1">設定数</p>
+            <p className="text-xl font-bold text-[#e2e8f4]">{targets.length}</p>
           </div>
-          <div className="bg-[#0d1525] border border-falcon-border rounded-xl px-4 py-3">
-            <p className="text-xs text-falcon-muted mb-1">有効</p>
+          <div className="bg-[#0d1525] border border-[#1e2d42] rounded-xl px-4 py-3">
+            <p className="text-xs text-[#7d92b0] mb-1">有効</p>
             <p className="text-xl font-bold text-green-400">{enabledCount}</p>
           </div>
-          <div className="bg-[#0d1525] border border-falcon-border rounded-xl px-4 py-3">
-            <p className="text-xs text-falcon-muted mb-1">無効</p>
-            <p className="text-xl font-bold text-falcon-muted">{targets.length - enabledCount}</p>
+          <div className="bg-[#0d1525] border border-[#1e2d42] rounded-xl px-4 py-3">
+            <p className="text-xs text-[#7d92b0] mb-1">無効</p>
+            <p className="text-xl font-bold text-[#7d92b0]">{targets.length - enabledCount}</p>
           </div>
         </div>
       )}
 
       {/* Empty state */}
       {targets.length === 0 && (
-        <div className="bg-[#0d1525] border border-falcon-border rounded-xl flex flex-col items-center justify-center py-14 text-center">
-          <div className="p-3 bg-falcon-border rounded-full mb-4">
-            <Webhook className="w-6 h-6 text-falcon-muted" />
+        <div className="bg-[#0d1525] border border-[#1e2d42] rounded-xl flex flex-col items-center justify-center py-14 text-center">
+          <div className="p-3 bg-[#1e2d42] rounded-full mb-4">
+            <Webhook className="w-6 h-6 text-[#7d92b0]" />
           </div>
-          <p className="text-sm text-falcon-text font-medium">Webhookが設定されていません</p>
-          <p className="text-xs text-falcon-muted mt-1 max-w-xs">
+          <p className="text-sm text-[#e2e8f4] font-medium">Webhookが設定されていません</p>
+          <p className="text-xs text-[#7d92b0] mt-1 max-w-xs">
             Webhook設定ページから外部エンドポイントへの通知を追加できます
           </p>
         </div>
@@ -385,7 +388,7 @@ function WebhookTab() {
             return (
               <div
                 key={t.id}
-                className="bg-[#0d1525] border border-falcon-border rounded-xl overflow-hidden"
+                className="bg-[#0d1525] border border-[#1e2d42] rounded-xl overflow-hidden"
               >
                 <div className="flex items-center justify-between px-5 py-3.5">
                   <div className="flex items-center gap-3 min-w-0">
@@ -397,8 +400,8 @@ function WebhookTab() {
                       )}
                     </div>
                     <div className="min-w-0">
-                      <p className="text-sm font-medium text-falcon-text truncate">{t.name}</p>
-                      <p className="text-xs text-falcon-muted truncate max-w-xs">{t.url}</p>
+                      <p className="text-sm font-medium text-[#e2e8f4] truncate">{t.name}</p>
+                      <p className="text-xs text-[#7d92b0] truncate max-w-xs">{t.url}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2 shrink-0 ml-3">
@@ -415,7 +418,7 @@ function WebhookTab() {
                     )}
                     <button
                       onClick={() => setExpandedId(isExpanded ? null : t.id)}
-                      className="text-falcon-muted hover:text-falcon-text transition-colors p-1"
+                      className="text-[#7d92b0] hover:text-[#e2e8f4] transition-colors p-1"
                     >
                       {isExpanded ? (
                         <ChevronUp className="w-4 h-4" />
@@ -426,13 +429,13 @@ function WebhookTab() {
                   </div>
                 </div>
                 {isExpanded && (
-                  <div className="border-t border-falcon-border px-5 py-3 space-y-2">
-                    <p className="text-xs text-falcon-muted">登録イベント</p>
+                  <div className="border-t border-[#1e2d42] px-5 py-3 space-y-2">
+                    <p className="text-xs text-[#7d92b0]">登録イベント</p>
                     <div className="flex flex-wrap gap-1.5">
                       {t.events.map((ev) => (
                         <span
                           key={ev}
-                          className="text-xs px-2 py-0.5 rounded-full border bg-falcon-border border-[#253550] text-falcon-muted font-medium"
+                          className="text-xs px-2 py-0.5 rounded-full border bg-[#1e2d42] border-[#253550] text-[#7d92b0] font-medium"
                         >
                           {ev}
                         </span>
@@ -452,19 +455,19 @@ function WebhookTab() {
       )}
 
       {/* Link to webhook settings */}
-      <div className="flex items-center justify-between p-4 bg-falcon-card border border-falcon-border rounded-xl">
+      <div className="flex items-center justify-between p-4 bg-[#111827] border border-[#1e2d42] rounded-xl">
         <div className="flex items-start gap-3">
           <ExternalLink className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" />
           <div>
-            <p className="text-sm font-medium text-falcon-text">Webhook設定ページ</p>
-            <p className="text-xs text-falcon-muted mt-0.5">
+            <p className="text-sm font-medium text-[#e2e8f4]">Webhook設定ページ</p>
+            <p className="text-xs text-[#7d92b0] mt-0.5">
               Webhookの追加・編集・テストはこちらから行えます
             </p>
           </div>
         </div>
         <Link
           href="/settings/webhooks"
-          className="flex items-center gap-2 px-4 py-2 bg-falcon-border hover:bg-[#253550] text-falcon-text text-sm rounded-lg transition-colors shrink-0 ml-4"
+          className="flex items-center gap-2 px-4 py-2 bg-[#1e2d42] hover:bg-[#253550] text-[#e2e8f4] text-sm rounded-lg transition-colors shrink-0 ml-4"
         >
           設定へ移動
           <ExternalLink className="w-3.5 h-3.5" />
@@ -516,16 +519,16 @@ function SOARTab() {
       {/* Summary stats */}
       {configs.length > 0 && (
         <div className="grid grid-cols-3 gap-3">
-          <div className="bg-[#0d1525] border border-falcon-border rounded-xl px-4 py-3">
-            <p className="text-xs text-falcon-muted mb-1">設定数</p>
-            <p className="text-xl font-bold text-falcon-text">{configs.length}</p>
+          <div className="bg-[#0d1525] border border-[#1e2d42] rounded-xl px-4 py-3">
+            <p className="text-xs text-[#7d92b0] mb-1">設定数</p>
+            <p className="text-xl font-bold text-[#e2e8f4]">{configs.length}</p>
           </div>
-          <div className="bg-[#0d1525] border border-falcon-border rounded-xl px-4 py-3">
-            <p className="text-xs text-falcon-muted mb-1">有効</p>
+          <div className="bg-[#0d1525] border border-[#1e2d42] rounded-xl px-4 py-3">
+            <p className="text-xs text-[#7d92b0] mb-1">有効</p>
             <p className="text-xl font-bold text-green-400">{activeConfigs.length}</p>
           </div>
-          <div className="bg-[#0d1525] border border-falcon-border rounded-xl px-4 py-3">
-            <p className="text-xs text-falcon-muted mb-1">自動起票</p>
+          <div className="bg-[#0d1525] border border-[#1e2d42] rounded-xl px-4 py-3">
+            <p className="text-xs text-[#7d92b0] mb-1">自動起票</p>
             <p className="text-xl font-bold text-purple-400">
               {configs.filter((c) => c.auto_create).length}
             </p>
@@ -535,12 +538,12 @@ function SOARTab() {
 
       {/* Empty state */}
       {configs.length === 0 && (
-        <div className="bg-[#0d1525] border border-falcon-border rounded-xl flex flex-col items-center justify-center py-14 text-center">
-          <div className="p-3 bg-falcon-border rounded-full mb-4">
-            <Zap className="w-6 h-6 text-falcon-muted" />
+        <div className="bg-[#0d1525] border border-[#1e2d42] rounded-xl flex flex-col items-center justify-center py-14 text-center">
+          <div className="p-3 bg-[#1e2d42] rounded-full mb-4">
+            <Zap className="w-6 h-6 text-[#7d92b0]" />
           </div>
-          <p className="text-sm text-falcon-text font-medium">SOAR連携が設定されていません</p>
-          <p className="text-xs text-falcon-muted mt-1 max-w-xs">
+          <p className="text-sm text-[#e2e8f4] font-medium">SOAR連携が設定されていません</p>
+          <p className="text-xs text-[#7d92b0] mt-1 max-w-xs">
             SOAR設定ページから Jira または ServiceNow との連携を追加できます
           </p>
         </div>
@@ -552,7 +555,7 @@ function SOARTab() {
           {configs.map((c) => (
             <div
               key={c.id}
-              className="flex items-center justify-between px-5 py-3.5 bg-[#0d1525] border border-falcon-border rounded-xl"
+              className="flex items-center justify-between px-5 py-3.5 bg-[#0d1525] border border-[#1e2d42] rounded-xl"
             >
               <div className="flex items-center gap-3 min-w-0">
                 <div className="shrink-0">
@@ -564,12 +567,12 @@ function SOARTab() {
                 </div>
                 <div className="min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-sm font-medium text-falcon-text truncate">
+                    <span className="text-sm font-medium text-[#e2e8f4] truncate">
                       {c.name}
                     </span>
                     <span
                       className={`text-xs px-2 py-0.5 rounded-full border font-medium ${
-                        SOAR_COLORS[c.type] ?? 'bg-falcon-border text-falcon-muted border-[#253550]'
+                        SOAR_COLORS[c.type] ?? 'bg-[#1e2d42] text-[#7d92b0] border-[#253550]'
                       }`}
                     >
                       {SOAR_LABELS[c.type] ?? c.type}
@@ -581,7 +584,7 @@ function SOARTab() {
                       </span>
                     )}
                   </div>
-                  <p className="text-xs text-falcon-muted mt-0.5">
+                  <p className="text-xs text-[#7d92b0] mt-0.5">
                     最小重大度: {c.min_severity} &nbsp;·&nbsp;
                     {c.enabled ? '有効' : '無効'}
                   </p>
@@ -593,19 +596,19 @@ function SOARTab() {
       )}
 
       {/* Link to SOAR settings */}
-      <div className="flex items-center justify-between p-4 bg-falcon-card border border-falcon-border rounded-xl">
+      <div className="flex items-center justify-between p-4 bg-[#111827] border border-[#1e2d42] rounded-xl">
         <div className="flex items-start gap-3">
           <ExternalLink className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" />
           <div>
-            <p className="text-sm font-medium text-falcon-text">SOAR連携設定ページ</p>
-            <p className="text-xs text-falcon-muted mt-0.5">
+            <p className="text-sm font-medium text-[#e2e8f4]">SOAR連携設定ページ</p>
+            <p className="text-xs text-[#7d92b0] mt-0.5">
               連携の追加・編集・テストはSOAR設定ページから行えます
             </p>
           </div>
         </div>
         <Link
           href="/settings/soar"
-          className="flex items-center gap-2 px-4 py-2 bg-falcon-border hover:bg-[#253550] text-falcon-text text-sm rounded-lg transition-colors shrink-0 ml-4"
+          className="flex items-center gap-2 px-4 py-2 bg-[#1e2d42] hover:bg-[#253550] text-[#e2e8f4] text-sm rounded-lg transition-colors shrink-0 ml-4"
         >
           設定へ移動
           <ExternalLink className="w-3.5 h-3.5" />
@@ -620,12 +623,12 @@ function SOARTab() {
 function BrowserTab() {
   return (
     <div className="flex flex-col items-center justify-center py-16 text-center space-y-4">
-      <div className="p-4 bg-falcon-border rounded-full">
-        <BellOff className="w-8 h-8 text-falcon-muted" />
+      <div className="p-4 bg-[#1e2d42] rounded-full">
+        <BellOff className="w-8 h-8 text-[#7d92b0]" />
       </div>
       <div>
-        <p className="text-sm font-medium text-falcon-text">ブラウザ通知は近日対応予定です</p>
-        <p className="text-xs text-falcon-muted mt-1.5 max-w-xs">
+        <p className="text-sm font-medium text-[#e2e8f4]">ブラウザ通知は近日対応予定です</p>
+        <p className="text-xs text-[#7d92b0] mt-1.5 max-w-xs">
           ブラウザのプッシュ通知機能は現在開発中です。対応後にここで設定できるようになります。
         </p>
       </div>
@@ -674,12 +677,12 @@ function BriefingTab() {
   });
 
   const StatusBadge = ({ enabled, label }: { enabled: boolean; label: string }) => (
-    <div className="flex items-center justify-between py-3 border-b border-falcon-border last:border-0">
-      <span className="text-sm text-falcon-text">{label}</span>
+    <div className="flex items-center justify-between py-3 border-b border-[#1e2d42] last:border-0">
+      <span className="text-sm text-[#e2e8f4]">{label}</span>
       <span className={`flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full font-medium ${
         enabled
           ? 'bg-green-900/30 text-green-400 border border-green-700/40'
-          : 'bg-falcon-border text-falcon-subtle border border-falcon-border'
+          : 'bg-[#1e2d42] text-[#3d5068] border border-[#1e2d42]'
       }`}>
         {enabled ? <CheckCircle2 className="w-3 h-3" /> : <XCircle className="w-3 h-3" />}
         {enabled ? '有効' : '未設定'}
@@ -690,14 +693,14 @@ function BriefingTab() {
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-sm font-semibold text-falcon-text mb-1">配信状態</h3>
-        <p className="text-xs text-falcon-muted mb-4">
+        <h3 className="text-sm font-semibold text-[#e2e8f4] mb-1">配信状態</h3>
+        <p className="text-xs text-[#7d92b0] mb-4">
           毎朝 {status?.hour ?? 8}:00 に前日のセキュリティサマリーを自動送信します。
           配信先はサーバーの環境変数で設定します。
         </p>
-        <div className="bg-falcon-surface rounded-xl border border-falcon-border px-4">
+        <div className="bg-[#0d1220] rounded-xl border border-[#1e2d42] px-4">
           {isLoading ? (
-            <p className="py-4 text-sm text-falcon-subtle">確認中...</p>
+            <p className="py-4 text-sm text-[#3d5068]">確認中...</p>
           ) : (
             <>
               <StatusBadge enabled={status?.slack_enabled ?? false} label="Slack Incoming Webhook" />
@@ -711,8 +714,8 @@ function BriefingTab() {
 
       {/* 設定方法 */}
       <div>
-        <h3 className="text-sm font-semibold text-falcon-text mb-2">設定方法（環境変数）</h3>
-        <div className="bg-falcon-surface rounded-xl border border-falcon-border p-4 space-y-3">
+        <h3 className="text-sm font-semibold text-[#e2e8f4] mb-2">設定方法（環境変数）</h3>
+        <div className="bg-[#0d1220] rounded-xl border border-[#1e2d42] p-4 space-y-3">
           {[
             { var: 'BRIEFING_SLACK_WEBHOOK_URL', desc: 'Slack Incoming Webhook URL' },
             { var: 'BRIEFING_EMAIL_TO', desc: '送信先メールアドレス（カンマ区切りで複数可）' },
@@ -724,8 +727,8 @@ function BriefingTab() {
             { var: 'BRIEFING_WEBHOOK_URL', desc: '汎用Webhook URL（JSON POSTで配信）' },
           ].map(({ var: v, desc }) => (
             <div key={v}>
-              <code className="text-xs text-falcon-red font-mono">{v}</code>
-              <p className="text-xs text-falcon-subtle mt-0.5">{desc}</p>
+              <code className="text-xs text-[#e8002d] font-mono">{v}</code>
+              <p className="text-xs text-[#3d5068] mt-0.5">{desc}</p>
             </div>
           ))}
         </div>
@@ -733,22 +736,20 @@ function BriefingTab() {
 
       {/* テスト送信 */}
       <div>
-        <h3 className="text-sm font-semibold text-falcon-text mb-2">テスト確認</h3>
-        <p className="text-xs text-falcon-muted mb-3">
+        <h3 className="text-sm font-semibold text-[#e2e8f4] mb-2">テスト確認</h3>
+        <p className="text-xs text-[#7d92b0] mb-3">
           現在のデータでブリーフィング内容を確認できます（外部への実送信はしません）。
         </p>
         <button
           onClick={() => testMutation.mutate()}
           disabled={testMutation.isPending}
-          className="flex items-center gap-2 px-4 py-2 bg-falcon-raised hover:bg-falcon-active
-                     border border-falcon-border text-sm text-falcon-text rounded-lg transition-colors
-                     disabled:opacity-50"
+          className="flex items-center gap-2 px-4 py-2 bg-[#161f33] hover:bg-[#1d2f4a] border border-[#1e2d42] text-sm text-[#e2e8f4] rounded-lg transition-colors disabled:opacity-50"
         >
           <FlaskConical className={`w-4 h-4 ${testMutation.isPending ? 'animate-pulse' : ''}`} />
           {testMutation.isPending ? '確認中...' : 'ブリーフィング内容を確認'}
         </button>
         {testResult && (
-          <div className="mt-3 bg-falcon-surface rounded-xl border border-falcon-border p-4 space-y-2 text-sm">
+          <div className="mt-3 bg-[#0d1220] rounded-xl border border-[#1e2d42] p-4 space-y-2 text-sm">
             <p className="text-green-400 font-medium">{testResult.message}</p>
             <div className="grid grid-cols-3 gap-3 pt-2">
               {[
@@ -756,9 +757,9 @@ function BriefingTab() {
                 { label: '緊急アラート', value: testResult.urgent_alerts },
                 { label: '未処理インシデント', value: testResult.open_incidents },
               ].map(({ label, value }) => (
-                <div key={label} className="text-center bg-falcon-raised rounded-lg py-2">
+                <div key={label} className="text-center bg-[#161f33] rounded-lg py-2">
                   <p className="text-xl font-bold text-white">{value}</p>
-                  <p className="text-xs text-falcon-subtle mt-0.5">{label}</p>
+                  <p className="text-xs text-[#3d5068] mt-0.5">{label}</p>
                 </div>
               ))}
             </div>
@@ -776,7 +777,9 @@ export default function NotificationsPage() {
   const [toast, setToast] = useState<ToastState | null>(null);
 
   return (
-    <div className="min-h-screen bg-falcon-bg text-falcon-text">
+    <div className="min-h-screen bg-[#080c14] text-[#e2e8f4]">
+      <PageDataUnavailable />
+      <PageSaveFailed className="mb-4" />
       <div className="max-w-3xl mx-auto px-6 py-8">
 
         {/* Header */}
@@ -785,18 +788,18 @@ export default function NotificationsPage() {
             <Bell className="w-5 h-5 text-blue-400" />
           </div>
           <div>
-            <h1 className="text-xl font-semibold text-falcon-text">通知設定</h1>
-            <p className="text-sm text-falcon-muted mt-0.5">
+            <h1 className="text-xl font-semibold text-[#e2e8f4]">通知設定</h1>
+            <p className="text-sm text-[#7d92b0] mt-0.5">
               メール・Webhook・SOAR など全ての通知チャンネルを一元管理します
             </p>
           </div>
         </div>
 
         {/* Tab container */}
-        <div className="bg-falcon-card rounded-xl border border-falcon-border overflow-hidden">
+        <div className="bg-[#111827] rounded-xl border border-[#1e2d42] overflow-hidden">
 
           {/* Tab header */}
-          <div className="flex border-b border-falcon-border overflow-x-auto">
+          <div className="flex border-b border-[#1e2d42] overflow-x-auto">
             {TABS.map((tab) => (
               <button
                 key={tab.id}
@@ -804,7 +807,7 @@ export default function NotificationsPage() {
                 className={`flex items-center gap-2 px-5 py-3.5 text-sm font-medium transition-colors border-b-2 -mb-px shrink-0 ${
                   activeTab === tab.id
                     ? 'text-white border-blue-500 bg-blue-500/5'
-                    : 'text-falcon-muted border-transparent hover:text-white hover:bg-falcon-raised'
+                    : 'text-[#7d92b0] border-transparent hover:text-white hover:bg-[#161f33]'
                 }`}
               >
                 {tab.icon}

@@ -5,6 +5,9 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { apiFetch, apiFetchList } from '@/lib/api'
 import { Users, ChevronRight, ChevronDown, Plus, Trash2, Save, Monitor, Shield, MapPin, Tag, X, Check } from 'lucide-react'
 
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+import { PageSaveFailed } from '@/components/PageSaveFailed'
+
 // ─── 型定義 ──────────────────────────────────────────────────────────────────
 
 type GroupType = 'department' | 'os' | 'location' | 'custom'
@@ -88,18 +91,18 @@ function GroupTreeItem({ group, children, selectedId, onSelect, depth = 0 }: { g
   return (
     <div>
       <div
-        className={`flex items-center gap-2 p-2 rounded-lg cursor-pointer transition-colors ${isSelected ? 'bg-falcon-red/10 border border-falcon-red/30' : 'hover:bg-falcon-border/40 border border-transparent'}`}
+        className={`flex items-center gap-2 p-2 rounded-lg cursor-pointer transition-colors ${isSelected ? 'bg-[#e8002d]/10 border border-[#e8002d]/30' : 'hover:bg-[#1e2d42]/40 border border-transparent'}`}
         style={{ paddingLeft: `${8 + depth * 16}px` }}
         onClick={() => onSelect(group)}
       >
         {hasChildren ? (
-          <button onClick={e => { e.stopPropagation(); setExpanded(!expanded) }} className="text-falcon-muted hover:text-white">
+          <button onClick={e => { e.stopPropagation(); setExpanded(!expanded) }} className="text-[#7d92b0] hover:text-white">
             {expanded ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
           </button>
         ) : <div className="w-3.5" />}
-        <span className={`text-falcon-muted ${isSelected ? 'text-falcon-red' : ''}`}>{tc.icon}</span>
+        <span className={`text-[#7d92b0] ${isSelected ? 'text-[#e8002d]' : ''}`}>{tc.icon}</span>
         <span className="text-sm text-white flex-1 truncate">{group.name}</span>
-        <span className="text-xs bg-falcon-border text-falcon-muted px-1.5 py-0.5 rounded-sm">{group.endpoint_count}</span>
+        <span className="text-xs bg-[#1e2d42] text-[#7d92b0] px-1.5 py-0.5 rounded-sm">{group.endpoint_count}</span>
       </div>
       {hasChildren && expanded && children!.map(c => (
         <GroupTreeItem key={c.id} group={c} selectedId={selectedId} onSelect={onSelect} depth={depth + 1} />
@@ -118,7 +121,7 @@ export default function EndpointGroupsPage() {
 
   const { data: groups = [] } = useQuery<EndpointGroup[]>({
     queryKey: ['endpoint-groups'],
-    queryFn: () => apiFetchList<EndpointGroup>('/api/v1/admin/endpoint-groups').catch(() => []),
+    queryFn: () => apiFetchList<EndpointGroup>('/api/v1/admin/endpoint-groups'),
   })
 
   const saveGroup = useMutation({
@@ -158,20 +161,22 @@ export default function EndpointGroupsPage() {
 
   return (
     <div className="min-h-screen bg-[#070d19] text-white p-6">
+      <PageDataUnavailable />
+      <PageSaveFailed className="mb-4" />
       {/* ヘッダー */}
       <div className="mb-6">
         <div className="flex items-center gap-3 mb-1">
-          <Users className="w-6 h-6 text-falcon-red" />
+          <Users className="w-6 h-6 text-[#e8002d]" />
           <h1 className="text-2xl font-bold">エンドポイントグループ管理</h1>
         </div>
-        <p className="text-falcon-muted text-sm">エンドポイントのグループ化・ポリシー適用管理</p>
+        <p className="text-[#7d92b0] text-sm">エンドポイントのグループ化・ポリシー適用管理</p>
       </div>
 
       {/* 統計行 */}
       <div className="grid grid-cols-4 gap-4 mb-6">
         {stats.map((s, i) => (
-          <div key={i} className="bg-falcon-surface border border-falcon-border rounded-lg p-4">
-            <p className="text-falcon-muted text-xs mb-1">{s.label}</p>
+          <div key={i} className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-4">
+            <p className="text-[#7d92b0] text-xs mb-1">{s.label}</p>
             <p className="text-white font-bold text-lg">{s.value}</p>
           </div>
         ))}
@@ -180,10 +185,10 @@ export default function EndpointGroupsPage() {
       {/* メイン2カラム */}
       <div className="flex gap-4">
         {/* 左パネル: グループツリー (35%) */}
-        <div className="w-[35%] bg-falcon-surface border border-falcon-border rounded-lg p-4 flex flex-col gap-2">
+        <div className="w-[35%] bg-[#0d1220] border border-[#1e2d42] rounded-lg p-4 flex flex-col gap-2">
           <div className="flex items-center justify-between mb-1">
-            <h2 className="text-sm font-semibold text-falcon-muted uppercase tracking-wider">グループ一覧</h2>
-            <button className="flex items-center gap-1 text-xs bg-falcon-red hover:bg-[#c0001f] text-white px-2 py-1 rounded-sm transition-colors">
+            <h2 className="text-sm font-semibold text-[#7d92b0] uppercase tracking-wider">グループ一覧</h2>
+            <button className="flex items-center gap-1 text-xs bg-[#e8002d] hover:bg-[#c0001f] text-white px-2 py-1 rounded-sm transition-colors">
               <Plus className="w-3 h-3" /> 追加
             </button>
           </div>
@@ -199,7 +204,7 @@ export default function EndpointGroupsPage() {
           {sg ? (
             <>
               {/* グループ基本情報 */}
-              <div className="bg-falcon-surface border border-falcon-border rounded-lg p-4">
+              <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-4">
                 <div className="flex items-start justify-between">
                   <div>
                     <div className="flex items-center gap-2 mb-1">
@@ -208,61 +213,61 @@ export default function EndpointGroupsPage() {
                         {TYPE_CONFIG[sg.type].icon}{TYPE_CONFIG[sg.type].label}
                       </span>
                     </div>
-                    <p className="text-sm text-falcon-muted">{sg.description}</p>
+                    <p className="text-sm text-[#7d92b0]">{sg.description}</p>
                   </div>
-                  <span className="text-2xl font-bold text-white">{sg.endpoint_count}<span className="text-sm text-falcon-muted ml-1">台</span></span>
+                  <span className="text-2xl font-bold text-white">{sg.endpoint_count}<span className="text-sm text-[#7d92b0] ml-1">台</span></span>
                 </div>
               </div>
 
               {/* メンバーシップルール */}
-              <div className="bg-falcon-surface border border-falcon-border rounded-lg p-4">
+              <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-4">
                 <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-sm font-semibold text-falcon-muted uppercase tracking-wider">メンバーシップルール</h3>
-                  <button onClick={addRule} className="flex items-center gap-1 text-xs text-falcon-muted hover:text-white bg-falcon-border hover:bg-[#2e4060] px-2 py-1 rounded-sm transition-colors">
+                  <h3 className="text-sm font-semibold text-[#7d92b0] uppercase tracking-wider">メンバーシップルール</h3>
+                  <button onClick={addRule} className="flex items-center gap-1 text-xs text-[#7d92b0] hover:text-white bg-[#1e2d42] hover:bg-[#2e4060] px-2 py-1 rounded-sm transition-colors">
                     <Plus className="w-3 h-3" /> ルール追加
                   </button>
                 </div>
                 <div className="space-y-2">
                   {editingRules.map(rule => (
                     <div key={rule.id} className="flex items-center gap-2">
-                      <select value={rule.field} onChange={e => updateRule(rule.id, 'field', e.target.value)} className="bg-[#070d19] border border-falcon-border text-white text-sm px-2 py-1.5 rounded-sm focus:outline-hidden focus:border-falcon-red/50">
+                      <select value={rule.field} onChange={e => updateRule(rule.id, 'field', e.target.value)} className="bg-[#070d19] border border-[#1e2d42] text-white text-sm px-2 py-1.5 rounded-sm focus:outline-hidden focus:border-[#e8002d]/50">
                         {RULE_FIELDS.map(f => <option key={f} value={f}>{FIELD_LABELS[f]}</option>)}
                       </select>
-                      <select value={rule.operator} onChange={e => updateRule(rule.id, 'operator', e.target.value)} className="bg-[#070d19] border border-falcon-border text-white text-sm px-2 py-1.5 rounded-sm focus:outline-hidden focus:border-falcon-red/50">
+                      <select value={rule.operator} onChange={e => updateRule(rule.id, 'operator', e.target.value)} className="bg-[#070d19] border border-[#1e2d42] text-white text-sm px-2 py-1.5 rounded-sm focus:outline-hidden focus:border-[#e8002d]/50">
                         {RULE_OPERATORS.map(o => <option key={o} value={o}>{OP_LABELS[o]}</option>)}
                       </select>
-                      <input value={rule.value} onChange={e => updateRule(rule.id, 'value', e.target.value)} placeholder="値を入力..." className="flex-1 bg-[#070d19] border border-falcon-border text-white text-sm px-2 py-1.5 rounded-sm focus:outline-hidden focus:border-falcon-red/50" />
-                      <button onClick={() => removeRule(rule.id)} className="text-falcon-muted hover:text-red-400 transition-colors">
+                      <input value={rule.value} onChange={e => updateRule(rule.id, 'value', e.target.value)} placeholder="値を入力..." className="flex-1 bg-[#070d19] border border-[#1e2d42] text-white text-sm px-2 py-1.5 rounded-sm focus:outline-hidden focus:border-[#e8002d]/50" />
+                      <button onClick={() => removeRule(rule.id)} className="text-[#7d92b0] hover:text-red-400 transition-colors">
                         <X className="w-4 h-4" />
                       </button>
                     </div>
                   ))}
-                  {editingRules.length === 0 && <p className="text-sm text-falcon-muted">ルールなし（手動割り当てのみ）</p>}
+                  {editingRules.length === 0 && <p className="text-sm text-[#7d92b0]">ルールなし（手動割り当てのみ）</p>}
                 </div>
               </div>
 
               {/* エンドポイント一覧 */}
-              <div className="bg-falcon-surface border border-falcon-border rounded-lg p-4">
-                <h3 className="text-sm font-semibold text-falcon-muted uppercase tracking-wider mb-3">エンドポイント一覧</h3>
+              <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-4">
+                <h3 className="text-sm font-semibold text-[#7d92b0] uppercase tracking-wider mb-3">エンドポイント一覧</h3>
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b border-falcon-border">
+                    <tr className="border-b border-[#1e2d42]">
                       {['ホスト名', 'OS', 'IPアドレス', '最終接続', 'ステータス', '操作'].map(h => (
-                        <th key={h} className="text-left text-falcon-muted font-medium pb-2 pr-3 text-xs">{h}</th>
+                        <th key={h} className="text-left text-[#7d92b0] font-medium pb-2 pr-3 text-xs">{h}</th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
                     {pagedEndpoints.map(ep => (
-                      <tr key={ep.id} className="border-b border-falcon-border/50 hover:bg-falcon-border/20 transition-colors">
+                      <tr key={ep.id} className="border-b border-[#1e2d42]/50 hover:bg-[#1e2d42]/20 transition-colors">
                         <td className="py-2 pr-3 text-white font-mono text-xs">{ep.hostname}</td>
-                        <td className="py-2 pr-3 text-falcon-muted text-xs">{ep.os}</td>
-                        <td className="py-2 pr-3 text-falcon-muted font-mono text-xs">{ep.ip_address}</td>
-                        <td className="py-2 pr-3 text-falcon-muted text-xs">{fmtDate(ep.last_seen)}</td>
+                        <td className="py-2 pr-3 text-[#7d92b0] text-xs">{ep.os}</td>
+                        <td className="py-2 pr-3 text-[#7d92b0] font-mono text-xs">{ep.ip_address}</td>
+                        <td className="py-2 pr-3 text-[#7d92b0] text-xs">{fmtDate(ep.last_seen)}</td>
                         <td className="py-2 pr-3">
                           <div className="flex items-center gap-1.5">
                             <div className={`w-2 h-2 rounded-full ${STATUS_DOT[ep.status]}`} />
-                            <span className="text-xs text-falcon-muted">{ep.status === 'online' ? 'オンライン' : ep.status === 'offline' ? 'オフライン' : '警告'}</span>
+                            <span className="text-xs text-[#7d92b0]">{ep.status === 'online' ? 'オンライン' : ep.status === 'offline' ? 'オフライン' : '警告'}</span>
                           </div>
                         </td>
                         <td className="py-2 pr-3">
@@ -277,16 +282,16 @@ export default function EndpointGroupsPage() {
                 </table>
                 {totalPages > 1 && (
                   <div className="flex items-center justify-end gap-2 mt-3">
-                    <button onClick={() => setEndpointPage(p => Math.max(1, p - 1))} disabled={endpointPage === 1} className="text-xs text-falcon-muted hover:text-white disabled:opacity-40 px-2 py-1 bg-falcon-border rounded-sm">前</button>
-                    <span className="text-xs text-falcon-muted">{endpointPage} / {totalPages}</span>
-                    <button onClick={() => setEndpointPage(p => Math.min(totalPages, p + 1))} disabled={endpointPage === totalPages} className="text-xs text-falcon-muted hover:text-white disabled:opacity-40 px-2 py-1 bg-falcon-border rounded-sm">次</button>
+                    <button onClick={() => setEndpointPage(p => Math.max(1, p - 1))} disabled={endpointPage === 1} className="text-xs text-[#7d92b0] hover:text-white disabled:opacity-40 px-2 py-1 bg-[#1e2d42] rounded-sm">前</button>
+                    <span className="text-xs text-[#7d92b0]">{endpointPage} / {totalPages}</span>
+                    <button onClick={() => setEndpointPage(p => Math.min(totalPages, p + 1))} disabled={endpointPage === totalPages} className="text-xs text-[#7d92b0] hover:text-white disabled:opacity-40 px-2 py-1 bg-[#1e2d42] rounded-sm">次</button>
                   </div>
                 )}
               </div>
 
               {/* グループポリシー */}
-              <div className="bg-falcon-surface border border-falcon-border rounded-lg p-4">
-                <h3 className="text-sm font-semibold text-falcon-muted uppercase tracking-wider mb-3">グループポリシー</h3>
+              <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-4">
+                <h3 className="text-sm font-semibold text-[#7d92b0] uppercase tracking-wider mb-3">グループポリシー</h3>
                 <div className="flex flex-wrap gap-2">
                   {sg.policies.map(pol => (
                     <div key={pol.id} className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full ${POLICY_BADGE[pol.type]}`}>
@@ -309,7 +314,7 @@ export default function EndpointGroupsPage() {
                 <button
                   onClick={() => saveGroup.mutate(sg)}
                   disabled={saveGroup.isPending}
-                  className="flex items-center gap-2 text-sm bg-falcon-red hover:bg-[#c0001f] text-white px-4 py-2 rounded-lg transition-colors disabled:opacity-50"
+                  className="flex items-center gap-2 text-sm bg-[#e8002d] hover:bg-[#c0001f] text-white px-4 py-2 rounded-lg transition-colors disabled:opacity-50"
                 >
                   {saveGroup.isPending ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Save className="w-4 h-4" />}
                   保存
@@ -317,8 +322,8 @@ export default function EndpointGroupsPage() {
               </div>
             </>
           ) : (
-            <div className="bg-falcon-surface border border-falcon-border rounded-lg p-12 flex items-center justify-center">
-              <p className="text-falcon-muted text-sm">左のグループを選択してください</p>
+            <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-12 flex items-center justify-center">
+              <p className="text-[#7d92b0] text-sm">左のグループを選択してください</p>
             </div>
           )}
         </div>

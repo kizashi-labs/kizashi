@@ -3,12 +3,16 @@
 import { useState, useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { apiFetch } from '@/lib/api'
+import { USE_MOCK } from '@/lib/mock'
 import {
   Network, Activity, AlertTriangle, Shield, Globe, Zap,
   Filter, X, ChevronRight, Eye, BellOff, Loader2,
   TrendingUp, TrendingDown, Radio, Server, RefreshCw,
   Clock, AlertCircle, CheckCircle, Search
 } from 'lucide-react'
+
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+import { PageSaveFailed } from '@/components/PageSaveFailed'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -153,7 +157,11 @@ const MOCK_ANOMALIES: NetworkAnomaly[] = [
   },
 ]
 
+// 24時間の通信量。以前は端末IDから決めた基準値に乱数を掛けて作っていて、
+// しかも「i === 9 のとき急増」と決め打ちの山が入っていました。異常検知の
+// 画面で、異常の位置をこちらが決めていたことになります。
 function generateTraffic(agentId: string): TrafficDataPoint[] {
+  if (!USE_MOCK) return []
   const base = agentId === 'agent-001' ? 3_000_000 : agentId === 'agent-002' ? 8_000_000 : 1_500_000
   return Array.from({ length: 24 }, (_, i) => {
     const isSpike = (agentId === 'agent-002' && i === 9) || (agentId === 'agent-001' && i === 8)
@@ -262,43 +270,43 @@ function AnomalyDetailModal({ anomaly, onClose }: { anomaly: NetworkAnomaly; onC
   const [actions, setActions] = useState(suggestedActions)
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
-      <div className="bg-falcon-surface border border-falcon-border rounded-xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-falcon-border">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[#1e2d42]">
           <div className="flex items-center gap-3">
-            <Activity className="w-5 h-5 text-falcon-red" />
+            <Activity className="w-5 h-5 text-[#e8002d]" />
             <div>
-              <h2 className="text-falcon-text font-semibold">異常詳細調査</h2>
-              <p className="text-falcon-muted text-xs">{anomaly.agent_hostname} — {formatDate(anomaly.detected_at)}</p>
+              <h2 className="text-[#e2e8f4] font-semibold">異常詳細調査</h2>
+              <p className="text-[#7d92b0] text-xs">{anomaly.agent_hostname} — {formatDate(anomaly.detected_at)}</p>
             </div>
           </div>
-          <button onClick={onClose} className="p-1.5 rounded-sm hover:bg-falcon-border text-falcon-muted hover:text-white transition-colors">
+          <button onClick={onClose} className="p-1.5 rounded-sm hover:bg-[#1e2d42] text-[#7d92b0] hover:text-white transition-colors">
             <X className="w-4 h-4" />
           </button>
         </div>
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
           {/* Anomaly info */}
-          <div className="p-4 bg-[#070d19] rounded-lg border border-falcon-border space-y-3">
+          <div className="p-4 bg-[#070d19] rounded-lg border border-[#1e2d42] space-y-3">
             <div className="flex items-center gap-2 flex-wrap">
               <AnomalyTypeBadge type={anomaly.type} />
               <SeverityBadge severity={anomaly.severity} />
             </div>
-            <p className="text-falcon-text text-sm">{anomaly.description}</p>
+            <p className="text-[#e2e8f4] text-sm">{anomaly.description}</p>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
-              <div><p className="text-falcon-muted">送信元IP</p><p className="text-falcon-text font-mono">{anomaly.source_ip}</p></div>
-              <div><p className="text-falcon-muted">送信元ポート</p><p className="text-falcon-text font-mono">{anomaly.source_port ?? '—'}</p></div>
-              <div><p className="text-falcon-muted">宛先IP</p><p className="text-falcon-text font-mono">{anomaly.dest_ip ?? '—'}</p></div>
-              <div><p className="text-falcon-muted">宛先ポート</p><p className="text-falcon-text font-mono">{anomaly.dest_port ?? '—'}</p></div>
+              <div><p className="text-[#7d92b0]">送信元IP</p><p className="text-[#e2e8f4] font-mono">{anomaly.source_ip}</p></div>
+              <div><p className="text-[#7d92b0]">送信元ポート</p><p className="text-[#e2e8f4] font-mono">{anomaly.source_port ?? '—'}</p></div>
+              <div><p className="text-[#7d92b0]">宛先IP</p><p className="text-[#e2e8f4] font-mono">{anomaly.dest_ip ?? '—'}</p></div>
+              <div><p className="text-[#7d92b0]">宛先ポート</p><p className="text-[#e2e8f4] font-mono">{anomaly.dest_port ?? '—'}</p></div>
             </div>
             {anomaly.bytes_transferred && (
-              <p className="text-xs text-falcon-muted">転送量: <span className="text-falcon-text">{formatBytes(anomaly.bytes_transferred)}</span></p>
+              <p className="text-xs text-[#7d92b0]">転送量: <span className="text-[#e2e8f4]">{formatBytes(anomaly.bytes_transferred)}</span></p>
             )}
           </div>
 
           {/* Traffic graph */}
           <div>
-            <h3 className="text-falcon-text font-semibold mb-3 text-sm">トラフィックグラフ (過去24時間)</h3>
-            <div className="bg-[#070d19] rounded-lg border border-falcon-border p-3 overflow-x-auto">
+            <h3 className="text-[#e2e8f4] font-semibold mb-3 text-sm">トラフィックグラフ (過去24時間)</h3>
+            <div className="bg-[#070d19] rounded-lg border border-[#1e2d42] p-3 overflow-x-auto">
               <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} className="min-w-[400px]">
                 {/* Grid */}
                 {[0, 25, 50, 75, 100].map(pct => {
@@ -323,7 +331,7 @@ function AnomalyDetailModal({ anomaly, onClose }: { anomaly: NetworkAnomaly; onC
                   <text key={h} x={toX(h)} y={H - PAD + 12} fill="#3d5068" fontSize="7" textAnchor="middle">{h}:00</text>
                 ))}
               </svg>
-              <div className="flex items-center gap-4 mt-2 text-xs text-falcon-muted">
+              <div className="flex items-center gap-4 mt-2 text-xs text-[#7d92b0]">
                 <span className="flex items-center gap-1"><span className="w-4 h-0.5 bg-blue-500 inline-block" /> インバウンド</span>
                 <span className="flex items-center gap-1"><span className="w-4 h-0.5 bg-green-500 inline-block" /> アウトバウンド</span>
                 <span className="flex items-center gap-1"><span className="w-4 h-0.5 bg-red-500 inline-block" /> 異常検出</span>
@@ -333,13 +341,13 @@ function AnomalyDetailModal({ anomaly, onClose }: { anomaly: NetworkAnomaly; onC
 
           {/* Related connections */}
           <div>
-            <h3 className="text-falcon-text font-semibold mb-3 text-sm">関連接続</h3>
+            <h3 className="text-[#e2e8f4] font-semibold mb-3 text-sm">関連接続</h3>
             <div className="overflow-x-auto">
               <table className="w-full text-xs">
                 <thead>
-                  <tr className="border-b border-falcon-border">
+                  <tr className="border-b border-[#1e2d42]">
                     {['送信元', 'ポート', '宛先', 'ポート', 'プロトコル', '転送量'].map(h => (
-                      <th key={h} className="text-left py-2 px-3 text-falcon-muted font-medium">{h}</th>
+                      <th key={h} className="text-left py-2 px-3 text-[#7d92b0] font-medium">{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -349,9 +357,9 @@ function AnomalyDetailModal({ anomaly, onClose }: { anomaly: NetworkAnomaly; onC
                     ['192.168.1.1', 53, '8.8.8.8', 53, 'UDP', '2.1 KB'],
                     [anomaly.source_ip, 49892, '142.250.80.46', 443, 'TCP', '890 KB'],
                   ].map((row, i) => (
-                    <tr key={i} className="border-b border-falcon-border/40 hover:bg-falcon-border/20">
+                    <tr key={i} className="border-b border-[#1e2d42]/40 hover:bg-[#1e2d42]/20">
                       {row.map((cell, j) => (
-                        <td key={j} className="py-2 px-3 font-mono text-falcon-text">{cell}</td>
+                        <td key={j} className="py-2 px-3 font-mono text-[#e2e8f4]">{cell}</td>
                       ))}
                     </tr>
                   ))}
@@ -362,17 +370,17 @@ function AnomalyDetailModal({ anomaly, onClose }: { anomaly: NetworkAnomaly; onC
 
           {/* Suggested actions */}
           <div>
-            <h3 className="text-falcon-text font-semibold mb-3 text-sm">推奨アクション</h3>
+            <h3 className="text-[#e2e8f4] font-semibold mb-3 text-sm">推奨アクション</h3>
             <div className="space-y-2">
               {actions.map((a, i) => (
-                <label key={i} className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-falcon-border/30 cursor-pointer transition-colors">
+                <label key={i} className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-[#1e2d42]/30 cursor-pointer transition-colors">
                   <input
                     type="checkbox"
                     checked={a.done}
                     onChange={() => setActions(prev => prev.map((x, j) => j === i ? { ...x, done: !x.done } : x))}
-                    className="w-4 h-4 rounded-sm accent-falcon-red"
+                    className="w-4 h-4 rounded-sm accent-[#e8002d]"
                   />
-                  <span className={`text-sm ${a.done ? 'line-through text-falcon-subtle' : 'text-falcon-text'}`}>{a.label}</span>
+                  <span className={`text-sm ${a.done ? 'line-through text-[#3d5068]' : 'text-[#e2e8f4]'}`}>{a.label}</span>
                 </label>
               ))}
             </div>
@@ -421,11 +429,11 @@ function AnomalyListTab({ agents }: { agents: Agent[] }) {
 
       {/* Filters */}
       <div className="flex flex-wrap gap-3 items-center">
-        <Filter className="w-4 h-4 text-falcon-muted" />
+        <Filter className="w-4 h-4 text-[#7d92b0]" />
         <select
           value={typeFilter}
           onChange={e => setTypeFilter(e.target.value as AnomalyType | 'all')}
-          className="bg-falcon-surface border border-falcon-border rounded-lg px-3 py-1.5 text-sm text-falcon-text focus:outline-hidden focus:border-falcon-red/60"
+          className="bg-[#0d1220] border border-[#1e2d42] rounded-lg px-3 py-1.5 text-sm text-[#e2e8f4] focus:outline-hidden focus:border-[#e8002d]/60"
         >
           <option value="all">全タイプ</option>
           <option value="traffic_spike">トラフィックスパイク</option>
@@ -437,7 +445,7 @@ function AnomalyListTab({ agents }: { agents: Agent[] }) {
         <select
           value={severityFilter}
           onChange={e => setSeverityFilter(e.target.value as Severity | 'all')}
-          className="bg-falcon-surface border border-falcon-border rounded-lg px-3 py-1.5 text-sm text-falcon-text focus:outline-hidden focus:border-falcon-red/60"
+          className="bg-[#0d1220] border border-[#1e2d42] rounded-lg px-3 py-1.5 text-sm text-[#e2e8f4] focus:outline-hidden focus:border-[#e8002d]/60"
         >
           <option value="all">全深刻度</option>
           <option value="critical">重大</option>
@@ -448,59 +456,59 @@ function AnomalyListTab({ agents }: { agents: Agent[] }) {
         <select
           value={agentFilter}
           onChange={e => setAgentFilter(e.target.value)}
-          className="bg-falcon-surface border border-falcon-border rounded-lg px-3 py-1.5 text-sm text-falcon-text focus:outline-hidden focus:border-falcon-red/60"
+          className="bg-[#0d1220] border border-[#1e2d42] rounded-lg px-3 py-1.5 text-sm text-[#e2e8f4] focus:outline-hidden focus:border-[#e8002d]/60"
         >
           <option value="all">全エージェント</option>
           {[...new Set(anomalies.map(a => a.agent_hostname))].map(h => (
             <option key={h} value={h}>{h}</option>
           ))}
         </select>
-        <span className="text-xs text-falcon-muted ml-auto">{filtered.length} 件</span>
+        <span className="text-xs text-[#7d92b0] ml-auto">{filtered.length} 件</span>
       </div>
 
       {/* Table */}
-      <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
+      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-falcon-border bg-[#070d19]/50">
-                <th className="text-left py-3 px-4 text-falcon-muted text-xs font-medium">タイプ</th>
-                <th className="text-left py-3 px-4 text-falcon-muted text-xs font-medium">エージェント</th>
-                <th className="text-left py-3 px-4 text-falcon-muted text-xs font-medium">説明</th>
-                <th className="text-left py-3 px-4 text-falcon-muted text-xs font-medium">深刻度</th>
-                <th className="text-left py-3 px-4 text-falcon-muted text-xs font-medium">送信元 IP:Port</th>
-                <th className="text-left py-3 px-4 text-falcon-muted text-xs font-medium">検出日時</th>
-                <th className="text-left py-3 px-4 text-falcon-muted text-xs font-medium">関連アラート</th>
+              <tr className="border-b border-[#1e2d42] bg-[#070d19]/50">
+                <th className="text-left py-3 px-4 text-[#7d92b0] text-xs font-medium">タイプ</th>
+                <th className="text-left py-3 px-4 text-[#7d92b0] text-xs font-medium">エージェント</th>
+                <th className="text-left py-3 px-4 text-[#7d92b0] text-xs font-medium">説明</th>
+                <th className="text-left py-3 px-4 text-[#7d92b0] text-xs font-medium">深刻度</th>
+                <th className="text-left py-3 px-4 text-[#7d92b0] text-xs font-medium">送信元 IP:Port</th>
+                <th className="text-left py-3 px-4 text-[#7d92b0] text-xs font-medium">検出日時</th>
+                <th className="text-left py-3 px-4 text-[#7d92b0] text-xs font-medium">関連アラート</th>
                 <th className="py-3 px-4" />
               </tr>
             </thead>
             <tbody>
               {isLoading ? (
-                <tr><td colSpan={8} className="py-10 text-center text-falcon-muted"><Loader2 className="w-6 h-6 animate-spin inline" /></td></tr>
+                <tr><td colSpan={8} className="py-10 text-center text-[#7d92b0]"><Loader2 className="w-6 h-6 animate-spin inline" /></td></tr>
               ) : filtered.map(a => (
-                <tr key={a.id} className={`border-b border-falcon-border/50 hover:bg-falcon-border/20 transition-colors ${a.suppressed ? 'opacity-50' : ''}`}>
+                <tr key={a.id} className={`border-b border-[#1e2d42]/50 hover:bg-[#1e2d42]/20 transition-colors ${a.suppressed ? 'opacity-50' : ''}`}>
                   <td className="py-3 px-4"><AnomalyTypeBadge type={a.type} /></td>
-                  <td className="py-3 px-4 text-falcon-text text-xs font-medium">{a.agent_hostname}</td>
-                  <td className="py-3 px-4 text-falcon-muted text-xs max-w-[260px]">
+                  <td className="py-3 px-4 text-[#e2e8f4] text-xs font-medium">{a.agent_hostname}</td>
+                  <td className="py-3 px-4 text-[#7d92b0] text-xs max-w-[260px]">
                     <span className="line-clamp-2">{a.description}</span>
                   </td>
                   <td className="py-3 px-4"><SeverityBadge severity={a.severity} /></td>
-                  <td className="py-3 px-4 font-mono text-xs text-falcon-muted">
+                  <td className="py-3 px-4 font-mono text-xs text-[#7d92b0]">
                     {a.source_ip}{a.source_port ? `:${a.source_port}` : ''}
                   </td>
-                  <td className="py-3 px-4 text-falcon-muted text-xs whitespace-nowrap">{formatDate(a.detected_at)}</td>
+                  <td className="py-3 px-4 text-[#7d92b0] text-xs whitespace-nowrap">{formatDate(a.detected_at)}</td>
                   <td className="py-3 px-4">
                     {a.related_alert_id ? (
                       <a href={`/alerts?id=${a.related_alert_id}`} className="text-xs text-blue-400 hover:text-blue-300 font-mono">
                         {a.related_alert_id}
                       </a>
-                    ) : <span className="text-falcon-subtle text-xs">—</span>}
+                    ) : <span className="text-[#3d5068] text-xs">—</span>}
                   </td>
                   <td className="py-3 px-4">
                     <div className="flex items-center gap-1">
                       <button
                         onClick={() => setSelectedAnomaly(a)}
-                        className="flex items-center gap-1 px-2 py-1 text-xs bg-falcon-border hover:bg-[#2a3f5f] text-falcon-text rounded-sm transition-colors border border-[#2a3f5f]"
+                        className="flex items-center gap-1 px-2 py-1 text-xs bg-[#1e2d42] hover:bg-[#2a3f5f] text-[#e2e8f4] rounded-sm transition-colors border border-[#2a3f5f]"
                       >
                         <Search className="w-3 h-3" />
                         調査
@@ -508,7 +516,7 @@ function AnomalyListTab({ agents }: { agents: Agent[] }) {
                       {!a.suppressed && (
                         <button
                           onClick={() => suppressMutation.mutate(a.id)}
-                          className="flex items-center gap-1 px-2 py-1 text-xs bg-falcon-border hover:bg-[#2a3f5f] text-falcon-muted rounded-sm transition-colors border border-[#2a3f5f]"
+                          className="flex items-center gap-1 px-2 py-1 text-xs bg-[#1e2d42] hover:bg-[#2a3f5f] text-[#7d92b0] rounded-sm transition-colors border border-[#2a3f5f]"
                           title="抑制"
                         >
                           <BellOff className="w-3 h-3" />
@@ -548,11 +556,11 @@ function TrafficAnalysisTab({ agents }: { agents: Agent[] }) {
     <div className="space-y-6">
       {/* Agent selector */}
       <div className="flex items-center gap-3">
-        <Server className="w-4 h-4 text-falcon-muted" />
+        <Server className="w-4 h-4 text-[#7d92b0]" />
         <select
           value={selectedAgent}
           onChange={e => setSelectedAgent(e.target.value)}
-          className="bg-falcon-surface border border-falcon-border rounded-lg px-3 py-1.5 text-sm text-falcon-text focus:outline-hidden focus:border-falcon-red/60"
+          className="bg-[#0d1220] border border-[#1e2d42] rounded-lg px-3 py-1.5 text-sm text-[#e2e8f4] focus:outline-hidden focus:border-[#e8002d]/60"
         >
           {(agents.length > 0 ? agents : [
             { id: 'agent-001', hostname: 'WIN-ENDPOINT-01' },
@@ -563,8 +571,8 @@ function TrafficAnalysisTab({ agents }: { agents: Agent[] }) {
       </div>
 
       {/* Traffic chart */}
-      <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
-        <h3 className="text-falcon-text font-semibold mb-4 flex items-center gap-2">
+      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
+        <h3 className="text-[#e2e8f4] font-semibold mb-4 flex items-center gap-2">
           <Activity className="w-4 h-4 text-blue-400" />
           トラフィックボリューム (過去24時間)
         </h3>
@@ -622,7 +630,7 @@ function TrafficAnalysisTab({ agents }: { agents: Agent[] }) {
             ))}
           </svg>
         </div>
-        <div className="flex items-center gap-6 mt-3 text-xs text-falcon-muted">
+        <div className="flex items-center gap-6 mt-3 text-xs text-[#7d92b0]">
           <span className="flex items-center gap-1.5"><span className="w-5 h-0.5 bg-blue-500 inline-block rounded-sm" /> インバウンド</span>
           <span className="flex items-center gap-1.5"><span className="w-5 h-0.5 bg-green-500 inline-block rounded-sm" /> アウトバウンド</span>
           <span className="flex items-center gap-1.5"><span className="w-5 h-0.5 bg-red-500 inline-block rounded-sm" style={{ borderStyle: 'dashed' }} /> 異常検出ポイント</span>
@@ -631,31 +639,31 @@ function TrafficAnalysisTab({ agents }: { agents: Agent[] }) {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Top IPs */}
-        <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
-          <h3 className="text-falcon-text font-semibold mb-4 flex items-center gap-2">
-            <Globe className="w-4 h-4 text-falcon-muted" />
+        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
+          <h3 className="text-[#e2e8f4] font-semibold mb-4 flex items-center gap-2">
+            <Globe className="w-4 h-4 text-[#7d92b0]" />
             上位通信IP
           </h3>
           <div className="overflow-x-auto">
             <table className="w-full text-xs">
               <thead>
-                <tr className="border-b border-falcon-border">
-                  <th className="text-left py-2 px-2 text-falcon-muted font-medium">IP</th>
-                  <th className="text-left py-2 px-2 text-falcon-muted font-medium">受信</th>
-                  <th className="text-left py-2 px-2 text-falcon-muted font-medium">送信</th>
-                  <th className="text-left py-2 px-2 text-falcon-muted font-medium">接続数</th>
-                  <th className="text-left py-2 px-2 text-falcon-muted font-medium">国</th>
+                <tr className="border-b border-[#1e2d42]">
+                  <th className="text-left py-2 px-2 text-[#7d92b0] font-medium">IP</th>
+                  <th className="text-left py-2 px-2 text-[#7d92b0] font-medium">受信</th>
+                  <th className="text-left py-2 px-2 text-[#7d92b0] font-medium">送信</th>
+                  <th className="text-left py-2 px-2 text-[#7d92b0] font-medium">接続数</th>
+                  <th className="text-left py-2 px-2 text-[#7d92b0] font-medium">国</th>
                   <th className="py-2 px-2" />
                 </tr>
               </thead>
               <tbody>
                 {([] as TopIP[]).map((ip, i) => (
-                  <tr key={i} className="border-b border-falcon-border/40 hover:bg-falcon-border/20">
-                    <td className="py-2 px-2 font-mono text-falcon-text">{ip.ip}</td>
-                    <td className="py-2 px-2 text-falcon-muted">{formatBytes(ip.bytes_in)}</td>
-                    <td className="py-2 px-2 text-falcon-muted">{formatBytes(ip.bytes_out)}</td>
-                    <td className="py-2 px-2 text-falcon-text">{(ip.connections ?? 0).toLocaleString()}</td>
-                    <td className="py-2 px-2 text-falcon-muted">{ip.country}</td>
+                  <tr key={i} className="border-b border-[#1e2d42]/40 hover:bg-[#1e2d42]/20">
+                    <td className="py-2 px-2 font-mono text-[#e2e8f4]">{ip.ip}</td>
+                    <td className="py-2 px-2 text-[#7d92b0]">{formatBytes(ip.bytes_in)}</td>
+                    <td className="py-2 px-2 text-[#7d92b0]">{formatBytes(ip.bytes_out)}</td>
+                    <td className="py-2 px-2 text-[#e2e8f4]">{(ip.connections ?? 0).toLocaleString()}</td>
+                    <td className="py-2 px-2 text-[#7d92b0]">{ip.country}</td>
                     <td className="py-2 px-2">
                       {ip.threat_match && (
                         <span className="px-1.5 py-0.5 bg-red-500/20 text-red-400 border border-red-500/30 rounded-sm text-[9px] font-medium">TI</span>
@@ -669,22 +677,22 @@ function TrafficAnalysisTab({ agents }: { agents: Agent[] }) {
         </div>
 
         {/* Protocol distribution */}
-        <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
-          <h3 className="text-falcon-text font-semibold mb-4 flex items-center gap-2">
-            <Network className="w-4 h-4 text-falcon-muted" />
+        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
+          <h3 className="text-[#e2e8f4] font-semibold mb-4 flex items-center gap-2">
+            <Network className="w-4 h-4 text-[#7d92b0]" />
             プロトコル分布
           </h3>
           <div className="space-y-3">
             {protocols.map((p, i) => (
               <div key={p.protocol}>
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-sm text-falcon-text font-medium">{p.protocol}</span>
+                  <span className="text-sm text-[#e2e8f4] font-medium">{p.protocol}</span>
                   <div className="flex items-center gap-2">
-                    <span className="text-xs text-falcon-muted">{formatBytes(p.bytes)}</span>
+                    <span className="text-xs text-[#7d92b0]">{formatBytes(p.bytes)}</span>
                     <span className="text-xs font-bold" style={{ color: protocolColors[i] }}>{p.percentage}%</span>
                   </div>
                 </div>
-                <div className="h-2 bg-falcon-border rounded-full overflow-hidden">
+                <div className="h-2 bg-[#1e2d42] rounded-full overflow-hidden">
                   <div
                     className="h-full rounded-full transition-all"
                     style={{ width: `${(p.bytes / protocolMax) * 100}%`, backgroundColor: protocolColors[i] }}
@@ -717,17 +725,17 @@ function PortScanTab({ agents }: { agents: Agent[] }) {
     if (pct > 0.4) return 'bg-orange-500/60'
     if (pct > 0.2) return 'bg-yellow-500/40'
     if (pct > 0.05) return 'bg-blue-500/30'
-    return 'bg-falcon-border/40'
+    return 'bg-[#1e2d42]/40'
   }
 
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-3">
-        <Filter className="w-4 h-4 text-falcon-muted" />
+        <Filter className="w-4 h-4 text-[#7d92b0]" />
         <select
           value={agentFilter}
           onChange={e => setAgentFilter(e.target.value)}
-          className="bg-falcon-surface border border-falcon-border rounded-lg px-3 py-1.5 text-sm text-falcon-text focus:outline-hidden focus:border-falcon-red/60"
+          className="bg-[#0d1220] border border-[#1e2d42] rounded-lg px-3 py-1.5 text-sm text-[#e2e8f4] focus:outline-hidden focus:border-[#e8002d]/60"
         >
           <option value="all">全エージェント</option>
           {portScanData.map(d => <option key={d.agent_id} value={d.agent_id}>{d.agent_hostname}</option>)}
@@ -735,8 +743,8 @@ function PortScanTab({ agents }: { agents: Agent[] }) {
       </div>
 
       {/* Heatmap */}
-      <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
-        <h3 className="text-falcon-text font-semibold mb-4 flex items-center gap-2">
+      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
+        <h3 className="text-[#e2e8f4] font-semibold mb-4 flex items-center gap-2">
           <Activity className="w-4 h-4 text-orange-400" />
           ポートレンジヒートマップ
         </h3>
@@ -744,16 +752,16 @@ function PortScanTab({ agents }: { agents: Agent[] }) {
           <table className="w-full">
             <thead>
               <tr>
-                <th className="text-left py-2 pr-4 text-falcon-muted text-xs font-medium w-44">エージェント</th>
+                <th className="text-left py-2 pr-4 text-[#7d92b0] text-xs font-medium w-44">エージェント</th>
                 {portRanges.map(r => (
-                  <th key={r} className="py-2 px-3 text-falcon-muted text-xs font-medium text-center">{r}</th>
+                  <th key={r} className="py-2 px-3 text-[#7d92b0] text-xs font-medium text-center">{r}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {filtered.map(row => (
-                <tr key={row.agent_id} className="border-t border-falcon-border/40">
-                  <td className="py-2 pr-4 text-falcon-text text-xs font-medium">{row.agent_hostname}</td>
+                <tr key={row.agent_id} className="border-t border-[#1e2d42]/40">
+                  <td className="py-2 pr-4 text-[#e2e8f4] text-xs font-medium">{row.agent_hostname}</td>
                   {rangeKeys.map((k, i) => {
                     const v = row[k] as number
                     return (
@@ -770,9 +778,9 @@ function PortScanTab({ agents }: { agents: Agent[] }) {
           </table>
         </div>
         {/* Legend */}
-        <div className="flex items-center gap-3 mt-4 text-xs text-falcon-muted">
+        <div className="flex items-center gap-3 mt-4 text-xs text-[#7d92b0]">
           <span>低</span>
-          {['bg-falcon-border/40', 'bg-blue-500/30', 'bg-yellow-500/40', 'bg-orange-500/60', 'bg-red-500/80'].map((c, i) => (
+          {['bg-[#1e2d42]/40', 'bg-blue-500/30', 'bg-yellow-500/40', 'bg-orange-500/60', 'bg-red-500/80'].map((c, i) => (
             <div key={i} className={`w-6 h-3 rounded-sm ${c}`} />
           ))}
           <span>高</span>
@@ -780,8 +788,8 @@ function PortScanTab({ agents }: { agents: Agent[] }) {
       </div>
 
       {/* Suspicious ports */}
-      <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
-        <h3 className="text-falcon-text font-semibold mb-4 flex items-center gap-2">
+      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
+        <h3 className="text-[#e2e8f4] font-semibold mb-4 flex items-center gap-2">
           <AlertTriangle className="w-4 h-4 text-red-400" />
           不審ポート検出 (既知のC2/RATポート)
         </h3>
@@ -789,9 +797,9 @@ function PortScanTab({ agents }: { agents: Agent[] }) {
           {([] as SuspiciousPort[]).map(p => (
             <div key={p.port} className="flex items-center gap-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
               <span className="font-mono text-lg font-bold text-red-400 w-12 text-right">{p.port}</span>
-              <span className="text-xs text-falcon-muted w-8">{p.protocol}</span>
+              <span className="text-xs text-[#7d92b0] w-8">{p.protocol}</span>
               <div className="flex-1">
-                <p className="text-falcon-text text-sm">{p.description}</p>
+                <p className="text-[#e2e8f4] text-sm">{p.description}</p>
                 <p className="text-red-400/70 text-xs">{p.threat}</p>
               </div>
               <span className="px-2 py-1 bg-red-500/20 text-red-400 border border-red-500/30 rounded-sm text-xs font-bold">
@@ -812,10 +820,7 @@ export default function NetworkAnomaliesPage() {
 
   const { data: stats } = useQuery<AnomalyStats>({
     queryKey: ['network-anomaly-stats'],
-    queryFn: async () => {
-      try { return await apiFetch<AnomalyStats>('/api/v1/network-anomalies/stats') }
-      catch { return null as any }
-    },
+    queryFn: () => apiFetch<AnomalyStats>('/api/v1/network-anomalies/stats'),
     staleTime: 60_000,
     refetchInterval: 60_000,
   })
@@ -847,14 +852,16 @@ export default function NetworkAnomaliesPage() {
 
   return (
     <div className="min-h-screen bg-[#070d19] p-6 space-y-6">
+      <PageDataUnavailable />
+      <PageSaveFailed className="mb-4" />
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-falcon-text flex items-center gap-3">
-            <Network className="w-6 h-6 text-falcon-red" />
+          <h1 className="text-2xl font-bold text-[#e2e8f4] flex items-center gap-3">
+            <Network className="w-6 h-6 text-[#e8002d]" />
             ネットワーク異常検知
           </h1>
-          <p className="text-falcon-muted text-sm mt-1">AIベースのトラフィック異常・ビーコニング・不審ポート検出</p>
+          <p className="text-[#7d92b0] text-sm mt-1">AIベースのトラフィック異常・ビーコニング・不審ポート検出</p>
         </div>
       </div>
 
@@ -863,14 +870,14 @@ export default function NetworkAnomaliesPage() {
         {statCards.map(c => {
           const Icon = c.icon
           return (
-            <div key={c.label} className={`bg-falcon-surface border rounded-xl p-4 ${c.bg}`}>
+            <div key={c.label} className={`bg-[#0d1220] border rounded-xl p-4 ${c.bg}`}>
               <div className="flex items-center gap-3">
                 <div className="p-2 rounded-lg bg-[#070d19]/60">
                   <Icon className={`w-5 h-5 ${c.color}`} />
                 </div>
                 <div>
                   <p className={`text-xl font-bold ${c.color}`}>{c.value}</p>
-                  <p className="text-falcon-muted text-xs">{c.label}</p>
+                  <p className="text-[#7d92b0] text-xs">{c.label}</p>
                 </div>
               </div>
             </div>
@@ -879,15 +886,15 @@ export default function NetworkAnomaliesPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 border-b border-falcon-border">
+      <div className="flex gap-1 border-b border-[#1e2d42]">
         {tabs.map(tab => (
           <button
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
             className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors -mb-px
               ${activeTab === tab.key
-                ? 'border-falcon-red text-falcon-text'
-                : 'border-transparent text-falcon-muted hover:text-falcon-text'}`}
+                ? 'border-[#e8002d] text-[#e2e8f4]'
+                : 'border-transparent text-[#7d92b0] hover:text-[#e2e8f4]'}`}
           >
             {tab.label}
           </button>

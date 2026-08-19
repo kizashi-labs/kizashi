@@ -9,6 +9,9 @@ import {
 } from 'lucide-react'
 
 
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+import { PageSaveFailed } from '@/components/PageSaveFailed'
+
 const DOMAIN_ICONS: Record<string, React.ReactNode> = {
   endpoint: <Server className="w-4 h-4" />,
   network: <Network className="w-4 h-4" />,
@@ -61,21 +64,21 @@ export default function XDRPage() {
 
   const EMPTY_STATS = { buffered_events: 0, rules: 0, domain_counts: {} }
 
-  const { data: stats } = useQuery({
+  const { data: stats = EMPTY_STATS } = useQuery({
     queryKey: ['xdr-stats'],
-    queryFn: () => apiFetch('/api/v1/admin/xdr/stats').catch(() => EMPTY_STATS),
+    queryFn: () => apiFetch('/api/v1/admin/xdr/stats'),
     refetchInterval: 30000,
   })
 
   const { data: incidentsData, isLoading: loadingIncidents } = useQuery({
     queryKey: ['xdr-incidents'],
-    queryFn: () => apiFetch('/api/v1/admin/xdr/correlate', { method: 'POST' }).catch(() => ({ incidents: [], count: 0 })),
+    queryFn: () => apiFetch('/api/v1/admin/xdr/correlate', { method: 'POST' }),
     refetchInterval: 60000,
   })
 
-  const { data: eventsData } = useQuery({
+  const { data: eventsData = { events: [] } } = useQuery({
     queryKey: ['xdr-events'],
-    queryFn: () => apiFetch('/api/v1/admin/xdr/events?limit=50').catch(() => ({ events: [] })),
+    queryFn: () => apiFetch('/api/v1/admin/xdr/events?limit=50'),
     refetchInterval: 15000,
   })
 
@@ -102,6 +105,8 @@ export default function XDRPage() {
 
   return (
     <div className="p-6 space-y-6">
+      <PageDataUnavailable />
+      <PageSaveFailed />
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-white flex items-center gap-2">

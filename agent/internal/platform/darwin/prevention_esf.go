@@ -13,7 +13,8 @@
 package darwin
 
 /*
-// リンク指定の理由は process_collector_esf.go の同じ箇所を参照。
+// リンク指定の理由は process_collector_esf.go の同じ箇所を参照
+// (EndpointSecurity は framework ではなく libEndpointSecurity.tbd)。
 #cgo LDFLAGS: -lEndpointSecurity -lbsm -framework Foundation
 #include <EndpointSecurity/EndpointSecurity.h>
 #include <stdlib.h>

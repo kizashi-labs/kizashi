@@ -33,7 +33,7 @@ const SEVERITY_CONFIG: Record<SeverityLabel, {
     label: 'CRITICAL',
     icon: ShieldX,
     badgeCls: 'bg-red-900/60 text-red-300 border border-red-700/60',
-    leftBorder: 'border-l-4 border-l-falcon-red',
+    leftBorder: 'border-l-4 border-l-[#e8002d]',
     textCls: 'text-red-300',
   },
   high: {
@@ -94,17 +94,17 @@ function BannerItem({ entry, onDismiss }: BannerItemProps) {
       role="alert"
       aria-live="assertive"
       className={`
-        w-80 rounded-lg border border-falcon-border ${cfg.leftBorder}
-        bg-falcon-surface shadow-lg shadow-black/50
+        w-80 rounded-lg border border-[#1e2d42] ${cfg.leftBorder}
+        bg-[#0d1220] shadow-lg shadow-black/50
         overflow-hidden transition-all duration-300 ease-out
         ${visible ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-8'}
       `}
     >
       {/* Drain bar */}
-      <div className="h-0.5 w-full bg-falcon-border">
+      <div className="h-0.5 w-full bg-[#1e2d42]">
         <div
           className={`h-full ${
-            sevLabel === 'critical' ? 'bg-falcon-red' :
+            sevLabel === 'critical' ? 'bg-[#e8002d]' :
             sevLabel === 'high'     ? 'bg-orange-500' :
             sevLabel === 'medium'   ? 'bg-amber-400' :
                                       'bg-blue-500'
@@ -128,7 +128,7 @@ function BannerItem({ entry, onDismiss }: BannerItemProps) {
             )}
           </div>
           {/* Alert title */}
-          <p className="text-sm text-falcon-text font-medium leading-snug truncate">
+          <p className="text-sm text-[#e2e8f4] font-medium leading-snug truncate">
             {alert.title}
           </p>
         </div>
@@ -137,7 +137,7 @@ function BannerItem({ entry, onDismiss }: BannerItemProps) {
         <button
           onClick={() => onDismiss(entry.id)}
           aria-label="閉じる"
-          className="text-falcon-subtle hover:text-falcon-muted transition-colors shrink-0 mt-0.5"
+          className="text-[#3d5068] hover:text-[#7d92b0] transition-colors shrink-0 mt-0.5"
         >
           <X className="w-3.5 h-3.5" />
         </button>
@@ -154,12 +154,12 @@ function ConnectionDot({ connected }: { connected: boolean }) {
       {connected ? (
         <>
           <span className="w-2 h-2 rounded-full bg-green-400 animate-none" />
-          <Wifi className="w-3 h-3 text-falcon-subtle" />
+          <Wifi className="w-3 h-3 text-[#3d5068]" />
         </>
       ) : (
         <>
           <span className="w-2 h-2 rounded-full bg-[#5a6a7a]" />
-          <WifiOff className="w-3 h-3 text-falcon-subtle" />
+          <WifiOff className="w-3 h-3 text-[#3d5068]" />
         </>
       )}
     </div>

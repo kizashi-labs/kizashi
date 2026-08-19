@@ -7,6 +7,8 @@ import {
   Tag, Plus, Trash2, X, Check, ChevronRight, Search,
   Monitor, AlertTriangle, CheckSquare, Square,
 } from 'lucide-react'
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+
 import { USE_MOCK, m } from '@/lib/mock'
 
 // ── Types ──────────────────────────────────────────────────────
@@ -84,7 +86,7 @@ function TagBadge({ name, color, count, selected, onClick }: {
     <button
       onClick={onClick}
       className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-all border
-        ${selected ? 'ring-2 ring-offset-1 ring-offset-falcon-surface' : 'hover:opacity-80'}`}
+        ${selected ? 'ring-2 ring-offset-1 ring-offset-[#0d1220]' : 'hover:opacity-80'}`}
       style={{
         backgroundColor: hex2bg(color),
         color,
@@ -110,17 +112,17 @@ const OS_COLORS: Record<string, string> = {
 
 const STATUS_DOTS: Record<string, string> = {
   online:  'bg-green-400',
-  offline: 'bg-falcon-subtle',
+  offline: 'bg-[#3d5068]',
   warning: 'bg-yellow-400',
 }
 
 function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-xs p-4">
-      <div className="bg-falcon-surface border border-falcon-border rounded-xl w-full max-w-md shadow-2xl">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-falcon-border">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl w-full max-w-md shadow-2xl">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-[#1e2d42]">
           <h3 className="text-sm font-semibold text-white">{title}</h3>
-          <button onClick={onClose} className="text-falcon-muted hover:text-white transition-colors">
+          <button onClick={onClose} className="text-[#7d92b0] hover:text-white transition-colors">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -156,10 +158,7 @@ export default function EndpointTagsPage() {
 
   const { data: tagsData } = useQuery<TagsResponse>({
     queryKey: ['endpoint-tags'],
-    queryFn: async () => {
-      try { return await apiFetch<TagsResponse>('/api/v1/endpoints/tags/all') }
-      catch { return { tags: m(MOCK_TAGS) } }
-    },
+    queryFn: () => apiFetch<TagsResponse>('/api/v1/endpoints/tags/all'),
   })
   const tags = tagsData?.tags ?? m(MOCK_TAGS)
 
@@ -276,16 +275,17 @@ export default function EndpointTagsPage() {
 
   return (
     <div className="min-h-screen bg-[#070d19] p-6">
+      <PageDataUnavailable />
 
       {/* Header */}
       <div className="mb-6">
         <div className="flex items-center gap-3 mb-1">
-          <div className="w-8 h-8 rounded-sm bg-falcon-red/10 border border-falcon-red/30 flex items-center justify-center">
-            <Tag className="w-4 h-4 text-falcon-red" />
+          <div className="w-8 h-8 rounded-sm bg-[#e8002d]/10 border border-[#e8002d]/30 flex items-center justify-center">
+            <Tag className="w-4 h-4 text-[#e8002d]" />
           </div>
           <h1 className="text-xl font-bold text-white">エンドポイントタグ</h1>
         </div>
-        <p className="text-falcon-muted text-sm ml-11">タグによるエンドポイントの分類・フィルタリング</p>
+        <p className="text-[#7d92b0] text-sm ml-11">タグによるエンドポイントの分類・フィルタリング</p>
       </div>
 
       {/* Stats */}
@@ -293,24 +293,24 @@ export default function EndpointTagsPage() {
         {[
           { label: '使用中タグ数',         value: stats.total,    color: 'text-white' },
           { label: 'タグ付きエンドポイント', value: stats.tagged,   color: 'text-green-400' },
-          { label: '未タグ',               value: stats.untagged,  color: 'text-falcon-muted' },
-          { label: '最多使用タグ',          value: stats.mostUsed,  color: 'text-falcon-red', isString: true },
+          { label: '未タグ',               value: stats.untagged,  color: 'text-[#7d92b0]' },
+          { label: '最多使用タグ',          value: stats.mostUsed,  color: 'text-[#e8002d]', isString: true },
         ].map(s => (
-          <div key={s.label} className="bg-falcon-surface border border-falcon-border rounded-lg p-4">
-            <p className="text-falcon-muted text-xs mb-1">{s.label}</p>
+          <div key={s.label} className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-4">
+            <p className="text-[#7d92b0] text-xs mb-1">{s.label}</p>
             <p className={`text-xl font-bold ${s.color} ${s.isString ? 'text-base' : ''}`}>{s.value}</p>
           </div>
         ))}
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-0.5 mb-6 bg-falcon-surface border border-falcon-border rounded-lg p-1 w-fit">
+      <div className="flex gap-0.5 mb-6 bg-[#0d1220] border border-[#1e2d42] rounded-lg p-1 w-fit">
         {([['list', 'タグ一覧'], ['wizard', 'タグ付けウィザード']] as const).map(([key, label]) => (
           <button
             key={key}
             onClick={() => setActiveTab(key)}
-            className={`px-4 py-2 rounded text-sm font-medium transition-colors ${
-              activeTab === key ? 'bg-falcon-border text-white' : 'text-falcon-muted hover:text-white'
+            className={`px-4 py-2 rounded-sm text-sm font-medium transition-colors ${
+              activeTab === key ? 'bg-[#1e2d42] text-white' : 'text-[#7d92b0] hover:text-white'
             }`}
           >
             {label}
@@ -324,12 +324,12 @@ export default function EndpointTagsPage() {
         <div className="flex gap-6">
           {/* Left: tag cloud */}
           <div className="w-72 shrink-0">
-            <div className="bg-falcon-surface border border-falcon-border rounded-lg overflow-hidden">
-              <div className="flex items-center justify-between px-4 py-3 border-b border-falcon-border">
+            <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg overflow-hidden">
+              <div className="flex items-center justify-between px-4 py-3 border-b border-[#1e2d42]">
                 <h2 className="text-sm font-semibold text-white">タグ一覧</h2>
                 <button
                   onClick={() => setShowCreate(true)}
-                  className="flex items-center gap-1 text-xs text-falcon-muted hover:text-white px-2 py-1 rounded-sm hover:bg-falcon-border transition-colors"
+                  className="flex items-center gap-1 text-xs text-[#7d92b0] hover:text-white px-2 py-1 rounded-sm hover:bg-[#1e2d42] transition-colors"
                 >
                   <Plus className="w-3.5 h-3.5" />
                   タグ作成
@@ -349,7 +349,7 @@ export default function EndpointTagsPage() {
                     />
                     <button
                       onClick={() => setDeleteTag(tag)}
-                      className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 rounded-sm hover:bg-falcon-border text-falcon-muted hover:text-falcon-red"
+                      className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 rounded-sm hover:bg-[#1e2d42] text-[#7d92b0] hover:text-[#e8002d]"
                     >
                       <Trash2 className="w-3 h-3" />
                     </button>
@@ -358,22 +358,22 @@ export default function EndpointTagsPage() {
               </div>
 
               {/* Tag list */}
-              <div className="border-t border-falcon-border">
+              <div className="border-t border-[#1e2d42]">
                 {tags.map(tag => (
                   <button
                     key={tag.id}
                     onClick={() => setSelectedTag(selectedTag?.id === tag.id ? null : tag)}
                     className={`w-full flex items-center justify-between px-4 py-2.5 text-sm transition-colors ${
-                      selectedTag?.id === tag.id ? 'bg-falcon-border' : 'hover:bg-[#0a1628]'
+                      selectedTag?.id === tag.id ? 'bg-[#1e2d42]' : 'hover:bg-[#0a1628]'
                     }`}
                   >
                     <div className="flex items-center gap-2">
                       <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: tag.color }} />
-                      <span className="text-falcon-text font-medium">{tag.name}</span>
+                      <span className="text-[#e2e8f4] font-medium">{tag.name}</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="text-xs text-falcon-muted">{tag.endpoint_count}台</span>
-                      {selectedTag?.id === tag.id && <ChevronRight className="w-3.5 h-3.5 text-falcon-red" />}
+                      <span className="text-xs text-[#7d92b0]">{tag.endpoint_count}台</span>
+                      {selectedTag?.id === tag.id && <ChevronRight className="w-3.5 h-3.5 text-[#e8002d]" />}
                     </div>
                   </button>
                 ))}
@@ -384,44 +384,44 @@ export default function EndpointTagsPage() {
           {/* Right: endpoint list */}
           <div className="flex-1 min-w-0">
             {selectedTag ? (
-              <div className="bg-falcon-surface border border-falcon-border rounded-lg overflow-hidden">
-                <div className="px-4 py-3 border-b border-falcon-border flex items-center gap-2">
+              <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg overflow-hidden">
+                <div className="px-4 py-3 border-b border-[#1e2d42] flex items-center gap-2">
                   <span className="w-2 h-2 rounded-full" style={{ backgroundColor: selectedTag.color }} />
                   <h2 className="text-sm font-semibold text-white">{selectedTag.name} のエンドポイント</h2>
-                  <span className="text-xs text-falcon-muted">({taggedEndpoints.length}台)</span>
+                  <span className="text-xs text-[#7d92b0]">({taggedEndpoints.length}台)</span>
                 </div>
 
                 {taggedEndpoints.length === 0 ? (
-                  <div className="p-8 text-center text-falcon-muted text-sm">
+                  <div className="p-8 text-center text-[#7d92b0] text-sm">
                     このタグのエンドポイントはありません
                   </div>
                 ) : (
                   <table className="w-full">
                     <thead>
-                      <tr className="border-b border-falcon-border">
+                      <tr className="border-b border-[#1e2d42]">
                         {['ホスト名', 'OS', 'ステータス', '現在のタグ', 'アクション'].map(h => (
-                          <th key={h} className="px-4 py-3 text-left text-xs font-medium text-falcon-muted uppercase tracking-wider">{h}</th>
+                          <th key={h} className="px-4 py-3 text-left text-xs font-medium text-[#7d92b0] uppercase tracking-wider">{h}</th>
                         ))}
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-falcon-border">
+                    <tbody className="divide-y divide-[#1e2d42]">
                       {taggedEndpoints.map(agent => (
                         <tr key={agent.id} className="hover:bg-[#0a1628] transition-colors">
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-2">
-                              <Monitor className="w-3.5 h-3.5 text-falcon-subtle" />
+                              <Monitor className="w-3.5 h-3.5 text-[#3d5068]" />
                               <span className="text-sm text-white font-medium">{agent.hostname}</span>
                             </div>
                           </td>
                           <td className="px-4 py-3">
-                            <span className={`text-[11px] px-2 py-0.5 rounded-sm border font-medium ${OS_COLORS[agent.os] ?? 'bg-falcon-border text-falcon-muted border-falcon-border'}`}>
+                            <span className={`text-[11px] px-2 py-0.5 rounded-sm border font-medium ${OS_COLORS[agent.os] ?? 'bg-[#1e2d42] text-[#7d92b0] border-[#1e2d42]'}`}>
                               {agent.os}
                             </span>
                           </td>
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-1.5">
                               <span className={`w-2 h-2 rounded-full ${STATUS_DOTS[agent.status]}`} />
-                              <span className="text-xs text-falcon-muted capitalize">{agent.status}</span>
+                              <span className="text-xs text-[#7d92b0] capitalize">{agent.status}</span>
                             </div>
                           </td>
                           <td className="px-4 py-3">
@@ -431,7 +431,7 @@ export default function EndpointTagsPage() {
                                 return tagObj ? (
                                   <TagBadge key={t} name={t} color={tagObj.color} />
                                 ) : (
-                                  <span key={t} className="text-[10px] px-2 py-0.5 rounded-full bg-falcon-border text-falcon-muted border border-falcon-border">{t}</span>
+                                  <span key={t} className="text-[10px] px-2 py-0.5 rounded-full bg-[#1e2d42] text-[#7d92b0] border border-[#1e2d42]">{t}</span>
                                 )
                               })}
                             </div>
@@ -440,7 +440,7 @@ export default function EndpointTagsPage() {
                             <button
                               onClick={() => removeTagFromEndpoint.mutate({ agentId: agent.id, tag: selectedTag.name })}
                               disabled={removeTagFromEndpoint.isPending}
-                              className="flex items-center gap-1 text-xs text-falcon-muted hover:text-falcon-red transition-colors px-2 py-1 rounded-sm hover:bg-falcon-border disabled:opacity-50"
+                              className="flex items-center gap-1 text-xs text-[#7d92b0] hover:text-[#e8002d] transition-colors px-2 py-1 rounded-sm hover:bg-[#1e2d42] disabled:opacity-50"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
                               タグ削除
@@ -453,9 +453,9 @@ export default function EndpointTagsPage() {
                 )}
               </div>
             ) : (
-              <div className="bg-falcon-surface border border-falcon-border rounded-lg p-12 flex flex-col items-center text-center">
-                <Tag className="w-10 h-10 text-falcon-subtle mb-3" />
-                <p className="text-falcon-muted text-sm">左のタグを選択してエンドポイントを表示</p>
+              <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-12 flex flex-col items-center text-center">
+                <Tag className="w-10 h-10 text-[#3d5068] mb-3" />
+                <p className="text-[#7d92b0] text-sm">左のタグを選択してエンドポイントを表示</p>
               </div>
             )}
           </div>
@@ -465,9 +465,9 @@ export default function EndpointTagsPage() {
       {/* ── Tab: ウィザード ─────────────────────────────────────── */}
 
       {activeTab === 'wizard' && (
-        <div className="bg-falcon-surface border border-falcon-border rounded-lg overflow-hidden">
+        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg overflow-hidden">
           {/* Step indicator */}
-          <div className="px-5 py-4 border-b border-falcon-border">
+          <div className="px-5 py-4 border-b border-[#1e2d42]">
             <div className="flex items-center gap-0 max-w-lg">
               {[
                 { n: 1, label: 'エンドポイント選択' },
@@ -476,19 +476,19 @@ export default function EndpointTagsPage() {
                 { n: 4, label: '確認・実行' },
               ].map((step, i) => (
                 <div key={step.n} className="flex items-center">
-                  <div className={`flex items-center gap-2 px-3 py-1.5 rounded ${
-                    wizStep === step.n ? 'text-white' : wizStep > step.n ? 'text-green-400' : 'text-falcon-subtle'
+                  <div className={`flex items-center gap-2 px-3 py-1.5 rounded-sm ${
+                    wizStep === step.n ? 'text-white' : wizStep > step.n ? 'text-green-400' : 'text-[#3d5068]'
                   }`}>
                     <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold border-2 ${
-                      wizStep === step.n ? 'border-falcon-red bg-falcon-red/10 text-white' :
+                      wizStep === step.n ? 'border-[#e8002d] bg-[#e8002d]/10 text-white' :
                       wizStep > step.n  ? 'border-green-500 bg-green-500/10 text-green-400' :
-                      'border-falcon-border text-falcon-subtle'
+                      'border-[#1e2d42] text-[#3d5068]'
                     }`}>
                       {wizStep > step.n ? <Check className="w-3 h-3" /> : step.n}
                     </div>
                     <span className="text-xs font-medium hidden sm:block">{step.label}</span>
                   </div>
-                  {i < 3 && <div className="w-6 h-px bg-falcon-border mx-1" />}
+                  {i < 3 && <div className="w-6 h-px bg-[#1e2d42] mx-1" />}
                 </div>
               ))}
             </div>
@@ -509,12 +509,12 @@ export default function EndpointTagsPage() {
                     <p className={`font-semibold text-sm ${wizResult.failure === 0 ? 'text-green-400' : 'text-yellow-400'}`}>
                       操作完了
                     </p>
-                    <p className="text-xs text-falcon-muted mt-0.5">
+                    <p className="text-xs text-[#7d92b0] mt-0.5">
                       成功: {wizResult.success}台 / 失敗: {wizResult.failure}台
                     </p>
                   </div>
                 </div>
-                <button onClick={resetWizard} className="px-4 py-2 bg-falcon-red hover:bg-[#c8001f] text-white text-sm rounded-sm transition-colors">
+                <button onClick={resetWizard} className="px-4 py-2 bg-[#e8002d] hover:bg-[#c8001f] text-white text-sm rounded-sm transition-colors">
                   新しい操作を開始
                 </button>
               </div>
@@ -528,44 +528,44 @@ export default function EndpointTagsPage() {
                     <div className="flex items-center justify-between">
                       <h3 className="text-sm font-semibold text-white">エンドポイント選択</h3>
                       {wizSelected.length > 0 && (
-                        <span className="text-xs px-2 py-0.5 rounded-full bg-falcon-red/10 text-falcon-red border border-falcon-red/20">
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-[#e8002d]/10 text-[#e8002d] border border-[#e8002d]/20">
                           {wizSelected.length}台選択中
                         </span>
                       )}
                     </div>
 
                     <div className="relative">
-                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-falcon-subtle" />
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#3d5068]" />
                       <input
                         value={wizSearch}
                         onChange={e => setWizSearch(e.target.value)}
                         placeholder="ホスト名で検索..."
-                        className="w-full bg-[#070d19] border border-falcon-border rounded-sm pl-9 pr-3 py-2 text-sm text-white placeholder-falcon-subtle focus:outline-hidden focus:border-falcon-red/50"
+                        className="w-full bg-[#070d19] border border-[#1e2d42] rounded-sm pl-9 pr-3 py-2 text-sm text-white placeholder-[#3d5068] focus:outline-hidden focus:border-[#e8002d]/50"
                       />
                     </div>
 
-                    <div className="border border-falcon-border rounded-lg overflow-hidden max-h-72 overflow-y-auto">
+                    <div className="border border-[#1e2d42] rounded-lg overflow-hidden max-h-72 overflow-y-auto">
                       <div
                         onClick={selectAllFiltered}
-                        className="px-4 py-2.5 flex items-center gap-3 border-b border-falcon-border bg-[#070d19] cursor-pointer hover:bg-[#0a1628] transition-colors"
+                        className="px-4 py-2.5 flex items-center gap-3 border-b border-[#1e2d42] bg-[#070d19] cursor-pointer hover:bg-[#0a1628] transition-colors"
                       >
                         {filteredAgents.length > 0 && filteredAgents.every(a => wizSelected.includes(a.id))
-                          ? <CheckSquare className="w-4 h-4 text-falcon-red" />
-                          : <Square className="w-4 h-4 text-falcon-subtle" />}
-                        <span className="text-xs text-falcon-muted">すべて選択 ({filteredAgents.length}台)</span>
+                          ? <CheckSquare className="w-4 h-4 text-[#e8002d]" />
+                          : <Square className="w-4 h-4 text-[#3d5068]" />}
+                        <span className="text-xs text-[#7d92b0]">すべて選択 ({filteredAgents.length}台)</span>
                       </div>
                       {filteredAgents.map(agent => (
                         <div
                           key={agent.id}
                           onClick={() => toggleWizAgent(agent.id)}
                           className={`px-4 py-2.5 flex items-center gap-3 cursor-pointer transition-colors hover:bg-[#0a1628] ${
-                            wizSelected.includes(agent.id) ? 'bg-falcon-border/40' : ''
+                            wizSelected.includes(agent.id) ? 'bg-[#1e2d42]/40' : ''
                           }`}
                         >
                           {wizSelected.includes(agent.id)
-                            ? <CheckSquare className="w-4 h-4 text-falcon-red shrink-0" />
-                            : <Square className="w-4 h-4 text-falcon-subtle shrink-0" />}
-                          <Monitor className="w-3.5 h-3.5 text-falcon-subtle shrink-0" />
+                            ? <CheckSquare className="w-4 h-4 text-[#e8002d] shrink-0" />
+                            : <Square className="w-4 h-4 text-[#3d5068] shrink-0" />}
+                          <Monitor className="w-3.5 h-3.5 text-[#3d5068] shrink-0" />
                           <span className="text-sm text-white font-medium flex-1">{agent.hostname}</span>
                           <div className="flex items-center gap-1.5">
                             <span className={`w-1.5 h-1.5 rounded-full ${STATUS_DOTS[agent.status]}`} />
@@ -579,7 +579,7 @@ export default function EndpointTagsPage() {
                       <button
                         onClick={() => setWizStep(2)}
                         disabled={wizSelected.length === 0}
-                        className="px-4 py-2 bg-falcon-red hover:bg-[#c8001f] text-white text-sm rounded-sm transition-colors disabled:opacity-50"
+                        className="px-4 py-2 bg-[#e8002d] hover:bg-[#c8001f] text-white text-sm rounded-sm transition-colors disabled:opacity-50"
                       >
                         次へ
                       </button>
@@ -591,11 +591,11 @@ export default function EndpointTagsPage() {
                 {wizStep === 2 && (
                   <div className="space-y-4">
                     <h3 className="text-sm font-semibold text-white">タグ操作選択</h3>
-                    <p className="text-xs text-falcon-muted">{wizSelected.length}台のエンドポイントに対して操作を選択してください</p>
+                    <p className="text-xs text-[#7d92b0]">{wizSelected.length}台のエンドポイントに対して操作を選択してください</p>
                     <div className="flex flex-col gap-3">
                       {(['add', 'remove'] as const).map(op => (
                         <label key={op} className={`flex items-center gap-3 p-4 rounded-lg border cursor-pointer transition-colors ${
-                          wizOp === op ? 'border-falcon-red/50 bg-falcon-red/5' : 'border-falcon-border hover:border-falcon-muted/30'
+                          wizOp === op ? 'border-[#e8002d]/50 bg-[#e8002d]/5' : 'border-[#1e2d42] hover:border-[#7d92b0]/30'
                         }`}>
                           <input
                             type="radio"
@@ -603,11 +603,11 @@ export default function EndpointTagsPage() {
                             value={op}
                             checked={wizOp === op}
                             onChange={() => setWizOp(op)}
-                            className="accent-falcon-red"
+                            className="accent-[#e8002d]"
                           />
                           <div>
                             <p className="text-sm font-medium text-white">{op === 'add' ? 'タグを追加' : 'タグを削除'}</p>
-                            <p className="text-xs text-falcon-muted">
+                            <p className="text-xs text-[#7d92b0]">
                               {op === 'add' ? '選択したエンドポイントにタグを追加します' : '選択したエンドポイントからタグを削除します'}
                             </p>
                           </div>
@@ -615,8 +615,8 @@ export default function EndpointTagsPage() {
                       ))}
                     </div>
                     <div className="flex gap-2 justify-end">
-                      <button onClick={() => setWizStep(1)} className="px-4 py-2 text-xs text-falcon-muted hover:text-white border border-falcon-border rounded-sm hover:border-falcon-muted/40 transition-colors">戻る</button>
-                      <button onClick={() => setWizStep(3)} className="px-4 py-2 bg-falcon-red hover:bg-[#c8001f] text-white text-sm rounded-sm transition-colors">次へ</button>
+                      <button onClick={() => setWizStep(1)} className="px-4 py-2 text-xs text-[#7d92b0] hover:text-white border border-[#1e2d42] rounded-sm hover:border-[#7d92b0]/40 transition-colors">戻る</button>
+                      <button onClick={() => setWizStep(3)} className="px-4 py-2 bg-[#e8002d] hover:bg-[#c8001f] text-white text-sm rounded-sm transition-colors">次へ</button>
                     </div>
                   </div>
                 )}
@@ -625,7 +625,7 @@ export default function EndpointTagsPage() {
                 {wizStep === 3 && (
                   <div className="space-y-4">
                     <h3 className="text-sm font-semibold text-white">タグ選択</h3>
-                    <p className="text-xs text-falcon-muted">既存のタグを選択するか、新しいタグを作成してください</p>
+                    <p className="text-xs text-[#7d92b0]">既存のタグを選択するか、新しいタグを作成してください</p>
 
                     <div className="flex flex-wrap gap-2">
                       {tags.map(tag => (
@@ -646,8 +646,8 @@ export default function EndpointTagsPage() {
 
                     <button
                       onClick={() => { setWizCreateNew(true); setWizTag(null) }}
-                      className={`flex items-center gap-2 text-xs px-3 py-2 rounded border transition-colors ${
-                        wizCreateNew ? 'border-falcon-red/50 bg-falcon-red/5 text-white' : 'border-falcon-border text-falcon-muted hover:text-white hover:border-falcon-muted/40'
+                      className={`flex items-center gap-2 text-xs px-3 py-2 rounded-sm border transition-colors ${
+                        wizCreateNew ? 'border-[#e8002d]/50 bg-[#e8002d]/5 text-white' : 'border-[#1e2d42] text-[#7d92b0] hover:text-white hover:border-[#7d92b0]/40'
                       }`}
                     >
                       <Plus className="w-3.5 h-3.5" />
@@ -655,12 +655,12 @@ export default function EndpointTagsPage() {
                     </button>
 
                     {wizCreateNew && (
-                      <div className="pl-4 space-y-3 border-l-2 border-falcon-red/30">
+                      <div className="pl-4 space-y-3 border-l-2 border-[#e8002d]/30">
                         <input
                           value={wizNewName}
                           onChange={e => setWizNewName(e.target.value)}
                           placeholder="タグ名"
-                          className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-sm text-white placeholder-falcon-subtle focus:outline-hidden focus:border-falcon-red/50"
+                          className="w-full bg-[#070d19] border border-[#1e2d42] rounded-sm px-3 py-2 text-sm text-white placeholder-[#3d5068] focus:outline-hidden focus:border-[#e8002d]/50"
                         />
                         <div className="flex flex-wrap gap-2">
                           {TAG_COLORS.map(c => (
@@ -677,11 +677,11 @@ export default function EndpointTagsPage() {
                     )}
 
                     <div className="flex gap-2 justify-end">
-                      <button onClick={() => setWizStep(2)} className="px-4 py-2 text-xs text-falcon-muted hover:text-white border border-falcon-border rounded-sm hover:border-falcon-muted/40 transition-colors">戻る</button>
+                      <button onClick={() => setWizStep(2)} className="px-4 py-2 text-xs text-[#7d92b0] hover:text-white border border-[#1e2d42] rounded-sm hover:border-[#7d92b0]/40 transition-colors">戻る</button>
                       <button
                         onClick={() => setWizStep(4)}
                         disabled={!wizTag && (!wizCreateNew || !wizNewName)}
-                        className="px-4 py-2 bg-falcon-red hover:bg-[#c8001f] text-white text-sm rounded-sm transition-colors disabled:opacity-50"
+                        className="px-4 py-2 bg-[#e8002d] hover:bg-[#c8001f] text-white text-sm rounded-sm transition-colors disabled:opacity-50"
                       >
                         次へ
                       </button>
@@ -693,15 +693,15 @@ export default function EndpointTagsPage() {
                 {wizStep === 4 && (
                   <div className="space-y-4">
                     <h3 className="text-sm font-semibold text-white">確認・実行</h3>
-                    <div className="bg-[#070d19] border border-falcon-border rounded-lg p-4 space-y-3">
+                    <div className="bg-[#070d19] border border-[#1e2d42] rounded-lg p-4 space-y-3">
                       <div className="flex items-center gap-2">
-                        <span className="text-xs text-falcon-muted">操作:</span>
-                        <span className={`text-sm font-medium ${wizOp === 'add' ? 'text-green-400' : 'text-falcon-red'}`}>
+                        <span className="text-xs text-[#7d92b0]">操作:</span>
+                        <span className={`text-sm font-medium ${wizOp === 'add' ? 'text-green-400' : 'text-[#e8002d]'}`}>
                           {wizOp === 'add' ? 'タグを追加' : 'タグを削除'}
                         </span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className="text-xs text-falcon-muted">タグ:</span>
+                        <span className="text-xs text-[#7d92b0]">タグ:</span>
                         {(wizTag || wizCreateNew) && (
                           <TagBadge
                             name={wizCreateNew ? wizNewName : wizTag!.name}
@@ -710,27 +710,27 @@ export default function EndpointTagsPage() {
                         )}
                       </div>
                       <div>
-                        <span className="text-xs text-falcon-muted">
+                        <span className="text-xs text-[#7d92b0]">
                           {wizSelected.length}台のエンドポイントにタグ「{wizCreateNew ? wizNewName : wizTag?.name}」を{wizOp === 'add' ? '追加' : '削除'}します
                         </span>
                       </div>
-                      <div className="border-t border-falcon-border pt-3">
+                      <div className="border-t border-[#1e2d42] pt-3">
                         <div className="flex flex-wrap gap-1 max-h-24 overflow-y-auto">
                           {wizSelected.map(id => {
                             const a = agents.find(ag => ag.id === id)
                             return a ? (
-                              <span key={id} className="text-[11px] px-2 py-0.5 rounded-sm bg-falcon-border text-falcon-muted border border-falcon-border">{a.hostname}</span>
+                              <span key={id} className="text-[11px] px-2 py-0.5 rounded-sm bg-[#1e2d42] text-[#7d92b0] border border-[#1e2d42]">{a.hostname}</span>
                             ) : null
                           })}
                         </div>
                       </div>
                     </div>
                     <div className="flex gap-2 justify-end">
-                      <button onClick={() => setWizStep(3)} className="px-4 py-2 text-xs text-falcon-muted hover:text-white border border-falcon-border rounded-sm hover:border-falcon-muted/40 transition-colors">戻る</button>
+                      <button onClick={() => setWizStep(3)} className="px-4 py-2 text-xs text-[#7d92b0] hover:text-white border border-[#1e2d42] rounded-sm hover:border-[#7d92b0]/40 transition-colors">戻る</button>
                       <button
                         onClick={handleBulkExecute}
                         disabled={bulkMutation.isPending}
-                        className="px-5 py-2 bg-falcon-red hover:bg-[#c8001f] text-white text-sm font-medium rounded-sm transition-colors disabled:opacity-50"
+                        className="px-5 py-2 bg-[#e8002d] hover:bg-[#c8001f] text-white text-sm font-medium rounded-sm transition-colors disabled:opacity-50"
                       >
                         {bulkMutation.isPending ? '実行中...' : '実行'}
                       </button>
@@ -750,23 +750,23 @@ export default function EndpointTagsPage() {
         <Modal title="タグ作成" onClose={() => setShowCreate(false)}>
           <div className="space-y-4">
             <div>
-              <label className="block text-xs text-falcon-muted mb-1">タグ名 <span className="text-falcon-red">*</span></label>
+              <label className="block text-xs text-[#7d92b0] mb-1">タグ名 <span className="text-[#e8002d]">*</span></label>
               <input
                 value={newTagName}
                 onChange={e => setNewTagName(e.target.value)}
                 placeholder="Production"
-                className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-sm text-white placeholder-falcon-subtle focus:outline-hidden focus:border-falcon-red/50"
+                className="w-full bg-[#070d19] border border-[#1e2d42] rounded-sm px-3 py-2 text-sm text-white placeholder-[#3d5068] focus:outline-hidden focus:border-[#e8002d]/50"
               />
             </div>
             <div>
-              <label className="block text-xs text-falcon-muted mb-2">カラー</label>
+              <label className="block text-xs text-[#7d92b0] mb-2">カラー</label>
               <div className="flex flex-wrap gap-2">
                 {TAG_COLORS.map(c => (
                   <button
                     key={c.value}
                     onClick={() => setNewTagColor(c.value)}
                     title={c.label}
-                    className={`w-8 h-8 rounded-full border-2 transition-all ${newTagColor === c.value ? 'border-white scale-110' : 'border-transparent hover:border-falcon-muted/40'}`}
+                    className={`w-8 h-8 rounded-full border-2 transition-all ${newTagColor === c.value ? 'border-white scale-110' : 'border-transparent hover:border-[#7d92b0]/40'}`}
                     style={{ backgroundColor: c.value }}
                   />
                 ))}
@@ -776,13 +776,13 @@ export default function EndpointTagsPage() {
               </div>
             </div>
             <div className="flex gap-2 justify-end pt-2">
-              <button onClick={() => setShowCreate(false)} className="px-4 py-2 text-xs text-falcon-muted hover:text-white border border-falcon-border rounded-sm hover:border-falcon-muted/40 transition-colors">
+              <button onClick={() => setShowCreate(false)} className="px-4 py-2 text-xs text-[#7d92b0] hover:text-white border border-[#1e2d42] rounded-sm hover:border-[#7d92b0]/40 transition-colors">
                 キャンセル
               </button>
               <button
                 onClick={() => createTagMutation.mutate({ name: newTagName, color: newTagColor })}
                 disabled={!newTagName || createTagMutation.isPending}
-                className="px-4 py-2 text-xs text-white bg-falcon-red hover:bg-[#c8001f] rounded-sm transition-colors disabled:opacity-50"
+                className="px-4 py-2 text-xs text-white bg-[#e8002d] hover:bg-[#c8001f] rounded-sm transition-colors disabled:opacity-50"
               >
                 {createTagMutation.isPending ? '作成中...' : '作成'}
               </button>
@@ -795,20 +795,20 @@ export default function EndpointTagsPage() {
       {deleteTag && (
         <Modal title="タグ削除" onClose={() => setDeleteTag(null)}>
           <div className="space-y-4">
-            <div className="flex items-start gap-3 p-3 rounded-lg bg-falcon-red/5 border border-falcon-red/20">
-              <AlertTriangle className="w-5 h-5 text-falcon-red shrink-0 mt-0.5" />
-              <p className="text-sm text-falcon-text">
+            <div className="flex items-start gap-3 p-3 rounded-lg bg-[#e8002d]/5 border border-[#e8002d]/20">
+              <AlertTriangle className="w-5 h-5 text-[#e8002d] shrink-0 mt-0.5" />
+              <p className="text-sm text-[#e2e8f4]">
                 このタグを <span className="font-semibold text-white">{deleteTag.endpoint_count}台</span> のエンドポイントから削除します。この操作は元に戻せません。
               </p>
             </div>
             <div className="flex gap-2 justify-end">
-              <button onClick={() => setDeleteTag(null)} className="px-4 py-2 text-xs text-falcon-muted hover:text-white border border-falcon-border rounded-sm hover:border-falcon-muted/40 transition-colors">
+              <button onClick={() => setDeleteTag(null)} className="px-4 py-2 text-xs text-[#7d92b0] hover:text-white border border-[#1e2d42] rounded-sm hover:border-[#7d92b0]/40 transition-colors">
                 キャンセル
               </button>
               <button
                 onClick={() => deleteTagMutation.mutate(deleteTag.id)}
                 disabled={deleteTagMutation.isPending}
-                className="px-4 py-2 text-xs text-white bg-falcon-red hover:bg-[#c8001f] rounded-sm transition-colors disabled:opacity-50"
+                className="px-4 py-2 text-xs text-white bg-[#e8002d] hover:bg-[#c8001f] rounded-sm transition-colors disabled:opacity-50"
               >
                 {deleteTagMutation.isPending ? '削除中...' : '削除'}
               </button>

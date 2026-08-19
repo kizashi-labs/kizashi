@@ -7,6 +7,8 @@ import {
   BarChart3, RefreshCw, CheckCircle, AlertTriangle, XCircle, MinusCircle,
   ChevronRight, TrendingUp, Shield, Eye, Zap, RotateCcw,
 } from 'lucide-react'
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type Framework = 'NIST CSF' | 'ISO 27001'
@@ -28,10 +30,16 @@ interface Control {
 }
 
 interface ScorecardData {
-  overall_score: number
+  // null when no control could be assessed — every compliance evidence query
+  // failed. The API answers 503 in that case. This used to fall back to
+  // `overall_score: 0`, which the gauge renders in red as a failing posture, so
+  // a database outage was displayed to an auditor as the worst possible result.
+  overall_score: number | null
   categories: { name: string; score: number }[]
   controls: Control[]
   recommendations: string[]
+  assessed_controls: number
+  total_controls: number
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -102,11 +110,16 @@ function adaptScorecard(raw: Record<string, unknown>): ScorecardData {
     score: Math.round(Number(c.score) || 0),
     status: STATUS_MAP[String(c.status)] ?? 'Not assessed',
   }))
+  const assessed = Number(raw.assessed_controls) || 0
   return {
-    overall_score: Math.round(Number(raw.overall_score) || 0),
+    // A score is only reported when something was measured. `Number(x) || 0`
+    // cannot tell a real zero from a missing field, so coverage decides.
+    overall_score: assessed > 0 ? Math.round(Number(raw.overall_score) || 0) : null,
     categories,
     controls,
     recommendations: Array.isArray(raw.recommendations) ? (raw.recommendations as string[]) : [],
+    assessed_controls: assessed,
+    total_controls: Number(raw.total_controls) || controls.length,
   }
 }
 
@@ -116,16 +129,22 @@ export default function SecurityScorecardPage() {
   const [framework, setFramework] = useState<Framework>('NIST CSF')
   const [categoryFilter, setCategoryFilter] = useState<string>('all')
 
-  const EMPTY_SCORECARD: ScorecardData = { overall_score: 0, categories: [], controls: [], recommendations: [] }
+  // A scorecard that could not be fetched has no score, not a score of zero.
+  const EMPTY_SCORECARD: ScorecardData = {
+    overall_score: null,
+    categories: [],
+    controls: [],
+    recommendations: [],
+    assessed_controls: 0,
+    total_controls: 0,
+  }
 
   const nistQuery = useQuery<ScorecardData>({
     queryKey: ['scorecard-nist'],
     queryFn: async () => {
-      try {
-        const res = await apiFetch('/api/v1/admin/scorecard/nist-csf')
-        if (res && typeof res === 'object' && 'controls' in res) return adaptScorecard(res as Record<string, unknown>)
-        return EMPTY_SCORECARD
-      } catch { return EMPTY_SCORECARD }
+      const res = await apiFetch('/api/v1/admin/scorecard/nist-csf')
+      if (res && typeof res === 'object' && 'controls' in res) return adaptScorecard(res as Record<string, unknown>)
+      return EMPTY_SCORECARD
     },
     staleTime: 60_000,
     retry: false,
@@ -134,11 +153,9 @@ export default function SecurityScorecardPage() {
   const isoQuery = useQuery<ScorecardData>({
     queryKey: ['scorecard-iso'],
     queryFn: async () => {
-      try {
-        const res = await apiFetch('/api/v1/admin/scorecard/iso27001')
-        if (res && typeof res === 'object' && 'controls' in res) return adaptScorecard(res as Record<string, unknown>)
-        return EMPTY_SCORECARD
-      } catch { return EMPTY_SCORECARD }
+      const res = await apiFetch('/api/v1/admin/scorecard/iso27001')
+      if (res && typeof res === 'object' && 'controls' in res) return adaptScorecard(res as Record<string, unknown>)
+      return EMPTY_SCORECARD
     },
     staleTime: 60_000,
     retry: false,
@@ -153,10 +170,11 @@ export default function SecurityScorecardPage() {
   // Gauge ring - uses SVG-like approach with conic-gradient
   const score = data.overall_score
   const circumference = 2 * Math.PI * 54
-  const dashoffset = circumference * (1 - score / 100)
+  const dashoffset = score === null ? circumference : circumference * (1 - score / 100)
 
   return (
     <div className="min-h-screen bg-zinc-950 p-6">
+      <PageDataUnavailable />
       {/* ヘッダー */}
       <div className="flex items-center justify-between mb-6">
         <div>
@@ -199,7 +217,7 @@ export default function SecurityScorecardPage() {
               <circle
                 cx="60" cy="60" r="54"
                 fill="none"
-                stroke={scoreRingColor(score)}
+                stroke={score === null ? '#3f3f46' : scoreRingColor(score)}
                 strokeWidth="10"
                 strokeDasharray={circumference}
                 strokeDashoffset={dashoffset}
@@ -208,15 +226,26 @@ export default function SecurityScorecardPage() {
               />
             </svg>
             <div className="absolute inset-0 flex flex-col items-center justify-center">
-              <span className={`text-3xl font-bold ${scoreColor(score)}`}>{score}</span>
-              <span className="text-zinc-500 text-xs">/ 100</span>
+              <span className={`text-3xl font-bold ${score === null ? 'text-zinc-500' : scoreColor(score)}`}>
+                {score === null ? '—' : score}
+              </span>
+              <span className="text-zinc-500 text-xs">{score === null ? '未計測' : '/ 100'}</span>
             </div>
           </div>
           <div className="mt-4 text-center">
-            <span className={`text-sm font-semibold ${scoreColor(score)}`}>
-              {score >= 80 ? '良好' : score >= 60 ? '普通' : '要改善'}
-            </span>
+            {score === null ? (
+              <span className="text-sm font-semibold text-zinc-500">評価できた項目がありません</span>
+            ) : (
+              <span className={`text-sm font-semibold ${scoreColor(score)}`}>
+                {score >= 80 ? '良好' : score >= 60 ? '普通' : '要改善'}
+              </span>
+            )}
             <p className="text-zinc-600 text-xs mt-1">{framework}</p>
+            {data.total_controls > 0 && (
+              <p className="text-zinc-600 text-xs mt-1 tabular-nums">
+                {data.assessed_controls}/{data.total_controls} 項目を評価
+              </p>
+            )}
           </div>
         </div>
 

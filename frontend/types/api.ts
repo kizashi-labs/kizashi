@@ -67,6 +67,8 @@ export interface Alert {
   ai_report?: string
   ai_attack_chain?: string[]
   ai_mitre_tags?: string[]
+  // Operator-applied labels, written by POST /api/v1/alerts/bulk-tag.
+  tags?: string[]
   // Assignment
   assigned_to?: string
   assigned_to_name?: string

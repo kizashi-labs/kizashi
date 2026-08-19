@@ -499,7 +499,7 @@ class _IOCResource:
         Returns:
             List of IOC entry dicts.
         """
-        resp = self._client._request("GET", "/api/v1/threat-intel/ioc")
+        resp = self._client._request("GET", "/api/v1/ioc")
         if isinstance(resp, list):
             return resp
         return resp.get("data", [])
@@ -517,7 +517,7 @@ class _IOCResource:
         """
         return self._client._request(
             "POST",
-            "/api/v1/threat-intel/ioc/import",
+            "/api/v1/ioc/import",
             body={"entries": entries},
         )
 
@@ -615,16 +615,16 @@ class _LiveResponseResource:
     def __init__(self, client: "KizashiEDRClient") -> None:
         self._client = client
 
-    # セッションは端末ごとに切られる。サーバの経路は
-    # ``/api/v1/agents/:id/live-response/sessions`` で、agent_id を含まない
-    # ``/api/v1/live-response/...`` に在るのは ``/poll`` と ``/output``
-    # （エージェント自身が叩く 2 本）だけ。したがって agent_id は省略できない。
-
     def list(self, agent_id: str) -> Dict[str, Any]:
-        """Return the active live-response sessions for one agent.
+        """Return the active live-response sessions on the specified agent.
 
         Args:
             agent_id: UUID of the target agent.
+
+        Note:
+            **セッションは端末ごとです。** 以前この関数は端末を受け取らず
+            ``/api/v1/live-response/sessions`` を叩いていました —— サーバに
+            その経路はなく、**呼ぶと必ず 404 でした**。
         """
         return self._client._request(
             "GET", f"/api/v1/agents/{agent_id}/live-response/sessions"
@@ -640,9 +640,7 @@ class _LiveResponseResource:
             Session dict including ``id`` and ``expires_at``.
         """
         return self._client._request(
-            "POST",
-            f"/api/v1/agents/{agent_id}/live-response/sessions",
-            body={},
+            "POST", f"/api/v1/agents/{agent_id}/live-response/sessions"
         )
 
     def exec(self, agent_id: str, session_id: str, command: str) -> Dict[str, Any]:

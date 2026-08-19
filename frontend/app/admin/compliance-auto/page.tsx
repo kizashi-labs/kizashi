@@ -8,6 +8,9 @@ import {
   CheckCircle, XCircle, HelpCircle, Play, AlertTriangle,
   ClipboardList,
 } from 'lucide-react'
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+import { PageSaveFailed } from '@/components/PageSaveFailed'
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type Framework = 'cis' | 'nist' | 'soc2'
@@ -107,14 +110,14 @@ export default function ComplianceAutoPage() {
 
   const summaryQuery = useQuery<FrameworkSummary[]>({
     queryKey: ['compliance-auto-summary'],
-    queryFn: () => apiFetchList<FrameworkSummary>('/api/v1/compliance/auto/summary').catch(() => []),
+    queryFn: () => apiFetchList<FrameworkSummary>('/api/v1/compliance/auto/summary'),
     staleTime: 60_000,
     retry: false,
   })
 
   const agentsQuery = useQuery<AgentRow[]>({
     queryKey: ['compliance-auto-agents', framework],
-    queryFn: () => apiFetchList<AgentRow>(`/api/v1/compliance/auto/agents?framework=${framework}`).catch(() => []),
+    queryFn: () => apiFetchList<AgentRow>(`/api/v1/compliance/auto/agents?framework=${framework}`),
     staleTime: 60_000,
     retry: false,
   })
@@ -159,6 +162,8 @@ export default function ComplianceAutoPage() {
 
   return (
     <div className="min-h-screen bg-[#0d1117] p-6">
+      <PageDataUnavailable />
+      <PageSaveFailed className="mb-4" />
 
       {/* ── Header ─────────────────────────────────────────────────────────────── */}
       <div className="flex items-start justify-between mb-6 gap-4">
@@ -178,7 +183,7 @@ export default function ComplianceAutoPage() {
               <button
                 onClick={() => evaluateAll.mutate()}
                 disabled={evaluateAll.isPending}
-                className="px-3 py-1.5 bg-falcon-red text-white text-sm rounded-sm hover:bg-[#c80026] disabled:opacity-50 transition-colors"
+                className="px-3 py-1.5 bg-[#e8002d] text-white text-sm rounded-sm hover:bg-[#c80026] disabled:opacity-50 transition-colors"
               >
                 {evaluateAll.isPending ? '実行中...' : '確認'}
               </button>

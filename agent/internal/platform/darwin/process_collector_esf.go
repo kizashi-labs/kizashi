@@ -29,6 +29,8 @@ package darwin
 // (libEndpointSecurity.tbd)。`-framework EndpointSecurity` は
 // `ld: framework 'EndpointSecurity' not found` で落ちる——Xcode 15.4 の
 // MacOSX.sdk には EndpointSecurity.framework ディレクトリ自体が無く、
+// ヘッダは usr/include/EndpointSecurity/ にある。Apple のドキュメントも
+// libEndpointSecurity.tbd へのリンクを指示している。
 // ヘッダは usr/include/EndpointSecurity/ にある。
 // audit_token_to_pid() の実体は libbsm にあるので -lbsm も要る
 // (ヘッダだけ include してあり、コンパイルは通ってリンクで落ちていた)。

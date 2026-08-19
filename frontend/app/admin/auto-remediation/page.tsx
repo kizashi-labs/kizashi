@@ -9,6 +9,9 @@ import {
   Clock, Activity, X, ShieldOff, Webhook, RotateCcw, CheckSquare, Bell, Settings,
 } from 'lucide-react'
 
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+import { usePersist, SaveFailed } from '@/lib/persist'
+
 // ─── Types (server wire format) ───────────────────────────────────────────────
 // Shapes below mirror server/internal/remediation/engine.go — do not "simplify"
 // them without checking the Go structs; the two drifted apart once already.
@@ -157,6 +160,7 @@ export default function AutoRemediationPage() {
   const [expandedLog, setExpandedLog] = useState<string | null>(null)
   const [showCreateRule, setShowCreateRule] = useState(false)
   const [ruleEnabled, setRuleEnabled] = useState<Record<string, boolean>>({})
+  const { persist, saveError } = usePersist()
   const [ruleError, setRuleError] = useState('')
   const [newRule, setNewRule] = useState({
     name: '',
@@ -251,41 +255,40 @@ export default function AutoRemediationPage() {
     pendingRollbacks: pendingRollbacks.length,
   }
 
+  // 「optimistic update accepted」と書いてありましたが、楽観的更新は
+  // 失敗したら戻すのが前提です。戻さないなら、それは単に嘘です。
+  // 自動修復ルールの有効/無効は端末で実際に動く処理の入り切りです。
   const handleToggle = async (ruleId: string, current: boolean) => {
     const next = !current
-    setRuleEnabled(prev => ({ ...prev, [ruleId]: next }))
-    try {
-      await apiFetch(`/api/v1/admin/remediation/rules/${ruleId}/enable`, {
-        method: 'PUT',
-        body: JSON.stringify({ enabled: next }),
-      })
-    } catch {
-      // Roll the optimistic update back — the server rejected the change.
-      setRuleEnabled(prev => ({ ...prev, [ruleId]: current }))
+    if (await persist('自動修復ルールの有効/無効', `/api/v1/admin/remediation/rules/${ruleId}/enable`, {
+      method: 'PUT',
+      body: JSON.stringify({ enabled: next }),
+    })) {
+      setRuleEnabled(prev => ({ ...prev, [ruleId]: next }))
     }
   }
 
   const handleCreateRule = async () => {
     setRuleError('')
     const tags = newRule.tags.split(',').map(t => t.trim()).filter(Boolean)
-    try {
-      await apiFetch('/api/v1/admin/remediation/rules', {
-        method: 'POST',
-        body: JSON.stringify({
-          name: newRule.name,
-          enabled: true,
-          trigger: {
-            event_type: newRule.event_type,
-            min_severity: newRule.min_severity,
-            tags,
-          },
-          actions: [{ type: newRule.action_type, params: {} }],
-          cooldown_seconds: newRule.cooldown_seconds,
-          rollback_timeout_seconds: newRule.rollback_timeout_seconds,
-        }),
-      })
-    } catch (e: unknown) {
-      setRuleError(e instanceof Error ? e.message : 'ルールの作成に失敗しました')
+    // 平らな newRule をそのまま送ると engine.go の RuleTrigger / Actions に
+    // 入らない。組み立ててから送る。
+    if (!(await persist('自動修復ルール', '/api/v1/admin/remediation/rules', {
+      method: 'POST',
+      body: JSON.stringify({
+        name: newRule.name,
+        enabled: true,
+        trigger: {
+          event_type: newRule.event_type,
+          min_severity: newRule.min_severity,
+          tags,
+        },
+        actions: [{ type: newRule.action_type, params: {} }],
+        cooldown_seconds: newRule.cooldown_seconds,
+        rollback_timeout_seconds: newRule.rollback_timeout_seconds,
+      }),
+    }))) {
+      setRuleError('ルールの作成に失敗しました')
       return
     }
     setShowCreateRule(false)
@@ -317,6 +320,8 @@ export default function AutoRemediationPage() {
 
   return (
     <div className="min-h-screen bg-zinc-950 p-6">
+      <PageDataUnavailable />
+      <SaveFailed error={saveError} />
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>

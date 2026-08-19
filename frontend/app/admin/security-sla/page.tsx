@@ -17,6 +17,9 @@ import {
 
 
 
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+import { PageSaveFailed } from '@/components/PageSaveFailed'
+
 // ── Types ──────────────────────────────────────────────────────────────────────
 
 
@@ -109,7 +112,7 @@ function StatCard({ label, value, icon: Icon, color = '#7d92b0' }: {
 
   return (
 
-    <div className="bg-falcon-surface border border-falcon-border rounded-lg p-4 flex items-center gap-4">
+    <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-4 flex items-center gap-4">
 
       <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0"
 
@@ -121,7 +124,7 @@ function StatCard({ label, value, icon: Icon, color = '#7d92b0' }: {
 
       <div>
 
-        <p className="text-falcon-muted text-xs">{label}</p>
+        <p className="text-[#7d92b0] text-xs">{label}</p>
 
         <p className="text-white text-xl font-bold">{value}</p>
 
@@ -149,11 +152,11 @@ function Toggle({ value, onChange }: { value: boolean; onChange: (v: boolean) =>
 
       onClick={() => onChange(!value)}
 
-      className={`w-10 h-5 rounded-full transition-colors relative shrink-0 ${value ? 'bg-green-600' : 'bg-falcon-border'}`}
+      className={`w-10 h-5 rounded-full transition-colors relative shrink-0 ${value ? 'bg-green-600' : 'bg-[#1e2d42]'}`}
 
     >
 
-      <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-falcon-text transition-all ${value ? 'left-5' : 'left-0.5'}`} />
+      <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-[#e2e8f4] transition-all ${value ? 'left-5' : 'left-0.5'}`} />
 
     </button>
 
@@ -177,7 +180,7 @@ function CreateModal({ onClose, onSave }: { onClose: () => void; onSave: (d: Cre
 
     <div>
 
-      <label className="block text-falcon-muted text-xs mb-1.5">{label} <span className="text-falcon-red">*</span></label>
+      <label className="block text-[#7d92b0] text-xs mb-1.5">{label} <span className="text-[#e8002d]">*</span></label>
 
       <input
 
@@ -191,9 +194,7 @@ function CreateModal({ onClose, onSave }: { onClose: () => void; onSave: (d: Cre
 
         min={type === 'number' ? 1 : undefined}
 
-        className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm
-
-                   placeholder:text-falcon-subtle focus:outline-hidden focus:border-falcon-red/50"
+        className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm placeholder:text-[#3d5068] focus:outline-hidden focus:border-[#e8002d]/50"
 
       />
 
@@ -205,21 +206,21 @@ function CreateModal({ onClose, onSave }: { onClose: () => void; onSave: (d: Cre
 
   return (
 
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
 
-      <div className="bg-falcon-surface border border-falcon-border rounded-xl w-full max-w-md">
+      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl w-full max-w-md">
 
-        <div className="flex items-center justify-between p-6 border-b border-falcon-border">
+        <div className="flex items-center justify-between p-6 border-b border-[#1e2d42]">
 
           <h3 className="text-white font-bold text-lg flex items-center gap-2">
 
-            <Timer className="w-5 h-5 text-falcon-red" />
+            <Timer className="w-5 h-5 text-[#e8002d]" />
 
             Add SLA Policy
 
           </h3>
 
-          <button onClick={onClose} className="text-falcon-muted hover:text-white transition-colors">
+          <button onClick={onClose} className="text-[#7d92b0] hover:text-white transition-colors">
 
             <X className="w-5 h-5" />
 
@@ -237,7 +238,7 @@ function CreateModal({ onClose, onSave }: { onClose: () => void; onSave: (d: Cre
 
           <div>
 
-            <label className="block text-falcon-muted text-xs mb-1.5">Severity <span className="text-falcon-red">*</span></label>
+            <label className="block text-[#7d92b0] text-xs mb-1.5">Severity <span className="text-[#e8002d]">*</span></label>
 
             <select
 
@@ -245,9 +246,7 @@ function CreateModal({ onClose, onSave }: { onClose: () => void; onSave: (d: Cre
 
               onChange={e => setForm(f => ({ ...f, severity: e.target.value as SLAPolicy['severity'] }))}
 
-              className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm
-
-                         focus:outline-hidden focus:border-falcon-red/50"
+              className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-[#e8002d]/50"
 
             >
 
@@ -279,11 +278,11 @@ function CreateModal({ onClose, onSave }: { onClose: () => void; onSave: (d: Cre
 
 
 
-        <div className="flex gap-3 p-6 border-t border-falcon-border">
+        <div className="flex gap-3 p-6 border-t border-[#1e2d42]">
 
           <button onClick={onClose}
 
-            className="flex-1 px-4 py-2 border border-falcon-border text-falcon-muted rounded-lg text-sm hover:bg-falcon-hover transition-colors">
+            className="flex-1 px-4 py-2 border border-[#1e2d42] text-[#7d92b0] rounded-lg text-sm hover:bg-[#19253d] transition-colors">
 
             Cancel
 
@@ -295,9 +294,7 @@ function CreateModal({ onClose, onSave }: { onClose: () => void; onSave: (d: Cre
 
             disabled={!form.name.trim()}
 
-            className="flex-1 px-4 py-2 bg-falcon-red hover:bg-[#c0001f] disabled:opacity-50 disabled:cursor-not-allowed
-
-                       text-white rounded-lg text-sm font-medium transition-colors">
+            className="flex-1 px-4 py-2 bg-[#e8002d] hover:bg-[#c0001f] disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg text-sm font-medium transition-colors">
 
             Create Policy
 
@@ -331,7 +328,7 @@ export default function SecuritySLAPage() {
 
     queryKey: ['sla-stats'],
 
-    queryFn: () => apiFetch<SLAStats>('/api/v1/admin/security-sla/stats').catch(() => ({ total: 0, response_breached: 0, resolution_breached: 0, compliance_rate: 0 } as SLAStats)),
+    queryFn: () => apiFetch<SLAStats>('/api/v1/admin/security-sla/stats'),
 
     staleTime: 60_000,
 
@@ -359,9 +356,7 @@ export default function SecuritySLAPage() {
 
     mutationFn: (data: CreatePolicyPayload) =>
 
-      apiFetch('/api/v1/admin/security-sla/policies', { method: 'POST', body: JSON.stringify(data) })
-
-        .catch(() => ({})),
+      apiFetch('/api/v1/admin/security-sla/policies', { method: 'POST', body: JSON.stringify(data) }),
 
     onSuccess: () => {
 
@@ -386,7 +381,9 @@ export default function SecuritySLAPage() {
   return (
 
     <div className="min-h-screen bg-[#070d19] p-6">
+      <PageDataUnavailable />
 
+      <PageSaveFailed />
       {/* Header */}
 
       <div className="flex items-center justify-between mb-6">
@@ -395,13 +392,13 @@ export default function SecuritySLAPage() {
 
           <h1 className="text-2xl font-bold text-white flex items-center gap-3">
 
-            <Timer className="w-7 h-7 text-falcon-red" />
+            <Timer className="w-7 h-7 text-[#e8002d]" />
 
             Security SLA Management
 
           </h1>
 
-          <p className="text-falcon-muted text-sm mt-1">Define and monitor security response SLA policies</p>
+          <p className="text-[#7d92b0] text-sm mt-1">Define and monitor security response SLA policies</p>
 
         </div>
 
@@ -409,7 +406,7 @@ export default function SecuritySLAPage() {
 
           onClick={() => setShowCreate(true)}
 
-          className="flex items-center gap-2 px-4 py-2 bg-falcon-red hover:bg-[#c0001f] text-white rounded-lg text-sm font-medium transition-colors"
+          className="flex items-center gap-2 px-4 py-2 bg-[#e8002d] hover:bg-[#c0001f] text-white rounded-lg text-sm font-medium transition-colors"
 
         >
 
@@ -441,17 +438,17 @@ export default function SecuritySLAPage() {
 
       {/* Compliance progress bar */}
 
-      <div className="bg-falcon-surface border border-falcon-border rounded-lg p-4 mb-6">
+      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-4 mb-6">
 
         <div className="flex items-center justify-between mb-2">
 
-          <span className="text-falcon-muted text-sm">Overall SLA Compliance</span>
+          <span className="text-[#7d92b0] text-sm">Overall SLA Compliance</span>
 
           <span className="text-white text-sm font-bold">{stats.compliance_rate.toFixed(1)}%</span>
 
         </div>
 
-        <div className="w-full h-2 bg-falcon-border rounded-full overflow-hidden">
+        <div className="w-full h-2 bg-[#1e2d42] rounded-full overflow-hidden">
 
           <div
 
@@ -469,9 +466,9 @@ export default function SecuritySLAPage() {
 
       {/* Policies Table */}
 
-      <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
+      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
 
-        <div className="px-4 py-3 border-b border-falcon-border">
+        <div className="px-4 py-3 border-b border-[#1e2d42]">
 
           <h2 className="text-white font-semibold text-sm">SLA Policies</h2>
 
@@ -483,7 +480,7 @@ export default function SecuritySLAPage() {
 
           <div className="flex items-center justify-center py-16">
 
-            <RefreshCw className="w-6 h-6 text-falcon-muted animate-spin" />
+            <RefreshCw className="w-6 h-6 text-[#7d92b0] animate-spin" />
 
           </div>
 
@@ -493,11 +490,11 @@ export default function SecuritySLAPage() {
 
             <thead>
 
-              <tr className="border-b border-falcon-border">
+              <tr className="border-b border-[#1e2d42]">
 
                 {['Policy Name', 'Severity', 'Response', 'Resolution', 'Escalation', 'Enabled'].map(h => (
 
-                  <th key={h} className="px-4 py-3 text-left text-xs text-falcon-muted font-medium">{h}</th>
+                  <th key={h} className="px-4 py-3 text-left text-xs text-[#7d92b0] font-medium">{h}</th>
 
                 ))}
 
@@ -511,7 +508,7 @@ export default function SecuritySLAPage() {
 
                 <tr>
 
-                  <td colSpan={6} className="px-4 py-12 text-center text-falcon-muted text-sm">
+                  <td colSpan={6} className="px-4 py-12 text-center text-[#7d92b0] text-sm">
 
                     No SLA policies configured
 
@@ -521,7 +518,7 @@ export default function SecuritySLAPage() {
 
               ) : policies.map(p => (
 
-                <tr key={p.id} className="border-b border-falcon-border/50 hover:bg-falcon-hover/30 transition-colors">
+                <tr key={p.id} className="border-b border-[#1e2d42]/50 hover:bg-[#19253d]/30 transition-colors">
 
                   <td className="px-4 py-3 text-white text-sm font-medium">{p.name}</td>
 
@@ -535,11 +532,11 @@ export default function SecuritySLAPage() {
 
                   </td>
 
-                  <td className="px-4 py-3 text-falcon-muted text-sm">{p.response_minutes} min</td>
+                  <td className="px-4 py-3 text-[#7d92b0] text-sm">{p.response_minutes} min</td>
 
-                  <td className="px-4 py-3 text-falcon-muted text-sm">{p.resolution_hours} hrs</td>
+                  <td className="px-4 py-3 text-[#7d92b0] text-sm">{p.resolution_hours} hrs</td>
 
-                  <td className="px-4 py-3 text-falcon-muted text-sm">{p.escalation_hours} hrs</td>
+                  <td className="px-4 py-3 text-[#7d92b0] text-sm">{p.escalation_hours} hrs</td>
 
                   <td className="px-4 py-3">
 

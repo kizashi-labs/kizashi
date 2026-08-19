@@ -10,6 +10,8 @@ import {
 } from 'lucide-react'
 
 
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+
 // ── Types ────────────────────────────────────────────────────────────────────
 
 interface QueryFilter {
@@ -248,6 +250,7 @@ export default function ThreatHuntingQueryBuilder() {
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100 p-6">
+      <PageDataUnavailable />
       {/* Header */}
       <div className="mb-6">
         <div className="flex items-center gap-3 mb-1">
