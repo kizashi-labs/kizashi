@@ -44,7 +44,7 @@ CASES = [
      'continue の上限を上げる'),
     (G, '\tagentNilErrCeiling = 0', '\tagentNilErrCeiling = 30',
      'nil を error の位置に置く箇所の上限を上げる'),
-    (G, '\tharnessCeiling = 10', '\tharnessCeiling = 50',
+    (G, '\tharnessCeiling = 5', '\tharnessCeiling = 50',
      'QA 道具の上限を上げる'),
 
     # ── ラチェット（下回っても落ちること）─────────────────────────────

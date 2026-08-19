@@ -116,9 +116,9 @@ CASES = [
     # ── 走査そのもの ─────────────────────────────────────────────────────
     (W, 'const reachableSlogErrorSites = 3', 'const reachableSlogErrorSites = 100',
      '件数を留めなくなる'),
-    (W, 'const reachableSlogWarnSites = 25', 'const reachableSlogWarnSites = 100',
+    (W, 'const reachableSlogWarnSites = 22', 'const reachableSlogWarnSites = 100',
      '`Warn` の件数を留めなくなる'),
-    (W, 'const silentErrorBranchSites = 28', 'const silentErrorBranchSites = 100',
+    (W, 'const silentErrorBranchSites = 27', 'const silentErrorBranchSites = 100',
      '**黙って捨てた error** の件数を留めなくなる'),
     (W, '\t\tcase *ast.CallExpr:\n\t\t\tsilent = false\n', '',
      '報告している分岐まで「黙っている」に数える（**`tick.Fail` を'

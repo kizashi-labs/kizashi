@@ -79,11 +79,14 @@ CASES = [
     # python 25 + typescript 24 だけでも 49 残るので、mobile の 5 本が丸ごと
     # 消えても検査は緑のままでした。配布物ごとの床を入れて殺せるように
     # なりました。
+    #
+    # 公開版には `mobile/` がありません。床の項目そのものが無いので
+    # 「mobile の床を 0 にする」は当たりようがなく、外しました。**走査の
+    # 側（下の1件）は残します** — 配布物ごとの数え分けが壊れたときに
+    # 気づけなくなるのは、mobile の有無とは別の話です。
     (SRO, "    for (const m of src.matchAll(/\\bapi\\.(get|post|put|patch|delete)(?:<[^>]*>)?\\(\\s*[`'\"]([^`'\"]+)[`'\"]/g)) {",
           '    for (const m of [] as RegExpMatchArray[]) {',
      '**mobile の呼び出しを見なくなる**'),
-    (SRO, '  mobile: 5,\n', '  mobile: 0,\n',
-     'mobile の床を 0 にする（消えても言わなくなります）'),
     (SRO, "    for (const k of Object.keys(out)) if (c.where.startsWith(k)) out[k]++",
           '    void c',
      '**配布物ごとに数え分けなくなる**（どの配布物も 0 本と答えます）'),
@@ -178,9 +181,9 @@ CASES = [
     #
     # **サイドバーの 292 項目のうち 60 が準備中**です（実測 2026-08-12）。
     # 印が無ければ、動く 232 と見分けがつきません。
-    (BP, '  const NAV_PENDING = 59', '  const NAV_PENDING = 300',
+    (BP, '  const NAV_PENDING = 60', '  const NAV_PENDING = 300',
      'サイドバーに出ている準備中の上限を上げる'),
-    (BP, '  const NAV_PENDING = 59', '  const NAV_PENDING = 10',
+    (BP, '  const NAV_PENDING = 60', '  const NAV_PENDING = 10',
      '上限が実測を下回っても言わなくなる、の逆確認（サイドバー）'),
     (SB, '              const pending = isBackendPending(href)',
          '              const pending = false',
@@ -188,11 +191,11 @@ CASES = [
      '同じ顔で並びます）'),
 
     # ── 宛先の上限 ─────────────────────────────────────────────────────────
-    (SRO, 'const UNROUTED_READ_CEILING = 129', 'const UNROUTED_READ_CEILING = 300',
+    (SRO, 'const UNROUTED_READ_CEILING = 132', 'const UNROUTED_READ_CEILING = 300',
      'ルートの無い読み取りの上限を上げる'),
-    (SRO, 'const UNROUTED_READ_CEILING = 129', 'const UNROUTED_READ_CEILING = 50',
+    (SRO, 'const UNROUTED_READ_CEILING = 132', 'const UNROUTED_READ_CEILING = 50',
      '上限が実測を下回っても言わなくなる、の逆確認（読み取り）'),
-    (SRO, 'const UNROUTED_WRITE_CEILING = 158', 'const UNROUTED_WRITE_CEILING = 400',
+    (SRO, 'const UNROUTED_WRITE_CEILING = 163', 'const UNROUTED_WRITE_CEILING = 400',
      'ルートの無い書き込みの上限を上げる'),
 
     # ── 走査の広さ（狭めると件数は「下がる」）──────────────────────────

@@ -251,7 +251,7 @@ SIEM_LDAP_CASES = [
 ]
 
 BF_CASES = [
-    (BF, '\tbackgroundFailedCount = 76', '\tbackgroundFailedCount = 500',
+    (BF, '\tbackgroundFailedCount = 69', '\tbackgroundFailedCount = 500',
      '`metrics.BackgroundFailed` の件数を留めなくなる'),
     (BF, '\t"api/handlers/ingest_handler.go:upsertAgent": catPerReq,\n', '',
      '新しい報告先の分類を消す'),

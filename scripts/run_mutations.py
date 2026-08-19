@@ -136,9 +136,31 @@ def load(name):
     return mod
 
 
+# 仕様書は本流の木に対して書かれています。公開版はその部分集合で、
+# ここに挙げたファイルを同梱しません。**一覧は名前で持ちます。**
+# 「無ければ黙って飛ばす」にすると、公開版が現に持っているファイルを
+# 誰かが消したときも同じ顔で通ってしまいます。それは、このハーネスが
+# 見つけるために在るもの（走っていない検査が緑を返す）そのものです。
+#
+# 一覧に載っているのに**実在する**ファイルは、下でエラーにします。
+# 同期がそのファイルを持ってきた後も一覧に残っていると、戻ってきた
+# 検査を抑え続けます。
+ABSENT_IN_OSS = {
+    'server/internal/scheduler/billing_grace_worker.go':  '課金（購読の猶予期間）',
+    'server/internal/billing/handler.go':                 '課金（Stripe）',
+    'server/internal/api/handlers/mdm_integration_handler.go': 'MDM 連携',
+    'server/internal/api/handlers/mobile_compliance_scanner.go': 'MDM 連携',
+    'server/internal/api/handlers/system_updates_handler.go': '自動更新',
+    'server/internal/updater/applier.go':                 '自動更新',
+    'server/internal/ldap/connector.go':                  'LDAP 同期',
+    'docs/ops/監視ランブック.md':                          '運用ランブック',
+}
+
+
 def check(want: list[str]) -> int:
     """Do the specs still describe the tree they were written against?"""
     stale = 0
+    absent: dict[str, list[str]] = {}
     for name in want:
         cases = load(name).CASES
         misses = []
@@ -148,15 +170,36 @@ def check(want: list[str]) -> int:
                 with open(path, encoding='utf-8') as f:
                     src = f.read()
             except FileNotFoundError:
-                misses.append(f'{label} — {rel} がありません')
+                if rel in ABSENT_IN_OSS:
+                    absent.setdefault(rel, []).append(label)
+                else:
+                    misses.append(f'{label} — {rel} がありません')
                 continue
             if old not in src:
                 misses.append(f'{label} — {rel} に当たりません')
+        skipped = sum(1 for rel, *_ in cases if rel in absent)
+        note = f'、{skipped} 件は公開版に無いファイル' if skipped else ''
         print(f'  {"ok  " if not misses else "NG  "}{name} '
-              f'({len(cases)} 件中 {len(misses)} 件が当たりません)')
+              f'({len(cases)} 件中 {len(misses)} 件が当たりません{note})')
         for m in misses:
             print(f'        {m}')
         stale += len(misses)
+
+    rotten = sorted(r for r in ABSENT_IN_OSS if os.path.exists(os.path.join(ROOT, r)))
+    if rotten:
+        print('\n公開版に無いはずのファイルが在ります。ABSENT_IN_OSS から'
+              '外してください（**外すまで、そのファイルの検査は止まったままです**）:')
+        for rel in rotten:
+            print(f'  {rel}')
+        stale += len(rotten)
+
+    if absent:
+        n = sum(len(v) for v in absent.values())
+        print(f'\n公開版に無いファイルを見る {n} 件を飛ばしました'
+              f'（{len(absent)} ファイル）。**測っていません。緑ではありません**:')
+        for rel in sorted(absent):
+            print(f'  {rel} — {ABSENT_IN_OSS[rel]}（{len(absent[rel])} 件）')
+
     if stale:
         print(f'\n{stale} 件の pattern が当たりません。対象が動いています。'
               '放っておくと、走らせるたびに全 SKIP で緑を返します')
