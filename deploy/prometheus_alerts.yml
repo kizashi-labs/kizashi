@@ -64,6 +64,7 @@ groups:
         annotations:
           summary: "PostgreSQL が停止しています"
           description: "データベースへの接続が 30 秒以上失敗しています。即時対応が必要です。"
+          runbook_url: "https://github.com/kizashi-labs/kizashi/blob/main/docs/ops/%E7%9B%A3%E8%A6%96%E3%83%A9%E3%83%B3%E3%83%96%E3%83%83%E3%82%AF.md#postgresdown"
 
       - alert: PostgresHighConnections
         expr: |
@@ -227,6 +228,7 @@ groups:
             exfil_volume / killchain 等) はこのプロセスにしか存在しないため、
             停止中はそれらの検知が全て失われます。server-api の builtin Sigma のみが
             残るため、アラートは出続けることに注意してください。
+          runbook_url: "https://github.com/kizashi-labs/kizashi/blob/main/docs/ops/%E7%9B%A3%E8%A6%96%E3%83%A9%E3%83%B3%E3%83%96%E3%83%83%E3%82%AF.md#edrdetectiondown"
 
       # デッドマンズスイッチ。プロセスは生きていてヘルスプローブも通るのに、
       # NATS→検知の経路だけが静かに止まっている状態を捉える。
@@ -254,6 +256,7 @@ groups:
             プロセスは生存しているため死活監視では検出できません。ingestion→NATS→detection の
             どこかで停止しています。イベント送信が本当に無い時間帯かどうかを
             edr_events_ingested_total と併せて確認してください。
+          runbook_url: "https://github.com/kizashi-labs/kizashi/blob/main/docs/ops/%E7%9B%A3%E8%A6%96%E3%83%A9%E3%83%B3%E3%83%96%E3%83%83%E3%82%AF.md#edrdetectionpipelinestalled"
 
       # ラグは「停止」の前兆であり、かつ計測を無効化する。consumer が数百万件
       # 遅れていると、実行した TTP に対応する検知は窓の外で発火するため、
@@ -273,6 +276,7 @@ groups:
             JetStream の未配信メッセージが {{ $value }} 件あります。この状態では検知が
             実時間から遅れるため、検知率計測を実施しても結果は信頼できません。
             計測前には必ずこの値が十分小さいことを確認してください。
+          runbook_url: "https://github.com/kizashi-labs/kizashi/blob/main/docs/ops/%E7%9B%A3%E8%A6%96%E3%83%A9%E3%83%B3%E3%83%96%E3%83%83%E3%82%AF.md#edrdetectionconsumerlagging"
 
       - alert: EDRDetectionConsumerLagCritical
         expr: edr_detection_consumer_pending{job="edr-detection"} > 1000000

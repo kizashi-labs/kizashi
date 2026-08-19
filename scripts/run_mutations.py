@@ -145,35 +145,19 @@ def load(name):
 NOT_SHIPPED_FILE = os.path.join(SPECS, 'NOT_SHIPPED.txt')
 
 
-def not_shipped() -> tuple[set[str], set[tuple[str, str]]]:
-    """(同梱しないファイル, 同梱しない pattern) を返す。
-
-    `<path>::<label>` の形で書かれた行は、**ファイルはあるが、この配置では
-    その 1 件だけが成立しない**という意味。例: 公開版はランブックを同梱しない
-    ので、alerts.yml から runbook_url を外してある。ファイルは残るが、その値を
-    狙った変異は当てようがない。
-    """
+def not_shipped() -> set[str]:
     try:
         with open(NOT_SHIPPED_FILE, encoding='utf-8') as f:
             lines = f.read().splitlines()
     except FileNotFoundError:
-        return set(), set()
-    files, cases = set(), set()
-    for ln in lines:
-        ln = ln.strip()
-        if not ln or ln.startswith('#'):
-            continue
-        if '::' in ln:
-            rel, label = ln.split('::', 1)
-            cases.add((rel.strip(), label.strip()))
-        else:
-            files.add(ln)
-    return files, cases
+        return set()
+    return {ln.strip() for ln in lines
+            if ln.strip() and not ln.strip().startswith('#')}
 
 
 def check(want: list[str]) -> int:
     """Do the specs still describe the tree they were written against?"""
-    absent, absent_cases = not_shipped()
+    absent = not_shipped()
     stale = 0
 
     # 一覧そのものの点検を先に済ませる。「同梱しない」と書いてあるものが木に
@@ -203,17 +187,6 @@ def check(want: list[str]) -> int:
                     skipped += 1
                     continue
                 misses.append(f'{label} — {rel} がありません')
-                continue
-            if (rel, label) in absent_cases:
-                # この配置ではこの 1 件だけが成立しない。**当たってしまったら
-                # 一覧の方が古い** —— 対象外の印を付けたまま、実際には効いて
-                # いることになるので、そちらを失敗にする。
-                if old in src:
-                    misses.append(
-                        f'{label} — 「この配置では対象外」と書かれていますが、'
-                        f'{rel} に当たります')
-                else:
-                    skipped += 1
                 continue
             if old not in src:
                 misses.append(f'{label} — {rel} に当たりません')

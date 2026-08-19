@@ -21,6 +21,7 @@ groups:
             {{ $value | humanizePercentage }} of registered agents are currently
             offline (threshold: 10%). Check network connectivity and agent health.
             Affected instance: {{ $labels.instance }}.
+          runbook_url: "https://github.com/kizashi-labs/kizashi/blob/main/docs/ops/%E7%9B%A3%E8%A6%96%E3%83%A9%E3%83%B3%E3%83%96%E3%83%83%E3%82%AF.md#edragentsoffline"
 
   - name: edr_api_alerts
     rules:
@@ -41,6 +42,7 @@ groups:
             The API 5xx error rate is {{ $value | humanizePercentage }}
             (threshold: 5%). Investigate recent deployments, database connectivity,
             and upstream dependencies.
+          runbook_url: "https://github.com/kizashi-labs/kizashi/blob/main/docs/ops/%E7%9B%A3%E8%A6%96%E3%83%A9%E3%83%B3%E3%83%96%E3%83%83%E3%82%AF.md#edrhighapierrorrate"
 
       # Fire when P95 latency exceeds 2 seconds for 5 consecutive minutes.
       - alert: EDRAPIHighLatency
@@ -60,6 +62,7 @@ groups:
             The P95 request latency is {{ $value | humanizeDuration }}
             (threshold: 2s). Review slow query logs, connection pool exhaustion,
             and resource contention.
+          runbook_url: "https://github.com/kizashi-labs/kizashi/blob/main/docs/ops/%E7%9B%A3%E8%A6%96%E3%83%A9%E3%83%B3%E3%83%96%E3%83%83%E3%82%AF.md#edrapihighlatency"
 
   - name: edr_infrastructure_alerts
     rules:
@@ -81,6 +84,7 @@ groups:
             {{ $labels.instance }} at mountpoint {{ $labels.mountpoint }}
             (threshold: 20% free). Immediate action required to avoid database
             write failures.
+          runbook_url: "https://github.com/kizashi-labs/kizashi/blob/main/docs/ops/%E7%9B%A3%E8%A6%96%E3%83%A9%E3%83%B3%E3%83%96%E3%83%83%E3%82%AF.md#edrdiskspacelow"
 
       # Fire when any NATS JetStream consumer has more than 10,000
       # pending (unacknowledged) messages — indicating a stuck or slow consumer.
@@ -97,6 +101,7 @@ groups:
             Consumer {{ $labels.consumer_name }} on stream {{ $labels.stream_name }}
             has {{ $value | humanize }} pending messages (threshold: 10,000).
             The consumer may be stuck or processing too slowly.
+          runbook_url: "https://github.com/kizashi-labs/kizashi/blob/main/docs/ops/%E7%9B%A3%E8%A6%96%E3%83%A9%E3%83%B3%E3%83%96%E3%83%83%E3%82%AF.md#edrnatsqueuedepth"
 
   # ──────────────────────────────────────────────────────────────────────
   # Detection-pipeline health — the "silent break" class where a detection
@@ -297,6 +302,7 @@ groups:
             {{ $value | humanizeDuration }} が経過しています。pg_dump が
             exit 0 でも、切り詰められたダンプは成功に数えていません。
             **壊れたバックアップは、復旧が必要になるまで気づけません。**
+          runbook_url: "https://github.com/kizashi-labs/kizashi/blob/main/docs/ops/%E7%9B%A3%E8%A6%96%E3%83%A9%E3%83%B3%E3%83%96%E3%83%83%E3%82%AF.md#edrbackupstale"
 
       - alert: EDRBackupNeverSucceeded
         # 一度も成功していない状態。上の式は 0 を除いているので、
@@ -311,6 +317,7 @@ groups:
           description: >
             プロセス開始から一度も、検証に通ったバックアップがありません。
             古いバックアップがあるのではなく、**ありません。**
+          runbook_url: "https://github.com/kizashi-labs/kizashi/blob/main/docs/ops/%E7%9B%A3%E8%A6%96%E3%83%A9%E3%83%B3%E3%83%96%E3%83%83%E3%82%AF.md#edrbackupneversucceeded"
 
       - alert: EDRBackupFailing
         expr: increase(edr_backup_failures_total[6h]) > 0
@@ -324,6 +331,7 @@ groups:
             直近6時間で {{ $value | humanize }} 回、pg_dump の失敗または
             整合性検査の不合格がありました。まだ古い成功が残っていても、
             新しいものは取れていません。
+          runbook_url: "https://github.com/kizashi-labs/kizashi/blob/main/docs/ops/%E7%9B%A3%E8%A6%96%E3%83%A9%E3%83%B3%E3%83%96%E3%83%83%E3%82%AF.md#edrbackupfailing"
 
       - alert: EDRHashIOCHasNothingToMatch
         # ハッシュ照合に届いたイベントのうち、ハッシュを1つも持って
@@ -351,3 +359,4 @@ groups:
             ハッシュ IOC 照合に届いています。**既知マルウェアの検知は、
             その分だけ動いていません。** 一致0件は「安全」ではなく
             「確かめられていない」です。
+          runbook_url: "https://github.com/kizashi-labs/kizashi/blob/main/docs/ops/%E7%9B%A3%E8%A6%96%E3%83%A9%E3%83%B3%E3%83%96%E3%83%83%E3%82%AF.md#edrhashiochasnothingtomatch"

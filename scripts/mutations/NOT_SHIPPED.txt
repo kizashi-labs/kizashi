@@ -4,7 +4,6 @@
 # run_mutations.py --check は、ここに載っているファイルが「無い」ことだけを
 # 対象外として扱う。**載っているのに木にある場合は失敗する** —— 一覧が古く
 # なったまま、消したはずのゲートが黙って戻ることを防ぐため。
-docs/ops/監視ランブック.md
 frontend/tests/lib/backend-pending-coverage.test.ts
 frontend/tests/lib/mutation-failure-surface.test.ts
 frontend/tests/lib/raw-fetch.test.ts
@@ -26,5 +25,3 @@ server/internal/store/reachable_test.go
 server/internal/tick/background_failed_test.go
 server/internal/tick/tracked_workers_test.go
 server/internal/updater/applier.go
-# runbook_url を外したぶん、それを狙った変異は当たらない。
-deploy/prometheus/rules/edr-alerts.yml::runbook_url が、見出しと違う場所に飛ぶ
