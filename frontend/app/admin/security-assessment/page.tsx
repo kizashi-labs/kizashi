@@ -69,7 +69,12 @@ const MOCK_ASSESSMENTS: Assessment[] = [
 // 取得できなかったときに出すもの。MOCK は USE_MOCK のときだけです。
 const EMPTY: AssessmentData = { assessments: [] }
 
-const MOCK: AssessmentData = { assessments: MOCK_ASSESSMENTS }
+// API が落ちている/未実装のときのフォールバック。NEXT_PUBLIC_USE_MOCK=true の
+// ローカル開発でだけモックを返し、それ以外では空を返す。**ガードは MOCK_* の
+// 隣に置く。** 素の定数を先に作って使用箇所でだけ包む形にすると、後から別の
+// 参照が増えたときにガードの無い経路ができる（本番で API が失敗したときに
+// 架空の評価結果が表示される）。
+const FALLBACK: AssessmentData = mockOr({ assessments: MOCK_ASSESSMENTS }, EMPTY)
 
 const TYPE_STYLES: Record<string, { bg: string; text: string; label: string }> = {
   gap_analysis: { bg: 'bg-blue-900/40',   text: 'text-blue-300',   label: 'ギャップ分析' },
@@ -128,7 +133,7 @@ export default function SecurityAssessmentPage() {
     mutationFn: (id: string) => apiFetch(`/api/v1/admin/security-assessment/${id}/export`),
   })
 
-  const d = data ?? mockOr(MOCK, EMPTY)
+  const d = data ?? FALLBACK
   const detail = d.assessments.find(a => a.id === selected) ?? null
 
   return (
