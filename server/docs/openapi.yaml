@@ -12662,6 +12662,16 @@ paths:
       responses:
         "200": { $ref: "#/components/responses/Undocumented" }
 
+  /api/v1/endpoints/criticality:
+    get:
+      tags: [endpoints]
+      summary: GET /api/v1/endpoints/criticality
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: getEndpointsCriticality
+      x-generated: true
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+
   /api/v1/endpoints/criticality/bulk:
     post:
       tags: [endpoints]
@@ -12728,6 +12738,16 @@ paths:
       summary: PUT /api/v1/endpoints/{id}/criticality
       description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
       operationId: putEndpointsIdCriticality
+      x-generated: true
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+    delete:
+      tags: [endpoints]
+      summary: DELETE /api/v1/endpoints/{id}/criticality
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: deleteEndpointsIdCriticality
       x-generated: true
       parameters:
         - { name: id, in: path, required: true, schema: { type: string } }
