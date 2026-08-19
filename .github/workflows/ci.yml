@@ -90,7 +90,27 @@ jobs:
 
           echo "変更ファイル:"; echo "$files" | sed 's/^/  /'
 
-          has() { echo "$files" | grep -qE "$1"; }
+          # **パイプで渡さないこと。** `grep -q` は最初の一致で即座に終了する
+          # ので、`$files` がパイプバッファ (約 64KB) を超えていると `echo` は
+          # まだ書き込み中で EPIPE を受ける。`set -o pipefail` がそれを拾い、
+          # **一致しているのに has() が非ゼロを返す** —— その領域は false と
+          # 判定され、テストが丸ごと走らない。
+          #
+          # 実際に踏んだ (2026-08-19, PR #52 / 981 ファイル):
+          #
+          #   line 33: echo: write error: Broken pipe
+          #   判定: agent=false server=true frontend=false sdk=false rules=true
+          #
+          # agent は 118 ファイル、sdk も変更されていた。**チェック一覧には
+          # skipped と出るだけで、赤は 1 つも出ない** —— このジョブの上の
+          # コメントが警告しているとおり、「走って通った」と「そもそも
+          # 走っていない」が区別できない形そのもの。
+          #
+          # しかも大きさ次第で出たり出なかったりする（同じ PR の別の push では
+          # 正しく true になっていた）。ヒアストリングならパイプが無いので
+          # この経路自体が消える。scripts/verify.sh の detect_areas は最初から
+          # `<<<` を使っており、**ローカルの写しのほうが正しかった。**
+          has() { grep -qE "$1" <<<"$files"; }
 
           # CI 定義・proto・共通設定が変わったら全部走らせる。
           # proto は agent と server の両方が依存し、ズレると実行時にしか露見しない。

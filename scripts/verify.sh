@@ -212,18 +212,28 @@ if wants server; then
     elif ! git rev-parse --verify -q origin/main >/dev/null; then
       skip "golangci-lint (--new-from-merge-base)" "origin/main がありません（git fetch origin main）"
     else
-      # 版の確認。golangci-lint は「自分をビルドした Go」より新しい Go を
+      # 版の確認。golangci-lint は「自分をビルドした Go」より新しい **言語版** を
       # 対象にした module を解析できず、`can't load config` で落ちる。
       # staticcheck の項と同じ故障クラス（ツールが古いだけで、コードは無傷）。
       # これを FAIL として出すと、直せない赤が毎回並ぶ。原因を名指しして
       # SKIP にする — 実行していないことは、まとめに必ず残る。
+      #
+      # **比べるのは major.minor までにすること。** 初版はパッチまで比べており、
+      # CI と同じ v2.12.2（go1.26.2 ビルド）を入れても go1.26.6 対象の module に
+      # 対して SKIP になった。実際にはその組み合わせは動く（0 issues を出した）。
+      # そして誤 SKIP は、このスクリプトが最も避けたい形そのものだった ——
+      # **本物の指摘を 1 件（抑制ヒット数の errcheck）隠したまま「ローカル緑」を
+      # 出し、CI で初めて落ちた。**
       gcl_line="$(golangci-lint version 2>&1)"
       gcl_v="$(grep -oE 'version [0-9]+\.[0-9]+\.[0-9]+' <<<"$gcl_line" | awk '{print $2}')"
       gcl_go="$(grep -oE 'built with go[0-9.]+' <<<"$gcl_line" | sed 's/built with go//')"
       mod_go="$(awk '/^go /{print $2; exit}' server/go.mod)"
-      oldest="$(printf '%s\n%s\n' "${gcl_go:-0}" "$mod_go" | sort -V | head -1)"
+      # go1.26.2 → go1.26
+      gcl_lang="$(cut -d. -f1,2 <<<"${gcl_go:-0}")"
+      mod_lang="$(cut -d. -f1,2 <<<"$mod_go")"
+      oldest="$(printf '%s\n%s\n' "$gcl_lang" "$mod_lang" | sort -V | head -1)"
 
-      if [ "$gcl_go" = "$oldest" ] && [ "$gcl_go" != "$mod_go" ]; then
+      if [ "$gcl_lang" = "$oldest" ] && [ "$gcl_lang" != "$mod_lang" ]; then
         skip "golangci-lint (--new-from-merge-base)" \
           "手元の golangci-lint は go${gcl_go} ビルドで、server は go${mod_go} 対象（解析できません）。CI と同じ $GOLANGCI_VERSION を入れてください"
       else
