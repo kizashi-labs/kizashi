@@ -163,9 +163,15 @@ func TestScanStatsAccounting(t *testing.T) {
 	if st.ProcessesEnumerated == 0 {
 		t.Fatal("enumerated no processes — /proc walk broken")
 	}
-	if got := st.ProcessesScanned + st.SkippedAllowlisted + st.SkippedUnreadable; got != st.ProcessesEnumerated {
-		t.Errorf("bucket sum %d != enumerated %d (scanned=%d allowlisted=%d unreadable=%d)",
-			got, st.ProcessesEnumerated, st.ProcessesScanned, st.SkippedAllowlisted, st.SkippedUnreadable)
+	// **skipGone を数え落としていたので、この検査は落ちるかどうかが機械の
+	// 具合で決まっていました。** 走査中に終了したプロセスは正常にありえて
+	// （CI の runner で実測 1 件）、そのぶんだけ合計が enumerated に届きません。
+	// 「どのバケツにも入らない PID が出ていないか」を見るのが目的なので、
+	// 4 つ目のバケツも足します。
+	if got := st.ProcessesScanned + st.SkippedAllowlisted + st.SkippedUnreadable + st.SkippedGone; got != st.ProcessesEnumerated {
+		t.Errorf("bucket sum %d != enumerated %d (scanned=%d allowlisted=%d unreadable=%d gone=%d)",
+			got, st.ProcessesEnumerated, st.ProcessesScanned, st.SkippedAllowlisted,
+			st.SkippedUnreadable, st.SkippedGone)
 	}
 	if st.ProcessesScanned > 0 && st.RegionsExamined == 0 {
 		t.Error("walked processes but counted no regions")
