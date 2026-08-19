@@ -380,9 +380,37 @@ class TestTheRunbookRuleFires(unittest.TestCase):
 
 
 class TestTheRealRunbook(unittest.TestCase):
+    """実物のランブックを読む。**この配置が同梱していれば。**
+
+    ランブックを同梱する配置と、しない配置があります。同梱しない側では
+    `runbook_url` も張られていないので、`check_prometheus_rules.py` 自体は
+    通ります —— **通るのに、この検査だけが「見出しが無い」と落ちていました。**
+    片方の木にしか無いものを、両方の木で在る前提にしていたためです。
+
+    **無ければ黙って飛ばす、にはしません。** 同梱しているのに読めなく
+    なった場合と、そもそも同梱していない場合は、緑の見た目が同じです。
+    どちらなのかを毎回印字し、**同梱しているのに中身が空なら落とします。**
+    """
+
     def test_it_reads_the_actual_doc(self):
         alerts, sections = collect_runbook()
+        # アラートの一覧は、ランブックの有無と関係なく読めていること。
+        # ここが落ちるのは走査が壊れたときで、同梱の話ではありません。
         self.assertGreater(len(alerts), 25)
+
+        path = os.path.join(check_prometheus_rules.ROOT,
+                            check_prometheus_rules.RUNBOOK_DOC)
+        if not os.path.exists(path):
+            linked = sorted(n for n, url in alerts.items() if url)
+            self.assertEqual(
+                linked, [],
+                f'{check_prometheus_rules.RUNBOOK_DOC} がありませんが、{len(linked)} 本の runbook_url が'
+                f'そこを指しています。呼ばれた人はリンクを開いて 404 を見ます: '
+                f'{linked[:5]}')
+            print(f'\n  -- {check_prometheus_rules.RUNBOOK_DOC} はこの配置に同梱されていません。'
+                  f'見出しの照合は走っていません（runbook_url も 0 本）')
+            return
+
         self.assertIn('EDRAgentsOffline', sections)
         self.assertIn('EDRBackupStale', sections)
 
