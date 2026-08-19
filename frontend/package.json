@@ -31,7 +31,7 @@
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-simple-maps": "^3.0.0",
-    "recharts": "^2.12.7"
+    "recharts": "^3.10.1"
   },
   "devDependencies": {
     "@playwright/test": "^1.58.2",
