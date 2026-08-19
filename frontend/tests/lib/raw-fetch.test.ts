@@ -2,6 +2,12 @@ import { describe, it, expect } from 'vitest'
 import { readFileSync, readdirSync, statSync } from 'fs'
 import { join } from 'path'
 import { blankNoise } from './blank-noise'
+// **`it()` の中で import しないこと。** テストファイルを動的に読み込むと
+// 相手の `describe()` がこのテストの実行中に走り、vitest 4 は
+// 「Calling the suite function inside test function is not allowed」で落とす
+// （vitest 2 では通っていた）。backend-pending-coverage.test.ts は最初から
+// 先頭で静的に読んでおり、そちらに揃える。
+import { frontendCalls } from './server-routes.test'
 
 // 素の fetch() で API を叩いている箇所。
 //
@@ -256,8 +262,7 @@ describe('素の fetch', () => {
   // 経路の判定（server-routes）が素の fetch を見ていること。
   // 見ていなくても件数は動かない（40件とも実在する宛先）ので、
   // 上限だけでは戻されたことに気づけません。
-  it('経路の判定が素の fetch を見ている', async () => {
-    const { frontendCalls } = await import('./server-routes.test')
+  it('経路の判定が素の fetch を見ている', () => {
     const calls = frontendCalls(readFileSync('app/settings/cloud/page.tsx', 'utf8'))
     expect(
       calls.some(c => c.path.includes('/cloud/integrations')),

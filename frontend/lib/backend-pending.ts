@@ -209,6 +209,7 @@ export const PARTIAL_PENDING_ROUTES = new Set<string>([
   // ここから外してください —— `backend-pending-coverage.test.ts` が
   // 「一部だけ届かない画面」を **0 で留めています**。
   '/admin/ai-triage',                 // 2/11
+  '/admin/alerts/[id]',               // 1/5 (POST /api/v1/ai/analyze-alert)
   '/admin/backups',                   // 1/4
   '/admin/bas',                       // 1/5
   '/admin/compliance-auto',           // 1/4
