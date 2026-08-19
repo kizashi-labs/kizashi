@@ -9,6 +9,9 @@ import {
   FileCode, Brain, Edit3, Trash2, TestTube,
   RefreshCw, CheckCircle, XCircle, Loader2
 } from 'lucide-react'
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+import { PageSaveFailed } from '@/components/PageSaveFailed'
+
 import { apiFetch } from '@/lib/api'
 import { useCanWrite } from '@/lib/auth'
 
@@ -101,9 +104,9 @@ function platformBadge(p: string) {
   const colors: Record<string, string> = {
     windows: 'bg-blue-900/40 text-blue-300',
     linux: 'bg-orange-900/40 text-orange-300',
-    darwin: 'bg-falcon-raised text-[#8899aa]',
+    darwin: 'bg-[#161f33] text-[#8899aa]',
   }
-  return colors[p] || 'bg-falcon-raised text-[#8899aa]'
+  return colors[p] || 'bg-[#161f33] text-[#8899aa]'
 }
 
 export default function RulesPage() {
@@ -172,6 +175,8 @@ export default function RulesPage() {
 
   return (
     <div className="p-6 space-y-6">
+      <PageDataUnavailable />
+      <PageSaveFailed className="mb-4" />
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -184,7 +189,7 @@ export default function RulesPage() {
           {canWrite && (
             <button
               onClick={() => setShowSyncModal(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-falcon-raised text-falcon-text rounded-lg hover:bg-falcon-active transition-colors text-sm"
+              className="flex items-center gap-2 px-4 py-2 bg-[#161f33] text-[#e2e8f4] rounded-lg hover:bg-[#1d2f4a] transition-colors text-sm"
             >
               <RefreshCw className={`w-4 h-4 ${syncStatus?.syncing ? 'animate-spin text-blue-400' : ''}`} />
               SigmaHQ同期
@@ -193,7 +198,7 @@ export default function RulesPage() {
           {canWrite && (
             <button
               onClick={() => setShowImportModal(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-falcon-raised text-falcon-text rounded-lg hover:bg-falcon-active transition-colors text-sm"
+              className="flex items-center gap-2 px-4 py-2 bg-[#161f33] text-[#e2e8f4] rounded-lg hover:bg-[#1d2f4a] transition-colors text-sm"
             >
               <Upload className="w-4 h-4" />
               インポート
@@ -211,7 +216,7 @@ export default function RulesPage() {
           {canWrite && (
             <Link
               href="/rules/new"
-              className="flex items-center gap-2 px-4 py-2 bg-falcon-blue text-white rounded-lg hover:bg-[#1557d4] transition-colors text-sm"
+              className="flex items-center gap-2 px-4 py-2 bg-[#1a6bff] text-white rounded-lg hover:bg-[#1557d4] transition-colors text-sm"
             >
               <Plus className="w-4 h-4" />
               新規ルール
@@ -228,7 +233,7 @@ export default function RulesPage() {
           { label: '自動隔離', count: rules.filter(r => r.auto_isolate).length, color: 'text-red-400' },
           { label: '自動プロセス停止', count: rules.filter(r => r.auto_kill).length, color: 'text-orange-400' },
         ].map(stat => (
-          <div key={stat.label} className="bg-falcon-card rounded-xl p-4">
+          <div key={stat.label} className="bg-[#111827] rounded-xl p-4">
             <div className={`text-2xl font-bold ${stat.color}`}>{stat.count}</div>
             <div className="text-[#8899aa] text-sm mt-1">{stat.label}</div>
           </div>
@@ -244,7 +249,7 @@ export default function RulesPage() {
             placeholder="ルール名を検索..."
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="w-full bg-falcon-card text-white pl-9 pr-4 py-2 rounded-lg border border-falcon-border focus:outline-hidden focus:border-falcon-blue text-sm"
+            className="w-full bg-[#111827] text-white pl-9 pr-4 py-2 rounded-lg border border-[#1e2d42] focus:outline-hidden focus:border-[#1a6bff] text-sm"
           />
         </div>
         <div className="flex items-center gap-2">
@@ -252,7 +257,7 @@ export default function RulesPage() {
           <select
             value={typeFilter}
             onChange={e => setTypeFilter(e.target.value)}
-            className="bg-falcon-card text-white px-3 py-2 rounded-lg border border-falcon-border text-sm focus:outline-hidden focus:border-falcon-blue"
+            className="bg-[#111827] text-white px-3 py-2 rounded-lg border border-[#1e2d42] text-sm focus:outline-hidden focus:border-[#1a6bff]"
           >
             <option value="">全タイプ</option>
             <option value="sigma">Sigma</option>
@@ -262,7 +267,7 @@ export default function RulesPage() {
           <select
             value={enabledFilter === undefined ? '' : String(enabledFilter)}
             onChange={e => setEnabledFilter(e.target.value === '' ? undefined : e.target.value === 'true')}
-            className="bg-falcon-card text-white px-3 py-2 rounded-lg border border-falcon-border text-sm focus:outline-hidden focus:border-falcon-blue"
+            className="bg-[#111827] text-white px-3 py-2 rounded-lg border border-[#1e2d42] text-sm focus:outline-hidden focus:border-[#1a6bff]"
           >
             <option value="">全状態</option>
             <option value="true">有効</option>
@@ -272,10 +277,10 @@ export default function RulesPage() {
       </div>
 
       {/* Rules Table */}
-      <div className="bg-falcon-card rounded-xl overflow-hidden">
+      <div className="bg-[#111827] rounded-xl overflow-hidden">
         <table className="w-full">
           <thead>
-            <tr className="border-b border-falcon-border">
+            <tr className="border-b border-[#1e2d42]">
               <th className="text-left px-4 py-3 text-[#8899aa] text-sm font-medium">ルール名</th>
               <th className="text-left px-4 py-3 text-[#8899aa] text-sm font-medium">タイプ</th>
               <th className="text-left px-4 py-3 text-[#8899aa] text-sm font-medium">プラットフォーム</th>
@@ -289,10 +294,10 @@ export default function RulesPage() {
           <tbody>
             {isLoading ? (
               [...Array(5)].map((_, i) => (
-                <tr key={i} className="border-b border-falcon-border/50">
+                <tr key={i} className="border-b border-[#1e2d42]/50">
                   {[...Array(8)].map((_, j) => (
                     <td key={j} className="px-4 py-3">
-                      <div className="h-4 bg-falcon-raised rounded-sm animate-pulse" />
+                      <div className="h-4 bg-[#161f33] rounded-sm animate-pulse" />
                     </td>
                   ))}
                 </tr>
@@ -305,7 +310,7 @@ export default function RulesPage() {
               </tr>
             ) : (
               rules.map(rule => (
-                <tr key={rule.id} className="border-b border-falcon-border/50 hover:bg-falcon-raised transition-colors">
+                <tr key={rule.id} className="border-b border-[#1e2d42]/50 hover:bg-[#161f33] transition-colors">
                   <td className="px-4 py-3">
                     <Link href={`/rules/${rule.id}`} className="text-white hover:text-blue-400 transition-colors font-medium text-sm">
                       {rule.name}
@@ -351,7 +356,7 @@ export default function RulesPage() {
                   <td className="px-4 py-3">
                     <div className="flex flex-wrap gap-1 max-w-[120px]">
                       {(rule.mitre_tags || []).slice(0, 2).map(tag => (
-                        <span key={tag} className="text-xs bg-falcon-raised text-[#8899aa] px-1.5 py-0.5 rounded-sm font-mono">
+                        <span key={tag} className="text-xs bg-[#161f33] text-[#8899aa] px-1.5 py-0.5 rounded-sm font-mono">
                           {tag}
                         </span>
                       ))}
@@ -409,8 +414,8 @@ export default function RulesPage() {
 
       {/* SigmaHQ Sync Modal */}
       {showSyncModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-50">
-          <div className="bg-falcon-card rounded-2xl p-6 w-full max-w-md border border-falcon-border">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-[#111827] rounded-2xl p-6 w-full max-w-md border border-[#1e2d42]">
             <h2 className="text-xl font-bold text-white mb-1 flex items-center gap-2">
               <RefreshCw className="w-5 h-5 text-blue-400" />
               SigmaHQコミュニティルールを同期
@@ -421,7 +426,7 @@ export default function RulesPage() {
             </p>
 
             {syncStatus?.last_sync && (
-              <div className="bg-falcon-bg rounded-lg p-3 mb-4 text-sm">
+              <div className="bg-[#080c14] rounded-lg p-3 mb-4 text-sm">
                 <div className="flex items-center gap-2 text-[#8899aa]">
                   {syncStatus.last_error
                     ? <XCircle className="w-4 h-4 text-red-400 shrink-0" />
@@ -451,7 +456,7 @@ export default function RulesPage() {
                   type="checkbox"
                   checked={syncAutoEnable}
                   onChange={e => setSyncAutoEnable(e.target.checked)}
-                  className="w-4 h-4 rounded-sm border-falcon-border bg-falcon-raised text-blue-600"
+                  className="w-4 h-4 rounded-sm border-[#1e2d42] bg-[#161f33] text-blue-600"
                 />
                 <span className="text-[#8899aa] text-sm">取得したルールを自動的に有効化する</span>
               </label>
@@ -464,15 +469,14 @@ export default function RulesPage() {
                   setShowSyncModal(false)
                 }}
                 disabled={syncStatus?.syncing || syncMutation.isPending}
-                className="flex-1 py-2 bg-falcon-blue text-white rounded-lg hover:bg-[#1557d4]
-                           transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                className="flex-1 py-2 bg-[#1a6bff] text-white rounded-lg hover:bg-[#1557d4] transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 <RefreshCw className="w-4 h-4" />
                 同期開始
               </button>
               <button
                 onClick={() => setShowSyncModal(false)}
-                className="px-4 py-2 bg-falcon-raised text-[#8899aa] rounded-lg hover:bg-falcon-active transition-colors"
+                className="px-4 py-2 bg-[#161f33] text-[#8899aa] rounded-lg hover:bg-[#1d2f4a] transition-colors"
               >
                 キャンセル
               </button>
@@ -483,15 +487,15 @@ export default function RulesPage() {
 
       {/* AI Generate Modal */}
       {showAIModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-50">
-          <div className="bg-falcon-card rounded-2xl p-6 w-full max-w-2xl border border-falcon-border">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-[#111827] rounded-2xl p-6 w-full max-w-2xl border border-[#1e2d42]">
             <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
               <Wand2 className="w-5 h-5 text-purple-400" />
               AIでルールを生成
             </h2>
             {generatedRule ? (
               <div className="space-y-4">
-                <div className="bg-falcon-bg rounded-lg p-4">
+                <div className="bg-[#080c14] rounded-lg p-4">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-green-400 font-medium">生成完了: {generatedRule.rule.name}</span>
                     <span className={`text-xs font-bold px-2 py-1 rounded-sm ${severityColor(generatedRule.rule.severity)}`}>
@@ -507,13 +511,13 @@ export default function RulesPage() {
                       setShowAIModal(false)
                       qc.invalidateQueries({ queryKey: ['rules'] })
                     }}
-                    className="flex-1 py-2 bg-falcon-blue text-white rounded-lg hover:bg-[#1557d4] transition-colors"
+                    className="flex-1 py-2 bg-[#1a6bff] text-white rounded-lg hover:bg-[#1557d4] transition-colors"
                   >
                     保存して閉じる
                   </button>
                   <button
                     onClick={() => setGeneratedRule(null)}
-                    className="px-4 py-2 bg-falcon-raised text-[#8899aa] rounded-lg hover:bg-falcon-active transition-colors"
+                    className="px-4 py-2 bg-[#161f33] text-[#8899aa] rounded-lg hover:bg-[#1d2f4a] transition-colors"
                   >
                     再生成
                   </button>
@@ -528,7 +532,7 @@ export default function RulesPage() {
                     onChange={e => setAIForm(f => ({ ...f, description: e.target.value }))}
                     placeholder="例: PowerShellを使ったダウンローダーの実行、特にエンコードされたコマンドラインを持つもの"
                     rows={3}
-                    className="w-full bg-falcon-bg text-white px-3 py-2 rounded-lg border border-falcon-border focus:outline-hidden focus:border-purple-500 text-sm resize-none"
+                    className="w-full bg-[#080c14] text-white px-3 py-2 rounded-lg border border-[#1e2d42] focus:outline-hidden focus:border-purple-500 text-sm resize-none"
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
@@ -537,7 +541,7 @@ export default function RulesPage() {
                     <select
                       value={aiForm.type}
                       onChange={e => setAIForm(f => ({ ...f, type: e.target.value as 'sigma' | 'yara' }))}
-                      className="w-full bg-falcon-bg text-white px-3 py-2 rounded-lg border border-falcon-border text-sm focus:outline-hidden focus:border-purple-500"
+                      className="w-full bg-[#080c14] text-white px-3 py-2 rounded-lg border border-[#1e2d42] text-sm focus:outline-hidden focus:border-purple-500"
                     >
                       <option value="sigma">Sigma（ログベース）</option>
                       <option value="yara">YARA（ファイルスキャン）</option>
@@ -548,7 +552,7 @@ export default function RulesPage() {
                     <select
                       value={aiForm.platform}
                       onChange={e => setAIForm(f => ({ ...f, platform: e.target.value }))}
-                      className="w-full bg-falcon-bg text-white px-3 py-2 rounded-lg border border-falcon-border text-sm focus:outline-hidden focus:border-purple-500"
+                      className="w-full bg-[#080c14] text-white px-3 py-2 rounded-lg border border-[#1e2d42] text-sm focus:outline-hidden focus:border-purple-500"
                     >
                       <option value="windows">Windows</option>
                       <option value="linux">Linux</option>
@@ -563,7 +567,7 @@ export default function RulesPage() {
                     onChange={e => setAIForm(f => ({ ...f, examples: e.target.value }))}
                     placeholder="コマンドライン例やファイル内容など..."
                     rows={2}
-                    className="w-full bg-falcon-bg text-white px-3 py-2 rounded-lg border border-falcon-border focus:outline-hidden focus:border-purple-500 text-sm resize-none"
+                    className="w-full bg-[#080c14] text-white px-3 py-2 rounded-lg border border-[#1e2d42] focus:outline-hidden focus:border-purple-500 text-sm resize-none"
                   />
                 </div>
                 <div className="flex gap-3">
@@ -586,7 +590,7 @@ export default function RulesPage() {
                   </button>
                   <button
                     onClick={() => setShowAIModal(false)}
-                    className="px-4 py-2 bg-falcon-raised text-[#8899aa] rounded-lg hover:bg-falcon-active transition-colors"
+                    className="px-4 py-2 bg-[#161f33] text-[#8899aa] rounded-lg hover:bg-[#1d2f4a] transition-colors"
                   >
                     キャンセル
                   </button>
@@ -602,8 +606,8 @@ export default function RulesPage() {
 
       {/* Import Modal */}
       {showImportModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-50">
-          <div className="bg-falcon-card rounded-2xl p-6 w-full max-w-2xl border border-falcon-border">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-[#111827] rounded-2xl p-6 w-full max-w-2xl border border-[#1e2d42]">
             <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
               <Upload className="w-5 h-5 text-blue-400" />
               ルールをインポート
@@ -619,7 +623,7 @@ export default function RulesPage() {
                       className={`flex-1 py-2 rounded-lg border text-sm transition-colors ${
                         importType === t
                           ? 'border-blue-500 bg-blue-900/30 text-blue-300'
-                          : 'border-falcon-border text-[#8899aa] hover:border-falcon-border'
+                          : 'border-[#1e2d42] text-[#8899aa] hover:border-[#1e2d42]'
                       }`}
                     >
                       {t.toUpperCase()}
@@ -634,7 +638,7 @@ export default function RulesPage() {
                   onChange={e => setImportContent(e.target.value)}
                   placeholder={importType === 'sigma' ? 'title: ...\ndetection:\n  selection:\n    ...' : 'rule RuleName {\n  strings:\n    ...\n  condition:\n    ...\n}'}
                   rows={10}
-                  className="w-full bg-falcon-bg text-white px-3 py-2 rounded-lg border border-falcon-border focus:outline-hidden focus:border-falcon-blue text-sm font-mono resize-none"
+                  className="w-full bg-[#080c14] text-white px-3 py-2 rounded-lg border border-[#1e2d42] focus:outline-hidden focus:border-[#1a6bff] text-sm font-mono resize-none"
                 />
               </div>
               <div className="flex gap-3">
@@ -653,13 +657,13 @@ export default function RulesPage() {
                     }
                   }}
                   disabled={!importContent}
-                  className="flex-1 py-2 bg-falcon-blue text-white rounded-lg hover:bg-[#1557d4] transition-colors disabled:opacity-50"
+                  className="flex-1 py-2 bg-[#1a6bff] text-white rounded-lg hover:bg-[#1557d4] transition-colors disabled:opacity-50"
                 >
                   インポート
                 </button>
                 <button
                   onClick={() => setShowImportModal(false)}
-                  className="px-4 py-2 bg-falcon-raised text-[#8899aa] rounded-lg hover:bg-falcon-active transition-colors"
+                  className="px-4 py-2 bg-[#161f33] text-[#8899aa] rounded-lg hover:bg-[#1d2f4a] transition-colors"
                 >
                   キャンセル
                 </button>

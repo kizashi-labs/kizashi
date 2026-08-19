@@ -3,6 +3,8 @@
 import { useState, useMemo } from 'react'
 import dynamic from 'next/dynamic'
 import Link from 'next/link'
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+
 import { useQuery } from '@tanstack/react-query'
 import { apiFetch } from '@/lib/api'
 import { Map as MapIcon, Globe, RefreshCw, ChevronRight, X, Info } from 'lucide-react'
@@ -333,24 +335,23 @@ export default function GeoMapPage() {
 
   return (
     <div className="min-h-screen bg-[#070d19] p-6 space-y-6">
+      <PageDataUnavailable />
 
       {/* ── Header ── */}
       <div className="flex items-start justify-between flex-wrap gap-3">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-lg flex items-center justify-center bg-linear-to-br from-falcon-red to-falcon-red-dark shrink-0">
+          <div className="w-9 h-9 rounded-lg flex items-center justify-center bg-linear-to-br from-[#e8002d] to-[#a80020] shrink-0">
             <MapIcon className="w-5 h-5 text-white" />
           </div>
           <div>
             <h1 className="text-xl font-bold text-white">エージェント地理分布</h1>
-            <p className="text-xs text-falcon-muted">エージェントの地理的分布を地域別に可視化します</p>
+            <p className="text-xs text-[#7d92b0]">エージェントの地理的分布を地域別に可視化します</p>
           </div>
         </div>
         <button
           onClick={() => refetch()}
           disabled={isLoading}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-falcon-surface border border-falcon-border
-                     text-falcon-muted hover:text-white hover:border-falcon-muted/40 text-sm transition-colors
-                     disabled:opacity-40"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#0d1220] border border-[#1e2d42] text-[#7d92b0] hover:text-white hover:border-[#7d92b0]/40 text-sm transition-colors disabled:opacity-40"
         >
           <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
           更新
@@ -361,26 +362,26 @@ export default function GeoMapPage() {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         {[
           { label: '総エージェント', value: totalAgents, color: 'text-white' },
-          { label: 'オンライン', value: onlineCount, color: 'text-falcon-green' },
-          { label: 'オフライン', value: offlineCount, color: 'text-falcon-red' },
-          { label: '国数', value: countryCount, color: 'text-falcon-blue' },
+          { label: 'オンライン', value: onlineCount, color: 'text-[#00c853]' },
+          { label: 'オフライン', value: offlineCount, color: 'text-[#e8002d]' },
+          { label: '国数', value: countryCount, color: 'text-[#1a6bff]' },
         ].map(card => (
-          <div key={card.label} className="bg-falcon-surface rounded-xl border border-falcon-border p-4">
-            <Globe className="w-4 h-4 text-falcon-subtle mb-2" />
+          <div key={card.label} className="bg-[#0d1220] rounded-xl border border-[#1e2d42] p-4">
+            <Globe className="w-4 h-4 text-[#3d5068] mb-2" />
             <p className={`text-2xl font-bold tabular-nums ${card.color}`}>{card.value}</p>
-            <p className="text-xs text-falcon-muted mt-0.5">{card.label}</p>
+            <p className="text-xs text-[#7d92b0] mt-0.5">{card.label}</p>
           </div>
         ))}
       </div>
 
       {/* ── SVG World Map ── */}
-      <div className="bg-falcon-surface rounded-xl border border-falcon-border p-4">
+      <div className="bg-[#0d1220] rounded-xl border border-[#1e2d42] p-4">
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-sm font-semibold text-white flex items-center gap-2">
-            <Globe className="w-4 h-4 text-falcon-red" />
+            <Globe className="w-4 h-4 text-[#e8002d]" />
             ワールドマップ
           </h2>
-          <span className="flex items-center gap-1 text-[10px] text-falcon-muted">
+          <span className="flex items-center gap-1 text-[10px] text-[#7d92b0]">
             <Info className="w-3 h-3" />
             位置情報はIPアドレスから推定されます
           </span>
@@ -423,7 +424,7 @@ export default function GeoMapPage() {
             return (
               <div
                 key={r.label}
-                className="absolute text-[9px] text-falcon-subtle pointer-events-none select-none"
+                className="absolute text-[9px] text-[#3d5068] pointer-events-none select-none"
                 style={{ left: `${x}%`, top: `${y}%`, transform: 'translate(-50%,-50%)' }}
               >
                 {r.label}
@@ -436,19 +437,19 @@ export default function GeoMapPage() {
         {selectedPin && countryMap.has(selectedPin) && (() => {
           const { geo, agents: groupAgents } = countryMap.get(selectedPin)!
           return (
-            <div className="mt-3 bg-[#071828] border border-falcon-border rounded-lg p-4 text-xs">
+            <div className="mt-3 bg-[#071828] border border-[#1e2d42] rounded-lg p-4 text-xs">
               <div className="flex items-center justify-between mb-3">
                 <p className="font-semibold text-white text-sm">{geo.country}（{groupAgents.length}台）</p>
-                <button onClick={() => setSelectedPin(null)} className="text-falcon-muted hover:text-white text-lg leading-none">×</button>
+                <button onClick={() => setSelectedPin(null)} className="text-[#7d92b0] hover:text-white text-lg leading-none">×</button>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {groupAgents.map(a => (
-                  <div key={a.id} className="bg-falcon-surface rounded-lg p-3 border border-falcon-border">
+                  <div key={a.id} className="bg-[#0d1220] rounded-lg p-3 border border-[#1e2d42]">
                     <p className="text-white font-medium mb-1">{a.hostname}</p>
                     {(a.ip_addresses && a.ip_addresses.length > 0 ? a.ip_addresses : [getAgentIp(a)]).filter(Boolean).map(ip => (
-                      <p key={ip} className="text-falcon-muted">IP: {ip}</p>
+                      <p key={ip} className="text-[#7d92b0]">IP: {ip}</p>
                     ))}
-                    <p className="text-falcon-muted">OS: {a.os_type ?? a.os ?? '—'}</p>
+                    <p className="text-[#7d92b0]">OS: {a.os_type ?? a.os ?? '—'}</p>
                     <p className="mt-1" style={{ color: agentDotColor(a.status) }}>{agentStatusLabel(a.status)}</p>
                   </div>
                 ))}
@@ -458,13 +459,13 @@ export default function GeoMapPage() {
         })()}
 
         {/* Legend */}
-        <div className="flex items-center gap-5 mt-3 text-xs text-falcon-muted">
+        <div className="flex items-center gap-5 mt-3 text-xs text-[#7d92b0]">
           <span className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-falcon-green" />
+            <span className="w-2.5 h-2.5 rounded-full bg-[#00c853]" />
             オンライン
           </span>
           <span className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-falcon-muted" />
+            <span className="w-2.5 h-2.5 rounded-full bg-[#7d92b0]" />
             オフライン
           </span>
           <span className="flex items-center gap-1.5">
@@ -475,17 +476,17 @@ export default function GeoMapPage() {
 
         {/* Private-IP agents that cannot be plotted on the map */}
         {privateNetAgents.length > 0 && (
-          <div className="mt-3 bg-[#071828] border border-falcon-border rounded-lg p-3 text-xs">
-            <p className="text-falcon-muted mb-2 flex items-center gap-1">
+          <div className="mt-3 bg-[#071828] border border-[#1e2d42] rounded-lg p-3 text-xs">
+            <p className="text-[#7d92b0] mb-2 flex items-center gap-1">
               <Info className="w-3 h-3 shrink-0" />
               <span>以下 {privateNetAgents.length} 台のエージェントはプライベートIPアドレスのため地図上に表示されていません</span>
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {privateNetAgents.filter((a): a is Agent => !!a).map(a => (
-                <div key={a.id} className="bg-falcon-surface rounded-lg p-2 border border-falcon-border flex items-center justify-between">
+                <div key={a.id} className="bg-[#0d1220] rounded-lg p-2 border border-[#1e2d42] flex items-center justify-between">
                   <div>
                     <p className="text-white font-medium">{a.hostname}</p>
-                    <p className="text-falcon-muted">{(a.ip_addresses && a.ip_addresses.length > 0 ? a.ip_addresses[0] : a.ip_address) ?? '—'}</p>
+                    <p className="text-[#7d92b0]">{(a.ip_addresses && a.ip_addresses.length > 0 ? a.ip_addresses[0] : a.ip_address) ?? '—'}</p>
                   </div>
                   <span style={{ color: agentDotColor(a.status) }} className="text-xs font-medium">
                     {agentStatusLabel(a.status)}
@@ -509,12 +510,12 @@ export default function GeoMapPage() {
               onClick={() => setActiveContinent(cont === 'all' ? null : cont)}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all
                 ${active
-                  ? 'bg-falcon-red/20 border border-falcon-red/40 text-falcon-red'
-                  : 'bg-falcon-surface border border-falcon-border text-falcon-muted hover:border-falcon-muted/40 hover:text-white'
+                  ? 'bg-[#e8002d]/20 border border-[#e8002d]/40 text-[#e8002d]'
+                  : 'bg-[#0d1220] border border-[#1e2d42] text-[#7d92b0] hover:border-[#7d92b0]/40 hover:text-white'
                 }`}
             >
               {label}
-              <span className={`px-1.5 py-0.5 rounded-sm text-[10px] font-bold ${active ? 'bg-falcon-red/30 text-falcon-red' : 'bg-falcon-border text-falcon-muted'}`}>
+              <span className={`px-1.5 py-0.5 rounded-sm text-[10px] font-bold ${active ? 'bg-[#e8002d]/30 text-[#e8002d]' : 'bg-[#1e2d42] text-[#7d92b0]'}`}>
                 {count}
               </span>
             </button>
@@ -526,18 +527,18 @@ export default function GeoMapPage() {
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
 
         {/* Region Summary Table */}
-        <div className="xl:col-span-2 bg-falcon-surface rounded-xl border border-falcon-border overflow-hidden">
-          <div className="px-4 py-3 border-b border-falcon-border flex items-center justify-between">
+        <div className="xl:col-span-2 bg-[#0d1220] rounded-xl border border-[#1e2d42] overflow-hidden">
+          <div className="px-4 py-3 border-b border-[#1e2d42] flex items-center justify-between">
             <h2 className="text-sm font-semibold text-white flex items-center gap-2">
-              <MapIcon className="w-4 h-4 text-falcon-red" />
+              <MapIcon className="w-4 h-4 text-[#e8002d]" />
               地域別サマリー
             </h2>
-            <span className="text-xs text-falcon-muted">{visibleCountries.length} 国</span>
+            <span className="text-xs text-[#7d92b0]">{visibleCountries.length} 国</span>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-falcon-border text-[10px] text-falcon-muted uppercase tracking-wide">
+                <tr className="border-b border-[#1e2d42] text-[10px] text-[#7d92b0] uppercase tracking-wide">
                   <th className="px-4 py-3 text-left font-medium">地域</th>
                   <th className="px-4 py-3 text-left font-medium">国</th>
                   <th className="px-4 py-3 text-right font-medium">エージェント数</th>
@@ -558,7 +559,7 @@ export default function GeoMapPage() {
                       {/* Continent header row */}
                       <tr key={`cont-${continent}`} className="bg-[#0a1525]">
                         <td colSpan={7} className="px-4 py-2">
-                          <span className="text-[10px] font-bold text-falcon-muted uppercase tracking-wider">
+                          <span className="text-[10px] font-bold text-[#7d92b0] uppercase tracking-wider">
                             {CONTINENT_LABELS[continent] ?? continent}
                           </span>
                         </td>
@@ -575,30 +576,30 @@ export default function GeoMapPage() {
                           <tr
                             key={code}
                             onClick={() => setSelectedCountry(isSelected ? null : code)}
-                            className={`border-b border-falcon-border/50 cursor-pointer transition-colors
+                            className={`border-b border-[#1e2d42]/50 cursor-pointer transition-colors
                               ${isSelected ? 'bg-[#1a2540]' : 'hover:bg-[#111928]'}`}
                           >
-                            <td className="px-4 py-3 text-xs text-falcon-muted">
+                            <td className="px-4 py-3 text-xs text-[#7d92b0]">
                               {info?.geo?.region}
                             </td>
                             <td className="px-4 py-3">
                               <span className="text-xs font-medium text-white">{info?.geo?.country}</span>
-                              <span className="ml-1.5 text-[10px] text-falcon-subtle">{code}</span>
+                              <span className="ml-1.5 text-[10px] text-[#3d5068]">{code}</span>
                             </td>
                             <td className="px-4 py-3 text-right">
                               <span className="text-sm font-bold text-white tabular-nums">{info.agents.length}</span>
                             </td>
                             <td className="px-4 py-3 text-right">
-                              <span className="text-xs font-medium text-falcon-green tabular-nums">{online}</span>
+                              <span className="text-xs font-medium text-[#00c853] tabular-nums">{online}</span>
                             </td>
                             <td className="px-4 py-3 text-right">
-                              <span className={`text-xs font-medium tabular-nums ${offline > 0 ? 'text-falcon-red' : 'text-falcon-subtle'}`}>{offline}</span>
+                              <span className={`text-xs font-medium tabular-nums ${offline > 0 ? 'text-[#e8002d]' : 'text-[#3d5068]'}`}>{offline}</span>
                             </td>
-                            <td className="px-4 py-3 text-xs text-falcon-muted whitespace-nowrap">
+                            <td className="px-4 py-3 text-xs text-[#7d92b0] whitespace-nowrap">
                               {formatLastSeen(latestAgent?.last_seen)}
                             </td>
                             <td className="px-4 py-3">
-                              <ChevronRight className={`w-3.5 h-3.5 transition-transform ${isSelected ? 'rotate-90 text-falcon-red' : 'text-falcon-subtle'}`} />
+                              <ChevronRight className={`w-3.5 h-3.5 transition-transform ${isSelected ? 'rotate-90 text-[#e8002d]' : 'text-[#3d5068]'}`} />
                             </td>
                           </tr>
                         )
@@ -608,7 +609,7 @@ export default function GeoMapPage() {
                 })}
                 {visibleCountries.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="px-4 py-12 text-center text-falcon-muted text-sm">
+                    <td colSpan={7} className="px-4 py-12 text-center text-[#7d92b0] text-sm">
                       データがありません
                     </td>
                   </tr>
@@ -619,32 +620,32 @@ export default function GeoMapPage() {
         </div>
 
         {/* Country Detail Panel */}
-        <div className="bg-falcon-surface rounded-xl border border-falcon-border overflow-hidden">
+        <div className="bg-[#0d1220] rounded-xl border border-[#1e2d42] overflow-hidden">
           {selectedCountryData ? (
             <>
-              <div className="px-4 py-3 border-b border-falcon-border flex items-center justify-between">
+              <div className="px-4 py-3 border-b border-[#1e2d42] flex items-center justify-between">
                 <div>
                   <h2 className="text-sm font-semibold text-white">{selectedCountryData?.geo?.country}</h2>
-                  <p className="text-[10px] text-falcon-muted mt-0.5">{selectedCountryData?.geo?.region}</p>
+                  <p className="text-[10px] text-[#7d92b0] mt-0.5">{selectedCountryData?.geo?.region}</p>
                 </div>
                 <button
                   onClick={() => setSelectedCountry(null)}
-                  className="p-1 rounded-sm hover:bg-falcon-border text-falcon-muted hover:text-white transition-colors"
+                  className="p-1 rounded-sm hover:bg-[#1e2d42] text-[#7d92b0] hover:text-white transition-colors"
                 >
                   <X className="w-4 h-4" />
                 </button>
               </div>
 
               {/* Country stats */}
-              <div className="grid grid-cols-3 divide-x divide-falcon-border border-b border-falcon-border">
+              <div className="grid grid-cols-3 divide-x divide-[#1e2d42] border-b border-[#1e2d42]">
                 {[
                   { label: '合計', value: selectedCountryData.agents.length, color: 'text-white' },
-                  { label: 'オンライン', value: selectedCountryData.agents.filter(a => a.status === 'online').length, color: 'text-falcon-green' },
-                  { label: 'オフライン', value: selectedCountryData.agents.filter(a => a.status !== 'online').length, color: 'text-falcon-red' },
+                  { label: 'オンライン', value: selectedCountryData.agents.filter(a => a.status === 'online').length, color: 'text-[#00c853]' },
+                  { label: 'オフライン', value: selectedCountryData.agents.filter(a => a.status !== 'online').length, color: 'text-[#e8002d]' },
                 ].map(s => (
                   <div key={s.label} className="px-3 py-3 text-center">
                     <p className={`text-lg font-bold tabular-nums ${s.color}`}>{s.value}</p>
-                    <p className="text-[10px] text-falcon-muted">{s.label}</p>
+                    <p className="text-[10px] text-[#7d92b0]">{s.label}</p>
                   </div>
                 ))}
               </div>
@@ -652,17 +653,17 @@ export default function GeoMapPage() {
               {/* Agents list */}
               <div className="overflow-y-auto max-h-[480px]">
                 {selectedCountryData.agents.map(agent => (
-                  <div key={agent.id} className="flex items-center gap-3 px-4 py-3 border-b border-falcon-border/50 hover:bg-[#111928] transition-colors">
-                    <span className={`w-2 h-2 rounded-full shrink-0 ${agent.status === 'online' ? 'bg-falcon-green' : 'bg-falcon-muted'}`} />
+                  <div key={agent.id} className="flex items-center gap-3 px-4 py-3 border-b border-[#1e2d42]/50 hover:bg-[#111928] transition-colors">
+                    <span className={`w-2 h-2 rounded-full shrink-0 ${agent.status === 'online' ? 'bg-[#00c853]' : 'bg-[#7d92b0]'}`} />
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-medium text-white truncate">{agent.hostname}</p>
-                      <p className="text-[10px] text-falcon-muted mt-0.5">
+                      <p className="text-[10px] text-[#7d92b0] mt-0.5">
                         {getAgentIp(agent) || '—'} · {formatLastSeen(agent.last_seen)}
                       </p>
                     </div>
                     <Link
                       href={`/endpoints/${agent.id}`}
-                      className="shrink-0 flex items-center gap-1 text-[10px] text-falcon-blue hover:text-blue-300 transition-colors"
+                      className="shrink-0 flex items-center gap-1 text-[10px] text-[#1a6bff] hover:text-blue-300 transition-colors"
                     >
                       詳細
                       <ChevronRight className="w-3 h-3" />
@@ -673,18 +674,18 @@ export default function GeoMapPage() {
             </>
           ) : (
             <div className="flex flex-col items-center justify-center h-full min-h-[300px] text-center px-6">
-              <MapIcon className="w-10 h-10 text-falcon-border mb-3" />
-              <p className="text-sm font-medium text-falcon-muted">国を選択してください</p>
-              <p className="text-xs text-falcon-subtle mt-1">左のテーブルの行をクリックすると<br />その国のエージェント一覧が表示されます</p>
+              <MapIcon className="w-10 h-10 text-[#1e2d42] mb-3" />
+              <p className="text-sm font-medium text-[#7d92b0]">国を選択してください</p>
+              <p className="text-xs text-[#3d5068] mt-1">左のテーブルの行をクリックすると<br />その国のエージェント一覧が表示されます</p>
             </div>
           )}
         </div>
       </div>
 
       {/* ── Continent Distribution Bars ── */}
-      <div className="bg-falcon-surface rounded-xl border border-falcon-border p-5">
+      <div className="bg-[#0d1220] rounded-xl border border-[#1e2d42] p-5">
         <h2 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
-          <Globe className="w-4 h-4 text-falcon-red" />
+          <Globe className="w-4 h-4 text-[#e8002d]" />
           大陸別エージェント分布
         </h2>
         <div className="space-y-4">
@@ -699,11 +700,11 @@ export default function GeoMapPage() {
                 <div className="flex items-center justify-between text-xs">
                   <div className="flex items-center gap-2">
                     <span className="text-white font-medium">{CONTINENT_LABELS[cont] ?? cont}</span>
-                    <span className="text-falcon-muted">{count} エージェント</span>
+                    <span className="text-[#7d92b0]">{count} エージェント</span>
                   </div>
                   <div className="flex items-center gap-3">
-                    <span className="text-falcon-green">{online} オンライン</span>
-                    <span className="text-falcon-muted tabular-nums w-10 text-right">{pct}%</span>
+                    <span className="text-[#00c853]">{online} オンライン</span>
+                    <span className="text-[#7d92b0] tabular-nums w-10 text-right">{pct}%</span>
                   </div>
                 </div>
                 <div className="h-2.5 bg-[#0a1525] rounded-full overflow-hidden">

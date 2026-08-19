@@ -8,6 +8,8 @@ import {
   Play, Shield, Settings, Wrench, X, Download, ChevronLeft, ChevronRight,
   CheckCircle2, XCircle, Clock, Users, Terminal, Layers,
 } from 'lucide-react'
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+
 import { USE_MOCK, m } from '@/lib/mock'
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -98,7 +100,7 @@ function OSBadge({ os }: { os: OSType }) {
 function StatusDot({ status }: { status: AgentStatus }) {
   return (
     <span className={`inline-block w-2 h-2 rounded-full shrink-0 self-center ${
-      status === 'online' ? 'bg-green-400' : 'bg-falcon-muted'
+      status === 'online' ? 'bg-green-400' : 'bg-[#7d92b0]'
     }`} />
   )
 }
@@ -112,7 +114,7 @@ function OSDonut({ agents }: { agents: Agent[] }) {
     macos:   agents.filter(a => a.os === 'macos').length,
   }
   const total = agents.length
-  if (total === 0) return <div className="w-16 h-16 rounded-full border-4 border-falcon-border" />
+  if (total === 0) return <div className="w-16 h-16 rounded-full border-4 border-[#1e2d42]" />
 
   const colors = { windows: '#3b82f6', linux: '#f97316', macos: '#a855f7' }
   const r = 24, cx = 32, cy = 32, circ = 2 * Math.PI * r
@@ -166,56 +168,56 @@ function ConfirmModal({
 
   return (
     <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-      <div className="bg-falcon-surface border border-falcon-border rounded-lg w-full max-w-md shadow-2xl">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-falcon-border">
+      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg w-full max-w-md shadow-2xl">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-[#1e2d42]">
           <div className="flex items-center gap-2">
             {danger
-              ? <AlertTriangle className="w-5 h-5 text-falcon-red" />
+              ? <AlertTriangle className="w-5 h-5 text-[#e8002d]" />
               : <Play className="w-5 h-5 text-blue-400" />
             }
             <h3 className="text-white font-semibold">{title}</h3>
           </div>
-          <button onClick={onCancel} className="text-falcon-muted hover:text-white">
+          <button onClick={onCancel} className="text-[#7d92b0] hover:text-white">
             <X className="w-4 h-4" />
           </button>
         </div>
         <div className="px-5 py-4 space-y-3">
-          <p className="text-falcon-muted text-sm">{message}</p>
-          <div className="bg-[#070d19] border border-falcon-border rounded-sm p-3 max-h-32 overflow-y-auto space-y-1">
+          <p className="text-[#7d92b0] text-sm">{message}</p>
+          <div className="bg-[#070d19] border border-[#1e2d42] rounded-sm p-3 max-h-32 overflow-y-auto space-y-1">
             {agents.map(a => (
               <div key={a.id} className="flex items-center gap-2 text-xs">
                 <StatusDot status={a.status} />
-                <span className="text-falcon-text font-mono">{a.hostname}</span>
+                <span className="text-[#e2e8f4] font-mono">{a.hostname}</span>
                 <OSBadge os={a.os} />
-                <span className="text-falcon-muted">{a.group}</span>
+                <span className="text-[#7d92b0]">{a.group}</span>
               </div>
             ))}
           </div>
           {requireText && (
             <div>
-              <p className="text-xs text-falcon-muted mb-1">
-                確認のため <span className="font-mono text-falcon-red">{requireText}</span> と入力してください
+              <p className="text-xs text-[#7d92b0] mb-1">
+                確認のため <span className="font-mono text-[#e8002d]">{requireText}</span> と入力してください
               </p>
               <input
                 value={typed}
                 onChange={e => setTyped(e.target.value)}
-                className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-white font-mono text-sm focus:outline-hidden focus:border-falcon-red"
+                className="w-full bg-[#070d19] border border-[#1e2d42] rounded-sm px-3 py-2 text-white font-mono text-sm focus:outline-hidden focus:border-[#e8002d]"
                 placeholder={requireText}
               />
             </div>
           )}
         </div>
-        <div className="flex gap-2 px-5 py-4 border-t border-falcon-border">
+        <div className="flex gap-2 px-5 py-4 border-t border-[#1e2d42]">
           <button onClick={onCancel}
-            className="flex-1 px-4 py-2 rounded-sm text-sm text-falcon-muted border border-falcon-border hover:bg-falcon-border transition-colors">
+            className="flex-1 px-4 py-2 rounded-sm text-sm text-[#7d92b0] border border-[#1e2d42] hover:bg-[#1e2d42] transition-colors">
             キャンセル
           </button>
           <button
             onClick={onConfirm}
             disabled={!canConfirm}
-            className={`flex-1 px-4 py-2 rounded text-sm font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
+            className={`flex-1 px-4 py-2 rounded-sm text-sm font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
               danger
-                ? 'bg-falcon-red hover:bg-[#c0001f] text-white'
+                ? 'bg-[#e8002d] hover:bg-[#c0001f] text-white'
                 : 'bg-blue-600 hover:bg-blue-700 text-white'
             }`}
           >
@@ -245,32 +247,32 @@ function ResultsPanel({ results, onClose }: { results: OperationResult[]; onClos
   }
 
   return (
-    <div className="bg-falcon-surface border border-falcon-border rounded-lg mt-4">
-      <div className="flex items-center justify-between px-5 py-3 border-b border-falcon-border">
+    <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg mt-4">
+      <div className="flex items-center justify-between px-5 py-3 border-b border-[#1e2d42]">
         <h3 className="text-white font-semibold text-sm flex items-center gap-2">
           <CheckCircle2 className="w-4 h-4 text-green-400" /> 実行結果
         </h3>
         <div className="flex items-center gap-3">
           <span className="text-xs text-green-400">{successCount}件成功</span>
-          {failedCount > 0 && <span className="text-xs text-falcon-red">{failedCount}件失敗</span>}
+          {failedCount > 0 && <span className="text-xs text-[#e8002d]">{failedCount}件失敗</span>}
           <button onClick={handleExport}
-            className="flex items-center gap-1.5 text-xs text-falcon-muted hover:text-white border border-falcon-border rounded-sm px-2 py-1 hover:border-falcon-muted/40">
+            className="flex items-center gap-1.5 text-xs text-[#7d92b0] hover:text-white border border-[#1e2d42] rounded-sm px-2 py-1 hover:border-[#7d92b0]/40">
             <Download className="w-3 h-3" /> エクスポート
           </button>
-          <button onClick={onClose} className="text-falcon-muted hover:text-white"><X className="w-4 h-4" /></button>
+          <button onClick={onClose} className="text-[#7d92b0] hover:text-white"><X className="w-4 h-4" /></button>
         </div>
       </div>
-      <div className="divide-y divide-falcon-border max-h-48 overflow-y-auto">
+      <div className="divide-y divide-[#1e2d42] max-h-48 overflow-y-auto">
         {results.map(r => (
           <div key={r.agent_id} className="flex items-center gap-3 px-5 py-2.5">
             {r.status === 'success' && <CheckCircle2 className="w-4 h-4 text-green-400 shrink-0" />}
-            {r.status === 'failed'  && <XCircle      className="w-4 h-4 text-falcon-red shrink-0" />}
+            {r.status === 'failed'  && <XCircle      className="w-4 h-4 text-[#e8002d] shrink-0" />}
             {r.status === 'pending' && <Clock        className="w-4 h-4 text-yellow-400 shrink-0" />}
-            <span className="text-sm text-falcon-text font-mono flex-1">{r.hostname}</span>
-            {r.error && <span className="text-xs text-falcon-red">{r.error}</span>}
+            <span className="text-sm text-[#e2e8f4] font-mono flex-1">{r.hostname}</span>
+            {r.error && <span className="text-xs text-[#e8002d]">{r.error}</span>}
             <span className={`text-xs ${
               r.status === 'success' ? 'text-green-400' :
-              r.status === 'failed'  ? 'text-falcon-red' : 'text-yellow-400'
+              r.status === 'failed'  ? 'text-[#e8002d]' : 'text-yellow-400'
             }`}>
               {r.status === 'success' ? '成功' : r.status === 'failed' ? '失敗' : '保留中'}
             </span>
@@ -451,10 +453,11 @@ export default function BulkOperationsPage() {
 
   return (
     <div className="min-h-screen bg-[#070d19] p-6">
+      <PageDataUnavailable />
       {/* Header */}
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-white mb-1">エージェント一括操作</h1>
-        <p className="text-falcon-muted text-sm">複数エンドポイントへの一括コマンド実行・管理</p>
+        <p className="text-[#7d92b0] text-sm">複数エンドポイントへの一括コマンド実行・管理</p>
       </div>
 
       {/* Warning Banner */}
@@ -467,15 +470,15 @@ export default function BulkOperationsPage() {
 
       <div className="flex gap-6 items-start">
         {/* ── Left Panel: Agent Selection ──────────────────── */}
-        <div className="w-1/3 bg-falcon-surface border border-falcon-border rounded-lg flex flex-col">
+        <div className="w-1/3 bg-[#0d1220] border border-[#1e2d42] rounded-lg flex flex-col">
           {/* Filter Bar */}
-          <div className="px-4 pt-4 pb-3 border-b border-falcon-border space-y-2">
-            <p className="text-xs font-semibold text-falcon-muted uppercase tracking-wider mb-2">フィルター</p>
+          <div className="px-4 pt-4 pb-3 border-b border-[#1e2d42] space-y-2">
+            <p className="text-xs font-semibold text-[#7d92b0] uppercase tracking-wider mb-2">フィルター</p>
             <div className="grid grid-cols-3 gap-2">
               <select
                 value={filterOS}
                 onChange={e => { setFilterOS(e.target.value as typeof filterOS); setPage(1) }}
-                className="bg-[#070d19] border border-falcon-border rounded-sm px-2 py-1.5 text-xs text-falcon-text focus:outline-hidden focus:border-blue-500"
+                className="bg-[#070d19] border border-[#1e2d42] rounded-sm px-2 py-1.5 text-xs text-[#e2e8f4] focus:outline-hidden focus:border-blue-500"
               >
                 <option value="all">全OS</option>
                 <option value="windows">Windows</option>
@@ -485,7 +488,7 @@ export default function BulkOperationsPage() {
               <select
                 value={filterStatus}
                 onChange={e => { setFilterStatus(e.target.value as typeof filterStatus); setPage(1) }}
-                className="bg-[#070d19] border border-falcon-border rounded-sm px-2 py-1.5 text-xs text-falcon-text focus:outline-hidden focus:border-blue-500"
+                className="bg-[#070d19] border border-[#1e2d42] rounded-sm px-2 py-1.5 text-xs text-[#e2e8f4] focus:outline-hidden focus:border-blue-500"
               >
                 <option value="all">全状態</option>
                 <option value="online">オンライン</option>
@@ -494,7 +497,7 @@ export default function BulkOperationsPage() {
               <select
                 value={filterGroup}
                 onChange={e => { setFilterGroup(e.target.value); setPage(1) }}
-                className="bg-[#070d19] border border-falcon-border rounded-sm px-2 py-1.5 text-xs text-falcon-text focus:outline-hidden focus:border-blue-500"
+                className="bg-[#070d19] border border-[#1e2d42] rounded-sm px-2 py-1.5 text-xs text-[#e2e8f4] focus:outline-hidden focus:border-blue-500"
               >
                 <option value="all">全グループ</option>
                 {groups.map(g => <option key={g} value={g}>{g}</option>)}
@@ -503,31 +506,31 @@ export default function BulkOperationsPage() {
           </div>
 
           {/* Select All / Clear */}
-          <div className="flex items-center justify-between px-4 py-2 border-b border-falcon-border">
+          <div className="flex items-center justify-between px-4 py-2 border-b border-[#1e2d42]">
             <div className="flex gap-2">
               <button onClick={selectAll}
                 className="text-xs text-blue-400 hover:text-blue-300 font-medium">全選択</button>
-              <span className="text-falcon-border">|</span>
+              <span className="text-[#1e2d42]">|</span>
               <button onClick={clearAll}
-                className="text-xs text-falcon-muted hover:text-white">選択解除</button>
+                className="text-xs text-[#7d92b0] hover:text-white">選択解除</button>
             </div>
             {selectedCount > 0 && (
-              <span className="text-xs font-bold px-2 py-0.5 rounded-sm bg-falcon-red/20 text-falcon-red border border-falcon-red/30">
+              <span className="text-xs font-bold px-2 py-0.5 rounded-sm bg-[#e8002d]/20 text-[#e8002d] border border-[#e8002d]/30">
                 {selectedCount}台選択中
               </span>
             )}
           </div>
 
           {/* Agent List */}
-          <div className="flex-1 divide-y divide-falcon-border overflow-y-auto max-h-[500px]">
+          <div className="flex-1 divide-y divide-[#1e2d42] overflow-y-auto max-h-[500px]">
             {paged.length === 0 ? (
-              <div className="px-4 py-8 text-center text-falcon-muted text-sm">
+              <div className="px-4 py-8 text-center text-[#7d92b0] text-sm">
                 条件に一致するエージェントがありません
               </div>
             ) : (
               paged.map(agent => (
                 <label key={agent.id}
-                  className="flex items-center gap-3 px-4 py-2.5 hover:bg-falcon-border/30 cursor-pointer group">
+                  className="flex items-center gap-3 px-4 py-2.5 hover:bg-[#1e2d42]/30 cursor-pointer group">
                   <input
                     type="checkbox"
                     checked={selectedIds.has(agent.id)}
@@ -536,12 +539,12 @@ export default function BulkOperationsPage() {
                   />
                   {selectedIds.has(agent.id)
                     ? <CheckSquare className="w-4 h-4 text-blue-400 shrink-0" />
-                    : <Square className="w-4 h-4 text-falcon-subtle shrink-0 group-hover:text-falcon-muted" />
+                    : <Square className="w-4 h-4 text-[#3d5068] shrink-0 group-hover:text-[#7d92b0]" />
                   }
                   <StatusDot status={agent.status} />
-                  <span className="text-xs text-falcon-text font-mono flex-1 truncate">{agent.hostname}</span>
+                  <span className="text-xs text-[#e2e8f4] font-mono flex-1 truncate">{agent.hostname}</span>
                   <OSBadge os={agent.os} />
-                  <span className="text-[10px] text-falcon-muted truncate w-[50px] shrink-0">{agent.group}</span>
+                  <span className="text-[10px] text-[#7d92b0] truncate w-[50px] shrink-0">{agent.group}</span>
                 </label>
               ))
             )}
@@ -549,14 +552,14 @@ export default function BulkOperationsPage() {
 
           {/* Pagination */}
           {totalPages > 1 && (
-            <div className="flex items-center justify-between px-4 py-2.5 border-t border-falcon-border">
+            <div className="flex items-center justify-between px-4 py-2.5 border-t border-[#1e2d42]">
               <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
-                className="p-1 rounded-sm text-falcon-muted hover:text-white disabled:opacity-30">
+                className="p-1 rounded-sm text-[#7d92b0] hover:text-white disabled:opacity-30">
                 <ChevronLeft className="w-4 h-4" />
               </button>
-              <span className="text-xs text-falcon-muted">{page} / {totalPages}</span>
+              <span className="text-xs text-[#7d92b0]">{page} / {totalPages}</span>
               <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}
-                className="p-1 rounded-sm text-falcon-muted hover:text-white disabled:opacity-30">
+                className="p-1 rounded-sm text-[#7d92b0] hover:text-white disabled:opacity-30">
                 <ChevronRight className="w-4 h-4" />
               </button>
             </div>
@@ -564,9 +567,9 @@ export default function BulkOperationsPage() {
         </div>
 
         {/* ── Right Panel: Operation Panel ────────────────── */}
-        <div className="flex-1 bg-falcon-surface border border-falcon-border rounded-lg">
+        <div className="flex-1 bg-[#0d1220] border border-[#1e2d42] rounded-lg">
           {/* Summary */}
-          <div className="flex items-center gap-6 px-5 py-4 border-b border-falcon-border">
+          <div className="flex items-center gap-6 px-5 py-4 border-b border-[#1e2d42]">
             <OSDonut agents={selectedAgents} />
             <div>
               <p className="text-white font-semibold text-lg">{selectedCount}台選択中</p>
@@ -581,14 +584,14 @@ export default function BulkOperationsPage() {
                   <span className="text-xs text-purple-300">macOS: {osCounts.macos}</span>
                 )}
                 {selectedCount === 0 && (
-                  <span className="text-xs text-falcon-muted">左のリストからエージェントを選択してください</span>
+                  <span className="text-xs text-[#7d92b0]">左のリストからエージェントを選択してください</span>
                 )}
               </div>
             </div>
           </div>
 
           {/* Tabs */}
-          <div className="flex border-b border-falcon-border">
+          <div className="flex border-b border-[#1e2d42]">
             {[
               { id: 'command'    as const, label: 'コマンド', icon: Terminal },
               { id: 'settings'  as const, label: '設定',     icon: Settings },
@@ -600,8 +603,8 @@ export default function BulkOperationsPage() {
                 onClick={() => setActiveTab(tab.id)}
                 className={`flex items-center gap-1.5 px-5 py-3 text-sm font-medium border-b-2 transition-colors ${
                   activeTab === tab.id
-                    ? 'border-falcon-red text-white'
-                    : 'border-transparent text-falcon-muted hover:text-falcon-text'
+                    ? 'border-[#e8002d] text-white'
+                    : 'border-transparent text-[#7d92b0] hover:text-[#e2e8f4]'
                 }`}
               >
                 <tab.icon className="w-3.5 h-3.5" />
@@ -615,7 +618,7 @@ export default function BulkOperationsPage() {
             {activeTab === 'command' && (
               <div className="space-y-5">
                 <div>
-                  <p className="text-xs font-semibold text-falcon-muted uppercase tracking-wider mb-3">
+                  <p className="text-xs font-semibold text-[#7d92b0] uppercase tracking-wider mb-3">
                     コマンドテンプレート
                   </p>
                   <div className="grid grid-cols-2 gap-2">
@@ -624,9 +627,7 @@ export default function BulkOperationsPage() {
                         key={t.cmd}
                         onClick={() => runCommand(t.cmd)}
                         disabled={selectedCount === 0 || bulkMutation.isPending}
-                        className="flex items-center gap-2 px-4 py-2.5 rounded bg-[#070d19] border border-falcon-border
-                                   hover:border-blue-500/50 hover:bg-blue-900/10 text-falcon-text text-sm
-                                   disabled:opacity-40 disabled:cursor-not-allowed transition-colors text-left"
+                        className="flex items-center gap-2 px-4 py-2.5 rounded-sm bg-[#070d19] border border-[#1e2d42] hover:border-blue-500/50 hover:bg-blue-900/10 text-[#e2e8f4] text-sm disabled:opacity-40 disabled:cursor-not-allowed transition-colors text-left"
                       >
                         <Play className="w-3.5 h-3.5 text-blue-400 shrink-0" />
                         {t.label}
@@ -636,7 +637,7 @@ export default function BulkOperationsPage() {
                 </div>
 
                 <div>
-                  <p className="text-xs font-semibold text-falcon-muted uppercase tracking-wider mb-2">
+                  <p className="text-xs font-semibold text-[#7d92b0] uppercase tracking-wider mb-2">
                     カスタムコマンド
                   </p>
                   <textarea
@@ -644,14 +645,12 @@ export default function BulkOperationsPage() {
                     onChange={e => setCustomCommand(e.target.value)}
                     rows={3}
                     placeholder="コマンドを入力..."
-                    className="w-full bg-[#070d19] border border-falcon-border rounded px-3 py-2 text-white text-sm font-mono
-                               focus:outline-hidden focus:border-blue-500 resize-none placeholder-falcon-subtle"
+                    className="w-full bg-[#070d19] border border-[#1e2d42] rounded-sm px-3 py-2 text-white text-sm font-mono focus:outline-hidden focus:border-blue-500 resize-none placeholder-[#3d5068]"
                   />
                   <button
                     onClick={() => runCommand(customCommand)}
                     disabled={!customCommand.trim() || selectedCount === 0 || bulkMutation.isPending}
-                    className="mt-2 flex items-center gap-2 px-5 py-2 rounded bg-blue-600 hover:bg-blue-700
-                               text-white text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                    className="mt-2 flex items-center gap-2 px-5 py-2 rounded-sm bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                   >
                     {bulkMutation.isPending
                       ? <RefreshCw className="w-4 h-4 animate-spin" />
@@ -667,14 +666,14 @@ export default function BulkOperationsPage() {
             {activeTab === 'settings' && (
               <div className="space-y-6">
                 <div>
-                  <p className="text-xs font-semibold text-falcon-muted uppercase tracking-wider mb-3">
+                  <p className="text-xs font-semibold text-[#7d92b0] uppercase tracking-wider mb-3">
                     ポリシー割り当て
                   </p>
                   <div className="flex gap-3">
                     <select
                       value={selectedPolicy}
                       onChange={e => setSelectedPolicy(e.target.value)}
-                      className="flex-1 bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-sm text-falcon-text focus:outline-hidden focus:border-blue-500"
+                      className="flex-1 bg-[#070d19] border border-[#1e2d42] rounded-sm px-3 py-2 text-sm text-[#e2e8f4] focus:outline-hidden focus:border-blue-500"
                     >
                       <option value="">EDRポリシーを選択...</option>
                       {m(MOCK_POLICIES).map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
@@ -684,8 +683,7 @@ export default function BulkOperationsPage() {
                       onClick={() => openConfirm('ポリシー割り当て確認', `選択したポリシーを ${selectedCount}台 に割り当てます。`, () => {
                         bulkMutation.mutate({ agent_ids: [...selectedIds], action: 'assign_policy', policy_id: selectedPolicy })
                       })}
-                      className="px-4 py-2 rounded bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold
-                                 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                      className="px-4 py-2 rounded-sm bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                     >
                       割り当て
                     </button>
@@ -693,14 +691,14 @@ export default function BulkOperationsPage() {
                 </div>
 
                 <div>
-                  <p className="text-xs font-semibold text-falcon-muted uppercase tracking-wider mb-3">
+                  <p className="text-xs font-semibold text-[#7d92b0] uppercase tracking-wider mb-3">
                     グループ割り当て
                   </p>
                   <div className="flex gap-3">
                     <select
                       value={selectedGroup}
                       onChange={e => setSelectedGroup(e.target.value)}
-                      className="flex-1 bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-sm text-falcon-text focus:outline-hidden focus:border-blue-500"
+                      className="flex-1 bg-[#070d19] border border-[#1e2d42] rounded-sm px-3 py-2 text-sm text-[#e2e8f4] focus:outline-hidden focus:border-blue-500"
                     >
                       <option value="">グループを選択...</option>
                       {m(MOCK_GROUPS).map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
@@ -710,8 +708,7 @@ export default function BulkOperationsPage() {
                       onClick={() => openConfirm('グループ割り当て確認', `選択したグループを ${selectedCount}台 に割り当てます。`, () => {
                         bulkMutation.mutate({ agent_ids: [...selectedIds], action: 'assign_group', group_id: selectedGroup })
                       })}
-                      className="px-4 py-2 rounded bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold
-                                 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                      className="px-4 py-2 rounded-sm bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                     >
                       割り当て
                     </button>
@@ -724,13 +721,13 @@ export default function BulkOperationsPage() {
             {activeTab === 'remediation' && (
               <div className="space-y-4">
                 <div>
-                  <label className="block text-xs font-semibold text-falcon-muted uppercase tracking-wider mb-2">
+                  <label className="block text-xs font-semibold text-[#7d92b0] uppercase tracking-wider mb-2">
                     修復アクション種別
                   </label>
                   <select
                     value={remType}
                     onChange={e => setRemType(e.target.value)}
-                    className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-sm text-falcon-text focus:outline-hidden focus:border-blue-500"
+                    className="w-full bg-[#070d19] border border-[#1e2d42] rounded-sm px-3 py-2 text-sm text-[#e2e8f4] focus:outline-hidden focus:border-blue-500"
                   >
                     <option value="kill_process">プロセス強制終了 (kill_process)</option>
                     <option value="block_ip">IPアドレスブロック (block_ip)</option>
@@ -739,27 +736,25 @@ export default function BulkOperationsPage() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-falcon-muted uppercase tracking-wider mb-2">
+                  <label className="block text-xs font-semibold text-[#7d92b0] uppercase tracking-wider mb-2">
                     ターゲット {remType === 'kill_process' ? '(プロセス名)' : remType === 'block_ip' ? '(IPアドレス)' : '(ファイルパス)'}
                   </label>
                   <input
                     value={remTarget}
                     onChange={e => setRemTarget(e.target.value)}
                     placeholder={remType === 'kill_process' ? 'malware.exe' : remType === 'block_ip' ? '192.168.1.100' : '/tmp/suspicious.sh'}
-                    className="w-full bg-[#070d19] border border-falcon-border rounded px-3 py-2 text-sm text-white font-mono
-                               focus:outline-hidden focus:border-blue-500 placeholder-falcon-subtle"
+                    className="w-full bg-[#070d19] border border-[#1e2d42] rounded-sm px-3 py-2 text-sm text-white font-mono focus:outline-hidden focus:border-blue-500 placeholder-[#3d5068]"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-falcon-muted uppercase tracking-wider mb-2">理由</label>
+                  <label className="block text-xs font-semibold text-[#7d92b0] uppercase tracking-wider mb-2">理由</label>
                   <textarea
                     value={remReason}
                     onChange={e => setRemReason(e.target.value)}
                     rows={3}
                     placeholder="修復実行の理由を入力..."
-                    className="w-full bg-[#070d19] border border-falcon-border rounded px-3 py-2 text-white text-sm
-                               focus:outline-hidden focus:border-blue-500 resize-none placeholder-falcon-subtle"
+                    className="w-full bg-[#070d19] border border-[#1e2d42] rounded-sm px-3 py-2 text-white text-sm focus:outline-hidden focus:border-blue-500 resize-none placeholder-[#3d5068]"
                   />
                 </div>
 
@@ -778,8 +773,7 @@ export default function BulkOperationsPage() {
                     },
                     { danger: true }
                   )}
-                  className="flex items-center gap-2 px-5 py-2.5 rounded bg-orange-600 hover:bg-orange-700
-                             text-white text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  className="flex items-center gap-2 px-5 py-2.5 rounded-sm bg-orange-600 hover:bg-orange-700 text-white text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                 >
                   {remediateMutation.isPending
                     ? <RefreshCw className="w-4 h-4 animate-spin" />
@@ -793,26 +787,25 @@ export default function BulkOperationsPage() {
             {/* ── Quarantine Tab ── */}
             {activeTab === 'quarantine' && (
               <div className="space-y-4">
-                <div className="flex items-start gap-3 bg-falcon-red/10 border border-falcon-red/30 rounded-lg px-4 py-3">
-                  <AlertTriangle className="w-5 h-5 text-falcon-red shrink-0 mt-0.5" />
+                <div className="flex items-start gap-3 bg-[#e8002d]/10 border border-[#e8002d]/30 rounded-lg px-4 py-3">
+                  <AlertTriangle className="w-5 h-5 text-[#e8002d] shrink-0 mt-0.5" />
                   <div>
-                    <p className="text-falcon-red font-semibold text-sm">隔離警告</p>
-                    <p className="text-falcon-muted text-xs mt-1">
+                    <p className="text-[#e8002d] font-semibold text-sm">隔離警告</p>
+                    <p className="text-[#7d92b0] text-xs mt-1">
                       隔離するとネットワーク接続が遮断されます。隔離中のエンドポイントはリモート管理を除く全てのネットワーク通信が停止します。
                     </p>
                   </div>
                 </div>
 
-                <div className="bg-[#070d19] border border-falcon-border rounded-lg p-4 space-y-3">
-                  <p className="text-sm text-falcon-muted">
-                    確認のため <span className="font-mono text-falcon-red font-bold">QUARANTINE</span> と入力してください
+                <div className="bg-[#070d19] border border-[#1e2d42] rounded-lg p-4 space-y-3">
+                  <p className="text-sm text-[#7d92b0]">
+                    確認のため <span className="font-mono text-[#e8002d] font-bold">QUARANTINE</span> と入力してください
                   </p>
                   <input
                     value={quarInput}
                     onChange={e => setQuarInput(e.target.value)}
                     placeholder="QUARANTINE"
-                    className="w-full bg-falcon-surface border border-falcon-border rounded px-3 py-2 text-white font-mono text-sm
-                               focus:outline-hidden focus:border-falcon-red placeholder-falcon-subtle"
+                    className="w-full bg-[#0d1220] border border-[#1e2d42] rounded-sm px-3 py-2 text-white font-mono text-sm focus:outline-hidden focus:border-[#e8002d] placeholder-[#3d5068]"
                   />
                   <button
                     disabled={quarInput !== 'QUARANTINE' || selectedCount === 0 || bulkMutation.isPending}
@@ -825,8 +818,7 @@ export default function BulkOperationsPage() {
                       },
                       { requireText: 'QUARANTINE', danger: true }
                     )}
-                    className="w-full flex items-center justify-center gap-2 px-5 py-3 rounded bg-falcon-red hover:bg-[#c0001f]
-                               text-white font-semibold disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                    className="w-full flex items-center justify-center gap-2 px-5 py-3 rounded-sm bg-[#e8002d] hover:bg-[#c0001f] text-white font-semibold disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                   >
                     {bulkMutation.isPending
                       ? <RefreshCw className="w-4 h-4 animate-spin" />
@@ -836,7 +828,7 @@ export default function BulkOperationsPage() {
                   </button>
                 </div>
 
-                <p className="text-xs text-falcon-muted">
+                <p className="text-xs text-[#7d92b0]">
                   選択中: {selectedCount}台
                   {selectedCount > 0 && (
                     <> — {selectedAgents.map(a => a.hostname).join(', ')}</>

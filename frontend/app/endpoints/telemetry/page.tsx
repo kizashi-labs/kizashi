@@ -10,6 +10,8 @@ import {
   Monitor, X, Flag,
 } from 'lucide-react'
 
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+
 // ── Types ──────────────────────────────────────────────────────────────────
 
 interface Endpoint {
@@ -121,33 +123,33 @@ function fmtBytes(b: number) {
 
 const PROCESS_TYPE_STYLES: Record<ProcessEvent['event_type'], string> = {
   create: 'bg-green-900/30 text-green-400 border border-green-700/40',
-  terminate: 'bg-falcon-border text-falcon-muted',
-  inject: 'bg-falcon-red/20 text-[#ff4d6d] border border-falcon-red/40',
+  terminate: 'bg-[#1e2d42] text-[#7d92b0]',
+  inject: 'bg-[#e8002d]/20 text-[#ff4d6d] border border-[#e8002d]/40',
   hollowing: 'bg-purple-900/30 text-purple-400 border border-purple-700/40',
 }
 const FILE_TYPE_STYLES: Record<FileEvent['event_type'], string> = {
   create: 'bg-green-900/30 text-green-400 border border-green-700/40',
   modify: 'bg-blue-900/30 text-blue-400 border border-blue-700/40',
-  delete: 'bg-falcon-red/20 text-[#ff4d6d] border border-falcon-red/40',
+  delete: 'bg-[#e8002d]/20 text-[#ff4d6d] border border-[#e8002d]/40',
   rename: 'bg-yellow-900/30 text-yellow-400 border border-yellow-700/40',
   encrypt: 'bg-purple-900/30 text-purple-400 border border-purple-700/40',
 }
 const REP_STYLES = {
   clean: 'bg-green-900/30 text-green-400 border border-green-700/40',
   suspicious: 'bg-yellow-900/30 text-yellow-400 border border-yellow-700/40',
-  malicious: 'bg-falcon-red/20 text-[#ff4d6d] border border-falcon-red/40',
+  malicious: 'bg-[#e8002d]/20 text-[#ff4d6d] border border-[#e8002d]/40',
 }
 const REG_TYPE_STYLES: Record<RegistryEvent['event_type'], string> = {
   create: 'bg-green-900/30 text-green-400 border border-green-700/40',
   modify: 'bg-blue-900/30 text-blue-400 border border-blue-700/40',
-  delete: 'bg-falcon-red/20 text-[#ff4d6d] border border-falcon-red/40',
+  delete: 'bg-[#e8002d]/20 text-[#ff4d6d] border border-[#e8002d]/40',
 }
 const USER_TYPE_STYLES: Record<UserEvent['event_type'], string> = {
   logon: 'bg-green-900/30 text-green-400 border border-green-700/40',
-  logoff: 'bg-falcon-border text-falcon-muted',
+  logoff: 'bg-[#1e2d42] text-[#7d92b0]',
   privilege_use: 'bg-orange-900/30 text-orange-400 border border-orange-700/40',
   account_change: 'bg-purple-900/30 text-purple-400 border border-purple-700/40',
-  failed_logon: 'bg-falcon-red/20 text-[#ff4d6d] border border-falcon-red/40',
+  failed_logon: 'bg-[#e8002d]/20 text-[#ff4d6d] border border-[#e8002d]/40',
 }
 
 // Static mock data instances
@@ -185,7 +187,7 @@ function ProcessTab({ events, live }: { events: ProcessEvent[]; live: boolean })
           <button
             key={t}
             onClick={() => setFilterType(t as any)}
-            className={`px-2.5 py-1 text-xs rounded-sm transition-colors ${filterType === t ? 'bg-falcon-active text-white' : 'bg-falcon-raised text-falcon-muted hover:text-white border border-falcon-border'}`}
+            className={`px-2.5 py-1 text-xs rounded-sm transition-colors ${filterType === t ? 'bg-[#1d2f4a] text-white' : 'bg-[#161f33] text-[#7d92b0] hover:text-white border border-[#1e2d42]'}`}
           >
             {t}
           </button>
@@ -194,17 +196,17 @@ function ProcessTab({ events, live }: { events: ProcessEvent[]; live: boolean })
           value={filterProc}
           onChange={e => setFilterProc(e.target.value)}
           placeholder="プロセス名でフィルタ..."
-          className="bg-falcon-raised border border-falcon-border rounded-sm px-2.5 py-1 text-xs text-white placeholder-falcon-subtle focus:outline-hidden focus:border-falcon-red/40"
+          className="bg-[#161f33] border border-[#1e2d42] rounded-sm px-2.5 py-1 text-xs text-white placeholder-[#3d5068] focus:outline-hidden focus:border-[#e8002d]/40"
         />
         <input
           value={filterUser}
           onChange={e => setFilterUser(e.target.value)}
           placeholder="ユーザーでフィルタ..."
-          className="bg-falcon-raised border border-falcon-border rounded-sm px-2.5 py-1 text-xs text-white placeholder-falcon-subtle focus:outline-hidden focus:border-falcon-red/40"
+          className="bg-[#161f33] border border-[#1e2d42] rounded-sm px-2.5 py-1 text-xs text-white placeholder-[#3d5068] focus:outline-hidden focus:border-[#e8002d]/40"
         />
         <button
           onClick={() => setTreeView(v => !v)}
-          className={`flex items-center gap-1 px-2.5 py-1 text-xs rounded-sm border transition-colors ${treeView ? 'bg-falcon-active text-white border-[#2a3f5c]' : 'border-falcon-border text-falcon-muted hover:text-white'}`}
+          className={`flex items-center gap-1 px-2.5 py-1 text-xs rounded-sm border transition-colors ${treeView ? 'bg-[#1d2f4a] text-white border-[#2a3f5c]' : 'border-[#1e2d42] text-[#7d92b0] hover:text-white'}`}
         >
           <ChevronRight className="w-3 h-3" />
           ツリービュー
@@ -213,22 +215,22 @@ function ProcessTab({ events, live }: { events: ProcessEvent[]; live: boolean })
       </div>
 
       {treeView ? (
-        <div className="bg-falcon-surface border border-falcon-border rounded-lg p-3 font-mono text-xs overflow-x-auto">
+        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-3 font-mono text-xs overflow-x-auto">
           {roots.map((e, idx) => (
-            <div key={e.id} className={`py-1 ${idx > 0 ? 'ml-4 border-l border-falcon-border pl-3' : ''}`}>
+            <div key={e.id} className={`py-1 ${idx > 0 ? 'ml-4 border-l border-[#1e2d42] pl-3' : ''}`}>
               <div className="flex items-center gap-2">
                 <span className={`px-1.5 py-0.5 rounded-sm text-[10px] ${PROCESS_TYPE_STYLES[e.event_type]}`}>{e.event_type}</span>
                 <span className="text-white font-medium">{e.process_name}</span>
-                <span className="text-falcon-subtle">(PID:{e.pid})</span>
-                <span className="text-falcon-muted">← {e.parent_name}</span>
-                <span className="text-falcon-subtle ml-auto">{e.user}</span>
+                <span className="text-[#3d5068]">(PID:{e.pid})</span>
+                <span className="text-[#7d92b0]">← {e.parent_name}</span>
+                <span className="text-[#3d5068] ml-auto">{e.user}</span>
               </div>
               {idx % 3 === 0 && (
-                <div className="ml-4 border-l border-falcon-border pl-3 mt-1">
+                <div className="ml-4 border-l border-[#1e2d42] pl-3 mt-1">
                   <div className="flex items-center gap-2 opacity-70">
                     <span className={`px-1.5 py-0.5 rounded-sm text-[10px] ${PROCESS_TYPE_STYLES['create']}`}>create</span>
-                    <span className="text-falcon-muted">conhost.exe</span>
-                    <span className="text-falcon-subtle">(PID:{e.pid + 1})</span>
+                    <span className="text-[#7d92b0]">conhost.exe</span>
+                    <span className="text-[#3d5068]">(PID:{e.pid + 1})</span>
                   </div>
                 </div>
               )}
@@ -239,9 +241,9 @@ function ProcessTab({ events, live }: { events: ProcessEvent[]; live: boolean })
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
             <thead>
-              <tr className="border-b border-falcon-border">
+              <tr className="border-b border-[#1e2d42]">
                 {['時刻', 'タイプ', 'プロセス', 'PID', 'PPID', '親', 'ユーザー', 'ハッシュ', 'コマンドライン'].map(h => (
-                  <th key={h} className="text-left py-2 px-3 text-falcon-muted font-medium whitespace-nowrap">{h}</th>
+                  <th key={h} className="text-left py-2 px-3 text-[#7d92b0] font-medium whitespace-nowrap">{h}</th>
                 ))}
               </tr>
             </thead>
@@ -250,30 +252,30 @@ function ProcessTab({ events, live }: { events: ProcessEvent[]; live: boolean })
                 <>
                   <tr
                     key={e.id}
-                    className={`border-b border-falcon-border/50 hover:bg-falcon-raised transition-colors cursor-pointer ${e.event_type === 'inject' || e.event_type === 'hollowing' ? 'bg-falcon-red/5' : ''}`}
+                    className={`border-b border-[#1e2d42]/50 hover:bg-[#161f33] transition-colors cursor-pointer ${e.event_type === 'inject' || e.event_type === 'hollowing' ? 'bg-[#e8002d]/5' : ''}`}
                     onClick={() => toggleExpand(e.id)}
                   >
-                    <td className="py-2 px-3 font-mono text-falcon-muted whitespace-nowrap">{fmt(e.timestamp)}</td>
+                    <td className="py-2 px-3 font-mono text-[#7d92b0] whitespace-nowrap">{fmt(e.timestamp)}</td>
                     <td className="py-2 px-3 whitespace-nowrap">
                       <span className={`px-1.5 py-0.5 rounded-sm text-[10px] ${PROCESS_TYPE_STYLES[e.event_type]}`}>{e.event_type}</span>
                     </td>
                     <td className="py-2 px-3 text-white font-medium whitespace-nowrap">{e.process_name}</td>
-                    <td className="py-2 px-3 font-mono text-falcon-muted">{e.pid}</td>
-                    <td className="py-2 px-3 font-mono text-falcon-muted">{e.ppid}</td>
-                    <td className="py-2 px-3 text-falcon-muted">{e.parent_name}</td>
-                    <td className="py-2 px-3 text-falcon-muted">{e.user}</td>
-                    <td className="py-2 px-3 font-mono text-falcon-subtle">{e.hash.slice(0, 12)}…</td>
+                    <td className="py-2 px-3 font-mono text-[#7d92b0]">{e.pid}</td>
+                    <td className="py-2 px-3 font-mono text-[#7d92b0]">{e.ppid}</td>
+                    <td className="py-2 px-3 text-[#7d92b0]">{e.parent_name}</td>
+                    <td className="py-2 px-3 text-[#7d92b0]">{e.user}</td>
+                    <td className="py-2 px-3 font-mono text-[#3d5068]">{e.hash.slice(0, 12)}…</td>
                     <td className="py-2 px-3 max-w-[200px]">
-                      <span className="font-mono text-falcon-muted truncate block">{e.cmdline.slice(0, 40)}{e.cmdline.length > 40 ? '…' : ''}</span>
+                      <span className="font-mono text-[#7d92b0] truncate block">{e.cmdline.slice(0, 40)}{e.cmdline.length > 40 ? '…' : ''}</span>
                     </td>
                   </tr>
                   {expanded.has(e.id) && (
-                    <tr key={`${e.id}-exp`} className="border-b border-falcon-border/50 bg-falcon-raised">
+                    <tr key={`${e.id}-exp`} className="border-b border-[#1e2d42]/50 bg-[#161f33]">
                       <td colSpan={9} className="px-4 py-3">
                         <div className="space-y-1">
-                          <p className="text-falcon-muted text-[10px] font-semibold uppercase">コマンドライン (完全)</p>
-                          <p className="font-mono text-xs text-white bg-falcon-surface border border-falcon-border px-3 py-2 rounded-sm break-all">{e.cmdline}</p>
-                          <p className="text-falcon-muted text-[10px] mt-2">SHA256: <span className="font-mono text-white">{e.hash}</span></p>
+                          <p className="text-[#7d92b0] text-[10px] font-semibold uppercase">コマンドライン (完全)</p>
+                          <p className="font-mono text-xs text-white bg-[#0d1220] border border-[#1e2d42] px-3 py-2 rounded-sm break-all">{e.cmdline}</p>
+                          <p className="text-[#7d92b0] text-[10px] mt-2">SHA256: <span className="font-mono text-white">{e.hash}</span></p>
                         </div>
                       </td>
                     </tr>
@@ -311,7 +313,7 @@ function FileTab({ events }: { events: FileEvent[] }) {
           <button
             key={t}
             onClick={() => setFilterType(t as any)}
-            className={`px-2.5 py-1 text-xs rounded-sm transition-colors ${filterType === t ? 'bg-falcon-active text-white' : 'bg-falcon-raised text-falcon-muted hover:text-white border border-falcon-border'}`}
+            className={`px-2.5 py-1 text-xs rounded-sm transition-colors ${filterType === t ? 'bg-[#1d2f4a] text-white' : 'bg-[#161f33] text-[#7d92b0] hover:text-white border border-[#1e2d42]'}`}
           >
             {t}
           </button>
@@ -320,16 +322,16 @@ function FileTab({ events }: { events: FileEvent[] }) {
           value={filterPath}
           onChange={e => setFilterPath(e.target.value)}
           placeholder="パスでフィルタ..."
-          className="bg-falcon-raised border border-falcon-border rounded-sm px-2.5 py-1 text-xs text-white placeholder-falcon-subtle focus:outline-hidden focus:border-falcon-red/40 min-w-[180px]"
+          className="bg-[#161f33] border border-[#1e2d42] rounded-sm px-2.5 py-1 text-xs text-white placeholder-[#3d5068] focus:outline-hidden focus:border-[#e8002d]/40 min-w-[180px]"
         />
         <label className="flex items-center gap-1.5 cursor-pointer">
-          <input type="checkbox" checked={suspOnly} onChange={e => setSuspOnly(e.target.checked)} className="accent-falcon-red w-3 h-3" />
-          <span className="text-xs text-falcon-muted">不審のみ</span>
+          <input type="checkbox" checked={suspOnly} onChange={e => setSuspOnly(e.target.checked)} className="accent-[#e8002d] w-3 h-3" />
+          <span className="text-xs text-[#7d92b0]">不審のみ</span>
         </label>
       </div>
 
       {suspicious.length > 0 && (
-        <div className="bg-falcon-red/10 border border-falcon-red/30 rounded-lg p-3">
+        <div className="bg-[#e8002d]/10 border border-[#e8002d]/30 rounded-lg p-3">
           <p className="text-[#ff4d6d] text-xs font-semibold mb-2 flex items-center gap-1">
             <AlertTriangle className="w-3.5 h-3.5" />
             不審ファイルイベント ({suspicious.length} 件) — ランサムウェアパターン一致
@@ -339,7 +341,7 @@ function FileTab({ events }: { events: FileEvent[] }) {
               <div key={e.id} className="flex items-center gap-2 text-xs">
                 <span className={`px-1.5 py-0.5 rounded-sm text-[10px] ${FILE_TYPE_STYLES[e.event_type]}`}>{e.event_type}</span>
                 <span className="font-mono text-white">{e.file_path}</span>
-                <span className="text-falcon-muted ml-auto">{e.process_name}</span>
+                <span className="text-[#7d92b0] ml-auto">{e.process_name}</span>
               </div>
             ))}
           </div>
@@ -349,23 +351,23 @@ function FileTab({ events }: { events: FileEvent[] }) {
       <div className="overflow-x-auto">
         <table className="w-full text-xs">
           <thead>
-            <tr className="border-b border-falcon-border">
+            <tr className="border-b border-[#1e2d42]">
               {['時刻', 'タイプ', 'ファイルパス', 'プロセス', 'ユーザー', 'サイズ', '不審'].map(h => (
-                <th key={h} className="text-left py-2 px-3 text-falcon-muted font-medium whitespace-nowrap">{h}</th>
+                <th key={h} className="text-left py-2 px-3 text-[#7d92b0] font-medium whitespace-nowrap">{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {filtered.slice(0, 50).map(e => (
-              <tr key={e.id} className={`border-b border-falcon-border/50 hover:bg-falcon-raised transition-colors ${e.is_suspicious ? 'bg-falcon-red/5' : ''}`}>
-                <td className="py-2 px-3 font-mono text-falcon-muted whitespace-nowrap">{fmt(e.timestamp)}</td>
+              <tr key={e.id} className={`border-b border-[#1e2d42]/50 hover:bg-[#161f33] transition-colors ${e.is_suspicious ? 'bg-[#e8002d]/5' : ''}`}>
+                <td className="py-2 px-3 font-mono text-[#7d92b0] whitespace-nowrap">{fmt(e.timestamp)}</td>
                 <td className="py-2 px-3 whitespace-nowrap">
                   <span className={`px-1.5 py-0.5 rounded-sm text-[10px] ${FILE_TYPE_STYLES[e.event_type]}`}>{e.event_type}</span>
                 </td>
                 <td className="py-2 px-3 font-mono text-white max-w-[200px] truncate" title={e.file_path}>{e.file_path}</td>
-                <td className="py-2 px-3 text-falcon-muted">{e.process_name}</td>
-                <td className="py-2 px-3 text-falcon-muted">{e.user}</td>
-                <td className="py-2 px-3 text-falcon-muted whitespace-nowrap">{fmtBytes(e.file_size)}</td>
+                <td className="py-2 px-3 text-[#7d92b0]">{e.process_name}</td>
+                <td className="py-2 px-3 text-[#7d92b0]">{e.user}</td>
+                <td className="py-2 px-3 text-[#7d92b0] whitespace-nowrap">{fmtBytes(e.file_size)}</td>
                 <td className="py-2 px-3">
                   {e.is_suspicious && <AlertTriangle className="w-3.5 h-3.5 text-[#ff4d6d]" />}
                 </td>
@@ -390,10 +392,10 @@ function NetworkTab({ events, dnsEvents }: { events: NetworkEvent[]; dnsEvents: 
     <div className="space-y-3">
       <div className="flex flex-wrap items-center gap-2">
         <div className="flex gap-1">
-          <button onClick={() => setDnsView(false)} className={`px-2.5 py-1 text-xs rounded-sm transition-colors ${!dnsView ? 'bg-falcon-active text-white' : 'bg-falcon-raised text-falcon-muted hover:text-white border border-falcon-border'}`}>
+          <button onClick={() => setDnsView(false)} className={`px-2.5 py-1 text-xs rounded-sm transition-colors ${!dnsView ? 'bg-[#1d2f4a] text-white' : 'bg-[#161f33] text-[#7d92b0] hover:text-white border border-[#1e2d42]'}`}>
             通信ログ
           </button>
-          <button onClick={() => setDnsView(true)} className={`px-2.5 py-1 text-xs rounded-sm transition-colors ${dnsView ? 'bg-falcon-active text-white' : 'bg-falcon-raised text-falcon-muted hover:text-white border border-falcon-border'}`}>
+          <button onClick={() => setDnsView(true)} className={`px-2.5 py-1 text-xs rounded-sm transition-colors ${dnsView ? 'bg-[#1d2f4a] text-white' : 'bg-[#161f33] text-[#7d92b0] hover:text-white border border-[#1e2d42]'}`}>
             DNS クエリ
           </button>
         </div>
@@ -401,7 +403,7 @@ function NetworkTab({ events, dnsEvents }: { events: NetworkEvent[]; dnsEvents: 
           <button
             key={r}
             onClick={() => setFilterRep(r)}
-            className={`px-2.5 py-1 text-xs rounded-sm transition-colors ${filterRep === r ? 'bg-falcon-active text-white' : 'bg-falcon-raised text-falcon-muted hover:text-white border border-falcon-border'}`}
+            className={`px-2.5 py-1 text-xs rounded-sm transition-colors ${filterRep === r ? 'bg-[#1d2f4a] text-white' : 'bg-[#161f33] text-[#7d92b0] hover:text-white border border-[#1e2d42]'}`}
           >
             {r}
           </button>
@@ -412,31 +414,31 @@ function NetworkTab({ events, dnsEvents }: { events: NetworkEvent[]; dnsEvents: 
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
             <thead>
-              <tr className="border-b border-falcon-border">
+              <tr className="border-b border-[#1e2d42]">
                 {['時刻', '方向', '送信元', '宛先', 'プロトコル', 'バイト数', 'プロセス', 'ドメイン', '評判', '国'].map(h => (
-                  <th key={h} className="text-left py-2 px-3 text-falcon-muted font-medium whitespace-nowrap">{h}</th>
+                  <th key={h} className="text-left py-2 px-3 text-[#7d92b0] font-medium whitespace-nowrap">{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {filtered.slice(0, 50).map(e => (
-                <tr key={e.id} className={`border-b border-falcon-border/50 hover:bg-falcon-raised transition-colors ${e.reputation === 'malicious' ? 'bg-falcon-red/5' : ''}`}>
-                  <td className="py-2 px-3 font-mono text-falcon-muted whitespace-nowrap">{fmt(e.timestamp)}</td>
+                <tr key={e.id} className={`border-b border-[#1e2d42]/50 hover:bg-[#161f33] transition-colors ${e.reputation === 'malicious' ? 'bg-[#e8002d]/5' : ''}`}>
+                  <td className="py-2 px-3 font-mono text-[#7d92b0] whitespace-nowrap">{fmt(e.timestamp)}</td>
                   <td className="py-2 px-3">
                     <span className={`px-1.5 py-0.5 rounded-sm text-[10px] ${e.direction === 'inbound' ? 'bg-blue-900/30 text-blue-400 border border-blue-700/40' : 'bg-orange-900/30 text-orange-400 border border-orange-700/40'}`}>
                       {e.direction === 'inbound' ? '↓ IN' : '↑ OUT'}
                     </span>
                   </td>
-                  <td className="py-2 px-3 font-mono text-falcon-muted whitespace-nowrap">{e.src_ip}:{e.src_port}</td>
+                  <td className="py-2 px-3 font-mono text-[#7d92b0] whitespace-nowrap">{e.src_ip}:{e.src_port}</td>
                   <td className="py-2 px-3 font-mono text-white whitespace-nowrap">{e.dst_ip}:{e.dst_port}</td>
-                  <td className="py-2 px-3 text-falcon-muted">{e.protocol}</td>
-                  <td className="py-2 px-3 text-falcon-muted whitespace-nowrap">{fmtBytes(e.bytes)}</td>
-                  <td className="py-2 px-3 text-falcon-muted">{e.process}</td>
-                  <td className="py-2 px-3 text-falcon-muted max-w-[140px] truncate" title={e.domain}>{e.domain ?? '—'}</td>
+                  <td className="py-2 px-3 text-[#7d92b0]">{e.protocol}</td>
+                  <td className="py-2 px-3 text-[#7d92b0] whitespace-nowrap">{fmtBytes(e.bytes)}</td>
+                  <td className="py-2 px-3 text-[#7d92b0]">{e.process}</td>
+                  <td className="py-2 px-3 text-[#7d92b0] max-w-[140px] truncate" title={e.domain}>{e.domain ?? '—'}</td>
                   <td className="py-2 px-3 whitespace-nowrap">
                     <span className={`px-1.5 py-0.5 rounded-sm text-[10px] ${REP_STYLES[e.reputation]}`}>{e.reputation}</span>
                   </td>
-                  <td className="py-2 px-3 text-falcon-muted">{e.country ? <span className="flex items-center gap-1"><Flag className="w-3 h-3" />{e.country}</span> : '—'}</td>
+                  <td className="py-2 px-3 text-[#7d92b0]">{e.country ? <span className="flex items-center gap-1"><Flag className="w-3 h-3" />{e.country}</span> : '—'}</td>
                 </tr>
               ))}
             </tbody>
@@ -446,20 +448,20 @@ function NetworkTab({ events, dnsEvents }: { events: NetworkEvent[]; dnsEvents: 
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
             <thead>
-              <tr className="border-b border-falcon-border">
+              <tr className="border-b border-[#1e2d42]">
                 {['時刻', 'クエリドメイン', 'レスポンス', 'TTL', 'プロセス', '不審'].map(h => (
-                  <th key={h} className="text-left py-2 px-3 text-falcon-muted font-medium">{h}</th>
+                  <th key={h} className="text-left py-2 px-3 text-[#7d92b0] font-medium">{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {dnsEvents.map(e => (
-                <tr key={e.id} className={`border-b border-falcon-border/50 hover:bg-falcon-raised transition-colors ${e.is_suspicious ? 'bg-falcon-red/5' : ''}`}>
-                  <td className="py-2 px-3 font-mono text-falcon-muted whitespace-nowrap">{fmt(e.timestamp)}</td>
+                <tr key={e.id} className={`border-b border-[#1e2d42]/50 hover:bg-[#161f33] transition-colors ${e.is_suspicious ? 'bg-[#e8002d]/5' : ''}`}>
+                  <td className="py-2 px-3 font-mono text-[#7d92b0] whitespace-nowrap">{fmt(e.timestamp)}</td>
                   <td className="py-2 px-3 font-mono text-white">{e.queried_domain}</td>
-                  <td className="py-2 px-3 font-mono text-falcon-muted">{e.response}</td>
-                  <td className="py-2 px-3 text-falcon-muted">{e.ttl}s</td>
-                  <td className="py-2 px-3 text-falcon-muted">{e.process}</td>
+                  <td className="py-2 px-3 font-mono text-[#7d92b0]">{e.response}</td>
+                  <td className="py-2 px-3 text-[#7d92b0]">{e.ttl}s</td>
+                  <td className="py-2 px-3 text-[#7d92b0]">{e.process}</td>
                   <td className="py-2 px-3">{e.is_suspicious && <AlertTriangle className="w-3.5 h-3.5 text-[#ff4d6d]" />}</td>
                 </tr>
               ))}
@@ -492,14 +494,14 @@ function RegistryTab({ events }: { events: RegistryEvent[] }) {
           <button
             key={t}
             onClick={() => setFilterType(t as any)}
-            className={`px-2.5 py-1 text-xs rounded-sm transition-colors ${filterType === t ? 'bg-falcon-active text-white' : 'bg-falcon-raised text-falcon-muted hover:text-white border border-falcon-border'}`}
+            className={`px-2.5 py-1 text-xs rounded-sm transition-colors ${filterType === t ? 'bg-[#1d2f4a] text-white' : 'bg-[#161f33] text-[#7d92b0] hover:text-white border border-[#1e2d42]'}`}
           >
             {t}
           </button>
         ))}
         <label className="flex items-center gap-1.5 cursor-pointer">
-          <input type="checkbox" checked={persistOnly} onChange={e => setPersistOnly(e.target.checked)} className="accent-falcon-red w-3 h-3" />
-          <span className="text-xs text-falcon-muted">永続化エントリのみ</span>
+          <input type="checkbox" checked={persistOnly} onChange={e => setPersistOnly(e.target.checked)} className="accent-[#e8002d] w-3 h-3" />
+          <span className="text-xs text-[#7d92b0]">永続化エントリのみ</span>
         </label>
       </div>
 
@@ -513,7 +515,7 @@ function RegistryTab({ events }: { events: RegistryEvent[] }) {
             {persistenceEntries.slice(0, 3).map(e => (
               <div key={e.id} className="text-xs">
                 <span className="font-mono text-orange-300">{e.key_path}\\{e.value_name}</span>
-                <span className="text-falcon-muted ml-2">→ {e.new_value.slice(0, 40)}</span>
+                <span className="text-[#7d92b0] ml-2">→ {e.new_value.slice(0, 40)}</span>
               </div>
             ))}
           </div>
@@ -523,24 +525,24 @@ function RegistryTab({ events }: { events: RegistryEvent[] }) {
       <div className="overflow-x-auto">
         <table className="w-full text-xs">
           <thead>
-            <tr className="border-b border-falcon-border">
+            <tr className="border-b border-[#1e2d42]">
               {['時刻', 'タイプ', 'キーパス', '値名', '変更前', '変更後', 'プロセス', '永続化'].map(h => (
-                <th key={h} className="text-left py-2 px-3 text-falcon-muted font-medium whitespace-nowrap">{h}</th>
+                <th key={h} className="text-left py-2 px-3 text-[#7d92b0] font-medium whitespace-nowrap">{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {filtered.slice(0, 50).map(e => (
-              <tr key={e.id} className={`border-b border-falcon-border/50 hover:bg-falcon-raised transition-colors ${e.is_persistence ? 'bg-orange-900/10' : ''}`}>
-                <td className="py-2 px-3 font-mono text-falcon-muted whitespace-nowrap">{fmt(e.timestamp)}</td>
+              <tr key={e.id} className={`border-b border-[#1e2d42]/50 hover:bg-[#161f33] transition-colors ${e.is_persistence ? 'bg-orange-900/10' : ''}`}>
+                <td className="py-2 px-3 font-mono text-[#7d92b0] whitespace-nowrap">{fmt(e.timestamp)}</td>
                 <td className="py-2 px-3 whitespace-nowrap">
                   <span className={`px-1.5 py-0.5 rounded-sm text-[10px] ${REG_TYPE_STYLES[e.event_type]}`}>{e.event_type}</span>
                 </td>
                 <td className="py-2 px-3 font-mono text-white max-w-[160px] truncate" title={e.key_path}>{e.key_path}</td>
-                <td className="py-2 px-3 font-mono text-falcon-muted">{e.value_name}</td>
-                <td className="py-2 px-3 font-mono text-falcon-subtle max-w-[80px] truncate">{e.old_value || '—'}</td>
-                <td className="py-2 px-3 font-mono text-falcon-muted max-w-[120px] truncate" title={e.new_value}>{e.new_value || '—'}</td>
-                <td className="py-2 px-3 text-falcon-muted">{e.process}</td>
+                <td className="py-2 px-3 font-mono text-[#7d92b0]">{e.value_name}</td>
+                <td className="py-2 px-3 font-mono text-[#3d5068] max-w-[80px] truncate">{e.old_value || '—'}</td>
+                <td className="py-2 px-3 font-mono text-[#7d92b0] max-w-[120px] truncate" title={e.new_value}>{e.new_value || '—'}</td>
+                <td className="py-2 px-3 text-[#7d92b0]">{e.process}</td>
                 <td className="py-2 px-3">{e.is_persistence && <AlertTriangle className="w-3.5 h-3.5 text-orange-400" />}</td>
               </tr>
             ))}
@@ -561,25 +563,25 @@ function UserTab({ events }: { events: UserEvent[] }) {
   return (
     <div className="space-y-4">
       {/* Session Timeline */}
-      <div className="bg-falcon-surface border border-falcon-border rounded-lg p-4">
+      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-4">
         <h3 className="text-white text-sm font-semibold mb-3">セッションタイムライン (本日)</h3>
         <div className="relative">
           <div className="flex items-center gap-0 overflow-x-auto pb-2">
             {hours.map(h => (
               <div key={h} className="shrink-0 w-8 text-center">
-                <div className="text-[9px] text-falcon-subtle mb-1">{h.toString().padStart(2, '0')}</div>
+                <div className="text-[9px] text-[#3d5068] mb-1">{h.toString().padStart(2, '0')}</div>
                 <div className={`h-6 w-7 rounded-xs mx-0.5 transition-colors ${
                   sessions.some(e => new Date(e.timestamp).getHours() === h && e.event_type === 'logon') ? 'bg-green-900/50 border border-green-700/50' :
-                  sessions.some(e => new Date(e.timestamp).getHours() === h && e.event_type === 'failed_logon') ? 'bg-falcon-red/30 border border-falcon-red/30' :
-                  'bg-falcon-raised border border-falcon-border'
+                  sessions.some(e => new Date(e.timestamp).getHours() === h && e.event_type === 'failed_logon') ? 'bg-[#e8002d]/30 border border-[#e8002d]/30' :
+                  'bg-[#161f33] border border-[#1e2d42]'
                 }`} />
               </div>
             ))}
           </div>
           <div className="flex gap-3 mt-2">
             <span className="flex items-center gap-1 text-[10px] text-green-400"><span className="w-2 h-2 rounded-xs bg-green-900/50 border border-green-700/50" />ログオン</span>
-            <span className="flex items-center gap-1 text-[10px] text-[#ff4d6d]"><span className="w-2 h-2 rounded-xs bg-falcon-red/30 border border-falcon-red/30" />認証失敗</span>
-            <span className="flex items-center gap-1 text-[10px] text-falcon-subtle"><span className="w-2 h-2 rounded-xs bg-falcon-raised border border-falcon-border" />非アクティブ</span>
+            <span className="flex items-center gap-1 text-[10px] text-[#ff4d6d]"><span className="w-2 h-2 rounded-xs bg-[#e8002d]/30 border border-[#e8002d]/30" />認証失敗</span>
+            <span className="flex items-center gap-1 text-[10px] text-[#3d5068]"><span className="w-2 h-2 rounded-xs bg-[#161f33] border border-[#1e2d42]" />非アクティブ</span>
           </div>
         </div>
       </div>
@@ -587,23 +589,23 @@ function UserTab({ events }: { events: UserEvent[] }) {
       <div className="overflow-x-auto">
         <table className="w-full text-xs">
           <thead>
-            <tr className="border-b border-falcon-border">
+            <tr className="border-b border-[#1e2d42]">
               {['時刻', 'タイプ', 'ユーザー', 'ログオン種別', 'ソースIP', '詳細'].map(h => (
-                <th key={h} className="text-left py-2 px-3 text-falcon-muted font-medium whitespace-nowrap">{h}</th>
+                <th key={h} className="text-left py-2 px-3 text-[#7d92b0] font-medium whitespace-nowrap">{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {events.slice(0, 50).map(e => (
-              <tr key={e.id} className={`border-b border-falcon-border/50 hover:bg-falcon-raised transition-colors ${e.event_type === 'failed_logon' ? 'bg-falcon-red/5' : ''}`}>
-                <td className="py-2 px-3 font-mono text-falcon-muted whitespace-nowrap">{fmt(e.timestamp)}</td>
+              <tr key={e.id} className={`border-b border-[#1e2d42]/50 hover:bg-[#161f33] transition-colors ${e.event_type === 'failed_logon' ? 'bg-[#e8002d]/5' : ''}`}>
+                <td className="py-2 px-3 font-mono text-[#7d92b0] whitespace-nowrap">{fmt(e.timestamp)}</td>
                 <td className="py-2 px-3 whitespace-nowrap">
                   <span className={`px-1.5 py-0.5 rounded-sm text-[10px] ${USER_TYPE_STYLES[e.event_type]}`}>{e.event_type}</span>
                 </td>
                 <td className="py-2 px-3 text-white font-medium">{e.username}</td>
-                <td className="py-2 px-3 text-falcon-muted">{e.logon_type ?? '—'}</td>
-                <td className="py-2 px-3 font-mono text-falcon-muted">{e.source_ip ?? '—'}</td>
-                <td className="py-2 px-3 text-falcon-muted max-w-[200px] truncate">{e.details}</td>
+                <td className="py-2 px-3 text-[#7d92b0]">{e.logon_type ?? '—'}</td>
+                <td className="py-2 px-3 font-mono text-[#7d92b0]">{e.source_ip ?? '—'}</td>
+                <td className="py-2 px-3 text-[#7d92b0] max-w-[200px] truncate">{e.details}</td>
               </tr>
             ))}
           </tbody>
@@ -821,6 +823,7 @@ export default function TelemetryPage() {
 
   return (
     <div className="min-h-screen bg-[#070d19] p-6">
+      <PageDataUnavailable />
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
@@ -829,7 +832,7 @@ export default function TelemetryPage() {
           </div>
           <div>
             <h1 className="text-white text-xl font-bold">テレメトリエクスプローラー</h1>
-            <p className="text-falcon-muted text-sm mt-0.5">Endpoint Telemetry Explorer — Deep Analysis</p>
+            <p className="text-[#7d92b0] text-sm mt-0.5">Endpoint Telemetry Explorer — Deep Analysis</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -838,11 +841,11 @@ export default function TelemetryPage() {
               {iocMsg}
             </span>
           )}
-          <button onClick={handleAddIOC} className="flex items-center gap-1.5 px-3 py-1.5 bg-falcon-surface border border-falcon-border text-falcon-muted text-xs rounded-sm hover:border-[#2a3f5c] hover:text-white transition-colors">
+          <button onClick={handleAddIOC} className="flex items-center gap-1.5 px-3 py-1.5 bg-[#0d1220] border border-[#1e2d42] text-[#7d92b0] text-xs rounded-sm hover:border-[#2a3f5c] hover:text-white transition-colors">
             <Plus className="w-3.5 h-3.5" />
             IOCに追加
           </button>
-          <button onClick={handleExport} className="flex items-center gap-1.5 px-3 py-1.5 bg-falcon-surface border border-falcon-border text-falcon-muted text-xs rounded-sm hover:border-[#2a3f5c] hover:text-white transition-colors">
+          <button onClick={handleExport} className="flex items-center gap-1.5 px-3 py-1.5 bg-[#0d1220] border border-[#1e2d42] text-[#7d92b0] text-xs rounded-sm hover:border-[#2a3f5c] hover:text-white transition-colors">
             <Download className="w-3.5 h-3.5" />
             CSV出力
           </button>
@@ -852,35 +855,35 @@ export default function TelemetryPage() {
       {/* Endpoint Selector + Time Range */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <div className="md:col-span-2 relative">
-          <div className="flex items-center gap-2 bg-falcon-surface border border-falcon-border rounded-lg p-3">
-            <Search className="w-4 h-4 text-falcon-muted shrink-0" />
+          <div className="flex items-center gap-2 bg-[#0d1220] border border-[#1e2d42] rounded-lg p-3">
+            <Search className="w-4 h-4 text-[#7d92b0] shrink-0" />
             <input
               value={search}
               onChange={e => { setSearch(e.target.value); setShowDropdown(true) }}
               onFocus={() => setShowDropdown(true)}
               placeholder="ホスト名または IP でエンドポイントを検索..."
-              className="flex-1 bg-transparent text-sm text-white placeholder-falcon-subtle focus:outline-hidden"
+              className="flex-1 bg-transparent text-sm text-white placeholder-[#3d5068] focus:outline-hidden"
             />
             {selectedEndpoint && (
-              <button onClick={() => { setSelectedEndpoint(null); setSearch('') }} className="text-falcon-muted hover:text-white">
+              <button onClick={() => { setSelectedEndpoint(null); setSearch('') }} className="text-[#7d92b0] hover:text-white">
                 <X className="w-4 h-4" />
               </button>
             )}
           </div>
           {showDropdown && search && (
-            <div className="absolute top-full left-0 right-0 mt-1 bg-falcon-surface border border-falcon-border rounded-lg shadow-xl z-20">
+            <div className="absolute top-full left-0 right-0 mt-1 bg-[#0d1220] border border-[#1e2d42] rounded-lg shadow-xl z-20">
               {filteredEndpoints.length === 0 ? (
-                <p className="px-4 py-3 text-falcon-muted text-sm">見つかりませんでした</p>
+                <p className="px-4 py-3 text-[#7d92b0] text-sm">見つかりませんでした</p>
               ) : filteredEndpoints.map(ep => (
                 <button
                   key={ep.id}
                   onClick={() => { setSelectedEndpoint(ep); setSearch(ep.hostname); setShowDropdown(false) }}
-                  className="w-full text-left px-4 py-2.5 hover:bg-falcon-raised transition-colors flex items-center gap-3"
+                  className="w-full text-left px-4 py-2.5 hover:bg-[#161f33] transition-colors flex items-center gap-3"
                 >
-                  <Monitor className="w-4 h-4 text-falcon-muted" />
+                  <Monitor className="w-4 h-4 text-[#7d92b0]" />
                   <div>
                     <p className="text-white text-sm font-medium">{ep.hostname}</p>
-                    <p className="text-falcon-muted text-xs">{ep.ip} — {ep.os}</p>
+                    <p className="text-[#7d92b0] text-xs">{ep.ip} — {ep.os}</p>
                   </div>
                 </button>
               ))}
@@ -893,15 +896,15 @@ export default function TelemetryPage() {
             value={timeRange}
             onChange={e => setTimeRange(e.target.value)}
             disabled={live}
-            className="flex-1 bg-falcon-surface border border-falcon-border rounded-lg px-3 py-2.5 text-white text-sm focus:outline-hidden focus:border-falcon-red/50 disabled:opacity-50"
+            className="flex-1 bg-[#0d1220] border border-[#1e2d42] rounded-lg px-3 py-2.5 text-white text-sm focus:outline-hidden focus:border-[#e8002d]/50 disabled:opacity-50"
           >
             {['15m', '1h', '6h', '24h', '7d'].map(t => <option key={t} value={t}>{t}</option>)}
           </select>
           <button
             onClick={() => setLive(v => !v)}
-            className={`flex items-center gap-1.5 px-3 py-2.5 text-sm rounded-lg font-medium transition-colors ${live ? 'bg-green-700 text-white' : 'bg-falcon-surface border border-falcon-border text-falcon-muted hover:text-white'}`}
+            className={`flex items-center gap-1.5 px-3 py-2.5 text-sm rounded-lg font-medium transition-colors ${live ? 'bg-green-700 text-white' : 'bg-[#0d1220] border border-[#1e2d42] text-[#7d92b0] hover:text-white'}`}
           >
-            <span className={`w-1.5 h-1.5 rounded-full ${live ? 'bg-white animate-pulse' : 'bg-falcon-subtle'}`} />
+            <span className={`w-1.5 h-1.5 rounded-full ${live ? 'bg-white animate-pulse' : 'bg-[#3d5068]'}`} />
             ライブ
           </button>
         </div>
@@ -909,11 +912,11 @@ export default function TelemetryPage() {
 
       {/* Selected Endpoint Info */}
       {selectedEndpoint && (
-        <div className="bg-falcon-surface border border-falcon-border rounded-lg p-4 mb-4 flex items-center gap-4 flex-wrap">
-          <Monitor className="w-8 h-8 text-falcon-muted" />
+        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-4 mb-4 flex items-center gap-4 flex-wrap">
+          <Monitor className="w-8 h-8 text-[#7d92b0]" />
           <div>
             <p className="text-white font-bold">{selectedEndpoint.hostname}</p>
-            <p className="text-falcon-muted text-xs">{selectedEndpoint.ip} — {selectedEndpoint.os}</p>
+            <p className="text-[#7d92b0] text-xs">{selectedEndpoint.ip} — {selectedEndpoint.os}</p>
           </div>
           <div className="flex items-center gap-1 ml-auto text-xs text-green-400">
             <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
@@ -930,7 +933,7 @@ export default function TelemetryPage() {
             <button
               key={t.key}
               onClick={() => setTab(t.key)}
-              className={`flex items-center gap-1.5 px-4 py-2 text-sm rounded-lg whitespace-nowrap transition-colors ${tab === t.key ? 'bg-falcon-active text-white border border-[#2a3f5c]' : 'text-falcon-muted hover:text-white hover:bg-falcon-raised'}`}
+              className={`flex items-center gap-1.5 px-4 py-2 text-sm rounded-lg whitespace-nowrap transition-colors ${tab === t.key ? 'bg-[#1d2f4a] text-white border border-[#2a3f5c]' : 'text-[#7d92b0] hover:text-white hover:bg-[#161f33]'}`}
             >
               <Icon className="w-4 h-4" />
               {t.label}
@@ -941,13 +944,13 @@ export default function TelemetryPage() {
 
       {/* Tab Content */}
       {!selectedEndpoint && (
-        <div className="bg-falcon-surface border border-falcon-border rounded-lg p-12 flex flex-col items-center gap-3 text-falcon-muted">
+        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-12 flex flex-col items-center gap-3 text-[#7d92b0]">
           <Monitor className="w-10 h-10 opacity-20" />
           <p className="text-sm">エンドポイントを選択してテレメトリを表示します</p>
         </div>
       )}
       {selectedEndpoint && (
-        <div className="bg-falcon-surface border border-falcon-border rounded-lg p-4">
+        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-4">
           {tab === 'process' && <ProcessTab events={processEvents} live={live} />}
           {tab === 'file' && <FileTab events={fileEvents} />}
           {tab === 'network' && <NetworkTab events={networkEvents} dnsEvents={dnsEvents} />}

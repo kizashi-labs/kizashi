@@ -251,15 +251,13 @@ export default function AgentTags({ agentId, initialTags, onTagsChange }: AgentT
               onBlur={handleBlur}
               placeholder="タグ名..."
               maxLength={32}
-              className="bg-falcon-card text-white text-xs px-2.5 py-1 rounded-full border border-falcon-blue/60
-                         focus:outline-hidden focus:border-falcon-blue w-28 placeholder-[#5a6a7a]"
+              className="bg-[#111827] text-white text-xs px-2.5 py-1 rounded-full border border-[#1a6bff]/60 focus:outline-hidden focus:border-[#1a6bff] w-28 placeholder-[#5a6a7a]"
             />
 
             {/* Suggestion dropdown */}
             {showDropdown && filteredSuggestions.length > 0 && (
               <div
-                className="absolute top-full mt-1 left-0 z-50 min-w-[160px] bg-[#1a2540]
-                           border border-[#2a3a5c] rounded-lg shadow-xl overflow-hidden"
+                className="absolute top-full mt-1 left-0 z-50 min-w-[160px] bg-[#1a2540] border border-[#2a3a5c] rounded-lg shadow-xl overflow-hidden"
               >
                 {filteredSuggestions.map((s) => (
                   <button
@@ -268,8 +266,7 @@ export default function AgentTags({ agentId, initialTags, onTagsChange }: AgentT
                       e.preventDefault()
                       addSuggestion(s)
                     }}
-                    className="w-full text-left px-3 py-1.5 text-xs text-falcon-text
-                               hover:bg-[#253050] transition-colors"
+                    className="w-full text-left px-3 py-1.5 text-xs text-[#e2e8f4] hover:bg-[#253050] transition-colors"
                   >
                     {s}
                   </button>
@@ -288,10 +285,7 @@ export default function AgentTags({ agentId, initialTags, onTagsChange }: AgentT
             }}
             disabled={saving}
             aria-label="タグを追加"
-            className="inline-flex items-center justify-center w-7 h-7 rounded-full
-                       border border-dashed border-falcon-subtle text-[#5a6a7a]
-                       hover:border-falcon-blue hover:text-falcon-blue transition-colors
-                       disabled:opacity-50 disabled:cursor-not-allowed"
+            className="inline-flex items-center justify-center w-7 h-7 rounded-full border border-dashed border-[#3d5068] text-[#5a6a7a] hover:border-[#1a6bff] hover:text-[#1a6bff] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Plus className="w-3.5 h-3.5" />
           </button>

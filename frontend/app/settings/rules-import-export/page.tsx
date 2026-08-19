@@ -9,6 +9,8 @@ import {
   ChevronDown, ChevronUp,
 } from 'lucide-react'
 
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+
 // ── Types ──────────────────────────────────────────────────────────────────
 
 type ExportFormat = 'json' | 'yaml' | 'sigma'
@@ -261,6 +263,7 @@ export default function RulesImportExportPage() {
   // ── Render ───────────────────────────────────────────────────────────────
   return (
     <div className="bg-gray-900 min-h-screen text-white">
+      <PageDataUnavailable />
       <div className="max-w-6xl mx-auto px-6 py-8 space-y-6">
 
         {/* ── Header ───────────────────────────────────────────────────── */}
@@ -275,8 +278,8 @@ export default function RulesImportExportPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
           {/* ────────── LEFT: Export ──────────────────────────────────── */}
-          <div className="bg-gray-800 border border-falcon-border rounded-xl p-5 space-y-5">
-            <div className="flex items-center gap-2.5 pb-3 border-b border-falcon-border">
+          <div className="bg-gray-800 border border-[#1e2d42] rounded-xl p-5 space-y-5">
+            <div className="flex items-center gap-2.5 pb-3 border-b border-[#1e2d42]">
               <Download className="w-4 h-4 text-blue-400" />
               <h2 className="text-sm font-semibold text-white">エクスポート</h2>
             </div>
@@ -292,7 +295,7 @@ export default function RulesImportExportPage() {
                     className={`flex items-center justify-center gap-2 py-2 px-3 rounded-lg border text-sm font-medium transition-all ${
                       exportFormat === fmt
                         ? 'bg-blue-700 border-blue-500 text-white'
-                        : 'bg-[#0e1624] border-falcon-border text-[#8899aa] hover:border-[#2e3d52] hover:text-white'
+                        : 'bg-[#0e1624] border-[#1e2d42] text-[#8899aa] hover:border-[#2e3d52] hover:text-white'
                     }`}
                   >
                     {FORMAT_ICONS[fmt]}
@@ -322,7 +325,7 @@ export default function RulesImportExportPage() {
                     >
                       <div className="flex items-center gap-2.5">
                         <div
-                          className={`w-4 h-4 rounded border shrink-0 flex items-center justify-center transition-colors ${
+                          className={`w-4 h-4 rounded-sm border shrink-0 flex items-center justify-center transition-colors ${
                             checked
                               ? 'bg-blue-600 border-blue-500'
                               : 'border-[#2e3d52] bg-[#0e1624] group-hover:border-[#3e4d62]'
@@ -341,12 +344,12 @@ export default function RulesImportExportPage() {
                           onChange={() => toggleType(type)}
                           className="sr-only"
                         />
-                        <span className="text-sm text-falcon-text">{label}</span>
+                        <span className="text-sm text-[#e2e8f4]">{label}</span>
                       </div>
-                      <span className={`text-xs px-2 py-0.5 rounded font-mono ${
+                      <span className={`text-xs px-2 py-0.5 rounded-sm font-mono ${
                         count > 0
                           ? 'bg-blue-900/40 text-blue-300 border border-blue-800/60'
-                          : 'bg-[#0e1624] text-[#5a6a7a] border border-falcon-border'
+                          : 'bg-[#0e1624] text-[#5a6a7a] border border-[#1e2d42]'
                       }`}>
                         {count} 件
                       </span>
@@ -357,7 +360,7 @@ export default function RulesImportExportPage() {
             </div>
 
             {/* Total count */}
-            <div className="bg-[#0e1624] border border-falcon-border rounded-lg px-4 py-2.5 flex items-center justify-between">
+            <div className="bg-[#0e1624] border border-[#1e2d42] rounded-lg px-4 py-2.5 flex items-center justify-between">
               <span className="text-xs text-[#8899aa]">エクスポート対象</span>
               <span className="text-sm font-bold text-white">{totalExportCount} ルール</span>
             </div>
@@ -374,9 +377,7 @@ export default function RulesImportExportPage() {
             <button
               onClick={handleExport}
               disabled={exportLoading || selectedTypes.size === 0}
-              className="w-full flex items-center justify-center gap-2 py-2.5 bg-blue-700 hover:bg-blue-600
-                         disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium
-                         rounded-lg transition-colors"
+              className="w-full flex items-center justify-center gap-2 py-2.5 bg-blue-700 hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors"
             >
               {exportLoading ? (
                 <>
@@ -393,8 +394,8 @@ export default function RulesImportExportPage() {
           </div>
 
           {/* ────────── RIGHT: Import ──────────────────────────────────── */}
-          <div className="bg-gray-800 border border-falcon-border rounded-xl p-5 space-y-5">
-            <div className="flex items-center gap-2.5 pb-3 border-b border-falcon-border">
+          <div className="bg-gray-800 border border-[#1e2d42] rounded-xl p-5 space-y-5">
+            <div className="flex items-center gap-2.5 pb-3 border-b border-[#1e2d42]">
               <UploadCloud className="w-4 h-4 text-green-400" />
               <h2 className="text-sm font-semibold text-white">インポート</h2>
             </div>
@@ -409,7 +410,7 @@ export default function RulesImportExportPage() {
                 className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all ${
                   dragOver
                     ? 'border-green-500 bg-green-900/20'
-                    : 'border-falcon-border hover:border-[#2e3d52] hover:bg-[#0e1624]/60'
+                    : 'border-[#1e2d42] hover:border-[#2e3d52] hover:bg-[#0e1624]/60'
                 }`}
               >
                 <FileUp className={`w-10 h-10 mx-auto mb-3 ${dragOver ? 'text-green-400' : 'text-[#3d4f63]'}`} />
@@ -431,7 +432,7 @@ export default function RulesImportExportPage() {
               </div>
             ) : (
               /* File preview */
-              <div className="bg-[#0e1624] border border-falcon-border rounded-xl p-4 space-y-3">
+              <div className="bg-[#0e1624] border border-[#1e2d42] rounded-xl p-4 space-y-3">
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2.5 min-w-0">
                     <div className="w-8 h-8 bg-blue-900/50 rounded-lg flex items-center justify-center shrink-0">
@@ -453,7 +454,7 @@ export default function RulesImportExportPage() {
 
                 {/* Dry run result */}
                 {dryRunResult && (
-                  <div className="bg-falcon-card border border-falcon-border rounded-lg p-3 space-y-2">
+                  <div className="bg-[#111827] border border-[#1e2d42] rounded-lg p-3 space-y-2">
                     <p className="text-xs font-semibold text-[#8899aa]">ドライラン結果</p>
                     <div className="grid grid-cols-3 gap-2">
                       <div className="text-center">
@@ -546,9 +547,7 @@ export default function RulesImportExportPage() {
                 <button
                   onClick={() => dryRunMut.mutate(selectedFile)}
                   disabled={dryRunMut.isPending || importMut.isPending}
-                  className="flex-1 flex items-center justify-center gap-2 py-2 border border-falcon-border
-                             bg-[#0e1624] hover:bg-falcon-hover disabled:opacity-50 text-sm text-falcon-text
-                             rounded-lg transition-colors"
+                  className="flex-1 flex items-center justify-center gap-2 py-2 border border-[#1e2d42] bg-[#0e1624] hover:bg-[#19253d] disabled:opacity-50 text-sm text-[#e2e8f4] rounded-lg transition-colors"
                 >
                   {dryRunMut.isPending ? (
                     <div className="w-4 h-4 border-2 border-[#8899aa]/30 border-t-[#8899aa] rounded-full animate-spin" />
@@ -560,9 +559,7 @@ export default function RulesImportExportPage() {
                 <button
                   onClick={() => importMut.mutate(selectedFile)}
                   disabled={importMut.isPending || dryRunMut.isPending}
-                  className="flex-1 flex items-center justify-center gap-2 py-2 bg-green-700
-                             hover:bg-green-600 disabled:opacity-50 text-sm text-white font-medium
-                             rounded-lg transition-colors"
+                  className="flex-1 flex items-center justify-center gap-2 py-2 bg-green-700 hover:bg-green-600 disabled:opacity-50 text-sm text-white font-medium rounded-lg transition-colors"
                 >
                   {importMut.isPending ? (
                     <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -577,8 +574,7 @@ export default function RulesImportExportPage() {
             {importResult && (
               <button
                 onClick={clearFile}
-                className="w-full py-2 border border-falcon-border bg-[#0e1624] hover:bg-falcon-hover
-                           text-sm text-[#8899aa] rounded-lg transition-colors"
+                className="w-full py-2 border border-[#1e2d42] bg-[#0e1624] hover:bg-[#19253d] text-sm text-[#8899aa] rounded-lg transition-colors"
               >
                 別のファイルをインポート
               </button>
@@ -587,7 +583,7 @@ export default function RulesImportExportPage() {
         </div>
 
         {/* ── Import History ────────────────────────────────────────────── */}
-        <div className="bg-gray-800 border border-falcon-border rounded-xl overflow-hidden">
+        <div className="bg-gray-800 border border-[#1e2d42] rounded-xl overflow-hidden">
           <button
             onClick={() => setShowHistory(v => !v)}
             className="w-full flex items-center justify-between px-5 py-3.5 hover:bg-[#0e1624]/40 transition-colors"
@@ -607,12 +603,12 @@ export default function RulesImportExportPage() {
 
           {showHistory && (
             importHistory.length === 0 ? (
-              <div className="flex flex-col items-center py-10 text-[#5a6a7a] border-t border-falcon-border">
+              <div className="flex flex-col items-center py-10 text-[#5a6a7a] border-t border-[#1e2d42]">
                 <UploadCloud className="w-10 h-10 opacity-20 mb-2" />
                 <p className="text-sm">このセッションではまだインポートが実行されていません</p>
               </div>
             ) : (
-              <div className="overflow-x-auto border-t border-falcon-border">
+              <div className="overflow-x-auto border-t border-[#1e2d42]">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="bg-[#0e1624] text-xs text-[#8899aa]">
@@ -625,11 +621,11 @@ export default function RulesImportExportPage() {
                   </thead>
                   <tbody>
                     {importHistory.map(entry => (
-                      <tr key={entry.id} className="border-t border-falcon-border/50 hover:bg-falcon-raised/30 transition-colors">
+                      <tr key={entry.id} className="border-t border-[#1e2d42]/50 hover:bg-[#161f33]/30 transition-colors">
                         <td className="px-4 py-2.5 text-xs text-[#8899aa] font-mono whitespace-nowrap">
                           {fmtDateTime(entry.timestamp)}
                         </td>
-                        <td className="px-4 py-2.5 text-xs text-falcon-text max-w-[200px] truncate" title={entry.filename}>
+                        <td className="px-4 py-2.5 text-xs text-[#e2e8f4] max-w-[200px] truncate" title={entry.filename}>
                           {entry.filename}
                         </td>
                         <td className="px-4 py-2.5 text-xs text-green-400 font-mono text-right">

@@ -8,6 +8,9 @@ import { useCanWrite } from '@/lib/auth'
 import { Shield, Plus, Trash2, Search, ToggleLeft, ToggleRight, X, AlertTriangle, Upload, CheckCircle2, ShieldCheck, ShieldX, Loader2, Crosshair, ScanSearch, Download, FileText, File } from 'lucide-react'
 import Link from 'next/link'
 
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+import { PageSaveFailed } from '@/components/PageSaveFailed'
+
 interface IOCEntry {
   id: string
   type: 'hash' | 'ip' | 'domain' | 'url' | 'email'
@@ -219,6 +222,8 @@ export default function IOCPage() {
 
   return (
     <div className="p-6">
+      <PageDataUnavailable />
+      <PageSaveFailed className="mb-4" />
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
@@ -232,9 +237,7 @@ export default function IOCPage() {
           <button
             onClick={exportCSV}
             disabled={entries.length === 0}
-            className="flex items-center gap-1.5 px-4 py-2 text-sm bg-falcon-raised text-falcon-text
-                       rounded-lg hover:bg-falcon-active transition-colors border border-falcon-border
-                       disabled:opacity-40 disabled:cursor-not-allowed"
+            className="flex items-center gap-1.5 px-4 py-2 text-sm bg-[#161f33] text-[#e2e8f4] rounded-lg hover:bg-[#1d2f4a] transition-colors border border-[#1e2d42] disabled:opacity-40 disabled:cursor-not-allowed"
           >
             <Download className="w-4 h-4" />
             CSV出力
@@ -242,8 +245,7 @@ export default function IOCPage() {
           {canWrite && (
             <button
               onClick={() => { setShowImport(v => !v); setShowAdd(false); setImportResult(null) }}
-              className="flex items-center gap-1.5 px-4 py-2 text-sm bg-falcon-raised text-falcon-text
-                         rounded-lg hover:bg-falcon-active transition-colors border border-falcon-border"
+              className="flex items-center gap-1.5 px-4 py-2 text-sm bg-[#161f33] text-[#e2e8f4] rounded-lg hover:bg-[#1d2f4a] transition-colors border border-[#1e2d42]"
             >
               <Upload className="w-4 h-4" />
               一括インポート
@@ -252,8 +254,7 @@ export default function IOCPage() {
           {canWrite && (
             <button
               onClick={() => { setShowAdd(v => !v); setShowImport(false) }}
-              className="flex items-center gap-1.5 px-4 py-2 text-sm bg-orange-600 text-white
-                         rounded-lg hover:bg-orange-700 transition-colors"
+              className="flex items-center gap-1.5 px-4 py-2 text-sm bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors"
             >
               <Plus className="w-4 h-4" />
               IOCを追加
@@ -275,7 +276,7 @@ export default function IOCPage() {
               color: 'text-[#8899aa]',
             })),
           ].map(stat => (
-            <div key={stat.label} className="bg-falcon-card rounded-xl border border-falcon-border px-4 py-3">
+            <div key={stat.label} className="bg-[#111827] rounded-xl border border-[#1e2d42] px-4 py-3">
               <p className="text-xs text-[#5a6a7a] mb-1">{stat.label}</p>
               <p className={`text-xl font-bold ${stat.color}`}>{stat.value}</p>
             </div>
@@ -284,7 +285,7 @@ export default function IOCPage() {
       )}
 
       {/* Quick IOC Lookup */}
-      <div className="mb-6 bg-falcon-card rounded-xl border border-falcon-border p-4">
+      <div className="mb-6 bg-[#111827] rounded-xl border border-[#1e2d42] p-4">
         <div className="flex items-center gap-2 mb-3">
           <Crosshair className="w-4 h-4 text-orange-400" />
           <h3 className="text-sm font-semibold text-white">IOCクイックルックアップ</h3>
@@ -298,16 +299,13 @@ export default function IOCPage() {
               onChange={e => { setLookupValue(e.target.value); setLookupSubmitted(false) }}
               onKeyDown={e => { if (e.key === 'Enter' && lookupValue.trim()) { setLookupSubmitted(true); doLookup() } }}
               placeholder="1.2.3.4 / evil.com / abc123... / https://..."
-              className="w-full pl-8 pr-4 py-2 text-sm border border-falcon-border rounded-lg
-                         bg-falcon-bg text-white placeholder-[#5a6a7a]
-                         focus:outline-hidden focus:border-orange-500 font-mono"
+              className="w-full pl-8 pr-4 py-2 text-sm border border-[#1e2d42] rounded-lg bg-[#080c14] text-white placeholder-[#5a6a7a] focus:outline-hidden focus:border-orange-500 font-mono"
             />
           </div>
           <button
             onClick={() => { if (lookupValue.trim()) { setLookupSubmitted(true); doLookup() } }}
             disabled={!lookupValue.trim() || lookupLoading}
-            className="flex items-center gap-1.5 px-4 py-2 text-sm bg-orange-600 hover:bg-orange-700
-                       text-white rounded-lg disabled:opacity-50 transition-colors"
+            className="flex items-center gap-1.5 px-4 py-2 text-sm bg-orange-600 hover:bg-orange-700 text-white rounded-lg disabled:opacity-50 transition-colors"
           >
             {lookupLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
             検索
@@ -347,7 +345,7 @@ export default function IOCPage() {
 
       {/* Bulk Import panel */}
       {showImport && (
-        <div className="mb-6 bg-falcon-card rounded-xl border border-falcon-border p-4 space-y-3">
+        <div className="mb-6 bg-[#111827] rounded-xl border border-[#1e2d42] p-4 space-y-3">
           <div className="flex items-center justify-between mb-1">
             <h3 className="text-sm font-semibold text-white flex items-center gap-2">
               <Upload className="w-4 h-4 text-orange-400" />
@@ -359,13 +357,13 @@ export default function IOCPage() {
           </div>
 
           {/* Import mode tabs */}
-          <div className="flex gap-1 bg-falcon-bg rounded-lg p-0.5 w-fit border border-falcon-border">
+          <div className="flex gap-1 bg-[#080c14] rounded-lg p-0.5 w-fit border border-[#1e2d42]">
             {([['text', 'テキスト入力', FileText], ['file', 'ファイルアップロード', Upload]] as const).map(([mode, label, Icon]) => (
               <button
                 key={mode}
                 onClick={() => { setImportMode(mode); setFileError(null); setImportResult(null) }}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs transition-colors ${
-                  importMode === mode ? 'bg-falcon-border text-white' : 'text-[#5a6a7a] hover:text-[#8899aa]'
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-sm text-xs transition-colors ${
+                  importMode === mode ? 'bg-[#1e2d42] text-white' : 'text-[#5a6a7a] hover:text-[#8899aa]'
                 }`}
               >
                 <Icon className="w-3.5 h-3.5" />
@@ -375,7 +373,7 @@ export default function IOCPage() {
           </div>
 
           {/* Format help */}
-          <div className="text-[10px] text-[#5a6a7a] bg-falcon-bg/60 rounded-sm p-2 font-mono leading-5 border border-falcon-border">
+          <div className="text-[10px] text-[#5a6a7a] bg-[#080c14]/60 rounded-sm p-2 font-mono leading-5 border border-[#1e2d42]">
             <span className="text-[#8899aa] font-sans font-medium text-xs">フォーマット（1行1エントリ）:</span><br />
             {'# コメント行 (無視されます)'}<br />
             {'値のみ（タイプ自動判定）:   1.2.3.4'}<br />
@@ -391,8 +389,7 @@ export default function IOCPage() {
               <select
                 value={importType}
                 onChange={e => setImportType(e.target.value)}
-                className="text-sm bg-falcon-bg border border-falcon-border rounded px-2 py-1.5
-                           text-falcon-text focus:outline-hidden focus:border-orange-500"
+                className="text-sm bg-[#080c14] border border-[#1e2d42] rounded-sm px-2 py-1.5 text-[#e2e8f4] focus:outline-hidden focus:border-orange-500"
               >
                 <option value="">自動</option>
                 {['ip','domain','hash','url','email'].map(t => (
@@ -406,8 +403,7 @@ export default function IOCPage() {
                 type="number" min={1} max={10}
                 value={importSeverity}
                 onChange={e => setImportSeverity(Number(e.target.value))}
-                className="w-16 text-sm bg-falcon-bg border border-falcon-border rounded px-2 py-1.5
-                           text-falcon-text focus:outline-hidden focus:border-orange-500"
+                className="w-16 text-sm bg-[#080c14] border border-[#1e2d42] rounded-sm px-2 py-1.5 text-[#e2e8f4] focus:outline-hidden focus:border-orange-500"
               />
             </div>
           </div>
@@ -419,9 +415,7 @@ export default function IOCPage() {
               onChange={e => { setImportText(e.target.value); setImportResult(null) }}
               placeholder={'# 1行1エントリ\n1.2.3.4\nevil.com\nip,10.0.0.1,内部不審IP,8'}
               rows={8}
-              className="w-full text-xs bg-falcon-bg border border-falcon-border rounded-lg px-3 py-2
-                         text-falcon-text placeholder-gray-700 font-mono focus:outline-hidden focus:border-orange-500
-                         resize-y"
+              className="w-full text-xs bg-[#080c14] border border-[#1e2d42] rounded-lg px-3 py-2 text-[#e2e8f4] placeholder-gray-700 font-mono focus:outline-hidden focus:border-orange-500 resize-y"
             />
           ) : (
             <div>
@@ -435,13 +429,12 @@ export default function IOCPage() {
                   if (file) handleFileImport(file)
                 }}
                 className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer
-                  ${isDragOver ? 'border-orange-500 bg-orange-500/10' : 'border-falcon-border bg-falcon-bg hover:border-[#2d4a6e]'}`}
+                  ${isDragOver ? 'border-orange-500 bg-orange-500/10' : 'border-[#1e2d42] bg-[#080c14] hover:border-[#2d4a6e]'}`}
               >
-                <Upload className="w-8 h-8 mx-auto mb-3 text-falcon-subtle" />
+                <Upload className="w-8 h-8 mx-auto mb-3 text-[#3d5068]" />
                 <p className="text-sm text-[#8899aa] mb-1">ファイルをドラッグ＆ドロップ</p>
-                <p className="text-xs text-falcon-subtle mb-3">CSV (.csv) または STIX 2.1 (.json)</p>
-                <label className="inline-flex items-center gap-2 px-3 py-1.5 bg-orange-600 hover:bg-orange-700
-                                  text-white text-xs rounded-lg cursor-pointer transition-colors">
+                <p className="text-xs text-[#3d5068] mb-3">CSV (.csv) または STIX 2.1 (.json)</p>
+                <label className="inline-flex items-center gap-2 px-3 py-1.5 bg-orange-600 hover:bg-orange-700 text-white text-xs rounded-lg cursor-pointer transition-colors">
                   <File className="w-3.5 h-3.5" />
                   ファイルを選択
                   <input
@@ -461,9 +454,9 @@ export default function IOCPage() {
                 </p>
               )}
               {importText && !fileError && (
-                <div className="mt-2 bg-falcon-bg border border-falcon-border rounded-lg px-3 py-2">
+                <div className="mt-2 bg-[#080c14] border border-[#1e2d42] rounded-lg px-3 py-2">
                   <p className="text-[10px] text-[#5a6a7a] mb-1">解析済み（{importText.split('\n').filter(Boolean).length}行）</p>
-                  <pre className="text-xs text-falcon-muted font-mono max-h-32 overflow-y-auto">{importText.slice(0, 500)}{importText.length > 500 ? '\n...' : ''}</pre>
+                  <pre className="text-xs text-[#7d92b0] font-mono max-h-32 overflow-y-auto">{importText.slice(0, 500)}{importText.length > 500 ? '\n...' : ''}</pre>
                 </div>
               )}
             </div>
@@ -494,8 +487,7 @@ export default function IOCPage() {
             <button
               onClick={() => importMutation.mutate({ lines: importText, default_type: importType, severity: importSeverity })}
               disabled={!importText.trim() || importMutation.isPending}
-              className="px-4 py-1.5 text-sm bg-orange-600 text-white rounded-lg
-                         hover:bg-orange-700 disabled:opacity-50 transition-colors"
+              className="px-4 py-1.5 text-sm bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50 transition-colors"
             >
               {importMutation.isPending ? 'インポート中...' : 'インポート実行'}
             </button>
@@ -514,7 +506,7 @@ export default function IOCPage() {
 
       {/* Add form */}
       {showAdd && (
-        <div className="mb-6 bg-falcon-card rounded-xl border border-falcon-border p-4 space-y-3">
+        <div className="mb-6 bg-[#111827] rounded-xl border border-[#1e2d42] p-4 space-y-3">
           <div className="flex items-center justify-between mb-1">
             <h3 className="text-sm font-semibold text-white">新規IOC登録</h3>
             <button onClick={() => setShowAdd(false)}>
@@ -527,8 +519,7 @@ export default function IOCPage() {
               <select
                 value={form.type}
                 onChange={e => setForm(f => ({ ...f, type: e.target.value }))}
-                className="w-full text-sm bg-falcon-bg border border-falcon-border rounded-lg px-3 py-2
-                           text-falcon-text focus:outline-hidden focus:border-orange-500"
+                className="w-full text-sm bg-[#080c14] border border-[#1e2d42] rounded-lg px-3 py-2 text-[#e2e8f4] focus:outline-hidden focus:border-orange-500"
               >
                 {IOC_TYPES.filter(Boolean).map(t => (
                   <option key={t} value={t}>{TYPE_LABELS[t]}</option>
@@ -541,8 +532,7 @@ export default function IOCPage() {
                 value={form.value}
                 onChange={e => setForm(f => ({ ...f, value: e.target.value }))}
                 placeholder="例: 1.2.3.4 / evil.com / abc123..."
-                className="w-full text-sm bg-falcon-bg border border-falcon-border rounded-lg px-3 py-2
-                           text-falcon-text placeholder-[#5a6a7a] focus:outline-hidden focus:border-orange-500"
+                className="w-full text-sm bg-[#080c14] border border-[#1e2d42] rounded-lg px-3 py-2 text-[#e2e8f4] placeholder-[#5a6a7a] focus:outline-hidden focus:border-orange-500"
               />
             </div>
             <div>
@@ -552,8 +542,7 @@ export default function IOCPage() {
                 min={1} max={10}
                 value={form.severity}
                 onChange={e => setForm(f => ({ ...f, severity: Number(e.target.value) }))}
-                className="w-full text-sm bg-falcon-bg border border-falcon-border rounded-lg px-3 py-2
-                           text-falcon-text focus:outline-hidden focus:border-orange-500"
+                className="w-full text-sm bg-[#080c14] border border-[#1e2d42] rounded-lg px-3 py-2 text-[#e2e8f4] focus:outline-hidden focus:border-orange-500"
               />
             </div>
           </div>
@@ -563,16 +552,14 @@ export default function IOCPage() {
               value={form.description}
               onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
               placeholder="このIOCの説明（任意）"
-              className="w-full text-sm bg-falcon-bg border border-falcon-border rounded-lg px-3 py-2
-                         text-falcon-text placeholder-[#5a6a7a] focus:outline-hidden focus:border-orange-500"
+              className="w-full text-sm bg-[#080c14] border border-[#1e2d42] rounded-lg px-3 py-2 text-[#e2e8f4] placeholder-[#5a6a7a] focus:outline-hidden focus:border-orange-500"
             />
           </div>
           <div className="flex gap-2 pt-1">
             <button
               onClick={() => createMutation.mutate(form)}
               disabled={!form.value.trim() || createMutation.isPending}
-              className="px-4 py-1.5 text-sm bg-orange-600 text-white rounded-lg
-                         hover:bg-orange-700 disabled:opacity-50 transition-colors"
+              className="px-4 py-1.5 text-sm bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50 transition-colors"
             >
               {createMutation.isPending ? '登録中...' : '登録'}
             </button>
@@ -596,7 +583,7 @@ export default function IOCPage() {
               className={`px-3 py-1 text-xs rounded-full transition-colors ${
                 typeFilter === t
                   ? 'bg-orange-600 text-white'
-                  : 'bg-falcon-raised border border-falcon-border text-[#8899aa] hover:border-[#8899aa]'
+                  : 'bg-[#161f33] border border-[#1e2d42] text-[#8899aa] hover:border-[#8899aa]'
               }`}
             >
               {TYPE_LABELS[t]}
@@ -609,16 +596,13 @@ export default function IOCPage() {
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="値で検索..."
-            className="pl-8 pr-3 py-1.5 text-sm border border-falcon-border rounded-lg
-                       bg-falcon-card text-white placeholder-[#5a6a7a] w-48
-                       focus:outline-hidden focus:border-orange-500"
+            className="pl-8 pr-3 py-1.5 text-sm border border-[#1e2d42] rounded-lg bg-[#111827] text-white placeholder-[#5a6a7a] w-48 focus:outline-hidden focus:border-orange-500"
           />
         </div>
         {(typeFilter || search) && (
           <button
             onClick={() => { setTypeFilter(''); setSearch('') }}
-            className="flex items-center gap-1 text-xs text-[#8899aa] hover:text-white
-                       px-2 py-1 rounded-lg hover:bg-falcon-raised transition-colors"
+            className="flex items-center gap-1 text-xs text-[#8899aa] hover:text-white px-2 py-1 rounded-lg hover:bg-[#161f33] transition-colors"
           >
             <X className="w-3.5 h-3.5" />クリア
           </button>
@@ -630,20 +614,20 @@ export default function IOCPage() {
       {isLoading ? (
         <div className="space-y-2">
           {[...Array(8)].map((_, i) => (
-            <div key={i} className="h-12 bg-falcon-card rounded-xl border border-falcon-border animate-pulse" />
+            <div key={i} className="h-12 bg-[#111827] rounded-xl border border-[#1e2d42] animate-pulse" />
           ))}
         </div>
       ) : entries.length === 0 ? (
-        <div className="text-center py-16 bg-falcon-card rounded-xl border border-falcon-border">
+        <div className="text-center py-16 bg-[#111827] rounded-xl border border-[#1e2d42]">
           <Shield className="w-10 h-10 text-[#5a6a7a] mx-auto mb-2" />
           <p className="text-[#5a6a7a] text-sm">IOCエントリがありません</p>
           <p className="text-[#5a6a7a] text-xs mt-1">「IOCを追加」から登録してください</p>
         </div>
       ) : (
-        <div className="bg-falcon-card rounded-xl border border-falcon-border overflow-hidden">
+        <div className="bg-[#111827] rounded-xl border border-[#1e2d42] overflow-hidden">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-falcon-border bg-falcon-bg/40 text-xs text-[#8899aa]">
+              <tr className="border-b border-[#1e2d42] bg-[#080c14]/40 text-xs text-[#8899aa]">
                 <th className="text-left px-4 py-3">タイプ</th>
                 <th className="text-left px-4 py-3">値</th>
                 <th className="text-left px-4 py-3">説明</th>
@@ -654,17 +638,17 @@ export default function IOCPage() {
                 <th className="px-4 py-3"></th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-falcon-border/50">
+            <tbody className="divide-y divide-[#1e2d42]/50">
               {entries.map(entry => (
                 <tr key={entry.id}
-                  className={`hover:bg-falcon-raised/30 transition-colors ${!entry.is_active ? 'opacity-50' : ''}`}
+                  className={`hover:bg-[#161f33]/30 transition-colors ${!entry.is_active ? 'opacity-50' : ''}`}
                 >
                   <td className="px-4 py-3">
                     <span className={`text-xs px-2 py-0.5 rounded-full border font-mono ${TYPE_COLORS[entry.type] ?? ''}`}>
                       {entry.type}
                     </span>
                   </td>
-                  <td className="px-4 py-3 font-mono text-xs text-falcon-text max-w-[240px] truncate">
+                  <td className="px-4 py-3 font-mono text-xs text-[#e2e8f4] max-w-[240px] truncate">
                     {entry.value}
                   </td>
                   <td className="px-4 py-3 text-xs text-[#8899aa] max-w-[200px] truncate">

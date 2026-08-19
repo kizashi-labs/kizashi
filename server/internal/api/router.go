@@ -24,6 +24,7 @@ import (
 	"github.com/edr-platform/server/internal/store"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.opentelemetry.io/otel"
@@ -1196,16 +1197,20 @@ func (s *Server) registerRoutes() {
 			}
 			ctx := c.Request.Context()
 			var urgentAlerts, newIncidents int
-			_ = s.pool.QueryRow(ctx,
+			if !handlers.ReadOK(c, s.pool.QueryRow(ctx,
 				`SELECT COUNT(*) FROM alerts
-				 WHERE severity >= 9 AND status = 'open'
-				   AND created_at >= NOW() - INTERVAL '24 hours'`,
-			).Scan(&urgentAlerts)
-			_ = s.pool.QueryRow(ctx,
+					 WHERE severity >= 9 AND status = 'open'
+					   AND created_at >= NOW() - INTERVAL '24 hours'`,
+			).Scan(&urgentAlerts)) {
+				return
+			}
+			if !handlers.ReadOK(c, s.pool.QueryRow(ctx,
 				`SELECT COUNT(*) FROM incidents
-				 WHERE status IN ('open', 'investigating')
-				   AND created_at >= NOW() - INTERVAL '24 hours'`,
-			).Scan(&newIncidents)
+					 WHERE status IN ('open', 'investigating')
+					   AND created_at >= NOW() - INTERVAL '24 hours'`,
+			).Scan(&newIncidents)) {
+				return
+			}
 			total := urgentAlerts + newIncidents
 			c.JSON(http.StatusOK, gin.H{
 				"count":         total,
@@ -1642,10 +1647,16 @@ func (s *Server) registerRoutes() {
 	if s.handlers.AssetCriticality != nil {
 		ep := protected.Group("/endpoints")
 		{
+			// **一覧の経路がありませんでした**（実測 2026-08-12）。画面は
+			// ここから資産を取りますが、登録してあるのは下の3本だけで、
+			// gin は 404 を返していました —— `useQuery` の失敗は空配列に
+			// なるので、**資産が1台も無い画面**として出ます。
 			ep.GET("/criticality", s.handlers.AssetCriticality.List)
 			ep.GET("/:id/criticality", s.handlers.AssetCriticality.GetScore)
 			ep.POST("/criticality/bulk", s.handlers.AssetCriticality.BulkScore)
 			ep.PUT("/:id/criticality", s.handlers.AssetCriticality.SetManualScore)
+			// **手動にしたあと、自動計算に戻す経路がありませんでした。**
+			// 行を消せば、次の表示から計算値に戻ります。
 			ep.DELETE("/:id/criticality", s.handlers.AssetCriticality.ClearManualScore)
 		}
 	}
@@ -1792,10 +1803,14 @@ func (s *Server) registerRoutes() {
 		if s.pool != nil {
 			// Deduct points for recent critical/high alerts (last 7 days)
 			var critCount, highCount int
-			_ = s.pool.QueryRow(ctx,
-				`SELECT COUNT(*) FROM alerts WHERE severity >= 9 AND created_at > NOW() - INTERVAL '7 days' AND status NOT IN ('resolved','false_positive')`).Scan(&critCount)
-			_ = s.pool.QueryRow(ctx,
-				`SELECT COUNT(*) FROM alerts WHERE severity >= 7 AND severity < 9 AND created_at > NOW() - INTERVAL '7 days' AND status NOT IN ('resolved','false_positive')`).Scan(&highCount)
+			if !handlers.ReadOK(c, s.pool.QueryRow(ctx,
+				`SELECT COUNT(*) FROM alerts WHERE severity >= 9 AND created_at > NOW() - INTERVAL '7 days' AND status NOT IN ('resolved','false_positive')`).Scan(&critCount)) {
+				return
+			}
+			if !handlers.ReadOK(c, s.pool.QueryRow(ctx,
+				`SELECT COUNT(*) FROM alerts WHERE severity >= 7 AND severity < 9 AND created_at > NOW() - INTERVAL '7 days' AND status NOT IN ('resolved','false_positive')`).Scan(&highCount)) {
+				return
+			}
 
 			critDeduct := critCount * 5
 			if critDeduct > 30 {
@@ -1809,8 +1824,12 @@ func (s *Server) registerRoutes() {
 
 			// Deduct for low agent coverage
 			var total, online int
-			_ = s.pool.QueryRow(ctx, `SELECT COUNT(*) FROM agents`).Scan(&total)
-			_ = s.pool.QueryRow(ctx, `SELECT COUNT(*) FROM agents WHERE status = 'online'`).Scan(&online)
+			if !handlers.ReadOK(c, s.pool.QueryRow(ctx, `SELECT COUNT(*) FROM agents`).Scan(&total)) {
+				return
+			}
+			if !handlers.ReadOK(c, s.pool.QueryRow(ctx, `SELECT COUNT(*) FROM agents WHERE status = 'online'`).Scan(&online)) {
+				return
+			}
 			if total > 0 {
 				coverage := online * 100 / total
 				if coverage < 80 {
@@ -1824,7 +1843,9 @@ func (s *Server) registerRoutes() {
 			// 'inactive'(30日以上未確認の退役扱い)も可視性の欠落という点では
 			// 同じなので減点対象に含める。
 			var offline int
-			_ = s.pool.QueryRow(ctx, `SELECT COUNT(*) FROM agents WHERE status IN ('offline', 'inactive')`).Scan(&offline)
+			if !handlers.ReadOK(c, s.pool.QueryRow(ctx, `SELECT COUNT(*) FROM agents WHERE status IN ('offline', 'inactive')`).Scan(&offline)) {
+				return
+			}
 			if offline > 5 {
 				score -= 5
 			}
@@ -1997,7 +2018,9 @@ func (s *Server) registerRoutes() {
 
 			// os_type for the baseline policy (constrained to windows/linux/macos/all).
 			var osType string
-			_ = tx.QueryRow(ctx, `SELECT COALESCE(os_type,'') FROM agents WHERE id=$1::uuid`, agentID).Scan(&osType)
+			if !handlers.ReadOK(c, tx.QueryRow(ctx, `SELECT COALESCE(os_type,'') FROM agents WHERE id=$1::uuid`, agentID).Scan(&osType)) {
+				return
+			}
 			switch osType {
 			case "windows", "linux", "macos", "all":
 			case "darwin":
@@ -4596,8 +4619,12 @@ func (s *Server) registerRoutes() {
 		score := 100
 		if s.pool != nil {
 			var critical, high int
-			_ = s.pool.QueryRow(ctx, `SELECT COUNT(*) FROM alerts WHERE severity >= 9 AND status='open'`).Scan(&critical)
-			_ = s.pool.QueryRow(ctx, `SELECT COUNT(*) FROM alerts WHERE severity >= 7 AND severity < 9 AND status='open'`).Scan(&high)
+			if !handlers.ReadOK(c, s.pool.QueryRow(ctx, `SELECT COUNT(*) FROM alerts WHERE severity >= 9 AND status='open'`).Scan(&critical)) {
+				return
+			}
+			if !handlers.ReadOK(c, s.pool.QueryRow(ctx, `SELECT COUNT(*) FROM alerts WHERE severity >= 7 AND severity < 9 AND status='open'`).Scan(&high)) {
+				return
+			}
 			score = 100 - (critical * 5) - (high * 2)
 			if score < 0 {
 				score = 0
@@ -4727,7 +4754,7 @@ func (s *Server) registerRoutes() {
 				FROM monitored_certificates
 				ORDER BY expires_at ASC NULLS LAST LIMIT 200`)
 			if err != nil {
-				c.JSON(http.StatusOK, gin.H{"data": []CertEntry{}, "total": 0})
+				handlers.ReadFailure(c, err, gin.H{"data": []CertEntry{}, "total": 0})
 				return
 			}
 			defer rows.Close()
@@ -4742,6 +4769,14 @@ func (s *Server) registerRoutes() {
 				e.ExpiresAt = expiresAt.UTC().Format(time.RFC3339)
 				e.LastChecked = lastChecked.UTC().Format(time.RFC3339)
 				list = append(list, e)
+			}
+			// pgx v5 は Scan が失敗した時点で Rows を fatal 化して閉じます。
+			// 上の continue は「その行を飛ばす」ではなく「以降を全部捨てる」
+			// 動作なので、確認しないと**期限切れ間近の証明書が一覧から
+			// 静かに落ちます。**
+			if err := rows.Err(); err != nil {
+				handlers.ReadFailure(c, err, gin.H{"data": []CertEntry{}, "total": 0})
+				return
 			}
 			if list == nil {
 				list = []CertEntry{}
@@ -4769,6 +4804,65 @@ func (s *Server) registerRoutes() {
 				return
 			}
 			c.JSON(http.StatusCreated, gin.H{"id": id, "domain": req.Domain, "port": req.Port})
+		})
+		// The console has offered edit and delete buttons for monitored
+		// certificates since the page was written, and neither route existed: both
+		// answered 404, and the page discards mutation errors, so an operator
+		// pressing them saw the dialog close and nothing change.
+		certAdmin.PUT("/:id", func(c *gin.Context) {
+			id := c.Param("id")
+			if _, err := uuid.Parse(id); err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "IDの形式が不正です"})
+				return
+			}
+			var req struct {
+				Domain string `json:"domain" binding:"required"`
+				Port   int    `json:"port"`
+			}
+			if err := c.ShouldBindJSON(&req); err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+				return
+			}
+			if req.Port == 0 {
+				req.Port = 443
+			}
+			// Changing what is monitored invalidates what was last observed about
+			// it. Leaving expires_at and issuer in place would attribute the old
+			// host's certificate to the new one until the next daily check.
+			tag, err := s.pool.Exec(c.Request.Context(), `
+				UPDATE monitored_certificates
+				SET domain = $2, port = $3,
+				    issuer = CASE WHEN domain = $2 AND port = $3 THEN issuer ELSE '' END,
+				    expires_at = CASE WHEN domain = $2 AND port = $3 THEN expires_at ELSE NULL END,
+				    status = CASE WHEN domain = $2 AND port = $3 THEN status ELSE 'valid' END
+				WHERE id = $1::uuid`, id, req.Domain, req.Port)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "証明書の更新に失敗しました"})
+				return
+			}
+			if tag.RowsAffected() == 0 {
+				c.JSON(http.StatusNotFound, gin.H{"error": "証明書が見つかりません"})
+				return
+			}
+			c.JSON(http.StatusOK, gin.H{"id": id, "domain": req.Domain, "port": req.Port})
+		})
+		certAdmin.DELETE("/:id", func(c *gin.Context) {
+			id := c.Param("id")
+			if _, err := uuid.Parse(id); err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "IDの形式が不正です"})
+				return
+			}
+			tag, err := s.pool.Exec(c.Request.Context(),
+				`DELETE FROM monitored_certificates WHERE id = $1::uuid`, id)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "証明書の削除に失敗しました"})
+				return
+			}
+			if tag.RowsAffected() == 0 {
+				c.JSON(http.StatusNotFound, gin.H{"error": "証明書が見つかりません"})
+				return
+			}
+			c.JSON(http.StatusOK, gin.H{"deleted": id})
 		})
 	}
 
@@ -5068,7 +5162,18 @@ func authMiddleware(jwtSecret string, blocklist *auth.TokenBlocklist, userCache 
 			}()
 			c.Set("user_id", apiKey.UserID)
 			c.Set("user_role", "api_key")
-			c.Set("tenant_id", "")
+			// 鍵の持ち主のテナント。**以前はここが無条件に "" でした。**
+			//
+			// 空のテナントは「テナント分離の無い配備」として扱われます ——
+			// アプリ層の防御（ensureAgentInTenant）は素通しし、RLS の方針は
+			// `app.tenant_id` が空なら全テナント可として扱い、
+			// TenantMiddleware は空を ctx に入れないのでその状態が続きます。
+			// **結果として、APIキーはあらゆるテナントに届いていました。**
+			// 実測で、テナントを名乗らない隔離が他テナントの端末に通りました。
+			//
+			// 持ち主が引けなかったときは空のままです。その場合は
+			// 「分からない」として拒否される側に倒れます。
+			c.Set("tenant_id", apiKey.TenantID)
 			c.Set("api_key_id", apiKey.ID)
 			c.Set("api_key_scopes", apiKey.Scopes)
 			c.Next()
@@ -5353,9 +5458,15 @@ func (s *Server) briefingTestHandler() gin.HandlerFunc {
 		ctx := c.Request.Context()
 
 		var urgentAlerts, openIncidents, newAlertsToday int
-		_ = s.pool.QueryRow(ctx, `SELECT COUNT(*) FROM alerts WHERE severity >= 7 AND status = 'open'`).Scan(&urgentAlerts)
-		_ = s.pool.QueryRow(ctx, `SELECT COUNT(*) FROM incidents WHERE status IN ('open','investigating','contained')`).Scan(&openIncidents)
-		_ = s.pool.QueryRow(ctx, `SELECT COUNT(*) FROM alerts WHERE created_at >= CURRENT_DATE`).Scan(&newAlertsToday)
+		if !handlers.ReadOK(c, s.pool.QueryRow(ctx, `SELECT COUNT(*) FROM alerts WHERE severity >= 7 AND status = 'open'`).Scan(&urgentAlerts)) {
+			return
+		}
+		if !handlers.ReadOK(c, s.pool.QueryRow(ctx, `SELECT COUNT(*) FROM incidents WHERE status IN ('open','investigating','contained')`).Scan(&openIncidents)) {
+			return
+		}
+		if !handlers.ReadOK(c, s.pool.QueryRow(ctx, `SELECT COUNT(*) FROM alerts WHERE created_at >= CURRENT_DATE`).Scan(&newAlertsToday)) {
+			return
+		}
 
 		c.JSON(http.StatusOK, gin.H{
 			"message":          "テストブリーフィングを生成しました（外部送信はしていません）",
@@ -5396,7 +5507,7 @@ func (s *Server) darkwebFindingsHandler() gin.HandlerFunc {
 			`SELECT id, source, group_name, severity, title, description, monitor_value, alerted, found_at
 			 FROM darkweb_findings ORDER BY found_at DESC LIMIT 100`)
 		if err != nil {
-			c.JSON(http.StatusOK, gin.H{"findings": []interface{}{}})
+			handlers.ReadFailure(c, err, gin.H{"findings": []interface{}{}})
 			return
 		}
 		defer rows.Close()
@@ -5421,6 +5532,11 @@ func (s *Server) darkwebFindingsHandler() gin.HandlerFunc {
 				findings = append(findings, f)
 			}
 		}
+		if err := rows.Err(); err != nil {
+			slog.Warn("darkwebFindingsHandler: 結果セットの読み取りが途中で終わりました。応答は不完全です", "error", err)
+			c.JSON(http.StatusOK, gin.H{"findings": []interface{}{}})
+			return
+		}
 		if findings == nil {
 			findings = []finding{}
 		}
@@ -5437,7 +5553,7 @@ func (s *Server) darkwebMonitorListHandler() gin.HandlerFunc {
 		rows, err := s.pool.Query(c.Request.Context(),
 			`SELECT id, monitor_type, value, enabled, created_at FROM darkweb_monitors ORDER BY created_at DESC`)
 		if err != nil {
-			c.JSON(http.StatusOK, gin.H{"monitors": []interface{}{}})
+			handlers.ReadFailure(c, err, gin.H{"monitors": []interface{}{}})
 			return
 		}
 		defer rows.Close()
@@ -5456,6 +5572,11 @@ func (s *Server) darkwebMonitorListHandler() gin.HandlerFunc {
 				m.CreatedAt = t.Format(time.RFC3339)
 				monitors = append(monitors, m)
 			}
+		}
+		if err := rows.Err(); err != nil {
+			slog.Warn("darkwebMonitorListHandler: 結果セットの読み取りが途中で終わりました。応答は不完全です", "error", err)
+			c.JSON(http.StatusOK, gin.H{"monitors": []interface{}{}})
+			return
 		}
 		if monitors == nil {
 			monitors = []mon{}
@@ -5527,7 +5648,7 @@ func (s *Server) darkwebSitesHandler() gin.HandlerFunc {
 			 WHERE onion_url != '__cache__'
 			 ORDER BY group_name ASC`)
 		if err != nil {
-			c.JSON(http.StatusOK, gin.H{"sites": []interface{}{}})
+			handlers.ReadFailure(c, err, gin.H{"sites": []interface{}{}})
 			return
 		}
 		defer rows.Close()
@@ -5555,6 +5676,11 @@ func (s *Server) darkwebSitesHandler() gin.HandlerFunc {
 				sites = append(sites, sv)
 			}
 		}
+		if err := rows.Err(); err != nil {
+			slog.Warn("darkwebSitesHandler: 結果セットの読み取りが途中で終わりました。応答は不完全です", "error", err)
+			c.JSON(http.StatusOK, gin.H{"sites": []interface{}{}})
+			return
+		}
 		if sites == nil {
 			sites = []site{}
 		}
@@ -5570,10 +5696,18 @@ func (s *Server) darkwebStatusHandler() gin.HandlerFunc {
 		}
 		ctx := c.Request.Context()
 		var totalSites, activeSites, totalFindings, totalMonitors int
-		_ = s.pool.QueryRow(ctx, `SELECT COUNT(*) FROM darkweb_ransomware_sites WHERE onion_url != '__cache__'`).Scan(&totalSites)
-		_ = s.pool.QueryRow(ctx, `SELECT COUNT(*) FROM darkweb_ransomware_sites WHERE is_active = TRUE AND onion_url != '__cache__'`).Scan(&activeSites)
-		_ = s.pool.QueryRow(ctx, `SELECT COUNT(*) FROM darkweb_findings`).Scan(&totalFindings)
-		_ = s.pool.QueryRow(ctx, `SELECT COUNT(*) FROM darkweb_monitors WHERE enabled = TRUE`).Scan(&totalMonitors)
+		if !handlers.ReadOK(c, s.pool.QueryRow(ctx, `SELECT COUNT(*) FROM darkweb_ransomware_sites WHERE onion_url != '__cache__'`).Scan(&totalSites)) {
+			return
+		}
+		if !handlers.ReadOK(c, s.pool.QueryRow(ctx, `SELECT COUNT(*) FROM darkweb_ransomware_sites WHERE is_active = TRUE AND onion_url != '__cache__'`).Scan(&activeSites)) {
+			return
+		}
+		if !handlers.ReadOK(c, s.pool.QueryRow(ctx, `SELECT COUNT(*) FROM darkweb_findings`).Scan(&totalFindings)) {
+			return
+		}
+		if !handlers.ReadOK(c, s.pool.QueryRow(ctx, `SELECT COUNT(*) FROM darkweb_monitors WHERE enabled = TRUE`).Scan(&totalMonitors)) {
+			return
+		}
 		c.JSON(http.StatusOK, gin.H{
 			"enabled":        true,
 			"total_sites":    totalSites,
@@ -5607,7 +5741,7 @@ func (s *Server) savedSearchListHandler() gin.HandlerFunc {
 			`SELECT id, user_id, name, query, filters, page, created_at
 			 FROM saved_searches WHERE user_id = $1 ORDER BY created_at DESC`, userID)
 		if err != nil {
-			c.JSON(http.StatusOK, gin.H{"items": []interface{}{}})
+			handlers.ReadFailure(c, err, gin.H{"items": []interface{}{}})
 			return
 		}
 		defer rows.Close()
@@ -5624,6 +5758,12 @@ func (s *Server) savedSearchListHandler() gin.HandlerFunc {
 				_ = json.Unmarshal(filters, &ss.Filters)
 			}
 			items = append(items, ss)
+		}
+		// Scan 失敗以降の行は pgx v5 が捨てます。確認しないと、保存した
+		// 検索が**消えたように見えて 200 が返ります。**
+		if err := rows.Err(); err != nil {
+			handlers.ReadFailure(c, err, gin.H{"items": []interface{}{}})
+			return
 		}
 		if items == nil {
 			items = []savedSearch{}
@@ -5712,25 +5852,43 @@ func (s *Server) adoptionMetricsHandler() gin.HandlerFunc {
 		// total ≠ online + offline + isolated となってサマリの辻褄が合わなくなる。
 		// 「退役ホストを触らない」判断が要る経路(heartbeat_monitor / autoupdate 等)
 		// とは異なり、ここは単なる死活サマリなので offline 側に寄せる。
-		_ = s.pool.QueryRow(ctx, `SELECT COUNT(*), COUNT(*) FILTER (WHERE status='online'), COUNT(*) FILTER (WHERE status IN ('offline','inactive')) FROM agents`).
-			Scan(&totalAgents, &onlineAgents, &offlineAgents)
-		_ = s.pool.QueryRow(ctx, `SELECT COUNT(*), COUNT(*) FILTER (WHERE status='open'), COUNT(*) FILTER (WHERE severity>=9 AND status='open') FROM alerts`).
-			Scan(&totalAlerts, &openAlerts, &criticalAlerts)
-		_ = s.pool.QueryRow(ctx, `SELECT COUNT(*) FROM incidents WHERE status IN ('open','investigating','contained')`).Scan(&totalIncidents)
-		_ = s.pool.QueryRow(ctx, `SELECT COUNT(*) FROM darkweb_findings`).Scan(&darkwebFindings)
+		if !handlers.ReadOK(c, s.pool.QueryRow(ctx, `SELECT COUNT(*), COUNT(*) FILTER (WHERE status='online'), COUNT(*) FILTER (WHERE status IN ('offline','inactive')) FROM agents`).
+			Scan(&totalAgents, &onlineAgents, &offlineAgents)) {
+			return
+		}
+		if !handlers.ReadOK(c, s.pool.QueryRow(ctx, `SELECT COUNT(*), COUNT(*) FILTER (WHERE status='open'), COUNT(*) FILTER (WHERE severity>=9 AND status='open') FROM alerts`).
+			Scan(&totalAlerts, &openAlerts, &criticalAlerts)) {
+			return
+		}
+		if !handlers.ReadOK(c, s.pool.QueryRow(ctx, `SELECT COUNT(*) FROM incidents WHERE status IN ('open','investigating','contained')`).Scan(&totalIncidents)) {
+			return
+		}
+		if !handlers.ReadOK(c, s.pool.QueryRow(ctx, `SELECT COUNT(*) FROM darkweb_findings`).Scan(&darkwebFindings)) {
+			return
+		}
 		var weeklyAlerts, weeklyResolved int
-		_ = s.pool.QueryRow(ctx, `SELECT COUNT(*) FROM alerts WHERE created_at >= NOW() - INTERVAL '7 days'`).Scan(&weeklyAlerts)
-		_ = s.pool.QueryRow(ctx, `SELECT COUNT(*) FROM alerts WHERE status='resolved' AND updated_at >= NOW() - INTERVAL '7 days'`).Scan(&weeklyResolved)
+		if !handlers.ReadOK(c, s.pool.QueryRow(ctx, `SELECT COUNT(*) FROM alerts WHERE created_at >= NOW() - INTERVAL '7 days'`).Scan(&weeklyAlerts)) {
+			return
+		}
+		if !handlers.ReadOK(c, s.pool.QueryRow(ctx, `SELECT COUNT(*) FROM alerts WHERE status='resolved' AND updated_at >= NOW() - INTERVAL '7 days'`).Scan(&weeklyResolved)) {
+			return
+		}
 		var totalYara, enabledYara, totalRules, enabledRules int
-		_ = s.pool.QueryRow(ctx, `SELECT COUNT(*), COUNT(*) FILTER (WHERE enabled) FROM yara_rules`).Scan(&totalYara, &enabledYara)
-		_ = s.pool.QueryRow(ctx, `SELECT COUNT(*), COUNT(*) FILTER (WHERE enabled) FROM rules`).Scan(&totalRules, &enabledRules)
+		if !handlers.ReadOK(c, s.pool.QueryRow(ctx, `SELECT COUNT(*), COUNT(*) FILTER (WHERE enabled) FROM yara_rules`).Scan(&totalYara, &enabledYara)) {
+			return
+		}
+		if !handlers.ReadOK(c, s.pool.QueryRow(ctx, `SELECT COUNT(*), COUNT(*) FILTER (WHERE enabled) FROM rules`).Scan(&totalRules, &enabledRules)) {
+			return
+		}
 		type dayCount struct {
 			Date  string `json:"date"`
 			Count int    `json:"count"`
 		}
-		rows, _ := s.pool.Query(ctx, `SELECT DATE(created_at), COUNT(*) FROM alerts WHERE created_at >= NOW() - INTERVAL '7 days' GROUP BY 1 ORDER BY 1 ASC`)
+		rows, trendErr := s.pool.Query(ctx, `SELECT DATE(created_at), COUNT(*) FROM alerts WHERE created_at >= NOW() - INTERVAL '7 days' GROUP BY 1 ORDER BY 1 ASC`)
 		var trend []dayCount
-		if rows != nil {
+		if trendErr != nil {
+			slog.Warn("adoptionMetrics: 7日間のトレンドを取得できませんでした", "error", trendErr)
+		} else if rows != nil {
 			defer rows.Close()
 			for rows.Next() {
 				var d dayCount
@@ -5739,6 +5897,12 @@ func (s *Server) adoptionMetricsHandler() gin.HandlerFunc {
 					d.Date = t.Format("01/02")
 					trend = append(trend, d)
 				}
+			}
+			// 途中で終わった走査は、その日のアラートが0件だったのと
+			// 同じグラフになります。
+			if err := rows.Err(); err != nil {
+				slog.Error("adoptionMetrics: トレンドの走査が途中で終わりました。"+
+					"グラフの一部の日が0件として描画されます", "error", err)
 			}
 		}
 		if trend == nil {
@@ -5804,7 +5968,7 @@ func (s *Server) yaraScanJobsHandler() gin.HandlerFunc {
 			LEFT JOIN agents a ON a.id = j.agent_id
 			ORDER BY j.requested_at DESC LIMIT 50`)
 		if err != nil {
-			c.JSON(http.StatusOK, gin.H{"jobs": []interface{}{}})
+			handlers.ReadFailure(c, err, gin.H{"jobs": []interface{}{}})
 			return
 		}
 		defer rows.Close()
@@ -5838,6 +6002,11 @@ func (s *Server) yaraScanJobsHandler() gin.HandlerFunc {
 				}
 				jobs = append(jobs, j)
 			}
+		}
+		if err := rows.Err(); err != nil {
+			slog.Warn("yaraScanJobsHandler: 結果セットの読み取りが途中で終わりました。応答は不完全です", "error", err)
+			c.JSON(http.StatusOK, gin.H{"jobs": []interface{}{}})
+			return
 		}
 		if jobs == nil {
 			jobs = []scanJob{}

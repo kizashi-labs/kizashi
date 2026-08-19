@@ -11,6 +11,9 @@ import {
   Clock, History, CheckSquare, Square, AlertTriangle, FileText,
 } from 'lucide-react'
 
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+import { PageSaveFailed } from '@/components/PageSaveFailed'
+
 // ─── Types ────────────────────────────────────────────────────
 
 interface QuarantinedFile {
@@ -101,8 +104,8 @@ function QuarantineModal({
   })
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs">
-      <div className="bg-falcon-card border border-falcon-border rounded-xl shadow-2xl w-full max-w-md p-6 space-y-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+      <div className="bg-[#111827] border border-[#1e2d42] rounded-xl shadow-2xl w-full max-w-md p-6 space-y-4">
         <div className="flex items-center justify-between">
           <h3 className="text-white font-semibold text-lg flex items-center gap-2">
             <RotateCcw className="w-5 h-5 text-green-400" />
@@ -120,8 +123,7 @@ function QuarantineModal({
             placeholder="例: 誤検知、調査完了..."
             value={reason}
             onChange={e => setReason(e.target.value)}
-            className="w-full px-3 py-2 bg-falcon-bg border border-falcon-border rounded-lg text-white text-sm
-                       placeholder-[#5a6a7a] focus:outline-hidden focus:border-falcon-blue"
+            className="w-full px-3 py-2 bg-[#080c14] border border-[#1e2d42] rounded-lg text-white text-sm placeholder-[#5a6a7a] focus:outline-hidden focus:border-[#1a6bff]"
           />
         </div>
         <div>
@@ -131,22 +133,20 @@ function QuarantineModal({
             placeholder="追加のメモや備考..."
             value={notes}
             onChange={e => setNotes(e.target.value)}
-            className="w-full px-3 py-2 bg-falcon-bg border border-falcon-border rounded-lg text-white text-sm
-                       placeholder-[#5a6a7a] focus:outline-hidden focus:border-falcon-blue resize-none"
+            className="w-full px-3 py-2 bg-[#080c14] border border-[#1e2d42] rounded-lg text-white text-sm placeholder-[#5a6a7a] focus:outline-hidden focus:border-[#1a6bff] resize-none"
           />
         </div>
         <div className="flex gap-3 pt-2">
           <button
             onClick={onClose}
-            className="flex-1 px-4 py-2 bg-falcon-raised hover:bg-falcon-active text-white text-sm rounded-lg transition-colors"
+            className="flex-1 px-4 py-2 bg-[#161f33] hover:bg-[#1d2f4a] text-white text-sm rounded-lg transition-colors"
           >
             キャンセル
           </button>
           <button
             onClick={() => restore.mutate()}
             disabled={restore.isPending}
-            className="flex-1 px-4 py-2 bg-green-700 hover:bg-green-600 text-white text-sm rounded-lg
-                       transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+            className="flex-1 px-4 py-2 bg-green-700 hover:bg-green-600 text-white text-sm rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
           >
             {restore.isPending ? (
               <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-white" />
@@ -205,14 +205,14 @@ function HistoryTab() {
   return (
     <div className="relative pl-6">
       {/* Timeline line */}
-      <div className="absolute left-2.5 top-0 bottom-0 w-px bg-falcon-border" />
+      <div className="absolute left-2.5 top-0 bottom-0 w-px bg-[#1e2d42]" />
 
       <div className="space-y-4">
         {events.map(ev => (
           <div key={ev.id} className="relative">
             {/* Dot */}
             <div
-              className={`absolute -left-4 top-1.5 w-3 h-3 rounded-full border-2 border-falcon-card ${
+              className={`absolute -left-4 top-1.5 w-3 h-3 rounded-full border-2 border-[#111827] ${
                 ev.event_type === 'quarantined'
                   ? 'bg-yellow-500'
                   : ev.event_type === 'restored'
@@ -221,7 +221,7 @@ function HistoryTab() {
               }`}
             />
 
-            <div className="bg-falcon-card border border-falcon-border rounded-lg p-4 space-y-1.5">
+            <div className="bg-[#111827] border border-[#1e2d42] rounded-lg p-4 space-y-1.5">
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1 min-w-0">
                   <span
@@ -347,6 +347,8 @@ export default function QuarantinePage() {
 
   return (
     <div className="p-6 space-y-6">
+      <PageDataUnavailable />
+      <PageSaveFailed className="mb-4" />
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -367,8 +369,7 @@ export default function QuarantinePage() {
                 }
               }}
               disabled={!canBulkRelease || bulkRelease.isPending}
-              className="flex items-center gap-1.5 px-3 py-2 bg-green-800 hover:bg-green-700 text-white text-sm
-                         rounded-lg transition-colors disabled:opacity-50"
+              className="flex items-center gap-1.5 px-3 py-2 bg-green-800 hover:bg-green-700 text-white text-sm rounded-lg transition-colors disabled:opacity-50"
             >
               <ShieldCheck className="w-4 h-4" />
               一括リリース ({selectedIds.size})
@@ -376,7 +377,7 @@ export default function QuarantinePage() {
           )}
           <button
             onClick={() => qc.invalidateQueries({ queryKey: ['quarantine'] })}
-            className="flex items-center gap-1.5 px-3 py-2 bg-falcon-raised hover:bg-falcon-active text-white text-sm rounded-lg transition-colors"
+            className="flex items-center gap-1.5 px-3 py-2 bg-[#161f33] hover:bg-[#1d2f4a] text-white text-sm rounded-lg transition-colors"
           >
             <RefreshCw className={`w-4 h-4 ${isFetching ? 'animate-spin' : ''}`} />
             更新
@@ -385,7 +386,7 @@ export default function QuarantinePage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 bg-falcon-bg/60 border border-falcon-border rounded-xl p-1 w-fit">
+      <div className="flex gap-1 bg-[#080c14]/60 border border-[#1e2d42] rounded-xl p-1 w-fit">
         {([['active', Archive, 'アクティブ検疫'], ['history', History, '履歴']] as const).map(
           ([tab, Icon, label]) => (
             <button
@@ -394,7 +395,7 @@ export default function QuarantinePage() {
               className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                 activeTab === tab
                   ? 'bg-yellow-600 text-white shadow-lg'
-                  : 'text-[#8899aa] hover:text-white hover:bg-falcon-raised'
+                  : 'text-[#8899aa] hover:text-white hover:bg-[#161f33]'
               }`}
             >
               <Icon className="w-4 h-4" />
@@ -416,14 +417,13 @@ export default function QuarantinePage() {
                   placeholder="ファイルパス・ハッシュで検索..."
                   value={search}
                   onChange={e => { setSearch(e.target.value); setPage(1) }}
-                  className="pl-9 pr-4 py-2 bg-falcon-card border border-falcon-border rounded-lg
-                             text-white text-sm placeholder-[#5a6a7a] focus:outline-hidden focus:border-falcon-blue w-64"
+                  className="pl-9 pr-4 py-2 bg-[#111827] border border-[#1e2d42] rounded-lg text-white text-sm placeholder-[#5a6a7a] focus:outline-hidden focus:border-[#1a6bff] w-64"
                 />
               </div>
               {search && (
                 <button
                   onClick={() => { setSearch(''); setPage(1) }}
-                  className="flex items-center gap-1 text-xs text-[#8899aa] hover:text-white px-2 py-2 rounded-lg hover:bg-falcon-raised transition-colors"
+                  className="flex items-center gap-1 text-xs text-[#8899aa] hover:text-white px-2 py-2 rounded-lg hover:bg-[#161f33] transition-colors"
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>
@@ -440,7 +440,7 @@ export default function QuarantinePage() {
                   className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
                     statusFilter === s
                       ? 'bg-yellow-600 text-white'
-                      : 'bg-falcon-card border border-falcon-border text-[#8899aa] hover:text-white'
+                      : 'bg-[#111827] border border-[#1e2d42] text-[#8899aa] hover:text-white'
                   }`}
                 >
                   {STATUS_LABELS[s]}
@@ -451,7 +451,7 @@ export default function QuarantinePage() {
 
           {/* Bulk action bar */}
           {files.length > 0 && (
-            <div className="flex items-center gap-3 px-4 py-2 bg-falcon-bg/60 border border-falcon-border rounded-lg text-sm">
+            <div className="flex items-center gap-3 px-4 py-2 bg-[#080c14]/60 border border-[#1e2d42] rounded-lg text-sm">
               <button
                 onClick={toggleSelectAll}
                 className="flex items-center gap-2 text-[#8899aa] hover:text-white transition-colors"
@@ -480,7 +480,7 @@ export default function QuarantinePage() {
           )}
 
           {/* Table */}
-          <div className="bg-falcon-card rounded-xl border border-falcon-border overflow-hidden">
+          <div className="bg-[#111827] rounded-xl border border-[#1e2d42] overflow-hidden">
             {isLoading ? (
               <div className="flex items-center justify-center py-16">
                 <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-yellow-500" />
@@ -493,7 +493,7 @@ export default function QuarantinePage() {
             ) : (
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="text-left text-[#8899aa] text-xs border-b border-falcon-border bg-falcon-bg/30">
+                  <tr className="text-left text-[#8899aa] text-xs border-b border-[#1e2d42] bg-[#080c14]/30">
                     <th className="px-4 py-3 w-8" />
                     <th className="px-4 py-3">ファイルパス</th>
                     <th className="px-4 py-3">端末名</th>
@@ -511,11 +511,11 @@ export default function QuarantinePage() {
                     <th className="px-4 py-3 text-right">操作</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-falcon-border">
+                <tbody className="divide-y divide-[#1e2d42]">
                   {files.map(f => (
                     <tr
                       key={f.id}
-                      className={`hover:bg-falcon-raised transition-colors ${f.restored_at ? 'opacity-50' : ''} ${
+                      className={`hover:bg-[#161f33] transition-colors ${f.restored_at ? 'opacity-50' : ''} ${
                         selectedIds.has(f.id) ? 'bg-yellow-900/10' : ''
                       }`}
                     >
@@ -589,8 +589,7 @@ export default function QuarantinePage() {
                                 setRestoreModal({ id: f.id, path: f.original_path, agentId: f.agent_id })
                               }
                               title="復元"
-                              className="p-1.5 text-[#8899aa] hover:text-green-400 hover:bg-green-900/20
-                                         rounded transition-colors"
+                              className="p-1.5 text-[#8899aa] hover:text-green-400 hover:bg-green-900/20 rounded-sm transition-colors"
                             >
                               <RotateCcw className="w-4 h-4" />
                             </button>
@@ -604,8 +603,7 @@ export default function QuarantinePage() {
                               }}
                               disabled={remove.isPending}
                               title="削除"
-                              className="p-1.5 text-[#8899aa] hover:text-red-400 hover:bg-red-900/20
-                                         rounded transition-colors disabled:opacity-50"
+                              className="p-1.5 text-[#8899aa] hover:text-red-400 hover:bg-red-900/20 rounded-sm transition-colors disabled:opacity-50"
                             >
                               <Trash2 className="w-4 h-4" />
                             </button>
@@ -625,8 +623,7 @@ export default function QuarantinePage() {
               <button
                 onClick={() => setPage(p => Math.max(1, p - 1))}
                 disabled={page === 1}
-                className="px-4 py-2 bg-falcon-card border border-falcon-border text-white text-sm rounded-lg
-                           disabled:opacity-40 hover:bg-falcon-hover transition-colors"
+                className="px-4 py-2 bg-[#111827] border border-[#1e2d42] text-white text-sm rounded-lg disabled:opacity-40 hover:bg-[#19253d] transition-colors"
               >
                 前へ
               </button>
@@ -636,8 +633,7 @@ export default function QuarantinePage() {
               <button
                 onClick={() => setPage(p => p + 1)}
                 disabled={!data.has_more}
-                className="px-4 py-2 bg-falcon-card border border-falcon-border text-white text-sm rounded-lg
-                           disabled:opacity-40 hover:bg-falcon-hover transition-colors"
+                className="px-4 py-2 bg-[#111827] border border-[#1e2d42] text-white text-sm rounded-lg disabled:opacity-40 hover:bg-[#19253d] transition-colors"
               >
                 次へ
               </button>

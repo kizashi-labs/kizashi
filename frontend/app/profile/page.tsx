@@ -10,6 +10,9 @@ import {
   Bell, BellOff, Activity, Settings, RefreshCw
 } from 'lucide-react'
 
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+import { PageSaveFailed } from '@/components/PageSaveFailed'
+
 // ── Types ──────────────────────────────────────────────────────────────────
 
 interface UserProfile {
@@ -73,7 +76,7 @@ type TabID = typeof TABS[number]['id']
 
 function Card({ children, className = '' }: { children: React.ReactNode; className?: string }) {
   return (
-    <div className={`bg-falcon-surface rounded-xl border border-falcon-border p-5 ${className}`}>
+    <div className={`bg-[#0d1220] rounded-xl border border-[#1e2d42] p-5 ${className}`}>
       {children}
     </div>
   )
@@ -83,7 +86,7 @@ function Badge({ role }: { role: string }) {
   const map: Record<string, string> = {
     admin:   'bg-red-900/40 text-red-300',
     analyst: 'bg-blue-900/40 text-blue-300',
-    viewer:  'bg-falcon-raised text-falcon-muted',
+    viewer:  'bg-[#161f33] text-[#7d92b0]',
   }
   const labels: Record<string, string> = { admin: '管理者', analyst: 'アナリスト', viewer: 'ビューアー' }
   return (
@@ -107,7 +110,7 @@ export default function ProfilePage() {
   if (isLoading || !profile) {
     return (
       <div className="min-h-screen bg-[#070d19] flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-falcon-red" />
+        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-[#e8002d]" />
       </div>
     )
   }
@@ -121,12 +124,13 @@ export default function ProfilePage() {
 
   return (
     <div className="min-h-screen bg-[#070d19] p-6">
+      <PageDataUnavailable />
+      <PageSaveFailed className="mb-4" />
       <div className="max-w-4xl mx-auto space-y-6">
 
         {/* ── Header card ──────────────────────────────────── */}
         <Card className="flex flex-col sm:flex-row items-start sm:items-center gap-5">
-          <div className="w-16 h-16 rounded-full bg-linear-to-br from-falcon-blue to-[#0044cc]
-                          flex items-center justify-center shrink-0 text-xl font-bold text-white">
+          <div className="w-16 h-16 rounded-full bg-linear-to-br from-[#1a6bff] to-[#0044cc] flex items-center justify-center shrink-0 text-xl font-bold text-white">
             {initials}
           </div>
           <div className="flex-1 min-w-0">
@@ -134,9 +138,9 @@ export default function ProfilePage() {
               <h1 className="text-xl font-bold text-white">{profile.full_name || profile.email}</h1>
               <Badge role={profile.role} />
             </div>
-            <p className="text-falcon-muted text-sm mt-0.5">{profile.email}</p>
+            <p className="text-[#7d92b0] text-sm mt-0.5">{profile.email}</p>
             {profile.last_login && (
-              <p className="text-falcon-muted text-xs mt-1 flex items-center gap-1">
+              <p className="text-[#7d92b0] text-xs mt-1 flex items-center gap-1">
                 <Clock className="w-3 h-3" />
                 最終ログイン: {new Date(profile.last_login).toLocaleString('ja-JP')}
               </p>
@@ -152,8 +156,8 @@ export default function ProfilePage() {
               onClick={() => setTab(id)}
               className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all
                 ${tab === id
-                  ? 'bg-falcon-active text-white border border-[#2d4a6e]'
-                  : 'text-falcon-muted hover:bg-falcon-surface hover:text-falcon-text'
+                  ? 'bg-[#1d2f4a] text-white border border-[#2d4a6e]'
+                  : 'text-[#7d92b0] hover:bg-[#0d1220] hover:text-[#e2e8f4]'
                 }`}
             >
               <Icon className="w-4 h-4 shrink-0" />
@@ -208,14 +212,14 @@ function ProfileTab({ profile, qc }: { profile: UserProfile; qc: ReturnType<type
   return (
     <Card>
       <div className="flex items-center gap-2 mb-5">
-        <Settings className="w-4 h-4 text-falcon-muted" />
+        <Settings className="w-4 h-4 text-[#7d92b0]" />
         <h2 className="text-white font-medium">プロフィール情報</h2>
       </div>
 
       <div className="space-y-4">
         {/* Name */}
         <div>
-          <label className="text-falcon-muted text-sm block mb-1">表示名</label>
+          <label className="text-[#7d92b0] text-sm block mb-1">表示名</label>
           {editingName ? (
             <div className="flex items-center gap-2">
               <input
@@ -227,8 +231,7 @@ function ProfileTab({ profile, qc }: { profile: UserProfile; qc: ReturnType<type
                   if (e.key === 'Escape') setEditingName(false)
                 }}
                 placeholder="表示名"
-                className="flex-1 bg-[#070d19] text-white px-3 py-2 rounded-lg border border-falcon-border
-                           text-sm focus:outline-hidden focus:border-falcon-red"
+                className="flex-1 bg-[#070d19] text-white px-3 py-2 rounded-lg border border-[#1e2d42] text-sm focus:outline-hidden focus:border-[#e8002d]"
               />
               <button
                 onClick={() => nameInput.trim() && updateName.mutate(nameInput.trim())}
@@ -237,19 +240,19 @@ function ProfileTab({ profile, qc }: { profile: UserProfile; qc: ReturnType<type
               >
                 <Check className="w-4 h-4" />
               </button>
-              <button onClick={() => setEditingName(false)} className="p-1.5 text-falcon-muted hover:text-falcon-text">
+              <button onClick={() => setEditingName(false)} className="p-1.5 text-[#7d92b0] hover:text-[#e2e8f4]">
                 <X className="w-4 h-4" />
               </button>
             </div>
           ) : (
             <div className="flex items-center gap-2 group">
-              <p className="text-white text-sm bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 flex-1">
-                {profile.full_name || <span className="text-falcon-muted">未設定</span>}
+              <p className="text-white text-sm bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 flex-1">
+                {profile.full_name || <span className="text-[#7d92b0]">未設定</span>}
                 {nameSaved && <span className="ml-2 text-green-400 text-xs">✓ 保存しました</span>}
               </p>
               <button
                 onClick={() => { setNameInput(profile.full_name || ''); setEditingName(true) }}
-                className="p-1.5 text-falcon-muted hover:text-falcon-text"
+                className="p-1.5 text-[#7d92b0] hover:text-[#e2e8f4]"
               >
                 <Pencil className="w-4 h-4" />
               </button>
@@ -259,20 +262,19 @@ function ProfileTab({ profile, qc }: { profile: UserProfile; qc: ReturnType<type
 
         {/* Email (read-only) */}
         <div>
-          <label className="text-falcon-muted text-sm block mb-1">メールアドレス</label>
-          <p className="text-white text-sm bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2">
+          <label className="text-[#7d92b0] text-sm block mb-1">メールアドレス</label>
+          <p className="text-white text-sm bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2">
             {profile.email}
           </p>
         </div>
 
         {/* Timezone */}
         <div>
-          <label className="text-falcon-muted text-sm block mb-1">タイムゾーン</label>
+          <label className="text-[#7d92b0] text-sm block mb-1">タイムゾーン</label>
           <select
             value={timezone}
             onChange={e => setTimezone(e.target.value)}
-            className="w-full bg-[#070d19] text-white text-sm border border-falcon-border rounded-lg px-3 py-2
-                       focus:outline-hidden focus:border-falcon-red"
+            className="w-full bg-[#070d19] text-white text-sm border border-[#1e2d42] rounded-lg px-3 py-2 focus:outline-hidden focus:border-[#e8002d]"
           >
             <option value="Asia/Tokyo">Asia/Tokyo (JST)</option>
             <option value="UTC">UTC</option>
@@ -285,12 +287,11 @@ function ProfileTab({ profile, qc }: { profile: UserProfile; qc: ReturnType<type
 
         {/* Language */}
         <div>
-          <label className="text-falcon-muted text-sm block mb-1">言語</label>
+          <label className="text-[#7d92b0] text-sm block mb-1">言語</label>
           <select
             value={language}
             onChange={e => setLanguage(e.target.value)}
-            className="w-full bg-[#070d19] text-white text-sm border border-falcon-border rounded-lg px-3 py-2
-                       focus:outline-hidden focus:border-falcon-red"
+            className="w-full bg-[#070d19] text-white text-sm border border-[#1e2d42] rounded-lg px-3 py-2 focus:outline-hidden focus:border-[#e8002d]"
           >
             <option value="ja">日本語</option>
             <option value="en">English</option>
@@ -301,8 +302,7 @@ function ProfileTab({ profile, qc }: { profile: UserProfile; qc: ReturnType<type
           <button
             onClick={() => updatePrefs.mutate()}
             disabled={updatePrefs.isPending}
-            className="flex items-center gap-2 px-4 py-2 bg-falcon-red text-white rounded-lg
-                       hover:bg-[#c40026] transition-colors disabled:opacity-50 text-sm"
+            className="flex items-center gap-2 px-4 py-2 bg-[#e8002d] text-white rounded-lg hover:bg-[#c40026] transition-colors disabled:opacity-50 text-sm"
           >
             {updatePrefs.isPending
               ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -346,20 +346,18 @@ function SecurityTab({ profile }: { profile: UserProfile }) {
   return (
     <Card>
       <div className="flex items-center gap-2 mb-5">
-        <Lock className="w-4 h-4 text-falcon-muted" />
+        <Lock className="w-4 h-4 text-[#7d92b0]" />
         <h2 className="text-white font-medium">パスワード変更</h2>
       </div>
 
       {success && (
-        <div className="flex items-center gap-2 text-green-400 text-sm bg-green-900/20 border border-green-700/50
-                        rounded-lg px-3 py-2 mb-4">
+        <div className="flex items-center gap-2 text-green-400 text-sm bg-green-900/20 border border-green-700/50 rounded-lg px-3 py-2 mb-4">
           <CheckCircle className="w-4 h-4 shrink-0" />
           パスワードを更新しました
         </div>
       )}
       {errMsg && (
-        <div className="flex items-center gap-2 text-red-400 text-sm bg-red-900/20 border border-red-700/50
-                        rounded-lg px-3 py-2 mb-4">
+        <div className="flex items-center gap-2 text-red-400 text-sm bg-red-900/20 border border-red-700/50 rounded-lg px-3 py-2 mb-4">
           <AlertCircle className="w-4 h-4 shrink-0" />
           {errMsg}
         </div>
@@ -368,7 +366,7 @@ function SecurityTab({ profile }: { profile: UserProfile }) {
       <div className="space-y-3">
         {(['current', 'next', 'confirm'] as const).map(field => (
           <div key={field}>
-            <label className="text-falcon-muted text-sm block mb-1">
+            <label className="text-[#7d92b0] text-sm block mb-1">
               {field === 'current' ? '現在のパスワード' : field === 'next' ? '新しいパスワード' : '新しいパスワード（確認）'}
             </label>
             <div className="relative">
@@ -377,14 +375,13 @@ function SecurityTab({ profile }: { profile: UserProfile }) {
                 value={form[field]}
                 onChange={e => setForm(f => ({ ...f, [field]: e.target.value }))}
                 placeholder={field === 'next' ? '8文字以上' : ''}
-                className="w-full bg-[#070d19] text-white px-3 py-2 pr-9 rounded-lg border border-falcon-border
-                           text-sm focus:outline-hidden focus:border-falcon-red placeholder-falcon-subtle"
+                className="w-full bg-[#070d19] text-white px-3 py-2 pr-9 rounded-lg border border-[#1e2d42] text-sm focus:outline-hidden focus:border-[#e8002d] placeholder-[#3d5068]"
               />
               {field === 'current' && (
                 <button
                   type="button"
                   onClick={() => setShow(s => !s)}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-falcon-muted hover:text-falcon-text"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#7d92b0] hover:text-[#e2e8f4]"
                 >
                   {show ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
@@ -396,8 +393,7 @@ function SecurityTab({ profile }: { profile: UserProfile }) {
           <button
             onClick={() => mutation.mutate()}
             disabled={mutation.isPending || !form.current || !form.next || !form.confirm}
-            className="flex items-center gap-2 px-4 py-2 bg-falcon-red text-white rounded-lg
-                       hover:bg-[#c40026] transition-colors disabled:opacity-50 text-sm"
+            className="flex items-center gap-2 px-4 py-2 bg-[#e8002d] text-white rounded-lg hover:bg-[#c40026] transition-colors disabled:opacity-50 text-sm"
           >
             {mutation.isPending
               ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -442,23 +438,23 @@ function MFATab({ profile, qc }: { profile: UserProfile; qc: ReturnType<typeof u
       <Card>
         <div className="flex items-center justify-between mb-1">
           <div className="flex items-center gap-3">
-            <div className={`p-2 rounded-lg ${totpEnabled ? 'bg-green-900/30' : 'bg-falcon-border/50'}`}>
-              <Smartphone className={`w-5 h-5 ${totpEnabled ? 'text-green-400' : 'text-falcon-muted'}`} />
+            <div className={`p-2 rounded-lg ${totpEnabled ? 'bg-green-900/30' : 'bg-[#1e2d42]/50'}`}>
+              <Smartphone className={`w-5 h-5 ${totpEnabled ? 'text-green-400' : 'text-[#7d92b0]'}`} />
             </div>
             <div>
               <h3 className="text-white font-medium">TOTP 認証アプリ</h3>
-              <p className="text-falcon-muted text-xs mt-0.5">Google Authenticator などのアプリを使用します</p>
+              <p className="text-[#7d92b0] text-xs mt-0.5">Google Authenticator などのアプリを使用します</p>
             </div>
           </div>
           <div className="flex items-center gap-3">
             <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${
-              totpEnabled ? 'bg-green-900/40 text-green-300' : 'bg-falcon-border text-falcon-muted'
+              totpEnabled ? 'bg-green-900/40 text-green-300' : 'bg-[#1e2d42] text-[#7d92b0]'
             }`}>
               {totpEnabled ? '有効' : '無効'}
             </span>
             <a
               href="/profile/security"
-              className="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors bg-falcon-border text-white hover:bg-[#2a3d58]"
+              className="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors bg-[#1e2d42] text-white hover:bg-[#2a3d58]"
             >
               {totpEnabled ? '設定を管理' : 'セットアップ'}
             </a>
@@ -469,17 +465,17 @@ function MFATab({ profile, qc }: { profile: UserProfile; qc: ReturnType<typeof u
       <Card>
         <div className="flex items-center justify-between mb-1">
           <div className="flex items-center gap-3">
-            <div className={`p-2 rounded-lg ${emailEnabled ? 'bg-green-900/30' : 'bg-falcon-border/50'}`}>
-              <Mail className={`w-5 h-5 ${emailEnabled ? 'text-green-400' : 'text-falcon-muted'}`} />
+            <div className={`p-2 rounded-lg ${emailEnabled ? 'bg-green-900/30' : 'bg-[#1e2d42]/50'}`}>
+              <Mail className={`w-5 h-5 ${emailEnabled ? 'text-green-400' : 'text-[#7d92b0]'}`} />
             </div>
             <div>
               <h3 className="text-white font-medium">メール MFA</h3>
-              <p className="text-falcon-muted text-xs mt-0.5">ログイン時にメールで確認コードを送信します</p>
+              <p className="text-[#7d92b0] text-xs mt-0.5">ログイン時にメールで確認コードを送信します</p>
             </div>
           </div>
           <div className="flex items-center gap-3">
             <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${
-              emailEnabled ? 'bg-green-900/40 text-green-300' : 'bg-falcon-border text-falcon-muted'
+              emailEnabled ? 'bg-green-900/40 text-green-300' : 'bg-[#1e2d42] text-[#7d92b0]'
             }`}>
               {emailEnabled ? '有効' : '無効'}
             </span>
@@ -489,7 +485,7 @@ function MFATab({ profile, qc }: { profile: UserProfile; qc: ReturnType<typeof u
               className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors disabled:opacity-50
                 ${emailEnabled
                   ? 'bg-red-900/40 text-red-300 hover:bg-red-900/60'
-                  : 'bg-falcon-red text-white hover:bg-[#c40026]'
+                  : 'bg-[#e8002d] text-white hover:bg-[#c40026]'
                 }`}
             >
               {emailEnabled ? '無効にする' : '有効にする'}
@@ -545,13 +541,12 @@ function APIKeysTab() {
     <Card>
       <div className="flex items-center justify-between mb-5">
         <div className="flex items-center gap-2">
-          <KeyRound className="w-4 h-4 text-falcon-muted" />
+          <KeyRound className="w-4 h-4 text-[#7d92b0]" />
           <h2 className="text-white font-medium">API キー</h2>
         </div>
         <button
           onClick={() => { setShowCreate(true); setNewKeyValue(null) }}
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-falcon-red text-white text-sm rounded-lg
-                     hover:bg-[#c40026] transition-colors"
+          className="flex items-center gap-1.5 px-3 py-1.5 bg-[#e8002d] text-white text-sm rounded-lg hover:bg-[#c40026] transition-colors"
         >
           <Plus className="w-4 h-4" />
           新規作成
@@ -560,7 +555,7 @@ function APIKeysTab() {
 
       {/* Create modal */}
       {showCreate && !newKeyValue && (
-        <div className="mb-5 p-4 bg-[#070d19] rounded-lg border border-falcon-border">
+        <div className="mb-5 p-4 bg-[#070d19] rounded-lg border border-[#1e2d42]">
           <h3 className="text-white text-sm font-medium mb-3">新しい API キーを作成</h3>
           <input
             autoFocus
@@ -570,21 +565,19 @@ function APIKeysTab() {
               if (e.key === 'Enter' && newKeyName.trim()) createKey.mutate()
             }}
             placeholder="キー名 (例: CI/CD Pipeline)"
-            className="w-full bg-falcon-surface text-white px-3 py-2 rounded-lg border border-falcon-border
-                       text-sm focus:outline-hidden focus:border-falcon-red mb-3 placeholder-falcon-subtle"
+            className="w-full bg-[#0d1220] text-white px-3 py-2 rounded-lg border border-[#1e2d42] text-sm focus:outline-hidden focus:border-[#e8002d] mb-3 placeholder-[#3d5068]"
           />
           <div className="flex items-center gap-2">
             <button
               onClick={() => createKey.mutate()}
               disabled={!newKeyName.trim() || createKey.isPending}
-              className="px-3 py-1.5 bg-falcon-red text-white text-sm rounded-lg hover:bg-[#c40026]
-                         disabled:opacity-50 transition-colors"
+              className="px-3 py-1.5 bg-[#e8002d] text-white text-sm rounded-lg hover:bg-[#c40026] disabled:opacity-50 transition-colors"
             >
               作成
             </button>
             <button
               onClick={() => setShowCreate(false)}
-              className="px-3 py-1.5 text-falcon-muted text-sm hover:text-falcon-text"
+              className="px-3 py-1.5 text-[#7d92b0] text-sm hover:text-[#e2e8f4]"
             >
               キャンセル
             </button>
@@ -613,7 +606,7 @@ function APIKeysTab() {
           </div>
           <button
             onClick={() => { setNewKeyValue(null); setShowCreate(false) }}
-            className="mt-2 text-falcon-muted text-xs hover:text-falcon-text"
+            className="mt-2 text-[#7d92b0] text-xs hover:text-[#e2e8f4]"
           >
             閉じる
           </button>
@@ -622,22 +615,22 @@ function APIKeysTab() {
 
       {isLoading ? (
         <div className="flex justify-center py-8">
-          <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-falcon-red" />
+          <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-[#e8002d]" />
         </div>
       ) : keys.length === 0 ? (
-        <p className="text-falcon-muted text-sm text-center py-8">API キーがありません</p>
+        <p className="text-[#7d92b0] text-sm text-center py-8">API キーがありません</p>
       ) : (
         <div className="space-y-3">
           {keys.map(k => (
             <div key={k.id}
-              className="flex items-center justify-between p-3 bg-[#070d19] rounded-lg border border-falcon-border"
+              className="flex items-center justify-between p-3 bg-[#070d19] rounded-lg border border-[#1e2d42]"
             >
               <div>
                 <p className="text-white text-sm font-medium">{k.name}</p>
-                <p className="text-falcon-muted text-xs font-mono mt-0.5">
+                <p className="text-[#7d92b0] text-xs font-mono mt-0.5">
                   {k.key_prefix}••••••••••••
                 </p>
-                <p className="text-falcon-subtle text-xs mt-0.5">
+                <p className="text-[#3d5068] text-xs mt-0.5">
                   作成: {new Date(k.created_at).toLocaleDateString('ja-JP')}
                   {k.last_used_at && (
                     <> &nbsp;·&nbsp; 最終使用: {new Date(k.last_used_at).toLocaleDateString('ja-JP')}</>
@@ -647,8 +640,7 @@ function APIKeysTab() {
               <button
                 onClick={() => revokeKey.mutate(k.id)}
                 disabled={revokeKey.isPending}
-                className="p-1.5 text-red-400 hover:text-red-300 hover:bg-red-900/20 rounded-lg
-                           transition-colors disabled:opacity-50"
+                className="p-1.5 text-red-400 hover:text-red-300 hover:bg-red-900/20 rounded-lg transition-colors disabled:opacity-50"
                 title="失効"
               >
                 <Trash2 className="w-4 h-4" />
@@ -678,35 +670,35 @@ function ActivityTab() {
     <div className="space-y-4">
       <Card>
         <div className="flex items-center gap-2 mb-5">
-          <Globe className="w-4 h-4 text-falcon-muted" />
+          <Globe className="w-4 h-4 text-[#7d92b0]" />
           <h2 className="text-white font-medium">ログイン履歴</h2>
-          <span className="text-falcon-muted text-xs ml-1">(直近 20 件)</span>
+          <span className="text-[#7d92b0] text-xs ml-1">(直近 20 件)</span>
         </div>
         {loadingLogin ? (
           <div className="flex justify-center py-8">
-            <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-falcon-red" />
+            <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-[#e8002d]" />
           </div>
         ) : loginHistory.length === 0 ? (
-          <p className="text-falcon-muted text-sm text-center py-8">ログイン履歴がありません</p>
+          <p className="text-[#7d92b0] text-sm text-center py-8">ログイン履歴がありません</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-left text-falcon-muted text-xs border-b border-falcon-border">
+                <tr className="text-left text-[#7d92b0] text-xs border-b border-[#1e2d42]">
                   <th className="pb-2 pr-4">日時</th>
                   <th className="pb-2 pr-4">IP アドレス</th>
                   <th className="pb-2 pr-4">ブラウザ / エージェント</th>
                   <th className="pb-2">結果</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-falcon-border">
+              <tbody className="divide-y divide-[#1e2d42]">
                 {loginHistory.map(ev => (
-                  <tr key={ev.id} className="text-falcon-text">
-                    <td className="py-2 pr-4 text-xs text-falcon-muted whitespace-nowrap">
+                  <tr key={ev.id} className="text-[#e2e8f4]">
+                    <td className="py-2 pr-4 text-xs text-[#7d92b0] whitespace-nowrap">
                       {new Date(ev.created_at).toLocaleString('ja-JP')}
                     </td>
                     <td className="py-2 pr-4 font-mono text-xs">{ev.ip_address}</td>
-                    <td className="py-2 pr-4 text-xs text-falcon-muted max-w-xs truncate">
+                    <td className="py-2 pr-4 text-xs text-[#7d92b0] max-w-xs truncate">
                       {ev.user_agent}
                     </td>
                     <td className="py-2">
@@ -726,44 +718,44 @@ function ActivityTab() {
 
       <Card>
         <div className="flex items-center gap-2 mb-5">
-          <Activity className="w-4 h-4 text-falcon-muted" />
+          <Activity className="w-4 h-4 text-[#7d92b0]" />
           <h2 className="text-white font-medium">最近の API 呼び出し</h2>
-          <span className="text-falcon-muted text-xs ml-1">(直近 20 件)</span>
+          <span className="text-[#7d92b0] text-xs ml-1">(直近 20 件)</span>
         </div>
         {loadingApi ? (
           <div className="flex justify-center py-8">
-            <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-falcon-red" />
+            <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-[#e8002d]" />
           </div>
         ) : apiCalls.length === 0 ? (
-          <p className="text-falcon-muted text-sm text-center py-8">API 呼び出し履歴がありません</p>
+          <p className="text-[#7d92b0] text-sm text-center py-8">API 呼び出し履歴がありません</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-left text-falcon-muted text-xs border-b border-falcon-border">
+                <tr className="text-left text-[#7d92b0] text-xs border-b border-[#1e2d42]">
                   <th className="pb-2 pr-4">日時</th>
                   <th className="pb-2 pr-4">メソッド</th>
                   <th className="pb-2 pr-4">パス</th>
                   <th className="pb-2">ステータス</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-falcon-border">
+              <tbody className="divide-y divide-[#1e2d42]">
                 {apiCalls.map(ev => (
-                  <tr key={ev.id} className="text-falcon-text">
-                    <td className="py-2 pr-4 text-xs text-falcon-muted whitespace-nowrap">
+                  <tr key={ev.id} className="text-[#e2e8f4]">
+                    <td className="py-2 pr-4 text-xs text-[#7d92b0] whitespace-nowrap">
                       {new Date(ev.created_at).toLocaleString('ja-JP')}
                     </td>
                     <td className="py-2 pr-4">
-                      <span className={`text-xs font-mono px-1.5 py-0.5 rounded ${
+                      <span className={`text-xs font-mono px-1.5 py-0.5 rounded-sm ${
                         ev.method === 'GET'    ? 'bg-blue-900/40 text-blue-300'   :
                         ev.method === 'POST'   ? 'bg-green-900/40 text-green-300' :
                         ev.method === 'DELETE' ? 'bg-red-900/40 text-red-300'     :
-                                                 'bg-falcon-border text-falcon-muted'
+                                                 'bg-[#1e2d42] text-[#7d92b0]'
                       }`}>
                         {ev.method}
                       </span>
                     </td>
-                    <td className="py-2 pr-4 font-mono text-xs text-falcon-muted max-w-xs truncate">
+                    <td className="py-2 pr-4 font-mono text-xs text-[#7d92b0] max-w-xs truncate">
                       {ev.path}
                     </td>
                     <td className="py-2">
@@ -834,14 +826,13 @@ function NotificationsTab() {
     <Card>
       <div className="flex items-center justify-between mb-5">
         <div className="flex items-center gap-2">
-          <Bell className="w-4 h-4 text-falcon-muted" />
+          <Bell className="w-4 h-4 text-[#7d92b0]" />
           <h2 className="text-white font-medium">通知設定</h2>
         </div>
         <button
           onClick={() => saveMutation.mutate()}
           disabled={saveMutation.isPending}
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-falcon-red text-white text-sm rounded-lg
-                     hover:bg-[#c40026] transition-colors disabled:opacity-50"
+          className="flex items-center gap-1.5 px-3 py-1.5 bg-[#e8002d] text-white text-sm rounded-lg hover:bg-[#c40026] transition-colors disabled:opacity-50"
         >
           {saveMutation.isPending
             ? <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -858,7 +849,7 @@ function NotificationsTab() {
       )}
 
       {/* Table header */}
-      <div className="grid grid-cols-[1fr_auto_auto] gap-4 text-xs text-falcon-muted pb-2 border-b border-falcon-border mb-2">
+      <div className="grid grid-cols-[1fr_auto_auto] gap-4 text-xs text-[#7d92b0] pb-2 border-b border-[#1e2d42] mb-2">
         <span>イベント</span>
         <span className="text-center w-16">メール</span>
         <span className="text-center w-16">アプリ内</span>
@@ -868,18 +859,17 @@ function NotificationsTab() {
         {prefs.map((pref, idx) => (
           <div
             key={pref.event_type}
-            className="grid grid-cols-[1fr_auto_auto] gap-4 items-center py-2 px-1
-                       hover:bg-[#070d19] rounded-lg transition-colors"
+            className="grid grid-cols-[1fr_auto_auto] gap-4 items-center py-2 px-1 hover:bg-[#070d19] rounded-lg transition-colors"
           >
             <span className="text-white text-sm">{pref.label}</span>
             <div className="flex justify-center w-16">
               <button
                 onClick={() => toggle(idx, 'email')}
                 className={`w-8 h-5 rounded-full transition-colors relative ${
-                  pref.email ? 'bg-falcon-red' : 'bg-falcon-border'
+                  pref.email ? 'bg-[#e8002d]' : 'bg-[#1e2d42]'
                 }`}
               >
-                <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-falcon-text shadow transition-transform ${
+                <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-[#e2e8f4] shadow-sm transition-transform ${
                   pref.email ? 'left-3.5' : 'left-0.5'
                 }`} />
               </button>
@@ -888,10 +878,10 @@ function NotificationsTab() {
               <button
                 onClick={() => toggle(idx, 'in_app')}
                 className={`w-8 h-5 rounded-full transition-colors relative ${
-                  pref.in_app ? 'bg-falcon-red' : 'bg-falcon-border'
+                  pref.in_app ? 'bg-[#e8002d]' : 'bg-[#1e2d42]'
                 }`}
               >
-                <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-falcon-text shadow transition-transform ${
+                <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-[#e2e8f4] shadow-sm transition-transform ${
                   pref.in_app ? 'left-3.5' : 'left-0.5'
                 }`} />
               </button>

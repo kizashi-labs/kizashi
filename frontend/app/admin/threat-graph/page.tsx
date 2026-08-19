@@ -9,6 +9,9 @@ import {
 } from 'lucide-react'
 
 
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+import { PageSaveFailed } from '@/components/PageSaveFailed'
+
 const NODE_COLORS: Record<string, string> = {
   process: 'bg-blue-500 border-blue-400',
   file: 'bg-green-500 border-green-400',
@@ -224,18 +227,17 @@ export default function ThreatGraphPage() {
   const EMPTY_STATS = { process: 0, file: 0, network: 0, agent: 0, alert: 0, total_nodes: 0, total_edges: 0 }
   const EMPTY_SUBGRAPH = { root_id: '', max_depth: 0, nodes: [], edges: [] }
 
-  const { data: stats } = useQuery({
+  const { data: stats = EMPTY_STATS } = useQuery({
     queryKey: ['threat-graph-stats'],
-    queryFn: () => apiFetch('/api/v1/admin/threat-graph/stats').catch(() => EMPTY_STATS),
+    queryFn: () => apiFetch('/api/v1/admin/threat-graph/stats'),
     refetchInterval: 60000,
   })
 
-  const { data: graphData, isLoading } = useQuery({
+  const { data: graphData = EMPTY_SUBGRAPH, isLoading } = useQuery({
     queryKey: ['threat-graph-subgraph', rootNodeId, depth],
     queryFn: () =>
       rootNodeId
         ? apiFetch(`/api/v1/admin/threat-graph/subgraph?root_id=${encodeURIComponent(rootNodeId)}&depth=${depth}`)
-            .catch(() => EMPTY_SUBGRAPH)
         : Promise.resolve(EMPTY_SUBGRAPH),
   })
 
@@ -257,6 +259,8 @@ export default function ThreatGraphPage() {
 
   return (
     <div className="p-6 space-y-6">
+      <PageDataUnavailable />
+      <PageSaveFailed className="mb-4" />
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-white flex items-center gap-2">

@@ -6,6 +6,8 @@ import {
   Shield, TrendingUp, TrendingDown, AlertTriangle, CheckCircle,
   RefreshCw, Target, Loader2, ArrowUp, ArrowDown, Minus,
 } from 'lucide-react'
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+
 import { apiFetch } from '@/lib/api'
 import { USE_MOCK } from '@/lib/mock'
 
@@ -215,7 +217,7 @@ function CircularGauge({ score, grade }: { score: number; grade: string }) {
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
         <span className="text-4xl font-bold text-white">{animatedScore}</span>
-        <span className="text-xs text-falcon-muted mt-0.5">/ 100</span>
+        <span className="text-xs text-[#7d92b0] mt-0.5">/ 100</span>
         <span className="text-2xl font-bold mt-1" style={{ color: gradeColor }}>{grade}</span>
       </div>
     </div>
@@ -323,7 +325,7 @@ function TrendChart({ points }: { points: TrendPoint[] }) {
 
 function SeverityBadge({ severity }: { severity: CriticalFinding['severity'] }) {
   const cfg: Record<string, string> = {
-    critical: 'bg-falcon-red/20 text-falcon-red border-falcon-red/40',
+    critical: 'bg-[#e8002d]/20 text-[#e8002d] border-[#e8002d]/40',
     high: 'bg-orange-500/20 text-orange-400 border-orange-500/40',
     medium: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/40',
   }
@@ -338,12 +340,12 @@ function SeverityBadge({ severity }: { severity: CriticalFinding['severity'] }) 
 function CoverageBar({ label, value }: { label: string; value: number }) {
   const color = value >= 90 ? '#00c853' : value >= 70 ? '#1a6bff' : value >= 50 ? '#ff9800' : '#e8002d'
   return (
-    <div className="bg-falcon-surface rounded-lg border border-falcon-border p-4">
+    <div className="bg-[#0d1220] rounded-lg border border-[#1e2d42] p-4">
       <div className="flex items-center justify-between mb-2">
-        <span className="text-falcon-muted text-xs">{label}</span>
+        <span className="text-[#7d92b0] text-xs">{label}</span>
         <span className="text-white font-bold text-sm">{value}%</span>
       </div>
-      <div className="h-2 rounded-full bg-falcon-border overflow-hidden">
+      <div className="h-2 rounded-full bg-[#1e2d42] overflow-hidden">
         <div className="h-full rounded-full transition-all duration-700" style={{ width: `${value}%`, backgroundColor: color }} />
       </div>
     </div>
@@ -352,10 +354,10 @@ function CoverageBar({ label, value }: { label: string; value: number }) {
 
 function ComplianceStatusCell({ status, score }: { status: ComplianceCell['status']; score: number }) {
   const cfg: Record<string, string> = {
-    compliant: 'bg-falcon-green/20 text-falcon-green',
+    compliant: 'bg-[#00c853]/20 text-[#00c853]',
     partial: 'bg-yellow-500/20 text-yellow-400',
-    non_compliant: 'bg-falcon-red/20 text-falcon-red',
-    not_assessed: 'bg-falcon-border text-falcon-subtle',
+    non_compliant: 'bg-[#e8002d]/20 text-[#e8002d]',
+    not_assessed: 'bg-[#1e2d42] text-[#3d5068]',
   }
   return (
     <div className={`rounded-sm p-2 text-center ${cfg[status]}`}>
@@ -399,23 +401,24 @@ export default function SecurityPosturePage() {
   const domains = ['Endpoint', 'Network', 'Identity', 'Data', 'Cloud']
 
   return (
-    <div className="min-h-screen bg-[#070d19] text-falcon-muted">
+    <div className="min-h-screen bg-[#070d19] text-[#7d92b0]">
+      <PageDataUnavailable />
       {/* Header */}
-      <div className="border-b border-falcon-border bg-falcon-surface px-6 py-4">
+      <div className="border-b border-[#1e2d42] bg-[#0d1220] px-6 py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-linear-to-br from-falcon-red to-falcon-red-dark flex items-center justify-center">
+            <div className="w-9 h-9 rounded-lg bg-linear-to-br from-[#e8002d] to-[#a80020] flex items-center justify-center">
               <Shield className="w-5 h-5 text-white" />
             </div>
             <div>
               <h1 className="text-xl font-bold text-white">セキュリティ態勢 総合ダッシュボード</h1>
-              <p className="text-xs text-falcon-subtle mt-0.5">Security Posture Dashboard v2 — 最終更新: {new Date().toLocaleString('ja-JP')}</p>
+              <p className="text-xs text-[#3d5068] mt-0.5">Security Posture Dashboard v2 — 最終更新: {new Date().toLocaleString('ja-JP')}</p>
             </div>
           </div>
           <div className="flex items-center gap-3">
             <button
               onClick={() => refetch()}
-              className="flex items-center gap-2 px-3 py-2 rounded-lg border border-falcon-border text-falcon-muted hover:text-white hover:border-falcon-muted/40 transition-all text-sm"
+              className="flex items-center gap-2 px-3 py-2 rounded-lg border border-[#1e2d42] text-[#7d92b0] hover:text-white hover:border-[#7d92b0]/40 transition-all text-sm"
             >
               <RefreshCw className="w-4 h-4" />
               更新
@@ -423,7 +426,7 @@ export default function SecurityPosturePage() {
             <button
               onClick={runScan}
               disabled={scanProgress !== null}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-falcon-red text-white hover:bg-[#c0001f] disabled:opacity-60 disabled:cursor-not-allowed transition-all text-sm font-medium"
+              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#e8002d] text-white hover:bg-[#c0001f] disabled:opacity-60 disabled:cursor-not-allowed transition-all text-sm font-medium"
             >
               {scanProgress !== null ? (
                 <>
@@ -440,15 +443,15 @@ export default function SecurityPosturePage() {
           </div>
         </div>
         {scanProgress !== null && (
-          <div className="mt-3 h-1.5 rounded-full bg-falcon-border overflow-hidden">
-            <div className="h-full rounded-full bg-falcon-red transition-all duration-150" style={{ width: `${scanProgress}%` }} />
+          <div className="mt-3 h-1.5 rounded-full bg-[#1e2d42] overflow-hidden">
+            <div className="h-full rounded-full bg-[#e8002d] transition-all duration-150" style={{ width: `${scanProgress}%` }} />
           </div>
         )}
       </div>
 
       {isLoading && (
         <div className="flex items-center justify-center h-64">
-          <Loader2 className="w-8 h-8 animate-spin text-falcon-blue" />
+          <Loader2 className="w-8 h-8 animate-spin text-[#1a6bff]" />
         </div>
       )}
 
@@ -459,20 +462,20 @@ export default function SecurityPosturePage() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
             {/* Overall Score */}
-            <div className="bg-falcon-surface border border-falcon-border rounded-xl p-6 flex flex-col items-center gap-4">
+            <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-6 flex flex-col items-center gap-4">
               <h2 className="text-white font-semibold text-base self-start">総合スコア</h2>
               <CircularGauge score={summary.overall_score} grade={summary.grade} />
               <div className="flex items-center gap-2">
                 {summary.trend > 0 ? (
-                  <span className="flex items-center gap-1 text-falcon-green text-sm font-medium">
+                  <span className="flex items-center gap-1 text-[#00c853] text-sm font-medium">
                     <ArrowUp className="w-4 h-4" /> +{summary.trend}% (前月比)
                   </span>
                 ) : summary.trend < 0 ? (
-                  <span className="flex items-center gap-1 text-falcon-red text-sm font-medium">
+                  <span className="flex items-center gap-1 text-[#e8002d] text-sm font-medium">
                     <ArrowDown className="w-4 h-4" /> {summary.trend}% (前月比)
                   </span>
                 ) : (
-                  <span className="flex items-center gap-1 text-falcon-muted text-sm">
+                  <span className="flex items-center gap-1 text-[#7d92b0] text-sm">
                     <Minus className="w-4 h-4" /> 変化なし
                   </span>
                 )}
@@ -484,7 +487,7 @@ export default function SecurityPosturePage() {
                   return (
                     <div
                       key={g}
-                      className={`rounded-sm px-2 py-1 text-xs border ${summary.grade === g ? 'border-current font-bold' : 'border-falcon-border'}`}
+                      className={`rounded-sm px-2 py-1 text-xs border ${summary.grade === g ? 'border-current font-bold' : 'border-[#1e2d42]'}`}
                       style={{ color: summary.grade === g ? color[g] : '#3d5068' }}
                     >
                       {g}: {range[g]}
@@ -495,7 +498,7 @@ export default function SecurityPosturePage() {
             </div>
 
             {/* Pentagon Radar */}
-            <div className="bg-falcon-surface border border-falcon-border rounded-xl p-6 flex flex-col items-center gap-2">
+            <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-6 flex flex-col items-center gap-2">
               <h2 className="text-white font-semibold text-base self-start">ドメイン別スコア</h2>
               <PentagonChart scores={summary.domain_scores} />
               <div className="grid grid-cols-5 gap-1 w-full mt-1">
@@ -504,7 +507,7 @@ export default function SecurityPosturePage() {
                   const label: Record<string, string> = { endpoint: 'EP', network: 'NW', identity: 'ID', data: 'DA', cloud: 'CL' }
                   return (
                     <div key={k} className="text-center">
-                      <div className="text-[9px] text-falcon-subtle">{label[k]}</div>
+                      <div className="text-[9px] text-[#3d5068]">{label[k]}</div>
                       <div className="text-xs font-bold" style={{ color }}>{v}</div>
                     </div>
                   )
@@ -513,15 +516,15 @@ export default function SecurityPosturePage() {
             </div>
 
             {/* 30-day Trend */}
-            <div className="bg-falcon-surface border border-falcon-border rounded-xl p-6">
+            <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-6">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-white font-semibold text-base">30日間トレンド</h2>
-                <span className="text-xs text-falcon-subtle">スコア推移</span>
+                <span className="text-xs text-[#3d5068]">スコア推移</span>
               </div>
               <TrendChart points={summary.trend_30d} />
-              <div className="flex items-center justify-between mt-3 text-xs text-falcon-subtle">
+              <div className="flex items-center justify-between mt-3 text-xs text-[#3d5068]">
                 <span>開始: {summary.trend_30d[0]?.score ?? 0}</span>
-                <span className="text-falcon-green font-medium">
+                <span className="text-[#00c853] font-medium">
                   現在: {summary.trend_30d[summary.trend_30d.length - 1]?.score ?? 0}
                 </span>
               </div>
@@ -545,12 +548,12 @@ export default function SecurityPosturePage() {
           <div>
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-white font-semibold text-base">Critical検知項目 (TOP 5)</h2>
-              <span className="text-xs text-falcon-subtle">インパクト順</span>
+              <span className="text-xs text-[#3d5068]">インパクト順</span>
             </div>
-            <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
+            <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-falcon-border text-falcon-subtle text-xs">
+                  <tr className="border-b border-[#1e2d42] text-[#3d5068] text-xs">
                     <th className="text-left px-4 py-3">検知内容</th>
                     <th className="text-left px-4 py-3">カテゴリ</th>
                     <th className="text-left px-4 py-3">深刻度</th>
@@ -562,25 +565,25 @@ export default function SecurityPosturePage() {
                 </thead>
                 <tbody>
                   {summary.critical_findings.map((f, i) => (
-                    <tr key={f.id} className={`border-b border-falcon-border last:border-0 hover:bg-falcon-hover transition-colors ${i === 0 ? 'bg-falcon-red/5' : ''}`}>
+                    <tr key={f.id} className={`border-b border-[#1e2d42] last:border-0 hover:bg-[#19253d] transition-colors ${i === 0 ? 'bg-[#e8002d]/5' : ''}`}>
                       <td className="px-4 py-3">
                         <span className="text-white font-medium text-sm">{f.title}</span>
                       </td>
                       <td className="px-4 py-3">
-                        <span className="text-[10px] bg-falcon-border text-falcon-muted px-2 py-0.5 rounded-sm">{f.category}</span>
+                        <span className="text-[10px] bg-[#1e2d42] text-[#7d92b0] px-2 py-0.5 rounded-sm">{f.category}</span>
                       </td>
                       <td className="px-4 py-3">
                         <SeverityBadge severity={f.severity} />
                       </td>
                       <td className="px-4 py-3 text-right text-white">{f.affected_assets}</td>
                       <td className="px-4 py-3 text-right">
-                        <span className={f.days_open > 14 ? 'text-falcon-red' : 'text-falcon-amber'}>{f.days_open}日</span>
+                        <span className={f.days_open > 14 ? 'text-[#e8002d]' : 'text-[#ff9800]'}>{f.days_open}日</span>
                       </td>
                       <td className="px-4 py-3 text-right">
-                        <span className="text-falcon-red font-bold">{f.impact_score.toFixed(1)}</span>
+                        <span className="text-[#e8002d] font-bold">{f.impact_score.toFixed(1)}</span>
                       </td>
                       <td className="px-4 py-3 text-right">
-                        <button className="text-xs px-3 py-1 rounded-sm bg-falcon-red/20 text-falcon-red border border-falcon-red/40 hover:bg-falcon-red/30 transition-colors">
+                        <button className="text-xs px-3 py-1 rounded-sm bg-[#e8002d]/20 text-[#e8002d] border border-[#e8002d]/40 hover:bg-[#e8002d]/30 transition-colors">
                           対処
                         </button>
                       </td>
@@ -595,22 +598,22 @@ export default function SecurityPosturePage() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
             {/* Recent Improvements */}
-            <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
+            <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
               <div className="flex items-center gap-2 mb-4">
-                <TrendingUp className="w-4 h-4 text-falcon-green" />
+                <TrendingUp className="w-4 h-4 text-[#00c853]" />
                 <h2 className="text-white font-semibold text-base">最近の改善 (直近5件)</h2>
               </div>
               <div className="space-y-3">
                 {summary.recent_improvements.map(imp => (
-                  <div key={imp.id} className="flex items-center gap-3 py-2 border-b border-falcon-border last:border-0">
-                    <div className="w-8 h-8 rounded-lg bg-falcon-green/10 flex items-center justify-center shrink-0">
-                      <ArrowUp className="w-4 h-4 text-falcon-green" />
+                  <div key={imp.id} className="flex items-center gap-3 py-2 border-b border-[#1e2d42] last:border-0">
+                    <div className="w-8 h-8 rounded-lg bg-[#00c853]/10 flex items-center justify-center shrink-0">
+                      <ArrowUp className="w-4 h-4 text-[#00c853]" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-white text-sm font-medium">{imp.description}</p>
-                      <p className="text-falcon-subtle text-xs mt-0.5">{imp.category} · {imp.date}</p>
+                      <p className="text-[#3d5068] text-xs mt-0.5">{imp.category} · {imp.date}</p>
                     </div>
-                    <span className="text-xs font-bold px-2 py-0.5 rounded-sm bg-falcon-green/20 text-falcon-green border border-falcon-green/30">
+                    <span className="text-xs font-bold px-2 py-0.5 rounded-sm bg-[#00c853]/20 text-[#00c853] border border-[#00c853]/30">
                       +{imp.change}%
                     </span>
                   </div>
@@ -619,26 +622,26 @@ export default function SecurityPosturePage() {
             </div>
 
             {/* Open Risks */}
-            <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
+            <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
               <div className="flex items-center gap-2 mb-4">
-                <AlertTriangle className="w-4 h-4 text-falcon-amber" />
+                <AlertTriangle className="w-4 h-4 text-[#ff9800]" />
                 <h2 className="text-white font-semibold text-base">オープンリスク (TOP 10)</h2>
               </div>
               <div className="space-y-2">
                 {summary.open_risks.map((risk, i) => (
                   <div key={risk.id} className="flex items-center gap-3">
-                    <span className="text-xs text-falcon-subtle w-4 shrink-0">{i + 1}</span>
+                    <span className="text-xs text-[#3d5068] w-4 shrink-0">{i + 1}</span>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between mb-0.5">
-                        <span className="text-falcon-muted text-xs truncate">{risk.title}</span>
+                        <span className="text-[#7d92b0] text-xs truncate">{risk.title}</span>
                         <div className="flex items-center gap-1.5 shrink-0 ml-2">
-                          {risk.trend === 'up' && <TrendingUp className="w-3 h-3 text-falcon-red" />}
-                          {risk.trend === 'down' && <TrendingDown className="w-3 h-3 text-falcon-green" />}
-                          {risk.trend === 'stable' && <Minus className="w-3 h-3 text-falcon-muted" />}
+                          {risk.trend === 'up' && <TrendingUp className="w-3 h-3 text-[#e8002d]" />}
+                          {risk.trend === 'down' && <TrendingDown className="w-3 h-3 text-[#00c853]" />}
+                          {risk.trend === 'stable' && <Minus className="w-3 h-3 text-[#7d92b0]" />}
                           <span className="text-[10px] text-white font-bold">{risk.risk_score}</span>
                         </div>
                       </div>
-                      <div className="h-1.5 rounded-full bg-falcon-border overflow-hidden">
+                      <div className="h-1.5 rounded-full bg-[#1e2d42] overflow-hidden">
                         <div
                           className="h-full rounded-full"
                           style={{
@@ -648,7 +651,7 @@ export default function SecurityPosturePage() {
                         />
                       </div>
                     </div>
-                    <span className="text-[9px] bg-falcon-border text-falcon-muted px-1.5 py-0.5 rounded-sm shrink-0">{risk.category}</span>
+                    <span className="text-[9px] bg-[#1e2d42] text-[#7d92b0] px-1.5 py-0.5 rounded-sm shrink-0">{risk.category}</span>
                   </div>
                 ))}
               </div>
@@ -656,33 +659,33 @@ export default function SecurityPosturePage() {
           </div>
 
           {/* Compliance Heatmap */}
-          <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
+          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
-                <CheckCircle className="w-4 h-4 text-falcon-blue" />
+                <CheckCircle className="w-4 h-4 text-[#1a6bff]" />
                 <h2 className="text-white font-semibold text-base">コンプライアンスヒートマップ</h2>
               </div>
-              <div className="flex items-center gap-3 text-xs text-falcon-muted">
-                <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-falcon-green/30 inline-block" />準拠</span>
+              <div className="flex items-center gap-3 text-xs text-[#7d92b0]">
+                <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-[#00c853]/30 inline-block" />準拠</span>
                 <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-yellow-500/30 inline-block" />一部準拠</span>
-                <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-falcon-red/30 inline-block" />非準拠</span>
-                <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-falcon-border inline-block" />未評価</span>
+                <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-[#e8002d]/30 inline-block" />非準拠</span>
+                <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-[#1e2d42] inline-block" />未評価</span>
               </div>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-xs">
                 <thead>
                   <tr>
-                    <th className="text-left text-falcon-subtle font-medium pb-2 pr-4">フレームワーク</th>
+                    <th className="text-left text-[#3d5068] font-medium pb-2 pr-4">フレームワーク</th>
                     {domains.map(d => (
-                      <th key={d} className="text-center text-falcon-subtle font-medium pb-2 px-2 min-w-[80px]">{d}</th>
+                      <th key={d} className="text-center text-[#3d5068] font-medium pb-2 px-2 min-w-[80px]">{d}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {frameworks.map(fw => (
-                    <tr key={fw} className="border-t border-falcon-border">
-                      <td className="py-2 pr-4 text-falcon-muted font-medium whitespace-nowrap">{fw}</td>
+                    <tr key={fw} className="border-t border-[#1e2d42]">
+                      <td className="py-2 pr-4 text-[#7d92b0] font-medium whitespace-nowrap">{fw}</td>
                       {domains.map(d => {
                         const cell = summary.compliance_heatmap.find(c => c.framework === fw && c.domain === d)
                         return (
@@ -690,7 +693,7 @@ export default function SecurityPosturePage() {
                             {cell ? (
                               <ComplianceStatusCell status={cell.status} score={cell.score} />
                             ) : (
-                              <div className="rounded-sm p-2 text-center bg-falcon-border text-falcon-subtle text-xs">N/A</div>
+                              <div className="rounded-sm p-2 text-center bg-[#1e2d42] text-[#3d5068] text-xs">N/A</div>
                             )}
                           </td>
                         )

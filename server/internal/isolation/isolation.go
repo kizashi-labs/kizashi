@@ -169,6 +169,23 @@ type Config struct {
 	DryRun bool
 	// Exempt は AUTO_ISOLATE_EXEMPT。ホスト名またはエージェント ID を並べる。
 	// ここに載った端末は無人経路の対象から外れる（手動隔離は従来どおり通す）。
+	//
+	// これが要るのは、隔離が外から取り消せないため。エージェントは EDR サーバ以外を
+	// 全て遮断するので、隔離はその端末への SSH/RDP も切る。プラットフォーム自身が
+	// 動いているホスト——検証機・単一ノード構成・踏み台——では、自動隔離は障害と
+	// 締め出しを同時に起こし、復旧には存在するとは限らない帯域外接続（SSM・シリアル
+	// コンソール）が要る。
+	//
+	// 抑制ルールでは代用できない。あちらはアラート自体を落とすため、除外の代わりに
+	// 使うとその端末の検知が盲になる。しかも SeverityMax は severity <= N に一致する
+	// 条件で、隔離が起きる高 severity 帯とは逆を向いている。この一覧が止めるのは
+	// 応答だけで、検知・アラート・スコアリングには手を触れない。
+	//
+	// 一致はエージェント ID が完全一致、ホスト名が大文字小文字を無視した完全一致。
+	//
+	// 除外は Cooldown / HourlyBudget より前に見る（Isolate 参照）。安全弁は隔離の
+	// 総量を抑えるものだが、これは特定の端末を対象から外すもので、総量に余裕が
+	// あっても覆らない。
 	Exempt []string
 	// HostnameResolver は agentID からホスト名を引く。Exempt をホスト名で
 	// 指定できるようにするために要る。nil なら Request.Hostname だけを見る。
@@ -181,9 +198,10 @@ type Config struct {
 
 // IsExempt reports whether the endpoint is on the exemption list.
 //
-// エンジン側と Gatekeeper 側の両方から呼ぶ。同じ判定を 2 箇所に書くと、
-// 一方だけ直った状態が生まれる。安全弁を二重に持つのは良いが、実装まで
-// 二重に持ってはいけない。
+// 判定の持ち主は Gatekeeper だけである。以前は detection.Engine 側にも同じ検査が
+// あり、そちらが先に return するため、除外された端末の隔離判断が response_actions に
+// 一切残らなかった。安全弁を二重に持つのは良いが、片方だけが記録を残す二重化は、
+// 「除外で止まったのか、応答経路が壊れているのか」を区別できなくする。
 func IsExempt(list []string, hostname, agentID string) bool {
 	for _, ex := range list {
 		ex = strings.TrimSpace(ex)

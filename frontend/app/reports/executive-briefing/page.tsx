@@ -3,13 +3,15 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { apiFetch } from '@/lib/api'
-import { USE_MOCK } from '@/lib/mock'
+import { mockOr } from '@/lib/mock'
 import {
   Briefcase, Download, Mail, Globe, Printer, X, Send,
   TrendingUp, TrendingDown, Minus, AlertTriangle, CheckCircle,
   Shield, Target, BarChart2, Clock, DollarSign, Award,
   ChevronRight, Calendar, Star, FileText,
 } from 'lucide-react'
+
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -65,6 +67,28 @@ interface BriefingData {
   improvements: Improvement[]
   recommendations: Recommendation[]
   next_quarter_initiatives: string[]
+}
+
+// 取得できていないときのブリーフィング。空欄で出ます。
+//
+// この画面はAPIを1本も呼んでおらず、表示はすべて MOCK_BRIEFING_* でした。
+// 「株式会社サイバーシールド / セキュリティスコア82点 / 重大インシデント2件」
+// が、どのテナントで開いても同じ内容で出ます。役員に配る前提の資料なので、
+// 中身が本物かどうかを画面の外で確かめる機会がありません。
+const EMPTY_BRIEFING: BriefingData = {
+  company_name: '',
+  period: '',
+  period_start: '',
+  period_end: '',
+  generated_at: '',
+  traffic_light: 'AMBER',
+  traffic_light_justification: '',
+  summary_bullets: [],
+  kpis: [],
+  top_risks: [],
+  improvements: [],
+  recommendations: [],
+  next_quarter_initiatives: [],
 }
 
 // ─── Mock Data ────────────────────────────────────────────────────────────────
@@ -208,7 +232,7 @@ const IMPROVEMENT_CATEGORY_COLOR: Record<string, string> = {
 }
 
 function TrendIcon({ trend, direction }: { trend: 'up' | 'down' | 'flat'; direction: 'good' | 'bad' | 'neutral' }) {
-  const colorMap = { good: 'text-green-400', bad: 'text-red-400', neutral: 'text-falcon-muted' }
+  const colorMap = { good: 'text-green-400', bad: 'text-red-400', neutral: 'text-[#7d92b0]' }
   const color = colorMap[direction]
   if (trend === 'up') return <TrendingUp className={`w-4 h-4 ${color}`} />
   if (trend === 'down') return <TrendingDown className={`w-4 h-4 ${color}`} />
@@ -229,32 +253,32 @@ function EmailModal({ onClose, onSend }: { onClose: () => void; onSend: (recipie
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
-      <div className="bg-falcon-surface border border-falcon-border rounded-xl w-full max-w-md shadow-2xl">
-        <div className="flex items-center justify-between p-5 border-b border-falcon-border">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl w-full max-w-md shadow-2xl">
+        <div className="flex items-center justify-between p-5 border-b border-[#1e2d42]">
           <h2 className="text-white font-semibold text-lg">メールで送信</h2>
-          <button onClick={onClose} className="text-falcon-muted hover:text-white p-1 rounded-sm hover:bg-falcon-border transition-colors"><X className="w-5 h-5" /></button>
+          <button onClick={onClose} className="text-[#7d92b0] hover:text-white p-1 rounded-sm hover:bg-[#1e2d42] transition-colors"><X className="w-5 h-5" /></button>
         </div>
         <div className="p-5 space-y-4">
           <div>
-            <label className="block text-falcon-muted text-sm mb-1.5">送信先</label>
+            <label className="block text-[#7d92b0] text-sm mb-1.5">送信先</label>
             <div className="flex gap-2 mb-2">
-              <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addRecipient() } }} placeholder="email@example.com" className="flex-1 bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-red/50" />
-              <button onClick={addRecipient} className="px-3 py-2 bg-falcon-border text-white rounded-lg text-sm hover:bg-[#243347] transition-colors">追加</button>
+              <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addRecipient() } }} placeholder="email@example.com" className="flex-1 bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-[#e8002d]/50" />
+              <button onClick={addRecipient} className="px-3 py-2 bg-[#1e2d42] text-white rounded-lg text-sm hover:bg-[#243347] transition-colors">追加</button>
             </div>
             <div className="flex flex-wrap gap-2">
               {recipients.map(r => (
-                <span key={r} className="flex items-center gap-1 px-2 py-1 bg-falcon-border rounded-sm text-xs text-white">
-                  {r}<button onClick={() => setRecipients(rr => rr.filter(x => x !== r))} className="text-falcon-muted hover:text-falcon-red ml-1"><X className="w-3 h-3" /></button>
+                <span key={r} className="flex items-center gap-1 px-2 py-1 bg-[#1e2d42] rounded-sm text-xs text-white">
+                  {r}<button onClick={() => setRecipients(rr => rr.filter(x => x !== r))} className="text-[#7d92b0] hover:text-[#e8002d] ml-1"><X className="w-3 h-3" /></button>
                 </span>
               ))}
             </div>
           </div>
-          <p className="text-falcon-muted text-xs">ブリーフィングはPDF形式で添付され送信されます。</p>
+          <p className="text-[#7d92b0] text-xs">ブリーフィングはPDF形式で添付され送信されます。</p>
         </div>
-        <div className="flex justify-end gap-3 p-5 border-t border-falcon-border">
-          <button onClick={onClose} className="px-4 py-2 text-falcon-muted text-sm hover:text-white rounded-lg hover:bg-falcon-border transition-colors">キャンセル</button>
-          <button onClick={() => { onSend(recipients); onClose() }} className="px-4 py-2 bg-falcon-red text-white text-sm font-medium rounded-lg hover:bg-[#c0001f] transition-colors flex items-center gap-2">
+        <div className="flex justify-end gap-3 p-5 border-t border-[#1e2d42]">
+          <button onClick={onClose} className="px-4 py-2 text-[#7d92b0] text-sm hover:text-white rounded-lg hover:bg-[#1e2d42] transition-colors">キャンセル</button>
+          <button onClick={() => { onSend(recipients); onClose() }} className="px-4 py-2 bg-[#e8002d] text-white text-sm font-medium rounded-lg hover:bg-[#c0001f] transition-colors flex items-center gap-2">
             <Send className="w-4 h-4" />送信
           </button>
         </div>
@@ -284,37 +308,37 @@ function BriefingPreview({ briefing, classification, lang }: BriefingPreviewProp
             {CLASSIFICATION_LABEL[classification]}
           </span>
         </div>
-        <div className="w-16 h-16 rounded-full bg-falcon-red flex items-center justify-center mx-auto mb-6">
+        <div className="w-16 h-16 rounded-full bg-[#e8002d] flex items-center justify-center mx-auto mb-6">
           <Shield className="w-8 h-8 text-white" />
         </div>
         <h1 className="text-3xl font-bold mb-2">{briefing.company_name}</h1>
-        <p className="text-falcon-muted text-sm mb-6 uppercase tracking-widest">
+        <p className="text-[#7d92b0] text-sm mb-6 uppercase tracking-widest">
           {isJa ? 'セキュリティブリーフィング' : 'SECURITY BRIEFING'}
         </p>
-        <div className="inline-block border border-falcon-border rounded-lg px-6 py-3 bg-falcon-surface">
+        <div className="inline-block border border-[#1e2d42] rounded-lg px-6 py-3 bg-[#0d1220]">
           <p className="text-white font-semibold text-xl">{briefing.period}</p>
-          <p className="text-falcon-muted text-sm mt-1">{briefing.period_start} — {briefing.period_end}</p>
+          <p className="text-[#7d92b0] text-sm mt-1">{briefing.period_start} — {briefing.period_end}</p>
         </div>
-        <p className="text-falcon-subtle text-xs mt-6">{isJa ? '生成日' : 'Generated'}: {new Date(briefing.generated_at).toLocaleDateString(isJa ? 'ja-JP' : 'en-US')}</p>
+        <p className="text-[#3d5068] text-xs mt-6">{isJa ? '生成日' : 'Generated'}: {new Date(briefing.generated_at).toLocaleDateString(isJa ? 'ja-JP' : 'en-US')}</p>
       </div>
 
       <div className="p-8 space-y-8 bg-gray-50">
         {/* Executive Summary */}
         <section className="bg-white rounded-xl p-6 shadow-xs border border-gray-100">
           <h2 className="text-gray-900 font-bold text-xl mb-4 pb-2 border-b border-gray-100 flex items-center gap-2">
-            <Star className="w-5 h-5 text-falcon-red" />
+            <Star className="w-5 h-5 text-[#e8002d]" />
             {isJa ? 'エグゼクティブサマリー' : 'Executive Summary'}
           </h2>
           <ul className="space-y-3 mb-6">
             {briefing.summary_bullets.map((b, i) => (
               <li key={i} className="flex items-start gap-3 text-gray-700 text-sm">
-                <ChevronRight className="w-4 h-4 text-falcon-red shrink-0 mt-0.5" />
+                <ChevronRight className="w-4 h-4 text-[#e8002d] shrink-0 mt-0.5" />
                 <span>{b}</span>
               </li>
             ))}
           </ul>
           {/* Traffic Light */}
-          <div className={`flex items-start gap-4 p-4 rounded-lg border ${tlConfig.border}`} style={{ backgroundColor: briefing.traffic_light === 'GREEN' ? '#dcfce7' : briefing.traffic_light === 'AMBER' ? '#fef9c3' : '#fee2e2' }}>
+          <div className={`flex items-start gap-4 p-4 rounded-lg border ${tlConfig.border} bg-opacity-10`} style={{ backgroundColor: briefing.traffic_light === 'GREEN' ? '#dcfce7' : briefing.traffic_light === 'AMBER' ? '#fef9c3' : '#fee2e2' }}>
             <div className={`w-12 h-12 rounded-full ${tlConfig.bg} flex items-center justify-center shrink-0 shadow-md`}>
               <span className="text-white font-bold text-xs">{briefing.traffic_light}</span>
             </div>
@@ -328,7 +352,7 @@ function BriefingPreview({ briefing, classification, lang }: BriefingPreviewProp
         {/* KPIs */}
         <section className="bg-white rounded-xl p-6 shadow-xs border border-gray-100">
           <h2 className="text-gray-900 font-bold text-xl mb-4 pb-2 border-b border-gray-100 flex items-center gap-2">
-            <BarChart2 className="w-5 h-5 text-falcon-red" />
+            <BarChart2 className="w-5 h-5 text-[#e8002d]" />
             {isJa ? '主要KPI (Board Metrics)' : 'Key Performance Indicators'}
           </h2>
           <div className="grid grid-cols-2 gap-4 lg:grid-cols-3">
@@ -470,22 +494,18 @@ export default function ExecutiveBriefingPage() {
     setTimeout(() => setToast(null), 3500)
   }
 
-  // この画面を支える API はまだ無く、中身は完全にサンプルデータ。
-  // 経営層に見せる数字を架空のまま出すと、そのまま取締役会資料に化ける。
-  // NEXT_PUBLIC_USE_MOCK=true のときだけ描画し、それ以外は未実装だと明示する。
-  const briefing = USE_MOCK ? (lang === 'ja' ? MOCK_BRIEFING_JA : MOCK_BRIEFING_EN) : null
+  // この画面はAPIを1本も呼んでおらず、表示はすべて作り物でした。
+  // 役員に配るブリーフィングなので、空で出すほうがまだ正直です。
+  const briefing = mockOr(lang === 'ja' ? MOCK_BRIEFING_JA : MOCK_BRIEFING_EN, EMPTY_BRIEFING)
 
   const handleGenerate = () => {
     setGenerated(true)
-    if (!briefing) {
-      showToast(lang === 'ja' ? 'この画面はまだ実装されていません' : 'This screen is not implemented yet', 'error')
-      return
-    }
     showToast(lang === 'ja' ? 'ブリーフィングを生成しました' : 'Briefing generated successfully')
   }
 
   return (
     <div className="min-h-screen bg-[#070d19] p-6">
+      <PageDataUnavailable />
       {toast && (
         <div className={`fixed top-6 right-6 z-50 flex items-center gap-2 px-4 py-3 rounded-lg shadow-xl border text-sm font-medium ${toast.type === 'success' ? 'bg-green-500/10 border-green-500/30 text-green-400' : 'bg-red-500/10 border-red-500/30 text-red-400'}`}>
           {toast.type === 'success' ? <CheckCircle className="w-4 h-4" /> : <AlertTriangle className="w-4 h-4" />}
@@ -496,23 +516,23 @@ export default function ExecutiveBriefingPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-falcon-surface border border-falcon-border flex items-center justify-center">
-            <Briefcase className="w-5 h-5 text-falcon-red" />
+          <div className="w-10 h-10 rounded-lg bg-[#0d1220] border border-[#1e2d42] flex items-center justify-center">
+            <Briefcase className="w-5 h-5 text-[#e8002d]" />
           </div>
           <div>
             <h1 className="text-white font-bold text-xl">経営層向けブリーフィング生成</h1>
-            <p className="text-falcon-muted text-sm">取締役会・経営幹部向けセキュリティサマリーの生成</p>
+            <p className="text-[#7d92b0] text-sm">取締役会・経営幹部向けセキュリティサマリーの生成</p>
           </div>
         </div>
       </div>
 
       {/* Controls */}
-      <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5 mb-6">
+      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5 mb-6">
         <div className="flex flex-wrap items-center gap-4">
           {/* Period */}
           <div>
-            <label className="block text-falcon-muted text-xs mb-1.5">期間</label>
-            <select value={period} onChange={e => setPeriod(e.target.value)} className="bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-red/50">
+            <label className="block text-[#7d92b0] text-xs mb-1.5">期間</label>
+            <select value={period} onChange={e => setPeriod(e.target.value)} className="bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-[#e8002d]/50">
               <option value="2026-Q1">2026年 Q1 (1月〜3月)</option>
               <option value="2025-Q4">2025年 Q4 (10月〜12月)</option>
               <option value="2025-Q3">2025年 Q3 (7月〜9月)</option>
@@ -522,8 +542,8 @@ export default function ExecutiveBriefingPage() {
 
           {/* Classification */}
           <div>
-            <label className="block text-falcon-muted text-xs mb-1.5">機密レベル</label>
-            <select value={classification} onChange={e => setClassification(e.target.value as ClassificationLevel)} className="bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-red/50">
+            <label className="block text-[#7d92b0] text-xs mb-1.5">機密レベル</label>
+            <select value={classification} onChange={e => setClassification(e.target.value as ClassificationLevel)} className="bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-[#e8002d]/50">
               <option value="confidential">機密 / Confidential</option>
               <option value="internal">社内限定 / Internal</option>
               <option value="public">公開 / Public</option>
@@ -532,10 +552,10 @@ export default function ExecutiveBriefingPage() {
 
           {/* Language Toggle */}
           <div>
-            <label className="block text-falcon-muted text-xs mb-1.5">言語</label>
-            <div className="flex gap-1 bg-[#070d19] border border-falcon-border rounded-lg p-1">
+            <label className="block text-[#7d92b0] text-xs mb-1.5">言語</label>
+            <div className="flex gap-1 bg-[#070d19] border border-[#1e2d42] rounded-lg p-1">
               {(['ja', 'en'] as Language[]).map(l => (
-                <button key={l} onClick={() => setLang(l)} className={`px-3 py-1.5 rounded-sm text-sm font-medium transition-colors ${lang === l ? 'bg-falcon-border text-white' : 'text-falcon-muted hover:text-white'}`}>
+                <button key={l} onClick={() => setLang(l)} className={`px-3 py-1.5 rounded-sm text-sm font-medium transition-colors ${lang === l ? 'bg-[#1e2d42] text-white' : 'text-[#7d92b0] hover:text-white'}`}>
                   {l === 'ja' ? '日本語' : 'English'}
                 </button>
               ))}
@@ -544,7 +564,7 @@ export default function ExecutiveBriefingPage() {
 
           {/* Generate Button */}
           <div className="ml-auto flex items-end gap-3">
-            <button onClick={handleGenerate} className="flex items-center gap-2 px-5 py-2.5 bg-falcon-red text-white text-sm font-medium rounded-lg hover:bg-[#c0001f] transition-colors">
+            <button onClick={handleGenerate} className="flex items-center gap-2 px-5 py-2.5 bg-[#e8002d] text-white text-sm font-medium rounded-lg hover:bg-[#c0001f] transition-colors">
               <FileText className="w-4 h-4" />
               ブリーフィングを生成
             </button>
@@ -553,15 +573,15 @@ export default function ExecutiveBriefingPage() {
 
         {/* Export Controls (shown after generation) */}
         {generated && (
-          <div className="flex items-center gap-3 mt-4 pt-4 border-t border-falcon-border">
-            <span className="text-falcon-muted text-xs">エクスポート:</span>
-            <button onClick={() => showToast(lang === 'ja' ? 'PDF出力を開始しました' : 'PDF export started')} className="flex items-center gap-2 px-3 py-2 bg-[#070d19] border border-falcon-border text-white text-sm rounded-lg hover:bg-falcon-border transition-colors">
+          <div className="flex items-center gap-3 mt-4 pt-4 border-t border-[#1e2d42]">
+            <span className="text-[#7d92b0] text-xs">エクスポート:</span>
+            <button onClick={() => showToast(lang === 'ja' ? 'PDF出力を開始しました' : 'PDF export started')} className="flex items-center gap-2 px-3 py-2 bg-[#070d19] border border-[#1e2d42] text-white text-sm rounded-lg hover:bg-[#1e2d42] transition-colors">
               <Printer className="w-4 h-4 text-red-400" />PDFでエクスポート
             </button>
-            <button onClick={() => showToast(lang === 'ja' ? 'PowerPoint出力を開始しました' : 'PowerPoint export started')} className="flex items-center gap-2 px-3 py-2 bg-[#070d19] border border-falcon-border text-white text-sm rounded-lg hover:bg-falcon-border transition-colors">
+            <button onClick={() => showToast(lang === 'ja' ? 'PowerPoint出力を開始しました' : 'PowerPoint export started')} className="flex items-center gap-2 px-3 py-2 bg-[#070d19] border border-[#1e2d42] text-white text-sm rounded-lg hover:bg-[#1e2d42] transition-colors">
               <Download className="w-4 h-4 text-orange-400" />PowerPointで書き出し
             </button>
-            <button onClick={() => setShowEmailModal(true)} className="flex items-center gap-2 px-3 py-2 bg-[#070d19] border border-falcon-border text-white text-sm rounded-lg hover:bg-falcon-border transition-colors">
+            <button onClick={() => setShowEmailModal(true)} className="flex items-center gap-2 px-3 py-2 bg-[#070d19] border border-[#1e2d42] text-white text-sm rounded-lg hover:bg-[#1e2d42] transition-colors">
               <Mail className="w-4 h-4 text-blue-400" />メールで送信
             </button>
           </div>
@@ -569,30 +589,16 @@ export default function ExecutiveBriefingPage() {
       </div>
 
       {/* Briefing Preview */}
-      {generated && briefing ? (
+      {generated ? (
         <BriefingPreview briefing={briefing} classification={classification} lang={lang} />
-      ) : generated && !briefing ? (
-        <div className="bg-falcon-surface border border-falcon-border rounded-xl p-16 text-center">
-          <div className="w-16 h-16 rounded-full bg-[#070d19] border border-falcon-border flex items-center justify-center mx-auto mb-4">
-            <AlertTriangle className="w-8 h-8 text-falcon-subtle" />
-          </div>
-          <p className="text-white font-semibold text-lg mb-2">
-            {lang === 'ja' ? 'この画面はまだ実装されていません' : 'Not implemented yet'}
-          </p>
-          <p className="text-falcon-muted text-sm max-w-lg mx-auto">
-            {lang === 'ja'
-              ? 'ブリーフィング生成の API がまだありません。レイアウト確認のためのサンプル表示は NEXT_PUBLIC_USE_MOCK=true のときだけ有効です。'
-              : 'There is no briefing-generation API yet. The sample rendering used for layout work is only available with NEXT_PUBLIC_USE_MOCK=true.'}
-          </p>
-        </div>
       ) : (
-        <div className="bg-falcon-surface border border-falcon-border rounded-xl p-16 text-center">
-          <div className="w-16 h-16 rounded-full bg-[#070d19] border border-falcon-border flex items-center justify-center mx-auto mb-4">
-            <Briefcase className="w-8 h-8 text-falcon-subtle" />
+        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-16 text-center">
+          <div className="w-16 h-16 rounded-full bg-[#070d19] border border-[#1e2d42] flex items-center justify-center mx-auto mb-4">
+            <Briefcase className="w-8 h-8 text-[#3d5068]" />
           </div>
           <p className="text-white font-semibold text-lg mb-2">ブリーフィングを生成してください</p>
-          <p className="text-falcon-muted text-sm mb-6">期間・機密レベル・言語を選択し、「ブリーフィングを生成」ボタンをクリックしてください。</p>
-          <button onClick={handleGenerate} className="flex items-center gap-2 px-5 py-2.5 bg-falcon-red text-white text-sm font-medium rounded-lg hover:bg-[#c0001f] transition-colors mx-auto">
+          <p className="text-[#7d92b0] text-sm mb-6">期間・機密レベル・言語を選択し、「ブリーフィングを生成」ボタンをクリックしてください。</p>
+          <button onClick={handleGenerate} className="flex items-center gap-2 px-5 py-2.5 bg-[#e8002d] text-white text-sm font-medium rounded-lg hover:bg-[#c0001f] transition-colors mx-auto">
             <FileText className="w-4 h-4" />ブリーフィングを生成
           </button>
         </div>

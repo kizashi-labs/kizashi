@@ -1,14 +1,9 @@
 'use client'
 
-import { useState, FormEvent, useEffect } from 'react'
+import { useState, FormEvent } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/lib/auth'
 import { Shield, KeyRound, Lock, User } from 'lucide-react'
-
-interface SSOProvider {
-  id: string
-  name: string
-}
 
 export default function LoginPage() {
   const { login, verifyMFA } = useAuth()
@@ -21,17 +16,6 @@ export default function LoginPage() {
   const [mfaState, setMfaState] = useState<{ preAuthToken: string } | null>(null)
   const [mfaCode, setMfaCode] = useState('')
 
-  // SSO providers — fetched from public endpoint on mount
-  const [ssoProviders, setSsoProviders] = useState<SSOProvider[]>([])
-
-  useEffect(() => {
-    // Silently fetch enabled SSO providers to conditionally show the SSO button.
-    // Failures are intentionally swallowed — SSO is optional.
-    fetch('/api/v1/auth/sso/providers')
-      .then(r => r.ok ? r.json() : { providers: [] })
-      .then(data => setSsoProviders(data.providers ?? []))
-      .catch(() => { /* SSO unavailable — hide button */ })
-  }, [])
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
@@ -65,10 +49,9 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex bg-falcon-bg">
+    <div className="min-h-screen flex bg-[#080c14]">
       {/* Left panel - brand */}
-      <div className="hidden lg:flex w-[420px] shrink-0 flex-col bg-falcon-surface border-r border-falcon-border
-                      items-center justify-center p-12 relative overflow-hidden">
+      <div className="hidden lg:flex w-[420px] shrink-0 flex-col bg-[#0d1220] border-r border-[#1e2d42] items-center justify-center p-12 relative overflow-hidden">
         {/* Background grid decoration */}
         <div className="absolute inset-0 opacity-[0.03]"
              style={{
@@ -76,16 +59,14 @@ export default function LoginPage() {
                backgroundSize: '32px 32px',
              }} />
         {/* Red glow */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64
-                        rounded-full bg-falcon-red/5 blur-3xl pointer-events-none" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 rounded-full bg-[#e8002d]/5 blur-3xl pointer-events-none" />
 
         <div className="relative z-10 flex flex-col items-center text-center">
-          <div className="w-20 h-20 rounded-xl bg-linear-to-br from-falcon-red to-falcon-red-dark
-                          flex items-center justify-center shadow-falcon-glow-red mb-6">
+          <div className="w-20 h-20 rounded-xl bg-linear-to-br from-[#e8002d] to-[#a80020] flex items-center justify-center shadow-falcon-glow-red mb-6">
             <Shield className="w-10 h-10 text-white" strokeWidth={1.5} />
           </div>
           <h1 className="text-2xl font-bold text-white tracking-tight mb-2">Kizashi</h1>
-          <p className="text-falcon-subtle text-sm uppercase tracking-widest font-medium mb-8">
+          <p className="text-[#3d5068] text-sm uppercase tracking-widest font-medium mb-8">
             Endpoint Protection Platform
           </p>
 
@@ -96,11 +77,11 @@ export default function LoginPage() {
               { label: '完全可視性', desc: '全エンドポイントを一元管理' },
             ].map(item => (
               <div key={item.label}
-                   className="flex items-center gap-3 px-4 py-3 rounded-sm bg-falcon-raised/60 border border-falcon-border">
-                <span className="w-1.5 h-1.5 rounded-full bg-falcon-red shrink-0" />
+                   className="flex items-center gap-3 px-4 py-3 rounded-sm bg-[#161f33]/60 border border-[#1e2d42]">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#e8002d] shrink-0" />
                 <div className="text-left">
-                  <p className="text-falcon-text text-xs font-semibold">{item.label}</p>
-                  <p className="text-falcon-subtle text-[10px]">{item.desc}</p>
+                  <p className="text-[#e2e8f4] text-xs font-semibold">{item.label}</p>
+                  <p className="text-[#3d5068] text-[10px]">{item.desc}</p>
                 </div>
               </div>
             ))}
@@ -109,7 +90,7 @@ export default function LoginPage() {
 
         {/* Bottom version info */}
         <div className="absolute bottom-6 left-0 right-0 flex justify-center">
-          <span className="text-falcon-subtle text-[10px] font-mono tracking-wider">
+          <span className="text-[#3d5068] text-[10px] font-mono tracking-wider">
             KIZASHI EDR v2.0 · PROTECTED
           </span>
         </div>
@@ -120,7 +101,7 @@ export default function LoginPage() {
         <div className="w-full max-w-sm animate-fade-in">
           {/* Mobile logo */}
           <div className="lg:hidden flex items-center gap-3 mb-8 justify-center">
-            <div className="w-10 h-10 rounded-sm bg-linear-to-br from-falcon-red to-falcon-red-dark flex items-center justify-center">
+            <div className="w-10 h-10 rounded-sm bg-linear-to-br from-[#e8002d] to-[#a80020] flex items-center justify-center">
               <Shield className="w-5 h-5 text-white" />
             </div>
             <p className="text-white font-bold text-lg">Kizashi</p>
@@ -130,16 +111,16 @@ export default function LoginPage() {
             /* ── MFA Step ────────────────────────────── */
             <div>
               <div className="flex items-center gap-2 mb-1">
-                <KeyRound className="w-5 h-5 text-falcon-red" />
+                <KeyRound className="w-5 h-5 text-[#e8002d]" />
                 <h2 className="text-white font-bold text-xl">二要素認証</h2>
               </div>
-              <p className="text-falcon-muted text-sm mb-8">
+              <p className="text-[#7d92b0] text-sm mb-8">
                 認証アプリの6桁コードを入力してください。
               </p>
 
               <form onSubmit={handleMFASubmit} className="space-y-4">
                 <div>
-                  <label className="block text-[10px] font-semibold tracking-widest uppercase text-falcon-muted mb-2">
+                  <label className="block text-[10px] font-semibold tracking-widest uppercase text-[#7d92b0] mb-2">
                     認証コード
                   </label>
                   <input
@@ -152,10 +133,7 @@ export default function LoginPage() {
                     required
                     autoFocus
                     autoComplete="one-time-code"
-                    className="w-full bg-falcon-surface border border-falcon-border text-white rounded px-4 py-3
-                               text-center tracking-[0.6em] font-mono text-lg
-                               focus:outline-hidden focus:border-falcon-red focus:ring-1 focus:ring-falcon-red/30
-                               placeholder-falcon-subtle transition-colors"
+                    className="w-full bg-[#0d1220] border border-[#1e2d42] text-white rounded-sm px-4 py-3 text-center tracking-[0.6em] font-mono text-lg focus:outline-hidden focus:border-[#e8002d] focus:ring-1 focus:ring-[#e8002d]/30 placeholder-[#3d5068] transition-colors"
                     placeholder="000000"
                   />
                 </div>
@@ -178,7 +156,7 @@ export default function LoginPage() {
                 <button
                   type="button"
                   onClick={() => { setMfaState(null); setError('') }}
-                  className="w-full text-falcon-muted hover:text-falcon-text text-sm py-2 transition-colors"
+                  className="w-full text-[#7d92b0] hover:text-[#e2e8f4] text-sm py-2 transition-colors"
                 >
                   ← ログイン画面に戻る
                 </button>
@@ -188,46 +166,40 @@ export default function LoginPage() {
             /* ── Login Step ──────────────────────────── */
             <div>
               <h2 className="text-white font-bold text-xl mb-1">ログイン</h2>
-              <p className="text-falcon-muted text-sm mb-8">認証情報を入力してください。</p>
+              <p className="text-[#7d92b0] text-sm mb-8">認証情報を入力してください。</p>
 
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                  <label className="block text-[10px] font-semibold tracking-widest uppercase text-falcon-muted mb-2">
+                  <label className="block text-[10px] font-semibold tracking-widest uppercase text-[#7d92b0] mb-2">
                     ユーザー名
                   </label>
                   <div className="relative">
-                    <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-falcon-subtle" />
+                    <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#3d5068]" />
                     <input
                       type="text"
                       value={username}
                       onChange={e => setUsername(e.target.value)}
                       required
                       autoComplete="username"
-                      className="w-full bg-falcon-surface border border-falcon-border text-falcon-text rounded
-                                 pl-9 pr-4 py-2.5 text-sm
-                                 focus:outline-hidden focus:border-falcon-blue focus:ring-1 focus:ring-falcon-blue/30
-                                 placeholder-falcon-subtle transition-colors"
+                      className="w-full bg-[#0d1220] border border-[#1e2d42] text-[#e2e8f4] rounded-sm pl-9 pr-4 py-2.5 text-sm focus:outline-hidden focus:border-[#1a6bff] focus:ring-1 focus:ring-[#1a6bff]/30 placeholder-[#3d5068] transition-colors"
                       placeholder="admin"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-[10px] font-semibold tracking-widest uppercase text-falcon-muted mb-2">
+                  <label className="block text-[10px] font-semibold tracking-widest uppercase text-[#7d92b0] mb-2">
                     パスワード
                   </label>
                   <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-falcon-subtle" />
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#3d5068]" />
                     <input
                       type="password"
                       value={password}
                       onChange={e => setPassword(e.target.value)}
                       required
                       autoComplete="current-password"
-                      className="w-full bg-falcon-surface border border-falcon-border text-falcon-text rounded
-                                 pl-9 pr-4 py-2.5 text-sm
-                                 focus:outline-hidden focus:border-falcon-blue focus:ring-1 focus:ring-falcon-blue/30
-                                 placeholder-falcon-subtle transition-colors"
+                      className="w-full bg-[#0d1220] border border-[#1e2d42] text-[#e2e8f4] rounded-sm pl-9 pr-4 py-2.5 text-sm focus:outline-hidden focus:border-[#1a6bff] focus:ring-1 focus:ring-[#1a6bff]/30 placeholder-[#3d5068] transition-colors"
                       placeholder="••••••••"
                     />
                   </div>
@@ -237,7 +209,7 @@ export default function LoginPage() {
                   <button
                     type="button"
                     onClick={() => router.push('/auth/forgot-password')}
-                    className="text-falcon-subtle hover:text-falcon-muted text-xs transition-colors"
+                    className="text-[#3d5068] hover:text-[#7d92b0] text-xs transition-colors"
                   >
                     パスワードを忘れた方はこちら
                   </button>
@@ -264,32 +236,22 @@ export default function LoginPage() {
                 </button>
               </form>
 
-              {/* SSO login button — only shown when at least one provider is enabled */}
-              {ssoProviders.length > 0 && (
-                <div className="mt-5">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="flex-1 h-px bg-falcon-border" />
-                    <span className="text-falcon-subtle text-[10px] uppercase tracking-widest">または</span>
-                    <div className="flex-1 h-px bg-falcon-border" />
-                  </div>
+              {/* SSO はこのエディションに含まれません。
+                  以前ここには /api/v1/auth/sso/providers を取得して、返って
+                  きたぶんだけ SSO ボタンを出す実装がありました。公開版の
+                  サーバにその経路は無いので、**毎回 404 を投げて空配列を
+                  受け取り、何も描画しない**という動きでした。
 
-                  {ssoProviders.map(provider => (
-                    <button
-                      key={provider.id}
-                      type="button"
-                      onClick={() => router.push(`/auth/sso?provider=${provider.id}`)}
-                      className="w-full flex items-center justify-center gap-2 py-2.5 mb-2
-                                 bg-falcon-surface border border-[#1e3a5f] text-[#4a9eff] rounded
-                                 hover:bg-falcon-raised hover:border-[#4a9eff]/40 transition-colors text-sm font-medium"
-                    >
-                      <Shield className="w-4 h-4" />
-                      {provider.name} でSSOログイン
-                    </button>
-                  ))}
-                </div>
-              )}
+                  それだけなら無害ですが、「この画面の API 呼び出しが全部
+                  サーバに届かない」という判定に引っかかります。判定は
+                  「準備中と告知せよ」と言いますが、**ログインは動いている**
+                  （認証は lib/auth.tsx の POST /auth/login で、経路は実在
+                  します）。動く画面に「バックエンド準備中」と出すほうが
+                  嘘になるので、届かない呼び出しのほうを外しました。
 
-              <p className="text-falcon-subtle text-[10px] text-center mt-8 uppercase tracking-widest">
+                  SSO を同梱する版では、この一式を戻してください。 */}
+
+              <p className="text-[#3d5068] text-[10px] text-center mt-8 uppercase tracking-widest">
                 KIZASHI EDR · Secured Access
               </p>
             </div>
@@ -302,9 +264,8 @@ export default function LoginPage() {
 
 function ErrorBox({ message }: { message: string }) {
   return (
-    <div className="flex items-start gap-2 px-3 py-2.5 rounded bg-falcon-red/10
-                    border border-falcon-red/30 text-[#ff4d6d] text-sm">
-      <span className="text-falcon-red mt-0.5 shrink-0">▲</span>
+    <div className="flex items-start gap-2 px-3 py-2.5 rounded-sm bg-[#e8002d]/10 border border-[#e8002d]/30 text-[#ff4d6d] text-sm">
+      <span className="text-[#e8002d] mt-0.5 shrink-0">▲</span>
       {message}
     </div>
   )

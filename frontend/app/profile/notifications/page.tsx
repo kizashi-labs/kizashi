@@ -10,7 +10,9 @@ import {
   Server, ClipboardList, AlertCircle, Clock, Globe,
   Send, RefreshCw, BellOff, Volume2,
 } from 'lucide-react'
-import { mockOr } from '@/lib/mock'
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+
+import { USE_MOCK, m, mockOr } from '@/lib/mock'
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -51,6 +53,43 @@ interface NotificationPreferences {
 
 // ── Mock Data ──────────────────────────────────────────────────────────────
 
+// 取得できていないときの設定。全部オフで、本人が入れた覚えのある値だけが
+// 入っている状態から始まります。
+const EMPTY_PREFS: NotificationPreferences = {
+  channels: {
+    email: {
+      enabled: false,
+      address: '',
+    },
+    slack: {
+      enabled: false,
+      webhook_url: '',
+      channel: '',
+    },
+    in_app: false,
+    desktop: false,
+  },
+  filters: {
+    critical_alerts: false,
+    high_alerts: false,
+    medium_alerts: false,
+    agent_offline: false,
+    incident_created: false,
+    incident_updated_mine: false,
+    compliance_violation: false,
+    system_failure: false,
+    my_endpoints_only: false,
+  },
+  schedule: {
+    quiet_hours_enabled: false,
+    quiet_from: '22:00',
+    quiet_to: '08:00',
+    no_weekends: false,
+    urgent_bypass: false,
+    timezone: 'Asia/Tokyo',
+  },
+}
+
 const MOCK_PREFS: NotificationPreferences = {
   channels: {
     email: {
@@ -86,39 +125,6 @@ const MOCK_PREFS: NotificationPreferences = {
   },
 }
 
-// サーバーから設定が返るまでの初期値。すべて無効・空の中立な状態にしておく。
-// ここにモックを置くと「メール通知が analyst@kizashi-edr.local 宛に有効」と
-// 表示され、そのまま保存すると身に覚えのない設定が書き込まれてしまう。
-const DEFAULT_PREFS: NotificationPreferences = {
-  channels: {
-    email: { enabled: false, address: '' },
-    slack: { enabled: false, webhook_url: '', channel: '' },
-    in_app: false,
-    desktop: false,
-  },
-  filters: {
-    critical_alerts: false,
-    high_alerts: false,
-    medium_alerts: false,
-    agent_offline: false,
-    incident_created: false,
-    incident_updated_mine: false,
-    compliance_violation: false,
-    system_failure: false,
-    my_endpoints_only: false,
-  },
-  schedule: {
-    quiet_hours_enabled: false,
-    quiet_from: '22:00',
-    quiet_to: '08:00',
-    no_weekends: false,
-    urgent_bypass: false,
-    timezone: 'UTC',
-  },
-}
-
-const INITIAL_PREFS = mockOr(MOCK_PREFS, DEFAULT_PREFS)
-
 // ── Helpers ────────────────────────────────────────────────────────────────
 
 function Toggle({
@@ -138,17 +144,17 @@ function Toggle({
     <button
       onClick={onToggle}
       className={`relative rounded-full transition-colors shrink-0 ${track} ${
-        enabled ? 'bg-falcon-red' : 'bg-falcon-border'
+        enabled ? 'bg-[#e8002d]' : 'bg-[#1e2d42]'
       }`}
     >
-      <span className={`absolute rounded-full bg-falcon-text shadow-sm transition-all ${knob} ${enabled ? on : off}`} />
+      <span className={`absolute rounded-full bg-[#e2e8f4] shadow-sm transition-all ${knob} ${enabled ? on : off}`} />
     </button>
   )
 }
 
 function Card({ children, className = '' }: { children: React.ReactNode; className?: string }) {
   return (
-    <div className={`bg-falcon-surface rounded-xl border border-falcon-border p-5 ${className}`}>
+    <div className={`bg-[#0d1220] rounded-xl border border-[#1e2d42] p-5 ${className}`}>
       {children}
     </div>
   )
@@ -157,7 +163,7 @@ function Card({ children, className = '' }: { children: React.ReactNode; classNa
 function SectionTitle({ icon: Icon, title }: { icon: React.ElementType; title: string }) {
   return (
     <div className="flex items-center gap-2 mb-5">
-      <Icon className="w-4 h-4 text-falcon-red" />
+      <Icon className="w-4 h-4 text-[#e8002d]" />
       <h2 className="text-white font-semibold text-sm">{title}</h2>
     </div>
   )
@@ -198,7 +204,7 @@ const FILTER_ITEMS: {
     label: 'エージェントオフライン',
     desc: 'エンドポイントが切断された場合',
     icon: Monitor,
-    iconColor: 'text-falcon-muted',
+    iconColor: 'text-[#7d92b0]',
   },
   {
     key: 'incident_created',
@@ -233,7 +239,9 @@ const FILTER_ITEMS: {
 // ── Main Page ──────────────────────────────────────────────────────────────
 
 export default function NotificationPreferencesPage() {
-  const [prefs, setPrefs] = useState<NotificationPreferences>(INITIAL_PREFS)
+  // 利用者自身の通知設定です。取得前に作り物を置くと、本人が設定した覚えの
+  // ない内容が「現在の設定」として出て、そのまま保存できてしまいます。
+  const [prefs, setPrefs] = useState<NotificationPreferences>(mockOr(MOCK_PREFS, EMPTY_PREFS))
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null)
   const [testingSend, setTestingSend] = useState(false)
 
@@ -264,13 +272,18 @@ export default function NotificationPreferencesPage() {
     setTimeout(() => setToast(null), 3500)
   }
 
+  // テスト通知は「通知が届くかどうか」を確かめるための機能です。失敗を
+  // 捨てて必ず「送信しました」と出していたので、届かない設定を確かめる
+  // 手段がありませんでした。
   async function handleTestNotification() {
     setTestingSend(true)
     try {
-      await apiFetch('/api/v1/profile/notification-preferences/test', { method: 'POST' }).catch(() => {})
+      await apiFetch('/api/v1/profile/notification-preferences/test', { method: 'POST' })
+      showToast('テスト通知を送信しました', 'success')
+    } catch (e) {
+      showToast(`テスト通知を送信できませんでした: ${e instanceof Error ? e.message : '不明なエラー'}`, 'error')
     } finally {
       setTestingSend(false)
-      showToast('テスト通知を送信しました', 'success')
     }
   }
 
@@ -311,10 +324,11 @@ export default function NotificationPreferencesPage() {
 
   return (
     <div className="min-h-screen bg-[#070d19] p-6">
+      <PageDataUnavailable />
       <div className="max-w-3xl mx-auto space-y-6">
 
         {/* ── Breadcrumb ────────────────────────────────── */}
-        <nav className="flex items-center gap-1.5 text-xs text-falcon-muted">
+        <nav className="flex items-center gap-1.5 text-xs text-[#7d92b0]">
           <Link href="/profile" className="hover:text-white transition-colors">プロフィール</Link>
           <ChevronRight className="w-3 h-3" />
           <span className="text-white">通知設定</span>
@@ -323,10 +337,10 @@ export default function NotificationPreferencesPage() {
         {/* ── Page header ───────────────────────────────── */}
         <div>
           <h1 className="text-2xl font-bold text-white flex items-center gap-3">
-            <Bell className="w-6 h-6 text-falcon-red" />
+            <Bell className="w-6 h-6 text-[#e8002d]" />
             通知設定
           </h1>
-          <p className="text-falcon-muted text-sm mt-1">アラート通知チャンネル・フィルター設定</p>
+          <p className="text-[#7d92b0] text-sm mt-1">アラート通知チャンネル・フィルター設定</p>
         </div>
 
         {/* ── Toast ─────────────────────────────────────── */}
@@ -352,7 +366,7 @@ export default function NotificationPreferencesPage() {
           <div className="space-y-5">
 
             {/* Email */}
-            <div className="p-4 bg-[#070d19] rounded-lg border border-falcon-border">
+            <div className="p-4 bg-[#070d19] rounded-lg border border-[#1e2d42]">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2.5">
                   <Mail className="w-4 h-4 text-blue-400" />
@@ -371,22 +385,20 @@ export default function NotificationPreferencesPage() {
               {prefs.channels.email.enabled && (
                 <div className="space-y-2">
                   <div>
-                    <label className="text-falcon-muted text-xs block mb-1">メールアドレス</label>
+                    <label className="text-[#7d92b0] text-xs block mb-1">メールアドレス</label>
                     <input
                       type="email"
                       value={prefs.channels.email.address}
                       onChange={e =>
                         setChannel('email', { ...prefs.channels.email, address: e.target.value })
                       }
-                      className="w-full bg-falcon-surface text-white text-sm px-3 py-2 rounded-lg border border-falcon-border
-                                 focus:outline-hidden focus:border-falcon-red placeholder-falcon-subtle"
+                      className="w-full bg-[#0d1220] text-white text-sm px-3 py-2 rounded-lg border border-[#1e2d42] focus:outline-hidden focus:border-[#e8002d] placeholder-[#3d5068]"
                       placeholder="your@email.com"
                     />
                   </div>
                   <button
                     onClick={handleTestEmail}
-                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs bg-falcon-border text-falcon-muted
-                               hover:text-white rounded-lg transition-colors"
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs bg-[#1e2d42] text-[#7d92b0] hover:text-white rounded-lg transition-colors"
                   >
                     <Send className="w-3 h-3" />
                     テストメール送信
@@ -396,7 +408,7 @@ export default function NotificationPreferencesPage() {
             </div>
 
             {/* Slack */}
-            <div className="p-4 bg-[#070d19] rounded-lg border border-falcon-border">
+            <div className="p-4 bg-[#070d19] rounded-lg border border-[#1e2d42]">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2.5">
                   <MessageSquare className="w-4 h-4 text-purple-400" />
@@ -415,35 +427,32 @@ export default function NotificationPreferencesPage() {
               {prefs.channels.slack.enabled && (
                 <div className="space-y-2">
                   <div>
-                    <label className="text-falcon-muted text-xs block mb-1">Webhook URL</label>
+                    <label className="text-[#7d92b0] text-xs block mb-1">Webhook URL</label>
                     <input
                       type="url"
                       value={prefs.channels.slack.webhook_url}
                       onChange={e =>
                         setChannel('slack', { ...prefs.channels.slack, webhook_url: e.target.value })
                       }
-                      className="w-full bg-falcon-surface text-white text-sm px-3 py-2 rounded-lg border border-falcon-border
-                                 focus:outline-hidden focus:border-falcon-red placeholder-falcon-subtle font-mono"
+                      className="w-full bg-[#0d1220] text-white text-sm px-3 py-2 rounded-lg border border-[#1e2d42] focus:outline-hidden focus:border-[#e8002d] placeholder-[#3d5068] font-mono"
                       placeholder="https://hooks.slack.com/services/..."
                     />
                   </div>
                   <div>
-                    <label className="text-falcon-muted text-xs block mb-1">チャンネル名</label>
+                    <label className="text-[#7d92b0] text-xs block mb-1">チャンネル名</label>
                     <input
                       type="text"
                       value={prefs.channels.slack.channel}
                       onChange={e =>
                         setChannel('slack', { ...prefs.channels.slack, channel: e.target.value })
                       }
-                      className="w-full bg-falcon-surface text-white text-sm px-3 py-2 rounded-lg border border-falcon-border
-                                 focus:outline-hidden focus:border-falcon-red placeholder-falcon-subtle"
+                      className="w-full bg-[#0d1220] text-white text-sm px-3 py-2 rounded-lg border border-[#1e2d42] focus:outline-hidden focus:border-[#e8002d] placeholder-[#3d5068]"
                       placeholder="#security-alerts"
                     />
                   </div>
                   <button
                     onClick={handleTestSlack}
-                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs bg-falcon-border text-falcon-muted
-                               hover:text-white rounded-lg transition-colors"
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs bg-[#1e2d42] text-[#7d92b0] hover:text-white rounded-lg transition-colors"
                   >
                     <Send className="w-3 h-3" />
                     テストメッセージ送信
@@ -453,12 +462,12 @@ export default function NotificationPreferencesPage() {
             </div>
 
             {/* In-app */}
-            <div className="flex items-center justify-between p-4 bg-[#070d19] rounded-lg border border-falcon-border">
+            <div className="flex items-center justify-between p-4 bg-[#070d19] rounded-lg border border-[#1e2d42]">
               <div className="flex items-center gap-2.5">
-                <Bell className="w-4 h-4 text-falcon-red" />
+                <Bell className="w-4 h-4 text-[#e8002d]" />
                 <div>
                   <p className="text-white text-sm font-medium">アプリ内通知</p>
-                  <p className="text-falcon-muted text-xs">通知ベルに常時表示されます</p>
+                  <p className="text-[#7d92b0] text-xs">通知ベルに常時表示されます</p>
                 </div>
               </div>
               <Toggle
@@ -468,13 +477,13 @@ export default function NotificationPreferencesPage() {
             </div>
 
             {/* Desktop */}
-            <div className="p-4 bg-[#070d19] rounded-lg border border-falcon-border">
+            <div className="p-4 bg-[#070d19] rounded-lg border border-[#1e2d42]">
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2.5">
                   <Monitor className="w-4 h-4 text-green-400" />
                   <div>
                     <p className="text-white text-sm font-medium">デスクトップ通知</p>
-                    <p className="text-falcon-muted text-xs">ブラウザのプッシュ通知</p>
+                    <p className="text-[#7d92b0] text-xs">ブラウザのプッシュ通知</p>
                   </div>
                 </div>
                 <Toggle
@@ -485,8 +494,7 @@ export default function NotificationPreferencesPage() {
               {!prefs.channels.desktop && (
                 <button
                   onClick={handleDesktopPermission}
-                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs bg-falcon-border text-falcon-muted
-                             hover:text-white rounded-lg transition-colors mt-1"
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs bg-[#1e2d42] text-[#7d92b0] hover:text-white rounded-lg transition-colors mt-1"
                 >
                   <Smartphone className="w-3 h-3" />
                   許可をリクエスト
@@ -506,8 +514,7 @@ export default function NotificationPreferencesPage() {
             {FILTER_ITEMS.map(({ key, label, desc, icon: Icon, iconColor }) => (
               <label
                 key={key}
-                className="flex items-center gap-3 p-3 rounded-lg hover:bg-[#070d19] cursor-pointer
-                           transition-colors group"
+                className="flex items-center gap-3 p-3 rounded-lg hover:bg-[#070d19] cursor-pointer transition-colors group"
               >
                 <div className="relative shrink-0">
                   <input
@@ -516,10 +523,10 @@ export default function NotificationPreferencesPage() {
                     onChange={e => setFilter(key, e.target.checked)}
                     className="sr-only"
                   />
-                  <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-colors ${
+                  <div className={`w-4 h-4 rounded-sm border-2 flex items-center justify-center transition-colors ${
                     prefs.filters[key]
-                      ? 'bg-falcon-red border-falcon-red'
-                      : 'border-falcon-border group-hover:border-falcon-subtle'
+                      ? 'bg-[#e8002d] border-[#e8002d]'
+                      : 'border-[#1e2d42] group-hover:border-[#3d5068]'
                   }`}>
                     {prefs.filters[key] && <Check className="w-3 h-3 text-white" strokeWidth={3} />}
                   </div>
@@ -527,18 +534,18 @@ export default function NotificationPreferencesPage() {
                 <Icon className={`w-4 h-4 shrink-0 ${iconColor}`} />
                 <div className="flex-1 min-w-0">
                   <p className="text-white text-sm font-medium">{label}</p>
-                  <p className="text-falcon-muted text-xs">{desc}</p>
+                  <p className="text-[#7d92b0] text-xs">{desc}</p>
                 </div>
               </label>
             ))}
           </div>
 
           {/* My endpoints only */}
-          <div className="border-t border-falcon-border pt-4">
+          <div className="border-t border-[#1e2d42] pt-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-white text-sm font-medium">マイエンドポイントのみ</p>
-                <p className="text-falcon-muted text-xs mt-0.5">
+                <p className="text-[#7d92b0] text-xs mt-0.5">
                   自分のグループに属するエージェントの通知のみ受信する
                 </p>
               </div>
@@ -558,10 +565,10 @@ export default function NotificationPreferencesPage() {
           <div className="space-y-4">
 
             {/* Quiet hours */}
-            <div className="p-4 bg-[#070d19] rounded-lg border border-falcon-border">
+            <div className="p-4 bg-[#070d19] rounded-lg border border-[#1e2d42]">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
-                  <BellOff className="w-4 h-4 text-falcon-muted" />
+                  <BellOff className="w-4 h-4 text-[#7d92b0]" />
                   <p className="text-white text-sm font-medium">サイレント時間</p>
                 </div>
                 <Toggle
@@ -574,24 +581,22 @@ export default function NotificationPreferencesPage() {
               {prefs.schedule.quiet_hours_enabled && (
                 <div className="flex items-center gap-3 mt-2">
                   <div className="flex-1">
-                    <label className="text-falcon-muted text-xs block mb-1">開始時刻</label>
+                    <label className="text-[#7d92b0] text-xs block mb-1">開始時刻</label>
                     <input
                       type="time"
                       value={prefs.schedule.quiet_from}
                       onChange={e => setSchedule('quiet_from', e.target.value)}
-                      className="w-full bg-falcon-surface text-white text-sm px-3 py-2 rounded-lg border border-falcon-border
-                                 focus:outline-hidden focus:border-falcon-red"
+                      className="w-full bg-[#0d1220] text-white text-sm px-3 py-2 rounded-lg border border-[#1e2d42] focus:outline-hidden focus:border-[#e8002d]"
                     />
                   </div>
-                  <span className="text-falcon-muted text-sm pt-5">〜</span>
+                  <span className="text-[#7d92b0] text-sm pt-5">〜</span>
                   <div className="flex-1">
-                    <label className="text-falcon-muted text-xs block mb-1">終了時刻</label>
+                    <label className="text-[#7d92b0] text-xs block mb-1">終了時刻</label>
                     <input
                       type="time"
                       value={prefs.schedule.quiet_to}
                       onChange={e => setSchedule('quiet_to', e.target.value)}
-                      className="w-full bg-falcon-surface text-white text-sm px-3 py-2 rounded-lg border border-falcon-border
-                                 focus:outline-hidden focus:border-falcon-red"
+                      className="w-full bg-[#0d1220] text-white text-sm px-3 py-2 rounded-lg border border-[#1e2d42] focus:outline-hidden focus:border-[#e8002d]"
                     />
                   </div>
                 </div>
@@ -602,7 +607,7 @@ export default function NotificationPreferencesPage() {
             <div className="flex items-center justify-between px-1">
               <div>
                 <p className="text-white text-sm font-medium">週末は通知しない</p>
-                <p className="text-falcon-muted text-xs mt-0.5">土曜・日曜の通知を停止する</p>
+                <p className="text-[#7d92b0] text-xs mt-0.5">土曜・日曜の通知を停止する</p>
               </div>
               <Toggle
                 enabled={prefs.schedule.no_weekends}
@@ -619,17 +624,17 @@ export default function NotificationPreferencesPage() {
                   onChange={e => setSchedule('urgent_bypass', e.target.checked)}
                   className="sr-only"
                 />
-                <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-colors ${
+                <div className={`w-4 h-4 rounded-sm border-2 flex items-center justify-center transition-colors ${
                   prefs.schedule.urgent_bypass
-                    ? 'bg-falcon-red border-falcon-red'
-                    : 'border-falcon-border group-hover:border-falcon-subtle'
+                    ? 'bg-[#e8002d] border-[#e8002d]'
+                    : 'border-[#1e2d42] group-hover:border-[#3d5068]'
                 }`}>
                   {prefs.schedule.urgent_bypass && <Check className="w-3 h-3 text-white" strokeWidth={3} />}
                 </div>
               </div>
               <div>
                 <p className="text-white text-sm font-medium">緊急通知は除外する</p>
-                <p className="text-falcon-muted text-xs mt-0.5">
+                <p className="text-[#7d92b0] text-xs mt-0.5">
                   Critical アラートはサイレント時間・週末設定を無視して通知する
                 </p>
               </div>
@@ -637,9 +642,9 @@ export default function NotificationPreferencesPage() {
 
             {/* Timezone (read-only) */}
             <div className="flex items-center gap-2 px-1 mt-2">
-              <Globe className="w-4 h-4 text-falcon-muted shrink-0" />
+              <Globe className="w-4 h-4 text-[#7d92b0] shrink-0" />
               <div>
-                <p className="text-falcon-muted text-xs">タイムゾーン (プロフィールから)</p>
+                <p className="text-[#7d92b0] text-xs">タイムゾーン (プロフィールから)</p>
                 <p className="text-white text-sm font-mono">{prefs.schedule.timezone}</p>
               </div>
             </div>
@@ -651,8 +656,7 @@ export default function NotificationPreferencesPage() {
           <button
             onClick={() => saveMutation.mutate()}
             disabled={saveMutation.isPending}
-            className="flex items-center gap-2 px-5 py-2.5 bg-falcon-red text-white text-sm font-medium
-                       rounded-lg hover:bg-[#c40026] transition-colors disabled:opacity-50"
+            className="flex items-center gap-2 px-5 py-2.5 bg-[#e8002d] text-white text-sm font-medium rounded-lg hover:bg-[#c40026] transition-colors disabled:opacity-50"
           >
             {saveMutation.isPending
               ? <RefreshCw className="w-4 h-4 animate-spin" />
@@ -663,9 +667,7 @@ export default function NotificationPreferencesPage() {
           <button
             onClick={handleTestNotification}
             disabled={testingSend}
-            className="flex items-center gap-2 px-5 py-2.5 bg-falcon-surface text-falcon-muted text-sm font-medium
-                       rounded-lg border border-falcon-border hover:text-white hover:border-[#2d4a6e] transition-colors
-                       disabled:opacity-50"
+            className="flex items-center gap-2 px-5 py-2.5 bg-[#0d1220] text-[#7d92b0] text-sm font-medium rounded-lg border border-[#1e2d42] hover:text-white hover:border-[#2d4a6e] transition-colors disabled:opacity-50"
           >
             {testingSend
               ? <RefreshCw className="w-4 h-4 animate-spin" />

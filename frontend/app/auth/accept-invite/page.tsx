@@ -93,7 +93,7 @@ function AcceptInvitePageInner() {
 
   if (infoLoading) {
     return (
-      <div className="min-h-screen bg-falcon-bg flex items-center justify-center">
+      <div className="min-h-screen bg-[#080c14] flex items-center justify-center">
         <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
       </div>
     )
@@ -101,8 +101,8 @@ function AcceptInvitePageInner() {
 
   if (infoError) {
     return (
-      <div className="min-h-screen bg-falcon-bg flex items-center justify-center p-4">
-        <div className="bg-falcon-card rounded-2xl p-8 w-full max-w-md border border-falcon-border text-center">
+      <div className="min-h-screen bg-[#080c14] flex items-center justify-center p-4">
+        <div className="bg-[#111827] rounded-2xl p-8 w-full max-w-md border border-[#1e2d42] text-center">
           <Shield className="w-12 h-12 text-red-400 mx-auto mb-4" />
           <h1 className="text-xl font-bold text-white mb-2">招待リンクが無効です</h1>
           <p className="text-[#8899aa] text-sm">{infoError}</p>
@@ -113,8 +113,8 @@ function AcceptInvitePageInner() {
 
   if (done) {
     return (
-      <div className="min-h-screen bg-falcon-bg flex items-center justify-center p-4">
-        <div className="bg-falcon-card rounded-2xl p-8 w-full max-w-md border border-falcon-border text-center">
+      <div className="min-h-screen bg-[#080c14] flex items-center justify-center p-4">
+        <div className="bg-[#111827] rounded-2xl p-8 w-full max-w-md border border-[#1e2d42] text-center">
           <CheckCircle className="w-12 h-12 text-green-400 mx-auto mb-4" />
           <h1 className="text-xl font-bold text-white mb-2">アカウントを作成しました</h1>
           <p className="text-[#8899aa] text-sm mb-6">
@@ -122,8 +122,7 @@ function AcceptInvitePageInner() {
           </p>
           <button
             onClick={() => router.push('/login')}
-            className="w-full py-2.5 bg-falcon-blue text-white rounded-lg hover:bg-[#1557d4]
-                       transition-colors font-medium"
+            className="w-full py-2.5 bg-[#1a6bff] text-white rounded-lg hover:bg-[#1557d4] transition-colors font-medium"
           >
             ログインページへ
           </button>
@@ -133,8 +132,8 @@ function AcceptInvitePageInner() {
   }
 
   return (
-    <div className="min-h-screen bg-falcon-bg flex items-center justify-center p-4">
-      <div className="bg-falcon-card rounded-2xl p-8 w-full max-w-md border border-falcon-border">
+    <div className="min-h-screen bg-[#080c14] flex items-center justify-center p-4">
+      <div className="bg-[#111827] rounded-2xl p-8 w-full max-w-md border border-[#1e2d42]">
         {/* Header */}
         <div className="flex items-center gap-3 mb-6">
           <div className="w-10 h-10 bg-blue-600/20 rounded-xl flex items-center justify-center">
@@ -148,7 +147,7 @@ function AcceptInvitePageInner() {
 
         {/* Invite info */}
         {inviteInfo && (
-          <div className="bg-[#0d1525] rounded-xl p-4 mb-6 border border-falcon-border">
+          <div className="bg-[#0d1525] rounded-xl p-4 mb-6 border border-[#1e2d42]">
             <div className="flex items-center gap-2 mb-1">
               <Mail className="w-4 h-4 text-[#8899aa]" />
               <span className="text-white text-sm font-medium">{inviteInfo.email}</span>
@@ -173,8 +172,7 @@ function AcceptInvitePageInner() {
                 value={fullName}
                 onChange={e => setFullName(e.target.value)}
                 placeholder="田中 太郎"
-                className="w-full bg-falcon-bg text-white pl-10 pr-3 py-2.5 rounded-lg border border-falcon-border
-                           text-sm focus:outline-hidden focus:border-falcon-blue transition-colors"
+                className="w-full bg-[#080c14] text-white pl-10 pr-3 py-2.5 rounded-lg border border-[#1e2d42] text-sm focus:outline-hidden focus:border-[#1a6bff] transition-colors"
               />
             </div>
           </div>
@@ -192,8 +190,7 @@ function AcceptInvitePageInner() {
                 onChange={e => setPassword(e.target.value)}
                 placeholder="8文字以上"
                 required
-                className="w-full bg-falcon-bg text-white pl-10 pr-10 py-2.5 rounded-lg border border-falcon-border
-                           text-sm focus:outline-hidden focus:border-falcon-blue transition-colors"
+                className="w-full bg-[#080c14] text-white pl-10 pr-10 py-2.5 rounded-lg border border-[#1e2d42] text-sm focus:outline-hidden focus:border-[#1a6bff] transition-colors"
               />
               <button
                 type="button"
@@ -218,8 +215,7 @@ function AcceptInvitePageInner() {
                 onChange={e => setPasswordConfirm(e.target.value)}
                 placeholder="パスワードを再入力"
                 required
-                className="w-full bg-falcon-bg text-white pl-10 pr-10 py-2.5 rounded-lg border border-falcon-border
-                           text-sm focus:outline-hidden focus:border-falcon-blue transition-colors"
+                className="w-full bg-[#080c14] text-white pl-10 pr-10 py-2.5 rounded-lg border border-[#1e2d42] text-sm focus:outline-hidden focus:border-[#1a6bff] transition-colors"
               />
               <button
                 type="button"
@@ -242,9 +238,7 @@ function AcceptInvitePageInner() {
           <button
             type="submit"
             disabled={submitting || !password || !passwordConfirm}
-            className="w-full py-2.5 bg-falcon-blue text-white rounded-lg hover:bg-[#1557d4]
-                       transition-colors font-medium disabled:opacity-50
-                       flex items-center justify-center gap-2"
+            className="w-full py-2.5 bg-[#1a6bff] text-white rounded-lg hover:bg-[#1557d4] transition-colors font-medium disabled:opacity-50 flex items-center justify-center gap-2"
           >
             {submitting ? (
               <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -262,7 +256,7 @@ function AcceptInvitePageInner() {
 export default function AcceptInvitePage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-falcon-bg flex items-center justify-center">
+      <div className="min-h-screen bg-[#080c14] flex items-center justify-center">
         <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
       </div>
     }>

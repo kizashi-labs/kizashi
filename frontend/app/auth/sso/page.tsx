@@ -65,21 +65,20 @@ function SSOPageInner() {
   }, [])
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-falcon-bg">
+    <div className="min-h-screen flex items-center justify-center bg-[#080c14]">
       <div className="flex flex-col items-center gap-6 text-center max-w-sm px-4">
         {/* Logo */}
-        <div className="w-16 h-16 rounded-xl bg-linear-to-br from-falcon-red to-falcon-red-dark
-                        flex items-center justify-center shadow-falcon-glow-red">
+        <div className="w-16 h-16 rounded-xl bg-linear-to-br from-[#e8002d] to-[#a80020] flex items-center justify-center shadow-falcon-glow-red">
           <Shield className="w-8 h-8 text-white" strokeWidth={1.5} />
         </div>
 
         {status === 'loading' && (
           <>
             {/* Spinner */}
-            <div className="w-10 h-10 border-2 border-falcon-border border-t-[#4a9eff] rounded-full animate-spin" />
+            <div className="w-10 h-10 border-2 border-[#1e2d42] border-t-[#4a9eff] rounded-full animate-spin" />
             <div>
               <p className="text-white font-semibold text-lg">SSO認証中...</p>
-              <p className="text-falcon-muted text-sm mt-1">IDプロバイダーで認証を処理しています</p>
+              <p className="text-[#7d92b0] text-sm mt-1">IDプロバイダーで認証を処理しています</p>
             </div>
           </>
         )}
@@ -93,7 +92,7 @@ function SSOPageInner() {
             </div>
             <div>
               <p className="text-white font-semibold text-lg">認証成功</p>
-              <p className="text-falcon-muted text-sm mt-1">ダッシュボードにリダイレクトしています...</p>
+              <p className="text-[#7d92b0] text-sm mt-1">ダッシュボードにリダイレクトしています...</p>
             </div>
           </>
         )}
@@ -119,7 +118,7 @@ function SSOPageInner() {
         )}
 
         {/* Footer note */}
-        <p className="text-falcon-subtle text-[10px] font-mono tracking-wider mt-4">
+        <p className="text-[#3d5068] text-[10px] font-mono tracking-wider mt-4">
           KIZASHI EDR · SSO · SECURED
         </p>
       </div>
@@ -130,8 +129,8 @@ function SSOPageInner() {
 export default function SSOPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center bg-falcon-bg">
-        <div className="w-10 h-10 border-2 border-falcon-border border-t-[#4a9eff] rounded-full animate-spin" />
+      <div className="min-h-screen flex items-center justify-center bg-[#080c14]">
+        <div className="w-10 h-10 border-2 border-[#1e2d42] border-t-[#4a9eff] rounded-full animate-spin" />
       </div>
     }>
       <SSOPageInner />

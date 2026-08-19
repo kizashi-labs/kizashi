@@ -20,6 +20,9 @@ import {
   Zap,
 } from 'lucide-react';
 
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+import { PageSaveFailed } from '@/components/PageSaveFailed'
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type SOARType = 'jira' | 'servicenow';
@@ -111,7 +114,7 @@ function ConfigFieldsForm({
     <>
       {fields.map((f) => (
         <div key={f.key}>
-          <label className="block text-xs text-falcon-muted mb-1.5">
+          <label className="block text-xs text-[#7d92b0] mb-1.5">
             {f.label}
             {f.key !== 'table' && <span className="text-red-400 ml-1">*</span>}
           </label>
@@ -121,7 +124,7 @@ function ConfigFieldsForm({
             onChange={(e) => onChange(f.key, e.target.value)}
             placeholder={f.placeholder}
             autoComplete="off"
-            className="w-full px-3 py-2 bg-falcon-bg border border-falcon-border rounded-lg text-sm text-falcon-text placeholder-falcon-muted focus:outline-hidden focus:border-blue-500"
+            className="w-full px-3 py-2 bg-[#080c14] border border-[#1e2d42] rounded-lg text-sm text-[#e2e8f4] placeholder-[#7d92b0] focus:outline-hidden focus:border-blue-500"
           />
         </div>
       ))}
@@ -168,10 +171,10 @@ function AddConfigModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-      <div className="bg-falcon-card border border-blue-500/30 rounded-xl p-6 w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
+      <div className="bg-[#111827] border border-blue-500/30 rounded-xl p-6 w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-5">
-          <h2 className="text-sm font-semibold text-falcon-text">新しいSOAR連携を追加</h2>
-          <button onClick={onClose} className="text-falcon-muted hover:text-falcon-text transition-colors">
+          <h2 className="text-sm font-semibold text-[#e2e8f4]">新しいSOAR連携を追加</h2>
+          <button onClick={onClose} className="text-[#7d92b0] hover:text-[#e2e8f4] transition-colors">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -179,7 +182,7 @@ function AddConfigModal({
         <div className="space-y-4">
           {/* 名前 */}
           <div>
-            <label className="block text-xs text-falcon-muted mb-1.5">
+            <label className="block text-xs text-[#7d92b0] mb-1.5">
               名前 <span className="text-red-400">*</span>
             </label>
             <input
@@ -187,17 +190,17 @@ function AddConfigModal({
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
               placeholder="本番Jira / ServiceNow-PROD"
-              className="w-full px-3 py-2 bg-falcon-bg border border-falcon-border rounded-lg text-sm text-falcon-text placeholder-falcon-muted focus:outline-hidden focus:border-blue-500"
+              className="w-full px-3 py-2 bg-[#080c14] border border-[#1e2d42] rounded-lg text-sm text-[#e2e8f4] placeholder-[#7d92b0] focus:outline-hidden focus:border-blue-500"
             />
           </div>
 
           {/* タイプ */}
           <div>
-            <label className="block text-xs text-falcon-muted mb-1.5">システムタイプ</label>
+            <label className="block text-xs text-[#7d92b0] mb-1.5">システムタイプ</label>
             <select
               value={form.type}
               onChange={(e) => setForm({ ...form, type: e.target.value as SOARType, config: {} })}
-              className="w-full px-3 py-2 bg-falcon-bg border border-falcon-border rounded-lg text-sm text-falcon-text focus:outline-hidden focus:border-blue-500"
+              className="w-full px-3 py-2 bg-[#080c14] border border-[#1e2d42] rounded-lg text-sm text-[#e2e8f4] focus:outline-hidden focus:border-blue-500"
             >
               <option value="jira">Jira</option>
               <option value="servicenow">ServiceNow</option>
@@ -205,8 +208,8 @@ function AddConfigModal({
           </div>
 
           {/* 接続設定 */}
-          <div className="pt-1 border-t border-falcon-border">
-            <p className="text-xs text-falcon-muted mb-3">接続設定</p>
+          <div className="pt-1 border-t border-[#1e2d42]">
+            <p className="text-xs text-[#7d92b0] mb-3">接続設定</p>
             <div className="space-y-3">
               <ConfigFieldsForm
                 type={form.type}
@@ -217,15 +220,15 @@ function AddConfigModal({
           </div>
 
           {/* トリガー設定 */}
-          <div className="pt-1 border-t border-falcon-border">
-            <p className="text-xs text-falcon-muted mb-3">トリガー設定</p>
+          <div className="pt-1 border-t border-[#1e2d42]">
+            <p className="text-xs text-[#7d92b0] mb-3">トリガー設定</p>
             <div className="space-y-3">
               <div>
-                <label className="block text-xs text-falcon-muted mb-1.5">最小重大度</label>
+                <label className="block text-xs text-[#7d92b0] mb-1.5">最小重大度</label>
                 <select
                   value={form.min_severity}
                   onChange={(e) => setForm({ ...form, min_severity: Number(e.target.value) })}
-                  className="w-full px-3 py-2 bg-falcon-bg border border-falcon-border rounded-lg text-sm text-falcon-text focus:outline-hidden focus:border-blue-500"
+                  className="w-full px-3 py-2 bg-[#080c14] border border-[#1e2d42] rounded-lg text-sm text-[#e2e8f4] focus:outline-hidden focus:border-blue-500"
                 >
                   {MIN_SEVERITY_OPTIONS.map((o) => (
                     <option key={o.value} value={o.value}>{o.label}</option>
@@ -234,8 +237,8 @@ function AddConfigModal({
               </div>
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-falcon-text">自動チケット起票</p>
-                  <p className="text-xs text-falcon-muted mt-0.5">インシデント作成時に自動でチケットを起票します</p>
+                  <p className="text-sm text-[#e2e8f4]">自動チケット起票</p>
+                  <p className="text-xs text-[#7d92b0] mt-0.5">インシデント作成時に自動でチケットを起票します</p>
                 </div>
                 <button
                   type="button"
@@ -251,8 +254,8 @@ function AddConfigModal({
               </div>
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-falcon-text">有効化</p>
-                  <p className="text-xs text-falcon-muted mt-0.5">この連携を有効にします</p>
+                  <p className="text-sm text-[#e2e8f4]">有効化</p>
+                  <p className="text-xs text-[#7d92b0] mt-0.5">この連携を有効にします</p>
                 </div>
                 <button
                   type="button"
@@ -279,7 +282,7 @@ function AddConfigModal({
         <div className="flex gap-3 mt-6">
           <button
             onClick={onClose}
-            className="flex-1 px-4 py-2 bg-falcon-border hover:bg-[#253550] text-falcon-text text-sm rounded-lg transition-colors"
+            className="flex-1 px-4 py-2 bg-[#1e2d42] hover:bg-[#253550] text-[#e2e8f4] text-sm rounded-lg transition-colors"
           >
             キャンセル
           </button>
@@ -329,7 +332,7 @@ function ConfigCard({
   };
 
   return (
-    <div className="bg-[#0d1525] border border-falcon-border rounded-xl overflow-hidden">
+    <div className="bg-[#0d1525] border border-[#1e2d42] rounded-xl overflow-hidden">
       {/* Card Header */}
       <div className="flex items-center justify-between px-5 py-4">
         <div className="flex items-center gap-3 min-w-0">
@@ -342,7 +345,7 @@ function ConfigCard({
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-sm font-medium text-falcon-text truncate">{config.name}</span>
+              <span className="text-sm font-medium text-[#e2e8f4] truncate">{config.name}</span>
               <SystemBadge type={config.type} />
               {config.auto_create && (
                 <span className="text-xs px-2 py-0.5 rounded-full border font-medium bg-purple-500/20 text-purple-300 border-purple-500/40 flex items-center gap-1">
@@ -351,7 +354,7 @@ function ConfigCard({
                 </span>
               )}
             </div>
-            <p className="text-xs text-falcon-muted mt-0.5">
+            <p className="text-xs text-[#7d92b0] mt-0.5">
               最小重大度: {config.min_severity} &nbsp;·&nbsp;
               {config.enabled ? '有効' : '無効'}
             </p>
@@ -361,7 +364,7 @@ function ConfigCard({
           <button
             onClick={() => onToggle(config.id, !config.enabled)}
             title={config.enabled ? '無効化' : '有効化'}
-            className="text-falcon-muted hover:text-falcon-text transition-colors p-1"
+            className="text-[#7d92b0] hover:text-[#e2e8f4] transition-colors p-1"
           >
             {config.enabled ? (
               <ToggleRight className="w-5 h-5 text-blue-400" />
@@ -371,13 +374,13 @@ function ConfigCard({
           </button>
           <button
             onClick={() => setExpanded(!expanded)}
-            className="text-falcon-muted hover:text-falcon-text transition-colors p-1"
+            className="text-[#7d92b0] hover:text-[#e2e8f4] transition-colors p-1"
           >
             {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
           </button>
           <button
             onClick={() => onDelete(config.id)}
-            className="text-falcon-muted hover:text-red-400 transition-colors p-1"
+            className="text-[#7d92b0] hover:text-red-400 transition-colors p-1"
           >
             <Trash2 className="w-4 h-4" />
           </button>
@@ -386,23 +389,23 @@ function ConfigCard({
 
       {/* Expanded Details */}
       {expanded && (
-        <div className="border-t border-falcon-border px-5 py-4 space-y-4">
+        <div className="border-t border-[#1e2d42] px-5 py-4 space-y-4">
           {/* Config fields */}
           <div className="grid grid-cols-2 gap-3">
             {Object.entries(config.config).map(([key, value]) => (
               <div key={key}>
-                <p className="text-xs text-falcon-muted">{key}</p>
-                <p className="text-sm text-falcon-text font-mono truncate">{String(value)}</p>
+                <p className="text-xs text-[#7d92b0]">{key}</p>
+                <p className="text-sm text-[#e2e8f4] font-mono truncate">{String(value)}</p>
               </div>
             ))}
           </div>
 
           {/* Connection Test */}
-          <div className="flex items-center gap-3 pt-2 border-t border-falcon-border">
+          <div className="flex items-center gap-3 pt-2 border-t border-[#1e2d42]">
             <button
               onClick={handleTest}
               disabled={testing}
-              className="flex items-center gap-2 px-4 py-2 bg-falcon-border hover:bg-[#253550] disabled:opacity-50 text-falcon-text text-sm rounded-lg transition-colors"
+              className="flex items-center gap-2 px-4 py-2 bg-[#1e2d42] hover:bg-[#253550] disabled:opacity-50 text-[#e2e8f4] text-sm rounded-lg transition-colors"
             >
               {testing ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
@@ -477,7 +480,9 @@ export default function SOARPage() {
   const serviceNowConfigs = configs.filter((c) => c.type === 'servicenow');
 
   return (
-    <div className="min-h-screen bg-falcon-bg text-falcon-text">
+    <div className="min-h-screen bg-[#080c14] text-[#e2e8f4]">
+      <PageDataUnavailable />
+      <PageSaveFailed className="mb-4" />
       <div className="max-w-4xl mx-auto px-6 py-8">
 
         {/* Header */}
@@ -487,8 +492,8 @@ export default function SOARPage() {
               <Ticket className="w-5 h-5 text-blue-400" />
             </div>
             <div>
-              <h1 className="text-xl font-semibold text-falcon-text">SOAR連携</h1>
-              <p className="text-sm text-falcon-muted mt-0.5">
+              <h1 className="text-xl font-semibold text-[#e2e8f4]">SOAR連携</h1>
+              <p className="text-sm text-[#7d92b0] mt-0.5">
                 Jira / ServiceNow へのインシデントチケット自動起票を設定します
               </p>
             </div>
@@ -504,18 +509,18 @@ export default function SOARPage() {
 
         {/* Stats */}
         <div className="grid grid-cols-3 gap-4 mb-8">
-          <div className="bg-[#0d1525] border border-falcon-border rounded-xl px-5 py-4">
-            <p className="text-xs text-falcon-muted mb-1">設定数</p>
-            <p className="text-2xl font-bold text-falcon-text">{configs.length}</p>
+          <div className="bg-[#0d1525] border border-[#1e2d42] rounded-xl px-5 py-4">
+            <p className="text-xs text-[#7d92b0] mb-1">設定数</p>
+            <p className="text-2xl font-bold text-[#e2e8f4]">{configs.length}</p>
           </div>
-          <div className="bg-[#0d1525] border border-falcon-border rounded-xl px-5 py-4">
-            <p className="text-xs text-falcon-muted mb-1">有効</p>
+          <div className="bg-[#0d1525] border border-[#1e2d42] rounded-xl px-5 py-4">
+            <p className="text-xs text-[#7d92b0] mb-1">有効</p>
             <p className="text-2xl font-bold text-green-400">
               {configs.filter((c) => c.enabled).length}
             </p>
           </div>
-          <div className="bg-[#0d1525] border border-falcon-border rounded-xl px-5 py-4">
-            <p className="text-xs text-falcon-muted mb-1">自動起票</p>
+          <div className="bg-[#0d1525] border border-[#1e2d42] rounded-xl px-5 py-4">
+            <p className="text-xs text-[#7d92b0] mb-1">自動起票</p>
             <p className="text-2xl font-bold text-purple-400">
               {configs.filter((c) => c.auto_create).length}
             </p>
@@ -531,12 +536,12 @@ export default function SOARPage() {
 
         {/* Empty State */}
         {!isLoading && configs.length === 0 && (
-          <div className="bg-[#0d1525] border border-falcon-border rounded-xl flex flex-col items-center justify-center py-16 text-center">
-            <div className="p-3 bg-falcon-border rounded-full mb-4">
-              <Ticket className="w-6 h-6 text-falcon-muted" />
+          <div className="bg-[#0d1525] border border-[#1e2d42] rounded-xl flex flex-col items-center justify-center py-16 text-center">
+            <div className="p-3 bg-[#1e2d42] rounded-full mb-4">
+              <Ticket className="w-6 h-6 text-[#7d92b0]" />
             </div>
-            <p className="text-sm text-falcon-text font-medium">SOAR連携が設定されていません</p>
-            <p className="text-xs text-falcon-muted mt-1 max-w-xs">
+            <p className="text-sm text-[#e2e8f4] font-medium">SOAR連携が設定されていません</p>
+            <p className="text-xs text-[#7d92b0] mt-1 max-w-xs">
               「連携を追加」ボタンから Jira または ServiceNow との連携を設定してください
             </p>
             <button
@@ -556,8 +561,8 @@ export default function SOARPage() {
               <div className="w-5 h-5 bg-blue-500/20 border border-blue-500/40 rounded-sm flex items-center justify-center">
                 <span className="text-blue-300 text-xs font-bold">J</span>
               </div>
-              <h2 className="text-sm font-semibold text-falcon-text">Jira</h2>
-              <span className="text-xs text-falcon-muted">{jiraConfigs.length}件</span>
+              <h2 className="text-sm font-semibold text-[#e2e8f4]">Jira</h2>
+              <span className="text-xs text-[#7d92b0]">{jiraConfigs.length}件</span>
             </div>
             <div className="space-y-3">
               {jiraConfigs.map((c) => (
@@ -580,8 +585,8 @@ export default function SOARPage() {
               <div className="w-5 h-5 bg-green-500/20 border border-green-500/40 rounded-sm flex items-center justify-center">
                 <span className="text-green-300 text-xs font-bold">S</span>
               </div>
-              <h2 className="text-sm font-semibold text-falcon-text">ServiceNow</h2>
-              <span className="text-xs text-falcon-muted">{serviceNowConfigs.length}件</span>
+              <h2 className="text-sm font-semibold text-[#e2e8f4]">ServiceNow</h2>
+              <span className="text-xs text-[#7d92b0]">{serviceNowConfigs.length}件</span>
             </div>
             <div className="space-y-3">
               {serviceNowConfigs.map((c) => (
@@ -599,12 +604,12 @@ export default function SOARPage() {
 
         {/* Usage Note */}
         {configs.length > 0 && (
-          <div className="bg-falcon-card border border-falcon-border rounded-xl px-5 py-4">
+          <div className="bg-[#111827] border border-[#1e2d42] rounded-xl px-5 py-4">
             <div className="flex items-start gap-3">
               <ExternalLink className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" />
               <div>
-                <p className="text-sm font-medium text-falcon-text">チケット手動起票</p>
-                <p className="text-xs text-falcon-muted mt-1">
+                <p className="text-sm font-medium text-[#e2e8f4]">チケット手動起票</p>
+                <p className="text-xs text-[#7d92b0] mt-1">
                   インシデント詳細ページから「チケット起票」ボタンを使用して、任意のSOAR連携に手動でチケットを作成できます。
                   自動起票が有効な場合、インシデント作成時に自動的にチケットが作成されます。
                 </p>

@@ -262,10 +262,10 @@ export function FalconGraph({ data, isLoading }: FalconGraphProps) {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-full bg-falcon-bg">
+      <div className="flex items-center justify-center h-full bg-[#080c14]">
         <div className="flex flex-col items-center gap-3">
-          <div className="w-8 h-8 border-2 border-falcon-red/30 border-t-falcon-red rounded-full animate-spin" />
-          <p className="text-falcon-subtle text-xs uppercase tracking-widest">グラフ構築中...</p>
+          <div className="w-8 h-8 border-2 border-[#e8002d]/30 border-t-[#e8002d] rounded-full animate-spin" />
+          <p className="text-[#3d5068] text-xs uppercase tracking-widest">グラフ構築中...</p>
         </div>
       </div>
     )
@@ -273,18 +273,18 @@ export function FalconGraph({ data, isLoading }: FalconGraphProps) {
 
   if (data.nodes.length === 0) {
     return (
-      <div className="flex items-center justify-center h-full bg-falcon-bg">
+      <div className="flex items-center justify-center h-full bg-[#080c14]">
         <div className="text-center">
-          <Shield className="w-12 h-12 text-falcon-border mx-auto mb-3" />
-          <p className="text-falcon-subtle text-sm">このアラートに関連するイベントデータがありません</p>
-          <p className="text-falcon-border text-xs mt-1">エージェントからのイベントが蓄積されると表示されます</p>
+          <Shield className="w-12 h-12 text-[#1e2d42] mx-auto mb-3" />
+          <p className="text-[#3d5068] text-sm">このアラートに関連するイベントデータがありません</p>
+          <p className="text-[#1e2d42] text-xs mt-1">エージェントからのイベントが蓄積されると表示されます</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="flex h-full bg-falcon-bg rounded-md overflow-hidden border border-falcon-border">
+    <div className="flex h-full bg-[#080c14] rounded-md overflow-hidden border border-[#1e2d42]">
 
       {/* ── Main SVG canvas ─────────────────────────────── */}
       <div className="flex-1 relative overflow-hidden">
@@ -292,16 +292,16 @@ export function FalconGraph({ data, isLoading }: FalconGraphProps) {
         {/* Toolbar */}
         <div className="absolute top-3 left-3 z-10 flex items-center gap-1.5">
           {/* Zoom controls */}
-          <div className="flex items-center bg-falcon-card border border-falcon-border rounded-sm overflow-hidden">
+          <div className="flex items-center bg-[#111827] border border-[#1e2d42] rounded-sm overflow-hidden">
             <button onClick={() => zoom(1.2)}
-                    className="px-2.5 py-1.5 text-falcon-muted hover:bg-falcon-hover hover:text-white transition-colors">
+                    className="px-2.5 py-1.5 text-[#7d92b0] hover:bg-[#19253d] hover:text-white transition-colors">
               <ZoomIn className="w-3.5 h-3.5" />
             </button>
-            <span className="px-2 text-[10px] text-falcon-subtle font-mono border-x border-falcon-border">
+            <span className="px-2 text-[10px] text-[#3d5068] font-mono border-x border-[#1e2d42]">
               {Math.round(transform.scale * 100)}%
             </span>
             <button onClick={() => zoom(0.83)}
-                    className="px-2.5 py-1.5 text-falcon-muted hover:bg-falcon-hover hover:text-white transition-colors">
+                    className="px-2.5 py-1.5 text-[#7d92b0] hover:bg-[#19253d] hover:text-white transition-colors">
               <ZoomOut className="w-3.5 h-3.5" />
             </button>
           </div>
@@ -319,8 +319,7 @@ export function FalconGraph({ data, isLoading }: FalconGraphProps) {
                 y: svgRect.height / 2 - (bounds.minY + graphH / 2) * scale,
               })
             }}
-            className="px-2.5 py-1.5 bg-falcon-card border border-falcon-border rounded
-                       text-falcon-muted hover:bg-falcon-hover hover:text-white transition-colors">
+            className="px-2.5 py-1.5 bg-[#111827] border border-[#1e2d42] rounded-sm text-[#7d92b0] hover:bg-[#19253d] hover:text-white transition-colors">
             <RotateCcw className="w-3.5 h-3.5" />
           </button>
 
@@ -333,7 +332,7 @@ export function FalconGraph({ data, isLoading }: FalconGraphProps) {
                 <button
                   key={type}
                   onClick={() => toggleFilter(type)}
-                  className={`flex items-center gap-1 px-2 py-1 rounded text-[10px] font-bold
+                  className={`flex items-center gap-1 px-2 py-1 rounded-sm text-[10px] font-bold
                               tracking-wider uppercase border transition-all ${
                     active
                       ? 'opacity-100'
@@ -354,14 +353,13 @@ export function FalconGraph({ data, isLoading }: FalconGraphProps) {
         </div>
 
         {/* Stats */}
-        <div className="absolute top-3 right-3 z-10 flex items-center gap-3
-                        bg-falcon-card border border-falcon-border rounded px-3 py-1.5">
-          <span className="text-[10px] text-falcon-subtle font-mono">
+        <div className="absolute top-3 right-3 z-10 flex items-center gap-3 bg-[#111827] border border-[#1e2d42] rounded-sm px-3 py-1.5">
+          <span className="text-[10px] text-[#3d5068] font-mono">
             {layout.length} nodes · {filteredEdges.length} edges
           </span>
           {data.nodes.some(n => n.suspicious) && (
-            <span className="flex items-center gap-1 text-[10px] text-falcon-red font-bold">
-              <span className="w-1.5 h-1.5 rounded-full bg-falcon-red critical-pulse" />
+            <span className="flex items-center gap-1 text-[10px] text-[#e8002d] font-bold">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#e8002d] critical-pulse" />
               SUSPICIOUS
             </span>
           )}
@@ -540,7 +538,7 @@ export function FalconGraph({ data, isLoading }: FalconGraphProps) {
       </div>
 
       {/* ── Detail panel ────────────────────────────────────── */}
-      <div className={`shrink-0 flex flex-col bg-falcon-surface border-l border-falcon-border
+      <div className={`shrink-0 flex flex-col bg-[#0d1220] border-l border-[#1e2d42]
                        transition-all duration-200 overflow-hidden ${
                          selected ? 'w-72' : 'w-0'
                        }`}>
@@ -562,27 +560,26 @@ export function FalconGraph({ data, isLoading }: FalconGraphProps) {
                       {TYPE_LABELS[selected.type]}
                     </span>
                     {selected.suspicious && (
-                      <span className="text-[9px] font-bold text-falcon-red bg-falcon-red/10
-                                       px-1.5 py-0.5 rounded border border-falcon-red/30">
+                      <span className="text-[9px] font-bold text-[#e8002d] bg-[#e8002d]/10 px-1.5 py-0.5 rounded-sm border border-[#e8002d]/30">
                         SUSPICIOUS
                       </span>
                     )}
                   </div>
-                  <p className="text-sm font-mono text-falcon-text font-semibold mt-0.5 break-all leading-tight">
+                  <p className="text-sm font-mono text-[#e2e8f4] font-semibold mt-0.5 break-all leading-tight">
                     {selected.label}
                   </p>
                 </div>
                 <button onClick={() => setSelected(null)}
-                        className="text-falcon-subtle hover:text-falcon-muted shrink-0 ml-1">
+                        className="text-[#3d5068] hover:text-[#7d92b0] shrink-0 ml-1">
                   <ChevronRight className="w-4 h-4" />
                 </button>
               </div>
 
               {/* Timestamp */}
               {selected.timestamp && (
-                <div className="mb-3 px-3 py-2 rounded-sm bg-falcon-raised border border-falcon-border">
-                  <p className="text-[9px] text-falcon-subtle uppercase tracking-wider mb-0.5">Timestamp</p>
-                  <p className="text-[11px] text-falcon-muted font-mono">
+                <div className="mb-3 px-3 py-2 rounded-sm bg-[#161f33] border border-[#1e2d42]">
+                  <p className="text-[9px] text-[#3d5068] uppercase tracking-wider mb-0.5">Timestamp</p>
+                  <p className="text-[11px] text-[#7d92b0] font-mono">
                     {(() => {
                       try { return format(parseISO(selected.timestamp), 'yyyy-MM-dd HH:mm:ss', { locale: ja }) }
                       catch { return selected.timestamp }
@@ -594,15 +591,15 @@ export function FalconGraph({ data, isLoading }: FalconGraphProps) {
               {/* Details */}
               <div className="space-y-2">
                 {Object.entries(selected.detail).filter(([, v]) => v).map(([key, value]) => (
-                  <div key={key} className="px-3 py-2 rounded-sm bg-falcon-card border border-falcon-border">
-                    <p className="text-[9px] text-falcon-subtle uppercase tracking-wider mb-0.5">{key}</p>
+                  <div key={key} className="px-3 py-2 rounded-sm bg-[#111827] border border-[#1e2d42]">
+                    <p className="text-[9px] text-[#3d5068] uppercase tracking-wider mb-0.5">{key}</p>
                     <div className="flex items-start gap-1.5">
-                      <p className="text-[11px] text-falcon-text font-mono break-all flex-1 leading-relaxed">
+                      <p className="text-[11px] text-[#e2e8f4] font-mono break-all flex-1 leading-relaxed">
                         {value}
                       </p>
                       <button
                         onClick={() => { navigator.clipboard.writeText(value); setTooltipCopied(true); setTimeout(() => setTooltipCopied(false), 1500) }}
-                        className="text-falcon-subtle hover:text-falcon-muted transition-colors shrink-0 mt-0.5"
+                        className="text-[#3d5068] hover:text-[#7d92b0] transition-colors shrink-0 mt-0.5"
                         title="コピー"
                       >
                         <Copy className="w-3 h-3" />
@@ -614,7 +611,7 @@ export function FalconGraph({ data, isLoading }: FalconGraphProps) {
 
               {/* Connected edges */}
               <div className="mt-4">
-                <p className="text-[9px] text-falcon-subtle uppercase tracking-wider mb-2">接続関係</p>
+                <p className="text-[9px] text-[#3d5068] uppercase tracking-wider mb-2">接続関係</p>
                 <div className="space-y-1">
                   {data.edges
                     .filter(e => e.source === selected.id || e.target === selected.id)
@@ -625,8 +622,7 @@ export function FalconGraph({ data, isLoading }: FalconGraphProps) {
                       const eColor = EDGE_COLORS[e.type] ?? '#3d5068'
                       return (
                         <div key={i}
-                             className="flex items-center gap-2 px-2 py-1.5 rounded bg-falcon-card
-                                        border border-falcon-border cursor-pointer hover:bg-falcon-hover"
+                             className="flex items-center gap-2 px-2 py-1.5 rounded-sm bg-[#111827] border border-[#1e2d42] cursor-pointer hover:bg-[#19253d]"
                              onClick={() => {
                                const node = layout.find(n => n.id === otherId)
                                if (node) setSelected(node)
@@ -634,8 +630,8 @@ export function FalconGraph({ data, isLoading }: FalconGraphProps) {
                           <span className="text-[9px] font-mono" style={{ color: eColor }}>
                             {isOut ? '→' : '←'}
                           </span>
-                          <span className="text-[9px] font-mono text-falcon-subtle uppercase">{e.type}</span>
-                          <span className="text-[10px] text-falcon-muted font-mono truncate flex-1">
+                          <span className="text-[9px] font-mono text-[#3d5068] uppercase">{e.type}</span>
+                          <span className="text-[10px] text-[#7d92b0] font-mono truncate flex-1">
                             {other?.label ?? otherId.slice(0, 12)}
                           </span>
                         </div>
@@ -646,8 +642,7 @@ export function FalconGraph({ data, isLoading }: FalconGraphProps) {
 
               {/* Copy feedback */}
               {tooltipCopied && (
-                <div className="mt-3 px-3 py-1.5 rounded bg-falcon-green/10 border border-falcon-green/30
-                                text-[#00e676] text-[10px] text-center font-medium">
+                <div className="mt-3 px-3 py-1.5 rounded-sm bg-[#00c853]/10 border border-[#00c853]/30 text-[#00e676] text-[10px] text-center font-medium">
                   コピーしました
                 </div>
               )}
@@ -673,11 +668,11 @@ export function FalconGraphLegend() {
           </span>
         </div>
       ))}
-      <div className="w-px h-4 bg-falcon-border" />
+      <div className="w-px h-4 bg-[#1e2d42]" />
       {Object.entries(EDGE_COLORS).map(([type, color]) => (
         <div key={type} className="flex items-center gap-1">
           <div className="w-6 h-px" style={{ background: color }} />
-          <span className="text-[9px] text-falcon-subtle uppercase tracking-wide">{type}</span>
+          <span className="text-[9px] text-[#3d5068] uppercase tracking-wide">{type}</span>
         </div>
       ))}
     </div>

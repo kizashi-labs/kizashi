@@ -29,6 +29,17 @@ type ProcessMonitorProcessEvent struct {
 	_           [4]byte
 }
 
+// Names of all BPF objects in the ELF.
+//
+// Used for safe lookups in a Collection or CollectionSpec.
+const (
+	ProcessMonitorMapEvents      = "events"
+	ProcessMonitorMapExecveMap   = "execve_map"
+	ProcessMonitorMapHeap        = "heap"
+	ProcessMonitorProgHandleExec = "handle_exec"
+	ProcessMonitorProgHandleExit = "handle_exit"
+)
+
 // LoadProcessMonitor returns the embedded CollectionSpec for ProcessMonitor.
 func LoadProcessMonitor() (*ebpf.CollectionSpec, error) {
 	reader := bytes.NewReader(_ProcessMonitorBytes)
@@ -49,7 +60,7 @@ func LoadProcessMonitor() (*ebpf.CollectionSpec, error) {
 //	*ProcessMonitorMaps
 //
 // See ebpf.CollectionSpec.LoadAndAssign documentation for details.
-func LoadProcessMonitorObjects(obj interface{}, opts *ebpf.CollectionOptions) error {
+func LoadProcessMonitorObjects(obj any, opts *ebpf.CollectionOptions) error {
 	spec, err := LoadProcessMonitor()
 	if err != nil {
 		return err

@@ -10,6 +10,8 @@ import {
   ExternalLink, Minus,
 } from 'lucide-react'
 
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 type Period = '30d' | '90d' | '180d'
@@ -195,10 +197,24 @@ function cvssColor(score: number) {
 function trendIcon(trend: AssetRisk['trend']) {
   if (trend === 'worse') return <TrendingUp className="w-3.5 h-3.5 text-red-400" />
   if (trend === 'better') return <TrendingDown className="w-3.5 h-3.5 text-green-400" />
-  return <Minus className="w-3.5 h-3.5 text-falcon-muted" />
+  return <Minus className="w-3.5 h-3.5 text-[#7d92b0]" />
 }
 
 // ── Main Component ─────────────────────────────────────────────────────────────
+
+// 30日分の日次データ。デモのときだけ作ります。
+function buildDaily30(): { date: string; new_vulns: number; remediated: number }[] {
+  if (!USE_MOCK) return []
+  return Array.from({ length: 30 }, (_, i) => {
+    const d = new Date()
+    d.setDate(d.getDate() - (29 - i))
+    return {
+      date: d.toISOString().slice(5, 10), // MM-DD
+      new_vulns: Math.floor(Math.random() * 8) + 1,
+      remediated: Math.floor(Math.random() * 6) + 1,
+    }
+  })
+}
 
 export default function VulnerabilityTrendsPage() {
   const [period, setPeriod] = useState<Period>('90d')
@@ -214,19 +230,9 @@ export default function VulnerabilityTrendsPage() {
 
   const data: TrendData = useMemo(() => apiData ?? (USE_MOCK ? makeMockData(period) : makeEmptyData(period)), [apiData, period])
 
-  // 30-day daily mock data
-  const daily30 = useMemo(() => {
-    if (period !== '30d') return []
-    return Array.from({ length: 30 }, (_, i) => {
-      const d = new Date()
-      d.setDate(d.getDate() - (29 - i))
-      return {
-        date: d.toISOString().slice(5, 10), // MM-DD
-        new_vulns: Math.floor(Math.random() * 8) + 1,
-        remediated: Math.floor(Math.random() * 6) + 1,
-      }
-    })
-  }, [period])
+  // 30日分の日次データ。すぐ上の data は USE_MOCK で分けてあるのに、
+  // ここだけ無条件に乱数で作っていました。
+  const daily30 = useMemo(() => (period === '30d' ? buildDaily30() : []), [period])
 
   const maxDaily = daily30.length > 0 ? Math.max(...daily30.map(d => Math.max(d.new_vulns, d.remediated))) : 1
   const maxMonthly = Math.max(...data.monthly.map(m => Math.max(m.new_vulns, m.remediated)))
@@ -234,34 +240,35 @@ export default function VulnerabilityTrendsPage() {
   const maxAge = Math.max(...data.age_buckets.map(b => b.count))
 
   return (
-    <div className="min-h-screen bg-[#070d19] text-falcon-muted">
+    <div className="min-h-screen bg-[#070d19] text-[#7d92b0]">
+      <PageDataUnavailable />
       {/* ── Header ─────────────────────────────────────────── */}
-      <div className="border-b border-falcon-border px-6 py-4">
+      <div className="border-b border-[#1e2d42] px-6 py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-falcon-red/10 border border-falcon-red/20 flex items-center justify-center">
-              <TrendingUp className="w-5 h-5 text-falcon-red" />
+            <div className="w-9 h-9 rounded-lg bg-[#e8002d]/10 border border-[#e8002d]/20 flex items-center justify-center">
+              <TrendingUp className="w-5 h-5 text-[#e8002d]" />
             </div>
             <div>
               <h1 className="text-white text-xl font-bold tracking-tight">脆弱性トレンド分析</h1>
-              <p className="text-xs text-falcon-muted mt-0.5">期間別の脆弱性推移・修正状況を分析</p>
+              <p className="text-xs text-[#7d92b0] mt-0.5">期間別の脆弱性推移・修正状況を分析</p>
             </div>
           </div>
           <div className="flex items-center gap-3">
             {/* Period selector */}
-            <div className="flex items-center gap-1 bg-falcon-surface border border-falcon-border rounded-lg p-1">
+            <div className="flex items-center gap-1 bg-[#0d1220] border border-[#1e2d42] rounded-lg p-1">
               {(['30d', '90d', '180d'] as Period[]).map(p => (
                 <button
                   key={p}
                   onClick={() => { setPeriod(p); setShowCustom(false) }}
-                  className={`px-3 py-1.5 rounded-sm text-xs font-medium transition-colors ${period === p && !showCustom ? 'bg-falcon-border text-white' : 'text-falcon-muted hover:text-white'}`}
+                  className={`px-3 py-1.5 rounded-sm text-xs font-medium transition-colors ${period === p && !showCustom ? 'bg-[#1e2d42] text-white' : 'text-[#7d92b0] hover:text-white'}`}
                 >
                   {p === '30d' ? '30日' : p === '90d' ? '90日' : '180日'}
                 </button>
               ))}
               <button
                 onClick={() => setShowCustom(!showCustom)}
-                className={`flex items-center gap-1 px-3 py-1.5 rounded-sm text-xs transition-colors ${showCustom ? 'bg-falcon-border text-white' : 'text-falcon-muted hover:text-white'}`}
+                className={`flex items-center gap-1 px-3 py-1.5 rounded-sm text-xs transition-colors ${showCustom ? 'bg-[#1e2d42] text-white' : 'text-[#7d92b0] hover:text-white'}`}
               >
                 <Calendar className="w-3 h-3" />
                 カスタム
@@ -280,7 +287,7 @@ export default function VulnerabilityTrendsPage() {
                 a.click()
                 URL.revokeObjectURL(url)
               }}
-              className="flex items-center gap-2 px-3 py-2 rounded-lg bg-falcon-surface border border-falcon-border text-xs text-falcon-muted hover:text-white transition-colors"
+              className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#0d1220] border border-[#1e2d42] text-xs text-[#7d92b0] hover:text-white transition-colors"
             >
               <Download className="w-3.5 h-3.5" />
               JSONエクスポート
@@ -289,13 +296,13 @@ export default function VulnerabilityTrendsPage() {
         </div>
         {showCustom && (
           <div className="flex items-center gap-3 mt-3">
-            <label className="text-xs text-falcon-muted">開始日</label>
+            <label className="text-xs text-[#7d92b0]">開始日</label>
             <input type="date" value={customFrom} onChange={e => setCustomFrom(e.target.value)}
-              className="px-3 py-1.5 text-xs bg-falcon-surface border border-falcon-border rounded-sm text-white focus:outline-hidden focus:border-falcon-muted" />
-            <label className="text-xs text-falcon-muted">終了日</label>
+              className="px-3 py-1.5 text-xs bg-[#0d1220] border border-[#1e2d42] rounded-sm text-white focus:outline-hidden focus:border-[#7d92b0]" />
+            <label className="text-xs text-[#7d92b0]">終了日</label>
             <input type="date" value={customTo} onChange={e => setCustomTo(e.target.value)}
-              className="px-3 py-1.5 text-xs bg-falcon-surface border border-falcon-border rounded-sm text-white focus:outline-hidden focus:border-falcon-muted" />
-            <button className="px-3 py-1.5 text-xs bg-falcon-red text-white rounded-sm hover:bg-[#c0001f] transition-colors">適用</button>
+              className="px-3 py-1.5 text-xs bg-[#0d1220] border border-[#1e2d42] rounded-sm text-white focus:outline-hidden focus:border-[#7d92b0]" />
+            <button className="px-3 py-1.5 text-xs bg-[#e8002d] text-white rounded-sm hover:bg-[#c0001f] transition-colors">適用</button>
           </div>
         )}
       </div>
@@ -304,15 +311,15 @@ export default function VulnerabilityTrendsPage() {
         {/* ── KPI Row ──────────────────────────────────────── */}
         <div className="grid grid-cols-4 gap-4">
           {[
-            { label: '新規脆弱性', value: data.kpi.new_vulns, unit: '件', icon: AlertTriangle, color: 'text-falcon-red', trend: 'up' },
+            { label: '新規脆弱性', value: data.kpi.new_vulns, unit: '件', icon: AlertTriangle, color: 'text-[#e8002d]', trend: 'up' },
             { label: '修正済み', value: data.kpi.remediated, unit: '件', icon: CheckCircle2, color: 'text-green-400', trend: 'down' },
             { label: 'MTTR', value: data.kpi.mttr_days.toFixed(1), unit: '日', icon: Clock, color: 'text-orange-400', trend: 'up' },
             { label: 'SLAコンプライアンス', value: data.kpi.sla_compliance.toFixed(1), unit: '%', icon: Target, color: 'text-blue-400', trend: 'stable' },
           ].map(({ label, value, unit, icon: Icon, color }) => (
-            <div key={label} className="bg-falcon-surface border border-falcon-border rounded-xl p-4">
+            <div key={label} className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-4">
               <div className="flex items-center gap-2 mb-2">
                 <Icon className={`w-4 h-4 ${color}`} />
-                <span className="text-xs text-falcon-muted">{label}</span>
+                <span className="text-xs text-[#7d92b0]">{label}</span>
               </div>
               <p className={`text-2xl font-bold ${color} font-mono`}>
                 {value}<span className="text-sm ml-1 opacity-70">{unit}</span>
@@ -323,12 +330,12 @@ export default function VulnerabilityTrendsPage() {
 
         {/* ── 30-day Daily Chart (only for 30d period) ─────── */}
         {period === '30d' && daily30.length > 0 && (
-          <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
+          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
             <h2 className="text-white font-semibold text-sm mb-1 flex items-center gap-2">
-              <TrendingUp className="w-4 h-4 text-falcon-red" />
+              <TrendingUp className="w-4 h-4 text-[#e8002d]" />
               30日間 日次CVEトレンド
             </h2>
-            <p className="text-[10px] text-falcon-subtle mb-4">過去30日間の日次脆弱性検出・修正推移</p>
+            <p className="text-[10px] text-[#3d5068] mb-4">過去30日間の日次脆弱性検出・修正推移</p>
             <div className="flex items-end gap-0.5 h-28 overflow-hidden">
               {daily30.map((d, idx) => {
                 const newH = Math.round((d.new_vulns / maxDaily) * 100)
@@ -338,7 +345,7 @@ export default function VulnerabilityTrendsPage() {
                   <div key={d.date} className="flex-1 flex flex-col items-center gap-0" style={{ minWidth: 0 }}>
                     <div className="flex items-end gap-px w-full h-24">
                       <div
-                        className="flex-1 rounded-t bg-falcon-red/60 hover:bg-falcon-red transition-colors"
+                        className="flex-1 rounded-t bg-[#e8002d]/60 hover:bg-[#e8002d] transition-colors"
                         style={{ height: `${newH}%`, minHeight: d.new_vulns > 0 ? '2px' : '0' }}
                         title={`${d.date} 新規: ${d.new_vulns}`}
                       />
@@ -348,7 +355,7 @@ export default function VulnerabilityTrendsPage() {
                         title={`${d.date} 修正: ${d.remediated}`}
                       />
                     </div>
-                    <span className="text-[8px] text-falcon-subtle mt-0.5 leading-none" style={{ opacity: showLabel ? 1 : 0 }}>
+                    <span className="text-[8px] text-[#3d5068] mt-0.5 leading-none" style={{ opacity: showLabel ? 1 : 0 }}>
                       {d.date}
                     </span>
                   </div>
@@ -356,16 +363,16 @@ export default function VulnerabilityTrendsPage() {
               })}
             </div>
             <div className="flex items-center gap-4 mt-2">
-              <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-xs bg-falcon-red/60" /><span className="text-xs text-falcon-muted">新規</span></div>
-              <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-xs bg-green-500/60" /><span className="text-xs text-falcon-muted">修正済</span></div>
+              <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-xs bg-[#e8002d]/60" /><span className="text-xs text-[#7d92b0]">新規</span></div>
+              <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-xs bg-green-500/60" /><span className="text-xs text-[#7d92b0]">修正済</span></div>
             </div>
           </div>
         )}
 
         {/* ── Monthly Bar Chart ────────────────────────────── */}
-        <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
+        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
           <h2 className="text-white font-semibold text-sm mb-4 flex items-center gap-2">
-            <BarChart2 className="w-4 h-4 text-falcon-red" />
+            <BarChart2 className="w-4 h-4 text-[#e8002d]" />
             月別 新規 vs 修正
           </h2>
           <div className="flex items-end gap-4 h-40">
@@ -377,10 +384,10 @@ export default function VulnerabilityTrendsPage() {
                   <div className="flex items-end gap-1 w-full h-32">
                     <div className="flex-1 flex items-end justify-center">
                       <div
-                        className="w-full rounded-t bg-falcon-red/70 hover:bg-falcon-red transition-colors relative group"
+                        className="w-full rounded-t bg-[#e8002d]/70 hover:bg-[#e8002d] transition-colors relative group"
                         style={{ height: `${newH}%`, minHeight: '4px' }}
                       >
-                        <span className="absolute -top-5 left-1/2 -translate-x-1/2 text-[10px] text-falcon-red opacity-0 group-hover:opacity-100 whitespace-nowrap">{m.new_vulns}</span>
+                        <span className="absolute -top-5 left-1/2 -translate-x-1/2 text-[10px] text-[#e8002d] opacity-0 group-hover:opacity-100 whitespace-nowrap">{m.new_vulns}</span>
                       </div>
                     </div>
                     <div className="flex-1 flex items-end justify-center">
@@ -392,21 +399,21 @@ export default function VulnerabilityTrendsPage() {
                       </div>
                     </div>
                   </div>
-                  <span className="text-[10px] text-falcon-subtle">{m.month.slice(5)}</span>
+                  <span className="text-[10px] text-[#3d5068]">{m.month.slice(5)}</span>
                 </div>
               )
             })}
           </div>
           <div className="flex items-center gap-4 mt-2">
-            <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-xs bg-falcon-red/70" /><span className="text-xs text-falcon-muted">新規</span></div>
-            <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-xs bg-green-500/70" /><span className="text-xs text-falcon-muted">修正済</span></div>
+            <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-xs bg-[#e8002d]/70" /><span className="text-xs text-[#7d92b0]">新規</span></div>
+            <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-xs bg-green-500/70" /><span className="text-xs text-[#7d92b0]">修正済</span></div>
           </div>
         </div>
 
         {/* ── Severity Distribution & CVSS Histogram ──────── */}
         <div className="grid grid-cols-2 gap-4">
           {/* Severity over time (stacked area approximation) */}
-          <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
+          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
             <h2 className="text-white font-semibold text-sm mb-4">深刻度別 月次分布</h2>
             <div className="space-y-2">
               {data.severity_monthly.map(sm => {
@@ -417,27 +424,27 @@ export default function VulnerabilityTrendsPage() {
                 const lowW = 100 - critW - highW - medW
                 return (
                   <div key={sm.month} className="flex items-center gap-2">
-                    <span className="text-[10px] text-falcon-subtle w-10">{sm.month.slice(5)}</span>
+                    <span className="text-[10px] text-[#3d5068] w-10">{sm.month.slice(5)}</span>
                     <div className="flex-1 flex h-5 rounded-sm overflow-hidden gap-0.5">
                       <div className="bg-red-500/80 transition-all" style={{ width: `${critW}%` }} title={`Critical: ${sm.critical}`} />
                       <div className="bg-orange-500/80 transition-all" style={{ width: `${highW}%` }} title={`High: ${sm.high}`} />
                       <div className="bg-yellow-500/80 transition-all" style={{ width: `${medW}%` }} title={`Medium: ${sm.medium}`} />
                       <div className="bg-blue-500/80 transition-all" style={{ width: `${lowW}%` }} title={`Low: ${sm.low}`} />
                     </div>
-                    <span className="text-[10px] text-falcon-subtle w-6 text-right">{total}</span>
+                    <span className="text-[10px] text-[#3d5068] w-6 text-right">{total}</span>
                   </div>
                 )
               })}
             </div>
             <div className="flex items-center gap-3 mt-3">
               {([['Critical', 'bg-red-500/80'], ['High', 'bg-orange-500/80'], ['Medium', 'bg-yellow-500/80'], ['Low', 'bg-blue-500/80']] as [string, string][]).map(([label, cls]) => (
-                <div key={label} className="flex items-center gap-1"><div className={`w-2.5 h-2.5 rounded-xs ${cls}`} /><span className="text-[10px] text-falcon-muted">{label}</span></div>
+                <div key={label} className="flex items-center gap-1"><div className={`w-2.5 h-2.5 rounded-xs ${cls}`} /><span className="text-[10px] text-[#7d92b0]">{label}</span></div>
               ))}
             </div>
           </div>
 
           {/* CVSS Histogram */}
-          <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
+          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
             <h2 className="text-white font-semibold text-sm mb-4">CVSSスコア分布</h2>
             <div className="flex items-end gap-1 h-32">
               {data.cvss_histogram.map(bucket => {
@@ -457,28 +464,28 @@ export default function VulnerabilityTrendsPage() {
               })}
             </div>
             <div className="flex justify-between mt-1">
-              <span className="text-[9px] text-falcon-subtle">0.1</span>
-              <span className="text-[9px] text-falcon-subtle">10.0</span>
+              <span className="text-[9px] text-[#3d5068]">0.1</span>
+              <span className="text-[9px] text-[#3d5068]">10.0</span>
             </div>
-            <p className="text-[10px] text-falcon-subtle mt-1">CVSSスコア範囲</p>
+            <p className="text-[10px] text-[#3d5068] mt-1">CVSSスコア範囲</p>
           </div>
         </div>
 
         {/* ── Top 10 CVEs ──────────────────────────────────── */}
-        <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
-          <div className="px-4 py-3 border-b border-falcon-border">
+        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
+          <div className="px-4 py-3 border-b border-[#1e2d42]">
             <h2 className="text-white font-semibold text-sm">最多検出 CVE Top 10</h2>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-xs">
               <thead>
-                <tr className="border-b border-falcon-border">
+                <tr className="border-b border-[#1e2d42]">
                   {['CVE ID', '名称', '影響資産', 'CVSSスコア', '初検出日', '修正数', 'ステータス'].map(h => (
-                    <th key={h} className="px-3 py-2.5 text-left text-falcon-subtle font-medium whitespace-nowrap">{h}</th>
+                    <th key={h} className="px-3 py-2.5 text-left text-[#3d5068] font-medium whitespace-nowrap">{h}</th>
                   ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-falcon-border/50">
+              <tbody className="divide-y divide-[#1e2d42]/50">
                 {data.top_cves.map(cve => (
                   <tr key={cve.cve_id} className="hover:bg-[#0a1628] transition-colors">
                     <td className="px-3 py-2.5">
@@ -492,17 +499,17 @@ export default function VulnerabilityTrendsPage() {
                         <ExternalLink className="w-2.5 h-2.5 opacity-60" />
                       </a>
                     </td>
-                    <td className="px-3 py-2.5 text-falcon-muted max-w-[200px] truncate" title={cve.name}>{cve.name}</td>
+                    <td className="px-3 py-2.5 text-[#7d92b0] max-w-[200px] truncate" title={cve.name}>{cve.name}</td>
                     <td className="px-3 py-2.5 text-center">
                       <span className="font-bold text-white">{cve.affected_assets}</span>
                     </td>
                     <td className="px-3 py-2.5">
                       <span className={`font-bold font-mono ${cvssColor(cve.cvss_score)}`}>{cve.cvss_score.toFixed(1)}</span>
                     </td>
-                    <td className="px-3 py-2.5 text-falcon-subtle font-mono whitespace-nowrap">{cve.first_seen}</td>
+                    <td className="px-3 py-2.5 text-[#3d5068] font-mono whitespace-nowrap">{cve.first_seen}</td>
                     <td className="px-3 py-2.5 text-center">
                       <span className="text-green-400 font-mono">{cve.remediated_count}</span>
-                      <span className="text-falcon-subtle"> / {cve.affected_assets}</span>
+                      <span className="text-[#3d5068]"> / {cve.affected_assets}</span>
                     </td>
                     <td className="px-3 py-2.5">
                       <span className={`px-2 py-0.5 rounded-sm border text-[10px] font-medium ${statusBadge(cve.status)}`}>{statusLabel(cve.status)}</span>
@@ -517,14 +524,14 @@ export default function VulnerabilityTrendsPage() {
         {/* ── Asset Risk Trends & Age Analysis ─────────────── */}
         <div className="grid grid-cols-2 gap-4">
           {/* Asset risk trends */}
-          <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
-            <div className="px-4 py-3 border-b border-falcon-border">
+          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
+            <div className="px-4 py-3 border-b border-[#1e2d42]">
               <h2 className="text-white font-semibold text-sm">エンドポイントリスクトレンド</h2>
             </div>
-            <div className="divide-y divide-falcon-border/50">
+            <div className="divide-y divide-[#1e2d42]/50">
               {data.asset_risks.map((asset, idx) => (
                 <div key={asset.hostname} className="flex items-center gap-3 px-4 py-2.5 hover:bg-[#0a1628] transition-colors">
-                  <span className="text-falcon-subtle text-xs w-4">{idx + 1}</span>
+                  <span className="text-[#3d5068] text-xs w-4">{idx + 1}</span>
                   <span className="font-mono text-white text-xs flex-1 truncate">{asset.hostname}</span>
                   <div className="flex items-center gap-1 w-32">
                     <div className="flex-1 h-1.5 bg-[#070d19] rounded-full overflow-hidden">
@@ -533,9 +540,9 @@ export default function VulnerabilityTrendsPage() {
                         style={{ width: `${asset.total_score}%` }}
                       />
                     </div>
-                    <span className="text-[10px] font-mono text-falcon-muted w-8 text-right">{asset.total_score.toFixed(0)}</span>
+                    <span className="text-[10px] font-mono text-[#7d92b0] w-8 text-right">{asset.total_score.toFixed(0)}</span>
                   </div>
-                  <span className="text-falcon-subtle text-[10px] w-8 text-right">{asset.vuln_count}件</span>
+                  <span className="text-[#3d5068] text-[10px] w-8 text-right">{asset.vuln_count}件</span>
                   <div className="w-5 flex justify-end">{trendIcon(asset.trend)}</div>
                 </div>
               ))}
@@ -543,7 +550,7 @@ export default function VulnerabilityTrendsPage() {
           </div>
 
           {/* Age analysis */}
-          <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
+          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
             <h2 className="text-white font-semibold text-sm mb-4">脆弱性経過日数分析</h2>
             <div className="space-y-3">
               {data.age_buckets.map(bucket => {
@@ -552,7 +559,7 @@ export default function VulnerabilityTrendsPage() {
                 const idx = data.age_buckets.indexOf(bucket)
                 return (
                   <div key={bucket.label} className="flex items-center gap-3">
-                    <span className="text-xs text-falcon-muted w-16">{bucket.label}</span>
+                    <span className="text-xs text-[#7d92b0] w-16">{bucket.label}</span>
                     <div className="flex-1 h-6 bg-[#070d19] rounded-sm overflow-hidden relative">
                       <div
                         className={`h-full ${colors[idx]} transition-all rounded-sm`}
@@ -560,7 +567,7 @@ export default function VulnerabilityTrendsPage() {
                       />
                       <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] text-white font-bold mix-blend-difference">{bucket.count}件</span>
                     </div>
-                    <span className="text-xs text-falcon-subtle w-6 text-right">{pct}%</span>
+                    <span className="text-xs text-[#3d5068] w-6 text-right">{pct}%</span>
                   </div>
                 )
               })}
@@ -569,7 +576,7 @@ export default function VulnerabilityTrendsPage() {
         </div>
 
         {/* ── Remediation Velocity ─────────────────────────── */}
-        <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
+        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
           <h2 className="text-white font-semibold text-sm mb-4">修正速度 vs SLA目標</h2>
           <div className="grid grid-cols-4 gap-4">
             {data.rem_velocity.map(rv => {
@@ -577,7 +584,7 @@ export default function VulnerabilityTrendsPage() {
               const slaPct = Math.min(Math.round((rv.sla_days / (rv.sla_days * 1.5)) * 100), 100)
               const overSla = rv.avg_days > rv.sla_days
               return (
-                <div key={rv.severity} className="bg-[#070d19] rounded-xl p-4 border border-falcon-border">
+                <div key={rv.severity} className="bg-[#070d19] rounded-xl p-4 border border-[#1e2d42]">
                   <div className="flex items-center justify-between mb-3">
                     <span className={`text-xs font-bold uppercase ${severityColor(rv.severity)}`}>{rv.severity}</span>
                     {overSla
@@ -586,10 +593,10 @@ export default function VulnerabilityTrendsPage() {
                     }
                   </div>
                   <p className={`text-xl font-bold font-mono mb-1 ${overSla ? 'text-red-400' : 'text-green-400'}`}>
-                    {rv.avg_days.toFixed(1)}<span className="text-xs text-falcon-subtle ml-1">日</span>
+                    {rv.avg_days.toFixed(1)}<span className="text-xs text-[#3d5068] ml-1">日</span>
                   </p>
-                  <p className="text-[10px] text-falcon-subtle mb-3">SLA目標: {rv.sla_days}日</p>
-                  <div className="relative h-3 bg-falcon-surface rounded-full overflow-hidden">
+                  <p className="text-[10px] text-[#3d5068] mb-3">SLA目標: {rv.sla_days}日</p>
+                  <div className="relative h-3 bg-[#0d1220] rounded-full overflow-hidden">
                     <div
                       className={`absolute top-0 left-0 h-full rounded-full ${severityBg(rv.severity)} opacity-80`}
                       style={{ width: `${pct}%` }}

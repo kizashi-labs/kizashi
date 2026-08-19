@@ -33,31 +33,28 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <div className="min-h-screen flex bg-falcon-bg">
+    <div className="min-h-screen flex bg-[#080c14]">
       {/* Left panel - brand */}
-      <div className="hidden lg:flex w-[420px] shrink-0 flex-col bg-falcon-surface border-r border-falcon-border
-                      items-center justify-center p-12 relative overflow-hidden">
+      <div className="hidden lg:flex w-[420px] shrink-0 flex-col bg-[#0d1220] border-r border-[#1e2d42] items-center justify-center p-12 relative overflow-hidden">
         <div className="absolute inset-0 opacity-[0.03]"
              style={{
                backgroundImage: 'linear-gradient(#e2e8f4 1px, transparent 1px), linear-gradient(90deg, #e2e8f4 1px, transparent 1px)',
                backgroundSize: '32px 32px',
              }} />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64
-                        rounded-full bg-falcon-red/5 blur-3xl pointer-events-none" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 rounded-full bg-[#e8002d]/5 blur-3xl pointer-events-none" />
 
         <div className="relative z-10 flex flex-col items-center text-center">
-          <div className="w-20 h-20 rounded-xl bg-linear-to-br from-falcon-red to-falcon-red-dark
-                          flex items-center justify-center shadow-falcon-glow-red mb-6">
+          <div className="w-20 h-20 rounded-xl bg-linear-to-br from-[#e8002d] to-[#a80020] flex items-center justify-center shadow-falcon-glow-red mb-6">
             <Shield className="w-10 h-10 text-white" strokeWidth={1.5} />
           </div>
           <h1 className="text-2xl font-bold text-white tracking-tight mb-2">Kizashi</h1>
-          <p className="text-falcon-subtle text-sm uppercase tracking-widest font-medium mb-8">
+          <p className="text-[#3d5068] text-sm uppercase tracking-widest font-medium mb-8">
             Endpoint Protection Platform
           </p>
         </div>
 
         <div className="absolute bottom-6 left-0 right-0 flex justify-center">
-          <span className="text-falcon-subtle text-[10px] font-mono tracking-wider">
+          <span className="text-[#3d5068] text-[10px] font-mono tracking-wider">
             KIZASHI EDR v2.0 · PROTECTED
           </span>
         </div>
@@ -68,7 +65,7 @@ export default function ForgotPasswordPage() {
         <div className="w-full max-w-sm animate-fade-in">
           {/* Mobile logo */}
           <div className="lg:hidden flex items-center gap-3 mb-8 justify-center">
-            <div className="w-10 h-10 rounded-sm bg-linear-to-br from-falcon-red to-falcon-red-dark flex items-center justify-center">
+            <div className="w-10 h-10 rounded-sm bg-linear-to-br from-[#e8002d] to-[#a80020] flex items-center justify-center">
               <Shield className="w-5 h-5 text-white" />
             </div>
             <p className="text-white font-bold text-lg">Kizashi</p>
@@ -77,18 +74,17 @@ export default function ForgotPasswordPage() {
           {sent ? (
             /* ── Success State ─────────────────────────── */
             <div className="text-center">
-              <div className="w-16 h-16 rounded-full bg-falcon-blue/10 border border-falcon-blue/30
-                              flex items-center justify-center mx-auto mb-4">
-                <Mail className="w-8 h-8 text-falcon-blue" />
+              <div className="w-16 h-16 rounded-full bg-[#1a6bff]/10 border border-[#1a6bff]/30 flex items-center justify-center mx-auto mb-4">
+                <Mail className="w-8 h-8 text-[#1a6bff]" />
               </div>
               <h2 className="text-white font-bold text-xl mb-2">メールを送信しました</h2>
-              <p className="text-falcon-muted text-sm mb-6">
+              <p className="text-[#7d92b0] text-sm mb-6">
                 入力したメールアドレスにパスワードリセットリンクを送信しました。
                 メールが届かない場合は迷惑メールフォルダをご確認ください。
               </p>
               <Link
                 href="/login"
-                className="inline-flex items-center gap-2 text-falcon-muted hover:text-falcon-text text-sm transition-colors"
+                className="inline-flex items-center gap-2 text-[#7d92b0] hover:text-[#e2e8f4] text-sm transition-colors"
               >
                 <ArrowLeft className="w-4 h-4" />
                 ログイン画面に戻る
@@ -98,20 +94,20 @@ export default function ForgotPasswordPage() {
             /* ── Request Form ──────────────────────────── */
             <div>
               <div className="flex items-center gap-2 mb-1">
-                <Mail className="w-5 h-5 text-falcon-red" />
+                <Mail className="w-5 h-5 text-[#e8002d]" />
                 <h2 className="text-white font-bold text-xl">パスワードのリセット</h2>
               </div>
-              <p className="text-falcon-muted text-sm mb-8">
+              <p className="text-[#7d92b0] text-sm mb-8">
                 登録済みのメールアドレスを入力してください。パスワードリセット用のリンクをお送りします。
               </p>
 
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                  <label className="block text-[10px] font-semibold tracking-widest uppercase text-falcon-muted mb-2">
+                  <label className="block text-[10px] font-semibold tracking-widest uppercase text-[#7d92b0] mb-2">
                     メールアドレス
                   </label>
                   <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-falcon-subtle" />
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#3d5068]" />
                     <input
                       type="email"
                       value={email}
@@ -119,10 +115,7 @@ export default function ForgotPasswordPage() {
                       required
                       autoComplete="email"
                       autoFocus
-                      className="w-full bg-falcon-surface border border-falcon-border text-falcon-text rounded
-                                 pl-9 pr-4 py-2.5 text-sm
-                                 focus:outline-hidden focus:border-falcon-blue focus:ring-1 focus:ring-falcon-blue/30
-                                 placeholder-falcon-subtle transition-colors"
+                      className="w-full bg-[#0d1220] border border-[#1e2d42] text-[#e2e8f4] rounded-sm pl-9 pr-4 py-2.5 text-sm focus:outline-hidden focus:border-[#1a6bff] focus:ring-1 focus:ring-[#1a6bff]/30 placeholder-[#3d5068] transition-colors"
                       placeholder="user@example.com"
                     />
                   </div>
@@ -152,7 +145,7 @@ export default function ForgotPasswordPage() {
               <div className="mt-6 text-center">
                 <Link
                   href="/login"
-                  className="inline-flex items-center gap-2 text-falcon-muted hover:text-falcon-text text-sm transition-colors"
+                  className="inline-flex items-center gap-2 text-[#7d92b0] hover:text-[#e2e8f4] text-sm transition-colors"
                 >
                   <ArrowLeft className="w-4 h-4" />
                   ログイン画面に戻る
@@ -168,9 +161,8 @@ export default function ForgotPasswordPage() {
 
 function ErrorBox({ message }: { message: string }) {
   return (
-    <div className="flex items-start gap-2 px-3 py-2.5 rounded bg-falcon-red/10
-                    border border-falcon-red/30 text-[#ff4d6d] text-sm">
-      <span className="text-falcon-red mt-0.5 shrink-0">▲</span>
+    <div className="flex items-start gap-2 px-3 py-2.5 rounded-sm bg-[#e8002d]/10 border border-[#e8002d]/30 text-[#ff4d6d] text-sm">
+      <span className="text-[#e8002d] mt-0.5 shrink-0">▲</span>
       {message}
     </div>
   )

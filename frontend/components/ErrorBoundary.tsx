@@ -34,20 +34,20 @@ export class ErrorBoundary extends React.Component<Props, State> {
       return (
         <div className="flex flex-col items-center justify-center min-h-[400px] gap-4 text-center px-4">
           <div className="w-12 h-12 rounded-full bg-red-900/30 flex items-center justify-center">
-            <AlertTriangle className="w-6 h-6 text-falcon-red" />
+            <AlertTriangle className="w-6 h-6 text-[#e8002d]" />
           </div>
           <div>
             <h2 className="text-white font-semibold text-lg">表示エラーが発生しました</h2>
-            <p className="text-falcon-muted text-sm mt-1">{this.state.error?.message || '予期しないエラーが発生しました'}</p>
+            <p className="text-[#7d92b0] text-sm mt-1">{this.state.error?.message || '予期しないエラーが発生しました'}</p>
           </div>
           <div className="flex gap-3">
             <button
               onClick={() => this.setState({ hasError: false })}
-              className="flex items-center gap-2 px-4 py-2 bg-falcon-active hover:bg-[#253a5a] text-white rounded-sm text-sm transition-colors"
+              className="flex items-center gap-2 px-4 py-2 bg-[#1d2f4a] hover:bg-[#253a5a] text-white rounded-sm text-sm transition-colors"
             >
               <RefreshCw className="w-4 h-4" /> 再試行
             </button>
-            <Link href="/dashboard" className="flex items-center gap-2 px-4 py-2 bg-falcon-surface border border-falcon-border hover:border-falcon-subtle text-falcon-muted hover:text-white rounded-sm text-sm transition-colors">
+            <Link href="/dashboard" className="flex items-center gap-2 px-4 py-2 bg-[#0d1220] border border-[#1e2d42] hover:border-[#3d5068] text-[#7d92b0] hover:text-white rounded-sm text-sm transition-colors">
               <Home className="w-4 h-4" /> ダッシュボード
             </Link>
           </div>

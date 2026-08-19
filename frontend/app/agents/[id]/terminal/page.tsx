@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback, use } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { apiFetch, apiFetchList } from '@/lib/api'
 import { Agent } from '@/types/api'
@@ -72,8 +72,8 @@ function statusBadge(status: Agent['status']) {
       )
     case 'offline':
       return (
-        <span className="flex items-center gap-1.5 text-xs px-2 py-0.5 rounded-full bg-falcon-border border border-[#2d4060] text-[#8899aa]">
-          <span className="w-1.5 h-1.5 rounded-full bg-falcon-subtle" />
+        <span className="flex items-center gap-1.5 text-xs px-2 py-0.5 rounded-full bg-[#1e2d42] border border-[#2d4060] text-[#8899aa]">
+          <span className="w-1.5 h-1.5 rounded-full bg-[#3d5068]" />
           オフライン
         </span>
       )
@@ -117,17 +117,17 @@ function sessionStateBadge(state: SessionState) {
 
 // ─── Main component ───────────────────────────────────────────
 
-// Next.js 15 以降、動的セグメントの params は Promise で渡る。
-// クライアントコンポーネントでは React の use() で解決する。
-export default function TerminalPage({ params }: { params: Promise<{ id: string }> }) {
+export default function TerminalPage({ params }: { params: { id: string } }) {
   const router = useRouter()
-  const agentId = use(params).id
+  const agentId = params.id
 
   // Agent & session state
   const [agent, setAgent] = useState<Agent | null>(null)
   const [agentLoading, setAgentLoading] = useState(true)
   const [session, setSession] = useState<LiveResponseSession | null>(null)
   const [sessionState, setSessionState] = useState<SessionState>('idle')
+  // セッションが生きているかを確認できていないこと。閉じられたかどうかは不明です。
+  const [pollError, setPollError] = useState('')
 
   // Terminal state
   const [entries, setEntries] = useState<TerminalEntry[]>([])
@@ -167,8 +167,11 @@ export default function TerminalPage({ params }: { params: Promise<{ id: string 
         setSessionState('disconnected')
         clearInterval(sessionPollRef.current ?? undefined)
       }
-    } catch {
-      // ignore poll errors
+      setPollError('')
+    } catch (e) {
+      // 以前はここで黙って諦めていました。セッションが閉じられていても
+      // 画面は「接続中」のまま、解析者は届かないコマンドを打ち続けます。
+      setPollError(e instanceof Error ? e.message : String(e))
     }
   }, [agentId, session])
 
@@ -210,13 +213,20 @@ export default function TerminalPage({ params }: { params: Promise<{ id: string 
   // ── End session ──
   async function endSession() {
     if (!session) return
+    // 終了はローカルでは必ず行います。サーバ側に伝わらなかった場合は
+    // セッションが残るので、それは端末の出力に書きます。切断できない
+    // ままここで止めると、利用者は画面から出られません。
     try {
       await apiFetch(
         `/api/v1/agents/${agentId}/live-response/sessions/${session.id}`,
         { method: 'DELETE' }
       )
-    } catch {
-      // ignore
+    } catch (e) {
+      setEntries(prev => [...prev, {
+        id: `end-error-${prev.length}`,
+        command: '',
+        error: `セッションの終了をサーバに伝えられませんでした: ${e instanceof Error ? e.message : '不明なエラー'}。サーバ側にセッションが残っている可能性があります`,
+      }])
     } finally {
       setSessionState('disconnected')
       setSession(null)
@@ -341,19 +351,27 @@ export default function TerminalPage({ params }: { params: Promise<{ id: string 
       </div>
 
       {/* ── Agent header ── */}
-      <div className="flex items-center justify-between flex-wrap gap-3
-                      bg-falcon-card border border-falcon-border rounded-xl px-5 py-3">
+      <div className="flex items-center justify-between flex-wrap gap-3 bg-[#111827] border border-[#1e2d42] rounded-xl px-5 py-3">
         <div className="flex items-center gap-3">
           <Terminal className="w-5 h-5 text-green-400 shrink-0" />
           <div>
             {agentLoading ? (
-              <div className="w-32 h-4 bg-falcon-border rounded-sm animate-pulse" />
+              <div className="w-32 h-4 bg-[#1e2d42] rounded-sm animate-pulse" />
             ) : (
               <span className="font-semibold text-white text-base">{hostname}</span>
             )}
             <div className="flex items-center gap-2 mt-0.5">
               {agent && statusBadge(agent.status)}
               {sessionStateBadge(sessionState)}
+              {pollError && (
+                <span
+                  role="alert"
+                  title={pollError}
+                  className="px-2 py-0.5 rounded-sm text-[11px] border border-amber-500/40 bg-amber-950/30 text-amber-300"
+                >
+                  接続状態を確認できていません
+                </span>
+              )}
             </div>
           </div>
         </div>
@@ -364,25 +382,21 @@ export default function TerminalPage({ params }: { params: Promise<{ id: string 
             <button
               onClick={startSession}
               disabled={agentLoading || agent?.status !== 'online'}
-              className="flex items-center gap-1.5 px-4 py-2 bg-green-900/40 hover:bg-green-900/70
-                         border border-green-700/50 text-green-300 text-sm rounded-lg transition-colors
-                         disabled:opacity-40 disabled:cursor-not-allowed"
+              className="flex items-center gap-1.5 px-4 py-2 bg-green-900/40 hover:bg-green-900/70 border border-green-700/50 text-green-300 text-sm rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             >
               <Play className="w-4 h-4" />
               セッションを開始
             </button>
           ) : sessionState === 'connecting' ? (
             <button disabled
-              className="flex items-center gap-1.5 px-4 py-2 bg-yellow-900/20 border border-yellow-700/40
-                         text-yellow-400 text-sm rounded-lg opacity-60 cursor-not-allowed">
+              className="flex items-center gap-1.5 px-4 py-2 bg-yellow-900/20 border border-yellow-700/40 text-yellow-400 text-sm rounded-lg opacity-60 cursor-not-allowed">
               <Loader2 className="w-4 h-4 animate-spin" />
               接続中...
             </button>
           ) : (
             <button
               onClick={endSession}
-              className="flex items-center gap-1.5 px-4 py-2 bg-red-900/30 hover:bg-red-900/50
-                         border border-red-700/50 text-red-300 text-sm rounded-lg transition-colors"
+              className="flex items-center gap-1.5 px-4 py-2 bg-red-900/30 hover:bg-red-900/50 border border-red-700/50 text-red-300 text-sm rounded-lg transition-colors"
             >
               <Square className="w-4 h-4" />
               セッションを終了
@@ -393,8 +407,7 @@ export default function TerminalPage({ params }: { params: Promise<{ id: string 
             <button
               onClick={clearHistory}
               title="コマンド履歴をクリア"
-              className="flex items-center gap-1.5 px-3 py-2 bg-falcon-border hover:bg-[#253647]
-                         border border-[#2d4060] text-[#8899aa] hover:text-white text-sm rounded-lg transition-colors"
+              className="flex items-center gap-1.5 px-3 py-2 bg-[#1e2d42] hover:bg-[#253647] border border-[#2d4060] text-[#8899aa] hover:text-white text-sm rounded-lg transition-colors"
             >
               <Trash2 className="w-4 h-4" />
               コマンド履歴をクリア
@@ -404,7 +417,7 @@ export default function TerminalPage({ params }: { params: Promise<{ id: string 
       </div>
 
       {/* ── Quick commands (collapsible) ── */}
-      <div className="bg-falcon-card border border-falcon-border rounded-xl overflow-hidden">
+      <div className="bg-[#111827] border border-[#1e2d42] rounded-xl overflow-hidden">
         <button
           onClick={() => setQuickOpen(v => !v)}
           className="w-full flex items-center justify-between px-4 py-2.5 text-sm text-[#8899aa] hover:text-white transition-colors"
@@ -417,15 +430,13 @@ export default function TerminalPage({ params }: { params: Promise<{ id: string 
         </button>
 
         {quickOpen && (
-          <div className="px-4 pb-3 flex flex-wrap gap-2 border-t border-falcon-border pt-3">
+          <div className="px-4 pb-3 flex flex-wrap gap-2 border-t border-[#1e2d42] pt-3">
             {QUICK_COMMANDS.map(({ label, cmd }) => (
               <button
                 key={cmd}
                 onClick={() => sendCommand(cmd)}
                 disabled={sessionState !== 'active' || isExecuting}
-                className="px-3 py-1 bg-[#0d1626] hover:bg-[#1a2840] border border-[#2d4060]
-                           text-green-400 hover:text-green-300 text-xs font-mono rounded-lg
-                           transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                className="px-3 py-1 bg-[#0d1626] hover:bg-[#1a2840] border border-[#2d4060] text-green-400 hover:text-green-300 text-xs font-mono rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 {label}
               </button>
@@ -435,8 +446,7 @@ export default function TerminalPage({ params }: { params: Promise<{ id: string 
       </div>
 
       {/* ── Terminal window ── */}
-      <div className="flex-1 flex flex-col bg-[#0a0f1a] border border-[#1a2535] rounded-xl
-                      overflow-hidden min-h-0" style={{ minHeight: '420px' }}>
+      <div className="flex-1 flex flex-col bg-[#0a0f1a] border border-[#1a2535] rounded-xl overflow-hidden min-h-0" style={{ minHeight: '420px' }}>
 
         {/* Terminal title bar */}
         <div className="flex items-center gap-2 px-4 py-2.5 bg-[#0d1626] border-b border-[#1a2535] shrink-0">
@@ -454,7 +464,7 @@ export default function TerminalPage({ params }: { params: Promise<{ id: string 
         <div className="flex-1 overflow-y-auto px-5 py-4 font-mono text-sm space-y-3 min-h-0">
 
           {sessionState === 'idle' && (
-            <p className="text-falcon-subtle text-sm">
+            <p className="text-[#3d5068] text-sm">
               「セッションを開始」ボタンを押してリモートターミナルに接続してください。
             </p>
           )}
@@ -481,16 +491,14 @@ export default function TerminalPage({ params }: { params: Promise<{ id: string 
 
               {/* Output */}
               {!entry.pending && entry.output && (
-                <pre className="text-green-400 whitespace-pre-wrap break-all leading-relaxed pl-2
-                                border-l-2 border-[#1a3028]">
+                <pre className="text-green-400 whitespace-pre-wrap break-all leading-relaxed pl-2 border-l-2 border-[#1a3028]">
                   {entry.output}
                 </pre>
               )}
 
               {/* Error */}
               {!entry.pending && entry.error && (
-                <pre className="text-red-400 whitespace-pre-wrap break-all leading-relaxed pl-2
-                                border-l-2 border-[#3a1a1a]">
+                <pre className="text-red-400 whitespace-pre-wrap break-all leading-relaxed pl-2 border-l-2 border-[#3a1a1a]">
                   {entry.error}
                 </pre>
               )}
@@ -515,16 +523,14 @@ export default function TerminalPage({ params }: { params: Promise<{ id: string 
                 onKeyDown={handleKeyDown}
                 disabled={isExecuting}
                 placeholder={isExecuting ? '実行中...' : 'コマンドを入力（↑↓ で履歴）'}
-                className="flex-1 bg-transparent outline-hidden text-white font-mono text-sm
-                           placeholder-[#2d4060] caret-green-400 disabled:opacity-40"
+                className="flex-1 bg-transparent outline-hidden text-white font-mono text-sm placeholder-[#2d4060] caret-green-400 disabled:opacity-40"
                 autoComplete="off"
                 spellCheck={false}
               />
               <button
                 onClick={() => sendCommand(inputValue)}
                 disabled={isExecuting || !inputValue.trim()}
-                className="p-1.5 text-[#5a6a7a] hover:text-green-400 transition-colors
-                           disabled:opacity-30 disabled:cursor-not-allowed"
+                className="p-1.5 text-[#5a6a7a] hover:text-green-400 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                 title="送信 (Enter)"
               >
                 {isExecuting
@@ -534,7 +540,7 @@ export default function TerminalPage({ params }: { params: Promise<{ id: string 
               </button>
             </div>
           ) : (
-            <div className="flex items-center gap-2 text-falcon-subtle font-mono text-sm">
+            <div className="flex items-center gap-2 text-[#3d5068] font-mono text-sm">
               <span className="select-none">[{hostname}]$</span>
               <span className="text-xs italic">
                 {sessionState === 'connecting'

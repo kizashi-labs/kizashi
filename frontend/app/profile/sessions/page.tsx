@@ -16,6 +16,8 @@ import {
   RefreshCw,
 } from 'lucide-react'
 
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+
 interface SessionItem {
   id: string
   device_info: {
@@ -96,6 +98,7 @@ export default function SessionsPage() {
 
   return (
     <div className="p-6 max-w-3xl space-y-6">
+      <PageDataUnavailable />
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-white">アクティブセッション</h1>
@@ -142,11 +145,11 @@ export default function SessionsPage() {
           <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-blue-500" />
         </div>
       ) : isError ? (
-        <div className="bg-falcon-card rounded-xl border border-falcon-border p-8 text-center text-[#8899aa]">
+        <div className="bg-[#111827] rounded-xl border border-[#1e2d42] p-8 text-center text-[#8899aa]">
           セッション一覧の取得に失敗しました
         </div>
       ) : !sessions || sessions.length === 0 ? (
-        <div className="bg-falcon-card rounded-xl border border-falcon-border p-8 text-center text-[#8899aa]">
+        <div className="bg-[#111827] rounded-xl border border-[#1e2d42] p-8 text-center text-[#8899aa]">
           アクティブなセッションがありません
         </div>
       ) : (
@@ -154,16 +157,16 @@ export default function SessionsPage() {
           {sessions.map((session) => (
             <div
               key={session.id}
-              className={`bg-falcon-card rounded-xl border p-5 transition-colors ${
+              className={`bg-[#111827] rounded-xl border p-5 transition-colors ${
                 session.is_current
                   ? 'border-[#1e3a5f] ring-1 ring-[#1e4a7f]/50'
-                  : 'border-falcon-border hover:border-[#2a3d55]'
+                  : 'border-[#1e2d42] hover:border-[#2a3d55]'
               }`}
             >
               <div className="flex items-start justify-between gap-4">
                 {/* Left: device info */}
                 <div className="flex items-start gap-4 min-w-0">
-                  <div className="mt-0.5 p-2 rounded-lg bg-[#0d1829] border border-falcon-border shrink-0">
+                  <div className="mt-0.5 p-2 rounded-lg bg-[#0d1829] border border-[#1e2d42] shrink-0">
                     <DeviceIcon os={session.device_info?.os} />
                   </div>
 
@@ -219,7 +222,7 @@ export default function SessionsPage() {
                   <button
                     onClick={() => revokeOne.mutate(session.id)}
                     disabled={revokeOne.isPending && revokeOne.variables === session.id}
-                    className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#0d1829] border border-falcon-border text-[#8899aa] text-xs font-medium hover:border-red-700/60 hover:text-red-300 hover:bg-red-900/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#0d1829] border border-[#1e2d42] text-[#8899aa] text-xs font-medium hover:border-red-700/60 hover:text-red-300 hover:bg-red-900/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     title="このセッションを失効させる"
                   >
                     {revokeOne.isPending && revokeOne.variables === session.id ? (

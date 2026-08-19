@@ -52,8 +52,8 @@ const STATUS_CONFIG: Record<VTStatus, {
   unknown: {
     label: '不明',
     icon: <HelpCircle className="w-3.5 h-3.5" />,
-    badgeCls: 'bg-falcon-border border-[#2a3d5a] text-[#8899aa]',
-    barCls: 'bg-falcon-subtle',
+    badgeCls: 'bg-[#1e2d42] border-[#2a3d5a] text-[#8899aa]',
+    barCls: 'bg-[#3d5068]',
   },
 }
 
@@ -81,7 +81,7 @@ export function VTEnrichment({ enrichment }: VTEnrichmentProps) {
   // エラー状態
   if (enrichment.error) {
     return (
-      <div className="rounded-lg border border-falcon-border bg-[#0d1623] p-3 space-y-1">
+      <div className="rounded-lg border border-[#1e2d42] bg-[#0d1623] p-3 space-y-1">
         <div className="flex items-center gap-1.5 text-xs font-semibold text-[#8899aa] uppercase tracking-wide">
           <img src="/vt-logo.svg" alt="" className="w-3.5 h-3.5 opacity-40" />
           VirusTotal
@@ -103,7 +103,7 @@ export function VTEnrichment({ enrichment }: VTEnrichmentProps) {
   const moreNames = (enrichment.names?.length ?? 0) - visibleNames.length
 
   return (
-    <div className="rounded-lg border border-falcon-border bg-[#0d1623] p-3 space-y-3 text-xs">
+    <div className="rounded-lg border border-[#1e2d42] bg-[#0d1623] p-3 space-y-3 text-xs">
 
       {/* ヘッダー行: VTロゴ + ステータスバッジ + リンク */}
       <div className="flex items-center justify-between gap-2">
@@ -111,7 +111,7 @@ export function VTEnrichment({ enrichment }: VTEnrichmentProps) {
           VirusTotal
         </span>
         <div className="flex items-center gap-2 ml-auto">
-          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded border text-[11px]
+          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-sm border text-[11px]
                             font-semibold ${statusCfg.badgeCls}`}>
             {statusCfg.icon}
             {statusCfg.label}
@@ -119,8 +119,7 @@ export function VTEnrichment({ enrichment }: VTEnrichmentProps) {
           {/* リンク（プレースホルダー） */}
           <a
             href="#"
-            className="inline-flex items-center gap-0.5 text-[#5a6a7a] hover:text-blue-400
-                       transition-colors text-[10px]"
+            className="inline-flex items-center gap-0.5 text-[#5a6a7a] hover:text-blue-400 transition-colors text-[10px]"
             onClick={e => e.preventDefault()}
           >
             <ExternalLink className="w-3 h-3" />
@@ -146,7 +145,7 @@ export function VTEnrichment({ enrichment }: VTEnrichmentProps) {
           </div>
 
           {/* 検出バー */}
-          <div className="h-1.5 w-full bg-falcon-border rounded-full overflow-hidden">
+          <div className="h-1.5 w-full bg-[#1e2d42] rounded-full overflow-hidden">
             <div
               className={`h-full rounded-full transition-all ${statusCfg.barCls}`}
               style={{ width: `${Math.max(ratio * 100, ratio > 0 ? 2 : 0)}%` }}
@@ -191,8 +190,7 @@ export function VTEnrichment({ enrichment }: VTEnrichmentProps) {
             {visibleNames.map((name, i) => (
               <div
                 key={i}
-                className="text-[11px] font-mono text-[#c8d8e8] truncate bg-falcon-bg
-                           px-2 py-0.5 rounded"
+                className="text-[11px] font-mono text-[#c8d8e8] truncate bg-[#080c14] px-2 py-0.5 rounded-sm"
                 title={name}
               >
                 {name}
@@ -213,8 +211,7 @@ export function VTEnrichment({ enrichment }: VTEnrichmentProps) {
           {enrichment.tags.map(tag => (
             <span
               key={tag}
-              className="px-1.5 py-0.5 text-[10px] rounded bg-falcon-border text-falcon-muted
-                         border border-[#2a3d5a]"
+              className="px-1.5 py-0.5 text-[10px] rounded-sm bg-[#1e2d42] text-[#7d92b0] border border-[#2a3d5a]"
             >
               {tag}
             </span>

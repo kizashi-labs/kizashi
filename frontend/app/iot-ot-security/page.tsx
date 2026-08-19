@@ -9,6 +9,8 @@ import {
   Wifi, Globe, BarChart3, AlertOctagon,
 } from 'lucide-react'
 
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+
 // ── Types ──────────────────────────────────────────────────────────────────────
 
 type DeviceType = 'PLC' | 'HMI' | 'RTU' | 'SCADA' | 'Sensor' | 'Camera' | 'Printer' | 'Other_IoT'
@@ -422,14 +424,14 @@ const ANOMALY_STATUS_CONFIG: Record<AnomalyStatus, { label: string; color: strin
   open: { label: 'オープン', color: 'text-red-400' },
   investigating: { label: '調査中', color: 'text-yellow-400' },
   resolved: { label: '解決済', color: 'text-green-400' },
-  false_positive: { label: '誤検知', color: 'text-falcon-muted' },
+  false_positive: { label: '誤検知', color: 'text-[#7d92b0]' },
 }
 
 function RiskBar({ score }: { score: number }) {
   const color = score >= 70 ? '#e8002d' : score >= 50 ? '#ffc107' : '#00c853'
   return (
     <div className="flex items-center gap-2">
-      <div className="w-16 h-1.5 bg-falcon-border rounded-full overflow-hidden">
+      <div className="w-16 h-1.5 bg-[#1e2d42] rounded-full overflow-hidden">
         <div className="h-full rounded-full" style={{ width: `${score}%`, backgroundColor: color }} />
       </div>
       <span className="text-xs font-medium" style={{ color }}>{score}</span>
@@ -439,14 +441,14 @@ function RiskBar({ score }: { score: number }) {
 
 function DeviceDetailModal({ device, onClose }: { device: IoTDevice; onClose: () => void }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-xs" onClick={onClose}>
-      <div className="bg-falcon-surface border border-falcon-border rounded-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6 shadow-xl" onClick={e => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm" onClick={onClose}>
+      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6 shadow-xl" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-5">
           <div>
             <h2 className="text-white font-semibold text-lg">{device.device_name}</h2>
-            <p className="text-falcon-muted text-sm">{device.ip_address} — {device.vendor}</p>
+            <p className="text-[#7d92b0] text-sm">{device.ip_address} — {device.vendor}</p>
           </div>
-          <button onClick={onClose} className="p-1.5 rounded-sm hover:bg-falcon-border text-falcon-muted"><X className="w-5 h-5" /></button>
+          <button onClick={onClose} className="p-1.5 rounded-sm hover:bg-[#1e2d42] text-[#7d92b0]"><X className="w-5 h-5" /></button>
         </div>
 
         <div className="space-y-4">
@@ -458,24 +460,24 @@ function DeviceDetailModal({ device, onClose }: { device: IoTDevice; onClose: ()
               { label: 'ネットワークゾーン', value: device.network_zone, badge: ZONE_COLORS[device.network_zone] },
               { label: 'パッチ状態', value: device.patch_status, badge: PATCH_COLORS[device.patch_status] },
             ].map(r => (
-              <div key={r.label} className="bg-[#070d19] border border-falcon-border rounded-lg p-3">
-                <p className="text-falcon-muted text-xs mb-1">{r.label}</p>
+              <div key={r.label} className="bg-[#070d19] border border-[#1e2d42] rounded-lg p-3">
+                <p className="text-[#7d92b0] text-xs mb-1">{r.label}</p>
                 <span className={`px-2 py-0.5 rounded-sm text-xs border ${r.badge}`}>{r.value}</span>
               </div>
             ))}
           </div>
 
-          <div className="bg-[#070d19] border border-falcon-border rounded-lg p-3 text-sm">
-            <p className="text-falcon-muted text-xs mb-1">ファームウェア</p>
+          <div className="bg-[#070d19] border border-[#1e2d42] rounded-lg p-3 text-sm">
+            <p className="text-[#7d92b0] text-xs mb-1">ファームウェア</p>
             <p className="text-white font-mono text-xs">{device.firmware_version}</p>
           </div>
 
           {/* Open ports */}
-          <div className="bg-[#070d19] border border-falcon-border rounded-lg p-3">
-            <p className="text-falcon-muted text-xs mb-2">オープンポート</p>
+          <div className="bg-[#070d19] border border-[#1e2d42] rounded-lg p-3">
+            <p className="text-[#7d92b0] text-xs mb-2">オープンポート</p>
             <div className="flex flex-wrap gap-2">
               {device.open_ports.map(p => (
-                <span key={p} className="font-mono text-xs px-2 py-1 bg-falcon-border text-falcon-muted rounded-sm">{p}</span>
+                <span key={p} className="font-mono text-xs px-2 py-1 bg-[#1e2d42] text-[#7d92b0] rounded-sm">{p}</span>
               ))}
             </div>
           </div>
@@ -491,11 +493,11 @@ function DeviceDetailModal({ device, onClose }: { device: IoTDevice; onClose: ()
           )}
 
           {/* Communication patterns */}
-          <div className="bg-[#070d19] border border-falcon-border rounded-lg p-3">
-            <p className="text-falcon-muted text-xs mb-2">通信先</p>
+          <div className="bg-[#070d19] border border-[#1e2d42] rounded-lg p-3">
+            <p className="text-[#7d92b0] text-xs mb-2">通信先</p>
             <div className="space-y-1">
               {device.communicates_with.map((c, i) => (
-                <div key={i} className="text-xs text-white font-mono bg-falcon-surface px-2 py-1 rounded-sm">{c}</div>
+                <div key={i} className="text-xs text-white font-mono bg-[#0d1220] px-2 py-1 rounded-sm">{c}</div>
               ))}
             </div>
           </div>
@@ -515,14 +517,14 @@ function DeviceDetailModal({ device, onClose }: { device: IoTDevice; onClose: ()
 
 function AnomalyDetailModal({ alert, onClose }: { alert: AnomalyAlert; onClose: () => void }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-xs" onClick={onClose}>
-      <div className="bg-falcon-surface border border-falcon-border rounded-xl w-full max-w-xl p-6 shadow-xl" onClick={e => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm" onClick={onClose}>
+      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl w-full max-w-xl p-6 shadow-xl" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-5">
           <div className="flex items-center gap-2">
-            <AlertOctagon className="w-5 h-5 text-falcon-red" />
+            <AlertOctagon className="w-5 h-5 text-[#e8002d]" />
             <h2 className="text-white font-semibold">異常アラート詳細</h2>
           </div>
-          <button onClick={onClose} className="p-1.5 rounded-sm hover:bg-falcon-border text-falcon-muted"><X className="w-5 h-5" /></button>
+          <button onClick={onClose} className="p-1.5 rounded-sm hover:bg-[#1e2d42] text-[#7d92b0]"><X className="w-5 h-5" /></button>
         </div>
 
         <div className="space-y-4 text-sm">
@@ -532,19 +534,19 @@ function AnomalyDetailModal({ alert, onClose }: { alert: AnomalyAlert; onClose: 
             <span className={`text-xs font-medium ${ANOMALY_STATUS_CONFIG[alert.status].color}`}>{ANOMALY_STATUS_CONFIG[alert.status].label}</span>
           </div>
 
-          <div className="bg-[#070d19] border border-falcon-border rounded-lg p-3">
-            <p className="text-falcon-muted text-xs mb-1">影響デバイス</p>
+          <div className="bg-[#070d19] border border-[#1e2d42] rounded-lg p-3">
+            <p className="text-[#7d92b0] text-xs mb-1">影響デバイス</p>
             <p className="text-white font-medium">{alert.device_name}</p>
-            <p className="text-falcon-muted text-xs mt-0.5">{alert.timestamp}</p>
+            <p className="text-[#7d92b0] text-xs mt-0.5">{alert.timestamp}</p>
           </div>
 
-          <div className="bg-[#070d19] border border-falcon-border rounded-lg p-3">
-            <p className="text-falcon-muted text-xs mb-1">説明</p>
+          <div className="bg-[#070d19] border border-[#1e2d42] rounded-lg p-3">
+            <p className="text-[#7d92b0] text-xs mb-1">説明</p>
             <p className="text-white text-xs leading-relaxed">{alert.description}</p>
           </div>
 
-          <div className="bg-[#070d19] border border-falcon-border rounded-lg p-3">
-            <p className="text-falcon-muted text-xs mb-1">プロトコルコンテキスト</p>
+          <div className="bg-[#070d19] border border-[#1e2d42] rounded-lg p-3">
+            <p className="text-[#7d92b0] text-xs mb-1">プロトコルコンテキスト</p>
             <p className="text-cyan-300 text-xs font-mono leading-relaxed">{alert.protocol_context}</p>
           </div>
 
@@ -570,9 +572,9 @@ function ModbusAnalysis() {
       <h3 className="text-white font-medium">Modbus ファンクションコード分布</h3>
       <div className="space-y-2">
         {MODBUS_FCS.map(fc => (
-          <div key={fc.code} className={`flex items-center gap-3 px-4 py-2.5 rounded-lg border ${fc.suspicious ? 'border-red-500/30 bg-red-500/5' : 'border-falcon-border bg-[#070d19]'}`}>
-            <div className="w-40 text-xs text-falcon-muted">{fc.label}</div>
-            <div className="flex-1 h-2 bg-falcon-border rounded-full overflow-hidden">
+          <div key={fc.code} className={`flex items-center gap-3 px-4 py-2.5 rounded-lg border ${fc.suspicious ? 'border-red-500/30 bg-red-500/5' : 'border-[#1e2d42] bg-[#070d19]'}`}>
+            <div className="w-40 text-xs text-[#7d92b0]">{fc.label}</div>
+            <div className="flex-1 h-2 bg-[#1e2d42] rounded-full overflow-hidden">
               <div
                 className="h-full rounded-full transition-all"
                 style={{ width: `${(fc.count / maxCount) * 100}%`, backgroundColor: fc.suspicious ? '#e8002d' : '#1a6bff' }}
@@ -595,17 +597,17 @@ function DNP3Analysis() {
         <div className="bg-[#070d19] border border-yellow-500/20 rounded-lg p-4">
           <p className="text-yellow-300 text-sm font-medium mb-2">Unsolicited Response</p>
           <p className="text-3xl font-bold text-white">23</p>
-          <p className="text-falcon-muted text-xs mt-1">過去24時間 (通常: &lt;5)</p>
+          <p className="text-[#7d92b0] text-xs mt-1">過去24時間 (通常: &lt;5)</p>
           <p className="text-yellow-300 text-xs mt-2">RTU-変電所1からの未要求レスポンス増加</p>
         </div>
         <div className="bg-[#070d19] border border-red-500/20 rounded-lg p-4">
           <p className="text-red-300 text-sm font-medium mb-2">Broadcast Traffic</p>
           <p className="text-3xl font-bold text-white">7</p>
-          <p className="text-falcon-muted text-xs mt-1">過去24時間 (通常: 0)</p>
+          <p className="text-[#7d92b0] text-xs mt-1">過去24時間 (通常: 0)</p>
           <p className="text-red-300 text-xs mt-2">DNP3ブロードキャストは設定ミスまたは攻撃の可能性</p>
         </div>
       </div>
-      <div className="bg-[#070d19] border border-falcon-border rounded-lg p-4">
+      <div className="bg-[#070d19] border border-[#1e2d42] rounded-lg p-4">
         <p className="text-white font-medium mb-3">DNP3認証状態</p>
         <div className="space-y-2">
           {[
@@ -613,7 +615,7 @@ function DNP3Analysis() {
             { device: 'RTU-変電所2', auth: 'SAv5 (設定中)', color: 'text-yellow-400' },
           ].map(r => (
             <div key={r.device} className="flex justify-between text-sm">
-              <span className="text-falcon-muted">{r.device}</span>
+              <span className="text-[#7d92b0]">{r.device}</span>
               <span className={r.color}>{r.auth}</span>
             </div>
           ))}
@@ -628,23 +630,23 @@ function BACnetAnalysis() {
     <div className="space-y-4">
       <h3 className="text-white font-medium">BACnet トラフィック分析</h3>
       <div className="grid grid-cols-3 gap-4">
-        <div className="bg-[#070d19] border border-falcon-border rounded-lg p-4 text-center">
-          <p className="text-falcon-muted text-xs mb-1">Who-Is ブロードキャスト</p>
+        <div className="bg-[#070d19] border border-[#1e2d42] rounded-lg p-4 text-center">
+          <p className="text-[#7d92b0] text-xs mb-1">Who-Is ブロードキャスト</p>
           <p className="text-2xl font-bold text-white">1,247</p>
-          <p className="text-falcon-subtle text-xs">過去1時間</p>
+          <p className="text-[#3d5068] text-xs">過去1時間</p>
         </div>
         <div className="bg-[#070d19] border border-yellow-500/20 rounded-lg p-4 text-center">
           <p className="text-yellow-300 text-xs mb-1">Who-Is Storm 検知</p>
           <p className="text-2xl font-bold text-yellow-400">1件</p>
-          <p className="text-falcon-subtle text-xs">BACnet空調制御-1</p>
+          <p className="text-[#3d5068] text-xs">BACnet空調制御-1</p>
         </div>
-        <div className="bg-[#070d19] border border-falcon-border rounded-lg p-4 text-center">
-          <p className="text-falcon-muted text-xs mb-1">I-Am 応答デバイス数</p>
+        <div className="bg-[#070d19] border border-[#1e2d42] rounded-lg p-4 text-center">
+          <p className="text-[#7d92b0] text-xs mb-1">I-Am 応答デバイス数</p>
           <p className="text-2xl font-bold text-white">3</p>
-          <p className="text-falcon-subtle text-xs">検出済みデバイス</p>
+          <p className="text-[#3d5068] text-xs">検出済みデバイス</p>
         </div>
       </div>
-      <div className="bg-[#070d19] border border-falcon-border rounded-lg p-4">
+      <div className="bg-[#070d19] border border-[#1e2d42] rounded-lg p-4">
         <p className="text-white font-medium mb-3">BACnetデバイス探索ログ</p>
         <div className="space-y-1 font-mono text-xs">
           {[
@@ -653,8 +655,8 @@ function BACnetAnalysis() {
             { time: '14:15:33', msg: 'BACnet I-Am response: 10.20.3.6 (Device ID: 1002)', warn: false },
             { time: '14:15:33', msg: 'BACnet I-Am response: 10.20.3.1 (Device ID: 9001 — BAS Controller)', warn: false },
           ].map((l, i) => (
-            <div key={i} className={`flex gap-3 ${l.warn ? 'text-yellow-300' : 'text-falcon-muted'}`}>
-              <span className="text-falcon-subtle">{l.time}</span>
+            <div key={i} className={`flex gap-3 ${l.warn ? 'text-yellow-300' : 'text-[#7d92b0]'}`}>
+              <span className="text-[#3d5068]">{l.time}</span>
               <span>{l.msg}</span>
             </div>
           ))}
@@ -722,24 +724,25 @@ export default function IoTOTSecurityPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#070d19] text-falcon-muted">
+    <div className="min-h-screen bg-[#070d19] text-[#7d92b0]">
+      <PageDataUnavailable />
       {/* Header */}
-      <div className="border-b border-falcon-border bg-falcon-surface px-6 py-4">
+      <div className="border-b border-[#1e2d42] bg-[#0d1220] px-6 py-4">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-falcon-red/10 border border-falcon-red/20 rounded-lg">
-              <Cpu className="w-5 h-5 text-falcon-red" />
+            <div className="p-2 bg-[#e8002d]/10 border border-[#e8002d]/20 rounded-lg">
+              <Cpu className="w-5 h-5 text-[#e8002d]" />
             </div>
             <div>
               <h1 className="text-white font-semibold text-xl">IoT/OTセキュリティ監視</h1>
-              <p className="text-falcon-muted text-sm">産業制御システムとIoTデバイスのセキュリティ監視</p>
+              <p className="text-[#7d92b0] text-sm">産業制御システムとIoTデバイスのセキュリティ監視</p>
             </div>
           </div>
           {tab === 'devices' && (
             <button
               onClick={() => setShowScanWarning(true)}
               disabled={scanRunning}
-              className="flex items-center gap-2 px-4 py-2 border border-falcon-border hover:border-yellow-500/40 text-falcon-muted hover:text-yellow-300 text-sm rounded-lg transition-colors disabled:opacity-50"
+              className="flex items-center gap-2 px-4 py-2 border border-[#1e2d42] hover:border-yellow-500/40 text-[#7d92b0] hover:text-yellow-300 text-sm rounded-lg transition-colors disabled:opacity-50"
             >
               {scanRunning ? <Activity className="w-4 h-4 animate-pulse" /> : <Search className="w-4 h-4" />}
               {scanRunning ? 'スキャン中...' : 'デバイス検出スキャン'}
@@ -761,12 +764,12 @@ export default function IoTOTSecurityPage() {
             { label: 'IoTデバイス', value: stats.iot, color: 'text-blue-400', icon: Wifi },
             { label: 'OTデバイス', value: stats.ot, color: 'text-red-400', icon: Cpu },
             { label: '未パッチデバイス', value: stats.unpatched, color: 'text-yellow-400', icon: AlertTriangle },
-            { label: '本日の異常検知', value: stats.anomalies_today, color: 'text-falcon-red', icon: AlertOctagon },
+            { label: '本日の異常検知', value: stats.anomalies_today, color: 'text-[#e8002d]', icon: AlertOctagon },
           ].map(s => (
-            <div key={s.label} className="bg-[#070d19] border border-falcon-border rounded-lg px-4 py-3">
+            <div key={s.label} className="bg-[#070d19] border border-[#1e2d42] rounded-lg px-4 py-3">
               <div className="flex items-center gap-2 mb-1">
                 <s.icon className={`w-4 h-4 ${s.color}`} />
-                <p className="text-falcon-muted text-xs">{s.label}</p>
+                <p className="text-[#7d92b0] text-xs">{s.label}</p>
               </div>
               <p className={`text-2xl font-bold ${s.color}`}>{s.value}</p>
             </div>
@@ -775,17 +778,17 @@ export default function IoTOTSecurityPage() {
       </div>
 
       {/* Tabs */}
-      <div className="px-6 pt-4 border-b border-falcon-border">
+      <div className="px-6 pt-4 border-b border-[#1e2d42]">
         <div className="flex gap-1">
           {([['devices', 'デバイス一覧'], ['anomalies', '異常検知'], ['protocols', 'OTプロトコル分析']] as const).map(([id, label]) => (
             <button
               key={id}
               onClick={() => setTab(id)}
-              className={`px-4 py-2 text-sm font-medium rounded-t-lg border-b-2 transition-colors ${tab === id ? 'border-falcon-red text-white' : 'border-transparent text-falcon-muted hover:text-white'}`}
+              className={`px-4 py-2 text-sm font-medium rounded-t-lg border-b-2 transition-colors ${tab === id ? 'border-[#e8002d] text-white' : 'border-transparent text-[#7d92b0] hover:text-white'}`}
             >
               {label}
               {id === 'anomalies' && stats.anomalies_today > 0 && (
-                <span className="ml-1.5 text-[10px] bg-falcon-red text-white px-1.5 py-0.5 rounded-full">{stats.anomalies_today}</span>
+                <span className="ml-1.5 text-[10px] bg-[#e8002d] text-white px-1.5 py-0.5 rounded-full">{stats.anomalies_today}</span>
               )}
             </button>
           ))}
@@ -799,11 +802,11 @@ export default function IoTOTSecurityPage() {
             {/* Filters */}
             <div className="flex flex-wrap items-center gap-3">
               <div className="relative flex-1 min-w-[180px]">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-falcon-subtle" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#3d5068]" />
                 <input
                   value={searchQ} onChange={e => setSearchQ(e.target.value)}
                   placeholder="デバイス名・IPで検索..."
-                  className="w-full pl-9 pr-4 py-2 bg-falcon-surface border border-falcon-border rounded-lg text-sm text-white placeholder-falcon-subtle focus:outline-hidden focus:border-falcon-red/50"
+                  className="w-full pl-9 pr-4 py-2 bg-[#0d1220] border border-[#1e2d42] rounded-lg text-sm text-white placeholder-[#3d5068] focus:outline-hidden focus:border-[#e8002d]/50"
                 />
               </div>
               {[
@@ -816,27 +819,27 @@ export default function IoTOTSecurityPage() {
                   key={f.label}
                   value={f.value}
                   onChange={e => f.setter(e.target.value)}
-                  className="bg-falcon-surface border border-falcon-border rounded-lg px-3 py-2 text-sm text-falcon-muted focus:outline-hidden"
+                  className="bg-[#0d1220] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-[#7d92b0] focus:outline-hidden"
                 >
                   <option value="all">全{f.label}</option>
                   {f.options.slice(1).map(o => <option key={o} value={o}>{o}</option>)}
                 </select>
               ))}
-              <span className="text-falcon-subtle text-xs">{filteredDevices.length}件</span>
+              <span className="text-[#3d5068] text-xs">{filteredDevices.length}件</span>
             </div>
 
             {/* Device table */}
-            <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
+            <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b border-falcon-border">
+                    <tr className="border-b border-[#1e2d42]">
                       {['デバイス名', 'タイプ', 'IPアドレス', 'ベンダー', 'プロトコル', 'ゾーン', 'リスク', '最終確認', 'パッチ', '操作'].map(h => (
-                        <th key={h} className="px-3 py-3 text-left text-xs font-medium text-falcon-muted uppercase tracking-wider whitespace-nowrap">{h}</th>
+                        <th key={h} className="px-3 py-3 text-left text-xs font-medium text-[#7d92b0] uppercase tracking-wider whitespace-nowrap">{h}</th>
                       ))}
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-falcon-border/50">
+                  <tbody className="divide-y divide-[#1e2d42]/50">
                     {filteredDevices.map(d => (
                       <tr key={d.id} className={`hover:bg-[#070d19]/50 transition-colors ${d.known_vulns.length > 0 ? 'border-l-2 border-l-red-500/40' : ''}`}>
                         <td className="px-3 py-3">
@@ -849,7 +852,7 @@ export default function IoTOTSecurityPage() {
                         <td className="px-3 py-3">
                           <code className="text-cyan-300 text-xs font-mono">{d.ip_address}</code>
                         </td>
-                        <td className="px-3 py-3 text-falcon-muted text-xs">{d.vendor}</td>
+                        <td className="px-3 py-3 text-[#7d92b0] text-xs">{d.vendor}</td>
                         <td className="px-3 py-3">
                           <span className={`px-1.5 py-0.5 rounded-sm text-[10px] border ${PROTOCOL_COLORS[d.protocol]}`}>{d.protocol}</span>
                         </td>
@@ -859,14 +862,14 @@ export default function IoTOTSecurityPage() {
                         <td className="px-3 py-3">
                           <RiskBar score={d.risk_score} />
                         </td>
-                        <td className="px-3 py-3 text-falcon-muted text-xs whitespace-nowrap">{d.last_seen}</td>
+                        <td className="px-3 py-3 text-[#7d92b0] text-xs whitespace-nowrap">{d.last_seen}</td>
                         <td className="px-3 py-3">
                           <span className={`px-1.5 py-0.5 rounded-sm text-[10px] border ${PATCH_COLORS[d.patch_status]}`}>{d.patch_status}</span>
                         </td>
                         <td className="px-3 py-3">
                           <button
                             onClick={() => setSelectedDevice(d)}
-                            className="px-2 py-1 bg-falcon-border hover:bg-[#253a56] text-falcon-muted hover:text-white text-xs rounded-sm transition-colors"
+                            className="px-2 py-1 bg-[#1e2d42] hover:bg-[#253a56] text-[#7d92b0] hover:text-white text-xs rounded-sm transition-colors"
                           >
                             詳細
                           </button>
@@ -874,7 +877,7 @@ export default function IoTOTSecurityPage() {
                       </tr>
                     ))}
                     {filteredDevices.length === 0 && (
-                      <tr><td colSpan={10} className="px-4 py-12 text-center text-falcon-subtle">条件に一致するデバイスが見つかりません</td></tr>
+                      <tr><td colSpan={10} className="px-4 py-12 text-center text-[#3d5068]">条件に一致するデバイスが見つかりません</td></tr>
                     )}
                   </tbody>
                 </table>
@@ -886,19 +889,19 @@ export default function IoTOTSecurityPage() {
         {/* ── 異常検知 ── */}
         {tab === 'anomalies' && (
           <>
-            <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
+            <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-falcon-border">
+                  <tr className="border-b border-[#1e2d42]">
                     {['タイムスタンプ', 'デバイス名', '異常タイプ', '深刻度', '説明', 'ステータス', '操作'].map(h => (
-                      <th key={h} className="px-4 py-3 text-left text-xs font-medium text-falcon-muted">{h}</th>
+                      <th key={h} className="px-4 py-3 text-left text-xs font-medium text-[#7d92b0]">{h}</th>
                     ))}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-falcon-border/50">
+                <tbody className="divide-y divide-[#1e2d42]/50">
                   {anomalies.map(a => (
                     <tr key={a.id} className={`hover:bg-[#070d19]/50 transition-colors ${a.severity === 'critical' ? 'border-l-2 border-l-red-500' : ''}`}>
-                      <td className="px-4 py-3 text-falcon-muted text-xs font-mono whitespace-nowrap">{a.timestamp}</td>
+                      <td className="px-4 py-3 text-[#7d92b0] text-xs font-mono whitespace-nowrap">{a.timestamp}</td>
                       <td className="px-4 py-3 text-white text-xs font-medium">{a.device_name}</td>
                       <td className="px-4 py-3">
                         <span className="px-2 py-0.5 bg-blue-500/10 border border-blue-500/20 text-blue-300 text-xs rounded-sm">
@@ -908,14 +911,14 @@ export default function IoTOTSecurityPage() {
                       <td className="px-4 py-3">
                         <span className={`px-2 py-0.5 rounded-sm text-xs border ${SEVERITY_COLORS[a.severity]}`}>{a.severity.toUpperCase()}</span>
                       </td>
-                      <td className="px-4 py-3 text-falcon-muted text-xs max-w-xs truncate" title={a.description}>{a.description}</td>
+                      <td className="px-4 py-3 text-[#7d92b0] text-xs max-w-xs truncate" title={a.description}>{a.description}</td>
                       <td className="px-4 py-3">
                         <span className={`text-xs font-medium ${ANOMALY_STATUS_CONFIG[a.status].color}`}>{ANOMALY_STATUS_CONFIG[a.status].label}</span>
                       </td>
                       <td className="px-4 py-3">
                         <button
                           onClick={() => setSelectedAnomaly(a)}
-                          className="px-2.5 py-1 bg-falcon-border hover:bg-[#253a56] text-falcon-muted hover:text-white text-xs rounded-sm transition-colors"
+                          className="px-2.5 py-1 bg-[#1e2d42] hover:bg-[#253a56] text-[#7d92b0] hover:text-white text-xs rounded-sm transition-colors"
                         >
                           詳細
                         </button>
@@ -933,14 +936,14 @@ export default function IoTOTSecurityPage() {
           <div className="space-y-6">
             {/* Protocol distribution */}
             <div className="grid grid-cols-2 gap-6">
-              <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
+              <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
                 <h3 className="text-white font-medium mb-4">プロトコル分布</h3>
                 <div className="space-y-3">
                   {PROTOCOL_STATS.map(p => (
                     <div key={p.name} className="flex items-center gap-3">
                       <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: p.color }} />
-                      <span className="text-falcon-muted text-sm w-20">{p.name}</span>
-                      <div className="flex-1 h-2 bg-falcon-border rounded-full overflow-hidden">
+                      <span className="text-[#7d92b0] text-sm w-20">{p.name}</span>
+                      <div className="flex-1 h-2 bg-[#1e2d42] rounded-full overflow-hidden">
                         <div className="h-full rounded-full transition-all" style={{ width: `${p.percentage}%`, backgroundColor: p.color }} />
                       </div>
                       <span className="text-white text-xs w-8 text-right">{p.percentage}%</span>
@@ -950,7 +953,7 @@ export default function IoTOTSecurityPage() {
               </div>
 
               {/* Cross-zone communications */}
-              <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
+              <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
                 <h3 className="text-white font-medium mb-4 flex items-center gap-2">
                   <AlertTriangle className="w-4 h-4 text-yellow-400" />
                   クロスゾーン通信 (要監視)
@@ -969,19 +972,19 @@ export default function IoTOTSecurityPage() {
                       </div>
                     </div>
                   ))}
-                  {crossZone.length === 0 && <p className="text-falcon-subtle text-sm">クロスゾーン通信は検知されていません</p>}
+                  {crossZone.length === 0 && <p className="text-[#3d5068] text-sm">クロスゾーン通信は検知されていません</p>}
                 </div>
               </div>
             </div>
 
             {/* Protocol-specific analysis */}
-            <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
-              <div className="flex gap-1 mb-5 border-b border-falcon-border pb-3">
+            <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
+              <div className="flex gap-1 mb-5 border-b border-[#1e2d42] pb-3">
                 {([['modbus', 'Modbus'], ['dnp3', 'DNP3'], ['bacnet', 'BACnet']] as const).map(([id, label]) => (
                   <button
                     key={id}
                     onClick={() => setProtoSubTab(id)}
-                    className={`px-4 py-1.5 text-sm rounded-lg transition-colors ${protoSubTab === id ? 'bg-falcon-red/20 border border-falcon-red/30 text-falcon-red' : 'text-falcon-muted hover:text-white hover:bg-falcon-border'}`}
+                    className={`px-4 py-1.5 text-sm rounded-lg transition-colors ${protoSubTab === id ? 'bg-[#e8002d]/20 border border-[#e8002d]/30 text-[#e8002d]' : 'text-[#7d92b0] hover:text-white hover:bg-[#1e2d42]'}`}
                   >
                     {label}
                   </button>
@@ -993,7 +996,7 @@ export default function IoTOTSecurityPage() {
             </div>
 
             {/* Dangerous commands */}
-            <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
+            <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
               <h3 className="text-white font-medium mb-4 flex items-center gap-2"><Zap className="w-4 h-4 text-red-400" />危険コマンド検知</h3>
               <div className="space-y-3">
                 {[
@@ -1007,11 +1010,11 @@ export default function IoTOTSecurityPage() {
                         <span className={`text-xs font-bold ${c.severity === 'critical' ? 'text-red-400' : 'text-orange-400'}`}>[{c.severity.toUpperCase()}]</span>
                         <span className="text-white text-sm font-medium ml-2">{c.cmd}</span>
                       </div>
-                      <span className="text-falcon-subtle text-xs whitespace-nowrap">{c.time}</span>
+                      <span className="text-[#3d5068] text-xs whitespace-nowrap">{c.time}</span>
                     </div>
                     <div className="text-xs space-y-0.5">
-                      <p><span className="text-falcon-muted">対象:</span> <span className="text-white">{c.device}</span></p>
-                      <p><span className="text-falcon-muted">送信元:</span> <span className="font-mono text-cyan-300">{c.src}</span></p>
+                      <p><span className="text-[#7d92b0]">対象:</span> <span className="text-white">{c.device}</span></p>
+                      <p><span className="text-[#7d92b0]">送信元:</span> <span className="font-mono text-cyan-300">{c.src}</span></p>
                       <p className={`mt-1 ${c.severity === 'critical' ? 'text-red-300' : 'text-orange-300'}`}>{c.detail}</p>
                     </div>
                   </div>
@@ -1028,8 +1031,8 @@ export default function IoTOTSecurityPage() {
 
       {/* Scan warning modal */}
       {showScanWarning && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-xs" onClick={() => setShowScanWarning(false)}>
-          <div className="bg-falcon-surface border border-yellow-500/30 rounded-xl w-full max-w-md p-6 shadow-xl" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm" onClick={() => setShowScanWarning(false)}>
+          <div className="bg-[#0d1220] border border-yellow-500/30 rounded-xl w-full max-w-md p-6 shadow-xl" onClick={e => e.stopPropagation()}>
             <div className="flex items-center gap-3 mb-4">
               <div className="p-2 bg-yellow-500/20 rounded-lg"><AlertTriangle className="w-5 h-5 text-yellow-400" /></div>
               <h2 className="text-white font-semibold">スキャン実行の確認</h2>
@@ -1041,7 +1044,7 @@ export default function IoTOTSecurityPage() {
               <p className="text-yellow-300/70 text-xs mt-2">実行前に運用チームへの通知を推奨します。</p>
             </div>
             <div className="flex justify-end gap-3">
-              <button onClick={() => setShowScanWarning(false)} className="px-4 py-2 rounded-lg border border-falcon-border text-falcon-muted hover:text-white text-sm transition-colors">キャンセル</button>
+              <button onClick={() => setShowScanWarning(false)} className="px-4 py-2 rounded-lg border border-[#1e2d42] text-[#7d92b0] hover:text-white text-sm transition-colors">キャンセル</button>
               <button onClick={handleScan} className="px-4 py-2 rounded-lg bg-yellow-500/20 hover:bg-yellow-500/30 border border-yellow-500/30 text-yellow-300 text-sm font-medium transition-colors">
                 パッシブスキャンを実行
               </button>

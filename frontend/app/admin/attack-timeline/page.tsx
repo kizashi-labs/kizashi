@@ -9,6 +9,8 @@ import {
   FileText, Terminal, Lock, Zap, Globe, Eye,
 } from 'lucide-react'
 
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface TimelineEvent {
@@ -187,6 +189,7 @@ export default function AttackTimelinePage() {
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100 p-6">
+      <PageDataUnavailable />
       {/* Header */}
       <div className="flex items-center gap-3 mb-6">
         <div className="p-2 bg-blue-900/40 rounded-lg border border-blue-700/50">

@@ -3,6 +3,10 @@
 import { useState } from 'react'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import { apiFetch, apiFetchList } from '@/lib/api'
+import { mockOr } from '@/lib/mock'
+
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+import { PageSaveFailed } from '@/components/PageSaveFailed'
 
 type Role = 'lead' | 'senior' | 'analyst' | 'trainee'
 type AnalystStatus = 'active' | 'break' | 'offline'
@@ -64,13 +68,13 @@ export default function ShiftManagerPage() {
   const [showEndConfirm, setShowEndConfirm] = useState(false)
   const [reportNotes, setReportNotes] = useState('')
 
-  const { data: analysts = ANALYSTS } = useQuery({
+  const { data: analysts = mockOr(ANALYSTS, []) } = useQuery({
     queryKey: ['shift-analysts'],
-    queryFn: () => apiFetchList<Analyst>('/api/soc/shift-manager/analysts').catch(() => ANALYSTS),
+    queryFn: () => apiFetchList<Analyst>('/api/soc/shift-manager/analysts'),
   })
   const { data: reports = [] } = useQuery({
     queryKey: ['handover-reports'],
-    queryFn: () => apiFetchList<HandoverReport>('/api/soc/shift-manager/reports').catch(() => [] as HandoverReport[]),
+    queryFn: () => apiFetchList<HandoverReport>('/api/soc/shift-manager/reports'),
   })
 
   const submitReport = useMutation({
@@ -88,14 +92,16 @@ export default function ShiftManagerPage() {
 
   return (
     <div className="min-h-screen bg-[#070d19] text-white p-6">
+      <PageDataUnavailable />
+      <PageSaveFailed className="mb-4" />
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-2xl font-bold">SOCシフト管理</h1>
-            <p className="text-falcon-muted text-sm mt-1">シフトスケジュール・引継ぎ・要員計画</p>
+            <p className="text-[#7d92b0] text-sm mt-1">シフトスケジュール・引継ぎ・要員計画</p>
           </div>
-          <button className="bg-falcon-red hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-medium">
+          <button className="bg-[#e8002d] hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-medium">
             シフト追加
           </button>
         </div>
@@ -108,18 +114,18 @@ export default function ShiftManagerPage() {
             { label:'アクティブチケット', value:'47', color:'text-orange-400' },
             { label:'未割り当て', value:'12', color:'text-red-400' },
           ].map(s => (
-            <div key={s.label} className="bg-falcon-surface border border-falcon-border rounded-lg p-4 text-center">
+            <div key={s.label} className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-4 text-center">
               <div className={`text-xl font-bold ${s.color}`}>{s.value}</div>
-              <div className="text-falcon-muted text-xs mt-1">{s.label}</div>
+              <div className="text-[#7d92b0] text-xs mt-1">{s.label}</div>
             </div>
           ))}
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-1 mb-6 border-b border-falcon-border">
+        <div className="flex gap-1 mb-6 border-b border-[#1e2d42]">
           {TABS.map(t => (
             <button key={t.key} onClick={() => setTab(t.key)}
-              className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px ${tab === t.key ? 'border-falcon-red text-white' : 'border-transparent text-falcon-muted hover:text-white'}`}>
+              className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px ${tab === t.key ? 'border-[#e8002d] text-white' : 'border-transparent text-[#7d92b0] hover:text-white'}`}>
               {t.label}
             </button>
           ))}
@@ -130,9 +136,9 @@ export default function ShiftManagerPage() {
           <div>
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
-                <button onClick={() => setWeekOffset(w => w-1)} className="text-falcon-muted hover:text-white px-3 py-1 border border-falcon-border rounded-sm">◀</button>
+                <button onClick={() => setWeekOffset(w => w-1)} className="text-[#7d92b0] hover:text-white px-3 py-1 border border-[#1e2d42] rounded-sm">◀</button>
                 <span className="font-medium">{weekLabel} (2026-03-{16+weekOffset*7}〜)</span>
-                <button onClick={() => setWeekOffset(w => w+1)} className="text-falcon-muted hover:text-white px-3 py-1 border border-falcon-border rounded-sm">▶</button>
+                <button onClick={() => setWeekOffset(w => w+1)} className="text-[#7d92b0] hover:text-white px-3 py-1 border border-[#1e2d42] rounded-sm">▶</button>
               </div>
               <div className="flex gap-3 text-xs">
                 {(Object.entries(ROLE_COLORS) as [Role, string][]).map(([r, cls]) => (
@@ -140,24 +146,24 @@ export default function ShiftManagerPage() {
                 ))}
               </div>
             </div>
-            <div className="bg-falcon-surface border border-falcon-border rounded-lg overflow-x-auto">
+            <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-falcon-border">
-                    <th className="px-3 py-3 text-left text-xs text-falcon-muted w-40">シフト</th>
-                    {DAYS.map(d => <th key={d} className="px-2 py-3 text-center text-xs text-falcon-muted w-28">{d}</th>)}
+                  <tr className="border-b border-[#1e2d42]">
+                    <th className="px-3 py-3 text-left text-xs text-[#7d92b0] w-40">シフト</th>
+                    {DAYS.map(d => <th key={d} className="px-2 py-3 text-center text-xs text-[#7d92b0] w-28">{d}</th>)}
                   </tr>
                 </thead>
                 <tbody>
                   {SHIFTS.map(shift => (
-                    <tr key={shift} className="border-b border-falcon-border">
-                      <td className="px-3 py-3 text-xs text-falcon-muted">{shift}</td>
+                    <tr key={shift} className="border-b border-[#1e2d42]">
+                      <td className="px-3 py-3 text-xs text-[#7d92b0]">{shift}</td>
                       {DAYS.map(day => {
                         const name = SCHEDULE[shift]?.[day] ?? ''
                         return (
                           <td key={day} className="px-2 py-3 text-center">
                             {name ? <span className={`px-2 py-0.5 rounded-sm text-xs font-medium ${roleColor(name)}`}>{name}</span>
-                              : <span className="text-falcon-border">—</span>}
+                              : <span className="text-[#1e2d42]">—</span>}
                           </td>
                         )
                       })}
@@ -175,31 +181,31 @@ export default function ShiftManagerPage() {
             <div className="bg-blue-900/30 border border-blue-700 rounded-lg p-4 flex items-center justify-between">
               <div>
                 <div className="font-semibold text-blue-300">昼シフト稼働中</div>
-                <div className="text-falcon-muted text-sm">12:00 〜 18:00 ｜ シフトリーダー: 田中 一郎</div>
+                <div className="text-[#7d92b0] text-sm">12:00 〜 18:00 ｜ シフトリーダー: 田中 一郎</div>
               </div>
-              <button onClick={() => setShowEndConfirm(true)} className="bg-falcon-red hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm">シフト終了</button>
+              <button onClick={() => setShowEndConfirm(true)} className="bg-[#e8002d] hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm">シフト終了</button>
             </div>
             {showEndConfirm && (
               <div className="bg-red-900/30 border border-red-700 rounded-lg p-4 flex items-center justify-between">
                 <span className="text-red-300">シフトを終了しますか？引継ぎレポートが必要です。</span>
                 <div className="flex gap-2">
-                  <button onClick={() => setShowEndConfirm(false)} className="px-3 py-1 border border-falcon-border rounded-sm text-sm text-falcon-muted">キャンセル</button>
+                  <button onClick={() => setShowEndConfirm(false)} className="px-3 py-1 border border-[#1e2d42] rounded-sm text-sm text-[#7d92b0]">キャンセル</button>
                   <button className="px-3 py-1 bg-red-700 rounded-sm text-sm text-white">確認して終了</button>
                 </div>
               </div>
             )}
             <div className="grid grid-cols-3 gap-4">
               {[{label:'Critical', count:3, color:'text-red-400', border:'border-red-900'},{label:'High', count:12, color:'text-orange-400', border:'border-orange-900'},{label:'Medium', count:32, color:'text-yellow-400', border:'border-yellow-900'}].map(a => (
-                <div key={a.label} className={`bg-falcon-surface border ${a.border} rounded-lg p-4 text-center`}>
+                <div key={a.label} className={`bg-[#0d1220] border ${a.border} rounded-lg p-4 text-center`}>
                   <div className={`text-3xl font-bold ${a.color}`}>{a.count}</div>
-                  <div className="text-falcon-muted text-sm">{a.label}</div>
+                  <div className="text-[#7d92b0] text-sm">{a.label}</div>
                 </div>
               ))}
             </div>
-            <div className="bg-falcon-surface border border-falcon-border rounded-lg overflow-hidden">
+            <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg overflow-hidden">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-falcon-border text-falcon-muted">
+                  <tr className="border-b border-[#1e2d42] text-[#7d92b0]">
                     {['名前','ロール','専門','割り当てチケット','ステータス','応答時間','クイック割り当て'].map(h => (
                       <th key={h} className="px-3 py-3 text-left text-xs">{h}</th>
                     ))}
@@ -207,16 +213,16 @@ export default function ShiftManagerPage() {
                 </thead>
                 <tbody>
                   {analysts.filter(a => a.status !== 'offline').map(a => (
-                    <tr key={a.id} className="border-b border-falcon-border hover:bg-falcon-border/20">
+                    <tr key={a.id} className="border-b border-[#1e2d42] hover:bg-[#1e2d42]/20">
                       <td className="px-3 py-3 font-medium">{a.name}</td>
                       <td className="px-3 py-3"><span className={`px-2 py-0.5 rounded-sm text-xs ${ROLE_COLORS[a.role]}`}>{a.role}</span></td>
-                      <td className="px-3 py-3 text-falcon-muted text-xs">{a.specialty}</td>
+                      <td className="px-3 py-3 text-[#7d92b0] text-xs">{a.specialty}</td>
                       <td className="px-3 py-3 text-center font-mono">{a.tickets}</td>
                       <td className="px-3 py-3"><span className={`text-xs font-medium ${STATUS_COLORS[a.status]}`}>{STATUS_LABELS[a.status]}</span></td>
-                      <td className="px-3 py-3 text-falcon-muted text-xs font-mono">{a.response_time}</td>
+                      <td className="px-3 py-3 text-[#7d92b0] text-xs font-mono">{a.response_time}</td>
                       <td className="px-3 py-3">
                         {assignTarget === a.id ? (
-                          <select className="bg-falcon-border text-white text-xs rounded-sm px-2 py-1 border border-falcon-border" onChange={() => setAssignTarget(null)}>
+                          <select className="bg-[#1e2d42] text-white text-xs rounded-sm px-2 py-1 border border-[#1e2d42]" onChange={() => setAssignTarget(null)}>
                             <option>-- アラート選択 --</option>
                             <option>ALERT-2891 (Critical)</option>
                             <option>ALERT-2888 (High)</option>
@@ -239,48 +245,48 @@ export default function ShiftManagerPage() {
             <div className="flex gap-2">
               {(['current','previous'] as const).map(v => (
                 <button key={v} onClick={() => setHandoverView(v)}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${handoverView === v ? 'bg-falcon-red text-white' : 'bg-falcon-surface border border-falcon-border text-falcon-muted hover:text-white'}`}>
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${handoverView === v ? 'bg-[#e8002d] text-white' : 'bg-[#0d1220] border border-[#1e2d42] text-[#7d92b0] hover:text-white'}`}>
                   {v === 'current' ? '現在の引継ぎ' : '過去のレポート'}
                 </button>
               ))}
             </div>
             {handoverView === 'current' ? (
-              <div className="bg-falcon-surface border border-falcon-border rounded-lg p-5 space-y-4">
+              <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-5 space-y-4">
                 <h3 className="font-semibold">引継ぎレポート作成 — 昼シフト 2026-03-18</h3>
                 <div>
-                  <div className="text-falcon-muted text-sm mb-2">オープンインシデント</div>
+                  <div className="text-[#7d92b0] text-sm mb-2">オープンインシデント</div>
                   <div className="space-y-1">
                     {['INC-441: ランサムウェア疑い (Critical)','INC-438: 不審なログイン試行 (High)','INC-435: データ流出アラート (High)'].map(inc => (
-                      <label key={inc} className="flex items-center gap-2 text-sm cursor-pointer hover:text-white text-falcon-muted">
-                        <input type="checkbox" className="accent-falcon-red" />{inc}
+                      <label key={inc} className="flex items-center gap-2 text-sm cursor-pointer hover:text-white text-[#7d92b0]">
+                        <input type="checkbox" className="accent-[#e8002d]" />{inc}
                       </label>
                     ))}
                   </div>
                 </div>
                 <div>
-                  <div className="text-falcon-muted text-sm mb-2">引継ぎメモ・次シフトへのブリーフィング</div>
+                  <div className="text-[#7d92b0] text-sm mb-2">引継ぎメモ・次シフトへのブリーフィング</div>
                   <textarea value={reportNotes} onChange={e => setReportNotes(e.target.value)}
-                    className="w-full bg-[#070d19] border border-falcon-border rounded-lg p-3 text-sm text-white placeholder-falcon-muted focus:outline-hidden focus:border-falcon-red h-28 resize-none"
+                    className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg p-3 text-sm text-white placeholder-[#7d92b0] focus:outline-hidden focus:border-[#e8002d] h-28 resize-none"
                     placeholder="次のシフトへの引継ぎ事項を記入してください..." />
                 </div>
                 <button onClick={() => submitReport.mutate({ notes: reportNotes })}
-                  className="bg-falcon-red hover:bg-red-700 text-white px-5 py-2 rounded-lg text-sm font-medium">
+                  className="bg-[#e8002d] hover:bg-red-700 text-white px-5 py-2 rounded-lg text-sm font-medium">
                   引継ぎレポート送信
                 </button>
               </div>
             ) : (
               <div className="space-y-3">
                 {reports.map(r => (
-                  <div key={r.id} className="bg-falcon-surface border border-falcon-border rounded-lg p-4">
+                  <div key={r.id} className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-4">
                     <div className="flex justify-between items-start mb-2">
                       <div>
                         <span className="font-medium">{r.shift_name}</span>
-                        <span className="text-falcon-muted text-sm ml-3">{r.date}</span>
+                        <span className="text-[#7d92b0] text-sm ml-3">{r.date}</span>
                       </div>
                       <span className="bg-orange-900 text-orange-300 text-xs px-2 py-0.5 rounded-sm">{r.open_items}件未解決</span>
                     </div>
-                    <div className="text-xs text-falcon-muted mb-1">作成者: {r.written_by}</div>
-                    <p className="text-sm text-falcon-muted">{r.notes}</p>
+                    <div className="text-xs text-[#7d92b0] mb-1">作成者: {r.written_by}</div>
+                    <p className="text-sm text-[#7d92b0]">{r.notes}</p>
                   </div>
                 ))}
               </div>
@@ -292,7 +298,7 @@ export default function ShiftManagerPage() {
         {tab === 'staffing' && (
           <div className="space-y-6">
             {/* Monthly bar chart */}
-            <div className="bg-falcon-surface border border-falcon-border rounded-lg p-5">
+            <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-5">
               <h3 className="font-semibold mb-4">月別要員数 vs 必要人数</h3>
               <div className="flex items-end gap-2 h-32">
                 {['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'].map((m, i) => {
@@ -303,25 +309,25 @@ export default function ShiftManagerPage() {
                     <div key={m} className="flex-1 flex flex-col items-center gap-1">
                       <div className="w-full flex gap-0.5 items-end h-24">
                         <div className="flex-1 bg-blue-600 rounded-t" style={{ height:`${scale(actual)}%` }} title={`実際: ${actual}人`} />
-                        <div className="flex-1 bg-falcon-border rounded-t border border-dashed border-falcon-muted" style={{ height:`${scale(required)}%` }} title={`必要: ${required}人`} />
+                        <div className="flex-1 bg-[#1e2d42] rounded-t border border-dashed border-[#7d92b0]" style={{ height:`${scale(required)}%` }} title={`必要: ${required}人`} />
                       </div>
-                      <span className="text-falcon-muted text-xs">{m}</span>
+                      <span className="text-[#7d92b0] text-xs">{m}</span>
                     </div>
                   )
                 })}
               </div>
-              <div className="flex gap-4 mt-2 text-xs text-falcon-muted">
+              <div className="flex gap-4 mt-2 text-xs text-[#7d92b0]">
                 <span><span className="inline-block w-3 h-3 bg-blue-600 rounded-sm mr-1" />実際の人数</span>
-                <span><span className="inline-block w-3 h-3 bg-falcon-border border border-dashed border-falcon-muted rounded-sm mr-1" />必要人数</span>
+                <span><span className="inline-block w-3 h-3 bg-[#1e2d42] border border-dashed border-[#7d92b0] rounded-sm mr-1" />必要人数</span>
               </div>
             </div>
 
             {/* Skills matrix */}
-            <div className="bg-falcon-surface border border-falcon-border rounded-lg overflow-hidden">
-              <div className="px-4 py-3 border-b border-falcon-border"><h3 className="font-semibold">スキルマトリクス</h3></div>
+            <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg overflow-hidden">
+              <div className="px-4 py-3 border-b border-[#1e2d42]"><h3 className="font-semibold">スキルマトリクス</h3></div>
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-falcon-border text-falcon-muted">
+                  <tr className="border-b border-[#1e2d42] text-[#7d92b0]">
                     <th className="px-4 py-2 text-left text-xs">アナリスト</th>
                     {SKILL_HEADERS.map(h => <th key={h} className="px-3 py-2 text-center text-xs">{h}</th>)}
                     <th className="px-3 py-2 text-center text-xs">スコア</th>
@@ -331,7 +337,7 @@ export default function ShiftManagerPage() {
                   {analysts.map(a => {
                     const total = SKILL_KEYS.reduce((s,k) => s + (a.skills[k] ?? 0), 0)
                     return (
-                      <tr key={a.id} className="border-b border-falcon-border hover:bg-falcon-border/20">
+                      <tr key={a.id} className="border-b border-[#1e2d42] hover:bg-[#1e2d42]/20">
                         <td className="px-4 py-2">
                           <div className="font-medium text-sm">{a.name}</div>
                           <span className={`text-xs px-1.5 py-0.5 rounded-sm ${ROLE_COLORS[a.role]}`}>{a.role}</span>
@@ -340,12 +346,12 @@ export default function ShiftManagerPage() {
                           <td key={k} className="px-3 py-2 text-center">
                             <div className="flex justify-center gap-0.5">
                               {[1,2,3,4,5].map(v => (
-                                <span key={v} className={`w-2.5 h-2.5 rounded-full ${v <= (a.skills[k]??0) ? skillDot(a.skills[k]??0) : 'bg-falcon-border'}`} />
+                                <span key={v} className={`w-2.5 h-2.5 rounded-full ${v <= (a.skills[k]??0) ? skillDot(a.skills[k]??0) : 'bg-[#1e2d42]'}`} />
                               ))}
                             </div>
                           </td>
                         ))}
-                        <td className="px-3 py-2 text-center font-mono text-sm font-bold">{total}<span className="text-falcon-muted text-xs">/25</span></td>
+                        <td className="px-3 py-2 text-center font-mono text-sm font-bold">{total}<span className="text-[#7d92b0] text-xs">/25</span></td>
                       </tr>
                     )
                   })}
@@ -359,12 +365,12 @@ export default function ShiftManagerPage() {
                 { title:'シニアSOCアナリスト', status:'面接中', applicants:5, color:'text-yellow-400', border:'border-yellow-900' },
                 { title:'SOCアナリスト (クラウド専門)', status:'募集中', applicants:12, color:'text-green-400', border:'border-green-900' },
               ].map(pos => (
-                <div key={pos.title} className={`bg-falcon-surface border ${pos.border} rounded-lg p-4`}>
+                <div key={pos.title} className={`bg-[#0d1220] border ${pos.border} rounded-lg p-4`}>
                   <div className="flex justify-between items-start mb-2">
                     <div className="font-medium">{pos.title}</div>
                     <span className={`text-xs font-medium ${pos.color}`}>{pos.status}</span>
                   </div>
-                  <div className="text-falcon-muted text-sm">応募者数: <span className="text-white font-medium">{pos.applicants}名</span></div>
+                  <div className="text-[#7d92b0] text-sm">応募者数: <span className="text-white font-medium">{pos.applicants}名</span></div>
                   <button className="mt-3 text-xs text-blue-400 hover:text-blue-300 border border-blue-900 px-3 py-1 rounded-sm hover:bg-blue-900/30">詳細を見る</button>
                 </div>
               ))}

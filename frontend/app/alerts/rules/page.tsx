@@ -10,6 +10,8 @@ import {
   ChevronDown, X, Zap, Clock, User,
   BookOpen, Bell, TrendingUp, ShieldOff, RefreshCw
 } from 'lucide-react'
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+
 import { USE_MOCK, m } from '@/lib/mock'
 
 // ── Types ──────────────────────────────────────────────────────
@@ -98,13 +100,13 @@ function SeverityBadge({ severity }: { severity: string }) {
     high:          'bg-orange-900/40 text-orange-300 border-orange-700/50',
     medium:        'bg-yellow-900/40 text-yellow-300 border-yellow-700/50',
     low:           'bg-blue-900/40 text-blue-300 border-blue-700/50',
-    informational: 'bg-falcon-surface text-falcon-muted border-falcon-border',
+    informational: 'bg-[#0d1220] text-[#7d92b0] border-[#1e2d42]',
     P1:            'bg-red-900/40 text-red-300 border-red-700/50',
     P2:            'bg-orange-900/40 text-orange-300 border-orange-700/50',
     P3:            'bg-yellow-900/40 text-yellow-300 border-yellow-700/50',
   }
   return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium border ${cfg[severity] ?? 'bg-falcon-surface text-falcon-muted border-falcon-border'}`}>
+    <span className={`inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium border ${cfg[severity] ?? 'bg-[#0d1220] text-[#7d92b0] border-[#1e2d42]'}`}>
       {severity}
     </span>
   )
@@ -115,10 +117,10 @@ function PlatformBadge({ platform }: { platform: string }) {
     windows: 'bg-blue-900/30 text-blue-300 border-blue-700/40',
     linux:   'bg-orange-900/30 text-orange-300 border-orange-700/40',
     macos:   'bg-purple-900/30 text-purple-300 border-purple-700/40',
-    all:     'bg-falcon-surface text-falcon-muted border-falcon-border',
+    all:     'bg-[#0d1220] text-[#7d92b0] border-[#1e2d42]',
   }
   return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded-sm text-xs border ${cfg[platform] ?? 'bg-falcon-surface text-falcon-muted border-falcon-border'}`}>
+    <span className={`inline-flex items-center px-2 py-0.5 rounded-sm text-xs border ${cfg[platform] ?? 'bg-[#0d1220] text-[#7d92b0] border-[#1e2d42]'}`}>
       {platform}
     </span>
   )
@@ -133,7 +135,7 @@ function EventTypeBadge({ type }: { type: string }) {
     registry: 'bg-orange-900/30 text-orange-300 border-orange-700/40',
   }
   return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded-sm text-xs border ${cfg[type] ?? 'bg-falcon-surface text-falcon-muted border-falcon-border'}`}>
+    <span className={`inline-flex items-center px-2 py-0.5 rounded-sm text-xs border ${cfg[type] ?? 'bg-[#0d1220] text-[#7d92b0] border-[#1e2d42]'}`}>
       {type}
     </span>
   )
@@ -144,11 +146,11 @@ function ToggleSwitch({ enabled, onChange }: { enabled: boolean; onChange: () =>
     <button
       onClick={onChange}
       className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors duration-200 focus:outline-hidden ${
-        enabled ? 'bg-falcon-red' : 'bg-falcon-border'
+        enabled ? 'bg-[#e8002d]' : 'bg-[#1e2d42]'
       }`}
     >
       <span
-        className={`inline-block h-3.5 w-3.5 transform rounded-full bg-falcon-text transition-transform duration-200 ${
+        className={`inline-block h-3.5 w-3.5 transform rounded-full bg-[#e2e8f4] transition-transform duration-200 ${
           enabled ? 'translate-x-5' : 'translate-x-1'
         }`}
       />
@@ -164,58 +166,58 @@ function AddSuppressionModal({ onClose, onAdd }: { onClose: () => void; onAdd: (
   const [expires, setExpires] = useState('')
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs">
-      <div className="bg-falcon-surface border border-falcon-border rounded-xl w-full max-w-md p-6 shadow-2xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl w-full max-w-md p-6 shadow-2xl">
         <div className="flex items-center justify-between mb-5">
           <h3 className="text-white font-semibold flex items-center gap-2">
-            <ShieldOff className="w-4 h-4 text-falcon-red" />
+            <ShieldOff className="w-4 h-4 text-[#e8002d]" />
             抑制ルールを追加
           </h3>
-          <button onClick={onClose} className="text-falcon-muted hover:text-white">
+          <button onClick={onClose} className="text-[#7d92b0] hover:text-white">
             <X className="w-4 h-4" />
           </button>
         </div>
         <div className="space-y-4">
           <div>
-            <label className="block text-xs text-falcon-muted mb-1">パターン</label>
+            <label className="block text-xs text-[#7d92b0] mb-1">パターン</label>
             <input
               value={pattern}
               onChange={e => setPattern(e.target.value)}
               placeholder="hostname:*, rule:rule-name, ip:1.2.3.4"
-              className="w-full px-3 py-2 bg-[#070d19] border border-falcon-border rounded-lg text-white text-sm placeholder-falcon-subtle focus:outline-hidden focus:border-falcon-red/50"
+              className="w-full px-3 py-2 bg-[#070d19] border border-[#1e2d42] rounded-lg text-white text-sm placeholder-[#3d5068] focus:outline-hidden focus:border-[#e8002d]/50"
             />
           </div>
           <div>
-            <label className="block text-xs text-falcon-muted mb-1">理由</label>
+            <label className="block text-xs text-[#7d92b0] mb-1">理由</label>
             <textarea
               value={reason}
               onChange={e => setReason(e.target.value)}
               placeholder="この抑制ルールの理由を記述..."
               rows={3}
-              className="w-full px-3 py-2 bg-[#070d19] border border-falcon-border rounded-lg text-white text-sm placeholder-falcon-subtle focus:outline-hidden focus:border-falcon-red/50 resize-none"
+              className="w-full px-3 py-2 bg-[#070d19] border border-[#1e2d42] rounded-lg text-white text-sm placeholder-[#3d5068] focus:outline-hidden focus:border-[#e8002d]/50 resize-none"
             />
           </div>
           <div>
-            <label className="block text-xs text-falcon-muted mb-1">有効期限 (任意)</label>
+            <label className="block text-xs text-[#7d92b0] mb-1">有効期限 (任意)</label>
             <input
               type="date"
               value={expires}
               onChange={e => setExpires(e.target.value)}
-              className="w-full px-3 py-2 bg-[#070d19] border border-falcon-border rounded-lg text-white text-sm focus:outline-hidden focus:border-falcon-red/50"
+              className="w-full px-3 py-2 bg-[#070d19] border border-[#1e2d42] rounded-lg text-white text-sm focus:outline-hidden focus:border-[#e8002d]/50"
             />
           </div>
         </div>
         <div className="flex gap-3 mt-6">
           <button
             onClick={onClose}
-            className="flex-1 px-4 py-2 bg-[#070d19] border border-falcon-border text-falcon-muted rounded-lg text-sm hover:text-white hover:border-falcon-muted/40 transition-colors"
+            className="flex-1 px-4 py-2 bg-[#070d19] border border-[#1e2d42] text-[#7d92b0] rounded-lg text-sm hover:text-white hover:border-[#7d92b0]/40 transition-colors"
           >
             キャンセル
           </button>
           <button
             onClick={() => { onAdd({ pattern, reason, expires_at: expires || undefined }); onClose() }}
             disabled={!pattern || !reason}
-            className="flex-1 px-4 py-2 bg-falcon-red text-white rounded-lg text-sm font-medium hover:bg-[#c0001f] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            className="flex-1 px-4 py-2 bg-[#e8002d] text-white rounded-lg text-sm font-medium hover:bg-[#c0001f] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
             追加
           </button>
@@ -246,14 +248,14 @@ function NewCustomRuleModal({ onClose }: { onClose: () => void }) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs">
-      <div className="bg-falcon-surface border border-falcon-border rounded-xl w-full max-w-2xl p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl w-full max-w-2xl p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-5">
           <h3 className="text-white font-semibold flex items-center gap-2">
-            <Bell className="w-4 h-4 text-falcon-red" />
+            <Bell className="w-4 h-4 text-[#e8002d]" />
             新しいカスタムアラートルール
           </h3>
-          <button onClick={onClose} className="text-falcon-muted hover:text-white">
+          <button onClick={onClose} className="text-[#7d92b0] hover:text-white">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -261,20 +263,20 @@ function NewCustomRuleModal({ onClose }: { onClose: () => void }) {
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs text-falcon-muted mb-1">ルール名</label>
+              <label className="block text-xs text-[#7d92b0] mb-1">ルール名</label>
               <input
                 value={name}
                 onChange={e => setName(e.target.value)}
                 placeholder="ルール名を入力..."
-                className="w-full px-3 py-2 bg-[#070d19] border border-falcon-border rounded-lg text-white text-sm placeholder-falcon-subtle focus:outline-hidden focus:border-falcon-red/50"
+                className="w-full px-3 py-2 bg-[#070d19] border border-[#1e2d42] rounded-lg text-white text-sm placeholder-[#3d5068] focus:outline-hidden focus:border-[#e8002d]/50"
               />
             </div>
             <div>
-              <label className="block text-xs text-falcon-muted mb-1">重要度</label>
+              <label className="block text-xs text-[#7d92b0] mb-1">重要度</label>
               <select
                 value={severity}
                 onChange={e => setSeverity(e.target.value)}
-                className="w-full px-3 py-2 bg-[#070d19] border border-falcon-border rounded-lg text-white text-sm focus:outline-hidden focus:border-falcon-red/50"
+                className="w-full px-3 py-2 bg-[#070d19] border border-[#1e2d42] rounded-lg text-white text-sm focus:outline-hidden focus:border-[#e8002d]/50"
               >
                 {['critical','high','medium','low'].map(s => <option key={s} value={s}>{s}</option>)}
               </select>
@@ -283,39 +285,39 @@ function NewCustomRuleModal({ onClose }: { onClose: () => void }) {
 
           <div className="grid grid-cols-3 gap-4">
             <div>
-              <label className="block text-xs text-falcon-muted mb-1">イベントタイプ</label>
+              <label className="block text-xs text-[#7d92b0] mb-1">イベントタイプ</label>
               <select
                 value={eventType}
                 onChange={e => setEventType(e.target.value)}
-                className="w-full px-3 py-2 bg-[#070d19] border border-falcon-border rounded-lg text-white text-sm focus:outline-hidden focus:border-falcon-red/50"
+                className="w-full px-3 py-2 bg-[#070d19] border border-[#1e2d42] rounded-lg text-white text-sm focus:outline-hidden focus:border-[#e8002d]/50"
               >
                 {['process','network','file','dns','registry'].map(t => <option key={t} value={t}>{t}</option>)}
               </select>
             </div>
             <div>
-              <label className="block text-xs text-falcon-muted mb-1">閾値 (件数)</label>
+              <label className="block text-xs text-[#7d92b0] mb-1">閾値 (件数)</label>
               <input
                 type="number"
                 value={threshold}
                 onChange={e => setThreshold(e.target.value)}
-                className="w-full px-3 py-2 bg-[#070d19] border border-falcon-border rounded-lg text-white text-sm focus:outline-hidden focus:border-falcon-red/50"
+                className="w-full px-3 py-2 bg-[#070d19] border border-[#1e2d42] rounded-lg text-white text-sm focus:outline-hidden focus:border-[#e8002d]/50"
               />
             </div>
             <div>
-              <label className="block text-xs text-falcon-muted mb-1">時間窓 (分)</label>
+              <label className="block text-xs text-[#7d92b0] mb-1">時間窓 (分)</label>
               <input
                 type="number"
                 value={timeWindow}
                 onChange={e => setTimeWindow(e.target.value)}
-                className="w-full px-3 py-2 bg-[#070d19] border border-falcon-border rounded-lg text-white text-sm focus:outline-hidden focus:border-falcon-red/50"
+                className="w-full px-3 py-2 bg-[#070d19] border border-[#1e2d42] rounded-lg text-white text-sm focus:outline-hidden focus:border-[#e8002d]/50"
               />
             </div>
           </div>
 
           <div>
             <div className="flex items-center justify-between mb-2">
-              <label className="text-xs text-falcon-muted">条件</label>
-              <button onClick={addCondition} className="text-xs text-falcon-red hover:text-[#ff1a40] flex items-center gap-1">
+              <label className="text-xs text-[#7d92b0]">条件</label>
+              <button onClick={addCondition} className="text-xs text-[#e8002d] hover:text-[#ff1a40] flex items-center gap-1">
                 <Plus className="w-3 h-3" /> 条件を追加
               </button>
             </div>
@@ -326,12 +328,12 @@ function NewCustomRuleModal({ onClose }: { onClose: () => void }) {
                     value={cond.field}
                     onChange={e => updateCondition(i, 'field', e.target.value)}
                     placeholder="フィールド"
-                    className="flex-1 px-3 py-2 bg-[#070d19] border border-falcon-border rounded-lg text-white text-xs placeholder-falcon-subtle focus:outline-hidden focus:border-falcon-red/50"
+                    className="flex-1 px-3 py-2 bg-[#070d19] border border-[#1e2d42] rounded-lg text-white text-xs placeholder-[#3d5068] focus:outline-hidden focus:border-[#e8002d]/50"
                   />
                   <select
                     value={cond.operator}
                     onChange={e => updateCondition(i, 'operator', e.target.value)}
-                    className="px-2 py-2 bg-[#070d19] border border-falcon-border rounded-lg text-white text-xs focus:outline-hidden focus:border-falcon-red/50"
+                    className="px-2 py-2 bg-[#070d19] border border-[#1e2d42] rounded-lg text-white text-xs focus:outline-hidden focus:border-[#e8002d]/50"
                   >
                     {['eq','ne','gt','lt','contains','starts_with','ends_with','in'].map(op => <option key={op} value={op}>{op}</option>)}
                   </select>
@@ -339,10 +341,10 @@ function NewCustomRuleModal({ onClose }: { onClose: () => void }) {
                     value={cond.value}
                     onChange={e => updateCondition(i, 'value', e.target.value)}
                     placeholder="値"
-                    className="flex-1 px-3 py-2 bg-[#070d19] border border-falcon-border rounded-lg text-white text-xs placeholder-falcon-subtle focus:outline-hidden focus:border-falcon-red/50"
+                    className="flex-1 px-3 py-2 bg-[#070d19] border border-[#1e2d42] rounded-lg text-white text-xs placeholder-[#3d5068] focus:outline-hidden focus:border-[#e8002d]/50"
                   />
                   {conditions.length > 1 && (
-                    <button onClick={() => removeCondition(i)} className="text-falcon-muted hover:text-red-400">
+                    <button onClick={() => removeCondition(i)} className="text-[#7d92b0] hover:text-red-400">
                       <X className="w-4 h-4" />
                     </button>
                   )}
@@ -355,14 +357,14 @@ function NewCustomRuleModal({ onClose }: { onClose: () => void }) {
         <div className="flex gap-3 mt-6">
           <button
             onClick={onClose}
-            className="flex-1 px-4 py-2 bg-[#070d19] border border-falcon-border text-falcon-muted rounded-lg text-sm hover:text-white hover:border-falcon-muted/40 transition-colors"
+            className="flex-1 px-4 py-2 bg-[#070d19] border border-[#1e2d42] text-[#7d92b0] rounded-lg text-sm hover:text-white hover:border-[#7d92b0]/40 transition-colors"
           >
             キャンセル
           </button>
           <button
             disabled={!name}
             onClick={onClose}
-            className="flex-1 px-4 py-2 bg-falcon-red text-white rounded-lg text-sm font-medium hover:bg-[#c0001f] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            className="flex-1 px-4 py-2 bg-[#e8002d] text-white rounded-lg text-sm font-medium hover:bg-[#c0001f] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
             作成
           </button>
@@ -482,20 +484,21 @@ export default function AlertRulesPage() {
 
   return (
     <div className="min-h-screen bg-[#070d19] p-6 space-y-6">
+      <PageDataUnavailable />
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-white flex items-center gap-2.5">
-            <SlidersHorizontal className="w-6 h-6 text-falcon-red" />
+            <SlidersHorizontal className="w-6 h-6 text-[#e8002d]" />
             アラートルール管理
           </h1>
-          <p className="text-falcon-muted text-sm mt-1">
+          <p className="text-[#7d92b0] text-sm mt-1">
             Sigma、カスタム、エスカレーション、抑制ルールの統合管理
           </p>
         </div>
         <button
           onClick={() => queryClient.invalidateQueries({ queryKey: ['rules-sigma'] })}
-          className="flex items-center gap-2 px-3 py-2 bg-falcon-surface border border-falcon-border text-falcon-muted rounded-lg text-sm hover:text-white hover:border-falcon-muted/40 transition-colors"
+          className="flex items-center gap-2 px-3 py-2 bg-[#0d1220] border border-[#1e2d42] text-[#7d92b0] rounded-lg text-sm hover:text-white hover:border-[#7d92b0]/40 transition-colors"
         >
           <RefreshCw className="w-4 h-4" />
           更新
@@ -505,14 +508,14 @@ export default function AlertRulesPage() {
       {/* Summary Stats */}
       <div className="grid grid-cols-4 gap-4">
         {[
-          { label: '総ルール数', value: totalRules, icon: SlidersHorizontal, color: 'text-falcon-red', bg: 'bg-red-900/10 border-red-900/30' },
+          { label: '総ルール数', value: totalRules, icon: SlidersHorizontal, color: 'text-[#e8002d]', bg: 'bg-red-900/10 border-red-900/30' },
           { label: '有効ルール', value: enabledRules, icon: CheckCircle, color: 'text-green-400', bg: 'bg-green-900/10 border-green-900/30' },
           { label: 'Sigmaルール', value: sigmaCount, icon: BookOpen, color: 'text-blue-400', bg: 'bg-blue-900/10 border-blue-900/30' },
           { label: 'カスタムルール', value: customCount, icon: Bell, color: 'text-yellow-400', bg: 'bg-yellow-900/10 border-yellow-900/30' },
         ].map(stat => (
-          <div key={stat.label} className={`bg-falcon-surface border rounded-xl p-4 ${stat.bg}`}>
+          <div key={stat.label} className={`bg-[#0d1220] border rounded-xl p-4 ${stat.bg}`}>
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs text-falcon-muted">{stat.label}</span>
+              <span className="text-xs text-[#7d92b0]">{stat.label}</span>
               <stat.icon className={`w-4 h-4 ${stat.color}`} />
             </div>
             <p className={`text-2xl font-bold ${stat.color}`}>{stat.value}</p>
@@ -521,21 +524,21 @@ export default function AlertRulesPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex items-center gap-1 bg-falcon-surface border border-falcon-border rounded-xl p-1">
+      <div className="flex items-center gap-1 bg-[#0d1220] border border-[#1e2d42] rounded-xl p-1">
         {tabs.map(tab => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all flex-1 justify-center ${
               activeTab === tab.id
-                ? 'bg-falcon-red text-white shadow-sm'
-                : 'text-falcon-muted hover:text-white hover:bg-falcon-border/40'
+                ? 'bg-[#e8002d] text-white shadow-sm'
+                : 'text-[#7d92b0] hover:text-white hover:bg-[#1e2d42]/40'
             }`}
           >
             <tab.icon className="w-4 h-4" />
             {tab.label}
             <span className={`text-xs px-1.5 py-0.5 rounded-full ${
-              activeTab === tab.id ? 'bg-white/20 text-white' : 'bg-falcon-border text-falcon-muted'
+              activeTab === tab.id ? 'bg-white/20 text-white' : 'bg-[#1e2d42] text-[#7d92b0]'
             }`}>
               {tab.count}
             </span>
@@ -546,20 +549,20 @@ export default function AlertRulesPage() {
       {/* Filters Row */}
       <div className="flex items-center gap-3 flex-wrap">
         <div className="relative flex-1 min-w-[200px] max-w-xs">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-falcon-subtle" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#3d5068]" />
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="ルール名で検索..."
-            className="w-full pl-9 pr-4 py-2 bg-falcon-surface border border-falcon-border rounded-lg text-white text-sm placeholder-falcon-subtle focus:outline-hidden focus:border-falcon-red/50"
+            className="w-full pl-9 pr-4 py-2 bg-[#0d1220] border border-[#1e2d42] rounded-lg text-white text-sm placeholder-[#3d5068] focus:outline-hidden focus:border-[#e8002d]/50"
           />
         </div>
         <div className="flex items-center gap-2">
-          <Filter className="w-4 h-4 text-falcon-subtle" />
+          <Filter className="w-4 h-4 text-[#3d5068]" />
           <select
             value={severityFilter}
             onChange={e => setSeverityFilter(e.target.value)}
-            className="px-3 py-2 bg-falcon-surface border border-falcon-border rounded-lg text-falcon-muted text-sm focus:outline-hidden focus:border-falcon-red/50"
+            className="px-3 py-2 bg-[#0d1220] border border-[#1e2d42] rounded-lg text-[#7d92b0] text-sm focus:outline-hidden focus:border-[#e8002d]/50"
           >
             <option value="all">全重要度</option>
             {['critical','high','medium','low','informational'].map(s => <option key={s} value={s}>{s}</option>)}
@@ -567,7 +570,7 @@ export default function AlertRulesPage() {
           <select
             value={enabledFilter}
             onChange={e => setEnabledFilter(e.target.value)}
-            className="px-3 py-2 bg-falcon-surface border border-falcon-border rounded-lg text-falcon-muted text-sm focus:outline-hidden focus:border-falcon-red/50"
+            className="px-3 py-2 bg-[#0d1220] border border-[#1e2d42] rounded-lg text-[#7d92b0] text-sm focus:outline-hidden focus:border-[#e8002d]/50"
           >
             <option value="all">全ステータス</option>
             <option value="true">有効</option>
@@ -577,7 +580,7 @@ export default function AlertRulesPage() {
             <select
               value={platformFilter}
               onChange={e => setPlatformFilter(e.target.value)}
-              className="px-3 py-2 bg-falcon-surface border border-falcon-border rounded-lg text-falcon-muted text-sm focus:outline-hidden focus:border-falcon-red/50"
+              className="px-3 py-2 bg-[#0d1220] border border-[#1e2d42] rounded-lg text-[#7d92b0] text-sm focus:outline-hidden focus:border-[#e8002d]/50"
             >
               <option value="all">全プラットフォーム</option>
               {['windows','linux','macos','all'].map(p => <option key={p} value={p}>{p}</option>)}
@@ -590,7 +593,7 @@ export default function AlertRulesPage() {
           {activeTab === 'sigma' && (
             <Link
               href="/rules"
-              className="flex items-center gap-2 px-3 py-2 bg-falcon-red/10 border border-falcon-red/30 text-falcon-red rounded-lg text-sm hover:bg-falcon-red/20 transition-colors"
+              className="flex items-center gap-2 px-3 py-2 bg-[#e8002d]/10 border border-[#e8002d]/30 text-[#e8002d] rounded-lg text-sm hover:bg-[#e8002d]/20 transition-colors"
             >
               <Upload className="w-4 h-4" />
               インポート
@@ -599,7 +602,7 @@ export default function AlertRulesPage() {
           {activeTab === 'custom' && (
             <button
               onClick={() => setShowCustomRuleModal(true)}
-              className="flex items-center gap-2 px-3 py-2 bg-falcon-red text-white rounded-lg text-sm font-medium hover:bg-[#c0001f] transition-colors"
+              className="flex items-center gap-2 px-3 py-2 bg-[#e8002d] text-white rounded-lg text-sm font-medium hover:bg-[#c0001f] transition-colors"
             >
               <Plus className="w-4 h-4" />
               新規ルール
@@ -608,7 +611,7 @@ export default function AlertRulesPage() {
           {activeTab === 'suppression' && (
             <button
               onClick={() => setShowSuppressionModal(true)}
-              className="flex items-center gap-2 px-3 py-2 bg-falcon-red text-white rounded-lg text-sm font-medium hover:bg-[#c0001f] transition-colors"
+              className="flex items-center gap-2 px-3 py-2 bg-[#e8002d] text-white rounded-lg text-sm font-medium hover:bg-[#c0001f] transition-colors"
             >
               <Plus className="w-4 h-4" />
               抑制を追加
@@ -621,37 +624,37 @@ export default function AlertRulesPage() {
 
       {/* Tab 1: Sigma Rules */}
       {activeTab === 'sigma' && (
-        <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
+        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-falcon-border">
-                <th className="text-left px-4 py-3 text-xs text-falcon-muted font-medium">ルール名</th>
-                <th className="text-left px-4 py-3 text-xs text-falcon-muted font-medium">重要度</th>
-                <th className="text-left px-4 py-3 text-xs text-falcon-muted font-medium">プラットフォーム</th>
-                <th className="text-left px-4 py-3 text-xs text-falcon-muted font-medium">MITREタグ</th>
-                <th className="text-left px-4 py-3 text-xs text-falcon-muted font-medium">有効</th>
-                <th className="text-right px-4 py-3 text-xs text-falcon-muted font-medium">アクション</th>
+              <tr className="border-b border-[#1e2d42]">
+                <th className="text-left px-4 py-3 text-xs text-[#7d92b0] font-medium">ルール名</th>
+                <th className="text-left px-4 py-3 text-xs text-[#7d92b0] font-medium">重要度</th>
+                <th className="text-left px-4 py-3 text-xs text-[#7d92b0] font-medium">プラットフォーム</th>
+                <th className="text-left px-4 py-3 text-xs text-[#7d92b0] font-medium">MITREタグ</th>
+                <th className="text-left px-4 py-3 text-xs text-[#7d92b0] font-medium">有効</th>
+                <th className="text-right px-4 py-3 text-xs text-[#7d92b0] font-medium">アクション</th>
               </tr>
             </thead>
             <tbody>
               {filteredSigma.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="text-center py-12 text-falcon-muted text-sm">
+                  <td colSpan={6} className="text-center py-12 text-[#7d92b0] text-sm">
                     ルールが見つかりません
                   </td>
                 </tr>
               ) : filteredSigma.map((rule, i) => (
-                <tr key={rule.id} className={`border-b border-falcon-border/60 hover:bg-[#070d19]/50 transition-colors ${i % 2 === 0 ? '' : 'bg-[#070d19]/20'}`}>
+                <tr key={rule.id} className={`border-b border-[#1e2d42]/60 hover:bg-[#070d19]/50 transition-colors ${i % 2 === 0 ? '' : 'bg-[#070d19]/20'}`}>
                   <td className="px-4 py-3">
                     <p className="text-white text-sm font-medium">{rule.name}</p>
-                    {rule.description && <p className="text-falcon-muted text-xs mt-0.5 truncate max-w-xs">{rule.description}</p>}
+                    {rule.description && <p className="text-[#7d92b0] text-xs mt-0.5 truncate max-w-xs">{rule.description}</p>}
                   </td>
                   <td className="px-4 py-3"><SeverityBadge severity={rule.severity} /></td>
                   <td className="px-4 py-3"><PlatformBadge platform={rule.platform} /></td>
                   <td className="px-4 py-3">
                     <div className="flex flex-wrap gap-1">
                       {(rule.mitre_tags ?? []).slice(0, 3).map(tag => (
-                        <span key={tag} className="text-xs px-1.5 py-0.5 bg-[#070d19] border border-falcon-border rounded-sm text-falcon-muted font-mono">
+                        <span key={tag} className="text-xs px-1.5 py-0.5 bg-[#070d19] border border-[#1e2d42] rounded-sm text-[#7d92b0] font-mono">
                           {tag}
                         </span>
                       ))}
@@ -661,7 +664,7 @@ export default function AlertRulesPage() {
                     <ToggleSwitch enabled={rule.enabled} onChange={() => toggleSigma(rule.id)} />
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <button className="text-xs text-falcon-muted hover:text-white px-2 py-1 rounded-sm hover:bg-falcon-border transition-colors">
+                    <button className="text-xs text-[#7d92b0] hover:text-white px-2 py-1 rounded-sm hover:bg-[#1e2d42] transition-colors">
                       詳細
                     </button>
                   </td>
@@ -674,31 +677,31 @@ export default function AlertRulesPage() {
 
       {/* Tab 2: Custom Alert Rules */}
       {activeTab === 'custom' && (
-        <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
+        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-falcon-border">
-                <th className="text-left px-4 py-3 text-xs text-falcon-muted font-medium">ルール名</th>
-                <th className="text-left px-4 py-3 text-xs text-falcon-muted font-medium">重要度</th>
-                <th className="text-left px-4 py-3 text-xs text-falcon-muted font-medium">イベントタイプ</th>
-                <th className="text-left px-4 py-3 text-xs text-falcon-muted font-medium">閾値 / 時間窓</th>
-                <th className="text-left px-4 py-3 text-xs text-falcon-muted font-medium">有効</th>
-                <th className="text-right px-4 py-3 text-xs text-falcon-muted font-medium">アクション</th>
+              <tr className="border-b border-[#1e2d42]">
+                <th className="text-left px-4 py-3 text-xs text-[#7d92b0] font-medium">ルール名</th>
+                <th className="text-left px-4 py-3 text-xs text-[#7d92b0] font-medium">重要度</th>
+                <th className="text-left px-4 py-3 text-xs text-[#7d92b0] font-medium">イベントタイプ</th>
+                <th className="text-left px-4 py-3 text-xs text-[#7d92b0] font-medium">閾値 / 時間窓</th>
+                <th className="text-left px-4 py-3 text-xs text-[#7d92b0] font-medium">有効</th>
+                <th className="text-right px-4 py-3 text-xs text-[#7d92b0] font-medium">アクション</th>
               </tr>
             </thead>
             <tbody>
               {filteredCustom.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="text-center py-12 text-falcon-muted text-sm">
+                  <td colSpan={6} className="text-center py-12 text-[#7d92b0] text-sm">
                     ルールが見つかりません
                   </td>
                 </tr>
               ) : filteredCustom.map((rule, i) => (
-                <tr key={rule.id} className={`border-b border-falcon-border/60 hover:bg-[#070d19]/50 transition-colors ${i % 2 === 0 ? '' : 'bg-[#070d19]/20'}`}>
+                <tr key={rule.id} className={`border-b border-[#1e2d42]/60 hover:bg-[#070d19]/50 transition-colors ${i % 2 === 0 ? '' : 'bg-[#070d19]/20'}`}>
                   <td className="px-4 py-3">
                     <p className="text-white text-sm font-medium">{rule.name}</p>
                     {rule.conditions.length > 0 && (
-                      <p className="text-falcon-muted text-xs mt-0.5">
+                      <p className="text-[#7d92b0] text-xs mt-0.5">
                         {rule.conditions[0].field} {rule.conditions[0].operator} {rule.conditions[0].value}
                         {rule.conditions.length > 1 && ` +${rule.conditions.length - 1}件`}
                       </p>
@@ -708,13 +711,13 @@ export default function AlertRulesPage() {
                   <td className="px-4 py-3"><EventTypeBadge type={rule.event_type} /></td>
                   <td className="px-4 py-3">
                     <span className="text-sm text-white">{rule.threshold}件</span>
-                    <span className="text-xs text-falcon-muted ml-1">/ {rule.time_window}分</span>
+                    <span className="text-xs text-[#7d92b0] ml-1">/ {rule.time_window}分</span>
                   </td>
                   <td className="px-4 py-3">
                     <ToggleSwitch enabled={rule.enabled} onChange={() => toggleCustom(rule.id)} />
                   </td>
                   <td className="px-4 py-3 text-right flex items-center gap-2 justify-end">
-                    <button className="text-xs text-falcon-muted hover:text-white px-2 py-1 rounded-sm hover:bg-falcon-border transition-colors">
+                    <button className="text-xs text-[#7d92b0] hover:text-white px-2 py-1 rounded-sm hover:bg-[#1e2d42] transition-colors">
                       編集
                     </button>
                     <button className="text-xs text-red-400/70 hover:text-red-400 px-2 py-1 rounded-sm hover:bg-red-900/20 transition-colors">
@@ -730,38 +733,38 @@ export default function AlertRulesPage() {
 
       {/* Tab 3: Escalation Rules */}
       {activeTab === 'escalation' && (
-        <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
+        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-falcon-border">
-                <th className="text-left px-4 py-3 text-xs text-falcon-muted font-medium">ルール名</th>
-                <th className="text-left px-4 py-3 text-xs text-falcon-muted font-medium">トリガー重要度</th>
-                <th className="text-left px-4 py-3 text-xs text-falcon-muted font-medium">エスカレーション先</th>
-                <th className="text-left px-4 py-3 text-xs text-falcon-muted font-medium">条件</th>
-                <th className="text-left px-4 py-3 text-xs text-falcon-muted font-medium">遅延</th>
-                <th className="text-left px-4 py-3 text-xs text-falcon-muted font-medium">有効</th>
+              <tr className="border-b border-[#1e2d42]">
+                <th className="text-left px-4 py-3 text-xs text-[#7d92b0] font-medium">ルール名</th>
+                <th className="text-left px-4 py-3 text-xs text-[#7d92b0] font-medium">トリガー重要度</th>
+                <th className="text-left px-4 py-3 text-xs text-[#7d92b0] font-medium">エスカレーション先</th>
+                <th className="text-left px-4 py-3 text-xs text-[#7d92b0] font-medium">条件</th>
+                <th className="text-left px-4 py-3 text-xs text-[#7d92b0] font-medium">遅延</th>
+                <th className="text-left px-4 py-3 text-xs text-[#7d92b0] font-medium">有効</th>
               </tr>
             </thead>
             <tbody>
               {filteredEscalation.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="text-center py-12 text-falcon-muted text-sm">
+                  <td colSpan={6} className="text-center py-12 text-[#7d92b0] text-sm">
                     ルールが見つかりません
                   </td>
                 </tr>
               ) : filteredEscalation.map((rule, i) => (
-                <tr key={rule.id} className={`border-b border-falcon-border/60 hover:bg-[#070d19]/50 transition-colors ${i % 2 === 0 ? '' : 'bg-[#070d19]/20'}`}>
+                <tr key={rule.id} className={`border-b border-[#1e2d42]/60 hover:bg-[#070d19]/50 transition-colors ${i % 2 === 0 ? '' : 'bg-[#070d19]/20'}`}>
                   <td className="px-4 py-3">
                     <p className="text-white text-sm font-medium">{rule.name}</p>
                   </td>
                   <td className="px-4 py-3"><SeverityBadge severity={rule.trigger_severity} /></td>
                   <td className="px-4 py-3"><SeverityBadge severity={rule.target_severity} /></td>
                   <td className="px-4 py-3">
-                    <span className="text-xs text-falcon-muted">{rule.conditions}</span>
+                    <span className="text-xs text-[#7d92b0]">{rule.conditions}</span>
                   </td>
                   <td className="px-4 py-3">
                     {rule.delay_minutes != null && (
-                      <span className="flex items-center gap-1 text-xs text-falcon-muted">
+                      <span className="flex items-center gap-1 text-xs text-[#7d92b0]">
                         <Clock className="w-3 h-3" />
                         {rule.delay_minutes}分
                       </span>
@@ -779,49 +782,49 @@ export default function AlertRulesPage() {
 
       {/* Tab 4: Suppression Rules */}
       {activeTab === 'suppression' && (
-        <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
+        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-falcon-border">
-                <th className="text-left px-4 py-3 text-xs text-falcon-muted font-medium">パターン / キーワード</th>
-                <th className="text-left px-4 py-3 text-xs text-falcon-muted font-medium">理由</th>
-                <th className="text-left px-4 py-3 text-xs text-falcon-muted font-medium">作成者</th>
-                <th className="text-left px-4 py-3 text-xs text-falcon-muted font-medium">有効期限</th>
-                <th className="text-left px-4 py-3 text-xs text-falcon-muted font-medium">有効</th>
-                <th className="text-right px-4 py-3 text-xs text-falcon-muted font-medium">アクション</th>
+              <tr className="border-b border-[#1e2d42]">
+                <th className="text-left px-4 py-3 text-xs text-[#7d92b0] font-medium">パターン / キーワード</th>
+                <th className="text-left px-4 py-3 text-xs text-[#7d92b0] font-medium">理由</th>
+                <th className="text-left px-4 py-3 text-xs text-[#7d92b0] font-medium">作成者</th>
+                <th className="text-left px-4 py-3 text-xs text-[#7d92b0] font-medium">有効期限</th>
+                <th className="text-left px-4 py-3 text-xs text-[#7d92b0] font-medium">有効</th>
+                <th className="text-right px-4 py-3 text-xs text-[#7d92b0] font-medium">アクション</th>
               </tr>
             </thead>
             <tbody>
               {filteredSuppressions.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="text-center py-12 text-falcon-muted text-sm">
+                  <td colSpan={6} className="text-center py-12 text-[#7d92b0] text-sm">
                     抑制ルールが見つかりません
                   </td>
                 </tr>
               ) : filteredSuppressions.map((rule, i) => (
-                <tr key={rule.id} className={`border-b border-falcon-border/60 hover:bg-[#070d19]/50 transition-colors ${i % 2 === 0 ? '' : 'bg-[#070d19]/20'}`}>
+                <tr key={rule.id} className={`border-b border-[#1e2d42]/60 hover:bg-[#070d19]/50 transition-colors ${i % 2 === 0 ? '' : 'bg-[#070d19]/20'}`}>
                   <td className="px-4 py-3">
-                    <code className="text-sm text-falcon-red font-mono bg-[#070d19] px-2 py-0.5 rounded-sm border border-falcon-border">
+                    <code className="text-sm text-[#e8002d] font-mono bg-[#070d19] px-2 py-0.5 rounded-sm border border-[#1e2d42]">
                       {rule.pattern}
                     </code>
                   </td>
                   <td className="px-4 py-3">
-                    <span className="text-sm text-falcon-muted">{rule.reason}</span>
+                    <span className="text-sm text-[#7d92b0]">{rule.reason}</span>
                   </td>
                   <td className="px-4 py-3">
-                    <span className="flex items-center gap-1 text-xs text-falcon-muted">
+                    <span className="flex items-center gap-1 text-xs text-[#7d92b0]">
                       <User className="w-3 h-3" />
                       {rule.created_by}
                     </span>
                   </td>
                   <td className="px-4 py-3">
                     {rule.expires_at ? (
-                      <span className="flex items-center gap-1 text-xs text-falcon-muted">
+                      <span className="flex items-center gap-1 text-xs text-[#7d92b0]">
                         <Clock className="w-3 h-3" />
                         {new Date(rule.expires_at).toLocaleDateString('ja-JP')}
                       </span>
                     ) : (
-                      <span className="text-xs text-falcon-subtle">無期限</span>
+                      <span className="text-xs text-[#3d5068]">無期限</span>
                     )}
                   </td>
                   <td className="px-4 py-3">

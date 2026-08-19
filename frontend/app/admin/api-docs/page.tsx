@@ -1314,9 +1314,7 @@ function CopyButton({ text, label = 'コピー' }: { text: string; label?: strin
   return (
     <button
       onClick={handleCopy}
-      className="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs
-                 bg-falcon-border hover:bg-[#253650] border border-[#2a3f5f]
-                 text-falcon-muted hover:text-falcon-text transition-all duration-150"
+      className="flex items-center gap-1.5 px-3 py-1.5 rounded-sm text-xs bg-[#1e2d42] hover:bg-[#253650] border border-[#2a3f5f] text-[#7d92b0] hover:text-[#e2e8f4] transition-all duration-150"
     >
       {copied ? <Check className="w-3.5 h-3.5 text-green-400" /> : <Copy className="w-3.5 h-3.5" />}
       {copied ? 'コピー済み' : label}
@@ -1381,12 +1379,12 @@ function TryItOut({ ep }: { ep: Endpoint }) {
           value={token}
           onChange={e => setToken(e.target.value)}
           placeholder="Bearer トークンを入力 (省略可)"
-          className="flex-1 bg-[#070d19] border border-falcon-border rounded-sm px-3 py-1.5 text-xs text-falcon-text placeholder-falcon-subtle focus:outline-hidden focus:border-[#2a3f5a] font-mono"
+          className="flex-1 bg-[#070d19] border border-[#1e2d42] rounded-sm px-3 py-1.5 text-xs text-[#e2e8f4] placeholder-[#3d5068] focus:outline-hidden focus:border-[#2a3f5a] font-mono"
         />
         <button
           onClick={run}
           disabled={loading}
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-falcon-red/20 hover:bg-falcon-red/30 border border-falcon-red/40 text-falcon-red text-xs rounded-sm transition-colors disabled:opacity-50"
+          className="flex items-center gap-1.5 px-3 py-1.5 bg-[#e8002d]/20 hover:bg-[#e8002d]/30 border border-[#e8002d]/40 text-[#e8002d] text-xs rounded-sm transition-colors disabled:opacity-50"
         >
           {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Play className="w-3.5 h-3.5" />}
           実行
@@ -1395,12 +1393,12 @@ function TryItOut({ ep }: { ep: Endpoint }) {
 
       {ep.method !== 'GET' && (
         <div>
-          <p className="text-[10px] text-falcon-subtle uppercase tracking-wider mb-1">リクエストボディ</p>
+          <p className="text-[10px] text-[#3d5068] uppercase tracking-wider mb-1">リクエストボディ</p>
           <textarea
             value={body}
             onChange={e => setBody(e.target.value)}
             rows={4}
-            className="w-full bg-[#070d19] border border-falcon-border rounded-sm p-2 text-xs text-falcon-text font-mono focus:outline-hidden focus:border-[#2a3f5a] resize-none"
+            className="w-full bg-[#070d19] border border-[#1e2d42] rounded-sm p-2 text-xs text-[#e2e8f4] font-mono focus:outline-hidden focus:border-[#2a3f5a] resize-none"
           />
         </div>
       )}
@@ -1408,14 +1406,14 @@ function TryItOut({ ep }: { ep: Endpoint }) {
       {response && (
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <p className="text-[10px] text-falcon-subtle uppercase tracking-wider">レスポンス</p>
+            <p className="text-[10px] text-[#3d5068] uppercase tracking-wider">レスポンス</p>
             {status !== null && (
-              <span className={`text-[10px] px-1.5 py-0.5 rounded-sm font-mono ${status < 300 ? 'bg-[#22c55e]/20 text-[#22c55e]' : 'bg-falcon-red/20 text-falcon-red'}`}>
+              <span className={`text-[10px] px-1.5 py-0.5 rounded-sm font-mono ${status < 300 ? 'bg-[#22c55e]/20 text-[#22c55e]' : 'bg-[#e8002d]/20 text-[#e8002d]'}`}>
                 {status}
               </span>
             )}
           </div>
-          <pre className="bg-[#070d19] border border-falcon-border rounded-sm p-3 text-xs font-mono text-falcon-text overflow-x-auto max-h-48 overflow-y-auto">
+          <pre className="bg-[#070d19] border border-[#1e2d42] rounded-sm p-3 text-xs font-mono text-[#e2e8f4] overflow-x-auto max-h-48 overflow-y-auto">
             {response}
           </pre>
         </div>
@@ -1432,7 +1430,7 @@ function EndpointCard({ ep }: { ep: Endpoint }) {
   const curl = buildCurl(ep.method, ep.path, ep.requestBody)
 
   return (
-    <div className="border border-falcon-border rounded-lg overflow-hidden bg-falcon-surface">
+    <div className="border border-[#1e2d42] rounded-lg overflow-hidden bg-[#0d1220]">
       {/* Header row */}
       <button
         onClick={() => setOpen(v => !v)}
@@ -1441,46 +1439,46 @@ function EndpointCard({ ep }: { ep: Endpoint }) {
         <span className={`text-[11px] font-bold px-2 py-0.5 rounded-sm font-mono w-16 text-center shrink-0 ${METHOD_COLORS[ep.method] ?? ''}`}>
           {ep.method}
         </span>
-        <code className="text-falcon-text text-sm font-mono flex-1 text-left">{ep.path}</code>
-        <span className="text-falcon-muted text-xs hidden sm:block text-right max-w-xs truncate">{ep.description}</span>
-        <ChevronRight className={`w-4 h-4 text-falcon-subtle shrink-0 transition-transform ${open ? 'rotate-90' : ''}`} />
+        <code className="text-[#e2e8f4] text-sm font-mono flex-1 text-left">{ep.path}</code>
+        <span className="text-[#7d92b0] text-xs hidden sm:block text-right max-w-xs truncate">{ep.description}</span>
+        <ChevronRight className={`w-4 h-4 text-[#3d5068] shrink-0 transition-transform ${open ? 'rotate-90' : ''}`} />
       </button>
 
       {/* Expanded detail */}
       {open && (
-        <div className="border-t border-falcon-border px-4 py-4 space-y-5">
-          <p className="text-falcon-muted text-sm">{ep.description}</p>
+        <div className="border-t border-[#1e2d42] px-4 py-4 space-y-5">
+          <p className="text-[#7d92b0] text-sm">{ep.description}</p>
 
           {/* Parameters */}
           {ep.parameters && ep.parameters.length > 0 && (
             <div>
-              <h4 className="text-xs font-semibold uppercase tracking-wider text-falcon-subtle mb-2">パラメーター</h4>
+              <h4 className="text-xs font-semibold uppercase tracking-wider text-[#3d5068] mb-2">パラメーター</h4>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm border-collapse">
                   <thead>
-                    <tr className="border-b border-falcon-border">
-                      <th className="text-left py-2 pr-4 text-falcon-muted font-medium text-xs">名前</th>
-                      <th className="text-left py-2 pr-4 text-falcon-muted font-medium text-xs">型</th>
-                      <th className="text-left py-2 pr-4 text-falcon-muted font-medium text-xs">必須</th>
-                      <th className="text-left py-2 text-falcon-muted font-medium text-xs">説明</th>
+                    <tr className="border-b border-[#1e2d42]">
+                      <th className="text-left py-2 pr-4 text-[#7d92b0] font-medium text-xs">名前</th>
+                      <th className="text-left py-2 pr-4 text-[#7d92b0] font-medium text-xs">型</th>
+                      <th className="text-left py-2 pr-4 text-[#7d92b0] font-medium text-xs">必須</th>
+                      <th className="text-left py-2 text-[#7d92b0] font-medium text-xs">説明</th>
                     </tr>
                   </thead>
                   <tbody>
                     {ep.parameters.map(p => (
-                      <tr key={p.name} className="border-b border-falcon-border/50">
+                      <tr key={p.name} className="border-b border-[#1e2d42]/50">
                         <td className="py-2 pr-4">
-                          <code className="text-falcon-red text-xs font-mono">{p.name}</code>
+                          <code className="text-[#e8002d] text-xs font-mono">{p.name}</code>
                         </td>
                         <td className="py-2 pr-4">
-                          <span className="text-falcon-muted text-xs font-mono">{p.type}</span>
+                          <span className="text-[#7d92b0] text-xs font-mono">{p.type}</span>
                         </td>
                         <td className="py-2 pr-4">
                           {p.required
-                            ? <span className="text-xs px-1.5 py-0.5 rounded-sm bg-falcon-red/20 text-falcon-red border border-falcon-red/30">必須</span>
-                            : <span className="text-xs text-falcon-subtle">任意</span>
+                            ? <span className="text-xs px-1.5 py-0.5 rounded-sm bg-[#e8002d]/20 text-[#e8002d] border border-[#e8002d]/30">必須</span>
+                            : <span className="text-xs text-[#3d5068]">任意</span>
                           }
                         </td>
-                        <td className="py-2 text-falcon-muted text-xs">{p.description}</td>
+                        <td className="py-2 text-[#7d92b0] text-xs">{p.description}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -1493,10 +1491,10 @@ function EndpointCard({ ep }: { ep: Endpoint }) {
           {ep.requestBody && (
             <div>
               <div className="flex items-center justify-between mb-2">
-                <h4 className="text-xs font-semibold uppercase tracking-wider text-falcon-subtle">リクエストボディ</h4>
+                <h4 className="text-xs font-semibold uppercase tracking-wider text-[#3d5068]">リクエストボディ</h4>
                 <CopyButton text={ep.requestBody} />
               </div>
-              <pre className="bg-[#070d19] border border-falcon-border rounded-sm p-3 text-falcon-text text-xs font-mono overflow-x-auto leading-relaxed">
+              <pre className="bg-[#070d19] border border-[#1e2d42] rounded-sm p-3 text-[#e2e8f4] text-xs font-mono overflow-x-auto leading-relaxed">
                 {ep.requestBody}
               </pre>
             </div>
@@ -1505,10 +1503,10 @@ function EndpointCard({ ep }: { ep: Endpoint }) {
           {/* Response */}
           <div>
             <div className="flex items-center justify-between mb-2">
-              <h4 className="text-xs font-semibold uppercase tracking-wider text-falcon-subtle">レスポンス例</h4>
+              <h4 className="text-xs font-semibold uppercase tracking-wider text-[#3d5068]">レスポンス例</h4>
               <CopyButton text={ep.response} />
             </div>
-            <pre className="bg-[#070d19] border border-falcon-border rounded-sm p-3 text-falcon-text text-xs font-mono overflow-x-auto leading-relaxed">
+            <pre className="bg-[#070d19] border border-[#1e2d42] rounded-sm p-3 text-[#e2e8f4] text-xs font-mono overflow-x-auto leading-relaxed">
               {ep.response}
             </pre>
           </div>
@@ -1516,22 +1514,22 @@ function EndpointCard({ ep }: { ep: Endpoint }) {
           {/* curl */}
           <div>
             <div className="flex items-center justify-between mb-2">
-              <h4 className="text-xs font-semibold uppercase tracking-wider text-falcon-subtle">curl コマンド</h4>
+              <h4 className="text-xs font-semibold uppercase tracking-wider text-[#3d5068]">curl コマンド</h4>
               <CopyButton text={curl} label="curlコピー" />
             </div>
-            <pre className="bg-[#070d19] border border-falcon-border rounded-sm p-3 text-falcon-muted text-xs font-mono overflow-x-auto leading-relaxed">
+            <pre className="bg-[#070d19] border border-[#1e2d42] rounded-sm p-3 text-[#7d92b0] text-xs font-mono overflow-x-auto leading-relaxed">
               {curl}
             </pre>
           </div>
 
           {/* Try it out */}
-          <div className="border-t border-falcon-border pt-4">
+          <div className="border-t border-[#1e2d42] pt-4">
             <button
               onClick={() => setTryIt(v => !v)}
-              className={`flex items-center gap-2 text-xs px-3 py-1.5 rounded border transition-colors ${
+              className={`flex items-center gap-2 text-xs px-3 py-1.5 rounded-sm border transition-colors ${
                 tryIt
-                  ? 'bg-falcon-border border-[#2a3f5a] text-falcon-text'
-                  : 'border-falcon-border text-falcon-muted hover:border-[#2a3f5a] hover:text-falcon-text'
+                  ? 'bg-[#1e2d42] border-[#2a3f5a] text-[#e2e8f4]'
+                  : 'border-[#1e2d42] text-[#7d92b0] hover:border-[#2a3f5a] hover:text-[#e2e8f4]'
               }`}
             >
               {tryIt ? <X className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
@@ -1578,30 +1576,30 @@ export default function ApiDocsPage() {
   }, [searchQuery])
 
   return (
-    <div className="flex h-full bg-[#070d19] text-falcon-text">
+    <div className="flex h-full bg-[#070d19] text-[#e2e8f4]">
 
       {/* ── Left Sidebar ─────────────────────────────────────────── */}
-      <div className="w-52 shrink-0 border-r border-falcon-border flex flex-col sticky top-0 h-screen overflow-y-auto">
-        <div className="p-4 border-b border-falcon-border">
+      <div className="w-52 shrink-0 border-r border-[#1e2d42] flex flex-col sticky top-0 h-screen overflow-y-auto">
+        <div className="p-4 border-b border-[#1e2d42]">
           <div className="flex items-center gap-2">
-            <BookOpen className="w-4 h-4 text-falcon-red" />
+            <BookOpen className="w-4 h-4 text-[#e8002d]" />
             <span className="text-sm font-semibold">API ドキュメント</span>
           </div>
-          <p className="text-[10px] text-falcon-subtle mt-1 font-mono truncate">{BASE_URL}</p>
+          <p className="text-[10px] text-[#3d5068] mt-1 font-mono truncate">{BASE_URL}</p>
         </div>
         <nav className="p-3 space-y-0.5">
           {endpointGroups.map(group => (
             <button
               key={group.id}
               onClick={() => scrollTo(group.id)}
-              className={`w-full text-left px-3 py-2 rounded text-xs transition-all duration-100 flex items-center justify-between
+              className={`w-full text-left px-3 py-2 rounded-sm text-xs transition-all duration-100 flex items-center justify-between
                 ${activeSection === group.id
-                  ? 'bg-falcon-active text-white'
-                  : 'text-falcon-muted hover:bg-[#111b2e] hover:text-falcon-text'
+                  ? 'bg-[#1d2f4a] text-white'
+                  : 'text-[#7d92b0] hover:bg-[#111b2e] hover:text-[#e2e8f4]'
                 }`}
             >
               <span>{group.label}</span>
-              <span className="text-[10px] text-falcon-subtle">{group.endpoints.length}</span>
+              <span className="text-[10px] text-[#3d5068]">{group.endpoints.length}</span>
             </button>
           ))}
         </nav>
@@ -1611,52 +1609,52 @@ export default function ApiDocsPage() {
       <div className="flex-1 overflow-y-auto">
 
         {/* Page Header */}
-        <div className="border-b border-falcon-border p-6 bg-falcon-surface">
+        <div className="border-b border-[#1e2d42] p-6 bg-[#0d1220]">
           <div className="flex items-start justify-between">
             <div>
               <h1 className="text-2xl font-bold text-white flex items-center gap-3">
                 API ドキュメント
-                <span className="text-xs font-normal px-2 py-1 rounded-sm bg-falcon-red/20 text-falcon-red border border-falcon-red/30 font-mono">
+                <span className="text-xs font-normal px-2 py-1 rounded-sm bg-[#e8002d]/20 text-[#e8002d] border border-[#e8002d]/30 font-mono">
                   v1.0
                 </span>
               </h1>
-              <p className="text-falcon-muted text-sm mt-1">
+              <p className="text-[#7d92b0] text-sm mt-1">
                 Kizashi REST API リファレンス
               </p>
             </div>
             <div className="text-right">
-              <p className="text-xs text-falcon-subtle uppercase tracking-wider">ベースURL</p>
-              <code className="text-sm font-mono text-falcon-muted">{BASE_URL}</code>
+              <p className="text-xs text-[#3d5068] uppercase tracking-wider">ベースURL</p>
+              <code className="text-sm font-mono text-[#7d92b0]">{BASE_URL}</code>
             </div>
           </div>
 
           {/* Search */}
           <div className="mt-4 relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-falcon-subtle" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#3d5068]" />
             <input
               type="text"
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               placeholder="エンドポイントを検索... (例: /alerts, POST, チケット)"
-              className="w-full bg-[#070d19] border border-falcon-border rounded-lg pl-9 pr-4 py-2 text-sm text-falcon-text placeholder-falcon-subtle focus:outline-hidden focus:border-[#2a3f5a]"
+              className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg pl-9 pr-4 py-2 text-sm text-[#e2e8f4] placeholder-[#3d5068] focus:outline-hidden focus:border-[#2a3f5a]"
             />
             {searchQuery && (
-              <button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-falcon-subtle hover:text-falcon-muted">
+              <button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#3d5068] hover:text-[#7d92b0]">
                 <X className="w-4 h-4" />
               </button>
             )}
           </div>
 
           {/* Authentication note */}
-          <div className="mt-4 p-4 rounded-lg bg-[#070d19] border border-falcon-border">
-            <h3 className="text-sm font-semibold text-falcon-text mb-2">認証</h3>
-            <p className="text-xs text-falcon-muted mb-3">
+          <div className="mt-4 p-4 rounded-lg bg-[#070d19] border border-[#1e2d42]">
+            <h3 className="text-sm font-semibold text-[#e2e8f4] mb-2">認証</h3>
+            <p className="text-xs text-[#7d92b0] mb-3">
               すべてのAPIリクエストには、リクエストヘッダーにJWT Bearerトークンが必要です。
-              <code className="text-falcon-red mx-1 font-mono">/api/v1/auth/login</code>
+              <code className="text-[#e8002d] mx-1 font-mono">/api/v1/auth/login</code>
               でトークンを取得してください。
             </p>
             <div className="flex items-center gap-3">
-              <pre className="flex-1 bg-falcon-surface border border-falcon-border rounded-sm p-2.5 text-xs font-mono text-falcon-muted overflow-x-auto">
+              <pre className="flex-1 bg-[#0d1220] border border-[#1e2d42] rounded-sm p-2.5 text-xs font-mono text-[#7d92b0] overflow-x-auto">
                 {`Authorization: Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...`}
               </pre>
               <CopyButton text="Authorization: Bearer YOUR_TOKEN" />
@@ -1667,7 +1665,7 @@ export default function ApiDocsPage() {
         {/* Endpoint Groups */}
         <div className="p-6 space-y-10">
           {searchQuery && filteredGroups.length === 0 && (
-            <div className="text-center py-16 text-falcon-subtle text-sm">
+            <div className="text-center py-16 text-[#3d5068] text-sm">
               <Search className="w-8 h-8 mx-auto mb-3 opacity-30" />
               <p>&quot;{searchQuery}&quot; に一致するエンドポイントはありません</p>
             </div>
@@ -1679,10 +1677,10 @@ export default function ApiDocsPage() {
             >
               <div className="flex items-center gap-3 mb-4">
                 <h2 className="text-lg font-bold text-white">{group.label}</h2>
-                <span className="text-xs text-falcon-subtle font-mono">
+                <span className="text-xs text-[#3d5068] font-mono">
                   {group.endpoints.length} エンドポイント
                 </span>
-                <div className="flex-1 h-px bg-falcon-border" />
+                <div className="flex-1 h-px bg-[#1e2d42]" />
               </div>
               <div className="space-y-3">
                 {group.endpoints.map((ep, i) => (
@@ -1694,8 +1692,8 @@ export default function ApiDocsPage() {
         </div>
 
         {/* Footer */}
-        <div className="border-t border-falcon-border p-6 text-center">
-          <p className="text-xs text-falcon-subtle">
+        <div className="border-t border-[#1e2d42] p-6 text-center">
+          <p className="text-xs text-[#3d5068]">
             Kizashi API v1.0 &mdash; すべてのリクエストはTLSが必要です。
             レート制限は認証ユーザーあたり 1000 req/min です。
           </p>

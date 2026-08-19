@@ -156,12 +156,14 @@ func (r *PlaybookRunner) runAction(ctx context.Context, action store.PlaybookAct
 			return fmt.Errorf("isolation gatekeeper not configured")
 		}
 		reason := fmt.Sprintf("プレイブック自動隔離: アラート %s (重大度: %d)", alert.Title, alert.Severity)
+		// Hostname を載せるのは AUTO_ISOLATE_EXEMPT がホスト名でも書けるため（上記と同じ）。
 		res, err := r.isolator.Isolate(ctx, isolation.Request{
-			AgentID: alert.AgentID,
-			Reason:  reason,
-			AlertID: alert.ID,
-			Origin:  isolation.OriginPlaybook,
-			Label:   alert.Title,
+			AgentID:  alert.AgentID,
+			Hostname: alert.Hostname,
+			Reason:   reason,
+			AlertID:  alert.ID,
+			Origin:   isolation.OriginPlaybook,
+			Label:    alert.Title,
 		})
 		if err != nil {
 			return err

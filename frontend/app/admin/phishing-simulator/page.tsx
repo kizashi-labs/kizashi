@@ -11,6 +11,8 @@ import {
 } from 'lucide-react'
 
 
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+
 // ── Types ──────────────────────────────────────────────────────
 
 type CampaignStatus = 'draft' | 'scheduled' | 'running' | 'completed'
@@ -151,13 +153,13 @@ export default function PhishingSimulatorPage() {
   // API queries
   const { data: campaigns = [] } = useQuery<Campaign[]>({
     queryKey: ['phishing-campaigns'],
-    queryFn: () => apiFetchList<Campaign>('/api/v1/admin/phishing/campaigns').catch(() => []),
+    queryFn: () => apiFetchList<Campaign>('/api/v1/admin/phishing/campaigns'),
     staleTime: 30_000,
   })
 
   const { data: templates = [] } = useQuery<Template[]>({
     queryKey: ['phishing-templates'],
-    queryFn: () => apiFetchList<Template>('/api/v1/admin/phishing/templates').catch(() => []),
+    queryFn: () => apiFetchList<Template>('/api/v1/admin/phishing/templates'),
     staleTime: 30_000,
   })
 
@@ -165,10 +167,8 @@ export default function PhishingSimulatorPage() {
   const { data: stats = EMPTY_PHISHING_STATS } = useQuery<PhishingStats>({
     queryKey: ['phishing-stats'],
     queryFn: async () => {
-      try {
-        const res = await apiFetch('/api/v1/admin/phishing/stats')
-        return (res && typeof res === 'object' && 'monthly_click_rates' in (res as object)) ? res as PhishingStats : EMPTY_PHISHING_STATS
-      } catch { return EMPTY_PHISHING_STATS }
+      const res = await apiFetch('/api/v1/admin/phishing/stats')
+      return (res && typeof res === 'object' && 'monthly_click_rates' in (res as object)) ? res as PhishingStats : EMPTY_PHISHING_STATS
     },
     staleTime: 30_000,
   })
@@ -216,21 +216,22 @@ export default function PhishingSimulatorPage() {
   const maxClickRate = stats.monthly_click_rates.length > 0 ? Math.max(...stats.monthly_click_rates) : 1
 
   return (
-    <div className="min-h-screen bg-[#070d19] text-falcon-muted p-6">
+    <div className="min-h-screen bg-[#070d19] text-[#7d92b0] p-6">
+      <PageDataUnavailable />
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
 
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-falcon-red/10 border border-falcon-red/30 flex items-center justify-center">
-            <Fish className="w-5 h-5 text-falcon-red" />
+          <div className="w-10 h-10 rounded-lg bg-[#e8002d]/10 border border-[#e8002d]/30 flex items-center justify-center">
+            <Fish className="w-5 h-5 text-[#e8002d]" />
           </div>
           <div>
             <h1 className="text-xl font-bold text-white">フィッシングシミュレーション</h1>
-            <p className="text-xs text-falcon-muted mt-0.5">セキュリティ意識向上トレーニング</p>
+            <p className="text-xs text-[#7d92b0] mt-0.5">セキュリティ意識向上トレーニング</p>
           </div>
         </div>
-        <button onClick={() => qc.invalidateQueries()} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-falcon-surface border border-falcon-border hover:border-falcon-muted/40 text-sm transition-colors">
+        <button onClick={() => qc.invalidateQueries()} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#0d1220] border border-[#1e2d42] hover:border-[#7d92b0]/40 text-sm transition-colors">
           <RefreshCw className="w-3.5 h-3.5" />
           更新
         </button>
@@ -244,9 +245,9 @@ export default function PhishingSimulatorPage() {
           { label: 'クリック率', value: `${overallClickRate}%`, icon: Target, color: clickRateColor(overallClickRate) },
           { label: '報告率', value: `${overallReportedRate}%`, icon: Shield, color: 'text-green-400' },
         ].map(stat => (
-          <div key={stat.label} className="bg-falcon-surface border border-falcon-border rounded-xl p-4">
+          <div key={stat.label} className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-4">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs text-falcon-muted">{stat.label}</span>
+              <span className="text-xs text-[#7d92b0]">{stat.label}</span>
               <stat.icon className={`w-4 h-4 ${stat.color}`} />
             </div>
             <p className={`text-2xl font-bold ${stat.color}`}>{stat.value}</p>
@@ -255,9 +256,9 @@ export default function PhishingSimulatorPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 mb-6 bg-falcon-surface border border-falcon-border rounded-lg p-1 w-fit">
+      <div className="flex gap-1 mb-6 bg-[#0d1220] border border-[#1e2d42] rounded-lg p-1 w-fit">
         {(['campaigns', 'templates', 'analytics'] as const).map((t, i) => (
-          <button key={t} onClick={() => setTab(t)} className={`px-4 py-2 rounded-sm text-sm font-medium transition-colors ${tab === t ? 'bg-falcon-border text-white' : 'text-falcon-muted hover:text-white'}`}>
+          <button key={t} onClick={() => setTab(t)} className={`px-4 py-2 rounded-sm text-sm font-medium transition-colors ${tab === t ? 'bg-[#1e2d42] text-white' : 'text-[#7d92b0] hover:text-white'}`}>
             {['キャンペーン管理', 'テンプレート', '分析'][i]}
           </button>
         ))}
@@ -267,17 +268,17 @@ export default function PhishingSimulatorPage() {
       {tab === 'campaigns' && (
         <div>
           <div className="flex justify-end mb-4">
-            <button onClick={() => setShowCreateCampaign(true)} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-falcon-red text-white text-sm hover:bg-[#c8001e] transition-colors">
+            <button onClick={() => setShowCreateCampaign(true)} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#e8002d] text-white text-sm hover:bg-[#c8001e] transition-colors">
               <Plus className="w-4 h-4" />
               キャンペーンを作成
             </button>
           </div>
-          <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
+          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-falcon-border">
+                <tr className="border-b border-[#1e2d42]">
                   {['名前', 'テンプレート', 'ステータス', 'ターゲット', '送信済み', 'クリック', '報告', 'クリック率', '開始日', '操作'].map(h => (
-                    <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-falcon-muted uppercase">{h}</th>
+                    <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-[#7d92b0] uppercase">{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -285,18 +286,18 @@ export default function PhishingSimulatorPage() {
                 {campaigns.map(c => {
                   const clickRate = c.sent_count > 0 ? Math.round((c.clicked_count / c.sent_count) * 100) : 0
                   return (
-                    <tr key={c.id} className="border-b border-falcon-border/50 hover:bg-falcon-border/20 transition-colors">
+                    <tr key={c.id} className="border-b border-[#1e2d42]/50 hover:bg-[#1e2d42]/20 transition-colors">
                       <td className="px-4 py-3 text-white font-medium">{c.name}</td>
-                      <td className="px-4 py-3 text-falcon-muted text-xs">{c.template_name}</td>
+                      <td className="px-4 py-3 text-[#7d92b0] text-xs">{c.template_name}</td>
                       <td className="px-4 py-3"><Badge className={campaignStatusMeta[c.status].color}>{campaignStatusMeta[c.status].label}</Badge></td>
                       <td className="px-4 py-3 font-mono text-white">{c.targets_count}</td>
-                      <td className="px-4 py-3 font-mono text-falcon-muted">{c.sent_count}</td>
-                      <td className="px-4 py-3 font-mono text-falcon-muted">{c.clicked_count}</td>
+                      <td className="px-4 py-3 font-mono text-[#7d92b0]">{c.sent_count}</td>
+                      <td className="px-4 py-3 font-mono text-[#7d92b0]">{c.clicked_count}</td>
                       <td className="px-4 py-3 font-mono text-green-400">{c.reported_count}</td>
                       <td className={`px-4 py-3 font-mono font-bold ${clickRateColor(clickRate)}`}>{clickRate}%</td>
-                      <td className="px-4 py-3 text-falcon-muted text-xs">{new Date(c.start_date).toLocaleDateString('ja-JP')}</td>
+                      <td className="px-4 py-3 text-[#7d92b0] text-xs">{new Date(c.start_date).toLocaleDateString('ja-JP')}</td>
                       <td className="px-4 py-3">
-                        <button onClick={() => setSelectedCampaign(c)} className="flex items-center gap-1.5 px-2 py-1 rounded-sm bg-falcon-border hover:bg-[#2a3f5a] text-xs transition-colors">
+                        <button onClick={() => setSelectedCampaign(c)} className="flex items-center gap-1.5 px-2 py-1 rounded-sm bg-[#1e2d42] hover:bg-[#2a3f5a] text-xs transition-colors">
                           <Eye className="w-3 h-3" />
                           詳細
                         </button>
@@ -314,13 +315,13 @@ export default function PhishingSimulatorPage() {
       {tab === 'templates' && (
         <div>
           <div className="flex items-center justify-between mb-4">
-            <p className="text-sm text-falcon-muted">{templates.length} テンプレート</p>
+            <p className="text-sm text-[#7d92b0]">{templates.length} テンプレート</p>
             <div className="flex items-center gap-2">
-              <button onClick={() => showToast('JSONファイルを選択してください')} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-falcon-surface border border-falcon-border hover:border-falcon-muted/40 text-sm transition-colors">
+              <button onClick={() => showToast('JSONファイルを選択してください')} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#0d1220] border border-[#1e2d42] hover:border-[#7d92b0]/40 text-sm transition-colors">
                 <Upload className="w-3.5 h-3.5" />
                 テンプレートをインポート
               </button>
-              <button onClick={() => setShowCreateTemplate(true)} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-falcon-red text-white text-sm hover:bg-[#c8001e] transition-colors">
+              <button onClick={() => setShowCreateTemplate(true)} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#e8002d] text-white text-sm hover:bg-[#c8001e] transition-colors">
                 <Plus className="w-4 h-4" />
                 テンプレートを作成
               </button>
@@ -328,10 +329,10 @@ export default function PhishingSimulatorPage() {
           </div>
           <div className="grid grid-cols-3 gap-4">
             {templates.map(tpl => (
-              <div key={tpl.id} className="bg-falcon-surface border border-falcon-border rounded-xl p-4 hover:border-falcon-muted/30 transition-colors">
+              <div key={tpl.id} className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-4 hover:border-[#7d92b0]/30 transition-colors">
                 {/* Thumbnail placeholder */}
-                <div className="w-full h-24 bg-falcon-border rounded-lg mb-3 flex items-center justify-center">
-                  <Mail className="w-8 h-8 text-falcon-subtle" />
+                <div className="w-full h-24 bg-[#1e2d42] rounded-lg mb-3 flex items-center justify-center">
+                  <Mail className="w-8 h-8 text-[#3d5068]" />
                 </div>
                 <h3 className="text-white font-medium text-sm mb-2">{tpl.name}</h3>
                 <div className="flex flex-wrap gap-1 mb-3">
@@ -340,10 +341,10 @@ export default function PhishingSimulatorPage() {
                 </div>
                 <div className="flex flex-wrap gap-1 mb-3">
                   {tpl.industry_tags.map(tag => (
-                    <span key={tag} className="text-[10px] px-1.5 py-0.5 bg-falcon-border rounded-sm text-falcon-subtle">{tag}</span>
+                    <span key={tag} className="text-[10px] px-1.5 py-0.5 bg-[#1e2d42] rounded-sm text-[#3d5068]">{tag}</span>
                   ))}
                 </div>
-                <button onClick={() => setSelectedTemplate(tpl)} className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-sm bg-falcon-border hover:bg-[#2a3f5a] text-sm text-falcon-muted transition-colors">
+                <button onClick={() => setSelectedTemplate(tpl)} className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-sm bg-[#1e2d42] hover:bg-[#2a3f5a] text-sm text-[#7d92b0] transition-colors">
                   <Eye className="w-3.5 h-3.5" />
                   詳細を見る
                 </button>
@@ -357,30 +358,30 @@ export default function PhishingSimulatorPage() {
       {tab === 'analytics' && (
         <div className="space-y-6">
           {/* Click rate trend */}
-          <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
+          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
             <h3 className="text-white font-semibold mb-4">クリック率トレンド (12ヶ月)</h3>
             <div className="flex items-end gap-1 h-32">
               {stats.monthly_click_rates.map((rate, i) => (
                 <div key={i} className="flex-1 flex flex-col items-center gap-1">
-                  <span className="text-[10px] text-falcon-muted">{rate}%</span>
+                  <span className="text-[10px] text-[#7d92b0]">{rate}%</span>
                   <div
                     className={`w-full rounded-t transition-all ${rate > 30 ? 'bg-red-500/60' : rate > 15 ? 'bg-yellow-500/60' : 'bg-green-500/60'}`}
                     style={{ height: `${(rate / maxClickRate) * 80}px` }}
                   />
-                  <span className="text-[9px] text-falcon-subtle">{MONTHS[i]}</span>
+                  <span className="text-[9px] text-[#3d5068]">{MONTHS[i]}</span>
                 </div>
               ))}
             </div>
           </div>
 
           {/* Department comparison */}
-          <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
+          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
             <h3 className="text-white font-semibold mb-4">部門別比較</h3>
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-falcon-border">
+                <tr className="border-b border-[#1e2d42]">
                   {['部門', 'ターゲット', 'クリック率', '報告率', '前回比'].map(h => (
-                    <th key={h} className="text-left px-3 py-2 text-xs font-semibold text-falcon-muted uppercase">{h}</th>
+                    <th key={h} className="text-left px-3 py-2 text-xs font-semibold text-[#7d92b0] uppercase">{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -388,9 +389,9 @@ export default function PhishingSimulatorPage() {
                 {stats.departments.map(dept => {
                   const diff = dept.click_rate - dept.last_click_rate
                   return (
-                    <tr key={dept.department} className="border-b border-falcon-border/50 hover:bg-falcon-border/20">
+                    <tr key={dept.department} className="border-b border-[#1e2d42]/50 hover:bg-[#1e2d42]/20">
                       <td className="px-3 py-2 text-white font-medium">{dept.department}</td>
-                      <td className="px-3 py-2 text-falcon-muted">{dept.targets}</td>
+                      <td className="px-3 py-2 text-[#7d92b0]">{dept.targets}</td>
                       <td className={`px-3 py-2 font-bold ${clickRateColor(dept.click_rate)}`}>{dept.click_rate}%</td>
                       <td className="px-3 py-2 text-green-400">{dept.reported_rate}%</td>
                       <td className={`px-3 py-2 flex items-center gap-1 ${diff < 0 ? 'text-green-400' : 'text-red-400'}`}>
@@ -406,13 +407,13 @@ export default function PhishingSimulatorPage() {
 
           {/* Top clicked templates */}
           <div className="grid grid-cols-2 gap-4">
-            <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
+            <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
               <h3 className="text-white font-semibold mb-4">クリック数 Top 5 テンプレート</h3>
               <div className="space-y-3">
                 {stats.top_templates.map((t, i) => (
                   <div key={i} className="flex items-center gap-3">
-                    <span className="text-xs text-falcon-subtle w-4">{i + 1}</span>
-                    <span className="text-sm text-falcon-muted flex-1 truncate">{t.template_name}</span>
+                    <span className="text-xs text-[#3d5068] w-4">{i + 1}</span>
+                    <span className="text-sm text-[#7d92b0] flex-1 truncate">{t.template_name}</span>
                     <span className="text-sm font-mono text-white w-12 text-right">{t.click_count}</span>
                   </div>
                 ))}
@@ -420,21 +421,21 @@ export default function PhishingSimulatorPage() {
             </div>
 
             {/* Repeat offenders */}
-            <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
+            <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
               <h3 className="text-white font-semibold mb-4">繰り返し違反者 (3回以上クリック)</h3>
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-falcon-border">
+                  <tr className="border-b border-[#1e2d42]">
                     {['Email', '部門', 'クリック数'].map(h => (
-                      <th key={h} className="text-left px-2 py-2 text-xs font-semibold text-falcon-muted uppercase">{h}</th>
+                      <th key={h} className="text-left px-2 py-2 text-xs font-semibold text-[#7d92b0] uppercase">{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {stats.repeat_offenders.map((u, i) => (
-                    <tr key={i} className="border-b border-falcon-border/50 hover:bg-falcon-border/20">
+                    <tr key={i} className="border-b border-[#1e2d42]/50 hover:bg-[#1e2d42]/20">
                       <td className="px-2 py-2 font-mono text-white text-xs">{u.email}</td>
-                      <td className="px-2 py-2 text-falcon-muted text-xs">{u.department}</td>
+                      <td className="px-2 py-2 text-[#7d92b0] text-xs">{u.department}</td>
                       <td className="px-2 py-2 text-red-400 font-bold text-center">{u.click_count}</td>
                     </tr>
                   ))}
@@ -448,7 +449,7 @@ export default function PhishingSimulatorPage() {
       {/* ── Campaign Detail Modal ─────────────────────────── */}
       {selectedCampaign && (
         <div className="fixed inset-0 bg-black/60 z-40 flex items-center justify-center p-4">
-          <div className="bg-falcon-surface border border-falcon-border rounded-xl w-full max-w-4xl p-6 max-h-[90vh] overflow-y-auto">
+          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl w-full max-w-4xl p-6 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-5">
               <h2 className="text-lg font-bold text-white">{selectedCampaign.name}</h2>
               <button onClick={() => setSelectedCampaign(null)}><X className="w-5 h-5" /></button>
@@ -464,13 +465,13 @@ export default function PhishingSimulatorPage() {
               ].map(stat => {
                 const pct = stat.total > 0 ? Math.round((stat.value / stat.total) * 100) : 0
                 return (
-                  <div key={stat.label} className="bg-falcon-border/30 rounded-lg p-3">
-                    <p className="text-xs text-falcon-muted mb-1">{stat.label}</p>
+                  <div key={stat.label} className="bg-[#1e2d42]/30 rounded-lg p-3">
+                    <p className="text-xs text-[#7d92b0] mb-1">{stat.label}</p>
                     <p className="text-xl font-bold text-white">{stat.value}</p>
-                    <div className="mt-2 h-1.5 bg-falcon-border rounded-sm overflow-hidden">
+                    <div className="mt-2 h-1.5 bg-[#1e2d42] rounded-sm overflow-hidden">
                       <div className={`h-full ${stat.color} rounded-sm`} style={{ width: `${pct}%` }} />
                     </div>
-                    <p className="text-[10px] text-falcon-subtle mt-1">{pct}%</p>
+                    <p className="text-[10px] text-[#3d5068] mt-1">{pct}%</p>
                   </div>
                 )
               })}
@@ -481,21 +482,21 @@ export default function PhishingSimulatorPage() {
             <div className="overflow-x-auto mb-4">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-falcon-border">
+                  <tr className="border-b border-[#1e2d42]">
                     {['Email', '部門', '開封', 'クリック', '報告', 'クリックまでの時間'].map(h => (
-                      <th key={h} className="text-left px-3 py-2 text-xs font-semibold text-falcon-muted uppercase">{h}</th>
+                      <th key={h} className="text-left px-3 py-2 text-xs font-semibold text-[#7d92b0] uppercase">{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {selectedCampaign.results.map(r => (
-                    <tr key={r.id} className="border-b border-falcon-border/50 hover:bg-falcon-border/20">
+                    <tr key={r.id} className="border-b border-[#1e2d42]/50 hover:bg-[#1e2d42]/20">
                       <td className="px-3 py-2 font-mono text-white text-xs">{r.email}</td>
-                      <td className="px-3 py-2 text-falcon-muted text-xs">{r.department}</td>
-                      <td className="px-3 py-2">{r.opened ? <CheckCircle className="w-4 h-4 text-yellow-400" /> : <span className="text-falcon-subtle text-xs">—</span>}</td>
-                      <td className="px-3 py-2">{r.clicked ? <AlertCircle className="w-4 h-4 text-red-400" /> : <span className="text-falcon-subtle text-xs">—</span>}</td>
-                      <td className="px-3 py-2">{r.reported ? <Shield className="w-4 h-4 text-green-400" /> : <span className="text-falcon-subtle text-xs">—</span>}</td>
-                      <td className="px-3 py-2 font-mono text-falcon-muted text-xs">
+                      <td className="px-3 py-2 text-[#7d92b0] text-xs">{r.department}</td>
+                      <td className="px-3 py-2">{r.opened ? <CheckCircle className="w-4 h-4 text-yellow-400" /> : <span className="text-[#3d5068] text-xs">—</span>}</td>
+                      <td className="px-3 py-2">{r.clicked ? <AlertCircle className="w-4 h-4 text-red-400" /> : <span className="text-[#3d5068] text-xs">—</span>}</td>
+                      <td className="px-3 py-2">{r.reported ? <Shield className="w-4 h-4 text-green-400" /> : <span className="text-[#3d5068] text-xs">—</span>}</td>
+                      <td className="px-3 py-2 font-mono text-[#7d92b0] text-xs">
                         {r.time_to_click_seconds !== null ? `${r.time_to_click_seconds}秒` : '—'}
                       </td>
                     </tr>
@@ -530,7 +531,7 @@ export default function PhishingSimulatorPage() {
       {/* ── Template Detail Modal ─────────────────────────── */}
       {selectedTemplate && (
         <div className="fixed inset-0 bg-black/60 z-40 flex items-center justify-center p-4">
-          <div className="bg-falcon-surface border border-falcon-border rounded-xl w-full max-w-2xl p-6 max-h-[90vh] overflow-y-auto">
+          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl w-full max-w-2xl p-6 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-5">
               <h2 className="text-lg font-bold text-white">{selectedTemplate.name}</h2>
               <button onClick={() => setSelectedTemplate(null)}><X className="w-5 h-5" /></button>
@@ -540,12 +541,12 @@ export default function PhishingSimulatorPage() {
               <Badge className={difficultyMeta[selectedTemplate.difficulty].color}>{difficultyMeta[selectedTemplate.difficulty].label}</Badge>
             </div>
             <div className="space-y-2 mb-4 text-sm">
-              <div className="flex gap-2"><span className="text-falcon-muted w-24">送信者名</span><span className="text-white">{selectedTemplate.from_name}</span></div>
-              <div className="flex gap-2"><span className="text-falcon-muted w-24">送信元メール</span><span className="text-white font-mono">{selectedTemplate.from_email}</span></div>
-              <div className="flex gap-2"><span className="text-falcon-muted w-24">件名</span><span className="text-white">{selectedTemplate.subject}</span></div>
+              <div className="flex gap-2"><span className="text-[#7d92b0] w-24">送信者名</span><span className="text-white">{selectedTemplate.from_name}</span></div>
+              <div className="flex gap-2"><span className="text-[#7d92b0] w-24">送信元メール</span><span className="text-white font-mono">{selectedTemplate.from_email}</span></div>
+              <div className="flex gap-2"><span className="text-[#7d92b0] w-24">件名</span><span className="text-white">{selectedTemplate.subject}</span></div>
             </div>
             <div>
-              <p className="text-xs text-falcon-muted mb-2">本文プレビュー</p>
+              <p className="text-xs text-[#7d92b0] mb-2">本文プレビュー</p>
               <div className="bg-white rounded-lg p-4">
                 <div dangerouslySetInnerHTML={{ __html: selectedTemplate.body }} className="text-gray-800 text-sm" />
               </div>
@@ -557,32 +558,32 @@ export default function PhishingSimulatorPage() {
       {/* ── Create Campaign Modal ─────────────────────────── */}
       {showCreateCampaign && (
         <div className="fixed inset-0 bg-black/60 z-40 flex items-center justify-center p-4">
-          <div className="bg-falcon-surface border border-falcon-border rounded-xl w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto">
+          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-5">
               <h2 className="text-lg font-bold text-white">キャンペーンを作成</h2>
               <button onClick={() => setShowCreateCampaign(false)}><X className="w-5 h-5" /></button>
             </div>
             <div className="space-y-4">
               <div>
-                <label className="block text-xs text-falcon-muted mb-1">キャンペーン名</label>
-                <input value={newCampaign.name} onChange={e => setNewCampaign(p => ({ ...p, name: e.target.value }))} className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-sm text-white outline-hidden" placeholder="Q2 2026 フィッシングテスト" />
+                <label className="block text-xs text-[#7d92b0] mb-1">キャンペーン名</label>
+                <input value={newCampaign.name} onChange={e => setNewCampaign(p => ({ ...p, name: e.target.value }))} className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-white outline-hidden" placeholder="Q2 2026 フィッシングテスト" />
               </div>
               <div>
-                <label className="block text-xs text-falcon-muted mb-1">テンプレート</label>
-                <select value={newCampaign.template_id} onChange={e => setNewCampaign(p => ({ ...p, template_id: e.target.value }))} className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-sm text-white outline-hidden">
+                <label className="block text-xs text-[#7d92b0] mb-1">テンプレート</label>
+                <select value={newCampaign.template_id} onChange={e => setNewCampaign(p => ({ ...p, template_id: e.target.value }))} className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-white outline-hidden">
                   <option value="">選択してください</option>
                   {templates.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
                 </select>
                 {previewTemplate && (
-                  <div className="mt-2 p-3 bg-falcon-border/30 border border-falcon-border rounded-lg">
-                    <p className="text-xs text-falcon-muted">件名: <span className="text-white">{previewTemplate.subject}</span></p>
-                    <p className="text-xs text-falcon-muted mt-1">送信者: <span className="text-white">{previewTemplate.from_name} &lt;{previewTemplate.from_email}&gt;</span></p>
+                  <div className="mt-2 p-3 bg-[#1e2d42]/30 border border-[#1e2d42] rounded-lg">
+                    <p className="text-xs text-[#7d92b0]">件名: <span className="text-white">{previewTemplate.subject}</span></p>
+                    <p className="text-xs text-[#7d92b0] mt-1">送信者: <span className="text-white">{previewTemplate.from_name} &lt;{previewTemplate.from_email}&gt;</span></p>
                   </div>
                 )}
               </div>
               <div>
-                <label className="block text-xs text-falcon-muted mb-1">ターゲット</label>
-                <select value={newCampaign.target_type} onChange={e => setNewCampaign(p => ({ ...p, target_type: e.target.value as typeof p.target_type }))} className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-sm text-white outline-hidden">
+                <label className="block text-xs text-[#7d92b0] mb-1">ターゲット</label>
+                <select value={newCampaign.target_type} onChange={e => setNewCampaign(p => ({ ...p, target_type: e.target.value as typeof p.target_type }))} className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-white outline-hidden">
                   <option value="all">全社員</option>
                   <option value="department">部門選択</option>
                   <option value="custom_list">カスタムリスト</option>
@@ -590,7 +591,7 @@ export default function PhishingSimulatorPage() {
               </div>
               {newCampaign.target_type === 'department' && (
                 <div>
-                  <label className="block text-xs text-falcon-muted mb-1">部門を選択</label>
+                  <label className="block text-xs text-[#7d92b0] mb-1">部門を選択</label>
                   <div className="flex flex-wrap gap-2">
                     {DEPARTMENTS.slice(1).map(d => (
                       <button
@@ -599,7 +600,7 @@ export default function PhishingSimulatorPage() {
                           ...p,
                           departments: p.departments.includes(d) ? p.departments.filter(x => x !== d) : [...p.departments, d]
                         }))}
-                        className={`px-3 py-1 rounded-full text-xs transition-colors ${newCampaign.departments.includes(d) ? 'bg-falcon-red text-white' : 'bg-falcon-border text-falcon-muted'}`}
+                        className={`px-3 py-1 rounded-full text-xs transition-colors ${newCampaign.departments.includes(d) ? 'bg-[#e8002d] text-white' : 'bg-[#1e2d42] text-[#7d92b0]'}`}
                       >
                         {d}
                       </button>
@@ -609,23 +610,23 @@ export default function PhishingSimulatorPage() {
               )}
               {newCampaign.target_type === 'custom_list' && (
                 <div>
-                  <label className="block text-xs text-falcon-muted mb-1">メールアドレス (1行1件)</label>
-                  <textarea value={newCampaign.custom_emails} onChange={e => setNewCampaign(p => ({ ...p, custom_emails: e.target.value }))} className="w-full h-24 bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-sm font-mono text-white outline-hidden resize-none" placeholder="user1@corp.local&#10;user2@corp.local" />
+                  <label className="block text-xs text-[#7d92b0] mb-1">メールアドレス (1行1件)</label>
+                  <textarea value={newCampaign.custom_emails} onChange={e => setNewCampaign(p => ({ ...p, custom_emails: e.target.value }))} className="w-full h-24 bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm font-mono text-white outline-hidden resize-none" placeholder="user1@corp.local&#10;user2@corp.local" />
                 </div>
               )}
               <div>
-                <label className="block text-xs text-falcon-muted mb-1">開始日時</label>
-                <input type="datetime-local" value={newCampaign.scheduled_at} onChange={e => setNewCampaign(p => ({ ...p, scheduled_at: e.target.value }))} className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-sm text-white outline-hidden" />
+                <label className="block text-xs text-[#7d92b0] mb-1">開始日時</label>
+                <input type="datetime-local" value={newCampaign.scheduled_at} onChange={e => setNewCampaign(p => ({ ...p, scheduled_at: e.target.value }))} className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-white outline-hidden" />
               </div>
               <div>
-                <label className="block text-xs text-falcon-muted mb-1">ランディングページ (任意)</label>
-                <input value={newCampaign.landing_page} onChange={e => setNewCampaign(p => ({ ...p, landing_page: e.target.value }))} className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-sm text-white outline-hidden" placeholder="https://example.com/awareness (空白=デフォルト)" />
+                <label className="block text-xs text-[#7d92b0] mb-1">ランディングページ (任意)</label>
+                <input value={newCampaign.landing_page} onChange={e => setNewCampaign(p => ({ ...p, landing_page: e.target.value }))} className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-white outline-hidden" placeholder="https://example.com/awareness (空白=デフォルト)" />
               </div>
             </div>
             <div className="flex justify-end gap-3 mt-6">
-              <button onClick={() => setShowCreateCampaign(false)} className="px-4 py-2 rounded-lg border border-falcon-border text-falcon-muted text-sm hover:text-white transition-colors">キャンセル</button>
-              <button onClick={() => setShowCampaignPreview(!showCampaignPreview)} className="px-4 py-2 rounded-lg bg-falcon-border text-falcon-muted text-sm hover:text-white transition-colors">プレビュー</button>
-              <button onClick={handleCreateCampaign} className="px-4 py-2 rounded-lg bg-falcon-red text-white text-sm hover:bg-[#c8001e] transition-colors">作成</button>
+              <button onClick={() => setShowCreateCampaign(false)} className="px-4 py-2 rounded-lg border border-[#1e2d42] text-[#7d92b0] text-sm hover:text-white transition-colors">キャンセル</button>
+              <button onClick={() => setShowCampaignPreview(!showCampaignPreview)} className="px-4 py-2 rounded-lg bg-[#1e2d42] text-[#7d92b0] text-sm hover:text-white transition-colors">プレビュー</button>
+              <button onClick={handleCreateCampaign} className="px-4 py-2 rounded-lg bg-[#e8002d] text-white text-sm hover:bg-[#c8001e] transition-colors">作成</button>
             </div>
             {showCampaignPreview && previewTemplate && (
               <div className="mt-4 p-4 bg-white rounded-lg">
@@ -640,7 +641,7 @@ export default function PhishingSimulatorPage() {
       {/* ── Create Template Modal ─────────────────────────── */}
       {showCreateTemplate && (
         <div className="fixed inset-0 bg-black/60 z-40 flex items-center justify-center p-4">
-          <div className="bg-falcon-surface border border-falcon-border rounded-xl w-full max-w-2xl p-6 max-h-[90vh] overflow-y-auto">
+          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl w-full max-w-2xl p-6 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-5">
               <h2 className="text-lg font-bold text-white">テンプレートを作成</h2>
               <button onClick={() => setShowCreateTemplate(false)}><X className="w-5 h-5" /></button>
@@ -648,50 +649,50 @@ export default function PhishingSimulatorPage() {
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs text-falcon-muted mb-1">テンプレート名</label>
-                  <input value={newTemplate.name} onChange={e => setNewTemplate(p => ({ ...p, name: e.target.value }))} className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-sm text-white outline-hidden" />
+                  <label className="block text-xs text-[#7d92b0] mb-1">テンプレート名</label>
+                  <input value={newTemplate.name} onChange={e => setNewTemplate(p => ({ ...p, name: e.target.value }))} className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-white outline-hidden" />
                 </div>
                 <div>
-                  <label className="block text-xs text-falcon-muted mb-1">カテゴリー</label>
-                  <select value={newTemplate.category} onChange={e => setNewTemplate(p => ({ ...p, category: e.target.value as TemplateCategory }))} className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-sm text-white outline-hidden">
+                  <label className="block text-xs text-[#7d92b0] mb-1">カテゴリー</label>
+                  <select value={newTemplate.category} onChange={e => setNewTemplate(p => ({ ...p, category: e.target.value as TemplateCategory }))} className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-white outline-hidden">
                     {Object.entries(categoryMeta).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
                   </select>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs text-falcon-muted mb-1">難易度</label>
-                  <select value={newTemplate.difficulty} onChange={e => setNewTemplate(p => ({ ...p, difficulty: e.target.value as TemplateDifficulty }))} className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-sm text-white outline-hidden">
+                  <label className="block text-xs text-[#7d92b0] mb-1">難易度</label>
+                  <select value={newTemplate.difficulty} onChange={e => setNewTemplate(p => ({ ...p, difficulty: e.target.value as TemplateDifficulty }))} className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-white outline-hidden">
                     {Object.entries(difficultyMeta).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs text-falcon-muted mb-1">業界タグ (カンマ区切り)</label>
-                  <input value={newTemplate.industry_tags} onChange={e => setNewTemplate(p => ({ ...p, industry_tags: e.target.value }))} className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-sm text-white outline-hidden" placeholder="finance, enterprise" />
+                  <label className="block text-xs text-[#7d92b0] mb-1">業界タグ (カンマ区切り)</label>
+                  <input value={newTemplate.industry_tags} onChange={e => setNewTemplate(p => ({ ...p, industry_tags: e.target.value }))} className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-white outline-hidden" placeholder="finance, enterprise" />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs text-falcon-muted mb-1">送信者名</label>
-                  <input value={newTemplate.from_name} onChange={e => setNewTemplate(p => ({ ...p, from_name: e.target.value }))} className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-sm text-white outline-hidden" />
+                  <label className="block text-xs text-[#7d92b0] mb-1">送信者名</label>
+                  <input value={newTemplate.from_name} onChange={e => setNewTemplate(p => ({ ...p, from_name: e.target.value }))} className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-white outline-hidden" />
                 </div>
                 <div>
-                  <label className="block text-xs text-falcon-muted mb-1">送信元メール</label>
-                  <input value={newTemplate.from_email} onChange={e => setNewTemplate(p => ({ ...p, from_email: e.target.value }))} className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-sm text-white outline-hidden" />
+                  <label className="block text-xs text-[#7d92b0] mb-1">送信元メール</label>
+                  <input value={newTemplate.from_email} onChange={e => setNewTemplate(p => ({ ...p, from_email: e.target.value }))} className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-white outline-hidden" />
                 </div>
               </div>
               <div>
-                <label className="block text-xs text-falcon-muted mb-1">件名</label>
-                <input value={newTemplate.subject} onChange={e => setNewTemplate(p => ({ ...p, subject: e.target.value }))} className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-sm text-white outline-hidden" />
+                <label className="block text-xs text-[#7d92b0] mb-1">件名</label>
+                <input value={newTemplate.subject} onChange={e => setNewTemplate(p => ({ ...p, subject: e.target.value }))} className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-white outline-hidden" />
               </div>
               <div>
-                <label className="block text-xs text-falcon-muted mb-1">本文 (HTML)</label>
-                <textarea value={newTemplate.body} onChange={e => setNewTemplate(p => ({ ...p, body: e.target.value }))} className="w-full h-36 bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-sm font-mono text-white outline-hidden resize-none" placeholder="<p>本文を入力...</p>" />
+                <label className="block text-xs text-[#7d92b0] mb-1">本文 (HTML)</label>
+                <textarea value={newTemplate.body} onChange={e => setNewTemplate(p => ({ ...p, body: e.target.value }))} className="w-full h-36 bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm font-mono text-white outline-hidden resize-none" placeholder="<p>本文を入力...</p>" />
               </div>
             </div>
             <div className="flex justify-end gap-3 mt-6">
-              <button onClick={() => setShowCreateTemplate(false)} className="px-4 py-2 rounded-lg border border-falcon-border text-falcon-muted text-sm hover:text-white transition-colors">キャンセル</button>
-              <button onClick={handleCreateTemplate} className="px-4 py-2 rounded-lg bg-falcon-red text-white text-sm hover:bg-[#c8001e] transition-colors">作成</button>
+              <button onClick={() => setShowCreateTemplate(false)} className="px-4 py-2 rounded-lg border border-[#1e2d42] text-[#7d92b0] text-sm hover:text-white transition-colors">キャンセル</button>
+              <button onClick={handleCreateTemplate} className="px-4 py-2 rounded-lg bg-[#e8002d] text-white text-sm hover:bg-[#c8001e] transition-colors">作成</button>
             </div>
           </div>
         </div>

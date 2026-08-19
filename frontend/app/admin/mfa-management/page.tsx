@@ -9,6 +9,9 @@ import {
   AlertTriangle, Mail, Save, ChevronDown,
 } from 'lucide-react'
 
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+import { PageSaveFailed } from '@/components/PageSaveFailed'
+
 // ── Types ──────────────────────────────────────────────────────────────────────
 
 interface MfaUser {
@@ -34,7 +37,7 @@ interface MfaSettings {
 const ROLE_STYLES: Record<string, string> = {
   admin:   'bg-red-900/40 text-red-300 border border-red-700/50',
   analyst: 'bg-blue-900/40 text-blue-300 border border-blue-700/50',
-  viewer:  'bg-falcon-raised text-[#8899aa] border border-falcon-border',
+  viewer:  'bg-[#161f33] text-[#8899aa] border border-[#1e2d42]',
 }
 const ROLE_LABELS: Record<string, string> = {
   admin: '管理者', analyst: 'アナリスト', viewer: '閲覧者',
@@ -113,9 +116,9 @@ function MfaMethodPieChart({ users }: { users: MfaUser[] }) {
         {segments.map(s => (
           <div key={s.label} className="flex items-center gap-2 text-sm">
             <span className="w-3 h-3 rounded-xs shrink-0" style={{ background: s.color }} />
-            <span className="text-falcon-muted">{s.label}</span>
-            <span className="text-falcon-text font-semibold ml-1">{s.value}</span>
-            <span className="text-falcon-subtle text-xs">({Math.round(s.value / total * 100)}%)</span>
+            <span className="text-[#7d92b0]">{s.label}</span>
+            <span className="text-[#e2e8f4] font-semibold ml-1">{s.value}</span>
+            <span className="text-[#3d5068] text-xs">({Math.round(s.value / total * 100)}%)</span>
           </div>
         ))}
       </div>
@@ -137,20 +140,19 @@ function ConfirmModal({
   const [reason, setReason] = useState('')
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-      <div className="bg-falcon-surface border border-falcon-border rounded-lg p-6 w-[420px] shadow-2xl">
+      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-6 w-[420px] shadow-2xl">
         <div className="flex items-start gap-3 mb-4">
           <AlertTriangle className="w-5 h-5 text-yellow-400 shrink-0 mt-0.5" />
           <div>
-            <h3 className="text-falcon-text font-semibold">{title}</h3>
-            <p className="text-falcon-muted text-sm mt-1">{message}</p>
+            <h3 className="text-[#e2e8f4] font-semibold">{title}</h3>
+            <p className="text-[#7d92b0] text-sm mt-1">{message}</p>
           </div>
         </div>
         {requireReason && (
           <div className="mb-4">
-            <label className="block text-xs text-falcon-muted mb-1">理由 (任意)</label>
+            <label className="block text-xs text-[#7d92b0] mb-1">理由 (任意)</label>
             <textarea
-              className="w-full bg-[#070d19] border border-falcon-border rounded px-3 py-2
-                         text-sm text-falcon-text resize-none focus:outline-hidden focus:border-falcon-blue"
+              className="w-full bg-[#070d19] border border-[#1e2d42] rounded-sm px-3 py-2 text-sm text-[#e2e8f4] resize-none focus:outline-hidden focus:border-[#1a6bff]"
               rows={2}
               value={reason}
               onChange={e => setReason(e.target.value)}
@@ -161,15 +163,13 @@ function ConfirmModal({
         <div className="flex gap-2 justify-end">
           <button
             onClick={onCancel}
-            className="px-4 py-2 rounded text-sm text-falcon-muted border border-falcon-border
-                       hover:text-falcon-text hover:border-falcon-muted/40 transition-colors"
+            className="px-4 py-2 rounded-sm text-sm text-[#7d92b0] border border-[#1e2d42] hover:text-[#e2e8f4] hover:border-[#7d92b0]/40 transition-colors"
           >
             キャンセル
           </button>
           <button
             onClick={() => onConfirm(reason || undefined)}
-            className="px-4 py-2 rounded text-sm bg-falcon-red text-white
-                       hover:bg-[#c8001d] transition-colors font-medium"
+            className="px-4 py-2 rounded-sm text-sm bg-[#e8002d] text-white hover:bg-[#c8001d] transition-colors font-medium"
           >
             確認
           </button>
@@ -227,7 +227,7 @@ export default function MfaManagementPage() {
   // Mutations
   const resetMutation = useMutation({
     mutationFn: (userId: string) =>
-      apiFetch(`/api/v1/users/${userId}/mfa/reset`, { method: 'POST' }).catch(() => ({})),
+      apiFetch(`/api/v1/users/${userId}/mfa/reset`, { method: 'POST' }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['mfa-users'] }),
   })
   const disableMutation = useMutation({
@@ -235,7 +235,7 @@ export default function MfaManagementPage() {
       apiFetch(`/api/v1/users/${userId}/mfa/disable`, {
         method: 'POST',
         body: JSON.stringify({ reason }),
-      }).catch(() => ({})),
+      }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['mfa-users'] }),
   })
   const settingsMutation = useMutation({
@@ -243,7 +243,7 @@ export default function MfaManagementPage() {
       apiFetch('/api/v1/admin/mfa-settings', {
         method: 'PUT',
         body: JSON.stringify(settings),
-      }).catch(() => ({})),
+      }),
     onSuccess: () => { setSettingsSaved(true); setTimeout(() => setSettingsSaved(false), 2000) },
   })
 
@@ -320,57 +320,59 @@ export default function MfaManagementPage() {
 
   return (
     <div className="p-6 space-y-6">
+      <PageDataUnavailable />
+      <PageSaveFailed />
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-falcon-text">MFA登録管理</h1>
-        <p className="text-falcon-muted text-sm mt-1">ユーザーの多要素認証登録状況の管理・強制設定</p>
+        <h1 className="text-2xl font-bold text-[#e2e8f4]">MFA登録管理</h1>
+        <p className="text-[#7d92b0] text-sm mt-1">ユーザーの多要素認証登録状況の管理・強制設定</p>
       </div>
 
       {/* Stats Row */}
       <div className="grid grid-cols-4 gap-4">
-        <div className="bg-falcon-surface border border-falcon-border rounded-lg p-4">
+        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-4">
           <div className="flex items-center gap-2 mb-2">
-            <Users className="w-4 h-4 text-falcon-muted" />
-            <span className="text-xs text-falcon-muted uppercase tracking-wide">総ユーザー数</span>
+            <Users className="w-4 h-4 text-[#7d92b0]" />
+            <span className="text-xs text-[#7d92b0] uppercase tracking-wide">総ユーザー数</span>
           </div>
-          <p className="text-3xl font-bold text-falcon-text">{stats.total}</p>
+          <p className="text-3xl font-bold text-[#e2e8f4]">{stats.total}</p>
         </div>
-        <div className="bg-falcon-surface border border-falcon-border rounded-lg p-4">
+        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-4">
           <div className="flex items-center gap-2 mb-2">
             <ShieldCheck className="w-4 h-4 text-green-400" />
-            <span className="text-xs text-falcon-muted uppercase tracking-wide">MFA有効</span>
+            <span className="text-xs text-[#7d92b0] uppercase tracking-wide">MFA有効</span>
           </div>
           <p className="text-3xl font-bold text-green-400">{stats.enabled}</p>
-          <p className="text-xs text-falcon-muted mt-1">
+          <p className="text-xs text-[#7d92b0] mt-1">
             {stats.total ? Math.round(stats.enabled / stats.total * 100) : 0}%
           </p>
         </div>
-        <div className="bg-falcon-surface border border-falcon-border rounded-lg p-4">
+        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-4">
           <div className="flex items-center gap-2 mb-2">
             <ShieldOff className="w-4 h-4 text-red-400" />
-            <span className="text-xs text-falcon-muted uppercase tracking-wide">MFA無効</span>
+            <span className="text-xs text-[#7d92b0] uppercase tracking-wide">MFA無効</span>
           </div>
           <p className="text-3xl font-bold text-red-400">{stats.disabled}</p>
         </div>
-        <div className="bg-falcon-surface border border-falcon-border rounded-lg p-4">
+        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-4">
           <div className="flex items-center gap-2 mb-2">
             <Clock className="w-4 h-4 text-yellow-400" />
-            <span className="text-xs text-falcon-muted uppercase tracking-wide">保留中</span>
+            <span className="text-xs text-[#7d92b0] uppercase tracking-wide">保留中</span>
           </div>
           <p className="text-3xl font-bold text-yellow-400">{stats.pending}</p>
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 border-b border-falcon-border">
+      <div className="flex gap-1 border-b border-[#1e2d42]">
         {([['users', 'ユーザー一覧'], ['settings', 'MFA設定']] as const).map(([key, label]) => (
           <button
             key={key}
             onClick={() => setTab(key)}
             className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px ${
               tab === key
-                ? 'border-falcon-red text-falcon-text'
-                : 'border-transparent text-falcon-muted hover:text-falcon-text'
+                ? 'border-[#e8002d] text-[#e2e8f4]'
+                : 'border-transparent text-[#7d92b0] hover:text-[#e2e8f4]'
             }`}
           >
             {label}
@@ -384,19 +386,16 @@ export default function MfaManagementPage() {
           {/* Filters */}
           <div className="flex flex-wrap gap-3 items-center">
             <div className="relative flex-1 min-w-[200px]">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-falcon-subtle" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#3d5068]" />
               <input
-                className="w-full bg-[#070d19] border border-falcon-border rounded px-3 py-2 pl-9
-                           text-sm text-falcon-text placeholder-falcon-subtle
-                           focus:outline-hidden focus:border-falcon-blue"
+                className="w-full bg-[#070d19] border border-[#1e2d42] rounded-sm px-3 py-2 pl-9 text-sm text-[#e2e8f4] placeholder-[#3d5068] focus:outline-hidden focus:border-[#1a6bff]"
                 placeholder="ユーザー名・メールで検索..."
                 value={search}
                 onChange={e => setSearch(e.target.value)}
               />
             </div>
             <select
-              className="bg-[#070d19] border border-falcon-border rounded px-3 py-2 text-sm
-                         text-falcon-text focus:outline-hidden focus:border-falcon-blue"
+              className="bg-[#070d19] border border-[#1e2d42] rounded-sm px-3 py-2 text-sm text-[#e2e8f4] focus:outline-hidden focus:border-[#1a6bff]"
               value={statusFilter}
               onChange={e => setStatusFilter(e.target.value)}
             >
@@ -406,8 +405,7 @@ export default function MfaManagementPage() {
               <option value="pending">保留中</option>
             </select>
             <select
-              className="bg-[#070d19] border border-falcon-border rounded px-3 py-2 text-sm
-                         text-falcon-text focus:outline-hidden focus:border-falcon-blue"
+              className="bg-[#070d19] border border-[#1e2d42] rounded-sm px-3 py-2 text-sm text-[#e2e8f4] focus:outline-hidden focus:border-[#1a6bff]"
               value={roleFilter}
               onChange={e => setRoleFilter(e.target.value)}
             >
@@ -430,51 +428,50 @@ export default function MfaManagementPage() {
           </div>
 
           {/* Table */}
-          <div className="bg-falcon-surface border border-falcon-border rounded-lg overflow-hidden">
+          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg overflow-hidden">
             {isLoading ? (
-              <div className="flex items-center justify-center h-32 text-falcon-muted">
+              <div className="flex items-center justify-center h-32 text-[#7d92b0]">
                 <RefreshCw className="w-5 h-5 animate-spin mr-2" />読み込み中...
               </div>
             ) : (
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-falcon-border bg-[#070d19]">
+                  <tr className="border-b border-[#1e2d42] bg-[#070d19]">
                     <th className="w-10 px-4 py-3">
                       <button onClick={toggleAll}>
                         {allSelected
-                          ? <CheckSquare className="w-4 h-4 text-falcon-blue" />
-                          : <Square className="w-4 h-4 text-falcon-subtle" />}
+                          ? <CheckSquare className="w-4 h-4 text-[#1a6bff]" />
+                          : <Square className="w-4 h-4 text-[#3d5068]" />}
                       </button>
                     </th>
-                    <th className="px-4 py-3 text-left text-xs text-falcon-muted uppercase tracking-wide font-medium">ユーザー</th>
-                    <th className="px-4 py-3 text-left text-xs text-falcon-muted uppercase tracking-wide font-medium">ロール</th>
-                    <th className="px-4 py-3 text-left text-xs text-falcon-muted uppercase tracking-wide font-medium">MFAステータス</th>
-                    <th className="px-4 py-3 text-left text-xs text-falcon-muted uppercase tracking-wide font-medium">MFA方式</th>
-                    <th className="px-4 py-3 text-left text-xs text-falcon-muted uppercase tracking-wide font-medium">最終MFA使用</th>
-                    <th className="px-4 py-3 text-left text-xs text-falcon-muted uppercase tracking-wide font-medium">アクション</th>
+                    <th className="px-4 py-3 text-left text-xs text-[#7d92b0] uppercase tracking-wide font-medium">ユーザー</th>
+                    <th className="px-4 py-3 text-left text-xs text-[#7d92b0] uppercase tracking-wide font-medium">ロール</th>
+                    <th className="px-4 py-3 text-left text-xs text-[#7d92b0] uppercase tracking-wide font-medium">MFAステータス</th>
+                    <th className="px-4 py-3 text-left text-xs text-[#7d92b0] uppercase tracking-wide font-medium">MFA方式</th>
+                    <th className="px-4 py-3 text-left text-xs text-[#7d92b0] uppercase tracking-wide font-medium">最終MFA使用</th>
+                    <th className="px-4 py-3 text-left text-xs text-[#7d92b0] uppercase tracking-wide font-medium">アクション</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-falcon-border">
+                <tbody className="divide-y divide-[#1e2d42]">
                   {filtered.map(user => (
                     <tr key={user.id} className="hover:bg-[#070d19]/50 transition-colors">
                       <td className="px-4 py-3">
                         <button onClick={() => toggleSelect(user.id)}>
                           {selected.has(user.id)
-                            ? <CheckSquare className="w-4 h-4 text-falcon-blue" />
-                            : <Square className="w-4 h-4 text-falcon-subtle" />}
+                            ? <CheckSquare className="w-4 h-4 text-[#1a6bff]" />
+                            : <Square className="w-4 h-4 text-[#3d5068]" />}
                         </button>
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-linear-to-br from-falcon-blue to-[#0044cc]
-                                          flex items-center justify-center shrink-0">
+                          <div className="w-8 h-8 rounded-full bg-linear-to-br from-[#1a6bff] to-[#0044cc] flex items-center justify-center shrink-0">
                             <span className="text-[11px] font-bold text-white uppercase">
                               {user.username[0]}
                             </span>
                           </div>
                           <div>
-                            <p className="text-falcon-text font-medium">{user.username}</p>
-                            <p className="text-falcon-muted text-xs">{user.email}</p>
+                            <p className="text-[#e2e8f4] font-medium">{user.username}</p>
+                            <p className="text-[#7d92b0] text-xs">{user.email}</p>
                           </div>
                         </div>
                       </td>
@@ -489,18 +486,16 @@ export default function MfaManagementPage() {
                         </span>
                       </td>
                       <td className="px-4 py-3">
-                        <span className="text-falcon-muted text-sm">{user.mfa_method}</span>
+                        <span className="text-[#7d92b0] text-sm">{user.mfa_method}</span>
                       </td>
                       <td className="px-4 py-3">
-                        <span className="text-falcon-muted text-xs">{fmtDateTime(user.last_mfa_used)}</span>
+                        <span className="text-[#7d92b0] text-xs">{fmtDateTime(user.last_mfa_used)}</span>
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-1">
                           <button
                             onClick={() => setConfirmAction({ type: 'reset', userId: user.id, username: user.username })}
-                            className="px-2 py-1 rounded text-xs bg-falcon-raised text-falcon-muted
-                                       border border-falcon-border hover:text-falcon-text hover:border-falcon-muted/40
-                                       transition-colors flex items-center gap-1"
+                            className="px-2 py-1 rounded-sm text-xs bg-[#161f33] text-[#7d92b0] border border-[#1e2d42] hover:text-[#e2e8f4] hover:border-[#7d92b0]/40 transition-colors flex items-center gap-1"
                           >
                             <RotateCcw className="w-3 h-3" />
                             リセット
@@ -508,9 +503,7 @@ export default function MfaManagementPage() {
                           {user.mfa_status !== 'pending' && (
                             <button
                               onClick={() => setConfirmAction({ type: 'force', userId: user.id, username: user.username })}
-                              className="px-2 py-1 rounded text-xs bg-blue-900/30 text-blue-300
-                                         border border-blue-700/50 hover:bg-blue-900/50
-                                         transition-colors flex items-center gap-1"
+                              className="px-2 py-1 rounded-sm text-xs bg-blue-900/30 text-blue-300 border border-blue-700/50 hover:bg-blue-900/50 transition-colors flex items-center gap-1"
                             >
                               <ShieldAlert className="w-3 h-3" />
                               強制有効化
@@ -519,9 +512,7 @@ export default function MfaManagementPage() {
                           {user.mfa_status === 'enabled' && (
                             <button
                               onClick={() => setConfirmAction({ type: 'disable', userId: user.id, username: user.username })}
-                              className="px-2 py-1 rounded text-xs bg-red-900/30 text-red-300
-                                         border border-red-700/50 hover:bg-red-900/50
-                                         transition-colors flex items-center gap-1"
+                              className="px-2 py-1 rounded-sm text-xs bg-red-900/30 text-red-300 border border-red-700/50 hover:bg-red-900/50 transition-colors flex items-center gap-1"
                             >
                               <X className="w-3 h-3" />
                               無効化
@@ -533,7 +524,7 @@ export default function MfaManagementPage() {
                   ))}
                   {filtered.length === 0 && (
                     <tr>
-                      <td colSpan={7} className="px-4 py-8 text-center text-falcon-muted">
+                      <td colSpan={7} className="px-4 py-8 text-center text-[#7d92b0]">
                         該当するユーザーが見つかりません
                       </td>
                     </tr>
@@ -549,22 +540,22 @@ export default function MfaManagementPage() {
       {tab === 'settings' && (
         <div className="grid grid-cols-2 gap-6">
           {/* Settings form */}
-          <div className="bg-falcon-surface border border-falcon-border rounded-lg p-6 space-y-6">
-            <h2 className="text-falcon-text font-semibold">グローバルMFA設定</h2>
+          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-6 space-y-6">
+            <h2 className="text-[#e2e8f4] font-semibold">グローバルMFA設定</h2>
 
             {/* MFA Required Toggle */}
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-falcon-text text-sm font-medium">MFAを必須にする</p>
-                <p className="text-falcon-muted text-xs mt-0.5">全ユーザーにMFAを義務付けます</p>
+                <p className="text-[#e2e8f4] text-sm font-medium">MFAを必須にする</p>
+                <p className="text-[#7d92b0] text-xs mt-0.5">全ユーザーにMFAを義務付けます</p>
               </div>
               <button
                 onClick={() => setMfaRequired(v => !v)}
                 className={`relative w-11 h-6 rounded-full transition-colors ${
-                  mfaRequired ? 'bg-green-600' : 'bg-falcon-border'
+                  mfaRequired ? 'bg-green-600' : 'bg-[#1e2d42]'
                 }`}
               >
-                <span className={`absolute top-1 w-4 h-4 rounded-full bg-falcon-text transition-all ${
+                <span className={`absolute top-1 w-4 h-4 rounded-full bg-[#e2e8f4] transition-all ${
                   mfaRequired ? 'left-6' : 'left-1'
                 }`} />
               </button>
@@ -572,7 +563,7 @@ export default function MfaManagementPage() {
 
             {/* Required Roles */}
             <div>
-              <p className="text-falcon-text text-sm font-medium mb-2">MFA必須の対象ロール</p>
+              <p className="text-[#e2e8f4] text-sm font-medium mb-2">MFA必須の対象ロール</p>
               <div className="space-y-2">
                 {[['admin', '管理者'], ['analyst', 'アナリスト'], ['viewer', '閲覧者']].map(([role, label]) => (
                   <label key={role} className="flex items-center gap-2 cursor-pointer">
@@ -580,9 +571,9 @@ export default function MfaManagementPage() {
                       type="checkbox"
                       checked={requiredRoles.includes(role)}
                       onChange={() => toggleRole(role)}
-                      className="w-4 h-4 rounded-sm border-falcon-border bg-[#070d19] accent-falcon-red"
+                      className="w-4 h-4 rounded-sm border-[#1e2d42] bg-[#070d19] accent-[#e8002d]"
                     />
-                    <span className="text-sm text-falcon-muted">{label}</span>
+                    <span className="text-sm text-[#7d92b0]">{label}</span>
                   </label>
                 ))}
               </div>
@@ -591,8 +582,8 @@ export default function MfaManagementPage() {
             {/* Grace Period */}
             <div>
               <div className="flex items-center justify-between mb-2">
-                <p className="text-falcon-text text-sm font-medium">猶予期間</p>
-                <span className="text-falcon-red text-sm font-bold">{gracePeriod}日</span>
+                <p className="text-[#e2e8f4] text-sm font-medium">猶予期間</p>
+                <span className="text-[#e8002d] text-sm font-bold">{gracePeriod}日</span>
               </div>
               <input
                 type="range"
@@ -600,9 +591,9 @@ export default function MfaManagementPage() {
                 max="30"
                 value={gracePeriod}
                 onChange={e => setGracePeriod(Number(e.target.value))}
-                className="w-full accent-falcon-red"
+                className="w-full accent-[#e8002d]"
               />
-              <div className="flex justify-between text-xs text-falcon-subtle mt-1">
+              <div className="flex justify-between text-xs text-[#3d5068] mt-1">
                 <span>0日 (即時)</span>
                 <span>30日</span>
               </div>
@@ -610,7 +601,7 @@ export default function MfaManagementPage() {
 
             {/* Allowed Methods */}
             <div>
-              <p className="text-falcon-text text-sm font-medium mb-2">許可するMFA方式</p>
+              <p className="text-[#e2e8f4] text-sm font-medium mb-2">許可するMFA方式</p>
               <div className="space-y-2">
                 {[['TOTP', 'TOTP (認証アプリ)'], ['Email', 'メール OTP']].map(([method, label]) => (
                   <label key={method} className="flex items-center gap-2 cursor-pointer">
@@ -618,9 +609,9 @@ export default function MfaManagementPage() {
                       type="checkbox"
                       checked={allowedMethods.includes(method)}
                       onChange={() => toggleMethod(method)}
-                      className="w-4 h-4 rounded-sm border-falcon-border bg-[#070d19] accent-falcon-red"
+                      className="w-4 h-4 rounded-sm border-[#1e2d42] bg-[#070d19] accent-[#e8002d]"
                     />
-                    <span className="text-sm text-falcon-muted">{label}</span>
+                    <span className="text-sm text-[#7d92b0]">{label}</span>
                   </label>
                 ))}
               </div>
@@ -629,16 +620,16 @@ export default function MfaManagementPage() {
             {/* Backup Codes */}
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-falcon-text text-sm font-medium">バックアップコード</p>
-                <p className="text-falcon-muted text-xs mt-0.5">リカバリーコードの使用を許可します</p>
+                <p className="text-[#e2e8f4] text-sm font-medium">バックアップコード</p>
+                <p className="text-[#7d92b0] text-xs mt-0.5">リカバリーコードの使用を許可します</p>
               </div>
               <button
                 onClick={() => setBackupCodes(v => !v)}
                 className={`relative w-11 h-6 rounded-full transition-colors ${
-                  backupCodes ? 'bg-green-600' : 'bg-falcon-border'
+                  backupCodes ? 'bg-green-600' : 'bg-[#1e2d42]'
                 }`}
               >
-                <span className={`absolute top-1 w-4 h-4 rounded-full bg-falcon-text transition-all ${
+                <span className={`absolute top-1 w-4 h-4 rounded-full bg-[#e2e8f4] transition-all ${
                   backupCodes ? 'left-6' : 'left-1'
                 }`} />
               </button>
@@ -648,9 +639,7 @@ export default function MfaManagementPage() {
             <button
               onClick={handleSaveSettings}
               disabled={settingsMutation.isPending}
-              className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded
-                         bg-falcon-red text-white text-sm font-medium
-                         hover:bg-[#c8001d] disabled:opacity-60 transition-colors"
+              className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-sm bg-[#e8002d] text-white text-sm font-medium hover:bg-[#c8001d] disabled:opacity-60 transition-colors"
             >
               {settingsMutation.isPending
                 ? <RefreshCw className="w-4 h-4 animate-spin" />
@@ -660,12 +649,12 @@ export default function MfaManagementPage() {
           </div>
 
           {/* Pie Chart */}
-          <div className="bg-falcon-surface border border-falcon-border rounded-lg p-6">
-            <h2 className="text-falcon-text font-semibold mb-6">登録統計</h2>
+          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-6">
+            <h2 className="text-[#e2e8f4] font-semibold mb-6">登録統計</h2>
             <MfaMethodPieChart users={users} />
 
             <div className="mt-6 space-y-3">
-              <h3 className="text-falcon-muted text-xs uppercase tracking-wide font-medium">ステータス内訳</h3>
+              <h3 className="text-[#7d92b0] text-xs uppercase tracking-wide font-medium">ステータス内訳</h3>
               {[
                 { label: 'MFA有効', count: stats.enabled, color: 'bg-green-500' },
                 { label: 'MFA無効', count: stats.disabled, color: 'bg-red-500' },
@@ -673,9 +662,9 @@ export default function MfaManagementPage() {
               ].map(s => (
                 <div key={s.label} className="flex items-center gap-3">
                   <span className={`w-2 h-2 rounded-full ${s.color}`} />
-                  <span className="text-falcon-muted text-sm flex-1">{s.label}</span>
-                  <span className="text-falcon-text text-sm font-medium">{s.count}</span>
-                  <div className="w-24 bg-falcon-raised rounded-full h-1.5 overflow-hidden">
+                  <span className="text-[#7d92b0] text-sm flex-1">{s.label}</span>
+                  <span className="text-[#e2e8f4] text-sm font-medium">{s.count}</span>
+                  <div className="w-24 bg-[#161f33] rounded-full h-1.5 overflow-hidden">
                     <div
                       className={`h-full ${s.color} rounded-full`}
                       style={{ width: `${stats.total ? s.count / stats.total * 100 : 0}%` }}

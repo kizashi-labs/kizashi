@@ -10,6 +10,8 @@ import {
   FileText, Search, Filter
 } from 'lucide-react'
 
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+
 // ── Types ──────────────────────────────────────────────────────
 
 type SourceType = 'cloudwatch' | 'stackdriver' | 'azure_monitor' | 's3' | 'kafka' | 'syslog'
@@ -177,13 +179,13 @@ export default function CloudSiemPage() {
   // API queries
   const { data: sources = [] } = useQuery<LogSource[]>({
     queryKey: ['cloud-siem-sources'],
-    queryFn: () => apiFetchList<LogSource>('/api/v1/admin/cloud-siem/sources').catch(() => []),
+    queryFn: () => apiFetchList<LogSource>('/api/v1/admin/cloud-siem/sources'),
     staleTime: 30_000,
   })
 
   const { data: rules = [] } = useQuery<DetectionRule[]>({
     queryKey: ['cloud-siem-rules'],
-    queryFn: () => apiFetchList<DetectionRule>('/api/v1/admin/cloud-siem/rules').catch(() => []),
+    queryFn: () => apiFetchList<DetectionRule>('/api/v1/admin/cloud-siem/rules'),
     staleTime: 30_000,
   })
 
@@ -216,9 +218,11 @@ export default function CloudSiemPage() {
     }
   }
 
+  // 以前はここで Math.floor(Math.random() * 20) を「マッチ件数」として
+  // 出していました。ルールを試した人は、その数を検証結果として読みます。
+  // すぐ下の handleExecuteQuery は同じ状況で正直に「準備中」と言っています。
   const handleTestRule = (rule: DetectionRule) => {
-    const matches = Math.floor(Math.random() * 20)
-    showToast(`"${rule.name}": ${matches}件マッチしました`, matches > 0 ? 'success' : 'error')
+    showToast(`"${rule.name}": ルールの試行はサーバ側が未実装です`, 'error')
   }
 
   const handleExecuteQuery = () => {
@@ -268,21 +272,22 @@ export default function CloudSiemPage() {
   const maxMatchCount = topRules[0]?.match_count ?? 1
 
   return (
-    <div className="min-h-screen bg-[#070d19] text-falcon-muted p-6">
+    <div className="min-h-screen bg-[#070d19] text-[#7d92b0] p-6">
+      <PageDataUnavailable />
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
 
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-falcon-red/10 border border-falcon-red/30 flex items-center justify-center">
-            <Cloud className="w-5 h-5 text-falcon-red" />
+          <div className="w-10 h-10 rounded-lg bg-[#e8002d]/10 border border-[#e8002d]/30 flex items-center justify-center">
+            <Cloud className="w-5 h-5 text-[#e8002d]" />
           </div>
           <div>
             <h1 className="text-xl font-bold text-white">クラウドネイティブSIEM</h1>
-            <p className="text-xs text-falcon-muted mt-0.5">ログ収集・分析プラットフォーム</p>
+            <p className="text-xs text-[#7d92b0] mt-0.5">ログ収集・分析プラットフォーム</p>
           </div>
         </div>
-        <button onClick={() => qc.invalidateQueries()} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-falcon-surface border border-falcon-border hover:border-falcon-muted/40 text-sm transition-colors">
+        <button onClick={() => qc.invalidateQueries()} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#0d1220] border border-[#1e2d42] hover:border-[#7d92b0]/40 text-sm transition-colors">
           <RefreshCw className="w-3.5 h-3.5" />
           更新
         </button>
@@ -294,11 +299,11 @@ export default function CloudSiemPage() {
           { label: 'ログソース数', value: totalSources, icon: Database, color: 'text-blue-400' },
           { label: '日次取込量', value: `${dailyIngestionGB.toFixed(1)} GB`, icon: Activity, color: 'text-green-400' },
           { label: 'アクティブルール', value: activeRules, icon: Zap, color: 'text-yellow-400' },
-          { label: '本日のアラート', value: alertsToday, icon: AlertCircle, color: 'text-falcon-red' },
+          { label: '本日のアラート', value: alertsToday, icon: AlertCircle, color: 'text-[#e8002d]' },
         ].map(stat => (
-          <div key={stat.label} className="bg-falcon-surface border border-falcon-border rounded-xl p-4">
+          <div key={stat.label} className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-4">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs text-falcon-muted">{stat.label}</span>
+              <span className="text-xs text-[#7d92b0]">{stat.label}</span>
               <stat.icon className={`w-4 h-4 ${stat.color}`} />
             </div>
             <p className={`text-2xl font-bold ${stat.color}`}>{stat.value}</p>
@@ -307,13 +312,13 @@ export default function CloudSiemPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 mb-6 bg-falcon-surface border border-falcon-border rounded-lg p-1 w-fit">
+      <div className="flex gap-1 mb-6 bg-[#0d1220] border border-[#1e2d42] rounded-lg p-1 w-fit">
         {(['sources', 'rules', 'query'] as const).map((t, i) => (
           <button
             key={t}
             onClick={() => setTab(t)}
-            className={`px-4 py-2 rounded text-sm font-medium transition-colors ${
-              tab === t ? 'bg-falcon-border text-white' : 'text-falcon-muted hover:text-white'
+            className={`px-4 py-2 rounded-sm text-sm font-medium transition-colors ${
+              tab === t ? 'bg-[#1e2d42] text-white' : 'text-[#7d92b0] hover:text-white'
             }`}
           >
             {['ログソース', '検出ルール', 'クエリ'][i]}
@@ -325,17 +330,17 @@ export default function CloudSiemPage() {
       {tab === 'sources' && (
         <div>
           <div className="flex justify-end mb-4">
-            <button onClick={() => setShowAddSource(true)} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-falcon-red text-white text-sm hover:bg-[#c8001e] transition-colors">
+            <button onClick={() => setShowAddSource(true)} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#e8002d] text-white text-sm hover:bg-[#c8001e] transition-colors">
               <Plus className="w-4 h-4" />
               ソースを追加
             </button>
           </div>
-          <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
+          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-falcon-border">
+                <tr className="border-b border-[#1e2d42]">
                   {['名前', 'タイプ', 'ステータス', '日次ボリューム', '最終受信', 'エラー', '有効', '操作'].map(h => (
-                    <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-falcon-muted uppercase tracking-wide">{h}</th>
+                    <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-[#7d92b0] uppercase tracking-wide">{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -343,9 +348,9 @@ export default function CloudSiemPage() {
                 {sources.map(src => {
                   const ta = timeAgo(src.last_received)
                   return (
-                    <tr key={src.id} className="border-b border-falcon-border/50 hover:bg-falcon-border/20 transition-colors">
+                    <tr key={src.id} className="border-b border-[#1e2d42]/50 hover:bg-[#1e2d42]/20 transition-colors">
                       <td className="px-4 py-3">
-                        <button onClick={() => setSelectedSource(src)} className="text-white font-medium hover:text-falcon-red transition-colors text-left">
+                        <button onClick={() => setSelectedSource(src)} className="text-white font-medium hover:text-[#e8002d] transition-colors text-left">
                           {src.name}
                         </button>
                       </td>
@@ -356,20 +361,20 @@ export default function CloudSiemPage() {
                         <Badge className={statusMeta[src.status].color}>{statusMeta[src.status].label}</Badge>
                       </td>
                       <td className="px-4 py-3 text-white font-mono">{formatVolume(src.daily_volume_mb)}</td>
-                      <td className={`px-4 py-3 font-mono ${ta.isOld ? 'text-red-400' : 'text-falcon-muted'}`}>{ta.text}</td>
-                      <td className={`px-4 py-3 font-mono ${src.error_count > 0 ? 'text-red-400' : 'text-falcon-muted'}`}>{src.error_count}</td>
+                      <td className={`px-4 py-3 font-mono ${ta.isOld ? 'text-red-400' : 'text-[#7d92b0]'}`}>{ta.text}</td>
+                      <td className={`px-4 py-3 font-mono ${src.error_count > 0 ? 'text-red-400' : 'text-[#7d92b0]'}`}>{src.error_count}</td>
                       <td className="px-4 py-3">
                         <button onClick={() => handleToggleSource(src)}>
                           {src.enabled
                             ? <ToggleRight className="w-6 h-6 text-green-400" />
-                            : <ToggleLeft className="w-6 h-6 text-falcon-subtle" />
+                            : <ToggleLeft className="w-6 h-6 text-[#3d5068]" />
                           }
                         </button>
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
-                          <button onClick={() => handleTestConnection(src)} className="px-2 py-1 rounded-sm bg-falcon-border hover:bg-[#2a3f5a] text-xs transition-colors">テスト</button>
-                          <button onClick={() => setSelectedSource(src)} className="p-1 rounded-sm hover:bg-falcon-border transition-colors"><Eye className="w-3.5 h-3.5" /></button>
+                          <button onClick={() => handleTestConnection(src)} className="px-2 py-1 rounded-sm bg-[#1e2d42] hover:bg-[#2a3f5a] text-xs transition-colors">テスト</button>
+                          <button onClick={() => setSelectedSource(src)} className="p-1 rounded-sm hover:bg-[#1e2d42] transition-colors"><Eye className="w-3.5 h-3.5" /></button>
                         </div>
                       </td>
                     </tr>
@@ -381,20 +386,20 @@ export default function CloudSiemPage() {
 
           {/* Source Detail Panel */}
           {selectedSource && (
-            <div className="mt-4 bg-falcon-surface border border-falcon-border rounded-xl p-5">
+            <div className="mt-4 bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-white font-semibold">{selectedSource.name} — 詳細</h3>
                 <button onClick={() => setSelectedSource(null)}><X className="w-4 h-4" /></button>
               </div>
               <div className="mb-4">
-                <p className="text-xs text-falcon-muted mb-2 uppercase tracking-wide">7日間取込トレンド</p>
+                <p className="text-xs text-[#7d92b0] mb-2 uppercase tracking-wide">7日間取込トレンド</p>
                 <div className="flex items-end gap-1 h-16">
                   {selectedSource.ingestion_trend.map((v, i) => {
                     const maxV = Math.max(...selectedSource.ingestion_trend, 1)
                     return (
                       <div key={i} className="flex-1 flex flex-col items-center gap-1">
                         <div className="w-full bg-blue-500/60 rounded-xs" style={{ height: `${(v / maxV) * 52}px` }} />
-                        <span className="text-[9px] text-falcon-subtle">{['月','火','水','木','金','土','日'][i]}</span>
+                        <span className="text-[9px] text-[#3d5068]">{['月','火','水','木','金','土','日'][i]}</span>
                       </div>
                     )
                   })}
@@ -402,7 +407,7 @@ export default function CloudSiemPage() {
               </div>
               {selectedSource.errors.length > 0 && (
                 <div>
-                  <p className="text-xs text-falcon-muted mb-2 uppercase tracking-wide">直近エラーログ</p>
+                  <p className="text-xs text-[#7d92b0] mb-2 uppercase tracking-wide">直近エラーログ</p>
                   <div className="space-y-1">
                     {selectedSource.errors.map((e, i) => (
                       <p key={i} className="text-xs font-mono text-red-400 bg-red-900/10 border border-red-500/20 rounded-sm px-2 py-1">{e}</p>
@@ -422,45 +427,45 @@ export default function CloudSiemPage() {
       {tab === 'rules' && (
         <div>
           <div className="flex justify-end mb-4">
-            <button onClick={() => setShowAddRule(true)} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-falcon-red text-white text-sm hover:bg-[#c8001e] transition-colors">
+            <button onClick={() => setShowAddRule(true)} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#e8002d] text-white text-sm hover:bg-[#c8001e] transition-colors">
               <Plus className="w-4 h-4" />
               ルールを追加
             </button>
           </div>
-          <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden mb-6">
+          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden mb-6">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-falcon-border">
+                <tr className="border-b border-[#1e2d42]">
                   {['名前', 'タイプ', '重大度', '時間窓', '閾値', 'マッチ数', '最終マッチ', '有効', '操作'].map(h => (
-                    <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-falcon-muted uppercase tracking-wide">{h}</th>
+                    <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-[#7d92b0] uppercase tracking-wide">{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {rules.map(rule => (
-                  <tr key={rule.id} className="border-b border-falcon-border/50 hover:bg-falcon-border/20 transition-colors">
+                  <tr key={rule.id} className="border-b border-[#1e2d42]/50 hover:bg-[#1e2d42]/20 transition-colors">
                     <td className="px-4 py-3">
                       <p className="text-white font-medium">{rule.name}</p>
-                      <p className="text-xs text-falcon-muted truncate max-w-[200px]">{rule.description}</p>
+                      <p className="text-xs text-[#7d92b0] truncate max-w-[200px]">{rule.description}</p>
                     </td>
                     <td className="px-4 py-3"><Badge className={ruleTypeMeta[rule.rule_type].color}>{ruleTypeMeta[rule.rule_type].label}</Badge></td>
                     <td className="px-4 py-3"><Badge className={severityMeta[rule.severity].color}>{severityMeta[rule.severity].label}</Badge></td>
                     <td className="px-4 py-3 font-mono text-white">{humanizeSeconds(rule.time_window)}</td>
-                    <td className="px-4 py-3 font-mono text-falcon-muted">{rule.threshold ?? '—'}</td>
+                    <td className="px-4 py-3 font-mono text-[#7d92b0]">{rule.threshold ?? '—'}</td>
                     <td className="px-4 py-3 font-mono text-white">{(rule.match_count ?? 0).toLocaleString()}</td>
-                    <td className="px-4 py-3 text-falcon-muted font-mono text-xs">{rule.last_matched ? timeAgo(rule.last_matched).text : '—'}</td>
+                    <td className="px-4 py-3 text-[#7d92b0] font-mono text-xs">{rule.last_matched ? timeAgo(rule.last_matched).text : '—'}</td>
                     <td className="px-4 py-3">
                       <button onClick={() => handleToggleRule(rule)}>
                         {rule.is_active
                           ? <ToggleRight className="w-6 h-6 text-green-400" />
-                          : <ToggleLeft className="w-6 h-6 text-falcon-subtle" />
+                          : <ToggleLeft className="w-6 h-6 text-[#3d5068]" />
                         }
                       </button>
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
-                        <button onClick={() => handleTestRule(rule)} className="px-2 py-1 rounded-sm bg-falcon-border hover:bg-[#2a3f5a] text-xs transition-colors">テスト</button>
-                        <button onClick={() => { setEditRule(rule); setShowAddRule(true) }} className="p-1 rounded-sm hover:bg-falcon-border transition-colors"><Edit2 className="w-3.5 h-3.5" /></button>
+                        <button onClick={() => handleTestRule(rule)} className="px-2 py-1 rounded-sm bg-[#1e2d42] hover:bg-[#2a3f5a] text-xs transition-colors">テスト</button>
+                        <button onClick={() => { setEditRule(rule); setShowAddRule(true) }} className="p-1 rounded-sm hover:bg-[#1e2d42] transition-colors"><Edit2 className="w-3.5 h-3.5" /></button>
                       </div>
                     </td>
                   </tr>
@@ -470,15 +475,15 @@ export default function CloudSiemPage() {
           </div>
 
           {/* Detection Effectiveness Chart */}
-          <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
+          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
             <h3 className="text-white font-semibold mb-4">検出効果 — マッチ数 Top 5</h3>
             <div className="space-y-3">
               {topRules.map(rule => (
                 <div key={rule.id} className="flex items-center gap-3">
-                  <span className="text-sm text-falcon-muted w-48 truncate">{rule.name}</span>
-                  <div className="flex-1 h-5 bg-falcon-border rounded-sm overflow-hidden">
+                  <span className="text-sm text-[#7d92b0] w-48 truncate">{rule.name}</span>
+                  <div className="flex-1 h-5 bg-[#1e2d42] rounded-sm overflow-hidden">
                     <div
-                      className="h-full bg-linear-to-r from-falcon-red to-[#ff4060] rounded-sm transition-all"
+                      className="h-full bg-linear-to-r from-[#e8002d] to-[#ff4060] rounded-sm transition-all"
                       style={{ width: `${(rule.match_count / maxMatchCount) * 100}%` }}
                     />
                   </div>
@@ -496,11 +501,11 @@ export default function CloudSiemPage() {
           {/* Main editor + results */}
           <div className="flex-1 flex flex-col gap-4">
             {/* Editor */}
-            <div className="bg-falcon-surface border border-falcon-border rounded-xl p-4" style={{ flex: '0 0 40%' }}>
+            <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-4" style={{ flex: '0 0 40%' }}>
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-medium text-white">クエリエディタ</span>
-                  <select value={timeRange} onChange={e => setTimeRange(e.target.value)} className="text-xs bg-falcon-border border border-falcon-border rounded-sm px-2 py-1 text-falcon-muted outline-hidden">
+                  <select value={timeRange} onChange={e => setTimeRange(e.target.value)} className="text-xs bg-[#1e2d42] border border-[#1e2d42] rounded-sm px-2 py-1 text-[#7d92b0] outline-hidden">
                     <option value="15m">過去15分</option>
                     <option value="1h">過去1時間</option>
                     <option value="6h">過去6時間</option>
@@ -509,11 +514,11 @@ export default function CloudSiemPage() {
                   </select>
                 </div>
                 <div className="flex items-center gap-2">
-                  <button onClick={() => setShowSaveQuery(true)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-sm bg-falcon-border hover:bg-[#2a3f5a] text-sm transition-colors">
+                  <button onClick={() => setShowSaveQuery(true)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-sm bg-[#1e2d42] hover:bg-[#2a3f5a] text-sm transition-colors">
                     <Save className="w-3.5 h-3.5" />
                     保存
                   </button>
-                  <button onClick={handleExecuteQuery} className="flex items-center gap-1.5 px-3 py-1.5 rounded-sm bg-falcon-red text-white text-sm hover:bg-[#c8001e] transition-colors">
+                  <button onClick={handleExecuteQuery} className="flex items-center gap-1.5 px-3 py-1.5 rounded-sm bg-[#e8002d] text-white text-sm hover:bg-[#c8001e] transition-colors">
                     <Play className="w-3.5 h-3.5" />
                     クエリ実行
                   </button>
@@ -523,7 +528,7 @@ export default function CloudSiemPage() {
                 value={queryText}
                 onChange={e => setQueryText(e.target.value)}
                 placeholder="level=ERROR | timechart span=5m count&#10;source=cloudwatch | stats count by user | sort -count"
-                className="w-full h-32 bg-[#070d19] border border-falcon-border rounded-lg p-3 text-sm font-mono text-white placeholder-falcon-subtle outline-hidden resize-none focus:border-falcon-muted/40"
+                className="w-full h-32 bg-[#070d19] border border-[#1e2d42] rounded-lg p-3 text-sm font-mono text-white placeholder-[#3d5068] outline-hidden resize-none focus:border-[#7d92b0]/40"
               />
               {showSaveQuery && (
                 <div className="mt-2 flex items-center gap-2">
@@ -531,21 +536,21 @@ export default function CloudSiemPage() {
                     value={querySaveName}
                     onChange={e => setQuerySaveName(e.target.value)}
                     placeholder="クエリ名を入力"
-                    className="flex-1 bg-falcon-border border border-falcon-border rounded-sm px-3 py-1.5 text-sm text-white outline-hidden"
+                    className="flex-1 bg-[#1e2d42] border border-[#1e2d42] rounded-sm px-3 py-1.5 text-sm text-white outline-hidden"
                   />
                   <button onClick={handleSaveQuery} className="px-3 py-1.5 rounded-sm bg-green-600 text-white text-sm hover:bg-green-500 transition-colors">保存</button>
-                  <button onClick={() => setShowSaveQuery(false)} className="px-3 py-1.5 rounded-sm bg-falcon-border text-falcon-muted text-sm hover:text-white transition-colors">キャンセル</button>
+                  <button onClick={() => setShowSaveQuery(false)} className="px-3 py-1.5 rounded-sm bg-[#1e2d42] text-[#7d92b0] text-sm hover:text-white transition-colors">キャンセル</button>
                 </div>
               )}
             </div>
 
             {/* Results */}
-            <div className="bg-falcon-surface border border-falcon-border rounded-xl flex-1 p-4">
+            <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl flex-1 p-4">
               {queryResults ? (
                 <>
                   <div className="flex items-center justify-between mb-3">
                     <span className="text-sm font-medium text-white">クエリ結果</span>
-                    <div className="flex items-center gap-3 text-xs text-falcon-muted">
+                    <div className="flex items-center gap-3 text-xs text-[#7d92b0]">
                       <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{queryExecTime}ms</span>
                       <span>{queryResults.length} 件</span>
                     </div>
@@ -553,16 +558,16 @@ export default function CloudSiemPage() {
                   <div className="overflow-x-auto">
                     <table className="w-full text-xs font-mono">
                       <thead>
-                        <tr className="border-b border-falcon-border">
+                        <tr className="border-b border-[#1e2d42]">
                           {['タイムスタンプ', 'ソース', 'レベル', 'メッセージ'].map(h => (
-                            <th key={h} className="text-left px-3 py-2 text-falcon-muted">{h}</th>
+                            <th key={h} className="text-left px-3 py-2 text-[#7d92b0]">{h}</th>
                           ))}
                         </tr>
                       </thead>
                       <tbody>
                         {queryResults.map((r, i) => (
-                          <tr key={i} className="border-b border-falcon-border/30 hover:bg-falcon-border/20">
-                            <td className="px-3 py-2 text-falcon-muted whitespace-nowrap">{r.timestamp}</td>
+                          <tr key={i} className="border-b border-[#1e2d42]/30 hover:bg-[#1e2d42]/20">
+                            <td className="px-3 py-2 text-[#7d92b0] whitespace-nowrap">{r.timestamp}</td>
                             <td className="px-3 py-2 text-blue-400 whitespace-nowrap">{r.source}</td>
                             <td className="px-3 py-2">
                               <Badge className={
@@ -580,7 +585,7 @@ export default function CloudSiemPage() {
                   </div>
                 </>
               ) : (
-                <div className="flex flex-col items-center justify-center h-32 text-falcon-subtle">
+                <div className="flex flex-col items-center justify-center h-32 text-[#3d5068]">
                   <Search className="w-8 h-8 mb-2" />
                   <p className="text-sm">クエリを実行してください</p>
                 </div>
@@ -589,18 +594,18 @@ export default function CloudSiemPage() {
           </div>
 
           {/* Saved queries sidebar */}
-          <div className="w-64 bg-falcon-surface border border-falcon-border rounded-xl p-4 h-fit">
+          <div className="w-64 bg-[#0d1220] border border-[#1e2d42] rounded-xl p-4 h-fit">
             <h3 className="text-sm font-medium text-white mb-3">保存済みクエリ</h3>
             <div className="space-y-2">
               {savedQueries.map(q => (
-                <div key={q.id} className="bg-falcon-border/40 border border-falcon-border rounded-lg p-3">
+                <div key={q.id} className="bg-[#1e2d42]/40 border border-[#1e2d42] rounded-lg p-3">
                   <div className="flex items-start justify-between gap-2 mb-1">
-                    <button onClick={() => setQueryText(q.query)} className="text-sm text-white hover:text-falcon-red transition-colors text-left font-medium">{q.name}</button>
-                    <button onClick={() => handleDeleteSavedQuery(q.id)} className="text-falcon-subtle hover:text-red-400 transition-colors shrink-0">
+                    <button onClick={() => setQueryText(q.query)} className="text-sm text-white hover:text-[#e8002d] transition-colors text-left font-medium">{q.name}</button>
+                    <button onClick={() => handleDeleteSavedQuery(q.id)} className="text-[#3d5068] hover:text-red-400 transition-colors shrink-0">
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
                   </div>
-                  <p className="text-xs text-falcon-subtle font-mono truncate">{q.query}</p>
+                  <p className="text-xs text-[#3d5068] font-mono truncate">{q.query}</p>
                 </div>
               ))}
             </div>
@@ -611,36 +616,36 @@ export default function CloudSiemPage() {
       {/* ── Add Source Modal ────────────────────────────────── */}
       {showAddSource && (
         <div className="fixed inset-0 bg-black/60 z-40 flex items-center justify-center p-4">
-          <div className="bg-falcon-surface border border-falcon-border rounded-xl w-full max-w-lg p-6">
+          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl w-full max-w-lg p-6">
             <div className="flex items-center justify-between mb-5">
               <h2 className="text-lg font-bold text-white">ログソースを追加</h2>
               <button onClick={() => setShowAddSource(false)}><X className="w-5 h-5" /></button>
             </div>
             <div className="space-y-4">
               <div>
-                <label className="block text-xs text-falcon-muted mb-1">名前</label>
-                <input value={newSource.name} onChange={e => setNewSource(p => ({ ...p, name: e.target.value }))} className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-sm text-white outline-hidden focus:border-falcon-muted/40" placeholder="本番環境CloudWatch" />
+                <label className="block text-xs text-[#7d92b0] mb-1">名前</label>
+                <input value={newSource.name} onChange={e => setNewSource(p => ({ ...p, name: e.target.value }))} className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-white outline-hidden focus:border-[#7d92b0]/40" placeholder="本番環境CloudWatch" />
               </div>
               <div>
-                <label className="block text-xs text-falcon-muted mb-1">ソースタイプ</label>
-                <select value={newSource.source_type} onChange={e => setNewSource(p => ({ ...p, source_type: e.target.value as SourceType, config: {} }))} className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-sm text-white outline-hidden">
+                <label className="block text-xs text-[#7d92b0] mb-1">ソースタイプ</label>
+                <select value={newSource.source_type} onChange={e => setNewSource(p => ({ ...p, source_type: e.target.value as SourceType, config: {} }))} className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-white outline-hidden">
                   {Object.entries(sourceTypeMeta).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
                 </select>
               </div>
               {configFieldLabels[newSource.source_type].map(f => (
                 <div key={f.key}>
-                  <label className="block text-xs text-falcon-muted mb-1">{f.label}</label>
-                  <input value={newSource.config[f.key] ?? ''} onChange={e => setNewSource(p => ({ ...p, config: { ...p.config, [f.key]: e.target.value } }))} className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-sm text-white outline-hidden focus:border-falcon-muted/40" placeholder={f.placeholder} />
+                  <label className="block text-xs text-[#7d92b0] mb-1">{f.label}</label>
+                  <input value={newSource.config[f.key] ?? ''} onChange={e => setNewSource(p => ({ ...p, config: { ...p.config, [f.key]: e.target.value } }))} className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-white outline-hidden focus:border-[#7d92b0]/40" placeholder={f.placeholder} />
                 </div>
               ))}
               <div>
-                <label className="block text-xs text-falcon-muted mb-1">保持日数</label>
-                <input type="number" value={newSource.retention_days} onChange={e => setNewSource(p => ({ ...p, retention_days: Number(e.target.value) }))} className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-sm text-white outline-hidden focus:border-falcon-muted/40" />
+                <label className="block text-xs text-[#7d92b0] mb-1">保持日数</label>
+                <input type="number" value={newSource.retention_days} onChange={e => setNewSource(p => ({ ...p, retention_days: Number(e.target.value) }))} className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-white outline-hidden focus:border-[#7d92b0]/40" />
               </div>
             </div>
             <div className="flex justify-end gap-3 mt-6">
-              <button onClick={() => setShowAddSource(false)} className="px-4 py-2 rounded-lg border border-falcon-border text-falcon-muted text-sm hover:text-white transition-colors">キャンセル</button>
-              <button onClick={handleAddSource} className="px-4 py-2 rounded-lg bg-falcon-red text-white text-sm hover:bg-[#c8001e] transition-colors">追加</button>
+              <button onClick={() => setShowAddSource(false)} className="px-4 py-2 rounded-lg border border-[#1e2d42] text-[#7d92b0] text-sm hover:text-white transition-colors">キャンセル</button>
+              <button onClick={handleAddSource} className="px-4 py-2 rounded-lg bg-[#e8002d] text-white text-sm hover:bg-[#c8001e] transition-colors">追加</button>
             </div>
           </div>
         </div>
@@ -649,65 +654,65 @@ export default function CloudSiemPage() {
       {/* ── Add/Edit Rule Modal ─────────────────────────────── */}
       {showAddRule && (
         <div className="fixed inset-0 bg-black/60 z-40 flex items-center justify-center p-4">
-          <div className="bg-falcon-surface border border-falcon-border rounded-xl w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto">
+          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-5">
               <h2 className="text-lg font-bold text-white">{editRule ? 'ルールを編集' : '検出ルールを追加'}</h2>
               <button onClick={() => { setShowAddRule(false); setEditRule(null) }}><X className="w-5 h-5" /></button>
             </div>
             <div className="space-y-4">
               <div>
-                <label className="block text-xs text-falcon-muted mb-1">名前</label>
+                <label className="block text-xs text-[#7d92b0] mb-1">名前</label>
                 <input
                   value={editRule?.name ?? newRule.name}
                   onChange={e => editRule ? setEditRule(p => p ? { ...p, name: e.target.value } : null) : setNewRule(p => ({ ...p, name: e.target.value }))}
-                  className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-sm text-white outline-hidden focus:border-falcon-muted/40"
+                  className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-white outline-hidden focus:border-[#7d92b0]/40"
                 />
               </div>
               <div>
-                <label className="block text-xs text-falcon-muted mb-1">説明</label>
+                <label className="block text-xs text-[#7d92b0] mb-1">説明</label>
                 <input
                   value={editRule?.description ?? newRule.description}
                   onChange={e => editRule ? setEditRule(p => p ? { ...p, description: e.target.value } : null) : setNewRule(p => ({ ...p, description: e.target.value }))}
-                  className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-sm text-white outline-hidden focus:border-falcon-muted/40"
+                  className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-white outline-hidden focus:border-[#7d92b0]/40"
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs text-falcon-muted mb-1">ルールタイプ</label>
-                  <select value={editRule?.rule_type ?? newRule.rule_type} onChange={e => editRule ? setEditRule(p => p ? { ...p, rule_type: e.target.value as RuleType } : null) : setNewRule(p => ({ ...p, rule_type: e.target.value as RuleType }))} className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-sm text-white outline-hidden">
+                  <label className="block text-xs text-[#7d92b0] mb-1">ルールタイプ</label>
+                  <select value={editRule?.rule_type ?? newRule.rule_type} onChange={e => editRule ? setEditRule(p => p ? { ...p, rule_type: e.target.value as RuleType } : null) : setNewRule(p => ({ ...p, rule_type: e.target.value as RuleType }))} className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-white outline-hidden">
                     {Object.entries(ruleTypeMeta).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs text-falcon-muted mb-1">重大度</label>
-                  <select value={editRule?.severity ?? newRule.severity} onChange={e => editRule ? setEditRule(p => p ? { ...p, severity: e.target.value as Severity } : null) : setNewRule(p => ({ ...p, severity: e.target.value as Severity }))} className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-sm text-white outline-hidden">
+                  <label className="block text-xs text-[#7d92b0] mb-1">重大度</label>
+                  <select value={editRule?.severity ?? newRule.severity} onChange={e => editRule ? setEditRule(p => p ? { ...p, severity: e.target.value as Severity } : null) : setNewRule(p => ({ ...p, severity: e.target.value as Severity }))} className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-white outline-hidden">
                     {Object.entries(severityMeta).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
                   </select>
                 </div>
               </div>
               <div>
-                <label className="block text-xs text-falcon-muted mb-1">クエリ</label>
+                <label className="block text-xs text-[#7d92b0] mb-1">クエリ</label>
                 <textarea
                   value={editRule?.query ?? newRule.query}
                   onChange={e => editRule ? setEditRule(p => p ? { ...p, query: e.target.value } : null) : setNewRule(p => ({ ...p, query: e.target.value }))}
                   placeholder="level=ERROR | count > threshold"
-                  className="w-full h-24 bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-sm font-mono text-white placeholder-falcon-subtle outline-hidden resize-none focus:border-falcon-muted/40"
+                  className="w-full h-24 bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm font-mono text-white placeholder-[#3d5068] outline-hidden resize-none focus:border-[#7d92b0]/40"
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs text-falcon-muted mb-1">時間窓 (秒)</label>
-                  <input type="number" value={editRule?.time_window ?? newRule.time_window} onChange={e => editRule ? setEditRule(p => p ? { ...p, time_window: Number(e.target.value) } : null) : setNewRule(p => ({ ...p, time_window: Number(e.target.value) }))} className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-sm text-white outline-hidden focus:border-falcon-muted/40" />
+                  <label className="block text-xs text-[#7d92b0] mb-1">時間窓 (秒)</label>
+                  <input type="number" value={editRule?.time_window ?? newRule.time_window} onChange={e => editRule ? setEditRule(p => p ? { ...p, time_window: Number(e.target.value) } : null) : setNewRule(p => ({ ...p, time_window: Number(e.target.value) }))} className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-white outline-hidden focus:border-[#7d92b0]/40" />
                 </div>
                 <div>
-                  <label className="block text-xs text-falcon-muted mb-1">閾値 (任意)</label>
-                  <input type="number" value={editRule?.threshold ?? newRule.threshold} onChange={e => editRule ? setEditRule(p => p ? { ...p, threshold: Number(e.target.value) } : null) : setNewRule(p => ({ ...p, threshold: e.target.value }))} className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-sm text-white outline-hidden focus:border-falcon-muted/40" />
+                  <label className="block text-xs text-[#7d92b0] mb-1">閾値 (任意)</label>
+                  <input type="number" value={editRule?.threshold ?? newRule.threshold} onChange={e => editRule ? setEditRule(p => p ? { ...p, threshold: Number(e.target.value) } : null) : setNewRule(p => ({ ...p, threshold: e.target.value }))} className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-white outline-hidden focus:border-[#7d92b0]/40" />
                 </div>
               </div>
             </div>
             <div className="flex justify-end gap-3 mt-6">
-              <button onClick={() => { setShowAddRule(false); setEditRule(null) }} className="px-4 py-2 rounded-lg border border-falcon-border text-falcon-muted text-sm hover:text-white transition-colors">キャンセル</button>
-              <button onClick={handleAddRule} className="px-4 py-2 rounded-lg bg-falcon-red text-white text-sm hover:bg-[#c8001e] transition-colors">{editRule ? '更新' : '追加'}</button>
+              <button onClick={() => { setShowAddRule(false); setEditRule(null) }} className="px-4 py-2 rounded-lg border border-[#1e2d42] text-[#7d92b0] text-sm hover:text-white transition-colors">キャンセル</button>
+              <button onClick={handleAddRule} className="px-4 py-2 rounded-lg bg-[#e8002d] text-white text-sm hover:bg-[#c8001e] transition-colors">{editRule ? '更新' : '追加'}</button>
             </div>
           </div>
         </div>

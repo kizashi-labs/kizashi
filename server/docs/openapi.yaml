@@ -5072,6 +5072,28 @@ paths:
       responses:
         "200": { $ref: "#/components/responses/Undocumented" }
 
+  /api/v1/admin/certificates/{id}:
+    put:
+      tags: [admin]
+      summary: PUT /api/v1/admin/certificates/{id}
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: putAdminCertificatesId
+      x-generated: true
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+    delete:
+      tags: [admin]
+      summary: DELETE /api/v1/admin/certificates/{id}
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: deleteAdminCertificatesId
+      x-generated: true
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+
   /api/v1/admin/chaos/approvals:
     get:
       tags: [admin]

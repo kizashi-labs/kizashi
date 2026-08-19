@@ -8,6 +8,9 @@ import {
   Search, Filter, X, ChevronDown, Edit2, UserCheck,
   Users, CalendarClock, Shield, RefreshCw, Check,
 } from 'lucide-react'
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+import { PageSaveFailed } from '@/components/PageSaveFailed'
+
 import { USE_MOCK, m } from '@/lib/mock'
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -286,7 +289,7 @@ function avatarInitial(name: string | null) {
 // Simple SVG bar component
 function HorizBar({ segments }: { segments: { color: string; value: number; label: string }[] }) {
   const total = segments.reduce((s, x) => s + x.value, 0)
-  if (total === 0) return <div className="h-6 bg-falcon-surface rounded-sm" />
+  if (total === 0) return <div className="h-6 bg-[#0d1220] rounded-sm" />
   return (
     <div className="flex h-6 rounded-sm overflow-hidden gap-0.5">
       {segments.filter(s => s.value > 0).map(s => (
@@ -369,13 +372,7 @@ export default function VulnRemediationPage() {
   // API calls (with mock fallback)
   const { data: apiData } = useQuery<RemediationRecord[]>({
     queryKey: ['vuln-remediations'],
-    queryFn: async () => {
-      try {
-        return await apiFetch('/api/v1/vuln-remediations')
-      } catch {
-        return m(MOCK_RECORDS)
-      }
-    },
+    queryFn: () => apiFetch('/api/v1/vuln-remediations'),
     ...(USE_MOCK ? { initialData: MOCK_RECORDS } : {}),
   })
 
@@ -384,7 +381,7 @@ export default function VulnRemediationPage() {
       apiFetch(`/api/v1/vuln-remediations/${rec.id}`, {
         method: 'PUT',
         body: JSON.stringify(rec),
-      }).catch(() => rec),
+      }),
     onSuccess: (_, variables) => {
       setRecords(prev => prev.map(r => r.id === variables.id ? { ...r, ...variables } : r))
     },
@@ -392,8 +389,7 @@ export default function VulnRemediationPage() {
 
   const verifyMutation = useMutation({
     mutationFn: (id: string) =>
-      apiFetch(`/api/v1/vuln-remediations/${id}/verify`, { method: 'POST' })
-        .catch(() => ({ id })),
+      apiFetch(`/api/v1/vuln-remediations/${id}/verify`, { method: 'POST' }),
     onSuccess: (_, id) => {
       setRecords(prev => prev.map(r => r.id === id ? { ...r, status: 'verified' } : r))
       setVerifyConfirm(null)
@@ -405,7 +401,7 @@ export default function VulnRemediationPage() {
       apiFetch('/api/v1/vuln-remediations/bulk-assign', {
         method: 'POST',
         body: JSON.stringify(data),
-      }).catch(() => data),
+      }),
     onSuccess: (_, { ids, assignee }) => {
       setRecords(prev => prev.map(r => ids.includes(r.id) ? { ...r, assignee } : r))
       setSelected(new Set())
@@ -492,13 +488,15 @@ export default function VulnRemediationPage() {
   ]
 
   return (
-    <div className="min-h-screen bg-[#070d19] text-falcon-text">
+    <div className="min-h-screen bg-[#070d19] text-[#e2e8f4]">
+      <PageDataUnavailable />
+      <PageSaveFailed />
       <div className="max-w-7xl mx-auto px-6 py-6 space-y-6">
 
         {/* Header */}
         <div>
           <h1 className="text-2xl font-bold text-white">脆弱性修正追跡</h1>
-          <p className="text-falcon-muted mt-1">CVE修正状況の管理・担当者アサイン・進捗追跡</p>
+          <p className="text-[#7d92b0] mt-1">CVE修正状況の管理・担当者アサイン・進捗追跡</p>
         </div>
 
         {/* Stats Row */}
@@ -509,10 +507,10 @@ export default function VulnRemediationPage() {
             { label: '確認済み', value: stats.verified, color: 'text-green-400', icon: CheckCircle2 },
             { label: '期限超過', value: stats.overdue, color: 'text-red-400 font-bold', icon: AlertTriangle, pulse: true },
           ].map(({ label, value, color, icon: Icon, pulse }) => (
-            <div key={label} className="bg-falcon-surface border border-falcon-border rounded-lg p-4">
+            <div key={label} className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-4">
               <div className="flex items-center gap-2 mb-2">
                 <Icon className={`w-4 h-4 ${color}`} />
-                <span className="text-falcon-muted text-xs">{label}</span>
+                <span className="text-[#7d92b0] text-xs">{label}</span>
               </div>
               <p className={`text-3xl font-bold ${color} ${pulse && value > 0 ? 'animate-pulse' : ''}`}>{value}</p>
             </div>
@@ -520,7 +518,7 @@ export default function VulnRemediationPage() {
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-1 border-b border-falcon-border">
+        <div className="flex gap-1 border-b border-[#1e2d42]">
           {([
             { id: 'tasks', label: '修正タスク' },
             { id: 'stats', label: '統計' },
@@ -530,8 +528,8 @@ export default function VulnRemediationPage() {
               onClick={() => setActiveTab(tab.id)}
               className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
                 activeTab === tab.id
-                  ? 'border-falcon-red text-white'
-                  : 'border-transparent text-falcon-muted hover:text-falcon-text'
+                  ? 'border-[#e8002d] text-white'
+                  : 'border-transparent text-[#7d92b0] hover:text-[#e2e8f4]'
               }`}
             >
               {tab.label}
@@ -544,21 +542,21 @@ export default function VulnRemediationPage() {
           <div className="space-y-4">
             {/* Filter Bar */}
             <div className="flex flex-wrap gap-3 items-center">
-              <Filter className="w-4 h-4 text-falcon-muted shrink-0" />
+              <Filter className="w-4 h-4 text-[#7d92b0] shrink-0" />
               <div className="relative">
-                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-falcon-muted" />
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#7d92b0]" />
                 <input
                   type="text"
                   placeholder="CVE ID / タイトル検索"
                   value={cveSearch}
                   onChange={e => setCveSearch(e.target.value)}
-                  className="pl-8 pr-3 py-1.5 text-sm bg-falcon-surface border border-falcon-border rounded-sm text-falcon-text focus:outline-hidden focus:border-falcon-red/50 w-48"
+                  className="pl-8 pr-3 py-1.5 text-sm bg-[#0d1220] border border-[#1e2d42] rounded-sm text-[#e2e8f4] focus:outline-hidden focus:border-[#e8002d]/50 w-48"
                 />
               </div>
               <select
                 value={statusFilter}
                 onChange={e => setStatusFilter(e.target.value)}
-                className="bg-falcon-surface border border-falcon-border text-falcon-text rounded-sm px-3 py-1.5 text-sm"
+                className="bg-[#0d1220] border border-[#1e2d42] text-[#e2e8f4] rounded-sm px-3 py-1.5 text-sm"
               >
                 <option value="all">ステータス: すべて</option>
                 <option value="open">未対応</option>
@@ -568,7 +566,7 @@ export default function VulnRemediationPage() {
               <select
                 value={sevFilter}
                 onChange={e => setSevFilter(e.target.value)}
-                className="bg-falcon-surface border border-falcon-border text-falcon-text rounded-sm px-3 py-1.5 text-sm"
+                className="bg-[#0d1220] border border-[#1e2d42] text-[#e2e8f4] rounded-sm px-3 py-1.5 text-sm"
               >
                 <option value="all">深刻度: すべて</option>
                 <option value="critical">Critical</option>
@@ -579,25 +577,25 @@ export default function VulnRemediationPage() {
               <select
                 value={assigneeFilter}
                 onChange={e => setAssigneeFilter(e.target.value)}
-                className="bg-falcon-surface border border-falcon-border text-falcon-text rounded-sm px-3 py-1.5 text-sm"
+                className="bg-[#0d1220] border border-[#1e2d42] text-[#e2e8f4] rounded-sm px-3 py-1.5 text-sm"
               >
                 <option value="all">担当者: すべて</option>
                 <option value="unassigned">未割り当て</option>
                 {ASSIGNEES.map(a => <option key={a} value={a}>{a}</option>)}
               </select>
-              <label className="flex items-center gap-2 cursor-pointer text-sm text-falcon-muted">
+              <label className="flex items-center gap-2 cursor-pointer text-sm text-[#7d92b0]">
                 <input
                   type="checkbox"
                   checked={overdueOnly}
                   onChange={e => setOverdueOnly(e.target.checked)}
-                  className="accent-falcon-red w-4 h-4"
+                  className="accent-[#e8002d] w-4 h-4"
                 />
                 期限超過のみ
               </label>
               {selected.size > 0 && (
                 <button
                   onClick={() => setShowBulkAssign(true)}
-                  className="ml-auto flex items-center gap-2 px-3 py-1.5 text-sm rounded-sm bg-falcon-active border border-falcon-border text-falcon-text hover:border-falcon-muted/40 transition-colors"
+                  className="ml-auto flex items-center gap-2 px-3 py-1.5 text-sm rounded-sm bg-[#1d2f4a] border border-[#1e2d42] text-[#e2e8f4] hover:border-[#7d92b0]/40 transition-colors"
                 >
                   <Users className="w-4 h-4" />
                   一括アサイン ({selected.size}件)
@@ -606,20 +604,20 @@ export default function VulnRemediationPage() {
             </div>
 
             {/* Table */}
-            <div className="bg-falcon-surface border border-falcon-border rounded-lg overflow-x-auto">
+            <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg overflow-x-auto">
               <table className="w-full text-sm min-w-[900px]">
                 <thead>
-                  <tr className="border-b border-falcon-border">
+                  <tr className="border-b border-[#1e2d42]">
                     <th className="px-3 py-3">
                       <input
                         type="checkbox"
                         checked={selected.size === filtered.length && filtered.length > 0}
                         onChange={toggleSelectAll}
-                        className="accent-falcon-red w-4 h-4"
+                        className="accent-[#e8002d] w-4 h-4"
                       />
                     </th>
                     {['CVE ID', 'タイトル', 'ホスト', '深刻度', 'ステータス', '担当者', '期限', 'パッチ', '更新日時', 'アクション'].map(h => (
-                      <th key={h} className="text-left px-3 py-3 text-falcon-muted font-medium whitespace-nowrap">{h}</th>
+                      <th key={h} className="text-left px-3 py-3 text-[#7d92b0] font-medium whitespace-nowrap">{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -632,23 +630,23 @@ export default function VulnRemediationPage() {
                     const ini = avatarInitial(rec.assignee)
 
                     return (
-                      <tr key={rec.id} className="border-b border-falcon-border hover:bg-falcon-raised transition-colors">
+                      <tr key={rec.id} className="border-b border-[#1e2d42] hover:bg-[#161f33] transition-colors">
                         <td className="px-3 py-3">
                           <input
                             type="checkbox"
                             checked={selected.has(rec.id)}
                             onChange={() => toggleSelect(rec.id)}
-                            className="accent-falcon-red w-4 h-4"
+                            className="accent-[#e8002d] w-4 h-4"
                           />
                         </td>
                         <td className="px-3 py-3">
-                          <span className="font-mono text-falcon-red text-xs whitespace-nowrap">{rec.cve_id}</span>
+                          <span className="font-mono text-[#e8002d] text-xs whitespace-nowrap">{rec.cve_id}</span>
                         </td>
                         <td className="px-3 py-3 max-w-[180px]">
-                          <span className="truncate block text-falcon-text text-xs" title={rec.title}>{rec.title}</span>
+                          <span className="truncate block text-[#e2e8f4] text-xs" title={rec.title}>{rec.title}</span>
                         </td>
                         <td className="px-3 py-3">
-                          <span className="text-falcon-muted text-xs whitespace-nowrap">{rec.hostname}</span>
+                          <span className="text-[#7d92b0] text-xs whitespace-nowrap">{rec.hostname}</span>
                         </td>
                         <td className="px-3 py-3">
                           <span className={`px-2 py-0.5 rounded-sm text-xs border font-medium whitespace-nowrap ${sevConf.badge}`}>
@@ -664,22 +662,22 @@ export default function VulnRemediationPage() {
                         <td className="px-3 py-3">
                           {ini ? (
                             <div className="flex items-center gap-1.5">
-                              <div className="w-6 h-6 rounded-full bg-linear-to-br from-falcon-blue to-[#0044cc] flex items-center justify-center shrink-0">
+                              <div className="w-6 h-6 rounded-full bg-linear-to-br from-[#1a6bff] to-[#0044cc] flex items-center justify-center shrink-0">
                                 <span className="text-[9px] font-bold text-white">{ini}</span>
                               </div>
-                              <span className="text-falcon-muted text-xs truncate max-w-[80px]">{rec.assignee}</span>
+                              <span className="text-[#7d92b0] text-xs truncate max-w-[80px]">{rec.assignee}</span>
                             </div>
                           ) : (
-                            <span className="text-falcon-subtle text-xs">未割り当て</span>
+                            <span className="text-[#3d5068] text-xs">未割り当て</span>
                           )}
                         </td>
-                        <td className={`px-3 py-3 text-xs whitespace-nowrap ${overdue ? 'text-red-400 font-medium' : 'text-falcon-muted'}`}>
+                        <td className={`px-3 py-3 text-xs whitespace-nowrap ${overdue ? 'text-red-400 font-medium' : 'text-[#7d92b0]'}`}>
                           {overdue && <span className="mr-1">!</span>}{fmtDate(rec.due_date)}
                         </td>
-                        <td className="px-3 py-3 text-falcon-muted text-xs whitespace-nowrap">
+                        <td className="px-3 py-3 text-[#7d92b0] text-xs whitespace-nowrap">
                           {rec.patch_version ?? '未定'}
                         </td>
-                        <td className="px-3 py-3 text-falcon-subtle text-xs whitespace-nowrap">
+                        <td className="px-3 py-3 text-[#3d5068] text-xs whitespace-nowrap">
                           {fmtDate(rec.last_updated)}
                         </td>
                         <td className="px-3 py-3">
@@ -687,7 +685,7 @@ export default function VulnRemediationPage() {
                             <button
                               onClick={() => openEdit(rec)}
                               title="編集"
-                              className="p-1.5 rounded-sm text-falcon-muted hover:text-white hover:bg-falcon-border transition-colors"
+                              className="p-1.5 rounded-sm text-[#7d92b0] hover:text-white hover:bg-[#1e2d42] transition-colors"
                             >
                               <Edit2 className="w-3.5 h-3.5" />
                             </button>
@@ -695,7 +693,7 @@ export default function VulnRemediationPage() {
                               <button
                                 onClick={() => setVerifyConfirm(rec.id)}
                                 title="確認済みにする"
-                                className="p-1.5 rounded-sm text-falcon-muted hover:text-green-400 hover:bg-green-900/20 transition-colors"
+                                className="p-1.5 rounded-sm text-[#7d92b0] hover:text-green-400 hover:bg-green-900/20 transition-colors"
                               >
                                 <Check className="w-3.5 h-3.5" />
                               </button>
@@ -706,7 +704,7 @@ export default function VulnRemediationPage() {
                                   setRecords(prev => prev.map(r => r.id === rec.id ? { ...r, assignee: null } : r))
                                 }}
                                 title="担当解除"
-                                className="p-1.5 rounded-sm text-falcon-muted hover:text-red-400 hover:bg-red-900/20 transition-colors"
+                                className="p-1.5 rounded-sm text-[#7d92b0] hover:text-red-400 hover:bg-red-900/20 transition-colors"
                               >
                                 <X className="w-3.5 h-3.5" />
                               </button>
@@ -719,7 +717,7 @@ export default function VulnRemediationPage() {
                 </tbody>
               </table>
               {filtered.length === 0 && (
-                <div className="text-center py-12 text-falcon-muted">
+                <div className="text-center py-12 text-[#7d92b0]">
                   <Bug className="w-8 h-8 mx-auto mb-2 opacity-40" />
                   <p>条件に一致するレコードがありません</p>
                 </div>
@@ -732,7 +730,7 @@ export default function VulnRemediationPage() {
         {activeTab === 'stats' && (
           <div className="space-y-6">
             {/* Severity × Status Stacked Bars */}
-            <div className="bg-falcon-surface border border-falcon-border rounded-lg p-5">
+            <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-5">
               <h2 className="text-white font-semibold mb-4">深刻度別ステータス分布</h2>
               <div className="space-y-3">
                 {sevStatuses.map(({ sev, label }) => {
@@ -750,7 +748,7 @@ export default function VulnRemediationPage() {
                       <div className="flex-1">
                         <HorizBar segments={segments} />
                       </div>
-                      <span className="text-falcon-muted text-xs w-8 text-right">{sevRecs.length}</span>
+                      <span className="text-[#7d92b0] text-xs w-8 text-right">{sevRecs.length}</span>
                     </div>
                   )
                 })}
@@ -758,7 +756,7 @@ export default function VulnRemediationPage() {
                   {[{ color: '#ef4444', label: '未対応' }, { color: '#eab308', label: '対応中' }, { color: '#22c55e', label: '確認済み' }].map(l => (
                     <div key={l.label} className="flex items-center gap-1.5">
                       <div className="w-3 h-3 rounded-xs" style={{ backgroundColor: l.color }} />
-                      <span className="text-falcon-muted text-xs">{l.label}</span>
+                      <span className="text-[#7d92b0] text-xs">{l.label}</span>
                     </div>
                   ))}
                 </div>
@@ -766,21 +764,21 @@ export default function VulnRemediationPage() {
             </div>
 
             {/* Open by Agent */}
-            <div className="bg-falcon-surface border border-falcon-border rounded-lg p-5">
+            <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-5">
               <h2 className="text-white font-semibold mb-4">エージェント別未対応脆弱性 (上位10)</h2>
               <div className="space-y-2">
                 {agentStats.map(([hostname, count]) => {
                   const maxVal = agentStats[0]?.[1] ?? 1
                   return (
                     <div key={hostname} className="flex items-center gap-3">
-                      <span className="text-falcon-muted text-xs w-32 truncate shrink-0 font-mono">{hostname}</span>
+                      <span className="text-[#7d92b0] text-xs w-32 truncate shrink-0 font-mono">{hostname}</span>
                       <div className="flex-1 h-5 bg-[#070d19] rounded-sm overflow-hidden">
                         <div
-                          className="h-full bg-linear-to-r from-falcon-red to-falcon-red-dark rounded-sm transition-all"
+                          className="h-full bg-linear-to-r from-[#e8002d] to-[#a80020] rounded-sm transition-all"
                           style={{ width: `${(count / maxVal) * 100}%` }}
                         />
                       </div>
-                      <span className="text-falcon-text text-xs w-6 text-right font-medium">{count}</span>
+                      <span className="text-[#e2e8f4] text-xs w-6 text-right font-medium">{count}</span>
                     </div>
                   )
                 })}
@@ -788,14 +786,14 @@ export default function VulnRemediationPage() {
             </div>
 
             {/* Time to Resolve Trend */}
-            <div className="bg-falcon-surface border border-falcon-border rounded-lg p-5">
+            <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-5">
               <h2 className="text-white font-semibold mb-1">平均修正日数トレンド</h2>
-              <p className="text-falcon-muted text-xs mb-4">過去6ヶ月の平均修正所要日数</p>
+              <p className="text-[#7d92b0] text-xs mb-4">過去6ヶ月の平均修正所要日数</p>
               <LineChart data={trendData} />
             </div>
 
             {/* SLA Compliance */}
-            <div className="bg-falcon-surface border border-falcon-border rounded-lg p-5">
+            <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-5">
               <h2 className="text-white font-semibold mb-3">SLAコンプライアンス</h2>
               <div className="flex items-center gap-6">
                 <div className="relative w-24 h-24 shrink-0">
@@ -814,8 +812,8 @@ export default function VulnRemediationPage() {
                   </div>
                 </div>
                 <div className="space-y-1">
-                  <p className="text-falcon-text font-medium">期限内修正完了率</p>
-                  <p className="text-falcon-muted text-sm">
+                  <p className="text-[#e2e8f4] font-medium">期限内修正完了率</p>
+                  <p className="text-[#7d92b0] text-sm">
                     {workingRecords.filter(r => r.status === 'verified').length} 件中{' '}
                     {Math.round(workingRecords.filter(r => r.status === 'verified').length * slaCompliance / 100)} 件を期限内に対応
                   </p>
@@ -831,44 +829,44 @@ export default function VulnRemediationPage() {
 
       {/* ── Modal: 詳細編集 ───────────────────────────────────────── */}
       {editRecord && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
-          <div className="bg-falcon-surface border border-falcon-border rounded-lg p-6 w-full max-w-2xl shadow-xl max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-6 w-full max-w-2xl shadow-xl max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-5">
               <div>
                 <h2 className="text-white font-semibold">脆弱性詳細編集</h2>
-                <p className="text-falcon-muted text-xs mt-0.5 font-mono">{editRecord.cve_id}</p>
+                <p className="text-[#7d92b0] text-xs mt-0.5 font-mono">{editRecord.cve_id}</p>
               </div>
-              <button onClick={() => setEditRecord(null)} className="text-falcon-muted hover:text-white">
+              <button onClick={() => setEditRecord(null)} className="text-[#7d92b0] hover:text-white">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             <div className="space-y-4">
               {/* Read-only info */}
-              <div className="bg-[#070d19] rounded-lg p-4 space-y-2 border border-falcon-border">
+              <div className="bg-[#070d19] rounded-lg p-4 space-y-2 border border-[#1e2d42]">
                 <div className="flex gap-2 flex-wrap">
                   <span className={`px-2 py-0.5 rounded-sm text-xs border ${SEV_CONFIG[editRecord.severity].badge}`}>
                     {SEV_CONFIG[editRecord.severity].label}
                   </span>
-                  <span className="px-2 py-0.5 rounded-sm text-xs border border-falcon-border text-falcon-muted">
+                  <span className="px-2 py-0.5 rounded-sm text-xs border border-[#1e2d42] text-[#7d92b0]">
                     CVSS {editRecord.cvss_score}
                   </span>
-                  <span className="px-2 py-0.5 rounded-sm text-xs border border-falcon-border text-falcon-muted">
+                  <span className="px-2 py-0.5 rounded-sm text-xs border border-[#1e2d42] text-[#7d92b0]">
                     {editRecord.hostname}
                   </span>
                 </div>
                 <p className="text-white text-sm font-medium">{editRecord.title}</p>
-                <p className="text-falcon-muted text-xs">{editRecord.description}</p>
-                <p className="text-falcon-subtle text-xs">影響ソフトウェア: {editRecord.affected_software}</p>
+                <p className="text-[#7d92b0] text-xs">{editRecord.description}</p>
+                <p className="text-[#3d5068] text-xs">影響ソフトウェア: {editRecord.affected_software}</p>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-falcon-muted text-xs mb-1">ステータス</label>
+                  <label className="block text-[#7d92b0] text-xs mb-1">ステータス</label>
                   <select
                     value={editForm.status ?? editRecord.status}
                     onChange={e => setEditForm(p => ({ ...p, status: e.target.value as RemStatus }))}
-                    className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-falcon-text text-sm focus:outline-hidden focus:border-falcon-red/50"
+                    className="w-full bg-[#070d19] border border-[#1e2d42] rounded-sm px-3 py-2 text-[#e2e8f4] text-sm focus:outline-hidden focus:border-[#e8002d]/50"
                   >
                     <option value="open">未対応</option>
                     <option value="in_progress">対応中</option>
@@ -876,45 +874,45 @@ export default function VulnRemediationPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-falcon-muted text-xs mb-1">担当者</label>
+                  <label className="block text-[#7d92b0] text-xs mb-1">担当者</label>
                   <select
                     value={editForm.assignee ?? editRecord.assignee ?? ''}
                     onChange={e => setEditForm(p => ({ ...p, assignee: e.target.value || null }))}
-                    className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-falcon-text text-sm focus:outline-hidden focus:border-falcon-red/50"
+                    className="w-full bg-[#070d19] border border-[#1e2d42] rounded-sm px-3 py-2 text-[#e2e8f4] text-sm focus:outline-hidden focus:border-[#e8002d]/50"
                   >
                     <option value="">未割り当て</option>
                     {ASSIGNEES.map(a => <option key={a} value={a}>{a}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="block text-falcon-muted text-xs mb-1">期限</label>
+                  <label className="block text-[#7d92b0] text-xs mb-1">期限</label>
                   <input
                     type="date"
                     value={(editForm.due_date ?? editRecord.due_date ?? '').slice(0, 10)}
                     onChange={e => setEditForm(p => ({ ...p, due_date: e.target.value }))}
-                    className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-falcon-text text-sm focus:outline-hidden focus:border-falcon-red/50"
+                    className="w-full bg-[#070d19] border border-[#1e2d42] rounded-sm px-3 py-2 text-[#e2e8f4] text-sm focus:outline-hidden focus:border-[#e8002d]/50"
                   />
                 </div>
                 <div>
-                  <label className="block text-falcon-muted text-xs mb-1">パッチバージョン</label>
+                  <label className="block text-[#7d92b0] text-xs mb-1">パッチバージョン</label>
                   <input
                     type="text"
                     value={editForm.patch_version ?? editRecord.patch_version ?? ''}
                     onChange={e => setEditForm(p => ({ ...p, patch_version: e.target.value || null }))}
                     placeholder="例: 2.17.1"
-                    className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-falcon-text text-sm focus:outline-hidden focus:border-falcon-red/50"
+                    className="w-full bg-[#070d19] border border-[#1e2d42] rounded-sm px-3 py-2 text-[#e2e8f4] text-sm focus:outline-hidden focus:border-[#e8002d]/50"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-falcon-muted text-xs mb-1">修正メモ</label>
+                <label className="block text-[#7d92b0] text-xs mb-1">修正メモ</label>
                 <textarea
                   rows={4}
                   value={editForm.remediation_notes ?? editRecord.remediation_notes ?? ''}
                   onChange={e => setEditForm(p => ({ ...p, remediation_notes: e.target.value }))}
                   placeholder="修正手順・進捗・注意事項など"
-                  className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-falcon-text text-sm focus:outline-hidden focus:border-falcon-red/50 resize-none"
+                  className="w-full bg-[#070d19] border border-[#1e2d42] rounded-sm px-3 py-2 text-[#e2e8f4] text-sm focus:outline-hidden focus:border-[#e8002d]/50 resize-none"
                 />
               </div>
             </div>
@@ -922,13 +920,13 @@ export default function VulnRemediationPage() {
             <div className="flex gap-3 mt-6">
               <button
                 onClick={() => setEditRecord(null)}
-                className="flex-1 px-4 py-2 rounded-sm border border-falcon-border text-falcon-muted hover:text-white text-sm transition-colors"
+                className="flex-1 px-4 py-2 rounded-sm border border-[#1e2d42] text-[#7d92b0] hover:text-white text-sm transition-colors"
               >
                 キャンセル
               </button>
               <button
                 onClick={saveEdit}
-                className="flex-1 px-4 py-2 rounded-sm bg-falcon-red hover:bg-[#c8001d] text-white text-sm transition-colors"
+                className="flex-1 px-4 py-2 rounded-sm bg-[#e8002d] hover:bg-[#c8001d] text-white text-sm transition-colors"
               >
                 保存
               </button>
@@ -939,21 +937,21 @@ export default function VulnRemediationPage() {
 
       {/* ── Modal: 一括アサイン ────────────────────────────────────── */}
       {showBulkAssign && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs">
-          <div className="bg-falcon-surface border border-falcon-border rounded-lg p-6 w-full max-w-sm shadow-xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-6 w-full max-w-sm shadow-xl">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-white font-semibold">一括担当者アサイン</h2>
-              <button onClick={() => setShowBulkAssign(false)} className="text-falcon-muted hover:text-white">
+              <button onClick={() => setShowBulkAssign(false)} className="text-[#7d92b0] hover:text-white">
                 <X className="w-5 h-5" />
               </button>
             </div>
-            <p className="text-falcon-muted text-sm mb-4">{selected.size} 件のレコードに担当者をアサインします</p>
+            <p className="text-[#7d92b0] text-sm mb-4">{selected.size} 件のレコードに担当者をアサインします</p>
             <div>
-              <label className="block text-falcon-muted text-xs mb-1">担当者</label>
+              <label className="block text-[#7d92b0] text-xs mb-1">担当者</label>
               <select
                 value={bulkAssignee}
                 onChange={e => setBulkAssignee(e.target.value)}
-                className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-falcon-text text-sm focus:outline-hidden focus:border-falcon-red/50"
+                className="w-full bg-[#070d19] border border-[#1e2d42] rounded-sm px-3 py-2 text-[#e2e8f4] text-sm focus:outline-hidden focus:border-[#e8002d]/50"
               >
                 <option value="">選択してください</option>
                 {ASSIGNEES.map(a => <option key={a} value={a}>{a}</option>)}
@@ -962,14 +960,14 @@ export default function VulnRemediationPage() {
             <div className="flex gap-3 mt-6">
               <button
                 onClick={() => setShowBulkAssign(false)}
-                className="flex-1 px-4 py-2 rounded-sm border border-falcon-border text-falcon-muted hover:text-white text-sm transition-colors"
+                className="flex-1 px-4 py-2 rounded-sm border border-[#1e2d42] text-[#7d92b0] hover:text-white text-sm transition-colors"
               >
                 キャンセル
               </button>
               <button
                 onClick={() => bulkAssignMutation.mutate({ ids: Array.from(selected), assignee: bulkAssignee })}
                 disabled={!bulkAssignee}
-                className="flex-1 px-4 py-2 rounded-sm bg-falcon-red hover:bg-[#c8001d] text-white text-sm transition-colors disabled:opacity-40"
+                className="flex-1 px-4 py-2 rounded-sm bg-[#e8002d] hover:bg-[#c8001d] text-white text-sm transition-colors disabled:opacity-40"
               >
                 アサイン
               </button>
@@ -980,20 +978,20 @@ export default function VulnRemediationPage() {
 
       {/* ── Modal: Verify Confirm ─────────────────────────────────── */}
       {verifyConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs">
-          <div className="bg-falcon-surface border border-falcon-border rounded-lg p-6 w-full max-w-sm shadow-xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-6 w-full max-w-sm shadow-xl">
             <div className="flex items-center gap-3 mb-4">
               <CheckCircle2 className="w-6 h-6 text-green-400" />
               <h2 className="text-white font-semibold">修正確認</h2>
             </div>
-            <p className="text-falcon-muted text-sm mb-6">
+            <p className="text-[#7d92b0] text-sm mb-6">
               このCVEの修正を確認済みとしてマークしますか？
-              <br />CVE ID: <span className="font-mono text-falcon-red">{workingRecords.find(r => r.id === verifyConfirm)?.cve_id}</span>
+              <br />CVE ID: <span className="font-mono text-[#e8002d]">{workingRecords.find(r => r.id === verifyConfirm)?.cve_id}</span>
             </p>
             <div className="flex gap-3">
               <button
                 onClick={() => setVerifyConfirm(null)}
-                className="flex-1 px-4 py-2 rounded-sm border border-falcon-border text-falcon-muted hover:text-white text-sm transition-colors"
+                className="flex-1 px-4 py-2 rounded-sm border border-[#1e2d42] text-[#7d92b0] hover:text-white text-sm transition-colors"
               >
                 キャンセル
               </button>

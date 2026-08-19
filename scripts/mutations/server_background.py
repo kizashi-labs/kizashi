@@ -71,7 +71,7 @@ CASES = [
      '探す文字列が、引数の宣言だけで満たされる形に戻る'),
 
     # ── 上限と理由リスト ───────────────────────────────────────────────────
-    (GATE, '\tanswerReturnCeiling = 13', '\tanswerReturnCeiling = 20',
+    (GATE, '\tanswerReturnCeiling = 12', '\tanswerReturnCeiling = 20',
      'return の上限が0から上がる'),
     (GATE, '\t\tif s.kind == "return" {\n'
            '\t\t\tif _, ok := returnExceptions[s.file+":"+s.fn]; ok {\n'

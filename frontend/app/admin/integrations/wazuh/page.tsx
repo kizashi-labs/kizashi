@@ -141,7 +141,7 @@ function ToggleRow({
           }`}
         >
           <div
-            className={`absolute top-1 w-4 h-4 rounded-full bg-falcon-text shadow transition-transform ${
+            className={`absolute top-1 w-4 h-4 rounded-full bg-[#e2e8f4] shadow-sm transition-transform ${
               checked ? 'translate-x-5' : 'translate-x-1'
             }`}
           />
@@ -207,13 +207,12 @@ export default function WazuhIntegrationPage() {
 
   return (
     <div className="min-h-screen bg-gray-900">
-      <div className="max-w-(--breakpoint-lg) mx-auto p-6 space-y-6">
+      <div className="max-w-screen-lg mx-auto p-6 space-y-6">
 
         {/* ── Header ──────────────────────────────────────────────── */}
         <div>
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-orange-900/40 border border-orange-700/50
-                            flex items-center justify-center shrink-0">
+            <div className="w-10 h-10 rounded-xl bg-orange-900/40 border border-orange-700/50 flex items-center justify-center shrink-0">
               <Link2 className="w-5 h-5 text-orange-400" />
             </div>
             <div>
@@ -267,8 +266,7 @@ export default function WazuhIntegrationPage() {
                   <button
                     type="button"
                     onClick={() => setShowPassword(v => !v)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500
-                               hover:text-gray-300 transition-colors"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition-colors"
                   >
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
@@ -281,10 +279,7 @@ export default function WazuhIntegrationPage() {
               <button
                 onClick={handleTestConnection}
                 disabled={connStatus === 'testing' || !config.apiUrl}
-                className="flex items-center gap-2 px-4 py-2 text-sm font-medium
-                           bg-gray-700 hover:bg-gray-600 border border-gray-600
-                           text-gray-200 rounded-lg transition-colors
-                           disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-gray-700 hover:bg-gray-600 border border-gray-600 text-gray-200 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {connStatus === 'testing' ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -412,9 +407,7 @@ export default function WazuhIntegrationPage() {
                 <button
                   onClick={handleSync}
                   disabled={syncStatus === 'syncing'}
-                  className="flex items-center gap-2 px-5 py-2.5 text-sm font-medium
-                             bg-orange-600 hover:bg-orange-700 text-white rounded-lg
-                             transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex items-center gap-2 px-5 py-2.5 text-sm font-medium bg-orange-600 hover:bg-orange-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {syncStatus === 'syncing' ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
@@ -485,14 +478,12 @@ export default function WazuhIntegrationPage() {
                     </td>
                     <td className="px-6 py-3">
                       {agent.status === 'active' ? (
-                        <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full
-                                         bg-green-900/40 text-green-300 border border-green-700/40">
+                        <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-green-900/40 text-green-300 border border-green-700/40">
                           <span className="w-1.5 h-1.5 rounded-full bg-green-400 inline-block" />
                           アクティブ
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full
-                                         bg-gray-700/40 text-gray-400 border border-gray-600/40">
+                        <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-gray-700/40 text-gray-400 border border-gray-600/40">
                           <span className="w-1.5 h-1.5 rounded-full bg-gray-500 inline-block" />
                           切断中
                         </span>
@@ -500,17 +491,14 @@ export default function WazuhIntegrationPage() {
                     </td>
                     <td className="px-6 py-3">
                       {agent.added ? (
-                        <span className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full
-                                         bg-blue-900/30 text-blue-300 border border-blue-700/40">
+                        <span className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full bg-blue-900/30 text-blue-300 border border-blue-700/40">
                           <CheckCircle2 className="w-3 h-3" />
                           追加済み
                         </span>
                       ) : (
                         <button
                           onClick={() => handleAddAgent(agent.id)}
-                          className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg
-                                     bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600
-                                     transition-colors hover:text-white"
+                          className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600 transition-colors hover:text-white"
                         >
                           EDRに追加
                           <ChevronRight className="w-3 h-3" />

@@ -83,7 +83,7 @@ export function UpgradeBanner() {
       {/* 閉じるボタン */}
       <button
         onClick={dismiss}
-        className="shrink-0 text-falcon-subtle hover:text-white transition-colors ml-1"
+        className="shrink-0 text-[#3d5068] hover:text-white transition-colors ml-1"
         title="今は閉じる（セッション中のみ非表示）"
       >
         <X className="w-3.5 h-3.5" />

@@ -8,6 +8,9 @@ import {
   ShieldOff, Shield, Zap,
 } from 'lucide-react'
 
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+import { PageSaveFailed } from '@/components/PageSaveFailed'
+
 interface FileHashEntry {
   id: string
   hash_value: string
@@ -156,29 +159,31 @@ export default function FileHashesPage() {
 
   return (
     <div className="min-h-screen bg-[#070d19] p-6">
+      <PageDataUnavailable />
+      <PageSaveFailed className="mb-4" />
 
       {/* Header */}
       <div className="flex items-start justify-between mb-6">
         <div>
           <div className="flex items-center gap-3 mb-1">
-            <div className="w-8 h-8 rounded-sm bg-falcon-red/10 border border-falcon-red/30 flex items-center justify-center">
-              <FileCode className="w-4 h-4 text-falcon-red" />
+            <div className="w-8 h-8 rounded-sm bg-[#e8002d]/10 border border-[#e8002d]/30 flex items-center justify-center">
+              <FileCode className="w-4 h-4 text-[#e8002d]" />
             </div>
             <h1 className="text-xl font-bold text-white">ファイルハッシュ管理</h1>
           </div>
-          <p className="text-falcon-muted text-sm ml-11">MD5 / SHA1 / SHA256 によるファイル許可・拒否リスト</p>
+          <p className="text-[#7d92b0] text-sm ml-11">MD5 / SHA1 / SHA256 によるファイル許可・拒否リスト</p>
         </div>
         <div className="flex items-center gap-2">
           <button
             onClick={() => setShowBulkModal(true)}
-            className="flex items-center gap-2 px-3 py-2 text-sm text-falcon-muted border border-falcon-border rounded-sm hover:bg-falcon-surface hover:text-white transition-colors"
+            className="flex items-center gap-2 px-3 py-2 text-sm text-[#7d92b0] border border-[#1e2d42] rounded-sm hover:bg-[#0d1220] hover:text-white transition-colors"
           >
             <Upload className="w-4 h-4" />
             CSV インポート
           </button>
           <button
             onClick={openAddModal}
-            className="flex items-center gap-2 px-4 py-2 bg-falcon-red hover:bg-[#c8001f] text-white text-sm font-medium rounded-sm transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-[#e8002d] hover:bg-[#c8001f] text-white text-sm font-medium rounded-sm transition-colors"
           >
             <Plus className="w-4 h-4" />
             ハッシュを追加
@@ -190,13 +195,13 @@ export default function FileHashesPage() {
       <div className="grid grid-cols-3 gap-4 mb-6">
         {[
           { label: '許可ハッシュ', value: stats.allowlist, icon: Shield, color: 'text-green-400' },
-          { label: '拒否ハッシュ', value: stats.blocklist, icon: ShieldOff, color: 'text-falcon-red' },
+          { label: '拒否ハッシュ', value: stats.blocklist, icon: ShieldOff, color: 'text-[#e8002d]' },
           { label: '最近マッチ', value: (stats.recentMatches ?? 0).toLocaleString(), icon: Zap, color: 'text-orange-400' },
         ].map(({ label, value, icon: Icon, color }) => (
-          <div key={label} className="bg-falcon-surface border border-falcon-border rounded-lg p-4 flex items-center gap-3">
+          <div key={label} className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-4 flex items-center gap-3">
             <Icon className={`w-5 h-5 shrink-0 ${color}`} />
             <div>
-              <p className="text-falcon-muted text-xs mb-0.5">{label}</p>
+              <p className="text-[#7d92b0] text-xs mb-0.5">{label}</p>
               <p className="text-2xl font-bold text-white">{value}</p>
             </div>
           </div>
@@ -204,15 +209,15 @@ export default function FileHashesPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 mb-4 bg-falcon-surface border border-falcon-border rounded-lg p-1 w-fit">
+      <div className="flex gap-1 mb-4 bg-[#0d1220] border border-[#1e2d42] rounded-lg p-1 w-fit">
         {(['blocklist', 'allowlist'] as const).map(tab => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
-            className={`px-4 py-2 text-sm rounded font-medium transition-colors ${
+            className={`px-4 py-2 text-sm rounded-sm font-medium transition-colors ${
               activeTab === tab
-                ? 'bg-falcon-red text-white'
-                : 'text-falcon-muted hover:text-white'
+                ? 'bg-[#e8002d] text-white'
+                : 'text-[#7d92b0] hover:text-white'
             }`}
           >
             {tab === 'blocklist' ? '拒否リスト (Blocklist)' : '許可リスト (Allowlist)'}
@@ -221,31 +226,31 @@ export default function FileHashesPage() {
       </div>
 
       {/* Table */}
-      <div className="bg-falcon-surface border border-falcon-border rounded-lg overflow-hidden">
-        <div className="px-4 py-3 border-b border-falcon-border flex items-center justify-between">
+      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg overflow-hidden">
+        <div className="px-4 py-3 border-b border-[#1e2d42] flex items-center justify-between">
           <h2 className="text-sm font-semibold text-white">
             {activeTab === 'blocklist' ? '拒否リスト' : '許可リスト'}
           </h2>
-          <span className="text-xs text-falcon-muted">{tabEntries.length} 件</span>
+          <span className="text-xs text-[#7d92b0]">{tabEntries.length} 件</span>
         </div>
 
         {isLoading ? (
-          <div className="p-10 text-center text-falcon-muted text-sm">読み込み中...</div>
+          <div className="p-10 text-center text-[#7d92b0] text-sm">読み込み中...</div>
         ) : tabEntries.length === 0 ? (
-          <div className="p-10 text-center text-falcon-muted text-sm">エントリがありません</div>
+          <div className="p-10 text-center text-[#7d92b0] text-sm">エントリがありません</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-falcon-border">
+                <tr className="border-b border-[#1e2d42]">
                   {['ハッシュ', 'ファイル名', '説明', 'マッチ数', '追加日', 'VirusTotal', '操作'].map(h => (
-                    <th key={h} className="px-4 py-3 text-left text-xs font-medium text-falcon-muted uppercase tracking-wider whitespace-nowrap">
+                    <th key={h} className="px-4 py-3 text-left text-xs font-medium text-[#7d92b0] uppercase tracking-wider whitespace-nowrap">
                       {h}
                     </th>
                   ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-falcon-border">
+              <tbody className="divide-y divide-[#1e2d42]">
                 {tabEntries.map(entry => (
                   <tr key={entry.id} className="hover:bg-[#0a1628] transition-colors">
                     <td className="px-4 py-3">
@@ -257,7 +262,7 @@ export default function FileHashesPage() {
                         </span>
                         <button
                           onClick={() => copyHash(entry.id, entry.hash_value)}
-                          className="font-mono text-xs text-falcon-muted hover:text-white transition-colors"
+                          className="font-mono text-xs text-[#7d92b0] hover:text-white transition-colors"
                           title={entry.hash_value}
                         >
                           {copiedId === entry.id ? (
@@ -268,24 +273,24 @@ export default function FileHashesPage() {
                         </button>
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-xs text-falcon-text max-w-[140px] truncate">
-                      {entry.file_name ?? <span className="text-falcon-subtle">—</span>}
+                    <td className="px-4 py-3 text-xs text-[#e2e8f4] max-w-[140px] truncate">
+                      {entry.file_name ?? <span className="text-[#3d5068]">—</span>}
                     </td>
-                    <td className="px-4 py-3 text-xs text-falcon-muted max-w-[180px] truncate">
-                      {entry.description ?? <span className="text-falcon-subtle">—</span>}
+                    <td className="px-4 py-3 text-xs text-[#7d92b0] max-w-[180px] truncate">
+                      {entry.description ?? <span className="text-[#3d5068]">—</span>}
                     </td>
                     <td className="px-4 py-3">
-                      <span className={`text-sm font-bold ${entry.match_count > 1000 ? 'text-falcon-red' : entry.match_count > 100 ? 'text-orange-400' : 'text-white'}`}>
+                      <span className={`text-sm font-bold ${entry.match_count > 1000 ? 'text-[#e8002d]' : entry.match_count > 100 ? 'text-orange-400' : 'text-white'}`}>
                         {(entry.match_count ?? 0).toLocaleString()}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-xs text-falcon-muted whitespace-nowrap">
+                    <td className="px-4 py-3 text-xs text-[#7d92b0] whitespace-nowrap">
                       {formatDate(entry.created_at)}
                     </td>
                     <td className="px-4 py-3">
                       <button
                         onClick={() => openVirusTotal(entry.hash_value)}
-                        className="inline-flex items-center gap-1 px-2 py-1 rounded-sm text-xs text-falcon-muted hover:text-white hover:bg-falcon-border transition-colors"
+                        className="inline-flex items-center gap-1 px-2 py-1 rounded-sm text-xs text-[#7d92b0] hover:text-white hover:bg-[#1e2d42] transition-colors"
                         title="VirusTotalで検索"
                       >
                         <ExternalLink className="w-3 h-3" />
@@ -295,7 +300,7 @@ export default function FileHashesPage() {
                     <td className="px-4 py-3">
                       <button
                         onClick={() => setDeleteConfirm(entry.id)}
-                        className="p-1.5 rounded-sm text-falcon-muted hover:text-falcon-red hover:bg-falcon-red/10 transition-colors"
+                        className="p-1.5 rounded-sm text-[#7d92b0] hover:text-[#e8002d] hover:bg-[#e8002d]/10 transition-colors"
                         title="削除"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
@@ -311,39 +316,39 @@ export default function FileHashesPage() {
 
       {/* Add Modal */}
       {showAddModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs">
-          <div className="bg-falcon-surface border border-falcon-border rounded-xl w-full max-w-md mx-4 shadow-2xl">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-falcon-border">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl w-full max-w-md mx-4 shadow-2xl">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-[#1e2d42]">
               <h2 className="text-base font-semibold text-white flex items-center gap-2">
-                <FileCode className="w-4 h-4 text-falcon-red" />
+                <FileCode className="w-4 h-4 text-[#e8002d]" />
                 ハッシュを追加
               </h2>
-              <button onClick={() => setShowAddModal(false)} className="p-1 rounded-sm text-falcon-muted hover:text-white hover:bg-falcon-border transition-colors">
+              <button onClick={() => setShowAddModal(false)} className="p-1 rounded-sm text-[#7d92b0] hover:text-white hover:bg-[#1e2d42] transition-colors">
                 <X className="w-4 h-4" />
               </button>
             </div>
             <div className="px-5 py-4 space-y-4">
               <div>
-                <label className="block text-xs font-medium text-falcon-muted mb-1.5">ハッシュ値 <span className="text-falcon-red">*</span></label>
+                <label className="block text-xs font-medium text-[#7d92b0] mb-1.5">ハッシュ値 <span className="text-[#e8002d]">*</span></label>
                 <input
                   type="text"
                   value={form.hash_value}
                   onChange={e => setForm(f => ({ ...f, hash_value: e.target.value }))}
                   placeholder="例: 44d88612fea8a8f36de82e1278abb02f"
-                  className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-sm text-white placeholder-falcon-subtle focus:outline-hidden focus:border-falcon-red/50 font-mono"
+                  className="w-full bg-[#070d19] border border-[#1e2d42] rounded-sm px-3 py-2 text-sm text-white placeholder-[#3d5068] focus:outline-hidden focus:border-[#e8002d]/50 font-mono"
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-falcon-muted mb-1.5">ハッシュタイプ</label>
+                <label className="block text-xs font-medium text-[#7d92b0] mb-1.5">ハッシュタイプ</label>
                 <div className="flex gap-2">
                   {(['md5', 'sha1', 'sha256'] as const).map(t => (
                     <button
                       key={t}
                       onClick={() => setForm(f => ({ ...f, hash_type: t }))}
-                      className={`px-3 py-1.5 rounded text-xs font-medium uppercase transition-colors border ${
+                      className={`px-3 py-1.5 rounded-sm text-xs font-medium uppercase transition-colors border ${
                         form.hash_type === t
-                          ? 'bg-falcon-red text-white border-falcon-red'
-                          : 'text-falcon-muted border-falcon-border hover:border-falcon-muted/40 hover:text-white'
+                          ? 'bg-[#e8002d] text-white border-[#e8002d]'
+                          : 'text-[#7d92b0] border-[#1e2d42] hover:border-[#7d92b0]/40 hover:text-white'
                       }`}
                     >
                       {t}
@@ -352,36 +357,36 @@ export default function FileHashesPage() {
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-medium text-falcon-muted mb-1.5">ファイル名</label>
+                <label className="block text-xs font-medium text-[#7d92b0] mb-1.5">ファイル名</label>
                 <input
                   type="text"
                   value={form.file_name}
                   onChange={e => setForm(f => ({ ...f, file_name: e.target.value }))}
                   placeholder="例: malware.exe"
-                  className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-sm text-white placeholder-falcon-subtle focus:outline-hidden focus:border-falcon-red/50"
+                  className="w-full bg-[#070d19] border border-[#1e2d42] rounded-sm px-3 py-2 text-sm text-white placeholder-[#3d5068] focus:outline-hidden focus:border-[#e8002d]/50"
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-falcon-muted mb-1.5">説明</label>
+                <label className="block text-xs font-medium text-[#7d92b0] mb-1.5">説明</label>
                 <input
                   type="text"
                   value={form.description}
                   onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
                   placeholder="例: ランサムウェアペイロード"
-                  className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-sm text-white placeholder-falcon-subtle focus:outline-hidden focus:border-falcon-red/50"
+                  className="w-full bg-[#070d19] border border-[#1e2d42] rounded-sm px-3 py-2 text-sm text-white placeholder-[#3d5068] focus:outline-hidden focus:border-[#e8002d]/50"
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-falcon-muted mb-1.5">リストタイプ</label>
+                <label className="block text-xs font-medium text-[#7d92b0] mb-1.5">リストタイプ</label>
                 <div className="flex gap-2">
                   {(['blocklist', 'allowlist'] as const).map(t => (
                     <button
                       key={t}
                       onClick={() => setForm(f => ({ ...f, list_type: t }))}
-                      className={`px-3 py-1.5 rounded text-xs font-medium transition-colors border ${
+                      className={`px-3 py-1.5 rounded-sm text-xs font-medium transition-colors border ${
                         form.list_type === t
-                          ? 'bg-falcon-red text-white border-falcon-red'
-                          : 'text-falcon-muted border-falcon-border hover:border-falcon-muted/40 hover:text-white'
+                          ? 'bg-[#e8002d] text-white border-[#e8002d]'
+                          : 'text-[#7d92b0] border-[#1e2d42] hover:border-[#7d92b0]/40 hover:text-white'
                       }`}
                     >
                       {t === 'blocklist' ? '拒否リスト' : '許可リスト'}
@@ -390,17 +395,17 @@ export default function FileHashesPage() {
                 </div>
               </div>
             </div>
-            <div className="flex justify-end gap-3 px-5 py-4 border-t border-falcon-border">
+            <div className="flex justify-end gap-3 px-5 py-4 border-t border-[#1e2d42]">
               <button
                 onClick={() => setShowAddModal(false)}
-                className="px-4 py-2 text-sm text-falcon-muted hover:text-white rounded-sm border border-falcon-border transition-colors"
+                className="px-4 py-2 text-sm text-[#7d92b0] hover:text-white rounded-sm border border-[#1e2d42] transition-colors"
               >
                 キャンセル
               </button>
               <button
                 onClick={() => addMutation.mutate(form)}
                 disabled={!form.hash_value.trim() || addMutation.isPending}
-                className="px-4 py-2 text-sm bg-falcon-red hover:bg-[#c8001f] text-white rounded-sm font-medium transition-colors disabled:opacity-50"
+                className="px-4 py-2 text-sm bg-[#e8002d] hover:bg-[#c8001f] text-white rounded-sm font-medium transition-colors disabled:opacity-50"
               >
                 {addMutation.isPending ? '追加中...' : '追加'}
               </button>
@@ -411,43 +416,43 @@ export default function FileHashesPage() {
 
       {/* Bulk CSV Modal */}
       {showBulkModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs">
-          <div className="bg-falcon-surface border border-falcon-border rounded-xl w-full max-w-lg mx-4 shadow-2xl">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-falcon-border">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl w-full max-w-lg mx-4 shadow-2xl">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-[#1e2d42]">
               <h2 className="text-base font-semibold text-white flex items-center gap-2">
-                <Upload className="w-4 h-4 text-falcon-red" />
+                <Upload className="w-4 h-4 text-[#e8002d]" />
                 CSV インポート
               </h2>
-              <button onClick={() => setShowBulkModal(false)} className="p-1 rounded-sm text-falcon-muted hover:text-white hover:bg-falcon-border transition-colors">
+              <button onClick={() => setShowBulkModal(false)} className="p-1 rounded-sm text-[#7d92b0] hover:text-white hover:bg-[#1e2d42] transition-colors">
                 <X className="w-4 h-4" />
               </button>
             </div>
             <div className="px-5 py-4 space-y-4">
-              <p className="text-xs text-falcon-muted">
-                形式: <code className="font-mono bg-[#070d19] px-1 py-0.5 rounded-sm text-falcon-text">hash_value,hash_type,file_name</code>（hash_type・file_name は任意）
+              <p className="text-xs text-[#7d92b0]">
+                形式: <code className="font-mono bg-[#070d19] px-1 py-0.5 rounded-sm text-[#e2e8f4]">hash_value,hash_type,file_name</code>（hash_type・file_name は任意）
               </p>
               <textarea
                 value={bulkCsv}
                 onChange={e => setBulkCsv(e.target.value)}
                 rows={10}
                 placeholder={'44d88612fea8a8f36de82e1278abb02f,md5,eicar.com\n3395856ce81f2b7382dee72602f798b642f14d0,sha1,dropper.exe\ne3b0c44298fc1c149afbf4c8996fb924'}
-                className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-sm text-white placeholder-falcon-subtle focus:outline-hidden focus:border-falcon-red/50 font-mono resize-none"
+                className="w-full bg-[#070d19] border border-[#1e2d42] rounded-sm px-3 py-2 text-sm text-white placeholder-[#3d5068] focus:outline-hidden focus:border-[#e8002d]/50 font-mono resize-none"
               />
-              <p className="text-xs text-falcon-muted">
+              <p className="text-xs text-[#7d92b0]">
                 インポート先: <span className="text-white">{activeTab === 'blocklist' ? '拒否リスト' : '許可リスト'}</span> （{bulkCsv.split('\n').filter(l => l.trim()).length} 件）
               </p>
             </div>
-            <div className="flex justify-end gap-3 px-5 py-4 border-t border-falcon-border">
+            <div className="flex justify-end gap-3 px-5 py-4 border-t border-[#1e2d42]">
               <button
                 onClick={() => setShowBulkModal(false)}
-                className="px-4 py-2 text-sm text-falcon-muted hover:text-white rounded-sm border border-falcon-border transition-colors"
+                className="px-4 py-2 text-sm text-[#7d92b0] hover:text-white rounded-sm border border-[#1e2d42] transition-colors"
               >
                 キャンセル
               </button>
               <button
                 onClick={handleBulkImport}
                 disabled={!bulkCsv.trim()}
-                className="px-4 py-2 text-sm bg-falcon-red hover:bg-[#c8001f] text-white rounded-sm font-medium transition-colors disabled:opacity-50"
+                className="px-4 py-2 text-sm bg-[#e8002d] hover:bg-[#c8001f] text-white rounded-sm font-medium transition-colors disabled:opacity-50"
               >
                 インポート
               </button>
@@ -458,21 +463,21 @@ export default function FileHashesPage() {
 
       {/* Delete Confirm Modal */}
       {deleteConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs">
-          <div className="bg-falcon-surface border border-falcon-border rounded-xl w-full max-w-sm mx-4 shadow-2xl p-5">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl w-full max-w-sm mx-4 shadow-2xl p-5">
             <h2 className="text-base font-semibold text-white mb-2">ハッシュを削除しますか？</h2>
-            <p className="text-sm text-falcon-muted mb-5">この操作は取り消せません。</p>
+            <p className="text-sm text-[#7d92b0] mb-5">この操作は取り消せません。</p>
             <div className="flex justify-end gap-3">
               <button
                 onClick={() => setDeleteConfirm(null)}
-                className="px-4 py-2 text-sm text-falcon-muted hover:text-white rounded-sm border border-falcon-border transition-colors"
+                className="px-4 py-2 text-sm text-[#7d92b0] hover:text-white rounded-sm border border-[#1e2d42] transition-colors"
               >
                 キャンセル
               </button>
               <button
                 onClick={() => deleteMutation.mutate(deleteConfirm)}
                 disabled={deleteMutation.isPending}
-                className="px-4 py-2 text-sm bg-falcon-red hover:bg-[#c8001f] text-white rounded-sm font-medium transition-colors disabled:opacity-50"
+                className="px-4 py-2 text-sm bg-[#e8002d] hover:bg-[#c8001f] text-white rounded-sm font-medium transition-colors disabled:opacity-50"
               >
                 {deleteMutation.isPending ? '削除中...' : '削除'}
               </button>

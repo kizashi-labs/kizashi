@@ -9,6 +9,8 @@ import {
   AlertTriangle, CheckCircle2, Target, ArrowUp, ArrowDown,
   Calendar, ChevronDown, Award, Shield, Activity,
 } from 'lucide-react'
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+
 import { USE_MOCK, m } from '@/lib/mock'
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -202,7 +204,7 @@ function SectionHeader({ title, icon: Icon, children }: {
   return (
     <div className="flex items-center justify-between mb-4">
       <div className="flex items-center gap-2">
-        <Icon className="w-4 h-4 text-falcon-red" />
+        <Icon className="w-4 h-4 text-[#e8002d]" />
         <h2 className="text-white font-semibold text-base">{title}</h2>
       </div>
       {children}
@@ -222,16 +224,16 @@ function AlertFunnelViz({ funnel }: { funnel: AlertFunnel }) {
     <div className="space-y-1.5">
       {steps.map((step, i) => (
         <div key={step.label} className="flex items-center gap-3">
-          <div className="w-28 text-right text-xs text-falcon-muted shrink-0">{step.label}</div>
+          <div className="w-28 text-right text-xs text-[#7d92b0] shrink-0">{step.label}</div>
           <div
             className="h-8 rounded-sm flex items-center px-3 transition-all"
             style={{ width: `${Math.max(step.pct, 5)}%`, backgroundColor: step.color + '33', borderLeft: `3px solid ${step.color}` }}
           >
             <span className="text-white text-sm font-bold">{(step.value ?? 0).toLocaleString()}</span>
           </div>
-          <span className="text-falcon-muted text-xs shrink-0">{step.pct}%</span>
+          <span className="text-[#7d92b0] text-xs shrink-0">{step.pct}%</span>
           {i > 0 && (
-            <span className="text-falcon-muted text-xs">
+            <span className="text-[#7d92b0] text-xs">
               (前段比 {Math.round((step.value / steps[i-1].value) * 100)}%)
             </span>
           )}
@@ -269,7 +271,7 @@ function SlaGauge({ value }: { value: number }) {
       <p className="text-xs mt-1" style={{ color }}>
         {isGood ? '目標達成 ✓' : isMed ? '要改善' : '目標未達成'}
       </p>
-      <p className="text-falcon-muted text-xs mt-0.5">目標: 90%</p>
+      <p className="text-[#7d92b0] text-xs mt-0.5">目標: 90%</p>
     </div>
   )
 }
@@ -302,21 +304,22 @@ export default function SocMetricsPage() {
 
   return (
     <div className="min-h-screen bg-[#070d19] p-6 space-y-6">
+      <PageDataUnavailable />
 
       {/* ── Header ── */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-falcon-surface border border-falcon-border flex items-center justify-center">
-            <BarChart3 className="w-5 h-5 text-falcon-red" />
+          <div className="w-10 h-10 rounded-lg bg-[#0d1220] border border-[#1e2d42] flex items-center justify-center">
+            <BarChart3 className="w-5 h-5 text-[#e8002d]" />
           </div>
           <div>
             <h1 className="text-white font-bold text-xl">SOC効率指標</h1>
-            <p className="text-falcon-muted text-sm">アナリスト・アラート・インシデントのパフォーマンス分析</p>
+            <p className="text-[#7d92b0] text-sm">アナリスト・アラート・インシデントのパフォーマンス分析</p>
           </div>
         </div>
 
         {/* Period Selector */}
-        <div className="flex items-center gap-1 bg-falcon-surface border border-falcon-border rounded-lg p-1">
+        <div className="flex items-center gap-1 bg-[#0d1220] border border-[#1e2d42] rounded-lg p-1">
           {([
             { value: 'today', label: '本日' },
             { value: 'week', label: '今週' },
@@ -326,10 +329,10 @@ export default function SocMetricsPage() {
             <button
               key={p.value}
               onClick={() => setPeriod(p.value)}
-              className={`px-4 py-1.5 rounded text-sm font-medium transition-colors ${
+              className={`px-4 py-1.5 rounded-sm text-sm font-medium transition-colors ${
                 period === p.value
-                  ? 'bg-falcon-red text-white'
-                  : 'text-falcon-muted hover:text-white'
+                  ? 'bg-[#e8002d] text-white'
+                  : 'text-[#7d92b0] hover:text-white'
               }`}
             >
               {p.label}
@@ -340,38 +343,38 @@ export default function SocMetricsPage() {
 
       {/* ── Summary KPI Cards ── */}
       <div className="grid grid-cols-4 gap-4">
-        <div className="bg-falcon-surface border border-falcon-border rounded-lg p-4">
-          <p className="text-falcon-muted text-sm mb-1">総アラート処理数</p>
+        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-4">
+          <p className="text-[#7d92b0] text-sm mb-1">総アラート処理数</p>
           <p className="text-white font-bold text-2xl">{analysts.reduce((s, a) => s + a.alerts_handled, 0).toLocaleString()}</p>
           <p className="text-green-400 text-xs mt-1 flex items-center gap-1"><ArrowUp className="w-3 h-3" />先月比 +8.2%</p>
         </div>
-        <div className="bg-falcon-surface border border-falcon-border rounded-lg p-4">
-          <p className="text-falcon-muted text-sm mb-1">平均トリアージ時間</p>
+        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-4">
+          <p className="text-[#7d92b0] text-sm mb-1">平均トリアージ時間</p>
           <p className="text-white font-bold text-2xl">8.5分</p>
           <p className="text-green-400 text-xs mt-1 flex items-center gap-1"><ArrowDown className="w-3 h-3" />先月比 -1.2分</p>
         </div>
-        <div className="bg-falcon-surface border border-falcon-border rounded-lg p-4">
-          <p className="text-falcon-muted text-sm mb-1">SLA達成率</p>
+        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-4">
+          <p className="text-[#7d92b0] text-sm mb-1">SLA達成率</p>
           <p className="text-white font-bold text-2xl">87.3%</p>
           <p className="text-orange-400 text-xs mt-1">目標: 90%</p>
         </div>
-        <div className="bg-falcon-surface border border-falcon-border rounded-lg p-4">
-          <p className="text-falcon-muted text-sm mb-1">誤検知率</p>
+        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-4">
+          <p className="text-[#7d92b0] text-sm mb-1">誤検知率</p>
           <p className="text-white font-bold text-2xl">7.8%</p>
           <p className="text-green-400 text-xs mt-1 flex items-center gap-1"><ArrowDown className="w-3 h-3" />先月比 -1.1pt</p>
         </div>
       </div>
 
       {/* ── Tabs ── */}
-      <div className="flex gap-0 border-b border-falcon-border">
+      <div className="flex gap-0 border-b border-[#1e2d42]">
         {tabs.map((tab, i) => (
           <button
             key={tab}
             onClick={() => setActiveTab(i as 0 | 1 | 2)}
             className={`px-6 py-2.5 text-sm font-medium border-b-2 transition-colors ${
               activeTab === i
-                ? 'border-falcon-red text-white'
-                : 'border-transparent text-falcon-muted hover:text-white'
+                ? 'border-[#e8002d] text-white'
+                : 'border-transparent text-[#7d92b0] hover:text-white'
             }`}
           >
             {tab}
@@ -384,30 +387,30 @@ export default function SocMetricsPage() {
         <div className="space-y-6">
 
           {/* Leaderboard */}
-          <div className="bg-falcon-surface border border-falcon-border rounded-lg">
-            <div className="px-4 py-3 border-b border-falcon-border">
+          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg">
+            <div className="px-4 py-3 border-b border-[#1e2d42]">
               <SectionHeader title="アナリストリーダーボード" icon={Award} />
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-falcon-border">
-                    <th className="text-left text-falcon-muted font-medium px-4 py-2.5">順位</th>
-                    <th className="text-left text-falcon-muted font-medium px-4 py-2.5">アナリスト</th>
-                    <th className="text-left text-falcon-muted font-medium px-4 py-2.5">Tier</th>
-                    <th className="text-right text-falcon-muted font-medium px-4 py-2.5">処理件数</th>
-                    <th className="text-right text-falcon-muted font-medium px-4 py-2.5">平均時間</th>
-                    <th className="text-right text-falcon-muted font-medium px-4 py-2.5">EscRate</th>
-                    <th className="text-right text-falcon-muted font-medium px-4 py-2.5">FP率</th>
-                    <th className="text-right text-falcon-muted font-medium px-4 py-2.5">CSAT</th>
-                    <th className="text-right text-falcon-muted font-medium px-4 py-2.5">現在</th>
+                  <tr className="border-b border-[#1e2d42]">
+                    <th className="text-left text-[#7d92b0] font-medium px-4 py-2.5">順位</th>
+                    <th className="text-left text-[#7d92b0] font-medium px-4 py-2.5">アナリスト</th>
+                    <th className="text-left text-[#7d92b0] font-medium px-4 py-2.5">Tier</th>
+                    <th className="text-right text-[#7d92b0] font-medium px-4 py-2.5">処理件数</th>
+                    <th className="text-right text-[#7d92b0] font-medium px-4 py-2.5">平均時間</th>
+                    <th className="text-right text-[#7d92b0] font-medium px-4 py-2.5">EscRate</th>
+                    <th className="text-right text-[#7d92b0] font-medium px-4 py-2.5">FP率</th>
+                    <th className="text-right text-[#7d92b0] font-medium px-4 py-2.5">CSAT</th>
+                    <th className="text-right text-[#7d92b0] font-medium px-4 py-2.5">現在</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-falcon-border">
+                <tbody className="divide-y divide-[#1e2d42]">
                   {analysts.map((analyst, idx) => (
-                    <tr key={analyst.id} className="hover:bg-falcon-border/30 transition-colors">
+                    <tr key={analyst.id} className="hover:bg-[#1e2d42]/30 transition-colors">
                       <td className="px-4 py-2.5">
-                        <span className={`font-bold text-sm ${idx === 0 ? 'text-yellow-400' : idx === 1 ? 'text-[#94a3b8]' : idx === 2 ? 'text-orange-400' : 'text-falcon-muted'}`}>
+                        <span className={`font-bold text-sm ${idx === 0 ? 'text-yellow-400' : idx === 1 ? 'text-[#94a3b8]' : idx === 2 ? 'text-orange-400' : 'text-[#7d92b0]'}`}>
                           #{idx + 1}
                         </span>
                       </td>
@@ -462,13 +465,13 @@ export default function SocMetricsPage() {
           </div>
 
           {/* Workload Distribution */}
-          <div className="bg-falcon-surface border border-falcon-border rounded-lg p-4">
+          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-4">
             <SectionHeader title="現在のワークロード分布" icon={Activity} />
             <div className="space-y-3">
               {analysts.map(analyst => (
                 <div key={analyst.id} className="flex items-center gap-3">
-                  <div className="w-24 text-sm text-falcon-muted truncate shrink-0">{analyst.name.split(' ')[0]}</div>
-                  <div className="flex-1 h-5 bg-falcon-border rounded-sm overflow-hidden">
+                  <div className="w-24 text-sm text-[#7d92b0] truncate shrink-0">{analyst.name.split(' ')[0]}</div>
+                  <div className="flex-1 h-5 bg-[#1e2d42] rounded-sm overflow-hidden">
                     <div
                       className="h-full rounded-sm transition-all duration-500 flex items-center px-2"
                       style={{
@@ -489,21 +492,21 @@ export default function SocMetricsPage() {
           </div>
 
           {/* Shift Utilization */}
-          <div className="bg-falcon-surface border border-falcon-border rounded-lg p-4">
+          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-4">
             <SectionHeader title="シフト稼働率" icon={Calendar} />
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-falcon-border">
-                    <th className="text-left text-falcon-muted font-medium px-3 py-2">シフト</th>
+                  <tr className="border-b border-[#1e2d42]">
+                    <th className="text-left text-[#7d92b0] font-medium px-3 py-2">シフト</th>
                     {['月', '火', '水', '木', '金', '土', '日'].map(d => (
-                      <th key={d} className="text-center text-falcon-muted font-medium px-3 py-2">{d}</th>
+                      <th key={d} className="text-center text-[#7d92b0] font-medium px-3 py-2">{d}</th>
                     ))}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-falcon-border">
+                <tbody className="divide-y divide-[#1e2d42]">
                   <tr>
-                    <td colSpan={8} className="px-4 py-6 text-center text-falcon-muted text-sm">
+                    <td colSpan={8} className="px-4 py-6 text-center text-[#7d92b0] text-sm">
                       シフトデータがありません
                     </td>
                   </tr>
@@ -519,23 +522,23 @@ export default function SocMetricsPage() {
         <div className="space-y-6">
           {/* Funnel + SLA */}
           <div className="grid grid-cols-3 gap-4">
-            <div className="col-span-2 bg-falcon-surface border border-falcon-border rounded-lg p-4">
+            <div className="col-span-2 bg-[#0d1220] border border-[#1e2d42] rounded-lg p-4">
               <SectionHeader title="アラート処理ファネル" icon={TrendingDown} />
               <AlertFunnelViz funnel={funnel} />
             </div>
-            <div className="bg-falcon-surface border border-falcon-border rounded-lg p-4">
+            <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-4">
               <SlaGauge value={slaCompliance} />
             </div>
           </div>
 
           {/* Alert Age Distribution */}
-          <div className="bg-falcon-surface border border-falcon-border rounded-lg p-4">
+          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-4">
             <SectionHeader title="アラート経過時間分布" icon={Clock} />
             <div className="space-y-3">
               {ageBuckets.map(bucket => (
                 <div key={bucket.label} className="flex items-center gap-3">
-                  <div className="w-24 text-sm text-falcon-muted shrink-0">{bucket.label}</div>
-                  <div className="flex-1 h-7 bg-falcon-border rounded-sm overflow-hidden">
+                  <div className="w-24 text-sm text-[#7d92b0] shrink-0">{bucket.label}</div>
+                  <div className="flex-1 h-7 bg-[#1e2d42] rounded-sm overflow-hidden">
                     <div
                       className="h-full rounded-sm flex items-center px-3 transition-all duration-500"
                       style={{
@@ -547,7 +550,7 @@ export default function SocMetricsPage() {
                       <span className="text-white text-sm font-medium">{(bucket.count ?? 0).toLocaleString()}</span>
                     </div>
                   </div>
-                  <span className="text-falcon-muted text-xs w-16 text-right shrink-0">
+                  <span className="text-[#7d92b0] text-xs w-16 text-right shrink-0">
                     {Math.round((bucket.count / ageBuckets.reduce((s, b) => s + b.count, 0)) * 100)}%
                   </span>
                 </div>
@@ -556,26 +559,26 @@ export default function SocMetricsPage() {
           </div>
 
           {/* Category Breakdown */}
-          <div className="bg-falcon-surface border border-falcon-border rounded-lg">
-            <div className="px-4 py-3 border-b border-falcon-border">
+          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg">
+            <div className="px-4 py-3 border-b border-[#1e2d42]">
               <SectionHeader title="カテゴリ別分析" icon={BarChart3} />
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-falcon-border">
-                    <th className="text-left text-falcon-muted font-medium px-4 py-2.5">カテゴリ</th>
-                    <th className="text-right text-falcon-muted font-medium px-4 py-2.5">件数</th>
-                    <th className="text-right text-falcon-muted font-medium px-4 py-2.5">平均時間</th>
-                    <th className="text-right text-falcon-muted font-medium px-4 py-2.5">Esc率</th>
-                    <th className="text-left text-falcon-muted font-medium px-4 py-2.5">件数分布</th>
+                  <tr className="border-b border-[#1e2d42]">
+                    <th className="text-left text-[#7d92b0] font-medium px-4 py-2.5">カテゴリ</th>
+                    <th className="text-right text-[#7d92b0] font-medium px-4 py-2.5">件数</th>
+                    <th className="text-right text-[#7d92b0] font-medium px-4 py-2.5">平均時間</th>
+                    <th className="text-right text-[#7d92b0] font-medium px-4 py-2.5">Esc率</th>
+                    <th className="text-left text-[#7d92b0] font-medium px-4 py-2.5">件数分布</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-falcon-border">
+                <tbody className="divide-y divide-[#1e2d42]">
                   {categories.map(cat => {
                     const maxVol = Math.max(...categories.map(c => c.volume))
                     return (
-                      <tr key={cat.name} className="hover:bg-falcon-border/30 transition-colors">
+                      <tr key={cat.name} className="hover:bg-[#1e2d42]/30 transition-colors">
                         <td className="px-4 py-2.5 text-white font-medium">{cat.name}</td>
                         <td className="px-4 py-2.5 text-right text-white font-mono">{(cat.volume ?? 0).toLocaleString()}</td>
                         <td className="px-4 py-2.5 text-right">
@@ -589,7 +592,7 @@ export default function SocMetricsPage() {
                           </span>
                         </td>
                         <td className="px-4 py-2.5">
-                          <div className="w-32 h-3 bg-falcon-border rounded-sm overflow-hidden">
+                          <div className="w-32 h-3 bg-[#1e2d42] rounded-sm overflow-hidden">
                             <div
                               className="h-full rounded-sm bg-[#3b82f6]/60"
                               style={{ width: `${(cat.volume / maxVol) * 100}%` }}
@@ -613,7 +616,7 @@ export default function SocMetricsPage() {
           {/* MTTR Cards */}
           <div>
             <div className="flex items-center gap-2 mb-4">
-              <Clock className="w-4 h-4 text-falcon-red" />
+              <Clock className="w-4 h-4 text-[#e8002d]" />
               <h2 className="text-white font-semibold">深刻度別 MTTR (平均解決時間)</h2>
             </div>
             <div className="grid grid-cols-4 gap-4">
@@ -621,7 +624,7 @@ export default function SocMetricsPage() {
                 const isGood = entry.current_min <= entry.target_min
                 const improved = entry.current_min < entry.last_month_min
                 return (
-                  <div key={entry.severity} className="bg-falcon-surface border border-falcon-border rounded-lg p-4">
+                  <div key={entry.severity} className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-4">
                     <div className="flex items-center justify-between mb-2">
                       <span
                         className="px-2 py-0.5 rounded-sm text-xs font-bold"
@@ -639,16 +642,16 @@ export default function SocMetricsPage() {
                     </p>
                     <div className="mt-2 space-y-0.5 text-xs">
                       <div className="flex justify-between">
-                        <span className="text-falcon-muted">目標</span>
-                        <span className="text-falcon-muted">{formatMinutes(entry.target_min)}</span>
+                        <span className="text-[#7d92b0]">目標</span>
+                        <span className="text-[#7d92b0]">{formatMinutes(entry.target_min)}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-falcon-muted">先月</span>
-                        <span className="text-falcon-muted">{formatMinutes(entry.last_month_min)}</span>
+                        <span className="text-[#7d92b0]">先月</span>
+                        <span className="text-[#7d92b0]">{formatMinutes(entry.last_month_min)}</span>
                       </div>
                     </div>
                     {/* Progress bar vs target */}
-                    <div className="mt-2 h-1.5 bg-falcon-border rounded-sm overflow-hidden">
+                    <div className="mt-2 h-1.5 bg-[#1e2d42] rounded-sm overflow-hidden">
                       <div
                         className="h-full rounded-sm transition-all"
                         style={{
@@ -667,19 +670,19 @@ export default function SocMetricsPage() {
           <div className="grid grid-cols-2 gap-4">
 
             {/* Resolution Methods */}
-            <div className="bg-falcon-surface border border-falcon-border rounded-lg p-4">
+            <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-4">
               <SectionHeader title="解決方法の内訳" icon={CheckCircle2} />
               {resolutionMethods.length === 0 ? (
-                <p className="text-falcon-muted text-sm py-4 text-center">データがありません</p>
+                <p className="text-[#7d92b0] text-sm py-4 text-center">データがありません</p>
               ) : (
               <div className="space-y-3">
                 {resolutionMethods.map(method => (
                   <div key={method.label}>
                     <div className="flex justify-between text-sm mb-1">
-                      <span className="text-falcon-muted">{method.label}</span>
+                      <span className="text-[#7d92b0]">{method.label}</span>
                       <span className="text-white font-medium">{method.value}%</span>
                     </div>
-                    <div className="h-4 bg-falcon-border rounded-sm overflow-hidden">
+                    <div className="h-4 bg-[#1e2d42] rounded-sm overflow-hidden">
                       <div
                         className="h-full rounded-sm transition-all duration-700"
                         style={{ width: `${method.value}%`, backgroundColor: method.color + '88', borderRight: `2px solid ${method.color}` }}
@@ -693,7 +696,7 @@ export default function SocMetricsPage() {
                 {resolutionMethods.map(m => (
                   <div key={m.label} className="flex items-center gap-2 text-xs">
                     <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: m.color }} />
-                    <span className="text-falcon-muted">{m.label}</span>
+                    <span className="text-[#7d92b0]">{m.label}</span>
                     <span className="text-white font-bold ml-auto">{m.value}%</span>
                   </div>
                 ))}
@@ -701,17 +704,17 @@ export default function SocMetricsPage() {
             </div>
 
             {/* Open Incident Aging */}
-            <div className="bg-falcon-surface border border-falcon-border rounded-lg p-4">
+            <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-4">
               <SectionHeader title="オープンインシデント (経過時間)" icon={AlertTriangle} />
               <div className="space-y-2">
                 {openIncidents.map(inc => (
                   <div
                     key={inc.id}
-                    className="flex items-start gap-3 p-2.5 rounded-lg bg-[#070d19] border border-falcon-border hover:border-falcon-muted/30 transition-colors"
+                    className="flex items-start gap-3 p-2.5 rounded-lg bg-[#070d19] border border-[#1e2d42] hover:border-[#7d92b0]/30 transition-colors"
                   >
                     <div>
                       <div className="flex items-center gap-2 mb-1">
-                        <span className="text-falcon-muted text-xs font-mono">{inc.id}</span>
+                        <span className="text-[#7d92b0] text-xs font-mono">{inc.id}</span>
                         <span
                           className="px-1.5 py-0.5 rounded-sm text-[10px] font-bold"
                           style={{ backgroundColor: severityColor(inc.severity) + '22', color: severityColor(inc.severity) }}
@@ -720,13 +723,13 @@ export default function SocMetricsPage() {
                         </span>
                       </div>
                       <p className="text-white text-sm font-medium leading-snug">{inc.title}</p>
-                      <p className="text-falcon-muted text-xs mt-1">{displayUser(inc.assigned_to)}</p>
+                      <p className="text-[#7d92b0] text-xs mt-1">{displayUser(inc.assigned_to)}</p>
                     </div>
                     <div className="ml-auto shrink-0 text-right">
                       <span className={`text-sm font-bold ${ageColor(inc.age_hours)}`}>
                         {inc.age_hours >= 24 ? `${Math.floor(inc.age_hours / 24)}日` : `${inc.age_hours}時間`}
                       </span>
-                      <p className="text-falcon-muted text-[10px]">経過</p>
+                      <p className="text-[#7d92b0] text-[10px]">経過</p>
                     </div>
                   </div>
                 ))}
@@ -735,7 +738,7 @@ export default function SocMetricsPage() {
           </div>
 
           {/* Trend sparklines summary */}
-          <div className="bg-falcon-surface border border-falcon-border rounded-lg p-4">
+          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-4">
             <SectionHeader title="インシデント対応トレンド (過去30日)" icon={TrendingUp} />
             <div className="grid grid-cols-3 gap-6">
               {[
@@ -743,10 +746,10 @@ export default function SocMetricsPage() {
                 { label: 'SLA達成率', value: '87.3%', positive: false, desc: '目標: 90%' },
                 { label: 'エスカレーション率', value: '11.4%', positive: true, desc: '先月比 -2.1pt' },
               ].map(stat => (
-                <div key={stat.label} className="text-center py-4 border border-falcon-border rounded-lg">
-                  <p className="text-falcon-muted text-sm mb-2">{stat.label}</p>
+                <div key={stat.label} className="text-center py-4 border border-[#1e2d42] rounded-lg">
+                  <p className="text-[#7d92b0] text-sm mb-2">{stat.label}</p>
                   <p className={`text-2xl font-bold ${stat.positive ? 'text-green-400' : 'text-orange-400'}`}>{stat.value}</p>
-                  <p className="text-falcon-muted text-xs mt-1">{stat.desc}</p>
+                  <p className="text-[#7d92b0] text-xs mt-1">{stat.desc}</p>
                 </div>
               ))}
             </div>

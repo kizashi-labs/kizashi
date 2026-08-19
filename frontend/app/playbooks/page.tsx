@@ -9,6 +9,9 @@ import {
   ChevronDown, ChevronUp, X, Play, Clock, CheckCircle2, XCircle, Pencil, Search
 } from 'lucide-react'
 
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+import { PageSaveFailed } from '@/components/PageSaveFailed'
+
 interface PlaybookConditions {
   min_severity?: number
   max_severity?: number
@@ -37,6 +40,10 @@ interface Playbook {
   last_run_at?: string
   created_by_name: string
   created_at: string
+  // 保存されている条件/アクションを解釈できなかったときに入ります。
+  // このプレイブックは「有効」でも実行されません（条件を読めないまま実行すると
+  // 全アラートにマッチしてしまうため、サーバ側が実行対象から除外します）。
+  config_error?: string
 }
 
 interface PlaybookRun {
@@ -194,6 +201,8 @@ export default function PlaybooksPage() {
 
   return (
     <div className="p-6">
+      <PageDataUnavailable />
+      <PageSaveFailed className="mb-4" />
       <div className="max-w-5xl mx-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
@@ -209,9 +218,7 @@ export default function PlaybooksPage() {
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 placeholder="名前・説明で検索..."
-                className="pl-8 pr-3 py-1.5 text-sm border border-falcon-border rounded-lg
-                           bg-falcon-card text-white placeholder-[#5a6a7a] w-44
-                           focus:outline-hidden focus:border-purple-500"
+                className="pl-8 pr-3 py-1.5 text-sm border border-[#1e2d42] rounded-lg bg-[#111827] text-white placeholder-[#5a6a7a] w-44 focus:outline-hidden focus:border-purple-500"
               />
             </div>
             <label className="flex items-center gap-2 text-sm text-[#8899aa] cursor-pointer">
@@ -238,7 +245,7 @@ export default function PlaybooksPage() {
 
         {/* Form */}
         {showForm && (
-          <div className="bg-falcon-card border border-falcon-border rounded-xl p-5 mb-6">
+          <div className="bg-[#111827] border border-[#1e2d42] rounded-xl p-5 mb-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="font-semibold text-purple-400">{editId ? 'プレイブックを編集' : '新しいプレイブック'}</h2>
               <button onClick={resetForm} className="text-[#8899aa] hover:text-white"><X size={18} /></button>
@@ -252,7 +259,7 @@ export default function PlaybooksPage() {
                     required
                     value={form.name}
                     onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-                    className="w-full bg-falcon-raised border border-falcon-border rounded-sm px-3 py-2 text-sm"
+                    className="w-full bg-[#161f33] border border-[#1e2d42] rounded-sm px-3 py-2 text-sm"
                     placeholder="例: 高重大度アラート自動対応"
                   />
                 </div>
@@ -273,13 +280,13 @@ export default function PlaybooksPage() {
                 <input
                   value={form.description}
                   onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-                  className="w-full bg-falcon-raised border border-falcon-border rounded-sm px-3 py-2 text-sm"
+                  className="w-full bg-[#161f33] border border-[#1e2d42] rounded-sm px-3 py-2 text-sm"
                   placeholder="このプレイブックの目的"
                 />
               </div>
 
               {/* Conditions */}
-              <div className="border border-falcon-border rounded-lg p-4">
+              <div className="border border-[#1e2d42] rounded-lg p-4">
                 <p className="text-xs font-medium text-[#8899aa] mb-3">トリガー条件 (空白=ワイルドカード)</p>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
@@ -288,7 +295,7 @@ export default function PlaybooksPage() {
                       type="number" min={0} max={10}
                       value={form.conditions.min_severity || ''}
                       onChange={e => setForm(f => ({ ...f, conditions: { ...f.conditions, min_severity: parseInt(e.target.value) || 0 } }))}
-                      className="w-full bg-falcon-raised border border-falcon-border rounded-sm px-3 py-1.5 text-sm"
+                      className="w-full bg-[#161f33] border border-[#1e2d42] rounded-sm px-3 py-1.5 text-sm"
                       placeholder="例: 8"
                     />
                   </div>
@@ -298,7 +305,7 @@ export default function PlaybooksPage() {
                       type="number" min={0} max={10}
                       value={form.conditions.max_severity || ''}
                       onChange={e => setForm(f => ({ ...f, conditions: { ...f.conditions, max_severity: parseInt(e.target.value) || 0 } }))}
-                      className="w-full bg-falcon-raised border border-falcon-border rounded-sm px-3 py-1.5 text-sm"
+                      className="w-full bg-[#161f33] border border-[#1e2d42] rounded-sm px-3 py-1.5 text-sm"
                       placeholder="例: 10"
                     />
                   </div>
@@ -307,7 +314,7 @@ export default function PlaybooksPage() {
                     <input
                       value={form.conditions.rule_name}
                       onChange={e => setForm(f => ({ ...f, conditions: { ...f.conditions, rule_name: e.target.value } }))}
-                      className="w-full bg-falcon-raised border border-falcon-border rounded-sm px-3 py-1.5 text-sm"
+                      className="w-full bg-[#161f33] border border-[#1e2d42] rounded-sm px-3 py-1.5 text-sm"
                       placeholder="例: mimikatz"
                     />
                   </div>
@@ -316,7 +323,7 @@ export default function PlaybooksPage() {
                     <input
                       value={form.conditions.hostname}
                       onChange={e => setForm(f => ({ ...f, conditions: { ...f.conditions, hostname: e.target.value } }))}
-                      className="w-full bg-falcon-raised border border-falcon-border rounded-sm px-3 py-1.5 text-sm"
+                      className="w-full bg-[#161f33] border border-[#1e2d42] rounded-sm px-3 py-1.5 text-sm"
                       placeholder="例: SERVER-"
                     />
                   </div>
@@ -325,7 +332,7 @@ export default function PlaybooksPage() {
                     <input
                       value={form.conditions.mitre_technique}
                       onChange={e => setForm(f => ({ ...f, conditions: { ...f.conditions, mitre_technique: e.target.value } }))}
-                      className="w-full bg-falcon-raised border border-falcon-border rounded-sm px-3 py-1.5 text-sm"
+                      className="w-full bg-[#161f33] border border-[#1e2d42] rounded-sm px-3 py-1.5 text-sm"
                       placeholder="例: T1003"
                     />
                   </div>
@@ -334,7 +341,7 @@ export default function PlaybooksPage() {
                     <select
                       value={form.conditions.status}
                       onChange={e => setForm(f => ({ ...f, conditions: { ...f.conditions, status: e.target.value } }))}
-                      className="w-full bg-falcon-raised border border-falcon-border rounded-sm px-3 py-1.5 text-sm"
+                      className="w-full bg-[#161f33] border border-[#1e2d42] rounded-sm px-3 py-1.5 text-sm"
                     >
                       <option value="">すべて</option>
                       <option value="open">未対応 (open)</option>
@@ -345,7 +352,7 @@ export default function PlaybooksPage() {
               </div>
 
               {/* Actions */}
-              <div className="border border-falcon-border rounded-lg p-4">
+              <div className="border border-[#1e2d42] rounded-lg p-4">
                 <div className="flex items-center justify-between mb-3">
                   <p className="text-xs font-medium text-[#8899aa]">実行アクション (順番に実行)</p>
                   <button
@@ -358,13 +365,13 @@ export default function PlaybooksPage() {
                 </div>
                 <div className="space-y-3">
                   {form.actions.map((action, i) => (
-                    <div key={i} className="bg-falcon-raised/50 rounded-lg p-3 space-y-2">
+                    <div key={i} className="bg-[#161f33]/50 rounded-lg p-3 space-y-2">
                       <div className="flex items-center gap-2">
                         <span className="text-xs text-[#5a6a7a] w-5">{i + 1}.</span>
                         <select
                           value={action.type}
                           onChange={e => updateAction(i, { type: e.target.value as PlaybookAction['type'] })}
-                          className="flex-1 bg-falcon-raised border border-falcon-border rounded-sm px-2 py-1.5 text-sm"
+                          className="flex-1 bg-[#161f33] border border-[#1e2d42] rounded-sm px-2 py-1.5 text-sm"
                         >
                           {ACTION_TYPES.map(t => (
                             <option key={t.value} value={t.value}>{t.label}</option>
@@ -381,14 +388,14 @@ export default function PlaybooksPage() {
                           <input
                             value={action.title || ''}
                             onChange={e => updateAction(i, { title: e.target.value })}
-                            className="bg-falcon-raised border border-falcon-border rounded-sm px-2 py-1.5 text-xs"
+                            className="bg-[#161f33] border border-[#1e2d42] rounded-sm px-2 py-1.5 text-xs"
                             placeholder="インシデントタイトル"
                           />
                           <input
                             type="number" min={1} max={10}
                             value={action.severity || ''}
                             onChange={e => updateAction(i, { severity: parseInt(e.target.value) || undefined })}
-                            className="bg-falcon-raised border border-falcon-border rounded-sm px-2 py-1.5 text-xs"
+                            className="bg-[#161f33] border border-[#1e2d42] rounded-sm px-2 py-1.5 text-xs"
                             placeholder="重大度 (1-10)"
                           />
                         </div>
@@ -398,7 +405,7 @@ export default function PlaybooksPage() {
                           <input
                             value={action.message || ''}
                             onChange={e => updateAction(i, { message: e.target.value })}
-                            className="w-full bg-falcon-raised border border-falcon-border rounded-sm px-2 py-1.5 text-xs"
+                            className="w-full bg-[#161f33] border border-[#1e2d42] rounded-sm px-2 py-1.5 text-xs"
                             placeholder="通知メッセージ"
                           />
                         </div>
@@ -429,7 +436,7 @@ export default function PlaybooksPage() {
 
         {/* Run History Modal */}
         {runsId && (
-          <div className="bg-falcon-card border border-falcon-border rounded-xl p-5 mb-6">
+          <div className="bg-[#111827] border border-[#1e2d42] rounded-xl p-5 mb-6">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
                 <Clock size={16} className="text-[#8899aa]" />
@@ -442,7 +449,7 @@ export default function PlaybooksPage() {
             ) : (
               <div className="space-y-2">
                 {runs.map(r => (
-                  <div key={r.id} className="flex items-center gap-3 text-sm bg-falcon-bg/40 rounded-lg px-3 py-2">
+                  <div key={r.id} className="flex items-center gap-3 text-sm bg-[#080c14]/40 rounded-lg px-3 py-2">
                     {r.success
                       ? <CheckCircle2 size={14} className="text-green-400 shrink-0" />
                       : <XCircle size={14} className="text-red-400 shrink-0" />
@@ -471,7 +478,7 @@ export default function PlaybooksPage() {
             {playbooks.map(pb => (
               <div
                 key={pb.id}
-                className={`bg-falcon-card border rounded-xl overflow-hidden ${pb.is_active ? 'border-falcon-border' : 'border-falcon-border opacity-60'}`}
+                className={`bg-[#111827] border rounded-xl overflow-hidden ${pb.is_active ? 'border-[#1e2d42]' : 'border-[#1e2d42] opacity-60'}`}
               >
                 <div className="flex items-center gap-4 p-4">
                   {/* Toggle */}
@@ -495,11 +502,22 @@ export default function PlaybooksPage() {
                       {pb.is_active && (
                         <span className="text-xs bg-purple-900/50 text-purple-300 px-2 py-0.5 rounded-full">有効</span>
                       )}
-                      <span className="text-xs bg-falcon-raised text-[#8899aa] px-2 py-0.5 rounded-full">
+                      <span className="text-xs bg-[#161f33] text-[#8899aa] px-2 py-0.5 rounded-full">
                         {pb.actions.length}アクション
                       </span>
+                      {pb.config_error && (
+                        <span className="text-xs bg-red-900/50 text-red-300 px-2 py-0.5 rounded-full">
+                          設定を読めません
+                        </span>
+                      )}
                     </div>
-                    <p className="text-xs text-[#8899aa] mt-0.5">{condSummary(pb.conditions)}</p>
+                    {pb.config_error ? (
+                      <p className="text-xs text-red-300 mt-0.5">
+                        {pb.config_error}
+                      </p>
+                    ) : (
+                      <p className="text-xs text-[#8899aa] mt-0.5">{condSummary(pb.conditions)}</p>
+                    )}
                   </div>
 
                   {/* Stats */}
@@ -544,7 +562,7 @@ export default function PlaybooksPage() {
 
                 {/* Expanded Detail */}
                 {expandedId === pb.id && (
-                  <div className="border-t border-falcon-border px-4 py-3 bg-falcon-bg/40 text-sm space-y-3">
+                  <div className="border-t border-[#1e2d42] px-4 py-3 bg-[#080c14]/40 text-sm space-y-3">
                     {pb.description && <p className="text-[#8899aa]">{pb.description}</p>}
 
                     <div>

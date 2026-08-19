@@ -44,17 +44,29 @@ function isSecret(field: string): boolean {
 
 export default function CloudMonitoringPage() {
   const [integrations, setIntegrations] = useState<Integration[]>([])
+  const [actionError, setActionError] = useState('')
+  const [loadError, setLoadError] = useState('')
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
   const [form, setForm] = useState({ name: '', provider: 'aws', region: '', config: {} as Record<string,string> })
   const [submitting, setSubmitting] = useState(false)
   const [testing, setTesting] = useState<Record<string, boolean>>({})
 
+  // 読めなかったときに黙って空のままにすると、画面は「統合はまだ
+  // ありません」と同じ見た目になります。設定してあるのに見えない状態で、
+  // 追加し直そうとした人が、既にある接続先を作り直します。
   const fetchIntegrations = useCallback(async () => {
     try {
       const r = await fetch('/api/v1/cloud/integrations', { credentials: 'include' })
-      if (r.ok) setIntegrations(await r.json())
-    } catch {}
+      if (!r.ok) throw new Error(`HTTP ${r.status}`)
+      setIntegrations(await r.json())
+      setLoadError('')
+    } catch (e) {
+      setLoadError(
+        `クラウド統合の一覧を取得できませんでした（${e instanceof Error ? e.message : String(e)}）。` +
+        '下の一覧は空ですが、設定が無いという意味ではありません'
+      )
+    }
     setLoading(false)
   }, [])
 
@@ -69,34 +81,59 @@ export default function CloudMonitoringPage() {
         credentials: 'include',
         body: JSON.stringify(form),
       })
-      if (r.ok) {
-        setShowModal(false)
-        setForm({ name: '', provider: 'aws', region: '', config: {} })
-        await fetchIntegrations()
+      if (!r.ok) {
+        setActionError(`統合を追加できませんでした（HTTP ${r.status}）`)
+        return
       }
+      setShowModal(false)
+      setForm({ name: '', provider: 'aws', region: '', config: {} })
+      await fetchIntegrations()
+    } catch (e) {
+      setActionError(`統合を追加できませんでした（${e instanceof Error ? e.message : String(e)}）`)
     } finally { setSubmitting(false) }
   }
 
+  // fetch は 4xx/5xx で reject しません。res.ok を見ないと、削除も切り替えも
+  // 「押したら成功」に見えます。直後の再読み込みで元の状態が戻ってきますが、
+  // それは「反映が遅れている」としか読めません。
   const handleDelete = async (id: string) => {
     if (!confirm('この統合を削除しますか？')) return
-    await fetch(`/api/v1/cloud/integrations/${id}`, { method: 'DELETE', credentials: 'include' })
+    setActionError('')
+    const res = await fetch(`/api/v1/cloud/integrations/${id}`, { method: 'DELETE', credentials: 'include' })
+    if (!res.ok) {
+      setActionError(`統合を削除できませんでした（HTTP ${res.status}）。設定は変わっていません`)
+      return
+    }
     await fetchIntegrations()
   }
 
   const handleToggle = async (intg: Integration) => {
-    await fetch(`/api/v1/cloud/integrations/${intg.id}`, {
+    setActionError('')
+    const res = await fetch(`/api/v1/cloud/integrations/${intg.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
       body: JSON.stringify({ enabled: !intg.enabled }),
     })
+    if (!res.ok) {
+      setActionError(`統合の有効/無効を変更できませんでした（HTTP ${res.status}）。設定は変わっていません`)
+      return
+    }
     await fetchIntegrations()
   }
 
+  // 接続確認は、結果を伝えないと押した意味がありません。以前は応答を
+  // 一切見ずにスピナーを止めるだけで、成功も失敗も同じ見た目でした。
   const handleTest = async (id: string) => {
     setTesting(t => ({ ...t, [id]: true }))
+    setActionError('')
     try {
-      await fetch(`/api/v1/cloud/integrations/${id}/test`, { method: 'POST', credentials: 'include' })
+      const res = await fetch(`/api/v1/cloud/integrations/${id}/test`, { method: 'POST', credentials: 'include' })
+      if (!res.ok) {
+        setActionError(`接続を確認できませんでした（HTTP ${res.status}）`)
+      }
+    } catch (e) {
+      setActionError(`接続を確認できませんでした（${e instanceof Error ? e.message : String(e)}）`)
     } finally { setTesting(t => ({ ...t, [id]: false })) }
   }
 
@@ -105,6 +142,16 @@ export default function CloudMonitoringPage() {
   return (
     <div className="min-h-screen bg-gray-950 text-gray-100 p-6">
       <div className="max-w-7xl mx-auto">
+        {loadError && (
+          <div className="mb-4 rounded-lg border border-amber-800 bg-amber-950/40 px-4 py-3 text-sm text-amber-200">
+            {loadError}
+          </div>
+        )}
+        {actionError && (
+          <div className="mb-4 rounded-lg border border-red-800 bg-red-950/40 px-4 py-3 text-sm text-red-200">
+            {actionError}
+          </div>
+        )}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
             <Cloud size={28} className="text-blue-400" />
@@ -178,7 +225,7 @@ export default function CloudMonitoringPage() {
                       {testing[intg.id] ? 'テスト中...' : '接続テスト'}
                     </button>
                     <button onClick={() => handleToggle(intg)}
-                      className={`px-2 py-1 rounded text-xs ${
+                      className={`px-2 py-1 rounded-sm text-xs ${
                         intg.enabled
                           ? 'bg-red-700/30 hover:bg-red-700/50 text-red-300'
                           : 'bg-green-700/30 hover:bg-green-700/50 text-green-300'
@@ -240,7 +287,11 @@ export default function CloudMonitoringPage() {
                             onChange={e => setForm(f => ({...f, config: {...f.config, [field]: e.target.value}}))}
                             rows={6}
                             className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-gray-200 text-sm font-mono resize-y"
-                            placeholder={'{\n  "type": "service_account",\n  "project_id": "...",\n  ...\n}'}
+                            // GCP のキーファイルそのものの形を書くと、Trivy と
+                            // Semgrep の秘密検知が**入力欄の見本を鍵として拾います**。
+                            // 見本の中身に鍵はありませんが、走査は中身を見ないので
+                            // 抑止の注記を足すしかなくなります。形の説明で足ります。
+                            placeholder={'GCP のサービスアカウントキー（JSON）を貼り付けてください'}
                           />
                         ) : (
                           <input

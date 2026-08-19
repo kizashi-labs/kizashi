@@ -215,7 +215,7 @@ export default function LiveResponsePage() {
   // ── Loading state ──────────────────────────────────────────────────────────
   if (isCreating) {
     return (
-      <div className="min-h-screen bg-falcon-bg flex items-center justify-center">
+      <div className="min-h-screen bg-[#080c14] flex items-center justify-center">
         <div className="text-green-400 font-mono text-sm animate-pulse">
           セッションを初期化中...
         </div>
@@ -226,7 +226,7 @@ export default function LiveResponsePage() {
   // ── Error state ────────────────────────────────────────────────────────────
   if (error) {
     return (
-      <div className="min-h-screen bg-falcon-bg flex items-center justify-center">
+      <div className="min-h-screen bg-[#080c14] flex items-center justify-center">
         <div className="text-center">
           <p className="text-red-400 font-mono text-sm mb-4">{error}</p>
           <button
@@ -242,7 +242,7 @@ export default function LiveResponsePage() {
 
   // ── Terminal UI ────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-falcon-bg flex flex-col text-green-400 font-mono text-sm">
+    <div className="min-h-screen bg-[#080c14] flex flex-col text-green-400 font-mono text-sm">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-2 border-b border-[#1a2234] bg-[#0a0f1e]">
         <div className="flex items-center gap-3">
@@ -278,7 +278,7 @@ export default function LiveResponsePage() {
           {/* Session status badge */}
           {session && (
             <span
-              className={`text-xs px-2 py-0.5 rounded border ${
+              className={`text-xs px-2 py-0.5 rounded-sm border ${
                 session.status === 'active'
                   ? 'border-green-800 text-green-400 bg-green-900/20'
                   : 'border-gray-700 text-gray-500 bg-gray-900/20'
@@ -341,7 +341,7 @@ export default function LiveResponsePage() {
 
             {cmd.output && (
               <pre
-                className={`mt-1 ml-0 whitespace-pre-wrap wrap-break-word leading-relaxed text-xs ${
+                className={`mt-1 ml-0 whitespace-pre-wrap break-words leading-relaxed text-xs ${
                   cmd.status === 'error' || cmd.status === 'timeout'
                     ? 'text-red-400'
                     : 'text-gray-300'

@@ -104,11 +104,6 @@ services:
     networks:
       - kizashi-internal
 
-  # Tor プロキシはこのベース compose には含まれない。ダークウェブ監視は
-  # オプトイン機能で、有効化するときだけ docker-compose.darkweb.yml を重ねる:
-  #   docker compose -f docker-compose.yml -f docker-compose.darkweb.yml up -d
-  # 既定構成が外部へ出ていかないようにするための分離。
-
   # ── Backend Services ────────────────────────
 
   api:
@@ -144,23 +139,37 @@ services:
       # telemetry-mapped DefaultSyncPaths and stable/test rules only.
       SERVER_URL: ${SERVER_URL:-http://localhost:8080}
       EDR_BASE_URL: ${EDR_BASE_URL:-http://localhost:8080}
+      # Live Response のコールバック先。未設定なら EDR_BASE_URL を使う。
+      # EDR_BASE_URL がエージェントから到達できない公開 URL の場合に指定する。
+      LIVE_RESPONSE_CALLBACK_URL: ${LIVE_RESPONSE_CALLBACK_URL:-}
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-}
       AGENT_BIN_DIR: /downloads
       AGENT_LATEST_VERSION: ${AGENT_LATEST_VERSION:-}
       AGENT_LATEST_URL: ${AGENT_LATEST_URL:-}
       AGENT_LATEST_CHECKSUM: ${AGENT_LATEST_CHECKSUM:-}
-      # 公開 IOC ブロックリストの取得と NVD CVE 照会は既定で有効（IOC 照合と
-      # 脆弱性検出の入力そのもののため）。外向き通信を一切出したくない環境は
-      # ここを false にする。README の「Outbound traffic」を参照。
-      THREAT_FEED_SYNC_ENABLED: ${THREAT_FEED_SYNC_ENABLED:-true}
-      NVD_LOOKUP_ENABLED: ${NVD_LOOKUP_ENABLED:-true}
-      NVD_API_KEY: ${NVD_API_KEY:-}
-      # ダークウェブ監視（ランサムウェアリークサイトの同期・照合）はオプトイン。
-      # 有効にすると ransomwatch / ransomware.live へ外向き HTTPS が出るため、
-      # 既定は off。有効化は docker-compose.darkweb.yml を重ねて行う。
-      TOR_PROXY_URL: ${TOR_PROXY_URL:-}
+      TOR_PROXY_URL: socks5://tor:9050
       DARKWEB_MONITOR_ENABLED: ${DARKWEB_MONITOR_ENABLED:-false}
+      # 無人対応のキルスイッチ。detection と同じ値であること。
+      # このプロセスにも隔離を実行しうる経路がある（自動修復エンジン・
+      # 隔離アクション API）。detection だけ止めても隔離は止まらない（P5-36）。
+      AUTO_RESPONSE_ENABLED: ${AUTO_RESPONSE_ENABLED:-true}
+      AUTO_ISOLATE_DRY_RUN: ${AUTO_ISOLATE_DRY_RUN:-}
+      # AWS: CSPM スキャナ (internal/cspm/awsscan) が顧客ロールを AssumeRole
+      # するための「引き受ける側」の身元。これが無いと AssumeRole の呼び出し元が
+      # 存在せず、スキャンは必ず「認証情報が見つからない」で失敗する。
+      #
+      # 保存するのはこの 1 組だけで、顧客アカウントの認証情報ではない。
+      # このキーに与える権限は「対象ロールを引き受けること」だけにすること
+      # (docs/CSPMスキャナ_AWS.md の作業 A)。
+      #
+      # EC2 上でインスタンスロールを使う場合は 3 つとも空のままでよい。
+      # aws-sdk-go-v2 の LoadDefaultConfig が IMDS から取得する。
+      AWS_REGION: ${AWS_REGION:-}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
+      # 一時credentialを使う場合のみ。
+      AWS_SESSION_TOKEN: ${AWS_SESSION_TOKEN:-}
       BILLING_GRACE_PERIOD_DAYS: ${BILLING_GRACE_PERIOD_DAYS:-30}
     volumes:
       - certs_data:/certs
@@ -208,10 +217,34 @@ services:
       # in .env. See docs/security/マルチテナント分離ハードニング.md 手順2.
       APP_DATABASE_URL: ${APP_DATABASE_URL:-}
       NATS_URL: nats://nats-1:4222,nats://nats-2:4222,nats://nats-3:4222
-      AUTO_RESPONSE_ENABLED: "true"
+      # 無人対応のキルスイッチ。api にも同じ値を渡すこと（下の api サービス参照）。
+      # 隔離は api 側の自動修復エンジンからも実行されるので、detection だけを
+      # false にしても止まらない。2026-08-13 にそれで実機が隔離された（P5-36）。
+      AUTO_RESPONSE_ENABLED: ${AUTO_RESPONSE_ENABLED:-true}
+      # 自動隔離の安全弁。空なら既定（冷却 30m / 1 時間 3 台）。
+      AUTO_ISOLATE_DRY_RUN: ${AUTO_ISOLATE_DRY_RUN:-}
+      AUTO_ISOLATE_COOLDOWN: ${AUTO_ISOLATE_COOLDOWN:-}
+      AUTO_ISOLATE_HOURLY_BUDGET: ${AUTO_ISOLATE_HOURLY_BUDGET:-}
       AUTO_ISOLATE_MIN_SEVERITY: "9"
+      # 自動隔離しないホスト（エージェントID または ホスト名、カンマ区切り）。
+      # 隔離は EDR サーバ以外への通信を全て遮断するため、プラットフォーム自身が
+      # 動くホストを隔離するとサービス停止＋SSH ロックアウトになり、復旧に
+      # 帯域外アクセス（SSM・シリアルコンソール）が要る。検知とアラートは
+      # 通常どおり動き、抑止されるのは応答だけ。
+      AUTO_ISOLATE_EXEMPT: ${AUTO_ISOLATE_EXEMPT:-}
+      # コード定義の相関検知（ランサムウェア・プロセス脅威・C2）に自動隔離を許可するか。
+      # 既定 false。DB ルールと違って rules テーブルに行が無く、運用者が1行を無効化して
+      # 権限を取り戻す手段が無いため、既定では要求を WARN に落として実行しない。
+      # 有効にする場合も AUTO_ISOLATE_MIN_SEVERITY と AUTO_ISOLATE_EXEMPT は効く。
       AI_ANALYSIS_ENABLED: "false"
       EDR_BASE_URL: ${SERVER_URL:-http://localhost:8080}
+      # GeoIP destination-country enrichment for network events (ip-api.com,
+      # non-blocking, cached). Off by default; requires outbound egress to resolve.
+      GEOIP_ENRICH_ENABLED: "${GEOIP_ENRICH_ENABLED:-false}"
+      # UEBA standalone anomaly-alert threshold (0-100 risk; 0 disables). When >0 the
+      # engine raises a dedicated alert once an entity's accumulated behavioral risk
+      # crosses it, independent of signature matches.
+      UEBA_ANOMALY_THRESHOLD: "${UEBA_ANOMALY_THRESHOLD:-0}"
       DETECTION_CONCURRENCY: ${DETECTION_CONCURRENCY:-20}
       # Empty → the detection engine derives MaxAckPending from concurrency
       # (concurrency×3). Keep prefetch aligned with real worker parallelism:

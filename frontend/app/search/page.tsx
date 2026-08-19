@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { useMutation } from '@tanstack/react-query'
 import { apiFetch } from '@/lib/api'
+import { PageSaveFailed } from '@/components/PageSaveFailed'
 import Link from 'next/link'
 import {
   Search, ShieldAlert, Monitor, AlertTriangle,
@@ -98,7 +99,7 @@ const TYPE_LABELS: Record<ResultType, string> = {
 
 const TYPE_COLORS: Record<ResultType, string> = {
   nav:      'text-teal-400 bg-teal-500/10',
-  alert:    'text-falcon-red bg-falcon-red/10',
+  alert:    'text-[#e8002d] bg-[#e8002d]/10',
   agent:    'text-blue-400 bg-blue-500/10',
   incident: 'text-orange-400 bg-orange-500/10',
   rule:     'text-green-400 bg-green-500/10',
@@ -156,23 +157,23 @@ function ResultItem({
       href={result.link}
       onMouseEnter={onMouseEnter}
       className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all group ${
-        isActive ? 'bg-falcon-active' : 'hover:bg-falcon-surface'
+        isActive ? 'bg-[#1d2f4a]' : 'hover:bg-[#0d1220]'
       }`}
     >
       <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${colorClass}`}>
         <Icon className="w-4 h-4" />
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-falcon-text truncate group-hover:text-white transition-colors">
+        <p className="text-sm font-medium text-[#e2e8f4] truncate group-hover:text-white transition-colors">
           {result.title}
         </p>
-        <p className="text-xs text-falcon-muted truncate">{result.subtitle}</p>
+        <p className="text-xs text-[#7d92b0] truncate">{result.subtitle}</p>
       </div>
       <div className="flex items-center gap-2 shrink-0">
         <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${colorClass}`}>
           {TYPE_LABELS[result.type]}
         </span>
-        <ArrowRight className={`w-4 h-4 text-falcon-subtle transition-all ${isActive ? 'text-falcon-muted translate-x-0.5' : ''}`} />
+        <ArrowRight className={`w-4 h-4 text-[#3d5068] transition-all ${isActive ? 'text-[#7d92b0] translate-x-0.5' : ''}`} />
       </div>
     </Link>
   )
@@ -330,23 +331,24 @@ export default function SearchPage() {
   return (
     <div className="min-h-screen bg-[#070d19] p-6">
       <div className="max-w-3xl mx-auto">
+        <PageSaveFailed className="mb-4" />
 
         {/* Header */}
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-3 mb-3">
-            <div className="w-10 h-10 rounded-xl bg-falcon-red/10 border border-falcon-red/30 flex items-center justify-center">
-              <Search className="w-5 h-5 text-falcon-red" />
+            <div className="w-10 h-10 rounded-xl bg-[#e8002d]/10 border border-[#e8002d]/30 flex items-center justify-center">
+              <Search className="w-5 h-5 text-[#e8002d]" />
             </div>
             <h1 className="text-2xl font-bold text-white">グローバル検索</h1>
           </div>
-          <p className="text-falcon-muted text-sm">
+          <p className="text-[#7d92b0] text-sm">
             ページ・アラート・エージェント・インシデント・ルール・プレイブックを横断検索
           </p>
         </div>
 
         {/* Search Input */}
         <div className="relative mb-4">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-falcon-subtle pointer-events-none" />
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#3d5068] pointer-events-none" />
           <input
             ref={inputRef}
             id="search-input"
@@ -358,22 +360,18 @@ export default function SearchPage() {
             onCompositionEnd={() => setTimeout(() => { if (inputRef.current) handleQueryChange(inputRef.current.value) }, 0)}
             onKeyDown={handleKeyDown}
             placeholder="ページ名・キーワードを入力して検索..."
-            className="w-full bg-falcon-surface border border-falcon-border rounded-xl
-                       pl-12 pr-12 py-4 text-base text-falcon-text placeholder-falcon-subtle
-                       focus:outline-hidden focus:border-falcon-red/50 focus:ring-1 focus:ring-falcon-red/20
-                       transition-all"
+            className="w-full bg-[#0d1220] border border-[#1e2d42] rounded-xl pl-12 pr-12 py-4 text-base text-[#e2e8f4] placeholder-[#3d5068] focus:outline-hidden focus:border-[#e8002d]/50 focus:ring-1 focus:ring-[#e8002d]/20 transition-all"
           />
           {query && (
             <button
               onClick={handleClear}
-              className="absolute right-4 top-1/2 -translate-y-1/2 p-1 rounded
-                         text-falcon-subtle hover:text-falcon-muted transition-colors"
+              className="absolute right-4 top-1/2 -translate-y-1/2 p-1 rounded-sm text-[#3d5068] hover:text-[#7d92b0] transition-colors"
             >
               <X className="w-4 h-4" />
             </button>
           )}
           {isLoading && (
-            <Loader2 className="absolute right-12 top-1/2 -translate-y-1/2 w-4 h-4 text-falcon-muted animate-spin" />
+            <Loader2 className="absolute right-12 top-1/2 -translate-y-1/2 w-4 h-4 text-[#7d92b0] animate-spin" />
           )}
         </div>
 
@@ -385,8 +383,8 @@ export default function SearchPage() {
               onClick={() => handleFilterChange(pill.value)}
               className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
                 activeFilter === pill.value
-                  ? 'bg-falcon-red/15 border-falcon-red/40 text-falcon-red'
-                  : 'bg-falcon-surface border-falcon-border text-falcon-muted hover:border-falcon-muted/40 hover:text-falcon-text'
+                  ? 'bg-[#e8002d]/15 border-[#e8002d]/40 text-[#e8002d]'
+                  : 'bg-[#0d1220] border-[#1e2d42] text-[#7d92b0] hover:border-[#7d92b0]/40 hover:text-[#e2e8f4]'
               }`}
             >
               {pill.label}
@@ -399,15 +397,15 @@ export default function SearchPage() {
           <div className="space-y-1 mb-4">
             {/* Meta line */}
             <div className="flex items-center justify-between mb-3">
-              <p className="text-xs text-falcon-muted">
+              <p className="text-xs text-[#7d92b0]">
                 <span className="text-white font-medium">{filteredResults.length}</span> 件の結果
                 {searchData?.took_ms !== undefined && activeFilter !== 'nav' && (
-                  <span className="ml-2 text-falcon-subtle">• {searchData.took_ms}ms</span>
+                  <span className="ml-2 text-[#3d5068]">• {searchData.took_ms}ms</span>
                 )}
               </p>
               <button
                 onClick={() => { saveRecentSearch(query) }}
-                className="text-xs text-falcon-subtle hover:text-falcon-muted transition-colors"
+                className="text-xs text-[#3d5068] hover:text-[#7d92b0] transition-colors"
               >
                 最近の検索に保存
               </button>
@@ -426,14 +424,14 @@ export default function SearchPage() {
                     <div className={`w-5 h-5 rounded-sm flex items-center justify-center ${colorClass}`}>
                       <Icon className="w-3 h-3" />
                     </div>
-                    <span className="text-xs font-semibold text-falcon-muted uppercase tracking-wider">
+                    <span className="text-xs font-semibold text-[#7d92b0] uppercase tracking-wider">
                       {TYPE_LABELS[type]}
                     </span>
-                    <span className="text-xs text-falcon-subtle">({items.length})</span>
+                    <span className="text-xs text-[#3d5068]">({items.length})</span>
                   </div>
 
                   {/* Items */}
-                  <div className="bg-falcon-surface border border-falcon-border rounded-lg overflow-hidden divide-y divide-falcon-border">
+                  <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg overflow-hidden divide-y divide-[#1e2d42]">
                     {items.map(result => {
                       const idx = getGlobalIdx()
                       return (
@@ -454,12 +452,12 @@ export default function SearchPage() {
 
         {/* Empty state */}
         {showEmpty && (
-          <div className="bg-falcon-surface border border-falcon-border rounded-xl p-8 text-center">
-            <Search className="w-10 h-10 text-falcon-border mx-auto mb-3" />
-            <p className="text-sm font-medium text-falcon-muted mb-1">
+          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-8 text-center">
+            <Search className="w-10 h-10 text-[#1e2d42] mx-auto mb-3" />
+            <p className="text-sm font-medium text-[#7d92b0] mb-1">
               「{query}」に一致する結果がありません
             </p>
-            <p className="text-xs text-falcon-subtle">検索ワードを変更するか、フィルターを調整してください</p>
+            <p className="text-xs text-[#3d5068]">検索ワードを変更するか、フィルターを調整してください</p>
           </div>
         )}
 
@@ -468,13 +466,13 @@ export default function SearchPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
             {/* Recent searches */}
-            <div className="bg-falcon-surface border border-falcon-border rounded-xl p-4">
+            <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-4">
               <div className="flex items-center gap-2 mb-3">
-                <Clock className="w-4 h-4 text-falcon-muted" />
+                <Clock className="w-4 h-4 text-[#7d92b0]" />
                 <h3 className="text-sm font-semibold text-white">最近の検索</h3>
               </div>
               {recentSearches.length === 0 ? (
-                <p className="text-xs text-falcon-subtle">まだ検索履歴がありません</p>
+                <p className="text-xs text-[#3d5068]">まだ検索履歴がありません</p>
               ) : (
                 <div className="space-y-1">
                   {recentSearches.map(q => (
@@ -484,17 +482,14 @@ export default function SearchPage() {
                     >
                       <button
                         onClick={() => handleRecentClick(q)}
-                        className="flex-1 flex items-center gap-2 px-3 py-2 rounded
-                                   text-sm text-falcon-muted hover:text-falcon-text hover:bg-[#0a1628]
-                                   transition-colors text-left"
+                        className="flex-1 flex items-center gap-2 px-3 py-2 rounded-sm text-sm text-[#7d92b0] hover:text-[#e2e8f4] hover:bg-[#0a1628] transition-colors text-left"
                       >
-                        <Clock className="w-3 h-3 text-falcon-subtle shrink-0" />
+                        <Clock className="w-3 h-3 text-[#3d5068] shrink-0" />
                         <span className="truncate">{q}</span>
                       </button>
                       <button
                         onClick={e => handleRemoveRecent(q, e)}
-                        className="p-1 rounded text-falcon-subtle hover:text-falcon-muted
-                                   opacity-0 group-hover:opacity-100 transition-all"
+                        className="p-1 rounded-sm text-[#3d5068] hover:text-[#7d92b0] opacity-0 group-hover:opacity-100 transition-all"
                       >
                         <X className="w-3 h-3" />
                       </button>
@@ -505,28 +500,27 @@ export default function SearchPage() {
             </div>
 
             {/* Search tips */}
-            <div className="bg-falcon-surface border border-falcon-border rounded-xl p-4">
+            <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-4">
               <div className="flex items-center gap-2 mb-3">
                 <Lightbulb className="w-4 h-4 text-yellow-400" />
                 <h3 className="text-sm font-semibold text-white">検索のヒント</h3>
               </div>
               <ul className="space-y-2">
                 {SEARCH_TIPS.map((tip, i) => (
-                  <li key={i} className="flex items-start gap-2 text-xs text-falcon-muted">
-                    <span className="w-4 h-4 rounded bg-falcon-border flex items-center justify-center
-                                     text-[9px] font-bold text-falcon-subtle shrink-0 mt-0.5">
+                  <li key={i} className="flex items-start gap-2 text-xs text-[#7d92b0]">
+                    <span className="w-4 h-4 rounded-sm bg-[#1e2d42] flex items-center justify-center text-[9px] font-bold text-[#3d5068] shrink-0 mt-0.5">
                       {i + 1}
                     </span>
                     {tip}
                   </li>
                 ))}
               </ul>
-              <div className="mt-4 pt-3 border-t border-falcon-border">
-                <p className="text-xs text-falcon-subtle">
-                  <kbd className="px-1.5 py-0.5 bg-falcon-border rounded-sm text-[10px] font-mono">↑</kbd>
-                  <kbd className="px-1.5 py-0.5 bg-falcon-border rounded-sm text-[10px] font-mono ml-1">↓</kbd>
+              <div className="mt-4 pt-3 border-t border-[#1e2d42]">
+                <p className="text-xs text-[#3d5068]">
+                  <kbd className="px-1.5 py-0.5 bg-[#1e2d42] rounded-sm text-[10px] font-mono">↑</kbd>
+                  <kbd className="px-1.5 py-0.5 bg-[#1e2d42] rounded-sm text-[10px] font-mono ml-1">↓</kbd>
                   {' '}で移動、{' '}
-                  <kbd className="px-1.5 py-0.5 bg-falcon-border rounded-sm text-[10px] font-mono">Enter</kbd>
+                  <kbd className="px-1.5 py-0.5 bg-[#1e2d42] rounded-sm text-[10px] font-mono">Enter</kbd>
                   {' '}で開く
                 </p>
               </div>

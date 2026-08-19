@@ -67,8 +67,16 @@ export async function POST(req: NextRequest) {
   }
 
   // Forward to Go API for DB update and SSE broadcast
+  // fetch は 4xx/5xx で reject しません。res.ok を見ないと、Go 側が 500 を
+  // 返しても catch に入らず、課金の更新が行われないまま Stripe には 200 を
+  // 返します。Stripe は 200 を受けたイベントを再送しないので、その支払いは
+  // 二度と反映されません。
+  //
+  // 2xx を返す方針そのものは変えません（Stripe の再送を止めないため 5xx を
+  // 返す選択肢もありますが、どちらが正しいかは課金の運用方針です）。
+  // 変えるのは、転送できなかったことが記録に残るかどうかです。
   try {
-    await fetch(`${API_INTERNAL_URL}/api/v1/webhooks/stripe`, {
+    const res = await fetch(`${API_INTERNAL_URL}/api/v1/webhooks/stripe`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -77,6 +85,10 @@ export async function POST(req: NextRequest) {
       },
       body: JSON.stringify(event),
     })
+    if (!res.ok) {
+      console.error('[stripe-webhook] API rejected the forwarded event',
+        { status: res.status, type: event.type })
+    }
   } catch (err) {
     // Log but don't fail — Stripe requires a 2xx response
     console.error('[stripe-webhook] Failed to forward to API:', err)

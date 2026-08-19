@@ -364,12 +364,16 @@ func (a *AIAgent) executeAutoResponse(ctx context.Context, alert *Alert, analysi
 		if a.isolator == nil {
 			return fmt.Errorf("isolation gatekeeper not configured")
 		}
+		// Hostname を載せるのは AUTO_ISOLATE_EXEMPT がホスト名でも書けるため。
+		// 空にすると Gatekeeper 側は HostnameResolver に頼ることになり、
+		// resolver を構成し忘れた環境で除外が黙って効かなくなる。
 		if _, err := a.isolator.Isolate(ctx, isolation.Request{
-			AgentID: alert.AgentID,
-			Reason:  fmt.Sprintf("AI分析による自動隔離: %s", ar.Reasoning),
-			AlertID: alert.ID,
-			Origin:  isolation.OriginAITriage,
-			Label:   alert.RuleName,
+			AgentID:  alert.AgentID,
+			Hostname: alert.Hostname,
+			Reason:   fmt.Sprintf("AI分析による自動隔離: %s", ar.Reasoning),
+			AlertID:  alert.ID,
+			Origin:   isolation.OriginAITriage,
+			Label:    alert.RuleName,
 		}); err != nil {
 			return fmt.Errorf("isolate endpoint: %w", err)
 		}

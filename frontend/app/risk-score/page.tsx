@@ -4,6 +4,7 @@ import { useState, useMemo } from 'react'
 import Link from 'next/link'
 import { useQuery } from '@tanstack/react-query'
 import { apiFetch } from '@/lib/api'
+import { USE_MOCK } from '@/lib/mock'
 import {
   TrendingDown, AlertTriangle, Shield, Server,
   Info, ChevronRight, RefreshCw,
@@ -12,6 +13,8 @@ import {
   LineChart, Line, XAxis, YAxis, Tooltip,
   ResponsiveContainer, CartesianGrid,
 } from 'recharts'
+
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -318,18 +321,23 @@ export default function RiskScorePage() {
 
   // ── Mock 30-day trend (realistic looking historical data) ──
 
+  // 30日間のリスク推移。
+  //
+  // 以前はこれを「今のスコア - 30 + 経過日数」に乱数を足して作っていました。
+  // 過去のスコアはどこにも記録されていないので、線は毎回違う形で描かれます。
+  // 右肩の傾きは、この画面を開いた人にとっては「上がってきている」という
+  // 事実です。誰も測っていません。
   const trendData = useMemo(() => {
+    if (!USE_MOCK) return []
     const now = new Date()
     return Array.from({ length: 30 }, (_, i) => {
       const d = new Date(now)
       d.setDate(d.getDate() - (29 - i))
-      // Simulate gradual increase with some noise, ending at current score
       const base = Math.max(10, orgRiskScore - 30 + i)
       const noise = Math.round((Math.random() - 0.5) * 12)
-      const score = clamp(base + noise, 0, 100)
       return {
         date: `${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}`,
-        score,
+        score: clamp(base + noise, 0, 100),
       }
     })
   }, [orgRiskScore])
@@ -416,6 +424,7 @@ export default function RiskScorePage() {
 
   return (
     <div className="min-h-screen bg-gray-900 p-6 space-y-6">
+      <PageDataUnavailable />
 
       {/* ── Header ── */}
       <div className="flex items-start justify-between flex-wrap gap-3">
@@ -433,8 +442,7 @@ export default function RiskScorePage() {
         <div className="flex items-center gap-2">
           <button
             onClick={() => setShowCriteria(v => !v)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-800 border border-gray-700
-                       text-gray-400 hover:text-white text-sm transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-800 border border-gray-700 text-gray-400 hover:text-white text-sm transition-colors"
           >
             <Info className="w-3.5 h-3.5" />
             計算基準を表示
@@ -442,8 +450,7 @@ export default function RiskScorePage() {
           <button
             onClick={() => { refetchAlerts(); refetchAgents() }}
             disabled={isLoading}
-            className="p-2 rounded-lg bg-gray-800 border border-gray-700 text-gray-400
-                       hover:text-white hover:bg-gray-700 transition-colors disabled:opacity-40"
+            className="p-2 rounded-lg bg-gray-800 border border-gray-700 text-gray-400 hover:text-white hover:bg-gray-700 transition-colors disabled:opacity-40"
             title="更新"
           >
             <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />

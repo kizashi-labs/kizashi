@@ -12,6 +12,9 @@ import {
   ArrowUpRight, ArrowDownRight, Minus,
 } from 'lucide-react'
 
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+import { PageSaveFailed } from '@/components/PageSaveFailed'
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type RiskLevel = 'critical' | 'high' | 'medium' | 'low'
@@ -181,7 +184,7 @@ const MOCK_INVESTIGATIONS: Investigation[] = [
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 const RISK_COLORS: Record<RiskLevel, string> = {
-  critical: 'bg-falcon-red/20 text-falcon-red border border-falcon-red/30',
+  critical: 'bg-[#e8002d]/20 text-[#e8002d] border border-[#e8002d]/30',
   high: 'bg-orange-900/40 text-orange-400 border border-orange-700/40',
   medium: 'bg-yellow-900/40 text-yellow-400 border border-yellow-700/40',
   low: 'bg-green-900/40 text-green-400 border border-green-700/40',
@@ -201,7 +204,7 @@ const EVENT_TYPE_LABELS: Record<EventType, string> = {
 const EVENT_TYPE_COLORS: Record<EventType, string> = {
   after_hours_access: 'bg-blue-900/40 text-blue-300',
   bulk_download: 'bg-orange-900/40 text-orange-300',
-  privilege_escalation: 'bg-falcon-red/20 text-falcon-red',
+  privilege_escalation: 'bg-[#e8002d]/20 text-[#e8002d]',
   unusual_geo: 'bg-purple-900/40 text-purple-300',
   mass_delete: 'bg-red-900/40 text-red-300',
   auth_failure: 'bg-gray-800 text-gray-400',
@@ -211,7 +214,7 @@ const STATUS_STYLES: Record<InvestigationStatus, string> = {
   open: 'bg-blue-900/40 text-blue-300 border border-blue-700/40',
   in_progress: 'bg-yellow-900/40 text-yellow-400 border border-yellow-700/40',
   closed: 'bg-gray-800 text-gray-400 border border-gray-700/40',
-  escalated: 'bg-falcon-red/20 text-falcon-red border border-falcon-red/30',
+  escalated: 'bg-[#e8002d]/20 text-[#e8002d] border border-[#e8002d]/30',
 }
 
 const STATUS_LABELS: Record<InvestigationStatus, string> = {
@@ -234,17 +237,17 @@ function getRiskBucket(score: number): RiskBucket {
 }
 
 const BUCKET_BG: Record<RiskBucket, (count: number) => string> = {
-  '0-25': (n) => n === 0 ? 'bg-falcon-surface' : 'bg-green-900/30 hover:bg-green-900/50',
-  '26-50': (n) => n === 0 ? 'bg-falcon-surface' : 'bg-yellow-900/30 hover:bg-yellow-900/50',
-  '51-75': (n) => n === 0 ? 'bg-falcon-surface' : 'bg-orange-900/30 hover:bg-orange-900/50',
-  '76-100': (n) => n === 0 ? 'bg-falcon-surface' : 'bg-falcon-red/20 hover:bg-falcon-red/30',
+  '0-25': (n) => n === 0 ? 'bg-[#0d1220]' : 'bg-green-900/30 hover:bg-green-900/50',
+  '26-50': (n) => n === 0 ? 'bg-[#0d1220]' : 'bg-yellow-900/30 hover:bg-yellow-900/50',
+  '51-75': (n) => n === 0 ? 'bg-[#0d1220]' : 'bg-orange-900/30 hover:bg-orange-900/50',
+  '76-100': (n) => n === 0 ? 'bg-[#0d1220]' : 'bg-[#e8002d]/20 hover:bg-[#e8002d]/30',
 }
 
 const BUCKET_TEXT: Record<RiskBucket, string> = {
   '0-25': 'text-green-400',
   '26-50': 'text-yellow-400',
   '51-75': 'text-orange-400',
-  '76-100': 'text-falcon-red',
+  '76-100': 'text-[#e8002d]',
 }
 
 // ─── Heatmap ──────────────────────────────────────────────────────────────────
@@ -256,13 +259,13 @@ function UserRiskHeatmap({ users, onCellClick, activeDept, activeBucket }: {
   activeBucket: RiskBucket | ''
 }) {
   return (
-    <div className="bg-falcon-surface border border-falcon-border rounded-lg p-5 mb-4">
+    <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-5 mb-4">
       <h3 className="text-white font-semibold mb-4 text-sm">リスクユーザーマトリクス（クリックでフィルタ）</h3>
       <div className="overflow-x-auto">
         <table className="w-full">
           <thead>
             <tr>
-              <th className="text-left text-falcon-muted text-xs pb-2 pr-4 font-medium w-28">部門</th>
+              <th className="text-left text-[#7d92b0] text-xs pb-2 pr-4 font-medium w-28">部門</th>
               {RISK_BUCKETS.map(b => (
                 <th key={b} className={`text-center text-xs pb-2 font-medium px-2 ${BUCKET_TEXT[b]}`}>
                   {b}
@@ -270,10 +273,10 @@ function UserRiskHeatmap({ users, onCellClick, activeDept, activeBucket }: {
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-falcon-border">
+          <tbody className="divide-y divide-[#1e2d42]">
             {DEPARTMENTS.map(dept => (
               <tr key={dept}>
-                <td className="text-falcon-muted text-xs py-2 pr-4 font-medium">{dept}</td>
+                <td className="text-[#7d92b0] text-xs py-2 pr-4 font-medium">{dept}</td>
                 {RISK_BUCKETS.map(bucket => {
                   const count = users.filter(u => u.department === dept && getRiskBucket(u.risk_score) === bucket).length
                   const isActive = activeDept === dept && activeBucket === bucket
@@ -281,8 +284,8 @@ function UserRiskHeatmap({ users, onCellClick, activeDept, activeBucket }: {
                     <td key={bucket} className="px-2 py-1.5 text-center">
                       <button
                         onClick={() => onCellClick(dept, bucket)}
-                        className={`w-full h-10 rounded flex items-center justify-center text-sm font-bold transition-all
-                                    ${count === 0 ? 'bg-falcon-surface text-falcon-subtle cursor-default' : BUCKET_BG[bucket](count)}
+                        className={`w-full h-10 rounded-sm flex items-center justify-center text-sm font-bold transition-all
+                                    ${count === 0 ? 'bg-[#0d1220] text-[#3d5068] cursor-default' : BUCKET_BG[bucket](count)}
                                     ${isActive ? 'ring-2 ring-white' : ''}
                                     `}
                         disabled={count === 0}
@@ -316,16 +319,16 @@ function IndicatorCards({ events }: { events: BehaviorEvent[] }) {
   return (
     <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-5">
       {indicators.map(ind => (
-        <div key={ind.type} className="bg-falcon-surface border border-falcon-border rounded-lg p-4">
+        <div key={ind.type} className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-4">
           <div className="flex items-start justify-between mb-2">
             <span className={`text-xs px-2 py-0.5 rounded-sm ${EVENT_TYPE_COLORS[ind.type]}`}>{ind.label}</span>
-            <div className={`flex items-center gap-1 text-xs ${ind.trend === 'up' ? 'text-falcon-red' : ind.trend === 'down' ? 'text-green-400' : 'text-falcon-muted'}`}>
+            <div className={`flex items-center gap-1 text-xs ${ind.trend === 'up' ? 'text-[#e8002d]' : ind.trend === 'down' ? 'text-green-400' : 'text-[#7d92b0]'}`}>
               {ind.trend === 'up' ? <ArrowUpRight className="w-3.5 h-3.5" /> : ind.trend === 'down' ? <ArrowDownRight className="w-3.5 h-3.5" /> : <Minus className="w-3.5 h-3.5" />}
               {ind.trend !== 'stable' && `${Math.abs(ind.trend_pct)}%`}
             </div>
           </div>
           <p className="text-white text-2xl font-bold">{ind.count}</p>
-          <p className="text-falcon-muted text-xs mt-0.5">今週のイベント数</p>
+          <p className="text-[#7d92b0] text-xs mt-0.5">今週のイベント数</p>
         </div>
       ))}
     </div>
@@ -355,13 +358,13 @@ function PeerComparison({ users, events }: { users: RiskUser[]; events: Behavior
     : 1
 
   return (
-    <div className="bg-falcon-surface border border-falcon-border rounded-lg p-5">
+    <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-5">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-white font-semibold text-sm">ピア比較</h3>
         <select
           value={selectedUserId}
           onChange={e => setSelectedUserId(e.target.value)}
-          className="bg-[#070d19] border border-falcon-border rounded-sm px-2 py-1 text-white text-xs focus:outline-hidden focus:border-falcon-red/50"
+          className="bg-[#070d19] border border-[#1e2d42] rounded-sm px-2 py-1 text-white text-xs focus:outline-hidden focus:border-[#e8002d]/50"
         >
           {users.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
         </select>
@@ -369,7 +372,7 @@ function PeerComparison({ users, events }: { users: RiskUser[]; events: Behavior
       {selectedUser && (
         <>
           <div className="flex items-center gap-4 text-xs mb-4">
-            <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-falcon-red/60 inline-block" />選択ユーザー: {selectedUser.name}</span>
+            <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-[#e8002d]/60 inline-block" />選択ユーザー: {selectedUser.name}</span>
             <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-blue-500/60 inline-block" />部門平均 ({selectedUser.department})</span>
           </div>
           <div className="space-y-3">
@@ -381,14 +384,14 @@ function PeerComparison({ users, events }: { users: RiskUser[]; events: Behavior
               return (
                 <div key={type}>
                   <div className="flex items-center justify-between mb-1">
-                    <span className="text-falcon-muted text-xs">{EVENT_TYPE_LABELS[type]}</span>
+                    <span className="text-[#7d92b0] text-xs">{EVENT_TYPE_LABELS[type]}</span>
                     <div className="flex gap-3 text-xs">
-                      <span className="text-falcon-red">{userCnt}</span>
+                      <span className="text-[#e8002d]">{userCnt}</span>
                       <span className="text-blue-400">{deptAvg}</span>
                     </div>
                   </div>
-                  <div className="relative h-4 bg-falcon-border rounded-sm overflow-hidden">
-                    <div className="absolute left-0 top-0.5 h-1.5 rounded-sm bg-falcon-red/60 transition-all" style={{ width: `${userPct}%` }} />
+                  <div className="relative h-4 bg-[#1e2d42] rounded-sm overflow-hidden">
+                    <div className="absolute left-0 top-0.5 h-1.5 rounded-sm bg-[#e8002d]/60 transition-all" style={{ width: `${userPct}%` }} />
                     <div className="absolute left-0 bottom-0.5 h-1.5 rounded-sm bg-blue-500/60 transition-all" style={{ width: `${avgPct}%` }} />
                   </div>
                 </div>
@@ -450,38 +453,38 @@ function NewInvestigationModal({ users, onClose, onSubmit }: {
 
   return (
     <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
-      <div className="bg-falcon-surface border border-falcon-border rounded-xl w-full max-w-lg max-h-[85vh] overflow-y-auto">
-        <div className="flex items-center justify-between p-5 border-b border-falcon-border sticky top-0 bg-falcon-surface">
+      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl w-full max-w-lg max-h-[85vh] overflow-y-auto">
+        <div className="flex items-center justify-between p-5 border-b border-[#1e2d42] sticky top-0 bg-[#0d1220]">
           <h3 className="text-white font-bold">新規調査開始</h3>
-          <button onClick={onClose} className="text-falcon-muted hover:text-white"><X className="w-5 h-5" /></button>
+          <button onClick={onClose} className="text-[#7d92b0] hover:text-white"><X className="w-5 h-5" /></button>
         </div>
         <div className="p-5 space-y-4">
           <div>
-            <label className="text-falcon-muted text-xs mb-1 block">対象ユーザー *</label>
+            <label className="text-[#7d92b0] text-xs mb-1 block">対象ユーザー *</label>
             <select
               value={form.subject_user_id}
               onChange={e => setForm(p => ({ ...p, subject_user_id: e.target.value }))}
-              className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-red/50"
+              className="w-full bg-[#070d19] border border-[#1e2d42] rounded-sm px-3 py-2 text-white text-sm focus:outline-hidden focus:border-[#e8002d]/50"
             >
               <option value="">選択してください</option>
               {users.map(u => <option key={u.id} value={u.id}>{u.name} ({u.department})</option>)}
             </select>
           </div>
           <div>
-            <label className="text-falcon-muted text-xs mb-1 block">調査担当者 *</label>
+            <label className="text-[#7d92b0] text-xs mb-1 block">調査担当者 *</label>
             <input
               value={form.investigator}
               onChange={e => setForm(p => ({ ...p, investigator: e.target.value }))}
-              className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-red/50"
+              className="w-full bg-[#070d19] border border-[#1e2d42] rounded-sm px-3 py-2 text-white text-sm focus:outline-hidden focus:border-[#e8002d]/50"
               placeholder="担当者名..."
             />
           </div>
           <div>
-            <label className="text-falcon-muted text-xs mb-1 block">優先度</label>
+            <label className="text-[#7d92b0] text-xs mb-1 block">優先度</label>
             <select
               value={form.priority}
               onChange={e => setForm(p => ({ ...p, priority: e.target.value as Investigation['priority'] }))}
-              className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-red/50"
+              className="w-full bg-[#070d19] border border-[#1e2d42] rounded-sm px-3 py-2 text-white text-sm focus:outline-hidden focus:border-[#e8002d]/50"
             >
               <option value="critical">重大</option>
               <option value="high">高</option>
@@ -490,7 +493,7 @@ function NewInvestigationModal({ users, onClose, onSubmit }: {
             </select>
           </div>
           <div>
-            <label className="text-falcon-muted text-xs mb-2 block">リスク指標（チェック）</label>
+            <label className="text-[#7d92b0] text-xs mb-2 block">リスク指標（チェック）</label>
             <div className="flex flex-wrap gap-2 mb-2">
               {ALL_INDICATORS.map(ind => (
                 <label key={ind} className="flex items-center gap-1.5 text-xs cursor-pointer">
@@ -503,9 +506,9 @@ function NewInvestigationModal({ users, onClose, onSubmit }: {
                         ? p.risk_indicators.filter(x => x !== ind)
                         : [...p.risk_indicators, ind],
                     }))}
-                    className="accent-falcon-red"
+                    className="accent-[#e8002d]"
                   />
-                  <span className="text-falcon-muted">{ind}</span>
+                  <span className="text-[#7d92b0]">{ind}</span>
                 </label>
               ))}
             </div>
@@ -515,28 +518,28 @@ function NewInvestigationModal({ users, onClose, onSubmit }: {
                 onChange={e => setIndicatorInput(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && addIndicator()}
                 placeholder="カスタム指標を追加..."
-                className="flex-1 bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-white text-xs focus:outline-hidden focus:border-falcon-red/50"
+                className="flex-1 bg-[#070d19] border border-[#1e2d42] rounded-sm px-3 py-2 text-white text-xs focus:outline-hidden focus:border-[#e8002d]/50"
               />
-              <button onClick={addIndicator} className="px-3 py-2 bg-falcon-border text-falcon-muted rounded-sm text-xs hover:text-white transition-colors">追加</button>
+              <button onClick={addIndicator} className="px-3 py-2 bg-[#1e2d42] text-[#7d92b0] rounded-sm text-xs hover:text-white transition-colors">追加</button>
             </div>
           </div>
           <div>
-            <label className="text-falcon-muted text-xs mb-1 block">備考</label>
+            <label className="text-[#7d92b0] text-xs mb-1 block">備考</label>
             <textarea
               value={form.notes}
               onChange={e => setForm(p => ({ ...p, notes: e.target.value }))}
               rows={3}
-              className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-red/50 resize-none"
+              className="w-full bg-[#070d19] border border-[#1e2d42] rounded-sm px-3 py-2 text-white text-sm focus:outline-hidden focus:border-[#e8002d]/50 resize-none"
               placeholder="調査の背景・理由..."
             />
           </div>
         </div>
-        <div className="flex justify-end gap-3 p-5 border-t border-falcon-border">
-          <button onClick={onClose} className="px-4 py-2 text-sm text-falcon-muted hover:text-white transition-colors">キャンセル</button>
+        <div className="flex justify-end gap-3 p-5 border-t border-[#1e2d42]">
+          <button onClick={onClose} className="px-4 py-2 text-sm text-[#7d92b0] hover:text-white transition-colors">キャンセル</button>
           <button
             onClick={handleSubmit}
             disabled={!form.subject_user_id || !form.investigator}
-            className="px-4 py-2 text-sm bg-falcon-red text-white rounded-sm font-medium hover:bg-[#c5001f] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="px-4 py-2 text-sm bg-[#e8002d] text-white rounded-sm font-medium hover:bg-[#c5001f] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             調査開始
           </button>
@@ -640,20 +643,22 @@ export default function InsiderThreatPage() {
 
   return (
     <div className="min-h-screen bg-[#070d19] p-6">
+      <PageDataUnavailable />
+      <PageSaveFailed className="mb-4" />
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-lg bg-falcon-red/10 border border-falcon-red/30 flex items-center justify-center">
-            <Eye className="w-5 h-5 text-falcon-red" />
+          <div className="w-9 h-9 rounded-lg bg-[#e8002d]/10 border border-[#e8002d]/30 flex items-center justify-center">
+            <Eye className="w-5 h-5 text-[#e8002d]" />
           </div>
           <div>
             <h1 className="text-white font-bold text-xl">内部脅威ダッシュボード</h1>
-            <p className="text-falcon-muted text-sm">内部リスクの検知・分析・調査</p>
+            <p className="text-[#7d92b0] text-sm">内部リスクの検知・分析・調査</p>
           </div>
         </div>
         <button
           onClick={() => queryClient.invalidateQueries({ queryKey: ['insider-threat-users', 'insider-threat-events', 'insider-threat-investigations'] })}
-          className="p-2 rounded-lg border border-falcon-border text-falcon-muted hover:text-white hover:border-falcon-muted/40 transition-colors"
+          className="p-2 rounded-lg border border-[#1e2d42] text-[#7d92b0] hover:text-white hover:border-[#7d92b0]/40 transition-colors"
         >
           <RefreshCw className="w-4 h-4" />
         </button>
@@ -663,16 +668,16 @@ export default function InsiderThreatPage() {
       <div className="grid grid-cols-4 gap-4 mb-6">
         {[
           { label: '監視対象ユーザー', value: users.length, icon: Users, color: 'text-white' },
-          { label: '高リスク (>70)', value: highRiskUsers.length, icon: AlertTriangle, color: 'text-falcon-red' },
+          { label: '高リスク (>70)', value: highRiskUsers.length, icon: AlertTriangle, color: 'text-[#e8002d]' },
           { label: '進行中の調査', value: activeInvestigations.length, icon: Activity, color: 'text-orange-400' },
           { label: '今月のインシデント', value: incidentsThisMonth, icon: Shield, color: 'text-yellow-400' },
         ].map(({ label, value, icon: Icon, color }) => (
-          <div key={label} className="bg-falcon-surface border border-falcon-border rounded-lg p-4">
+          <div key={label} className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-4">
             <div className="flex items-center gap-3">
               <Icon className={`w-5 h-5 ${color}`} />
               <div>
                 <p className={`text-2xl font-bold ${color}`}>{value}</p>
-                <p className="text-falcon-muted text-xs">{label}</p>
+                <p className="text-[#7d92b0] text-xs">{label}</p>
               </div>
             </div>
           </div>
@@ -680,15 +685,15 @@ export default function InsiderThreatPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 mb-6 bg-falcon-surface border border-falcon-border rounded-lg p-1 w-fit">
+      <div className="flex gap-1 mb-6 bg-[#0d1220] border border-[#1e2d42] rounded-lg p-1 w-fit">
         {tabs.map(t => (
           <button
             key={t.id}
             onClick={() => setTab(t.id)}
-            className={`px-5 py-2 rounded text-sm font-medium transition-colors ${
+            className={`px-5 py-2 rounded-sm text-sm font-medium transition-colors ${
               tab === t.id
-                ? 'bg-falcon-active text-white'
-                : 'text-falcon-muted hover:text-white'
+                ? 'bg-[#1d2f4a] text-white'
+                : 'text-[#7d92b0] hover:text-white'
             }`}
           >
             {t.label}
@@ -709,58 +714,57 @@ export default function InsiderThreatPage() {
           {/* User search */}
           <div className="flex items-center gap-3 mb-4">
             <div className="relative flex-1 max-w-sm">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-falcon-muted" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#7d92b0]" />
               <input
                 value={userSearch}
                 onChange={e => setUserSearch(e.target.value)}
                 placeholder="ユーザー名または部門で検索..."
-                className="w-full bg-falcon-surface border border-falcon-border rounded px-3 py-2 pl-9 text-white text-sm
-                           focus:outline-hidden focus:border-falcon-red/50 placeholder:text-falcon-subtle"
+                className="w-full bg-[#0d1220] border border-[#1e2d42] rounded-sm px-3 py-2 pl-9 text-white text-sm focus:outline-hidden focus:border-[#e8002d]/50 placeholder:text-[#3d5068]"
               />
             </div>
             {(selectedDept || selectedBucket || userSearch) && (
               <button
                 onClick={() => { setSelectedDept(''); setSelectedBucket(''); setUserSearch('') }}
-                className="flex items-center gap-1 text-sm text-falcon-red hover:text-[#ff3355] transition-colors"
+                className="flex items-center gap-1 text-sm text-[#e8002d] hover:text-[#ff3355] transition-colors"
               >
                 <X className="w-4 h-4" />
                 フィルタクリア
               </button>
             )}
-            <span className="text-falcon-muted text-xs">{filteredUsers.length} / {users.length} ユーザー</span>
+            <span className="text-[#7d92b0] text-xs">{filteredUsers.length} / {users.length} ユーザー</span>
           </div>
 
           {/* Risk users table */}
-          <div className="bg-falcon-surface border border-falcon-border rounded-lg overflow-hidden">
+          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead className="border-b border-falcon-border">
+                <thead className="border-b border-[#1e2d42]">
                   <tr>
                     {['ユーザー', '部門', 'リスクスコア', 'リスク指標', '今週の異常数', '最終異常', 'ウォッチリスト', 'アクション'].map(h => (
-                      <th key={h} className="text-left text-falcon-muted text-xs px-4 py-3 font-medium whitespace-nowrap">{h}</th>
+                      <th key={h} className="text-left text-[#7d92b0] text-xs px-4 py-3 font-medium whitespace-nowrap">{h}</th>
                     ))}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-falcon-border">
+                <tbody className="divide-y divide-[#1e2d42]">
                   {filteredUsers.map(user => (
-                    <tr key={user.id} className="hover:bg-falcon-card transition-colors">
+                    <tr key={user.id} className="hover:bg-[#111827] transition-colors">
                       <td className="px-4 py-3">
                         <div>
                           <div className="flex items-center gap-2">
                             <p className="text-white font-medium text-sm">{user.name}</p>
-                            {user.trend === 'up' && <TrendingUp className="w-3.5 h-3.5 text-falcon-red" />}
+                            {user.trend === 'up' && <TrendingUp className="w-3.5 h-3.5 text-[#e8002d]" />}
                             {user.trend === 'down' && <TrendingDown className="w-3.5 h-3.5 text-green-400" />}
                           </div>
-                          <p className="text-falcon-muted text-xs">{user.title}</p>
+                          <p className="text-[#7d92b0] text-xs">{user.title}</p>
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-falcon-muted text-xs">{user.department}</td>
+                      <td className="px-4 py-3 text-[#7d92b0] text-xs">{user.department}</td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
-                          <div className="w-20 h-2 bg-falcon-border rounded-full">
+                          <div className="w-20 h-2 bg-[#1e2d42] rounded-full">
                             <div
                               className={`h-full rounded-full ${
-                                user.risk_score > 75 ? 'bg-falcon-red' :
+                                user.risk_score > 75 ? 'bg-[#e8002d]' :
                                 user.risk_score > 50 ? 'bg-orange-500' :
                                 user.risk_score > 25 ? 'bg-yellow-500' : 'bg-green-500'
                               }`}
@@ -768,7 +772,7 @@ export default function InsiderThreatPage() {
                             />
                           </div>
                           <span className={`font-bold text-sm ${
-                            user.risk_score > 75 ? 'text-falcon-red' :
+                            user.risk_score > 75 ? 'text-[#e8002d]' :
                             user.risk_score > 50 ? 'text-orange-400' :
                             user.risk_score > 25 ? 'text-yellow-400' : 'text-green-400'
                           }`}>{user.risk_score}</span>
@@ -777,29 +781,29 @@ export default function InsiderThreatPage() {
                       <td className="px-4 py-3">
                         <div className="flex flex-wrap gap-1">
                           {user.risk_indicators.slice(0, 2).map(ind => (
-                            <span key={ind} className="text-[10px] px-1.5 py-0.5 rounded-sm bg-falcon-red/10 text-falcon-red/80 border border-falcon-red/20">
+                            <span key={ind} className="text-[10px] px-1.5 py-0.5 rounded-sm bg-[#e8002d]/10 text-[#e8002d]/80 border border-[#e8002d]/20">
                               {ind}
                             </span>
                           ))}
                           {user.risk_indicators.length > 2 && (
-                            <span className="text-[10px] px-1.5 py-0.5 rounded-sm bg-falcon-border text-falcon-muted">
+                            <span className="text-[10px] px-1.5 py-0.5 rounded-sm bg-[#1e2d42] text-[#7d92b0]">
                               +{user.risk_indicators.length - 2}
                             </span>
                           )}
                         </div>
                       </td>
                       <td className="px-4 py-3">
-                        <span className={`font-bold text-sm ${user.anomaly_count_week > 5 ? 'text-falcon-red' : user.anomaly_count_week > 2 ? 'text-orange-400' : 'text-falcon-muted'}`}>
+                        <span className={`font-bold text-sm ${user.anomaly_count_week > 5 ? 'text-[#e8002d]' : user.anomaly_count_week > 2 ? 'text-orange-400' : 'text-[#7d92b0]'}`}>
                           {user.anomaly_count_week}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-falcon-muted text-xs whitespace-nowrap">
+                      <td className="px-4 py-3 text-[#7d92b0] text-xs whitespace-nowrap">
                         {new Date(user.last_anomaly).toLocaleString('ja-JP', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                       </td>
                       <td className="px-4 py-3">
                         <button
                           onClick={() => toggleWatchlist(user.id)}
-                          className={`transition-colors ${watchlist.has(user.id) ? 'text-yellow-400' : 'text-falcon-subtle hover:text-falcon-muted'}`}
+                          className={`transition-colors ${watchlist.has(user.id) ? 'text-yellow-400' : 'text-[#3d5068] hover:text-[#7d92b0]'}`}
                         >
                           {watchlist.has(user.id) ? <BookmarkCheck className="w-4 h-4" /> : <Bookmark className="w-4 h-4" />}
                         </button>
@@ -807,8 +811,7 @@ export default function InsiderThreatPage() {
                       <td className="px-4 py-3">
                         <button
                           onClick={() => { setShowNewInvModal(true) }}
-                          className="text-xs px-3 py-1.5 rounded bg-falcon-red/10 text-falcon-red border border-falcon-red/30
-                                     hover:bg-falcon-red/20 transition-colors whitespace-nowrap"
+                          className="text-xs px-3 py-1.5 rounded-sm bg-[#e8002d]/10 text-[#e8002d] border border-[#e8002d]/30 hover:bg-[#e8002d]/20 transition-colors whitespace-nowrap"
                         >
                           調査開始
                         </button>
@@ -817,8 +820,8 @@ export default function InsiderThreatPage() {
                   ))}
                   {filteredUsers.length === 0 && (
                     <tr>
-                      <td colSpan={8} className="px-4 py-12 text-center text-falcon-muted">
-                        <Users className="w-10 h-10 mx-auto mb-2 text-falcon-subtle" />
+                      <td colSpan={8} className="px-4 py-12 text-center text-[#7d92b0]">
+                        <Users className="w-10 h-10 mx-auto mb-2 text-[#3d5068]" />
                         条件に一致するユーザーが見つかりません
                       </td>
                     </tr>
@@ -838,25 +841,25 @@ export default function InsiderThreatPage() {
           {/* Anomaly timeline */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
             <div className="lg:col-span-2">
-              <div className="bg-falcon-surface border border-falcon-border rounded-lg overflow-hidden">
-                <div className="flex items-center justify-between px-5 py-3 border-b border-falcon-border">
+              <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg overflow-hidden">
+                <div className="flex items-center justify-between px-5 py-3 border-b border-[#1e2d42]">
                   <h3 className="text-white font-semibold text-sm">異常タイムライン</h3>
                   <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-falcon-muted" />
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#7d92b0]" />
                     <input
                       value={eventSearch}
                       onChange={e => setEventSearch(e.target.value)}
                       placeholder="検索..."
-                      className="bg-[#070d19] border border-falcon-border rounded-sm px-3 py-1.5 pl-8 text-white text-xs focus:outline-hidden focus:border-falcon-red/50 w-48"
+                      className="bg-[#070d19] border border-[#1e2d42] rounded-sm px-3 py-1.5 pl-8 text-white text-xs focus:outline-hidden focus:border-[#e8002d]/50 w-48"
                     />
                   </div>
                 </div>
                 <div className="overflow-y-auto max-h-96">
                   {filteredEvents.map((event, i) => (
-                    <div key={event.id} className={`flex items-start gap-3 px-5 py-3 border-b border-falcon-border/50 hover:bg-falcon-card transition-colors ${i === 0 ? '' : ''}`}>
+                    <div key={event.id} className={`flex items-start gap-3 px-5 py-3 border-b border-[#1e2d42]/50 hover:bg-[#111827] transition-colors ${i === 0 ? '' : ''}`}>
                       <div className="shrink-0 mt-1">
                         <div className={`w-2 h-2 rounded-full mt-1 ${
-                          event.severity === 'critical' ? 'bg-falcon-red' :
+                          event.severity === 'critical' ? 'bg-[#e8002d]' :
                           event.severity === 'high' ? 'bg-orange-500' :
                           event.severity === 'medium' ? 'bg-yellow-500' : 'bg-green-500'
                         }`} />
@@ -866,21 +869,21 @@ export default function InsiderThreatPage() {
                           <div>
                             <p className="text-white text-sm font-medium">{event.description}</p>
                             <div className="flex items-center gap-2 mt-0.5">
-                              <span className="text-falcon-muted text-xs">{event.user_name}</span>
-                              <span className="text-falcon-subtle text-xs">·</span>
-                              <span className="text-falcon-muted text-xs">{event.department}</span>
+                              <span className="text-[#7d92b0] text-xs">{event.user_name}</span>
+                              <span className="text-[#3d5068] text-xs">·</span>
+                              <span className="text-[#7d92b0] text-xs">{event.department}</span>
                               <span className={`text-[10px] px-1.5 py-0.5 rounded-sm ${EVENT_TYPE_COLORS[event.event_type]}`}>
                                 {EVENT_TYPE_LABELS[event.event_type]}
                               </span>
                             </div>
                           </div>
                           <div className="shrink-0 flex items-center gap-2">
-                            <span className="text-falcon-muted text-xs whitespace-nowrap">
+                            <span className="text-[#7d92b0] text-xs whitespace-nowrap">
                               {new Date(event.timestamp).toLocaleString('ja-JP', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                             </span>
                             <button
                               onClick={() => setSelectedEventDetail(event)}
-                              className="text-xs px-2 py-1 rounded-sm bg-falcon-border text-falcon-muted hover:text-white transition-colors whitespace-nowrap"
+                              className="text-xs px-2 py-1 rounded-sm bg-[#1e2d42] text-[#7d92b0] hover:text-white transition-colors whitespace-nowrap"
                             >
                               詳細
                             </button>
@@ -902,35 +905,35 @@ export default function InsiderThreatPage() {
           {/* Event detail mini-modal */}
           {selectedEventDetail && (
             <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
-              <div className="bg-falcon-surface border border-falcon-border rounded-xl w-full max-w-md p-5">
+              <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl w-full max-w-md p-5">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-white font-bold">イベント詳細</h3>
-                  <button onClick={() => setSelectedEventDetail(null)} className="text-falcon-muted hover:text-white"><X className="w-5 h-5" /></button>
+                  <button onClick={() => setSelectedEventDetail(null)} className="text-[#7d92b0] hover:text-white"><X className="w-5 h-5" /></button>
                 </div>
                 <div className="space-y-3">
                   <div>
-                    <p className="text-falcon-muted text-xs">説明</p>
+                    <p className="text-[#7d92b0] text-xs">説明</p>
                     <p className="text-white text-sm font-medium">{selectedEventDetail.description}</p>
                   </div>
                   <div>
-                    <p className="text-falcon-muted text-xs">詳細</p>
-                    <p className="text-falcon-text text-sm">{selectedEventDetail.details}</p>
+                    <p className="text-[#7d92b0] text-xs">詳細</p>
+                    <p className="text-[#e2e8f4] text-sm">{selectedEventDetail.details}</p>
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <p className="text-falcon-muted text-xs">ユーザー</p>
+                      <p className="text-[#7d92b0] text-xs">ユーザー</p>
                       <p className="text-white text-sm">{selectedEventDetail.user_name}</p>
                     </div>
                     <div>
-                      <p className="text-falcon-muted text-xs">部門</p>
+                      <p className="text-[#7d92b0] text-xs">部門</p>
                       <p className="text-white text-sm">{selectedEventDetail.department}</p>
                     </div>
                     <div>
-                      <p className="text-falcon-muted text-xs">発生時刻</p>
+                      <p className="text-[#7d92b0] text-xs">発生時刻</p>
                       <p className="text-white text-sm">{new Date(selectedEventDetail.timestamp).toLocaleString('ja-JP')}</p>
                     </div>
                     <div>
-                      <p className="text-falcon-muted text-xs">重要度</p>
+                      <p className="text-[#7d92b0] text-xs">重要度</p>
                       <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${RISK_COLORS[selectedEventDetail.severity]}`}>
                         {RISK_LABELS[selectedEventDetail.severity]}
                       </span>
@@ -950,7 +953,7 @@ export default function InsiderThreatPage() {
             <h3 className="text-white font-semibold">進行中の調査</h3>
             <button
               onClick={() => setShowNewInvModal(true)}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-falcon-red text-white text-sm font-medium hover:bg-[#c5001f] transition-colors"
+              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#e8002d] text-white text-sm font-medium hover:bg-[#c5001f] transition-colors"
             >
               <Plus className="w-4 h-4" />
               新規調査
@@ -958,28 +961,28 @@ export default function InsiderThreatPage() {
           </div>
 
           {/* Active investigations */}
-          <div className="bg-falcon-surface border border-falcon-border rounded-lg overflow-hidden mb-6">
+          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg overflow-hidden mb-6">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead className="border-b border-falcon-border">
+                <thead className="border-b border-[#1e2d42]">
                   <tr>
                     {['ケースID', '対象ユーザー', '調査担当者', '開始日', 'ステータス', 'リスクレベル', '備考', 'アクション'].map(h => (
-                      <th key={h} className="text-left text-falcon-muted text-xs px-4 py-3 font-medium whitespace-nowrap">{h}</th>
+                      <th key={h} className="text-left text-[#7d92b0] text-xs px-4 py-3 font-medium whitespace-nowrap">{h}</th>
                     ))}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-falcon-border">
+                <tbody className="divide-y divide-[#1e2d42]">
                   {investigations.filter(i => i.status !== 'closed').map(inv => (
-                    <tr key={inv.id} className="hover:bg-falcon-card transition-colors">
+                    <tr key={inv.id} className="hover:bg-[#111827] transition-colors">
                       <td className="px-4 py-3">
-                        <span className="text-falcon-muted font-mono text-xs">{inv.case_id}</span>
+                        <span className="text-[#7d92b0] font-mono text-xs">{inv.case_id}</span>
                       </td>
                       <td className="px-4 py-3">
                         <p className="text-white font-medium text-sm">{inv.subject_user}</p>
-                        <p className="text-falcon-muted text-xs">{inv.department}</p>
+                        <p className="text-[#7d92b0] text-xs">{inv.department}</p>
                       </td>
-                      <td className="px-4 py-3 text-falcon-muted text-xs">{inv.investigator}</td>
-                      <td className="px-4 py-3 text-falcon-muted text-xs">{inv.opened_date}</td>
+                      <td className="px-4 py-3 text-[#7d92b0] text-xs">{inv.investigator}</td>
+                      <td className="px-4 py-3 text-[#7d92b0] text-xs">{inv.opened_date}</td>
                       <td className="px-4 py-3">
                         <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_STYLES[inv.status]}`}>
                           {STATUS_LABELS[inv.status]}
@@ -990,9 +993,9 @@ export default function InsiderThreatPage() {
                           {RISK_LABELS[inv.risk_level]}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-falcon-muted text-xs max-w-[200px] truncate">{inv.notes}</td>
+                      <td className="px-4 py-3 text-[#7d92b0] text-xs max-w-[200px] truncate">{inv.notes}</td>
                       <td className="px-4 py-3">
-                        <button className="text-xs px-3 py-1.5 rounded-sm bg-falcon-border text-falcon-muted hover:text-white transition-colors">
+                        <button className="text-xs px-3 py-1.5 rounded-sm bg-[#1e2d42] text-[#7d92b0] hover:text-white transition-colors">
                           続行
                         </button>
                       </td>
@@ -1000,7 +1003,7 @@ export default function InsiderThreatPage() {
                   ))}
                   {investigations.filter(i => i.status !== 'closed').length === 0 && (
                     <tr>
-                      <td colSpan={8} className="px-4 py-8 text-center text-falcon-muted">進行中の調査はありません</td>
+                      <td colSpan={8} className="px-4 py-8 text-center text-[#7d92b0]">進行中の調査はありません</td>
                     </tr>
                   )}
                 </tbody>
@@ -1009,17 +1012,17 @@ export default function InsiderThreatPage() {
           </div>
 
           {/* Closed investigations summary */}
-          <div className="bg-falcon-surface border border-falcon-border rounded-lg p-5">
+          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-5">
             <h3 className="text-white font-semibold text-sm mb-4">クローズ済み調査サマリー</h3>
             <div className="grid grid-cols-3 gap-4">
               {[
-                { label: '脅威確認', value: confirmedCount, color: 'text-falcon-red', bg: 'bg-falcon-red/10 border-falcon-red/20' },
+                { label: '脅威確認', value: confirmedCount, color: 'text-[#e8002d]', bg: 'bg-[#e8002d]/10 border-[#e8002d]/20' },
                 { label: '未確認', value: unconfirmedCount, color: 'text-yellow-400', bg: 'bg-yellow-900/20 border-yellow-700/20' },
                 { label: '誤検知', value: fpCount, color: 'text-green-400', bg: 'bg-green-900/20 border-green-700/20' },
               ].map(({ label, value, color, bg }) => (
                 <div key={label} className={`rounded-lg p-4 border ${bg}`}>
                   <p className={`text-2xl font-bold ${color}`}>{value}</p>
-                  <p className="text-falcon-muted text-xs mt-1">{label}</p>
+                  <p className="text-[#7d92b0] text-xs mt-1">{label}</p>
                 </div>
               ))}
             </div>
@@ -1027,22 +1030,22 @@ export default function InsiderThreatPage() {
               <div className="mt-4 overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b border-falcon-border">
+                    <tr className="border-b border-[#1e2d42]">
                       {['ケースID', '対象ユーザー', '担当者', 'クローズ日', '結果'].map(h => (
-                        <th key={h} className="text-left text-falcon-muted text-xs pb-2 pr-4 font-medium">{h}</th>
+                        <th key={h} className="text-left text-[#7d92b0] text-xs pb-2 pr-4 font-medium">{h}</th>
                       ))}
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-falcon-border">
+                  <tbody className="divide-y divide-[#1e2d42]">
                     {closedInvs.map(inv => (
                       <tr key={inv.id}>
-                        <td className="py-2 pr-4 text-falcon-muted font-mono text-xs">{inv.case_id}</td>
+                        <td className="py-2 pr-4 text-[#7d92b0] font-mono text-xs">{inv.case_id}</td>
                         <td className="py-2 pr-4 text-white text-xs">{inv.subject_user}</td>
-                        <td className="py-2 pr-4 text-falcon-muted text-xs">{inv.investigator}</td>
-                        <td className="py-2 pr-4 text-falcon-muted text-xs">{inv.closed_date}</td>
+                        <td className="py-2 pr-4 text-[#7d92b0] text-xs">{inv.investigator}</td>
+                        <td className="py-2 pr-4 text-[#7d92b0] text-xs">{inv.closed_date}</td>
                         <td className="py-2 text-xs">
                           <span className={`px-2 py-0.5 rounded-full font-medium ${
-                            inv.outcome === 'confirmed' ? 'bg-falcon-red/20 text-falcon-red' :
+                            inv.outcome === 'confirmed' ? 'bg-[#e8002d]/20 text-[#e8002d]' :
                             inv.outcome === 'false_positive' ? 'bg-green-900/40 text-green-400' :
                             'bg-yellow-900/40 text-yellow-400'
                           }`}>

@@ -6,6 +6,8 @@ import { apiFetch } from '@/lib/api'
 import { Shield, Target, AlertTriangle, ChevronRight, X } from 'lucide-react'
 import Link from 'next/link'
 
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+
 // ── MITRE ATT&CK data ────────────────────────────────────────────────────────
 
 const TACTICS = [
@@ -220,6 +222,7 @@ export default function MITREPage() {
 
   return (
     <div className="min-h-screen bg-gray-900 text-white">
+      <PageDataUnavailable />
       <div className="max-w-full px-6 py-8">
 
         {/* ── Header ── */}
@@ -294,8 +297,8 @@ export default function MITREPage() {
         {isLoading ? (
           <div className="text-center py-20 text-gray-500">読み込み中...</div>
         ) : isError ? (
-          <div className="text-center py-20 bg-falcon-surface rounded-xl border border-falcon-red/30">
-            <p className="text-falcon-red text-sm font-medium">MITREデータの取得に失敗しました</p>
+          <div className="text-center py-20 bg-[#0d1220] rounded-xl border border-[#e8002d]/30">
+            <p className="text-[#e8002d] text-sm font-medium">MITREデータの取得に失敗しました</p>
             <p className="text-gray-500 text-xs mt-1">ネットワーク接続またはサーバーの状態を確認してください</p>
           </div>
         ) : (
@@ -340,12 +343,12 @@ export default function MITREPage() {
                         title={tooltipText}
                         disabled={hits === 0}
                         onClick={() => hits > 0 && setSelectedCell({ tacticId: tactic.id, techId })}
-                        className={`rounded border px-1.5 py-1.5 text-left transition-colors w-full ${cellColors(hits, maxSev)} ${
+                        className={`rounded-sm border px-1.5 py-1.5 text-left transition-colors w-full ${cellColors(hits, maxSev)} ${
                           hits > 0 ? 'cursor-pointer' : 'cursor-default'
                         }`}
                       >
                         <p className="text-[10px] font-mono font-bold leading-none mb-0.5">{techId}</p>
-                        <p className="text-[9px] leading-tight wrap-break-word">{techName}</p>
+                        <p className="text-[9px] leading-tight break-words">{techName}</p>
                         {hits > 0 && (
                           <p className="text-[10px] font-bold mt-1 text-right">
                             {hits}件

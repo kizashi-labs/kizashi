@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { useQuery } from '@tanstack/react-query'
 import { apiFetch } from '@/lib/api'
+import { DataUnavailable } from '@/components/DataUnavailable'
 import {
   Brain, Rss, AlertOctagon, GitBranch, Target,
   Crosshair, ScanSearch, ChevronRight,
@@ -46,7 +47,7 @@ function StatCard({ icon: Icon, label, value, color }: {
   color: string
 }) {
   return (
-    <div className="bg-falcon-card border border-falcon-border rounded-xl px-4 py-3 flex items-center gap-3">
+    <div className="bg-[#111827] border border-[#1e2d42] rounded-xl px-4 py-3 flex items-center gap-3">
       <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${color}`}>
         <Icon className="w-5 h-5" />
       </div>
@@ -110,23 +111,27 @@ const HUB_CARDS = [
 ]
 
 export default function IntelHubPage() {
-  const { data: iocStats } = useQuery<IOCStats>({
+  const iocQ = useQuery<IOCStats>({
     queryKey: ['ioc-stats-hub'],
     queryFn: () => apiFetch('/api/v1/ioc/stats'),
     staleTime: 60000,
   })
 
-  const { data: feedData } = useQuery<ThreatFeedResponse>({
+  const feedQ = useQuery<ThreatFeedResponse>({
     queryKey: ['threat-feeds-hub'],
     queryFn: () => apiFetch('/api/v1/threat-feeds'),
     staleTime: 60000,
   })
 
-  const { data: campaignData } = useQuery<CampaignResponse>({
+  const campaignQ = useQuery<CampaignResponse>({
     queryKey: ['campaigns-hub'],
     queryFn: () => apiFetch('/api/v1/campaigns?per_page=5'),
     staleTime: 60000,
   })
+
+  const iocStats = iocQ.data
+  const feedData = feedQ.data
+  const campaignData = campaignQ.data
 
   const activeFeeds = (feedData?.data ?? []).filter(f => f.is_active).length
   const totalFeeds  = (feedData?.data ?? []).length
@@ -144,6 +149,14 @@ export default function IntelHubPage() {
           脅威情報の収集・分析・管理
         </p>
       </div>
+
+      {/* 下のカードは取得に失敗すると 0 を表示します。その 0 が
+          「脅威情報が無い」なのかどうかをここで言う。 */}
+      <DataUnavailable
+        errors={[iocQ.error, feedQ.error, campaignQ.error]}
+        what="脅威インテリジェンス"
+        onRetry={() => { iocQ.refetch(); feedQ.refetch(); campaignQ.refetch() }}
+      />
 
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -175,7 +188,7 @@ export default function IntelHubPage() {
 
       {/* IOC Type breakdown */}
       {iocStats?.by_type && Object.keys(iocStats.by_type).length > 0 && (
-        <div className="bg-falcon-card border border-falcon-border rounded-xl p-4">
+        <div className="bg-[#111827] border border-[#1e2d42] rounded-xl p-4">
           <p className="text-xs font-medium text-[#8899aa] mb-3 uppercase tracking-wider">IOCタイプ内訳</p>
           <div className="flex flex-wrap gap-3">
             {Object.entries(iocStats.by_type).map(([type, count]) => (
@@ -200,7 +213,7 @@ export default function IntelHubPage() {
             <Link
               key={card.href}
               href={card.href}
-              className={`bg-falcon-card border border-falcon-border rounded-xl p-4 flex items-start gap-3
+              className={`bg-[#111827] border border-[#1e2d42] rounded-xl p-4 flex items-start gap-3
                           transition-all hover:bg-[#0f1c2e] ${card.accent} group`}
             >
               <div className={`w-10 h-10 rounded-lg border flex items-center justify-center shrink-0 ${card.color}`}>
@@ -209,7 +222,7 @@ export default function IntelHubPage() {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between">
                   <p className="font-semibold text-white text-sm">{card.title}</p>
-                  <ChevronRight className="w-4 h-4 text-falcon-subtle group-hover:text-[#8899aa] transition-colors shrink-0" />
+                  <ChevronRight className="w-4 h-4 text-[#3d5068] group-hover:text-[#8899aa] transition-colors shrink-0" />
                 </div>
                 <p className="text-xs text-[#5a6a7a] mt-1 leading-relaxed">{card.description}</p>
               </div>
@@ -220,8 +233,8 @@ export default function IntelHubPage() {
 
       {/* Recent campaigns */}
       {(campaignData?.data ?? []).length > 0 && (
-        <div className="bg-falcon-card border border-falcon-border rounded-xl overflow-hidden">
-          <div className="flex items-center justify-between px-4 py-3 border-b border-falcon-border">
+        <div className="bg-[#111827] border border-[#1e2d42] rounded-xl overflow-hidden">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-[#1e2d42]">
             <p className="text-sm font-semibold text-white flex items-center gap-2">
               <GitBranch className="w-4 h-4 text-orange-400" />
               最近の脅威キャンペーン
@@ -230,10 +243,10 @@ export default function IntelHubPage() {
               すべて表示 →
             </Link>
           </div>
-          <div className="divide-y divide-falcon-border">
+          <div className="divide-y divide-[#1e2d42]">
             {campaignData!.data.slice(0, 5).map(c => (
-              <div key={c.id} className="px-4 py-2.5 flex items-center gap-3 hover:bg-falcon-raised transition-colors">
-                <div className={`w-2 h-2 rounded-full shrink-0 ${c.active ? 'bg-red-400 animate-pulse' : 'bg-falcon-subtle'}`} />
+              <div key={c.id} className="px-4 py-2.5 flex items-center gap-3 hover:bg-[#161f33] transition-colors">
+                <div className={`w-2 h-2 rounded-full shrink-0 ${c.active ? 'bg-red-400 animate-pulse' : 'bg-[#3d5068]'}`} />
                 <span className="text-sm text-white flex-1 truncate">{c.name}</span>
                 {c.threat_actor && (
                   <span className="text-xs text-[#5a6a7a] truncate max-w-[120px]">{c.threat_actor}</span>
@@ -241,7 +254,7 @@ export default function IntelHubPage() {
                 <span className={`text-xs px-2 py-0.5 rounded-full ${
                   c.active
                     ? 'bg-red-900/40 text-red-300'
-                    : 'bg-falcon-raised text-[#5a6a7a]'
+                    : 'bg-[#161f33] text-[#5a6a7a]'
                 }`}>
                   {c.active ? '進行中' : '終了'}
                 </span>

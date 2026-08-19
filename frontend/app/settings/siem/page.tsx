@@ -19,6 +19,9 @@ import {
   X,
 } from 'lucide-react';
 
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+import { PageSaveFailed } from '@/components/PageSaveFailed'
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type SIEMType = 'syslog_cef' | 'splunk_hec' | 'elastic_ecs' | 'syslog_leef';
@@ -204,7 +207,7 @@ function SeveritySlider({
   return (
     <div>
       <div className="flex justify-between items-center mb-1.5">
-        <label className="text-xs text-falcon-muted">最小重大度</label>
+        <label className="text-xs text-[#7d92b0]">最小重大度</label>
         <span className={`text-xs font-medium ${info.color}`}>{info.label}</span>
       </div>
       <input
@@ -221,9 +224,9 @@ function SeveritySlider({
           );
           onChange(nearest);
         }}
-        className="w-full h-1.5 bg-falcon-border rounded-full appearance-none cursor-pointer accent-blue-500"
+        className="w-full h-1.5 bg-[#1e2d42] rounded-full appearance-none cursor-pointer accent-blue-500"
       />
-      <div className="flex justify-between text-xs text-falcon-muted mt-1">
+      <div className="flex justify-between text-xs text-[#7d92b0] mt-1">
         {steps.map((s) => (
           <span key={s} className={value === s ? 'text-blue-400 font-medium' : ''}>
             {s}
@@ -269,10 +272,10 @@ function AddTargetForm({
   const needsIndex = form.type === 'splunk_hec' || form.type === 'elastic_ecs';
 
   return (
-    <div className="bg-falcon-card border border-blue-500/30 rounded-xl p-6 mb-6">
+    <div className="bg-[#111827] border border-blue-500/30 rounded-xl p-6 mb-6">
       <div className="flex items-center justify-between mb-5">
-        <h2 className="text-sm font-semibold text-falcon-text">新しいSIEMターゲットを追加</h2>
-        <button onClick={onClose} className="text-falcon-muted hover:text-falcon-text transition-colors">
+        <h2 className="text-sm font-semibold text-[#e2e8f4]">新しいSIEMターゲットを追加</h2>
+        <button onClick={onClose} className="text-[#7d92b0] hover:text-[#e2e8f4] transition-colors">
           <X className="w-4 h-4" />
         </button>
       </div>
@@ -280,7 +283,7 @@ function AddTargetForm({
       <div className="grid grid-cols-2 gap-4">
         {/* Name */}
         <div className="col-span-2">
-          <label className="block text-xs text-falcon-muted mb-1.5">
+          <label className="block text-xs text-[#7d92b0] mb-1.5">
             名前 <span className="text-red-400">*</span>
           </label>
           <input
@@ -288,17 +291,17 @@ function AddTargetForm({
             value={form.name}
             onChange={(e) => setField('name', e.target.value)}
             placeholder="例: Production SIEM"
-            className="w-full px-3 py-2 bg-falcon-bg border border-falcon-border rounded-lg text-sm text-falcon-text placeholder-falcon-muted focus:outline-hidden focus:border-blue-500"
+            className="w-full px-3 py-2 bg-[#080c14] border border-[#1e2d42] rounded-lg text-sm text-[#e2e8f4] placeholder-[#7d92b0] focus:outline-hidden focus:border-blue-500"
           />
         </div>
 
         {/* Type */}
         <div>
-          <label className="block text-xs text-falcon-muted mb-1.5">タイプ</label>
+          <label className="block text-xs text-[#7d92b0] mb-1.5">タイプ</label>
           <select
             value={form.type}
             onChange={(e) => handleTypeChange(e.target.value as SIEMType)}
-            className="w-full px-3 py-2 bg-falcon-bg border border-falcon-border rounded-lg text-sm text-falcon-text focus:outline-hidden focus:border-blue-500"
+            className="w-full px-3 py-2 bg-[#080c14] border border-[#1e2d42] rounded-lg text-sm text-[#e2e8f4] focus:outline-hidden focus:border-blue-500"
           >
             {SIEM_TYPES.map((t) => (
               <option key={t.value} value={t.value}>
@@ -310,11 +313,11 @@ function AddTargetForm({
 
         {/* Protocol */}
         <div>
-          <label className="block text-xs text-falcon-muted mb-1.5">プロトコル</label>
+          <label className="block text-xs text-[#7d92b0] mb-1.5">プロトコル</label>
           <select
             value={form.protocol}
             onChange={(e) => setField('protocol', e.target.value as Protocol)}
-            className="w-full px-3 py-2 bg-falcon-bg border border-falcon-border rounded-lg text-sm text-falcon-text focus:outline-hidden focus:border-blue-500"
+            className="w-full px-3 py-2 bg-[#080c14] border border-[#1e2d42] rounded-lg text-sm text-[#e2e8f4] focus:outline-hidden focus:border-blue-500"
           >
             {PROTOCOLS.map((p) => (
               <option key={p} value={p}>
@@ -326,7 +329,7 @@ function AddTargetForm({
 
         {/* Host */}
         <div>
-          <label className="block text-xs text-falcon-muted mb-1.5">
+          <label className="block text-xs text-[#7d92b0] mb-1.5">
             ホスト / IPアドレス <span className="text-red-400">*</span>
           </label>
           <input
@@ -334,27 +337,27 @@ function AddTargetForm({
             value={form.host}
             onChange={(e) => setField('host', e.target.value)}
             placeholder="192.168.1.100 または siem.example.com"
-            className="w-full px-3 py-2 bg-falcon-bg border border-falcon-border rounded-lg text-sm text-falcon-text placeholder-falcon-muted focus:outline-hidden focus:border-blue-500"
+            className="w-full px-3 py-2 bg-[#080c14] border border-[#1e2d42] rounded-lg text-sm text-[#e2e8f4] placeholder-[#7d92b0] focus:outline-hidden focus:border-blue-500"
           />
         </div>
 
         {/* Port */}
         <div>
-          <label className="block text-xs text-falcon-muted mb-1.5">ポート</label>
+          <label className="block text-xs text-[#7d92b0] mb-1.5">ポート</label>
           <input
             type="number"
             value={form.port}
             onChange={(e) => setField('port', e.target.value)}
             min={1}
             max={65535}
-            className="w-full px-3 py-2 bg-falcon-bg border border-falcon-border rounded-lg text-sm text-falcon-text focus:outline-hidden focus:border-blue-500"
+            className="w-full px-3 py-2 bg-[#080c14] border border-[#1e2d42] rounded-lg text-sm text-[#e2e8f4] focus:outline-hidden focus:border-blue-500"
           />
         </div>
 
         {/* Token / API Key */}
         {needsToken && (
           <div className="col-span-2">
-            <label className="block text-xs text-falcon-muted mb-1.5">
+            <label className="block text-xs text-[#7d92b0] mb-1.5">
               {form.type === 'splunk_hec' ? 'HECトークン' : 'APIキー / Bearer Token'}
             </label>
             <input
@@ -362,7 +365,7 @@ function AddTargetForm({
               value={form.token}
               onChange={(e) => setField('token', e.target.value)}
               placeholder="••••••••••••••••"
-              className="w-full px-3 py-2 bg-falcon-bg border border-falcon-border rounded-lg text-sm text-falcon-text placeholder-falcon-muted focus:outline-hidden focus:border-blue-500 font-mono"
+              className="w-full px-3 py-2 bg-[#080c14] border border-[#1e2d42] rounded-lg text-sm text-[#e2e8f4] placeholder-[#7d92b0] focus:outline-hidden focus:border-blue-500 font-mono"
             />
           </div>
         )}
@@ -370,34 +373,34 @@ function AddTargetForm({
         {/* Index Name */}
         {needsIndex && (
           <div>
-            <label className="block text-xs text-falcon-muted mb-1.5">インデックス名</label>
+            <label className="block text-xs text-[#7d92b0] mb-1.5">インデックス名</label>
             <input
               type="text"
               value={form.index_name}
               onChange={(e) => setField('index_name', e.target.value)}
               placeholder={form.type === 'splunk_hec' ? 'edr_events' : 'edr-events-*'}
-              className="w-full px-3 py-2 bg-falcon-bg border border-falcon-border rounded-lg text-sm text-falcon-text placeholder-falcon-muted focus:outline-hidden focus:border-blue-500"
+              className="w-full px-3 py-2 bg-[#080c14] border border-[#1e2d42] rounded-lg text-sm text-[#e2e8f4] placeholder-[#7d92b0] focus:outline-hidden focus:border-blue-500"
             />
           </div>
         )}
 
         {/* TLS */}
         <div className={needsIndex ? '' : 'col-span-2'}>
-          <label className="block text-xs text-falcon-muted mb-1.5">セキュリティ</label>
+          <label className="block text-xs text-[#7d92b0] mb-1.5">セキュリティ</label>
           <label className="flex items-center gap-2 cursor-pointer">
             <div
               onClick={() => setField('tls_enabled', !form.tls_enabled)}
               className={`relative w-9 h-5 rounded-full transition-colors ${
-                form.tls_enabled ? 'bg-blue-600' : 'bg-falcon-border'
+                form.tls_enabled ? 'bg-blue-600' : 'bg-[#1e2d42]'
               }`}
             >
               <div
-                className={`absolute top-0.5 left-0.5 w-4 h-4 bg-falcon-text rounded-full shadow transition-transform ${
+                className={`absolute top-0.5 left-0.5 w-4 h-4 bg-[#e2e8f4] rounded-full shadow-sm transition-transform ${
                   form.tls_enabled ? 'translate-x-4' : 'translate-x-0'
                 }`}
               />
             </div>
-            <span className="text-xs text-falcon-text">TLS/SSL を有効化</span>
+            <span className="text-xs text-[#e2e8f4]">TLS/SSL を有効化</span>
           </label>
         </div>
 
@@ -410,45 +413,45 @@ function AddTargetForm({
         </div>
 
         {/* Advanced filters */}
-        <div className="col-span-2 border-t border-falcon-border pt-4 mt-1">
-          <p className="text-xs font-semibold text-falcon-muted uppercase tracking-widest mb-3">
+        <div className="col-span-2 border-t border-[#1e2d42] pt-4 mt-1">
+          <p className="text-xs font-semibold text-[#7d92b0] uppercase tracking-widest mb-3">
             詳細フィルター（空欄=全て転送）
           </p>
           <div className="space-y-3">
             <div>
-              <label className="block text-xs text-falcon-muted mb-1.5">
-                ルール名フィルター <span className="text-falcon-subtle font-normal">（カンマ区切りで複数指定可）</span>
+              <label className="block text-xs text-[#7d92b0] mb-1.5">
+                ルール名フィルター <span className="text-[#3d5068] font-normal">（カンマ区切りで複数指定可）</span>
               </label>
               <input
                 type="text"
                 value={form.filter_rules}
                 onChange={e => setField('filter_rules', e.target.value)}
                 placeholder="例: Mimikatz_Strings, PowerShell_Empire"
-                className="w-full px-3 py-2 bg-falcon-bg border border-falcon-border rounded-lg text-sm text-falcon-text placeholder-falcon-subtle focus:outline-hidden focus:border-blue-500/50"
+                className="w-full px-3 py-2 bg-[#080c14] border border-[#1e2d42] rounded-lg text-sm text-[#e2e8f4] placeholder-[#3d5068] focus:outline-hidden focus:border-blue-500/50"
               />
             </div>
             <div>
-              <label className="block text-xs text-falcon-muted mb-1.5">
-                端末ホスト名フィルター <span className="text-falcon-subtle font-normal">（カンマ区切りで複数指定可）</span>
+              <label className="block text-xs text-[#7d92b0] mb-1.5">
+                端末ホスト名フィルター <span className="text-[#3d5068] font-normal">（カンマ区切りで複数指定可）</span>
               </label>
               <input
                 type="text"
                 value={form.filter_hostnames}
                 onChange={e => setField('filter_hostnames', e.target.value)}
                 placeholder="例: server01, web-prod, db-primary"
-                className="w-full px-3 py-2 bg-falcon-bg border border-falcon-border rounded-lg text-sm text-falcon-text placeholder-falcon-subtle focus:outline-hidden focus:border-blue-500/50"
+                className="w-full px-3 py-2 bg-[#080c14] border border-[#1e2d42] rounded-lg text-sm text-[#e2e8f4] placeholder-[#3d5068] focus:outline-hidden focus:border-blue-500/50"
               />
             </div>
             <div>
-              <label className="block text-xs text-falcon-muted mb-1.5">
-                MITREテクニックフィルター <span className="text-falcon-subtle font-normal">（カンマ区切りで複数指定可）</span>
+              <label className="block text-xs text-[#7d92b0] mb-1.5">
+                MITREテクニックフィルター <span className="text-[#3d5068] font-normal">（カンマ区切りで複数指定可）</span>
               </label>
               <input
                 type="text"
                 value={form.filter_mitre}
                 onChange={e => setField('filter_mitre', e.target.value)}
                 placeholder="例: T1059, T1003, T1078"
-                className="w-full px-3 py-2 bg-falcon-bg border border-falcon-border rounded-lg text-sm text-falcon-text placeholder-falcon-subtle focus:outline-hidden focus:border-blue-500/50"
+                className="w-full px-3 py-2 bg-[#080c14] border border-[#1e2d42] rounded-lg text-sm text-[#e2e8f4] placeholder-[#3d5068] focus:outline-hidden focus:border-blue-500/50"
               />
             </div>
           </div>
@@ -460,16 +463,16 @@ function AddTargetForm({
             <div
               onClick={() => setField('enabled', !form.enabled)}
               className={`relative w-9 h-5 rounded-full transition-colors ${
-                form.enabled ? 'bg-blue-600' : 'bg-falcon-border'
+                form.enabled ? 'bg-blue-600' : 'bg-[#1e2d42]'
               }`}
             >
               <div
-                className={`absolute top-0.5 left-0.5 w-4 h-4 bg-falcon-text rounded-full shadow transition-transform ${
+                className={`absolute top-0.5 left-0.5 w-4 h-4 bg-[#e2e8f4] rounded-full shadow-sm transition-transform ${
                   form.enabled ? 'translate-x-4' : 'translate-x-0'
                 }`}
               />
             </div>
-            <span className="text-xs text-falcon-text">このターゲットを有効にする</span>
+            <span className="text-xs text-[#e2e8f4]">このターゲットを有効にする</span>
           </label>
         </div>
       </div>
@@ -483,7 +486,7 @@ function AddTargetForm({
       <div className="flex gap-3 mt-6">
         <button
           onClick={onClose}
-          className="flex-1 px-4 py-2.5 bg-falcon-raised hover:bg-falcon-border rounded-lg text-sm font-medium transition-colors"
+          className="flex-1 px-4 py-2.5 bg-[#161f33] hover:bg-[#1e2d42] rounded-lg text-sm font-medium transition-colors"
         >
           キャンセル
         </button>
@@ -538,8 +541,8 @@ function TargetRow({
 
   return (
     <div
-      className={`bg-falcon-card border rounded-lg transition-colors ${
-        target.enabled ? 'border-falcon-border' : 'border-falcon-border opacity-60'
+      className={`bg-[#111827] border rounded-lg transition-colors ${
+        target.enabled ? 'border-[#1e2d42]' : 'border-[#1e2d42] opacity-60'
       }`}
     >
       <div className="p-4">
@@ -548,7 +551,7 @@ function TargetRow({
           <div
             className={`w-2 h-2 rounded-full shrink-0 ${
               !target.enabled
-                ? 'bg-falcon-muted'
+                ? 'bg-[#7d92b0]'
                 : target.last_test_ok === true
                 ? 'bg-green-400'
                 : target.last_test_ok === false
@@ -560,15 +563,15 @@ function TargetRow({
           {/* Name & type */}
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-sm font-semibold text-falcon-text">{target.name}</span>
+              <span className="text-sm font-semibold text-[#e2e8f4]">{target.name}</span>
               <TypeBadge type={target.type} />
               {!target.enabled && (
-                <span className="text-xs text-falcon-muted bg-falcon-raised px-1.5 py-0.5 rounded-full">
+                <span className="text-xs text-[#7d92b0] bg-[#161f33] px-1.5 py-0.5 rounded-full">
                   無効
                 </span>
               )}
             </div>
-            <div className="flex items-center gap-3 mt-0.5 text-xs text-falcon-muted">
+            <div className="flex items-center gap-3 mt-0.5 text-xs text-[#7d92b0]">
               <span className="font-mono">
                 {target.protocol}://{target.host}:{target.port}
               </span>
@@ -580,7 +583,7 @@ function TargetRow({
               )}
               <span className={severityInfo.color}>{severityInfo.label}</span>
               {target.index_name && (
-                <span className="text-falcon-muted">idx: {target.index_name}</span>
+                <span className="text-[#7d92b0]">idx: {target.index_name}</span>
               )}
             </div>
           </div>
@@ -591,11 +594,11 @@ function TargetRow({
             <div
               onClick={() => onToggle(target.id, !target.enabled)}
               className={`relative w-8 h-4 rounded-full cursor-pointer transition-colors ${
-                target.enabled ? 'bg-blue-600' : 'bg-falcon-border'
+                target.enabled ? 'bg-blue-600' : 'bg-[#1e2d42]'
               }`}
             >
               <div
-                className={`absolute top-0.5 left-0.5 w-3 h-3 bg-falcon-text rounded-full shadow transition-transform ${
+                className={`absolute top-0.5 left-0.5 w-3 h-3 bg-[#e2e8f4] rounded-full shadow-sm transition-transform ${
                   target.enabled ? 'translate-x-4' : 'translate-x-0'
                 }`}
               />
@@ -606,7 +609,7 @@ function TargetRow({
               onClick={handleTest}
               disabled={testing}
               title="接続テスト"
-              className="flex items-center gap-1 px-2 py-1.5 bg-falcon-raised hover:bg-falcon-border rounded-lg text-xs text-falcon-muted hover:text-falcon-text transition-colors"
+              className="flex items-center gap-1 px-2 py-1.5 bg-[#161f33] hover:bg-[#1e2d42] rounded-lg text-xs text-[#7d92b0] hover:text-[#e2e8f4] transition-colors"
             >
               {testing ? (
                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -619,7 +622,7 @@ function TargetRow({
             {/* Expand */}
             <button
               onClick={() => setExpanded((v) => !v)}
-              className="p-1.5 text-falcon-muted hover:text-falcon-text transition-colors"
+              className="p-1.5 text-[#7d92b0] hover:text-[#e2e8f4] transition-colors"
             >
               {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
             </button>
@@ -635,7 +638,7 @@ function TargetRow({
                 </button>
                 <button
                   onClick={() => setConfirmDelete(false)}
-                  className="p-1.5 text-falcon-muted hover:text-falcon-text transition-colors"
+                  className="p-1.5 text-[#7d92b0] hover:text-[#e2e8f4] transition-colors"
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>
@@ -643,7 +646,7 @@ function TargetRow({
             ) : (
               <button
                 onClick={() => setConfirmDelete(true)}
-                className="p-1.5 text-falcon-muted hover:text-red-400 transition-colors"
+                className="p-1.5 text-[#7d92b0] hover:text-red-400 transition-colors"
               >
                 <Trash2 className="w-4 h-4" />
               </button>
@@ -672,55 +675,55 @@ function TargetRow({
 
       {/* Expanded detail */}
       {expanded && (
-        <div className="border-t border-falcon-border px-4 py-3">
+        <div className="border-t border-[#1e2d42] px-4 py-3">
           <div className="grid grid-cols-3 gap-3 text-xs">
             <div>
-              <span className="text-falcon-muted block mb-0.5">タイプ</span>
+              <span className="text-[#7d92b0] block mb-0.5">タイプ</span>
               <TypeBadge type={target.type} />
             </div>
             <div>
-              <span className="text-falcon-muted block mb-0.5">プロトコル</span>
-              <span className="text-falcon-text font-mono">{target.protocol}</span>
+              <span className="text-[#7d92b0] block mb-0.5">プロトコル</span>
+              <span className="text-[#e2e8f4] font-mono">{target.protocol}</span>
             </div>
             <div>
-              <span className="text-falcon-muted block mb-0.5">TLS</span>
-              <span className={target.tls_enabled ? 'text-green-400' : 'text-falcon-muted'}>
+              <span className="text-[#7d92b0] block mb-0.5">TLS</span>
+              <span className={target.tls_enabled ? 'text-green-400' : 'text-[#7d92b0]'}>
                 {target.tls_enabled ? '有効' : '無効'}
               </span>
             </div>
             <div>
-              <span className="text-falcon-muted block mb-0.5">エンドポイント</span>
-              <span className="text-falcon-text font-mono">
+              <span className="text-[#7d92b0] block mb-0.5">エンドポイント</span>
+              <span className="text-[#e2e8f4] font-mono">
                 {target.host}:{target.port}
               </span>
             </div>
             {target.index_name && (
               <div>
-                <span className="text-falcon-muted block mb-0.5">インデックス</span>
-                <span className="text-falcon-text">{target.index_name}</span>
+                <span className="text-[#7d92b0] block mb-0.5">インデックス</span>
+                <span className="text-[#e2e8f4]">{target.index_name}</span>
               </div>
             )}
             <div>
-              <span className="text-falcon-muted block mb-0.5">最小重大度</span>
+              <span className="text-[#7d92b0] block mb-0.5">最小重大度</span>
               <span className={severityInfo.color}>{target.min_severity}</span>
             </div>
             {target.token && (
               <div>
-                <span className="text-falcon-muted block mb-0.5">トークン</span>
-                <span className="text-falcon-text font-mono">
+                <span className="text-[#7d92b0] block mb-0.5">トークン</span>
+                <span className="text-[#e2e8f4] font-mono">
                   {'•'.repeat(12)}
                 </span>
               </div>
             )}
             <div>
-              <span className="text-falcon-muted block mb-0.5">追加日</span>
-              <span className="text-falcon-text">
+              <span className="text-[#7d92b0] block mb-0.5">追加日</span>
+              <span className="text-[#e2e8f4]">
                 {new Date(target.created_at).toLocaleDateString('ja-JP')}
               </span>
             </div>
             {target.last_test && (
               <div>
-                <span className="text-falcon-muted block mb-0.5">最終テスト</span>
+                <span className="text-[#7d92b0] block mb-0.5">最終テスト</span>
                 <span
                   className={target.last_test_ok ? 'text-green-400' : 'text-red-400'}
                 >
@@ -731,16 +734,16 @@ function TargetRow({
           </div>
           {/* Filter display */}
           {((target.filter_rules?.length ?? 0) > 0 || (target.filter_hostnames?.length ?? 0) > 0 || (target.filter_mitre?.length ?? 0) > 0) && (
-            <div className="mt-3 pt-3 border-t border-falcon-border space-y-1.5">
-              <p className="text-[10px] font-semibold text-falcon-muted uppercase tracking-widest">詳細フィルター（ホワイトリスト）</p>
+            <div className="mt-3 pt-3 border-t border-[#1e2d42] space-y-1.5">
+              <p className="text-[10px] font-semibold text-[#7d92b0] uppercase tracking-widest">詳細フィルター（ホワイトリスト）</p>
               {(target.filter_rules?.length ?? 0) > 0 && (
-                <div className="flex gap-2 text-xs"><span className="text-falcon-muted w-20 shrink-0">ルール名</span><span className="text-falcon-text font-mono">{target.filter_rules.join(', ')}</span></div>
+                <div className="flex gap-2 text-xs"><span className="text-[#7d92b0] w-20 shrink-0">ルール名</span><span className="text-[#e2e8f4] font-mono">{target.filter_rules.join(', ')}</span></div>
               )}
               {(target.filter_hostnames?.length ?? 0) > 0 && (
-                <div className="flex gap-2 text-xs"><span className="text-falcon-muted w-20 shrink-0">端末</span><span className="text-falcon-text font-mono">{target.filter_hostnames.join(', ')}</span></div>
+                <div className="flex gap-2 text-xs"><span className="text-[#7d92b0] w-20 shrink-0">端末</span><span className="text-[#e2e8f4] font-mono">{target.filter_hostnames.join(', ')}</span></div>
               )}
               {(target.filter_mitre?.length ?? 0) > 0 && (
-                <div className="flex gap-2 text-xs"><span className="text-falcon-muted w-20 shrink-0">MITRE</span><span className="text-falcon-text font-mono">{target.filter_mitre.join(', ')}</span></div>
+                <div className="flex gap-2 text-xs"><span className="text-[#7d92b0] w-20 shrink-0">MITRE</span><span className="text-[#e2e8f4] font-mono">{target.filter_mitre.join(', ')}</span></div>
               )}
             </div>
           )}
@@ -775,17 +778,19 @@ export default function SIEMSettingsPage() {
   const enabledCount = targets.filter((t) => t.enabled).length;
 
   return (
-    <div className="min-h-screen bg-falcon-bg text-falcon-text">
+    <div className="min-h-screen bg-[#080c14] text-[#e2e8f4]">
+      <PageDataUnavailable />
+      <PageSaveFailed className="mb-4" />
       {/* Page Header */}
-      <div className="border-b border-falcon-border px-6 py-4">
+      <div className="border-b border-[#1e2d42] px-6 py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-falcon-raised rounded-lg">
+            <div className="p-2 bg-[#161f33] rounded-lg">
               <Settings className="w-5 h-5 text-blue-400" />
             </div>
             <div>
-              <h1 className="text-xl font-semibold text-falcon-text">SIEM転送設定</h1>
-              <p className="text-sm text-falcon-muted mt-0.5">
+              <h1 className="text-xl font-semibold text-[#e2e8f4]">SIEM転送設定</h1>
+              <p className="text-sm text-[#7d92b0] mt-0.5">
                 外部SIEMシステムへのイベント転送ターゲットを管理します
               </p>
             </div>
@@ -794,7 +799,7 @@ export default function SIEMSettingsPage() {
             onClick={() => setShowAddForm((v) => !v)}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
               showAddForm
-                ? 'bg-falcon-raised text-falcon-muted'
+                ? 'bg-[#161f33] text-[#7d92b0]'
                 : 'bg-blue-600 hover:bg-blue-700 text-white'
             }`}
           >
@@ -807,18 +812,18 @@ export default function SIEMSettingsPage() {
         {targets.length > 0 && (
           <div className="flex items-center gap-6 mt-4 text-sm">
             <div className="flex items-center gap-2">
-              <span className="text-falcon-muted">ターゲット数:</span>
-              <span className="font-medium text-falcon-text">{targets.length}</span>
+              <span className="text-[#7d92b0]">ターゲット数:</span>
+              <span className="font-medium text-[#e2e8f4]">{targets.length}</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 bg-green-400 rounded-full" />
-              <span className="text-falcon-muted">有効:</span>
+              <span className="text-[#7d92b0]">有効:</span>
               <span className="font-medium text-green-400">{enabledCount}</span>
             </div>
             <div className="flex items-center gap-2">
-              <WifiOff className="w-3.5 h-3.5 text-falcon-muted" />
-              <span className="text-falcon-muted">無効:</span>
-              <span className="font-medium text-falcon-muted">{targets.length - enabledCount}</span>
+              <WifiOff className="w-3.5 h-3.5 text-[#7d92b0]" />
+              <span className="text-[#7d92b0]">無効:</span>
+              <span className="font-medium text-[#7d92b0]">{targets.length - enabledCount}</span>
             </div>
           </div>
         )}
@@ -839,7 +844,7 @@ export default function SIEMSettingsPage() {
             {[1, 2, 3].map((i) => (
               <div
                 key={i}
-                className="h-20 bg-falcon-card border border-falcon-border rounded-lg animate-pulse"
+                className="h-20 bg-[#111827] border border-[#1e2d42] rounded-lg animate-pulse"
               />
             ))}
           </div>
@@ -847,11 +852,11 @@ export default function SIEMSettingsPage() {
 
         {/* Error */}
         {isError && (
-          <div className="bg-falcon-card border border-red-500/30 rounded-lg p-6 flex items-center gap-3">
+          <div className="bg-[#111827] border border-red-500/30 rounded-lg p-6 flex items-center gap-3">
             <AlertTriangle className="w-5 h-5 text-red-400 shrink-0" />
             <div>
               <p className="text-sm font-medium text-red-400">データの取得に失敗しました</p>
-              <p className="text-xs text-falcon-muted mt-0.5">
+              <p className="text-xs text-[#7d92b0] mt-0.5">
                 サーバーへの接続を確認してください
               </p>
             </div>
@@ -860,12 +865,12 @@ export default function SIEMSettingsPage() {
 
         {/* Target list */}
         {!isLoading && !isError && targets.length === 0 && !showAddForm && (
-          <div className="bg-falcon-card border border-falcon-border rounded-lg p-12 text-center">
-            <div className="w-12 h-12 bg-falcon-raised rounded-full flex items-center justify-center mx-auto mb-4">
-              <Radio className="w-6 h-6 text-falcon-muted" />
+          <div className="bg-[#111827] border border-[#1e2d42] rounded-lg p-12 text-center">
+            <div className="w-12 h-12 bg-[#161f33] rounded-full flex items-center justify-center mx-auto mb-4">
+              <Radio className="w-6 h-6 text-[#7d92b0]" />
             </div>
-            <p className="text-falcon-text font-medium mb-1">SIEMターゲットがありません</p>
-            <p className="text-sm text-falcon-muted mb-4">
+            <p className="text-[#e2e8f4] font-medium mb-1">SIEMターゲットがありません</p>
+            <p className="text-sm text-[#7d92b0] mb-4">
               イベントを転送するSIEMシステムを追加してください
             </p>
             <button
@@ -882,7 +887,7 @@ export default function SIEMSettingsPage() {
           <>
             {/* Section info */}
             <div className="flex items-center gap-2 mb-4">
-              <h2 className="text-sm font-medium text-falcon-muted">
+              <h2 className="text-sm font-medium text-[#7d92b0]">
                 設定済みターゲット ({targets.length})
               </h2>
             </div>
@@ -908,24 +913,24 @@ export default function SIEMSettingsPage() {
         )}
 
         {/* Help section */}
-        <div className="mt-8 bg-falcon-card border border-falcon-border rounded-lg p-5">
-          <h3 className="text-sm font-semibold text-falcon-text mb-3">設定ガイド</h3>
+        <div className="mt-8 bg-[#111827] border border-[#1e2d42] rounded-lg p-5">
+          <h3 className="text-sm font-semibold text-[#e2e8f4] mb-3">設定ガイド</h3>
           <div className="grid grid-cols-2 gap-4">
             {SIEM_TYPES.map((t) => (
               <div key={t.value} className="flex items-start gap-3">
                 <TypeBadge type={t.value} />
                 <div>
-                  <p className="text-xs text-falcon-muted">{t.description}</p>
-                  <p className="text-xs text-falcon-muted mt-0.5">
+                  <p className="text-xs text-[#7d92b0]">{t.description}</p>
+                  <p className="text-xs text-[#7d92b0] mt-0.5">
                     デフォルトポート: {DEFAULT_PORTS[t.value]} ({DEFAULT_PROTOCOLS[t.value]})
                   </p>
                 </div>
               </div>
             ))}
           </div>
-          <div className="mt-4 pt-4 border-t border-falcon-border text-xs text-falcon-muted">
+          <div className="mt-4 pt-4 border-t border-[#1e2d42] text-xs text-[#7d92b0]">
             <p>
-              <span className="text-falcon-text font-medium">最小重大度:</span>{' '}
+              <span className="text-[#e2e8f4] font-medium">最小重大度:</span>{' '}
               設定した値以上のアラートのみが転送されます。0 を設定するとすべてのイベントが転送されます。
             </p>
           </div>

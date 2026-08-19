@@ -9,6 +9,8 @@ import {
   Activity, Shield, Cpu, Globe, Folder, Database, Zap,
   RefreshCw, Filter, Calendar, Tag, TrendingUp,
 } from 'lucide-react'
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+
 import { USE_MOCK, m } from '@/lib/mock'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -315,7 +317,7 @@ const HUNT_TYPE_COLORS: Record<HuntType, string> = {
   anomaly: 'bg-yellow-900/50 text-yellow-300 border-yellow-700/50',
   yara: 'bg-green-900/50 text-green-300 border-green-700/50',
   sigma: 'bg-orange-900/50 text-orange-300 border-orange-700/50',
-  custom: 'bg-falcon-border text-falcon-muted border-falcon-border',
+  custom: 'bg-[#1e2d42] text-[#7d92b0] border-[#1e2d42]',
 }
 
 const DS_COLORS: Record<DataSource, string> = {
@@ -338,14 +340,14 @@ const SEV_COLORS: Record<Severity, string> = {
   critical: 'text-red-400',
   high: 'text-orange-400',
   medium: 'text-yellow-400',
-  any: 'text-falcon-muted',
+  any: 'text-[#7d92b0]',
 }
 
 const EXEC_STATUS_BADGE: Record<ExecStatus, string> = {
   completed: 'bg-green-900/40 text-green-400',
   running: 'bg-blue-900/40 text-blue-300 animate-pulse',
   failed: 'bg-red-900/40 text-red-400',
-  cancelled: 'bg-falcon-border text-falcon-muted',
+  cancelled: 'bg-[#1e2d42] text-[#7d92b0]',
 }
 
 const QUERY_PLACEHOLDERS: Record<HuntType, string> = {
@@ -412,40 +414,40 @@ function RuleModal({ rule, onClose, onSave }: RuleModalProps) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs">
-      <div className="bg-falcon-surface border border-falcon-border rounded-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-falcon-border">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[#1e2d42]">
           <h2 className="text-white font-semibold text-base">{rule ? 'ルール編集' : '新規ハンティングルール'}</h2>
-          <button onClick={onClose} className="text-falcon-muted hover:text-white"><X className="w-5 h-5" /></button>
+          <button onClick={onClose} className="text-[#7d92b0] hover:text-white"><X className="w-5 h-5" /></button>
         </div>
         <div className="px-6 py-5 space-y-4">
           {/* Name */}
           <div>
-            <label className="block text-xs text-falcon-muted mb-1">ルール名 *</label>
+            <label className="block text-xs text-[#7d92b0] mb-1">ルール名 *</label>
             <input value={form.name} onChange={e => set('name', e.target.value)}
-              className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-sm text-white focus:outline-hidden focus:border-falcon-red/50" placeholder="例: Lateral Movement Detection" />
+              className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-white focus:outline-hidden focus:border-[#e8002d]/50" placeholder="例: Lateral Movement Detection" />
           </div>
           {/* Description */}
           <div>
-            <label className="block text-xs text-falcon-muted mb-1">説明</label>
+            <label className="block text-xs text-[#7d92b0] mb-1">説明</label>
             <textarea value={form.description} onChange={e => set('description', e.target.value)} rows={2}
-              className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-sm text-white focus:outline-hidden focus:border-falcon-red/50 resize-none" />
+              className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-white focus:outline-hidden focus:border-[#e8002d]/50 resize-none" />
           </div>
           {/* Type & Source */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs text-falcon-muted mb-1">ハントタイプ</label>
+              <label className="block text-xs text-[#7d92b0] mb-1">ハントタイプ</label>
               <select value={form.hunt_type} onChange={e => set('hunt_type', e.target.value as HuntType)}
-                className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-sm text-white focus:outline-hidden">
+                className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-white focus:outline-hidden">
                 {(['ioc_sweep', 'behavioral', 'anomaly', 'yara', 'sigma', 'custom'] as HuntType[]).map(t => (
                   <option key={t} value={t}>{t}</option>
                 ))}
               </select>
             </div>
             <div>
-              <label className="block text-xs text-falcon-muted mb-1">データソース</label>
+              <label className="block text-xs text-[#7d92b0] mb-1">データソース</label>
               <select value={form.data_source} onChange={e => set('data_source', e.target.value as DataSource)}
-                className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-sm text-white focus:outline-hidden">
+                className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-white focus:outline-hidden">
                 {(['events', 'processes', 'network', 'registry', 'files'] as DataSource[]).map(d => (
                   <option key={d} value={d}>{d}</option>
                 ))}
@@ -454,53 +456,53 @@ function RuleModal({ rule, onClose, onSave }: RuleModalProps) {
           </div>
           {/* Query */}
           <div>
-            <label className="block text-xs text-falcon-muted mb-1">クエリ / パターン</label>
+            <label className="block text-xs text-[#7d92b0] mb-1">クエリ / パターン</label>
             <textarea value={form.query} onChange={e => set('query', e.target.value)} rows={5}
               placeholder={QUERY_PLACEHOLDERS[form.hunt_type ?? 'behavioral']}
-              className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-xs text-falcon-text font-mono focus:outline-hidden focus:border-falcon-red/50 resize-none" />
+              className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-xs text-[#e2e8f4] font-mono focus:outline-hidden focus:border-[#e8002d]/50 resize-none" />
           </div>
           {/* Schedule */}
           <div>
-            <label className="block text-xs text-falcon-muted mb-1">スケジュール</label>
+            <label className="block text-xs text-[#7d92b0] mb-1">スケジュール</label>
             <div className="flex gap-2 flex-wrap mb-2">
               {SCHEDULE_PRESETS.map(p => (
                 <button key={p.label} onClick={() => { if (p.cron) { set('schedule', p.cron); setScheduleMode('preset') } else setScheduleMode('custom') }}
                   className={`px-3 py-1 rounded-lg text-xs border transition-colors ${
                     (p.cron && form.schedule === p.cron) || (p.label === 'カスタム' && scheduleMode === 'custom')
-                      ? 'bg-falcon-red/20 border-falcon-red/50 text-white'
-                      : 'bg-[#0a1020] border-falcon-border text-falcon-muted hover:border-falcon-muted/40'
+                      ? 'bg-[#e8002d]/20 border-[#e8002d]/50 text-white'
+                      : 'bg-[#0a1020] border-[#1e2d42] text-[#7d92b0] hover:border-[#7d92b0]/40'
                   }`}>{p.label}</button>
               ))}
             </div>
             {scheduleMode === 'custom' && (
               <input value={form.schedule} onChange={e => set('schedule', e.target.value)}
-                className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-sm text-white font-mono focus:outline-hidden" placeholder="0 */6 * * *" />
+                className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-white font-mono focus:outline-hidden" placeholder="0 */6 * * *" />
             )}
           </div>
           {/* Severity & Auto-escalate */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs text-falcon-muted mb-1">重大度しきい値</label>
+              <label className="block text-xs text-[#7d92b0] mb-1">重大度しきい値</label>
               <select value={form.severity_threshold} onChange={e => set('severity_threshold', e.target.value as Severity)}
-                className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-sm text-white focus:outline-hidden">
+                className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-white focus:outline-hidden">
                 {(['critical', 'high', 'medium', 'any'] as Severity[]).map(s => (
                   <option key={s} value={s}>{s}</option>
                 ))}
               </select>
             </div>
             <div>
-              <label className="block text-xs text-falcon-muted mb-1">自動エスカレーション</label>
+              <label className="block text-xs text-[#7d92b0] mb-1">自動エスカレーション</label>
               <div className="flex items-center gap-3 mt-1">
                 <button onClick={() => set('auto_escalate', !form.auto_escalate)}
-                  className={`w-10 h-5 rounded-full relative transition-colors ${form.auto_escalate ? 'bg-falcon-red' : 'bg-falcon-border'}`}>
-                  <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-falcon-text transition-transform shadow-sm ${form.auto_escalate ? 'translate-x-5' : 'translate-x-0.5'}`} />
+                  className={`w-10 h-5 rounded-full relative transition-colors ${form.auto_escalate ? 'bg-[#e8002d]' : 'bg-[#1e2d42]'}`}>
+                  <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-[#e2e8f4] transition-transform shadow-sm ${form.auto_escalate ? 'translate-x-5' : 'translate-x-0.5'}`} />
                 </button>
                 {form.auto_escalate && (
-                  <div className="flex items-center gap-1 text-xs text-falcon-muted">
+                  <div className="flex items-center gap-1 text-xs text-[#7d92b0]">
                     <span>所見</span>
                     <input type="number" min={1} max={100} value={form.auto_escalate_threshold}
                       onChange={e => set('auto_escalate_threshold', +e.target.value)}
-                      className="w-12 bg-[#070d19] border border-falcon-border rounded-sm px-2 py-0.5 text-white text-xs text-center focus:outline-hidden" />
+                      className="w-12 bg-[#070d19] border border-[#1e2d42] rounded-sm px-2 py-0.5 text-white text-xs text-center focus:outline-hidden" />
                     <span>件以上で作成</span>
                   </div>
                 )}
@@ -509,12 +511,12 @@ function RuleModal({ rule, onClose, onSave }: RuleModalProps) {
           </div>
           {/* MITRE */}
           <div>
-            <label className="block text-xs text-falcon-muted mb-1">MITREテクニック</label>
+            <label className="block text-xs text-[#7d92b0] mb-1">MITREテクニック</label>
             <div className="flex gap-2 mb-2">
               <input value={mitreInput} onChange={e => setMitreInput(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addMitre())}
-                className="flex-1 bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-sm text-white focus:outline-hidden" placeholder="T1059.001" />
-              <button onClick={addMitre} className="px-3 py-2 bg-falcon-border hover:bg-[#253650] rounded-lg text-sm text-falcon-muted"><Plus className="w-4 h-4" /></button>
+                className="flex-1 bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-white focus:outline-hidden" placeholder="T1059.001" />
+              <button onClick={addMitre} className="px-3 py-2 bg-[#1e2d42] hover:bg-[#253650] rounded-lg text-sm text-[#7d92b0]"><Plus className="w-4 h-4" /></button>
             </div>
             <div className="flex flex-wrap gap-1.5">
               {(form.mitre_techniques ?? []).map(t => (
@@ -526,9 +528,9 @@ function RuleModal({ rule, onClose, onSave }: RuleModalProps) {
             </div>
           </div>
         </div>
-        <div className="flex justify-end gap-3 px-6 py-4 border-t border-falcon-border">
-          <button onClick={onClose} className="px-4 py-2 rounded-lg text-sm text-falcon-muted hover:text-white border border-falcon-border hover:border-falcon-muted/40">キャンセル</button>
-          <button onClick={() => onSave(form)} className="px-4 py-2 rounded-lg text-sm bg-falcon-red hover:bg-[#c8001e] text-white font-medium">
+        <div className="flex justify-end gap-3 px-6 py-4 border-t border-[#1e2d42]">
+          <button onClick={onClose} className="px-4 py-2 rounded-lg text-sm text-[#7d92b0] hover:text-white border border-[#1e2d42] hover:border-[#7d92b0]/40">キャンセル</button>
+          <button onClick={() => onSave(form)} className="px-4 py-2 rounded-lg text-sm bg-[#e8002d] hover:bg-[#c8001e] text-white font-medium">
             {rule ? '更新' : '作成'}
           </button>
         </div>
@@ -541,12 +543,12 @@ function RuleModal({ rule, onClose, onSave }: RuleModalProps) {
 
 function FindingRow({ f }: { f: Finding }) {
   return (
-    <div className="flex items-center gap-3 px-3 py-2 bg-[#070d19] rounded-lg border border-falcon-border text-xs">
+    <div className="flex items-center gap-3 px-3 py-2 bg-[#070d19] rounded-lg border border-[#1e2d42] text-xs">
       <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${f.severity === 'critical' ? 'bg-red-500' : f.severity === 'high' ? 'bg-orange-400' : 'bg-yellow-400'}`} />
-      <span className="text-falcon-muted w-28 truncate shrink-0">{f.endpoint}</span>
+      <span className="text-[#7d92b0] w-28 truncate shrink-0">{f.endpoint}</span>
       <span className="text-white flex-1 truncate">{f.indicator}</span>
-      <span className="text-falcon-muted w-32 truncate">{f.process_or_file}</span>
-      <button className="ml-auto px-2 py-0.5 bg-falcon-border hover:bg-[#253650] rounded-sm text-falcon-muted whitespace-nowrap">アラート作成</button>
+      <span className="text-[#7d92b0] w-32 truncate">{f.process_or_file}</span>
+      <button className="ml-auto px-2 py-0.5 bg-[#1e2d42] hover:bg-[#253650] rounded-sm text-[#7d92b0] whitespace-nowrap">アラート作成</button>
     </div>
   )
 }
@@ -647,6 +649,7 @@ export default function AutomatedHuntingPage() {
 
   return (
     <div className="min-h-screen bg-[#070d19] p-6">
+      <PageDataUnavailable />
       {toast && <Toast msg={toast.msg} type={toast.type} />}
       {(showModal || editRule) && (
         <RuleModal
@@ -659,16 +662,16 @@ export default function AutomatedHuntingPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-linear-to-br from-falcon-red/20 to-falcon-red/5 border border-falcon-red/30 flex items-center justify-center">
-            <Search className="w-5 h-5 text-falcon-red" />
+          <div className="w-10 h-10 rounded-xl bg-linear-to-br from-[#e8002d]/20 to-[#e8002d]/5 border border-[#e8002d]/30 flex items-center justify-center">
+            <Search className="w-5 h-5 text-[#e8002d]" />
           </div>
           <div>
             <h1 className="text-white font-bold text-xl">自動脅威ハンティング</h1>
-            <p className="text-falcon-muted text-sm">スケジュールベースのハンティングルールと実行管理</p>
+            <p className="text-[#7d92b0] text-sm">スケジュールベースのハンティングルールと実行管理</p>
           </div>
         </div>
         <button onClick={() => { setEditRule(null); setShowModal(true) }}
-          className="flex items-center gap-2 px-4 py-2 bg-falcon-red hover:bg-[#c8001e] text-white rounded-lg text-sm font-medium transition-colors">
+          className="flex items-center gap-2 px-4 py-2 bg-[#e8002d] hover:bg-[#c8001e] text-white rounded-lg text-sm font-medium transition-colors">
           <Plus className="w-4 h-4" />
           新規ルール作成
         </button>
@@ -680,21 +683,21 @@ export default function AutomatedHuntingPage() {
           { label: 'アクティブハント', value: activeHunts, icon: <Activity className="w-5 h-5" />, color: 'text-blue-400' },
           { label: '今日の実行数', value: todayExecs, icon: <Clock className="w-5 h-5" />, color: 'text-green-400' },
           { label: '今週の所見', value: weekFindings, icon: <AlertTriangle className="w-5 h-5" />, color: 'text-yellow-400' },
-          { label: '自動エスカレーション', value: autoEscalated, icon: <Zap className="w-5 h-5" />, color: 'text-falcon-red' },
+          { label: '自動エスカレーション', value: autoEscalated, icon: <Zap className="w-5 h-5" />, color: 'text-[#e8002d]' },
         ].map(c => (
-          <div key={c.label} className="bg-falcon-surface border border-falcon-border rounded-xl p-4">
+          <div key={c.label} className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-4">
             <div className={`${c.color} mb-2`}>{c.icon}</div>
             <p className="text-white text-2xl font-bold">{c.value}</p>
-            <p className="text-falcon-muted text-xs mt-0.5">{c.label}</p>
+            <p className="text-[#7d92b0] text-xs mt-0.5">{c.label}</p>
           </div>
         ))}
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 mb-6 bg-falcon-surface border border-falcon-border rounded-xl p-1 w-fit">
+      <div className="flex gap-1 mb-6 bg-[#0d1220] border border-[#1e2d42] rounded-xl p-1 w-fit">
         {([['rules', 'ハンティングルール'], ['history', '実行履歴']] as const).map(([key, label]) => (
           <button key={key} onClick={() => setTab(key)}
-            className={`px-5 py-2 rounded-lg text-sm font-medium transition-colors ${tab === key ? 'bg-falcon-red text-white' : 'text-falcon-muted hover:text-white'}`}>
+            className={`px-5 py-2 rounded-lg text-sm font-medium transition-colors ${tab === key ? 'bg-[#e8002d] text-white' : 'text-[#7d92b0] hover:text-white'}`}>
             {label}
           </button>
         ))}
@@ -706,27 +709,27 @@ export default function AutomatedHuntingPage() {
           {/* Filters */}
           <div className="flex items-center gap-3">
             <div className="relative flex-1 max-w-sm">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-falcon-muted" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#7d92b0]" />
               <input value={search} onChange={e => setSearch(e.target.value)} placeholder="ルール名・説明を検索..."
-                className="w-full bg-falcon-surface border border-falcon-border rounded-lg pl-9 pr-3 py-2 text-sm text-white focus:outline-hidden focus:border-falcon-red/50" />
+                className="w-full bg-[#0d1220] border border-[#1e2d42] rounded-lg pl-9 pr-3 py-2 text-sm text-white focus:outline-hidden focus:border-[#e8002d]/50" />
             </div>
             <select value={typeFilter} onChange={e => setTypeFilter(e.target.value)}
-              className="bg-falcon-surface border border-falcon-border rounded-lg px-3 py-2 text-sm text-falcon-muted focus:outline-hidden">
+              className="bg-[#0d1220] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-[#7d92b0] focus:outline-hidden">
               <option value="all">全タイプ</option>
               {(['ioc_sweep', 'behavioral', 'anomaly', 'yara', 'sigma', 'custom'] as HuntType[]).map(t => (
                 <option key={t} value={t}>{t}</option>
               ))}
             </select>
-            <span className="text-falcon-muted text-sm">{filteredRules.length}件</span>
+            <span className="text-[#7d92b0] text-sm">{filteredRules.length}件</span>
           </div>
 
           {/* Rules Table */}
-          <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
+          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-falcon-border">
+                <tr className="border-b border-[#1e2d42]">
                   {['ルール名', 'タイプ', 'データソース', 'スケジュール', '最終実行', '所見', '有効', '操作'].map(h => (
-                    <th key={h} className="text-left px-4 py-3 text-xs text-falcon-muted font-medium">{h}</th>
+                    <th key={h} className="text-left px-4 py-3 text-xs text-[#7d92b0] font-medium">{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -734,22 +737,22 @@ export default function AutomatedHuntingPage() {
                 {filteredRules.length === 0 && (
                   <tr>
                     <td colSpan={8} className="px-4 py-12 text-center">
-                      <Zap className="w-8 h-8 text-falcon-border mx-auto mb-3" />
-                      <p className="text-falcon-muted text-sm font-medium">
+                      <Zap className="w-8 h-8 text-[#1e2d42] mx-auto mb-3" />
+                      <p className="text-[#7d92b0] text-sm font-medium">
                         {search || typeFilter !== 'all' ? '条件に一致するルールが見つかりません' : 'ハンティングルールがまだありません'}
                       </p>
-                      <p className="text-falcon-subtle text-xs mt-1">
+                      <p className="text-[#3d5068] text-xs mt-1">
                         {search || typeFilter !== 'all' ? 'フィルターを変更してください' : '「ルール追加」ボタンから最初のルールを作成できます'}
                       </p>
                     </td>
                   </tr>
                 )}
                 {filteredRules.map(r => (
-                  <tr key={r.id} className="border-b border-falcon-border hover:bg-[#0a1320] transition-colors">
+                  <tr key={r.id} className="border-b border-[#1e2d42] hover:bg-[#0a1320] transition-colors">
                     <td className="px-4 py-3">
                       <div>
                         <p className="text-white font-medium">{r.name}</p>
-                        <p className="text-falcon-muted text-xs mt-0.5 truncate max-w-[200px]">{r.description}</p>
+                        <p className="text-[#7d92b0] text-xs mt-0.5 truncate max-w-[200px]">{r.description}</p>
                         {r.mitre_techniques.length > 0 && (
                           <div className="flex gap-1 mt-1 flex-wrap">
                             {r.mitre_techniques.slice(0, 3).map(t => (
@@ -770,19 +773,19 @@ export default function AutomatedHuntingPage() {
                     <td className="px-4 py-3">
                       <div>
                         <p className="text-white text-xs">{humanizeCron(r.schedule)}</p>
-                        <p className="text-falcon-subtle text-[10px] font-mono">{r.schedule}</p>
+                        <p className="text-[#3d5068] text-[10px] font-mono">{r.schedule}</p>
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-falcon-muted text-xs">{fmtTime(r.last_run)}</td>
+                    <td className="px-4 py-3 text-[#7d92b0] text-xs">{fmtTime(r.last_run)}</td>
                     <td className="px-4 py-3">
-                      <span className={`font-bold text-sm ${r.last_findings_count > 0 ? 'text-red-400' : 'text-falcon-muted'}`}>
+                      <span className={`font-bold text-sm ${r.last_findings_count > 0 ? 'text-red-400' : 'text-[#7d92b0]'}`}>
                         {r.last_findings_count}
                       </span>
                     </td>
                     <td className="px-4 py-3">
                       <button onClick={() => {/* toggle */ }}
-                        className={`w-9 h-5 rounded-full relative transition-colors ${r.enabled ? 'bg-green-600' : 'bg-falcon-border'}`}>
-                        <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-falcon-text transition-transform shadow-sm ${r.enabled ? 'translate-x-4' : 'translate-x-0.5'}`} />
+                        className={`w-9 h-5 rounded-full relative transition-colors ${r.enabled ? 'bg-green-600' : 'bg-[#1e2d42]'}`}>
+                        <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-[#e2e8f4] transition-transform shadow-sm ${r.enabled ? 'translate-x-4' : 'translate-x-0.5'}`} />
                       </button>
                     </td>
                     <td className="px-4 py-3">
@@ -792,7 +795,7 @@ export default function AutomatedHuntingPage() {
                           <Play className="w-3.5 h-3.5" />
                         </button>
                         <button onClick={() => setEditRule(r)} title="編集"
-                          className="p-1.5 hover:bg-falcon-border rounded-sm text-falcon-muted transition-colors">
+                          className="p-1.5 hover:bg-[#1e2d42] rounded-sm text-[#7d92b0] transition-colors">
                           <Edit2 className="w-3.5 h-3.5" />
                         </button>
                         <button onClick={() => deleteMutation.mutate(r.id)} title="削除"
@@ -808,35 +811,35 @@ export default function AutomatedHuntingPage() {
           </div>
 
           {/* Effectiveness */}
-          <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
+          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
             <div className="flex items-center gap-2 mb-4">
-              <TrendingUp className="w-4 h-4 text-falcon-red" />
+              <TrendingUp className="w-4 h-4 text-[#e8002d]" />
               <h2 className="text-white font-semibold text-sm">ルール有効性 Top 5 (所見/実行比率)</h2>
             </div>
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-falcon-border">
+                <tr className="border-b border-[#1e2d42]">
                   {['ルール名', 'タイプ', '総実行', '総所見', '比率'].map(h => (
-                    <th key={h} className="text-left px-3 py-2 text-xs text-falcon-muted">{h}</th>
+                    <th key={h} className="text-left px-3 py-2 text-xs text-[#7d92b0]">{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {effectivenessTop5.map((r, i) => (
-                  <tr key={r.id} className="border-b border-falcon-border/50">
+                  <tr key={r.id} className="border-b border-[#1e2d42]/50">
                     <td className="px-3 py-2">
                       <div className="flex items-center gap-2">
-                        <span className="text-falcon-subtle text-xs w-4">{i + 1}</span>
+                        <span className="text-[#3d5068] text-xs w-4">{i + 1}</span>
                         <span className="text-white">{r.name}</span>
                       </div>
                     </td>
                     <td className="px-3 py-2"><span className={`px-2 py-0.5 rounded-sm border text-xs ${HUNT_TYPE_COLORS[r.hunt_type]}`}>{r.hunt_type}</span></td>
-                    <td className="px-3 py-2 text-falcon-muted">{r.total_runs}</td>
-                    <td className="px-3 py-2 text-falcon-muted">{r.total_findings}</td>
+                    <td className="px-3 py-2 text-[#7d92b0]">{r.total_runs}</td>
+                    <td className="px-3 py-2 text-[#7d92b0]">{r.total_findings}</td>
                     <td className="px-3 py-2">
                       <div className="flex items-center gap-2">
-                        <div className="w-20 bg-falcon-border rounded-full h-1.5">
-                          <div className="bg-falcon-red h-1.5 rounded-full" style={{ width: `${Math.min(r.ratio * 100, 100)}%` }} />
+                        <div className="w-20 bg-[#1e2d42] rounded-full h-1.5">
+                          <div className="bg-[#e8002d] h-1.5 rounded-full" style={{ width: `${Math.min(r.ratio * 100, 100)}%` }} />
                         </div>
                         <span className="text-white text-xs">{(r.ratio * 100).toFixed(1)}%</span>
                       </div>
@@ -855,24 +858,24 @@ export default function AutomatedHuntingPage() {
           {/* Filters */}
           <div className="flex items-center gap-3 flex-wrap">
             <select value={execRuleFilter} onChange={e => setExecRuleFilter(e.target.value)}
-              className="bg-falcon-surface border border-falcon-border rounded-lg px-3 py-2 text-sm text-falcon-muted focus:outline-hidden">
+              className="bg-[#0d1220] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-[#7d92b0] focus:outline-hidden">
               <option value="all">全ルール</option>
               {rules.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
             </select>
             <select value={execStatusFilter} onChange={e => setExecStatusFilter(e.target.value)}
-              className="bg-falcon-surface border border-falcon-border rounded-lg px-3 py-2 text-sm text-falcon-muted focus:outline-hidden">
+              className="bg-[#0d1220] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-[#7d92b0] focus:outline-hidden">
               <option value="all">全ステータス</option>
               {(['completed', 'running', 'failed', 'cancelled'] as ExecStatus[]).map(s => <option key={s} value={s}>{s}</option>)}
             </select>
-            <span className="text-falcon-muted text-sm ml-auto">{filteredExecs.length}件</span>
+            <span className="text-[#7d92b0] text-sm ml-auto">{filteredExecs.length}件</span>
           </div>
 
-          <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
+          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-falcon-border">
+                <tr className="border-b border-[#1e2d42]">
                   {['', 'ルール名', '開始時刻', '完了時刻', '所要時間', 'ステータス', '所見', 'エスカレーション'].map(h => (
-                    <th key={h} className="text-left px-4 py-3 text-xs text-falcon-muted font-medium">{h}</th>
+                    <th key={h} className="text-left px-4 py-3 text-xs text-[#7d92b0] font-medium">{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -880,30 +883,30 @@ export default function AutomatedHuntingPage() {
                 {filteredExecs.length === 0 && (
                   <tr>
                     <td colSpan={7} className="px-4 py-12 text-center">
-                      <Clock className="w-8 h-8 text-falcon-border mx-auto mb-3" />
-                      <p className="text-falcon-muted text-sm">実行履歴がありません</p>
-                      <p className="text-falcon-subtle text-xs mt-1">ハンティングルールを実行すると、ここに履歴が表示されます</p>
+                      <Clock className="w-8 h-8 text-[#1e2d42] mx-auto mb-3" />
+                      <p className="text-[#7d92b0] text-sm">実行履歴がありません</p>
+                      <p className="text-[#3d5068] text-xs mt-1">ハンティングルールを実行すると、ここに履歴が表示されます</p>
                     </td>
                   </tr>
                 )}
                 {filteredExecs.map(e => (
                   <>
-                    <tr key={e.id} className="border-b border-falcon-border hover:bg-[#0a1320] transition-colors cursor-pointer"
+                    <tr key={e.id} className="border-b border-[#1e2d42] hover:bg-[#0a1320] transition-colors cursor-pointer"
                       onClick={() => setExpandedExec(expandedExec === e.id ? null : e.id)}>
                       <td className="px-4 py-3">
                         {e.findings.length > 0
-                          ? expandedExec === e.id ? <ChevronDown className="w-4 h-4 text-falcon-muted" /> : <ChevronRight className="w-4 h-4 text-falcon-muted" />
+                          ? expandedExec === e.id ? <ChevronDown className="w-4 h-4 text-[#7d92b0]" /> : <ChevronRight className="w-4 h-4 text-[#7d92b0]" />
                           : <span className="w-4 h-4 block" />}
                       </td>
                       <td className="px-4 py-3 text-white">{e.rule_name}</td>
-                      <td className="px-4 py-3 text-falcon-muted text-xs">{fmtTime(e.started_at)}</td>
-                      <td className="px-4 py-3 text-falcon-muted text-xs">{fmtTime(e.completed_at)}</td>
-                      <td className="px-4 py-3 text-falcon-muted text-xs">{formatDuration(e.duration_sec)}</td>
+                      <td className="px-4 py-3 text-[#7d92b0] text-xs">{fmtTime(e.started_at)}</td>
+                      <td className="px-4 py-3 text-[#7d92b0] text-xs">{fmtTime(e.completed_at)}</td>
+                      <td className="px-4 py-3 text-[#7d92b0] text-xs">{formatDuration(e.duration_sec)}</td>
                       <td className="px-4 py-3">
                         <span className={`px-2 py-0.5 rounded-sm text-xs font-medium ${EXEC_STATUS_BADGE[e.status]}`}>{e.status}</span>
                       </td>
                       <td className="px-4 py-3">
-                        <span className={`font-semibold ${e.findings_count > 0 ? 'text-red-400' : 'text-falcon-muted'}`}>{e.findings_count}</span>
+                        <span className={`font-semibold ${e.findings_count > 0 ? 'text-red-400' : 'text-[#7d92b0]'}`}>{e.findings_count}</span>
                       </td>
                       <td className="px-4 py-3">
                         {e.escalated && (
@@ -912,9 +915,9 @@ export default function AutomatedHuntingPage() {
                       </td>
                     </tr>
                     {expandedExec === e.id && e.findings.length > 0 && (
-                      <tr key={`${e.id}-details`} className="border-b border-falcon-border bg-[#070d19]">
+                      <tr key={`${e.id}-details`} className="border-b border-[#1e2d42] bg-[#070d19]">
                         <td colSpan={8} className="px-6 py-3">
-                          <p className="text-xs text-falcon-muted mb-2 font-medium">所見の詳細 ({e.findings.length}件)</p>
+                          <p className="text-xs text-[#7d92b0] mb-2 font-medium">所見の詳細 ({e.findings.length}件)</p>
                           <div className="space-y-1.5">
                             {e.findings.map(f => <FindingRow key={f.id} f={f} />)}
                           </div>

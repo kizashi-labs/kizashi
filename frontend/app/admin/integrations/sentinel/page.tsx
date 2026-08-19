@@ -24,6 +24,9 @@ import {
   X,
 } from 'lucide-react'
 
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+import { PageSaveFailed } from '@/components/PageSaveFailed'
+
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 type ConnectionStatus = 'idle' | 'testing' | 'success' | 'error'
@@ -106,18 +109,17 @@ function Card({
   children: React.ReactNode
 }) {
   return (
-    <div className="bg-falcon-surface border border-falcon-border rounded-xl p-6">
+    <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-6">
       <div className="flex items-start gap-3 mb-5">
         {icon && (
-          <div className="mt-0.5 w-8 h-8 rounded-lg bg-[#070d19] border border-falcon-border
-                          flex items-center justify-center shrink-0 text-falcon-muted">
+          <div className="mt-0.5 w-8 h-8 rounded-lg bg-[#070d19] border border-[#1e2d42] flex items-center justify-center shrink-0 text-[#7d92b0]">
             {icon}
           </div>
         )}
         <div>
-          <h2 className="text-sm font-semibold text-falcon-text">{title}</h2>
+          <h2 className="text-sm font-semibold text-[#e2e8f4]">{title}</h2>
           {subtitle && (
-            <p className="text-xs text-falcon-muted mt-0.5">{subtitle}</p>
+            <p className="text-xs text-[#7d92b0] mt-0.5">{subtitle}</p>
           )}
         </div>
       </div>
@@ -130,7 +132,7 @@ function Card({
 
 function FieldLabel({ children }: { children: React.ReactNode }) {
   return (
-    <label className="block text-xs font-medium text-falcon-muted mb-1.5">
+    <label className="block text-xs font-medium text-[#7d92b0] mb-1.5">
       {children}
     </label>
   )
@@ -156,8 +158,8 @@ function TextInput({
       onChange={e => onChange(e.target.value)}
       placeholder={placeholder}
       disabled={disabled}
-      className={`w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2
-                  text-sm text-falcon-text placeholder-[#3d5166]
+      className={`w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2
+                  text-sm text-[#e2e8f4] placeholder-[#3d5166]
                   focus:outline-hidden focus:border-blue-500/60 focus:ring-1 focus:ring-blue-500/20
                   disabled:opacity-50 disabled:cursor-not-allowed transition-colors ${className ?? ''}`}
     />
@@ -180,10 +182,7 @@ function SelectInput({
       value={value}
       onChange={e => onChange(e.target.value)}
       disabled={disabled}
-      className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2
-                 text-sm text-falcon-text
-                 focus:outline-hidden focus:border-blue-500/60 focus:ring-1 focus:ring-blue-500/20
-                 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+      className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-[#e2e8f4] focus:outline-hidden focus:border-blue-500/60 focus:ring-1 focus:ring-blue-500/20 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
     >
       {options.map(o => (
         <option key={String(o.value)} value={String(o.value)}>
@@ -210,9 +209,9 @@ function Toggle({
   return (
     <div className="flex items-center justify-between py-2">
       <div>
-        <p className="text-sm text-falcon-text font-medium">{label}</p>
+        <p className="text-sm text-[#e2e8f4] font-medium">{label}</p>
         {description && (
-          <p className="text-xs text-falcon-muted mt-0.5">{description}</p>
+          <p className="text-xs text-[#7d92b0] mt-0.5">{description}</p>
         )}
       </div>
       <button
@@ -302,15 +301,12 @@ function ConnectionCard() {
               value={cfg.primaryKey}
               onChange={e => set('primaryKey')(e.target.value)}
               placeholder="Workspace primary or secondary key"
-              className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 pr-10
-                         text-sm text-falcon-text placeholder-[#3d5166]
-                         focus:outline-hidden focus:border-blue-500/60 focus:ring-1 focus:ring-blue-500/20
-                         transition-colors"
+              className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 pr-10 text-sm text-[#e2e8f4] placeholder-[#3d5166] focus:outline-hidden focus:border-blue-500/60 focus:ring-1 focus:ring-blue-500/20 transition-colors"
             />
             <button
               type="button"
               onClick={() => setShowKey(v => !v)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-falcon-muted hover:text-falcon-text"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-[#7d92b0] hover:text-[#e2e8f4]"
             >
               {showKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
             </button>
@@ -347,7 +343,7 @@ function ConnectionCard() {
           </div>
         )}
         {testStatus === 'error' && (
-          <div className="flex items-start gap-2 text-red-400 bg-red-900/15 border border-falcon-red/30 rounded-lg px-4 py-2.5 text-sm">
+          <div className="flex items-start gap-2 text-red-400 bg-red-900/15 border border-[#e8002d]/30 rounded-lg px-4 py-2.5 text-sm">
             <XCircle className="w-4 h-4 shrink-0 mt-0.5" />
             <span>{testError || 'Connection failed. Check credentials and network.'}</span>
           </div>
@@ -358,9 +354,7 @@ function ConnectionCard() {
           <button
             onClick={() => testMutation.mutate()}
             disabled={testStatus === 'testing' || !cfg.workspaceId || !cfg.primaryKey}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg border border-blue-500/40
-                       text-blue-400 text-sm font-medium
-                       hover:bg-blue-500/10 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+            className="flex items-center gap-2 px-4 py-2 rounded-lg border border-blue-500/40 text-blue-400 text-sm font-medium hover:bg-blue-500/10 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
           >
             {testStatus === 'testing' ? (
               <Loader2 className="w-4 h-4 animate-spin" />
@@ -373,8 +367,7 @@ function ConnectionCard() {
           <button
             onClick={() => saveMutation.mutate()}
             disabled={saveMutation.isPending}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700
-                       text-white text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-all"
           >
             {saveMutation.isPending ? (
               <Loader2 className="w-4 h-4 animate-spin" />
@@ -440,7 +433,7 @@ function DataCollectionCard() {
     >
       <div className="space-y-4">
         {/* Master enable toggle */}
-        <div className="pb-3 border-b border-falcon-border">
+        <div className="pb-3 border-b border-[#1e2d42]">
           <Toggle
             enabled={cfg.enabled}
             onChange={set('enabled')}
@@ -451,7 +444,7 @@ function DataCollectionCard() {
 
         {/* Table selection */}
         <div>
-          <p className="text-xs font-semibold text-falcon-muted uppercase tracking-wider mb-3">
+          <p className="text-xs font-semibold text-[#7d92b0] uppercase tracking-wider mb-3">
             Tables to Forward
           </p>
           <div className={`space-y-1 ${!cfg.enabled ? 'opacity-50 pointer-events-none' : ''}`}>
@@ -508,8 +501,7 @@ function DataCollectionCard() {
           <button
             onClick={() => saveMutation.mutate()}
             disabled={saveMutation.isPending}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700
-                       text-white text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-all"
           >
             {saveMutation.isPending ? (
               <Loader2 className="w-4 h-4 animate-spin" />
@@ -570,8 +562,9 @@ function SchemaMappingCard() {
 
   const saveMutation = useMutation({
     mutationFn: () =>
+      // 同上。保存は POST です。
       apiFetch('/api/v1/admin/integrations/sentinel/mappings', {
-        method: 'PUT',
+        method: 'POST',
         body: JSON.stringify({ mappings }),
       }),
     onSuccess: () => {
@@ -588,20 +581,20 @@ function SchemaMappingCard() {
     >
       <div className="space-y-4">
         {/* Table */}
-        <div className="overflow-x-auto rounded-lg border border-falcon-border">
+        <div className="overflow-x-auto rounded-lg border border-[#1e2d42]">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-falcon-border bg-[#070d19]">
-                <th className="text-left px-4 py-2.5 text-xs font-semibold text-falcon-muted uppercase tracking-wider">
+              <tr className="border-b border-[#1e2d42] bg-[#070d19]">
+                <th className="text-left px-4 py-2.5 text-xs font-semibold text-[#7d92b0] uppercase tracking-wider">
                   EDR Field
                 </th>
-                <th className="text-left px-4 py-2.5 text-xs font-semibold text-falcon-muted uppercase tracking-wider">
+                <th className="text-left px-4 py-2.5 text-xs font-semibold text-[#7d92b0] uppercase tracking-wider">
                   Sentinel Column
                 </th>
                 <th className="w-20 px-4 py-2.5" />
               </tr>
             </thead>
-            <tbody className="divide-y divide-falcon-border">
+            <tbody className="divide-y divide-[#1e2d42]">
               {mappings.map(m => (
                 <tr key={m.id} className="hover:bg-[#070d19]/50 transition-colors">
                   <td className="px-4 py-2.5">
@@ -625,7 +618,7 @@ function SchemaMappingCard() {
                         className="text-xs py-1"
                       />
                     ) : (
-                      <span className="font-mono text-xs text-falcon-text">{m.sentinelColumn}</span>
+                      <span className="font-mono text-xs text-[#e2e8f4]">{m.sentinelColumn}</span>
                     )}
                   </td>
                   <td className="px-4 py-2.5">
@@ -641,7 +634,7 @@ function SchemaMappingCard() {
                           </button>
                           <button
                             onClick={cancelEdit}
-                            className="p-1 rounded-sm text-falcon-muted hover:bg-falcon-border"
+                            className="p-1 rounded-sm text-[#7d92b0] hover:bg-[#1e2d42]"
                             title="Cancel"
                           >
                             <X className="w-3.5 h-3.5" />
@@ -651,14 +644,14 @@ function SchemaMappingCard() {
                         <>
                           <button
                             onClick={() => startEdit(m)}
-                            className="p-1 rounded-sm text-falcon-muted hover:text-falcon-text hover:bg-falcon-border"
+                            className="p-1 rounded-sm text-[#7d92b0] hover:text-[#e2e8f4] hover:bg-[#1e2d42]"
                             title="Edit"
                           >
                             <Pencil className="w-3.5 h-3.5" />
                           </button>
                           <button
                             onClick={() => removeMapping(m.id)}
-                            className="p-1 rounded-sm text-falcon-muted hover:text-falcon-red hover:bg-red-900/15"
+                            className="p-1 rounded-sm text-[#7d92b0] hover:text-[#e8002d] hover:bg-red-900/15"
                             title="Remove"
                           >
                             <X className="w-3.5 h-3.5" />
@@ -692,9 +685,7 @@ function SchemaMappingCard() {
                   <button
                     onClick={addMapping}
                     disabled={!newRow.edrField.trim() || !newRow.sentinelColumn.trim()}
-                    className="text-xs px-2.5 py-1 rounded-lg bg-blue-600/20 border border-blue-500/30
-                               text-blue-400 hover:bg-blue-600/30 disabled:opacity-40 disabled:cursor-not-allowed
-                               transition-all"
+                    className="text-xs px-2.5 py-1 rounded-lg bg-blue-600/20 border border-blue-500/30 text-blue-400 hover:bg-blue-600/30 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
                   >
                     + Add
                   </button>
@@ -713,8 +704,7 @@ function SchemaMappingCard() {
         <button
           onClick={() => saveMutation.mutate()}
           disabled={saveMutation.isPending}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700
-                     text-white text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-all"
         >
           {saveMutation.isPending ? (
             <Loader2 className="w-4 h-4 animate-spin" />
@@ -777,10 +767,10 @@ function SyncStatusCard() {
                   ? 'bg-yellow-400 animate-pulse'
                   : status?.connected
                   ? 'bg-emerald-400'
-                  : 'bg-falcon-red'
+                  : 'bg-[#e8002d]'
               }`}
             />
-            <span className="text-sm font-medium text-falcon-text">
+            <span className="text-sm font-medium text-[#e2e8f4]">
               {isLoading
                 ? 'Checking...'
                 : status?.connected
@@ -793,8 +783,7 @@ function SyncStatusCard() {
             <button
               onClick={() => refetch()}
               disabled={isLoading}
-              className="p-1.5 rounded-lg border border-falcon-border text-falcon-muted
-                         hover:border-falcon-muted/50 hover:text-falcon-text transition-all"
+              className="p-1.5 rounded-lg border border-[#1e2d42] text-[#7d92b0] hover:border-[#7d92b0]/50 hover:text-[#e2e8f4] transition-all"
               title="Refresh status"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
@@ -802,10 +791,7 @@ function SyncStatusCard() {
             <button
               onClick={() => sendNowMutation.mutate()}
               disabled={sendNowMutation.isPending || !status?.connected}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg
-                         bg-blue-600/20 border border-blue-500/30 text-blue-400
-                         text-xs font-medium hover:bg-blue-600/30
-                         disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600/20 border border-blue-500/30 text-blue-400 text-xs font-medium hover:bg-blue-600/30 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
             >
               {sendNowMutation.isPending ? (
                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -819,27 +805,27 @@ function SyncStatusCard() {
 
         {/* Stats grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          <div className="bg-[#070d19] rounded-lg border border-falcon-border px-4 py-3">
-            <p className="text-xs text-falcon-muted mb-1">Connection</p>
-            <p className={`text-sm font-semibold ${status?.connected ? 'text-emerald-400' : 'text-falcon-red'}`}>
+          <div className="bg-[#070d19] rounded-lg border border-[#1e2d42] px-4 py-3">
+            <p className="text-xs text-[#7d92b0] mb-1">Connection</p>
+            <p className={`text-sm font-semibold ${status?.connected ? 'text-emerald-400' : 'text-[#e8002d]'}`}>
               {status?.connected ? 'Active' : 'Offline'}
             </p>
           </div>
-          <div className="bg-[#070d19] rounded-lg border border-falcon-border px-4 py-3">
-            <p className="text-xs text-falcon-muted mb-1">Last Batch</p>
-            <p className="text-sm font-medium text-falcon-text">
+          <div className="bg-[#070d19] rounded-lg border border-[#1e2d42] px-4 py-3">
+            <p className="text-xs text-[#7d92b0] mb-1">Last Batch</p>
+            <p className="text-sm font-medium text-[#e2e8f4]">
               {fmtDate(status?.lastBatch ?? null)}
             </p>
           </div>
-          <div className="bg-[#070d19] rounded-lg border border-falcon-border px-4 py-3">
-            <p className="text-xs text-falcon-muted mb-1">Records Today</p>
+          <div className="bg-[#070d19] rounded-lg border border-[#1e2d42] px-4 py-3">
+            <p className="text-xs text-[#7d92b0] mb-1">Records Today</p>
             <p className="text-sm font-semibold text-emerald-400">
               {(status?.recordsToday ?? 0).toLocaleString()}
             </p>
           </div>
-          <div className="bg-[#070d19] rounded-lg border border-falcon-border px-4 py-3">
-            <p className="text-xs text-falcon-muted mb-1">Errors Today</p>
-            <p className={`text-sm font-semibold ${(status?.errorsToday ?? 0) > 0 ? 'text-falcon-red' : 'text-falcon-text'}`}>
+          <div className="bg-[#070d19] rounded-lg border border-[#1e2d42] px-4 py-3">
+            <p className="text-xs text-[#7d92b0] mb-1">Errors Today</p>
+            <p className={`text-sm font-semibold ${(status?.errorsToday ?? 0) > 0 ? 'text-[#e8002d]' : 'text-[#e2e8f4]'}`}>
               {status?.errorsToday ?? 0}
             </p>
           </div>
@@ -874,15 +860,17 @@ function SyncStatusCard() {
 export default function SentinelIntegrationPage() {
   return (
     <div className="min-h-screen bg-[#070d19] p-6">
+      <PageDataUnavailable />
+      <PageSaveFailed className="mb-4" />
       {/* Header */}
       <div className="mb-8">
         {/* Breadcrumb */}
-        <div className="flex items-center gap-1.5 text-xs text-falcon-muted mb-4">
+        <div className="flex items-center gap-1.5 text-xs text-[#7d92b0] mb-4">
           <span>管理</span>
           <ChevronRight className="w-3.5 h-3.5" />
           <span>インテグレーション</span>
           <ChevronRight className="w-3.5 h-3.5" />
-          <span className="text-falcon-text">Microsoft Sentinel</span>
+          <span className="text-[#e2e8f4]">Microsoft Sentinel</span>
         </div>
 
         {/* Title row */}
@@ -893,7 +881,7 @@ export default function SentinelIntegrationPage() {
           </div>
           <div>
             <h1 className="text-xl font-bold text-white">Microsoft Sentinel Integration</h1>
-            <p className="text-sm text-falcon-muted mt-0.5">
+            <p className="text-sm text-[#7d92b0] mt-0.5">
               Forward EDR security alerts and events to your Azure Sentinel Log Analytics workspace
             </p>
           </div>

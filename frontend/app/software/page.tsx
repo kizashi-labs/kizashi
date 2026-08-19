@@ -13,6 +13,8 @@ import {
 import Link from 'next/link'
 import { USE_MOCK, m } from '@/lib/mock'
 
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
@@ -129,7 +131,7 @@ const SEVERITY_LABELS: Record<string, string> = {
 const LICENSE_COLORS: Record<string, string> = {
   Commercial: 'bg-purple-900/40 text-purple-300 border-purple-700/50',
   'Open Source': 'bg-green-900/40 text-green-300 border-green-700/50',
-  Unknown: 'bg-falcon-border text-falcon-muted border-[#2a3a52]',
+  Unknown: 'bg-[#1e2d42] text-[#7d92b0] border-[#2a3a52]',
 }
 
 const LICENSE_LABELS: Record<string, string> = {
@@ -225,13 +227,7 @@ function SoftwarePageInner() {
   const { data: vulnData, isLoading: vulnLoading, refetch: refetchVulns } =
     useQuery<{ vulns?: VulnEntry[] }>({
       queryKey: ['software-vulns'],
-      queryFn: async () => {
-        try {
-          return await apiFetch('/api/v1/software/vulnerabilities')
-        } catch {
-          return { vulns: USE_MOCK ? MOCK_VULNS : [] }
-        }
-      },
+      queryFn: () => apiFetch('/api/v1/software/vulnerabilities'),
       staleTime: 60_000,
     })
 
@@ -241,13 +237,7 @@ function SoftwarePageInner() {
   const { data: allSwData, isLoading: allSwLoading } =
     useQuery<{ data?: SoftwareEntry[]; software?: SoftwareEntry[] }>({
       queryKey: ['software-all'],
-      queryFn: async () => {
-        try {
-          return await apiFetch('/api/v1/software?limit=5000')
-        } catch {
-          return { software: [] }
-        }
-      },
+      queryFn: () => apiFetch('/api/v1/software?limit=5000'),
       staleTime: 60_000,
     })
   const allSoftware: SoftwareEntry[] = allSwData?.data ?? allSwData?.software ?? []
@@ -406,6 +396,7 @@ function SoftwarePageInner() {
   return (
     <div className="bg-[#070d19] min-h-screen text-white">
       <div className="max-w-7xl mx-auto px-6 py-8 space-y-6">
+        <PageDataUnavailable />
 
         {/* ── Header ─────────────────────────────────────────────────────── */}
         <div className="flex items-center justify-between">
@@ -415,7 +406,7 @@ function SoftwarePageInner() {
             </div>
             <div>
               <h1 className="text-2xl font-bold text-white">ソフトウェアインベントリ</h1>
-              <p className="text-sm text-falcon-muted mt-0.5">エンドポイントにインストールされたソフトウェアを管理・分析</p>
+              <p className="text-sm text-[#7d92b0] mt-0.5">エンドポイントにインストールされたソフトウェアを管理・分析</p>
             </div>
           </div>
           <button
@@ -425,14 +416,14 @@ function SoftwarePageInner() {
             }}
             disabled={isLoading || vulnLoading}
             title="再読み込み"
-            className="p-2 rounded-lg text-[#5a6a7a] hover:text-white hover:bg-falcon-surface transition-colors disabled:opacity-40"
+            className="p-2 rounded-lg text-[#5a6a7a] hover:text-white hover:bg-[#0d1220] transition-colors disabled:opacity-40"
           >
             <RefreshCw className={`w-4 h-4 ${isLoading || vulnLoading ? 'animate-spin' : ''}`} />
           </button>
         </div>
 
         {/* ── Tabs ────────────────────────────────────────────────────────── */}
-        <div className="border-b border-falcon-border">
+        <div className="border-b border-[#1e2d42]">
           <div className="flex gap-1">
             {TABS.map(tab => (
               <button
@@ -440,15 +431,15 @@ function SoftwarePageInner() {
                 onClick={() => setActiveTab(tab.id)}
                 className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors -mb-px ${
                   activeTab === tab.id
-                    ? 'border-falcon-red text-white'
-                    : 'border-transparent text-falcon-muted hover:text-white hover:border-[#2d4a6e]'
+                    ? 'border-[#e8002d] text-white'
+                    : 'border-transparent text-[#7d92b0] hover:text-white hover:border-[#2d4a6e]'
                 }`}
               >
                 {tab.icon}
                 {tab.label}
                 {tab.badge !== undefined && tab.badge > 0 && (
                   <span className={`text-xs px-1.5 py-0.5 rounded-full font-mono ${
-                    activeTab === tab.id ? 'bg-falcon-red/20 text-falcon-red' : 'bg-falcon-border text-falcon-muted'
+                    activeTab === tab.id ? 'bg-[#e8002d]/20 text-[#e8002d]' : 'bg-[#1e2d42] text-[#7d92b0]'
                   }`}>
                     {tab.badge}
                   </span>
@@ -464,7 +455,7 @@ function SoftwarePageInner() {
         {activeTab === 'installed' && (
           <>
             {/* ── Search / Filter bar ─────────────────────────────────────── */}
-            <div className="bg-falcon-surface rounded-xl border border-falcon-border p-4">
+            <div className="bg-[#0d1220] rounded-xl border border-[#1e2d42] p-4">
               <div className="flex flex-wrap items-center gap-3">
                 <div className="relative flex-1 min-w-[220px]">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#5a6a7a]" />
@@ -472,9 +463,7 @@ function SoftwarePageInner() {
                     value={inputVal}
                     onChange={e => { setInputVal(e.target.value); setPage(1) }}
                     placeholder="ソフトウェア名で検索..."
-                    className="w-full pl-9 pr-8 py-2 text-sm border border-falcon-border rounded-lg
-                               bg-[#070d19] text-white placeholder-[#5a6a7a]
-                               focus:outline-hidden focus:border-teal-500 transition-colors"
+                    className="w-full pl-9 pr-8 py-2 text-sm border border-[#1e2d42] rounded-lg bg-[#070d19] text-white placeholder-[#5a6a7a] focus:outline-hidden focus:border-teal-500 transition-colors"
                   />
                   {inputVal && (
                     <button
@@ -490,9 +479,7 @@ function SoftwarePageInner() {
                   <select
                     value={agentId}
                     onChange={e => { setAgentId(e.target.value); setPage(1) }}
-                    className="pl-9 pr-8 py-2 text-sm border border-falcon-border rounded-lg
-                               bg-[#070d19] text-falcon-text focus:outline-hidden focus:border-teal-500
-                               appearance-none cursor-pointer transition-colors min-w-[180px]"
+                    className="pl-9 pr-8 py-2 text-sm border border-[#1e2d42] rounded-lg bg-[#070d19] text-[#e2e8f4] focus:outline-hidden focus:border-teal-500 appearance-none cursor-pointer transition-colors min-w-[180px]"
                   >
                     <option value="">全エンドポイント</option>
                     {agents.map(a => (
@@ -503,9 +490,7 @@ function SoftwarePageInner() {
                 <button
                   onClick={exportCSV}
                   disabled={sortedItems.length === 0}
-                  className="flex items-center gap-1.5 px-4 py-2 text-sm border border-falcon-border
-                             bg-falcon-surface hover:bg-falcon-active text-falcon-text rounded-lg
-                             transition-colors disabled:opacity-40 ml-auto"
+                  className="flex items-center gap-1.5 px-4 py-2 text-sm border border-[#1e2d42] bg-[#0d1220] hover:bg-[#1d2f4a] text-[#e2e8f4] rounded-lg transition-colors disabled:opacity-40 ml-auto"
                 >
                   <Download className="w-4 h-4" />
                   CSVエクスポート
@@ -531,7 +516,7 @@ function SoftwarePageInner() {
             {/* ── Stats cards ─────────────────────────────────────────────── */}
             {showResults && !isLoading && rawItems.length > 0 && (
               <div className="grid grid-cols-3 gap-4">
-                <div className="bg-falcon-surface border border-falcon-border rounded-xl p-4 flex items-center gap-3">
+                <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-4 flex items-center gap-3">
                   <div className="w-9 h-9 rounded-lg bg-teal-900/50 flex items-center justify-center shrink-0">
                     <Package className="w-4 h-4 text-teal-400" />
                   </div>
@@ -540,7 +525,7 @@ function SoftwarePageInner() {
                     <p className="text-xs text-[#5a6a7a]">ユニークなソフトウェア名</p>
                   </div>
                 </div>
-                <div className="bg-falcon-surface border border-falcon-border rounded-xl p-4 flex items-center gap-3">
+                <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-4 flex items-center gap-3">
                   <div className="w-9 h-9 rounded-lg bg-blue-900/50 flex items-center justify-center shrink-0">
                     <CheckCircle className="w-4 h-4 text-blue-400" />
                   </div>
@@ -549,7 +534,7 @@ function SoftwarePageInner() {
                     <p className="text-xs text-[#5a6a7a]">合計インストール数</p>
                   </div>
                 </div>
-                <div className="bg-falcon-surface border border-falcon-border rounded-xl p-4 flex items-center gap-3">
+                <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-4 flex items-center gap-3">
                   <div className="w-9 h-9 rounded-lg bg-purple-900/50 flex items-center justify-center shrink-0">
                     <Server className="w-4 h-4 text-purple-400" />
                   </div>
@@ -563,7 +548,7 @@ function SoftwarePageInner() {
 
             {/* ── Main content area ───────────────────────────────────────── */}
             {!showResults ? (
-              <div className="flex flex-col items-center justify-center py-24 bg-falcon-surface rounded-xl border border-falcon-border text-[#5a6a7a]">
+              <div className="flex flex-col items-center justify-center py-24 bg-[#0d1220] rounded-xl border border-[#1e2d42] text-[#5a6a7a]">
                 <Package className="w-14 h-14 mb-4 opacity-20" />
                 <p className="text-sm">エンドポイントを選択するか、ソフトウェア名を入力して検索してください</p>
               </div>
@@ -572,7 +557,7 @@ function SoftwarePageInner() {
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-500" />
               </div>
             ) : rawItems.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-24 bg-falcon-surface rounded-xl border border-falcon-border text-[#5a6a7a]">
+              <div className="flex flex-col items-center justify-center py-24 bg-[#0d1220] rounded-xl border border-[#1e2d42] text-[#5a6a7a]">
                 <Package className="w-12 h-12 mb-3 opacity-20" />
                 <p className="text-sm">該当するソフトウェアが見つかりません</p>
                 {debouncedQuery && (
@@ -585,8 +570,8 @@ function SoftwarePageInner() {
                 )}
               </div>
             ) : (
-              <div className="bg-falcon-surface rounded-xl border border-falcon-border overflow-hidden">
-                <div className="px-5 py-3 border-b border-falcon-border flex items-center justify-between gap-3 flex-wrap">
+              <div className="bg-[#0d1220] rounded-xl border border-[#1e2d42] overflow-hidden">
+                <div className="px-5 py-3 border-b border-[#1e2d42] flex items-center justify-between gap-3 flex-wrap">
                   <span className="text-sm text-[#8899aa]">
                     {totalItems.toLocaleString()}件
                     {totalPages > 1 && (
@@ -603,7 +588,7 @@ function SoftwarePageInner() {
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
-                      <tr className="border-b border-falcon-border text-xs text-[#8899aa] bg-[#070d19]">
+                      <tr className="border-b border-[#1e2d42] text-xs text-[#8899aa] bg-[#070d19]">
                         <th className="px-4 py-3 text-left">
                           <button
                             onClick={() => toggleSort('name')}
@@ -636,16 +621,14 @@ function SoftwarePageInner() {
                         return (
                           <tr
                             key={sw.id}
-                            className="border-b border-falcon-border/50 hover:bg-falcon-raised/40 transition-colors"
+                            className="border-b border-[#1e2d42]/50 hover:bg-[#161f33]/40 transition-colors"
                           >
                             <td className="px-4 py-2.5">
                               <div className="flex items-center gap-2 flex-wrap">
                                 <Package className="w-3.5 h-3.5 text-teal-400 shrink-0" />
-                                <span className="text-falcon-text font-medium">{sw.name}</span>
+                                <span className="text-[#e2e8f4] font-medium">{sw.name}</span>
                                 {cveRisk && (
-                                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded
-                                                   text-[10px] font-semibold leading-none
-                                                   bg-orange-900/50 text-orange-300 border border-orange-700/60">
+                                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-sm text-[10px] font-semibold leading-none bg-orange-900/50 text-orange-300 border border-orange-700/60">
                                     <AlertTriangle className="w-2.5 h-2.5" />
                                     CVE確認推奨
                                   </span>
@@ -688,20 +671,18 @@ function SoftwarePageInner() {
                   </table>
                 </div>
                 {totalPages > 1 && (
-                  <div className="flex items-center justify-center gap-2 px-5 py-3 border-t border-falcon-border">
+                  <div className="flex items-center justify-center gap-2 px-5 py-3 border-t border-[#1e2d42]">
                     <button
                       onClick={() => setPage(1)}
                       disabled={safePage === 1}
-                      className="px-2.5 py-1.5 text-xs rounded bg-[#070d19] text-[#8899aa]
-                                 hover:bg-falcon-hover disabled:opacity-30 transition-colors"
+                      className="px-2.5 py-1.5 text-xs rounded-sm bg-[#070d19] text-[#8899aa] hover:bg-[#19253d] disabled:opacity-30 transition-colors"
                     >
                       «
                     </button>
                     <button
                       onClick={() => setPage(p => Math.max(1, p - 1))}
                       disabled={safePage === 1}
-                      className="px-3 py-1.5 text-xs rounded bg-[#070d19] text-[#8899aa]
-                                 hover:bg-falcon-hover disabled:opacity-30 transition-colors"
+                      className="px-3 py-1.5 text-xs rounded-sm bg-[#070d19] text-[#8899aa] hover:bg-[#19253d] disabled:opacity-30 transition-colors"
                     >
                       前へ
                     </button>
@@ -717,10 +698,10 @@ function SoftwarePageInner() {
                         <button
                           key={n}
                           onClick={() => setPage(n)}
-                          className={`w-8 h-7 text-xs rounded transition-colors ${
+                          className={`w-8 h-7 text-xs rounded-sm transition-colors ${
                             n === safePage
                               ? 'bg-teal-700 text-white font-semibold'
-                              : 'bg-[#070d19] text-[#8899aa] hover:bg-falcon-hover'
+                              : 'bg-[#070d19] text-[#8899aa] hover:bg-[#19253d]'
                           }`}
                         >
                           {n}
@@ -729,16 +710,14 @@ function SoftwarePageInner() {
                     <button
                       onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                       disabled={safePage === totalPages}
-                      className="px-3 py-1.5 text-xs rounded bg-[#070d19] text-[#8899aa]
-                                 hover:bg-falcon-hover disabled:opacity-30 transition-colors"
+                      className="px-3 py-1.5 text-xs rounded-sm bg-[#070d19] text-[#8899aa] hover:bg-[#19253d] disabled:opacity-30 transition-colors"
                     >
                       次へ
                     </button>
                     <button
                       onClick={() => setPage(totalPages)}
                       disabled={safePage === totalPages}
-                      className="px-2.5 py-1.5 text-xs rounded bg-[#070d19] text-[#8899aa]
-                                 hover:bg-falcon-hover disabled:opacity-30 transition-colors"
+                      className="px-2.5 py-1.5 text-xs rounded-sm bg-[#070d19] text-[#8899aa] hover:bg-[#19253d] disabled:opacity-30 transition-colors"
                     >
                       »
                     </button>
@@ -760,10 +739,10 @@ function SoftwarePageInner() {
                 <div
                   key={sev}
                   onClick={() => setVulnSeverityFilter(vulnSeverityFilter === sev ? '' : sev)}
-                  className={`bg-falcon-surface border rounded-xl p-4 cursor-pointer transition-all ${
+                  className={`bg-[#0d1220] border rounded-xl p-4 cursor-pointer transition-all ${
                     vulnSeverityFilter === sev
-                      ? 'border-falcon-red ring-1 ring-falcon-red/30'
-                      : 'border-falcon-border hover:border-[#2d4a6e]'
+                      ? 'border-[#e8002d] ring-1 ring-[#e8002d]/30'
+                      : 'border-[#1e2d42] hover:border-[#2d4a6e]'
                   }`}
                 >
                   <div className="flex items-center justify-between mb-2">
@@ -773,13 +752,13 @@ function SoftwarePageInner() {
                     <Shield className="w-4 h-4 text-[#5a6a7a]" />
                   </div>
                   <p className="text-3xl font-bold text-white font-mono">{vulnStats[sev]}</p>
-                  <p className="text-xs text-falcon-muted mt-1">CVE検出数</p>
+                  <p className="text-xs text-[#7d92b0] mt-1">CVE検出数</p>
                 </div>
               ))}
             </div>
 
             {/* Filter bar */}
-            <div className="bg-falcon-surface rounded-xl border border-falcon-border p-4">
+            <div className="bg-[#0d1220] rounded-xl border border-[#1e2d42] p-4">
               <div className="flex flex-wrap items-center gap-3">
                 <div className="relative flex-1 min-w-[220px]">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#5a6a7a]" />
@@ -787,9 +766,7 @@ function SoftwarePageInner() {
                     value={vulnSearch}
                     onChange={e => setVulnSearch(e.target.value)}
                     placeholder="ソフトウェア名またはCVE IDで検索..."
-                    className="w-full pl-9 pr-8 py-2 text-sm border border-falcon-border rounded-lg
-                               bg-[#070d19] text-white placeholder-[#5a6a7a]
-                               focus:outline-hidden focus:border-falcon-red transition-colors"
+                    className="w-full pl-9 pr-8 py-2 text-sm border border-[#1e2d42] rounded-lg bg-[#070d19] text-white placeholder-[#5a6a7a] focus:outline-hidden focus:border-[#e8002d] transition-colors"
                   />
                   {vulnSearch && (
                     <button
@@ -805,9 +782,7 @@ function SoftwarePageInner() {
                   <select
                     value={vulnSeverityFilter}
                     onChange={e => setVulnSeverityFilter(e.target.value)}
-                    className="pl-9 pr-8 py-2 text-sm border border-falcon-border rounded-lg
-                               bg-[#070d19] text-falcon-text focus:outline-hidden focus:border-falcon-red
-                               appearance-none cursor-pointer transition-colors min-w-[160px]"
+                    className="pl-9 pr-8 py-2 text-sm border border-[#1e2d42] rounded-lg bg-[#070d19] text-[#e2e8f4] focus:outline-hidden focus:border-[#e8002d] appearance-none cursor-pointer transition-colors min-w-[160px]"
                   >
                     <option value="">全深刻度</option>
                     <option value="Critical">クリティカル</option>
@@ -819,9 +794,7 @@ function SoftwarePageInner() {
                 <button
                   onClick={exportVulnsCSV}
                   disabled={filteredVulns.length === 0}
-                  className="flex items-center gap-1.5 px-4 py-2 text-sm border border-falcon-border
-                             bg-falcon-surface hover:bg-falcon-active text-falcon-text rounded-lg
-                             transition-colors disabled:opacity-40 ml-auto"
+                  className="flex items-center gap-1.5 px-4 py-2 text-sm border border-[#1e2d42] bg-[#0d1220] hover:bg-[#1d2f4a] text-[#e2e8f4] rounded-lg transition-colors disabled:opacity-40 ml-auto"
                 >
                   <Download className="w-4 h-4" />
                   CSVエクスポート
@@ -832,22 +805,22 @@ function SoftwarePageInner() {
             {/* Vulnerabilities table */}
             {vulnLoading ? (
               <div className="flex justify-center py-24">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-falcon-red" />
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#e8002d]" />
               </div>
             ) : filteredVulns.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-24 bg-falcon-surface rounded-xl border border-falcon-border text-[#5a6a7a]">
+              <div className="flex flex-col items-center justify-center py-24 bg-[#0d1220] rounded-xl border border-[#1e2d42] text-[#5a6a7a]">
                 <Shield className="w-12 h-12 mb-3 opacity-20" />
                 <p className="text-sm">脆弱性が見つかりませんでした</p>
               </div>
             ) : (
-              <div className="bg-falcon-surface rounded-xl border border-falcon-border overflow-hidden">
-                <div className="px-5 py-3 border-b border-falcon-border">
+              <div className="bg-[#0d1220] rounded-xl border border-[#1e2d42] overflow-hidden">
+                <div className="px-5 py-3 border-b border-[#1e2d42]">
                   <span className="text-sm text-[#8899aa]">{(filteredVulns.length ?? 0).toLocaleString()}件の脆弱性</span>
                 </div>
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
-                      <tr className="border-b border-falcon-border text-xs text-[#8899aa] bg-[#070d19]">
+                      <tr className="border-b border-[#1e2d42] text-xs text-[#8899aa] bg-[#070d19]">
                         <th className="px-4 py-3 text-left">ソフトウェア名</th>
                         <th className="px-4 py-3 text-left">バージョン</th>
                         <th className="px-4 py-3 text-left">CVE ID</th>
@@ -862,12 +835,12 @@ function SoftwarePageInner() {
                       {filteredVulns.map((vuln, idx) => (
                         <tr
                           key={`${vuln.cve_id}-${idx}`}
-                          className="border-b border-falcon-border/50 hover:bg-falcon-raised/40 transition-colors"
+                          className="border-b border-[#1e2d42]/50 hover:bg-[#161f33]/40 transition-colors"
                         >
                           <td className="px-4 py-2.5">
                             <div className="flex items-center gap-2">
                               <Package className="w-3.5 h-3.5 text-[#5a6a7a] shrink-0" />
-                              <span className="text-falcon-text font-medium">{vuln.software_name}</span>
+                              <span className="text-[#e2e8f4] font-medium">{vuln.software_name}</span>
                             </div>
                           </td>
                           <td className="px-4 py-2.5 font-mono text-xs text-[#8899aa]">
@@ -893,7 +866,7 @@ function SoftwarePageInner() {
                           <td className="px-4 py-2.5">
                             <div className="flex items-center gap-1.5 text-sm">
                               <Server className="w-3 h-3 text-[#5a6a7a]" />
-                              <span className="text-falcon-text font-mono">{vuln.endpoint_count}</span>
+                              <span className="text-[#e2e8f4] font-mono">{vuln.endpoint_count}</span>
                             </div>
                           </td>
                           <td className="px-4 py-2.5">
@@ -902,7 +875,7 @@ function SoftwarePageInner() {
                                 利用可能
                               </span>
                             ) : (
-                              <span className="text-xs px-2 py-0.5 rounded-sm border bg-falcon-border text-falcon-muted border-[#2a3a52]">
+                              <span className="text-xs px-2 py-0.5 rounded-sm border bg-[#1e2d42] text-[#7d92b0] border-[#2a3a52]">
                                 未提供
                               </span>
                             )}
@@ -933,13 +906,13 @@ function SoftwarePageInner() {
         ══════════════════════════════════════════════════════════════════ */}
         {activeTab === 'outdated' && (
           <>
-            <div className="bg-falcon-surface border border-falcon-border rounded-xl p-4 flex items-start gap-3">
+            <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-4 flex items-start gap-3">
               <div className="w-9 h-9 rounded-lg bg-orange-900/40 flex items-center justify-center shrink-0 mt-0.5">
                 <Clock className="w-4 h-4 text-orange-400" />
               </div>
               <div>
                 <p className="text-sm font-medium text-white">インストールから6ヶ月以上経過したソフトウェア</p>
-                <p className="text-xs text-falcon-muted mt-1">
+                <p className="text-xs text-[#7d92b0] mt-1">
                   古いバージョンのソフトウェアは既知の脆弱性を含む可能性があります。定期的なアップデートを推奨します。
                 </p>
               </div>
@@ -950,14 +923,14 @@ function SoftwarePageInner() {
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500" />
               </div>
             ) : outdatedItems.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-24 bg-falcon-surface rounded-xl border border-falcon-border text-[#5a6a7a]">
+              <div className="flex flex-col items-center justify-center py-24 bg-[#0d1220] rounded-xl border border-[#1e2d42] text-[#5a6a7a]">
                 <CheckCircle className="w-12 h-12 mb-3 opacity-30 text-green-400" />
-                <p className="text-sm text-falcon-muted">古いソフトウェアは検出されていません</p>
+                <p className="text-sm text-[#7d92b0]">古いソフトウェアは検出されていません</p>
                 <p className="text-xs text-[#5a6a7a] mt-1">データが存在しない場合は、まず全エンドポイントのインベントリを収集してください</p>
               </div>
             ) : (
-              <div className="bg-falcon-surface rounded-xl border border-falcon-border overflow-hidden">
-                <div className="px-5 py-3 border-b border-falcon-border flex items-center justify-between">
+              <div className="bg-[#0d1220] rounded-xl border border-[#1e2d42] overflow-hidden">
+                <div className="px-5 py-3 border-b border-[#1e2d42] flex items-center justify-between">
                   <span className="text-sm text-[#8899aa]">
                     {(outdatedItems.length ?? 0).toLocaleString()}件の古いソフトウェア
                   </span>
@@ -969,7 +942,7 @@ function SoftwarePageInner() {
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
-                      <tr className="border-b border-falcon-border text-xs text-[#8899aa] bg-[#070d19]">
+                      <tr className="border-b border-[#1e2d42] text-xs text-[#8899aa] bg-[#070d19]">
                         <th className="px-4 py-3 text-left">ソフトウェア名</th>
                         <th className="px-4 py-3 text-left">バージョン</th>
                         <th className="px-4 py-3 text-left">ベンダー</th>
@@ -987,12 +960,12 @@ function SoftwarePageInner() {
                         return (
                           <tr
                             key={`${sw.id}-${idx}`}
-                            className="border-b border-falcon-border/50 hover:bg-falcon-raised/40 transition-colors"
+                            className="border-b border-[#1e2d42]/50 hover:bg-[#161f33]/40 transition-colors"
                           >
                             <td className="px-4 py-2.5">
                               <div className="flex items-center gap-2">
                                 <Package className="w-3.5 h-3.5 text-orange-400 shrink-0" />
-                                <span className="text-falcon-text font-medium">{sw.name}</span>
+                                <span className="text-[#e2e8f4] font-medium">{sw.name}</span>
                               </div>
                             </td>
                             <td className="px-4 py-2.5 font-mono text-xs text-[#8899aa]">
@@ -1048,10 +1021,10 @@ function SoftwarePageInner() {
                   <div
                     key={lic}
                     onClick={() => setLicenseFilter(licenseFilter === lic ? '' : lic)}
-                    className={`bg-falcon-surface border rounded-xl p-4 cursor-pointer transition-all ${
+                    className={`bg-[#0d1220] border rounded-xl p-4 cursor-pointer transition-all ${
                       licenseFilter === lic
-                        ? 'border-falcon-red ring-1 ring-falcon-red/30'
-                        : 'border-falcon-border hover:border-[#2d4a6e]'
+                        ? 'border-[#e8002d] ring-1 ring-[#e8002d]/30'
+                        : 'border-[#1e2d42] hover:border-[#2d4a6e]'
                     }`}
                   >
                     <div className="flex items-center justify-between mb-3">
@@ -1061,9 +1034,9 @@ function SoftwarePageInner() {
                       <Tag className="w-4 h-4 text-[#5a6a7a]" />
                     </div>
                     <p className="text-3xl font-bold text-white font-mono">{count.toLocaleString()}</p>
-                    <p className="text-xs text-falcon-muted mt-1">インストール</p>
+                    <p className="text-xs text-[#7d92b0] mt-1">インストール</p>
                     {allSoftware.length > 0 && (
-                      <div className="mt-2 h-1.5 bg-falcon-border rounded-full overflow-hidden">
+                      <div className="mt-2 h-1.5 bg-[#1e2d42] rounded-full overflow-hidden">
                         <div
                           className={`h-full rounded-full transition-all duration-700 ${
                             lic === 'Commercial' ? 'bg-purple-500' :
@@ -1081,7 +1054,7 @@ function SoftwarePageInner() {
             {/* Filter chips */}
             {licenseFilter && (
               <div className="flex items-center gap-2">
-                <span className="text-xs text-falcon-muted">フィルター:</span>
+                <span className="text-xs text-[#7d92b0]">フィルター:</span>
                 <span className={`text-xs px-2 py-0.5 rounded-sm border font-semibold ${LICENSE_COLORS[licenseFilter]}`}>
                   {LICENSE_LABELS[licenseFilter] ?? licenseFilter}
                 </span>
@@ -1099,13 +1072,13 @@ function SoftwarePageInner() {
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-500" />
               </div>
             ) : filteredLicenseItems.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-24 bg-falcon-surface rounded-xl border border-falcon-border text-[#5a6a7a]">
+              <div className="flex flex-col items-center justify-center py-24 bg-[#0d1220] rounded-xl border border-[#1e2d42] text-[#5a6a7a]">
                 <Tag className="w-12 h-12 mb-3 opacity-20" />
                 <p className="text-sm">ソフトウェアデータがありません</p>
               </div>
             ) : (
-              <div className="bg-falcon-surface rounded-xl border border-falcon-border overflow-hidden">
-                <div className="px-5 py-3 border-b border-falcon-border">
+              <div className="bg-[#0d1220] rounded-xl border border-[#1e2d42] overflow-hidden">
+                <div className="px-5 py-3 border-b border-[#1e2d42]">
                   <span className="text-sm text-[#8899aa]">
                     {(filteredLicenseItems.length ?? 0).toLocaleString()}件
                     {licenseFilter && ` (${licenseFilter})`}
@@ -1114,7 +1087,7 @@ function SoftwarePageInner() {
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
-                      <tr className="border-b border-falcon-border text-xs text-[#8899aa] bg-[#070d19]">
+                      <tr className="border-b border-[#1e2d42] text-xs text-[#8899aa] bg-[#070d19]">
                         <th className="px-4 py-3 text-left">ソフトウェア名</th>
                         <th className="px-4 py-3 text-left">バージョン</th>
                         <th className="px-4 py-3 text-left">ベンダー</th>
@@ -1128,12 +1101,12 @@ function SoftwarePageInner() {
                         return (
                           <tr
                             key={`${sw.id}-${idx}`}
-                            className="border-b border-falcon-border/50 hover:bg-falcon-raised/40 transition-colors"
+                            className="border-b border-[#1e2d42]/50 hover:bg-[#161f33]/40 transition-colors"
                           >
                             <td className="px-4 py-2.5">
                               <div className="flex items-center gap-2">
                                 <Package className="w-3.5 h-3.5 text-teal-400 shrink-0" />
-                                <span className="text-falcon-text font-medium">{sw.name}</span>
+                                <span className="text-[#e2e8f4] font-medium">{sw.name}</span>
                               </div>
                             </td>
                             <td className="px-4 py-2.5 font-mono text-xs text-[#8899aa]">
@@ -1162,7 +1135,7 @@ function SoftwarePageInner() {
                     </tbody>
                   </table>
                   {filteredLicenseItems.length > 200 && (
-                    <div className="px-4 py-2.5 border-t border-falcon-border text-xs text-falcon-muted text-center bg-[#070d19]">
+                    <div className="px-4 py-2.5 border-t border-[#1e2d42] text-xs text-[#7d92b0] text-center bg-[#070d19]">
                       200 / {(filteredLicenseItems.length ?? 0).toLocaleString()} 件を表示
                     </div>
                   )}
@@ -1196,14 +1169,14 @@ function SoftwarePageInner() {
             <div className="flex items-center gap-4 text-xs text-[#5a6a7a]">
               <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-red-500" />高リスク（管理外ソフト等）</span>
               <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-yellow-500" />中リスク</span>
-              <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-falcon-subtle" />低リスク</span>
+              <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-[#3d5068]" />低リスク</span>
             </div>
 
             {/* Changes table */}
-            <div className="bg-falcon-surface rounded-xl border border-falcon-border overflow-hidden">
+            <div className="bg-[#0d1220] rounded-xl border border-[#1e2d42] overflow-hidden">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-falcon-border bg-[#070d19]/60">
+                  <tr className="border-b border-[#1e2d42] bg-[#070d19]/60">
                     <th className="text-left px-4 py-3 text-[#5a6a7a] text-xs font-medium uppercase tracking-wide">変更</th>
                     <th className="text-left px-4 py-3 text-[#5a6a7a] text-xs font-medium uppercase tracking-wide">ソフトウェア</th>
                     <th className="text-left px-4 py-3 text-[#5a6a7a] text-xs font-medium uppercase tracking-wide">バージョン</th>
@@ -1214,7 +1187,7 @@ function SoftwarePageInner() {
                 </thead>
                 <tbody>
                   {(USE_MOCK ? MOCK_CHANGES : []).map((ch, i) => (
-                    <tr key={i} className="border-b border-falcon-border/50 last:border-0 hover:bg-falcon-border/20 transition-colors">
+                    <tr key={i} className="border-b border-[#1e2d42]/50 last:border-0 hover:bg-[#1e2d42]/20 transition-colors">
                       <td className="px-4 py-3">
                         {ch.change === 'installed' && (
                           <span className="flex items-center gap-1 text-xs font-semibold text-green-400">
@@ -1233,21 +1206,21 @@ function SoftwarePageInner() {
                         )}
                       </td>
                       <td className="px-4 py-3 font-medium text-white">{ch.name}</td>
-                      <td className="px-4 py-3 font-mono text-xs text-falcon-muted">
+                      <td className="px-4 py-3 font-mono text-xs text-[#7d92b0]">
                         {ch.change === 'updated'
-                          ? <><span className="line-through text-falcon-subtle">{ch.old_version}</span> → <span className="text-yellow-300">{ch.new_version}</span></>
+                          ? <><span className="line-through text-[#3d5068]">{ch.old_version}</span> → <span className="text-yellow-300">{ch.new_version}</span></>
                           : ch.change === 'installed'
                           ? <span className="text-green-300">{ch.new_version}</span>
                           : <span className="text-red-300">{ch.old_version}</span>
                         }
                       </td>
-                      <td className="px-4 py-3 text-xs text-falcon-muted font-mono">{ch.hostname}</td>
+                      <td className="px-4 py-3 text-xs text-[#7d92b0] font-mono">{ch.hostname}</td>
                       <td className="px-4 py-3 text-xs text-[#5a6a7a]">
                         {new Date(ch.detected_at).toLocaleString('ja-JP', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                       </td>
                       <td className="px-4 py-3">
                         <span className={`w-2 h-2 rounded-full inline-block ${
-                          ch.risk === 'high' ? 'bg-red-500' : ch.risk === 'medium' ? 'bg-yellow-500' : 'bg-falcon-subtle'
+                          ch.risk === 'high' ? 'bg-red-500' : ch.risk === 'medium' ? 'bg-yellow-500' : 'bg-[#3d5068]'
                         }`} />
                       </td>
                     </tr>

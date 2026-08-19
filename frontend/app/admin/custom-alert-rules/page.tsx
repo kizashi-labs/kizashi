@@ -8,6 +8,9 @@ import {
   ChevronDown, Minus, AlertTriangle,
 } from 'lucide-react'
 
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+import { PageSaveFailed } from '@/components/PageSaveFailed'
+
 // ── Types ──────────────────────────────────────────────────────
 
 type EventType = 'process_event' | 'network_connection' | 'file_event' | 'dns_query'
@@ -88,7 +91,7 @@ const SEVERITY_LEVELS = [
   { min: 1, max: 3, label: 'Low', color: 'text-green-400', bg: 'bg-green-500/10 border-green-500/20' },
   { min: 4, max: 6, label: 'Medium', color: 'text-yellow-400', bg: 'bg-yellow-500/10 border-yellow-500/20' },
   { min: 7, max: 8, label: 'High', color: 'text-orange-400', bg: 'bg-orange-500/10 border-orange-500/20' },
-  { min: 9, max: 10, label: 'Critical', color: 'text-falcon-red', bg: 'bg-falcon-red/10 border-falcon-red/20' },
+  { min: 9, max: 10, label: 'Critical', color: 'text-[#e8002d]', bg: 'bg-[#e8002d]/10 border-[#e8002d]/20' },
 ]
 
 function getSeverityLevel(severity: number) {
@@ -135,23 +138,21 @@ function ConditionRow({
   canRemove: boolean
 }) {
   return (
-    <div className="flex items-center gap-2 p-2 bg-[#070d19] rounded-sm border border-falcon-border">
-      <span className="text-xs text-falcon-subtle w-4 text-center shrink-0">{index + 1}</span>
+    <div className="flex items-center gap-2 p-2 bg-[#070d19] rounded-sm border border-[#1e2d42]">
+      <span className="text-xs text-[#3d5068] w-4 text-center shrink-0">{index + 1}</span>
 
       {/* Field */}
       <div className="relative flex-1 min-w-0">
         <select
           value={condition.field}
           onChange={e => onChange(index, { ...condition, field: e.target.value })}
-          className="w-full bg-falcon-surface border border-falcon-border rounded px-2 py-1.5
-                     text-xs text-falcon-text appearance-none pr-6
-                     focus:outline-hidden focus:border-falcon-red/50"
+          className="w-full bg-[#0d1220] border border-[#1e2d42] rounded-sm px-2 py-1.5 text-xs text-[#e2e8f4] appearance-none pr-6 focus:outline-hidden focus:border-[#e8002d]/50"
         >
           {fields.map(f => (
             <option key={f} value={f}>{f}</option>
           ))}
         </select>
-        <ChevronDown className="absolute right-1.5 top-1/2 -translate-y-1/2 w-3 h-3 text-falcon-subtle pointer-events-none" />
+        <ChevronDown className="absolute right-1.5 top-1/2 -translate-y-1/2 w-3 h-3 text-[#3d5068] pointer-events-none" />
       </div>
 
       {/* Operator */}
@@ -159,15 +160,13 @@ function ConditionRow({
         <select
           value={condition.operator}
           onChange={e => onChange(index, { ...condition, operator: e.target.value as Operator })}
-          className="w-full bg-falcon-surface border border-falcon-border rounded px-2 py-1.5
-                     text-xs text-falcon-text appearance-none pr-6
-                     focus:outline-hidden focus:border-falcon-red/50"
+          className="w-full bg-[#0d1220] border border-[#1e2d42] rounded-sm px-2 py-1.5 text-xs text-[#e2e8f4] appearance-none pr-6 focus:outline-hidden focus:border-[#e8002d]/50"
         >
           {OPERATORS.map(op => (
             <option key={op.value} value={op.value}>{op.label}</option>
           ))}
         </select>
-        <ChevronDown className="absolute right-1.5 top-1/2 -translate-y-1/2 w-3 h-3 text-falcon-subtle pointer-events-none" />
+        <ChevronDown className="absolute right-1.5 top-1/2 -translate-y-1/2 w-3 h-3 text-[#3d5068] pointer-events-none" />
       </div>
 
       {/* Value */}
@@ -176,17 +175,14 @@ function ConditionRow({
         value={condition.value}
         onChange={e => onChange(index, { ...condition, value: e.target.value })}
         placeholder="値を入力..."
-        className="flex-1 min-w-0 bg-falcon-surface border border-falcon-border rounded px-2 py-1.5
-                   text-xs text-falcon-text placeholder-falcon-subtle
-                   focus:outline-hidden focus:border-falcon-red/50"
+        className="flex-1 min-w-0 bg-[#0d1220] border border-[#1e2d42] rounded-sm px-2 py-1.5 text-xs text-[#e2e8f4] placeholder-[#3d5068] focus:outline-hidden focus:border-[#e8002d]/50"
       />
 
       {/* Remove */}
       <button
         onClick={() => onRemove(index)}
         disabled={!canRemove}
-        className="p-1 rounded text-falcon-muted hover:text-falcon-red hover:bg-falcon-red/10
-                   disabled:opacity-30 disabled:cursor-not-allowed transition-colors shrink-0"
+        className="p-1 rounded-sm text-[#7d92b0] hover:text-[#e8002d] hover:bg-[#e8002d]/10 disabled:opacity-30 disabled:cursor-not-allowed transition-colors shrink-0"
         title="条件を削除"
       >
         <Minus className="w-3.5 h-3.5" />
@@ -248,19 +244,19 @@ function RuleModal({
     form.conditions.every(c => c.value.trim() !== '')
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
-      <div className="bg-falcon-surface border border-falcon-border rounded-xl w-full max-w-2xl shadow-2xl flex flex-col max-h-[90vh]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl w-full max-w-2xl shadow-2xl flex flex-col max-h-[90vh]">
         {/* Modal header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-falcon-border shrink-0">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-[#1e2d42] shrink-0">
           <div className="flex items-center gap-2">
-            <Bell className="w-4 h-4 text-falcon-red" />
+            <Bell className="w-4 h-4 text-[#e8002d]" />
             <h2 className="text-base font-semibold text-white">
               {initial.name ? 'ルールを編集' : '新規カスタムアラートルール'}
             </h2>
           </div>
           <button
             onClick={onClose}
-            className="p-1 rounded-sm text-falcon-muted hover:text-white hover:bg-falcon-border transition-colors"
+            className="p-1 rounded-sm text-[#7d92b0] hover:text-white hover:bg-[#1e2d42] transition-colors"
           >
             <X className="w-4 h-4" />
           </button>
@@ -271,23 +267,21 @@ function RuleModal({
 
           {/* Rule Name */}
           <div>
-            <label className="block text-xs font-medium text-falcon-muted uppercase tracking-wider mb-1.5">
-              ルール名 <span className="text-falcon-red">*</span>
+            <label className="block text-xs font-medium text-[#7d92b0] uppercase tracking-wider mb-1.5">
+              ルール名 <span className="text-[#e8002d]">*</span>
             </label>
             <input
               type="text"
               value={form.name}
               onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
               placeholder="例: Suspicious PowerShell Execution"
-              className="w-full bg-[#070d19] border border-falcon-border rounded px-3 py-2
-                         text-sm text-falcon-text placeholder-falcon-subtle
-                         focus:outline-hidden focus:border-falcon-red/50"
+              className="w-full bg-[#070d19] border border-[#1e2d42] rounded-sm px-3 py-2 text-sm text-[#e2e8f4] placeholder-[#3d5068] focus:outline-hidden focus:border-[#e8002d]/50"
             />
           </div>
 
           {/* Event Type */}
           <div>
-            <label className="block text-xs font-medium text-falcon-muted uppercase tracking-wider mb-1.5">
+            <label className="block text-xs font-medium text-[#7d92b0] uppercase tracking-wider mb-1.5">
               イベントタイプ
             </label>
             <div className="grid grid-cols-4 gap-2">
@@ -295,10 +289,10 @@ function RuleModal({
                 <button
                   key={et}
                   onClick={() => handleEventTypeChange(et)}
-                  className={`px-3 py-2 rounded text-xs font-medium border transition-all ${
+                  className={`px-3 py-2 rounded-sm text-xs font-medium border transition-all ${
                     form.event_type === et
-                      ? 'bg-falcon-red/15 border-falcon-red/40 text-falcon-red'
-                      : 'bg-[#070d19] border-falcon-border text-falcon-muted hover:border-falcon-muted/30 hover:text-falcon-text'
+                      ? 'bg-[#e8002d]/15 border-[#e8002d]/40 text-[#e8002d]'
+                      : 'bg-[#070d19] border-[#1e2d42] text-[#7d92b0] hover:border-[#7d92b0]/30 hover:text-[#e2e8f4]'
                   }`}
                 >
                   {label}
@@ -310,14 +304,12 @@ function RuleModal({
           {/* Conditions */}
           <div>
             <div className="flex items-center justify-between mb-1.5">
-              <label className="text-xs font-medium text-falcon-muted uppercase tracking-wider">
+              <label className="text-xs font-medium text-[#7d92b0] uppercase tracking-wider">
                 条件 ({form.conditions.length})
               </label>
               <button
                 onClick={handleAddCondition}
-                className="flex items-center gap-1 px-2 py-1 rounded text-xs
-                           bg-falcon-border hover:bg-falcon-red/10 text-falcon-muted hover:text-falcon-red
-                           border border-falcon-border hover:border-falcon-red/30 transition-all"
+                className="flex items-center gap-1 px-2 py-1 rounded-sm text-xs bg-[#1e2d42] hover:bg-[#e8002d]/10 text-[#7d92b0] hover:text-[#e8002d] border border-[#1e2d42] hover:border-[#e8002d]/30 transition-all"
               >
                 <Plus className="w-3 h-3" />
                 条件を追加
@@ -336,7 +328,7 @@ function RuleModal({
                 />
               ))}
             </div>
-            <p className="text-xs text-falcon-subtle mt-1.5">
+            <p className="text-xs text-[#3d5068] mt-1.5">
               全条件が AND で評価されます
             </p>
           </div>
@@ -344,7 +336,7 @@ function RuleModal({
           {/* Threshold + Time Window */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-medium text-falcon-muted uppercase tracking-wider mb-1.5">
+              <label className="block text-xs font-medium text-[#7d92b0] uppercase tracking-wider mb-1.5">
                 しきい値 (件数)
               </label>
               <input
@@ -352,13 +344,11 @@ function RuleModal({
                 min={1}
                 value={form.threshold}
                 onChange={e => setForm(f => ({ ...f, threshold: Math.max(1, Number(e.target.value)) }))}
-                className="w-full bg-[#070d19] border border-falcon-border rounded px-3 py-2
-                           text-sm text-falcon-text
-                           focus:outline-hidden focus:border-falcon-red/50"
+                className="w-full bg-[#070d19] border border-[#1e2d42] rounded-sm px-3 py-2 text-sm text-[#e2e8f4] focus:outline-hidden focus:border-[#e8002d]/50"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-falcon-muted uppercase tracking-wider mb-1.5">
+              <label className="block text-xs font-medium text-[#7d92b0] uppercase tracking-wider mb-1.5">
                 タイムウィンドウ (秒)
               </label>
               <input
@@ -366,11 +356,9 @@ function RuleModal({
                 min={1}
                 value={form.time_window}
                 onChange={e => setForm(f => ({ ...f, time_window: Math.max(1, Number(e.target.value)) }))}
-                className="w-full bg-[#070d19] border border-falcon-border rounded px-3 py-2
-                           text-sm text-falcon-text
-                           focus:outline-hidden focus:border-falcon-red/50"
+                className="w-full bg-[#070d19] border border-[#1e2d42] rounded-sm px-3 py-2 text-sm text-[#e2e8f4] focus:outline-hidden focus:border-[#e8002d]/50"
               />
-              <p className="text-xs text-falcon-subtle mt-1">
+              <p className="text-xs text-[#3d5068] mt-1">
                 {form.time_window >= 3600
                   ? `${(form.time_window / 3600).toFixed(1)}時間`
                   : form.time_window >= 60
@@ -383,7 +371,7 @@ function RuleModal({
           {/* Severity Slider */}
           <div>
             <div className="flex items-center justify-between mb-1.5">
-              <label className="text-xs font-medium text-falcon-muted uppercase tracking-wider">
+              <label className="text-xs font-medium text-[#7d92b0] uppercase tracking-wider">
                 重大度
               </label>
               <span className={`text-xs font-bold px-2 py-0.5 rounded-sm border ${sevLevel.bg} ${sevLevel.color}`}>
@@ -397,10 +385,9 @@ function RuleModal({
               step={1}
               value={form.severity}
               onChange={e => setForm(f => ({ ...f, severity: Number(e.target.value) }))}
-              className="w-full h-2 rounded-lg appearance-none cursor-pointer
-                         bg-linear-to-r from-green-500 via-yellow-500 via-orange-500 to-falcon-red"
+              className="w-full h-2 rounded-lg appearance-none cursor-pointer bg-linear-to-r from-green-500 via-yellow-500 via-orange-500 to-[#e8002d]"
             />
-            <div className="flex justify-between text-[10px] text-falcon-subtle mt-1">
+            <div className="flex justify-between text-[10px] text-[#3d5068] mt-1">
               <span>1 Low</span>
               <span>4 Medium</span>
               <span>7 High</span>
@@ -410,26 +397,24 @@ function RuleModal({
 
           {/* Alert Title Template */}
           <div>
-            <label className="block text-xs font-medium text-falcon-muted uppercase tracking-wider mb-1.5">
-              アラートタイトルテンプレート <span className="text-falcon-red">*</span>
+            <label className="block text-xs font-medium text-[#7d92b0] uppercase tracking-wider mb-1.5">
+              アラートタイトルテンプレート <span className="text-[#e8002d]">*</span>
             </label>
             <input
               type="text"
               value={form.alert_title_template}
               onChange={e => setForm(f => ({ ...f, alert_title_template: e.target.value }))}
               placeholder="例: Suspicious PowerShell on {{agent_hostname}}"
-              className="w-full bg-[#070d19] border border-falcon-border rounded px-3 py-2
-                         text-sm text-falcon-text placeholder-falcon-subtle font-mono
-                         focus:outline-hidden focus:border-falcon-red/50"
+              className="w-full bg-[#070d19] border border-[#1e2d42] rounded-sm px-3 py-2 text-sm text-[#e2e8f4] placeholder-[#3d5068] font-mono focus:outline-hidden focus:border-[#e8002d]/50"
             />
-            <p className="text-xs text-falcon-subtle mt-1">
+            <p className="text-xs text-[#3d5068] mt-1">
               {'{{agent_hostname}}, {{process_name}} などの変数が使用できます'}
             </p>
           </div>
 
           {/* MITRE Tags */}
           <div>
-            <label className="block text-xs font-medium text-falcon-muted uppercase tracking-wider mb-1.5">
+            <label className="block text-xs font-medium text-[#7d92b0] uppercase tracking-wider mb-1.5">
               MITREタグ (カンマ区切り)
             </label>
             <input
@@ -437,27 +422,23 @@ function RuleModal({
               value={form.mitre_tags}
               onChange={e => setForm(f => ({ ...f, mitre_tags: e.target.value }))}
               placeholder="例: T1059.001, T1569.002"
-              className="w-full bg-[#070d19] border border-falcon-border rounded px-3 py-2
-                         text-sm text-falcon-text placeholder-falcon-subtle font-mono
-                         focus:outline-hidden focus:border-falcon-red/50"
+              className="w-full bg-[#070d19] border border-[#1e2d42] rounded-sm px-3 py-2 text-sm text-[#e2e8f4] placeholder-[#3d5068] font-mono focus:outline-hidden focus:border-[#e8002d]/50"
             />
           </div>
         </div>
 
         {/* Modal footer */}
-        <div className="flex items-center justify-end gap-3 px-5 py-4 border-t border-falcon-border shrink-0">
+        <div className="flex items-center justify-end gap-3 px-5 py-4 border-t border-[#1e2d42] shrink-0">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-sm text-falcon-muted hover:text-white rounded
-                       border border-falcon-border hover:border-falcon-muted/40 transition-colors"
+            className="px-4 py-2 text-sm text-[#7d92b0] hover:text-white rounded-sm border border-[#1e2d42] hover:border-[#7d92b0]/40 transition-colors"
           >
             キャンセル
           </button>
           <button
             onClick={() => onSave(form)}
             disabled={!valid || isSaving}
-            className="px-5 py-2 text-sm bg-falcon-red hover:bg-[#c8001f] text-white rounded
-                       font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-5 py-2 text-sm bg-[#e8002d] hover:bg-[#c8001f] text-white rounded-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isSaving ? '保存中...' : '保存'}
           </button>
@@ -565,23 +546,24 @@ export default function CustomAlertRulesPage() {
 
   return (
     <div className="min-h-screen bg-[#070d19] p-6">
+      <PageDataUnavailable />
+      <PageSaveFailed className="mb-4" />
       {/* Header */}
       <div className="flex items-start justify-between mb-6">
         <div>
           <div className="flex items-center gap-3 mb-1">
-            <div className="w-8 h-8 rounded-sm bg-falcon-red/10 border border-falcon-red/30 flex items-center justify-center">
-              <Bell className="w-4 h-4 text-falcon-red" />
+            <div className="w-8 h-8 rounded-sm bg-[#e8002d]/10 border border-[#e8002d]/30 flex items-center justify-center">
+              <Bell className="w-4 h-4 text-[#e8002d]" />
             </div>
             <h1 className="text-xl font-bold text-white">カスタムアラートルール</h1>
           </div>
-          <p className="text-falcon-muted text-sm ml-11">
+          <p className="text-[#7d92b0] text-sm ml-11">
             イベントパターンに基づいたカスタムアラートルールの管理
           </p>
         </div>
         <button
           onClick={() => { setEditTarget(null); setModalMode('create') }}
-          className="flex items-center gap-2 px-4 py-2 rounded bg-falcon-red hover:bg-[#c8001f]
-                     text-white text-sm font-medium transition-colors"
+          className="flex items-center gap-2 px-4 py-2 rounded-sm bg-[#e8002d] hover:bg-[#c8001f] text-white text-sm font-medium transition-colors"
         >
           <Plus className="w-4 h-4" />
           新規ルール作成
@@ -590,35 +572,35 @@ export default function CustomAlertRulesPage() {
 
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
-        <div className="bg-falcon-surface border border-falcon-border rounded-lg p-4">
-          <p className="text-falcon-muted text-xs mb-1">総ルール数</p>
+        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-4">
+          <p className="text-[#7d92b0] text-xs mb-1">総ルール数</p>
           <p className="text-2xl font-bold text-white">{total}</p>
         </div>
-        <div className="bg-falcon-surface border border-falcon-border rounded-lg p-4">
-          <p className="text-falcon-muted text-xs mb-1">有効</p>
+        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-4">
+          <p className="text-[#7d92b0] text-xs mb-1">有効</p>
           <p className="text-2xl font-bold text-green-400">
             {rules.filter(r => r.enabled).length}
           </p>
         </div>
-        <div className="bg-falcon-surface border border-falcon-border rounded-lg p-4">
-          <p className="text-falcon-muted text-xs mb-1">Critical</p>
-          <p className="text-2xl font-bold text-falcon-red">
+        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-4">
+          <p className="text-[#7d92b0] text-xs mb-1">Critical</p>
+          <p className="text-2xl font-bold text-[#e8002d]">
             {rules.filter(r => r.severity >= 9).length}
           </p>
         </div>
-        <div className="bg-falcon-surface border border-falcon-border rounded-lg p-4">
-          <p className="text-falcon-muted text-xs mb-1">無効</p>
-          <p className="text-2xl font-bold text-falcon-muted">
+        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-4">
+          <p className="text-[#7d92b0] text-xs mb-1">無効</p>
+          <p className="text-2xl font-bold text-[#7d92b0]">
             {rules.filter(r => !r.enabled).length}
           </p>
         </div>
       </div>
 
       {/* Table */}
-      <div className="bg-falcon-surface border border-falcon-border rounded-lg overflow-hidden">
-        <div className="px-4 py-3 border-b border-falcon-border flex items-center justify-between">
+      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg overflow-hidden">
+        <div className="px-4 py-3 border-b border-[#1e2d42] flex items-center justify-between">
           <h2 className="text-sm font-semibold text-white">ルール一覧</h2>
-          <span className="text-xs text-falcon-muted">{total} 件</span>
+          <span className="text-xs text-[#7d92b0]">{total} 件</span>
         </div>
 
         {isLoading ? (
@@ -631,28 +613,28 @@ export default function CustomAlertRulesPage() {
           </div>
         ) : isError ? (
           <div className="p-8 text-center">
-            <AlertTriangle className="w-8 h-8 text-falcon-red mx-auto mb-2" />
-            <p className="text-sm text-falcon-muted">データの読み込みに失敗しました</p>
+            <AlertTriangle className="w-8 h-8 text-[#e8002d] mx-auto mb-2" />
+            <p className="text-sm text-[#7d92b0]">データの読み込みに失敗しました</p>
           </div>
         ) : rules.length === 0 ? (
           <div className="p-12 text-center">
-            <Bell className="w-10 h-10 text-falcon-border mx-auto mb-3" />
-            <p className="text-sm font-medium text-falcon-muted mb-1">ルールがありません</p>
-            <p className="text-xs text-falcon-subtle">「新規ルール作成」ボタンからルールを追加してください</p>
+            <Bell className="w-10 h-10 text-[#1e2d42] mx-auto mb-3" />
+            <p className="text-sm font-medium text-[#7d92b0] mb-1">ルールがありません</p>
+            <p className="text-xs text-[#3d5068]">「新規ルール作成」ボタンからルールを追加してください</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-falcon-border">
+                <tr className="border-b border-[#1e2d42]">
                   {['ルール名', 'イベントタイプ', '条件数', 'しきい値', 'タイムウィンドウ', '重大度', '状態', '更新日時', '操作'].map(h => (
-                    <th key={h} className="px-4 py-3 text-left text-xs font-medium text-falcon-muted uppercase tracking-wider whitespace-nowrap">
+                    <th key={h} className="px-4 py-3 text-left text-xs font-medium text-[#7d92b0] uppercase tracking-wider whitespace-nowrap">
                       {h}
                     </th>
                   ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-falcon-border">
+              <tbody className="divide-y divide-[#1e2d42]">
                 {rules.map(rule => {
                   const sevLevel = getSeverityLevel(rule.severity)
                   return (
@@ -660,7 +642,7 @@ export default function CustomAlertRulesPage() {
                       {/* Name */}
                       <td className="px-4 py-3">
                         <div className="flex flex-col gap-0.5">
-                          <span className="text-sm font-medium text-falcon-text">{rule.name}</span>
+                          <span className="text-sm font-medium text-[#e2e8f4]">{rule.name}</span>
                           {rule.mitre_tags.length > 0 && (
                             <div className="flex gap-1 flex-wrap">
                               {rule.mitre_tags.slice(0, 3).map(tag => (
@@ -669,7 +651,7 @@ export default function CustomAlertRulesPage() {
                                 </span>
                               ))}
                               {rule.mitre_tags.length > 3 && (
-                                <span className="text-[10px] text-falcon-subtle">+{rule.mitre_tags.length - 3}</span>
+                                <span className="text-[10px] text-[#3d5068]">+{rule.mitre_tags.length - 3}</span>
                               )}
                             </div>
                           )}
@@ -690,12 +672,12 @@ export default function CustomAlertRulesPage() {
 
                       {/* Threshold */}
                       <td className="px-4 py-3">
-                        <span className="text-sm text-falcon-text font-mono">{rule.threshold}件</span>
+                        <span className="text-sm text-[#e2e8f4] font-mono">{rule.threshold}件</span>
                       </td>
 
                       {/* Time Window */}
                       <td className="px-4 py-3">
-                        <span className="text-sm text-falcon-muted font-mono">
+                        <span className="text-sm text-[#7d92b0] font-mono">
                           {rule.time_window >= 3600
                             ? `${(rule.time_window / 3600).toFixed(0)}h`
                             : rule.time_window >= 60
@@ -726,15 +708,15 @@ export default function CustomAlertRulesPage() {
                             </>
                           ) : (
                             <>
-                              <ToggleLeft className="w-5 h-5 text-falcon-subtle" />
-                              <span className="text-falcon-subtle">無効</span>
+                              <ToggleLeft className="w-5 h-5 text-[#3d5068]" />
+                              <span className="text-[#3d5068]">無効</span>
                             </>
                           )}
                         </button>
                       </td>
 
                       {/* Updated At */}
-                      <td className="px-4 py-3 text-xs text-falcon-muted whitespace-nowrap">
+                      <td className="px-4 py-3 text-xs text-[#7d92b0] whitespace-nowrap">
                         {formatDate(rule.updated_at)}
                       </td>
 
@@ -743,14 +725,14 @@ export default function CustomAlertRulesPage() {
                         <div className="flex items-center gap-1">
                           <button
                             onClick={() => openEdit(rule)}
-                            className="p-1.5 rounded-sm text-falcon-muted hover:text-white hover:bg-falcon-border transition-colors"
+                            className="p-1.5 rounded-sm text-[#7d92b0] hover:text-white hover:bg-[#1e2d42] transition-colors"
                             title="編集"
                           >
                             <Pencil className="w-3.5 h-3.5" />
                           </button>
                           <button
                             onClick={() => setDeleteConfirm(rule)}
-                            className="p-1.5 rounded-sm text-falcon-muted hover:text-falcon-red hover:bg-falcon-red/10 transition-colors"
+                            className="p-1.5 rounded-sm text-[#7d92b0] hover:text-[#e8002d] hover:bg-[#e8002d]/10 transition-colors"
                             title="削除"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
@@ -778,29 +760,27 @@ export default function CustomAlertRulesPage() {
 
       {/* Delete Confirm Modal */}
       {deleteConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs">
-          <div className="bg-falcon-surface border border-falcon-border rounded-xl w-full max-w-sm mx-4 shadow-2xl p-5">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl w-full max-w-sm mx-4 shadow-2xl p-5">
             <div className="flex items-center gap-2 mb-3">
-              <AlertTriangle className="w-5 h-5 text-falcon-red" />
+              <AlertTriangle className="w-5 h-5 text-[#e8002d]" />
               <h2 className="text-base font-semibold text-white">ルールを削除しますか？</h2>
             </div>
-            <p className="text-sm text-falcon-muted mb-1">
-              <span className="font-medium text-falcon-text">"{deleteConfirm.name}"</span> を削除します。
+            <p className="text-sm text-[#7d92b0] mb-1">
+              <span className="font-medium text-[#e2e8f4]">"{deleteConfirm.name}"</span> を削除します。
             </p>
-            <p className="text-xs text-falcon-subtle mb-5">この操作は取り消せません。</p>
+            <p className="text-xs text-[#3d5068] mb-5">この操作は取り消せません。</p>
             <div className="flex justify-end gap-3">
               <button
                 onClick={() => setDeleteConfirm(null)}
-                className="px-4 py-2 text-sm text-falcon-muted hover:text-white rounded
-                           border border-falcon-border transition-colors"
+                className="px-4 py-2 text-sm text-[#7d92b0] hover:text-white rounded-sm border border-[#1e2d42] transition-colors"
               >
                 キャンセル
               </button>
               <button
                 onClick={() => deleteMutation.mutate(deleteConfirm.id)}
                 disabled={deleteMutation.isPending}
-                className="px-4 py-2 text-sm bg-falcon-red hover:bg-[#c8001f] text-white rounded
-                           font-medium transition-colors disabled:opacity-50"
+                className="px-4 py-2 text-sm bg-[#e8002d] hover:bg-[#c8001f] text-white rounded-sm font-medium transition-colors disabled:opacity-50"
               >
                 {deleteMutation.isPending ? '削除中...' : '削除'}
               </button>

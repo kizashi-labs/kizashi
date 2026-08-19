@@ -214,7 +214,7 @@ function ProgressBar({ value }: { value: number }) {
   return (
     <div className="w-full h-2 bg-[#1a2540] rounded-full overflow-hidden">
       <div
-        className="h-full bg-linear-to-r from-falcon-blue to-[#5a99ff] rounded-full transition-all duration-300"
+        className="h-full bg-linear-to-r from-[#1a6bff] to-[#5a99ff] rounded-full transition-all duration-300"
         style={{ width: `${Math.min(100, Math.max(0, value))}%` }}
       />
     </div>
@@ -380,20 +380,19 @@ export default function IOCImportPage() {
   const canImport = hasValidRows && !importing
 
   return (
-    <div className="min-h-screen bg-falcon-bg p-6">
+    <div className="min-h-screen bg-[#080c14] p-6">
       <div className="max-w-4xl mx-auto space-y-6">
 
         {/* ── Header ── */}
         <div className="flex items-center gap-4">
           <Link
             href="/ioc"
-            className="flex items-center gap-1.5 text-sm text-falcon-muted hover:text-falcon-text
-                       transition-colors px-3 py-1.5 rounded-lg hover:bg-falcon-card"
+            className="flex items-center gap-1.5 text-sm text-[#7d92b0] hover:text-[#e2e8f4] transition-colors px-3 py-1.5 rounded-lg hover:bg-[#111827]"
           >
             <ArrowLeft className="w-4 h-4" />
             IOC管理に戻る
           </Link>
-          <div className="h-4 w-px bg-falcon-border" />
+          <div className="h-4 w-px bg-[#1e2d42]" />
           <div>
             <h1 className="text-xl font-bold text-white flex items-center gap-2">
               <Shield className="w-5 h-5 text-orange-400" />
@@ -406,7 +405,7 @@ export default function IOCImportPage() {
         </div>
 
         {/* ── CSV Template card ── */}
-        <div className="bg-falcon-card rounded-xl border border-falcon-border p-5">
+        <div className="bg-[#111827] rounded-xl border border-[#1e2d42] p-5">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-sm font-semibold text-white flex items-center gap-2">
               <FileText className="w-4 h-4 text-[#5a99ff]" />
@@ -414,9 +413,7 @@ export default function IOCImportPage() {
             </h2>
             <button
               onClick={downloadTemplate}
-              className="flex items-center gap-1.5 text-xs text-[#5a99ff] bg-falcon-blue/10
-                         border border-falcon-blue/25 hover:bg-falcon-blue/20
-                         px-3 py-1.5 rounded-lg transition-colors"
+              className="flex items-center gap-1.5 text-xs text-[#5a99ff] bg-[#1a6bff]/10 border border-[#1a6bff]/25 hover:bg-[#1a6bff]/20 px-3 py-1.5 rounded-lg transition-colors"
             >
               <Download className="w-3.5 h-3.5" />
               テンプレートをダウンロード
@@ -426,7 +423,7 @@ export default function IOCImportPage() {
           {/* Header row preview */}
           <div className="mb-3">
             <p className="text-xs text-[#5a6a7a] mb-2">必須ヘッダー行：</p>
-            <div className="bg-falcon-bg rounded-lg border border-falcon-border p-3 overflow-x-auto">
+            <div className="bg-[#080c14] rounded-lg border border-[#1e2d42] p-3 overflow-x-auto">
               <code className="text-xs text-[#5a99ff] font-mono">
                 {CSV_HEADERS.join(',')}
               </code>
@@ -456,7 +453,7 @@ export default function IOCImportPage() {
         </div>
 
         {/* ── File Upload card ── */}
-        <div className="bg-falcon-card rounded-xl border border-falcon-border p-5 space-y-4">
+        <div className="bg-[#111827] rounded-xl border border-[#1e2d42] p-5 space-y-4">
           <h2 className="text-sm font-semibold text-white flex items-center gap-2">
             <Upload className="w-4 h-4 text-orange-400" />
             CSVファイルのアップロード
@@ -471,7 +468,7 @@ export default function IOCImportPage() {
             className={`relative flex flex-col items-center justify-center gap-3 rounded-xl border-2
                         border-dashed cursor-pointer py-10 px-6 transition-all
                         ${isDragging
-                          ? 'border-falcon-blue bg-falcon-blue/5'
+                          ? 'border-[#1a6bff] bg-[#1a6bff]/5'
                           : file
                           ? 'border-green-700/50 bg-green-900/5 hover:bg-green-900/10'
                           : 'border-[#2a3a5c] hover:border-[#3a4a6c] hover:bg-[#0d1525]'}`}
@@ -486,12 +483,11 @@ export default function IOCImportPage() {
 
             {file ? (
               <>
-                <div className="w-10 h-10 rounded-full bg-green-900/30 border border-green-700/40
-                                flex items-center justify-center">
+                <div className="w-10 h-10 rounded-full bg-green-900/30 border border-green-700/40 flex items-center justify-center">
                   <CheckCircle2 className="w-5 h-5 text-green-400" />
                 </div>
                 <div className="text-center">
-                  <p className="text-sm font-medium text-falcon-text">{file.name}</p>
+                  <p className="text-sm font-medium text-[#e2e8f4]">{file.name}</p>
                   <p className="text-xs text-[#5a6a7a] mt-0.5">
                     {(file.size / 1024).toFixed(1)} KB · クリックまたはドロップで変更
                   </p>
@@ -499,15 +495,14 @@ export default function IOCImportPage() {
               </>
             ) : (
               <>
-                <div className="w-10 h-10 rounded-full bg-[#0d1525] border border-[#2a3a5c]
-                                flex items-center justify-center">
-                  <Upload className="w-5 h-5 text-falcon-subtle" />
+                <div className="w-10 h-10 rounded-full bg-[#0d1525] border border-[#2a3a5c] flex items-center justify-center">
+                  <Upload className="w-5 h-5 text-[#3d5068]" />
                 </div>
                 <div className="text-center">
-                  <p className="text-sm font-medium text-falcon-muted">
+                  <p className="text-sm font-medium text-[#7d92b0]">
                     クリックまたはCSVをここにドロップ
                   </p>
-                  <p className="text-xs text-falcon-subtle mt-1">CSVファイルのみ対応</p>
+                  <p className="text-xs text-[#3d5068] mt-1">CSVファイルのみ対応</p>
                 </div>
               </>
             )}
@@ -556,10 +551,10 @@ export default function IOCImportPage() {
                   <p className="text-xs text-[#5a6a7a] mb-2">
                     プレビュー（最初の5行）
                   </p>
-                  <div className="overflow-x-auto rounded-lg border border-falcon-border">
+                  <div className="overflow-x-auto rounded-lg border border-[#1e2d42]">
                     <table className="w-full text-xs">
                       <thead>
-                        <tr className="bg-falcon-bg border-b border-falcon-border text-[#5a6a7a]">
+                        <tr className="bg-[#080c14] border-b border-[#1e2d42] text-[#5a6a7a]">
                           {parsed.headers.map(h => (
                             <th key={h} className="text-left px-3 py-2 font-medium whitespace-nowrap">
                               {h}
@@ -567,16 +562,16 @@ export default function IOCImportPage() {
                           ))}
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-falcon-border/50">
+                      <tbody className="divide-y divide-[#1e2d42]/50">
                         {parsed.rows.slice(0, 5).map((row, i) => (
-                          <tr key={i} className="hover:bg-falcon-raised/30 transition-colors">
+                          <tr key={i} className="hover:bg-[#161f33]/30 transition-colors">
                             {parsed.headers.map(h => (
                               <td
                                 key={h}
                                 className="px-3 py-2 text-[#c0cce0] font-mono max-w-[200px] truncate"
                                 title={row[h]}
                               >
-                                {row[h] || <span className="text-falcon-subtle">—</span>}
+                                {row[h] || <span className="text-[#3d5068]">—</span>}
                               </td>
                             ))}
                           </tr>
@@ -585,7 +580,7 @@ export default function IOCImportPage() {
                     </table>
                   </div>
                   {parsed.rows.length > 5 && (
-                    <p className="text-xs text-falcon-subtle mt-1.5 text-right">
+                    <p className="text-xs text-[#3d5068] mt-1.5 text-right">
                       ...他 {parsed.rows.length - 5}行
                     </p>
                   )}
@@ -596,7 +591,7 @@ export default function IOCImportPage() {
         </div>
 
         {/* ── Import Options card ── */}
-        <div className="bg-falcon-card rounded-xl border border-falcon-border p-5">
+        <div className="bg-[#111827] rounded-xl border border-[#1e2d42] p-5">
           <h2 className="text-sm font-semibold text-white mb-4">インポートオプション</h2>
 
           <div className="space-y-4">
@@ -607,11 +602,10 @@ export default function IOCImportPage() {
                   type="checkbox"
                   checked={options.updateExisting}
                   onChange={e => setOptions(o => ({ ...o, updateExisting: e.target.checked }))}
-                  className="w-4 h-4 rounded border-[#2a3a5c] bg-falcon-bg text-falcon-blue
-                             accent-falcon-blue cursor-pointer"
+                  className="w-4 h-4 rounded-sm border-[#2a3a5c] bg-[#080c14] text-[#1a6bff] accent-[#1a6bff] cursor-pointer"
                 />
                 <div>
-                  <span className="text-sm text-falcon-text group-hover:text-white transition-colors">
+                  <span className="text-sm text-[#e2e8f4] group-hover:text-white transition-colors">
                     既存のIOCを更新する
                   </span>
                   <p className="text-xs text-[#5a6a7a] mt-0.5">
@@ -625,11 +619,10 @@ export default function IOCImportPage() {
                   type="checkbox"
                   checked={options.activateAll}
                   onChange={e => setOptions(o => ({ ...o, activateAll: e.target.checked }))}
-                  className="w-4 h-4 rounded border-[#2a3a5c] bg-falcon-bg text-falcon-blue
-                             accent-falcon-blue cursor-pointer"
+                  className="w-4 h-4 rounded-sm border-[#2a3a5c] bg-[#080c14] text-[#1a6bff] accent-[#1a6bff] cursor-pointer"
                 />
                 <div>
-                  <span className="text-sm text-falcon-text group-hover:text-white transition-colors">
+                  <span className="text-sm text-[#e2e8f4] group-hover:text-white transition-colors">
                     すべてのIOCを有効化する
                   </span>
                   <p className="text-xs text-[#5a6a7a] mt-0.5">
@@ -644,15 +637,13 @@ export default function IOCImportPage() {
               <div>
                 <label className="text-xs text-[#8899aa] block mb-1.5">
                   有効期限
-                  <span className="text-falcon-subtle ml-1">（任意）</span>
+                  <span className="text-[#3d5068] ml-1">（任意）</span>
                 </label>
                 <input
                   type="date"
                   value={options.expiresAt}
                   onChange={e => setOptions(o => ({ ...o, expiresAt: e.target.value }))}
-                  className="w-full text-sm bg-falcon-bg border border-falcon-border rounded-lg
-                             px-3 py-2 text-falcon-text focus:outline-hidden focus:border-orange-500
-                             scheme-dark"
+                  className="w-full text-sm bg-[#080c14] border border-[#1e2d42] rounded-lg px-3 py-2 text-[#e2e8f4] focus:outline-hidden focus:border-orange-500 [color-scheme:dark]"
                 />
               </div>
 
@@ -663,8 +654,7 @@ export default function IOCImportPage() {
                 <select
                   value={options.tlp}
                   onChange={e => setOptions(o => ({ ...o, tlp: e.target.value as TLPLevel }))}
-                  className="w-full text-sm bg-falcon-bg border border-falcon-border rounded-lg
-                             px-3 py-2 text-falcon-text focus:outline-hidden focus:border-orange-500"
+                  className="w-full text-sm bg-[#080c14] border border-[#1e2d42] rounded-lg px-3 py-2 text-[#e2e8f4] focus:outline-hidden focus:border-orange-500"
                 >
                   {TLP_OPTIONS.map(opt => (
                     <option key={opt.value} value={opt.value}>
@@ -678,14 +668,12 @@ export default function IOCImportPage() {
         </div>
 
         {/* ── Import button + progress + result ── */}
-        <div className="bg-falcon-card rounded-xl border border-falcon-border p-5 space-y-4">
+        <div className="bg-[#111827] rounded-xl border border-[#1e2d42] p-5 space-y-4">
           <div className="flex items-center gap-3 flex-wrap">
             <button
               onClick={handleImport}
               disabled={!canImport}
-              className="flex items-center gap-2 px-6 py-2.5 text-sm font-semibold
-                         bg-orange-600 hover:bg-orange-700 text-white rounded-lg
-                         transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center gap-2 px-6 py-2.5 text-sm font-semibold bg-orange-600 hover:bg-orange-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {importing
                 ? <Loader2 className="w-4 h-4 animate-spin" />
@@ -717,7 +705,7 @@ export default function IOCImportPage() {
                 ? 'bg-yellow-900/20 border-yellow-700/40'
                 : 'bg-red-900/20 border-red-700/40'
             }`}>
-              <p className="text-sm font-semibold text-falcon-text mb-3 flex items-center gap-2">
+              <p className="text-sm font-semibold text-[#e2e8f4] mb-3 flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4 text-green-400" />
                 インポート完了
               </p>
@@ -736,7 +724,7 @@ export default function IOCImportPage() {
                 </div>
               </div>
               {importResult.errorDetails && importResult.errorDetails.length > 0 && (
-                <div className="mt-3 pt-3 border-t border-falcon-border">
+                <div className="mt-3 pt-3 border-t border-[#1e2d42]">
                   <p className="text-xs font-medium text-red-400 mb-1">エラー詳細:</p>
                   <ul className="space-y-0.5">
                     {importResult.errorDetails.map((d, i) => (
@@ -750,8 +738,7 @@ export default function IOCImportPage() {
 
           {/* Import error */}
           {importError && (
-            <div className="flex items-start gap-2 bg-red-900/20 border border-red-700/40
-                            rounded-lg px-4 py-3 text-xs text-red-300">
+            <div className="flex items-start gap-2 bg-red-900/20 border border-red-700/40 rounded-lg px-4 py-3 text-xs text-red-300">
               <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
               <div>
                 <p className="font-semibold">インポートに失敗しました</p>
@@ -763,8 +750,8 @@ export default function IOCImportPage() {
 
         {/* ── Recent imports table ── */}
         {recentImports.length > 0 && (
-          <div className="bg-falcon-card rounded-xl border border-falcon-border overflow-hidden">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-falcon-border">
+          <div className="bg-[#111827] rounded-xl border border-[#1e2d42] overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-[#1e2d42]">
               <h2 className="text-sm font-semibold text-white">今セッションのインポート履歴</h2>
               <button
                 onClick={() => setRecentImports([])}
@@ -776,16 +763,16 @@ export default function IOCImportPage() {
             </div>
             <table className="w-full text-xs">
               <thead>
-                <tr className="border-b border-falcon-border bg-falcon-bg/40 text-[#5a6a7a]">
+                <tr className="border-b border-[#1e2d42] bg-[#080c14]/40 text-[#5a6a7a]">
                   <th className="text-left px-4 py-2.5 font-medium">日時</th>
                   <th className="text-left px-4 py-2.5 font-medium">ファイル名</th>
                   <th className="text-left px-4 py-2.5 font-medium">件数</th>
                   <th className="text-left px-4 py-2.5 font-medium">ステータス</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-falcon-border/50">
+              <tbody className="divide-y divide-[#1e2d42]/50">
                 {recentImports.map(item => (
-                  <tr key={item.id} className="hover:bg-falcon-raised/20 transition-colors">
+                  <tr key={item.id} className="hover:bg-[#161f33]/20 transition-colors">
                     <td className="px-4 py-2.5 font-mono text-[#5a6a7a] whitespace-nowrap">
                       {new Date(item.datetime).toLocaleString('ja-JP', {
                         month: '2-digit', day: '2-digit',
@@ -795,36 +782,30 @@ export default function IOCImportPage() {
                     <td className="px-4 py-2.5 text-[#c0cce0] max-w-[240px] truncate" title={item.filename}>
                       {item.filename}
                     </td>
-                    <td className="px-4 py-2.5 text-falcon-muted font-mono">
+                    <td className="px-4 py-2.5 text-[#7d92b0] font-mono">
                       {item.count}行
                     </td>
                     <td className="px-4 py-2.5">
                       {item.status === 'success' && (
-                        <span className="inline-flex items-center gap-1.5 text-[10px] font-semibold
-                                         text-green-400 bg-green-900/20 border border-green-700/30
-                                         rounded-full px-2 py-0.5">
+                        <span className="inline-flex items-center gap-1.5 text-[10px] font-semibold text-green-400 bg-green-900/20 border border-green-700/30 rounded-full px-2 py-0.5">
                           <span className="w-1.5 h-1.5 rounded-full bg-green-400" />
                           成功
                         </span>
                       )}
                       {item.status === 'partial' && (
-                        <span className="inline-flex items-center gap-1.5 text-[10px] font-semibold
-                                         text-yellow-400 bg-yellow-900/20 border border-yellow-700/30
-                                         rounded-full px-2 py-0.5">
+                        <span className="inline-flex items-center gap-1.5 text-[10px] font-semibold text-yellow-400 bg-yellow-900/20 border border-yellow-700/30 rounded-full px-2 py-0.5">
                           <span className="w-1.5 h-1.5 rounded-full bg-yellow-400" />
                           一部成功
                         </span>
                       )}
                       {item.status === 'error' && (
-                        <span className="inline-flex items-center gap-1.5 text-[10px] font-semibold
-                                         text-red-400 bg-red-900/20 border border-red-700/30
-                                         rounded-full px-2 py-0.5">
+                        <span className="inline-flex items-center gap-1.5 text-[10px] font-semibold text-red-400 bg-red-900/20 border border-red-700/30 rounded-full px-2 py-0.5">
                           <span className="w-1.5 h-1.5 rounded-full bg-red-400" />
                           エラー
                         </span>
                       )}
                       {item.result && (
-                        <span className="ml-2 text-[10px] text-falcon-subtle font-mono">
+                        <span className="ml-2 text-[10px] text-[#3d5068] font-mono">
                           {item.result.success}件成功
                         </span>
                       )}

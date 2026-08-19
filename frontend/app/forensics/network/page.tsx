@@ -9,6 +9,8 @@ import {
   ChevronDown, Eye, Plus, RefreshCw, Activity, Loader2,
   FileDown, Shield,
 } from 'lucide-react'
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+
 import { USE_MOCK, m } from '@/lib/mock'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -176,7 +178,7 @@ function flagColor(f: string) {
   if (f === 'SYN') return 'bg-blue-500/20 text-blue-300'
   if (f === 'RST') return 'bg-red-500/20 text-red-300'
   if (f === 'FIN') return 'bg-yellow-500/20 text-yellow-300'
-  return 'bg-falcon-border text-falcon-muted'
+  return 'bg-[#1e2d42] text-[#7d92b0]'
 }
 
 // ── Sub-components ─────────────────────────────────────────────────────────────
@@ -187,16 +189,16 @@ function FlowDetailModal({ flow, onClose }: { flow: NetworkFlow; onClose: () => 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={onClose}>
       <div
-        className="relative w-full max-w-3xl max-h-[90vh] overflow-y-auto bg-falcon-surface border border-falcon-border rounded-xl shadow-2xl"
+        className="relative w-full max-w-3xl max-h-[90vh] overflow-y-auto bg-[#0d1220] border border-[#1e2d42] rounded-xl shadow-2xl"
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-falcon-border">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[#1e2d42]">
           <div className="flex items-center gap-3">
-            <Activity className="w-5 h-5 text-falcon-red" />
+            <Activity className="w-5 h-5 text-[#e8002d]" />
             <h3 className="text-white font-semibold">フロー詳細 — {flow.id}</h3>
           </div>
-          <button onClick={onClose} className="text-falcon-muted hover:text-white transition-colors">
+          <button onClick={onClose} className="text-[#7d92b0] hover:text-white transition-colors">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -204,42 +206,42 @@ function FlowDetailModal({ flow, onClose }: { flow: NetworkFlow; onClose: () => 
         <div className="p-6 space-y-6">
           {/* Geo-IP */}
           <div className="grid grid-cols-2 gap-4">
-            <div className="bg-[#070d19] rounded-lg p-4 border border-falcon-border">
+            <div className="bg-[#070d19] rounded-lg p-4 border border-[#1e2d42]">
               <div className="flex items-center gap-2 mb-2">
-                <MapPin className="w-4 h-4 text-falcon-red" />
-                <span className="text-xs text-falcon-muted uppercase tracking-wider">送信元</span>
+                <MapPin className="w-4 h-4 text-[#e8002d]" />
+                <span className="text-xs text-[#7d92b0] uppercase tracking-wider">送信元</span>
               </div>
               <p className="text-white font-mono text-sm">{flow.src_ip}:{flow.src_port}</p>
-              <p className="text-falcon-muted text-xs mt-1">{flow.src_city}, {flow.src_country}</p>
+              <p className="text-[#7d92b0] text-xs mt-1">{flow.src_city}, {flow.src_country}</p>
             </div>
-            <div className="bg-[#070d19] rounded-lg p-4 border border-falcon-border">
+            <div className="bg-[#070d19] rounded-lg p-4 border border-[#1e2d42]">
               <div className="flex items-center gap-2 mb-2">
                 <Globe className="w-4 h-4 text-blue-400" />
-                <span className="text-xs text-falcon-muted uppercase tracking-wider">送信先</span>
+                <span className="text-xs text-[#7d92b0] uppercase tracking-wider">送信先</span>
               </div>
               <p className="text-white font-mono text-sm">{flow.dst_ip}:{flow.dst_port}</p>
-              <p className="text-falcon-muted text-xs mt-1">{flow.dst_city}, {flow.dst_country}</p>
+              <p className="text-[#7d92b0] text-xs mt-1">{flow.dst_city}, {flow.dst_country}</p>
             </div>
           </div>
 
           {/* Packet Timeline */}
           <div>
-            <h4 className="text-falcon-muted text-xs uppercase tracking-wider mb-3">パケットタイムライン</h4>
+            <h4 className="text-[#7d92b0] text-xs uppercase tracking-wider mb-3">パケットタイムライン</h4>
             <div className="space-y-1.5 max-h-52 overflow-y-auto">
               {m(MOCK_PACKETS).map(pkt => (
-                <div key={pkt.seq} className="flex items-center gap-3 px-3 py-2 rounded-sm bg-[#070d19] border border-falcon-border">
-                  <span className="text-falcon-subtle text-xs w-6">{pkt.seq}</span>
+                <div key={pkt.seq} className="flex items-center gap-3 px-3 py-2 rounded-sm bg-[#070d19] border border-[#1e2d42]">
+                  <span className="text-[#3d5068] text-xs w-6">{pkt.seq}</span>
                   {pkt.direction === 'sent'
-                    ? <ArrowRight className="w-3.5 h-3.5 text-falcon-red shrink-0" />
+                    ? <ArrowRight className="w-3.5 h-3.5 text-[#e8002d] shrink-0" />
                     : <ArrowLeft className="w-3.5 h-3.5 text-blue-400 shrink-0" />
                   }
-                  <span className="text-falcon-muted text-xs w-16">{formatBytes(pkt.size_bytes)}</span>
+                  <span className="text-[#7d92b0] text-xs w-16">{formatBytes(pkt.size_bytes)}</span>
                   <div className="flex gap-1">
                     {pkt.flags.map(f => (
                       <span key={f} className={`text-[10px] px-1.5 py-0.5 rounded-sm font-mono ${flagColor(f)}`}>{f}</span>
                     ))}
                   </div>
-                  <span className="ml-auto text-falcon-subtle text-[11px] font-mono">{new Date(pkt.timestamp).toLocaleTimeString('ja-JP')}</span>
+                  <span className="ml-auto text-[#3d5068] text-[11px] font-mono">{new Date(pkt.timestamp).toLocaleTimeString('ja-JP')}</span>
                 </div>
               ))}
             </div>
@@ -248,8 +250,8 @@ function FlowDetailModal({ flow, onClose }: { flow: NetworkFlow; onClose: () => 
           {/* Payload Preview */}
           {flow.payload_preview && (
             <div>
-              <h4 className="text-falcon-muted text-xs uppercase tracking-wider mb-3">ペイロードプレビュー (HTTP)</h4>
-              <pre className="bg-[#070d19] border border-falcon-border rounded-sm p-3 text-[11px] text-green-300 font-mono overflow-x-auto whitespace-pre-wrap break-all">
+              <h4 className="text-[#7d92b0] text-xs uppercase tracking-wider mb-3">ペイロードプレビュー (HTTP)</h4>
+              <pre className="bg-[#070d19] border border-[#1e2d42] rounded-sm p-3 text-[11px] text-green-300 font-mono overflow-x-auto whitespace-pre-wrap break-all">
                 {flow.payload_preview}
               </pre>
             </div>
@@ -258,13 +260,13 @@ function FlowDetailModal({ flow, onClose }: { flow: NetworkFlow; onClose: () => 
           {/* Related Flows */}
           {relatedFlows.length > 0 && (
             <div>
-              <h4 className="text-falcon-muted text-xs uppercase tracking-wider mb-3">同一送信元の関連フロー</h4>
+              <h4 className="text-[#7d92b0] text-xs uppercase tracking-wider mb-3">同一送信元の関連フロー</h4>
               <div className="space-y-1.5">
                 {relatedFlows.map(f => (
-                  <div key={f.id} className="flex items-center gap-3 px-3 py-2 rounded-sm bg-[#070d19] border border-falcon-border">
-                    <span className="text-falcon-muted font-mono text-xs">{f.id}</span>
+                  <div key={f.id} className="flex items-center gap-3 px-3 py-2 rounded-sm bg-[#070d19] border border-[#1e2d42]">
+                    <span className="text-[#7d92b0] font-mono text-xs">{f.id}</span>
                     <span className={`text-[10px] px-1.5 py-0.5 rounded-sm border font-mono ${protocolColor(f.protocol)}`}>{f.protocol}</span>
-                    <span className="text-falcon-muted text-xs">{f.dst_ip}:{f.dst_port}</span>
+                    <span className="text-[#7d92b0] text-xs">{f.dst_ip}:{f.dst_port}</span>
                     <span className={`ml-auto text-[10px] px-1.5 py-0.5 rounded-sm border ${riskColor(f.risk_score)}`}>{f.risk_score}</span>
                   </div>
                 ))}
@@ -273,12 +275,12 @@ function FlowDetailModal({ flow, onClose }: { flow: NetworkFlow; onClose: () => 
           )}
 
           {/* Actions */}
-          <div className="flex gap-3 pt-2 border-t border-falcon-border">
-            <button className="flex items-center gap-2 px-4 py-2 rounded-sm bg-falcon-red/10 border border-falcon-red/30 text-falcon-red text-sm hover:bg-falcon-red/20 transition-colors">
+          <div className="flex gap-3 pt-2 border-t border-[#1e2d42]">
+            <button className="flex items-center gap-2 px-4 py-2 rounded-sm bg-[#e8002d]/10 border border-[#e8002d]/30 text-[#e8002d] text-sm hover:bg-[#e8002d]/20 transition-colors">
               <Plus className="w-4 h-4" />
               IOCに追加
             </button>
-            <button onClick={onClose} className="flex items-center gap-2 px-4 py-2 rounded-sm bg-falcon-border text-falcon-muted text-sm hover:text-white transition-colors">
+            <button onClick={onClose} className="flex items-center gap-2 px-4 py-2 rounded-sm bg-[#1e2d42] text-[#7d92b0] text-sm hover:text-white transition-colors">
               閉じる
             </button>
           </div>
@@ -295,12 +297,12 @@ function HttpSessionViewer({ session }: { session: ReconstructedSession }) {
   return (
     <div className="grid grid-cols-2 gap-4 mt-4">
       <div>
-        <p className="text-xs text-falcon-muted uppercase tracking-wider mb-2">HTTPリクエスト</p>
-        <pre className="bg-[#070d19] border border-falcon-border rounded-sm p-3 text-[11px] text-blue-300 font-mono overflow-x-auto whitespace-pre-wrap break-all h-48">{request}</pre>
+        <p className="text-xs text-[#7d92b0] uppercase tracking-wider mb-2">HTTPリクエスト</p>
+        <pre className="bg-[#070d19] border border-[#1e2d42] rounded-sm p-3 text-[11px] text-blue-300 font-mono overflow-x-auto whitespace-pre-wrap break-all h-48">{request}</pre>
       </div>
       <div>
-        <p className="text-xs text-falcon-muted uppercase tracking-wider mb-2">HTTPレスポンス</p>
-        <pre className="bg-[#070d19] border border-falcon-border rounded-sm p-3 text-[11px] text-green-300 font-mono overflow-x-auto whitespace-pre-wrap break-all h-48">{response}</pre>
+        <p className="text-xs text-[#7d92b0] uppercase tracking-wider mb-2">HTTPレスポンス</p>
+        <pre className="bg-[#070d19] border border-[#1e2d42] rounded-sm p-3 text-[11px] text-green-300 font-mono overflow-x-auto whitespace-pre-wrap break-all h-48">{response}</pre>
       </div>
     </div>
   )
@@ -389,27 +391,28 @@ export default function NetworkForensicsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#070d19] text-falcon-muted">
+    <div className="min-h-screen bg-[#070d19] text-[#7d92b0]">
+      <PageDataUnavailable />
       {/* ── Header ─────────────────────────────────────────── */}
-      <div className="border-b border-falcon-border px-6 py-4">
+      <div className="border-b border-[#1e2d42] px-6 py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-falcon-red/10 border border-falcon-red/20 flex items-center justify-center">
-              <Wifi className="w-5 h-5 text-falcon-red" />
+            <div className="w-9 h-9 rounded-lg bg-[#e8002d]/10 border border-[#e8002d]/20 flex items-center justify-center">
+              <Wifi className="w-5 h-5 text-[#e8002d]" />
             </div>
             <div>
               <h1 className="text-white text-xl font-bold tracking-tight">ネットワークフォレンジクス</h1>
-              <p className="text-xs text-falcon-muted mt-0.5">パケット再構成 & フロー分析</p>
+              <p className="text-xs text-[#7d92b0] mt-0.5">パケット再構成 & フロー分析</p>
             </div>
           </div>
           <div className="flex items-center gap-3">
             {/* Time range */}
-            <div className="flex items-center gap-1 bg-falcon-surface border border-falcon-border rounded-lg p-1">
+            <div className="flex items-center gap-1 bg-[#0d1220] border border-[#1e2d42] rounded-lg p-1">
               {(['1h', '6h', '24h', '7d'] as const).map(r => (
                 <button
                   key={r}
                   onClick={() => setTimeRange(r)}
-                  className={`px-3 py-1.5 rounded-sm text-xs font-medium transition-colors ${timeRange === r ? 'bg-falcon-border text-white' : 'text-falcon-muted hover:text-white'}`}
+                  className={`px-3 py-1.5 rounded-sm text-xs font-medium transition-colors ${timeRange === r ? 'bg-[#1e2d42] text-white' : 'text-[#7d92b0] hover:text-white'}`}
                 >
                   {r}
                 </button>
@@ -417,13 +420,13 @@ export default function NetworkForensicsPage() {
             </div>
             {/* IP filter */}
             <div className="relative">
-              <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-falcon-subtle" />
+              <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#3d5068]" />
               <input
                 type="text"
                 placeholder="IPフィルター..."
                 value={ipFilter}
                 onChange={e => setIpFilter(e.target.value)}
-                className="pl-8 pr-3 py-2 text-sm bg-falcon-surface border border-falcon-border rounded-lg text-white placeholder-falcon-subtle focus:outline-hidden focus:border-falcon-muted w-44"
+                className="pl-8 pr-3 py-2 text-sm bg-[#0d1220] border border-[#1e2d42] rounded-lg text-white placeholder-[#3d5068] focus:outline-hidden focus:border-[#7d92b0] w-44"
               />
             </div>
           </div>
@@ -437,8 +440,8 @@ export default function NetworkForensicsPage() {
               onClick={() => setActiveTab(tab)}
               className={`px-5 py-2 rounded-t-lg text-sm font-medium border-b-2 transition-colors ${
                 activeTab === tab
-                  ? 'border-falcon-red text-white bg-falcon-surface'
-                  : 'border-transparent text-falcon-muted hover:text-white'
+                  ? 'border-[#e8002d] text-white bg-[#0d1220]'
+                  : 'border-transparent text-[#7d92b0] hover:text-white'
               }`}
             >
               {tab === 'flows' ? 'フロー分析' : 'パケット再構成'}
@@ -456,13 +459,13 @@ export default function NetworkForensicsPage() {
               {[
                 { label: '総フロー数', value: totalFlows, icon: Activity, color: 'text-blue-400' },
                 { label: '不審フロー', value: suspiciousFlows, icon: AlertTriangle, color: 'text-orange-400' },
-                { label: 'データ持ち出しアラート', value: exfilAlerts, icon: Shield, color: 'text-falcon-red' },
+                { label: 'データ持ち出しアラート', value: exfilAlerts, icon: Shield, color: 'text-[#e8002d]' },
                 { label: 'トップトーカー', value: topTalkerIp, icon: Globe, color: 'text-cyan-400' },
               ].map(({ label, value, icon: Icon, color }) => (
-                <div key={label} className="bg-falcon-surface border border-falcon-border rounded-xl p-4">
+                <div key={label} className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-4">
                   <div className="flex items-center gap-2 mb-2">
                     <Icon className={`w-4 h-4 ${color}`} />
-                    <span className="text-xs text-falcon-muted">{label}</span>
+                    <span className="text-xs text-[#7d92b0]">{label}</span>
                   </div>
                   <p className={`text-xl font-bold ${color} font-mono`}>{value}</p>
                 </div>
@@ -471,26 +474,26 @@ export default function NetworkForensicsPage() {
 
             {/* Filters */}
             <div className="flex items-center gap-3 flex-wrap">
-              <span className="text-xs text-falcon-muted">フィルター:</span>
+              <span className="text-xs text-[#7d92b0]">フィルター:</span>
               {/* Protocol filter */}
               <div className="relative">
                 <select
                   value={protocolFilter}
                   onChange={e => setProtocolFilter(e.target.value as Protocol | '')}
-                  className="pl-3 pr-8 py-1.5 text-xs bg-falcon-surface border border-falcon-border rounded-sm text-falcon-muted focus:outline-hidden appearance-none cursor-pointer"
+                  className="pl-3 pr-8 py-1.5 text-xs bg-[#0d1220] border border-[#1e2d42] rounded-sm text-[#7d92b0] focus:outline-hidden appearance-none cursor-pointer"
                 >
                   <option value="">全プロトコル</option>
                   {PROTOCOLS.map(p => <option key={p} value={p}>{p}</option>)}
                 </select>
-                <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-falcon-subtle pointer-events-none" />
+                <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-[#3d5068] pointer-events-none" />
               </div>
               {/* Risk filter */}
-              <div className="flex items-center gap-1 bg-falcon-surface border border-falcon-border rounded-sm p-0.5">
+              <div className="flex items-center gap-1 bg-[#0d1220] border border-[#1e2d42] rounded-sm p-0.5">
                 {(['all', 'high', 'medium', 'low'] as const).map(r => (
                   <button
                     key={r}
                     onClick={() => setRiskFilter(r)}
-                    className={`px-2.5 py-1 rounded-sm text-xs transition-colors ${riskFilter === r ? 'bg-falcon-border text-white' : 'text-falcon-muted hover:text-white'}`}
+                    className={`px-2.5 py-1 rounded-sm text-xs transition-colors ${riskFilter === r ? 'bg-[#1e2d42] text-white' : 'text-[#7d92b0] hover:text-white'}`}
                   >
                     {r === 'all' ? '全て' : r === 'high' ? '高リスク' : r === 'medium' ? '中リスク' : '低リスク'}
                   </button>
@@ -499,7 +502,7 @@ export default function NetworkForensicsPage() {
               {(protocolFilter || ipFilter || riskFilter !== 'all') && (
                 <button
                   onClick={() => { setProtocolFilter(''); setIpFilter(''); setRiskFilter('all') }}
-                  className="flex items-center gap-1 text-xs text-falcon-muted hover:text-white"
+                  className="flex items-center gap-1 text-xs text-[#7d92b0] hover:text-white"
                 >
                   <X className="w-3 h-3" /> クリア
                 </button>
@@ -507,30 +510,30 @@ export default function NetworkForensicsPage() {
             </div>
 
             {/* Flow Table */}
-            <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
-              <div className="px-4 py-3 border-b border-falcon-border flex items-center justify-between">
+            <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
+              <div className="px-4 py-3 border-b border-[#1e2d42] flex items-center justify-between">
                 <h2 className="text-white font-semibold text-sm">ネットワークフロー ({filteredFlows.length}件)</h2>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-xs">
                   <thead>
-                    <tr className="border-b border-falcon-border">
+                    <tr className="border-b border-[#1e2d42]">
                       {['送信元 IP:Port', '送信先 IP:Port', 'プロトコル', '送信', '受信', '時間', 'フラグ', 'リスク', '開始時刻', '操作'].map(h => (
-                        <th key={h} className="px-3 py-2.5 text-left text-falcon-subtle font-medium whitespace-nowrap">{h}</th>
+                        <th key={h} className="px-3 py-2.5 text-left text-[#3d5068] font-medium whitespace-nowrap">{h}</th>
                       ))}
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-falcon-border/50">
+                  <tbody className="divide-y divide-[#1e2d42]/50">
                     {filteredFlows.map(flow => (
                       <tr key={flow.id} className="hover:bg-[#0a1628] transition-colors">
-                        <td className="px-3 py-2.5 font-mono text-white whitespace-nowrap">{flow.src_ip}<span className="text-falcon-subtle">:{flow.src_port}</span></td>
-                        <td className="px-3 py-2.5 font-mono text-white whitespace-nowrap">{flow.dst_ip}<span className="text-falcon-subtle">:{flow.dst_port}</span></td>
+                        <td className="px-3 py-2.5 font-mono text-white whitespace-nowrap">{flow.src_ip}<span className="text-[#3d5068]">:{flow.src_port}</span></td>
+                        <td className="px-3 py-2.5 font-mono text-white whitespace-nowrap">{flow.dst_ip}<span className="text-[#3d5068]">:{flow.dst_port}</span></td>
                         <td className="px-3 py-2.5">
                           <span className={`px-2 py-0.5 rounded-sm border text-[10px] font-mono font-bold ${protocolColor(flow.protocol)}`}>{flow.protocol}</span>
                         </td>
-                        <td className="px-3 py-2.5 text-falcon-muted whitespace-nowrap">{formatBytes(flow.bytes_sent)}</td>
-                        <td className="px-3 py-2.5 text-falcon-muted whitespace-nowrap">{formatBytes(flow.bytes_recv)}</td>
-                        <td className="px-3 py-2.5 text-falcon-muted whitespace-nowrap">{formatDuration(flow.duration_ms)}</td>
+                        <td className="px-3 py-2.5 text-[#7d92b0] whitespace-nowrap">{formatBytes(flow.bytes_sent)}</td>
+                        <td className="px-3 py-2.5 text-[#7d92b0] whitespace-nowrap">{formatBytes(flow.bytes_recv)}</td>
+                        <td className="px-3 py-2.5 text-[#7d92b0] whitespace-nowrap">{formatDuration(flow.duration_ms)}</td>
                         <td className="px-3 py-2.5">
                           <div className="flex gap-1 flex-wrap">
                             {flow.flow_flags.slice(0, 3).map(f => (
@@ -541,11 +544,11 @@ export default function NetworkForensicsPage() {
                         <td className="px-3 py-2.5">
                           <span className={`px-2 py-0.5 rounded-sm border text-[10px] font-mono font-bold ${riskColor(flow.risk_score)}`}>{flow.risk_score}</span>
                         </td>
-                        <td className="px-3 py-2.5 text-falcon-subtle whitespace-nowrap font-mono">{fmtTime(flow.start_time)}</td>
+                        <td className="px-3 py-2.5 text-[#3d5068] whitespace-nowrap font-mono">{fmtTime(flow.start_time)}</td>
                         <td className="px-3 py-2.5">
                           <button
                             onClick={() => setSelectedFlow(flow)}
-                            className="flex items-center gap-1 text-falcon-muted hover:text-white transition-colors"
+                            className="flex items-center gap-1 text-[#7d92b0] hover:text-white transition-colors"
                           >
                             <Eye className="w-3.5 h-3.5" />
                           </button>
@@ -558,15 +561,15 @@ export default function NetworkForensicsPage() {
             </div>
 
             {/* Top Connections */}
-            <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
-              <div className="px-4 py-3 border-b border-falcon-border flex items-center justify-between">
+            <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
+              <div className="px-4 py-3 border-b border-[#1e2d42] flex items-center justify-between">
                 <h2 className="text-white font-semibold text-sm">トップ接続 (Top 10)</h2>
-                <div className="flex items-center gap-1 bg-[#070d19] border border-falcon-border rounded-sm p-0.5">
+                <div className="flex items-center gap-1 bg-[#070d19] border border-[#1e2d42] rounded-sm p-0.5">
                   {(['bytes', 'count'] as const).map(s => (
                     <button
                       key={s}
                       onClick={() => setTopSortBy(s)}
-                      className={`px-2.5 py-1 rounded-sm text-xs transition-colors ${topSortBy === s ? 'bg-falcon-border text-white' : 'text-falcon-muted'}`}
+                      className={`px-2.5 py-1 rounded-sm text-xs transition-colors ${topSortBy === s ? 'bg-[#1e2d42] text-white' : 'text-[#7d92b0]'}`}
                     >
                       {s === 'bytes' ? 'バイト数' : '接続数'}
                     </button>
@@ -579,16 +582,16 @@ export default function NetworkForensicsPage() {
                   const pct = Math.round((stats.bytes / maxBytes) * 100)
                   return (
                     <div key={pair} className="flex items-center gap-3">
-                      <span className="text-falcon-subtle text-xs w-4">{idx + 1}</span>
+                      <span className="text-[#3d5068] text-xs w-4">{idx + 1}</span>
                       <span className="font-mono text-xs text-white w-44 truncate">{pair}</span>
                       <div className="flex-1 h-2 bg-[#070d19] rounded-full overflow-hidden">
                         <div
-                          className="h-full bg-linear-to-r from-falcon-blue to-[#0044cc] rounded-full transition-all"
+                          className="h-full bg-linear-to-r from-[#1a6bff] to-[#0044cc] rounded-full transition-all"
                           style={{ width: `${pct}%` }}
                         />
                       </div>
-                      <span className="text-falcon-muted text-xs w-20 text-right font-mono">{formatBytes(stats.bytes)}</span>
-                      <span className="text-falcon-subtle text-xs w-10 text-right">{stats.count}回</span>
+                      <span className="text-[#7d92b0] text-xs w-20 text-right font-mono">{formatBytes(stats.bytes)}</span>
+                      <span className="text-[#3d5068] text-xs w-10 text-right">{stats.count}回</span>
                     </div>
                   )
                 })}
@@ -601,13 +604,13 @@ export default function NetworkForensicsPage() {
         {activeTab === 'packets' && (
           <div className="space-y-6">
             {/* PCAP Upload */}
-            <div className="bg-falcon-surface border border-falcon-border rounded-xl p-6">
+            <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-6">
               <h2 className="text-white font-semibold text-sm mb-4 flex items-center gap-2">
-                <Upload className="w-4 h-4 text-falcon-red" />
+                <Upload className="w-4 h-4 text-[#e8002d]" />
                 PCAPファイルインポート
               </h2>
               <div
-                className="border-2 border-dashed border-falcon-border rounded-xl p-8 text-center cursor-pointer hover:border-falcon-muted/40 transition-colors"
+                className="border-2 border-dashed border-[#1e2d42] rounded-xl p-8 text-center cursor-pointer hover:border-[#7d92b0]/40 transition-colors"
                 onClick={() => fileInputRef.current?.click()}
               >
                 <input
@@ -617,15 +620,15 @@ export default function NetworkForensicsPage() {
                   className="hidden"
                   onChange={handleFileChange}
                 />
-                <Upload className="w-8 h-8 text-falcon-subtle mx-auto mb-3" />
-                <p className="text-falcon-muted text-sm">PCAPまたはPCAPNGファイルをクリックしてアップロード</p>
-                <p className="text-falcon-subtle text-xs mt-1">.pcap, .pcapng ファイル対応</p>
+                <Upload className="w-8 h-8 text-[#3d5068] mx-auto mb-3" />
+                <p className="text-[#7d92b0] text-sm">PCAPまたはPCAPNGファイルをクリックしてアップロード</p>
+                <p className="text-[#3d5068] text-xs mt-1">.pcap, .pcapng ファイル対応</p>
               </div>
               {isAnalyzing && (
                 <div className="mt-4">
                   <div className="flex items-center gap-3 mb-2">
                     <Loader2 className="w-4 h-4 text-blue-400 animate-spin" />
-                    <span className="text-sm text-falcon-muted">解析中... {uploadProgress}%</span>
+                    <span className="text-sm text-[#7d92b0]">解析中... {uploadProgress}%</span>
                   </div>
                   <div className="h-2 bg-[#070d19] rounded-full overflow-hidden">
                     <div
@@ -644,27 +647,27 @@ export default function NetworkForensicsPage() {
             </div>
 
             {/* Credential Alert */}
-            <div className="bg-falcon-red/5 border border-falcon-red/30 rounded-xl p-4">
+            <div className="bg-[#e8002d]/5 border border-[#e8002d]/30 rounded-xl p-4">
               <div className="flex items-center gap-2 mb-3">
-                <AlertTriangle className="w-4 h-4 text-falcon-red" />
-                <span className="text-falcon-red font-semibold text-sm">3件の平文認証情報が検出されました</span>
+                <AlertTriangle className="w-4 h-4 text-[#e8002d]" />
+                <span className="text-[#e8002d] font-semibold text-sm">3件の平文認証情報が検出されました</span>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-xs">
                   <thead>
-                    <tr className="border-b border-falcon-red/20">
+                    <tr className="border-b border-[#e8002d]/20">
                       {['プロトコル', 'ユーザー名', 'サーバー', 'パスワード'].map(h => (
-                        <th key={h} className="px-3 py-2 text-left text-falcon-red/70 font-medium">{h}</th>
+                        <th key={h} className="px-3 py-2 text-left text-[#e8002d]/70 font-medium">{h}</th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
                     {m(MOCK_CREDS).map((c, i) => (
-                      <tr key={i} className="border-b border-falcon-red/10">
+                      <tr key={i} className="border-b border-[#e8002d]/10">
                         <td className="px-3 py-2 font-mono text-orange-400">{c.protocol}</td>
                         <td className="px-3 py-2 font-mono text-white">{c.username}</td>
-                        <td className="px-3 py-2 font-mono text-falcon-muted">{c.server}</td>
-                        <td className="px-3 py-2 font-mono text-falcon-subtle">{c.password}</td>
+                        <td className="px-3 py-2 font-mono text-[#7d92b0]">{c.server}</td>
+                        <td className="px-3 py-2 font-mono text-[#3d5068]">{c.password}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -673,10 +676,10 @@ export default function NetworkForensicsPage() {
             </div>
 
             {/* Reconstructed Sessions */}
-            <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
-              <div className="px-4 py-3 border-b border-falcon-border flex items-center justify-between">
+            <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
+              <div className="px-4 py-3 border-b border-[#1e2d42] flex items-center justify-between">
                 <h2 className="text-white font-semibold text-sm">再構成セッション ({sessions.length}件)</h2>
-                <button className="flex items-center gap-2 text-xs text-falcon-muted hover:text-white px-3 py-1.5 rounded-sm border border-falcon-border transition-colors">
+                <button className="flex items-center gap-2 text-xs text-[#7d92b0] hover:text-white px-3 py-1.5 rounded-sm border border-[#1e2d42] transition-colors">
                   <FileDown className="w-3.5 h-3.5" />
                   PCAPダウンロード
                 </button>
@@ -684,33 +687,33 @@ export default function NetworkForensicsPage() {
               <div className="overflow-x-auto">
                 <table className="w-full text-xs">
                   <thead>
-                    <tr className="border-b border-falcon-border">
+                    <tr className="border-b border-[#1e2d42]">
                       {['セッションID', 'プロトコル', '送信元→送信先', 'オブジェクト数', '検出事項', '開始時刻', '操作'].map(h => (
-                        <th key={h} className="px-3 py-2.5 text-left text-falcon-subtle font-medium whitespace-nowrap">{h}</th>
+                        <th key={h} className="px-3 py-2.5 text-left text-[#3d5068] font-medium whitespace-nowrap">{h}</th>
                       ))}
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-falcon-border/50">
+                  <tbody className="divide-y divide-[#1e2d42]/50">
                     {sessions.map(sess => (
                       <tr key={sess.session_id} className="hover:bg-[#0a1628] transition-colors">
                         <td className="px-3 py-2.5 font-mono text-white">{sess.session_id}</td>
                         <td className="px-3 py-2.5">
                           <span className={`px-2 py-0.5 rounded-sm border text-[10px] font-mono font-bold ${protocolColor(sess.protocol as Protocol)}`}>{sess.protocol}</span>
                         </td>
-                        <td className="px-3 py-2.5 font-mono text-falcon-muted whitespace-nowrap">
+                        <td className="px-3 py-2.5 font-mono text-[#7d92b0] whitespace-nowrap">
                           {sess.src_ip}:{sess.src_port} → {sess.dst_ip}:{sess.dst_port}
                         </td>
-                        <td className="px-3 py-2.5 text-center text-falcon-muted">{sess.object_count}</td>
+                        <td className="px-3 py-2.5 text-center text-[#7d92b0]">{sess.object_count}</td>
                         <td className="px-3 py-2.5 text-center">
-                          <span className={sess.interesting_findings > 0 ? 'text-falcon-red font-bold' : 'text-falcon-subtle'}>
+                          <span className={sess.interesting_findings > 0 ? 'text-[#e8002d] font-bold' : 'text-[#3d5068]'}>
                             {sess.interesting_findings}
                           </span>
                         </td>
-                        <td className="px-3 py-2.5 text-falcon-subtle font-mono whitespace-nowrap">{fmtTime(sess.start_time)}</td>
+                        <td className="px-3 py-2.5 text-[#3d5068] font-mono whitespace-nowrap">{fmtTime(sess.start_time)}</td>
                         <td className="px-3 py-2.5">
                           <button
                             onClick={() => setSelectedSession(selectedSession?.session_id === sess.session_id ? null : sess)}
-                            className="flex items-center gap-1.5 text-xs text-falcon-muted hover:text-white border border-falcon-border hover:border-falcon-muted/40 px-2.5 py-1 rounded-sm transition-colors"
+                            className="flex items-center gap-1.5 text-xs text-[#7d92b0] hover:text-white border border-[#1e2d42] hover:border-[#7d92b0]/40 px-2.5 py-1 rounded-sm transition-colors"
                           >
                             <RefreshCw className="w-3 h-3" />
                             再構成
@@ -724,12 +727,12 @@ export default function NetworkForensicsPage() {
 
               {/* Session Viewer */}
               {selectedSession && (
-                <div className="border-t border-falcon-border p-4">
+                <div className="border-t border-[#1e2d42] p-4">
                   <div className="flex items-center justify-between mb-3">
                     <h3 className="text-white font-medium text-sm">
                       {selectedSession.session_id} — {selectedSession.protocol} セッション詳細
                     </h3>
-                    <button onClick={() => setSelectedSession(null)} className="text-falcon-muted hover:text-white">
+                    <button onClick={() => setSelectedSession(null)} className="text-[#7d92b0] hover:text-white">
                       <X className="w-4 h-4" />
                     </button>
                   </div>
@@ -740,19 +743,19 @@ export default function NetworkForensicsPage() {
                     <div className="overflow-x-auto">
                       <table className="w-full text-xs">
                         <thead>
-                          <tr className="border-b border-falcon-border">
+                          <tr className="border-b border-[#1e2d42]">
                             {['クエリ', 'タイプ', 'レスポンス', 'TTL'].map(h => (
-                              <th key={h} className="px-3 py-2 text-left text-falcon-subtle font-medium">{h}</th>
+                              <th key={h} className="px-3 py-2 text-left text-[#3d5068] font-medium">{h}</th>
                             ))}
                           </tr>
                         </thead>
-                        <tbody className="divide-y divide-falcon-border/50">
+                        <tbody className="divide-y divide-[#1e2d42]/50">
                           {m(MOCK_DNS_QUERIES).map((q, i) => (
                             <tr key={i} className="hover:bg-[#0a1628]">
                               <td className="px-3 py-2 font-mono text-white">{q.query}</td>
                               <td className="px-3 py-2"><span className="px-1.5 py-0.5 rounded-sm bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 text-[10px] font-mono">{q.type}</span></td>
-                              <td className="px-3 py-2 font-mono text-falcon-muted">{q.response}</td>
-                              <td className="px-3 py-2 text-falcon-subtle">{q.ttl}s</td>
+                              <td className="px-3 py-2 font-mono text-[#7d92b0]">{q.response}</td>
+                              <td className="px-3 py-2 text-[#3d5068]">{q.ttl}s</td>
                             </tr>
                           ))}
                         </tbody>
@@ -761,7 +764,7 @@ export default function NetworkForensicsPage() {
                   )}
 
                   {(selectedSession.protocol === 'FTP' || selectedSession.protocol === 'SMTP') && (
-                    <div className="bg-[#070d19] rounded-lg p-4 border border-falcon-border">
+                    <div className="bg-[#070d19] rounded-lg p-4 border border-[#1e2d42]">
                       <pre className="text-[11px] text-green-300 font-mono whitespace-pre-wrap">
                         {selectedSession.protocol === 'FTP'
                           ? `220 FTP Server ready\r\nUSER admin\r\n331 Password required\r\nPASS ****\r\n230 User logged in\r\nPWD\r\n257 "/var/ftp/uploads"\r\nRETR sensitive_data.csv\r\n150 Opening BINARY mode data connection\r\n226 Transfer complete`

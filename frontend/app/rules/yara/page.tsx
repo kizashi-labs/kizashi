@@ -11,6 +11,9 @@ import {
   ToggleLeft, ToggleRight,
   Edit3, Trash2, X, AlertTriangle, CheckCircle
 } from 'lucide-react'
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+import { PageSaveFailed } from '@/components/PageSaveFailed'
+
 import { apiFetch } from '@/lib/api'
 
 interface YARARule {
@@ -207,6 +210,8 @@ export default function YARARulesPage() {
 
   return (
     <div className="p-6 space-y-6">
+      <PageDataUnavailable />
+      <PageSaveFailed className="mb-4" />
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -230,7 +235,7 @@ export default function YARARulesPage() {
       {/* Stats */}
       <div className="grid grid-cols-4 gap-4">
         {((['low', 'medium', 'high', 'critical'] as const)).map(sev => (
-          <div key={sev} className="bg-falcon-card rounded-xl p-4">
+          <div key={sev} className="bg-[#111827] rounded-xl p-4">
             <div className={`text-2xl font-bold ${SEVERITY_COLORS[sev].split(' ')[0]}`}>
               {rules.filter(r => r.severity === sev).length}
             </div>
@@ -248,7 +253,7 @@ export default function YARARulesPage() {
             placeholder="ルール名・説明を検索..."
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="w-full bg-falcon-card text-white pl-9 pr-4 py-2 rounded-lg border border-falcon-border focus:outline-hidden focus:border-purple-500 text-sm"
+            className="w-full bg-[#111827] text-white pl-9 pr-4 py-2 rounded-lg border border-[#1e2d42] focus:outline-hidden focus:border-purple-500 text-sm"
           />
         </div>
         <div className="flex items-center gap-2">
@@ -256,7 +261,7 @@ export default function YARARulesPage() {
           <select
             value={severityFilter}
             onChange={e => setSeverityFilter(e.target.value)}
-            className="bg-falcon-card text-white px-3 py-2 rounded-lg border border-falcon-border text-sm focus:outline-hidden focus:border-purple-500"
+            className="bg-[#111827] text-white px-3 py-2 rounded-lg border border-[#1e2d42] text-sm focus:outline-hidden focus:border-purple-500"
           >
             <option value="">全深刻度</option>
             <option value="low">低</option>
@@ -267,7 +272,7 @@ export default function YARARulesPage() {
           <select
             value={enabledFilter === undefined ? '' : String(enabledFilter)}
             onChange={e => setEnabledFilter(e.target.value === '' ? undefined : e.target.value === 'true')}
-            className="bg-falcon-card text-white px-3 py-2 rounded-lg border border-falcon-border text-sm focus:outline-hidden focus:border-purple-500"
+            className="bg-[#111827] text-white px-3 py-2 rounded-lg border border-[#1e2d42] text-sm focus:outline-hidden focus:border-purple-500"
           >
             <option value="">全状態</option>
             <option value="true">有効</option>
@@ -277,10 +282,10 @@ export default function YARARulesPage() {
       </div>
 
       {/* Table */}
-      <div className="bg-falcon-card rounded-xl overflow-hidden">
+      <div className="bg-[#111827] rounded-xl overflow-hidden">
         <table className="w-full">
           <thead>
-            <tr className="border-b border-falcon-border">
+            <tr className="border-b border-[#1e2d42]">
               <th className="text-left px-4 py-3 text-[#8899aa] text-sm font-medium">ルール名</th>
               <th className="text-left px-4 py-3 text-[#8899aa] text-sm font-medium">深刻度</th>
               <th className="text-left px-4 py-3 text-[#8899aa] text-sm font-medium">タグ</th>
@@ -293,10 +298,10 @@ export default function YARARulesPage() {
           <tbody>
             {isLoading ? (
               [...Array(5)].map((_, i) => (
-                <tr key={i} className="border-b border-falcon-border/50">
+                <tr key={i} className="border-b border-[#1e2d42]/50">
                   {[...Array(7)].map((_, j) => (
                     <td key={j} className="px-4 py-3">
-                      <div className="h-4 bg-falcon-raised rounded-sm animate-pulse" />
+                      <div className="h-4 bg-[#161f33] rounded-sm animate-pulse" />
                     </td>
                   ))}
                 </tr>
@@ -309,7 +314,7 @@ export default function YARARulesPage() {
               </tr>
             ) : (
               rules.map(rule => (
-                <tr key={rule.id} className="border-b border-falcon-border/50 hover:bg-falcon-raised transition-colors">
+                <tr key={rule.id} className="border-b border-[#1e2d42]/50 hover:bg-[#161f33] transition-colors">
                   <td className="px-4 py-3">
                     <div className="text-white font-medium text-sm">{rule.name}</div>
                     {rule.description && (
@@ -324,7 +329,7 @@ export default function YARARulesPage() {
                   <td className="px-4 py-3">
                     <div className="flex flex-wrap gap-1 max-w-[160px]">
                       {rule.tags.slice(0, 3).map(tag => (
-                        <span key={tag} className="text-xs bg-falcon-raised text-[#8899aa] px-1.5 py-0.5 rounded-sm font-mono">
+                        <span key={tag} className="text-xs bg-[#161f33] text-[#8899aa] px-1.5 py-0.5 rounded-sm font-mono">
                           {tag}
                         </span>
                       ))}
@@ -391,10 +396,10 @@ export default function YARARulesPage() {
 
       {/* Create / Edit Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-50 p-4">
-          <div className="bg-falcon-card rounded-2xl w-full max-w-2xl border border-falcon-border flex flex-col max-h-[90vh]">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-[#111827] rounded-2xl w-full max-w-2xl border border-[#1e2d42] flex flex-col max-h-[90vh]">
             {/* Modal Header */}
-            <div className="flex items-center justify-between p-6 border-b border-falcon-border shrink-0">
+            <div className="flex items-center justify-between p-6 border-b border-[#1e2d42] shrink-0">
               <h2 className="text-xl font-bold text-white flex items-center gap-2">
                 <Shield className="w-5 h-5 text-purple-400" />
                 {editingRule ? 'YARAルールを編集' : '新規YARAルール'}
@@ -419,7 +424,7 @@ export default function YARARulesPage() {
                   value={form.name || ''}
                   onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
                   placeholder="例: DetectMimikatz"
-                  className="w-full bg-falcon-bg text-white px-3 py-2 rounded-lg border border-falcon-border focus:outline-hidden focus:border-purple-500 text-sm"
+                  className="w-full bg-[#080c14] text-white px-3 py-2 rounded-lg border border-[#1e2d42] focus:outline-hidden focus:border-purple-500 text-sm"
                 />
               </div>
 
@@ -431,7 +436,7 @@ export default function YARARulesPage() {
                   value={form.description || ''}
                   onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
                   placeholder="このルールが検知する内容..."
-                  className="w-full bg-falcon-bg text-white px-3 py-2 rounded-lg border border-falcon-border focus:outline-hidden focus:border-purple-500 text-sm"
+                  className="w-full bg-[#080c14] text-white px-3 py-2 rounded-lg border border-[#1e2d42] focus:outline-hidden focus:border-purple-500 text-sm"
                 />
               </div>
 
@@ -442,7 +447,7 @@ export default function YARARulesPage() {
                   <select
                     value={form.severity || 'medium'}
                     onChange={e => setForm(f => ({ ...f, severity: e.target.value as YARARule['severity'] }))}
-                    className="w-full bg-falcon-bg text-white px-3 py-2 rounded-lg border border-falcon-border focus:outline-hidden focus:border-purple-500 text-sm"
+                    className="w-full bg-[#080c14] text-white px-3 py-2 rounded-lg border border-[#1e2d42] focus:outline-hidden focus:border-purple-500 text-sm"
                   >
                     <option value="low">低 (Low)</option>
                     <option value="medium">中 (Medium)</option>
@@ -456,7 +461,7 @@ export default function YARARulesPage() {
                       type="checkbox"
                       checked={form.enabled ?? true}
                       onChange={e => setForm(f => ({ ...f, enabled: e.target.checked }))}
-                      className="w-4 h-4 rounded-sm border-falcon-border bg-falcon-raised accent-purple-500"
+                      className="w-4 h-4 rounded-sm border-[#1e2d42] bg-[#161f33] accent-purple-500"
                     />
                     <span className="text-[#8899aa] text-sm">有効にする</span>
                   </label>
@@ -473,7 +478,7 @@ export default function YARARulesPage() {
                   value={tagsInput}
                   onChange={e => setTagsInput(e.target.value)}
                   placeholder="例: malware, ransomware, apt"
-                  className="w-full bg-falcon-bg text-white px-3 py-2 rounded-lg border border-falcon-border focus:outline-hidden focus:border-purple-500 text-sm"
+                  className="w-full bg-[#080c14] text-white px-3 py-2 rounded-lg border border-[#1e2d42] focus:outline-hidden focus:border-purple-500 text-sm"
                 />
               </div>
 
@@ -487,7 +492,7 @@ export default function YARARulesPage() {
                   onChange={e => handleContentChange(e.target.value)}
                   rows={12}
                   spellCheck={false}
-                  className="w-full bg-falcon-bg text-white px-3 py-2 rounded-lg border border-falcon-border focus:outline-hidden focus:border-purple-500 text-sm font-mono resize-y"
+                  className="w-full bg-[#080c14] text-white px-3 py-2 rounded-lg border border-[#1e2d42] focus:outline-hidden focus:border-purple-500 text-sm font-mono resize-y"
                   placeholder="rule RuleName {&#10;  meta:&#10;    description = &quot;&quot;&#10;  strings:&#10;    $a = &quot;string&quot;&#10;  condition:&#10;    $a&#10;}"
                 />
                 {contentWarning && (
@@ -511,7 +516,7 @@ export default function YARARulesPage() {
             </div>
 
             {/* Modal Footer */}
-            <div className="flex gap-3 p-6 border-t border-falcon-border shrink-0">
+            <div className="flex gap-3 p-6 border-t border-[#1e2d42] shrink-0">
               <button
                 onClick={handleSubmit}
                 disabled={isPending || !form.name || !form.content}
@@ -526,7 +531,7 @@ export default function YARARulesPage() {
               </button>
               <button
                 onClick={closeModal}
-                className="px-4 py-2 bg-falcon-raised text-[#8899aa] rounded-lg hover:bg-falcon-active transition-colors"
+                className="px-4 py-2 bg-[#161f33] text-[#8899aa] rounded-lg hover:bg-[#1d2f4a] transition-colors"
               >
                 キャンセル
               </button>

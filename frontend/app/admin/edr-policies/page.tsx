@@ -9,6 +9,9 @@ import {
   Settings, Network, FileText, Activity, Layers,
 } from 'lucide-react'
 
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+import { SaveFailed, saveErrorOf } from '@/lib/persist'
+
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 type PolicyType = 'standard' | 'strict' | 'minimal' | 'custom'
@@ -136,17 +139,17 @@ function PolicyModal({
   const sensitivityIdx = sensitivityLevels.indexOf(form.rules_config.threat_detection.sensitivity)
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
-      <div className="bg-falcon-surface border border-falcon-border rounded-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-falcon-border">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[#1e2d42]">
           <div className="flex items-center gap-3">
-            <Shield className="w-5 h-5 text-falcon-red" />
+            <Shield className="w-5 h-5 text-[#e8002d]" />
             <h2 className="text-white font-semibold text-base">
               {policy ? 'ポリシーを編集' : 'ポリシーを作成'}
             </h2>
           </div>
-          <button onClick={onClose} className="text-falcon-muted hover:text-white transition-colors">
+          <button onClick={onClose} className="text-[#7d92b0] hover:text-white transition-colors">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -154,36 +157,36 @@ function PolicyModal({
         <div className="px-6 py-5 space-y-6">
           {/* Basic Info */}
           <section>
-            <h3 className="text-falcon-muted text-xs font-semibold uppercase tracking-wider mb-3 flex items-center gap-2">
+            <h3 className="text-[#7d92b0] text-xs font-semibold uppercase tracking-wider mb-3 flex items-center gap-2">
               <FileText className="w-3.5 h-3.5" /> 基本情報
             </h3>
             <div className="space-y-3">
               <div>
-                <label className="block text-xs text-falcon-muted mb-1">ポリシー名 <span className="text-falcon-red">*</span></label>
+                <label className="block text-xs text-[#7d92b0] mb-1">ポリシー名 <span className="text-[#e8002d]">*</span></label>
                 <input
                   type="text"
                   value={form.name}
                   onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
                   placeholder="例: 標準セキュリティポリシー"
-                  className="w-full px-3 py-2 bg-[#070d19] border border-falcon-border rounded-sm text-white text-sm placeholder-falcon-subtle focus:outline-hidden focus:border-falcon-red/50"
+                  className="w-full px-3 py-2 bg-[#070d19] border border-[#1e2d42] rounded-sm text-white text-sm placeholder-[#3d5068] focus:outline-hidden focus:border-[#e8002d]/50"
                 />
               </div>
               <div>
-                <label className="block text-xs text-falcon-muted mb-1">説明</label>
+                <label className="block text-xs text-[#7d92b0] mb-1">説明</label>
                 <textarea
                   value={form.description}
                   onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
                   placeholder="ポリシーの用途・目的を記述"
                   rows={2}
-                  className="w-full px-3 py-2 bg-[#070d19] border border-falcon-border rounded-sm text-white text-sm placeholder-falcon-subtle focus:outline-hidden focus:border-falcon-red/50 resize-none"
+                  className="w-full px-3 py-2 bg-[#070d19] border border-[#1e2d42] rounded-sm text-white text-sm placeholder-[#3d5068] focus:outline-hidden focus:border-[#e8002d]/50 resize-none"
                 />
               </div>
               <div>
-                <label className="block text-xs text-falcon-muted mb-1">ポリシータイプ</label>
+                <label className="block text-xs text-[#7d92b0] mb-1">ポリシータイプ</label>
                 <select
                   value={form.policy_type}
                   onChange={e => setForm(f => ({ ...f, policy_type: e.target.value as PolicyType }))}
-                  className="w-full px-3 py-2 bg-[#070d19] border border-falcon-border rounded-sm text-white text-sm focus:outline-hidden focus:border-falcon-red/50"
+                  className="w-full px-3 py-2 bg-[#070d19] border border-[#1e2d42] rounded-sm text-white text-sm focus:outline-hidden focus:border-[#e8002d]/50"
                 >
                   <option value="standard">スタンダード</option>
                   <option value="strict">ストリクト</option>
@@ -196,28 +199,28 @@ function PolicyModal({
 
           {/* Process Monitoring */}
           <section>
-            <h3 className="text-falcon-muted text-xs font-semibold uppercase tracking-wider mb-3 flex items-center gap-2">
+            <h3 className="text-[#7d92b0] text-xs font-semibold uppercase tracking-wider mb-3 flex items-center gap-2">
               <Activity className="w-3.5 h-3.5" /> プロセス監視
             </h3>
-            <div className="bg-[#070d19] border border-falcon-border rounded-lg p-4 space-y-3">
+            <div className="bg-[#070d19] border border-[#1e2d42] rounded-lg p-4 space-y-3">
               <label className="flex items-center gap-3 cursor-pointer">
                 <input
                   type="checkbox"
                   checked={form.rules_config.process_monitoring.enabled}
                   onChange={e => setRules('process_monitoring', 'enabled', e.target.checked)}
-                  className="w-4 h-4 accent-falcon-red"
+                  className="w-4 h-4 accent-[#e8002d]"
                 />
                 <span className="text-sm text-white">プロセス監視を有効化</span>
               </label>
               {form.rules_config.process_monitoring.enabled && (
                 <div>
-                  <label className="block text-xs text-falcon-muted mb-1">除外パス (1行に1パス)</label>
+                  <label className="block text-xs text-[#7d92b0] mb-1">除外パス (1行に1パス)</label>
                   <textarea
                     value={form.rules_config.process_monitoring.excluded_paths}
                     onChange={e => setRules('process_monitoring', 'excluded_paths', e.target.value)}
                     placeholder="C:\Windows\System32&#10;C:\Program Files\Trusted"
                     rows={3}
-                    className="w-full px-3 py-2 bg-falcon-surface border border-falcon-border rounded-sm text-white text-xs font-mono placeholder-falcon-subtle focus:outline-hidden focus:border-falcon-red/50 resize-none"
+                    className="w-full px-3 py-2 bg-[#0d1220] border border-[#1e2d42] rounded-sm text-white text-xs font-mono placeholder-[#3d5068] focus:outline-hidden focus:border-[#e8002d]/50 resize-none"
                   />
                 </div>
               )}
@@ -226,28 +229,28 @@ function PolicyModal({
 
           {/* File Monitoring */}
           <section>
-            <h3 className="text-falcon-muted text-xs font-semibold uppercase tracking-wider mb-3 flex items-center gap-2">
+            <h3 className="text-[#7d92b0] text-xs font-semibold uppercase tracking-wider mb-3 flex items-center gap-2">
               <FileText className="w-3.5 h-3.5" /> ファイル監視
             </h3>
-            <div className="bg-[#070d19] border border-falcon-border rounded-lg p-4 space-y-3">
+            <div className="bg-[#070d19] border border-[#1e2d42] rounded-lg p-4 space-y-3">
               <label className="flex items-center gap-3 cursor-pointer">
                 <input
                   type="checkbox"
                   checked={form.rules_config.file_monitoring.enabled}
                   onChange={e => setRules('file_monitoring', 'enabled', e.target.checked)}
-                  className="w-4 h-4 accent-falcon-red"
+                  className="w-4 h-4 accent-[#e8002d]"
                 />
                 <span className="text-sm text-white">ファイル監視を有効化</span>
               </label>
               {form.rules_config.file_monitoring.enabled && (
                 <div>
-                  <label className="block text-xs text-falcon-muted mb-1">監視する拡張子 (カンマ区切り)</label>
+                  <label className="block text-xs text-[#7d92b0] mb-1">監視する拡張子 (カンマ区切り)</label>
                   <input
                     type="text"
                     value={form.rules_config.file_monitoring.monitored_extensions}
                     onChange={e => setRules('file_monitoring', 'monitored_extensions', e.target.value)}
                     placeholder=".exe,.dll,.bat,.ps1,.vbs"
-                    className="w-full px-3 py-2 bg-falcon-surface border border-falcon-border rounded-sm text-white text-sm font-mono placeholder-falcon-subtle focus:outline-hidden focus:border-falcon-red/50"
+                    className="w-full px-3 py-2 bg-[#0d1220] border border-[#1e2d42] rounded-sm text-white text-sm font-mono placeholder-[#3d5068] focus:outline-hidden focus:border-[#e8002d]/50"
                   />
                 </div>
               )}
@@ -256,28 +259,28 @@ function PolicyModal({
 
           {/* Network Monitoring */}
           <section>
-            <h3 className="text-falcon-muted text-xs font-semibold uppercase tracking-wider mb-3 flex items-center gap-2">
+            <h3 className="text-[#7d92b0] text-xs font-semibold uppercase tracking-wider mb-3 flex items-center gap-2">
               <Network className="w-3.5 h-3.5" /> ネットワーク監視
             </h3>
-            <div className="bg-[#070d19] border border-falcon-border rounded-lg p-4 space-y-3">
+            <div className="bg-[#070d19] border border-[#1e2d42] rounded-lg p-4 space-y-3">
               <label className="flex items-center gap-3 cursor-pointer">
                 <input
                   type="checkbox"
                   checked={form.rules_config.network_monitoring.enabled}
                   onChange={e => setRules('network_monitoring', 'enabled', e.target.checked)}
-                  className="w-4 h-4 accent-falcon-red"
+                  className="w-4 h-4 accent-[#e8002d]"
                 />
                 <span className="text-sm text-white">ネットワーク監視を有効化</span>
               </label>
               {form.rules_config.network_monitoring.enabled && (
                 <div>
-                  <label className="block text-xs text-falcon-muted mb-1">ブロックするポート (カンマ区切り)</label>
+                  <label className="block text-xs text-[#7d92b0] mb-1">ブロックするポート (カンマ区切り)</label>
                   <input
                     type="text"
                     value={form.rules_config.network_monitoring.blocked_ports}
                     onChange={e => setRules('network_monitoring', 'blocked_ports', e.target.value)}
                     placeholder="4444,1337,31337"
-                    className="w-full px-3 py-2 bg-falcon-surface border border-falcon-border rounded-sm text-white text-sm font-mono placeholder-falcon-subtle focus:outline-hidden focus:border-falcon-red/50"
+                    className="w-full px-3 py-2 bg-[#0d1220] border border-[#1e2d42] rounded-sm text-white text-sm font-mono placeholder-[#3d5068] focus:outline-hidden focus:border-[#e8002d]/50"
                   />
                 </div>
               )}
@@ -286,14 +289,14 @@ function PolicyModal({
 
           {/* Threat Detection */}
           <section>
-            <h3 className="text-falcon-muted text-xs font-semibold uppercase tracking-wider mb-3 flex items-center gap-2">
+            <h3 className="text-[#7d92b0] text-xs font-semibold uppercase tracking-wider mb-3 flex items-center gap-2">
               <AlertTriangle className="w-3.5 h-3.5" /> 脅威検知
             </h3>
-            <div className="bg-[#070d19] border border-falcon-border rounded-lg p-4 space-y-3">
+            <div className="bg-[#070d19] border border-[#1e2d42] rounded-lg p-4 space-y-3">
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <label className="text-sm text-white">検知感度</label>
-                  <span className={`text-xs px-2 py-0.5 rounded font-semibold ${
+                  <span className={`text-xs px-2 py-0.5 rounded-sm font-semibold ${
                     form.rules_config.threat_detection.sensitivity === 'low' ? 'text-gray-400 bg-gray-500/20' :
                     form.rules_config.threat_detection.sensitivity === 'medium' ? 'text-yellow-400 bg-yellow-500/20' :
                     'text-red-400 bg-red-500/20'
@@ -308,9 +311,9 @@ function PolicyModal({
                   max={2}
                   value={sensitivityIdx}
                   onChange={e => setRules('threat_detection', 'sensitivity', sensitivityLevels[parseInt(e.target.value)])}
-                  className="w-full accent-falcon-red"
+                  className="w-full accent-[#e8002d]"
                 />
-                <div className="flex justify-between text-[10px] text-falcon-subtle mt-1">
+                <div className="flex justify-between text-[10px] text-[#3d5068] mt-1">
                   <span>低</span><span>中</span><span>高</span>
                 </div>
               </div>
@@ -319,14 +322,14 @@ function PolicyModal({
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-falcon-border">
-          <button onClick={onClose} className="px-4 py-2 text-sm text-falcon-muted hover:text-white transition-colors">
+        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-[#1e2d42]">
+          <button onClick={onClose} className="px-4 py-2 text-sm text-[#7d92b0] hover:text-white transition-colors">
             キャンセル
           </button>
           <button
             onClick={() => { if (form.name.trim()) onSave(form) }}
             disabled={!form.name.trim()}
-            className="px-5 py-2 bg-falcon-red hover:bg-[#c8001f] disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-semibold rounded-lg transition-colors"
+            className="px-5 py-2 bg-[#e8002d] hover:bg-[#c8001f] disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-semibold rounded-lg transition-colors"
           >
             {policy ? '保存' : '作成'}
           </button>
@@ -353,21 +356,21 @@ function AssignModal({
 }) {
   const [selectedPolicy, setSelectedPolicy] = useState('')
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
-      <div className="bg-falcon-surface border border-falcon-border rounded-xl w-full max-w-md shadow-2xl">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-falcon-border">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl w-full max-w-md shadow-2xl">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[#1e2d42]">
           <h2 className="text-white font-semibold text-base">ポリシーを割り当て</h2>
-          <button onClick={onClose} className="text-falcon-muted hover:text-white transition-colors">
+          <button onClick={onClose} className="text-[#7d92b0] hover:text-white transition-colors">
             <X className="w-5 h-5" />
           </button>
         </div>
         <div className="px-6 py-5 space-y-4">
           <div>
-            <label className="block text-xs text-falcon-muted mb-1">ポリシーを選択</label>
+            <label className="block text-xs text-[#7d92b0] mb-1">ポリシーを選択</label>
             <select
               value={selectedPolicy}
               onChange={e => setSelectedPolicy(e.target.value)}
-              className="w-full px-3 py-2 bg-[#070d19] border border-falcon-border rounded-sm text-white text-sm focus:outline-hidden focus:border-falcon-red/50"
+              className="w-full px-3 py-2 bg-[#070d19] border border-[#1e2d42] rounded-sm text-white text-sm focus:outline-hidden focus:border-[#e8002d]/50"
             >
               <option value="">-- ポリシーを選択 --</option>
               {policies.filter(p => p.enabled).map(p => (
@@ -376,12 +379,12 @@ function AssignModal({
             </select>
           </div>
         </div>
-        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-falcon-border">
-          <button onClick={onClose} className="px-4 py-2 text-sm text-falcon-muted hover:text-white transition-colors">キャンセル</button>
+        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-[#1e2d42]">
+          <button onClick={onClose} className="px-4 py-2 text-sm text-[#7d92b0] hover:text-white transition-colors">キャンセル</button>
           <button
             onClick={() => { if (selectedPolicy) onAssign(selectedPolicy) }}
             disabled={!selectedPolicy}
-            className="px-5 py-2 bg-falcon-red hover:bg-[#c8001f] disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-semibold rounded-lg transition-colors"
+            className="px-5 py-2 bg-[#e8002d] hover:bg-[#c8001f] disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-semibold rounded-lg transition-colors"
           >
             割り当て
           </button>
@@ -436,23 +439,19 @@ export default function EDRPoliciesPage() {
     queryKey: ['edr-policy-assignments', selectedTargetId],
     queryFn: async () => {
       if (!selectedTargetId) return []
-      try { return await apiFetchList<PolicyAssignment>(`/api/v1/admin/edr-policies/assignments?target_id=${selectedTargetId}`) } catch { return [] }
+      return await apiFetchList<PolicyAssignment>(`/api/v1/admin/edr-policies/assignments?target_id=${selectedTargetId}`)
     },
     enabled: activeTab === 'assignments',
   })
 
   const { data: agents = [] } = useQuery<Agent[]>({
     queryKey: ['agents-simple'],
-    queryFn: async () => {
-      try { return await apiFetchList<Agent>('/api/v1/agents') } catch { return [] }
-    },
+    queryFn: () => apiFetchList<Agent>('/api/v1/agents'),
   })
 
   const { data: groups = [] } = useQuery<Group[]>({
     queryKey: ['groups-simple'],
-    queryFn: async () => {
-      try { return await apiFetchList<Group>('/api/v1/groups') } catch { return [] }
-    },
+    queryFn: () => apiFetchList<Group>('/api/v1/groups'),
   })
 
   // ── Mutations ─────────────────────────────────────────────────
@@ -488,13 +487,13 @@ export default function EDRPoliciesPage() {
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) =>
-      apiFetch(`/api/v1/admin/edr-policies/${id}`, { method: 'DELETE' }).catch(() => null),
+      apiFetch(`/api/v1/admin/edr-policies/${id}`, { method: 'DELETE' }),
     onSettled: () => qc.invalidateQueries({ queryKey: ['edr-policies'] }),
   })
 
   const toggleMutation = useMutation({
     mutationFn: (id: string) =>
-      apiFetch(`/api/v1/admin/edr-policies/${id}/toggle`, { method: 'POST' }).catch(() => null),
+      apiFetch(`/api/v1/admin/edr-policies/${id}/toggle`, { method: 'POST' }),
     onSettled: () => qc.invalidateQueries({ queryKey: ['edr-policies'] }),
   })
 
@@ -503,13 +502,14 @@ export default function EDRPoliciesPage() {
       apiFetch(`/api/v1/admin/edr-policies/${policyId}/assign`, {
         method: 'POST',
         body: JSON.stringify({ target_id: id, target_type: selectedTargetType }),
-      }).catch(() => null),
+      }),
     onSettled: () => qc.invalidateQueries({ queryKey: ['edr-policy-assignments'] }),
   })
 
   const unassignMutation = useMutation({
     mutationFn: (assignmentId: string) =>
-      apiFetch(`/api/v1/admin/edr-policies/assignments/${assignmentId}`, { method: 'DELETE' }).catch(() => null),
+      // 割り当ての解除。.catch(() => null) で失敗が成功になっていました。
+      apiFetch(`/api/v1/admin/edr-policies/assignments/${assignmentId}`, { method: 'DELETE' }),
     onSettled: () => qc.invalidateQueries({ queryKey: ['edr-policy-assignments'] }),
   })
 
@@ -527,15 +527,17 @@ export default function EDRPoliciesPage() {
 
   return (
     <div className="min-h-screen bg-[#070d19] text-white">
+      <PageDataUnavailable />
+      <SaveFailed error={saveErrorOf('EDRポリシーの割り当て', assignMutation, unassignMutation)} />
       <div className="max-w-7xl mx-auto px-6 py-8">
 
         {/* Header */}
         <div className="mb-6">
           <div className="flex items-center gap-3 mb-1">
-            <Shield className="w-6 h-6 text-falcon-red" />
+            <Shield className="w-6 h-6 text-[#e8002d]" />
             <h1 className="text-2xl font-bold text-white">EDRポリシー管理</h1>
           </div>
-          <p className="text-falcon-muted text-sm ml-9">エンドポイントセキュリティポリシーの作成・管理・割り当て</p>
+          <p className="text-[#7d92b0] text-sm ml-9">エンドポイントセキュリティポリシーの作成・管理・割り当て</p>
         </div>
 
         {/* Stats Row */}
@@ -546,10 +548,10 @@ export default function EDRPoliciesPage() {
             { label: '総割り当て数',     value: totalAssignments,   icon: Layers,        color: 'text-yellow-400' },
             { label: '登録エージェント数', value: registeredAgents,  icon: Settings,      color: 'text-purple-400' },
           ].map(stat => (
-            <div key={stat.label} className="bg-falcon-surface border border-falcon-border rounded-xl p-4">
+            <div key={stat.label} className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-4">
               <div className="flex items-center gap-2 mb-2">
                 <stat.icon className={`w-4 h-4 ${stat.color}`} />
-                <span className="text-xs text-falcon-muted">{stat.label}</span>
+                <span className="text-xs text-[#7d92b0]">{stat.label}</span>
               </div>
               <p className="text-2xl font-bold text-white">{stat.value}</p>
             </div>
@@ -557,15 +559,15 @@ export default function EDRPoliciesPage() {
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-1 mb-6 bg-falcon-surface border border-falcon-border rounded-lg p-1 w-fit">
+        <div className="flex gap-1 mb-6 bg-[#0d1220] border border-[#1e2d42] rounded-lg p-1 w-fit">
           {(['list', 'assignments'] as const).map(tab => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
               className={`px-5 py-2 rounded-md text-sm font-medium transition-all ${
                 activeTab === tab
-                  ? 'bg-falcon-active text-white'
-                  : 'text-falcon-muted hover:text-white'
+                  ? 'bg-[#1d2f4a] text-white'
+                  : 'text-[#7d92b0] hover:text-white'
               }`}
             >
               {tab === 'list' ? 'ポリシー一覧' : 'ポリシー割り当て'}
@@ -579,7 +581,7 @@ export default function EDRPoliciesPage() {
             <div className="flex justify-end mb-4">
               <button
                 onClick={() => { setEditingPolicy(undefined); setModalOpen(true) }}
-                className="flex items-center gap-2 px-4 py-2 bg-falcon-red hover:bg-[#c8001f] text-white text-sm font-semibold rounded-lg transition-colors"
+                className="flex items-center gap-2 px-4 py-2 bg-[#e8002d] hover:bg-[#c8001f] text-white text-sm font-semibold rounded-lg transition-colors"
               >
                 <Plus className="w-4 h-4" /> ポリシー作成
               </button>
@@ -589,7 +591,7 @@ export default function EDRPoliciesPage() {
               {policies.map(policy => {
                 const badge = policyTypeBadge[policy.policy_type]
                 return (
-                  <div key={policy.id} className="bg-falcon-surface border border-falcon-border rounded-xl p-5 hover:border-[#2e4a6e] transition-all">
+                  <div key={policy.id} className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5 hover:border-[#2e4a6e] transition-all">
                     {/* Card Header */}
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex-1 min-w-0">
@@ -599,7 +601,7 @@ export default function EDRPoliciesPage() {
                             {badge.label}
                           </span>
                         </div>
-                        <p className="text-falcon-muted text-xs line-clamp-2">{policy.description}</p>
+                        <p className="text-[#7d92b0] text-xs line-clamp-2">{policy.description}</p>
                       </div>
                     </div>
 
@@ -613,14 +615,14 @@ export default function EDRPoliciesPage() {
                           enabled: true, icon: AlertTriangle },
                       ].map(item => (
                         <div key={item.label} className="flex items-center gap-1.5 text-xs">
-                          <item.icon className={`w-3 h-3 ${item.enabled ? 'text-green-400' : 'text-falcon-subtle'}`} />
-                          <span className={item.enabled ? 'text-falcon-muted' : 'text-falcon-subtle'}>{item.label}</span>
+                          <item.icon className={`w-3 h-3 ${item.enabled ? 'text-green-400' : 'text-[#3d5068]'}`} />
+                          <span className={item.enabled ? 'text-[#7d92b0]' : 'text-[#3d5068]'}>{item.label}</span>
                         </div>
                       ))}
                     </div>
 
                     {/* Meta */}
-                    <div className="flex items-center gap-3 text-xs text-falcon-muted mb-3">
+                    <div className="flex items-center gap-3 text-xs text-[#7d92b0] mb-3">
                       <span className="flex items-center gap-1">
                         <Users className="w-3 h-3" /> {policy.assigned_groups} グループ
                       </span>
@@ -630,37 +632,37 @@ export default function EDRPoliciesPage() {
                     </div>
 
                     {/* Toggle + Actions */}
-                    <div className="flex items-center justify-between pt-3 border-t border-falcon-border">
+                    <div className="flex items-center justify-between pt-3 border-t border-[#1e2d42]">
                       <button
                         onClick={() => toggleMutation.mutate(policy.id)}
                         className="flex items-center gap-1.5 text-xs"
                       >
                         {policy.enabled
                           ? <ToggleRight className="w-5 h-5 text-green-400" />
-                          : <ToggleLeft className="w-5 h-5 text-falcon-subtle" />
+                          : <ToggleLeft className="w-5 h-5 text-[#3d5068]" />
                         }
-                        <span className={policy.enabled ? 'text-green-400' : 'text-falcon-subtle'}>
+                        <span className={policy.enabled ? 'text-green-400' : 'text-[#3d5068]'}>
                           {policy.enabled ? '有効' : '無効'}
                         </span>
                       </button>
                       <div className="flex items-center gap-1">
                         <button
                           onClick={() => setViewAssignOpen(viewAssignOpen === policy.id ? null : policy.id)}
-                          className="p-1.5 text-falcon-muted hover:text-white hover:bg-falcon-active rounded-sm transition-colors"
+                          className="p-1.5 text-[#7d92b0] hover:text-white hover:bg-[#1d2f4a] rounded-sm transition-colors"
                           title="割り当て確認"
                         >
                           <Eye className="w-3.5 h-3.5" />
                         </button>
                         <button
                           onClick={() => { setEditingPolicy(policy); setModalOpen(true) }}
-                          className="p-1.5 text-falcon-muted hover:text-white hover:bg-falcon-active rounded-sm transition-colors"
+                          className="p-1.5 text-[#7d92b0] hover:text-white hover:bg-[#1d2f4a] rounded-sm transition-colors"
                           title="編集"
                         >
                           <Edit2 className="w-3.5 h-3.5" />
                         </button>
                         <button
                           onClick={() => { if (confirm(`「${policy.name}」を削除しますか？`)) deleteMutation.mutate(policy.id) }}
-                          className="p-1.5 text-falcon-muted hover:text-falcon-red hover:bg-falcon-red/10 rounded-sm transition-colors"
+                          className="p-1.5 text-[#7d92b0] hover:text-[#e8002d] hover:bg-[#e8002d]/10 rounded-sm transition-colors"
                           title="削除"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
@@ -670,10 +672,10 @@ export default function EDRPoliciesPage() {
 
                     {/* Expanded assignments view */}
                     {viewAssignOpen === policy.id && (
-                      <div className="mt-3 pt-3 border-t border-falcon-border">
-                        <p className="text-xs text-falcon-muted mb-2">割り当て済みターゲット</p>
+                      <div className="mt-3 pt-3 border-t border-[#1e2d42]">
+                        <p className="text-xs text-[#7d92b0] mb-2">割り当て済みターゲット</p>
                         {assignments.filter(a => a.policy_id === policy.id).length === 0 ? (
-                          <p className="text-xs text-falcon-subtle">割り当てなし</p>
+                          <p className="text-xs text-[#3d5068]">割り当てなし</p>
                         ) : (
                           <div className="space-y-1">
                             {assignments.filter(a => a.policy_id === policy.id).map(a => (
@@ -681,7 +683,7 @@ export default function EDRPoliciesPage() {
                                 <span className={`px-1.5 py-0.5 rounded-sm text-[10px] ${a.target_type === 'group' ? 'bg-blue-500/20 text-blue-400' : 'bg-green-500/20 text-green-400'}`}>
                                   {a.target_type === 'group' ? 'グループ' : 'エージェント'}
                                 </span>
-                                <span className="text-falcon-muted">{a.target_name}</span>
+                                <span className="text-[#7d92b0]">{a.target_name}</span>
                               </div>
                             ))}
                           </div>
@@ -697,14 +699,14 @@ export default function EDRPoliciesPage() {
 
         {/* ── Assignments Tab ──────────────────────────────────── */}
         {activeTab === 'assignments' && (
-          <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
+          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
             {/* Controls */}
-            <div className="flex flex-wrap items-center gap-3 px-5 py-4 border-b border-falcon-border">
+            <div className="flex flex-wrap items-center gap-3 px-5 py-4 border-b border-[#1e2d42]">
               <div className="flex items-center gap-2">
                 <select
                   value={selectedTargetType}
                   onChange={e => { setSelectedTargetType(e.target.value as 'agent' | 'group'); setSelectedTargetId('') }}
-                  className="px-3 py-2 bg-[#070d19] border border-falcon-border rounded-sm text-white text-sm focus:outline-hidden"
+                  className="px-3 py-2 bg-[#070d19] border border-[#1e2d42] rounded-sm text-white text-sm focus:outline-hidden"
                 >
                   <option value="group">グループ</option>
                   <option value="agent">エージェント</option>
@@ -712,7 +714,7 @@ export default function EDRPoliciesPage() {
                 <select
                   value={selectedTargetId}
                   onChange={e => setSelectedTargetId(e.target.value)}
-                  className="px-3 py-2 bg-[#070d19] border border-falcon-border rounded-sm text-white text-sm focus:outline-hidden min-w-[200px]"
+                  className="px-3 py-2 bg-[#070d19] border border-[#1e2d42] rounded-sm text-white text-sm focus:outline-hidden min-w-[200px]"
                 >
                   <option value="">-- すべて表示 --</option>
                   {targetList.map((t: Agent | Group) => (
@@ -724,7 +726,7 @@ export default function EDRPoliciesPage() {
               </div>
               <button
                 onClick={() => setAssignModalOpen(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-falcon-red hover:bg-[#c8001f] text-white text-sm font-semibold rounded-lg transition-colors ml-auto"
+                className="flex items-center gap-2 px-4 py-2 bg-[#e8002d] hover:bg-[#c8001f] text-white text-sm font-semibold rounded-lg transition-colors ml-auto"
               >
                 <Plus className="w-4 h-4" /> ポリシー割り当て
               </button>
@@ -734,18 +736,18 @@ export default function EDRPoliciesPage() {
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="border-b border-falcon-border">
+                  <tr className="border-b border-[#1e2d42]">
                     {['ポリシー名', 'タイプ', 'ターゲット種別', 'ターゲット名', '割り当て日', '操作'].map(h => (
-                      <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-falcon-muted uppercase tracking-wider">
+                      <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-[#7d92b0] uppercase tracking-wider">
                         {h}
                       </th>
                     ))}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-falcon-border">
+                <tbody className="divide-y divide-[#1e2d42]">
                   {filteredAssignments.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="px-4 py-8 text-center text-falcon-muted text-sm">
+                      <td colSpan={6} className="px-4 py-8 text-center text-[#7d92b0] text-sm">
                         割り当てがありません
                       </td>
                     </tr>
@@ -768,12 +770,12 @@ export default function EDRPoliciesPage() {
                               {asgn.target_type === 'group' ? 'グループ' : 'エージェント'}
                             </span>
                           </td>
-                          <td className="px-4 py-3 text-sm text-falcon-muted">{asgn.target_name}</td>
-                          <td className="px-4 py-3 text-sm text-falcon-muted">{fmtDate(asgn.assigned_at)}</td>
+                          <td className="px-4 py-3 text-sm text-[#7d92b0]">{asgn.target_name}</td>
+                          <td className="px-4 py-3 text-sm text-[#7d92b0]">{fmtDate(asgn.assigned_at)}</td>
                           <td className="px-4 py-3">
                             <button
                               onClick={() => { if (confirm('割り当てを解除しますか？')) unassignMutation.mutate(asgn.id) }}
-                              className="text-xs px-3 py-1 text-falcon-red border border-falcon-red/30 hover:bg-falcon-red/10 rounded-sm transition-colors"
+                              className="text-xs px-3 py-1 text-[#e8002d] border border-[#e8002d]/30 hover:bg-[#e8002d]/10 rounded-sm transition-colors"
                             >
                               割り当て解除
                             </button>

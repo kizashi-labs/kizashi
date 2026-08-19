@@ -10,6 +10,9 @@ import {
   DollarSign, Calendar, User, MapPin, Hash, ArrowRight,
   ChevronDown, Loader2,
 } from 'lucide-react'
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+import { PageSaveFailed } from '@/components/PageSaveFailed'
+
 import { USE_MOCK, m } from '@/lib/mock'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -137,7 +140,7 @@ function warrantyColor(expiry: string) {
   const days = daysFromNow(expiry)
   if (days < 0) return 'text-red-400'
   if (days < 90) return 'text-orange-400'
-  return 'text-falcon-muted'
+  return 'text-[#7d92b0]'
 }
 
 function fmtYen(n: number) {
@@ -270,31 +273,33 @@ export default function AssetLifecyclePage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#070d19] text-falcon-muted">
+    <div className="min-h-screen bg-[#070d19] text-[#7d92b0]">
+      <PageDataUnavailable />
+      <PageSaveFailed className="mb-4" />
       {/* ── Header ─────────────────────────────────────────── */}
-      <div className="border-b border-falcon-border px-6 py-4">
+      <div className="border-b border-[#1e2d42] px-6 py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-falcon-red/10 border border-falcon-red/20 flex items-center justify-center">
-              <RefreshCw className="w-5 h-5 text-falcon-red" />
+            <div className="w-9 h-9 rounded-lg bg-[#e8002d]/10 border border-[#e8002d]/20 flex items-center justify-center">
+              <RefreshCw className="w-5 h-5 text-[#e8002d]" />
             </div>
             <div>
               <h1 className="text-white text-xl font-bold tracking-tight">資産ライフサイクル管理</h1>
-              <p className="text-xs text-falcon-muted mt-0.5">調達から廃棄まで全資産のライフサイクルを管理</p>
+              <p className="text-xs text-[#7d92b0] mt-0.5">調達から廃棄まで全資産のライフサイクルを管理</p>
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <button className="flex items-center gap-2 px-3 py-2 rounded-lg bg-falcon-surface border border-falcon-border text-xs text-falcon-muted hover:text-white transition-colors">
+            <button className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#0d1220] border border-[#1e2d42] text-xs text-[#7d92b0] hover:text-white transition-colors">
               <Upload className="w-3.5 h-3.5" />
               CSV インポート
             </button>
-            <button className="flex items-center gap-2 px-3 py-2 rounded-lg bg-falcon-surface border border-falcon-border text-xs text-falcon-muted hover:text-white transition-colors">
+            <button className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#0d1220] border border-[#1e2d42] text-xs text-[#7d92b0] hover:text-white transition-colors">
               <Download className="w-3.5 h-3.5" />
               エクスポート
             </button>
             <button
               onClick={() => setShowAddModal(true)}
-              className="flex items-center gap-2 px-3 py-2 rounded-lg bg-falcon-red text-white text-xs hover:bg-[#c0001f] transition-colors"
+              className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#e8002d] text-white text-xs hover:bg-[#c0001f] transition-colors"
             >
               <Plus className="w-3.5 h-3.5" />
               資産追加
@@ -305,7 +310,7 @@ export default function AssetLifecyclePage() {
 
       <div className="p-6 space-y-6">
         {/* ── Lifecycle Pipeline ───────────────────────────── */}
-        <div className="bg-falcon-surface border border-falcon-border rounded-xl p-4">
+        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-4">
           <h2 className="text-white font-semibold text-sm mb-4">ライフサイクルパイプライン</h2>
           <div className="flex items-center gap-2">
             {STAGE_ORDER.map((stage, idx) => (
@@ -318,10 +323,10 @@ export default function AssetLifecyclePage() {
                 >
                   <span className="text-xs font-medium text-white">{STAGE_LABELS[stage]}</span>
                   <span className="text-2xl font-bold text-white">{stageCounts[stage]}</span>
-                  <span className="text-[10px] text-falcon-muted">資産</span>
+                  <span className="text-[10px] text-[#7d92b0]">資産</span>
                 </button>
                 {idx < STAGE_ORDER.length - 1 && (
-                  <ArrowRight className="w-4 h-4 text-falcon-subtle shrink-0" />
+                  <ArrowRight className="w-4 h-4 text-[#3d5068] shrink-0" />
                 )}
               </div>
             ))}
@@ -331,13 +336,13 @@ export default function AssetLifecyclePage() {
         {/* ── Filters ─────────────────────────────────────── */}
         <div className="flex items-center gap-3 flex-wrap">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-falcon-subtle" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#3d5068]" />
             <input
               type="text"
               placeholder="資産名・担当者・シリアル番号..."
               value={search}
               onChange={e => setSearch(e.target.value)}
-              className="pl-8 pr-3 py-2 text-xs bg-falcon-surface border border-falcon-border rounded-lg text-white placeholder-falcon-subtle focus:outline-hidden focus:border-falcon-muted w-56"
+              className="pl-8 pr-3 py-2 text-xs bg-[#0d1220] border border-[#1e2d42] rounded-lg text-white placeholder-[#3d5068] focus:outline-hidden focus:border-[#7d92b0] w-56"
             />
           </div>
           {/* Type filter */}
@@ -345,32 +350,32 @@ export default function AssetLifecyclePage() {
             <select
               value={typeFilter}
               onChange={e => setTypeFilter(e.target.value as AssetType | '')}
-              className="pl-3 pr-8 py-2 text-xs bg-falcon-surface border border-falcon-border rounded-lg text-falcon-muted focus:outline-hidden appearance-none cursor-pointer"
+              className="pl-3 pr-8 py-2 text-xs bg-[#0d1220] border border-[#1e2d42] rounded-lg text-[#7d92b0] focus:outline-hidden appearance-none cursor-pointer"
             >
               <option value="">全タイプ</option>
               {(Object.keys(TYPE_LABELS) as AssetType[]).map(t => <option key={t} value={t}>{TYPE_LABELS[t]}</option>)}
             </select>
-            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-falcon-subtle pointer-events-none" />
+            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-[#3d5068] pointer-events-none" />
           </div>
           {/* Stage filter */}
           <div className="relative">
             <select
               value={stageFilter}
               onChange={e => setStageFilter(e.target.value as LifecycleStage | '')}
-              className="pl-3 pr-8 py-2 text-xs bg-falcon-surface border border-falcon-border rounded-lg text-falcon-muted focus:outline-hidden appearance-none cursor-pointer"
+              className="pl-3 pr-8 py-2 text-xs bg-[#0d1220] border border-[#1e2d42] rounded-lg text-[#7d92b0] focus:outline-hidden appearance-none cursor-pointer"
             >
               <option value="">全ステージ</option>
               {STAGE_ORDER.map(s => <option key={s} value={s}>{STAGE_LABELS[s]}</option>)}
             </select>
-            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-falcon-subtle pointer-events-none" />
+            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-[#3d5068] pointer-events-none" />
           </div>
           {/* Warranty filter */}
-          <div className="flex items-center gap-1 bg-falcon-surface border border-falcon-border rounded-lg p-0.5">
+          <div className="flex items-center gap-1 bg-[#0d1220] border border-[#1e2d42] rounded-lg p-0.5">
             {(['all', 'expired', 'expiring', 'ok'] as const).map(w => (
               <button
                 key={w}
                 onClick={() => setWarrantyFilter(w)}
-                className={`px-2.5 py-1 rounded-sm text-xs transition-colors ${warrantyFilter === w ? 'bg-falcon-border text-white' : 'text-falcon-muted hover:text-white'}`}
+                className={`px-2.5 py-1 rounded-sm text-xs transition-colors ${warrantyFilter === w ? 'bg-[#1e2d42] text-white' : 'text-[#7d92b0] hover:text-white'}`}
               >
                 {w === 'all' ? '全て' : w === 'expired' ? '期限切れ' : w === 'expiring' ? '90日以内' : '正常'}
               </button>
@@ -379,7 +384,7 @@ export default function AssetLifecyclePage() {
           {(typeFilter || stageFilter || warrantyFilter !== 'all' || search) && (
             <button
               onClick={() => { setTypeFilter(''); setStageFilter(''); setWarrantyFilter('all'); setSearch('') }}
-              className="flex items-center gap-1 text-xs text-falcon-muted hover:text-white"
+              className="flex items-center gap-1 text-xs text-[#7d92b0] hover:text-white"
             >
               <X className="w-3 h-3" /> クリア
             </button>
@@ -387,8 +392,8 @@ export default function AssetLifecyclePage() {
         </div>
 
         {/* ── Assets Table ─────────────────────────────────── */}
-        <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
-          <div className="px-4 py-3 border-b border-falcon-border flex items-center justify-between">
+        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
+          <div className="px-4 py-3 border-b border-[#1e2d42] flex items-center justify-between">
             <h2 className="text-white font-semibold text-sm">資産一覧 ({filteredAssets.length}件)</h2>
             {bulkSelected.length > 0 && (
               <button className="flex items-center gap-1.5 text-xs text-orange-400 border border-orange-400/30 bg-orange-400/5 px-3 py-1.5 rounded-sm hover:bg-orange-400/10 transition-colors">
@@ -400,11 +405,11 @@ export default function AssetLifecyclePage() {
           <div className="overflow-x-auto">
             <table className="w-full text-xs">
               <thead>
-                <tr className="border-b border-falcon-border">
+                <tr className="border-b border-[#1e2d42]">
                   <th className="px-3 py-2.5 w-8">
                     <input
                       type="checkbox"
-                      className="accent-falcon-red"
+                      className="accent-[#e8002d]"
                       checked={bulkSelected.length === filteredAssets.length && filteredAssets.length > 0}
                       onChange={e => setBulkSelected(e.target.checked ? filteredAssets.map(a => a.id) : [])}
                     />
@@ -416,7 +421,7 @@ export default function AssetLifecyclePage() {
                       <th
                         key={h}
                         onClick={sortable ? () => toggleSort(sortKey as typeof sortBy) : undefined}
-                        className={`px-3 py-2.5 text-left text-falcon-subtle font-medium whitespace-nowrap ${sortable ? 'cursor-pointer hover:text-white' : ''}`}
+                        className={`px-3 py-2.5 text-left text-[#3d5068] font-medium whitespace-nowrap ${sortable ? 'cursor-pointer hover:text-white' : ''}`}
                       >
                         {h}
                         {sortable && sortBy === sortKey && (
@@ -427,7 +432,7 @@ export default function AssetLifecyclePage() {
                   })}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-falcon-border/50">
+              <tbody className="divide-y divide-[#1e2d42]/50">
                 {filteredAssets.map(asset => {
                   const wDays = daysFromNow(asset.warranty_expiry)
                   return (
@@ -435,7 +440,7 @@ export default function AssetLifecyclePage() {
                       <td className="px-3 py-2.5">
                         <input
                           type="checkbox"
-                          className="accent-falcon-red"
+                          className="accent-[#e8002d]"
                           checked={bulkSelected.includes(asset.id)}
                           onChange={e => setBulkSelected(prev => e.target.checked ? [...prev, asset.id] : prev.filter(id => id !== asset.id))}
                         />
@@ -447,8 +452,8 @@ export default function AssetLifecyclePage() {
                           {TYPE_LABELS[asset.type]}
                         </span>
                       </td>
-                      <td className="px-3 py-2.5 font-mono text-falcon-muted text-[11px]">{asset.serial_number}</td>
-                      <td className="px-3 py-2.5 font-mono text-falcon-muted whitespace-nowrap">{asset.purchase_date}</td>
+                      <td className="px-3 py-2.5 font-mono text-[#7d92b0] text-[11px]">{asset.serial_number}</td>
+                      <td className="px-3 py-2.5 font-mono text-[#7d92b0] whitespace-nowrap">{asset.purchase_date}</td>
                       <td className={`px-3 py-2.5 font-mono whitespace-nowrap font-medium ${warrantyColor(asset.warranty_expiry)}`}>
                         {asset.warranty_expiry}
                         {wDays < 0 && <span className="ml-1 text-[9px]">(期限切れ)</span>}
@@ -459,15 +464,15 @@ export default function AssetLifecyclePage() {
                           {STAGE_LABELS[asset.lifecycle_stage]}
                         </span>
                       </td>
-                      <td className="px-3 py-2.5 text-falcon-muted whitespace-nowrap">{asset.assigned_user}</td>
-                      <td className="px-3 py-2.5 text-falcon-muted whitespace-nowrap">{asset.location}</td>
+                      <td className="px-3 py-2.5 text-[#7d92b0] whitespace-nowrap">{asset.assigned_user}</td>
+                      <td className="px-3 py-2.5 text-[#7d92b0] whitespace-nowrap">{asset.location}</td>
                       <td className="px-3 py-2.5 font-mono text-white whitespace-nowrap">{fmtYen(asset.cost)}</td>
-                      <td className="px-3 py-2.5 font-mono text-falcon-muted whitespace-nowrap">{fmtYen(asset.total_cost_of_ownership)}</td>
+                      <td className="px-3 py-2.5 font-mono text-[#7d92b0] whitespace-nowrap">{fmtYen(asset.total_cost_of_ownership)}</td>
                       <td className="px-3 py-2.5">
                         <div className="flex items-center gap-1.5">
                           <button
                             onClick={() => setSelectedAsset(asset)}
-                            className="text-falcon-muted hover:text-white transition-colors p-1 rounded-sm hover:bg-falcon-border"
+                            className="text-[#7d92b0] hover:text-white transition-colors p-1 rounded-sm hover:bg-[#1e2d42]"
                             title="詳細"
                           >
                             <Edit2 className="w-3.5 h-3.5" />
@@ -475,7 +480,7 @@ export default function AssetLifecyclePage() {
                           {nextStage(asset.lifecycle_stage) && (
                             <button
                               onClick={() => handleAdvance(asset)}
-                              className="text-falcon-muted hover:text-cyan-400 transition-colors p-1 rounded-sm hover:bg-falcon-border"
+                              className="text-[#7d92b0] hover:text-cyan-400 transition-colors p-1 rounded-sm hover:bg-[#1e2d42]"
                               title="次のステージへ"
                             >
                               <ChevronRight className="w-3.5 h-3.5" />
@@ -493,7 +498,7 @@ export default function AssetLifecyclePage() {
 
         {/* ── Warranty Alerts ──────────────────────────────── */}
         {warrantyAlerts.length > 0 && (
-          <div className="bg-falcon-surface border border-orange-500/30 rounded-xl overflow-hidden">
+          <div className="bg-[#0d1220] border border-orange-500/30 rounded-xl overflow-hidden">
             <div className="px-4 py-3 border-b border-orange-500/20 flex items-center gap-2">
               <AlertTriangle className="w-4 h-4 text-orange-400" />
               <h2 className="text-white font-semibold text-sm">保証期限アラート ({warrantyAlerts.length}件)</h2>
@@ -516,7 +521,7 @@ export default function AssetLifecyclePage() {
                         <td className="px-3 py-2.5">
                           <span className={`px-2 py-0.5 rounded-sm border text-[10px] ${TYPE_COLORS[asset.type]}`}>{TYPE_LABELS[asset.type]}</span>
                         </td>
-                        <td className="px-3 py-2.5 text-falcon-muted">{asset.assigned_user}</td>
+                        <td className="px-3 py-2.5 text-[#7d92b0]">{asset.assigned_user}</td>
                         <td className={`px-3 py-2.5 font-mono ${warrantyColor(asset.warranty_expiry)}`}>{asset.warranty_expiry}</td>
                         <td className={`px-3 py-2.5 font-bold ${days < 0 ? 'text-red-400' : 'text-orange-400'}`}>
                           {days < 0 ? `${Math.abs(days)}日超過` : `${days}日`}
@@ -538,22 +543,22 @@ export default function AssetLifecyclePage() {
         {/* ── Retirement Planning & TCO ─────────────────────── */}
         <div className="grid grid-cols-2 gap-4">
           {/* Retirement candidates */}
-          <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
-            <div className="px-4 py-3 border-b border-falcon-border flex items-center justify-between">
+          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
+            <div className="px-4 py-3 border-b border-[#1e2d42] flex items-center justify-between">
               <h2 className="text-white font-semibold text-sm">退役・廃棄計画 ({retirementCandidates.length}件)</h2>
               {bulkSelected.length > 0 && (
-                <button className="flex items-center gap-1 text-xs text-falcon-red border border-falcon-red/30 px-2.5 py-1 rounded-sm hover:bg-falcon-red/10 transition-colors">
+                <button className="flex items-center gap-1 text-xs text-[#e8002d] border border-[#e8002d]/30 px-2.5 py-1 rounded-sm hover:bg-[#e8002d]/10 transition-colors">
                   <Trash2 className="w-3 h-3" />
                   廃棄申請
                 </button>
               )}
             </div>
-            <div className="divide-y divide-falcon-border/50">
+            <div className="divide-y divide-[#1e2d42]/50">
               {retirementCandidates.slice(0, 8).map(asset => (
                 <div key={asset.id} className="flex items-center gap-3 px-4 py-2.5 hover:bg-[#0a1628] transition-colors">
                   <input
                     type="checkbox"
-                    className="accent-falcon-red"
+                    className="accent-[#e8002d]"
                     checked={bulkSelected.includes(asset.id)}
                     onChange={e => setBulkSelected(prev => e.target.checked ? [...prev, asset.id] : prev.filter(id => id !== asset.id))}
                   />
@@ -561,7 +566,7 @@ export default function AssetLifecyclePage() {
                   <span className={`px-2 py-0.5 rounded-sm border text-[10px] ${STAGE_COLORS[asset.lifecycle_stage]}`}>{STAGE_LABELS[asset.lifecycle_stage]}</span>
                   <button
                     onClick={() => handleAdvance(asset)}
-                    className="text-xs text-falcon-red border border-falcon-red/30 px-2 py-1 rounded-sm hover:bg-falcon-red/10 transition-colors whitespace-nowrap"
+                    className="text-xs text-[#e8002d] border border-[#e8002d]/30 px-2 py-1 rounded-sm hover:bg-[#e8002d]/10 transition-colors whitespace-nowrap"
                   >
                     次へ進める
                   </button>
@@ -571,9 +576,9 @@ export default function AssetLifecyclePage() {
           </div>
 
           {/* TCO by type */}
-          <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
+          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
             <h2 className="text-white font-semibold text-sm mb-4 flex items-center gap-2">
-              <DollarSign className="w-4 h-4 text-falcon-red" />
+              <DollarSign className="w-4 h-4 text-[#e8002d]" />
               タイプ別 TCO分析
             </h2>
             <div className="space-y-3">
@@ -586,15 +591,15 @@ export default function AssetLifecyclePage() {
                       <span>{TYPE_LABELS[type]} ({stats.count})</span>
                     </div>
                     <div className="flex-1 h-5 bg-[#070d19] rounded-sm overflow-hidden relative">
-                      <div className="h-full bg-linear-to-r from-falcon-blue/60 to-[#0044cc]/60 rounded-sm" style={{ width: `${pct}%` }} />
+                      <div className="h-full bg-linear-to-r from-[#1a6bff]/60 to-[#0044cc]/60 rounded-sm" style={{ width: `${pct}%` }} />
                     </div>
-                    <span className="text-xs font-mono text-falcon-muted w-24 text-right">{fmtYen(stats.total)}</span>
+                    <span className="text-xs font-mono text-[#7d92b0] w-24 text-right">{fmtYen(stats.total)}</span>
                   </div>
                 )
               })}
             </div>
-            <div className="mt-4 pt-3 border-t border-falcon-border flex items-center justify-between">
-              <span className="text-xs text-falcon-muted">総資産TCO</span>
+            <div className="mt-4 pt-3 border-t border-[#1e2d42] flex items-center justify-between">
+              <span className="text-xs text-[#7d92b0]">総資産TCO</span>
               <span className="font-mono font-bold text-white">{fmtYen(assets.reduce((s, a) => s + a.total_cost_of_ownership, 0))}</span>
             </div>
           </div>
@@ -605,12 +610,12 @@ export default function AssetLifecyclePage() {
       {selectedAsset && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={() => setSelectedAsset(null)}>
           <div
-            className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-falcon-surface border border-falcon-border rounded-xl shadow-2xl"
+            className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-[#0d1220] border border-[#1e2d42] rounded-xl shadow-2xl"
             onClick={e => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between px-6 py-4 border-b border-falcon-border">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-[#1e2d42]">
               <h3 className="text-white font-semibold">資産詳細 — {selectedAsset.asset_name}</h3>
-              <button onClick={() => setSelectedAsset(null)} className="text-falcon-muted hover:text-white"><X className="w-5 h-5" /></button>
+              <button onClick={() => setSelectedAsset(null)} className="text-[#7d92b0] hover:text-white"><X className="w-5 h-5" /></button>
             </div>
             <div className="p-6 space-y-5">
               {/* Fields grid */}
@@ -625,10 +630,10 @@ export default function AssetLifecyclePage() {
                   { label: '取得価格', value: fmtYen(selectedAsset.cost), icon: DollarSign },
                   { label: 'TCO', value: fmtYen(selectedAsset.total_cost_of_ownership), icon: DollarSign },
                 ].map(({ label, value, icon: Icon }) => (
-                  <div key={label} className="bg-[#070d19] rounded-lg p-3 border border-falcon-border">
+                  <div key={label} className="bg-[#070d19] rounded-lg p-3 border border-[#1e2d42]">
                     <div className="flex items-center gap-1.5 mb-1">
-                      <Icon className="w-3 h-3 text-falcon-subtle" />
-                      <span className="text-[10px] text-falcon-subtle uppercase tracking-wider">{label}</span>
+                      <Icon className="w-3 h-3 text-[#3d5068]" />
+                      <span className="text-[10px] text-[#3d5068] uppercase tracking-wider">{label}</span>
                     </div>
                     <p className="text-white text-sm font-mono">{value}</p>
                   </div>
@@ -636,41 +641,41 @@ export default function AssetLifecyclePage() {
               </div>
               {/* Stage badges */}
               <div>
-                <p className="text-xs text-falcon-muted mb-2">ライフサイクルステージ</p>
+                <p className="text-xs text-[#7d92b0] mb-2">ライフサイクルステージ</p>
                 <div className="flex items-center gap-2 flex-wrap">
                   {STAGE_ORDER.map((s, i) => (
                     <div key={s} className="flex items-center gap-1">
-                      <span className={`px-2.5 py-1 rounded-full border text-[10px] font-medium ${selectedAsset.lifecycle_stage === s ? STAGE_COLORS[s] + ' ring-1 ring-white/20' : 'bg-[#070d19] border-falcon-border text-falcon-subtle'}`}>
+                      <span className={`px-2.5 py-1 rounded-full border text-[10px] font-medium ${selectedAsset.lifecycle_stage === s ? STAGE_COLORS[s] + ' ring-1 ring-white/20' : 'bg-[#070d19] border-[#1e2d42] text-[#3d5068]'}`}>
                         {STAGE_LABELS[s]}
                       </span>
-                      {i < STAGE_ORDER.length - 1 && <ArrowRight className="w-3 h-3 text-falcon-border" />}
+                      {i < STAGE_ORDER.length - 1 && <ArrowRight className="w-3 h-3 text-[#1e2d42]" />}
                     </div>
                   ))}
                 </div>
               </div>
               {/* History */}
               <div>
-                <h4 className="text-xs text-falcon-muted uppercase tracking-wider mb-3">ライフサイクル履歴</h4>
+                <h4 className="text-xs text-[#7d92b0] uppercase tracking-wider mb-3">ライフサイクル履歴</h4>
                 <div className="space-y-2">
                   {selectedAsset.lifecycle_history.map((h, i) => (
-                    <div key={i} className="flex items-start gap-3 px-3 py-2.5 rounded-sm bg-[#070d19] border border-falcon-border">
+                    <div key={i} className="flex items-start gap-3 px-3 py-2.5 rounded-sm bg-[#070d19] border border-[#1e2d42]">
                       <CheckCircle2 className="w-3.5 h-3.5 text-green-400 mt-0.5 shrink-0" />
                       <div className="flex-1 min-w-0">
                         <p className="text-xs text-white">
                           {h.from_stage ? `${STAGE_LABELS[h.from_stage]} → ${STAGE_LABELS[h.to_stage]}` : STAGE_LABELS[h.to_stage] + ' (初期登録)'}
                         </p>
-                        {h.notes && <p className="text-[10px] text-falcon-muted mt-0.5">{h.notes}</p>}
+                        {h.notes && <p className="text-[10px] text-[#7d92b0] mt-0.5">{h.notes}</p>}
                       </div>
                       <div className="text-right shrink-0">
-                        <p className="text-[10px] text-falcon-subtle font-mono">{new Date(h.changed_at).toLocaleDateString('ja-JP')}</p>
-                        <p className="text-[10px] text-falcon-muted">{h.actor}</p>
+                        <p className="text-[10px] text-[#3d5068] font-mono">{new Date(h.changed_at).toLocaleDateString('ja-JP')}</p>
+                        <p className="text-[10px] text-[#7d92b0]">{h.actor}</p>
                       </div>
                     </div>
                   ))}
                 </div>
               </div>
               {/* Actions */}
-              <div className="flex gap-3 pt-2 border-t border-falcon-border">
+              <div className="flex gap-3 pt-2 border-t border-[#1e2d42]">
                 {nextStage(selectedAsset.lifecycle_stage) && (
                   <button
                     onClick={() => { setShowAdvanceConfirm(selectedAsset); setSelectedAsset(null) }}
@@ -682,12 +687,12 @@ export default function AssetLifecyclePage() {
                 )}
                 <button
                   onClick={() => deleteMutation.mutate(selectedAsset.id)}
-                  className="flex items-center gap-2 px-4 py-2 rounded-sm bg-falcon-red/10 border border-falcon-red/30 text-falcon-red text-sm hover:bg-falcon-red/20 transition-colors"
+                  className="flex items-center gap-2 px-4 py-2 rounded-sm bg-[#e8002d]/10 border border-[#e8002d]/30 text-[#e8002d] text-sm hover:bg-[#e8002d]/20 transition-colors"
                 >
                   <Trash2 className="w-4 h-4" />
                   削除
                 </button>
-                <button onClick={() => setSelectedAsset(null)} className="ml-auto flex items-center gap-2 px-4 py-2 rounded-sm bg-falcon-border text-falcon-muted text-sm hover:text-white transition-colors">
+                <button onClick={() => setSelectedAsset(null)} className="ml-auto flex items-center gap-2 px-4 py-2 rounded-sm bg-[#1e2d42] text-[#7d92b0] text-sm hover:text-white transition-colors">
                   閉じる
                 </button>
               </div>
@@ -699,9 +704,9 @@ export default function AssetLifecyclePage() {
       {/* ── Advance Stage Confirm ─────────────────────────── */}
       {showAdvanceConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={() => setShowAdvanceConfirm(null)}>
-          <div className="bg-falcon-surface border border-falcon-border rounded-xl p-6 w-96 shadow-2xl" onClick={e => e.stopPropagation()}>
+          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-6 w-96 shadow-2xl" onClick={e => e.stopPropagation()}>
             <h3 className="text-white font-semibold mb-3">ステージ変更の確認</h3>
-            <p className="text-sm text-falcon-muted mb-4">
+            <p className="text-sm text-[#7d92b0] mb-4">
               <span className="text-white font-mono">{showAdvanceConfirm.asset_name}</span> を<br />
               <span className={`font-medium ${STAGE_COLORS[showAdvanceConfirm.lifecycle_stage]}`}> {STAGE_LABELS[showAdvanceConfirm.lifecycle_stage]}</span>
               {' → '}
@@ -717,7 +722,7 @@ export default function AssetLifecyclePage() {
                 {advanceMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
                 確定
               </button>
-              <button onClick={() => setShowAdvanceConfirm(null)} className="px-4 py-2 rounded-sm bg-falcon-border text-falcon-muted text-sm hover:text-white transition-colors">
+              <button onClick={() => setShowAdvanceConfirm(null)} className="px-4 py-2 rounded-sm bg-[#1e2d42] text-[#7d92b0] text-sm hover:text-white transition-colors">
                 キャンセル
               </button>
             </div>
@@ -729,124 +734,124 @@ export default function AssetLifecyclePage() {
       {showAddModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={() => setShowAddModal(false)}>
           <div
-            className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-falcon-surface border border-falcon-border rounded-xl shadow-2xl"
+            className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-[#0d1220] border border-[#1e2d42] rounded-xl shadow-2xl"
             onClick={e => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between px-6 py-4 border-b border-falcon-border">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-[#1e2d42]">
               <h3 className="text-white font-semibold">新規資産登録</h3>
-              <button onClick={() => setShowAddModal(false)} className="text-falcon-muted hover:text-white"><X className="w-5 h-5" /></button>
+              <button onClick={() => setShowAddModal(false)} className="text-[#7d92b0] hover:text-white"><X className="w-5 h-5" /></button>
             </div>
             <div className="p-6">
               <div className="grid grid-cols-2 gap-4">
                 {/* Asset Name */}
                 <div className="col-span-2">
-                  <label className="block text-xs text-falcon-muted mb-1.5">資産名 <span className="text-falcon-red">*</span></label>
+                  <label className="block text-xs text-[#7d92b0] mb-1.5">資産名 <span className="text-[#e8002d]">*</span></label>
                   <input
                     type="text"
                     value={newAsset.asset_name}
                     onChange={e => setNewAsset(p => ({ ...p, asset_name: e.target.value }))}
-                    className="w-full px-3 py-2 text-sm bg-[#070d19] border border-falcon-border rounded-lg text-white placeholder-falcon-subtle focus:outline-hidden focus:border-falcon-muted"
+                    className="w-full px-3 py-2 text-sm bg-[#070d19] border border-[#1e2d42] rounded-lg text-white placeholder-[#3d5068] focus:outline-hidden focus:border-[#7d92b0]"
                     placeholder="例: LAPTOP-HR-10"
                   />
                 </div>
                 {/* Type */}
                 <div>
-                  <label className="block text-xs text-falcon-muted mb-1.5">タイプ</label>
+                  <label className="block text-xs text-[#7d92b0] mb-1.5">タイプ</label>
                   <div className="relative">
                     <select
                       value={newAsset.type}
                       onChange={e => setNewAsset(p => ({ ...p, type: e.target.value as AssetType }))}
-                      className="w-full pl-3 pr-8 py-2 text-sm bg-[#070d19] border border-falcon-border rounded-lg text-white focus:outline-hidden appearance-none"
+                      className="w-full pl-3 pr-8 py-2 text-sm bg-[#070d19] border border-[#1e2d42] rounded-lg text-white focus:outline-hidden appearance-none"
                     >
                       {(Object.keys(TYPE_LABELS) as AssetType[]).map(t => <option key={t} value={t}>{TYPE_LABELS[t]}</option>)}
                     </select>
-                    <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-falcon-subtle pointer-events-none" />
+                    <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-[#3d5068] pointer-events-none" />
                   </div>
                 </div>
                 {/* Serial Number */}
                 <div>
-                  <label className="block text-xs text-falcon-muted mb-1.5">シリアル番号</label>
+                  <label className="block text-xs text-[#7d92b0] mb-1.5">シリアル番号</label>
                   <input
                     type="text"
                     value={newAsset.serial_number}
                     onChange={e => setNewAsset(p => ({ ...p, serial_number: e.target.value }))}
-                    className="w-full px-3 py-2 text-sm bg-[#070d19] border border-falcon-border rounded-lg text-white placeholder-falcon-subtle focus:outline-hidden focus:border-falcon-muted font-mono"
+                    className="w-full px-3 py-2 text-sm bg-[#070d19] border border-[#1e2d42] rounded-lg text-white placeholder-[#3d5068] focus:outline-hidden focus:border-[#7d92b0] font-mono"
                     placeholder="SN-XXXX-0001"
                   />
                 </div>
                 {/* Purchase Date */}
                 <div>
-                  <label className="block text-xs text-falcon-muted mb-1.5">購入日</label>
+                  <label className="block text-xs text-[#7d92b0] mb-1.5">購入日</label>
                   <input
                     type="date"
                     value={newAsset.purchase_date}
                     onChange={e => setNewAsset(p => ({ ...p, purchase_date: e.target.value }))}
-                    className="w-full px-3 py-2 text-sm bg-[#070d19] border border-falcon-border rounded-lg text-white focus:outline-hidden focus:border-falcon-muted"
+                    className="w-full px-3 py-2 text-sm bg-[#070d19] border border-[#1e2d42] rounded-lg text-white focus:outline-hidden focus:border-[#7d92b0]"
                   />
                 </div>
                 {/* Warranty Expiry */}
                 <div>
-                  <label className="block text-xs text-falcon-muted mb-1.5">保証期限</label>
+                  <label className="block text-xs text-[#7d92b0] mb-1.5">保証期限</label>
                   <input
                     type="date"
                     value={newAsset.warranty_expiry}
                     onChange={e => setNewAsset(p => ({ ...p, warranty_expiry: e.target.value }))}
-                    className="w-full px-3 py-2 text-sm bg-[#070d19] border border-falcon-border rounded-lg text-white focus:outline-hidden focus:border-falcon-muted"
+                    className="w-full px-3 py-2 text-sm bg-[#070d19] border border-[#1e2d42] rounded-lg text-white focus:outline-hidden focus:border-[#7d92b0]"
                   />
                 </div>
                 {/* Assigned User */}
                 <div>
-                  <label className="block text-xs text-falcon-muted mb-1.5">担当者</label>
+                  <label className="block text-xs text-[#7d92b0] mb-1.5">担当者</label>
                   <input
                     type="text"
                     value={newAsset.assigned_user}
                     onChange={e => setNewAsset(p => ({ ...p, assigned_user: e.target.value }))}
-                    className="w-full px-3 py-2 text-sm bg-[#070d19] border border-falcon-border rounded-lg text-white placeholder-falcon-subtle focus:outline-hidden focus:border-falcon-muted"
+                    className="w-full px-3 py-2 text-sm bg-[#070d19] border border-[#1e2d42] rounded-lg text-white placeholder-[#3d5068] focus:outline-hidden focus:border-[#7d92b0]"
                     placeholder="山田 太郎"
                   />
                 </div>
                 {/* Location */}
                 <div>
-                  <label className="block text-xs text-falcon-muted mb-1.5">場所</label>
+                  <label className="block text-xs text-[#7d92b0] mb-1.5">場所</label>
                   <input
                     type="text"
                     value={newAsset.location}
                     onChange={e => setNewAsset(p => ({ ...p, location: e.target.value }))}
-                    className="w-full px-3 py-2 text-sm bg-[#070d19] border border-falcon-border rounded-lg text-white placeholder-falcon-subtle focus:outline-hidden focus:border-falcon-muted"
+                    className="w-full px-3 py-2 text-sm bg-[#070d19] border border-[#1e2d42] rounded-lg text-white placeholder-[#3d5068] focus:outline-hidden focus:border-[#7d92b0]"
                     placeholder="東京DC-A"
                   />
                 </div>
                 {/* Cost */}
                 <div>
-                  <label className="block text-xs text-falcon-muted mb-1.5">取得価格 (¥)</label>
+                  <label className="block text-xs text-[#7d92b0] mb-1.5">取得価格 (¥)</label>
                   <input
                     type="number"
                     value={newAsset.cost || ''}
                     onChange={e => setNewAsset(p => ({ ...p, cost: Number(e.target.value) }))}
-                    className="w-full px-3 py-2 text-sm bg-[#070d19] border border-falcon-border rounded-lg text-white placeholder-falcon-subtle focus:outline-hidden focus:border-falcon-muted"
+                    className="w-full px-3 py-2 text-sm bg-[#070d19] border border-[#1e2d42] rounded-lg text-white placeholder-[#3d5068] focus:outline-hidden focus:border-[#7d92b0]"
                     placeholder="250000"
                   />
                 </div>
                 {/* TCO */}
                 <div>
-                  <label className="block text-xs text-falcon-muted mb-1.5">TCO見込み (¥)</label>
+                  <label className="block text-xs text-[#7d92b0] mb-1.5">TCO見込み (¥)</label>
                   <input
                     type="number"
                     value={newAsset.total_cost_of_ownership || ''}
                     onChange={e => setNewAsset(p => ({ ...p, total_cost_of_ownership: Number(e.target.value) }))}
-                    className="w-full px-3 py-2 text-sm bg-[#070d19] border border-falcon-border rounded-lg text-white placeholder-falcon-subtle focus:outline-hidden focus:border-falcon-muted"
+                    className="w-full px-3 py-2 text-sm bg-[#070d19] border border-[#1e2d42] rounded-lg text-white placeholder-[#3d5068] focus:outline-hidden focus:border-[#7d92b0]"
                     placeholder="350000"
                   />
                 </div>
                 {/* Initial Stage */}
                 <div className="col-span-2">
-                  <label className="block text-xs text-falcon-muted mb-1.5">初期ステージ</label>
+                  <label className="block text-xs text-[#7d92b0] mb-1.5">初期ステージ</label>
                   <div className="flex gap-2 flex-wrap">
                     {STAGE_ORDER.map(s => (
                       <button
                         key={s}
                         onClick={() => setNewAsset(p => ({ ...p, lifecycle_stage: s }))}
-                        className={`px-3 py-1.5 rounded-lg border text-xs transition-colors ${newAsset.lifecycle_stage === s ? STAGE_COLORS[s] : 'bg-[#070d19] border-falcon-border text-falcon-subtle hover:text-white'}`}
+                        className={`px-3 py-1.5 rounded-lg border text-xs transition-colors ${newAsset.lifecycle_stage === s ? STAGE_COLORS[s] : 'bg-[#070d19] border-[#1e2d42] text-[#3d5068] hover:text-white'}`}
                       >
                         {STAGE_LABELS[s]}
                       </button>
@@ -854,16 +859,16 @@ export default function AssetLifecyclePage() {
                   </div>
                 </div>
               </div>
-              <div className="flex gap-3 mt-6 pt-4 border-t border-falcon-border">
+              <div className="flex gap-3 mt-6 pt-4 border-t border-[#1e2d42]">
                 <button
                   onClick={handleAddAsset}
                   disabled={addLoading || !newAsset.asset_name}
-                  className="flex items-center gap-2 px-4 py-2 rounded-sm bg-falcon-red text-white text-sm hover:bg-[#c0001f] transition-colors disabled:opacity-50"
+                  className="flex items-center gap-2 px-4 py-2 rounded-sm bg-[#e8002d] text-white text-sm hover:bg-[#c0001f] transition-colors disabled:opacity-50"
                 >
                   {addLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
                   登録
                 </button>
-                <button onClick={() => setShowAddModal(false)} className="px-4 py-2 rounded-sm bg-falcon-border text-falcon-muted text-sm hover:text-white transition-colors">
+                <button onClick={() => setShowAddModal(false)} className="px-4 py-2 rounded-sm bg-[#1e2d42] text-[#7d92b0] text-sm hover:text-white transition-colors">
                   キャンセル
                 </button>
               </div>

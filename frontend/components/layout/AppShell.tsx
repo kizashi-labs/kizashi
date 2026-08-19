@@ -78,14 +78,22 @@ function TopBar({ onSearchOpen, user, logout }: {
   const { data: healthData } = useQuery<{ status: string; db?: string }>({
     queryKey: ['system-health'],
     queryFn: async () => {
+      // fetch は 4xx/5xx で reject しません。res.ok を見ないと、/health が
+      // 500 を返したときに本文を JSON として読もうとして失敗し、
+      // healthData が undefined になります。すぐ下の systemOk は
+      // `!healthData ||` で始まるので、**答えられなかったヘルスチェックは
+      // 「正常」として表示されます**。ヘッダーの状態表示が、いちばん
+      // 状態を知りたいときに緑になります。
       const res = await fetch('/health')
+      if (!res.ok) throw new Error(`health: HTTP ${res.status}`)
       return res.json()
     },
     refetchInterval: 60_000,
     staleTime: 30_000,
     retry: false,
   })
-  const systemOk = !healthData || healthData.status === 'ok'
+  // 読めていないときは「不明」であって「正常」ではありません。
+  const systemOk = systemIsOk(healthData)
 
   // Live clock
   useEffect(() => {
@@ -112,14 +120,14 @@ function TopBar({ onSearchOpen, user, logout }: {
   })()
 
   return (
-    <header className="topbar-blur sticky top-0 z-40 flex items-center gap-4 px-5 h-11 border-b border-falcon-border">
+    <header className="topbar-blur sticky top-0 z-40 flex items-center gap-4 px-5 h-11 border-b border-[#1e2d42]">
       {/* Product name — always visible */}
-      <div className="flex items-center gap-2 shrink-0 border-r border-falcon-border pr-4 mr-1">
-        <div className="w-5 h-5 rounded-sm flex items-center justify-center bg-linear-to-br from-falcon-red to-falcon-red-dark">
+      <div className="flex items-center gap-2 shrink-0 border-r border-[#1e2d42] pr-4 mr-1">
+        <div className="w-5 h-5 rounded-sm flex items-center justify-center bg-linear-to-br from-[#e8002d] to-[#a80020]">
           <Shield className="w-3 h-3 text-white" strokeWidth={2.5} />
         </div>
         <span className="text-[11px] font-bold tracking-widest text-[#c8d6e8] hidden sm:block">
-          Kizashi<span className="text-falcon-red ml-0.5">EDR</span>
+          Kizashi<span className="text-[#e8002d] ml-0.5">EDR</span>
         </span>
       </div>
 
@@ -127,16 +135,16 @@ function TopBar({ onSearchOpen, user, logout }: {
       <div className="flex items-center gap-1.5 text-xs flex-1 min-w-0">
         {crumb[0] && (
           <>
-            <span className="text-falcon-subtle font-medium tracking-wide uppercase text-[10px]">{crumb[0]}</span>
-            <ChevronRight className="w-3 h-3 text-falcon-subtle" />
+            <span className="text-[#3d5068] font-medium tracking-wide uppercase text-[10px]">{crumb[0]}</span>
+            <ChevronRight className="w-3 h-3 text-[#3d5068]" />
           </>
         )}
-        <span className="text-falcon-muted font-medium truncate">{crumb[1]}</span>
+        <span className="text-[#7d92b0] font-medium truncate">{crumb[1]}</span>
         {/* Dynamic sub-path (for detail pages) */}
         {pathname.split('/').length > 2 && pathname.split('/')[2] && !pathname.startsWith('/admin') && !pathname.startsWith('/reports/schedules') && !pathname.startsWith('/agents/deploy') && (
           <>
-            <ChevronRight className="w-3 h-3 text-falcon-subtle" />
-            <span className="text-falcon-text font-mono text-[10px]">
+            <ChevronRight className="w-3 h-3 text-[#3d5068]" />
+            <span className="text-[#e2e8f4] font-mono text-[10px]">
               {pathname.split('/')[2].slice(0, 8)}…
             </span>
           </>
@@ -146,8 +154,8 @@ function TopBar({ onSearchOpen, user, logout }: {
       {/* Right side controls */}
       <div className="flex items-center gap-3">
         {/* Live time */}
-        <div className="hidden lg:flex items-center gap-2 px-3 py-1 rounded-md bg-falcon-surface border border-falcon-border">
-          <span className="w-1.5 h-1.5 rounded-full bg-falcon-green animate-pulse shrink-0" />
+        <div className="hidden lg:flex items-center gap-2 px-3 py-1 rounded-md bg-[#0d1220] border border-[#1e2d42]">
+          <span className="w-1.5 h-1.5 rounded-full bg-[#00c853] animate-pulse shrink-0" />
           <span className="text-[#c8d6e8] font-mono text-xs tracking-wide tabular-nums">
             {now}
           </span>
@@ -156,15 +164,11 @@ function TopBar({ onSearchOpen, user, logout }: {
         {/* Search bar button */}
         <button
           onClick={onSearchOpen}
-          className="hidden md:flex items-center gap-2 px-3 py-1 rounded
-                     bg-falcon-surface border border-falcon-border text-falcon-subtle
-                     hover:border-falcon-subtle hover:text-falcon-muted
-                     transition-all duration-150 text-xs"
+          className="hidden md:flex items-center gap-2 px-3 py-1 rounded-sm bg-[#0d1220] border border-[#1e2d42] text-[#3d5068] hover:border-[#3d5068] hover:text-[#7d92b0] transition-all duration-150 text-xs"
         >
           <Search className="w-3 h-3 shrink-0" />
           <span>Search...</span>
-          <kbd className="ml-1 inline-flex items-center gap-0.5 px-1 py-0.5
-                          bg-falcon-raised border border-falcon-border rounded text-[9px] font-mono">
+          <kbd className="ml-1 inline-flex items-center gap-0.5 px-1 py-0.5 bg-[#161f33] border border-[#1e2d42] rounded-sm text-[9px] font-mono">
             ⌘K
           </kbd>
         </button>
@@ -173,25 +177,25 @@ function TopBar({ onSearchOpen, user, logout }: {
         <NotificationCenter />
 
         {/* Divider */}
-        <div className="w-px h-4 bg-falcon-border" />
+        <div className="w-px h-4 bg-[#1e2d42]" />
 
         {/* System status indicator */}
         <div className="hidden sm:flex items-center gap-1.5">
-          <span className={`w-1.5 h-1.5 rounded-full ${systemOk ? 'bg-falcon-green' : 'bg-falcon-amber animate-pulse'}`} />
-          <span className={`text-[10px] uppercase tracking-wider font-medium ${systemOk ? 'text-falcon-subtle' : 'text-falcon-amber'}`}>
+          <span className={`w-1.5 h-1.5 rounded-full ${systemOk ? 'bg-[#00c853]' : 'bg-[#ff9800] animate-pulse'}`} />
+          <span className={`text-[10px] uppercase tracking-wider font-medium ${systemOk ? 'text-[#3d5068]' : 'text-[#ff9800]'}`}>
             {systemOk ? 'SYSTEM OK' : 'DEGRADED'}
           </span>
         </div>
 
         {/* Divider */}
-        <div className="w-px h-4 bg-falcon-border" />
+        <div className="w-px h-4 bg-[#1e2d42]" />
 
         {/* User avatar + logout dropdown */}
         <div className="relative">
           <button
             onClick={() => setShowUserMenu(v => !v)}
             title={user?.full_name || user?.email || 'ユーザーメニュー'}
-            className="w-7 h-7 rounded-full bg-linear-to-br from-falcon-blue to-[#0044cc] flex items-center justify-center hover:ring-2 hover:ring-falcon-blue/60 transition-all"
+            className="w-7 h-7 rounded-full bg-linear-to-br from-[#1a6bff] to-[#0044cc] flex items-center justify-center hover:ring-2 hover:ring-[#1a6bff]/60 transition-all"
           >
             <span className="text-[10px] font-bold text-white uppercase">
               {(user?.full_name || user?.email || user?.id)?.[0]?.toUpperCase() ?? 'U'}
@@ -201,16 +205,16 @@ function TopBar({ onSearchOpen, user, logout }: {
             <>
               {/* Backdrop */}
               <div className="fixed inset-0 z-40" onClick={() => setShowUserMenu(false)} />
-              <div className="absolute right-0 top-9 w-52 bg-[#111c2d] border border-falcon-border rounded-lg shadow-xl z-50 overflow-hidden">
+              <div className="absolute right-0 top-9 w-52 bg-[#111c2d] border border-[#1e2d42] rounded-lg shadow-xl z-50 overflow-hidden">
                 {user && (
-                  <div className="px-3 py-2.5 border-b border-falcon-border">
+                  <div className="px-3 py-2.5 border-b border-[#1e2d42]">
                     <p className="text-[12px] font-semibold text-[#c8d6e8] truncate">{user.full_name || user.email}</p>
                     <p className="text-[10px] text-[#4a6080] truncate capitalize">{user.role}</p>
                   </div>
                 )}
                 <button
                   onClick={() => { setShowUserMenu(false); logout() }}
-                  className="w-full flex items-center gap-2 px-3 py-2.5 text-[12px] text-falcon-red hover:bg-falcon-hover transition-colors"
+                  className="w-full flex items-center gap-2 px-3 py-2.5 text-[12px] text-[#e8002d] hover:bg-[#19253d] transition-colors"
                 >
                   <LogOut className="w-3.5 h-3.5" />
                   ログアウト
@@ -225,6 +229,18 @@ function TopBar({ onSearchOpen, user, logout }: {
 }
 
 // ── AppShell ───────────────────────────────────────────────────
+
+/**
+ * ヘッダーの状態表示。読めなかったときは OK ではありません。
+ *
+ * 以前は `!healthData || healthData.status === 'ok'` でした。/health が
+ * 500 を返すと本文の JSON 解析に失敗して healthData が undefined になり、
+ * 左辺が真になります。**答えられなかったヘルスチェックが SYSTEM OK として
+ * 表示されます。** いちばん状態を知りたいときに緑になる作りでした。
+ */
+export function systemIsOk(health?: { status: string } | null): boolean {
+  return health?.status === 'ok'
+}
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { token, isLoading, user, logout } = useAuth()
@@ -262,15 +278,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   if (isLoading || !token) {
     return (
-      <div className="flex h-screen-safe items-center justify-center bg-falcon-bg">
+      <div className="flex h-screen-safe items-center justify-center bg-[#080c14]">
         <div className="flex flex-col items-center gap-4">
-          <div className="w-10 h-10 rounded-sm flex items-center justify-center bg-linear-to-br from-falcon-red to-falcon-red-dark">
+          <div className="w-10 h-10 rounded-sm flex items-center justify-center bg-linear-to-br from-[#e8002d] to-[#a80020]">
             <Shield className="w-5 h-5 text-white" />
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-1.5 h-1.5 rounded-full bg-falcon-red animate-bounce" style={{ animationDelay: '0ms' }} />
-            <div className="w-1.5 h-1.5 rounded-full bg-falcon-red animate-bounce" style={{ animationDelay: '150ms' }} />
-            <div className="w-1.5 h-1.5 rounded-full bg-falcon-red animate-bounce" style={{ animationDelay: '300ms' }} />
+            <div className="w-1.5 h-1.5 rounded-full bg-[#e8002d] animate-bounce" style={{ animationDelay: '0ms' }} />
+            <div className="w-1.5 h-1.5 rounded-full bg-[#e8002d] animate-bounce" style={{ animationDelay: '150ms' }} />
+            <div className="w-1.5 h-1.5 rounded-full bg-[#e8002d] animate-bounce" style={{ animationDelay: '300ms' }} />
           </div>
         </div>
       </div>
@@ -278,7 +294,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="flex h-screen-safe overflow-hidden bg-falcon-bg">
+    <div className="flex h-screen-safe overflow-hidden bg-[#080c14]">
       {/* Sidebar — hidden on mobile */}
       <div className="hidden md:block h-full">
         <Sidebar onSearchOpen={() => setSearchOpen(true)} />
@@ -297,7 +313,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <span className="text-[#5a5a8a]">— データの閲覧のみ可能です。編集・作成・削除の操作はできません。</span>
           </div>
         )}
-        <main className="flex-1 overflow-y-auto bg-falcon-bg pb-16 md:pb-0">
+        <main className="flex-1 overflow-y-auto bg-[#080c14] pb-16 md:pb-0">
           {children}
         </main>
       </div>

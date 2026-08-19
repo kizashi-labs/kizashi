@@ -10,6 +10,10 @@ import {
 } from 'lucide-react'
 
 
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+import { PartialDataNotice } from '@/components/PartialDataNotice'
+import { readInto, type WithMissing } from '@/lib/partial'
+
 // ── Types ──────────────────────────────────────────────────────────────────────
 
 interface ServiceHealth {
@@ -40,13 +44,13 @@ interface TableStat {
   idx_scans: number
 }
 
-interface SystemStatus {
+interface SystemStatus extends WithMissing {
   services: ServiceHealth[]
   metrics: SystemMetrics
   tables: TableStat[]
 }
 
-const EMPTY_STATUS: SystemStatus = { services: [], metrics: { goroutines: 0, memory_mb: 0, cache_hit_rate: 0, db_pool_used: 0, db_pool_total: 0, cpu_percent: 0, uptime_seconds: 0 }, tables: [] }
+const EMPTY_STATUS: SystemStatus = { missing: [], services: [], metrics: { goroutines: 0, memory_mb: 0, cache_hit_rate: 0, db_pool_used: 0, db_pool_total: 0, cpu_percent: 0, uptime_seconds: 0 }, tables: [] }
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -118,36 +122,40 @@ export default function SystemStatusPage() {
   const { data: status = EMPTY_STATUS, refetch, isFetching } = useQuery<SystemStatus>({
     queryKey: ['admin-system-status'],
     queryFn: async () => {
-      try {
-        const [rawData, dbRaw] = await Promise.all([
-          apiFetch<Record<string, unknown>>('/api/v1/admin/system/status').catch(() => ({} as Record<string, unknown>)),
-          apiFetch<{ table_sizes?: { table_name: string; row_count: number; total_bytes: number; index_bytes: number; seq_scans: number; idx_scans: number }[] }>('/api/v1/admin/system/db-stats').catch(() => ({ table_sizes: [] })),
-        ])
-        const raw = rawData as Record<string, unknown>
-        const pool = (raw.db_pool_stats as Record<string, number> | undefined) ?? {}
-        const cacheStats = (raw.cache_stats as Record<string, number> | undefined) ?? {}
-        const rawServices = (raw.services as ServiceHealth[] | undefined) ?? []
-        return {
-          services: rawServices,
-          metrics: {
-            goroutines: (raw.goroutines as number) ?? 0,
-            memory_mb: Math.round((raw.memory_mb as number) ?? 0),
-            cache_hit_rate: Math.round((cacheStats.hit_rate as number) ?? 0),
-            db_pool_used: pool.acquired_conns ?? 0,
-            db_pool_total: pool.max_conns ?? 0,
-            cpu_percent: Math.round((raw.cpu_percent as number) ?? 0),
-            uptime_seconds: (raw.uptime_seconds as number) ?? 0,
-          },
-          tables: (dbRaw.table_sizes ?? []).map(t => ({
-            table_name: t.table_name,
-            row_count: t.row_count,
-            total_size: `${Math.round(t.total_bytes / 1024 / 1024)} MB`,
-            index_size: `${Math.round((t.index_bytes ?? 0) / 1024 / 1024)} MB`,
-            seq_scans: t.seq_scans ?? 0,
-            idx_scans: t.idx_scans ?? 0,
-          })),
-        }
-      } catch { return EMPTY_STATUS }
+      // 以前はここが try { … } catch { return EMPTY_STATUS } で、
+      // 内側の2本も .catch で潰していました。サーバに届かないときの画面は
+      // 「Goroutines 0 / メモリ 0MB / キャッシュヒット率 0%」でした。
+      // サーバの状態を見にきた人には、静かに動いているように読めます。
+      const missing: string[] = []
+      const [rawData, dbRaw] = await Promise.all([
+        readInto(missing, 'サーバの稼働状況', apiFetch<Record<string, unknown>>('/api/v1/admin/system/status'), {} as Record<string, unknown>),
+        readInto(missing, 'データベース統計', apiFetch<{ table_sizes?: { table_name: string; row_count: number; total_bytes: number; index_bytes: number; seq_scans: number; idx_scans: number }[] }>('/api/v1/admin/system/db-stats'), { table_sizes: [] }),
+      ])
+      const raw = rawData as Record<string, unknown>
+      const pool = (raw.db_pool_stats as Record<string, number> | undefined) ?? {}
+      const cacheStats = (raw.cache_stats as Record<string, number> | undefined) ?? {}
+      const rawServices = (raw.services as ServiceHealth[] | undefined) ?? []
+      return {
+        missing,
+        services: rawServices,
+        metrics: {
+          goroutines: (raw.goroutines as number) ?? 0,
+          memory_mb: Math.round((raw.memory_mb as number) ?? 0),
+          cache_hit_rate: Math.round((cacheStats.hit_rate as number) ?? 0),
+          db_pool_used: pool.acquired_conns ?? 0,
+          db_pool_total: pool.max_conns ?? 0,
+          cpu_percent: Math.round((raw.cpu_percent as number) ?? 0),
+          uptime_seconds: (raw.uptime_seconds as number) ?? 0,
+        },
+        tables: (dbRaw.table_sizes ?? []).map(t => ({
+          table_name: t.table_name,
+          row_count: t.row_count,
+          total_size: `${Math.round(t.total_bytes / 1024 / 1024)} MB`,
+          index_size: `${Math.round((t.index_bytes ?? 0) / 1024 / 1024)} MB`,
+          seq_scans: t.seq_scans ?? 0,
+          idx_scans: t.idx_scans ?? 0,
+        })),
+      }
     },
     refetchInterval: autoRefresh ? 30000 : false,
   })
@@ -169,6 +177,8 @@ export default function SystemStatusPage() {
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100 p-6">
+      <PageDataUnavailable />
+      <PartialDataNotice missing={status.missing} className="mb-4" />
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">

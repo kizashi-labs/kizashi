@@ -10,6 +10,8 @@ import {
   Hash, Eye, Settings
 } from 'lucide-react'
 
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type ParticipantStatus = 'online' | 'away' | 'offline'
@@ -178,13 +180,13 @@ const MOCK_ACTIVITY: ActivityFeedItem[] = [
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const statusColor: Record<ParticipantStatus, string> = {
-  online: 'bg-green-400', away: 'bg-yellow-400', offline: 'bg-falcon-subtle',
+  online: 'bg-green-400', away: 'bg-yellow-400', offline: 'bg-[#3d5068]',
 }
 const statusLabel: Record<ParticipantStatus, string> = {
   online: 'オンライン', away: '離席中', offline: 'オフライン',
 }
 const roomStatusColor: Record<RoomStatus, string> = {
-  active: 'text-green-400', closed: 'text-falcon-muted', paused: 'text-yellow-400',
+  active: 'text-green-400', closed: 'text-[#7d92b0]', paused: 'text-yellow-400',
 }
 const iocTypeColor: Record<SharedIOC['type'], string> = {
   ip: 'bg-red-500/20 text-red-300', domain: 'bg-orange-500/20 text-orange-300',
@@ -221,42 +223,42 @@ function NewRoomModal({ onClose, onSave }: { onClose: () => void; onSave: (d: an
 
   return (
     <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-      <div className="bg-falcon-surface border border-falcon-border rounded-xl w-full max-w-md">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-falcon-border">
+      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl w-full max-w-md">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[#1e2d42]">
           <h3 className="text-white font-semibold">新規ルーム作成</h3>
-          <button onClick={onClose} className="text-falcon-muted hover:text-white"><X className="w-5 h-5" /></button>
+          <button onClick={onClose} className="text-[#7d92b0] hover:text-white"><X className="w-5 h-5" /></button>
         </div>
         <div className="p-6 space-y-4">
           <div>
-            <label className="text-xs text-falcon-muted mb-1 block">ルーム名</label>
+            <label className="text-xs text-[#7d92b0] mb-1 block">ルーム名</label>
             <input
-              className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-sm text-white focus:outline-hidden focus:border-falcon-red/50"
+              className="w-full bg-[#070d19] border border-[#1e2d42] rounded-sm px-3 py-2 text-sm text-white focus:outline-hidden focus:border-[#e8002d]/50"
               placeholder="例: APT41 侵害調査"
               value={name} onChange={e => setName(e.target.value)}
             />
           </div>
           <div>
-            <label className="text-xs text-falcon-muted mb-1 block">インシデント/調査 ID</label>
+            <label className="text-xs text-[#7d92b0] mb-1 block">インシデント/調査 ID</label>
             <input
-              className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-sm text-white focus:outline-hidden focus:border-falcon-red/50"
+              className="w-full bg-[#070d19] border border-[#1e2d42] rounded-sm px-3 py-2 text-sm text-white focus:outline-hidden focus:border-[#e8002d]/50"
               placeholder="例: INC-2026-0050"
               value={investigation} onChange={e => setInvestigation(e.target.value)}
             />
           </div>
           <div>
-            <label className="text-xs text-falcon-muted mb-1 block">メンバー招待 (メール)</label>
+            <label className="text-xs text-[#7d92b0] mb-1 block">メンバー招待 (メール)</label>
             <input
-              className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-sm text-white focus:outline-hidden focus:border-falcon-red/50"
+              className="w-full bg-[#070d19] border border-[#1e2d42] rounded-sm px-3 py-2 text-sm text-white focus:outline-hidden focus:border-[#e8002d]/50"
               placeholder="user@corp.com, ..."
               value={inviteEmail} onChange={e => setInviteEmail(e.target.value)}
             />
           </div>
         </div>
-        <div className="flex justify-end gap-3 px-6 py-4 border-t border-falcon-border">
-          <button onClick={onClose} className="px-4 py-2 text-sm text-falcon-muted hover:text-white">キャンセル</button>
+        <div className="flex justify-end gap-3 px-6 py-4 border-t border-[#1e2d42]">
+          <button onClick={onClose} className="px-4 py-2 text-sm text-[#7d92b0] hover:text-white">キャンセル</button>
           <button
             onClick={() => onSave({ name, investigation, invite_emails: inviteEmail.split(',').map(e => e.trim()) })}
-            className="px-4 py-2 bg-falcon-red hover:bg-[#c0001f] text-white text-sm rounded-lg"
+            className="px-4 py-2 bg-[#e8002d] hover:bg-[#c0001f] text-white text-sm rounded-lg"
           >
             作成
           </button>
@@ -333,32 +335,33 @@ export default function CollaborationPage() {
 
   return (
     <div className="min-h-screen bg-[#070d19] p-6 space-y-6">
+      <PageDataUnavailable />
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-falcon-red/10 border border-falcon-red/30 flex items-center justify-center">
-            <MessageSquare className="w-5 h-5 text-falcon-red" />
+          <div className="w-10 h-10 rounded-lg bg-[#e8002d]/10 border border-[#e8002d]/30 flex items-center justify-center">
+            <MessageSquare className="w-5 h-5 text-[#e8002d]" />
           </div>
           <div>
             <h1 className="text-xl font-bold text-white">チームコラボレーション</h1>
-            <p className="text-xs text-falcon-muted">リアルタイム調査コラボレーション</p>
+            <p className="text-xs text-[#7d92b0]">リアルタイム調査コラボレーション</p>
           </div>
         </div>
         <div className="flex items-center gap-3">
           {/* Notification settings */}
-          <div className="flex items-center gap-2 bg-falcon-surface border border-falcon-border rounded-lg px-3 py-2">
+          <div className="flex items-center gap-2 bg-[#0d1220] border border-[#1e2d42] rounded-lg px-3 py-2">
             <button
               onClick={() => setAlertOnMsg(!alertOnMsg)}
-              className={`flex items-center gap-1 text-xs transition-colors ${alertOnMsg ? 'text-blue-400' : 'text-falcon-muted'}`}
+              className={`flex items-center gap-1 text-xs transition-colors ${alertOnMsg ? 'text-blue-400' : 'text-[#7d92b0]'}`}
               title="新着メッセージ通知"
             >
               {alertOnMsg ? <Bell className="w-3.5 h-3.5" /> : <BellOff className="w-3.5 h-3.5" />}
               <span>メッセージ</span>
             </button>
-            <div className="w-px h-4 bg-falcon-border" />
+            <div className="w-px h-4 bg-[#1e2d42]" />
             <button
               onClick={() => setAlertOnMention(!alertOnMention)}
-              className={`flex items-center gap-1 text-xs transition-colors ${alertOnMention ? 'text-blue-400' : 'text-falcon-muted'}`}
+              className={`flex items-center gap-1 text-xs transition-colors ${alertOnMention ? 'text-blue-400' : 'text-[#7d92b0]'}`}
               title="メンション通知"
             >
               {alertOnMention ? <Bell className="w-3.5 h-3.5" /> : <BellOff className="w-3.5 h-3.5" />}
@@ -367,7 +370,7 @@ export default function CollaborationPage() {
           </div>
           <button
             onClick={() => setShowNewRoom(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-falcon-red hover:bg-[#c0001f] text-white text-sm rounded-lg transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-[#e8002d] hover:bg-[#c0001f] text-white text-sm rounded-lg transition-colors"
           >
             <Plus className="w-4 h-4" /> 新規ルーム作成
           </button>
@@ -377,13 +380,13 @@ export default function CollaborationPage() {
       <div className="grid grid-cols-12 gap-4" style={{ minHeight: '70vh' }}>
         {/* Room list (left) */}
         <div className="col-span-3 space-y-2">
-          <p className="text-xs text-falcon-muted font-medium px-1">調査ルーム ({rooms.length})</p>
+          <p className="text-xs text-[#7d92b0] font-medium px-1">調査ルーム ({rooms.length})</p>
           {rooms.map(room => (
             <button
               key={room.id}
               onClick={() => setSelectedRoom(room)}
-              className={`w-full text-left bg-falcon-surface border rounded-xl p-3 transition-all ${
-                selectedRoom?.id === room.id ? 'border-falcon-red/40 bg-falcon-active/50' : 'border-falcon-border hover:border-falcon-border/80'
+              className={`w-full text-left bg-[#0d1220] border rounded-xl p-3 transition-all ${
+                selectedRoom?.id === room.id ? 'border-[#e8002d]/40 bg-[#1d2f4a]/50' : 'border-[#1e2d42] hover:border-[#1e2d42]/80'
               }`}
             >
               <div className="flex items-start justify-between mb-1">
@@ -392,22 +395,22 @@ export default function CollaborationPage() {
                   {room.status === 'active' ? '● アクティブ' : room.status === 'paused' ? '⏸ 一時停止' : '● クローズ'}
                 </span>
               </div>
-              <p className="text-[11px] text-falcon-muted mb-2">{room.investigation}</p>
+              <p className="text-[11px] text-[#7d92b0] mb-2">{room.investigation}</p>
               <div className="flex items-center justify-between">
                 <div className="flex -space-x-1">
                   {room.participants.slice(0, 4).map(p => (
                     <div key={p.id} className="relative">
                       <Avatar initials={p.avatar} />
-                      <span className={`absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full border border-falcon-surface ${statusColor[p.status]}`} />
+                      <span className={`absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full border border-[#0d1220] ${statusColor[p.status]}`} />
                     </div>
                   ))}
                   {room.participants.length > 4 && (
-                    <div className="w-7 h-7 rounded-full bg-falcon-border flex items-center justify-center text-[10px] text-falcon-muted">
+                    <div className="w-7 h-7 rounded-full bg-[#1e2d42] flex items-center justify-center text-[10px] text-[#7d92b0]">
                       +{room.participants.length - 4}
                     </div>
                   )}
                 </div>
-                <span className="text-[10px] text-falcon-muted">{timeAgo(room.last_activity)}</span>
+                <span className="text-[10px] text-[#7d92b0]">{timeAgo(room.last_activity)}</span>
               </div>
             </button>
           ))}
@@ -417,18 +420,18 @@ export default function CollaborationPage() {
         {selectedRoom ? (
           <>
             {/* Participants (left inner) */}
-            <div className="col-span-2 bg-falcon-surface border border-falcon-border rounded-xl p-3 space-y-2">
-              <p className="text-xs text-falcon-muted font-medium mb-3">参加者 ({selectedRoom.participants.length})</p>
+            <div className="col-span-2 bg-[#0d1220] border border-[#1e2d42] rounded-xl p-3 space-y-2">
+              <p className="text-xs text-[#7d92b0] font-medium mb-3">参加者 ({selectedRoom.participants.length})</p>
               {selectedRoom.participants.map(p => (
                 <div key={p.id} className="flex items-center gap-2">
                   <div className="relative">
                     <Avatar initials={p.avatar} />
-                    <span className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-falcon-surface ${statusColor[p.status]}`} />
+                    <span className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-[#0d1220] ${statusColor[p.status]}`} />
                   </div>
                   <div className="min-w-0">
                     <p className="text-xs text-white font-medium truncate">{p.name}</p>
-                    <p className="text-[10px] text-falcon-muted truncate">{p.role}</p>
-                    <p className={`text-[10px] ${p.status === 'online' ? 'text-green-400' : p.status === 'away' ? 'text-yellow-400' : 'text-falcon-subtle'}`}>
+                    <p className="text-[10px] text-[#7d92b0] truncate">{p.role}</p>
+                    <p className={`text-[10px] ${p.status === 'online' ? 'text-green-400' : p.status === 'away' ? 'text-yellow-400' : 'text-[#3d5068]'}`}>
                       {statusLabel[p.status]}
                     </p>
                   </div>
@@ -437,20 +440,20 @@ export default function CollaborationPage() {
             </div>
 
             {/* Chat (center) */}
-            <div className="col-span-4 bg-falcon-surface border border-falcon-border rounded-xl flex flex-col">
-              <div className="flex items-center gap-2 px-4 py-3 border-b border-falcon-border">
-                <Hash className="w-4 h-4 text-falcon-muted" />
+            <div className="col-span-4 bg-[#0d1220] border border-[#1e2d42] rounded-xl flex flex-col">
+              <div className="flex items-center gap-2 px-4 py-3 border-b border-[#1e2d42]">
+                <Hash className="w-4 h-4 text-[#7d92b0]" />
                 <p className="text-sm text-white font-medium">{selectedRoom.name}</p>
-                <span className="text-[11px] text-falcon-muted ml-auto">{messages.length} メッセージ</span>
+                <span className="text-[11px] text-[#7d92b0] ml-auto">{messages.length} メッセージ</span>
               </div>
               <div className="flex-1 overflow-y-auto p-3 space-y-3 min-h-0 max-h-[480px]">
                 {messages.map(msg => (
                   <div key={msg.id}>
                     {msg.is_system ? (
-                      <div className="flex items-center gap-2 text-xs text-falcon-muted justify-center">
-                        <div className="h-px flex-1 bg-falcon-border" />
+                      <div className="flex items-center gap-2 text-xs text-[#7d92b0] justify-center">
+                        <div className="h-px flex-1 bg-[#1e2d42]" />
                         <span className="flex items-center gap-1"><Activity className="w-3 h-3" />{msg.content}</span>
-                        <div className="h-px flex-1 bg-falcon-border" />
+                        <div className="h-px flex-1 bg-[#1e2d42]" />
                       </div>
                     ) : (
                       <div className="flex items-start gap-2">
@@ -458,9 +461,9 @@ export default function CollaborationPage() {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-baseline gap-2 mb-0.5">
                             <span className="text-xs font-semibold text-white">{msg.sender_name}</span>
-                            <span className="text-[10px] text-falcon-subtle">{timeAgo(msg.timestamp)}</span>
+                            <span className="text-[10px] text-[#3d5068]">{timeAgo(msg.timestamp)}</span>
                           </div>
-                          <p className="text-xs text-falcon-muted leading-relaxed">{msg.content}</p>
+                          <p className="text-xs text-[#7d92b0] leading-relaxed">{msg.content}</p>
                         </div>
                       </div>
                     )}
@@ -468,10 +471,10 @@ export default function CollaborationPage() {
                 ))}
                 <div ref={chatEndRef} />
               </div>
-              <div className="p-3 border-t border-falcon-border">
+              <div className="p-3 border-t border-[#1e2d42]">
                 <div className="flex items-center gap-2">
                   <input
-                    className="flex-1 bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-sm text-white focus:outline-hidden focus:border-falcon-red/50"
+                    className="flex-1 bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-white focus:outline-hidden focus:border-[#e8002d]/50"
                     placeholder="メッセージを入力... (@メンション)"
                     value={msgInput}
                     onChange={e => setMsgInput(e.target.value)}
@@ -479,7 +482,7 @@ export default function CollaborationPage() {
                   />
                   <button
                     onClick={sendMessage}
-                    className="p-2 bg-falcon-red hover:bg-[#c0001f] text-white rounded-lg transition-colors"
+                    className="p-2 bg-[#e8002d] hover:bg-[#c0001f] text-white rounded-lg transition-colors"
                   >
                     <Send className="w-4 h-4" />
                   </button>
@@ -490,41 +493,41 @@ export default function CollaborationPage() {
             {/* Shared Workspace (right) */}
             <div className="col-span-3 space-y-3">
               {/* Pinned Notes */}
-              <div className="bg-falcon-surface border border-falcon-border rounded-xl p-3">
+              <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-3">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
                     <Pin className="w-3.5 h-3.5 text-yellow-400" />
                     <p className="text-xs text-white font-medium">固定メモ</p>
                   </div>
-                  <button onClick={() => setAddingNote(!addingNote)} className="text-falcon-red hover:text-white">
+                  <button onClick={() => setAddingNote(!addingNote)} className="text-[#e8002d] hover:text-white">
                     <Plus className="w-3.5 h-3.5" />
                   </button>
                 </div>
                 {addingNote && (
                   <div className="mb-2 space-y-1">
                     <textarea
-                      className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-2 py-1 text-xs text-white focus:outline-hidden resize-none"
+                      className="w-full bg-[#070d19] border border-[#1e2d42] rounded-sm px-2 py-1 text-xs text-white focus:outline-hidden resize-none"
                       rows={2} placeholder="メモを入力..." value={newNote} onChange={e => setNewNote(e.target.value)}
                     />
                     <div className="flex gap-1">
-                      <button onClick={addNote} className="flex-1 py-1 text-xs bg-falcon-red text-white rounded-sm">追加</button>
-                      <button onClick={() => setAddingNote(false)} className="flex-1 py-1 text-xs text-falcon-muted border border-falcon-border rounded-sm">キャンセル</button>
+                      <button onClick={addNote} className="flex-1 py-1 text-xs bg-[#e8002d] text-white rounded-sm">追加</button>
+                      <button onClick={() => setAddingNote(false)} className="flex-1 py-1 text-xs text-[#7d92b0] border border-[#1e2d42] rounded-sm">キャンセル</button>
                     </div>
                   </div>
                 )}
                 <div className="space-y-2 max-h-32 overflow-y-auto">
-                  {selectedRoom.pinned_notes.length === 0 && <p className="text-[11px] text-falcon-subtle">メモなし</p>}
+                  {selectedRoom.pinned_notes.length === 0 && <p className="text-[11px] text-[#3d5068]">メモなし</p>}
                   {selectedRoom.pinned_notes.map(n => (
                     <div key={n.id} className="bg-yellow-500/5 border border-yellow-500/20 rounded-sm p-2">
-                      <p className="text-[11px] text-falcon-text leading-relaxed">{n.content}</p>
-                      <p className="text-[10px] text-falcon-subtle mt-1">{n.author} · {timeAgo(n.created_at)}</p>
+                      <p className="text-[11px] text-[#e2e8f4] leading-relaxed">{n.content}</p>
+                      <p className="text-[10px] text-[#3d5068] mt-1">{n.author} · {timeAgo(n.created_at)}</p>
                     </div>
                   ))}
                 </div>
               </div>
 
               {/* Shared IOCs */}
-              <div className="bg-falcon-surface border border-falcon-border rounded-xl p-3">
+              <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-3">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
                     <AlertTriangle className="w-3.5 h-3.5 text-red-400" />
@@ -533,7 +536,7 @@ export default function CollaborationPage() {
                 </div>
                 <div className="flex gap-1 mb-2">
                   <select
-                    className="bg-[#070d19] border border-falcon-border rounded-sm px-1 py-1 text-[11px] text-white focus:outline-hidden"
+                    className="bg-[#070d19] border border-[#1e2d42] rounded-sm px-1 py-1 text-[11px] text-white focus:outline-hidden"
                     value={newIOCType} onChange={e => setNewIOCType(e.target.value as SharedIOC['type'])}
                   >
                     <option value="ip">IP</option>
@@ -542,26 +545,26 @@ export default function CollaborationPage() {
                     <option value="url">URL</option>
                   </select>
                   <input
-                    className="flex-1 bg-[#070d19] border border-falcon-border rounded-sm px-2 py-1 text-[11px] text-white focus:outline-hidden"
+                    className="flex-1 bg-[#070d19] border border-[#1e2d42] rounded-sm px-2 py-1 text-[11px] text-white focus:outline-hidden"
                     placeholder="IOC値..."
                     value={newIOC} onChange={e => setNewIOC(e.target.value)}
                     onKeyDown={e => e.key === 'Enter' && addIOC()}
                   />
-                  <button onClick={addIOC} className="p-1 text-falcon-red hover:text-white"><Plus className="w-3.5 h-3.5" /></button>
+                  <button onClick={addIOC} className="p-1 text-[#e8002d] hover:text-white"><Plus className="w-3.5 h-3.5" /></button>
                 </div>
                 <div className="space-y-1 max-h-28 overflow-y-auto">
                   {selectedRoom.shared_iocs.map(ioc => (
                     <div key={ioc.id} className="flex items-center gap-1.5">
                       <span className={`text-[10px] px-1.5 py-0.5 rounded-sm ${iocTypeColor[ioc.type]}`}>{ioc.type.toUpperCase()}</span>
-                      <span className="text-[11px] text-falcon-muted font-mono truncate flex-1">{ioc.value}</span>
+                      <span className="text-[11px] text-[#7d92b0] font-mono truncate flex-1">{ioc.value}</span>
                     </div>
                   ))}
-                  {selectedRoom.shared_iocs.length === 0 && <p className="text-[11px] text-falcon-subtle">IOCなし</p>}
+                  {selectedRoom.shared_iocs.length === 0 && <p className="text-[11px] text-[#3d5068]">IOCなし</p>}
                 </div>
               </div>
 
               {/* Task Checklist */}
-              <div className="bg-falcon-surface border border-falcon-border rounded-xl p-3">
+              <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-3">
                 <div className="flex items-center gap-2 mb-2">
                   <CheckSquare className="w-3.5 h-3.5 text-blue-400" />
                   <p className="text-xs text-white font-medium">タスク ({selectedRoom.tasks.filter(t => t.done).length}/{selectedRoom.tasks.length})</p>
@@ -571,43 +574,43 @@ export default function CollaborationPage() {
                     <div key={task.id} className="flex items-start gap-2 cursor-pointer" onClick={() => toggleTask(task.id)}>
                       {task.done
                         ? <CheckSquare className="w-4 h-4 text-green-400 shrink-0 mt-0.5" />
-                        : <Square className="w-4 h-4 text-falcon-subtle shrink-0 mt-0.5" />
+                        : <Square className="w-4 h-4 text-[#3d5068] shrink-0 mt-0.5" />
                       }
                       <div className="flex-1 min-w-0">
-                        <p className={`text-[11px] ${task.done ? 'line-through text-falcon-subtle' : 'text-falcon-text'}`}>{task.text}</p>
-                        {task.assignee && <p className="text-[10px] text-falcon-subtle">{task.assignee}</p>}
+                        <p className={`text-[11px] ${task.done ? 'line-through text-[#3d5068]' : 'text-[#e2e8f4]'}`}>{task.text}</p>
+                        {task.assignee && <p className="text-[10px] text-[#3d5068]">{task.assignee}</p>}
                       </div>
                     </div>
                   ))}
                 </div>
                 <div className="flex gap-1">
                   <input
-                    className="flex-1 bg-[#070d19] border border-falcon-border rounded-sm px-2 py-1 text-[11px] text-white focus:outline-hidden"
+                    className="flex-1 bg-[#070d19] border border-[#1e2d42] rounded-sm px-2 py-1 text-[11px] text-white focus:outline-hidden"
                     placeholder="新しいタスク..."
                     value={newTask} onChange={e => setNewTask(e.target.value)}
                     onKeyDown={e => e.key === 'Enter' && addTask()}
                   />
-                  <button onClick={addTask} className="p-1 text-falcon-red hover:text-white"><Plus className="w-3.5 h-3.5" /></button>
+                  <button onClick={addTask} className="p-1 text-[#e8002d] hover:text-white"><Plus className="w-3.5 h-3.5" /></button>
                 </div>
               </div>
             </div>
           </>
         ) : (
-          <div className="col-span-9 bg-falcon-surface border border-falcon-border rounded-xl flex items-center justify-center">
-            <p className="text-falcon-muted">ルームを選択してください</p>
+          <div className="col-span-9 bg-[#0d1220] border border-[#1e2d42] rounded-xl flex items-center justify-center">
+            <p className="text-[#7d92b0]">ルームを選択してください</p>
           </div>
         )}
       </div>
 
       {/* Activity Feed */}
-      <div className="bg-falcon-surface border border-falcon-border rounded-xl p-4">
+      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-4">
         <p className="text-sm text-white font-medium mb-3">最近のアクティビティ</p>
         <div className="space-y-2">
           {([] as ActivityFeedItem[]).map(a => (
             <div key={a.id} className="flex items-center gap-3 text-xs">
-              <span className="text-falcon-muted w-20 shrink-0">{timeAgo(a.timestamp)}</span>
-              <span className="text-falcon-red font-medium">{a.room_name}</span>
-              <span className="text-falcon-muted">{a.actor} が {a.action}</span>
+              <span className="text-[#7d92b0] w-20 shrink-0">{timeAgo(a.timestamp)}</span>
+              <span className="text-[#e8002d] font-medium">{a.room_name}</span>
+              <span className="text-[#7d92b0]">{a.actor} が {a.action}</span>
             </div>
           ))}
         </div>

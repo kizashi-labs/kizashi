@@ -155,24 +155,17 @@ func TestScanSuspiciousMemorySkipsVDSO(t *testing.T) {
 }
 
 // TestScanStatsAccounting guards the #511 load instrumentation: every
-// enumerated PID must land in exactly one bucket (walked, allowlisted,
-// unreadable, or gone), otherwise the measured "対象プロセス数" understates the real
-// cost and the default-ON decision would be made on wrong numbers.
-//
-// **バケットは 4 つある。** SkippedGone（走査に着くまでに終了していた）が
-// 後から足されたとき、この検算式は 3 つのままだった。SkippedGone は走査中に
-// プロセスが消えたときしか非ゼロにならないので、**手元では通り、忙しい
-// ランナーでだけ落ちる**間欠的な赤になっていた（実測: enumerated 170 に対し
-// 136+0+33=169、差の 1 が gone）。バケットを足したら、ここも足すこと。
+// enumerated PID must land in exactly one bucket (walked, allowlisted, or
+// unreadable), otherwise the measured "対象プロセス数" understates the real cost and
+// the default-ON decision would be made on wrong numbers.
 func TestScanStatsAccounting(t *testing.T) {
 	findings, st := ScanSuspiciousMemoryWithYARAStats(func([]byte) []string { return nil })
 	if st.ProcessesEnumerated == 0 {
 		t.Fatal("enumerated no processes — /proc walk broken")
 	}
-	if got := st.ProcessesScanned + st.SkippedAllowlisted + st.SkippedUnreadable + st.SkippedGone; got != st.ProcessesEnumerated {
-		t.Errorf("bucket sum %d != enumerated %d (scanned=%d allowlisted=%d unreadable=%d gone=%d)",
-			got, st.ProcessesEnumerated, st.ProcessesScanned, st.SkippedAllowlisted,
-			st.SkippedUnreadable, st.SkippedGone)
+	if got := st.ProcessesScanned + st.SkippedAllowlisted + st.SkippedUnreadable; got != st.ProcessesEnumerated {
+		t.Errorf("bucket sum %d != enumerated %d (scanned=%d allowlisted=%d unreadable=%d)",
+			got, st.ProcessesEnumerated, st.ProcessesScanned, st.SkippedAllowlisted, st.SkippedUnreadable)
 	}
 	if st.ProcessesScanned > 0 && st.RegionsExamined == 0 {
 		t.Error("walked processes but counted no regions")

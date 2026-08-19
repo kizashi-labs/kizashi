@@ -184,29 +184,10 @@ type EngineConfig struct {
 	// A rule must also have auto_isolate=true. Set to 0 to disable threshold enforcement.
 	AutoIsolateSeverityThreshold int
 
-	// AutoIsolateExempt lists agent IDs and hostnames that must never be isolated
-	// automatically, however severe the finding.
-	//
-	// It exists because isolation is not reversible from the outside: the agent
-	// firewalls everything except the EDR server, so isolating a host also cuts the
-	// operator's SSH/RDP to it. On a host that runs the platform itself — a lab box,
-	// a single-node deployment, a jump host — an auto-isolation is an outage plus a
-	// lockout, and recovering needs out-of-band access (SSM, serial console) that may
-	// not exist.
-	//
-	// Suppression rules cannot express this: they drop the ALERT, so exempting a host
-	// that way would also blind detection on it, and their SeverityMax matches
-	// severity <= N — the opposite of the high-severity band that isolates. This list
-	// suppresses only the RESPONSE; detection, alerting and scoring are untouched.
-	//
-	// Matching is exact on agent ID and case-insensitive exact on hostname.
-	//
-	// 冷却期間・時間あたり上限・ドライランはここには無い。isolation.Config が持つ。
-	// 隔離を行うのは Gatekeeper だけなので、安全弁の設定も Gatekeeper 側にあるほうが、
-	// 経路ごとに設定が分かれる余地が無い。この除外リストだけがここに残っているのは、
-	// 軸が違うためである — 安全弁は隔離の総量を抑えるが、これは特定の端末を対象から
-	// 外す。総量に余裕があっても除外対象は隔離されない。
-	AutoIsolateExempt []string
+	// 除外リスト（AUTO_ISOLATE_EXEMPT）はここには無い。判定も記録も Gatekeeper が
+	// 行う（isolation.Config.Exempt）。以前はここにも同じ一覧があり、エンジン側が
+	// 先に return していたため、除外された端末の隔離判断が response_actions に
+	// 残らなかった。
 
 	// GeoIPEnrichEnabled turns on asynchronous country_code enrichment of external
 	// network destinations (ip-api.com, non-blocking, cached). Off by default; needs
@@ -1747,31 +1728,34 @@ func (e *Engine) applyRuleBasedResponse(ctx context.Context, alert *StoredAlert,
 			return
 		}
 
-		// Say so loudly rather than skipping quietly: an operator who configured the
-		// exemption still needs to know the host WOULD have been isolated, and a
-		// silent skip is indistinguishable from a response path that is broken.
+		// 除外（AUTO_ISOLATE_EXEMPT）の判定はここでは行わない。Gatekeeper が同じ
+		// isolation.IsExempt で判定し、しかも suppress として response_actions に
+		// outcome=exempt を残す。
 		//
-		// This check lives here rather than in the Gatekeeper on purpose. The
-		// Gatekeeper's valves bound the VOLUME of isolation; this list removes a
-		// specific endpoint from the target set entirely, and it must hold even when
-		// the volume budget has room to spare.
-		if e.isAutoIsolateExempt(alert) {
-			slog.Warn("自動隔離を除外設定によりスキップしました（検知とアラートは通常どおり）",
-				"agent", alert.AgentID, "hostname", alert.Hostname,
-				"rule", ruleLabel, "severity", alert.Severity)
-			return
-		}
-
+		// 以前はここに同じ検査があり、「Gatekeeper の安全弁は VOLUME を縛るだけ
+		// なので、対象から外す判断はこちらに置く」と説明していた。その前提は
+		// 既に成り立っていない — Gatekeeper は除外を冷却期間・時間あたり上限より
+		// 前に見る。残っていたのは重複だけで、しかもこちらが先に return するため
+		// 記録つきの判定に到達せず、「除外された端末では隔離条件を満たした事実が
+		// DB に一切残らない」状態を作っていた。ドライランを外す前の見積りが
+		// 除外ホスト分だけ構造的に欠けるため、実害がある
+		// （docs/results/live-20260818-auto-isolate-rule-inventory.md §4-1）。
+		//
 		// 安全弁（冷却期間・時間あたり上限・ドライラン）と response_actions への
 		// 記録は Gatekeeper が行う。ここで判断を重ねない。severity は検知器が
 		// 自分で決める値なので、誤検知が 10 を出せばここには必ず到達する。
+		//
+		// Hostname は必ず載せる。AUTO_ISOLATE_EXEMPT はホスト名でも書けるので、
+		// これが空だと Gatekeeper 側は HostnameResolver に頼ることになり、
+		// resolver を構成し忘れた環境で除外が黙って効かなくなる。
 		reason := fmt.Sprintf("ルールベース自動隔離: %s (重大度: %d)", ruleLabel, alert.Severity)
 		res, err := e.isolator.Isolate(ctx, isolation.Request{
-			AgentID: alert.AgentID,
-			Reason:  reason,
-			AlertID: alert.ID,
-			Origin:  isolation.OriginRule,
-			Label:   ruleLabel,
+			AgentID:  alert.AgentID,
+			Hostname: alert.Hostname,
+			Reason:   reason,
+			AlertID:  alert.ID,
+			Origin:   isolation.OriginRule,
+			Label:    ruleLabel,
 		})
 		if err != nil {
 			slog.Error("auto isolate failed", "agent", alert.AgentID, "error", err)
@@ -1781,13 +1765,6 @@ func (e *Engine) applyRuleBasedResponse(ctx context.Context, alert *StoredAlert,
 			e.logAction(ctx, alert.ID, alert.AgentID, "isolate", "", reason, "auto_rule", true, "")
 		}
 	}
-}
-
-// isAutoIsolateExempt reports whether this endpoint is on the never-isolate list.
-func (e *Engine) isAutoIsolateExempt(alert *StoredAlert) bool {
-	// 判定は isolation 側と共有する。同じ規則を 2 箇所に書くと、一方だけ直った
-	// 状態が生まれる。安全弁を二重に持つのは良いが、実装まで二重に持たない。
-	return isolation.IsExempt(e.config.AutoIsolateExempt, alert.Hostname, alert.AgentID)
 }
 
 // runAIAnalysis sends the alert to Claude for deep analysis.

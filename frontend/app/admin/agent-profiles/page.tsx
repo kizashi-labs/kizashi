@@ -8,6 +8,9 @@ import {
   Server, Apple, Layers, ChevronDown, ChevronUp, Upload, Edit3,
 } from 'lucide-react'
 
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+import { usePersist, SaveFailed } from '@/lib/persist'
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type OSType = 'Windows' | 'Linux' | 'macOS' | 'All'
@@ -91,6 +94,7 @@ const MonitorCheck = ({ enabled, label }: { enabled: boolean; label: string }) =
 
 export default function AgentProfilesPage() {
   const [showNewProfile, setShowNewProfile] = useState(false)
+  const { persist, saveError } = usePersist()
   const [editingId, setEditingId] = useState<string | null>(null)
   const [pushModalId, setPushModalId] = useState<string | null>(null)
   const [pushAgentId, setPushAgentId] = useState('')
@@ -116,32 +120,29 @@ export default function AgentProfilesPage() {
 
   const { data: profiles = [], refetch } = useQuery<AgentProfile[]>({
     queryKey: ['agent-profiles'],
-    queryFn: async () => {
-      try { return await apiFetchList<AgentProfile>('/api/v1/admin/agent-profiles') } catch { return [] }
-    },
+    queryFn: () => apiFetchList<AgentProfile>('/api/v1/admin/agent-profiles'),
     staleTime: 30_000,
     retry: false,
   })
 
+  // 保存の失敗を捨ててからダイアログを閉じ、再取得していました。
+  // 失敗していれば再取得しても何も増えないので、画面は「作ったのに
+  // 出てこない」状態になります。
   const handleCreateProfile = async () => {
-    try {
-      await apiFetch('/api/v1/admin/agent-profiles', {
-        method: 'POST',
-        body: JSON.stringify(newProfileForm),
-      })
-    } catch { /* mock */ }
+    if (!(await persist('エージェントプロファイル', '/api/v1/admin/agent-profiles', {
+      method: 'POST',
+      body: JSON.stringify(newProfileForm),
+    }))) return
     setShowNewProfile(false)
     setNewProfileForm({ name: '', description: '', os_type: 'Windows', config: { ...DEFAULT_CONFIG } })
     refetch()
   }
 
   const handleSaveEdit = async (profileId: string) => {
-    try {
-      await apiFetch(`/api/v1/admin/agent-profiles/${profileId}`, {
-        method: 'PUT',
-        body: JSON.stringify({ config: editConfig }),
-      })
-    } catch { /* mock */ }
+    if (!(await persist('プロファイルの設定', `/api/v1/admin/agent-profiles/${profileId}`, {
+      method: 'PUT',
+      body: JSON.stringify({ config: editConfig }),
+    }))) return
     setEditingId(null)
     refetch()
   }
@@ -150,11 +151,11 @@ export default function AgentProfilesPage() {
     if (!pushAgentId.trim()) return
     setPushLoading(true)
     try {
-      await apiFetch(`/api/v1/admin/agent-profiles/${profileId}/push`, {
+      await persist('プロファイルの配布', `/api/v1/admin/agent-profiles/${profileId}/push`, {
         method: 'POST',
         body: JSON.stringify({ agent_id: pushAgentId }),
       })
-    } catch { /* mock */ } finally {
+    } finally {
       setPushLoading(false)
       setPushSuccess(true)
       setTimeout(() => {
@@ -213,7 +214,7 @@ export default function AgentProfilesPage() {
             <button
               key={l}
               onClick={() => setConfig({ ...config, log_level: l })}
-              className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
+              className={`px-3 py-1 rounded-sm text-xs font-medium transition-colors ${
                 config.log_level === l
                   ? 'bg-zinc-600 text-zinc-100'
                   : 'bg-zinc-800 text-zinc-500 hover:text-zinc-300'
@@ -263,6 +264,8 @@ export default function AgentProfilesPage() {
 
   return (
     <div className="min-h-screen bg-zinc-950 p-6">
+      <PageDataUnavailable />
+      <SaveFailed error={saveError} />
       {/* Push Modal */}
       {pushModalId && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">

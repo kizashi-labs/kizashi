@@ -77,7 +77,7 @@ func (s *FeedScheduler) Run(ctx context.Context) {
 func (s *FeedScheduler) processFeeds(ctx context.Context) {
 	feeds, err := s.feedStore.GetDueForSync(ctx)
 	if err != nil {
-		slog.Debug("脅威フィードの取得をスキップ", "error", err)
+		fail(ctx, err, "脅威フィードの取得をスキップ")
 		return
 	}
 
@@ -93,7 +93,7 @@ func (s *FeedScheduler) processFeeds(ctx context.Context) {
 			count, err = s.fetchFeed(ctx, feed.ID, feed.URL, feed.SourceFormat, feed.IOCType, feed.APIKey)
 		}
 		if err != nil {
-			slog.Error("フィードの取得に失敗しました", "name", feed.Name, "error", err)
+			fail(ctx, err, "フィードの取得に失敗しました", "name", feed.Name)
 			// MarkSynced with 0 to advance last_sync_at and avoid a tight retry loop.
 			_ = s.feedStore.MarkSynced(ctx, feed.ID, 0)
 		} else {
@@ -173,12 +173,9 @@ func (s *FeedScheduler) fetchFeed(ctx context.Context, feedID, url, sourceFormat
 // importTextFeed parses a newline-delimited plain-text IOC list and upserts
 // entries into the ioc_entries table.
 // upsertIOC inserts/updates one IOC with multi-source reputation.
-//   - Writes `type` only. ここは以前 type と ioc_type の両方に同じ値を入れて
-//     いました。ioc_type は 203 が足した互換列で、**同じ問いに2つの答えを
-//     置く**ものでした。migration 440 が読み手をすべて type / is_active /
-//     severity に寄せたうえで互換列を落としているので、こちらも書くのを
-//     やめます。**落ちた列に INSERT すると文が丸ごと拒否され、フィード由来の
-//     IOC が黙って1件も入らなくなります。**
+//   - Sets BOTH type and ioc_type. The latter was left NULL by every feed INSERT,
+//     blinding the DB-polling matcher (scheduler/ioc_matcher.go reads ioc_type) to
+//     all feed IOCs (実測 23,379件 全件 NULL). Fixed here + migration 277.
 //   - A NEW source for an existing IOC raises confidence and source_count
 //     (multi-source agreement = higher trust); a re-import from the SAME source
 //     only refreshes last_seen, so confidence does not inflate on every sync.

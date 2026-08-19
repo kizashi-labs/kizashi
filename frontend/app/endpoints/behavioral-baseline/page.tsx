@@ -10,6 +10,8 @@ import {
   FolderOpen, Users, Eye, Shield,
   ToggleLeft, ToggleRight,
 } from 'lucide-react'
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+
 import { USE_MOCK, m } from '@/lib/mock'
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -198,15 +200,15 @@ const MOCK_ENDPOINTS: EndpointBaseline[] = [
 const statusConfig: Record<BaselineStatus, { label: string; color: string; pulse?: boolean }> = {
   established: { label: '確立済み', color: 'bg-green-500/20 text-green-300 border-green-500/30' },
   learning: { label: '学習中', color: 'bg-blue-500/20 text-blue-300 border-blue-500/30', pulse: true },
-  insufficient_data: { label: 'データ不足', color: 'bg-falcon-muted/20 text-falcon-muted border-falcon-muted/30' },
-  anomalous: { label: '異常検知', color: 'bg-falcon-red/20 text-falcon-red border-falcon-red/30' },
+  insufficient_data: { label: 'データ不足', color: 'bg-[#7d92b0]/20 text-[#7d92b0] border-[#7d92b0]/30' },
+  anomalous: { label: '異常検知', color: 'bg-[#e8002d]/20 text-[#e8002d] border-[#e8002d]/30' },
 }
 
 const severityColor: Record<string, string> = {
-  low: 'text-falcon-muted bg-falcon-muted/20 border-falcon-muted/30',
+  low: 'text-[#7d92b0] bg-[#7d92b0]/20 border-[#7d92b0]/30',
   medium: 'text-amber-300 bg-amber-500/20 border-amber-500/30',
   high: 'text-orange-300 bg-orange-500/20 border-orange-500/30',
-  critical: 'text-falcon-red bg-falcon-red/20 border-falcon-red/30',
+  critical: 'text-[#e8002d] bg-[#e8002d]/20 border-[#e8002d]/30',
 }
 
 const DAYS = ['月', '火', '水', '木', '金', '土', '日']
@@ -235,27 +237,27 @@ function DetailModal({ endpoint, onClose }: { endpoint: EndpointBaseline; onClos
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
-      <div className="bg-falcon-surface border border-falcon-border rounded-xl w-full max-w-3xl shadow-2xl flex flex-col max-h-[90vh]">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-falcon-border">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl w-full max-w-3xl shadow-2xl flex flex-col max-h-[90vh]">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[#1e2d42]">
           <div>
             <div className="flex items-center gap-3">
-              <Monitor className="w-5 h-5 text-falcon-red" />
+              <Monitor className="w-5 h-5 text-[#e8002d]" />
               <h2 className="text-white font-semibold text-lg">{ep.hostname}</h2>
               <span className={`inline-flex items-center px-2 py-0.5 rounded-sm border text-xs font-medium ${statusConfig[ep.baseline_status].color}`}>
                 {statusConfig[ep.baseline_status].pulse && <span className="w-1.5 h-1.5 rounded-full bg-blue-400 mr-1 animate-pulse" />}
                 {statusConfig[ep.baseline_status].label}
               </span>
             </div>
-            <p className="text-falcon-muted text-sm mt-1">
+            <p className="text-[#7d92b0] text-sm mt-1">
               {ep.os} · データポイント: {(ep.data_points_collected ?? 0).toLocaleString()} · 信頼度: {ep.confidence_score}%
             </p>
           </div>
-          <button onClick={onClose} className="text-falcon-muted hover:text-white transition-colors"><X className="w-5 h-5" /></button>
+          <button onClick={onClose} className="text-[#7d92b0] hover:text-white transition-colors"><X className="w-5 h-5" /></button>
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-0 border-b border-falcon-border overflow-x-auto">
+        <div className="flex gap-0 border-b border-[#1e2d42] overflow-x-auto">
           {[
             { id: 'process' as const, label: 'プロセス', icon: Activity },
             { id: 'network' as const, label: 'ネットワーク', icon: Network },
@@ -268,7 +270,7 @@ function DetailModal({ endpoint, onClose }: { endpoint: EndpointBaseline; onClos
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={`flex items-center gap-1.5 px-4 py-3 text-xs font-medium whitespace-nowrap transition-colors border-b-2 ${
-                activeTab === tab.id ? 'text-white border-falcon-red' : 'text-falcon-muted border-transparent hover:text-white'
+                activeTab === tab.id ? 'text-white border-[#e8002d]' : 'text-[#7d92b0] border-transparent hover:text-white'
               }`}
             >
               <tab.icon className="w-3.5 h-3.5" />
@@ -280,26 +282,26 @@ function DetailModal({ endpoint, onClose }: { endpoint: EndpointBaseline; onClos
         <div className="flex-1 overflow-y-auto px-6 py-4">
           {activeTab === 'process' && (
             <div className="space-y-2">
-              <p className="text-falcon-muted text-xs mb-3">標準プロセスと頻度（過去30日間）</p>
+              <p className="text-[#7d92b0] text-xs mb-3">標準プロセスと頻度（過去30日間）</p>
               {ep.typical_processes.length === 0 ? (
-                <p className="text-center text-falcon-muted py-8">データ学習中...</p>
+                <p className="text-center text-[#7d92b0] py-8">データ学習中...</p>
               ) : ep.typical_processes.map(p => (
-                <div key={p.name} className={`flex items-center gap-3 p-3 rounded-lg border ${p.is_rare ? 'border-falcon-red/40 bg-falcon-red/5' : 'border-falcon-border bg-[#070d19]'}`}>
+                <div key={p.name} className={`flex items-center gap-3 p-3 rounded-lg border ${p.is_rare ? 'border-[#e8002d]/40 bg-[#e8002d]/5' : 'border-[#1e2d42] bg-[#070d19]'}`}>
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
-                      <span className={`text-sm font-mono ${p.is_rare ? 'text-falcon-red' : 'text-white'}`}>{p.name}</span>
+                      <span className={`text-sm font-mono ${p.is_rare ? 'text-[#e8002d]' : 'text-white'}`}>{p.name}</span>
                       {p.is_rare && (
-                        <span className="px-1.5 py-0.5 bg-falcon-red/20 text-falcon-red text-xs rounded-sm border border-falcon-red/30">レア</span>
+                        <span className="px-1.5 py-0.5 bg-[#e8002d]/20 text-[#e8002d] text-xs rounded-sm border border-[#e8002d]/30">レア</span>
                       )}
                     </div>
                     <div className="flex items-center gap-2">
-                      <div className="flex-1 h-1.5 bg-falcon-border rounded-full overflow-hidden">
+                      <div className="flex-1 h-1.5 bg-[#1e2d42] rounded-full overflow-hidden">
                         <div
-                          className={`h-full rounded-full ${p.is_rare ? 'bg-falcon-red' : 'bg-falcon-red/60'}`}
+                          className={`h-full rounded-full ${p.is_rare ? 'bg-[#e8002d]' : 'bg-[#e8002d]/60'}`}
                           style={{ width: `${p.frequency}%` }}
                         />
                       </div>
-                      <span className="text-falcon-muted text-xs w-10 text-right">{p.frequency}%</span>
+                      <span className="text-[#7d92b0] text-xs w-10 text-right">{p.frequency}%</span>
                     </div>
                   </div>
                 </div>
@@ -309,20 +311,20 @@ function DetailModal({ endpoint, onClose }: { endpoint: EndpointBaseline; onClos
 
           {activeTab === 'network' && (
             <div className="space-y-2">
-              <p className="text-falcon-muted text-xs mb-3">標準ネットワーク通信先（過去30日間の月平均）</p>
+              <p className="text-[#7d92b0] text-xs mb-3">標準ネットワーク通信先（過去30日間の月平均）</p>
               {ep.typical_destinations.length === 0 ? (
-                <p className="text-center text-falcon-muted py-8">データ学習中...</p>
+                <p className="text-center text-[#7d92b0] py-8">データ学習中...</p>
               ) : ep.typical_destinations.map((d, i) => (
-                <div key={i} className="flex items-center justify-between p-3 bg-[#070d19] border border-falcon-border rounded-lg">
+                <div key={i} className="flex items-center justify-between p-3 bg-[#070d19] border border-[#1e2d42] rounded-lg">
                   <div className="flex items-center gap-3">
-                    <Network className="w-4 h-4 text-falcon-subtle" />
+                    <Network className="w-4 h-4 text-[#3d5068]" />
                     <div>
                       <span className="text-white text-sm font-mono">{d.host}</span>
-                      <span className="text-falcon-subtle text-sm ml-2">:{d.port}</span>
+                      <span className="text-[#3d5068] text-sm ml-2">:{d.port}</span>
                       <span className="ml-2 px-1.5 py-0.5 bg-blue-500/20 text-blue-300 text-xs rounded-sm">{d.protocol}</span>
                     </div>
                   </div>
-                  <span className="text-falcon-muted text-xs">{(d.volume_mb ?? 0).toLocaleString()} MB/月</span>
+                  <span className="text-[#7d92b0] text-xs">{(d.volume_mb ?? 0).toLocaleString()} MB/月</span>
                 </div>
               ))}
             </div>
@@ -330,11 +332,11 @@ function DetailModal({ endpoint, onClose }: { endpoint: EndpointBaseline; onClos
 
           {activeTab === 'file' && (
             <div className="space-y-2">
-              <p className="text-falcon-muted text-xs mb-3">標準ファイルアクセスパターン</p>
+              <p className="text-[#7d92b0] text-xs mb-3">標準ファイルアクセスパターン</p>
               {ep.typical_directories.length === 0 ? (
-                <p className="text-center text-falcon-muted py-8">データ学習中...</p>
+                <p className="text-center text-[#7d92b0] py-8">データ学習中...</p>
               ) : ep.typical_directories.map((dir, i) => (
-                <div key={i} className="flex items-center gap-3 p-3 bg-[#070d19] border border-falcon-border rounded-lg">
+                <div key={i} className="flex items-center gap-3 p-3 bg-[#070d19] border border-[#1e2d42] rounded-lg">
                   <FolderOpen className="w-4 h-4 text-amber-400 shrink-0" />
                   <span className="text-white text-sm font-mono">{dir}</span>
                 </div>
@@ -344,18 +346,18 @@ function DetailModal({ endpoint, onClose }: { endpoint: EndpointBaseline; onClos
 
           {activeTab === 'schedule' && (
             <div>
-              <p className="text-falcon-muted text-xs mb-3">アクティブ時間ヒートマップ（0=非活性 / 100=高活性）</p>
+              <p className="text-[#7d92b0] text-xs mb-3">アクティブ時間ヒートマップ（0=非活性 / 100=高活性）</p>
               <div className="overflow-x-auto">
                 <div className="min-w-[640px]">
                   <div className="flex gap-1 mb-1">
                     <div className="w-8" />
                     {Array.from({ length: 24 }, (_, h) => (
-                      <div key={h} className="flex-1 text-center text-falcon-subtle text-[9px]">{h}</div>
+                      <div key={h} className="flex-1 text-center text-[#3d5068] text-[9px]">{h}</div>
                     ))}
                   </div>
                   {ep.active_hours.map((dayRow, d) => (
                     <div key={d} className="flex gap-1 mb-1">
-                      <div className="w-8 flex items-center text-falcon-muted text-xs">{DAYS[d]}</div>
+                      <div className="w-8 flex items-center text-[#7d92b0] text-xs">{DAYS[d]}</div>
                       {dayRow.map((val, h) => (
                         <div
                           key={h}
@@ -371,13 +373,13 @@ function DetailModal({ endpoint, onClose }: { endpoint: EndpointBaseline; onClos
                     </div>
                   ))}
                   <div className="flex items-center gap-2 mt-3">
-                    <span className="text-falcon-subtle text-xs">低</span>
+                    <span className="text-[#3d5068] text-xs">低</span>
                     <div className="flex gap-0.5">
                       {[10, 20, 40, 60, 80, 100].map(v => (
                         <div key={v} className="w-5 h-3 rounded-xs" style={{ backgroundColor: `rgba(232, 0, 45, ${v / 100 * 0.8 + 0.1})` }} />
                       ))}
                     </div>
-                    <span className="text-falcon-subtle text-xs">高</span>
+                    <span className="text-[#3d5068] text-xs">高</span>
                   </div>
                 </div>
               </div>
@@ -390,21 +392,21 @@ function DetailModal({ endpoint, onClose }: { endpoint: EndpointBaseline; onClos
                 <div className="flex flex-col items-center py-12 gap-3">
                   <CheckCircle2 className="w-10 h-10 text-green-400" />
                   <p className="text-green-400 font-medium">逸脱なし</p>
-                  <p className="text-falcon-muted text-sm">ベースラインからの逸脱は検出されていません</p>
+                  <p className="text-[#7d92b0] text-sm">ベースラインからの逸脱は検出されていません</p>
                 </div>
               ) : ep.recent_deviations.map(dev => (
-                <div key={dev.id} className={`p-4 rounded-lg border ${dev.severity === 'critical' ? 'border-falcon-red/40 bg-falcon-red/5' : 'border-falcon-border bg-[#070d19]'}`}>
+                <div key={dev.id} className={`p-4 rounded-lg border ${dev.severity === 'critical' ? 'border-[#e8002d]/40 bg-[#e8002d]/5' : 'border-[#1e2d42] bg-[#070d19]'}`}>
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
                         <span className={`px-2 py-0.5 rounded-sm border text-xs font-medium ${severityColor[dev.severity]}`}>
                           {dev.severity.toUpperCase()}
                         </span>
-                        <span className="text-falcon-muted text-xs bg-falcon-border px-2 py-0.5 rounded-sm">{dev.category}</span>
+                        <span className="text-[#7d92b0] text-xs bg-[#1e2d42] px-2 py-0.5 rounded-sm">{dev.category}</span>
                       </div>
                       <p className="text-white text-sm">{dev.description}</p>
                     </div>
-                    <span className="text-falcon-subtle text-xs whitespace-nowrap">
+                    <span className="text-[#3d5068] text-xs whitespace-nowrap">
                       {new Date(dev.detected_at).toLocaleString('ja-JP', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}
                     </span>
                   </div>
@@ -415,10 +417,10 @@ function DetailModal({ endpoint, onClose }: { endpoint: EndpointBaseline; onClos
 
           {activeTab === 'exclusions' && (
             <div className="space-y-3">
-              <p className="text-falcon-muted text-sm">ベースライン学習から除外するプロセス/ドメインを設定します</p>
+              <p className="text-[#7d92b0] text-sm">ベースライン学習から除外するプロセス/ドメインを設定します</p>
               <div className="flex gap-2">
                 <input
-                  className="flex-1 bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-red/60 font-mono"
+                  className="flex-1 bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-[#e8002d]/60 font-mono"
                   value={newExclusion}
                   onChange={e => setNewExclusion(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && addExclusion()}
@@ -427,7 +429,7 @@ function DetailModal({ endpoint, onClose }: { endpoint: EndpointBaseline; onClos
                 <button
                   onClick={addExclusion}
                   disabled={!newExclusion.trim()}
-                  className="flex items-center gap-1.5 px-3 py-2 bg-falcon-red hover:bg-[#c0001f] disabled:opacity-40 text-white text-sm rounded-lg transition-colors"
+                  className="flex items-center gap-1.5 px-3 py-2 bg-[#e8002d] hover:bg-[#c0001f] disabled:opacity-40 text-white text-sm rounded-lg transition-colors"
                 >
                   <Plus className="w-4 h-4" />
                   追加
@@ -435,35 +437,35 @@ function DetailModal({ endpoint, onClose }: { endpoint: EndpointBaseline; onClos
               </div>
               <div className="space-y-2">
                 {exclusions.map((rule, i) => (
-                  <div key={i} className="flex items-center justify-between p-3 bg-[#070d19] border border-falcon-border rounded-lg">
+                  <div key={i} className="flex items-center justify-between p-3 bg-[#070d19] border border-[#1e2d42] rounded-lg">
                     <span className="text-white text-sm font-mono">{rule}</span>
                     <button
                       onClick={() => setExclusions(prev => prev.filter((_, j) => j !== i))}
-                      className="text-falcon-subtle hover:text-falcon-red transition-colors"
+                      className="text-[#3d5068] hover:text-[#e8002d] transition-colors"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
                   </div>
                 ))}
                 {exclusions.length === 0 && (
-                  <p className="text-center text-falcon-muted py-6 text-sm">除外ルールなし</p>
+                  <p className="text-center text-[#7d92b0] py-6 text-sm">除外ルールなし</p>
                 )}
               </div>
             </div>
           )}
         </div>
 
-        <div className="flex items-center justify-between px-6 py-4 border-t border-falcon-border">
+        <div className="flex items-center justify-between px-6 py-4 border-t border-[#1e2d42]">
           {showResetConfirm ? (
             <div className="flex items-center gap-3">
               <p className="text-amber-400 text-sm">本当にベースラインをリセットしますか？</p>
               <button
                 onClick={() => setShowResetConfirm(false)}
-                className="px-3 py-1.5 bg-falcon-red hover:bg-[#c0001f] text-white text-xs rounded-lg transition-colors"
+                className="px-3 py-1.5 bg-[#e8002d] hover:bg-[#c0001f] text-white text-xs rounded-lg transition-colors"
               >
                 リセット実行
               </button>
-              <button onClick={() => setShowResetConfirm(false)} className="text-falcon-muted hover:text-white text-xs transition-colors">
+              <button onClick={() => setShowResetConfirm(false)} className="text-[#7d92b0] hover:text-white text-xs transition-colors">
                 キャンセル
               </button>
             </div>
@@ -476,7 +478,7 @@ function DetailModal({ endpoint, onClose }: { endpoint: EndpointBaseline; onClos
               ベースラインをリセット
             </button>
           )}
-          <button onClick={onClose} className="px-4 py-2 text-sm text-falcon-muted hover:text-white transition-colors">閉じる</button>
+          <button onClick={onClose} className="px-4 py-2 text-sm text-[#7d92b0] hover:text-white transition-colors">閉じる</button>
         </div>
       </div>
     </div>
@@ -494,16 +496,16 @@ function ConfigCard({ config, onChange }: { config: BaselineConfig; onChange: (c
   })
 
   return (
-    <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
+    <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <Settings className="w-4 h-4 text-falcon-red" />
+          <Settings className="w-4 h-4 text-[#e8002d]" />
           <h2 className="text-white font-semibold">ベースライン設定</h2>
         </div>
         <button
           onClick={() => mutate(config)}
           disabled={isPending}
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-falcon-red hover:bg-[#c0001f] disabled:opacity-50 text-white text-xs rounded-lg transition-colors"
+          className="flex items-center gap-1.5 px-3 py-1.5 bg-[#e8002d] hover:bg-[#c0001f] disabled:opacity-50 text-white text-xs rounded-lg transition-colors"
         >
           {isPending ? <RefreshCw className="w-3 h-3 animate-spin" /> : null}
           {isPending ? '保存中...' : '設定を保存'}
@@ -512,48 +514,48 @@ function ConfigCard({ config, onChange }: { config: BaselineConfig; onChange: (c
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
         <div>
           <div className="flex items-center justify-between mb-2">
-            <label className="text-falcon-muted text-sm">学習期間</label>
+            <label className="text-[#7d92b0] text-sm">学習期間</label>
             <span className="text-white font-medium text-sm">{config.learning_period_days}日</span>
           </div>
           <input
             type="range" min={7} max={90} step={1}
             value={config.learning_period_days}
             onChange={e => onChange({ ...config, learning_period_days: Number(e.target.value) })}
-            className="w-full accent-falcon-red"
+            className="w-full accent-[#e8002d]"
           />
-          <div className="flex justify-between text-falcon-subtle text-xs mt-1">
+          <div className="flex justify-between text-[#3d5068] text-xs mt-1">
             <span>7日</span><span>90日</span>
           </div>
         </div>
         <div>
           <div className="flex items-center justify-between mb-2">
-            <label className="text-falcon-muted text-sm">信頼度閾値</label>
+            <label className="text-[#7d92b0] text-sm">信頼度閾値</label>
             <span className="text-white font-medium text-sm">{(config.confidence_threshold * 100).toFixed(0)}%</span>
           </div>
           <input
             type="range" min={50} max={99} step={1}
             value={Math.round(config.confidence_threshold * 100)}
             onChange={e => onChange({ ...config, confidence_threshold: Number(e.target.value) / 100 })}
-            className="w-full accent-falcon-red"
+            className="w-full accent-[#e8002d]"
           />
-          <div className="flex justify-between text-falcon-subtle text-xs mt-1">
+          <div className="flex justify-between text-[#3d5068] text-xs mt-1">
             <span>50%</span><span>99%</span>
           </div>
         </div>
-        <div className="flex items-center justify-between bg-[#070d19] border border-falcon-border rounded-lg px-4 py-3">
+        <div className="flex items-center justify-between bg-[#070d19] border border-[#1e2d42] rounded-lg px-4 py-3">
           <div>
             <p className="text-white text-sm">逸脱時自動アラート</p>
-            <p className="text-falcon-muted text-xs mt-0.5">ベースライン逸脱を検出したら自動でアラートを発生</p>
+            <p className="text-[#7d92b0] text-xs mt-0.5">ベースライン逸脱を検出したら自動でアラートを発生</p>
           </div>
           <button onClick={() => onChange({ ...config, auto_alert_on_deviation: !config.auto_alert_on_deviation })}>
             {config.auto_alert_on_deviation
-              ? <ToggleRight className="w-8 h-8 text-falcon-red" />
-              : <ToggleLeft className="w-8 h-8 text-falcon-subtle" />
+              ? <ToggleRight className="w-8 h-8 text-[#e8002d]" />
+              : <ToggleLeft className="w-8 h-8 text-[#3d5068]" />
             }
           </button>
         </div>
         <div>
-          <label className="text-falcon-muted text-sm mb-2 block">逸脱感度</label>
+          <label className="text-[#7d92b0] text-sm mb-2 block">逸脱感度</label>
           <div className="grid grid-cols-4 gap-1.5">
             {(['low', 'medium', 'high', 'critical'] as DeviationSensitivity[]).map(s => (
               <button
@@ -561,8 +563,8 @@ function ConfigCard({ config, onChange }: { config: BaselineConfig; onChange: (c
                 onClick={() => onChange({ ...config, deviation_sensitivity: s })}
                 className={`py-1.5 rounded-lg border text-xs font-medium transition-all ${
                   config.deviation_sensitivity === s
-                    ? 'border-falcon-red/50 bg-falcon-red/20 text-white'
-                    : 'border-falcon-border bg-[#070d19] text-falcon-muted hover:border-falcon-muted/40'
+                    ? 'border-[#e8002d]/50 bg-[#e8002d]/20 text-white'
+                    : 'border-[#1e2d42] bg-[#070d19] text-[#7d92b0] hover:border-[#7d92b0]/40'
                 }`}
               >
                 {s === 'low' ? '低' : s === 'medium' ? '中' : s === 'high' ? '高' : '最高'}
@@ -583,16 +585,16 @@ export default function BehavioralBaselinePage() {
   const [selectedEndpoint, setSelectedEndpoint] = useState<EndpointBaseline | null>(null)
   const [filterStatus, setFilterStatus] = useState<BaselineStatus | 'all'>('all')
 
-  const { data: configData } = useQuery<BaselineConfig>({
+  const { data: configData = DEFAULT_CONFIG } = useQuery<BaselineConfig>({
     queryKey: ['baseline-config'],
-    queryFn: () => apiFetch<BaselineConfig>('/api/v1/endpoints/baselines/config').catch(() => DEFAULT_CONFIG),
+    queryFn: () => apiFetch<BaselineConfig>('/api/v1/endpoints/baselines/config'),
     staleTime: 60_000,
   })
   useEffect(() => { if (configData) setConfig(configData) }, [configData])
 
   const { data: baselinesData } = useQuery<EndpointBaseline[] | null>({
     queryKey: ['baselines'],
-    queryFn: () => apiFetchList<EndpointBaseline>('/api/v1/endpoints/baselines').catch(() => null),
+    queryFn: () => apiFetchList<EndpointBaseline>('/api/v1/endpoints/baselines'),
     staleTime: 60_000,
   })
 
@@ -636,30 +638,31 @@ export default function BehavioralBaselinePage() {
 
   return (
     <div className="min-h-screen bg-[#070d19] p-6 space-y-6">
+      <PageDataUnavailable />
 
       {/* ── Header ── */}
       <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-lg bg-falcon-red/20 border border-falcon-red/30 flex items-center justify-center">
-          <Brain className="w-5 h-5 text-falcon-red" />
+        <div className="w-10 h-10 rounded-lg bg-[#e8002d]/20 border border-[#e8002d]/30 flex items-center justify-center">
+          <Brain className="w-5 h-5 text-[#e8002d]" />
         </div>
         <div>
           <h1 className="text-white font-bold text-xl">エンドポイント行動ベースライン</h1>
-          <p className="text-falcon-muted text-sm">Endpoint Behavioral Baseline Learning</p>
+          <p className="text-[#7d92b0] text-sm">Endpoint Behavioral Baseline Learning</p>
         </div>
       </div>
 
       {/* ── Learning Status Overview ── */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         {[
-          { label: '総エンドポイント', value: stats.total, icon: Monitor, color: 'text-falcon-red', sub: '管理対象' },
+          { label: '総エンドポイント', value: stats.total, icon: Monitor, color: 'text-[#e8002d]', sub: '管理対象' },
           { label: 'ベースライン確立', value: stats.established, icon: CheckCircle2, color: 'text-green-400', sub: `${Math.round(stats.established / stats.total * 100)}%` },
           { label: '学習中', value: stats.learning, icon: Brain, color: 'text-blue-400', sub: 'データ収集中' },
-          { label: '本日の異常検知', value: stats.anomalous_today, icon: AlertTriangle, color: 'text-falcon-red', sub: '逸脱イベント' },
+          { label: '本日の異常検知', value: stats.anomalous_today, icon: AlertTriangle, color: 'text-[#e8002d]', sub: '逸脱イベント' },
         ].map(({ label, value, icon: Icon, color, sub }) => (
-          <div key={label} className="bg-falcon-surface border border-falcon-border rounded-xl p-4">
+          <div key={label} className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-4">
             <div className="flex items-center gap-2 mb-2">
               <Icon className={`w-4 h-4 ${color}`} />
-              <span className="text-falcon-muted text-xs">{label}</span>
+              <span className="text-[#7d92b0] text-xs">{label}</span>
             </div>
             <p className="text-white font-bold text-2xl">{value}</p>
             <p className={`text-xs mt-1 ${color}`}>{sub}</p>
@@ -671,8 +674,8 @@ export default function BehavioralBaselinePage() {
       <ConfigCard config={config} onChange={setConfig} />
 
       {/* ── Endpoints Table ── */}
-      <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
-        <div className="px-5 py-4 border-b border-falcon-border flex items-center justify-between flex-wrap gap-3">
+      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
+        <div className="px-5 py-4 border-b border-[#1e2d42] flex items-center justify-between flex-wrap gap-3">
           <h2 className="text-white font-semibold">エンドポイント ベースライン一覧</h2>
           <div className="flex items-center gap-2 flex-wrap">
             {(['all', 'established', 'learning', 'insufficient_data', 'anomalous'] as const).map(s => (
@@ -681,13 +684,13 @@ export default function BehavioralBaselinePage() {
                 onClick={() => setFilterStatus(s)}
                 className={`px-3 py-1.5 rounded-lg border text-xs font-medium transition-all ${
                   filterStatus === s
-                    ? 'border-falcon-red/50 bg-falcon-red/20 text-white'
-                    : 'border-falcon-border text-falcon-muted hover:border-falcon-muted/40'
+                    ? 'border-[#e8002d]/50 bg-[#e8002d]/20 text-white'
+                    : 'border-[#1e2d42] text-[#7d92b0] hover:border-[#7d92b0]/40'
                 }`}
               >
                 {s === 'all' ? 'すべて' : statusConfig[s].label}
                 {s !== 'all' && (
-                  <span className="ml-1 text-falcon-subtle">({endpoints.filter(e => e.baseline_status === s).length})</span>
+                  <span className="ml-1 text-[#3d5068]">({endpoints.filter(e => e.baseline_status === s).length})</span>
                 )}
               </button>
             ))}
@@ -696,25 +699,25 @@ export default function BehavioralBaselinePage() {
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-falcon-border">
+              <tr className="border-b border-[#1e2d42]">
                 {['ホスト名', 'OS', 'ステータス', '学習開始', 'データポイント', '最終更新', '異常数', '信頼度', '操作'].map(h => (
-                  <th key={h} className="text-left px-4 py-3 text-falcon-muted text-xs font-medium uppercase tracking-wider whitespace-nowrap">{h}</th>
+                  <th key={h} className="text-left px-4 py-3 text-[#7d92b0] text-xs font-medium uppercase tracking-wider whitespace-nowrap">{h}</th>
                 ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-falcon-border">
+            <tbody className="divide-y divide-[#1e2d42]">
               {filtered.map(ep => {
                 const sc = statusConfig[ep.baseline_status]
                 return (
                   <tr key={ep.id} className="hover:bg-[#0a1020] transition-colors">
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
-                        <Monitor className="w-4 h-4 text-falcon-subtle" />
+                        <Monitor className="w-4 h-4 text-[#3d5068]" />
                         <span className="text-white text-sm font-medium">{ep.hostname}</span>
                       </div>
                     </td>
                     <td className="px-4 py-3">
-                      <span className="text-falcon-muted text-sm">{ep.os}</span>
+                      <span className="text-[#7d92b0] text-sm">{ep.os}</span>
                     </td>
                     <td className="px-4 py-3">
                       <span className={`inline-flex items-center px-2 py-0.5 rounded-sm border text-xs font-medium ${sc.color}`}>
@@ -724,26 +727,26 @@ export default function BehavioralBaselinePage() {
                       </span>
                     </td>
                     <td className="px-4 py-3">
-                      <span className="text-falcon-muted text-xs">{ep.learning_started}</span>
+                      <span className="text-[#7d92b0] text-xs">{ep.learning_started}</span>
                     </td>
                     <td className="px-4 py-3">
                       <span className="text-white text-sm">{(ep.data_points_collected ?? 0).toLocaleString()}</span>
                     </td>
                     <td className="px-4 py-3">
-                      <span className="text-falcon-muted text-xs">
+                      <span className="text-[#7d92b0] text-xs">
                         {new Date(ep.last_updated).toLocaleString('ja-JP', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}
                       </span>
                     </td>
                     <td className="px-4 py-3">
                       {ep.anomaly_count > 0 ? (
-                        <span className="text-falcon-red font-semibold">{ep.anomaly_count}</span>
+                        <span className="text-[#e8002d] font-semibold">{ep.anomaly_count}</span>
                       ) : (
                         <span className="text-green-400">0</span>
                       )}
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
-                        <div className="w-12 h-1.5 bg-falcon-border rounded-full overflow-hidden">
+                        <div className="w-12 h-1.5 bg-[#1e2d42] rounded-full overflow-hidden">
                           <div
                             className="h-full rounded-full"
                             style={{
@@ -752,13 +755,13 @@ export default function BehavioralBaselinePage() {
                             }}
                           />
                         </div>
-                        <span className="text-falcon-muted text-xs">{ep.confidence_score}%</span>
+                        <span className="text-[#7d92b0] text-xs">{ep.confidence_score}%</span>
                       </div>
                     </td>
                     <td className="px-4 py-3">
                       <button
                         onClick={() => setSelectedEndpoint(ep)}
-                        className="flex items-center gap-1 px-2.5 py-1 bg-falcon-border hover:bg-[#263d5a] text-falcon-muted hover:text-white text-xs rounded-lg transition-colors"
+                        className="flex items-center gap-1 px-2.5 py-1 bg-[#1e2d42] hover:bg-[#263d5a] text-[#7d92b0] hover:text-white text-xs rounded-lg transition-colors"
                       >
                         <Eye className="w-3 h-3" />
                         詳細
@@ -773,17 +776,17 @@ export default function BehavioralBaselinePage() {
       </div>
 
       {/* ── Baseline Quality Metrics ── */}
-      <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
-        <div className="px-5 py-4 border-b border-falcon-border flex items-center gap-2">
-          <TrendingUp className="w-4 h-4 text-falcon-red" />
+      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
+        <div className="px-5 py-4 border-b border-[#1e2d42] flex items-center gap-2">
+          <TrendingUp className="w-4 h-4 text-[#e8002d]" />
           <h2 className="text-white font-semibold">ベースライン品質メトリクス</h2>
         </div>
         <div className="p-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {endpoints.filter(e => e.baseline_status === 'established' || e.baseline_status === 'anomalous').slice(0, 6).map(ep => (
-            <div key={ep.id} className="bg-[#070d19] border border-falcon-border rounded-lg p-4">
+            <div key={ep.id} className="bg-[#070d19] border border-[#1e2d42] rounded-lg p-4">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-white text-sm font-medium">{ep.hostname}</span>
-                <span className={`text-xs font-bold ${ep.confidence_score >= 80 ? 'text-green-400' : ep.confidence_score >= 50 ? 'text-amber-400' : 'text-falcon-red'}`}>
+                <span className={`text-xs font-bold ${ep.confidence_score >= 80 ? 'text-green-400' : ep.confidence_score >= 50 ? 'text-amber-400' : 'text-[#e8002d]'}`}>
                   {ep.confidence_score}%
                 </span>
               </div>
@@ -795,10 +798,10 @@ export default function BehavioralBaselinePage() {
                 ].map(({ label, value }) => (
                   <div key={label}>
                     <div className="flex justify-between text-xs mb-0.5">
-                      <span className="text-falcon-muted">{label}</span>
+                      <span className="text-[#7d92b0]">{label}</span>
                       <span className="text-white">{value}%</span>
                     </div>
-                    <div className="h-1 bg-falcon-border rounded-full overflow-hidden">
+                    <div className="h-1 bg-[#1e2d42] rounded-full overflow-hidden">
                       <div
                         className="h-full rounded-full transition-all"
                         style={{

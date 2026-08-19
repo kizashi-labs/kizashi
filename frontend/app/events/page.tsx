@@ -12,6 +12,8 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from 'recharts'
 
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+
 interface EventRow {
   id: string
   agent_id: string
@@ -144,39 +146,39 @@ function QueryBuilder({ onApply }: { onApply: (kql: string) => void }) {
   const kql = buildKQL(conditions, logic)
 
   return (
-    <div className="bg-falcon-card rounded-xl border border-falcon-border overflow-hidden">
+    <div className="bg-[#111827] rounded-xl border border-[#1e2d42] overflow-hidden">
       <button
         onClick={() => setOpen(o => !o)}
-        className="w-full flex items-center gap-2 px-4 py-3 hover:bg-falcon-hover/40 transition-colors"
+        className="w-full flex items-center gap-2 px-4 py-3 hover:bg-[#19253d]/40 transition-colors"
       >
-        <Sliders className="w-4 h-4 text-falcon-blue" />
+        <Sliders className="w-4 h-4 text-[#1a6bff]" />
         <span className="text-sm font-medium text-[#8899aa]">クエリビルダー</span>
-        <span className="text-xs text-falcon-subtle ml-1">（高度なフィルター）</span>
+        <span className="text-xs text-[#3d5068] ml-1">（高度なフィルター）</span>
         {kql && (
-          <span className="ml-2 text-[10px] bg-falcon-blue/15 text-falcon-blue border border-falcon-blue/30 px-2 py-0.5 rounded-sm font-mono truncate max-w-xs">
+          <span className="ml-2 text-[10px] bg-[#1a6bff]/15 text-[#1a6bff] border border-[#1a6bff]/30 px-2 py-0.5 rounded-sm font-mono truncate max-w-xs">
             {kql}
           </span>
         )}
         <div className="ml-auto">
           {open
-            ? <ChevronUp className="w-4 h-4 text-falcon-subtle" />
-            : <ChevronDown className="w-4 h-4 text-falcon-subtle" />}
+            ? <ChevronUp className="w-4 h-4 text-[#3d5068]" />
+            : <ChevronDown className="w-4 h-4 text-[#3d5068]" />}
         </div>
       </button>
 
       {open && (
-        <div className="px-4 pb-4 border-t border-falcon-border pt-3 space-y-3">
+        <div className="px-4 pb-4 border-t border-[#1e2d42] pt-3 space-y-3">
           {/* Logic toggle */}
           <div className="flex items-center gap-2">
-            <span className="text-xs text-falcon-muted">条件の結合:</span>
+            <span className="text-xs text-[#7d92b0]">条件の結合:</span>
             {(['AND', 'OR'] as const).map(l => (
               <button
                 key={l}
                 onClick={() => setLogic(l)}
-                className={`px-3 py-1 rounded text-xs font-mono font-bold transition-colors ${
+                className={`px-3 py-1 rounded-sm text-xs font-mono font-bold transition-colors ${
                   logic === l
-                    ? 'bg-falcon-blue text-white'
-                    : 'bg-falcon-raised text-falcon-muted hover:bg-falcon-active'
+                    ? 'bg-[#1a6bff] text-white'
+                    : 'bg-[#161f33] text-[#7d92b0] hover:bg-[#1d2f4a]'
                 }`}
               >
                 {l}
@@ -189,7 +191,7 @@ function QueryBuilder({ onApply }: { onApply: (kql: string) => void }) {
             {conditions.map((cond, idx) => (
               <div key={cond.id} className="flex items-center gap-2 flex-wrap">
                 {idx > 0 && (
-                  <span className="text-[10px] text-falcon-subtle font-mono font-bold w-8 text-center">
+                  <span className="text-[10px] text-[#3d5068] font-mono font-bold w-8 text-center">
                     {logic}
                   </span>
                 )}
@@ -197,14 +199,14 @@ function QueryBuilder({ onApply }: { onApply: (kql: string) => void }) {
                 <select
                   value={cond.field}
                   onChange={e => updateCond(cond.id, { field: e.target.value })}
-                  className="bg-falcon-bg border border-falcon-border rounded-sm px-2 py-1.5 text-white text-xs focus:outline-hidden focus:border-falcon-blue min-w-0"
+                  className="bg-[#080c14] border border-[#1e2d42] rounded-sm px-2 py-1.5 text-white text-xs focus:outline-hidden focus:border-[#1a6bff] min-w-0"
                 >
                   {QB_FIELDS.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
                 </select>
                 <select
                   value={cond.op}
                   onChange={e => updateCond(cond.id, { op: e.target.value })}
-                  className="bg-falcon-bg border border-falcon-border rounded-sm px-2 py-1.5 text-white text-xs focus:outline-hidden focus:border-falcon-blue min-w-0"
+                  className="bg-[#080c14] border border-[#1e2d42] rounded-sm px-2 py-1.5 text-white text-xs focus:outline-hidden focus:border-[#1a6bff] min-w-0"
                 >
                   {QB_OPERATORS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                 </select>
@@ -213,13 +215,12 @@ function QueryBuilder({ onApply }: { onApply: (kql: string) => void }) {
                   value={cond.value}
                   onChange={e => updateCond(cond.id, { value: e.target.value })}
                   placeholder="値を入力..."
-                  className="flex-1 min-w-32 bg-falcon-bg border border-falcon-border rounded px-2 py-1.5 text-white text-xs
-                             placeholder:text-falcon-subtle focus:outline-hidden focus:border-falcon-blue font-mono"
+                  className="flex-1 min-w-32 bg-[#080c14] border border-[#1e2d42] rounded-sm px-2 py-1.5 text-white text-xs placeholder:text-[#3d5068] focus:outline-hidden focus:border-[#1a6bff] font-mono"
                 />
                 <button
                   onClick={() => removeCond(cond.id)}
                   disabled={conditions.length === 1}
-                  className="text-falcon-subtle hover:text-falcon-red transition-colors disabled:opacity-30"
+                  className="text-[#3d5068] hover:text-[#e8002d] transition-colors disabled:opacity-30"
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>
@@ -231,7 +232,7 @@ function QueryBuilder({ onApply }: { onApply: (kql: string) => void }) {
           {conditions.length < 5 && (
             <button
               onClick={addCond}
-              className="flex items-center gap-1.5 text-xs text-falcon-subtle hover:text-falcon-muted transition-colors"
+              className="flex items-center gap-1.5 text-xs text-[#3d5068] hover:text-[#7d92b0] transition-colors"
             >
               <Plus className="w-3 h-3" />
               条件を追加
@@ -239,25 +240,24 @@ function QueryBuilder({ onApply }: { onApply: (kql: string) => void }) {
           )}
 
           {/* KQL preview + Apply */}
-          <div className="flex items-center gap-3 pt-2 border-t border-falcon-border">
-            <div className="flex-1 flex items-center gap-2 bg-falcon-bg border border-falcon-border rounded-sm px-2 py-1.5 min-w-0">
-              <Code2 className="w-3 h-3 text-falcon-subtle shrink-0" />
-              <span className="text-[10px] font-mono text-falcon-subtle truncate">
+          <div className="flex items-center gap-3 pt-2 border-t border-[#1e2d42]">
+            <div className="flex-1 flex items-center gap-2 bg-[#080c14] border border-[#1e2d42] rounded-sm px-2 py-1.5 min-w-0">
+              <Code2 className="w-3 h-3 text-[#3d5068] shrink-0" />
+              <span className="text-[10px] font-mono text-[#3d5068] truncate">
                 {kql || '(条件を入力してください)'}
               </span>
             </div>
             <button
               onClick={() => { onApply(kql); setOpen(false) }}
               disabled={!kql}
-              className="flex items-center gap-1.5 px-4 py-1.5 bg-falcon-blue hover:bg-[#1557d4] disabled:opacity-40
-                         text-white text-xs font-medium rounded transition-colors"
+              className="flex items-center gap-1.5 px-4 py-1.5 bg-[#1a6bff] hover:bg-[#1557d4] disabled:opacity-40 text-white text-xs font-medium rounded-sm transition-colors"
             >
               <Search className="w-3 h-3" />
               適用
             </button>
             <button
               onClick={() => { onApply(''); setConditions([{ id: '1', field: 'event_type', op: 'eq', value: '' }]) }}
-              className="text-xs text-falcon-subtle hover:text-falcon-muted transition-colors"
+              className="text-xs text-[#3d5068] hover:text-[#7d92b0] transition-colors"
             >
               リセット
             </button>
@@ -570,6 +570,7 @@ function EventsContent() {
 
   return (
     <div className="p-6 space-y-6">
+      <PageDataUnavailable />
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div>
@@ -590,7 +591,7 @@ function EventsContent() {
             className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors border ${
               liveEnabled
                 ? 'bg-green-900/30 border-green-700/50 text-green-300 hover:bg-green-900/50'
-                : 'bg-falcon-raised border-falcon-border text-[#8899aa] hover:bg-falcon-active'
+                : 'bg-[#161f33] border-[#1e2d42] text-[#8899aa] hover:bg-[#1d2f4a]'
             }`}
           >
             {liveEnabled ? (
@@ -619,16 +620,14 @@ function EventsContent() {
           <button
             onClick={exportCSV}
             disabled={events.length === 0}
-            className="flex items-center gap-1.5 px-3 py-2 bg-falcon-raised hover:bg-falcon-active
-                       text-[#8899aa] text-sm rounded-lg transition-colors disabled:opacity-40"
+            className="flex items-center gap-1.5 px-3 py-2 bg-[#161f33] hover:bg-[#1d2f4a] text-[#8899aa] text-sm rounded-lg transition-colors disabled:opacity-40"
           >
             <Download className="w-4 h-4" />CSV
           </button>
           <button
             onClick={() => refetch()}
             disabled={isFetching}
-            className="flex items-center gap-2 px-4 py-2 bg-falcon-raised hover:bg-falcon-active
-                       text-white text-sm rounded-lg transition-colors disabled:opacity-50"
+            className="flex items-center gap-2 px-4 py-2 bg-[#161f33] hover:bg-[#1d2f4a] text-white text-sm rounded-lg transition-colors disabled:opacity-50"
           >
             <RefreshCw className={`w-4 h-4 ${isFetching ? 'animate-spin' : ''}`} />
             更新
@@ -657,7 +656,7 @@ function EventsContent() {
 
       {/* Event Rate Graph (shown when live is active) */}
       {liveEnabled && (
-        <div className="bg-falcon-card rounded-xl border border-falcon-border p-4">
+        <div className="bg-[#111827] rounded-xl border border-[#1e2d42] p-4">
           <div className="flex items-center justify-between mb-2">
             <h2 className="text-sm font-medium text-[#8899aa] flex items-center gap-2">
               <Activity className="w-4 h-4 text-green-400" />
@@ -670,7 +669,7 @@ function EventsContent() {
       )}
 
       {/* Event Type Heatmap (always shown) */}
-      <div className="bg-falcon-card rounded-xl border border-falcon-border p-4">
+      <div className="bg-[#111827] rounded-xl border border-[#1e2d42] p-4">
         <div className="flex items-center gap-2 mb-3">
           <h2 className="text-sm font-medium text-[#8899aa]">
             イベントタイプ別ヒートマップ（時間帯別）
@@ -690,7 +689,7 @@ function EventsContent() {
       </div>
 
       {/* Timeline chart */}
-      <div className="bg-falcon-card rounded-xl border border-falcon-border p-4">
+      <div className="bg-[#111827] rounded-xl border border-[#1e2d42] p-4">
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-sm font-medium text-[#8899aa] flex items-center gap-2">
             <Activity className="w-4 h-4 text-blue-400" />
@@ -701,10 +700,10 @@ function EventsContent() {
               <button
                 key={iv}
                 onClick={() => setChartInterval(iv)}
-                className={`px-2 py-1 text-xs rounded transition-colors ${
+                className={`px-2 py-1 text-xs rounded-sm transition-colors ${
                   chartInterval === iv
-                    ? 'bg-falcon-blue text-white'
-                    : 'bg-falcon-raised text-[#8899aa] hover:bg-falcon-active'
+                    ? 'bg-[#1a6bff] text-white'
+                    : 'bg-[#161f33] text-[#8899aa] hover:bg-[#1d2f4a]'
                 }`}
               >
                 {iv}
@@ -758,14 +757,13 @@ function EventsContent() {
       </div>
 
       {/* Filters */}
-      <div className="bg-falcon-card rounded-xl border border-falcon-border p-4">
+      <div className="bg-[#111827] rounded-xl border border-[#1e2d42] p-4">
         <div className="flex items-center justify-between gap-2 mb-3">
           <div className="flex items-center gap-2">
             <Filter className="w-4 h-4 text-[#8899aa]" />
             <span className="text-[#8899aa] text-sm font-medium">フィルター</span>
             {qbSearch && (
-              <span className="text-[10px] bg-falcon-blue/15 text-falcon-blue border border-falcon-blue/30
-                               px-2 py-0.5 rounded font-mono flex items-center gap-1">
+              <span className="text-[10px] bg-[#1a6bff]/15 text-[#1a6bff] border border-[#1a6bff]/30 px-2 py-0.5 rounded-sm font-mono flex items-center gap-1">
                 <Code2 className="w-3 h-3" />
                 クエリビルダー適用中
               </span>
@@ -774,7 +772,7 @@ function EventsContent() {
           {hasFilters && (
             <button
               onClick={clearFilters}
-              className="flex items-center gap-1 text-xs text-[#8899aa] hover:text-falcon-text transition-colors"
+              className="flex items-center gap-1 text-xs text-[#8899aa] hover:text-[#e2e8f4] transition-colors"
             >
               <X className="w-3 h-3" />
               クリア
@@ -790,8 +788,7 @@ function EventsContent() {
               onChange={e => setAgentId(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && handleSearch()}
               placeholder="UUID または空欄（すべて）"
-              className="w-full bg-falcon-bg text-white px-3 py-2 rounded-lg border border-falcon-border
-                         text-sm placeholder-[#5a6a7a] focus:outline-hidden focus:border-falcon-blue font-mono"
+              className="w-full bg-[#080c14] text-white px-3 py-2 rounded-lg border border-[#1e2d42] text-sm placeholder-[#5a6a7a] focus:outline-hidden focus:border-[#1a6bff] font-mono"
             />
           </div>
           <div>
@@ -799,8 +796,7 @@ function EventsContent() {
             <select
               value={eventType}
               onChange={e => { setEventType(e.target.value); setPage(1) }}
-              className="bg-falcon-bg text-white px-3 py-2 rounded-lg border border-falcon-border
-                         text-sm focus:outline-hidden focus:border-falcon-blue"
+              className="bg-[#080c14] text-white px-3 py-2 rounded-lg border border-[#1e2d42] text-sm focus:outline-hidden focus:border-[#1a6bff]"
             >
               <option value="">すべてのタイプ</option>
               {EVENT_TYPES.filter(Boolean).map(t => (
@@ -818,8 +814,7 @@ function EventsContent() {
                 onChange={e => setSearch(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && handleSearch()}
                 placeholder="IPアドレス、ファイル名、コマンド..."
-                className="w-full pl-8 pr-3 bg-falcon-bg text-white py-2 rounded-lg border border-falcon-border
-                           text-sm placeholder-[#5a6a7a] focus:outline-hidden focus:border-falcon-blue"
+                className="w-full pl-8 pr-3 bg-[#080c14] text-white py-2 rounded-lg border border-[#1e2d42] text-sm placeholder-[#5a6a7a] focus:outline-hidden focus:border-[#1a6bff]"
               />
             </div>
           </div>
@@ -829,8 +824,7 @@ function EventsContent() {
               type="date"
               value={fromDate}
               onChange={e => { setFromDate(e.target.value); setPage(1) }}
-              className="bg-falcon-bg text-white px-3 py-2 rounded-lg border border-falcon-border
-                         text-sm focus:outline-hidden focus:border-falcon-blue"
+              className="bg-[#080c14] text-white px-3 py-2 rounded-lg border border-[#1e2d42] text-sm focus:outline-hidden focus:border-[#1a6bff]"
             />
           </div>
           <div>
@@ -839,15 +833,13 @@ function EventsContent() {
               type="date"
               value={toDate}
               onChange={e => { setToDate(e.target.value); setPage(1) }}
-              className="bg-falcon-bg text-white px-3 py-2 rounded-lg border border-falcon-border
-                         text-sm focus:outline-hidden focus:border-falcon-blue"
+              className="bg-[#080c14] text-white px-3 py-2 rounded-lg border border-[#1e2d42] text-sm focus:outline-hidden focus:border-[#1a6bff]"
             />
           </div>
           <div className="flex items-end">
             <button
               onClick={handleSearch}
-              className="flex items-center gap-2 px-4 py-2 bg-falcon-blue text-white rounded-lg
-                         hover:bg-[#1557d4] transition-colors text-sm"
+              className="flex items-center gap-2 px-4 py-2 bg-[#1a6bff] text-white rounded-lg hover:bg-[#1557d4] transition-colors text-sm"
             >
               <Search className="w-4 h-4" />
               検索
@@ -869,10 +861,10 @@ function EventsContent() {
       )}
 
       {/* Events table */}
-      <div className="bg-falcon-card rounded-xl border border-falcon-border overflow-hidden">
+      <div className="bg-[#111827] rounded-xl border border-[#1e2d42] overflow-hidden">
         {isLoading ? (
           <div className="flex items-center justify-center py-16">
-            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-falcon-blue" />
+            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-[#1a6bff]" />
           </div>
         ) : events.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-[#5a6a7a]">
@@ -882,14 +874,13 @@ function EventsContent() {
           </div>
         ) : (
           <div>
-            <div className="grid grid-cols-[1fr_auto_auto_auto] gap-0 border-b border-falcon-border
-                            px-4 py-3 text-xs font-medium text-[#8899aa]">
+            <div className="grid grid-cols-[1fr_auto_auto_auto] gap-0 border-b border-[#1e2d42] px-4 py-3 text-xs font-medium text-[#8899aa]">
               <span>タイムスタンプ / エージェント</span>
               <span className="px-4">タイプ</span>
               <span className="px-4">概要</span>
               <span className="w-6" />
             </div>
-            <div className="divide-y divide-falcon-border">
+            <div className="divide-y divide-[#1e2d42]">
               {events.map((event, idx) => {
                 const isNew = liveEnabled && idx < liveEvents.length
                 return (
@@ -913,8 +904,7 @@ function EventsContent() {
           <button
             onClick={() => setPage(p => Math.max(1, p - 1))}
             disabled={page === 1}
-            className="px-4 py-2 bg-falcon-raised text-[#8899aa] rounded-lg text-sm
-                       disabled:opacity-40 hover:bg-falcon-active transition-colors"
+            className="px-4 py-2 bg-[#161f33] text-[#8899aa] rounded-lg text-sm disabled:opacity-40 hover:bg-[#1d2f4a] transition-colors"
           >
             前へ
           </button>
@@ -924,8 +914,7 @@ function EventsContent() {
           <button
             onClick={() => setPage(p => p + 1)}
             disabled={!data?.has_more}
-            className="px-4 py-2 bg-falcon-raised text-[#8899aa] rounded-lg text-sm
-                       disabled:opacity-40 hover:bg-falcon-active transition-colors"
+            className="px-4 py-2 bg-[#161f33] text-[#8899aa] rounded-lg text-sm disabled:opacity-40 hover:bg-[#1d2f4a] transition-colors"
           >
             次へ
           </button>
@@ -943,19 +932,17 @@ function EventRowItem({ event, expanded, onToggle, isLive }: {
 }) {
   const raw = event.raw_data ?? {}
   const summary = getSummary(event.event_type, raw)
-  const typeColor = TYPE_COLORS[event.event_type] ?? 'bg-falcon-raised text-[#8899aa]'
+  const typeColor = TYPE_COLORS[event.event_type] ?? 'bg-[#161f33] text-[#8899aa]'
 
   return (
     <div className={isLive ? 'border-l-2 border-green-600/60' : ''}>
       <button
         onClick={onToggle}
-        className="w-full grid grid-cols-[1fr_auto_auto_auto] gap-0 px-4 py-3
-                   hover:bg-falcon-raised transition-colors text-left"
+        className="w-full grid grid-cols-[1fr_auto_auto_auto] gap-0 px-4 py-3 hover:bg-[#161f33] transition-colors text-left"
       >
         <div className="flex items-center gap-2">
           {isLive && (
-            <span className="text-[10px] bg-green-900/40 text-green-400 border border-green-700/40
-                             px-1.5 py-0.5 rounded font-mono font-bold shrink-0">
+            <span className="text-[10px] bg-green-900/40 text-green-400 border border-green-700/40 px-1.5 py-0.5 rounded-sm font-mono font-bold shrink-0">
               LIVE
             </span>
           )}
@@ -982,7 +969,7 @@ function EventRowItem({ event, expanded, onToggle, isLive }: {
       </button>
 
       {expanded && (
-        <div className="px-4 pb-4 bg-falcon-bg/50">
+        <div className="px-4 pb-4 bg-[#080c14]/50">
           <EventDetail eventType={event.event_type} raw={raw} />
         </div>
       )}
@@ -998,7 +985,7 @@ function Field({ label, value, mono }: { label: string; value?: unknown; mono?: 
   return (
     <div className="flex flex-col gap-0.5">
       <span className="text-[10px] text-[#5a6a7a] uppercase tracking-wider">{label}</span>
-      <span className={`text-xs text-falcon-text break-all ${mono ? 'font-mono' : ''}`}>{text}</span>
+      <span className={`text-xs text-[#e2e8f4] break-all ${mono ? 'font-mono' : ''}`}>{text}</span>
     </div>
   )
 }
@@ -1017,7 +1004,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 function RawJson({ raw }: { raw: Record<string, unknown> }) {
   const [open, setOpen] = useState(false)
   return (
-    <div className="mt-3 border-t border-falcon-border/60 pt-3">
+    <div className="mt-3 border-t border-[#1e2d42]/60 pt-3">
       <button
         onClick={() => setOpen(v => !v)}
         className="flex items-center gap-1 text-[10px] text-[#5a6a7a] hover:text-[#8899aa] transition-colors"
@@ -1026,8 +1013,7 @@ function RawJson({ raw }: { raw: Record<string, unknown> }) {
         生データ (JSON)
       </button>
       {open && (
-        <pre className="mt-2 text-xs text-[#8899aa] bg-falcon-bg rounded-lg p-4 overflow-auto
-                        font-mono leading-relaxed max-h-56">
+        <pre className="mt-2 text-xs text-[#8899aa] bg-[#080c14] rounded-lg p-4 overflow-auto font-mono leading-relaxed max-h-56">
           {JSON.stringify(raw, null, 2)}
         </pre>
       )}
@@ -1051,7 +1037,7 @@ function ProcessDetail({ raw }: { raw: Record<string, unknown> }) {
       {!!(raw.cmdline || raw.command_line) && (
         <div className="space-y-0.5">
           <span className="text-[10px] text-[#5a6a7a] uppercase tracking-wider">コマンドライン</span>
-          <p className="text-xs text-falcon-text font-mono break-all bg-falcon-bg rounded-sm px-2 py-1">
+          <p className="text-xs text-[#e2e8f4] font-mono break-all bg-[#080c14] rounded-sm px-2 py-1">
             {String(raw.cmdline ?? raw.command_line)}
           </p>
         </div>
@@ -1096,7 +1082,7 @@ function FileDetail({ raw }: { raw: Record<string, unknown> }) {
       {!!(raw.path || raw.file_path) && (
         <div className="space-y-0.5">
           <span className="text-[10px] text-[#5a6a7a] uppercase tracking-wider">パス</span>
-          <p className="text-xs text-falcon-text font-mono break-all bg-falcon-bg rounded-sm px-2 py-1">
+          <p className="text-xs text-[#e2e8f4] font-mono break-all bg-[#080c14] rounded-sm px-2 py-1">
             {String(raw.path ?? raw.file_path)}
           </p>
         </div>
@@ -1104,7 +1090,7 @@ function FileDetail({ raw }: { raw: Record<string, unknown> }) {
       {!!(raw.target_path || raw.new_path) && (
         <div className="space-y-0.5">
           <span className="text-[10px] text-[#5a6a7a] uppercase tracking-wider">移動先パス</span>
-          <p className="text-xs text-falcon-text font-mono break-all bg-falcon-bg rounded-sm px-2 py-1">
+          <p className="text-xs text-[#e2e8f4] font-mono break-all bg-[#080c14] rounded-sm px-2 py-1">
             {String(raw.target_path ?? raw.new_path)}
           </p>
         </div>
@@ -1127,7 +1113,7 @@ function DnsDetail({ raw }: { raw: Record<string, unknown> }) {
       {answers.length > 0 && (
         <div className="space-y-0.5">
           <span className="text-[10px] text-[#5a6a7a] uppercase tracking-wider">応答</span>
-          <p className="text-xs text-falcon-text font-mono bg-falcon-bg rounded-sm px-2 py-1">
+          <p className="text-xs text-[#e2e8f4] font-mono bg-[#080c14] rounded-sm px-2 py-1">
             {answers.map(a => (typeof a === 'object' ? JSON.stringify(a) : String(a))).join(', ')}
           </p>
         </div>
@@ -1148,7 +1134,7 @@ function RegistryDetail({ raw }: { raw: Record<string, unknown> }) {
       {!!(raw.key_path || raw.registry_key) && (
         <div className="space-y-0.5">
           <span className="text-[10px] text-[#5a6a7a] uppercase tracking-wider">キーパス</span>
-          <p className="text-xs text-falcon-text font-mono break-all bg-falcon-bg rounded-sm px-2 py-1">
+          <p className="text-xs text-[#e2e8f4] font-mono break-all bg-[#080c14] rounded-sm px-2 py-1">
             {String(raw.key_path ?? raw.registry_key)}
           </p>
         </div>
@@ -1201,7 +1187,7 @@ function EventDetail({ eventType, raw }: { eventType: string; raw: Record<string
     default:         body = <GenericDetail  raw={raw} />
   }
   return (
-    <div className="mt-1 rounded-lg border border-falcon-border bg-falcon-bg/70 p-4">
+    <div className="mt-1 rounded-lg border border-[#1e2d42] bg-[#080c14]/70 p-4">
       {body}
       <RawJson raw={raw} />
     </div>
@@ -1234,7 +1220,7 @@ export default function EventsPage() {
   return (
     <Suspense fallback={
       <div className="p-6 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-falcon-blue" />
+        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-[#1a6bff]" />
       </div>
     }>
       <EventsContent />

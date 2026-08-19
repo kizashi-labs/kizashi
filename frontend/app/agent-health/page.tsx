@@ -14,6 +14,8 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+
 // ── Types ─────────────────────────────────────────────────────────
 
 interface Agent {
@@ -191,7 +193,7 @@ function MiniGauge({ value, label, size = 56 }: { value: number; label: string; 
           {value}%
         </text>
       </svg>
-      <span className="text-falcon-muted text-xs">{label}</span>
+      <span className="text-[#7d92b0] text-xs">{label}</span>
     </div>
   )
 }
@@ -213,7 +215,7 @@ function AgentCard({ agent }: { agent: AgentWithScore }) {
             {agent.hostname || '—'}
           </p>
           {agent.os && (
-            <span className="inline-block mt-1 px-1.5 py-0.5 text-[10px] bg-falcon-border text-falcon-muted rounded-sm font-mono">
+            <span className="inline-block mt-1 px-1.5 py-0.5 text-[10px] bg-[#1e2d42] text-[#7d92b0] rounded-sm font-mono">
               {agent.os}
             </span>
           )}
@@ -243,7 +245,7 @@ function AgentCard({ agent }: { agent: AgentWithScore }) {
 
       {/* Footer */}
       <div className="mt-2 pt-2 border-t border-[#1e3050]">
-        <p className="text-[10px] text-falcon-muted truncate">
+        <p className="text-[10px] text-[#7d92b0] truncate">
           最終確認: {timeAgo(agent.last_seen)}
         </p>
       </div>
@@ -481,6 +483,7 @@ export default function AgentHealthPage() {
 
   return (
     <div className="min-h-screen bg-gray-900 p-6">
+      <PageDataUnavailable />
       <Toast toasts={toasts} onDismiss={dismissToast} />
 
       {/* ── Header ──────────────────────────────────────────────── */}
@@ -663,7 +666,7 @@ export default function AgentHealthPage() {
               <div className="flex items-center bg-gray-800 border border-gray-700 rounded-lg p-0.5">
                 <button
                   onClick={() => setViewMode('list')}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-medium transition-all ${
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-sm text-xs font-medium transition-all ${
                     viewMode === 'list'
                       ? 'bg-blue-600 text-white'
                       : 'text-gray-400 hover:text-white'
@@ -674,7 +677,7 @@ export default function AgentHealthPage() {
                 </button>
                 <button
                   onClick={() => setViewMode('grid')}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-medium transition-all ${
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-sm text-xs font-medium transition-all ${
                     viewMode === 'grid'
                       ? 'bg-blue-600 text-white'
                       : 'text-gray-400 hover:text-white'

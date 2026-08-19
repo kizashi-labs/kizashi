@@ -10,6 +10,9 @@ import {
 } from 'lucide-react'
 
 
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+import { PageSaveFailed } from '@/components/PageSaveFailed'
+
 // ── Types ──────────────────────────────────────────────────────────────────────
 
 type TrustLevel = 'high' | 'medium' | 'low' | 'untrusted'
@@ -300,6 +303,8 @@ export default function ZeroTrustPage() {
 
   return (
     <div className="p-6 space-y-6">
+      <PageDataUnavailable />
+      <PageSaveFailed className="mb-4" />
       {/* Modal */}
       {modalPolicy !== false && (
         <PolicyModal
