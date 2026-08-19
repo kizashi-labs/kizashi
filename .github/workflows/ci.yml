@@ -257,8 +257,16 @@ jobs:
           # same migrated postgres service so the integration suite actually runs.
           TEST_DATABASE_URL: postgres://edr:testpassword@localhost:5432/edrplatform_test
           NATS_URL: nats://localhost:4222
+        # 120s → 300s。**`-timeout` はテストバイナリ 1 つあたりの予算**で、
+        # internal/store がそこに届いた。実測 (2026-08-19, この PR の追加分込み,
+        # -race + カバレッジ計装あり): ローカルで 116.5s / 予算 120s ——
+        # 余裕 3%。CI ランナーはこれより遅いので超える。
+        #
+        # ハングではない（600s なら 116s で通る）。パッケージが正当に育った結果。
+        # **上げても本物のハングは捕まる**が、青天井にはしないこと: 300s に
+        # 届いたら、それは分割を考える合図であって、また上げる合図ではない。
         run: |
-          go test -race -timeout 120s \
+          go test -race -timeout 300s \
             -coverprofile=coverage.out -covermode=atomic \
             ./...
 

@@ -265,9 +265,19 @@ if wants server; then
           "NATS_URL 未設定 / 到達できません（テスト側が自分で Skip します）"
       fi
 
+      # ── このスクリプトで表現できない差 ────────────────────────────
+      # `-timeout` は**テストバイナリ 1 つあたり**の予算で、ci.yml と同じ値を
+      # 写している。だが**予算に間に合うかどうかは機械の速さで変わる。**
+      #
+      # 実際に踏んだ (2026-08-19): internal/store が手元 116.5s / 予算 120s で
+      # 通り、同じコードが CI では時間切れになった。前提の不足ではないので
+      # SKIP にはならず、**ここは緑のまま CI だけが赤くなる**。
+      #
+      # 予算に近づいたら、緑でも余裕を見ておくこと。go test は個々のパッケージ
+      # の秒数を出すので、`ok ... 1XXs` が予算の 8 割を超えていたら黄信号。
       gorun "go test (race, coverage)" server \
         env "TEST_DATABASE_URL=$TEST_DB_URL" ${NATS_ENV[@]+"${NATS_ENV[@]}"} \
-        go test -race -timeout 120s -coverprofile=coverage.out -covermode=atomic ./...
+        go test -race -timeout 300s -coverprofile=coverage.out -covermode=atomic ./...
 
       # ci.yml の「Synthetic injection E2E」。integration タグで上のユニット実行
       # から外してある別ステップで、作った event を本物の AlertPipeline に流して
