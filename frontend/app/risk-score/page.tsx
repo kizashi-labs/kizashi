@@ -593,7 +593,7 @@ export default function RiskScorePage() {
                 <Tooltip
                   contentStyle={TOOLTIP_STYLE}
                   labelStyle={{ color: '#fff' }}
-                  formatter={(value: number) => [`${value}`, 'リスクスコア']}
+                  formatter={(value) => [`${value}`, 'リスクスコア']}
                 />
                 <Line
                   type="monotone"
