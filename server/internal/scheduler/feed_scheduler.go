@@ -63,13 +63,13 @@ func (s *FeedScheduler) Run(ctx context.Context) {
 	defer ticker.Stop()
 	slog.Info("脅威フィードスケジューラー起動", "interval", s.interval)
 	// Run once on startup to handle feeds that became due while the server was offline.
-	s.processFeeds(ctx)
+	trackRun(ctx, "feed_scheduler", s.processFeeds)
 	for {
 		select {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			s.processFeeds(ctx)
+			trackRun(ctx, "feed_scheduler", s.processFeeds)
 		}
 	}
 }
