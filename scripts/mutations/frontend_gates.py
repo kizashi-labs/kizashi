@@ -5,7 +5,7 @@
   frontend/tests/lib/blank-noise.ts               （すべての判定の下ごしらえ）
   frontend/tests/lib/raw-fetch.test.ts            （素の fetch の応答確認）
   frontend/tests/lib/mutation-failure-surface.test.ts （保存の失敗を出す手段）
-  frontend/tests/lib/swallowed-reads.test.ts      （読み取りの失敗を答えにすり替える）
+  frontend/tests/lib/catch-scan.ts                （読み取りの失敗を答えにすり替える走査）
   frontend/tests/lib/silent-writes.test.ts        （書き込みの失敗を握りつぶす）
 
 `blank-noise.ts` を最初に置いているのは、**5本すべてがこれを通した後の
@@ -30,6 +30,13 @@ fetch の手前で切る行です。**判定は直っていましたが、それ
 丸ごと一緒に走ります** — 65秒かかるものを含めて。道具として import した
 テストファイルは、その実行を連れてきます。この仕様書を書くために時間を
 測って気づきました。
+
+**同じことが3組で残っていました (2026-08-19)。** swallowed-reads /
+mock-leak / server-routes が道具として import されており、走査が
+借りた側の収集のたびに動いていました。道具は catch-scan.ts /
+mock-scan.ts / route-scan.ts に出してあります。上の 3 件が
+`swallowed-reads.test.ts` ではなく `catch-scan.ts` を指しているのは
+そのためです。戻らないように no-test-imports.test.ts が見ています。
 """
 import os
 import sys
@@ -38,9 +45,9 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from mutate import Harness  # noqa: E402
 
 BN = 'frontend/tests/lib/blank-noise.ts'
+CS = 'frontend/tests/lib/catch-scan.ts'
 RF = 'frontend/tests/lib/raw-fetch.test.ts'
 MF = 'frontend/tests/lib/mutation-failure-surface.test.ts'
-SR = 'frontend/tests/lib/swallowed-reads.test.ts'
 SW = 'frontend/tests/lib/silent-writes.test.ts'
 
 CASES = [
@@ -81,11 +88,11 @@ CASES = [
      'コメントの中の onError を、手段として数える'),
 
     # ── 読み取りの失敗 ─────────────────────────────────────────────────────
-    (SR, 'const SWALLOWED_READ_CEILING = 3', 'const SWALLOWED_READ_CEILING = 30',
+    (CS, 'const SWALLOWED_READ_CEILING = 3', 'const SWALLOWED_READ_CEILING = 30',
      '読み取りを握りつぶす箇所の上限を上げる'),
-    (SR, 'const SWALLOWED_READ_CEILING = 3', 'const SWALLOWED_READ_CEILING = 0',
+    (CS, 'const SWALLOWED_READ_CEILING = 3', 'const SWALLOWED_READ_CEILING = 0',
      '上限が実測を下回っても言わなくなる、の逆確認'),
-    (SR, "  'app/status/page.tsx':\n    'サービス状態ページ。読めなかったこと自体がこの画面の出力です — ' +",
+    (CS, "  'app/status/page.tsx':\n    'サービス状態ページ。読めなかったこと自体がこの画面の出力です — ' +",
          "  'app/status/page.tsx.gone':\n    'サービス状態ページ。読めなかったこと自体がこの画面の出力です — ' +",
      '理由が、もう存在しないファイルを指している'),
 

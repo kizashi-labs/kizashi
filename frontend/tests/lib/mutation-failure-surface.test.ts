@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { readFileSync, readdirSync, statSync } from 'fs'
 import { join } from 'path'
 import { blankNoise } from './blank-noise'
-import { ceilingProblem } from './server-routes.test'
+import { ceilingProblem } from './route-scan'
 
 // 保存の失敗を出す手段を1つも持たない画面。
 //

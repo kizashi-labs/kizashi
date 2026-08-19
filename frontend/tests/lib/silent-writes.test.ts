@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { readFileSync, readdirSync, statSync } from 'fs'
 import { join } from 'path'
 import { blankNoise } from './blank-noise'
-import { chainedCatch, discardsError, inEmptyCatchBlock } from './swallowed-reads.test'
+import { chainedCatch, discardsError, inEmptyCatchBlock } from './catch-scan'
 
 // A write whose failure is thrown away.
 //

@@ -7,7 +7,7 @@ import { blankNoise } from './blank-noise'
 // 「Calling the suite function inside test function is not allowed」で落とす
 // （vitest 2 では通っていた）。backend-pending-coverage.test.ts は最初から
 // 先頭で静的に読んでおり、そちらに揃える。
-import { frontendCalls } from './server-routes.test'
+import { frontendCalls } from './route-scan'
 
 // 素の fetch() で API を叩いている箇所。
 //
