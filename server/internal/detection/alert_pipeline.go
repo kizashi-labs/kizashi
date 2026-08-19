@@ -927,7 +927,17 @@ func (p *AlertPipeline) insertAlert(ctx context.Context, params insertAlertParam
 			slog.Debug("alert_pipeline: アラートが抑制されました",
 				"suppression_rule", ruleName, "rule", params.RuleName, "agent", params.AgentID)
 			if p.suppressionHit != nil {
-				p.suppressionHit.IncrHitCount(ctx, ruleID)
+				// **この数は「効いていないルール」を見つけるためのものです。**
+				// 落ちるとヒット0のまま残り、実際は毎日抑制しているルールが
+				// 「もう要らない」と判断されます。store 側は error を返すだけで
+				// 何も報告しないので、捨てると本当に無音になります。
+				// 姉妹実装 (suppression.Engine.incrementHit) と同じ部品名に
+				// 出して、2 経路の件数が同じ場所に集まるようにします。
+				if err := p.suppressionHit.IncrHitCount(ctx, ruleID); err != nil {
+					metrics.BackgroundFailed("suppression_hit_count", err,
+						"抑制ルールのヒット数を更新できませんでした。効いているルールが0件に見えます",
+						"rule_id", ruleID)
+				}
 			}
 			return "", errAlertSuppressed
 		}
