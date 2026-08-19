@@ -68,7 +68,9 @@ func (h *CloudMonitorHandler) ListIntegrations(c *gin.Context) {
 		integrations = append(integrations, i)
 	}
 	if err := rows.Err(); err != nil {
-		slog.Warn("row iteration error", "error", err)
+		slog.Error("rows.Err: 結果の読み出しが途中で失敗しました", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "query failed"})
+		return
 	}
 	if integrations == nil {
 		integrations = []CloudIntegration{}
@@ -201,7 +203,9 @@ func (h *CloudMonitorHandler) ListEvents(c *gin.Context) {
 		events = append(events, e)
 	}
 	if err := rows.Err(); err != nil {
-		slog.Warn("row iteration error", "error", err)
+		slog.Error("rows.Err: 結果の読み出しが途中で失敗しました", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "query failed"})
+		return
 	}
 	if events == nil {
 		events = []CloudEvent{}

@@ -34,9 +34,27 @@ func callWithParams(t *testing.T, target string, params gin.Params, h gin.Handle
 	c, _ := gin.CreateTestContext(w)
 	c.Request = httptest.NewRequest(http.MethodGet, target, nil)
 	c.Params = params
+	stubAuthContext(c)
 	h(c)
 	return w.Code, w.Body.String()
 }
+
+// stubAuthContext puts what authMiddleware would put there.
+//
+// 多くのハンドラは `c.GetString("tenant_id")` を `WHERE tenant_id = $1::uuid`
+// にそのまま渡します。空文字は uuid として解釈できないので、置き忘れると
+// **ハンドラの中身に関係なく 500** になります。原因はハンドラではなく
+// この文脈なので、ここに1つだけ置いて全員が使います。
+func stubAuthContext(c *gin.Context) {
+	c.Set("user_id", stubUserID)
+	c.Set("tenant_id", stubTenantID)
+	c.Set("role", "admin")
+}
+
+const (
+	stubUserID   = "00000000-0000-0000-0000-000000000001"
+	stubTenantID = "00000000-0000-0000-0000-000000000001"
+)
 
 // seedAgentAndAlert は参照先のあるエージェントとアラートを 1 件ずつ用意する。
 func seedAgentAndAlert(t *testing.T, db *store.DB, agentID, alertID string) {

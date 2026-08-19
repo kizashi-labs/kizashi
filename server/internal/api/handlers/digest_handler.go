@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -133,6 +134,9 @@ func (h *DigestHandler) GetDigestHistory(c *gin.Context) {
 				"status":           status,
 			})
 		}
+		if err := rows.Err(); err != nil {
+			slog.Warn("GetDigestHistory: rows の読み取りが途中で終わりました。この区画は不完全です", "error", err)
+		}
 	}
 	c.JSON(http.StatusOK, history)
 }
@@ -142,8 +146,12 @@ func (h *DigestHandler) GetDigestStats(c *gin.Context) {
 	ctx := c.Request.Context()
 	var sentThisMonth int
 	var lastSent *time.Time
-	_ = h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM alert_digest_runs WHERE sent_at >= date_trunc('month', NOW())`).Scan(&sentThisMonth)
-	_ = h.pool.QueryRow(ctx, `SELECT MAX(sent_at) FROM alert_digest_runs`).Scan(&lastSent)
+	if !ReadOK(c, h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM alert_digest_runs WHERE sent_at >= date_trunc('month', NOW())`).Scan(&sentThisMonth)) {
+		return
+	}
+	if !ReadOK(c, h.pool.QueryRow(ctx, `SELECT MAX(sent_at) FROM alert_digest_runs`).Scan(&lastSent)) {
+		return
+	}
 
 	// Distinct recipients across daily+weekly config.
 	recipients := 0

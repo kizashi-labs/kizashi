@@ -584,6 +584,12 @@ func buildProcessEvent(pid uint32, action string) (collector.ProcessEvent, error
 func computeHashes(path string) collector.FileHashes {
 	f, err := os.Open(path)
 	if err != nil {
+		// 空のハッシュと「取れなかった」は、イベントに載ると同じ姿です。
+		// サーバのハッシュ IOC 照合は、一致しなかったのではなく照合する
+		// ものが無かったのに、黙って通します。
+		slog.Debug("プロセス実行ファイルのハッシュを取れませんでした。"+
+			"このイベントはハッシュ無しで送られ、ハッシュ IOC には当たりません",
+			"path", path, "error", err)
 		return collector.FileHashes{}
 	}
 	defer f.Close()
@@ -594,6 +600,9 @@ func computeHashes(path string) collector.FileHashes {
 
 	w := io.MultiWriter(md5h, sha1h, sha256h)
 	if _, err := io.Copy(w, f); err != nil {
+		slog.Debug("プロセス実行ファイルを読み切れませんでした。"+
+			"このイベントはハッシュ無しで送られ、ハッシュ IOC には当たりません",
+			"path", path, "error", err)
 		return collector.FileHashes{}
 	}
 

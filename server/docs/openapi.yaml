@@ -8554,56 +8554,6 @@ paths:
       responses:
         "200": { $ref: "#/components/responses/Undocumented" }
 
-  /api/v1/admin/organizations:
-    get:
-      tags: [admin]
-      summary: GET /api/v1/admin/organizations
-      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
-      operationId: getAdminOrganizations
-      x-generated: true
-      responses:
-        "200": { $ref: "#/components/responses/Undocumented" }
-    post:
-      tags: [admin]
-      summary: POST /api/v1/admin/organizations
-      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
-      operationId: postAdminOrganizations
-      x-generated: true
-      responses:
-        "200": { $ref: "#/components/responses/Undocumented" }
-
-  /api/v1/admin/organizations/{id}:
-    get:
-      tags: [admin]
-      summary: GET /api/v1/admin/organizations/{id}
-      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
-      operationId: getAdminOrganizationsId
-      x-generated: true
-      parameters:
-        - { name: id, in: path, required: true, schema: { type: string } }
-      responses:
-        "200": { $ref: "#/components/responses/Undocumented" }
-    put:
-      tags: [admin]
-      summary: PUT /api/v1/admin/organizations/{id}
-      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
-      operationId: putAdminOrganizationsId
-      x-generated: true
-      parameters:
-        - { name: id, in: path, required: true, schema: { type: string } }
-      responses:
-        "200": { $ref: "#/components/responses/Undocumented" }
-    delete:
-      tags: [admin]
-      summary: DELETE /api/v1/admin/organizations/{id}
-      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
-      operationId: deleteAdminOrganizationsId
-      x-generated: true
-      parameters:
-        - { name: id, in: path, required: true, schema: { type: string } }
-      responses:
-        "200": { $ref: "#/components/responses/Undocumented" }
-
   /api/v1/admin/password-policy:
     get:
       tags: [admin]
@@ -12712,6 +12662,16 @@ paths:
       responses:
         "200": { $ref: "#/components/responses/Undocumented" }
 
+  /api/v1/endpoints/criticality:
+    get:
+      tags: [endpoints]
+      summary: GET /api/v1/endpoints/criticality
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: getEndpointsCriticality
+      x-generated: true
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+
   /api/v1/endpoints/criticality/bulk:
     post:
       tags: [endpoints]
@@ -12778,6 +12738,16 @@ paths:
       summary: PUT /api/v1/endpoints/{id}/criticality
       description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
       operationId: putEndpointsIdCriticality
+      x-generated: true
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+    delete:
+      tags: [endpoints]
+      summary: DELETE /api/v1/endpoints/{id}/criticality
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: deleteEndpointsIdCriticality
       x-generated: true
       parameters:
         - { name: id, in: path, required: true, schema: { type: string } }
@@ -14013,26 +13983,6 @@ paths:
       operationId: getOpenapiYaml
       x-generated: true
       security: []
-      responses:
-        "200": { $ref: "#/components/responses/Undocumented" }
-
-  /api/v1/org/current:
-    get:
-      tags: [org]
-      summary: GET /api/v1/org/current
-      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
-      operationId: getOrgCurrent
-      x-generated: true
-      responses:
-        "200": { $ref: "#/components/responses/Undocumented" }
-
-  /api/v1/org/settings:
-    put:
-      tags: [org]
-      summary: PUT /api/v1/org/settings
-      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
-      operationId: putOrgSettings
-      x-generated: true
       responses:
         "200": { $ref: "#/components/responses/Undocumented" }
 

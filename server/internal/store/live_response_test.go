@@ -1,7 +1,6 @@
 package store
 
 import (
-	"encoding/json"
 	"strings"
 	"testing"
 	"time"
@@ -154,28 +153,63 @@ func TestLiveResponseCommand_ExitCodeError(t *testing.T) {
 	}
 }
 
-// TestLiveResponseCommand_CompleteStatusDetermination は hasError フラグによるステータス決定を確認する
-// live_response.go の CompleteCommand メソッドのロジックを再現する
-func TestLiveResponseCommand_CompleteStatusDetermination(t *testing.T) {
-	determineStatus := func(hasError bool) string {
-		if hasError {
-			return "error"
-		}
-		return "completed"
-	}
-
+// 終了コードが 0 でないコマンドが、「成功」として保存されないこと。
+//
+// **以前ここには `determineStatus` という写しが置いてありました。**
+// 検査の中で `if hasError { return "error" }` を書き直し、それを試して
+// いました —— 製品側を変えても落ちません。
+//
+// 写しを本物に向けたところ、**本物の側に欠陥がありました。**
+// エージェントは、コマンドが起動できたなら終了コードが 1 でも
+// `hasError=false` を返します。サーバはその旗だけを見て "completed" を
+// 保存し、**コンソールは status だけを見ます** —— `exit_code` は API の
+// 型にも入っていません。`test -f /nonexistent` は「(出力なし)」が通常の
+// 出力として表示され、担当者はファイルの確認が通ったと読みます。
+func TestANonZeroExitIsNotCompleted(t *testing.T) {
 	cases := []struct {
+		name     string
+		exitCode int
 		hasError bool
 		want     string
 	}{
-		{false, "completed"},
-		{true, "error"},
+		{"成功", 0, false, "completed"},
+		// **これが直した分です。**
+		{"終了コード 1", 1, false, "error"},
+		{"終了コード 127（コマンドが無い）", 127, false, "error"},
+		{"負の終了コード（シグナルで終了）", -1, false, "error"},
+		{"起動できなかった", 1, true, "error"},
+		// 起動できなかったのに終了コードが 0 の場合も、成功ではありません。
+		{"起動できず、終了コード 0", 0, true, "error"},
 	}
-
 	for _, tc := range cases {
-		got := determineStatus(tc.hasError)
-		if got != tc.want {
-			t.Errorf("determineStatus(%v) = %q, want %q", tc.hasError, got, tc.want)
+		t.Run(tc.name, func(t *testing.T) {
+			if got := commandCompletionStatus(tc.exitCode, tc.hasError); got != tc.want {
+				t.Errorf("commandCompletionStatus(%d, %v) = %q, want %q。"+
+					"**コンソールは status だけを見ます** —— "+
+					"failed が completed になると、対応の最中に"+
+					"失敗が成功に見えます",
+					tc.exitCode, tc.hasError, got, tc.want)
+			}
+		})
+	}
+}
+
+// 保存できる状態が、DB 側の許す値に収まっていること。
+//
+// **"failed" のような新しい語を足すと、CHECK 制約に弾かれて
+// コマンドの結果が1件も記録できなくなります。**
+func TestTheCompletionStatusIsOneTheSchemaAllows(t *testing.T) {
+	allowed := map[string]bool{
+		"pending": true, "running": true, "completed": true,
+		"error": true, "timeout": true,
+	}
+	for _, exit := range []int{0, 1, 127} {
+		for _, hasErr := range []bool{false, true} {
+			got := commandCompletionStatus(exit, hasErr)
+			if !allowed[got] {
+				t.Errorf("commandCompletionStatus(%d, %v) = %q。"+
+					"**DB の CHECK 制約に無い値です**", exit, hasErr, got)
+			}
 		}
 	}
 }
@@ -240,47 +274,14 @@ func TestQueuedCommand_IsTimedOut(t *testing.T) {
 	}
 }
 
-// TestQueuedCommand_ArgsDefaultsToEmptyJSON は Args が nil のとき "{}" がデフォルトになることを確認する
-// live_response_store.go の Create メソッドのロジックを再現する
-func TestQueuedCommand_ArgsDefaultsToEmptyJSON(t *testing.T) {
-	in := CreateQueuedCommandInput{
-		AgentID:     "agent-001",
-		CommandType: "shell",
-		Command:     "ls",
-		Args:        nil,
-	}
+// Args の既定値は `live_response_store.go` の Create が入れます。
+//
+// **ここには、その置き換えを検査の中で書き直して確かめる2本が置いて
+// ありました** —— `if in.Args == nil { in.Args = "{}" }` を検査の本文で
+// 実行し、そのあと `in.Args == "{}"` を確かめる。製品を1行も通りません。
+//
+// 本物を当てる検査は `live_response_create_db_test.go` にあります。
 
-	// Create では nil を "{}" に置き換える
-	if in.Args == nil {
-		in.Args = json.RawMessage("{}")
-	}
-
-	if string(in.Args) != "{}" {
-		t.Errorf("デフォルトの Args = %q, want \"{}\"", string(in.Args))
-	}
-}
-
-// TestQueuedCommand_ArgsPreservedIfSet は Args が設定済みのとき変更されないことを確認する
-func TestQueuedCommand_ArgsPreservedIfSet(t *testing.T) {
-	argsJSON := json.RawMessage(`{"pid": 1234, "signal": "SIGTERM"}`)
-	in := CreateQueuedCommandInput{
-		CommandType: "kill_process",
-		Args:        argsJSON,
-	}
-
-	if in.Args == nil {
-		in.Args = json.RawMessage("{}")
-	}
-
-	if string(in.Args) != `{"pid": 1234, "signal": "SIGTERM"}` {
-		t.Errorf("設定済み Args が変更されました: %q", string(in.Args))
-	}
-}
-
-// ─── コマンドキューステータス遷移テスト ───────────────────────────────────────
-
-// TestCommandStatusTransitions はコマンドの有効なステータス遷移を確認する
-// pending → running → completed/error/timeout が正常な遷移
 func TestCommandStatusTransitions(t *testing.T) {
 	// 遷移マップ: 現在のステータスから遷移可能なステータス
 	validTransitions := map[string][]string{

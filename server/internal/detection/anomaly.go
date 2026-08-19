@@ -3,11 +3,14 @@ package detection
 import (
 	"context"
 	"fmt"
+	"github.com/edr-platform/server/internal/metrics"
 	"log/slog"
 	"math"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+
+	"github.com/edr-platform/server/internal/tick"
 )
 
 const (
@@ -81,17 +84,20 @@ func (d *AnomalyDetector) Run(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			d.runOnce(ctx)
+			tick.Run(ctx, "anomaly_detector", d.runOnce)
 		}
 	}
 }
 
 func (d *AnomalyDetector) runOnce(ctx context.Context) {
+	// **どちらもログ止まりでした。** ベースラインが更新できないまま
+	// 異常検知を続けると、古い土台の上で判定し続けます —— 回っている
+	// ことは計測に出ますが、何もできていないことは出ませんでした。
 	if err := d.UpdateBaselines(ctx); err != nil {
-		slog.Error("プロセスベースライン更新エラー", "error", err)
+		tick.Fail(ctx, err, "プロセスベースライン更新エラー")
 	}
 	if err := d.DetectAnomalies(ctx); err != nil {
-		slog.Error("異常検知エラー", "error", err)
+		tick.Fail(ctx, err, "異常検知エラー")
 	}
 }
 
@@ -146,7 +152,7 @@ func (d *AnomalyDetector) UpdateBaselines(ctx context.Context) error {
 	if err != nil {
 		// process_name が raw_data に存在しない場合などは無視する
 		slog.Warn("UpdateBaselines: SQLエラー (無視します)", "error", err)
-		return nil
+		return err
 	}
 
 	slog.Info("プロセスベースラインを更新しました")
@@ -204,7 +210,7 @@ func (d *AnomalyDetector) DetectAnomalies(ctx context.Context) error {
 	if err != nil {
 		// process_name が raw_data に存在しない / テーブルが空の場合は無視する
 		slog.Warn("DetectAnomalies: クエリエラー (無視します)", "error", err)
-		return nil
+		return err
 	}
 	defer rows.Close()
 
@@ -225,7 +231,10 @@ func (d *AnomalyDetector) DetectAnomalies(ctx context.Context) error {
 		candidates = append(candidates, r)
 	}
 	if err := rows.Err(); err != nil {
-		slog.Warn("DetectAnomalies: 行イテレーションエラー", "error", err)
+		// **途中までの候補で「異常なし」を出しません。**
+		// 読めなかった行の中に異常があっても、返り値は nil のままです。
+		slog.Error("DetectAnomalies: 候補の読み出しが途中で失敗しました", "error", err)
+		return err
 	}
 
 	for _, r := range candidates {
@@ -278,11 +287,7 @@ func (d *AnomalyDetector) DetectAnomalies(ctx context.Context) error {
 		}
 
 		if err := d.alertStore.SaveAlert(ctx, alert); err != nil {
-			slog.Error("異常検知アラートの保存に失敗しました",
-				"agent_id", r.agentID,
-				"process", r.processName,
-				"error", err,
-			)
+			metrics.AlertDropped("anomaly", err, alert.Title)
 			continue
 		}
 

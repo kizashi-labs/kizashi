@@ -6,6 +6,7 @@ import (
 	"sort"
 	"time"
 
+	"github.com/edr-platform/server/internal/tick"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 )
@@ -197,28 +198,43 @@ func (s *CurateService) RunRound(ctx context.Context, categories []string, perCa
 		}
 	}
 	// Stamp the leftovers so the status view / next round have an explicit reason.
-	if len(plan.Deferred) > 0 {
-		_, _ = s.db.Exec(ctx,
-			`UPDATE rules SET curate_state='deferred' WHERE id = ANY($1) AND source='sigmahq' AND enabled=false`,
-			plan.Deferred)
-	}
-	if len(plan.Pending) > 0 {
-		_, _ = s.db.Exec(ctx,
-			`UPDATE rules SET curate_state='pending' WHERE id = ANY($1) AND source='sigmahq' AND enabled=false`,
-			plan.Pending)
-	}
+	s.stampCurateState(ctx, "deferred", plan.Deferred)
+	s.stampCurateState(ctx, "pending", plan.Pending)
 	// A distinct state, not 'deferred': deferred means "next round", but an overlap
 	// does not resolve by waiting. Recording why keeps these visible in the status
 	// view and lets them be re-considered wholesale if a builtin is ever removed.
-	if len(plan.Duplicate) > 0 {
-		_, _ = s.db.Exec(ctx,
-			`UPDATE rules SET curate_state='builtin_duplicate' WHERE id = ANY($1) AND source='sigmahq' AND enabled=false`,
-			plan.Duplicate)
-	}
+	s.stampCurateState(ctx, "builtin_duplicate", plan.Duplicate)
 	if len(plan.Enable) > 0 {
 		s.invalidate()
 	}
 	return res, nil
+}
+
+// stampCurateState records why a synced rule was left disabled this round.
+//
+// **落ちても次の周回が同じ判定をやり直すので、要求そのものは失敗させま
+// せん。** 消えるのは理由の方です —— 状態ビューは「まだ見ていない」と
+// 「見たうえで見送った」を区別できなくなり、**同じルールを毎周回
+// 判定し直していることが、外からは分かりません。**
+//
+// `tick.FailComponent` は両方の呼ばれ方に合います。curate スケジューラ
+// から来たときは**その回を成功として刻ませません**し、管理 API から
+// 来たとき（回がありません）は部品ごとの件数だけが動きます。
+//
+// 切り出してあるのは、**通る木では `err != nil` の枝を一度も通らない**
+// からです —— `CurateDB` の偽物に失敗させて直接呼びます
+// （`curate_stamp_report_test.go`）。
+func (s *CurateService) stampCurateState(ctx context.Context, state string, ids []string) {
+	if len(ids) == 0 {
+		return
+	}
+	if _, err := s.db.Exec(ctx,
+		`UPDATE rules SET curate_state=$2 WHERE id = ANY($1) AND source='sigmahq' AND enabled=false`,
+		ids, state); err != nil {
+		tick.FailComponent(ctx, "curate_stamp", err,
+			"curate の見送り理由を記録できませんでした。状態ビューでは未判定と区別がつきません",
+			"curate_state", state, "rules", len(ids))
+	}
 }
 
 // MonitorFP disables curate-enabled synced rules that produced at least threshold

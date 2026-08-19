@@ -89,7 +89,7 @@ func (c *ETWWMIActivityCollector) Start(ctx context.Context, agentID string, sen
 	}
 	ctx, c.cancel = context.WithCancel(ctx)
 	if err := c.startETW(ctx); err != nil {
-		slog.Warn("ETW WMI監視を開始できませんでした", "error", err)
+		etwSensorFailed(sensorETWWMI, err)
 		return nil
 	}
 	slog.Info("ETW WMI監視を開始しました (Microsoft-Windows-WMI-Activity, 5858/5861)")

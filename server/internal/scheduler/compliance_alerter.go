@@ -49,13 +49,13 @@ func (a *ComplianceAlerter) Run(ctx context.Context) {
 	defer ticker.Stop()
 	slog.Info("コンプライアンスアラーター起動")
 	// Evaluate once shortly after startup, then on every tick.
-	a.check(ctx)
+	trackRun(ctx, "compliance_alerter", a.check)
 	for {
 		select {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			a.check(ctx)
+			trackRun(ctx, "compliance_alerter", a.check)
 		}
 	}
 }
@@ -88,7 +88,7 @@ func (a *ComplianceAlerter) checkEncryption(ctx context.Context) []complianceIss
 		WHERE e.encrypted IS FALSE
 		LIMIT 200`)
 	if err != nil {
-		slog.Debug("暗号化コンプライアンスチェックをスキップ", "error", err)
+		fail(ctx, err, "暗号化コンプライアンスチェックをスキップ")
 		return nil
 	}
 	defer rows.Close()
@@ -107,6 +107,9 @@ func (a *ComplianceAlerter) checkEncryption(ctx context.Context) []complianceIss
 			agentID: id, hostname: hostname, kind: "encryption", description: desc,
 		})
 	}
+	if err := rows.Err(); err != nil {
+		fail(ctx, err, "暗号化コンプライアンスの走査が途中で終わりました。見つかったぶんだけ通知します")
+	}
 	return issues
 }
 
@@ -121,7 +124,7 @@ func (a *ComplianceAlerter) checkHardening(ctx context.Context) []complianceIssu
 		WHERE ha.status = 'completed'
 		ORDER BY ha.agent_id, ha.assessed_at DESC NULLS LAST, ha.created_at DESC`)
 	if err != nil {
-		slog.Debug("ハードニングコンプライアンスチェックをスキップ", "error", err)
+		fail(ctx, err, "ハードニングコンプライアンスチェックをスキップ")
 		return nil
 	}
 	defer rows.Close()
@@ -144,6 +147,9 @@ func (a *ComplianceAlerter) checkHardening(ctx context.Context) []complianceIssu
 		issues = append(issues, complianceIssue{
 			agentID: id, hostname: hostname, kind: "hardening", description: desc,
 		})
+	}
+	if err := rows.Err(); err != nil {
+		fail(ctx, err, "ハードニングコンプライアンスの走査が途中で終わりました。見つかったぶんだけ通知します")
 	}
 	return issues
 }
@@ -174,7 +180,7 @@ func (a *ComplianceAlerter) maybeCreateAlert(ctx context.Context, issue complian
 		issue.agentID, title, issue.description, complianceSeverity,
 	).Scan(&alertID)
 	if err != nil {
-		slog.Error("コンプライアンスアラートの作成に失敗しました", "agent_id", issue.agentID, "error", err)
+		fail(ctx, err, "コンプライアンスアラートの作成に失敗しました", "agent_id", issue.agentID)
 		return
 	}
 
@@ -187,7 +193,7 @@ func (a *ComplianceAlerter) maybeCreateAlert(ctx context.Context, issue complian
 			"hostname": issue.hostname, "kind": issue.kind, "description": issue.description,
 		})
 		if pubErr := a.nc.Publish("alerts.new", payload); pubErr != nil {
-			slog.Warn("alerts.new NATSパブリッシュに失敗しました", "error", pubErr)
+			fail(ctx, pubErr, "alerts.new NATSパブリッシュに失敗しました")
 		}
 	}
 }

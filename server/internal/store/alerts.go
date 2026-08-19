@@ -4,7 +4,9 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"github.com/edr-platform/server/internal/metrics"
 	"log/slog"
 	"strings"
 	"time"
@@ -49,28 +51,32 @@ func (s *AlertStore) WithEncryptor(enc *tenantcrypto.Encryptor) *AlertStore {
 
 // StoredAlert mirrors the alerts table.
 type StoredAlert struct {
-	ID             string     `json:"id"`
-	RuleID         *string    `json:"rule_id,omitempty"`
-	RuleName       *string    `json:"rule_name,omitempty"`
-	AgentID        string     `json:"agent_id"`
-	Hostname       string     `json:"agent_hostname"`
-	OS             string     `json:"agent_os"`
-	Severity       int        `json:"severity"`
-	Status         string     `json:"status"`
-	Title          string     `json:"title"`
-	Description    *string    `json:"description,omitempty"`
-	EventIDs       []string   `json:"event_ids,omitempty"`
-	MITRETech      *string    `json:"mitre_technique,omitempty"`
-	AnomalyScore   *float64   `json:"anomaly_score,omitempty"`
-	AIAnalyzed     bool       `json:"ai_analyzed"`
-	AIIsThreat     *bool      `json:"ai_is_threat,omitempty"`
-	AISeverity     *int       `json:"ai_severity,omitempty"`
-	AIConfidence   *float64   `json:"ai_confidence,omitempty"`
-	AIThreatName   *string    `json:"ai_threat_name,omitempty"`
-	AISummary      *string    `json:"ai_summary,omitempty"`
-	AIReport       *string    `json:"ai_report,omitempty"`
-	AIAttackChain  []string   `json:"ai_attack_chain,omitempty"`
-	AIMITRETags    []string   `json:"ai_mitre_tags,omitempty"`
+	ID            string   `json:"id"`
+	RuleID        *string  `json:"rule_id,omitempty"`
+	RuleName      *string  `json:"rule_name,omitempty"`
+	AgentID       string   `json:"agent_id"`
+	Hostname      string   `json:"agent_hostname"`
+	OS            string   `json:"agent_os"`
+	Severity      int      `json:"severity"`
+	Status        string   `json:"status"`
+	Title         string   `json:"title"`
+	Description   *string  `json:"description,omitempty"`
+	EventIDs      []string `json:"event_ids,omitempty"`
+	MITRETech     *string  `json:"mitre_technique,omitempty"`
+	AnomalyScore  *float64 `json:"anomaly_score,omitempty"`
+	AIAnalyzed    bool     `json:"ai_analyzed"`
+	AIIsThreat    *bool    `json:"ai_is_threat,omitempty"`
+	AISeverity    *int     `json:"ai_severity,omitempty"`
+	AIConfidence  *float64 `json:"ai_confidence,omitempty"`
+	AIThreatName  *string  `json:"ai_threat_name,omitempty"`
+	AISummary     *string  `json:"ai_summary,omitempty"`
+	AIReport      *string  `json:"ai_report,omitempty"`
+	AIAttackChain []string `json:"ai_attack_chain,omitempty"`
+	AIMITRETags   []string `json:"ai_mitre_tags,omitempty"`
+	// Tags are the operator-applied labels written by POST /alerts/bulk-tag.
+	// Stored as a JSONB array of strings; always serialised, never omitted, so
+	// a client can tell "no tags" from "this build does not report tags".
+	Tags           []string   `json:"tags"`
 	AssignedTo     *string    `json:"assigned_to,omitempty"`
 	AssignedToName *string    `json:"assigned_to_name,omitempty"`
 	CommentCount   int        `json:"comment_count"`
@@ -79,10 +85,17 @@ type StoredAlert struct {
 	UpdatedAt      time.Time  `json:"updated_at"`
 	// RawEvent holds the original triggering event payload.  When encryption is
 	// enabled on the AlertStore the value stored in the database is an
-	// AES-256-GCM ciphertext encoded as "enc:<base64>".  Callers receive the
-	// decrypted JSON in this field after a successful read (decryption is not
-	// yet wired into read paths — raw storage only for now).
+	// AES-256-GCM ciphertext encoded as "enc:<base64>"; callers receive the
+	// decrypted JSON here.
 	RawEvent json.RawMessage `json:"raw_event,omitempty"`
+	// RawEventUnavailable explains why RawEvent is empty when the payload could
+	// not be produced.
+	//
+	// **「生イベントが無いアラート」と「生イベントを出せなかったアラート」を
+	// 同じ姿にしないための欄です。** 復号に失敗したことをログにだけ書くと、
+	// アナリストの画面では鍵の設定ミスと「もともと生イベントの無い検知」が
+	// 区別できません。空欄の理由は応答に載せます。
+	RawEventUnavailable *string `json:"raw_event_unavailable,omitempty"`
 	// TenantID is used as the encryption scope key.  It is not persisted as its
 	// own column but is required when encryption is active.
 	TenantID string `json:"-"`
@@ -92,8 +105,32 @@ type StoredAlert struct {
 // readers can distinguish encrypted values from plain-text JSON.
 const encryptedRawEventPrefix = "enc:"
 
+// IsEncryptedRawEvent reports whether a stored raw_event value is ciphertext.
+func IsEncryptedRawEvent(stored string) bool {
+	return strings.HasPrefix(stored, encryptedRawEventPrefix)
+}
+
+// encryptionTenant returns the tenant whose key scopes this alert's raw_event.
+//
+// **本番で `StoredAlert.TenantID` を設定する箇所は1つもありません。**
+// テナントの出どころは ctx で、そこから `store.Connect` の PrepareConn が
+// Postgres の `app.tenant_id` を設定し、`alerts.tenant_id` 列の DEFAULT が
+// それを読みます。暗号化の範囲も同じ ctx から取ります —— **同じ出どころ
+// なので、行の tenant_id と鍵のテナントは構造上ずれません。**
+//
+// これを `a.TenantID` だけで見ていたあいだ、encryptor を付けても
+// 暗号化は一度も起きませんでした。単体テストはテナントを引数で渡して
+// いたので緑のままでした。実際に DB に書いて確かめて出ました
+// （alert_encryption_roundtrip_test.go）。
+func encryptionTenant(ctx context.Context, a *StoredAlert) string {
+	if a.TenantID != "" {
+		return a.TenantID
+	}
+	return TenantFromContext(ctx)
+}
+
 // prepareRawEvent returns the value to be stored in the raw_event column.
-// When an encryptor and a tenantID are available the JSON payload is encrypted
+// When an encryptor and a tenant are available the JSON payload is encrypted
 // with AES-256-GCM and returned as "enc:<base64>".  Otherwise the raw JSON is
 // returned unchanged.  A nil or empty RawEvent results in a nil return value
 // (the column will be left NULL).
@@ -102,13 +139,14 @@ func (s *AlertStore) prepareRawEvent(ctx context.Context, a *StoredAlert) (*stri
 		return nil, nil
 	}
 
-	if s.encryptor == nil || a.TenantID == "" {
+	tenant := encryptionTenant(ctx, a)
+	if s.encryptor == nil || tenant == "" {
 		// No encryption configured — store as plain JSON string.
 		plain := string(a.RawEvent)
 		return &plain, nil
 	}
 
-	ciphertext, err := s.encryptor.Encrypt(ctx, a.TenantID, []byte(a.RawEvent))
+	ciphertext, err := s.encryptor.Encrypt(ctx, tenant, []byte(a.RawEvent))
 	if err != nil {
 		return nil, fmt.Errorf("alertstore: encrypt raw_event for alert %s: %w", a.ID, err)
 	}
@@ -117,15 +155,73 @@ func (s *AlertStore) prepareRawEvent(ctx context.Context, a *StoredAlert) (*stri
 	return &encoded, nil
 }
 
+// decodeRawEvent turns the stored column value back into JSON.
+//
+// 平文と暗号文が混在します。`enc:` が付いていないものは、暗号化を有効に
+// する前に書かれた行で、そのまま JSON です。移行はしません —— 前置きの
+// 有無で1行ずつ判断できるので、既存の行を書き換える理由がありません。
+//
+// **書き込み側より先に、こちらが入っている必要があります。** 以前ここは
+// `enc:` が付いていたら代入しない、という書き方でした。暗号化を有効に
+// した瞬間から、アナリストの画面は生イベントの無いアラートで埋まります
+// —— このブランチがずっと追ってきた形そのものです。復号できないことと、
+// 生イベントが無いことが、同じ姿になります。
+func (s *AlertStore) decodeRawEvent(ctx context.Context, tenantID string, stored *string) (json.RawMessage, error) {
+	return DecodeRawEvent(ctx, s.encryptor, tenantID, stored)
+}
+
+// DecodeRawEvent is the one place that knows how a stored raw_event is encoded.
+//
+// エクスポートも同じ規則で読む必要があります。前置きの判定を2箇所に
+// 書くと、**片方だけ直したときに、書いたものが片方からは読めなくなります。**
+// このブランチで「写しだけが正しくなる」形を何度も見たので、関数を1つに
+// して両方から呼びます。
+func DecodeRawEvent(ctx context.Context, enc *tenantcrypto.Encryptor, tenantID string, stored *string) (json.RawMessage, error) {
+	s := &AlertStore{encryptor: enc}
+	return s.decodeRawEventImpl(ctx, tenantID, stored)
+}
+
+func (s *AlertStore) decodeRawEventImpl(ctx context.Context, tenantID string, stored *string) (json.RawMessage, error) {
+	if stored == nil || *stored == "" {
+		return nil, nil
+	}
+	if !strings.HasPrefix(*stored, encryptedRawEventPrefix) {
+		return json.RawMessage(*stored), nil
+	}
+	if s.encryptor == nil {
+		return nil, fmt.Errorf("暗号化された raw_event ですが、encryptor が設定されていません")
+	}
+	if tenantID == "" {
+		return nil, fmt.Errorf("暗号化された raw_event ですが、テナントが分かりません")
+	}
+	ciphertext, err := base64.StdEncoding.DecodeString(
+		strings.TrimPrefix(*stored, encryptedRawEventPrefix))
+	if err != nil {
+		return nil, fmt.Errorf("base64 を読めません: %w", err)
+	}
+	plain, err := s.encryptor.Decrypt(ctx, tenantID, ciphertext)
+	if err != nil {
+		return nil, fmt.Errorf("復号できません: %w", err)
+	}
+	return json.RawMessage(plain), nil
+}
+
 // SaveAlert inserts a new alert.  If the AlertStore has an Encryptor configured
 // and the alert carries a non-empty TenantID, the raw_event field is encrypted
 // with AES-256-GCM before being written to the database.
 func (s *AlertStore) SaveAlert(ctx context.Context, a *StoredAlert) error {
 	rawEventVal, err := s.prepareRawEvent(ctx, a)
 	if err != nil {
-		// Log the error but do not block the alert from being saved.
-		slog.Warn("raw_event encryption failed; storing without raw_event",
-			"alert_id", a.ID, "error", err)
+		// アラート自体は保存します。暗号化できないことを理由にアラートを
+		// 落とす方が損が大きいためで、これは変えません。
+		//
+		// ただし、保存されたアラートには生イベントが付きません。開いた
+		// 分析官が見るのは「生イベントの無いアラート」で、もともと生
+		// イベントを持たない種類のアラートと区別が付きません。証拠が
+		// 消えたことは数えます。
+		metrics.BackgroundFailed("alert_raw_event", err,
+			"生イベントを暗号化できないまま保存しました（証拠は付いていません）",
+			"alert", a.ID)
 		rawEventVal = nil
 	}
 
@@ -169,13 +265,24 @@ func (s *AlertStore) SaveAlert(ctx context.Context, a *StoredAlert) error {
 
 // autoInvestigateThreshold reads the AI auto-investigation severity threshold
 // from system_settings.  Falls back to 7 when the setting is missing or invalid.
+//
+// 呼び出し元はアラートの保存中です。設定を読めなかったからといって保存を
+// 落とすのは、失う方が大きいので既定値で続けます。ただし黙ってはいけません。
+// 閾値を4に設定していたテナントでは、この失敗のあいだ severity 4〜6 の
+// アラートが自動調査に回りません。誰も設定を変えていないのに、設定が
+// 効かなくなります。行が無いこと（＝未設定）とは分けて記録します。
 func (s *AlertStore) autoInvestigateThreshold(ctx context.Context) int {
 	const fallback = 7
 	var raw []byte
 	err := s.pool.QueryRow(ctx,
 		`SELECT value FROM system_settings WHERE key = 'ai_auto_investigate_threshold'`).
 		Scan(&raw)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return fallback // 未設定。既定値は事実です。
+	}
 	if err != nil {
+		metrics.BackgroundFailed("alert_auto_investigate", err,
+			"alertstore: 自動調査の閾値を読めないまま既定値で続行しました", "fallback", fallback)
 		return fallback
 	}
 	var v int
@@ -189,13 +296,16 @@ func (s *AlertStore) autoInvestigateThreshold(ctx context.Context) int {
 func (s *AlertStore) GetAlert(ctx context.Context, id string) (*StoredAlert, error) {
 	row := s.pool.QueryRow(ctx, `
 		SELECT
-			al.id, al.rule_id, r.name, al.agent_id, ag.hostname, ag.os_type,
+			al.id, al.rule_id, r.name,
+			COALESCE(al.agent_id::text, ''), COALESCE(ag.hostname, ''),
+			COALESCE(ag.os_type, ''),
 			al.severity, al.status, al.title, al.description,
 			al.mitre_technique, al.anomaly_score,
 			al.ai_analyzed, al.ai_is_threat, al.ai_severity,
 			al.ai_confidence, al.ai_threat_name, al.ai_summary,
-			al.ai_report, al.ai_attack_chain, al.ai_mitre_tags,
-			al.assigned_to, u.full_name, al.resolved_at, al.created_at, al.updated_at
+			al.ai_report, al.ai_attack_chain, al.ai_mitre_tags, al.tags,
+			al.assigned_to, u.full_name, al.resolved_at, al.created_at, al.updated_at,
+			al.tenant_id
 		FROM alerts al
 		LEFT JOIN agents ag ON ag.id = al.agent_id
 		LEFT JOIN rules r ON r.id = al.rule_id
@@ -207,21 +317,62 @@ func (s *AlertStore) GetAlert(ctx context.Context, id string) (*StoredAlert, err
 		return nil, err
 	}
 
-	// Fetch raw_event separately (decryption not yet wired in).
 	var rawEventStr *string
-	_ = s.pool.QueryRow(ctx, `SELECT raw_event FROM alerts WHERE id = $1`, id).Scan(&rawEventStr)
-	if rawEventStr != nil && !strings.HasPrefix(*rawEventStr, encryptedRawEventPrefix) {
-		a.RawEvent = json.RawMessage(*rawEventStr)
-	}
+	readErr := s.pool.QueryRow(ctx,
+		`SELECT raw_event FROM alerts WHERE id = $1`, id).Scan(&rawEventStr)
+	// 復号の範囲は**行が記録しているテナント**です。ctx のテナントではなく。
+	// 背景ジョブのようにテナントを持たない経路から読んでも、行が自分の
+	// テナントを覚えているので復号できます。ctx を見ていると、
+	// そこから読んだ瞬間に「復号できませんでした」になります。
+	a.RawEvent, a.RawEventUnavailable = s.rawEventOrNote(ctx, id, a.TenantID, rawEventStr, readErr)
 	return a, nil
+}
+
+// rawEventOrNote returns the alert's raw event, or a note saying why it is not
+// there.  Exactly one of the two is ever non-empty.
+//
+// 生イベントを出せないことは、アラート全体を返さない理由にはなりません
+// —— 検知そのものは事実だからです。一方で、黙って落とすと「もともと生
+// イベントの無い検知」と見分けがつきません。**読めなかった・復号でき
+// なかったことは、ログではなく応答に載せます。**
+//
+// クエリはここでは打ちません。呼び出し側が読んだ結果と、その失敗を
+// そのまま受け取ります。DB を用意せずに、この判断だけを試せるように
+// するためです（raw_event_note_test.go）。
+func (s *AlertStore) rawEventOrNote(
+	ctx context.Context, alertID, tenantID string, stored *string, readErr error,
+) (json.RawMessage, *string) {
+	if readErr != nil {
+		return nil, rawEventNote(alertID, "生イベントを読み出せませんでした", readErr)
+	}
+	raw, err := s.decodeRawEvent(ctx, tenantID, stored)
+	if err != nil {
+		return nil, rawEventNote(alertID, "生イベントを復号できませんでした", err)
+	}
+	return raw, nil
+}
+
+// rawEventNote records the failure and returns the text shown in its place.
+//
+// 詳細（鍵の不一致、DB のエラー）はログに残し、応答には「出せなかった」
+// ことだけを載せます。内部のエラー文をそのまま画面に出す必要はありません。
+func rawEventNote(alertID, what string, err error) *string {
+	slog.Error("alertstore: "+what+"。このアラートは生イベント無しで返ります",
+		"alert", alertID, "error", err)
+	return &what
 }
 
 // UpdateAlert updates mutable alert fields.
 func (s *AlertStore) UpdateAlert(ctx context.Context, id string, status *string, analysis *AIAnalysisUpdate, assignedTo ...*string) error {
 	// Capture previous status BEFORE the update so history tracking is accurate.
+	// **読めなかった空文字は、履歴に「何から変わったか」の嘘を残します。**
+	// 行が無いのは別（そのアラートが無いだけ）なので、そこは通します。
 	var prevStatus string
 	if status != nil {
-		_ = s.pool.QueryRow(ctx, "SELECT status FROM alerts WHERE id = $1", id).Scan(&prevStatus)
+		if err := s.pool.QueryRow(ctx, "SELECT status FROM alerts WHERE id = $1", id).
+			Scan(&prevStatus); err != nil && !errors.Is(err, pgx.ErrNoRows) {
+			return fmt.Errorf("変更前の状態を読めません: %w", err)
+		}
 	}
 
 	sets := []string{"updated_at = NOW()"}
@@ -270,8 +421,20 @@ func (s *AlertStore) UpdateAlert(ctx context.Context, id string, status *string,
 		strings.Join(sets, ", "),
 	)
 
-	_, err := s.pool.Exec(ctx, query, args...)
+	// **状態の変更と、その履歴は1つの変更です。**
+	//
+	// 履歴の INSERT だけ `_, _ =` で捨てていました。**MTTD/MTTR は
+	// `alert_status_changes` から出ます** —— 落ちた分だけ対応時間が
+	// 実際より短く出て、しかもそれは行が「無い」のと見分けがつきません。
+	// 状態だけ変わって履歴が無い、を残さないよう同じ transaction に
+	// 入れます。
+	tx, err := s.pool.Begin(ctx)
 	if err != nil {
+		return err
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+
+	if _, err := tx.Exec(ctx, query, args...); err != nil {
 		return err
 	}
 
@@ -281,13 +444,15 @@ func (s *AlertStore) UpdateAlert(ctx context.Context, id string, status *string,
 		if len(assignedTo) > 0 && assignedTo[0] != nil {
 			changedBy = *assignedTo[0]
 		}
-		_, _ = s.pool.Exec(ctx, `
+		if _, err := tx.Exec(ctx, `
 			INSERT INTO alert_status_changes (alert_id, from_status, to_status, changed_by)
 			VALUES ($1::uuid, $2, $3, $4)`,
 			id, prevStatus, *status, changedBy,
-		)
+		); err != nil {
+			return fmt.Errorf("状態変更の履歴を残せませんでした（MTTR が実際より短く出ます）: %w", err)
+		}
 	}
-	return nil
+	return tx.Commit(ctx)
 }
 
 // AIAnalysisUpdate contains the AI analysis fields to persist.
@@ -306,14 +471,23 @@ type AIAnalysisUpdate struct {
 func (s *AlertStore) ListAlerts(ctx context.Context, filter AlertFilter) ([]*StoredAlert, int, error) {
 	where, args := buildAlertWhere(filter)
 	countQuery := "SELECT COUNT(*) FROM alerts al " + where
+	// COALESCE の対象は StoredAlert 側が非ポインタ (AgentID/Hostname/OS はいずれも
+	// string) の3列。alerts.agent_id は NULL 可で、エンドポイント由来でないアラート
+	// (MDM デバイスの長期未報告など) は NULL で入る。さらに LEFT JOIN agents は
+	// 該当エージェントが削除済みなら hostname/os_type を NULL にする。
+	// NULL をそのまま string にスキャンすると Scan がエラーになり、pgx v5 は
+	// エラー時に結果セットを fatal 化して閉じるため、以降の行が丸ごと消える
+	// (下のループ参照)。SQL 側で潰しておくのが最も確実。
 	listQuery := `
 		SELECT
-			al.id, al.rule_id, r.name, al.agent_id, ag.hostname, ag.os_type,
+			al.id, al.rule_id, r.name,
+			COALESCE(al.agent_id::text, ''), COALESCE(ag.hostname, ''),
+			COALESCE(ag.os_type, ''),
 			al.severity, al.status, al.title, al.description,
 			al.mitre_technique, al.anomaly_score,
 			al.ai_analyzed, al.ai_is_threat, al.ai_severity,
 			al.ai_confidence, al.ai_threat_name, al.ai_summary,
-			al.ai_report, al.ai_attack_chain, al.ai_mitre_tags,
+			al.ai_report, al.ai_attack_chain, al.ai_mitre_tags, al.tags,
 			al.assigned_to, u.full_name,
 			(SELECT COUNT(*) FROM alert_comments ac WHERE ac.alert_id = al.id) AS comment_count,
 			al.resolved_at, al.created_at, al.updated_at
@@ -341,29 +515,36 @@ func (s *AlertStore) ListAlerts(ctx context.Context, filter AlertFilter) ([]*Sto
 	var alerts []*StoredAlert
 	for rows.Next() {
 		var a StoredAlert
-		var aiAttackChain []byte
-		// ai_mitre_tags is a native TEXT[] column — scan straight into []string.
-		// (It was previously scanned as []byte + json.Unmarshal, which silently
-		// failed once the column held a value, dropping the whole alert row.)
+
+		var tagsRaw []byte
+		// ai_mitre_tags と ai_attack_chain はどちらも TEXT[] です。[]string に
+		// そのまま読みます。
+		//
+		// ai_attack_chain は []byte で受けて json.Unmarshal していました。
+		// **列が NULL のあいだは動きます。** 値が入った瞬間に pgx が
+		// `cannot scan _text into *[]uint8` を返し、Scan が失敗して
+		// **一覧が0件で返ります**（この関数は err を rows.Err() 経由で
+		// 上げるので、画面には「アラートが1件もありません」ではなく
+		// エラーが出ます）。GetAlert 側は詳細が開けなくなります。
+		// alert_ai_arrays_test.go が両方を留めています。
 		err := rows.Scan(
 			&a.ID, &a.RuleID, &a.RuleName, &a.AgentID, &a.Hostname, &a.OS,
 			&a.Severity, &a.Status, &a.Title, &a.Description,
 			&a.MITRETech, &a.AnomalyScore,
 			&a.AIAnalyzed, &a.AIIsThreat, &a.AISeverity,
 			&a.AIConfidence, &a.AIThreatName, &a.AISummary,
-			&a.AIReport, &aiAttackChain, &a.AIMITRETags,
+			&a.AIReport, &a.AIAttackChain, &a.AIMITRETags, &tagsRaw,
 			&a.AssignedTo, &a.AssignedToName, &a.CommentCount,
 			&a.ResolvedAt, &a.CreatedAt, &a.UpdatedAt,
 		)
 		if err != nil {
 			continue
 		}
-		if aiAttackChain != nil {
-			if err := json.Unmarshal(aiAttackChain, &a.AIAttackChain); err != nil {
-				slog.Warn("ai_attack_chain JSONの解析に失敗しました", "alert_id", a.ID, "error", err)
-			}
-		}
+		a.Tags = decodeTags(a.ID, tagsRaw)
 		alerts = append(alerts, &a)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, 0, err
 	}
 
 	return alerts, total, nil
@@ -410,6 +591,10 @@ func (s *AlertStore) AlertStats(ctx context.Context) (*AlertStatSummary, error) 
 			stats.BySeverity[*sev] = sevCount
 		}
 	}
+	// 部分結果を完全な一覧として返さない（scan_truncation_guard_test.go 参照）
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
 
 	return stats, nil
 }
@@ -452,8 +637,13 @@ type TopAgent struct {
 // TopThreatenedAgents returns the top N agents by alert count over the past 7 days.
 func (s *AlertStore) TopThreatenedAgents(ctx context.Context, limit int) ([]TopAgent, error) {
 	rows, err := s.pool.Query(ctx, `
-		SELECT al.agent_id::text,
-		       COALESCE(ag.hostname, al.agent_id::text) AS hostname,
+		-- agent_id は NULL 可 (エンドポイントを持たないアラート — MDM デバイスや
+		-- クラウド操作由来など)。TopAgent.AgentID / Hostname は非ポインタの string
+		-- なので NULL のままだと Scan が落ち、pgx が結果セットを閉じて以降の行が
+		-- 丸ごと消える。ListAlerts と同じ理由で SQL 側で潰す。
+		-- hostname 側は「エージェント行が無い」と「agent_id 自体が NULL」の二段。
+		SELECT COALESCE(al.agent_id::text, ''),
+		       COALESCE(ag.hostname, al.agent_id::text, '(エージェント無し)') AS hostname,
 		       COUNT(*)                            AS alert_count,
 		       MAX(al.severity)                    AS max_severity
 		FROM alerts al
@@ -476,6 +666,9 @@ func (s *AlertStore) TopThreatenedAgents(ctx context.Context, limit int) ([]TopA
 			continue
 		}
 		agents = append(agents, a)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
 	}
 	return agents, nil
 }
@@ -505,7 +698,10 @@ func (s *AlertStore) GetRelated(ctx context.Context, alertID string, limit int) 
 			al.title,
 			al.severity,
 			al.status,
-			COALESCE(ag.hostname, al.agent_id::text) AS hostname,
+			-- 二段の COALESCE だけでは足りない: agent_id 自体が NULL なら両方 NULL に
+			-- なり、非ポインタの RelatedAlert.Hostname へのスキャンが落ちる
+			-- (TopThreatenedAgents で実際に踏んだ)。リテラルで必ず終端させる。
+			COALESCE(ag.hostname, al.agent_id::text, '(エージェント無し)') AS hostname,
 			COALESCE(r.name, '') AS rule_name,
 			COALESCE(al.mitre_technique, '') AS mitre_technique,
 			al.created_at,
@@ -544,6 +740,9 @@ func (s *AlertStore) GetRelated(ctx context.Context, alertID string, limit int) 
 			continue
 		}
 		related = append(related, r)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
 	}
 	if related == nil {
 		related = []*RelatedAlert{}
@@ -593,6 +792,10 @@ func (s *AlertStore) AlertTimeline(ctx context.Context, hours int) ([]AlertTimel
 		}
 		buckets = append(buckets, b)
 	}
+	// 部分結果を完全な一覧として返さない（scan_truncation_guard_test.go 参照）
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
 	return buckets, nil
 }
 
@@ -618,6 +821,10 @@ func (s *AlertStore) GetAlertHistory(ctx context.Context, agentID string, days i
 			continue
 		}
 		result = append(result, r)
+	}
+	// 部分結果を完全な一覧として返さない（scan_truncation_guard_test.go 参照）
+	if err := rows.Err(); err != nil {
+		return nil, err
 	}
 	return result, nil
 }
@@ -699,6 +906,9 @@ func (s *AlertStore) ListComments(ctx context.Context, alertID string) ([]AlertC
 		}
 		comments = append(comments, cm)
 	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
 	return comments, nil
 }
 
@@ -713,9 +923,31 @@ type AlertComment struct {
 
 // ─── Helpers ──────────────────────────────────────────────────
 
+// decodeTags turns the alerts.tags JSONB array into a slice, never nil.
+//
+// It is decoded from raw bytes rather than scanned straight into []string so a
+// malformed value cannot fail the whole Scan. In ListAlerts a Scan error skips
+// the row, which would silently drop an alert from the console because of a
+// label somebody applied to it.
+func decodeTags(alertID string, raw []byte) []string {
+	if len(raw) == 0 {
+		return []string{}
+	}
+	var tags []string
+	if err := json.Unmarshal(raw, &tags); err != nil {
+		slog.Warn("tags JSONの解析に失敗しました", "alert_id", alertID, "error", err)
+		return []string{}
+	}
+	if tags == nil {
+		return []string{}
+	}
+	return tags
+}
+
 func scanAlert(row pgx.Row) (*StoredAlert, error) {
 	var a StoredAlert
-	var aiAttackChain []byte // ai_mitre_tags is TEXT[] — scan straight into []string
+	var tagsRaw []byte
+	var tenantID *string
 
 	err := row.Scan(
 		&a.ID, &a.RuleID, &a.RuleName, &a.AgentID, &a.Hostname, &a.OS,
@@ -723,18 +955,20 @@ func scanAlert(row pgx.Row) (*StoredAlert, error) {
 		&a.MITRETech, &a.AnomalyScore,
 		&a.AIAnalyzed, &a.AIIsThreat, &a.AISeverity,
 		&a.AIConfidence, &a.AIThreatName, &a.AISummary,
-		&a.AIReport, &aiAttackChain, &a.AIMITRETags,
+		&a.AIReport, &a.AIAttackChain, &a.AIMITRETags, &tagsRaw,
 		&a.AssignedTo, &a.AssignedToName, &a.ResolvedAt, &a.CreatedAt, &a.UpdatedAt,
+		&tenantID,
 	)
 	if err != nil {
 		return nil, err
 	}
-
-	if aiAttackChain != nil {
-		if err := json.Unmarshal(aiAttackChain, &a.AIAttackChain); err != nil {
-			slog.Warn("ai_attack_chain JSONの解析に失敗しました", "alert_id", a.ID, "error", err)
-		}
+	// tenant_id は raw_event の復号に使う鍵の範囲です。読まないと、
+	// **暗号化されたアラートは1件も復号できません。**
+	if tenantID != nil {
+		a.TenantID = *tenantID
 	}
+
+	a.Tags = decodeTags(a.ID, tagsRaw)
 
 	return &a, nil
 }

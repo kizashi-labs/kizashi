@@ -26,7 +26,7 @@ func NewAssetCriticalityScorer(pool *pgxpool.Pool) *AssetCriticalityScorer {
 
 func (s *AssetCriticalityScorer) Run(ctx context.Context) {
 	// Run once shortly after start, then every 6 hours.
-	s.calculate(ctx)
+	trackRun(ctx, "asset_criticality_scorer", s.calculate)
 	ticker := time.NewTicker(6 * time.Hour)
 	defer ticker.Stop()
 	for {
@@ -34,7 +34,7 @@ func (s *AssetCriticalityScorer) Run(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			s.calculate(ctx)
+			trackRun(ctx, "asset_criticality_scorer", s.calculate)
 		}
 	}
 }
@@ -68,7 +68,7 @@ func (s *AssetCriticalityScorer) calculate(ctx context.Context) {
 	if err := s.pool.QueryRow(ctx,
 		`SELECT EXISTS (SELECT 1 FROM information_schema.tables
 		   WHERE table_schema='public' AND table_name='asset_criticality_scores')`).Scan(&exists); err != nil || !exists {
-		slog.Warn("asset_criticality_scores テーブルが存在しません、スキップします")
+		fail(ctx, err, "asset_criticality_scores テーブルが存在しません、スキップします")
 		return
 	}
 
@@ -91,7 +91,7 @@ func (s *AssetCriticalityScorer) calculate(ctx context.Context) {
 		LEFT JOIN vulnerabilities v  ON v.agent_id = a.id
 		GROUP BY a.id, a.tags`)
 	if err != nil {
-		slog.Error("資産重要度スコア: エージェント集計に失敗", "error", err)
+		fail(ctx, err, "資産重要度スコア: エージェント集計に失敗")
 		return
 	}
 	defer rows.Close()
@@ -124,7 +124,7 @@ func (s *AssetCriticalityScorer) calculate(ctx context.Context) {
 		})
 	}
 	if err := rows.Err(); err != nil {
-		slog.Error("資産重要度スコア: 行スキャンに失敗", "error", err)
+		fail(ctx, err, "資産重要度スコア: 行スキャンに失敗")
 		return
 	}
 
@@ -138,7 +138,7 @@ func (s *AssetCriticalityScorer) calculate(ctx context.Context) {
 				factors = EXCLUDED.factors,
 				calculated_at = NOW()`,
 			a.id, a.score, string(factorsJSON)); err != nil {
-			slog.Warn("資産重要度スコアの保存に失敗", "agent", a.id, "error", err)
+			fail(ctx, err, "資産重要度スコアの保存に失敗", "agent", a.id)
 		}
 	}
 	slog.Info("資産重要度スコアを更新しました", "agents", len(scored))

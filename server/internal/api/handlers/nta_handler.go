@@ -16,8 +16,7 @@ func NewNTAHandler(pool *pgxpool.Pool) *NTAHandler { return &NTAHandler{pool: po
 
 func (h *NTAHandler) ListRules(c *gin.Context) {
 	ctx := c.Request.Context()
-	var exists bool
-	_ = h.pool.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM pg_tables WHERE schemaname='public' AND tablename='nta_rules')`).Scan(&exists)
+	exists := tableIsThere(ctx, h.pool, "nta_rules")
 	if !exists {
 		c.JSON(http.StatusOK, gin.H{"rules": []interface{}{}, "total": 0})
 		return
@@ -49,7 +48,9 @@ func (h *NTAHandler) ListRules(c *gin.Context) {
 		})
 	}
 	if err := rows.Err(); err != nil {
-		slog.Warn("row iteration error", "error", err)
+		slog.Error("rows.Err: 結果の読み出しが途中で失敗しました", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "データの取得に失敗しました"})
+		return
 	}
 	if rules == nil {
 		rules = []gin.H{}
@@ -71,8 +72,7 @@ func (h *NTAHandler) CreateRule(c *gin.Context) {
 
 func (h *NTAHandler) ListDetections(c *gin.Context) {
 	ctx := c.Request.Context()
-	var exists bool
-	_ = h.pool.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM pg_tables WHERE schemaname='public' AND tablename='nta_detections')`).Scan(&exists)
+	exists := tableIsThere(ctx, h.pool, "nta_detections")
 	if !exists {
 		c.JSON(http.StatusOK, gin.H{"detections": []interface{}{}, "total": 0})
 		return
@@ -107,7 +107,9 @@ func (h *NTAHandler) ListDetections(c *gin.Context) {
 		})
 	}
 	if err := rows.Err(); err != nil {
-		slog.Warn("row iteration error", "error", err)
+		slog.Error("rows.Err: 結果の読み出しが途中で失敗しました", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "データの取得に失敗しました"})
+		return
 	}
 	if detections == nil {
 		detections = []gin.H{}
@@ -118,20 +120,31 @@ func (h *NTAHandler) ListDetections(c *gin.Context) {
 func (h *NTAHandler) GetStats(c *gin.Context) {
 	ctx := c.Request.Context()
 
-	var detectionsExists, rulesExists bool
-	_ = h.pool.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM pg_tables WHERE schemaname='public' AND tablename='nta_detections')`).Scan(&detectionsExists)
-	_ = h.pool.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM pg_tables WHERE schemaname='public' AND tablename='nta_rules')`).Scan(&rulesExists)
+	detectionsExists := tableIsThere(ctx, h.pool, "nta_detections")
+	rulesExists := tableIsThere(ctx, h.pool, "nta_rules")
 
 	var activeRules, detectionsToday, critical, high, medium, low int
 	if rulesExists {
-		_ = h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM nta_rules WHERE enabled = true`).Scan(&activeRules)
+		if !ReadOK(c, h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM nta_rules WHERE enabled = true`).Scan(&activeRules)) {
+			return
+		}
 	}
 	if detectionsExists {
-		_ = h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM nta_detections WHERE detected_at >= CURRENT_DATE`).Scan(&detectionsToday)
-		_ = h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM nta_detections WHERE severity = 'critical'`).Scan(&critical)
-		_ = h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM nta_detections WHERE severity = 'high'`).Scan(&high)
-		_ = h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM nta_detections WHERE severity = 'medium'`).Scan(&medium)
-		_ = h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM nta_detections WHERE severity = 'low'`).Scan(&low)
+		if !ReadOK(c, h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM nta_detections WHERE detected_at >= CURRENT_DATE`).Scan(&detectionsToday)) {
+			return
+		}
+		if !ReadOK(c, h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM nta_detections WHERE severity = 'critical'`).Scan(&critical)) {
+			return
+		}
+		if !ReadOK(c, h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM nta_detections WHERE severity = 'high'`).Scan(&high)) {
+			return
+		}
+		if !ReadOK(c, h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM nta_detections WHERE severity = 'medium'`).Scan(&medium)) {
+			return
+		}
+		if !ReadOK(c, h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM nta_detections WHERE severity = 'low'`).Scan(&low)) {
+			return
+		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{

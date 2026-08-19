@@ -2,12 +2,14 @@ package handlers
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strconv"
 	"strings"
 
 	"github.com/edr-platform/server/internal/store"
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 // LiveResponseCmdHandler handles the live response command queue API.
@@ -123,8 +125,29 @@ func (h *LiveResponseCmdHandler) SubmitResult(c *gin.Context) {
 	if req.Status == "" {
 		req.Status = "completed"
 	}
-	if err := h.store.UpdateResult(c.Request.Context(), cmdID, req.Status, req.Output, req.ExitCode); err != nil {
+	// A malformed id would reach Postgres as an invalid uuid (22P02) and come
+	// back as a 500, which reads as a server fault for what is a bad request.
+	if _, err := uuid.Parse(cmdID); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "cmd_idの形式が不正です"})
+		return
+	}
+	applied, err := h.store.UpdateResult(c.Request.Context(), cmdID, req.Status, req.Output, req.ExitCode)
+	if errors.Is(err, store.ErrUnknownResultStatus) {
+		// The caller sent a word this system does not use. Saying so beats the
+		// 500 it used to get from the CHECK constraint, which named the
+		// constraint and not the field.
+		c.JSON(http.StatusBadRequest, gin.H{"error": "statusの値が不正です: " + req.Status})
+		return
+	}
+	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "結果の更新に失敗しました"})
+		return
+	}
+	if !applied {
+		// The command is gone, or already finished — timed out by the sweeper,
+		// cancelled, or answered by an earlier delivery of this same result.
+		// Overwriting it would replace a recorded outcome with a later guess.
+		c.JSON(http.StatusConflict, gin.H{"error": "コマンドは既に終了しているため結果を受け付けられません"})
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "結果を受け付けました"})

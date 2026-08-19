@@ -76,7 +76,9 @@ func (h *WirelessHandler) ListNetworks(c *gin.Context) {
 		}
 	}
 	if err := rows.Err(); err != nil {
-		slog.Warn("row iteration error", "error", err)
+		slog.Error("rows.Err: 結果の読み出しが途中で失敗しました", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to list networks"})
+		return
 	}
 	c.JSON(http.StatusOK, gin.H{"data": networks})
 }
@@ -109,10 +111,12 @@ func (h *WirelessHandler) UpsertNetwork(c *gin.Context) {
 	// Check for duplicate SSID of authorized network (rogue if same SSID but different BSSID)
 	if !isRogue {
 		var authorizedCount int
-		_ = h.pool.QueryRow(c.Request.Context(),
+		if !ReadOK(c, h.pool.QueryRow(c.Request.Context(),
 			`SELECT COUNT(*) FROM wireless_networks
-			 WHERE ssid = $1 AND bssid != $2 AND is_authorized = TRUE`,
-			req.SSID, req.BSSID).Scan(&authorizedCount)
+				 WHERE ssid = $1 AND bssid != $2 AND is_authorized = TRUE`,
+			req.SSID, req.BSSID).Scan(&authorizedCount)) {
+			return
+		}
 		if authorizedCount > 0 {
 			isRogue = true
 		}
@@ -218,7 +222,9 @@ func (h *WirelessHandler) ListIoTDevices(c *gin.Context) {
 		}
 	}
 	if err := rows.Err(); err != nil {
-		slog.Warn("row iteration error", "error", err)
+		slog.Error("rows.Err: 結果の読み出しが途中で失敗しました", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to list IoT devices"})
+		return
 	}
 	c.JSON(http.StatusOK, gin.H{"data": devices})
 }
@@ -285,13 +291,23 @@ func (h *WirelessHandler) GetStats(c *gin.Context) {
 	ctx := c.Request.Context()
 
 	var totalNetworks, rogueCount, authorizedCount int
-	_ = h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM wireless_networks`).Scan(&totalNetworks)
-	_ = h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM wireless_networks WHERE is_rogue = TRUE`).Scan(&rogueCount)
-	_ = h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM wireless_networks WHERE is_authorized = TRUE`).Scan(&authorizedCount)
+	if !ReadOK(c, h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM wireless_networks`).Scan(&totalNetworks)) {
+		return
+	}
+	if !ReadOK(c, h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM wireless_networks WHERE is_rogue = TRUE`).Scan(&rogueCount)) {
+		return
+	}
+	if !ReadOK(c, h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM wireless_networks WHERE is_authorized = TRUE`).Scan(&authorizedCount)) {
+		return
+	}
 
 	var totalIoT, highRiskIoT int
-	_ = h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM iot_devices`).Scan(&totalIoT)
-	_ = h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM iot_devices WHERE risk_score >= 70`).Scan(&highRiskIoT)
+	if !ReadOK(c, h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM iot_devices`).Scan(&totalIoT)) {
+		return
+	}
+	if !ReadOK(c, h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM iot_devices WHERE risk_score >= 70`).Scan(&highRiskIoT)) {
+		return
+	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"total_networks":    totalNetworks,

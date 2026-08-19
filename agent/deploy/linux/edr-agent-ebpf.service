@@ -1,0 +1,63 @@
+[Unit]
+# eBPF-enabled agent unit (agent built with `-tags ebpf`).
+#
+# Differs from the stock edr-agent unit in deploy/scripts/install-agent.sh in the
+# ways an eBPF build needs: it runs as root (eBPF program load, ring buffers, and
+# kprobe/tracepoint attachment need CAP_BPF/CAP_PERFMON plus, on some kernels,
+# CAP_SYS_ADMIN), lifts the memlock limit that BPF map allocation charges against,
+# and keeps the kernel-facing paths writable that the sandboxing directives would
+# otherwise hide. Without those, the agent silently falls back to the inotify file
+# collector — which reports no pid, leaving the per-process ransomware detector
+# inert (see docs/results/live-20260726-detection-rate-scorecard.md).
+#
+# Install:
+#   sudo cp agent/deploy/linux/edr-agent-ebpf.service /etc/systemd/system/
+#   sudo systemctl daemon-reload && sudo systemctl enable --now edr-agent-ebpf
+#
+# Paths can be overridden without editing this unit by dropping an override file:
+#   sudo systemctl edit edr-agent-ebpf     # sets e.g. Environment=EDR_CONFIG=...
+Description=EDR Platform Agent (eBPF build)
+Documentation=https://github.com/edr-platform
+After=network-online.target
+Wants=network-online.target
+StartLimitIntervalSec=300
+StartLimitBurst=5
+
+[Service]
+Type=simple
+User=root
+Environment=EDR_CONFIG=/etc/edr-agent/config.prod.toml
+ExecStart=/usr/local/bin/edr-agent-ebpf --config ${EDR_CONFIG}
+ExecReload=/bin/kill -HUP $MAINPID
+Restart=always
+RestartSec=10
+
+# BPF maps and ring buffers are charged against the locked-memory limit on older
+# kernels; the agent calls rlimit.RemoveMemlock() but that needs the ceiling lifted.
+LimitMEMLOCK=infinity
+LimitNOFILE=65536
+
+# Capabilities: root already has these, but stating them documents the requirement
+# and keeps the unit correct if it is ever switched to a non-root user with
+# CAP_BPF/CAP_PERFMON granted (kernel >= 5.8).
+AmbientCapabilities=CAP_BPF CAP_PERFMON CAP_SYS_RESOURCE CAP_NET_ADMIN CAP_SYS_PTRACE
+NoNewPrivileges=false
+
+# Modest hardening. Deliberately NOT using ProtectKernelTunables/ProtectKernelModules
+# or a SystemCallFilter: they block the bpf(2)/perf_event_open(2) paths this build
+# depends on. PrivateTmp is off so quarantine/staging under /tmp stays observable.
+ProtectSystem=full
+ProtectHome=no
+PrivateTmp=no
+ReadWritePaths=/var/log/edr-agent /var/lib/edr-agent /var/quarantine
+
+# Resource ceilings — an agent must never be the reason a host falls over.
+MemoryMax=1G
+CPUQuota=50%
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=edr-agent-ebpf
+
+[Install]
+WantedBy=multi-user.target

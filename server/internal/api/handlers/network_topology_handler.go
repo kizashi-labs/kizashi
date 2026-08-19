@@ -23,7 +23,7 @@ func (h *NetworkTopologyHandler) GetTopology(c *gin.Context) {
 		FROM network_topology_nodes ORDER BY name
 	`)
 	if err != nil {
-		c.JSON(http.StatusOK, gin.H{"nodes": []any{}, "edges": []any{}})
+		ReadFailure(c, err, gin.H{"nodes": []any{}, "edges": []any{}})
 		return
 	}
 	defer nodeRows.Close()
@@ -60,7 +60,9 @@ func (h *NetworkTopologyHandler) GetTopology(c *gin.Context) {
 		nodes = append(nodes, n)
 	}
 	if err := nodeRows.Err(); err != nil {
-		slog.Warn("row iteration error", "error", err)
+		slog.Error("rows.Err: 結果の読み出しが途中で失敗しました", "error", err)
+		ReadFailure(c, err, gin.H{"nodes": []any{}, "edges": []any{}})
+		return
 	}
 	if nodes == nil {
 		nodes = []Node{}

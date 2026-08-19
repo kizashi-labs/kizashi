@@ -25,10 +25,7 @@ func NewIntegrationConfigHandler(pool *pgxpool.Pool) *IntegrationConfigHandler {
 }
 
 func (h *IntegrationConfigHandler) tableExists(c *gin.Context) bool {
-	var ok bool
-	_ = h.pool.QueryRow(c.Request.Context(),
-		`SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name='integration_configs')`).Scan(&ok)
-	return ok
+	return tableIsThere(c.Request.Context(), h.pool, "integration_configs")
 }
 
 func integType(c *gin.Context) string {
@@ -60,7 +57,7 @@ func (h *IntegrationConfigHandler) GetConfig(c *gin.Context) {
 		`SELECT config, enabled FROM integration_configs WHERE integ_type=$1`, it,
 	).Scan(&configJSON, &enabled)
 	if err != nil {
-		c.JSON(http.StatusOK, gin.H{it: nil, "enabled": false})
+		ReadFailure(c, err, gin.H{it: nil, "enabled": false})
 		return
 	}
 
@@ -81,7 +78,7 @@ func (h *IntegrationConfigHandler) SaveConfig(c *gin.Context) {
 	}
 
 	if !h.tableExists(c) {
-		c.JSON(http.StatusOK, gin.H{"message": "Config saved"})
+		FeatureNotInstalled(c, "連携設定の保存")
 		return
 	}
 
@@ -106,9 +103,11 @@ func (h *IntegrationConfigHandler) TestConnection(c *gin.Context) {
 
 	ctx := c.Request.Context()
 	if h.tableExists(c) {
-		_, _ = h.pool.Exec(ctx, `
-			UPDATE integration_configs SET last_tested=NOW(), test_status='ok' WHERE integ_type=$1`,
-			it)
+		if _, err := h.pool.Exec(ctx, `
+				UPDATE integration_configs SET last_tested=NOW(), test_status='ok' WHERE integ_type=$1`,
+			it); !WriteOK(c, err) {
+			return
+		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{
@@ -135,9 +134,15 @@ func (h *IntegrationConfigHandler) GetSummary(c *gin.Context) {
 	}
 
 	var total, connected, withError int
-	_ = h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM integration_configs`).Scan(&total)
-	_ = h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM integration_configs WHERE enabled=true AND test_status='ok'`).Scan(&connected)
-	_ = h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM integration_configs WHERE test_status='error'`).Scan(&withError)
+	if !ReadOK(c, h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM integration_configs`).Scan(&total)) {
+		return
+	}
+	if !ReadOK(c, h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM integration_configs WHERE enabled=true AND test_status='ok'`).Scan(&connected)) {
+		return
+	}
+	if !ReadOK(c, h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM integration_configs WHERE test_status='error'`).Scan(&withError)) {
+		return
+	}
 
 	disconnected := total - connected - withError
 	if disconnected < 0 {
@@ -168,7 +173,7 @@ func (h *IntegrationConfigHandler) GetMappings(c *gin.Context) {
 		`SELECT config FROM integration_configs WHERE integ_type=$1`, it+"-mappings",
 	).Scan(&configJSON)
 	if err != nil {
-		c.JSON(http.StatusOK, gin.H{"mappings": []interface{}{}})
+		ReadFailure(c, err, gin.H{"mappings": []interface{}{}})
 		return
 	}
 	var result interface{}
@@ -189,11 +194,13 @@ func (h *IntegrationConfigHandler) SaveMappings(c *gin.Context) {
 
 	if h.tableExists(c) {
 		ctx := c.Request.Context()
-		_, _ = h.pool.Exec(ctx, `
-			INSERT INTO integration_configs (integ_type, config, updated_at)
-			VALUES ($1, $2, NOW())
-			ON CONFLICT (integ_type) DO UPDATE SET config=$2, updated_at=NOW()`,
-			it+"-mappings", bodyJSON)
+		if _, err := h.pool.Exec(ctx, `
+				INSERT INTO integration_configs (integ_type, config, updated_at)
+				VALUES ($1, $2, NOW())
+				ON CONFLICT (integ_type) DO UPDATE SET config=$2, updated_at=NOW()`,
+			it+"-mappings", bodyJSON); !WriteOK(c, err) {
+			return
+		}
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "Mappings saved"})
 }
@@ -216,7 +223,9 @@ func (h *IntegrationConfigHandler) GetStatus(c *gin.Context) {
 		`SELECT test_status, last_tested, enabled FROM integration_configs WHERE integ_type=$1`, it,
 	).Scan(&testStatus, &lastTested, &enabled)
 	if err != nil {
-		c.JSON(http.StatusOK, gin.H{"status": "disconnected", "type": it, "enabled": false})
+		// 「未接続」は状態の報告です。読めなかっただけの連携を未接続と
+		// 表示すると、動いている連携が止まっているように見えます。
+		ReadFailure(c, err, gin.H{"status": "disconnected", "type": it, "enabled": false})
 		return
 	}
 

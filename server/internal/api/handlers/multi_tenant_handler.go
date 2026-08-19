@@ -91,7 +91,9 @@ func (h *MultiTenantHandler) ListTenants(c *gin.Context) {
 		tenants = append(tenants, t)
 	}
 	if err := rows.Err(); err != nil {
-		slog.Warn("row iteration error", "error", err)
+		slog.Error("rows.Err: 結果の読み出しが途中で失敗しました", "error", err)
+		response.InternalError(c, "failed to list tenants")
+		return
 	}
 	if tenants == nil {
 		tenants = []tenantWithQuota{}
@@ -127,6 +129,11 @@ func (h *MultiTenantHandler) CreateTenant(c *gin.Context) {
 		Slug      string `json:"slug" binding:"required"`
 		Plan      string `json:"plan"`
 		MaxAgents int    `json:"max_agents"`
+		// MaxUsers goes into tenant_quotas in the same transaction. Creation
+		// used to ignore it and leave the column at its default of 50, so a
+		// user limit chosen at creation time was silently discarded and only
+		// took effect if someone later called PUT /:id/quota.
+		MaxUsers int `json:"max_users"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		response.BadRequest(c, "invalid request: "+err.Error())
@@ -137,6 +144,9 @@ func (h *MultiTenantHandler) CreateTenant(c *gin.Context) {
 	}
 	if req.MaxAgents == 0 {
 		req.MaxAgents = 100
+	}
+	if req.MaxUsers == 0 {
+		req.MaxUsers = 50 // tenant_quotas.max_users default
 	}
 
 	tenantID := uuid.New().String()
@@ -161,9 +171,9 @@ func (h *MultiTenantHandler) CreateTenant(c *gin.Context) {
 	}
 
 	_, err = tx.Exec(ctx, `
-		INSERT INTO tenant_quotas (tenant_id, max_agents, plan)
-		VALUES ($1, $2, $3)
-	`, tenantID, req.MaxAgents, req.Plan)
+		INSERT INTO tenant_quotas (tenant_id, max_agents, max_users, plan)
+		VALUES ($1, $2, $3, $4)
+	`, tenantID, req.MaxAgents, req.MaxUsers, req.Plan)
 	if err != nil {
 		response.InternalError(c, "failed to initialize tenant quota: "+err.Error())
 		return
@@ -292,9 +302,11 @@ func (h *MultiTenantHandler) GetTenantAuditLog(c *gin.Context) {
 	}
 
 	var total int
-	_ = h.pool.QueryRow(c.Request.Context(),
+	if !ReadOK(c, h.pool.QueryRow(c.Request.Context(),
 		`SELECT COUNT(*) FROM tenant_audit_log WHERE tenant_id = $1`, id,
-	).Scan(&total)
+	).Scan(&total)) {
+		return
+	}
 
 	rows, err := h.pool.Query(c.Request.Context(), `
 		SELECT id, tenant_id, actor_id::text, actor_email, action, resource, resource_id,
@@ -322,7 +334,9 @@ func (h *MultiTenantHandler) GetTenantAuditLog(c *gin.Context) {
 		entries = append(entries, e)
 	}
 	if err := rows.Err(); err != nil {
-		slog.Warn("row iteration error", "error", err)
+		slog.Error("rows.Err: 結果の読み出しが途中で失敗しました", "error", err)
+		response.InternalError(c, "failed to query audit log")
+		return
 	}
 	if entries == nil {
 		entries = []tenantAuditEntry{}
@@ -336,15 +350,21 @@ func (h *MultiTenantHandler) GetTenantStats(c *gin.Context) {
 	ctx := c.Request.Context()
 
 	var agentCount, userCount, alertCount int
-	_ = h.pool.QueryRow(ctx,
+	if !ReadOK(c, h.pool.QueryRow(ctx,
 		`SELECT COUNT(*) FROM agents WHERE tenant_id = $1`, id,
-	).Scan(&agentCount)
-	_ = h.pool.QueryRow(ctx,
+	).Scan(&agentCount)) {
+		return
+	}
+	if !ReadOK(c, h.pool.QueryRow(ctx,
 		`SELECT COUNT(*) FROM users WHERE tenant_id = $1`, id,
-	).Scan(&userCount)
-	_ = h.pool.QueryRow(ctx,
+	).Scan(&userCount)) {
+		return
+	}
+	if !ReadOK(c, h.pool.QueryRow(ctx,
 		`SELECT COUNT(*) FROM alerts WHERE tenant_id = $1 AND created_at >= NOW() - INTERVAL '24 hours'`, id,
-	).Scan(&alertCount)
+	).Scan(&alertCount)) {
+		return
+	}
 
 	response.OK(c, gin.H{
 		"tenant_id":       id,

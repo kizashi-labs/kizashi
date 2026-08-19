@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"log/slog"
 	"net/http"
 	"strconv"
 	"time"
@@ -107,6 +108,9 @@ func (h *AttackTimelineHandler) buildAlertHourlyStats(ctx context.Context, agent
 				eventCounts[hr] = cnt
 			}
 		}
+		if err := evRows.Err(); err != nil {
+			slog.Warn("buildAlertHourlyStats: evRows の読み取りが途中で終わりました。この区画は不完全です", "error", err)
+		}
 	}
 
 	// Alert counts per hour (from alerts table)
@@ -123,6 +127,9 @@ func (h *AttackTimelineHandler) buildAlertHourlyStats(ctx context.Context, agent
 			if scanErr := alRows.Scan(&hr, &cnt); scanErr == nil && hr >= 0 && hr < 24 {
 				alertCounts[hr] = cnt
 			}
+		}
+		if err := alRows.Err(); err != nil {
+			slog.Warn("buildAlertHourlyStats: alRows の読み取りが途中で終わりました。この区画は不完全です", "error", err)
 		}
 	}
 

@@ -54,7 +54,7 @@ func (c *ETWScriptCollector) Start(ctx context.Context, out chan<- collector.Scr
 	}
 	ctx, c.cancel = context.WithCancel(ctx)
 	if err := c.startETW(ctx); err != nil {
-		slog.Warn("ETWスクリプト監視を開始できませんでした", "error", err)
+		etwSensorFailed(sensorETWScript, err)
 		return nil
 	}
 	slog.Info("ETWスクリプト監視を開始しました (Microsoft-Windows-PowerShell ScriptBlock + AMSI)")

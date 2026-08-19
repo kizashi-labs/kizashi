@@ -35,6 +35,10 @@ func Checks() []Check {
 		checkRootAccessKeys(),
 		checkPasswordPolicyLength(),
 		checkPasswordReusePrevention(),
+		checkUserMFA(),
+		checkUnusedCredentials(),
+		checkAccessKeyRotation(),
+		checkNoFullAdminPolicy(),
 		checkAccountPublicAccessBlock(),
 		checkCloudTrailMultiRegion(),
 		checkBucketPublicAccessBlock(),
@@ -43,6 +47,8 @@ func Checks() []Check {
 		checkSecurityGroupPort(3389, "RDP", "aws-ec2-sg-rdp-open"),
 		checkDefaultSecurityGroupRestricted(),
 		checkEBSDefaultEncryption(),
+		checkRDSEncryption(),
+		checkEFSEncryption(),
 	}
 }
 
@@ -458,9 +464,9 @@ func checkSecurityGroupPort(port int32, label, id string) Check {
 					ResourceName: aws.ToString(g.GroupName),
 					ResourceType: "AwsEc2SecurityGroup", Region: c.Region,
 				}
-				if src := openToWorldOn(g, port); src != "" {
+				if rule := openToWorldOn(g, port); rule != "" {
 					res.Status = StatusFail
-					res.Evidence = fmt.Sprintf("%d 番が %s に開放されています", port, src)
+					res.Evidence = fmt.Sprintf("%d 番に到達できます (該当規則: %s)", port, rule)
 				} else {
 					res.Status = StatusPass
 					res.Evidence = fmt.Sprintf("%d 番の全世界公開はありません", port)
@@ -472,32 +478,80 @@ func checkSecurityGroupPort(port int32, label, id string) Check {
 	}
 }
 
-// openToWorldOn は指定ポートが 0.0.0.0/0 か ::/0 に開いていれば、その
-// 送信元表記を返す。開いていなければ空文字。
+// openToWorldOn は指定ポートが 0.0.0.0/0 か ::/0 に開いていれば、該当した
+// 規則の要約を返す。開いていなければ空文字。
+//
+// 送信元だけでなく規則そのものを返すのは、所見を受け取った担当者が
+// 「どの規則を消せばよいか」を所見だけで判断できるようにするため。
+// 送信元しか残っていないと、tcp/22 の単独規則なのか 0-65535 のまとめ
+// 開放なのか全プロトコル許可なのかが分からず、結局 AWS を見に行く
+// ことになる。実アカウントでの初回検証でこの不足が実際に問題になった。
 func openToWorldOn(g ec2types.SecurityGroup, port int32) string {
 	for _, p := range g.IpPermissions {
 		if !portInRange(p, port) {
 			continue
 		}
+		src := ""
 		for _, r := range p.IpRanges {
 			if aws.ToString(r.CidrIp) == "0.0.0.0/0" {
-				return "0.0.0.0/0"
+				src = "0.0.0.0/0"
+				break
 			}
 		}
-		for _, r := range p.Ipv6Ranges {
-			if aws.ToString(r.CidrIpv6) == "::/0" {
-				return "::/0"
+		if src == "" {
+			for _, r := range p.Ipv6Ranges {
+				if aws.ToString(r.CidrIpv6) == "::/0" {
+					src = "::/0"
+					break
+				}
 			}
 		}
+		if src == "" {
+			continue
+		}
+		return ruleSummary(p, src)
 	}
 	return ""
 }
 
-// portInRange は許可範囲が指定ポートを含むかを見る。
-// FromPort/ToPort が nil の規則は全ポート許可 (プロトコル -1 等) を意味する。
+// ruleSummary は 1 つの許可規則を「プロトコル/ポート範囲 を 送信元 に許可」
+// の形にする。
+func ruleSummary(p ec2types.IpPermission, src string) string {
+	proto := aws.ToString(p.IpProtocol)
+	if proto == "-1" {
+		return "全プロトコル・全ポートを " + src + " に許可"
+	}
+	var from, to int32
+	if p.FromPort != nil {
+		from = *p.FromPort
+	}
+	if p.ToPort != nil {
+		to = *p.ToPort
+	}
+	if from == to {
+		return fmt.Sprintf("%s/%d を %s に許可", proto, from, src)
+	}
+	return fmt.Sprintf("%s/%d-%d を %s に許可", proto, from, to, src)
+}
+
+// portInRange は許可規則が指定ポートに到達しうるかを見る。
+//
+// ポート番号だけでなくプロトコルも見る。この関数を使う検査 (SSH 22 /
+// RDP 3389) はどちらも TCP のサービスなので、UDP の規則が同じ番号を
+// 含んでいても到達性は無い。プロトコルを見ないと、UDP の広い範囲
+// (例: 0-65535) を 0.0.0.0/0 に開けているだけの SG が「SSH が全世界に
+// 公開」として high の所見に化ける。存在しない露出を運用者に処理させる
+// ことになるうえ、実在する所見がその中に埋もれる。
+//
+// IpProtocol が "-1" の規則は全プロトコル・全ポート許可なので該当する。
+// AWS は TCP を "tcp" とも IANA 番号 "6" とも返しうるため両方を見る。
 func portInRange(p ec2types.IpPermission, port int32) bool {
-	if aws.ToString(p.IpProtocol) == "-1" {
+	proto := strings.ToLower(aws.ToString(p.IpProtocol))
+	if proto == "-1" {
 		return true
+	}
+	if proto != "tcp" && proto != "6" {
+		return false
 	}
 	if p.FromPort == nil || p.ToPort == nil {
 		return false

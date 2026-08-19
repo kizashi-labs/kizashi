@@ -26,9 +26,11 @@ func (h *CapacityPlanningHandler) GetOverview(c *gin.Context) {
 	ctx := c.Request.Context()
 
 	var alertCount int
-	_ = h.pool.QueryRow(ctx, `
-		SELECT COUNT(*) FROM alerts
-		WHERE created_at >= NOW() - INTERVAL '7 days'`).Scan(&alertCount)
+	if !ReadOK(c, h.pool.QueryRow(ctx, `
+			SELECT COUNT(*) FROM alerts
+			WHERE created_at >= NOW() - INTERVAL '7 days'`).Scan(&alertCount)) {
+		return
+	}
 
 	alertsPerDay := alertCount / 7
 	if alertCount > 0 && alertsPerDay == 0 {
@@ -37,9 +39,11 @@ func (h *CapacityPlanningHandler) GetOverview(c *gin.Context) {
 
 	var costTarget int64 = 500000
 	var headroom int = 2
-	_ = h.pool.QueryRow(ctx, `
-		SELECT cost_per_endpoint_target, analyst_headroom
-		FROM cp_planning_targets WHERE id = 1`).Scan(&costTarget, &headroom)
+	if !ReadOK(c, h.pool.QueryRow(ctx, `
+			SELECT cost_per_endpoint_target, analyst_headroom
+			FROM cp_planning_targets WHERE id = 1`).Scan(&costTarget, &headroom)) {
+		return
+	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"alerts_per_day":           alertsPerDay,
@@ -114,6 +118,10 @@ func (h *CapacityPlanningHandler) GetROI(c *gin.Context) {
 		sumComp += it.ComplianceValue
 		out = append(out, it)
 	}
+	if err := rows.Err(); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": dbErrMsg(err)})
+		return
+	}
 
 	overallPct := computeROI(sumBen, sumInv)
 	out = append(out, ROIItem{
@@ -160,6 +168,10 @@ func (h *CapacityPlanningHandler) GetWorkforce(c *gin.Context) {
 			out = append(out, a)
 		}
 	}
+	if err := rows.Err(); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": dbErrMsg(err)})
+		return
+	}
 	c.JSON(http.StatusOK, out)
 }
 
@@ -169,7 +181,9 @@ func (h *CapacityPlanningHandler) GetResources(c *gin.Context) {
 	ctx := c.Request.Context()
 
 	var liveAgentCount int
-	_ = h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM agents`).Scan(&liveAgentCount)
+	if !ReadOK(c, h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM agents`).Scan(&liveAgentCount)) {
+		return
+	}
 
 	rows, err := h.pool.Query(ctx, `
 		SELECT id::text, tool_name, category, purchased, used, price_per_unit,
@@ -201,6 +215,10 @@ func (h *CapacityPlanningHandler) GetResources(c *gin.Context) {
 			out = append(out, l)
 		}
 	}
+	if err := rows.Err(); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": dbErrMsg(err)})
+		return
+	}
 	c.JSON(http.StatusOK, out)
 }
 
@@ -213,7 +231,7 @@ func (h *CapacityPlanningHandler) GetStorage(c *gin.Context) {
 		SELECT used_tb, total_tb, projected_6m_tb, projected_12m_tb
 		FROM cp_storage_metrics WHERE id = 1`).Scan(&used, &total, &p6, &p12)
 	if err != nil {
-		c.JSON(http.StatusOK, gin.H{
+		ReadFailure(c, err, gin.H{
 			"used_tb": 0, "total_tb": 1, "projected_6m_tb": 0, "projected_12m_tb": 0,
 		})
 		return
@@ -251,6 +269,10 @@ func (h *CapacityPlanningHandler) GetBudget(c *gin.Context) {
 			out = append(out, b)
 		}
 	}
+	if err := rows.Err(); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": dbErrMsg(err)})
+		return
+	}
 	c.JSON(http.StatusOK, out)
 }
 
@@ -281,6 +303,10 @@ func (h *CapacityPlanningHandler) GetPlannedHires(c *gin.Context) {
 			out = append(out, h)
 		}
 	}
+	if err := rows.Err(); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": dbErrMsg(err)})
+		return
+	}
 	c.JSON(http.StatusOK, out)
 }
 
@@ -308,6 +334,10 @@ func (h *CapacityPlanningHandler) GetTechDebt(c *gin.Context) {
 		if rows.Scan(&d.ID, &d.Title, &d.Impact, &d.Severity) == nil {
 			out = append(out, d)
 		}
+	}
+	if err := rows.Err(); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": dbErrMsg(err)})
+		return
 	}
 	c.JSON(http.StatusOK, out)
 }
@@ -345,6 +375,10 @@ func (h *CapacityPlanningHandler) GetOncallShifts(c *gin.Context) {
 			&s.Mon, &s.Tue, &s.Wed, &s.Thu, &s.Fri, &s.Sat, &s.Sun) == nil {
 			out = append(out, s)
 		}
+	}
+	if err := rows.Err(); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": dbErrMsg(err)})
+		return
 	}
 	c.JSON(http.StatusOK, out)
 }

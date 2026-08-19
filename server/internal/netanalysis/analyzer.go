@@ -5,7 +5,7 @@ package netanalysis
 
 import (
 	"context"
-	"log/slog"
+	"fmt"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -70,31 +70,33 @@ func NewAnalyzer(pool *pgxpool.Pool) *Analyzer {
 func (a *Analyzer) GetTopConnections(ctx context.Context, hours, limit int) ([]ConnectionSummary, error) {
 	since := time.Now().Add(-time.Duration(hours) * time.Hour)
 
+	// bytes_sent is SUMmed, not grouped by. It used to appear in the GROUP BY
+	// alongside the connection identity, and real traffic sends a different
+	// number of bytes every time — so each event formed its own group, COUNT(*)
+	// was 1 for all of them, and "the most active pairs" ranked nothing.
 	rows, err := a.pool.Query(ctx, `
 		SELECT
-			COALESCE(data->>'src_ip',''),
-			COALESCE(data->>'dst_ip',''),
-			COALESCE((data->>'dst_port')::int, 0),
-			COALESCE(data->>'protocol','tcp'),
-			COALESCE((data->>'bytes_sent')::bigint, 0),
+			COALESCE(raw_data->>'src_ip',''),
+			COALESCE(raw_data->>'dst_ip',''),
+			COALESCE((raw_data->>'dst_port')::int, 0),
+			COALESCE(raw_data->>'protocol','tcp'),
+			COALESCE(SUM((raw_data->>'bytes_sent')::bigint), 0),
 			COUNT(*),
-			COALESCE(data->>'hostname',''),
+			COALESCE(raw_data->>'hostname',''),
 			agent_id,
 			MIN(time),
 			MAX(time)
 		FROM events
 		WHERE event_type='network'
 		  AND time >= $1
-		GROUP BY data->>'src_ip', data->>'dst_ip', data->>'dst_port',
-		         data->>'protocol', data->>'hostname', agent_id,
-		         data->>'bytes_sent'
+		GROUP BY raw_data->>'src_ip', raw_data->>'dst_ip', raw_data->>'dst_port',
+		         raw_data->>'protocol', raw_data->>'hostname', agent_id
 		ORDER BY COUNT(*) DESC
 		LIMIT $2`,
 		since, limit,
 	)
 	if err != nil {
-		slog.Warn("netanalysis: GetTopConnections query failed", "error", err)
-		return []ConnectionSummary{}, nil
+		return nil, fmt.Errorf("netanalysis: top connections: %w", err)
 	}
 	defer rows.Close()
 
@@ -115,6 +117,10 @@ func (a *Analyzer) GetTopConnections(ctx context.Context, hours, limit int) ([]C
 		cs.ThreatScore = calculateThreatScore(cs.Flags)
 		results = append(results, cs)
 	}
+	// 部分結果を完全な一覧として返さない（scan_truncation_guard_test.go 参照）
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
 	return results, nil
 }
 
@@ -125,22 +131,21 @@ func (a *Analyzer) GetPortAnalysis(ctx context.Context, hours int) ([]PortStat, 
 
 	rows, err := a.pool.Query(ctx, `
 		SELECT
-			COALESCE((data->>'dst_port')::int, 0) AS port,
-			COALESCE(data->>'protocol','tcp')     AS protocol,
+			COALESCE((raw_data->>'dst_port')::int, 0) AS port,
+			COALESCE(raw_data->>'protocol','tcp')     AS protocol,
 			COUNT(*)                              AS conn_count,
-			COUNT(DISTINCT data->>'src_ip')       AS unique_hosts
+			COUNT(DISTINCT raw_data->>'src_ip')       AS unique_hosts
 		FROM events
 		WHERE event_type='network'
 		  AND time >= $1
-		  AND data->>'dst_port' IS NOT NULL
+		  AND raw_data->>'dst_port' IS NOT NULL
 		GROUP BY port, protocol
 		ORDER BY conn_count DESC
 		LIMIT 50`,
 		since,
 	)
 	if err != nil {
-		slog.Warn("netanalysis: GetPortAnalysis query failed", "error", err)
-		return []PortStat{}, nil
+		return nil, fmt.Errorf("netanalysis: port analysis: %w", err)
 	}
 	defer rows.Close()
 
@@ -154,6 +159,10 @@ func (a *Analyzer) GetPortAnalysis(ctx context.Context, hours int) ([]PortStat, 
 		ps.RiskLevel = portRiskLevel(ps.Port, ps.IsCommon, ps.ConnectionCount)
 		results = append(results, ps)
 	}
+	// 部分結果を完全な一覧として返さない（scan_truncation_guard_test.go 参照）
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
 	return results, nil
 }
 
@@ -162,41 +171,64 @@ func (a *Analyzer) GetPortAnalysis(ctx context.Context, hours int) ([]PortStat, 
 func (a *Analyzer) GetBeaconingDetection(ctx context.Context, hours int) ([]BeaconCandidate, error) {
 	since := time.Now().Add(-time.Duration(hours) * time.Hour)
 
-	// Gather per-agent, per-dst timestamps and compute std-dev of intervals.
+	// Two things were wrong with this query beyond the column name, and the
+	// column name hid both — Postgres reports the first error it finds.
+	//
+	// It computed AVG(LEAD(ts) OVER (...) - ts), an aggregate containing a
+	// window function, which Postgres rejects outright with 42803. The
+	// statement could never have run, with any column name.
+	//
+	// And it measured STDDEV(ts) — the spread of the timestamps themselves —
+	// against the mean interval. Regular beaconing spreads its timestamps
+	// evenly across the whole window, so stddev_ts grows with the window while
+	// the interval stays put: the more textbook the beacon, the further it sat
+	// from tripping the "stddev < 0.15 × interval" test. Regularity is a
+	// property of the gaps, so the gaps are what is measured now.
+	//
+	// STDDEV_POP over the observed gaps: this describes the series in hand
+	// rather than estimating a population from a sample, and a perfectly
+	// regular beacon lands on exactly 0.
 	rows, err := a.pool.Query(ctx, `
 		WITH per_conn AS (
 			SELECT
 				agent_id,
-				data->>'dst_ip' AS dst_ip,
+				raw_data->>'dst_ip' AS dst_ip,
 				EXTRACT(EPOCH FROM time) AS ts
 			FROM events
 			WHERE event_type='network'
 			  AND time >= $1
-			  AND data->>'dst_ip' IS NOT NULL
+			  AND raw_data->>'dst_ip' IS NOT NULL
+		),
+		gaps AS (
+			SELECT
+				agent_id,
+				dst_ip,
+				LEAD(ts) OVER (PARTITION BY agent_id, dst_ip ORDER BY ts) - ts AS gap
+			FROM per_conn
 		),
 		intervals AS (
 			SELECT
 				agent_id,
 				dst_ip,
-				COUNT(*) AS cnt,
-				STDDEV(ts) AS stddev_ts,
-				AVG(LEAD(ts) OVER (PARTITION BY agent_id, dst_ip ORDER BY ts) - ts) AS avg_interval
-			FROM per_conn
+				COUNT(*) + 1        AS cnt,          -- n gaps means n+1 connections
+				AVG(gap)            AS avg_interval,
+				STDDEV_POP(gap)     AS stddev_gap
+			FROM gaps
+			WHERE gap IS NOT NULL
 			GROUP BY agent_id, dst_ip
-			HAVING COUNT(*) >= 5
+			HAVING COUNT(*) >= 4                     -- i.e. at least 5 connections
 		)
-		SELECT agent_id, dst_ip, avg_interval, cnt, stddev_ts
+		SELECT agent_id, dst_ip, avg_interval, cnt, stddev_gap
 		FROM intervals
-		WHERE avg_interval IS NOT NULL
-		  AND stddev_ts IS NOT NULL
-		  AND stddev_ts < avg_interval * 0.15
-		ORDER BY stddev_ts / NULLIF(avg_interval,0) ASC
+		WHERE avg_interval > 0
+		  AND stddev_gap IS NOT NULL
+		  AND stddev_gap < avg_interval * 0.15
+		ORDER BY stddev_gap / avg_interval ASC
 		LIMIT 20`,
 		since,
 	)
 	if err != nil {
-		slog.Warn("netanalysis: GetBeaconingDetection query failed", "error", err)
-		return []BeaconCandidate{}, nil
+		return nil, fmt.Errorf("netanalysis: beaconing detection: %w", err)
 	}
 	defer rows.Close()
 
@@ -216,6 +248,10 @@ func (a *Analyzer) GetBeaconingDetection(ctx context.Context, hours int) ([]Beac
 		}
 		results = append(results, bc)
 	}
+	// 部分結果を完全な一覧として返さない（scan_truncation_guard_test.go 参照）
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
 	return results, nil
 }
 
@@ -232,29 +268,36 @@ func (a *Analyzer) GetNetworkStats(ctx context.Context, hours int) (NetworkStats
 	since := time.Now().Add(-time.Duration(hours) * time.Hour)
 	var stats NetworkStats
 
-	_ = a.pool.QueryRow(ctx, `
+	// Both errors used to be discarded, so a failure left every counter at zero
+	// and the dashboard rendered "no network activity" — the same thing a quiet
+	// network looks like. They are returned now; the handler answers 500.
+	if err := a.pool.QueryRow(ctx, `
 		SELECT
 			COUNT(*),
-			COUNT(DISTINCT data->>'dst_ip'),
-			COUNT(DISTINCT (data->>'dst_port')::int)
+			COUNT(DISTINCT raw_data->>'dst_ip'),
+			COUNT(DISTINCT (raw_data->>'dst_port')::int)
 		FROM events
 		WHERE event_type='network' AND time >= $1`,
 		since,
-	).Scan(&stats.TotalConnections, &stats.UniqueIPs, &stats.UniquePorts)
+	).Scan(&stats.TotalConnections, &stats.UniqueIPs, &stats.UniquePorts); err != nil {
+		return NetworkStats{}, fmt.Errorf("netanalysis: network stats: %w", err)
+	}
 
 	// A simple proxy for threats: unusual ports (>1024 and not in common set)
 	// with high connection counts.
-	_ = a.pool.QueryRow(ctx, `
+	if err := a.pool.QueryRow(ctx, `
 		SELECT COUNT(*) FROM (
-			SELECT data->>'dst_port' AS p
+			SELECT raw_data->>'dst_port' AS p
 			FROM events
 			WHERE event_type='network' AND time >= $1
-			  AND (data->>'dst_port')::int > 1024
+			  AND (raw_data->>'dst_port')::int > 1024
 			GROUP BY p
 			HAVING COUNT(*) > 100
 		) sub`,
 		since,
-	).Scan(&stats.ThreatsDetected)
+	).Scan(&stats.ThreatsDetected); err != nil {
+		return NetworkStats{}, fmt.Errorf("netanalysis: threat proxy: %w", err)
+	}
 
 	return stats, nil
 }

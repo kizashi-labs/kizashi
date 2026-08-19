@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"log/slog"
 	"net/http"
 	"strconv"
 	"time"
@@ -177,38 +178,31 @@ func (h *DashboardStatsHandler) Summary(c *gin.Context) {
 
 	var stats SummaryStats
 
-	// Query agents online
-	agentRow := h.pool.QueryRow(c.Request.Context(), `
-		SELECT COUNT(*) FROM agents WHERE status = 'online'
-	`)
-	if err := agentRow.Scan(&stats.AgentsOnline); err != nil {
-		stats.AgentsOnline = 0
-	}
-
-	// Query open alerts
-	alertRow := h.pool.QueryRow(c.Request.Context(), `
-		SELECT COUNT(*) FROM alerts WHERE status NOT IN ('resolved', 'dismissed')
-	`)
-	if err := alertRow.Scan(&stats.OpenAlerts); err != nil {
-		stats.OpenAlerts = 0
-	}
-
-	// Query open incidents
-	incidentRow := h.pool.QueryRow(c.Request.Context(), `
-		SELECT COUNT(*) FROM incidents WHERE status NOT IN ('resolved', 'closed')
-	`)
-	if err := incidentRow.Scan(&stats.OpenIncidents); err != nil {
-		stats.OpenIncidents = 0
-	}
-
-	// Query critical alerts in last 24 hours
-	criticalRow := h.pool.QueryRow(c.Request.Context(), `
-		SELECT COUNT(*) FROM alerts
-		WHERE severity >= 9
-		  AND created_at > NOW() - INTERVAL '24 hours'
-	`)
-	if err := criticalRow.Scan(&stats.CriticalAlerts24h); err != nil {
-		stats.CriticalAlerts24h = 0
+	// この4つは SOC が最初に開く画面の数字です。以前はどれも、クエリが
+	// 失敗したら 0 を入れて先へ進み、最後に 200 で返していました。
+	//
+	//	if err := agentRow.Scan(&stats.AgentsOnline); err != nil {
+	//		stats.AgentsOnline = 0
+	//	}
+	//
+	// 「オンライン0台・未対応アラート0件・未解決インシデント0件」は、
+	// 落ち着いた朝の画面と見分けが付きません。分岐そのものが応答を返さず、
+	// 通常の経路が 200 を返すので、空で返す実装を探す検査にも映りません。
+	for _, q := range []struct {
+		what string
+		sql  string
+		dst  *int
+	}{
+		{"オンラインのエージェント数", `SELECT COUNT(*) FROM agents WHERE status = 'online'`, &stats.AgentsOnline},
+		{"未対応のアラート数", `SELECT COUNT(*) FROM alerts WHERE status NOT IN ('resolved', 'dismissed')`, &stats.OpenAlerts},
+		{"未解決のインシデント数", `SELECT COUNT(*) FROM incidents WHERE status NOT IN ('resolved', 'closed')`, &stats.OpenIncidents},
+		{"24時間以内の重大アラート数", `SELECT COUNT(*) FROM alerts WHERE severity >= 9 AND created_at > NOW() - INTERVAL '24 hours'`, &stats.CriticalAlerts24h},
+	} {
+		if err := h.pool.QueryRow(c.Request.Context(), q.sql).Scan(q.dst); err != nil {
+			slog.Error("dashboard summary: 取得できませんでした", "what", q.what, "error", err)
+			ReadFailure(c, err, stats)
+			return
+		}
 	}
 
 	c.JSON(http.StatusOK, stats)

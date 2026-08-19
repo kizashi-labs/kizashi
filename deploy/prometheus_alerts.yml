@@ -13,28 +13,34 @@ groups:
           summary: "EDR API が停止しています"
           description: "{{ $labels.instance }} への接続が 1 分以上失敗しています。"
 
-      - alert: EDRApiHighErrorRate
-        expr: |
-          rate(http_requests_total{job="edr-api", status=~"5.."}[5m])
-          / rate(http_requests_total{job="edr-api"}[5m]) > 0.05
-        for: 3m
-        labels:
-          severity: warning
-        annotations:
-          summary: "EDR API エラー率が高くなっています"
-          description: "5xx エラー率が {{ $value | humanizePercentage }} を超えています (閾値: 5%)。"
+      # EDRApiHighErrorRate はここにありました。rules/edr-alerts.yml の
+      # EDRHighAPIErrorRate と、閾値 (5xx > 5%)・for (3m) が同じで、
+      # severity だけが warning と critical に割れていました。
+      #
+      # 名前が違うので Prometheus は2本として評価します。通知を繋いだ今、
+      # 同じ事象が PagerDuty(critical) と Slack(warning) の両方に、
+      # **別の重大度の別の事案として**届くことになります。
+      #
+      # critical 側に寄せました。API の 5xx が3分続くのは呼び出しを要する
+      # 状態で、warning に埋もれる方が高くつきます。
+      #
+      # 残した式は sum() でまとめてから割り、分母を clamp_min しています。
+      # 生の rate 同士の割り算だと系列ごとの比になり、トラフィックが
+      # 途切れた瞬間に 0/0 で NaN になります。
 
-      - alert: EDRApiHighLatency
-        expr: |
-          histogram_quantile(0.95,
-            rate(http_request_duration_seconds_bucket{job="edr-api"}[5m])
-          ) > 2
-        for: 5m
-        labels:
-          severity: warning
-        annotations:
-          summary: "EDR API レスポンスタイムが遅くなっています"
-          description: "p95 レスポンスタイムが {{ $value }}s を超えています (閾値: 2s)。"
+      # EDRApiHighLatency はここにありました。rules/edr-alerts.yml の
+      # EDRAPIHighLatency と、閾値 (p95 > 2s)・for (5m)・severity (warning) が
+      # 同じで、名前は "Api"/"API" の綴りだけが違いました。**Prometheus は
+      # 別のアラートとして扱うので、上書きは起きず、両方が発火します。**
+      #
+      # 残したのは rules/ 側です。あちらは histogram_quantile に
+      # `sum by (le)` を掛けています。掛けないと、instance や method ごとの
+      # 系列それぞれで p95 を出すので、1台だけ遅いときに全体の p95 として
+      # 報告されます。同じ閾値でも、測っているものが違います。
+      #
+      # 完全一致の名前しか見ていなかったので、重複の検査はこれを
+      # 「重複なし」と報告していました。scripts/check_prometheus_rules.py が
+      # 大文字小文字を落とした名前でも見るようになっています。
 
       - alert: EDRApiHighRequestRate
         expr: rate(http_requests_total{job="edr-api"}[1m]) > 500
@@ -58,6 +64,7 @@ groups:
         annotations:
           summary: "PostgreSQL が停止しています"
           description: "データベースへの接続が 30 秒以上失敗しています。即時対応が必要です。"
+          runbook_url: "https://github.com/kizashi-labs/kizashi/blob/main/docs/ops/%E7%9B%A3%E8%A6%96%E3%83%A9%E3%83%B3%E3%83%96%E3%83%83%E3%82%AF.md#postgresdown"
 
       - alert: PostgresHighConnections
         expr: |
@@ -146,6 +153,15 @@ groups:
   # ──────────────────────────────────────────────
   - name: edr_security
     rules:
+      # edr_alerts_created_total は metrics.go の手書き Fprintf ブロックが
+      # 出しています (promauto ではなく atomic の AlertsCreated)。
+      #
+      # このルールを一度「存在しないメトリクスを参照している」として
+      # 書き換えました。私が新しく書いた検査が promauto の宣言しか読んで
+      # おらず、手書きの行を見ていなかったためです。既にある Go 側の契約
+      # 検査は正しく通していました。**狭い走査が出した「問題」を、
+      # もう一方の判定と突き合わせずに直しました。** このキャンペーンが
+      # 扱っている失敗そのものです。元に戻してあります。
       - alert: HighAlertVolume
         expr: |
           increase(edr_alerts_created_total[1h]) > 1000
@@ -212,6 +228,7 @@ groups:
             exfil_volume / killchain 等) はこのプロセスにしか存在しないため、
             停止中はそれらの検知が全て失われます。server-api の builtin Sigma のみが
             残るため、アラートは出続けることに注意してください。
+          runbook_url: "https://github.com/kizashi-labs/kizashi/blob/main/docs/ops/%E7%9B%A3%E8%A6%96%E3%83%A9%E3%83%B3%E3%83%96%E3%83%83%E3%82%AF.md#edrdetectiondown"
 
       # デッドマンズスイッチ。プロセスは生きていてヘルスプローブも通るのに、
       # NATS→検知の経路だけが静かに止まっている状態を捉える。
@@ -239,6 +256,7 @@ groups:
             プロセスは生存しているため死活監視では検出できません。ingestion→NATS→detection の
             どこかで停止しています。イベント送信が本当に無い時間帯かどうかを
             edr_events_ingested_total と併せて確認してください。
+          runbook_url: "https://github.com/kizashi-labs/kizashi/blob/main/docs/ops/%E7%9B%A3%E8%A6%96%E3%83%A9%E3%83%B3%E3%83%96%E3%83%83%E3%82%AF.md#edrdetectionpipelinestalled"
 
       # ラグは「停止」の前兆であり、かつ計測を無効化する。consumer が数百万件
       # 遅れていると、実行した TTP に対応する検知は窓の外で発火するため、
@@ -258,6 +276,7 @@ groups:
             JetStream の未配信メッセージが {{ $value }} 件あります。この状態では検知が
             実時間から遅れるため、検知率計測を実施しても結果は信頼できません。
             計測前には必ずこの値が十分小さいことを確認してください。
+          runbook_url: "https://github.com/kizashi-labs/kizashi/blob/main/docs/ops/%E7%9B%A3%E8%A6%96%E3%83%A9%E3%83%B3%E3%83%96%E3%83%83%E3%82%AF.md#edrdetectionconsumerlagging"
 
       - alert: EDRDetectionConsumerLagCritical
         expr: edr_detection_consumer_pending{job="edr-detection"} > 1000000

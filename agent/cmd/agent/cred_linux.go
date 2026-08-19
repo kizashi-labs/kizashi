@@ -11,7 +11,12 @@ import (
 
 	"github.com/edr-platform/agent/internal/collector"
 	linuxplat "github.com/edr-platform/agent/internal/platform/linux"
+	"github.com/edr-platform/agent/internal/telemetry"
 )
+
+// sensorCredAccess — ハートビートに載るセンサー名。Windows 側の
+// cred_lsass と対になります（どちらも「資格情報アクセスを見ているか」）。
+const sensorCredAccess = "cred_access"
 
 // runCredService runs Linux credential/memory-access detection: an eBPF LSM
 // ptrace_access_check hook reports when a process reads another process's memory
@@ -22,10 +27,22 @@ import (
 func runCredService(ctx context.Context, sender collector.EventSender, agentID string) {
 	runner := linuxplat.NewCredAccessRunner()
 	if err := runner.Start(); err != nil {
-		slog.Info("[credaccess] eBPF LSM未起動（LSM非対応/未許可ホスト） — 認証情報アクセス検知なしで継続", "error", err)
+		// **slog.Info で抜けていました。** ログはその端末の中にしか残らない
+		// ので、SOC からは「資格情報アクセスを見ていない端末」を数えられ
+		// ません。イベントが来ないのは、攻撃されていないからなのか、
+		// センサーが上がらなかったからなのか、外からは同じ姿をします。
+		//
+		// ModeOff ではなく ModeFailed です。`-tags "ebpf prevention"` で
+		// 焼いた上でここまで来ているので、**望んだのに届かなかった**方です。
+		telemetry.Set(sensorCredAccess, telemetry.ModeFailed,
+			"eBPF LSM 未起動（LSM非対応/未許可ホスト）: "+err.Error())
+		slog.Warn("[credaccess] eBPF LSM未起動（LSM非対応/未許可ホスト） — "+
+			"**この端末では資格情報アクセスを見ていません**", "error", err)
 		return
 	}
 	defer runner.Close()
+	// 上がったので、前回の失敗は消します。直らない赤は赤でないのと同じです。
+	telemetry.Forget(sensorCredAccess)
 	slog.Info("[credaccess] プロセスメモリアクセス検知(ptrace_access_check)を起動しました")
 
 	self := uint32(os.Getpid())

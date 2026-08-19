@@ -60,7 +60,9 @@ func (h *SOARWorkflowHandler) ListWorkflows(c *gin.Context) {
 		}
 	}
 	if err := rows.Err(); err != nil {
-		slog.Warn("row iteration error", "error", err)
+		slog.Error("rows.Err: 結果の読み出しが途中で失敗しました", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to list workflows"})
+		return
 	}
 	c.JSON(http.StatusOK, gin.H{"data": workflows})
 }
@@ -304,10 +306,12 @@ func (h *SOARWorkflowHandler) TriggerWorkflow(c *gin.Context) {
 	}
 
 	// Update workflow execution count and last_executed_at
-	_, _ = h.pool.Exec(c.Request.Context(),
+	if _, err := h.pool.Exec(c.Request.Context(),
 		`UPDATE soar_workflows
-		 SET execution_count = execution_count + 1, last_executed_at = NOW(), updated_at = NOW()
-		 WHERE id = $1`, workflowID)
+			 SET execution_count = execution_count + 1, last_executed_at = NOW(), updated_at = NOW()
+			 WHERE id = $1`, workflowID); !WriteOK(c, err) {
+		return
+	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"message":           "workflow triggered",
@@ -399,7 +403,9 @@ func (h *SOARWorkflowHandler) ListExecutions(c *gin.Context) {
 		}
 	}
 	if err := rows.Err(); err != nil {
-		slog.Warn("row iteration error", "error", err)
+		slog.Error("rows.Err: 結果の読み出しが途中で失敗しました", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to list executions"})
+		return
 	}
 	c.JSON(http.StatusOK, gin.H{"data": executions})
 }
@@ -409,16 +415,24 @@ func (h *SOARWorkflowHandler) GetStats(c *gin.Context) {
 	ctx := c.Request.Context()
 
 	var execToday, execWeek int
-	_ = h.pool.QueryRow(ctx,
+	if !ReadOK(c, h.pool.QueryRow(ctx,
 		`SELECT COUNT(*) FROM soar_executions WHERE started_at >= NOW() - INTERVAL '24 hours'`).
-		Scan(&execToday)
-	_ = h.pool.QueryRow(ctx,
+		Scan(&execToday)) {
+		return
+	}
+	if !ReadOK(c, h.pool.QueryRow(ctx,
 		`SELECT COUNT(*) FROM soar_executions WHERE started_at >= NOW() - INTERVAL '7 days'`).
-		Scan(&execWeek)
+		Scan(&execWeek)) {
+		return
+	}
 
 	var totalExec, successExec int
-	_ = h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM soar_executions`).Scan(&totalExec)
-	_ = h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM soar_executions WHERE status = 'completed'`).Scan(&successExec)
+	if !ReadOK(c, h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM soar_executions`).Scan(&totalExec)) {
+		return
+	}
+	if !ReadOK(c, h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM soar_executions WHERE status = 'completed'`).Scan(&successExec)) {
+		return
+	}
 
 	successRate := 0.0
 	if totalExec > 0 {
@@ -431,10 +445,12 @@ func (h *SOARWorkflowHandler) GetStats(c *gin.Context) {
 		Count int    `json:"count"`
 	}
 	var mostTriggered WorkflowStat
-	_ = h.pool.QueryRow(ctx,
+	if !ReadOK(c, h.pool.QueryRow(ctx,
 		`SELECT w.id, w.name, w.execution_count
-		 FROM soar_workflows w ORDER BY w.execution_count DESC LIMIT 1`).
-		Scan(&mostTriggered.ID, &mostTriggered.Name, &mostTriggered.Count)
+			 FROM soar_workflows w ORDER BY w.execution_count DESC LIMIT 1`).
+		Scan(&mostTriggered.ID, &mostTriggered.Name, &mostTriggered.Count)) {
+		return
+	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"executions_today":     execToday,

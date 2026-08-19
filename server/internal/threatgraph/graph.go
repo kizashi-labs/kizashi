@@ -4,10 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+
+	"github.com/edr-platform/server/internal/detection"
 )
 
 // NodeType represents the type of a graph node
@@ -199,6 +202,38 @@ func (g *Graph) GetSubGraph(q *GraphQuery) *SubGraph {
 	}
 }
 
+// graphEventLimit bounds one build. Named so the truncation is visible: beyond
+// this many events the graph is a prefix of the window, not the whole of it.
+const graphEventLimit = 5000
+
+// firstString returns the first of keys present in data with a non-empty string
+// form.
+//
+// The graph is assembled from events.raw_data, which internal/ingestion writes
+// from the proto payloads. Several of the names this package read are not names
+// ingestion produces, and a missing key in a map yields nil rather than an
+// error, so the graph rendered with the fields simply absent. firstString makes
+// the accepted spellings explicit at each site.
+func firstString(data map[string]interface{}, keys ...string) string {
+	for _, k := range keys {
+		v, ok := data[k]
+		if !ok || v == nil {
+			continue
+		}
+		if s := strings.TrimSpace(fmt.Sprintf("%v", v)); s != "" && s != "<nil>" {
+			return s
+		}
+	}
+	return ""
+}
+
+// processHash returns the strongest hash present. Ingestion writes sha256/sha1/
+// md5 as separate keys (addHashes); nothing writes "hash", which is what this
+// package used to read, so every process and file node carried hash=<nil>.
+func processHash(data map[string]interface{}) string {
+	return firstString(data, "sha256", "sha1", "md5", "hash")
+}
+
 // BuildFromEvents constructs graph nodes/edges from raw events in DB
 func (g *Graph) BuildFromEvents(ctx context.Context, agentID string, since time.Time) error {
 	rows, err := g.pool.Query(ctx, `
@@ -209,8 +244,8 @@ func (g *Graph) BuildFromEvents(ctx context.Context, agentID string, since time.
         WHERE ($1::text = '' OR e.agent_id::text = $1)
           AND e.time >= $2
         ORDER BY e.time ASC
-        LIMIT 5000
-    `, agentID, since)
+        LIMIT $3
+    `, agentID, since, graphEventLimit)
 	if err != nil {
 		return fmt.Errorf("query events: %w", err)
 	}
@@ -279,13 +314,20 @@ func (g *Graph) BuildFromEvents(ctx context.Context, agentID string, since time.
 			}
 
 		case "file":
+			// A file event with no path cannot be a node: every one of them would
+			// share the id "file:<agent>:unknown", so the graph would fold all file
+			// activity on the host into a single vertex and show every process
+			// touching the same imaginary file.
 			fileNode := buildFileNode(eventID, evtAgentID, ts, data)
+			if fileNode == nil {
+				continue
+			}
 			g.AddNode(fileNode)
 
 			if pid, ok := data["pid"]; ok {
 				procID := fmt.Sprintf("process:%s:pid:%v", evtAgentID, pid)
 				edgeType := EdgeAccessed
-				if op, ok := data["operation"].(string); ok && (op == "write" || op == "create" || op == "delete") {
+				if detection.IsDestructiveFileAction(firstString(data, "operation", "action")) {
 					edgeType = EdgeModified
 				}
 				g.AddEdge(&Edge{
@@ -298,17 +340,27 @@ func (g *Graph) BuildFromEvents(ctx context.Context, agentID string, since time.
 			}
 
 		case "dns":
-			if domain, ok := data["domain"].(string); ok && domain != "" {
+			// Ingestion writes the looked-up name as "query"; "domain" is a name
+			// nothing produces, so no DNS node had ever been created and the
+			// dns_resolved edge type was unreachable.
+			if domain := firstString(data, "query", "domain"); domain != "" {
+				props := map[string]interface{}{
+					"domain": domain,
+					"type":   "dns",
+				}
+				if answers, ok := data["answers"]; ok && answers != nil {
+					props["answers"] = answers
+				}
+				if qt := firstString(data, "query_type"); qt != "" {
+					props["query_type"] = qt
+				}
 				dnsNode := &Node{
-					ID:        "network:dns:" + domain,
-					Type:      NodeNetwork,
-					Label:     domain,
-					Timestamp: ts,
-					AgentID:   evtAgentID,
-					Properties: map[string]interface{}{
-						"domain": domain,
-						"type":   "dns",
-					},
+					ID:         "network:dns:" + domain,
+					Type:       NodeNetwork,
+					Label:      domain,
+					Timestamp:  ts,
+					AgentID:    evtAgentID,
+					Properties: props,
 				}
 				g.AddNode(dnsNode)
 				if pid, ok := data["pid"]; ok {
@@ -324,7 +376,7 @@ func (g *Graph) BuildFromEvents(ctx context.Context, agentID string, since time.
 			}
 		}
 	}
-	return nil
+	return rows.Err()
 }
 
 // Stats returns graph statistics
@@ -382,26 +434,39 @@ func (g *Graph) SearchNodes(query string, maxResults int) []*Node {
 	return results
 }
 
+// buildProcessNode reads the names internal/ingestion writes for a process
+// event. It read "cmdline" and "hash", neither of which ingestion produces
+// (they are "command_line" and sha256/sha1/md5), so every process in the graph
+// showed a name and nothing else — no command line, no binary, no hash. Those
+// three are most of what an analyst opens a process node to see.
 func buildProcessNode(eventID, agentID string, ts time.Time, data map[string]interface{}) *Node {
 	pid := fmt.Sprintf("%v", data["pid"])
-	label := fmt.Sprintf("%v", data["process_name"])
-	if label == "<nil>" || label == "" {
+	label := firstString(data, "process_name", "image_path", "image")
+	if label == "" {
 		label = "unknown"
 	}
+	props := map[string]interface{}{
+		"pid":      pid,
+		"event_id": eventID,
+	}
+	for key, value := range map[string]string{
+		"process_name": firstString(data, "process_name"),
+		"image_path":   firstString(data, "image_path", "image"),
+		"cmdline":      firstString(data, "command_line", "cmdline"),
+		"hash":         processHash(data),
+		"user":         firstString(data, "username", "user"),
+	} {
+		if value != "" {
+			props[key] = value
+		}
+	}
 	return &Node{
-		ID:        fmt.Sprintf("process:%s:pid:%v", agentID, pid),
-		Type:      NodeProcess,
-		Label:     label,
-		Timestamp: ts,
-		AgentID:   agentID,
-		Properties: map[string]interface{}{
-			"pid":          pid,
-			"process_name": data["process_name"],
-			"cmdline":      data["cmdline"],
-			"hash":         data["hash"],
-			"user":         data["username"],
-			"event_id":     eventID,
-		},
+		ID:         fmt.Sprintf("process:%s:pid:%v", agentID, pid),
+		Type:       NodeProcess,
+		Label:      label,
+		Timestamp:  ts,
+		AgentID:    agentID,
+		Properties: props,
 	}
 }
 
@@ -423,23 +488,37 @@ func buildNetworkNode(eventID, agentID string, ts time.Time, data map[string]int
 	}
 }
 
+// buildFileNode reads the names internal/ingestion writes for a file event, and
+// returns nil when there is no path.
+//
+// It read "file_path". Ingestion writes "path" (and "old_path" for a rename),
+// so the path was always absent and every file node was built with the literal
+// id "file:<agent>:unknown". Node ids are the graph's identity, so all file
+// activity on an agent collapsed into one vertex: two different files touched
+// by one process produced two edges pointing at the same node, and the graph
+// asserted a relationship that does not exist.
 func buildFileNode(eventID, agentID string, ts time.Time, data map[string]interface{}) *Node {
-	path := fmt.Sprintf("%v", data["file_path"])
-	if path == "<nil>" {
-		path = "unknown"
+	path := firstString(data, "path", "file_path", "target_path", "old_path")
+	if path == "" {
+		return nil
+	}
+	props := map[string]interface{}{
+		"file_path": path,
+		"event_id":  eventID,
+	}
+	if op := firstString(data, "operation", "action"); op != "" {
+		props["operation"] = op
+	}
+	if h := processHash(data); h != "" {
+		props["hash"] = h
 	}
 	return &Node{
-		ID:        "file:" + agentID + ":" + path,
-		Type:      NodeFile,
-		Label:     path,
-		Timestamp: ts,
-		AgentID:   agentID,
-		Properties: map[string]interface{}{
-			"file_path": path,
-			"operation": data["operation"],
-			"hash":      data["hash"],
-			"event_id":  eventID,
-		},
+		ID:         "file:" + agentID + ":" + path,
+		Type:       NodeFile,
+		Label:      path,
+		Timestamp:  ts,
+		AgentID:    agentID,
+		Properties: props,
 	}
 }
 

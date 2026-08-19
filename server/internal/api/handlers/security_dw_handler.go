@@ -2,60 +2,62 @@ package handlers
 
 import (
 	"net/http"
-	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
+// セキュリティデータウェアハウスの宛先です。
+//
+// **中身がありません。** ここは DB を1度も見ず、その場で作った record を
+// 200 で返していました（実測 2026-08-12）:
+//
+//	{"name": "アラートデータセット", "source_type": "alerts_db",
+//	 "status": "active", "row_count": 2847391, "size_bytes": 1.2e9}
+//
+// **284万行のデータセットは存在しません。** `ExecuteQuery` は問い合わせを
+// 受け取って結果を作り、`GetQueryResult` はその結果を作り直します ——
+// **同じクエリが毎回違う答えを返します。**
+//
+// いまは 501 を返します。約束は `not_implemented_test.go` にあります:
+//
+//	200 + []  まだ何も起きていない（待てばよい）
+//	500       読めなかった（もう一度試す価値がある）
+//	501       これを作るものが無い（待っても変わらない）
+//
+// **作り物は「起きている」と読まれます** —— 3つのうち、対応や報告を
+// 誤らせるのはこれだけです。
 type SecurityDWHandler struct{ pool *pgxpool.Pool }
 
 func NewSecurityDWHandler(pool *pgxpool.Pool) *SecurityDWHandler {
 	return &SecurityDWHandler{pool: pool}
 }
 
+// securityDWUnimplemented answers every call here the same way.
+//
+// **1つにまとめてあるのは、片方だけ作り物に戻せないようにするため**
+// です。1本でも「それらしい値」を返すと、画面はその区画だけ埋まり、
+// **残りが空なのは「まだ何も無い」からだと読まれます。**
+func securityDWUnimplemented(c *gin.Context, what string) {
+	c.JSON(http.StatusNotImplemented, gin.H{
+		"error": "セキュリティデータウェアハウスは未実装です。" + what +
+			"を作る仕組みがサーバにありません",
+		"unimplemented": true,
+	})
+}
+
 func (h *SecurityDWHandler) ListDatasets(c *gin.Context) {
-	datasets := []gin.H{
-		{"id": uuid.New(), "name": "アラートデータセット", "source_type": "alerts_db", "status": "active", "row_count": 2847391, "size_bytes": int64(1.2e9), "retention_days": 365, "last_ingested_at": time.Now().Add(-5 * time.Minute)},
-		{"id": uuid.New(), "name": "エンドポイントテレメトリ", "source_type": "endpoint_events", "status": "active", "row_count": 847293847, "size_bytes": int64(450e9), "retention_days": 90, "last_ingested_at": time.Now().Add(-1 * time.Minute)},
-		{"id": uuid.New(), "name": "ネットワークフロー", "source_type": "network_flows", "status": "active", "row_count": 123456789, "size_bytes": int64(89e9), "retention_days": 180, "last_ingested_at": time.Now().Add(-2 * time.Minute)},
-		{"id": uuid.New(), "name": "脆弱性スキャン結果", "source_type": "vuln_scans", "status": "active", "row_count": 456123, "size_bytes": int64(2.3e8), "retention_days": 730, "last_ingested_at": time.Now().Add(-1 * time.Hour)},
-	}
-	c.JSON(http.StatusOK, gin.H{"datasets": datasets, "total": len(datasets)})
+	securityDWUnimplemented(c, "データセット")
 }
 
 func (h *SecurityDWHandler) ExecuteQuery(c *gin.Context) {
-	var req gin.H
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request"})
-		return
-	}
-	queryID := uuid.New()
-	c.JSON(http.StatusOK, gin.H{
-		"query_id": queryID, "status": "running",
-		"message":           "クエリを実行中です",
-		"estimated_seconds": 3,
-	})
+	securityDWUnimplemented(c, "クエリの実行")
 }
 
 func (h *SecurityDWHandler) GetQueryResult(c *gin.Context) {
-	id := c.Param("id")
-	c.JSON(http.StatusOK, gin.H{
-		"query_id": id, "status": "completed",
-		"rows_returned": 1247, "execution_ms": 2341,
-		"result_preview": []gin.H{
-			{"timestamp": time.Now().Add(-1 * time.Hour), "alert_type": "malware", "severity": "critical", "count": 3},
-			{"timestamp": time.Now().Add(-2 * time.Hour), "alert_type": "network_anomaly", "severity": "high", "count": 12},
-		},
-	})
+	securityDWUnimplemented(c, "クエリ結果")
 }
 
 func (h *SecurityDWHandler) GetStats(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{
-		"total_datasets": 4, "total_rows": int64(974053563),
-		"total_size_bytes": int64(542.5e9),
-		"queries_today":    47, "avg_query_ms": 1823,
-		"ingestion_rate_per_sec": 12847,
-	})
+	securityDWUnimplemented(c, "データセットの集計")
 }

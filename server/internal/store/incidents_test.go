@@ -234,18 +234,38 @@ func TestIncidentNote_UserIDPointerBehavior(t *testing.T) {
 
 // ─── インシデントフィルタービルダーのテスト ────────────────────────────────────
 
-// buildIncidentWhere は incidents.go の List メソッド内と同等の WHERE 句構築を再現するヘルパー
+// buildIncidentWhere は **本物を呼びます。**
+//
+// 以前ここには List の組み立てを書き写したものが置いてありましたが、
+// **`"active"` の分岐がありませんでした** —— 一覧の既定の絞り込みが、
+// 写しには存在しないまま「確かめた」ことになっていました。
 func buildIncidentWhere(status string) (string, []interface{}) {
-	where := "WHERE 1=1"
-	args := []interface{}{}
-	argIdx := 1
-	if status != "" {
-		where += " AND i.status = $1"
-		args = append(args, status)
-		argIdx++
+	return incidentListWhere(status)
+}
+
+// **写しに無かった分岐。** "active" は「対応が必要」を意味し、
+// 解決済み・クローズ済みを外します。値を取らない条件なので、引数は
+// 増えません —— ここで引数を1つ足すと、LIMIT のプレースホルダがずれて
+// 一覧が丸ごと落ちます。
+func TestIncidentActiveExpandsToSeveralStatuses(t *testing.T) {
+	where, args := incidentListWhere("active")
+	for _, want := range []string{"open", "investigating", "contained"} {
+		if !strings.Contains(where, "'"+want+"'") {
+			t.Errorf("active に %q が含まれていません: %q", want, where)
+		}
 	}
-	_ = argIdx
-	return where, args
+	for _, notWant := range []string{"resolved", "closed"} {
+		if strings.Contains(where, "'"+notWant+"'") {
+			t.Errorf("active に %q が含まれています: %q", notWant, where)
+		}
+	}
+	if len(args) != 0 {
+		t.Errorf("args = %v, want 空。**値を取らない条件です** —— "+
+			"引数を足すと LIMIT のプレースホルダがずれます", args)
+	}
+	if strings.Contains(where, "$") {
+		t.Errorf("プレースホルダが入っています: %q", where)
+	}
 }
 
 // TestBuildIncidentWhere_EmptyStatus はステータスフィルターなしの WHERE 句を確認する

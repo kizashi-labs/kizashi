@@ -4,7 +4,9 @@ package metrics
 
 import (
 	"fmt"
+	"log/slog"
 	"net/http"
+	"strings"
 	"sync/atomic"
 	"time"
 
@@ -50,6 +52,22 @@ var (
 		Name: "edr_active_agents",
 		Help: "Number of online agents",
 	})
+
+	// IOCHashAbsent counts events that reached hash IOC matching carrying no
+	// hash at all.
+	//
+	// **「既知マルウェアに当たらなかった」と「当てるものが無かった」を
+	// 分けるための数です。** どちらも一致0件になるので、この数が伸びて
+	// いるあいだ、ハッシュ照合は実質動いていません。
+	//
+	// 0 でないこと自体は異常ではありません（読めないファイル、権限不足）。
+	// **総イベント数に対する比率を見てください。**
+	IOCHashAbsent = promauto.NewCounter(
+		prometheus.CounterOpts{
+			Name: "edr_ioc_hash_absent_total",
+			Help: "Process/file events that reached hash IOC matching with no hash",
+		},
+	)
 
 	TotalAlerts = promauto.NewCounterVec(
 		prometheus.CounterOpts{
@@ -278,6 +296,122 @@ var (
 		[]string{"engine", "mitre"}, // engine: sigma/behavioral/heuristic/yara/ioc/chain; mitre: T#### or none
 	)
 
+	// SchedulerRuns counts completed ticks of each background worker.
+	//
+	// Forty workers run on tickers in internal/scheduler and, before this,
+	// three of them emitted any metric at all. There was no run-record table
+	// either, so from outside a running process "ran and had nothing to do" and
+	// "never ran once" looked identical. hunt_scheduler is what that costs: it
+	// wakes every fifteen minutes, finds saved_hunt_queries has no `scheduled`
+	// column, returns, and has executed zero hunts on every deployment that has
+	// ever existed. Nothing but reading the code would tell you.
+	//
+	// A worker whose counter is not climbing is not running. Alert on that.
+	SchedulerRuns = promauto.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "edr_scheduler_runs_total",
+			Help: "Completed ticks per background scheduler",
+		},
+		[]string{"scheduler"},
+	)
+
+	// SchedulerLastRunTimestamp is when each worker last finished a tick.
+	//
+	// The counter above says whether it is running; this says how long ago,
+	// which is what a stalled worker looks like — a counter that stopped
+	// climbing is only visible against a rate window, a timestamp that stopped
+	// moving is visible at a glance.
+	SchedulerLastRunTimestamp = promauto.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "edr_scheduler_last_run_timestamp_seconds",
+			Help: "Unix time of the last completed tick, per background scheduler",
+		},
+		[]string{"scheduler"},
+	)
+
+	// BackgroundFailures counts passes that a background component gave up on.
+	//
+	// The scheduler package has trackRun, which knows when a tick starts and
+	// ends and can therefore record the outcome. The other background workers
+	// in this codebase — the NATS subscribers, the enrichment pollers, the
+	// Elasticsearch shipper, the webhook and email notifiers — have no such
+	// frame. They are loops or callbacks, and their failure paths all ended
+	// the same way: log, return.
+	//
+	// これらにも報告する相手はいません。届かなかった Webhook、送られな
+	// かった通知、Elasticsearch に流れなかったドキュメント、エンリッチ
+	// されなかったアラート — 運用者から見えるのは、どれも「無い」です。
+	// 送るものが無かったのか、送れなかったのかは区別が付きません。
+	//
+	// component ごとに数えるので、止まっている経路がどれかまで分かります。
+	BackgroundFailures = promauto.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "edr_background_failures_total",
+			Help: "Passes a background component gave up on, by component",
+		},
+		[]string{"component"},
+	)
+
+	// BackgroundLastFailureTimestamp is when each component last gave up.
+	//
+	// A counter alone cannot distinguish "failed a hundred times last March"
+	// from "failing right now"; against a rate window it can, but the
+	// timestamp says it without one.
+	BackgroundLastFailureTimestamp = promauto.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "edr_background_last_failure_timestamp_seconds",
+			Help: "Unix time a background component last gave up, by component",
+		},
+		[]string{"component"},
+	)
+
+	// SchedulerFailures counts ticks that gave up before finishing their work.
+	//
+	// SchedulerRuns above answers "is it running". It does not answer "is it
+	// doing anything", and those are different questions: trackRun increments
+	// whether the tick renewed forty certificates or returned on its first
+	// query error. A worker erroring out on every tick has a counter climbing
+	// as steadily as a healthy one.
+	//
+	// 背景ワーカーには報告する相手がいません。失敗したことは slog に出ます
+	// が、ログは見に行った人にしか届きません。証明書の更新が3日前から毎回
+	// 失敗していても、画面に出るのは「更新された証明書が無い」だけです。
+	// 更新が要らなかったのと区別がつきません。
+	SchedulerFailures = promauto.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "edr_scheduler_failures_total",
+			Help: "Ticks that ended early with an error, per background scheduler",
+		},
+		[]string{"scheduler"},
+	)
+
+	// SchedulerLastSuccessTimestamp is when each worker last finished its work.
+	//
+	// Paired with SchedulerLastRunTimestamp: the two moving together is health,
+	// the run timestamp moving while this one stays put is a worker that wakes
+	// up and fails. That gap is the alertable condition.
+	SchedulerLastSuccessTimestamp = promauto.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "edr_scheduler_last_success_timestamp_seconds",
+			Help: "Unix time of the last tick that completed without error",
+		},
+		[]string{"scheduler"},
+	)
+
+	// SchedulerRunSeconds is how long each tick took.
+	//
+	// Included because a worker that has started overrunning its own interval
+	// is the other way a scheduler stops doing its job, and it does not show up
+	// in a run count.
+	SchedulerRunSeconds = promauto.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Name:    "edr_scheduler_run_duration_seconds",
+			Help:    "Duration of each scheduler tick",
+			Buckets: prometheus.ExponentialBuckets(0.01, 4, 8), // 10ms … ~11min
+		},
+		[]string{"scheduler"},
+	)
+
 	// FileBurstObservations counts every file event offered to the ransomware
 	// mass-modification detector (T1486), labelled by the action it carried and by
 	// what the detector did with it.
@@ -289,6 +423,14 @@ var (
 	// were eliminated from the outside — msgID collision, publish loss, dedup
 	// cooldown, path exclusion, action-matching, and more — without reaching an
 	// answer, because nothing between the database and the detector is observable.
+	//
+	// platform answers the question these counters were added for, which is
+	// per-OS and not per-agent: "does the Linux sensor ever emit a delete?" The
+	// first live read could not answer it — the counter aggregated every agent, so
+	// 31 deletes looked like Linux emitting deletes when all 31 came from the one
+	// Windows host. agent_id would be the obvious label and is the wrong one: it is
+	// unbounded, and worse, it is attacker-influenceable input. Platform is folded
+	// to a fixed set for the same reason (see metrics.PlatformLabel).
 	//
 	// outcome:
 	//   counted        — accepted into a bucket
@@ -304,7 +446,7 @@ var (
 			Name: "edr_fileburst_observations_total",
 			Help: "File events offered to the T1486 burst detector, by action and outcome",
 		},
-		[]string{"action", "outcome"},
+		[]string{"platform", "action", "outcome"},
 	)
 
 	// FileBurstBucketPaths reports the distinct-path count of the bucket that was
@@ -316,7 +458,7 @@ var (
 			Name: "edr_fileburst_bucket_paths",
 			Help: "Distinct destructively-touched paths currently in the last-touched burst bucket",
 		},
-		[]string{"scope"},
+		[]string{"platform", "scope"},
 	)
 
 	// RemediationTriggers counts every alert offered to the auto-remediation engine
@@ -496,5 +638,58 @@ func Handler() http.HandlerFunc {
 				_ = enc.Encode(mf)
 			}
 		}
+	}
+}
+
+// BackgroundFailed records that a background component could not finish a pass,
+// and logs why.
+//
+// 制御は変えません。呼び出し側はこれまで通り、そこで戻るなり空を返すなり
+// します。変わるのは、それが外から見えるかどうかだけです。
+//
+// component は経路の名前です（"notify"、"es_shipper"、"event_forwarder" …）。
+// ラベルなので、リクエストごとに変わる値を入れてはいけません。
+func BackgroundFailed(component string, err error, msg string, args ...any) {
+	slog.Error(msg, append(args, "component", component, "error", err)...)
+	BackgroundFailures.WithLabelValues(component).Inc()
+	BackgroundLastFailureTimestamp.WithLabelValues(component).Set(float64(time.Now().Unix()))
+}
+
+// AlertDropped records an alert that was decided on and could not be written.
+//
+// BackgroundFailed とは別に数えます。背景処理の失敗は「今回の分が遅れる」
+// ことが多いのに対し、これは「出すと決めた警報が、出ないまま終わった」
+// です。混ぜると、後者が前者の件数に埋もれます。
+//
+// 行き先は AlertInsertFailures です。同じ事実のための counter を新しく
+// 作りかけて、既にあることに気づきました。二つあると、片方に警報を
+// 貼った人は「見ている」と思ったまま、もう片方の source を見落とします。
+// 検知エンジン側 (sigma/ioc/chain/…) と、こちら側 (mobile_mtd/anomaly/
+// vuln_scan/…) は互いに素なので、1本にまとめて初めて全部が見えます。
+func AlertDropped(source string, err error, title string) {
+	slog.Error("出すと決めたアラートを記録できませんでした",
+		"source", source, "title", title, "error", err)
+	AlertInsertFailures.WithLabelValues(source).Inc()
+}
+
+// PlatformLabel folds an agent-reported platform string into the fixed set used
+// as a metric label.
+//
+// The value arrives from the endpoint, so it is untrusted: using it verbatim
+// lets anything that can register an agent mint unbounded label values and blow
+// up the metrics cardinality. Anything unrecognised becomes "other" — a label
+// whose growth is capped at one.
+func PlatformLabel(platform string) string {
+	switch strings.ToLower(strings.TrimSpace(platform)) {
+	case "linux":
+		return "linux"
+	case "windows":
+		return "windows"
+	case "darwin", "macos":
+		return "darwin"
+	case "":
+		return "unknown"
+	default:
+		return "other"
 	}
 }

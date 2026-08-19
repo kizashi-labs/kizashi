@@ -38,7 +38,7 @@ func fireBurst(t *testing.T, n int) (title, desc string) {
 	var gotDesc string
 	var count int
 	for i := 0; i < n; i++ {
-		for _, m := range d.Observe("agent-1", "go", fmt.Sprintf("/src/f%d.o", i), "modify", base) {
+		for _, m := range d.Observe("agent-1", "linux", "go", fmt.Sprintf("/src/f%d.o", i), "modify", base) {
 			titles[m.Title] = true
 			gotDesc = m.Description
 			count++

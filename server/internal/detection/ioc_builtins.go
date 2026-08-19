@@ -5,6 +5,7 @@ package detection
 
 import (
 	"context"
+	"fmt"
 )
 
 // builtinIOCs is the curated list of known-malicious indicators shipped with
@@ -170,13 +171,17 @@ func NewCompositeIOCLoader(loaders ...IOCLoader) *CompositeIOCLoader {
 }
 
 // ListActiveIOCs queries all child loaders and returns the combined slice.
-// If a loader fails its results are skipped (best-effort).
+//
+// 1つでも読めなければ error を返します。以前は読めた分だけを返していて、
+// 呼び出し側はそれを「有効な指標はこれで全部」として照合に使います。
+// 抜けた指標は一致しないので、検知が静かに減ります。減ったことは、
+// アラートが出ないという形でしか現れません。
 func (c *CompositeIOCLoader) ListActiveIOCs(ctx context.Context) ([]IOCRecord, error) {
 	var all []IOCRecord
 	for _, l := range c.loaders {
 		entries, err := l.ListActiveIOCs(ctx)
 		if err != nil {
-			continue // partial failure — keep the rest
+			return nil, fmt.Errorf("IOC の読み出しに失敗しました（照合は行いません）: %w", err)
 		}
 		all = append(all, entries...)
 	}

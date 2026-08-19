@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/edr-platform/server/internal/apikeys"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/nats-io/nats.go"
 )
@@ -31,7 +32,7 @@ func (r *APIKeyRotator) Run(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			r.rotate(ctx)
+			trackRun(ctx, "api_key_rotator", r.rotate)
 		}
 	}
 }
@@ -47,7 +48,7 @@ func (r *APIKeyRotator) rotate(ctx context.Context) {
 		)`,
 	).Scan(&tableExists)
 	if err != nil {
-		slog.Warn("APIKeyRotator: api_keysテーブルの存在確認に失敗しました", "error", err)
+		fail(ctx, err, "APIKeyRotator: api_keysテーブルの存在確認に失敗しました")
 		return
 	}
 	if !tableExists {
@@ -63,18 +64,13 @@ func (r *APIKeyRotator) rotate(ctx context.Context) {
 }
 
 // disableInactiveKeys sets enabled=false for keys unused for 90+ days.
+//
+// This used to probe for the disabled_reason column and, when it was missing —
+// which it always was, no migration created it — run a second copy of the same
+// UPDATE without the reason. Keys were retired correctly and left no record of
+// why, which is the one thing an operator needs when a key stops working.
+// Migration 378 adds the column; the probe and the duplicate branch are gone.
 func (r *APIKeyRotator) disableInactiveKeys(ctx context.Context) {
-	// Check if disabled_reason column exists.
-	var hasDisabledReason bool
-	_ = r.pool.QueryRow(ctx,
-		`SELECT EXISTS (
-			SELECT 1 FROM information_schema.columns
-			WHERE table_schema = 'public'
-			  AND table_name   = 'api_keys'
-			  AND column_name  = 'disabled_reason'
-		)`,
-	).Scan(&hasDisabledReason)
-
 	type disabledKey struct {
 		id     string
 		name   string
@@ -82,44 +78,27 @@ func (r *APIKeyRotator) disableInactiveKeys(ctx context.Context) {
 	}
 	var disabled []disabledKey
 
-	if hasDisabledReason {
-		rows, err := r.pool.Query(ctx,
-			`UPDATE api_keys
-			 SET enabled = false, disabled_reason = 'inactive_90_days'
-			 WHERE enabled = true
-			   AND last_used_at < NOW() - INTERVAL '90 days'
-			 RETURNING id::text, COALESCE(name,''), COALESCE(user_id::text,'')`,
-		)
-		if err != nil {
-			slog.Warn("APIKeyRotator: 非アクティブキーの無効化に失敗しました", "error", err)
-			return
+	rows, err := r.pool.Query(ctx,
+		`UPDATE api_keys
+		 SET enabled = false, disabled_reason = $1
+		 WHERE enabled = true
+		   AND last_used_at < NOW() - INTERVAL '90 days'
+		 RETURNING id::text, COALESCE(name,''), COALESCE(user_id::text,'')`,
+		apikeys.DisabledReasonInactive,
+	)
+	if err != nil {
+		fail(ctx, err, "APIKeyRotator: 非アクティブキーの無効化に失敗しました")
+		return
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var k disabledKey
+		if scanErr := rows.Scan(&k.id, &k.name, &k.userID); scanErr == nil {
+			disabled = append(disabled, k)
 		}
-		defer rows.Close()
-		for rows.Next() {
-			var k disabledKey
-			if scanErr := rows.Scan(&k.id, &k.name, &k.userID); scanErr == nil {
-				disabled = append(disabled, k)
-			}
-		}
-	} else {
-		rows, err := r.pool.Query(ctx,
-			`UPDATE api_keys
-			 SET enabled = false
-			 WHERE enabled = true
-			   AND last_used_at < NOW() - INTERVAL '90 days'
-			 RETURNING id::text, COALESCE(name,''), COALESCE(user_id::text,'')`,
-		)
-		if err != nil {
-			slog.Warn("APIKeyRotator: 非アクティブキーの無効化に失敗しました", "error", err)
-			return
-		}
-		defer rows.Close()
-		for rows.Next() {
-			var k disabledKey
-			if scanErr := rows.Scan(&k.id, &k.name, &k.userID); scanErr == nil {
-				disabled = append(disabled, k)
-			}
-		}
+	}
+	if err := rows.Err(); err != nil {
+		fail(ctx, err, "APIKeyRotator: 無効化結果の読み取りに失敗しました")
 	}
 
 	if len(disabled) > 0 {
@@ -140,14 +119,22 @@ func (r *APIKeyRotator) disableInactiveKeys(ctx context.Context) {
 func (r *APIKeyRotator) warnExpiringKeys(ctx context.Context) {
 	// Check if expires_at column exists.
 	var hasExpiresAt bool
-	_ = r.pool.QueryRow(ctx,
+	// **確認できなかったことを「無い」と答えていました。** `_ =` で
+	// 捨てていたので、DB が一時的に応答しないだけで `hasExpiresAt` は
+	// false のままになり、期限切れ間近の API キーの通知が丸ごと
+	// 飛びます —— しかもログは「カラムが存在しない」です。
+	// 隣（同じファイルの api_keys テーブルの確認）は最初からこの形です。
+	if err := r.pool.QueryRow(ctx,
 		`SELECT EXISTS (
 			SELECT 1 FROM information_schema.columns
 			WHERE table_schema = 'public'
 			  AND table_name   = 'api_keys'
 			  AND column_name  = 'expires_at'
 		)`,
-	).Scan(&hasExpiresAt)
+	).Scan(&hasExpiresAt); err != nil {
+		fail(ctx, err, "APIKeyRotator: expires_at列の存在確認に失敗しました")
+		return
+	}
 
 	if !hasExpiresAt {
 		slog.Debug("APIKeyRotator: expires_atカラムが存在しないため期限チェックをスキップします")
@@ -161,7 +148,7 @@ func (r *APIKeyRotator) warnExpiringKeys(ctx context.Context) {
 		   AND expires_at BETWEEN NOW() AND NOW() + INTERVAL '30 days'`,
 	)
 	if err != nil {
-		slog.Warn("APIKeyRotator: 期限切れ予定キーのクエリに失敗しました", "error", err)
+		fail(ctx, err, "APIKeyRotator: 期限切れ予定キーのクエリに失敗しました")
 		return
 	}
 	defer rows.Close()
@@ -197,9 +184,12 @@ func (r *APIKeyRotator) warnExpiringKeys(ctx context.Context) {
 				"days_left":  daysLeft,
 			})
 			if pubErr := r.nc.Publish("api_key.expiring_soon", payload); pubErr != nil {
-				slog.Warn("APIKeyRotator: api_key.expiring_soon NATSパブリッシュに失敗しました", "error", pubErr)
+				fail(ctx, pubErr, "APIKeyRotator: api_key.expiring_soon NATSパブリッシュに失敗しました")
 			}
 		}
+	}
+	if err := rows.Err(); err != nil {
+		fail(ctx, err, "期限切れ予定キーの走査が途中で終わりました。警告が届かないキーがあります")
 	}
 
 	if count > 0 {

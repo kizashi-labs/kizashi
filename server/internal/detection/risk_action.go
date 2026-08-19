@@ -4,9 +4,12 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"sync"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+
+	"github.com/edr-platform/server/internal/tick"
 )
 
 // RiskCommander is implemented by any component that can isolate an agent.
@@ -19,18 +22,29 @@ type RiskCommander interface {
 type RiskActionMonitor struct {
 	pool      *pgxpool.Pool
 	commander RiskCommander
+
+	// failed は隔離に失敗したエージェント。2分ごとに再試行するので、
+	// 失敗するたびにアラートを立てると同じ内容が延々と積まれます。
+	// 最初の失敗で1件立て、成功するか対象から外れるまで黙ります。
+	mu     sync.Mutex
+	failed map[string]bool
+
+	// saveAlertFn はアラート保存の差し替え口。既定は saveAlert です。
+	// 「隔離に失敗したときアラートを立てる」かどうかは、データベース抜きで
+	// 確かめられなければ、立てるのをやめても誰も気づけません。
+	saveAlertFn func(*StoredAlert) error
 }
 
 // NewRiskActionMonitor creates a new RiskActionMonitor.
 func NewRiskActionMonitor(pool *pgxpool.Pool, commander RiskCommander) *RiskActionMonitor {
-	return &RiskActionMonitor{pool: pool, commander: commander}
+	return &RiskActionMonitor{pool: pool, commander: commander, failed: map[string]bool{}}
 }
 
 // Run checks every 2 minutes for agents that exceed configured risk thresholds.
 // It blocks until ctx is cancelled.
 func (m *RiskActionMonitor) Run(ctx context.Context) {
 	// Run once immediately at startup
-	m.runOnce(ctx)
+	tick.Run(ctx, "risk_action_monitor", m.runOnce)
 
 	ticker := time.NewTicker(2 * time.Minute)
 	defer ticker.Stop()
@@ -40,7 +54,7 @@ func (m *RiskActionMonitor) Run(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			m.runOnce(ctx)
+			tick.Run(ctx, "risk_action_monitor", m.runOnce)
 		}
 	}
 }
@@ -84,7 +98,7 @@ func (m *RiskActionMonitor) runOnce(ctx context.Context) {
 		)::int >= r.threshold
 	`)
 	if err != nil {
-		slog.Warn("RiskActionMonitor: クエリエラー", "error", err)
+		tick.FailComponent(ctx, "risk_action", err, "RiskActionMonitor: クエリエラー")
 		return
 	}
 	defer rows.Close()
@@ -93,25 +107,42 @@ func (m *RiskActionMonitor) runOnce(ctx context.Context) {
 	for rows.Next() {
 		var m riskMatch
 		if err := rows.Scan(&m.agentID, &m.riskScore); err != nil {
-			slog.Warn("RiskActionMonitor: 行スキャンエラー", "error", err)
+			tick.Fail(ctx, err, "RiskActionMonitor: 行スキャンエラー")
 			continue
 		}
 		matches = append(matches, m)
 	}
 	if err := rows.Err(); err != nil {
-		slog.Warn("RiskActionMonitor: 行イテレーションエラー", "error", err)
+		tick.Fail(ctx, err, "RiskActionMonitor: 行イテレーションエラー")
 	}
 
+	m.applyIsolations(ctx, matches)
+}
+
+// applyIsolations isolates each match and records what happened either way.
+//
+// Split out of runOnce because runOnce needs a database to reach it. With the
+// loop inline, deleting the failure alert or the success reset changed no test
+// — which is the same "the check is there but nothing can see it" the rest of
+// this package has been about.
+func (m *RiskActionMonitor) applyIsolations(ctx context.Context, matches []riskMatch) {
 	for _, match := range matches {
 		reason := fmt.Sprintf("リスクスコア自動隔離: スコア %d がしきい値を超えました", match.riskScore)
 		if err := m.commander.IsolateAgent(ctx, match.agentID, reason); err != nil {
-			slog.Error("RiskActionMonitor: 自動隔離に失敗しました",
+			// 成功したときだけ severity 10 のアラートを立て、失敗は
+			// ログだけでした。つまり SOC から見える記録は、封じ込めが
+			// 効いたときにしか存在しません。高リスクの端末を隔離しようと
+			// して隔離できなかったことは、画面上のどこにも出ませんでした。
+			tick.Fail(ctx, err, "RiskActionMonitor: 自動隔離に失敗しました",
 				"agent_id", match.agentID,
 				"risk_score", match.riskScore,
-				"error", err,
 			)
+			if m.markFailed(match.agentID) {
+				m.saveFailureAlert(ctx, match, err)
+			}
 			continue
 		}
+		m.clearFailed(match.agentID)
 
 		// Record an alert explaining the auto-isolation
 		alert := &StoredAlert{
@@ -127,21 +158,73 @@ func (m *RiskActionMonitor) runOnce(ctx context.Context) {
 			CreatedAt:   time.Now(),
 			UpdatedAt:   time.Now(),
 		}
-		if err := m.saveAlert(ctx, alert); err != nil {
-			slog.Warn("RiskActionMonitor: アラートの保存に失敗しました",
+		if err := m.storeAlert(ctx, alert); err != nil {
+			tick.Fail(ctx, err, "RiskActionMonitor: アラートの保存に失敗しました",
 				"agent_id", match.agentID,
-				"error", err,
 			)
 		}
 
 		slog.Info("RiskActionMonitor: エージェントを自動隔離しました",
-			"agent_id", match.agentID,
 			"risk_score", match.riskScore,
 		)
 	}
 }
 
 // saveAlert inserts a minimal alert row directly via the pool.
+// markFailed records a failed isolation and reports whether this is the first
+// one for that agent since it last succeeded. The monitor retries every two
+// minutes, so alerting on each attempt would bury the first report under
+// copies of itself.
+func (m *RiskActionMonitor) markFailed(agentID string) bool {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if m.failed == nil {
+		m.failed = map[string]bool{}
+	}
+	if m.failed[agentID] {
+		return false
+	}
+	m.failed[agentID] = true
+	return true
+}
+
+func (m *RiskActionMonitor) clearFailed(agentID string) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	delete(m.failed, agentID)
+}
+
+// saveFailureAlert records that containment was attempted and did not happen.
+//
+// Same severity as the success alert on purpose: an endpoint over the
+// threshold that is still on the network is not a lesser event than one that
+// was taken off it.
+func (m *RiskActionMonitor) saveFailureAlert(ctx context.Context, match riskMatch, cause error) {
+	alert := &StoredAlert{
+		ID:          generateAlertID(),
+		AgentID:     match.agentID,
+		RuleName:    "リスクスコア自動隔離の失敗",
+		Severity:    10,
+		Status:      "open",
+		Title:       fmt.Sprintf("自動隔離に失敗しました (スコア: %d)", match.riskScore),
+		Description: fmt.Sprintf("リスクスコア %d がしきい値を超えたため自動隔離を試みましたが失敗しました。この端末はまだネットワークに接続されています。原因: %v", match.riskScore, cause),
+		CreatedAt:   time.Now(),
+		UpdatedAt:   time.Now(),
+	}
+	if err := m.storeAlert(ctx, alert); err != nil {
+		tick.Fail(ctx, err, "RiskActionMonitor: 自動隔離失敗のアラートを保存できませんでした",
+			"agent_id", match.agentID)
+	}
+}
+
+// storeAlert routes through saveAlertFn when a test has supplied one.
+func (m *RiskActionMonitor) storeAlert(ctx context.Context, a *StoredAlert) error {
+	if m.saveAlertFn != nil {
+		return m.saveAlertFn(a)
+	}
+	return m.saveAlert(ctx, a)
+}
+
 func (m *RiskActionMonitor) saveAlert(ctx context.Context, a *StoredAlert) error {
 	// alerts テーブルに rule_name 列は無い(表示名は rules への JOIN か title が担う)。
 	// 以前は存在しない列を指定していて INSERT が常に 42703 で失敗し、自動隔離の

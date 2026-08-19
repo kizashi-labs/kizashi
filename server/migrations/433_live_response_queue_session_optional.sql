@@ -1,0 +1,47 @@
+-- Migration 372: live_response_commands.session_id の NOT NULL を外す
+--
+-- このテーブルは 2 つの機能が共有している。
+--
+--   (1) ライブレスポンス端末 (store/live_response.go)
+--       セッションを開いて対話的にコマンドを流す。session_id は必須。
+--   (2) エージェント宛コマンドキュー (store/live_response_store.go)
+--       POST /api/v1/agents/:id/commands で 1 発ずつ積む。端末セッションは
+--       介在しないので session_id は無い。CreateQueuedCommandInput でも
+--       SessionID は *string の任意項目として宣言されている。
+--
+-- ところが列は NOT NULL のままだったため、(2) の INSERT は
+--
+--   null value in column "session_id" ... violates not-null constraint (23502)
+--
+-- で必ず失敗する。ハンドラは 500 を返すだけで、キューにコマンドを積む機能は
+-- 一度も成立していなかった。実測で確認済み。
+--
+-- 原因は 017 と 059 の衝突。両方が同じテーブルを
+-- CREATE TABLE IF NOT EXISTS で作ろうとしている。
+--
+--   017_live_response.sql   端末用。session_id NOT NULL、
+--                           status CHECK (... 'error' ...)
+--   059_live_response_commands.sql
+--                           キュー用。session_id は NULL 可、agent_id NOT NULL、
+--                           status CHECK (... 'failed' ...)
+--
+-- 先に走る 017 がテーブルを作るため、**059 の CREATE TABLE は丸ごと no-op**
+-- になる。実際に効いたのは 059 後半の ADD COLUMN IF NOT EXISTS だけで、
+-- 結果として
+--
+--   session_id : 017 のまま NOT NULL  (059 は NULL 可のつもり)
+--   agent_id   : 後付けなので NULL 可 (059 は NOT NULL のつもり)
+--   status     : 017 のまま 'error'   (059 は 'failed' のつもり)
+--
+-- という「どちらの設計でもない」列構成になった。store/live_response_store.go は
+-- 059 が作ったつもりのスキーマに対して書かれているので、session_id 省略も
+-- status='failed' も通らない。059 がやろうとして届かなかったことをここで行う。
+--
+-- FK は ON DELETE CASCADE なので NULL を許しても端末側の削除挙動は変わらない
+-- (NULL 行は参照を持たないため CASCADE の対象外になるだけ)。
+ALTER TABLE live_response_commands ALTER COLUMN session_id DROP NOT NULL;
+
+-- キューが自分の行だけを引く経路 (agent_id + status) は既に
+-- idx_lr_commands_agent_status がある。session_id NULL 行が増えても
+-- 端末側の idx_lr_commands_session は (session_id, submitted_at) なので
+-- NULL 行はまとまって末尾に入るだけで、走査対象は変わらない。

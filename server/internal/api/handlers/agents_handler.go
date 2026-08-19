@@ -9,6 +9,8 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/edr-platform/server/internal/isolation"
+	"github.com/edr-platform/server/internal/metrics"
 	"github.com/edr-platform/server/internal/store"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -20,9 +22,15 @@ type AgentHandler struct {
 	Store           *store.AgentStore
 	Commander       agentCommander
 	ResponseActions responseAuditor
-	Alerts          *store.AlertStore
-	Quarantine      *store.QuarantineStore
-	Pool            *pgxpool.Pool // for cross-table queries (processes)
+	// Isolator is the only way this handler may isolate or release an endpoint.
+	//
+	// nil のときは 200 を返さず 503 で断る。「押せたのに何も起きない」は、
+	// この一連の変更が潰している「実行していないのに成功と報告する」形そのもの
+	// なので、結線漏れが成功に見えてはいけない。
+	Isolator   endpointIsolator
+	Alerts     *store.AlertStore
+	Quarantine *store.QuarantineStore
+	Pool       *pgxpool.Pool // for cross-table queries (processes)
 	// UninstallGuardProvider supplies the tenant's uninstall-password material
 	// to attach to heartbeat responses, or nil when none is configured.
 	//
@@ -40,14 +48,25 @@ type AgentHandler struct {
 // endpoint while the database, the audit trail and the HTTP response all report
 // success. That path had no coverage because the field was a concrete type and a
 // failing commander could not be injected.
+//
+// 隔離と隔離解除はここに無い。それだけは isolation.Gatekeeper を通す
+// （internal/isolation の冒頭を参照）。
 type agentCommander interface {
-	IsolateEndpoint(ctx context.Context, agentID, reason, alertID, commandID string) error
-	UnisolateEndpoint(ctx context.Context, agentID, reason, commandID string) error
 	Scan(ctx context.Context, agentID, scanType, triggeredBy, commandID string) error
 	ScanCancel(ctx context.Context, agentID, triggeredBy, commandID string) error
 	KillProcess(ctx context.Context, agentID string, pid uint32, reason, commandID string) error
 	QuarantineFile(ctx context.Context, agentID, path, alertID, commandID string) error
 	RestoreFile(ctx context.Context, agentID, quarantineID, restorePath, commandID string) error
+}
+
+// endpointIsolator is the subset of isolation.Gatekeeper the handlers use.
+//
+// 手動隔離もここを通す。経路ごとに記録の作法が違うと、結局どの経路が
+// 何を残すのかを人が覚えることになる。実際それで、実隔離が
+// response_actions に一行も残らない経路が生き残っていた。
+type endpointIsolator interface {
+	Isolate(ctx context.Context, req isolation.Request) (isolation.Result, error)
+	Unisolate(ctx context.Context, req isolation.Request) (isolation.Result, error)
 }
 
 // responseAuditor records what was attempted and whether it was dispatched.
@@ -80,12 +99,7 @@ func (h *AgentHandler) List(c *gin.Context) {
 	if perPage <= 0 {
 		perPage, _ = strconv.Atoi(c.DefaultQuery("limit", "20"))
 	}
-	if page < 1 {
-		page = 1
-	}
-	if perPage < 1 || perPage > 1000 {
-		perPage = 20
-	}
+	page, perPage, _ = clampPageParams(page, perPage, 20, 1000)
 
 	filter := store.AgentFilter{
 		OSType:  c.Query("os"),
@@ -184,26 +198,57 @@ func (h *AgentHandler) Delete(c *gin.Context) {
 }
 
 // ensureAgentInTenant is an application-layer defense-in-depth check for
-// response-action endpoints that issue a command to an endpoint by :id. When
-// the request carries a tenant_id (multi-tenant deployment) it verifies the
-// target agent belongs to that tenant and, if not, writes a 404 and returns
-// false so the caller aborts BEFORE issuing any command. This closes
-// cross-tenant BOLA even when PostgreSQL RLS is not enforcing (e.g. the app
-// still connects as a superuser role) and for command paths that never touch
-// the RLS-protected agents row. In single-tenant mode (no tenant_id) it is a
-// no-op, mirroring TenantMiddleware.
+// response-action endpoints that issue a command to an endpoint by :id. It
+// writes the response and returns false when the caller must not proceed, so
+// the command is never issued. It closes cross-tenant BOLA even when
+// PostgreSQL RLS is not enforcing (e.g. the app still connects as a superuser
+// role) and for command paths that never touch the RLS-protected agents row.
+//
+// **以前は「リクエストにテナントが無ければ素通し」でした**
+// （`if tid == "" { return true }`、コメントは「single-tenant mode」）。
+// その読みは、APIキー認証では成り立ちません —— `router.go` は構成に
+// 関係なく `c.Set("tenant_id", "")` を無条件に置きます。ログインは必ず
+// テナントを載せる（既定値に倒してでも）ので、**空になるのは実質
+// APIキーだけです。**
+//
+// 下の層も止めませんでした。`AgentBelongsToTenant` は呼ばれず、RLS の
+// 方針は `app.tenant_id` が空文字なら全テナント可として扱い、
+// `TenantMiddleware` は空のときに ctx へ入れないのでそれが設定された
+// ままになります。**塞ぐために書かれた関数を、いちばん通り抜けるのが
+// APIキーでした。** 実測で、テナントを名乗らないリクエストが他テナントの
+// 端末を隔離できました（agent_tenant_guard_test.go）。
+//
+// いまは端末の側に持ち主を訊きます。**構成の話（この配備にテナントが
+// あるか）と認証の話（この呼び出し元が名乗れるか）を混ぜません。**
+// 行にテナントが書かれていなければ、本当にテナント分離の無い配備なので
+// 素通しします。書かれていて呼び出し元が名乗れないなら、通しません。
 func (h *AgentHandler) ensureAgentInTenant(c *gin.Context, agentID string) bool {
-	tenantID, _ := c.Get("tenant_id")
-	tid, _ := tenantID.(string)
-	if tid == "" {
-		return true // single-tenant / no tenant scoping
-	}
-	ok, err := h.Store.AgentBelongsToTenant(c.Request.Context(), agentID, tid)
+	agentTenant, found, err := h.Store.AgentTenant(c.Request.Context(), agentID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "エージェントの確認に失敗しました"})
 		return false
 	}
-	if !ok {
+	if !found {
+		c.JSON(http.StatusNotFound, gin.H{"error": "エージェントが見つかりません"})
+		return false
+	}
+	if agentTenant == "" {
+		return true // 行に持ち主が書かれていない ＝ テナント分離の無い配備
+	}
+
+	tenantID, _ := c.Get("tenant_id")
+	tid, _ := tenantID.(string)
+	if tid == "" {
+		// 誰として操作しているのか分かりません。**分からないことを
+		// 「全テナントとして」と読み替えない**のがここの要点です。
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "テナントを特定できないため、この操作は実行できません。" +
+				"APIキーではなくユーザートークンでお試しください",
+			"tenant_missing": true,
+		})
+		return false
+	}
+	if tid != agentTenant {
 		c.JSON(http.StatusNotFound, gin.H{"error": "エージェントが見つかりません"})
 		return false
 	}
@@ -214,6 +259,16 @@ func (h *AgentHandler) ensureAgentInTenant(c *gin.Context, agentID string) bool 
 // POST /api/v1/agents/:id/isolate
 func (h *AgentHandler) Isolate(c *gin.Context) {
 	id := c.Param("id")
+	// 送れないと分かっているなら、DB を隔離状態に書き換える前に断る。
+	// 書いてから断ると「記録は隔離、実態は接続中」を自分で作ることになる。
+	if h.Isolator == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{
+			"error": "隔離の実行経路が構成されていません。端末はネットワークに接続されたままです",
+			"id":    id,
+		})
+		return
+	}
+
 	if !h.ensureAgentInTenant(c, id) {
 		return
 	}
@@ -221,8 +276,8 @@ func (h *AgentHandler) Isolate(c *gin.Context) {
 	var req struct {
 		Reason string `json:"reason"`
 	}
-	if err := c.ShouldBindJSON(&req); err != nil {
-		req.Reason = "手動隔離"
+	if !OptionalBody(c, &req) {
+		return
 	}
 	if req.Reason == "" {
 		req.Reason = "手動隔離"
@@ -241,40 +296,27 @@ func (h *AgentHandler) Isolate(c *gin.Context) {
 	// got 200 "エージェントを隔離しました" — while the endpoint was never told and
 	// stayed on the network. A containment action that reports success without
 	// happening is the most dangerous failure this API can have.
-	// 送る前に記録する。ここで採番した id をコマンドに載せることで、エージェントが
-	// 返す ack をこの行に対応付けられる。順序が逆だと、送った直後に返ってきた ack を
-	// 受け止める先が存在しない。
-	var actionID string
-	if h.ResponseActions != nil {
-		actionID, _ = h.ResponseActions.Record(c.Request.Context(), id, "isolate",
-			store.StatusPending, by, map[string]string{"reason": req.Reason})
-	}
-
-	if h.Commander != nil {
-		if err := h.Commander.IsolateEndpoint(c.Request.Context(), id, req.Reason, "", actionID); err != nil {
-			slog.Error("隔離コマンドの送信に失敗しました", "agent", id, "error", err)
-			if h.ResponseActions != nil {
-				if actionID != "" {
-					_ = h.ResponseActions.Complete(c.Request.Context(), actionID, store.StatusFailure, err.Error())
-				} else {
-					_ = h.ResponseActions.RecordFailure(c.Request.Context(), id, "isolate", by, err.Error(),
-						map[string]string{"reason": req.Reason})
-				}
-			}
-			// The agents row keeps isolated=true on purpose: it records the operator's
-			// INTENT, and the heartbeat/self-healing path uses it to re-deliver. Rolling
-			// it back here would discard the intent and leave nothing to retry from.
-			// Say plainly that the two are out of step so nobody reads this as done.
-			c.JSON(http.StatusBadGateway, gin.H{
-				"error": "隔離を記録しましたが、エンドポイントへの指示に失敗しました。端末はまだネットワークに接続されています",
-				"id":    id,
-			})
-			return
-		}
-	}
-
-	if actionID != "" {
-		_ = h.ResponseActions.Complete(c.Request.Context(), actionID, store.StatusDispatched, "")
+	// 記録・送出・結果の反映はすべて Gatekeeper が行う。手動隔離は
+	// isolation.OriginManual なので、冷却期間・時間あたり上限・ドライランは
+	// 適用されない（それらは誤検知が勝手に端末を止めることへの対策であって、
+	// 押した人の判断を止めるためのものではない）。
+	if _, err := h.Isolator.Isolate(c.Request.Context(), isolation.Request{
+		AgentID:     id,
+		Reason:      req.Reason,
+		Origin:      isolation.OriginManual,
+		TriggeredBy: by,
+		Label:       "手動隔離",
+	}); err != nil {
+		slog.Error("隔離コマンドの送信に失敗しました", "agent", id, "error", err)
+		// The agents row keeps isolated=true on purpose: it records the operator's
+		// INTENT, and the heartbeat/self-healing path uses it to re-deliver. Rolling
+		// it back here would discard the intent and leave nothing to retry from.
+		// Say plainly that the two are out of step so nobody reads this as done.
+		c.JSON(http.StatusBadGateway, gin.H{
+			"error": "隔離を記録しましたが、エンドポイントへの指示に失敗しました。端末はまだネットワークに接続されています",
+			"id":    id,
+		})
+		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "エージェントを隔離しました", "id": id})
@@ -284,6 +326,16 @@ func (h *AgentHandler) Isolate(c *gin.Context) {
 // POST /api/v1/agents/:id/unisolate
 func (h *AgentHandler) Unisolate(c *gin.Context) {
 	id := c.Param("id")
+	// 解除側も同じ。送れないなら DB を先に書き換えない。書いてしまうと
+	// 「記録は解除済み、実態は隔離のまま」= 孤児化した隔離そのものになる。
+	if h.Isolator == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{
+			"error": "隔離解除の実行経路が構成されていません。端末は隔離されたままの可能性があります",
+			"id":    id,
+		})
+		return
+	}
+
 	if !h.ensureAgentInTenant(c, id) {
 		return
 	}
@@ -300,32 +352,19 @@ func (h *AgentHandler) Unisolate(c *gin.Context) {
 	// endpoint is released while its firewall rules are still in place. That is the
 	// orphaned-isolation shape — the host is unreachable and every console says it
 	// is fine.
-	var actionID string
-	if h.ResponseActions != nil {
-		actionID, _ = h.ResponseActions.Record(c.Request.Context(), id, "unisolate",
-			store.StatusPending, by, nil)
-	}
-
-	if h.Commander != nil {
-		if err := h.Commander.UnisolateEndpoint(c.Request.Context(), id, "手動隔離解除", actionID); err != nil {
-			slog.Error("隔離解除コマンドの送信に失敗しました", "agent", id, "error", err)
-			if h.ResponseActions != nil {
-				if actionID != "" {
-					_ = h.ResponseActions.Complete(c.Request.Context(), actionID, store.StatusFailure, err.Error())
-				} else {
-					_ = h.ResponseActions.RecordFailure(c.Request.Context(), id, "unisolate", by, err.Error(), nil)
-				}
-			}
-			c.JSON(http.StatusBadGateway, gin.H{
-				"error": "隔離解除を記録しましたが、エンドポイントへの指示に失敗しました。端末はまだ隔離されたままの可能性があります",
-				"id":    id,
-			})
-			return
-		}
-	}
-
-	if actionID != "" {
-		_ = h.ResponseActions.Complete(c.Request.Context(), actionID, store.StatusDispatched, "")
+	if _, err := h.Isolator.Unisolate(c.Request.Context(), isolation.Request{
+		AgentID:     id,
+		Reason:      "手動隔離解除",
+		Origin:      isolation.OriginManual,
+		TriggeredBy: by,
+		Label:       "手動隔離解除",
+	}); err != nil {
+		slog.Error("隔離解除コマンドの送信に失敗しました", "agent", id, "error", err)
+		c.JSON(http.StatusBadGateway, gin.H{
+			"error": "隔離解除を記録しましたが、エンドポイントへの指示に失敗しました。端末はまだ隔離されたままの可能性があります",
+			"id":    id,
+		})
+		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "エージェントの隔離を解除しました", "id": id})
@@ -349,7 +388,11 @@ func (h *AgentHandler) GetProcesses(c *gin.Context) {
 		       COALESCE(raw_data->>'command_line', raw_data->>'cmdline', '')        AS cmdline,
 		       COALESCE(raw_data->>'parent_image', '')                              AS parent_image,
 		       COALESCE(raw_data->>'username', raw_data->>'user', '')               AS username,
-		       COALESCE(raw_data->>'hashes', '')                                    AS hashes
+		       -- ハッシュは sha256 / sha1 / md5 の個別キーで入ります。hashes という
+		       -- まとめたキーは無く、この列は常に空でした。強い順に1つ選びます。
+		       COALESCE(NULLIF(raw_data->>'sha256', ''),
+		                NULLIF(raw_data->>'sha1', ''),
+		                NULLIF(raw_data->>'md5', ''), '')                           AS hashes
 		FROM events
 		WHERE agent_id = $1 AND event_type = 'process'
 		ORDER BY time DESC
@@ -385,7 +428,9 @@ func (h *AgentHandler) GetProcesses(c *gin.Context) {
 		processes = append(processes, p)
 	}
 	if err := rows.Err(); err != nil {
-		slog.Warn("row iteration error", "error", err)
+		slog.Error("rows.Err: 結果の読み出しが途中で失敗しました", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "プロセス情報の取得に失敗しました"})
+		return
 	}
 
 	if processes == nil {
@@ -415,7 +460,7 @@ func (h *AgentHandler) GetProcessStats(c *gin.Context) {
 		ORDER BY time DESC
 		LIMIT 1`, id).Scan(&rawData, &updatedAt)
 	if err != nil {
-		c.JSON(http.StatusOK, gin.H{"data": []interface{}{}, "updated_at": nil})
+		ReadFailure(c, err, gin.H{"data": []interface{}{}, "updated_at": nil})
 		return
 	}
 
@@ -436,8 +481,8 @@ func (h *AgentHandler) TriggerScan(c *gin.Context) {
 	var req struct {
 		ScanType string `json:"scan_type"`
 	}
-	if err := c.ShouldBindJSON(&req); err != nil {
-		req.ScanType = "full"
+	if !OptionalBody(c, &req) {
+		return
 	}
 	if req.ScanType == "" {
 		req.ScanType = "full"
@@ -453,10 +498,8 @@ func (h *AgentHandler) TriggerScan(c *gin.Context) {
 		}
 	}
 
-	if h.ResponseActions != nil {
-		_, _ = h.ResponseActions.Record(c.Request.Context(), id, "scan", store.StatusDispatched, by,
-			map[string]string{"scan_type": req.ScanType})
-	}
+	h.noteResponseAction(c, id, "scan", store.StatusDispatched, by,
+		map[string]string{"scan_type": req.ScanType})
 
 	c.JSON(http.StatusAccepted, gin.H{
 		"message":   "スキャンコマンドを送信しました",
@@ -484,9 +527,7 @@ func (h *AgentHandler) TriggerScanCancel(c *gin.Context) {
 		}
 	}
 
-	if h.ResponseActions != nil {
-		_, _ = h.ResponseActions.Record(c.Request.Context(), id, "scan_cancel", store.StatusDispatched, by, nil)
-	}
+	h.noteResponseAction(c, id, "scan_cancel", store.StatusDispatched, by, nil)
 
 	c.JSON(http.StatusAccepted, gin.H{
 		"message":   "スキャン停止コマンドを送信しました",
@@ -556,9 +597,7 @@ func (h *AgentHandler) ReportScanResults(c *gin.Context) {
 		"matches":   req.Matches,
 	}
 
-	if h.ResponseActions != nil {
-		_, _ = h.ResponseActions.Record(c.Request.Context(), agentID, "scan_result", status, "agent", details)
-	}
+	h.noteResponseAction(c, agentID, "scan_result", status, "agent", details)
 
 	// Generate an alert when YARA matches were found, so the detection appears
 	// in /alerts and the dashboard counters (not just the agent's response history).
@@ -639,12 +678,7 @@ func (h *AgentHandler) GetResponseHistory(c *gin.Context) {
 	id := c.Param("id")
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	perPage, _ := strconv.Atoi(c.DefaultQuery("per_page", "20"))
-	if page < 1 {
-		page = 1
-	}
-	if perPage < 1 || perPage > 100 {
-		perPage = 20
-	}
+	page, perPage, _ = clampPageParams(page, perPage, 20, 100)
 
 	if h.ResponseActions == nil {
 		c.JSON(http.StatusOK, gin.H{
@@ -699,10 +733,8 @@ func (h *AgentHandler) KillProcess(c *gin.Context) {
 		}
 	}
 
-	if h.ResponseActions != nil {
-		_, _ = h.ResponseActions.Record(c.Request.Context(), agentID, "kill_process", store.StatusDispatched, by,
-			map[string]string{"pid": strconv.Itoa(int(req.PID)), "reason": req.Reason})
-	}
+	h.noteResponseAction(c, agentID, "kill_process", store.StatusDispatched, by,
+		map[string]string{"pid": strconv.Itoa(int(req.PID)), "reason": req.Reason})
 
 	c.JSON(http.StatusAccepted, gin.H{
 		"message": "プロセス終了コマンドを送信しました",
@@ -738,10 +770,8 @@ func (h *AgentHandler) QuarantineFile(c *gin.Context) {
 		}
 	}
 
-	if h.ResponseActions != nil {
-		_, _ = h.ResponseActions.Record(c.Request.Context(), agentID, "quarantine_file", store.StatusDispatched, by,
-			map[string]string{"path": req.Path, "alert_id": req.AlertID})
-	}
+	h.noteResponseAction(c, agentID, "quarantine_file", store.StatusDispatched, by,
+		map[string]string{"path": req.Path, "alert_id": req.AlertID})
 
 	c.JSON(http.StatusAccepted, gin.H{
 		"message": "ファイル隔離コマンドを送信しました",
@@ -776,10 +806,8 @@ func (h *AgentHandler) RestoreFile(c *gin.Context) {
 		}
 	}
 
-	if h.ResponseActions != nil {
-		_, _ = h.ResponseActions.Record(c.Request.Context(), agentID, "restore_file", store.StatusDispatched, by,
-			map[string]string{"quarantine_id": req.QuarantineID, "restore_path": req.RestorePath})
-	}
+	h.noteResponseAction(c, agentID, "restore_file", store.StatusDispatched, by,
+		map[string]string{"quarantine_id": req.QuarantineID, "restore_path": req.RestorePath})
 
 	c.JSON(http.StatusAccepted, gin.H{
 		"message":       "ファイル復元コマンドを送信しました",
@@ -826,7 +854,11 @@ func (h *AgentHandler) GetGroup(c *gin.Context) {
 
 	members, _, err := h.Store.ListAgents(ctx, store.AgentFilter{GroupID: id, Limit: 1000})
 	if err != nil {
-		members = nil
+		// 以前は members = nil で先へ進んでいました。グループ詳細が
+		// 「所属端末なし」に見えます。空のグループと区別が付きません。
+		slog.Error("agents: グループの所属端末を取得できませんでした", "group", id, "error", err)
+		ReadFailure(c, err, gin.H{"group": grp, "members": []any{}})
+		return
 	}
 
 	type memberRow struct {
@@ -939,13 +971,18 @@ func (h *AgentHandler) RiskScore(c *gin.Context) {
 		FROM alerts
 		WHERE agent_id = $1::uuid
 		  AND status IN ('open','investigating')`, agentID)
+	// **読めなかった 0 は、この端末のリスクスコアを静かに下げます。**
+	// 片方は `slog.Warn` 止まり、片方は `_ =` でした —— どちらも
+	// 「危険なものは無い」と読める画面になります。
+	var alertScanErr error
 	if err == nil {
 		if rows.Next() {
-			if scanErr := rows.Scan(&rd.AlertCritical, &rd.AlertHigh, &rd.AlertMedium); scanErr != nil {
-				slog.Warn("agents: alert counts scan error", "agent_id", agentID, "error", scanErr)
-			}
+			alertScanErr = rows.Scan(&rd.AlertCritical, &rd.AlertHigh, &rd.AlertMedium)
 		}
 		rows.Close()
+	}
+	if !ReadOK(c, alertScanErr) {
+		return
 	}
 
 	// Vulnerability counts (open)
@@ -955,17 +992,23 @@ func (h *AgentHandler) RiskScore(c *gin.Context) {
 		  COUNT(*) FILTER (WHERE severity='high')     AS high_vulns
 		FROM vulnerabilities
 		WHERE agent_id = $1::uuid AND status='open'`, agentID)
+	var vulnScanErr error
 	if err == nil {
 		if rows2.Next() {
-			_ = rows2.Scan(&rd.VulnCritical, &rd.VulnHigh)
+			vulnScanErr = rows2.Scan(&rd.VulnCritical, &rd.VulnHigh)
 		}
 		rows2.Close()
 	}
+	if !ReadOK(c, vulnScanErr) {
+		return
+	}
 
 	// Isolation status
-	_ = h.Pool.QueryRow(ctx,
+	if !ReadOK(c, h.Pool.QueryRow(ctx,
 		"SELECT isolation_status='isolated' FROM agents WHERE id=$1::uuid", agentID,
-	).Scan(&rd.IsIsolated)
+	).Scan(&rd.IsIsolated)) {
+		return
+	}
 
 	// Score calculation (max 100)
 	score := 0
@@ -1064,7 +1107,9 @@ func (h *AgentHandler) RiskScores(c *gin.Context) {
 		result = append(result, r)
 	}
 	if err := rows.Err(); err != nil {
-		slog.Warn("row iteration error", "error", err)
+		slog.Error("rows.Err: 結果の読み出しが途中で失敗しました", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "リスクスコアの取得に失敗しました"})
+		return
 	}
 	if result == nil {
 		result = []agentRisk{}
@@ -1130,7 +1175,9 @@ func (h *AgentHandler) ProcessTree(c *gin.Context) {
 		}
 	}
 	if err := rows.Err(); err != nil {
-		slog.Warn("ProcessTree: row iteration error", "agent", agentID, "error", err)
+		slog.Error("rows.Err: 結果の読み出しが途中で失敗しました", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "プロセスツリーの取得に失敗しました"})
+		return
 	}
 	if processes == nil {
 		processes = []ProcessNode{}
@@ -1240,6 +1287,9 @@ func (h *AgentHandler) Heartbeat(c *gin.Context) {
 		Status         string   `json:"status"`          // "online"|"isolated"|"error" reported by agent
 		ProtectionMode string   `json:"protection_mode"` // "enforce"|"observe"|"poll" kernel-protection tier (host capability)
 		TelemetryMode  string   `json:"telemetry_mode"`  // "ebpf"|"poll"|"off" mechanism actually collecting
+		// TelemetryDetail explains the mode per sensor, e.g.
+		// "file=poll(eBPF非対応) network=ebpf process=ebpf".
+		TelemetryDetail string `json:"telemetry_detail"`
 	}
 	// Body is optional — ignore parse errors.
 	_ = c.ShouldBindJSON(&body)
@@ -1258,26 +1308,46 @@ func (h *AgentHandler) Heartbeat(c *gin.Context) {
 
 	// Record the effective collection mechanism (best-effort; non-fatal). Separate
 	// from protection mode so a capable-but-degraded endpoint is visible.
-	if err := h.Store.UpdateTelemetryMode(ctx, agentID, body.TelemetryMode); err != nil {
+	if err := h.Store.UpdateTelemetryMode(ctx, agentID, body.TelemetryMode, body.TelemetryDetail); err != nil {
 		slog.Warn("HTTP heartbeat: UpdateTelemetryMode failed", "agent_id", agentID, "error", err)
 	}
 
 	// Resolve open offline / health alerts for this agent.
-	_ = h.Store.ResolveAgentOfflineAlerts(ctx, agentID)
+	//
+	// **落ちると、戻ってきた端末のオフラインアラートが開いたまま
+	// 残ります** —— 対応する人には「まだ落ちている」に見えます。
+	// ハートビートの応答に載せるものではないので、件数に出します。
+	if err := h.Store.ResolveAgentOfflineAlerts(ctx, agentID); err != nil {
+		metrics.BackgroundFailed("agent_heartbeat", err,
+			"復帰した端末のオフラインアラートを解決できませんでした",
+			"agent_id", agentID)
+	}
 
-	// If the agent reports it is still isolated but the DB no longer has it isolated
-	// (an admin already clicked "unisolate"), tell the agent to self-unisolate.
-	// This is the fallback for when the gRPC command stream is unavailable.
-	shouldUnisolate := false
-	if body.Status == "isolated" {
-		agent, err := h.Store.GetAgentByID(ctx, agentID)
-		if err == nil && agent.Status != "isolated" {
-			shouldUnisolate = true
+	// Reconcile isolation state in **both** directions.
+	//
+	// 巻き戻しは片側しかありませんでした —— 端末が「まだ隔離中」で DB が
+	// 解除済みなら解除させる、その一方向だけです。**逆が無いので、
+	// 隔離コマンドが端末に届かなかったとき、その端末は二度と隔離
+	// されませんでした**（DB も画面も「隔離済み」のまま）。
+	//
+	// 対称にすると、**DB が唯一の真実**になります。指示の送信は速い経路で、
+	// 届かなければ次のハートビート（30 秒）が直します。
+	shouldIsolate, shouldUnisolate := false, false
+	if agent, err := h.Store.GetAgentByID(ctx, agentID); err == nil {
+		shouldIsolate, shouldUnisolate = reconcileIsolation(agent.Status, body.Status)
+		if shouldIsolate {
+			slog.Warn("ハートビート経由の隔離指示を送信", "agent_id", agentID)
+		}
+		if shouldUnisolate {
 			slog.Info("ハートビート経由の隔離解除指示を送信", "agent_id", agentID)
 		}
 	}
 
-	resp := gin.H{"ok": true, "should_unisolate": shouldUnisolate}
+	resp := gin.H{
+		"ok":               true,
+		"should_isolate":   shouldIsolate,
+		"should_unisolate": shouldUnisolate,
+	}
 
 	// Uninstall-password material rides the heartbeat because it has to be on
 	// the endpoint *before* it is needed: the agent verifies an uninstall with
@@ -1289,4 +1359,47 @@ func (h *AgentHandler) Heartbeat(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, resp)
+}
+
+// noteResponseAction records a dispatched response action and reports if it
+// could not be written.
+//
+// **操作は済んでいて、残るのは記録だけです。** 応答は「送信しました」
+// を答えていて、その記録が書けたかどうかは別の話です —— 各所とも
+// `_ =` で捨てていました。落ちると、**インシデントの時系列から封じ込めの
+// 操作が抜けます**（誰がいつ何をしたかの唯一の記録です）。
+//
+// 隔離／隔離解除は `Record` の返す id を ack の突き合わせに使うため、
+// ここは通さず個別に扱います。こちらは id を必要としない片道の操作用です。
+func (h *AgentHandler) noteResponseAction(c *gin.Context, agentID, action, status, by string, details any) {
+	if h.ResponseActions == nil {
+		return
+	}
+	if _, err := h.ResponseActions.Record(c.Request.Context(), agentID, action, status, by, details); err != nil {
+		metrics.BackgroundFailed("response_action_record", err,
+			"対応操作を記録できませんでした。インシデントの時系列から抜けます",
+			"agent_id", agentID, "action", action, "status", status)
+	}
+}
+
+// reconcileIsolation decides what to tell an agent whose reported isolation
+// state disagrees with the database.
+//
+// **判定を切り出してあります。** 元は片方向だけで、`should_unisolate` の
+// 分岐しかありませんでした —— 隔離コマンドが端末に届かなかったとき、
+// **DB も画面も「隔離済み」、端末は繋がったまま、それを直すものが
+// 何もありません**でした。
+//
+// `dbStatus` が真実です。指示の送信は速い経路で、届かなければ次の
+// ハートビート（30 秒）がここで直します。
+func reconcileIsolation(dbStatus, reportedStatus string) (shouldIsolate, shouldUnisolate bool) {
+	dbIsolated := dbStatus == "isolated"
+	reportedIsolated := reportedStatus == "isolated"
+	switch {
+	case dbIsolated && !reportedIsolated:
+		return true, false
+	case !dbIsolated && reportedIsolated:
+		return false, true
+	}
+	return false, false
 }

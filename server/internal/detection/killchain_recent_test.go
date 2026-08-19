@@ -48,12 +48,14 @@ func TestKillChain_RecentDetectionsCorrelate(t *testing.T) {
 	k := newKillChainScorer()
 	base := time.Unix(1_700_000_000, 0)
 
-	// Four distinct tactics from four recent detection classes, within the window.
+	// chainMinTactics(5) distinct tactics from recent detection classes, within
+	// the window.
 	steps := [][]string{
 		{"T1055.012"}, // svchost hollowing → privilege-escalation
 		{"T1071.001"}, // JA3/beacon C2 → command-and-control
 		{"T1552.005"}, // IMDS credential theft → credential-access
 		{"T1526"},     // cloud service discovery → discovery
+		{"T1486"},     // ransomware encryption → impact
 	}
 	var got []string
 	for i, tags := range steps {
@@ -62,7 +64,7 @@ func TestKillChain_RecentDetectionsCorrelate(t *testing.T) {
 		}
 	}
 	if len(got) == 0 {
-		t.Fatal("four distinct-tactic recent detections should raise a kill-chain correlation")
+		t.Fatal("five distinct-tactic recent detections should raise a kill-chain correlation")
 	}
 	if !strings.Contains(got[len(got)-1], "KILLCHAIN") {
 		t.Errorf("expected a KILLCHAIN correlation title, got %q", got[len(got)-1])

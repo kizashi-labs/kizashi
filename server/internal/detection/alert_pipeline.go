@@ -6,6 +6,7 @@ package detection
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"sort"
@@ -17,6 +18,7 @@ import (
 	"github.com/edr-platform/server/internal/correlation"
 	"github.com/edr-platform/server/internal/metrics"
 	"github.com/edr-platform/server/internal/remediation"
+	"github.com/edr-platform/server/internal/store"
 	"github.com/edr-platform/server/internal/wsbus"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/nats-io/nats.go"
@@ -37,8 +39,15 @@ type AlertPipeline struct {
 	corr        *correlation.Engine  // optional; wired via SetCorrelationEngine
 	parents     *parentResolver      // resolves ParentImage from ppid for Sigma rules
 	custom      *CustomRuleEvaluator // ユーザー定義ルール (custom_alert_rules)
-	dedupMu     sync.Mutex
-	dedupCache  map[string]time.Time // key → last alert time
+	// suppression は運用者が作った抑制ルール。nil = 抑制無効。
+	// server-detect (Engine) は最初からこれを見ていたが、こちら (server-api) は
+	// 見ていなかった——SetSuppressionMatcher のコメントを参照。
+	suppression    *SuppressionMatcher
+	suppressionHit SuppressionHitCounter
+	// selfRemediation drops alerts caused by our own containment. nil = disabled.
+	selfRemediation *SelfRemediationSuppressor
+	dedupMu         sync.Mutex
+	dedupCache      map[string]time.Time // key → last alert time
 }
 
 // NewAlertPipeline creates an AlertPipeline with freshly initialised detection engines.
@@ -55,6 +64,29 @@ func NewAlertPipeline(pool *pgxpool.Pool, nc *nats.Conn) *AlertPipeline {
 		// IOCMatcher is not wired here — the existing Engine already owns one.
 		// AlertPipeline uses its own sigma + anomaly engines only.
 	}
+}
+
+// SetSuppressionMatcher wires the operator-authored suppression rules into this
+// pipeline. Call before Start(); nil disables suppression.
+//
+// ★ これが無いと、運用者が UI で作った抑制ルールが**効かない**。
+//
+// 抑制エンジン自体は前からあり、server-detect の Engine は起動時からそれを見て
+// いた。ところが P4-6 (#647) で DB Sigma ルールの所有権が server-api に移り、
+// リアルタイムのアラートはほぼ全部この AlertPipeline が作るようになった。
+// **抑制を効かせる側と、アラートを作る側が入れ替わった**わけだが、結線は
+// 移らなかった。結果として「抑制ルールを作ったのにアラートが止まらない」状態が
+// 残る——しかも UI 上はルールが有効に見えるので、壊れていること自体が見えない。
+//
+// 同じ matcher / 同じローダを使うので、両プロセスは同じルールを見る。
+// SetSelfRemediationSuppressor wires the self-inflicted-alert filter. nil は無効。
+func (p *AlertPipeline) SetSelfRemediationSuppressor(s *SelfRemediationSuppressor) {
+	p.selfRemediation = s
+}
+
+func (p *AlertPipeline) SetSuppressionMatcher(m *SuppressionMatcher, hits SuppressionHitCounter) {
+	p.suppression = m
+	p.suppressionHit = hits
 }
 
 // SetRemediationEngine wires a remediation.Engine so that every new alert
@@ -94,7 +126,7 @@ func (p *AlertPipeline) GetSigmaEvaluator() *SigmaEvaluator {
 // live pipeline picks up the change immediately.
 func (p *AlertPipeline) ReloadSigmaRules() {
 	if err := p.sigma.ReloadFromDB(p.pool); err != nil {
-		slog.Warn("alert_pipeline: sigma rule reload failed", "error", err)
+		metrics.BackgroundFailed("alert_pipeline", err, "alert_pipeline: sigma rule reload failed")
 		return
 	}
 	slog.Info("alert_pipeline: sigma rules reloaded", "count", p.sigma.RuleCount())
@@ -151,12 +183,12 @@ func buildPipelineSubjects() []string {
 func (p *AlertPipeline) Start(ctx context.Context) error {
 	js, err := jetstream.New(p.nc)
 	if err != nil {
-		slog.Warn("alert_pipeline: JetStream unavailable — falling back to core NATS (events may drop under burst)", "error", err)
+		metrics.BackgroundFailed("alert_pipeline", err, "alert_pipeline: JetStream unavailable — falling back to core NATS (events may drop under burst)")
 		return p.startCoreNATS(ctx)
 	}
 	stream, err := js.Stream(ctx, "EVENTS")
 	if err != nil {
-		slog.Warn("alert_pipeline: EVENTS stream not found — falling back to core NATS", "error", err)
+		metrics.BackgroundFailed("alert_pipeline", err, "alert_pipeline: EVENTS stream not found — falling back to core NATS")
 		return p.startCoreNATS(ctx)
 	}
 	consumer, err := stream.CreateOrUpdateConsumer(ctx, jetstream.ConsumerConfig{
@@ -170,7 +202,7 @@ func (p *AlertPipeline) Start(ctx context.Context) error {
 		DeliverPolicy: jetstream.DeliverNewPolicy,
 	})
 	if err != nil {
-		slog.Warn("alert_pipeline: durable consumer create failed — falling back to core NATS", "error", err)
+		metrics.BackgroundFailed("alert_pipeline", err, "alert_pipeline: durable consumer create failed — falling back to core NATS")
 		return p.startCoreNATS(ctx)
 	}
 
@@ -186,7 +218,7 @@ func (p *AlertPipeline) Start(ctx context.Context) error {
 		}()
 	})
 	if err != nil {
-		slog.Warn("alert_pipeline: consume failed — falling back to core NATS", "error", err)
+		metrics.BackgroundFailed("alert_pipeline", err, "alert_pipeline: consume failed — falling back to core NATS")
 		return p.startCoreNATS(ctx)
 	}
 	defer cc.Stop()
@@ -229,7 +261,7 @@ func (p *AlertPipeline) startCoreNATS(ctx context.Context) error {
 func (p *AlertPipeline) handleEvent(ctx context.Context, subject string, data []byte) {
 	var envelope map[string]interface{}
 	if err := json.Unmarshal(data, &envelope); err != nil {
-		slog.Debug("alert_pipeline: failed to parse event JSON", "subject", subject, "error", err)
+		metrics.BackgroundFailed("alert_pipeline", err, "alert_pipeline: failed to parse event JSON", "subject", subject)
 		return
 	}
 
@@ -334,10 +366,14 @@ func (p *AlertPipeline) createAlertFromCustomRule(ctx context.Context, m CustomR
 		Status:      "open",
 		MITRETech:   mitre,
 		EventIDs:    evidenceEventIDs(evidenceID),
+		Suppression: SuppressionContextFrom(event),
 	})
+	if errors.Is(err, errAlertSuppressed) {
+		return // 運用者の抑制ルールに当たった。失敗ではないので計上もログもしない
+	}
 	if err != nil {
-		slog.Warn("alert_pipeline: ユーザー定義ルールのアラート登録に失敗しました",
-			"rule", m.Rule.Name, "error", err)
+		metrics.BackgroundFailed("alert_pipeline", err, "alert_pipeline: ユーザー定義ルールのアラート登録に失敗しました",
+			"rule", m.Rule.Name)
 		return
 	}
 	p.publishAlertCreated(alertID)
@@ -384,7 +420,11 @@ func (p *AlertPipeline) createAlertFromSigma(ctx context.Context, match SigmaMat
 		Status:      "open",
 		MITRETech:   parseMITRETechFromTags(match.Tags),
 		EventIDs:    evidenceEventIDs(evidenceID),
+		Suppression: SuppressionContextFrom(event),
 	})
+	if errors.Is(err, errAlertSuppressed) {
+		return // 運用者の抑制ルールに当たった。失敗ではないので計上もログもしない
+	}
 	if err != nil {
 		slog.Warn("alert_pipeline: failed to insert sigma alert", "rule", match.RuleTitle, "error", err)
 		metrics.AlertInsertFailures.WithLabelValues("sigma").Inc()
@@ -647,25 +687,31 @@ func isDiscoveryRecon(tech string) bool {
 
 // createAlertFromIOC inserts an alert for an IOC match.
 //
-// title の書式 "Known IOC detected: <値>" は store.IOCStore.TopHits と対になって
-// いる。TopHits は IOC とアラートを結ぶ手掛かりが他に無いためこの title で
-// 突き合わせており、書式を変えるとエラーにはならず「上位 IOC」が黙って 0 件に
-// なる。変更する場合は両方を揃えること。
+// title は store.IOCAlertTitlePrefixEN から組み立てる。IOC とアラートを結ぶ
+// 手掛かりは title しかなく (alerts に ioc_id は無く、rule_id は uuid なので
+// この経路では NULL のまま)、store 側の IOCStats / TopHits は同じ定数で
+// 突き合わせている。プレフィックスを直接書くとエラーにはならず IOC 統計が
+// 黙って 0 になるので、定数を経由すること。
 func (p *AlertPipeline) createAlertFromIOC(ctx context.Context, hit IOCMatch, event map[string]interface{}, evidenceID string) {
 	hostname, _ := event["hostname"].(string)
 	agentID, _ := event["agent_id"].(string)
 
 	ruleName := fmt.Sprintf("IOC Match: %s", hit.IOC.Type)
+	iocTitle := store.IOCAlertTitlePrefixEN + hit.Value
 	alertID, err := p.insertAlert(ctx, insertAlertParams{
 		AgentID:     agentID,
 		Hostname:    hostname,
 		RuleName:    ruleName,
 		Severity:    hit.IOC.Severity,
-		Title:       fmt.Sprintf("Known IOC detected: %s", hit.Value),
+		Title:       iocTitle,
 		Description: fmt.Sprintf("Field '%s' matched %s IOC: %s", hit.MatchedOn, hit.IOC.Type, hit.IOC.Description),
 		Status:      "open",
 		EventIDs:    evidenceEventIDs(evidenceID),
+		Suppression: SuppressionContextFrom(event),
 	})
+	if errors.Is(err, errAlertSuppressed) {
+		return // 運用者の抑制ルールに当たった。失敗ではないので計上もログもしない
+	}
 	if err != nil {
 		slog.Warn("alert_pipeline: failed to insert IOC alert", "type", hit.IOC.Type, "error", err)
 		metrics.AlertInsertFailures.WithLabelValues("ioc").Inc()
@@ -676,7 +722,7 @@ func (p *AlertPipeline) createAlertFromIOC(ctx context.Context, hit IOCMatch, ev
 	wsbus.Global().Broadcast("new_alert", map[string]interface{}{
 		"id":       alertID,
 		"severity": severityIntToLabel(hit.IOC.Severity),
-		"title":    fmt.Sprintf("Known IOC detected: %s", hit.Value),
+		"title":    iocTitle,
 		"agent_id": agentID,
 	})
 
@@ -844,10 +890,59 @@ type insertAlertParams struct {
 	Status      string
 	MITRETech   string
 	EventIDs    []string
+	// Suppression matching inputs. Not persisted — see SuppressionContext.
+	Suppression SuppressionContext
 }
 
+// errAlertSuppressed is returned by insertAlert when an operator suppression rule
+// matched. It is not a failure: callers must stop quietly, not log an error.
+var errAlertSuppressed = errors.New("alert suppressed by an operator rule")
+
 // insertAlert writes to the alerts table and returns the new alert ID.
+//
+// 抑制の判定はここで行う。**この関数がアラート生成の唯一の絞り**で、Sigma /
+// IOC / ユーザー定義ルールの 3 経路がすべてここを通る。呼び出し側それぞれに
+// 判定を置くと、経路が増えたときに抜ける。
 func (p *AlertPipeline) insertAlert(ctx context.Context, params insertAlertParams) (string, error) {
+	candidate := &StoredAlert{
+		AgentID:   params.AgentID,
+		Hostname:  params.Hostname,
+		RuleName:  params.RuleName,
+		Severity:  params.Severity,
+		Title:     params.Title,
+		MITRETech: params.MITRETech,
+	}
+
+	sctx := params.Suppression
+
+	// Our own containment changes the endpoint's firewall, which the
+	// firewall-modification rules then detect. See self_remediation_suppression.go.
+	// nil レシーバでも安全なので、構成されていない場合は素通りする。
+	if p.selfRemediation.IsSelfInflicted(ctx, candidate) {
+		return "", errAlertSuppressed
+	}
+
+	if p.suppression != nil {
+		if suppressed, ruleName, ruleID := p.suppression.IsSuppressed(candidate, sctx); suppressed {
+			slog.Debug("alert_pipeline: アラートが抑制されました",
+				"suppression_rule", ruleName, "rule", params.RuleName, "agent", params.AgentID)
+			if p.suppressionHit != nil {
+				// **この数は「効いていないルール」を見つけるためのものです。**
+				// 落ちるとヒット0のまま残り、実際は毎日抑制しているルールが
+				// 「もう要らない」と判断されます。store 側は error を返すだけで
+				// 何も報告しないので、捨てると本当に無音になります。
+				// 姉妹実装 (suppression.Engine.incrementHit) と同じ部品名に
+				// 出して、2 経路の件数が同じ場所に集まるようにします。
+				if err := p.suppressionHit.IncrHitCount(ctx, ruleID); err != nil {
+					metrics.BackgroundFailed("suppression_hit_count", err,
+						"抑制ルールのヒット数を更新できませんでした。効いているルールが0件に見えます",
+						"rule_id", ruleID)
+				}
+			}
+			return "", errAlertSuppressed
+		}
+	}
+
 	var alertID string
 	var mitreTech *string
 	if params.MITRETech != "" {
@@ -1001,8 +1096,13 @@ func addPipelineSigmaAliases(flat map[string]interface{}) {
 		"queryType":  {"QueryType", "record_type"},
 		"query_type": {"QueryType", "record_type"},
 		// Parent process: aliased for ParentImage/ParentCommandLine rules (e.g. WMI
-		// spawn). Inert until the agent telemetry carries a parent field, but keeps
-		// this layer consistent with the standard Sigma field names.
+		// spawn, Office-spawns-script). These were inert for as long as the agent
+		// telemetry carried no parent at all — ProcessEvent had ppid and nothing
+		// else — so every ParentImage rule was structurally dark. The agent now
+		// resolves the parent on the endpoint and ingestion writes parent_image /
+		// parent_name, which is what the first two entries below carry.
+		"parent_image":        {"ParentImage"},
+		"parent_name":         {"ParentImage"},
 		"parentImagePath":     {"ParentImage"},
 		"parent_image_path":   {"ParentImage"},
 		"parentProcessName":   {"ParentImage"},
@@ -1195,6 +1295,32 @@ func addPipelineSigmaAliases(flat map[string]interface{}) {
 	// Reviving that class needs the mapping added to BOTH engines, plus a check that
 	// the rules are not per-event blanket matches (the 4625 rule removed from
 	// sigma_builtins.go on 2026-08-04 was one). Tracked, not done here.
+	//
+	// ── 2026-08-14: 4765/4766 だけを開けた ──
+	//
+	// AuthEvent がワイヤ上に event_id を持つようになったので(proto 変更)、
+	// **アカウント操作イベントに限って** Sigma の EventID に写す。
+	//
+	// なぜ全部開けないか。上の段落がそのまま理由である: curate が
+	// SupportedSigmaFields() を見て SigmaHQ の `service: security` ルールを
+	// enabled にしており、EventID を全 auth イベントに与えると
+	// **`EventID: 4624` を選ぶルール群が一斉に生き返る**。ログオンのたびに鳴る形が
+	// 混ざるので、開けるならアラート量の実測(FP ソーク)が要る。ここでは測っていない。
+	//
+	// 4765/4766 に限れば話が違う。SID-History の付与は正常系では**ほぼ起きない**
+	// (ドメイン移行時のみ)ので、ログオンのような常時発生する土台を持たない。
+	// また T1134.005 はこの 2 つ以外に痕跡を残さないため、開けなければ検知手段が
+	// 存在しないという状態が続く。
+	//
+	// 許可リストにしてあるのは、後から「全部開ける」に切り替えるときに
+	// **この判断を通らずには変えられない**ようにするためである。
+	if _, exists := flat["EventID"]; !exists {
+		if _, isAuth := flat["auth_method"]; isAuth {
+			if id, ok := toFloat64(flat["event_id"]); ok && sigmaExposedAuthEventIDs[uint64(id)] {
+				flat["EventID"] = strconv.FormatUint(uint64(id), 10)
+			}
+		}
+	}
 
 	// Sysmon-style TargetObject includes the value name (e.g. ...\Winlogon\Shell),
 	// but our registry events carry the key path and value name separately. Append

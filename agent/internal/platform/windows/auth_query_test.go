@@ -27,11 +27,25 @@ func TestBuildAuthQuery_UsesTimediffNotLiteralComparison(t *testing.T) {
 
 // 失敗ログオン(4625)は T1110 ブルートフォース検知の唯一の入力なので、
 // 選択対象から外れてはならない。
+// 4769 は Kerberos サービスチケット要求で、Kerberoasting 検知の唯一の観測点。
+// ここから漏れると parseAuthEvent 以降がいくら正しくても一件も収集されない —
+// 下流のテストは全部通ったまま、検知だけが沈黙する。
 func TestBuildAuthQuery_SelectsFailedLogon(t *testing.T) {
 	q := buildAuthQuery(10_000)
-	for _, id := range []string{"4624", "4625", "4634", "4672"} {
+	for _, id := range []string{"4624", "4625", "4634", "4672", "4769"} {
 		if !strings.Contains(q, "EventID="+id) {
 			t.Errorf("EventID=%s が選択対象に含まれていない: %s", id, q)
+		}
+	}
+}
+
+// 購読クエリ側も同じ ID を選ぶこと。ポーリングだけ直して購読側を直し忘れると、
+// リアルタイム経路だけが静かに欠落する。
+func TestBuildAuthSubscribeQuery_SelectsTheSameEventIDs(t *testing.T) {
+	q := buildAuthSubscribeQuery()
+	for _, id := range []string{"4624", "4625", "4634", "4672", "4769"} {
+		if !strings.Contains(q, "EventID="+id) {
+			t.Errorf("購読クエリに EventID=%s が含まれていない: %s", id, q)
 		}
 	}
 }
@@ -55,5 +69,21 @@ func TestBuildAuthSubscribeQuery_HasNoTimePredicate(t *testing.T) {
 	}
 	if !strings.Contains(q, "EventID=4625") {
 		t.Errorf("購読クエリが失敗ログオンを含んでいない: %s", q)
+	}
+}
+
+// 4765/4766 (SID-History 付与) が購読・問い合わせの両方に入っていること。
+//
+// T1134.005 はこの 2 つ以外に痕跡を残さない——プロセス生成もログオンも伴わない
+// アカウント属性の書き換えである。述語から漏れると、サーバ側でどれだけルールを
+// 書いても検知できない。実際 2026-08-14 まで漏れており、migration 384 の第 1 波で
+// この技法のルールだけが「値が来ないので入れられない」として外されていた。
+func TestAuthQueries_IncludeSIDHistoryEvents(t *testing.T) {
+	for _, q := range []string{buildAuthQuery(10_000), buildAuthSubscribeQuery()} {
+		for _, id := range []string{"4765", "4766"} {
+			if !strings.Contains(q, "EventID="+id) {
+				t.Errorf("EventID=%s が選択対象に含まれていない: %s", id, q)
+			}
+		}
 	}
 }

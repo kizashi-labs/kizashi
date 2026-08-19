@@ -2,7 +2,6 @@ package store
 
 import (
 	"encoding/json"
-	"strings"
 	"testing"
 	"time"
 )
@@ -371,69 +370,14 @@ func TestComputeNextRun_UnknownFrequency_Reports(t *testing.T) {
 
 // ─── レポートフィルタービルダーロジックテスト ──────────────────────────────────
 
-// buildReportListWhere は report_jobs の LIST クエリと同等の WHERE 句構築を再現するヘルパー
-func buildReportListWhere(reportType, status string) (string, []interface{}) {
-	where := "WHERE 1=1"
-	args := []interface{}{}
-	idx := 1
-
-	if reportType != "" {
-		where += " AND rj.type = $" + itoa(idx)
-		args = append(args, reportType)
-		idx++
-	}
-	if status != "" {
-		where += " AND rj.status = $" + itoa(idx)
-		args = append(args, status)
-		idx++
-	}
-	_ = idx
-	return where, args
-}
-
-// TestBuildReportListWhere_EmptyFilter は全フィルターが空のとき "WHERE 1=1" であることを確認する
-func TestBuildReportListWhere_EmptyFilter(t *testing.T) {
-	where, args := buildReportListWhere("", "")
-	if where != "WHERE 1=1" {
-		t.Errorf("空フィルターは \"WHERE 1=1\" のはず: got %q", where)
-	}
-	if len(args) != 0 {
-		t.Errorf("空フィルターは引数なしのはず: got %v", args)
-	}
-}
-
-// TestBuildReportListWhere_TypeFilter は reportType フィルターが type 条件を追加することを確認する
-func TestBuildReportListWhere_TypeFilter(t *testing.T) {
-	where, args := buildReportListWhere("executive_summary", "")
-	if !strings.Contains(where, "rj.type") {
-		t.Errorf("type 条件が含まれるべき: %q", where)
-	}
-	if len(args) != 1 || args[0] != "executive_summary" {
-		t.Errorf("args = %v, want [executive_summary]", args)
-	}
-}
-
-// TestBuildReportListWhere_StatusFilter は status フィルターが status 条件を追加することを確認する
-func TestBuildReportListWhere_StatusFilter(t *testing.T) {
-	where, args := buildReportListWhere("", "completed")
-	if !strings.Contains(where, "rj.status") {
-		t.Errorf("status 条件が含まれるべき: %q", where)
-	}
-	if len(args) != 1 || args[0] != "completed" {
-		t.Errorf("args = %v, want [completed]", args)
-	}
-}
-
-// TestBuildReportListWhere_BothFilters は両フィルターが組み合わさったとき引数が2件であることを確認する
-func TestBuildReportListWhere_BothFilters(t *testing.T) {
-	where, args := buildReportListWhere("threat_report", "pending")
-	if !strings.Contains(where, "rj.type") {
-		t.Errorf("type 条件が含まれるべき: %q", where)
-	}
-	if !strings.Contains(where, "rj.status") {
-		t.Errorf("status 条件が含まれるべき: %q", where)
-	}
-	if len(args) != 2 {
-		t.Errorf("両フィルターで引数 2 件のはず: got %d", len(args))
-	}
-}
+// レポート一覧の絞り込みには、**製品側に対応する組み立てがありません。**
+//
+// `ReportStore.List` は引数を取らず、WHERE 句もありません:
+//
+//	FROM report_jobs rj ... ORDER BY rj.requested_at DESC LIMIT 200
+//
+// **絞り込みが無いだけでなく、201件目以降は黙って切られます** ——
+// 画面には「それが全部」と読める一覧が出ます。ページ送りもありません。
+// （判断待ちの一覧に置きました。）
+//
+// 写しは消します。**繋ぐ先がないものを繋いだふりはしません。**

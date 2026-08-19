@@ -292,6 +292,11 @@ func matchString(s *YaraString, data []byte) bool {
 		cleaned := strings.ReplaceAll(s.Value, " ", "")
 		decoded, err := hex.DecodeString(cleaned)
 		if err != nil {
+			// 「一致しなかった」と「そもそも評価できなかった」を同じ
+			// false で返していました。壊れた16進文字列を持つルールは、
+			// 一度も発火しないまま有効なルールとして並び続けます。
+			slog.Error("yara: 16進文字列を読めないため、この条件は評価されません",
+				"string", s.ID, "error", err)
 			return false
 		}
 		return bytes.Contains(data, decoded)
@@ -303,6 +308,8 @@ func matchString(s *YaraString, data []byte) bool {
 		}
 		re, err := regexp.Compile(flags + s.Value)
 		if err != nil {
+			slog.Error("yara: 正規表現をコンパイルできないため、この条件は評価されません",
+				"string", s.ID, "error", err)
 			return false
 		}
 		return re.Match(data)

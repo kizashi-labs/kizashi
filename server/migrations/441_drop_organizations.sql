@@ -1,0 +1,50 @@
+-- Migration 380: drop the organizations table.
+--
+-- This platform had two answers to "which customer does this row belong to".
+--
+--   tenants        migration 027. 55 tables carry a tenant_id REFERENCES
+--                  tenants(id) — agents, users, alerts, incidents, rules and
+--                  the rest. RLS is enforced against it: the API middleware
+--                  puts tenant_id into the request context and store.Connect's
+--                  PrepareConn hook calls set_config('app.tenant_id') on every
+--                  connection. Read and written by 4 packages and by
+--                  /api/v1/tenants and /api/v1/admin/tenants.
+--
+--   organizations  migration 183. NOTHING references it. No foreign key in the
+--                  schema points here, and exactly one Go file read it:
+--                  internal/tenant/store.go, which backed
+--                  /api/v1/admin/organizations and the 組織管理 screen.
+--
+-- Both were seeded with the same default UUID
+-- (00000000-0000-0000-0000-000000000001), which is the only reason a
+-- single-tenant deployment never noticed. What it cost, measured:
+--
+--   * internal/tenant.GetStats counted agents, users and alerts WHERE
+--     org_id = $1 on three tables that have no org_id column, discarded all
+--     three errors, and returned (stats, nil). GET
+--     /api/v1/admin/organizations/:id therefore reported 0 agents, 0 users and
+--     0 alerts for every organization, always.
+--   * Creating an organization through the routed API produced a row nothing
+--     could ever reference — no agent, user or alert can belong to it, because
+--     those columns are foreign keys into tenants.
+--   * internal/middleware/tenant.go, the only consumer of the org lookup for
+--     access control, was never registered on any route.
+--   * organizations.settings held allow_sso, retention_days, logo_url and
+--     primary_color. Grepping the tree, those four names appeared in their own
+--     struct definition and nowhere else. The UI's SSO toggle POSTed
+--     "sso_allowed", which did not even match the "allow_sso" JSON tag, into a
+--     column no code has ever read.
+--
+-- So this is not a migration away from organizations; there was never anything
+-- on it to migrate. tenants is the model the platform actually enforces, and
+-- this removes the second answer so the two cannot drift apart again.
+--
+-- No data is carried across. Any row here beyond the seeded default was created
+-- through an endpoint that could not attach anything to it, so it holds a name
+-- and a slug and nothing else. The endpoint, its handler and its store go with
+-- the table in the same commit.
+--
+-- Deliberately not reversible. A table no code reads is not a fallback — it is
+-- a second answer waiting to be believed.
+
+DROP TABLE IF EXISTS organizations;

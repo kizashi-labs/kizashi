@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/edr-platform/server/internal/metrics"
 	"log/slog"
 	"net/http"
 	"net/smtp"
@@ -45,7 +46,7 @@ func NewNotifier(s *store.AlertNotifStore, serverURL string) *Notifier {
 func (n *Notifier) SendAlert(ctx context.Context, payload AlertPayload) {
 	channels, err := n.store.ListEnabled(ctx)
 	if err != nil {
-		slog.Error("通知チャンネル一覧の取得に失敗しました", "error", err)
+		metrics.BackgroundFailed("notify", err, "通知チャンネル一覧の取得に失敗しました")
 		return
 	}
 	payload.ServerURL = n.serverURL
@@ -57,7 +58,7 @@ func (n *Notifier) SendAlert(ctx context.Context, payload AlertPayload) {
 func (n *Notifier) dispatch(ctx context.Context, ch store.AlertNotifChannel, payload AlertPayload) {
 	var cfg map[string]string
 	if err := json.Unmarshal(ch.Config, &cfg); err != nil {
-		slog.Error("通知設定のパースに失敗しました", "channel_id", ch.ID, "error", err)
+		metrics.BackgroundFailed("notify", err, "通知設定のパースに失敗しました", "channel_id", ch.ID)
 		return
 	}
 	switch ch.Type {
@@ -124,12 +125,12 @@ func (n *Notifier) sendGenericWebhook(webhookURL string, p AlertPayload) {
 func (n *Notifier) postJSON(url string, body interface{}) {
 	data, err := json.Marshal(body)
 	if err != nil {
-		slog.Error("JSONマーシャルに失敗しました", "error", err)
+		metrics.BackgroundFailed("notify", err, "JSONマーシャルに失敗しました")
 		return
 	}
 	resp, err := n.client.Post(url, "application/json", bytes.NewReader(data))
 	if err != nil {
-		slog.Error("Webhook送信に失敗しました", "url", url, "error", err)
+		metrics.BackgroundFailed("notify", err, "Webhook送信に失敗しました", "url", url)
 		return
 	}
 	defer resp.Body.Close()
@@ -163,7 +164,7 @@ func (n *Notifier) sendEmail(cfg map[string]string, p AlertPayload) {
 	}
 	addr := host + ":" + port
 	if err := smtp.SendMail(addr, auth, from, []string{to}, msg); err != nil {
-		slog.Error("メール送信に失敗しました", "error", err)
+		metrics.BackgroundFailed("notify", err, "メール送信に失敗しました")
 		return
 	}
 	slog.Info("メール送信完了", "to", to)

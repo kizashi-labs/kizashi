@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/edr-platform/server/internal/tick"
 	"log/slog"
 	"time"
 
@@ -129,29 +130,35 @@ func (e *Evaluator) loadAgentData(ctx context.Context, agentID string) (*AgentCo
 	}
 
 	// Count recent events (last 24h).
-	_ = e.db.QueryRow(ctx, `
-		SELECT COUNT(*) FROM events
-		WHERE agent_id = $1::uuid
-		  AND time >= NOW() - INTERVAL '24 hours'`,
+	if err := e.db.QueryRow(ctx, `
+			SELECT COUNT(*) FROM events
+			WHERE agent_id = $1::uuid
+			  AND time >= NOW() - INTERVAL '24 hours'`,
 		agentID,
-	).Scan(&data.RecentEvents)
+	).Scan(&data.RecentEvents); err != nil {
+		return nil, fmt.Errorf("数えられないため報告を作りません: %w", err)
+	}
 
 	// Count recent alerts (last 24h).
-	_ = e.db.QueryRow(ctx, `
-		SELECT COUNT(*) FROM alerts
-		WHERE agent_id = $1::uuid
-		  AND created_at >= NOW() - INTERVAL '24 hours'`,
+	if err := e.db.QueryRow(ctx, `
+			SELECT COUNT(*) FROM alerts
+			WHERE agent_id = $1::uuid
+			  AND created_at >= NOW() - INTERVAL '24 hours'`,
 		agentID,
-	).Scan(&data.RecentAlerts)
+	).Scan(&data.RecentAlerts); err != nil {
+		return nil, fmt.Errorf("数えられないため報告を作りません: %w", err)
+	}
 
 	// Count recent network events (last 24h).
-	_ = e.db.QueryRow(ctx, `
-		SELECT COUNT(*) FROM events
-		WHERE agent_id = $1::uuid
-		  AND event_type = 'network'
-		  AND time >= NOW() - INTERVAL '24 hours'`,
+	if err := e.db.QueryRow(ctx, `
+			SELECT COUNT(*) FROM events
+			WHERE agent_id = $1::uuid
+			  AND event_type = 'network'
+			  AND time >= NOW() - INTERVAL '24 hours'`,
 		agentID,
-	).Scan(&data.NetworkEvents)
+	).Scan(&data.NetworkEvents); err != nil {
+		return nil, fmt.Errorf("数えられないため報告を作りません: %w", err)
+	}
 
 	return data, nil
 }
@@ -209,8 +216,8 @@ func (e *Evaluator) EvaluateAgent(ctx context.Context, agentID string, framework
 	}
 
 	if err := e.persistReport(ctx, report); err != nil {
-		slog.Warn("evaluator: failed to persist compliance report",
-			"agent_id", agentID, "framework", framework, "error", err)
+		tick.Fail(ctx, err, "evaluator: failed to persist compliance report",
+			"agent_id", agentID, "framework", framework)
 	}
 
 	return report, nil
@@ -239,12 +246,15 @@ func (e *Evaluator) EvaluateAll(ctx context.Context, framework Framework) ([]Com
 			agentIDs = append(agentIDs, id)
 		}
 	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
 
 	var reports []ComplianceReport
 	for _, id := range agentIDs {
 		report, evalErr := e.EvaluateAgent(ctx, id, framework)
 		if evalErr != nil {
-			slog.Warn("evaluator: skipping agent", "agent_id", id, "error", evalErr)
+			tick.FailComponent(ctx, "compliance_evaluator", evalErr, "evaluator: skipping agent", "agent_id", id)
 			continue
 		}
 		reports = append(reports, *report)
@@ -310,8 +320,10 @@ func (e *Evaluator) GetLatestReport(ctx context.Context, agentID string, framewo
 	}
 
 	// Populate hostname from agents table.
-	_ = e.db.QueryRow(ctx, `SELECT COALESCE(hostname,'') FROM agents WHERE id = $1::uuid`, agentID).
-		Scan(&r.Hostname)
+	if err := e.db.QueryRow(ctx, `SELECT COALESCE(hostname,'') FROM agents WHERE id = $1::uuid`, agentID).
+		Scan(&r.Hostname); err != nil {
+		return nil, fmt.Errorf("数えられないため報告を作りません: %w", err)
+	}
 
 	return r, nil
 }
@@ -354,6 +366,9 @@ func (e *Evaluator) GetOrgSummary(ctx context.Context) ([]OrgSummary, error) {
 			s.Framework = Framework(fw)
 			summaries = append(summaries, s)
 		}
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
 	}
 
 	if summaries == nil {

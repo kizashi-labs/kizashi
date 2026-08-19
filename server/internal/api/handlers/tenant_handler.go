@@ -55,7 +55,9 @@ func (h *TenantHandler) List(c *gin.Context) {
 		tenants = append(tenants, t)
 	}
 	if err := rows.Err(); err != nil {
-		slog.Warn("row iteration error", "error", err)
+		slog.Error("rows.Err: 結果の読み出しが途中で失敗しました", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "query failed"})
+		return
 	}
 	if tenants == nil {
 		tenants = []Tenant{}

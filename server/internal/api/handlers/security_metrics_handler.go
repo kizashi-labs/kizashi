@@ -38,7 +38,7 @@ func (h *SecurityMetricsHistoryHandler) GetMetric(c *gin.Context) {
 		LIMIT 1000
 	`, metricName, interval)
 	if err != nil {
-		c.JSON(http.StatusOK, gin.H{"metrics": []any{}})
+		ReadFailure(c, err, gin.H{"metrics": []any{}})
 		return
 	}
 	defer rows.Close()
@@ -60,7 +60,9 @@ func (h *SecurityMetricsHistoryHandler) GetMetric(c *gin.Context) {
 		list = append(list, p)
 	}
 	if err := rows.Err(); err != nil {
-		slog.Warn("row iteration error", "error", err)
+		slog.Error("rows.Err: 結果の読み出しが途中で失敗しました", "error", err)
+		ReadFailure(c, err, gin.H{"metrics": []any{}})
+		return
 	}
 	if list == nil {
 		list = []Point{}
@@ -73,7 +75,7 @@ func (h *SecurityMetricsHistoryHandler) ListMetricNames(c *gin.Context) {
 		SELECT DISTINCT metric_name FROM security_metrics_history ORDER BY metric_name
 	`)
 	if err != nil {
-		c.JSON(http.StatusOK, gin.H{"names": []any{}})
+		ReadFailure(c, err, gin.H{"names": []any{}})
 		return
 	}
 	defer rows.Close()
@@ -87,7 +89,9 @@ func (h *SecurityMetricsHistoryHandler) ListMetricNames(c *gin.Context) {
 		names = append(names, n)
 	}
 	if err := rows.Err(); err != nil {
-		slog.Warn("row iteration error", "error", err)
+		slog.Error("rows.Err: 結果の読み出しが途中で失敗しました", "error", err)
+		ReadFailure(c, err, gin.H{"names": []any{}})
+		return
 	}
 	if names == nil {
 		names = []string{}

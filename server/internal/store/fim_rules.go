@@ -60,14 +60,25 @@ type FIMRuleFilter struct {
 }
 
 // List returns FIM rules matching the provided filter with pagination.
-func (s *FIMRuleStore) List(ctx context.Context, f FIMRuleFilter) ([]*FIMRule, int, error) {
-	if f.Limit <= 0 {
-		f.Limit = 100
+// clampFIMRuleLimit bounds one page of FIM rules.
+//
+// **0 を通すと 0 件返ります** —— 画面では「監視ルールが1本も無い」と
+// 見分けが付きません。FIM の設定画面でそれが起きると、監視されていない
+// ように見えて、実際には監視されています（逆も同じです）。
+func clampFIMRuleLimit(limit int) int {
+	if limit <= 0 {
+		return 100
 	}
-	if f.Limit > 500 {
-		f.Limit = 500
+	if limit > 500 {
+		return 500
 	}
+	return limit
+}
 
+// fimRuleListWhere builds the WHERE clause and arguments for List.
+//
+// 公開はしません（`TestStoreSymbolsAreReachable`）。
+func fimRuleListWhere(f FIMRuleFilter) (string, []interface{}) {
 	where := "WHERE 1=1"
 	args := []interface{}{}
 	idx := 1
@@ -82,6 +93,14 @@ func (s *FIMRuleStore) List(ctx context.Context, f FIMRuleFilter) ([]*FIMRule, i
 		args = append(args, f.Severity)
 		idx++
 	}
+	_ = idx
+	return where, args
+}
+
+func (s *FIMRuleStore) List(ctx context.Context, f FIMRuleFilter) ([]*FIMRule, int, error) {
+	f.Limit = clampFIMRuleLimit(f.Limit)
+	where, args := fimRuleListWhere(f)
+	idx := len(args) + 1
 
 	var total int
 	err := s.pool.QueryRow(ctx, "SELECT COUNT(*) FROM fim_rules "+where, args...).Scan(&total)
@@ -106,6 +125,9 @@ func (s *FIMRuleStore) List(ctx context.Context, f FIMRuleFilter) ([]*FIMRule, i
 			continue
 		}
 		rules = append(rules, r)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, 0, err
 	}
 	if rules == nil {
 		rules = []*FIMRule{}

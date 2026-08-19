@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -16,6 +17,9 @@ import (
 type HuntScheduler struct {
 	pool *pgxpool.Pool
 	nc   *nats.Conn
+	// warnUnavailable keeps the "scheduled hunting cannot run" warning to one
+	// line per process rather than one every 15 minutes.
+	warnUnavailable sync.Once
 }
 
 func NewHuntScheduler(pool *pgxpool.Pool, nc *nats.Conn) *HuntScheduler {
@@ -30,7 +34,7 @@ func (s *HuntScheduler) Run(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			s.runScheduledHunts(ctx)
+			trackRun(ctx, "hunt_scheduler", s.runScheduledHunts)
 		}
 	}
 }
@@ -53,7 +57,7 @@ func (s *HuntScheduler) runScheduledHunts(ctx context.Context) {
 		)`,
 	).Scan(&tableExists)
 	if err != nil {
-		slog.Warn("ハントスケジューラー: テーブル存在確認に失敗しました", "error", err)
+		fail(ctx, err, "ハントスケジューラー: テーブル存在確認に失敗しました")
 		return
 	}
 	if !tableExists {
@@ -71,13 +75,32 @@ func (s *HuntScheduler) runScheduledHunts(ctx context.Context) {
 		WHERE table_schema = 'public' AND table_name = 'saved_hunt_queries'
 	`
 	if err := s.pool.QueryRow(ctx, colCheckSQL).Scan(&hasScheduled, &hasLastRun); err != nil {
-		slog.Warn("ハントスケジューラー: カラム確認に失敗しました", "error", err)
+		fail(ctx, err, "ハントスケジューラー: カラム確認に失敗しました")
 		return
 	}
 
 	if !hasScheduled || !hasLastRun {
-		slog.Debug("ハントスケジューラー: scheduled/last_run_at カラムが存在しません。スキップします",
-			"hasScheduled", hasScheduled, "hasLastRun", hasLastRun)
+		// Reported once at Warn rather than every tick at Debug.
+		//
+		// saved_hunt_queries has no `scheduled` column and no migration creates
+		// one, so this branch is taken on every deployment, every 15 minutes,
+		// for the life of the process. At Debug it said nothing at all in a
+		// normal log configuration: a worker registered in cmd/api and running
+		// on a ticker has never executed a single hunt, and there was no way to
+		// tell from the outside.
+		//
+		// Nothing can set the flag either. The store's INSERT and UPDATE list
+		// name, description, query, query_type, tags, created_by and is_shared;
+		// "scheduled" appears nowhere in this repository outside this file, and
+		// there is no UI for it. So this is not a column that went missing —
+		// scheduled hunting was never finished, and the guard made that
+		// indistinguishable from having nothing to run.
+		s.warnUnavailable.Do(func() {
+			slog.Warn("ハントスケジューラー: saved_hunt_queries に scheduled 列が無いため、"+
+				"スケジュールハントは一度も実行されません。"+
+				"定期ハントを使うにはスキーマとAPIの対応が必要です",
+				"hasScheduled", hasScheduled, "hasLastRun", hasLastRun)
+		})
 		return
 	}
 
@@ -90,7 +113,7 @@ func (s *HuntScheduler) runScheduledHunts(ctx context.Context) {
 		 LIMIT 10`,
 	)
 	if err != nil {
-		slog.Warn("ハントスケジューラー: クエリ取得に失敗しました", "error", err)
+		fail(ctx, err, "ハントスケジューラー: クエリ取得に失敗しました")
 		return
 	}
 	defer rows.Close()
@@ -99,10 +122,13 @@ func (s *HuntScheduler) runScheduledHunts(ctx context.Context) {
 	for rows.Next() {
 		var h savedHuntRow
 		if err := rows.Scan(&h.id, &h.name, &h.query, &h.lastRunAt); err != nil {
-			slog.Warn("ハントスケジューラー: 行のスキャンに失敗しました", "error", err)
+			fail(ctx, err, "ハントスケジューラー: 行のスキャンに失敗しました")
 			continue
 		}
 		hunts = append(hunts, h)
+	}
+	if err := rows.Err(); err != nil {
+		fail(ctx, err, "実行予定ハントの走査が途中で終わりました。今回のティックで実行しないハントがあります")
 	}
 	rows.Close()
 
@@ -174,8 +200,8 @@ func (s *HuntScheduler) updateLastRunAt(ctx context.Context, huntID string) {
 		`UPDATE saved_hunt_queries SET last_run_at = NOW() WHERE id = $1`,
 		huntID,
 	); err != nil {
-		slog.Warn("ハントスケジューラー: last_run_at の更新に失敗しました",
-			"hunt_id", huntID, "error", err)
+		fail(ctx, err, "ハントスケジューラー: last_run_at の更新に失敗しました",
+			"hunt_id", huntID)
 	}
 }
 
@@ -193,10 +219,10 @@ func (s *HuntScheduler) createAlert(ctx context.Context, hunt savedHuntRow, coun
 	).Scan(&alertID)
 
 	if err != nil {
-		slog.Warn("ハントスケジューラー: アラートの作成に失敗しました",
-			"hunt_name", hunt.name, "error", err)
+		fail(ctx, err, "ハントスケジューラー: アラートの作成に失敗しました",
+			"hunt_name", hunt.name)
 		// Publish to NATS even if DB insert fails.
-		s.publishNATSAlert(hunt, count, "")
+		s.publishNATSAlert(ctx, hunt, count, "")
 		return
 	}
 
@@ -206,10 +232,10 @@ func (s *HuntScheduler) createAlert(ctx context.Context, hunt savedHuntRow, coun
 		"count", count,
 	)
 
-	s.publishNATSAlert(hunt, count, alertID)
+	s.publishNATSAlert(ctx, hunt, count, alertID)
 }
 
-func (s *HuntScheduler) publishNATSAlert(hunt savedHuntRow, count int, alertID string) {
+func (s *HuntScheduler) publishNATSAlert(ctx context.Context, hunt savedHuntRow, count int, alertID string) {
 	if s.nc == nil {
 		return
 	}
@@ -227,13 +253,13 @@ func (s *HuntScheduler) publishNATSAlert(hunt savedHuntRow, count int, alertID s
 
 	data, err := json.Marshal(payload)
 	if err != nil {
-		slog.Warn("ハントスケジューラー: NATSペイロードのシリアライズに失敗しました", "error", err)
+		fail(ctx, err, "ハントスケジューラー: NATSペイロードのシリアライズに失敗しました")
 		return
 	}
 
 	if err := s.nc.Publish("alerts.new", data); err != nil {
-		slog.Warn("ハントスケジューラー: NATS publishに失敗しました",
-			"subject", "alerts.new", "error", err)
+		fail(ctx, err, "ハントスケジューラー: NATS publishに失敗しました",
+			"subject", "alerts.new")
 		return
 	}
 

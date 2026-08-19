@@ -1,0 +1,124 @@
+# Alertmanager — Prometheus のアラートを人に届けるところ
+#
+# これが無いあいだ、31本のアラートは評価されて、発火して、Prometheus の
+# 画面に赤く出て、**そこで終わっていました。** ルールを書くことと、
+# 誰かに届くことは別です。
+#
+# 宛先は環境変数で渡します。ここに URL を直接書くと、リポジトリに
+# Slack の webhook が入ります:
+#
+#   ALERT_SLACK_WEBHOOK_URL   Slack Incoming Webhook (必須)
+#   ALERT_PAGERDUTY_KEY       PagerDuty Events API v2 のルーティングキー
+#
+# **Alertmanager はこのファイルの中で環境変数を展開しません。** なので
+# `*_file` サフィックス（api_url_file / routing_key_file）でファイルから
+# 読みます。docker-compose.monitoring.yml の entrypoint が、起動時に
+# 環境変数を /etc/alertmanager/secrets/ の下へ書き出します。
+#
+# ── 確かめたこと ──────────────────────────────────────────────────────
+# **本物の Alertmanager v0.27 にこの設定を読ませました。**
+# `scripts/check-alertmanager.sh` が3つを確かめます:
+#
+#   1. amtool check-config が受け付ける（フィールド名がスキーマに合う）
+#   2. 発火したアラートが receiver まで**届く** —— runbook_url ごと
+#   3. inhibit_rules が実際に**抑制する**（EDRApiDown が
+#      EDRHighAPIErrorRate を suppressed にする）
+#
+# docker は要りません。秘密もダミーで、宛先はスクリプトが立てる
+# ローカルの受け口に差し替わるので、外に出る通信は起きません。
+#
+# **構造検査（scripts/check_prometheus_rules.py）とは別のことを見ています。**
+# あちらは route が指す receiver の実在、inhibit_rules が指すアラート名の
+# 実在、秘密が直書きされていないことを YAML として見ます。
+# **どちらか片方では足りません** —— 構造が正しくても起動しないことは
+# あり、起動しても届かないことはあります。
+
+global:
+  resolve_timeout: 5m
+
+route:
+  # alertname と severity でまとめます。同じ原因で10台が同時に落ちたとき、
+  # 10通ではなく1通にするためです。
+  group_by: ['alertname', 'severity']
+  # 最初の通知までの待ち。関連するアラートが続けて発火するのを待って
+  # まとめます。
+  group_wait: 30s
+  # 同じグループに新しいアラートが増えたときの追加通知の間隔。
+  group_interval: 5m
+  # 解決していないアラートを再送する間隔。
+  repeat_interval: 4h
+  receiver: 'edr-slack'
+
+  routes:
+    # critical は PagerDuty。1時間ごとに再送します。
+    #
+    # **repeat_interval を短くしているのは、critical が「落ちている」だから**
+    # です。4時間おきだと、夜中に落ちて朝まで1通しか来ません。
+    - matchers:
+        - severity = "critical"
+      receiver: 'edr-pagerduty'
+      repeat_interval: 1h
+      # PagerDuty に出しても Slack にも残します。オンコール以外が
+      # 状況を追えなくなるためです。
+      continue: true
+
+    - matchers:
+        - severity = "critical"
+      receiver: 'edr-slack'
+      repeat_interval: 1h
+
+# 抑制。上位の障害が出ているあいだ、その結果でしかないアラートを黙らせます。
+#
+# API が落ちていれば、API のエラー率もレイテンシも当然おかしくなります。
+# 3通送っても、原因は1つです。
+inhibit_rules:
+  - source_matchers:
+      - alertname = "EDRApiDown"
+    target_matchers:
+      - alertname =~ "EDRHighAPIErrorRate|EDRAPIHighLatency|EDRApiHighRequestRate"
+    equal: ['environment']
+
+  - source_matchers:
+      - alertname = "PostgresDown"
+    target_matchers:
+      - alertname =~ "PostgresHighConnections|PostgresDiskUsageHigh"
+    equal: ['environment']
+
+  - source_matchers:
+      - alertname = "NATSDown"
+    target_matchers:
+      - alertname =~ "NATSSlowConsumers|EDRNATSQueueDepth|EDRDetectionConsumerLag.*"
+    equal: ['environment']
+
+  # critical が出ているアラートと同名の warning は送りません。
+  - source_matchers:
+      - severity = "critical"
+    target_matchers:
+      - severity = "warning"
+    equal: ['alertname', 'environment']
+
+receivers:
+  - name: 'edr-slack'
+    slack_configs:
+      - api_url_file: /etc/alertmanager/secrets/slack_webhook_url
+        # **Alertmanager は設定ファイル内で環境変数を展開しません。**
+        # `${ALERT_SLACK_CHANNEL}` と書くと、その名前のチャンネルを
+        # 探しに行って失敗します。変えたいときはここを書き換えてください。
+        channel: '#alerts'
+        send_resolved: true
+        title: '[{{ .Status | toUpper }}{{ if eq .Status "firing" }}:{{ .Alerts.Firing | len }}{{ end }}] {{ .CommonLabels.alertname }}'
+        text: |
+          {{ range .Alerts -}}
+          *{{ .Annotations.summary }}*
+          {{ .Annotations.description }}
+          {{ if .Annotations.runbook_url }}手順: {{ .Annotations.runbook_url }}{{ end }}
+          {{ end }}
+
+  - name: 'edr-pagerduty'
+    pagerduty_configs:
+      - routing_key_file: /etc/alertmanager/secrets/pagerduty_key
+        send_resolved: true
+        description: '{{ .CommonAnnotations.summary }}'
+        details:
+          description: '{{ .CommonAnnotations.description }}'
+          runbook: '{{ .CommonAnnotations.runbook_url }}'

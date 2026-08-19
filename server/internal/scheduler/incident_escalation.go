@@ -31,7 +31,7 @@ func (e *IncidentEscalator) Run(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			e.escalate(ctx)
+			trackRun(ctx, "incident_escalation", e.escalate)
 		}
 	}
 }
@@ -40,7 +40,7 @@ func (e *IncidentEscalator) escalate(ctx context.Context) {
 	// Escalate critical incidents not resolved within 1 hour.
 	n, err := e.escalateCritical(ctx)
 	if err != nil {
-		slog.Error("クリティカルエスカレーション失敗", "error", err)
+		fail(ctx, err, "クリティカルエスカレーション失敗")
 	} else if n > 0 {
 		slog.Info("クリティカルインシデントをエスカレーション", "count", n)
 	}
@@ -48,7 +48,7 @@ func (e *IncidentEscalator) escalate(ctx context.Context) {
 	// Escalate high incidents not resolved within 4 hours.
 	n, err = e.escalateHigh(ctx)
 	if err != nil {
-		slog.Error("高重大度エスカレーション失敗", "error", err)
+		fail(ctx, err, "高重大度エスカレーション失敗")
 	} else if n > 0 {
 		slog.Info("高重大度インシデントをエスカレーション", "count", n)
 	}

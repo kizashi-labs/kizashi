@@ -83,6 +83,10 @@ func main() {
 		ruleTol      = flag.Float64("rule-tol", 0, "個別ルールに対する許容増分。総量より小さく取る (0 = -baseline-tol と同じ)")
 		newRuleFloor = flag.Float64("new-rule-floor", 0, "この値未満のルールはゲート判定から除外する")
 		budget       = flag.Float64("budget", 0, "全体誤検知率の上限 (0 = 無効)")
+		maxEventLoss = flag.Float64("max-event-loss", 0,
+			"送信したイベントのうちDBに着信しなかった割合の上限 (%)。超えたら失敗する (0 = 無効)")
+		eventSettle = flag.Duration("event-settle", 0,
+			"着信数を数えた後この時間待って数え直し、遅れて着いた分を切り分ける (0 = 無効)")
 	)
 	flag.Parse()
 
@@ -135,6 +139,9 @@ func main() {
 		log.Fatalf("送信 %d 件に対しDBのイベントが0件です — 取り込み経路が壊れており、"+
 			"このソークは採点できません", manifest.EventsTotal)
 	}
+	events = settleEventCount(ctx, pool, agentIDs, win, events, *eventSettle)
+	eventLossPct := eventLossRate(manifest.EventsTotal, events)
+	eventLossFailed := reportEventLoss(manifest.EventsTotal, events, eventLossPct, *maxEventLoss)
 
 	lagging, err := detectionStillLagging(ctx, pool, agentIDs, win, *quiesce)
 	if err != nil {
@@ -177,7 +184,7 @@ func main() {
 		log.Printf("status='false_positive' を %d 件に書き戻しました", n)
 	}
 
-	if err := emit(sc, manifest, *outCSV, *outMD); err != nil {
+	if err := emit(sc, manifest, events, eventLossPct, *outCSV, *outMD); err != nil {
 		log.Fatalf("%v", err)
 	}
 
@@ -186,7 +193,115 @@ func main() {
 	if rt == 0 {
 		rt = *baselineTol
 	}
-	os.Exit(gate(sc, *baselinePath, *baselineTol, rt, *newRuleFloor, *budget))
+	code := gate(sc, *baselinePath, *baselineTol, rt, *newRuleFloor, *budget)
+	// An ingest shortfall fails on its own, even when the FP gate is clean. The
+	// two answer different questions and a passing FP rate measured on telemetry
+	// that never arrived is the more misleading of the two.
+	if eventLossFailed && code == 0 {
+		code = exitRegression
+	}
+	os.Exit(code)
+}
+
+// settleEventCount re-counts arrivals after a pause and returns the larger figure.
+//
+// This is the experiment P2-7 asks for. The soak counts arrivals the moment the
+// scoring window closes, and telemetry sent near the end of the window may still
+// be in flight — the row's `time` is inside the window, so a later count picks it
+// up. That mechanism would produce exactly the shape observed on 2026-08-04:
+// 0, 0, 16, 16, 34, 81, 328, 405 events "lost" across eight runs of the same
+// manifest, small most of the time and occasionally a long tail.
+//
+// The alternative is that the ingestion path really drops events. The two demand
+// different fixes — one is a measurement artifact, the other a defect — and the
+// numbers alone cannot tell them apart. Waiting and re-counting can: if the
+// shortfall closes, it was the boundary; if it persists, the events are gone.
+//
+// The delta is logged either way, so each run contributes evidence instead of
+// just a number. The larger count is returned because a row that arrives during
+// the pause was never lost, only late.
+func settleEventCount(ctx context.Context, pool *pgxpool.Pool, agentIDs []string,
+	w window, first int64, settle time.Duration) int64 {
+	if settle <= 0 {
+		return first
+	}
+	log.Printf("着信数の確定待ち: %s", settle)
+	select {
+	case <-ctx.Done():
+		return first
+	case <-time.After(settle):
+	}
+	second, err := countEvents(ctx, pool, agentIDs, w)
+	if err != nil {
+		log.Printf("⚠️  着信数の数え直しに失敗しました（最初の値を使います）: %v", err)
+		return first
+	}
+	late := second - first
+	switch {
+	case late > 0:
+		// #nosec G706 -- all arguments are int64 counters from COUNT(*).
+		log.Printf("遅れて着信: %d 件 (%d → %d)。窓を閉じた時点の欠損はこの分だけ"+
+			"「実欠損ではなく測り方」だったことになる", late, first, second)
+	case late < 0:
+		// #nosec G706 -- both arguments are int64 COUNT(*) results.
+		log.Printf("⚠️  数え直しで件数が減りました (%d → %d)。窓内の行が消えているので、"+
+			"保持期間の削除など別の要因を疑うこと", first, second)
+		return first
+	default:
+		log.Printf("遅れて着信: 0 件。窓を閉じた時点で着信は確定していた")
+	}
+	return second
+}
+
+// eventLossRate returns the percentage of sent events that never reached the DB.
+// A negative difference (more rows than sent) reads as 0 rather than a negative
+// rate: leftover rows from an earlier run are a separate problem, not a loss.
+func eventLossRate(sent, arrived int64) float64 {
+	if sent <= 0 {
+		return 0
+	}
+	lost := sent - arrived
+	if lost <= 0 {
+		return 0
+	}
+	return float64(lost) / float64(sent) * 100
+}
+
+// reportEventLoss logs the ingest shortfall and reports whether it breaches maxPct.
+//
+// The soak has always printed both numbers and never compared them, so telemetry
+// could go missing between the simulated agents and the events table without
+// anything failing. Measured across six 2026-08-04 runs of the same manifest: 0,
+// 16, 34, 81, 328 and 405 events lost (0%–0.27%). One run lost nothing, so the
+// pipeline can deliver the full set inside the window — this is jitter or real
+// loss, not a structural boundary artifact.
+//
+// It matters because a lost event is a missed detection that leaves no trace. A
+// technique that fires once has a ~0.27% chance of simply not being there, and
+// ATT&CK detection-rate measurements cannot distinguish "the rule failed" from
+// "the event never arrived". The gate exists so that number cannot grow silently:
+// nothing in this harness would have objected at 50%.
+//
+// Reported even when the gate is off, because the figure is the input to deciding
+// whether a detection-rate miss was a detection problem at all.
+func reportEventLoss(sent, arrived int64, lossPct, maxPct float64) bool {
+	lost := sent - arrived
+	if lost <= 0 {
+		// #nosec G706 -- sent is an int64 manifest counter; no string reaches the log.
+		log.Printf("イベント欠損: 0 件 (送信 %d 件すべて着信)", sent)
+		return false
+	}
+	// #nosec G706 -- every argument is numeric (int64 counters and a computed
+	// float64 rate); there is no string that could inject log lines.
+	log.Printf("イベント欠損: %d 件 = %.3f%% (送信 %d / 着信 %d)", lost, lossPct, sent, arrived)
+	if maxPct <= 0 || lossPct <= maxPct {
+		return false
+	}
+	annotate("送信イベントの %.3f%% (%d 件) がDBに届いていません — 上限 %.3f%%。"+
+		"失われたイベントは痕跡の残らない検知漏れであり、検知率の測定では"+
+		"「ルールが鳴らなかった」のか「イベントが来なかった」のか区別できません",
+		lossPct, lost, maxPct)
+	return true
 }
 
 // annotate prints a GitHub Actions error annotation alongside the log line.
@@ -239,7 +354,7 @@ func gate(sc Scorecard, baselinePath string, totalTol, ruleTol, floor, budget fl
 	return 0
 }
 
-func emit(sc Scorecard, m *Manifest, outCSV, outMD string) error {
+func emit(sc Scorecard, m *Manifest, stored int64, lossPct float64, outCSV, outMD string) error {
 	if outCSV != "" {
 		if err := writeToFile(outCSV, func(w io.Writer) error { return WriteCSV(w, sc) }); err != nil {
 			return fmt.Errorf("CSVの書き出しに失敗しました: %w", err)
@@ -248,8 +363,10 @@ func emit(sc Scorecard, m *Manifest, outCSV, outMD string) error {
 	}
 	if outMD != "" {
 		meta := MarkdownMeta{
-			RunLabel:    m.StartedAt.Format("2006-01-02 15:04 MST"),
-			EventsTotal: m.EventsTotal,
+			RunLabel:     m.StartedAt.Format("2006-01-02 15:04 MST"),
+			EventsTotal:  m.EventsTotal,
+			EventsStored: stored,
+			EventLossPct: lossPct,
 		}
 		if err := writeToFile(outMD, func(w io.Writer) error { return WriteMarkdown(w, sc, meta) }); err != nil {
 			return fmt.Errorf("サマリ用Markdownファイルの書き出しに失敗しました: %w", err)

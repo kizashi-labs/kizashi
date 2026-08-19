@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/edr-platform/server/internal/metrics"
 	"github.com/edr-platform/server/internal/store"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -171,8 +172,21 @@ func (h *LiveResponseHandler) StreamOutput(c *gin.Context) {
 	c.Header("Connection", "keep-alive")
 	// CORS is handled by the router-level middleware; do not override here.
 
-	// Send existing commands first (for reconnect recovery)
-	existing, _ := h.Store.ListCommands(c.Request.Context(), sessionID)
+	// Send existing commands first (for reconnect recovery).
+	//
+	// **読めなかったことを「履歴なし」で流さないこと。** `_` で捨てて
+	// いたので、失敗すると再接続した端末には**それまでのコマンドが
+	// 1つも無かったのと同じ**ものが流れます —— ライブレスポンス中の
+	// 担当者には「さっき実行したコマンドが無かったことになっている」と
+	// しか見えません。
+	//
+	// まだ何も書いていないので、ここは 500 で答えられます（`c.Header`
+	// はヘッダ表を触るだけで、ステータス行は最初の書き込みで出ます）。
+	// クライアントは SSE を張り直します。
+	existing, err := h.Store.ListCommands(c.Request.Context(), sessionID)
+	if !ReadOK(c, err) {
+		return
+	}
 	for _, cmd := range existing {
 		data, _ := json.Marshal(map[string]interface{}{
 			"type":       "output",
@@ -248,7 +262,15 @@ func (h *LiveResponseHandler) AgentPoll(c *gin.Context) {
 		return
 	}
 
-	h.Store.TouchSession(c.Request.Context(), token)
+	// **この要求はコマンドの取り出しで、touch はその副産物です。**
+	// 一時的な DB の不調でポーリングを 500 にすると、端末が指示を
+	// 受け取れなくなります —— そちらの方が悪い形です。届き先は
+	// 部品ごとの件数にします（落ちると、使用中のセッションが 30 分で
+	// 期限切れにされます）。
+	if err := h.Store.TouchSession(c.Request.Context(), token); err != nil {
+		metrics.BackgroundFailed("live_response_touch", err,
+			"ライブレスポンスのセッションを延命できませんでした。使用中でも30分で期限切れになります")
+	}
 
 	cmds, err := h.Store.DequeuePendingCommands(c.Request.Context(), session.ID)
 	if err != nil {

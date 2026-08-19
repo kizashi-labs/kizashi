@@ -14,8 +14,20 @@ import "testing"
 // 実際、第 1 波の候補 6 件のうち
 // `SID-History Added to Account (Security Event 4765/4766)` はその判定で外した——
 // `EventID` は既知の名前なのでフィールド検査は通るが、agent の購読述語が
-// 4765/4766 を含まず、そもそも AuthEvent はワイヤ上に EventID を持たない
-// （auth_parse.go のコメントが明言している）。migration 384 のヘッダを参照。
+// 4765/4766 を含まず、そもそも AuthEvent はワイヤ上に EventID を持たなかった
+// （auth_parse.go のコメントが明言していた）。migration 384 のヘッダを参照。
+//
+// ★ 2026-08-14 に供給側を通して着地させた。proto に AuthEvent.event_id を足し、
+// 購読述語に 4765/4766 を入れ、parse の default 落ちを塞ぎ、ingestion が
+// event_id を平坦化し、alert_pipeline が **4765/4766 に限って** Sigma の EventID に
+// 写す。ルールは builtin として入れてある
+// （`SID-History Added to Account (Security Event 4765/4766)`）。
+// 供給が通ったことは server/internal/detection/sid_history_test.go と
+// agent/internal/platform/windows/auth_{parse,query}_test.go が固定する。
+//
+// **判定そのものは正しかった。** 当時ルールだけ先に入れていたら、フィールド検査は
+// 緑のまま永久に不発火のルールが 1 件増えていた。順序を守った結果として、
+// 直すべき場所が 3 層に分かれていることが最初から見えていた。
 //
 // ここで組み立てるイベントは、Windows の process_creation が実際に載せる
 // フィールドだけを使う: image / command_line / integrity_level。いずれも

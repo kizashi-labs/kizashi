@@ -81,6 +81,9 @@ func (s *SuppressionStore) List(ctx context.Context, activeOnly bool) ([]*Suppre
 		r.CreatedBy = createdBy
 		rules = append(rules, r)
 	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
 	if rules == nil {
 		rules = []*SuppressionRule{}
 	}
@@ -94,9 +97,12 @@ func (s *SuppressionStore) Insert(ctx context.Context, r *SuppressionRule) error
 		return err
 	}
 	_, err = s.pool.Exec(ctx, `
+		-- **両方の旗に同じ値を書きます**（internal/suppression/engine.go の
+		-- 同じ注記を参照）。片方だけ書くと、書かなかった側の既定 (TRUE) が
+		-- 残り、無効にしたつもりのルールが適用され続けます。
 		INSERT INTO suppression_rules
-		  (name, description, conditions, duration_h, is_active, created_by, expires_at)
-		VALUES ($1, $2, $3, $4, $5, $6::uuid, $7)`,
+		  (name, description, conditions, duration_h, is_active, enabled, created_by, expires_at)
+		VALUES ($1, $2, $3, $4, $5, $5, $6::uuid, $7)`,
 		r.Name, r.Description, string(condJSON), r.DurationH,
 		r.IsActive, nilIfEmpty(r.CreatedBy), r.ExpiresAt,
 	)
@@ -116,16 +122,25 @@ func (s *SuppressionStore) Delete(ctx context.Context, id string) error {
 }
 
 // IncrHitCount atomically increments the hit_count for the given rule.
-func (s *SuppressionStore) IncrHitCount(ctx context.Context, id string) {
-	_, _ = s.pool.Exec(ctx,
+//
+// **この数は「効いていないルール」を見つけるためのものです。** 落ちると
+// ヒット0のまま残り、実際は毎日抑制しているルールが「もう要らない」と
+// 判断されます。呼び出し側が何をするかは呼び出し側が決めます。
+func (s *SuppressionStore) IncrHitCount(ctx context.Context, id string) error {
+	_, err := s.pool.Exec(ctx,
 		"UPDATE suppression_rules SET hit_count = hit_count + 1 WHERE id = $1", id,
 	)
+	return err
 }
 
-// SetActive toggles a rule's is_active flag.
+// SetActive toggles a rule's active flags.
+//
+// **旗は2つあります。** is_active はここが、enabled は
+// internal/suppression.Engine が書きます。ここで is_active だけ落とすと、
+// Engine 側から見ると有効なままです。**両方に同じ値を書きます。**
 func (s *SuppressionStore) SetActive(ctx context.Context, id string, active bool) error {
 	_, err := s.pool.Exec(ctx,
-		"UPDATE suppression_rules SET is_active=$2, updated_at=NOW() WHERE id=$1",
+		"UPDATE suppression_rules SET is_active=$2, enabled=$2, updated_at=NOW() WHERE id=$1",
 		id, active,
 	)
 	return err

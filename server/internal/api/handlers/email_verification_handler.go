@@ -141,7 +141,9 @@ func (h *EmailVerificationHandler) ConfirmVerification(c *gin.Context) {
 		candidates = append(candidates, r)
 	}
 	if err := rows.Err(); err != nil {
-		slog.Warn("row iteration error", "error", err)
+		slog.Error("rows.Err: 結果の読み出しが途中で失敗しました", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "トークン検索に失敗しました"})
+		return
 	}
 	rows.Close()
 
@@ -171,9 +173,11 @@ func (h *EmailVerificationHandler) ConfirmVerification(c *gin.Context) {
 	}
 
 	// Delete consumed token
-	_, _ = h.pool.Exec(c.Request.Context(),
+	if _, err := h.pool.Exec(c.Request.Context(),
 		`DELETE FROM email_verification_tokens WHERE id=$1`, matchedTokenID,
-	)
+	); !WriteOK(c, err) {
+		return
+	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "メールアドレスを確認しました"})
 }

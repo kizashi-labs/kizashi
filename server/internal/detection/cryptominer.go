@@ -65,7 +65,14 @@ type procStatSample struct {
 	PID    int     `json:"pid"`
 	Name   string  `json:"name"`
 	CPUPct float64 `json:"cpu_pct"`
-	MemMB  float64 `json:"mem_mb"`
+	// MemMB はポインタです。**エージェントは測れなかったメモリを送りません**
+	// —— `mem_mb` が無いことが「測っていない」の表現です。float64 のままだと
+	// 欠けた値が 0.0 になり、「常駐 0 MB」という測定値に化けます。
+	//
+	// カーネルスレッドなど、ユーザ空間を持たないタスクがここに来ます。
+	// **そういうタスクも CPU は回します** —— この検知器 (T1496) が見るのは
+	// CPU なので、行が来ること自体が要ります。
+	MemMB *float64 `json:"mem_mb,omitempty"`
 }
 
 // Observe folds one process_stats snapshot (the raw JSON array the agent emits)

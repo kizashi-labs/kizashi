@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/edr-platform/server/internal/metrics"
 	"log/slog"
 	"net/http"
 	"sort"
@@ -64,13 +65,16 @@ func requestBaseURL(c *gin.Context) string {
 // ListTemplates handles GET /api/v1/admin/phishing/templates
 func (h *PhishingHandler) ListTemplates(c *gin.Context) {
 	ctx := c.Request.Context()
-	tenantID := c.GetString("tenant_id")
+	tenantID, ok := TenantOrAbort(c)
+	if !ok {
+		return
+	}
 
 	rows, err := h.pool.Query(ctx, `
 		SELECT id, name, category, difficulty, industry_tags,
 		       from_name, from_email, subject, body
 		FROM phishing_templates
-		WHERE tenant_id = $1::uuid
+		WHERE tenant_id = NULLIF($1,'')::uuid
 		ORDER BY created_at DESC`, tenantID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": dbErrMsg(err)})
@@ -94,13 +98,20 @@ func (h *PhishingHandler) ListTemplates(c *gin.Context) {
 			"subject": subject, "body": body,
 		})
 	}
+	if err := rows.Err(); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": dbErrMsg(err)})
+		return
+	}
 	c.JSON(http.StatusOK, out)
 }
 
 // CreateTemplate handles POST /api/v1/admin/phishing/templates
 func (h *PhishingHandler) CreateTemplate(c *gin.Context) {
 	ctx := c.Request.Context()
-	tenantID := c.GetString("tenant_id")
+	tenantID, ok := TenantOrAbort(c)
+	if !ok {
+		return
+	}
 
 	var req struct {
 		Name         string `json:"name"`
@@ -160,7 +171,10 @@ func (h *PhishingHandler) CreateTemplate(c *gin.Context) {
 // per-recipient results array are derived from phishing_recipients.
 func (h *PhishingHandler) ListCampaigns(c *gin.Context) {
 	ctx := c.Request.Context()
-	tenantID := c.GetString("tenant_id")
+	tenantID, ok := TenantOrAbort(c)
+	if !ok {
+		return
+	}
 
 	rows, err := h.pool.Query(ctx, `
 		SELECT c.id, c.name, COALESCE(c.template_id::text,''), c.template_name, c.status, c.start_date,
@@ -170,7 +184,7 @@ func (h *PhishingHandler) ListCampaigns(c *gin.Context) {
 		       COUNT(r.id) FILTER (WHERE r.reported)    AS reported
 		FROM phishing_campaigns c
 		LEFT JOIN phishing_recipients r ON r.campaign_id = c.id
-		WHERE c.tenant_id = $1::uuid
+		WHERE c.tenant_id = NULLIF($1,'')::uuid
 		GROUP BY c.id, c.name, c.template_id, c.template_name, c.status, c.start_date
 		ORDER BY c.start_date DESC`, tenantID)
 	if err != nil {
@@ -199,12 +213,16 @@ func (h *PhishingHandler) ListCampaigns(c *gin.Context) {
 			"start_date": startDate, "results": []gin.H{},
 		})
 	}
+	if err := rows.Err(); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": dbErrMsg(err)})
+		return
+	}
 
 	// Attach per-recipient results.
 	rRows, err := h.pool.Query(ctx, `
 		SELECT campaign_id::text, id::text, email, department, opened, clicked, reported, sent_at, clicked_at
 		FROM phishing_recipients
-		WHERE tenant_id = $1::uuid
+		WHERE tenant_id = NULLIF($1,'')::uuid
 		ORDER BY created_at ASC`, tenantID)
 	if err == nil {
 		defer rRows.Close()
@@ -232,6 +250,9 @@ func (h *PhishingHandler) ListCampaigns(c *gin.Context) {
 				"time_to_click_seconds": ttc,
 			})
 		}
+		if err := rRows.Err(); err != nil {
+			slog.Warn("ListCampaigns: rRows の読み取りが途中で終わりました。この区画は不完全です", "error", err)
+		}
 		for cid, idx := range idIndex {
 			if rs, ok := results[cid]; ok {
 				campaigns[idx]["results"] = rs
@@ -246,7 +267,10 @@ func (h *PhishingHandler) ListCampaigns(c *gin.Context) {
 // campaign + recipients, then sends tracked emails in the background.
 func (h *PhishingHandler) CreateCampaign(c *gin.Context) {
 	ctx := c.Request.Context()
-	tenantID := c.GetString("tenant_id")
+	tenantID, ok := TenantOrAbort(c)
+	if !ok {
+		return
+	}
 
 	var req struct {
 		Name         string   `json:"name"`
@@ -271,10 +295,12 @@ func (h *PhishingHandler) CreateCampaign(c *gin.Context) {
 	var templateIDArg interface{}
 	if req.TemplateID != "" {
 		templateIDArg = req.TemplateID
-		_ = h.pool.QueryRow(ctx,
+		if !ReadOK(c, h.pool.QueryRow(ctx,
 			`SELECT name, from_name, from_email, subject, body
-			 FROM phishing_templates WHERE id = $1::uuid AND tenant_id = $2::uuid`,
-			req.TemplateID, tenantID).Scan(&templateName, &fromName, &fromEmail, &subject, &body)
+			 FROM phishing_templates WHERE id = $1::uuid AND tenant_id = NULLIF($2,'')::uuid`,
+			req.TemplateID, tenantID).Scan(&templateName, &fromName, &fromEmail, &subject, &body)) {
+			return
+		}
 	}
 
 	// Build the recipient list. Only a custom email list is meaningful without an
@@ -319,7 +345,11 @@ func (h *PhishingHandler) CreateCampaign(c *gin.Context) {
 			INSERT INTO phishing_recipients (tenant_id, campaign_id, email, token)
 			VALUES ($1::uuid, $2::uuid, $3, $4) RETURNING id`,
 			tenantID, id, email, token).Scan(&rid); err != nil {
-			slog.Warn("phishing recipient insert failed", "email", email, "error", err)
+			// 宛先が1件、キャンペーンから静かに抜けます。応答の件数は
+			// 入った分だけなので整合して見えますが、依頼した人が入れた
+			// はずの相手は訓練を受けません。
+			metrics.BackgroundFailed("phishing_recipient", err,
+				"フィッシング訓練の宛先を登録できませんでした", "email", email)
 			continue
 		}
 		recipients = append(recipients, recip{id: rid, email: email, token: token})
@@ -351,7 +381,9 @@ func (h *PhishingHandler) CreateCampaign(c *gin.Context) {
 					slog.Warn("phishing email send failed", "email", r.email, "error", err)
 					continue
 				}
-				_, _ = h.pool.Exec(bgCtx, `UPDATE phishing_recipients SET sent=TRUE, sent_at=NOW() WHERE id=$1::uuid`, r.id)
+				if _, err := h.pool.Exec(bgCtx, `UPDATE phishing_recipients SET sent=TRUE, sent_at=NOW() WHERE id=$1::uuid`, r.id); !WriteOK(c, err) {
+					return
+				}
 			}
 		}()
 	}
@@ -405,8 +437,10 @@ var trackingPixel = []byte{
 // TrackOpen handles GET /api/v1/phishing/track/open/:token
 func (h *PhishingHandler) TrackOpen(c *gin.Context) {
 	token := c.Param("token")
-	_, _ = h.pool.Exec(c.Request.Context(),
-		`UPDATE phishing_recipients SET opened = TRUE, opened_at = COALESCE(opened_at, NOW()) WHERE token = $1`, token)
+	if _, err := h.pool.Exec(c.Request.Context(),
+		`UPDATE phishing_recipients SET opened = TRUE, opened_at = COALESCE(opened_at, NOW()) WHERE token = $1`, token); !WriteOK(c, err) {
+		return
+	}
 	c.Header("Cache-Control", "no-store")
 	c.Data(http.StatusOK, "image/gif", trackingPixel)
 }
@@ -415,17 +449,21 @@ func (h *PhishingHandler) TrackOpen(c *gin.Context) {
 func (h *PhishingHandler) TrackClick(c *gin.Context) {
 	ctx := c.Request.Context()
 	token := c.Param("token")
-	_, _ = h.pool.Exec(ctx, `
-		UPDATE phishing_recipients
-		SET clicked = TRUE, clicked_at = COALESCE(clicked_at, NOW()),
-		    opened = TRUE, opened_at = COALESCE(opened_at, NOW())
-		WHERE token = $1`, token)
+	if _, err := h.pool.Exec(ctx, `
+			UPDATE phishing_recipients
+			SET clicked = TRUE, clicked_at = COALESCE(clicked_at, NOW()),
+			    opened = TRUE, opened_at = COALESCE(opened_at, NOW())
+			WHERE token = $1`, token); !WriteOK(c, err) {
+		return
+	}
 
 	var landing string
-	_ = h.pool.QueryRow(ctx, `
-		SELECT COALESCE(c.landing_page, '')
-		FROM phishing_recipients r JOIN phishing_campaigns c ON c.id = r.campaign_id
-		WHERE r.token = $1`, token).Scan(&landing)
+	if !ReadOK(c, h.pool.QueryRow(ctx, `
+			SELECT COALESCE(c.landing_page, '')
+			FROM phishing_recipients r JOIN phishing_campaigns c ON c.id = r.campaign_id
+			WHERE r.token = $1`, token).Scan(&landing)) {
+		return
+	}
 	if landing != "" {
 		c.Redirect(http.StatusFound, landing)
 		return
@@ -436,8 +474,10 @@ func (h *PhishingHandler) TrackClick(c *gin.Context) {
 // TrackReport handles GET/POST /api/v1/phishing/track/report/:token
 func (h *PhishingHandler) TrackReport(c *gin.Context) {
 	token := c.Param("token")
-	_, _ = h.pool.Exec(c.Request.Context(),
-		`UPDATE phishing_recipients SET reported = TRUE, reported_at = COALESCE(reported_at, NOW()) WHERE token = $1`, token)
+	if _, err := h.pool.Exec(c.Request.Context(),
+		`UPDATE phishing_recipients SET reported = TRUE, reported_at = COALESCE(reported_at, NOW()) WHERE token = $1`, token); !WriteOK(c, err) {
+		return
+	}
 	c.Data(http.StatusOK, "text/html; charset=utf-8",
 		[]byte(`<!DOCTYPE html><html lang="ja"><head><meta charset="utf-8"><title>報告完了</title></head><body style="font-family:sans-serif;max-width:560px;margin:40px auto;padding:0 16px"><h2>報告ありがとうございます</h2><p>このメールはフィッシング訓練でした。不審なメールを見抜き報告する正しい対応です。</p></body></html>`))
 }
@@ -460,13 +500,16 @@ const awarenessPage = `<!DOCTYPE html><html lang="ja"><head><meta charset="utf-8
 // tracking into the analytics shape. Empty/zero series when no data exists.
 func (h *PhishingHandler) GetStats(c *gin.Context) {
 	ctx := c.Request.Context()
-	tenantID := c.GetString("tenant_id")
+	tenantID, ok := TenantOrAbort(c)
+	if !ok {
+		return
+	}
 
 	rows, err := h.pool.Query(ctx, `
 		SELECT c.template_name, c.start_date, r.department, r.sent, r.clicked, r.reported, r.email
 		FROM phishing_recipients r
 		JOIN phishing_campaigns c ON c.id = r.campaign_id
-		WHERE r.tenant_id = $1::uuid`, tenantID)
+		WHERE r.tenant_id = NULLIF($1,'')::uuid`, tenantID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": dbErrMsg(err)})
 		return
@@ -519,6 +562,10 @@ func (h *PhishingHandler) GetStats(c *gin.Context) {
 		if reported {
 			d.reported++
 		}
+	}
+	if err := rows.Err(); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": dbErrMsg(err)})
+		return
 	}
 
 	rate := func(num, den int) int {

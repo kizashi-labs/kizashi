@@ -65,6 +65,10 @@ func (s *ThreatFeedStore) List(ctx context.Context) ([]*ThreatFeed, error) {
 		}
 		feeds = append(feeds, f)
 	}
+	// 部分結果を完全な一覧として返さない（scan_truncation_guard_test.go 参照）
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
 	if feeds == nil {
 		feeds = []*ThreatFeed{}
 	}
@@ -159,6 +163,10 @@ func (s *ThreatFeedStore) GetDueForSync(ctx context.Context) ([]*ThreatFeed, err
 			continue
 		}
 		feeds = append(feeds, f)
+	}
+	// 部分結果を完全な一覧として返さない（scan_truncation_guard_test.go 参照）
+	if err := rows.Err(); err != nil {
+		return nil, err
 	}
 	return feeds, nil
 }

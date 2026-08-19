@@ -4,13 +4,31 @@ package detectionmetrics
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
-	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/edr-platform/server/internal/detection"
 )
+
+// unknownTactic is the bucket for a technique detection.TacticForTechnique has
+// no mapping for. It is not one of the 14 ATT&CK tactics.
+//
+// TacticForTechnique returns "" in that case, deliberately — its doc comment
+// says callers must read the empty string as "tactic unknown" rather than as a
+// tactic named "unknown". Naming the bucket here keeps that reading explicit
+// and preserves what the old COALESCE(mitre_tactic, 'unknown') produced.
+const unknownTactic = "unknown"
+
+// tacticOf maps a technique ID to its tactic, folding the unmapped case into
+// unknownTactic so an empty string never becomes a map key.
+func tacticOf(technique string) string {
+	if tactic := detection.TacticForTechnique(technique); tactic != "" {
+		return tactic
+	}
+	return unknownTactic
+}
 
 // RuleStat holds false positive statistics for a single detection rule.
 type RuleStat struct {
@@ -28,14 +46,17 @@ type TrendPoint struct {
 
 // DetectionMetrics holds computed performance metrics for a given period.
 type DetectionMetrics struct {
-	Period                string                 `json:"period"` // 24h/7d/30d
-	TotalAlerts           int                    `json:"total_alerts"`
-	TruePositives         int                    `json:"true_positives"`
-	FalsePositives        int                    `json:"false_positives"`
-	FalsePositiveRate     float64                `json:"false_positive_rate"` // 0-1
-	MTTD                  float64                `json:"mttd_minutes"`        // mean time to detect
-	MTTR                  float64                `json:"mttr_hours"`          // mean time to respond
-	DetectionCoverage     float64                `json:"detection_coverage"`  // % of MITRE techniques covered
+	Period            string  `json:"period"` // 24h/7d/30d
+	TotalAlerts       int     `json:"total_alerts"`
+	TruePositives     int     `json:"true_positives"`
+	FalsePositives    int     `json:"false_positives"`
+	FalsePositiveRate float64 `json:"false_positive_rate"` // 0-1
+	// MTTD is nil when it cannot be computed, rather than 0. A zero mean time to
+	// detect on a SOC dashboard reads as instantaneous detection, which is the
+	// opposite of "we have no data". See the MTTD block in Calculate.
+	MTTD                  *float64               `json:"mttd_minutes"`       // mean time to detect
+	MTTR                  float64                `json:"mttr_hours"`         // mean time to respond
+	DetectionCoverage     float64                `json:"detection_coverage"` // % of MITRE techniques covered
 	TopFalsePositiveRules []RuleStat             `json:"top_fp_rules"`
 	TuningRecommendations []TuningRecommendation `json:"tuning_recommendations"` // data-driven FP-reduction suggestions
 	MITRECoverage         map[string]int         `json:"mitre_coverage"`         // tactic -> rule count
@@ -125,20 +146,26 @@ func (t *Tracker) Calculate(ctx context.Context, period string) (*DetectionMetri
 		  AND array_length(a.event_ids, 1) > 0`,
 		interval,
 	).Scan(&mttdMinutes)
+	// 算出できなかったときは nil のまま置く。0 は「検知が即時だった」という
+	// 測定値で、算出できなかったことと見分けが付かない (MTTD の型が *float64
+	// なのはこのため)。クエリが失敗した場合も、該当するアラートが 1 件も
+	// 無い場合も、埋めない。
 	if mttdErr == nil && mttdMinutes != nil {
-		m.MTTD = *mttdMinutes
+		m.MTTD = mttdMinutes
 	}
 
 	// ── MTTR: avg(updated_at - created_at) for resolved/closed alerts ────────
 	var mttrHours *float64
-	_ = t.pool.QueryRow(ctx, `
-		SELECT EXTRACT(EPOCH FROM AVG(updated_at - created_at)) / 3600.0
-		FROM alerts
-		WHERE created_at > NOW() - $1::interval
-		  AND status IN ('resolved','closed')
-		  AND updated_at > created_at`,
+	if err := t.pool.QueryRow(ctx, `
+			SELECT EXTRACT(EPOCH FROM AVG(updated_at - created_at)) / 3600.0
+			FROM alerts
+			WHERE created_at > NOW() - $1::interval
+			  AND status IN ('resolved','closed')
+			  AND updated_at > created_at`,
 		interval,
-	).Scan(&mttrHours)
+	).Scan(&mttrHours); err != nil {
+		return nil, fmt.Errorf("数えられませんでした: %w", err)
+	}
 	if mttrHours != nil {
 		m.MTTR = *mttrHours
 	}
@@ -159,6 +186,9 @@ func (t *Tracker) Calculate(ctx context.Context, period string) (*DetectionMetri
 			if err := sevRows.Scan(&sev, &cnt); err == nil {
 				m.SeverityDistribution[sev] = cnt
 			}
+		}
+		if err := sevRows.Err(); err != nil {
+			return nil, err
 		}
 	}
 
@@ -206,6 +236,9 @@ func (t *Tracker) Calculate(ctx context.Context, period string) (*DetectionMetri
 				m.TopFalsePositiveRules = append(m.TopFalsePositiveRules, rs)
 			}
 		}
+		if err := fpRows.Err(); err != nil {
+			return nil, err
+		}
 	}
 	if m.TopFalsePositiveRules == nil {
 		m.TopFalsePositiveRules = []RuleStat{}
@@ -219,33 +252,61 @@ func (t *Tracker) Calculate(ctx context.Context, period string) (*DetectionMetri
 	}
 
 	// ── MITRE coverage (tactic → rule count) ─────────────────────────────────
+	//
 	// rules に mitre_tactic 列は無い。実在するのは mitre_tags (テクニック ID の
 	// 配列)。SQL ではテクニック単位に数え、タクティクへの写像は Go 側の
 	// detection.TacticForTechnique に任せる (kill-chain 相関・コンプライアンス
 	// スコアと同じ表)。
+	// **タクティクごとに「ルール数」を数える。テクニックの出現数ではない。**
+	// テクニック単位に数えて足し合わせると、同じタクティクに属するテクニックを
+	// 複数持つ 1 本のルールがその数だけ計上され、網羅率が水増しされる
+	// (T1003 と T1003.001 を両方書いた 1 本が credential-access を 2 と数える)。
+	// 行はルール ID 付きで受け取り、タクティクごとに集合で持つ。
 	mitreRows, err := t.pool.Query(ctx, `
-		SELECT tag, COUNT(DISTINCT r.id)
+		SELECT DISTINCT r.id::text, tag
 		FROM rules r, unnest(COALESCE(r.mitre_tags, '{}')) AS tag
-		WHERE r.enabled = true
-		GROUP BY tag`)
+		WHERE r.enabled = true AND tag <> ''`)
 	if err == nil {
 		defer mitreRows.Close()
+		perTactic := map[string]map[string]bool{}
+		scanFailed := false
 		for mitreRows.Next() {
-			var technique string
-			var count int
-			if err := mitreRows.Scan(&technique, &count); err != nil {
-				continue
+			var ruleID, technique string
+			if err := mitreRows.Scan(&ruleID, &technique); err != nil {
+				// pgx は Scan の失敗で結果セットを閉じる。continue しても
+				// 次の行は来ないので、部分的な網羅表を完成品として返さない。
+				slog.Warn("detectionmetrics: MITRE 網羅表の行を読めませんでした", "error", err)
+				scanFailed = true
+				break
 			}
-			tactic := detection.TacticForTechnique(technique)
-			if tactic == "" {
-				// 写像表に無いテクニックはタクティクとして数えない。
-				continue
+			// 写像表に無いテクニックは捨てずに unknownTactic に寄せる。落とすと
+			// 「対応表に無い」ことが集計から消え、ルールを書いた側からは戦術に
+			// 数えられたのか取りこぼされたのか区別が付かない。
+			tactic := tacticOf(technique)
+			if perTactic[tactic] == nil {
+				perTactic[tactic] = map[string]bool{}
 			}
-			m.MITRECoverage[tactic] += count
+			perTactic[tactic][ruleID] = true
 		}
-		totalTactics := len(m.MITRECoverage)
+		if err := mitreRows.Err(); err != nil || scanFailed {
+			// 途中までの網羅表は「いま検知できる範囲」として読まれる。
+			// 数え切れなかったなら、数字を出さない —— このファイルの
+			// 他の走査 (severity / MTTR) と同じく error を返す。
+			return nil, fmt.Errorf("MITRE 網羅表を数え切れませんでした: %w", err)
+		}
+		for tactic, ids := range perTactic {
+			m.MITRECoverage[tactic] = len(ids)
+		}
+		// unknownTactic は 14 の ATT&CK 戦術のどれでもないので、分子にも
+		// 分母にも入れない。入れると、対応表に無いテクニックを1つ持つルールが
+		// カバレッジを 1/14 押し上げる。
+		totalTactics := 0
 		coveredTactics := 0
-		for _, count := range m.MITRECoverage {
+		for tactic, count := range m.MITRECoverage {
+			if tactic == unknownTactic {
+				continue
+			}
+			totalTactics++
 			if count > 0 {
 				coveredTactics++
 			}
@@ -262,13 +323,20 @@ func (t *Tracker) Calculate(ctx context.Context, period string) (*DetectionMetri
 	}
 
 	// ── Daily trend data ─────────────────────────────────────────────────────
-	m.TrendData = t.buildTrendData(ctx, interval)
+	m.TrendData, err = t.buildTrendData(ctx, interval)
+	if err != nil {
+		return m, fmt.Errorf("検知件数の推移を読めませんでした: %w", err)
+	}
 
 	return m, nil
 }
 
 // buildTrendData constructs a daily alert count slice for the given interval.
-func (t *Tracker) buildTrendData(ctx context.Context, interval string) []TrendPoint {
+//
+// 読めなかったときは error を返します。以前は空のスライスを返していて、
+// 線は「その期間の検知は0件」として描かれます。検知が止まっているのか、
+// 数えられなかったのかは、見た目では区別がつきません。
+func (t *Tracker) buildTrendData(ctx context.Context, interval string) ([]TrendPoint, error) {
 	rows, err := t.pool.Query(ctx, `
 		SELECT to_char(DATE_TRUNC('day', created_at), 'YYYY-MM-DD'), COUNT(*)
 		FROM alerts
@@ -278,7 +346,7 @@ func (t *Tracker) buildTrendData(ctx context.Context, interval string) []TrendPo
 		interval,
 	)
 	if err != nil {
-		return []TrendPoint{}
+		return nil, err
 	}
 	defer rows.Close()
 
@@ -289,10 +357,14 @@ func (t *Tracker) buildTrendData(ctx context.Context, interval string) []TrendPo
 			trend = append(trend, tp)
 		}
 	}
-	if trend == nil {
-		return []TrendPoint{}
+	if err := rows.Err(); err != nil {
+		// 途中で終わった集計は、読めなかった日を0件として描きます。
+		return nil, err
 	}
-	return trend
+	if trend == nil {
+		return []TrendPoint{}, nil
+	}
+	return trend, nil
 }
 
 // GetMITRECoverage returns a map of MITRE tactic → list of covered technique IDs.
@@ -311,7 +383,7 @@ func (t *Tracker) GetMITRECoverage(ctx context.Context) (map[string][]string, er
 		ORDER BY tag`)
 	if err != nil {
 		slog.Warn("detectionmetrics: GetMITRECoverage query failed", "error", err)
-		return coverage, nil
+		return nil, err
 	}
 	defer rows.Close()
 
@@ -325,6 +397,12 @@ func (t *Tracker) GetMITRECoverage(ctx context.Context) (map[string][]string, er
 			tactic = "unknown"
 		}
 		coverage[tactic] = append(coverage[tactic], technique)
+	}
+	if err := rows.Err(); err != nil {
+		// **途中までの網羅表を返しません。** 呼び出し側はこれを
+		// 「いま検知できる範囲」として読みます。
+		slog.Error("detectionmetrics: 網羅表の走査が途中で失敗しました", "error", err)
+		return nil, err
 	}
 
 	// Deduplicate techniques per tactic.
@@ -344,10 +422,9 @@ func (t *Tracker) GetMITRECoverage(ctx context.Context) (map[string][]string, er
 }
 
 // GetTrend returns daily alert trend data for the given period.
-func (t *Tracker) GetTrend(ctx context.Context, period string) []TrendPoint {
+func (t *Tracker) GetTrend(ctx context.Context, period string) ([]TrendPoint, error) {
 	if t.pool == nil {
-		return []TrendPoint{}
+		return []TrendPoint{}, nil
 	}
-	_ = time.Now() // ensure time import is used
 	return t.buildTrendData(ctx, periodToInterval(period))
 }

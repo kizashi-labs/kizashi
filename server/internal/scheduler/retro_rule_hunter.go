@@ -56,8 +56,7 @@ func (h *RetroRuleHunter) Run(ctx context.Context) {
 	if h.pool == nil || h.eval == nil {
 		return
 	}
-	h.ensureState(ctx)
-	h.hunt(ctx)
+	trackRun(ctx, "retro_rule_hunter", h.hunt)
 	t := time.NewTicker(h.interval)
 	defer t.Stop()
 	for {
@@ -65,24 +64,47 @@ func (h *RetroRuleHunter) Run(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-t.C:
-			h.hunt(ctx)
+			trackRun(ctx, "retro_rule_hunter", h.hunt)
 		}
 	}
 }
 
-func (h *RetroRuleHunter) ensureState(ctx context.Context) {
-	_, _ = h.pool.Exec(ctx,
+// ensureState is belt-and-braces now that migration 382 declares the table.
+//
+// Both statements had their errors discarded, and the cost was invisible: a
+// failed CREATE makes hunt()'s SELECT fail, hunt() reads that as "state missing
+// — skip", and the retro rule hunter then does nothing at all, every tick, with
+// nothing said anywhere. It is called per tick rather than once at startup so a
+// database that was unreachable at boot does not disable the component for the
+// lifetime of the process.
+func (h *RetroRuleHunter) ensureState(ctx context.Context) error {
+	if _, err := h.pool.Exec(ctx,
 		`CREATE TABLE IF NOT EXISTS retro_rule_state (
 			id INT PRIMARY KEY DEFAULT 1,
 			last_rule_ts TIMESTAMPTZ NOT NULL DEFAULT NOW()
-		)`)
-	_, _ = h.pool.Exec(ctx, `INSERT INTO retro_rule_state (id) VALUES (1) ON CONFLICT (id) DO NOTHING`)
+		)`); err != nil {
+		return fmt.Errorf("状態テーブルを用意できませんでした: %w", err)
+	}
+	if _, err := h.pool.Exec(ctx,
+		`INSERT INTO retro_rule_state (id) VALUES (1) ON CONFLICT (id) DO NOTHING`); err != nil {
+		return fmt.Errorf("状態行を用意できませんでした: %w", err)
+	}
+	return nil
 }
 
 func (h *RetroRuleHunter) hunt(ctx context.Context) {
+	if err := h.ensureState(ctx); err != nil {
+		fail(ctx, err, "レトロルールハンター: 状態を用意できないため今回のパスを見送ります")
+		return
+	}
+
 	var watermark time.Time
 	if err := h.pool.QueryRow(ctx, `SELECT last_rule_ts FROM retro_rule_state WHERE id=1`).Scan(&watermark); err != nil {
-		return // state missing — skip
+		// 行が無いのか読めなかったのか、どちらでも「今回は何もしない」で
+		// 戻ります。前者は初回、後者は毎回です。区別が付かないと、
+		// レトロハントが一度も走っていないことに気づけません。
+		fail(ctx, err, "レトロハント: 基準時刻を読めないため何もしませんでした")
+		return
 	}
 
 	// Rule IDs enabled since the watermark = the "new" rules to retro-hunt.
@@ -91,6 +113,8 @@ func (h *RetroRuleHunter) hunt(ctx context.Context) {
 	rows, err := h.pool.Query(ctx,
 		`SELECT id::text, created_at FROM rules WHERE enabled = true AND created_at > $1 ORDER BY created_at`, watermark)
 	if err != nil {
+		// 黙って戻ると、回らなかった回と何も無かった回が同じになります。
+		fail(ctx, err, "レトロハント: 対象を取得できませんでした")
 		return
 	}
 	for rows.Next() {
@@ -102,6 +126,13 @@ func (h *RetroRuleHunter) hunt(ctx context.Context) {
 				maxTS = ts
 			}
 		}
+	}
+	// 切り詰められても取りこぼしはありません。この問い合わせは created_at 昇順
+	// なので、落ちるのは常に新しい側で、maxTS はそれより手前に留まります。
+	// 読めなかったルールは watermark の先にあるまま、次回に回ります。
+	if err := rows.Err(); err != nil {
+		fail(ctx, err, "レトロルールハンター: 新規ルールの走査が途中で終わりました。"+
+			"残りは次回のパスで処理されます")
 	}
 	rows.Close()
 
@@ -117,6 +148,7 @@ func (h *RetroRuleHunter) hunt(ctx context.Context) {
 		  ORDER BY time DESC LIMIT $2`,
 		fmt.Sprintf("%d seconds", int(h.lookback.Seconds())), h.maxEvents)
 	if err != nil {
+		fail(ctx, err, "レトロハント: 過去イベントを取得できませんでした")
 		return
 	}
 	defer evRows.Close()
@@ -141,6 +173,9 @@ func (h *RetroRuleHunter) hunt(ctx context.Context) {
 		}
 		matches, err := h.eval.Evaluate(ctx, flat)
 		if err != nil {
+			// このイベントは新しいルールと照合されません。飛ばすと、
+			// watermark は「照合済み」として進みます。二度と戻りません。
+			fail(ctx, err, "レトロハント: イベントを評価できませんでした", "event", eventID)
 			continue
 		}
 		for _, m := range matches {
@@ -152,12 +187,28 @@ func (h *RetroRuleHunter) hunt(ctx context.Context) {
 			}
 		}
 	}
+	// ここは取りこぼしになります。watermark は「このルール群は履歴と
+	// 照合し終えた」という宣言なので、履歴を読み切れないまま進めると、
+	// 走査できなかった区間はそのルールにとって永久に未照合のまま
+	// 「照合済み」になります。進めなければ次回やり直せます。
+	if err := evRows.Err(); err != nil {
+		fail(ctx, err, "レトロルールハンター: 履歴の走査が途中で終わりました。"+
+			"watermark を進めず、次回のパスでやり直します",
+			"rules", len(newRules), "alerts", created)
+		return
+	}
+
 	if created > 0 {
 		slog.Warn("レトロルールハンター: 過去のイベントに新規ルール一致を検出", "alerts", created)
 	}
 
 	// Advance the watermark past the newest rule processed.
-	_, _ = h.pool.Exec(ctx, `UPDATE retro_rule_state SET last_rule_ts = $1 WHERE id = 1`, maxTS)
+	// **書けないと watermark が進まず、次回も同じ区間を走ります。**
+	// 取りこぼしはしませんが、進んでいないことは外から分かりません。
+	if _, err := h.pool.Exec(ctx,
+		`UPDATE retro_rule_state SET last_rule_ts = $1 WHERE id = 1`, maxTS); err != nil {
+		fail(ctx, err, "レトロルールハンター: watermark を進められませんでした")
+	}
 }
 
 func (h *RetroRuleHunter) createRetroRuleAlert(ctx context.Context, eventID, agentID string, m *detectionrules.RuleMatch, occurredAt time.Time) bool {
@@ -191,7 +242,7 @@ func (h *RetroRuleHunter) createRetroRuleAlert(ctx context.Context, eventID, age
 			title, sev, desc).Scan(&alertID)
 	}
 	if err != nil {
-		slog.Warn("レトロルールハンター: アラート作成失敗", "error", err)
+		fail(ctx, err, "レトロルールハンター: アラート作成失敗")
 		return false
 	}
 	return true

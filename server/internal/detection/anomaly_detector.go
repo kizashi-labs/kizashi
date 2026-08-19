@@ -8,12 +8,15 @@ package detection
 
 import (
 	"context"
+	"github.com/edr-platform/server/internal/metrics"
 	"log/slog"
 	"math"
 	"sync"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+
+	"github.com/edr-platform/server/internal/store"
 )
 
 // ─── Types ───────────────────────────────────────────────────
@@ -178,13 +181,7 @@ func (d *StatAnomalyDetector) LoadBaselinesFromDB(pool interface{}) error {
 	ctx := context.Background()
 
 	// Check if the table exists before querying it.
-	var tableExists bool
-	_ = p.QueryRow(ctx, `
-		SELECT EXISTS (
-			SELECT 1 FROM information_schema.tables
-			WHERE table_name = 'ueba_baselines'
-		)
-	`).Scan(&tableExists)
+	tableExists := store.TableIsThere(ctx, p, "ueba_baselines")
 	if !tableExists {
 		slog.Debug("anomaly_detector: ueba_baselines table does not exist yet")
 		return nil
@@ -196,7 +193,7 @@ func (d *StatAnomalyDetector) LoadBaselinesFromDB(pool interface{}) error {
 	`)
 	if err != nil {
 		slog.Warn("anomaly_detector: failed to load baselines", "error", err)
-		return nil
+		return err
 	}
 	defer rows.Close()
 
@@ -224,7 +221,12 @@ func (d *StatAnomalyDetector) LoadBaselinesFromDB(pool interface{}) error {
 		loaded++
 	}
 	if err := rows.Err(); err != nil {
-		slog.Warn("anomaly_detector: row iteration error", "error", err)
+		// **途中までのベースラインで異常判定を始めません。**
+		// 下の "loaded baselines count=N" が、全件読めたときと同じ姿で
+		// 出ます。足りないベースラインの分だけ、異常が異常に見えなく
+		// なります。
+		slog.Error("anomaly_detector: ベースラインの読み出しが途中で失敗しました", "error", err)
+		return err
 	}
 
 	slog.Info("anomaly_detector: loaded baselines", "count", loaded)
@@ -242,13 +244,7 @@ func (d *StatAnomalyDetector) SaveBaselinesToDB(pool interface{}) error {
 	ctx := context.Background()
 
 	// Ensure the table exists.
-	var tableExists bool
-	_ = p.QueryRow(ctx, `
-		SELECT EXISTS (
-			SELECT 1 FROM information_schema.tables
-			WHERE table_name = 'ueba_baselines'
-		)
-	`).Scan(&tableExists)
+	tableExists := store.TableIsThere(ctx, p, "ueba_baselines")
 	if !tableExists {
 		slog.Debug("anomaly_detector: ueba_baselines table does not exist — skipping save")
 		return nil
@@ -316,11 +312,10 @@ func (d *StatAnomalyDetector) SaveBaselinesToDB(pool interface{}) error {
 			    updated_at     = EXCLUDED.updated_at
 		`, e.userKey, e.metricName, e.b.Mean, e.b.StdDev, e.b.SampleN, e.b.UpdatedAt)
 		if err != nil {
-			slog.Warn("anomaly_detector: failed to save baseline",
+			metrics.BackgroundFailed("anomaly_baseline", err, "anomaly_detector: failed to save baseline",
 				"user_key", e.userKey,
 				"metric", e.metricName,
-				"error", err,
-			)
+				"error", err)
 			continue
 		}
 		saved++

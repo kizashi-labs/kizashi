@@ -116,7 +116,9 @@ func (h *ServiceAccountHandler) List(c *gin.Context) {
 		result = append(result, sa)
 	}
 	if err := rows.Err(); err != nil {
-		slog.Warn("row iteration error", "error", err)
+		slog.Error("rows.Err: 結果の読み出しが途中で失敗しました", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "取得に失敗しました"})
+		return
 	}
 	if result == nil {
 		result = []serviceAccount{}

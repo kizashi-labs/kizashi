@@ -34,10 +34,12 @@ func TestMaskConfig_MasksToken(t *testing.T) {
 	}
 }
 
-func TestMaskConfig_InvalidJSON_ReturnsEmpty(t *testing.T) {
+// 空 map ではなく「読めなかった」と書いた map を返すこと。
+// 空の設定は「未設定」と読まれ、上書きの入口になります。
+func TestMaskConfig_InvalidJSON_SaysSo(t *testing.T) {
 	got := maskConfig(json.RawMessage("not json"))
-	if len(got) != 0 {
-		t.Errorf("maskConfig(invalid): want empty map, got %v", got)
+	if got["_unreadable"] != true {
+		t.Errorf("maskConfig(invalid): 読めなかったことが示されていません: %v", got)
 	}
 }
 

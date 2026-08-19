@@ -120,151 +120,24 @@ func TestNotificationHistoryEntry_FailedWithErrorMsg(t *testing.T) {
 
 // ─── 通知統計ロジックテスト ────────────────────────────────────────────────────
 
-// calcNotificationStats は通知エントリの一覧から成功/失敗数を集計するヘルパー（テスト専用）
-func calcNotificationStats(entries []*NotificationHistoryEntry) (sent int, failed int) {
-	for _, e := range entries {
-		switch e.Status {
-		case "sent":
-			sent++
-		case "failed":
-			failed++
-		}
-	}
-	return sent, failed
-}
-
-// TestCalcNotificationStats_AllSent は全て成功したときの集計を確認する
-func TestCalcNotificationStats_AllSent(t *testing.T) {
-	entries := []*NotificationHistoryEntry{
-		{Status: "sent"},
-		{Status: "sent"},
-		{Status: "sent"},
-	}
-	sent, failed := calcNotificationStats(entries)
-	if sent != 3 {
-		t.Errorf("sent = %d, want 3", sent)
-	}
-	if failed != 0 {
-		t.Errorf("failed = %d, want 0", failed)
-	}
-}
-
-// TestCalcNotificationStats_Mixed は成功と失敗が混在するときの集計を確認する
-func TestCalcNotificationStats_Mixed(t *testing.T) {
-	entries := []*NotificationHistoryEntry{
-		{Status: "sent"},
-		{Status: "failed"},
-		{Status: "sent"},
-		{Status: "failed"},
-		{Status: "sent"},
-	}
-	sent, failed := calcNotificationStats(entries)
-	if sent != 3 {
-		t.Errorf("sent = %d, want 3", sent)
-	}
-	if failed != 2 {
-		t.Errorf("failed = %d, want 2", failed)
-	}
-}
-
-// TestCalcNotificationStats_Empty は空のエントリリストが 0 を返すことを確認する
-func TestCalcNotificationStats_Empty(t *testing.T) {
-	sent, failed := calcNotificationStats([]*NotificationHistoryEntry{})
-	if sent != 0 {
-		t.Errorf("空リストの sent = %d, want 0", sent)
-	}
-	if failed != 0 {
-		t.Errorf("空リストの failed = %d, want 0", failed)
-	}
-}
+// 集計は **SQL の中**にあります（`COUNT(*) FILTER (WHERE status='sent')`）。
+// ここには同じ集計を Go で書き直したヘルパーと、その3本の検査が置いて
+// ありました。**Go の写しをいくら試しても、SQL 側は無傷のまま壊せます** ——
+// `status='sent'` を `status='send'` と書き間違えても緑のままです。
+//
+// 本物を試す検査は `notification_stats_db_test.go` に移しました。
+// **写しを消すだけにはしません** —— 消すと、その集計を試している検査が
+// 1本も無くなります。
 
 // ─── 通知フィルタービルダーテスト ─────────────────────────────────────────────
 
-// buildNotificationFilter はページネーション用パラメータを検証するヘルパー（テスト専用）
-func buildNotificationFilter(limit, offset int) (int, int) {
-	if limit <= 0 {
-		limit = 20
-	}
-	if limit > 200 {
-		limit = 200
-	}
-	if offset < 0 {
-		offset = 0
-	}
-	return limit, offset
-}
-
-// TestBuildNotificationFilter_DefaultLimit は limit が 0 以下のときデフォルト値になることを確認する
-func TestBuildNotificationFilter_DefaultLimit(t *testing.T) {
-	limit, offset := buildNotificationFilter(0, 0)
-	if limit != 20 {
-		t.Errorf("デフォルト limit = %d, want 20", limit)
-	}
-	if offset != 0 {
-		t.Errorf("デフォルト offset = %d, want 0", offset)
-	}
-}
-
-// TestBuildNotificationFilter_MaxLimit は limit の上限が 200 であることを確認する
-func TestBuildNotificationFilter_MaxLimit(t *testing.T) {
-	limit, _ := buildNotificationFilter(9999, 0)
-	if limit != 200 {
-		t.Errorf("最大 limit = %d, want 200", limit)
-	}
-}
-
-// TestBuildNotificationFilter_NegativeOffset は負の offset がゼロになることを確認する
-func TestBuildNotificationFilter_NegativeOffset(t *testing.T) {
-	_, offset := buildNotificationFilter(10, -5)
-	if offset != 0 {
-		t.Errorf("負の offset は 0 になるべき: got %d", offset)
-	}
-}
-
-// TestBuildNotificationFilter_ValidValues は有効な値がそのまま使用されることを確認する
-func TestBuildNotificationFilter_ValidValues(t *testing.T) {
-	limit, offset := buildNotificationFilter(50, 100)
-	if limit != 50 {
-		t.Errorf("limit = %d, want 50", limit)
-	}
-	if offset != 100 {
-		t.Errorf("offset = %d, want 100", offset)
-	}
-}
-
-// TestNotificationHistoryEntry_SubjectPreserved は Subject フィールドが正確に保持されることを確認する
-func TestNotificationHistoryEntry_SubjectPreserved(t *testing.T) {
-	subject := "[EDR Alert] Critical: ランサムウェアの疑いあり - endpoint-99"
-	e := NotificationHistoryEntry{Subject: subject}
-	if e.Subject != subject {
-		t.Errorf("Subject = %q, want %q", e.Subject, subject)
-	}
-	// 日本語が含まれることを確認する
-	if !strings.Contains(e.Subject, "ランサムウェア") {
-		t.Errorf("Subject に日本語が含まれるべき: %q", e.Subject)
-	}
-}
-
-// TestNotificationHistoryEntry_ByChannelAggregation はチャンネル別集計ロジックを確認する
-func TestNotificationHistoryEntry_ByChannelAggregation(t *testing.T) {
-	entries := []*NotificationHistoryEntry{
-		{ChannelName: "Slack #soc", Status: "sent"},
-		{ChannelName: "Slack #soc", Status: "sent"},
-		{ChannelName: "Email: admin@example.com", Status: "failed"},
-		{ChannelName: "Slack #soc", Status: "failed"},
-		{ChannelName: "Email: admin@example.com", Status: "sent"},
-	}
-
-	// チャンネル別に件数を集計する（Stats メソッドのロジックを模倣）
-	byChannel := make(map[string]int)
-	for _, e := range entries {
-		byChannel[e.ChannelName]++
-	}
-
-	if byChannel["Slack #soc"] != 3 {
-		t.Errorf("Slack チャンネルの件数 = %d, want 3", byChannel["Slack #soc"])
-	}
-	if byChannel["Email: admin@example.com"] != 2 {
-		t.Errorf("Email チャンネルの件数 = %d, want 2", byChannel["Email: admin@example.com"])
-	}
-}
+// ページの切り詰めは **`internal/api/handlers` にあります**
+// （`page < 1 → 1`、`per_page < 1 || > 200 → 50`）。ここには
+// `buildNotificationFilter` という写しが置いてありましたが、**値が
+// 違いました** —— 既定 20（本物は 50）、200 超は 200 に丸める（本物は 50 に
+// 戻す）。検査は、製品に無い約束を確かめていました。
+//
+// 本物を試す検査は `internal/api/handlers/notification_history_paging_test.go`
+// にあります。`internal/store` の `List` は切り詰めません —— **切り詰めは
+// 1箇所だけにします。** 2箇所に置くと、片方を直したときにもう片方が
+// 残ります。

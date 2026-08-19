@@ -26,6 +26,16 @@ const (
 	staleThreshold = 10 * time.Minute
 	// dedupWindow is the look-back window used to suppress duplicate alerts.
 	dedupWindow = 1 * time.Hour
+	// degradedSensorDedupWindow is longer because a blind sensor is a standing
+	// condition, not a spike: it stays true until someone redeploys the agent.
+	// Re-raising it hourly would teach operators to filter the alert away, which
+	// is the outcome this alarm exists to prevent.
+	degradedSensorDedupWindow = 24 * time.Hour
+
+	// degradedSensorTitleSuffix identifies the degraded-sensor alert without
+	// depending on the hostname its title embeds. Used both to build the title and
+	// to find the alert again when the sensor comes back.
+	degradedSensorTitleSuffix = " センサー降格（検知能力低下）"
 )
 
 // AgentHealthAlerter monitors online agents and creates alerts for health issues.
@@ -49,7 +59,7 @@ func (a *AgentHealthAlerter) Run(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			a.checkHealth(ctx)
+			trackRun(ctx, "agent_health_alerter", a.checkHealth)
 		}
 	}
 }
@@ -59,6 +69,13 @@ type healthIssue struct {
 	agentID     string
 	hostname    string
 	description string
+	// title is the alert title. It doubles as the dedup identity, so a CPU spike
+	// and a blind sensor no longer suppress each other — they did while every
+	// issue shared one title, which would have hidden the sensor alarm behind
+	// routine load noise.
+	title string
+	// dedupFor is how long an identical title stays suppressed for this agent.
+	dedupFor time.Duration
 }
 
 // checkHealth queries for agent health problems and creates alerts where needed.
@@ -76,9 +93,76 @@ func (a *AgentHealthAlerter) checkHealth(ctx context.Context) {
 	staleIssues := a.checkStaleAgents(ctx)
 	issues = append(issues, staleIssues...)
 
-	// ── 3. Create alerts (with dedup) ─────────────────────────────────────
+	// ── 3. Sensors degraded to polling ───────────────────────────────────
+	issues = append(issues, a.checkDegradedSensors(ctx)...)
+
+	// ── 4. Create alerts (with dedup) ─────────────────────────────────────
 	for _, issue := range issues {
 		a.maybeCreateAlert(ctx, issue)
+	}
+
+	// ── 5. Close sensor alerts whose condition has gone away ─────────────
+	a.resolveRecoveredSensorAlerts(ctx)
+}
+
+// resolveRecoveredSensorAlerts closes degraded-sensor alerts for agents that are no
+// longer degraded.
+//
+// Every other issue this alerter raises is transient and self-describing: a CPU
+// spike stops being re-raised once load drops, and the stale alert is answered by
+// the agent checking in. The sensor alert is different — it is a standing condition
+// with a 24h dedup, so the alert it leaves behind is a claim about the present
+// ("this endpoint is blind"), not a record of a moment. Redeploying the agent fixes
+// the endpoint but nothing touched the alert, so the queue kept asserting a
+// degradation that no longer existed. An alarm that stays lit after the fix is how
+// operators learn to ignore it — the same failure mode the 24h dedup exists to
+// avoid.
+//
+// Scope is deliberately narrow:
+//   - only this alert's own title suffix, matched independently of the hostname
+//     embedded in the title (a renamed host must still resolve);
+//   - only open/investigating; an analyst who already marked it resolved or
+//     false_positive keeps their verdict;
+//   - status 'auto_resolved' rather than 'resolved', so the console can tell a
+//     machine-closed alert from a human-closed one.
+//
+// Agents that went offline while degraded keep telemetry_mode = 'poll' and are
+// therefore left alone: the condition was never observed to change.
+func (a *AgentHealthAlerter) resolveRecoveredSensorAlerts(ctx context.Context) {
+	rows, err := a.pool.Query(ctx,
+		`UPDATE alerts a
+		    SET status = 'auto_resolved', resolved_at = NOW()
+		  WHERE a.status IN ('open', 'investigating')
+		    AND a.title LIKE '%' || $1
+		    AND EXISTS (
+		          SELECT 1 FROM agents ag
+		           WHERE ag.id = a.agent_id
+		             AND ag.telemetry_mode IS DISTINCT FROM 'poll'
+		        )
+		RETURNING a.id::text, a.title`,
+		degradedSensorTitleSuffix)
+	if err != nil {
+		// telemetry_mode missing (migration 357/365 not yet applied) — the alert
+		// cannot have been raised either, so there is nothing to close.
+		slog.Debug("センサー復旧チェックをスキップ", "error", err)
+		return
+	}
+	defer rows.Close()
+
+	var closed int
+	for rows.Next() {
+		var id, title string
+		if scanErr := rows.Scan(&id, &title); scanErr != nil {
+			continue
+		}
+		closed++
+		slog.Info("センサー復旧によりアラートを自動クローズしました", "alert_id", id, "title", title)
+	}
+	if err := rows.Err(); err != nil {
+		fail(ctx, err, "センサー復旧の走査が途中で終わりました。閉じ切れていないアラートが残ります")
+	}
+	if closed > 0 {
+		slog.Info("センサー降格アラートを自動クローズしました", "件数", closed)
 	}
 }
 
@@ -106,7 +190,7 @@ func (a *AgentHealthAlerter) checkCPUMemory(ctx context.Context) []healthIssue {
 	)
 	if err != nil {
 		// The column likely doesn't exist yet — degrade gracefully.
-		slog.Debug("CPU/メモリヘルスチェックをスキップ", "error", err)
+		fail(ctx, err, "CPU/メモリヘルスチェックをスキップ")
 		return nil
 	}
 	defer rows.Close()
@@ -127,7 +211,11 @@ func (a *AgentHealthAlerter) checkCPUMemory(ctx context.Context) []healthIssue {
 		} else {
 			desc = fmt.Sprintf("メモリ使用率 %.1f%% が閾値 %.0f%% を超えています。", mem, memThreshold)
 		}
-		issues = append(issues, healthIssue{agentID: id, hostname: hostname, description: desc})
+		issues = append(issues, healthIssue{agentID: id, hostname: hostname, description: desc,
+			title: fmt.Sprintf("エージェント %s ヘルス警告", hostname), dedupFor: dedupWindow})
+	}
+	if err := rows.Err(); err != nil {
+		fail(ctx, err, "CPU/メモリの走査が途中で終わりました。見つかったぶんだけ通知します")
 	}
 	return issues
 }
@@ -146,7 +234,7 @@ func (a *AgentHealthAlerter) checkStaleAgents(ctx context.Context) []healthIssue
 		fmt.Sprintf("%.0f seconds", staleThreshold.Seconds()),
 	)
 	if err != nil {
-		slog.Debug("ステールエージェントチェック失敗", "error", err)
+		fail(ctx, err, "ステールエージェントチェック失敗")
 		return nil
 	}
 	defer rows.Close()
@@ -163,7 +251,69 @@ func (a *AgentHealthAlerter) checkStaleAgents(ctx context.Context) []healthIssue
 			"エージェントは 'online' として登録されていますが、%s 以上ハートビートを送信していません（最終確認: %s 前）。",
 			staleThreshold, silent.Round(time.Second),
 		)
-		issues = append(issues, healthIssue{agentID: id, hostname: hostname, description: desc})
+		issues = append(issues, healthIssue{agentID: id, hostname: hostname, description: desc,
+			title: fmt.Sprintf("エージェント %s ヘルス警告", hostname), dedupFor: dedupWindow})
+	}
+	if err := rows.Err(); err != nil {
+		fail(ctx, err, "ステールエージェントの走査が途中で終わりました。見つかったぶんだけ通知します")
+	}
+	return issues
+}
+
+// checkDegradedSensors returns agents whose collectors fell back from eBPF to
+// userspace polling.
+//
+// This is the alarm that did not exist on 2026-08-03, when a Linux endpoint ran for
+// days with the eBPF file and network monitors absent: port scans of closed ports
+// (T1046) were structurally undetectable and ransomware detection had no process
+// attribution, while the fleet view showed a healthy online agent. The data to
+// notice it was being reported the whole time — nothing looked at it.
+//
+// Deliberately narrow, because a noisy alarm is an ignored alarm:
+//   - only telemetry_mode = 'poll'. NULL means "not reported" (Windows/macOS and
+//     older agents), 'off' means the sensor is disabled by configuration. Neither
+//     is a degradation and neither may alert.
+//   - only agents currently online, so a decommissioned host does not nag.
+//   - a 24h dedup rather than the 1h used for CPU spikes: a blind sensor is a
+//     standing condition, not a transient, and re-paging hourly would train
+//     operators to ignore it.
+func (a *AgentHealthAlerter) checkDegradedSensors(ctx context.Context) []healthIssue {
+	rows, err := a.pool.Query(ctx,
+		`SELECT id::text, hostname, COALESCE(telemetry_detail, '')
+		   FROM agents
+		  WHERE status = 'online'
+		    AND telemetry_mode = 'poll'
+		  LIMIT 50`)
+	if err != nil {
+		// Column missing (migration 357/365 not yet applied) — degrade quietly.
+		slog.Debug("センサー降格チェックをスキップ", "error", err)
+		return nil
+	}
+	defer rows.Close()
+
+	var issues []healthIssue
+	for rows.Next() {
+		var id, hostname, detail string
+		if scanErr := rows.Scan(&id, &hostname, &detail); scanErr != nil {
+			continue
+		}
+		desc := "エージェントのセンサーが eBPF からユーザ空間ポーリングに降格しています。" +
+			"閉じたポートへの接続(ポートスキャン T1046)が観測できず、ファイルイベントには" +
+			"プロセス帰属が付かないため、ランサムウェア検知もプロセスを特定できません。"
+		if detail != "" {
+			desc += " センサー別: " + detail + "。"
+		}
+		desc += " 対処はエージェントの再ビルド/再配備（-tags ebpf の有無ではなく、" +
+			"該当機能を含むリビジョンでビルドされているかを確認すること）と、" +
+			"bpftool link show での attach 確認。"
+		issues = append(issues, healthIssue{
+			agentID: id, hostname: hostname, description: desc,
+			title:    "エージェント " + hostname + degradedSensorTitleSuffix,
+			dedupFor: degradedSensorDedupWindow,
+		})
+	}
+	if err := rows.Err(); err != nil {
+		fail(ctx, err, "ステールエージェントの走査が途中で終わりました。見つかったぶんだけ通知します")
 	}
 	return issues
 }
@@ -176,18 +326,18 @@ func (a *AgentHealthAlerter) maybeCreateAlert(ctx context.Context, issue healthI
 	_ = a.pool.QueryRow(ctx,
 		`SELECT COUNT(*) FROM alerts
 		 WHERE agent_id = $1::uuid
-		   AND title LIKE 'エージェント%ヘルス警告'
-		   AND created_at > NOW() - $2::INTERVAL`,
-		issue.agentID,
-		fmt.Sprintf("%.0f seconds", dedupWindow.Seconds()),
+		   AND title = $2
+		   AND created_at > NOW() - $3::INTERVAL`,
+		issue.agentID, issue.title,
+		fmt.Sprintf("%.0f seconds", issue.dedupFor.Seconds()),
 	).Scan(&existing)
 
 	if existing > 0 {
-		slog.Debug("ヘルスアラートは重複のためスキップします", "agent_id", issue.agentID)
+		slog.Debug("ヘルスアラートは重複のためスキップします", "agent_id", issue.agentID, "title", issue.title)
 		return
 	}
 
-	title := fmt.Sprintf("エージェント %s ヘルス警告", issue.hostname)
+	title := issue.title
 
 	var alertID string
 	err := a.pool.QueryRow(ctx,
@@ -197,7 +347,7 @@ func (a *AgentHealthAlerter) maybeCreateAlert(ctx context.Context, issue healthI
 		issue.agentID, title, issue.description,
 	).Scan(&alertID)
 	if err != nil {
-		slog.Error("ヘルスアラートの作成に失敗しました", "agent_id", issue.agentID, "error", err)
+		fail(ctx, err, "ヘルスアラートの作成に失敗しました", "agent_id", issue.agentID)
 		return
 	}
 
@@ -216,7 +366,7 @@ func (a *AgentHealthAlerter) maybeCreateAlert(ctx context.Context, issue healthI
 			"description": issue.description,
 		})
 		if pubErr := a.nc.Publish("alerts.new", payload); pubErr != nil {
-			slog.Warn("alerts.new NATSパブリッシュに失敗しました", "error", pubErr)
+			fail(ctx, pubErr, "alerts.new NATSパブリッシュに失敗しました")
 		}
 	}
 }

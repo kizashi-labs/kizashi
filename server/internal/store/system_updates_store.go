@@ -2,7 +2,9 @@ package store
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"github.com/jackc/pgx/v5"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -128,10 +130,13 @@ func (s *SystemUpdatesStore) NextApproved(ctx context.Context) (*SystemUpdate, e
 		LIMIT 1
 	`)
 	u, err := scanSystemUpdate(row)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, nil // 承認済みの更新が無い、が通常の状態
+	}
 	if err != nil {
-		// No row is the common case; treat as (nil, nil) so callers can
-		// loop without distinguishing ErrNoRows from other errors.
-		return nil, nil
+		// 以前はここも (nil, nil) でした。読めなかっただけで「承認済みの
+		// 更新は無い」と答えるので、承認した更新がいつまでも適用されません。
+		return nil, fmt.Errorf("承認済みの更新を引けませんでした: %w", err)
 	}
 	return &u, nil
 }
@@ -150,9 +155,11 @@ func (s *SystemUpdatesStore) LatestAvailable(ctx context.Context) (*SystemUpdate
 		LIMIT 1
 	`)
 	u, err := scanSystemUpdate(row)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, nil // 候補が無い、が通常の状態
+	}
 	if err != nil {
-		// No row is not an error here — caller treats nil as "no update".
-		return nil, nil
+		return nil, fmt.Errorf("更新候補を引けませんでした: %w", err)
 	}
 	return &u, nil
 }

@@ -5,6 +5,8 @@ import (
 	"log/slog"
 	"strings"
 	"time"
+
+	"github.com/edr-platform/server/internal/tick"
 )
 
 // BehavioralEngine combines all ML-based detection components.
@@ -92,8 +94,10 @@ func (e *BehavioralEngine) RunPeriodicTraining(ctx context.Context, interval tim
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			slog.Info("retraining UEBA behavioral model")
-			e.UEBA.TrainOnProfiles()
+			tick.Run(ctx, "ueba_retraining", func(context.Context) {
+				slog.Info("retraining UEBA behavioral model")
+				e.UEBA.TrainOnProfiles()
+			})
 		}
 	}
 }

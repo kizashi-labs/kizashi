@@ -98,6 +98,10 @@ func (e *Engine) Execute(ctx context.Context, q *HuntingQuery) (*QueryResult, er
 		r.Data = parseRawData(rawData)
 		results = append(results, r)
 	}
+	// 部分結果を完全な一覧として返さない（scan_truncation_guard_test.go 参照）
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
 
 	if results == nil {
 		results = []HuntingResult{}
@@ -117,22 +121,50 @@ func buildSQL(q *HuntingQuery) (string, []interface{}, error) {
 	var args []interface{}
 	argIdx := 1
 
-	// Allowed fields for filtering (whitelist to prevent injection)
-	allowedFields := map[string]string{
-		"event_type":   "e.event_type",
-		"agent_id":     "e.agent_id::text",
-		"severity":     "e.severity",
-		"hostname":     "a.hostname",
-		"process_name": "e.raw_data->>'process_name'",
-		"cmdline":      "e.raw_data->>'cmdline'",
-		"file_path":    "e.raw_data->>'file_path'",
-		"src_ip":       "e.raw_data->>'src_ip'",
-		"dst_ip":       "e.raw_data->>'dst_ip'",
-		"dst_port":     "e.raw_data->>'dst_port'",
-		"domain":       "e.raw_data->>'domain'",
-		"username":     "e.raw_data->>'username'",
-		"hash":         "e.raw_data->>'hash'",
-		"rule_id":      "e.raw_data->>'rule_id'",
+	// Allowed fields for filtering (whitelist to prevent injection).
+	//
+	// The values are the SQL each hunting field resolves to. Four of them named
+	// raw_data keys that the ingestion path has never written, so those hunts
+	// were unanswerable: the query was valid, the JSONB lookup returned NULL,
+	// and the hunt came back with zero rows and no error. Verified by running
+	// the real normaliser (ingestion.normalizeEventData) over one event of each
+	// type and reading the keys it emits:
+	//
+	//	dns      -> answers pid process_name query query_type
+	//	process  -> action command_line image_path md5 pid ppid process_name
+	//	            sha256 username
+	//	file     -> file_size old_path operation path pid process_name sha256
+	//	network  -> bytes_recv bytes_sent direction dst_ip dst_port pid
+	//	            process_name protocol src_ip src_port state
+	//
+	//	cmdline    was 'cmdline'    -> ingestion writes command_line
+	//	file_path  was 'file_path'  -> ingestion writes path
+	//	domain     was 'domain'     -> ingestion writes query (DNS)
+	//	hash       was 'hash'       -> ingestion writes sha256 / md5 / sha1
+	//
+	// The hunting DSL keeps its field names, so saved hunts still parse; only
+	// the SQL underneath changes. A field may resolve to several candidate
+	// expressions — a hash indicator has to be findable whichever digest the
+	// agent captured.
+	allowedFields := map[string][]string{
+		"event_type":   {"e.event_type"},
+		"agent_id":     {"e.agent_id::text"},
+		"severity":     {"e.severity"},
+		"hostname":     {"a.hostname"},
+		"process_name": {"e.raw_data->>'process_name'"},
+		"cmdline":      {"e.raw_data->>'command_line'"},
+		"file_path":    {"e.raw_data->>'path'"},
+		"src_ip":       {"e.raw_data->>'src_ip'"},
+		"dst_ip":       {"e.raw_data->>'dst_ip'"},
+		"dst_port":     {"e.raw_data->>'dst_port'"},
+		"domain":       {"e.raw_data->>'query'"},
+		"username":     {"e.raw_data->>'username'"},
+		"hash": {
+			"e.raw_data->>'sha256'",
+			"e.raw_data->>'md5'",
+			"e.raw_data->>'sha1'",
+		},
+		"rule_id": {"e.raw_data->>'rule_id'"},
 	}
 
 	where := []string{"1=1"}
@@ -183,33 +215,30 @@ func buildSQL(q *HuntingQuery) (string, []interface{}, error) {
 
 	// Custom filters
 	for _, f := range q.Filters {
-		dbField, ok := allowedFields[f.Field]
+		dbFields, ok := allowedFields[f.Field]
 		if !ok {
 			continue // Skip unknown fields (security)
 		}
 
+		var sqlOp, value string
 		switch f.Operator {
 		case "eq":
-			args = append(args, f.Value)
-			where = append(where, fmt.Sprintf("%s = $%d", dbField, argIdx))
-			argIdx++
+			sqlOp, value = "=", f.Value
 		case "neq":
-			args = append(args, f.Value)
-			where = append(where, fmt.Sprintf("%s != $%d", dbField, argIdx))
-			argIdx++
+			sqlOp, value = "!=", f.Value
 		case "contains":
-			args = append(args, "%"+f.Value+"%")
-			where = append(where, fmt.Sprintf("%s ILIKE $%d", dbField, argIdx))
-			argIdx++
+			sqlOp, value = "ILIKE", "%"+f.Value+"%"
 		case "gt":
-			args = append(args, f.Value)
-			where = append(where, fmt.Sprintf("%s > $%d", dbField, argIdx))
-			argIdx++
+			sqlOp, value = ">", f.Value
 		case "lt":
-			args = append(args, f.Value)
-			where = append(where, fmt.Sprintf("%s < $%d", dbField, argIdx))
-			argIdx++
+			sqlOp, value = "<", f.Value
+		default:
+			continue
 		}
+
+		args = append(args, value)
+		where = append(where, candidatePredicate(dbFields, sqlOp, argIdx, f.Operator == "neq"))
+		argIdx++
 	}
 
 	limit := q.Limit
@@ -272,4 +301,30 @@ func parseRawData(data []byte) map[string]interface{} {
 		return map[string]interface{}{"_raw": string(data)}
 	}
 	return result
+}
+
+// candidatePredicate combines a field's candidate expressions into one SQL
+// predicate against a single placeholder.
+//
+// Positive operators are satisfied by any candidate — a hash hunt should hit
+// whether the agent captured sha256, md5 or sha1. Negation is the other way
+// round: "not this hash" means none of them may match, so the candidates are
+// ANDed. ORing a negation would make an event with both a sha256 and an md5
+// satisfy `hash != X` merely because its md5 differs.
+//
+// A single-candidate field produces exactly the predicate it did before, so
+// nothing about the existing fields changes.
+func candidatePredicate(exprs []string, sqlOp string, argIdx int, negate bool) string {
+	if len(exprs) == 1 {
+		return fmt.Sprintf("%s %s $%d", exprs[0], sqlOp, argIdx)
+	}
+	parts := make([]string, len(exprs))
+	for i, e := range exprs {
+		parts[i] = fmt.Sprintf("%s %s $%d", e, sqlOp, argIdx)
+	}
+	joiner := " OR "
+	if negate {
+		joiner = " AND "
+	}
+	return "(" + strings.Join(parts, joiner) + ")"
 }

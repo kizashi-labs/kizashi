@@ -35,6 +35,12 @@ type GeoIPResult struct {
 	IsHosting   bool    `json:"is_hosting"`
 	Latitude    float64 `json:"latitude"`
 	Longitude   float64 `json:"longitude"`
+
+	// 引けなかったとき。Country: "Unknown" とだけ返すと、「その IP の国は
+	// 記録されていない」と読めます。引けなかったのか、引いた結果分から
+	// なかったのかを、受け取る側が区別できるようにします。
+	Unavailable       bool   `json:"unavailable,omitempty"`
+	UnavailableReason string `json:"unavailable_reason,omitempty"`
 }
 
 // isPrivateIP reports whether the parsed IP falls in a private/loopback/link-local range.
@@ -85,8 +91,14 @@ func lookupIP(ctx context.Context, rawIP string) GeoIPResult {
 	}
 
 	// Use the shared ip-api.com client from alert_enrichment_pipeline.go.
-	geo := lookupGeoIP(ctx, rawIP)
+	geo, err := lookupGeoIP(ctx, rawIP)
+	if err != nil {
+		result.Unavailable = true
+		result.UnavailableReason = err.Error()
+		return result
+	}
 	if geo == nil {
+		// 引けたが、この IP に位置情報が無かった場合。
 		result.Country = "Unknown"
 		result.CountryCode = "XX"
 		result.City = "Unknown"

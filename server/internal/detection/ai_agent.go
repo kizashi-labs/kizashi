@@ -15,6 +15,8 @@ import (
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/edr-platform/server/internal/isolation"
 )
 
 // ─── Claude API Types ─────────────────────────────────────────
@@ -107,6 +109,7 @@ type AIAgent struct {
 	httpClient *http.Client
 	store      AlertStore
 	commander  AgentCommander
+	isolator   Isolator
 }
 
 // AlertStore retrieves event history for context.
@@ -116,8 +119,11 @@ type AlertStore interface {
 }
 
 // AgentCommander sends response commands to endpoints.
+//
+// 隔離はここに無い。隔離だけは Isolator（= isolation.Gatekeeper）を通す。
+// 以前は IsolateEndpoint がここにあり、commander を持つ全員が安全弁も
+// response_actions への記録も飛ばして隔離できた。
 type AgentCommander interface {
-	IsolateEndpoint(ctx context.Context, agentID, reason, alertID, commandID string) error
 	KillProcess(ctx context.Context, agentID string, pid uint32, reason, commandID string) error
 	QuarantineFile(ctx context.Context, agentID, path, alertID, commandID string) error
 }
@@ -135,7 +141,7 @@ type AlertSummary struct {
 	Status    string    `json:"status"`
 }
 
-func NewAIAgent(apiKey string, store AlertStore, commander AgentCommander) *AIAgent {
+func NewAIAgent(apiKey string, store AlertStore, commander AgentCommander, isolator Isolator) *AIAgent {
 	return &AIAgent{
 		apiKey: apiKey,
 		model:  "claude-opus-4-6",
@@ -144,6 +150,7 @@ func NewAIAgent(apiKey string, store AlertStore, commander AgentCommander) *AIAg
 		},
 		store:     store,
 		commander: commander,
+		isolator:  isolator,
 	}
 }
 
@@ -354,9 +361,16 @@ func (a *AIAgent) executeAutoResponse(ctx context.Context, alert *Alert, analysi
 
 	// Isolate endpoint (most severe action - requires highest confidence)
 	if ar.ShouldIsolate && analysis.Severity >= 8 && analysis.Confidence >= 0.80 {
-		if err := a.commander.IsolateEndpoint(ctx, alert.AgentID,
-			fmt.Sprintf("AI分析による自動隔離: %s", ar.Reasoning),
-			alert.ID, ""); err != nil {
+		if a.isolator == nil {
+			return fmt.Errorf("isolation gatekeeper not configured")
+		}
+		if _, err := a.isolator.Isolate(ctx, isolation.Request{
+			AgentID: alert.AgentID,
+			Reason:  fmt.Sprintf("AI分析による自動隔離: %s", ar.Reasoning),
+			AlertID: alert.ID,
+			Origin:  isolation.OriginAITriage,
+			Label:   alert.RuleName,
+		}); err != nil {
 			return fmt.Errorf("isolate endpoint: %w", err)
 		}
 	}

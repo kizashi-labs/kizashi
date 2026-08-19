@@ -1,14 +1,13 @@
 package handlers
 
 import (
-	"context"
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
-	"encoding/json"
+	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
-	"time"
 
 	"github.com/edr-platform/server/internal/notification"
 	"github.com/edr-platform/server/internal/store"
@@ -197,17 +196,6 @@ func (h *WebhookHandler) Test(c *gin.Context) {
 	})
 }
 
-// webhookDeliveryLog is a single delivery record returned by GetDeliveryLog.
-type webhookDeliveryLog struct {
-	ID         string    `json:"id"`
-	WebhookID  string    `json:"webhook_id"`
-	EventType  string    `json:"event_type"`
-	StatusCode int       `json:"status_code"`
-	Attempt    int       `json:"attempt"`
-	CreatedAt  time.Time `json:"created_at"`
-	DurationMs int64     `json:"duration_ms"`
-}
-
 // webhookRetryPolicyRequest is the body for UpdateRetryPolicy.
 type webhookRetryPolicyRequest struct {
 	MaxRetries        int `json:"max_retries"`
@@ -220,65 +208,44 @@ type webhookEventTypesRequest struct {
 	EventTypes []string `json:"event_types"`
 }
 
-// tableExists checks whether a PostgreSQL table exists in the public schema.
-func (h *WebhookHandler) tableExists(ctx context.Context, table string) bool {
-	var exists bool
-	_ = h.store.Pool().QueryRow(ctx,
-		`SELECT EXISTS (
-			SELECT 1 FROM information_schema.tables
-			WHERE table_schema = 'public' AND table_name = $1
-		)`, table,
-	).Scan(&exists)
-	return exists
-}
-
 // GetDeliveryLog returns delivery history for a webhook target.
 // GET /api/v1/webhooks/:id/deliveries
+//
+// This used to query webhook_deliveries for event_type, attempt and
+// created_at. Measured against the migrated schema, three of those columns do
+// not exist, so every call was 42703 -> 500. Renaming them would not have been
+// enough: webhook_deliveries belongs to the other webhook subsystem and is
+// keyed to webhook_configs, while the :id here is a webhook_targets id — a
+// corrected query would have matched no row for any id this route can be
+// given, turning the 500 into an empty 200 that reads as "no deliveries yet".
+// Migration 376 adds the table that internal/notification now writes per
+// attempt, and this reads that.
 func (h *WebhookHandler) GetDeliveryLog(c *gin.Context) {
 	id := c.Param("id")
-	ctx := c.Request.Context()
 
-	if !h.tableExists(ctx, "webhook_deliveries") {
-		c.JSON(http.StatusOK, gin.H{
-			"deliveries": []webhookDeliveryLog{},
-			"note":       "webhook_deliveries テーブルが存在しないため配信ログは空です",
-		})
-		return
-	}
-
-	rows, err := h.store.Pool().Query(ctx, `
-		SELECT id, webhook_id, event_type, status_code, attempt, created_at,
-		       COALESCE(duration_ms, 0)
-		FROM webhook_deliveries
-		WHERE webhook_id = $1
-		ORDER BY created_at DESC
-		LIMIT 100`, id)
+	deliveries, err := h.store.ListDeliveries(c.Request.Context(), id, store.DeliveryHistoryLimit)
 	if err != nil {
+		if errors.Is(err, store.ErrWebhookNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "指定されたwebhookが見つかりません"})
+			return
+		}
+		slog.Warn("webhook配信ログの取得に失敗しました", "webhook", id, "error", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "配信ログの取得に失敗しました"})
 		return
 	}
-	defer rows.Close()
 
-	var deliveries []webhookDeliveryLog
-	for rows.Next() {
-		var d webhookDeliveryLog
-		if err := rows.Scan(&d.ID, &d.WebhookID, &d.EventType, &d.StatusCode, &d.Attempt, &d.CreatedAt, &d.DurationMs); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "配信ログ行のスキャンに失敗しました"})
-			return
-		}
-		deliveries = append(deliveries, d)
-	}
-	if err := rows.Err(); err != nil {
-		slog.Warn("row iteration error", "error", err)
-	}
-	if deliveries == nil {
-		deliveries = []webhookDeliveryLog{}
-	}
-	c.JSON(http.StatusOK, gin.H{"deliveries": deliveries})
+	c.JSON(http.StatusOK, gin.H{"deliveries": deliveries, "total": len(deliveries)})
 }
 
 // UpdateRetryPolicy updates the retry policy for a webhook target.
 // PUT /api/v1/webhooks/:id/retry-policy
+//
+// This used to probe for a max_retries column, fall back to probing for a
+// system_metadata column, and when neither existed — which was always, no
+// migration created either — return 200 echoing the request body. The response
+// is indistinguishable from a stored value, so a policy the operator set was
+// discarded on every call, including against a webhook id that does not exist.
+// Migration 375 creates the columns; the probing and the fallback are gone.
 func (h *WebhookHandler) UpdateRetryPolicy(c *gin.Context) {
 	id := c.Param("id")
 	ctx := c.Request.Context()
@@ -289,62 +256,42 @@ func (h *WebhookHandler) UpdateRetryPolicy(c *gin.Context) {
 		return
 	}
 
-	// Check if dedicated columns exist; if not, fall back to system_metadata JSONB.
-	var colExists bool
-	_ = h.store.Pool().QueryRow(ctx, `
-		SELECT EXISTS (
-			SELECT 1 FROM information_schema.columns
-			WHERE table_schema = 'public' AND table_name = 'webhook_targets'
-			  AND column_name = 'max_retries'
-		)`).Scan(&colExists)
+	policy := store.WebhookRetryPolicy{
+		MaxRetries:        req.MaxRetries,
+		RetryDelaySeconds: req.RetryDelaySeconds,
+		TimeoutSeconds:    req.TimeoutSeconds,
+	}
+	if !policy.Valid() {
+		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf(
+			"リトライ設定が範囲外です (max_retries 0-%d, retry_delay_seconds 0-%d, timeout_seconds 1-%d)",
+			store.MaxRetriesLimit, store.RetryDelaySecondsLimit, store.TimeoutSecondsLimit)})
+		return
+	}
 
-	if colExists {
-		_, err := h.store.Pool().Exec(ctx, `
-			UPDATE webhook_targets
-			SET max_retries = $2, retry_delay_seconds = $3, timeout_seconds = $4, updated_at = NOW()
-			WHERE id = $1`,
-			id, req.MaxRetries, req.RetryDelaySeconds, req.TimeoutSeconds)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "リトライポリシーの更新に失敗しました"})
+	if err := h.store.UpdateRetryPolicy(ctx, id, policy); err != nil {
+		if errors.Is(err, store.ErrWebhookNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "webhookが見つかりません"})
 			return
 		}
-	} else {
-		// Store in system_metadata JSONB column if it exists, otherwise accept silently.
-		policyJSON, _ := json.Marshal(map[string]int{
-			"max_retries":         req.MaxRetries,
-			"retry_delay_seconds": req.RetryDelaySeconds,
-			"timeout_seconds":     req.TimeoutSeconds,
-		})
-		var metaColExists bool
-		_ = h.store.Pool().QueryRow(ctx, `
-			SELECT EXISTS (
-				SELECT 1 FROM information_schema.columns
-				WHERE table_schema = 'public' AND table_name = 'webhook_targets'
-				  AND column_name = 'system_metadata'
-			)`).Scan(&metaColExists)
-		if metaColExists {
-			_, err := h.store.Pool().Exec(ctx, `
-				UPDATE webhook_targets
-				SET system_metadata = COALESCE(system_metadata, '{}'::jsonb) ||
-				    jsonb_build_object('retry_policy', $2::jsonb),
-				    updated_at = NOW()
-				WHERE id = $1`, id, string(policyJSON))
-			if err != nil {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "リトライポリシーの更新に失敗しました"})
-				return
-			}
-		}
+		slog.Error("リトライポリシーの更新に失敗しました", "webhook_id", id, "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "リトライポリシーの更新に失敗しました"})
+		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"max_retries":         req.MaxRetries,
-		"retry_delay_seconds": req.RetryDelaySeconds,
-		"timeout_seconds":     req.TimeoutSeconds,
+		"max_retries":         policy.MaxRetries,
+		"retry_delay_seconds": policy.RetryDelaySeconds,
+		"timeout_seconds":     policy.TimeoutSeconds,
 	})
 }
 
 // UpdateEventTypes updates the subscribed event types for a webhook target.
 // PUT /api/v1/webhooks/:id/event-types
+//
+// Same shape as UpdateRetryPolicy above: the events column has always existed,
+// but the surrounding probe-and-fall-back-to-system_metadata structure meant a
+// schema change would have turned this silently inert too, and neither arm
+// noticed that the webhook did not exist.
 func (h *WebhookHandler) UpdateEventTypes(c *gin.Context) {
 	id := c.Param("id")
 	ctx := c.Request.Context()
@@ -359,45 +306,14 @@ func (h *WebhookHandler) UpdateEventTypes(c *gin.Context) {
 		return
 	}
 
-	// Check if events column exists (it does in the current schema as TEXT[]).
-	var colExists bool
-	_ = h.store.Pool().QueryRow(ctx, `
-		SELECT EXISTS (
-			SELECT 1 FROM information_schema.columns
-			WHERE table_schema = 'public' AND table_name = 'webhook_targets'
-			  AND column_name = 'events'
-		)`).Scan(&colExists)
-
-	if colExists {
-		_, err := h.store.Pool().Exec(ctx, `
-			UPDATE webhook_targets SET events = $2, updated_at = NOW() WHERE id = $1`,
-			id, req.EventTypes)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "イベントタイプの更新に失敗しました"})
+	if err := h.store.UpdateEvents(ctx, id, req.EventTypes); err != nil {
+		if errors.Is(err, store.ErrWebhookNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "webhookが見つかりません"})
 			return
 		}
-	} else {
-		// Fallback: store in system_metadata if available.
-		eventsJSON, _ := json.Marshal(req.EventTypes)
-		var metaColExists bool
-		_ = h.store.Pool().QueryRow(ctx, `
-			SELECT EXISTS (
-				SELECT 1 FROM information_schema.columns
-				WHERE table_schema = 'public' AND table_name = 'webhook_targets'
-				  AND column_name = 'system_metadata'
-			)`).Scan(&metaColExists)
-		if metaColExists {
-			_, err := h.store.Pool().Exec(ctx, `
-				UPDATE webhook_targets
-				SET system_metadata = COALESCE(system_metadata, '{}'::jsonb) ||
-				    jsonb_build_object('event_types', $2::jsonb),
-				    updated_at = NOW()
-				WHERE id = $1`, id, string(eventsJSON))
-			if err != nil {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "イベントタイプの更新に失敗しました"})
-				return
-			}
-		}
+		slog.Error("イベントタイプの更新に失敗しました", "webhook_id", id, "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "イベントタイプの更新に失敗しました"})
+		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{"event_types": req.EventTypes})

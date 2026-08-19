@@ -6,6 +6,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
+	"errors"
 	"log/slog"
 	"net/http"
 	"os"
@@ -17,6 +18,7 @@ import (
 	"github.com/edr-platform/server/internal/health"
 	"github.com/edr-platform/server/internal/ingestion"
 	"github.com/edr-platform/server/internal/metrics"
+	"github.com/edr-platform/server/internal/natsstream"
 	"github.com/edr-platform/server/internal/store"
 	"github.com/edr-platform/server/internal/telemetry"
 	"github.com/nats-io/nats.go"
@@ -105,7 +107,7 @@ func main() {
 	defer nc.Close()
 
 	// ─── JetStream streams ────────────────────────────────────
-	if err := ingestion.EnsureStreams(nc); err != nil {
+	if err := natsstream.Ensure(context.Background(), nc); err != nil {
 		slog.Warn("JetStreamストリームのセットアップに失敗しました（NATS JetStream未対応環境の可能性）", "error", err)
 		// Non-fatal: fallback to plain NATS publish in the server
 	} else {
@@ -123,6 +125,53 @@ func main() {
 	// ─── Ingestion Server ─────────────────────────────────────
 	agentStore := store.NewAgentStore(db)
 	server := ingestion.NewServer(&agentStoreAdapter{agentStore}, db.Pool(), nc, dispatcher, creds)
+
+	// アンインストール保護の材料を gRPC のハートビート応答にも載せる。
+	//
+	// HTTP 側 (agents_handler) だけに載せると、`FallbackSender` が gRPC を
+	// 先に試す以上、gRPC が生きている通常時に端末へ届きません。検証は
+	// 通信が切れた状態でも走るため、必要になってから取りに行くことは
+	// できず、事前に置いてあることが前提の機能です。
+	guardStore := store.NewUninstallProtectionStore(db.Pool())
+	server.SetUninstallGuardProvider(func(ctx context.Context, agentID string) map[string]any {
+		var tenantID string
+		if err := db.Pool().QueryRow(ctx,
+			`SELECT COALESCE(tenant_id::text, '') FROM agents WHERE id = $1::uuid`,
+			agentID).Scan(&tenantID); err != nil {
+			slog.Warn("[uninstall] 端末のテナントを引けませんでした（今回は送出せず継続）",
+				"agent", agentID, "error", err)
+			return nil
+		}
+		if tenantID == "" {
+			return nil
+		}
+		// 引いたテナントを ctx に載せます。**載せないと PrepareConn は
+		// `app.tenant_id` を張りません。** uninstall_guards の RLS からは
+		// 「未設定なら全テナント可」の抜け道を落としたので (migration 446)、
+		// 張らないままだとこの取得は 0 件になります。
+		ctx = context.WithValue(ctx, store.TenantContextKey{}, tenantID)
+		g, err := guardStore.GetGuard(ctx, tenantID)
+		if errors.Is(err, store.ErrNoUninstallGuard) {
+			// パスワード未設定。送るものが無いだけで、異常ではない。
+			return nil
+		}
+		if err != nil {
+			// **「設定が無い」と「引けなかった」を同じ nil に潰さない。**
+			// 送出しないのは同じだが、こちらは記録が要る。端末は手持ちの
+			// 設定を保持するので、保護が外れることはない。
+			slog.Warn("[uninstall] 保護設定を引けませんでした（今回は送出せず継続）",
+				"agent", agentID, "error", err)
+			return nil
+		}
+		return map[string]any{
+			"version":    g.Version,
+			"algorithm":  g.Algorithm,
+			"iterations": g.Iterations,
+			"salt":       g.SaltB64,
+			"digest":     g.DigestB64,
+			"updated_at": g.UpdatedAt,
+		}
+	})
 
 	addr := ":" + grpcPort
 

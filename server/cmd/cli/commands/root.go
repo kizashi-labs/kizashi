@@ -26,7 +26,8 @@ var rootCmd = &cobra.Command{
 例:
   edr-cli agents list
   edr-cli alerts list --severity critical
-  edr-cli rules export --format sigma`,
+  edr-cli rules export --format sigma
+  edr-cli suppressions audit`,
 	Version: "1.0.0",
 }
 
@@ -53,6 +54,7 @@ func init() {
 		newUsersCmd(),
 		newBackupCmd(),
 		newStatusCmd(),
+		newSuppressionsCmd(),
 	)
 }
 

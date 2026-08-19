@@ -40,6 +40,18 @@ type ProcessEvent struct {
 	IntegrityLevel string // Sigma IntegrityLevel
 	// Windows logon session ID as the Sysmon hex LUID (e.g. "0x3e7" = SYSTEM).
 	LogonID string // Sigma LogonId
+	// The parent process, resolved on the endpoint by ParentResolver (parent.go)
+	// while the parent is still alive, and filled centrally from PPID. A sensor
+	// that gets the parent from the kernel alongside the child may set these
+	// directly instead; none does today. Empty when the parent exited before the
+	// child was observed. See parent.go for why ppid alone was never enough.
+	ParentName  string // Sigma ParentImage (basename)
+	ParentImage string // Sigma ParentImage (full path)
+	// Container containment, derived from /proc on Linux (container.go). Zero
+	// when the process is not in a container, or on a platform where the agent
+	// cannot tell. container_name / image_name are not here: they are runtime
+	// bookkeeping rather than kernel state and would need a runtime API client.
+	Container ContainerContext
 }
 
 type FileEvent struct {
@@ -101,6 +113,20 @@ type AuthEvent struct {
 	AuthMethod string
 	FailReason string
 	LogonType  string // Windows 4624/4625 LogonType (e.g. "3"=Network, "10"=RDP); "" on non-Windows
+	// EventID is the raw Windows Security-log event id (4624/4625/4634/4672/
+	// 4765/4766/4768/4769); 0 on non-Windows.
+	//
+	// 数値で持つ。読む側 (detection の auth_attack と、SID-History を Sigma の
+	// EventID に出す門) が toFloat64 を通しており、文字列を受け取らない。
+	// SID-History (4765/4766) は他に区別できる欄が無いため、これが無いと
+	// ルールの書き方に関わらず検知できない。
+	EventID uint32
+	// Kerberos service-ticket fields, from Security 4769 (TGS-REQ). Empty for
+	// every other kind of authentication. TargetSPN is the ServiceName; the
+	// encryption type is the hex string Windows logs (0x17/0x18 = RC4, i.e.
+	// crackable offline — the Kerberoasting signal). See kerberos.go.
+	TargetSPN            string
+	TicketEncryptionType string
 }
 
 // ImageLoadEvent records a module/DLL load (for DLL side-loading detection).

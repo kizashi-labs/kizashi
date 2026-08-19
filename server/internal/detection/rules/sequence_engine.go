@@ -44,12 +44,20 @@
 package rules
 
 import (
+	"errors"
 	"fmt"
+	"log/slog"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
 )
+
+// errNotSequenceRule marks a behavioral rule that simply is not a sequence
+// rule, as distinct from one that is malformed. The caller skips the first
+// silently and reports the second; conflating them is how a kill-chain rule
+// with a typo disappeared without a word.
+var errNotSequenceRule = errors.New("not a sequence rule")
 
 // timedEvent is a lightweight snapshot stored in the ring buffer.
 type timedEvent struct {
@@ -87,6 +95,19 @@ type sequenceStage struct {
 	tokens    []string // lowercased substring tokens; event matches the stage if field contains ANY
 	eventType string   // "" = fall back to the rule's event_type
 	field     string   // "" = fall back to the rule's field
+	// exclude drops events that would otherwise match this stage, tested against
+	// excludeField (defaulting to the stage's own field). It exists because some
+	// events are the right *kind* yet cannot be the thing the rule is looking for.
+	//
+	// The case that motivated it: brute-force rules count auth failures, but a
+	// failure whose reason is "password has expired" or "password must be changed"
+	// is not a guess — those responses require the submitted password to have been
+	// CORRECT. An attacker guessing passwords never sees them. Counting them made
+	// benign password-expiry clusters (which every fleet produces daily) look like
+	// credential attacks. Excluding them removes false positives without touching
+	// what the rule can still detect.
+	exclude      []string
+	excludeField string
 }
 
 // SequenceEngine maintains per-agent event ring buffers and evaluates
@@ -100,6 +121,9 @@ type SequenceEngine struct {
 	lastFire map[string]time.Time
 	// maxWindow is the largest window across all rules; used for pruning.
 	maxWindow time.Duration
+	// malformed counts rules that meant to be sequence rules and could not be
+	// parsed at the last load.
+	malformed int
 }
 
 // NewSequenceEngine creates an empty SequenceEngine.
@@ -118,19 +142,47 @@ func (e *SequenceEngine) LoadRules(rules []*DetectionRule) {
 	e.rules = nil
 	e.maxWindow = 0
 
+	malformed := 0
 	for _, r := range rules {
 		if r.Type != "behavioral" || !r.Enabled {
 			continue
 		}
 		sr, err := parseSequenceRule(r)
 		if err != nil {
-			continue // not a sequence rule (plain key:value behavioral rule)
+			// Two different things arrive here and they were treated alike.
+			//
+			// errNotSequenceRule means the rule is a plain key:value
+			// behavioral rule and belongs to another evaluator — skipping is
+			// right. Anything else means the author wrote `window:` and
+			// `threshold:`/`stages:`, meant a sequence rule, and got one
+			// character wrong. That rule was dropped here without a word, so
+			// a kill-chain rule with `window: 5x` simply never fired and
+			// nothing anywhere said so.
+			if !errors.Is(err, errNotSequenceRule) {
+				slog.Warn("シーケンスルールを解釈できませんでした(未評価)",
+					"rule", r.Name, "id", r.ID, "error", err)
+				malformed++
+			}
+			continue
 		}
 		e.rules = append(e.rules, sr)
 		if sr.window > e.maxWindow {
 			e.maxWindow = sr.window
 		}
 	}
+	e.malformed = malformed
+	if malformed > 0 {
+		slog.Warn("解釈できないシーケンスルールがあります", "loaded", len(e.rules), "malformed", malformed)
+	}
+}
+
+// Malformed reports how many behavioral rules looked like sequence rules and
+// could not be parsed at the last load. Zero is the only healthy value: each
+// one is a rule an operator wrote, enabled, and believes is running.
+func (e *SequenceEngine) Malformed() int {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	return e.malformed
 }
 
 // Observe records a new event and returns any sequence rule matches.
@@ -173,7 +225,10 @@ func (e *SequenceEngine) observeAt(agentID, eventType string, evt map[string]any
 	// Evaluate rules
 	var matches []*RuleMatch
 	for _, sr := range e.rules {
-		gk := e.groupKeyFor(sr, te)
+		gk, ok := e.groupKeyFor(sr, te)
+		if !ok {
+			continue // this event has no value for the rule's partition field
+		}
 		buf := e.buffers[gk]
 		if buf == nil {
 			continue
@@ -332,7 +387,36 @@ func (e *SequenceEngine) stageEventField(sr *sequenceRule, stageIdx int, ev time
 	if !ok {
 		return false
 	}
+	if stageExcluded(st, field, ev) {
+		return false
+	}
 	return match(v)
+}
+
+// stageExcluded reports whether the event hits one of the stage's exclude tokens.
+//
+// The exclusion is checked against excludeField when given, otherwise the stage's
+// own field. A rule that excludes on a field the event does not carry keeps the
+// event: absence is not evidence, and dropping on a missing field would silently
+// disable the stage for every producer that does not populate it.
+func stageExcluded(st sequenceStage, stageField string, ev timedEvent) bool {
+	if len(st.exclude) == 0 {
+		return false
+	}
+	field := st.excludeField
+	if field == "" {
+		field = stageField
+	}
+	v, ok := ev.fields[field]
+	if !ok {
+		return false
+	}
+	for _, tok := range st.exclude {
+		if tok != "" && strings.Contains(v, tok) {
+			return true
+		}
+	}
+	return false
 }
 
 // stageMatches reports whether field value v contains any of the stage's substring
@@ -351,19 +435,41 @@ func stageMatches(st sequenceStage, v string) bool {
 func (e *SequenceEngine) groupKeysForEvent(te timedEvent) map[string]struct{} {
 	seen := make(map[string]struct{})
 	for _, sr := range e.rules {
-		gk := e.groupKeyFor(sr, te)
-		seen[gk] = struct{}{}
+		if gk, ok := e.groupKeyFor(sr, te); ok {
+			seen[gk] = struct{}{}
+		}
 	}
 	return seen
 }
 
-func (e *SequenceEngine) groupKeyFor(sr *sequenceRule, te timedEvent) string {
+// groupKeyFor returns the buffer key this event occupies for the rule, and
+// whether the event may participate at all.
+//
+// An event is EXCLUDED when the rule partitions on an explicit field and this
+// event carries no value for it. A correlation that says "N failures then a
+// success FROM THE SAME SOURCE" asserts nothing if the source is unknown, and
+// lumping every such event into one shared bucket manufactures relationships
+// between unrelated activity.
+//
+// This was not theoretical. Migration 338 (`ブルートフォース成功`, group_by
+// source_ip) reasoned in its own comment that sudo/su failures land in the ""
+// bucket while SSH logins carry a real IP, so the two never mix. That holds only
+// where logins are remote. On a workstation the login is local and ALSO has no
+// source_ip, so benign typo-then-login sequences collapsed into the "" bucket and
+// fired the rule. The 2026-08-04 FP soak measured it at 12,599.96 /1000 hosts/day
+// (21 alerts) on the developer and IT-admin profiles.
+//
+// agent_id is exempt: it is the default partition and is always populated.
+func (e *SequenceEngine) groupKeyFor(sr *sequenceRule, te timedEvent) (string, bool) {
 	groupField := sr.groupBy
 	if groupField == "" || groupField == "agent_id" {
-		return sr.rule.ID + "|" + te.agentID
+		return sr.rule.ID + "|" + te.agentID, true
 	}
 	groupVal := te.fields[strings.ToLower(groupField)]
-	return sr.rule.ID + "|" + groupField + "=" + groupVal
+	if strings.TrimSpace(groupVal) == "" {
+		return "", false
+	}
+	return sr.rule.ID + "|" + groupField + "=" + groupVal, true
 }
 
 // ─── Parsing ──────────────────────────────────────────────────
@@ -379,7 +485,7 @@ func parseSequenceRule(r *DetectionRule) (*sequenceRule, error) {
 
 	// A rule needs a window plus either a threshold (count rule) or stages (kill chain).
 	if !hasWindow || (!hasThreshold && !hasStages) {
-		return nil, fmt.Errorf("not a sequence rule")
+		return nil, errNotSequenceRule
 	}
 
 	window, err := parseDuration(windowStr)
@@ -397,9 +503,23 @@ func parseSequenceRule(r *DetectionRule) (*sequenceRule, error) {
 			return nil, fmt.Errorf("invalid threshold '%s'", thresholdStr)
 		}
 	}
-	if len(stages) > 0 && len(stages) < 2 {
-		return nil, fmt.Errorf("staged rule needs at least 2 stages")
+	// `stages:` was given, so this rule is a kill chain and needs at least two
+	// of them. Checking len(stages) alone let a malformed one through:
+	// `stages: process_created` parses to zero stages, which is neither > 0 nor
+	// < 2, so the guard did not fire — and with no explicit threshold the rule
+	// then took threshold = len(stages) = 0 and matched on the first event it
+	// saw. A typo turned a kill-chain rule into an alert on every process
+	// creation.
+	if hasStages && len(stages) < 2 {
+		return nil, fmt.Errorf("staged rule needs at least 2 stages, parsed %d from %q",
+			len(stages), stagesStr)
 	}
+	// There is deliberately no separate `threshold < 1` floor here. With the
+	// two branches above it would be unreachable — an explicit threshold is
+	// rejected by `threshold < 1` where it is parsed, and a staged rule cannot
+	// reach this point with fewer than two stages — and an unreachable guard is
+	// indistinguishable from a deleted one. TestNoLoadedRuleMatchesBeforeAnyEvent
+	// asserts the property directly instead, over the loaded rules.
 
 	sr := &sequenceRule{
 		rule:            r,
@@ -497,6 +617,10 @@ func parseStages(directives map[string]string, stagesStr string, hasStages bool)
 			// stage_N_field); empty falls back to the rule-level event_type/field.
 			eventType: strings.TrimSpace(directives[fmt.Sprintf("stage_%d_event_type", i)]),
 			field:     strings.ToLower(strings.TrimSpace(directives[fmt.Sprintf("stage_%d_field", i)])),
+			// stage_N_exclude / stage_N_exclude_field drop events that match the
+			// stage but cannot be what the rule is after (see sequenceStage).
+			exclude:      parseValueAny(directives[fmt.Sprintf("stage_%d_exclude", i)]),
+			excludeField: strings.ToLower(strings.TrimSpace(directives[fmt.Sprintf("stage_%d_exclude_field", i)])),
 		})
 	}
 	return stages
@@ -547,6 +671,16 @@ func matchesFilter(sr *sequenceRule, ev timedEvent) bool {
 //   - entries beginning with "." (e.g. ".locked", ".encrypted") are treated as
 //     suffix/extension tokens and matched by SUBSTRING (a file "x.locked"
 //     contains ".locked"). The ransomware file-extension rule relies on this.
+//   - entries containing whitespace (e.g. "btrfs subvolume delete", "rm -rf
+//     /var/backups") are command-line PHRASES, not process names, and are also
+//     matched by SUBSTRING. A basename can never contain a space, so the exact
+//     match below could not match them under any input — a rule author who
+//     wrote a phrase got a rule that loaded, showed as enabled, and was
+//     incapable of ever firing. The Linux recovery-inhibition rule (migration
+//     445) is the first to use this shape; before the fix it silently detected
+//     nothing. Use `stage_N:` if you need phrases in a multi-stage kill chain —
+//     those were substring-matched all along, which is why the Windows
+//     equivalent worked and this did not.
 //   - all other entries (command/process names) are matched by EXACT basename
 //     (path stripped, a trailing ".exe" removed). This lets terse Linux command
 //     names (ps, id, ss, ip) be listed without "ss" wrongly matching "sshd",
@@ -562,7 +696,7 @@ func valueMatches(sr *sequenceRule, v string) bool {
 	base := procBasename(v)
 	for _, want := range sr.valueAny {
 		w := strings.ToLower(strings.TrimSpace(want))
-		if strings.HasPrefix(w, ".") {
+		if strings.HasPrefix(w, ".") || strings.ContainsAny(w, " \t") {
 			if strings.Contains(lv, w) {
 				return true
 			}

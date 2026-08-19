@@ -52,5 +52,5 @@ func TestChecker_DBPaths(t *testing.T) {
 	if _, err := c.GetFleetCompliance(ctx); err != nil {
 		t.Fatalf("GetFleetCompliance: %v", err)
 	}
-	_ = c.GetComplianceStats(ctx)
+	_, _ = c.GetComplianceStats(ctx)
 }

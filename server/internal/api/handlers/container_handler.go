@@ -22,19 +22,11 @@ func NewContainerHandler(pool *pgxpool.Pool) *ContainerHandler {
 }
 
 func (h *ContainerHandler) workloadTableExists(c *gin.Context) bool {
-	ctx := c.Request.Context()
-	var exists bool
-	_ = h.pool.QueryRow(ctx,
-		`SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name='container_workloads')`).Scan(&exists)
-	return exists
+	return tableIsThere(c.Request.Context(), h.pool, "container_workloads")
 }
 
 func (h *ContainerHandler) eventTableExists(c *gin.Context) bool {
-	ctx := c.Request.Context()
-	var exists bool
-	_ = h.pool.QueryRow(ctx,
-		`SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name='container_events')`).Scan(&exists)
-	return exists
+	return tableIsThere(c.Request.Context(), h.pool, "container_events")
 }
 
 type containerWorkload struct {
@@ -327,8 +319,11 @@ func (h *ContainerHandler) GetStats(c *gin.Context) {
 	ctx := c.Request.Context()
 
 	// By cluster
-	clusterRows, _ := h.pool.Query(ctx,
+	clusterRows, err := h.pool.Query(ctx,
 		`SELECT cluster_name, COUNT(*) FROM container_workloads GROUP BY cluster_name ORDER BY COUNT(*) DESC`)
+	if !ReadOK(c, err) {
+		return
+	}
 	type clusterCount struct {
 		ClusterName string `json:"cluster_name"`
 		Count       int    `json:"count"`
@@ -351,8 +346,11 @@ func (h *ContainerHandler) GetStats(c *gin.Context) {
 	}
 
 	// By status
-	statusRows, _ := h.pool.Query(ctx,
+	statusRows, err := h.pool.Query(ctx,
 		`SELECT status, COUNT(*) FROM container_workloads GROUP BY status`)
+	if !ReadOK(c, err) {
+		return
+	}
 	type statusCount struct {
 		Status string `json:"status"`
 		Count  int    `json:"count"`
@@ -376,16 +374,20 @@ func (h *ContainerHandler) GetStats(c *gin.Context) {
 
 	// Risk buckets
 	var low, medium, high, critical int
-	_ = h.pool.QueryRow(ctx,
+	if !ReadOK(c, h.pool.QueryRow(ctx,
 		`SELECT
-		  COUNT(*) FILTER (WHERE risk_score < 25),
-		  COUNT(*) FILTER (WHERE risk_score >= 25 AND risk_score < 50),
-		  COUNT(*) FILTER (WHERE risk_score >= 50 AND risk_score < 75),
-		  COUNT(*) FILTER (WHERE risk_score >= 75)
-		 FROM container_workloads`).Scan(&low, &medium, &high, &critical)
+			  COUNT(*) FILTER (WHERE risk_score < 25),
+			  COUNT(*) FILTER (WHERE risk_score >= 25 AND risk_score < 50),
+			  COUNT(*) FILTER (WHERE risk_score >= 50 AND risk_score < 75),
+			  COUNT(*) FILTER (WHERE risk_score >= 75)
+			 FROM container_workloads`).Scan(&low, &medium, &high, &critical)) {
+		return
+	}
 
 	var total int
-	_ = h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM container_workloads`).Scan(&total)
+	if !ReadOK(c, h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM container_workloads`).Scan(&total)) {
+		return
+	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"total":      total,

@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"log/slog"
 	"net/http"
 	"strings"
 	"time"
@@ -25,10 +26,7 @@ func NewInsiderThreatHandler(pool *pgxpool.Pool) *InsiderThreatHandler {
 }
 
 func (h *InsiderThreatHandler) tableExists(ctx *gin.Context, name string) bool {
-	var ok bool
-	_ = h.pool.QueryRow(ctx.Request.Context(),
-		`SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name=$1)`, name).Scan(&ok)
-	return ok
+	return tableIsThere(ctx.Request.Context(), h.pool, name)
 }
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -82,26 +80,38 @@ type itInvestigation struct {
 func (h *InsiderThreatHandler) ListUsers(c *gin.Context) {
 	ctx := c.Request.Context()
 
-	// Derive users with risk scores from ueba_anomalies
+	// Derive users with risk scores from ueba_anomalies.
+	//
+	// users には username 列も display_name 列も無い（実在するのは email と
+	// full_name）。以前ここは `LEFT JOIN users u ON u.username = ua.username`
+	// だったので、クエリ全体が
+	//
+	//	ERROR:  column u.username does not exist
+	//
+	// で失敗し、下の err ハンドラが空配列を返していた。画面上は「リスクユーザ
+	// なし」としか見えないため、UEBA が異常を検知していても気付けない。
+	//
+	// ua.username はテレメトリ由来の OS ユーザ名であり、users のコンソール
+	// アカウント（メールアドレス）とは別の名前空間なので、結合キーがそもそも
+	// 存在しない。突き合わせられるようになるまでは UEBA 側の値だけで答える。
 	rows, err := h.pool.Query(ctx, `
 		SELECT
-			COALESCE(u.id::text, ua.username) AS id,
+			ua.username AS id,
 			ua.username AS name,
-			COALESCE(u.email, '') AS email,
+			'' AS email,
 			'Unknown' AS department,
-			COALESCE(u.role, 'user') AS title,
+			'user' AS title,
 			LEAST(COALESCE(SUM(ua.score), 0), 100) AS risk_score,
 			COUNT(*) FILTER (WHERE ua.created_at >= NOW() - INTERVAL '7 days') AS anomaly_count_week,
 			MAX(ua.created_at) AS last_anomaly
 		FROM ueba_anomalies ua
-		LEFT JOIN users u ON u.email = ua.username
 		WHERE ua.status != 'false_positive'
-		GROUP BY ua.username, u.id, u.email, u.role
+		GROUP BY ua.username
 		ORDER BY risk_score DESC
 		LIMIT 100
 	`)
 	if err != nil {
-		c.JSON(http.StatusOK, []itRiskUser{})
+		ReadFailure(c, err, []itRiskUser{})
 		return
 	}
 	defer rows.Close()
@@ -120,6 +130,11 @@ func (h *InsiderThreatHandler) ListUsers(c *gin.Context) {
 		u.RiskIndicators = []string{}
 		u.Trend = "stable"
 		users = append(users, u)
+	}
+	if err := rows.Err(); err != nil {
+		slog.Warn("ListUsers: 結果セットの読み取りが途中で終わりました。応答は不完全です", "error", err)
+		c.JSON(http.StatusOK, []itRiskUser{})
+		return
 	}
 	if users == nil {
 		users = []itRiskUser{}
@@ -141,7 +156,7 @@ func (h *InsiderThreatHandler) ListEvents(c *gin.Context) {
 			ORDER BY created_at DESC LIMIT 100
 		`)
 		if err != nil {
-			c.JSON(http.StatusOK, []itBehaviorEvent{})
+			ReadFailure(c, err, []itBehaviorEvent{})
 			return
 		}
 		defer rows.Close()
@@ -168,6 +183,11 @@ func (h *InsiderThreatHandler) ListEvents(c *gin.Context) {
 			e.Details = e.Description
 			events = append(events, e)
 		}
+		if err := rows.Err(); err != nil {
+			slog.Warn("ListEvents: 結果セットの読み取りが途中で終わりました。応答は不完全です", "error", err)
+			c.JSON(http.StatusOK, []itBehaviorEvent{})
+			return
+		}
 		if events == nil {
 			events = []itBehaviorEvent{}
 		}
@@ -180,7 +200,7 @@ func (h *InsiderThreatHandler) ListEvents(c *gin.Context) {
 		FROM insider_threat_events ORDER BY timestamp DESC LIMIT 200
 	`)
 	if err != nil {
-		c.JSON(http.StatusOK, []itBehaviorEvent{})
+		ReadFailure(c, err, []itBehaviorEvent{})
 		return
 	}
 	defer rows.Close()
@@ -194,6 +214,11 @@ func (h *InsiderThreatHandler) ListEvents(c *gin.Context) {
 		}
 		e.Timestamp = ts.Format(time.RFC3339)
 		events = append(events, e)
+	}
+	if err := rows.Err(); err != nil {
+		slog.Warn("ListEvents: 結果セットの読み取りが途中で終わりました。応答は不完全です", "error", err)
+		c.JSON(http.StatusOK, []itBehaviorEvent{})
+		return
 	}
 	if events == nil {
 		events = []itBehaviorEvent{}
@@ -218,7 +243,7 @@ func (h *InsiderThreatHandler) ListInvestigations(c *gin.Context) {
 		FROM insider_threat_investigations ORDER BY created_at DESC
 	`)
 	if err != nil {
-		c.JSON(http.StatusOK, []itInvestigation{})
+		ReadFailure(c, err, []itInvestigation{})
 		return
 	}
 	defer rows.Close()
@@ -244,6 +269,11 @@ func (h *InsiderThreatHandler) ListInvestigations(c *gin.Context) {
 			inv.RiskIndicators = json.RawMessage(`[]`)
 		}
 		list = append(list, inv)
+	}
+	if err := rows.Err(); err != nil {
+		slog.Warn("ListInvestigations: 結果セットの読み取りが途中で終わりました。応答は不完全です", "error", err)
+		c.JSON(http.StatusOK, []itInvestigation{})
+		return
 	}
 	if list == nil {
 		list = []itInvestigation{}
@@ -313,23 +343,38 @@ func (h *InsiderThreatHandler) GetStats(c *gin.Context) {
 	}
 
 	// high risk users (risk score >= 70) from ueba_anomalies
+	//
+	// **数えるのは利用者の人数です。** 以前は `GROUP BY username` した表を
+	// そのまま QueryRow で読んでいました。グループごとに
+	// `COUNT(DISTINCT username)` は必ず 1 なので、**該当者が何人いても
+	// 1 が返り**、1人もいなければ行が無く（ErrNoRows は「まだ無い」として
+	// 通るので）0 になります。**0 か 1 しか出ない欄でした。**
+	// 数えるべきは、条件を満たしたグループの数です。
 	var highRisk int
-	_ = h.pool.QueryRow(ctx, `
-		SELECT COUNT(DISTINCT username) FROM ueba_anomalies
-		WHERE status != 'false_positive' AND created_at >= NOW() - INTERVAL '30 days'
-		GROUP BY username HAVING LEAST(SUM(score), 100) >= 70
-	`).Scan(&highRisk)
+	if !ReadOK(c, h.pool.QueryRow(ctx, `
+			SELECT COUNT(*) FROM (
+				SELECT username FROM ueba_anomalies
+				WHERE status != 'false_positive' AND created_at >= NOW() - INTERVAL '30 days'
+				GROUP BY username HAVING LEAST(SUM(score), 100) >= 70
+			) AS high_risk
+		`).Scan(&highRisk)) {
+		return
+	}
 	stats["high_risk_users"] = highRisk
 
 	// total insider-threat-related alerts
 	var totalAlerts int
-	_ = h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM alerts WHERE source='insider_threat_detector'`).Scan(&totalAlerts)
+	if !ReadOK(c, h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM alerts WHERE source='insider_threat_detector'`).Scan(&totalAlerts)) {
+		return
+	}
 	stats["total_alerts"] = totalAlerts
 
 	// open cases
 	if h.tableExists(c, "insider_threat_investigations") {
 		var openCases int
-		_ = h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM insider_threat_investigations WHERE status IN ('open','in_progress')`).Scan(&openCases)
+		if !ReadOK(c, h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM insider_threat_investigations WHERE status IN ('open','in_progress')`).Scan(&openCases)) {
+			return
+		}
 		stats["open_cases"] = openCases
 	}
 
@@ -376,7 +421,7 @@ func (h *InsiderThreatHandler) ListIndicators(c *gin.Context) {
 		ORDER BY created_at DESC LIMIT 50
 	`)
 	if err != nil {
-		c.JSON(http.StatusOK, []BehaviorIndicator{})
+		ReadFailure(c, err, []BehaviorIndicator{})
 		return
 	}
 	defer rows.Close()
@@ -403,6 +448,11 @@ func (h *InsiderThreatHandler) ListIndicators(c *gin.Context) {
 			ind.Severity = "low"
 		}
 		indicators = append(indicators, ind)
+	}
+	if err := rows.Err(); err != nil {
+		slog.Warn("ListIndicators: 結果セットの読み取りが途中で終わりました。応答は不完全です", "error", err)
+		c.JSON(http.StatusOK, []BehaviorIndicator{})
+		return
 	}
 	if indicators == nil {
 		indicators = []BehaviorIndicator{}

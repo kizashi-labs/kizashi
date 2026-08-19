@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -22,10 +23,7 @@ func NewDarkWebHandler(pool *pgxpool.Pool) *DarkWebHandler {
 }
 
 func (h *DarkWebHandler) tableExists(c *gin.Context, name string) bool {
-	var ok bool
-	_ = h.pool.QueryRow(c.Request.Context(),
-		`SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name=$1)`, name).Scan(&ok)
-	return ok
+	return tableIsThere(c.Request.Context(), h.pool, name)
 }
 
 // ListFindings returns dark web findings.
@@ -54,7 +52,7 @@ func (h *DarkWebHandler) ListFindings(c *gin.Context) {
 		       COALESCE(preview,''), discovered_at, status
 		FROM dark_web_findings ORDER BY discovered_at DESC LIMIT 200`)
 	if err != nil {
-		c.JSON(http.StatusOK, []Finding{})
+		ReadFailure(c, err, []Finding{})
 		return
 	}
 	defer rows.Close()
@@ -68,6 +66,11 @@ func (h *DarkWebHandler) ListFindings(c *gin.Context) {
 			f.DiscoveredAt = ts.Format(time.RFC3339)
 			findings = append(findings, f)
 		}
+	}
+	if err := rows.Err(); err != nil {
+		slog.Warn("ListFindings: 結果セットの読み取りが途中で終わりました。応答は不完全です", "error", err)
+		c.JSON(http.StatusOK, []Finding{})
+		return
 	}
 	if findings == nil {
 		findings = []Finding{}
@@ -88,8 +91,10 @@ func (h *DarkWebHandler) UpdateFinding(c *gin.Context) {
 	}
 
 	if h.tableExists(c, "dark_web_findings") {
-		_, _ = h.pool.Exec(c.Request.Context(),
-			`UPDATE dark_web_findings SET status=$2, updated_at=NOW() WHERE id=$1`, id, in.Status)
+		if _, err := h.pool.Exec(c.Request.Context(),
+			`UPDATE dark_web_findings SET status=$2, updated_at=NOW() WHERE id=$1`, id, in.Status); !WriteOK(c, err) {
+			return
+		}
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "updated"})
 }
@@ -118,7 +123,7 @@ func (h *DarkWebHandler) ListKeywords(c *gin.Context) {
 		       last_match_date, match_count
 		FROM dark_web_keywords ORDER BY created_at DESC`)
 	if err != nil {
-		c.JSON(http.StatusOK, []Keyword{})
+		ReadFailure(c, err, []Keyword{})
 		return
 	}
 	defer rows.Close()
@@ -134,6 +139,11 @@ func (h *DarkWebHandler) ListKeywords(c *gin.Context) {
 			}
 			keywords = append(keywords, k)
 		}
+	}
+	if err := rows.Err(); err != nil {
+		slog.Warn("ListKeywords: 結果セットの読み取りが途中で終わりました。応答は不完全です", "error", err)
+		c.JSON(http.StatusOK, []Keyword{})
+		return
 	}
 	if keywords == nil {
 		keywords = []Keyword{}
@@ -156,8 +166,10 @@ func (h *DarkWebHandler) ListIntegrations(c *gin.Context) {
 	if h.tableExists(c, "integration_configs") {
 		for i, integ := range integrations {
 			var enabled bool
-			_ = h.pool.QueryRow(ctx,
-				`SELECT enabled FROM integration_configs WHERE integ_type=$1`, integ["id"]).Scan(&enabled)
+			if !ReadOK(c, h.pool.QueryRow(ctx,
+				`SELECT enabled FROM integration_configs WHERE integ_type=$1`, integ["id"]).Scan(&enabled)) {
+				return
+			}
 			integrations[i]["configured"] = enabled
 		}
 	}

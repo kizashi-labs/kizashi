@@ -115,7 +115,9 @@ func (h *ForensicsHandler) ListJobs(c *gin.Context) {
 		jobs = append(jobs, j)
 	}
 	if err := rows.Err(); err != nil {
-		slog.Warn("row iteration error", "error", err)
+		slog.Error("rows.Err: 結果の読み出しが途中で失敗しました", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "クエリに失敗しました"})
+		return
 	}
 
 	c.JSON(http.StatusOK, jobs)

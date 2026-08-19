@@ -56,8 +56,7 @@ func (h *SupplyChainRiskHandler) AssessVendor(c *gin.Context) {
 	id := c.Param("id")
 	ctx := c.Request.Context()
 
-	var exists bool
-	_ = h.pool.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM pg_tables WHERE schemaname='public' AND tablename='supply_chain_vendors')`).Scan(&exists)
+	exists := tableIsThere(ctx, h.pool, "supply_chain_vendors")
 	if !exists {
 		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "評価エンジンが利用できません"})
 		return

@@ -20,10 +20,7 @@ func NewAccessReviewHandler(pool *pgxpool.Pool) *AccessReviewHandler {
 }
 
 func (h *AccessReviewHandler) tableExists(c *gin.Context) bool {
-	var ok bool
-	_ = h.pool.QueryRow(c.Request.Context(),
-		`SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name='access_review_campaigns')`).Scan(&ok)
-	return ok
+	return tableIsThere(c.Request.Context(), h.pool, "access_review_campaigns")
 }
 
 type arCampaign struct {
@@ -75,6 +72,10 @@ func (h *AccessReviewHandler) ListCampaigns(c *gin.Context) {
 		ac.DueDate = dueDate.Format("2006-01-02")
 		ac.CreatedAt = createdAt.Format(time.RFC3339)
 		campaigns = append(campaigns, ac)
+	}
+	if err := rows.Err(); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to list campaigns"})
+		return
 	}
 	if campaigns == nil {
 		campaigns = []arCampaign{}
@@ -153,6 +154,10 @@ func (h *AccessReviewHandler) ListItems(c *gin.Context) {
 			continue
 		}
 		items = append(items, it)
+	}
+	if err := rows.Err(); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to list items"})
+		return
 	}
 	if items == nil {
 		items = []arItem{}

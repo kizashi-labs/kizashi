@@ -2,7 +2,6 @@ package store
 
 import (
 	"encoding/json"
-	"strings"
 	"testing"
 	"time"
 )
@@ -180,95 +179,11 @@ func TestResponseAction_ErrorOnlyOnFailure(t *testing.T) {
 
 // ─── レスポンスアクション クエリビルダーロジックテスト ────────────────────────
 
-// buildResponseActionWhere は response_actions の LIST クエリの WHERE 句構築を再現するヘルパー
-func buildResponseActionWhere(agentID, actionType, status string) (string, []interface{}) {
-	where := "WHERE 1=1"
-	args := []interface{}{}
-	idx := 1
+// 対応アクション一覧の絞り込みには、**製品側に対応する組み立てが
+// ありません。** `List` の WHERE は `ra.agent_id = $1` の固定です。
+//
+// 写しは消します。**繋ぐ先がないものを繋いだふりはしません。**
 
-	if agentID != "" {
-		where += " AND agent_id = $" + itoa(idx)
-		args = append(args, agentID)
-		idx++
-	}
-	if actionType != "" {
-		where += " AND action_type = $" + itoa(idx)
-		args = append(args, actionType)
-		idx++
-	}
-	if status != "" {
-		where += " AND status = $" + itoa(idx)
-		args = append(args, status)
-		idx++
-	}
-	_ = idx
-	return where, args
-}
-
-// TestBuildResponseActionWhere_EmptyFilter は全フィルターが空のとき "WHERE 1=1" であることを確認する
-func TestBuildResponseActionWhere_EmptyFilter(t *testing.T) {
-	where, args := buildResponseActionWhere("", "", "")
-	if where != "WHERE 1=1" {
-		t.Errorf("空フィルターは \"WHERE 1=1\" のはず: got %q", where)
-	}
-	if len(args) != 0 {
-		t.Errorf("空フィルターは引数なしのはず: got %v", args)
-	}
-}
-
-// TestBuildResponseActionWhere_AgentIDFilter は AgentID フィルターが条件を追加することを確認する
-func TestBuildResponseActionWhere_AgentIDFilter(t *testing.T) {
-	where, args := buildResponseActionWhere("agent-001", "", "")
-	if !strings.Contains(where, "agent_id") {
-		t.Errorf("agent_id 条件が含まれるべき: %q", where)
-	}
-	if len(args) != 1 || args[0] != "agent-001" {
-		t.Errorf("args = %v, want [agent-001]", args)
-	}
-}
-
-// TestBuildResponseActionWhere_ActionTypeFilter は actionType フィルターが条件を追加することを確認する
-func TestBuildResponseActionWhere_ActionTypeFilter(t *testing.T) {
-	where, args := buildResponseActionWhere("", "isolate", "")
-	if !strings.Contains(where, "action_type") {
-		t.Errorf("action_type 条件が含まれるべき: %q", where)
-	}
-	if len(args) != 1 || args[0] != "isolate" {
-		t.Errorf("args = %v, want [isolate]", args)
-	}
-}
-
-// TestBuildResponseActionWhere_StatusFilter は status フィルターが条件を追加することを確認する
-func TestBuildResponseActionWhere_StatusFilter(t *testing.T) {
-	where, args := buildResponseActionWhere("", "", "success")
-	if !strings.Contains(where, "status") {
-		t.Errorf("status 条件が含まれるべき: %q", where)
-	}
-	if len(args) != 1 || args[0] != "success" {
-		t.Errorf("args = %v, want [success]", args)
-	}
-}
-
-// TestBuildResponseActionWhere_AllFilters は全フィルターが組み合わさったとき引数が3件であることを確認する
-func TestBuildResponseActionWhere_AllFilters(t *testing.T) {
-	where, args := buildResponseActionWhere("agent-abc", "quarantine_file", "failure")
-	if !strings.Contains(where, "agent_id") {
-		t.Errorf("agent_id 条件が含まれるべき: %q", where)
-	}
-	if !strings.Contains(where, "action_type") {
-		t.Errorf("action_type 条件が含まれるべき: %q", where)
-	}
-	if !strings.Contains(where, "status") {
-		t.Errorf("status 条件が含まれるべき: %q", where)
-	}
-	if len(args) != 3 {
-		t.Errorf("全フィルターで引数 3 件のはず: got %d (%v)", len(args), args)
-	}
-}
-
-// ─── アクションタイプバリデーションロジックテスト ────────────────────────────
-
-// isValidResponseActionType はレスポンスアクションタイプが有効かを確認するピュア関数
 func isValidResponseActionType(actionType string) bool {
 	switch actionType {
 	case "isolate", "unisolate", "kill_process", "delete_file",

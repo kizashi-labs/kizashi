@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"fmt"
+	"log/slog"
 	"math"
 	"net/http"
 	"strconv"
@@ -37,13 +38,15 @@ func (h *OpsReportHandler) GetReport(c *gin.Context) {
 		//
 		// 'quarantine' は agents_status_check に存在しない値で、この FILTER は
 		// 常に 0 を返していた。隔離状態の正しい値は 'isolated'。
-		_ = h.Pool.QueryRow(ctx, `
-			SELECT
-				COUNT(*),
-				COUNT(*) FILTER (WHERE status = 'online'),
-				COUNT(*) FILTER (WHERE status IN ('offline', 'inactive')),
-				COUNT(*) FILTER (WHERE status = 'isolated')
-			FROM agents`).Scan(&totalAgents, &onlineAgents, &offlineAgents, &quarantineAgents)
+		if !ReadOK(c, h.Pool.QueryRow(ctx, `
+				SELECT
+					COUNT(*),
+					COUNT(*) FILTER (WHERE status = 'online'),
+					COUNT(*) FILTER (WHERE status IN ('offline', 'inactive')),
+					COUNT(*) FILTER (WHERE status = 'isolated')
+				FROM agents`).Scan(&totalAgents, &onlineAgents, &offlineAgents, &quarantineAgents)) {
+			return
+		}
 	}
 	unreachable := totalAgents - onlineAgents - offlineAgents - quarantineAgents
 	if unreachable < 0 {
@@ -58,21 +61,23 @@ func (h *OpsReportHandler) GetReport(c *gin.Context) {
 	var totalAlerts, criticalAlerts, highAlerts, mediumAlerts, lowAlerts int
 	var resolvedCritical, resolvedHigh, resolvedMedium, resolvedLow int
 	if h.Pool != nil {
-		_ = h.Pool.QueryRow(ctx, fmt.Sprintf(`
-			SELECT
-				COUNT(*),
-				COUNT(*) FILTER (WHERE severity >= 9),
-				COUNT(*) FILTER (WHERE severity BETWEEN 7 AND 8),
-				COUNT(*) FILTER (WHERE severity BETWEEN 4 AND 6),
-				COUNT(*) FILTER (WHERE severity BETWEEN 1 AND 3),
-				COUNT(*) FILTER (WHERE severity >= 9 AND status = 'resolved'),
-				COUNT(*) FILTER (WHERE severity BETWEEN 7 AND 8 AND status = 'resolved'),
-				COUNT(*) FILTER (WHERE severity BETWEEN 4 AND 6 AND status = 'resolved'),
-				COUNT(*) FILTER (WHERE severity BETWEEN 1 AND 3 AND status = 'resolved')
-			FROM alerts
-			WHERE created_at >= NOW() - INTERVAL '%d days'`, days)).
+		if !ReadOK(c, h.Pool.QueryRow(ctx, fmt.Sprintf(`
+				SELECT
+					COUNT(*),
+					COUNT(*) FILTER (WHERE severity >= 9),
+					COUNT(*) FILTER (WHERE severity BETWEEN 7 AND 8),
+					COUNT(*) FILTER (WHERE severity BETWEEN 4 AND 6),
+					COUNT(*) FILTER (WHERE severity BETWEEN 1 AND 3),
+					COUNT(*) FILTER (WHERE severity >= 9 AND status = 'resolved'),
+					COUNT(*) FILTER (WHERE severity BETWEEN 7 AND 8 AND status = 'resolved'),
+					COUNT(*) FILTER (WHERE severity BETWEEN 4 AND 6 AND status = 'resolved'),
+					COUNT(*) FILTER (WHERE severity BETWEEN 1 AND 3 AND status = 'resolved')
+				FROM alerts
+				WHERE created_at >= NOW() - INTERVAL '%d days'`, days)).
 			Scan(&totalAlerts, &criticalAlerts, &highAlerts, &mediumAlerts, &lowAlerts,
-				&resolvedCritical, &resolvedHigh, &resolvedMedium, &resolvedLow)
+				&resolvedCritical, &resolvedHigh, &resolvedMedium, &resolvedLow)) {
+			return
+		}
 	}
 
 	alertStats := []gin.H{
@@ -111,13 +116,15 @@ func (h *OpsReportHandler) GetReport(c *gin.Context) {
 	var incidents []incRow
 
 	if h.Pool != nil {
-		_ = h.Pool.QueryRow(ctx, fmt.Sprintf(`
-			SELECT
-				COUNT(*) FILTER (WHERE status NOT IN ('resolved','closed')),
-				COUNT(*) FILTER (WHERE status IN ('resolved','closed'))
-			FROM incidents
-			WHERE created_at >= NOW() - INTERVAL '%d days'`, days)).
-			Scan(&openIncidents, &resolvedIncidents)
+		if !ReadOK(c, h.Pool.QueryRow(ctx, fmt.Sprintf(`
+				SELECT
+					COUNT(*) FILTER (WHERE status NOT IN ('resolved','closed')),
+					COUNT(*) FILTER (WHERE status IN ('resolved','closed'))
+				FROM incidents
+				WHERE created_at >= NOW() - INTERVAL '%d days'`, days)).
+			Scan(&openIncidents, &resolvedIncidents)) {
+			return
+		}
 
 		rows, err := h.Pool.Query(ctx, fmt.Sprintf(`
 			SELECT
@@ -146,6 +153,9 @@ func (h *OpsReportHandler) GetReport(c *gin.Context) {
 					incidents = append(incidents, r)
 				}
 			}
+			if err := rows.Err(); err != nil {
+				slog.Warn("GetReport: rows の読み取りが途中で終わりました。この区画は不完全です", "error", err)
+			}
 			rows.Close()
 		}
 	}
@@ -153,11 +163,13 @@ func (h *OpsReportHandler) GetReport(c *gin.Context) {
 	// ── MTTR ─────────────────────────────────────────────────────────────────
 	var mttrMinutes float64
 	if h.Pool != nil {
-		_ = h.Pool.QueryRow(ctx, fmt.Sprintf(`
-			SELECT COALESCE(AVG(EXTRACT(EPOCH FROM (updated_at - created_at))/60), 0)
-			FROM alerts
-			WHERE status = 'resolved'
-			  AND created_at >= NOW() - INTERVAL '%d days'`, days)).Scan(&mttrMinutes)
+		if !ReadOK(c, h.Pool.QueryRow(ctx, fmt.Sprintf(`
+				SELECT COALESCE(AVG(EXTRACT(EPOCH FROM (updated_at - created_at))/60), 0)
+				FROM alerts
+				WHERE status = 'resolved'
+				  AND created_at >= NOW() - INTERVAL '%d days'`, days)).Scan(&mttrMinutes)) {
+			return
+		}
 	}
 
 	// ── Offline agents ────────────────────────────────────────────────────────
@@ -182,6 +194,9 @@ func (h *OpsReportHandler) GetReport(c *gin.Context) {
 					offlineAgentList = append(offlineAgentList, a)
 				}
 			}
+			if err := rows.Err(); err != nil {
+				slog.Warn("GetReport: rows の読み取りが途中で終わりました。この区画は不完全です", "error", err)
+			}
 			rows.Close()
 		}
 	}
@@ -189,10 +204,14 @@ func (h *OpsReportHandler) GetReport(c *gin.Context) {
 	// ── Threat Intel ──────────────────────────────────────────────────────────
 	var iocCount, newThreats int
 	if h.Pool != nil {
-		_ = h.Pool.QueryRow(ctx, `SELECT COUNT(*) FROM ioc_entries WHERE is_active`).Scan(&iocCount)
-		_ = h.Pool.QueryRow(ctx, fmt.Sprintf(`
-			SELECT COUNT(*) FROM ioc_entries
-			WHERE created_at >= NOW() - INTERVAL '%d days'`, days)).Scan(&newThreats)
+		if !ReadOK(c, h.Pool.QueryRow(ctx, `SELECT COUNT(*) FROM ioc_entries WHERE is_active`).Scan(&iocCount)) {
+			return
+		}
+		if !ReadOK(c, h.Pool.QueryRow(ctx, fmt.Sprintf(`
+				SELECT COUNT(*) FROM ioc_entries
+				WHERE created_at >= NOW() - INTERVAL '%d days'`, days)).Scan(&newThreats)) {
+			return
+		}
 	}
 	// Blocked = resolved alerts that matched IOC (proxy: critical+high resolved)
 	blockedCount := resolvedCritical + resolvedHigh
@@ -203,17 +222,25 @@ func (h *OpsReportHandler) GetReport(c *gin.Context) {
 	var criticalVulns, highVulns int
 	var totalIOC2 int
 	if h.Pool != nil {
-		_ = h.Pool.QueryRow(ctx, `SELECT COUNT(*), COUNT(*) FILTER (WHERE enabled) FROM rules`).
-			Scan(&totalRules, &enabledRules)
-		_ = h.Pool.QueryRow(ctx, `
-			SELECT COUNT(*) FROM alerts
-			WHERE severity >= 4 AND status NOT IN ('resolved','false_positive')`).Scan(&openCritical)
-		_ = h.Pool.QueryRow(ctx, `
-			SELECT
-				COUNT(*) FILTER (WHERE severity='critical' AND status='open'),
-				COUNT(*) FILTER (WHERE severity='high' AND status='open')
-			FROM vulnerabilities`).Scan(&criticalVulns, &highVulns)
-		_ = h.Pool.QueryRow(ctx, `SELECT COUNT(*) FROM ioc_entries WHERE is_active`).Scan(&totalIOC2)
+		if !ReadOK(c, h.Pool.QueryRow(ctx, `SELECT COUNT(*), COUNT(*) FILTER (WHERE enabled) FROM rules`).
+			Scan(&totalRules, &enabledRules)) {
+			return
+		}
+		if !ReadOK(c, h.Pool.QueryRow(ctx, `
+				SELECT COUNT(*) FROM alerts
+				WHERE severity >= 4 AND status NOT IN ('resolved','false_positive')`).Scan(&openCritical)) {
+			return
+		}
+		if !ReadOK(c, h.Pool.QueryRow(ctx, `
+				SELECT
+					COUNT(*) FILTER (WHERE severity='critical' AND status='open'),
+					COUNT(*) FILTER (WHERE severity='high' AND status='open')
+				FROM vulnerabilities`).Scan(&criticalVulns, &highVulns)) {
+			return
+		}
+		if !ReadOK(c, h.Pool.QueryRow(ctx, `SELECT COUNT(*) FROM ioc_entries WHERE is_active`).Scan(&totalIOC2)) {
+			return
+		}
 	}
 
 	clamp := func(v int) int {

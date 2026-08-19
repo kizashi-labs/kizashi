@@ -52,7 +52,7 @@ func (c *ETWPSModuleCollector) Start(ctx context.Context, agentID string, sender
 	}
 	ctx, c.cancel = context.WithCancel(ctx)
 	if err := c.startETW(ctx); err != nil {
-		slog.Warn("ETW PowerShellモジュールログ監視を開始できませんでした", "error", err)
+		etwSensorFailed(sensorETWPSModule, err)
 		return nil
 	}
 	slog.Info("ETW PowerShellモジュールログ監視を開始しました (Microsoft-Windows-PowerShell, 4103)")

@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/edr-platform/server/internal/metrics"
 	"io"
 	"log/slog"
 	"net/http"
@@ -127,7 +128,7 @@ func (inv *Investigator) ReadModeFromDB(ctx context.Context) InvestigationMode {
 			'ai_autonomous_language'
 		)`)
 	if err != nil {
-		slog.Warn("investigation: failed to read mode from DB, using defaults", "error", err)
+		metrics.BackgroundFailed("investigation_mode", err, "investigation: 設定を読めないまま既定値で続行しました")
 		return m
 	}
 	defer rows.Close()
@@ -167,6 +168,9 @@ func (inv *Investigator) ReadModeFromDB(ctx context.Context) InvestigationMode {
 			}
 		}
 	}
+	if err := rows.Err(); err != nil {
+		slog.Error("AI調査モードの設定を読み切れませんでした。読めなかった項目は既定値になります（自動応答の既定値は無効）", "error", err)
+	}
 	return m
 }
 
@@ -202,9 +206,12 @@ func (inv *Investigator) InvestigateAlertWithMode(ctx context.Context, alertID s
 	// 2. Gather related events from the last 10 minutes.
 	events, err := inv.gatherEvents(ctx, alert.AgentID, alert.CreatedAt)
 	if err != nil {
-		slog.Warn("investigation: failed to gather events, proceeding without context",
-			"alert_id", alertID, "error", err)
-		events = []Event{}
+		// 空のイベント列で続けると、AI はそのアラート単体から結論を出し、
+		// 結果は調査結果として保存されます。分析官が読むのは「関連する
+		// イベントは見つかりませんでした」で、それは「探したが無かった」
+		// としか読めません。何を根拠に出した判断なのかが変わるので、
+		// 調査そのものを行いません。
+		return nil, fmt.Errorf("investigation: 関連イベントを集められませんでした（調査は行いません）: %w", err)
 	}
 
 	// 3. Build prompt (differs by mode).

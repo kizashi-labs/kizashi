@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -12,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"golang.org/x/net/proxy"
 )
@@ -142,8 +144,8 @@ func (s *DarkWebScheduler) Run(ctx context.Context) {
 	slog.Info("DarkWebScheduler: 開始", "tor_proxy", s.torProxy)
 
 	// 起動直後に両方実行
-	s.runOnce(ctx)
-	s.syncRansomwareLive(ctx)
+	trackRun(ctx, "darkweb_scheduler", s.runOnce)
+	trackRun(ctx, "darkweb_scheduler", s.syncRansomwareLive)
 
 	// ransomware.live は6時間ごと
 	rlTicker := time.NewTicker(6 * time.Hour)
@@ -162,11 +164,11 @@ func (s *DarkWebScheduler) Run(ctx context.Context) {
 			return
 		case <-rlTicker.C:
 			// 6時間ごとに ransomware.live だけ実行（軽量）
-			s.syncRansomwareLive(ctx)
+			trackRun(ctx, "darkweb_scheduler", s.syncRansomwareLive)
 		case <-time.After(wait):
 			// 毎日3:00に全スキャン
-			s.runOnce(ctx)
-			s.syncRansomwareLive(ctx)
+			trackRun(ctx, "darkweb_scheduler", s.runOnce)
+			trackRun(ctx, "darkweb_scheduler", s.syncRansomwareLive)
 		}
 	}
 }
@@ -252,6 +254,12 @@ func (s *DarkWebScheduler) checkPostMatches(ctx context.Context) {
 	// 監視キーワード取得
 	rows, err := s.pool.Query(ctx, `SELECT id, monitor_type, value FROM darkweb_monitors WHERE enabled = TRUE`)
 	if err != nil || rows == nil {
+		// 監視キーワードを読めなければ、この回は照合を1件もしていません。
+		// 黙って戻ると「回っているが何もしていない」が外から見えなくなります。
+		if err == nil {
+			err = errNoRowsReturned
+		}
+		fail(ctx, err, "DarkWebScheduler: 監視キーワードを読めませんでした")
 		return
 	}
 	type monitor struct{ id, mtype, value string }
@@ -267,17 +275,29 @@ func (s *DarkWebScheduler) checkPostMatches(ctx context.Context) {
 		return
 	}
 
-	// キャッシュされた groups.json を取得
+	// キャッシュされた groups.json を取得。
+	//
+	// **error を捨てると「読めなかった」と「まだ無い」が同じ形になります。**
+	// どちらでも rawPosts は空で、そのまま戻ると照合が 1 件も行われません
+	// —— 外からは「照合したが一致なし」と区別が付きません。
+	// 「まだ無い」だけが黙って戻ってよい理由です。
 	var rawPosts []byte
-	_ = s.pool.QueryRow(ctx,
+	switch err := s.pool.QueryRow(ctx,
 		`SELECT raw_posts FROM darkweb_ransomware_sites WHERE onion_url = '__cache__'`,
-	).Scan(&rawPosts)
+	).Scan(&rawPosts); {
+	case errors.Is(err, pgx.ErrNoRows):
+		return // まだ同期されていない
+	case err != nil:
+		fail(ctx, err, "DarkWebScheduler: 被害者リストのキャッシュを読めませんでした")
+		return
+	}
 	if len(rawPosts) == 0 {
 		return
 	}
 
 	var groups []rwGroup
 	if err := json.Unmarshal(rawPosts, &groups); err != nil {
+		fail(ctx, err, "DarkWebScheduler: 被害者リストのキャッシュを解釈できませんでした")
 		return
 	}
 
@@ -431,7 +451,10 @@ func (s *DarkWebScheduler) createAlert(ctx context.Context, title, description s
 		severity, title, description,
 	)
 	if err != nil {
-		slog.Warn("DarkWebScheduler: アラート登録に失敗しました", "error", err)
+		// 登録できなければ、その検知は SOC のキューにも一覧にも出ません
+		// —— 見つけた意味がその場で消えます。Warn は運用の設定で最初に
+		// 切られる段なので、回の失敗として上げます。
+		fail(ctx, err, "DarkWebScheduler: アラート登録に失敗しました")
 	}
 }
 

@@ -39,5 +39,5 @@ func TestTracker_Calculate_DB(t *testing.T) {
 	if _, err := tr.GetMITRECoverage(ctx); err != nil {
 		t.Fatalf("GetMITRECoverage: %v", err)
 	}
-	_ = tr.GetTrend(ctx, "7d")
+	_, _ = tr.GetTrend(ctx, "7d")
 }

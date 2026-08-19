@@ -68,7 +68,9 @@ func (h *ComplianceReportHandler) ListFrameworks(c *gin.Context) {
 		frameworks = append(frameworks, f)
 	}
 	if err := rows.Err(); err != nil {
-		slog.Warn("row iteration error", "error", err)
+		slog.Error("rows.Err: 結果の読み出しが途中で失敗しました", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "query failed"})
+		return
 	}
 	if frameworks == nil {
 		frameworks = []ComplianceFrameworkInfo{}
@@ -129,7 +131,9 @@ func (h *ComplianceReportHandler) GetScore(c *gin.Context) {
 		controls = append(controls, ctrl)
 	}
 	if err := rows.Err(); err != nil {
-		slog.Warn("row iteration error", "error", err)
+		slog.Error("rows.Err: 結果の読み出しが途中で失敗しました", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "query failed"})
+		return
 	}
 	if controls == nil {
 		controls = []ComplianceControlInfo{}
@@ -240,7 +244,9 @@ func (h *ComplianceReportHandler) GetEvidence(c *gin.Context) {
 		evidence = append(evidence, e)
 	}
 	if err := rows.Err(); err != nil {
-		slog.Warn("row iteration error", "error", err)
+		slog.Error("rows.Err: 結果の読み出しが途中で失敗しました", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "query failed"})
+		return
 	}
 	if evidence == nil {
 		evidence = []Evidence{}

@@ -16,11 +16,16 @@ import (
 )
 
 // ProcessStatEntry holds stats for one running process.
+//
+// **MemMB がポインタなのは、測れなかったことを表すためです。**
+// `mem_mb` が JSON に出ないことが「測っていない」の表現で、0.0 は
+// 「常駐メモリが無い」という測定値です。画面はすでに欠けた値を `—`
+// として出します。
 type ProcessStatEntry struct {
-	PID    int     `json:"pid"`
-	Name   string  `json:"name"`
-	CPUPct float64 `json:"cpu_pct"`
-	MemMB  float64 `json:"mem_mb"`
+	PID    int      `json:"pid"`
+	Name   string   `json:"name"`
+	CPUPct float64  `json:"cpu_pct"`
+	MemMB  *float64 `json:"mem_mb,omitempty"`
 }
 
 // ProcessStatsCollector periodically collects per-process CPU and memory stats.
@@ -104,7 +109,7 @@ func (c *ProcessStatsCollector) collect() []ProcessStatEntry {
 			PID:    s.pid,
 			Name:   s.name,
 			CPUPct: cpuPct,
-			MemMB:  float64(s.memKB) / 1024.0,
+			MemMB:  memMB(s.memKB, s.mem),
 		})
 	}
 

@@ -64,11 +64,7 @@ type createSigmaRuleRequest struct {
 
 // ensureTable gracefully checks the detection_rules table exists.
 func (h *SigmaRulesHandler) tableExists(c *gin.Context) bool {
-	var exists bool
-	err := h.pool.QueryRow(c.Request.Context(),
-		`SELECT EXISTS(SELECT 1 FROM pg_tables WHERE schemaname='public' AND tablename='detection_rules')`).
-		Scan(&exists)
-	return err == nil && exists
+	return tableIsThere(c.Request.Context(), h.pool, "detection_rules")
 }
 
 // ListRules handles GET /api/v1/admin/sigma/rules
@@ -106,7 +102,7 @@ func (h *SigmaRulesHandler) ListRules(c *gin.Context) {
 	rows, err := h.pool.Query(c.Request.Context(), query, args...)
 	if err != nil {
 		slog.Warn("sigma rules: list query failed", "error", err)
-		c.JSON(http.StatusOK, gin.H{"rules": []interface{}{}, "total": 0})
+		ReadFailure(c, err, gin.H{"rules": []interface{}{}, "total": 0})
 		return
 	}
 	defer rows.Close()
@@ -122,7 +118,9 @@ func (h *SigmaRulesHandler) ListRules(c *gin.Context) {
 		rules = append(rules, r)
 	}
 	if err := rows.Err(); err != nil {
-		slog.Warn("row iteration error", "error", err)
+		slog.Warn("sigma rules: list query failed", "error", err)
+		ReadFailure(c, err, gin.H{"rules": []interface{}{}, "total": 0})
+		return
 	}
 	if rules == nil {
 		rules = []sigmaRuleRow{}
@@ -389,7 +387,9 @@ func (h *SigmaRulesHandler) ExportRules(c *gin.Context) {
 		first = false
 	}
 	if err := rows.Err(); err != nil {
-		slog.Warn("row iteration error", "error", err)
+		slog.Error("rows.Err: 結果の読み出しが途中で失敗しました", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "query failed"})
+		return
 	}
 	c.Data(http.StatusOK, "application/yaml", []byte(sb.String()))
 }
@@ -422,8 +422,10 @@ func (h *SigmaRulesHandler) TestRule(c *gin.Context) {
 	}
 
 	// Update test_count.
-	_, _ = h.pool.Exec(c.Request.Context(),
-		`UPDATE detection_rules SET test_count=COALESCE(test_count,0)+1 WHERE id=$1`, id)
+	if _, err := h.pool.Exec(c.Request.Context(),
+		`UPDATE detection_rules SET test_count=COALESCE(test_count,0)+1 WHERE id=$1`, id); !WriteOK(c, err) {
+		return
+	}
 
 	// Simple keyword matching: parse keywords from detection YAML and check event.
 	matched, reason := sigmaRulesTestEvent(ruleYAML, req.Event)

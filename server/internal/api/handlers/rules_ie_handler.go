@@ -119,8 +119,19 @@ func (h *RulesIEHandler) exportCSV(c *gin.Context, export map[string]interface{}
 
 // Counts handles GET /api/v1/rules/counts
 func (h *RulesIEHandler) Counts(c *gin.Context) {
-	_, detTotal, _ := h.ruleStore.List(c.Request.Context(), store.RuleFilter{Limit: 1})
-	_, procTotal, _ := h.processStore.List(c.Request.Context(), store.ProcessBlockRuleFilter{Limit: 1})
+	// **数えられなかったことを 0 と答えないこと。**
+	//
+	// どちらも `_` で捨てていました。失敗すると画面には
+	// **「検知ルール 0 件・プロセスブロックルール 0 件」**と出ます ——
+	// ルールが1本も入っていない配置と、DB に届かない配置が同じ姿です。
+	_, detTotal, err := h.ruleStore.List(c.Request.Context(), store.RuleFilter{Limit: 1})
+	if !ReadOK(c, err) {
+		return
+	}
+	_, procTotal, err := h.processStore.List(c.Request.Context(), store.ProcessBlockRuleFilter{Limit: 1})
+	if !ReadOK(c, err) {
+		return
+	}
 	c.JSON(http.StatusOK, gin.H{
 		"detection_rules":     detTotal,
 		"process_block_rules": procTotal,

@@ -15,6 +15,8 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+
+	"github.com/edr-platform/server/internal/tick"
 )
 
 // WazuhConfig holds connection parameters for a Wazuh Manager.
@@ -183,7 +185,7 @@ func (c *WazuhClient) SyncAgents(ctx context.Context, pool *pgxpool.Pool) (int, 
 			WHERE hostname = $1`,
 			wa.Name, ip, osType, osVersion, version, status, lastSeen)
 		if err != nil {
-			slog.Warn("Wazuhエージェント同期エラー", "agent", wa.Name, "error", err)
+			tick.FailComponent(ctx, "wazuh_sync", err, "Wazuhエージェント同期エラー", "agent", wa.Name)
 			continue
 		}
 		if tag.RowsAffected() == 0 {
@@ -192,7 +194,7 @@ func (c *WazuhClient) SyncAgents(ctx context.Context, pool *pgxpool.Pool) (int, 
 				VALUES ($1, ARRAY[$2::inet], $3, $4, $5, $6, $7, 'wazuh')`,
 				wa.Name, ip, osType, osVersion, version, status, lastSeen)
 			if err != nil {
-				slog.Warn("Wazuhエージェント登録エラー", "agent", wa.Name, "error", err)
+				tick.FailComponent(ctx, "wazuh_sync", err, "Wazuhエージェント登録エラー", "agent", wa.Name)
 				continue
 			}
 		}
@@ -239,6 +241,7 @@ func (c *WazuhClient) SyncVulnerabilities(ctx context.Context, pool *pgxpool.Poo
 	}
 
 	count := 0
+	failed := 0
 	for _, wa := range agentsResult.Data.AffectedItems {
 		if wa.ID == "000" {
 			continue
@@ -260,6 +263,11 @@ func (c *WazuhClient) SyncVulnerabilities(ctx context.Context, pool *pgxpool.Poo
 		}
 		path := fmt.Sprintf("/vulnerability/%s?limit=200&status=valid", wa.ID)
 		if err := c.get(ctx, path, &vulnResult); err != nil {
+			// この端末の脆弱性だけが同期されません。合計だけを見ると
+			// 「その端末には脆弱性が無い」と読めます。
+			tick.Fail(ctx, err, "Wazuh: 端末の脆弱性を取得できませんでした",
+				"wazuh_agent", wa.ID)
+			failed++
 			continue
 		}
 
@@ -283,7 +291,19 @@ func (c *WazuhClient) SyncVulnerabilities(ctx context.Context, pool *pgxpool.Poo
 			}
 		}
 	}
-	return count, nil
+	return count, syncShortfall(count, failed)
+}
+
+// syncShortfall turns "some agents did not answer" into an error the caller
+// cannot ignore.
+//
+// 「同期しました。500件」とだけ返ると、届かなかった端末があったことは誰にも
+// 伝わりません。件数は返したまま、欠けたことも返します。
+func syncShortfall(synced, failed int) error {
+	if failed == 0 {
+		return nil
+	}
+	return fmt.Errorf("%d 台の端末の脆弱性を取得できませんでした（%d 件は同期済み）", failed, synced)
 }
 
 func normalizeSeverity(s string) string {
@@ -328,16 +348,16 @@ func (s *WazuhSyncer) Run(ctx context.Context) {
 	defer vulnTicker.Stop()
 
 	// Run immediately on start
-	s.syncAgents(ctx)
+	tick.Run(ctx, "wazuh_sync_agents", s.syncAgents)
 
 	for {
 		select {
 		case <-ctx.Done():
 			return
 		case <-agentTicker.C:
-			s.syncAgents(ctx)
+			tick.Run(ctx, "wazuh_sync_agents", s.syncAgents)
 		case <-vulnTicker.C:
-			s.syncVulns(ctx)
+			tick.Run(ctx, "wazuh_sync_vulns", s.syncVulns)
 		}
 	}
 }
@@ -347,7 +367,7 @@ func (s *WazuhSyncer) syncAgents(ctx context.Context) {
 	defer cancel()
 	n, err := s.client.SyncAgents(sctx, s.pool)
 	if err != nil {
-		slog.Warn("Wazuhエージェント同期失敗", "error", err)
+		tick.Fail(ctx, err, "Wazuhエージェント同期失敗")
 	} else {
 		slog.Info("Wazuhエージェント同期完了", "count", n)
 	}
@@ -358,7 +378,7 @@ func (s *WazuhSyncer) syncVulns(ctx context.Context) {
 	defer cancel()
 	n, err := s.client.SyncVulnerabilities(sctx, s.pool)
 	if err != nil {
-		slog.Warn("Wazuh脆弱性同期失敗", "error", err)
+		tick.Fail(ctx, err, "Wazuh脆弱性同期失敗")
 	} else {
 		slog.Info("Wazuh脆弱性同期完了", "count", n)
 	}

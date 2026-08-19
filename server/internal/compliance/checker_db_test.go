@@ -117,6 +117,99 @@ func TestAssessAgent_NoEventsFails(t *testing.T) {
 	}
 }
 
+// checkByID は結果を CheckID で引けるようにする。
+func checkByID(t *testing.T, got *AgentCompliance, id string) *ComplianceCheck {
+	t.Helper()
+	for _, ck := range got.Checks {
+		if ck.CheckID == id {
+			return ck
+		}
+	}
+	t.Fatalf("チェック %q が結果に無い", id)
+	return nil
+}
+
+// TestAssessAgent_HardeningUnknownWhenNoReport は、ハードニング/暗号化の報告が
+// 何も無いエージェントで disk_encryption と firewall_enabled が fail ではなく
+// unknown になることを見る。
+//
+// 旧実装は存在しない endpoint_hardening テーブルを引いており、エラーを握り潰した
+// 結果この2項目が常に false = fail として採点されていた。unknown はスコアの分母から
+// 外れるが fail は外れないので、これは表示の違いではなく点数の違いになる。報告が
+// 来ていないだけのホストと、本当にディスク暗号化を切っているホストが同じ点数だと、
+// スコアは是正すべき対象を指さない。
+func TestAssessAgent_HardeningUnknownWhenNoReport(t *testing.T) {
+	pool := complianceTestPool(t)
+	const agentID = "c0c0c0c0-0000-4000-8000-000000000003"
+	seedAgentWithEvents(t, pool, agentID, 3)
+
+	got, err := NewChecker(pool).AssessAgent(context.Background(), agentID)
+	if err != nil {
+		t.Fatalf("AssessAgent: %v", err)
+	}
+	for _, id := range []string{"disk_encryption", "firewall_enabled"} {
+		if ck := checkByID(t, got, id); ck.Status != "unknown" {
+			t.Errorf("%s の status = %q, want unknown（報告が無いことを未対応として採点している。evidence: %s）",
+				id, ck.Status, ck.Evidence)
+		}
+	}
+}
+
+// TestAssessAgent_HardeningReadsReportedData は、実際に報告があるときに
+// endpoint_encryption と hardening_assessments.findings から判定できることを見る。
+// 上のテストだけでは「常に unknown」を返す実装でも通ってしまう。
+func TestAssessAgent_HardeningReadsReportedData(t *testing.T) {
+	pool := complianceTestPool(t)
+	ctx := context.Background()
+	const agentID = "c0c0c0c0-0000-4000-8000-000000000004"
+	seedAgentWithEvents(t, pool, agentID, 3)
+
+	var baselineID string
+	if err := pool.QueryRow(ctx, `
+		INSERT INTO hardening_baselines (name, os_type, framework)
+		VALUES ('compliance-itest-baseline', 'windows', 'cis')
+		ON CONFLICT (name) DO UPDATE SET updated_at = NOW()
+		RETURNING id`).Scan(&baselineID); err != nil {
+		t.Fatalf("seed baseline: %v", err)
+	}
+	t.Cleanup(func() {
+		_, _ = pool.Exec(ctx, `DELETE FROM hardening_assessments WHERE agent_id = $1::uuid`, agentID)
+		_, _ = pool.Exec(ctx, `DELETE FROM hardening_baselines WHERE id = $1`, baselineID)
+		_, _ = pool.Exec(ctx, `DELETE FROM endpoint_encryption WHERE agent_id = $1::uuid`, agentID)
+	})
+
+	// エージェントのハードニングレポータが送る形（{id,title,passed,details} の配列）。
+	if _, err := pool.Exec(ctx, `
+		INSERT INTO hardening_assessments
+		  (baseline_id, agent_id, passed_checks, failed_checks, score, status, findings, assessed_at)
+		VALUES ($1, $2::uuid, 1, 1, 50, 'completed', $3::jsonb, NOW())`,
+		baselineID, agentID,
+		`[{"id":"firewall","title":"Windows Firewall enabled (all profiles)","passed":true,"details":""},
+		  {"id":"bitlocker","title":"BitLocker protection on system drive","passed":false,"details":""}]`,
+	); err != nil {
+		t.Fatalf("seed assessment: %v", err)
+	}
+	if _, err := pool.Exec(ctx, `
+		INSERT INTO endpoint_encryption (agent_id, encrypted, method, details)
+		VALUES ($1::uuid, true, 'BitLocker', 'C:')
+		ON CONFLICT (agent_id) DO UPDATE SET encrypted = EXCLUDED.encrypted`, agentID); err != nil {
+		t.Fatalf("seed encryption: %v", err)
+	}
+
+	got, err := NewChecker(pool).AssessAgent(ctx, agentID)
+	if err != nil {
+		t.Fatalf("AssessAgent: %v", err)
+	}
+	if ck := checkByID(t, got, "firewall_enabled"); ck.Status != "pass" {
+		t.Errorf("firewall_enabled = %q, want pass（findings の firewall を読めていない。evidence: %s）",
+			ck.Status, ck.Evidence)
+	}
+	if ck := checkByID(t, got, "disk_encryption"); ck.Status != "pass" {
+		t.Errorf("disk_encryption = %q, want pass（endpoint_encryption を読めていない。evidence: %s）",
+			ck.Status, ck.Evidence)
+	}
+}
+
 // 幻のテーブル (endpoint_hardening / vuln_findings) を引いていた 3 項目の
 // 再発防止。
 //
@@ -146,13 +239,15 @@ func TestAssessAgent_UnmeasuredChecksAreUnknownNotPass(t *testing.T) {
 		byID[c.CheckID] = c
 	}
 
-	// ファイアウォールの状態はどのテーブルにも無い。合格でも不合格でもなく unknown。
+	// このエージェントはハードニングレポートを送っていないので、firewall の
+	// finding が無い。収集経路自体は存在する (TestAssessAgent_HardeningReadsReportedData
+	// が実データで pass を確認している) が、報告が来ていない以上 unknown。
 	fw := byID["firewall_enabled"]
 	if fw == nil {
 		t.Fatal("firewall_enabled のチェックが無い")
 	}
 	if fw.Status != "unknown" {
-		t.Errorf("firewall_enabled = %q, want unknown (収集経路が無いものを断定しない)", fw.Status)
+		t.Errorf("firewall_enabled = %q, want unknown (報告が無いものを断定しない)", fw.Status)
 	}
 
 	// 暗号化の報告が無いエージェントは「暗号化されていない」ではなく不明。
@@ -189,10 +284,17 @@ func TestAssessAgent_UnmeasuredChecksAreUnknownNotPass(t *testing.T) {
 	}
 }
 
-// patch_status が実際に vulnerability_findings を数えていることを示す。
-// 併せて、実表の status には 'patched' が無い (open/in_progress/resolved/
-// accepted/false_positive) ため、旧実装の `status != 'patched'` では
-// 解決済みまで未対応として数えてしまう点も押さえる。
+// patch_status が実際に vulnerabilities を数えていることを示す。
+//
+// 表が 2 つ実在する点に注意: vulnerabilities (016) と vulnerability_findings (161)。
+// **本番で書かれているのは前者**で、scheduler/vulnerability_scanner.go・
+// sync/wazuh.go・store/vulnerabilities.go がそこに INSERT する。後者に書く本番経路は
+// 無いので、そちらを読むと常に 0 件 = 合格になり、この関数がもともと持っていた
+// 「測れていないを合格として報告する」欠陥に戻ってしまう。
+//
+// 016 の status の CHECK 値は open/mitigated/patched/accepted。数えてよいのは open
+// だけで、patched は当然、accepted (リスク受容済み) と mitigated (緩和策適用済み) も
+// 「放置された重大脆弱性」ではない。
 func TestAssessAgent_PatchStatusFailsOnOldCriticalVuln(t *testing.T) {
 	pool := complianceTestPool(t)
 	ctx := context.Background()
@@ -202,25 +304,32 @@ func TestAssessAgent_PatchStatusFailsOnOldCriticalVuln(t *testing.T) {
 
 	cleanup := func() {
 		if _, err := pool.Exec(ctx,
-			`DELETE FROM vulnerability_findings WHERE agent_id = $1::uuid`, agentID); err != nil {
-			t.Errorf("後片付けに失敗しました (vulnerability_findings): %v", err)
+			`DELETE FROM vulnerabilities WHERE agent_id = $1::uuid`, agentID); err != nil {
+			t.Errorf("後片付けに失敗しました (vulnerabilities): %v", err)
 		}
 	}
 	cleanup()
 	t.Cleanup(cleanup)
 
-	// 30 日より古い未対応の重大脆弱性 1 件と、解決済み 1 件。
-	// 数えてよいのは前者だけ。
+	// 30 日より古い未対応の重大脆弱性 1 件と、対処済み 2 件。
+	// 数えてよいのは open の 1 件だけ。
 	for _, v := range []struct{ cve, status string }{
 		{"CVE-2026-0001", "open"},
-		{"CVE-2026-0002", "resolved"},
+		{"CVE-2026-0002", "patched"},
+		{"CVE-2026-0003", "accepted"},
 	} {
+		// **vulnerability_findings ではなく vulnerabilities に入れる。**
+		// 本番で INSERT しているのは vulnerabilities だけ（脆弱性スキャナ・
+		// Wazuh 同期・store の 3 経路）で、vulnerability_findings に書く
+		// コードはこの木に 1 つも無い。空の表を引くと criticalVulns が 0 の
+		// まま patchOK=true になり、**未対応の重大脆弱性があっても「良好」と
+		// 報告する** —— #726 自身が最も危険と書いた向きの誤りになる。
 		if _, err := pool.Exec(ctx, `
-			INSERT INTO vulnerability_findings
-			    (agent_id, cve_id, title, severity, status, first_seen)
+			INSERT INTO vulnerabilities
+			    (agent_id, cve_id, title, severity, status, detected_at)
 			VALUES ($1::uuid, $2, 'itest', 'critical', $3, NOW() - INTERVAL '60 days')`,
 			agentID, v.cve, v.status); err != nil {
-			t.Fatalf("seed vulnerability_findings (%s): %v", v.cve, err)
+			t.Fatalf("seed vulnerabilities (%s): %v", v.cve, err)
 		}
 	}
 
@@ -235,9 +344,9 @@ func TestAssessAgent_PatchStatusFailsOnOldCriticalVuln(t *testing.T) {
 		if c.Status != "fail" {
 			t.Errorf("patch_status = %q, want fail (未対応の重大脆弱性が 1 件)", c.Status)
 		}
-		// resolved を数えていたら 2 件になる。
+		// patched を数えていたら 2 件になる。
 		if c.Evidence != "Critical unpatched vulns >30d: 1" {
-			t.Errorf("evidence = %q, want 1 件 (resolved を数えていないこと)", c.Evidence)
+			t.Errorf("evidence = %q, want 1 件 (patched/accepted を数えていないこと)", c.Evidence)
 		}
 		return
 	}

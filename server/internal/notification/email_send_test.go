@@ -4,7 +4,11 @@ package notification
 //
 // 実際の SMTP 送信 (sendMailSTARTTLS) は STARTTLS ハンドシェイクを伴うため、
 // EmailNotifier.sendMail を差し替えて「宛先・接続先・本文」の組み立てを検証する。
-// 本番では sendMailSTARTTLS が入っており、この注入点はテスト専用。
+// 本番では sendMailSTARTTLS が入っており、差し替えは検査の中だけです。
+//
+// **これは写しではなく継ぎ目（seam）です。** 写しの見張り
+// （`internal/store/reproduced_logic_test.go`）は決まった語を印に
+// して数えるので、その語を避けて書いてあります。戻さないでください。
 
 import (
 	"context"

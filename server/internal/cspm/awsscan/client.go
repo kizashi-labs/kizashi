@@ -31,7 +31,9 @@ import (
 	"github.com/aws/aws-sdk-go-v2/credentials/stscreds"
 	"github.com/aws/aws-sdk-go-v2/service/cloudtrail"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
+	"github.com/aws/aws-sdk-go-v2/service/efs"
 	"github.com/aws/aws-sdk-go-v2/service/iam"
+	"github.com/aws/aws-sdk-go-v2/service/rds"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/aws-sdk-go-v2/service/s3control"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
@@ -80,6 +82,8 @@ type Clients struct {
 	S3         S3API
 	S3Control  S3ControlAPI
 	CloudTrail CloudTrailAPI
+	RDS        RDSAPI
+	EFS        EFSAPI
 
 	// AccountID は AssumeRole 後に判明する検査対象アカウント。
 	// 所見の resource_id に使う。
@@ -163,6 +167,8 @@ func (s *Session) Clients(region string) *Clients {
 		S3:         s3.NewFromConfig(cfg),
 		S3Control:  s3control.NewFromConfig(cfg),
 		CloudTrail: cloudtrail.NewFromConfig(cfg),
+		RDS:        rds.NewFromConfig(cfg),
+		EFS:        efs.NewFromConfig(cfg),
 		AccountID:  s.accountID,
 		Region:     cfg.Region,
 	}

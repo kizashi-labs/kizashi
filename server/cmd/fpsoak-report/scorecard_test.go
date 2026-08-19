@@ -471,7 +471,7 @@ func TestEmitWritesBothArtefactsAndReportsFailure(t *testing.T) {
 	md := filepath.Join(dir, "scorecard.md")
 	m := &Manifest{StartedAt: time.Unix(0, 0), EventsTotal: 42}
 
-	if err := emit(Aggregate(nil, 5, nil, 10), m, csv, md); err != nil {
+	if err := emit(Aggregate(nil, 5, nil, 10), m, 42, 0, csv, md); err != nil {
 		t.Fatalf("emit: %v", err)
 	}
 	for _, p := range []string{csv, md} {
@@ -485,7 +485,7 @@ func TestEmitWritesBothArtefactsAndReportsFailure(t *testing.T) {
 	}
 
 	missingDir := filepath.Join(dir, "does-not-exist", "scorecard.csv")
-	if err := emit(Aggregate(nil, 5, nil, 10), m, missingDir, ""); err == nil {
+	if err := emit(Aggregate(nil, 5, nil, 10), m, 42, 0, missingDir, ""); err == nil {
 		t.Error("作成できないパスに対して emit がエラーを返しませんでした")
 	}
 }

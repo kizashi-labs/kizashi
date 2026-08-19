@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/edr-platform/server/internal/metrics"
 	"github.com/edr-platform/server/internal/webhooks"
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -112,7 +113,7 @@ func (h *WebhooksHandler) ListConfigs(c *gin.Context) {
 		FROM webhook_configs
 		ORDER BY created_at DESC`)
 	if err != nil {
-		c.JSON(http.StatusOK, gin.H{"webhooks": []webhooks.WebhookConfig{}, "total": 0})
+		ReadFailure(c, err, gin.H{"webhooks": []webhooks.WebhookConfig{}, "total": 0})
 		return
 	}
 	defer rows.Close()
@@ -133,7 +134,9 @@ func (h *WebhooksHandler) ListConfigs(c *gin.Context) {
 		cfgs = append(cfgs, wc)
 	}
 	if err := rows.Err(); err != nil {
-		slog.Warn("row iteration error", "error", err)
+		slog.Error("rows.Err: 結果の読み出しが途中で失敗しました", "error", err)
+		ReadFailure(c, err, gin.H{"webhooks": []webhooks.WebhookConfig{}, "total": 0})
+		return
 	}
 	if cfgs == nil {
 		cfgs = []webhooks.WebhookConfig{}
@@ -194,7 +197,17 @@ func (h *WebhooksHandler) CreateConfig(c *gin.Context) {
 	// Register in dispatcher
 	cfg := wc
 	cfg.Secret = req.Secret // restore secret for dispatcher (not returned in JSON)
-	_ = h.dispatcher.AddConfig(&cfg)
+	// **登録できないと、作った webhook は一度も発火しません。**
+	// 行は残るので画面には出ます —— 「作ったのに何も来ない」の形です。
+	if err := h.dispatcher.AddConfig(&cfg); err != nil {
+		metrics.BackgroundFailed("webhook_config", err,
+			"webhook を配送側に登録できませんでした。一覧には出ますが発火しません",
+			"id", wc.ID)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "webhook を配送側に登録できませんでした。再度お試しください",
+		})
+		return
+	}
 
 	wc.Secret = "" // don't return secret
 	c.JSON(http.StatusCreated, wc)
@@ -354,7 +367,13 @@ func (h *WebhooksHandler) TestWebhook(c *gin.Context) {
 		tmp := wc
 		tmp.Enabled = true
 		tmp.Events = []string{"webhook.test"}
-		_ = h.dispatcher.AddConfig(&tmp)
+		if err := h.dispatcher.AddConfig(&tmp); err != nil {
+			// **テスト送信そのものができません。**
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": "テスト用の設定を登録できませんでした",
+			})
+			return
+		}
 		h.dispatcher.Dispatch(c.Request.Context(), "webhook.test", testData)
 	}
 
@@ -388,7 +407,7 @@ func (h *WebhooksHandler) GetDeliveries(c *gin.Context) {
 		ORDER BY attempted_at DESC
 		LIMIT 100`, id)
 	if err != nil {
-		c.JSON(http.StatusOK, gin.H{"deliveries": []delivery{}})
+		ReadFailure(c, err, gin.H{"deliveries": []delivery{}})
 		return
 	}
 	defer rows.Close()
@@ -405,7 +424,9 @@ func (h *WebhooksHandler) GetDeliveries(c *gin.Context) {
 		deliveries = append(deliveries, d)
 	}
 	if err := rows.Err(); err != nil {
-		slog.Warn("row iteration error", "error", err)
+		slog.Error("rows.Err: 結果の読み出しが途中で失敗しました", "error", err)
+		ReadFailure(c, err, gin.H{"deliveries": []delivery{}})
+		return
 	}
 	if deliveries == nil {
 		deliveries = []delivery{}

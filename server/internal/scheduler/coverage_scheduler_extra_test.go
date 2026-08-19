@@ -32,11 +32,11 @@ func TestScheduler_ExtraWorkers(t *testing.T) {
 		`INSERT INTO agents (hostname, os_type, status, last_seen, enrolled_at)
 		 VALUES ('cov-sched2', 'linux', 'online', NOW(), NOW()) RETURNING id::text`).Scan(&agentID)
 	if agentID != "" {
-		t.Cleanup(func() { _, _ = pool.Exec(ctx, "DELETE FROM agents WHERE id=$1", agentID) })
+		t.Cleanup(func() { _, _ = pool.Exec(context.Background(), "DELETE FROM agents WHERE id=$1", agentID) })
 		_, _ = pool.Exec(ctx,
 			`INSERT INTO events (agent_id, event_type, raw_data, time)
 			 VALUES ($1::uuid, 'process', '{"process_name":"sh","command_line":"sh -c x"}'::jsonb, NOW())`, agentID)
-		t.Cleanup(func() { _, _ = pool.Exec(ctx, "DELETE FROM events WHERE agent_id=$1", agentID) })
+		t.Cleanup(func() { _, _ = pool.Exec(context.Background(), "DELETE FROM events WHERE agent_id=$1", agentID) })
 	}
 
 	NewBaselineRebuilder(pool, behavioral.NewEngine(pool)).rebuild(ctx)

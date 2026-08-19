@@ -70,6 +70,9 @@ func (s *EscalationRuleStore) List(ctx context.Context) ([]*EscalationRule, erro
 		}
 		rules = append(rules, r)
 	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
 	if rules == nil {
 		rules = []*EscalationRule{}
 	}
@@ -187,6 +190,9 @@ func (s *EscalationRuleStore) ListEnabledForSeverity(ctx context.Context, severi
 			continue
 		}
 		rules = append(rules, r)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
 	}
 	if rules == nil {
 		rules = []*EscalationRule{}

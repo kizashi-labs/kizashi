@@ -9,7 +9,10 @@ import (
 
 func TestParseTimeParam_ValidRFC3339_ReturnsTime(t *testing.T) {
 	s := "2026-03-24T00:00:00Z"
-	got := parseTimeParam(s)
+	got, err := parseTimeParam(s)
+	if err != nil {
+		t.Fatalf("parseTimeParam(%q) = err %v", s, err)
+	}
 	if got == nil {
 		t.Fatalf("parseTimeParam(%q) = nil, want non-nil", s)
 	}
@@ -20,15 +23,22 @@ func TestParseTimeParam_ValidRFC3339_ReturnsTime(t *testing.T) {
 }
 
 func TestParseTimeParam_EmptyString_ReturnsNil(t *testing.T) {
-	if got := parseTimeParam(""); got != nil {
-		t.Errorf("parseTimeParam(\"\") = %v, want nil", got)
+	got, err := parseTimeParam("")
+	if got != nil || err != nil {
+		t.Errorf("parseTimeParam(\"\") = %v, %v, want nil, nil", got, err)
 	}
 }
 
-func TestParseTimeParam_InvalidFormat_ReturnsNil(t *testing.T) {
+// nil ではなく error を返すこと。nil は「指定なし」と区別がつかず、
+// 絞り込みだけが黙って消えます。
+func TestParseTimeParam_InvalidFormat_IsAnError(t *testing.T) {
 	for _, bad := range []string{"2026-03-24", "not-a-date", "01/01/2026"} {
-		if got := parseTimeParam(bad); got != nil {
-			t.Errorf("parseTimeParam(%q) = %v, want nil", bad, got)
+		got, err := parseTimeParam(bad)
+		if err == nil {
+			t.Errorf("parseTimeParam(%q) = %v, want error", bad, got)
+		}
+		if got != nil {
+			t.Errorf("parseTimeParam(%q) = %v, want nil time", bad, got)
 		}
 	}
 }

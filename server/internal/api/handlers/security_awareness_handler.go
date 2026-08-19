@@ -21,7 +21,7 @@ func (h *SecurityAwarenessHandler) ListCourses(c *gin.Context) {
 		FROM awareness_courses ORDER BY mandatory DESC, category, title
 	`)
 	if err != nil {
-		c.JSON(http.StatusOK, gin.H{"courses": []any{}})
+		ReadFailure(c, err, gin.H{"courses": []any{}})
 		return
 	}
 	defer rows.Close()
@@ -51,7 +51,9 @@ func (h *SecurityAwarenessHandler) ListCourses(c *gin.Context) {
 		list = append(list, course)
 	}
 	if err := rows.Err(); err != nil {
-		slog.Warn("row iteration error", "error", err)
+		slog.Error("rows.Err: 結果の読み出しが途中で失敗しました", "error", err)
+		ReadFailure(c, err, gin.H{"courses": []any{}})
+		return
 	}
 	if list == nil {
 		list = []Course{}
@@ -66,7 +68,7 @@ func (h *SecurityAwarenessHandler) ListSimulations(c *gin.Context) {
 		FROM phishing_simulations ORDER BY created_at DESC LIMIT 50
 	`)
 	if err != nil {
-		c.JSON(http.StatusOK, gin.H{"simulations": []any{}})
+		ReadFailure(c, err, gin.H{"simulations": []any{}})
 		return
 	}
 	defer rows.Close()
@@ -97,7 +99,9 @@ func (h *SecurityAwarenessHandler) ListSimulations(c *gin.Context) {
 		list = append(list, s)
 	}
 	if err := rows.Err(); err != nil {
-		slog.Warn("row iteration error", "error", err)
+		slog.Error("rows.Err: 結果の読み出しが途中で失敗しました", "error", err)
+		ReadFailure(c, err, gin.H{"simulations": []any{}})
+		return
 	}
 	if list == nil {
 		list = []Sim{}

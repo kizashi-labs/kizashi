@@ -88,6 +88,9 @@ func (s *ReportScheduleStore) List(ctx context.Context) ([]*ReportSchedule, erro
 		}
 		schedules = append(schedules, sc)
 	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
 	if schedules == nil {
 		schedules = []*ReportSchedule{}
 	}
@@ -177,6 +180,9 @@ func (s *ReportScheduleStore) GetDue(ctx context.Context) ([]*ReportSchedule, er
 			continue
 		}
 		schedules = append(schedules, sc)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
 	}
 	return schedules, nil
 }

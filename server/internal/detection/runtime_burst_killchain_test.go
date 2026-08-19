@@ -23,8 +23,9 @@ func TestRuntimeDetectorsFeedKillChain(t *testing.T) {
 		}
 	}
 
-	// A realistic intrusion touching four distinct tactics via the new detectors'
-	// techniques plus a discovery stage → one correlated kill-chain alert.
+	// A realistic intrusion touching chainMinTactics(5) distinct tactics via the
+	// new detectors' techniques plus discovery and exfiltration stages → one
+	// correlated kill-chain alert.
 	k := newKillChainScorer()
 	base := time.Unix(1_700_000_000, 0)
 	seq := [][]string{
@@ -32,12 +33,13 @@ func TestRuntimeDetectorsFeedKillChain(t *testing.T) {
 		{"T1021"}, // lateral-movement (lateral fan-out)
 		{"T1486"}, // impact (ransomware burst)
 		{"T1082"}, // discovery
+		{"T1048"}, // exfiltration
 	}
 	var fired int
 	for i, tags := range seq {
 		fired += len(k.Observe("agent1", tags, base.Add(time.Duration(i)*time.Minute)))
 	}
 	if fired != 1 {
-		t.Fatalf("four distinct tactics from runtime detectors should correlate into 1 kill-chain alert, got %d", fired)
+		t.Fatalf("five distinct tactics from runtime detectors should correlate into 1 kill-chain alert, got %d", fired)
 	}
 }

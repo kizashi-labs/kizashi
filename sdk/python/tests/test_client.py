@@ -506,12 +506,18 @@ class TestLiveResponse:
     def setup_method(self):
         self.client = KizashiEDRClient(base_url=BASE_URL, api_key=API_KEY)
 
+    # **この3つは、サーバに無い宛先を留めていました。**
+    #
+    # 検査はクライアントの実装から書かれていて、サーバの経路と突き合わせた
+    # ものは1つもありませんでした —— **緑のまま、呼べば必ず 404** です。
+    # セッションは端末ごと（`/agents/:id/live-response/sessions`）です。
+
     @patch("urllib.request.urlopen")
     def test_live_response_list(self, mock_urlopen):
         mock_urlopen.return_value = _make_response({"data": [], "total": 0})
-        self.client.live_response.list()
+        self.client.live_response.list(agent_id="agent-007")
         req: urllib.request.Request = mock_urlopen.call_args[0][0]
-        assert req.full_url == f"{BASE_URL}/api/v1/live-response/sessions"
+        assert req.full_url == f"{BASE_URL}/api/v1/agents/agent-007/live-response/sessions"
         assert req.get_method() == "GET"
 
     @patch("urllib.request.urlopen")
@@ -519,20 +525,49 @@ class TestLiveResponse:
         mock_urlopen.return_value = _make_response({"id": "sess-1", "agent_id": "agent-007"})
         self.client.live_response.open(agent_id="agent-007")
         req: urllib.request.Request = mock_urlopen.call_args[0][0]
-        assert req.full_url == f"{BASE_URL}/api/v1/live-response/sessions"
+        assert req.full_url == f"{BASE_URL}/api/v1/agents/agent-007/live-response/sessions"
         assert req.get_method() == "POST"
-        body = json.loads(req.data.decode("utf-8"))
-        assert body["agent_id"] == "agent-007"
 
     @patch("urllib.request.urlopen")
     def test_live_response_exec(self, mock_urlopen):
         mock_urlopen.return_value = _make_response({"output": "uid=0(root)"})
-        self.client.live_response.exec(session_id="sess-1", command="id")
+        self.client.live_response.exec(agent_id="agent-007", session_id="sess-1", command="id")
         req: urllib.request.Request = mock_urlopen.call_args[0][0]
-        assert req.full_url == f"{BASE_URL}/api/v1/live-response/sessions/sess-1/exec"
+        assert req.full_url == (
+            f"{BASE_URL}/api/v1/agents/agent-007/live-response/sessions/sess-1/exec"
+        )
         assert req.get_method() == "POST"
         body = json.loads(req.data.decode("utf-8"))
         assert body["command"] == "id"
+
+
+class TestAlertsUpdate:
+    """alerts.update は検査が 1 つも無く、PATCH を送っていました。
+
+    サーバに在るのは `PUT /alerts/:id` だけなので、呼べば必ず失敗します。
+    incidents / rules は同じ誤りが検査で見つかりましたが、ここは検査そのものが
+    無かったため残っていました。**検査の無いメソッドは、壊れていても緑です。**
+    """
+
+    def setup_method(self):
+        self.client = KizashiEDRClient(base_url=BASE_URL, api_key=API_KEY)
+
+    @patch("urllib.request.urlopen")
+    def test_update_calls_put(self, mock_urlopen):
+        mock_urlopen.return_value = _make_response({"id": "alert-1", "status": "investigating"})
+        self.client.alerts.update("alert-1", status="investigating")
+        req: urllib.request.Request = mock_urlopen.call_args[0][0]
+        assert req.full_url == f"{BASE_URL}/api/v1/alerts/alert-1"
+        assert req.get_method() == "PUT"
+
+    @patch("urllib.request.urlopen")
+    def test_update_sends_status_and_assigned_to_in_body(self, mock_urlopen):
+        mock_urlopen.return_value = _make_response({"id": "alert-1", "status": "resolved"})
+        self.client.alerts.update("alert-1", status="resolved", assigned_to="alice")
+        req: urllib.request.Request = mock_urlopen.call_args[0][0]
+        body = json.loads(req.data.decode("utf-8"))
+        assert body["status"] == "resolved"
+        assert body["assigned_to"] == "alice"
 
 
 class TestIncidentsUpdate:
@@ -540,12 +575,12 @@ class TestIncidentsUpdate:
         self.client = KizashiEDRClient(base_url=BASE_URL, api_key=API_KEY)
 
     @patch("urllib.request.urlopen")
-    def test_update_calls_patch(self, mock_urlopen):
+    def test_update_calls_put(self, mock_urlopen):
         mock_urlopen.return_value = _make_response({"id": "inc-1", "status": "investigating"})
         self.client.incidents.update("inc-1", status="investigating")
         req: urllib.request.Request = mock_urlopen.call_args[0][0]
         assert req.full_url == f"{BASE_URL}/api/v1/incidents/inc-1"
-        assert req.get_method() == "PATCH"
+        assert req.get_method() == "PUT"
 
     @patch("urllib.request.urlopen")
     def test_update_sends_status_and_assigned_to_in_body(self, mock_urlopen):
@@ -581,14 +616,14 @@ class TestRulesCRUD:
         assert req.get_method() == "GET"
 
     @patch("urllib.request.urlopen")
-    def test_update_calls_patch(self, mock_urlopen):
+    def test_update_calls_put(self, mock_urlopen):
         mock_urlopen.return_value = _make_response(
             {"id": "rule-1", "name": "mimikatz", "type": "sigma", "condition": "x", "enabled": False}
         )
         self.client.rules.update("rule-1", enabled=False)
         req: urllib.request.Request = mock_urlopen.call_args[0][0]
         assert req.full_url == f"{BASE_URL}/api/v1/rules/rule-1"
-        assert req.get_method() == "PATCH"
+        assert req.get_method() == "PUT"
 
     @patch("urllib.request.urlopen")
     def test_update_sends_only_provided_fields(self, mock_urlopen):

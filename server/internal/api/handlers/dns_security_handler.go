@@ -24,10 +24,7 @@ func NewDNSSecurityHandler(pool *pgxpool.Pool) *DNSSecurityHandler {
 }
 
 func (h *DNSSecurityHandler) tableExists(c *gin.Context, name string) bool {
-	var ok bool
-	_ = h.pool.QueryRow(c.Request.Context(),
-		`SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name=$1)`, name).Scan(&ok)
-	return ok
+	return tableIsThere(c.Request.Context(), h.pool, name)
 }
 
 // ListAlerts returns recent suspicious DNS alerts.
@@ -65,11 +62,17 @@ func (h *DNSSecurityHandler) ListAlerts(c *gin.Context) {
 					alerts = append(alerts, a)
 				}
 			}
-			if alerts == nil {
-				alerts = []DNSAlert{}
+			if err := rows.Err(); err != nil {
+				slog.Warn("ListAlerts: rows の読み取りが途中で終わりました。この区画は不完全です", "error", err)
 			}
-			c.JSON(http.StatusOK, gin.H{"alerts": alerts})
-			return
+			// 行が取れた場合だけここで返します。dns_alerts はマイグレーションが
+			// 作りますが書き込むコードがどこにも無く、tableExists は常に true を
+			// 返すため、以前は無条件に空配列を返して events 側の分岐に一度も
+			// 到達していませんでした。テーブルの有無はデータの有無ではありません。
+			if len(alerts) > 0 {
+				c.JSON(http.StatusOK, gin.H{"alerts": alerts})
+				return
+			}
 		}
 	}
 
@@ -80,14 +83,24 @@ func (h *DNSSecurityHandler) ListAlerts(c *gin.Context) {
 		// (migration 002)。id / type / created_at / event_data / data / metadata は
 		// いずれも存在せず、このクエリは毎回失敗していた。err は下で握りつぶされる
 		// ため、DNS セキュリティ画面は常に「アラート 0 件」に見えていた。
+		// クライアントIPは raw_data には入りません。DnsEvent に送信元IPの
+		// フィールドが無いためで、src_ip は常に空でした。DNS を引いたのは
+		// エージェント自身なので、正しい値は agents.ip_addresses です。
+		// 複数IPを持つ端末ではどのインターフェイスから引いたかは分からないため
+		// 先頭を採ります (この画面の目的は「どの端末が引いたか」であり、
+		// 端末の特定には agent_id も併せて返しています)。
 		rows, err := h.pool.Query(ctx, `
-			SELECT event_id::text, COALESCE(raw_data->>'domain', ''),
-			       COALESCE(raw_data->>'query_type', 'A'),
-			       COALESCE(raw_data->>'src_ip', ''),
-			       agent_id::text, time
-			FROM events
-			WHERE event_type='dns' AND raw_data->>'malicious' = 'true'
-			ORDER BY time DESC LIMIT 200`)
+			SELECT e.event_id::text, COALESCE(e.raw_data->>'query', ''),
+			       COALESCE(e.raw_data->>'query_type', 'A'),
+			       -- ip_addresses は inet[] なので text に落としてから既定値を
+			       -- 当てます。COALESCE(..., '') のままだと '' が inet として
+			       -- 解釈され 22P02 で文ごと失敗します。
+			       COALESCE(host(a.ip_addresses[1]), ''),
+			       e.agent_id::text, e.time
+			FROM events e
+			LEFT JOIN agents a ON a.id = e.agent_id
+			WHERE e.event_type='dns' AND (e.raw_data->>'is_suspicious')::boolean = true
+			ORDER BY e.time DESC LIMIT 200`)
 		if err != nil {
 			slog.Warn("dns security: イベントからのアラート導出に失敗", "error", err)
 		}
@@ -102,6 +115,9 @@ func (h *DNSSecurityHandler) ListAlerts(c *gin.Context) {
 					a.Timestamp = ts.Format(time.RFC3339)
 					alerts = append(alerts, a)
 				}
+			}
+			if err := rows.Err(); err != nil {
+				slog.Warn("ListAlerts: rows の読み取りが途中で終わりました。この区画は不完全です", "error", err)
 			}
 		}
 	}
@@ -142,6 +158,9 @@ func (h *DNSSecurityHandler) ListQueries(c *gin.Context) {
 					domains = append(domains, d)
 				}
 			}
+			if err := rows.Err(); err != nil {
+				slog.Warn("ListQueries: rows の読み取りが途中で終わりました。この区画は不完全です", "error", err)
+			}
 			if domains == nil {
 				domains = []TopDomain{}
 			}
@@ -155,9 +174,9 @@ func (h *DNSSecurityHandler) ListQueries(c *gin.Context) {
 	if h.tableExists(c, "events") {
 		// 上と同じ列名の取り違え。上位ドメイン一覧も常に空だった。
 		rows, err := h.pool.Query(ctx, `
-			SELECT COALESCE(raw_data->>'domain', ''),
+			SELECT COALESCE(raw_data->>'query', ''),
 			       COUNT(*) AS cnt
-			FROM events WHERE event_type='dns' AND COALESCE(raw_data->>'domain', '') != ''
+			FROM events WHERE event_type='dns' AND COALESCE(raw_data->>'query', '') != ''
 			GROUP BY 1 ORDER BY cnt DESC LIMIT 100`)
 		if err != nil {
 			slog.Warn("dns security: 上位ドメインの集計に失敗", "error", err)
@@ -172,6 +191,9 @@ func (h *DNSSecurityHandler) ListQueries(c *gin.Context) {
 					d.Reputation = "unknown"
 					domains = append(domains, d)
 				}
+			}
+			if err := rows.Err(); err != nil {
+				slog.Warn("ListQueries: rows の読み取りが途中で終わりました。この区画は不完全です", "error", err)
 			}
 		}
 	}
@@ -203,7 +225,7 @@ func (h *DNSSecurityHandler) ListBlocklist(c *gin.Context) {
 		SELECT id::text, domain, COALESCE(reason,''), COALESCE(added_by,'system'), created_at
 		FROM dns_blocklist ORDER BY created_at DESC`)
 	if err != nil {
-		c.JSON(http.StatusOK, gin.H{"entries": []BlocklistEntry{}})
+		ReadFailure(c, err, gin.H{"entries": []BlocklistEntry{}})
 		return
 	}
 	defer rows.Close()
@@ -217,6 +239,11 @@ func (h *DNSSecurityHandler) ListBlocklist(c *gin.Context) {
 			entries = append(entries, e)
 		}
 	}
+	if err := rows.Err(); err != nil {
+		slog.Warn("ListBlocklist: 結果セットの読み取りが途中で終わりました。応答は不完全です", "error", err)
+		c.JSON(http.StatusOK, gin.H{"entries": []BlocklistEntry{}})
+		return
+	}
 	if entries == nil {
 		entries = []BlocklistEntry{}
 	}
@@ -228,13 +255,22 @@ func (h *DNSSecurityHandler) ListBlocklist(c *gin.Context) {
 func (h *DNSSecurityHandler) DeleteBlocklistEntry(c *gin.Context) {
 	id := c.Param("id")
 	if h.tableExists(c, "dns_blocklist") {
-		_, _ = h.pool.Exec(c.Request.Context(), `DELETE FROM dns_blocklist WHERE id=$1`, id)
+		if _, err := h.pool.Exec(c.Request.Context(), `DELETE FROM dns_blocklist WHERE id=$1`, id); !WriteOK(c, err) {
+			return
+		}
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "entry removed"})
 }
 
 // GetStats returns aggregate DNS security statistics.
 // GET /api/v1/dns/stats
+// dnsStatQuery — カードの1枚ぶん。
+type dnsStatQuery struct {
+	key  string
+	sql  string
+	when bool // そのテーブルが在るときだけ数えます
+}
+
 func (h *DNSSecurityHandler) GetStats(c *gin.Context) {
 	ctx := c.Request.Context()
 
@@ -247,25 +283,34 @@ func (h *DNSSecurityHandler) GetStats(c *gin.Context) {
 		"dns_tunneling_alerts": 0,
 	}
 
-	if h.tableExists(c, "dns_queries") {
-		var total, blocked int
-		_ = h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM dns_queries WHERE created_at > NOW()-INTERVAL '24h'`).Scan(&total)
-		_ = h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM dns_queries WHERE blocked=true AND created_at > NOW()-INTERVAL '24h'`).Scan(&blocked)
-		var unique int
-		_ = h.pool.QueryRow(ctx, `SELECT COUNT(DISTINCT domain) FROM dns_queries`).Scan(&unique)
-		stats["queries_today"] = total
-		stats["blocked_today"] = blocked
-		stats["unique_domains"] = unique
-	}
-
-	if h.tableExists(c, "dns_alerts") {
-		var malicious, dga, tunneling int
-		_ = h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM dns_alerts WHERE threat_type='malicious_domain' AND created_at > NOW()-INTERVAL '24h'`).Scan(&malicious)
-		_ = h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM dns_alerts WHERE threat_type='dga' AND created_at > NOW()-INTERVAL '24h'`).Scan(&dga)
-		_ = h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM dns_alerts WHERE threat_type='dns_tunneling' AND created_at > NOW()-INTERVAL '24h'`).Scan(&tunneling)
-		stats["malicious_detected"] = malicious
-		stats["dga_detected"] = dga
-		stats["dns_tunneling_alerts"] = tunneling
+	// **数えられなかった 0 を、そのまま画面のカードに出していました。**
+	// 「ブロック 0件」「悪性ドメイン 0件」は SOC にとって「見るべきものが
+	// 無い」という答えであって、「答えられなかった」ではありません ——
+	// `ReadFailure` の説明にある「最も安心できる形をした嘘」の、
+	// 1行読み版です。
+	//
+	// `ReadFailure` は「本当に無い」（テーブル未作成 42P01 / 行なし）
+	// だけ従来どおり 0 の並びを返し、それ以外は 500 にします。
+	// `COUNT(*)` に行なしはあり得ないので、ここに残るのは本当の失敗です。
+	hasQueries := h.tableExists(c, "dns_queries")
+	hasAlerts := h.tableExists(c, "dns_alerts")
+	for _, q := range []dnsStatQuery{
+		{"queries_today", `SELECT COUNT(*) FROM dns_queries WHERE created_at > NOW()-INTERVAL '24h'`, hasQueries},
+		{"blocked_today", `SELECT COUNT(*) FROM dns_queries WHERE blocked=true AND created_at > NOW()-INTERVAL '24h'`, hasQueries},
+		{"unique_domains", `SELECT COUNT(DISTINCT domain) FROM dns_queries`, hasQueries},
+		{"malicious_detected", `SELECT COUNT(*) FROM dns_alerts WHERE threat_type='malicious_domain' AND created_at > NOW()-INTERVAL '24h'`, hasAlerts},
+		{"dga_detected", `SELECT COUNT(*) FROM dns_alerts WHERE threat_type='dga' AND created_at > NOW()-INTERVAL '24h'`, hasAlerts},
+		{"dns_tunneling_alerts", `SELECT COUNT(*) FROM dns_alerts WHERE threat_type='dns_tunneling' AND created_at > NOW()-INTERVAL '24h'`, hasAlerts},
+	} {
+		if !q.when {
+			continue
+		}
+		var n int
+		if err := h.pool.QueryRow(ctx, q.sql).Scan(&n); err != nil {
+			ReadFailure(c, err, stats)
+			return
+		}
+		stats[q.key] = n
 	}
 
 	c.JSON(http.StatusOK, stats)

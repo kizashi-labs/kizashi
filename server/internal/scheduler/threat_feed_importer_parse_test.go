@@ -94,13 +94,13 @@ func TestCountSTIXIndicators(t *testing.T) {
 			"文字列要素は無視される"
 		]
 	}`
-	if got := imp.countSTIXIndicators(bundle); got != 2 {
+	if got := imp.countSTIXIndicators(context.Background(), bundle); got != 2 {
 		t.Errorf("indicator 数 = %d, want 2", got)
 	}
-	if got := imp.countSTIXIndicators("{not json"); got != 0 {
+	if got := imp.countSTIXIndicators(context.Background(), "{not json"); got != 0 {
 		t.Errorf("不正 JSON の indicator 数 = %d, want 0", got)
 	}
-	if got := imp.countSTIXIndicators(`{"type":"bundle"}`); got != 0 {
+	if got := imp.countSTIXIndicators(context.Background(), `{"type":"bundle"}`); got != 0 {
 		t.Errorf("objects 無しの indicator 数 = %d, want 0", got)
 	}
 }

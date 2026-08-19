@@ -2,6 +2,7 @@ package collector
 
 import (
 	"bufio"
+	"log/slog"
 	"os"
 	"strconv"
 	"strings"
@@ -43,13 +44,18 @@ func readCPUStat() (idle, total uint64) {
 	return 0, 0
 }
 
-// readDiskFreeGB returns the free disk space in GB for the root filesystem.
-func readDiskFreeGB() float64 {
+// readDiskFreeGB returns the free disk space in GB for the root filesystem,
+// and whether it could be measured.
+func readDiskFreeGB() (float64, bool) {
 	var stat syscall.Statfs_t
 	if err := syscall.Statfs("/", &stat); err != nil {
-		return 0
+		// **0 は「測れなかった」ではなく「空きが全く無い」と読めます。**
+		// 測定の失敗が、いちばん深刻な観測値になります。
+		slog.Warn("ディスク空き容量を測れませんでした。この回は報告しません",
+			"error", err)
+		return 0, false
 	}
 	// Bavail: blocks available to unprivileged users; Bsize: block size in bytes
 	freeBytes := stat.Bavail * uint64(stat.Bsize)
-	return float64(freeBytes) / (1024 * 1024 * 1024)
+	return float64(freeBytes) / (1024 * 1024 * 1024), true
 }

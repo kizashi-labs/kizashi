@@ -2,6 +2,7 @@ package detection
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 	"time"
 )
@@ -12,7 +13,7 @@ func TestFileBurst_FiresOnMassModify(t *testing.T) {
 	var fired int
 	for i := 0; i < fileBurstMinFiles; i++ {
 		path := fmt.Sprintf(`C:\Users\victim\Documents\file%d.docx`, i)
-		m := d.Observe("agent1", "evil.exe", path, "modify", base.Add(time.Duration(i)*time.Millisecond*100))
+		m := d.Observe("agent1", "linux", "evil.exe", path, "modify", base.Add(time.Duration(i)*time.Millisecond*100))
 		fired += len(m)
 		if len(m) > 0 {
 			if m[0].MITRETags[0] != "T1486" {
@@ -35,10 +36,10 @@ func TestFileBurst_NonDestructiveIgnored(t *testing.T) {
 	// NOT trip the detector.
 	for i := 0; i < fileBurstMinFiles*2; i++ {
 		path := fmt.Sprintf(`/build/out/obj%d.o`, i)
-		if m := d.Observe("agent1", "cc1.exe", path, "create", base.Add(time.Duration(i)*time.Millisecond)); len(m) > 0 {
+		if m := d.Observe("agent1", "linux", "cc1.exe", path, "create", base.Add(time.Duration(i)*time.Millisecond)); len(m) > 0 {
 			t.Fatalf("non-destructive create must not alert (iter %d)", i)
 		}
-		if m := d.Observe("agent1", "cc1.exe", path, "read", base.Add(time.Duration(i)*time.Millisecond)); len(m) > 0 {
+		if m := d.Observe("agent1", "linux", "cc1.exe", path, "read", base.Add(time.Duration(i)*time.Millisecond)); len(m) > 0 {
 			t.Fatalf("read must not alert (iter %d)", i)
 		}
 	}
@@ -50,8 +51,67 @@ func TestFileBurst_DistinctPathsRequired(t *testing.T) {
 	// Rewriting the SAME file many times (e.g., a log/db file) is one path, not a
 	// mass-encryption fan-out.
 	for i := 0; i < fileBurstMinFiles*2; i++ {
-		if m := d.Observe("agent1", "app.exe", `/var/lib/app/state.db`, "write", base.Add(time.Duration(i)*time.Millisecond)); len(m) > 0 {
+		if m := d.Observe("agent1", "linux", "app.exe", `/var/lib/app/state.db`, "write", base.Add(time.Duration(i)*time.Millisecond)); len(m) > 0 {
 			t.Fatalf("repeated writes to one file must not alert (iter %d)", i)
+		}
+	}
+}
+
+// TestFileBurst_SystemChurnIgnored pins the live false positive that made this
+// detector unshippable once the eBPF file collector started reporting every
+// write-open on the host: systemd rewriting well past the threshold inside
+// OS-owned trees raised a severity-9 ransomware alert. Service churn in /etc,
+// /var/lib, /run and friends must not count at all.
+func TestFileBurst_SystemChurnIgnored(t *testing.T) {
+	base := time.Unix(1_700_000_000, 0)
+	for _, dir := range []string{"/etc", "/var/lib", "/run", "/usr/share", "/var/log", `C:\Windows\System32`} {
+		d := newFileBurstScorer()
+		sep := "/"
+		if strings.Contains(dir, `\`) {
+			sep = `\`
+		}
+		for i := 0; i < fileBurstMinFiles*2; i++ {
+			p := fmt.Sprintf("%s%sf%d.conf", dir, sep, i)
+			if m := d.Observe("agent1", "linux", "systemd", p, "modify", base.Add(time.Duration(i)*time.Millisecond)); len(m) > 0 {
+				t.Fatalf("system churn under %s alerted (iter %d): %s", dir, i, m[0].Title)
+			}
+		}
+	}
+}
+
+// TestFileBurst_UserDataStillFires is the other half of the system-churn filter:
+// excluding OS trees must not blunt the detector where ransomware actually does its
+// damage. Each of these roots must still reach the threshold and fire.
+func TestFileBurst_UserDataStillFires(t *testing.T) {
+	base := time.Unix(1_700_000_000, 0)
+	for _, dir := range []string{"/home/victim/Documents", "/root", "/srv/share", "/mnt/nas", "/var/www/html", `C:\Users\victim\Documents`} {
+		d := newFileBurstScorer()
+		sep := "/"
+		if strings.Contains(dir, `\`) {
+			sep = `\`
+		}
+		fired := 0
+		for i := 0; i < fileBurstMinFiles; i++ {
+			p := fmt.Sprintf("%s%sreport%d.dat", dir, sep, i)
+			fired += len(d.Observe("agent1", "linux", "cryptor", p, "modify", base.Add(time.Duration(i)*time.Millisecond)))
+		}
+		if fired != 1 {
+			t.Errorf("user-data burst under %s should fire exactly once, got %d", dir, fired)
+		}
+	}
+}
+
+func TestIsSystemChurnPath(t *testing.T) {
+	churn := []string{"/etc/passwd", "/var/lib/docker/x", "/run/systemd/y", "/usr/bin/z", "/tmp/build.o", `C:\Windows\System32\drivers\etc\hosts`}
+	for _, p := range churn {
+		if !isSystemChurnPath(p) {
+			t.Errorf("isSystemChurnPath(%q) = false, want true", p)
+		}
+	}
+	data := []string{"/home/u/a.docx", "/root/notes.txt", "/srv/share/x", "/data/db.sqlite", "/var/www/html/index.php", `C:\Users\v\Documents\a.docx`}
+	for _, p := range data {
+		if isSystemChurnPath(p) {
+			t.Errorf("isSystemChurnPath(%q) = true, want false", p)
 		}
 	}
 }
@@ -64,10 +124,10 @@ func TestFileBurst_PerProcessKeying(t *testing.T) {
 	half := fileBurstMinFiles - 1
 	for i := 0; i < half; i++ {
 		p := fmt.Sprintf(`/data/f%d`, i)
-		if m := d.Observe("agent1", "procA", p, "modify", base.Add(time.Duration(i)*time.Millisecond)); len(m) > 0 {
+		if m := d.Observe("agent1", "linux", "procA", p, "modify", base.Add(time.Duration(i)*time.Millisecond)); len(m) > 0 {
 			t.Fatalf("procA under threshold must not alert")
 		}
-		if m := d.Observe("agent1", "procB", p, "modify", base.Add(time.Duration(i)*time.Millisecond)); len(m) > 0 {
+		if m := d.Observe("agent1", "linux", "procB", p, "modify", base.Add(time.Duration(i)*time.Millisecond)); len(m) > 0 {
 			t.Fatalf("procB under threshold must not alert")
 		}
 	}
@@ -76,19 +136,19 @@ func TestFileBurst_PerProcessKeying(t *testing.T) {
 // TestFileActionEnumForm guards the production reachability of the ransomware
 // detector: ingestion flattens a FileEvent's action via proto's Enum.String(),
 // which yields "FILE_ACTION_MODIFY"/"FILE_ACTION_DELETE"/… (see
-// proto/agent/v1/events.proto FileAction). isDestructiveFileAction must classify
+// proto/agent/v1/events.proto FileAction). IsDestructiveFileAction must classify
 // those real telemetry values, not just the lowercase demo forms. A regression
 // here means the detector silently counts nothing in production.
 func TestFileActionEnumForm(t *testing.T) {
 	destructive := []string{"FILE_ACTION_MODIFY", "FILE_ACTION_DELETE", "FILE_ACTION_RENAME"}
 	for _, a := range destructive {
-		if !isDestructiveFileAction(a) {
+		if !IsDestructiveFileAction(a) {
 			t.Errorf("proto enum form %q must be classified destructive", a)
 		}
 	}
 	nondestructive := []string{"FILE_ACTION_CREATE", "FILE_ACTION_EXECUTE", "FILE_ACTION_UNSPECIFIED"}
 	for _, a := range nondestructive {
-		if isDestructiveFileAction(a) {
+		if IsDestructiveFileAction(a) {
 			t.Errorf("proto enum form %q must NOT be classified destructive", a)
 		}
 	}
@@ -101,7 +161,7 @@ func TestFileBurst_FiresOnProtoEnumActions(t *testing.T) {
 	// Feed the exact enum-string form ingestion produces for the "operation" field.
 	for i := 0; i < fileBurstMinFiles; i++ {
 		path := fmt.Sprintf(`C:\victim\f%d.docx`, i)
-		fired += len(d.Observe("agent1", "locker.exe", path, "FILE_ACTION_MODIFY", base.Add(time.Duration(i)*time.Millisecond*50)))
+		fired += len(d.Observe("agent1", "linux", "locker.exe", path, "FILE_ACTION_MODIFY", base.Add(time.Duration(i)*time.Millisecond*50)))
 	}
 	if fired != 1 {
 		t.Fatalf("ransomware detector must fire on the real FILE_ACTION_* form, got %d", fired)
@@ -111,12 +171,12 @@ func TestFileBurst_FiresOnProtoEnumActions(t *testing.T) {
 func TestIsDestructiveFileAction(t *testing.T) {
 	destructive := []string{"modify", "modified", "write", "WriteFile", "overwrite", "rename", "renamed", "delete", "unlink", "truncate", "encrypt"}
 	for _, a := range destructive {
-		if !isDestructiveFileAction(a) {
+		if !IsDestructiveFileAction(a) {
 			t.Errorf("%q should be destructive", a)
 		}
 	}
 	for _, a := range []string{"create", "created", "read", "open", "access", ""} {
-		if isDestructiveFileAction(a) {
+		if IsDestructiveFileAction(a) {
 			t.Errorf("%q should NOT be destructive", a)
 		}
 	}
@@ -140,7 +200,7 @@ func TestFileBurst_HostScoped_SlowChurnDoesNotFire(t *testing.T) {
 	// 60ファイルを30秒かけて(=5秒窓には最大約10件しか入らない)
 	for i := 0; i < fileBurstMinFiles; i++ {
 		path := fmt.Sprintf(`C:\Windows\SoftwareDistribution\bg%d.tmp`, i)
-		fired += len(d.Observe("agentW", "", path, "FILE_ACTION_MODIFY",
+		fired += len(d.Observe("agentW", "linux", "", path, "FILE_ACTION_MODIFY",
 			base.Add(time.Duration(i)*500*time.Millisecond)))
 	}
 	if fired != 0 {
@@ -155,7 +215,7 @@ func TestFileBurst_HostScoped_FastBurstFires(t *testing.T) {
 	var fired int
 	for i := 0; i < fileBurstMinFiles; i++ {
 		path := fmt.Sprintf(`C:\Users\victim\Documents\f%d.docx`, i)
-		fired += len(d.Observe("agentW", "", path, "FILE_ACTION_MODIFY",
+		fired += len(d.Observe("agentW", "linux", "", path, "FILE_ACTION_MODIFY",
 			base.Add(time.Duration(i)*10*time.Millisecond)))
 	}
 	if fired != 1 {
@@ -171,7 +231,7 @@ func TestFileBurst_LargerBurstEscalatesThroughDedup(t *testing.T) {
 
 	var first int
 	for i := 0; i < fileBurstMinFiles; i++ {
-		first += len(d.Observe("agentW", "", fmt.Sprintf(`C:\noise\n%d.tmp`, i),
+		first += len(d.Observe("agentW", "linux", "", fmt.Sprintf(`C:\noise\n%d.tmp`, i),
 			"FILE_ACTION_MODIFY", base.Add(time.Duration(i)*10*time.Millisecond)))
 	}
 	if first != 1 {
@@ -182,7 +242,7 @@ func TestFileBurst_LargerBurstEscalatesThroughDedup(t *testing.T) {
 	later := base.Add(90 * time.Second)
 	var second int
 	for i := 0; i < fileBurstMinFiles*2; i++ {
-		second += len(d.Observe("agentW", "", fmt.Sprintf(`C:\Users\victim\Documents\real%d.docx`, i),
+		second += len(d.Observe("agentW", "linux", "", fmt.Sprintf(`C:\Users\victim\Documents\real%d.docx`, i),
 			"FILE_ACTION_MODIFY", later.Add(time.Duration(i)*10*time.Millisecond)))
 	}
 	if second == 0 {
@@ -196,7 +256,7 @@ func TestFileBurst_KnownProcessKeepsWiderWindow(t *testing.T) {
 	base := time.Unix(1_700_000_000, 0)
 	var fired int
 	for i := 0; i < fileBurstMinFiles; i++ {
-		fired += len(d.Observe("agent1", "cryptor.exe", fmt.Sprintf(`C:\d\f%d.docx`, i),
+		fired += len(d.Observe("agent1", "linux", "cryptor.exe", fmt.Sprintf(`C:\d\f%d.docx`, i),
 			"modify", base.Add(time.Duration(i)*400*time.Millisecond))) // 24秒に分散
 	}
 	if fired != 1 {

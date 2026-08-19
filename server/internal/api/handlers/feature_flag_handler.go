@@ -105,7 +105,9 @@ func (h *FeatureFlagHandler) List(c *gin.Context) {
 		result = append(result, f)
 	}
 	if err := rows.Err(); err != nil {
-		slog.Warn("row iteration error", "error", err)
+		slog.Error("rows.Err: 結果の読み出しが途中で失敗しました", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "取得に失敗しました"})
+		return
 	}
 	if result == nil {
 		result = []featureFlag{}
@@ -258,7 +260,9 @@ func (h *FeatureFlagHandler) Delete(c *gin.Context) {
 
 	// Check if this is a protected flag
 	var name string
-	_ = h.pool.QueryRow(c.Request.Context(), `SELECT name FROM feature_flags WHERE id = $1`, id).Scan(&name)
+	if !ReadOK(c, h.pool.QueryRow(c.Request.Context(), `SELECT name FROM feature_flags WHERE id = $1`, id).Scan(&name)) {
+		return
+	}
 	if protectedFlagNames[name] {
 		c.JSON(http.StatusForbidden, gin.H{"error": "デフォルトフラグは削除できません"})
 		return

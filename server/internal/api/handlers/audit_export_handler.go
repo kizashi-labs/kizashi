@@ -110,7 +110,15 @@ func (h *AuditExportHandler) Export(c *gin.Context) {
 		entries = append(entries, r)
 	}
 	if err := rows.Err(); err != nil {
-		slog.Warn("row iteration error", "error", err)
+		// **書き出しの途中で読めなくなったら、短いファイルを渡しません。**
+		// 実測 (2026-08-12): 行の読み出しを中断させると、200 と
+		// `Content-Disposition: attachment` を付けたまま**途中までの
+		// ファイル**が落ちてきました。受け取った側に、途中で切れたことを
+		// 知る手掛かりがありません —— 監査ログは「その期間に何も無かった」
+		// ことの証拠に使われます。
+		slog.Error("audit export: rows.Err", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "監査ログの読み出しが途中で失敗しました。書き出しは中止します"})
+		return
 	}
 
 	filename := fmt.Sprintf("audit_logs_%s", time.Now().Format("20060102_150405"))

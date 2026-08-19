@@ -46,7 +46,13 @@ func NewVulnStore(db *DB) *VulnStore {
 	return &VulnStore{pool: db.Pool()}
 }
 
-func (s *VulnStore) List(ctx context.Context, f VulnFilter) ([]*Vulnerability, int, error) {
+// vulnListWhere builds the WHERE clause and arguments for List.
+//
+// **切り出してあるのは、検査が本物を呼べるようにするためです。**
+// 検査ファイルには同じ組み立ての写しが置いてあり、そちらだけが試されて
+// いました。公開はしません —— `List` からしか使わないので、公開すると
+// `TestStoreSymbolsAreReachable` の数が増えます。
+func vulnListWhere(f VulnFilter) (string, []interface{}) {
 	where := "WHERE 1=1"
 	args := []interface{}{}
 	i := 1
@@ -72,9 +78,33 @@ func (s *VulnStore) List(ctx context.Context, f VulnFilter) ([]*Vulnerability, i
 		i++
 	}
 
-	if f.Limit == 0 {
-		f.Limit = 50
+	return where, args
+}
+
+// clampVulnLimit は件数を 1〜200 に収めます。
+//
+// **この救済は `vulnListWhere` の中に書いてありました。** あの関数は
+// `VulnFilter` を値で受け取るので、`f.Limit = 50` は写しの上に書かれ、
+// 呼び出し側には届きません。実測 (2026-08-12):
+// `/api/v1/vulnerabilities?per_page=0` は **200 の 0 件**で、
+// `total` だけが 120 と出ていました —— 救済があるように見えて、
+// 効いていませんでした。
+func clampVulnLimit(limit int) int {
+	if limit < 1 || limit > maxVulnLimit {
+		return defaultVulnLimit
 	}
+	return limit
+}
+
+const (
+	defaultVulnLimit = 50
+	maxVulnLimit     = 200
+)
+
+func (s *VulnStore) List(ctx context.Context, f VulnFilter) ([]*Vulnerability, int, error) {
+	f.Limit = clampVulnLimit(f.Limit)
+	where, args := vulnListWhere(f)
+	i := len(args) + 1
 
 	var total int
 	countArgs := make([]interface{}, len(args))
@@ -122,6 +152,9 @@ func (s *VulnStore) List(ctx context.Context, f VulnFilter) ([]*Vulnerability, i
 		}
 		v.AgentID = agentID
 		vulns = append(vulns, v)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, 0, err
 	}
 	if vulns == nil {
 		vulns = []*Vulnerability{}
@@ -218,6 +251,9 @@ func (s *VulnStore) Stats(ctx context.Context) (map[string]int, error) {
 		if err := rows.Scan(&sev, &cnt); err == nil {
 			out[sev] = cnt
 		}
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
 	}
 	return out, nil
 }

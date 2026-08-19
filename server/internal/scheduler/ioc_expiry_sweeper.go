@@ -27,13 +27,19 @@ func NewIOCExpirySweeper(pool *pgxpool.Pool, interval time.Duration) *IOCExpiryS
 
 // Run starts the sweep loop. Designed to be called as a goroutine. It runs once
 // on startup to catch indicators that expired while the server was offline.
-func (s *IOCExpirySweeper) Run(ctx context.Context) {
-	slog.Info("IOC失効スイーパー起動", "interval", s.interval)
+// sweepOnce は1回分の掃除。sweep の戻り値をここで捌いてあるのは、
+// trackRun に渡す形にするためです。
+func (s *IOCExpirySweeper) sweepOnce(ctx context.Context) {
 	if n, err := s.sweep(ctx); err != nil {
 		slog.Debug("IOC失効スイープをスキップ", "error", err)
 	} else if n > 0 {
 		slog.Info("失効IOCを無効化しました", "count", n)
 	}
+}
+
+func (s *IOCExpirySweeper) Run(ctx context.Context) {
+	slog.Info("IOC失効スイーパー起動", "interval", s.interval)
+	trackRun(ctx, "ioc_expiry_sweeper", s.sweepOnce)
 
 	ticker := time.NewTicker(s.interval)
 	defer ticker.Stop()
@@ -42,11 +48,7 @@ func (s *IOCExpirySweeper) Run(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			if n, err := s.sweep(ctx); err != nil {
-				slog.Debug("IOC失効スイープをスキップ", "error", err)
-			} else if n > 0 {
-				slog.Info("失効IOCを無効化しました", "count", n)
-			}
+			trackRun(ctx, "ioc_expiry_sweeper", s.sweepOnce)
 		}
 	}
 }

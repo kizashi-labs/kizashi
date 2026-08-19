@@ -12,6 +12,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"os"
 	"strings"
@@ -27,6 +28,14 @@ type LiveResult struct {
 	Malicious int      `json:"malicious_detections"`
 	Sources   []string `json:"sources"`
 	Tags      []string `json:"tags"`
+
+	// Unreachable は「聞いたが答えなかった」提供元です。
+	//
+	// これが無いあいだ、外部の評判サービスが全部落ちていても Found=false /
+	// Verdict="unknown" / Score=0 が返り、全部が答えて「何も知られていない」
+	// と言った場合と同じ形でした。IP の評判が0だったのか、誰にも聞けなかった
+	// のかを、受け取る側が区別できません。
+	Unreachable []string `json:"unreachable,omitempty"`
 }
 
 // LiveEnricher queries external reputation providers. Zero value is not usable;
@@ -66,6 +75,10 @@ type providerResult struct {
 	malicious int
 	tags      []string
 	ok        bool
+	// failed は「答えなかった」。ok=false かつ failed=false は
+	// 「答えたが、この指標を知らなかった」です。
+	failed bool
+	err    error
 }
 
 // Enrich queries the applicable providers for value (of iocType: hash|ip|domain|url)
@@ -114,6 +127,12 @@ func (e *LiveEnricher) Enrich(ctx context.Context, value, iocType string) LiveRe
 	agg := LiveResult{Verdict: "unknown", Sources: []string{}, Tags: []string{}}
 	tagSet := map[string]struct{}{}
 	for _, r := range results {
+		if r.failed {
+			slog.Warn("threatintel: 評判の問い合わせに失敗しました",
+				"provider", r.source, "value", value, "error", r.err)
+			agg.Unreachable = append(agg.Unreachable, r.source)
+			continue
+		}
 		if !r.ok {
 			continue
 		}
@@ -169,8 +188,8 @@ func (e *LiveEnricher) vtFile(ctx context.Context, hash string) providerResult {
 			} `json:"attributes"`
 		} `json:"data"`
 	}
-	if !e.getJSON(req, &body) {
-		return providerResult{source: "VirusTotal"}
+	if err := e.getJSON(req, &body); err != nil {
+		return providerResult{source: "VirusTotal", failed: true, err: err}
 	}
 	st := body.Data.Attributes.LastAnalysisStats
 	total := st.Malicious + st.Suspicious + st.Harmless
@@ -194,8 +213,8 @@ func (e *LiveEnricher) otx(ctx context.Context, section, value string) providerR
 			} `json:"pulses"`
 		} `json:"pulse_info"`
 	}
-	if !e.getJSON(req, &body) {
-		return providerResult{source: "AlienVault OTX"}
+	if err := e.getJSON(req, &body); err != nil {
+		return providerResult{source: "AlienVault OTX", failed: true, err: err}
 	}
 	// Score by how many threat pulses reference the indicator (capped).
 	score := body.PulseInfo.Count * 20
@@ -223,8 +242,8 @@ func (e *LiveEnricher) abuseIPDB(ctx context.Context, ip string) providerResult 
 			UsageType            string `json:"usageType"`
 		} `json:"data"`
 	}
-	if !e.getJSON(req, &body) {
-		return providerResult{source: "AbuseIPDB"}
+	if err := e.getJSON(req, &body); err != nil {
+		return providerResult{source: "AbuseIPDB", failed: true, err: err}
 	}
 	var tags []string
 	if body.Data.UsageType != "" {
@@ -233,16 +252,19 @@ func (e *LiveEnricher) abuseIPDB(ctx context.Context, ip string) providerResult 
 	return providerResult{source: "AbuseIPDB", score: body.Data.AbuseConfidenceScore, malicious: body.Data.TotalReports, tags: tags, ok: true}
 }
 
-// getJSON performs the request and decodes JSON on HTTP 200; returns false on any
-// error or non-200 (so the provider is silently skipped in aggregation).
-func (e *LiveEnricher) getJSON(req *http.Request, out interface{}) bool {
+// getJSON performs the request and decodes JSON on HTTP 200.
+//
+// 以前は bool を返していて、呼び出し側はそれを「この提供元は指標を
+// 知らなかった」として集計から外していました。落ちている提供元と、
+// 答えたうえで「知らない」と言った提供元が同じ扱いです。
+func (e *LiveEnricher) getJSON(req *http.Request, out interface{}) error {
 	resp, err := e.client.Do(req)
 	if err != nil {
-		return false
+		return err
 	}
 	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != http.StatusOK {
-		return false
+		return fmt.Errorf("HTTP %d", resp.StatusCode)
 	}
-	return json.NewDecoder(resp.Body).Decode(out) == nil
+	return json.NewDecoder(resp.Body).Decode(out)
 }

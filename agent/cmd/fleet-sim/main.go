@@ -68,6 +68,11 @@ import (
 	"google.golang.org/grpc/metadata"
 )
 
+// streamDrainTimeout bounds how long a host waits, after CloseSend, for the server
+// to finish consuming its stream. Long enough that a final partial batch is never
+// abandoned; short enough that a wedged ingestion cannot hold the run open.
+const streamDrainTimeout = 15 * time.Second
+
 type options struct {
 	server      string
 	enrollPort  int
@@ -449,13 +454,8 @@ func (r *runner) runAgent(ctx context.Context, index int, a *simAgent, shared []
 	// counted as a send error instead. Events already generated must reach the
 	// server, or the manifest's host-day denominator no longer matches the
 	// telemetry the fleet actually delivered.
-	streamCtx, endStream := context.WithCancel(context.WithoutCancel(ctx))
+	streamCtx, endStream := streamContext(ctx, r.opts.caCert, a.AgentID)
 	defer endStream()
-	if r.opts.caCert == "" {
-		// Plaintext mode: the server resolves the agent from this header
-		// instead of the client-certificate CN (ingestion extractAgentIDFromCert).
-		streamCtx = metadata.AppendToOutgoingContext(ctx, "x-agent-id", a.AgentID)
-	}
 	stream, err := client.EventStream(streamCtx)
 	if err != nil {
 		log.Printf("[%s] ストリームの確立に失敗しました: %v", a.Hostname, err)
@@ -463,7 +463,14 @@ func (r *runner) runAgent(ctx context.Context, index int, a *simAgent, shared []
 	}
 	// Drain server->agent frames (keepalives and any commands) so the server's
 	// stream does not stall on an unread downstream.
+	//
+	// drained closes when the server ends its side of the stream, which for a bidi
+	// RPC happens after it has consumed everything the client sent. That is the only
+	// signal available that the final batch was actually processed rather than
+	// merely queued, so the shutdown path below waits for it.
+	drained := make(chan struct{})
 	go func() {
+		defer close(drained)
 		for {
 			if _, err := stream.Recv(); err != nil {
 				return
@@ -521,6 +528,20 @@ func (r *runner) runAgent(ctx context.Context, index int, a *simAgent, shared []
 		case <-ctx.Done():
 			send()
 			_ = stream.CloseSend()
+			// Returning here fires `defer endStream()`, which cancels the transport.
+			// Do that before the server has drained what CloseSend flushed and the
+			// last frames die in the socket — counted as sent, never ingested.
+			// Wait for the server to close its side, which it does only after
+			// consuming the client's stream. Bounded so a wedged server cannot hang
+			// the whole run; the timeout is generous relative to a final partial
+			// batch and is reported so a silent stall cannot look like a clean exit.
+			select {
+			case <-drained:
+			case <-time.After(streamDrainTimeout):
+				log.Printf("[%s] ストリームの終了確認が %s でタイムアウトしました"+
+					"（最終バッチが取り込まれていない可能性があります）",
+					a.Hostname, streamDrainTimeout)
+			}
 			return
 		case <-ticker.C:
 			if evt := a.gen.Next(a.gen.PickKind()); evt != nil {
@@ -533,6 +554,35 @@ func (r *runner) runAgent(ctx context.Context, index int, a *simAgent, shared []
 			send()
 		}
 	}
+}
+
+// streamContext derives the context for a host's event stream.
+//
+// The stream deliberately outlives the run deadline. Deriving it from ctx would
+// cancel the transport at the same instant the run ends, so the final partial
+// batch — up to batch-size events per host — could never be sent and would be
+// counted as a send error instead. Events already generated must reach the
+// server, or the manifest's host-day denominator no longer matches the telemetry
+// the fleet actually delivered.
+//
+// The plaintext branch is where this went wrong. It appended the agent-id header
+// to ctx rather than to the already-derived context, throwing the WithoutCancel
+// away and putting the transport back on the run deadline — in exactly the mode
+// the FP soak uses (it passes no -ca-cert). At the deadline the context cancelled
+// and the transport was torn down while frames were still queued: gRPC's Send
+// returns nil once a message is handed to the transport, not once the server has
+// it, so those events were counted as sent and never arrived. That is the
+// 0〜0.27% ingest loss tracked as P2-7 — including why it varied run to run (how
+// many frames happened to be in flight at the instant of cancel) and why one run
+// lost nothing at all.
+func streamContext(ctx context.Context, caCert, agentID string) (context.Context, context.CancelFunc) {
+	streamCtx, cancel := context.WithCancel(context.WithoutCancel(ctx))
+	if caCert == "" {
+		// Plaintext mode: the server resolves the agent from this header instead of
+		// the client-certificate CN (ingestion extractAgentIDFromCert).
+		streamCtx = metadata.AppendToOutgoingContext(streamCtx, "x-agent-id", agentID)
+	}
+	return streamCtx, cancel
 }
 
 func (r *runner) connFor(a *simAgent, shared []*grpc.ClientConn, index int) (*grpc.ClientConn, bool, error) {
@@ -583,11 +633,13 @@ func (r *runner) heartbeatLoop(ctx context.Context, client v1.IngestionServiceCl
 		hbCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
 		defer cancel()
 		_, _ = client.Heartbeat(hbCtx, &v1.HeartbeatRequest{
-			AgentId:       a.AgentID,
-			AgentVersion:  "fleet-sim",
-			IpAddresses:   []string{a.gen.SrcIP()},
-			CpuUsage:      0.5,
-			MemoryUsageMb: 42,
+			AgentId:      a.AgentID,
+			AgentVersion: "fleet-sim",
+			IpAddresses:  []string{a.gen.SrcIP()},
+			// 負荷試験の合成エージェント。測ったことにして送ります。
+			CpuUsage:      simCPUUsage(),
+			MemoryUsageMb: simMemUsedMB(),
+			TotalMemoryMb: simMemTotalMB(),
 			Status:        v1.HeartbeatRequest_AGENT_STATUS_ONLINE,
 			Hostname:      a.Hostname,
 			OsVersion:     prof.OSVersion,
@@ -809,3 +861,14 @@ func writeManifest(path string, m *Manifest) error {
 	}
 	return os.WriteFile(path, data, 0o644)
 }
+
+// simCPUUsage returns the synthetic agent's reported CPU, as a measured value.
+//
+// **合成なので「測れた」で正しい**です。実機の未実装（Windows / macOS）は
+// 欄ごと送らないので、この2つは混ざりません。
+func simCPUUsage() *float64 { v := 0.5; return &v }
+
+// simMemUsedMB / simMemTotalMB — 合成エージェントのメモリ。
+// 使用率が出せるよう、分母も送ります。
+func simMemUsedMB() *float64  { v := 42.0; return &v }
+func simMemTotalMB() *float64 { v := 8192.0; return &v }

@@ -22,19 +22,11 @@ func NewZeroTrustHandler(pool *pgxpool.Pool) *ZeroTrustHandler {
 }
 
 func (h *ZeroTrustHandler) policyTableExists(c *gin.Context) bool {
-	ctx := c.Request.Context()
-	var exists bool
-	_ = h.pool.QueryRow(ctx,
-		`SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name='zero_trust_policies')`).Scan(&exists)
-	return exists
+	return tableIsThere(c.Request.Context(), h.pool, "zero_trust_policies")
 }
 
 func (h *ZeroTrustHandler) logTableExists(c *gin.Context) bool {
-	ctx := c.Request.Context()
-	var exists bool
-	_ = h.pool.QueryRow(ctx,
-		`SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name='zero_trust_access_logs')`).Scan(&exists)
-	return exists
+	return tableIsThere(c.Request.Context(), h.pool, "zero_trust_access_logs")
 }
 
 type ztPolicy struct {
@@ -109,7 +101,9 @@ func (h *ZeroTrustHandler) ListPolicies(c *gin.Context) {
 		}
 	}
 	if err := rows.Err(); err != nil {
-		slog.Warn("row iteration error", "error", err)
+		slog.Error("rows.Err: 結果の読み出しが途中で失敗しました", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "ポリシー一覧の取得に失敗しました"})
+		return
 	}
 	if result == nil {
 		result = []ztPolicy{}
@@ -343,15 +337,19 @@ func (h *ZeroTrustHandler) EvaluateAccess(c *gin.Context) {
 		if body.UserID == "" {
 			userIDPtr = nil
 		}
-		_, _ = h.pool.Exec(ctx,
+		if _, err := h.pool.Exec(ctx,
 			`INSERT INTO zero_trust_access_logs (policy_id, agent_id, user_id, resource, action, decision, reason, risk_score)
-			 VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
+				 VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
 			matchedPolicyID, agentIDPtr, userIDPtr, body.Resource, body.Action, decision, reason, riskScore,
-		)
+		); !WriteOK(c, err) {
+			return
+		}
 		// Update match_count if policy matched
 		if matchedPolicyID != nil {
-			_, _ = h.pool.Exec(ctx,
-				`UPDATE zero_trust_policies SET match_count = match_count + 1 WHERE id=$1`, *matchedPolicyID)
+			if _, err := h.pool.Exec(ctx,
+				`UPDATE zero_trust_policies SET match_count = match_count + 1 WHERE id=$1`, *matchedPolicyID); !WriteOK(c, err) {
+				return
+			}
 		}
 	}
 
@@ -443,7 +441,9 @@ func (h *ZeroTrustHandler) GetAccessLogs(c *gin.Context) {
 		result = append(result, al)
 	}
 	if err := rows.Err(); err != nil {
-		slog.Warn("row iteration error", "error", err)
+		slog.Error("rows.Err: 結果の読み出しが途中で失敗しました", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "アクセスログの取得に失敗しました"})
+		return
 	}
 	if result == nil {
 		result = []accessLog{}
@@ -467,12 +467,14 @@ func (h *ZeroTrustHandler) GetStats(c *gin.Context) {
 	ctx := c.Request.Context()
 
 	var allow, deny, mfa int
-	_ = h.pool.QueryRow(ctx,
+	if !ReadOK(c, h.pool.QueryRow(ctx,
 		`SELECT
-		  COUNT(*) FILTER (WHERE decision='allow' AND logged_at >= NOW() - INTERVAL '1 day'),
-		  COUNT(*) FILTER (WHERE decision='deny' AND logged_at >= NOW() - INTERVAL '1 day'),
-		  COUNT(*) FILTER (WHERE decision='mfa_required' AND logged_at >= NOW() - INTERVAL '1 day')
-		 FROM zero_trust_access_logs`).Scan(&allow, &deny, &mfa)
+			  COUNT(*) FILTER (WHERE decision='allow' AND logged_at >= NOW() - INTERVAL '1 day'),
+			  COUNT(*) FILTER (WHERE decision='deny' AND logged_at >= NOW() - INTERVAL '1 day'),
+			  COUNT(*) FILTER (WHERE decision='mfa_required' AND logged_at >= NOW() - INTERVAL '1 day')
+			 FROM zero_trust_access_logs`).Scan(&allow, &deny, &mfa)) {
+		return
+	}
 
 	// Top denied resources
 	type resourceCount struct {
@@ -480,10 +482,13 @@ func (h *ZeroTrustHandler) GetStats(c *gin.Context) {
 		Count    int    `json:"count"`
 	}
 	var topDenied []resourceCount
-	deniedRows, _ := h.pool.Query(ctx,
+	deniedRows, err := h.pool.Query(ctx,
 		`SELECT resource, COUNT(*) as cnt FROM zero_trust_access_logs
 		 WHERE decision='deny' AND logged_at >= NOW() - INTERVAL '7 days'
 		 GROUP BY resource ORDER BY cnt DESC LIMIT 10`)
+	if !ReadOK(c, err) {
+		return
+	}
 	if deniedRows != nil {
 		defer deniedRows.Close()
 		for deniedRows.Next() {
@@ -506,10 +511,13 @@ func (h *ZeroTrustHandler) GetStats(c *gin.Context) {
 		Count   int    `json:"count"`
 	}
 	var topAgents []agentCount
-	agentRows, _ := h.pool.Query(ctx,
+	agentRows, err := h.pool.Query(ctx,
 		`SELECT agent_id::TEXT, COUNT(*) as cnt FROM zero_trust_access_logs
 		 WHERE decision IN ('deny','quarantine') AND agent_id IS NOT NULL AND logged_at >= NOW() - INTERVAL '7 days'
 		 GROUP BY agent_id ORDER BY cnt DESC LIMIT 10`)
+	if !ReadOK(c, err) {
+		return
+	}
 	if agentRows != nil {
 		defer agentRows.Close()
 		for agentRows.Next() {

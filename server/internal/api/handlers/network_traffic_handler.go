@@ -31,20 +31,18 @@ func (h *NetworkTrafficHandler) GetStats(c *gin.Context) {
 	}
 
 	// Check for NTA detections table.
-	var ntaExists bool
-	_ = h.pool.QueryRow(ctx,
-		`SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name='nta_detections')`).Scan(&ntaExists)
+	ntaExists := tableIsThere(ctx, h.pool, "nta_detections")
 
 	if ntaExists {
 		var suspicious int
-		_ = h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM nta_detections WHERE detected_at > NOW()-INTERVAL '24 hours'`).Scan(&suspicious)
+		if !ReadOK(c, h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM nta_detections WHERE detected_at > NOW()-INTERVAL '24h'`).Scan(&suspicious)) {
+			return
+		}
 		stats["suspicious_flows"] = suspicious
 	}
 
 	// Try to get network events from events table.
-	var eventsExists bool
-	_ = h.pool.QueryRow(ctx,
-		`SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name='events')`).Scan(&eventsExists)
+	eventsExists := tableIsThere(ctx, h.pool, "events")
 
 	if eventsExists {
 		// events の実際の列は event_type / time / raw_data (migration 002)。

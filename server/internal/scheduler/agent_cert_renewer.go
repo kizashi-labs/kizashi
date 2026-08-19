@@ -46,9 +46,9 @@ func (r *AgentCertRenewer) Run(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-timer.C:
-			r.checkAndRenew(ctx)
+			trackRun(ctx, "agent_cert_renewer", r.checkAndRenew)
 		case <-ticker.C:
-			r.checkAndRenew(ctx)
+			trackRun(ctx, "agent_cert_renewer", r.checkAndRenew)
 		}
 	}
 }
@@ -58,7 +58,7 @@ func (r *AgentCertRenewer) checkAndRenew(ctx context.Context) {
 
 	expiring, err := r.agentStore.ListExpiringAgents(ctx, renewWithinDays)
 	if err != nil {
-		slog.Error("期限切れエージェント一覧の取得に失敗しました", "error", err)
+		fail(ctx, err, "期限切れエージェント一覧の取得に失敗しました")
 		return
 	}
 	if len(expiring) == 0 {
@@ -79,7 +79,7 @@ func (r *AgentCertRenewer) renewAgent(ctx context.Context, agent *store.Expiring
 	// Generate a one-time renewal token.
 	token := uuid.New().String()
 	if err := r.agentStore.SetRenewalToken(ctx, agent.ID, token, renewalTokenTTL); err != nil {
-		slog.Error("renewal tokenの保存に失敗しました", "agent_id", agent.ID, "error", err)
+		fail(ctx, err, "renewal tokenの保存に失敗しました", "agent_id", agent.ID)
 		return
 	}
 
@@ -92,8 +92,8 @@ func (r *AgentCertRenewer) renewAgent(ctx context.Context, agent *store.Expiring
 	})
 	if r.nc != nil {
 		if err := r.nc.Publish(subject, payload); err != nil {
-			slog.Error("cert_renewコマンドのNATS publishに失敗しました",
-				"agent_id", agent.ID, "error", err)
+			fail(ctx, err, "cert_renewコマンドのNATS publishに失敗しました",
+				"agent_id", agent.ID)
 			return
 		}
 	}

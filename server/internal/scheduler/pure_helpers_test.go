@@ -11,7 +11,6 @@ import (
 // fmtScore / itoa                      → compliance_scorer_test.go
 // joinOrNone                           → daily_briefing_scheduler_test.go
 // validateSelectOnly                   → hunt_scheduler_test.go
-// computeNextRunFromSchedule           → report_generator_test.go
 //
 // 同一パッケージ内で同名のテストを再宣言すると go vet がビルドを弾くため、
 // 重複させないこと。

@@ -5,8 +5,11 @@ import (
 	"context"
 	"encoding/csv"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"github.com/edr-platform/server/internal/metrics"
 	"io"
+	"log/slog"
 	"net/http"
 	"strings"
 	"time"
@@ -114,17 +117,37 @@ func parseOTXReputation(r io.Reader) ([]FeedEntry, error) {
 	return entries, scanner.Err()
 }
 
+// skippedLines counts the CSV records a feed parser could not use.
+//
+// 壊れた行を黙って飛ばすと、フィードの書式が変わって全行が落ちても
+// 「今日は0件でした」と同じ形になります。取り込み側は0件を正常として
+// 記録するので、何日落ちていても誰も気づきません。行を捨てるのは
+// 正しい判断ですが、何行捨てたかは残します。
+func skippedLines(source string, n int) {
+	if n == 0 {
+		return
+	}
+	slog.Warn("脅威フィード: 読めない行を飛ばしました",
+		"source", source, "skipped", n)
+	metrics.BackgroundFailed(source+"_csv", errSkippedLines,
+		"読めない行がありました", "skipped", n)
+}
+
+var errSkippedLines = errors.New("CSV に読めない行がありました")
+
 func parseURLhausCSV(r io.Reader) ([]FeedEntry, error) {
 	cr := csv.NewReader(r)
 	cr.Comment = '#'
 	cr.LazyQuotes = true
 	var entries []FeedEntry
+	skipped := 0
 	for {
 		rec, err := cr.Read()
 		if err == io.EOF {
 			break
 		}
 		if err != nil || len(rec) < 3 {
+			skipped++
 			continue
 		}
 		// id, dateadded, url, url_status, ...
@@ -134,6 +157,7 @@ func parseURLhausCSV(r io.Reader) ([]FeedEntry, error) {
 		}
 		entries = append(entries, FeedEntry{Type: "url", Value: url, Threat: "malware_distribution", Source: "urlhaus"})
 	}
+	skippedLines("urlhaus", skipped)
 	return entries, nil
 }
 
@@ -144,12 +168,14 @@ func parseMalwareBazaarCSV(r io.Reader) ([]FeedEntry, error) {
 	cr.TrimLeadingSpace = true // rows are `"a", "b", …` — strip the space after each comma
 	cr.FieldsPerRecord = -1    // trailing columns vary across export versions
 	var entries []FeedEntry
+	skipped := 0
 	for {
 		rec, err := cr.Read()
 		if err == io.EOF {
 			break
 		}
 		if err != nil || len(rec) < 2 {
+			skipped++
 			continue
 		}
 		// first_seen, sha256_hash, md5_hash, sha1_hash, ...
@@ -159,6 +185,7 @@ func parseMalwareBazaarCSV(r io.Reader) ([]FeedEntry, error) {
 		}
 		entries = append(entries, FeedEntry{Type: "hash", Value: hash, Threat: "malware", Source: "malwarebazaar"})
 	}
+	skippedLines("malwarebazaar", skipped)
 	return entries, nil
 }
 
@@ -167,12 +194,14 @@ func parseFeodoCSV(r io.Reader) ([]FeedEntry, error) {
 	cr.Comment = '#'
 	cr.LazyQuotes = true
 	var entries []FeedEntry
+	skipped := 0
 	for {
 		rec, err := cr.Read()
 		if err == io.EOF {
 			break
 		}
 		if err != nil || len(rec) < 2 {
+			skipped++
 			continue
 		}
 		ip := strings.TrimSpace(rec[1])
@@ -181,6 +210,7 @@ func parseFeodoCSV(r io.Reader) ([]FeedEntry, error) {
 		}
 		entries = append(entries, FeedEntry{Type: "ip", Value: ip, Threat: "c2", Source: "feodo"})
 	}
+	skippedLines("feodo", skipped)
 	return entries, nil
 }
 
@@ -201,12 +231,14 @@ func parseThreatFoxCSV(r io.Reader) ([]FeedEntry, error) {
 	cr.TrimLeadingSpace = true // rows are formatted as `"a", "b", ...`
 	cr.FieldsPerRecord = -1    // trailing columns vary across export versions
 	var entries []FeedEntry
+	skipped := 0
 	for {
 		rec, err := cr.Read()
 		if err == io.EOF {
 			break
 		}
 		if err != nil || len(rec) < 4 {
+			skipped++
 			continue
 		}
 		value := strings.TrimSpace(rec[2])
@@ -243,6 +275,7 @@ func parseThreatFoxCSV(r io.Reader) ([]FeedEntry, error) {
 
 		entries = append(entries, FeedEntry{Type: t, Value: value, Threat: threat, Source: "threatfox"})
 	}
+	skippedLines("threatfox", skipped)
 	return entries, nil
 }
 

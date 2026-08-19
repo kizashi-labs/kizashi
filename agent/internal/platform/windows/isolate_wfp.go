@@ -41,6 +41,15 @@ type WFPIsolationManager struct {
 	// listRules enumerates the isolation rules present on the system. Overridden in
 	// tests so reconcile can be exercised without shelling out to netsh.
 	listRules func() []string
+
+	// savedPolicy is the default firewall policy as it stood before Isolate
+	// relaxed it, so Unisolate can put it back. Also persisted to disk, because
+	// isolation outlives the agent process. See isolate_firewall_policy.go.
+	savedPolicy fwSnapshot
+	// readPolicy and runNetsh are seams: the restore path's whole job is to run
+	// the right netsh argv, and that cannot be asserted by actually running it.
+	readPolicy func() (fwSnapshot, error)
+	runNetsh   func(args ...string) error
 }
 
 const (
@@ -53,7 +62,11 @@ const (
 var isolationRuleNameRe = regexp.MustCompile(`EDR-ISOLATE-BLOCK-RANGE-\d+-(?:IN|OUT)`)
 
 func NewWFPIsolationManager() *WFPIsolationManager {
-	m := &WFPIsolationManager{listRules: existingIsolationRules}
+	m := &WFPIsolationManager{
+		listRules:  existingIsolationRules,
+		readPolicy: readFirewallPolicy,
+		runNetsh:   func(args ...string) error { return exec.Command("netsh", args...).Run() },
+	}
 	// Enumerating firewall rules is slow — measured 14.1s on a host with 626 rules
 	// (`netsh show rule name=all`; per-rule lookups and the PowerShell equivalent
 	// measured worse), so adopt in the background rather than blocking agent
@@ -224,6 +237,20 @@ func (m *WFPIsolationManager) Isolate(allowedIPs []string, allowedPorts []uint16
 		return nil
 	}
 
+	// Snapshot the default policy BEFORE overwriting it. Unisolate has to put
+	// back what the operator configured; without this it can only guess, and the
+	// guess it used to make (allowinbound on every profile) left the host weaker
+	// than it found it. See isolate_firewall_policy.go.
+	if snap, err := m.readPolicy(); err != nil {
+		slog.Warn("ファイアウォール既定ポリシーの取得に失敗しました。解除時に復元できません", "error", err)
+	} else {
+		m.savedPolicy = snap
+		if err := saveFirewallPolicy(snap); err != nil {
+			// In-memory copy still works for an unisolate by this same process.
+			slog.Warn("ファイアウォール既定ポリシーの保存に失敗しました。エージェント再起動を跨ぐと復元できません", "error", err)
+		}
+	}
+
 	// Set default policy to allow BEFORE enabling the firewall.
 	// This prevents a brief blockoutbound window on the Public profile
 	// that would kill the existing gRPC connection to the EDR server.
@@ -289,7 +316,8 @@ func (m *WFPIsolationManager) VerifyIsolation() (bool, error) {
 	return len(existingIsolationRules()) > 0, nil
 }
 
-// rollback removes all isolation rules and ensures default policy allows traffic.
+// rollback removes all isolation rules and puts the default policy back the way
+// Isolate found it.
 func (m *WFPIsolationManager) rollback() error {
 	var errs []string
 
@@ -300,16 +328,28 @@ func (m *WFPIsolationManager) rollback() error {
 		}
 	}
 
-	// Restore default policy to allow all
-	cmd := exec.Command("netsh", "advfirewall", "set", "allprofiles",
-		"firewallpolicy", "allowinbound,allowoutbound")
-	if err := cmd.Run(); err != nil {
-		errs = append(errs, fmt.Sprintf("restore policy: %v", err))
+	// Restore the snapshot taken by Isolate, falling back to the persisted copy
+	// when isolation outlived the process that applied it.
+	snap := m.savedPolicy
+	if snap == nil {
+		snap = loadFirewallPolicy()
+	}
+	if snap == nil {
+		// Deliberately leave the policy alone. Isolation's relaxed policy staying
+		// in place is a known, visible state; silently writing an allow-inbound
+		// policy the operator never chose is a security downgrade, and that is
+		// what this code used to do on every single release.
+		slog.Warn("ファイアウォール既定ポリシーのスナップショットが無いため、ポリシーを変更せずに解除します。" +
+			"隔離中に緩めた既定ポリシー(allowinbound)が残っている可能性があります")
+	} else {
+		errs = append(errs, restoreFirewallPolicy(snap, m.runNetsh)...)
+		clearFirewallPolicyState()
 	}
 
 	m.isolated = false
 	m.ruleNames = nil
 	m.allowedIPs = nil
+	m.savedPolicy = nil
 
 	if len(errs) > 0 {
 		return fmt.Errorf("rollback errors: %s", strings.Join(errs, "; "))

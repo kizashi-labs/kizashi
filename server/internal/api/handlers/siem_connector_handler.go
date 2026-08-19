@@ -36,8 +36,9 @@ func (h *SIEMConnectorHandler) GetConfig(c *gin.Context) {
 		`SELECT value FROM system_metadata WHERE key = 'siem_connector' LIMIT 1`,
 	).Scan(&value)
 	if err != nil {
-		// Return empty default config if not found
-		c.JSON(http.StatusOK, gin.H{
+		// 未設定なら既定値で正しいですが、読めなかった場合に既定値を返すと、
+		// 設定済みの転送先が「未設定」として表示されます。
+		ReadFailure(c, err, gin.H{
 			"host":               "",
 			"port":               514,
 			"protocol":           "udp",
@@ -153,7 +154,7 @@ func (h *SIEMConnectorHandler) GetStats(c *gin.Context) {
 	).Scan(&value)
 	if err != nil {
 		// Return zeroed stats if not yet populated
-		c.JSON(http.StatusOK, gin.H{
+		ReadFailure(c, err, gin.H{
 			"events_forwarded_today": 0,
 			"events_forwarded_total": 0,
 			"last_forwarded_at":      nil,

@@ -21,10 +21,7 @@ func NewRiskRegisterHandler(pool *pgxpool.Pool) *RiskRegisterHandler {
 }
 
 func (h *RiskRegisterHandler) tableExists(c *gin.Context) bool {
-	var ok bool
-	_ = h.pool.QueryRow(c.Request.Context(),
-		`SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name='risk_register')`).Scan(&ok)
-	return ok
+	return tableIsThere(c.Request.Context(), h.pool, "risk_register")
 }
 
 type riskItem struct {
@@ -117,6 +114,10 @@ func (h *RiskRegisterHandler) List(c *gin.Context) {
 		r.LastReviewDate = lastReview.Format("2006-01-02")
 		r.CreatedAt = createdAt.Format(time.RFC3339)
 		risks = append(risks, r)
+	}
+	if err := rows.Err(); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to list risks"})
+		return
 	}
 	if risks == nil {
 		risks = []riskItem{}

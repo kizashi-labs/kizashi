@@ -25,10 +25,7 @@ func NewPatchHandler(pool *pgxpool.Pool, nc *nats.Conn) *PatchHandler {
 }
 
 func (h *PatchHandler) tableExists(ctx context.Context) bool {
-	var exists bool
-	_ = h.pool.QueryRow(ctx,
-		`SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name='patch_deployments')`).Scan(&exists)
-	return exists
+	return tableIsThere(ctx, h.pool, "patch_deployments")
 }
 
 // ListDeployments GET /patches
@@ -41,13 +38,7 @@ func (h *PatchHandler) ListDeployments(c *gin.Context) {
 
 	limit, _ := strconv.Atoi(c.DefaultQuery("per_page", "50"))
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
-	if page < 1 {
-		page = 1
-	}
-	if limit < 1 || limit > 200 {
-		limit = 50
-	}
-	offset := (page - 1) * limit
+	page, limit, offset := clampPageParams(page, limit, 50, 200)
 
 	where := " WHERE 1=1"
 	args := []interface{}{}
@@ -73,7 +64,9 @@ func (h *PatchHandler) ListDeployments(c *gin.Context) {
 	copy(countArgs, args)
 
 	var total int
-	_ = h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM patch_deployments`+where, countArgs...).Scan(&total)
+	if !ReadOK(c, h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM patch_deployments`+where, countArgs...).Scan(&total)) {
+		return
+	}
 
 	args = append(args, limit, offset)
 	query := `SELECT id, name, description, patch_type, kb_article, cve_ids, severity,
@@ -120,7 +113,9 @@ func (h *PatchHandler) ListDeployments(c *gin.Context) {
 		}
 	}
 	if err := rows.Err(); err != nil {
-		slog.Warn("row iteration error", "error", err)
+		slog.Error("rows.Err: 結果の読み出しが途中で失敗しました", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to list deployments"})
+		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{"deployments": deployments, "total": total, "page": page, "per_page": limit})
@@ -178,13 +173,15 @@ func (h *PatchHandler) GetDeployment(c *gin.Context) {
 		Failed  int `json:"failed"`
 	}
 	var summary Summary
-	_ = h.pool.QueryRow(ctx,
+	if !ReadOK(c, h.pool.QueryRow(ctx,
 		`SELECT COUNT(*),
-		        SUM(CASE WHEN status='pending' THEN 1 ELSE 0 END),
-		        SUM(CASE WHEN status='success' THEN 1 ELSE 0 END),
-		        SUM(CASE WHEN status='failed' THEN 1 ELSE 0 END)
-		 FROM patch_deployment_results WHERE deployment_id=$1`, id).Scan(
-		&summary.Total, &summary.Pending, &summary.Success, &summary.Failed)
+			        COALESCE(SUM(CASE WHEN status='pending' THEN 1 ELSE 0 END), 0),
+			        COALESCE(SUM(CASE WHEN status='success' THEN 1 ELSE 0 END), 0),
+			        COALESCE(SUM(CASE WHEN status='failed' THEN 1 ELSE 0 END), 0)
+			 FROM patch_deployment_results WHERE deployment_id=$1`, id).Scan(
+		&summary.Total, &summary.Pending, &summary.Success, &summary.Failed)) {
+		return
+	}
 
 	c.JSON(http.StatusOK, gin.H{"deployment": d, "results_summary": summary})
 }
@@ -453,35 +450,33 @@ func (h *PatchHandler) DeployNow(c *gin.Context) {
 		}
 	}
 
-	// Mark all agent results as completed immediately
-	now := time.Now()
-	for _, agentID := range targetAgentIDs {
-		if _, err := h.pool.Exec(ctx,
-			`UPDATE patch_deployment_results
-			 SET status='success', error_message='', started_at=$1, completed_at=$2, updated_at=$2
-			 WHERE deployment_id=$3 AND agent_id=$4`,
-			now, now, id, agentID); err != nil {
-			slog.Warn("patch: エージェント結果の更新に失敗しました", "deployment_id", id, "agent_id", agentID, "error", err)
-		}
-	}
-
-	// Set deployment status to completed
-	if _, err := h.pool.Exec(ctx,
-		`UPDATE patch_deployments SET status='completed', updated_at=NOW() WHERE id=$1`, id); err != nil {
-		slog.Warn("patch: デプロイメントステータスの更新に失敗しました", "deployment_id", id, "error", err)
-	}
-
-	if h.nc != nil {
-		payload, _ := json.Marshal(map[string]interface{}{
-			"deployment_id": id,
-			"status":        "completed",
-		})
-		if err := h.nc.Publish("patch.deploy.complete", payload); err != nil {
-			slog.Warn("NATS publish failed", "subject", "patch.deploy.complete", "error", err)
-		}
-	}
-
-	c.JSON(http.StatusOK, gin.H{"message": "deployment started", "agent_count": len(targetAgentIDs)})
+	// The deployment has been dispatched. It is NOT complete, and each agent's
+	// result stays 'pending' until that agent reports what it did.
+	//
+	// This used to mark every result 'success' the instant the request was
+	// issued, publish patch.deploy.complete, and set the deployment
+	// 'completed'. The results UPDATE also named an updated_at column
+	// patch_deployment_results does not have, so it failed with 42703 into a
+	// Warn and the rows stayed pending — the only reason the reported numbers
+	// were not already false.
+	//
+	// Dropping the missing column alone would have made the fabrication work.
+	// Nothing in this repository applies a patch: no agent code subscribes to
+	// patch.deploy.start, nothing writes patch_deployment_results but the
+	// INSERT above, and there is no endpoint through which an agent could
+	// report an outcome. Every deployment would then have reported 100%
+	// success, and GetSummary would have shown full patch coverage, for
+	// patches that were never applied — a number customers act on directly.
+	//
+	// The deployment keeps the 'deploying' status set above, which is what
+	// actually happened. It advances when something reports; today nothing
+	// does, and saying so is the honest state.
+	c.JSON(http.StatusOK, gin.H{
+		"message":     "deployment dispatched",
+		"agent_count": len(targetAgentIDs),
+		"status":      "deploying",
+		"note":        "各エージェントの結果は報告があるまで pending のままです。適用完了を意味しません。",
+	})
 }
 
 // GetResults GET /patches/:id/results
@@ -527,7 +522,9 @@ func (h *PatchHandler) GetResults(c *gin.Context) {
 		}
 	}
 	if err := rows.Err(); err != nil {
-		slog.Warn("row iteration error", "error", err)
+		slog.Error("rows.Err: 結果の読み出しが途中で失敗しました", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get results"})
+		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{"results": results})
@@ -548,16 +545,20 @@ func (h *PatchHandler) GetStats(c *gin.Context) {
 	ctx := c.Request.Context()
 
 	var pending, deploying, completed int
-	_ = h.pool.QueryRow(ctx, `SELECT
-		SUM(CASE WHEN status='pending' OR status='draft' OR status='scheduled' THEN 1 ELSE 0 END),
-		SUM(CASE WHEN status='deploying' THEN 1 ELSE 0 END),
-		SUM(CASE WHEN status='completed' THEN 1 ELSE 0 END)
-	FROM patch_deployments`).Scan(&pending, &deploying, &completed)
+	if !ReadOK(c, h.pool.QueryRow(ctx, `SELECT
+			COALESCE(SUM(CASE WHEN status='pending' OR status='draft' OR status='scheduled' THEN 1 ELSE 0 END), 0),
+			COALESCE(SUM(CASE WHEN status='deploying' THEN 1 ELSE 0 END), 0),
+			COALESCE(SUM(CASE WHEN status='completed' THEN 1 ELSE 0 END), 0)
+		FROM patch_deployments`).Scan(&pending, &deploying, &completed)) {
+		return
+	}
 
 	var totalResults, successResults int
-	_ = h.pool.QueryRow(ctx, `SELECT COUNT(*),
-		SUM(CASE WHEN status='success' THEN 1 ELSE 0 END)
-	FROM patch_deployment_results`).Scan(&totalResults, &successResults)
+	if !ReadOK(c, h.pool.QueryRow(ctx, `SELECT COUNT(*),
+			COALESCE(SUM(CASE WHEN status='success' THEN 1 ELSE 0 END), 0)
+		FROM patch_deployment_results`).Scan(&totalResults, &successResults)) {
+		return
+	}
 
 	successRate := 0.0
 	if totalResults > 0 {
@@ -566,8 +567,12 @@ func (h *PatchHandler) GetStats(c *gin.Context) {
 
 	// Coverage: agents with at least one successful patch result vs total agents
 	var patchedAgents, totalAgents int
-	_ = h.pool.QueryRow(ctx, `SELECT COUNT(DISTINCT agent_id) FROM patch_deployment_results WHERE status='success'`).Scan(&patchedAgents)
-	_ = h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM agents`).Scan(&totalAgents)
+	if !ReadOK(c, h.pool.QueryRow(ctx, `SELECT COUNT(DISTINCT agent_id) FROM patch_deployment_results WHERE status='success'`).Scan(&patchedAgents)) {
+		return
+	}
+	if !ReadOK(c, h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM agents`).Scan(&totalAgents)) {
+		return
+	}
 
 	coveragePct := 0.0
 	if totalAgents > 0 {

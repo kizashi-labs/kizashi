@@ -51,7 +51,9 @@ func (h *TIFeedSyncHandler) GetHistory(c *gin.Context) {
 		history = append(history, h)
 	}
 	if err := rows.Err(); err != nil {
-		slog.Warn("row iteration error", "error", err)
+		slog.Error("rows.Err: 結果の読み出しが途中で失敗しました", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "query failed"})
+		return
 	}
 	if history == nil {
 		history = []FeedSyncHistory{}

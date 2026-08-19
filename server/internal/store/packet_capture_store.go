@@ -108,16 +108,7 @@ func (s *PacketCaptureStore) Get(ctx context.Context, id string) (PacketCapture,
 
 // UpdateStatus updates the status and result fields of a packet capture.
 func (s *PacketCaptureStore) UpdateStatus(ctx context.Context, id, status string, filePath *string, fileSize *int64, packetCount *int, errorMsg *string) error {
-	var completedAt *time.Time
-	if status == "completed" || status == "failed" || status == "cancelled" {
-		now := time.Now().UTC()
-		completedAt = &now
-	}
-	var startedAt *time.Time
-	if status == "running" {
-		now := time.Now().UTC()
-		startedAt = &now
-	}
+	startedAt, completedAt := captureTimestampsFor(status, time.Now().UTC())
 
 	_, err := s.pool.Exec(ctx,
 		`UPDATE packet_captures
@@ -127,6 +118,28 @@ func (s *PacketCaptureStore) UpdateStatus(ctx context.Context, id, status string
 		status, filePath, fileSize, packetCount, errorMsg, startedAt, completedAt, id,
 	)
 	return err
+}
+
+// captureTimestampsFor derives the started/completed timestamps a status change
+// implies.
+//
+// **切り出してあるのは、検査が本物を呼べるようにするためです。** 検査
+// ファイルには、この2つの分岐を検査の本文で書き直したものが置いてあり、
+// **製品を1行も通らずに**「running は開始時刻を設定する」と確かめて
+// いました。
+//
+// 終了時刻が入らないと、取得の終わったキャプチャが**いつまでも
+// 「実行中」に見えます。** 開始時刻が入らないと、始まったことが
+// 分かりません。now は呼び出し側から渡します（検査を時刻に依存させない
+// ため）。
+func captureTimestampsFor(status string, now time.Time) (startedAt, completedAt *time.Time) {
+	switch status {
+	case "running":
+		return &now, nil
+	case "completed", "failed", "cancelled":
+		return nil, &now
+	}
+	return nil, nil
 }
 
 // Delete removes a packet capture record by ID.

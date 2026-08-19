@@ -85,7 +85,7 @@ func (h *UEBAHandler) Summary(c *gin.Context) {
 		SELECT
 			COALESCE(raw_data->>'username','unknown') AS username,
 			COUNT(*) AS total,
-			COUNT(*) FILTER (WHERE raw_data->>'outcome'='failure') AS fails,
+			COUNT(*) FILTER (WHERE raw_data->>'success'='false') AS fails,
 			COUNT(DISTINCT agent_id) AS unique_hosts
 		FROM events
 		WHERE event_type = 'auth'
@@ -165,12 +165,12 @@ func (h *UEBAHandler) Summary(c *gin.Context) {
 		) al ON al.agent_id::text = a.id::text
 		LEFT JOIN (
 			SELECT agent_id, COUNT(*) AS fail_cnt FROM events
-			WHERE event_type='auth' AND raw_data->>'outcome'='failure'
+			WHERE event_type='auth' AND raw_data->>'success'='false'
 			  AND "time" >= NOW()-INTERVAL '%d hours'
 			GROUP BY 1
 		) auth ON auth.agent_id::text = a.id::text
 		LEFT JOIN (
-			SELECT agent_id, COUNT(DISTINCT raw_data->>'image') AS proc_cnt FROM events
+			SELECT agent_id, COUNT(DISTINCT raw_data->>'image_path') AS proc_cnt FROM events
 			WHERE event_type='process'
 			  AND "time" >= NOW()-INTERVAL '%d hours'
 			GROUP BY 1
@@ -237,7 +237,7 @@ func (h *UEBAHandler) Summary(c *gin.Context) {
 	rows3, err := h.Pool.Query(ctx, fmt.Sprintf(`
 		WITH proc_counts AS (
 			SELECT
-				raw_data->>'image' AS image,
+				raw_data->>'image_path' AS image,
 				COUNT(DISTINCT agent_id) AS host_count,
 				MIN("time")::text AS first_seen,
 				-- uuid には max 集約が無い (function max(uuid) does not exist)。
@@ -245,8 +245,8 @@ func (h *UEBAHandler) Summary(c *gin.Context) {
 				MAX(agent_id::text) AS sample_agent
 			FROM events
 			WHERE event_type = 'process'
-			  AND raw_data->>'image' IS NOT NULL
-			  AND raw_data->>'image' != ''
+			  AND raw_data->>'image_path' IS NOT NULL
+			  AND raw_data->>'image_path' != ''
 			  AND "time" >= NOW() - INTERVAL '%d hours'
 			GROUP BY 1
 		)

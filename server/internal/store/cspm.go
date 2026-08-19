@@ -14,6 +14,7 @@ package store
 import (
 	"context"
 	"errors"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -65,12 +66,23 @@ func (s *CSPMStore) EnsureAccount(ctx context.Context, provider, accountID, acco
 // suppressed / accepted_risk は担当者の判断なので、再検出しても open に
 // 戻さない。これを戻すと「見なくてよいと決めたもの」が毎回蘇り、
 // 一覧が実質使えなくなる。
-func (s *CSPMStore) UpsertFinding(ctx context.Context, accountUUID string, f CSPMFinding) error {
+//
+// 戻り値の isNew は「この資源・この項目で今回はじめて出た所見か」。
+// 定期スキャンの通知がこれを使う。件数だけでは毎回同じ数が出るので
+// 「増えたのか、変わっていないのか」が分からず、通知として役に立たない。
+//
+// 判定は first_seen_at = last_seen_at で行う。first_seen_at は挿入時にしか
+// 書かないので、両者が一致するのは今回挿入された行だけになる。
+// なお、一度 resolved になった所見が再発した場合は「新規」にならない
+// (行が残っていて first_seen_at が過去のまま)。再発は本来伝える価値が
+// あるが、RETURNING からは更新前の status が見えないため、ここでは扱わない。
+func (s *CSPMStore) UpsertFinding(ctx context.Context, accountUUID string, f CSPMFinding) (bool, error) {
 	frameworks := f.Frameworks
 	if frameworks == nil {
 		frameworks = []string{}
 	}
-	_, err := s.pool.Exec(ctx, `
+	var isNew bool
+	err := s.pool.QueryRow(ctx, `
 		INSERT INTO cspm_findings
 		    (account_id, resource_type, resource_id, resource_name, region,
 		     check_id, check_name, severity, status, description, remediation,
@@ -88,10 +100,11 @@ func (s *CSPMStore) UpsertFinding(ctx context.Context, accountUUID string, f CSP
 		    compliance_frameworks = EXCLUDED.compliance_frameworks,
 		    last_seen_at          = NOW(),
 		    status = CASE WHEN cspm_findings.status IN ('suppressed', 'accepted_risk')
-		                  THEN cspm_findings.status ELSE 'open' END`,
+		                  THEN cspm_findings.status ELSE 'open' END
+		RETURNING (first_seen_at = last_seen_at)`,
 		accountUUID, f.ResourceType, f.ResourceID, f.ResourceName, f.Region,
-		f.CheckID, f.CheckName, f.Severity, f.Description, f.Remediation, frameworks)
-	return err
+		f.CheckID, f.CheckName, f.Severity, f.Description, f.Remediation, frameworks).Scan(&isNew)
+	return isNew, err
 }
 
 // ResolveFinding は合格だった項目について、開いている所見を閉じる。
@@ -103,6 +116,41 @@ func (s *CSPMStore) ResolveFinding(ctx context.Context, accountUUID, checkID, re
 		 WHERE account_id = $1::uuid AND check_id = $2 AND resource_id = $3
 		   AND COALESCE(region, '') = $4 AND status = 'open'`,
 		accountUUID, checkID, resourceID, region)
+	if err != nil {
+		return 0, err
+	}
+	return int(tag.RowsAffected()), nil
+}
+
+// ResolveMissingFindings は、今回のスキャンで存在が確認できなかった資源の
+// 所見を閉じる。戻り値は閉じた件数。
+//
+// 資源が削除されると API 応答から消えるので、pass も fail も生成されない。
+// 判定結果だけを見ていると閉じる契機が無く、実在しない資源の所見が
+// 一覧に残り続ける。「設定ミスのある EC2 を作り直して直した」「公開バケットを
+// 消した」がどれも解消として扱われず、直したのに消えない状態になる。
+// そうなると運用者は一覧そのものを信用しなくなる。
+//
+// 呼び出し側は、**その項目がそのリージョンで最後まで実行できた場合にのみ**
+// これを呼ぶこと。1 件でも読めなかった資源があるなら呼んではいけない。
+// 読めなかった資源は応答に出てこないので「消えた」と見分けが付かず、
+// 権限が外れた途端に全所見が解消されて「問題なし」に化ける。
+//
+// seenResourceIDs が空の場合は、その項目・リージョンの開いている所見を
+// すべて閉じる。完走した上で資源が 1 つも無かったということなので正しい。
+func (s *CSPMStore) ResolveMissingFindings(ctx context.Context, accountUUID, checkID, region string, seenResourceIDs []string) (int, error) {
+	if seenResourceIDs == nil {
+		seenResourceIDs = []string{}
+	}
+	tag, err := s.pool.Exec(ctx, `
+		UPDATE cspm_findings
+		   SET status = 'resolved', last_seen_at = NOW()
+		 WHERE account_id = $1::uuid
+		   AND check_id = $2::text
+		   AND COALESCE(region, '') = $3::text
+		   AND status = 'open'
+		   AND NOT (COALESCE(resource_id, '') = ANY($4::text[]))`,
+		accountUUID, checkID, region, seenResourceIDs)
 	if err != nil {
 		return 0, err
 	}
@@ -149,10 +197,13 @@ func (s *CSPMStore) SetScanStatus(ctx context.Context, accountUUID, status strin
 		m := scanErr.Error()
 		msg = &m
 	}
+	// $2 を明示的にキャストしている。片方は varchar 列への代入、もう片方は
+	// リテラルとの比較なので、キャストが無いと PostgreSQL が 1 つの型に
+	// 決められず 42P08 (inconsistent types deduced for parameter) で落ちる。
 	_, err := s.pool.Exec(ctx, `
 		UPDATE cspm_accounts
-		   SET scan_status = $2, scan_error = $3,
-		       last_scan_started_at = CASE WHEN $2 = 'scanning'
+		   SET scan_status = $2::text, scan_error = $3::text,
+		       last_scan_started_at = CASE WHEN $2::text = 'scanning'
 		                                   THEN NOW() ELSE last_scan_started_at END
 		 WHERE id = $1::uuid`, accountUUID, status, msg)
 	return err
@@ -179,6 +230,75 @@ func (s *CSPMStore) Credentials(ctx context.Context, accountUUID string) (*CSPMA
 		  FROM cspm_accounts WHERE id = $1::uuid`, accountUUID).
 		Scan(&out.AccountUUID, &out.Provider, &out.AccountID, &roleARN, &externalID,
 			&out.Regions, &out.Enabled)
+	if err != nil {
+		return nil, err
+	}
+	if roleARN != nil {
+		out.RoleARN = *roleARN
+	}
+	if externalID != nil {
+		out.ExternalID = *externalID
+	}
+	return &out, nil
+}
+
+// ClaimNextScan は定期スキャンの対象を 1 件だけ占有して返す。
+// 対象が無ければ (nil, nil)。
+//
+// なぜ占有が要るか: api は複数レプリカで動く (helm の replicaCount は 2、
+// docker-compose.scale.yml も server-api と server-api-2 の 2 台)。
+// 素朴にタイマーで回すと全レプリカが同じアカウントを同時にスキャンする。
+// AWS API の呼び出しが台数倍になってスロットリングを招くうえ、Persist が
+// 並行すると片方の「消えた資源の掃除」がもう片方の書き込み途中の状態を
+// 見て所見を閉じ、次の周回で開き直す ---所見が点滅する。
+//
+// leader election の仕組みはこのコードベースに無いので、既にある
+// scan_status を占有標識として使う。UPDATE 1 文で条件判定と確保を同時に
+// 行うため、勝つのは 1 レプリカだけになる。migration 426 で
+// scan_status='scanning' の部分索引を張ってあるので、この検索は軽い。
+//
+// staleAfter は「'scanning' のまま放置された行を再び対象にする」までの
+// 時間。プロセスが検査中に落ちると scan_status は 'scanning' で残り、
+// これが無いとそのアカウントは二度とスキャンされない。落ちたことが
+// 画面にも出ないので、最も気づきにくい止まり方になる。
+// awsscan.ScanTimeout より十分長い値を渡すこと。
+//
+// minInterval は前回完了からの最短間隔。スキャンは顧客の AWS に対する
+// API 呼び出しなので、短くしても得は無い。
+func (s *CSPMStore) ClaimNextScan(ctx context.Context, minInterval, staleAfter time.Duration) (*CSPMAccountCredentials, error) {
+	var out CSPMAccountCredentials
+	var roleARN, externalID *string
+	err := s.pool.QueryRow(ctx, `
+		WITH due AS (
+		    SELECT id
+		      FROM cspm_accounts
+		     WHERE cloud_provider = 'aws'
+		       AND COALESCE(enabled, true)
+		       AND COALESCE(credentials_arn, '') <> ''
+		       AND COALESCE(external_id, '') <> ''
+		       AND (last_scanned_at IS NULL
+		            OR last_scanned_at < NOW() - $1::interval)
+		       AND (COALESCE(scan_status, 'idle') <> 'scanning'
+		            OR last_scan_started_at IS NULL
+		            OR last_scan_started_at < NOW() - $2::interval)
+		     ORDER BY last_scanned_at ASC NULLS FIRST
+		     FOR UPDATE SKIP LOCKED
+		     LIMIT 1
+		)
+		UPDATE cspm_accounts a
+		   SET scan_status = 'scanning', scan_error = NULL, last_scan_started_at = NOW()
+		  FROM due
+		 WHERE a.id = due.id
+		RETURNING a.id::text, a.cloud_provider, a.account_id,
+		          a.credentials_arn, a.external_id,
+		          COALESCE(a.regions, '{}'), COALESCE(a.enabled, true)`,
+		minInterval, staleAfter).
+		Scan(&out.AccountUUID, &out.Provider, &out.AccountID, &roleARN, &externalID,
+			&out.Regions, &out.Enabled)
+	if errors.Is(err, pgx.ErrNoRows) {
+		// 対象が無いのは正常。エラーにすると毎周回でログが埋まる。
+		return nil, nil
+	}
 	if err != nil {
 		return nil, err
 	}

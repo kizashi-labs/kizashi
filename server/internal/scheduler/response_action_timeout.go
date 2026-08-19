@@ -69,7 +69,7 @@ func (w *ResponseActionTimeoutWorker) Run(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			w.sweep(ctx)
+			trackRun(ctx, "response_action_timeout", w.sweep)
 		}
 	}
 }
@@ -77,7 +77,9 @@ func (w *ResponseActionTimeoutWorker) Run(ctx context.Context) {
 func (w *ResponseActionTimeoutWorker) sweep(ctx context.Context) {
 	n, err := w.actions.ExpireStale(ctx, w.timeout)
 	if err != nil {
-		slog.Error("対応アクションの期限切れ処理に失敗しました", "error", err)
+		// 畳めなかった回。ログだけでは「期限切れが 0 件だった」と
+		// 見分けが付かず、dispatched のまま残った記録に誰も気付けない。
+		fail(ctx, err, "対応アクションの期限切れ処理に失敗しました")
 		return
 	}
 	if n > 0 {

@@ -33,16 +33,29 @@ func NewSessionStore(pool *pgxpool.Pool) *SessionStore {
 }
 
 // Create records a new session in the database (called at login time).
+// sessionIPOrFallback returns the address stored in the session row.
+//
+// **`ip_address` は inet 列で、空文字列は入りません** —— そのまま渡すと
+// `invalid input syntax for type inet: ""` で書き込みが落ち、**セッションが
+// 1件も記録されません。** ログイン元の追跡と、他端末のセッション失効が
+// そこで止まります。
+//
+// 検査ファイルには同じ置き換えの写しが置いてありました。
+func sessionIPOrFallback(ip string) string {
+	if ip == "" {
+		// **0.0.0.0 は「分からない」の印です。** 実在の送信元ではありません。
+		return "0.0.0.0"
+	}
+	return ip
+}
+
 func (s *SessionStore) Create(ctx context.Context, sess Session) error {
 	deviceInfoJSON, err := json.Marshal(sess.DeviceInfo)
 	if err != nil {
 		return fmt.Errorf("device_info のシリアライズに失敗しました: %w", err)
 	}
 
-	ipAddr := sess.IPAddress
-	if ipAddr == "" {
-		ipAddr = "0.0.0.0"
-	}
+	ipAddr := sessionIPOrFallback(sess.IPAddress)
 
 	userAgent := ""
 	if ua, ok := sess.DeviceInfo["user_agent"].(string); ok {
@@ -102,7 +115,9 @@ func (s *SessionStore) ListByUser(ctx context.Context, userID string) ([]Session
 		}
 		if len(deviceInfoRaw) > 0 {
 			if err := json.Unmarshal(deviceInfoRaw, &sess.DeviceInfo); err != nil {
-				sess.DeviceInfo = map[string]interface{}{}
+				// 端末情報が空のセッションは「どこから入ったか不明」として
+				// 出ます。記録が無いのと、読めなかったのは別です。
+				return nil, fmt.Errorf("セッションの端末情報を読めませんでした: %w", err)
 			}
 		} else {
 			sess.DeviceInfo = map[string]interface{}{}

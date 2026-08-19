@@ -25,6 +25,17 @@ import (
 	"golang.org/x/sys/unix"
 )
 
+// defaultMonitoredRoots is the file-monitoring scope used when the config names no
+// monitored paths: the security-relevant trees, deliberately excluding service data
+// directories (/var/lib/docker, database and message-broker state, …) whose constant
+// churn is noise. Shared by BOTH Linux file collectors so they observe the same
+// scope — the eBPF collector sees every write-open on the host, so without this it
+// would silently monitor far more than inotify ever did.
+var defaultMonitoredRoots = []string{
+	"/etc", "/tmp", "/var/tmp", "/home", "/root",
+	"/usr/bin", "/usr/sbin", "/bin", "/sbin",
+}
+
 // InotifyFileCollector implements collector.FileCollector using Linux inotify.
 type InotifyFileCollector struct {
 	monitored []string
@@ -62,10 +73,7 @@ func (c *InotifyFileCollector) Start(ctx context.Context, out chan<- collector.F
 
 	paths := c.monitored
 	if len(paths) == 0 {
-		paths = []string{
-			"/etc", "/tmp", "/var/tmp", "/home", "/root",
-			"/usr/bin", "/usr/sbin", "/bin", "/sbin",
-		}
+		paths = defaultMonitoredRoots
 	}
 
 	const mask = watchMask
@@ -369,6 +377,13 @@ func hashFile(path string) collector.FileHashes {
 	const maxSize = 50 * 1024 * 1024
 	f, err := os.Open(filepath.Clean(path))
 	if err != nil {
+		// 空のハッシュと「取れなかった」は、イベントに載ると同じ姿です。
+		// サーバのハッシュ IOC 照合は、一致しなかったのではなく照合する
+		// ものが無かったのに、黙って通ります。Windows 側と同じ形で、
+		// **片方だけ直すと、直っていない側が直った顔をします。**
+		slog.Debug("ファイルのハッシュを取れませんでした。"+
+			"このイベントはハッシュ無しで送られ、ハッシュ IOC には当たりません",
+			"path", path, "error", err)
 		return collector.FileHashes{}
 	}
 	defer f.Close()
@@ -380,6 +395,13 @@ func hashFile(path string) collector.FileHashes {
 
 	lr := io.LimitReader(f, maxSize)
 	if _, err := io.Copy(w, lr); err != nil {
+		// 空のハッシュと「取れなかった」は、イベントに載ると同じ姿です。
+		// サーバのハッシュ IOC 照合は、一致しなかったのではなく照合する
+		// ものが無かったのに、黙って通ります。Windows 側と同じ形で、
+		// **片方だけ直すと、直っていない側が直った顔をします。**
+		slog.Debug("ファイルのハッシュを取れませんでした。"+
+			"このイベントはハッシュ無しで送られ、ハッシュ IOC には当たりません",
+			"path", path, "error", err)
 		return collector.FileHashes{}
 	}
 

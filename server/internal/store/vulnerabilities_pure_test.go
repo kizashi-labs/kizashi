@@ -1,6 +1,12 @@
 package store
 
 import (
+	"go/ast"
+	"go/parser"
+	"go/token"
+	"go/types"
+	"os"
+	"strings"
 	"testing"
 )
 
@@ -235,4 +241,146 @@ func TestAgentIDArg_UUIDFormatStringReturnsValue(t *testing.T) {
 	if result.(string) != uuid {
 		t.Errorf("agentIDArg 結果 = %q, want %q", result.(string), uuid)
 	}
+}
+
+// ── 件数の救済 ────────────────────────────────────────────────────────
+
+// **救済が `vulnListWhere` の中に書いてありました。**
+//
+// あの関数は `VulnFilter` を値で受け取るので、`f.Limit = 50` は写しの上に
+// 書かれ、呼び出し側には届きません。実測 (2026-08-12):
+// `/api/v1/vulnerabilities?per_page=0` は 200 の **0 件**で、`total` だけ
+// 120 と出ていました —— 救済があるように見えて、効いていませんでした。
+func TestClampVulnLimitRescuesOutOfRangeValues(t *testing.T) {
+	// **数字を直に書きます。** `defaultVulnLimit` と突き合わせると、
+	// あの定数を 0 に変える変更がこの検査ごと一緒に動いて生き残ります
+	// （実際に生き残りました）。
+	const want = 50
+	for _, raw := range []int{-1, 0, 201, 100000} {
+		if got := clampVulnLimit(raw); got != want {
+			t.Errorf("clampVulnLimit(%d) = %d, 既定の %d に戻るはずです", raw, got, want)
+		}
+	}
+	if defaultVulnLimit < 1 {
+		t.Errorf("defaultVulnLimit = %d。**救済先が 0 だと、救済しても"+
+			"0 件返ります**", defaultVulnLimit)
+	}
+	if maxVulnLimit < defaultVulnLimit {
+		t.Errorf("maxVulnLimit(%d) < defaultVulnLimit(%d)。"+
+			"**既定そのものが範囲外になり、何を渡しても既定に戻り続けます**",
+			maxVulnLimit, defaultVulnLimit)
+	}
+}
+
+// **範囲内はそのまま。** 全部を既定に丸める実装でも上は緑になります。
+func TestClampVulnLimitKeepsWhatIsInRange(t *testing.T) {
+	for _, raw := range []int{1, 7, 50, 200} {
+		if got := clampVulnLimit(raw); got != raw {
+			t.Errorf("clampVulnLimit(%d) = %d, そのまま通るはずです", raw, got)
+		}
+	}
+}
+
+// **`List` が救済を通ること。** 判定を切り出しただけでは、呼ばなくなった
+// 瞬間に元へ戻ります。`vulnListWhere` は値渡しなので、救済をあの中へ
+// 戻す変更もここで落ちます。
+func TestVulnListWhereDoesNotPretendToRescueTheLimit(t *testing.T) {
+	f := VulnFilter{Limit: 0}
+	vulnListWhere(f)
+	if f.Limit != 0 {
+		t.Fatal("`vulnListWhere` が呼び出し側の Limit を変えました（値渡しなので不可能なはずです）")
+	}
+	// 救済は List 側にあること。
+	if clampVulnLimit(f.Limit) != defaultVulnLimit {
+		t.Error("**0 が既定に戻りません。** 0 件返って「脆弱性なし」に見えます")
+	}
+}
+
+// `List` が救済を通っていること。
+//
+// **切り出しただけでは足りません。** 呼ぶのをやめれば元に戻ります ——
+// そして DB の無いところでは、その変更で落ちる検査が1本もありません
+// でした（変異が生き残りました）。ここはソースを読んで確かめます。
+func TestVulnStoreListCallsTheLimitRescue(t *testing.T) {
+	src, err := os.ReadFile("vulnerabilities.go")
+	if err != nil {
+		t.Fatalf("読めません: %v", err)
+	}
+	f, err := parser.ParseFile(token.NewFileSet(), "vulnerabilities.go", src, 0)
+	if err != nil {
+		t.Fatalf("解析できません: %v", err)
+	}
+	found, calls := false, false
+	for _, decl := range f.Decls {
+		fn, ok := decl.(*ast.FuncDecl)
+		if !ok || fn.Name.Name != "List" || fn.Recv == nil || fn.Body == nil {
+			continue
+		}
+		if !strings.Contains(types.ExprString(fn.Recv.List[0].Type), "VulnStore") {
+			continue
+		}
+		found = true
+		ast.Inspect(fn.Body, func(n ast.Node) bool {
+			if call, ok := n.(*ast.CallExpr); ok {
+				if id, ok := call.Fun.(*ast.Ident); ok && id.Name == "clampVulnLimit" {
+					calls = true
+				}
+			}
+			return true
+		})
+	}
+	if !found {
+		t.Fatal("`VulnStore.List` が見つかりません")
+	}
+	if !calls {
+		t.Error("`VulnStore.List` が `clampVulnLimit` を呼んでいません。" +
+			"**per_page=0 が LIMIT 0 になり、「脆弱性なし」と同じ姿で返ります**")
+	}
+}
+
+// 救済を `vulnListWhere` の中へ戻す変更を止めます。
+//
+// **あの関数は `VulnFilter` を値で受け取ります。** 中で `f.Limit` に
+// 書いても呼び出し側には届きません —— 元の実装がまさにそれで、
+// 救済があるように見えて効いていませんでした。
+func TestTheLimitRescueIsNotHiddenInTheValueCopy(t *testing.T) {
+	src, err := os.ReadFile("vulnerabilities.go")
+	if err != nil {
+		t.Fatalf("読めません: %v", err)
+	}
+	f, err := parser.ParseFile(token.NewFileSet(), "vulnerabilities.go", src, 0)
+	if err != nil {
+		t.Fatalf("解析できません: %v", err)
+	}
+	for _, decl := range f.Decls {
+		fn, ok := decl.(*ast.FuncDecl)
+		if !ok || fn.Name.Name != "vulnListWhere" || fn.Body == nil {
+			continue
+		}
+		// 値渡しであること（ポインタになったら話が変わります）。
+		if len(fn.Type.Params.List) != 1 {
+			t.Fatalf("`vulnListWhere` の引数が %d 個です", len(fn.Type.Params.List))
+		}
+		if _, isPtr := fn.Type.Params.List[0].Type.(*ast.StarExpr); isPtr {
+			return // ポインタなら書き込みは届きます。
+		}
+		ast.Inspect(fn.Body, func(n ast.Node) bool {
+			as, ok := n.(*ast.AssignStmt)
+			if !ok {
+				return true
+			}
+			for _, lhs := range as.Lhs {
+				if sel, ok := lhs.(*ast.SelectorExpr); ok {
+					if id, ok := sel.X.(*ast.Ident); ok && id.Name == "f" {
+						t.Errorf("`vulnListWhere` が `f.%s` に書いています。"+
+							"**値渡しなので、この書き込みは写しの上に落ちます**",
+							sel.Sel.Name)
+					}
+				}
+			}
+			return true
+		})
+		return
+	}
+	t.Fatal("`vulnListWhere` が見つかりません")
 }

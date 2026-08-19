@@ -61,10 +61,7 @@ func scanDLPRule(row interface{ Scan(...any) error }) (*dlpRule, error) {
 func (h *DLPHandler) ListRules(c *gin.Context) {
 	ctx := c.Request.Context()
 
-	var exists bool
-	_ = h.pool.QueryRow(ctx, `SELECT EXISTS (
-		SELECT 1 FROM information_schema.tables WHERE table_name = 'dlp_rules'
-	)`).Scan(&exists)
+	exists := tableIsThere(ctx, h.pool, "dlp_rules")
 	if !exists {
 		c.JSON(http.StatusOK, gin.H{"data": []interface{}{}, "total": 0})
 		return
@@ -87,7 +84,9 @@ func (h *DLPHandler) ListRules(c *gin.Context) {
 		}
 	}
 	if err := rows.Err(); err != nil {
-		slog.Warn("row iteration error", "error", err)
+		slog.Error("rows.Err: 結果の読み出しが途中で失敗しました", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to list DLP rules"})
+		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{"data": rules, "total": len(rules)})
@@ -257,10 +256,7 @@ func (h *DLPHandler) ToggleRule(c *gin.Context) {
 func (h *DLPHandler) ListViolations(c *gin.Context) {
 	ctx := c.Request.Context()
 
-	var exists bool
-	_ = h.pool.QueryRow(ctx, `SELECT EXISTS (
-		SELECT 1 FROM information_schema.tables WHERE table_name = 'dlp_violations'
-	)`).Scan(&exists)
+	exists := tableIsThere(ctx, h.pool, "dlp_violations")
 	if !exists {
 		c.JSON(http.StatusOK, gin.H{"data": []interface{}{}, "total": 0})
 		return
@@ -311,7 +307,9 @@ func (h *DLPHandler) ListViolations(c *gin.Context) {
 	if ruleID != "" {
 		countQ += ` AND rule_id = '` + strings.ReplaceAll(ruleID, "'", "''") + `'`
 	}
-	_ = h.pool.QueryRow(ctx, countQ).Scan(&total)
+	if !ReadOK(c, h.pool.QueryRow(ctx, countQ).Scan(&total)) {
+		return
+	}
 
 	query += ` ORDER BY detected_at DESC LIMIT $` + strconv.Itoa(n) + ` OFFSET $` + strconv.Itoa(n+1)
 	args = append(args, limit, offset)
@@ -347,7 +345,9 @@ func (h *DLPHandler) ListViolations(c *gin.Context) {
 		}
 	}
 	if err := rows.Err(); err != nil {
-		slog.Warn("row iteration error", "error", err)
+		slog.Error("rows.Err: 結果の読み出しが途中で失敗しました", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to list violations"})
+		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
@@ -374,8 +374,12 @@ func (h *DLPHandler) GetStats(c *gin.Context) {
 	}
 
 	var violationsToday, violationsWeek int
-	_ = h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM dlp_violations WHERE detected_at >= CURRENT_DATE`).Scan(&violationsToday)
-	_ = h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM dlp_violations WHERE detected_at >= CURRENT_DATE - INTERVAL '7 days'`).Scan(&violationsWeek)
+	if !ReadOK(c, h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM dlp_violations WHERE detected_at >= CURRENT_DATE`).Scan(&violationsToday)) {
+		return
+	}
+	if !ReadOK(c, h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM dlp_violations WHERE detected_at >= CURRENT_DATE - INTERVAL '7 days'`).Scan(&violationsWeek)) {
+		return
+	}
 
 	var byCategory []catStat
 	rows, err := h.pool.Query(ctx,

@@ -205,3 +205,73 @@ func TestReplayedBacklogStillDetectsGenuineBurst(t *testing.T) {
 		t.Fatal("イベント時刻上で高レートな本物のバーストは、再生でも検知すべき")
 	}
 }
+
+// TestBroadeningDiscoveryReportsSurviveAlertDedup is the engine-level gate for a
+// defect class that detector unit tests are structurally blind to.
+//
+// discovery.go re-fires whenever the window holds a technique it has not yet named,
+// and its unit tests proved that. In production it still reported once: alerts are
+// deduplicated on (agent, title) for alertDedupWindow, and the burst title carries
+// no observed values, so every later report collapsed into the first. Measured live
+// 2026-08-03: 11 discovery techniques over 165 seconds produced ONE alert naming 4
+// of them, and the other 7 were never surfaced at all.
+//
+// Both halves were individually correct — the detector reported, the pipeline
+// deduplicated — so only a test that spans BOTH can see it. This one drives the
+// real engine and counts alerts that actually reached the store.
+func TestBroadeningDiscoveryReportsSurviveAlertDedup(t *testing.T) {
+	const agent = "22222222-2222-2222-2222-222222222222"
+	e, cs := newTestEngine()
+
+	// A hands-on-keyboard survey that keeps widening: each command adds a technique
+	// the previous alert did not name.
+	cmds := []string{
+		"whoami", "ps aux", "uname -a", "ip addr", // crosses the burst threshold
+		"cat /etc/hosts", "ss -tun", "systemctl list-units", "getent group sudo",
+	}
+	for _, c := range cmds {
+		feedEvent(t, e, agent, "linux", "process",
+			`{"process_name":"bash","command_line":"`+c+`"}`)
+	}
+
+	var reports []*StoredAlert
+	for _, a := range cs.saved {
+		if strings.Contains(a.Title, "[DISCOVERY]") {
+			reports = append(reports, a)
+		}
+	}
+	if len(reports) < 2 {
+		t.Fatalf("広がり続ける偵察が %d 件しか報告されていません。"+
+			"アラート重複排除が新しい報告を握り潰しています（実機で観測された欠陥そのもの）", len(reports))
+	}
+
+	// The point is coverage, not alert count: every technique the survey performed
+	// must appear in some report that actually reached the store.
+	named := map[string]bool{}
+	for _, a := range reports {
+		for _, tg := range a.MITRETags {
+			named[tg] = true
+		}
+	}
+	for _, c := range cmds {
+		tech := classifyDiscoveryCommand(c)
+		if tech == "" {
+			t.Fatalf("test setup: %q classified as no technique", c)
+		}
+		if !named[tech] {
+			t.Errorf("%s (%q) は実行されたのに、保存されたどのアラートにも名前が出ていません", tech, c)
+		}
+	}
+
+	// The noise floor must not have moved: repeating the same techniques adds no
+	// information and must not produce further alerts.
+	before := len(cs.saved)
+	for _, c := range cmds {
+		feedEvent(t, e, agent, "linux", "process",
+			`{"process_name":"bash","command_line":"`+c+`"}`)
+	}
+	if len(cs.saved) != before {
+		t.Errorf("報告済みの技術を繰り返しただけで %d 件の追加アラートが出ました（ノイズ床が下がっています）",
+			len(cs.saved)-before)
+	}
+}

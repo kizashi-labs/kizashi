@@ -22,19 +22,11 @@ func NewComplianceWorkflowHandler(pool *pgxpool.Pool) *ComplianceWorkflowHandler
 }
 
 func (h *ComplianceWorkflowHandler) checkWorkflowsTable(c *gin.Context) bool {
-	ctx := c.Request.Context()
-	var exists bool
-	err := h.pool.QueryRow(ctx,
-		`SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name='compliance_workflows')`).Scan(&exists)
-	return err == nil && exists
+	return tableIsThere(c.Request.Context(), h.pool, "compliance_workflows")
 }
 
 func (h *ComplianceWorkflowHandler) checkRunsTable(c *gin.Context) bool {
-	ctx := c.Request.Context()
-	var exists bool
-	err := h.pool.QueryRow(ctx,
-		`SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name='compliance_workflow_runs')`).Scan(&exists)
-	return err == nil && exists
+	return tableIsThere(c.Request.Context(), h.pool, "compliance_workflow_runs")
 }
 
 // ListWorkflows returns all compliance workflows.
@@ -106,7 +98,9 @@ func (h *ComplianceWorkflowHandler) ListWorkflows(c *gin.Context) {
 		workflows = append(workflows, w)
 	}
 	if err := rows.Err(); err != nil {
-		slog.Warn("row iteration error", "error", err)
+		slog.Error("rows.Err: 結果の読み出しが途中で失敗しました", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": dbErrMsg(err)})
+		return
 	}
 	if workflows == nil {
 		workflows = []Workflow{}
@@ -297,7 +291,9 @@ func (h *ComplianceWorkflowHandler) StartRun(c *gin.Context) {
 	}
 
 	// Increment run_count on the workflow
-	_, _ = h.pool.Exec(ctx, `UPDATE compliance_workflows SET run_count = run_count + 1, updated_at = NOW() WHERE id = $1`, workflowID)
+	if _, err := h.pool.Exec(ctx, `UPDATE compliance_workflows SET run_count = run_count + 1, updated_at = NOW() WHERE id = $1`, workflowID); !WriteOK(c, err) {
+		return
+	}
 
 	c.JSON(http.StatusCreated, gin.H{"id": runID, "message": "run started", "due_date": dueDate})
 }
@@ -363,7 +359,9 @@ func (h *ComplianceWorkflowHandler) ListRuns(c *gin.Context) {
 		runs = append(runs, r)
 	}
 	if err := rows.Err(); err != nil {
-		slog.Warn("row iteration error", "error", err)
+		slog.Error("rows.Err: 結果の読み出しが途中で失敗しました", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": dbErrMsg(err)})
+		return
 	}
 	if runs == nil {
 		runs = []Run{}

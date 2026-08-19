@@ -221,7 +221,7 @@ class _AlertsResource:
             body["status"] = status
         if assigned_to is not None:
             body["assigned_to"] = assigned_to
-        return self._client._request("PATCH", f"/api/v1/alerts/{alert_id}", body=body)
+        return self._client._request("PUT", f"/api/v1/alerts/{alert_id}", body=body)
 
 
 class _AgentsResource:
@@ -365,7 +365,7 @@ class _IncidentsResource:
             body["assigned_to"] = assigned_to
         if description is not None:
             body["description"] = description
-        return self._client._request("PATCH", f"/api/v1/incidents/{incident_id}", body=body)
+        return self._client._request("PUT", f"/api/v1/incidents/{incident_id}", body=body)
 
 
 class _RulesResource:
@@ -476,7 +476,7 @@ class _RulesResource:
             body["severity"] = severity
         if enabled is not None:
             body["enabled"] = enabled
-        return self._client._request("PATCH", f"/api/v1/rules/{rule_id}", body=body)
+        return self._client._request("PUT", f"/api/v1/rules/{rule_id}", body=body)
 
     def delete(self, rule_id: str) -> None:
         """Delete a detection rule by its UUID.
@@ -615,9 +615,20 @@ class _LiveResponseResource:
     def __init__(self, client: "KizashiEDRClient") -> None:
         self._client = client
 
-    def list(self) -> Dict[str, Any]:
-        """Return all active live-response sessions."""
-        return self._client._request("GET", "/api/v1/live-response/sessions")
+    # セッションは端末ごとに切られる。サーバの経路は
+    # ``/api/v1/agents/:id/live-response/sessions`` で、agent_id を含まない
+    # ``/api/v1/live-response/...`` に在るのは ``/poll`` と ``/output``
+    # （エージェント自身が叩く 2 本）だけ。したがって agent_id は省略できない。
+
+    def list(self, agent_id: str) -> Dict[str, Any]:
+        """Return the active live-response sessions for one agent.
+
+        Args:
+            agent_id: UUID of the target agent.
+        """
+        return self._client._request(
+            "GET", f"/api/v1/agents/{agent_id}/live-response/sessions"
+        )
 
     def open(self, agent_id: str) -> Dict[str, Any]:
         """Open a new live-response session on the specified agent.
@@ -630,14 +641,15 @@ class _LiveResponseResource:
         """
         return self._client._request(
             "POST",
-            "/api/v1/live-response/sessions",
-            body={"agent_id": agent_id},
+            f"/api/v1/agents/{agent_id}/live-response/sessions",
+            body={},
         )
 
-    def exec(self, session_id: str, command: str) -> Dict[str, Any]:
+    def exec(self, agent_id: str, session_id: str, command: str) -> Dict[str, Any]:
         """Execute a shell command in an active live-response session.
 
         Args:
+            agent_id:   UUID of the target agent.
             session_id: UUID of the session.
             command:    Shell command to run on the remote endpoint.
 
@@ -646,7 +658,7 @@ class _LiveResponseResource:
         """
         return self._client._request(
             "POST",
-            f"/api/v1/live-response/sessions/{session_id}/exec",
+            f"/api/v1/agents/{agent_id}/live-response/sessions/{session_id}/exec",
             body={"command": command},
         )
 

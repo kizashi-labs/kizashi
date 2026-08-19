@@ -42,6 +42,15 @@ BEGIN
     RETURN;
   END IF;
 
+  -- NOT VALID on both paths below (added 2026-08-03). A VALIDATED constraint makes
+  -- PostgreSQL check every existing row, so ONE legacy row carrying a type this
+  -- migration does not list aborts it — and because the API runs migrations at
+  -- startup and exits on failure, that is a restart loop plus every later migration
+  -- silently unapplied. Migration 353 did exactly this in production. Rows like that
+  -- exist wherever a deployment was upgraded across branches. Widening what is
+  -- accepted going forward must not depend on assertions about the past; new INSERTs
+  -- are still checked under NOT VALID, so nothing is lost defensively.
+  --
   -- No constraint at all: create one from the known base set.
   IF cur_def IS NULL THEN
     ALTER TABLE events
@@ -50,7 +59,7 @@ BEGIN
           'process', 'file', 'network', 'dns', 'registry', 'auth', 'process_stats',
           'image_load', 'script', 'process_block', 'memory', 'credential_access',
           'create_remote_thread', 'host_integrity'
-        ]));
+        ])) NOT VALID;
     RETURN;
   END IF;
 
@@ -62,7 +71,7 @@ BEGIN
 
   ALTER TABLE events DROP CONSTRAINT events_event_type_check;
   EXECUTE format(
-    'ALTER TABLE events ADD CONSTRAINT events_event_type_check CHECK (event_type = ANY (ARRAY[%s, %L::text]))',
+    'ALTER TABLE events ADD CONSTRAINT events_event_type_check CHECK (event_type = ANY (ARRAY[%s, %L::text])) NOT VALID',
     arr_body, 'host_integrity');
 END
 $migration$;

@@ -86,6 +86,10 @@ func (s *PasswordResetStore) Verify(ctx context.Context, rawToken string) (strin
 		}
 		candidates = append(candidates, r)
 	}
+	// 部分結果を完全な一覧として返さない（scan_truncation_guard_test.go 参照）
+	if err := rows.Err(); err != nil {
+		return "", err
+	}
 	rows.Close()
 
 	if len(candidates) == 0 {
@@ -123,6 +127,10 @@ func (s *PasswordResetStore) MarkUsed(ctx context.Context, rawToken string) erro
 			continue
 		}
 		candidates = append(candidates, r)
+	}
+	// 部分結果を完全な一覧として返さない（scan_truncation_guard_test.go 参照）
+	if err := rows.Err(); err != nil {
+		return err
 	}
 	rows.Close()
 

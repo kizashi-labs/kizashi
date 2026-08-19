@@ -32,6 +32,16 @@ type RuleMatch struct {
 	MITRETags   []string
 	AutoIsolate bool
 	AutoKill    bool
+	// DedupKey optionally distinguishes alerts that share a Title but carry
+	// DIFFERENT findings. Alert dedup is keyed on (agent, title) for a 5-minute
+	// window, which is right for a state condition re-asserting on every event but
+	// wrong for a correlation detector whose report GROWS: a discovery burst that
+	// names 4 techniques, then 7, then 11 as the campaign unfolds emits the same
+	// title each time, so every report after the first was silently dropped and the
+	// techniques enumerated afterwards were never surfaced. Detectors that report a
+	// changing set set DedupKey to that set; identical repeats still collapse, and
+	// the title stays free of observed values so it keeps a stable identity.
+	DedupKey string
 }
 
 // DetectionRule defines a single detection rule.
@@ -52,6 +62,9 @@ type DetectionRule struct {
 type compiledSigmaRule struct {
 	rule      *DetectionRule
 	evaluator *evaluator.RuleEvaluator
+	// category は logsource.category をそのまま持つ("" = 未指定)。
+	// これが評価対象を絞るインデックスの鍵になる(logsource_index.go)。
+	category string
 }
 
 // RuleEngine loads and evaluates detection rules.
@@ -73,6 +86,12 @@ type RuleEngine struct {
 	// answer as the library default would make every direct user of RuleEngine
 	// silently evaluate nothing. See SetDBSigmaEvaluation.
 	dbSigmaOwned bool
+	// index は「イベント種別 → 評価すべきルールID」の事前計算(logsource_index.go)。
+	// 全ルールの線形総当たりが検知エンジンの律速なので、種別の合わないルールを外す。
+	index *logsourceIndex
+	// logsourceIndexGate が false なら index を使わず全ルールを評価する。
+	// 絞り込みが原因で検知が落ちたと疑ったときに切り分けるためのエスケープハッチ。
+	logsourceIndexGate bool
 }
 
 // NewRuleEngine creates a RuleEngine with the default Sigma field mapping.
@@ -87,6 +106,12 @@ func NewRuleEngine() *RuleEngine {
 		dbSigmaOwned: true, // library default: evaluate. cmd/detection turns this
 		//                      off because the api server owns DB Sigma in the
 		//                      deployed topology — see SetDBSigmaEvaluation.
+		// on by default; ops can disable via SetLogsourceIndex.
+		// 空のインデックスを先に置いておく(LoadRules 前に Evaluate されても
+		// candidates() が nil スライスを返して全ルール0件、ではなく確実に
+		// 全ルール評価にフォールバックするよう all を空にしておく)。
+		logsourceIndexGate: true,
+		index:              &logsourceIndex{byEventType: map[string][]string{}},
 		// Field mapping translates Sigma's standard field names (PascalCase, Windows-centric)
 		// to the proto JSON field names produced by our agents.
 		config: sigma.Config{
@@ -103,6 +128,32 @@ func NewRuleEngine() *RuleEngine {
 				"TargetFilename": {TargetNames: []string{"path", "TargetFilename", "file_path"}},
 				"FileName":       {TargetNames: []string{"path", "fileName"}},
 				"FileExtension":  {TargetNames: []string{"extension"}},
+				// Image-load events — the DLL side-loading / signer-mismatch rules select on
+				// these Sigma names; ingestion emits the snake_case forms.
+				//
+				// migration 385（第 2 波）がこれらを使うルールを 3 件持ち込み、
+				// TestMigrationSigmaFieldSupport が「このエンジンでは解決できない」と
+				// 落ちたので別名を足してある。api が DB Sigma ルールを所有している現状
+				// （PR #671）では AlertPipeline 側で解決されるので実害は出ないが、
+				// EDR_SIGMA_DB_RULES=0 で所有権を detect に戻すロールバック経路が
+				// 文書化されている。写像が無いままだと、その切り戻しで **この 3 件だけが
+				// 黙って落ちる**。切り戻しは事故の最中に行う操作なので、そこで被覆が
+				// 減るのは最も避けたい。
+				//
+				// 元キーは ingestion/handler.go が出している名前に合わせてある
+				// （image_loaded ← ImagePath / signature_status / signer）。
+				"ImageLoaded":      {TargetNames: []string{"image_loaded", "imageLoaded", "image_path", "ImageLoaded"}},
+				"SignatureStatus":  {TargetNames: []string{"signature_status", "signatureStatus", "SignatureStatus"}},
+				"Signature":        {TargetNames: []string{"signer", "signature", "Signature"}},
+				"OriginalFileName": {TargetNames: []string{"original_file_name", "originalFileName", "OriginalFileName"}},
+				// Auth events — LogonType-derived method and the failure status code.
+				"auth_method":    {TargetNames: []string{"auth_method", "authMethod"}},
+				"failure_reason": {TargetNames: []string{"failure_reason", "failureReason"}},
+				// Process environment (LD_PRELOAD / GCONV_PATH runtime injection rules).
+				"environment": {TargetNames: []string{"environment", "env_vars", "envVars"}},
+				// GeoIP enrichment + network direction (opt-in country rule).
+				"country_code": {TargetNames: []string{"country_code", "countryCode"}},
+				"direction":    {TargetNames: []string{"direction"}},
 				// Network events
 				"DestinationIp":   {TargetNames: []string{"dstIp", "dst_ip", "DestinationIp"}},
 				"DestinationPort": {TargetNames: []string{"dstPort", "dst_port", "DestinationPort"}},
@@ -129,23 +180,6 @@ func NewRuleEngine() *RuleEngine {
 				"TargetObject":  {TargetNames: []string{"key_path", "keyPath", "TargetObject"}},
 				"Details":       {TargetNames: []string{"value_data", "Details"}},
 				"EventType":     {TargetNames: []string{"operation", "EventType"}},
-				// image_load 系と PE VERSIONINFO。migration 385（第 2 波）が
-				// これらを使うルールを 3 件持ち込み、TestMigrationSigmaFieldSupport が
-				// 「このエンジンでは解決できない」と落ちたので足した。
-				//
-				// api が DB Sigma ルールを所有している現状（PR #671）では、この 3 件は
-				// AlertPipeline 側で解決されるので実害は出ない。それでも足すのは、
-				// EDR_SIGMA_DB_RULES=0 で所有権を detect に戻すロールバック経路が
-				// 文書化されているためである。写像が無いままだと、その切り戻しで
-				// **この 3 件だけが黙って落ちる**。切り戻しは事故の最中に行われる
-				// 操作なので、そこで被覆が減るのは最も避けたい。
-				//
-				// 元キーは ingestion/handler.go が出している名前に合わせてある
-				// （image_loaded ← ImagePath / signature_status / signer）。
-				"ImageLoaded":      {TargetNames: []string{"image_loaded", "image_path", "ImageLoaded"}},
-				"SignatureStatus":  {TargetNames: []string{"signature_status", "SignatureStatus"}},
-				"Signature":        {TargetNames: []string{"signer", "Signature"}},
-				"OriginalFileName": {TargetNames: []string{"original_file_name", "OriginalFileName"}},
 			},
 		},
 	}
@@ -205,6 +239,9 @@ func (e *RuleEngine) LoadRules(rules []*DetectionRule) {
 		"compiled", compiled, "failed", failed,
 		"skipped_owned_by_api", skipped, "db_sigma_owner", ownerName(e.dbSigmaOwned))
 
+	// 評価対象を絞るインデックスを張り直す。ルール集合が変わるたびに必要。
+	e.index = buildLogsourceIndex(e.rules, e.sigma)
+
 	// Load sequence rules (behavioral rules with window+threshold directives)
 	e.sequence.LoadRules(rules)
 }
@@ -244,6 +281,16 @@ func (e *RuleEngine) SetPlatformGate(on bool) {
 	e.platformGate = on
 }
 
+// SetLogsourceIndex toggles the event-type narrowing. It is on by default; the
+// detection service can turn it off (EDR_RULE_LOGSOURCE_INDEX=0) if a rule ever
+// stops firing and the index is suspected. Turning it off restores the previous
+// behaviour exactly (every rule evaluated against every event).
+func (e *RuleEngine) SetLogsourceIndex(on bool) {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	e.logsourceIndexGate = on
+}
+
 // GetRule retrieves a rule by ID.
 func (e *RuleEngine) GetRule(id string) *DetectionRule {
 	e.mu.RLock()
@@ -270,8 +317,19 @@ func (e *RuleEngine) Evaluate(ctx context.Context, evt interface{}) ([]*RuleMatc
 	// Discovery - MacOS") false-matches Linux processes.
 	eventPlatform, _ := flatMap["platform"].(string)
 
-	for id, rule := range e.rules {
-		if !rule.Enabled {
+	// 評価対象をイベント種別で絞る(logsource_index.go)。全ルールの線形総当たりが
+	// 検知エンジンの律速で、2,500 ルールでは 1 イベント 31.4 ミリ秒・42,500 allocs かかる。
+	// ゲートが off のときと未知のイベント種別では index.all(= 全ルール)にフォールバックし、
+	// 従来と同じ挙動になる。絞り込みで検知が変わってはいけない。
+	eventType, _ := flatMap["type"].(string)
+	candidates := e.index.all
+	if e.logsourceIndexGate {
+		candidates = e.index.candidates(eventType)
+	}
+
+	for _, id := range candidates {
+		rule := e.rules[id]
+		if rule == nil || !rule.Enabled {
 			continue
 		}
 		// Counted, not just skipped. Until 2026-08-04 the agent never stamped
@@ -298,7 +356,16 @@ func (e *RuleEngine) Evaluate(ctx context.Context, evt interface{}) ([]*RuleMatc
 			continue
 		}
 
-		if err != nil || !matched {
+		if err != nil {
+			// 評価できなかったルールを「一致しなかった」と同じ扱いに
+			// していました。検知が1本静かに減り、症状はアラートが出ない
+			// ことだけです。一致しなかったのと、見られなかったのは別です。
+			metrics.BackgroundFailed("rule_engine", err,
+				"ルールを評価できませんでした。この1本は今回のイベントに適用されていません",
+				"rule", rule.ID, "type", rule.Type)
+			continue
+		}
+		if !matched {
 			continue
 		}
 
@@ -318,7 +385,7 @@ func (e *RuleEngine) Evaluate(ctx context.Context, evt interface{}) ([]*RuleMatc
 	// Run sequence (time-window) correlation engine.
 	// The sequence engine is lock-free internally; call outside the read lock.
 	agentID, _ := flatMap["agent_id"].(string)
-	eventType, _ := flatMap["type"].(string)
+	// eventType は上のインデックス絞り込みで取得済み。
 	seqMatches := e.sequence.Observe(agentID, eventType, flatMap)
 	matches = append(matches, seqMatches...)
 
@@ -558,5 +625,9 @@ func compileSigmaRule(rule *DetectionRule, config sigma.Config) (*compiledSigmaR
 		evaluator.WithConfig(config),
 	)
 
-	return &compiledSigmaRule{rule: rule, evaluator: eval}, nil
+	return &compiledSigmaRule{
+		rule:      rule,
+		evaluator: eval,
+		category:  strings.ToLower(strings.TrimSpace(parsed.Logsource.Category)),
+	}, nil
 }

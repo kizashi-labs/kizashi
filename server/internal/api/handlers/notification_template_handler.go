@@ -53,7 +53,9 @@ func (h *NotificationTemplateHandler) List(c *gin.Context) {
 		templates = append(templates, t)
 	}
 	if err := rows.Err(); err != nil {
-		slog.Warn("row iteration error", "error", err)
+		slog.Error("rows.Err: 結果の読み出しが途中で失敗しました", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "テンプレート一覧の取得に失敗しました"})
+		return
 	}
 	if templates == nil {
 		templates = []NotifTemplate{}

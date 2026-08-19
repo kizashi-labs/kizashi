@@ -49,7 +49,7 @@ func TestDetectInjection_FindsSuspiciousParent(t *testing.T) {
 		VALUES (NOW() - INTERVAL '5 minutes', $1::uuid, 'process', $2::jsonb)`,
 		agentID, `{
 			"process_name":        "svchost.exe",
-			"parent_process_name": "winword.exe",
+			"parent_name": "winword.exe",
 			"pid":                 4242,
 			"cmdline":             "svchost.exe -k netsvcs"
 		}`); err != nil {
@@ -95,7 +95,7 @@ func TestDetectInjection_HoursWindowApplies(t *testing.T) {
 	if _, err := pool.Exec(ctx, `
 		INSERT INTO events (time, agent_id, event_type, raw_data)
 		VALUES (NOW() - INTERVAL '48 hours', $1::uuid, 'process',
-		        '{"process_name":"svchost.exe","parent_process_name":"excel.exe","pid":7}'::jsonb)`,
+		        '{"process_name":"svchost.exe","parent_name":"excel.exe","pid":7}'::jsonb)`,
 		agentID); err != nil {
 		t.Fatalf("seed: %v", err)
 	}

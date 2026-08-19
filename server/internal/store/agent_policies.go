@@ -94,6 +94,9 @@ func (s *AgentPolicyStore) List(ctx context.Context) ([]*AgentPolicy, error) {
 		}
 		policies = append(policies, p)
 	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
 	if policies == nil {
 		policies = []*AgentPolicy{}
 	}

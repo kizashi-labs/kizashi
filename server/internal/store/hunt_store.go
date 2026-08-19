@@ -75,7 +75,13 @@ func (s *HuntStore) Delete(ctx context.Context, id string) error {
 }
 
 // RecordRun updates last_run and increments run_count.
-func (s *HuntStore) RecordRun(ctx context.Context, id string) {
-	_, _ = s.pool.Exec(ctx, `
+//
+// **error を返します。** 以前は返り値が無く、書けなくても呼び出し側は
+// 何も知りませんでした —— **どう答えるかは store が決めることでは
+// ありません。** このメソッドを呼ぶハンドラは「記録しました」と
+// 答えるので、書けていないなら答えを変える必要があります。
+func (s *HuntStore) RecordRun(ctx context.Context, id string) error {
+	_, err := s.pool.Exec(ctx, `
 		UPDATE saved_hunts SET last_run=NOW(), run_count=run_count+1 WHERE id=$1::uuid`, id)
+	return err
 }

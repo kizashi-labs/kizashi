@@ -63,12 +63,77 @@ func TestIsSuspiciousExecRegion(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			susp, _, unbk := isSuspiciousExecRegion(tc.perms, tc.pathname)
+			susp, _, unbk := isSuspiciousExecRegion(tc.perms, tc.pathname, "0")
 			if susp != tc.wantSusp {
 				t.Errorf("suspicious=%v, want %v (perms=%s path=%q)", susp, tc.wantSusp, tc.perms, tc.pathname)
 			}
 			if susp && unbk != tc.wantUnbk {
 				t.Errorf("unbacked=%v, want %v", unbk, tc.wantUnbk)
+			}
+		})
+	}
+}
+
+// TestDeletedMappingPackageUpgradeIsNotSuspicious guards the FP storm measured on
+// the verification host (ip-10-0-0-10, 2026-08-03): an apt upgrade of libc6 and
+// openssl unlinked the old inodes, so every daemon started before the upgrade kept
+// mapping them and /proc/<pid>/maps reported the library text as "(deleted)".
+// 94 executable (deleted) mappings host-wide; systemd, cron, dbus-daemon, acpid,
+// irqbalance, rsyslogd and docker-proxy were all reported as possible reflective
+// loads. The rows below are verbatim from that host — including the control case
+// (a dbus-daemon started AFTER the upgrade, mapping the new inode 4622 with no
+// "(deleted)" suffix), which must stay unflagged for the same reason it always was.
+func TestDeletedMappingPackageUpgradeIsNotSuspicious(t *testing.T) {
+	// Inode present on disk now => the path was re-created (package replaced it).
+	// Anything else is absent, i.e. genuinely vanished.
+	present := map[string]uint64{
+		"/usr/lib/x86_64-linux-gnu/libc.so.6":      4622,
+		"/usr/lib/x86_64-linux-gnu/libm.so.6":      4623,
+		"/usr/lib/x86_64-linux-gnu/libcrypto.so.3": 53999,
+		"/usr/local/lib/hooked.so":                 900,
+		"/tmp/x":                                   901,
+	}
+	orig := statInode
+	statInode = func(path string) (uint64, bool) {
+		ino, ok := present[path]
+		return ino, ok
+	}
+	defer func() { statInode = orig }()
+
+	cases := []struct {
+		name     string
+		perms    string
+		pathname string
+		inode    string
+		wantSusp bool
+	}{
+		// ── the false positives (must NOT fire) ──
+		{"libc replaced by upgrade (cron)", "r-xp",
+			"/usr/lib/x86_64-linux-gnu/libc.so.6 (deleted)", "5053", false},
+		{"libm replaced by upgrade (irqbalance)", "r-xp",
+			"/usr/lib/x86_64-linux-gnu/libm.so.6 (deleted)", "5056", false},
+		{"libcrypto replaced by upgrade (systemd-resolve)", "r-xp",
+			"/usr/lib/x86_64-linux-gnu/libcrypto.so.3 (deleted)", "53735", false},
+		{"control: post-upgrade dbus-daemon, not deleted", "r-xp",
+			"/usr/lib/x86_64-linux-gnu/libc.so.6", "4622", false},
+
+		// ── the detections that must survive ──
+		{"dropper unlinked its payload", "r-xp", "/tmp/dropper (deleted)", "77", true},
+		{"memfd never stats", "r-xp", "/memfd:payload (deleted)", "88", true},
+		{"/usr/local is not package-managed", "r-xp",
+			"/usr/local/lib/hooked.so (deleted)", "99", true},
+		{"recreated /tmp path is still suspicious", "r-xp", "/tmp/x (deleted)", "901", true},
+		{"inode 0 has nothing to compare", "r-xp",
+			"/usr/lib/x86_64-linux-gnu/libc.so.6 (deleted)", "0", true},
+		{"upgraded lib mapped RWX is still flagged", "rwxp",
+			"/usr/lib/x86_64-linux-gnu/libc.so.6 (deleted)", "5053", true},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			susp, _, _ := isSuspiciousExecRegion(tc.perms, tc.pathname, tc.inode)
+			if susp != tc.wantSusp {
+				t.Errorf("suspicious=%v, want %v (perms=%s path=%q inode=%s)",
+					susp, tc.wantSusp, tc.perms, tc.pathname, tc.inode)
 			}
 		})
 	}
@@ -90,17 +155,24 @@ func TestScanSuspiciousMemorySkipsVDSO(t *testing.T) {
 }
 
 // TestScanStatsAccounting guards the #511 load instrumentation: every
-// enumerated PID must land in exactly one bucket (walked, allowlisted, or
-// unreadable), otherwise the measured "対象プロセス数" understates the real cost and
-// the default-ON decision would be made on wrong numbers.
+// enumerated PID must land in exactly one bucket (walked, allowlisted,
+// unreadable, or gone), otherwise the measured "対象プロセス数" understates the real
+// cost and the default-ON decision would be made on wrong numbers.
+//
+// **バケットは 4 つある。** SkippedGone（走査に着くまでに終了していた）が
+// 後から足されたとき、この検算式は 3 つのままだった。SkippedGone は走査中に
+// プロセスが消えたときしか非ゼロにならないので、**手元では通り、忙しい
+// ランナーでだけ落ちる**間欠的な赤になっていた（実測: enumerated 170 に対し
+// 136+0+33=169、差の 1 が gone）。バケットを足したら、ここも足すこと。
 func TestScanStatsAccounting(t *testing.T) {
 	findings, st := ScanSuspiciousMemoryWithYARAStats(func([]byte) []string { return nil })
 	if st.ProcessesEnumerated == 0 {
 		t.Fatal("enumerated no processes — /proc walk broken")
 	}
-	if got := st.ProcessesScanned + st.SkippedAllowlisted + st.SkippedUnreadable; got != st.ProcessesEnumerated {
-		t.Errorf("bucket sum %d != enumerated %d (scanned=%d allowlisted=%d unreadable=%d)",
-			got, st.ProcessesEnumerated, st.ProcessesScanned, st.SkippedAllowlisted, st.SkippedUnreadable)
+	if got := st.ProcessesScanned + st.SkippedAllowlisted + st.SkippedUnreadable + st.SkippedGone; got != st.ProcessesEnumerated {
+		t.Errorf("bucket sum %d != enumerated %d (scanned=%d allowlisted=%d unreadable=%d gone=%d)",
+			got, st.ProcessesEnumerated, st.ProcessesScanned, st.SkippedAllowlisted,
+			st.SkippedUnreadable, st.SkippedGone)
 	}
 	if st.ProcessesScanned > 0 && st.RegionsExamined == 0 {
 		t.Error("walked processes but counted no regions")

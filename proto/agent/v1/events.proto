@@ -65,6 +65,48 @@ message ProcessEvent {
   // token could not be read.
   string logon_id = 16; // Sigma LogonId
 
+  // The parent process, resolved on the endpoint at the moment the child is
+  // observed. ppid alone is not enough for anything downstream: it is a number
+  // that is reused, and by the time a query runs the parent is usually gone.
+  //
+  // Every consumer that wanted the parent had to invent its own answer and none
+  // of them worked. The server read raw_data->>'parent_name' and
+  // ->>'parent_image', which this message never carried, so the parent was
+  // empty on every row — and mitreFromParentChild(), the whole Office-spawns-a-
+  // shell / browser-spawns-PowerShell technique table, was called with an empty
+  // parent every time and could never match. detection's parentResolver looks
+  // ppid up against recent events, which only works while the parent is still
+  // in the window and never leaves the process's memory.
+  //
+  // Resolving on the endpoint is the only place the answer is reliable: the
+  // agent sees the create event while the parent is still alive, and /proc (or
+  // the Windows/ESF equivalent) is right there. Empty when the parent exited
+  // before it could be read, which is honest and rare — as opposed to always.
+  string parent_name  = 17; // Sigma ParentImage (basename)
+  string parent_image = 18; // Sigma ParentImage (full path)
+
+  // Container containment, derived from /proc on the endpoint.
+  //
+  // server/internal/cloudruntime read container_id, privileged and host_network
+  // off process events and the agent collected none of them, so
+  // privileged-container detection, host-network detection and the "containers
+  // monitored" count were structurally zero. It also selected two event types —
+  // container_event and container_process — that events_event_type_check does
+  // not permit, so those rows could never exist either.
+  //
+  // Containment is a kernel property, so none of this needs a runtime API: the
+  // cgroup path names the container, CapEff says whether it is privileged, and
+  // comparing the net namespace to PID 1's says whether it shares the host's
+  // network. No Docker socket, no containerd client, no new privilege.
+  //
+  // Deliberately absent: container_name and image_name. Those are runtime
+  // bookkeeping rather than kernel state — the cgroup path encodes them only
+  // sometimes, and differently per runtime — so they are left uncollected
+  // rather than guessed at.
+  string container_id            = 19; // 64-hex container ID, "" outside a container
+  bool   container_privileged    = 20; // full capability set — `--privileged`
+  bool   container_host_network  = 21; // shares PID 1's netns — `--network=host`
+
   enum ProcessAction {
     PROCESS_ACTION_UNSPECIFIED = 0;
     PROCESS_ACTION_CREATE      = 1;
@@ -163,12 +205,44 @@ message AuthEvent {
   string failure_reason = 6;
   string logon_type     = 7; // Windows 4624/4625 LogonType (e.g. 3=Network, 10=RemoteInteractive/RDP); "" on non-Windows
 
+  // Raw Windows Security-log Event ID (4624/4625/4634/4672/4765/4766/4768/4769);
+  // 0 on non-Windows and for any collector that has no numeric event id.
+  //
+  // **数値です。** 一時この枝では十進文字列にしていたが、読む側が数で見る:
+  // detection の auth_attack と、SID-History (4765/4766) を Sigma の EventID に
+  // 出す門はどちらも toFloat64 を通しており、toFloat64 は文字列を受け取らない。
+  // WMI イベントの event_id も既に数値なので、そちらとも揃う。
+  //
+  // これが無かった間、`service: security` の Sigma ルールで EventID を選ぶものは
+  // どれもエージェント由来のテレメトリから到達できず、とくに 4765/4766 は他に
+  // 区別できる欄が無いため、ルールの書き方に関わらず検知できなかった。
+  // 同じ理由で `raw_data->>'event_id' = '4769'` を見る条件も死んでいた。
+  uint32 event_id       = 8;
+
+  // Kerberos service-ticket fields, from Security 4769 (TGS-REQ) and 4768
+  // (AS-REQ). Empty for every other kind of authentication.
+  //
+  // These are the whole input to Kerberoasting detection: an attacker requests
+  // a service ticket for an account with an SPN, forces RC4 so the ticket is
+  // encrypted with the service account's NTLM hash, and cracks it offline.
+  // The detection keys on the SPN plus a weak encryption type, and it had
+  // neither — AuthEvent carried no Kerberos fields at all, so
+  // ldap.DetectKerberoasting matched nothing on any deployment.
+  string target_spn = 9; // 4769 ServiceName, e.g. MSSQLSvc/db01.corp.local:1433
+  // 4769 TicketEncryptionType, as the hex string Windows logs: 0x17/0x18 are
+  // RC4 (crackable offline — the Kerberoasting signal), 0x11/0x12 are AES.
+  string ticket_encryption_type = 10;
+
   enum AuthAction {
     AUTH_ACTION_UNSPECIFIED = 0;
     AUTH_ACTION_LOGIN       = 1;
     AUTH_ACTION_LOGOUT      = 2;
     AUTH_ACTION_PRIVILEGE   = 3; // privilege escalation
     AUTH_ACTION_FAILED      = 4;
+    // Kerberos service-ticket request (Security 4769). Not a logon: nobody
+    // authenticated to this host, a ticket was issued for a service. Given its
+    // own value so it is not reported as an unspecified login.
+    AUTH_ACTION_SERVICE_TICKET = 5;
   }
 }
 

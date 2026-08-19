@@ -110,7 +110,9 @@ func (h *MetricsHistoryHandler) Query(c *gin.Context) {
 			}
 		}
 		if err := rows.Err(); err != nil {
-			slog.Warn("row iteration error", "error", err)
+			slog.Error("rows.Err: 結果の読み出しが途中で失敗しました", "error", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": dbErrMsg(err)})
+			return
 		}
 	} else {
 		// hourly or daily — use aggregates table
@@ -137,7 +139,9 @@ func (h *MetricsHistoryHandler) Query(c *gin.Context) {
 			}
 		}
 		if err := rows.Err(); err != nil {
-			slog.Warn("row iteration error", "error", err)
+			slog.Error("rows.Err: 結果の読み出しが途中で失敗しました", "error", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": dbErrMsg(err)})
+			return
 		}
 	}
 
@@ -184,7 +188,9 @@ func (h *MetricsHistoryHandler) GetLatest(c *gin.Context) {
 		}
 	}
 	if err := rows.Err(); err != nil {
-		slog.Warn("row iteration error", "error", err)
+		slog.Error("rows.Err: 結果の読み出しが途中で失敗しました", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": dbErrMsg(err)})
+		return
 	}
 	if metrics == nil {
 		metrics = []LatestMetric{}
@@ -206,44 +212,52 @@ func (h *MetricsHistoryHandler) GetSummary(c *gin.Context) {
 
 	// alert_count
 	var alertCount int
-	_ = h.pool.QueryRow(ctx,
+	if !ReadOK(c, h.pool.QueryRow(ctx,
 		`SELECT COUNT(*) FROM alerts WHERE created_at >= $1`, since,
-	).Scan(&alertCount)
+	).Scan(&alertCount)) {
+		return
+	}
 	summary["alert_count"] = alertCount
 
 	// agent_count (online)
 	var agentCount int
-	_ = h.pool.QueryRow(ctx,
+	if !ReadOK(c, h.pool.QueryRow(ctx,
 		`SELECT COUNT(*) FROM agents WHERE status = 'online'`,
-	).Scan(&agentCount)
+	).Scan(&agentCount)) {
+		return
+	}
 	summary["agent_count"] = agentCount
 
 	// mttd_hours — アラート作成からトリアージ（investigating）までの平均時間
 	var mttdHours float64
-	_ = h.pool.QueryRow(ctx,
+	if !ReadOK(c, h.pool.QueryRow(ctx,
 		`SELECT COALESCE(AVG(
-			EXTRACT(EPOCH FROM (asc2.changed_at - a.created_at)) / 3600
-		), 0)
-		FROM alerts a
-		JOIN (
-			SELECT DISTINCT ON (alert_id) alert_id, changed_at
-			FROM alert_status_changes
-			WHERE to_status IN ('investigating', 'in_progress')
-			ORDER BY alert_id, changed_at ASC
-		) asc2 ON asc2.alert_id = a.id
-		WHERE a.created_at >= $1`,
+				EXTRACT(EPOCH FROM (asc2.changed_at - a.created_at)) / 3600
+			), 0)
+			FROM alerts a
+			JOIN (
+				SELECT DISTINCT ON (alert_id) alert_id, changed_at
+				FROM alert_status_changes
+				WHERE to_status IN ('investigating', 'in_progress')
+				ORDER BY alert_id, changed_at ASC
+			) asc2 ON asc2.alert_id = a.id
+			WHERE a.created_at >= $1`,
 		since,
-	).Scan(&mttdHours)
+	).Scan(&mttdHours)) {
+		return
+	}
 	summary["mttd_hours"] = mttdHours
 
 	// mttr_hours — mean time to resolve
 	var mttrHours float64
-	_ = h.pool.QueryRow(ctx,
+	if !ReadOK(c, h.pool.QueryRow(ctx,
 		`SELECT COALESCE(AVG(EXTRACT(EPOCH FROM (resolved_at - created_at)) / 3600.0), 0)
-		 FROM alerts
-		 WHERE resolved_at IS NOT NULL AND created_at >= $1`,
+			 FROM alerts
+			 WHERE resolved_at IS NOT NULL AND created_at >= $1`,
 		since,
-	).Scan(&mttrHours)
+	).Scan(&mttrHours)) {
+		return
+	}
 	summary["mttr_hours"] = mttrHours
 
 	// threat_detection_rate — alerts / events * 100
@@ -296,7 +310,9 @@ func (h *MetricsHistoryHandler) ListMetricNames(c *gin.Context) {
 		}
 	}
 	if err := rows.Err(); err != nil {
-		slog.Warn("row iteration error", "error", err)
+		slog.Error("rows.Err: 結果の読み出しが途中で失敗しました", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": dbErrMsg(err)})
+		return
 	}
 	if names == nil {
 		names = []MetricInfo{}

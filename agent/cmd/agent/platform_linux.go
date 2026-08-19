@@ -45,7 +45,8 @@ func newPlatformProcessCollector() collector.ProcessCollector {
 }
 
 func newPlatformFileCollector() collector.FileCollector {
-	return linux.NewInotifyFileCollector()
+	// eBPF build (-tags ebpf) → process-attributed file events; else inotify.
+	return linux.NewFileCollector()
 }
 
 func newPlatformNetworkCollector() collector.NetworkCollector {

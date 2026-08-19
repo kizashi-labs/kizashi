@@ -56,11 +56,18 @@ type enrollmentRule struct {
 }
 
 // checkAutoApprove checks enrollment rules and returns true if the request should be auto-approved.
+//
+// 読めなかったときも false（＝手動承認へ）です。安全な方向に倒れるので
+// 値を返し続けますが、黙ってはいけません。ルールを読めない間、自動承認を
+// 設定してあるはずの端末がすべて手動待ちの列に積まれます。設定を疑って
+// 見に行っても、ルールは正しく入っています。
 func (h *EnrollmentHandler) checkAutoApprove(c *gin.Context, hostname, ipAddress string) bool {
 	rows, err := h.pool.Query(c.Request.Context(),
 		`SELECT match_field, match_pattern, action FROM enrollment_rules
 		 WHERE enabled = true ORDER BY priority ASC`)
 	if err != nil {
+		slog.Error("enrollment: 自動承認ルールを読めないまま手動承認に倒しました",
+			"hostname", hostname, "error", err)
 		return false
 	}
 	defer rows.Close()
@@ -87,7 +94,9 @@ func (h *EnrollmentHandler) checkAutoApprove(c *gin.Context, hostname, ipAddress
 		}
 	}
 	if err := rows.Err(); err != nil {
-		slog.Warn("enrollment auto-approve rule iteration failed", "error", err)
+		slog.Error("enrollment: 自動承認ルールを読めないまま手動承認に倒しました",
+			"hostname", hostname, "error", err)
+		return false
 	}
 	return false
 }

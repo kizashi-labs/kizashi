@@ -2,6 +2,7 @@ package investigation
 
 import (
 	"context"
+	"github.com/edr-platform/server/internal/metrics"
 	"log/slog"
 
 	"github.com/nats-io/nats.go"
@@ -55,7 +56,7 @@ func (s *Subscriber) Start(ctx context.Context) {
 		}(alertID)
 	})
 	if err != nil {
-		slog.Error("investigation subscriber: subscribe failed", "error", err)
+		metrics.BackgroundFailed("investigation_subscriber", err, "investigation subscriber: subscribe failed")
 		return
 	}
 	slog.Info("investigation subscriber: listening", "subject", TriggerSubject)

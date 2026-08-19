@@ -7,6 +7,8 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/nats-io/nats.go"
+
+	"github.com/edr-platform/server/internal/store"
 )
 
 // NetworkAnomalyDetector detects network anomalies by periodically analyzing connection data.
@@ -27,7 +29,7 @@ func (d *NetworkAnomalyDetector) Run(ctx context.Context) {
 	defer ticker.Stop()
 
 	// Run once immediately
-	d.detect(ctx)
+	trackRun(ctx, "network_anomaly_detector", d.detect)
 
 	for {
 		select {
@@ -35,7 +37,7 @@ func (d *NetworkAnomalyDetector) Run(ctx context.Context) {
 			slog.Info("ネットワーク異常検知スケジューラーを停止しました")
 			return
 		case <-ticker.C:
-			d.detect(ctx)
+			trackRun(ctx, "network_anomaly_detector", d.detect)
 		}
 	}
 }
@@ -47,10 +49,7 @@ func (d *NetworkAnomalyDetector) detect(ctx context.Context) {
 }
 
 func (d *NetworkAnomalyDetector) networkTableExists(ctx context.Context) bool {
-	var exists bool
-	err := d.pool.QueryRow(ctx,
-		`SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name='network_connections')`).Scan(&exists)
-	return err == nil && exists
+	return store.TableIsThere(ctx, d.pool, "network_connections")
 }
 
 func (d *NetworkAnomalyDetector) detectTrafficSpike(ctx context.Context) {
@@ -74,6 +73,9 @@ func (d *NetworkAnomalyDetector) detectTrafficSpike(ctx context.Context) {
 		GROUP BY agent_id
 	`)
 	if err != nil {
+		// 黙って戻ると、検知が回らなかった回と、何も見つから
+		// なかった回が同じになります。次のティックまで誰も気づきません。
+		fail(ctx, err, "通信量の急増の検知: 対象を取得できませんでした")
 		return
 	}
 	defer rows.Close()
@@ -92,6 +94,9 @@ func (d *NetworkAnomalyDetector) detectTrafficSpike(ctx context.Context) {
 			desc := "エージェントで大量のネットワーク接続が検出されました"
 			d.createAlert(ctx, at.AgentID, title, desc, 3)
 		}
+	}
+	if err := rows.Err(); err != nil {
+		fail(ctx, err, "トラフィック急増の走査が途中で終わりました。検出漏れがあります")
 	}
 }
 
@@ -115,6 +120,9 @@ func (d *NetworkAnomalyDetector) detectNewPorts(ctx context.Context) {
 		  )
 	`)
 	if err != nil {
+		// 黙って戻ると、検知が回らなかった回と、何も見つから
+		// なかった回が同じになります。次のティックまで誰も気づきません。
+		fail(ctx, err, "新規ポートの検知: 対象を取得できませんでした")
 		return
 	}
 	defer rows.Close()
@@ -129,6 +137,9 @@ func (d *NetworkAnomalyDetector) detectNewPorts(ctx context.Context) {
 		if err := rows.Scan(&e.AgentID, &e.DestPort); err == nil {
 			entries = append(entries, e)
 		}
+	}
+	if err := rows.Err(); err != nil {
+		fail(ctx, err, "新規ポートの走査が途中で終わりました。検出漏れがあります")
 	}
 
 	// Check for high-risk ports
@@ -158,6 +169,9 @@ func (d *NetworkAnomalyDetector) detectHighBeaconing(ctx context.Context) {
 		HAVING COUNT(*) > 50
 	`)
 	if err != nil {
+		// 黙って戻ると、検知が回らなかった回と、何も見つから
+		// なかった回が同じになります。次のティックまで誰も気づきません。
+		fail(ctx, err, "ビーコン通信の検知: 対象を取得できませんでした")
 		return
 	}
 	defer rows.Close()
@@ -172,6 +186,9 @@ func (d *NetworkAnomalyDetector) detectHighBeaconing(ctx context.Context) {
 		desc := "同一宛先IPアドレス（" + destIP + "）への短時間での大量接続（" + itoa(count) + "回）が検出されました。C2通信の可能性があります"
 		d.createAlert(ctx, agentID, title, desc, 4)
 	}
+	if err := rows.Err(); err != nil {
+		fail(ctx, err, "ビーコン通信の走査が途中で終わりました。検出漏れがあります")
+	}
 }
 
 func (d *NetworkAnomalyDetector) createAlert(ctx context.Context, agentID, title, description string, severity int) {
@@ -179,7 +196,7 @@ func (d *NetworkAnomalyDetector) createAlert(ctx context.Context, agentID, title
 	err := d.pool.QueryRow(ctx,
 		`SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name='alerts')`).Scan(&alertsExist)
 	if err != nil || !alertsExist {
-		slog.Warn("alertsテーブルが存在しないため、アラートを作成できません", "title", title)
+		fail(ctx, err, "alertsテーブルが存在しないため、アラートを作成できません", "title", title)
 		return
 	}
 
@@ -195,7 +212,7 @@ func (d *NetworkAnomalyDetector) createAlert(ctx context.Context, agentID, title
 		title, description, severity, agentIDPtr,
 	).Scan(&alertID)
 	if err != nil {
-		slog.Error("アラートの作成に失敗しました", "error", err, "title", title)
+		fail(ctx, err, "アラートの作成に失敗しました", "title", title)
 		return
 	}
 
@@ -205,7 +222,7 @@ func (d *NetworkAnomalyDetector) createAlert(ctx context.Context, agentID, title
 	if d.nc != nil {
 		payload := []byte(`{"id":"` + alertID + `","title":"` + title + `","severity":` + itoa(severity) + `}`)
 		if err := d.nc.Publish("alerts.new", payload); err != nil {
-			slog.Warn("NATSへのアラート送信に失敗しました", "error", err)
+			fail(ctx, err, "NATSへのアラート送信に失敗しました")
 		}
 	}
 }

@@ -132,11 +132,19 @@ func TestFileStats_CountsEvents(t *testing.T) {
 }
 
 // ── /api/v1/events/auth-stats ────────────────────────────────────
+//
+// The auth/UEBA/graph fixtures below used to seed {"outcome":"failure"},
+// {"image":...} and {"cmdline":...}. Ingestion writes none of those keys —
+// normalizeEventData emits success (a JSON boolean), image_path and
+// command_line — so the fixtures were built to match the readers rather than
+// the producer, and the tests passed on a payload shape no agent has ever
+// sent. They now seed what ingestion actually writes, which is the only form
+// that makes them a regression test of anything.
 
 func TestAuthStats_CountsEvents(t *testing.T) {
 	pool := testPool(t)
 	_, hostname := seedAgentAndEvents(t, pool, "auth", "auth", 12,
-		`{"username":"agentev-user","outcome":"failure","logon_type":"3"}`)
+		`{"username":"agentev-user","success":false,"logon_type":"3"}`)
 
 	h := handlers.NewEventHandler(pool)
 
@@ -167,12 +175,12 @@ func TestAuthStats_CountsEvents(t *testing.T) {
 func TestUEBASummary_CountsAuthAndProcessEvents(t *testing.T) {
 	pool := testPool(t)
 	_, hostname := seedAgentAndEvents(t, pool, "ueba", "auth", 9,
-		`{"username":"agentev-ueba","outcome":"failure"}`)
+		`{"username":"agentev-ueba","success":false}`)
 
 	// 「1 台でしか見ていないプロセス」の集計も同じテーブルを読む。
 	// 除外パスに当たらない名前にする。
 	procAgent, _ := seedAgentAndEvents(t, pool, "uebaproc", "process", 4,
-		`{"image":"/opt/agentev/rare-binary"}`)
+		`{"image_path":"/opt/agentev/rare-binary"}`)
 	_ = procAgent
 
 	h := handlers.NewUEBAHandler(pool)
@@ -198,7 +206,7 @@ func TestAlertGraph_IncludesSurroundingEvents(t *testing.T) {
 	db := testDB(t)
 	pool := db.Pool()
 	agentID, _ := seedAgentAndEvents(t, pool, "graph", "process", 5,
-		`{"pid":"4242","image":"/tmp/agentev-graph","cmdline":"-enc AAA"}`)
+		`{"pid":"4242","image_path":"/tmp/agentev-graph","command_line":"-enc AAA"}`)
 
 	ctx := context.Background()
 	var alertID string

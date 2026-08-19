@@ -29,8 +29,7 @@ func (h *RiskScoringHandler) GetScores(c *gin.Context) {
 	ctx := c.Request.Context()
 	entityType := c.Query("entity_type")
 
-	var exists bool
-	_ = h.pool.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM pg_tables WHERE schemaname='public' AND tablename='risk_scores')`).Scan(&exists)
+	exists := tableIsThere(ctx, h.pool, "risk_scores")
 	if !exists {
 		c.JSON(http.StatusOK, gin.H{"scores": []interface{}{}, "total": 0})
 		return
@@ -82,8 +81,7 @@ func (h *RiskScoringHandler) RecalculateScores(c *gin.Context) {
 func (h *RiskScoringHandler) GetOrganizationRisk(c *gin.Context) {
 	ctx := c.Request.Context()
 
-	var exists bool
-	_ = h.pool.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM pg_tables WHERE schemaname='public' AND tablename='risk_scores')`).Scan(&exists)
+	exists := tableIsThere(ctx, h.pool, "risk_scores")
 	if !exists {
 		c.JSON(http.StatusOK, gin.H{
 			"overall_risk_score": 0,
@@ -97,7 +95,9 @@ func (h *RiskScoringHandler) GetOrganizationRisk(c *gin.Context) {
 	}
 
 	var overallScore float64
-	_ = h.pool.QueryRow(ctx, `SELECT COALESCE(AVG(score), 0) FROM risk_scores`).Scan(&overallScore)
+	if !ReadOK(c, h.pool.QueryRow(ctx, `SELECT COALESCE(AVG(score), 0) FROM risk_scores`).Scan(&overallScore)) {
+		return
+	}
 
 	riskLevel := "low"
 	if overallScore >= 80 {
@@ -174,13 +174,11 @@ func (h *RiskScoringHandler) GetOrganizationRisk(c *gin.Context) {
 func (h *RiskScoringHandler) GetMetrics(c *gin.Context) {
 	ctx := c.Request.Context()
 
-	var exists bool
-	_ = h.pool.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM pg_tables WHERE schemaname='public' AND tablename='risk_score_history')`).Scan(&exists)
+	exists := tableIsThere(ctx, h.pool, "risk_score_history")
 
 	if !exists {
 		// Fall back to risk_scores aggregated by date if history table absent
-		var scoresExists bool
-		_ = h.pool.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM pg_tables WHERE schemaname='public' AND tablename='risk_scores')`).Scan(&scoresExists)
+		scoresExists := tableIsThere(ctx, h.pool, "risk_scores")
 		if !scoresExists {
 			c.JSON(http.StatusOK, gin.H{"metrics": []interface{}{}})
 			return

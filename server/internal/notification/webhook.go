@@ -8,6 +8,8 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/edr-platform/server/internal/metrics"
+	"io"
 	"log/slog"
 	"net/http"
 	"strings"
@@ -98,13 +100,13 @@ func (w *WebhookNotifier) agentEventType(subject string) string {
 func (w *WebhookNotifier) dispatch(ctx context.Context, event string, rawData []byte) {
 	targets, err := w.store.ListEnabledForEvent(ctx, event)
 	if err != nil {
-		slog.Warn("WebhookNotifier: ターゲットの取得に失敗しました", "event", event, "error", err)
+		metrics.BackgroundFailed("webhook_notifier", err, "WebhookNotifier: ターゲットの取得に失敗しました", "event", event)
 		return
 	}
 
 	payload, err := buildPayload(event, rawData)
 	if err != nil {
-		slog.Warn("WebhookNotifier: ペイロード構築失敗", "error", err)
+		metrics.BackgroundFailed("webhook_notifier", err, "WebhookNotifier: ペイロード構築失敗")
 		return
 	}
 
@@ -114,16 +116,119 @@ func (w *WebhookNotifier) dispatch(ctx context.Context, event string, rawData []
 	}
 }
 
+// attemptOutcome is what one HTTP attempt tells us about whether to try again.
+type attemptOutcome int
+
+const (
+	// outcomeDelivered — the endpoint accepted it.
+	outcomeDelivered attemptOutcome = iota
+	// outcomeRetryable — nobody answered, or the endpoint said "not now":
+	// a transport error, any 5xx, or 429.
+	outcomeRetryable
+	// outcomeRejected — the endpoint answered and will answer the same way
+	// however many times we ask (4xx other than 429). Retrying a rejected
+	// payload only multiplies the load on an endpoint that is already saying no.
+	outcomeRejected
+)
+
+// classifyAttempt decides whether a delivery is worth repeating.
+func classifyAttempt(statusCode int, err error) attemptOutcome {
+	if err != nil {
+		return outcomeRetryable
+	}
+	switch {
+	case statusCode >= 200 && statusCode < 300:
+		return outcomeDelivered
+	case statusCode == http.StatusTooManyRequests, statusCode >= 500:
+		return outcomeRetryable
+	default:
+		return outcomeRejected
+	}
+}
+
+// retryBackoff is how long to wait before attempt number `attempt` (1-based for
+// the first retry). It grows linearly from the configured base delay so a
+// struggling endpoint is not hit at a fixed rate, and it is clamped so a
+// generous policy cannot park a goroutine for an unbounded time.
+func retryBackoff(policy store.WebhookRetryPolicy, attempt int) time.Duration {
+	d := time.Duration(policy.RetryDelaySeconds) * time.Second * time.Duration(attempt)
+	if max := time.Duration(store.RetryDelaySecondsLimit) * time.Second; d > max {
+		d = max
+	}
+	return d
+}
+
 // deliver POSTs the payload to a single webhook target and records the result.
+//
+// It used to make exactly one attempt with a hardcoded 10 second timeout: one
+// 502 from the customer's SIEM dropped the notification with nothing but a Warn
+// line, and the endpoint that was supposed to configure retries stored nothing.
+// The target's policy is now honoured — see store.WebhookRetryPolicy.
 func (w *WebhookNotifier) deliver(ctx context.Context, target store.WebhookTarget, event string, payload []byte) {
-	deliverCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	policy := target.RetryPolicy
+	if policy.TimeoutSeconds <= 0 {
+		// A target read by a path that does not select the policy would
+		// otherwise get a zero timeout, which fails instantly on every attempt.
+		policy.TimeoutSeconds = 10
+	}
+	client := &http.Client{Timeout: time.Duration(policy.TimeoutSeconds) * time.Second}
+
+	var statusCode int
+	for attempt := 0; attempt <= policy.MaxRetries; attempt++ {
+		if attempt > 0 {
+			select {
+			case <-ctx.Done():
+				return
+			case <-time.After(retryBackoff(policy, attempt)):
+			}
+		}
+
+		started := time.Now()
+		code, err := w.attempt(ctx, client, target, event, payload)
+		outcome := classifyAttempt(code, err)
+		w.recordAttempt(target, event, attempt+1, code, err, time.Since(started),
+			outcome == outcomeDelivered)
+
+		switch outcome {
+		case outcomeDelivered:
+			slog.Debug("WebhookNotifier: 配信成功",
+				"webhook", target.Name, "status", code, "event", event, "attempt", attempt+1)
+			w.recordStatus(target, code)
+			return
+		case outcomeRejected:
+			slog.Warn("WebhookNotifier: 配信が拒否されました (再試行しません)",
+				"webhook", target.Name, "status", code, "event", event)
+			w.recordStatus(target, code)
+			return
+		case outcomeRetryable:
+			statusCode = code
+			slog.Warn("WebhookNotifier: 配信失敗 (再試行対象)",
+				"webhook", target.Name, "url", target.URL, "status", code,
+				"event", event, "attempt", attempt+1, "of", policy.MaxRetries+1, "error", err)
+		}
+	}
+
+	slog.Warn("WebhookNotifier: 再試行を使い切りました",
+		"webhook", target.Name, "url", target.URL, "event", event,
+		"attempts", policy.MaxRetries+1)
+	w.recordStatus(target, statusCode)
+}
+
+// attempt performs one HTTP POST and returns its status code (0 if nobody
+// answered).
+func (w *WebhookNotifier) attempt(
+	ctx context.Context,
+	client *http.Client,
+	target store.WebhookTarget,
+	event string,
+	payload []byte,
+) (int, error) {
+	reqCtx, cancel := context.WithTimeout(ctx, client.Timeout)
 	defer cancel()
 
-	req, err := http.NewRequestWithContext(deliverCtx, http.MethodPost, target.URL, bytes.NewReader(payload))
+	req, err := http.NewRequestWithContext(reqCtx, http.MethodPost, target.URL, bytes.NewReader(payload))
 	if err != nil {
-		slog.Warn("WebhookNotifier: リクエスト構築失敗",
-			"webhook", target.Name, "url", target.URL, "error", err)
-		return
+		return 0, err
 	}
 
 	req.Header.Set("Content-Type", "application/json")
@@ -139,33 +244,33 @@ func (w *WebhookNotifier) deliver(ctx context.Context, target store.WebhookTarge
 		req.Header.Set("X-EDR-Signature", sig)
 	}
 
-	client := &http.Client{Timeout: 10 * time.Second}
 	resp, err := client.Do(req)
-	statusCode := 0
 	if err != nil {
-		slog.Warn("WebhookNotifier: 配信失敗",
-			"webhook", target.Name, "url", target.URL, "error", err)
-		statusCode = 0
-	} else {
-		statusCode = resp.StatusCode
-		resp.Body.Close()
-		if resp.StatusCode >= 200 && resp.StatusCode < 300 {
-			slog.Debug("WebhookNotifier: 配信成功",
-				"webhook", target.Name, "status", resp.StatusCode, "event", event)
-		} else {
-			slog.Warn("WebhookNotifier: 配信で非2xxレスポンス",
-				"webhook", target.Name, "status", resp.StatusCode, "event", event)
-		}
+		return 0, err
 	}
+	defer func() {
+		// Drain before closing so the connection can be reused. A retry loop
+		// hits the same endpoint several times in a row, and an undrained body
+		// forces a new TCP handshake for each attempt. Bounded so a large
+		// error page cannot make the drain the expensive part.
+		_, _ = io.CopyN(io.Discard, resp.Body, 64<<10)
+		_ = resp.Body.Close()
+	}()
+	return resp.StatusCode, nil
+}
 
-	// Update last_triggered_at and last_status (fire-and-forget with background context)
-	if statusCode > 0 {
-		updateCtx, updateCancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer updateCancel()
-		if err := w.store.UpdateDeliveryStatus(updateCtx, target.ID, statusCode); err != nil {
-			slog.Warn("WebhookNotifier: 配信ステータスの保存に失敗しました",
-				"webhook", target.Name, "error", err)
-		}
+// recordStatus stores the outcome of the last attempt. It uses a background
+// context because the delivery context may already be done by the time the
+// retries are exhausted.
+func (w *WebhookNotifier) recordStatus(target store.WebhookTarget, statusCode int) {
+	if statusCode <= 0 {
+		return
+	}
+	updateCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := w.store.UpdateDeliveryStatus(updateCtx, target.ID, statusCode); err != nil {
+		slog.Warn("WebhookNotifier: 配信ステータスの保存に失敗しました",
+			"webhook", target.Name, "error", err)
 	}
 }
 
@@ -220,4 +325,45 @@ func buildPayload(event string, rawData []byte) ([]byte, error) {
 		return nil, fmt.Errorf("webhook ペイロードのシリアライズに失敗しました: %w", err)
 	}
 	return data, nil
+}
+
+// recordAttempt appends one attempt to the target's delivery history.
+//
+// Every attempt is recorded, not just the last one, because the sequence is
+// what makes the retry policy legible: an endpoint that answered on the first
+// try and one that needed all of its retries both end with the same final
+// status stamped on the target. Failing to record is logged and otherwise
+// ignored — history is diagnostics, and losing a row must not lose the
+// notification.
+//
+// Like recordStatus this uses a background context: the delivery context may
+// already be done by the time a late attempt finishes.
+func (w *WebhookNotifier) recordAttempt(
+	target store.WebhookTarget,
+	event string,
+	attempt int,
+	statusCode int,
+	attemptErr error,
+	elapsed time.Duration,
+	delivered bool,
+) {
+	msg := ""
+	if attemptErr != nil {
+		msg = attemptErr.Error()
+	}
+
+	recCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := w.store.RecordDelivery(recCtx, store.WebhookDelivery{
+		WebhookID:  target.ID,
+		Event:      event,
+		Attempt:    attempt,
+		StatusCode: statusCode,
+		Error:      msg,
+		DurationMs: elapsed.Milliseconds(),
+		Delivered:  delivered,
+	}); err != nil {
+		slog.Warn("WebhookNotifier: 配信履歴の記録に失敗しました",
+			"webhook", target.Name, "event", event, "attempt", attempt, "error", err)
+	}
 }

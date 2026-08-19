@@ -415,6 +415,15 @@ func buildMatchFn(modifier string, pattern interface{}) (func(interface{}) bool,
 	}
 	for _, op := range []string{"gte", "lte", "gt", "lt"} {
 		if hasToken(toks, op) {
+			// A threshold the rule author wrote as text — `|gt: ninety` — used
+			// to be skipped inside the matcher with `continue`, so the
+			// comparison could never be true and the rule was inert. Rejecting
+			// it here makes LoadRule fail, which the builtin and DB loaders now
+			// report by name. "This rule cannot fire" is worth a load error;
+			// it is not worth a rule that quietly never fires.
+			if err := requireNumericThresholds(op, patterns); err != nil {
+				return nil, err
+			}
 			return buildNumericMatch(op, patterns), nil
 		}
 	}
@@ -561,6 +570,32 @@ func buildCIDRMatch(patterns []string) func(interface{}) bool {
 		}
 		return false
 	}
+}
+
+// requireNumericThresholds rejects a numeric modifier none of whose thresholds
+// parse as numbers.
+//
+// One unparseable value among several is tolerated — the others still give the
+// comparison meaning — but it is named in the error when nothing is left.
+//
+// "No threshold at all" and "no numeric threshold" get different messages on
+// purpose: the first is a malformed rule file, the second is a value the author
+// typed. Both are rejected either way, so only the message distinguishes them,
+// and only a test that reads the message can tell the two branches apart.
+func requireNumericThresholds(op string, patterns []string) error {
+	if len(patterns) == 0 {
+		return fmt.Errorf("|%s modifier has no threshold", op)
+	}
+	var bad []string
+	for _, p := range patterns {
+		if _, err := strconv.ParseFloat(strings.TrimSpace(p), 64); err != nil {
+			bad = append(bad, p)
+		}
+	}
+	if len(bad) == len(patterns) {
+		return fmt.Errorf("|%s modifier has no numeric threshold (got %v)", op, bad)
+	}
+	return nil
 }
 
 // buildNumericMatch matches when the numeric event value satisfies the
