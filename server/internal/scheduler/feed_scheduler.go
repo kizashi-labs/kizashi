@@ -173,9 +173,12 @@ func (s *FeedScheduler) fetchFeed(ctx context.Context, feedID, url, sourceFormat
 // importTextFeed parses a newline-delimited plain-text IOC list and upserts
 // entries into the ioc_entries table.
 // upsertIOC inserts/updates one IOC with multi-source reputation.
-//   - Sets BOTH type and ioc_type. The latter was left NULL by every feed INSERT,
-//     blinding the DB-polling matcher (scheduler/ioc_matcher.go reads ioc_type) to
-//     all feed IOCs (実測 23,379件 全件 NULL). Fixed here + migration 277.
+//   - Writes `type` only. ここは以前 type と ioc_type の両方に同じ値を入れて
+//     いました。ioc_type は 203 が足した互換列で、**同じ問いに2つの答えを
+//     置く**ものでした。migration 440 が読み手をすべて type / is_active /
+//     severity に寄せたうえで互換列を落としているので、こちらも書くのを
+//     やめます。**落ちた列に INSERT すると文が丸ごと拒否され、フィード由来の
+//     IOC が黙って1件も入らなくなります。**
 //   - A NEW source for an existing IOC raises confidence and source_count
 //     (multi-source agreement = higher trust); a re-import from the SAME source
 //     only refreshes last_seen, so confidence does not inflate on every sync.
@@ -194,9 +197,9 @@ func (s *FeedScheduler) upsertIOC(ctx context.Context, iocType, value, desc, sou
 	// stale attacker IPs from accumulating into false positives forever.
 	_, err := s.pool.Exec(ctx, `
 		INSERT INTO ioc_entries
-		    (type, ioc_type, value, description, severity, is_active,
+		    (type, value, description, severity, is_active,
 		     source_feed, confidence, source_count, sources, first_seen, last_seen, expires_at)
-		VALUES ($1, $1, $2, $3, 2, TRUE, $4, 50, 1, ARRAY[$4]::text[], NOW(), NOW(), NOW() + INTERVAL '30 days')
+		VALUES ($1, $2, $3, 2, TRUE, $4, 50, 1, ARRAY[$4]::text[], NOW(), NOW(), NOW() + INTERVAL '30 days')
 		ON CONFLICT (type, value) DO UPDATE SET
 		    updated_at   = NOW(),
 		    last_seen    = NOW(),
@@ -205,7 +208,6 @@ func (s *FeedScheduler) upsertIOC(ctx context.Context, iocType, value, desc, sou
 		    -- but never override an analyst who disabled a still-fresh IOC.
 		    is_active    = CASE WHEN ioc_entries.expires_at IS NOT NULL AND ioc_entries.expires_at < NOW()
 		                        THEN TRUE ELSE ioc_entries.is_active END,
-		    ioc_type     = EXCLUDED.ioc_type,
 		    source_count = CASE WHEN $4 = ANY(ioc_entries.sources)
 		                        THEN ioc_entries.source_count
 		                        ELSE ioc_entries.source_count + 1 END,

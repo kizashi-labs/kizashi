@@ -1642,9 +1642,11 @@ func (s *Server) registerRoutes() {
 	if s.handlers.AssetCriticality != nil {
 		ep := protected.Group("/endpoints")
 		{
+			ep.GET("/criticality", s.handlers.AssetCriticality.List)
 			ep.GET("/:id/criticality", s.handlers.AssetCriticality.GetScore)
 			ep.POST("/criticality/bulk", s.handlers.AssetCriticality.BulkScore)
 			ep.PUT("/:id/criticality", s.handlers.AssetCriticality.SetManualScore)
+			ep.DELETE("/:id/criticality", s.handlers.AssetCriticality.ClearManualScore)
 		}
 	}
 
