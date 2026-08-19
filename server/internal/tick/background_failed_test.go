@@ -91,7 +91,6 @@ var backgroundFailedSites = map[string]string{
 	// ── 要求ごと（利用者が待っていて、応答でも分かります） ───────────
 	"api/handlers/event_stream_handler.go:streamFromNATS":    catPerReq,
 	"api/handlers/phishing_handler.go:CreateCampaign":        catPerReq,
-	"api/handlers/update_handler.go:TriggerUpdate":           catPerReq,
 	"api/handlers/yara_handler.go:ReclassifyCategories":      catPerReq,
 	"api/handlers/platform_upgrade_handler.go:RecordStartup": catPerReq,
 
@@ -114,14 +113,12 @@ var backgroundFailedSites = map[string]string{
 	"scheduler/realtime_correlator.go:handleAlertMessage":   catPerEvent,
 
 	// ── error を返す（呼び出し側が受け取ります） ─────────────────────
-	"api/handlers/mobile_app_inventory.go:ingestMobileApps": catReturns,
-	"detection/anomaly_detector.go:SaveBaselinesToDB":       catReturns,
-	"detection/custom_rules.go:compileRegexConditions":      catReturns,
-	"detection/rules/rule_engine.go:Evaluate":               catReturns,
-	"ldap/connector.go:SyncUsers":                           catReturns,
-	"store/alerts.go:SaveAlert":                             catReturns,
-	"store/alerts.go:autoInvestigateThreshold":              catReturns,
-	"timeline/builder.go:BuildIncidentTimeline":             catReturns,
+	"detection/anomaly_detector.go:SaveBaselinesToDB":  catReturns,
+	"detection/custom_rules.go:compileRegexConditions": catReturns,
+	"detection/rules/rule_engine.go:Evaluate":          catReturns,
+	"store/alerts.go:SaveAlert":                        catReturns,
+	"store/alerts.go:autoInvestigateThreshold":         catReturns,
+	"timeline/builder.go:BuildIncidentTimeline":        catReturns,
 
 	// ── 仕組み ───────────────────────────────────────────────────────
 	"tick/tick.go:FailComponent": catMechanism,
@@ -135,10 +132,7 @@ var backgroundFailedSites = map[string]string{
 	// **応答には載せられない、要求ごとの失敗**です。応答は別のことを
 	// 答えていて（コマンドの取り出し、同期の結果、webhook の受理）、
 	// その「記録」が書けたかどうかは別の話です。
-	"api/handlers/live_response_handler.go:AgentPoll":                catPerReq,
-	"api/handlers/mdm_integration_handler.go:noteSyncResult":         catPerReq,
-	"api/handlers/mdm_integration_handler.go:recordCredentialExpiry": catPerReq,
-	"billing/handler.go:StripeWebhook":                               catPerReq,
+	"api/handlers/live_response_handler.go:AgentPoll": catPerReq,
 	// **要求に答えた「あと」の記録**です (2026-08-12)。操作そのものは
 	// 済んでいて、応答もそれを答えています —— 残るのは記録で、
 	// それが書けたかどうかは別の話です。
@@ -195,8 +189,11 @@ var backgroundFailedSites = map[string]string{
 // センダーを作れなかった側 (`LoadChannels` = `notification_channels`) と
 // 分けてあるので、宛先は 1 つ増えて 2 か所になっています。
 const (
-	backgroundFailedCount = 76
-	backgroundFailedFuncs = 61
+	// 76 → 69 / 61 → 55 (全体同期の取り込み)。減っているのは、分類が指していた
+	// 6 つの宛先がこのリポジトリに含まれないため（MDM / billing / LDAP /
+	// updater —— いずれも商用版側）。**下げる方向にしか動かさないこと。**
+	backgroundFailedCount = 69
+	backgroundFailedFuncs = 55
 )
 
 func TestEveryBackgroundFailedSiteIsClassified(t *testing.T) {

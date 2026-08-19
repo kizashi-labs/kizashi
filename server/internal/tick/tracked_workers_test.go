@@ -76,8 +76,6 @@ var untrackedTickerReasons = map[string]string{
 	"webhooks/dispatcher.go:send": "同上（webhook 1件の再送）。",
 	"detection/engine.go:monitorConsumerLag": "NATS のラグを計測するだけで、" +
 		"自身が計測を出しています。",
-	"updater/health_checker.go:Wait": "更新のあとの待ち合わせで、周期の仕事では" +
-		"ありません（一度きり、健全になるまで待ちます）。",
 }
 
 // **`internal/scheduler` も対象です（2026-08-12 に入れました）。**
@@ -1777,8 +1775,6 @@ var reachableSlogWarnReasons = map[string]string{
 		"`tick.FailComponent` に出します。",
 	"threatintel/public_feeds.go:FetchURLhaus": "直後に " +
 		"`tick.FailComponent` を呼んでいます（飛ばした行数つき）。",
-	"updater/applier.go:Apply": "3 か所とも `return err` か、直後の " +
-		"`failWithReason`／`MarkRolledBack` が記録します。",
 
 	// ── 回の話ではないもの ───────────────────────────────────────────
 	"api/handlers/errs.go:dbErrMsg": "応答に出す前にサーバ側へ残すための" +
@@ -1820,7 +1816,9 @@ var reachableSlogWarnReasons = map[string]string{
 // 実測 (2026-08-12): 30 → 9、`internal/scheduler` を入れて 24、
 // `cert_expiry_checker` の2つを `fail` に移して 22。
 // 24 → 25 (#764)。同上。
-const reachableSlogWarnSites = 25
+// 25 → 22 (全体同期の取り込み)。updater/applier.go はこのリポジトリに
+// 含まれない（商用版側）。**下げる方向にしか動かさないこと。**
+const reachableSlogWarnSites = 22
 
 func TestTrackedWorkersDoNotDowngradeToWarn(t *testing.T) {
 	found := reachableLogSites(t, "Warn", warnScanSkip)
@@ -1875,9 +1873,6 @@ var silentErrorBranchReasons = map[string]string{
 	"scheduler/agent_health_alerter.go:checkDegradedSensors": "`rows.Scan` の失敗。" +
 		"**pgx はそこで結果セットを終えるので**、直後の `rows.Err()` が " +
 		"`fail` に出します。",
-	"api/handlers/mobile_compliance_scanner.go:scan": "`rows.Scan` の失敗。" +
-		"**pgx はそこで結果セットを終えるので**、直後の `rows.Err()` が " +
-		"`tick.FailComponent` に出します。",
 	"dedup/alert_dedup.go:deduplicate": "`rows.Scan` の失敗。**pgx は" +
 		"そこで結果セットを終えるので**、直後の `rows.Err()` が " +
 		"`tick.Fail` に出します。",
@@ -1928,7 +1923,9 @@ var silentErrorBranchReasons = map[string]string{
 // すべて理由つきです。
 // 26 → 28 (#543)。増えた 2 件は agent_health_alerter の行走査で、
 // どちらも直後の rows.Err() が fail に出す（理由は上の一覧）。
-const silentErrorBranchSites = 28
+// 28 → 27 (全体同期の取り込み)。mobile_compliance_scanner.go は非同梱。
+// ここも下げる方向にしか動かさない。
+const silentErrorBranchSites = 27
 
 func TestTrackedWorkersDoNotSwallowErrorsSilently(t *testing.T) {
 	found := reachableSilentErrorBranches(t)
