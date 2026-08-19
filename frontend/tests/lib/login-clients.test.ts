@@ -110,7 +110,11 @@ function loginSources(): Array<{ where: string; src: string }> {
 
 // 実測 (2026-08-13)。**増えるのは構いませんが、黙って減るのは走査が壊れた
 // 合図です。**
-const LOGIN_CLIENT_FLOOR = 2
+//
+// 2 → 1 (全体同期の取り込み): mobile/app/(auth)/login.tsx はこのリポジトリに
+// 含まれません（公開版は frontend / sdk まで）。**床は残す** —— 0 にすると
+// 走査が壊れても気づけなくなる。mobile を同梱する版では 2 に戻すこと。
+const LOGIN_CLIENT_FLOOR = 1
 
 describe('ログインするクライアントは MFA の2段目を扱う', () => {
   const clients = loginClients(loginSources())
@@ -120,7 +124,7 @@ describe('ログインするクライアントは MFA の2段目を扱う', () =
     expect(
       clients.map(c => c.where).sort(),
       'ログインを叩く場所が見つかりません（走査が壊れています）',
-    ).toEqual(expect.arrayContaining(['frontend/lib/auth.tsx', 'mobile/app/(auth)/login.tsx']))
+    ).toEqual(expect.arrayContaining(['frontend/lib/auth.tsx']))
     expect(clients.length).toBeGreaterThanOrEqual(LOGIN_CLIENT_FLOOR)
   })
 

@@ -142,7 +142,8 @@ export function silentWrites(src: string): number[] {
  * list of deliberate exceptions rather than an anonymous count.
  */
 const NO_SILENT_WRITES = [
-  'app/admin/ai-triage/page.tsx',
+  // app/admin/ai-triage/page.tsx はこのリポジトリに含まれません（商用版のみ）。
+  // 同梱する版では戻してください。
   'app/admin/bas/page.tsx',
   'app/admin/controls-monitoring/page.tsx',
   'app/admin/custom-fields/page.tsx',
@@ -185,9 +186,10 @@ const DELIBERATE_SILENT_WRITES: Record<string, string> = {
     '描画先がもう無いので出せません。伝わらなかった場合サーバ側にセッションが残ります',
   'app/live-response/[id]/page.tsx':
     '画面を閉じる操作の一部で、直後に router.back() します。同上',
-  'app/admin/mobile-device-management/commands/page.tsx':
-    '30秒ごとの自動ポーリングです。背景の再取得が失敗するたびに帯を出すと、' +
-    '本当の失敗が埋もれます。手動の更新ボタンが同じ経路を叩き、そちらは報告します',
+  // app/admin/mobile-device-management/commands/page.tsx はこのリポジトリに
+  // 含まれません（商用版のみ）。**例外一覧に実在しないファイルを残さない** ——
+  // 「意図した例外がすべて現存する」がまさにそれを検査しており、残すと一覧が
+  // 「昔そうだった」の記録に変わります。同梱する版では戻してください。
 }
 
 /** 説明の無い箇所。0 で固定。 */
