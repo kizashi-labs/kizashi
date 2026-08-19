@@ -613,7 +613,7 @@ export function ceilingProblem(what: string, actual: number, ceiling: number): s
 // **上げるのはこの一度だけにすること。** ここから先に増えたぶんは、
 // 上流との差ではなく新しく死んだ呼び出しである。下げる方向には自由に
 // 動かしてよい（宛先を実装した／画面を BackendPendingBanner に登録した）。
-const UNROUTED_READ_CEILING = 133
+const UNROUTED_READ_CEILING = 132
 const UNROUTED_WRITE_CEILING = 163
 
 describe('サーバに無い宛先', () => {

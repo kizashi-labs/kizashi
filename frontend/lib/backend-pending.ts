@@ -85,6 +85,7 @@ export const BACKEND_PENDING_ROUTES = new Set<string>([
   // 判定はこの Set の範囲にある引用符付きの文字列を全部拾います）
   '/admin/identity-risk',
   '/admin/integrations/ldap',
+  '/admin/uninstall-protection',
   '/admin/log-forwarding',
   '/admin/marketplace',
   '/admin/maturity-model',
@@ -210,6 +211,7 @@ export const PARTIAL_PENDING_ROUTES = new Set<string>([
   // 「一部だけ届かない画面」を **0 で留めています**。
   '/admin/ai-triage',                 // 2/11
   '/admin/alerts/[id]',               // 1/5 (POST /api/v1/ai/analyze-alert)
+  '/rules',                           // 1/7 (POST /api/v1/rules/ai-generate)
   '/admin/backups',                   // 1/4
   '/admin/bas',                       // 1/5
   '/admin/compliance-auto',           // 1/4
@@ -230,6 +232,7 @@ export const PARTIAL_PENDING_ROUTES = new Set<string>([
   '/admin/siem-integration',          // 1/4
   '/admin/users',                     // 3/11
   '/admin/version',                   // 1/2
+  '/auth/sso',
   '/agent-health',                    // 1/3
   '/agents/[id]/config',              // 1/5
   '/dark-web',                        // 1/5

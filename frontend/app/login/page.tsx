@@ -1,14 +1,9 @@
 'use client'
 
-import { useState, FormEvent, useEffect } from 'react'
+import { useState, FormEvent } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/lib/auth'
 import { Shield, KeyRound, Lock, User } from 'lucide-react'
-
-interface SSOProvider {
-  id: string
-  name: string
-}
 
 export default function LoginPage() {
   const { login, verifyMFA } = useAuth()
@@ -21,17 +16,6 @@ export default function LoginPage() {
   const [mfaState, setMfaState] = useState<{ preAuthToken: string } | null>(null)
   const [mfaCode, setMfaCode] = useState('')
 
-  // SSO providers — fetched from public endpoint on mount
-  const [ssoProviders, setSsoProviders] = useState<SSOProvider[]>([])
-
-  useEffect(() => {
-    // Silently fetch enabled SSO providers to conditionally show the SSO button.
-    // Failures are intentionally swallowed — SSO is optional.
-    fetch('/api/v1/auth/sso/providers')
-      .then(r => r.ok ? r.json() : { providers: [] })
-      .then(data => setSsoProviders(data.providers ?? []))
-      .catch(() => { /* SSO unavailable — hide button */ })
-  }, [])
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
@@ -252,28 +236,20 @@ export default function LoginPage() {
                 </button>
               </form>
 
-              {/* SSO login button — only shown when at least one provider is enabled */}
-              {ssoProviders.length > 0 && (
-                <div className="mt-5">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="flex-1 h-px bg-[#1e2d42]" />
-                    <span className="text-[#3d5068] text-[10px] uppercase tracking-widest">または</span>
-                    <div className="flex-1 h-px bg-[#1e2d42]" />
-                  </div>
+              {/* SSO はこのエディションに含まれません。
+                  以前ここには /api/v1/auth/sso/providers を取得して、返って
+                  きたぶんだけ SSO ボタンを出す実装がありました。公開版の
+                  サーバにその経路は無いので、**毎回 404 を投げて空配列を
+                  受け取り、何も描画しない**という動きでした。
 
-                  {ssoProviders.map(provider => (
-                    <button
-                      key={provider.id}
-                      type="button"
-                      onClick={() => router.push(`/auth/sso?provider=${provider.id}`)}
-                      className="w-full flex items-center justify-center gap-2 py-2.5 mb-2 bg-[#0d1220] border border-[#1e3a5f] text-[#4a9eff] rounded-sm hover:bg-[#161f33] hover:border-[#4a9eff]/40 transition-colors text-sm font-medium"
-                    >
-                      <Shield className="w-4 h-4" />
-                      {provider.name} でSSOログイン
-                    </button>
-                  ))}
-                </div>
-              )}
+                  それだけなら無害ですが、「この画面の API 呼び出しが全部
+                  サーバに届かない」という判定に引っかかります。判定は
+                  「準備中と告知せよ」と言いますが、**ログインは動いている**
+                  （認証は lib/auth.tsx の POST /auth/login で、経路は実在
+                  します）。動く画面に「バックエンド準備中」と出すほうが
+                  嘘になるので、届かない呼び出しのほうを外しました。
+
+                  SSO を同梱する版では、この一式を戻してください。 */}
 
               <p className="text-[#3d5068] text-[10px] text-center mt-8 uppercase tracking-widest">
                 KIZASHI EDR · Secured Access
