@@ -547,7 +547,27 @@ func main() {
 		mux.HandleFunc("/health", health.LivenessHandler())
 		mux.HandleFunc("/healthz", health.LivenessHandler())
 		mux.HandleFunc("/readyz", health.ReadinessHandler(pool, nc))
-		if err := http.ListenAndServe(":"+metricsPort, mux); err != nil {
+
+		// **`http.ListenAndServe` は時間制限を1つも持ちません。** ヘッダを
+		// 1バイトずつ送る接続は、こちらが待つあいだ生き続けます（Slowloris）。
+		// 監視の口は落ちても誰も気づかないので、そのまま goroutine と
+		// ファイル記述子が溜まります。既定を使わず、明示します。
+		//
+		// **TLS は張っていません。** ここは compose の内部網だけに出ている
+		// 収集口で、ホストには公開していません（deploy/prometheus.yml が
+		// `detection:8081` を引きます）。TLS にすると収集側と healthcheck の
+		// wget に証明書を配る必要が出ますが、守るものはメトリクスと死活だけで、
+		// 秘密は通りません。**公開する場合は、ここを TLS にしてから出して
+		// ください。**
+		srv := &http.Server{
+			Addr:              ":" + metricsPort,
+			Handler:           mux,
+			ReadHeaderTimeout: 5 * time.Second,
+			ReadTimeout:       15 * time.Second,
+			WriteTimeout:      30 * time.Second,
+			IdleTimeout:       60 * time.Second,
+		}
+		if err := srv.ListenAndServe(); err != nil {
 			slog.Warn("メトリクスサーバーエラー", "error", err)
 		}
 	}()
