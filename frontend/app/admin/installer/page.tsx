@@ -382,6 +382,7 @@ export default function InstallerPage() {
             { label: 'Linux x86_64', os: 'linux', archVal: 'amd64', icon: <Terminal className="w-4 h-4" />, color: 'text-orange-400' },
             { label: 'Linux ARM64', os: 'linux', archVal: 'arm64', icon: <Terminal className="w-4 h-4" />, color: 'text-yellow-400' },
             { label: 'Windows x64', os: 'windows', archVal: 'amd64', icon: <Monitor className="w-4 h-4" />, color: 'text-blue-400' },
+            { label: 'Windows ARM64', os: 'windows', archVal: 'arm64', icon: <Monitor className="w-4 h-4" />, color: 'text-sky-400' },
             { label: 'macOS', os: 'macos', archVal: 'amd64', icon: <Apple className="w-4 h-4" />, color: 'text-gray-300' },
           ].map(({ label, os, archVal, icon, color }) => (
             <a

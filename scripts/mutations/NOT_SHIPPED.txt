@@ -26,3 +26,5 @@ server/internal/store/reachable_test.go
 server/internal/tick/background_failed_test.go
 server/internal/tick/tracked_workers_test.go
 server/internal/updater/applier.go
+# runbook_url を外したぶん、それを狙った変異は当たらない。
+deploy/prometheus/rules/edr-alerts.yml::runbook_url が、見出しと違う場所に飛ぶ

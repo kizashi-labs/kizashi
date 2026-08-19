@@ -93,17 +93,26 @@ COPY agent/ .
 #
 # linux/arm64 はタグ無しのまま。バインディングは `-D__TARGET_ARCH_x86` で生成されて
 # おり、arm64 向けの .o が無い。ci.yml の配布物も同じ理由で amd64 だけが ebpf 付き。
+#
+# windows/arm64 は技術的な制約ではなく単に漏れていた。ETW のコレクタはアーキテクチャ
+# 非依存で、そのままクロスコンパイルできる。install.ps1 は PROCESSOR_ARCHITECTURE=12 を
+# 'arm64' に解決して edr-agent-windows-arm64.exe を要求するため、これが無いと Windows on
+# ARM だけはインストールが 404 で失敗していた (linux/arm64 や macOS は縮退版が入るのに対し、
+# ここだけ何も入らない)。install.ps1 はサービスとして watchdog を登録するので、
+# エージェント本体と watchdog の両方が要る。
 RUN AGENT_VERSION="${VERSION:-$(cat /build/VERSION 2>/dev/null | tr -d '[:space:]' || echo dev)}"; \
     LDFLAGS="-s -w -X main.version=${AGENT_VERSION}"; \
     CGO_ENABLED=0 GOOS=linux   GOARCH=amd64 go build -tags ebpf -ldflags="$LDFLAGS" -o /downloads/edr-agent-linux-amd64 ./cmd/agent && \
     CGO_ENABLED=0 GOOS=linux   GOARCH=arm64 go build -ldflags="$LDFLAGS" -o /downloads/edr-agent-linux-arm64       ./cmd/agent && \
     CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -ldflags="$LDFLAGS" -o /downloads/edr-agent-windows-amd64.exe ./cmd/agent && \
+    CGO_ENABLED=0 GOOS=windows GOARCH=arm64 go build -ldflags="$LDFLAGS" -o /downloads/edr-agent-windows-arm64.exe ./cmd/agent && \
     CGO_ENABLED=0 GOOS=darwin  GOARCH=amd64 go build -ldflags="$LDFLAGS" -o /downloads/edr-agent-darwin-amd64      ./cmd/agent && \
     CGO_ENABLED=0 GOOS=darwin  GOARCH=arm64 go build -ldflags="$LDFLAGS" -o /downloads/edr-agent-darwin-arm64      ./cmd/agent
 
 # Cross-compile watchdog for Linux and Windows
 RUN CGO_ENABLED=0 GOOS=linux   GOARCH=amd64 go build -ldflags="-s -w" -o /downloads/edr-watchdog-linux-amd64       ./cmd/watchdog
 RUN CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -ldflags="-s -w" -o /downloads/edr-watchdog-windows-amd64.exe ./cmd/watchdog
+RUN CGO_ENABLED=0 GOOS=windows GOARCH=arm64 go build -ldflags="-s -w" -o /downloads/edr-watchdog-windows-arm64.exe ./cmd/watchdog
 
 # Pre-compute SHA-256 sidecars so the download checksum endpoint and update-check
 # read them instead of hashing the (~13MB) binaries on every request (busybox

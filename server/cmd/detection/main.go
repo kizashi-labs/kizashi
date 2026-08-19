@@ -547,7 +547,16 @@ func main() {
 		mux.HandleFunc("/health", health.LivenessHandler())
 		mux.HandleFunc("/healthz", health.LivenessHandler())
 		mux.HandleFunc("/readyz", health.ReadinessHandler(pool, nc))
-		if err := http.ListenAndServe(":"+metricsPort, mux); err != nil {
+		// ListenAndServe のままだと読み取りに時間制限が無く、ヘッダを少しずつ
+		// 送り続けるだけで接続を占有できる (Slowloris)。監視用の口なので外から
+		// 見えないことが多いが、見えたときに落とせるのはこの1台だけではない
+		// —— メトリクスが取れなくなると、他の異常も見えなくなる。
+		srv := &http.Server{
+			Addr:              ":" + metricsPort,
+			Handler:           mux,
+			ReadHeaderTimeout: 10 * time.Second,
+		}
+		if err := srv.ListenAndServe(); err != nil {
 			slog.Warn("メトリクスサーバーエラー", "error", err)
 		}
 	}()

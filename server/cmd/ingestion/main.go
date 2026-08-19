@@ -194,7 +194,14 @@ func main() {
 		mux.HandleFunc("/healthz", health.LivenessHandler())
 		mux.HandleFunc("/readyz", health.ReadinessHandler(db.Pool(), nc))
 		metricsPort := getEnv("METRICS_PORT", "8082")
-		if err := http.ListenAndServe(":"+metricsPort, mux); err != nil {
+		// ListenAndServe のままだと読み取りに時間制限が無く、ヘッダを少しずつ
+		// 送り続けるだけで接続を占有できる (Slowloris)。
+		srv := &http.Server{
+			Addr:              ":" + metricsPort,
+			Handler:           mux,
+			ReadHeaderTimeout: 10 * time.Second,
+		}
+		if err := srv.ListenAndServe(); err != nil {
 			slog.Warn("メトリクスサーバーエラー", "error", err)
 		}
 	}()
