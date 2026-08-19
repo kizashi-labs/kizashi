@@ -153,7 +153,6 @@ ABSENT_IN_OSS = {
     'server/internal/api/handlers/system_updates_handler.go': '自動更新',
     'server/internal/updater/applier.go':                 '自動更新',
     'server/internal/ldap/connector.go':                  'LDAP 同期',
-    'docs/ops/監視ランブック.md':                          '運用ランブック',
 }
 
 

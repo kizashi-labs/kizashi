@@ -109,7 +109,7 @@ const discardedWritesThatClaimSuccess = 0
 // `internal/scheduler`、`RunRound` は `internal/detection` なので、
 // 1段目で越境して見えませんでした —— **package をまたぐ呼び出しの先は、
 // いまの走査からは見えません。**
-const discardedWritesTotal = 1
+const discardedWritesTotal = 0
 
 func TestNoDiscardedWriteIsAnsweredWithSuccess(t *testing.T) {
 	claims, total := discardedWriteSites(t)

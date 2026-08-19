@@ -102,9 +102,6 @@ var discardedWriteReasons = map[string]string{
 	// **鍵から `-createtable` が取れました。** 同じ関数の中にもう1つ
 	// （`last_sync`／`user_count`）あったので分けていましたが、そちらは
 	// 件数に出すようにしたので、この関数に残る捨て方は1つだけです。
-	"ldap/connector.go:SyncUsers": catCovered + ": " +
-		"`CREATE TABLE IF NOT EXISTS ad_users`。失敗すれば直後の upsert が" +
-		"全件失敗し、そちらは `metrics.BackgroundFailed` に出ます。",
 }
 
 // **数**。実測 (2026-08-12): 44 → 「回」の中の 7 か所を `tick.Fail` に
@@ -114,7 +111,7 @@ var discardedWriteReasons = map[string]string{
 // 6 の関数（`パス:関数名` で畳んだ数）。分類は 7 ——
 // `ldap/connector.go:SyncUsers` だけ、同じ関数の中の2つを別の分類に
 // 分けているためです。
-const discardedWriteFuncs = 1
+const discardedWriteFuncs = 0
 
 // **分類ごとの数を、そのまま留めます。** 床（「20 以上」）にしていたら、
 // 床を 0 に落とす変異が生き残りました —— 床は「これ以上減らすな」しか
@@ -123,7 +120,7 @@ var discardedWriteCounts = map[string]int{
 	catRestart:  0, // **0 が規則です。** 記憶を先に変えて DB を捨てると、再起動まで正しく見えます
 	catNoCaller: 0, // **0 が規則です。** 報告する相手がいないなら、部品ごとの件数に出せます
 	catHasRun:   0, // **0 が規則です。**「回」があるなら `tick.Fail` に出せます
-	catCovered:  1,
+	catCovered:  0,
 }
 
 func writeCategoryOf(reason string) string {

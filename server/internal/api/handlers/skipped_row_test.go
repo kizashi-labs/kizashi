@@ -428,10 +428,6 @@ var skipExceptions = map[string]string{
 		"実行時のデータでは起きません",
 	// 「壊れた1件で全部を巻き添えにしない」という判断で飛ばしているもの。
 	// どれも、その1件が効かなくなることをコードのコメントで認めています。
-	"api/handlers/ai_triage_handler.go:TriageAlert": "条件を読めない" +
-		"トリアージルールは適用しません。1本の書き損じでトリアージ全体を" +
-		"止めるより、そのルールだけが効かない方を選んでいます。" +
-		"効かなくなったことは slog.Error に残ります",
 	// `cloud/poller.go:poll` は直しました (2026-08-12) —— 記録だけでなく
 	// `tick.Fail` に届くので、その回は「終えられなかった」になります。
 	"detection/custom_rules.go:LoadFromDB": "条件が壊れているルールは" +

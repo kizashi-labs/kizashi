@@ -167,7 +167,7 @@ CASES = [
      'コメントの落とし方を壊す'),
 
     # ── 捨てている書き込みの件数 ─────────────────────────────────────────
-    (DW, 'const discardedWritesTotal = 1', 'const discardedWritesTotal = 26',
+    (DW, 'const discardedWritesTotal = 0', 'const discardedWritesTotal = 26',
      '直した 10 か所を、まだ捨てていることにする'),
 ]
 

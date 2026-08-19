@@ -79,14 +79,8 @@ var discardedHandlerReadReasons = map[string]string{
 		"その場で見ています**。error を返せる形にするなら呼び出し側2か所も変わります。",
 	"data_retention_handler.go:relationSizeBytes": "表示用のサイズ。0 は" +
 		"「不明」として出ます。",
-	"identity_handler.go:connectorFromCtx": "LDAP 接続設定の host。読めなければ" +
-		"空になり、**続く接続がその場で失敗します**（黙って成功しません）。",
 	"ingest_handler.go:upsertAgent": "既存エージェントの id 探し。読めなければ" +
 		"空になり、**新規として INSERT します** —— 重複は UNIQUE 制約が拒みます。",
-	"mdm_enrollment_handler.go:deviceIDForUDID": "UDID からの引き当て。" +
-		"行が無いのが普通の経路です（`pgx.ErrNoRows`）。",
-	"mobile_app_inventory.go:ingestMobileApps": "表示名の引き当て。読めなければ" +
-		"device_id をそのまま名前に使います。",
 	"platform_upgrade_handler.go:RecordStartup": "同じバージョンを二重に記録" +
 		"しないための確認。読めなければもう1行増えるだけです。",
 	"platform_upgrade_handler.go:latestAgentVersion": "エージェントの最新" +
@@ -109,13 +103,13 @@ var discardedHandlerReadReasons = map[string]string{
 // クラウド構成・AI トリアージの 49 か所で 136 → 訓練・脅威統合・PDF
 // レポート・パッチ自動化・PAM・マルチテナント・指標履歴・フォレンジック
 // 自動化・クラウド資産の 36 か所で 100。
-const discardedHandlerReads = 9
+const discardedHandlerReads = 6
 
 // そのうち、読んだ値が応答に入るもの。223 → 201。
 const discardedHandlerReadsShown = 0
 
 // そのうち、集計（`pgx.ErrNoRows` があり得ないもの）。227 → 205。
-const discardedHandlerReadsAggregate = 6
+const discardedHandlerReadsAggregate = 4
 
 const handlerRoot = "."
 

@@ -15,6 +15,7 @@ package license
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -194,10 +195,18 @@ func (m *Manager) GetUsage(ctx context.Context) (*UsageSummary, error) {
 		return s, nil
 	}
 	// 実数だけは返す。上限が無いので割合は常に 0。
-	_ = m.pool.QueryRow(ctx,
-		`SELECT COUNT(*) FROM agents WHERE status != 'offline'`).Scan(&s.AgentsActive)
-	_ = m.pool.QueryRow(ctx,
-		`SELECT COUNT(*) FROM users WHERE is_active = true`).Scan(&s.UsersActive)
+	//
+	// **読めなかった 0 を、本当の 0 として返さないこと。** 上限が無い版
+	// なので数え損ねても誰も止まりませんが、画面には「稼働 0 台」と出ます。
+	// 0 台と読めなかったのは、見た目が同じで意味が逆です。
+	if err := m.pool.QueryRow(ctx,
+		`SELECT COUNT(*) FROM agents WHERE status != 'offline'`).Scan(&s.AgentsActive); err != nil {
+		return nil, fmt.Errorf("稼働エージェント数の集計: %w", err)
+	}
+	if err := m.pool.QueryRow(ctx,
+		`SELECT COUNT(*) FROM users WHERE is_active = true`).Scan(&s.UsersActive); err != nil {
+		return nil, fmt.Errorf("有効ユーザー数の集計: %w", err)
+	}
 	return s, nil
 }
 

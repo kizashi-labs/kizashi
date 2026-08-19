@@ -33,7 +33,108 @@ import (
 // ものではないからです。増える方向にだけ落とします。
 
 // 実測値。減らしたらここも下げます（下回っても落ちます）。
-const testOnlyCeiling = 16
+const testOnlyCeiling = 29
+
+// テストからしか呼ばれないもの。**1件ずつ、写しか不通かを書きます。**
+//
+// 数だけで留めていたときに 16 から 29 へ増えました。上限を 29 に書き換える
+// だけなら、増えた 13 件が何だったのかはどこにも残りません。**「29 件ある」
+// と「29 件それぞれ理由がある」は、緑の見た目が同じです。**
+//
+// neverCalledReasons と同じく、増えれば理由が無くて落ち、繋いだり消したり
+// すれば理由が古くなって落ちます。どちらの向きにも落ちます。
+var testOnlyReasons = map[string]string{
+	// ── 不通: 機能そのものがこの版にありません ────────────────────────
+	//
+	// 公開版は自動更新を同梱しません（updater/applier.go も
+	// system_updates_handler.go もありません）。store だけが残っています。
+	"NewSystemUpdatesStore":              "不通: 自動更新。この版に呼び出し側がありません",
+	"SystemUpdatesStore.Approve":         "不通: 自動更新",
+	"SystemUpdatesStore.GetSettings":     "不通: 自動更新",
+	"SystemUpdatesStore.LatestAvailable": "不通: 自動更新",
+	"SystemUpdatesStore.MarkApplying":    "不通: 自動更新",
+	"SystemUpdatesStore.MarkFailed":      "不通: 自動更新",
+	"SystemUpdatesStore.MarkRolledBack":  "不通: 自動更新",
+	"SystemUpdatesStore.MarkSuccess":     "不通: 自動更新",
+	"SystemUpdatesStore.NextApproved":    "不通: 自動更新",
+	"SystemUpdatesStore.UpdateSettings":  "不通: 自動更新",
+
+	"NewPushTokenStore":           "不通: モバイル push。この版に mobile/ がありません",
+	"PushTokenStore.GetAllTokens": "不通: モバイル push",
+
+	"NewSSOConfigStore": "不通: SSO。この版に認証連携がありません。" +
+		"**画面側も同じ状態です** — /login の SSO 取得は、届く先が無いので外しました",
+	"SSOConfigStore.ListEnabledFull": "不通: SSO",
+
+	"SoftwareDiffStore.CreateSnapshot": "不通: software_snapshots テーブルがこの版の" +
+		"マイグレーションにありません。handler は store を組み立てますが、" +
+		"この関数は呼びません。**呼べば relation does not exist で落ちます**",
+
+	"UserStore.SetMFASecret": "不通: MFA の登録経路がありません。" +
+		"user_management_handler.go は mfa_secret を NULL に戻す側だけ持っています。" +
+		"**解除はできて、設定はできません**",
+
+	"EmailOTPStore.Cleanup": "不通: 期限切れ OTP の掃除。store は email_mfa_handler が" +
+		"使っていますが、Cleanup を呼ぶ定期実行がありません。**行が溜まり続けます**",
+
+	"AutoResponseStore.UpdateExecutionStatus": "不通: 自動対応の実行結果。" +
+		"実行は INSERT されますが、状態を更新する呼び出し側がいません。" +
+		"**入れた時の状態のまま残ります**",
+
+	"EscalationRuleStore.ListEnabledForSeverity": "不通: 深刻度別のエスカレーション。" +
+		"handler は一覧と CRUD だけを使い、振り分けを呼びません",
+
+	"LiveResponseStore.GetSession": "不通: セッション単体の取得。" +
+		"一覧と作成は使われていますが、これは誰も呼びません",
+
+	"NormalizeResultStatus": "不通: live response の結果状態の正規化。" +
+		"自分の単体テスト以外に呼び出し側がいません",
+
+	// ── 写し: 本番に同じことをする別の実装があります ──────────────────
+	"SessionStore.GetJTIByID": "写し: session_handler.go が生 SQL で同じことをします",
+	"SessionStore.RevokeAll": "写し: session_handler.go:143。**向こうは revoked_at も" +
+		"立てますが、こちらは立てません**（食い違っています）",
+	"SessionStore.RevokeAllExcept": "写し: session_handler.go:168。revoked_at の扱いが" +
+		"同じく食い違います",
+	"SessionStore.RevokeByID": "写し: session_handler.go:195/223。同上",
+
+	"SuppressionRuleStore.IncrementCount": "写し: SuppressionStore.IncrHitCount " +
+		"(suppressions.go:129) が本番の実装で、alert_pipeline.go:933 が呼びます。" +
+		"**同じ列を触る store が2つあります**",
+
+	"TenantRoleStore.HasRole": "写し: router.go:5258 が tenant_roles を直接引きます",
+
+	"AgentStore.ProtectionModeSummary": "写し: agents_handler.go:1189 が同じ内訳を" +
+		"自前で組み立て、router.go:902 がそれを出します",
+
+	"SavedHuntStore.IncrementRunCount": "不通: 保存した狩りの実行回数。" +
+		"回数を増やす呼び出し側がいません。**走らせても 0 のままです**",
+}
+
+// testOnlyReasons と実測の突き合わせ。neverCalledProblems と同じ形で、
+// 足りない側にも余った側にも落とします。
+func testOnlyProblems(measured map[string]storeSym,
+	reasons map[string]string) []string {
+	var out []string
+	for q, s := range measured {
+		if _, ok := reasons[q]; !ok {
+			out = append(out, fmt.Sprintf(
+				"%s (%s:%d) をテストしか呼びません。写し（本番に別実装がある）か"+
+					"不通（どこにも実装が無い）かを testOnlyReasons に書いてください",
+				q, s.file, s.line))
+		}
+	}
+	for q := range reasons {
+		if _, ok := measured[q]; !ok {
+			out = append(out, fmt.Sprintf(
+				"testOnlyReasons の %s は、もう「テストからしか呼ばれない」では"+
+					"ありません。項目を消してください。**古い理由は、読んだ人に"+
+					"まだ繋がっていないと思わせます**", q))
+		}
+	}
+	sort.Strings(out)
+	return out
+}
 
 // 誰も呼ばないもの。テストすらありません。
 //
@@ -309,6 +410,14 @@ func TestStoreSymbolsAreReachable(t *testing.T) {
 		measured[qualify(s)] = s
 	}
 	for _, p := range neverCalledProblems(measured, neverCalledReasons) {
+		t.Error(p)
+	}
+
+	testOnlyMeasured := map[string]storeSym{}
+	for _, s := range testOnly {
+		testOnlyMeasured[qualify(s)] = s
+	}
+	for _, p := range testOnlyProblems(testOnlyMeasured, testOnlyReasons) {
 		t.Error(p)
 	}
 

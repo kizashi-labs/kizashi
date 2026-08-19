@@ -58,14 +58,12 @@ var bareLogAndReturnReasons = map[string]string{
 	"hunt_scheduler.go:runScheduledHunts":     "テーブルが無い（存在確認の失敗は `fail` に出ます）／実行すべきハントが0件。",
 	"vulnerability_scanner.go:scan":           "ソフトウェアインベントリが空。照合する対象がありません。",
 	"darkweb_scheduler.go:syncRansomwareLive": "監視キーワードが0件。照合する対象がありません。",
-	"billing_grace_worker.go:check":           "有効な購読があるので降格しない、という正しい読み飛ばしです。",
 
 	// ── 機能が入っていない・切ってある ───────────────────────────────
 	//
 	// **テーブル／列が無い**という答えは、存在確認そのものが失敗した
 	// ときとは違います。確認の失敗はどれも `fail` に出ています
 	// （`api_key_rotator.go` の列の確認だけ `_ =` で捨てていたので直しました）。
-	"ai_triage_scheduler.go:Run":                  "Claude API キーが未設定。機能が有効になっていません。",
 	"digest_scheduler.go:Run":                     "SMTP／宛先が未設定。",
 	"darkweb_scheduler.go:Run":                    "DARKWEB_MONITOR_ENABLED=false。",
 	"api_key_rotator.go:rotate":                   "api_keys テーブルが無い（確認の失敗は `fail` に出ます）。",
@@ -117,7 +115,7 @@ const minBareLogAndReturnSites = 20
 // 31 → 33 (公開版の取り込み)。増えた 2 件は feed_scheduler と
 // threat_feed_importer の Run で、外向き通信のキルスイッチが false の
 // ときの早期 return（理由は一覧に記載）。
-const bareLogAndReturnSiteCount = 33
+const bareLogAndReturnSiteCount = 31
 
 type bareSite struct {
 	file string

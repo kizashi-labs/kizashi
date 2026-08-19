@@ -315,26 +315,46 @@ var parameterParsing = map[string]bool{
 	"Ping": true,
 }
 
-// nilErrExceptions are the two places where returning a value with a nil error
+// nilErrExceptions are the places where returning a value with a nil error
 // is the right answer, each with the reason and the guard that makes it so.
 //
-// 「例外」と書くだけでは足りません。どちらも、失敗が別の道で呼び出し側に
+// 「例外」と書くだけでは足りません。どれも、失敗が別の道で呼び出し側に
 // 届いているから許されています。その道が消えたら例外は成り立たないので、
 // 下の TestTheNilErrorExceptionsStillHold がその道を確かめます。
-var nilErrExceptions = map[string]string{
-	"aiassist/assistant.go": "戻り値に Unavailable と UnavailableReason を立てて返します。" +
-		"error ではなく値で報告しているので、呼び出し側と画面はそれを読みます",
-	"license/manager.go": "読めないライセンスを FREE（いちばん小さいプラン）に落とします。" +
-		"方向が逆なら、読めないだけで機能が開きます。usage_honesty_test.go が向きを留めています",
-}
+//
+// **この版では空です。** 例外は2件とも aiassist/assistant.go と
+// license/manager.go でした。どちらも公開版が同梱しないファイルです
+// （AI 支援トリアージとプラン制御は、無効なのではなく無いものです）。
+// 例外そのものを消したのではなく、例外の対象が無くなりました。
+var nilErrExceptions = map[string]string{}
+
+// nilErrExceptionGuards は、例外ごとに「失敗が別の道で届いている」ことを
+// 示す根拠の文字列です。nilErrExceptions と鍵が一致していないと落ちます。
+var nilErrExceptionGuards = map[string][]string{}
 
 // TestTheNilErrorExceptionsStillHold checks the reason, not just the name.
 func TestTheNilErrorExceptionsStillHold(t *testing.T) {
-	for file, needles := range map[string][]string{
-		"../../aiassist/assistant.go": {"Unavailable:       true", "UnavailableReason: reason"},
-		"../../license/manager.go":    {"return defaultLicense(), nil"},
-	} {
-		b, err := os.ReadFile(file)
+	// **空の map を回して緑を返さないこと。** 例外が 0 件なのと、
+	// 例外の検査が動いていないのは、出力が同じ形をしています。
+	if len(nilErrExceptions) == 0 {
+		t.Log("nil error の例外は 0 件です（この版に対象ファイルがありません）。" +
+			"根拠の照合は走っていません")
+	}
+	for file, reason := range nilErrExceptions {
+		if _, ok := nilErrExceptionGuards[file]; !ok {
+			t.Errorf("%s の例外に根拠がありません（理由: %s）。"+
+				"nilErrExceptionGuards に、失敗が別の道で届いていることを"+
+				"示す文字列を書いてください", file, reason)
+		}
+	}
+	for file := range nilErrExceptionGuards {
+		if _, ok := nilErrExceptions[file]; !ok {
+			t.Errorf("nilErrExceptionGuards の %s は、もう例外ではありません。"+
+				"項目を消してください", file)
+		}
+	}
+	for file, needles := range nilErrExceptionGuards {
+		b, err := os.ReadFile(filepath.Join("../..", file))
 		if err != nil {
 			t.Errorf("%s を読めません: %v", file, err)
 			continue
@@ -534,17 +554,12 @@ var returnExceptions = map[string]string{
 		"勝手に登録を通すより安全です。倒したことは slog.Error で記録します",
 	// `alert_enrichment_pipeline.go:enrich` は直しました (2026-08-12) ——
 	// `tick.Run` で回している仕事なので `tick.Fail` に届きます。
-	"api/handlers/mdm_enrollment_handler.go:bridgeIOSAppInventory": "(a) " +
-		"ack 処理の副作用。応答は別に返るので、ここから報告する相手がいません。" +
-		"「普通の ack」と「読めなかった」は分けて記録済みです",
 	// `cloud/poller.go:publishCloudEvent` は直しました (2026-08-12) ——
 	// `tick.Run` で回している仕事なので `tick.Fail` に届きます。
 	// **この2つは直しました (2026-08-12)。** darkweb は `fail` で回に、
 	// realtime_correlator は回の外なので `metrics.BackgroundFailed` に
 	// 出しています —— 例外から消さないと、次に同じ形が生えたときに
 	// 黙って通ります（この一覧の staleness 検査が教えてくれました）。
-	"triage/context.go:fetchRawEvent": "(a) 読めなかったことは記録し、" +
-		"指標抽出を省きます。トリアージ全体を止めるほどの材料ではありません",
 	"store/alert_assign_store.go:FindMatch": "(c) false は「自動割り当ての規則に" +
 		"一致しなかった」。読めなかったときも一致なしに倒れますが、行き先は" +
 		"人による振り分けです。誤って誰かに割り当てるより安全な方向で、" +
@@ -571,13 +586,6 @@ var returnExceptions = map[string]string{
 		"呼び出し側は Check.Assessed に載せます。1本も判定できなければ " +
 		"ErrNothingAssessed。0件を「準拠している」と読ませない作りで、" +
 		"scorer_honesty_test.go が向きを留めています",
-	"license/manager.go:GetCurrentLicense": "(c) 読めないライセンスは FREE" +
-		"（いちばん小さいプラン）に倒します。逆向きなら、読めないだけで" +
-		"機能が開きます。usage_honesty_test.go が向きを留めています",
-	"mdm/apns_push.go:systemRoots": "(c) 読めなければ nil。空の CertPool を" +
-		"返すと「プラットフォーム既定の証明書で検証している」ように見えて、" +
-		"実際は何も検証しません。nil なら crypto/tls が既定に落ちます。" +
-		"apns_roots_test.go が形を留めています",
 	"notification/websocket.go:generateWSID": "(c) crypto/rand は Go 1.24 以降" +
 		"エラーを返しません（失敗時は panic します）。到達しない分岐ですが、" +
 		"math/rand に落ちていないことが重要なので残してあります",
@@ -615,9 +623,6 @@ var returnExceptions = map[string]string{
 	"hunting/query_engine.go:parseRawData": "(c) 解釈できない raw_data は " +
 		"{\"_raw\": <元の文字列>} として返します。捨てずに、解釈していないと" +
 		"分かる形で渡しています",
-	"triage/context.go:extractIndicatorCandidates": "(c) 解釈できないイベント" +
-		"からは候補を出しません。読めなかったことは呼び出し元の fetchRawEvent が" +
-		"記録します",
 	"detection/commandline_normalize.go:decodeEncodedPowerShell": "(c) " +
 		"base64 として読めない文字列は復号しません。元の文字列は呼び出し側に" +
 		"残っていて、そちらで照合されます",
@@ -635,8 +640,6 @@ var returnExceptions = map[string]string{
 		"「対応済み」に数えられることはありません",
 	"detection/rules/condition_wildcard.go:expandAllOfWildcards": "(c) 展開" +
 		"できなければ元の内容をそのまま返します。壊すよりは触らない",
-	"mdm/apple_dep.go:stripPEMEnvelope": "(c) PEM の中身を base64 として読め" +
-		"なければ nil。呼び出し側は復号できなかったトークンとして扱います",
 	"api/handlers/export_handler.go:exportValue": "(a) 返す値そのものが報告です。" +
 		"復号できなかったセルには「[復号できませんでした]」と書いて出します。" +
 		"空欄にすれば「生データの無い行」と同じ姿になり、ciphertext をそのまま" +
@@ -820,7 +823,7 @@ const (
 	// アラートを消すと検知が静かに止まるので、残す側へ倒している。
 	// その判断は関数のコメントにも書いてある。
 	answerAssignCeiling = 4
-	answerReturnCeiling = 13
+	answerReturnCeiling = 12
 	// continue の 0 は、一度これを書いた時点では嘘でした。
 	//
 	// 二重計上を避けるために skipCovered で行スキャンを外していたのですが、
@@ -1009,7 +1012,7 @@ func TestFailuresAreNotAnsweredWithAValue(t *testing.T) {
 	// `rows.Err()` が `fail` に出す）なので、ここだけ break に替えると
 	// 揃っていたものが崩れる。理由は skipExceptions と
 	// `tick/tracked_workers_test.go` の silentErrorBranchReasons にある。
-	const continueOutsideRowsErr = 88
+	const continueOutsideRowsErr = 87
 	outside := 0
 	for _, s := range sites {
 		if s.kind == "continue" && !skipCovered[fmt.Sprintf("%s:%d", s.file, s.line)] {
@@ -1398,7 +1401,7 @@ func TestSegmentationAnswersWithAllItsPoliciesOrWithNone(t *testing.T) {
 // 何件に理由を書いたのかが見えないと、その差が隠れます。
 func TestReturnExceptionCountIsPinned(t *testing.T) {
 	// 実測 (2026-08-12)。**増やすときは、ここも動かしてください。**
-	const want = 42
+	const want = 36
 	if got := len(returnExceptions); got != want {
 		t.Errorf("理由つきで外した return が %d 件です（%d のはず）。"+
 			"増やしたなら定数を %d に。減らしたなら下げてください ——"+
