@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/edr-platform/server/internal/auth"
+	"github.com/edr-platform/server/internal/metrics"
 	"github.com/edr-platform/server/internal/store"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
@@ -182,9 +183,15 @@ func (h *AuthHandler) Login(c *gin.Context) {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": "トークンの生成に失敗しました"})
 				return
 			}
-			// Record session in DB (best-effort).
+			// Record session in DB.
+			//
+			// **「best-effort」と書いてありましたが、跡が残りません。**
+			// この行はアクティブセッションの一覧と、管理者による強制
+			// ログアウトの対象です —— 書けないと、**そのセッションは
+			// 一覧に出ず、失効させることもできません。**
+			// ログインそのものは成功しているので、応答は変えません。
 			if h.Sessions != nil {
-				_ = h.Sessions.Create(c.Request.Context(), store.Session{
+				if serr := h.Sessions.Create(c.Request.Context(), store.Session{
 					UserID:     user.ID,
 					JTI:        jti,
 					IPAddress:  ip,
@@ -192,7 +199,11 @@ func (h *AuthHandler) Login(c *gin.Context) {
 					CreatedAt:  time.Now(),
 					LastSeenAt: time.Now(),
 					ExpiresAt:  time.Now().Add(24 * time.Hour),
-				})
+				}); serr != nil {
+					metrics.BackgroundFailed("session_record", serr,
+						"ログインセッションを記録できませんでした。一覧に出ず、強制ログアウトもできません",
+						"user_id", user.ID)
+				}
 			}
 			c.JSON(http.StatusOK, gin.H{
 				"token":                token,
@@ -340,7 +351,16 @@ func (h *AuthHandler) VerifyMFA(c *gin.Context) {
 		verified = totp.Validate(req.Code, secret)
 	}
 	if !verified && len(req.Code) == 8 {
-		verified, _ = h.Users.UseBackupCode(c.Request.Context(), userID, req.Code)
+		// **error を捨てると、コードを消費できなかった回も通ります。**
+		// `UseBackupCode` は使用済みの印を書けなければ false を返すように
+		// なりましたが、その理由（DB に届かなかった）は error でしか
+		// 分かりません —— 401 と 500 は、利用者にとって別の話です。
+		ok, err := h.Users.UseBackupCode(c.Request.Context(), userID, req.Code)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": dbErrMsg(err)})
+			return
+		}
+		verified = ok
 	}
 
 	if !verified {

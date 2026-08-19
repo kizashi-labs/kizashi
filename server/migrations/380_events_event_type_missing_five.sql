@@ -32,6 +32,17 @@
 -- 再発防止は SQL では書けないため Go 側に置いた:
 -- internal/ingestion/event_type_constraint_test.go が、promoteEventType が返しうる
 -- 型の集合を migrations から復元した制約集合と突き合わせ、欠けていれば落ちる。
+--
+-- ★ NOT VALID を付ける（2026-08-12）。この移行は制約を**検証付き**で張っており、
+-- events に「新しいリストに無い型」の行が1件でもあると ALTER が失敗する。API は起動時に
+-- マイグレーションを流して失敗で終了するため、結果は機能の劣化ではなく**再起動ループ**で、
+-- 以降の移行が一切適用されなくなる（2026-08-03 に実際に発生し、数日間 20 本以上のルール
+-- 移行が適用されないまま運用されていた）。
+--
+-- そうした行は実在する。制約はどこかの時点で NOT VALID で張られており、それ以前の行は
+-- 検証されていないため、ブランチを跨いで更新された配備は現行のどの移行も知らない値を
+-- 持ちうる。制約は「これから書かれるもの」を守るためのもので、過去について主張しない。
+-- 検査は internal/store/migration_legacy_rows_test.go。
 
 DO $migration$
 DECLARE
@@ -58,7 +69,7 @@ BEGIN
             'create_remote_thread', 'host_integrity', 'wmi_activity', 'device_event',
             'tls_handshake', 'ps_module', 'pipe_created', 'eventlog_cleared',
             'service_installed'
-          ]));
+          ])) NOT VALID;
       RETURN;
     END IF;
 
@@ -72,7 +83,7 @@ BEGIN
 
     ALTER TABLE events DROP CONSTRAINT events_event_type_check;
     EXECUTE format(
-      'ALTER TABLE events ADD CONSTRAINT events_event_type_check CHECK (event_type = ANY (ARRAY[%s, %L::text]))',
+      'ALTER TABLE events ADD CONSTRAINT events_event_type_check CHECK (event_type = ANY (ARRAY[%s, %L::text])) NOT VALID',
       arr_body, missing);
   END LOOP;
 END

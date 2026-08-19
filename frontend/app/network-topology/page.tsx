@@ -10,6 +10,8 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface Agent {
@@ -209,7 +211,7 @@ function StatCard({
   }
   const cls = map[color]
   return (
-    <div className="bg-falcon-surface rounded-xl border border-falcon-border p-4">
+    <div className="bg-[#0d1220] rounded-xl border border-[#1e2d42] p-4">
       <div className="flex items-center gap-3">
         <div className={`p-2 rounded-lg ${cls}`}>
           <Icon className={`w-5 h-5 ${cls.split(' ')[0]}`} />
@@ -218,7 +220,7 @@ function StatCard({
           <p className="text-2xl font-bold text-white">
             {typeof value === 'number' ? value.toLocaleString() : value}
           </p>
-          <p className="text-falcon-muted text-xs mt-0.5">{label}</p>
+          <p className="text-[#7d92b0] text-xs mt-0.5">{label}</p>
         </div>
       </div>
     </div>
@@ -302,11 +304,11 @@ function ContextMenuPopup({
       {/* Click-away overlay */}
       <div className="fixed inset-0 z-40" onClick={onClose} />
       <div
-        className="fixed z-50 bg-falcon-surface border border-falcon-border rounded-xl shadow-xl overflow-hidden min-w-[180px]"
+        className="fixed z-50 bg-[#0d1220] border border-[#1e2d42] rounded-xl shadow-xl overflow-hidden min-w-[180px]"
         style={{ left: menu.x, top: menu.y }}
       >
-        <div className="px-3 py-2 border-b border-falcon-border">
-          <p className="text-xs font-semibold text-falcon-muted">{menu.hostname}</p>
+        <div className="px-3 py-2 border-b border-[#1e2d42]">
+          <p className="text-xs font-semibold text-[#7d92b0]">{menu.hostname}</p>
         </div>
         <button
           onClick={() => { onViewAgent(menu.nodeId); onClose() }}
@@ -569,8 +571,8 @@ function NodeDetailPanel({
 }) {
   if (!node) {
     return (
-      <div className="bg-falcon-surface rounded-xl border border-falcon-border p-6 flex flex-col items-center justify-center text-center gap-3 min-h-[200px]">
-        <div className="w-12 h-12 rounded-full bg-falcon-border flex items-center justify-center">
+      <div className="bg-[#0d1220] rounded-xl border border-[#1e2d42] p-6 flex flex-col items-center justify-center text-center gap-3 min-h-[200px]">
+        <div className="w-12 h-12 rounded-full bg-[#1e2d42] flex items-center justify-center">
           <Monitor className="w-6 h-6 text-[#475569]" />
         </div>
         <p className="text-[#475569] text-sm">ノードをクリックして詳細を表示</p>
@@ -594,7 +596,7 @@ function NodeDetailPanel({
     node.status === 'online' ? 'オンライン' : node.status === 'warning' ? '警告' : 'オフライン'
 
   return (
-    <div className="bg-falcon-surface rounded-xl border border-falcon-border p-5 flex flex-col gap-4">
+    <div className="bg-[#0d1220] rounded-xl border border-[#1e2d42] p-5 flex flex-col gap-4">
       {/* Title bar */}
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-center gap-2">
@@ -630,7 +632,7 @@ function NodeDetailPanel({
       </div>
 
       {/* Divider */}
-      <div className="border-t border-falcon-border" />
+      <div className="border-t border-[#1e2d42]" />
 
       {/* Actions */}
       <div className="flex flex-col gap-2">
@@ -656,7 +658,7 @@ function NodeDetailPanel({
 function Row({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
   return (
     <div className="flex justify-between gap-2">
-      <span className="text-falcon-muted shrink-0">{label}</span>
+      <span className="text-[#7d92b0] shrink-0">{label}</span>
       <span className={`text-[#c9d6e8] text-right truncate ${mono ? 'font-mono text-xs' : ''}`}>{value}</span>
     </div>
   )
@@ -680,28 +682,27 @@ function FilterPanel({
   const [open, setOpen] = useState(true)
 
   return (
-    <div className="bg-falcon-surface rounded-xl border border-falcon-border overflow-hidden">
+    <div className="bg-[#0d1220] rounded-xl border border-[#1e2d42] overflow-hidden">
       <button
         onClick={() => setOpen(v => !v)}
-        className="w-full flex items-center justify-between px-4 py-3 border-b border-falcon-border hover:bg-falcon-card transition-colors"
+        className="w-full flex items-center justify-between px-4 py-3 border-b border-[#1e2d42] hover:bg-[#111827] transition-colors"
       >
         <div className="flex items-center gap-2">
           <Filter className="w-4 h-4 text-blue-400" />
           <span className="text-white font-medium text-sm">フィルター</span>
         </div>
-        {open ? <ChevronUp className="w-4 h-4 text-falcon-muted" /> : <ChevronDown className="w-4 h-4 text-falcon-muted" />}
+        {open ? <ChevronUp className="w-4 h-4 text-[#7d92b0]" /> : <ChevronDown className="w-4 h-4 text-[#7d92b0]" />}
       </button>
 
       {open && (
         <div className="p-4 space-y-4">
           {/* OS */}
           <div>
-            <label className="text-xs text-falcon-muted uppercase tracking-wide mb-1.5 block">OS</label>
+            <label className="text-xs text-[#7d92b0] uppercase tracking-wide mb-1.5 block">OS</label>
             <select
               value={filters.os}
               onChange={e => onChange({ ...filters, os: e.target.value })}
-              className="w-full text-sm bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2
-                         text-[#c9d6e8] focus:outline-hidden focus:border-blue-500"
+              className="w-full text-sm bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-[#c9d6e8] focus:outline-hidden focus:border-blue-500"
             >
               <option value="">すべてのOS</option>
               {allOS.map(os => <option key={os} value={os}>{os}</option>)}
@@ -710,12 +711,11 @@ function FilterPanel({
 
           {/* Status */}
           <div>
-            <label className="text-xs text-falcon-muted uppercase tracking-wide mb-1.5 block">ステータス</label>
+            <label className="text-xs text-[#7d92b0] uppercase tracking-wide mb-1.5 block">ステータス</label>
             <select
               value={filters.status}
               onChange={e => onChange({ ...filters, status: e.target.value })}
-              className="w-full text-sm bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2
-                         text-[#c9d6e8] focus:outline-hidden focus:border-blue-500"
+              className="w-full text-sm bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-[#c9d6e8] focus:outline-hidden focus:border-blue-500"
             >
               <option value="">すべてのステータス</option>
               <option value="online">オンライン</option>
@@ -726,12 +726,11 @@ function FilterPanel({
 
           {/* Subnet */}
           <div>
-            <label className="text-xs text-falcon-muted uppercase tracking-wide mb-1.5 block">サブネット</label>
+            <label className="text-xs text-[#7d92b0] uppercase tracking-wide mb-1.5 block">サブネット</label>
             <select
               value={filters.subnet}
               onChange={e => onChange({ ...filters, subnet: e.target.value })}
-              className="w-full text-sm bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2
-                         text-[#c9d6e8] focus:outline-hidden focus:border-blue-500"
+              className="w-full text-sm bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-[#c9d6e8] focus:outline-hidden focus:border-blue-500"
             >
               <option value="">すべてのサブネット</option>
               {allSubnets.map(s => <option key={s} value={s}>{s}.0/24</option>)}
@@ -743,10 +742,10 @@ function FilterPanel({
             <div
               onClick={() => onChange({ ...filters, lateralMovementOnly: !filters.lateralMovementOnly })}
               className={`w-10 h-5 rounded-full transition-colors relative ${
-                filters.lateralMovementOnly ? 'bg-red-600' : 'bg-falcon-border'
+                filters.lateralMovementOnly ? 'bg-red-600' : 'bg-[#1e2d42]'
               }`}
             >
-              <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-falcon-text transition-transform ${
+              <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-[#e2e8f4] transition-transform ${
                 filters.lateralMovementOnly ? 'translate-x-5' : 'translate-x-0.5'
               }`} />
             </div>
@@ -763,7 +762,7 @@ function FilterPanel({
           {/* Reset */}
           <button
             onClick={() => onChange({ os: '', status: '', subnet: '', lateralMovementOnly: false })}
-            className="w-full text-xs text-falcon-muted hover:text-white border border-falcon-border rounded-lg py-1.5 transition-colors hover:bg-falcon-border"
+            className="w-full text-xs text-[#7d92b0] hover:text-white border border-[#1e2d42] rounded-lg py-1.5 transition-colors hover:bg-[#1e2d42]"
           >
             フィルターをリセット
           </button>
@@ -798,12 +797,12 @@ function TopTalkersPanel({
   }, [nodes, edges])
 
   return (
-    <div className="bg-falcon-surface rounded-xl border border-falcon-border overflow-hidden">
-      <div className="px-4 py-3 border-b border-falcon-border flex items-center gap-2">
+    <div className="bg-[#0d1220] rounded-xl border border-[#1e2d42] overflow-hidden">
+      <div className="px-4 py-3 border-b border-[#1e2d42] flex items-center gap-2">
         <Activity className="w-4 h-4 text-blue-400" />
         <span className="text-white font-medium text-sm">通信量上位</span>
       </div>
-      <div className="divide-y divide-falcon-border">
+      <div className="divide-y divide-[#1e2d42]">
         {talkers.length === 0 ? (
           <p className="text-center text-[#475569] text-sm py-6">データなし</p>
         ) : (
@@ -813,11 +812,11 @@ function TopTalkersPanel({
               <button
                 key={id}
                 onClick={() => onSelect(id)}
-                className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-falcon-card transition-colors text-left"
+                className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-[#111827] transition-colors text-left"
               >
                 <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: color }} />
                 <span className="text-sm text-[#c9d6e8] truncate flex-1">{node?.hostname ?? id}</span>
-                <span className="text-xs font-mono text-falcon-muted shrink-0">{count} 接続</span>
+                <span className="text-xs font-mono text-[#7d92b0] shrink-0">{count} 接続</span>
               </button>
             )
           })
@@ -847,35 +846,29 @@ export default function NetworkTopologyPage() {
     refetch: refetchTopo,
   } = useQuery<TopologyResponse>({
     queryKey: ['network-topology'],
-    queryFn: async () => {
-      try {
-        return await apiFetch<TopologyResponse>('/api/v1/network/topology')
-      } catch {
-        return { nodes: [], edges: [], subnet_groups: [] }
-      }
-    },
+    queryFn: () => apiFetch<TopologyResponse>('/api/v1/network/topology'),
     staleTime: 30_000,
   })
 
   const {
-    data: agentsData,
+    data: agentsData = { agents: [] },
     isLoading: agentsLoading,
     isFetching: agentsFetching,
     refetch: refetchAgents,
   } = useQuery<AgentsResponse>({
     queryKey: ['network-topology-agents'],
-    queryFn: () => apiFetch<AgentsResponse>('/api/v1/agents?limit=200').catch(() => ({ agents: [] })),
+    queryFn: () => apiFetch<AgentsResponse>('/api/v1/agents?limit=200'),
     staleTime: 30_000,
   })
 
   const {
-    data: connData,
+    data: connData = { connections: [] },
     isLoading: connLoading,
     isFetching: connFetching,
     refetch: refetchConn,
   } = useQuery<NetConnResponse>({
     queryKey: ['network-topology-connections'],
-    queryFn: () => apiFetch<NetConnResponse>('/api/v1/network-connections?limit=50').catch(() => ({ connections: [] })),
+    queryFn: () => apiFetch<NetConnResponse>('/api/v1/network-connections?limit=50'),
     staleTime: 30_000,
   })
 
@@ -964,6 +957,7 @@ export default function NetworkTopologyPage() {
 
   return (
     <div className="p-6 space-y-6 min-h-screen bg-[#070d19]">
+      <PageDataUnavailable />
       {/* Context menu */}
       {contextMenu && (
         <ContextMenuPopup
@@ -978,12 +972,12 @@ export default function NetworkTopologyPage() {
       {/* ── Header ── */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 bg-falcon-red rounded-lg flex items-center justify-center shrink-0">
+          <div className="w-9 h-9 bg-[#e8002d] rounded-lg flex items-center justify-center shrink-0">
             <Network className="w-5 h-5 text-white" />
           </div>
           <div>
             <h1 className="text-xl font-bold text-white">ネットワークトポロジー</h1>
-            <p className="text-sm text-falcon-muted">エンドポイント接続、サブネット、横展開の可視化</p>
+            <p className="text-sm text-[#7d92b0]">エンドポイント接続、サブネット、横展開の可視化</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -993,7 +987,7 @@ export default function NetworkTopologyPage() {
             className={`flex items-center gap-1.5 px-3 py-1.5 border rounded-lg text-sm transition-colors ${
               groupBySubnet
                 ? 'bg-blue-700 border-blue-600 text-white'
-                : 'bg-falcon-surface border-falcon-border text-falcon-muted hover:text-white hover:bg-falcon-card'
+                : 'bg-[#0d1220] border-[#1e2d42] text-[#7d92b0] hover:text-white hover:bg-[#111827]'
             }`}
           >
             <Layers className="w-4 h-4" />
@@ -1011,8 +1005,7 @@ export default function NetworkTopologyPage() {
           <button
             onClick={handleRefresh}
             disabled={isFetching}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-falcon-surface border border-falcon-border
-                       hover:bg-falcon-card text-white text-sm rounded-lg transition-colors disabled:opacity-50"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-[#0d1220] border border-[#1e2d42] hover:bg-[#111827] text-white text-sm rounded-lg transition-colors disabled:opacity-50"
           >
             <RefreshCw className={`w-4 h-4 ${isFetching ? 'animate-spin' : ''}`} />
             更新
@@ -1031,13 +1024,13 @@ export default function NetworkTopologyPage() {
       {/* ── Main area ── */}
       {isLoading ? (
         <div className="flex items-center justify-center py-32">
-          <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-falcon-red" />
+          <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-[#e8002d]" />
         </div>
       ) : (
         <div className="grid grid-cols-1 xl:grid-cols-4 gap-4">
           {/* SVG graph — 3/4 width */}
-          <div className="xl:col-span-3 bg-falcon-surface rounded-xl border border-falcon-border overflow-hidden">
-            <div className="flex items-center justify-between px-5 py-3 border-b border-falcon-border">
+          <div className="xl:col-span-3 bg-[#0d1220] rounded-xl border border-[#1e2d42] overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-3 border-b border-[#1e2d42]">
               <div className="flex items-center gap-2">
                 <Shield className="w-4 h-4 text-blue-400" />
                 <span className="text-white font-medium text-sm">ネットワークグラフ</span>
@@ -1051,7 +1044,7 @@ export default function NetworkTopologyPage() {
               {(selectedId || isolatedId) && (
                 <button
                   onClick={() => { setSelectedId(null); setIsolatedId(null) }}
-                  className="text-xs text-falcon-muted hover:text-white transition-colors flex items-center gap-1"
+                  className="text-xs text-[#7d92b0] hover:text-white transition-colors flex items-center gap-1"
                 >
                   <X className="w-3 h-3" />
                   選択を解除

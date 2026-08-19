@@ -59,7 +59,10 @@ func TestCountEventsCapped_CountsMatchingRows(t *testing.T) {
 	const agentID = "d1d1d1d1-0000-4000-8000-00000000c001"
 	seedCappedEvents(t, pool, agentID, 7)
 
-	n, capped := countEventsCapped(context.Background(), pool, "WHERE agent_id = $1", agentID)
+	n, capped, cErr := countEventsCapped(context.Background(), pool, "WHERE agent_id = $1", agentID)
+	if cErr != nil {
+		t.Fatalf("countEventsCapped: %v", cErr)
+	}
 	if n != 7 {
 		t.Errorf("count = %d, want 7", n)
 	}
@@ -73,7 +76,10 @@ func TestCountEventsCapped_NoMatchReturnsZero(t *testing.T) {
 	const agentID = "d1d1d1d1-0000-4000-8000-00000000c002"
 	seedCappedEvents(t, pool, agentID, 0)
 
-	n, capped := countEventsCapped(context.Background(), pool, "WHERE agent_id = $1", agentID)
+	n, capped, cErr := countEventsCapped(context.Background(), pool, "WHERE agent_id = $1", agentID)
+	if cErr != nil {
+		t.Fatalf("countEventsCapped: %v", cErr)
+	}
 	if n != 0 || capped {
 		t.Errorf("(count, capped) = (%d, %v), want (0, false)", n, capped)
 	}
@@ -90,7 +96,10 @@ func TestCountEventsCapped_StopsAtCap(t *testing.T) {
 	ctx := context.Background()
 	where := "WHERE agent_id = $1"
 
-	n, capped := countEventsCapped(ctx, pool, where, agentID)
+	n, capped, cErr := countEventsCapped(ctx, pool, where, agentID)
+	if cErr != nil {
+		t.Fatalf("countEventsCapped: %v", cErr)
+	}
 	if n != maxCountedEvents {
 		t.Errorf("上限超え: count = %d, want %d", n, maxCountedEvents)
 	}
@@ -108,7 +117,10 @@ func TestCountEventsCapped_StopsAtCap(t *testing.T) {
 		t.Fatalf("trim one row: %v", err)
 	}
 
-	n, capped = countEventsCapped(ctx, pool, where, agentID)
+	n, capped, cErr = countEventsCapped(ctx, pool, where, agentID)
+	if cErr != nil {
+		t.Fatalf("countEventsCapped: %v", cErr)
+	}
 	if n != maxCountedEvents {
 		t.Errorf("上限ちょうど: count = %d, want %d", n, maxCountedEvents)
 	}
@@ -117,17 +129,20 @@ func TestCountEventsCapped_StopsAtCap(t *testing.T) {
 	}
 }
 
-// TestCountEventsCapped_QueryErrorReturnsZero はクエリが落ちたときに
-// panic せず (0, false) を返すことを固定する。events の列名を間違えたまま
-// 握りつぶすのがこの PR で直したバグ群の共通原因だったため、ここでは
-// 「握りつぶすが必ず slog.Warn に残す」という現在の契約を明示的に守る。
-func TestCountEventsCapped_QueryErrorReturnsZero(t *testing.T) {
+// 以前この検査は「クエリが落ちても (0, false) を返し、slog.Warn に残す」
+// という契約を固定していました。0件は画面に出る数字で、行が並んでいるのに
+// 件数だけ0という形にもなります。ログは見に行った人にしか届きません。
+// 欠陥を仕様として留めていたので、向きを反転させました。
+func TestCountEventsCapped_QueryErrorIsAnError(t *testing.T) {
 	pool := cappedTestPool(t)
 
-	n, capped := countEventsCapped(context.Background(), pool,
+	n, capped, cErr := countEventsCapped(context.Background(), pool,
 		"WHERE no_such_column = $1", "x")
+	if cErr == nil {
+		t.Fatalf("落ちたクエリがエラーになりません: (count, capped) = (%d, %v)", n, capped)
+	}
 	if n != 0 || capped {
-		t.Errorf("(count, capped) = (%d, %v), want (0, false)", n, capped)
+		t.Errorf("エラー時は (0, false) を返してください: (%d, %v)", n, capped)
 	}
 }
 
@@ -136,7 +151,10 @@ func TestCountEventsCapped_QueryErrorReturnsZero(t *testing.T) {
 func TestCountEventsCapped_WhereClauseIsOptional(t *testing.T) {
 	pool := cappedTestPool(t)
 
-	n, _ := countEventsCapped(context.Background(), pool, "")
+	n, _, cErr := countEventsCapped(context.Background(), pool, "")
+	if cErr != nil {
+		t.Fatalf("countEventsCapped: %v", cErr)
+	}
 	if n < 0 {
 		t.Errorf("count = %d, want >= 0", n)
 	}

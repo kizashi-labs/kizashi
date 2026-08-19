@@ -420,3 +420,41 @@ func TestParseCertNotAfter(t *testing.T) {
 		t.Error("expected error on invalid certificate bytes")
 	}
 }
+
+// TestNormalize_AuthEventID guards the T1134.005 wiring end-to-end at this layer:
+// a Windows Security-log event id must reach the flat map as event_id.
+//
+// これが無いと SID-History (4765/4766) はサーバ側で他の auth イベントと区別が
+// 付かない。T1134.005 はプロセス生成もログオンも伴わないアカウント属性の
+// 書き換えなので、**この 1 フィールドが検知の全て**である。migration 384 の
+// 第 1 波でこの技法のルールだけが「値が来ないので入れられない」として外された。
+func TestNormalize_AuthEventID(t *testing.T) {
+	evt := &v1.Event{
+		Type: v1.EventType_EVENT_TYPE_AUTH,
+		Payload: &v1.Event_Auth{Auth: &v1.AuthEvent{
+			Username: "svc-backup", SourceIp: "10.0.0.5",
+			Action: v1.AuthEvent_AUTH_ACTION_PRIVILEGE, Success: true,
+			EventId: 4765,
+		}},
+	}
+	m := unmarshal(t, normalizeEventData(evt))
+	if m["event_id"] != float64(4765) {
+		t.Errorf("event_id not normalized, got %v (full=%+v)", m["event_id"], m)
+	}
+}
+
+// 非 Windows の auth イベントは今までどおり event_id を持たないこと。
+// 0 をそのまま入れると「EventID 0 のイベント」という存在しないものが流れ、
+// EventID を選ぶルールの評価が余計に走る。
+func TestNormalize_AuthEventIDAbsentWhenUnset(t *testing.T) {
+	evt := &v1.Event{
+		Type: v1.EventType_EVENT_TYPE_AUTH,
+		Payload: &v1.Event_Auth{Auth: &v1.AuthEvent{
+			Username: "alice", Action: v1.AuthEvent_AUTH_ACTION_LOGIN, Success: true,
+		}},
+	}
+	m := unmarshal(t, normalizeEventData(evt))
+	if _, ok := m["event_id"]; ok {
+		t.Errorf("event_id should be absent when unset, got %v", m["event_id"])
+	}
+}

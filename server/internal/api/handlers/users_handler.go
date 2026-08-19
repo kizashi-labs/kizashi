@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/edr-platform/server/internal/auth"
+	"github.com/edr-platform/server/internal/metrics"
 	"github.com/edr-platform/server/internal/store"
 	"github.com/gin-gonic/gin"
 )
@@ -135,8 +136,16 @@ func (h *UsersHandler) UpdatePassword(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "パスワードの更新に失敗しました"})
 		return
 	}
-	// 初回パスワード変更フラグをクリア
-	_ = h.Store.ClearMustChangePassword(c.Request.Context(), id)
+	// 初回パスワード変更フラグをクリア。
+	//
+	// **落ちると、変えたのに「変えてください」と言われ続けます。**
+	// パスワード自体は更新できているので 500 にはしません（もう一度
+	// 変えさせる方が悪い形です）—— 跡は件数に残します。
+	if err := h.Store.ClearMustChangePassword(c.Request.Context(), id); err != nil {
+		metrics.BackgroundFailed("password_change", err,
+			"初回パスワード変更フラグを消せませんでした。変更後も変更を求められ続けます",
+			"user_id", id)
+	}
 	c.JSON(http.StatusOK, gin.H{"message": "パスワードを更新しました"})
 }
 

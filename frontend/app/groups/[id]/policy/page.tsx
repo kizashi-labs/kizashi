@@ -11,6 +11,9 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+import { PageSaveFailed } from '@/components/PageSaveFailed'
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface Group {
@@ -62,10 +65,10 @@ function SectionCard({ title, icon: Icon, iconColor, children }: {
   children: React.ReactNode
 }) {
   return (
-    <div className="bg-falcon-card rounded-xl border border-falcon-border p-5">
+    <div className="bg-[#111827] rounded-xl border border-[#1e2d42] p-5">
       <div className="flex items-center gap-2 mb-4">
         <Icon className={`w-4 h-4 ${iconColor}`} />
-        <h2 className="text-sm font-semibold text-falcon-text">{title}</h2>
+        <h2 className="text-sm font-semibold text-[#e2e8f4]">{title}</h2>
       </div>
       {children}
     </div>
@@ -76,9 +79,9 @@ function SectionCard({ title, icon: Icon, iconColor, children }: {
 
 function FieldRow({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
   return (
-    <div className="flex items-start justify-between gap-4 py-3 border-b border-falcon-border/50 last:border-0">
+    <div className="flex items-start justify-between gap-4 py-3 border-b border-[#1e2d42]/50 last:border-0">
       <div className="shrink-0 w-48">
-        <p className="text-sm text-falcon-text">{label}</p>
+        <p className="text-sm text-[#e2e8f4]">{label}</p>
         {hint && <p className="text-xs text-[#5a6a7a] mt-0.5">{hint}</p>}
       </div>
       <div className="flex-1">{children}</div>
@@ -107,7 +110,7 @@ function TagInput({ values, onChange, placeholder }: {
     <div>
       <div className="flex flex-wrap gap-1.5 mb-2">
         {values.map(v => (
-          <span key={v} className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-sm bg-falcon-border text-[#8899aa]">
+          <span key={v} className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-sm bg-[#1e2d42] text-[#8899aa]">
             {v}
             <button onClick={() => onChange(values.filter(x => x !== v))} className="hover:text-white">
               <X className="w-3 h-3" />
@@ -121,13 +124,11 @@ function TagInput({ values, onChange, placeholder }: {
           onChange={e => setInput(e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); add() } }}
           placeholder={placeholder}
-          className="flex-1 text-xs bg-falcon-surface border border-falcon-border rounded-lg px-3 py-1.5
-                     text-falcon-text placeholder-falcon-subtle focus:outline-hidden focus:border-blue-500"
+          className="flex-1 text-xs bg-[#0d1220] border border-[#1e2d42] rounded-lg px-3 py-1.5 text-[#e2e8f4] placeholder-[#3d5068] focus:outline-hidden focus:border-blue-500"
         />
         <button
           onClick={add}
-          className="flex items-center gap-1 px-2.5 py-1.5 text-xs bg-falcon-border hover:bg-[#253649]
-                     text-[#8899aa] rounded-lg transition-colors"
+          className="flex items-center gap-1 px-2.5 py-1.5 text-xs bg-[#1e2d42] hover:bg-[#253649] text-[#8899aa] rounded-lg transition-colors"
         >
           <Plus className="w-3 h-3" />
           追加
@@ -164,9 +165,9 @@ export default function GroupPolicyPage() {
     staleTime: 60_000,
   })
 
-  const { data: assignment, isLoading } = useQuery<GroupPolicyAssignment>({
+  const { data: assignment = {} as GroupPolicyAssignment, isLoading } = useQuery<GroupPolicyAssignment>({
     queryKey: ['group-policy', id],
-    queryFn: () => apiFetch<GroupPolicyAssignment>(`/api/v1/groups/${id}/policy`).catch(() => ({} as GroupPolicyAssignment)),
+    queryFn: () => apiFetch<GroupPolicyAssignment>(`/api/v1/groups/${id}/policy`),
     enabled: !!id,
     staleTime: 30_000,
   })
@@ -241,10 +242,12 @@ export default function GroupPolicyPage() {
 
   return (
     <div className="p-6 max-w-3xl mx-auto">
+      <PageDataUnavailable />
+      <PageSaveFailed className="mb-4" />
       {/* Header */}
       <div className="flex items-center gap-3 mb-6">
         <button onClick={() => router.push('/groups')}
-          className="p-1.5 rounded-lg hover:bg-falcon-border text-[#5a6a7a] hover:text-white transition-colors">
+          className="p-1.5 rounded-lg hover:bg-[#1e2d42] text-[#5a6a7a] hover:text-white transition-colors">
           <ChevronLeft className="w-5 h-5" />
         </button>
         <div className="w-8 h-8 rounded-lg flex items-center justify-center"
@@ -261,17 +264,16 @@ export default function GroupPolicyPage() {
 
       {/* Assign existing policy */}
       {(policies?.data ?? []).length > 0 && (
-        <div className="mb-6 p-4 bg-falcon-card rounded-xl border border-falcon-border">
+        <div className="mb-6 p-4 bg-[#111827] rounded-xl border border-[#1e2d42]">
           <div className="flex items-center gap-2 mb-3">
             <Settings className="w-4 h-4 text-[#5a6a7a]" />
-            <span className="text-sm font-medium text-falcon-text">既存ポリシーを割り当て</span>
+            <span className="text-sm font-medium text-[#e2e8f4]">既存ポリシーを割り当て</span>
           </div>
           <div className="flex gap-2">
             <select
               onChange={e => { if (e.target.value) assignMutation.mutate(e.target.value) }}
               defaultValue=""
-              className="flex-1 bg-falcon-surface border border-falcon-border rounded-lg px-3 py-2 text-sm
-                         text-falcon-text focus:outline-hidden focus:border-blue-500"
+              className="flex-1 bg-[#0d1220] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-[#e2e8f4] focus:outline-hidden focus:border-blue-500"
             >
               <option value="">ポリシーを選択...</option>
               {(policies?.data ?? []).map(p => (
@@ -294,7 +296,7 @@ export default function GroupPolicyPage() {
 
       {isLoading ? (
         <div className="space-y-3">
-          {[1, 2, 3].map(i => <div key={i} className="h-24 bg-falcon-card rounded-xl animate-pulse" />)}
+          {[1, 2, 3].map(i => <div key={i} className="h-24 bg-[#111827] rounded-xl animate-pulse" />)}
         </div>
       ) : (
         <div className="space-y-4">
@@ -305,8 +307,7 @@ export default function GroupPolicyPage() {
                 value={form.name}
                 onChange={e => set('name', e.target.value)}
                 placeholder={`${group?.name ?? 'Group'} Policy`}
-                className="w-full bg-falcon-surface border border-falcon-border rounded-lg px-3 py-2 text-sm
-                           text-falcon-text placeholder-falcon-subtle focus:outline-hidden focus:border-blue-500"
+                className="w-full bg-[#0d1220] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-[#e2e8f4] placeholder-[#3d5068] focus:outline-hidden focus:border-blue-500"
               />
             </FieldRow>
             <FieldRow label="説明" hint="オプション">
@@ -314,8 +315,7 @@ export default function GroupPolicyPage() {
                 value={form.description}
                 onChange={e => set('description', e.target.value)}
                 placeholder="このポリシーの説明"
-                className="w-full bg-falcon-surface border border-falcon-border rounded-lg px-3 py-2 text-sm
-                           text-falcon-text placeholder-falcon-subtle focus:outline-hidden focus:border-blue-500"
+                className="w-full bg-[#0d1220] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-[#e2e8f4] placeholder-[#3d5068] focus:outline-hidden focus:border-blue-500"
               />
             </FieldRow>
           </SectionCard>
@@ -329,8 +329,7 @@ export default function GroupPolicyPage() {
                   value={form.scan_interval_min}
                   min={5} max={1440}
                   onChange={e => set('scan_interval_min', Number(e.target.value))}
-                  className="w-24 bg-falcon-surface border border-falcon-border rounded-lg px-3 py-2 text-sm
-                             text-falcon-text focus:outline-hidden focus:border-blue-500"
+                  className="w-24 bg-[#0d1220] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-[#e2e8f4] focus:outline-hidden focus:border-blue-500"
                 />
                 <span className="text-xs text-[#5a6a7a]">分ごと</span>
               </div>
@@ -342,8 +341,7 @@ export default function GroupPolicyPage() {
                   value={form.full_scan_hour}
                   min={0} max={23}
                   onChange={e => set('full_scan_hour', Number(e.target.value))}
-                  className="w-24 bg-falcon-surface border border-falcon-border rounded-lg px-3 py-2 text-sm
-                             text-falcon-text focus:outline-hidden focus:border-blue-500"
+                  className="w-24 bg-[#0d1220] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-[#e2e8f4] focus:outline-hidden focus:border-blue-500"
                 />
                 <span className="text-xs text-[#5a6a7a]">時 (00:00 〜 23:00)</span>
               </div>
@@ -379,7 +377,7 @@ export default function GroupPolicyPage() {
                   onChange={e => set('cpu_limit_pct', Number(e.target.value))}
                   className="flex-1 accent-green-500"
                 />
-                <span className="text-sm font-mono text-falcon-text w-12 text-right">
+                <span className="text-sm font-mono text-[#e2e8f4] w-12 text-right">
                   {form.cpu_limit_pct}%
                 </span>
               </div>
@@ -391,8 +389,7 @@ export default function GroupPolicyPage() {
                   value={form.mem_limit_mb}
                   min={64} step={64}
                   onChange={e => set('mem_limit_mb', Number(e.target.value))}
-                  className="w-28 bg-falcon-surface border border-falcon-border rounded-lg px-3 py-2 text-sm
-                             text-falcon-text focus:outline-hidden focus:border-blue-500"
+                  className="w-28 bg-[#0d1220] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-[#e2e8f4] focus:outline-hidden focus:border-blue-500"
                 />
                 <span className="text-xs text-[#5a6a7a]">MB</span>
               </div>
@@ -405,9 +402,9 @@ export default function GroupPolicyPage() {
               <button
                 onClick={() => set('monitor_network', !form.monitor_network)}
                 className={`relative inline-flex h-5 w-10 rounded-full border-2 transition-colors
-                  ${form.monitor_network ? 'bg-green-500 border-green-500' : 'bg-falcon-border border-falcon-border'}`}
+                  ${form.monitor_network ? 'bg-green-500 border-green-500' : 'bg-[#1e2d42] border-[#1e2d42]'}`}
               >
-                <span className={`inline-block h-3.5 w-3.5 rounded-full bg-white shadow transition-transform mt-px
+                <span className={`inline-block h-3.5 w-3.5 rounded-full bg-white shadow-sm transition-transform mt-px
                   ${form.monitor_network ? 'translate-x-5' : 'translate-x-0.5'}`} />
               </button>
             </FieldRow>
@@ -415,9 +412,9 @@ export default function GroupPolicyPage() {
               <button
                 onClick={() => set('monitor_dns', !form.monitor_dns)}
                 className={`relative inline-flex h-5 w-10 rounded-full border-2 transition-colors
-                  ${form.monitor_dns ? 'bg-green-500 border-green-500' : 'bg-falcon-border border-falcon-border'}`}
+                  ${form.monitor_dns ? 'bg-green-500 border-green-500' : 'bg-[#1e2d42] border-[#1e2d42]'}`}
               >
-                <span className={`inline-block h-3.5 w-3.5 rounded-full bg-white shadow transition-transform mt-px
+                <span className={`inline-block h-3.5 w-3.5 rounded-full bg-white shadow-sm transition-transform mt-px
                   ${form.monitor_dns ? 'translate-x-5' : 'translate-x-0.5'}`} />
               </button>
             </FieldRow>
@@ -425,8 +422,7 @@ export default function GroupPolicyPage() {
               <select
                 value={form.log_level}
                 onChange={e => set('log_level', e.target.value)}
-                className="bg-falcon-surface border border-falcon-border rounded-lg px-3 py-2 text-sm
-                           text-falcon-text focus:outline-hidden focus:border-blue-500"
+                className="bg-[#0d1220] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-[#e2e8f4] focus:outline-hidden focus:border-blue-500"
               >
                 {['debug', 'info', 'warn', 'error'].map(l => (
                   <option key={l} value={l}>{l.toUpperCase()}</option>
@@ -436,7 +432,7 @@ export default function GroupPolicyPage() {
           </SectionCard>
 
           {/* Save bar */}
-          <div className="flex items-center justify-between p-4 bg-falcon-card rounded-xl border border-falcon-border">
+          <div className="flex items-center justify-between p-4 bg-[#111827] rounded-xl border border-[#1e2d42]">
             <div className="flex items-center gap-2 text-xs text-[#5a6a7a]">
               {saved ? (
                 <>
@@ -460,8 +456,7 @@ export default function GroupPolicyPage() {
               <button
                 onClick={handleSave}
                 disabled={isPending}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500
-                           disabled:opacity-50 rounded-lg text-sm font-medium transition-colors"
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 rounded-lg text-sm font-medium transition-colors"
               >
                 {isPending ? (
                   <RefreshCw className="w-4 h-4 animate-spin" />

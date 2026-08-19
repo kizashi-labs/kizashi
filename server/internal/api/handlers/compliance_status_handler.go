@@ -35,7 +35,7 @@ func (h *ComplianceStatusHandler) GetStatus(c *gin.Context) {
 	).Scan(&raw)
 	if err != nil {
 		// No record yet — return empty object so frontend uses its defaults
-		c.JSON(http.StatusOK, gin.H{})
+		ReadFailure(c, err, gin.H{})
 		return
 	}
 

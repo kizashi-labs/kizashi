@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/edr-platform/server/internal/metrics"
 	"log/slog"
 	"time"
 
@@ -33,9 +34,9 @@ func (d *DeadAgentCleanup) Run(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-timer.C:
-			d.cleanup(ctx)
+			trackRun(ctx, "dead_agent_cleanup", d.cleanup)
 		case <-ticker.C:
-			d.cleanup(ctx)
+			trackRun(ctx, "dead_agent_cleanup", d.cleanup)
 		}
 	}
 }
@@ -50,7 +51,7 @@ func (d *DeadAgentCleanup) cleanup(ctx context.Context) {
 		)`,
 	).Scan(&tableExists)
 	if err != nil {
-		slog.Error("デッドエージェントクリーンアップ: agentsテーブル確認失敗", "error", err)
+		fail(ctx, err, "デッドエージェントクリーンアップ: agentsテーブル確認失敗")
 		return
 	}
 	if !tableExists {
@@ -66,7 +67,7 @@ func (d *DeadAgentCleanup) cleanup(ctx context.Context) {
 		   AND last_seen < NOW() - INTERVAL '30 days'`,
 	)
 	if err != nil {
-		slog.Error("デッドエージェントクリーンアップ: 非アクティブ化クエリ失敗", "error", err)
+		fail(ctx, err, "デッドエージェントクリーンアップ: 非アクティブ化クエリ失敗")
 	} else {
 		count := tag.RowsAffected()
 		if count > 0 {
@@ -85,7 +86,7 @@ func (d *DeadAgentCleanup) cleanup(ctx context.Context) {
 		 LIMIT 50`,
 	)
 	if err != nil {
-		slog.Error("デッドエージェントクリーンアップ: 長時間オフラインエージェント取得失敗", "error", err)
+		fail(ctx, err, "デッドエージェントクリーンアップ: 長時間オフラインエージェント取得失敗")
 		return
 	}
 	defer rows.Close()
@@ -94,7 +95,7 @@ func (d *DeadAgentCleanup) cleanup(ctx context.Context) {
 	for rows.Next() {
 		var agentID, hostname string
 		if err := rows.Scan(&agentID, &hostname); err != nil {
-			slog.Warn("デッドエージェントクリーンアップ: 行スキャン失敗", "error", err)
+			fail(ctx, err, "デッドエージェントクリーンアップ: 行スキャン失敗")
 			continue
 		}
 
@@ -108,8 +109,8 @@ func (d *DeadAgentCleanup) cleanup(ctx context.Context) {
 			hostname,
 		).Scan(&existingCount)
 		if err != nil {
-			slog.Warn("デッドエージェントクリーンアップ: 既存アラート確認失敗",
-				"hostname", hostname, "error", err)
+			fail(ctx, err, "デッドエージェントクリーンアップ: 既存アラート確認失敗",
+				"hostname", hostname)
 			continue
 		}
 
@@ -130,8 +131,7 @@ func (d *DeadAgentCleanup) cleanup(ctx context.Context) {
 			agentID, title, desc,
 		).Scan(&alertID)
 		if err != nil {
-			slog.Error("デッドエージェントクリーンアップ: アラート作成失敗",
-				"hostname", hostname, "error", err)
+			metrics.AlertDropped("dead_agent", err, hostname)
 			continue
 		}
 
@@ -149,10 +149,13 @@ func (d *DeadAgentCleanup) cleanup(ctx context.Context) {
 			}
 			data, _ := json.Marshal(payload)
 			if pubErr := d.nc.Publish("alerts.new", data); pubErr != nil {
-				slog.Warn("デッドエージェントクリーンアップ: NATSパブリッシュ失敗",
-					"alert_id", alertID, "error", pubErr)
+				fail(ctx, pubErr, "デッドエージェントクリーンアップ: NATSパブリッシュ失敗",
+					"alert_id", alertID)
 			}
 		}
+	}
+	if err := rows.Err(); err != nil {
+		fail(ctx, err, "長時間オフラインエージェントの走査が途中で終わりました。アラートが作られないエージェントがあります")
 	}
 
 	if alertsCreated > 0 {

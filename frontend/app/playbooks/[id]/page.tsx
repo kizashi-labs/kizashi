@@ -32,6 +32,8 @@ import {
   ChevronDown,
   ChevronUp,
 } from 'lucide-react'
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+
 import { USE_MOCK } from '@/lib/mock'
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
@@ -182,8 +184,8 @@ function getActionMeta(action: string) {
   return ACTION_META[action] ?? {
     label: action,
     icon: <Terminal size={14} />,
-    color: 'text-falcon-muted',
-    bg: 'bg-falcon-surface border-falcon-border',
+    color: 'text-[#7d92b0]',
+    bg: 'bg-[#0d1220] border-[#1e2d42]',
   }
 }
 
@@ -274,43 +276,43 @@ function RunModal({ playbookId, playbookName, onClose }: RunModalProps) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-xs" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
 
       {/* Modal */}
-      <div className="relative bg-falcon-surface border border-falcon-border rounded-2xl w-full max-w-md mx-4 shadow-2xl">
+      <div className="relative bg-[#0d1220] border border-[#1e2d42] rounded-2xl w-full max-w-md mx-4 shadow-2xl">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-falcon-border">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[#1e2d42]">
           <div className="flex items-center gap-2">
-            <Play size={16} className="text-falcon-red" />
+            <Play size={16} className="text-[#e8002d]" />
             <h2 className="font-semibold text-white">手動実行</h2>
           </div>
-          <button onClick={onClose} className="text-falcon-muted hover:text-white transition-colors">
+          <button onClick={onClose} className="text-[#7d92b0] hover:text-white transition-colors">
             <X size={18} />
           </button>
         </div>
 
         {/* Body */}
         <div className="px-6 py-5 space-y-4">
-          <p className="text-sm text-falcon-muted">
+          <p className="text-sm text-[#7d92b0]">
             プレイブック <span className="text-white font-medium">"{playbookName}"</span> を手動で実行します。
           </p>
 
           <div>
-            <label className="block text-xs text-falcon-muted mb-1.5">
+            <label className="block text-xs text-[#7d92b0] mb-1.5">
               ターゲットエージェント <span className="text-[#5a6a7a]">(省略可)</span>
             </label>
             <div className="relative">
               <select
                 value={target}
                 onChange={e => setTarget(e.target.value)}
-                className="w-full appearance-none bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-sm text-white focus:outline-hidden focus:border-falcon-red/60 transition-colors pr-8"
+                className="w-full appearance-none bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-white focus:outline-hidden focus:border-[#e8002d]/60 transition-colors pr-8"
               >
                 <option value="">すべて（指定なし）</option>
                 {agentsList.map(a => (
                   <option key={a.id} value={a.id}>{a.hostname} ({a.os_type})</option>
                 ))}
               </select>
-              <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-falcon-subtle pointer-events-none" />
+              <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-[#3d5068] pointer-events-none" />
             </div>
           </div>
 
@@ -327,18 +329,17 @@ function RunModal({ playbookId, playbookName, onClose }: RunModalProps) {
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-falcon-border">
+        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-[#1e2d42]">
           <button
             onClick={onClose}
-            className="text-sm text-falcon-muted hover:text-white px-4 py-2 transition-colors"
+            className="text-sm text-[#7d92b0] hover:text-white px-4 py-2 transition-colors"
           >
             キャンセル
           </button>
           <button
             onClick={() => executeMutation.mutate()}
             disabled={executeMutation.isPending}
-            className="flex items-center gap-2 bg-falcon-red hover:bg-[#c0001f] disabled:opacity-50
-                       text-white text-sm font-medium px-5 py-2 rounded-lg transition-colors"
+            className="flex items-center gap-2 bg-[#e8002d] hover:bg-[#c0001f] disabled:opacity-50 text-white text-sm font-medium px-5 py-2 rounded-lg transition-colors"
           >
             {executeMutation.isPending ? (
               <Loader2 size={14} className="animate-spin" />
@@ -367,40 +368,40 @@ function ExecutionPanel({ run, onClose }: ExecutionPanelProps) {
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
 
       {/* Panel */}
-      <div className="relative bg-falcon-surface border-l border-falcon-border w-full max-w-lg h-full flex flex-col shadow-2xl">
+      <div className="relative bg-[#0d1220] border-l border-[#1e2d42] w-full max-w-lg h-full flex flex-col shadow-2xl">
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-falcon-border shrink-0">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-[#1e2d42] shrink-0">
           <div className="flex items-center gap-3">
-            <History size={16} className="text-falcon-muted" />
+            <History size={16} className="text-[#7d92b0]" />
             <div>
               <h3 className="font-semibold text-white text-sm">実行詳細</h3>
-              <p className="text-xs text-falcon-muted font-mono">{run.id}</p>
+              <p className="text-xs text-[#7d92b0] font-mono">{run.id}</p>
             </div>
           </div>
-          <button onClick={onClose} className="text-falcon-muted hover:text-white transition-colors">
+          <button onClick={onClose} className="text-[#7d92b0] hover:text-white transition-colors">
             <X size={18} />
           </button>
         </div>
 
         {/* Meta info */}
-        <div className="px-5 py-3 border-b border-falcon-border shrink-0 space-y-1.5">
+        <div className="px-5 py-3 border-b border-[#1e2d42] shrink-0 space-y-1.5">
           <div className="flex items-center justify-between text-sm">
-            <span className="text-falcon-muted">ステータス</span>
+            <span className="text-[#7d92b0]">ステータス</span>
             <RunStatusBadge status={run.status} />
           </div>
           <div className="flex items-center justify-between text-sm">
-            <span className="text-falcon-muted">トリガー</span>
+            <span className="text-[#7d92b0]">トリガー</span>
             <span className="text-white">{run.trigger}</span>
           </div>
           <div className="flex items-center justify-between text-sm">
-            <span className="text-falcon-muted">開始時刻</span>
-            <span className="text-falcon-muted font-mono text-xs">
+            <span className="text-[#7d92b0]">開始時刻</span>
+            <span className="text-[#7d92b0] font-mono text-xs">
               {new Date(run.started_at).toLocaleString('ja-JP')}
             </span>
           </div>
           <div className="flex items-center justify-between text-sm">
-            <span className="text-falcon-muted">所要時間</span>
-            <span className="text-falcon-muted font-mono text-xs">
+            <span className="text-[#7d92b0]">所要時間</span>
+            <span className="text-[#7d92b0] font-mono text-xs">
               {durationString(run.started_at, run.finished_at)}
             </span>
           </div>
@@ -408,21 +409,21 @@ function ExecutionPanel({ run, onClose }: ExecutionPanelProps) {
 
         {/* Step logs */}
         <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3">
-          <p className="text-xs text-falcon-muted font-medium uppercase tracking-wider mb-3">ステップログ</p>
+          <p className="text-xs text-[#7d92b0] font-medium uppercase tracking-wider mb-3">ステップログ</p>
           {run.steps_log.length === 0 ? (
             <p className="text-[#3a4a5a] text-sm text-center py-8">ログがありません</p>
           ) : (
             run.steps_log.map((log, idx) => (
               <div
                 key={idx}
-                className="flex items-start gap-3 bg-[#070d19] border border-falcon-border rounded-lg px-4 py-3"
+                className="flex items-start gap-3 bg-[#070d19] border border-[#1e2d42] rounded-lg px-4 py-3"
               >
                 <StepStatusIcon status={log.status} />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="text-xs font-mono text-falcon-muted">Step {log.step}</span>
+                    <span className="text-xs font-mono text-[#7d92b0]">Step {log.step}</span>
                     <span
-                      className={`text-xs px-1.5 py-0.5 rounded font-medium ${
+                      className={`text-xs px-1.5 py-0.5 rounded-sm font-medium ${
                         log.status === 'success'
                           ? 'bg-green-900/30 text-green-400'
                           : log.status === 'failed'
@@ -450,23 +451,23 @@ function OverviewTab({ playbook }: { playbook: Playbook }) {
   return (
     <div className="space-y-5">
       {/* Description */}
-      <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
-        <h3 className="text-sm font-medium text-falcon-muted mb-2">説明</h3>
+      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
+        <h3 className="text-sm font-medium text-[#7d92b0] mb-2">説明</h3>
         <p className="text-white text-sm leading-relaxed">
           {playbook.description || <span className="text-[#3a4a5a] italic">説明が設定されていません</span>}
         </p>
       </div>
 
       {/* Trigger conditions */}
-      <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
+      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
         <div className="flex items-center gap-2 mb-3">
           <Zap size={14} className="text-yellow-400" />
-          <h3 className="text-sm font-medium text-falcon-muted">トリガー設定</h3>
+          <h3 className="text-sm font-medium text-[#7d92b0]">トリガー設定</h3>
         </div>
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <span className="text-xs text-falcon-muted">トリガータイプ</span>
-            <span className="text-xs bg-falcon-raised text-white px-2.5 py-1 rounded-lg font-mono">
+            <span className="text-xs text-[#7d92b0]">トリガータイプ</span>
+            <span className="text-xs bg-[#161f33] text-white px-2.5 py-1 rounded-lg font-mono">
               {playbook.trigger_type || '—'}
             </span>
           </div>
@@ -474,7 +475,7 @@ function OverviewTab({ playbook }: { playbook: Playbook }) {
             <div className="mt-3 space-y-1.5">
               {Object.entries(playbook.trigger_config).map(([k, v]) => (
                 <div key={k} className="flex items-start justify-between gap-4">
-                  <span className="text-xs text-falcon-muted font-mono">{k}</span>
+                  <span className="text-xs text-[#7d92b0] font-mono">{k}</span>
                   <span className="text-xs text-white font-mono text-right max-w-xs truncate">
                     {String(v)}
                   </span>
@@ -490,16 +491,16 @@ function OverviewTab({ playbook }: { playbook: Playbook }) {
 
       {/* Tags */}
       {playbook.tags && playbook.tags.length > 0 && (
-        <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
+        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
           <div className="flex items-center gap-2 mb-3">
-            <Tag size={14} className="text-falcon-muted" />
-            <h3 className="text-sm font-medium text-falcon-muted">タグ</h3>
+            <Tag size={14} className="text-[#7d92b0]" />
+            <h3 className="text-sm font-medium text-[#7d92b0]">タグ</h3>
           </div>
           <div className="flex flex-wrap gap-2">
             {playbook.tags.map(tag => (
               <span
                 key={tag}
-                className="text-xs bg-falcon-raised text-falcon-muted border border-falcon-border px-2.5 py-1 rounded-lg"
+                className="text-xs bg-[#161f33] text-[#7d92b0] border border-[#1e2d42] px-2.5 py-1 rounded-lg"
               >
                 {tag}
               </span>
@@ -509,27 +510,27 @@ function OverviewTab({ playbook }: { playbook: Playbook }) {
       )}
 
       {/* Timestamps */}
-      <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
+      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
         <div className="flex items-center gap-2 mb-3">
-          <Calendar size={14} className="text-falcon-muted" />
-          <h3 className="text-sm font-medium text-falcon-muted">タイムスタンプ</h3>
+          <Calendar size={14} className="text-[#7d92b0]" />
+          <h3 className="text-sm font-medium text-[#7d92b0]">タイムスタンプ</h3>
         </div>
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <span className="text-xs text-falcon-muted">作成日時</span>
+            <span className="text-xs text-[#7d92b0]">作成日時</span>
             <span className="text-xs text-white font-mono">
               {playbook.created_at ? new Date(playbook.created_at).toLocaleString('ja-JP') : '—'}
             </span>
           </div>
           <div className="flex items-center justify-between">
-            <span className="text-xs text-falcon-muted">最終更新</span>
+            <span className="text-xs text-[#7d92b0]">最終更新</span>
             <span className="text-xs text-white font-mono">
               {playbook.updated_at ? new Date(playbook.updated_at).toLocaleString('ja-JP') : '—'}
             </span>
           </div>
           {playbook.last_run && (
             <div className="flex items-center justify-between">
-              <span className="text-xs text-falcon-muted">最終実行</span>
+              <span className="text-xs text-[#7d92b0]">最終実行</span>
               <span className="text-xs text-white font-mono">
                 {new Date(playbook.last_run).toLocaleString('ja-JP')}
               </span>
@@ -548,9 +549,9 @@ function StepsTab({ steps }: { steps: PlaybookStep[] }) {
 
   if (steps.length === 0) {
     return (
-      <div className="bg-falcon-surface border border-falcon-border rounded-xl p-10 text-center">
+      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-10 text-center">
         <ListOrdered size={40} className="mx-auto mb-3 text-[#3a4a5a]" />
-        <p className="text-falcon-muted text-sm">ステップが設定されていません</p>
+        <p className="text-[#7d92b0] text-sm">ステップが設定されていません</p>
       </div>
     )
   }
@@ -568,16 +569,15 @@ function StepsTab({ steps }: { steps: PlaybookStep[] }) {
           return (
             <div
               key={step.order}
-              className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden"
+              className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden"
             >
               {/* Step header */}
               <div
-                className="flex items-center gap-4 px-5 py-4 cursor-pointer hover:bg-falcon-card/50 transition-colors"
+                className="flex items-center gap-4 px-5 py-4 cursor-pointer hover:bg-[#111827]/50 transition-colors"
                 onClick={() => setExpandedStep(isExpanded ? null : step.order)}
               >
                 {/* Step number circle */}
-                <div className="w-8 h-8 rounded-full bg-falcon-raised border border-falcon-border flex items-center
-                                justify-center text-sm font-bold text-falcon-muted shrink-0">
+                <div className="w-8 h-8 rounded-full bg-[#161f33] border border-[#1e2d42] flex items-center justify-center text-sm font-bold text-[#7d92b0] shrink-0">
                   {idx + 1}
                 </div>
 
@@ -591,7 +591,7 @@ function StepsTab({ steps }: { steps: PlaybookStep[] }) {
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-white truncate">{step.name || step.action}</p>
                   {paramEntries.length > 0 && (
-                    <p className="text-xs text-falcon-muted mt-0.5 truncate">
+                    <p className="text-xs text-[#7d92b0] mt-0.5 truncate">
                       {paramEntries.slice(0, 2).map(([k, v]) => `${k}: ${String(v)}`).join(' · ')}
                       {paramEntries.length > 2 && ` · +${paramEntries.length - 2}個`}
                     </p>
@@ -599,22 +599,22 @@ function StepsTab({ steps }: { steps: PlaybookStep[] }) {
                 </div>
 
                 {/* Expand toggle */}
-                <div className="text-falcon-muted shrink-0">
+                <div className="text-[#7d92b0] shrink-0">
                   {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                 </div>
               </div>
 
               {/* Expanded detail */}
               {isExpanded && (
-                <div className="border-t border-falcon-border px-5 py-4 bg-[#070d19]/60 space-y-4">
+                <div className="border-t border-[#1e2d42] px-5 py-4 bg-[#070d19]/60 space-y-4">
                   {/* Parameters */}
                   {paramEntries.length > 0 && (
                     <div>
-                      <p className="text-xs text-falcon-muted font-medium mb-2 uppercase tracking-wider">パラメータ</p>
+                      <p className="text-xs text-[#7d92b0] font-medium mb-2 uppercase tracking-wider">パラメータ</p>
                       <div className="space-y-1.5">
                         {paramEntries.map(([k, v]) => (
                           <div key={k} className="flex items-start justify-between gap-4">
-                            <span className="text-xs text-falcon-muted font-mono shrink-0">{k}</span>
+                            <span className="text-xs text-[#7d92b0] font-mono shrink-0">{k}</span>
                             <span className="text-xs text-white font-mono text-right break-all">{String(v)}</span>
                           </div>
                         ))}
@@ -663,36 +663,36 @@ function HistoryTab({
 }) {
   if (runs.length === 0) {
     return (
-      <div className="bg-falcon-surface border border-falcon-border rounded-xl p-10 text-center">
+      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-10 text-center">
         <History size={40} className="mx-auto mb-3 text-[#3a4a5a]" />
-        <p className="text-falcon-muted text-sm">実行履歴がありません</p>
+        <p className="text-[#7d92b0] text-sm">実行履歴がありません</p>
       </div>
     )
   }
 
   return (
-    <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
+    <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
       <table className="w-full text-sm">
         <thead>
-          <tr className="border-b border-falcon-border">
-            <th className="text-left text-xs text-falcon-muted px-5 py-3 font-medium">実行ID</th>
-            <th className="text-left text-xs text-falcon-muted px-5 py-3 font-medium">トリガー</th>
-            <th className="text-left text-xs text-falcon-muted px-5 py-3 font-medium">ステータス</th>
-            <th className="text-left text-xs text-falcon-muted px-5 py-3 font-medium">開始時刻</th>
-            <th className="text-left text-xs text-falcon-muted px-5 py-3 font-medium">所要時間</th>
-            <th className="text-right text-xs text-falcon-muted px-5 py-3 font-medium">操作</th>
+          <tr className="border-b border-[#1e2d42]">
+            <th className="text-left text-xs text-[#7d92b0] px-5 py-3 font-medium">実行ID</th>
+            <th className="text-left text-xs text-[#7d92b0] px-5 py-3 font-medium">トリガー</th>
+            <th className="text-left text-xs text-[#7d92b0] px-5 py-3 font-medium">ステータス</th>
+            <th className="text-left text-xs text-[#7d92b0] px-5 py-3 font-medium">開始時刻</th>
+            <th className="text-left text-xs text-[#7d92b0] px-5 py-3 font-medium">所要時間</th>
+            <th className="text-right text-xs text-[#7d92b0] px-5 py-3 font-medium">操作</th>
           </tr>
         </thead>
         <tbody>
           {runs.map((run, idx) => (
             <tr
               key={run.id}
-              className={`border-b border-falcon-border/50 hover:bg-falcon-card/40 transition-colors ${
+              className={`border-b border-[#1e2d42]/50 hover:bg-[#111827]/40 transition-colors ${
                 idx === runs.length - 1 ? 'border-b-0' : ''
               }`}
             >
               <td className="px-5 py-3">
-                <span className="font-mono text-xs text-falcon-muted">{run.id}</span>
+                <span className="font-mono text-xs text-[#7d92b0]">{run.id}</span>
               </td>
               <td className="px-5 py-3">
                 <span className="text-white text-xs">{run.trigger}</span>
@@ -701,21 +701,19 @@ function HistoryTab({
                 <RunStatusBadge status={run.status} />
               </td>
               <td className="px-5 py-3">
-                <span className="text-xs text-falcon-muted font-mono whitespace-nowrap">
+                <span className="text-xs text-[#7d92b0] font-mono whitespace-nowrap">
                   {new Date(run.started_at).toLocaleString('ja-JP')}
                 </span>
               </td>
               <td className="px-5 py-3">
-                <span className="text-xs text-falcon-muted font-mono">
+                <span className="text-xs text-[#7d92b0] font-mono">
                   {durationString(run.started_at, run.finished_at)}
                 </span>
               </td>
               <td className="px-5 py-3 text-right">
                 <button
                   onClick={() => onSelectRun(run)}
-                  className="inline-flex items-center gap-1 text-xs text-falcon-muted hover:text-white
-                             transition-colors px-2.5 py-1 rounded-lg hover:bg-falcon-raised border border-transparent
-                             hover:border-falcon-border"
+                  className="inline-flex items-center gap-1 text-xs text-[#7d92b0] hover:text-white transition-colors px-2.5 py-1 rounded-lg hover:bg-[#161f33] border border-transparent hover:border-[#1e2d42]"
                 >
                   詳細
                   <ChevronRight size={12} />
@@ -756,7 +754,7 @@ function InfoCards({ playbook }: { playbook: Playbook }) {
       value: playbook.last_run
         ? new Date(playbook.last_run).toLocaleDateString('ja-JP')
         : '未実行',
-      icon: <Clock size={16} className="text-falcon-muted" />,
+      icon: <Clock size={16} className="text-[#7d92b0]" />,
       mono: false,
     },
   ]
@@ -766,11 +764,11 @@ function InfoCards({ playbook }: { playbook: Playbook }) {
       {cards.map(card => (
         <div
           key={card.label}
-          className="bg-falcon-surface border border-falcon-border rounded-xl px-4 py-4 flex items-center gap-3"
+          className="bg-[#0d1220] border border-[#1e2d42] rounded-xl px-4 py-4 flex items-center gap-3"
         >
           <div className="shrink-0">{card.icon}</div>
           <div className="min-w-0">
-            <p className="text-xs text-falcon-muted">{card.label}</p>
+            <p className="text-xs text-[#7d92b0]">{card.label}</p>
             <p className={`text-sm font-semibold text-white truncate mt-0.5 ${card.mono ? 'font-mono' : ''}`}>
               {card.value}
             </p>
@@ -806,15 +804,15 @@ export default function PlaybookDetailPage() {
     return (
       <div className="p-6 space-y-4 min-h-screen bg-[#070d19]">
         <div className="flex items-center gap-4 mb-6">
-          <div className="w-8 h-8 bg-falcon-surface rounded-lg animate-pulse" />
-          <div className="h-7 w-64 bg-falcon-surface rounded-lg animate-pulse" />
+          <div className="w-8 h-8 bg-[#0d1220] rounded-lg animate-pulse" />
+          <div className="h-7 w-64 bg-[#0d1220] rounded-lg animate-pulse" />
         </div>
         <div className="grid grid-cols-4 gap-3">
           {[...Array(4)].map((_, i) => (
-            <div key={i} className="h-20 bg-falcon-surface rounded-xl animate-pulse" />
+            <div key={i} className="h-20 bg-[#0d1220] rounded-xl animate-pulse" />
           ))}
         </div>
-        <div className="h-96 bg-falcon-surface rounded-xl animate-pulse" />
+        <div className="h-96 bg-[#0d1220] rounded-xl animate-pulse" />
       </div>
     )
   }
@@ -824,17 +822,17 @@ export default function PlaybookDetailPage() {
     return (
       <div className="p-6 min-h-screen bg-[#070d19]">
         <div className="flex items-center gap-4 mb-6">
-          <Link href="/playbooks" className="text-falcon-muted hover:text-white transition-colors">
+          <Link href="/playbooks" className="text-[#7d92b0] hover:text-white transition-colors">
             <ArrowLeft size={20} />
           </Link>
         </div>
-        <div className="bg-falcon-surface border border-red-800/40 rounded-xl p-10 text-center">
+        <div className="bg-[#0d1220] border border-red-800/40 rounded-xl p-10 text-center">
           <XCircle size={48} className="mx-auto mb-3 text-red-500 opacity-60" />
           <p className="text-white font-medium">プレイブックが見つかりません</p>
-          <p className="text-falcon-muted text-sm mt-1">ID: {id}</p>
+          <p className="text-[#7d92b0] text-sm mt-1">ID: {id}</p>
           <Link
             href="/playbooks"
-            className="inline-flex items-center gap-2 mt-5 text-sm text-falcon-muted hover:text-white transition-colors"
+            className="inline-flex items-center gap-2 mt-5 text-sm text-[#7d92b0] hover:text-white transition-colors"
           >
             <ArrowLeft size={14} />
             プレイブック一覧に戻る
@@ -846,6 +844,7 @@ export default function PlaybookDetailPage() {
 
   return (
     <div className="min-h-screen bg-[#070d19]">
+      <PageDataUnavailable />
       <div className="p-6 max-w-6xl mx-auto space-y-5">
 
         {/* ── Header ─────────────────────────────────────────────────────────── */}
@@ -853,7 +852,7 @@ export default function PlaybookDetailPage() {
           {/* Back link */}
           <Link
             href="/playbooks"
-            className="text-falcon-muted hover:text-white transition-colors mt-1 shrink-0"
+            className="text-[#7d92b0] hover:text-white transition-colors mt-1 shrink-0"
             title="プレイブック一覧に戻る"
           >
             <ArrowLeft size={20} />
@@ -867,15 +866,13 @@ export default function PlaybookDetailPage() {
 
               {/* Status badge */}
               {playbook.enabled ? (
-                <span className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full
-                                 bg-green-900/40 text-green-300 border border-green-700/50 shrink-0">
+                <span className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full bg-green-900/40 text-green-300 border border-green-700/50 shrink-0">
                   <span className="w-1.5 h-1.5 rounded-full bg-green-400 inline-block" />
                   有効
                 </span>
               ) : (
-                <span className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full
-                                 bg-falcon-raised text-falcon-muted border border-falcon-border shrink-0">
-                  <span className="w-1.5 h-1.5 rounded-full bg-falcon-muted inline-block" />
+                <span className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full bg-[#161f33] text-[#7d92b0] border border-[#1e2d42] shrink-0">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#7d92b0] inline-block" />
                   無効
                 </span>
               )}
@@ -886,16 +883,14 @@ export default function PlaybookDetailPage() {
           <div className="flex items-center gap-2 shrink-0">
             <Link
               href={`/playbooks/${id}/edit`}
-              className="flex items-center gap-1.5 text-sm text-falcon-muted hover:text-white border
-                         border-falcon-border hover:border-[#2e3d52] bg-falcon-surface px-3.5 py-2 rounded-lg transition-colors"
+              className="flex items-center gap-1.5 text-sm text-[#7d92b0] hover:text-white border border-[#1e2d42] hover:border-[#2e3d52] bg-[#0d1220] px-3.5 py-2 rounded-lg transition-colors"
             >
               <Pencil size={14} />
               編集
             </Link>
             <button
               onClick={() => setShowRunModal(true)}
-              className="flex items-center gap-1.5 text-sm font-medium text-white bg-falcon-red
-                         hover:bg-[#c0001f] px-4 py-2 rounded-lg transition-colors"
+              className="flex items-center gap-1.5 text-sm font-medium text-white bg-[#e8002d] hover:bg-[#c0001f] px-4 py-2 rounded-lg transition-colors"
             >
               <Play size={14} />
               実行
@@ -907,7 +902,7 @@ export default function PlaybookDetailPage() {
         <InfoCards playbook={playbook} />
 
         {/* ── Tab bar ────────────────────────────────────────────────────────── */}
-        <div className="border-b border-falcon-border">
+        <div className="border-b border-[#1e2d42]">
           <div className="flex gap-1">
             {TABS.map(tab => (
               <button
@@ -915,8 +910,8 @@ export default function PlaybookDetailPage() {
                 onClick={() => setActiveTab(tab.id)}
                 className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px ${
                   activeTab === tab.id
-                    ? 'border-falcon-red text-white'
-                    : 'border-transparent text-falcon-muted hover:text-white hover:border-falcon-border'
+                    ? 'border-[#e8002d] text-white'
+                    : 'border-transparent text-[#7d92b0] hover:text-white hover:border-[#1e2d42]'
                 }`}
               >
                 {tab.icon}

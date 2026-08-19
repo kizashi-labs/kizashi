@@ -100,16 +100,24 @@ func (h *ThreatFusionHandler) Stats(c *gin.Context) {
 		return
 	}
 	var total, enrichedToday int
-	_ = h.pool.QueryRow(c.Request.Context(), `SELECT COUNT(*) FROM ioc_entries`).Scan(&total)
-	_ = h.pool.QueryRow(c.Request.Context(),
-		`SELECT COUNT(*) FROM ioc_entries WHERE updated_at::date = NOW()::date`).Scan(&enrichedToday)
+	if !ReadOK(c, h.pool.QueryRow(c.Request.Context(), `SELECT COUNT(*) FROM ioc_entries`).Scan(&total)) {
+		return
+	}
+	if !ReadOK(c, h.pool.QueryRow(c.Request.Context(),
+		`SELECT COUNT(*) FROM ioc_entries WHERE updated_at::date = NOW()::date`).Scan(&enrichedToday)) {
+		return
+	}
 	resp["total"] = total
 	resp["enriched_today"] = enrichedToday
 
 	if tableExists(c, h.pool, "threat_feeds") {
 		var sources, active int
-		_ = h.pool.QueryRow(c.Request.Context(), `SELECT COUNT(*) FROM threat_feeds`).Scan(&sources)
-		_ = h.pool.QueryRow(c.Request.Context(), `SELECT COUNT(*) FROM threat_feeds WHERE is_active`).Scan(&active)
+		if !ReadOK(c, h.pool.QueryRow(c.Request.Context(), `SELECT COUNT(*) FROM threat_feeds`).Scan(&sources)) {
+			return
+		}
+		if !ReadOK(c, h.pool.QueryRow(c.Request.Context(), `SELECT COUNT(*) FROM threat_feeds WHERE is_active`).Scan(&active)) {
+			return
+		}
 		resp["sources"] = sources
 		resp["active_sources"] = active
 	}

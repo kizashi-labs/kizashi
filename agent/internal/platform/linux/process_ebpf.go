@@ -10,6 +10,7 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"io"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"strings"
@@ -32,7 +33,7 @@ type EBPFProcessCollector struct {
 
 func NewEBPFProcessCollector() *EBPFProcessCollector {
 	c := &EBPFProcessCollector{}
-	c.useEBPF = isEBPFSupported()
+	c.useEBPF, _ = isEBPFSupported()
 	return c
 }
 
@@ -347,6 +348,13 @@ func computeLinuxHashes(path string) collector.FileHashes {
 	const maxSize = 50 * 1024 * 1024
 	f, err := os.Open(filepath.Clean(path))
 	if err != nil {
+		// 空のハッシュと「取れなかった」は、イベントに載ると同じ姿です。
+		// サーバのハッシュ IOC 照合は、一致しなかったのではなく照合する
+		// ものが無かったのに、黙って通ります。Windows 側と同じ形で、
+		// **片方だけ直すと、直っていない側が直った顔をします。**
+		slog.Debug("ファイルのハッシュを取れませんでした。"+
+			"このイベントはハッシュ無しで送られ、ハッシュ IOC には当たりません",
+			"path", path, "error", err)
 		return collector.FileHashes{}
 	}
 	defer f.Close()
@@ -357,6 +365,13 @@ func computeLinuxHashes(path string) collector.FileHashes {
 	w := io.MultiWriter(h1, h2, h3)
 
 	if _, err := io.Copy(w, io.LimitReader(f, maxSize)); err != nil {
+		// 空のハッシュと「取れなかった」は、イベントに載ると同じ姿です。
+		// サーバのハッシュ IOC 照合は、一致しなかったのではなく照合する
+		// ものが無かったのに、黙って通ります。Windows 側と同じ形で、
+		// **片方だけ直すと、直っていない側が直った顔をします。**
+		slog.Debug("ファイルのハッシュを取れませんでした。"+
+			"このイベントはハッシュ無しで送られ、ハッシュ IOC には当たりません",
+			"path", path, "error", err)
 		return collector.FileHashes{}
 	}
 
@@ -367,16 +382,34 @@ func computeLinuxHashes(path string) collector.FileHashes {
 	}
 }
 
-func isEBPFSupported() bool {
-	// Check kernel version >= 5.4 for CO-RE support
+// isEBPFSupported reports whether this kernel supports CO-RE eBPF (>= 5.4),
+// and whether that could be determined at all.
+//
+// 以前は bool 1つで、**確認できなかったときも false を返していました。**
+// uname が失敗したのはカーネルが古いからではなく、確認できなかっただけです。
+// それが「非対応」になると、eBPF の経路が丸ごと黙って使われません ——
+// プロセス・ネットワーク・ファイル・ライブラリの監視が、対応カーネルの上でも
+// 落ちます。バージョン文字列を読めなかったときも同じで、Sscanf の戻り値を
+// 捨てていたので major/minor が 0 のまま「5.4 未満」に化けていました。
+//
+// 呼び出し側の既定は今までどおり「使わない」です。変わるのは、
+// **なぜ使わないのかが言えるようになったこと**だけです。
+func isEBPFSupported() (supported, known bool) {
 	var uname unameResult
 	if err := syscallUname(&uname); err != nil {
-		return false
+		slog.Warn("カーネル版数を取得できませんでした。eBPF が使えるかを"+
+			"判定できないため、使わずに続行します（非対応と判定したわけでは"+
+			"ありません）", "error", err)
+		return false, false
 	}
-	// Parse "5.4.0-..." style version string
+	release := string(bytes.TrimRight(uname.Release[:], "\x00"))
 	var major, minor int
-	fmt.Sscanf(string(bytes.TrimRight(uname.Release[:], "\x00")), "%d.%d", &major, &minor)
-	return major > 5 || (major == 5 && minor >= 4)
+	if n, err := fmt.Sscanf(release, "%d.%d", &major, &minor); n < 2 || err != nil {
+		slog.Warn("カーネル版数を読み取れませんでした。eBPF が使えるかを"+
+			"判定できないため、使わずに続行します", "release", release)
+		return false, false
+	}
+	return major > 5 || (major == 5 && minor >= 4), true
 }
 
 type unameResult struct {
@@ -402,4 +435,12 @@ func syscallUname(buf *unameResult) error {
 	copy(buf.Machine[:], unsafe.Slice((*byte)(unsafe.Pointer(&uts.Machine[0])), len(uts.Machine)))
 	copy(buf.Domainname[:], unsafe.Slice((*byte)(unsafe.Pointer(&uts.Domainname[0])), len(uts.Domainname)))
 	return nil
+}
+
+// ebpfUsable is the "just give me a bool" form, for construction sites that
+// cannot branch on the distinction. 判定できなかったことは isEBPFSupported が
+// 記録済みなので、ここで握り潰しているのは値だけで、事実ではありません。
+func ebpfUsable() bool {
+	supported, _ := isEBPFSupported()
+	return supported
 }

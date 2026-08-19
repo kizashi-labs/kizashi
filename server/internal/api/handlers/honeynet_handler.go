@@ -21,19 +21,11 @@ func NewHoneynetHandler(pool *pgxpool.Pool) *HoneynetHandler {
 }
 
 func (h *HoneynetHandler) checkNodesTable(c *gin.Context) bool {
-	ctx := c.Request.Context()
-	var exists bool
-	err := h.pool.QueryRow(ctx,
-		`SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name='honeynet_nodes')`).Scan(&exists)
-	return err == nil && exists
+	return tableIsThere(c.Request.Context(), h.pool, "honeynet_nodes")
 }
 
 func (h *HoneynetHandler) checkInteractionsTable(c *gin.Context) bool {
-	ctx := c.Request.Context()
-	var exists bool
-	err := h.pool.QueryRow(ctx,
-		`SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name='honeynet_interactions')`).Scan(&exists)
-	return err == nil && exists
+	return tableIsThere(c.Request.Context(), h.pool, "honeynet_interactions")
 }
 
 // ListNodes returns all honeynet nodes.

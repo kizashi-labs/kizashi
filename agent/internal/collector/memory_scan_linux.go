@@ -11,8 +11,23 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
 )
+
+// statInode returns the inode currently backing path. Overridable in tests so the
+// package-upgrade discriminator can be exercised without unlinking real libraries.
+var statInode = func(path string) (uint64, bool) {
+	fi, err := os.Stat(path)
+	if err != nil {
+		return 0, false
+	}
+	st, ok := fi.Sys().(*syscall.Stat_t)
+	if !ok {
+		return 0, false
+	}
+	return st.Ino, true
+}
 
 // ScanSuspiciousMemoryWithYARA is ScanSuspiciousMemory plus content inspection:
 // for each RWX/unbacked executable region it reads the region bytes and runs them
@@ -46,6 +61,10 @@ func ScanSuspiciousMemoryWithYARAStats(scan func([]byte) []string) ([]MemoryFind
 			if data := readRegion(f.PID, f.Address); len(data) > 0 {
 				st.RegionsYARAScanned++
 				st.BytesYARAScanned += int64(len(data))
+				// Same bytes, second question: YARA asks "is this a *known*
+				// implant", entropy asks "is this packed at all". A fresh
+				// payload matches no curated rule but still reads as ciphertext.
+				annotateEntropy(&f, data)
 				if names := scan(data); len(names) > 0 {
 					f.YARAMatched = true
 					f.Reason = "メモリ内YARA一致(" + strings.Join(names, ",") + "): " + f.Reason
@@ -61,6 +80,9 @@ func ScanSuspiciousMemoryWithYARAStats(scan func([]byte) []string) ([]MemoryFind
 	}
 	st.EmittedFindings = len(out)
 	st.Duration = time.Since(start)
+	// **走査できなかったことを、端末の外に出します。** これまでこの数値は
+	// slog.Debug の1行だけで、既定の水準では出ませんでした。
+	st.report()
 	return out, st
 }
 
@@ -125,9 +147,15 @@ func scanSuspiciousMemoryStats() ([]MemoryFinding, MemoryScanStats) {
 			continue
 		}
 		procStart := time.Now()
-		f, regions, opened := scanPidMapsStats(pid, name)
-		if !opened {
+		f, regions, skip := scanPidMapsStatsFn(pid, name)
+		switch skip {
+		case skipDenied:
+			// **開こうとして断られました。** この中は見ていません。
 			st.SkippedUnreadable++
+			continue
+		case skipGone:
+			// 走査するまでに終了していました。**正常です。**
+			st.SkippedGone++
 			continue
 		}
 		st.observeProcess(pid, name, regions, time.Since(procStart))
@@ -145,6 +173,66 @@ func readComm(pid int) string {
 	return strings.TrimSpace(string(b))
 }
 
+// packageManagedPrefixes are the directories a distribution package manager owns.
+// A "(deleted)" mapping under one of these, whose path has since been re-created
+// with a different inode, is a package upgrade — not a dropper. /usr/local is
+// deliberately absent: it is admin/attacker-writable and not package-managed, so
+// a vanish-and-recreate there stays suspicious.
+var packageManagedPrefixes = []string{
+	"/usr/lib/", "/usr/lib64/", "/usr/libexec/", "/usr/bin/", "/usr/sbin/",
+	"/lib/", "/lib64/", "/bin/", "/sbin/",
+}
+
+// isDeletedByPackageUpgrade reports whether a "(deleted)" executable mapping is
+// the residue of a package upgrade rather than a payload that unlinked itself.
+//
+// Why this exists: an `apt` upgrade of libc6/openssl unlinks the old inode, so
+// EVERY process started before the upgrade keeps mapping it and /proc/<pid>/maps
+// reports the library text segment as "(deleted)". On the verification host that
+// meant systemd, cron, dbus-daemon, acpid, irqbalance, rsyslogd, docker-proxy and
+// the systemd-* daemons were all flagged as "反射型DLL/floating code の可能性" —
+// 94 executable (deleted) mappings host-wide, every one of them libc.so.6,
+// libm.so.6 or libcrypto.so.3. On Ubuntu with unattended-upgrades this recurs
+// after every security update, which buries genuine findings.
+//
+// The discriminator is inode identity, not the path alone: a package upgrade
+// re-creates the path with a NEW inode, while a dropper that unlinks its payload
+// leaves nothing behind. Requiring the path to sit under a package-managed prefix
+// on top of that keeps the exemption from becoming an evasion — otherwise an
+// attacker could drop /tmp/x, exec it, unlink it and touch /tmp/x again to be
+// ignored. memfd mappings ("/memfd:name (deleted)") never stat, so they stay
+// suspicious, which is the behaviour fileless-exec detection depends on.
+func isDeletedByPackageUpgrade(pathname, mapInode string) bool {
+	path := strings.TrimSuffix(pathname, " (deleted)")
+	if path == pathname || !strings.HasPrefix(path, "/") {
+		return false
+	}
+	if strings.HasPrefix(path, "/usr/local/") {
+		return false
+	}
+	managed := false
+	for _, p := range packageManagedPrefixes {
+		if strings.HasPrefix(path, p) {
+			managed = true
+			break
+		}
+	}
+	if !managed {
+		return false
+	}
+	// inode 0 means the kernel reported no backing inode at all — nothing to
+	// compare against, so it cannot be shown to be a replacement.
+	mapped, err := strconv.ParseUint(mapInode, 10, 64)
+	if err != nil || mapped == 0 {
+		return false
+	}
+	current, ok := statInode(path)
+	// Path gone => genuinely vanished => keep it suspicious. Path present with
+	// the SAME inode should be impossible for a deleted mapping; treat it as
+	// suspicious rather than assume a benign race.
+	return ok && current != mapped
+}
+
 // isSuspiciousExecRegion classifies a /proc/<pid>/maps line's perms+pathname as
 // injection-relevant. A region qualifies when it is RWX (writable+executable —
 // classic injected shellcode) OR executable-but-unbacked (no file behind it).
@@ -154,29 +242,50 @@ func readComm(pid int) string {
 // executable" produced a systemd/[vdso] false-positive storm on every host
 // (r-xp region at 0x7fff…, rwx=false). They are excluded here; only a genuinely
 // anonymous or (deleted) executable region counts as unbacked.
-func isSuspiciousExecRegion(perms, pathname string) (suspicious, rwx, unbacked bool) {
+//
+// mapInode is the inode column of the maps line; it lets a "(deleted)" mapping
+// left behind by a package upgrade be told apart from a self-deleting payload
+// (see isDeletedByPackageUpgrade).
+func isSuspiciousExecRegion(perms, pathname, mapInode string) (suspicious, rwx, unbacked bool) {
 	if !strings.Contains(perms, "x") {
 		return false, false, false // only executable regions are injection-relevant
 	}
 	rwx = strings.Contains(perms, "w")
 	backed := strings.HasPrefix(pathname, "/") && !strings.Contains(pathname, "(deleted)")
+	if !backed && isDeletedByPackageUpgrade(pathname, mapInode) {
+		backed = true
+	}
 	pseudo := strings.HasPrefix(pathname, "[") // [vdso] / [vsyscall] / [vvar] / [stack]
 	unbacked = !backed && !pseudo
 	return rwx || unbacked, rwx, unbacked
 }
 
 // scanPidMapsStats は 1 プロセスの /proc/<pid>/maps を走査し、疑わしい
-// 実行可能領域と、走査したリージョン数・maps を開けたかどうかを返す
-// (#511 のコスト計上)。opened=false は PID が読めなかったこと —
-// 権限不足か、走査中にプロセスが終了したこと — を意味する。
+// 実行可能領域と、走査したリージョン数・**飛ばした理由**を返す
+// (#511 のコスト計上)。
+//
+// **以前は「読めなかった」の1つにまとめていました。** このコメント自身が
+// 「権限不足か、走査中にプロセスが終了したこと」と書いていたとおり、
+// 中身は2つです。プロセスは走査中に普通に終了するので、混ぜると
+// SkippedUnreadable が健全な端末でも毎周期ゼロにならず、**「中を見られて
+// いない端末」の判定に使えません。** 実際どこも判定していませんでした。
 //
 // 以前は戻り値を findings だけに絞った scanPidMaps という薄いラッパが
 // 併存していたが、呼び出し元が無くなっており staticcheck に U1000 で
 // 検出されていたため削除した。
-func scanPidMapsStats(pid int, name string) (findings []MemoryFinding, regions int, opened bool) {
+// scanPidMapsStatsFn は差し替え可能です。**この端末（root, Linux）では
+// 74 件を列挙して 74 件とも走査でき、断られたものがありません。**
+// 実環境が必ず成功する条件では、数え分けの分岐を一度も通れません ——
+// 変異が1件生き残って分かりました。
+//
+// 既定が本物であることは `TestTheDefaultMapsScannerIsTheRealOne` が
+// 留めます。
+var scanPidMapsStatsFn = scanPidMapsStats
+
+func scanPidMapsStats(pid int, name string) (findings []MemoryFinding, regions int, skip skipReason) {
 	f, err := os.Open(filepath.Join("/proc", strconv.Itoa(pid), "maps"))
 	if err != nil {
-		return nil, 0, false
+		return nil, 0, classifySkip(err)
 	}
 	defer f.Close()
 
@@ -195,7 +304,7 @@ func scanPidMapsStats(pid int, name string) (findings []MemoryFinding, regions i
 			pathname = strings.Join(fields[5:], " ")
 		}
 
-		suspicious, rwx, unbacked := isSuspiciousExecRegion(perms, pathname)
+		suspicious, rwx, unbacked := isSuspiciousExecRegion(perms, pathname, fields[4])
 		if !suspicious {
 			continue
 		}
@@ -213,7 +322,7 @@ func scanPidMapsStats(pid int, name string) (findings []MemoryFinding, regions i
 	// Best-effort: a mid-file read error (e.g. the process exited) just yields a
 	// partial map; return what we parsed.
 	_ = sc.Err()
-	return out, regions, true
+	return out, regions, skipNone
 }
 
 func regionSize(addr string) uint64 {

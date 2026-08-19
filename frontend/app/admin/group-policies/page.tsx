@@ -8,6 +8,8 @@ import {
   Users, Globe, X, RefreshCw, AlertTriangle, Check, Ban,
 } from 'lucide-react'
 
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+
 // ─── 型定義 ──────────────────────────────────────────────────────────────────
 
 interface PolicyConfig {
@@ -151,11 +153,11 @@ function Toggle({
       <div
         onClick={() => onChange(!checked)}
         className={`relative w-10 h-5 rounded-full transition-colors cursor-pointer ${
-          checked ? 'bg-blue-600' : 'bg-falcon-border'
+          checked ? 'bg-blue-600' : 'bg-[#1e2d42]'
         }`}
       >
         <div
-          className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-falcon-text shadow transition-transform ${
+          className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-[#e2e8f4] shadow-sm transition-transform ${
             checked ? 'translate-x-5' : 'translate-x-0'
           }`}
         />
@@ -206,7 +208,7 @@ function PolicyFormModal({
   const enabledCollectors = form.config.enabled_collectors ?? []
 
   return (
-    <div className="fixed inset-0 bg-black/70 backdrop-blur-xs flex items-start justify-center z-50 overflow-y-auto py-8 px-4">
+    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-start justify-center z-50 overflow-y-auto py-8 px-4">
       <div className="bg-gray-800 rounded-2xl w-full max-w-2xl border border-gray-700 shadow-2xl">
 
         {/* ヘッダー */}
@@ -241,8 +243,7 @@ function PolicyFormModal({
                 onChange={e => setField('name', e.target.value)}
                 required
                 placeholder="例: Production Servers Policy"
-                className="w-full bg-gray-900 text-white px-3 py-2 rounded-lg border border-gray-600
-                           text-sm focus:outline-hidden focus:border-blue-500 transition-colors"
+                className="w-full bg-gray-900 text-white px-3 py-2 rounded-lg border border-gray-600 text-sm focus:outline-hidden focus:border-blue-500 transition-colors"
               />
             </div>
             <div>
@@ -252,8 +253,7 @@ function PolicyFormModal({
                 onChange={e => setField('description', e.target.value)}
                 rows={2}
                 placeholder="このポリシーの用途や適用範囲..."
-                className="w-full bg-gray-900 text-white px-3 py-2 rounded-lg border border-gray-600
-                           text-sm focus:outline-hidden focus:border-blue-500 transition-colors resize-none"
+                className="w-full bg-gray-900 text-white px-3 py-2 rounded-lg border border-gray-600 text-sm focus:outline-hidden focus:border-blue-500 transition-colors resize-none"
               />
             </div>
             <div>
@@ -261,8 +261,7 @@ function PolicyFormModal({
               <select
                 value={form.group_id}
                 onChange={e => setField('group_id', e.target.value)}
-                className="w-full bg-gray-900 text-white px-3 py-2 rounded-lg border border-gray-600
-                           text-sm focus:outline-hidden focus:border-blue-500 transition-colors"
+                className="w-full bg-gray-900 text-white px-3 py-2 rounded-lg border border-gray-600 text-sm focus:outline-hidden focus:border-blue-500 transition-colors"
               >
                 <option value="">全エージェント</option>
                 {groups.map(g => (
@@ -299,8 +298,7 @@ function PolicyFormModal({
                     setConfig('collection_interval', e.target.value ? Number(e.target.value) : undefined)
                   }
                   placeholder="60"
-                  className="w-full bg-gray-900 text-white px-3 py-2 rounded-lg border border-gray-600
-                             text-sm focus:outline-hidden focus:border-blue-500 transition-colors"
+                  className="w-full bg-gray-900 text-white px-3 py-2 rounded-lg border border-gray-600 text-sm focus:outline-hidden focus:border-blue-500 transition-colors"
                 />
               </div>
               <div>
@@ -315,8 +313,7 @@ function PolicyFormModal({
                     setConfig('send_interval', e.target.value ? Number(e.target.value) : undefined)
                   }
                   placeholder="300"
-                  className="w-full bg-gray-900 text-white px-3 py-2 rounded-lg border border-gray-600
-                             text-sm focus:outline-hidden focus:border-blue-500 transition-colors"
+                  className="w-full bg-gray-900 text-white px-3 py-2 rounded-lg border border-gray-600 text-sm focus:outline-hidden focus:border-blue-500 transition-colors"
                 />
               </div>
             </div>
@@ -378,8 +375,7 @@ function PolicyFormModal({
                   value={(form.config.fim_paths ?? []).join('\n')}
                   onChange={e => handleFimPaths(e.target.value)}
                   placeholder={'/etc\n/var/log\nC:\\Windows\\System32'}
-                  className="w-full bg-gray-900 text-white px-3 py-2 rounded-lg border border-gray-600
-                             text-sm font-mono focus:outline-hidden focus:border-blue-500 transition-colors resize-none"
+                  className="w-full bg-gray-900 text-white px-3 py-2 rounded-lg border border-gray-600 text-sm font-mono focus:outline-hidden focus:border-blue-500 transition-colors resize-none"
                 />
               </div>
             )}
@@ -397,8 +393,7 @@ function PolicyFormModal({
             <button
               type="submit"
               disabled={isPending}
-              className="flex items-center gap-2 px-5 py-2 bg-blue-600 text-white rounded-lg
-                         text-sm hover:bg-blue-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center gap-2 px-5 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isPending ? (
                 <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -438,8 +433,7 @@ function PolicyCard({
           <div className="flex items-center gap-2 flex-wrap">
             <h3 className="text-white font-semibold truncate">{policy.name}</h3>
             {policy.is_default && (
-              <span className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full
-                               bg-green-900/40 text-green-300 border border-green-700/50 shrink-0">
+              <span className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-green-900/40 text-green-300 border border-green-700/50 shrink-0">
                 <CheckCircle className="w-3 h-3" />
                 デフォルト
               </span>
@@ -488,14 +482,12 @@ function PolicyCard({
       {/* グループバッジ */}
       <div className="flex items-center gap-1.5">
         {groupName ? (
-          <span className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-full
-                           bg-purple-900/30 text-purple-300 border border-purple-700/50">
+          <span className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-full bg-purple-900/30 text-purple-300 border border-purple-700/50">
             <Users className="w-3 h-3" />
             {groupName}
           </span>
         ) : (
-          <span className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-full
-                           bg-gray-700/60 text-gray-400 border border-gray-600/50">
+          <span className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-full bg-gray-700/60 text-gray-400 border border-gray-600/50">
             <Globe className="w-3 h-3" />
             全エージェント
           </span>
@@ -553,11 +545,11 @@ function ProcessRuleFormModal({
     setForm(f => ({ ...f, [k]: v }))
 
   return (
-    <div className="fixed inset-0 bg-black/70 backdrop-blur-xs flex items-start justify-center z-50 overflow-y-auto py-8 px-4">
-      <div className="bg-falcon-surface rounded-2xl w-full max-w-lg border border-falcon-border shadow-2xl">
+    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-start justify-center z-50 overflow-y-auto py-8 px-4">
+      <div className="bg-[#0d1220] rounded-2xl w-full max-w-lg border border-[#1e2d42] shadow-2xl">
 
         {/* ヘッダー */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-falcon-border">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[#1e2d42]">
           <h2 className="text-lg font-bold text-white flex items-center gap-2">
             <Ban className="w-5 h-5 text-red-400" />
             {title}
@@ -581,8 +573,7 @@ function ProcessRuleFormModal({
               onChange={e => setField('name', e.target.value)}
               required
               placeholder="例: Block Mimikatz"
-              className="w-full bg-[#070d19] text-white px-3 py-2 rounded-lg border border-falcon-border
-                         text-sm focus:outline-hidden focus:border-blue-500 transition-colors"
+              className="w-full bg-[#070d19] text-white px-3 py-2 rounded-lg border border-[#1e2d42] text-sm focus:outline-hidden focus:border-blue-500 transition-colors"
             />
           </div>
 
@@ -596,8 +587,7 @@ function ProcessRuleFormModal({
               onChange={e => setField('process_name', e.target.value)}
               required
               placeholder="例: mimikatz.exe"
-              className="w-full bg-[#070d19] text-white px-3 py-2 rounded-lg border border-falcon-border
-                         text-sm font-mono focus:outline-hidden focus:border-blue-500 transition-colors"
+              className="w-full bg-[#070d19] text-white px-3 py-2 rounded-lg border border-[#1e2d42] text-sm font-mono focus:outline-hidden focus:border-blue-500 transition-colors"
             />
           </div>
 
@@ -629,8 +619,7 @@ function ProcessRuleFormModal({
             <select
               value={form.scope}
               onChange={e => setField('scope', e.target.value as ProcessBlockRuleForm['scope'])}
-              className="w-full bg-[#070d19] text-white px-3 py-2 rounded-lg border border-falcon-border
-                         text-sm focus:outline-hidden focus:border-blue-500 transition-colors"
+              className="w-full bg-[#070d19] text-white px-3 py-2 rounded-lg border border-[#1e2d42] text-sm focus:outline-hidden focus:border-blue-500 transition-colors"
             >
               <option value="all">全エージェント (all)</option>
               <option value="group">グループ (group)</option>
@@ -648,8 +637,7 @@ function ProcessRuleFormModal({
                 value={form.scope_id}
                 onChange={e => setField('scope_id', e.target.value)}
                 placeholder={form.scope === 'group' ? 'グループIDを入力' : 'エージェントIDを入力'}
-                className="w-full bg-[#070d19] text-white px-3 py-2 rounded-lg border border-falcon-border
-                           text-sm font-mono focus:outline-hidden focus:border-blue-500 transition-colors"
+                className="w-full bg-[#070d19] text-white px-3 py-2 rounded-lg border border-[#1e2d42] text-sm font-mono focus:outline-hidden focus:border-blue-500 transition-colors"
               />
             </div>
           )}
@@ -660,8 +648,7 @@ function ProcessRuleFormModal({
             <select
               value={form.action}
               onChange={e => setField('action', e.target.value as ProcessBlockRuleForm['action'])}
-              className="w-full bg-[#070d19] text-white px-3 py-2 rounded-lg border border-falcon-border
-                         text-sm focus:outline-hidden focus:border-blue-500 transition-colors"
+              className="w-full bg-[#070d19] text-white px-3 py-2 rounded-lg border border-[#1e2d42] text-sm focus:outline-hidden focus:border-blue-500 transition-colors"
             >
               <option value="alert">アラートのみ (alert)</option>
               <option value="block">ブロック (block)</option>
@@ -675,8 +662,7 @@ function ProcessRuleFormModal({
             <select
               value={form.severity}
               onChange={e => setField('severity', e.target.value as ProcessBlockRuleForm['severity'])}
-              className="w-full bg-[#070d19] text-white px-3 py-2 rounded-lg border border-falcon-border
-                         text-sm focus:outline-hidden focus:border-blue-500 transition-colors"
+              className="w-full bg-[#070d19] text-white px-3 py-2 rounded-lg border border-[#1e2d42] text-sm focus:outline-hidden focus:border-blue-500 transition-colors"
             >
               <option value="low">低 (low)</option>
               <option value="medium">中 (medium)</option>
@@ -693,7 +679,7 @@ function ProcessRuleFormModal({
           />
 
           {/* フッター */}
-          <div className="flex items-center justify-end gap-3 pt-2 border-t border-falcon-border">
+          <div className="flex items-center justify-end gap-3 pt-2 border-t border-[#1e2d42]">
             <button
               type="button"
               onClick={onClose}
@@ -704,8 +690,7 @@ function ProcessRuleFormModal({
             <button
               type="submit"
               disabled={isPending}
-              className="flex items-center gap-2 px-5 py-2 bg-blue-600 text-white rounded-lg
-                         text-sm hover:bg-blue-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center gap-2 px-5 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isPending ? (
                 <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -828,16 +813,14 @@ function ProcessBlockRulesTab() {
           <button
             onClick={() => refetch()}
             disabled={isFetching}
-            className="p-2 text-[#8899aa] hover:text-white transition-colors disabled:opacity-50
-                       rounded-lg hover:bg-falcon-border"
+            className="p-2 text-[#8899aa] hover:text-white transition-colors disabled:opacity-50 rounded-lg hover:bg-[#1e2d42]"
             title="更新"
           >
             <RefreshCw className={`w-4 h-4 ${isFetching ? 'animate-spin' : ''}`} />
           </button>
           <button
             onClick={() => { setShowCreate(true); setError(null) }}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg
-                       hover:bg-blue-500 transition-colors text-sm"
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-500 transition-colors text-sm"
           >
             <Plus className="w-4 h-4" />
             ルールを追加
@@ -865,25 +848,24 @@ function ProcessBlockRulesTab() {
           <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
         </div>
       ) : rules.length === 0 ? (
-        <div className="flex flex-col items-center justify-center h-48 bg-falcon-surface rounded-xl border border-falcon-border">
-          <Ban className="w-12 h-12 text-falcon-border mb-3" />
+        <div className="flex flex-col items-center justify-center h-48 bg-[#0d1220] rounded-xl border border-[#1e2d42]">
+          <Ban className="w-12 h-12 text-[#1e2d42] mb-3" />
           <p className="text-[#8899aa] text-sm font-medium">ルールがありません</p>
           <p className="text-[#4a5568] text-xs mt-1">「ルールを追加」からプロセスブロックルールを作成してください</p>
           <button
             onClick={() => { setShowCreate(true); setError(null) }}
-            className="mt-4 flex items-center gap-1.5 px-4 py-2 bg-blue-600/20 text-blue-300
-                       border border-blue-600/50 rounded-lg text-sm hover:bg-blue-600/30 transition-colors"
+            className="mt-4 flex items-center gap-1.5 px-4 py-2 bg-blue-600/20 text-blue-300 border border-blue-600/50 rounded-lg text-sm hover:bg-blue-600/30 transition-colors"
           >
             <Plus className="w-4 h-4" />
             ルールを追加
           </button>
         </div>
       ) : (
-        <div className="bg-falcon-surface rounded-xl border border-falcon-border overflow-hidden">
+        <div className="bg-[#0d1220] rounded-xl border border-[#1e2d42] overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-falcon-border">
+                <tr className="border-b border-[#1e2d42]">
                   {['ルール名', 'プロセス名', 'タイプ', 'アクション', 'スコープ', '重大度', '有効/無効', '操作'].map(h => (
                     <th
                       key={h}
@@ -894,7 +876,7 @@ function ProcessBlockRulesTab() {
                   ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-falcon-border">
+              <tbody className="divide-y divide-[#1e2d42]">
                 {rules.map(rule => (
                   <tr key={rule.id} className="hover:bg-[#0a1020] transition-colors group">
 
@@ -905,7 +887,7 @@ function ProcessBlockRulesTab() {
 
                     {/* プロセス名 */}
                     <td className="px-4 py-3">
-                      <span className="font-mono text-xs bg-[#070d19] text-[#c8d4e4] px-2 py-1 rounded-sm border border-falcon-border">
+                      <span className="font-mono text-xs bg-[#070d19] text-[#c8d4e4] px-2 py-1 rounded-sm border border-[#1e2d42]">
                         {rule.process_name}
                       </span>
                     </td>
@@ -932,14 +914,12 @@ function ProcessBlockRulesTab() {
                     <td className="px-4 py-3 whitespace-nowrap">
                       <div className="flex items-center gap-1.5">
                         {rule.scope === 'all' ? (
-                          <span className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full
-                                           bg-falcon-border text-[#8899aa] border border-falcon-border">
+                          <span className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-[#1e2d42] text-[#8899aa] border border-[#1e2d42]">
                             <Globe className="w-3 h-3" />
                             全体
                           </span>
                         ) : rule.scope === 'group' ? (
-                          <span className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full
-                                           bg-purple-900/30 text-purple-300 border border-purple-700/50">
+                          <span className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-purple-900/30 text-purple-300 border border-purple-700/50">
                             <Users className="w-3 h-3" />
                             {rule.scope_id ?? 'group'}
                           </span>
@@ -967,9 +947,9 @@ function ProcessBlockRulesTab() {
                         title={rule.enabled ? '無効にする' : '有効にする'}
                       >
                         <div className={`relative w-10 h-5 rounded-full transition-colors ${
-                          rule.enabled ? 'bg-blue-600' : 'bg-falcon-border'
+                          rule.enabled ? 'bg-blue-600' : 'bg-[#1e2d42]'
                         }`}>
-                          <div className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-falcon-text shadow transition-transform ${
+                          <div className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-[#e2e8f4] shadow-sm transition-transform ${
                             rule.enabled ? 'translate-x-5' : 'translate-x-0'
                           }`} />
                         </div>
@@ -1020,7 +1000,7 @@ function ProcessBlockRulesTab() {
           </div>
 
           {/* テーブルフッター (件数) */}
-          <div className="px-4 py-2.5 border-t border-falcon-border text-xs text-[#8899aa]">
+          <div className="px-4 py-2.5 border-t border-[#1e2d42] text-xs text-[#8899aa]">
             {rules.length} 件 / 合計 {rulesRaw?.total ?? rules.length} 件
           </div>
         </div>
@@ -1176,6 +1156,7 @@ export default function GroupPoliciesPage() {
 
   return (
     <div className="min-h-screen bg-[#070d19] p-6 space-y-6">
+      <PageDataUnavailable />
 
       {/* ─── ページヘッダー ─────────────────────────────────────────────── */}
       <div className="flex items-start justify-between gap-4">
@@ -1195,15 +1176,14 @@ export default function GroupPoliciesPage() {
             <button
               onClick={() => { refetch(); qc.invalidateQueries({ queryKey: ['agent-groups'] }) }}
               disabled={isFetching}
-              className="p-2 text-[#8899aa] hover:text-white transition-colors disabled:opacity-50 rounded-lg hover:bg-falcon-surface"
+              className="p-2 text-[#8899aa] hover:text-white transition-colors disabled:opacity-50 rounded-lg hover:bg-[#0d1220]"
               title="更新"
             >
               <RefreshCw className={`w-5 h-5 ${isFetching ? 'animate-spin' : ''}`} />
             </button>
             <button
               onClick={() => { setShowCreate(true); setError(null) }}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg
-                         hover:bg-blue-500 transition-colors text-sm"
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-500 transition-colors text-sm"
             >
               <Plus className="w-4 h-4" />
               新しいポリシーを作成
@@ -1213,13 +1193,13 @@ export default function GroupPoliciesPage() {
       </div>
 
       {/* ─── タブナビゲーション ─────────────────────────────────────────── */}
-      <div className="flex gap-1 border-b border-falcon-border">
+      <div className="flex gap-1 border-b border-[#1e2d42]">
         <button
           onClick={() => setActiveTab('policies')}
           className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px ${
             activeTab === 'policies'
               ? 'border-blue-500 text-blue-400'
-              : 'border-transparent text-[#8899aa] hover:text-white hover:border-falcon-border'
+              : 'border-transparent text-[#8899aa] hover:text-white hover:border-[#1e2d42]'
           }`}
         >
           <Shield className="w-4 h-4" />
@@ -1230,7 +1210,7 @@ export default function GroupPoliciesPage() {
           className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px ${
             activeTab === 'process-block'
               ? 'border-red-500 text-red-400'
-              : 'border-transparent text-[#8899aa] hover:text-white hover:border-falcon-border'
+              : 'border-transparent text-[#8899aa] hover:text-white hover:border-[#1e2d42]'
           }`}
         >
           <Ban className="w-4 h-4" />
@@ -1263,7 +1243,7 @@ export default function GroupPoliciesPage() {
               { label: 'デフォルトポリシー',    value: defaultCount,     color: 'text-green-400' },
               { label: 'グループ固有ポリシー',  value: groupCount,       color: 'text-purple-400' },
             ].map(({ label, value, color }) => (
-              <div key={label} className="bg-falcon-surface rounded-xl border border-falcon-border px-5 py-4">
+              <div key={label} className="bg-[#0d1220] rounded-xl border border-[#1e2d42] px-5 py-4">
                 <p className="text-[#8899aa] text-xs">{label}</p>
                 <p className={`text-2xl font-bold mt-1 ${color}`}>{value}</p>
               </div>
@@ -1276,14 +1256,13 @@ export default function GroupPoliciesPage() {
               <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
             </div>
           ) : policies.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-48 bg-falcon-surface rounded-xl border border-falcon-border">
-              <Shield className="w-12 h-12 text-falcon-border mb-3" />
+            <div className="flex flex-col items-center justify-center h-48 bg-[#0d1220] rounded-xl border border-[#1e2d42]">
+              <Shield className="w-12 h-12 text-[#1e2d42] mb-3" />
               <p className="text-[#8899aa] text-sm font-medium">ポリシーがありません</p>
               <p className="text-[#4a5568] text-xs mt-1">「新しいポリシーを作成」からポリシーを追加してください</p>
               <button
                 onClick={() => { setShowCreate(true); setError(null) }}
-                className="mt-4 flex items-center gap-1.5 px-4 py-2 bg-blue-600/20 text-blue-300
-                           border border-blue-600/50 rounded-lg text-sm hover:bg-blue-600/30 transition-colors"
+                className="mt-4 flex items-center gap-1.5 px-4 py-2 bg-blue-600/20 text-blue-300 border border-blue-600/50 rounded-lg text-sm hover:bg-blue-600/30 transition-colors"
               >
                 <Plus className="w-4 h-4" />
                 ポリシーを作成

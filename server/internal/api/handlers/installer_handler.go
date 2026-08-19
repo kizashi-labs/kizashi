@@ -65,6 +65,10 @@ func (h *InstallerHandler) ListTokens(c *gin.Context) {
 			tokens = append(tokens, tk)
 		}
 	}
+	if err := rows.Err(); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": dbErrMsg(err)})
+		return
+	}
 	if tokens == nil {
 		tokens = []installerToken{}
 	}

@@ -125,9 +125,16 @@ func scanSuspiciousMemoryStats(scan func([]byte) []string) ([]MemoryFinding, Mem
 			continue
 		}
 		procStart := time.Now()
-		f, cost, opened := scanProcessMemoryStats(p.pid, p.name, scan)
-		if !opened {
+		f, cost, skip := scanProcessMemoryStats(p.pid, p.name, scan)
+		switch skip {
+		case skipDenied:
+			// **開こうとして断られました。** この中は見ていません。
+			// SeDebugPrivilege の無い端末では、ここがほぼ全部です。
 			st.SkippedUnreadable++
+			continue
+		case skipGone:
+			// 走査するまでに終了していました。**正常です。**
+			st.SkippedGone++
 			continue
 		}
 		st.observeProcess(int(p.pid), p.name, cost.regions, time.Since(procStart))
@@ -180,16 +187,20 @@ type procScanCost struct {
 
 // scanProcessMemoryStats is scanProcessMemory plus per-process cost accounting
 // and, when scan is non-nil, in-memory YARA over each RWX region's bytes.
-// opened=false means no access — a system process without SeDebugPrivilege, or
+// skip != skipNone means the process was not walked: skipDenied is no access
+// (a system process without SeDebugPrivilege — **its contents were not
+// looked at**), skipGone is a process that had already exited. They are
+// counted separately because only the first is a blind spot; conflating them
+// made the number unusable for deciding whether a host can see anything, or
 // one that exited mid-scan.
 //
 // Content scanning happens here, while the process handle is already open,
 // rather than in a second pass: reopening the process per region would cost an
 // extra OpenProcess for every RWX region, and the MEMORY_BASIC_INFORMATION
 // needed to exclude guard pages is only available inside this walk.
-func scanProcessMemoryStats(pid uint32, name string, scan func([]byte) []string) (findings []MemoryFinding, cost procScanCost, opened bool) {
+func scanProcessMemoryStats(pid uint32, name string, scan func([]byte) []string) (findings []MemoryFinding, cost procScanCost, skip skipReason) {
 	if pid == 0 {
-		return nil, cost, false
+		return nil, cost, skipGone // System Idle Process。開く対象ではありません
 	}
 	// Ask for VM_READ so region contents can be scanned, but fall back to
 	// query-only access when it is refused: losing content scanning for one
@@ -200,7 +211,11 @@ func scanProcessMemoryStats(pid uint32, name string, scan func([]byte) []string)
 	if err != nil {
 		h, err = syswin.OpenProcess(processQueryInformation, false, pid)
 		if err != nil {
-			return nil, cost, false // no access (needs SeDebugPrivilege) — skip
+			// **断られたのか、もう居ないのか。** SeDebugPrivilege が
+			// 無い端末ではシステムプロセスがほぼ全部ここに来ます ——
+			// その中は見ていません。走査中に終了したプロセスと同じ数に
+			// 入れると、その区別がつかなくなります。
+			return nil, cost, classifySkip(err)
 		}
 	}
 	defer syswin.CloseHandle(h)
@@ -253,6 +268,10 @@ func scanProcessMemoryStats(pid uint32, name string, scan func([]byte) []string)
 			if data := readRegion(h, mbi.BaseAddress, mbi.RegionSize); len(data) > 0 {
 				cost.yaraRegions++
 				cost.yaraBytes += int64(len(data))
+				// Same bytes, second question: YARA asks "is this a *known*
+				// implant", entropy asks "is this packed at all". A fresh
+				// payload matches no curated rule but still reads as ciphertext.
+				annotateEntropy(&f, data)
 				if names := scan(data); len(names) > 0 {
 					f.YARAMatched = true
 					f.Reason = "メモリ内YARA一致(" + strings.Join(names, ",") + "): " + f.Reason
@@ -261,7 +280,7 @@ func scanProcessMemoryStats(pid uint32, name string, scan func([]byte) []string)
 		}
 		out = append(out, f)
 	}
-	return out, cost, true
+	return out, cost, skipNone
 }
 
 // ScanSuspiciousMemoryWithYARA is ScanSuspiciousMemory plus content inspection:
@@ -288,5 +307,8 @@ func ScanSuspiciousMemoryWithYARAStats(scan func([]byte) []string) ([]MemoryFind
 	}
 	st.EmittedFindings = len(out)
 	st.Duration = time.Since(start)
+	// **走査できなかったことを、端末の外に出します。** Windows では
+	// SeDebugPrivilege が無いとシステムプロセスがほぼ全部ここに落ちます。
+	st.report()
 	return out, st
 }

@@ -18,6 +18,9 @@ import {
   AlertCircle,
 } from 'lucide-react'
 
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+import { PageSaveFailed } from '@/components/PageSaveFailed'
+
 // ─── 型定義 ──────────────────────────────────────────────────────────────────
 
 interface NotifChannel {
@@ -199,7 +202,7 @@ function ToggleSwitch({
                   ${checked ? 'bg-blue-600' : 'bg-gray-600'}`}
     >
       <span
-        className={`pointer-events-none inline-block h-4 w-4 rounded-full bg-falcon-text shadow
+        className={`pointer-events-none inline-block h-4 w-4 rounded-full bg-[#e2e8f4] shadow-sm
                     transform transition-transform duration-200
                     ${checked ? 'translate-x-4' : 'translate-x-0'}`}
       />
@@ -232,7 +235,7 @@ function Field({
 const inputClass =
   'w-full px-3 py-2 text-sm border border-gray-700 rounded-lg ' +
   'bg-gray-900 text-white placeholder-gray-600 ' +
-  'focus:outline-hidden focus:border-blue-500 transition-colors'
+  'focus:outline-none focus:border-blue-500 transition-colors'
 
 // ─── 設定フォーム(タイプ別) ───────────────────────────────────────────────────
 
@@ -331,10 +334,10 @@ function EmailFields({
               key={i}
               type="button"
               onClick={() => applyPreset(i)}
-              className={`px-3 py-1.5 text-xs rounded border transition-colors ${
+              className={`px-3 py-1.5 text-xs rounded-sm border transition-colors ${
                 (p.host && p.host === form.smtp_host)
                   ? 'bg-blue-600/30 border-blue-500 text-blue-300'
-                  : 'bg-[#070d19] border-falcon-border text-[#8899aa] hover:border-[#4a6fa5]'
+                  : 'bg-[#070d19] border-[#1e2d42] text-[#8899aa] hover:border-[#4a6fa5]'
               }`}
             >
               {p.label}
@@ -559,17 +562,14 @@ function ChannelModal({
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-sm text-gray-400 hover:text-white
-                         bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
+              className="px-4 py-2 text-sm text-gray-400 hover:text-white bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
             >
               キャンセル
             </button>
             <button
               type="submit"
               disabled={saveMutation.isPending}
-              className="px-5 py-2 text-sm font-medium text-white
-                         bg-blue-600 hover:bg-blue-500 disabled:opacity-50
-                         rounded-lg transition-colors"
+              className="px-5 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-500 disabled:opacity-50 rounded-lg transition-colors"
             >
               {saveMutation.isPending ? '保存中…' : '保存'}
             </button>
@@ -603,8 +603,7 @@ function ChannelCard({
   const isThisTestResult = testResult?.channelId === channel.id
 
   return (
-    <div className="bg-gray-800 border border-gray-700 rounded-xl p-5 flex flex-col gap-4
-                    hover:border-gray-600 transition-colors">
+    <div className="bg-gray-800 border border-gray-700 rounded-xl p-5 flex flex-col gap-4 hover:border-gray-600 transition-colors">
 
       {/* 上部: アイコン + 名前 + バッジ + トグル */}
       <div className="flex items-start justify-between gap-3">
@@ -659,9 +658,7 @@ function ChannelCard({
       <div className="flex items-center gap-2 pt-1">
         <button
           onClick={() => onEdit(channel)}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-gray-400
-                     hover:text-white bg-gray-700 hover:bg-gray-600
-                     rounded-lg transition-colors"
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-gray-400 hover:text-white bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
         >
           <Pencil className="w-3.5 h-3.5" />
           編集
@@ -669,19 +666,14 @@ function ChannelCard({
         <button
           onClick={() => onTest(channel)}
           disabled={testLoading && isThisTestResult}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-blue-400
-                     hover:text-white bg-blue-900/30 hover:bg-blue-800/50
-                     border border-blue-800/50 rounded-lg transition-colors
-                     disabled:opacity-50"
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-blue-400 hover:text-white bg-blue-900/30 hover:bg-blue-800/50 border border-blue-800/50 rounded-lg transition-colors disabled:opacity-50"
         >
           <Send className="w-3.5 h-3.5" />
           {testLoading && isThisTestResult ? '送信中…' : 'テスト送信'}
         </button>
         <button
           onClick={() => onDelete(channel)}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-red-400
-                     hover:text-white bg-red-900/20 hover:bg-red-900/40
-                     border border-red-800/40 rounded-lg transition-colors ml-auto"
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-red-400 hover:text-white bg-red-900/20 hover:bg-red-900/40 border border-red-800/40 rounded-lg transition-colors ml-auto"
         >
           <Trash2 className="w-3.5 h-3.5" />
           削除
@@ -721,17 +713,14 @@ function DeleteConfirmDialog({
         <div className="flex items-center justify-end gap-3">
           <button
             onClick={onCancel}
-            className="px-4 py-2 text-sm text-gray-400 hover:text-white
-                       bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
+            className="px-4 py-2 text-sm text-gray-400 hover:text-white bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
           >
             キャンセル
           </button>
           <button
             onClick={onConfirm}
             disabled={isPending}
-            className="px-4 py-2 text-sm font-medium text-white
-                       bg-red-700 hover:bg-red-600 disabled:opacity-50
-                       rounded-lg transition-colors"
+            className="px-4 py-2 text-sm font-medium text-white bg-red-700 hover:bg-red-600 disabled:opacity-50 rounded-lg transition-colors"
           >
             {isPending ? '削除中…' : '削除する'}
           </button>
@@ -757,11 +746,9 @@ export default function AdminNotificationsPage() {
   const { data, isLoading, isError, error } = useQuery<ChannelListResponse>({
     queryKey: ['admin-notifications'],
     queryFn: async () => {
-      try {
-        const res = await apiFetch<ChannelListResponse>('/api/v1/admin/notifications')
-        if (res && typeof res === 'object' && 'channels' in res) return res
-        return { channels: [] }
-      } catch { return { channels: [] } }
+      const res = await apiFetch<ChannelListResponse>('/api/v1/admin/notifications')
+      if (res && typeof res === 'object' && 'channels' in res) return res
+      return { channels: [] }
     },
   })
 
@@ -826,6 +813,8 @@ export default function AdminNotificationsPage() {
 
   return (
     <div className="p-6 space-y-6">
+      <PageDataUnavailable />
+      <PageSaveFailed className="mb-4" />
 
       {/* ─── ヘッダー ──────────────────────────────────────────────────── */}
       <div className="flex items-start justify-between gap-4">
@@ -840,8 +829,7 @@ export default function AdminNotificationsPage() {
         </div>
         <button
           onClick={openAdd}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500
-                     text-white text-sm font-medium rounded-lg transition-colors shrink-0"
+          className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-lg transition-colors shrink-0"
         >
           <Plus className="w-4 h-4" />
           チャンネルを追加
@@ -867,14 +855,12 @@ export default function AdminNotificationsPage() {
 
       {/* ─── 空状態 ────────────────────────────────────────────────────── */}
       {!isLoading && !isError && channels.length === 0 && (
-        <div className="flex flex-col items-center justify-center h-56
-                        bg-gray-800 border border-gray-700 rounded-xl text-gray-500">
+        <div className="flex flex-col items-center justify-center h-56 bg-gray-800 border border-gray-700 rounded-xl text-gray-500">
           <Bell className="w-12 h-12 mb-3 opacity-20" />
           <p className="text-sm">通知チャンネルがまだ登録されていません</p>
           <button
             onClick={openAdd}
-            className="mt-4 flex items-center gap-1.5 text-sm text-blue-400
-                       hover:text-blue-300 transition-colors"
+            className="mt-4 flex items-center gap-1.5 text-sm text-blue-400 hover:text-blue-300 transition-colors"
           >
             <Plus className="w-4 h-4" />
             最初のチャンネルを追加する

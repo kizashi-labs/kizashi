@@ -148,8 +148,39 @@ message HeartbeatRequest {
   string agent_version    = 2;
   repeated string ip_addresses = 3;
   uint64 events_buffered  = 4;
-  double cpu_usage        = 5;
-  double memory_usage_mb  = 6;
+  // cpu_usage is the endpoint's CPU utilisation, as a percentage.
+  //
+  // optional にしてあるのは、**「測れなかった」と「0%」を区別するため**です。
+  // proto3 の素の double では 0 が既定値なので、測っていない端末も
+  // 「CPU 0%」を報告します。サーバは `agents.cpu_usage` にそのまま書き、
+  // フリート健全性アラータの高CPU判定は**一度も発火できません。**
+  //
+  // 実際そうなっていました。エージェントの getCPUUsage() は全プラットフォームで
+  // 0.0 を返す仮実装（「Simplified - real implementation reads /proc/stat」）で、
+  // すべての端末が恒久的に「CPU 0%」でした。
+  //
+  // 送らない = 測れなかった、です。旧いエージェントは 0 を送らない
+  // （proto3 は既定値を載せません）ので、新しいサーバからは「未測定」に
+  // 見えます —— それが実際の状態なので、正しく倒れます。
+  optional double cpu_usage = 5;
+
+  // memory_usage_mb is the ENDPOINT's memory in use, in MB.
+  //
+  // **エージェント自身の使用量ではありません。** 以前は
+  // `runtime.MemStats.Sys`（Go ランタイムが OS から取った量）を送って
+  // いました。サーバはそれを `agents.memory_usage_mb` に書き、
+  // フリート健全性アラータが端末のメモリ使用率として読みます ——
+  // **測れていないのではなく、別のものを測っていました。**
+  //
+  // cpu_usage と同じく optional です。送らない = 測れなかった。
+  optional double memory_usage_mb = 6;
+
+  // total_memory_mb is the ENDPOINT's physical memory, in MB.
+  //
+  // アラータは `memory_usage_mb / total_memory_mb * 100` で使用率を出しますが、
+  // **この列を書く箇所が本番に1つもありませんでした。** 分母が常に NULL
+  // なので、メモリ判定は一度も発火できません。使用量と同じ経路で送ります。
+  optional double total_memory_mb = 11;
   AgentStatus status      = 7;
   uint64 config_version   = 8;
   string hostname         = 9;

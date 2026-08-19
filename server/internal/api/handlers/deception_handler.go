@@ -24,19 +24,11 @@ func NewDeceptionHandler(pool *pgxpool.Pool) *DeceptionHandler {
 }
 
 func (h *DeceptionHandler) checkTrapsTable(c *gin.Context) bool {
-	ctx := c.Request.Context()
-	var exists bool
-	err := h.pool.QueryRow(ctx,
-		`SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name='deception_traps')`).Scan(&exists)
-	return err == nil && exists
+	return tableIsThere(c.Request.Context(), h.pool, "deception_traps")
 }
 
 func (h *DeceptionHandler) checkEventsTable(c *gin.Context) bool {
-	ctx := c.Request.Context()
-	var exists bool
-	err := h.pool.QueryRow(ctx,
-		`SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name='deception_events')`).Scan(&exists)
-	return err == nil && exists
+	return tableIsThere(c.Request.Context(), h.pool, "deception_events")
 }
 
 type deceptionTrap struct {
@@ -457,7 +449,7 @@ func (h *DeceptionHandler) ListAssets(c *gin.Context) {
 		FROM deception_assets ORDER BY status, name
 	`)
 	if err != nil {
-		c.JSON(http.StatusOK, gin.H{"assets": []any{}})
+		ReadFailure(c, err, gin.H{"assets": []any{}})
 		return
 	}
 	defer rows.Close()

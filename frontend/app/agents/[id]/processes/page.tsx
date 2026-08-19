@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, use } from 'react'
+import { useState } from 'react'
 import Link from 'next/link'
 import { useQuery } from '@tanstack/react-query'
 import { apiFetch } from '@/lib/api'
@@ -14,6 +14,8 @@ import {
   ChevronLeft,
   Cpu,
 } from 'lucide-react'
+
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
 
 // ─── 型定義 ───────────────────────────────────────────────────────────────────
 
@@ -133,10 +135,8 @@ function RuleSeverityBadge({ severity }: { severity: string }) {
 
 // ─── メインページ ─────────────────────────────────────────────────────────────
 
-// Next.js 15 以降、動的セグメントの params は Promise で渡る。
-// クライアントコンポーネントでは React の use() で解決する。
-export default function ProcessesPage({ params }: { params: Promise<{ id: string }> }) {
-  const agentId = use(params).id
+export default function ProcessesPage({ params }: { params: { id: string } }) {
+  const agentId = params.id
   const [search, setSearch] = useState('')
   const [autoRefresh, setAutoRefresh] = useState(true)
 
@@ -199,6 +199,7 @@ export default function ProcessesPage({ params }: { params: Promise<{ id: string
 
   return (
     <div className="min-h-screen bg-gray-900">
+      <PageDataUnavailable />
       <div className="max-w-7xl mx-auto p-6 space-y-6">
 
         {/* ── 戻るリンク ── */}
@@ -419,7 +420,7 @@ export default function ProcessesPage({ params }: { params: Promise<{ id: string
                       </td>
                       <td className="px-4 py-2.5">
                         <span
-                          className={`px-2 py-0.5 rounded text-xs font-medium ${
+                          className={`px-2 py-0.5 rounded-sm text-xs font-medium ${
                             rule.enabled
                               ? 'bg-green-900/40 text-green-300'
                               : 'bg-gray-700 text-gray-500'

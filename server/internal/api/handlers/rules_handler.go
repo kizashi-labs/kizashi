@@ -48,18 +48,13 @@ func (h *RuleHandler) publishInvalidate() {
 func (h *RuleHandler) List(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	perPage, _ := strconv.Atoi(c.DefaultQuery("per_page", "20"))
-	if page < 1 {
-		page = 1
-	}
-	if perPage < 1 || perPage > 100 {
-		perPage = 20
-	}
+	page, perPage, offset := clampPageParams(page, perPage, 20, 100)
 
 	filter := store.RuleFilter{
 		Type:   c.Query("type"),
 		Search: c.Query("search"),
 		Limit:  perPage,
-		Offset: (page - 1) * perPage,
+		Offset: offset,
 	}
 
 	if enabledStr := c.Query("enabled"); enabledStr != "" {
@@ -300,8 +295,12 @@ func (h *RuleHandler) Test(c *gin.Context) {
 	var req struct {
 		SampleEvent map[string]interface{} `json:"sample_event"`
 	}
-	if err := c.ShouldBindJSON(&req); err != nil || req.SampleEvent == nil {
-		// Use a minimal default event so the test can at least run
+	// 本文が壊れているときに既定のイベントで試しません。利用者が送った
+	// イベントとは別のもので「一致しました」と答えることになります。
+	if !OptionalBody(c, &req) {
+		return
+	}
+	if req.SampleEvent == nil {
 		req.SampleEvent = map[string]interface{}{"event_type": "test"}
 	}
 

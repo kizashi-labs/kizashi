@@ -1,4 +1,5 @@
 import '@testing-library/jest-dom'
+import { vi } from 'vitest'
 
 // グローバルな EventSource モック
 class MockEventSource {

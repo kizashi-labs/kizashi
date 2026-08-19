@@ -28,7 +28,7 @@ func NewYARASyncScheduler(yaraStore *store.YARAStore, githubToken string, interv
 func (s *YARASyncScheduler) Run(ctx context.Context) {
 	slog.Info("YARASyncScheduler: 開始", "interval", s.interval)
 
-	s.runOnce(ctx)
+	trackRun(ctx, "yara_sync_scheduler", s.runOnce)
 
 	ticker := time.NewTicker(s.interval)
 	defer ticker.Stop()
@@ -38,7 +38,7 @@ func (s *YARASyncScheduler) Run(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			s.runOnce(ctx)
+			trackRun(ctx, "yara_sync_scheduler", s.runOnce)
 		}
 	}
 }
@@ -50,7 +50,7 @@ func (s *YARASyncScheduler) runOnce(ctx context.Context) {
 	}
 	slog.Info("YARASyncScheduler: YARA コミュニティルール同期を開始します")
 	if err := s.syncer.Sync(ctx, false, nil); err != nil {
-		slog.Error("YARASyncScheduler: 同期に失敗しました", "error", err)
+		fail(ctx, err, "YARASyncScheduler: 同期に失敗しました")
 		return
 	}
 	st := s.syncer.Status()

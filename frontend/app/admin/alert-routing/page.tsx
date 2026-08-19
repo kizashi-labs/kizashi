@@ -3,7 +3,10 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { apiFetch } from '@/lib/api'
+import { mockOr } from '@/lib/mock'
 import { Plus, GripVertical, Pencil, Trash2, Settings, Send, ToggleLeft, ToggleRight, Bell } from 'lucide-react'
+
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
 
 interface RoutingRule {
   id: string
@@ -28,6 +31,9 @@ interface RoutingData {
   rules: RoutingRule[]
   destinations: Destination[]
 }
+
+// 取得できなかったときに出すもの。MOCK は USE_MOCK のときだけです。
+const EMPTY: RoutingData = { rules: [], destinations: [] }
 
 const MOCK: RoutingData = {
   rules: [
@@ -83,20 +89,21 @@ export default function AlertRoutingPage() {
 
   const { data } = useQuery<RoutingData>({
     queryKey: ['alert-routing'],
-    queryFn: () => apiFetch<RoutingData>('/api/v1/admin/alert-routing').catch(() => MOCK),
+    queryFn: () => apiFetch<RoutingData>('/api/v1/admin/alert-routing'),
   })
 
-  const d = data ?? MOCK
+  const d = data ?? mockOr(MOCK, EMPTY)
 
   return (
     <div className="min-h-screen bg-[#070d19] text-white p-6 space-y-6">
+      <PageDataUnavailable />
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">インテリジェントアラートルーティング</h1>
-          <p className="text-falcon-muted text-sm mt-1">アラートを条件に基づき自動的に適切な宛先へルーティングします</p>
+          <p className="text-[#7d92b0] text-sm mt-1">アラートを条件に基づき自動的に適切な宛先へルーティングします</p>
         </div>
-        <button onClick={() => setShowForm(true)} className="flex items-center gap-2 bg-falcon-red hover:bg-[#c8001d] text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+        <button onClick={() => setShowForm(true)} className="flex items-center gap-2 bg-[#e8002d] hover:bg-[#c8001d] text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
           <Plus size={16} /> {tab === 'rules' ? '新規ルール' : '新規宛先'}
         </button>
       </div>
@@ -104,17 +111,17 @@ export default function AlertRoutingPage() {
       {/* Stats */}
       <div className="grid grid-cols-4 gap-4">
         {STATS.map(s => (
-          <div key={s.label} className="bg-falcon-surface border border-falcon-border rounded-xl p-4">
+          <div key={s.label} className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-4">
             <div className="text-2xl font-bold text-white">{s.value}</div>
-            <div className="text-falcon-muted text-sm mt-1">{s.label}</div>
+            <div className="text-[#7d92b0] text-sm mt-1">{s.label}</div>
           </div>
         ))}
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 bg-falcon-surface border border-falcon-border rounded-lg p-1 w-fit">
+      <div className="flex gap-1 bg-[#0d1220] border border-[#1e2d42] rounded-lg p-1 w-fit">
         {(['rules', 'destinations'] as const).map(t => (
-          <button key={t} onClick={() => setTab(t)} className={`px-5 py-2 rounded-md text-sm font-medium transition-colors ${tab === t ? 'bg-falcon-border text-white' : 'text-falcon-muted hover:text-white'}`}>
+          <button key={t} onClick={() => setTab(t)} className={`px-5 py-2 rounded-md text-sm font-medium transition-colors ${tab === t ? 'bg-[#1e2d42] text-white' : 'text-[#7d92b0] hover:text-white'}`}>
             {t === 'rules' ? 'ルーティングルール' : '通知宛先'}
           </button>
         ))}
@@ -123,30 +130,30 @@ export default function AlertRoutingPage() {
       {/* Tab 1: Rules */}
       {tab === 'rules' && (
         <div className="space-y-3">
-          <p className="text-falcon-muted text-xs flex items-center gap-1">
+          <p className="text-[#7d92b0] text-xs flex items-center gap-1">
             <Bell size={12} /> ルールは優先度順に評価されます
           </p>
           {d.rules.map(rule => (
-            <div key={rule.id} className={`bg-falcon-surface border rounded-xl p-4 flex items-center gap-4 ${rule.enabled ? 'border-falcon-border' : 'border-falcon-border opacity-60'}`}>
-              <GripVertical size={18} className="text-falcon-muted cursor-grab shrink-0" />
-              <div className="w-8 h-8 rounded-full bg-falcon-border flex items-center justify-center text-sm font-bold text-falcon-red shrink-0">{rule.priority}</div>
+            <div key={rule.id} className={`bg-[#0d1220] border rounded-xl p-4 flex items-center gap-4 ${rule.enabled ? 'border-[#1e2d42]' : 'border-[#1e2d42] opacity-60'}`}>
+              <GripVertical size={18} className="text-[#7d92b0] cursor-grab shrink-0" />
+              <div className="w-8 h-8 rounded-full bg-[#1e2d42] flex items-center justify-center text-sm font-bold text-[#e8002d] shrink-0">{rule.priority}</div>
               <div className="flex-1 min-w-0">
                 <div className="font-medium text-white text-sm">{rule.name}</div>
-                <div className="text-falcon-muted text-xs mt-0.5 font-mono">{rule.condition}</div>
+                <div className="text-[#7d92b0] text-xs mt-0.5 font-mono">{rule.condition}</div>
                 <div className="flex flex-wrap gap-1.5 mt-2">
                   {rule.destinations.map(dest => <DestBadge key={dest} type={dest} />)}
                 </div>
               </div>
               <div className="text-right shrink-0 space-y-1">
                 <div className="text-white text-sm font-semibold">{(rule.hit_count ?? 0).toLocaleString()} hits</div>
-                <div className="text-falcon-muted text-xs">最終マッチ: {fmtTime(rule.last_matched_at)}</div>
+                <div className="text-[#7d92b0] text-xs">最終マッチ: {fmtTime(rule.last_matched_at)}</div>
               </div>
               <div className="flex items-center gap-2 shrink-0">
                 {rule.enabled
                   ? <ToggleRight size={22} className="text-green-400 cursor-pointer" />
-                  : <ToggleLeft size={22} className="text-falcon-muted cursor-pointer" />}
-                <button className="p-1.5 rounded-sm hover:bg-falcon-border text-falcon-muted hover:text-white transition-colors"><Pencil size={14} /></button>
-                <button className="p-1.5 rounded-sm hover:bg-falcon-border text-falcon-muted hover:text-falcon-red transition-colors"><Trash2 size={14} /></button>
+                  : <ToggleLeft size={22} className="text-[#7d92b0] cursor-pointer" />}
+                <button className="p-1.5 rounded-sm hover:bg-[#1e2d42] text-[#7d92b0] hover:text-white transition-colors"><Pencil size={14} /></button>
+                <button className="p-1.5 rounded-sm hover:bg-[#1e2d42] text-[#7d92b0] hover:text-[#e8002d] transition-colors"><Trash2 size={14} /></button>
               </div>
             </div>
           ))}
@@ -159,7 +166,7 @@ export default function AlertRoutingPage() {
           {d.destinations.map(dest => {
             const s = DEST_STYLES[dest.type] ?? DEST_STYLES.email
             return (
-              <div key={dest.id} className="bg-falcon-surface border border-falcon-border rounded-xl p-4 space-y-3">
+              <div key={dest.id} className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-4 space-y-3">
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-3">
                     <span className="text-2xl">{DEST_ICONS[dest.type]}</span>
@@ -168,16 +175,16 @@ export default function AlertRoutingPage() {
                       <span className={`text-xs px-2 py-0.5 rounded-full ${s.bg} ${s.text}`}>{s.label}</span>
                     </div>
                   </div>
-                  <button className="p-1.5 rounded-sm hover:bg-falcon-border text-falcon-muted hover:text-white transition-colors"><Settings size={14} /></button>
+                  <button className="p-1.5 rounded-sm hover:bg-[#1e2d42] text-[#7d92b0] hover:text-white transition-colors"><Settings size={14} /></button>
                 </div>
                 <div className="flex items-center justify-between text-xs">
-                  <span className={`flex items-center gap-1 ${dest.enabled ? 'text-green-400' : 'text-falcon-muted'}`}>
+                  <span className={`flex items-center gap-1 ${dest.enabled ? 'text-green-400' : 'text-[#7d92b0]'}`}>
                     <span className={`w-1.5 h-1.5 rounded-full ${dest.enabled ? 'bg-green-400' : 'bg-gray-500'}`} />
                     {dest.enabled ? 'アクティブ' : '無効'}
                   </span>
-                  <span className="text-falcon-muted">最終: {fmtTime(dest.last_used_at)}</span>
+                  <span className="text-[#7d92b0]">最終: {fmtTime(dest.last_used_at)}</span>
                 </div>
-                <button className="w-full flex items-center justify-center gap-2 border border-falcon-border hover:border-falcon-red hover:text-falcon-red text-falcon-muted rounded-lg py-2 text-xs font-medium transition-colors">
+                <button className="w-full flex items-center justify-center gap-2 border border-[#1e2d42] hover:border-[#e8002d] hover:text-[#e8002d] text-[#7d92b0] rounded-lg py-2 text-xs font-medium transition-colors">
                   <Send size={12} /> テスト送信
                 </button>
               </div>
@@ -187,7 +194,7 @@ export default function AlertRoutingPage() {
       )}
 
       {/* Routing Statistics */}
-      <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5 space-y-4">
+      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5 space-y-4">
         <h2 className="font-semibold text-white">今日のルーティングサマリー</h2>
         <div className="grid grid-cols-2 gap-6">
           <div className="space-y-3">
@@ -200,11 +207,11 @@ export default function AlertRoutingPage() {
             ].map(item => (
               <div key={item.label} className="space-y-1">
                 <div className="flex justify-between text-xs">
-                  <span className="text-falcon-muted">{item.label}</span>
+                  <span className="text-[#7d92b0]">{item.label}</span>
                   <span className="text-white font-medium">{(item.count ?? 0).toLocaleString()}</span>
                 </div>
-                <div className="h-2 bg-falcon-border rounded-full overflow-hidden">
-                  <div className="h-full bg-falcon-red rounded-full transition-all" style={{ width: `${(item.count / item.max) * 100}%` }} />
+                <div className="h-2 bg-[#1e2d42] rounded-full overflow-hidden">
+                  <div className="h-full bg-[#e8002d] rounded-full transition-all" style={{ width: `${(item.count / item.max) * 100}%` }} />
                 </div>
               </div>
             ))}
@@ -214,11 +221,11 @@ export default function AlertRoutingPage() {
               { label: '総ルーティング数', value: '6,801', color: 'text-white' },
               { label: '正常送信', value: '6,749', color: 'text-green-400' },
               { label: 'リトライ', value: '38', color: 'text-yellow-400' },
-              { label: '失敗', value: '14', color: 'text-falcon-red' },
+              { label: '失敗', value: '14', color: 'text-[#e8002d]' },
             ].map(item => (
-              <div key={item.label} className="bg-[#070d19] rounded-lg p-3 border border-falcon-border">
+              <div key={item.label} className="bg-[#070d19] rounded-lg p-3 border border-[#1e2d42]">
                 <div className={`text-xl font-bold ${item.color}`}>{item.value}</div>
-                <div className="text-falcon-muted text-xs mt-1">{item.label}</div>
+                <div className="text-[#7d92b0] text-xs mt-1">{item.label}</div>
               </div>
             ))}
           </div>
@@ -228,20 +235,20 @@ export default function AlertRoutingPage() {
       {/* Simple Form Modal */}
       {showForm && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-          <div className="bg-falcon-surface border border-falcon-border rounded-xl p-6 w-full max-w-md space-y-4">
+          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-6 w-full max-w-md space-y-4">
             <h3 className="font-semibold text-white">{tab === 'rules' ? '新規ルーティングルール' : '新規通知宛先'}</h3>
             <div className="space-y-3">
-              <input placeholder="名前" className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-sm text-white placeholder-falcon-muted focus:outline-hidden focus:border-falcon-red" />
+              <input placeholder="名前" className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-white placeholder-[#7d92b0] focus:outline-hidden focus:border-[#e8002d]" />
               {tab === 'rules'
-                ? <input placeholder="条件 (例: severity=critical AND type=malware)" className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-sm text-white placeholder-falcon-muted font-mono focus:outline-hidden focus:border-falcon-red" />
-                : <select className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-sm text-white focus:outline-hidden focus:border-falcon-red">
+                ? <input placeholder="条件 (例: severity=critical AND type=malware)" className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-white placeholder-[#7d92b0] font-mono focus:outline-hidden focus:border-[#e8002d]" />
+                : <select className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-white focus:outline-hidden focus:border-[#e8002d]">
                     {Object.keys(DEST_STYLES).map(t => <option key={t} value={t}>{DEST_STYLES[t].label}</option>)}
                   </select>
               }
             </div>
             <div className="flex gap-3 pt-2">
-              <button className="flex-1 bg-falcon-red hover:bg-[#c8001d] text-white rounded-lg py-2 text-sm font-medium transition-colors">作成</button>
-              <button onClick={() => setShowForm(false)} className="flex-1 border border-falcon-border hover:border-falcon-muted text-falcon-muted hover:text-white rounded-lg py-2 text-sm font-medium transition-colors">キャンセル</button>
+              <button className="flex-1 bg-[#e8002d] hover:bg-[#c8001d] text-white rounded-lg py-2 text-sm font-medium transition-colors">作成</button>
+              <button onClick={() => setShowForm(false)} className="flex-1 border border-[#1e2d42] hover:border-[#7d92b0] text-[#7d92b0] hover:text-white rounded-lg py-2 text-sm font-medium transition-colors">キャンセル</button>
             </div>
           </div>
         </div>

@@ -27,19 +27,11 @@ func NewContextEnrichmentHandler(pool *pgxpool.Pool) *ContextEnrichmentHandler {
 }
 
 func (h *ContextEnrichmentHandler) checkSourcesTable(c *gin.Context) bool {
-	ctx := c.Request.Context()
-	var exists bool
-	err := h.pool.QueryRow(ctx,
-		`SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name='enrichment_sources')`).Scan(&exists)
-	return err == nil && exists
+	return tableIsThere(c.Request.Context(), h.pool, "enrichment_sources")
 }
 
 func (h *ContextEnrichmentHandler) checkCacheTable(c *gin.Context) bool {
-	ctx := c.Request.Context()
-	var exists bool
-	err := h.pool.QueryRow(ctx,
-		`SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name='enrichment_cache')`).Scan(&exists)
-	return err == nil && exists
+	return tableIsThere(c.Request.Context(), h.pool, "enrichment_cache")
 }
 
 // ListSources returns all enrichment sources.
@@ -80,7 +72,9 @@ func (h *ContextEnrichmentHandler) ListSources(c *gin.Context) {
 		sources = append(sources, s)
 	}
 	if err := rows.Err(); err != nil {
-		slog.Warn("row iteration error", "error", err)
+		slog.Error("rows.Err: 結果の読み出しが途中で失敗しました", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": dbErrMsg(err)})
+		return
 	}
 	if sources == nil {
 		sources = []Source{}
@@ -254,15 +248,19 @@ func (h *ContextEnrichmentHandler) EnrichIndicator(c *gin.Context) {
 
 	expiresAt := time.Now().UTC().Add(24 * time.Hour)
 	if h.checkCacheTable(c) {
-		_, _ = h.pool.Exec(ctx,
+		if _, err := h.pool.Exec(ctx,
 			`INSERT INTO enrichment_cache (indicator_type, indicator_value, source, result, expires_at)
-			 VALUES ($1,$2,$3,$4,$5)
-			 ON CONFLICT (indicator_value, source) DO UPDATE SET result=$4, expires_at=$5`,
+				 VALUES ($1,$2,$3,$4,$5)
+				 ON CONFLICT (indicator_value, source) DO UPDATE SET result=$4, expires_at=$5`,
 			in.IndicatorType, in.IndicatorValue, enrichSource, resultJSON, expiresAt,
-		)
-		_, _ = h.pool.Exec(ctx,
+		); !WriteOK(c, err) {
+			return
+		}
+		if _, err := h.pool.Exec(ctx,
 			`UPDATE enrichment_sources SET requests_today = requests_today + 1
-			 WHERE source_type = $1 AND is_active = true`, enrichSource)
+				 WHERE source_type = $1 AND is_active = true`, enrichSource); !WriteOK(c, err) {
+			return
+		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{
@@ -326,7 +324,9 @@ func (h *ContextEnrichmentHandler) GetCachedResults(c *gin.Context) {
 		results = append(results, e)
 	}
 	if err := rows.Err(); err != nil {
-		slog.Warn("row iteration error", "error", err)
+		slog.Error("rows.Err: 結果の読み出しが途中で失敗しました", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": dbErrMsg(err)})
+		return
 	}
 	if results == nil {
 		results = []CacheEntry{}
@@ -341,8 +341,12 @@ func (h *ContextEnrichmentHandler) GetStats(c *gin.Context) {
 	// Cache hit rate
 	var totalEntries, expiredEntries int
 	if h.checkCacheTable(c) {
-		_ = h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM enrichment_cache`).Scan(&totalEntries)
-		_ = h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM enrichment_cache WHERE expires_at <= NOW()`).Scan(&expiredEntries)
+		if !ReadOK(c, h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM enrichment_cache`).Scan(&totalEntries)) {
+			return
+		}
+		if !ReadOK(c, h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM enrichment_cache WHERE expires_at <= NOW()`).Scan(&expiredEntries)) {
+			return
+		}
 	}
 	activeEntries := totalEntries - expiredEntries
 	var cacheHitRate float64
@@ -428,8 +432,10 @@ func (h *ContextEnrichmentHandler) HealthCheck(c *gin.Context) {
 	}
 
 	latencyMS := int(time.Since(start).Milliseconds())
-	_, _ = h.pool.Exec(ctx,
-		`UPDATE enrichment_sources SET avg_latency_ms=$2 WHERE id=$1`, id, latencyMS)
+	if _, err := h.pool.Exec(ctx,
+		`UPDATE enrichment_sources SET avg_latency_ms=$2 WHERE id=$1`, id, latencyMS); !WriteOK(c, err) {
+		return
+	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"id":         id,
@@ -497,7 +503,14 @@ func enrichIP(ctx context.Context, ipStr string) map[string]interface{} {
 		return map[string]interface{}{"status": "private", "is_private": true}
 	}
 
-	geo := lookupGeoIP(ctx, ipStr)
+	geo, err := lookupGeoIP(ctx, ipStr)
+	if err != nil {
+		// "unknown" は「引いたが分からなかった」です。引けなかったことを
+		// それと同じ言葉で返すと、判定として読まれます。
+		return map[string]interface{}{
+			"status": "unavailable", "ip": ipStr, "error": err.Error(),
+		}
+	}
 	if geo == nil {
 		return map[string]interface{}{"status": "unknown", "ip": ipStr}
 	}

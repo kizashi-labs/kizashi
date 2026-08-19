@@ -8,21 +8,26 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	"github.com/edr-platform/server/internal/store"
+	"github.com/edr-platform/server/internal/isolation"
 )
 
 type QuarantineActionsHandler struct {
-	pool      *pgxpool.Pool
-	commander *store.CommandStore
+	pool     *pgxpool.Pool
+	isolator endpointIsolator
 }
 
 func NewQuarantineActionsHandler(pool *pgxpool.Pool) *QuarantineActionsHandler {
 	return &QuarantineActionsHandler{pool: pool}
 }
 
-// NewQuarantineActionsHandlerWithCommander creates a handler with NATS command dispatch.
-func NewQuarantineActionsHandlerWithCommander(pool *pgxpool.Pool, commander *store.CommandStore) *QuarantineActionsHandler {
-	return &QuarantineActionsHandler{pool: pool, commander: commander}
+// NewQuarantineActionsHandlerWithIsolator creates a handler that can actually
+// take endpoints off the network.
+//
+// この経路は以前 CommandStore を直接叩いていて、response_actions に一行も
+// 残さず、安全弁も通らなかった。quarantine_actions テーブルに行が増えるだけで、
+// 対応履歴からは存在しない隔離になっていた。
+func NewQuarantineActionsHandlerWithIsolator(pool *pgxpool.Pool, isolator endpointIsolator) *QuarantineActionsHandler {
+	return &QuarantineActionsHandler{pool: pool, isolator: isolator}
 }
 
 func (h *QuarantineActionsHandler) List(c *gin.Context) {
@@ -34,7 +39,7 @@ func (h *QuarantineActionsHandler) List(c *gin.Context) {
 		ORDER BY q.created_at DESC LIMIT 100
 	`)
 	if err != nil {
-		c.JSON(http.StatusOK, gin.H{"quarantines": []any{}})
+		ReadFailure(c, err, gin.H{"quarantines": []any{}})
 		return
 	}
 	defer rows.Close()
@@ -73,7 +78,9 @@ func (h *QuarantineActionsHandler) List(c *gin.Context) {
 		list = append(list, it)
 	}
 	if err := rows.Err(); err != nil {
-		slog.Warn("row iteration error", "error", err)
+		slog.Error("rows.Err: 結果の読み出しが途中で失敗しました", "error", err)
+		ReadFailure(c, err, gin.H{"quarantines": []any{}})
+		return
 	}
 	if list == nil {
 		list = []Item{}
@@ -104,11 +111,19 @@ func (h *QuarantineActionsHandler) Create(c *gin.Context) {
 		return
 	}
 
-	// Dispatch real command to agent via NATS if commander is available.
-	if h.commander != nil && req.NetworkIsolated {
-		if err := h.commander.IsolateEndpoint(c.Request.Context(), req.AgentID, req.Reason, "", ""); err != nil {
-			// Log but do not fail the HTTP response; the DB record is authoritative.
-			_ = err
+	// Dispatch through the gatekeeper so the isolation is recorded and rate-limited.
+	if h.isolator != nil && req.NetworkIsolated {
+		res, err := h.isolator.Isolate(c.Request.Context(), isolation.Request{
+			AgentID: req.AgentID,
+			Reason:  req.Reason,
+			Origin:  isolation.OriginQuarantineAction,
+			Label:   "隔離アクション",
+		})
+		if err != nil {
+			slog.Error("隔離アクションの送信に失敗しました", "agent", req.AgentID, "error", err)
+		} else if !res.Outcome.Executed() {
+			slog.Warn("隔離アクションは実行されませんでした",
+				"agent", req.AgentID, "結果", string(res.Outcome), "理由", res.Reason)
 		}
 	}
 
@@ -121,8 +136,10 @@ func (h *QuarantineActionsHandler) Release(c *gin.Context) {
 
 	// Look up the agent_id so we can send the unisolate command.
 	var agentID string
-	_ = h.pool.QueryRow(c.Request.Context(),
-		`SELECT agent_id FROM quarantine_actions WHERE id = $1`, id).Scan(&agentID)
+	if !ReadOK(c, h.pool.QueryRow(c.Request.Context(),
+		`SELECT agent_id FROM quarantine_actions WHERE id = $1`, id).Scan(&agentID)) {
+		return
+	}
 
 	_, err := h.pool.Exec(c.Request.Context(),
 		`UPDATE quarantine_actions SET status='released', released_at=$1, updated_at=$1 WHERE id=$2`,
@@ -132,10 +149,15 @@ func (h *QuarantineActionsHandler) Release(c *gin.Context) {
 		return
 	}
 
-	// Send unisolate command to agent via NATS.
-	if h.commander != nil && agentID != "" {
-		if err := h.commander.UnisolateEndpoint(c.Request.Context(), agentID, "quarantine released", ""); err != nil {
-			_ = err
+	// Send unisolate command through the gatekeeper.
+	if h.isolator != nil && agentID != "" {
+		if _, err := h.isolator.Unisolate(c.Request.Context(), isolation.Request{
+			AgentID: agentID,
+			Reason:  "quarantine released",
+			Origin:  isolation.OriginQuarantineAction,
+			Label:   "隔離アクション解除",
+		}); err != nil {
+			slog.Error("隔離解除の送信に失敗しました", "agent", agentID, "error", err)
 		}
 	}
 

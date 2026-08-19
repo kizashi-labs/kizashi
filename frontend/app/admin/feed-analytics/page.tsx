@@ -9,6 +9,9 @@ import {
   Server, RefreshCw, ShieldOff,
 } from 'lucide-react'
 
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+import { usePersist, SaveFailed } from '@/lib/persist'
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type FeedType = 'commercial' | 'osint' | 'isac' | 'internal'
@@ -104,7 +107,7 @@ function MiniLineChart({ data, color, label }: { data: number[]; color: string; 
 
   return (
     <div>
-      <p className="text-falcon-muted text-xs mb-1">{label}</p>
+      <p className="text-[#7d92b0] text-xs mb-1">{label}</p>
       <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-12">
         <polyline fill="none" stroke={color} strokeWidth="2" points={pts} />
         {data.map((v, i) => {
@@ -114,7 +117,7 @@ function MiniLineChart({ data, color, label }: { data: number[]; color: string; 
         })}
       </svg>
       <div className="flex justify-between">
-        {MONTHS_6.map(m => <span key={m} className="text-falcon-subtle text-[9px]">{m}</span>)}
+        {MONTHS_6.map(m => <span key={m} className="text-[#3d5068] text-[9px]">{m}</span>)}
       </div>
     </div>
   )
@@ -143,15 +146,15 @@ function FeedDetailModal({ feed, onClose, onSync, onToggle, syncing }: {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-      <div className="bg-falcon-surface border border-falcon-border rounded-lg w-full max-w-3xl max-h-[92vh] flex flex-col">
-        <div className="flex items-center justify-between p-5 border-b border-falcon-border">
+      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg w-full max-w-3xl max-h-[92vh] flex flex-col">
+        <div className="flex items-center justify-between p-5 border-b border-[#1e2d42]">
           <div>
             <h3 className="text-white font-semibold text-lg">{feed.feed_name}</h3>
             <div className="flex items-center gap-2 mt-1">
               <span className={`px-2 py-0.5 rounded-sm text-xs font-medium ${FEED_TYPE_STYLES[feed.feed_type].bg} ${FEED_TYPE_STYLES[feed.feed_type].text}`}>
                 {FEED_TYPE_STYLES[feed.feed_type].label}
               </span>
-              <span className="text-falcon-muted text-sm">{feed.provider}</span>
+              <span className="text-[#7d92b0] text-sm">{feed.provider}</span>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -170,7 +173,7 @@ function FeedDetailModal({ feed, onClose, onSync, onToggle, syncing }: {
               <ShieldOff className="w-3.5 h-3.5" />
               {feed.status === 'disabled' ? '有効化' : '無効化'}
             </button>
-            <button onClick={onClose} className="text-falcon-muted hover:text-white p-1 ml-1"><X className="w-5 h-5" /></button>
+            <button onClick={onClose} className="text-[#7d92b0] hover:text-white p-1 ml-1"><X className="w-5 h-5" /></button>
           </div>
         </div>
 
@@ -183,8 +186,8 @@ function FeedDetailModal({ feed, onClose, onSync, onToggle, syncing }: {
               { label: '誤検知率', value: feed.false_positive_rate, suffix: '%', color: feed.false_positive_rate > 3 ? 'text-red-400' : 'text-yellow-300', extra: '' },
               { label: 'IOC数', value: fmtNum(feed.ioc_count), suffix: '', color: 'text-blue-400', extra: '' },
             ].map(m => (
-              <div key={m.label} className="bg-[#070d19] border border-falcon-border rounded-sm p-3 text-center">
-                <p className="text-falcon-muted text-xs mb-1">{m.label}</p>
+              <div key={m.label} className="bg-[#070d19] border border-[#1e2d42] rounded-sm p-3 text-center">
+                <p className="text-[#7d92b0] text-xs mb-1">{m.label}</p>
                 <p className={`text-xl font-bold ${m.color}`}>{m.value}{m.suffix} {m.extra}</p>
               </div>
             ))}
@@ -192,19 +195,19 @@ function FeedDetailModal({ feed, onClose, onSync, onToggle, syncing }: {
 
           {/* 30-day charts */}
           <div className="grid grid-cols-3 gap-4">
-            <div className="bg-[#070d19] border border-falcon-border rounded-sm p-4">
+            <div className="bg-[#070d19] border border-[#1e2d42] rounded-sm p-4">
               <MiniLineChart data={feed.monthly_hit_rate} color="#22c55e" label="ヒット率トレンド (%)" />
             </div>
-            <div className="bg-[#070d19] border border-falcon-border rounded-sm p-4">
+            <div className="bg-[#070d19] border border-[#1e2d42] rounded-sm p-4">
               <MiniLineChart data={feed.monthly_fp_rate} color="#f59e0b" label="誤検知率トレンド (%)" />
             </div>
-            <div className="bg-[#070d19] border border-falcon-border rounded-sm p-4">
+            <div className="bg-[#070d19] border border-[#1e2d42] rounded-sm p-4">
               <MiniLineChart data={feed.monthly_ioc_volume} color="#3b82f6" label="IOCボリューム" />
             </div>
           </div>
 
           {/* IOC type breakdown */}
-          <div className="bg-[#070d19] border border-falcon-border rounded-sm p-4">
+          <div className="bg-[#070d19] border border-[#1e2d42] rounded-sm p-4">
             <h4 className="text-white font-medium mb-3">IOCタイプ内訳</h4>
             <div className="space-y-2">
               {([
@@ -216,9 +219,9 @@ function FeedDetailModal({ feed, onClose, onSync, onToggle, syncing }: {
                 const pct = feed.ioc_type_breakdown[key]
                 return (
                   <div key={key} className="flex items-center gap-3">
-                    <Icon className="w-4 h-4 text-falcon-muted shrink-0" />
-                    <span className="text-falcon-muted text-sm w-28 shrink-0">{label}</span>
-                    <div className="flex-1 bg-falcon-border rounded-full h-2">
+                    <Icon className="w-4 h-4 text-[#7d92b0] shrink-0" />
+                    <span className="text-[#7d92b0] text-sm w-28 shrink-0">{label}</span>
+                    <div className="flex-1 bg-[#1e2d42] rounded-full h-2">
                       <div className={`${color} h-2 rounded-full`} style={{ width: `${pct}%` }} />
                     </div>
                     <span className="text-white text-sm w-10 text-right">{pct}%</span>
@@ -230,32 +233,32 @@ function FeedDetailModal({ feed, onClose, onSync, onToggle, syncing }: {
 
           {/* Recent hits & FPs */}
           <div className="grid grid-cols-2 gap-4">
-            <div className="bg-[#070d19] border border-falcon-border rounded-sm p-4">
+            <div className="bg-[#070d19] border border-[#1e2d42] rounded-sm p-4">
               <h4 className="text-white font-medium mb-3 flex items-center gap-2"><CheckCircle className="w-4 h-4 text-green-400" />最近のヒット</h4>
               {feed.recent_hits.length === 0
-                ? <p className="text-falcon-muted text-sm">記録なし</p>
+                ? <p className="text-[#7d92b0] text-sm">記録なし</p>
                 : <div className="space-y-2">
                     {feed.recent_hits.map((h, i) => (
                       <div key={i} className="flex items-start justify-between text-sm gap-2">
-                        <span className="text-falcon-text font-mono text-xs truncate">{h.ioc}</span>
+                        <span className="text-[#e2e8f4] font-mono text-xs truncate">{h.ioc}</span>
                         <div className="text-right shrink-0">
                           <p className="text-blue-400 text-xs">{h.alert_id}</p>
-                          <p className="text-falcon-subtle text-xs">{h.date}</p>
+                          <p className="text-[#3d5068] text-xs">{h.date}</p>
                         </div>
                       </div>
                     ))}
                   </div>
               }
             </div>
-            <div className="bg-[#070d19] border border-falcon-border rounded-sm p-4">
+            <div className="bg-[#070d19] border border-[#1e2d42] rounded-sm p-4">
               <h4 className="text-white font-medium mb-3 flex items-center gap-2"><AlertTriangle className="w-4 h-4 text-yellow-400" />誤検知サンプル</h4>
               {feed.recent_fp.length === 0
                 ? <p className="text-green-400 text-sm">誤検知なし</p>
                 : <div className="space-y-2">
                     {feed.recent_fp.map((fp, i) => (
                       <div key={i} className="text-sm">
-                        <p className="text-falcon-text font-mono text-xs truncate">{fp.ioc}</p>
-                        <p className="text-falcon-muted text-xs">{fp.reason}</p>
+                        <p className="text-[#e2e8f4] font-mono text-xs truncate">{fp.ioc}</p>
+                        <p className="text-[#7d92b0] text-xs">{fp.reason}</p>
                       </div>
                     ))}
                   </div>
@@ -265,12 +268,12 @@ function FeedDetailModal({ feed, onClose, onSync, onToggle, syncing }: {
 
           {/* Recommendations */}
           {recommendations.length > 0 && (
-            <div className="bg-[#070d19] border border-falcon-border rounded-sm p-4">
+            <div className="bg-[#070d19] border border-[#1e2d42] rounded-sm p-4">
               <h4 className="text-white font-medium mb-3 flex items-center gap-2"><Info className="w-4 h-4 text-blue-400" />推奨事項</h4>
               <ul className="space-y-2">
                 {recommendations.map((r, i) => (
-                  <li key={i} className="flex items-start gap-2 text-sm text-falcon-muted">
-                    <ChevronRight className="w-4 h-4 text-falcon-red shrink-0 mt-0.5" />{r}
+                  <li key={i} className="flex items-start gap-2 text-sm text-[#7d92b0]">
+                    <ChevronRight className="w-4 h-4 text-[#e8002d] shrink-0 mt-0.5" />{r}
                   </li>
                 ))}
               </ul>
@@ -289,6 +292,7 @@ export default function FeedAnalyticsPage() {
   const [feedStatuses, setFeedStatuses] = useState<Record<string, FeedStatus>>({})
   const [syncingFeeds, setSyncingFeeds] = useState<Record<string, boolean>>({})
   const [syncingAll, setSyncingAll] = useState(false)
+  const { persist, saveError } = usePersist()
   const [toastMsg, setToastMsg] = useState<string | null>(null)
 
   function showToast(msg: string) {
@@ -296,34 +300,34 @@ export default function FeedAnalyticsPage() {
     setTimeout(() => setToastMsg(null), 3000)
   }
 
+  // 失敗を捨てたうえで待ち時間を挟み、「同期が完了しました」と出して
+  // いました。脅威フィードが古いままだと、既知の悪性を既知として扱えません。
   async function handleSync(feedId: string, feedName: string) {
     setSyncingFeeds(prev => ({ ...prev, [feedId]: true }))
-    try {
-      await apiFetch(`/api/v1/admin/feed-analytics/${feedId}/sync`, { method: 'POST' })
-    } catch { /* endpoint may not exist yet — ignore */ }
-    await new Promise(r => setTimeout(r, 1200))
+    const ok = await persist(`「${feedName}」の同期`, `/api/v1/admin/feed-analytics/${feedId}/sync`, { method: 'POST' })
     setSyncingFeeds(prev => ({ ...prev, [feedId]: false }))
-    showToast(`「${feedName}」の同期が完了しました`)
+    if (ok) showToast(`「${feedName}」の同期が完了しました`)
   }
 
   async function handleSyncAll() {
     setSyncingAll(true)
-    try {
-      await apiFetch('/api/v1/admin/feed-analytics/sync-all', { method: 'POST' })
-    } catch { /* ignore */ }
-    await new Promise(r => setTimeout(r, 2000))
+    const ok = await persist('全フィードの同期', '/api/v1/admin/feed-analytics/sync-all', { method: 'POST' })
     setSyncingAll(false)
-    showToast('全フィードの同期が完了しました')
+    if (ok) showToast('全フィードの同期が完了しました')
   }
 
   async function handleToggleStatus(feedId: string, feedName: string, current: FeedStatus) {
     const next: FeedStatus = current === 'disabled' ? 'active' : 'disabled'
     try {
+      // PATCH はどのルートにも当たりません。サーバにあるのは PUT です。
       await apiFetch(`/api/v1/admin/feed-analytics/${feedId}/status`, {
-        method: 'PATCH',
+        method: 'PUT',
         body: JSON.stringify({ status: next }),
       })
-    } catch { /* ignore */ }
+    } catch (e) {
+      showToast(`「${feedName}」の状態を変更できませんでした: ${e instanceof Error ? e.message : '不明なエラー'}`)
+      return
+    }
     setFeedStatuses(prev => ({ ...prev, [feedId]: next }))
     showToast(`「${feedName}」を${next === 'disabled' ? '無効化' : '有効化'}しました`)
     if (selectedFeed?.id === feedId) setSelectedFeed(prev => prev ? { ...prev, status: next } : prev)
@@ -355,6 +359,8 @@ export default function FeedAnalyticsPage() {
 
   return (
     <div className="min-h-screen bg-[#070d19] p-6 space-y-6">
+      <PageDataUnavailable />
+      <SaveFailed error={saveError} />
       {/* Toast */}
       {toastMsg && (
         <div className="fixed bottom-6 right-6 z-50 bg-[#1a2a3a] border border-[#2e4460] text-white text-sm px-4 py-3 rounded-lg shadow-lg flex items-center gap-2">
@@ -371,7 +377,7 @@ export default function FeedAnalyticsPage() {
           </div>
           <div>
             <h1 className="text-white text-2xl font-bold">脅威フィード品質分析</h1>
-            <p className="text-falcon-muted text-sm">脅威インテリジェンスフィードの品質・コストパフォーマンス評価</p>
+            <p className="text-[#7d92b0] text-sm">脅威インテリジェンスフィードの品質・コストパフォーマンス評価</p>
           </div>
         </div>
         <button
@@ -386,11 +392,11 @@ export default function FeedAnalyticsPage() {
 
       {/* Overall Health Score */}
       <div className="grid grid-cols-5 gap-4">
-        <div className="col-span-1 bg-falcon-surface border border-falcon-border rounded-lg p-5 flex flex-col items-center justify-center">
-          <p className="text-falcon-muted text-sm mb-2">総合フィード品質</p>
+        <div className="col-span-1 bg-[#0d1220] border border-[#1e2d42] rounded-lg p-5 flex flex-col items-center justify-center">
+          <p className="text-[#7d92b0] text-sm mb-2">総合フィード品質</p>
           <p className={`text-7xl font-black ${gradeColor(avgQuality)}`}>{overallGrade}</p>
           <p className="text-white text-xl font-bold mt-1">{avgQuality}/100</p>
-          <p className="text-falcon-subtle text-xs mt-2">{feeds.length}フィード平均</p>
+          <p className="text-[#3d5068] text-xs mt-2">{feeds.length}フィード平均</p>
         </div>
         <div className="col-span-4 grid grid-cols-4 gap-4">
           {[
@@ -399,44 +405,44 @@ export default function FeedAnalyticsPage() {
             { label: '総IOC数', value: fmtNum(feeds.reduce((s, f) => s + f.ioc_count, 0)), icon: Zap, color: 'text-purple-400', sub: '重複含む' },
             { label: '要改善フィード', value: belowThreshold.length, icon: AlertTriangle, color: 'text-yellow-400', sub: '品質スコア<70' },
           ].map(card => (
-            <div key={card.label} className="bg-falcon-surface border border-falcon-border rounded-lg p-4">
+            <div key={card.label} className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-4">
               <div className="flex items-center justify-between mb-2">
-                <p className="text-falcon-muted text-xs">{card.label}</p>
+                <p className="text-[#7d92b0] text-xs">{card.label}</p>
                 <card.icon className={`w-4 h-4 ${card.color}`} />
               </div>
               <p className="text-white text-xl font-bold">{card.value}</p>
-              <p className="text-falcon-subtle text-xs mt-1">{card.sub}</p>
+              <p className="text-[#3d5068] text-xs mt-1">{card.sub}</p>
             </div>
           ))}
           {/* Quality Scoring Formula */}
-          <div className="col-span-4 bg-falcon-surface border border-falcon-border rounded-lg p-4">
+          <div className="col-span-4 bg-[#0d1220] border border-[#1e2d42] rounded-lg p-4">
             <div className="flex items-center gap-2 mb-2">
               <Info className="w-4 h-4 text-blue-400" />
               <p className="text-white font-medium text-sm">品質スコア計算式</p>
             </div>
-            <p className="text-falcon-muted text-sm font-mono">
+            <p className="text-[#7d92b0] text-sm font-mono">
               総合品質スコア = フレッシュネス × 0.3 + 精度 × 0.4 + ヒット率 × 0.3
             </p>
-            <p className="text-falcon-subtle text-xs mt-1">各スコアは0〜100の正規化値。ヒット率はアラートへの実際の貢献度を示します。</p>
+            <p className="text-[#3d5068] text-xs mt-1">各スコアは0〜100の正規化値。ヒット率はアラートへの実際の貢献度を示します。</p>
           </div>
         </div>
       </div>
 
       {/* Feeds Overview Table */}
-      <div className="bg-falcon-surface border border-falcon-border rounded-lg overflow-hidden">
-        <div className="px-5 py-4 border-b border-falcon-border">
+      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg overflow-hidden">
+        <div className="px-5 py-4 border-b border-[#1e2d42]">
           <h2 className="text-white font-semibold">フィード一覧</h2>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-falcon-border bg-[#070d19]">
+              <tr className="border-b border-[#1e2d42] bg-[#070d19]">
                 {['フィード名', 'タイプ', 'IOC数', 'フレッシュネス', '精度', '誤検知率', 'ヒット率', '最終更新', '月額コスト', '対ヒットコスト', '品質', 'ステータス', '操作'].map(h => (
-                  <th key={h} className="px-4 py-3 text-left text-falcon-muted font-medium text-xs uppercase tracking-wider whitespace-nowrap">{h}</th>
+                  <th key={h} className="px-4 py-3 text-left text-[#7d92b0] font-medium text-xs uppercase tracking-wider whitespace-nowrap">{h}</th>
                 ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-falcon-border">
+            <tbody className="divide-y divide-[#1e2d42]">
               {feeds.map(f => {
                 const costPerHit = f.cost_per_month > 0
                   ? Math.round(f.cost_per_month / Math.max(1, Math.round(f.ioc_count * f.hit_rate / 100 / 1000)))
@@ -448,15 +454,15 @@ export default function FeedAnalyticsPage() {
                     className="hover:bg-[#0d1525] cursor-pointer">
                     <td className="px-4 py-3">
                       <p className="text-white font-medium whitespace-nowrap">{f.feed_name}</p>
-                      <p className="text-falcon-subtle text-xs">{f.provider}</p>
+                      <p className="text-[#3d5068] text-xs">{f.provider}</p>
                     </td>
                     <td className="px-4 py-3">
                       <span className={`inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium ${ft.bg} ${ft.text}`}>{ft.label}</span>
                     </td>
-                    <td className="px-4 py-3 text-falcon-muted whitespace-nowrap">{fmtNum(f.ioc_count)}</td>
+                    <td className="px-4 py-3 text-[#7d92b0] whitespace-nowrap">{fmtNum(f.ioc_count)}</td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
-                        <div className="w-14 bg-falcon-border rounded-full h-1.5">
+                        <div className="w-14 bg-[#1e2d42] rounded-full h-1.5">
                           <div className="bg-blue-500 h-1.5 rounded-full" style={{ width: `${f.freshness_score}%` }} />
                         </div>
                         <span className="text-white text-xs">{f.freshness_score}</span>
@@ -464,7 +470,7 @@ export default function FeedAnalyticsPage() {
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
-                        <div className="w-14 bg-falcon-border rounded-full h-1.5">
+                        <div className="w-14 bg-[#1e2d42] rounded-full h-1.5">
                           <div className="bg-green-500 h-1.5 rounded-full" style={{ width: `${f.accuracy_score}%` }} />
                         </div>
                         <span className="text-white text-xs">{f.accuracy_score}</span>
@@ -474,7 +480,7 @@ export default function FeedAnalyticsPage() {
                       {f.false_positive_rate}%
                     </td>
                     <td className="px-4 py-3 text-green-400 font-medium whitespace-nowrap">{f.hit_rate}%</td>
-                    <td className="px-4 py-3 text-falcon-muted whitespace-nowrap text-xs">{fmt(f.last_updated)}</td>
+                    <td className="px-4 py-3 text-[#7d92b0] whitespace-nowrap text-xs">{fmt(f.last_updated)}</td>
                     <td className="px-4 py-3 whitespace-nowrap">
                       {f.cost_per_month === 0
                         ? <span className="text-green-400 text-xs">無償</span>
@@ -482,11 +488,11 @@ export default function FeedAnalyticsPage() {
                       }
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap">
-                      {costPerHit > 0 ? <span className="text-falcon-muted text-xs">{fmtYen(costPerHit)}</span> : <span className="text-falcon-subtle text-xs">N/A</span>}
+                      {costPerHit > 0 ? <span className="text-[#7d92b0] text-xs">{fmtYen(costPerHit)}</span> : <span className="text-[#3d5068] text-xs">N/A</span>}
                     </td>
                     <td className="px-4 py-3">
                       <span className={`text-lg font-black ${gradeColor(f.overall_quality_score)}`}>{grade(f.overall_quality_score)}</span>
-                      <span className="text-falcon-muted text-xs ml-1">{f.overall_quality_score}</span>
+                      <span className="text-[#7d92b0] text-xs ml-1">{f.overall_quality_score}</span>
                     </td>
                     <td className="px-4 py-3">
                       <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-xs font-medium ${ss.bg} ${ss.text}`}>
@@ -521,29 +527,29 @@ export default function FeedAnalyticsPage() {
       </div>
 
       {/* Comparative Analysis */}
-      <div className="bg-falcon-surface border border-falcon-border rounded-lg p-5">
+      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-5">
         <h2 className="text-white font-semibold mb-4">比較分析</h2>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-falcon-border">
-                <th className="px-4 py-2 text-left text-falcon-muted text-xs">フィード</th>
-                <th className="px-4 py-2 text-left text-falcon-muted text-xs">フレッシュネス</th>
-                <th className="px-4 py-2 text-left text-falcon-muted text-xs">精度</th>
-                <th className="px-4 py-2 text-left text-falcon-muted text-xs">ヒット率</th>
-                <th className="px-4 py-2 text-left text-falcon-muted text-xs">誤検知率</th>
-                <th className="px-4 py-2 text-left text-falcon-muted text-xs">推定防御インシデント数</th>
-                <th className="px-4 py-2 text-left text-falcon-muted text-xs">総合</th>
+              <tr className="border-b border-[#1e2d42]">
+                <th className="px-4 py-2 text-left text-[#7d92b0] text-xs">フィード</th>
+                <th className="px-4 py-2 text-left text-[#7d92b0] text-xs">フレッシュネス</th>
+                <th className="px-4 py-2 text-left text-[#7d92b0] text-xs">精度</th>
+                <th className="px-4 py-2 text-left text-[#7d92b0] text-xs">ヒット率</th>
+                <th className="px-4 py-2 text-left text-[#7d92b0] text-xs">誤検知率</th>
+                <th className="px-4 py-2 text-left text-[#7d92b0] text-xs">推定防御インシデント数</th>
+                <th className="px-4 py-2 text-left text-[#7d92b0] text-xs">総合</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-falcon-border">
+            <tbody className="divide-y divide-[#1e2d42]">
               {sortedByQuality.map(f => (
                 <tr key={f.id} className="hover:bg-[#0d1525]">
                   <td className="px-4 py-2.5 text-white text-sm font-medium">{f.feed_name}</td>
                   {[f.freshness_score, f.accuracy_score].map((score, i) => (
                     <td key={i} className="px-4 py-2.5">
                       <div className="flex items-center gap-2">
-                        <div className="w-16 bg-falcon-border rounded-full h-1.5">
+                        <div className="w-16 bg-[#1e2d42] rounded-full h-1.5">
                           <div className={`h-1.5 rounded-full ${score >= 80 ? 'bg-green-500' : score >= 65 ? 'bg-yellow-500' : 'bg-red-500'}`} style={{ width: `${score}%` }} />
                         </div>
                         <span className="text-white text-xs">{score}</span>
@@ -565,22 +571,22 @@ export default function FeedAnalyticsPage() {
 
       {/* Disable Recommendations */}
       {belowThreshold.length > 0 && (
-        <div className="bg-falcon-surface border border-falcon-border rounded-lg p-5">
+        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-5">
           <h2 className="text-white font-semibold mb-2 flex items-center gap-2">
             <ShieldOff className="w-5 h-5 text-red-400" />不要フィードの推奨
           </h2>
-          <p className="text-falcon-muted text-sm mb-4">品質スコアが70未満のフィードは無効化を検討してください。</p>
+          <p className="text-[#7d92b0] text-sm mb-4">品質スコアが70未満のフィードは無効化を検討してください。</p>
           <div className="space-y-3">
             {belowThreshold.map(f => (
               <div key={f.id} className="flex items-center justify-between p-4 bg-red-900/10 border border-red-800/30 rounded-lg">
                 <div>
                   <p className="text-white font-medium">{f.feed_name}</p>
-                  <p className="text-falcon-muted text-sm mt-0.5">品質スコア {f.overall_quality_score} / 誤検知率 {f.false_positive_rate}% / ヒット率 {f.hit_rate}%</p>
+                  <p className="text-[#7d92b0] text-sm mt-0.5">品質スコア {f.overall_quality_score} / 誤検知率 {f.false_positive_rate}% / ヒット率 {f.hit_rate}%</p>
                 </div>
                 <div className="flex items-center gap-4">
                   <div className="text-right">
                     <p className="text-red-400 text-sm font-medium">推奨: 無効化</p>
-                    {f.cost_per_month > 0 && <p className="text-falcon-muted text-xs">{fmtYen(f.cost_per_month * 12)}/年 削減可能</p>}
+                    {f.cost_per_month > 0 && <p className="text-[#7d92b0] text-xs">{fmtYen(f.cost_per_month * 12)}/年 削減可能</p>}
                   </div>
                   <button
                     onClick={() => handleToggleStatus(f.id, f.feed_name, f.status)}
@@ -599,12 +605,12 @@ export default function FeedAnalyticsPage() {
 
       {/* IOC Overlap Analysis */}
       <div className="grid grid-cols-2 gap-6">
-        <div className="bg-falcon-surface border border-falcon-border rounded-lg p-5">
+        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-5">
           <h2 className="text-white font-semibold mb-4">IOC重複分析</h2>
           <div className="space-y-3 mb-5">
             {IOC_OVERLAP.map(o => (
-              <div key={o.label} className="flex items-center justify-between p-3 bg-[#070d19] border border-falcon-border rounded-sm">
-                <span className="text-falcon-muted text-sm">{o.label}</span>
+              <div key={o.label} className="flex items-center justify-between p-3 bg-[#070d19] border border-[#1e2d42] rounded-sm">
+                <span className="text-[#7d92b0] text-sm">{o.label}</span>
                 <span className="text-white font-bold">{fmtNum(o.count)}</span>
               </div>
             ))}
@@ -623,34 +629,34 @@ export default function FeedAnalyticsPage() {
               </div>
             </div>
           </div>
-          <p className="text-falcon-subtle text-xs text-center">CrowdStrike / Recorded Future 重複率イメージ</p>
+          <p className="text-[#3d5068] text-xs text-center">CrowdStrike / Recorded Future 重複率イメージ</p>
         </div>
 
         {/* Cost Optimization */}
-        <div className="bg-falcon-surface border border-falcon-border rounded-lg p-5">
+        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-5">
           <h2 className="text-white font-semibold mb-4 flex items-center gap-2"><DollarSign className="w-5 h-5 text-green-400" />コスト最適化</h2>
           <div className="space-y-4">
-            <div className="p-4 bg-[#070d19] border border-falcon-border rounded-sm">
-              <p className="text-falcon-muted text-sm mb-1">年間総コスト</p>
+            <div className="p-4 bg-[#070d19] border border-[#1e2d42] rounded-sm">
+              <p className="text-[#7d92b0] text-sm mb-1">年間総コスト</p>
               <p className="text-white text-2xl font-bold">{fmtYen(annualCost)}</p>
             </div>
             {potentialSavings > 0 && (
               <div className="p-4 bg-green-900/10 border border-green-800/30 rounded-sm">
                 <p className="text-green-400 text-sm mb-1">推奨設定による削減額</p>
                 <p className="text-green-300 text-2xl font-bold">{fmtYen(potentialSavings)}/年</p>
-                <p className="text-falcon-muted text-xs mt-1">低品質フィード {belowThreshold.length}件を無効化した場合</p>
+                <p className="text-[#7d92b0] text-xs mt-1">低品質フィード {belowThreshold.length}件を無効化した場合</p>
               </div>
             )}
             <div className="space-y-2">
-              <p className="text-falcon-muted text-sm font-medium">フィード別ROI（インシデント防御推定）</p>
+              <p className="text-[#7d92b0] text-sm font-medium">フィード別ROI（インシデント防御推定）</p>
               {(() => {
                 const roiFeeds = feeds.filter(f => f.cost_per_month > 0).sort((a, b) => b.incidents_prevented_est - a.incidents_prevented_est)
                 const maxPrevented = Math.max(...roiFeeds.map(f => f.incidents_prevented_est), 1)
                 return roiFeeds.map(f => (
                   <div key={f.id} className="flex items-center gap-3">
-                    <span className="text-falcon-muted text-xs w-32 truncate shrink-0">{f.feed_name.split(' ')[0]}</span>
-                    <div className="flex-1 bg-falcon-border rounded-full h-2 overflow-hidden">
-                      <div className="bg-falcon-red h-2 rounded-full" style={{ width: `${(f.incidents_prevented_est / maxPrevented) * 100}%` }} />
+                    <span className="text-[#7d92b0] text-xs w-32 truncate shrink-0">{f.feed_name.split(' ')[0]}</span>
+                    <div className="flex-1 bg-[#1e2d42] rounded-full h-2 overflow-hidden">
+                      <div className="bg-[#e8002d] h-2 rounded-full" style={{ width: `${(f.incidents_prevented_est / maxPrevented) * 100}%` }} />
                     </div>
                     <span className="text-white text-xs w-10 text-right">{f.incidents_prevented_est}件</span>
                   </div>

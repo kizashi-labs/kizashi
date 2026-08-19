@@ -471,6 +471,10 @@ func WriteMarkdown(w io.Writer, sc Scorecard, meta MarkdownMeta) error {
 	fmt.Fprintf(b, "| シミュレートホスト数 | %d |\n", sc.AgentCount)
 	fmt.Fprintf(b, "| シミュレートホスト日 | %.3f |\n", sc.HostDays)
 	fmt.Fprintf(b, "| 送信イベント数 | %d |\n", meta.EventsTotal)
+	if meta.EventsStored > 0 || meta.EventsTotal > 0 {
+		fmt.Fprintf(b, "| 着信イベント数 | %d |\n", meta.EventsStored)
+		fmt.Fprintf(b, "| イベント欠損率 | %.3f%% |\n", meta.EventLossPct)
+	}
 	fmt.Fprintf(b, "| **誤検知総数** | **%d** |\n", sc.TotalAlerts)
 	fmt.Fprintf(b, "| **誤検知率 (件/1000ホスト/日)** | **%.1f** |\n", sc.Rate)
 	fmt.Fprintf(b, "| 誤検知が出たホスト数 | %d / %d |\n", sc.HostsAlerted, sc.AgentCount)
@@ -533,6 +537,12 @@ func WriteMarkdown(w io.Writer, sc Scorecard, meta MarkdownMeta) error {
 type MarkdownMeta struct {
 	RunLabel    string
 	EventsTotal int64
+	// EventsStored is how many of those events the events table actually holds,
+	// and EventLossPct the shortfall as a percentage. Recorded because a lost
+	// event is a missed detection with no trace: without it, a reader comparing
+	// two scorecards cannot tell a detection change from a telemetry change.
+	EventsStored int64
+	EventLossPct float64
 }
 
 func escapePipes(s string) string { return strings.ReplaceAll(s, "|", `\|`) }

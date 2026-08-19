@@ -42,7 +42,13 @@ type QuarantineFilter struct {
 }
 
 // List returns quarantined files with optional filtering.
-func (s *QuarantineStore) List(ctx context.Context, f QuarantineFilter, limit, offset int) ([]*QuarantinedFile, int, error) {
+// quarantineListWhere builds the WHERE clause and arguments for List.
+//
+// **切り出してあるのは、検査が本物を呼べるようにするためです。**
+// 検査ファイルには同じ組み立ての写しが置いてあり、そちらだけが試されて
+// いました。公開はしません —— `List` からしか使わないので、公開すると
+// `TestStoreSymbolsAreReachable` の数が増えます。
+func quarantineListWhere(f QuarantineFilter) (string, []interface{}) {
 	conds := []string{"1=1"}
 	args := []interface{}{}
 	i := 1
@@ -67,6 +73,12 @@ func (s *QuarantineStore) List(ctx context.Context, f QuarantineFilter, limit, o
 	for _, c := range conds[1:] {
 		where += " AND " + c
 	}
+	return where, args
+}
+
+func (s *QuarantineStore) List(ctx context.Context, f QuarantineFilter, limit, offset int) ([]*QuarantinedFile, int, error) {
+	where, args := quarantineListWhere(f)
+	i := len(args) + 1
 
 	var total int
 	if err := s.pool.QueryRow(ctx, "SELECT COUNT(*) FROM quarantined_files "+where, args...).Scan(&total); err != nil {
@@ -101,6 +113,9 @@ func (s *QuarantineStore) List(ctx context.Context, f QuarantineFilter, limit, o
 			continue
 		}
 		files = append(files, &f)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, 0, err
 	}
 	return files, total, nil
 }

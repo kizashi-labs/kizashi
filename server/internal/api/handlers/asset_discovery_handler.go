@@ -23,10 +23,7 @@ func NewAssetDiscoveryHandler(pool *pgxpool.Pool) *AssetDiscoveryHandler {
 }
 
 func (h *AssetDiscoveryHandler) tableExists(ctx context.Context, tableName string) bool {
-	var exists bool
-	_ = h.pool.QueryRow(ctx,
-		`SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name=$1)`, tableName).Scan(&exists)
-	return exists
+	return tableIsThere(ctx, h.pool, tableName)
 }
 
 // ListAssets — GET /discovery/assets
@@ -39,13 +36,7 @@ func (h *AssetDiscoveryHandler) ListAssets(c *gin.Context) {
 
 	limit, _ := strconv.Atoi(c.DefaultQuery("per_page", "50"))
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
-	if page < 1 {
-		page = 1
-	}
-	if limit < 1 || limit > 200 {
-		limit = 50
-	}
-	offset := (page - 1) * limit
+	page, limit, offset := clampPageParams(page, limit, 50, 200)
 
 	query := `SELECT id, ip_address, mac_address, hostname, vendor, os_guess,
 	                 open_ports, services, device_type, is_managed, agent_id,
@@ -76,7 +67,9 @@ func (h *AssetDiscoveryHandler) ListAssets(c *gin.Context) {
 
 	countQuery := "SELECT COUNT(*) FROM (" + query + ") sub"
 	var total int
-	_ = h.pool.QueryRow(ctx, countQuery, args...).Scan(&total)
+	if !ReadOK(c, h.pool.QueryRow(ctx, countQuery, args...).Scan(&total)) {
+		return
+	}
 
 	query += fmt.Sprintf(" ORDER BY last_seen_at DESC LIMIT $%d OFFSET $%d", argIdx, argIdx+1)
 	args = append(args, limit, offset)
@@ -119,7 +112,9 @@ func (h *AssetDiscoveryHandler) ListAssets(c *gin.Context) {
 		result = append(result, a)
 	}
 	if err := rows.Err(); err != nil {
-		slog.Warn("row iteration error", "error", err)
+		slog.Error("rows.Err: 結果の読み出しが途中で失敗しました", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "アセット一覧の取得に失敗しました"})
+		return
 	}
 	if result == nil {
 		result = []asset{}
@@ -221,12 +216,7 @@ func (h *AssetDiscoveryHandler) StartScan(c *gin.Context) {
 		newAssets := 0
 
 		// Upsert agents in the subnet into discovered_assets (inet << cidr).
-		var agentsTableExists bool
-		if err := pool.QueryRow(bgCtx,
-			`SELECT EXISTS(SELECT 1 FROM pg_tables WHERE schemaname='public' AND tablename='agents')`).
-			Scan(&agentsTableExists); err != nil {
-			slog.Warn("asset_discovery: agents テーブル確認に失敗しました", "error", err)
-		}
+		agentsTableExists := tableIsThere(bgCtx, pool, "agents")
 
 		if agentsTableExists && h.tableExists(bgCtx, "discovered_assets") {
 			// agents の OS 列は `os_type` (migration 001)。`os` は存在せず、
@@ -383,7 +373,9 @@ func (h *AssetDiscoveryHandler) ListScans(c *gin.Context) {
 		result = append(result, s)
 	}
 	if err := rows.Err(); err != nil {
-		slog.Warn("row iteration error", "error", err)
+		slog.Error("rows.Err: 結果の読み出しが途中で失敗しました", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "スキャン一覧の取得に失敗しました"})
+		return
 	}
 	if result == nil {
 		result = []scan{}
@@ -430,8 +422,10 @@ func (h *AssetDiscoveryHandler) GetStats(c *gin.Context) {
 	}
 
 	var total, managed int
-	_ = h.pool.QueryRow(ctx, `SELECT COUNT(*), COUNT(*) FILTER (WHERE is_managed) FROM discovered_assets`).
-		Scan(&total, &managed)
+	if !ReadOK(c, h.pool.QueryRow(ctx, `SELECT COUNT(*), COUNT(*) FILTER (WHERE is_managed) FROM discovered_assets`).
+		Scan(&total, &managed)) {
+		return
+	}
 	unmanaged := total - managed
 	managedPct := 0.0
 	if total > 0 {

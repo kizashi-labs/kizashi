@@ -9,6 +9,7 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"io"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"syscall"
@@ -207,6 +208,13 @@ func windowsHashFile(path string) collector.FileHashes {
 	const maxSize = 50 * 1024 * 1024
 	f, err := os.Open(filepath.Clean(path))
 	if err != nil {
+		// 空のハッシュと「ハッシュを取れなかった」は、イベントに載ると
+		// 同じ姿になります。**サーバのハッシュ IOC 照合は、一致しなかった
+		// のではなく、照合するものが無かったのに黙って通します。**
+		// スキーマを変えずにできる最低限として、まず記録します。
+		slog.Debug("ファイルのハッシュを取れませんでした。"+
+			"このイベントはハッシュ無しで送られ、ハッシュ IOC には当たりません",
+			"path", path, "error", err)
 		return collector.FileHashes{}
 	}
 	defer f.Close()
@@ -217,6 +225,9 @@ func windowsHashFile(path string) collector.FileHashes {
 	w := io.MultiWriter(h1, h2, h3)
 
 	if _, err := io.Copy(w, io.LimitReader(f, maxSize)); err != nil {
+		slog.Debug("ファイルを読み切れませんでした。"+
+			"このイベントはハッシュ無しで送られ、ハッシュ IOC には当たりません",
+			"path", path, "error", err)
 		return collector.FileHashes{}
 	}
 

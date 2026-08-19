@@ -1,7 +1,10 @@
 package scheduler
 
 import (
+	"errors"
+
 	"context"
+	"github.com/jackc/pgx/v5"
 	"log/slog"
 	"time"
 
@@ -84,13 +87,13 @@ func NewSecurityKPICollector(pool *pgxpool.Pool, interval time.Duration) *Securi
 // records one per interval.
 func (c *SecurityKPICollector) Run(ctx context.Context) {
 	slog.Info("SecurityKPICollector: 開始", "interval", c.interval)
-	c.seedDefaults(ctx)
+	trackRun(ctx, "security_kpi_collector", c.seedDefaults)
 
 	select {
 	case <-ctx.Done():
 		return
 	case <-time.After(2 * time.Minute):
-		c.runOnce(ctx)
+		trackRun(ctx, "security_kpi_collector", c.runOnce)
 	}
 
 	ticker := time.NewTicker(c.interval)
@@ -100,7 +103,7 @@ func (c *SecurityKPICollector) Run(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			c.runOnce(ctx)
+			trackRun(ctx, "security_kpi_collector", c.runOnce)
 		}
 	}
 }
@@ -120,7 +123,7 @@ func (c *SecurityKPICollector) seedDefaults(ctx context.Context) {
 			WHERE NOT EXISTS (SELECT 1 FROM security_kpi_definitions WHERE name=$1::varchar)
 		`, s.name, s.description, s.category, s.unit, s.target, s.warning, s.direction)
 		if err != nil {
-			slog.Warn("SecurityKPICollector: 既定KPIの登録に失敗しました", "kpi", s.name, "error", err)
+			fail(ctx, err, "SecurityKPICollector: 既定KPIの登録に失敗しました", "kpi", s.name)
 			continue
 		}
 		if ct.RowsAffected() > 0 {
@@ -141,17 +144,23 @@ func (c *SecurityKPICollector) runOnce(ctx context.Context) {
 		if err := c.pool.QueryRow(ctx,
 			`SELECT id FROM security_kpi_definitions WHERE name=$1 AND is_active=true LIMIT 1`,
 			s.name).Scan(&kpiID); err != nil {
-			continue // not present or deactivated by admin
+			// 管理者が無効にしたKPIと、定義を引けなかったKPIは別です。
+			// 前者は意図した状態、後者は測れていない状態です。
+			if !errors.Is(err, pgx.ErrNoRows) {
+				fail(ctx, err, "SecurityKPICollector: KPI定義を引けませんでした", "kpi", s.name)
+			}
+			continue
 		}
 
 		var v float64
 		if err := c.pool.QueryRow(ctx, s.valueQuery).Scan(&v); err != nil {
-			slog.Warn("SecurityKPICollector: 集計に失敗しました", "kpi", s.name, "error", err)
+			fail(ctx, err, "SecurityKPICollector: 集計に失敗しました", "kpi", s.name)
 			continue
 		}
 
 		tx, err := c.pool.Begin(ctx)
 		if err != nil {
+			fail(ctx, err, "SecurityKPICollector: トランザクションを開始できませんでした", "kpi", s.name)
 			continue
 		}
 		if _, err := tx.Exec(ctx,
@@ -163,10 +172,11 @@ func (c *SecurityKPICollector) runOnce(ctx context.Context) {
 			`INSERT INTO security_kpi_measurements (kpi_id, value, period, notes)
 			 VALUES ($1,$2,CURRENT_DATE,$3)`, kpiID, v, "自動収集"); err != nil {
 			_ = tx.Rollback(ctx)
-			slog.Warn("SecurityKPICollector: 記録に失敗しました", "kpi", s.name, "error", err)
+			fail(ctx, err, "SecurityKPICollector: 記録に失敗しました", "kpi", s.name)
 			continue
 		}
 		if err := tx.Commit(ctx); err != nil {
+			fail(ctx, err, "SecurityKPICollector: 測定値を確定できませんでした", "kpi", s.name)
 			continue
 		}
 		recorded++

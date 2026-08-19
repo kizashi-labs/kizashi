@@ -91,10 +91,10 @@ func (a *storeAdapter) GetRecentEvents(agentID string, limit int) ([]detection.E
 	defer cancel()
 
 	rows, err := a.pool.Query(ctx, `
-		SELECT event_type, raw_data, timestamp
+		SELECT event_type, raw_data, "time"
 		FROM events
 		WHERE agent_id = $1
-		ORDER BY timestamp DESC
+		ORDER BY "time" DESC
 		LIMIT $2`, agentID, limit)
 	if err != nil {
 		return nil, fmt.Errorf("GetRecentEvents: %w", err)
@@ -116,6 +116,10 @@ func (a *storeAdapter) GetRecentEvents(agentID string, limit int) ([]detection.E
 			Timestamp: ts,
 			Summary:   summarizeRaw(eventType, data),
 		})
+	}
+	// 部分結果を完全な一覧として返さない（scan_truncation_guard_test.go 参照）
+	if err := rows.Err(); err != nil {
+		return nil, err
 	}
 	return summaries, nil
 }
@@ -282,37 +286,14 @@ func (a *storeAdapter) GetAlert(ctx context.Context, id string) (*detection.Stor
 }
 
 // ListActiveSuppressions satisfies detection.SuppressionLoader.
-// Loads all active, non-expired suppression rules for the in-memory cache.
+//
+// クエリの実体は internal/detection の PoolSuppressionLoader に移した
+// (2026-08-14)。server-api の AlertPipeline も抑制を見るようになり、同じ SQL が
+// 2 箇所に必要になったためである。**両プロセスが同じ行・同じ解釈を見ること**が
+// 抑制では特に効く——片方でだけ抑制されると、運用者からは「効いたり効かなかったり
+// する」としか見えない。
 func (a *storeAdapter) ListActiveSuppressions(ctx context.Context) ([]detection.SuppressionRule, error) {
-	rows, err := a.pool.Query(ctx, `
-		SELECT id::text, name,
-		       COALESCE(conditions->>'rule_name', ''),
-		       COALESCE(conditions->>'hostname', ''),
-		       COALESCE((conditions->>'severity_max')::int, 0),
-		       COALESCE(conditions->>'mitre_technique', ''),
-		       COALESCE(conditions->>'agent_id', ''),
-		       expires_at
-		FROM suppression_rules
-		WHERE is_active = TRUE
-		  AND (expires_at IS NULL OR expires_at > NOW())`)
-	if err != nil {
-		return nil, fmt.Errorf("ListActiveSuppressions: %w", err)
-	}
-	defer rows.Close()
-
-	var rules []detection.SuppressionRule
-	for rows.Next() {
-		var r detection.SuppressionRule
-		if err := rows.Scan(
-			&r.ID, &r.Name,
-			&r.RuleName, &r.Hostname, &r.SeverityMax,
-			&r.MITRETechnique, &r.AgentID,
-			&r.ExpiresAt,
-		); err == nil {
-			rules = append(rules, r)
-		}
-	}
-	return rules, nil
+	return detection.NewPoolSuppressionLoader(a.pool).ListActiveSuppressions(ctx)
 }
 
 // ListActiveIOCs satisfies detection.IOCLoader.

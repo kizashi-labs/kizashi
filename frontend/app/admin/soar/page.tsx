@@ -11,6 +11,9 @@ import {
 } from 'lucide-react'
 
 
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+import { PageSaveFailed } from '@/components/PageSaveFailed'
+
 // ── Types ──────────────────────────────────────────────────────────────────────
 
 type TriggerType = 'alert' | 'schedule' | 'manual' | 'webhook'
@@ -63,7 +66,7 @@ const TRIGGER_LABELS: Record<TriggerType, string> = {
   alert: 'アラート', schedule: 'スケジュール', manual: '手動', webhook: 'Webhook',
 }
 const TRIGGER_COLORS: Record<TriggerType, string> = {
-  alert: 'bg-falcon-red/20 text-falcon-red',
+  alert: 'bg-[#e8002d]/20 text-[#e8002d]',
   schedule: 'bg-blue-500/20 text-blue-400',
   manual: 'bg-purple-500/20 text-purple-400',
   webhook: 'bg-orange-500/20 text-orange-400',
@@ -130,13 +133,13 @@ function WorkflowModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={onClose}>
       <div
-        className="bg-falcon-surface border border-falcon-border rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto"
+        className="bg-[#0d1220] border border-[#1e2d42] rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto"
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-falcon-border">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[#1e2d42]">
           <h2 className="text-white font-semibold text-lg">ワークフロー作成</h2>
-          <button onClick={onClose} className="text-falcon-muted hover:text-white transition-colors">
+          <button onClick={onClose} className="text-[#7d92b0] hover:text-white transition-colors">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -144,33 +147,33 @@ function WorkflowModal({
         <div className="px-6 py-4 space-y-6">
           {/* Section 1: Basic */}
           <div>
-            <h3 className="text-falcon-muted text-xs font-semibold uppercase tracking-wider mb-3">基本設定</h3>
+            <h3 className="text-[#7d92b0] text-xs font-semibold uppercase tracking-wider mb-3">基本設定</h3>
             <div className="space-y-3">
               <div>
-                <label className="text-falcon-muted text-xs mb-1 block">ワークフロー名</label>
+                <label className="text-[#7d92b0] text-xs mb-1 block">ワークフロー名</label>
                 <input
                   value={form.name}
                   onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-                  className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-sm text-white focus:outline-hidden focus:border-[#4a6fa5]"
+                  className="w-full bg-[#070d19] border border-[#1e2d42] rounded-sm px-3 py-2 text-sm text-white focus:outline-hidden focus:border-[#4a6fa5]"
                   placeholder="ワークフロー名を入力"
                 />
               </div>
               <div>
-                <label className="text-falcon-muted text-xs mb-1 block">説明</label>
+                <label className="text-[#7d92b0] text-xs mb-1 block">説明</label>
                 <textarea
                   value={form.description}
                   onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
                   rows={2}
-                  className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-sm text-white focus:outline-hidden focus:border-[#4a6fa5] resize-none"
+                  className="w-full bg-[#070d19] border border-[#1e2d42] rounded-sm px-3 py-2 text-sm text-white focus:outline-hidden focus:border-[#4a6fa5] resize-none"
                   placeholder="ワークフローの説明"
                 />
               </div>
               <div>
-                <label className="text-falcon-muted text-xs mb-1 block">トリガータイプ</label>
+                <label className="text-[#7d92b0] text-xs mb-1 block">トリガータイプ</label>
                 <select
                   value={form.trigger_type}
                   onChange={e => setForm(f => ({ ...f, trigger_type: e.target.value as TriggerType, conditions: {} }))}
-                  className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-sm text-white focus:outline-hidden focus:border-[#4a6fa5]"
+                  className="w-full bg-[#070d19] border border-[#1e2d42] rounded-sm px-3 py-2 text-sm text-white focus:outline-hidden focus:border-[#4a6fa5]"
                 >
                   <option value="alert">アラート</option>
                   <option value="schedule">スケジュール</option>
@@ -183,15 +186,15 @@ function WorkflowModal({
 
           {/* Section 2: Trigger conditions */}
           <div>
-            <h3 className="text-falcon-muted text-xs font-semibold uppercase tracking-wider mb-3">トリガー条件</h3>
+            <h3 className="text-[#7d92b0] text-xs font-semibold uppercase tracking-wider mb-3">トリガー条件</h3>
             {form.trigger_type === 'alert' && (
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-falcon-muted text-xs mb-1 block">重要度</label>
+                  <label className="text-[#7d92b0] text-xs mb-1 block">重要度</label>
                   <select
                     value={form.conditions.severity ?? ''}
                     onChange={e => setForm(f => ({ ...f, conditions: { ...f.conditions, severity: e.target.value } }))}
-                    className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-sm text-white focus:outline-hidden focus:border-[#4a6fa5]"
+                    className="w-full bg-[#070d19] border border-[#1e2d42] rounded-sm px-3 py-2 text-sm text-white focus:outline-hidden focus:border-[#4a6fa5]"
                   >
                     <option value="">すべて</option>
                     <option value="critical">クリティカル</option>
@@ -201,11 +204,11 @@ function WorkflowModal({
                   </select>
                 </div>
                 <div>
-                  <label className="text-falcon-muted text-xs mb-1 block">アラートタイプ</label>
+                  <label className="text-[#7d92b0] text-xs mb-1 block">アラートタイプ</label>
                   <select
                     value={form.conditions.alert_type ?? ''}
                     onChange={e => setForm(f => ({ ...f, conditions: { ...f.conditions, alert_type: e.target.value } }))}
-                    className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-sm text-white focus:outline-hidden focus:border-[#4a6fa5]"
+                    className="w-full bg-[#070d19] border border-[#1e2d42] rounded-sm px-3 py-2 text-sm text-white focus:outline-hidden focus:border-[#4a6fa5]"
                   >
                     <option value="">すべて</option>
                     <option value="malware">マルウェア</option>
@@ -219,23 +222,23 @@ function WorkflowModal({
             )}
             {form.trigger_type === 'schedule' && (
               <div>
-                <label className="text-falcon-muted text-xs mb-1 block">Cron式</label>
+                <label className="text-[#7d92b0] text-xs mb-1 block">Cron式</label>
                 <input
                   value={form.conditions.cron ?? ''}
                   onChange={e => setForm(f => ({ ...f, conditions: { ...f.conditions, cron: e.target.value } }))}
-                  className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-sm text-white font-mono focus:outline-hidden focus:border-[#4a6fa5]"
+                  className="w-full bg-[#070d19] border border-[#1e2d42] rounded-sm px-3 py-2 text-sm text-white font-mono focus:outline-hidden focus:border-[#4a6fa5]"
                   placeholder="0 8 * * * (毎日8時)"
                 />
-                <p className="text-falcon-subtle text-xs mt-1">例: 0 8 * * * = 毎日8時, 0 */6 * * * = 6時間ごと</p>
+                <p className="text-[#3d5068] text-xs mt-1">例: 0 8 * * * = 毎日8時, 0 */6 * * * = 6時間ごと</p>
               </div>
             )}
             {form.trigger_type === 'manual' && (
-              <p className="text-falcon-muted text-sm">手動トリガーには条件は不要です。</p>
+              <p className="text-[#7d92b0] text-sm">手動トリガーには条件は不要です。</p>
             )}
             {form.trigger_type === 'webhook' && (
               <div>
-                <label className="text-falcon-muted text-xs mb-1 block">Webhookエンドポイント（自動生成）</label>
-                <div className="bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-sm text-falcon-muted font-mono">
+                <label className="text-[#7d92b0] text-xs mb-1 block">Webhookエンドポイント（自動生成）</label>
+                <div className="bg-[#070d19] border border-[#1e2d42] rounded-sm px-3 py-2 text-sm text-[#7d92b0] font-mono">
                   /api/v1/soar/webhook/&lt;generated-id&gt;
                 </div>
               </div>
@@ -245,7 +248,7 @@ function WorkflowModal({
           {/* Section 3: Actions */}
           <div>
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-falcon-muted text-xs font-semibold uppercase tracking-wider">アクション設定</h3>
+              <h3 className="text-[#7d92b0] text-xs font-semibold uppercase tracking-wider">アクション設定</h3>
               <button
                 onClick={addAction}
                 className="flex items-center gap-1.5 text-xs text-[#4a6fa5] hover:text-blue-300 transition-colors"
@@ -255,7 +258,7 @@ function WorkflowModal({
               </button>
             </div>
             {form.actions.length === 0 && (
-              <div className="text-center py-6 border border-dashed border-falcon-border rounded-sm text-falcon-subtle text-sm">
+              <div className="text-center py-6 border border-dashed border-[#1e2d42] rounded-sm text-[#3d5068] text-sm">
                 アクションを追加してください
               </div>
             )}
@@ -263,10 +266,10 @@ function WorkflowModal({
               {form.actions.map((action, idx) => {
                 const Icon = ACTION_ICONS[action.type]
                 return (
-                  <div key={action.id} className="border border-falcon-border rounded-sm p-3 bg-[#070d19]">
+                  <div key={action.id} className="border border-[#1e2d42] rounded-sm p-3 bg-[#070d19]">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-falcon-muted text-xs font-medium">アクション {idx + 1}</span>
-                      <button onClick={() => removeAction(idx)} className="text-falcon-subtle hover:text-falcon-red transition-colors">
+                      <span className="text-[#7d92b0] text-xs font-medium">アクション {idx + 1}</span>
+                      <button onClick={() => removeAction(idx)} className="text-[#3d5068] hover:text-[#e8002d] transition-colors">
                         <X className="w-4 h-4" />
                       </button>
                     </div>
@@ -275,7 +278,7 @@ function WorkflowModal({
                       <select
                         value={action.type}
                         onChange={e => updateAction(idx, { type: e.target.value as ActionType, params: {} })}
-                        className="flex-1 bg-falcon-surface border border-falcon-border rounded-sm px-2 py-1.5 text-sm text-white focus:outline-hidden focus:border-[#4a6fa5]"
+                        className="flex-1 bg-[#0d1220] border border-[#1e2d42] rounded-sm px-2 py-1.5 text-sm text-white focus:outline-hidden focus:border-[#4a6fa5]"
                       >
                         {(Object.entries(ACTION_LABELS) as [ActionType, string][]).map(([k, v]) => (
                           <option key={k} value={k}>{v}</option>
@@ -285,11 +288,11 @@ function WorkflowModal({
                     {/* Dynamic params */}
                     {action.type === 'create_ticket' && (
                       <div>
-                        <label className="text-falcon-muted text-xs mb-1 block">優先度</label>
+                        <label className="text-[#7d92b0] text-xs mb-1 block">優先度</label>
                         <select
                           value={action.params.priority ?? 'medium'}
                           onChange={e => updateAction(idx, { params: { ...action.params, priority: e.target.value } })}
-                          className="w-full bg-falcon-surface border border-falcon-border rounded-sm px-2 py-1.5 text-sm text-white focus:outline-hidden focus:border-[#4a6fa5]"
+                          className="w-full bg-[#0d1220] border border-[#1e2d42] rounded-sm px-2 py-1.5 text-sm text-white focus:outline-hidden focus:border-[#4a6fa5]"
                         >
                           <option value="critical">クリティカル</option>
                           <option value="high">高</option>
@@ -300,23 +303,23 @@ function WorkflowModal({
                     )}
                     {action.type === 'send_notification' && (
                       <div>
-                        <label className="text-falcon-muted text-xs mb-1 block">メッセージ</label>
+                        <label className="text-[#7d92b0] text-xs mb-1 block">メッセージ</label>
                         <textarea
                           value={action.params.message ?? ''}
                           onChange={e => updateAction(idx, { params: { ...action.params, message: e.target.value } })}
                           rows={2}
-                          className="w-full bg-falcon-surface border border-falcon-border rounded-sm px-2 py-1.5 text-sm text-white focus:outline-hidden focus:border-[#4a6fa5] resize-none"
+                          className="w-full bg-[#0d1220] border border-[#1e2d42] rounded-sm px-2 py-1.5 text-sm text-white focus:outline-hidden focus:border-[#4a6fa5] resize-none"
                           placeholder="通知メッセージ"
                         />
                       </div>
                     )}
                     {action.type === 'quarantine_agent' && (
                       <div>
-                        <label className="text-falcon-muted text-xs mb-1 block">エージェント</label>
+                        <label className="text-[#7d92b0] text-xs mb-1 block">エージェント</label>
                         <select
                           value={action.params.agent_id ?? 'auto'}
                           onChange={e => updateAction(idx, { params: { ...action.params, agent_id: e.target.value } })}
-                          className="w-full bg-falcon-surface border border-falcon-border rounded-sm px-2 py-1.5 text-sm text-white focus:outline-hidden focus:border-[#4a6fa5]"
+                          className="w-full bg-[#0d1220] border border-[#1e2d42] rounded-sm px-2 py-1.5 text-sm text-white focus:outline-hidden focus:border-[#4a6fa5]"
                         >
                           <option value="auto">トリガーエージェント（自動）</option>
                           <option value="all">すべてのエージェント</option>
@@ -325,11 +328,11 @@ function WorkflowModal({
                     )}
                     {action.type === 'create_incident' && (
                       <div>
-                        <label className="text-falcon-muted text-xs mb-1 block">重要度</label>
+                        <label className="text-[#7d92b0] text-xs mb-1 block">重要度</label>
                         <select
                           value={action.params.severity ?? 'medium'}
                           onChange={e => updateAction(idx, { params: { ...action.params, severity: e.target.value } })}
-                          className="w-full bg-falcon-surface border border-falcon-border rounded-sm px-2 py-1.5 text-sm text-white focus:outline-hidden focus:border-[#4a6fa5]"
+                          className="w-full bg-[#0d1220] border border-[#1e2d42] rounded-sm px-2 py-1.5 text-sm text-white focus:outline-hidden focus:border-[#4a6fa5]"
                         >
                           <option value="critical">クリティカル</option>
                           <option value="high">高</option>
@@ -340,11 +343,11 @@ function WorkflowModal({
                     )}
                     {action.type === 'run_playbook' && (
                       <div>
-                        <label className="text-falcon-muted text-xs mb-1 block">プレイブックID</label>
+                        <label className="text-[#7d92b0] text-xs mb-1 block">プレイブックID</label>
                         <input
                           value={action.params.playbook_id ?? ''}
                           onChange={e => updateAction(idx, { params: { ...action.params, playbook_id: e.target.value } })}
-                          className="w-full bg-falcon-surface border border-falcon-border rounded-sm px-2 py-1.5 text-sm text-white focus:outline-hidden focus:border-[#4a6fa5]"
+                          className="w-full bg-[#0d1220] border border-[#1e2d42] rounded-sm px-2 py-1.5 text-sm text-white focus:outline-hidden focus:border-[#4a6fa5]"
                           placeholder="pb-001"
                         />
                       </div>
@@ -356,14 +359,14 @@ function WorkflowModal({
           </div>
         </div>
 
-        <div className="px-6 py-4 border-t border-falcon-border flex justify-end gap-3">
-          <button onClick={onClose} className="px-4 py-2 text-sm text-falcon-muted hover:text-white transition-colors">
+        <div className="px-6 py-4 border-t border-[#1e2d42] flex justify-end gap-3">
+          <button onClick={onClose} className="px-4 py-2 text-sm text-[#7d92b0] hover:text-white transition-colors">
             キャンセル
           </button>
           <button
             onClick={() => { onSave(form); onClose() }}
             disabled={!form.name}
-            className="px-4 py-2 text-sm bg-falcon-red hover:bg-[#c0001f] text-white rounded-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-4 py-2 text-sm bg-[#e8002d] hover:bg-[#c0001f] text-white rounded-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             保存
           </button>
@@ -382,26 +385,26 @@ function TriggerModal({ workflow, onClose, onConfirm }: {
 }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={onClose}>
-      <div className="bg-falcon-surface border border-falcon-border rounded-lg w-full max-w-md p-6" onClick={e => e.stopPropagation()}>
+      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg w-full max-w-md p-6" onClick={e => e.stopPropagation()}>
         <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 rounded-full bg-falcon-red/20 flex items-center justify-center">
-            <Play className="w-5 h-5 text-falcon-red" />
+          <div className="w-10 h-10 rounded-full bg-[#e8002d]/20 flex items-center justify-center">
+            <Play className="w-5 h-5 text-[#e8002d]" />
           </div>
           <div>
             <h2 className="text-white font-semibold">ワークフロー実行確認</h2>
-            <p className="text-falcon-muted text-xs">{workflow.name}</p>
+            <p className="text-[#7d92b0] text-xs">{workflow.name}</p>
           </div>
         </div>
-        <p className="text-falcon-muted text-sm mb-6">
+        <p className="text-[#7d92b0] text-sm mb-6">
           このワークフローを手動でトリガーします。実行後、設定されたアクションが順次実行されます。
         </p>
         <div className="flex justify-end gap-3">
-          <button onClick={onClose} className="px-4 py-2 text-sm text-falcon-muted hover:text-white transition-colors">
+          <button onClick={onClose} className="px-4 py-2 text-sm text-[#7d92b0] hover:text-white transition-colors">
             キャンセル
           </button>
           <button
             onClick={() => { onConfirm(); onClose() }}
-            className="px-4 py-2 text-sm bg-falcon-red hover:bg-[#c0001f] text-white rounded-sm flex items-center gap-2 transition-colors"
+            className="px-4 py-2 text-sm bg-[#e8002d] hover:bg-[#c0001f] text-white rounded-sm flex items-center gap-2 transition-colors"
           >
             <Play className="w-4 h-4" />
             実行
@@ -417,44 +420,44 @@ function TriggerModal({ workflow, onClose, onConfirm }: {
 function ExecDetailModal({ exec, onClose }: { exec: WorkflowExecution; onClose: () => void }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={onClose}>
-      <div className="bg-falcon-surface border border-falcon-border rounded-lg w-full max-w-lg" onClick={e => e.stopPropagation()}>
-        <div className="flex items-center justify-between px-6 py-4 border-b border-falcon-border">
+      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg w-full max-w-lg" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[#1e2d42]">
           <h2 className="text-white font-semibold">実行詳細</h2>
-          <button onClick={onClose} className="text-falcon-muted hover:text-white"><X className="w-5 h-5" /></button>
+          <button onClick={onClose} className="text-[#7d92b0] hover:text-white"><X className="w-5 h-5" /></button>
         </div>
         <div className="px-6 py-4">
-          <p className="text-falcon-muted text-xs mb-1">ワークフロー</p>
+          <p className="text-[#7d92b0] text-xs mb-1">ワークフロー</p>
           <p className="text-white font-medium mb-3">{exec.workflow_name}</p>
           <div className="grid grid-cols-3 gap-3 mb-4 text-xs">
             <div className="bg-[#070d19] rounded-sm p-2 text-center">
-              <p className="text-falcon-subtle">トリガー</p>
-              <p className="text-falcon-muted mt-1 truncate">{exec.trigger}</p>
+              <p className="text-[#3d5068]">トリガー</p>
+              <p className="text-[#7d92b0] mt-1 truncate">{exec.trigger}</p>
             </div>
             <div className="bg-[#070d19] rounded-sm p-2 text-center">
-              <p className="text-falcon-subtle">所要時間</p>
-              <p className="text-falcon-muted mt-1">{formatDuration(exec.duration_ms)}</p>
+              <p className="text-[#3d5068]">所要時間</p>
+              <p className="text-[#7d92b0] mt-1">{formatDuration(exec.duration_ms)}</p>
             </div>
             <div className="bg-[#070d19] rounded-sm p-2 text-center">
-              <p className="text-falcon-subtle">開始日時</p>
-              <p className="text-falcon-muted mt-1">{formatDate(exec.started_at)}</p>
+              <p className="text-[#3d5068]">開始日時</p>
+              <p className="text-[#7d92b0] mt-1">{formatDate(exec.started_at)}</p>
             </div>
           </div>
-          <h3 className="text-falcon-muted text-xs font-semibold uppercase tracking-wider mb-2">実行ステップ</h3>
+          <h3 className="text-[#7d92b0] text-xs font-semibold uppercase tracking-wider mb-2">実行ステップ</h3>
           <div className="space-y-2">
             {exec.steps.map((step, i) => (
-              <div key={i} className="flex items-start gap-3 p-3 bg-[#070d19] rounded-sm border border-falcon-border">
+              <div key={i} className="flex items-start gap-3 p-3 bg-[#070d19] rounded-sm border border-[#1e2d42]">
                 <div className="shrink-0 mt-0.5">
                   {step.status === 'success' && <CheckCircle className="w-4 h-4 text-green-400" />}
-                  {step.status === 'failed' && <XCircle className="w-4 h-4 text-falcon-red" />}
-                  {step.status === 'skipped' && <Clock className="w-4 h-4 text-falcon-subtle" />}
+                  {step.status === 'failed' && <XCircle className="w-4 h-4 text-[#e8002d]" />}
+                  {step.status === 'skipped' && <Clock className="w-4 h-4 text-[#3d5068]" />}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-white">{ACTION_LABELS[step.action_type]}</span>
-                    <span className="text-xs text-falcon-subtle">{formatDuration(step.duration_ms)}</span>
+                    <span className="text-xs text-[#3d5068]">{formatDuration(step.duration_ms)}</span>
                   </div>
-                  {step.error && <p className="text-xs text-falcon-red mt-1">{step.error}</p>}
-                  {step.status === 'skipped' && <p className="text-xs text-falcon-subtle mt-1">前のステップの失敗によりスキップ</p>}
+                  {step.error && <p className="text-xs text-[#e8002d] mt-1">{step.error}</p>}
+                  {step.status === 'skipped' && <p className="text-xs text-[#3d5068] mt-1">前のステップの失敗によりスキップ</p>}
                 </div>
               </div>
             ))}
@@ -551,7 +554,7 @@ export default function SoarPage() {
       </span>
     )
     return (
-      <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-sm text-xs bg-falcon-red/20 text-falcon-red">
+      <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-sm text-xs bg-[#e8002d]/20 text-[#e8002d]">
         <XCircle className="w-3 h-3" />失敗
       </span>
     )
@@ -559,6 +562,8 @@ export default function SoarPage() {
 
   return (
     <div className="min-h-screen bg-[#070d19] p-6">
+      <PageDataUnavailable />
+      <PageSaveFailed className="mb-4" />
       {/* Modals */}
       {showCreateModal && (
         <WorkflowModal
@@ -581,14 +586,14 @@ export default function SoarPage() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-            <Workflow className="w-6 h-6 text-falcon-red" />
+            <Workflow className="w-6 h-6 text-[#e8002d]" />
             SOARワークフロー
           </h1>
-          <p className="text-falcon-muted text-sm mt-1">セキュリティオーケストレーション・自動対応ワークフローの管理</p>
+          <p className="text-[#7d92b0] text-sm mt-1">セキュリティオーケストレーション・自動対応ワークフローの管理</p>
         </div>
         <button
           onClick={() => setShowCreateModal(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-falcon-red hover:bg-[#c0001f] text-white rounded-sm text-sm font-medium transition-colors"
+          className="flex items-center gap-2 px-4 py-2 bg-[#e8002d] hover:bg-[#c0001f] text-white rounded-sm text-sm font-medium transition-colors"
         >
           <Plus className="w-4 h-4" />
           ワークフロー作成
@@ -601,11 +606,11 @@ export default function SoarPage() {
           { label: '総ワークフロー', value: totalWorkflows, icon: Workflow, color: 'text-blue-400' },
           { label: '有効', value: enabledCount, icon: CheckCircle, color: 'text-green-400' },
           { label: '今日の実行', value: todayExecs, icon: Activity, color: 'text-purple-400' },
-          { label: '成功率', value: `${successRate}%`, icon: Zap, color: 'text-falcon-red' },
+          { label: '成功率', value: `${successRate}%`, icon: Zap, color: 'text-[#e8002d]' },
         ].map(({ label, value, icon: Icon, color }) => (
-          <div key={label} className="bg-falcon-surface border border-falcon-border rounded-lg p-4">
+          <div key={label} className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-4">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-falcon-muted text-xs">{label}</span>
+              <span className="text-[#7d92b0] text-xs">{label}</span>
               <Icon className={`w-4 h-4 ${color}`} />
             </div>
             <p className={`text-2xl font-bold ${color}`}>{value}</p>
@@ -614,15 +619,15 @@ export default function SoarPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 mb-4 border-b border-falcon-border">
+      <div className="flex gap-1 mb-4 border-b border-[#1e2d42]">
         {([['workflows', 'ワークフロー'], ['history', '実行履歴']] as const).map(([id, label]) => (
           <button
             key={id}
             onClick={() => setActiveTab(id)}
             className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px ${
               activeTab === id
-                ? 'text-white border-falcon-red'
-                : 'text-falcon-muted border-transparent hover:text-white'
+                ? 'text-white border-[#e8002d]'
+                : 'text-[#7d92b0] border-transparent hover:text-white'
             }`}
           >
             {label}
@@ -634,7 +639,7 @@ export default function SoarPage() {
       {activeTab === 'workflows' && (
         <div className="grid grid-cols-1 gap-4">
           {workflows.map(wf => (
-            <div key={wf.id} className="bg-falcon-surface border border-falcon-border rounded-lg p-4">
+            <div key={wf.id} className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-4">
               <div className="flex items-start justify-between">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-3 mb-1">
@@ -643,8 +648,8 @@ export default function SoarPage() {
                       {TRIGGER_LABELS[wf.trigger_type]}
                     </span>
                   </div>
-                  <p className="text-falcon-muted text-sm mb-3">{wf.description}</p>
-                  <div className="flex items-center gap-4 text-xs text-falcon-subtle">
+                  <p className="text-[#7d92b0] text-sm mb-3">{wf.description}</p>
+                  <div className="flex items-center gap-4 text-xs text-[#3d5068]">
                     <span className="flex items-center gap-1">
                       <Activity className="w-3 h-3" />
                       実行回数: {wf.execution_count}
@@ -668,7 +673,7 @@ export default function SoarPage() {
                   </button>
                   <button
                     onClick={() => toggleMut.mutate(wf.id)}
-                    className={`p-1.5 rounded-sm transition-colors ${wf.enabled ? 'text-green-400 hover:bg-green-400/10' : 'text-falcon-subtle hover:bg-falcon-border'}`}
+                    className={`p-1.5 rounded-sm transition-colors ${wf.enabled ? 'text-green-400 hover:bg-green-400/10' : 'text-[#3d5068] hover:bg-[#1e2d42]'}`}
                     title={wf.enabled ? '無効化' : '有効化'}
                   >
                     {wf.enabled
@@ -676,23 +681,23 @@ export default function SoarPage() {
                       : <ToggleLeft className="w-5 h-5" />
                     }
                   </button>
-                  <button className="p-1.5 text-falcon-muted hover:text-white hover:bg-falcon-border rounded-sm transition-colors">
+                  <button className="p-1.5 text-[#7d92b0] hover:text-white hover:bg-[#1e2d42] rounded-sm transition-colors">
                     <Edit2 className="w-4 h-4" />
                   </button>
                   <button
                     onClick={() => deleteMut.mutate(wf.id)}
-                    className="p-1.5 text-falcon-muted hover:text-falcon-red hover:bg-falcon-red/10 rounded-sm transition-colors"
+                    className="p-1.5 text-[#7d92b0] hover:text-[#e8002d] hover:bg-[#e8002d]/10 rounded-sm transition-colors"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
               </div>
               {/* Action list */}
-              <div className="flex flex-wrap gap-2 mt-3 pt-3 border-t border-falcon-border">
+              <div className="flex flex-wrap gap-2 mt-3 pt-3 border-t border-[#1e2d42]">
                 {wf.actions.map((action, i) => {
                   const Icon = ACTION_ICONS[action.type]
                   return (
-                    <span key={i} className="inline-flex items-center gap-1 px-2 py-1 bg-[#070d19] rounded-sm text-xs text-falcon-muted">
+                    <span key={i} className="inline-flex items-center gap-1 px-2 py-1 bg-[#070d19] rounded-sm text-xs text-[#7d92b0]">
                       <Icon className="w-3 h-3" />
                       {ACTION_LABELS[action.type]}
                     </span>
@@ -709,11 +714,11 @@ export default function SoarPage() {
         <div>
           {/* Filters */}
           <div className="flex items-center gap-3 mb-4">
-            <Filter className="w-4 h-4 text-falcon-muted" />
+            <Filter className="w-4 h-4 text-[#7d92b0]" />
             <select
               value={filterWorkflow}
               onChange={e => setFilterWorkflow(e.target.value)}
-              className="bg-falcon-surface border border-falcon-border rounded-sm px-3 py-1.5 text-sm text-white focus:outline-hidden"
+              className="bg-[#0d1220] border border-[#1e2d42] rounded-sm px-3 py-1.5 text-sm text-white focus:outline-hidden"
             >
               <option value="">すべてのワークフロー</option>
               {workflows.map(w => (
@@ -723,7 +728,7 @@ export default function SoarPage() {
             <select
               value={filterStatus}
               onChange={e => setFilterStatus(e.target.value)}
-              className="bg-falcon-surface border border-falcon-border rounded-sm px-3 py-1.5 text-sm text-white focus:outline-hidden"
+              className="bg-[#0d1220] border border-[#1e2d42] rounded-sm px-3 py-1.5 text-sm text-white focus:outline-hidden"
             >
               <option value="">すべてのステータス</option>
               <option value="running">実行中</option>
@@ -732,30 +737,30 @@ export default function SoarPage() {
             </select>
           </div>
 
-          <div className="bg-falcon-surface border border-falcon-border rounded-lg overflow-hidden">
+          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg overflow-hidden">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-falcon-border">
+                <tr className="border-b border-[#1e2d42]">
                   {['ワークフロー名', 'トリガー', 'ステータス', 'アクション', '所要時間', '開始日時', ''].map(h => (
-                    <th key={h} className="px-4 py-3 text-left text-xs text-falcon-muted font-medium">{h}</th>
+                    <th key={h} className="px-4 py-3 text-left text-xs text-[#7d92b0] font-medium">{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {filteredExecs.map(exec => (
-                  <tr key={exec.id} className="border-b border-falcon-border hover:bg-[#070d19] transition-colors">
+                  <tr key={exec.id} className="border-b border-[#1e2d42] hover:bg-[#070d19] transition-colors">
                     <td className="px-4 py-3 text-white font-medium">{exec.workflow_name}</td>
                     <td className="px-4 py-3">
-                      <span className="text-xs text-falcon-muted font-mono bg-[#070d19] px-2 py-0.5 rounded-sm">
+                      <span className="text-xs text-[#7d92b0] font-mono bg-[#070d19] px-2 py-0.5 rounded-sm">
                         {exec.trigger}
                       </span>
                     </td>
                     <td className="px-4 py-3">{statusBadge(exec.status)}</td>
-                    <td className="px-4 py-3 text-falcon-muted">
+                    <td className="px-4 py-3 text-[#7d92b0]">
                       {exec.actions_completed}/{exec.actions_total}
                     </td>
-                    <td className="px-4 py-3 text-falcon-muted">{formatDuration(exec.duration_ms)}</td>
-                    <td className="px-4 py-3 text-falcon-muted text-xs">{formatDate(exec.started_at)}</td>
+                    <td className="px-4 py-3 text-[#7d92b0]">{formatDuration(exec.duration_ms)}</td>
+                    <td className="px-4 py-3 text-[#7d92b0] text-xs">{formatDate(exec.started_at)}</td>
                     <td className="px-4 py-3">
                       <button
                         onClick={() => setDetailExec(exec)}
@@ -768,7 +773,7 @@ export default function SoarPage() {
                 ))}
                 {filteredExecs.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="px-4 py-8 text-center text-falcon-subtle text-sm">
+                    <td colSpan={7} className="px-4 py-8 text-center text-[#3d5068] text-sm">
                       実行履歴がありません
                     </td>
                   </tr>

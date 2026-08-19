@@ -17,6 +17,9 @@ import {
   Apple,
 } from 'lucide-react'
 
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+import { PageSaveFailed } from '@/components/PageSaveFailed'
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type OS = 'linux' | 'windows' | 'macos'
@@ -177,6 +180,8 @@ export default function InstallerPage() {
 
   return (
     <div className="p-6 space-y-6">
+      <PageDataUnavailable />
+      <PageSaveFailed className="mb-4" />
 
       {/* Header */}
       <div>
@@ -204,9 +209,7 @@ export default function InstallerPage() {
             value={serverUrl}
             onChange={e => setServerUrl(e.target.value)}
             placeholder="https://your-edr-server.com"
-            className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white
-                       placeholder-gray-600 focus:outline-hidden focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50
-                       font-mono"
+            className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-hidden focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 font-mono"
           />
         </div>
 
@@ -279,8 +282,7 @@ export default function InstallerPage() {
             value={group}
             onChange={e => setGroup(e.target.value)}
             placeholder="例: production / servers"
-            className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white
-                       placeholder-gray-600 focus:outline-hidden focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50"
+            className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-hidden focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50"
           />
         </div>
 
@@ -296,14 +298,11 @@ export default function InstallerPage() {
               value={token}
               onChange={e => setToken(e.target.value)}
               placeholder="32文字の16進数トークン"
-              className="flex-1 bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white
-                         placeholder-gray-600 focus:outline-hidden focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50
-                         font-mono"
+              className="flex-1 bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-hidden focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 font-mono"
             />
             <button
               onClick={handleGenerateToken}
-              className="flex items-center gap-1.5 px-3 py-2 bg-gray-700 text-gray-300 rounded-lg
-                         hover:bg-gray-600 hover:text-white transition-colors text-sm font-medium whitespace-nowrap"
+              className="flex items-center gap-1.5 px-3 py-2 bg-gray-700 text-gray-300 rounded-lg hover:bg-gray-600 hover:text-white transition-colors text-sm font-medium whitespace-nowrap"
             >
               <RefreshCw className="w-3.5 h-3.5" />
               生成
@@ -388,8 +387,7 @@ export default function InstallerPage() {
             <a
               key={`${os}-${archVal}`}
               href={downloadUrl(os, archVal)}
-              className="flex items-center gap-3 px-4 py-3 bg-gray-900 border border-gray-700
-                         rounded-lg hover:bg-gray-700/60 hover:border-gray-600 transition-all group"
+              className="flex items-center gap-3 px-4 py-3 bg-gray-900 border border-gray-700 rounded-lg hover:bg-gray-700/60 hover:border-gray-600 transition-all group"
               target="_blank"
               rel="noopener noreferrer"
             >
@@ -469,9 +467,7 @@ export default function InstallerPage() {
                     <td className="px-4 py-3">
                       <button
                         onClick={() => handleRevokeToken(t.id)}
-                        className="flex items-center gap-1.5 px-2.5 py-1 bg-red-900/20 text-red-400
-                                   border border-red-800/30 rounded-lg hover:bg-red-900/40 transition-colors
-                                   text-xs font-medium"
+                        className="flex items-center gap-1.5 px-2.5 py-1 bg-red-900/20 text-red-400 border border-red-800/30 rounded-lg hover:bg-red-900/40 transition-colors text-xs font-medium"
                       >
                         <Trash2 className="w-3 h-3" />
                         トークンを無効化

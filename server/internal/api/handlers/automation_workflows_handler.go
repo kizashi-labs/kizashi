@@ -24,10 +24,7 @@ func NewAutomationWorkflowsHandler(pool *pgxpool.Pool) *AutomationWorkflowsHandl
 }
 
 func (h *AutomationWorkflowsHandler) tableExists(c *gin.Context) bool {
-	var ok bool
-	_ = h.pool.QueryRow(c.Request.Context(),
-		`SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name='automation_workflows')`).Scan(&ok)
-	return ok
+	return tableIsThere(c.Request.Context(), h.pool, "automation_workflows")
 }
 
 type autoWorkflow struct {
@@ -89,6 +86,10 @@ func (h *AutomationWorkflowsHandler) List(c *gin.Context) {
 			w.LastRun = &s
 		}
 		workflows = append(workflows, w)
+	}
+	if err := rows.Err(); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to list workflows"})
+		return
 	}
 	if workflows == nil {
 		workflows = []autoWorkflow{}
@@ -199,8 +200,10 @@ func (h *AutomationWorkflowsHandler) Run(c *gin.Context) {
 	}
 	ctx := c.Request.Context()
 	if h.tableExists(c) {
-		_, _ = h.pool.Exec(ctx,
-			`UPDATE automation_workflows SET run_count=run_count+1, last_run=NOW() WHERE id=$1`, id)
+		if _, err := h.pool.Exec(ctx,
+			`UPDATE automation_workflows SET run_count=run_count+1, last_run=NOW() WHERE id=$1`, id); !WriteOK(c, err) {
+			return
+		}
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "Workflow triggered", "run_id": generateShortID()})
 }
@@ -209,9 +212,7 @@ func (h *AutomationWorkflowsHandler) Run(c *gin.Context) {
 // GET /api/v1/admin/automation/workflows/history
 func (h *AutomationWorkflowsHandler) ListHistory(c *gin.Context) {
 	ctx := c.Request.Context()
-	var ok bool
-	_ = h.pool.QueryRow(ctx,
-		`SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name='automation_run_history')`).Scan(&ok)
+	ok := tableIsThere(ctx, h.pool, "automation_run_history")
 	if !ok {
 		c.JSON(http.StatusOK, []interface{}{})
 		return
@@ -238,6 +239,10 @@ func (h *AutomationWorkflowsHandler) ListHistory(c *gin.Context) {
 		}
 		rh.StartedAt = startedAt.Format(time.RFC3339)
 		history = append(history, rh)
+	}
+	if err := rows.Err(); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to list history"})
+		return
 	}
 	if history == nil {
 		history = []autoRunHistory{}

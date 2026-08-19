@@ -199,6 +199,8 @@ grep -rhoiE 'T[0-9]{4}(\.[0-9]{3})?' server/migrations/*.sql | tr a-z A-Z | sort
 ルール追加のたびに本監査の被覆リストは変化する。四半期ごと、または大きな検知スプリント後に上記の再現コマンドで被覆 technique を再抽出し、本ドキュメントの戦術別マトリクスを更新すること。
 
 ### 更新ログ
+- **2026-07-27**: **実機による検知率測定で、単体テストでも合成注入でも露見しない潜在欠陥を摘出**。詳細＝[live-20260726-detection-rate-scorecard.md](results/live-20260726-detection-rate-scorecard.md)。(a) **T1046 ポートスキャンが実テレメトリで永久に検知不能だった**＝eBPF ネットワーク監視が使いもしない `prevention` ビルドタグの陰にあり、`-tags ebpf` ビルドは黙って `/proc/net` ポーリングに退化。ポーリングは ESTABLISHED しか観測できないため、閉じたポートへの接続（スキャンの本体）が丸ごと不可視。加えて NetworkEvent に ID/Timestamp が無く、同一秒の21接続が JetStream 重複排除で1件に潰れて閾値(15ポート)に到達できなかった。両方是正し実機発火を確認。(b) **探索バーストが「個数が増えたときだけ再発火」していた**ため、間隔を空けた偵察では窓内の技術が入れ替わるだけで個数が増えず、発火後に列挙された技術が永久に無報告だった。報告済み集合(credited)を持ち「未報告の技術が窓にあるか」で再発火する方式へ変更（単発は依然として発火せず、ノイズ床は不変）。(c) **T1518.001(セキュリティソフト探索)と T1018(リモートシステム探索)の分類パターンが皆無**だった＝EDR を探す `ps aux | grep falcon` は「ただのプロセス一覧」、`/etc/hosts` 読みは分類なしで、キルチェーンにもバーストにも寄与していなかった。両技術を追加（T1518.001 は汎用パターンより前に配置）。(d) **ランサム検知が systemd を誤検知**（60ファイル/30秒で sev9）→ OS/サービス所有ツリーを burst カウントから除外（プロセス許可リストではなく**パス基準**＝`systemd` を名乗るドロッパーで回避されないため）。**測定結果**: 可視性100% / 検知率76–82% / Technique 特定66–73%（間隔90秒・窓60秒・UEBA無効, n=4）。安定した実ギャップは T1140(デコード単体)と T1548.003(正常 sudo＝意図的な非検知)のみ。★**測定手法の教訓**: 相関検知器を持つ製品では「窓 < 間隔」（窓の相互汚染回避）と「相関成立に必要な密度」が構造的に両立しないため、探索系は攻撃実態に近い密度で1シナリオとして評価しないと過小評価になる。UEBA スタンドアロンアラートは `T1078` タグで複数戦術に跨り無差別に Tactic 判定を与えるため、検知率測定時は必ず `UEBA_ANOMALY_THRESHOLD=0` にすること。
+- **2026-07-26**: **Linux ランサムウェア検知(T1486)を実テレメトリで実効化**。`FileBurstScorer` はプロセス単位で破壊的ファイル操作を数えるが、Linux のファイルコレクタは inotify ベースで**操作元 pid を持たない**ため、実機の file イベントは常に `process_name=""` / `pid=0`。結果、検知器は本番テレメトリに対して**恒常的に inert** だった（`file_monitor.bpf.c` は pid+comm を取得していたのに、これを消費する Go コレクタが存在せず未配線）。**対処**＝`EBPFFileCollector` を新設（openat tracepoint + vfs_unlink/vfs_rename kprobe の ringbuf を読み、pid/comm 付きで `collector.FileEvent` を emit。eBPF ロード不可なら inotify に自動フォールバック）し、`-tags ebpf` ビルドで選択されるよう配線。**さらに実機検証で JetStream 由来の重大な取りこぼしを発見**＝新コレクタが `FileEvent.ID`/`Timestamp` を未設定だったため、ingestion の `eventMsgID` が空IDフォールバック(`agent-type-秒-idx`)を使い、同一秒のバースト70件が**同じ msgID**に潰れて重複排除(5分窓)で69件が破棄。**DB には70行入るのに detection には1件しか届かない**という不可視の欠落だった（合成注入=ID付きは発火するのに実エージェントは無反応、という食い違いの正体）。ID/Timestamp を付与して解消。**実機実証**: 実エージェントが python3 で70ファイルを上書き→`[HEURISTIC] ランサムウェアの疑い: プロセス 'python3' が30秒内に60個のファイルを破壊的操作`(T1486 sev9) が発火。★教訓: **センサー側の帰属欠落とメッセージID衝突は、単体テストでも合成注入でも顕在化せず、実エージェント検証でのみ露見する。**
 - **2026-07-22 (AD/ドメイン全体タンパリング + Windowsログオンスクリプト)**: 発火＋良性否定テスト
   `builtin_ad_persist_fire_test.go`。
   - **Domain Policy Modification via GPO Tampering**(**T1484.001 新規被覆**): `New-GPO`/
@@ -566,3 +568,33 @@ grep -rhoiE 'T[0-9]{4}(\.[0-9]{3})?' server/migrations/*.sql | tr a-z A-Z | sort
   計測手順＝[ops/メモリスキャン負荷計測ランブック.md](ops/メモリスキャン負荷計測ランブック.md)。あわせて **#510**
   （LogonType 配線, T1078）も CI ランナー基盤障害からの再キック後に全 green を確認してマージ。これで 07-20 バッチの
   6件（#506-#511）がすべて main に入った。被覆 technique 数は未再計算＝次回の再抽出で更新のこと。
+
+- **2026-08-03**: **実機測定で摘出した5件の欠陥を是正し、うち4件に CI ガードを追加**。詳細＝
+  [live-20260726-detection-rate-scorecard.md §2h/§2i](results/live-20260726-detection-rate-scorecard.md)。
+  いずれも「両側が個別には正しく、組み合わさったときだけ壊れる」ため単体テストでは見えない類のもの。
+
+  | # | 欠陥 | ガード |
+  |---|---|---|
+  | ① | eBPF センサー2つが未デプロイ（`ebpf && prevention` の陰／実装ファイルが無いリビジョンでビルド）。**警告すら出ない** | `agent/internal/platform/linux/sensor_wiring_test.go`（リリースのタグ集合から到達可能かをビルド制約から評価）＋ `sensor_selection_ebpf_test.go`（`-tags ebpf` で実際に eBPF 実装が選ばれるか）。CI の agent-build に実行ステップを追加 |
+  | ② | サーバが別系統の古いイメージ（マイグレーション20本超が欠落） | `store.MigrationState` を追加し、起動ログと `GET /api/v1/status` に適用件数・最新ファイルを出す。**DB 由来なので古いビルドコンテキストで誤魔化せない** |
+  | ③ | マイグレーションがレガシー行で失敗し API が再起動ループ | `server/internal/store/migration_legacy_rows_test.go` を CI に追加。**追加直後に migration 322 の同じ欠陥を検出**（NOT VALID に是正） |
+  | ④ | `promoteEventType` が返す5種別が CHECK 制約に無く、Windows イベントが全件棄却 | `server/internal/ingestion/event_type_constraint_test.go`。生成側は AST、許可側はマイグレーションから読むので両側の変更に追随する |
+  | ⑤ | 探索バーストの再発火をアラート重複排除が握り潰す | `RuleMatch.DedupKey` を追加して是正。`TestBroadeningDiscoveryReportsSurviveAlertDedup` が Engine 経由で保存済みアラート数を検証（検知器単体テストでは構造的に見えない） |
+
+  副次的に、CI の bpf2go 生成ステップに **FileMonitor が抜けていた**（`file_ebpf_collector.go` が参照しているのに
+  未生成＝`-tags ebpf` ビルドが通らない）ことも判明し、`ci.yml` / `agent-ebpf.yml` の両方に追加した。
+
+  **①(b) センサー状態の可視化（同日実施）**: 「データはあるのに誰も見ていない」状態を解消した。3層で入れている。
+
+  - **報告**: エージェントがセンサー別の内訳を送る（`telemetry.String()` → `telemetry_detail`、migration 365）。
+    集約値は「降格している」しか言えず、運用者はどのセンサーがなぜ落ちたかを知るためにホストへ入るしかなかった。
+    HTTP/gRPC 双方に配線（gRPC は `x-telemetry-detail` メタデータ、proto 再生成を避ける既存パターンに合わせた）。
+  - **アラート**: `AgentHealthAlerter` に `checkDegradedSensors` を追加。**意図的に狭く**してある —
+    `telemetry_mode='poll'` かつ online のみ。`NULL`（Windows/macOS・旧エージェント＝未申告）と `off`（設定による無効化）は
+    降格ではないので発報しない。dedup は24時間（CPU 尖頭の1時間ではなく）＝恒常的な状態を毎時鳴らすと必ず無視されるため。
+    あわせて `healthIssue` にタイトルを持たせ、CPU 警告とセンサー降格が互いを抑制しないようにした。
+  - **表示**: エンドポイント画面のレディネスカードに「実効テレメトリ」行を追加。`poll` が1台でもあれば
+    警告色と影響（T1046 不可視・プロセス帰属の喪失）を明示する。誰も申告しない構成では行ごと出さない。
+
+  ゲーティングはテストで固定した（`degraded_sensor_alert_test.go`）。**アラートは黙っている条件のほうが重要**で、
+  未申告や無効化で鳴れば一週間でミュートされ、無いのと同じになる。

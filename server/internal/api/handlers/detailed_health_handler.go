@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"context"
-	"log/slog"
 	"net/http"
 	"runtime"
 	"sync/atomic"
@@ -129,9 +128,15 @@ func (h *DetailedHealthHandler) DetailedHealth(c *gin.Context) {
 	// Business counts (best effort — don't fail health check if queries fail)
 	counts := map[string]int{}
 	var cntAgents, cntAlerts, cntIncidents int
-	_ = h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM agents WHERE status='online'`).Scan(&cntAgents)
-	_ = h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM alerts WHERE status='open'`).Scan(&cntAlerts)
-	_ = h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM incidents WHERE status NOT IN ('resolved','closed')`).Scan(&cntIncidents)
+	if !ReadOK(c, h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM agents WHERE status='online'`).Scan(&cntAgents)) {
+		return
+	}
+	if !ReadOK(c, h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM alerts WHERE status='open'`).Scan(&cntAlerts)) {
+		return
+	}
+	if !ReadOK(c, h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM incidents WHERE status NOT IN ('resolved','closed')`).Scan(&cntIncidents)) {
+		return
+	}
 	counts["agents_online"] = cntAgents
 	counts["open_alerts"] = cntAlerts
 	counts["active_incidents"] = cntIncidents
@@ -156,80 +161,30 @@ func (h *DetailedHealthHandler) DetailedHealth(c *gin.Context) {
 }
 
 // GetUptimeStats handles GET /api/v1/health/uptime
-// Returns SLA uptime percentages for 30-day and 7-day windows.
+//
+// Availability is not measured by this platform, and this endpoint says so.
+//
+// It used to query a uptime_events table behind an existence probe, and when
+// the probe failed — which was always, no migration creates that table and no
+// code writes it — it returned uptime_30d=99.9, uptime_7d=100.0 and
+// downtime_incidents=0. Those figures were invented, not measured, and this
+// route is unauthenticated: they were served to anyone who asked, and the
+// public /status page rendered them as the product's SLA record.
+//
+// Reporting nothing is worth less than reporting a real number, and worth far
+// more than reporting a comforting one. The fields are kept and set to null so
+// existing consumers keep parsing, with measured=false to say plainly why.
+// Recording real downtime needs a writer that survives the outages it is
+// measuring — a heartbeat whose gaps are the outage — which does not exist
+// here; a reader alone cannot conjure the history.
 func (h *DetailedHealthHandler) GetUptimeStats(c *gin.Context) {
-	ctx, cancel := context.WithTimeout(c.Request.Context(), 5*time.Second)
-	defer cancel()
-
-	// Check if the uptime_events table exists.
-	var tableExists bool
-	err := h.pool.QueryRow(ctx,
-		`SELECT EXISTS (
-			SELECT FROM information_schema.tables
-			WHERE table_schema = 'public' AND table_name = 'uptime_events'
-		)`).Scan(&tableExists)
-
-	if err != nil || !tableExists {
-		// Return sensible mock / default data when the table is absent.
-		c.JSON(http.StatusOK, gin.H{
-			"uptime_30d":         99.9,
-			"uptime_7d":          100.0,
-			"downtime_incidents": 0,
-			"last_incident":      nil,
-		})
-		return
-	}
-
-	const totalMinutes30d = 30 * 24 * 60
-	const totalMinutes7d = 7 * 24 * 60
-
-	// Sum downtime minutes within each window.
-	var downtime30d, downtime7d float64
-	_ = h.pool.QueryRow(ctx, `
-		SELECT COALESCE(SUM(EXTRACT(EPOCH FROM (COALESCE(resolved_at, NOW()) - started_at)) / 60), 0)
-		FROM uptime_events
-		WHERE started_at >= NOW() - INTERVAL '30 days'
-	`).Scan(&downtime30d)
-
-	_ = h.pool.QueryRow(ctx, `
-		SELECT COALESCE(SUM(EXTRACT(EPOCH FROM (COALESCE(resolved_at, NOW()) - started_at)) / 60), 0)
-		FROM uptime_events
-		WHERE started_at >= NOW() - INTERVAL '7 days'
-	`).Scan(&downtime7d)
-
-	uptime30d := (float64(totalMinutes30d) - downtime30d) / float64(totalMinutes30d) * 100
-	uptime7d := (float64(totalMinutes7d) - downtime7d) / float64(totalMinutes7d) * 100
-
-	// Clamp to [0, 100].
-	if uptime30d < 0 {
-		uptime30d = 0
-	}
-	if uptime7d < 0 {
-		uptime7d = 0
-	}
-
-	// Incident count and most recent incident.
-	var incidentCount int
-	_ = h.pool.QueryRow(ctx, `
-		SELECT COUNT(*) FROM uptime_events
-		WHERE started_at >= NOW() - INTERVAL '30 days'
-	`).Scan(&incidentCount)
-
-	var lastIncident *time.Time
-	var lastIncidentTime time.Time
-	err = h.pool.QueryRow(ctx, `
-		SELECT started_at FROM uptime_events
-		ORDER BY started_at DESC LIMIT 1
-	`).Scan(&lastIncidentTime)
-	if err == nil {
-		lastIncident = &lastIncidentTime
-	}
-
 	c.JSON(http.StatusOK, gin.H{
-		"uptime_30d":         roundTo2dp(uptime30d),
-		"uptime_7d":          roundTo2dp(uptime7d),
-		"downtime_incidents": incidentCount,
-		"last_incident":      lastIncident,
+		"measured":           false,
+		"uptime_30d":         nil,
+		"uptime_7d":          nil,
+		"downtime_incidents": nil,
+		"last_incident":      nil,
+		"note":               "稼働率は計測されていません。計測基盤が未実装のため、この項目は数値を返しません。",
 	})
 }
 
@@ -293,68 +248,19 @@ func (h *DetailedHealthHandler) GetDependencies(c *gin.Context) {
 }
 
 // GetIncidentHistory handles GET /api/v1/health/incidents
-// Returns the last 10 service incidents from the service_incidents table.
+//
+// Service incidents are not recorded, and this endpoint says so.
+//
+// It used to read a service_incidents table behind an existence probe that no
+// migration satisfies, and returned an empty list when it failed. Paired with
+// the fabricated uptime above, an empty list did not read as "not tracked" —
+// it read as "no incidents have occurred", which is the same claim made twice.
 func (h *DetailedHealthHandler) GetIncidentHistory(c *gin.Context) {
-	ctx, cancel := context.WithTimeout(c.Request.Context(), 5*time.Second)
-	defer cancel()
-
-	type incident struct {
-		ID              string     `json:"id"`
-		Title           string     `json:"title"`
-		Severity        string     `json:"severity"`
-		StartedAt       time.Time  `json:"started_at"`
-		ResolvedAt      *time.Time `json:"resolved_at"`
-		DurationMinutes *int64     `json:"duration_minutes"`
-	}
-
-	// Check if the service_incidents table exists.
-	var tableExists bool
-	err := h.pool.QueryRow(ctx,
-		`SELECT EXISTS (
-			SELECT FROM information_schema.tables
-			WHERE table_schema = 'public' AND table_name = 'service_incidents'
-		)`).Scan(&tableExists)
-
-	if err != nil || !tableExists {
-		c.JSON(http.StatusOK, gin.H{"incidents": []incident{}})
-		return
-	}
-
-	rows, err := h.pool.Query(ctx, `
-		SELECT id, title, severity, started_at, resolved_at,
-		       CASE WHEN resolved_at IS NOT NULL
-		            THEN EXTRACT(EPOCH FROM (resolved_at - started_at))::bigint / 60
-		            ELSE NULL
-		       END AS duration_minutes
-		FROM service_incidents
-		ORDER BY started_at DESC
-		LIMIT 10
-	`)
-	if err != nil {
-		c.JSON(http.StatusOK, gin.H{"incidents": []incident{}})
-		return
-	}
-	defer rows.Close()
-
-	incidents := []incident{}
-	for rows.Next() {
-		var inc incident
-		if scanErr := rows.Scan(
-			&inc.ID,
-			&inc.Title,
-			&inc.Severity,
-			&inc.StartedAt,
-			&inc.ResolvedAt,
-			&inc.DurationMinutes,
-		); scanErr == nil {
-			incidents = append(incidents, inc)
-		}
-	}
-	if err := rows.Err(); err != nil {
-		slog.Warn("row iteration error", "error", err)
-	}
-
-	c.JSON(http.StatusOK, gin.H{"incidents": incidents})
+	c.JSON(http.StatusOK, gin.H{
+		"measured":  false,
+		"incidents": []interface{}{},
+		"note":      "サービス障害履歴は記録されていません。空のリストは「障害なし」を意味しません。",
+	})
 }
 
 // DiskInfo holds disk dependency check result; implemented per-platform.

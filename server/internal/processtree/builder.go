@@ -137,25 +137,26 @@ func (b *Builder) BuildTree(ctx context.Context, agentID string, hours int) (*Pr
 	// Fetch process events — check both table name variants gracefully.
 	rows, err := b.pool.Query(ctx, `
 		SELECT
-			event_id::text,
-			COALESCE(raw_data->>'pid', '0')          AS pid,
-			COALESCE(raw_data->>'ppid', '0')         AS ppid,
-			COALESCE(raw_data->>'process_name', COALESCE(raw_data->>'image_path', '')) AS pname,
-			COALESCE(raw_data->>'command_line', COALESCE(raw_data->>'cmdline', '')) AS cmdline,
-			COALESCE(raw_data->>'username', COALESCE(raw_data->>'user', '')) AS username,
-			COALESCE(raw_data->>'parent_name', COALESCE(raw_data->>'parent_image', '')) AS parent_name,
-			COALESCE(raw_data->>'hostname', '') AS hostname,
-			time
-		FROM events
-		WHERE agent_id = $1::uuid
-		  AND event_type = 'process'
-		  AND time >= NOW() - ($2 * INTERVAL '1 hour')
-		ORDER BY time ASC
+			e.event_id::text,
+			COALESCE(e.raw_data->>'pid', '0')          AS pid,
+			COALESCE(e.raw_data->>'ppid', '0')         AS ppid,
+			COALESCE(e.raw_data->>'process_name', COALESCE(e.raw_data->>'image_path', '')) AS pname,
+			COALESCE(e.raw_data->>'command_line', '') AS cmdline,
+			COALESCE(e.raw_data->>'username', '') AS username,
+			COALESCE(e.raw_data->>'parent_name', COALESCE(e.raw_data->>'parent_image', '')) AS parent_name,
+			COALESCE(a.hostname, '') AS hostname,
+			e.time
+		FROM events e
+		LEFT JOIN agents a ON a.id = e.agent_id
+		WHERE e.agent_id = $1::uuid
+		  AND e.event_type = 'process'
+		  AND e.time >= NOW() - ($2 * INTERVAL '1 hour')
+		ORDER BY e.time ASC
 		LIMIT 500`,
 		agentID, hours)
 	if err != nil {
 		slog.Warn("processtree: query failed", "agent_id", agentID, "error", err)
-		return &ProcessTree{AgentID: agentID, TimeRange: strconv.Itoa(hours) + "h", Roots: []*ProcessNode{}}, nil
+		return nil, err
 	}
 	defer rows.Close()
 
@@ -200,13 +201,10 @@ func (b *Builder) BuildTree(ctx context.Context, agentID string, hours int) (*Pr
 			AlertIDs:   []string{},
 		}
 
-		// Suspicious detection
+		// Suspicious detection. The parent/child half runs below, once every
+		// row is in pidMap and the parent can actually be named.
 		if isSuspicious(pname, cmdline) {
 			node.Suspicious = true
-		}
-		if tech := mitreFromParentChild(parentName, pname); tech != "" {
-			node.Suspicious = true
-			node.MITRETech = tech
 		}
 
 		// If duplicate PID (process restart), keep latest
@@ -214,7 +212,35 @@ func (b *Builder) BuildTree(ctx context.Context, agentID string, hours int) (*Pr
 		allNodes = append(allNodes, node)
 	}
 	if err := rows.Err(); err != nil {
-		slog.Warn("processtree: row iteration error", "error", err)
+		// **途中までのプロセス木を返しません。** 親が読めていない子は
+		// 根として並び、**攻撃の連鎖がそこで切れて見えます。**
+		slog.Error("processtree: 行の読み出しが途中で失敗しました", "error", err)
+		return nil, err
+	}
+
+	// The parent's name comes from the event, and from the parent's own row when
+	// the event does not carry one.
+	//
+	// The agent resolves the parent on the endpoint while it is still alive
+	// (collector.ParentResolver) and ingestion writes it to raw_data. That is
+	// the better source: it names a parent that started long before this query's
+	// window, which the pidMap fallback below cannot.
+	//
+	// Before either existed, ParentName was empty on every node — the proto
+	// carried no parent at all — and mitreFromParentChild(parentName, pname) was
+	// called with an empty parent on every row, so the whole technique table
+	// (Office spawning a shell, a browser spawning PowerShell) could never match.
+	// The fallback keeps events written by an older agent working.
+	for _, node := range allNodes {
+		if node.ParentName == "" && node.PPID != 0 {
+			if parent, ok := pidMap[node.PPID]; ok {
+				node.ParentName = parent.Name
+			}
+		}
+		if tech := mitreFromParentChild(node.ParentName, node.Name); tech != "" {
+			node.Suspicious = true
+			node.MITRETech = tech
+		}
 	}
 
 	// Build tree
@@ -342,7 +368,7 @@ func (b *Builder) SearchProcesses(ctx context.Context, agentID, name string, hou
 			COALESCE(raw_data->>'command_line', COALESCE(raw_data->>'cmdline', '')) AS cmdline,
 			COALESCE(raw_data->>'username', COALESCE(raw_data->>'user', '')) AS username,
 			COALESCE(raw_data->>'parent_name', COALESCE(raw_data->>'parent_image', '')) AS parent_name,
-			COALESCE(raw_data->>'hostname', '') AS hostname,
+			COALESCE((SELECT a.hostname FROM agents a WHERE a.id = events.agent_id), '') AS hostname,
 			time
 		FROM events
 		WHERE agent_id = $1::uuid
@@ -354,7 +380,7 @@ func (b *Builder) SearchProcesses(ctx context.Context, agentID, name string, hou
 		agentID, "%"+name+"%", hours)
 	if err != nil {
 		slog.Warn("processtree: search failed", "agent_id", agentID, "name", name, "error", err)
-		return []*ProcessNode{}, nil
+		return nil, err
 	}
 	defer rows.Close()
 
@@ -398,6 +424,10 @@ func (b *Builder) SearchProcesses(ctx context.Context, agentID, name string, hou
 			node.MITRETech = tech
 		}
 		results = append(results, node)
+	}
+	// 部分結果を完全な一覧として返さない（scan_truncation_guard_test.go 参照）
+	if err := rows.Err(); err != nil {
+		return nil, err
 	}
 	if results == nil {
 		results = []*ProcessNode{}
@@ -445,7 +475,7 @@ func (b *Builder) SearchSuspiciousAllAgents(ctx context.Context, hours int) ([]*
 			COALESCE(raw_data->>'command_line', COALESCE(raw_data->>'cmdline', '')) AS cmdline,
 			COALESCE(raw_data->>'username', COALESCE(raw_data->>'user', '')) AS username,
 			COALESCE(raw_data->>'parent_name', COALESCE(raw_data->>'parent_image', '')) AS parent_name,
-			COALESCE(raw_data->>'hostname', '') AS hostname,
+			COALESCE((SELECT a.hostname FROM agents a WHERE a.id = events.agent_id), '') AS hostname,
 			time
 		FROM events
 		WHERE event_type = 'process'
@@ -460,7 +490,7 @@ func (b *Builder) SearchSuspiciousAllAgents(ctx context.Context, hours int) ([]*
 	rows, err := b.pool.Query(ctx, query, hours)
 	if err != nil {
 		slog.Warn("processtree: suspicious all-agent query failed", "error", err)
-		return []*ProcessNode{}, nil
+		return nil, err
 	}
 	defer rows.Close()
 
@@ -502,6 +532,10 @@ func (b *Builder) SearchSuspiciousAllAgents(ctx context.Context, hours int) ([]*
 			node.MITRETech = tech
 		}
 		results = append(results, node)
+	}
+	// 部分結果を完全な一覧として返さない（scan_truncation_guard_test.go 参照）
+	if err := rows.Err(); err != nil {
+		return nil, err
 	}
 	if results == nil {
 		results = []*ProcessNode{}

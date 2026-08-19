@@ -54,6 +54,9 @@ func (s *AlertNotifStore) List(ctx context.Context) ([]AlertNotifChannel, error)
 		}
 		results = append(results, c)
 	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
 	if results == nil {
 		results = []AlertNotifChannel{}
 	}
@@ -124,6 +127,9 @@ func (s *AlertNotifStore) ListEnabled(ctx context.Context) ([]AlertNotifChannel,
 			return nil, err
 		}
 		results = append(results, c)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
 	}
 	if results == nil {
 		results = []AlertNotifChannel{}

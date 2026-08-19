@@ -55,9 +55,9 @@ func (n *BillingGraceNotifier) Run(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-startupDelay.C:
-			n.check(ctx)
+			trackRun(ctx, "billing_grace_notifier", n.check)
 		case <-ticker.C:
-			n.check(ctx)
+			trackRun(ctx, "billing_grace_notifier", n.check)
 		}
 	}
 }
@@ -72,7 +72,7 @@ func (n *BillingGraceNotifier) check(ctx context.Context) {
 		 WHERE s.status = 'canceled' AND s.canceled_at IS NOT NULL`,
 	)
 	if err != nil {
-		slog.Debug("billing grace notifier: query failed", "error", err)
+		fail(ctx, err, "billing grace notifier: query failed")
 		return
 	}
 	defer rows.Close()
@@ -98,6 +98,9 @@ func (n *BillingGraceNotifier) check(ctx context.Context) {
 				break
 			}
 		}
+	}
+	if err := rows.Err(); err != nil {
+		fail(ctx, err, "猶予期間テナントの走査が途中で終わりました。通知が届かないテナントがあります")
 	}
 }
 
@@ -159,7 +162,7 @@ func (n *BillingGraceNotifier) notify(
 		title, description, severity,
 	).Scan(&alertID)
 	if err != nil {
-		slog.Warn("billing grace notifier: alert create failed", "error", err)
+		fail(ctx, err, "billing grace notifier: alert create failed")
 	} else {
 		slog.Info("billing grace notifier: alert created",
 			"alert_id", alertID,
@@ -175,16 +178,24 @@ func (n *BillingGraceNotifier) notify(
 		return
 	}
 
+	// A failed lookup and an empty result used to share one branch and one
+	// message — "no admin recipients" — so a query that could not run read as a
+	// deployment with nobody to notify. They are separate now, and the failure
+	// is a warning rather than an info line.
 	recipients, err := n.adminEmails(ctx)
-	if err != nil || len(recipients) == 0 {
-		slog.Info("billing grace notifier: no admin recipients", "error", err)
+	if err != nil {
+		fail(ctx, err, "billing grace notifier: could not read admin recipients")
+		return
+	}
+	if len(recipients) == 0 {
+		slog.Info("billing grace notifier: no enabled admin has an email address")
 		return
 	}
 
 	subject, body := buildGraceEmail(tenantLabel, plan, graceEnd, daysLeft)
 	for _, to := range recipients {
 		if err := sendLicenseSMTP(smtpHost, to, subject, body); err != nil {
-			slog.Warn("billing grace notifier: email send failed", "to", to, "error", err)
+			fail(ctx, err, "billing grace notifier: email send failed", "to", to)
 		} else {
 			slog.Info("billing grace notifier: email sent", "to", to, "days_left", daysLeft)
 		}
@@ -192,22 +203,7 @@ func (n *BillingGraceNotifier) notify(
 }
 
 func (n *BillingGraceNotifier) adminEmails(ctx context.Context) ([]string, error) {
-	rows, err := n.pool.Query(ctx,
-		`SELECT email FROM users WHERE role = 'admin' AND email IS NOT NULL AND email <> '' AND active = true`,
-	)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var emails []string
-	for rows.Next() {
-		var e string
-		if err := rows.Scan(&e); err == nil && e != "" {
-			emails = append(emails, e)
-		}
-	}
-	return emails, nil
+	return adminRecipients(ctx, n.pool)
 }
 
 // billingGracePeriodDays mirrors the env-var reader in the billing package.

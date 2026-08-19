@@ -22,11 +22,7 @@ func NewVulnRemediationHandler(pool *pgxpool.Pool) *VulnRemediationHandler {
 }
 
 func (h *VulnRemediationHandler) tableExists(c *gin.Context) bool {
-	ctx := c.Request.Context()
-	var exists bool
-	_ = h.pool.QueryRow(ctx,
-		`SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name='vuln_remediations')`).Scan(&exists)
-	return exists
+	return tableIsThere(c.Request.Context(), h.pool, "vuln_remediations")
 }
 
 // List — GET /vuln-remediations
@@ -39,13 +35,7 @@ func (h *VulnRemediationHandler) List(c *gin.Context) {
 
 	limit, _ := strconv.Atoi(c.DefaultQuery("per_page", "50"))
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
-	if page < 1 {
-		page = 1
-	}
-	if limit < 1 || limit > 200 {
-		limit = 50
-	}
-	offset := (page - 1) * limit
+	page, limit, offset := clampPageParams(page, limit, 50, 200)
 
 	query := `SELECT id, vuln_id, agent_id, cve_id, title, severity, status,
 	                 assignee_id, due_date, resolution_notes, patch_version,
@@ -80,7 +70,9 @@ func (h *VulnRemediationHandler) List(c *gin.Context) {
 
 	countQuery := "SELECT COUNT(*) FROM (" + query + ") sub"
 	var total int
-	_ = h.pool.QueryRow(ctx, countQuery, args...).Scan(&total)
+	if !ReadOK(c, h.pool.QueryRow(ctx, countQuery, args...).Scan(&total)) {
+		return
+	}
 
 	query += fmt.Sprintf(" ORDER BY created_at DESC LIMIT $%d OFFSET $%d", argIdx, argIdx+1)
 	args = append(args, limit, offset)
@@ -131,7 +123,9 @@ func (h *VulnRemediationHandler) List(c *gin.Context) {
 		result = append(result, r)
 	}
 	if err := rows.Err(); err != nil {
-		slog.Warn("row iteration error", "error", err)
+		slog.Error("rows.Err: 結果の読み出しが途中で失敗しました", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "リメディエーション一覧の取得に失敗しました"})
+		return
 	}
 	if result == nil {
 		result = []remediation{}
@@ -374,16 +368,21 @@ func (h *VulnRemediationHandler) GetStats(c *gin.Context) {
 	ctx := c.Request.Context()
 
 	var open, inProgress, verified, overdue int
-	_ = h.pool.QueryRow(ctx,
+	if !ReadOK(c, h.pool.QueryRow(ctx,
 		`SELECT
-		   COUNT(*) FILTER (WHERE status='open'),
-		   COUNT(*) FILTER (WHERE status='in_progress'),
-		   COUNT(*) FILTER (WHERE status='verified'),
-		   COUNT(*) FILTER (WHERE due_date < CURRENT_DATE AND status NOT IN ('verified','closed'))
-		 FROM vuln_remediations`).Scan(&open, &inProgress, &verified, &overdue)
+			   COUNT(*) FILTER (WHERE status='open'),
+			   COUNT(*) FILTER (WHERE status='in_progress'),
+			   COUNT(*) FILTER (WHERE status='verified'),
+			   COUNT(*) FILTER (WHERE due_date < CURRENT_DATE AND status NOT IN ('verified','closed'))
+			 FROM vuln_remediations`).Scan(&open, &inProgress, &verified, &overdue)) {
+		return
+	}
 
-	rows, _ := h.pool.Query(ctx,
+	rows, err := h.pool.Query(ctx,
 		`SELECT severity, COUNT(*) FROM vuln_remediations GROUP BY severity`)
+	if !ReadOK(c, err) {
+		return
+	}
 	bySeverity := gin.H{}
 	if rows != nil {
 		defer rows.Close()
@@ -400,9 +399,11 @@ func (h *VulnRemediationHandler) GetStats(c *gin.Context) {
 	}
 
 	var avgDays float64
-	_ = h.pool.QueryRow(ctx,
+	if !ReadOK(c, h.pool.QueryRow(ctx,
 		`SELECT COALESCE(AVG(EXTRACT(EPOCH FROM (verified_at - created_at))/86400), 0)
-		 FROM vuln_remediations WHERE status='verified' AND verified_at IS NOT NULL`).Scan(&avgDays)
+			 FROM vuln_remediations WHERE status='verified' AND verified_at IS NOT NULL`).Scan(&avgDays)) {
+		return
+	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"open":                open,

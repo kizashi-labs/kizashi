@@ -49,6 +49,9 @@ func (s *AlertCommentStore) List(ctx context.Context, alertID string) ([]AlertCo
 		}
 		result = append(result, c)
 	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
 	if result == nil {
 		result = []AlertCommentRecord{}
 	}

@@ -36,6 +36,41 @@ type SigmaRule struct {
 	FalsePositives []string               `yaml:"falsepositives"`
 }
 
+// sigmaPlatforms maps a Sigma rule's logsource.product to the rules.platform array.
+//
+// The two Sigma ingest paths disagreed. internal/sync/sigmahq.go's inferPlatforms
+// has always derived platform from logsource (and the file's directory), but this
+// handler — the manual `POST /rules/import/sigma` path — omitted the column
+// entirely, so every rule imported through the UI took the DEFAULT
+// ARRAY['windows','linux','darwin']: "runs everywhere".
+//
+// RuleEngine.platformMatchesEvent treats an all-OS list as universal and skips the
+// gate, so a Windows-only rule (LSASS access, rundll32, registry run keys) was
+// evaluated against every Linux process event. The gate exists precisely to stop
+// that, and for UI-imported rules it was inert. The logsource was already parsed
+// and written into content — only the column was left unset.
+//
+// Returning nil means "leave it to the DEFAULT", the deliberate fail-open for rules
+// whose logsource names no product: SigmaHQ category-only rules (logsource:
+// category: process_creation) really are cross-platform, and guessing an OS for
+// them would drop real detections. Same philosophy as platformMatchesEvent — the
+// gate removes clear mismatches, never real detections.
+//
+// Spellings match inferPlatforms so the two paths produce comparable rows;
+// canonPlatform folds darwin/macos together on the read side either way.
+func sigmaPlatforms(logsource map[string]string) []string {
+	switch strings.ToLower(strings.TrimSpace(logsource["product"])) {
+	case "windows":
+		return []string{"windows"}
+	case "linux":
+		return []string{"linux"}
+	case "macos", "darwin":
+		return []string{"macos"}
+	default:
+		return nil
+	}
+}
+
 // sigmaLevelToSeverity converts Sigma severity level to a SMALLINT (1-10).
 // Schema: severity SMALLINT NOT NULL CHECK (severity BETWEEN 1 AND 10)
 func sigmaLevelToSeverityInt(level string) int {
@@ -140,12 +175,19 @@ func (h *SigmaHandler) ImportSigma(c *gin.Context) {
 		//                 enabled, source (CHECK: community|custom|threat-intel|ai-generated),
 		//                 description, tags
 		// 'sigma' is not a valid source value; use 'community' for imported Sigma rules.
+		//
+		// platform is passed as NULL when the logsource names no product, so the
+		// column DEFAULT (all OSes = universal) applies. COALESCE keeps that default
+		// reachable through a bound parameter.
 		var ruleID string
 		err := h.pool.QueryRow(c.Request.Context(),
-			`INSERT INTO rules (name, type, severity, content, description, enabled, source, tags)
-			 VALUES ($1, 'sigma', $2, $3, $4, true, 'community', $5)
+			`INSERT INTO rules (name, type, platform, severity, content, description, enabled, source, tags)
+			 VALUES ($1, 'sigma',
+			         COALESCE($6::TEXT[], ARRAY['windows','linux','darwin']),
+			         $2, $3, $4, true, 'community', $5)
 			 RETURNING id`,
 			sigma.Title, severityInt, content, description, sigma.Tags,
+			sigmaPlatforms(sigma.Logsource),
 		).Scan(&ruleID)
 
 		if err != nil {

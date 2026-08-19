@@ -11,6 +11,9 @@ import {
   Activity, GitBranch, Brain,
 } from 'lucide-react'
 
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+import { usePersist, SaveFailed } from '@/lib/persist'
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type AlertStatus = 'open' | 'investigating' | 'resolved' | 'false_positive'
@@ -146,6 +149,7 @@ export default function AlertDetailPage() {
 
   const [status, setStatus] = useState<AlertStatus>('investigating')
   const [statusLoading, setStatusLoading] = useState(false)
+  const { persist, saveError } = usePersist()
   const [actionLoading, setActionLoading] = useState<string | null>(null)
   const [actionResult, setActionResult] = useState<{ action: string; message: string } | null>(null)
   const [aiAnalysis, setAiAnalysis] = useState<string | null>(null)
@@ -187,14 +191,14 @@ export default function AlertDetailPage() {
     },
   })
 
+  // アラートの状態変更。`catch { /* ok */ }` で失敗が無かったことに
+  // なっていました。対応済みにしたつもりのアラートが未対応のまま残ります。
   const handleStatusUpdate = async () => {
     setStatusLoading(true)
-    try {
-      await apiFetch(`/api/v1/alerts/${alertId}`, {
-        method: 'PUT',
-        body: JSON.stringify({ status }),
-      })
-    } catch { /* ok */ }
+    await persist('アラートの状態', `/api/v1/alerts/${alertId}`, {
+      method: 'PUT',
+      body: JSON.stringify({ status }),
+    })
     setStatusLoading(false)
   }
 
@@ -251,6 +255,8 @@ export default function AlertDetailPage() {
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100 p-6">
+      <PageDataUnavailable />
+      <SaveFailed error={saveError} />
       {/* Back + Header */}
       <div className="mb-6">
         <button
@@ -379,8 +385,7 @@ export default function AlertDetailPage() {
                       value={aiModel}
                       onChange={e => setAiModel(e.target.value)}
                       disabled={aiLoading}
-                      className="px-3 py-1.5 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-zinc-100
-                                 focus:outline-hidden focus:border-violet-500 disabled:opacity-50"
+                      className="px-3 py-1.5 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-zinc-100 focus:outline-hidden focus:border-violet-500 disabled:opacity-50"
                     >
                       <option value="claude-opus-4-6">Claude Opus 4.6（最高精度）</option>
                       <option value="claude-sonnet-4-6">Claude Sonnet 4.6（バランス）</option>

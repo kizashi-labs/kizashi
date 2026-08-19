@@ -21,7 +21,7 @@
 //     host runs several DISTINCT discovery techniques within a short window — the
 //     rapid, broad enumeration that betrays interactive recon rather than a
 //     one-off admin command. Mirrors KillChainScorer: sliding window, per-host
-//     state, fire-on-first-crossing + escalate-on-growth, deterministic clock.
+//     state, fire-on-first-crossing + re-fire on newly-seen techniques, deterministic clock.
 package detection
 
 import (
@@ -44,7 +44,12 @@ const (
 	// Set high enough that a normal admin one-liner (a single technique) or a
 	// two-command check never fires; broad interactive recon touches many.
 	discMinTechniques = 4
-	discMaxKeys       = 8192
+	// discCreditTTL is how long a technique stays "already reported" for a host.
+	// Longer than the window so a single campaign is not re-announced technique by
+	// technique forever, short enough that a fresh campaign hours later is reported
+	// again rather than silently suppressed.
+	discCreditTTL = 30 * time.Minute
+	discMaxKeys   = 8192
 )
 
 // discoveryPattern maps an ATT&CK Discovery technique to the command-line
@@ -61,6 +66,18 @@ type discoveryPattern struct {
 // classifies as Permission-Groups (T1069) rather than Account (T1087). The first
 // pattern with a matching substring wins.
 var discoveryPatterns = []discoveryPattern{
+	// T1518.001 Security Software Discovery — checked BEFORE the generic software
+	// and process patterns so `ps aux | grep falcon` is recognised for what it is:
+	// an attacker looking for the EDR, not routine process listing. Keyed on
+	// specific security-product names, which ordinary command lines do not contain.
+	// (Classification alone raises nothing — a burst still needs discMinTechniques
+	// distinct techniques — so an admin genuinely managing their agent is harmless.)
+	{"T1518.001", []string{
+		"crowdstrike", "falcon-sensor", "carbonblack", "cbagent", "sentinelone", "sentinelctl",
+		"cylance", "cortex-xdr", "cortex_xdr", "traps", "sophos", "mcafee", "symantec",
+		"trendmicro", "kaspersky", "eset", "clamav", "clamd", "windefend", "msmpeng",
+		"defender", "auditd -s", "aide --check",
+	}},
 	// T1069 Permission Groups Discovery — check before T1087 (`net user`) so the
 	// group forms of `net` win.
 	{"T1069", []string{"net localgroup", "net group", "whoami /groups", "getent group", "id -gn", "id -gr", "dscl . -list /groups", "dscl . read /groups"}},
@@ -74,12 +91,17 @@ var discoveryPatterns = []discoveryPattern{
 	{"T1082", []string{"systeminfo", "uname -a", "uname -s", "uname -r", "hostnamectl", "sw_vers", "lscpu", "wmic os get", "wmic computersystem", "cat /etc/os-release", "cat /proc/version", "cat /proc/cpuinfo"}},
 	// T1057 Process Discovery
 	{"T1057", []string{"tasklist", "ps -ef", "ps aux", "ps -aux", "ps ax", "get-process", "wmic process"}},
+	// T1018 Remote System Discovery — enumerating OTHER hosts (the host list, the
+	// domain's controllers, previously-reached SSH hosts) as distinct from reading
+	// this machine's own network configuration, which is T1016 below. `arp -a` is
+	// deliberately left on T1016 where it already lives and is pinned by tests.
+	{"T1018", []string{"net view", "nltest /dclist", "nltest /domain_trusts", "cat /etc/hosts", "getent hosts", "known_hosts", "get-adcomputer"}},
 	// T1016 System Network Configuration Discovery
 	{"T1016", []string{"ipconfig", "ifconfig", "ip addr", "ip a ", "ip -br", "ip route", "route print", "netsh interface", "arp -a", "nbtstat", "cat /etc/resolv.conf", "get-netipconfiguration"}},
 	// T1049 System Network Connections Discovery
 	{"T1049", []string{"netstat", "ss -", "lsof -i", "get-nettcpconnection"}},
 	// T1518 Software Discovery
-	{"T1518", []string{"wmic product get", "dpkg -l", "rpm -qa", "brew list", "get-package", "apt list --installed"}},
+	{"T1518", []string{"wmic product get", "dpkg -l", "rpm -qa", "brew list", "get-package", "apt list --installed", "snap list", "yum list installed"}},
 	// T1083 File and Directory Discovery — only broad/recursive forms; plain
 	// `ls`/`dir` are far too common to classify.
 	{"T1083", []string{"dir /s", "tree /f", "get-childitem -recurse", "gci -recurse", "find / -name", "find / -type", "where /r"}},
@@ -105,7 +127,11 @@ func classifyDiscoveryCommand(cmdline string) string {
 
 type discState struct {
 	techniques map[string]int64 // technique -> last-seen unix seconds
-	lastAlertN int              // distinct-technique count at the last alert
+	// credited records techniques already named in an alert, so a burst re-fires
+	// when the window takes in a technique nobody has been told about yet. Keyed
+	// with its own timestamp and expired on discCreditTTL, so a later campaign on
+	// the same host is reported again rather than suppressed forever.
+	credited map[string]int64
 }
 
 // DiscoveryScorer is a stateful, concurrency-safe rapid-enumeration detector.
@@ -138,32 +164,60 @@ func (d *DiscoveryScorer) Observe(agentID, cmdline string, now time.Time) (strin
 	}
 	st := d.entities[agentID]
 	if st == nil {
-		st = &discState{techniques: make(map[string]int64)}
+		st = &discState{techniques: make(map[string]int64), credited: make(map[string]int64)}
 		d.entities[agentID] = st
 	}
-	// Expire techniques outside the window.
+	if st.credited == nil {
+		st.credited = make(map[string]int64)
+	}
+	// Expire techniques outside the window, and credits past their (longer) TTL.
 	for t, ts := range st.techniques {
 		if nu-ts > winSec {
 			delete(st.techniques, t)
+		}
+	}
+	for t, ts := range st.credited {
+		if nu-ts > int64(discCreditTTL/time.Second) {
+			delete(st.credited, t)
 		}
 	}
 	st.techniques[tech] = nu
 
 	n := len(st.techniques)
 	if n < discMinTechniques {
-		st.lastAlertN = 0
 		return tech, nil
 	}
-	// Fire on first crossing and escalate as more distinct techniques appear;
-	// re-firing only on growth dedups repeated same-size observations.
-	if n <= st.lastAlertN {
+	// Re-fire when the window holds a technique that has not been reported yet —
+	// NOT merely when the distinct count grows.
+	//
+	// Counting was the original rule, and it silently lost coverage during
+	// deliberate, spaced-out reconnaissance: at a pace where the window holds only
+	// about the threshold's worth of techniques, each new one arrives as an old one
+	// expires, so the count plateaus and never "grows". The burst fired once and
+	// every technique enumerated afterwards went unreported — and which techniques
+	// landed on the credited side of that line depended purely on timing, making
+	// coverage non-deterministic (measured live: T1082 credited in one run, missed
+	// in the next, same build and pacing).
+	//
+	// Keying on unreported techniques instead makes a sustained campaign name all of
+	// them, while keeping the property that matters: an isolated discovery command
+	// still cannot fire anything, because the window must hold discMinTechniques
+	// distinct techniques before any of this is reached.
+	fresh := false
+	for t := range st.techniques {
+		if _, seen := st.credited[t]; !seen {
+			fresh = true
+			break
+		}
+	}
+	if !fresh {
 		return tech, nil
 	}
-	st.lastAlertN = n
 
 	techs := make([]string, 0, len(st.techniques))
 	for t := range st.techniques {
 		techs = append(techs, t)
+		st.credited[t] = nu
 	}
 	sort.Strings(techs)
 	sev := 5
@@ -176,6 +230,15 @@ func (d *DiscoveryScorer) Observe(agentID, cmdline string, now time.Time) (strin
 		RuleType: "correlation",
 		Severity: sev,
 		Title:    "[DISCOVERY] 短時間に複数種の探索コマンドを実行（偵察の疑い）",
+		// The reported technique set IS this alert's identity. Without it the engine's
+		// (agent, title) dedup collapsed every re-fire for 5 minutes, so a burst that
+		// kept broadening was reported once with whatever handful of techniques had
+		// arrived by then. Measured live: 11 discovery techniques executed over 165s
+		// produced ONE alert naming 4 of them; the other 7 were never surfaced and the
+		// credited-set re-fire logic above could not take effect. Keying on the set
+		// lets a broadening campaign report each new stage while an unchanged set
+		// still collapses.
+		DedupKey: strings.Join(techs, ","),
 		Description: fmt.Sprintf("単一ホストが%d分以内に%d種の異なるATT&CK探索(Discovery)技術を実行: %s。単発の探索は正常でも、多種を短時間に連続実行するのは着地後のハンズオンキーボード偵察の兆候。個別には誤検知になるため単発ではアラート化せず、バーストのみ相関検知。",
 			int(discWindow/time.Minute), n, strings.Join(techs, ", ")),
 		MITRETags: techs,

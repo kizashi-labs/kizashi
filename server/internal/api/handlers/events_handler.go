@@ -32,19 +32,22 @@ const maxCountedEvents = 10000
 // 打ち切って数える。走査量が LIMIT 件までに抑えられるため、行数に関係なく
 // 一定時間で返る。2 つ目の戻り値は上限に達したか (= UI で「10,000+」と
 // 表示すべきか) を示す。
-func countEventsCapped(ctx context.Context, pool *pgxpool.Pool, where string, args ...interface{}) (int, bool) {
+//
+// 数えられなかったときは error を返します。以前は (0, false) を返していて、
+// 画面には「0件」と出ます。一覧そのものは同じリクエストで別のクエリから
+// 返るので、行が並んでいるのに件数だけ0という形にもなります。
+func countEventsCapped(ctx context.Context, pool *pgxpool.Pool, where string, args ...interface{}) (int, bool, error) {
 	var n int
 	q := fmt.Sprintf(
 		"SELECT COUNT(*) FROM (SELECT 1 FROM events %s LIMIT %d) t",
 		where, maxCountedEvents+1)
 	if err := pool.QueryRow(ctx, q, args...).Scan(&n); err != nil {
-		slog.Warn("イベント件数の取得に失敗", "error", err)
-		return 0, false
+		return 0, false, err
 	}
 	if n > maxCountedEvents {
-		return maxCountedEvents, true
+		return maxCountedEvents, true, nil
 	}
-	return n, false
+	return n, false, nil
 }
 
 // NewEventHandler creates a new EventHandler.
@@ -60,12 +63,7 @@ func (h *EventHandler) List(c *gin.Context) {
 	if perPage <= 0 {
 		perPage, _ = strconv.Atoi(c.DefaultQuery("limit", "50"))
 	}
-	if page < 1 {
-		page = 1
-	}
-	if perPage < 1 || perPage > 500 {
-		perPage = 50
-	}
+	page, perPage, _ = clampPageParams(page, perPage, 50, 500)
 
 	agentID := c.Query("agent_id")
 	eventType := c.Query("type")
@@ -119,7 +117,12 @@ func (h *EventHandler) List(c *gin.Context) {
 
 	ctx := c.Request.Context()
 
-	total, totalCapped := countEventsCapped(ctx, h.Pool, where, args...)
+	total, totalCapped, err := countEventsCapped(ctx, h.Pool, where, args...)
+	if err != nil {
+		slog.Error("イベント件数の取得に失敗", "error", err)
+		ReadFailure(c, err, gin.H{"events": []any{}, "total": 0})
+		return
+	}
 
 	query := `SELECT event_id, agent_id, event_type, raw_data, time
 		FROM events ` + where + `
@@ -215,12 +218,8 @@ func (h *EventHandler) Search(c *gin.Context) {
 		return
 	}
 
-	if req.Page < 1 {
-		req.Page = 1
-	}
-	if req.PerPage < 1 || req.PerPage > 200 {
-		req.PerPage = 50
-	}
+	var offset int
+	req.Page, req.PerPage, offset = clampPageParams(req.Page, req.PerPage, 50, 200)
 
 	var conditions []string
 	var args []interface{}
@@ -260,14 +259,19 @@ func (h *EventHandler) Search(c *gin.Context) {
 
 	ctx := c.Request.Context()
 
-	total, totalCapped := countEventsCapped(ctx, h.Pool, where, args...)
+	total, totalCapped, err := countEventsCapped(ctx, h.Pool, where, args...)
+	if err != nil {
+		slog.Error("イベント件数の取得に失敗", "error", err)
+		ReadFailure(c, err, gin.H{"events": []any{}, "total": 0})
+		return
+	}
 
 	query := `SELECT event_id, agent_id, event_type, raw_data, time
 		FROM events ` + where + `
 		ORDER BY time DESC
 		LIMIT $` + fmt.Sprintf("%d", i) + ` OFFSET $` + fmt.Sprintf("%d", i+1)
 
-	args = append(args, req.PerPage, (req.Page-1)*req.PerPage)
+	args = append(args, req.PerPage, offset)
 	rows, err := h.Pool.Query(ctx, query, args...)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "イベント検索に失敗しました"})
@@ -397,9 +401,7 @@ func (h *EventHandler) Timeline(c *gin.Context) {
 func (h *EventHandler) ListDNS(c *gin.Context) {
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "50"))
 	offset, _ := strconv.Atoi(c.DefaultQuery("offset", "0"))
-	if limit < 1 || limit > 500 {
-		limit = 50
-	}
+	limit = clampPerPage(limit, 50, 500)
 	if offset < 0 {
 		offset = 0
 	}
@@ -429,7 +431,12 @@ func (h *EventHandler) ListDNS(c *gin.Context) {
 
 	ctx := c.Request.Context()
 
-	total, _ := countEventsCapped(ctx, h.Pool, where, args...)
+	total, _, err := countEventsCapped(ctx, h.Pool, where, args...)
+	if err != nil {
+		slog.Error("イベント件数の取得に失敗", "error", err)
+		ReadFailure(c, err, gin.H{"events": []any{}, "total": 0})
+		return
+	}
 
 	query := `
 		SELECT e.event_id, e.agent_id, e.time,
@@ -508,18 +515,17 @@ func (h *EventHandler) ListByAgent(c *gin.Context) {
 	agentID := c.Param("id")
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	perPage, _ := strconv.Atoi(c.DefaultQuery("per_page", "50"))
-	if page < 1 {
-		page = 1
-	}
-	if perPage < 1 || perPage > 200 {
-		perPage = 50
-	}
+	page, perPage, offset := clampPageParams(page, perPage, 50, 200)
 
 	ctx := c.Request.Context()
 	limit := perPage
-	offset := (page - 1) * perPage
 
-	total, totalCapped := countEventsCapped(ctx, h.Pool, "WHERE agent_id = $1", agentID)
+	total, totalCapped, err := countEventsCapped(ctx, h.Pool, "WHERE agent_id = $1", agentID)
+	if err != nil {
+		slog.Error("イベント件数の取得に失敗", "agent", agentID, "error", err)
+		ReadFailure(c, err, gin.H{"events": []any{}, "total": 0})
+		return
+	}
 
 	rows, err := h.Pool.Query(ctx,
 		`SELECT event_id, agent_id, event_type, raw_data, time
@@ -550,6 +556,10 @@ func (h *EventHandler) ListByAgent(c *gin.Context) {
 			"raw_data":   json.RawMessage(rawData),
 			"timestamp":  ts,
 		})
+	}
+	if err := rows.Err(); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "エージェントイベントの取得に失敗しました"})
+		return
 	}
 
 	if events == nil {
@@ -600,7 +610,9 @@ func (h *EventHandler) NetworkStats(c *gin.Context) {
 
 	// Total count
 	var total int
-	_ = h.Pool.QueryRow(c.Request.Context(), "SELECT COUNT(*) FROM events WHERE "+baseWhere, args...).Scan(&total)
+	if !ReadOK(c, h.Pool.QueryRow(c.Request.Context(), "SELECT COUNT(*) FROM events WHERE "+baseWhere, args...).Scan(&total)) {
+		return
+	}
 
 	// Top destination IPs
 	type ipRow struct {
@@ -718,7 +730,9 @@ func (h *EventHandler) FileStats(c *gin.Context) {
 	baseWhere := `event_type='file' AND "time" >= NOW() - ($1 * INTERVAL '1 hour')` + agentFilter
 
 	var total int
-	_ = h.Pool.QueryRow(c.Request.Context(), "SELECT COUNT(*) FROM events WHERE "+baseWhere, baseArgs...).Scan(&total)
+	if !ReadOK(c, h.Pool.QueryRow(c.Request.Context(), "SELECT COUNT(*) FROM events WHERE "+baseWhere, baseArgs...).Scan(&total)) {
+		return
+	}
 
 	// Top file paths by modification count
 	type pathRow struct {
@@ -867,8 +881,8 @@ func (h *EventHandler) AuthStats(c *gin.Context) {
 	// Summary counts
 	row := h.Pool.QueryRow(ctx, fmt.Sprintf(`
 		SELECT
-			COUNT(*) FILTER (WHERE raw_data->>'outcome' = 'success') AS success,
-			COUNT(*) FILTER (WHERE raw_data->>'outcome' = 'failure') AS failure,
+			COUNT(*) FILTER (WHERE raw_data->>'success' = 'true') AS success,
+			COUNT(*) FILTER (WHERE raw_data->>'success' = 'false') AS failure,
 			COUNT(*) AS total
 		FROM events
 		WHERE event_type = 'auth'
@@ -882,7 +896,7 @@ func (h *EventHandler) AuthStats(c *gin.Context) {
 		SELECT
 			COALESCE(raw_data->>'username', 'unknown') AS username,
 			COUNT(*) AS cnt,
-			COUNT(*) FILTER (WHERE raw_data->>'outcome' = 'failure') AS failures
+			COUNT(*) FILTER (WHERE raw_data->>'success' = 'false') AS failures
 		FROM events
 		WHERE event_type = 'auth'
 		  AND "time" >= NOW() - INTERVAL '%d hours'
@@ -926,8 +940,8 @@ func (h *EventHandler) AuthStats(c *gin.Context) {
 	if hours <= 48 {
 		bucketSQL = fmt.Sprintf(`
 			SELECT to_char(date_trunc('hour', "time"), 'YYYY-MM-DD"T"HH24:00') AS hour,
-				COUNT(*) FILTER (WHERE raw_data->>'outcome' = 'success') AS success,
-				COUNT(*) FILTER (WHERE raw_data->>'outcome' = 'failure') AS failure
+				COUNT(*) FILTER (WHERE raw_data->>'success' = 'true') AS success,
+				COUNT(*) FILTER (WHERE raw_data->>'success' = 'false') AS failure
 			FROM events
 			WHERE event_type = 'auth'
 			  AND "time" >= NOW() - INTERVAL '%d hours'
@@ -935,8 +949,8 @@ func (h *EventHandler) AuthStats(c *gin.Context) {
 	} else {
 		bucketSQL = fmt.Sprintf(`
 			SELECT to_char(date_trunc('day', "time"), 'YYYY-MM-DD"T"00:00') AS hour,
-				COUNT(*) FILTER (WHERE raw_data->>'outcome' = 'success') AS success,
-				COUNT(*) FILTER (WHERE raw_data->>'outcome' = 'failure') AS failure
+				COUNT(*) FILTER (WHERE raw_data->>'success' = 'true') AS success,
+				COUNT(*) FILTER (WHERE raw_data->>'success' = 'false') AS failure
 			FROM events
 			WHERE event_type = 'auth'
 			  AND "time" >= NOW() - INTERVAL '%d hours'
@@ -961,7 +975,7 @@ func (h *EventHandler) AuthStats(c *gin.Context) {
 		SELECT e.event_id::text, e."time"::text,
 			e.agent_id::text, COALESCE(a.hostname, ''),
 			COALESCE(e.raw_data->>'username', 'unknown'),
-			COALESCE(e.raw_data->>'outcome', ''),
+			CASE e.raw_data->>'success' WHEN 'true' THEN 'success' WHEN 'false' THEN 'failure' ELSE '' END,
 			COALESCE(e.raw_data->>'logon_type', '')
 		FROM events e
 		LEFT JOIN agents a ON a.id = e.agent_id

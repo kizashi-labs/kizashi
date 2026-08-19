@@ -33,6 +33,7 @@ import (
 const (
 	mig377 = "377_disable_db_rules_ported_to_builtins.sql"
 	mig383 = "383_disable_remaining_builtin_parity_rules.sql"
+	mig430 = "430_disable_t1552_003_duplicate_db_rules.sql"
 )
 
 // portedDBRules pairs each rule migration 377 or 381 disables with events that the DB
@@ -304,6 +305,69 @@ var portedDBRules = []struct {
 			},
 		},
 	},
+
+	// ── migration 430: T1552.003 の 4 本を 1 本に統合 ──
+	//
+	// この 2 行と、削除した builtin `Credential Search in Shell History` は、
+	// 残す builtin `Shell History Credential Search` と同じ検知だった。
+	// 4 本あることは技法 dedup のせいで観測できず、#746 で 3 本だけ狭めて
+	// 誤検知が残るという実害が出ている（migration 430 のヘッダ参照）。
+	//
+	// ここに置く代表イベントは、**統合前の builtin が取り逃していた形**を選ぶ。
+	// 当たりやすい .bash_history で書くと、統合の可否を何も証明せずに緑になる。
+	{
+		dbRule:    "Credential Harvesting from Shell or DB History",
+		migration: mig430,
+		cases: []struct {
+			why     string
+			builtin string
+			event   map[string]interface{}
+		}{
+			{
+				// 統合前の builtin に .dbshell は無かった。この 1 語のために
+				// history_file へ取り込んである。
+				why:     "mongo シェルの履歴 (.dbshell) からの資格情報検索",
+				builtin: "Shell History Credential Search",
+				event:   portedProc("/bin/grep", "grep -i password /home/v/.dbshell", ""),
+			},
+			{
+				why:     "DB クライアント履歴の持ち出し",
+				builtin: "Shell History Credential Search",
+				event:   portedProc("/bin/cp", "cp /home/v/.psql_history /tmp/.x", ""),
+			},
+		},
+	},
+	{
+		dbRule:    "Shell History Credential Search (DB)",
+		migration: mig430,
+		cases: []struct {
+			why     string
+			builtin string
+			event   map[string]interface{}
+		}{
+			{
+				// この行は builtin の parity 行（migration 350）で、427 で条件を
+				// 揃えた後は逐語同一である。取り逃していた形は無いので、
+				// 代わりに「builtin より広い側」を持たない証拠として、この行が
+				// 拾える全ての履歴ファイル種別を並べる。
+				why:     "zsh 履歴からの資格情報検索",
+				builtin: "Shell History Credential Search",
+				event:   portedProc("/usr/bin/grep", "grep -E 'aws_secret|token' /Users/v/.zsh_history", ""),
+			},
+			{
+				why:     "mysql クライアント履歴の base64 化",
+				builtin: "Shell History Credential Search",
+				event:   portedProc("/usr/bin/base64", "base64 /home/v/.mysql_history", ""),
+			},
+			{
+				// 削除した builtin `Credential Search in Shell History` だけが
+				// 持っていた語。統合で history_file へ取り込んである。
+				why:     "ksh/csh の ~/.history からの資格情報検索",
+				builtin: "Shell History Credential Search",
+				event:   portedProc("/bin/grep", "grep -i credential /home/v/.history", ""),
+			},
+		},
+	},
 }
 
 func portedProc(image, cmdline, parent string) map[string]interface{} {
@@ -340,14 +404,17 @@ func TestDisabledDBRulesAreCoveredByBuiltins(t *testing.T) {
 					}
 					titles = append(titles, m.RuleTitle)
 				}
-				t.Errorf("migration 377 disables the `rules` row %q, and this event matched it, "+
+				// 移設元の migration は行ごとに違う (377 / 383 / 430)。固定文字列で
+				// 「377」と書くと、430 の行が落ちたときに無関係な migration を
+				// 見に行かせることになる。
+				t.Errorf("%s disables the `rules` row %q, and this event matched it, "+
 					"but builtin %q did not fire.\n"+
 					"  event:   %v\n"+
 					"  matched: %v\n"+
 					"  Disabling the DB row is only lossless while the builtin covers it. "+
-					"Either restore the builtin selector or revert the row's disable in 377 — "+
+					"Either restore the builtin selector or revert the row's disable in %s — "+
 					"do not delete this case, it is the evidence that the swap was safe.",
-					r.dbRule, c.builtin, event, titles)
+					r.migration, r.dbRule, c.builtin, event, titles, r.migration)
 			})
 		}
 	}
@@ -358,7 +425,7 @@ func TestDisabledDBRulesAreCoveredByBuiltins(t *testing.T) {
 // dropping a statement in a merge) leaves the test above asserting coverage for
 // a row that is still live — passing while proving nothing.
 func TestPortMigrationsDisableExactlyThePortedRules(t *testing.T) {
-	for _, mig := range []string{mig377, mig383} {
+	for _, mig := range []string{mig377, mig383, mig430} {
 		b, err := os.ReadFile(filepath.Join("..", "..", "migrations", mig))
 		if err != nil {
 			t.Fatalf("read %s: %v", mig, err)

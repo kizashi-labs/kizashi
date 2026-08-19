@@ -10,6 +10,9 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+import { PageSaveFailed } from '@/components/PageSaveFailed'
+
 interface Vulnerability {
   id: string
   agent_id?: string
@@ -39,7 +42,7 @@ const STATUS_OPTIONS = [
   { value: 'open',      label: '未対応',        cls: 'text-red-300    bg-red-900/30    border-red-700' },
   { value: 'mitigated', label: '緩和済み',       cls: 'text-yellow-300 bg-yellow-900/30 border-yellow-700' },
   { value: 'patched',   label: 'パッチ適用済み', cls: 'text-green-300  bg-green-900/30  border-green-700' },
-  { value: 'accepted',  label: '受容済み',       cls: 'text-[#8899aa]  bg-falcon-card     border-falcon-border' },
+  { value: 'accepted',  label: '受容済み',       cls: 'text-[#8899aa]  bg-[#111827]     border-[#1e2d42]' },
 ]
 
 function formatDate(s: string) {
@@ -54,7 +57,7 @@ function cvssBar(score: number) {
   const color = score >= 9 ? 'bg-red-500' : score >= 7 ? 'bg-orange-500' : score >= 4 ? 'bg-yellow-500' : 'bg-blue-500'
   return (
     <div className="flex items-center gap-3">
-      <div className="flex-1 h-1.5 bg-falcon-border rounded-full overflow-hidden">
+      <div className="flex-1 h-1.5 bg-[#1e2d42] rounded-full overflow-hidden">
         <div className={`h-full rounded-full ${color}`} style={{ width: `${pct}%` }} />
       </div>
       <span className={`text-sm font-bold font-mono ${color.replace('bg-', 'text-')}`}>{score.toFixed(1)}</span>
@@ -105,7 +108,7 @@ export default function VulnerabilityDetailPage() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="w-6 h-6 border-2 border-falcon-red border-t-transparent rounded-full animate-spin" />
+        <div className="w-6 h-6 border-2 border-[#e8002d] border-t-transparent rounded-full animate-spin" />
       </div>
     )
   }
@@ -115,7 +118,7 @@ export default function VulnerabilityDetailPage() {
       <div className="p-8 text-center text-[#8899aa]">
         脆弱性が見つかりません
         <div className="mt-4">
-          <Link href="/vulnerabilities" className="text-sm text-falcon-blue hover:underline">
+          <Link href="/vulnerabilities" className="text-sm text-[#1a6bff] hover:underline">
             一覧へ戻る
           </Link>
         </div>
@@ -129,10 +132,12 @@ export default function VulnerabilityDetailPage() {
 
   return (
     <div className="p-6 max-w-4xl mx-auto space-y-6">
+      <PageDataUnavailable />
+      <PageSaveFailed className="mb-4" />
       {/* Back nav */}
       <button
         onClick={() => router.back()}
-        className="flex items-center gap-1.5 text-sm text-[#8899aa] hover:text-falcon-text transition-colors"
+        className="flex items-center gap-1.5 text-sm text-[#8899aa] hover:text-[#e2e8f4] transition-colors"
       >
         <ArrowLeft className="w-4 h-4" />
         脆弱性一覧
@@ -155,7 +160,7 @@ export default function VulnerabilityDetailPage() {
                   {statusCfg.label}
                 </span>
               </div>
-              <h1 className="text-lg font-bold text-falcon-text leading-snug">{vuln.title}</h1>
+              <h1 className="text-lg font-bold text-[#e2e8f4] leading-snug">{vuln.title}</h1>
             </div>
           </div>
 
@@ -163,7 +168,7 @@ export default function VulnerabilityDetailPage() {
           <div className="flex items-center gap-2 shrink-0">
             <button
               onClick={startEdit}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-falcon-raised hover:bg-falcon-active border border-falcon-border text-[#8899aa] hover:text-falcon-text text-sm rounded-lg transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-[#161f33] hover:bg-[#1d2f4a] border border-[#1e2d42] text-[#8899aa] hover:text-[#e2e8f4] text-sm rounded-lg transition-colors"
             >
               <Pencil className="w-3.5 h-3.5" />
               ステータス更新
@@ -171,7 +176,7 @@ export default function VulnerabilityDetailPage() {
             {!confirmDelete ? (
               <button
                 onClick={() => setConfirmDelete(true)}
-                className="p-1.5 text-falcon-subtle hover:text-red-400 transition-colors rounded-sm"
+                className="p-1.5 text-[#3d5068] hover:text-red-400 transition-colors rounded-sm"
               >
                 <Trash2 className="w-4 h-4" />
               </button>
@@ -185,7 +190,7 @@ export default function VulnerabilityDetailPage() {
                 </button>
                 <button
                   onClick={() => setConfirmDelete(false)}
-                  className="px-2 py-1 text-xs bg-falcon-raised hover:bg-falcon-active border border-falcon-border text-[#8899aa] rounded-sm transition-colors"
+                  className="px-2 py-1 text-xs bg-[#161f33] hover:bg-[#1d2f4a] border border-[#1e2d42] text-[#8899aa] rounded-sm transition-colors"
                 >
                   取消
                 </button>
@@ -196,7 +201,7 @@ export default function VulnerabilityDetailPage() {
 
         {/* CVSS score bar */}
         {vuln.cvss_score !== undefined && vuln.cvss_score !== null && (
-          <div className="mt-5 pt-4 border-t border-falcon-border/50">
+          <div className="mt-5 pt-4 border-t border-[#1e2d42]/50">
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs text-[#8899aa] uppercase tracking-wider font-medium">CVSS Score</span>
             </div>
@@ -207,8 +212,8 @@ export default function VulnerabilityDetailPage() {
 
       {/* Status update form */}
       {editStatus && (
-        <div className="rounded-xl border border-falcon-border bg-falcon-card p-5 space-y-4">
-          <h3 className="text-sm font-semibold text-falcon-text">ステータス更新</h3>
+        <div className="rounded-xl border border-[#1e2d42] bg-[#111827] p-5 space-y-4">
+          <h3 className="text-sm font-semibold text-[#e2e8f4]">ステータス更新</h3>
           <div className="grid grid-cols-2 gap-2">
             {STATUS_OPTIONS.map(opt => (
               <button
@@ -217,7 +222,7 @@ export default function VulnerabilityDetailPage() {
                 className={`px-3 py-2 rounded-lg border text-sm font-medium transition-colors ${
                   statusVal === opt.value
                     ? opt.cls
-                    : 'border-falcon-border text-[#8899aa] hover:bg-falcon-hover'
+                    : 'border-[#1e2d42] text-[#8899aa] hover:bg-[#19253d]'
                 }`}
               >
                 {opt.label}
@@ -231,21 +236,21 @@ export default function VulnerabilityDetailPage() {
               onChange={e => setNotesVal(e.target.value)}
               rows={3}
               placeholder="対応内容、根拠など..."
-              className="w-full bg-[#0d1625] border border-falcon-border rounded-lg px-3 py-2 text-sm text-falcon-text placeholder-falcon-subtle outline-hidden focus:border-falcon-blue resize-none"
+              className="w-full bg-[#0d1625] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-[#e2e8f4] placeholder-[#3d5068] outline-hidden focus:border-[#1a6bff] resize-none"
             />
           </div>
           <div className="flex gap-2">
             <button
               onClick={() => updateMut.mutate()}
               disabled={updateMut.isPending}
-              className="flex items-center gap-1.5 px-4 py-2 bg-falcon-blue hover:bg-[#1558cc] disabled:opacity-50 text-white text-sm rounded-lg transition-colors"
+              className="flex items-center gap-1.5 px-4 py-2 bg-[#1a6bff] hover:bg-[#1558cc] disabled:opacity-50 text-white text-sm rounded-lg transition-colors"
             >
               <Check className="w-3.5 h-3.5" />
               保存
             </button>
             <button
               onClick={() => setEditStatus(false)}
-              className="flex items-center gap-1.5 px-4 py-2 bg-falcon-raised hover:bg-falcon-active border border-falcon-border text-[#8899aa] text-sm rounded-lg transition-colors"
+              className="flex items-center gap-1.5 px-4 py-2 bg-[#161f33] hover:bg-[#1d2f4a] border border-[#1e2d42] text-[#8899aa] text-sm rounded-lg transition-colors"
             >
               <X className="w-3.5 h-3.5" />
               キャンセル
@@ -257,40 +262,40 @@ export default function VulnerabilityDetailPage() {
       {/* Details grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Affected asset */}
-        <div className="rounded-xl border border-falcon-border bg-falcon-card p-5">
+        <div className="rounded-xl border border-[#1e2d42] bg-[#111827] p-5">
           <div className="flex items-center gap-2 mb-4">
-            <Monitor className="w-4 h-4 text-falcon-blue" />
-            <h3 className="text-sm font-semibold text-falcon-text">影響を受けるエンドポイント</h3>
+            <Monitor className="w-4 h-4 text-[#1a6bff]" />
+            <h3 className="text-sm font-semibold text-[#e2e8f4]">影響を受けるエンドポイント</h3>
           </div>
           {vuln.agent_hostname ? (
             <div className="space-y-2">
               <Link
                 href={`/endpoints/${vuln.agent_id}`}
-                className="text-falcon-blue hover:underline font-mono text-sm"
+                className="text-[#1a6bff] hover:underline font-mono text-sm"
               >
                 {vuln.agent_hostname}
               </Link>
               {vuln.agent_id && (
-                <p className="text-xs text-falcon-subtle font-mono">{vuln.agent_id}</p>
+                <p className="text-xs text-[#3d5068] font-mono">{vuln.agent_id}</p>
               )}
             </div>
           ) : (
-            <p className="text-sm text-falcon-subtle">エンドポイント未指定</p>
+            <p className="text-sm text-[#3d5068]">エンドポイント未指定</p>
           )}
         </div>
 
         {/* Package info */}
-        <div className="rounded-xl border border-falcon-border bg-falcon-card p-5">
+        <div className="rounded-xl border border-[#1e2d42] bg-[#111827] p-5">
           <div className="flex items-center gap-2 mb-4">
-            <Package className="w-4 h-4 text-falcon-green" />
-            <h3 className="text-sm font-semibold text-falcon-text">影響パッケージ</h3>
+            <Package className="w-4 h-4 text-[#00c853]" />
+            <h3 className="text-sm font-semibold text-[#e2e8f4]">影響パッケージ</h3>
           </div>
           <div className="space-y-2 text-sm">
             {vuln.affected_package ? (
               <>
                 <div className="flex justify-between">
                   <span className="text-[#8899aa]">パッケージ</span>
-                  <span className="text-falcon-text font-mono">{vuln.affected_package}</span>
+                  <span className="text-[#e2e8f4] font-mono">{vuln.affected_package}</span>
                 </div>
                 {vuln.affected_version && (
                   <div className="flex justify-between">
@@ -306,49 +311,49 @@ export default function VulnerabilityDetailPage() {
                 )}
               </>
             ) : (
-              <p className="text-falcon-subtle">パッケージ情報なし</p>
+              <p className="text-[#3d5068]">パッケージ情報なし</p>
             )}
           </div>
         </div>
 
         {/* Compliance / remediation quick info */}
-        <div className="rounded-xl border border-falcon-border bg-falcon-card p-5">
+        <div className="rounded-xl border border-[#1e2d42] bg-[#111827] p-5">
           <div className="flex items-center gap-2 mb-4">
             <ShieldCheck className="w-4 h-4 text-[#a78bfa]" />
-            <h3 className="text-sm font-semibold text-falcon-text">タイムライン</h3>
+            <h3 className="text-sm font-semibold text-[#e2e8f4]">タイムライン</h3>
           </div>
           <div className="space-y-2 text-sm">
             <div className="flex justify-between">
               <span className="text-[#8899aa]">検出日時</span>
-              <span className="text-falcon-text font-mono text-xs">{formatDate(vuln.detected_at)}</span>
+              <span className="text-[#e2e8f4] font-mono text-xs">{formatDate(vuln.detected_at)}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-[#8899aa]">最終更新</span>
-              <span className="text-falcon-text font-mono text-xs">{formatDate(vuln.updated_at)}</span>
+              <span className="text-[#e2e8f4] font-mono text-xs">{formatDate(vuln.updated_at)}</span>
             </div>
           </div>
         </div>
 
         {/* Notes */}
-        <div className="rounded-xl border border-falcon-border bg-falcon-card p-5">
+        <div className="rounded-xl border border-[#1e2d42] bg-[#111827] p-5">
           <div className="flex items-center gap-2 mb-4">
             <Pencil className="w-4 h-4 text-[#8899aa]" />
-            <h3 className="text-sm font-semibold text-falcon-text">メモ</h3>
+            <h3 className="text-sm font-semibold text-[#e2e8f4]">メモ</h3>
           </div>
           {vuln.notes ? (
             <p className="text-sm text-[#8899aa] whitespace-pre-wrap leading-relaxed">{vuln.notes}</p>
           ) : (
-            <p className="text-sm text-falcon-subtle">メモなし</p>
+            <p className="text-sm text-[#3d5068]">メモなし</p>
           )}
         </div>
       </div>
 
       {/* Description */}
       {vuln.description && (
-        <div className="rounded-xl border border-falcon-border bg-falcon-card p-5">
+        <div className="rounded-xl border border-[#1e2d42] bg-[#111827] p-5">
           <div className="flex items-center gap-2 mb-3">
             <Bug className="w-4 h-4 text-[#ff4d6d]" />
-            <h3 className="text-sm font-semibold text-falcon-text">説明</h3>
+            <h3 className="text-sm font-semibold text-[#e2e8f4]">説明</h3>
           </div>
           <p className="text-sm text-[#8899aa] leading-relaxed whitespace-pre-wrap">{vuln.description}</p>
         </div>

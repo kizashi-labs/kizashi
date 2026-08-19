@@ -34,12 +34,38 @@ var scanHTTPClient = &http.Client{
 	},
 }
 
+// scanOutcome maps a finished scan to the row it should leave behind.
+//
+// 直前まで、失敗経路には行を書く処理そのものがありませんでした。到達でき
+// なかったスキャンも status='completed' のまま終わります。判断を関数に
+// 出しておくと、書き込み先のDBが無くても表で確かめられます。分岐が
+// 呼び出し側にあるままだと、「'failed' を 'completed' に書き換える」
+// 変異が誰にも気づかれずに通ります。実際に通りました。
+func scanOutcome(err error) (status, reason string) {
+	if err != nil {
+		return "failed", err.Error()
+	}
+	return "completed", ""
+}
+
 // runOWASPScan performs a passive OWASP-based security scan against targetURL
 // and returns a list of findings plus the number of endpoints discovered.
 // It never sends mutation requests — only HEAD/GET.
-func runOWASPScan(ctx context.Context, targetURL string) (findings []owaspFinding, endpointsFound int) {
-	parsed, err := url.Parse(targetURL)
-	if err != nil || parsed.Host == "" {
+//
+// 到達できなかったときは error を返します。以前はここで findings（多くの場合は
+// 空）と 0 を返していて、呼び出し側はそれをそのまま status='completed',
+// vulns_found=0 として記録していました。名前解決に失敗しても、接続を拒否
+// されても、TLS で失敗しても、画面には「スキャン完了・脆弱性0件」と出ます。
+// 走らせた人にとって、それは「調べたが無かった」と読める唯一の表示です。
+// 診断のために走らせる機能が、失敗を最良の結果として報告していました。
+func runOWASPScan(ctx context.Context, targetURL string) (findings []owaspFinding, endpointsFound int, err error) {
+	// 「調べられる相手か」であって「解析でエラーが出たか」ではありません。
+	// 解析エラーもホスト無しも、結論は同じ「このURLは走査できない」です。
+	// 無効なURLは到達失敗とは違い、指定した人に伝えるべき所見なので、
+	// error ではなく findings として返します。
+	parsed, parseErr := url.Parse(targetURL)
+	scannable := parseErr == nil && parsed.Host != ""
+	if !scannable {
 		findings = append(findings, owaspFinding{
 			VulnType:      "invalid_target",
 			Severity:      "info",
@@ -47,18 +73,18 @@ func runOWASPScan(ctx context.Context, targetURL string) (findings []owaspFindin
 			Description:   "ターゲットURLが無効です: " + targetURL,
 			Remediation:   "有効なURLを指定してください (例: https://api.example.com)",
 		})
-		return findings, 0
+		return findings, 0, nil
 	}
 
 	// ── Probe 1: GET base URL ─────────────────────────────────────────────
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, targetURL, nil)
 	if err != nil {
-		return findings, 0
+		return nil, 0, fmt.Errorf("リクエストを組み立てられませんでした: %w", err)
 	}
 	req.Header.Set("Origin", "https://evil.example.com") // CORS probe
 	resp, err := scanHTTPClient.Do(req)
 	if err != nil {
-		return findings, 0
+		return nil, 0, fmt.Errorf("%s に接続できませんでした: %w", targetURL, err)
 	}
 	defer resp.Body.Close()
 	endpointsFound++
@@ -209,7 +235,7 @@ func runOWASPScan(ctx context.Context, targetURL string) (findings []owaspFindin
 		}
 	}
 
-	return findings, endpointsFound
+	return findings, endpointsFound, nil
 }
 
 // APISecurityHandler manages API endpoint discovery, vulnerability tracking, and scanning.
@@ -458,7 +484,7 @@ func (h *APISecurityHandler) UpdateVulnStatus(c *gin.Context) {
 func (h *APISecurityHandler) ListScans(c *gin.Context) {
 	rows, err := h.pool.Query(c.Request.Context(),
 		`SELECT id, target_url, scan_type, status, endpoints_found, vulns_found,
-		        started_at, completed_at, created_at
+		        COALESCE(error, ''), started_at, completed_at, created_at
 		 FROM api_scan_jobs ORDER BY created_at DESC LIMIT 100`)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": dbErrMsg(err)})
@@ -473,6 +499,7 @@ func (h *APISecurityHandler) ListScans(c *gin.Context) {
 		Status         string     `json:"status"`
 		EndpointsFound int        `json:"endpoints_found"`
 		VulnsFound     int        `json:"vulns_found"`
+		Error          string     `json:"error,omitempty"`
 		StartedAt      *time.Time `json:"started_at"`
 		CompletedAt    *time.Time `json:"completed_at"`
 		CreatedAt      time.Time  `json:"created_at"`
@@ -481,7 +508,8 @@ func (h *APISecurityHandler) ListScans(c *gin.Context) {
 	for rows.Next() {
 		var s Scan
 		if err := rows.Scan(&s.ID, &s.TargetURL, &s.ScanType, &s.Status,
-			&s.EndpointsFound, &s.VulnsFound, &s.StartedAt, &s.CompletedAt, &s.CreatedAt); err != nil {
+			&s.EndpointsFound, &s.VulnsFound, &s.Error,
+			&s.StartedAt, &s.CompletedAt, &s.CreatedAt); err != nil {
 			continue
 		}
 		scans = append(scans, s)
@@ -527,23 +555,26 @@ func (h *APISecurityHandler) StartScan(c *gin.Context) {
 		scanCtx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 		defer cancel()
 
-		findings, endpointsFound := runOWASPScan(scanCtx, targetURL)
+		findings, endpointsFound, scanErr := runOWASPScan(scanCtx, targetURL)
+		if scanErr != nil {
+			slog.Error("api_security: スキャンを実行できませんでした",
+				"scan", scanID, "target", targetURL, "error", scanErr)
+			status, reason := scanOutcome(scanErr)
+			if _, err := pool.Exec(scanCtx,
+				`UPDATE api_scan_jobs
+				 SET status=$1, error=NULLIF($2,''), completed_at=NOW()
+				 WHERE id=$3`, status, reason, scanID); err != nil {
+				slog.Error("api_security: スキャンの失敗を記録できませんでした",
+					"scan", scanID, "error", err)
+			}
+			return
+		}
 
 		// Check whether api_vulnerabilities table exists before inserting.
-		var vulnTableExists bool
-		if err := pool.QueryRow(scanCtx,
-			`SELECT EXISTS(SELECT 1 FROM pg_tables WHERE schemaname='public' AND tablename='api_vulnerabilities')`,
-		).Scan(&vulnTableExists); err != nil {
-			slog.Warn("api_security: api_vulnerabilities テーブル確認に失敗しました", "error", err)
-		}
+		vulnTableExists := tableIsThere(scanCtx, pool, "api_vulnerabilities")
 
 		// Check whether api_endpoints table exists for the endpoint_id FK.
-		var epTableExists bool
-		if err := pool.QueryRow(scanCtx,
-			`SELECT EXISTS(SELECT 1 FROM pg_tables WHERE schemaname='public' AND tablename='api_endpoints')`,
-		).Scan(&epTableExists); err != nil {
-			slog.Warn("api_security: api_endpoints テーブル確認に失敗しました", "error", err)
-		}
+		epTableExists := tableIsThere(scanCtx, pool, "api_endpoints")
 
 		vulnsFound := 0
 		if vulnTableExists && epTableExists && len(findings) > 0 {
@@ -585,11 +616,15 @@ func (h *APISecurityHandler) StartScan(c *gin.Context) {
 			vulnsFound = len(findings)
 		}
 
-		_, _ = pool.Exec(scanCtx,
+		status, reason := scanOutcome(nil)
+		if _, err := pool.Exec(scanCtx,
 			`UPDATE api_scan_jobs
-			 SET status='completed', endpoints_found=$1, vulns_found=$2, completed_at=NOW()
-			 WHERE id=$3`,
-			endpointsFound, vulnsFound, scanID)
+				 SET status=$1, error=NULLIF($2,''), endpoints_found=$3, vulns_found=$4,
+				     completed_at=NOW()
+				 WHERE id=$5`,
+			status, reason, endpointsFound, vulnsFound, scanID); !WriteOK(c, err) {
+			return
+		}
 	}()
 
 	c.JSON(http.StatusCreated, gin.H{"id": id, "status": "running"})
@@ -700,12 +735,18 @@ func (h *APISecurityHandler) GetStats(c *gin.Context) {
 	}
 
 	var totalEndpoints, publicEndpoints, openVulns, totalScans int
-	_ = h.pool.QueryRow(ctx, `SELECT COUNT(*), COUNT(*) FILTER (WHERE is_public) FROM api_endpoints`).
-		Scan(&totalEndpoints, &publicEndpoints)
-	_ = h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM api_vulnerabilities WHERE status='open'`).
-		Scan(&openVulns)
-	_ = h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM api_scan_jobs`).
-		Scan(&totalScans)
+	if !ReadOK(c, h.pool.QueryRow(ctx, `SELECT COUNT(*), COUNT(*) FILTER (WHERE is_public) FROM api_endpoints`).
+		Scan(&totalEndpoints, &publicEndpoints)) {
+		return
+	}
+	if !ReadOK(c, h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM api_vulnerabilities WHERE status='open'`).
+		Scan(&openVulns)) {
+		return
+	}
+	if !ReadOK(c, h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM api_scan_jobs`).
+		Scan(&totalScans)) {
+		return
+	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"total_endpoints":   totalEndpoints,
@@ -731,7 +772,7 @@ func (h *APISecurityHandler) ListEvents(c *gin.Context) {
 		ORDER BY e.created_at DESC LIMIT 100
 	`, eventType)
 	if err != nil {
-		c.JSON(http.StatusOK, gin.H{"events": []any{}})
+		ReadFailure(c, err, gin.H{"events": []any{}})
 		return
 	}
 	defer rows.Close()
@@ -769,6 +810,13 @@ func (h *APISecurityHandler) ListEvents(c *gin.Context) {
 
 // Stats GET /admin/api-security/stats — migration 168
 func (h *APISecurityHandler) Stats(c *gin.Context) {
+	// api_endpoints は 124 と 168 の両方が CREATE TABLE IF NOT EXISTS で定義しており、
+	// 互換性が無い。先に走る 124 が作るので 168 の定義（risk_level TEXT / enabled
+	// BOOLEAN）は黙って捨てられ、実在するのは 124 の risk_score INT だけ。この
+	// クエリだけが 168 側を前提にしていたため常にエラーになり、エラーは捨てられて
+	// 統計が 0 のままだった。ハンドラの他の箇所（一覧・INSERT・リスク分布）は
+	// すべて 124 側を使っているので、こちらを実在するスキーマに合わせる。
+	// 高リスクの境界は同ハンドラのリスク分布（risk_score > 50 が high 以上）に揃える。
 	var totalEndpoints, highRisk int
 	// api_endpoints に risk_level / enabled 列は無い。リスクは risk_score
 	// (0-100) で、区分はこのファイルの一覧クエリと同じ <=25 low / <=50 medium /

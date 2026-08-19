@@ -35,7 +35,7 @@ func (m *HeartbeatMonitor) Run(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			m.check(ctx)
+			trackRun(ctx, "heartbeat_monitor", m.check)
 		}
 	}
 }
@@ -59,7 +59,7 @@ func (m *HeartbeatMonitor) check(ctx context.Context) {
 		fmt.Sprintf("%.0f seconds", m.offlineThreshold.Seconds()),
 	)
 	if err != nil {
-		slog.Debug("ハートビートチェック失敗", "error", err)
+		fail(ctx, err, "ハートビートチェック失敗")
 		return
 	}
 	defer rows.Close()
@@ -71,6 +71,9 @@ func (m *HeartbeatMonitor) check(ctx context.Context) {
 		}
 		m.createOfflineAlert(ctx, id, hostname, ip)
 		m.markAgentOffline(ctx, id)
+	}
+	if err := rows.Err(); err != nil {
+		fail(ctx, err, "ハートビート切れエージェントの走査が途中で終わりました。オフライン通知が出ないエージェントがあります")
 	}
 }
 
@@ -85,13 +88,16 @@ func (m *HeartbeatMonitor) createOfflineAlert(ctx context.Context, agentID, host
 		agentID, title, desc,
 	)
 	if err != nil {
-		slog.Error("オフラインアラートの作成に失敗しました", "agent_id", agentID, "error", err)
+		fail(ctx, err, "オフラインアラートの作成に失敗しました", "agent_id", agentID)
 		return
 	}
 	slog.Info("エージェントオフラインアラート作成", "agent_id", agentID, "hostname", hostname)
 }
 
 func (m *HeartbeatMonitor) markAgentOffline(ctx context.Context, agentID string) {
-	_, _ = m.pool.Exec(ctx,
-		`UPDATE agents SET status='offline', updated_at=NOW() WHERE id=$1`, agentID)
+	// **書けないと、落ちている端末が画面では「オンライン」のままです。**
+	if _, err := m.pool.Exec(ctx,
+		`UPDATE agents SET status='offline', updated_at=NOW() WHERE id=$1`, agentID); err != nil {
+		fail(ctx, err, "エージェントをオフラインにできませんでした", "agent_id", agentID)
+	}
 }

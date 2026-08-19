@@ -7,39 +7,51 @@ import (
 	"time"
 
 	detectionrules "github.com/edr-platform/server/internal/detection/rules"
+	"github.com/edr-platform/server/internal/isolation"
 )
 
-// recordingCommander captures isolation requests instead of talking to an agent.
-type recordingCommander struct {
+// recordingIsolator captures isolation requests instead of talking to an agent.
+//
+// 安全弁と記録は isolation.Gatekeeper が持つ。ここで確かめたいのは
+// 「検知側がそもそも隔離を要求したか」なので、Gatekeeper は挟まない。
+// 安全弁そのものの挙動は internal/isolation のテストが見る。
+type recordingIsolator struct {
 	isolated []string
 	reasons  []string
+	origins  []isolation.Origin
 }
 
-func (c *recordingCommander) IsolateEndpoint(_ context.Context, agentID, reason, _ string, _ string) error {
-	c.isolated = append(c.isolated, agentID)
-	c.reasons = append(c.reasons, reason)
-	return nil
-}
-func (c *recordingCommander) KillProcess(_ context.Context, _ string, _ uint32, _ string, _ string) error {
-	return nil
-}
-func (c *recordingCommander) QuarantineFile(_ context.Context, _, _, _ string, _ string) error {
-	return nil
+func (c *recordingIsolator) Isolate(_ context.Context, req isolation.Request) (isolation.Result, error) {
+	c.isolated = append(c.isolated, req.AgentID)
+	c.reasons = append(c.reasons, req.Reason)
+	c.origins = append(c.origins, req.Origin)
+	return isolation.Result{Outcome: isolation.OutcomeDispatched, ActionID: "row-1"}, nil
 }
 
 // newIsolationEngine builds the minimum Engine needed to exercise the auto-response
 // path with auto-isolation armed at the production default threshold (9).
-func newIsolationEngine() (*Engine, *recordingCommander) {
-	cmd := &recordingCommander{}
+func newIsolationEngine() (*Engine, *recordingIsolator) {
+	iso := &recordingIsolator{}
 	return &Engine{
-		store:     &captureStore{},
-		rules:     detectionrules.NewRuleEngine(),
-		commander: cmd,
+		store:    &captureStore{},
+		rules:    detectionrules.NewRuleEngine(),
+		isolator: iso,
 		config: EngineConfig{
 			AutoResponseEnabled:          true,
 			AutoIsolateSeverityThreshold: 9,
 		},
-	}, cmd
+	}, iso
+}
+
+// 検知側が申告する経路が auto_rule であること。記録の origin がずれると、
+// 「どの経路が端末を止めたのか」を後から辿れなくなる。
+func TestRuleBasedIsolationDeclaresItsOrigin(t *testing.T) {
+	e, iso := newIsolationEngine()
+	m := &detectionrules.RuleMatch{RuleID: "", RuleName: "ランサムウェア相関", Severity: 10, AutoIsolate: true}
+	e.applyRuleBasedResponse(context.Background(), alertFrom(m), nil, m)
+	if len(iso.origins) != 1 || iso.origins[0] != isolation.OriginRule {
+		t.Fatalf("origin = %v, want %q", iso.origins, isolation.OriginRule)
+	}
 }
 
 func alertFrom(m *detectionrules.RuleMatch) *StoredAlert {
@@ -141,7 +153,7 @@ func TestFileBurstAloneStaysBelowIsolationThreshold(t *testing.T) {
 	now := time.Now()
 	var fired *detectionrules.RuleMatch
 	for i := 0; i < fileBurstMinFiles; i++ {
-		for _, m := range d.Observe("agent-1", "go", pathN(i), "FILE_ACTION_MODIFY", now) {
+		for _, m := range d.Observe("agent-1", "linux", "go", pathN(i), "FILE_ACTION_MODIFY", now) {
 			fired = m
 		}
 	}

@@ -5,28 +5,24 @@ import (
 )
 
 // ─────────────────────────────────────────────
-// 検疫ページネーション補完ロジックのテスト
+// 頁送りの補完のテスト
 //
-// quarantine_handler.go の List() 内には以下の補完ロジックがある:
-//   if page < 1    { page = 1 }
-//   if perPage < 1 || perPage > 100 { perPage = 20 }
-// HTTP レイヤーなしで同等の純粋関数としてテストする。
+// **ここには写しが3つ置いてありました** —— `clampPage` / `clampPerPage` /
+// `quarantineOffset` の3つを、この検査ファイルの中で定義して試して
+// いました。本物は `quarantine_handler.go` の中に直書きされていたので、
+// **本物を壊しても、この検査は1本も落ちません。**
+//
+// 本物は `pagination.go` に切り出しました。以下はそちらを呼びます。
+// 検疫の一覧は既定 20 / 上限 100 です。
 // ─────────────────────────────────────────────
 
-// clampPage は quarantine_handler.go の page 補完ロジックを再現する。
-func clampPage(page int) int {
-	if page < 1 {
-		return 1
-	}
-	return page
-}
+const (
+	quarantineDefaultPerPage = 20
+	quarantineMaxPerPage     = 100
+)
 
-// clampPerPage は quarantine_handler.go の perPage 補完ロジックを再現する。
-func clampPerPage(perPage int) int {
-	if perPage < 1 || perPage > 100 {
-		return 20
-	}
-	return perPage
+func quarantinePerPage(perPage int) int {
+	return clampPerPage(perPage, quarantineDefaultPerPage, quarantineMaxPerPage)
 }
 
 func TestClampPage(t *testing.T) {
@@ -129,7 +125,7 @@ func TestClampPerPage(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			got := clampPerPage(tc.input)
+			got := quarantinePerPage(tc.input)
 			if got != tc.expected {
 				t.Errorf("clampPerPage(%d) = %d, want %d", tc.input, got, tc.expected)
 			}
@@ -143,11 +139,6 @@ func TestClampPerPage(t *testing.T) {
 // quarantine_handler.go の List() が使用するオフセット:
 //   offset = (page - 1) * perPage
 // ─────────────────────────────────────────────
-
-// quarantineOffset は quarantine_handler.go のオフセット計算ロジックを再現する。
-func quarantineOffset(page, perPage int) int {
-	return (page - 1) * perPage
-}
 
 func TestQuarantineOffset(t *testing.T) {
 	tests := []struct {
@@ -195,9 +186,9 @@ func TestQuarantineOffset(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			got := quarantineOffset(tc.page, tc.perPage)
+			got := pageOffset(tc.page, tc.perPage)
 			if got != tc.expected {
-				t.Errorf("quarantineOffset(%d, %d) = %d, want %d", tc.page, tc.perPage, got, tc.expected)
+				t.Errorf("pageOffset(%d, %d) = %d, want %d", tc.page, tc.perPage, got, tc.expected)
 			}
 		})
 	}
@@ -210,15 +201,6 @@ func TestQuarantineOffset(t *testing.T) {
 //   if len(req.Actions) == 0 { エラー }
 // という純粋なロジックがある。同等の関数でテストする。
 // ─────────────────────────────────────────────
-
-// validatePlaybookActionCount は playbooks_handler.go の
-// アクション件数バリデーションロジックを再現する。
-func validatePlaybookActionCount(count int) string {
-	if count == 0 {
-		return "1つ以上のアクションが必要です"
-	}
-	return ""
-}
 
 func TestValidatePlaybookActionCount(t *testing.T) {
 	tests := []struct {
@@ -269,14 +251,6 @@ func TestValidatePlaybookActionCount(t *testing.T) {
 //   if req.Severity < 1 || req.Severity > 10 { req.Severity = 7 }
 // というデフォルト補完ロジックがある。
 // ─────────────────────────────────────────────
-
-// clampIOCSeverity は ioc_handler.go の severity 補完ロジックを再現する。
-func clampIOCSeverity(s int) int {
-	if s < 1 || s > 10 {
-		return 7
-	}
-	return s
-}
 
 func TestClampIOCSeverity(t *testing.T) {
 	tests := []struct {

@@ -59,8 +59,10 @@ func (h *VendorRiskHandler) ListVendors(c *gin.Context) {
 	copy(countArgs, args)
 
 	var total int
-	_ = h.pool.QueryRow(c.Request.Context(),
-		"SELECT COUNT(*) FROM third_party_vendors "+where, countArgs...).Scan(&total)
+	if !ReadOK(c, h.pool.QueryRow(c.Request.Context(),
+		"SELECT COUNT(*) FROM third_party_vendors "+where, countArgs...).Scan(&total)) {
+		return
+	}
 
 	args = append(args, limit, offset)
 	rows, err := h.pool.Query(c.Request.Context(),
@@ -102,7 +104,9 @@ func (h *VendorRiskHandler) ListVendors(c *gin.Context) {
 		vendors = append(vendors, v)
 	}
 	if err := rows.Err(); err != nil {
-		slog.Warn("row iteration error", "error", err)
+		slog.Error("rows.Err: 結果の読み出しが途中で失敗しました", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to list vendors"})
+		return
 	}
 	c.JSON(http.StatusOK, gin.H{"data": vendors, "total": total})
 }
@@ -292,11 +296,13 @@ func (h *VendorRiskHandler) CreateAssessment(c *gin.Context) {
 	}
 
 	// Update vendor risk_score, risk_tier, last_assessment_at
-	_, _ = h.pool.Exec(c.Request.Context(),
+	if _, err := h.pool.Exec(c.Request.Context(),
 		`UPDATE third_party_vendors
-		 SET risk_score = $2, risk_tier = $3, last_assessment_at = NOW(), updated_at = NOW()
-		 WHERE id = $1`,
-		vendorID, overallScore, riskTier)
+			 SET risk_score = $2, risk_tier = $3, last_assessment_at = NOW(), updated_at = NOW()
+			 WHERE id = $1`,
+		vendorID, overallScore, riskTier); !WriteOK(c, err) {
+		return
+	}
 
 	c.JSON(http.StatusCreated, gin.H{
 		"message":       "assessment created",
@@ -321,9 +327,7 @@ func (h *VendorRiskHandler) ListAssessments(c *gin.Context) {
 		AssessedAt   time.Time `json:"assessed_at"`
 	}
 
-	var exists bool
-	_ = h.pool.QueryRow(ctx,
-		`SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name='vendor_assessments')`).Scan(&exists)
+	exists := tableIsThere(ctx, h.pool, "vendor_assessments")
 	if !exists {
 		c.JSON(http.StatusOK, []Assessment{})
 		return
@@ -336,7 +340,7 @@ func (h *VendorRiskHandler) ListAssessments(c *gin.Context) {
 		LEFT JOIN third_party_vendors v ON v.id = va.vendor_id
 		ORDER BY va.assessed_at DESC LIMIT 200`)
 	if err != nil {
-		c.JSON(http.StatusOK, []Assessment{})
+		ReadFailure(c, err, []Assessment{})
 		return
 	}
 	defer rows.Close()
@@ -347,6 +351,11 @@ func (h *VendorRiskHandler) ListAssessments(c *gin.Context) {
 		if rows.Scan(&a.ID, &a.VendorID, &a.VendorName, &a.OverallScore, &a.Status, &a.Findings, &a.AssessedAt) == nil {
 			items = append(items, a)
 		}
+	}
+	if err := rows.Err(); err != nil {
+		slog.Warn("ListAssessments: 結果セットの読み取りが途中で終わりました。応答は不完全です", "error", err)
+		c.JSON(http.StatusOK, []Assessment{})
+		return
 	}
 	if items == nil {
 		items = []Assessment{}
@@ -379,15 +388,19 @@ func (h *VendorRiskHandler) GetStats(c *gin.Context) {
 	}
 
 	var avgRiskScore float64
-	_ = h.pool.QueryRow(ctx,
-		`SELECT COALESCE(AVG(risk_score), 0) FROM third_party_vendors`).Scan(&avgRiskScore)
+	if !ReadOK(c, h.pool.QueryRow(ctx,
+		`SELECT COALESCE(AVG(risk_score), 0) FROM third_party_vendors`).Scan(&avgRiskScore)) {
+		return
+	}
 
 	var assessmentsDueThisMonth int
-	_ = h.pool.QueryRow(ctx,
+	if !ReadOK(c, h.pool.QueryRow(ctx,
 		`SELECT COUNT(*) FROM third_party_vendors
-		 WHERE next_assessment_due >= DATE_TRUNC('month', NOW())
-		   AND next_assessment_due < DATE_TRUNC('month', NOW()) + INTERVAL '1 month'`).
-		Scan(&assessmentsDueThisMonth)
+			 WHERE next_assessment_due >= DATE_TRUNC('month', NOW())
+			   AND next_assessment_due < DATE_TRUNC('month', NOW()) + INTERVAL '1 month'`).
+		Scan(&assessmentsDueThisMonth)) {
+		return
+	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"by_tier":                    tierCounts,

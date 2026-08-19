@@ -3,11 +3,14 @@
 import { useState, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { apiFetch } from '@/lib/api'
+import { mockOr } from '@/lib/mock'
 import {
   Shield, TrendingUp, TrendingDown, Clock, FileText,
   AlertTriangle, CheckCircle, Target, ArrowUpRight, ArrowDownRight,
   ChevronRight, RefreshCw, Star, Zap,
 } from 'lucide-react'
+
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -43,6 +46,19 @@ interface ExecDashboard {
 }
 
 // ─── Mock Data ────────────────────────────────────────────────────────────────
+
+// 取得できなかったときに出すもの。役員向けの画面なので、届かなかった数字は
+// 空欄になります。MOCK は USE_MOCK のときだけです。
+const EMPTY: ExecDashboard = {
+  posture: { score: 0, grade: '—', trend: 0, last_updated: '' },
+  detection: {
+    mttd_hours: 0, mttd_trend: 0, mttd_benchmark: 0,
+    mttr_hours: 0, mttr_trend: 0, mttr_benchmark: 0,
+    incidents_30d: 0, critical_alerts: 0, blocked_threats: 0,
+    threat_categories: [],
+  },
+  compliance: { score: 0, frameworks: [] },
+}
 
 const MOCK: ExecDashboard = {
   posture: {
@@ -251,8 +267,8 @@ function MonthlyTrendChart({ trends }: { trends: typeof MONTHLY_TRENDS }) {
         <text x={PL - 4} y={PT + 4} textAnchor="end" fill="#7d92b0" fontSize="9">{incMax || 0}</text>
         <text x={PL - 4} y={H - PB} textAnchor="end" fill="#7d92b0" fontSize="9">0</text>
       </svg>
-      <div className="flex items-center gap-6 mt-2 text-xs text-falcon-muted">
-        <span className="flex items-center gap-1.5"><span className="w-4 h-0.5 bg-falcon-red inline-block rounded-sm" />インシデント件数</span>
+      <div className="flex items-center gap-6 mt-2 text-xs text-[#7d92b0]">
+        <span className="flex items-center gap-1.5"><span className="w-4 h-0.5 bg-[#e8002d] inline-block rounded-sm" />インシデント件数</span>
         <span className="flex items-center gap-1.5"><span className="w-4 h-0.5 bg-[#ffd740] inline-block rounded-sm" />アラート件数</span>
       </div>
     </div>
@@ -262,17 +278,17 @@ function MonthlyTrendChart({ trends }: { trends: typeof MONTHLY_TRENDS }) {
 // ─── Protocol Pie SVG ─────────────────────────────────────────────────────────
 
 const RISK_COLOR: Record<string, string> = {
-  high:   'text-falcon-red bg-falcon-red/15 border-falcon-red/30',
+  high:   'text-[#e8002d] bg-[#e8002d]/15 border-[#e8002d]/30',
   medium: 'text-[#ffd740] bg-[#ffd740]/15 border-[#ffd740]/30',
-  low:    'text-falcon-green bg-falcon-green/15 border-falcon-green/30',
+  low:    'text-[#00c853] bg-[#00c853]/15 border-[#00c853]/30',
 }
 
 const RISK_LABEL: Record<string, string> = { high: '高', medium: '中', low: '低' }
 
 function scoreStatusColor(score: number) {
-  if (score >= 85) return 'text-falcon-green bg-falcon-green/15 border-falcon-green/30'
+  if (score >= 85) return 'text-[#00c853] bg-[#00c853]/15 border-[#00c853]/30'
   if (score >= 70) return 'text-[#ffd740] bg-[#ffd740]/15 border-[#ffd740]/30'
-  return 'text-falcon-red bg-falcon-red/15 border-falcon-red/30'
+  return 'text-[#e8002d] bg-[#e8002d]/15 border-[#e8002d]/30'
 }
 
 function scoreBar(score: number) {
@@ -286,17 +302,17 @@ function scoreBar(score: number) {
 export default function ExecutiveDashboardPage() {
   const { data: postureRaw } = useQuery<SecurityPosture>({
     queryKey: ['exec-security-posture'],
-    queryFn: () => apiFetch<SecurityPosture>('/api/v1/security-posture').catch(() => MOCK.posture),
+    queryFn: () => apiFetch<SecurityPosture>('/api/v1/security-posture'),
     staleTime: 5 * 60 * 1000,
   })
   const { data: detectionRaw } = useQuery<DetectionStats>({
     queryKey: ['exec-detection-stats'],
-    queryFn: () => apiFetch<DetectionStats>('/api/v1/metrics/detection-stats').catch(() => MOCK.detection),
+    queryFn: () => apiFetch<DetectionStats>('/api/v1/metrics/detection-stats'),
     staleTime: 5 * 60 * 1000,
   })
   const { data: complianceRaw } = useQuery<ComplianceData>({
     queryKey: ['exec-compliance'],
-    queryFn: () => apiFetch<ComplianceData>('/api/v1/compliance').catch(() => MOCK.compliance),
+    queryFn: () => apiFetch<ComplianceData>('/api/v1/compliance'),
     staleTime: 5 * 60 * 1000,
   })
   const { data: agentStatsRaw } = useQuery({
@@ -311,22 +327,22 @@ export default function ExecutiveDashboardPage() {
   })
   const { data: riskOrgRaw } = useQuery({
     queryKey: ['exec-risk-org'],
-    queryFn: () => apiFetch<any>('/api/v1/admin/risk-scoring/organization').catch(() => null),
+    queryFn: () => apiFetch<any>('/api/v1/admin/risk-scoring/organization'),
     staleTime: 5 * 60 * 1000,
   })
   const { data: socMetricsRaw } = useQuery({
     queryKey: ['exec-soc-metrics'],
-    queryFn: () => apiFetch<any>('/api/v1/soc-metrics/summary?days=180').catch(() => null),
+    queryFn: () => apiFetch<any>('/api/v1/soc-metrics/summary?days=180'),
     staleTime: 5 * 60 * 1000,
   })
 
-  const posture = postureRaw ?? MOCK.posture
+  const posture = postureRaw ?? mockOr(MOCK.posture, EMPTY.posture)
   const detection: DetectionStats = (detectionRaw as any)?.threat_categories
     ? detectionRaw as DetectionStats
-    : MOCK.detection
+    : mockOr(MOCK.detection, EMPTY.detection)
   const compliance: ComplianceData = (() => {
     const raw = complianceRaw as any
-    if (!raw) return MOCK.compliance
+    if (!raw) return mockOr(MOCK.compliance, EMPTY.compliance)
     // API returns frameworks as an object {mitre,cis,nist,iso27001} + framework_details array
     if (Array.isArray(raw.frameworks)) return complianceRaw as ComplianceData
     if (Array.isArray(raw.framework_details)) {
@@ -341,7 +357,7 @@ export default function ExecutiveDashboardPage() {
         })),
       }
     }
-    return MOCK.compliance
+    return mockOr(MOCK.compliance, EMPTY.compliance)
   })()
 
   // ─── Asset Protection from real API ────────────────────────
@@ -436,10 +452,10 @@ export default function ExecutiveDashboardPage() {
   })()
 
   const gradeColor =
-    posture.score >= 90 ? 'text-falcon-green'
+    posture.score >= 90 ? 'text-[#00c853]'
     : posture.score >= 75 ? 'text-[#69f0ae]'
     : posture.score >= 60 ? 'text-[#ffd740]'
-    : 'text-falcon-red'
+    : 'text-[#e8002d]'
 
   const updatedStr = new Date(posture.last_updated).toLocaleString('ja-JP', {
     month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit'
@@ -449,24 +465,25 @@ export default function ExecutiveDashboardPage() {
 
   return (
     <div className="min-h-screen bg-[#070d19] p-6 space-y-6">
+      <PageDataUnavailable />
 
       {/* ── Header ──────────────────────────────────────────────── */}
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-2xl font-bold text-white flex items-center gap-3">
-            <Star className="w-6 h-6 text-falcon-red" />
+            <Star className="w-6 h-6 text-[#e8002d]" />
             エグゼクティブダッシュボード
           </h1>
-          <p className="text-falcon-muted text-sm mt-1">セキュリティ態勢の経営レベルサマリー</p>
+          <p className="text-[#7d92b0] text-sm mt-1">セキュリティ態勢の経営レベルサマリー</p>
         </div>
         <div className="flex items-center gap-3">
-          <span className="flex items-center gap-2 text-xs text-falcon-muted">
+          <span className="flex items-center gap-2 text-xs text-[#7d92b0]">
             <Clock className="w-4 h-4" />
             最終更新: {updatedStr}
           </span>
           <button
             onClick={() => alert('PDFレポートを生成中...\n(モック: 実際のPDF出力はレポートシステムと連携します)')}
-            className="flex items-center gap-2 px-4 py-2 bg-falcon-red hover:bg-[#c0001f] text-white text-sm font-medium rounded-lg transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-[#e8002d] hover:bg-[#c0001f] text-white text-sm font-medium rounded-lg transition-colors"
           >
             <FileText className="w-4 h-4" />
             レポート出力
@@ -478,91 +495,91 @@ export default function ExecutiveDashboardPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
 
         {/* KPI 1 — Security Score */}
-        <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5 flex flex-col items-center text-center">
-          <p className="text-xs text-falcon-muted font-medium uppercase tracking-wider mb-2">総合セキュリティスコア</p>
+        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5 flex flex-col items-center text-center">
+          <p className="text-xs text-[#7d92b0] font-medium uppercase tracking-wider mb-2">総合セキュリティスコア</p>
           <ScoreRing score={posture.score} size={130} />
           <div className={`mt-2 text-4xl font-black ${gradeColor}`}>{posture.grade}</div>
-          <p className="text-xs text-falcon-muted mt-1">グレード</p>
+          <p className="text-xs text-[#7d92b0] mt-1">グレード</p>
           <div className="mt-3 flex items-center gap-1 text-xs">
             {posture.trend > 0 ? (
-              <><ArrowUpRight className="w-4 h-4 text-falcon-green" /><span className="text-falcon-green font-semibold">+{posture.trend}pt 先月比改善</span></>
+              <><ArrowUpRight className="w-4 h-4 text-[#00c853]" /><span className="text-[#00c853] font-semibold">+{posture.trend}pt 先月比改善</span></>
             ) : posture.trend < 0 ? (
-              <><ArrowDownRight className="w-4 h-4 text-falcon-red" /><span className="text-falcon-red font-semibold">{posture.trend}pt 先月比低下</span></>
+              <><ArrowDownRight className="w-4 h-4 text-[#e8002d]" /><span className="text-[#e8002d] font-semibold">{posture.trend}pt 先月比低下</span></>
             ) : (
-              <span className="text-falcon-muted">変化なし</span>
+              <span className="text-[#7d92b0]">変化なし</span>
             )}
           </div>
         </div>
 
         {/* KPI 2 — MTTD */}
-        <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
-          <p className="text-xs text-falcon-muted font-medium uppercase tracking-wider mb-3">脅威発見までの時間 (MTTD)</p>
+        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
+          <p className="text-xs text-[#7d92b0] font-medium uppercase tracking-wider mb-3">脅威発見までの時間 (MTTD)</p>
           <div className="flex items-baseline gap-2 mb-1">
             <span className="text-5xl font-black text-white">{detection.mttd_hours}</span>
-            <span className="text-lg text-falcon-muted">時間</span>
+            <span className="text-lg text-[#7d92b0]">時間</span>
           </div>
           <div className="flex items-center gap-1 text-xs mb-4">
             {detection.mttd_trend < 0 ? (
-              <><TrendingDown className="w-4 h-4 text-falcon-green" /><span className="text-falcon-green">{detection.mttd_trend}時間 改善</span></>
+              <><TrendingDown className="w-4 h-4 text-[#00c853]" /><span className="text-[#00c853]">{detection.mttd_trend}時間 改善</span></>
             ) : (
-              <><TrendingUp className="w-4 h-4 text-falcon-red" /><span className="text-falcon-red">+{detection.mttd_trend}時間 悪化</span></>
+              <><TrendingUp className="w-4 h-4 text-[#e8002d]" /><span className="text-[#e8002d]">+{detection.mttd_trend}時間 悪化</span></>
             )}
           </div>
-          <div className="p-3 bg-[#070d19] rounded-lg border border-falcon-border">
-            <p className="text-[10px] text-falcon-muted uppercase tracking-wider mb-1">業界平均との比較</p>
+          <div className="p-3 bg-[#070d19] rounded-lg border border-[#1e2d42]">
+            <p className="text-[10px] text-[#7d92b0] uppercase tracking-wider mb-1">業界平均との比較</p>
             <div className="flex items-center justify-between">
-              <span className="text-xs text-falcon-muted">業界平均</span>
+              <span className="text-xs text-[#7d92b0]">業界平均</span>
               <span className="text-sm font-semibold text-[#ffd740]">{detection.mttd_benchmark}時間</span>
             </div>
-            <div className="mt-2 h-2 bg-falcon-border rounded-full overflow-hidden">
-              <div className="h-full bg-falcon-green rounded-full" style={{ width: `${Math.min(100, (1 - detection.mttd_hours / detection.mttd_benchmark) * 100 + 60)}%` }} />
+            <div className="mt-2 h-2 bg-[#1e2d42] rounded-full overflow-hidden">
+              <div className="h-full bg-[#00c853] rounded-full" style={{ width: `${Math.min(100, (1 - detection.mttd_hours / detection.mttd_benchmark) * 100 + 60)}%` }} />
             </div>
-            <p className="text-[10px] text-falcon-green mt-1">業界平均より優秀</p>
+            <p className="text-[10px] text-[#00c853] mt-1">業界平均より優秀</p>
           </div>
         </div>
 
         {/* KPI 3 — MTTR */}
-        <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
-          <p className="text-xs text-falcon-muted font-medium uppercase tracking-wider mb-3">脅威対応完了までの時間 (MTTR)</p>
+        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
+          <p className="text-xs text-[#7d92b0] font-medium uppercase tracking-wider mb-3">脅威対応完了までの時間 (MTTR)</p>
           <div className="flex items-baseline gap-2 mb-1">
             <span className="text-5xl font-black text-white">{detection.mttr_hours}</span>
-            <span className="text-lg text-falcon-muted">時間</span>
+            <span className="text-lg text-[#7d92b0]">時間</span>
           </div>
           <div className="flex items-center gap-1 text-xs mb-4">
             {detection.mttr_trend > 0 ? (
               <><TrendingUp className="w-4 h-4 text-[#ffd740]" /><span className="text-[#ffd740]">+{detection.mttr_trend}時間 (要改善)</span></>
             ) : (
-              <><TrendingDown className="w-4 h-4 text-falcon-green" /><span className="text-falcon-green">{detection.mttr_trend}時間 改善</span></>
+              <><TrendingDown className="w-4 h-4 text-[#00c853]" /><span className="text-[#00c853]">{detection.mttr_trend}時間 改善</span></>
             )}
           </div>
-          <div className="p-3 bg-[#070d19] rounded-lg border border-falcon-border">
-            <p className="text-[10px] text-falcon-muted uppercase tracking-wider mb-1">業界平均との比較</p>
+          <div className="p-3 bg-[#070d19] rounded-lg border border-[#1e2d42]">
+            <p className="text-[10px] text-[#7d92b0] uppercase tracking-wider mb-1">業界平均との比較</p>
             <div className="flex items-center justify-between">
-              <span className="text-xs text-falcon-muted">業界平均</span>
+              <span className="text-xs text-[#7d92b0]">業界平均</span>
               <span className="text-sm font-semibold text-[#ffd740]">{detection.mttr_benchmark}時間</span>
             </div>
-            <div className="mt-2 h-2 bg-falcon-border rounded-full overflow-hidden">
-              <div className="h-full bg-falcon-green rounded-full" style={{ width: `${Math.min(100, (1 - detection.mttr_hours / detection.mttr_benchmark) * 100 + 60)}%` }} />
+            <div className="mt-2 h-2 bg-[#1e2d42] rounded-full overflow-hidden">
+              <div className="h-full bg-[#00c853] rounded-full" style={{ width: `${Math.min(100, (1 - detection.mttr_hours / detection.mttr_benchmark) * 100 + 60)}%` }} />
             </div>
-            <p className="text-[10px] text-falcon-green mt-1">業界平均より優秀</p>
+            <p className="text-[10px] text-[#00c853] mt-1">業界平均より優秀</p>
           </div>
         </div>
 
         {/* KPI 4 — Compliance */}
-        <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
-          <p className="text-xs text-falcon-muted font-medium uppercase tracking-wider mb-3">コンプライアンス達成率</p>
+        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
+          <p className="text-xs text-[#7d92b0] font-medium uppercase tracking-wider mb-3">コンプライアンス達成率</p>
           <div className="flex items-baseline gap-2 mb-3">
-            <span className="text-5xl font-black text-falcon-green">{compliance.score}%</span>
+            <span className="text-5xl font-black text-[#00c853]">{compliance.score}%</span>
           </div>
-          <p className="text-xs text-falcon-muted mb-3">対応フレームワーク</p>
+          <p className="text-xs text-[#7d92b0] mb-3">対応フレームワーク</p>
           <div className="flex flex-wrap gap-2">
             {compliance.frameworks.map(f => (
-              <span key={f.name} className="px-2 py-1 bg-falcon-border text-falcon-text text-[10px] font-medium rounded-sm border border-[#2d3f58]">
+              <span key={f.name} className="px-2 py-1 bg-[#1e2d42] text-[#e2e8f4] text-[10px] font-medium rounded-sm border border-[#2d3f58]">
                 {f.name}
               </span>
             ))}
           </div>
-          <div className="mt-3 h-2 bg-falcon-border rounded-full overflow-hidden">
+          <div className="mt-3 h-2 bg-[#1e2d42] rounded-full overflow-hidden">
             <div className="h-full rounded-full transition-all duration-1000" style={{ width: `${compliance.score}%`, background: '#00c853' }} />
           </div>
         </div>
@@ -572,34 +589,34 @@ export default function ExecutiveDashboardPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
 
         {/* Panel 1 — Threat Landscape */}
-        <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
+        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
           <div className="flex items-center gap-2 mb-4">
-            <Zap className="w-4 h-4 text-falcon-red" />
+            <Zap className="w-4 h-4 text-[#e8002d]" />
             <h2 className="text-sm font-semibold text-white">脅威の状況 (過去30日)</h2>
           </div>
           <div className="grid grid-cols-3 gap-3 mb-5">
-            <div className="text-center p-3 bg-[#070d19] rounded-lg border border-falcon-border">
+            <div className="text-center p-3 bg-[#070d19] rounded-lg border border-[#1e2d42]">
               <p className="text-2xl font-black text-white">{detection.incidents_30d}</p>
-              <p className="text-[10px] text-falcon-muted mt-1">インシデント発生</p>
+              <p className="text-[10px] text-[#7d92b0] mt-1">インシデント発生</p>
             </div>
             <div className="text-center p-3 bg-[#070d19] rounded-lg border border-red-500/20">
-              <p className="text-2xl font-black text-falcon-red">{detection.critical_alerts}</p>
-              <p className="text-[10px] text-falcon-muted mt-1">緊急アラート</p>
+              <p className="text-2xl font-black text-[#e8002d]">{detection.critical_alerts}</p>
+              <p className="text-[10px] text-[#7d92b0] mt-1">緊急アラート</p>
             </div>
-            <div className="text-center p-3 bg-[#070d19] rounded-lg border border-falcon-green/20">
-              <p className="text-2xl font-black text-falcon-green">{(detection.blocked_threats ?? 0).toLocaleString()}</p>
-              <p className="text-[10px] text-falcon-muted mt-1">脅威をブロック</p>
+            <div className="text-center p-3 bg-[#070d19] rounded-lg border border-[#00c853]/20">
+              <p className="text-2xl font-black text-[#00c853]">{(detection.blocked_threats ?? 0).toLocaleString()}</p>
+              <p className="text-[10px] text-[#7d92b0] mt-1">脅威をブロック</p>
             </div>
           </div>
-          <p className="text-xs text-falcon-muted font-medium mb-3">脅威の種類別内訳</p>
+          <p className="text-xs text-[#7d92b0] font-medium mb-3">脅威の種類別内訳</p>
           <div className="space-y-2.5">
             {detection.threat_categories.map(cat => (
               <div key={cat.name}>
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs text-falcon-text">{cat.name}</span>
-                  <span className="text-xs font-semibold text-falcon-muted">{cat.count}件</span>
+                  <span className="text-xs text-[#e2e8f4]">{cat.name}</span>
+                  <span className="text-xs font-semibold text-[#7d92b0]">{cat.count}件</span>
                 </div>
-                <div className="h-2 bg-falcon-border rounded-full overflow-hidden">
+                <div className="h-2 bg-[#1e2d42] rounded-full overflow-hidden">
                   <div
                     className="h-full rounded-full transition-all duration-700"
                     style={{ width: `${(cat.count / threatMax) * 100}%`, background: '#e8002d' }}
@@ -611,30 +628,30 @@ export default function ExecutiveDashboardPage() {
         </div>
 
         {/* Panel 2 — Asset Protection */}
-        <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
+        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
           <div className="flex items-center gap-2 mb-4">
-            <Shield className="w-4 h-4 text-falcon-blue" />
+            <Shield className="w-4 h-4 text-[#1a6bff]" />
             <h2 className="text-sm font-semibold text-white">資産の保護状況</h2>
           </div>
           <div className="flex items-center justify-center mb-4">
             <div className="relative">
               <DonutChart pct={assetProtection.agent_coverage} size={130} color="#1a6bff" />
               <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 whitespace-nowrap">
-                <p className="text-[10px] text-falcon-muted text-center">監視カバレッジ</p>
+                <p className="text-[10px] text-[#7d92b0] text-center">監視カバレッジ</p>
               </div>
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3 mb-4">
-            <div className="text-center p-2.5 bg-[#070d19] rounded-lg border border-falcon-border">
-              <p className="text-xl font-black text-falcon-green">{assetProtection.patched_pct}%</p>
-              <p className="text-[10px] text-falcon-muted">パッチ適用済み</p>
+            <div className="text-center p-2.5 bg-[#070d19] rounded-lg border border-[#1e2d42]">
+              <p className="text-xl font-black text-[#00c853]">{assetProtection.patched_pct}%</p>
+              <p className="text-[10px] text-[#7d92b0]">パッチ適用済み</p>
             </div>
-            <div className="text-center p-2.5 bg-[#070d19] rounded-lg border border-falcon-border">
+            <div className="text-center p-2.5 bg-[#070d19] rounded-lg border border-[#1e2d42]">
               <p className="text-xl font-black text-white">{assetProtection.total}</p>
-              <p className="text-[10px] text-falcon-muted">総エンドポイント数</p>
+              <p className="text-[10px] text-[#7d92b0]">総エンドポイント数</p>
             </div>
           </div>
-          <p className="text-xs text-falcon-muted font-medium mb-2">エンドポイント健全性</p>
+          <p className="text-xs text-[#7d92b0] font-medium mb-2">エンドポイント健全性</p>
           <div className="space-y-1.5">
             {[
               { label: '正常稼働中', count: assetProtection.healthy, color: '#00c853' },
@@ -645,7 +662,7 @@ export default function ExecutiveDashboardPage() {
               <div key={row.label} className="flex items-center justify-between text-xs">
                 <div className="flex items-center gap-2">
                   <span className="w-2 h-2 rounded-full inline-block" style={{ background: row.color }} />
-                  <span className="text-falcon-muted">{row.label}</span>
+                  <span className="text-[#7d92b0]">{row.label}</span>
                 </div>
                 <span className="font-semibold" style={{ color: row.color }}>{row.count}台</span>
               </div>
@@ -654,35 +671,35 @@ export default function ExecutiveDashboardPage() {
         </div>
 
         {/* Panel 3 — Risk Posture */}
-        <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
+        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
           <div className="flex items-center gap-2 mb-4">
             <AlertTriangle className="w-4 h-4 text-[#ffd740]" />
             <h2 className="text-sm font-semibold text-white">主要リスク</h2>
           </div>
           <div className="space-y-3 mb-5">
             {topRisks.map((risk, i) => (
-              <div key={i} className="p-3 bg-[#070d19] rounded-lg border border-falcon-border">
+              <div key={i} className="p-3 bg-[#070d19] rounded-lg border border-[#1e2d42]">
                 <div className="flex items-start gap-2 mb-2">
-                  <span className="w-5 h-5 rounded-full bg-falcon-border flex items-center justify-center text-[10px] font-bold text-falcon-muted shrink-0 mt-0.5">
+                  <span className="w-5 h-5 rounded-full bg-[#1e2d42] flex items-center justify-center text-[10px] font-bold text-[#7d92b0] shrink-0 mt-0.5">
                     {i + 1}
                   </span>
-                  <p className="text-xs font-medium text-falcon-text leading-snug">{risk.title}</p>
+                  <p className="text-xs font-medium text-[#e2e8f4] leading-snug">{risk.title}</p>
                 </div>
-                <p className="text-[10px] text-falcon-muted pl-7 mb-2">{risk.detail}</p>
+                <p className="text-[10px] text-[#7d92b0] pl-7 mb-2">{risk.detail}</p>
                 <div className="flex items-center gap-2 pl-7">
-                  <span className="text-[10px] text-falcon-muted">影響度:</span>
+                  <span className="text-[10px] text-[#7d92b0]">影響度:</span>
                   <span className={`px-1.5 py-0.5 rounded-sm border text-[9px] font-medium ${RISK_COLOR[risk.impact]}`}>{RISK_LABEL[risk.impact]}</span>
-                  <span className="text-[10px] text-falcon-muted">発生可能性:</span>
+                  <span className="text-[10px] text-[#7d92b0]">発生可能性:</span>
                   <span className={`px-1.5 py-0.5 rounded-sm border text-[9px] font-medium ${RISK_COLOR[risk.likelihood]}`}>{RISK_LABEL[risk.likelihood]}</span>
                 </div>
               </div>
             ))}
           </div>
-          <p className="text-xs text-falcon-muted font-medium mb-2">推奨する対策</p>
+          <p className="text-xs text-[#7d92b0] font-medium mb-2">推奨する対策</p>
           <ul className="space-y-1.5">
             {investments.slice(0, 3).map((inv, i) => (
-              <li key={i} className="flex items-start gap-2 text-xs text-falcon-text">
-                <ChevronRight className="w-3.5 h-3.5 text-falcon-red shrink-0 mt-0.5" />
+              <li key={i} className="flex items-start gap-2 text-xs text-[#e2e8f4]">
+                <ChevronRight className="w-3.5 h-3.5 text-[#e8002d] shrink-0 mt-0.5" />
                 <span>{inv.item}</span>
               </li>
             ))}
@@ -694,47 +711,47 @@ export default function ExecutiveDashboardPage() {
       <div className="grid grid-cols-1 xl:grid-cols-5 gap-4">
 
         {/* Monthly Trend Chart — wider */}
-        <div className="xl:col-span-2 bg-falcon-surface border border-falcon-border rounded-xl p-5">
+        <div className="xl:col-span-2 bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
           <div className="flex items-center gap-2 mb-4">
-            <TrendingDown className="w-4 h-4 text-falcon-green" />
+            <TrendingDown className="w-4 h-4 text-[#00c853]" />
             <h2 className="text-sm font-semibold text-white">インシデント・アラートの推移 (過去6ヶ月)</h2>
           </div>
-          <p className="text-xs text-falcon-muted mb-3">月別の脅威件数の変化を示しています。数値が減少するほど安全な状態です。</p>
+          <p className="text-xs text-[#7d92b0] mb-3">月別の脅威件数の変化を示しています。数値が減少するほど安全な状態です。</p>
           <MonthlyTrendChart trends={monthlyTrends} />
         </div>
 
         {/* Compliance Table */}
-        <div className="xl:col-span-2 bg-falcon-surface border border-falcon-border rounded-xl p-5">
+        <div className="xl:col-span-2 bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
           <div className="flex items-center gap-2 mb-4">
-            <CheckCircle className="w-4 h-4 text-falcon-green" />
+            <CheckCircle className="w-4 h-4 text-[#00c853]" />
             <h2 className="text-sm font-semibold text-white">コンプライアンス状況</h2>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-xs">
               <thead>
-                <tr className="border-b border-falcon-border">
+                <tr className="border-b border-[#1e2d42]">
                   {['フレームワーク', 'スコア', '状態', '前回評価', '次回予定'].map(h => (
-                    <th key={h} className="text-left py-2 px-2 text-falcon-muted font-medium whitespace-nowrap">{h}</th>
+                    <th key={h} className="text-left py-2 px-2 text-[#7d92b0] font-medium whitespace-nowrap">{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {compliance.frameworks.map(f => (
-                  <tr key={f.name} className="border-b border-falcon-border/40 hover:bg-falcon-border/20">
-                    <td className="py-2.5 px-2 text-falcon-text font-medium whitespace-nowrap">{f.name}</td>
+                  <tr key={f.name} className="border-b border-[#1e2d42]/40 hover:bg-[#1e2d42]/20">
+                    <td className="py-2.5 px-2 text-[#e2e8f4] font-medium whitespace-nowrap">{f.name}</td>
                     <td className="py-2.5 px-2">
                       <div className="flex items-center gap-2">
-                        <div className="w-16 h-1.5 bg-falcon-border rounded-full overflow-hidden">
+                        <div className="w-16 h-1.5 bg-[#1e2d42] rounded-full overflow-hidden">
                           <div className="h-full rounded-full" style={{ width: `${f.score}%`, background: scoreBar(f.score) }} />
                         </div>
-                        <span className="font-semibold text-falcon-text">{f.score}%</span>
+                        <span className="font-semibold text-[#e2e8f4]">{f.score}%</span>
                       </div>
                     </td>
                     <td className="py-2.5 px-2">
                       <span className={`px-2 py-0.5 rounded-sm border text-[10px] font-medium ${scoreStatusColor(f.score)}`}>{f.status}</span>
                     </td>
-                    <td className="py-2.5 px-2 text-falcon-muted whitespace-nowrap">{f.last_assessment}</td>
-                    <td className="py-2.5 px-2 text-falcon-muted whitespace-nowrap">{f.next_due}</td>
+                    <td className="py-2.5 px-2 text-[#7d92b0] whitespace-nowrap">{f.last_assessment}</td>
+                    <td className="py-2.5 px-2 text-[#7d92b0] whitespace-nowrap">{f.next_due}</td>
                   </tr>
                 ))}
               </tbody>
@@ -743,12 +760,12 @@ export default function ExecutiveDashboardPage() {
         </div>
 
         {/* Security Investments */}
-        <div className="xl:col-span-1 bg-falcon-surface border border-falcon-border rounded-xl p-5">
+        <div className="xl:col-span-1 bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
           <div className="flex items-center gap-2 mb-4">
-            <Target className="w-4 h-4 text-falcon-red" />
+            <Target className="w-4 h-4 text-[#e8002d]" />
             <h2 className="text-sm font-semibold text-white">投資優先度</h2>
           </div>
-          <p className="text-[10px] text-falcon-muted mb-3">リスク低減効果の高い順</p>
+          <p className="text-[10px] text-[#7d92b0] mb-3">リスク低減効果の高い順</p>
           <div className="space-y-3">
             {investments.map((inv, i) => (
               <div key={i} className="flex items-start gap-2">
@@ -757,14 +774,14 @@ export default function ExecutiveDashboardPage() {
                   {inv.priority}
                 </span>
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs text-falcon-text leading-snug">{inv.item}</p>
+                  <p className="text-xs text-[#e2e8f4] leading-snug">{inv.item}</p>
                   <div className="flex items-center gap-1 mt-1">
-                    <div className="flex-1 h-1 bg-falcon-border rounded-full overflow-hidden">
-                      <div className="h-full bg-falcon-green rounded-full" style={{ width: `${inv.risk_reduction}%` }} />
+                    <div className="flex-1 h-1 bg-[#1e2d42] rounded-full overflow-hidden">
+                      <div className="h-full bg-[#00c853] rounded-full" style={{ width: `${inv.risk_reduction}%` }} />
                     </div>
-                    <span className="text-[10px] text-falcon-green font-semibold whitespace-nowrap">-{inv.risk_reduction}%</span>
+                    <span className="text-[10px] text-[#00c853] font-semibold whitespace-nowrap">-{inv.risk_reduction}%</span>
                   </div>
-                  <p className="text-[9px] text-falcon-subtle">リスク低減効果</p>
+                  <p className="text-[9px] text-[#3d5068]">リスク低減効果</p>
                 </div>
               </div>
             ))}

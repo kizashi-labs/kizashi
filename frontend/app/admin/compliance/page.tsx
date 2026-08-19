@@ -9,6 +9,9 @@ import {
   Download, RefreshCw, Filter, Save, BarChart2,
 } from 'lucide-react'
 
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+import { PageSaveFailed } from '@/components/PageSaveFailed'
+
 // ── Types ──────────────────────────────────────────────────────────
 
 type ControlStatus = 'implemented' | 'partial' | 'not_implemented' | 'not_applicable'
@@ -94,23 +97,26 @@ const ISO_DOMAINS = [
 
 // ── Mock defaults ──────────────────────────────────────────────────
 
+// 未評価の管理策の既定値。以前はここが 'implemented' で埋まっていて、
+// 一度も評価していないテナントの NIST CSF が 20/23 実装済みに見えていました。
+// 評価していない管理策は、実装済みではありません。
 const DEFAULT_NIST: Record<string, ControlStatus> = {
-  'ID.AM': 'implemented', 'ID.BE': 'partial',    'ID.GV': 'implemented',
-  'ID.RA': 'implemented', 'ID.RM': 'partial',    'ID.SC': 'partial',
-  'PR.AC': 'implemented', 'PR.AT': 'partial',    'PR.DS': 'implemented',
-  'PR.IP': 'implemented', 'PR.MA': 'partial',    'PR.PT': 'implemented',
-  'DE.AE': 'implemented', 'DE.CM': 'implemented','DE.DP': 'implemented',
-  'RS.RP': 'implemented', 'RS.CO': 'partial',    'RS.AN': 'implemented',
-  'RS.MI': 'implemented', 'RS.IM': 'partial',
-  'RC.RP': 'partial',     'RC.IM': 'not_implemented', 'RC.CO': 'partial',
+  'ID.AM': 'not_implemented', 'ID.BE': 'not_implemented',    'ID.GV': 'not_implemented',
+  'ID.RA': 'not_implemented', 'ID.RM': 'not_implemented',    'ID.SC': 'not_implemented',
+  'PR.AC': 'not_implemented', 'PR.AT': 'not_implemented',    'PR.DS': 'not_implemented',
+  'PR.IP': 'not_implemented', 'PR.MA': 'not_implemented',    'PR.PT': 'not_implemented',
+  'DE.AE': 'not_implemented', 'DE.CM': 'not_implemented','DE.DP': 'not_implemented',
+  'RS.RP': 'not_implemented', 'RS.CO': 'not_implemented',    'RS.AN': 'not_implemented',
+  'RS.MI': 'not_implemented', 'RS.IM': 'not_implemented',
+  'RC.RP': 'not_implemented',     'RC.IM': 'not_implemented', 'RC.CO': 'not_implemented',
 }
 
 const DEFAULT_ISO: Record<string, ControlStatus> = {
-  'A.5': 'implemented',  'A.6': 'implemented', 'A.7': 'partial',
-  'A.8': 'implemented',  'A.9': 'implemented', 'A.10': 'implemented',
-  'A.11': 'partial',     'A.12': 'implemented','A.13': 'implemented',
-  'A.14': 'partial',     'A.15': 'partial',    'A.16': 'implemented',
-  'A.17': 'partial',     'A.18': 'partial',
+  'A.5': 'not_implemented',  'A.6': 'not_implemented', 'A.7': 'not_implemented',
+  'A.8': 'not_implemented',  'A.9': 'not_implemented', 'A.10': 'not_implemented',
+  'A.11': 'not_implemented',     'A.12': 'not_implemented','A.13': 'not_implemented',
+  'A.14': 'not_implemented',     'A.15': 'not_implemented',    'A.16': 'not_implemented',
+  'A.17': 'not_implemented',     'A.18': 'not_implemented',
 }
 
 // ── Status config ──────────────────────────────────────────────────
@@ -187,8 +193,7 @@ function StatusSelect({
     <select
       value={value}
       onChange={e => onChange(e.target.value as ControlStatus)}
-      className="text-xs bg-falcon-bg border border-falcon-border rounded-lg px-2 py-1
-                 text-[#8899aa] focus:outline-hidden focus:border-blue-500"
+      className="text-xs bg-[#080c14] border border-[#1e2d42] rounded-lg px-2 py-1 text-[#8899aa] focus:outline-hidden focus:border-blue-500"
     >
       <option value="implemented">実装済み</option>
       <option value="partial">部分的</option>
@@ -226,10 +231,10 @@ function NistPanel({
         if (filterStatus !== 'all' && cats.length === 0) return null
 
         return (
-          <div key={fn.id} className="bg-falcon-surface rounded-xl border border-falcon-border overflow-hidden">
+          <div key={fn.id} className="bg-[#0d1220] rounded-xl border border-[#1e2d42] overflow-hidden">
             <button
               onClick={() => toggle(fn.id)}
-              className="w-full flex items-center gap-4 px-5 py-4 hover:bg-falcon-card transition-colors text-left"
+              className="w-full flex items-center gap-4 px-5 py-4 hover:bg-[#111827] transition-colors text-left"
             >
               <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0"
                 style={{ background: `${fn.color}22`, border: `1px solid ${fn.color}44` }}>
@@ -241,7 +246,7 @@ function NistPanel({
                   <span className="text-xs text-[#5a6a7a]">({fn.nameJa})</span>
                 </div>
                 <div className="flex items-center gap-2 mt-1.5">
-                  <div className="w-36 h-1.5 bg-falcon-border rounded-full overflow-hidden">
+                  <div className="w-36 h-1.5 bg-[#1e2d42] rounded-full overflow-hidden">
                     <div className="h-full rounded-full transition-all" style={{ width: `${score}%`, background: fn.color }} />
                   </div>
                   <span className="text-xs font-bold" style={{ color: fn.color }}>{score}%</span>
@@ -255,12 +260,12 @@ function NistPanel({
             </button>
 
             {isOpen && (
-              <div className="border-t border-falcon-border">
+              <div className="border-t border-[#1e2d42]">
                 {cats.map(cat => {
                   const st = statuses[cat.id] ?? 'not_implemented'
                   return (
                     <div key={cat.id}
-                      className="flex items-center justify-between px-5 py-3 border-b border-falcon-border/60 last:border-0 hover:bg-falcon-bg transition-colors gap-4">
+                      className="flex items-center justify-between px-5 py-3 border-b border-[#1e2d42]/60 last:border-0 hover:bg-[#080c14] transition-colors gap-4">
                       <div className="flex items-center gap-3 min-w-0 flex-1">
                         <span className="text-xs font-mono text-[#5a6a7a] w-16 shrink-0">{cat.id}</span>
                         <span className="text-sm text-[#c9d6e8] truncate">{cat.name}</span>
@@ -308,10 +313,10 @@ function IsoPanel({
   }
 
   return (
-    <div className="bg-falcon-surface rounded-xl border border-falcon-border overflow-hidden">
+    <div className="bg-[#0d1220] rounded-xl border border-[#1e2d42] overflow-hidden">
       <table className="w-full text-sm">
         <thead>
-          <tr className="border-b border-falcon-border bg-falcon-bg/40">
+          <tr className="border-b border-[#1e2d42] bg-[#080c14]/40">
             <th className="text-left px-5 py-3 text-xs font-medium text-[#5a6a7a] w-20">ID</th>
             <th className="text-left px-5 py-3 text-xs font-medium text-[#5a6a7a]">コントロール領域</th>
             <th className="text-right px-5 py-3 text-xs font-medium text-[#5a6a7a] w-28">コントロール数</th>
@@ -323,9 +328,9 @@ function IsoPanel({
             const st = statuses[d.id] ?? 'not_implemented'
             return (
               <tr key={d.id}
-                className="border-b border-falcon-border/50 last:border-0 hover:bg-falcon-card transition-colors">
+                className="border-b border-[#1e2d42]/50 last:border-0 hover:bg-[#111827] transition-colors">
                 <td className="px-5 py-3">
-                  <span className="font-mono text-xs text-[#5a6a7a] bg-falcon-border/60 px-2 py-0.5 rounded-sm">{d.id}</span>
+                  <span className="font-mono text-xs text-[#5a6a7a] bg-[#1e2d42]/60 px-2 py-0.5 rounded-sm">{d.id}</span>
                 </td>
                 <td className="px-5 py-3 text-[#c9d6e8]">{d.name}</td>
                 <td className="px-5 py-3 text-right text-xs text-[#5a6a7a]">{d.controls}件</td>
@@ -358,12 +363,13 @@ export default function AdminCompliancePage() {
   const FALLBACK: ComplianceStatusData = {
     nist_csf: { ...DEFAULT_NIST },
     iso_27001: { ...DEFAULT_ISO },
-    last_assessed: new Date().toISOString(),
+    // 取得できていないので、評価した日時はありません。
+    last_assessed: '',
   }
 
   const { data, isLoading, refetch } = useQuery<ComplianceStatusData>({
     queryKey: ['admin-compliance-status'],
-    queryFn: () => apiFetch<ComplianceStatusData>('/api/v1/admin/compliance/status').catch(() => FALLBACK),
+    queryFn: () => apiFetch<ComplianceStatusData>('/api/v1/admin/compliance/status'),
     staleTime: 300_000,
   })
 
@@ -373,7 +379,7 @@ export default function AdminCompliancePage() {
 
   const saveMutation = useMutation({
     mutationFn: (body: ComplianceStatusData) =>
-      apiFetch<ComplianceStatusData>('/api/v1/admin/compliance/status', { method: 'PUT', body: JSON.stringify(body) }).catch(() => body),
+      apiFetch<ComplianceStatusData>('/api/v1/admin/compliance/status', { method: 'PUT', body: JSON.stringify(body) }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['admin-compliance-status'] })
       setSaved(true)
@@ -433,9 +439,9 @@ export default function AdminCompliancePage() {
   if (isLoading) {
     return (
       <div className="p-6 space-y-4 animate-pulse">
-        <div className="h-8 bg-falcon-surface rounded-sm w-64" />
+        <div className="h-8 bg-[#0d1220] rounded-sm w-64" />
         <div className="grid grid-cols-4 gap-4">
-          {[1, 2, 3, 4].map(i => <div key={i} className="h-32 bg-falcon-surface rounded-xl border border-falcon-border" />)}
+          {[1, 2, 3, 4].map(i => <div key={i} className="h-32 bg-[#0d1220] rounded-xl border border-[#1e2d42]" />)}
         </div>
       </div>
     )
@@ -443,6 +449,8 @@ export default function AdminCompliancePage() {
 
   return (
     <div className="p-6 space-y-6">
+      <PageDataUnavailable />
+      <PageSaveFailed />
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
@@ -460,16 +468,14 @@ export default function AdminCompliancePage() {
         <div className="flex items-center gap-2 flex-wrap">
           <button
             onClick={() => refetch()}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-[#8899aa]
-                       bg-falcon-card border border-falcon-border rounded-lg hover:bg-falcon-active transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-[#8899aa] bg-[#111827] border border-[#1e2d42] rounded-lg hover:bg-[#1d2f4a] transition-colors"
           >
             <RefreshCw className="w-4 h-4" />
             更新
           </button>
           <button
             onClick={exportCSV}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-[#8899aa]
-                       bg-falcon-card border border-falcon-border rounded-lg hover:bg-falcon-active transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-[#8899aa] bg-[#111827] border border-[#1e2d42] rounded-lg hover:bg-[#1d2f4a] transition-colors"
           >
             <Download className="w-4 h-4" />
             CSV
@@ -478,15 +484,14 @@ export default function AdminCompliancePage() {
             <>
               <button
                 onClick={() => { setLocalData(data ?? null); setEditMode(false) }}
-                className="px-3 py-1.5 text-sm text-[#8899aa] bg-falcon-card border border-falcon-border rounded-lg hover:bg-falcon-active transition-colors"
+                className="px-3 py-1.5 text-sm text-[#8899aa] bg-[#111827] border border-[#1e2d42] rounded-lg hover:bg-[#1d2f4a] transition-colors"
               >
                 キャンセル
               </button>
               <button
                 onClick={() => saveMutation.mutate({ ...current, last_assessed: new Date().toISOString() })}
                 disabled={saveMutation.isPending}
-                className="flex items-center gap-1.5 px-4 py-1.5 text-sm font-medium text-white
-                           bg-blue-600 hover:bg-blue-500 rounded-lg transition-colors disabled:opacity-50"
+                className="flex items-center gap-1.5 px-4 py-1.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-500 rounded-lg transition-colors disabled:opacity-50"
               >
                 <Save className="w-4 h-4" />
                 {saveMutation.isPending ? '保存中…' : '保存'}
@@ -495,8 +500,7 @@ export default function AdminCompliancePage() {
           ) : (
             <button
               onClick={() => setEditMode(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-[#8899aa]
-                         bg-falcon-card border border-falcon-border rounded-lg hover:bg-falcon-active transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-[#8899aa] bg-[#111827] border border-[#1e2d42] rounded-lg hover:bg-[#1d2f4a] transition-colors"
             >
               編集
             </button>
@@ -513,15 +517,15 @@ export default function AdminCompliancePage() {
 
       {/* Score gauges */}
       <div className="grid grid-cols-4 gap-4">
-        <div className="bg-falcon-surface rounded-xl border border-falcon-border p-5 flex flex-col items-center">
+        <div className="bg-[#0d1220] rounded-xl border border-[#1e2d42] p-5 flex flex-col items-center">
           <ScoreGauge score={nistScore} label="NIST CSF" color="#3b82f6" />
         </div>
-        <div className="bg-falcon-surface rounded-xl border border-falcon-border p-5 flex flex-col items-center">
+        <div className="bg-[#0d1220] rounded-xl border border-[#1e2d42] p-5 flex flex-col items-center">
           <ScoreGauge score={isoScore} label="ISO 27001" color="#10b981" />
         </div>
 
         {/* NIST function bars */}
-        <div className="col-span-2 bg-falcon-surface rounded-xl border border-falcon-border p-5">
+        <div className="col-span-2 bg-[#0d1220] rounded-xl border border-[#1e2d42] p-5">
           <div className="flex items-center gap-2 mb-4">
             <BarChart2 className="w-4 h-4 text-[#5a6a7a]" />
             <p className="text-xs font-medium text-[#8899aa] uppercase tracking-wider">NIST CSF 機能別スコア</p>
@@ -532,7 +536,7 @@ export default function AdminCompliancePage() {
               return (
                 <div key={fn.id} className="flex items-center gap-3">
                   <span className="text-xs font-mono text-[#5a6a7a] w-6">{fn.id}</span>
-                  <div className="flex-1 h-2 bg-falcon-border rounded-full overflow-hidden">
+                  <div className="flex-1 h-2 bg-[#1e2d42] rounded-full overflow-hidden">
                     <div className="h-full rounded-full transition-all"
                       style={{ width: `${score}%`, background: fn.color }} />
                   </div>
@@ -553,12 +557,12 @@ export default function AdminCompliancePage() {
               key={st}
               onClick={() => setFilter(filterStatus === st ? 'all' : st)}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium transition-colors ${
-                filterStatus === st ? cfg.bg + ' ' + cfg.iconColor : 'bg-falcon-card border-falcon-border text-[#5a6a7a] hover:text-white'
+                filterStatus === st ? cfg.bg + ' ' + cfg.iconColor : 'bg-[#111827] border-[#1e2d42] text-[#5a6a7a] hover:text-white'
               }`}
             >
               <Icon className="w-3.5 h-3.5" />
               {cfg.label}
-              <span className="ml-1 px-1.5 py-0.5 rounded-full bg-falcon-border text-[#8899aa]">
+              <span className="ml-1 px-1.5 py-0.5 rounded-full bg-[#1e2d42] text-[#8899aa]">
                 {counts[st]}
               </span>
             </button>
@@ -576,7 +580,7 @@ export default function AdminCompliancePage() {
       </div>
 
       {/* Framework tabs */}
-      <div className="flex items-center gap-1 bg-falcon-surface rounded-xl border border-falcon-border p-1 w-fit">
+      <div className="flex items-center gap-1 bg-[#0d1220] rounded-xl border border-[#1e2d42] p-1 w-fit">
         {(['nist', 'iso'] as FrameworkView[]).map(f => (
           <button
             key={f}

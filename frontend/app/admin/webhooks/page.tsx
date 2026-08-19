@@ -11,6 +11,9 @@ import {
 } from 'lucide-react'
 
 
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+import { usePersist, SaveFailed, saveErrorOf } from '@/lib/persist'
+
 // ── Types ──────────────────────────────────────────────────────────────────────
 
 interface WebhookDelivery {
@@ -103,6 +106,7 @@ function AddWebhookModal({ onClose, onSuccess }: AddWebhookModalProps) {
     events: [] as string[],
   })
   const [saving, setSaving] = useState(false)
+  const { persist, saveError } = usePersist()
   const [error, setError] = useState('')
 
   function toggleEvent(ev: string) {
@@ -120,17 +124,13 @@ function AddWebhookModal({ onClose, onSuccess }: AddWebhookModalProps) {
     }
     setSaving(true)
     setError('')
-    try {
-      await apiFetch('/api/v1/admin/webhooks', { method: 'POST', body: JSON.stringify(form) })
-    } catch {
-      // ignore
-    }
+    const ok = await persist('Webhook', '/api/v1/admin/webhooks', { method: 'POST', body: JSON.stringify(form) })
     setSaving(false)
-    onSuccess()
+    if (ok) onSuccess()
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
       <div className="bg-zinc-900 border border-zinc-700 rounded-xl shadow-2xl w-full max-w-lg mx-4">
         <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-700">
           <h2 className="text-lg font-semibold text-zinc-100">Webhook追加</h2>
@@ -138,6 +138,7 @@ function AddWebhookModal({ onClose, onSuccess }: AddWebhookModalProps) {
         </div>
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           {error && <div className="text-red-400 text-sm bg-red-900/20 border border-red-700/40 rounded-sm px-3 py-2">{error}</div>}
+          <SaveFailed error={saveError} />
 
           <div className="grid grid-cols-2 gap-4">
             <div className="col-span-2">
@@ -326,33 +327,36 @@ export default function WebhooksPage() {
 
   const { data: webhooks = [] } = useQuery<Webhook[]>({
     queryKey: ['admin-webhooks'],
-    queryFn: async () => {
-      try { return await apiFetchList<Webhook>('/api/v1/admin/webhooks') } catch { return [] }
-    },
+    queryFn: () => apiFetchList<Webhook>('/api/v1/admin/webhooks'),
   })
 
   const EMPTY_STATS: WebhookStats = { active: 0, deliveries_24h: 0, success_rate: 0, failed_24h: 0 }
   const { data: stats = EMPTY_STATS } = useQuery<WebhookStats>({
     queryKey: ['admin-webhooks-stats'],
-    queryFn: async () => {
-      try { return await apiFetch('/api/v1/admin/webhooks/stats') } catch { return EMPTY_STATS }
-    },
+    queryFn: () => apiFetch('/api/v1/admin/webhooks/stats'),
   })
 
   const toggleMut = useMutation({
     mutationFn: ({ id, enabled }: { id: string; enabled: boolean }) =>
-      apiFetch(`/api/v1/admin/webhooks/${id}`, { method: 'PUT', body: JSON.stringify({ enabled }) }).catch(() => {}),
+      // .catch(() => {}) が失敗を成功に変えていました。Webhook は外部への
+      // 通知経路なので、止めたつもりが止まっていない／動かしたつもりが
+      // 動いていない、どちらも気づく手がかりがありません。
+      apiFetch(`/api/v1/admin/webhooks/${id}`, { method: 'PUT', body: JSON.stringify({ enabled }) }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-webhooks'] }),
   })
 
   const deleteMut = useMutation({
-    mutationFn: (id: string) => apiFetch(`/api/v1/admin/webhooks/${id}`, { method: 'DELETE' }).catch(() => {}),
+    mutationFn: (id: string) => apiFetch(`/api/v1/admin/webhooks/${id}`, { method: 'DELETE' }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-webhooks'] }),
+  })
+
+  const testMut = useMutation({
+    mutationFn: (id: string) => apiFetch(`/api/v1/admin/webhooks/${id}/test`, { method: 'POST' }),
   })
 
   async function handleTest(id: string) {
     setTestingId(id)
-    try { await apiFetch(`/api/v1/admin/webhooks/${id}/test`, { method: 'POST' }) } catch { /* ignore */ }
+    try { await testMut.mutateAsync(id) } catch { /* testMut.error に出ます */ }
     setTestingId(null)
   }
 
@@ -371,6 +375,8 @@ export default function WebhooksPage() {
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100 p-6">
+      <PageDataUnavailable />
+      <SaveFailed error={saveErrorOf('Webhook', toggleMut, deleteMut, testMut)} />
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">

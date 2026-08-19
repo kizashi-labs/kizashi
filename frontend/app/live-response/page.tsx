@@ -13,6 +13,8 @@ import {
   CheckCircle2, XCircle, ChevronUp, ChevronDown,
   ArrowRight, Activity, User, Hash, History, ChevronLeft,
 } from 'lucide-react'
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+
 import { formatDistanceToNow, parseISO } from 'date-fns'
 import { ja } from 'date-fns/locale'
 
@@ -110,7 +112,7 @@ function statusDot(status: Agent['status']) {
   switch (status) {
     case 'online':   return 'bg-green-400'
     case 'isolated': return 'bg-yellow-400'
-    case 'offline':  return 'bg-falcon-subtle'
+    case 'offline':  return 'bg-[#3d5068]'
     default:         return 'bg-red-400'
   }
 }
@@ -345,22 +347,22 @@ function TerminalPanel({
 
   const lineColor = {
     input:  'text-[#22c55e]',
-    output: 'text-falcon-text',
+    output: 'text-[#e2e8f4]',
     error:  'text-red-400',
-    system: 'text-falcon-muted',
+    system: 'text-[#7d92b0]',
   }
 
   return (
-    <div className="flex flex-col h-full bg-black border border-falcon-border rounded-xl overflow-hidden font-mono">
+    <div className="flex flex-col h-full bg-black border border-[#1e2d42] rounded-xl overflow-hidden font-mono">
       {/* Terminal Header */}
-      <div className="flex items-center justify-between px-4 py-2 bg-falcon-surface border-b border-falcon-border">
+      <div className="flex items-center justify-between px-4 py-2 bg-[#0d1220] border-b border-[#1e2d42]">
         <div className="flex items-center gap-3">
           <div className="flex gap-1.5">
             <div className="w-3 h-3 rounded-full bg-red-500" />
             <div className="w-3 h-3 rounded-full bg-yellow-500" />
             <div className="w-3 h-3 rounded-full bg-green-500" />
           </div>
-          <span className="text-xs text-falcon-muted">
+          <span className="text-xs text-[#7d92b0]">
             live-response@{hostname}
           </span>
           {isRunning && (
@@ -371,13 +373,13 @@ function TerminalPanel({
           )}
         </div>
         <div className="flex items-center gap-1">
-          <button onClick={copyOutput} className="p-1 text-falcon-subtle hover:text-falcon-muted transition-colors" title="出力をコピー">
+          <button onClick={copyOutput} className="p-1 text-[#3d5068] hover:text-[#7d92b0] transition-colors" title="出力をコピー">
             <Copy className="w-3.5 h-3.5" />
           </button>
-          <button onClick={clearTerminal} className="p-1 text-falcon-subtle hover:text-falcon-muted transition-colors" title="クリア">
+          <button onClick={clearTerminal} className="p-1 text-[#3d5068] hover:text-[#7d92b0] transition-colors" title="クリア">
             <Trash2 className="w-3.5 h-3.5" />
           </button>
-          <button onClick={onClose} className="p-1 text-falcon-subtle hover:text-red-400 transition-colors ml-1" title="セッション終了">
+          <button onClick={onClose} className="p-1 text-[#3d5068] hover:text-red-400 transition-colors ml-1" title="セッション終了">
             <Square className="w-3.5 h-3.5" />
           </button>
         </div>
@@ -411,12 +413,12 @@ function TerminalPanel({
 
       {/* Tab completion hints */}
       {completionHints.length > 0 && (
-        <div className="px-4 py-1 bg-falcon-surface border-t border-falcon-border flex flex-wrap gap-2">
+        <div className="px-4 py-1 bg-[#0d1220] border-t border-[#1e2d42] flex flex-wrap gap-2">
           {completionHints.map(hint => (
             <button
               key={hint}
               onClick={() => { setInput(hint); setCompletionHints([]); inputRef.current?.focus() }}
-              className="text-xs text-falcon-muted hover:text-white px-2 py-0.5 rounded-sm bg-falcon-border hover:bg-[#2d3d52] transition-colors"
+              className="text-xs text-[#7d92b0] hover:text-white px-2 py-0.5 rounded-sm bg-[#1e2d42] hover:bg-[#2d3d52] transition-colors"
             >
               {hint}
             </button>
@@ -425,7 +427,7 @@ function TerminalPanel({
       )}
 
       {/* Input row */}
-      <div className="flex items-center gap-2 px-4 py-2 border-t border-falcon-border bg-black">
+      <div className="flex items-center gap-2 px-4 py-2 border-t border-[#1e2d42] bg-black">
         <span className="text-[#22c55e] text-xs shrink-0">[{hostname}]$</span>
         <input
           ref={inputRef}
@@ -433,7 +435,7 @@ function TerminalPanel({
           onChange={e => handleInputChange(e.target.value)}
           onKeyDown={handleKeyDown}
           disabled={isRunning || !canWrite}
-          className="flex-1 bg-transparent text-[#22c55e] text-xs outline-hidden caret-[#22c55e] placeholder-falcon-subtle"
+          className="flex-1 bg-transparent text-[#22c55e] text-xs outline-hidden caret-[#22c55e] placeholder-[#3d5068]"
           placeholder={canWrite ? "コマンドを入力 (Tab: 補完, ↑↓: 履歴)" : "コマンド実行には書き込み権限が必要です"}
           autoFocus
           spellCheck={false}
@@ -449,39 +451,39 @@ function TerminalPanel({
 function SessionCard({ session, onResume, onClose }: { session: LiveSession; onResume: () => void; onClose: () => void }) {
   const duration = formatDistanceToNow(session.startedAt, { locale: ja })
   return (
-    <div className="bg-falcon-surface border border-falcon-border rounded-xl p-4 hover:border-green-700/40 transition-colors">
+    <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-4 hover:border-green-700/40 transition-colors">
       <div className="flex items-start justify-between mb-3">
         <div>
           <p className="text-white text-sm font-semibold">{session.agentHostname}</p>
           <div className="flex items-center gap-2 mt-1">
             <span className={`text-xs px-1.5 py-0.5 rounded-sm border ${osBadge(session.agentOs)}`}>{session.agentOs}</span>
             <span className={`flex items-center gap-1 text-xs ${
-              session.status === 'active' ? 'text-green-400' : session.status === 'idle' ? 'text-yellow-400' : 'text-falcon-subtle'
+              session.status === 'active' ? 'text-green-400' : session.status === 'idle' ? 'text-yellow-400' : 'text-[#3d5068]'
             }`}>
               <span className={`w-1.5 h-1.5 rounded-full ${
-                session.status === 'active' ? 'bg-green-400 animate-pulse' : session.status === 'idle' ? 'bg-yellow-400' : 'bg-falcon-subtle'
+                session.status === 'active' ? 'bg-green-400 animate-pulse' : session.status === 'idle' ? 'bg-yellow-400' : 'bg-[#3d5068]'
               }`} />
               {session.status === 'active' ? 'アクティブ' : session.status === 'idle' ? 'アイドル' : 'クローズ'}
             </span>
           </div>
         </div>
-        <button onClick={onClose} className="text-falcon-subtle hover:text-red-400 transition-colors p-1">
+        <button onClick={onClose} className="text-[#3d5068] hover:text-red-400 transition-colors p-1">
           <XCircle className="w-4 h-4" />
         </button>
       </div>
       <div className="grid grid-cols-2 gap-2 mb-3">
         <div className="bg-[#070d19] rounded-lg p-2">
-          <p className="text-[10px] text-falcon-subtle mb-0.5">継続時間</p>
-          <p className="text-xs text-falcon-muted flex items-center gap-1"><Clock className="w-3 h-3" />{duration}</p>
+          <p className="text-[10px] text-[#3d5068] mb-0.5">継続時間</p>
+          <p className="text-xs text-[#7d92b0] flex items-center gap-1"><Clock className="w-3 h-3" />{duration}</p>
         </div>
         <div className="bg-[#070d19] rounded-lg p-2">
-          <p className="text-[10px] text-falcon-subtle mb-0.5">コマンド数</p>
-          <p className="text-xs text-falcon-muted flex items-center gap-1"><Hash className="w-3 h-3" />{session.commandCount}</p>
+          <p className="text-[10px] text-[#3d5068] mb-0.5">コマンド数</p>
+          <p className="text-xs text-[#7d92b0] flex items-center gap-1"><Hash className="w-3 h-3" />{session.commandCount}</p>
         </div>
       </div>
       {session.lastCommand && (
         <div className="bg-[#070d19] rounded-lg p-2 mb-3">
-          <p className="text-[10px] text-falcon-subtle mb-0.5">最後のコマンド</p>
+          <p className="text-[10px] text-[#3d5068] mb-0.5">最後のコマンド</p>
           <code className="text-xs text-[#22c55e]">{session.lastCommand}</code>
         </div>
       )}
@@ -570,6 +572,7 @@ export default function LiveResponsePage() {
 
   return (
     <div className="p-6 space-y-6 min-h-screen bg-[#070d19]">
+      <PageDataUnavailable />
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -640,7 +643,7 @@ export default function LiveResponsePage() {
                     value={search}
                     onChange={e => setSearch(e.target.value)}
                     placeholder="ホスト名・IPで検索..."
-                    className="w-full pl-8 pr-3 py-2 bg-falcon-surface border border-falcon-border rounded-lg text-white text-xs placeholder-[#5a6a7a] focus:outline-hidden focus:border-green-500/50"
+                    className="w-full pl-8 pr-3 py-2 bg-[#0d1220] border border-[#1e2d42] rounded-lg text-white text-xs placeholder-[#5a6a7a] focus:outline-hidden focus:border-green-500/50"
                   />
                 </div>
                 <button
@@ -648,7 +651,7 @@ export default function LiveResponsePage() {
                   className={`p-2 rounded-lg border text-xs transition-colors ${
                     onlineOnly
                       ? 'bg-green-900/40 border-green-700/50 text-green-300'
-                      : 'bg-falcon-surface border-falcon-border text-[#8899aa] hover:text-white'
+                      : 'bg-[#0d1220] border-[#1e2d42] text-[#8899aa] hover:text-white'
                   }`}
                 >
                   {onlineOnly ? <Wifi className="w-3.5 h-3.5" /> : <WifiOff className="w-3.5 h-3.5" />}
@@ -672,12 +675,12 @@ export default function LiveResponsePage() {
                     return (
                       <div
                         key={agent.id}
-                        className={`bg-falcon-surface border rounded-xl px-3 py-2.5 flex items-center gap-3 transition-all cursor-pointer ${
+                        className={`bg-[#0d1220] border rounded-xl px-3 py-2.5 flex items-center gap-3 transition-all cursor-pointer ${
                           isSelected
                             ? 'border-green-500/60 bg-green-900/10'
                             : canConnect
-                            ? 'border-falcon-border hover:border-green-700/40 hover:bg-[#0f1c2e]'
-                            : 'border-falcon-border opacity-50 cursor-not-allowed'
+                            ? 'border-[#1e2d42] hover:border-green-700/40 hover:bg-[#0f1c2e]'
+                            : 'border-[#1e2d42] opacity-50 cursor-not-allowed'
                         }`}
                         onClick={() => canConnect && startSession(agent)}
                       >
@@ -696,7 +699,7 @@ export default function LiveResponsePage() {
                           </div>
                         </div>
                         {canConnect && (
-                          <Terminal className={`w-3.5 h-3.5 shrink-0 ${isSelected ? 'text-green-400' : 'text-falcon-subtle'}`} />
+                          <Terminal className={`w-3.5 h-3.5 shrink-0 ${isSelected ? 'text-green-400' : 'text-[#3d5068]'}`} />
                         )}
                       </div>
                     )
@@ -754,7 +757,7 @@ export default function LiveResponsePage() {
                   {commandHistory.slice().reverse().map(entry => (
                     <div
                       key={entry.id}
-                      className="bg-falcon-surface border border-falcon-border rounded-lg p-3 space-y-1.5"
+                      className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-3 space-y-1.5"
                     >
                       <div className="flex items-center justify-between gap-2">
                         <code className={`text-xs font-mono flex-1 truncate ${entry.isError ? 'text-red-400' : 'text-[#22c55e]'}`}>
@@ -762,13 +765,13 @@ export default function LiveResponsePage() {
                         </code>
                         <button
                           onClick={() => navigator.clipboard.writeText(entry.command)}
-                          className="text-falcon-subtle hover:text-falcon-muted transition-colors shrink-0"
+                          className="text-[#3d5068] hover:text-[#7d92b0] transition-colors shrink-0"
                           title="コマンドをコピー"
                         >
                           <Copy className="w-3 h-3" />
                         </button>
                       </div>
-                      <div className="flex items-center gap-2 text-[10px] text-falcon-subtle">
+                      <div className="flex items-center gap-2 text-[10px] text-[#3d5068]">
                         <span className="font-mono">{entry.hostname}</span>
                         <span>·</span>
                         <span>{entry.timestamp.toLocaleTimeString('ja-JP')}</span>
@@ -789,8 +792,8 @@ export default function LiveResponsePage() {
           {activeTab === 'templates' && (
             <div className="space-y-3 max-h-[500px] overflow-y-auto">
               {COMMAND_TEMPLATES.map(group => (
-                <div key={group.category} className="bg-falcon-surface border border-falcon-border rounded-xl p-3">
-                  <p className="text-xs text-falcon-muted font-medium mb-2 flex items-center gap-1.5">
+                <div key={group.category} className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-3">
+                  <p className="text-xs text-[#7d92b0] font-medium mb-2 flex items-center gap-1.5">
                     <LayoutTemplate className="w-3 h-3" />
                     {group.category}
                   </p>
@@ -804,10 +807,10 @@ export default function LiveResponsePage() {
                           if (!activeAgentId) return
                         }}
                         title={cmd}
-                        className="w-full text-left flex items-center justify-between gap-2 px-2 py-1.5 rounded-lg bg-[#070d19] border border-falcon-border/60 hover:border-green-700/40 hover:bg-green-900/10 transition-colors group disabled:opacity-40 disabled:cursor-not-allowed"
+                        className="w-full text-left flex items-center justify-between gap-2 px-2 py-1.5 rounded-lg bg-[#070d19] border border-[#1e2d42]/60 hover:border-green-700/40 hover:bg-green-900/10 transition-colors group disabled:opacity-40 disabled:cursor-not-allowed"
                       >
-                        <span className="text-xs text-falcon-muted group-hover:text-green-300 truncate">{label}</span>
-                        <code className="text-[10px] text-falcon-subtle group-hover:text-falcon-muted truncate max-w-[120px]">{cmd}</code>
+                        <span className="text-xs text-[#7d92b0] group-hover:text-green-300 truncate">{label}</span>
+                        <code className="text-[10px] text-[#3d5068] group-hover:text-[#7d92b0] truncate max-w-[120px]">{cmd}</code>
                       </button>
                     ))}
                   </div>
@@ -833,7 +836,7 @@ export default function LiveResponsePage() {
               }}
             />
           ) : (
-            <div className="h-full min-h-[400px] bg-black border border-falcon-border rounded-xl flex flex-col items-center justify-center text-center p-8">
+            <div className="h-full min-h-[400px] bg-black border border-[#1e2d42] rounded-xl flex flex-col items-center justify-center text-center p-8">
               <div className="w-16 h-16 rounded-full bg-green-900/20 border border-green-700/30 flex items-center justify-center mb-4">
                 <Terminal className="w-8 h-8 text-green-400/60" />
               </div>
@@ -841,9 +844,9 @@ export default function LiveResponsePage() {
               <p className="text-[#5a6a7a] text-sm max-w-xs">
                 左のパネルからオンラインのエンドポイントを選択してセッションを開始してください
               </p>
-              <div className="mt-6 grid grid-cols-2 gap-2 text-xs text-falcon-subtle font-mono">
+              <div className="mt-6 grid grid-cols-2 gap-2 text-xs text-[#3d5068] font-mono">
                 {['Tab: 補完', '↑↓: 履歴', 'Ctrl+C: 中断', 'Ctrl+L: クリア'].map(hint => (
-                  <span key={hint} className="px-3 py-1.5 bg-falcon-surface border border-falcon-border rounded-sm">{hint}</span>
+                  <span key={hint} className="px-3 py-1.5 bg-[#0d1220] border border-[#1e2d42] rounded-sm">{hint}</span>
                 ))}
               </div>
             </div>

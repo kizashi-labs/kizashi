@@ -229,3 +229,26 @@ func TestContainsTag_CaseSensitive(t *testing.T) {
 		t.Error("containsTag: 大文字小文字を区別しないマッチが発生しました")
 	}
 }
+
+// `internal/store` の検査ファイルに `deduplicateTags` と `containsTag` の
+// 写しが置いてありました。**本物はこのパッケージにあり、上の5本が
+// すでに試しています** —— 写しの方を消しました。
+//
+// （最初「本物には検査が無い」と書いて表を1つ足しました。上の5本を
+// 見落としていました。重複を消して、無かった分だけ残します。）
+
+// 正規化は、重複除去の前に効いていること。
+//
+// **`Prod` と `prod` は同じタグです。** 正規化せずに重複を除くと、
+// 大文字違いのタグが2つ残り、絞り込みが片方にしか当たりません。
+func TestNormalizeThenDeduplicate(t *testing.T) {
+	in := []string{"Prod", "prod", " PROD "}
+	norm := make([]string, 0, len(in))
+	for _, t0 := range in {
+		norm = append(norm, normalizeTagName(t0))
+	}
+	got := deduplicateTags(norm)
+	if len(got) != 1 || got[0] != "prod" {
+		t.Errorf("正規化してから重複除去 = %v, want [prod]", got)
+	}
+}

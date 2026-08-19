@@ -72,7 +72,9 @@ func (h *EndpointTagHandler) GetTags(c *gin.Context) {
 		tags = append(tags, t)
 	}
 	if err := rows.Err(); err != nil {
-		slog.Warn("row iteration error", "error", err)
+		slog.Error("rows.Err: 結果の読み出しが途中で失敗しました", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "取得に失敗しました"})
+		return
 	}
 	if tags == nil {
 		tags = []endpointTag{}
@@ -232,7 +234,9 @@ func (h *EndpointTagHandler) ListAllTags(c *gin.Context) {
 		result = append(result, ts)
 	}
 	if err := rows.Err(); err != nil {
-		slog.Warn("row iteration error", "error", err)
+		slog.Error("rows.Err: 結果の読み出しが途中で失敗しました", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "取得に失敗しました"})
+		return
 	}
 	if result == nil {
 		result = []tagSummary{}
@@ -253,11 +257,15 @@ func (h *EndpointTagHandler) SearchByTag(c *gin.Context) {
 		return
 	}
 
+	// ORDER BY must name an expression that is in the select list when SELECT
+	// DISTINCT is used, and et.agent_id (uuid) is not et.agent_id::TEXT — the
+	// statement was rejected outright with 42P10, so filtering endpoints by tag
+	// answered 500 every time.
 	rows, err := h.pool.Query(c.Request.Context(),
 		`SELECT DISTINCT et.agent_id::TEXT
 		 FROM endpoint_tags et
 		 WHERE et.tag = $1
-		 ORDER BY et.agent_id`, tag)
+		 ORDER BY et.agent_id::TEXT`, tag)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "取得に失敗しました"})
 		return
@@ -273,7 +281,9 @@ func (h *EndpointTagHandler) SearchByTag(c *gin.Context) {
 		agentIDs = append(agentIDs, id)
 	}
 	if err := rows.Err(); err != nil {
-		slog.Warn("row iteration error", "error", err)
+		slog.Error("rows.Err: 結果の読み出しが途中で失敗しました", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "取得に失敗しました"})
+		return
 	}
 	if agentIDs == nil {
 		agentIDs = []string{}

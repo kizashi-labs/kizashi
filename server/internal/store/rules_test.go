@@ -1,7 +1,6 @@
 package store
 
 import (
-	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -225,34 +224,12 @@ func TestRuleFilter_EnabledPointer(t *testing.T) {
 
 // ─── ルールフィルタークエリビルダーロジックテスト ──────────────────────────────
 
-// buildRuleWhere は rules.go の List メソッド内のフィルター条件構築を再現するヘルパー
+// buildRuleWhere は **本物を呼びます。**
+//
+// 検知ルールの一覧です。**絞り込みが効かないことは、画面では
+// 「該当するルールが無い」と同じ姿になります。**
 func buildRuleWhere(filter RuleFilter) (string, []interface{}) {
-	var conditions []string
-	var args []interface{}
-	i := 1
-
-	if filter.Type != "" {
-		conditions = append(conditions, fmt.Sprintf("type = $%d", i))
-		args = append(args, filter.Type)
-		i++
-	}
-	if filter.Enabled != nil {
-		conditions = append(conditions, fmt.Sprintf("enabled = $%d", i))
-		args = append(args, *filter.Enabled)
-		i++
-	}
-	if filter.Search != "" {
-		conditions = append(conditions, fmt.Sprintf("(name ILIKE $%d OR description ILIKE $%d)", i, i))
-		args = append(args, "%"+filter.Search+"%")
-		i++
-	}
-	_ = i
-
-	where := ""
-	if len(conditions) > 0 {
-		where = "WHERE " + strings.Join(conditions, " AND ")
-	}
-	return where, args
+	return ruleListWhere(filter)
 }
 
 // TestBuildRuleWhere_EmptyFilter は全フィルターが空のときに WHERE 句が空であることを確認する
@@ -450,5 +427,65 @@ func TestApplyPolicyPayload_FieldAssignment(t *testing.T) {
 	}
 	if len(p.EnabledModules) != 3 {
 		t.Errorf("EnabledModules の件数 = %d, want 3", len(p.EnabledModules))
+	}
+}
+
+// ルールの検索が、名前と説明の両方に当たること。
+//
+// **説明にしか書いていない語で探せないと、担当者は「そのルールは無い」と
+// 判断します。** 同じ引数を2箇所で使うので、番号を分けると引数が足りません。
+func TestRuleSearchMatchesNameAndDescription(t *testing.T) {
+	where, args := ruleListWhere(RuleFilter{Search: "lateral"})
+	if len(args) != 1 {
+		t.Fatalf("args = %v, want 1 件", args)
+	}
+	if !strings.Contains(where, "name ILIKE $1") {
+		t.Errorf("名前に当たっていません: %q", where)
+	}
+	if !strings.Contains(where, "description ILIKE $1") {
+		t.Errorf("説明に当たっていません: %q。**説明にしか書いていない語で"+
+			"探せません**", where)
+	}
+	if strings.Contains(where, "$2") {
+		t.Errorf("引数の数を超えるプレースホルダがあります: %q", where)
+	}
+}
+
+// 有効/無効の絞り込みが、nil と false を取り違えないこと。
+func TestRuleEnabledDistinguishesNilFromFalse(t *testing.T) {
+	where, args := ruleListWhere(RuleFilter{})
+	if strings.Contains(where, "enabled") || len(args) != 0 {
+		t.Errorf("指定なしで enabled の条件が入っています: %q %v", where, args)
+	}
+	no := false
+	where, args = ruleListWhere(RuleFilter{Enabled: &no})
+	if !strings.Contains(where, "enabled = $1") || len(args) != 1 || args[0] != false {
+		t.Errorf("enabled=false の絞り込みが効いていません: %q %v。"+
+			"**無効なルールだけを見たいときに、全部出ます**", where, args)
+	}
+}
+
+// 3つ揃ったときに、番号と引数の並びがずれないこと。
+//
+// 番号は args の本数から出しています。別にカウンタを持っていた頃は、
+// **最後の増分が誰にも読まれないまま残っていました**（ineffassign が
+// CI で見つけました）。条件を足したときに片方だけ増やすと、SQL は
+// そのまま通って**結果だけが変わります** —— いちばん気づきにくい形です。
+func TestRuleWherePlaceholdersFollowTheArguments(t *testing.T) {
+	yes := true
+	where, args := ruleListWhere(RuleFilter{Type: "sigma", Enabled: &yes, Search: "lateral"})
+	if len(args) != 3 {
+		t.Fatalf("args = %v, want 3 件", args)
+	}
+	for _, want := range []string{"type = $1", "enabled = $2", "name ILIKE $3", "description ILIKE $3"} {
+		if !strings.Contains(where, want) {
+			t.Errorf("%q が入っていません: %q", want, where)
+		}
+	}
+	if strings.Contains(where, "$4") {
+		t.Errorf("引数の数を超えるプレースホルダがあります: %q", where)
+	}
+	if args[0] != "sigma" || args[1] != true || args[2] != "%lateral%" {
+		t.Errorf("引数の並びが番号と噛み合っていません: %v", args)
 	}
 }

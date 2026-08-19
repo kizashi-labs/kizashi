@@ -10,6 +10,8 @@ import {
   BarChart2, Filter, Clock, Info, Star, Layers,
   ArrowRight, Package
 } from 'lucide-react'
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+
 import { USE_MOCK, m } from '@/lib/mock'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -268,10 +270,10 @@ const VERDICT_LABELS: Record<Verdict, string> = {
 
 function StatCard({ label, value, sub, color }: { label: string; value: string | number; sub?: string; color?: string }) {
   return (
-    <div className="bg-falcon-surface border border-falcon-border rounded-lg p-4">
-      <p className="text-falcon-muted text-xs mb-1">{label}</p>
+    <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-4">
+      <p className="text-[#7d92b0] text-xs mb-1">{label}</p>
       <p className={`text-2xl font-bold ${color ?? 'text-white'}`}>{value}</p>
-      {sub && <p className="text-falcon-muted text-xs mt-1">{sub}</p>}
+      {sub && <p className="text-[#7d92b0] text-xs mt-1">{sub}</p>}
     </div>
   )
 }
@@ -280,7 +282,7 @@ function ReliabilityBar({ score }: { score: number }) {
   const color = score >= 85 ? 'bg-green-500' : score >= 70 ? 'bg-yellow-500' : 'bg-red-500'
   return (
     <div className="flex items-center gap-2">
-      <div className="flex-1 h-1.5 bg-falcon-border rounded-full overflow-hidden">
+      <div className="flex-1 h-1.5 bg-[#1e2d42] rounded-full overflow-hidden">
         <div className={`h-full rounded-full ${color}`} style={{ width: `${score}%` }} />
       </div>
       <span className="text-xs font-mono text-white w-6 text-right">{score}</span>
@@ -308,17 +310,17 @@ function VerdictBadge({ verdict }: { verdict: Verdict }) {
 
 function SourceDetailModal({ source, onClose }: { source: TISource; onClose: () => void }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
-      <div className="bg-falcon-surface border border-falcon-border rounded-xl w-full max-w-lg">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-falcon-border">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl w-full max-w-lg">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-[#1e2d42]">
           <div className="flex items-center gap-3">
-            <Database className="w-5 h-5 text-falcon-red" />
+            <Database className="w-5 h-5 text-[#e8002d]" />
             <div>
               <h3 className="text-white font-semibold">{source.name}</h3>
               <SourceTypeBadge type={source.type} />
             </div>
           </div>
-          <button onClick={onClose} className="text-falcon-muted hover:text-white"><X className="w-5 h-5" /></button>
+          <button onClick={onClose} className="text-[#7d92b0] hover:text-white"><X className="w-5 h-5" /></button>
         </div>
         <div className="p-5 space-y-5">
           {/* Quality Scores */}
@@ -331,7 +333,7 @@ function SourceDetailModal({ source, onClose }: { source: TISource; onClose: () 
               ].map(({ label, value }) => (
                 <div key={label}>
                   <div className="flex justify-between mb-1">
-                    <span className="text-falcon-muted text-xs">{label}</span>
+                    <span className="text-[#7d92b0] text-xs">{label}</span>
                     <span className="text-white text-xs font-mono">{value}/100</span>
                   </div>
                   <ReliabilityBar score={value} />
@@ -347,8 +349,8 @@ function SourceDetailModal({ source, onClose }: { source: TISource; onClose: () 
               ['誤検知率', `${source.false_positive_rate}%`],
               ['ヒット率', `${source.hit_rate}%`],
             ].map(([k, v]) => (
-              <div key={k} className="bg-[#070d19] border border-falcon-border rounded-lg p-3">
-                <p className="text-falcon-muted text-xs">{k}</p>
+              <div key={k} className="bg-[#070d19] border border-[#1e2d42] rounded-lg p-3">
+                <p className="text-[#7d92b0] text-xs">{k}</p>
                 <p className="text-white text-sm font-medium mt-0.5">{v}</p>
               </div>
             ))}
@@ -362,9 +364,9 @@ function SourceDetailModal({ source, onClose }: { source: TISource; onClose: () 
                 const pct = Math.round((count / total) * 100)
                 return (
                   <div key={type} className="flex items-center gap-3">
-                    <span className="text-falcon-muted text-xs w-20 uppercase">{type}</span>
-                    <div className="flex-1 h-1.5 bg-falcon-border rounded-full overflow-hidden">
-                      <div className="h-full rounded-full bg-falcon-red" style={{ width: `${pct}%` }} />
+                    <span className="text-[#7d92b0] text-xs w-20 uppercase">{type}</span>
+                    <div className="flex-1 h-1.5 bg-[#1e2d42] rounded-full overflow-hidden">
+                      <div className="h-full rounded-full bg-[#e8002d]" style={{ width: `${pct}%` }} />
                     </div>
                     <span className="text-white text-xs font-mono w-16 text-right">{count.toLocaleString()}</span>
                   </div>
@@ -383,11 +385,11 @@ function SourceDetailModal({ source, onClose }: { source: TISource; onClose: () 
 function AddRuleModal({ onClose, onAdd }: { onClose: () => void; onAdd: (rule: Partial<CorrelationRule>) => void }) {
   const [form, setForm] = useState({ name: '', description: '', condition: '', action: '' })
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
-      <div className="bg-falcon-surface border border-falcon-border rounded-xl w-full max-w-lg">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-falcon-border">
-          <h3 className="text-white font-semibold flex items-center gap-2"><Plus className="w-4 h-4 text-falcon-red" />コリレーションルール追加</h3>
-          <button onClick={onClose} className="text-falcon-muted hover:text-white"><X className="w-4 h-4" /></button>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl w-full max-w-lg">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-[#1e2d42]">
+          <h3 className="text-white font-semibold flex items-center gap-2"><Plus className="w-4 h-4 text-[#e8002d]" />コリレーションルール追加</h3>
+          <button onClick={onClose} className="text-[#7d92b0] hover:text-white"><X className="w-4 h-4" /></button>
         </div>
         <div className="p-5 space-y-4">
           {[
@@ -397,22 +399,22 @@ function AddRuleModal({ onClose, onAdd }: { onClose: () => void; onAdd: (rule: P
             { key: 'action', label: 'アクション', placeholder: '例: tag:related_c2, score_boost:+20' },
           ].map(({ key, label, placeholder }) => (
             <div key={key}>
-              <label className="block text-xs text-falcon-muted mb-1">{label}</label>
+              <label className="block text-xs text-[#7d92b0] mb-1">{label}</label>
               <input
                 type="text"
                 placeholder={placeholder}
                 value={(form as Record<string, string>)[key]}
                 onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))}
-                className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-red"
+                className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-[#e8002d]"
               />
             </div>
           ))}
           <div className="flex gap-3 justify-end pt-2">
-            <button onClick={onClose} className="px-4 py-2 text-sm rounded-lg border border-falcon-border text-falcon-muted hover:text-white transition-colors">キャンセル</button>
+            <button onClick={onClose} className="px-4 py-2 text-sm rounded-lg border border-[#1e2d42] text-[#7d92b0] hover:text-white transition-colors">キャンセル</button>
             <button
               onClick={() => form.name && form.condition && onAdd(form)}
               disabled={!form.name || !form.condition}
-              className="px-4 py-2 text-sm rounded-lg bg-falcon-red text-white hover:bg-[#c0001f] disabled:opacity-40 transition-colors flex items-center gap-2"
+              className="px-4 py-2 text-sm rounded-lg bg-[#e8002d] text-white hover:bg-[#c0001f] disabled:opacity-40 transition-colors flex items-center gap-2"
             >
               <Plus className="w-4 h-4" />追加
             </button>
@@ -493,27 +495,28 @@ export default function ThreatIntelFusionPage() {
 
   return (
     <div className="min-h-screen bg-[#070d19] p-6 space-y-6">
+      <PageDataUnavailable />
       {/* Header */}
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-2xl font-bold text-white flex items-center gap-3">
-            <GitMerge className="w-7 h-7 text-falcon-red" />
+            <GitMerge className="w-7 h-7 text-[#e8002d]" />
             脅威インテリジェンスフュージョン
           </h1>
-          <p className="text-falcon-muted text-sm mt-1">複数TIフィードの重複排除・スコアリング・コリレーション</p>
+          <p className="text-[#7d92b0] text-sm mt-1">複数TIフィードの重複排除・スコアリング・コリレーション</p>
         </div>
-        <div className="flex items-center gap-2 text-xs text-falcon-muted">
+        <div className="flex items-center gap-2 text-xs text-[#7d92b0]">
           <Clock className="w-3.5 h-3.5" />
           最終同期: {fmtTime(stats.last_sync)}
         </div>
       </div>
 
       {/* What is Fusion */}
-      <div className="bg-falcon-surface border border-falcon-border rounded-xl p-4 flex items-start gap-3">
+      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-4 flex items-start gap-3">
         <Info className="w-5 h-5 text-blue-400 shrink-0 mt-0.5" />
         <div>
           <p className="text-white text-sm font-medium mb-1">フュージョンエンジンとは</p>
-          <p className="text-falcon-muted text-xs leading-relaxed">
+          <p className="text-[#7d92b0] text-xs leading-relaxed">
             複数の脅威インテリジェンスフィード（商用・OSS・内部・ISAC）から収集したIOCを自動で正規化・重複排除し、
             ソースの信頼性スコアで重み付けしたフュージョンスコアを算出します。
             クロスソースコリレーションにより誤検知を抑制し、高精度なアラート強化・IOCブロック・脅威アクター帰属を実現します。
@@ -531,15 +534,15 @@ export default function ThreatIntelFusionPage() {
       </div>
 
       {/* Main card */}
-      <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
+      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
         {/* Tabs */}
-        <div className="flex border-b border-falcon-border overflow-x-auto">
+        <div className="flex border-b border-[#1e2d42] overflow-x-auto">
           {TABS.map(t => (
             <button
               key={t.id}
               onClick={() => setTab(t.id)}
               className={`px-5 py-3 text-sm font-medium transition-colors whitespace-nowrap shrink-0 ${
-                tab === t.id ? 'text-white border-b-2 border-falcon-red' : 'text-falcon-muted hover:text-white'
+                tab === t.id ? 'text-white border-b-2 border-[#e8002d]' : 'text-[#7d92b0] hover:text-white'
               }`}
             >
               {t.label}
@@ -554,7 +557,7 @@ export default function ThreatIntelFusionPage() {
               {(sourcesData ?? localSources).map(source => (
                 <div
                   key={source.id}
-                  className={`border rounded-xl p-4 transition-all ${source.enabled ? 'border-falcon-border bg-[#070d19]' : 'border-falcon-border/40 bg-[#070d19]/40 opacity-60'}`}
+                  className={`border rounded-xl p-4 transition-all ${source.enabled ? 'border-[#1e2d42] bg-[#070d19]' : 'border-[#1e2d42]/40 bg-[#070d19]/40 opacity-60'}`}
                 >
                   <div className="flex items-start justify-between mb-3">
                     <div>
@@ -563,30 +566,30 @@ export default function ThreatIntelFusionPage() {
                         <SourceTypeBadge type={source.type} />
                         {!source.enabled && <span className="text-[10px] text-gray-500">無効</span>}
                       </div>
-                      <p className="text-falcon-muted text-xs mt-0.5">
+                      <p className="text-[#7d92b0] text-xs mt-0.5">
                         {(source.ioc_count ?? 0).toLocaleString()} IOC • 更新: {fmtTime(source.last_updated)}
                       </p>
                     </div>
                     <div className="flex items-center gap-2">
                       <button
                         onClick={() => setSelectedSource(source)}
-                        className="text-falcon-muted hover:text-white transition-colors"
+                        className="text-[#7d92b0] hover:text-white transition-colors"
                       >
                         <Eye className="w-4 h-4" />
                       </button>
                       <div
                         onClick={() => toggleSource(source.id)}
-                        className={`w-9 h-4.5 rounded-full cursor-pointer relative transition-colors ${source.enabled ? 'bg-falcon-red' : 'bg-falcon-border'}`}
+                        className={`w-9 h-4.5 rounded-full cursor-pointer relative transition-colors ${source.enabled ? 'bg-[#e8002d]' : 'bg-[#1e2d42]'}`}
                         style={{ width: 36, height: 18 }}
                       >
-                        <span className={`absolute top-0.5 w-3.5 h-3.5 rounded-full bg-falcon-text transition-all ${source.enabled ? 'left-[18px]' : 'left-0.5'}`} />
+                        <span className={`absolute top-0.5 w-3.5 h-3.5 rounded-full bg-[#e2e8f4] transition-all ${source.enabled ? 'left-[18px]' : 'left-0.5'}`} />
                       </div>
                     </div>
                   </div>
                   <div className="space-y-2">
                     <div>
                       <div className="flex justify-between mb-1">
-                        <span className="text-falcon-muted text-xs">信頼性</span>
+                        <span className="text-[#7d92b0] text-xs">信頼性</span>
                         <span className="text-xs font-mono text-white">{source.reliability_score}</span>
                       </div>
                       <ReliabilityBar score={source.reliability_score} />
@@ -598,8 +601,8 @@ export default function ThreatIntelFusionPage() {
                       ['ヒット率', `${source.hit_rate}%`, 'text-blue-400'],
                       ['鮮度', `${source.freshness_score}`, 'text-white'],
                     ].map(([k, v, c]) => (
-                      <div key={k} className="bg-falcon-surface rounded-lg p-2 text-center">
-                        <p className="text-falcon-muted text-[10px]">{k}</p>
+                      <div key={k} className="bg-[#0d1220] rounded-lg p-2 text-center">
+                        <p className="text-[#7d92b0] text-[10px]">{k}</p>
                         <p className={`text-sm font-bold ${c}`}>{v}</p>
                       </div>
                     ))}
@@ -612,40 +615,40 @@ export default function ThreatIntelFusionPage() {
           {/* ── Pipeline Tab ─────────────────────────────────────── */}
           {tab === 'pipeline' && (
             <div className="space-y-4">
-              <p className="text-falcon-muted text-sm">フュージョンパイプラインの各ステップと処理統計</p>
+              <p className="text-[#7d92b0] text-sm">フュージョンパイプラインの各ステップと処理統計</p>
               <div className="flex flex-col gap-3">
                 {m(MOCK_PIPELINE).map((step, idx) => (
                   <div key={step.step} className="flex items-stretch gap-3">
                     <div className="flex flex-col items-center">
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm shrink-0 transition-all duration-700 ${pipelineAnimate ? 'bg-falcon-red text-white' : 'bg-falcon-border text-falcon-muted'}`}
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm shrink-0 transition-all duration-700 ${pipelineAnimate ? 'bg-[#e8002d] text-white' : 'bg-[#1e2d42] text-[#7d92b0]'}`}
                         style={{ transitionDelay: `${idx * 150}ms` }}>
                         {step.step}
                       </div>
                       {idx < m(MOCK_PIPELINE).length - 1 && (
-                        <div className={`w-0.5 flex-1 min-h-4 mt-1 transition-all duration-700 ${pipelineAnimate ? 'bg-falcon-red/40' : 'bg-falcon-border'}`}
+                        <div className={`w-0.5 flex-1 min-h-4 mt-1 transition-all duration-700 ${pipelineAnimate ? 'bg-[#e8002d]/40' : 'bg-[#1e2d42]'}`}
                           style={{ transitionDelay: `${idx * 150 + 100}ms` }} />
                       )}
                     </div>
-                    <div className={`flex-1 border rounded-lg p-4 mb-3 transition-all duration-700 ${pipelineAnimate ? 'border-falcon-border bg-[#070d19] opacity-100 translate-x-0' : 'border-falcon-border/30 bg-[#070d19]/50 opacity-0 translate-x-4'}`}
+                    <div className={`flex-1 border rounded-lg p-4 mb-3 transition-all duration-700 ${pipelineAnimate ? 'border-[#1e2d42] bg-[#070d19] opacity-100 translate-x-0' : 'border-[#1e2d42]/30 bg-[#070d19]/50 opacity-0 translate-x-4'}`}
                       style={{ transitionDelay: `${idx * 150}ms` }}>
                       <div className="flex items-start justify-between flex-wrap gap-2">
                         <div>
                           <p className="text-white font-semibold text-sm">{step.name}</p>
-                          <p className="text-falcon-muted text-xs mt-0.5">{step.description}</p>
+                          <p className="text-[#7d92b0] text-xs mt-0.5">{step.description}</p>
                         </div>
                         <div className="flex items-center gap-3 text-xs">
                           <div className="text-right">
-                            <p className="text-falcon-muted">入力</p>
+                            <p className="text-[#7d92b0]">入力</p>
                             <p className="text-white font-mono">{(step.items_in ?? 0).toLocaleString()}</p>
                           </div>
-                          <ArrowRight className="w-3 h-3 text-falcon-muted" />
+                          <ArrowRight className="w-3 h-3 text-[#7d92b0]" />
                           <div className="text-right">
-                            <p className="text-falcon-muted">出力</p>
+                            <p className="text-[#7d92b0]">出力</p>
                             <p className="text-white font-mono">{(step.items_out ?? 0).toLocaleString()}</p>
                           </div>
                           {step.items_in !== step.items_out && (
                             <div className="text-right">
-                              <p className="text-falcon-muted">削減</p>
+                              <p className="text-[#7d92b0]">削減</p>
                               <p className="text-red-400 font-mono">-{(step.items_in - step.items_out).toLocaleString()}</p>
                             </div>
                           )}
@@ -656,7 +659,7 @@ export default function ThreatIntelFusionPage() {
                 ))}
               </div>
 
-              <div className="border border-falcon-border rounded-lg p-4 bg-[#070d19]">
+              <div className="border border-[#1e2d42] rounded-lg p-4 bg-[#070d19]">
                 <p className="text-white text-sm font-medium mb-3">出力先</p>
                 <div className="flex flex-wrap gap-3">
                   {[
@@ -666,9 +669,9 @@ export default function ThreatIntelFusionPage() {
                     { label: 'レポート生成', icon: BarChart2, color: 'text-green-400' },
                     { label: 'SIEM転送', icon: Database, color: 'text-yellow-400' },
                   ].map(({ label, icon: Icon, color }) => (
-                    <div key={label} className="flex items-center gap-2 px-3 py-2 bg-falcon-surface border border-falcon-border rounded-lg">
+                    <div key={label} className="flex items-center gap-2 px-3 py-2 bg-[#0d1220] border border-[#1e2d42] rounded-lg">
                       <Icon className={`w-4 h-4 ${color}`} />
-                      <span className="text-falcon-muted text-xs">{label}</span>
+                      <span className="text-[#7d92b0] text-xs">{label}</span>
                     </div>
                   ))}
                 </div>
@@ -680,7 +683,7 @@ export default function ThreatIntelFusionPage() {
           {tab === 'ioc' && (
             <div className="space-y-6">
               <div>
-                <p className="text-falcon-muted text-sm mb-3">IOC（IP/ドメイン/ハッシュ）を全フィードで照合してフュージョン結果を表示します</p>
+                <p className="text-[#7d92b0] text-sm mb-3">IOC（IP/ドメイン/ハッシュ）を全フィードで照合してフュージョン結果を表示します</p>
                 <div className="flex gap-2">
                   <input
                     type="text"
@@ -688,11 +691,11 @@ export default function ThreatIntelFusionPage() {
                     value={iocQuery}
                     onChange={e => setIocQuery(e.target.value)}
                     onKeyDown={e => e.key === 'Enter' && handleIOCSearch()}
-                    className="flex-1 bg-[#070d19] border border-falcon-border rounded-lg px-4 py-2.5 text-white text-sm focus:outline-hidden focus:border-falcon-red"
+                    className="flex-1 bg-[#070d19] border border-[#1e2d42] rounded-lg px-4 py-2.5 text-white text-sm focus:outline-hidden focus:border-[#e8002d]"
                   />
                   <button
                     onClick={handleIOCSearch}
-                    className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-falcon-red text-white text-sm hover:bg-[#c0001f] transition-colors"
+                    className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-[#e8002d] text-white text-sm hover:bg-[#c0001f] transition-colors"
                   >
                     <Search className="w-4 h-4" />照合
                   </button>
@@ -701,13 +704,13 @@ export default function ThreatIntelFusionPage() {
 
               {/* Sample IOCs */}
               <div>
-                <p className="text-falcon-muted text-xs mb-2">サンプルIOC:</p>
+                <p className="text-[#7d92b0] text-xs mb-2">サンプルIOC:</p>
                 <div className="flex flex-wrap gap-2">
                   {m(MOCK_FUSED_IOCS).map(ioc => (
                     <button
                       key={ioc.ioc}
                       onClick={() => { setIocQuery(ioc.ioc); setIocResult(ioc); setIocSearched(true) }}
-                      className="px-3 py-1.5 rounded-lg border border-falcon-border text-falcon-muted text-xs font-mono hover:text-white hover:border-falcon-muted transition-colors"
+                      className="px-3 py-1.5 rounded-lg border border-[#1e2d42] text-[#7d92b0] text-xs font-mono hover:text-white hover:border-[#7d92b0] transition-colors"
                     >
                       {ioc.ioc}
                     </button>
@@ -716,7 +719,7 @@ export default function ThreatIntelFusionPage() {
               </div>
 
               {iocSearched && !iocResult && (
-                <div className="text-center py-10 text-falcon-muted">
+                <div className="text-center py-10 text-[#7d92b0]">
                   <Search className="w-8 h-8 mx-auto mb-2 opacity-30" />
                   <p className="text-sm">「{iocQuery}」に一致するIOCが見つかりません</p>
                 </div>
@@ -725,26 +728,26 @@ export default function ThreatIntelFusionPage() {
               {iocResult && (
                 <div className="space-y-4">
                   {/* Fusion summary */}
-                  <div className="border border-falcon-border rounded-xl p-5 bg-[#070d19]">
+                  <div className="border border-[#1e2d42] rounded-xl p-5 bg-[#070d19]">
                     <div className="flex items-start justify-between flex-wrap gap-4">
                       <div>
                         <div className="flex items-center gap-3 flex-wrap">
                           <span className="font-mono text-white text-lg">{iocResult.ioc}</span>
-                          <span className="px-2 py-0.5 rounded-sm bg-falcon-border text-falcon-muted text-xs uppercase">{iocResult.ioc_type}</span>
+                          <span className="px-2 py-0.5 rounded-sm bg-[#1e2d42] text-[#7d92b0] text-xs uppercase">{iocResult.ioc_type}</span>
                           <VerdictBadge verdict={iocResult.fusion_verdict} />
                         </div>
                         <div className="flex flex-wrap gap-1.5 mt-2">
                           {iocResult.tags.map(t => (
-                            <span key={t} className="px-2 py-0.5 rounded-sm bg-falcon-border text-falcon-muted text-[10px]">{t}</span>
+                            <span key={t} className="px-2 py-0.5 rounded-sm bg-[#1e2d42] text-[#7d92b0] text-[10px]">{t}</span>
                           ))}
                         </div>
                       </div>
                       <div className="text-right">
-                        <p className="text-falcon-muted text-xs">フュージョンスコア</p>
+                        <p className="text-[#7d92b0] text-xs">フュージョンスコア</p>
                         <p className={`text-3xl font-bold ${iocResult.fusion_score >= 70 ? 'text-red-400' : iocResult.fusion_score >= 40 ? 'text-yellow-400' : 'text-green-400'}`}>
                           {iocResult.fusion_score}
                         </p>
-                        <p className="text-falcon-muted text-xs">信頼度: {iocResult.confidence}%</p>
+                        <p className="text-[#7d92b0] text-xs">信頼度: {iocResult.confidence}%</p>
                       </div>
                     </div>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4">
@@ -754,8 +757,8 @@ export default function ThreatIntelFusionPage() {
                         ['ソース数', iocResult.source_results.length],
                         ['悪意判定数', iocResult.source_results.filter(r => r.verdict === 'malicious').length],
                       ].map(([k, v]) => (
-                        <div key={k} className="bg-falcon-surface rounded-lg p-2.5">
-                          <p className="text-falcon-muted text-xs">{k}</p>
+                        <div key={k} className="bg-[#0d1220] rounded-lg p-2.5">
+                          <p className="text-[#7d92b0] text-xs">{k}</p>
                           <p className="text-white text-sm font-medium mt-0.5">{v}</p>
                         </div>
                       ))}
@@ -767,14 +770,14 @@ export default function ThreatIntelFusionPage() {
                     <h4 className="text-white text-sm font-medium mb-3">ソース別判定結果</h4>
                     <div className="space-y-2">
                       {iocResult.source_results.map(r => (
-                        <div key={r.source_id} className="flex items-center gap-4 p-3 border border-falcon-border rounded-lg bg-[#070d19] flex-wrap">
+                        <div key={r.source_id} className="flex items-center gap-4 p-3 border border-[#1e2d42] rounded-lg bg-[#070d19] flex-wrap">
                           <div className="w-28">
                             <p className="text-white text-xs font-medium">{r.source_name}</p>
-                            <p className="text-falcon-muted text-[10px] mt-0.5">{fmtTime(r.last_seen)}</p>
+                            <p className="text-[#7d92b0] text-[10px] mt-0.5">{fmtTime(r.last_seen)}</p>
                           </div>
                           <VerdictBadge verdict={r.verdict} />
                           <div className="flex items-center gap-2 flex-1 min-w-[100px]">
-                            <div className="h-1.5 flex-1 bg-falcon-border rounded-full overflow-hidden">
+                            <div className="h-1.5 flex-1 bg-[#1e2d42] rounded-full overflow-hidden">
                               <div
                                 className={`h-full rounded-full ${r.verdict === 'malicious' ? 'bg-red-500' : r.verdict === 'suspicious' ? 'bg-yellow-500' : 'bg-green-500'}`}
                                 style={{ width: `${r.confidence}%` }}
@@ -783,9 +786,9 @@ export default function ThreatIntelFusionPage() {
                             <span className="text-xs font-mono text-white w-8">{r.confidence}%</span>
                           </div>
                           <div className="flex flex-wrap gap-1">
-                            {r.tags.slice(0, 3).map(t => <span key={t} className="px-1.5 py-0.5 rounded-sm bg-falcon-border text-falcon-muted text-[10px]">{t}</span>)}
+                            {r.tags.slice(0, 3).map(t => <span key={t} className="px-1.5 py-0.5 rounded-sm bg-[#1e2d42] text-[#7d92b0] text-[10px]">{t}</span>)}
                           </div>
-                          {r.details && <p className="text-falcon-muted text-xs italic">{r.details}</p>}
+                          {r.details && <p className="text-[#7d92b0] text-xs italic">{r.details}</p>}
                         </div>
                       ))}
                     </div>
@@ -799,10 +802,10 @@ export default function ThreatIntelFusionPage() {
           {tab === 'rules' && (
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <p className="text-falcon-muted text-sm">{localRules.length} ルール登録済み</p>
+                <p className="text-[#7d92b0] text-sm">{localRules.length} ルール登録済み</p>
                 <button
                   onClick={() => setShowAddRule(true)}
-                  className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-falcon-red text-white text-sm hover:bg-[#c0001f] transition-colors"
+                  className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#e8002d] text-white text-sm hover:bg-[#c0001f] transition-colors"
                 >
                   <Plus className="w-4 h-4" />ルール追加
                 </button>
@@ -810,18 +813,18 @@ export default function ThreatIntelFusionPage() {
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b border-falcon-border">
+                    <tr className="border-b border-[#1e2d42]">
                       {['ルール名', '条件', 'アクション', '本日マッチ', '状態', ''].map(h => (
-                        <th key={h} className="text-left text-falcon-muted text-xs font-medium px-3 py-2">{h}</th>
+                        <th key={h} className="text-left text-[#7d92b0] text-xs font-medium px-3 py-2">{h}</th>
                       ))}
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-falcon-border/50">
+                  <tbody className="divide-y divide-[#1e2d42]/50">
                     {localRules.map(rule => (
                       <tr key={rule.id} className="hover:bg-[#0a1428]/40 transition-colors">
                         <td className="px-3 py-3">
                           <p className="text-white text-xs font-medium">{rule.name}</p>
-                          <p className="text-falcon-muted text-[10px] mt-0.5">{rule.description}</p>
+                          <p className="text-[#7d92b0] text-[10px] mt-0.5">{rule.description}</p>
                         </td>
                         <td className="px-3 py-3 font-mono text-xs text-[#a8c0d8] max-w-[160px] truncate" title={rule.condition}>{rule.condition}</td>
                         <td className="px-3 py-3 font-mono text-xs text-purple-300 max-w-[140px] truncate" title={rule.action}>{rule.action}</td>
@@ -838,7 +841,7 @@ export default function ThreatIntelFusionPage() {
                         <td className="px-3 py-3">
                           <button
                             onClick={() => setLocalRules(prev => prev.map(r => r.id === rule.id ? { ...r, enabled: !r.enabled } : r))}
-                            className="text-xs text-falcon-muted hover:text-white border border-falcon-border px-2 py-1 rounded-sm transition-colors"
+                            className="text-xs text-[#7d92b0] hover:text-white border border-[#1e2d42] px-2 py-1 rounded-sm transition-colors"
                           >
                             {rule.enabled ? '無効化' : '有効化'}
                           </button>
@@ -856,15 +859,15 @@ export default function ThreatIntelFusionPage() {
             <div className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* False positive rate */}
-                <div className="border border-falcon-border rounded-xl p-4 bg-[#070d19]">
+                <div className="border border-[#1e2d42] rounded-xl p-4 bg-[#070d19]">
                   <h4 className="text-white text-sm font-semibold mb-4 flex items-center gap-2">
                     <AlertTriangle className="w-4 h-4 text-yellow-400" />誤検知率
                   </h4>
                   <div className="space-y-3">
                     {(sourcesData ?? localSources).filter(s => s.enabled).map(s => (
                       <div key={s.id} className="flex items-center gap-3">
-                        <span className="text-falcon-muted text-xs w-28 truncate">{s.name}</span>
-                        <div className="flex-1 h-2 bg-falcon-border rounded-full overflow-hidden">
+                        <span className="text-[#7d92b0] text-xs w-28 truncate">{s.name}</span>
+                        <div className="flex-1 h-2 bg-[#1e2d42] rounded-full overflow-hidden">
                           <div
                             className={`h-full rounded-full ${s.false_positive_rate > 8 ? 'bg-red-500' : s.false_positive_rate > 4 ? 'bg-yellow-500' : 'bg-green-500'}`}
                             style={{ width: `${Math.min(s.false_positive_rate * 5, 100)}%` }}
@@ -879,15 +882,15 @@ export default function ThreatIntelFusionPage() {
                 </div>
 
                 {/* Hit rate */}
-                <div className="border border-falcon-border rounded-xl p-4 bg-[#070d19]">
+                <div className="border border-[#1e2d42] rounded-xl p-4 bg-[#070d19]">
                   <h4 className="text-white text-sm font-semibold mb-4 flex items-center gap-2">
                     <TrendingUp className="w-4 h-4 text-green-400" />ヒット率（アラートトリガー）
                   </h4>
                   <div className="space-y-3">
                     {(sourcesData ?? localSources).filter(s => s.enabled).map(s => (
                       <div key={s.id} className="flex items-center gap-3">
-                        <span className="text-falcon-muted text-xs w-28 truncate">{s.name}</span>
-                        <div className="flex-1 h-2 bg-falcon-border rounded-full overflow-hidden">
+                        <span className="text-[#7d92b0] text-xs w-28 truncate">{s.name}</span>
+                        <div className="flex-1 h-2 bg-[#1e2d42] rounded-full overflow-hidden">
                           <div className="h-full rounded-full bg-blue-500" style={{ width: `${s.hit_rate}%` }} />
                         </div>
                         <span className="text-blue-400 text-xs font-mono w-10 text-right">{s.hit_rate}%</span>
@@ -898,7 +901,7 @@ export default function ThreatIntelFusionPage() {
               </div>
 
               {/* Recommendations */}
-              <div className="border border-falcon-border rounded-xl p-4 bg-[#070d19]">
+              <div className="border border-[#1e2d42] rounded-xl p-4 bg-[#070d19]">
                 <h4 className="text-white text-sm font-semibold mb-4 flex items-center gap-2">
                   <Star className="w-4 h-4 text-yellow-400" />推奨アクション
                 </h4>

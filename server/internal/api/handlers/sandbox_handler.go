@@ -44,7 +44,10 @@ func (h *SandboxHandler) ensureTable(ctx context.Context) {
 	if h.pool == nil {
 		return
 	}
-	_, _ = h.pool.Exec(ctx, `CREATE TABLE IF NOT EXISTS sandbox_submissions (
+	// 作成に失敗しても、以前は誰も気づけませんでした。この後の SELECT が
+	// 「テーブルがありません」で失敗し、その先で空の一覧になるだけです。
+	// 移行 382 で宣言済みなので、ここが失敗するのは権限など別の問題です。
+	if _, err := h.pool.Exec(ctx, `CREATE TABLE IF NOT EXISTS sandbox_submissions (
 	  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 	  file_hash TEXT NOT NULL,
 	  file_name TEXT NOT NULL,
@@ -55,7 +58,9 @@ func (h *SandboxHandler) ensureTable(ctx context.Context) {
 	  result JSONB,
 	  submitted_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 	  completed_at TIMESTAMPTZ
-	)`)
+	)`); err != nil {
+		slog.Warn("sandbox: 提出テーブルを用意できませんでした", "error", err)
+	}
 }
 
 // SubmitFile queues a file for sandbox analysis and immediately calls VirusTotal
@@ -178,7 +183,15 @@ func (h *SandboxHandler) AnalyzeUpload(c *gin.Context) {
 
 	// Correlate embedded IOCs with the local threat-intel DB; a known-bad indicator
 	// inside the file is a strong signal, so escalate the verdict.
-	knownBad := h.correlateIOCs(ctx, v)
+	knownBad, err := h.correlateIOCs(ctx, v)
+	if err != nil {
+		slog.Error("sandbox: 埋め込み IOC を脅威インテリと照合できませんでした",
+			"file", fh.Filename, "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "脅威インテリと照合できなかったため、判定を確定できません。もう一度実行してください",
+		})
+		return
+	}
 	if len(knownBad) > 0 {
 		v.Score += 40
 		if v.Score > 100 {
@@ -210,26 +223,40 @@ func (h *SandboxHandler) AnalyzeUpload(c *gin.Context) {
 
 // correlateIOCs returns the subset of the file's embedded IOCs that appear as
 // enabled entries in the local ioc_entries table (best-effort).
-func (h *SandboxHandler) correlateIOCs(ctx context.Context, v sandbox.StaticVerdict) []string {
+//
+// 照合できなかったときは error を返します。以前は nil を返していて、
+// 呼び出し側はそれを「既知の悪性 IOC は含まれていなかった」として扱い、
+// 判定を上げず、応答に known_bad_iocs: [] と書いていました。検体に埋め込ま
+// れた C2 ドメインが脅威インテリに登録されていても、DB が一瞬落ちていれば
+// 判定は malicious になりません。分析官が見るのは「照合したが一致なし」
+// という明示的な記述です。
+func (h *SandboxHandler) correlateIOCs(ctx context.Context, v sandbox.StaticVerdict) ([]string, error) {
 	if h.pool == nil {
-		return nil
+		return nil, nil
 	}
 	candidates := make([]string, 0, len(v.URLs)+len(v.IPs)+len(v.Domains))
 	candidates = append(candidates, v.URLs...)
 	candidates = append(candidates, v.IPs...)
 	candidates = append(candidates, v.Domains...)
 	if len(candidates) == 0 {
-		return nil
+		return nil, nil
 	}
 	var exists bool
 	if err := h.pool.QueryRow(ctx,
-		`SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name='ioc_entries')`).Scan(&exists); err != nil || !exists {
-		return nil
+		`SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name='ioc_entries')`).Scan(&exists); err != nil {
+		return nil, err
+	}
+	if !exists {
+		// テーブルが無い = 脅威インテリを1件も取り込んでいない。一致なしは事実です。
+		return nil, nil
 	}
 	rows, err := h.pool.Query(ctx,
-		`SELECT value FROM ioc_entries WHERE value = ANY($1) AND enabled = true`, candidates)
+		// is_active, not enabled: deactivating an indicator through the API
+		// clears is_active, and nothing has ever cleared enabled — so this used
+		// to keep reporting indicators an analyst had switched off.
+		`SELECT value FROM ioc_entries WHERE value = ANY($1) AND is_active = true`, candidates)
 	if err != nil {
-		return nil
+		return nil, err
 	}
 	defer rows.Close()
 	var hits []string
@@ -239,7 +266,10 @@ func (h *SandboxHandler) correlateIOCs(ctx context.Context, v sandbox.StaticVerd
 			hits = append(hits, val)
 		}
 	}
-	return hits
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return hits, nil
 }
 
 // Detonate submits an uploaded file to the external dynamic sandbox for
@@ -441,7 +471,7 @@ func (h *SandboxHandler) ListSubmissions(c *gin.Context) {
 
 	rows, err := h.pool.Query(ctx, query, args...)
 	if err != nil {
-		c.JSON(http.StatusOK, gin.H{"submissions": []interface{}{}, "total": 0})
+		ReadFailure(c, err, gin.H{"submissions": []interface{}{}, "total": 0})
 		return
 	}
 	defer rows.Close()
@@ -477,7 +507,9 @@ func (h *SandboxHandler) ListSubmissions(c *gin.Context) {
 		result = append(result, s)
 	}
 	if err := rows.Err(); err != nil {
-		slog.Warn("row iteration error", "error", err)
+		slog.Error("rows.Err: 結果の読み出しが途中で失敗しました", "error", err)
+		ReadFailure(c, err, gin.H{"submissions": []interface{}{}, "total": 0})
+		return
 	}
 	if result == nil {
 		result = []submission{}
@@ -513,7 +545,7 @@ func (h *SandboxHandler) GetStats(c *gin.Context) {
 		 FROM sandbox_submissions`,
 	).Scan(&today, &week, &malicious, &benign, &suspicious, &unknown)
 	if err != nil {
-		c.JSON(http.StatusOK, gin.H{
+		ReadFailure(c, err, gin.H{
 			"submissions_today":  0,
 			"submissions_week":   0,
 			"verdicts":           gin.H{},

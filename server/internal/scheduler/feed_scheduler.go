@@ -63,13 +63,13 @@ func (s *FeedScheduler) Run(ctx context.Context) {
 	defer ticker.Stop()
 	slog.Info("脅威フィードスケジューラー起動", "interval", s.interval)
 	// Run once on startup to handle feeds that became due while the server was offline.
-	s.processFeeds(ctx)
+	trackRun(ctx, "feed_scheduler", s.processFeeds)
 	for {
 		select {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			s.processFeeds(ctx)
+			trackRun(ctx, "feed_scheduler", s.processFeeds)
 		}
 	}
 }
@@ -77,7 +77,7 @@ func (s *FeedScheduler) Run(ctx context.Context) {
 func (s *FeedScheduler) processFeeds(ctx context.Context) {
 	feeds, err := s.feedStore.GetDueForSync(ctx)
 	if err != nil {
-		slog.Debug("脅威フィードの取得をスキップ", "error", err)
+		fail(ctx, err, "脅威フィードの取得をスキップ")
 		return
 	}
 
@@ -93,7 +93,7 @@ func (s *FeedScheduler) processFeeds(ctx context.Context) {
 			count, err = s.fetchFeed(ctx, feed.ID, feed.URL, feed.SourceFormat, feed.IOCType, feed.APIKey)
 		}
 		if err != nil {
-			slog.Error("フィードの取得に失敗しました", "name", feed.Name, "error", err)
+			fail(ctx, err, "フィードの取得に失敗しました", "name", feed.Name)
 			// MarkSynced with 0 to advance last_sync_at and avoid a tight retry loop.
 			_ = s.feedStore.MarkSynced(ctx, feed.ID, 0)
 		} else {
@@ -194,9 +194,9 @@ func (s *FeedScheduler) upsertIOC(ctx context.Context, iocType, value, desc, sou
 	// stale attacker IPs from accumulating into false positives forever.
 	_, err := s.pool.Exec(ctx, `
 		INSERT INTO ioc_entries
-		    (type, ioc_type, value, description, severity, is_active,
+		    (type, value, description, severity, is_active,
 		     source_feed, confidence, source_count, sources, first_seen, last_seen, expires_at)
-		VALUES ($1, $1, $2, $3, 2, TRUE, $4, 50, 1, ARRAY[$4]::text[], NOW(), NOW(), NOW() + INTERVAL '30 days')
+		VALUES ($1, $2, $3, 2, TRUE, $4, 50, 1, ARRAY[$4]::text[], NOW(), NOW(), NOW() + INTERVAL '30 days')
 		ON CONFLICT (type, value) DO UPDATE SET
 		    updated_at   = NOW(),
 		    last_seen    = NOW(),
@@ -205,7 +205,6 @@ func (s *FeedScheduler) upsertIOC(ctx context.Context, iocType, value, desc, sou
 		    -- but never override an analyst who disabled a still-fresh IOC.
 		    is_active    = CASE WHEN ioc_entries.expires_at IS NOT NULL AND ioc_entries.expires_at < NOW()
 		                        THEN TRUE ELSE ioc_entries.is_active END,
-		    ioc_type     = EXCLUDED.ioc_type,
 		    source_count = CASE WHEN $4 = ANY(ioc_entries.sources)
 		                        THEN ioc_entries.source_count
 		                        ELSE ioc_entries.source_count + 1 END,

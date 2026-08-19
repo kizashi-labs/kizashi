@@ -32,7 +32,7 @@ class MockWebSocket {
   onerror: ((evt: Event) => void) | null = null
   send = vi.fn()
   close = vi.fn()
-  readyState = WebSocket.CONNECTING
+  readyState: number = WebSocket.CONNECTING
 
   static OPEN = WebSocket.OPEN
 

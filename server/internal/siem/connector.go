@@ -13,6 +13,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/edr-platform/server/internal/metrics"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -85,7 +86,7 @@ func (c *Connector) LoadFromDB(ctx context.Context) error {
 	`)
 	if err != nil {
 		slog.Debug("siem connector: could not load configs", "error", err)
-		return nil
+		return err
 	}
 	defer rows.Close()
 
@@ -102,6 +103,10 @@ func (c *Connector) LoadFromDB(ctx context.Context) error {
 			cfg.LastSent = *lastSent
 		}
 		c.configs[cfg.ID] = &cfg
+	}
+	// 部分結果を完全な一覧として返さない（scan_truncation_guard_test.go 参照）
+	if err := rows.Err(); err != nil {
+		return err
 	}
 	slog.Info("siem connector: loaded configs", "count", len(c.configs))
 	return nil
@@ -291,8 +296,17 @@ func (c *Connector) sendOne(ctx context.Context, cfg *SIEMConfig, alert map[stri
 		go func(id string) {
 			tctx, tcancel := context.WithTimeout(context.Background(), 5*time.Second)
 			defer tcancel()
-			_, _ = c.pool.Exec(tctx,
-				`UPDATE siem_configs SET sent_count = sent_count + 1, last_sent = NOW() WHERE id = $1`, id)
+			// **記憶（`cfg.SentCount++`）は既に進んでいます。** ここが
+			// 書けないと、画面の転送件数はプロセスが生きているあいだだけ
+			// 正しく、**再起動で最後に書けた値まで戻ります** —— 「転送が
+			// 止まっていた」ようにしか見えません。goroutine の中なので
+			// 報告する相手がおらず、部品ごとの件数に出します。
+			if _, err := c.pool.Exec(tctx,
+				`UPDATE siem_configs SET sent_count = sent_count + 1, last_sent = NOW() WHERE id = $1`, id); err != nil {
+				metrics.BackgroundFailed("siem_sent_count", err,
+					"SIEM 転送件数を記録できませんでした。再起動で転送件数が巻き戻ります",
+					"config_id", id)
+			}
 		}(cfg.ID)
 	}
 

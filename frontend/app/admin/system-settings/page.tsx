@@ -9,6 +9,8 @@ import {
   Key, Clock, Ban, ShieldAlert, Activity, Bot,
 } from 'lucide-react'
 
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+
 // ── Types ─────────────────────────────────────────────────────────
 
 interface SystemSettings {
@@ -98,7 +100,7 @@ function Toggle({
                   ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
     >
       <span
-        className={`inline-block h-4 w-4 transform rounded-full bg-falcon-text shadow transition-transform
+        className={`inline-block h-4 w-4 transform rounded-full bg-[#e2e8f4] shadow-sm transition-transform
                     ${value ? 'translate-x-6' : 'translate-x-1'}`}
       />
     </button>
@@ -176,8 +178,7 @@ function NumberInput({
         onChange={e => onChange(Number(e.target.value))}
         min={min}
         max={max}
-        className="w-24 px-3 py-1.5 bg-gray-700 border border-gray-600 rounded-lg text-sm text-white
-                   focus:outline-hidden focus:border-blue-500 text-right tabular-nums"
+        className="w-24 px-3 py-1.5 bg-gray-700 border border-gray-600 rounded-lg text-sm text-white focus:outline-hidden focus:border-blue-500 text-right tabular-nums"
       />
       {suffix && <span className="text-xs text-gray-400">{suffix}</span>}
     </div>
@@ -225,7 +226,7 @@ function MaintenanceModal({
   onCancel: () => void
 }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
       <div className="bg-gray-800 rounded-2xl border border-red-500/60 p-8 max-w-md w-full mx-4 shadow-2xl">
         <div className="flex items-center gap-3 mb-4">
           <div className="w-10 h-10 rounded-full bg-red-900/50 flex items-center justify-center">
@@ -242,15 +243,13 @@ function MaintenanceModal({
         <div className="flex gap-3 justify-end">
           <button
             onClick={onCancel}
-            className="px-4 py-2 rounded-lg bg-gray-700 border border-gray-600 text-sm text-gray-300
-                       hover:bg-gray-600 hover:text-white transition-colors"
+            className="px-4 py-2 rounded-lg bg-gray-700 border border-gray-600 text-sm text-gray-300 hover:bg-gray-600 hover:text-white transition-colors"
           >
             キャンセル
           </button>
           <button
             onClick={onConfirm}
-            className="px-4 py-2 rounded-lg bg-red-600 border border-red-500 text-sm text-white font-semibold
-                       hover:bg-red-500 transition-colors"
+            className="px-4 py-2 rounded-lg bg-red-600 border border-red-500 text-sm text-white font-semibold hover:bg-red-500 transition-colors"
           >
             有効にする
           </button>
@@ -406,6 +405,7 @@ export default function SystemSettingsPage() {
 
   return (
     <div className="min-h-screen bg-gray-900 p-6">
+      <PageDataUnavailable />
       {/* Maintenance mode banner */}
       {form.maintenance_mode && (
         <div className="mb-6 px-5 py-4 bg-red-900/40 border border-red-500/60 rounded-xl flex items-center gap-3">
@@ -817,8 +817,7 @@ export default function SystemSettingsPage() {
                 <select
                   value={form.ai_autonomous_language}
                   onChange={e => setField('ai_autonomous_language', e.target.value)}
-                  className="px-3 py-1.5 bg-gray-700 border border-gray-600 rounded-lg text-sm text-white
-                             focus:outline-hidden focus:border-blue-500"
+                  className="px-3 py-1.5 bg-gray-700 border border-gray-600 rounded-lg text-sm text-white focus:outline-hidden focus:border-blue-500"
                 >
                   <option value="ja">日本語</option>
                   <option value="en">English</option>
@@ -854,10 +853,7 @@ export default function SystemSettingsPage() {
         <Section title="メンテナンスモード" icon={ShieldAlert} iconColor="text-red-400">
           <div className="space-y-5">
             {/* Big toggle with status */}
-            <div className="flex items-center gap-5 p-4 rounded-xl border-2 transition-colors
-                            ${form.maintenance_mode
-                              ? 'border-red-500/60 bg-red-900/20'
-                              : 'border-gray-700 bg-gray-700/20'}">
+            <div className="flex items-center gap-5 p-4 rounded-xl border-2 transition-colors ${form.maintenance_mode ? 'border-red-500/60 bg-red-900/20' : 'border-gray-700 bg-gray-700/20'}">
               <div className={`w-14 h-14 rounded-full flex items-center justify-center shrink-0 ${
                 form.maintenance_mode ? 'bg-red-900/50' : 'bg-gray-700/50'
               }`}>
@@ -892,8 +888,7 @@ export default function SystemSettingsPage() {
                 value={form.maintenance_message ?? ''}
                 onChange={e => setField('maintenance_message', e.target.value)}
                 rows={3}
-                className="w-full px-3 py-2.5 bg-gray-700/50 border border-gray-600 rounded-lg text-sm text-gray-200
-                           focus:outline-hidden focus:border-blue-500 resize-none"
+                className="w-full px-3 py-2.5 bg-gray-700/50 border border-gray-600 rounded-lg text-sm text-gray-200 focus:outline-hidden focus:border-blue-500 resize-none"
               />
             </div>
 
@@ -927,8 +922,7 @@ export default function SystemSettingsPage() {
           <div className="flex items-center gap-3">
             <button
               onClick={() => refetch()}
-              className="px-4 py-2 text-sm text-gray-400 bg-gray-800 border border-gray-700 rounded-lg
-                         hover:bg-gray-700 hover:text-white transition-colors"
+              className="px-4 py-2 text-sm text-gray-400 bg-gray-800 border border-gray-700 rounded-lg hover:bg-gray-700 hover:text-white transition-colors"
             >
               変更を破棄
             </button>

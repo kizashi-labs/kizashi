@@ -1,13 +1,13 @@
 package handlers
 
 import (
-	"encoding/json"
+	"context"
 	"log/slog"
 	"net/http"
 	"strconv"
-	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/edr-platform/server/internal/store"
@@ -25,15 +25,6 @@ func NewSoftwareDiffHandler(pool *pgxpool.Pool) *SoftwareDiffHandler {
 		pool:  pool,
 		store: store.NewSoftwareDiffStore(pool),
 	}
-}
-
-func (h *SoftwareDiffHandler) tableExists(c *gin.Context, tableName string) bool {
-	var exists bool
-	_ = h.pool.QueryRow(c.Request.Context(),
-		`SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name=$1)`,
-		tableName,
-	).Scan(&exists)
-	return exists
 }
 
 // GetDiffs handles GET /endpoints/:id/software/diffs
@@ -69,114 +60,66 @@ func (h *SoftwareDiffHandler) GetLatestDiff(c *gin.Context) {
 }
 
 // ComputeDiff handles POST /endpoints/:id/software/diffs/compute
-// Reads current software from agent_software, computes diff against previous day snapshot,
-// and inserts into software_inventory_diffs.
+//
+// It compares the agent's current inventory against the most recent snapshot
+// taken before today, and stores the result as that day's diff.
+//
+// It used to read agent_software and agent_software_history. No migration
+// creates either table, and both reads sat behind a tableExists guard, so both
+// sides of the comparison were empty on every call and the endpoint answered
+// 200 with added_count 0 and removed_count 0 — then persisted that as the day's
+// finding. A feature that reports unauthorised software installs could only
+// ever report that none had happened. The inventory the agent actually reports
+// lands in endpoint_software.
 func (h *SoftwareDiffHandler) ComputeDiff(c *gin.Context) {
 	agentID := c.Param("id")
 	ctx := c.Request.Context()
 
-	if !h.tableExists(c, "software_inventory_diffs") {
-		c.JSON(http.StatusOK, gin.H{"message": "テーブルが存在しません", "added_count": 0, "removed_count": 0})
+	if _, err := uuid.Parse(agentID); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "エージェントIDの形式が不正です"})
 		return
 	}
 
-	// Fetch current software from agent_software
-	var currentSoftware []map[string]interface{}
-	if h.tableExists(c, "agent_software") {
-		if rows, err := h.pool.Query(ctx,
-			`SELECT COALESCE(name,''), COALESCE(version,'') FROM agent_software WHERE agent_id = $1`,
-			agentID,
-		); err == nil {
-			for rows.Next() {
-				var name, version string
-				if scanErr := rows.Scan(&name, &version); scanErr == nil {
-					currentSoftware = append(currentSoftware, map[string]interface{}{
-						"name":    name,
-						"version": version,
-					})
-				}
-			}
-			if err := rows.Err(); err != nil {
-				slog.Warn("row iteration error", "error", err)
-			}
-			rows.Close()
-		}
+	current, err := h.currentInventory(ctx, agentID)
+	if err != nil {
+		slog.Warn("現在のソフトウェア一覧の取得に失敗しました", "agent_id", agentID, "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "ソフトウェア一覧の取得に失敗しました"})
+		return
 	}
 
-	// Fetch previous day's software from agent_software_history
-	var prevSoftware []map[string]interface{}
-	if h.tableExists(c, "agent_software_history") {
-		if rows, err := h.pool.Query(ctx,
-			`SELECT COALESCE(name,''), COALESCE(version,'') FROM agent_software_history
-			 WHERE agent_id = $1 AND snapshot_date = CURRENT_DATE - 1`,
-			agentID,
-		); err == nil {
-			for rows.Next() {
-				var name, version string
-				if scanErr := rows.Scan(&name, &version); scanErr == nil {
-					prevSoftware = append(prevSoftware, map[string]interface{}{
-						"name":    name,
-						"version": version,
-					})
-				}
-			}
-			if err := rows.Err(); err != nil {
-				slog.Warn("row iteration error", "error", err)
-			}
-			rows.Close()
-		}
+	previous, hasPrevious, err := h.store.PreviousSnapshot(ctx, agentID)
+	if err != nil {
+		slog.Warn("前回スナップショットの取得に失敗しました", "agent_id", agentID, "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "前回スナップショットの取得に失敗しました"})
+		return
+	}
+	if !hasPrevious {
+		// Nothing to compare against yet. Reporting "0 added, 0 removed" here
+		// would be indistinguishable from a day on which nothing was installed,
+		// which is the exact confusion this endpoint used to produce every time.
+		c.JSON(http.StatusOK, gin.H{
+			"agent_id":      agentID,
+			"baseline":      true,
+			"message":       "比較対象の過去スナップショットがまだありません（本日分をベースラインとして記録済み）",
+			"added_count":   0,
+			"removed_count": 0,
+			"added":         []store.SoftwareItem{},
+			"removed":       []store.SoftwareItem{},
+		})
+		return
 	}
 
-	// Build sets for comparison
-	currentSet := make(map[string]bool)
-	for _, sw := range currentSoftware {
-		key := sw["name"].(string) + "@" + sw["version"].(string)
-		currentSet[key] = true
-	}
-	prevSet := make(map[string]bool)
-	for _, sw := range prevSoftware {
-		key := sw["name"].(string) + "@" + sw["version"].(string)
-		prevSet[key] = true
-	}
-
-	// Compute added (in current but not in prev)
-	var added []map[string]interface{}
-	for _, sw := range currentSoftware {
-		key := sw["name"].(string) + "@" + sw["version"].(string)
-		if !prevSet[key] {
-			added = append(added, sw)
-		}
-	}
-
-	// Compute removed (in prev but not in current)
-	var removed []map[string]interface{}
-	for _, sw := range prevSoftware {
-		key := sw["name"].(string) + "@" + sw["version"].(string)
-		if !currentSet[key] {
-			removed = append(removed, sw)
-		}
-	}
-
+	added, removed := store.DiffSoftware(previous, current)
 	if added == nil {
-		added = []map[string]interface{}{}
+		added = []store.SoftwareItem{}
 	}
 	if removed == nil {
-		removed = []map[string]interface{}{}
+		removed = []store.SoftwareItem{}
 	}
 
-	addedJSON, _ := json.Marshal(added)
-	removedJSON, _ := json.Marshal(removed)
-
-	var id string
-	err := h.pool.QueryRow(ctx, `
-		INSERT INTO software_inventory_diffs
-		  (agent_id, diff_date, added, removed, added_count, removed_count, created_at)
-		VALUES ($1, CURRENT_DATE, $2, $3, $4, $5, $6)
-		RETURNING id`,
-		agentID, addedJSON, removedJSON,
-		len(added), len(removed), time.Now(),
-	).Scan(&id)
+	id, err := h.store.UpsertDiff(ctx, agentID, added, removed)
 	if err != nil {
+		slog.Warn("差分の保存に失敗しました", "agent_id", agentID, "error", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "差分の保存に失敗しました"})
 		return
 	}
@@ -184,9 +127,32 @@ func (h *SoftwareDiffHandler) ComputeDiff(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"id":            id,
 		"agent_id":      agentID,
+		"baseline":      false,
 		"added_count":   len(added),
 		"removed_count": len(removed),
 		"added":         added,
 		"removed":       removed,
 	})
+}
+
+// currentInventory reads what the agent most recently reported.
+func (h *SoftwareDiffHandler) currentInventory(ctx context.Context, agentID string) ([]store.SoftwareItem, error) {
+	rows, err := h.pool.Query(ctx,
+		`SELECT name, COALESCE(version,'') FROM endpoint_software WHERE agent_id = $1::uuid`,
+		agentID,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var out []store.SoftwareItem
+	for rows.Next() {
+		var item store.SoftwareItem
+		if err := rows.Scan(&item.Name, &item.Version); err != nil {
+			return nil, err
+		}
+		out = append(out, item)
+	}
+	return out, rows.Err()
 }

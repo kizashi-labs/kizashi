@@ -10,6 +10,9 @@ import {
   ArrowUp, ArrowDown, Settings, BarChart2, History, BookOpen, Send,
   RefreshCw, Shield,
 } from 'lucide-react'
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+import { PageSaveFailed } from '@/components/PageSaveFailed'
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type TriggerType = 'alert' | 'schedule' | 'webhook' | 'manual'
@@ -125,7 +128,7 @@ function TriggerBadge({ type }: { type: TriggerType }) {
 function StatusBadge({ status }: { status: WorkflowStatus }) {
   if (status === 'active') return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-emerald-900/30 text-emerald-400 border border-emerald-700/30"><span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />有効</span>
   if (status === 'paused') return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-amber-900/30 text-amber-400 border border-amber-700/30"><span className="w-1.5 h-1.5 rounded-full bg-amber-400" />一時停止</span>
-  return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-falcon-border text-falcon-muted border border-falcon-border"><span className="w-1.5 h-1.5 rounded-full bg-falcon-subtle" />下書き</span>
+  return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-[#1e2d42] text-[#7d92b0] border border-[#1e2d42]"><span className="w-1.5 h-1.5 rounded-full bg-[#3d5068]" />下書き</span>
 }
 
 function TriggerIcon({ type }: { type: TriggerType }) {
@@ -143,7 +146,7 @@ function CategoryColor(cat: ActionCategory): string {
     ThreatIntel: 'bg-purple-900/30 text-purple-400',
     Ticketing: 'bg-orange-900/30 text-orange-400',
     Enrichment: 'bg-teal-900/30 text-teal-400',
-    Custom: 'bg-falcon-border text-falcon-muted',
+    Custom: 'bg-[#1e2d42] text-[#7d92b0]',
   }
   return map[cat]
 }
@@ -201,9 +204,9 @@ function WorkflowEditor({ workflow, onClose, onSave }: WorkflowEditorProps) {
   }
 
   return (
-    <div className="fixed inset-0 bg-black/70 backdrop-blur-xs flex items-start justify-end z-50">
-      <div className="w-full max-w-2xl h-screen bg-falcon-surface border-l border-falcon-border flex flex-col overflow-hidden">
-        <div className="flex items-center justify-between px-6 py-5 border-b border-falcon-border shrink-0">
+    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-start justify-end z-50">
+      <div className="w-full max-w-2xl h-screen bg-[#0d1220] border-l border-[#1e2d42] flex flex-col overflow-hidden">
+        <div className="flex items-center justify-between px-6 py-5 border-b border-[#1e2d42] shrink-0">
           <h3 className="text-white font-semibold text-lg">{workflow?.id ? 'ワークフロー編集' : '新規ワークフロー'}</h3>
           <div className="flex items-center gap-2">
             <button
@@ -214,36 +217,36 @@ function WorkflowEditor({ workflow, onClose, onSave }: WorkflowEditorProps) {
               {testRunning ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Play className="w-3.5 h-3.5" />}
               テスト実行
             </button>
-            <button onClick={onClose} className="text-falcon-muted hover:text-white transition-colors"><X className="w-5 h-5" /></button>
+            <button onClick={onClose} className="text-[#7d92b0] hover:text-white transition-colors"><X className="w-5 h-5" /></button>
           </div>
         </div>
         <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
           {/* Basic Info */}
           <div className="space-y-3">
             <div>
-              <label className="block text-xs text-falcon-muted mb-1.5">ワークフロー名</label>
-              <input value={name} onChange={e => setName(e.target.value)} placeholder="ワークフロー名を入力" className="w-full px-3 py-2 rounded-lg bg-[#070d19] border border-falcon-border text-white text-sm placeholder-falcon-subtle focus:outline-hidden focus:border-falcon-muted/50" />
+              <label className="block text-xs text-[#7d92b0] mb-1.5">ワークフロー名</label>
+              <input value={name} onChange={e => setName(e.target.value)} placeholder="ワークフロー名を入力" className="w-full px-3 py-2 rounded-lg bg-[#070d19] border border-[#1e2d42] text-white text-sm placeholder-[#3d5068] focus:outline-hidden focus:border-[#7d92b0]/50" />
             </div>
             <div>
-              <label className="block text-xs text-falcon-muted mb-1.5">説明</label>
-              <textarea value={description} onChange={e => setDescription(e.target.value)} rows={2} placeholder="ワークフローの説明" className="w-full px-3 py-2 rounded-lg bg-[#070d19] border border-falcon-border text-white text-sm placeholder-falcon-subtle focus:outline-hidden focus:border-falcon-muted/50 resize-none" />
+              <label className="block text-xs text-[#7d92b0] mb-1.5">説明</label>
+              <textarea value={description} onChange={e => setDescription(e.target.value)} rows={2} placeholder="ワークフローの説明" className="w-full px-3 py-2 rounded-lg bg-[#070d19] border border-[#1e2d42] text-white text-sm placeholder-[#3d5068] focus:outline-hidden focus:border-[#7d92b0]/50 resize-none" />
             </div>
           </div>
 
           {/* Trigger */}
           <div>
             <h4 className="text-white font-medium mb-3 flex items-center gap-2">
-              <div className="w-5 h-5 rounded-sm bg-falcon-red/20 flex items-center justify-center text-falcon-red"><Zap className="w-3 h-3" /></div>
+              <div className="w-5 h-5 rounded-sm bg-[#e8002d]/20 flex items-center justify-center text-[#e8002d]"><Zap className="w-3 h-3" /></div>
               トリガー設定
             </h4>
-            <div className="bg-[#070d19] border border-falcon-border rounded-xl p-4 space-y-3">
+            <div className="bg-[#070d19] border border-[#1e2d42] rounded-xl p-4 space-y-3">
               <div className="grid grid-cols-2 gap-2">
                 {(['alert', 'schedule', 'webhook', 'manual'] as TriggerType[]).map(t => (
                   <button
                     key={t}
                     onClick={() => setTrigger({ type: t })}
                     className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm border transition-colors ${
-                      trigger.type === t ? 'bg-falcon-red/20 border-falcon-red/50 text-white' : 'border-falcon-border text-falcon-muted hover:border-falcon-muted/40'
+                      trigger.type === t ? 'bg-[#e8002d]/20 border-[#e8002d]/50 text-white' : 'border-[#1e2d42] text-[#7d92b0] hover:border-[#7d92b0]/40'
                     }`}
                   >
                     <TriggerIcon type={t} />
@@ -253,32 +256,32 @@ function WorkflowEditor({ workflow, onClose, onSave }: WorkflowEditorProps) {
               </div>
               {trigger.type === 'alert' && (
                 <div className="space-y-2">
-                  <p className="text-xs text-falcon-muted">条件設定:</p>
+                  <p className="text-xs text-[#7d92b0]">条件設定:</p>
                   <div className="grid grid-cols-3 gap-2 text-xs">
-                    <select className="px-2 py-1.5 rounded-sm bg-falcon-surface border border-falcon-border text-falcon-muted focus:outline-hidden">
+                    <select className="px-2 py-1.5 rounded-sm bg-[#0d1220] border border-[#1e2d42] text-[#7d92b0] focus:outline-hidden">
                       <option>severity</option><option>category</option><option>confidence</option>
                     </select>
-                    <select className="px-2 py-1.5 rounded-sm bg-falcon-surface border border-falcon-border text-falcon-muted focus:outline-hidden">
+                    <select className="px-2 py-1.5 rounded-sm bg-[#0d1220] border border-[#1e2d42] text-[#7d92b0] focus:outline-hidden">
                       <option>{'>'}{`=`}</option><option>{'='}</option><option>{'!='}</option>
                     </select>
-                    <input placeholder="値" className="px-2 py-1.5 rounded-sm bg-falcon-surface border border-falcon-border text-white placeholder-falcon-subtle focus:outline-hidden" />
+                    <input placeholder="値" className="px-2 py-1.5 rounded-sm bg-[#0d1220] border border-[#1e2d42] text-white placeholder-[#3d5068] focus:outline-hidden" />
                   </div>
                 </div>
               )}
               {trigger.type === 'schedule' && (
                 <div>
-                  <p className="text-xs text-falcon-muted mb-2">Cronスケジュール:</p>
+                  <p className="text-xs text-[#7d92b0] mb-2">Cronスケジュール:</p>
                   <div className="grid grid-cols-2 gap-2 text-xs mb-2">
                     {['毎時', '毎日8:00', '毎週月曜', '毎月1日'].map(p => (
-                      <button key={p} className="px-2 py-1.5 rounded-sm bg-falcon-surface border border-falcon-border text-falcon-muted hover:text-white hover:border-falcon-muted/40 transition-colors text-left">{p}</button>
+                      <button key={p} className="px-2 py-1.5 rounded-sm bg-[#0d1220] border border-[#1e2d42] text-[#7d92b0] hover:text-white hover:border-[#7d92b0]/40 transition-colors text-left">{p}</button>
                     ))}
                   </div>
-                  <input value={trigger.cron ?? ''} onChange={e => setTrigger(prev => ({ ...prev, cron: e.target.value }))} placeholder="カスタムCRON (例: 0 8 * * *)" className="w-full px-3 py-1.5 rounded-sm bg-falcon-surface border border-falcon-border text-white text-xs placeholder-falcon-subtle font-mono focus:outline-hidden" />
+                  <input value={trigger.cron ?? ''} onChange={e => setTrigger(prev => ({ ...prev, cron: e.target.value }))} placeholder="カスタムCRON (例: 0 8 * * *)" className="w-full px-3 py-1.5 rounded-sm bg-[#0d1220] border border-[#1e2d42] text-white text-xs placeholder-[#3d5068] font-mono focus:outline-hidden" />
                 </div>
               )}
               {trigger.type === 'webhook' && (
                 <div className="p-3 rounded-lg bg-blue-900/20 border border-blue-700/30 text-xs">
-                  <p className="text-falcon-muted">Webhookエンドポイント:</p>
+                  <p className="text-[#7d92b0]">Webhookエンドポイント:</p>
                   <p className="text-blue-400 font-mono mt-1">/api/v1/webhooks/custom-{`{workflow-id}`}</p>
                 </div>
               )}
@@ -293,29 +296,29 @@ function WorkflowEditor({ workflow, onClose, onSave }: WorkflowEditorProps) {
             </h4>
             <div className="space-y-2">
               {actions.map((action, idx) => (
-                <div key={action.id} className="bg-[#070d19] border border-falcon-border rounded-xl p-3">
+                <div key={action.id} className="bg-[#070d19] border border-[#1e2d42] rounded-xl p-3">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <span className="w-5 h-5 rounded-full bg-falcon-border flex items-center justify-center text-xs text-falcon-muted shrink-0">{idx + 1}</span>
+                      <span className="w-5 h-5 rounded-full bg-[#1e2d42] flex items-center justify-center text-xs text-[#7d92b0] shrink-0">{idx + 1}</span>
                       <span className={`px-2 py-0.5 rounded-sm text-xs ${CategoryColor(action.category)}`}>{action.category}</span>
                       <span className="text-white text-sm">{action.label}</span>
                     </div>
                     <div className="flex items-center gap-1">
-                      <button onClick={() => moveAction(action.id, 'up')} disabled={idx === 0} className="p-1 rounded-sm hover:bg-falcon-border text-falcon-muted disabled:opacity-30 transition-colors"><ArrowUp className="w-3.5 h-3.5" /></button>
-                      <button onClick={() => moveAction(action.id, 'down')} disabled={idx === actions.length - 1} className="p-1 rounded-sm hover:bg-falcon-border text-falcon-muted disabled:opacity-30 transition-colors"><ArrowDown className="w-3.5 h-3.5" /></button>
-                      <button onClick={() => setConfigTarget(configTarget === action.id ? null : action.id)} className="p-1 rounded-sm hover:bg-falcon-border text-falcon-muted transition-colors"><Settings className="w-3.5 h-3.5" /></button>
-                      <button onClick={() => removeAction(action.id)} className="p-1 rounded-sm hover:bg-red-900/30 text-falcon-muted hover:text-red-400 transition-colors"><Trash2 className="w-3.5 h-3.5" /></button>
+                      <button onClick={() => moveAction(action.id, 'up')} disabled={idx === 0} className="p-1 rounded-sm hover:bg-[#1e2d42] text-[#7d92b0] disabled:opacity-30 transition-colors"><ArrowUp className="w-3.5 h-3.5" /></button>
+                      <button onClick={() => moveAction(action.id, 'down')} disabled={idx === actions.length - 1} className="p-1 rounded-sm hover:bg-[#1e2d42] text-[#7d92b0] disabled:opacity-30 transition-colors"><ArrowDown className="w-3.5 h-3.5" /></button>
+                      <button onClick={() => setConfigTarget(configTarget === action.id ? null : action.id)} className="p-1 rounded-sm hover:bg-[#1e2d42] text-[#7d92b0] transition-colors"><Settings className="w-3.5 h-3.5" /></button>
+                      <button onClick={() => removeAction(action.id)} className="p-1 rounded-sm hover:bg-red-900/30 text-[#7d92b0] hover:text-red-400 transition-colors"><Trash2 className="w-3.5 h-3.5" /></button>
                     </div>
                   </div>
                   {configTarget === action.id && (
-                    <div className="mt-3 pt-3 border-t border-falcon-border space-y-2">
+                    <div className="mt-3 pt-3 border-t border-[#1e2d42] space-y-2">
                       {Object.entries(action.config).map(([key, val]) => (
                         <div key={key} className="flex items-center gap-2">
-                          <span className="text-xs text-falcon-muted w-24 shrink-0 font-mono">{key}</span>
+                          <span className="text-xs text-[#7d92b0] w-24 shrink-0 font-mono">{key}</span>
                           <input
                             value={String(val)}
                             onChange={e => setActions(prev => prev.map(a => a.id === action.id ? { ...a, config: { ...a.config, [key]: e.target.value } } : a))}
-                            className="flex-1 px-2 py-1 rounded-sm bg-falcon-surface border border-falcon-border text-white text-xs font-mono focus:outline-hidden focus:border-falcon-muted/50"
+                            className="flex-1 px-2 py-1 rounded-sm bg-[#0d1220] border border-[#1e2d42] text-white text-xs font-mono focus:outline-hidden focus:border-[#7d92b0]/50"
                           />
                         </div>
                       ))}
@@ -325,7 +328,7 @@ function WorkflowEditor({ workflow, onClose, onSave }: WorkflowEditorProps) {
               ))}
               <button
                 onClick={() => setShowActionLibrary(true)}
-                className="w-full py-3 rounded-xl border border-dashed border-falcon-border text-falcon-muted hover:text-white hover:border-falcon-muted/50 text-sm transition-colors flex items-center justify-center gap-2"
+                className="w-full py-3 rounded-xl border border-dashed border-[#1e2d42] text-[#7d92b0] hover:text-white hover:border-[#7d92b0]/50 text-sm transition-colors flex items-center justify-center gap-2"
               >
                 <Plus className="w-4 h-4" />
                 + アクション追加
@@ -335,7 +338,7 @@ function WorkflowEditor({ workflow, onClose, onSave }: WorkflowEditorProps) {
 
           {/* Test Results */}
           {testResults && (
-            <div className="bg-[#070d19] border border-falcon-border rounded-xl p-4">
+            <div className="bg-[#070d19] border border-[#1e2d42] rounded-xl p-4">
               <h4 className="text-white font-medium mb-3 flex items-center gap-2"><Play className="w-4 h-4 text-blue-400" />テスト実行結果</h4>
               <div className="space-y-2">
                 {testResults.map((step, i) => (
@@ -343,20 +346,20 @@ function WorkflowEditor({ workflow, onClose, onSave }: WorkflowEditorProps) {
                     {step.status === 'success' ? <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0" />
                       : step.status === 'failure' ? <XCircle className="w-4 h-4 text-red-400 shrink-0" />
                       : step.status === 'running' ? <Loader2 className="w-4 h-4 text-blue-400 animate-spin shrink-0" />
-                      : <div className="w-4 h-4 rounded-full border border-falcon-subtle shrink-0" />}
+                      : <div className="w-4 h-4 rounded-full border border-[#3d5068] shrink-0" />}
                     <span className="text-white">{step.step}</span>
-                    {step.output && <span className="text-falcon-muted text-xs truncate">{step.output}</span>}
+                    {step.output && <span className="text-[#7d92b0] text-xs truncate">{step.output}</span>}
                   </div>
                 ))}
               </div>
             </div>
           )}
         </div>
-        <div className="px-6 py-4 border-t border-falcon-border flex justify-end gap-3 shrink-0">
-          <button onClick={onClose} className="px-4 py-2 rounded-lg border border-falcon-border text-falcon-muted hover:text-white text-sm transition-colors">キャンセル</button>
+        <div className="px-6 py-4 border-t border-[#1e2d42] flex justify-end gap-3 shrink-0">
+          <button onClick={onClose} className="px-4 py-2 rounded-lg border border-[#1e2d42] text-[#7d92b0] hover:text-white text-sm transition-colors">キャンセル</button>
           <button
             onClick={() => onSave({ name, description, trigger, actions })}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-falcon-red hover:bg-[#c8001d] text-white text-sm font-medium transition-colors"
+            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#e8002d] hover:bg-[#c8001d] text-white text-sm font-medium transition-colors"
           >
             <CheckCircle className="w-4 h-4" />
             保存
@@ -367,21 +370,21 @@ function WorkflowEditor({ workflow, onClose, onSave }: WorkflowEditorProps) {
       {/* Action Library Modal */}
       {showActionLibrary && (
         <div className="absolute inset-0 bg-black/50 flex items-center justify-center p-4">
-          <div className="bg-falcon-surface border border-falcon-border rounded-2xl w-full max-w-lg max-h-[80vh] flex flex-col shadow-2xl">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-falcon-border">
+          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-2xl w-full max-w-lg max-h-[80vh] flex flex-col shadow-2xl">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-[#1e2d42]">
               <h4 className="text-white font-semibold">アクションを選択</h4>
-              <button onClick={() => setShowActionLibrary(false)} className="text-falcon-muted hover:text-white"><X className="w-5 h-5" /></button>
+              <button onClick={() => setShowActionLibrary(false)} className="text-[#7d92b0] hover:text-white"><X className="w-5 h-5" /></button>
             </div>
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
               {ACTION_LIBRARY.map(cat => (
                 <div key={cat.category}>
-                  <p className="text-xs text-falcon-muted font-medium mb-2 uppercase tracking-wider">{cat.category}</p>
+                  <p className="text-xs text-[#7d92b0] font-medium mb-2 uppercase tracking-wider">{cat.category}</p>
                   <div className="space-y-1.5">
                     {cat.actions.map(action => (
                       <button
                         key={action.type}
                         onClick={() => addAction(action.type, cat.category, action.label, action.defaultConfig)}
-                        className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg bg-[#070d19] border border-falcon-border hover:border-falcon-muted/40 hover:text-white text-falcon-muted text-sm transition-colors text-left"
+                        className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg bg-[#070d19] border border-[#1e2d42] hover:border-[#7d92b0]/40 hover:text-white text-[#7d92b0] text-sm transition-colors text-left"
                       >
                         <span className={`px-1.5 py-0.5 rounded-sm text-[10px] ${CategoryColor(cat.category)}`}>{cat.category}</span>
                         {action.label}
@@ -444,23 +447,25 @@ export default function AutomationPage() {
   const activeWorkflows = (workflows ?? [])
 
   return (
-    <div className="min-h-screen bg-[#070d19] text-falcon-muted">
+    <div className="min-h-screen bg-[#070d19] text-[#7d92b0]">
+      <PageDataUnavailable />
+      <PageSaveFailed className="mb-4" />
       <div className="max-w-7xl mx-auto px-6 py-6 space-y-6">
 
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-linear-to-br from-falcon-red to-falcon-red-dark flex items-center justify-center shadow-lg">
+            <div className="w-10 h-10 rounded-lg bg-linear-to-br from-[#e8002d] to-[#a80020] flex items-center justify-center shadow-lg">
               <Zap className="w-5 h-5 text-white" />
             </div>
             <div>
               <h1 className="text-2xl font-bold text-white">セキュリティ自動化</h1>
-              <p className="text-sm text-falcon-muted">ノーコードワークフロービルダーでセキュリティ対応を自動化</p>
+              <p className="text-sm text-[#7d92b0]">ノーコードワークフロービルダーでセキュリティ対応を自動化</p>
             </div>
           </div>
           <button
             onClick={() => setCreatingNew(true)}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-falcon-red hover:bg-[#c8001d] text-white text-sm font-medium transition-colors"
+            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#e8002d] hover:bg-[#c8001d] text-white text-sm font-medium transition-colors"
           >
             <Plus className="w-4 h-4" />
             新規ワークフロー
@@ -475,10 +480,10 @@ export default function AutomationPage() {
             { label: '平均成功率', value: `${(activeWorkflows.reduce((s, w) => s + w.success_rate, 0) / activeWorkflows.length).toFixed(1)}%`, icon: BarChart2, color: 'text-emerald-400' },
             { label: '一時停止中', value: activeWorkflows.filter(w => w.status === 'paused').length, icon: Pause, color: 'text-amber-400' },
           ].map(stat => (
-            <div key={stat.label} className="bg-falcon-surface border border-falcon-border rounded-xl p-4">
+            <div key={stat.label} className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-4">
               <div className="flex items-center gap-2 mb-2">
                 <stat.icon className={`w-4 h-4 ${stat.color}`} />
-                <span className="text-xs text-falcon-muted">{stat.label}</span>
+                <span className="text-xs text-[#7d92b0]">{stat.label}</span>
               </div>
               <p className="text-2xl font-bold text-white">{stat.value}</p>
             </div>
@@ -486,7 +491,7 @@ export default function AutomationPage() {
         </div>
 
         {/* Tab Navigation */}
-        <div className="flex gap-1 border-b border-falcon-border">
+        <div className="flex gap-1 border-b border-[#1e2d42]">
           {[
             { key: 'library', label: 'ワークフロー一覧', icon: Zap },
             { key: 'history', label: '実行履歴', icon: History },
@@ -496,7 +501,7 @@ export default function AutomationPage() {
               key={tab.key}
               onClick={() => setActiveTab(tab.key as typeof activeTab)}
               className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px ${
-                activeTab === tab.key ? 'border-falcon-red text-white' : 'border-transparent text-falcon-muted hover:text-white'
+                activeTab === tab.key ? 'border-[#e8002d] text-white' : 'border-transparent text-[#7d92b0] hover:text-white'
               }`}
             >
               <tab.icon className="w-4 h-4" />
@@ -509,7 +514,7 @@ export default function AutomationPage() {
         {activeTab === 'library' && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {activeWorkflows.map(wf => (
-              <div key={wf.id} className="bg-falcon-surface border border-falcon-border rounded-xl p-5 hover:border-[#2a3d5a] transition-colors">
+              <div key={wf.id} className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5 hover:border-[#2a3d5a] transition-colors">
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1 flex-wrap">
@@ -517,34 +522,34 @@ export default function AutomationPage() {
                       <StatusBadge status={wf.status} />
                     </div>
                     <h3 className="text-white font-semibold text-sm mt-1">{wf.name}</h3>
-                    <p className="text-falcon-muted text-xs mt-0.5 line-clamp-2">{wf.description}</p>
+                    <p className="text-[#7d92b0] text-xs mt-0.5 line-clamp-2">{wf.description}</p>
                   </div>
                 </div>
                 <div className="grid grid-cols-3 gap-3 mb-3 text-xs">
-                  <div className="text-center p-2 rounded-sm bg-falcon-border/40">
+                  <div className="text-center p-2 rounded-sm bg-[#1e2d42]/40">
                     <p className="text-white font-bold">{wf.actions.length}</p>
-                    <p className="text-falcon-muted">アクション数</p>
+                    <p className="text-[#7d92b0]">アクション数</p>
                   </div>
-                  <div className="text-center p-2 rounded-sm bg-falcon-border/40">
+                  <div className="text-center p-2 rounded-sm bg-[#1e2d42]/40">
                     <p className="text-white font-bold">{(wf.run_count ?? 0).toLocaleString()}</p>
-                    <p className="text-falcon-muted">実行回数</p>
+                    <p className="text-[#7d92b0]">実行回数</p>
                   </div>
-                  <div className="text-center p-2 rounded-sm bg-falcon-border/40">
+                  <div className="text-center p-2 rounded-sm bg-[#1e2d42]/40">
                     <p className={`font-bold ${wf.success_rate >= 95 ? 'text-emerald-400' : wf.success_rate >= 80 ? 'text-amber-400' : 'text-red-400'}`}>
                       {wf.success_rate}%
                     </p>
-                    <p className="text-falcon-muted">成功率</p>
+                    <p className="text-[#7d92b0]">成功率</p>
                   </div>
                 </div>
                 {wf.last_run && (
-                  <p className="text-xs text-falcon-subtle flex items-center gap-1 mb-3">
+                  <p className="text-xs text-[#3d5068] flex items-center gap-1 mb-3">
                     <Clock className="w-3 h-3" />
                     最終実行: {formatDate(wf.last_run)}
                   </p>
                 )}
-                <div className="flex items-center gap-2 pt-2 border-t border-falcon-border">
-                  <button onClick={() => setEditingWorkflow(wf)} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-sm text-xs bg-falcon-border hover:bg-[#2a3d5a] text-white transition-colors"><Edit3 className="w-3 h-3" />編集</button>
-                  <button className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-sm text-xs bg-falcon-border hover:bg-[#2a3d5a] text-white transition-colors"><Copy className="w-3 h-3" />複製</button>
+                <div className="flex items-center gap-2 pt-2 border-t border-[#1e2d42]">
+                  <button onClick={() => setEditingWorkflow(wf)} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-sm text-xs bg-[#1e2d42] hover:bg-[#2a3d5a] text-white transition-colors"><Edit3 className="w-3 h-3" />編集</button>
+                  <button className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-sm text-xs bg-[#1e2d42] hover:bg-[#2a3d5a] text-white transition-colors"><Copy className="w-3 h-3" />複製</button>
                   {wf.trigger.type === 'manual' && (
                     <button
                       onClick={() => runMutation.mutate(wf.id)}
@@ -555,7 +560,7 @@ export default function AutomationPage() {
                   )}
                   <button
                     onClick={() => toggleMutation.mutate({ id: wf.id, status: wf.status === 'active' ? 'paused' : 'active' })}
-                    className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded text-xs transition-colors border ${
+                    className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-sm text-xs transition-colors border ${
                       wf.status === 'active'
                         ? 'bg-amber-900/20 hover:bg-amber-900/40 text-amber-400 border-amber-700/30'
                         : 'bg-emerald-900/20 hover:bg-emerald-900/40 text-emerald-400 border-emerald-700/30'
@@ -577,13 +582,13 @@ export default function AutomationPage() {
 
         {/* Run History */}
         {activeTab === 'history' && (
-          <div className="bg-falcon-surface border border-falcon-border rounded-xl divide-y divide-falcon-border">
+          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl divide-y divide-[#1e2d42]">
             {(runHistory ?? []).map(run => {
               const wf = activeWorkflows.find(w => w.id === run.workflow_id)
               return (
                 <div key={run.id}>
                   <button
-                    className="w-full px-5 py-4 flex items-center justify-between hover:bg-falcon-border/20 transition-colors text-left"
+                    className="w-full px-5 py-4 flex items-center justify-between hover:bg-[#1e2d42]/20 transition-colors text-left"
                     onClick={() => setExpandedHistory(expandedHistory === run.id ? null : run.id)}
                   >
                     <div className="flex items-center gap-3">
@@ -592,10 +597,10 @@ export default function AutomationPage() {
                         : <Loader2 className="w-4 h-4 text-blue-400 animate-spin shrink-0" />}
                       <div>
                         <p className="text-white text-sm font-medium">{wf?.name ?? run.workflow_id}</p>
-                        <p className="text-falcon-muted text-xs">{run.trigger_info}</p>
+                        <p className="text-[#7d92b0] text-xs">{run.trigger_info}</p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-4 text-xs text-falcon-muted">
+                    <div className="flex items-center gap-4 text-xs text-[#7d92b0]">
                       <span>{formatDuration(run.duration_ms)}</span>
                       <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{formatDate(run.started_at)}</span>
                       {expandedHistory === run.id ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
@@ -607,11 +612,11 @@ export default function AutomationPage() {
                         <div key={i} className="flex items-center gap-3 text-sm ml-7">
                           {step.status === 'success' ? <CheckCircle className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
                             : step.status === 'failure' ? <XCircle className="w-3.5 h-3.5 text-red-400 shrink-0" />
-                            : step.status === 'skipped' ? <div className="w-3.5 h-3.5 rounded-full border border-falcon-subtle shrink-0" />
+                            : step.status === 'skipped' ? <div className="w-3.5 h-3.5 rounded-full border border-[#3d5068] shrink-0" />
                             : <Loader2 className="w-3.5 h-3.5 text-blue-400 animate-spin shrink-0" />}
                           <span className="text-white">{step.step}</span>
-                          <span className="text-falcon-subtle text-xs">{formatDuration(step.duration_ms)}</span>
-                          {step.output && <span className="text-falcon-muted text-xs truncate">{step.output}</span>}
+                          <span className="text-[#3d5068] text-xs">{formatDuration(step.duration_ms)}</span>
+                          {step.output && <span className="text-[#7d92b0] text-xs truncate">{step.output}</span>}
                         </div>
                       ))}
                     </div>
@@ -626,23 +631,23 @@ export default function AutomationPage() {
         {activeTab === 'templates' && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {([] as Template[]).map(tmpl => (
-              <div key={tmpl.id} className="bg-falcon-surface border border-falcon-border rounded-xl p-5 flex flex-col">
+              <div key={tmpl.id} className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5 flex flex-col">
                 <div className="flex items-start justify-between mb-3">
                   <div>
                     <div className="mb-2"><TriggerBadge type={tmpl.trigger_type} /></div>
                     <h3 className="text-white font-semibold text-sm">{tmpl.name}</h3>
                   </div>
-                  <span className="text-xs text-falcon-muted bg-falcon-border px-2 py-0.5 rounded-sm shrink-0 ml-2">{tmpl.action_count} アクション</span>
+                  <span className="text-xs text-[#7d92b0] bg-[#1e2d42] px-2 py-0.5 rounded-sm shrink-0 ml-2">{tmpl.action_count} アクション</span>
                 </div>
-                <p className="text-falcon-muted text-xs flex-1 mb-4">{tmpl.description}</p>
+                <p className="text-[#7d92b0] text-xs flex-1 mb-4">{tmpl.description}</p>
                 <div className="flex flex-wrap gap-1 mb-4">
                   {tmpl.tags.map(tag => (
-                    <span key={tag} className="px-2 py-0.5 rounded-sm text-[10px] bg-falcon-border text-falcon-muted">{tag}</span>
+                    <span key={tag} className="px-2 py-0.5 rounded-sm text-[10px] bg-[#1e2d42] text-[#7d92b0]">{tag}</span>
                   ))}
                 </div>
                 <button
                   onClick={() => setCreatingNew(true)}
-                  className="w-full py-2 rounded-lg bg-falcon-red/20 hover:bg-falcon-red/40 text-falcon-red text-sm font-medium transition-colors border border-falcon-red/30"
+                  className="w-full py-2 rounded-lg bg-[#e8002d]/20 hover:bg-[#e8002d]/40 text-[#e8002d] text-sm font-medium transition-colors border border-[#e8002d]/30"
                 >
                   このテンプレートを使用
                 </button>
@@ -663,17 +668,17 @@ export default function AutomationPage() {
 
       {/* Delete Confirm */}
       {deleteConfirm && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-50 p-4">
-          <div className="bg-falcon-surface border border-falcon-border rounded-2xl w-full max-w-sm shadow-2xl p-6">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-2xl w-full max-w-sm shadow-2xl p-6">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 rounded-full bg-red-900/30 flex items-center justify-center"><Trash2 className="w-5 h-5 text-red-400" /></div>
               <div>
                 <h3 className="text-white font-semibold">ワークフローを削除</h3>
-                <p className="text-falcon-muted text-sm">この操作は取り消せません。</p>
+                <p className="text-[#7d92b0] text-sm">この操作は取り消せません。</p>
               </div>
             </div>
             <div className="flex justify-end gap-3">
-              <button onClick={() => setDeleteConfirm(null)} className="px-4 py-2 rounded-lg border border-falcon-border text-falcon-muted hover:text-white text-sm transition-colors">キャンセル</button>
+              <button onClick={() => setDeleteConfirm(null)} className="px-4 py-2 rounded-lg border border-[#1e2d42] text-[#7d92b0] hover:text-white text-sm transition-colors">キャンセル</button>
               <button
                 onClick={() => deleteMutation.mutate(deleteConfirm)}
                 disabled={deleteMutation.isPending}

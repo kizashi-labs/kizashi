@@ -15,6 +15,8 @@ import (
 	"github.com/edr-platform/agent/internal/collector"
 	"github.com/google/uuid"
 	"golang.org/x/sys/windows"
+
+	"github.com/edr-platform/agent/internal/telemetry"
 )
 
 var (
@@ -140,18 +142,19 @@ func EnableSeDebugPrivilege() {
 		var tok windows.Token
 		if err := windows.OpenProcessToken(windows.CurrentProcess(),
 			windows.TOKEN_ADJUST_PRIVILEGES|windows.TOKEN_QUERY, &tok); err != nil {
-			slog.Warn("SeDebugPrivilege: プロセストークンを開けません", "error", err)
+			seDebugUnavailable("プロセストークンを開けません", err)
 			return
 		}
 		defer tok.Close()
 
 		namePtr, err := windows.UTF16PtrFromString("SeDebugPrivilege")
 		if err != nil {
+			seDebugUnavailable("特権名を変換できません", err)
 			return
 		}
 		var luid windows.LUID
 		if err := windows.LookupPrivilegeValue(nil, namePtr, &luid); err != nil {
-			slog.Warn("SeDebugPrivilege: LookupPrivilegeValue 失敗", "error", err)
+			seDebugUnavailable("LookupPrivilegeValue に失敗しました", err)
 			return
 		}
 		tp := windows.Tokenprivileges{PrivilegeCount: 1}
@@ -159,7 +162,7 @@ func EnableSeDebugPrivilege() {
 		// AdjustTokenPrivileges returns ERROR_NOT_ALL_ASSIGNED (as the error)
 		// when the token does not hold the privilege at all.
 		if err := windows.AdjustTokenPrivileges(tok, false, &tp, 0, nil, nil); err != nil {
-			slog.Warn("SeDebugPrivilege を有効化できませんでした（command_line 取得が制限されます）", "error", err)
+			seDebugUnavailable("特権を有効化できません（管理者で動いていない可能性）", err)
 			return
 		}
 		slog.Info("SeDebugPrivilege を有効化しました")
@@ -415,3 +418,30 @@ func (c *WindowsProcessCollector) buildEvent(info winProcInfo, action string) co
 
 	return evt
 }
+
+// seDebugUnavailable records that the agent is running without
+// SeDebugPrivilege, and what that costs.
+//
+// **他ユーザーのプロセスのコマンドラインが読めなくなります。**
+// command_line は検知がいちばん寄りかかっている欄です —— LOLBin、
+// 難読化 PowerShell、親子関係を使う規則は、ほぼ全部これを見ます。
+// 特権が無い端末では、**そのイベントは「コマンドライン空のプロセス
+// 起動」として上がります。** 起動していないのと同じではありませんが、
+// 何を起動したのかが分かりません。
+//
+// 以前は `slog.Warn` を1行書いて黙って続けていました（4箇所とも）。
+// **サーバからは、特権のある端末と区別がつきません。**
+//
+// ModeFailed ではなく ModePoll です。**センサーは動いています** ——
+// 劣った手段で集めている状態で、「見えていない」ではありません。
+// failed にすると、動いているセンサーが止まっているように見えます。
+func seDebugUnavailable(what string, err error) {
+	slog.Warn("SeDebugPrivilege を有効化できませんでした。"+
+		"他ユーザーのプロセスのコマンドラインは取得できません",
+		"reason", what, "error", err)
+	telemetry.Set(sensorProcessCommandLine, telemetry.ModePoll,
+		"SeDebugPrivilege なし: "+what)
+}
+
+// sensorProcessCommandLine — ハートビートに載る名前。
+const sensorProcessCommandLine = "process_command_line"

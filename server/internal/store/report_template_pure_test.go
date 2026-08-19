@@ -201,36 +201,95 @@ func TestReportTemplate_VariablesJSONRoundtrip(t *testing.T) {
 	}
 }
 
-// TestReportTemplate_EmptySectionsDefaulted は Sections が nil のとき
-// 空スライスに初期化されるロジックを確認する
-func TestReportTemplate_EmptySectionsDefaulted(t *testing.T) {
-	// scanReportTemplate 内の nil → 空スライス変換ロジックを再現する
-	var sections []ReportTemplateSection
-	if sections == nil {
-		sections = []ReportTemplateSection{}
+// nil の節・変数が、空の値として出ること。**本物を呼びます。**
+//
+// 以前ここには `var sections []T; if sections == nil { sections = []T{} }`
+// を**検査の本文で実行して**、そのあと nil でないことを確かめる2本が
+// ありました。Go の代入を試しているだけで、製品を1行も通りません。
+//
+// **なぜ空スライスにするのか**: nil は JSON で `null` に、空スライスは
+// `[]` になります。画面が `.map()` を呼ぶと、`null` では落ちます ——
+// テンプレート一覧が丸ごと出なくなります。
+func TestScanReportTemplateTurnsNilIntoEmpty(t *testing.T) {
+	row := &fakeTemplateRow{sections: "null", variables: "null"}
+	got, err := scanReportTemplate(row)
+	if err != nil {
+		t.Fatalf("scanReportTemplate: %v", err)
 	}
-	if sections == nil {
-		t.Error("sections は空スライスに初期化されるべき")
+	if got.Sections == nil {
+		t.Error("Sections が nil です。**JSON で null になり、画面の .map() が落ちます**")
 	}
-	if len(sections) != 0 {
-		t.Errorf("sections 長 = %d, want 0", len(sections))
+	if len(got.Sections) != 0 {
+		t.Errorf("Sections = %v, want 空", got.Sections)
+	}
+	if got.Variables == nil {
+		t.Error("Variables が nil です")
+	}
+	if len(got.Variables) != 0 {
+		t.Errorf("Variables = %v, want 空", got.Variables)
+	}
+
+	// 中身のあるものは、そのまま残ること。
+	row = &fakeTemplateRow{
+		sections:  `[{"title":"概要"}]`,
+		variables: `{"period":"7d"}`,
+	}
+	got, err = scanReportTemplate(row)
+	if err != nil {
+		t.Fatalf("scanReportTemplate: %v", err)
+	}
+	if len(got.Sections) != 1 || len(got.Variables) != 1 {
+		t.Errorf("中身が失われています: sections=%v variables=%v",
+			got.Sections, got.Variables)
 	}
 }
 
-// TestReportTemplate_EmptyVariablesDefaulted は Variables が nil のとき
-// 空マップに初期化されるロジックを確認する
-func TestReportTemplate_EmptyVariablesDefaulted(t *testing.T) {
-	// scanReportTemplate 内の nil → 空マップ変換ロジックを再現する
-	var variables map[string]interface{}
-	if variables == nil {
-		variables = map[string]interface{}{}
+// 読めない JSON は、**空として通しません。**
+//
+// 節が空のテンプレートは、白紙のレポートを出します —— 「節が無い」と
+// 「節を読めなかった」は別の事実です。
+func TestScanReportTemplateRefusesUnreadableJSON(t *testing.T) {
+	for _, row := range []*fakeTemplateRow{
+		{sections: "not-json", variables: "{}"},
+		{sections: "[]", variables: "not-json"},
+	} {
+		if _, err := scanReportTemplate(row); err == nil {
+			t.Errorf("読めない JSON を通しています: %+v", row)
+		}
 	}
-	if variables == nil {
-		t.Error("variables は空マップに初期化されるべき")
+}
+
+// fakeTemplateRow feeds scanReportTemplate without a database.
+type fakeTemplateRow struct {
+	sections  string
+	variables string
+}
+
+func (f *fakeTemplateRow) Scan(dest ...interface{}) error {
+	vals := []interface{}{
+		"id-1", "名前", "説明", f.sections, f.variables, "pdf", true, "user-1",
+		time.Now(), time.Now(),
 	}
-	if len(variables) != 0 {
-		t.Errorf("variables 長 = %d, want 0", len(variables))
+	for i := range dest {
+		if i >= len(vals) {
+			break
+		}
+		switch d := dest[i].(type) {
+		case *string:
+			if v, ok := vals[i].(string); ok {
+				*d = v
+			}
+		case *bool:
+			if v, ok := vals[i].(bool); ok {
+				*d = v
+			}
+		case *time.Time:
+			if v, ok := vals[i].(time.Time); ok {
+				*d = v
+			}
+		}
 	}
+	return nil
 }
 
 // TestReportTemplate_InvalidSectionsJSONFallback は不正な sections JSON のとき

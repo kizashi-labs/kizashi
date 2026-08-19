@@ -117,26 +117,34 @@ type scanMatch struct {
 // endpoint. Returns "" on any error so the scan proceeds with built-in rules
 // only. The pure-Go scanner parses rules tolerantly, so a large community rule
 // set loads without aborting on rules it cannot fully model.
-func fetchServerYARARules(serverURL, agentID string) string {
+// 戻り値を (string, error) にしてあるのは、**空文字が2つの違う事実を
+// 表していたから**です。「サーバに有効なルールが1本も無い」と「取りに
+// 行けなかった」が同じ "" で、呼び出し側はどちらも同じように読み飛ばし、
+// スキャンは組み込みの EICAR 判定だけで走ります。
+//
+// その結果は「スキャン完了・検出0件」です。運用者が読むのは、**キュレート
+// されたルール一式で調べて何も無かった**という報告に見えます。実際には
+// ルールを1本も積まずに走っただけです。
+func fetchServerYARARules(serverURL, agentID string) (string, error) {
 	url := fmt.Sprintf("%s/api/v1/agents/%s/yara-rules", serverURL, agentID)
 	client := &http.Client{Timeout: 30 * time.Second}
 	resp, err := client.Get(url)
 	if err != nil {
-		return ""
+		return "", fmt.Errorf("サーバのYARAルールを取得できません: %w", err)
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		return ""
+		return "", fmt.Errorf("サーバのYARAルール取得が HTTP %d を返しました", resp.StatusCode)
 	}
 	var out struct {
 		Rules string `json:"rules"`
 		Count int    `json:"count"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
-		return ""
+		return "", fmt.Errorf("サーバのYARAルール応答を読めません: %w", err)
 	}
 	slog.Info("[scan] サーバのYARAルールを取得しました", "count", out.Count)
-	return out.Rules
+	return out.Rules, nil
 }
 
 // scanFilesWithCancel walks each target path, invoking scanFile for every
@@ -433,7 +441,20 @@ rule Malware_Test_Content {
 					// Load the operator's enabled YARA rules (distributed by the
 					// server) on top of the built-in test rules, so scans use the
 					// curated rule set rather than only EICAR/test markers.
-					if content := fetchServerYARARules(cfg.Server.URL, cfg.Agent.ID); content != "" {
+					content, ferr := fetchServerYARARules(cfg.Server.URL, cfg.Agent.ID)
+					switch {
+					case ferr != nil:
+						// **これは「検出0件」とは違います。** 組み込みの
+						// EICAR 判定だけで走るので、キュレートされたルールで
+						// 調べた結果ではありません。
+						slog.Error("[scan] サーバのYARAルールを積めませんでした。"+
+							"組み込みルールのみでスキャンします。"+
+							"この結果は「ルール一式で調べて何も無かった」ではありません",
+							"error", ferr)
+					case content == "":
+						slog.Info("[scan] サーバに有効なYARAルールがありません。" +
+							"組み込みルールのみでスキャンします")
+					default:
 						if err := s.LoadRules(content); err != nil {
 							slog.Warn("[scan] サーバYARAルールのロードに一部失敗しました", "error", err)
 						}
@@ -574,6 +595,37 @@ rule Malware_Test_Content {
 	})
 	ackSender.set(grpcClient) // ここで実際の送信先が決まる
 
+	// 隔離ルールの継続監視。
+	//
+	// 隔離は一度掛けたら効き続けるものではない。iptables -F、ポリシーの再適用、
+	// ファイアウォールサービスの再起動——ルールが消える経路はいくらでもある。
+	// 適用直後の検証 (#733) はその後の消失を捕まえられないので、定期的に
+	// 実態を読み返し、消えていれば同じ条件で貼り直す。
+	// EDR_ISOLATION_DRIFT_INTERVAL で調整可（既定 2 分、0 で無効）。
+	driftInterval := 2 * time.Minute
+	if v := os.Getenv("EDR_ISOLATION_DRIFT_INTERVAL"); v != "" {
+		if d, err := time.ParseDuration(v); err == nil && d >= 0 {
+			driftInterval = d
+		} else {
+			slog.Warn("EDR_ISOLATION_DRIFT_INTERVAL が不正です。既定(2m)を使います", "値", v)
+		}
+	}
+	if driftInterval > 0 {
+		go func() {
+			ticker := time.NewTicker(driftInterval)
+			defer ticker.Stop()
+			for {
+				select {
+				case <-ctx.Done():
+					return
+				case <-ticker.C:
+					executor.CheckIsolationDrift(ctx)
+				}
+			}
+		}()
+		slog.Info("隔離ルールの継続監視を開始しました", "間隔", driftInterval)
+	}
+
 	// ─── Local ML anomaly detector ────────────────────────────
 	mlDetector := scanner.NewLocalAnomalyDetector()
 
@@ -595,6 +647,13 @@ rule Malware_Test_Content {
 	// Start resource throttle (memory monitor + token bucket)
 	throttle.Start(ctx)
 	_ = throttle // throttle.Acquire(ctx) should be called in hot event paths
+
+	// Periodic per-action file-event tallies. These answer a question the server
+	// side cannot: whether the sensor ever PRODUCED a delete/rename, as opposed to
+	// producing one that was lost downstream. Logged rather than served, because
+	// the health server that would expose them is never started (nothing imports
+	// internal/health).
+	go collector.ReportFileEmitStats(ctx, 5*time.Minute)
 
 	// ─── Start services ───────────────────────────────────────
 	var wg sync.WaitGroup
@@ -627,8 +686,16 @@ rule Malware_Test_Content {
 			func() int { return buf.Len() },
 			func() error { return isolation.Unisolate() },
 		)
+		// **隔離の巻き戻しは片側しかありませんでした。** 指示が届かない
+		// まま DB だけが「隔離済み」になると、その端末は二度と隔離
+		// されません。EDR サーバへの経路は残します —— 残さないと、次の
+		// ハートビートも届かず、解除の指示も受け取れません。
+		hbReporter.SetIsolateFunc(func(string) error {
+			return isolation.Isolate([]string{response.ServerHost(cfg.Server.URL)}, nil)
+		})
 		hbReporter.SetProtectionMode(string(protCaps.Mode))
 		hbReporter.SetTelemetryModeFunc(func() string { return string(telemetry.Aggregate()) })
+		hbReporter.SetTelemetryDetailFunc(telemetry.String)
 		hbReporter.SetUninstallGuardApplier(makeUninstallGuardApplier(*configPath))
 		hbReporter.Run(ctx)
 	}()
@@ -1104,6 +1171,11 @@ func runEventAggregator(
 	// ローカルアラート (異常スコアが閾値超え) は次の ticker を待たずに送る。
 	alertGate := newLocalAlertGate(localAlertFlushGap)
 
+	// 親プロセスの解決はエンドポイント側でしかできない。ppid は再利用される
+	// 番号で、サーバ側でクエリを流す頃には親は終了している。エージェントは
+	// 生成イベントを親が生きているうちに受け取る。
+	parents := collector.NewParentResolver()
+
 	flush := func() {
 		if len(current.processes)+len(current.files)+len(current.networks)+len(current.dns)+
 			len(current.registries)+len(current.auths)+len(current.imageLoads)+len(current.scripts) == 0 {
@@ -1142,6 +1214,25 @@ func runEventAggregator(
 						IntegrityLevel: p.IntegrityLevel,
 						// Logon session ID (Windows elevated-shell / privesc rules).
 						LogonId: p.LogonID,
+						// Parent, resolved on the endpoint (Sigma ParentImage).
+						ParentName:  p.ParentName,
+						ParentImage: p.ParentImage,
+						// 実行ファイルのハッシュ。
+						//
+						// **計算はしていましたが、載せていませんでした。**
+						// エージェントは起動するプロセスごとに実行ファイルを
+						// 最大 50 MB 読んで MD5・SHA1・SHA256 を計算し、
+						// `evt.Hashes` に入れて、ここで捨てていました。
+						// proto には `FileHashes hashes = 8` があります。
+						//
+						// サーバのハッシュ IOC 照合は、**照合するものを一度も
+						// 受け取っていません。** 一致しなかったのではなく、
+						// 材料が届いていませんでした。
+						Hashes: protoHashes(p.Hashes),
+						// Containment, from /proc (Linux).
+						ContainerId:          p.Container.ID,
+						ContainerPrivileged:  p.Container.Privileged,
+						ContainerHostNetwork: p.Container.HostNetwork,
 					},
 				},
 			}
@@ -1162,6 +1253,8 @@ func runEventAggregator(
 						Pid:         f.PID,
 						ProcessName: f.ProcessName,
 						FileSize:    f.FileSize,
+						// ファイルイベントのハッシュも同じく捨てられていました。
+						Hashes: protoHashes(f.Hashes),
 					},
 				},
 			}
@@ -1246,6 +1339,10 @@ func runEventAggregator(
 						AuthMethod:    a.AuthMethod,
 						FailureReason: a.FailReason,
 						LogonType:     a.LogonType,
+						EventId:       a.EventID,
+						// Kerberos service ticket (4769) — the Kerberoasting input.
+						TargetSpn:            a.TargetSPN,
+						TicketEncryptionType: a.TicketEncryptionType,
 					},
 				},
 			}
@@ -1323,6 +1420,11 @@ func runEventAggregator(
 			return
 
 		case evt := <-processChan:
+			// Name the parent and read the container context here, while the
+			// process is still alive. Downstream nothing can: ppid is reused,
+			// and /proc/<pid> is gone the moment the process exits. See
+			// collector.ParentResolver and collector.ContainerContext.
+			parents.EnrichProcess(&evt)
 			current.processes = append(current.processes, evt)
 			urgent := noteAnomaly(alertGate, time.Now(), "process", ml.ScoreProcess(evt),
 				"process", evt.ProcessName, "pid", evt.PID, "cmdline", evt.CommandLine)
@@ -1540,6 +1642,8 @@ func authAction(a string) v1.AuthEvent_AuthAction {
 		return v1.AuthEvent_AUTH_ACTION_PRIVILEGE
 	case "failed":
 		return v1.AuthEvent_AUTH_ACTION_FAILED
+	case "kerberos_service_ticket":
+		return v1.AuthEvent_AUTH_ACTION_SERVICE_TICKET
 	default:
 		return v1.AuthEvent_AUTH_ACTION_UNSPECIFIED
 	}
@@ -1886,6 +1990,20 @@ func hashFileSHA256(path string) string {
 		return ""
 	}
 	return hex.EncodeToString(h.Sum(nil))
+}
+
+// protoHashes converts the agent's hashes for the wire, or nil when there are
+// none.
+//
+// **空のハッシュを送らないのは意図です。** 3つとも空の FileHashes を
+// 載せると、サーバからは「ハッシュを取ったが空だった」に見えます。
+// 取れなかったものは、欄ごと出しません —— 未測定を測定値にしない、
+// という同じ規則です。
+func protoHashes(h collector.FileHashes) *v1.FileHashes {
+	if h.MD5 == "" && h.SHA1 == "" && h.SHA256 == "" {
+		return nil
+	}
+	return &v1.FileHashes{Md5: h.MD5, Sha1: h.SHA1, Sha256: h.SHA256}
 }
 
 // deferredAckSender は response.Executor と GRPCClient の相互依存を解く。

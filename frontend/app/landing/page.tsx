@@ -125,15 +125,15 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen bg-[#060d1a] text-white overflow-x-hidden">
       {/* ── Navigation ─────────────────────────────────────────── */}
-      <nav className="sticky top-0 z-50 border-b border-falcon-border/80 backdrop-blur-md bg-[#060d1a]/90">
+      <nav className="sticky top-0 z-50 border-b border-[#1e2d42]/80 backdrop-blur-md bg-[#060d1a]/90">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 bg-falcon-red rounded-lg flex items-center justify-center shrink-0">
+            <div className="w-8 h-8 bg-[#e8002d] rounded-lg flex items-center justify-center shrink-0">
               <span className="text-white font-bold text-sm">V</span>
             </div>
             <span className="text-lg font-bold text-white tracking-tight">Kizashi</span>
           </div>
-          <div className="hidden md:flex items-center gap-8 text-sm text-falcon-muted">
+          <div className="hidden md:flex items-center gap-8 text-sm text-[#7d92b0]">
             <a href="#features" className="hover:text-white transition-colors">機能</a>
             <a href="#stats" className="hover:text-white transition-colors">実績</a>
             <a href="#pricing" className="hover:text-white transition-colors">料金</a>
@@ -142,13 +142,13 @@ export default function LandingPage() {
           <div className="flex items-center gap-3">
             <button
               onClick={() => router.push('/login')}
-              className="text-sm text-falcon-muted hover:text-white transition-colors px-4 py-2"
+              className="text-sm text-[#7d92b0] hover:text-white transition-colors px-4 py-2"
             >
               ログイン
             </button>
             <button
               onClick={() => router.push('/login')}
-              className="text-sm bg-falcon-red hover:bg-[#c4001f] text-white px-4 py-2 rounded-lg font-semibold transition-colors"
+              className="text-sm bg-[#e8002d] hover:bg-[#c4001f] text-white px-4 py-2 rounded-lg font-semibold transition-colors"
             >
               無料トライアル
             </button>
@@ -160,23 +160,23 @@ export default function LandingPage() {
       <section className="relative pt-24 pb-32 px-6 overflow-hidden">
         {/* Background glow */}
         <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-falcon-red/5 rounded-full blur-[120px]" />
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-[#e8002d]/5 rounded-full blur-[120px]" />
           <div className="absolute top-20 left-1/4 w-[400px] h-[400px] bg-blue-500/5 rounded-full blur-[100px]" />
         </div>
 
         <div className="relative max-w-5xl mx-auto text-center">
           {/* Badge */}
-          <div className="inline-flex items-center gap-2 bg-falcon-red/10 border border-falcon-red/30 text-falcon-red text-xs font-semibold px-3 py-1.5 rounded-full mb-8">
-            <span className="w-1.5 h-1.5 bg-falcon-red rounded-full animate-pulse" />
+          <div className="inline-flex items-center gap-2 bg-[#e8002d]/10 border border-[#e8002d]/30 text-[#e8002d] text-xs font-semibold px-3 py-1.5 rounded-full mb-8">
+            <span className="w-1.5 h-1.5 bg-[#e8002d] rounded-full animate-pulse" />
             次世代エンドポイント検知・対応プラットフォーム
           </div>
 
           <h1 className="text-5xl md:text-7xl font-bold text-white leading-tight mb-6 tracking-tight">
-            脅威を<span className="text-falcon-red">検知</span>し、<br />
-            即座に<span className="text-falcon-red">対応</span>する
+            脅威を<span className="text-[#e8002d]">検知</span>し、<br />
+            即座に<span className="text-[#e8002d]">対応</span>する
           </h1>
 
-          <p className="text-xl text-falcon-muted max-w-2xl mx-auto mb-10 leading-relaxed">
+          <p className="text-xl text-[#7d92b0] max-w-2xl mx-auto mb-10 leading-relaxed">
             Kizashiは、AIと機械学習を活用した次世代EDRプラットフォームです。
             リアルタイム脅威検知から自動インシデント対応まで、
             SOCチームの運用効率を10倍に高めます。
@@ -185,34 +185,34 @@ export default function LandingPage() {
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <button
               onClick={() => router.push('/login')}
-              className="inline-flex items-center justify-center gap-2 bg-falcon-red hover:bg-[#c4001f] text-white px-8 py-4 rounded-xl font-bold text-base transition-all hover:scale-105 shadow-lg shadow-falcon-red/20"
+              className="inline-flex items-center justify-center gap-2 bg-[#e8002d] hover:bg-[#c4001f] text-white px-8 py-4 rounded-xl font-bold text-base transition-all hover:scale-105 shadow-lg shadow-[#e8002d]/20"
             >
               14日間無料トライアル
               <ArrowRight className="w-4 h-4" />
             </button>
             <button
               onClick={() => router.push('/login')}
-              className="inline-flex items-center justify-center gap-2 bg-[#0d1829] hover:bg-[#1a2840] border border-falcon-border text-white px-8 py-4 rounded-xl font-semibold text-base transition-colors"
+              className="inline-flex items-center justify-center gap-2 bg-[#0d1829] hover:bg-[#1a2840] border border-[#1e2d42] text-white px-8 py-4 rounded-xl font-semibold text-base transition-colors"
             >
               デモを見る
               <ChevronRight className="w-4 h-4" />
             </button>
           </div>
 
-          <p className="text-xs text-falcon-subtle mt-6">クレジットカード不要 • セットアップ5分 • 即日利用開始可能</p>
+          <p className="text-xs text-[#3d5068] mt-6">クレジットカード不要 • セットアップ5分 • 即日利用開始可能</p>
         </div>
 
         {/* Dashboard preview */}
         <div className="relative max-w-5xl mx-auto mt-16">
-          <div className="bg-[#0a1628] border border-falcon-border rounded-2xl overflow-hidden shadow-2xl">
+          <div className="bg-[#0a1628] border border-[#1e2d42] rounded-2xl overflow-hidden shadow-2xl">
             {/* Mock browser bar */}
-            <div className="flex items-center gap-2 px-4 py-3 bg-[#060d1a] border-b border-falcon-border">
+            <div className="flex items-center gap-2 px-4 py-3 bg-[#060d1a] border-b border-[#1e2d42]">
               <div className="flex gap-1.5">
                 <div className="w-3 h-3 bg-[#ff5f57] rounded-full" />
                 <div className="w-3 h-3 bg-[#ffbd2e] rounded-full" />
                 <div className="w-3 h-3 bg-[#28c840] rounded-full" />
               </div>
-              <div className="flex-1 bg-[#0d1829] rounded-md px-3 py-1 text-xs text-falcon-subtle text-center">
+              <div className="flex-1 bg-[#0d1829] rounded-md px-3 py-1 text-xs text-[#3d5068] text-center">
                 kizashi-edr.example.com/dashboard
               </div>
             </div>
@@ -224,9 +224,9 @@ export default function LandingPage() {
                 { label: '本日の検知', value: '156', color: '#3b82f6', icon: Eye },
                 { label: '対応済みインシデント', value: '98.2%', color: '#f59e0b', icon: Users },
               ].map(({ label, value, color, icon: Icon }) => (
-                <div key={label} className="bg-[#060d1a] rounded-xl p-4 border border-falcon-border">
+                <div key={label} className="bg-[#060d1a] rounded-xl p-4 border border-[#1e2d42]">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs text-falcon-subtle">{label}</span>
+                    <span className="text-xs text-[#3d5068]">{label}</span>
                     <Icon className="w-4 h-4" style={{ color }} />
                   </div>
                   <div className="text-2xl font-bold" style={{ color }}>{value}</div>
@@ -234,23 +234,23 @@ export default function LandingPage() {
               ))}
             </div>
             <div className="px-6 pb-6">
-              <div className="bg-[#060d1a] rounded-xl border border-falcon-border p-4">
+              <div className="bg-[#060d1a] rounded-xl border border-[#1e2d42] p-4">
                 <div className="flex items-center justify-between mb-3">
-                  <span className="text-xs font-semibold text-falcon-muted">最近のアラート</span>
-                  <span className="text-xs text-falcon-red">リアルタイム</span>
+                  <span className="text-xs font-semibold text-[#7d92b0]">最近のアラート</span>
+                  <span className="text-xs text-[#e8002d]">リアルタイム</span>
                 </div>
                 {[
                   { rule: 'Ransomware - ファイル暗号化活動検知', host: 'WIN-SERVER-01', severity: 'critical', time: '今すぐ' },
                   { rule: 'Lateral Movement - PSExec実行', host: 'WORKSTATION-42', severity: 'high', time: '2分前' },
                   { rule: 'Credential Dumping - LSASS Access', host: 'DC-PRIMARY', severity: 'high', time: '5分前' },
                 ].map((alert, i) => (
-                  <div key={i} className="flex items-center gap-3 py-2 border-t border-falcon-border first:border-0">
-                    <div className={`w-2 h-2 rounded-full shrink-0 ${alert.severity === 'critical' ? 'bg-falcon-red animate-pulse' : 'bg-orange-500'}`} />
+                  <div key={i} className="flex items-center gap-3 py-2 border-t border-[#1e2d42] first:border-0">
+                    <div className={`w-2 h-2 rounded-full shrink-0 ${alert.severity === 'critical' ? 'bg-[#e8002d] animate-pulse' : 'bg-orange-500'}`} />
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs text-falcon-text truncate">{alert.rule}</p>
-                      <p className="text-[10px] text-falcon-subtle">{alert.host}</p>
+                      <p className="text-xs text-[#e2e8f4] truncate">{alert.rule}</p>
+                      <p className="text-[10px] text-[#3d5068]">{alert.host}</p>
                     </div>
-                    <span className="text-[10px] text-falcon-subtle shrink-0">{alert.time}</span>
+                    <span className="text-[10px] text-[#3d5068] shrink-0">{alert.time}</span>
                   </div>
                 ))}
               </div>
@@ -260,13 +260,13 @@ export default function LandingPage() {
       </section>
 
       {/* ── Stats ──────────────────────────────────────────────── */}
-      <section id="stats" className="py-16 border-y border-falcon-border bg-[#060d1a]">
+      <section id="stats" className="py-16 border-y border-[#1e2d42] bg-[#060d1a]">
         <div className="max-w-5xl mx-auto px-6">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
             {STATS.map(({ value, label }) => (
               <div key={label} className="text-center">
                 <div className="text-4xl font-bold text-white mb-2">{value}</div>
-                <div className="text-sm text-falcon-muted">{label}</div>
+                <div className="text-sm text-[#7d92b0]">{label}</div>
               </div>
             ))}
           </div>
@@ -278,7 +278,7 @@ export default function LandingPage() {
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold text-white mb-4">エンタープライズグレードの機能</h2>
-            <p className="text-lg text-falcon-muted max-w-2xl mx-auto">
+            <p className="text-lg text-[#7d92b0] max-w-2xl mx-auto">
               CrowdStrike・SentinelOneと同等のセキュリティ機能を、より手頃なコストで提供します。
             </p>
           </div>
@@ -286,13 +286,13 @@ export default function LandingPage() {
             {FEATURES.map(({ icon: Icon, title, description }) => (
               <div
                 key={title}
-                className="bg-[#0a1628] border border-falcon-border rounded-xl p-6 hover:border-falcon-red/30 transition-colors group"
+                className="bg-[#0a1628] border border-[#1e2d42] rounded-xl p-6 hover:border-[#e8002d]/30 transition-colors group"
               >
-                <div className="w-10 h-10 bg-falcon-red/10 rounded-lg flex items-center justify-center mb-4 group-hover:bg-falcon-red/20 transition-colors">
-                  <Icon className="w-5 h-5 text-falcon-red" />
+                <div className="w-10 h-10 bg-[#e8002d]/10 rounded-lg flex items-center justify-center mb-4 group-hover:bg-[#e8002d]/20 transition-colors">
+                  <Icon className="w-5 h-5 text-[#e8002d]" />
                 </div>
                 <h3 className="text-base font-semibold text-white mb-2">{title}</h3>
-                <p className="text-sm text-falcon-muted leading-relaxed">{description}</p>
+                <p className="text-sm text-[#7d92b0] leading-relaxed">{description}</p>
               </div>
             ))}
           </div>
@@ -304,7 +304,7 @@ export default function LandingPage() {
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold text-white mb-4">シンプルな料金プラン</h2>
-            <p className="text-lg text-falcon-muted">規模に合わせて選べる3つのプラン。すべて14日間無料トライアル付き。</p>
+            <p className="text-lg text-[#7d92b0]">規模に合わせて選べる3つのプラン。すべて14日間無料トライアル付き。</p>
           </div>
           <div className="grid md:grid-cols-3 gap-6">
             {PLANS.map(({ name, price, period, description, features, cta, highlighted }) => (
@@ -312,26 +312,26 @@ export default function LandingPage() {
                 key={name}
                 className={`relative rounded-2xl border p-8 flex flex-col ${
                   highlighted
-                    ? 'bg-[#0d1829] border-falcon-red shadow-lg shadow-falcon-red/10'
-                    : 'bg-[#0a1628] border-falcon-border'
+                    ? 'bg-[#0d1829] border-[#e8002d] shadow-lg shadow-[#e8002d]/10'
+                    : 'bg-[#0a1628] border-[#1e2d42]'
                 }`}
               >
                 {highlighted && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-falcon-red text-white text-xs font-bold px-3 py-1 rounded-full">
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-[#e8002d] text-white text-xs font-bold px-3 py-1 rounded-full">
                     最も人気
                   </div>
                 )}
                 <div className="mb-6">
                   <h3 className="text-lg font-bold text-white mb-1">{name}</h3>
-                  <p className="text-sm text-falcon-muted mb-4">{description}</p>
+                  <p className="text-sm text-[#7d92b0] mb-4">{description}</p>
                   <div className="flex items-baseline gap-1">
                     <span className="text-3xl font-bold text-white">{price}</span>
-                    <span className="text-sm text-falcon-muted">{period}</span>
+                    <span className="text-sm text-[#7d92b0]">{period}</span>
                   </div>
                 </div>
                 <ul className="space-y-3 flex-1 mb-8">
                   {features.map(f => (
-                    <li key={f} className="flex items-start gap-2 text-sm text-falcon-muted">
+                    <li key={f} className="flex items-start gap-2 text-sm text-[#7d92b0]">
                       <Check className="w-4 h-4 text-[#22c55e] shrink-0 mt-0.5" />
                       {f}
                     </li>
@@ -341,8 +341,8 @@ export default function LandingPage() {
                   onClick={() => router.push('/login')}
                   className={`w-full py-3 rounded-xl font-semibold text-sm transition-colors ${
                     highlighted
-                      ? 'bg-falcon-red hover:bg-[#c4001f] text-white'
-                      : 'bg-falcon-border hover:bg-[#243650] text-white'
+                      ? 'bg-[#e8002d] hover:bg-[#c4001f] text-white'
+                      : 'bg-[#1e2d42] hover:bg-[#243650] text-white'
                   }`}
                 >
                   {cta}
@@ -358,19 +358,19 @@ export default function LandingPage() {
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold text-white mb-4">導入企業の声</h2>
-            <p className="text-lg text-falcon-muted">業種を問わず多くの企業で採用されています。</p>
+            <p className="text-lg text-[#7d92b0]">業種を問わず多くの企業で採用されています。</p>
           </div>
           <div className="grid md:grid-cols-3 gap-6">
             {TESTIMONIALS.map(({ quote, author, role, initials }) => (
-              <div key={author} className="bg-[#0a1628] border border-falcon-border rounded-xl p-6">
-                <p className="text-sm text-falcon-muted leading-relaxed mb-6">&ldquo;{quote}&rdquo;</p>
+              <div key={author} className="bg-[#0a1628] border border-[#1e2d42] rounded-xl p-6">
+                <p className="text-sm text-[#7d92b0] leading-relaxed mb-6">&ldquo;{quote}&rdquo;</p>
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-falcon-red/20 rounded-full flex items-center justify-center text-falcon-red font-bold text-sm shrink-0">
+                  <div className="w-10 h-10 bg-[#e8002d]/20 rounded-full flex items-center justify-center text-[#e8002d] font-bold text-sm shrink-0">
                     {initials}
                   </div>
                   <div>
                     <div className="text-sm font-semibold text-white">{author}</div>
-                    <div className="text-xs text-falcon-subtle">{role}</div>
+                    <div className="text-xs text-[#3d5068]">{role}</div>
                   </div>
                 </div>
               </div>
@@ -380,16 +380,16 @@ export default function LandingPage() {
       </section>
 
       {/* ── CTA ─────────────────────────────────────────────────── */}
-      <section className="py-24 px-6 bg-[#060d1a] border-t border-falcon-border">
+      <section className="py-24 px-6 bg-[#060d1a] border-t border-[#1e2d42]">
         <div className="max-w-3xl mx-auto text-center">
           <h2 className="text-4xl font-bold text-white mb-4">今すぐセキュリティを強化する</h2>
-          <p className="text-lg text-falcon-muted mb-10">
+          <p className="text-lg text-[#7d92b0] mb-10">
             14日間の無料トライアルで、Kizashiのすべての機能をご体験ください。
             クレジットカード不要、5分でセットアップ完了。
           </p>
           <button
             onClick={() => router.push('/login')}
-            className="inline-flex items-center gap-2 bg-falcon-red hover:bg-[#c4001f] text-white px-10 py-4 rounded-xl font-bold text-base transition-all hover:scale-105 shadow-lg shadow-falcon-red/20"
+            className="inline-flex items-center gap-2 bg-[#e8002d] hover:bg-[#c4001f] text-white px-10 py-4 rounded-xl font-bold text-base transition-all hover:scale-105 shadow-lg shadow-[#e8002d]/20"
           >
             無料トライアルを開始する
             <ArrowRight className="w-5 h-5" />
@@ -398,21 +398,21 @@ export default function LandingPage() {
       </section>
 
       {/* ── Footer ──────────────────────────────────────────────── */}
-      <footer className="border-t border-falcon-border py-10 px-6">
+      <footer className="border-t border-[#1e2d42] py-10 px-6">
         <div className="max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2.5">
-            <div className="w-6 h-6 bg-falcon-red rounded-sm flex items-center justify-center">
+            <div className="w-6 h-6 bg-[#e8002d] rounded-sm flex items-center justify-center">
               <span className="text-white font-bold text-xs">V</span>
             </div>
             <span className="text-sm font-semibold text-white">Kizashi</span>
           </div>
-          <p className="text-xs text-falcon-subtle">
+          <p className="text-xs text-[#3d5068]">
             © 2026 Kizashi. All rights reserved.
           </p>
-          <div className="flex items-center gap-6 text-xs text-falcon-subtle">
-            <a href="#" className="hover:text-falcon-muted transition-colors">プライバシーポリシー</a>
-            <a href="#" className="hover:text-falcon-muted transition-colors">利用規約</a>
-            <a href="#" className="hover:text-falcon-muted transition-colors">セキュリティ</a>
+          <div className="flex items-center gap-6 text-xs text-[#3d5068]">
+            <a href="#" className="hover:text-[#7d92b0] transition-colors">プライバシーポリシー</a>
+            <a href="#" className="hover:text-[#7d92b0] transition-colors">利用規約</a>
+            <a href="#" className="hover:text-[#7d92b0] transition-colors">セキュリティ</a>
           </div>
         </div>
       </footer>

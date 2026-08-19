@@ -113,6 +113,18 @@ func isCompromiseSignal(m *detectionrules.RuleMatch, flat map[string]interface{}
 	// own severity-6/7 alert exactly as before. It only refuses to let a structural
 	// heuristic be one half of the product that drives automatic isolation, which
 	// demands the axis actually distinguish shellcode from a JIT.
+	//
+	// ⚠️ Measured on the verification EC2 2026-08-18: in-memory YARA has matched
+	// ZERO times — 0 of 24,273 memory events in 30 days, and 0 over all history.
+	// So today this gate does not narrow the memory axis, it REMOVES it: the
+	// compromise axis is currently reachable only via injection (T1055*),
+	// credential access (T1003*/credential_access) and hollowing. That is the
+	// intended safety posture, not a bug, but do not read this branch as "only
+	// YARA-confirmed findings qualify" — nothing qualifies yet. Re-arming the
+	// memory leg needs a CONTENT discriminator that actually fires; the entropy
+	// annotation added in #794 (MemoryFinding.Entropy, >= 7.0 = packed/encrypted)
+	// is the candidate, but it has to reach the server on shipped agent builds
+	// and be measured against .NET JIT regions before it can gate anything here.
 	if m.RuleType == "memory" {
 		matched, _ := flat["yara_matched"].(bool)
 		return matched

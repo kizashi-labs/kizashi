@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"log/slog"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -56,6 +57,11 @@ func (h *ComplianceCheckerHandler) GetAgentCompliance(c *gin.Context) {
 
 // GetComplianceStats handles GET /api/v1/admin/compliance/stats
 func (h *ComplianceCheckerHandler) GetComplianceStats(c *gin.Context) {
-	stats := h.checker.GetComplianceStats(c.Request.Context())
+	stats, err := h.checker.GetComplianceStats(c.Request.Context())
+	if err != nil {
+		slog.Error("compliance: 準拠状況の集計を読めませんでした", "error", err)
+		ReadFailure(c, err, stats)
+		return
+	}
 	c.JSON(http.StatusOK, stats)
 }

@@ -23,11 +23,7 @@ func NewEmailSecurityHandler(pool *pgxpool.Pool) *EmailSecurityHandler {
 }
 
 func (h *EmailSecurityHandler) tableExists(c *gin.Context) bool {
-	ctx := c.Request.Context()
-	var exists bool
-	_ = h.pool.QueryRow(ctx,
-		`SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name='email_security_events')`).Scan(&exists)
-	return exists
+	return tableIsThere(c.Request.Context(), h.pool, "email_security_events")
 }
 
 // ListEvents — GET /email/events
@@ -128,7 +124,9 @@ func (h *EmailSecurityHandler) ListEvents(c *gin.Context) {
 		events = append(events, e)
 	}
 	if err := rows.Err(); err != nil {
-		slog.Warn("row iteration error", "error", err)
+		slog.Error("rows.Err: 結果の読み出しが途中で失敗しました", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": dbErrMsg(err)})
+		return
 	}
 
 	if events == nil {
@@ -356,10 +354,18 @@ func (h *EmailSecurityHandler) GetFrontendStats(c *gin.Context) {
 	}
 	ctx := c.Request.Context()
 	var analyzed, blocked, phishing, malware int
-	_ = h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM email_security_events WHERE DATE(received_at)=CURRENT_DATE`).Scan(&analyzed)
-	_ = h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM email_security_events WHERE verdict IN ('malicious','suspicious') AND DATE(received_at)=CURRENT_DATE`).Scan(&blocked)
-	_ = h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM email_security_events WHERE threat_type='phishing' AND DATE(received_at)=CURRENT_DATE`).Scan(&phishing)
-	_ = h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM email_security_events WHERE threat_type='malware' AND DATE(received_at)=CURRENT_DATE`).Scan(&malware)
+	if !ReadOK(c, h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM email_security_events WHERE DATE(received_at)=CURRENT_DATE`).Scan(&analyzed)) {
+		return
+	}
+	if !ReadOK(c, h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM email_security_events WHERE verdict IN ('malicious','suspicious') AND DATE(received_at)=CURRENT_DATE`).Scan(&blocked)) {
+		return
+	}
+	if !ReadOK(c, h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM email_security_events WHERE threat_type='phishing' AND DATE(received_at)=CURRENT_DATE`).Scan(&phishing)) {
+		return
+	}
+	if !ReadOK(c, h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM email_security_events WHERE threat_type='malware' AND DATE(received_at)=CURRENT_DATE`).Scan(&malware)) {
+		return
+	}
 	c.JSON(http.StatusOK, gin.H{
 		"analyzed_today":      analyzed,
 		"threats_blocked":     blocked,
@@ -383,7 +389,7 @@ func (h *EmailSecurityHandler) ListThreats(c *gin.Context) {
 		ORDER BY received_at DESC LIMIT 100
 	`)
 	if err != nil {
-		c.JSON(http.StatusOK, gin.H{"emails": []interface{}{}})
+		ReadFailure(c, err, gin.H{"emails": []interface{}{}})
 		return
 	}
 	defer rows.Close()
@@ -418,6 +424,11 @@ func (h *EmailSecurityHandler) ListThreats(c *gin.Context) {
 		e.Attachments = json.RawMessage(attachments)
 		e.URLs = json.RawMessage(urls)
 		emails = append(emails, e)
+	}
+	if err := rows.Err(); err != nil {
+		slog.Warn("ListThreats: 結果セットの読み取りが途中で終わりました。応答は不完全です", "error", err)
+		c.JSON(http.StatusOK, gin.H{"emails": []interface{}{}})
+		return
 	}
 	if emails == nil {
 		emails = []ThreatEmail{}
@@ -460,7 +471,7 @@ func (h *EmailSecurityHandler) ListAttachments(c *gin.Context) {
 		LIMIT 50
 	`)
 	if err != nil {
-		c.JSON(http.StatusOK, gin.H{"attachments": []interface{}{}})
+		ReadFailure(c, err, gin.H{"attachments": []interface{}{}})
 		return
 	}
 	defer rows.Close()
@@ -485,6 +496,11 @@ func (h *EmailSecurityHandler) ListAttachments(c *gin.Context) {
 			continue
 		}
 		list = append(list, a)
+	}
+	if err := rows.Err(); err != nil {
+		slog.Warn("ListAttachments: 結果セットの読み取りが途中で終わりました。応答は不完全です", "error", err)
+		c.JSON(http.StatusOK, gin.H{"attachments": []interface{}{}})
+		return
 	}
 	if list == nil {
 		list = []Attachment{}
@@ -512,7 +528,7 @@ func (h *EmailSecurityHandler) ListURLScans(c *gin.Context) {
 		LIMIT 50
 	`)
 	if err != nil {
-		c.JSON(http.StatusOK, gin.H{"scans": []interface{}{}})
+		ReadFailure(c, err, gin.H{"scans": []interface{}{}})
 		return
 	}
 	defer rows.Close()
@@ -538,6 +554,11 @@ func (h *EmailSecurityHandler) ListURLScans(c *gin.Context) {
 		s.ScanDate = scanDate.Format(time.RFC3339)
 		s.Categories = []string{}
 		list = append(list, s)
+	}
+	if err := rows.Err(); err != nil {
+		slog.Warn("ListURLScans: 結果セットの読み取りが途中で終わりました。応答は不完全です", "error", err)
+		c.JSON(http.StatusOK, gin.H{"scans": []interface{}{}})
+		return
 	}
 	if list == nil {
 		list = []URLScan{}
@@ -571,7 +592,7 @@ func (h *EmailSecurityHandler) ListSenders(c *gin.Context) {
 		LIMIT 50
 	`)
 	if err != nil {
-		c.JSON(http.StatusOK, gin.H{"senders": []interface{}{}})
+		ReadFailure(c, err, gin.H{"senders": []interface{}{}})
 		return
 	}
 	defer rows.Close()
@@ -597,6 +618,11 @@ func (h *EmailSecurityHandler) ListSenders(c *gin.Context) {
 		}
 		s.LastSeen = lastSeen.Format(time.RFC3339)
 		list = append(list, s)
+	}
+	if err := rows.Err(); err != nil {
+		slog.Warn("ListSenders: 結果セットの読み取りが途中で終わりました。応答は不完全です", "error", err)
+		c.JSON(http.StatusOK, gin.H{"senders": []interface{}{}})
+		return
 	}
 	if list == nil {
 		list = []Sender{}
@@ -626,13 +652,20 @@ func (h *EmailSecurityHandler) GetStats(c *gin.Context) {
 	}
 
 	var eventsToday, eventsWeek int
-	_ = h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM email_security_events WHERE DATE(received_at)=CURRENT_DATE`).Scan(&eventsToday)
-	_ = h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM email_security_events WHERE received_at >= NOW() - INTERVAL '7 days'`).Scan(&eventsWeek)
+	if !ReadOK(c, h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM email_security_events WHERE DATE(received_at)=CURRENT_DATE`).Scan(&eventsToday)) {
+		return
+	}
+	if !ReadOK(c, h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM email_security_events WHERE received_at >= NOW() - INTERVAL '7 days'`).Scan(&eventsWeek)) {
+		return
+	}
 
 	// By verdict
-	verdictRows, _ := h.pool.Query(ctx, `
+	verdictRows, err := h.pool.Query(ctx, `
 		SELECT verdict, COUNT(*) FROM email_security_events
 		GROUP BY verdict ORDER BY COUNT(*) DESC`)
+	if !ReadOK(c, err) {
+		return
+	}
 	byVerdict := map[string]int{}
 	if verdictRows != nil {
 		for verdictRows.Next() {
@@ -650,9 +683,12 @@ func (h *EmailSecurityHandler) GetStats(c *gin.Context) {
 
 	// Top senders
 	var topSenders []TopSender
-	senderRows, _ := h.pool.Query(ctx, `
+	senderRows, err := h.pool.Query(ctx, `
 		SELECT sender, COUNT(*) as cnt FROM email_security_events
 		GROUP BY sender ORDER BY cnt DESC LIMIT 10`)
+	if !ReadOK(c, err) {
+		return
+	}
 	if senderRows != nil {
 		for senderRows.Next() {
 			var s TopSender
@@ -668,10 +704,13 @@ func (h *EmailSecurityHandler) GetStats(c *gin.Context) {
 
 	// Top threat types
 	var topThreatTypes []ThreatTypeCount
-	threatRows, _ := h.pool.Query(ctx, `
+	threatRows, err := h.pool.Query(ctx, `
 		SELECT threat_type, COUNT(*) as cnt FROM email_security_events
 		WHERE threat_type != 'none'
 		GROUP BY threat_type ORDER BY cnt DESC LIMIT 10`)
+	if !ReadOK(c, err) {
+		return
+	}
 	if threatRows != nil {
 		for threatRows.Next() {
 			var t ThreatTypeCount
@@ -739,7 +778,9 @@ func (h *EmailSecurityHandler) GetThreatTrend(c *gin.Context) {
 		trend = append(trend, e)
 	}
 	if err := rows.Err(); err != nil {
-		slog.Warn("row iteration error", "error", err)
+		slog.Error("rows.Err: 結果の読み出しが途中で失敗しました", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": dbErrMsg(err)})
+		return
 	}
 
 	if trend == nil {
@@ -781,7 +822,7 @@ func (h *EmailSecurityHandler) ListPolicies(c *gin.Context) {
 		FROM email_security_policies ORDER BY priority, name
 	`)
 	if err != nil {
-		c.JSON(http.StatusOK, gin.H{"policies": []any{}})
+		ReadFailure(c, err, gin.H{"policies": []any{}})
 		return
 	}
 	defer rows.Close()
@@ -807,7 +848,9 @@ func (h *EmailSecurityHandler) ListPolicies(c *gin.Context) {
 		list = append(list, p)
 	}
 	if err := rows.Err(); err != nil {
-		slog.Warn("row iteration error", "error", err)
+		slog.Error("rows.Err: 結果の読み出しが途中で失敗しました", "error", err)
+		ReadFailure(c, err, gin.H{"policies": []any{}})
+		return
 	}
 	if list == nil {
 		list = []Policy{}

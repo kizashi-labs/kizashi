@@ -8,6 +8,12 @@ import (
 // ─── AgentPolicy 構造体テスト ─────────────────────────────────────────────────
 
 // TestAgentPolicy_ZeroValue は AgentPolicy のゼロ値フィールドを確認する
+// 既定ポリシーの削除拒否と、TenantID の nil 化は、**検査の本文で製品の
+// 2行を書き直して**確かめていました（`isBlocked := func(id string) bool
+// { return id == defaultPolicyID }`）。製品を1行も通りません。
+//
+// 本物を当てる検査は `agent_policies_db_test.go` にあります。
+
 func TestAgentPolicy_ZeroValue(t *testing.T) {
 	var p AgentPolicy
 	if p.ID != "" {
@@ -121,50 +127,6 @@ func TestAgentPolicy_DefaultPolicyIDIsHardcoded(t *testing.T) {
 
 // TestAgentPolicy_DeleteDefaultPolicyBlocked は
 // デフォルトポリシーの削除がブロックされるロジックを確認する
-func TestAgentPolicy_DeleteDefaultPolicyBlocked(t *testing.T) {
-	// Delete メソッドと同じガード条件を再現する
-	isBlocked := func(id string) bool {
-		return id == defaultPolicyID
-	}
-	if !isBlocked(defaultPolicyID) {
-		t.Error("デフォルトポリシーIDは削除がブロックされるべき")
-	}
-	if isBlocked("some-other-id") {
-		t.Error("デフォルト以外のIDはブロックされるべきではない")
-	}
-}
-
-// TestCreatePolicyInput_TenantIDNilWhenEmpty は
-// CreatePolicyInput.TenantID が空文字の場合、nilポインタになることを確認する
-func TestCreatePolicyInput_TenantIDNilWhenEmpty(t *testing.T) {
-	// Create メソッドと同じロジック
-	in := CreatePolicyInput{TenantID: ""}
-	var tenantID *string
-	if in.TenantID != "" {
-		tenantID = &in.TenantID
-	}
-	if tenantID != nil {
-		t.Errorf("TenantID が空の場合は nil であるべき: got %v", *tenantID)
-	}
-}
-
-// TestCreatePolicyInput_TenantIDSetWhenNonEmpty は
-// CreatePolicyInput.TenantID が非空の場合、ポインタが設定されることを確認する
-func TestCreatePolicyInput_TenantIDSetWhenNonEmpty(t *testing.T) {
-	in := CreatePolicyInput{TenantID: "tenant-xyz"}
-	var tenantID *string
-	if in.TenantID != "" {
-		tenantID = &in.TenantID
-	}
-	if tenantID == nil {
-		t.Fatal("TenantID が非空の場合はポインタが設定されるべき")
-	}
-	if *tenantID != "tenant-xyz" {
-		t.Errorf("*tenantID = %q, want \"tenant-xyz\"", *tenantID)
-	}
-}
-
-// TestAgentPolicy_LogLevelValues は有効なログレベル文字列を確認する
 func TestAgentPolicy_LogLevelValues(t *testing.T) {
 	// ポリシーに設定可能な想定ログレベルのセット
 	validLevels := []string{"debug", "info", "warn", "error"}

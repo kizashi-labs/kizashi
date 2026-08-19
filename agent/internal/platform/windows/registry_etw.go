@@ -64,7 +64,7 @@ func (c *ETWRegistryCollector) Start(ctx context.Context, out chan<- collector.R
 	}
 	ctx, c.cancel = context.WithCancel(ctx)
 	if err := c.startETW(ctx); err != nil {
-		slog.Warn("ETWレジストリ監視を開始できませんでした", "error", err)
+		etwSensorFailed(sensorETWRegistry, err)
 		return nil
 	}
 	slog.Info("ETWレジストリ監視を開始しました (Microsoft-Windows-Kernel-Registry)")

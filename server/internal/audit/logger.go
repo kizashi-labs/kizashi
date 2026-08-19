@@ -213,7 +213,12 @@ func (l *Logger) Query(ctx context.Context, filter AuditFilter) ([]*Event, int, 
 	// Total count
 	var total int
 	countQuery := fmt.Sprintf("SELECT COUNT(*) FROM audit_events WHERE %s", where)
-	_ = l.pool.QueryRow(ctx, countQuery, args...).Scan(&total)
+	// **数えられなかった 0 は「該当なし」として画面に出ます。**
+	// この total はページャの母数でもあるので、読めないと 1 ページ目だけの
+	// 一覧が「全部」に見えます。
+	if err := l.pool.QueryRow(ctx, countQuery, args...).Scan(&total); err != nil {
+		return nil, 0, fmt.Errorf("監査ログの件数を数えられません: %w", err)
+	}
 
 	// Paginated rows
 	dataQuery := fmt.Sprintf(
@@ -240,6 +245,9 @@ func (l *Logger) Query(ctx context.Context, filter AuditFilter) ([]*Event, int, 
 			continue
 		}
 		events = append(events, e)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, 0, err
 	}
 	if events == nil {
 		events = []*Event{}
@@ -292,20 +300,26 @@ func (l *Logger) GetStats(ctx context.Context, orgID string) (*AuditStats, error
 		args = append(args, orgID)
 	}
 
-	_ = l.pool.QueryRow(ctx,
+	if err := l.pool.QueryRow(ctx,
 		"SELECT COUNT(*) FROM audit_events WHERE timestamp > NOW() - INTERVAL '1 day'"+orgCond,
 		args...,
-	).Scan(&stats.EventsToday)
+	).Scan(&stats.EventsToday); err != nil {
+		return nil, fmt.Errorf("数えられないため報告を作りません: %w", err)
+	}
 
-	_ = l.pool.QueryRow(ctx,
+	if err := l.pool.QueryRow(ctx,
 		"SELECT COUNT(*) FROM audit_events WHERE timestamp > NOW() - INTERVAL '7 days'"+orgCond,
 		args...,
-	).Scan(&stats.Events7d)
+	).Scan(&stats.Events7d); err != nil {
+		return nil, fmt.Errorf("数えられないため報告を作りません: %w", err)
+	}
 
-	_ = l.pool.QueryRow(ctx,
+	if err := l.pool.QueryRow(ctx,
 		"SELECT COUNT(*) FROM audit_events WHERE risk_score > 50 AND timestamp > NOW() - INTERVAL '7 days'"+orgCond,
 		args...,
-	).Scan(&stats.SuspiciousEvents)
+	).Scan(&stats.SuspiciousEvents); err != nil {
+		return nil, fmt.Errorf("数えられないため報告を作りません: %w", err)
+	}
 
 	// Top users by event count
 	rows, err := l.pool.Query(ctx,
@@ -320,6 +334,9 @@ func (l *Logger) GetStats(ctx context.Context, orgID string) (*AuditStats, error
 			if err := rows.Scan(&ua.UserID, &ua.Username, &ua.Count); err == nil {
 				stats.TopUsers = append(stats.TopUsers, ua)
 			}
+		}
+		if err := rows.Err(); err != nil {
+			return nil, err
 		}
 	}
 	if stats.TopUsers == nil {

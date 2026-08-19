@@ -36,7 +36,7 @@ func NewDarwinAuthCollector() *DarwinAuthCollector { return &DarwinAuthCollector
 // immediately; if the `log` tool is unavailable the collector is a no-op.
 func (c *DarwinAuthCollector) Start(ctx context.Context, out chan<- collector.AuthEvent) error {
 	if _, err := exec.LookPath("log"); err != nil {
-		slog.Info("macOS の log コマンドが見つかりません。認証コレクタは無効です")
+		sensorUnavailable(sensorAuth, "log コマンドが見つかりません", err)
 		return nil
 	}
 	ctx, c.cancel = context.WithCancel(ctx)
@@ -64,11 +64,11 @@ func (c *DarwinAuthCollector) stream(ctx context.Context, out chan<- collector.A
 	)
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
-		slog.Warn("log stream の stdout 取得に失敗しました", "error", err)
+		sensorUnavailable(sensorAuth, "log stream の stdout を取れません", err)
 		return
 	}
 	if err := cmd.Start(); err != nil {
-		slog.Warn("log stream の起動に失敗しました", "error", err)
+		sensorUnavailable(sensorAuth, "log stream を起動できません", err)
 		return
 	}
 	defer func() { _ = cmd.Wait() }()

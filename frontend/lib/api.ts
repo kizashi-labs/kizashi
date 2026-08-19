@@ -18,7 +18,39 @@ function notifyRateLimit(retryAfter?: number) {
   }
 }
 
-// ── Core fetch with 401/429 handling ────────────────────────────
+// ── Server-failure toast ────────────────────────────────────────
+//
+// サーバ側は、読み取りに失敗したときに 200 と空のリストを返すのをやめ、
+// 500 を返すようになりました。ただし画面の大半は useQuery のエラー状態を
+// 見ておらず、data が undefined になると `?? []` / `?? 0` で 0件・0 を
+// そのまま描画します。つまりサーバが正直になっても、運用担当の目には
+// 以前と同じ「該当なし」が映ります。
+//
+// ここで一度だけ通知することで、どの画面でも「この数字は取得できていない」
+// ことが分かります。ページ側のエラー表示に置き換わるまでの下支えです。
+let _serverErrorToast: ((msg: string) => void) | null = null
+
+export function registerServerErrorHandler(fn: (msg: string) => void) {
+  _serverErrorToast = fn
+}
+
+// 同じ画面から10本のクエリが同時に失敗しても通知は1つ。
+let _lastServerErrorAt = 0
+const SERVER_ERROR_QUIET_MS = 5000
+
+function notifyServerError(path: string) {
+  const now = Date.now()
+  if (now - _lastServerErrorAt < SERVER_ERROR_QUIET_MS) return
+  _lastServerErrorAt = now
+  const msg = `サーバからデータを取得できませんでした (${path})。表示されている件数は実際の値ではありません。`
+  if (_serverErrorToast) {
+    _serverErrorToast(msg)
+  } else if (typeof window !== 'undefined') {
+    console.warn('[API]', msg)
+  }
+}
+
+// ── Core fetch with 401/429/5xx handling ────────────────────────
 export async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
   const token = getToken()
 
@@ -58,6 +90,11 @@ export async function apiFetch<T>(path: string, options?: RequestInit): Promise<
   }
 
   if (!res.ok) {
+    // 501 は「この機能はまだ実装されていません」で、障害ではありません。
+    // 再試行を促す通知を出すと、決して直らないものを何度も試させます。
+    if (res.status >= 500 && res.status !== 501) {
+      notifyServerError(path)
+    }
     const err = await res.json().catch(() => ({}))
     const apiError = new Error((err as { error?: string }).error || `HTTP ${res.status}`) as Error & { status: number }
     apiError.status = res.status

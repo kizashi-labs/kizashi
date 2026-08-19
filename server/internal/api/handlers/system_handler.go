@@ -216,9 +216,11 @@ func (h *SystemHandler) DBStats(c *gin.Context) {
 
 	// Connection count
 	var connectionCount int
-	_ = h.pool.QueryRow(ctx,
+	if !ReadOK(c, h.pool.QueryRow(ctx,
 		`SELECT COUNT(*) FROM pg_stat_activity`,
-	).Scan(&connectionCount)
+	).Scan(&connectionCount)) {
+		return
+	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"table_sizes":      tableSizes,

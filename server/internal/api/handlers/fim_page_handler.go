@@ -23,10 +23,7 @@ func NewFIMPageHandler(pool *pgxpool.Pool) *FIMPageHandler {
 }
 
 func (h *FIMPageHandler) tableExists(c *gin.Context, name string) bool {
-	var ok bool
-	_ = h.pool.QueryRow(c.Request.Context(),
-		`SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name=$1)`, name).Scan(&ok)
-	return ok
+	return tableIsThere(c.Request.Context(), h.pool, name)
 }
 
 // ListSuspicious returns high-risk FIM events from the last 24 hours.
@@ -75,8 +72,17 @@ func (h *FIMPageHandler) ListSuspicious(c *gin.Context) {
 					files = append(files, f)
 				}
 			}
+			if err := rows.Err(); err != nil {
+				slog.Warn("ListSuspicious: rows の読み取りが途中で終わりました。この区画は不完全です", "error", err)
+			}
 		}
-	} else if h.tableExists(c, "events") {
+	}
+
+	// フォールバックの条件は「テーブルが無いこと」ではなく「行が取れなかったこと」
+	// です。fim_events はマイグレーションが作りますが書き込むコードがどこにも
+	// 無く、tableExists は常に true を返すため、実データのある events 側の分岐に
+	// 一度も到達していませんでした。テーブルの有無はデータの有無ではありません。
+	if len(files) == 0 && h.tableExists(c, "events") {
 		// Fall back to generic events.
 		// events の実際の列は event_id / event_type / time / raw_data (migration 002)。
 		// id / type / created_at / event_data / data はいずれも存在せず、このクエリは
@@ -85,13 +91,25 @@ func (h *FIMPageHandler) ListSuspicious(c *gin.Context) {
 		// 'file_integrity' は仮に列名が正しくても 1 件も一致しない値だった。
 		// ファイル系イベントは 'file' として入るので、そちらを拾う。
 		rows, err := h.pool.Query(ctx, `
+			-- 変更種別のキーは change_type ではなく operation で、値は
+			-- FileEvent.Action の enum 名 (FILE_ACTION_CREATE など) です。
+			-- change_type は存在しないため COALESCE の既定値 'modified' が
+			-- 常に採用されており、deriveRiskReasons の "System file deleted" は
+			-- 一度も付きませんでした。
 			SELECT event_id::text,
-			       COALESCE(raw_data->>'file_path', ''),
-			       COALESCE(raw_data->>'change_type', 'modified'),
+			       COALESCE(raw_data->>'path', ''),
+			       CASE raw_data->>'operation'
+			           WHEN 'FILE_ACTION_CREATE'  THEN 'created'
+			           WHEN 'FILE_ACTION_MODIFY'  THEN 'modified'
+			           WHEN 'FILE_ACTION_DELETE'  THEN 'deleted'
+			           WHEN 'FILE_ACTION_RENAME'  THEN 'renamed'
+			           WHEN 'FILE_ACTION_EXECUTE' THEN 'executed'
+			           ELSE 'modified'
+			       END,
 			       COALESCE(agent_id::text, ''),
 			       time
 			FROM events
-			WHERE event_type='file' AND COALESCE(raw_data->>'file_path', '') != ''
+			WHERE event_type='file' AND COALESCE(raw_data->>'path', '') != ''
 			ORDER BY time DESC LIMIT 200`)
 		if err != nil {
 			slog.Warn("fim: イベントからのファイル一覧導出に失敗", "error", err)
@@ -107,6 +125,9 @@ func (h *FIMPageHandler) ListSuspicious(c *gin.Context) {
 					f.RiskReasons = deriveRiskReasons(f.FilePath, f.ChangeType)
 					files = append(files, f)
 				}
+			}
+			if err := rows.Err(); err != nil {
+				slog.Warn("ListSuspicious: rows の読み取りが途中で終わりました。この区画は不完全です", "error", err)
 			}
 		}
 	}
@@ -159,7 +180,7 @@ func (h *FIMPageHandler) ListIgnoreRules(c *gin.Context) {
 	rows, err := h.pool.Query(ctx,
 		`SELECT id::text, pattern, enabled, created_at FROM fim_ignore_rules ORDER BY created_at DESC`)
 	if err != nil {
-		c.JSON(http.StatusOK, gin.H{"data": []IgnoreRule{}, "total": 0})
+		ReadFailure(c, err, gin.H{"data": []IgnoreRule{}, "total": 0})
 		return
 	}
 	defer rows.Close()
@@ -172,6 +193,11 @@ func (h *FIMPageHandler) ListIgnoreRules(c *gin.Context) {
 			r.CreatedAt = ts.Format(time.RFC3339)
 			rules = append(rules, r)
 		}
+	}
+	if err := rows.Err(); err != nil {
+		slog.Warn("ListIgnoreRules: 結果セットの読み取りが途中で終わりました。応答は不完全です", "error", err)
+		c.JSON(http.StatusOK, gin.H{"data": []IgnoreRule{}, "total": 0})
+		return
 	}
 	if rules == nil {
 		rules = []IgnoreRule{}
@@ -191,7 +217,9 @@ func (h *FIMPageHandler) CreateIgnoreRule(c *gin.Context) {
 	}
 
 	if !h.tableExists(c, "fim_ignore_rules") {
-		c.JSON(http.StatusOK, gin.H{"message": "ignore rule added"})
+		// **除外ルールは追加されていません。** 追加したつもりのファイルから、
+		// FIM のアラートが出続けます。
+		FeatureNotInstalled(c, "FIM 除外ルールの追加")
 		return
 	}
 
@@ -211,7 +239,9 @@ func (h *FIMPageHandler) CreateIgnoreRule(c *gin.Context) {
 func (h *FIMPageHandler) DeleteIgnoreRule(c *gin.Context) {
 	id := c.Param("id")
 	if h.tableExists(c, "fim_ignore_rules") {
-		_, _ = h.pool.Exec(c.Request.Context(), `DELETE FROM fim_ignore_rules WHERE id=$1`, id)
+		if _, err := h.pool.Exec(c.Request.Context(), `DELETE FROM fim_ignore_rules WHERE id=$1`, id); !WriteOK(c, err) {
+			return
+		}
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "rule deleted"})
 }

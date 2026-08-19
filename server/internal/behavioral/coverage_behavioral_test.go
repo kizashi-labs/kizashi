@@ -3,7 +3,9 @@ package behavioral
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -28,11 +30,46 @@ func covPool(t *testing.T) *pgxpool.Pool {
 	return pool
 }
 
+// 登録されていない端末は、障害ではありません。
+//
+// **この検査は「その端末 ID で成功すること」を期待していました。** 端末は
+// agents に無いので、ホスト名の読み出しが ErrNoRows になり、`数えられません
+// でした` が返っていました —— そして
+// `POST /admin/behavioral/baselines/:agent_id` は 500 と「データベース操作に
+// 失敗しました」を返していました。**ID を打ち間違えただけで、障害が起きた
+// ように見えます。** いまは ErrAgentNotFound で、画面には 404 が出ます。
+func TestBuildBaselineSaysTheAgentIsUnknown(t *testing.T) {
+	pool := covPool(t)
+	e := NewEngine(pool)
+
+	_, err := e.BuildBaseline(context.Background(), "00000000-0000-0000-0000-0000000000ab", 14)
+	if !errors.Is(err, ErrAgentNotFound) {
+		t.Fatalf("BuildBaseline = %v、want ErrAgentNotFound。**「端末が無い」と"+
+			"「データベースが落ちている」が同じ答えになっています**", err)
+	}
+	if !strings.Contains(err.Error(), "00000000-0000-0000-0000-0000000000ab") {
+		t.Errorf("どの端末なのかが書かれていません: %v", err)
+	}
+}
+
 func TestEngine_BaselineBuilders_DB(t *testing.T) {
 	pool := covPool(t)
 	e := NewEngine(pool)
 	ctx := context.Background()
 	agentID := "00000000-0000-0000-0000-0000000000ab"
+
+	// 端末を登録します。**ここが無かったので、この検査は
+	// 「登録済みの端末で、履歴が空」という本来の道を一度も通っていません
+	// でした。** 通っていたのは「端末が無い」だけです。
+	if _, err := pool.Exec(ctx,
+		`INSERT INTO agents (id, hostname, os_type, status)
+		 VALUES ($1::uuid, 'baseline-cov', 'linux', 'offline')
+		 ON CONFLICT (id) DO NOTHING`, agentID); err != nil {
+		t.Fatalf("端末を登録できません: %v", err)
+	}
+	t.Cleanup(func() {
+		_, _ = pool.Exec(context.Background(), `DELETE FROM agents WHERE id = $1::uuid`, agentID)
+	})
 
 	// BuildBaseline over an empty event history returns a baseline (or a
 	// not-enough-data path) without error and populates the in-memory map.

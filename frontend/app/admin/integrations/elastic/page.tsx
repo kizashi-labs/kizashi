@@ -18,6 +18,8 @@ import {
   Zap,
 } from 'lucide-react'
 
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+
 // ─── Types ──────────────────────────────────────────────────────────────────────
 
 type AuthMode = 'api_key' | 'userpass'
@@ -92,7 +94,7 @@ const DEFAULT_MAPPINGS: FieldMapping[] = [
 
 function FieldLabel({ children }: { children: React.ReactNode }) {
   return (
-    <label className="block text-xs font-medium text-falcon-muted mb-1.5 uppercase tracking-wide">
+    <label className="block text-xs font-medium text-[#7d92b0] mb-1.5 uppercase tracking-wide">
       {children}
     </label>
   )
@@ -120,9 +122,9 @@ function TextInput({
       onChange={e => onChange(e.target.value)}
       placeholder={placeholder}
       disabled={disabled}
-      className={`w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2.5 text-sm
-                  text-falcon-text placeholder-falcon-subtle
-                  focus:outline-hidden focus:border-falcon-red/60 focus:ring-1 focus:ring-falcon-red/20
+      className={`w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2.5 text-sm
+                  text-[#e2e8f4] placeholder-[#3d5068]
+                  focus:outline-hidden focus:border-[#e8002d]/60 focus:ring-1 focus:ring-[#e8002d]/20
                   disabled:opacity-40 disabled:cursor-not-allowed
                   transition-colors ${className}`}
     />
@@ -151,22 +153,22 @@ function Toggle({
         />
         <div
           className={`w-10 h-6 rounded-full transition-colors duration-200 ${
-            checked ? 'bg-falcon-red' : 'bg-falcon-border'
+            checked ? 'bg-[#e8002d]' : 'bg-[#1e2d42]'
           }`}
         >
           <div
-            className={`absolute top-1 w-4 h-4 rounded-full bg-falcon-text shadow transition-transform duration-200 ${
+            className={`absolute top-1 w-4 h-4 rounded-full bg-[#e2e8f4] shadow-sm transition-transform duration-200 ${
               checked ? 'translate-x-5' : 'translate-x-1'
             }`}
           />
         </div>
       </div>
       <div>
-        <p className="text-sm text-falcon-text font-medium group-hover:text-white transition-colors">
+        <p className="text-sm text-[#e2e8f4] font-medium group-hover:text-white transition-colors">
           {label}
         </p>
         {description && (
-          <p className="text-xs text-falcon-muted mt-0.5">{description}</p>
+          <p className="text-xs text-[#7d92b0] mt-0.5">{description}</p>
         )}
       </div>
     </label>
@@ -183,10 +185,10 @@ function Card({
   children: React.ReactNode
 }) {
   return (
-    <div className="bg-falcon-surface rounded-xl border border-falcon-border overflow-hidden">
-      <div className="px-6 py-4 border-b border-falcon-border">
+    <div className="bg-[#0d1220] rounded-xl border border-[#1e2d42] overflow-hidden">
+      <div className="px-6 py-4 border-b border-[#1e2d42]">
         <h2 className="text-sm font-semibold text-white">{title}</h2>
-        {subtitle && <p className="text-xs text-falcon-muted mt-0.5">{subtitle}</p>}
+        {subtitle && <p className="text-xs text-[#7d92b0] mt-0.5">{subtitle}</p>}
       </div>
       <div className="p-6">{children}</div>
     </div>
@@ -262,9 +264,9 @@ function ConnectionSettingsCard() {
                   value={mode}
                   checked={config.authMode === mode}
                   onChange={() => set('authMode', mode)}
-                  className="w-4 h-4 accent-falcon-red"
+                  className="w-4 h-4 accent-[#e8002d]"
                 />
-                <span className="text-sm text-falcon-text">
+                <span className="text-sm text-[#e2e8f4]">
                   {mode === 'api_key' ? 'API Key' : 'Username / Password'}
                 </span>
               </label>
@@ -282,7 +284,7 @@ function ConnectionSettingsCard() {
               onChange={v => set('apiKey', v)}
               placeholder="VXNlcklEOkFQSUtleQ=="
             />
-            <p className="text-xs text-falcon-subtle mt-1">
+            <p className="text-xs text-[#3d5068] mt-1">
               Elasticsearch Console で生成した Base64 エンコード済み API キー
             </p>
           </div>
@@ -319,7 +321,7 @@ function ConnectionSettingsCard() {
             onChange={v => set('indexPattern', v)}
             placeholder="edr-alerts-*"
           />
-          <p className="text-xs text-falcon-subtle mt-1">
+          <p className="text-xs text-[#3d5068] mt-1">
             EDR データを書き込む Elasticsearch インデックスのパターン
           </p>
         </div>
@@ -342,10 +344,7 @@ function ConnectionSettingsCard() {
           <button
             onClick={handleTest}
             disabled={testStatus === 'testing' || !config.url}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg
-                       bg-falcon-surface border border-falcon-border text-falcon-muted
-                       hover:border-falcon-muted/50 hover:text-falcon-text
-                       disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+            className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-[#0d1220] border border-[#1e2d42] text-[#7d92b0] hover:border-[#7d92b0]/50 hover:text-[#e2e8f4] disabled:opacity-40 disabled:cursor-not-allowed transition-all"
           >
             {testStatus === 'testing' ? (
               <Loader2 className="w-4 h-4 animate-spin" />
@@ -423,12 +422,10 @@ function SyncSettingsCard() {
             <select
               value={String(config.interval)}
               onChange={e => set('interval', Number(e.target.value))}
-              className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2.5 text-sm
-                         text-falcon-text focus:outline-hidden focus:border-falcon-red/60
-                         focus:ring-1 focus:ring-falcon-red/20 transition-colors appearance-none"
+              className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2.5 text-sm text-[#e2e8f4] focus:outline-hidden focus:border-[#e8002d]/60 focus:ring-1 focus:ring-[#e8002d]/20 transition-colors appearance-none"
             >
               {INTERVAL_OPTIONS.map(o => (
-                <option key={o.value} value={o.value} className="bg-falcon-surface">
+                <option key={o.value} value={o.value} className="bg-[#0d1220]">
                   {o.label}
                 </option>
               ))}
@@ -439,7 +436,7 @@ function SyncSettingsCard() {
           <div>
             <div className="flex items-center justify-between mb-2">
               <FieldLabel>最小重大度しきい値</FieldLabel>
-              <span className="text-sm font-mono font-semibold text-falcon-red">
+              <span className="text-sm font-mono font-semibold text-[#e8002d]">
                 {config.minSeverity}
               </span>
             </div>
@@ -449,10 +446,9 @@ function SyncSettingsCard() {
               max={10}
               value={config.minSeverity}
               onChange={e => set('minSeverity', Number(e.target.value))}
-              className="w-full h-2 rounded-full appearance-none cursor-pointer
-                         bg-falcon-border accent-falcon-red"
+              className="w-full h-2 rounded-full appearance-none cursor-pointer bg-[#1e2d42] accent-[#e8002d]"
             />
-            <div className="flex justify-between text-xs text-falcon-subtle mt-1">
+            <div className="flex justify-between text-xs text-[#3d5068] mt-1">
               <span>1 (低)</span>
               <span>5 (中)</span>
               <span>10 (クリティカル)</span>
@@ -475,13 +471,13 @@ function SyncSettingsCard() {
                     type="checkbox"
                     checked={config[key]}
                     onChange={e => set(key, e.target.checked)}
-                    className="mt-0.5 w-4 h-4 accent-falcon-red rounded-sm"
+                    className="mt-0.5 w-4 h-4 accent-[#e8002d] rounded-sm"
                   />
                   <div>
-                    <p className="text-sm text-falcon-text font-medium group-hover:text-white transition-colors">
+                    <p className="text-sm text-[#e2e8f4] font-medium group-hover:text-white transition-colors">
                       {label}
                     </p>
-                    <p className="text-xs text-falcon-muted">{desc}</p>
+                    <p className="text-xs text-[#7d92b0]">{desc}</p>
                   </div>
                 </label>
               ))}
@@ -490,7 +486,7 @@ function SyncSettingsCard() {
         </div>
 
         {/* Save */}
-        <div className="flex items-center justify-between pt-2 border-t border-falcon-border">
+        <div className="flex items-center justify-between pt-2 border-t border-[#1e2d42]">
           {saveStatus === 'saved' && (
             <span className="text-sm text-emerald-400 flex items-center gap-1.5">
               <CheckCircle2 className="w-4 h-4" />
@@ -507,9 +503,7 @@ function SyncSettingsCard() {
           <button
             onClick={() => saveMutation.mutate({ sync: config })}
             disabled={saveStatus === 'saving'}
-            className="flex items-center gap-2 px-5 py-2.5 text-sm font-medium rounded-lg
-                       bg-falcon-red hover:bg-[#c0001f] text-white
-                       disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            className="flex items-center gap-2 px-5 py-2.5 text-sm font-medium rounded-lg bg-[#e8002d] hover:bg-[#c0001f] text-white disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
             {saveStatus === 'saving' ? (
               <Loader2 className="w-4 h-4 animate-spin" />
@@ -532,8 +526,11 @@ function FieldMappingCard() {
 
   const saveMutation = useMutation({
     mutationFn: (payload: object) =>
+      // サーバの保存は POST /admin/integrations/:type/mappings です。
+      // PUT はルートが無く、フィールドマッピングは保存されないまま
+      // 「保存しました」が出ていました。
       apiFetch('/api/v1/admin/integrations/elastic/mappings', {
-        method: 'PUT',
+        method: 'POST',
         body: JSON.stringify(payload),
       }),
     onMutate: () => setSaveStatus('saving'),
@@ -568,20 +565,20 @@ function FieldMappingCard() {
     >
       <div className="space-y-4">
         {/* Table */}
-        <div className="overflow-x-auto rounded-lg border border-falcon-border">
+        <div className="overflow-x-auto rounded-lg border border-[#1e2d42]">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-falcon-border bg-[#070d19]/80">
-                <th className="text-left px-4 py-3 text-xs text-falcon-muted font-medium uppercase tracking-wide">
+              <tr className="border-b border-[#1e2d42] bg-[#070d19]/80">
+                <th className="text-left px-4 py-3 text-xs text-[#7d92b0] font-medium uppercase tracking-wide">
                   EDR フィールド
                 </th>
-                <th className="text-left px-4 py-3 text-xs text-falcon-muted font-medium uppercase tracking-wide">
+                <th className="text-left px-4 py-3 text-xs text-[#7d92b0] font-medium uppercase tracking-wide">
                   Elasticsearch フィールド
                 </th>
                 <th className="w-12 px-4 py-3" />
               </tr>
             </thead>
-            <tbody className="divide-y divide-falcon-border/50">
+            <tbody className="divide-y divide-[#1e2d42]/50">
               {mappings.map(mapping => (
                 <tr key={mapping.id} className="hover:bg-[#070d19]/40 transition-colors group">
                   <td className="px-4 py-2.5">
@@ -590,8 +587,7 @@ function FieldMappingCard() {
                       value={mapping.edrField}
                       onChange={e => handleChange(mapping.id, 'edrField', e.target.value)}
                       placeholder="edr_field_name"
-                      className="w-full bg-transparent border-0 text-sm text-falcon-text placeholder-falcon-subtle
-                                 focus:outline-hidden font-mono"
+                      className="w-full bg-transparent border-0 text-sm text-[#e2e8f4] placeholder-[#3d5068] focus:outline-hidden font-mono"
                     />
                   </td>
                   <td className="px-4 py-2.5">
@@ -600,15 +596,13 @@ function FieldMappingCard() {
                       value={mapping.elasticField}
                       onChange={e => handleChange(mapping.id, 'elasticField', e.target.value)}
                       placeholder="elastic.field.name"
-                      className="w-full bg-transparent border-0 text-sm text-falcon-muted placeholder-falcon-subtle
-                                 focus:outline-hidden font-mono"
+                      className="w-full bg-transparent border-0 text-sm text-[#7d92b0] placeholder-[#3d5068] focus:outline-hidden font-mono"
                     />
                   </td>
                   <td className="px-4 py-2.5">
                     <button
                       onClick={() => handleRemove(mapping.id)}
-                      className="opacity-0 group-hover:opacity-100 text-falcon-subtle hover:text-red-400
-                                 transition-all text-lg leading-none"
+                      className="opacity-0 group-hover:opacity-100 text-[#3d5068] hover:text-red-400 transition-all text-lg leading-none"
                       title="削除"
                     >
                       ×
@@ -625,18 +619,14 @@ function FieldMappingCard() {
           <div className="flex gap-2">
             <button
               onClick={handleAddRow}
-              className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg
-                         bg-[#070d19] border border-falcon-border text-falcon-muted
-                         hover:border-falcon-red/40 hover:text-falcon-text transition-all"
+              className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg bg-[#070d19] border border-[#1e2d42] text-[#7d92b0] hover:border-[#e8002d]/40 hover:text-[#e2e8f4] transition-all"
             >
               <Plus className="w-4 h-4" />
               マッピングを追加
             </button>
             <button
               onClick={handleReset}
-              className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg
-                         bg-[#070d19] border border-falcon-border text-falcon-muted
-                         hover:border-falcon-muted/40 hover:text-falcon-text transition-all"
+              className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg bg-[#070d19] border border-[#1e2d42] text-[#7d92b0] hover:border-[#7d92b0]/40 hover:text-[#e2e8f4] transition-all"
             >
               <RotateCcw className="w-4 h-4" />
               デフォルトに戻す
@@ -653,9 +643,7 @@ function FieldMappingCard() {
             <button
               onClick={() => saveMutation.mutate({ mappings })}
               disabled={saveStatus === 'saving'}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg
-                         bg-falcon-red hover:bg-[#c0001f] text-white
-                         disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-[#e8002d] hover:bg-[#c0001f] text-white disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
             >
               {saveStatus === 'saving' ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
@@ -707,7 +695,7 @@ function SyncStatusCard() {
     <Card title="同期ステータス" subtitle="Elasticsearch クラスターとのデータ同期状態">
       <div className="space-y-5">
         {isLoading && (
-          <div className="flex items-center gap-2 text-sm text-falcon-muted">
+          <div className="flex items-center gap-2 text-sm text-[#7d92b0]">
             <Loader2 className="w-4 h-4 animate-spin" />
             読み込み中...
           </div>
@@ -716,8 +704,8 @@ function SyncStatusCard() {
         {/* Status grid */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           {/* Connection status */}
-          <div className="bg-[#070d19] rounded-lg border border-falcon-border px-4 py-3">
-            <p className="text-xs text-falcon-muted mb-2 uppercase tracking-wide">接続状態</p>
+          <div className="bg-[#070d19] rounded-lg border border-[#1e2d42] px-4 py-3">
+            <p className="text-xs text-[#7d92b0] mb-2 uppercase tracking-wide">接続状態</p>
             <span
               className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border
                 ${data.connected
@@ -735,23 +723,23 @@ function SyncStatusCard() {
           </div>
 
           {/* Last sync */}
-          <div className="bg-[#070d19] rounded-lg border border-falcon-border px-4 py-3">
-            <p className="text-xs text-falcon-muted mb-2 uppercase tracking-wide">最終同期</p>
-            <p className="text-sm text-falcon-text font-mono">
+          <div className="bg-[#070d19] rounded-lg border border-[#1e2d42] px-4 py-3">
+            <p className="text-xs text-[#7d92b0] mb-2 uppercase tracking-wide">最終同期</p>
+            <p className="text-sm text-[#e2e8f4] font-mono">
               {data.lastSync ?? '—'}
             </p>
           </div>
 
           {/* Docs today */}
-          <div className="bg-[#070d19] rounded-lg border border-falcon-border px-4 py-3">
-            <p className="text-xs text-falcon-muted mb-2 uppercase tracking-wide">本日のドキュメント</p>
-            <p className="text-lg font-bold text-falcon-text">{fmt(data.docsToday)}</p>
+          <div className="bg-[#070d19] rounded-lg border border-[#1e2d42] px-4 py-3">
+            <p className="text-xs text-[#7d92b0] mb-2 uppercase tracking-wide">本日のドキュメント</p>
+            <p className="text-lg font-bold text-[#e2e8f4]">{fmt(data.docsToday)}</p>
           </div>
 
           {/* Total docs */}
-          <div className="bg-[#070d19] rounded-lg border border-falcon-border px-4 py-3">
-            <p className="text-xs text-falcon-muted mb-2 uppercase tracking-wide">累計ドキュメント</p>
-            <p className="text-lg font-bold text-falcon-text">{fmt(data.totalDocs)}</p>
+          <div className="bg-[#070d19] rounded-lg border border-[#1e2d42] px-4 py-3">
+            <p className="text-xs text-[#7d92b0] mb-2 uppercase tracking-wide">累計ドキュメント</p>
+            <p className="text-lg font-bold text-[#e2e8f4]">{fmt(data.totalDocs)}</p>
           </div>
         </div>
 
@@ -760,15 +748,15 @@ function SyncStatusCard() {
           <div>
             <div className="flex items-center gap-2 mb-2">
               <AlertTriangle className="w-4 h-4 text-yellow-400" />
-              <p className="text-xs text-falcon-muted uppercase tracking-wide font-medium">
+              <p className="text-xs text-[#7d92b0] uppercase tracking-wide font-medium">
                 直近のエラー
               </p>
             </div>
-            <div className="bg-[#070d19] rounded-lg border border-falcon-border p-4 space-y-1.5">
+            <div className="bg-[#070d19] rounded-lg border border-[#1e2d42] p-4 space-y-1.5">
               {data.recentErrors.map((err, i) => (
                 <p
                   key={i}
-                  className="text-xs font-mono text-falcon-muted leading-relaxed"
+                  className="text-xs font-mono text-[#7d92b0] leading-relaxed"
                 >
                   {err}
                 </p>
@@ -785,9 +773,7 @@ function SyncStatusCard() {
           <button
             onClick={handleSyncNow}
             disabled={syncStatus === 'syncing'}
-            className="flex items-center gap-2 px-5 py-2.5 text-sm font-medium rounded-lg
-                       bg-falcon-red hover:bg-[#c0001f] text-white
-                       disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            className="flex items-center gap-2 px-5 py-2.5 text-sm font-medium rounded-lg bg-[#e8002d] hover:bg-[#c0001f] text-white disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
             {syncStatus === 'syncing' ? (
               <Loader2 className="w-4 h-4 animate-spin" />
@@ -814,39 +800,39 @@ function SyncStatusCard() {
 export default function ElasticIntegrationPage() {
   return (
     <div className="min-h-screen bg-[#070d19]">
-      <div className="max-w-(--breakpoint-lg) mx-auto p-6 space-y-6">
+      <PageDataUnavailable />
+      <div className="max-w-screen-lg mx-auto p-6 space-y-6">
 
         {/* ── Breadcrumb ─────────────────────────────────────────── */}
-        <nav className="flex items-center gap-1.5 text-xs text-falcon-subtle">
-          <a href="/admin" className="hover:text-falcon-muted transition-colors">Admin</a>
+        <nav className="flex items-center gap-1.5 text-xs text-[#3d5068]">
+          <a href="/admin" className="hover:text-[#7d92b0] transition-colors">Admin</a>
           <ChevronRight className="w-3 h-3" />
-          <a href="/admin/integrations" className="hover:text-falcon-muted transition-colors">Integrations</a>
+          <a href="/admin/integrations" className="hover:text-[#7d92b0] transition-colors">Integrations</a>
           <ChevronRight className="w-3 h-3" />
-          <span className="text-falcon-muted">Elastic SIEM</span>
+          <span className="text-[#7d92b0]">Elastic SIEM</span>
         </nav>
 
         {/* ── Header ────────────────────────────────────────────── */}
         <div className="flex items-start gap-4">
           {/* Elastic logo placeholder */}
           <div
-            className="w-12 h-12 rounded-xl flex items-center justify-center
-                        text-white font-bold text-lg shrink-0 shadow-lg"
+            className="w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold text-lg shrink-0 shadow-lg"
             style={{ background: 'radial-gradient(circle at 35% 35%, #ff8a00, #e07000)' }}
           >
             E
           </div>
           <div>
             <h1 className="text-2xl font-bold text-white">Elastic SIEM 連携</h1>
-            <p className="text-sm text-falcon-muted mt-0.5">
+            <p className="text-sm text-[#7d92b0] mt-0.5">
               Elasticsearch / Elastic Security へのアラート・エージェントデータ同期設定
             </p>
           </div>
         </div>
 
         {/* ── Dev notice ────────────────────────────────────────── */}
-        <div className="flex items-start gap-3 bg-falcon-blue/5 border border-falcon-blue/20 rounded-xl px-5 py-4">
-          <Info className="w-4 h-4 text-falcon-blue shrink-0 mt-0.5" />
-          <p className="text-sm text-falcon-muted leading-relaxed">
+        <div className="flex items-start gap-3 bg-[#1a6bff]/5 border border-[#1a6bff]/20 rounded-xl px-5 py-4">
+          <Info className="w-4 h-4 text-[#1a6bff] shrink-0 mt-0.5" />
+          <p className="text-sm text-[#7d92b0] leading-relaxed">
             Elastic SIEM 連携は現在スタブ実装です。接続テスト・保存・同期操作はデモ動作となります。
           </p>
         </div>

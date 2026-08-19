@@ -3,11 +3,68 @@ package store
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )
+
+// The statuses live_response_commands.status may hold. The column carries a
+// CHECK constraint naming exactly these five, and both features that write to
+// this table — the interactive terminal in live_response.go and the agent
+// command queue below — have to stay inside it. A value outside the set fails
+// the UPDATE with 23514.
+const (
+	QueuedCommandPending   = "pending"
+	QueuedCommandRunning   = "running"
+	QueuedCommandCompleted = "completed"
+	QueuedCommandError     = "error"
+	QueuedCommandTimeout   = "timeout"
+)
+
+// ErrUnknownResultStatus is returned when a caller submits a completion status
+// that is not part of the vocabulary above and has no obvious equivalent. It is
+// a client error, not a server one: the caller sent a word this system does not
+// use.
+var ErrUnknownResultStatus = errors.New("unknown command result status")
+
+// resultStatusAliases maps the words callers plausibly send onto the ones the
+// schema accepts.
+//
+// This is not decoration. UpdateResult passed the submitted status straight
+// into the UPDATE, so an agent reporting "failed" or "success" — the two most
+// natural words, and the ones the rest of this codebase uses elsewhere — hit
+// the CHECK constraint and got back a 500 with no hint that the word was the
+// problem. Verified against the migrated schema: "failed", "success" and
+// "banana" were rejected identically.
+var resultStatusAliases = map[string]string{
+	"failed":    QueuedCommandError,
+	"failure":   QueuedCommandError,
+	"err":       QueuedCommandError,
+	"error":     QueuedCommandError,
+	"success":   QueuedCommandCompleted,
+	"succeeded": QueuedCommandCompleted,
+	"ok":        QueuedCommandCompleted,
+	"done":      QueuedCommandCompleted,
+	"completed": QueuedCommandCompleted,
+	"complete":  QueuedCommandCompleted,
+	"timeout":   QueuedCommandTimeout,
+	"timedout":  QueuedCommandTimeout,
+	"running":   QueuedCommandRunning,
+	"pending":   QueuedCommandPending,
+}
+
+// NormalizeResultStatus maps a submitted status onto the schema's vocabulary,
+// or returns ErrUnknownResultStatus so the caller can answer 400 rather than
+// letting Postgres answer 23514 and the handler turn that into a 500.
+func NormalizeResultStatus(status string) (string, error) {
+	if s, ok := resultStatusAliases[strings.ToLower(strings.TrimSpace(status))]; ok {
+		return s, nil
+	}
+	return "", fmt.Errorf("%w: %q", ErrUnknownResultStatus, status)
+}
 
 // QueuedCommand represents a command in the live response command queue.
 type QueuedCommand struct {
@@ -125,9 +182,9 @@ func (s *CmdQueueStore) PendingForAgent(ctx context.Context, agentID string) ([]
 	rows, err := s.pool.Query(ctx,
 		`SELECT `+cmdQueueColumns+`
 		 FROM live_response_commands
-		 WHERE agent_id=$1 AND status='pending' AND timeout_at > NOW()
+		 WHERE agent_id=$1 AND status=$2 AND timeout_at > NOW()
 		 ORDER BY created_at ASC LIMIT 10`,
-		agentID,
+		agentID, QueuedCommandPending,
 	)
 	if err != nil {
 		return nil, err
@@ -147,22 +204,48 @@ func (s *CmdQueueStore) PendingForAgent(ctx context.Context, agentID string) ([]
 	return result, rows.Err()
 }
 
-// UpdateResult records the output submitted by an agent when a command finishes.
-func (s *CmdQueueStore) UpdateResult(ctx context.Context, id, status, output string, exitCode *int) error {
-	_, err := s.pool.Exec(ctx,
+// UpdateResult records the output submitted by an agent when a command
+// finishes. It reports whether a command was actually updated.
+//
+// The write is scoped to commands that have not finished. Without that scope a
+// second result for the same id — a retry, a replay, or a result arriving after
+// the sweeper already timed the command out — silently overwrote the first.
+// Verified before this change: posting two results left the command holding the
+// second one, with nothing recorded to say the first had ever existed.
+func (s *CmdQueueStore) UpdateResult(ctx context.Context, id, status, output string, exitCode *int) (bool, error) {
+	normalized, err := NormalizeResultStatus(status)
+	if err != nil {
+		return false, err
+	}
+	result, err := s.pool.Exec(ctx,
 		`UPDATE live_response_commands
 		 SET status=$1, output=$2, exit_code=$3, completed_at=NOW()
-		 WHERE id=$4`,
-		status, output, exitCode, id,
+		 WHERE id=$4 AND status IN ($5,$6)`,
+		normalized, output, exitCode, id, QueuedCommandPending, QueuedCommandRunning,
 	)
-	return err
+	if err != nil {
+		return false, err
+	}
+	return result.RowsAffected() > 0, nil
 }
 
-// Cancel sets a pending command to failed (cancelled).
+// Cancel ends a pending command.
+//
+// It used to write status='failed', a word the CHECK constraint on this column
+// does not accept — the vocabulary is pending/running/completed/error/timeout.
+// Every cancellation therefore failed with 23514, the command stayed pending,
+// and the operator was told "コマンドのキャンセルに失敗しました". Verified
+// against the migrated schema.
+//
+// Cancellation lands on QueuedCommandError rather than a new status word: the
+// console renders anything that is not pending/running/completed as a failure
+// line, and the reason is already carried in output, so adding a sixth word
+// would mean touching the CHECK constraint and every consumer to say something
+// the row already says.
 func (s *CmdQueueStore) Cancel(ctx context.Context, id string) error {
 	result, err := s.pool.Exec(ctx,
-		`UPDATE live_response_commands SET status='failed', output='キャンセルされました', completed_at=NOW()
-		 WHERE id=$1 AND status='pending'`, id)
+		`UPDATE live_response_commands SET status=$2, output='キャンセルされました', completed_at=NOW()
+		 WHERE id=$1 AND status=$3`, id, QueuedCommandError, QueuedCommandPending)
 	if err != nil {
 		return err
 	}
@@ -175,8 +258,9 @@ func (s *CmdQueueStore) Cancel(ctx context.Context, id string) error {
 // TimeoutStale marks pending/running commands that have passed their timeout_at as timed out.
 func (s *CmdQueueStore) TimeoutStale(ctx context.Context) (int64, error) {
 	result, err := s.pool.Exec(ctx,
-		`UPDATE live_response_commands SET status='timeout', completed_at=NOW()
-		 WHERE status IN ('pending','running') AND timeout_at < NOW()`)
+		`UPDATE live_response_commands SET status=$1, completed_at=NOW()
+		 WHERE status IN ($2,$3) AND timeout_at < NOW()`,
+		QueuedCommandTimeout, QueuedCommandPending, QueuedCommandRunning)
 	if err != nil {
 		return 0, err
 	}

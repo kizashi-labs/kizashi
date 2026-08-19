@@ -1,7 +1,6 @@
 package store
 
 import (
-	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -144,66 +143,48 @@ func TestQuarantineFilter_ValidStatusValues(t *testing.T) {
 	}
 }
 
-// TestQuarantineFilter_StatusToSQLCondition は Status 値が SQL 条件に変換されることを確認する
-// quarantine.go の List メソッド内のロジックを再現する
-func TestQuarantineFilter_StatusToSQLCondition(t *testing.T) {
+// 状態が SQL の条件に変換されること。**本物を呼びます。**
+//
+// 以前ここには、変換の対応表を検査の中に持って `switch` で組み立て直す
+// ものが置いてありました（`TestQuarantineFilter_StatusToSQLCondition`）。
+// **本物と同じ対応かどうかは、誰も確かめていません。**
+func TestQuarantineStatusBecomesTheRightCondition(t *testing.T) {
 	cases := []struct {
-		status    string
-		wantCond  string
-		wantEmpty bool
+		status string
+		want   string
 	}{
-		{"quarantined", "restored_at IS NULL", false},
-		{"restored", "restored_at IS NOT NULL", false},
-		{"", "", true},
+		{"quarantined", "restored_at IS NULL"},
+		{"restored", "restored_at IS NOT NULL"},
+		{"", ""},
+		// 知らない値で絞り込まない。**「全部」と同じ扱いにします** ——
+		// 知らない値を「該当なし」にすると、綴り違いが「隔離が1件も無い」に
+		// 見えます。
+		{"unknown", ""},
 	}
-
 	for _, tc := range cases {
-		var cond string
-		if tc.status == "quarantined" {
-			cond = "restored_at IS NULL"
-		} else if tc.status == "restored" {
-			cond = "restored_at IS NOT NULL"
-		}
-
-		if tc.wantEmpty && cond != "" {
-			t.Errorf("Status=%q のとき条件が空のはず: got %q", tc.status, cond)
-		}
-		if !tc.wantEmpty && cond != tc.wantCond {
-			t.Errorf("Status=%q の条件 = %q, want %q", tc.status, cond, tc.wantCond)
-		}
+		t.Run(tc.status, func(t *testing.T) {
+			where, _ := quarantineListWhere(QuarantineFilter{Status: tc.status})
+			if tc.want == "" {
+				if strings.Contains(where, "restored_at") {
+					t.Errorf("%q で restored_at の条件が入っています: %q", tc.status, where)
+				}
+				return
+			}
+			if !strings.Contains(where, tc.want) {
+				t.Errorf("%q → %q がありません: %q", tc.status, tc.want, where)
+			}
+		})
 	}
 }
 
 // ─── 検疫クエリビルダーロジックテスト ────────────────────────────────────────
 
-// buildQuarantineWhere は quarantine.go の List メソッドの WHERE 句構築を再現する
+// buildQuarantineWhere は **本物を呼びます。**
+//
+// 隔離の一覧に出ないファイルは、画面から復元できません。**絞り込みが
+// 効かないことは、「隔離されていない」と同じ姿になります。**
 func buildQuarantineWhere(f QuarantineFilter) (string, []interface{}) {
-	conds := []string{"1=1"}
-	args := []interface{}{}
-	i := 1
-
-	if f.AgentID != "" {
-		conds = append(conds, fmt.Sprintf("agent_id = $%d", i))
-		args = append(args, f.AgentID)
-		i++
-	}
-	if f.Search != "" {
-		conds = append(conds, fmt.Sprintf("(original_path ILIKE $%d OR hash_sha256 ILIKE $%d)", i, i))
-		args = append(args, "%"+f.Search+"%")
-		i++
-	}
-	if f.Status == "quarantined" {
-		conds = append(conds, "restored_at IS NULL")
-	} else if f.Status == "restored" {
-		conds = append(conds, "restored_at IS NOT NULL")
-	}
-	_ = i
-
-	where := "WHERE " + conds[0]
-	for _, c := range conds[1:] {
-		where += " AND " + c
-	}
-	return where, args
+	return quarantineListWhere(f)
 }
 
 // TestBuildQuarantineWhere_EmptyFilter は全フィルターが空のとき "WHERE 1=1" であることを確認する
@@ -392,5 +373,36 @@ func TestIsValidQuarantinePath_RelativePath(t *testing.T) {
 		if isValidQuarantinePath(p) {
 			t.Errorf("相対パスは無効であるべき: %q", p)
 		}
+	}
+}
+
+// 検索が、1つの引数を2箇所で使うこと。
+//
+// **番号を2つに分けると引数が1つ足りず、隔離の一覧が丸ごと落ちます** ——
+// 一覧に出ないファイルは、画面から復元できません。
+func TestQuarantineSearchUsesOneArgumentTwice(t *testing.T) {
+	where, args := quarantineListWhere(QuarantineFilter{Search: "evil"})
+	if len(args) != 1 {
+		t.Fatalf("args = %v, want 1 件（パスとハッシュで同じ値を使います）", args)
+	}
+	if !strings.Contains(where, "original_path ILIKE $1") ||
+		!strings.Contains(where, "hash_sha256 ILIKE $1") {
+		t.Errorf("パスとハッシュの両方に $1 が当たっていません: %q", where)
+	}
+	if strings.Contains(where, "$2") {
+		t.Errorf("引数の数を超えるプレースホルダがあります: %q", where)
+	}
+}
+
+// 「隔離中」と「復元済み」が入れ替わっていないこと。
+func TestQuarantineStatusFilterIsNotInverted(t *testing.T) {
+	where, _ := quarantineListWhere(QuarantineFilter{Status: "quarantined"})
+	if !strings.Contains(where, "restored_at IS NULL") {
+		t.Errorf("「隔離中」が復元済みを指しています: %q。"+
+			"**隔離中のファイルが一覧から消えます**", where)
+	}
+	where, _ = quarantineListWhere(QuarantineFilter{Status: "restored"})
+	if !strings.Contains(where, "restored_at IS NOT NULL") {
+		t.Errorf("「復元済み」が隔離中を指しています: %q", where)
 	}
 }

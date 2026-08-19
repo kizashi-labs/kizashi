@@ -6,12 +6,14 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
+	"errors"
 	"fmt"
 	"math/big"
 	"os"
 	"strings"
 	"time"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -152,13 +154,21 @@ func (s *AgentStore) UpdateProtectionMode(ctx context.Context, agentID, mode str
 // latter reveals that the endpoint is collecting blind. Empty is skipped so
 // platforms that do not report a mode (Windows/macOS today) leave the column
 // NULL rather than overwriting it with a misleading value.
-func (s *AgentStore) UpdateTelemetryMode(ctx context.Context, agentID, mode string) error {
+// detail is the per-sensor breakdown explaining the mode (migration 365). It is
+// stored alongside because "poll" alone tells an operator that the endpoint is
+// degraded but not which sensor fell back or why — the difference between an
+// alert they can act on and one that starts an SSH session.
+func (s *AgentStore) UpdateTelemetryMode(ctx context.Context, agentID, mode, detail string) error {
 	if mode == "" {
 		return nil
 	}
 	_, err := s.pool.Exec(ctx,
-		`UPDATE agents SET telemetry_mode = $2, updated_at = NOW() WHERE id = $1::uuid`,
-		agentID, mode)
+		`UPDATE agents
+		    SET telemetry_mode   = $2,
+		        telemetry_detail = COALESCE(NULLIF($3, ''), telemetry_detail),
+		        updated_at       = NOW()
+		  WHERE id = $1::uuid`,
+		agentID, mode, detail)
 	return err
 }
 
@@ -166,12 +176,31 @@ func (s *AgentStore) UpdateTelemetryMode(ctx context.Context, agentID, mode stri
 // its heartbeat. Kept separate from UpdateLastSeen (same rationale as
 // UpdateProtectionMode) so the heartbeat path can call it without changing that
 // method's widely-used signature. Powers the fleet health alerter.
-func (s *AgentStore) UpdateMetrics(ctx context.Context, agentID string, cpuUsage, memoryUsageMB float64) error {
+// cpuUsage is nil when the endpoint could not measure it. **その場合は列を
+// NULL のままにします** —— 0 を書くと「アイドル」という測定値になり、
+// 高CPUを探すアラータからは「問題なし」に見えます。
+//
+// エージェント側は全プラットフォームで 0.0 を返す仮実装だったので、
+// この列は全端末で恒久的に 0 でした。フリート健全性アラータの高CPU判定
+// （`COALESCE(cpu_usage, 0) > 閾値`）は**一度も発火できません**でした。
+// totalMemoryMB は分母です。**この列を書く箇所が本番に1つもありません
+// でした。** アラータのメモリ判定は `memory_usage_mb / total_memory_mb * 100`
+// なので、分母が NULL のあいだは一度も発火できません。
+//
+// **memoryUsageMB の中身も変わりました。** 以前エージェントが送っていたのは
+// `runtime.MemStats.Sys` —— エージェント自身の Go ランタイムが OS から取った
+// 量で、端末のメモリ使用量ではありません。測れていないのではなく、
+// 別のものを測っていました。
+func (s *AgentStore) UpdateMetrics(ctx context.Context, agentID string,
+	cpuUsage, memoryUsageMB, totalMemoryMB *float64) error {
 	_, err := s.pool.Exec(ctx,
 		`UPDATE agents
-		    SET cpu_usage = $2, memory_usage_mb = $3, metrics_updated_at = NOW()
+		    SET cpu_usage          = $2,
+		        memory_usage_mb    = $3,
+		        total_memory_mb    = COALESCE($4, total_memory_mb),
+		        metrics_updated_at = NOW()
 		  WHERE id = $1::uuid`,
-		agentID, cpuUsage, memoryUsageMB)
+		agentID, cpuUsage, memoryUsageMB, totalMemoryMB)
 	return err
 }
 
@@ -339,21 +368,30 @@ func (s *AgentStore) GetAgentByID(ctx context.Context, id string) (*AgentRow, er
 	return &a, nil
 }
 
-// AgentBelongsToTenant reports whether the given agent exists AND belongs to
-// tenantID. It is used as an application-layer defense-in-depth check on
-// response-action endpoints (isolate/kill/quarantine/scan) so cross-tenant
-// access is blocked even if PostgreSQL RLS is not (yet) enforcing — e.g. while
-// the app still connects as a superuser/BYPASSRLS role, or for command paths
-// that never touch the RLS-protected agents row. The explicit
-// "AND tenant_id = $2" filter does not rely on RLS. An empty tenantID means
-// single-tenant mode; callers should skip the check in that case.
-func (s *AgentStore) AgentBelongsToTenant(ctx context.Context, agentID, tenantID string) (bool, error) {
-	var exists bool
-	err := s.pool.QueryRow(ctx,
-		`SELECT EXISTS(SELECT 1 FROM agents WHERE id = $1 AND tenant_id::text = $2)`,
-		agentID, tenantID,
-	).Scan(&exists)
-	return exists, err
+// AgentTenant returns the tenant an agent belongs to.
+//
+// found=false means there is no such agent. An empty tenant with found=true
+// means the row genuinely carries no tenant.
+//
+// **「この端末は誰のものか」を、リクエスト側のテナントとは別に訊きます。**
+// 呼び出し側がテナントを名乗れないとき、以前はそれを「テナント分離の
+// 無い構成だ」と読んで素通ししていました。名乗れない理由は構成とは
+// 限りません —— APIキー認証は構成に関係なく空を置きます。行に書いて
+// ある持ち主を見れば、構成の話と認証の話を混ぜずに済みます。
+func (s *AgentStore) AgentTenant(ctx context.Context, agentID string) (tenant string, found bool, err error) {
+	var t *string
+	err = s.pool.QueryRow(ctx,
+		`SELECT tenant_id::text FROM agents WHERE id = $1`, agentID).Scan(&t)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return "", false, nil
+	}
+	if err != nil {
+		return "", false, err
+	}
+	if t == nil {
+		return "", true, nil
+	}
+	return *t, true, nil
 }
 
 // IsolateAgent marks an agent as isolated and records the reason.
@@ -412,7 +450,17 @@ func (s *AgentStore) UnisolateAgent(ctx context.Context, agentID string) error {
 }
 
 // ListAgents returns all agents with optional filtering.
-func (s *AgentStore) ListAgents(ctx context.Context, filter AgentFilter) ([]*AgentRow, int, error) {
+// agentListWhere builds the WHERE clause and arguments for ListAgents.
+//
+// **切り出してあるのは、検査が本物を呼べるようにするためです。**
+// 公開はしません —— `ListAgents` からしか使わないので、公開すると
+// `TestStoreSymbolsAreReachable` の数が1つ増えます。
+//
+// 検査ファイルには写しが置いてありましたが、検索の条件が
+// `"(hostname ILIKE $%d OR ...)"` —— **文字どおり `OR ...`** でした。
+// 本物は1つの引数を2箇所で使います（ホスト名と IP アドレス）。
+// 番号を2つに分けると引数が1つ足りず、**端末の一覧が丸ごと落ちます。**
+func agentListWhere(filter AgentFilter) (string, []interface{}) {
 	var conditions []string
 	var args []interface{}
 	i := 1
@@ -440,11 +488,17 @@ func (s *AgentStore) ListAgents(ctx context.Context, filter AgentFilter) ([]*Age
 		args = append(args, "%"+filter.Search+"%")
 		i++
 	}
+	_ = i
 
-	where := ""
-	if len(conditions) > 0 {
-		where = "WHERE " + strings.Join(conditions, " AND ")
+	if len(conditions) == 0 {
+		return "", args
 	}
+	return "WHERE " + strings.Join(conditions, " AND "), args
+}
+
+func (s *AgentStore) ListAgents(ctx context.Context, filter AgentFilter) ([]*AgentRow, int, error) {
+	where, args := agentListWhere(filter)
+	i := len(args) + 1
 
 	var total int
 	if err := s.pool.QueryRow(ctx, "SELECT COUNT(*) FROM agents "+where, args...).Scan(&total); err != nil {
@@ -480,6 +534,9 @@ func (s *AgentStore) ListAgents(ctx context.Context, filter AgentFilter) ([]*Age
 			return nil, 0, fmt.Errorf("agents scan: %w", err)
 		}
 		agents = append(agents, &a)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, 0, err
 	}
 
 	return agents, total, nil
@@ -517,6 +574,10 @@ func (s *AgentStore) ListExpiringAgents(ctx context.Context, withinDays int) ([]
 			continue
 		}
 		out = append(out, &r)
+	}
+	// 部分結果を完全な一覧として返さない（scan_truncation_guard_test.go 参照）
+	if err := rows.Err(); err != nil {
+		return nil, err
 	}
 	return out, nil
 }
@@ -713,6 +774,9 @@ func (s *AgentStore) ListGroups(ctx context.Context) ([]*AgentGroup, error) {
 			continue
 		}
 		groups = append(groups, &g)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
 	}
 	return groups, nil
 }

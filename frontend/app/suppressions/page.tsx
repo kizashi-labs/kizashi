@@ -9,6 +9,9 @@ import {
   Filter, AlertTriangle, Search, X,
 } from 'lucide-react'
 
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+import { PageSaveFailed } from '@/components/PageSaveFailed'
+
 // ── Types ────────────────────────────────────────────────────────────────────
 
 interface SuppressionRule {
@@ -183,8 +186,7 @@ function RuleForm({ initial, allRules, onSubmit, onCancel, isPending, isError, e
             value={form.name}
             onChange={e => set('name', e.target.value)}
             placeholder="例: 定期スキャン除外"
-            className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm
-                       focus:outline-hidden focus:border-yellow-500 text-white placeholder-gray-600"
+            className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-hidden focus:border-yellow-500 text-white placeholder-gray-600"
           />
         </div>
 
@@ -195,8 +197,7 @@ function RuleForm({ initial, allRules, onSubmit, onCancel, isPending, isError, e
             <select
               value={form.field}
               onChange={e => set('field', e.target.value)}
-              className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm
-                         focus:outline-hidden focus:border-yellow-500 text-white"
+              className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-hidden focus:border-yellow-500 text-white"
             >
               {FIELD_OPTIONS.map(o => (
                 <option key={o.value} value={o.value}>{o.label}</option>
@@ -208,8 +209,7 @@ function RuleForm({ initial, allRules, onSubmit, onCancel, isPending, isError, e
             <select
               value={form.match_type}
               onChange={e => set('match_type', e.target.value)}
-              className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm
-                         focus:outline-hidden focus:border-yellow-500 text-white"
+              className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-hidden focus:border-yellow-500 text-white"
             >
               {MATCH_TYPE_OPTIONS.map(o => (
                 <option key={o.value} value={o.value}>{o.label}</option>
@@ -227,8 +227,7 @@ function RuleForm({ initial, allRules, onSubmit, onCancel, isPending, isError, e
                 : form.match_type === 'wildcard' ? '例: *scan*'
                 : '例: mimikatz'
               }
-              className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm
-                         font-mono focus:outline-hidden focus:border-yellow-500 text-white placeholder-gray-600"
+              className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm font-mono focus:outline-hidden focus:border-yellow-500 text-white placeholder-gray-600"
             />
           </div>
         </div>
@@ -251,8 +250,7 @@ function RuleForm({ initial, allRules, onSubmit, onCancel, isPending, isError, e
               type="datetime-local"
               value={form.expires_at}
               onChange={e => set('expires_at', e.target.value)}
-              className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm
-                         focus:outline-hidden focus:border-yellow-500 text-white"
+              className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-hidden focus:border-yellow-500 text-white"
             />
           </div>
           <div className="flex items-end gap-3 pb-1">
@@ -265,7 +263,7 @@ function RuleForm({ initial, allRules, onSubmit, onCancel, isPending, isError, e
                   form.enabled ? 'bg-yellow-500' : 'bg-gray-600'
                 }`}
               >
-                <div className={`w-4 h-4 rounded-full bg-falcon-text mt-0.5 transition-transform shadow ${
+                <div className={`w-4 h-4 rounded-full bg-[#e2e8f4] mt-0.5 transition-transform shadow-sm ${
                   form.enabled ? 'translate-x-5.5' : 'translate-x-0.5'
                 }`} />
               </div>
@@ -282,8 +280,7 @@ function RuleForm({ initial, allRules, onSubmit, onCancel, isPending, isError, e
             value={form.notes}
             onChange={e => set('notes', e.target.value)}
             placeholder="このルールの目的や背景を記入..."
-            className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm
-                       focus:outline-hidden focus:border-yellow-500 text-white placeholder-gray-600 resize-none"
+            className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-hidden focus:border-yellow-500 text-white placeholder-gray-600 resize-none"
           />
         </div>
 
@@ -295,8 +292,7 @@ function RuleForm({ initial, allRules, onSubmit, onCancel, isPending, isError, e
           <button
             type="submit"
             disabled={isPending}
-            className="bg-yellow-600 hover:bg-yellow-700 disabled:opacity-50 px-5 py-2
-                       rounded-lg text-sm font-medium transition-colors"
+            className="bg-yellow-600 hover:bg-yellow-700 disabled:opacity-50 px-5 py-2 rounded-lg text-sm font-medium transition-colors"
           >
             {isPending ? (editMode ? '更新中...' : '作成中...') : (editMode ? 'ルールを更新' : 'ルールを作成')}
           </button>
@@ -360,9 +356,11 @@ export default function SuppressionsPage() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['suppressions'] }),
   })
 
+  // 有効/無効は PUT /suppressions/:id/toggle です。/toggle の無い
+  // PUT /suppressions/:id はルートが無く、切り替えは効いていませんでした。
   const toggleMutation = useMutation({
     mutationFn: ({ id, enabled }: { id: string; enabled: boolean }) =>
-      apiFetch(`/api/v1/suppressions/${id}`, { method: 'PUT', body: JSON.stringify({ enabled }) }),
+      apiFetch(`/api/v1/suppressions/${id}/toggle`, { method: 'PUT', body: JSON.stringify({ enabled }) }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['suppressions'] }),
   })
 
@@ -428,6 +426,8 @@ export default function SuppressionsPage() {
 
   return (
     <div className="p-6 min-h-screen bg-gray-900 text-white">
+      <PageDataUnavailable />
+      <PageSaveFailed className="mb-4" />
       <div className="max-w-6xl mx-auto">
 
         {/* ── Header ───────────────────────────────────────────── */}
@@ -444,8 +444,7 @@ export default function SuppressionsPage() {
           {canWrite && (
             <button
               onClick={() => { setShowCreateForm(v => !v); setEditingRule(null) }}
-              className="flex items-center gap-2 bg-yellow-600 hover:bg-yellow-700 px-4 py-2
-                         rounded-lg text-sm font-medium transition-colors shrink-0 mt-1"
+              className="flex items-center gap-2 bg-yellow-600 hover:bg-yellow-700 px-4 py-2 rounded-lg text-sm font-medium transition-colors shrink-0 mt-1"
             >
               <Plus size={16} />
               新しいルール
@@ -483,7 +482,7 @@ export default function SuppressionsPage() {
               <button
                 key={s}
                 onClick={() => setFilterStatus(s)}
-                className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
+                className={`px-3 py-1 rounded-sm text-xs font-medium transition-colors ${
                   filterStatus === s
                     ? 'bg-yellow-600 text-white'
                     : 'text-gray-400 hover:text-white'
@@ -501,9 +500,7 @@ export default function SuppressionsPage() {
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="名前・パターンで検索..."
-              className="w-full pl-8 pr-8 py-1.5 text-sm border border-gray-700 rounded-lg
-                         bg-gray-800 text-white placeholder-gray-600
-                         focus:outline-hidden focus:border-yellow-500"
+              className="w-full pl-8 pr-8 py-1.5 text-sm border border-gray-700 rounded-lg bg-gray-800 text-white placeholder-gray-600 focus:outline-hidden focus:border-yellow-500"
             />
             {search && (
               <button
@@ -625,8 +622,7 @@ export default function SuppressionsPage() {
 
                       {/* Pattern */}
                       <td className="px-4 py-3 max-w-56">
-                        <code className="text-xs font-mono text-gray-300 bg-gray-900/60 px-2 py-0.5 rounded
-                                         truncate block max-w-full">
+                        <code className="text-xs font-mono text-gray-300 bg-gray-900/60 px-2 py-0.5 rounded-sm truncate block max-w-full">
                           {rule.pattern ?? '—'}
                         </code>
                       </td>

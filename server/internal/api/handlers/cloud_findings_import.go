@@ -255,7 +255,9 @@ func (h *CloudPostureHandler) ImportFindings(c *gin.Context) {
 			continue
 		}
 
-		if err := cs.UpsertFinding(ctx, accountUUID, store.CSPMFinding{
+		// 新規かどうかは取り込み経路では使わない。取り込みは外部ツールの
+		// 出力をそのまま入れるもので、通知は元のツール側が担う。
+		if _, err := cs.UpsertFinding(ctx, accountUUID, store.CSPMFinding{
 			CheckID:      f.CheckID,
 			CheckName:    f.CheckName,
 			Severity:     f.Severity,

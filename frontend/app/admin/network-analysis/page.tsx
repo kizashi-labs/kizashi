@@ -10,6 +10,8 @@ import {
   Zap, Radio
 } from 'lucide-react'
 
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+
 // ── Types ──────────────────────────────────────────────────────────────────────
 
 interface TopConnection {
@@ -318,24 +320,22 @@ export default function NetworkAnalysisPage() {
   const EMPTY_NETWORK_STATS: NetworkStats = { total_connections: 0, unique_external_ips: 0, threats_detected: 0, beaconing_suspects: 0 }
   const { data: stats = EMPTY_NETWORK_STATS } = useQuery<NetworkStats>({
     queryKey: ['network-stats', timeRange],
-    queryFn: async () => {
-      try { return await apiFetch(`/api/v1/admin/network/stats?hours=${timeRange}`) } catch { return EMPTY_NETWORK_STATS }
-    },
+    queryFn: () => apiFetch(`/api/v1/admin/network/stats?hours=${timeRange}`),
   })
 
   const { data: connections = [] } = useQuery<TopConnection[]>({
     queryKey: ['network-connections', timeRange],
-    queryFn: () => apiFetchList<TopConnection>(`/api/v1/admin/network/top-connections?hours=${timeRange}`).catch(() => []),
+    queryFn: () => apiFetchList<TopConnection>(`/api/v1/admin/network/top-connections?hours=${timeRange}`),
   })
 
   const { data: ports = [] } = useQuery<PortStat[]>({
     queryKey: ['network-ports', timeRange],
-    queryFn: () => apiFetchList<PortStat>(`/api/v1/admin/network/ports?hours=${timeRange}`).catch(() => []),
+    queryFn: () => apiFetchList<PortStat>(`/api/v1/admin/network/ports?hours=${timeRange}`),
   })
 
   const { data: beaconing = [] } = useQuery<BeaconingEntry[]>({
     queryKey: ['network-beaconing', timeRange],
-    queryFn: () => apiFetchList<BeaconingEntry>(`/api/v1/admin/network/beaconing?hours=${timeRange}`).catch(() => []),
+    queryFn: () => apiFetchList<BeaconingEntry>(`/api/v1/admin/network/beaconing?hours=${timeRange}`),
   })
 
   const STATS_CARDS = [
@@ -347,6 +347,7 @@ export default function NetworkAnalysisPage() {
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100 p-6">
+      <PageDataUnavailable />
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">

@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { apiFetch } from '@/lib/api'
 import { ShieldOff, ShieldCheck, KeyRound, AlertTriangle, RefreshCw } from 'lucide-react'
 import { ViewerGuard } from '@/components/ViewerGuard'
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
 import { useCanWrite } from '@/lib/auth'
 
 interface ProtectionStatus {
@@ -89,6 +90,11 @@ export default function UninstallProtectionPage() {
 
   return (
     <div className="p-6 space-y-6">
+      {/* 取得に失敗したことを画面で伝える。保護の設定状況が読めなかったのを
+          「保護されていない」と読み違えると、掛かっている保護を掛け直そうと
+          するか、掛かっていない端末を保護済みと思うかのどちらかになる。 */}
+      <PageDataUnavailable />
+
       <div>
         <h1 className="text-2xl font-bold flex items-center gap-2">
           <KeyRound className="w-6 h-6" />

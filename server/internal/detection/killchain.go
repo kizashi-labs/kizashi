@@ -28,7 +28,29 @@ const (
 	chainWindow = 10 * time.Minute
 	// chainMinTactics is the number of distinct kill-chain tactics from one host
 	// within the window that raises a correlated alert.
-	chainMinTactics = 4
+	//
+	// 4 → 5 on 2026-08-04. This scorer folds in the MITRE tags of every other
+	// match, so its false positives are the other rules' false positives, summed:
+	// any host that trips four separately-benign signals covering four tactics
+	// within ten minutes gets an extra alert of its own. The FP soak measured it at
+	// 7,199.94 /1000 hosts/day across 9 of 20 hosts and 4 of 5 profiles — the widest
+	// spread of any rule in the gate, and not tied to one role.
+	//
+	// A developer workstation reaches four tactics doing its normal job: `docker
+	// build` alone contributes Execution (T1609), Discovery (T1613) and Container
+	// Image Build (T1612), and the same session's SSH key handling (T1552.004,
+	// T1098.004) and curl downloads (T1105) add Credential Access, Persistence and
+	// C2. Nothing there is an attack; four tactics simply is not specific on a host
+	// whose job is to run tools.
+	//
+	// Raising the floor costs no technique coverage. This alert carries MITRETags
+	// {"TA0000"} — a correlation marker, deliberately not a technique — so unlike
+	// the discovery-burst rule it credits nothing in the ATT&CK detection-rate
+	// measurement. What it can cost is the correlation itself on a genuine 4-tactic
+	// attack; the severity ladder below already treats 4 as the weakest tier
+	// (sev 7, vs 8 at five and 9 at six), so the design already regarded it as the
+	// least confident case.
+	chainMinTactics = 5
 	chainMaxKeys    = 8192
 )
 

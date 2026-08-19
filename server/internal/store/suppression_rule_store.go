@@ -36,11 +36,7 @@ func NewSuppressionRuleStore(pool *pgxpool.Pool) *SuppressionRuleStore {
 }
 
 func (s *SuppressionRuleStore) tableExists(ctx context.Context) bool {
-	var exists bool
-	_ = s.pool.QueryRow(ctx,
-		`SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name='alert_suppression_rules')`).
-		Scan(&exists)
-	return exists
+	return TableIsThere(ctx, s.pool, "alert_suppression_rules")
 }
 
 // List returns all suppression rules.
@@ -70,6 +66,10 @@ func (s *SuppressionRuleStore) List(ctx context.Context) ([]SuppressionRuleEntry
 			continue
 		}
 		rules = append(rules, r)
+	}
+	// 部分結果を完全な一覧として返さない（scan_truncation_guard_test.go 参照）
+	if err := rows.Err(); err != nil {
+		return nil, err
 	}
 	if rules == nil {
 		rules = []SuppressionRuleEntry{}

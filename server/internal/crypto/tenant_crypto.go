@@ -21,6 +21,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"github.com/jackc/pgx/v5"
 	"io"
 	"sync"
 
@@ -158,9 +159,18 @@ func (s *DBKeyStore) GetKey(ctx context.Context, tenantID string) ([]byte, error
 	`
 	var encryptedKey []byte
 	err := s.db.QueryRow(ctx, query, tenantID).Scan(&encryptedKey)
-	if err != nil {
-		// No row — generate and persist a fresh key.
+	if errors.Is(err, pgx.ErrNoRows) {
+		// 本当に行が無い = 新しいテナント。作って保存します。
 		return s.createAndStoreKey(ctx, tenantID)
+	}
+	if err != nil {
+		// 以前はここも createAndStoreKey に落ちていました。コメントには
+		// 「No row」と書いてありますが、条件は「どんな失敗でも」です。
+		// 接続が一瞬切れただけで新しい鍵を作り、その鍵で暗号化します。
+		// INSERT は ON CONFLICT DO NOTHING なので保存済みの鍵は残り、
+		// 呼び出し側が受け取るのは DB に無い鍵です。この鍵で書いたものは
+		// 二度と復号できません。
+		return nil, fmt.Errorf("tenantcrypto: load key for tenant %q: %w", tenantID, err)
 	}
 
 	// Unwrap the stored key using the master key.
@@ -223,8 +233,22 @@ func (s *DBKeyStore) createAndStoreKey(ctx context.Context, tenantID string) ([]
 		return nil, fmt.Errorf("tenantcrypto: store new key for tenant %q: %w", tenantID, err)
 	}
 
-	out := make([]byte, keySize)
-	copy(out, tenantKey)
+	// ON CONFLICT DO NOTHING なので、同時に2つの呼び出しが来たときは
+	// どちらか一方の鍵しか入りません。生成したほうをそのまま返すと、
+	// 負けた側は DB に無い鍵で暗号化します。入っている鍵を読み直します。
+	var stored []byte
+	if err := s.db.QueryRow(ctx,
+		`SELECT encrypted_key FROM tenant_encryption_keys WHERE tenant_id = $1`, tenantID,
+	).Scan(&stored); err != nil {
+		return nil, fmt.Errorf("tenantcrypto: re-read key for tenant %q: %w", tenantID, err)
+	}
+	out, err := gcmDecrypt(s.masterKey, stored)
+	if err != nil {
+		return nil, fmt.Errorf("tenantcrypto: unwrap stored key for tenant %q: %w", tenantID, err)
+	}
+	if len(out) != keySize {
+		return nil, fmt.Errorf("tenantcrypto: stored key for tenant %q has unexpected length %d", tenantID, len(out))
+	}
 	return out, nil
 }
 

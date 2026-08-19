@@ -104,6 +104,9 @@ func (s *AutoResponseStore) ListRules(ctx context.Context) ([]*AutoResponseRule,
 		}
 		rules = append(rules, r)
 	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
 	if rules == nil {
 		rules = []*AutoResponseRule{}
 	}
@@ -256,6 +259,9 @@ func (s *AutoResponseStore) ListEnabled(ctx context.Context) ([]*AutoResponseRul
 		}
 		rules = append(rules, r)
 	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
 	if rules == nil {
 		rules = []*AutoResponseRule{}
 	}
@@ -343,6 +349,9 @@ func (s *AutoResponseStore) ListExecutionsByRule(ctx context.Context, ruleID str
 			continue
 		}
 		execs = append(execs, e)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
 	}
 	if execs == nil {
 		execs = []*AutoResponseExecution{}

@@ -12,6 +12,8 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+
+	"github.com/edr-platform/server/internal/tick"
 )
 
 // Integration represents a cloud monitoring integration from the DB.
@@ -91,24 +93,35 @@ func (p *Poller) publishCloudEvent(ctx context.Context, intg Integration, eventT
 
 	data, err := json.Marshal(msg)
 	if err != nil {
+		tick.Fail(ctx, err, "クラウドイベントを組み立てられず、検知に送りませんでした",
+			"provider", intg.Provider, "event", eventType)
 		return
 	}
 
 	// Publish to cloud.events.{provider} subject
 	subject := fmt.Sprintf("cloud.events.%s", intg.Provider)
 	if err := p.nc.Publish(subject, data); err != nil {
-		slog.Warn("クラウドイベントのNATS送信に失敗", "error", err)
+		// **送れなかったイベントは検知に届きません。**
+		tick.Fail(ctx, err, "クラウドイベントのNATS送信に失敗")
 	}
 
-	// Also store in DB
-	_, _ = p.pool.Exec(ctx,
+	// Also store in DB.
+	//
+	// **検知に送るのと、画面に残すのは別の行き先です。** NATS に送れて
+	// ここが書けなければ、アラートは立つのに、その元になったイベントを
+	// クラウドイベントの一覧で探しても出てきません。上の2つと同じ回の
+	// 中なので、同じところへ出します。
+	if _, err := p.pool.Exec(ctx,
 		`INSERT INTO cloud_events (id, integration_id, provider, event_type, event_time, source_ip, user_identity, resource, region, raw_event)
 		 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
 		 ON CONFLICT (id) DO NOTHING`,
 		eventID, intg.ID, intg.Provider, eventType, msg.EventTime,
 		sourceIP, identity, resource, intg.Region,
 		map[string]interface{}{"event_type": eventType, "source_ip": sourceIP},
-	)
+	); err != nil {
+		tick.Fail(ctx, err, "クラウドイベントを保存できませんでした。検知には送れていますが一覧には出ません",
+			"provider", intg.Provider, "event", eventType)
+	}
 }
 
 // Run starts the polling loop. Call in a goroutine.
@@ -121,7 +134,7 @@ func (p *Poller) Run(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			p.poll(ctx)
+			tick.Run(ctx, "cloud_poller", p.poll)
 		}
 	}
 }
@@ -130,7 +143,7 @@ func (p *Poller) poll(ctx context.Context) {
 	rows, err := p.pool.Query(ctx,
 		`SELECT id, name, provider, region, config FROM cloud_integrations WHERE enabled=TRUE`)
 	if err != nil {
-		slog.Warn("クラウド統合の取得に失敗", "error", err)
+		tick.FailComponent(ctx, "cloud_poller", err, "クラウド統合の取得に失敗")
 		return
 	}
 	defer rows.Close()
@@ -139,9 +152,14 @@ func (p *Poller) poll(ctx context.Context) {
 		var intg Integration
 		var configJSON []byte
 		if err := rows.Scan(&intg.ID, &intg.Name, &intg.Provider, &intg.Region, &configJSON); err != nil {
-			continue
+			tick.FailComponent(ctx, "cloud_poller", err, "クラウド統合の行を読めませんでした")
+			return
 		}
 		if err := json.Unmarshal(configJSON, &intg.Config); err != nil {
+			// 設定が読めない統合は、画面上は「設定済み」のまま一度も
+			// 収集されません。黙って飛ばすと、いつまでも気づきません。
+			tick.Fail(ctx, err, "クラウド統合の設定を読めませんでした。この統合は収集されません",
+				"integration", intg.Name, "provider", intg.Provider)
 			continue
 		}
 
@@ -162,12 +180,12 @@ func (p *Poller) poll(ctx context.Context) {
 			// 同期状態の書き戻しが失敗すると、画面の「最終同期日時」や
 			// エラー表示が古いまま止まる。捨てずにログへ出す。
 			if pollErr != nil {
-				slog.Warn("クラウドポーリングエラー", "integration", i.Name, "error", pollErr)
+				tick.Fail(ctx, pollErr, "クラウドポーリングエラー", "integration", i.Name)
 				if _, err := p.pool.Exec(ctx,
 					`UPDATE cloud_integrations SET error_message=$1 WHERE id=$2`,
 					pollErr.Error(), i.ID); err != nil {
-					slog.Warn("クラウド連携のエラー状態の保存に失敗しました",
-						"integration", i.Name, "error", err)
+					tick.Fail(ctx, err, "クラウド連携のエラー状態の保存に失敗しました",
+						"integration", i.Name)
 				}
 				return
 			}
@@ -175,13 +193,16 @@ func (p *Poller) poll(ctx context.Context) {
 			if _, err := p.pool.Exec(ctx,
 				`UPDATE cloud_integrations SET last_synced_at=NOW(), error_message=NULL WHERE id=$1`,
 				i.ID); err != nil {
-				slog.Warn("クラウド連携の同期状態の保存に失敗しました",
-					"integration", i.Name, "error", err)
+				tick.Fail(ctx, err, "クラウド連携の同期状態の保存に失敗しました",
+					"integration", i.Name)
 			}
 			if count > 0 {
 				slog.Info("クラウドイベント取り込み", "integration", i.Name, "count", count)
 			}
 		}(intg)
+	}
+	if err := rows.Err(); err != nil {
+		tick.Fail(ctx, err, "クラウドアカウント一覧の走査が途中で終わりました。今回のポーリングで取得しないアカウントがあります")
 	}
 }
 

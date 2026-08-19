@@ -3,7 +3,11 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { apiFetch } from '@/lib/api'
+import { mockOr } from '@/lib/mock'
 import { Plus, ChevronDown, ChevronRight, ExternalLink, ToggleLeft, ToggleRight } from 'lucide-react'
+
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+import { PageSaveFailed } from '@/components/PageSaveFailed'
 
 interface DRPMonitor {
   id: string
@@ -32,6 +36,9 @@ interface DRPData {
   monitors: DRPMonitor[]
   findings: DRPFinding[]
 }
+
+// 取得できなかったときに出すもの。MOCK は USE_MOCK のときだけです。
+const EMPTY: DRPData = { monitors: [], findings: [] }
 
 const MOCK: DRPData = {
   monitors: [
@@ -97,17 +104,18 @@ export default function DRPPage() {
 
   const { data } = useQuery<DRPData>({
     queryKey: ['drp'],
-    queryFn: () => apiFetch<DRPData>('/api/v1/admin/drp').catch(() => MOCK),
+    queryFn: () => apiFetch<DRPData>('/api/v1/admin/drp'),
   })
 
   const qc = useQueryClient()
   const updateStatus = useMutation({
     mutationFn: ({ id, status }: { id: string; status: string }) =>
-      apiFetch(`/api/v1/admin/drp/findings/${id}`, { method: 'PATCH', body: JSON.stringify({ status }) }).catch(() => ({})),
+      // PATCH はどのルートにも当たりません。サーバにあるのは PUT だけです。
+      apiFetch(`/api/v1/admin/drp/findings/${id}`, { method: 'PUT', body: JSON.stringify({ status }) }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['drp'] }),
   })
 
-  const d = data ?? MOCK
+  const d = data ?? mockOr(MOCK, EMPTY)
 
   const filteredFindings = d.findings.filter(f => {
     const monOk = !selectedMonitor || f.monitor_id === selectedMonitor
@@ -118,13 +126,15 @@ export default function DRPPage() {
 
   return (
     <div className="min-h-screen bg-[#070d19] text-white p-6 space-y-6">
+      <PageDataUnavailable />
+      <PageSaveFailed className="mb-4" />
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">デジタルリスク保護 (DRP)</h1>
-          <p className="text-falcon-muted text-sm mt-1">外部脅威・ブランドリスク・情報漏洩をリアルタイムでモニタリング</p>
+          <p className="text-[#7d92b0] text-sm mt-1">外部脅威・ブランドリスク・情報漏洩をリアルタイムでモニタリング</p>
         </div>
-        <button onClick={() => setShowForm(true)} className="flex items-center gap-2 bg-falcon-red hover:bg-[#c8001d] text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+        <button onClick={() => setShowForm(true)} className="flex items-center gap-2 bg-[#e8002d] hover:bg-[#c8001d] text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
           <Plus size={16} /> 新規モニター
         </button>
       </div>
@@ -132,9 +142,9 @@ export default function DRPPage() {
       {/* Stats */}
       <div className="grid grid-cols-5 gap-4">
         {STATS.map(s => (
-          <div key={s.label} className="bg-falcon-surface border border-falcon-border rounded-xl p-4">
+          <div key={s.label} className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-4">
             <div className="text-2xl font-bold text-white">{s.value}</div>
-            <div className="text-falcon-muted text-sm mt-1">{s.label}</div>
+            <div className="text-[#7d92b0] text-sm mt-1">{s.label}</div>
           </div>
         ))}
       </div>
@@ -149,7 +159,7 @@ export default function DRPPage() {
             const isSelected = selectedMonitor === m.id
             return (
               <div key={m.id} onClick={() => setSelectedMonitor(isSelected ? null : m.id)}
-                className={`bg-falcon-surface border rounded-xl p-4 cursor-pointer transition-colors ${isSelected ? 'border-falcon-red' : 'border-falcon-border hover:border-falcon-muted'}`}>
+                className={`bg-[#0d1220] border rounded-xl p-4 cursor-pointer transition-colors ${isSelected ? 'border-[#e8002d]' : 'border-[#1e2d42] hover:border-[#7d92b0]'}`}>
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-3">
                     <span className="text-xl">{meta.icon}</span>
@@ -160,10 +170,10 @@ export default function DRPPage() {
                   </div>
                   <div className="flex items-center gap-2">
                     <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${m.findings_count >= 5 ? 'bg-red-900/60 text-red-300' : m.findings_count >= 3 ? 'bg-yellow-900/60 text-yellow-300' : 'bg-blue-900/60 text-blue-300'}`}>{m.findings_count}</span>
-                    {m.enabled ? <ToggleRight size={18} className="text-green-400" /> : <ToggleLeft size={18} className="text-falcon-muted" />}
+                    {m.enabled ? <ToggleRight size={18} className="text-green-400" /> : <ToggleLeft size={18} className="text-[#7d92b0]" />}
                   </div>
                 </div>
-                <div className="text-falcon-muted text-xs mt-2">最終スキャン: {fmtTime(m.last_scanned_at)}</div>
+                <div className="text-[#7d92b0] text-xs mt-2">最終スキャン: {fmtTime(m.last_scanned_at)}</div>
               </div>
             )
           })}
@@ -174,14 +184,14 @@ export default function DRPPage() {
           <div className="flex items-center gap-3 flex-wrap">
             <div className="flex gap-1">
               {['全て', 'critical', 'high', 'medium', 'low'].map(v => (
-                <button key={v} onClick={() => setSevFilter(v)} className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${sevFilter === v ? 'bg-falcon-red text-white' : 'bg-falcon-border text-falcon-muted hover:text-white'}`}>
+                <button key={v} onClick={() => setSevFilter(v)} className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${sevFilter === v ? 'bg-[#e8002d] text-white' : 'bg-[#1e2d42] text-[#7d92b0] hover:text-white'}`}>
                   {v === '全て' ? v : SEV_STYLES[v]?.label ?? v}
                 </button>
               ))}
             </div>
             <div className="flex gap-1">
               {['全て', 'open', 'investigating', 'mitigated', 'false_positive'].map(v => (
-                <button key={v} onClick={() => setStatusFilter(v)} className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${statusFilter === v ? 'bg-falcon-border text-white border border-falcon-muted' : 'bg-falcon-border text-falcon-muted hover:text-white'}`}>
+                <button key={v} onClick={() => setStatusFilter(v)} className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${statusFilter === v ? 'bg-[#1e2d42] text-white border border-[#7d92b0]' : 'bg-[#1e2d42] text-[#7d92b0] hover:text-white'}`}>
                   {v === '全て' ? v : STATUS_STYLES[v]?.label ?? v}
                 </button>
               ))}
@@ -189,7 +199,7 @@ export default function DRPPage() {
           </div>
 
           {filteredFindings.length === 0 && (
-            <div className="bg-falcon-surface border border-falcon-border rounded-xl p-8 text-center text-falcon-muted text-sm">該当する検知がありません</div>
+            <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-8 text-center text-[#7d92b0] text-sm">該当する検知がありません</div>
           )}
 
           {filteredFindings.map(f => {
@@ -198,7 +208,7 @@ export default function DRPPage() {
             const mMeta = MONITOR_META[f.monitor_type] ?? MONITOR_META.brand
             const isExp = expanded === f.id
             return (
-              <div key={f.id} className={`bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden border-l-4 ${sev.border}`}>
+              <div key={f.id} className={`bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden border-l-4 ${sev.border}`}>
                 <div className="p-4">
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1 min-w-0">
@@ -208,9 +218,9 @@ export default function DRPPage() {
                         <span className={`text-xs px-2 py-0.5 rounded-full ${sev.badge}`}>{sev.label}</span>
                         <span className={`text-xs px-2 py-0.5 rounded-full ${st.badge}`}>{st.label}</span>
                       </div>
-                      <div className="text-falcon-muted text-xs mt-1">検知: {fmtTime(f.found_at)}</div>
+                      <div className="text-[#7d92b0] text-xs mt-1">検知: {fmtTime(f.found_at)}</div>
                     </div>
-                    <button onClick={() => setExpanded(isExp ? null : f.id)} className="text-falcon-muted hover:text-white transition-colors shrink-0">
+                    <button onClick={() => setExpanded(isExp ? null : f.id)} className="text-[#7d92b0] hover:text-white transition-colors shrink-0">
                       {isExp ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
                     </button>
                   </div>
@@ -223,18 +233,18 @@ export default function DRPPage() {
                   )}
                 </div>
                 {isExp && (
-                  <div className="border-t border-falcon-border p-4 bg-[#070d19] space-y-3 text-xs">
+                  <div className="border-t border-[#1e2d42] p-4 bg-[#070d19] space-y-3 text-xs">
                     <div>
-                      <span className="text-falcon-muted">ソースURL: </span>
+                      <span className="text-[#7d92b0]">ソースURL: </span>
                       <a href={f.source_url} target="_blank" rel="noreferrer" className="text-blue-400 hover:underline flex items-center gap-1 inline-flex">{f.source_url} <ExternalLink size={10} /></a>
                     </div>
                     <div>
-                      <span className="text-falcon-muted">コンテンツプレビュー: </span>
+                      <span className="text-[#7d92b0]">コンテンツプレビュー: </span>
                       <span className="text-white font-mono">{f.content_preview}</span>
                     </div>
                     <div className="flex gap-4">
                       {Object.entries(f.metadata).map(([k, v]) => (
-                        <div key={k}><span className="text-falcon-muted">{k}: </span><span className="text-white">{v}</span></div>
+                        <div key={k}><span className="text-[#7d92b0]">{k}: </span><span className="text-white">{v}</span></div>
                       ))}
                     </div>
                   </div>
@@ -246,14 +256,14 @@ export default function DRPPage() {
       </div>
 
       {/* Timeline */}
-      <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
+      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
         <h2 className="font-semibold text-white mb-4">過去7日間の検知推移</h2>
         <div className="flex items-end gap-3 h-24">
           {DAYS.map((day, i) => (
             <div key={day} className="flex-1 flex flex-col items-center gap-1">
-              <div className="text-falcon-muted text-xs">{DAY_COUNTS[i]}</div>
-              <div className="w-full bg-falcon-red/70 rounded-t" style={{ height: `${(DAY_COUNTS[i] / 8) * 72}px` }} />
-              <div className="text-falcon-muted text-xs">{day}</div>
+              <div className="text-[#7d92b0] text-xs">{DAY_COUNTS[i]}</div>
+              <div className="w-full bg-[#e8002d]/70 rounded-t" style={{ height: `${(DAY_COUNTS[i] / 8) * 72}px` }} />
+              <div className="text-[#7d92b0] text-xs">{day}</div>
             </div>
           ))}
         </div>
@@ -261,15 +271,15 @@ export default function DRPPage() {
 
       {showForm && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-          <div className="bg-falcon-surface border border-falcon-border rounded-xl p-6 w-full max-w-md space-y-4">
+          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-6 w-full max-w-md space-y-4">
             <h3 className="font-semibold text-white">新規DRPモニター</h3>
-            <input placeholder="モニター名" className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-sm text-white placeholder-falcon-muted focus:outline-hidden focus:border-falcon-red" />
-            <select className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-sm text-white focus:outline-hidden focus:border-falcon-red">
+            <input placeholder="モニター名" className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-white placeholder-[#7d92b0] focus:outline-hidden focus:border-[#e8002d]" />
+            <select className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-white focus:outline-hidden focus:border-[#e8002d]">
               {Object.entries(MONITOR_META).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
             </select>
             <div className="flex gap-3 pt-2">
-              <button className="flex-1 bg-falcon-red hover:bg-[#c8001d] text-white rounded-lg py-2 text-sm font-medium transition-colors">作成</button>
-              <button onClick={() => setShowForm(false)} className="flex-1 border border-falcon-border text-falcon-muted hover:text-white rounded-lg py-2 text-sm font-medium transition-colors">キャンセル</button>
+              <button className="flex-1 bg-[#e8002d] hover:bg-[#c8001d] text-white rounded-lg py-2 text-sm font-medium transition-colors">作成</button>
+              <button onClick={() => setShowForm(false)} className="flex-1 border border-[#1e2d42] text-[#7d92b0] hover:text-white rounded-lg py-2 text-sm font-medium transition-colors">キャンセル</button>
             </div>
           </div>
         </div>

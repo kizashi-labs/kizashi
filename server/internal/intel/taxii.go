@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -186,6 +187,10 @@ func applyTAXIIAuth(req *http.Request, cfg TAXIIPollConfig) {
 func taxiiObjectToEntry(raw json.RawMessage) (FeedEntry, bool) {
 	var obj taxiiSTIXObject
 	if err := json.Unmarshal(raw, &obj); err != nil {
+		// bool は「指標ではない」を表します。TAXII の束の大半は指標では
+		// ないので、それ自体は正常です。壊れた JSON を同じ false で返すと、
+		// フィードの書式が変わって全件落ちても「指標0件」と区別がつきません。
+		slog.Warn("taxii: STIXオブジェクトを解釈できず読み飛ばしました", "error", err)
 		return FeedEntry{}, false
 	}
 	if !strings.EqualFold(obj.Type, "indicator") || obj.Pattern == "" {

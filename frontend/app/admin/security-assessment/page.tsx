@@ -6,6 +6,9 @@ import { apiFetch } from '@/lib/api'
 import { mockOr } from '@/lib/mock'
 import { Plus, FileText, Download, Pencil, Upload, ChevronRight, AlertTriangle, CheckCircle, Clock } from 'lucide-react'
 
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+import { PageSaveFailed } from '@/components/PageSaveFailed'
+
 interface AssessmentFinding {
   id: string
   category: string
@@ -63,12 +66,10 @@ const MOCK_ASSESSMENTS: Assessment[] = [
   },
 ]
 
+// 取得できなかったときに出すもの。MOCK は USE_MOCK のときだけです。
 const EMPTY: AssessmentData = { assessments: [] }
 
-// API が落ちている/未実装のときのフォールバック。NEXT_PUBLIC_USE_MOCK=true の
-// ローカル開発でだけモックを返し、それ以外では空を返す。ここを素の MOCK に
-// しておくと、本番で API が失敗したときに架空の評価結果が表示される。
-const FALLBACK: AssessmentData = mockOr({ assessments: MOCK_ASSESSMENTS }, EMPTY)
+const MOCK: AssessmentData = { assessments: MOCK_ASSESSMENTS }
 
 const TYPE_STYLES: Record<string, { bg: string; text: string; label: string }> = {
   gap_analysis: { bg: 'bg-blue-900/40',   text: 'text-blue-300',   label: 'ギャップ分析' },
@@ -119,26 +120,28 @@ export default function SecurityAssessmentPage() {
 
   const { data } = useQuery<AssessmentData>({
     queryKey: ['security-assessment'],
-    queryFn: () => apiFetch<AssessmentData>('/api/v1/admin/security-assessment').catch(() => FALLBACK),
+    queryFn: () => apiFetch<AssessmentData>('/api/v1/admin/security-assessment'),
   })
 
   const qc = useQueryClient()
   const exportPDF = useMutation({
-    mutationFn: (id: string) => apiFetch(`/api/v1/admin/security-assessment/${id}/export`).catch(() => ({})),
+    mutationFn: (id: string) => apiFetch(`/api/v1/admin/security-assessment/${id}/export`),
   })
 
-  const d = data ?? FALLBACK
+  const d = data ?? mockOr(MOCK, EMPTY)
   const detail = d.assessments.find(a => a.id === selected) ?? null
 
   return (
     <div className="min-h-screen bg-[#070d19] text-white p-6 space-y-6">
+      <PageDataUnavailable />
+      <PageSaveFailed className="mb-4" />
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">セキュリティアセスメント</h1>
-          <p className="text-falcon-muted text-sm mt-1">セキュリティ体制の評価・ギャップ分析・コンプライアンス確認を管理します</p>
+          <p className="text-[#7d92b0] text-sm mt-1">セキュリティ体制の評価・ギャップ分析・コンプライアンス確認を管理します</p>
         </div>
-        <button onClick={() => setShowForm(true)} className="flex items-center gap-2 bg-falcon-red hover:bg-[#c8001d] text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+        <button onClick={() => setShowForm(true)} className="flex items-center gap-2 bg-[#e8002d] hover:bg-[#c8001d] text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
           <Plus size={16} /> 新規アセスメント
         </button>
       </div>
@@ -146,9 +149,9 @@ export default function SecurityAssessmentPage() {
       {/* Stats */}
       <div className="grid grid-cols-4 gap-4">
         {STATS.map(s => (
-          <div key={s.label} className="bg-falcon-surface border border-falcon-border rounded-xl p-4">
+          <div key={s.label} className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-4">
             <div className="text-2xl font-bold text-white">{s.value}</div>
-            <div className="text-falcon-muted text-sm mt-1">{s.label}</div>
+            <div className="text-[#7d92b0] text-sm mt-1">{s.label}</div>
           </div>
         ))}
       </div>
@@ -164,22 +167,22 @@ export default function SecurityAssessmentPage() {
             const isSelected = selected === a.id
             return (
               <div key={a.id} onClick={() => setSelected(isSelected ? null : a.id)}
-                className={`bg-falcon-surface border rounded-xl p-4 cursor-pointer transition-colors ${isSelected ? 'border-falcon-red' : 'border-falcon-border hover:border-falcon-muted'}`}>
+                className={`bg-[#0d1220] border rounded-xl p-4 cursor-pointer transition-colors ${isSelected ? 'border-[#e8002d]' : 'border-[#1e2d42] hover:border-[#7d92b0]'}`}>
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1 min-w-0">
                     <div className="font-medium text-white text-sm leading-snug">{a.name}</div>
                     <div className="flex flex-wrap gap-1.5 mt-2">
                       <span className={`text-xs px-2 py-0.5 rounded-full ${ts.bg} ${ts.text}`}>{ts.label}</span>
-                      <span className="text-xs px-2 py-0.5 rounded-full bg-falcon-border text-falcon-muted">{a.framework}</span>
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-[#1e2d42] text-[#7d92b0]">{a.framework}</span>
                       <span className={`text-xs px-2 py-0.5 rounded-full flex items-center gap-1 ${ss.badge} ${a.status === 'in_progress' ? 'animate-pulse' : ''}`}>
                         {ss.label}
                       </span>
                     </div>
-                    <div className="text-falcon-muted text-xs mt-2">担当: {a.assessor}</div>
+                    <div className="text-[#7d92b0] text-xs mt-2">担当: {a.assessor}</div>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
                     {a.score !== null && <ScoreCircle score={a.score} />}
-                    <ChevronRight size={14} className={`text-falcon-muted transition-transform ${isSelected ? 'rotate-90' : ''}`} />
+                    <ChevronRight size={14} className={`text-[#7d92b0] transition-transform ${isSelected ? 'rotate-90' : ''}`} />
                   </div>
                 </div>
               </div>
@@ -190,15 +193,15 @@ export default function SecurityAssessmentPage() {
         {/* Right: Detail (60%) */}
         <div className="flex-1">
           {!detail ? (
-            <div className="bg-falcon-surface border border-falcon-border rounded-xl p-12 flex flex-col items-center justify-center text-center h-full min-h-[400px]">
-              <FileText size={48} className="text-falcon-border mb-4" />
+            <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-12 flex flex-col items-center justify-center text-center h-full min-h-[400px]">
+              <FileText size={48} className="text-[#1e2d42] mb-4" />
               <div className="text-white font-medium">アセスメントを選択してください</div>
-              <div className="text-falcon-muted text-sm mt-2">左のリストからアセスメントを選択すると詳細が表示されます</div>
+              <div className="text-[#7d92b0] text-sm mt-2">左のリストからアセスメントを選択すると詳細が表示されます</div>
             </div>
           ) : (
-            <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
+            <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
               {/* Detail Header */}
-              <div className="p-5 border-b border-falcon-border">
+              <div className="p-5 border-b border-[#1e2d42]">
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1 min-w-0">
                     <h2 className="font-semibold text-white text-lg leading-snug">{detail.name}</h2>
@@ -206,7 +209,7 @@ export default function SecurityAssessmentPage() {
                       <span className={`text-xs px-2 py-0.5 rounded-full ${(TYPE_STYLES[detail.type] ?? TYPE_STYLES.gap_analysis).bg} ${(TYPE_STYLES[detail.type] ?? TYPE_STYLES.gap_analysis).text}`}>
                         {(TYPE_STYLES[detail.type] ?? TYPE_STYLES.gap_analysis).label}
                       </span>
-                      <span className="text-xs px-2 py-0.5 rounded-full bg-falcon-border text-falcon-muted">{detail.framework}</span>
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-[#1e2d42] text-[#7d92b0]">{detail.framework}</span>
                       <span className={`text-xs px-2 py-0.5 rounded-full ${(STATUS_META[detail.status] ?? STATUS_META.draft).badge}`}>
                         {(STATUS_META[detail.status] ?? STATUS_META.draft).label}
                       </span>
@@ -215,23 +218,23 @@ export default function SecurityAssessmentPage() {
                   {detail.score !== null && (
                     <div className="flex flex-col items-center shrink-0">
                       <ScoreCircle score={detail.score} />
-                      <div className="text-falcon-muted text-xs mt-1">/ 100</div>
+                      <div className="text-[#7d92b0] text-xs mt-1">/ 100</div>
                     </div>
                   )}
                 </div>
                 {detail.score !== null && (
                   <div className="mt-3">
-                    <div className="h-2 bg-falcon-border rounded-full overflow-hidden">
+                    <div className="h-2 bg-[#1e2d42] rounded-full overflow-hidden">
                       <div className="h-full bg-green-500 rounded-full transition-all" style={{ width: `${detail.score}%` }} />
                     </div>
-                    <div className="text-falcon-muted text-xs mt-1">スコア: {detail.score} / 100</div>
+                    <div className="text-[#7d92b0] text-xs mt-1">スコア: {detail.score} / 100</div>
                   </div>
                 )}
                 <div className="flex gap-2 mt-3">
-                  <button className="flex items-center gap-1.5 px-3 py-1.5 border border-falcon-border hover:border-falcon-muted text-falcon-muted hover:text-white rounded-lg text-xs transition-colors">
+                  <button className="flex items-center gap-1.5 px-3 py-1.5 border border-[#1e2d42] hover:border-[#7d92b0] text-[#7d92b0] hover:text-white rounded-lg text-xs transition-colors">
                     <Pencil size={12} /> 編集
                   </button>
-                  <button onClick={() => exportPDF.mutate(detail.id)} className="flex items-center gap-1.5 px-3 py-1.5 border border-falcon-border hover:border-falcon-red text-falcon-muted hover:text-falcon-red rounded-lg text-xs transition-colors">
+                  <button onClick={() => exportPDF.mutate(detail.id)} className="flex items-center gap-1.5 px-3 py-1.5 border border-[#1e2d42] hover:border-[#e8002d] text-[#7d92b0] hover:text-[#e8002d] rounded-lg text-xs transition-colors">
                     <Download size={12} /> PDFエクスポート
                   </button>
                 </div>
@@ -246,15 +249,15 @@ export default function SecurityAssessmentPage() {
                       {detail.findings.map(f => {
                         const sev = SEV_STYLES[f.severity] ?? SEV_STYLES.low
                         return (
-                          <div key={f.id} className="bg-[#070d19] border border-falcon-border rounded-lg p-3 space-y-2">
+                          <div key={f.id} className="bg-[#070d19] border border-[#1e2d42] rounded-lg p-3 space-y-2">
                             <div className="flex items-center gap-2 flex-wrap">
-                              <span className="text-xs px-2 py-0.5 rounded-sm bg-falcon-border text-falcon-muted font-mono">{f.category}</span>
+                              <span className="text-xs px-2 py-0.5 rounded-sm bg-[#1e2d42] text-[#7d92b0] font-mono">{f.category}</span>
                               <span className={`text-xs px-2 py-0.5 rounded-full ${sev.badge}`}>{sev.label}</span>
                             </div>
                             <p className="text-white text-xs leading-relaxed">{f.description}</p>
-                            <div className="border-t border-falcon-border pt-2">
-                              <span className="text-falcon-muted text-xs">推奨: </span>
-                              <span className="text-falcon-muted text-xs">{f.recommendation}</span>
+                            <div className="border-t border-[#1e2d42] pt-2">
+                              <span className="text-[#7d92b0] text-xs">推奨: </span>
+                              <span className="text-[#7d92b0] text-xs">{f.recommendation}</span>
                             </div>
                           </div>
                         )
@@ -270,8 +273,8 @@ export default function SecurityAssessmentPage() {
                     <ol className="space-y-2">
                       {detail.recommendations.map((rec, i) => (
                         <li key={i} className="flex gap-3 text-sm">
-                          <span className="w-6 h-6 rounded-full bg-falcon-red/20 text-falcon-red text-xs flex items-center justify-center font-bold shrink-0 mt-0.5">{i + 1}</span>
-                          <span className="text-falcon-muted leading-relaxed">{rec}</span>
+                          <span className="w-6 h-6 rounded-full bg-[#e8002d]/20 text-[#e8002d] text-xs flex items-center justify-center font-bold shrink-0 mt-0.5">{i + 1}</span>
+                          <span className="text-[#7d92b0] leading-relaxed">{rec}</span>
                         </li>
                       ))}
                     </ol>
@@ -281,11 +284,11 @@ export default function SecurityAssessmentPage() {
                 {/* Evidence */}
                 <div>
                   <h3 className="font-semibold text-white text-sm mb-3">証拠一覧</h3>
-                  <div className="border-2 border-dashed border-falcon-border rounded-xl p-8 flex flex-col items-center justify-center text-center hover:border-falcon-muted transition-colors cursor-pointer">
-                    <Upload size={24} className="text-falcon-muted mb-2" />
-                    <div className="text-falcon-muted text-sm">ファイルをドロップするか</div>
-                    <button className="text-falcon-red text-sm hover:underline mt-0.5">クリックしてアップロード</button>
-                    <div className="text-falcon-muted text-xs mt-2">PDF, PNG, DOCX — 最大50MB</div>
+                  <div className="border-2 border-dashed border-[#1e2d42] rounded-xl p-8 flex flex-col items-center justify-center text-center hover:border-[#7d92b0] transition-colors cursor-pointer">
+                    <Upload size={24} className="text-[#7d92b0] mb-2" />
+                    <div className="text-[#7d92b0] text-sm">ファイルをドロップするか</div>
+                    <button className="text-[#e8002d] text-sm hover:underline mt-0.5">クリックしてアップロード</button>
+                    <div className="text-[#7d92b0] text-xs mt-2">PDF, PNG, DOCX — 最大50MB</div>
                   </div>
                 </div>
               </div>
@@ -296,17 +299,17 @@ export default function SecurityAssessmentPage() {
 
       {showForm && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-          <div className="bg-falcon-surface border border-falcon-border rounded-xl p-6 w-full max-w-md space-y-4">
+          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-6 w-full max-w-md space-y-4">
             <h3 className="font-semibold text-white">新規セキュリティアセスメント</h3>
-            <input placeholder="アセスメント名" className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-sm text-white placeholder-falcon-muted focus:outline-hidden focus:border-falcon-red" />
-            <select className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-sm text-white focus:outline-hidden focus:border-falcon-red">
+            <input placeholder="アセスメント名" className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-white placeholder-[#7d92b0] focus:outline-hidden focus:border-[#e8002d]" />
+            <select className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-white focus:outline-hidden focus:border-[#e8002d]">
               {Object.entries(TYPE_STYLES).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
             </select>
-            <input placeholder="フレームワーク (例: NIST CSF 2.0)" className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-sm text-white placeholder-falcon-muted focus:outline-hidden focus:border-falcon-red" />
-            <input placeholder="担当者" className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-sm text-white placeholder-falcon-muted focus:outline-hidden focus:border-falcon-red" />
+            <input placeholder="フレームワーク (例: NIST CSF 2.0)" className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-white placeholder-[#7d92b0] focus:outline-hidden focus:border-[#e8002d]" />
+            <input placeholder="担当者" className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-white placeholder-[#7d92b0] focus:outline-hidden focus:border-[#e8002d]" />
             <div className="flex gap-3 pt-2">
-              <button className="flex-1 bg-falcon-red hover:bg-[#c8001d] text-white rounded-lg py-2 text-sm font-medium transition-colors">作成</button>
-              <button onClick={() => setShowForm(false)} className="flex-1 border border-falcon-border text-falcon-muted hover:text-white rounded-lg py-2 text-sm font-medium transition-colors">キャンセル</button>
+              <button className="flex-1 bg-[#e8002d] hover:bg-[#c8001d] text-white rounded-lg py-2 text-sm font-medium transition-colors">作成</button>
+              <button onClick={() => setShowForm(false)} className="flex-1 border border-[#1e2d42] text-[#7d92b0] hover:text-white rounded-lg py-2 text-sm font-medium transition-colors">キャンセル</button>
             </div>
           </div>
         </div>

@@ -15,6 +15,7 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"github.com/edr-platform/server/internal/backup"
 	"github.com/edr-platform/server/internal/metrics"
 )
 
@@ -57,65 +58,60 @@ func (s *BackupScheduler) Run(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			s.runBackup(ctx)
+			trackRun(ctx, "backup_scheduler", s.runBackup)
 		}
 	}
 }
 
 // runBackup performs a single pg_dump backup cycle:
-//  1. Checks that the backups table exists (skips gracefully if not).
-//  2. Inserts a pending backup record.
-//  3. Runs pg_dump using the DATABASE_URL environment variable.
-//  4. Updates the record to completed/failed with file size / error message.
-//  5. Prunes records and files older than the 7 most recent backups.
+//  1. Inserts a pending backup record.
+//  2. Runs pg_dump using the DATABASE_URL environment variable.
+//  3. Verifies the dump is complete, then marks the record completed/failed.
+//  4. Prunes records and files older than the 7 most recent backups.
+//
+// This used to open with a check that the backups table exists, returning at
+// Debug level when it did not. No migration created that table, so the check
+// was false on every cycle and pg_dump never ran — silently, for the life of
+// the deployment. Migration 371 creates the table; the check is gone because a
+// missing table is now a schema fault worth surfacing, not a state to tolerate.
 func (s *BackupScheduler) runBackup(ctx context.Context) {
-	// 1. Verify the backups table exists — skip gracefully when it doesn't.
-	var tableExists bool
-	err := s.pool.QueryRow(ctx,
-		`SELECT EXISTS (
-			SELECT 1 FROM pg_tables
-			WHERE schemaname = 'public' AND tablename = 'backups'
-		)`,
-	).Scan(&tableExists)
-	if err != nil || !tableExists {
-		slog.Debug("backupsテーブルが存在しないため自動バックアップをスキップします")
-		return
-	}
-
 	// Ensure the backup directory exists.
 	if err := os.MkdirAll(s.backupDir, 0750); err != nil {
-		slog.Error("バックアップディレクトリの作成に失敗しました", "dir", s.backupDir, "error", err)
+		fail(ctx, err, "バックアップディレクトリの作成に失敗しました", "dir", s.backupDir)
 		return
 	}
 
 	filename := fmt.Sprintf("backup_%s.sql", time.Now().UTC().Format("20060102_150405"))
 	outPath := filepath.Join(s.backupDir, filename)
 
-	// 2. Insert a pending record.
+	// 1. Insert a pending record.
 	var backupID string
-	err = s.pool.QueryRow(ctx,
+	err := s.pool.QueryRow(ctx,
 		`INSERT INTO backups (filename, status, started_at)
-		 VALUES ($1, 'pending', NOW())
+		 VALUES ($1, $2, NOW())
 		 RETURNING id::text`,
-		filename,
+		filename, backup.StatusPending,
 	).Scan(&backupID)
 	if err != nil {
-		slog.Error("バックアップレコードの挿入に失敗しました", "error", err)
+		fail(ctx, err, "バックアップレコードの挿入に失敗しました")
 		return
 	}
 
-	// 3. Run pg_dump.
+	// 2. Run pg_dump.
 	dbURL := os.Getenv("DATABASE_URL")
 	cmd := exec.CommandContext(ctx, "pg_dump", dbURL, "-f", outPath)
 	pgErr := cmd.Run()
 
 	if pgErr != nil {
 		s.markFailed(ctx, backupID, "pg_dump: "+pgErr.Error())
-		slog.Error("pg_dumpに失敗しました", "error", pgErr)
+		// **この回はバックアップを1つも取れていません。** DB の
+		// backups 行には failed が残りますが、それを見に行く人が
+		// いなければ、外から見えるのは「回った」だけです。
+		fail(ctx, pgErr, "pg_dumpに失敗しました")
 		return
 	}
 
-	// 3b. Verify integrity: pg_dump's exit code does not guarantee a complete file
+	// 2b. Verify integrity: pg_dump's exit code does not guarantee a complete file
 	// (a dump truncated by a full disk or a kill can still exit 0). Reject a dump
 	// that is empty or missing the completion marker so a corrupt backup is never
 	// recorded as "completed" and discovered only during a restore.
@@ -123,32 +119,41 @@ func (s *BackupScheduler) runBackup(ctx context.Context) {
 	if verifyErr != nil {
 		s.markFailed(ctx, backupID, "integrity: "+verifyErr.Error())
 		_ = os.Remove(outPath) // don't leave a corrupt file masquerading as a backup
-		slog.Error("バックアップの整合性検証に失敗しました", "filename", filename, "error", verifyErr)
+		fail(ctx, verifyErr, "バックアップの整合性検証に失敗しました", "filename", filename)
 		return
 	}
 
-	// 4. On verified success: record size, mark completed, publish SLO metrics.
-	_, _ = s.pool.Exec(ctx,
+	// 3. On verified success: record size, mark completed, publish SLO metrics.
+	// **書けないと、取れたバックアップが「実行中」のまま残ります。**
+	// しかも次の行で SLO の成功時刻を押すので、**記録は未完了なのに
+	// 計測は成功**という食い違いになります。
+	if _, err := s.pool.Exec(ctx,
 		`UPDATE backups
-		 SET status = 'completed', file_size_bytes = $1, finished_at = NOW(), updated_at = NOW()
+		 SET status = $3, file_size_bytes = $1, finished_at = NOW(), updated_at = NOW()
 		 WHERE id = $2`,
-		fileSize, backupID,
-	)
+		fileSize, backupID, backup.StatusCompleted,
+	); err != nil {
+		fail(ctx, err, "バックアップの完了を記録できませんでした", "filename", filename)
+		return
+	}
 	metrics.BackupLastSuccessTimestamp.Set(float64(time.Now().Unix()))
 	slog.Info("バックアップ完了", "filename", filename, "size_bytes", fileSize)
 
-	// 5. Retain only the last 7 backups — delete older records and their files.
+	// 4. Retain only the last 7 backups — delete older records and their files.
 	s.pruneOldBackups(ctx)
 }
 
 // markFailed records a backup as failed and increments the failure metric.
 func (s *BackupScheduler) markFailed(ctx context.Context, backupID, reason string) {
-	_, _ = s.pool.Exec(ctx,
+	// **失敗の記録が書けないと、その失敗はどこにも残りません。**
+	if _, err := s.pool.Exec(ctx,
 		`UPDATE backups
-		 SET status = 'failed', error_message = $1, finished_at = NOW(), updated_at = NOW()
+		 SET status = $3, error_message = $1, finished_at = NOW(), updated_at = NOW()
 		 WHERE id = $2`,
-		reason, backupID,
-	)
+		reason, backupID, backup.StatusFailed,
+	); err != nil {
+		fail(ctx, err, "バックアップの失敗を記録できませんでした", "backup_id", backupID)
+	}
 	metrics.BackupFailures.Inc()
 }
 
@@ -202,7 +207,7 @@ func (s *BackupScheduler) pruneOldBackups(ctx context.Context) {
 		 RETURNING filename`,
 	)
 	if err != nil {
-		slog.Debug("古いバックアップの削除に失敗しました", "error", err)
+		fail(ctx, err, "古いバックアップの削除に失敗しました")
 		return
 	}
 	defer rows.Close()
@@ -214,9 +219,12 @@ func (s *BackupScheduler) pruneOldBackups(ctx context.Context) {
 		}
 		path := filepath.Join(s.backupDir, filename)
 		if rmErr := os.Remove(path); rmErr != nil && !os.IsNotExist(rmErr) {
-			slog.Warn("バックアップファイルの削除に失敗しました", "path", path, "error", rmErr)
+			fail(ctx, rmErr, "バックアップファイルの削除に失敗しました", "path", path)
 		} else {
 			slog.Info("古いバックアップを削除しました", "filename", filename)
 		}
+	}
+	if err := rows.Err(); err != nil {
+		fail(ctx, err, "削除済みバックアップのファイル名を読み切れませんでした。DBの行は消えていますが、対応するファイルがディスクに残っている可能性があります")
 	}
 }

@@ -23,19 +23,11 @@ func NewPAMHandler(pool *pgxpool.Pool) *PAMHandler {
 }
 
 func (h *PAMHandler) requestsTableExists(c *gin.Context) bool {
-	ctx := c.Request.Context()
-	var exists bool
-	_ = h.pool.QueryRow(ctx,
-		`SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name='pam_access_requests')`).Scan(&exists)
-	return exists
+	return tableIsThere(c.Request.Context(), h.pool, "pam_access_requests")
 }
 
 func (h *PAMHandler) sessionsTableExists(c *gin.Context) bool {
-	ctx := c.Request.Context()
-	var exists bool
-	_ = h.pool.QueryRow(ctx,
-		`SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name='pam_sessions')`).Scan(&exists)
-	return exists
+	return tableIsThere(c.Request.Context(), h.pool, "pam_sessions")
 }
 
 // ListRequests — GET /pam/requests
@@ -117,7 +109,9 @@ func (h *PAMHandler) ListRequests(c *gin.Context) {
 		requests = append(requests, r)
 	}
 	if err := rows.Err(); err != nil {
-		slog.Warn("row iteration error", "error", err)
+		slog.Error("rows.Err: 結果の読み出しが途中で失敗しました", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": dbErrMsg(err)})
+		return
 	}
 
 	if requests == nil {
@@ -297,6 +291,8 @@ func (h *PAMHandler) ApproveRequest(c *gin.Context) {
 
 	// Create PAM session
 	tokenBytes := make([]byte, 32)
+	// crypto/rand.Read は Go 1.24 以降エラーを返しません（取得できないときは
+	// panic します）。エラー分岐を書いても到達しないので書きません。
 	_, _ = rand.Read(tokenBytes)
 	sessionToken := hex.EncodeToString(tokenBytes)
 
@@ -309,8 +305,15 @@ func (h *PAMHandler) ApproveRequest(c *gin.Context) {
 			id, sessionToken,
 		).Scan(&sessionID)
 		if err != nil {
-			// Non-fatal: session creation failure doesn't block approval
-			sessionID = ""
+			// 以前は sessionID = "" として、承認と一緒にトークンを返して
+			// いました。行が入っていないので、そのトークンに対応する
+			// セッションはどこにもありません。申請者は特権アクセスを
+			// 受け取ったつもりで、使えない鍵を持ちます。
+			slog.Error("pam: セッションを作成できませんでした", "request", id, "error", err)
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": "承認は記録しましたが、特権セッションを作成できませんでした。もう一度承認してください",
+			})
+			return
 		}
 	}
 
@@ -420,7 +423,9 @@ func (h *PAMHandler) ListSessions(c *gin.Context) {
 		sessions = append(sessions, s)
 	}
 	if err := rows.Err(); err != nil {
-		slog.Warn("row iteration error", "error", err)
+		slog.Error("rows.Err: 結果の読み出しが途中で失敗しました", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": dbErrMsg(err)})
+		return
 	}
 
 	if sessions == nil {
@@ -469,25 +474,33 @@ func (h *PAMHandler) GetStats(c *gin.Context) {
 	var stats PAMStats
 
 	if h.requestsTableExists(c) {
-		_ = h.pool.QueryRow(ctx,
+		if !ReadOK(c, h.pool.QueryRow(ctx,
 			`SELECT COUNT(*) FROM pam_access_requests WHERE status='pending'`,
-		).Scan(&stats.PendingCount)
+		).Scan(&stats.PendingCount)) {
+			return
+		}
 
-		_ = h.pool.QueryRow(ctx,
+		if !ReadOK(c, h.pool.QueryRow(ctx,
 			`SELECT COUNT(*) FROM pam_access_requests WHERE status='approved' AND DATE(approved_at)=CURRENT_DATE`,
-		).Scan(&stats.ApprovedToday)
+		).Scan(&stats.ApprovedToday)) {
+			return
+		}
 
-		_ = h.pool.QueryRow(ctx, `
-			SELECT COALESCE(AVG(EXTRACT(EPOCH FROM (approved_at - created_at))/60), 0)
-			FROM pam_access_requests
-			WHERE status='approved' AND approved_at IS NOT NULL`,
-		).Scan(&stats.AvgApprovalTime)
+		if !ReadOK(c, h.pool.QueryRow(ctx, `
+				SELECT COALESCE(AVG(EXTRACT(EPOCH FROM (approved_at - created_at))/60), 0)
+				FROM pam_access_requests
+				WHERE status='approved' AND approved_at IS NOT NULL`,
+		).Scan(&stats.AvgApprovalTime)) {
+			return
+		}
 	}
 
 	if h.sessionsTableExists(c) {
-		_ = h.pool.QueryRow(ctx,
+		if !ReadOK(c, h.pool.QueryRow(ctx,
 			`SELECT COUNT(*) FROM pam_sessions WHERE is_active=TRUE`,
-		).Scan(&stats.ActiveSessions)
+		).Scan(&stats.ActiveSessions)) {
+			return
+		}
 	}
 
 	c.JSON(http.StatusOK, stats)

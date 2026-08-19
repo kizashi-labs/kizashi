@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/edr-platform/server/internal/metrics"
 	"github.com/edr-platform/server/internal/store"
 	"github.com/gin-gonic/gin"
 )
@@ -23,19 +24,14 @@ func NewQuarantineHandler(s *store.QuarantineStore, cmd *store.CommandStore) *Qu
 func (h *QuarantineHandler) List(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	perPage, _ := strconv.Atoi(c.DefaultQuery("per_page", "20"))
-	if page < 1 {
-		page = 1
-	}
-	if perPage < 1 || perPage > 100 {
-		perPage = 20
-	}
+	page, perPage, offset := clampPageParams(page, perPage, 20, 100)
 
 	f := store.QuarantineFilter{
 		AgentID: c.Query("agent_id"),
 		Search:  c.Query("search"),
 		Status:  c.Query("status"),
 	}
-	files, total, err := h.Store.List(c.Request.Context(), f, perPage, (page-1)*perPage)
+	files, total, err := h.Store.List(c.Request.Context(), f, perPage, offset)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "検疫ファイル一覧の取得に失敗しました"})
 		return
@@ -96,8 +92,19 @@ func (h *QuarantineHandler) Restore(c *gin.Context) {
 		return
 	}
 
+	// **これは端末上のファイルを戻す指示そのものです。** 届かなければ
+	// ファイルは検疫のままで、下の `MarkRestored` だけが「復元済み」に
+	// なります —— **画面は復元されたと言い、実物は戻っていません。**
 	if h.Commander != nil {
-		_ = h.Commander.RestoreFile(c.Request.Context(), req.AgentID, agentQID, req.RestorePath, "")
+		if err := h.Commander.RestoreFile(c.Request.Context(), req.AgentID, agentQID, req.RestorePath, ""); err != nil {
+			metrics.BackgroundFailed("quarantine_restore", err,
+				"ファイル復元コマンドを端末に届けられませんでした。ファイルは検疫のままです",
+				"agent_id", req.AgentID, "quarantine_id", agentQID)
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": "復元コマンドを端末に届けられませんでした。ファイルは検疫のままです",
+			})
+			return
+		}
 	}
 
 	if err := h.Store.MarkRestored(c.Request.Context(), id, by); err != nil {

@@ -20,6 +20,8 @@ import {
   ChevronDown,
 } from 'lucide-react'
 
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type ReportFormat = 'pdf' | 'html' | 'csv'
@@ -90,7 +92,7 @@ function formatDate(iso: string): string {
 
 function FieldLabel({ children }: { children: React.ReactNode }) {
   return (
-    <label className="block text-xs font-medium text-falcon-muted mb-1.5 uppercase tracking-wide">
+    <label className="block text-xs font-medium text-[#7d92b0] mb-1.5 uppercase tracking-wide">
       {children}
     </label>
   )
@@ -114,10 +116,7 @@ function TextInput({
       onChange={e => onChange(e.target.value)}
       placeholder={placeholder}
       disabled={disabled}
-      className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2.5 text-sm
-                 text-falcon-text placeholder-falcon-subtle
-                 focus:outline-hidden focus:border-falcon-red/60 focus:ring-1 focus:ring-falcon-red/20
-                 disabled:opacity-40 transition-colors"
+      className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2.5 text-sm text-[#e2e8f4] placeholder-[#3d5068] focus:outline-hidden focus:border-[#e8002d]/60 focus:ring-1 focus:ring-[#e8002d]/20 disabled:opacity-40 transition-colors"
     />
   )
 }
@@ -139,10 +138,7 @@ function TextArea({
       onChange={e => onChange(e.target.value)}
       placeholder={placeholder}
       rows={rows}
-      className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2.5 text-sm
-                 text-falcon-text placeholder-falcon-subtle resize-none
-                 focus:outline-hidden focus:border-falcon-red/60 focus:ring-1 focus:ring-falcon-red/20
-                 transition-colors"
+      className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2.5 text-sm text-[#e2e8f4] placeholder-[#3d5068] resize-none focus:outline-hidden focus:border-[#e8002d]/60 focus:ring-1 focus:ring-[#e8002d]/20 transition-colors"
     />
   )
 }
@@ -163,25 +159,25 @@ function TemplateCard({
   onGenerate: () => void
 }) {
   return (
-    <div className="bg-falcon-surface rounded-xl border border-falcon-border overflow-hidden hover:border-[#2a3d5a] transition-colors group">
+    <div className="bg-[#0d1220] rounded-xl border border-[#1e2d42] overflow-hidden hover:border-[#2a3d5a] transition-colors group">
       <div className="p-5">
         {/* Header row */}
         <div className="flex items-start justify-between gap-3 mb-3">
           <div className="flex items-start gap-3">
-            <div className="w-9 h-9 rounded-lg bg-[#070d19] border border-falcon-border flex items-center justify-center shrink-0 mt-0.5">
-              <FileText className="w-4 h-4 text-falcon-muted" />
+            <div className="w-9 h-9 rounded-lg bg-[#070d19] border border-[#1e2d42] flex items-center justify-center shrink-0 mt-0.5">
+              <FileText className="w-4 h-4 text-[#7d92b0]" />
             </div>
             <div>
-              <h3 className="text-sm font-semibold text-white group-hover:text-falcon-red transition-colors">
+              <h3 className="text-sm font-semibold text-white group-hover:text-[#e8002d] transition-colors">
                 {template.name}
               </h3>
               {template.description && (
-                <p className="text-xs text-falcon-muted mt-0.5 line-clamp-2">{template.description}</p>
+                <p className="text-xs text-[#7d92b0] mt-0.5 line-clamp-2">{template.description}</p>
               )}
             </div>
           </div>
           <span
-            className={`text-xs font-medium px-2 py-0.5 rounded border uppercase shrink-0 ${
+            className={`text-xs font-medium px-2 py-0.5 rounded-sm border uppercase shrink-0 ${
               FORMAT_COLORS[template.format] ?? FORMAT_COLORS.pdf
             }`}
           >
@@ -190,7 +186,7 @@ function TemplateCard({
         </div>
 
         {/* Meta */}
-        <div className="flex items-center gap-4 text-xs text-falcon-muted mb-4">
+        <div className="flex items-center gap-4 text-xs text-[#7d92b0] mb-4">
           <span>{template.sections.length} section{template.sections.length !== 1 ? 's' : ''}</span>
           <span>·</span>
           <span>Updated {formatDate(template.updated_at)}</span>
@@ -202,13 +198,13 @@ function TemplateCard({
             {template.sections.slice(0, 4).map((sec, idx) => (
               <span
                 key={idx}
-                className="text-xs px-2 py-0.5 rounded-full bg-[#070d19] border border-falcon-border text-falcon-muted"
+                className="text-xs px-2 py-0.5 rounded-full bg-[#070d19] border border-[#1e2d42] text-[#7d92b0]"
               >
                 {sec.title}
               </span>
             ))}
             {template.sections.length > 4 && (
-              <span className="text-xs px-2 py-0.5 rounded-full bg-[#070d19] border border-falcon-border text-falcon-muted">
+              <span className="text-xs px-2 py-0.5 rounded-full bg-[#070d19] border border-[#1e2d42] text-[#7d92b0]">
                 +{template.sections.length - 4} more
               </span>
             )}
@@ -216,21 +212,17 @@ function TemplateCard({
         )}
 
         {/* Actions */}
-        <div className="flex items-center gap-2 pt-2 border-t border-falcon-border">
+        <div className="flex items-center gap-2 pt-2 border-t border-[#1e2d42]">
           <button
             onClick={onPreview}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg
-                       bg-[#070d19] border border-falcon-border text-falcon-muted
-                       hover:border-falcon-muted/50 hover:text-falcon-text transition-all"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-[#070d19] border border-[#1e2d42] text-[#7d92b0] hover:border-[#7d92b0]/50 hover:text-[#e2e8f4] transition-all"
           >
             <Eye className="w-3.5 h-3.5" />
             Preview
           </button>
           <button
             onClick={onGenerate}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg
-                       bg-falcon-red/10 border border-falcon-red/30 text-falcon-red
-                       hover:bg-falcon-red/20 hover:border-falcon-red/50 transition-all"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-[#e8002d]/10 border border-[#e8002d]/30 text-[#e8002d] hover:bg-[#e8002d]/20 hover:border-[#e8002d]/50 transition-all"
           >
             <PlayCircle className="w-3.5 h-3.5" />
             Generate
@@ -238,13 +230,13 @@ function TemplateCard({
           <div className="ml-auto flex items-center gap-1">
             <button
               onClick={onEdit}
-              className="p-1.5 rounded-lg text-falcon-muted hover:text-falcon-text hover:bg-falcon-border transition-all"
+              className="p-1.5 rounded-lg text-[#7d92b0] hover:text-[#e2e8f4] hover:bg-[#1e2d42] transition-all"
             >
               <Pencil className="w-3.5 h-3.5" />
             </button>
             <button
               onClick={onDelete}
-              className="p-1.5 rounded-lg text-falcon-muted hover:text-red-400 hover:bg-red-900/10 transition-all"
+              className="p-1.5 rounded-lg text-[#7d92b0] hover:text-red-400 hover:bg-red-900/10 transition-all"
             >
               <Trash2 className="w-3.5 h-3.5" />
             </button>
@@ -277,32 +269,32 @@ function SectionRow({
   const typeInfo = SECTION_TYPES.find(t => t.value === section.type)
 
   return (
-    <div className="flex items-center gap-2 bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2.5 group">
-      <GripVertical className="w-4 h-4 text-falcon-subtle shrink-0 cursor-grab" />
+    <div className="flex items-center gap-2 bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2.5 group">
+      <GripVertical className="w-4 h-4 text-[#3d5068] shrink-0 cursor-grab" />
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-falcon-text truncate">
+        <p className="text-sm font-medium text-[#e2e8f4] truncate">
           {typeInfo?.label ?? section.type}
         </p>
-        <p className="text-xs text-falcon-muted truncate">{section.title}</p>
+        <p className="text-xs text-[#7d92b0] truncate">{section.title}</p>
       </div>
       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
         <button
           onClick={onMoveUp}
           disabled={index === 0}
-          className="p-1 rounded-sm text-falcon-muted hover:text-falcon-text disabled:opacity-30 disabled:cursor-not-allowed"
+          className="p-1 rounded-sm text-[#7d92b0] hover:text-[#e2e8f4] disabled:opacity-30 disabled:cursor-not-allowed"
         >
           ▲
         </button>
         <button
           onClick={onMoveDown}
           disabled={index === total - 1}
-          className="p-1 rounded-sm text-falcon-muted hover:text-falcon-text disabled:opacity-30 disabled:cursor-not-allowed"
+          className="p-1 rounded-sm text-[#7d92b0] hover:text-[#e2e8f4] disabled:opacity-30 disabled:cursor-not-allowed"
         >
           ▼
         </button>
         <button
           onClick={onRemove}
-          className="p-1 rounded-sm text-falcon-muted hover:text-red-400 transition-colors"
+          className="p-1 rounded-sm text-[#7d92b0] hover:text-red-400 transition-colors"
         >
           <X className="w-3.5 h-3.5" />
         </button>
@@ -376,16 +368,16 @@ function TemplateEditorModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/70 backdrop-blur-xs" onClick={onClose} />
-      <div className="relative bg-falcon-surface border border-falcon-border rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative bg-[#0d1220] border border-[#1e2d42] rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-falcon-border">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[#1e2d42]">
           <h2 className="text-base font-semibold text-white">
             {isEditing ? 'Edit Template' : 'Create Template'}
           </h2>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-falcon-muted hover:text-white hover:bg-falcon-border transition-all"
+            className="p-1.5 rounded-lg text-[#7d92b0] hover:text-white hover:bg-[#1e2d42] transition-all"
           >
             <X className="w-4 h-4" />
           </button>
@@ -420,7 +412,7 @@ function TemplateEditorModal({
                   className={`px-4 py-2 rounded-lg text-sm font-medium border uppercase transition-all ${
                     format === f
                       ? FORMAT_COLORS[f]
-                      : 'bg-[#070d19] border-falcon-border text-falcon-muted hover:border-falcon-muted/40'
+                      : 'bg-[#070d19] border-[#1e2d42] text-[#7d92b0] hover:border-[#7d92b0]/40'
                   }`}
                 >
                   {f}
@@ -434,7 +426,7 @@ function TemplateEditorModal({
             <FieldLabel>Sections ({sections.length})</FieldLabel>
             <div className="space-y-2 mb-3">
               {sections.length === 0 && (
-                <p className="text-xs text-falcon-subtle text-center py-4 border border-dashed border-falcon-border rounded-lg">
+                <p className="text-xs text-[#3d5068] text-center py-4 border border-dashed border-[#1e2d42] rounded-lg">
                   No sections yet. Add sections below.
                 </p>
               )}
@@ -456,25 +448,23 @@ function TemplateEditorModal({
             <div className="relative">
               <button
                 onClick={() => setAddTypeOpen(prev => !prev)}
-                className="flex items-center gap-2 text-sm font-medium px-3 py-2 rounded-lg w-full
-                           border border-dashed border-falcon-border text-falcon-muted
-                           hover:border-falcon-muted/50 hover:text-falcon-text transition-all justify-center"
+                className="flex items-center gap-2 text-sm font-medium px-3 py-2 rounded-lg w-full border border-dashed border-[#1e2d42] text-[#7d92b0] hover:border-[#7d92b0]/50 hover:text-[#e2e8f4] transition-all justify-center"
               >
                 <Plus className="w-4 h-4" />
                 Add Section
                 <ChevronDown className={`w-4 h-4 transition-transform ${addTypeOpen ? 'rotate-180' : ''}`} />
               </button>
               {addTypeOpen && (
-                <div className="absolute top-full left-0 right-0 mt-1 z-10 bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden shadow-2xl">
+                <div className="absolute top-full left-0 right-0 mt-1 z-10 bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden shadow-2xl">
                   {SECTION_TYPES.map(t => (
                     <button
                       key={t.value}
                       onClick={() => addSection(t.value)}
-                      className="w-full flex items-start gap-3 px-4 py-2.5 hover:bg-falcon-border transition-colors text-left"
+                      className="w-full flex items-start gap-3 px-4 py-2.5 hover:bg-[#1e2d42] transition-colors text-left"
                     >
                       <div>
-                        <p className="text-sm font-medium text-falcon-text">{t.label}</p>
-                        <p className="text-xs text-falcon-muted">{t.description}</p>
+                        <p className="text-sm font-medium text-[#e2e8f4]">{t.label}</p>
+                        <p className="text-xs text-[#7d92b0]">{t.description}</p>
                       </div>
                     </button>
                   ))}
@@ -493,19 +483,17 @@ function TemplateEditorModal({
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-falcon-border flex items-center justify-end gap-3">
+        <div className="px-6 py-4 border-t border-[#1e2d42] flex items-center justify-end gap-3">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-sm text-falcon-muted hover:text-falcon-text transition-colors"
+            className="px-4 py-2 text-sm text-[#7d92b0] hover:text-[#e2e8f4] transition-colors"
           >
             Cancel
           </button>
           <button
             onClick={() => saveMutation.mutate()}
             disabled={!name.trim() || saveMutation.isPending}
-            className="flex items-center gap-2 px-5 py-2 text-sm font-medium rounded-lg
-                       bg-falcon-red text-white hover:bg-falcon-red/90
-                       disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+            className="flex items-center gap-2 px-5 py-2 text-sm font-medium rounded-lg bg-[#e8002d] text-white hover:bg-[#e8002d]/90 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
           >
             {saveMutation.isPending ? (
               <Loader2 className="w-4 h-4 animate-spin" />
@@ -540,17 +528,17 @@ function PreviewModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/70 backdrop-blur-xs" onClick={onClose} />
-      <div className="relative bg-falcon-surface border border-falcon-border rounded-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative bg-[#0d1220] border border-[#1e2d42] rounded-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-falcon-border">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[#1e2d42]">
           <div>
             <h2 className="text-base font-semibold text-white">Preview: {template.name}</h2>
-            <p className="text-xs text-falcon-muted mt-0.5">Mock data — actual content generated at runtime</p>
+            <p className="text-xs text-[#7d92b0] mt-0.5">Mock data — actual content generated at runtime</p>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-falcon-muted hover:text-white hover:bg-falcon-border transition-all"
+            className="p-1.5 rounded-lg text-[#7d92b0] hover:text-white hover:bg-[#1e2d42] transition-all"
           >
             <X className="w-4 h-4" />
           </button>
@@ -560,7 +548,7 @@ function PreviewModal({
         <div className="flex-1 overflow-y-auto p-6">
           {isLoading && (
             <div className="flex items-center justify-center py-16">
-              <Loader2 className="w-6 h-6 animate-spin text-falcon-muted" />
+              <Loader2 className="w-6 h-6 animate-spin text-[#7d92b0]" />
             </div>
           )}
           {isError && (
@@ -572,26 +560,26 @@ function PreviewModal({
           {data && (
             <div className="space-y-5">
               {/* Meta bar */}
-              <div className="flex items-center gap-4 text-xs text-falcon-muted bg-[#070d19] border border-falcon-border rounded-lg px-4 py-2.5">
-                <span>Format: <span className="text-falcon-text uppercase">{data.format}</span></span>
+              <div className="flex items-center gap-4 text-xs text-[#7d92b0] bg-[#070d19] border border-[#1e2d42] rounded-lg px-4 py-2.5">
+                <span>Format: <span className="text-[#e2e8f4] uppercase">{data.format}</span></span>
                 <span>·</span>
-                <span>Sections: <span className="text-falcon-text">{data.sections.length}</span></span>
+                <span>Sections: <span className="text-[#e2e8f4]">{data.sections.length}</span></span>
                 <span>·</span>
-                <span>Generated: <span className="text-falcon-text">{new Date(data.generated_at).toLocaleTimeString()}</span></span>
+                <span>Generated: <span className="text-[#e2e8f4]">{new Date(data.generated_at).toLocaleTimeString()}</span></span>
               </div>
 
               {/* Sections */}
               {data.sections.map((sec, idx) => (
-                <div key={idx} className="bg-[#070d19] border border-falcon-border rounded-xl overflow-hidden">
-                  <div className="px-4 py-3 border-b border-falcon-border flex items-center gap-2">
-                    <span className="w-5 h-5 flex items-center justify-center rounded-sm bg-falcon-border text-xs text-falcon-muted font-mono">
+                <div key={idx} className="bg-[#070d19] border border-[#1e2d42] rounded-xl overflow-hidden">
+                  <div className="px-4 py-3 border-b border-[#1e2d42] flex items-center gap-2">
+                    <span className="w-5 h-5 flex items-center justify-center rounded-sm bg-[#1e2d42] text-xs text-[#7d92b0] font-mono">
                       {idx + 1}
                     </span>
                     <span className="text-sm font-medium text-white">{sec.title}</span>
-                    <span className="ml-auto text-xs text-falcon-subtle">{sec.type}</span>
+                    <span className="ml-auto text-xs text-[#3d5068]">{sec.type}</span>
                   </div>
                   <div className="p-4">
-                    <pre className="text-xs text-falcon-muted overflow-auto max-h-48 leading-relaxed">
+                    <pre className="text-xs text-[#7d92b0] overflow-auto max-h-48 leading-relaxed">
                       {JSON.stringify(sec.content, null, 2)}
                     </pre>
                   </div>
@@ -600,7 +588,7 @@ function PreviewModal({
 
               {/* Note */}
               {data.note && (
-                <p className="text-xs text-falcon-subtle text-center">{data.note}</p>
+                <p className="text-xs text-[#3d5068] text-center">{data.note}</p>
               )}
             </div>
           )}
@@ -629,11 +617,11 @@ function DeleteConfirmModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/70 backdrop-blur-xs" onClick={onClose} />
-      <div className="relative bg-falcon-surface border border-falcon-border rounded-2xl w-full max-w-md p-6">
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative bg-[#0d1220] border border-[#1e2d42] rounded-2xl w-full max-w-md p-6">
         <h2 className="text-base font-semibold text-white mb-2">Delete Template</h2>
-        <p className="text-sm text-falcon-muted mb-6">
-          Are you sure you want to delete <span className="text-falcon-text font-medium">{template.name}</span>?
+        <p className="text-sm text-[#7d92b0] mb-6">
+          Are you sure you want to delete <span className="text-[#e2e8f4] font-medium">{template.name}</span>?
           This action cannot be undone.
         </p>
         {deleteMutation.isError && (
@@ -645,16 +633,14 @@ function DeleteConfirmModal({
         <div className="flex items-center justify-end gap-3">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-sm text-falcon-muted hover:text-falcon-text transition-colors"
+            className="px-4 py-2 text-sm text-[#7d92b0] hover:text-[#e2e8f4] transition-colors"
           >
             Cancel
           </button>
           <button
             onClick={() => deleteMutation.mutate()}
             disabled={deleteMutation.isPending}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg
-                       bg-red-600 text-white hover:bg-red-700
-                       disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+            className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-red-600 text-white hover:bg-red-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
           >
             {deleteMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
             {deleteMutation.isPending ? 'Deleting...' : 'Delete'}
@@ -711,25 +697,25 @@ export default function ReportTemplatesPage() {
 
   return (
     <div className="min-h-screen bg-[#070d19] p-6">
+      <PageDataUnavailable />
       {/* Header */}
       <div className="mb-8">
-        <div className="flex items-center gap-1.5 text-xs text-falcon-muted mb-4">
+        <div className="flex items-center gap-1.5 text-xs text-[#7d92b0] mb-4">
           <span>レポート</span>
           <ChevronRight className="w-3.5 h-3.5" />
-          <span className="text-falcon-text">テンプレート</span>
+          <span className="text-[#e2e8f4]">テンプレート</span>
         </div>
 
         <div className="flex items-start justify-between gap-4">
           <div>
             <h1 className="text-xl font-bold text-white">Report Templates</h1>
-            <p className="text-sm text-falcon-muted mt-1">
+            <p className="text-sm text-[#7d92b0] mt-1">
               Create and manage reusable report templates with configurable sections
             </p>
           </div>
           <button
             onClick={openCreate}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg
-                       bg-falcon-red text-white hover:bg-falcon-red/90 transition-all shrink-0"
+            className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-[#e8002d] text-white hover:bg-[#e8002d]/90 transition-all shrink-0"
           >
             <Plus className="w-4 h-4" />
             New Template
@@ -740,7 +726,7 @@ export default function ReportTemplatesPage() {
       {/* Content */}
       {isLoading && (
         <div className="flex items-center justify-center py-20">
-          <Loader2 className="w-6 h-6 animate-spin text-falcon-muted" />
+          <Loader2 className="w-6 h-6 animate-spin text-[#7d92b0]" />
         </div>
       )}
 
@@ -749,24 +735,23 @@ export default function ReportTemplatesPage() {
           <XCircle className="w-5 h-5 text-red-400 shrink-0" />
           <div>
             <p className="text-sm font-medium text-red-300">Failed to load templates</p>
-            <p className="text-xs text-falcon-muted mt-0.5">Check server connection and try again.</p>
+            <p className="text-xs text-[#7d92b0] mt-0.5">Check server connection and try again.</p>
           </div>
         </div>
       )}
 
       {!isLoading && !isError && templates.length === 0 && (
         <div className="flex flex-col items-center justify-center py-20 text-center">
-          <div className="w-14 h-14 rounded-2xl bg-falcon-surface border border-falcon-border flex items-center justify-center mb-4">
-            <FileText className="w-6 h-6 text-falcon-muted" />
+          <div className="w-14 h-14 rounded-2xl bg-[#0d1220] border border-[#1e2d42] flex items-center justify-center mb-4">
+            <FileText className="w-6 h-6 text-[#7d92b0]" />
           </div>
-          <p className="text-sm font-medium text-falcon-text mb-1">No templates yet</p>
-          <p className="text-xs text-falcon-muted mb-6 max-w-xs">
+          <p className="text-sm font-medium text-[#e2e8f4] mb-1">No templates yet</p>
+          <p className="text-xs text-[#7d92b0] mb-6 max-w-xs">
             Create your first report template to start generating structured security reports.
           </p>
           <button
             onClick={openCreate}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg
-                       bg-falcon-red text-white hover:bg-falcon-red/90 transition-all"
+            className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-[#e8002d] text-white hover:bg-[#e8002d]/90 transition-all"
           >
             <Plus className="w-4 h-4" />
             Create Template

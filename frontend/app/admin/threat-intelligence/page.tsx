@@ -10,6 +10,10 @@ import {
 } from 'lucide-react'
 
 
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+import { VerdictUnavailable } from '@/components/VerdictUnavailable'
+import { usePersist, SaveFailed } from '@/lib/persist'
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type FeedType = 'MISP' | 'OpenCTI' | 'CSV' | 'Static'
@@ -100,9 +104,11 @@ const PAGE_SIZE = 5
 export default function ThreatIntelligencePage() {
   const [syncingFeed, setSyncingFeed] = useState<string | null>(null)
   const [showAddFeed, setShowAddFeed] = useState(false)
+  const { persist, saveError } = usePersist()
   const [feedForm, setFeedForm] = useState({ name: '', type: 'MISP' as FeedType, url: '', api_key: '', fetch_interval: 60 })
   const [lookupValue, setLookupValue] = useState('')
   const [lookupResult, setLookupResult] = useState<LookupResult | null>(null)
+  const [lookupError, setLookupError] = useState<string | null>(null)
   const [lookupLoading, setLookupLoading] = useState(false)
   const [iocTab, setIocTab] = useState<'all' | IocType>('all')
   const [iocPage, setIocPage] = useState(1)
@@ -116,18 +122,14 @@ export default function ThreatIntelligencePage() {
 
   const { data: feedsData, refetch: refetchFeeds } = useQuery<Feed[]>({
     queryKey: ['ti-feeds'],
-    queryFn: async () => {
-      try { return await apiFetchList<Feed>('/api/v1/admin/threat-intel/feeds') } catch { return [] }
-    },
+    queryFn: () => apiFetchList<Feed>('/api/v1/admin/threat-intel/feeds'),
     staleTime: 30_000,
     retry: false,
   })
 
   const { data: iocsData } = useQuery<IOC[]>({
     queryKey: ['ti-iocs'],
-    queryFn: async () => {
-      try { return await apiFetchList<IOC>('/api/v1/admin/threat-intel/iocs') } catch { return [] }
-    },
+    queryFn: () => apiFetchList<IOC>('/api/v1/admin/threat-intel/iocs'),
     staleTime: 30_000,
     retry: false,
   })
@@ -143,21 +145,13 @@ export default function ThreatIntelligencePage() {
 
   const handleSync = async (feedId: string) => {
     setSyncingFeed(feedId)
-    try {
-      await apiFetch(`/api/v1/admin/threat-intel/feeds/${feedId}/sync`, { method: 'POST' })
-    } catch {
-      // ignore - mock success
-    } finally {
-      setTimeout(() => { setSyncingFeed(null); refetchFeeds() }, 1500)
-    }
+    await persist('フィードの同期', `/api/v1/admin/threat-intel/feeds/${feedId}/sync`, { method: 'POST' })
+    setSyncingFeed(null)
+    refetchFeeds()
   }
 
   const handleAddFeed = async () => {
-    try {
-      await apiFetch('/api/v1/admin/threat-intel/feeds', { method: 'POST', body: JSON.stringify(feedForm) })
-    } catch {
-      // ignore
-    }
+    if (!(await persist('脅威フィード', '/api/v1/admin/threat-intel/feeds', { method: 'POST', body: JSON.stringify(feedForm) }))) return
     setShowAddFeed(false)
     setFeedForm({ name: '', type: 'MISP', url: '', api_key: '', fetch_interval: 60 })
     refetchFeeds()
@@ -167,24 +161,20 @@ export default function ThreatIntelligencePage() {
     if (!lookupValue.trim()) return
     setLookupLoading(true)
     setLookupResult(null)
+    setLookupError(null)
     try {
       const result = await apiFetch<LookupResult>('/api/v1/admin/threat-intel/lookup', {
         method: 'POST',
         body: JSON.stringify({ value: lookupValue }),
       })
       setLookupResult(result)
-    } catch {
-      // Mock lookup result
-      const found = Math.random() > 0.4
-      setLookupResult({
-        value: lookupValue,
-        type: lookupValue.includes('http') ? 'url' : lookupValue.includes('.') ? (lookupValue.match(/^\d/) ? 'ip' : 'domain') : 'hash',
-        confidence: found ? Math.floor(Math.random() * 40) + 60 : 0,
-        severity: found ? (['critical', 'high', 'medium', 'low'] as Severity[])[Math.floor(Math.random() * 4)] : 'low',
-        source: found ? 'MISP Community' : 'N/A',
-        tags: found ? ['malware', 'c2'] : [],
-        found,
-      })
+    } catch (e) {
+      // ここは found = Math.random() > 0.4 でした。ハッシュや IP を貼って
+      // 照会すると、6割の確率で「脅威インジケーター検出」、確信度は
+      // 60〜99% の乱数、深刻度は4段階から無作為、出典は 'MISP Community'、
+      // タグは ['malware', 'c2'] — すべて発明された照会結果です。
+      // 解析者はこれを見てインシデントを立てます。
+      setLookupError(e instanceof Error ? e.message : '不明なエラー')
     } finally {
       setLookupLoading(false)
     }
@@ -192,6 +182,8 @@ export default function ThreatIntelligencePage() {
 
   return (
     <div className="min-h-screen bg-zinc-950 p-6">
+      <PageDataUnavailable />
+      <SaveFailed error={saveError} />
       {/* Header */}
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-zinc-100 flex items-center gap-2">
@@ -366,6 +358,9 @@ export default function ThreatIntelligencePage() {
             </button>
           </div>
 
+          {lookupError && (
+            <VerdictUnavailable what="IOC の照会" detail={lookupError} />
+          )}
           {lookupResult && (
             <div className={`p-4 rounded-lg border ${lookupResult.found ? 'bg-red-500/5 border-red-500/20' : 'bg-green-500/5 border-green-500/20'}`}>
               <div className="flex items-center gap-2 mb-3">
@@ -431,7 +426,7 @@ export default function ThreatIntelligencePage() {
               <button
                 key={tab}
                 onClick={() => { setIocTab(tab); setIocPage(1) }}
-                className={`px-3 py-1.5 rounded text-sm transition-colors ${
+                className={`px-3 py-1.5 rounded-sm text-sm transition-colors ${
                   iocTab === tab
                     ? 'bg-zinc-700 text-zinc-100'
                     : 'text-zinc-500 hover:text-zinc-300'

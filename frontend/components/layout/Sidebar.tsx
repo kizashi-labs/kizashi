@@ -2,6 +2,8 @@
 
 import React from 'react'
 import NextLink from 'next/link'
+
+import { isBackendPending } from '@/lib/backend-pending'
 import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard, ShieldAlert, Monitor,
@@ -570,11 +572,11 @@ export function Sidebar({ onSearchOpen }: { onSearchOpen?: () => void }) {
   // Returns badge color class for a sub-pane item, or null if none needed.
   const itemBadgeColor = useCallback((href: string): string | null => {
     if (openAlertCount > 0) {
-      if (ALERT_RED_HREFS.includes(href))    return 'bg-falcon-red critical-pulse'
+      if (ALERT_RED_HREFS.includes(href))    return 'bg-[#e8002d] critical-pulse'
       if (ALERT_ORANGE_HREFS.includes(href)) return 'bg-orange-500'
     }
     if (openIncidentCount > 0) {
-      if (INCIDENT_RED_HREFS.includes(href))    return 'bg-falcon-red critical-pulse'
+      if (INCIDENT_RED_HREFS.includes(href))    return 'bg-[#e8002d] critical-pulse'
       if (INCIDENT_ORANGE_HREFS.includes(href)) return 'bg-orange-500'
     }
     return null
@@ -665,29 +667,29 @@ export function Sidebar({ onSearchOpen }: { onSearchOpen?: () => void }) {
 
   return (
     <aside
-      className={`h-full shrink-0 flex bg-falcon-gradient border-r border-falcon-border overflow-hidden transition-all duration-200 ${
+      className={`h-full shrink-0 flex bg-falcon-gradient border-r border-[#1e2d42] overflow-hidden transition-all duration-200 ${
         openGroup ? 'w-[260px]' : 'w-[52px]'
       }`}
     >
       {/* ── Icon Rail ───────────────────────────────────────────── */}
-      <div className="w-[52px] shrink-0 grid grid-rows-[auto_auto_1fr_auto] h-screen border-r border-falcon-border">
+      <div className="w-[52px] shrink-0 grid grid-rows-[auto_auto_1fr_auto] h-screen border-r border-[#1e2d42]">
 
         {/* Logo */}
-        <div className="flex items-center justify-center h-[54px] border-b border-falcon-border shrink-0">
+        <div className="flex items-center justify-center h-[54px] border-b border-[#1e2d42] shrink-0">
           <div className="relative" title="Kizashi">
-            <div className="w-8 h-8 rounded-sm flex items-center justify-center bg-linear-to-br from-falcon-red to-falcon-red-dark shadow-falcon-glow-red">
+            <div className="w-8 h-8 rounded-sm flex items-center justify-center bg-linear-to-br from-[#e8002d] to-[#a80020] shadow-falcon-glow-red">
               <Shield className="w-4 h-4 text-white" strokeWidth={2.5} />
             </div>
-            <span className="absolute -bottom-0.5 -right-0.5 w-2 h-2 bg-falcon-green rounded-full border border-falcon-surface" />
+            <span className="absolute -bottom-0.5 -right-0.5 w-2 h-2 bg-[#00c853] rounded-full border border-[#0d1220]" />
           </div>
         </div>
 
         {/* Search */}
-        <div className="px-2 py-2 border-b border-falcon-border shrink-0">
+        <div className="px-2 py-2 border-b border-[#1e2d42] shrink-0">
           <button
             onClick={onSearchOpen}
             title="検索 (Ctrl+K)"
-            className="w-full flex items-center justify-center p-2 rounded-sm bg-falcon-surface border border-falcon-border text-falcon-muted hover:text-falcon-text hover:border-falcon-muted/40 transition-all"
+            className="w-full flex items-center justify-center p-2 rounded-sm bg-[#0d1220] border border-[#1e2d42] text-[#7d92b0] hover:text-[#e2e8f4] hover:border-[#7d92b0]/40 transition-all"
           >
             <Search className="w-3.5 h-3.5" />
           </button>
@@ -710,20 +712,20 @@ export function Sidebar({ onSearchOpen }: { onSearchOpen?: () => void }) {
                   incidentBadge ? `${group.label}（未処理インシデント ${openIncidentCount} 件）` :
                   group.label
                 }
-                className={`relative w-full p-2.5 rounded flex items-center justify-center transition-colors ${
+                className={`relative w-full p-2.5 rounded-sm flex items-center justify-center transition-colors ${
                   isOpen
-                    ? 'bg-falcon-active'
+                    ? 'bg-[#1d2f4a]'
                     : hasActive
-                      ? 'bg-falcon-hover'
-                      : 'text-falcon-subtle hover:bg-falcon-hover hover:text-falcon-muted'
+                      ? 'bg-[#19253d]'
+                      : 'text-[#3d5068] hover:bg-[#19253d] hover:text-[#7d92b0]'
                 }`}
               >
                 {(hasActive || isOpen) && (
-                  <span className="absolute left-0 top-1 bottom-1 w-0.5 rounded-r bg-falcon-red" />
+                  <span className="absolute left-0 top-1 bottom-1 w-0.5 rounded-r bg-[#e8002d]" />
                 )}
-                <GroupIcon className={`w-4 h-4 ${hasActive || isOpen ? 'text-falcon-red' : ''}`} />
+                <GroupIcon className={`w-4 h-4 ${hasActive || isOpen ? 'text-[#e8002d]' : ''}`} />
                 {(alertBadge || incidentBadge) && (
-                  <span className={`absolute top-0.5 right-0.5 w-2 h-2 rounded-full ${alertBadge ? 'bg-falcon-red critical-pulse' : 'bg-orange-500'}`} />
+                  <span className={`absolute top-0.5 right-0.5 w-2 h-2 rounded-full ${alertBadge ? 'bg-[#e8002d] critical-pulse' : 'bg-orange-500'}`} />
                 )}
               </button>
             )
@@ -732,7 +734,7 @@ export function Sidebar({ onSearchOpen }: { onSearchOpen?: () => void }) {
           {/* Admin group icons */}
           {isAdmin && (
             <>
-              <div className="border-t border-falcon-border my-1.5" />
+              <div className="border-t border-[#1e2d42] my-1.5" />
               {adminNavGroups.map(group => {
                 const GroupIcon = group.icon!
                 const hasActive = group.items.some(i => isActive(i.href))
@@ -748,20 +750,20 @@ export function Sidebar({ onSearchOpen }: { onSearchOpen?: () => void }) {
                       incidentBadge ? `[管理] ${group.label}（未対応インシデント ${openIncidentCount} 件）` :
                       `[管理] ${group.label}`
                     }
-                    className={`relative w-full p-2.5 rounded flex items-center justify-center transition-colors ${
+                    className={`relative w-full p-2.5 rounded-sm flex items-center justify-center transition-colors ${
                       isOpen
-                        ? 'bg-falcon-active'
+                        ? 'bg-[#1d2f4a]'
                         : hasActive
-                          ? 'bg-falcon-hover'
-                          : 'text-falcon-subtle hover:bg-falcon-hover hover:text-falcon-muted'
+                          ? 'bg-[#19253d]'
+                          : 'text-[#3d5068] hover:bg-[#19253d] hover:text-[#7d92b0]'
                     }`}
                   >
                     {(hasActive || isOpen) && (
-                      <span className="absolute left-0 top-1 bottom-1 w-0.5 rounded-r bg-falcon-red" />
+                      <span className="absolute left-0 top-1 bottom-1 w-0.5 rounded-r bg-[#e8002d]" />
                     )}
-                    <GroupIcon className={`w-4 h-4 ${hasActive || isOpen ? 'text-falcon-red' : ''}`} />
+                    <GroupIcon className={`w-4 h-4 ${hasActive || isOpen ? 'text-[#e8002d]' : ''}`} />
                     {(alertBadge || incidentBadge) && (
-                      <span className={`absolute top-0.5 right-0.5 w-2 h-2 rounded-full ${alertBadge ? 'bg-falcon-red critical-pulse' : 'bg-orange-500'}`} />
+                      <span className={`absolute top-0.5 right-0.5 w-2 h-2 rounded-full ${alertBadge ? 'bg-[#e8002d] critical-pulse' : 'bg-orange-500'}`} />
                     )}
                   </button>
                 )
@@ -771,7 +773,7 @@ export function Sidebar({ onSearchOpen }: { onSearchOpen?: () => void }) {
         </nav>
 
         {/* Bottom: settings + language switcher */}
-        <div className="border-t border-falcon-border px-2 py-2 space-y-0.5 shrink-0">
+        <div className="border-t border-[#1e2d42] px-2 py-2 space-y-0.5 shrink-0">
           {bottomNav.map(({ href, label, icon: Icon }) => {
             const active = isActive(href)
             const showBadge = href === '/notifications' && unreadCount > 0
@@ -780,17 +782,15 @@ export function Sidebar({ onSearchOpen }: { onSearchOpen?: () => void }) {
                 key={href}
                 href={href}
                 title={showBadge ? `${label}（未読 ${unreadCount}件）` : label}
-                className={`relative flex items-center justify-center p-2 rounded transition-all ${
+                className={`relative flex items-center justify-center p-2 rounded-sm transition-all ${
                   active
-                    ? 'bg-falcon-active text-falcon-red'
-                    : 'text-falcon-subtle hover:bg-falcon-hover hover:text-falcon-muted'
+                    ? 'bg-[#1d2f4a] text-[#e8002d]'
+                    : 'text-[#3d5068] hover:bg-[#19253d] hover:text-[#7d92b0]'
                 }`}
               >
                 <Icon className="w-4 h-4" />
                 {showBadge && (
-                  <span className="absolute top-0.5 right-0.5 min-w-[14px] h-[14px] px-0.5
-                                   bg-falcon-red rounded-full text-white text-[9px] font-bold
-                                   flex items-center justify-center leading-none">
+                  <span className="absolute top-0.5 right-0.5 min-w-[14px] h-[14px] px-0.5 bg-[#e8002d] rounded-full text-white text-[9px] font-bold flex items-center justify-center leading-none">
                     {unreadCount > 99 ? '99+' : unreadCount}
                   </span>
                 )}
@@ -807,21 +807,21 @@ export function Sidebar({ onSearchOpen }: { onSearchOpen?: () => void }) {
         <div className="flex-1 flex flex-col overflow-hidden min-w-0">
 
           {/* Sub-pane header */}
-          <div className="flex flex-col justify-center px-3 h-[54px] border-b border-falcon-border shrink-0 gap-0.5">
-            <span className="text-[9px] font-bold tracking-widest text-falcon-subtle">
-              Kizashi<span className="text-falcon-red">EDR</span>
+          <div className="flex flex-col justify-center px-3 h-[54px] border-b border-[#1e2d42] shrink-0 gap-0.5">
+            <span className="text-[9px] font-bold tracking-widest text-[#3d5068]">
+              Kizashi<span className="text-[#e8002d]">EDR</span>
             </span>
             <div className="flex items-center gap-2">
-              <SubIcon className="w-3.5 h-3.5 text-falcon-red shrink-0" />
+              <SubIcon className="w-3.5 h-3.5 text-[#e8002d] shrink-0" />
               <span className={`text-[11px] font-bold uppercase tracking-wider flex-1 truncate ${
-                openGroupIsAdmin ? 'text-falcon-red/70' : 'text-falcon-muted'
+                openGroupIsAdmin ? 'text-[#e8002d]/70' : 'text-[#7d92b0]'
               }`}>
                 {subPaneGroup.label}
               </span>
               <button
                 onClick={() => setOpenGroup(null)}
                 title="閉じる"
-                className="p-1 rounded-sm text-falcon-subtle hover:text-falcon-muted hover:bg-falcon-hover transition-colors shrink-0"
+                className="p-1 rounded-sm text-[#3d5068] hover:text-[#7d92b0] hover:bg-[#19253d] transition-colors shrink-0"
               >
                 <ChevronLeft className="w-3.5 h-3.5" />
               </button>
@@ -838,7 +838,7 @@ export function Sidebar({ onSearchOpen }: { onSearchOpen?: () => void }) {
               <div className="mb-2">
                 <div className="flex items-center gap-1.5 px-2 py-1">
                   <Star className="w-3 h-3 text-yellow-400 fill-yellow-400 shrink-0" />
-                  <span className="text-[9px] font-bold tracking-widest text-falcon-subtle uppercase">お気に入り</span>
+                  <span className="text-[9px] font-bold tracking-widest text-[#3d5068] uppercase">お気に入り</span>
                 </div>
                 {favorites.map(fav => {
                   const active = isActive(fav.href)
@@ -846,30 +846,36 @@ export function Sidebar({ onSearchOpen }: { onSearchOpen?: () => void }) {
                     <div key={fav.href} className="group/favitem relative flex items-center">
                       <NextLink
                         href={fav.href}
-                        className={`flex-1 flex items-center gap-2 px-2.5 py-[6px] rounded text-[12px] transition-all duration-100 pr-7
-                                    ${active ? 'bg-falcon-active text-white' : 'text-falcon-muted hover:bg-falcon-hover hover:text-falcon-text'}`}
+                        className={`flex-1 flex items-center gap-2 px-2.5 py-[6px] rounded-sm text-[12px] transition-all duration-100 pr-7
+                                    ${active ? 'bg-[#1d2f4a] text-white' : 'text-[#7d92b0] hover:bg-[#19253d] hover:text-[#e2e8f4]'}`}
                       >
-                        {active && <span className="absolute left-0 top-1 bottom-1 w-0.5 rounded-r bg-falcon-red" />}
+                        {active && <span className="absolute left-0 top-1 bottom-1 w-0.5 rounded-r bg-[#e8002d]" />}
                         <Star className="w-3.5 h-3.5 text-yellow-400 fill-yellow-400 shrink-0" />
                         <span className="flex-1 font-medium truncate">{fav.label}</span>
                       </NextLink>
                       <button
                         onClick={(e) => { e.preventDefault(); e.stopPropagation(); removeFavorite(fav.href) }}
                         title="お気に入りから削除"
-                        className="absolute right-1 z-10 p-1 rounded-sm opacity-0 group-hover/favitem:opacity-100 text-falcon-subtle hover:text-falcon-muted transition-opacity"
+                        className="absolute right-1 z-10 p-1 rounded-sm opacity-0 group-hover/favitem:opacity-100 text-[#3d5068] hover:text-[#7d92b0] transition-opacity"
                       >
                         <X className="w-3 h-3" />
                       </button>
                     </div>
                   )
                 })}
-                <div className="my-1.5 border-t border-falcon-border/60" />
+                <div className="my-1.5 border-t border-[#1e2d42]/60" />
               </div>
             )}
 
             {subPaneGroup.items.map(({ href, label: itemLabel, icon: Icon, feature }) => {
               const active = isActive(href)
               const locked = !!feature && !(hasFeature as (f: string) => boolean)(feature)
+              // **サイドバーに 60 の「準備中」が、動く 232 と同じ顔で
+              // 並んでいました**（実測 2026-08-12）。開いて初めて分かる
+              // ので、担当者は開いて、戻って、また別のを開きます。
+              // 一覧は `lib/backend-pending` にあり、バナーと同じものを
+              // 読みます —— 写しを持つと片方だけ増えます。
+              const pending = isBackendPending(href)
               const badgeColor = itemBadgeColor(href)
               const badgeCount = badgeColor ? itemBadgeCount(href) : 0
               const starred = isFavorite(href)
@@ -877,47 +883,60 @@ export function Sidebar({ onSearchOpen }: { onSearchOpen?: () => void }) {
                 <div key={href} className="group/navitem relative flex items-center">
                   <NextLink
                     href={href}
-                    title={locked ? `${itemLabel}（上位プランが必要です）` : itemLabel}
-                    className={`relative flex-1 flex items-center gap-2 px-2.5 py-[6px] rounded text-[12px]
+                    title={
+                      locked
+                        ? `${itemLabel}（上位プランが必要です）`
+                        : pending
+                          ? `${itemLabel}（バックエンド準備中です）`
+                          : itemLabel
+                    }
+                    className={`relative flex-1 flex items-center gap-2 px-2.5 py-[6px] rounded-sm text-[12px]
                                 transition-all duration-100 pr-7
                                 ${active
-                                  ? 'bg-falcon-active text-white'
+                                  ? 'bg-[#1d2f4a] text-white'
                                   : locked
-                                    ? 'text-falcon-subtle hover:bg-falcon-hover/50 hover:text-[#5a7090]'
-                                    : 'text-falcon-muted hover:bg-falcon-hover hover:text-falcon-text'
+                                    ? 'text-[#3d5068] hover:bg-[#19253d]/50 hover:text-[#5a7090]'
+                                    : 'text-[#7d92b0] hover:bg-[#19253d] hover:text-[#e2e8f4]'
                                 }`}
                   >
                     {/* アクティブページの左ボーダー（赤） */}
                     {active && (
-                      <span className="absolute left-0 top-1 bottom-1 w-0.5 rounded-r bg-falcon-red" />
+                      <span className="absolute left-0 top-1 bottom-1 w-0.5 rounded-r bg-[#e8002d]" />
                     )}
                     {/* 未対応件数があるページの左ボーダー（色付き・太め） */}
                     {!active && badgeColor && badgeCount > 0 && (
-                      <span className={`absolute left-0 top-0.5 bottom-0.5 w-1 rounded-r ${badgeColor.includes('orange') ? 'bg-orange-500' : 'bg-falcon-red'}`} />
+                      <span className={`absolute left-0 top-0.5 bottom-0.5 w-1 rounded-r ${badgeColor.includes('orange') ? 'bg-orange-500' : 'bg-[#e8002d]'}`} />
                     )}
                     <span className="shrink-0">
                       <Icon className={`w-3.5 h-3.5 ${
-                        active ? 'text-falcon-red' : badgeColor && badgeCount > 0 ? (badgeColor.includes('orange') ? 'text-orange-400' : 'text-falcon-red') : 'text-falcon-subtle group-hover/navitem:text-falcon-muted'
+                        active ? 'text-[#e8002d]' : badgeColor && badgeCount > 0 ? (badgeColor.includes('orange') ? 'text-orange-400' : 'text-[#e8002d]') : 'text-[#3d5068] group-hover/navitem:text-[#7d92b0]'
                       }`} />
                     </span>
                     <span className="flex-1 font-medium truncate">{itemLabel}</span>
                     {/* 未対応件数バッジ（ラベル右側に表示） */}
                     {!active && badgeColor && badgeCount > 0 && (
-                      <span className={`shrink-0 text-[9px] font-bold px-1.5 py-0.5 rounded mr-6
-                                        text-white ${badgeColor.includes('orange') ? 'bg-orange-500' : 'bg-falcon-red'}`}>
+                      <span className={`shrink-0 text-[9px] font-bold px-1.5 py-0.5 rounded-sm mr-6
+                                        text-white ${badgeColor.includes('orange') ? 'bg-orange-500' : 'bg-[#e8002d]'}`}>
                         {badgeCount > 99 ? '99+' : badgeCount}件
                       </span>
                     )}
-                    {locked && <Lock className="w-3 h-3 text-falcon-subtle shrink-0" />}
+                    {locked && <Lock className="w-3 h-3 text-[#3d5068] shrink-0" />}
+                    {!locked && pending && (
+                      <span
+                        className="shrink-0 text-[9px] font-medium px-1 py-0.5 rounded-sm mr-6 border border-amber-500/40 text-amber-400/90"
+                      >
+                        準備中
+                      </span>
+                    )}
                   </NextLink>
                   {!locked && (
                     <button
                       onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleFavorite(href, itemLabel) }}
                       title={starred ? 'お気に入りから削除' : 'お気に入りに追加'}
-                      className={`absolute right-1 z-10 p-1 rounded transition-all ${
+                      className={`absolute right-1 z-10 p-1 rounded-sm transition-all ${
                         starred
                           ? 'opacity-100 text-yellow-400'
-                          : 'opacity-0 group-hover/navitem:opacity-100 text-falcon-subtle hover:text-yellow-400'
+                          : 'opacity-0 group-hover/navitem:opacity-100 text-[#3d5068] hover:text-yellow-400'
                       }`}
                     >
                       <Star className={`w-3 h-3 ${starred ? 'fill-yellow-400' : ''}`} />
@@ -930,15 +949,15 @@ export function Sidebar({ onSearchOpen }: { onSearchOpen?: () => void }) {
 
           {/* User info strip at bottom of sub-pane */}
           {user && (
-            <div className="border-t border-falcon-border px-3 py-2 flex items-center gap-2 shrink-0">
-              <div className="w-6 h-6 rounded-full bg-linear-to-br from-falcon-blue to-[#0044cc] flex items-center justify-center shrink-0">
+            <div className="border-t border-[#1e2d42] px-3 py-2 flex items-center gap-2 shrink-0">
+              <div className="w-6 h-6 rounded-full bg-linear-to-br from-[#1a6bff] to-[#0044cc] flex items-center justify-center shrink-0">
                 <span className="text-[9px] font-bold text-white uppercase">
                   {(user.full_name || user.email || user.id)?.[0]?.toUpperCase() ?? 'U'}
                 </span>
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-[11px] text-falcon-text font-medium truncate">{user.full_name || user.email || user.id}</p>
-                <p className="text-[9px] text-falcon-subtle uppercase tracking-wide">
+                <p className="text-[11px] text-[#e2e8f4] font-medium truncate">{user.full_name || user.email || user.id}</p>
+                <p className="text-[9px] text-[#3d5068] uppercase tracking-wide">
                   {user.role}
                   {user.role === 'viewer' && (
                     <span className="ml-1 text-[8px] px-1 py-px rounded-sm bg-[#1a1a2e] text-[#7c7cff] border border-[#2d2d5e] normal-case tracking-normal">閲覧専用</span>

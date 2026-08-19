@@ -9,6 +9,9 @@ import {
   FileEdit, FilePlus, FileX, AlertTriangle, Clock, BarChart2, Eye, EyeOff,
   Trash2, Plus, ToggleLeft, ToggleRight, Monitor, Apple, Smartphone, Tablet,
 } from 'lucide-react'
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+import { PageSaveFailed } from '@/components/PageSaveFailed'
+
 import { USE_MOCK, m } from '@/lib/mock'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -225,7 +228,7 @@ function changeTypeBadge(ct: string): string {
     case 'modified': return 'bg-yellow-900/40 text-yellow-300 border-yellow-700/50'
     case 'created':  return 'bg-green-900/40 text-green-300 border-green-700/50'
     case 'deleted':  return 'bg-red-900/40 text-red-300 border-red-700/50'
-    default:         return 'bg-falcon-raised text-[#8899aa] border-falcon-border'
+    default:         return 'bg-[#161f33] text-[#8899aa] border-[#1e2d42]'
   }
 }
 
@@ -359,11 +362,10 @@ function FimRulesPanel({ rules, total, isLoading }: {
   const [open, setOpen] = useState(false)
 
   return (
-    <div className="bg-falcon-card border border-falcon-border rounded-xl overflow-hidden">
+    <div className="bg-[#111827] border border-[#1e2d42] rounded-xl overflow-hidden">
       <button
         onClick={() => setOpen(v => !v)}
-        className="w-full flex items-center justify-between px-5 py-3.5
-                   hover:bg-falcon-raised transition-colors"
+        className="w-full flex items-center justify-between px-5 py-3.5 hover:bg-[#161f33] transition-colors"
       >
         <div className="flex items-center gap-2">
           <ShieldCheck className="w-4 h-4 text-blue-400" />
@@ -378,7 +380,7 @@ function FimRulesPanel({ rules, total, isLoading }: {
       </button>
 
       {open && (
-        <div className="border-t border-falcon-border">
+        <div className="border-t border-[#1e2d42]">
           {isLoading ? (
             <div className="flex items-center justify-center h-24">
               <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
@@ -389,11 +391,11 @@ function FimRulesPanel({ rules, total, isLoading }: {
               FIMルールが見つかりません
             </div>
           ) : (
-            <div className="divide-y divide-falcon-border">
+            <div className="divide-y divide-[#1e2d42]">
               {rules.map(rule => (
                 <div
                   key={rule.id}
-                  className="px-5 py-3 flex items-center gap-4 text-sm hover:bg-falcon-raised transition-colors"
+                  className="px-5 py-3 flex items-center gap-4 text-sm hover:bg-[#161f33] transition-colors"
                 >
                   <span className={`shrink-0 w-2 h-2 rounded-full ${rule.enabled ? 'bg-green-400' : 'bg-[#3a4a5a]'}`} />
                   <div className="flex-1 min-w-0">
@@ -438,8 +440,7 @@ function FimEventRow({
     <>
       <tr
         onClick={onToggle}
-        className="border-b border-falcon-border/50 last:border-0 hover:bg-falcon-raised
-                   transition-colors cursor-pointer"
+        className="border-b border-[#1e2d42]/50 last:border-0 hover:bg-[#161f33] transition-colors cursor-pointer"
       >
         <td className="px-4 py-3 text-[#8899aa] text-xs font-mono whitespace-nowrap">
           {formatTs(event.timestamp)}
@@ -450,7 +451,7 @@ function FimEventRow({
           </span>
         </td>
         <td className="px-4 py-3 font-mono max-w-xs">
-          <span className="text-falcon-text text-xs truncate block" title={payload.path}>
+          <span className="text-[#e2e8f4] text-xs truncate block" title={payload.path}>
             {shortPath(payload.path)}
           </span>
         </td>
@@ -484,25 +485,25 @@ function FimEventRow({
       </tr>
 
       {expanded && (
-        <tr className="border-b border-falcon-border/50 bg-falcon-bg/50">
+        <tr className="border-b border-[#1e2d42]/50 bg-[#080c14]/50">
           <td colSpan={8} className="px-6 py-4">
-            <div className="rounded-lg border border-falcon-border bg-falcon-bg/70 p-4 space-y-4">
+            <div className="rounded-lg border border-[#1e2d42] bg-[#080c14]/70 p-4 space-y-4">
               <div>
                 <p className="text-[10px] text-[#5a6a7a] uppercase tracking-wider mb-1">完全ファイルパス</p>
-                <p className="text-xs text-falcon-text font-mono break-all bg-falcon-card rounded-sm px-3 py-2">
+                <p className="text-xs text-[#e2e8f4] font-mono break-all bg-[#111827] rounded-sm px-3 py-2">
                   {payload.path || '—'}
                 </p>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <p className="text-[10px] text-[#5a6a7a] uppercase tracking-wider mb-1">変更前ハッシュ</p>
-                  <p className="text-xs text-red-300 font-mono break-all bg-falcon-card rounded-sm px-3 py-2">
+                  <p className="text-xs text-red-300 font-mono break-all bg-[#111827] rounded-sm px-3 py-2">
                     {payload.old_hash || '—'}
                   </p>
                 </div>
                 <div>
                   <p className="text-[10px] text-[#5a6a7a] uppercase tracking-wider mb-1">変更後ハッシュ</p>
-                  <p className="text-xs text-green-300 font-mono break-all bg-falcon-card rounded-sm px-3 py-2">
+                  <p className="text-xs text-green-300 font-mono break-all bg-[#111827] rounded-sm px-3 py-2">
                     {payload.new_hash || '—'}
                   </p>
                 </div>
@@ -510,7 +511,7 @@ function FimEventRow({
               <div className="grid grid-cols-3 gap-4">
                 <div>
                   <p className="text-[10px] text-[#5a6a7a] uppercase tracking-wider mb-1">エージェント</p>
-                  <p className="text-xs text-falcon-text font-mono">{agentName || '—'}</p>
+                  <p className="text-xs text-[#e2e8f4] font-mono">{agentName || '—'}</p>
                 </div>
                 <div>
                   <p className="text-[10px] text-[#5a6a7a] uppercase tracking-wider mb-1">エージェントID</p>
@@ -574,7 +575,7 @@ function HeatmapTab({ events }: { events: FimEvent[] }) {
             className={`px-3 py-1.5 text-xs rounded-lg border transition-colors ${
               timeRangeHours === tr.hours
                 ? 'bg-blue-900/40 border-blue-700 text-blue-300'
-                : 'bg-falcon-raised border-falcon-border text-[#8899aa] hover:text-white hover:border-[#2a3d5a]'
+                : 'bg-[#161f33] border-[#1e2d42] text-[#8899aa] hover:text-white hover:border-[#2a3d5a]'
             }`}
           >
             {tr.label}
@@ -612,7 +613,7 @@ function HeatmapTab({ events }: { events: FimEvent[] }) {
             const pctModify  = (d.modified / d.total)  * 100
             const pctDelete  = (d.deleted  / d.total)  * 100
             return (
-              <div key={d.dir} className="bg-falcon-card border border-falcon-border rounded-lg px-4 py-3">
+              <div key={d.dir} className="bg-[#111827] border border-[#1e2d42] rounded-lg px-4 py-3">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-xs font-mono text-[#c8d8e8] truncate max-w-xs" title={d.dir}>
                     {d.dir}
@@ -714,7 +715,7 @@ function SuspiciousTab({
               className={`px-2.5 py-1 text-xs rounded-lg border transition-colors ${
                 sortBy === s
                   ? 'bg-blue-900/40 border-blue-700 text-blue-300'
-                  : 'bg-falcon-raised border-falcon-border text-[#8899aa] hover:text-white'
+                  : 'bg-[#161f33] border-[#1e2d42] text-[#8899aa] hover:text-white'
               }`}
             >
               {s === 'risk' ? 'リスクスコア' : '日時'}
@@ -723,10 +724,10 @@ function SuspiciousTab({
         </div>
       </div>
 
-      <div className="bg-falcon-card rounded-xl border border-falcon-border overflow-hidden">
+      <div className="bg-[#111827] rounded-xl border border-[#1e2d42] overflow-hidden">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-falcon-border bg-falcon-bg/30">
+            <tr className="border-b border-[#1e2d42] bg-[#080c14]/30">
               {['リスク', 'ファイルパス', '変更種別', 'エージェント', '日時', '理由'].map(h => (
                 <th key={h} className="text-left px-4 py-3 text-[#8899aa] text-xs font-medium whitespace-nowrap">
                   {h}
@@ -736,14 +737,14 @@ function SuspiciousTab({
           </thead>
           <tbody>
             {mockItems.map(item => (
-              <tr key={item.id} className="border-b border-falcon-border/50 last:border-0 hover:bg-falcon-raised transition-colors">
+              <tr key={item.id} className="border-b border-[#1e2d42]/50 last:border-0 hover:bg-[#161f33] transition-colors">
                 <td className="px-4 py-3">
                   <span className={`inline-flex items-center justify-center w-8 h-8 rounded-full text-sm font-bold border ${riskBg(item.risk_score)} ${riskColor(item.risk_score)}`}>
                     {item.risk_score}
                   </span>
                 </td>
                 <td className="px-4 py-3 font-mono max-w-xs">
-                  <span className="text-falcon-text text-xs truncate block" title={item.file_path}>
+                  <span className="text-[#e2e8f4] text-xs truncate block" title={item.file_path}>
                     {shortPath(item.file_path)}
                   </span>
                 </td>
@@ -762,7 +763,7 @@ function SuspiciousTab({
                 <td className="px-4 py-3">
                   <div className="flex flex-wrap gap-1">
                     {item.risk_reasons.map(r => (
-                      <span key={r} className="text-[10px] px-1.5 py-0.5 rounded-sm bg-falcon-border text-[#8899aa] border border-[#2a3a4a]">
+                      <span key={r} className="text-[10px] px-1.5 py-0.5 rounded-sm bg-[#1e2d42] text-[#8899aa] border border-[#2a3a4a]">
                         {r}
                       </span>
                     ))}
@@ -799,7 +800,8 @@ function IgnoreRulesTab() {
     staleTime: 60_000,
   })
 
-  // API が空を返したときのフォールバック（モック無効時は空のまま）
+  // 以前はAPIが空を返したときに作り物の除外ルールを並べていました。
+  // 「このパスは監視対象から外れている」と読める画面で、外れていません。
   const rules: IgnoreRule[] = rulesData?.data?.length ? rulesData.data : m(MOCK_IGNORE_RULES)
 
   const addMutation = useMutation({
@@ -837,7 +839,7 @@ function IgnoreRulesTab() {
 
       {/* Add new rule */}
       {canWrite && (
-        <div className="bg-falcon-card border border-falcon-border rounded-xl p-4">
+        <div className="bg-[#111827] border border-[#1e2d42] rounded-xl p-4">
           <p className="text-xs text-[#8899aa] mb-3 font-medium">除外パターンを追加</p>
           <div className="flex gap-2">
             <input
@@ -845,15 +847,12 @@ function IgnoreRulesTab() {
               onChange={e => setNewPattern(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && handleAdd()}
               placeholder="/proc/**, *.tmp, C:\\Windows\\Temp\\**"
-              className="flex-1 px-3 py-2 text-xs border border-falcon-border rounded-lg
-                         bg-falcon-bg text-white placeholder-[#5a6a7a]
-                         focus:outline-hidden focus:border-blue-500 font-mono transition-colors"
+              className="flex-1 px-3 py-2 text-xs border border-[#1e2d42] rounded-lg bg-[#080c14] text-white placeholder-[#5a6a7a] focus:outline-hidden focus:border-blue-500 font-mono transition-colors"
             />
             <button
               onClick={handleAdd}
               disabled={!newPattern.trim() || addMutation.isPending}
-              className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-500
-                         text-white text-xs rounded-lg disabled:opacity-40 transition-colors"
+              className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs rounded-lg disabled:opacity-40 transition-colors"
             >
               <Plus className="w-3.5 h-3.5" />
               追加
@@ -866,7 +865,7 @@ function IgnoreRulesTab() {
       )}
 
       {/* Rules list */}
-      <div className="bg-falcon-card rounded-xl border border-falcon-border overflow-hidden">
+      <div className="bg-[#111827] rounded-xl border border-[#1e2d42] overflow-hidden">
         {isLoading ? (
           <div className="flex items-center justify-center h-32">
             <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
@@ -879,7 +878,7 @@ function IgnoreRulesTab() {
         ) : (
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-falcon-border bg-falcon-bg/30">
+              <tr className="border-b border-[#1e2d42] bg-[#080c14]/30">
                 {['ステータス', 'パターン', '作成日時', '操作'].map(h => (
                   <th key={h} className="text-left px-4 py-3 text-[#8899aa] text-xs font-medium">
                     {h}
@@ -889,19 +888,19 @@ function IgnoreRulesTab() {
             </thead>
             <tbody>
               {rules.map(rule => (
-                <tr key={rule.id} className="border-b border-falcon-border/50 last:border-0 hover:bg-falcon-raised transition-colors">
+                <tr key={rule.id} className="border-b border-[#1e2d42]/50 last:border-0 hover:bg-[#161f33] transition-colors">
                   <td className="px-4 py-3">
                     <span className={`inline-flex items-center gap-1.5 text-xs px-2 py-0.5 rounded-full border font-medium ${
                       rule.enabled
                         ? 'bg-green-900/30 text-green-300 border-green-700/40'
-                        : 'bg-falcon-raised text-[#5a6a7a] border-falcon-border'
+                        : 'bg-[#161f33] text-[#5a6a7a] border-[#1e2d42]'
                     }`}>
                       <span className={`w-1.5 h-1.5 rounded-full ${rule.enabled ? 'bg-green-400' : 'bg-[#3a4a5a]'}`} />
                       {rule.enabled ? '有効' : '無効'}
                     </span>
                   </td>
                   <td className="px-4 py-3">
-                    <code className="text-[#c8d8e8] text-xs font-mono bg-falcon-bg px-2 py-1 rounded-sm">
+                    <code className="text-[#c8d8e8] text-xs font-mono bg-[#080c14] px-2 py-1 rounded-sm">
                       {rule.pattern}
                     </code>
                   </td>
@@ -915,7 +914,7 @@ function IgnoreRulesTab() {
                           onClick={() => toggleMutation.mutate(rule.id)}
                           disabled={toggleMutation.isPending}
                           title={rule.enabled ? '無効化' : '有効化'}
-                          className="p-1.5 rounded-lg bg-falcon-raised border border-falcon-border text-[#8899aa] hover:text-white hover:border-[#2a3d5a] transition-colors disabled:opacity-40"
+                          className="p-1.5 rounded-lg bg-[#161f33] border border-[#1e2d42] text-[#8899aa] hover:text-white hover:border-[#2a3d5a] transition-colors disabled:opacity-40"
                         >
                           {rule.enabled
                             ? <EyeOff className="w-3.5 h-3.5" />
@@ -925,7 +924,7 @@ function IgnoreRulesTab() {
                           onClick={() => deleteMutation.mutate(rule.id)}
                           disabled={deleteMutation.isPending}
                           title="削除"
-                          className="p-1.5 rounded-lg bg-falcon-raised border border-falcon-border text-[#8899aa] hover:text-red-400 hover:border-red-700/40 transition-colors disabled:opacity-40"
+                          className="p-1.5 rounded-lg bg-[#161f33] border border-[#1e2d42] text-[#8899aa] hover:text-red-400 hover:border-red-700/40 transition-colors disabled:opacity-40"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
@@ -1021,7 +1020,7 @@ function PlatformRulesTab() {
               className={`flex items-center gap-2 px-4 py-2 text-sm rounded-lg border transition-colors ${
                 activePlatform === p
                   ? 'bg-blue-900/40 border-blue-700 text-blue-300'
-                  : 'bg-falcon-raised border-falcon-border text-[#8899aa] hover:text-white hover:border-[#2a3d5a]'
+                  : 'bg-[#161f33] border-[#1e2d42] text-[#8899aa] hover:text-white hover:border-[#2a3d5a]'
               }`}
             >
               {cfg.icon}
@@ -1032,7 +1031,7 @@ function PlatformRulesTab() {
       </div>
 
       {/* Description */}
-      <div className="bg-falcon-card border border-falcon-border rounded-xl px-5 py-4 flex items-center justify-between gap-4">
+      <div className="bg-[#111827] border border-[#1e2d42] rounded-xl px-5 py-4 flex items-center justify-between gap-4">
         <div>
           <p className="text-white text-sm font-semibold flex items-center gap-2">
             {platformConfig.icon}
@@ -1046,8 +1045,7 @@ function PlatformRulesTab() {
           <button
             onClick={handleAddAll}
             disabled={createMutation.isPending}
-            className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-500
-                       text-white text-xs rounded-lg disabled:opacity-40 transition-colors whitespace-nowrap shrink-0"
+            className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs rounded-lg disabled:opacity-40 transition-colors whitespace-nowrap shrink-0"
           >
             <Plus className="w-3.5 h-3.5" />
             すべて追加
@@ -1056,10 +1054,10 @@ function PlatformRulesTab() {
       </div>
 
       {/* Presets list */}
-      <div className="bg-falcon-card rounded-xl border border-falcon-border overflow-hidden">
+      <div className="bg-[#111827] rounded-xl border border-[#1e2d42] overflow-hidden">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-falcon-border bg-falcon-bg/30">
+            <tr className="border-b border-[#1e2d42] bg-[#080c14]/30">
               {['ルール名', 'パス', '再帰', '深刻度', '説明', '操作'].map(h => (
                 <th key={h} className="text-left px-4 py-3 text-[#8899aa] text-xs font-medium whitespace-nowrap">
                   {h}
@@ -1075,12 +1073,12 @@ function PlatformRulesTab() {
               const done       = isExisting || isAdded
 
               return (
-                <tr key={rule.name} className="border-b border-falcon-border/50 last:border-0 hover:bg-falcon-raised transition-colors">
+                <tr key={rule.name} className="border-b border-[#1e2d42]/50 last:border-0 hover:bg-[#161f33] transition-colors">
                   <td className="px-4 py-3">
                     <span className="text-white text-xs font-medium">{rule.name}</span>
                   </td>
                   <td className="px-4 py-3 font-mono max-w-xs">
-                    <code className="text-[#c8d8e8] text-[11px] bg-falcon-bg px-1.5 py-0.5 rounded-sm truncate block" title={rule.path}>
+                    <code className="text-[#c8d8e8] text-[11px] bg-[#080c14] px-1.5 py-0.5 rounded-sm truncate block" title={rule.path}>
                       {rule.path}
                     </code>
                   </td>
@@ -1107,8 +1105,7 @@ function PlatformRulesTab() {
                       <button
                         onClick={() => handleAdd(rule)}
                         disabled={isPending}
-                        className="flex items-center gap-1 px-3 py-1.5 text-xs bg-blue-900/30 border border-blue-700/50
-                                   text-blue-300 rounded-lg hover:bg-blue-900/60 disabled:opacity-40 transition-colors"
+                        className="flex items-center gap-1 px-3 py-1.5 text-xs bg-blue-900/30 border border-blue-700/50 text-blue-300 rounded-lg hover:bg-blue-900/60 disabled:opacity-40 transition-colors"
                       >
                         {isPending
                           ? <div className="w-3 h-3 border border-blue-400 border-t-transparent rounded-full animate-spin" />
@@ -1250,6 +1247,8 @@ export default function FimChangePage() {
 
   return (
     <div className="p-6 space-y-6">
+      <PageDataUnavailable />
+      <PageSaveFailed className="mb-4" />
 
       {/* Header */}
       <div className="flex items-center justify-between gap-4 flex-wrap">
@@ -1269,7 +1268,7 @@ export default function FimChangePage() {
             className={`flex items-center gap-2 px-3 py-2 text-sm rounded-lg border transition-colors ${
               autoRefresh
                 ? 'bg-blue-900/40 border-blue-700 text-blue-300'
-                : 'bg-falcon-raised border-falcon-border text-[#8899aa] hover:text-white hover:bg-falcon-active'
+                : 'bg-[#161f33] border-[#1e2d42] text-[#8899aa] hover:text-white hover:bg-[#1d2f4a]'
             }`}
           >
             <Clock className="w-4 h-4" />
@@ -1278,9 +1277,7 @@ export default function FimChangePage() {
           <button
             onClick={() => refetch()}
             disabled={isFetching}
-            className="flex items-center gap-2 px-4 py-2 bg-falcon-raised border border-falcon-border
-                       text-[#8899aa] hover:text-white hover:bg-falcon-active text-sm rounded-lg
-                       transition-colors disabled:opacity-50"
+            className="flex items-center gap-2 px-4 py-2 bg-[#161f33] border border-[#1e2d42] text-[#8899aa] hover:text-white hover:bg-[#1d2f4a] text-sm rounded-lg transition-colors disabled:opacity-50"
           >
             <RefreshCw className={`w-4 h-4 ${isFetching ? 'animate-spin' : ''}`} />
             更新
@@ -1296,7 +1293,7 @@ export default function FimChangePage() {
           { label: '作成',          value: eventsLoading ? '…' : todayCreated, icon: <FilePlus    className="w-4 h-4 text-green-400" />,  color: 'text-green-400'  },
           { label: '削除',          value: eventsLoading ? '…' : todayDeleted, icon: <FileX       className="w-4 h-4 text-red-400" />,    color: 'text-red-400'    },
         ].map(s => (
-          <div key={s.label} className="bg-falcon-card border border-falcon-border rounded-xl p-4">
+          <div key={s.label} className="bg-[#111827] border border-[#1e2d42] rounded-xl p-4">
             <div className="flex items-center gap-2 mb-2">
               {s.icon}
               <span className="text-xs text-[#8899aa]">{s.label}</span>
@@ -1313,7 +1310,7 @@ export default function FimChangePage() {
           { label: '不審ファイル (スコア≥5)',  value: eventsLoading ? '…' : suspiciousCount,    icon: <AlertTriangle  className="w-4 h-4 text-orange-400" />, color: 'text-orange-400' },
           { label: '有効なFIMルール',           value: rulesLoading  ? '…' : (rulesData?.total ?? 0), icon: <ShieldCheck className="w-4 h-4 text-cyan-400" />, color: 'text-cyan-400' },
         ].map(s => (
-          <div key={s.label} className="bg-falcon-card border border-falcon-border rounded-xl p-4">
+          <div key={s.label} className="bg-[#111827] border border-[#1e2d42] rounded-xl p-4">
             <div className="flex items-center gap-2 mb-2">
               {s.icon}
               <span className="text-xs text-[#8899aa]">{s.label}</span>
@@ -1324,7 +1321,7 @@ export default function FimChangePage() {
       </div>
 
       {/* Tabs */}
-      <div className="border-b border-falcon-border">
+      <div className="border-b border-[#1e2d42]">
         <nav className="flex gap-1 overflow-x-auto">
           {TABS.map(tab => (
             <button
@@ -1347,15 +1344,14 @@ export default function FimChangePage() {
       {activeTab === 'events' && (
         <div className="space-y-4">
           {/* Filters */}
-          <div className="bg-falcon-card border border-falcon-border rounded-xl px-4 py-4 space-y-3">
+          <div className="bg-[#111827] border border-[#1e2d42] rounded-xl px-4 py-4 space-y-3">
             <div className="flex items-center gap-2">
               <Filter className="w-4 h-4 text-[#5a6a7a] shrink-0" />
               <span className="text-[#8899aa] text-sm font-medium">フィルター</span>
               {hasFilters && (
                 <button
                   onClick={clearFilters}
-                  className="flex items-center gap-1 text-xs text-[#8899aa] hover:text-white
-                             px-2 py-0.5 rounded-lg hover:bg-falcon-raised transition-colors ml-auto"
+                  className="flex items-center gap-1 text-xs text-[#8899aa] hover:text-white px-2 py-0.5 rounded-lg hover:bg-[#161f33] transition-colors ml-auto"
                 >
                   <X className="w-3 h-3" />
                   クリア
@@ -1370,8 +1366,7 @@ export default function FimChangePage() {
                 <select
                   value={agentFilter}
                   onChange={e => { setAgentFilter(e.target.value); setPage(1) }}
-                  className="bg-falcon-bg text-white text-xs px-3 py-1.5 rounded-lg border border-falcon-border
-                             focus:outline-hidden focus:border-blue-500 transition-colors"
+                  className="bg-[#080c14] text-white text-xs px-3 py-1.5 rounded-lg border border-[#1e2d42] focus:outline-hidden focus:border-blue-500 transition-colors"
                 >
                   <option value="">すべて</option>
                   {(agentsData?.data ?? []).map(a => (
@@ -1394,7 +1389,7 @@ export default function FimChangePage() {
                             : ct === 'created' ? 'bg-green-900/50 border-green-700 text-green-300'
                             : ct === 'deleted' ? 'bg-red-900/50 border-red-700 text-red-300'
                             : 'bg-blue-900/40 border-blue-600 text-blue-300'
-                          : 'bg-falcon-raised border-falcon-border text-[#8899aa] hover:text-white hover:border-[#2a3d5a]'
+                          : 'bg-[#161f33] border-[#1e2d42] text-[#8899aa] hover:text-white hover:border-[#2a3d5a]'
                       }`}
                     >
                       {ct === '' ? 'すべて'
@@ -1415,9 +1410,7 @@ export default function FimChangePage() {
                     value={pathSearch}
                     onChange={e => { setPathSearch(e.target.value); setPage(1) }}
                     placeholder="/etc/hosts, C:\\Windows\\..."
-                    className="w-full pl-8 pr-3 py-1.5 text-xs border border-falcon-border rounded-lg
-                               bg-falcon-bg text-white placeholder-[#5a6a7a]
-                               focus:outline-hidden focus:border-blue-500 transition-colors"
+                    className="w-full pl-8 pr-3 py-1.5 text-xs border border-[#1e2d42] rounded-lg bg-[#080c14] text-white placeholder-[#5a6a7a] focus:outline-hidden focus:border-blue-500 transition-colors"
                   />
                 </div>
               </div>
@@ -1429,8 +1422,7 @@ export default function FimChangePage() {
                   type="date"
                   value={fromDate}
                   onChange={e => { setFromDate(e.target.value); setPage(1) }}
-                  className="bg-falcon-bg text-white text-xs px-3 py-1.5 rounded-lg border border-falcon-border
-                             focus:outline-hidden focus:border-blue-500 transition-colors"
+                  className="bg-[#080c14] text-white text-xs px-3 py-1.5 rounded-lg border border-[#1e2d42] focus:outline-hidden focus:border-blue-500 transition-colors"
                 />
               </div>
               <div>
@@ -1439,8 +1431,7 @@ export default function FimChangePage() {
                   type="date"
                   value={toDate}
                   onChange={e => { setToDate(e.target.value); setPage(1) }}
-                  className="bg-falcon-bg text-white text-xs px-3 py-1.5 rounded-lg border border-falcon-border
-                             focus:outline-hidden focus:border-blue-500 transition-colors"
+                  className="bg-[#080c14] text-white text-xs px-3 py-1.5 rounded-lg border border-[#1e2d42] focus:outline-hidden focus:border-blue-500 transition-colors"
                 />
               </div>
             </div>
@@ -1459,7 +1450,7 @@ export default function FimChangePage() {
           )}
 
           {/* Events Table */}
-          <div className="bg-falcon-card rounded-xl border border-falcon-border overflow-hidden">
+          <div className="bg-[#111827] rounded-xl border border-[#1e2d42] overflow-hidden">
             {eventsLoading ? (
               <div className="flex items-center justify-center h-40">
                 <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
@@ -1480,7 +1471,7 @@ export default function FimChangePage() {
             ) : (
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-falcon-border bg-falcon-bg/30">
+                  <tr className="border-b border-[#1e2d42] bg-[#080c14]/30">
                     {['日時', 'エージェント', 'ファイルパス', '変更種別', '変更前ハッシュ', '変更後ハッシュ', '深刻度', ''].map(h => (
                       <th key={h} className="text-left px-4 py-3 text-[#8899aa] text-xs font-medium whitespace-nowrap">
                         {h}
@@ -1509,8 +1500,7 @@ export default function FimChangePage() {
               <button
                 onClick={() => setPage(p => Math.max(1, p - 1))}
                 disabled={page === 1}
-                className="px-4 py-2 bg-falcon-raised border border-falcon-border text-[#8899aa] text-sm
-                           rounded-lg disabled:opacity-40 hover:bg-falcon-active transition-colors"
+                className="px-4 py-2 bg-[#161f33] border border-[#1e2d42] text-[#8899aa] text-sm rounded-lg disabled:opacity-40 hover:bg-[#1d2f4a] transition-colors"
               >
                 前へ
               </button>
@@ -1520,8 +1510,7 @@ export default function FimChangePage() {
               <button
                 onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                 disabled={page >= totalPages}
-                className="px-4 py-2 bg-falcon-raised border border-falcon-border text-[#8899aa] text-sm
-                           rounded-lg disabled:opacity-40 hover:bg-falcon-active transition-colors"
+                className="px-4 py-2 bg-[#161f33] border border-[#1e2d42] text-[#8899aa] text-sm rounded-lg disabled:opacity-40 hover:bg-[#1d2f4a] transition-colors"
               >
                 次へ
               </button>

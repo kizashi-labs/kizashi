@@ -38,6 +38,15 @@ type fakeIAM struct {
 	policy   *iamtypes.PasswordPolicy
 	noPolicy bool
 	err      error
+
+	// 認証情報レポート。report が空なら未生成として扱い、
+	// GenerateCredentialReport が呼ばれた後に readyReport を返す。
+	report      string
+	readyReport string
+	reportErr   error
+	// generateCalls は生成 API が呼ばれた回数。読み取り専用の約束に
+	// 例外を設けた箇所なので、必要なときだけ呼ぶことを押さえる。
+	generateCalls *int
 }
 
 func (f fakeIAM) GetAccountSummary(context.Context, *iam.GetAccountSummaryInput, ...func(*iam.Options)) (*iam.GetAccountSummaryOutput, error) {
@@ -55,6 +64,39 @@ func (f fakeIAM) GetAccountPasswordPolicy(context.Context, *iam.GetAccountPasswo
 		return nil, &iamtypes.NoSuchEntityException{}
 	}
 	return &iam.GetAccountPasswordPolicyOutput{PasswordPolicy: f.policy}, nil
+}
+
+func (f fakeIAM) GenerateCredentialReport(context.Context, *iam.GenerateCredentialReportInput, ...func(*iam.Options)) (*iam.GenerateCredentialReportOutput, error) {
+	if f.generateCalls != nil {
+		*f.generateCalls++
+	}
+	return &iam.GenerateCredentialReportOutput{State: iamtypes.ReportStateTypeComplete}, nil
+}
+
+func (f fakeIAM) GetCredentialReport(context.Context, *iam.GetCredentialReportInput, ...func(*iam.Options)) (*iam.GetCredentialReportOutput, error) {
+	if f.reportErr != nil {
+		return nil, f.reportErr
+	}
+	body := f.report
+	if body == "" {
+		// 未生成。生成が済んでいれば readyReport を返す。
+		if f.generateCalls != nil && *f.generateCalls > 0 && f.readyReport != "" {
+			body = f.readyReport
+		} else {
+			return nil, &iamtypes.CredentialReportNotPresentException{}
+		}
+	}
+	return &iam.GetCredentialReportOutput{Content: []byte(body)}, nil
+}
+
+// ポリシー系は既定で「1 本も無い」。個別に見たいテストは
+// fakeIAMPolicies / policyScopeSpy で差し替える。
+func (f fakeIAM) ListPolicies(context.Context, *iam.ListPoliciesInput, ...func(*iam.Options)) (*iam.ListPoliciesOutput, error) {
+	return &iam.ListPoliciesOutput{}, nil
+}
+
+func (f fakeIAM) GetPolicyVersion(context.Context, *iam.GetPolicyVersionInput, ...func(*iam.Options)) (*iam.GetPolicyVersionOutput, error) {
+	return nil, &iamtypes.NoSuchEntityException{}
 }
 
 type fakeEC2 struct {
@@ -286,6 +328,14 @@ func tcpRange(from, to int32, cidr string) ec2types.IpPermission {
 	}
 }
 
+func udpRange(from, to int32, cidr string) ec2types.IpPermission {
+	return ec2types.IpPermission{
+		IpProtocol: aws.String("udp"),
+		FromPort:   aws.Int32(from), ToPort: aws.Int32(to),
+		IpRanges: []ec2types.IpRange{{CidrIp: aws.String(cidr)}},
+	}
+}
+
 func TestSecurityGroupSSHOpen(t *testing.T) {
 	for _, tc := range []struct {
 		name string
@@ -315,6 +365,31 @@ func TestSecurityGroupSSHOpen(t *testing.T) {
 			},
 			StatusFail,
 		},
+		// SSH は TCP なので、UDP の規則が 22 を含んでいても到達性は無い。
+		// プロトコルを見ずにポート番号だけで判定すると、UDP を広く開けて
+		// いるだけの SG が「SSH 全世界公開」の high として上がり、
+		// 実在しない露出を運用者に処理させることになる。
+		{
+			"UDP の 22 番は SSH ではない",
+			udpRange(22, 22, "0.0.0.0/0"),
+			StatusPass,
+		},
+		{
+			"UDP の広い範囲が 22 を含んでも SSH ではない",
+			udpRange(0, 65535, "0.0.0.0/0"),
+			StatusPass,
+		},
+		// AWS は TCP を IANA 番号で返すこともある。文字列比較だけだと
+		// これを取り逃がし、本物の露出が pass に化ける。
+		{
+			"IANA 番号 6 は TCP として扱う",
+			ec2types.IpPermission{
+				IpProtocol: aws.String("6"),
+				FromPort:   aws.Int32(22), ToPort: aws.Int32(22),
+				IpRanges: []ec2types.IpRange{{CidrIp: aws.String("0.0.0.0/0")}},
+			},
+			StatusFail,
+		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			c := baseClients()
@@ -327,6 +402,69 @@ func TestSecurityGroupSSHOpen(t *testing.T) {
 				t.Errorf("resource_id = %q, want sg-1 (所見を資源に紐付けられない)", got.ResourceID)
 			}
 		})
+	}
+}
+
+// 所見の根拠に「どの規則が該当したか」が残ること。
+//
+// 送信元だけだと、担当者は所見を見ても消すべき規則を特定できず AWS を
+// 見に行くことになる。実アカウントでの初回検証で、UDP 誤検知の有無を
+// 所見から判定できずに詰まった箇所でもある。
+func TestSecurityGroupEvidenceNamesTheRule(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		perm ec2types.IpPermission
+		want string
+	}{
+		{"単独ポート", tcpRange(22, 22, "0.0.0.0/0"), "tcp/22 を 0.0.0.0/0 に許可"},
+		{"範囲", tcpRange(20, 30, "0.0.0.0/0"), "tcp/20-30 を 0.0.0.0/0 に許可"},
+		{
+			"全プロトコル許可",
+			ec2types.IpPermission{
+				IpProtocol: aws.String("-1"),
+				IpRanges:   []ec2types.IpRange{{CidrIp: aws.String("0.0.0.0/0")}},
+			},
+			"全プロトコル・全ポートを 0.0.0.0/0 に許可",
+		},
+		{
+			"IPv6",
+			ec2types.IpPermission{
+				IpProtocol: aws.String("tcp"),
+				FromPort:   aws.Int32(22), ToPort: aws.Int32(22),
+				Ipv6Ranges: []ec2types.Ipv6Range{{CidrIpv6: aws.String("::/0")}},
+			},
+			"tcp/22 を ::/0 に許可",
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			c := baseClients()
+			c.EC2 = &fakeEC2{groups: []ec2types.SecurityGroup{sg("sg-1", "web", tc.perm)}}
+			got := onlyResult(t, runCheck(t, "aws-ec2-sg-ssh-open", c))
+			if got.Status != StatusFail {
+				t.Fatalf("status = %q, want fail", got.Status)
+			}
+			if !strings.Contains(got.Evidence, tc.want) {
+				t.Errorf("evidence = %q, %q を含んでいない", got.Evidence, tc.want)
+			}
+		})
+	}
+}
+
+// 該当しない規則が先に並んでいても、実際に開いている規則を根拠に出すこと。
+// 先頭の規則で打ち切ると、所見の根拠が無関係な規則を指す。
+func TestSecurityGroupEvidencePicksTheOpenRule(t *testing.T) {
+	c := baseClients()
+	c.EC2 = &fakeEC2{groups: []ec2types.SecurityGroup{sg("sg-1", "web",
+		tcpRange(22, 22, "203.0.113.0/24"), // 22 番だが社内 IP のみ
+		udpRange(0, 65535, "0.0.0.0/0"),    // 全世界だが UDP
+		tcpRange(20, 30, "0.0.0.0/0"),      // これが該当
+	)}}
+	got := onlyResult(t, runCheck(t, "aws-ec2-sg-ssh-open", c))
+	if got.Status != StatusFail {
+		t.Fatalf("status = %q, want fail", got.Status)
+	}
+	if want := "tcp/20-30 を 0.0.0.0/0 に許可"; !strings.Contains(got.Evidence, want) {
+		t.Errorf("evidence = %q, %q を含んでいない", got.Evidence, want)
 	}
 }
 
@@ -685,4 +823,76 @@ func TestRunOneContainsPanic(t *testing.T) {
 	if len(res.Errors) != 1 || res.Errors[0].CheckID != "itest-panic" {
 		t.Errorf("パニックが記録されていない: %+v", res.Errors)
 	}
+	if len(res.Completed) != 0 {
+		t.Errorf("パニックした組が完走扱いになっている: %+v", res.Completed)
+	}
+}
+
+// ScanResult.Completed は「消えた資源の所見を閉じてよい範囲」を決める。
+// ここが広すぎると、読めなかっただけの資源の所見が解消されて
+// 「問題なし」に化ける。狭すぎると、消えた資源の所見が永久に残る。
+func TestRunOneRecordsCompletedScope(t *testing.T) {
+	t.Run("全件読めたら完走として記録する", func(t *testing.T) {
+		s := NewScanner()
+		res := &ScanResult{}
+		check := Check{
+			ID: "itest-ok", Scope: ScopeRegion,
+			Run: func(context.Context, *Clients) []Result {
+				return []Result{
+					{CheckID: "itest-ok", Status: StatusFail, ResourceID: "r1"},
+					{CheckID: "itest-ok", Status: StatusPass, ResourceID: "r2"},
+				}
+			},
+		}
+		s.runOne(context.Background(), check, baseClients(), res, &sync.Mutex{})
+
+		want := CheckScope{CheckID: "itest-ok", Region: "ap-northeast-1"}
+		if len(res.Completed) != 1 || res.Completed[0] != want {
+			t.Errorf("Completed = %+v, want [%+v]", res.Completed, want)
+		}
+	})
+
+	// 資源が 0 件でも、完走していれば記録する。その項目の所見は
+	// すべて閉じてよい (資源が無いのだから所見も無いのが正しい)。
+	t.Run("資源が 0 件でも完走として記録する", func(t *testing.T) {
+		s := NewScanner()
+		res := &ScanResult{}
+		check := Check{
+			ID: "itest-empty", Scope: ScopeRegion,
+			Run: func(context.Context, *Clients) []Result { return nil },
+		}
+		s.runOne(context.Background(), check, baseClients(), res, &sync.Mutex{})
+
+		if len(res.Completed) != 1 {
+			t.Errorf("Completed = %+v, want 1 件 (0 件と読めなかったは違う)", res.Completed)
+		}
+	})
+
+	// 1 件でも読めなければ完走にしない。読めなかった資源は応答に出て
+	// こないので「消えた」と区別が付かず、部分的な結果で所見を閉じると
+	// 権限が外れた途端に全所見が解消されて「問題なし」に化ける。
+	t.Run("1 件でも読めなければ完走にしない", func(t *testing.T) {
+		s := NewScanner()
+		res := &ScanResult{}
+		check := Check{
+			ID: "itest-partial", Scope: ScopeRegion,
+			Run: func(context.Context, *Clients) []Result {
+				return []Result{
+					{CheckID: "itest-partial", Status: StatusFail, ResourceID: "r1"},
+					{CheckID: "itest-partial", Status: StatusUnknown, ResourceID: "r2",
+						Region: "ap-northeast-1", Evidence: "AccessDenied"},
+				}
+			},
+		}
+		s.runOne(context.Background(), check, baseClients(), res, &sync.Mutex{})
+
+		if len(res.Completed) != 0 {
+			t.Errorf("一部が読めていないのに完走扱い: %+v", res.Completed)
+		}
+		// 読めた分の所見は残す。読めなかったことを理由に既知の問題まで
+		// 捨てると、権限の一部欠落で所見が黙って減る。
+		if len(res.Results) != 1 {
+			t.Errorf("Results = %d 件, want 1", len(res.Results))
+		}
+	})
 }

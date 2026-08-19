@@ -227,15 +227,23 @@ func (h *PatchAutomationHandler) GetMissingPatches(c *gin.Context) {
 func (h *PatchAutomationHandler) GetStats(c *gin.Context) {
 	ctx := c.Request.Context()
 	var jobsThisMonth, completed, failed int
-	_ = h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM patch_jobs WHERE created_at >= date_trunc('month', NOW())`).Scan(&jobsThisMonth)
-	_ = h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM patch_jobs WHERE status='completed'`).Scan(&completed)
-	_ = h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM patch_jobs WHERE status IN ('failed','rolled_back')`).Scan(&failed)
+	if !ReadOK(c, h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM patch_jobs WHERE created_at >= date_trunc('month', NOW())`).Scan(&jobsThisMonth)) {
+		return
+	}
+	if !ReadOK(c, h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM patch_jobs WHERE status='completed'`).Scan(&completed)) {
+		return
+	}
+	if !ReadOK(c, h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM patch_jobs WHERE status IN ('failed','rolled_back')`).Scan(&failed)) {
+		return
+	}
 	successRate := 0.0
 	if completed+failed > 0 {
 		successRate = float64(completed) / float64(completed+failed) * 100.0
 	}
 	var totalPatched, totalTargets int
-	_ = h.pool.QueryRow(ctx, `SELECT COALESCE(SUM(patched_count),0), COALESCE(SUM(total_endpoints),0) FROM patch_jobs`).Scan(&totalPatched, &totalTargets)
+	if !ReadOK(c, h.pool.QueryRow(ctx, `SELECT COALESCE(SUM(patched_count),0), COALESCE(SUM(total_endpoints),0) FROM patch_jobs`).Scan(&totalPatched, &totalTargets)) {
+		return
+	}
 	complianceRate := 0.0
 	if totalTargets > 0 {
 		complianceRate = float64(totalPatched) / float64(totalTargets) * 100.0

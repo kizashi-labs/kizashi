@@ -8,6 +8,8 @@ import {
   FileText, Globe, KeyRound, ChevronRight
 } from 'lucide-react'
 
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+
 // ── Types ──────────────────────────────────────────────────────────────────────
 
 type EventType = 'process' | 'network' | 'file' | 'dns' | 'auth'
@@ -84,8 +86,8 @@ function FilterChip({ label, active, onClick }: { label: string; active: boolean
       onClick={onClick}
       className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors border ${
         active
-          ? 'bg-falcon-red/20 text-falcon-red border-falcon-red/50'
-          : 'bg-falcon-surface text-falcon-muted border-falcon-border hover:text-white hover:border-[#2a3f5c]'
+          ? 'bg-[#e8002d]/20 text-[#e8002d] border-[#e8002d]/50'
+          : 'bg-[#0d1220] text-[#7d92b0] border-[#1e2d42] hover:text-white hover:border-[#2a3f5c]'
       }`}
     >
       {label}
@@ -112,8 +114,7 @@ function EventBubble({ event }: { event: SecurityEvent }) {
 
       {/* Event card */}
       <div
-        className="flex-1 bg-falcon-surface border border-falcon-border rounded-lg p-3 mb-3 cursor-pointer
-                   hover:border-[#2a3f5c] transition-colors"
+        className="flex-1 bg-[#0d1220] border border-[#1e2d42] rounded-lg p-3 mb-3 cursor-pointer hover:border-[#2a3f5c] transition-colors"
         onClick={() => setExpanded(e => !e)}
       >
         <div className="flex items-start justify-between gap-3">
@@ -126,32 +127,32 @@ function EventBubble({ event }: { event: SecurityEvent }) {
               style={{ backgroundColor: `${color}20`, color, border: `1px solid ${color}40` }}>
               {SEVERITY_LABELS[event.severity]}
             </span>
-            <span className="text-falcon-muted text-xs font-mono">{event.agent_hostname}</span>
+            <span className="text-[#7d92b0] text-xs font-mono">{event.agent_hostname}</span>
           </div>
           <div className="flex items-center gap-2 shrink-0">
-            <span className="text-falcon-muted text-xs">{fmtTime(event.timestamp)}</span>
-            <ChevronRight className={`w-3.5 h-3.5 text-falcon-subtle transition-transform ${expanded ? 'rotate-90' : ''}`} />
+            <span className="text-[#7d92b0] text-xs">{fmtTime(event.timestamp)}</span>
+            <ChevronRight className={`w-3.5 h-3.5 text-[#3d5068] transition-transform ${expanded ? 'rotate-90' : ''}`} />
           </div>
         </div>
 
         <p className="text-white text-sm mt-2 font-mono text-xs break-all">{event.description}</p>
 
         {expanded && (
-          <div className="mt-3 pt-3 border-t border-falcon-border grid grid-cols-2 gap-2 text-xs">
+          <div className="mt-3 pt-3 border-t border-[#1e2d42] grid grid-cols-2 gap-2 text-xs">
             <div>
-              <span className="text-falcon-muted">Event ID: </span>
+              <span className="text-[#7d92b0]">Event ID: </span>
               <span className="text-white font-mono">{event.id}</span>
             </div>
             <div>
-              <span className="text-falcon-muted">Timestamp: </span>
+              <span className="text-[#7d92b0]">Timestamp: </span>
               <span className="text-white">{new Date(event.timestamp).toISOString()}</span>
             </div>
             <div>
-              <span className="text-falcon-muted">Agent: </span>
+              <span className="text-[#7d92b0]">Agent: </span>
               <span className="text-white">{event.agent_hostname}</span>
             </div>
             <div>
-              <span className="text-falcon-muted">Severity: </span>
+              <span className="text-[#7d92b0]">Severity: </span>
               <span style={{ color }}>{SEVERITY_LABELS[event.severity]} ({event.severity})</span>
             </div>
           </div>
@@ -206,17 +207,18 @@ export default function EventTimelinePage() {
 
   return (
     <div className="min-h-screen bg-[#070d19] p-6">
+      <PageDataUnavailable />
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-white flex items-center gap-3">
-            <Activity className="w-7 h-7 text-falcon-red" />
+            <Activity className="w-7 h-7 text-[#e8002d]" />
             Security Event Timeline
           </h1>
-          <p className="text-falcon-muted text-sm mt-1">
+          <p className="text-[#7d92b0] text-sm mt-1">
             Interactive timeline of endpoint security events
             {criticalCount > 0 && (
-              <span className="ml-2 text-falcon-red font-medium">{criticalCount} critical</span>
+              <span className="ml-2 text-[#e8002d] font-medium">{criticalCount} critical</span>
             )}
             {highCount > 0 && (
               <span className="ml-2 text-orange-400 font-medium">{highCount} high</span>
@@ -226,8 +228,7 @@ export default function EventTimelinePage() {
         <button
           onClick={() => refetch()}
           disabled={isFetching}
-          className="flex items-center gap-2 px-3 py-2 bg-falcon-surface border border-falcon-border hover:bg-falcon-hover
-                     text-falcon-muted hover:text-white rounded-lg text-sm transition-colors disabled:opacity-50"
+          className="flex items-center gap-2 px-3 py-2 bg-[#0d1220] border border-[#1e2d42] hover:bg-[#19253d] text-[#7d92b0] hover:text-white rounded-lg text-sm transition-colors disabled:opacity-50"
         >
           <RefreshCw className={`w-4 h-4 ${isFetching ? 'animate-spin' : ''}`} />
           Refresh
@@ -237,13 +238,13 @@ export default function EventTimelinePage() {
       {/* Time range + type filter bar */}
       <div className="flex items-center gap-4 mb-6 flex-wrap">
         {/* Time range */}
-        <div className="flex items-center gap-1 bg-falcon-surface border border-falcon-border rounded-lg p-1">
+        <div className="flex items-center gap-1 bg-[#0d1220] border border-[#1e2d42] rounded-lg p-1">
           {([['1h', 'Last Hour'], ['24h', 'Last 24h'], ['7d', 'Last 7 days']] as [TimeRange, string][]).map(([v, l]) => (
             <button
               key={v}
               onClick={() => setTimeRange(v)}
-              className={`px-3 py-1.5 rounded text-xs font-medium transition-colors ${
-                timeRange === v ? 'bg-falcon-active text-white' : 'text-falcon-muted hover:text-white'
+              className={`px-3 py-1.5 rounded-sm text-xs font-medium transition-colors ${
+                timeRange === v ? 'bg-[#1d2f4a] text-white' : 'text-[#7d92b0] hover:text-white'
               }`}
             >
               {l}
@@ -253,7 +254,7 @@ export default function EventTimelinePage() {
 
         {/* Type filter */}
         <div className="flex items-center gap-1.5 flex-wrap">
-          <Filter className="w-4 h-4 text-falcon-muted" />
+          <Filter className="w-4 h-4 text-[#7d92b0]" />
           {(['all', 'process', 'network', 'file', 'dns', 'auth'] as const).map(t => (
             <FilterChip
               key={t}
@@ -265,7 +266,7 @@ export default function EventTimelinePage() {
         </div>
 
         {/* Event count */}
-        <span className="text-falcon-muted text-xs ml-auto">
+        <span className="text-[#7d92b0] text-xs ml-auto">
           {filteredEvents.length} event{filteredEvents.length !== 1 ? 's' : ''}
         </span>
       </div>
@@ -273,29 +274,29 @@ export default function EventTimelinePage() {
       {/* Timeline */}
       {isLoading ? (
         <div className="flex items-center justify-center py-16">
-          <RefreshCw className="w-6 h-6 text-falcon-muted animate-spin" />
+          <RefreshCw className="w-6 h-6 text-[#7d92b0] animate-spin" />
         </div>
       ) : filteredEvents.length === 0 ? (
-        <div className="bg-falcon-surface border border-falcon-border rounded-xl py-16 text-center">
-          <Activity className="w-10 h-10 text-falcon-subtle mx-auto mb-3" />
-          <p className="text-falcon-muted text-sm">No events found for the selected filters</p>
+        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl py-16 text-center">
+          <Activity className="w-10 h-10 text-[#3d5068] mx-auto mb-3" />
+          <p className="text-[#7d92b0] text-sm">No events found for the selected filters</p>
         </div>
       ) : (
         <div className="relative">
           {/* Vertical timeline line */}
-          <div className="absolute left-[30px] top-0 bottom-0 w-px bg-falcon-border" />
+          <div className="absolute left-[30px] top-0 bottom-0 w-px bg-[#1e2d42]" />
 
           {grouped.map(([groupLabel, groupEvents]) => (
             <div key={groupLabel} className="mb-6">
               {/* Group label */}
               <div className="flex items-center gap-3 mb-4 relative z-10">
                 <div className="w-8 shrink-0 flex justify-center">
-                  <div className="w-2 h-2 rounded-full bg-falcon-border" />
+                  <div className="w-2 h-2 rounded-full bg-[#1e2d42]" />
                 </div>
-                <div className="flex items-center gap-2 px-3 py-1 bg-falcon-surface border border-falcon-border rounded-lg">
-                  <Clock className="w-3.5 h-3.5 text-falcon-muted" />
-                  <span className="text-falcon-muted text-xs font-medium">{groupLabel}</span>
-                  <span className="text-falcon-subtle text-xs">({groupEvents.length})</span>
+                <div className="flex items-center gap-2 px-3 py-1 bg-[#0d1220] border border-[#1e2d42] rounded-lg">
+                  <Clock className="w-3.5 h-3.5 text-[#7d92b0]" />
+                  <span className="text-[#7d92b0] text-xs font-medium">{groupLabel}</span>
+                  <span className="text-[#3d5068] text-xs">({groupEvents.length})</span>
                 </div>
               </div>
 
@@ -311,13 +312,13 @@ export default function EventTimelinePage() {
       )}
 
       {/* Severity legend */}
-      <div className="mt-8 bg-falcon-surface border border-falcon-border rounded-lg p-4">
-        <p className="text-falcon-muted text-xs mb-3 font-medium">Severity Legend</p>
+      <div className="mt-8 bg-[#0d1220] border border-[#1e2d42] rounded-lg p-4">
+        <p className="text-[#7d92b0] text-xs mb-3 font-medium">Severity Legend</p>
         <div className="flex items-center gap-6 flex-wrap">
           {Object.entries(SEVERITY_COLORS).map(([sev, color]) => (
             <div key={sev} className="flex items-center gap-2">
               <div className="w-3 h-3 rounded-full" style={{ backgroundColor: color }} />
-              <span className="text-falcon-muted text-xs capitalize">{SEVERITY_LABELS[Number(sev)]}</span>
+              <span className="text-[#7d92b0] text-xs capitalize">{SEVERITY_LABELS[Number(sev)]}</span>
             </div>
           ))}
         </div>

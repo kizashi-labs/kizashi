@@ -145,7 +145,13 @@ func (s *SavedHuntStore) Delete(ctx context.Context, id string) error {
 }
 
 // IncrementRunCount bumps run_count and sets last_run_at to now for the given query.
-func (s *SavedHuntStore) IncrementRunCount(ctx context.Context, id string) {
-	_, _ = s.pool.Exec(ctx,
+//
+// **本番の呼び出し側がありません**（検査からしか呼ばれていません）。
+// それでも `error` を返す形にしてあるのは、次に誰かが呼ぶときに
+// 「書けたかどうか」を選べるようにするためです —— 返り値が無いと、
+// 呼び出し側には選択肢がありません。
+func (s *SavedHuntStore) IncrementRunCount(ctx context.Context, id string) error {
+	_, err := s.pool.Exec(ctx,
 		`UPDATE saved_hunt_queries SET run_count=run_count+1, last_run_at=NOW() WHERE id=$1`, id)
+	return err
 }

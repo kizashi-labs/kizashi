@@ -8,6 +8,9 @@ import {
   Clock, User, Hash, Activity, List, Server,
 } from 'lucide-react'
 
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+import { usePersist, SaveFailed } from '@/lib/persist'
+
 // ─── Types (server wire format) ───────────────────────────────────────────────
 // Mirrors server/internal/store.Incident, served by IncidentHandler.List at
 // GET /api/v1/admin/incidents as {data: [...], total, page, per_page}.
@@ -109,17 +112,20 @@ export default function IncidentsPage() {
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [showCorrelation, setShowCorrelation] = useState(false)
   const [statusError, setStatusError] = useState<Record<string, string>>({})
+  const { persist, saveError } = usePersist()
 
+  // 読めなかったときに [] を返さない。空の一覧は「インシデントが無い」に
+  // 見えるが、読めなかったのは別のことで、対応する人には区別が付かない。
   const { data: incidentsData, isLoading: incLoading, refetch: refetchInc } = useQuery<Incident[]>({
     queryKey: ['admin-incidents'],
-    queryFn: () => apiFetchList<Incident>(`/api/v1/admin/incidents?per_page=${PER_PAGE}`).catch(() => []),
+    queryFn: () => apiFetchList<Incident>(`/api/v1/admin/incidents?per_page=${PER_PAGE}`),
     staleTime: 30_000,
     retry: 0,
   })
 
   const { data: correlationRulesData } = useQuery<CorrelationRule[]>({
     queryKey: ['correlation-engine-rules'],
-    queryFn: () => apiFetchList<CorrelationRule>('/api/v1/correlation-engine?limit=200').catch(() => []),
+    queryFn: () => apiFetchList<CorrelationRule>('/api/v1/correlation-engine?limit=200'),
     staleTime: 60_000,
     retry: 0,
   })
@@ -157,24 +163,28 @@ export default function IncidentsPage() {
     alertsCorrelated: incidents.reduce((sum, i) => sum + (i.alert_count ?? 0), 0),
   }
 
+  // 宛先は PATCH /api/v1/incidents/:id/status (router の inc グループ)。
+  // /admin/incidents/:id/status は登録されていない。
+  //
+  // ローカルの状態を先に進めない。保存できなかったのに一覧だけ「対応済み」
+  // になると、対応したつもりのインシデントが未対応のまま残る。
   const handleStatusChange = async (incId: string, newStatus: string) => {
     setStatusError(prev => ({ ...prev, [incId]: '' }))
-    try {
-      await apiFetch(`/api/v1/incidents/${incId}/status`, {
-        method: 'PATCH',
-        body: JSON.stringify({ status: newStatus }),
-      })
+    const ok = await persist('インシデントの状態', `/api/v1/incidents/${incId}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status: newStatus }),
+    })
+    if (ok) {
       await qc.invalidateQueries({ queryKey: ['admin-incidents'] })
-    } catch (e: unknown) {
-      setStatusError(prev => ({
-        ...prev,
-        [incId]: e instanceof Error ? e.message : 'ステータスの更新に失敗しました',
-      }))
+      return
     }
+    setStatusError(prev => ({ ...prev, [incId]: 'ステータスの更新に失敗しました' }))
   }
 
   return (
     <div className="min-h-screen bg-zinc-950 p-6">
+      <PageDataUnavailable />
+      <SaveFailed error={saveError} />
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
@@ -379,7 +389,7 @@ export default function IncidentsPage() {
                             <button
                               key={s}
                               onClick={e => { e.stopPropagation(); handleStatusChange(inc.id, s) }}
-                              className={`px-3 py-1.5 rounded text-xs font-medium border transition-colors ${
+                              className={`px-3 py-1.5 rounded-sm text-xs font-medium border transition-colors ${
                                 inc.status === s
                                   ? statusConfig(s).className
                                   : 'border-zinc-700 text-zinc-500 hover:text-zinc-300 hover:border-zinc-600'

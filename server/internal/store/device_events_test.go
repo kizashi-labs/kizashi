@@ -184,39 +184,45 @@ func TestDeviceEventFilter_SinceUntilRange(t *testing.T) {
 
 // ─── デバイスイベントクエリビルダーロジックテスト ──────────────────────────────
 
-// buildDeviceEventWhere は device_events.go の List メソッドの WHERE 句構築を再現する
+// buildDeviceEventWhere は **本物を呼びます。**
+//
+// 以前ここには List の組み立てを書き写したものが置いてありました。
 func buildDeviceEventWhere(f DeviceEventFilter) (string, []interface{}) {
-	where := "WHERE 1=1"
-	args := []interface{}{}
-	idx := 1
+	return deviceEventListWhere(f)
+}
 
-	if f.AgentID != "" {
-		where += fmt.Sprintf(" AND agent_id = $%d", idx)
-		args = append(args, f.AgentID)
-		idx++
+// 1ページの件数の切り詰め。**写しには入っていませんでした。**
+//
+// 0 を通すと 0 件返り、画面では「デバイスの記録が無い」と見分けが
+// 付きません。USB は持ち出しの経路なので、記録が空に見えることと
+// 記録が無いことの区別が要ります。
+func TestDeviceEventLimitIsClamped(t *testing.T) {
+	for _, tc := range []struct{ in, want int }{
+		{0, 50}, {-1, 50}, {50, 50}, {500, 500}, {5000, 500},
+	} {
+		if got := clampDeviceEventLimit(tc.in); got != tc.want {
+			t.Errorf("clampDeviceEventLimit(%d) = %d, want %d", tc.in, got, tc.want)
+		}
 	}
-	if f.Action != "" {
-		where += fmt.Sprintf(" AND action = $%d", idx)
-		args = append(args, f.Action)
-		idx++
+}
+
+// 5つ全部を指定したとき、番号と引数が揃っていること。
+func TestDeviceEventPlaceholdersStayInStepWithArgs(t *testing.T) {
+	now := time.Now()
+	where, args := deviceEventListWhere(DeviceEventFilter{
+		AgentID: "a", Action: "b", DeviceType: "c", Since: &now, Until: &now,
+	})
+	if len(args) != 5 {
+		t.Fatalf("args = %v, want 5 件", args)
 	}
-	if f.DeviceType != "" {
-		where += fmt.Sprintf(" AND device_type = $%d", idx)
-		args = append(args, f.DeviceType)
-		idx++
+	for i := 1; i <= 5; i++ {
+		if !strings.Contains(where, fmt.Sprintf("$%d", i)) {
+			t.Errorf("$%d がありません: %q", i, where)
+		}
 	}
-	if f.Since != nil {
-		where += fmt.Sprintf(" AND created_at >= $%d", idx)
-		args = append(args, *f.Since)
-		idx++
+	if strings.Contains(where, "$6") {
+		t.Errorf("引数の数を超えるプレースホルダがあります: %q", where)
 	}
-	if f.Until != nil {
-		where += fmt.Sprintf(" AND created_at <= $%d", idx)
-		args = append(args, *f.Until)
-		idx++
-	}
-	_ = idx
-	return where, args
 }
 
 // TestBuildDeviceEventWhere_EmptyFilter は全フィルターが空のとき "WHERE 1=1" であることを確認する

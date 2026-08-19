@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"sync"
 	"testing"
 
 	"github.com/gin-gonic/gin"
@@ -15,21 +16,43 @@ import (
 	"github.com/edr-platform/server/internal/api/handlers"
 )
 
-// testPool creates a database connection for integration tests.
+// testPool returns the package's shared database pool for integration tests.
 // Set TEST_DATABASE_URL env var to run against a real DB.
 // If not set, tests requiring DB are skipped.
+//
+// **元はテスト1本ごとに pool を開いていました**（この package の中で
+// 441 か所）。1回の生成・1問い合わせ・破棄で **256ms**（実測
+// 2026-08-17、`MinConns=5` を張るため）に対し、共有した pool から
+// 引くのは **14ms** です —— 開き直すだけで、この package は数分を
+// 使っていました。`-timeout` を 600s に上げたのはその応急処置です。
+//
+// **共有しても、テナントの絞り込みは変わりません。** `store.Connect` の
+// `PrepareConn`／`AfterRelease` は **接続を引くたび**に `app.tenant_id`
+// を設定し、返すたびに消します —— pool 単位ではありません。テナント
+// 付きの acquire のあと、テナント無しの acquire を10回やって、
+// **1回も前の値が残らないことを実測してあります**（同 2026-08-17）。
+//
+// 閉じないこと。**`t.Cleanup(pool.Close)` を戻すと、最初に終わった
+// テストが以降の全部から pool を取り上げます。**
+var (
+	sharedPoolOnce sync.Once
+	sharedPool     *pgxpool.Pool
+	sharedPoolErr  error
+)
+
 func testPool(t *testing.T) *pgxpool.Pool {
 	t.Helper()
 	dbURL := os.Getenv("TEST_DATABASE_URL")
 	if dbURL == "" {
 		t.Skip("TEST_DATABASE_URL not set - skipping DB integration tests")
 	}
-	pool, err := pgxpool.New(context.Background(), dbURL)
-	if err != nil {
-		t.Fatalf("failed to connect to test database: %v", err)
+	sharedPoolOnce.Do(func() {
+		sharedPool, sharedPoolErr = pgxpool.New(context.Background(), dbURL)
+	})
+	if sharedPoolErr != nil {
+		t.Fatalf("failed to connect to test database: %v", sharedPoolErr)
 	}
-	t.Cleanup(pool.Close)
-	return pool
+	return sharedPool
 }
 
 // TestHealthEndpoint validates that the health handler shape matches the inline

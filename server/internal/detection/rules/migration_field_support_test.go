@@ -106,7 +106,8 @@ func TestMigrationSigmaFieldSupport(t *testing.T) {
 	// event type is not processed by the detection-server. New entries must NOT
 	// appear without justification — that is the regression this guards.
 	knownInert := map[string]string{
-		"Cobalt Strike Beacon via Named Pipe": "keys on Sysmon PipeName (EID17); the detection-server does not process named-pipe events. Cobalt Strike is also flagged via the builtin process-name IOC.",
+		"Cobalt Strike Beacon via Named Pipe":                     "keys on Sysmon PipeName (EID17); the detection-server does not process named-pipe events. Cobalt Strike is also flagged via the builtin process-name IOC.",
+		"SID-History Added to Account (Security Event 4765/4766)": "keys on the Windows Security eventlog EventID, which no agent ships — ingestion emits no EventID field at all, so this rule cannot fire as written. Kept (migration 318) because it becomes live the moment Security-eventlog forwarding exists; until then T1134.005 is NOT covered in practice, despite the tag.",
 	}
 
 	supp := ruleEngineSupportedFields()

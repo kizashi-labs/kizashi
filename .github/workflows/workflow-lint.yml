@@ -1,0 +1,118 @@
+name: Workflow Lint
+
+# ワークフローファイル自身の構文を検査する。
+#
+# 2026-08-04 に ci.yml へ `run:` も `uses:` も持たないステップが1行混入し、
+# CI(server/agent/frontend) が丸ごと起動しなくなった。厄介なのは壊れ方が
+# 無音なことで、
+#
+#   - Actions は起動前に落ちるためジョブが1つも作られない
+#   - 実行記録の name はワークフローの `name:` ではなくファイルパスになる
+#   - PR のチェック一覧には「失敗した CI」ではなく「CI が存在しない」状態で並ぶ
+#
+# ため、他のワークフロー（coverage / security / agent-os-tests）が緑のままで
+# 「CI は通っている」と読めてしまう。実際、壊れてから気付くまでに 12 コミット
+# 積まれ、その間サーバ・エージェント・フロントのテストは一度も走っていない。
+#
+# この検査を ci.yml の中に置いても意味がない（ci.yml が起動しないなら検査も
+# 動かない）ので、別ファイルに分けている。ここが壊れた場合は同じ症状が
+# このワークフローに出るだけで、ci.yml は影響を受けない。
+#
+# actionlint の代わりではない。上の事故の型（YAML として壊れている／ステップが
+# 何も実行しない／ジョブが空）だけを、追加の依存なしで見る。
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  lint:
+    name: Workflow files are loadable
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Validate .github/workflows/*.yml
+        run: |
+          python3 - <<'PY'
+          import glob, re, sys, yaml
+
+          # `… | grep -q` を探します。コメント行は除きます —— この落とし穴を
+          # 説明している注釈まで拾うと、直した場所ほど怒られることになります。
+          PIPE_GREP_Q = re.compile(r"\|\s*grep\b[^|&;]*\s-[A-Za-z]*q")
+
+          def pipe_into_grep_q(script):
+              for line in script.splitlines():
+                  if line.lstrip().startswith("#"):
+                      continue
+                  if PIPE_GREP_Q.search(line):
+                      yield line
+
+          problems = []
+          for path in sorted(glob.glob(".github/workflows/*.yml") +
+                             glob.glob(".github/workflows/*.yaml")):
+              try:
+                  doc = yaml.safe_load(open(path, encoding="utf-8"))
+              except Exception as e:
+                  problems.append("%s: YAML として読めません: %s" % (path, e))
+                  continue
+              if not isinstance(doc, dict):
+                  problems.append("%s: トップレベルがマップではありません" % path)
+                  continue
+
+              jobs = doc.get("jobs")
+              if not isinstance(jobs, dict) or not jobs:
+                  problems.append("%s: jobs がありません" % path)
+                  continue
+
+              for job_name, job in jobs.items():
+                  if not isinstance(job, dict):
+                      problems.append("%s / %s: ジョブがマップではありません" % (path, job_name))
+                      continue
+                  if "uses" in job:      # reusable workflow call: steps を持たない
+                      continue
+                  steps = job.get("steps")
+                  if not isinstance(steps, list) or not steps:
+                      problems.append("%s / %s: steps がありません" % (path, job_name))
+                      continue
+                  for i, step in enumerate(steps):
+                      if not isinstance(step, dict):
+                          problems.append("%s / %s / step[%d]: ステップがマップではありません"
+                                          % (path, job_name, i))
+                          continue
+                      if "run" not in step and "uses" not in step:
+                          problems.append(
+                              "%s / %s / step[%d] (%s): run: も uses: もありません。"
+                              "何も実行しないステップは Actions に拒否され、"
+                              "ワークフロー全体が起動しなくなります"
+                              % (path, job_name, i, step.get("name", "名前なし")))
+                      script = step.get("run")
+                      if isinstance(script, str) and "pipefail" in script:
+                          for line in pipe_into_grep_q(script):
+                              problems.append(
+                                  "%s / %s / step[%d] (%s): pipefail のもとで"
+                                  " パイプの右辺に `grep -q` を置いています → %s\n"
+                                  "      `grep -q` は最初の一致で終了するので、"
+                                  "書き込み途中の左辺が SIGPIPE で 141 になり、"
+                                  "**一致したときほど「一致しなかった」を返します。**"
+                                  "左辺がパイプバッファ (64KB) に収まるうちは"
+                                  "起きないので、入力が育ったときにだけ外れます。"
+                                  " here-string (`grep -q PAT <<<\"$var\"`) にすれば"
+                                  "パイプラインが無くなり、大きさに依存しません"
+                                  % (path, job_name, i, step.get("name", "名前なし"),
+                                     line.strip()))
+
+          if problems:
+              print("ワークフローファイルに問題があります:\n")
+              for p in problems:
+                  print("  - " + p)
+              print("\nこの型の失敗はジョブが1つも作られないため、"
+                    "PR のチェック一覧では「失敗」ではなく「そのワークフローが無い」"
+                    "ように見えます。実行記録の name がファイルパスになっていたら"
+                    "この症状です。")
+              sys.exit(1)
+
+          print("ワークフローファイルはすべて読み込み可能です")
+          PY

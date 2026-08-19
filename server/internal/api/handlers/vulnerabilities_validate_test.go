@@ -210,47 +210,15 @@ func TestIsValidCVSSScore_BoundaryValues(t *testing.T) {
 	}
 }
 
-// ─────────────────────────────────────────────
-// severity → CVSSスコア帯のマッピングテスト
-// ─────────────────────────────────────────────
-
-// severityCVSSRange は severity 文字列から期待される CVSS スコア帯を返す
-// ヘルパー（テスト専用ロジック、本番コードの仕様検証として機能する）。
-func severityCVSSRange(sev string) (min, max float64) {
-	switch sev {
-	case "critical":
-		return 9.0, 10.0
-	case "high":
-		return 7.0, 8.9
-	case "medium":
-		return 4.0, 6.9
-	case "low":
-		return 0.1, 3.9
-	default:
-		return 0.0, 10.0
-	}
-}
-
-func TestSeverityCVSSRange_CriticalIsHighest(t *testing.T) {
-	// critical の最小スコアが他の全 severity の最小スコアより高いことを確認
-	critMin, _ := severityCVSSRange("critical")
-	for _, sev := range []string{"high", "medium", "low"} {
-		otherMin, _ := severityCVSSRange(sev)
-		if critMin <= otherMin {
-			t.Errorf("critical の最小スコア(%v) は %s の最小スコア(%v) より高くなければなりません", critMin, sev, otherMin)
-		}
-	}
-}
-
-func TestSeverityCVSSRange_NoOverlap(t *testing.T) {
-	// 隣接するseverityのスコア帯が重ならないことを確認
-	tiers := []string{"critical", "high", "medium", "low"}
-	ranges := make([][2]float64, len(tiers))
-	for i, sev := range tiers {
-		min, max := severityCVSSRange(sev)
-		ranges[i] = [2]float64{min, max}
-		if min > max {
-			t.Errorf("%s: min(%v) > max(%v)", sev, min, max)
-		}
-	}
-}
+// severity と CVSS の対応付けについて。
+//
+// **ここには「critical は 9.0〜10.0、high は 7.0〜8.9 …」という表が
+// 置いてあり、その表を自分で作って自分で確かめていました。**
+// 製品にはその対応付けがありません —— `internal/scheduler` の
+// 脆弱性取り込みは NVD が返す `baseSeverity` の文字列をそのまま使い、
+// CVSS の点数から区分を導きません。**製品が持っていない規則を、
+// 検査だけが持っていました。**
+//
+// 実在する規則は「NVD の語をこの製品の区分に寄せる」方です。
+// `normalizeNVDSeverity` に切り出して、`internal/scheduler` の検査が
+// そちらを試します。ここには繋ぐ先がないので置きません。

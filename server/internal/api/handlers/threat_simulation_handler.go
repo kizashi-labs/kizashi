@@ -21,7 +21,7 @@ func (h *ThreatSimulationHandler) ListTemplates(c *gin.Context) {
 		FROM simulation_templates ORDER BY category, name
 	`)
 	if err != nil {
-		c.JSON(http.StatusOK, gin.H{"templates": []any{}})
+		ReadFailure(c, err, gin.H{"templates": []any{}})
 		return
 	}
 	defer rows.Close()
@@ -47,7 +47,9 @@ func (h *ThreatSimulationHandler) ListTemplates(c *gin.Context) {
 		list = append(list, t)
 	}
 	if err := rows.Err(); err != nil {
-		slog.Warn("row iteration error", "error", err)
+		slog.Error("rows.Err: 結果の読み出しが途中で失敗しました", "error", err)
+		ReadFailure(c, err, gin.H{"templates": []any{}})
+		return
 	}
 	if list == nil {
 		list = []Tmpl{}
@@ -62,7 +64,7 @@ func (h *ThreatSimulationHandler) ListRuns(c *gin.Context) {
 		ORDER BY r.created_at DESC LIMIT 50
 	`)
 	if err != nil {
-		c.JSON(http.StatusOK, gin.H{"runs": []any{}})
+		ReadFailure(c, err, gin.H{"runs": []any{}})
 		return
 	}
 	defer rows.Close()
@@ -97,7 +99,9 @@ func (h *ThreatSimulationHandler) ListRuns(c *gin.Context) {
 		list = append(list, r)
 	}
 	if err := rows.Err(); err != nil {
-		slog.Warn("row iteration error", "error", err)
+		slog.Error("rows.Err: 結果の読み出しが途中で失敗しました", "error", err)
+		ReadFailure(c, err, gin.H{"runs": []any{}})
+		return
 	}
 	if list == nil {
 		list = []Run{}

@@ -99,21 +99,17 @@ func AnalyzeDNSQuery(query string) DNSExfilVerdict {
 		}
 	}
 
-	labels := strings.Split(q, ".")
-	// The "payload" is everything below the registrable domain. Without a public
-	// suffix list we approximate by dropping the last two labels (domain + TLD).
-	payloadLabels := labels
-	if len(labels) > 2 {
-		payloadLabels = labels[:len(labels)-2]
-	} else {
-		payloadLabels = nil
-	}
+	payloadLabels := exfilPayloadLabels(q)
 	payload := strings.Join(payloadLabels, "")
 
+	// Longest label among the PAYLOAD labels only. A suffix label cannot be an
+	// encoded chunk, so including it only inflates the score.
 	longestLabel := 0
-	for _, l := range labels {
+	longestPayloadLabel := ""
+	for _, l := range payloadLabels {
 		if len(l) > longestLabel {
 			longestLabel = len(l)
+			longestPayloadLabel = l
 		}
 	}
 
@@ -131,14 +127,21 @@ func AnalyzeDNSQuery(query string) DNSExfilVerdict {
 		add(1, "query length >52")
 	}
 
-	// A single very long label is a strong encoded-chunk indicator.
-	if longestLabel > 40 {
-		add(1, "label length >40")
+	// A single very long label is a strong encoded-chunk indicator — but only when
+	// the label actually looks encoded. Cloud storage bucket names are routinely
+	// past 40 characters while being plain hyphenated words
+	// ("aws-ssm-document-attachments-ap-northeast-1"), and length alone scored them
+	// as if they carried a base32 chunk.
+	if longestLabel > 40 && hexBase32Ratio(longestPayloadLabel) > 0.92 {
+		add(1, "encoded-looking label >40")
 	}
 
-	// Deep subdomain nesting is used to pack multiple encoded chunks.
-	if len(labels) >= 6 {
-		add(1, "≥6 labels")
+	// Deep subdomain nesting is used to pack multiple encoded chunks. Counted over
+	// payload labels: with a two-label suffix this is the old "≥6 labels", but a
+	// service endpoint like s3.dualstack.<region>.amazonaws.com contributes five
+	// suffix labels that no attacker chose.
+	if len(payloadLabels) >= 4 {
+		add(1, "≥4 payload labels")
 	}
 
 	// High-entropy payload: encoded data, not human-readable hostnames.

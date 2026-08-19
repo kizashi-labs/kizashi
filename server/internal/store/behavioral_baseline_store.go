@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"strconv"
 	"time"
 
@@ -243,7 +244,9 @@ func (s *BehavioralBaselineStore) GetConfig(ctx context.Context) (*BaselineConfi
 		)
 	`)
 	if err != nil {
-		return cfg, nil
+		// 既定値を返すと、管理者が設定した学習期間や感度が無視された
+		// まま逸脱判定が走ります。
+		return cfg, fmt.Errorf("ベースライン設定を読めませんでした: %w", err)
 	}
 	defer rows.Close()
 
@@ -266,6 +269,10 @@ func (s *BehavioralBaselineStore) GetConfig(ctx context.Context) (*BaselineConfi
 		case "baseline_deviation_sensitivity":
 			cfg.DeviationSensitivity = v
 		}
+	}
+	// 部分結果を完全な一覧として返さない（scan_truncation_guard_test.go 参照）
+	if err := rows.Err(); err != nil {
+		return nil, err
 	}
 	return cfg, nil
 }
@@ -295,8 +302,14 @@ func (s *BehavioralBaselineStore) SaveConfig(ctx context.Context, cfg *BaselineC
 	return nil
 }
 
-// GetExclusionRules fetches current exclusion_rules for one agent (returns nil if not found).
-func (s *BehavioralBaselineStore) GetExclusionRules(ctx context.Context, agentID string) json.RawMessage {
+// GetExclusionRules fetches current exclusion_rules for one agent.
+//
+// 以前の条件は `errors.Is(err, pgx.ErrNoRows) || err != nil` —— つまり
+// 「行が無い」も「読めなかった」も同じ [] を返していました。呼び出し側
+// （baseline_rebuilder）はこれを「既存の除外ルール」として持ち回り、
+// そのままベースラインを Upsert します。読めなかっただけで、運用担当が
+// 設定した除外ルールが消えます。
+func (s *BehavioralBaselineStore) GetExclusionRules(ctx context.Context, agentID string) (json.RawMessage, error) {
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
@@ -305,8 +318,11 @@ func (s *BehavioralBaselineStore) GetExclusionRules(ctx context.Context, agentID
 		`SELECT exclusion_rules FROM agent_behavioral_baselines WHERE agent_id = $1`,
 		agentID,
 	).Scan(&raw)
-	if errors.Is(err, pgx.ErrNoRows) || err != nil {
-		return json.RawMessage("[]")
+	if errors.Is(err, pgx.ErrNoRows) {
+		return json.RawMessage("[]"), nil // まだベースラインが無い
 	}
-	return json.RawMessage(raw)
+	if err != nil {
+		return nil, fmt.Errorf("除外ルールを読めませんでした: %w", err)
+	}
+	return json.RawMessage(raw), nil
 }

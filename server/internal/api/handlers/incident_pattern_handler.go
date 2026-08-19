@@ -21,19 +21,11 @@ func NewIncidentPatternHandler(pool *pgxpool.Pool) *IncidentPatternHandler {
 }
 
 func (h *IncidentPatternHandler) checkPatternsTable(c *gin.Context) bool {
-	ctx := c.Request.Context()
-	var exists bool
-	err := h.pool.QueryRow(ctx,
-		`SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name='incident_patterns')`).Scan(&exists)
-	return err == nil && exists
+	return tableIsThere(c.Request.Context(), h.pool, "incident_patterns")
 }
 
 func (h *IncidentPatternHandler) checkMatchesTable(c *gin.Context) bool {
-	ctx := c.Request.Context()
-	var exists bool
-	err := h.pool.QueryRow(ctx,
-		`SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name='pattern_matches')`).Scan(&exists)
-	return err == nil && exists
+	return tableIsThere(c.Request.Context(), h.pool, "pattern_matches")
 }
 
 // ListPatterns returns all incident patterns.

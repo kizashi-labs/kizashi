@@ -9,7 +9,10 @@ import {
   User, ArrowRight, Square, Circle, CheckCircle,
   AlertTriangle, ChevronDown, Filter, BarChart2
 } from 'lucide-react'
-import { m } from '@/lib/mock'
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+import { PageSaveFailed } from '@/components/PageSaveFailed'
+
+import { USE_MOCK, m, mockOr } from '@/lib/mock'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -134,7 +137,7 @@ const MOCK_MITIGATIONS: Mitigation[] = [
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const RISK_STYLES: Record<RiskLevel, string> = {
-  none:     'bg-[#070d19] text-falcon-subtle',
+  none:     'bg-[#070d19] text-[#3d5068]',
   low:      'bg-blue-900/30 text-blue-400',
   medium:   'bg-yellow-900/30 text-yellow-400',
   high:     'bg-orange-900/30 text-orange-400',
@@ -146,7 +149,7 @@ const RISK_LABELS: Record<RiskLevel, string> = {
 }
 
 const STATUS_STYLES: Record<ImplStatus, string> = {
-  not_started: 'bg-[#070d19] text-falcon-muted border border-falcon-border',
+  not_started: 'bg-[#070d19] text-[#7d92b0] border border-[#1e2d42]',
   in_progress: 'bg-yellow-900/30 text-yellow-400',
   completed:   'bg-green-900/30 text-green-400',
 }
@@ -276,47 +279,47 @@ function ThreatModal({
   const catInfo = STRIDE_CATS.find(c => c.cat === category)!
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs">
-      <div className="bg-falcon-surface border border-falcon-border rounded-lg w-full max-w-md mx-4 shadow-2xl">
-        <div className="flex items-center justify-between p-5 border-b border-falcon-border">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg w-full max-w-md mx-4 shadow-2xl">
+        <div className="flex items-center justify-between p-5 border-b border-[#1e2d42]">
           <h3 className="text-white font-semibold flex items-center gap-2">
             <span className={`text-xs px-2 py-0.5 rounded-sm ${CAT_STYLES[category]}`}>{catInfo.full}</span>
             <span className="text-sm">— {component}</span>
           </h3>
-          <button onClick={onClose} className="text-falcon-muted hover:text-white transition-colors">
+          <button onClick={onClose} className="text-[#7d92b0] hover:text-white transition-colors">
             <X className="w-5 h-5" />
           </button>
         </div>
         <div className="p-5 space-y-4">
           <div>
-            <label className="block text-xs text-falcon-muted mb-1.5 font-medium">脅威の説明</label>
+            <label className="block text-xs text-[#7d92b0] mb-1.5 font-medium">脅威の説明</label>
             <textarea
               value={desc}
               onChange={e => setDesc(e.target.value)}
               rows={3}
-              className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-sm text-white focus:outline-hidden focus:border-falcon-subtle resize-none"
+              className="w-full bg-[#070d19] border border-[#1e2d42] rounded-sm px-3 py-2 text-sm text-white focus:outline-hidden focus:border-[#3d5068] resize-none"
               placeholder="脅威のシナリオを記述..."
             />
           </div>
           <div>
-            <label className="block text-xs text-falcon-muted mb-1.5 font-medium">対策メモ</label>
+            <label className="block text-xs text-[#7d92b0] mb-1.5 font-medium">対策メモ</label>
             <textarea
               value={mitigation}
               onChange={e => setMitigation(e.target.value)}
               rows={2}
-              className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-sm text-white focus:outline-hidden focus:border-falcon-subtle resize-none"
+              className="w-full bg-[#070d19] border border-[#1e2d42] rounded-sm px-3 py-2 text-sm text-white focus:outline-hidden focus:border-[#3d5068] resize-none"
               placeholder="推奨される対策..."
             />
           </div>
         </div>
-        <div className="flex gap-3 p-5 border-t border-falcon-border">
-          <button onClick={onClose} className="flex-1 px-4 py-2 rounded-sm border border-falcon-border text-sm text-falcon-muted hover:text-white transition-colors">
+        <div className="flex gap-3 p-5 border-t border-[#1e2d42]">
+          <button onClick={onClose} className="flex-1 px-4 py-2 rounded-sm border border-[#1e2d42] text-sm text-[#7d92b0] hover:text-white transition-colors">
             キャンセル
           </button>
           <button
             onClick={() => onSave({ id: existing?.id ?? `th-${Date.now()}`, description: desc, mitigation })}
             disabled={!desc.trim()}
-            className="flex-1 px-4 py-2 rounded-sm bg-falcon-red hover:bg-[#c0001f] text-white text-sm font-medium transition-colors disabled:opacity-50"
+            className="flex-1 px-4 py-2 rounded-sm bg-[#e8002d] hover:bg-[#c0001f] text-white text-sm font-medium transition-colors disabled:opacity-50"
           >
             保存
           </button>
@@ -328,51 +331,49 @@ function ThreatModal({
 
 // ─── Add Mitigation Modal ─────────────────────────────────────────────────────
 
-// components はキャンバス上の要素名。以前はここで MOCK_ELEMENTS を直接引いており、
-// モック無効時（＝本番）でも架空のコンポーネント名が選択肢に並んでいた。
-function AddMitigationModal({ onClose, onSave, components }: { onClose: () => void; onSave: (m: Omit<Mitigation, 'id'>) => void; components: string[] }) {
+function AddMitigationModal({ onClose, onSave }: { onClose: () => void; onSave: (m: Omit<Mitigation, 'id'>) => void }) {
   const [form, setForm] = useState({
-    threat_desc: '', component: components[0] ?? '', category: 'S' as StrideCategory,
+    threat_desc: '', component: 'Webアプリ', category: 'S' as StrideCategory,
     mitigation: '', status: 'not_started' as ImplStatus, priority: 'medium' as Mitigation['priority'], assigned_to: '',
     threat_id: '',
   })
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs">
-      <div className="bg-falcon-surface border border-falcon-border rounded-lg w-full max-w-lg mx-4 shadow-2xl">
-        <div className="flex items-center justify-between p-5 border-b border-falcon-border">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg w-full max-w-lg mx-4 shadow-2xl">
+        <div className="flex items-center justify-between p-5 border-b border-[#1e2d42]">
           <h3 className="text-white font-semibold">対策追加</h3>
-          <button onClick={onClose} className="text-falcon-muted hover:text-white transition-colors"><X className="w-5 h-5" /></button>
+          <button onClick={onClose} className="text-[#7d92b0] hover:text-white transition-colors"><X className="w-5 h-5" /></button>
         </div>
         <div className="p-5 grid grid-cols-2 gap-4">
           <div className="col-span-2">
-            <label className="block text-xs text-falcon-muted mb-1 font-medium">脅威の説明</label>
+            <label className="block text-xs text-[#7d92b0] mb-1 font-medium">脅威の説明</label>
             <input value={form.threat_desc} onChange={e => setForm(f => ({ ...f, threat_desc: e.target.value }))}
-              className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-sm text-white focus:outline-hidden focus:border-falcon-subtle" />
+              className="w-full bg-[#070d19] border border-[#1e2d42] rounded-sm px-3 py-2 text-sm text-white focus:outline-hidden focus:border-[#3d5068]" />
           </div>
           <div>
-            <label className="block text-xs text-falcon-muted mb-1 font-medium">コンポーネント</label>
+            <label className="block text-xs text-[#7d92b0] mb-1 font-medium">コンポーネント</label>
             <select value={form.component} onChange={e => setForm(f => ({ ...f, component: e.target.value }))}
-              className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-sm text-white focus:outline-hidden">
-              {components.map(label => <option key={label}>{label}</option>)}
+              className="w-full bg-[#070d19] border border-[#1e2d42] rounded-sm px-3 py-2 text-sm text-white focus:outline-hidden">
+              {m(MOCK_ELEMENTS).map(e => <option key={e.id}>{e.label}</option>)}
             </select>
           </div>
           <div>
-            <label className="block text-xs text-falcon-muted mb-1 font-medium">STRIDEカテゴリ</label>
+            <label className="block text-xs text-[#7d92b0] mb-1 font-medium">STRIDEカテゴリ</label>
             <select value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value as StrideCategory }))}
-              className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-sm text-white focus:outline-hidden">
+              className="w-full bg-[#070d19] border border-[#1e2d42] rounded-sm px-3 py-2 text-sm text-white focus:outline-hidden">
               {STRIDE_CATS.map(c => <option key={c.cat} value={c.cat}>{c.cat} — {c.full}</option>)}
             </select>
           </div>
           <div className="col-span-2">
-            <label className="block text-xs text-falcon-muted mb-1 font-medium">対策内容</label>
+            <label className="block text-xs text-[#7d92b0] mb-1 font-medium">対策内容</label>
             <textarea value={form.mitigation} onChange={e => setForm(f => ({ ...f, mitigation: e.target.value }))}
-              rows={2} className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-sm text-white focus:outline-hidden resize-none" />
+              rows={2} className="w-full bg-[#070d19] border border-[#1e2d42] rounded-sm px-3 py-2 text-sm text-white focus:outline-hidden resize-none" />
           </div>
           <div>
-            <label className="block text-xs text-falcon-muted mb-1 font-medium">優先度</label>
+            <label className="block text-xs text-[#7d92b0] mb-1 font-medium">優先度</label>
             <select value={form.priority} onChange={e => setForm(f => ({ ...f, priority: e.target.value as Mitigation['priority'] }))}
-              className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-sm text-white focus:outline-hidden">
+              className="w-full bg-[#070d19] border border-[#1e2d42] rounded-sm px-3 py-2 text-sm text-white focus:outline-hidden">
               <option value="critical">クリティカル</option>
               <option value="high">高</option>
               <option value="medium">中</option>
@@ -380,23 +381,23 @@ function AddMitigationModal({ onClose, onSave, components }: { onClose: () => vo
             </select>
           </div>
           <div>
-            <label className="block text-xs text-falcon-muted mb-1 font-medium">ステータス</label>
+            <label className="block text-xs text-[#7d92b0] mb-1 font-medium">ステータス</label>
             <select value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value as ImplStatus }))}
-              className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-sm text-white focus:outline-hidden">
+              className="w-full bg-[#070d19] border border-[#1e2d42] rounded-sm px-3 py-2 text-sm text-white focus:outline-hidden">
               <option value="not_started">未着手</option>
               <option value="in_progress">進行中</option>
               <option value="completed">完了</option>
             </select>
           </div>
           <div className="col-span-2">
-            <label className="block text-xs text-falcon-muted mb-1 font-medium">担当者</label>
+            <label className="block text-xs text-[#7d92b0] mb-1 font-medium">担当者</label>
             <input value={form.assigned_to} onChange={e => setForm(f => ({ ...f, assigned_to: e.target.value }))}
-              placeholder="担当者名" className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-sm text-white focus:outline-hidden focus:border-falcon-subtle" />
+              placeholder="担当者名" className="w-full bg-[#070d19] border border-[#1e2d42] rounded-sm px-3 py-2 text-sm text-white focus:outline-hidden focus:border-[#3d5068]" />
           </div>
         </div>
-        <div className="flex gap-3 p-5 border-t border-falcon-border">
-          <button onClick={onClose} className="flex-1 px-4 py-2 rounded-sm border border-falcon-border text-sm text-falcon-muted hover:text-white transition-colors">キャンセル</button>
-          <button onClick={() => onSave(form)} className="flex-1 px-4 py-2 rounded-sm bg-falcon-red hover:bg-[#c0001f] text-white text-sm font-medium transition-colors">追加</button>
+        <div className="flex gap-3 p-5 border-t border-[#1e2d42]">
+          <button onClick={onClose} className="flex-1 px-4 py-2 rounded-sm border border-[#1e2d42] text-sm text-[#7d92b0] hover:text-white transition-colors">キャンセル</button>
+          <button onClick={() => onSave(form)} className="flex-1 px-4 py-2 rounded-sm bg-[#e8002d] hover:bg-[#c0001f] text-white text-sm font-medium transition-colors">追加</button>
         </div>
       </div>
     </div>
@@ -503,7 +504,7 @@ export default function ThreatModelingPage() {
   }
 
   // STRIDE state
-  const [strideMatrix, setStrideMatrix] = useState<StrideMatrix>(m(MOCK_STRIDE))
+  const [strideMatrix, setStrideMatrix] = useState<StrideMatrix>(mockOr(MOCK_STRIDE, {} as StrideMatrix))
   const [threatModal, setThreatModal] = useState<{ component: string; category: StrideCategory; existing: ThreatEntry | null } | null>(null)
 
   // Mitigations state
@@ -516,8 +517,7 @@ export default function ThreatModelingPage() {
 
   const saveMutation = useMutation({
     mutationFn: () =>
-      apiFetch('/api/v1/threat-models', { method: 'POST', body: JSON.stringify({ elements, stride: strideMatrix }) })
-        .catch(() => ({ success: true })),
+      apiFetch('/api/v1/threat-models', { method: 'POST', body: JSON.stringify({ elements, stride: strideMatrix }) }),
     onSuccess: () => alert('脅威モデルを保存しました'),
   })
 
@@ -592,6 +592,8 @@ export default function ThreatModelingPage() {
 
   return (
     <div className="flex-1 overflow-auto bg-[#070d19] p-6 space-y-6">
+      <PageDataUnavailable />
+      <PageSaveFailed />
       {/* Modals */}
       {threatModal && (
         <ThreatModal
@@ -606,7 +608,6 @@ export default function ThreatModelingPage() {
         <AddMitigationModal
           onClose={() => setShowAddMit(false)}
           onSave={addMitigation}
-          components={elements.map(e => e.label)}
         />
       )}
 
@@ -614,15 +615,15 @@ export default function ThreatModelingPage() {
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-2xl font-bold text-white">脅威モデリング</h1>
-          <p className="text-sm text-falcon-muted mt-1">STRIDE手法によるシステム脅威の特定・分析・対策立案</p>
+          <p className="text-sm text-[#7d92b0] mt-1">STRIDE手法によるシステム脅威の特定・分析・対策立案</p>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-xs text-falcon-muted px-3 py-1.5 rounded-sm bg-falcon-surface border border-falcon-border">
+          <span className="text-xs text-[#7d92b0] px-3 py-1.5 rounded-sm bg-[#0d1220] border border-[#1e2d42]">
             脅威合計: <span className="text-white font-bold">{totalThreats(strideMatrix)}</span>件
           </span>
           <button
             onClick={() => saveMutation.mutate()}
-            className="flex items-center gap-2 px-4 py-2 rounded-sm bg-falcon-red hover:bg-[#c0001f] text-white text-sm font-medium transition-colors"
+            className="flex items-center gap-2 px-4 py-2 rounded-sm bg-[#e8002d] hover:bg-[#c0001f] text-white text-sm font-medium transition-colors"
           >
             <Save className="w-4 h-4" />
             保存
@@ -631,13 +632,13 @@ export default function ThreatModelingPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-0 border-b border-falcon-border">
+      <div className="flex gap-0 border-b border-[#1e2d42]">
         {(['canvas', 'stride', 'mitigations'] as const).map(t => (
           <button
             key={t}
             onClick={() => setTab(t)}
             className={`px-5 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors ${
-              tab === t ? 'border-falcon-red text-white' : 'border-transparent text-falcon-muted hover:text-white'
+              tab === t ? 'border-[#e8002d] text-white' : 'border-transparent text-[#7d92b0] hover:text-white'
             }`}
           >
             {t === 'canvas' ? '脅威モデル' : t === 'stride' ? 'STRIDE分析' : '対策一覧'}
@@ -649,8 +650,8 @@ export default function ThreatModelingPage() {
       {tab === 'canvas' && (
         <div className="space-y-4">
           {/* Toolbar */}
-          <div className="flex items-center gap-2 flex-wrap bg-falcon-surface border border-falcon-border rounded-lg p-3">
-            <span className="text-xs text-falcon-muted font-medium mr-1">追加:</span>
+          <div className="flex items-center gap-2 flex-wrap bg-[#0d1220] border border-[#1e2d42] rounded-lg p-3">
+            <span className="text-xs text-[#7d92b0] font-medium mr-1">追加:</span>
             {[
               { type: 'process' as ElementType,      label: 'プロセス',       icon: <Circle className="w-3.5 h-3.5" /> },
               { type: 'datastore' as ElementType,    label: 'データストア',   icon: <Database className="w-3.5 h-3.5" /> },
@@ -661,7 +662,7 @@ export default function ThreatModelingPage() {
               <button
                 key={type}
                 onClick={() => addElement(type)}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-sm bg-[#070d19] border border-falcon-border text-xs text-falcon-muted hover:text-white hover:border-falcon-subtle transition-colors"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-sm bg-[#070d19] border border-[#1e2d42] text-xs text-[#7d92b0] hover:text-white hover:border-[#3d5068] transition-colors"
               >
                 {icon}
                 {label}
@@ -670,7 +671,7 @@ export default function ThreatModelingPage() {
             <div className="flex-1" />
             <button
               onClick={() => { setExportMsg('エクスポート機能は開発中'); setTimeout(() => setExportMsg(''), 3000) }}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-sm border border-falcon-border text-xs text-falcon-muted hover:text-white transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-sm border border-[#1e2d42] text-xs text-[#7d92b0] hover:text-white transition-colors"
             >
               <Download className="w-3.5 h-3.5" />
               PNG出力
@@ -680,7 +681,7 @@ export default function ThreatModelingPage() {
 
           <div className="flex gap-4">
             {/* SVG Canvas */}
-            <div className="flex-1 bg-falcon-surface border border-falcon-border rounded-lg overflow-hidden">
+            <div className="flex-1 bg-[#0d1220] border border-[#1e2d42] rounded-lg overflow-hidden">
               <svg
                 ref={svgRef}
                 width="100%"
@@ -719,35 +720,35 @@ export default function ThreatModelingPage() {
             </div>
 
             {/* Properties Panel */}
-            <div className="w-64 bg-falcon-surface border border-falcon-border rounded-lg p-4 flex flex-col gap-3">
+            <div className="w-64 bg-[#0d1220] border border-[#1e2d42] rounded-lg p-4 flex flex-col gap-3">
               <h3 className="text-sm font-medium text-white">プロパティ</h3>
               {!selectedEl ? (
-                <p className="text-xs text-falcon-subtle italic">要素を選択してください</p>
+                <p className="text-xs text-[#3d5068] italic">要素を選択してください</p>
               ) : (
                 <>
                   <div>
-                    <label className="block text-xs text-falcon-muted mb-1">名前</label>
+                    <label className="block text-xs text-[#7d92b0] mb-1">名前</label>
                     <input
                       value={selectedEl.label}
                       onChange={e => updateSelected({ label: e.target.value })}
-                      className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-2 py-1.5 text-sm text-white focus:outline-hidden focus:border-falcon-subtle"
+                      className="w-full bg-[#070d19] border border-[#1e2d42] rounded-sm px-2 py-1.5 text-sm text-white focus:outline-hidden focus:border-[#3d5068]"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs text-falcon-muted mb-1">説明</label>
+                    <label className="block text-xs text-[#7d92b0] mb-1">説明</label>
                     <textarea
                       value={selectedEl.description}
                       onChange={e => updateSelected({ description: e.target.value })}
                       rows={3}
-                      className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-2 py-1.5 text-sm text-white focus:outline-hidden focus:border-falcon-subtle resize-none"
+                      className="w-full bg-[#070d19] border border-[#1e2d42] rounded-sm px-2 py-1.5 text-sm text-white focus:outline-hidden focus:border-[#3d5068] resize-none"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs text-falcon-muted mb-1">信頼レベル</label>
+                    <label className="block text-xs text-[#7d92b0] mb-1">信頼レベル</label>
                     <select
                       value={selectedEl.trustLevel}
                       onChange={e => updateSelected({ trustLevel: e.target.value as TrustLevel })}
-                      className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-2 py-1.5 text-sm text-white focus:outline-hidden"
+                      className="w-full bg-[#070d19] border border-[#1e2d42] rounded-sm px-2 py-1.5 text-sm text-white focus:outline-hidden"
                     >
                       <option value="untrusted">非信頼</option>
                       <option value="low">低</option>
@@ -756,7 +757,7 @@ export default function ThreatModelingPage() {
                       <option value="critical">クリティカル</option>
                     </select>
                   </div>
-                  <div className="text-xs text-falcon-muted">
+                  <div className="text-xs text-[#7d92b0]">
                     タイプ: <span className="text-white">{selectedEl.type}</span>
                   </div>
                   <button
@@ -777,9 +778,9 @@ export default function ThreatModelingPage() {
       {tab === 'stride' && (
         <div className="space-y-6">
           {/* Summary bar chart */}
-          <div className="bg-falcon-surface border border-falcon-border rounded-lg p-5">
+          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-5">
             <h3 className="text-sm font-medium text-white mb-4 flex items-center gap-2">
-              <BarChart2 className="w-4 h-4 text-falcon-red" />
+              <BarChart2 className="w-4 h-4 text-[#e8002d]" />
               STRIDEカテゴリ別 脅威件数
             </h3>
             <StrideBarChart counts={categoryTotals} />
@@ -793,16 +794,16 @@ export default function ThreatModelingPage() {
           </div>
 
           {/* STRIDE matrix */}
-          <div className="bg-falcon-surface border border-falcon-border rounded-lg overflow-hidden">
+          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-falcon-border bg-[#070d19]">
-                    <th className="px-4 py-3 text-left text-xs text-falcon-muted font-medium w-32">コンポーネント</th>
+                  <tr className="border-b border-[#1e2d42] bg-[#070d19]">
+                    <th className="px-4 py-3 text-left text-xs text-[#7d92b0] font-medium w-32">コンポーネント</th>
                     {STRIDE_CATS.map(c => (
                       <th key={c.cat} className="px-3 py-3 text-center text-xs font-medium min-w-[110px]">
                         <span className={`px-1.5 py-0.5 rounded-sm ${CAT_STYLES[c.cat]}`}>{c.cat}</span>
-                        <span className="block text-falcon-subtle mt-0.5 text-[9px] font-normal">{c.full}</span>
+                        <span className="block text-[#3d5068] mt-0.5 text-[9px] font-normal">{c.full}</span>
                       </th>
                     ))}
                   </tr>
@@ -811,7 +812,7 @@ export default function ThreatModelingPage() {
                   {elements.filter(e => e.type !== 'dataflow' && e.type !== 'trustboundary').map(el => {
                     const row = strideMatrix[el.label] ?? {}
                     return (
-                      <tr key={el.id} className="border-b border-falcon-border hover:bg-[#070d19]/60 transition-colors">
+                      <tr key={el.id} className="border-b border-[#1e2d42] hover:bg-[#070d19]/60 transition-colors">
                         <td className="px-4 py-3 font-medium text-white">{el.label}</td>
                         {STRIDE_CATS.map(c => {
                           const cell = row[c.cat] ?? { risk: 'none' as RiskLevel, threats: [] }
@@ -829,12 +830,12 @@ export default function ThreatModelingPage() {
                                 </select>
                                 <button
                                   onClick={() => setThreatModal({ component: el.label, category: c.cat, existing: null })}
-                                  className="flex items-center justify-center gap-1 text-[9px] text-falcon-subtle hover:text-falcon-muted transition-colors"
+                                  className="flex items-center justify-center gap-1 text-[9px] text-[#3d5068] hover:text-[#7d92b0] transition-colors"
                                 >
                                   <Plus className="w-2.5 h-2.5" />
                                   脅威を追加
                                   {cell.threats.length > 0 && (
-                                    <span className="ml-1 text-falcon-red">({cell.threats.length})</span>
+                                    <span className="ml-1 text-[#e8002d]">({cell.threats.length})</span>
                                   )}
                                 </button>
                               </div>
@@ -855,21 +856,21 @@ export default function ThreatModelingPage() {
               <h3 className="text-sm font-medium text-white mb-3">特定された脅威一覧 ({allThreats.length}件)</h3>
               <div className="space-y-2">
                 {allThreats.map(t => (
-                  <div key={t.id} className="bg-falcon-surface border border-falcon-border rounded-lg p-4 flex items-start gap-3">
+                  <div key={t.id} className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-4 flex items-start gap-3">
                     <span className={`text-xs px-2 py-0.5 rounded-sm shrink-0 mt-0.5 ${CAT_STYLES[t.category]}`}>{t.category}</span>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
-                        <span className="text-xs text-falcon-muted">{t.component}</span>
+                        <span className="text-xs text-[#7d92b0]">{t.component}</span>
                         <span className={`text-[10px] px-1.5 py-0.5 rounded-sm ${RISK_STYLES[t.risk]}`}>{RISK_LABELS[t.risk]}</span>
                       </div>
                       <p className="text-sm text-white">{t.description}</p>
                       {t.mitigation && (
-                        <p className="text-xs text-falcon-muted mt-1">対策: {t.mitigation}</p>
+                        <p className="text-xs text-[#7d92b0] mt-1">対策: {t.mitigation}</p>
                       )}
                     </div>
                     <button
                       onClick={() => setThreatModal({ component: t.component, category: t.category, existing: t })}
-                      className="text-xs text-falcon-subtle hover:text-falcon-muted transition-colors shrink-0"
+                      className="text-xs text-[#3d5068] hover:text-[#7d92b0] transition-colors shrink-0"
                     >
                       編集
                     </button>
@@ -885,7 +886,7 @@ export default function ThreatModelingPage() {
       {tab === 'mitigations' && (
         <div className="space-y-5">
           {/* Progress */}
-          <div className="bg-falcon-surface border border-falcon-border rounded-lg p-5">
+          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-5">
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-sm font-medium text-white">対策完了状況</h3>
               <span className="text-sm font-bold text-white">{mitProgress}%</span>
@@ -899,10 +900,10 @@ export default function ThreatModelingPage() {
                 }}
               />
             </div>
-            <div className="flex gap-4 mt-3 text-xs text-falcon-muted">
+            <div className="flex gap-4 mt-3 text-xs text-[#7d92b0]">
               <span>完了: <span className="text-green-400 font-bold">{mitigations.filter(m => m.status === 'completed').length}</span></span>
               <span>進行中: <span className="text-yellow-400 font-bold">{mitigations.filter(m => m.status === 'in_progress').length}</span></span>
-              <span>未着手: <span className="text-falcon-muted font-bold">{mitigations.filter(m => m.status === 'not_started').length}</span></span>
+              <span>未着手: <span className="text-[#7d92b0] font-bold">{mitigations.filter(m => m.status === 'not_started').length}</span></span>
             </div>
           </div>
 
@@ -910,7 +911,7 @@ export default function ThreatModelingPage() {
           <div className="flex justify-end">
             <button
               onClick={() => setShowAddMit(true)}
-              className="flex items-center gap-2 px-4 py-2 rounded-sm bg-falcon-red hover:bg-[#c0001f] text-white text-sm font-medium transition-colors"
+              className="flex items-center gap-2 px-4 py-2 rounded-sm bg-[#e8002d] hover:bg-[#c0001f] text-white text-sm font-medium transition-colors"
             >
               <Plus className="w-4 h-4" />
               対策追加
@@ -918,19 +919,19 @@ export default function ThreatModelingPage() {
           </div>
 
           {/* Mitigations table */}
-          <div className="bg-falcon-surface border border-falcon-border rounded-lg overflow-hidden">
+          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-falcon-border bg-[#070d19]">
+                  <tr className="border-b border-[#1e2d42] bg-[#070d19]">
                     {['脅威', 'STRIDEカテゴリ', 'コンポーネント', '対策内容', 'ステータス', '優先度', '担当者'].map(h => (
-                      <th key={h} className="px-4 py-3 text-left text-xs text-falcon-muted font-medium whitespace-nowrap">{h}</th>
+                      <th key={h} className="px-4 py-3 text-left text-xs text-[#7d92b0] font-medium whitespace-nowrap">{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {mitigations.map(m => (
-                    <tr key={m.id} className="border-b border-falcon-border hover:bg-[#070d19]/60 transition-colors">
+                    <tr key={m.id} className="border-b border-[#1e2d42] hover:bg-[#070d19]/60 transition-colors">
                       <td className="px-4 py-3 max-w-[200px]">
                         <p className="text-sm text-white truncate" title={m.threat_desc}>{m.threat_desc}</p>
                       </td>
@@ -939,7 +940,7 @@ export default function ThreatModelingPage() {
                           {m.category} — {STRIDE_CATS.find(c => c.cat === m.category)?.full}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-sm text-falcon-muted">{m.component}</td>
+                      <td className="px-4 py-3 text-sm text-[#7d92b0]">{m.component}</td>
                       <td className="px-4 py-3 max-w-[220px]">
                         <p className="text-sm text-white truncate" title={m.mitigation}>{m.mitigation}</p>
                       </td>
@@ -955,7 +956,7 @@ export default function ThreatModelingPage() {
                         </select>
                       </td>
                       <td className="px-4 py-3">
-                        <span className={`text-xs px-2 py-0.5 rounded ${
+                        <span className={`text-xs px-2 py-0.5 rounded-sm ${
                           m.priority === 'critical' ? 'bg-red-900/40 text-red-400' :
                           m.priority === 'high' ? 'bg-orange-900/40 text-orange-400' :
                           m.priority === 'medium' ? 'bg-yellow-900/40 text-yellow-400' :
@@ -964,7 +965,7 @@ export default function ThreatModelingPage() {
                           {m.priority === 'critical' ? 'クリティカル' : m.priority === 'high' ? '高' : m.priority === 'medium' ? '中' : '低'}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-sm text-falcon-muted">{displayUser(m.assigned_to)}</td>
+                      <td className="px-4 py-3 text-sm text-[#7d92b0]">{displayUser(m.assigned_to)}</td>
                     </tr>
                   ))}
                 </tbody>

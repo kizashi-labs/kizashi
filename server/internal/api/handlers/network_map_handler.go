@@ -33,13 +33,7 @@ func NewNetworkMapHandler(pool *pgxpool.Pool) *NetworkMapHandler {
 
 // tableExistsNetMap checks whether a given table exists.
 func tableExistsNetMap(pool *pgxpool.Pool, c *gin.Context, tableName string) bool {
-	var exists bool
-	err := pool.QueryRow(c.Request.Context(),
-		`SELECT EXISTS (
-			SELECT 1 FROM information_schema.tables
-			WHERE table_schema = 'public' AND table_name = $1
-		)`, tableName).Scan(&exists)
-	return err == nil && exists
+	return tableIsThere(c.Request.Context(), pool, tableName)
 }
 
 type netNode struct {

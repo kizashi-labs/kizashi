@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { apiFetch } from '@/lib/api'
 import { MessageSquare, Send, Trash2, User, AlertCircle } from 'lucide-react'
+import { PageSaveFailed } from '@/components/PageSaveFailed'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -87,7 +88,7 @@ function CommentBubble({
               {timeAgo(comment.created_at)}
             </span>
           </div>
-          <p className="text-sm text-gray-300 leading-relaxed whitespace-pre-wrap wrap-break-word">
+          <p className="text-sm text-gray-300 leading-relaxed whitespace-pre-wrap break-words">
             {comment.content}
           </p>
         </div>
@@ -98,8 +99,7 @@ function CommentBubble({
             <button
               onClick={onDelete}
               disabled={isDeleting}
-              className="flex items-center gap-1 px-2 py-1 text-xs text-gray-500 hover:text-red-400
-                         transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center gap-1 px-2 py-1 text-xs text-gray-500 hover:text-red-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               title="削除"
             >
               <Trash2 className="w-3 h-3" />
@@ -224,6 +224,7 @@ export default function AlertComments({ alertId }: { alertId: string }) {
 
   return (
     <div className="bg-gray-800 rounded-xl border border-gray-700 p-6 space-y-5">
+      <PageSaveFailed className="mb-4" />
       {/* Header */}
       <div className="flex items-center gap-2">
         <MessageSquare className="w-5 h-5 text-gray-400" />
@@ -278,10 +279,7 @@ export default function AlertComments({ alertId }: { alertId: string }) {
           onKeyDown={handleKeyDown}
           placeholder="コメントを入力... (Ctrl+Enter で送信)"
           rows={3}
-          className="w-full bg-gray-900 border border-gray-600 rounded-xl px-4 py-3 text-sm
-                     text-gray-200 placeholder-gray-500 resize-none
-                     focus:outline-hidden focus:border-blue-500 focus:ring-1 focus:ring-blue-500/30
-                     transition-colors"
+          className="w-full bg-gray-900 border border-gray-600 rounded-xl px-4 py-3 text-sm text-gray-200 placeholder-gray-500 resize-none focus:outline-hidden focus:border-blue-500 focus:ring-1 focus:ring-blue-500/30 transition-colors"
         />
 
         <div className="flex items-center justify-between gap-3">
@@ -297,9 +295,7 @@ export default function AlertComments({ alertId }: { alertId: string }) {
             <button
               type="submit"
               disabled={!content.trim() || postMutation.isPending}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-medium
-                         bg-blue-600 hover:bg-blue-700 text-white rounded-lg
-                         transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {postMutation.isPending ? (
                 <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />

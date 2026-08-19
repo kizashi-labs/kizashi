@@ -92,7 +92,12 @@ func (h *ReportExportHandler) ExportAlerts(c *gin.Context) {
 		_ = w.Write([]string{id, title, sev, status, agentID, mitre, createdAt.Format(time.RFC3339)})
 	}
 	if err := rows.Err(); err != nil {
-		slog.Warn("row iteration error", "error", err)
+		// **ここは 500 に切り替えられません。** CSV を書きながら流すので、
+		// 失敗した時点で 200 とヘッダは相手に渡っています。
+		// 書き換えの道具はここも「番人に揃える」対象に入れましたが、
+		// `TestStreamingCSVExportsCallTheIncompleteMarker` が拾いました。
+		slog.Error("CSV export: rows.Err", "error", err)
+		markCSVIncomplete(w, err)
 	}
 	w.Flush()
 }
@@ -149,7 +154,32 @@ func (h *ReportExportHandler) ExportCompliance(c *gin.Context) {
 		})
 	}
 	if err := rows.Err(); err != nil {
-		slog.Warn("row iteration error", "error", err)
+		// **ここは 500 に切り替えられません。** CSV を書きながら流すので、
+		// 失敗した時点で 200 とヘッダは相手に渡っています。
+		// 書き換えの道具はここも「番人に揃える」対象に入れましたが、
+		// `TestStreamingCSVExportsCallTheIncompleteMarker` が拾いました。
+		slog.Error("CSV export: rows.Err", "error", err)
+		markCSVIncomplete(w, err)
 	}
 	w.Flush()
+}
+
+// markCSVIncomplete は、途中で切れた CSV にそのことを書き込みます。
+//
+// **この2つは書きながら流します。** ヘッダも最初の行も、行の読み出しが
+// 失敗するより前に相手へ渡っています。だから 500 に切り替えられません
+// —— 状態コードはもう出てしまっています。
+//
+// できるのは、ファイル自身に書くことだけです。**何も書かないと、
+// 途中までの CSV が全件として保存されます。** 表計算で開いたときに
+// いちばん下に出る位置に、データとして読めない印を置きます。
+//
+// 買い切りの解ではありません。**流しながら書く経路は、途中で失敗しても
+// 状態コードで伝えられません。** 溜めてから書く形に変えるのが本筋で、
+// それは件数の上限とセットで決める話なので `docs/判断待ちの一覧.md` に
+// 置いてあります。
+func markCSVIncomplete(w *csv.Writer, err error) {
+	_ = w.Write([]string{"#INCOMPLETE",
+		"読み出しが途中で失敗しました。この CSV は全件ではありません",
+		err.Error()})
 }

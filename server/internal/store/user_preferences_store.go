@@ -3,6 +3,9 @@ package store
 import (
 	"context"
 	"encoding/json"
+	"errors"
+	"fmt"
+	"github.com/jackc/pgx/v5"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -50,18 +53,34 @@ func (s *UserPreferencesStore) Get(ctx context.Context, userID string) (UserPref
 		`SELECT user_id::TEXT, theme, language, timezone, notifications, dashboard_prefs, sidebar_collapsed, items_per_page, created_at, updated_at
          FROM user_preferences WHERE user_id=$1::UUID`, userID,
 	).Scan(&p.UserID, &p.Theme, &p.Language, &p.Timezone, &p.Notifications, &p.DashboardPrefs, &p.SidebarCollapsed, &p.ItemsPerPage, &p.CreatedAt, &p.UpdatedAt)
-	if err != nil {
-		// Return defaults if not found
+	if errors.Is(err, pgx.ErrNoRows) {
+		// まだ設定していない。既定値で返します。
 		prefs := defaultPrefs
 		prefs.UserID = userID
 		prefs.CreatedAt = time.Now()
 		prefs.UpdatedAt = time.Now()
 		return prefs, nil
 	}
+	if err != nil {
+		// 以前はどんな失敗も既定値でした。利用者が変えた表示設定が、
+		// 読めなかっただけで既定に戻ったように見えます。
+		return UserPreferences{}, fmt.Errorf("表示設定を読めませんでした: %w", err)
+	}
 	return p, nil
 }
 
-func (s *UserPreferencesStore) Upsert(ctx context.Context, userID string, prefs UserPreferences) (UserPreferences, error) {
+// applyPreferenceDefaults fills the unset fields of a preferences record.
+//
+// **切り出してあるのは、検査が本物を呼べるようにするためです。** 以前この
+// 6つの既定値は `Upsert` の中にだけあり、DB が要るので検査から呼べません
+// でした。検査ファイルには `applyPrefsDefaults` という**同じ既定値の写し**が
+// 置いてあり、そちらだけが試されていました —— 製品側の "dark" を "light" に
+// 変えても、落ちる検査はありません。
+//
+// 埋めるのは「指定が無かった」場合だけです。**`SidebarCollapsed` は
+// ここにありません** —— false が既定であり、同時に利用者の選択でもあるので、
+// 「指定が無い」と「たたんでいない」を区別できません。
+func applyPreferenceDefaults(prefs UserPreferences) UserPreferences {
 	if prefs.Theme == "" {
 		prefs.Theme = "dark"
 	}
@@ -80,6 +99,11 @@ func (s *UserPreferencesStore) Upsert(ctx context.Context, userID string, prefs 
 	if prefs.DashboardPrefs == nil {
 		prefs.DashboardPrefs = json.RawMessage(`{}`)
 	}
+	return prefs
+}
+
+func (s *UserPreferencesStore) Upsert(ctx context.Context, userID string, prefs UserPreferences) (UserPreferences, error) {
+	prefs = applyPreferenceDefaults(prefs)
 
 	var result UserPreferences
 	err := s.pool.QueryRow(ctx,
@@ -104,12 +128,15 @@ func (s *UserPreferencesStore) GetFavorites(ctx context.Context, userID string) 
 	err := s.pool.QueryRow(ctx,
 		`SELECT COALESCE(favorites, '[]'::jsonb) FROM user_preferences WHERE user_id=$1::UUID`, userID,
 	).Scan(&raw)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return []FavoriteItem{}, nil // まだ何も登録していない
+	}
 	if err != nil {
-		return []FavoriteItem{}, nil
+		return nil, fmt.Errorf("お気に入りを読めませんでした: %w", err)
 	}
 	var items []FavoriteItem
 	if err := json.Unmarshal(raw, &items); err != nil {
-		return []FavoriteItem{}, nil
+		return nil, fmt.Errorf("お気に入りの内容を読めませんでした: %w", err)
 	}
 	return items, nil
 }

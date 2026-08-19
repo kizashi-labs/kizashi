@@ -5,12 +5,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
-	"runtime"
 	"time"
 
 	v1 "github.com/edr-platform/proto/agent/v1"
 	"github.com/google/uuid"
 	"google.golang.org/protobuf/types/known/timestamppb"
+
+	"github.com/edr-platform/agent/internal/hostmetrics"
 )
 
 // EventSender is the subset of transport.GRPCClient used by ResourceCollector.
@@ -29,11 +30,34 @@ type ResourceCollector struct {
 	interval time.Duration
 }
 
+// 測定そのものは差し替えられるようにしてあります。
+//
+// **実機で成功してしまうと、失敗したときの分岐を一度も通れません。**
+// 変異検査で実際に露見しました —— 「測れたかを見ずに値を載せる」ように
+// 壊しても、Linux では Statfs が成功するので何も変わりませんでした。
+// 判定が働いていないことと、判定が要らないことが同じ姿になります。
+var (
+	readDiskFreeGBFn = readDiskFreeGB
+	readCPUStatFn    = readCPUStat
+	hostMemoryFn     = hostmetrics.Memory
+)
+
 // resourceSnapshot holds the raw numbers collected in one tick.
 type resourceSnapshot struct {
-	CPUPercent float64 `json:"cpu_pct"`
-	MemMB      float64 `json:"mem_mb"`
-	DiskFreeGB float64 `json:"disk_free_gb"`
+	// nil は「測れなかった」です。**0 ではありません。**
+	//
+	// CPU の 0% は「アイドル」、ディスクの 0 GB は「満杯」で、どちらも
+	// 測定値として最も強い主張になります。測っていない端末が
+	// 「異常なし」や「即対応」に化けるので、欄ごと落とします。
+	CPUPercent *float64 `json:"cpu_pct,omitempty"`
+	// MemMB is the ENDPOINT's memory in use.
+	//
+	// **以前は `runtime.MemStats.Sys`（エージェント自身の Go ランタイムが
+	// OS から取った量）でした。** コメントは「For a host-level view」と
+	// 書いてありましたが、host-level ではありません。測れていないのでは
+	// なく、別のものを測っていました。
+	MemMB      *float64 `json:"mem_mb,omitempty"`
+	DiskFreeGB *float64 `json:"disk_free_gb,omitempty"`
 }
 
 // NewResourceCollector creates a ResourceCollector that reports every 30 seconds.
@@ -51,7 +75,7 @@ func (rc *ResourceCollector) Run(ctx context.Context) {
 	defer ticker.Stop()
 
 	// Seed the CPU sampler with an initial reading so the first delta is valid.
-	prevIdle, prevTotal := readCPUStat()
+	prevIdle, prevTotal := readCPUStatFn()
 
 	for {
 		select {
@@ -60,7 +84,7 @@ func (rc *ResourceCollector) Run(ctx context.Context) {
 		case <-ticker.C:
 			snap := rc.collect(prevIdle, prevTotal)
 			// Update previous CPU counters for next delta.
-			prevIdle, prevTotal = readCPUStat()
+			prevIdle, prevTotal = readCPUStatFn()
 
 			if err := rc.send(ctx, snap); err != nil {
 				slog.Warn("[resource_collector] send failed", "error", err)
@@ -74,25 +98,25 @@ func (rc *ResourceCollector) collect(prevIdle, prevTotal uint64) resourceSnapsho
 	snap := resourceSnapshot{}
 
 	// ── CPU ──────────────────────────────────────────────────
-	idle, total := readCPUStat()
+	idle, total := readCPUStatFn()
 	if prevTotal > 0 && total > prevTotal {
 		deltaTotal := total - prevTotal
 		deltaIdle := idle - prevIdle
-		if deltaTotal > 0 {
-			snap.CPUPercent = float64(deltaTotal-deltaIdle) / float64(deltaTotal) * 100.0
+		if deltaTotal > 0 && deltaIdle <= deltaTotal {
+			pct := float64(deltaTotal-deltaIdle) / float64(deltaTotal) * 100.0
+			snap.CPUPercent = &pct
 		}
 	}
 
-	// ── Memory (stdlib runtime.MemStats) ─────────────────────
-	var ms runtime.MemStats
-	runtime.ReadMemStats(&ms)
-	// HeapSys is the total memory obtained from the OS for the heap.
-	// For a host-level view we also add stack and other non-heap areas.
-	totalBytes := ms.Sys
-	snap.MemMB = float64(totalBytes) / (1024 * 1024)
+	// ── Memory (the endpoint's, not the agent's) ─────────────
+	if used, _, ok := hostMemoryFn(); ok {
+		snap.MemMB = &used
+	}
 
 	// ── Disk ─────────────────────────────────────────────────
-	snap.DiskFreeGB = readDiskFreeGB()
+	if gb, ok := readDiskFreeGBFn(); ok {
+		snap.DiskFreeGB = &gb
+	}
 
 	return snap
 }

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/edr-platform/server/internal/metrics"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -81,28 +82,46 @@ func (s *UserStore) Authenticate(ctx context.Context, email, password string) (*
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(passwordHash), []byte(password)); err != nil {
-		// Increment failure count; lock if threshold reached
+		// Increment failure count; lock if threshold reached.
+		//
+		// **この加算が落ちると、総当たりに対するロックアウトが黙って
+		// 効かなくなります。** 呼び出し側はもう応答を返しているので
+		// （goroutine です）、報告先は部品ごとの件数です。
 		go func() {
 			newCount := failedCount + 1
+			var err error
 			if newCount >= maxFailedLogins {
 				lockUntil := time.Now().Add(loginLockDuration)
-				_, _ = s.pool.Exec(context.Background(),
+				_, err = s.pool.Exec(context.Background(),
 					`UPDATE users SET failed_login_count = $1, locked_until = $2 WHERE id = $3`,
 					newCount, lockUntil, u.ID)
 			} else {
-				_, _ = s.pool.Exec(context.Background(),
+				_, err = s.pool.Exec(context.Background(),
 					`UPDATE users SET failed_login_count = $1 WHERE id = $2`,
 					newCount, u.ID)
+			}
+			if err != nil {
+				metrics.BackgroundFailed("login_lockout", err,
+					"ログイン失敗回数を記録できませんでした。ロックアウトが効きません",
+					"user_id", u.ID, "count", newCount)
 			}
 		}()
 		return nil, fmt.Errorf("パスワードが正しくありません")
 	}
 
-	// Success — reset failure count and last_login
+	// Success — reset failure count and last_login.
+	//
+	// **落ちると、失敗回数が積み上がったまま残ります** —— 正しい
+	// パスワードで入り続けている利用者が、いずれロックされます。
+	// `last_login` は休眠アカウントの棚卸しにも使われます。
 	go func() {
-		_, _ = s.pool.Exec(context.Background(),
+		if _, err := s.pool.Exec(context.Background(),
 			`UPDATE users SET last_login = NOW(), failed_login_count = 0, locked_until = NULL WHERE id = $1`,
-			u.ID)
+			u.ID); err != nil {
+			metrics.BackgroundFailed("login_lockout", err,
+				"ログイン成功を記録できませんでした。失敗回数が残ったままです",
+				"user_id", u.ID)
+		}
 	}()
 
 	return &u, nil
@@ -149,6 +168,10 @@ func (s *UserStore) List(ctx context.Context) ([]*UserRow, error) {
 			continue
 		}
 		users = append(users, &u)
+	}
+	// 部分結果を完全な一覧として返さない（scan_truncation_guard_test.go 参照）
+	if err := rows.Err(); err != nil {
+		return nil, err
 	}
 	return users, nil
 }
@@ -345,6 +368,14 @@ func (s *UserStore) SaveBackupCodes(ctx context.Context, userID string, codes []
 
 // UseBackupCode verifies and consumes a backup code. Returns false if invalid/already used.
 func (s *UserStore) UseBackupCode(ctx context.Context, userID, code string) (bool, error) {
+	// **候補を読み切ってから接続を返します。**
+	//
+	// 以前は `rows` を開いたまま、その中で `s.pool.Exec` を呼んでいました
+	// —— 1つ目の接続を握ったまま2つ目を要求する形です。**同時に来た要求が
+	// プールの本数を超えると、全員が互いの接続を待って進まなくなります**
+	// （pgxpool の既定は 4 本。この形は検査を書いたときに詰まって
+	// 見つかりました）。あいだに bcrypt の比較が入るので、握っている
+	// 時間も短くありません。
 	rows, err := s.pool.Query(ctx,
 		"SELECT id, code_hash FROM mfa_backup_codes WHERE user_id = $1 AND used = FALSE",
 		userID,
@@ -354,17 +385,50 @@ func (s *UserStore) UseBackupCode(ctx context.Context, userID, code string) (boo
 	}
 	defer rows.Close()
 
+	type candidate struct{ id, hash string }
+	var candidates []candidate
 	for rows.Next() {
-		var id, hash string
-		if err := rows.Scan(&id, &hash); err != nil {
+		var c candidate
+		if err := rows.Scan(&c.id, &c.hash); err != nil {
+			// pgx はここで結果セットを終えるので、下の rows.Err() が
+			// 本当の報告です。
 			continue
 		}
-		if bcrypt.CompareHashAndPassword([]byte(hash), []byte(code)) == nil {
-			// Mark as used
-			_, _ = s.pool.Exec(ctx,
-				"UPDATE mfa_backup_codes SET used = TRUE, used_at = NOW() WHERE id = $1", id)
-			return true, nil
+		candidates = append(candidates, c)
+	}
+	if err := rows.Err(); err != nil {
+		return false, err
+	}
+	// **ここまでで pgx は接続を返しています**（`Next()` が false を
+	// 返した時点）。下の UPDATE は2本目を要求しません。
+
+	for _, c := range candidates {
+		if bcrypt.CompareHashAndPassword([]byte(c.hash), []byte(code)) != nil {
+			continue
 		}
+		// **使用済みの印を書けなければ、このコードは使えていません。**
+		//
+		// ここは `_, _ =` でした。書けなくても `true` を返すので、
+		// **一度だけ使えるはずの復旧コードが、何度でも使えます** ——
+		// MFA の最後の手段が、使い捨てでなくなります。
+		//
+		// `used = FALSE` を条件に入れてあるのは、読んでから書くまでの
+		// あいだに同じコードが使われる場合のためです。**同時に2回
+		// 出されたコードは、1回だけ通ります。**
+		tag, uerr := s.pool.Exec(ctx,
+			"UPDATE mfa_backup_codes SET used = TRUE, used_at = NOW() WHERE id = $1 AND used = FALSE", c.id)
+		if uerr != nil {
+			return false, fmt.Errorf("復旧コードを使用済みにできませんでした: %w", uerr)
+		}
+		if tag.RowsAffected() == 0 {
+			// 先に誰か（別の要求）が同じコードを使いました。
+			return false, nil
+		}
+		return true, nil
+	}
+	// 部分結果を完全な一覧として返さない（scan_truncation_guard_test.go 参照）
+	if err := rows.Err(); err != nil {
+		return false, err
 	}
 	return false, nil
 }

@@ -52,25 +52,43 @@ func (s *IncidentStore) Pool() *pgxpool.Pool {
 }
 
 // List returns incidents with alert counts, newest first.
-func (s *IncidentStore) List(ctx context.Context, status string, limit, offset int) ([]*Incident, int, error) {
+// incidentListWhere builds the WHERE clause and arguments for List.
+//
+// **切り出してあるのは、検査が本物を呼べるようにするためです。**
+// 公開はしません —— `List` からしか使わないので、公開すると
+// `TestStoreSymbolsAreReachable` の数が1つ増えます。
+// 検査ファイルには `buildIncidentWhere` という写しが置いてありましたが、
+// **`"active"` の分岐がありません** —— 一覧の既定の絞り込みが、写しには
+// 存在しないまま「確かめた」ことになっていました。
+//
+// 絞り込みが効かないことは、画面では「該当なし」または「全部出た」と
+// 同じ姿になります。**どちらも、絞り込みが壊れていることの合図には
+// 見えません。**
+func incidentListWhere(status string) (string, []interface{}) {
 	where := "WHERE 1=1"
 	args := []interface{}{}
-	argIdx := 1
 	if status == "active" {
 		// "active" = 対応が必要なステータス（解決済み・クローズ済みを除く）
 		where += " AND i.status IN ('open','investigating','contained')"
 	} else if status != "" {
-		where += fmt.Sprintf(" AND i.status = $%d", argIdx)
+		where += fmt.Sprintf(" AND i.status = $%d", len(args)+1)
 		args = append(args, status)
-		argIdx++
 	}
+	return where, args
+}
+
+func (s *IncidentStore) List(ctx context.Context, status string, limit, offset int) ([]*Incident, int, error) {
+	where, args := incidentListWhere(status)
+	argIdx := len(args) + 1
 
 	var total int
 	countArgs := make([]interface{}, len(args))
 	copy(countArgs, args)
-	_ = s.pool.QueryRow(ctx,
+	if err := s.pool.QueryRow(ctx,
 		"SELECT COUNT(*) FROM incidents i "+where, countArgs...,
-	).Scan(&total)
+	).Scan(&total); err != nil {
+		return nil, 0, fmt.Errorf("数えられませんでした: %w", err)
+	}
 
 	args = append(args, limit, offset)
 	rows, err := s.pool.Query(ctx, `
@@ -114,6 +132,9 @@ func (s *IncidentStore) List(ctx context.Context, status string, limit, offset i
 		inc.AssignedTo = assignedTo
 		inc.CreatedBy = createdBy
 		incidents = append(incidents, inc)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, 0, err
 	}
 	if incidents == nil {
 		incidents = []*Incident{}
@@ -190,7 +211,16 @@ func (s *IncidentStore) Update(ctx context.Context, id, title, description, stat
 // Delete removes an incident and its alert links.
 func (s *IncidentStore) Delete(ctx context.Context, id string) error {
 	// Nullify references in tables without ON DELETE CASCADE before deleting.
-	_, _ = s.pool.Exec(ctx, "UPDATE correlation_groups SET incident_id = NULL WHERE incident_id = $1", id)
+	//
+	// **捨てられませんでした。** `correlation_groups.incident_id` には
+	// `REFERENCES incidents(id)`（CASCADE 無し、migration 036）が付いて
+	// いるので、ここが書けなければ**次の DELETE が外部キー違反で落ちます**
+	// —— 利用者に届くのは 23503 の生のメッセージで、「相関グループの
+	// 紐付けを外せなかった」ことは分かりません。先に答えます。
+	if _, err := s.pool.Exec(ctx,
+		"UPDATE correlation_groups SET incident_id = NULL WHERE incident_id = $1", id); err != nil {
+		return fmt.Errorf("相関グループの紐付けを外せませんでした: %w", err)
+	}
 
 	result, err := s.pool.Exec(ctx, "DELETE FROM incidents WHERE id = $1", id)
 	if err != nil {
@@ -231,6 +261,9 @@ func (s *IncidentStore) ListAlerts(ctx context.Context, incidentID string) ([]*I
 			continue
 		}
 		alerts = append(alerts, a)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
 	}
 	if alerts == nil {
 		alerts = []*IncidentAlert{}
@@ -291,6 +324,9 @@ func (s *IncidentStore) ListNotes(ctx context.Context, incidentID string) ([]*In
 		}
 		n.UserID = userID
 		notes = append(notes, n)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
 	}
 	if notes == nil {
 		notes = []*IncidentNote{}

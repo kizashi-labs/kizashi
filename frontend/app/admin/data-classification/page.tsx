@@ -8,6 +8,8 @@ import {
   Plus, Loader2, X, Filter,
 } from 'lucide-react'
 
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface DLPStats {
@@ -76,7 +78,7 @@ function FindingStatusBadge({ status }: { status: DataFinding['status'] }) {
   const map = {
     open: 'bg-red-900/30 text-red-300 border border-red-700/30',
     reviewed: 'bg-blue-900/30 text-blue-300 border border-blue-700/30',
-    dismissed: 'bg-falcon-border text-falcon-muted border border-[#2a3f5c]',
+    dismissed: 'bg-[#1e2d42] text-[#7d92b0] border border-[#2a3f5c]',
   }
   const labels = { open: 'Open', reviewed: 'Reviewed', dismissed: 'Dismissed' }
   return <span className={`px-2 py-0.5 rounded-sm text-[11px] font-medium ${map[status]}`}>{labels[status]}</span>
@@ -84,8 +86,8 @@ function FindingStatusBadge({ status }: { status: DataFinding['status'] }) {
 
 function EnabledToggle({ enabled }: { enabled: boolean }) {
   return (
-    <div className={`relative w-9 h-5 rounded-full ${enabled ? 'bg-falcon-blue' : 'bg-falcon-border'}`}>
-      <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-falcon-text shadow-sm transition-transform ${enabled ? 'translate-x-4' : 'translate-x-0.5'}`} />
+    <div className={`relative w-9 h-5 rounded-full ${enabled ? 'bg-[#1a6bff]' : 'bg-[#1e2d42]'}`}>
+      <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-[#e2e8f4] shadow-sm transition-transform ${enabled ? 'translate-x-4' : 'translate-x-0.5'}`} />
     </div>
   )
 }
@@ -120,11 +122,11 @@ function AddPolicyModal({
   })
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs">
-      <div className="bg-falcon-surface border border-falcon-border rounded-xl w-full max-w-md shadow-2xl mx-4">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-falcon-border">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl w-full max-w-md shadow-2xl mx-4">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[#1e2d42]">
           <h2 className="text-white font-semibold text-base">Add Classification Policy</h2>
-          <button onClick={onClose} className="text-falcon-muted hover:text-white transition-colors">
+          <button onClick={onClose} className="text-[#7d92b0] hover:text-white transition-colors">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -142,31 +144,31 @@ function AddPolicyModal({
           className="p-6 space-y-4"
         >
           <div>
-            <label className="block text-xs text-falcon-muted mb-1.5">Policy Name *</label>
+            <label className="block text-xs text-[#7d92b0] mb-1.5">Policy Name *</label>
             <input
               required
               value={form.name}
               onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-              className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-sm text-white placeholder-falcon-subtle focus:outline-hidden focus:border-falcon-blue transition-colors"
+              className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-white placeholder-[#3d5068] focus:outline-hidden focus:border-[#1a6bff] transition-colors"
               placeholder="e.g. Restricted PII"
             />
           </div>
           <div>
-            <label className="block text-xs text-falcon-muted mb-1.5">Description</label>
+            <label className="block text-xs text-[#7d92b0] mb-1.5">Description</label>
             <textarea
               value={form.description}
               onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
               rows={2}
-              className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-sm text-white placeholder-falcon-subtle focus:outline-hidden focus:border-falcon-blue transition-colors resize-none"
+              className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-white placeholder-[#3d5068] focus:outline-hidden focus:border-[#1a6bff] transition-colors resize-none"
               placeholder="Describe what this policy detects..."
             />
           </div>
           <div>
-            <label className="block text-xs text-falcon-muted mb-1.5">Classification Level</label>
+            <label className="block text-xs text-[#7d92b0] mb-1.5">Classification Level</label>
             <select
               value={form.level}
               onChange={e => setForm(f => ({ ...f, level: e.target.value as ClassLevel }))}
-              className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-sm text-white focus:outline-hidden focus:border-falcon-blue transition-colors"
+              className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-white focus:outline-hidden focus:border-[#1a6bff] transition-colors"
             >
               <option value="top_secret">Top Secret</option>
               <option value="restricted">Restricted</option>
@@ -176,11 +178,11 @@ function AddPolicyModal({
             </select>
           </div>
           <div>
-            <label className="block text-xs text-falcon-muted mb-1.5">File Extensions (comma-separated)</label>
+            <label className="block text-xs text-[#7d92b0] mb-1.5">File Extensions (comma-separated)</label>
             <input
               value={form.file_extensions}
               onChange={e => setForm(f => ({ ...f, file_extensions: e.target.value }))}
-              className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-sm text-white placeholder-falcon-subtle focus:outline-hidden focus:border-falcon-blue transition-colors font-mono"
+              className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-white placeholder-[#3d5068] focus:outline-hidden focus:border-[#1a6bff] transition-colors font-mono"
               placeholder=".pdf, .docx, .csv"
             />
           </div>
@@ -188,14 +190,14 @@ function AddPolicyModal({
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-sm text-falcon-muted hover:text-white transition-colors"
+              className="px-4 py-2 text-sm text-[#7d92b0] hover:text-white transition-colors"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="px-5 py-2 bg-falcon-red hover:bg-[#c00025] text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2"
+              className="px-5 py-2 bg-[#e8002d] hover:bg-[#c00025] text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2"
             >
               {loading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
               Add Policy
@@ -262,7 +264,7 @@ export default function DataClassificationPage() {
   )
 
   const STAT_CARDS = [
-    { label: 'Total Findings', value: stats.total_findings, icon: FileSearch, color: 'text-falcon-muted', bg: 'border-falcon-border' },
+    { label: 'Total Findings', value: stats.total_findings, icon: FileSearch, color: 'text-[#7d92b0]', bg: 'border-[#1e2d42]' },
     { label: 'Restricted / Top Secret', value: stats.restricted_top_secret, icon: ShieldAlert, color: 'text-red-400', bg: 'border-red-700/30 bg-red-900/10' },
     { label: 'Confidential', value: stats.confidential, icon: FolderLock, color: 'text-yellow-400', bg: 'border-yellow-700/30 bg-yellow-900/10' },
     { label: 'Open', value: stats.open, icon: AlertTriangle, color: 'text-orange-400', bg: 'border-orange-700/30 bg-orange-900/10' },
@@ -270,20 +272,21 @@ export default function DataClassificationPage() {
 
   return (
     <div className="min-h-screen bg-[#070d19] p-6 space-y-6">
+      <PageDataUnavailable />
       {/* Header */}
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-white tracking-tight flex items-center gap-2">
-            <FolderLock className="w-6 h-6 text-falcon-red" />
+            <FolderLock className="w-6 h-6 text-[#e8002d]" />
             Data Loss Prevention &amp; Classification
           </h1>
-          <p className="text-falcon-muted text-sm mt-1">
+          <p className="text-[#7d92b0] text-sm mt-1">
             Define classification policies and monitor sensitive data exposure across endpoints
           </p>
         </div>
         <button
           onClick={() => setShowAddPolicy(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-falcon-red hover:bg-[#c00025] text-white text-sm font-medium rounded-lg transition-colors shadow-lg shadow-red-900/20"
+          className="flex items-center gap-2 px-4 py-2 bg-[#e8002d] hover:bg-[#c00025] text-white text-sm font-medium rounded-lg transition-colors shadow-lg shadow-red-900/20"
         >
           <Plus className="w-4 h-4" />
           Add Policy
@@ -293,42 +296,42 @@ export default function DataClassificationPage() {
       {/* Stats Row */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {STAT_CARDS.map(card => (
-          <div key={card.label} className={`bg-falcon-surface border rounded-xl p-4 flex items-center gap-3 ${card.bg}`}>
+          <div key={card.label} className={`bg-[#0d1220] border rounded-xl p-4 flex items-center gap-3 ${card.bg}`}>
             <card.icon className={`w-8 h-8 shrink-0 ${card.color}`} />
             <div>
               <p className="text-2xl font-bold text-white">{card.value}</p>
-              <p className="text-xs text-falcon-muted">{card.label}</p>
+              <p className="text-xs text-[#7d92b0]">{card.label}</p>
             </div>
           </div>
         ))}
       </div>
 
       {/* Classification Policies */}
-      <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
-        <div className="px-5 py-3.5 border-b border-falcon-border flex items-center justify-between">
+      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
+        <div className="px-5 py-3.5 border-b border-[#1e2d42] flex items-center justify-between">
           <div>
             <h2 className="text-white font-semibold text-sm">Classification Policies</h2>
-            <p className="text-falcon-muted text-xs mt-0.5">{policies.length} policies configured</p>
+            <p className="text-[#7d92b0] text-xs mt-0.5">{policies.length} policies configured</p>
           </div>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-falcon-border">
+              <tr className="border-b border-[#1e2d42]">
                 {['Name', 'Level', 'File Extensions', 'Matches', 'Enabled'].map(h => (
-                  <th key={h} className="px-4 py-3 text-left text-xs font-medium text-falcon-muted uppercase tracking-wider whitespace-nowrap">
+                  <th key={h} className="px-4 py-3 text-left text-xs font-medium text-[#7d92b0] uppercase tracking-wider whitespace-nowrap">
                     {h}
                   </th>
                 ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-falcon-border">
+            <tbody className="divide-y divide-[#1e2d42]">
               {loadingPolicies ? (
                 Array.from({ length: 4 }).map((_, i) => (
-                  <tr key={i} className="animate-pulse border-b border-falcon-border">
+                  <tr key={i} className="animate-pulse border-b border-[#1e2d42]">
                     {[160, 90, 200, 60, 50].map((w, j) => (
                       <td key={j} className="px-4 py-3">
-                        <div className="h-3 bg-falcon-border rounded-sm" style={{ width: w }} />
+                        <div className="h-3 bg-[#1e2d42] rounded-sm" style={{ width: w }} />
                       </td>
                     ))}
                   </tr>
@@ -338,7 +341,7 @@ export default function DataClassificationPage() {
                   <td className="px-4 py-3">
                     <p className="text-white font-medium">{policy.name}</p>
                     {policy.description && (
-                      <p className="text-falcon-muted text-xs mt-0.5 max-w-[200px] truncate">{policy.description}</p>
+                      <p className="text-[#7d92b0] text-xs mt-0.5 max-w-[200px] truncate">{policy.description}</p>
                     )}
                   </td>
                   <td className="px-4 py-3">
@@ -347,7 +350,7 @@ export default function DataClassificationPage() {
                   <td className="px-4 py-3">
                     <div className="flex flex-wrap gap-1 max-w-[260px]">
                       {policy.file_extensions.map(ext => (
-                        <span key={ext} className="px-1.5 py-0.5 bg-falcon-border text-falcon-muted rounded-sm text-[10px] font-mono">
+                        <span key={ext} className="px-1.5 py-0.5 bg-[#1e2d42] text-[#7d92b0] rounded-sm text-[10px] font-mono">
                           {ext}
                         </span>
                       ))}
@@ -367,18 +370,18 @@ export default function DataClassificationPage() {
       </div>
 
       {/* Data Findings */}
-      <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
-        <div className="px-5 py-3.5 border-b border-falcon-border flex items-center justify-between gap-4">
+      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
+        <div className="px-5 py-3.5 border-b border-[#1e2d42] flex items-center justify-between gap-4">
           <div>
             <h2 className="text-white font-semibold text-sm">Data Findings</h2>
-            <p className="text-falcon-muted text-xs mt-0.5">{filteredFindings.length} findings</p>
+            <p className="text-[#7d92b0] text-xs mt-0.5">{filteredFindings.length} findings</p>
           </div>
           <div className="flex items-center gap-2">
-            <Filter className="w-3.5 h-3.5 text-falcon-muted" />
+            <Filter className="w-3.5 h-3.5 text-[#7d92b0]" />
             <select
               value={levelFilter}
               onChange={e => setLevelFilter(e.target.value)}
-              className="bg-[#070d19] border border-falcon-border rounded-lg px-3 py-1.5 text-xs text-white focus:outline-hidden focus:border-falcon-blue transition-colors"
+              className="bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-1.5 text-xs text-white focus:outline-hidden focus:border-[#1a6bff] transition-colors"
             >
               <option value="all">All Levels</option>
               <option value="top_secret">Top Secret</option>
@@ -392,28 +395,28 @@ export default function DataClassificationPage() {
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-falcon-border">
+              <tr className="border-b border-[#1e2d42]">
                 {['File Path', 'Level', 'Agent / Hostname', 'Match Count', 'Status', 'Found At'].map(h => (
-                  <th key={h} className="px-4 py-3 text-left text-xs font-medium text-falcon-muted uppercase tracking-wider whitespace-nowrap">
+                  <th key={h} className="px-4 py-3 text-left text-xs font-medium text-[#7d92b0] uppercase tracking-wider whitespace-nowrap">
                     {h}
                   </th>
                 ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-falcon-border">
+            <tbody className="divide-y divide-[#1e2d42]">
               {loadingFindings ? (
                 Array.from({ length: 5 }).map((_, i) => (
-                  <tr key={i} className="animate-pulse border-b border-falcon-border">
+                  <tr key={i} className="animate-pulse border-b border-[#1e2d42]">
                     {[240, 90, 110, 60, 80, 100].map((w, j) => (
                       <td key={j} className="px-4 py-3">
-                        <div className="h-3 bg-falcon-border rounded-sm" style={{ width: w }} />
+                        <div className="h-3 bg-[#1e2d42] rounded-sm" style={{ width: w }} />
                       </td>
                     ))}
                   </tr>
                 ))
               ) : filteredFindings.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-4 py-10 text-center text-falcon-muted text-sm">
+                  <td colSpan={6} className="px-4 py-10 text-center text-[#7d92b0] text-sm">
                     No findings match the selected level
                   </td>
                 </tr>
@@ -421,7 +424,7 @@ export default function DataClassificationPage() {
                 <tr key={finding.id} className="hover:bg-[#0a1428] transition-colors">
                   <td className="px-4 py-3 max-w-[280px]">
                     <span
-                      className="block truncate font-mono text-xs text-falcon-muted hover:text-white transition-colors"
+                      className="block truncate font-mono text-xs text-[#7d92b0] hover:text-white transition-colors"
                       title={finding.file_path}
                     >
                       {finding.file_path}
@@ -441,7 +444,7 @@ export default function DataClassificationPage() {
                   <td className="px-4 py-3">
                     <FindingStatusBadge status={finding.status} />
                   </td>
-                  <td className="px-4 py-3 text-falcon-muted text-xs whitespace-nowrap">
+                  <td className="px-4 py-3 text-[#7d92b0] text-xs whitespace-nowrap">
                     {formatDate(finding.found_at)}
                   </td>
                 </tr>

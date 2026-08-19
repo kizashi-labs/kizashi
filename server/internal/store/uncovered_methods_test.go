@@ -61,56 +61,65 @@ func TestAgentStore_UpdateMetrics(t *testing.T) {
 	seedAgent(t, db, agentID)
 
 	s := store.NewAgentStore(db)
-	if err := s.UpdateMetrics(ctx, agentID, 83.5, 4096); err != nil {
+	cpuVal, memVal, totalVal := 83.5, 4096.0, 8192.0
+	if err := s.UpdateMetrics(ctx, agentID, &cpuVal, &memVal, &totalVal); err != nil {
 		t.Fatalf("UpdateMetrics: %v", err)
 	}
 
-	var cpu, mem float64
+	var cpu, mem, total float64
 	if err := db.Pool().QueryRow(ctx,
-		`SELECT cpu_usage, memory_usage_mb FROM agents WHERE id=$1`, agentID).Scan(&cpu, &mem); err != nil {
+		`SELECT cpu_usage, memory_usage_mb, total_memory_mb FROM agents WHERE id=$1`,
+		agentID).Scan(&cpu, &mem, &total); err != nil {
 		t.Fatalf("読み戻し: %v", err)
 	}
 	if cpu != 83.5 || mem != 4096 {
 		t.Errorf("(cpu, mem) = (%v, %v), want (83.5, 4096)", cpu, mem)
 	}
-}
+	// **分母。誰も書いていなかったので、アラータのメモリ判定は
+	// 一度も発火できませんでした。**
+	if total != 8192 {
+		t.Errorf("total_memory_mb = %v, want 8192", total)
+	}
 
-// ── AgentStore.AgentBelongsToTenant ──────────────────────────────
-
-func TestAgentStore_AgentBelongsToTenant(t *testing.T) {
-	db := uncoveredTestDB(t)
-	ctx := context.Background()
-	const agentID = "dd0dd0dd-0000-4000-8000-000000000002"
-	seedAgent(t, db, agentID)
-
-	s := store.NewAgentStore(db)
-
-	// 実際に紐づくテナント ID を読み出して突き合わせる。
-	var tenantID *string
+	// 測れなかったときは列を NULL のままにすること。
+	// **0 を書くと「アイドル」という測定値になり、高CPUを探すアラータ
+	// からは「問題なし」に見えます。**
+	if err := s.UpdateMetrics(ctx, agentID, nil, nil, nil); err != nil {
+		t.Fatalf("UpdateMetrics(nil): %v", err)
+	}
+	var cpuNull, memNull *float64
 	if err := db.Pool().QueryRow(ctx,
-		`SELECT tenant_id::text FROM agents WHERE id=$1`, agentID).Scan(&tenantID); err != nil {
-		t.Fatalf("tenant_id 取得: %v", err)
+		`SELECT cpu_usage, memory_usage_mb FROM agents WHERE id=$1`,
+		agentID).Scan(&cpuNull, &memNull); err != nil {
+		t.Fatalf("読み戻し: %v", err)
+	}
+	if cpuNull != nil {
+		t.Errorf("cpu_usage = %v, want NULL。測っていないことが測定値に"+
+			"化けています", *cpuNull)
+	}
+	if memNull != nil {
+		t.Errorf("memory_usage_mb = %v, want NULL", *memNull)
 	}
 
-	if tenantID != nil {
-		ok, err := s.AgentBelongsToTenant(ctx, agentID, *tenantID)
-		if err != nil {
-			t.Fatalf("AgentBelongsToTenant: %v", err)
-		}
-		if !ok {
-			t.Errorf("自身のテナントに属していないと判定された (tenant=%s)", *tenantID)
-		}
+	// **総容量だけは、測れなかった回で消さないこと。**
+	// 端末の物理メモリは毎回変わるものではありません。1回の測定失敗で
+	// 分母を NULL に戻すと、そのあいだメモリ判定が黙ります。
+	var totalKept float64
+	if err := db.Pool().QueryRow(ctx,
+		`SELECT total_memory_mb FROM agents WHERE id=$1`, agentID).Scan(&totalKept); err != nil {
+		t.Fatalf("読み戻し: %v", err)
 	}
-
-	// 別テナントには属さない。ここが常に true だとテナント分離が破れる。
-	ok, err := s.AgentBelongsToTenant(ctx, agentID, "dd0dd0dd-0000-4000-8000-0000000000ff")
-	if err != nil {
-		t.Fatalf("AgentBelongsToTenant(別テナント): %v", err)
-	}
-	if ok {
-		t.Error("別テナントに属していると判定された")
+	if totalKept != 8192 {
+		t.Errorf("total_memory_mb = %v, want 8192（測れなかった回で消えています）",
+			totalKept)
 	}
 }
+
+// AgentStore.AgentBelongsToTenant の検査はここにありました。
+// **本番の呼び出し元が1つも無くなったので、関数ごと消しました。**
+// テナント分離の判断は AgentTenant に移っています —— 「この端末は誰のものか」を
+// 訊く形で、呼び出し元がテナントを名乗れないときに素通ししません。
+// 到達性のゲート (reachable_test.go) が、写しになった時点で言いました。
 
 // IOCStore.TopHits はここでは対象にしていない。
 // 実行すると `column a.src_ip does not exist` で必ず失敗する:

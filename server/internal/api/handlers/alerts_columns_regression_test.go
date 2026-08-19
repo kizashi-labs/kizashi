@@ -41,10 +41,26 @@ func responseContains(resp map[string]any, needle string) bool {
 }
 
 // reportRange はアラート投入時刻を確実に含む期間を返す。
-func reportRange() reports.DateRange {
-	now := time.Now()
-	return reports.DateRange{Start: now.Add(-2 * time.Hour), End: now.Add(time.Hour)}
+// reportRange returns a window around one instant, narrow enough that only the
+// fixture seeded at that instant falls inside it.
+//
+// It used to be now-2h .. now+1h. Every fixture in every package creates its
+// alerts at NOW(), so they all landed in that window and competed for the
+// LIMIT 10 the executive summary's top-threats query applies — a test asserting
+// its own rows are in the top ten was really asserting that no other package
+// had seeded eleven. `go test ./...` runs packages concurrently against one
+// database, so it failed depending on what else was running.
+func reportRange(at time.Time) reports.DateRange {
+	return reports.DateRange{Start: at.Add(-30 * time.Minute), End: at.Add(30 * time.Minute)}
 }
+
+// Report fixtures are placed well in the past, each in its own hour, so no
+// NOW()-based fixture from any package can share their window. The dates are
+// arbitrary; only their distance from now and from each other matters.
+var (
+	execSummaryInstant   = time.Date(2021, 6, 15, 3, 0, 0, 0, time.UTC)
+	threatSummaryInstant = time.Date(2021, 6, 15, 9, 0, 0, 0, time.UTC)
+)
 
 // seedAlertWithRule はエージェント 1 台・rules 1 行・アラート n 件を投入する。
 // アラートの半分は rule_id 付き (DB ルール由来)、残りは rule_id なし
@@ -52,6 +68,14 @@ func reportRange() reports.DateRange {
 //
 // 戻り値は (agentID, hostname, ruleName)。
 func seedAlertWithRule(t *testing.T, pool *pgxpool.Pool, tag string) (string, string, string) {
+	t.Helper()
+	return seedAlertWithRuleAt(t, pool, tag, time.Now())
+}
+
+// seedAlertWithRuleAt is seedAlertWithRule with the alerts placed around a
+// given instant, so a test that reads a top-N over a date range can own its
+// window instead of sharing one with every other fixture in the suite.
+func seedAlertWithRuleAt(t *testing.T, pool *pgxpool.Pool, tag string, at time.Time) (string, string, string) {
 	t.Helper()
 	ctx := context.Background()
 
@@ -85,8 +109,8 @@ func seedAlertWithRule(t *testing.T, pool *pgxpool.Pool, tag string) (string, st
 		INSERT INTO alerts (agent_id, rule_id, severity, title, description, status,
 		                    mitre_technique, source, created_at)
 		SELECT $1::uuid, $2::uuid, 9, $3, 'd', 'open', 'T1059', 'sigma',
-		       NOW() - (g || ' minutes')::INTERVAL
-		FROM generate_series(1, 3) g`, agentID, ruleID, "alertcol-titled-"+tag); err != nil {
+		       $4::timestamptz - (g || ' minutes')::INTERVAL
+		FROM generate_series(1, 3) g`, agentID, ruleID, "alertcol-titled-"+tag, at); err != nil {
 		t.Fatalf("seed rule-backed alerts: %v", err)
 	}
 
@@ -95,8 +119,8 @@ func seedAlertWithRule(t *testing.T, pool *pgxpool.Pool, tag string) (string, st
 		INSERT INTO alerts (agent_id, severity, title, description, status,
 		                    mitre_technique, source, created_at)
 		SELECT $1::uuid, 8, $2, 'd', 'open', 'T1486', 'anomaly',
-		       NOW() - (g || ' minutes')::INTERVAL
-		FROM generate_series(1, 2) g`, agentID, "alertcol-builtin-"+tag); err != nil {
+		       $3::timestamptz - (g || ' minutes')::INTERVAL
+		FROM generate_series(1, 2) g`, agentID, "alertcol-builtin-"+tag, at); err != nil {
 		t.Fatalf("seed builtin alerts: %v", err)
 	}
 
@@ -249,10 +273,10 @@ func TestAgentTimeline_IncludesAlerts(t *testing.T) {
 
 func TestThreatSummary_PopulatesRulesTacticsAndTypes(t *testing.T) {
 	pool := testPool(t)
-	_, _, ruleName := seedAlertWithRule(t, pool, "report")
+	_, _, ruleName := seedAlertWithRuleAt(t, pool, "report", threatSummaryInstant)
 
 	g := reports.NewGenerator(pool)
-	spec := &reports.ReportSpec{DateRange: reportRange()}
+	spec := &reports.ReportSpec{DateRange: reportRange(threatSummaryInstant)}
 
 	data, err := g.GenerateThreatSummary(context.Background(), spec)
 	if err != nil {
@@ -297,10 +321,10 @@ func TestThreatSummary_PopulatesRulesTacticsAndTypes(t *testing.T) {
 
 func TestExecutiveSummary_TopThreatsFallBackToTitle(t *testing.T) {
 	pool := testPool(t)
-	_, _, ruleName := seedAlertWithRule(t, pool, "exec")
+	_, _, ruleName := seedAlertWithRuleAt(t, pool, "exec", execSummaryInstant)
 
 	g := reports.NewGenerator(pool)
-	spec := &reports.ReportSpec{DateRange: reportRange()}
+	spec := &reports.ReportSpec{DateRange: reportRange(execSummaryInstant)}
 
 	data, err := g.GenerateExecutiveSummary(context.Background(), spec)
 	if err != nil {
@@ -317,5 +341,74 @@ func TestExecutiveSummary_TopThreatsFallBackToTitle(t *testing.T) {
 	}
 	if names["alertcol-builtin-exec"] != 2 {
 		t.Errorf("rule_id 無しのアラートが title でまとまっていない: %+v", data.TopThreats)
+	}
+}
+
+// The report assertions must not depend on what else is in the alerts table.
+//
+// TestExecutiveSummary_TopThreatsFallBackToTitle reads a LIMIT 10 over a date
+// range. Its fixture used to sit in a now-2h..now+1h window shared with every
+// NOW()-based fixture in the suite, so eleven alerts seeded by any other
+// package pushed its rows out of the top ten and it failed — twice during the
+// work that produced these tests, and it would fail in CI depending on which
+// packages happened to be running alongside it.
+//
+// This seeds exactly that competition and requires the assertions to survive
+// it. Placing the fixture in its own historical window is what makes them.
+func TestTheReportFixturesAreIsolatedFromOtherAlerts(t *testing.T) {
+	pool := testPool(t)
+	ctx := context.Background()
+
+	// Far more competing alerts than the query's LIMIT, all at NOW(), which is
+	// how every other fixture in the suite creates them.
+	if _, err := pool.Exec(ctx, `
+		INSERT INTO alerts (severity, title, description, status, source, created_at)
+		SELECT 5, 'isolation-noise-'||g, 'd', 'open', 'test', NOW() - (g || ' seconds')::INTERVAL
+		FROM generate_series(1, 40) g`); err != nil {
+		t.Fatalf("seed competing alerts: %v", err)
+	}
+	t.Cleanup(func() {
+		_, _ = pool.Exec(context.Background(),
+			`DELETE FROM alerts WHERE title LIKE 'isolation-noise-%'`)
+	})
+
+	// The competition has to be real, and bigger than the LIMIT the query
+	// applies, or this passes without having tested anything.
+	const topThreatsLimit = 10
+	var competing int
+	if err := pool.QueryRow(ctx,
+		`SELECT COUNT(*) FROM alerts WHERE title LIKE 'isolation-noise-%'`).Scan(&competing); err != nil {
+		t.Fatalf("count competing alerts: %v", err)
+	}
+	if competing <= topThreatsLimit {
+		t.Fatalf("競合アラートが %d 件しかありません。上位 %d 件を奪い合う状況になっていません",
+			competing, topThreatsLimit)
+	}
+
+	_, _, ruleName := seedAlertWithRuleAt(t, pool, "isolation", execSummaryInstant)
+
+	g := reports.NewGenerator(pool)
+	data, err := g.GenerateExecutiveSummary(ctx,
+		&reports.ReportSpec{DateRange: reportRange(execSummaryInstant)})
+	if err != nil {
+		t.Fatalf("GenerateExecutiveSummary: %v", err)
+	}
+
+	names := map[string]int{}
+	for _, e := range data.TopThreats {
+		names[e.Name] = e.Count
+	}
+	if names[ruleName] != 3 {
+		t.Errorf("競合するアラートがある状態で %q が上位から押し出されました: %+v",
+			ruleName, data.TopThreats)
+	}
+	if names["alertcol-builtin-isolation"] != 2 {
+		t.Errorf("競合するアラートがある状態で title 集約が押し出されました: %+v", data.TopThreats)
+	}
+	// And none of the competing alerts reached the window at all.
+	for _, e := range data.TopThreats {
+		if strings.HasPrefix(e.Name, "isolation-noise-") {
+			t.Errorf("別ウィンドウのアラート %q が集計に混入しました", e.Name)
+		}
 	}
 }

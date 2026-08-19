@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/edr-platform/server/internal/metrics"
 	edrsync "github.com/edr-platform/server/internal/sync"
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -144,7 +145,12 @@ func (h *IngestHandler) upsertAgent(ctx context.Context, hostname, ip, osType st
 		// under network isolation is *expected* to keep reporting. Clobbering
 		// it with 'online' would silently lift the quarantine on the first
 		// inbound Wazuh alert. Same guard as store.AgentStore.UpdateLastSeen.
-		_, _ = h.Pool.Exec(ctx, `
+		//
+		// **要求そのものはアラートの取り込みです。** ここが書けなくても
+		// アラートは落としません —— 落とす方が悪い形です。ただし黙らせも
+		// しません: **報告し続けている端末が、画面ではオフラインのまま**に
+		// なり、しかも「本当に落ちた端末」と同じ姿になります。
+		if _, err := h.Pool.Exec(ctx, `
 			UPDATE agents
 			   SET last_seen  = NOW(),
 			       status     = CASE WHEN status = 'isolated'
@@ -152,7 +158,11 @@ func (h *IngestHandler) upsertAgent(ctx context.Context, hostname, ip, osType st
 			       os_type    = CASE WHEN os_type = 'unknown' AND $2 <> 'unknown'
 			                         THEN $2 ELSE os_type END,
 			       updated_at = NOW()
-			 WHERE hostname = $1`, hostname, osType)
+			 WHERE hostname = $1`, hostname, osType); err != nil {
+			metrics.BackgroundFailed("wazuh_agent_touch", err,
+				"取り込み元の端末の last_seen を更新できませんでした。報告している端末が画面ではオフラインになります",
+				"hostname", hostname)
+		}
 		return id, nil
 	}
 
@@ -173,11 +183,15 @@ func (h *IngestHandler) WazuhStatus(c *gin.Context) {
 	ctx := c.Request.Context()
 	var total, last24h, wazuhAgents int
 	if h.Pool != nil {
-		_ = h.Pool.QueryRow(ctx,
+		if !ReadOK(c, h.Pool.QueryRow(ctx,
 			`SELECT COUNT(*), COUNT(*) FILTER (WHERE created_at >= NOW()-INTERVAL '24 hours')
-			 FROM alerts WHERE source = 'wazuh'`).Scan(&total, &last24h)
-		_ = h.Pool.QueryRow(ctx,
-			`SELECT COUNT(*) FROM agents WHERE source = 'wazuh'`).Scan(&wazuhAgents)
+				 FROM alerts WHERE source = 'wazuh'`).Scan(&total, &last24h)) {
+			return
+		}
+		if !ReadOK(c, h.Pool.QueryRow(ctx,
+			`SELECT COUNT(*) FROM agents WHERE source = 'wazuh'`).Scan(&wazuhAgents)) {
+			return
+		}
 	}
 	c.JSON(http.StatusOK, gin.H{
 		"total_alerts": total,

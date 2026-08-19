@@ -3,7 +3,9 @@ package main
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
+	tenantcrypto "github.com/edr-platform/server/internal/crypto"
 	"log/slog"
 	"os"
 	"os/signal"
@@ -34,6 +36,7 @@ import (
 	"github.com/edr-platform/server/internal/enrichment"
 	"github.com/edr-platform/server/internal/hunting"
 	"github.com/edr-platform/server/internal/investigation"
+	"github.com/edr-platform/server/internal/isolation"
 	"github.com/edr-platform/server/internal/license"
 	"github.com/edr-platform/server/internal/metrics"
 	"github.com/edr-platform/server/internal/ml"
@@ -51,8 +54,8 @@ import (
 	"github.com/edr-platform/server/internal/suppression"
 	edrsync "github.com/edr-platform/server/internal/sync"
 	"github.com/edr-platform/server/internal/telemetry"
-	"github.com/edr-platform/server/internal/tenant"
 	"github.com/edr-platform/server/internal/threatintel"
+	"github.com/edr-platform/server/internal/tick"
 	"github.com/edr-platform/server/internal/watchlist"
 	"github.com/edr-platform/server/internal/webhooks"
 	"github.com/edr-platform/server/internal/xdr"
@@ -158,6 +161,21 @@ func main() {
 		}
 	}
 
+	// Say out loud, once, which build this is and how far the database schema has
+	// been taken. A deployment ran for days on an image whose migrations stopped 20+
+	// files short of the repository (2026-08-03) and nothing surfaced it: the API was
+	// healthy, the version string was plausible, and the missing files were rule
+	// definitions whose absence only shows up as detections that never fire. The
+	// applied count comes from the database, so it cannot be faked by a stale build
+	// context the way a version string can.
+	if count, latest, merr := store.MigrationState(ctx, db.Pool()); merr == nil {
+		slog.Info("ビルドとスキーマの状態",
+			"version", Version, "commit", Commit, "build_date", BuildDate,
+			"migrations_applied", count, "migrations_latest", latest)
+	} else {
+		slog.Warn("マイグレーション適用状況を取得できませんでした", "error", merr)
+	}
+
 	// ─── Seed initial admin user ──────────────────────────────
 	if adminPwd := getEnv("ADMIN_PASSWORD", ""); adminPwd != "" {
 		if err := store.SeedAdminUser(ctx, db.Pool(), adminPwd); err != nil {
@@ -194,8 +212,41 @@ func main() {
 	defer nc.Close()
 	slog.Info("NATSに接続しました")
 
+	// ─── 保管時暗号化 ─────────────────────────────────────────
+	//
+	// raw_event を AES-256-GCM でテナント鍵により暗号化します。テナント鍵は
+	// tenant_encryption_keys（マイグレーション 029）に置き、TENANT_MASTER_KEY
+	// でラップします。MDM の鍵とは分けています —— 守る対象が違うものを
+	// 同じ鍵に載せる理由がありません。
+	//
+	// 未設定なら暗号化は無効です。**そのことを起動時に必ず言います。**
+	// 以前は黙って平文に落ちていて、docs は「保管時暗号化」を事実として
+	// 書いていました。設定し忘れと、そう決めたことの区別がつきませんでした。
+	//
+	// 鍵が設定されているのに使えない（base64 でない、長さが違う）ときは
+	// 起動しません。暗号化するつもりで平文に落ちるのが、いちばん悪い形です。
+	var tenantEncryptor *tenantcrypto.Encryptor
+	if raw := os.Getenv("TENANT_MASTER_KEY"); raw != "" {
+		masterKey, err := base64.StdEncoding.DecodeString(raw)
+		if err != nil {
+			slog.Error("TENANT_MASTER_KEY を base64 として読めません。"+
+				"暗号化するつもりで平文に落ちるのを避けるため、起動しません", "error", err)
+			os.Exit(1)
+		}
+		ks, err := tenantcrypto.NewDBKeyStore(db.Pool(), masterKey)
+		if err != nil {
+			slog.Error("テナント鍵ストアを作れません。起動しません", "error", err)
+			os.Exit(1)
+		}
+		tenantEncryptor = tenantcrypto.NewEncryptor(ks)
+		slog.Info("アラートの保管時暗号化を有効にしました (AES-256-GCM, テナント鍵)")
+	} else {
+		slog.Warn("TENANT_MASTER_KEY が未設定です。" +
+			"アラートの raw_event は平文で保存されます")
+	}
+
 	// ─── Stores ───────────────────────────────────────────────
-	alertStore := store.NewAlertStore(db).WithPublisher(nc)
+	alertStore := store.NewAlertStore(db).WithPublisher(nc).WithEncryptor(tenantEncryptor)
 	agentStore := store.NewAgentStore(db)
 	ruleStore := store.NewRuleStore(db)
 	userStore := store.NewUserStore(db)
@@ -203,6 +254,55 @@ func main() {
 	reportStore := store.NewReportStore(db)
 	responseActionStore := store.NewResponseActionStore(db)
 	commander := store.NewCommandStore(db, nc)
+
+	// ─── 隔離のゲートキーパー ─────────────────────────────────
+	// このプロセスで隔離を実行できるのはこれだけ（手動隔離・隔離アクション API・
+	// 自動修復エンジン）。安全弁と response_actions への記録はここに集約されている。
+	//
+	// AUTO_RESPONSE_ENABLED は server-detect だけの設定ではない。自動修復エンジンは
+	// この api プロセスにあり、以前はこのスイッチを一切見ずに隔離していた。
+	// 2026-08-13 に、detection 側を AUTO_ISOLATE_DRY_RUN=true にした環境で
+	// この経路が端末を実際に隔離している。両プロセスに同じ値を渡すこと。
+	autoResponse := getEnv("AUTO_RESPONSE_ENABLED", "true") == "true"
+	isoDryRun := getEnv("AUTO_ISOLATE_DRY_RUN", "") == "true"
+	if !autoResponse {
+		slog.Warn("AUTO_RESPONSE_ENABLED=false のため、無人経路からの隔離は行いません")
+	}
+	if isoDryRun {
+		slog.Warn("自動隔離はドライランです。隔離は実行されず、記録だけ残ります")
+	}
+	// AUTO_ISOLATE_EXEMPT はこれまで detection にしか実装が無く、api 経由の
+	// 隔離（プレイブック・自動修復・API 呼び出し）には安全弁が一つも無かった。
+	// 環境変数だけが両方に配られていたので、外形上は効いているように見える。
+	// 判定は isolation.IsExempt に一本化してある。
+	var isoExempt []string
+	for _, h := range strings.Split(os.Getenv("AUTO_ISOLATE_EXEMPT"), ",") {
+		if h = strings.TrimSpace(h); h != "" {
+			isoExempt = append(isoExempt, h)
+		}
+	}
+	if len(isoExempt) > 0 {
+		slog.Info("自動隔離の除外リストを読み込みました", "件数", len(isoExempt),
+			"対象", isoExempt)
+	}
+	// ホスト名で指定できるようにするための解決手段。呼び出し側の記入に頼ると
+	// 記入し忘れた経路だけ除外が効かなくなる。
+	exemptResolver := func(ctx context.Context, agentID string) string {
+		if agentID == "" {
+			return ""
+		}
+		a, err := agentStore.GetAgentByID(ctx, agentID)
+		if err != nil || a == nil {
+			return ""
+		}
+		return a.Hostname
+	}
+	gatekeeper := isolation.New(commander, responseActionStore, isolation.Config{
+		UnattendedEnabled: autoResponse,
+		DryRun:            isoDryRun,
+		Exempt:            isoExempt,
+		HostnameResolver:  exemptResolver,
+	})
 	quarantineStore := store.NewQuarantineStore(db)
 	iocStore := store.NewIOCStore(db)
 	ipBlockStore := store.NewIPBlockStore(db)
@@ -229,6 +329,42 @@ func main() {
 	}
 	dispatcher.LoadChannels(notifChannels)
 
+	// 通知チャンネルの変更を取り込む。
+	//
+	// これが無いと、api プロセスの通知先は**起動時のまま固定**される。
+	// 画面からチャンネルを足しても、api を再起動するまで送信先に入らない。
+	// しかも送信先が 0 件でも Notify は静かに何もしないので、
+	// 「設定したのに届かない、エラーも出ない」状態になる。
+	// cmd/detection には同じ購読が元からあり、api 側だけ抜けていた。
+	//
+	// api は複数レプリカで動くので、自分が変更を publish した場合も
+	// 含めて NATS 経由で揃える (変更を受けたレプリカだけが新しい設定を
+	// 持つ状態を避ける)。
+	go func() {
+		sub, err := nc.Subscribe("settings.channels.updated", func(_ *nats.Msg) {
+			chs, err := notifStore.ListChannels(ctx)
+			if err != nil {
+				slog.Warn("通知チャンネルの再読み込みに失敗しました", "error", err)
+				return
+			}
+			updated := make([]notification.ChannelConfig, len(chs))
+			for i, ch := range chs {
+				updated[i] = notification.ChannelConfig{
+					ID: ch.ID, Name: ch.Name, Type: ch.Type,
+					Config: ch.Config, Enabled: ch.Enabled, MinSeverity: ch.MinSeverity,
+				}
+			}
+			dispatcher.LoadChannels(updated)
+			slog.Info("通知チャンネル設定をリロードしました", "count", len(updated))
+		})
+		if err != nil {
+			slog.Warn("通知チャンネル更新の購読に失敗しました", "error", err)
+			return
+		}
+		<-ctx.Done()
+		_ = sub.Unsubscribe()
+	}()
+
 	// ─── WebSocket Hub ────────────────────────────────────────
 	wsHub := notification.NewWebSocketHub(nc)
 
@@ -252,9 +388,26 @@ func main() {
 	tokenBlocklist.StartCleanup()
 	userCache := auth.NewUserStatusCache(pool)
 
+	// ─── 対応アクションの期限切れ監視 ─────────────────────────
+	// エージェントへ送ったコマンドの結果が返らないと、行は dispatched のまま
+	// 残り、UI では「実行中」に見え続ける。操作者が隔離は効いていると
+	// 思い込むのを防ぐため、期限を過ぎた行を timeout に畳む。
+	// RESPONSE_ACTION_TIMEOUT で調整可（既定 15m、下限 2m）。
+	respTimeout := 15 * time.Minute
+	if v := getEnv("RESPONSE_ACTION_TIMEOUT", ""); v != "" {
+		if d, err := time.ParseDuration(v); err == nil {
+			respTimeout = d
+		} else {
+			slog.Warn("RESPONSE_ACTION_TIMEOUT を解釈できませんでした。既定値を使います",
+				"値", v, "既定", respTimeout)
+		}
+	}
+	go scheduler.NewResponseActionTimeoutWorker(responseActionStore, respTimeout).Run(ctx)
+
 	// ─── Handlers ─────────────────────────────────────────────
 	agentHandler := handlers.NewAgentHandler(agentStore, commander)
 	agentHandler.ResponseActions = responseActionStore
+	agentHandler.Isolator = gatekeeper
 	agentHandler.Alerts = alertStore
 	agentHandler.Quarantine = quarantineStore
 	agentHandler.Pool = pool
@@ -327,7 +480,16 @@ func main() {
 
 	// ─── Live Response ────────────────────────────────────────
 	liveResponseStore := store.NewLiveResponseStore(db)
-	liveResponseHandler := handlers.NewLiveResponseHandler(liveResponseStore, pool, nc, commander, baseURL)
+	// エージェントがセッションのポーリングと結果報告に使う URL。EDR_BASE_URL は
+	// 利用者向けの公開 URL (リバースプロキシ経由の HTTPS) を指すため、エージェント
+	// 側のネットワークからそこへ到達できない構成では Live Response が無反応になる。
+	// コマンドの配送自体は成功するので原因が見えにくく、到達可能な URL を
+	// LIVE_RESPONSE_CALLBACK_URL で明示的に指定できるようにする。
+	liveResponseCallbackURL := getEnv("LIVE_RESPONSE_CALLBACK_URL", baseURL)
+	if liveResponseCallbackURL != baseURL {
+		slog.Info("Live Response のコールバック URL を上書きしました", "callback_url", liveResponseCallbackURL)
+	}
+	liveResponseHandler := handlers.NewLiveResponseHandler(liveResponseStore, pool, nc, commander, liveResponseCallbackURL)
 
 	// ─── Live Response Command Queue ──────────────────────────
 	cmdQueueStore := store.NewCmdQueueStore(pool)
@@ -619,7 +781,7 @@ func main() {
 	h.PacketCapture = handlers.NewPacketCaptureHandler(packetCaptureStore)
 
 	// ─── Unified Data Export ───────────────────────────────────
-	h.Export = handlers.NewExportHandler(pool)
+	h.Export = handlers.NewExportHandler(pool).WithEncryptor(tenantEncryptor)
 
 	// ─── Saved Hunt Queries Handler ───────────────────────────
 	h.SavedHunt = savedHuntHandler
@@ -770,31 +932,43 @@ func main() {
 			case <-ctx.Done():
 				return
 			case <-ticker.C:
-				_, total, err := agentStore.ListAgents(ctx, store.AgentFilter{
-					Status: "online", Limit: 1, Offset: 0,
+				tick.Run(ctx, "agent_gauge_poller", func(ctx context.Context) {
+					if _, total, err := agentStore.ListAgents(ctx, store.AgentFilter{
+						Status: "online", Limit: 1, Offset: 0,
+					}); err != nil {
+						// **数えられなかったとき、gauge は前の値のまま
+						// 残ります。** 0 になるより悪い形です —— 画面は
+						// 動いているように見えます。
+						tick.Fail(ctx, err, "オンライン端末数を数えられませんでした")
+					} else {
+						metrics.AgentsOnline.Store(int64(total))
+						metrics.ActiveAgents.Set(float64(total))
+					}
+					// 'offline' only — 'inactive' is a retired host and must not alert
+					// (P5-10: readers that treated inactive as offline produced endless
+					// alerts for decommissioned machines).
+					if _, off, err := agentStore.ListAgents(ctx, store.AgentFilter{
+						Status: "offline", Limit: 1, Offset: 0,
+					}); err != nil {
+						tick.Fail(ctx, err, "オフライン端末数を数えられませんでした")
+					} else {
+						metrics.AgentsOffline.Set(float64(off))
+					}
+					if _, open, err := alertStore.ListAlerts(ctx, store.AlertFilter{
+						Status: "open", Limit: 1, Offset: 0,
+					}); err != nil {
+						tick.Fail(ctx, err, "未対応アラート数を数えられませんでした")
+					} else {
+						metrics.OpenAlerts.Set(float64(open))
+					}
+					if _, crit, err := alertStore.ListAlerts(ctx, store.AlertFilter{
+						Status: "open", Severity: 10, Limit: 1, Offset: 0,
+					}); err != nil {
+						tick.Fail(ctx, err, "重大アラート数を数えられませんでした")
+					} else {
+						metrics.OpenAlertsCritical.Set(float64(crit))
+					}
 				})
-				if err == nil {
-					metrics.AgentsOnline.Store(int64(total))
-					metrics.ActiveAgents.Set(float64(total))
-				}
-				// 'offline' only — 'inactive' is a retired host and must not alert
-				// (P5-10: readers that treated inactive as offline produced endless
-				// alerts for decommissioned machines).
-				if _, off, err := agentStore.ListAgents(ctx, store.AgentFilter{
-					Status: "offline", Limit: 1, Offset: 0,
-				}); err == nil {
-					metrics.AgentsOffline.Set(float64(off))
-				}
-				if _, open, err := alertStore.ListAlerts(ctx, store.AlertFilter{
-					Status: "open", Limit: 1, Offset: 0,
-				}); err == nil {
-					metrics.OpenAlerts.Set(float64(open))
-				}
-				if _, crit, err := alertStore.ListAlerts(ctx, store.AlertFilter{
-					Status: "open", Severity: 10, Limit: 1, Offset: 0,
-				}); err == nil {
-					metrics.OpenAlertsCritical.Set(float64(crit))
-				}
 			}
 		}
 	}()
@@ -813,32 +987,53 @@ func main() {
 			case <-ctx.Done():
 				return
 			case <-ticker.C:
-				due, err := threatFeedStore.GetDueForSync(ctx)
-				if err != nil {
-					slog.Warn("脅威フィードの確認に失敗しました", "error", err)
-					continue
-				}
-				for _, feed := range due {
-					feed := feed
-					go func() {
-						defer func() {
-							if r := recover(); r != nil {
-								slog.Error("threat feed sync panic", "feed", feed.Name, "panic", r)
+				tick.Run(ctx, "threat_feed_autosync", func(ctx context.Context) {
+					due, err := threatFeedStore.GetDueForSync(ctx)
+					if err != nil {
+						// **どのフィードが期限なのか読めていません。**
+						// この回は1本も同期していないので、Warn では
+						// なくこの回の失敗です。
+						tick.Fail(ctx, err, "期限の来た脅威フィードを読めませんでした")
+						return
+					}
+					for _, feed := range due {
+						feed := feed
+						go func() {
+							defer func() {
+								if r := recover(); r != nil {
+									slog.Error("threat feed sync panic", "feed", feed.Name, "panic", r)
+								}
+							}()
+							slog.Info("脅威フィード同期開始", "feed", feed.Name)
+							count, err := handlers.SyncFeedExternal(ctx, feed, iocStore)
+							if err != nil {
+								// **この回の外です**（別の goroutine で、
+								// 回はもう終わっています）。部品ごとの
+								// 件数が残せる跡です。
+								metrics.BackgroundFailed("threat_feed_sync", err,
+									"脅威フィードを同期できませんでした", "feed", feed.Name)
+								return
+							}
+							if err := threatFeedStore.MarkSynced(ctx, feed.ID, count); err != nil {
+								// **記録できないと、次の周回も同じ
+								// フィードが「期限切れ」で挙がります。**
+								metrics.BackgroundFailed("threat_feed_sync", err,
+									"脅威フィードの同期完了を記録できませんでした",
+									"feed", feed.Name, "imported", count)
+							}
+							if count > 0 {
+								if err := nc.Publish("ioc.invalidate", []byte("{}")); err != nil {
+									// **取り込んだ IOC が検知に効きません。**
+									metrics.BackgroundFailed("threat_feed_sync", err,
+										"IOC キャッシュの更新を通知できませんでした",
+										"feed", feed.Name, "imported", count)
+									return
+								}
+								slog.Info("フィードスケジューラ: IOCキャッシュを更新しました", "feed", feed.Name, "imported", count)
 							}
 						}()
-						slog.Info("脅威フィード同期開始", "feed", feed.Name)
-						count, err := handlers.SyncFeedExternal(ctx, feed, iocStore)
-						if err != nil {
-							slog.Warn("フィード同期に失敗しました", "feed", feed.Name, "error", err)
-							return
-						}
-						_ = threatFeedStore.MarkSynced(ctx, feed.ID, count)
-						if count > 0 {
-							_ = nc.Publish("ioc.invalidate", []byte("{}"))
-							slog.Info("フィードスケジューラ: IOCキャッシュを更新しました", "feed", feed.Name, "imported", count)
-						}
-					}()
-				}
+					}
+				})
 			}
 		}
 	}()
@@ -857,28 +1052,41 @@ func main() {
 			case <-ctx.Done():
 				return
 			case <-ticker.C:
-				due, err := reportScheduleStore.GetDue(ctx)
-				if err != nil {
-					slog.Warn("スケジュールレポートの確認に失敗しました", "error", err)
-					continue
-				}
-				for _, sc := range due {
-					sc := sc // capture
-					go func() {
-						defer func() {
-							if r := recover(); r != nil {
-								slog.Error("scheduled report panic", "name", sc.Name, "panic", r)
+				tick.Run(ctx, "scheduled_report_runner", func(ctx context.Context) {
+					due, err := reportScheduleStore.GetDue(ctx)
+					if err != nil {
+						// **どのレポートが期限なのか読めていません。**
+						// この回は1本も送っていません。
+						tick.Fail(ctx, err, "期限の来たスケジュールレポートを読めませんでした")
+						return
+					}
+					for _, sc := range due {
+						sc := sc // capture
+						go func() {
+							defer func() {
+								if r := recover(); r != nil {
+									slog.Error("scheduled report panic", "name", sc.Name, "panic", r)
+								}
+							}()
+							slog.Info("スケジュールレポートを実行中", "name", sc.Name, "type", sc.ReportType)
+							msg := "[スケジュールレポート] " + sc.Name + " (" + sc.ReportType + ") を実行しました"
+							if err := dispatcher.NotifyText(ctx, msg, 2); err != nil {
+								// **通知が届いていません。** 回の外なので
+								// 部品ごとの件数に出します。
+								metrics.BackgroundFailed("scheduled_report", err,
+									"スケジュールレポートの通知を送れませんでした", "name", sc.Name)
+							}
+							next := store.ComputeNextRun(sc, time.Now().UTC())
+							if err := reportScheduleStore.MarkRun(ctx, sc.ID, next); err != nil {
+								// **次回実行が進まないので、同じレポートが
+								// 毎分挙がり続けます。**
+								metrics.BackgroundFailed("scheduled_report", err,
+									"スケジュールレポートの実行を記録できませんでした",
+									"id", sc.ID, "name", sc.Name)
 							}
 						}()
-						slog.Info("スケジュールレポートを実行中", "name", sc.Name, "type", sc.ReportType)
-						msg := "[スケジュールレポート] " + sc.Name + " (" + sc.ReportType + ") を実行しました"
-						_ = dispatcher.NotifyText(ctx, msg, 2)
-						next := store.ComputeNextRun(sc, time.Now().UTC())
-						if err := reportScheduleStore.MarkRun(ctx, sc.ID, next); err != nil {
-							slog.Warn("MarkRunに失敗しました", "id", sc.ID, "error", err)
-						}
-					}()
-				}
+					}
+				})
 			}
 		}
 	}()
@@ -889,14 +1097,9 @@ func main() {
 	slog.Info("レポートメール配信スケジューラーを開始しました")
 
 	// ─── Threat Feed Auto-Update Scheduler ───────────────────
-	// 公開 IOC ブロックリストの取得は既定で有効。外向き通信を一切出したく
-	// ない環境は THREAT_FEED_SYNC_ENABLED=false で全停止できる（個別に
-	// 止めるなら threat_feeds.is_active）。README の外部通信表を参照。
-	feedSyncEnabled := scheduler.ThreatFeedSyncEnabled(os.Getenv("THREAT_FEED_SYNC_ENABLED"))
-	feedScheduler := scheduler.NewFeedScheduler(pool, threatFeedStore, 6*time.Hour).
-		WithEnabled(feedSyncEnabled)
+	feedScheduler := scheduler.NewFeedScheduler(pool, threatFeedStore, 6*time.Hour)
 	go feedScheduler.Run(ctx)
-	slog.Info("脅威フィード自動更新スケジューラーを開始しました", "enabled", feedSyncEnabled)
+	slog.Info("脅威フィード自動更新スケジューラーを開始しました")
 
 	// ─── IOC Expiry Sweeper ───────────────────────────────────
 	// Deactivate IOCs whose STIX valid_until (expires_at) has passed.
@@ -974,7 +1177,7 @@ func main() {
 			case <-ctx.Done():
 				return
 			case <-ticker.C:
-				liveResponseStore.ExpireOldSessions(ctx)
+				tick.Run(ctx, "live_response_session_expiry", liveResponseStore.ExpireOldSessions)
 			}
 		}
 	}()
@@ -993,10 +1196,19 @@ func main() {
 			case <-ctx.Done():
 				return
 			case <-ticker.C:
-				n, err := cmdQueueStore.TimeoutStale(ctx)
-				if err == nil && n > 0 {
-					slog.Info("期限切れコマンドをタイムアウトしました", "count", n)
-				}
+				tick.Run(ctx, "live_response_command_timeout", func(ctx context.Context) {
+					n, err := cmdQueueStore.TimeoutStale(ctx)
+					if err != nil {
+						// **期限切れのコマンドが `pending` のまま残ります**
+						// —— 画面では、担当者が出したコマンドが端末に
+						// 届いていないのか、まだ実行中なのか分かりません。
+						tick.Fail(ctx, err, "期限切れコマンドをタイムアウトできませんでした")
+						return
+					}
+					if n > 0 {
+						slog.Info("期限切れコマンドをタイムアウトしました", "count", n)
+					}
+				})
 			}
 		}
 	}()
@@ -1019,7 +1231,12 @@ func main() {
 			case <-ctx.Done():
 				return
 			case <-ticker.C:
-				_ = sessionStore.CleanupExpired(ctx)
+				tick.Run(ctx, "session_cleanup", func(ctx context.Context) {
+					if err := sessionStore.CleanupExpired(ctx); err != nil {
+						// **期限切れのセッションが残り続けます。**
+						tick.Fail(ctx, err, "期限切れセッションを掃除できませんでした")
+					}
+				})
 			}
 		}
 	}()
@@ -1079,19 +1296,17 @@ func main() {
 	go scheduler.NewMDMCredentialExpiryChecker(pool, nc).Run(ctx)
 	slog.Info("MDM資格情報有効期限チェッカーを開始しました")
 
-	// ─── IOC Matcher Scheduler ────────────────────────────────
-	go scheduler.NewIOCMatcher(pool, nc).Run(ctx)
-	slog.Info("IOCマッチャースケジューラーを開始しました")
-
 	// ─── Retroactive IOC Hunter ───────────────────────────────
-	// Live matcher covers "new events × all IOCs"; this covers "historical
-	// events × newly-added IOCs" so a freshly-synced feed (e.g. ThreatFox)
-	// surfaces intrusions that already happened. 30-day lookback, 6h cadence.
+	// detection.IOCMatcher (in cmd/detection) covers "new events × all IOCs";
+	// this covers "historical events × newly-added IOCs" so a freshly-synced
+	// feed (e.g. ThreatFox) surfaces intrusions that already happened.
+	// 30-day lookback, 6h cadence.
 	go scheduler.NewRetroIOCHunter(pool, nc, 30, 6*time.Hour).Run(ctx)
 	slog.Info("レトロアクティブIOCハンターを開始しました")
 
 	// ─── Remediation Engine (早期初期化: Detection Pipeline が参照するため) ──
 	earlyRemediationEngine := remediation.NewEngine(pool, nc)
+	earlyRemediationEngine.SetIsolator(gatekeeper)
 	remediation.LoadBuiltins(earlyRemediationEngine)
 	if err := earlyRemediationEngine.LoadExclusionsFromDB(ctx); err != nil {
 		slog.Warn("自動修復エンジン: 除外リストの読み込みに失敗しました", "error", err)
@@ -1107,6 +1322,44 @@ func main() {
 	pipeline := detection.NewAlertPipeline(pool, nc)
 	pipeline.SetRemediationEngine(earlyRemediationEngine)
 	pipeline.SetCorrelationEngine(correlationEngine)
+
+	// ─── 抑制ルール (運用者が UI で作るもの) ──────────────────
+	//
+	// ★ ここが繋がっていないと、抑制ルールを作ってもアラートが止まらない。
+	//
+	// 抑制エンジンは前からあり server-detect は起動時から見ていたが、P4-6 (#647)
+	// で DB Sigma ルールの所有権が server-api に移り、リアルタイムのアラートは
+	// ほぼ全部この AlertPipeline が作るようになった。**アラートを作る側が
+	// 入れ替わったのに結線が移らなかった**ため、UI 上は有効に見える抑制ルールが
+	// 実際には何も抑えていない、という状態が残っていた。
+	//
+	// 読み込みは 5 分ごと + 起動時。ローダは server-detect と同じ実装
+	// (PoolSuppressionLoader) なので、両プロセスが同じ行を同じ解釈で見る。
+	suppressionMatcher := detection.NewSuppressionMatcher(detection.NewPoolSuppressionLoader(pool))
+	suppressionMatcher.Start(ctx)
+	pipeline.SetSuppressionMatcher(suppressionMatcher, suppressionStore)
+	// 自分の封じ込め操作が端末のファイアウォールを変え、それをファイアウォール改変の
+	// ルールが検知する自己検知ループを止める。detection/self_remediation_suppression.go
+	pipeline.SetSelfRemediationSuppressor(detection.NewSelfRemediationSuppressor(responseActionStore))
+	slog.Info("抑制ルールを AlertPipeline に結線しました", "count", suppressionMatcher.Count())
+	// UI から抑制ルールを作った直後に効かせる。suppressions_handler.go が
+	// suppressions.invalidate を publish しており、server-detect は最初から
+	// 購読していた。こちらだけ 5 分待たされると、「作ったのに止まらない」を
+	// 運用者が結線漏れと区別できない。
+	if nc != nil {
+		go func() {
+			sub, err := nc.Subscribe("suppressions.invalidate", func(_ *nats.Msg) {
+				suppressionMatcher.RefreshNow(ctx)
+				slog.Info("抑制ルールキャッシュをリフレッシュしました (NATS シグナル)")
+			})
+			if err != nil {
+				slog.Warn("suppressions.invalidate購読に失敗しました", "error", err)
+				return
+			}
+			<-ctx.Done()
+			_ = sub.Unsubscribe()
+		}()
+	}
 	sigmaEval := pipeline.GetSigmaEvaluator()
 	// Load built-in MITRE ATT&CK-aligned Sigma rules first
 	builtinCount := detection.LoadBuiltinRules(sigmaEval)
@@ -1159,10 +1412,6 @@ func main() {
 	// ─── System Settings Handler ──────────────────────────────
 	h.SystemSettings = handlers.NewSystemSettingsHandler(pool)
 
-	// ─── Alert Aggregator Scheduler ───────────────────────────
-	go scheduler.NewAlertAggregator(pool).Run(ctx)
-	slog.Info("アラートアグリゲーターを開始しました")
-
 	// ─── SOC デイリーブリーフィング（毎朝8時）────────────────
 	var natsPub func(string, []byte) error
 	if nc != nil {
@@ -1194,10 +1443,7 @@ func main() {
 	)
 
 	// ─── Dark Web Monitor ─────────────────────────────────────
-	// オプトイン。有効にすると起動直後に ransomwatch / ransomware.live へ
-	// 外向き HTTPS が出るため、明示的に true を設定した場合だけ動かす。
-	// 「既定では何も外に出ない」を実装側で保証するのはここ。
-	darkwebEnabled := scheduler.DarkWebEnabled(os.Getenv("DARKWEB_MONITOR_ENABLED"))
+	darkwebEnabled := os.Getenv("DARKWEB_MONITOR_ENABLED") != "false"
 	torProxy := os.Getenv("TOR_PROXY_URL")
 	darkwebSched := scheduler.NewDarkWebScheduler(pool, torProxy, darkwebEnabled)
 	// 即時通知設定（検知時に別途 Slack/Webhook へ緊急通知）
@@ -1233,9 +1479,12 @@ func main() {
 	go handlers.NewAlertEnrichmentPipeline(pool).Run(ctx)
 	slog.Info("アラートエンリッチメントパイプラインを開始しました")
 
-	// ─── Report Generator Scheduler ───────────────────────────
-	go scheduler.NewReportGenerator(pool, getEnv("REPORT_DIR", "./reports")).Run(ctx)
-	slog.Info("レポートジェネレーターを開始しました")
+	// スケジュールレポートの実行は reports.Scheduler が担当する (下方で起動)。
+	// ここには scheduler.ReportGenerator という 2 つめのループが存在していたが、
+	// 同じ scheduled_reports テーブルを、存在しない列名 (next_run_at) で読み書き
+	// していた。次回実行時刻の絞り込みが効かず、有効なレポートを 5 分ごとに
+	// 無条件で再生成し続けていた (実測: 3 tick で 3 本、next_run が翌日でも生成)。
+	// 生成物の記録先も存在しない reports テーブルで、recipients も未使用だった。
 
 	// ─── Dead Agent Cleanup Scheduler ─────────────────────────
 	go scheduler.NewDeadAgentCleanup(pool, nc).Run(ctx)
@@ -1263,6 +1512,27 @@ func main() {
 	go scheduler.NewComplianceScorer(pool).Run(ctx)
 	slog.Info("コンプライアンススコアラーを開始しました")
 
+	// ─── CSPM 定期スキャン ─────────────────────────────────────
+	// 引受情報 (ロール ARN + 外部 ID) が設定済みの AWS アカウントだけを
+	// 対象にするので、未設定の環境では何もしない。
+	//
+	// EDR_CSPM_SCAN_INTERVAL_HOURS=0 で停止できる。顧客の AWS に対する
+	// API 呼び出しなので、止める手段を rebuild 無しで用意しておく。
+	cspmScanHours := getEnvInt("EDR_CSPM_SCAN_INTERVAL_HOURS", 24)
+	if os.Getenv("EDR_CSPM_SCAN_INTERVAL_HOURS") == "0" {
+		slog.Info("CSPM 定期スキャンは無効化されています (EDR_CSPM_SCAN_INTERVAL_HOURS=0)")
+	} else {
+		// 通知先は既存のアラート通知チャンネル (Slack / メール / Webhook /
+		// Teams) を共有する。CSPM 専用の設定を増やさないのは、送り先が
+		// 分かれていると片方だけ設定されていない状態に気づけないため。
+		go scheduler.NewCSPMScanner(
+			store.NewCSPMStore(pool),
+			15*time.Minute,
+			time.Duration(cspmScanHours)*time.Hour,
+		).WithNotifier(dispatcher, baseURL).Run(ctx)
+		slog.Info("CSPM 定期スキャンを開始しました", "interval_hours", cspmScanHours)
+	}
+
 	// ─── Asset Criticality Scorer Scheduler ───────────────────
 	go scheduler.NewAssetCriticalityScorer(pool).Run(ctx)
 	slog.Info("資産重要度スコアラーを開始しました")
@@ -1273,8 +1543,8 @@ func main() {
 	slog.Info("コンプライアンスアラーターを開始しました")
 
 	// ─── Threat Feed Auto-Import Scheduler ───────────────────
-	go scheduler.NewThreatFeedImporter(pool, nc).WithEnabled(feedSyncEnabled).Run(ctx)
-	slog.Info("脅威フィード自動インポートスケジューラーを開始しました", "enabled", feedSyncEnabled)
+	go scheduler.NewThreatFeedImporter(pool, nc).Run(ctx)
+	slog.Info("脅威フィード自動インポートスケジューラーを開始しました")
 
 	// ─── Log Ingestion Handler ────────────────────────────────
 	h.LogIngestion = handlers.NewLogIngestionHandler(pool)
@@ -1360,10 +1630,6 @@ func main() {
 
 	// ─── Vulnerability Remediation Tracking (Task #407) ───────
 	h.VulnRemediation = handlers.NewVulnRemediationHandler(pool)
-
-	// ─── Threat Hunt Automator (Task #409) ────────────────────
-	go scheduler.NewThreatHuntAutomator(pool, nc).Run(ctx)
-	slog.Info("脅威ハントオートメーターを開始しました")
 
 	// ─── Third-Party/Supply Chain Risk Management (Task #411) ─
 	h.VendorRisk = handlers.NewVendorRiskHandler(pool)
@@ -1581,7 +1847,7 @@ func main() {
 	h.TrainingMgmt = handlers.NewTrainingMgmtHandler(pool)
 
 	// ─── Quarantine Actions (Migration 156) ───────────────────────
-	h.QuarantineActions = handlers.NewQuarantineActionsHandlerWithCommander(pool, commander)
+	h.QuarantineActions = handlers.NewQuarantineActionsHandlerWithIsolator(pool, gatekeeper)
 
 	// ─── Security SLA (Migration 157) ─────────────────────────────
 	h.SecuritySLA = handlers.NewSecuritySLAHandler(pool)
@@ -1654,7 +1920,7 @@ func main() {
 	}()
 
 	// ─── Production Readiness: Health Probes ─────────────────
-	h.Health = handlers.NewHealthHandler(pool, "1.0.0")
+	h.Health = handlers.NewHealthHandler(pool, Version).WithBuildInfo(Commit, BuildDate)
 
 	// ─── Threat Intelligence Feed Manager (Migration 177) ────
 	tiManager := threatintel.NewFeedManager(pool)
@@ -1679,10 +1945,11 @@ func main() {
 	h.Scorecard = handlers.NewScorecardHandler(scorecardScorer)
 	slog.Info("セキュリティスコアカードスコアラーを初期化しました")
 
-	// ─── Organization Store (multi-tenant) ───────────────────
-	orgStore := tenant.NewStore(pool)
-	h.Org = handlers.NewOrgHandler(orgStore)
-	slog.Info("マルチテナント組織ストアを初期化しました")
+	// Multi-tenant management is wired through TenantHandler and
+	// MultiTenantHandler, which read the `tenants` table every tenant_id
+	// foreign key points at. The organization store that used to be here read a
+	// parallel `organizations` table nothing referenced; migration 380 dropped
+	// it along with its handler and routes.
 
 	// ─── GeoIP Threat Map ─────────────────────────────────────
 	h.GeoIP = handlers.NewGeoIPHandler(pool)

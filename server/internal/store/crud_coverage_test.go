@@ -1390,7 +1390,9 @@ func TestBehavioralBaselineStore_CRUD(t *testing.T) {
 	if err := s.SaveConfig(ctx, &store.BaselineConfig{LearningPeriodDays: 14, ConfidenceThreshold: 0.8, AutoAlertOnDeviation: true, DeviationSensitivity: "medium"}); err != nil {
 		t.Fatalf("SaveConfig: %v", err)
 	}
-	_ = s.GetExclusionRules(ctx, aid)
+	if _, err := s.GetExclusionRules(ctx, aid); err != nil {
+		t.Fatalf("GetExclusionRules: %v", err)
+	}
 }
 
 func TestPacketCaptureStore_CRUD(t *testing.T) {
@@ -1884,13 +1886,24 @@ func TestCmdQueueStore_CRUD(t *testing.T) {
 		t.Fatalf("PendingForAgent: %v", err)
 	}
 	ec := 0
-	if err := s.UpdateResult(ctx, c1.ID, "completed", "root", &ec); err != nil {
+	applied, err := s.UpdateResult(ctx, c1.ID, "completed", "root", &ec)
+	if err != nil {
 		t.Fatalf("UpdateResult: %v", err)
 	}
-	// NOTE: CmdQueueStore.Cancel sets status='failed', which the
-	// live_response_commands status CHECK rejects (allowed: pending/running/
-	// completed/error/timeout). It is a separate latent bug left unfixed here
-	// because the intended "cancelled" status value is ambiguous.
+	if !applied {
+		t.Fatal("UpdateResult applied to no command")
+	}
+	// Cancel used to write status='failed', which the live_response_commands
+	// CHECK rejects (pending/running/completed/error/timeout), so every
+	// cancellation failed with 23514 and the command stayed pending. It now
+	// writes QueuedCommandError; see live_response_queue_test.go for the gate.
+	c2, err := s.Create(ctx, store.CreateQueuedCommandInput{AgentID: aid, SessionID: &sess.ID, CommandType: "shell", Command: "id", Args: json.RawMessage(`{}`)})
+	if err != nil {
+		t.Fatalf("Create: %v", err)
+	}
+	if err := s.Cancel(ctx, c2.ID); err != nil {
+		t.Fatalf("Cancel: %v", err)
+	}
 	if _, err := s.TimeoutStale(ctx); err != nil {
 		t.Fatalf("TimeoutStale: %v", err)
 	}

@@ -96,6 +96,10 @@ func (s *InvitationStore) FindByToken(ctx context.Context, rawToken string) (*In
 			return &inv, nil
 		}
 	}
+	// 部分結果を完全な一覧として返さない（scan_truncation_guard_test.go 参照）
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
 
 	return nil, fmt.Errorf("招待が見つかりません。期限切れか無効なトークンです")
 }
@@ -133,6 +137,10 @@ func (s *InvitationStore) ListPending(ctx context.Context) ([]Invitation, error)
 			continue
 		}
 		invitations = append(invitations, inv)
+	}
+	// 部分結果を完全な一覧として返さない（scan_truncation_guard_test.go 参照）
+	if err := rows.Err(); err != nil {
+		return nil, err
 	}
 	if invitations == nil {
 		invitations = []Invitation{}

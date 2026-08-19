@@ -8,6 +8,9 @@ import {
   Activity, Shield, Eye, Zap, Clock, Server, AlertTriangle, Check
 } from 'lucide-react'
 
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+import { PageSaveFailed } from '@/components/PageSaveFailed'
+
 // ── Types ───────────────────────────────────────────────────────
 
 interface Honeypot {
@@ -89,11 +92,10 @@ function Toast({ message, onClose }: { message: string; onClose: () => void }) {
     return () => clearTimeout(t)
   }, [onClose])
   return (
-    <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 px-4 py-3 rounded-lg
-                    bg-falcon-surface border border-green-500/40 text-green-300 shadow-xl animate-fade-in">
+    <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 px-4 py-3 rounded-lg bg-[#0d1220] border border-green-500/40 text-green-300 shadow-xl animate-fade-in">
       <Check className="w-4 h-4 text-green-400" />
       <span className="text-sm font-medium">{message}</span>
-      <button onClick={onClose} className="ml-2 text-falcon-muted hover:text-white">
+      <button onClick={onClose} className="ml-2 text-[#7d92b0] hover:text-white">
         <X className="w-4 h-4" />
       </button>
     </div>
@@ -140,30 +142,30 @@ function HoneypotModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs">
-      <div className="w-full max-w-lg bg-falcon-surface border border-falcon-border rounded-xl shadow-2xl">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-falcon-border">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+      <div className="w-full max-w-lg bg-[#0d1220] border border-[#1e2d42] rounded-xl shadow-2xl">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[#1e2d42]">
           <h2 className="text-white font-semibold text-base">
             {honeypot ? 'ハニーポット編集' : 'ハニーポット追加'}
           </h2>
-          <button onClick={onClose} className="text-falcon-muted hover:text-white transition-colors">
+          <button onClick={onClose} className="text-[#7d92b0] hover:text-white transition-colors">
             <X className="w-5 h-5" />
           </button>
         </div>
         <div className="p-6 space-y-4">
           <div>
-            <label className="block text-xs text-falcon-muted mb-1">名前 *</label>
+            <label className="block text-xs text-[#7d92b0] mb-1">名前 *</label>
             <input
-              className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-sm text-falcon-text focus:outline-hidden focus:border-falcon-blue transition-colors"
+              className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-[#e2e8f4] focus:outline-hidden focus:border-[#1a6bff] transition-colors"
               value={form.name}
               onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
               placeholder="例: Web Decoy Server"
             />
           </div>
           <div>
-            <label className="block text-xs text-falcon-muted mb-1">説明</label>
+            <label className="block text-xs text-[#7d92b0] mb-1">説明</label>
             <textarea
-              className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-sm text-falcon-text focus:outline-hidden focus:border-falcon-blue transition-colors resize-none h-20"
+              className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-[#e2e8f4] focus:outline-hidden focus:border-[#1a6bff] transition-colors resize-none h-20"
               value={form.description}
               onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
               placeholder="ハニーポットの説明を入力してください"
@@ -171,9 +173,9 @@ function HoneypotModal({
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs text-falcon-muted mb-1">タイプ *</label>
+              <label className="block text-xs text-[#7d92b0] mb-1">タイプ *</label>
               <select
-                className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-sm text-falcon-text focus:outline-hidden focus:border-falcon-blue"
+                className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-[#e2e8f4] focus:outline-hidden focus:border-[#1a6bff]"
                 value={form.honeypot_type}
                 onChange={e => handleTypeChange(e.target.value as Honeypot['honeypot_type'])}
               >
@@ -185,9 +187,9 @@ function HoneypotModal({
               </select>
             </div>
             <div>
-              <label className="block text-xs text-falcon-muted mb-1">エージェント</label>
+              <label className="block text-xs text-[#7d92b0] mb-1">エージェント</label>
               <select
-                className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-sm text-falcon-text focus:outline-hidden focus:border-falcon-blue"
+                className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-[#e2e8f4] focus:outline-hidden focus:border-[#1a6bff]"
                 value={form.agent_id}
                 onChange={e => setForm(f => ({ ...f, agent_id: e.target.value }))}
               >
@@ -200,19 +202,19 @@ function HoneypotModal({
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs text-falcon-muted mb-1">リッスンアドレス *</label>
+              <label className="block text-xs text-[#7d92b0] mb-1">リッスンアドレス *</label>
               <input
-                className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-sm text-falcon-text focus:outline-hidden focus:border-falcon-blue font-mono transition-colors"
+                className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-[#e2e8f4] focus:outline-hidden focus:border-[#1a6bff] font-mono transition-colors"
                 value={form.listen_address}
                 onChange={e => setForm(f => ({ ...f, listen_address: e.target.value }))}
                 placeholder="0.0.0.0"
               />
             </div>
             <div>
-              <label className="block text-xs text-falcon-muted mb-1">ポート *</label>
+              <label className="block text-xs text-[#7d92b0] mb-1">ポート *</label>
               <input
                 type="number"
-                className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-sm text-falcon-text focus:outline-hidden focus:border-falcon-blue font-mono transition-colors"
+                className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-[#e2e8f4] focus:outline-hidden focus:border-[#1a6bff] font-mono transition-colors"
                 value={form.listen_port}
                 onChange={e => setForm(f => ({ ...f, listen_port: parseInt(e.target.value) || 0 }))}
                 min={1}
@@ -220,10 +222,10 @@ function HoneypotModal({
               />
             </div>
           </div>
-          <div className="flex items-center justify-between py-2 px-3 bg-[#070d19] rounded-lg border border-falcon-border">
+          <div className="flex items-center justify-between py-2 px-3 bg-[#070d19] rounded-lg border border-[#1e2d42]">
             <div>
-              <p className="text-sm text-falcon-text font-medium">アクセス時アラート</p>
-              <p className="text-xs text-falcon-muted">アクセスが検知された際にアラートを発生させる</p>
+              <p className="text-sm text-[#e2e8f4] font-medium">アクセス時アラート</p>
+              <p className="text-xs text-[#7d92b0]">アクセスが検知された際にアラートを発生させる</p>
             </div>
             <button
               onClick={() => setForm(f => ({ ...f, alert_on_access: !f.alert_on_access }))}
@@ -231,21 +233,21 @@ function HoneypotModal({
             >
               {form.alert_on_access
                 ? <ToggleRight className="w-8 h-8 text-green-400" />
-                : <ToggleLeft className="w-8 h-8 text-falcon-subtle" />}
+                : <ToggleLeft className="w-8 h-8 text-[#3d5068]" />}
             </button>
           </div>
         </div>
-        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-falcon-border">
+        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-[#1e2d42]">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-sm text-falcon-muted hover:text-white transition-colors"
+            className="px-4 py-2 text-sm text-[#7d92b0] hover:text-white transition-colors"
           >
             キャンセル
           </button>
           <button
             onClick={() => { if (form.name) onSave(form) }}
             disabled={!form.name}
-            className="px-4 py-2 text-sm bg-falcon-red hover:bg-[#c0001f] disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-colors"
+            className="px-4 py-2 text-sm bg-[#e8002d] hover:bg-[#c0001f] disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-colors"
           >
             保存
           </button>
@@ -275,54 +277,54 @@ export default function HoneypotsPage() {
   }, [activeTab])
 
   // ── Queries ──────────────────────────────────────────────────
-  const { data: stats } = useQuery<HoneypotStats>({
+  const { data: stats = { total: 0, active: 0, accesses_today: 0, unique_source_ips: 0 } as HoneypotStats } = useQuery<HoneypotStats>({
     queryKey: ['honeypot-stats'],
-    queryFn: () => apiFetch<HoneypotStats>('/api/v1/admin/honeypots/stats').catch(() => ({ total: 0, active: 0, accesses_today: 0, unique_source_ips: 0 } as HoneypotStats)),
+    queryFn: () => apiFetch<HoneypotStats>('/api/v1/admin/honeypots/stats'),
     staleTime: 30_000,
   })
 
   const { data: honeypots = [], isLoading: loadingHoneypots } = useQuery<Honeypot[]>({
     queryKey: ['honeypots'],
-    queryFn: () => apiFetchList<Honeypot>('/api/v1/admin/honeypots').catch(() => []),
+    queryFn: () => apiFetchList<Honeypot>('/api/v1/admin/honeypots'),
     staleTime: 30_000,
   })
 
   const { data: accesses = [], isLoading: loadingAccesses } = useQuery<HoneypotAccess[]>({
     queryKey: ['honeypot-accesses', liveRefresh],
-    queryFn: () => apiFetchList<HoneypotAccess>('/api/v1/admin/honeypots/accesses').catch(() => []),
+    queryFn: () => apiFetchList<HoneypotAccess>('/api/v1/admin/honeypots/accesses'),
     enabled: activeTab === 'access',
     staleTime: 0,
   })
 
   const { data: agents = [] } = useQuery<Agent[]>({
     queryKey: ['agents-for-honeypots'],
-    queryFn: () => apiFetchList<Agent>('/api/v1/agents').catch(() => []),
+    queryFn: () => apiFetchList<Agent>('/api/v1/agents'),
   })
 
   // ── Mutations ────────────────────────────────────────────────
   const createMutation = useMutation({
-    mutationFn: (data: HoneypotFormData) => apiFetch('/api/v1/admin/honeypots', { method: 'POST', body: JSON.stringify(data) }).catch(() => ({ ...data, id: `hp-${Date.now()}`, access_count: 0, last_accessed: null, enabled: true, created_at: new Date().toISOString() })),
+    mutationFn: (data: HoneypotFormData) => apiFetch('/api/v1/admin/honeypots', { method: 'POST', body: JSON.stringify(data) }),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['honeypots'] }); setShowModal(false); setToast('ハニーポットを追加しました') },
   })
 
   const updateMutation = useMutation({
     mutationFn: ({ id, data }: { id: string; data: HoneypotFormData }) =>
-      apiFetch(`/api/v1/admin/honeypots/${id}`, { method: 'PUT', body: JSON.stringify(data) }).catch(() => data),
+      apiFetch(`/api/v1/admin/honeypots/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['honeypots'] }); setShowModal(false); setEditingHoneypot(undefined); setToast('ハニーポットを更新しました') },
   })
 
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => apiFetch(`/api/v1/admin/honeypots/${id}`, { method: 'DELETE' }).catch(() => ({})),
+    mutationFn: (id: string) => apiFetch(`/api/v1/admin/honeypots/${id}`, { method: 'DELETE' }),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['honeypots'] }); setToast('ハニーポットを削除しました') },
   })
 
   const toggleMutation = useMutation({
-    mutationFn: (id: string) => apiFetch(`/api/v1/admin/honeypots/${id}/toggle`, { method: 'POST' }).catch(() => ({})),
+    mutationFn: (id: string) => apiFetch(`/api/v1/admin/honeypots/${id}/toggle`, { method: 'POST' }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['honeypots'] }),
   })
 
   const simulateMutation = useMutation({
-    mutationFn: (id: string) => apiFetch(`/api/v1/admin/honeypots/${id}/simulate`, { method: 'POST' }).catch(() => ({})),
+    mutationFn: (id: string) => apiFetch(`/api/v1/admin/honeypots/${id}/simulate`, { method: 'POST' }),
     onSuccess: () => setToast('アクセスシミュレーション完了'),
   })
 
@@ -360,7 +362,9 @@ export default function HoneypotsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#070d19] text-falcon-text">
+    <div className="min-h-screen bg-[#070d19] text-[#e2e8f4]">
+      <PageDataUnavailable />
+      <PageSaveFailed />
       {toast && <Toast message={toast} onClose={() => setToast(null)} />}
       {showModal && (
         <HoneypotModal
@@ -376,16 +380,16 @@ export default function HoneypotsPage() {
         <div className="flex items-start justify-between">
           <div>
             <div className="flex items-center gap-3 mb-1">
-              <div className="w-9 h-9 rounded-lg bg-falcon-red/10 border border-falcon-red/20 flex items-center justify-center">
-                <Bug className="w-5 h-5 text-falcon-red" />
+              <div className="w-9 h-9 rounded-lg bg-[#e8002d]/10 border border-[#e8002d]/20 flex items-center justify-center">
+                <Bug className="w-5 h-5 text-[#e8002d]" />
               </div>
               <h1 className="text-2xl font-bold text-white">ハニーポット管理</h1>
             </div>
-            <p className="text-sm text-falcon-muted ml-12">囮エンドポイントでの不審アクセスを検知します</p>
+            <p className="text-sm text-[#7d92b0] ml-12">囮エンドポイントでの不審アクセスを検知します</p>
           </div>
           <button
             onClick={handleAdd}
-            className="flex items-center gap-2 px-4 py-2 bg-falcon-red hover:bg-[#c0001f] text-white text-sm font-medium rounded-lg transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-[#e8002d] hover:bg-[#c0001f] text-white text-sm font-medium rounded-lg transition-colors"
           >
             <Plus className="w-4 h-4" />
             ハニーポット追加
@@ -395,14 +399,14 @@ export default function HoneypotsPage() {
         {/* Stats Row */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {[
-            { label: '合計ハニーポット', value: displayStats.total, icon: Bug, color: 'text-falcon-muted' },
+            { label: '合計ハニーポット', value: displayStats.total, icon: Bug, color: 'text-[#7d92b0]' },
             { label: 'アクティブ', value: displayStats.active, icon: Activity, color: 'text-green-400' },
-            { label: '今日のアクセス', value: displayStats.accesses_today, icon: Eye, color: 'text-falcon-red' },
+            { label: '今日のアクセス', value: displayStats.accesses_today, icon: Eye, color: 'text-[#e8002d]' },
             { label: 'ユニーク送信元IP', value: displayStats.unique_source_ips, icon: Shield, color: 'text-blue-400' },
           ].map(({ label, value, icon: Icon, color }) => (
-            <div key={label} className="bg-falcon-surface border border-falcon-border rounded-xl p-4">
+            <div key={label} className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-4">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-xs text-falcon-muted">{label}</span>
+                <span className="text-xs text-[#7d92b0]">{label}</span>
                 <Icon className={`w-4 h-4 ${color}`} />
               </div>
               <div className={`text-2xl font-bold ${color}`}>{value}</div>
@@ -411,7 +415,7 @@ export default function HoneypotsPage() {
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-1 bg-falcon-surface border border-falcon-border rounded-lg p-1 w-fit">
+        <div className="flex gap-1 bg-[#0d1220] border border-[#1e2d42] rounded-lg p-1 w-fit">
           {([
             { key: 'list', label: 'ハニーポット一覧' },
             { key: 'access', label: 'アクセスログ' },
@@ -421,8 +425,8 @@ export default function HoneypotsPage() {
               onClick={() => setActiveTab(key)}
               className={`px-4 py-2 text-sm rounded-md font-medium transition-all ${
                 activeTab === key
-                  ? 'bg-falcon-active text-white'
-                  : 'text-falcon-muted hover:text-falcon-text'
+                  ? 'bg-[#1d2f4a] text-white'
+                  : 'text-[#7d92b0] hover:text-[#e2e8f4]'
               }`}
             >
               {label}
@@ -435,16 +439,16 @@ export default function HoneypotsPage() {
           <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-2 gap-4">
             {loadingHoneypots ? (
               Array.from({ length: 4 }).map((_, i) => (
-                <div key={i} className="bg-falcon-surface border border-falcon-border rounded-xl p-5 animate-pulse h-48" />
+                <div key={i} className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5 animate-pulse h-48" />
               ))
             ) : honeypots.length === 0 ? (
-              <div className="col-span-2 flex flex-col items-center justify-center py-20 text-falcon-muted">
+              <div className="col-span-2 flex flex-col items-center justify-center py-20 text-[#7d92b0]">
                 <Bug className="w-12 h-12 mb-4 opacity-30" />
                 <p className="text-sm">ハニーポットが登録されていません</p>
               </div>
             ) : (
               honeypots.map(hp => (
-                <div key={hp.id} className="bg-falcon-surface border border-falcon-border rounded-xl p-5 hover:border-[#2a3f5a] transition-colors">
+                <div key={hp.id} className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5 hover:border-[#2a3f5a] transition-colors">
                   {/* Card Header */}
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex items-center gap-3">
@@ -453,7 +457,7 @@ export default function HoneypotsPage() {
                       </span>
                       <div>
                         <p className="text-white font-semibold text-sm">{hp.name}</p>
-                        <p className="text-falcon-muted text-xs font-mono">{hp.listen_address}:{hp.listen_port}</p>
+                        <p className="text-[#7d92b0] text-xs font-mono">{hp.listen_address}:{hp.listen_port}</p>
                       </div>
                     </div>
                     <button
@@ -463,19 +467,19 @@ export default function HoneypotsPage() {
                     >
                       {hp.enabled
                         ? <ToggleRight className="w-7 h-7 text-green-400" />
-                        : <ToggleLeft className="w-7 h-7 text-falcon-subtle" />}
+                        : <ToggleLeft className="w-7 h-7 text-[#3d5068]" />}
                     </button>
                   </div>
 
                   {/* Description */}
                   {hp.description && (
-                    <p className="text-xs text-falcon-muted mb-3 line-clamp-2">{hp.description}</p>
+                    <p className="text-xs text-[#7d92b0] mb-3 line-clamp-2">{hp.description}</p>
                   )}
 
                   {/* Agent */}
                   <div className="flex items-center gap-2 mb-3">
-                    <Server className="w-3.5 h-3.5 text-falcon-subtle" />
-                    <span className="text-xs text-falcon-muted">
+                    <Server className="w-3.5 h-3.5 text-[#3d5068]" />
+                    <span className="text-xs text-[#7d92b0]">
                       {hp.agent_hostname ?? <span className="text-yellow-400/80">未割り当て</span>}
                     </span>
                   </div>
@@ -483,25 +487,25 @@ export default function HoneypotsPage() {
                   {/* Access Count */}
                   <div className="flex items-center justify-between mb-4">
                     <div>
-                      <p className={`text-3xl font-bold ${hp.access_count > 0 ? 'text-falcon-red' : 'text-falcon-muted'}`}>
+                      <p className={`text-3xl font-bold ${hp.access_count > 0 ? 'text-[#e8002d]' : 'text-[#7d92b0]'}`}>
                         {hp.access_count}
                       </p>
-                      <p className="text-xs text-falcon-muted">アクセス数</p>
+                      <p className="text-xs text-[#7d92b0]">アクセス数</p>
                     </div>
                     <div className="text-right">
-                      <div className="flex items-center gap-1.5 text-xs text-falcon-muted">
+                      <div className="flex items-center gap-1.5 text-xs text-[#7d92b0]">
                         <Clock className="w-3.5 h-3.5" />
                         <span>{formatRelativeTime(hp.last_accessed)}</span>
                       </div>
-                      <p className="text-[10px] text-falcon-subtle mt-0.5">最終アクセス</p>
+                      <p className="text-[10px] text-[#3d5068] mt-0.5">最終アクセス</p>
                     </div>
                   </div>
 
                   {/* Actions */}
-                  <div className="flex items-center gap-2 pt-3 border-t border-falcon-border">
+                  <div className="flex items-center gap-2 pt-3 border-t border-[#1e2d42]">
                     <button
                       onClick={() => handleEdit(hp)}
-                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-falcon-muted hover:text-white bg-[#070d19] hover:bg-[#1a253d] border border-falcon-border hover:border-[#2a3f5a] rounded-lg transition-all"
+                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-[#7d92b0] hover:text-white bg-[#070d19] hover:bg-[#1a253d] border border-[#1e2d42] hover:border-[#2a3f5a] rounded-lg transition-all"
                     >
                       <Edit2 className="w-3.5 h-3.5" />
                       編集
@@ -516,7 +520,7 @@ export default function HoneypotsPage() {
                     </button>
                     <button
                       onClick={() => { if (confirm(`"${hp.name}" を削除しますか？`)) deleteMutation.mutate(hp.id) }}
-                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-falcon-red/70 hover:text-falcon-red bg-falcon-red/5 hover:bg-falcon-red/10 border border-falcon-red/10 hover:border-falcon-red/30 rounded-lg transition-all ml-auto"
+                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-[#e8002d]/70 hover:text-[#e8002d] bg-[#e8002d]/5 hover:bg-[#e8002d]/10 border border-[#e8002d]/10 hover:border-[#e8002d]/30 rounded-lg transition-all ml-auto"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                       削除
@@ -534,15 +538,15 @@ export default function HoneypotsPage() {
             {/* Filter & LIVE badge */}
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2">
-                <div className="relative flex items-center gap-1.5 px-3 py-1.5 bg-falcon-red/10 border border-falcon-red/30 rounded-full">
-                  <span className="absolute left-2.5 w-1.5 h-1.5 rounded-full bg-falcon-red animate-ping" />
-                  <span className="w-1.5 h-1.5 rounded-full bg-falcon-red" />
-                  <span className="text-xs font-bold text-falcon-red ml-2">LIVE</span>
+                <div className="relative flex items-center gap-1.5 px-3 py-1.5 bg-[#e8002d]/10 border border-[#e8002d]/30 rounded-full">
+                  <span className="absolute left-2.5 w-1.5 h-1.5 rounded-full bg-[#e8002d] animate-ping" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#e8002d]" />
+                  <span className="text-xs font-bold text-[#e8002d] ml-2">LIVE</span>
                 </div>
-                <span className="text-xs text-falcon-muted">30秒ごとに自動更新</span>
+                <span className="text-xs text-[#7d92b0]">30秒ごとに自動更新</span>
               </div>
               <select
-                className="bg-falcon-surface border border-falcon-border rounded-lg px-3 py-2 text-sm text-falcon-text focus:outline-hidden focus:border-falcon-blue"
+                className="bg-[#0d1220] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-[#e2e8f4] focus:outline-hidden focus:border-[#1a6bff]"
                 value={accessFilter}
                 onChange={e => setAccessFilter(e.target.value)}
               >
@@ -553,7 +557,7 @@ export default function HoneypotsPage() {
               </select>
               <button
                 onClick={() => setLiveRefresh(n => n + 1)}
-                className="flex items-center gap-2 px-3 py-2 text-sm text-falcon-muted hover:text-white bg-falcon-surface border border-falcon-border hover:border-[#2a3f5a] rounded-lg transition-all"
+                className="flex items-center gap-2 px-3 py-2 text-sm text-[#7d92b0] hover:text-white bg-[#0d1220] border border-[#1e2d42] hover:border-[#2a3f5a] rounded-lg transition-all"
               >
                 <RefreshCw className="w-3.5 h-3.5" />
                 更新
@@ -562,54 +566,54 @@ export default function HoneypotsPage() {
 
             <div className="grid grid-cols-1 xl:grid-cols-4 gap-4">
               {/* Access Log Table */}
-              <div className="xl:col-span-3 bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
-                <div className="px-4 py-3 border-b border-falcon-border flex items-center justify-between">
+              <div className="xl:col-span-3 bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
+                <div className="px-4 py-3 border-b border-[#1e2d42] flex items-center justify-between">
                   <h3 className="text-sm font-semibold text-white">アクセスログ</h3>
-                  <span className="text-xs text-falcon-muted">{filteredAccesses.length} 件</span>
+                  <span className="text-xs text-[#7d92b0]">{filteredAccesses.length} 件</span>
                 </div>
                 {loadingAccesses ? (
-                  <div className="p-8 text-center text-falcon-muted text-sm">読み込み中...</div>
+                  <div className="p-8 text-center text-[#7d92b0] text-sm">読み込み中...</div>
                 ) : filteredAccesses.length === 0 ? (
-                  <div className="p-8 text-center text-falcon-muted text-sm">アクセスログがありません</div>
+                  <div className="p-8 text-center text-[#7d92b0] text-sm">アクセスログがありません</div>
                 ) : (
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                       <thead>
-                        <tr className="border-b border-falcon-border">
+                        <tr className="border-b border-[#1e2d42]">
                           {['ハニーポット', '送信元IP', 'Port', 'Method', 'Path', 'User Agent', '時刻'].map(h => (
-                            <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-falcon-muted uppercase tracking-wide whitespace-nowrap">{h}</th>
+                            <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-[#7d92b0] uppercase tracking-wide whitespace-nowrap">{h}</th>
                           ))}
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-falcon-border">
+                      <tbody className="divide-y divide-[#1e2d42]">
                         {filteredAccesses.map(access => (
                           <tr key={access.id} className="hover:bg-[#0d1a2e] transition-colors">
-                            <td className="px-4 py-3 text-xs font-medium text-falcon-text whitespace-nowrap">
+                            <td className="px-4 py-3 text-xs font-medium text-[#e2e8f4] whitespace-nowrap">
                               {access.honeypot_name}
                             </td>
                             <td className="px-4 py-3">
                               <div className="flex items-center gap-2">
                                 <span className="text-base">{getCountryFlag(access.source_ip)}</span>
-                                <span className="font-mono text-xs text-falcon-text">{access.source_ip}</span>
+                                <span className="font-mono text-xs text-[#e2e8f4]">{access.source_ip}</span>
                               </div>
                             </td>
-                            <td className="px-4 py-3 text-xs font-mono text-falcon-muted">{access.source_port}</td>
+                            <td className="px-4 py-3 text-xs font-mono text-[#7d92b0]">{access.source_port}</td>
                             <td className="px-4 py-3">
                               <span className="px-2 py-0.5 text-[10px] font-bold rounded-sm bg-blue-500/10 text-blue-300 border border-blue-500/20">
                                 {access.method}
                               </span>
                             </td>
                             <td className="px-4 py-3 max-w-[120px]">
-                              <span className="font-mono text-xs text-falcon-muted truncate block" title={access.path}>
+                              <span className="font-mono text-xs text-[#7d92b0] truncate block" title={access.path}>
                                 {access.path.length > 20 ? access.path.substring(0, 20) + '…' : access.path}
                               </span>
                             </td>
                             <td className="px-4 py-3 max-w-[140px]">
-                              <span className="text-xs text-falcon-muted truncate block" title={access.user_agent}>
+                              <span className="text-xs text-[#7d92b0] truncate block" title={access.user_agent}>
                                 {access.user_agent.length > 22 ? access.user_agent.substring(0, 22) + '…' : access.user_agent}
                               </span>
                             </td>
-                            <td className="px-4 py-3 text-xs text-falcon-muted whitespace-nowrap">
+                            <td className="px-4 py-3 text-xs text-[#7d92b0] whitespace-nowrap">
                               {formatRelativeTime(access.accessed_at)}
                             </td>
                           </tr>
@@ -621,37 +625,37 @@ export default function HoneypotsPage() {
               </div>
 
               {/* Threat Map Placeholder */}
-              <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
-                <div className="px-4 py-3 border-b border-falcon-border">
+              <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
+                <div className="px-4 py-3 border-b border-[#1e2d42]">
                   <h3 className="text-sm font-semibold text-white">上位攻撃元 IP</h3>
                 </div>
                 <div className="p-4 space-y-3">
                   {topIPs.length === 0 ? (
-                    <p className="text-xs text-falcon-muted text-center py-4">データなし</p>
+                    <p className="text-xs text-[#7d92b0] text-center py-4">データなし</p>
                   ) : (
                     topIPs.map(([ip, count]) => (
                       <div key={ip} className="flex items-center gap-3">
                         <span className="text-base shrink-0">{getCountryFlag(ip)}</span>
                         <div className="flex-1 min-w-0">
-                          <p className="font-mono text-xs text-falcon-text truncate">{ip}</p>
-                          <div className="mt-1 h-1 bg-falcon-border rounded-full overflow-hidden">
+                          <p className="font-mono text-xs text-[#e2e8f4] truncate">{ip}</p>
+                          <div className="mt-1 h-1 bg-[#1e2d42] rounded-full overflow-hidden">
                             <div
-                              className="h-full bg-falcon-red rounded-full"
+                              className="h-full bg-[#e8002d] rounded-full"
                               style={{ width: `${Math.min(100, (count / (topIPs[0]?.[1] ?? 1)) * 100)}%` }}
                             />
                           </div>
                         </div>
-                        <span className="text-xs font-bold text-falcon-red shrink-0">{count}</span>
+                        <span className="text-xs font-bold text-[#e8002d] shrink-0">{count}</span>
                       </div>
                     ))
                   )}
-                  <div className="mt-4 pt-4 border-t border-falcon-border">
-                    <div className="flex items-center gap-2 text-falcon-muted">
+                  <div className="mt-4 pt-4 border-t border-[#1e2d42]">
+                    <div className="flex items-center gap-2 text-[#7d92b0]">
                       <AlertTriangle className="w-3.5 h-3.5" />
                       <span className="text-xs">脅威マップ (準備中)</span>
                     </div>
-                    <div className="mt-3 h-24 bg-[#070d19] rounded-lg border border-falcon-border flex items-center justify-center">
-                      <p className="text-xs text-falcon-subtle">Geographic visualization</p>
+                    <div className="mt-3 h-24 bg-[#070d19] rounded-lg border border-[#1e2d42] flex items-center justify-center">
+                      <p className="text-xs text-[#3d5068]">Geographic visualization</p>
                     </div>
                   </div>
                 </div>

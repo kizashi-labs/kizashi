@@ -48,7 +48,7 @@ const caseStatusBadge = (s: CaseStatus) => {
     active:             'bg-green-900/40 text-green-300 border-green-700/50',
     evidence_collection:'bg-yellow-900/40 text-yellow-300 border-yellow-700/50',
     analysis:           'bg-blue-900/40 text-blue-300 border-blue-700/50',
-    closed:             'bg-falcon-border text-falcon-muted border-falcon-border',
+    closed:             'bg-[#1e2d42] text-[#7d92b0] border-[#1e2d42]',
   }
   return map[s]
 }
@@ -98,7 +98,7 @@ const evidenceStatusBadge = (s: EvidenceStatus) => {
     collected: 'bg-yellow-900/40 text-yellow-300 border-yellow-700/50',
     verified:  'bg-green-900/40 text-green-300 border-green-700/50',
     submitted: 'bg-blue-900/40 text-blue-300 border-blue-700/50',
-    archived:  'bg-falcon-border text-falcon-muted border-falcon-border',
+    archived:  'bg-[#1e2d42] text-[#7d92b0] border-[#1e2d42]',
   }
   return map[s]
 }
@@ -183,12 +183,12 @@ export default function DigitalForensicsPage() {
         {/* Header */}
         <div className="mb-6">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-linear-to-br from-falcon-red to-falcon-red-dark flex items-center justify-center shadow-lg">
+            <div className="w-8 h-8 rounded-lg bg-linear-to-br from-[#e8002d] to-[#a80020] flex items-center justify-center shadow-lg">
               <Search className="w-4 h-4 text-white" />
             </div>
             <div>
               <h1 className="text-2xl font-bold text-white">Digital Forensics</h1>
-              <p className="text-falcon-muted text-sm">Evidence collection &amp; chain of custody</p>
+              <p className="text-[#7d92b0] text-sm">Evidence collection &amp; chain of custody</p>
             </div>
           </div>
         </div>
@@ -200,10 +200,10 @@ export default function DigitalForensicsPage() {
             {([] as ForensicCase[]).map(c => (
               <div
                 key={c.id}
-                className="bg-falcon-surface border border-falcon-border rounded-xl p-5 hover:border-[#2a3d58] transition-colors"
+                className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5 hover:border-[#2a3d58] transition-colors"
               >
                 <div className="flex items-start justify-between mb-3">
-                  <span className="text-falcon-muted text-xs font-mono">{c.id}</span>
+                  <span className="text-[#7d92b0] text-xs font-mono">{c.id}</span>
                   <span className={`text-xs px-2 py-0.5 rounded-sm border capitalize ${priorityBadge(c.priority)}`}>
                     {c.priority}
                   </span>
@@ -211,22 +211,22 @@ export default function DigitalForensicsPage() {
                 <h3 className="text-white font-semibold text-sm mb-3 leading-snug">{c.name}</h3>
                 <div className="space-y-2 mb-3">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs text-falcon-muted">Status</span>
+                    <span className="text-xs text-[#7d92b0]">Status</span>
                     <span className={`text-xs px-2 py-0.5 rounded-sm border ${caseStatusBadge(c.status)}`}>
                       {caseStatusLabel(c.status)}
                     </span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-xs text-falcon-muted">Investigator</span>
+                    <span className="text-xs text-[#7d92b0]">Investigator</span>
                     <span className="text-xs text-white">{c.investigator}</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-xs text-falcon-muted">Evidence Items</span>
+                    <span className="text-xs text-[#7d92b0]">Evidence Items</span>
                     <span className="text-xs text-white font-bold">{c.evidence_count}</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-xs text-falcon-muted">Created</span>
-                    <span className="text-xs text-falcon-muted">{fmtDate(c.created)}</span>
+                    <span className="text-xs text-[#7d92b0]">Created</span>
+                    <span className="text-xs text-[#7d92b0]">{fmtDate(c.created)}</span>
                   </div>
                 </div>
               </div>
@@ -240,7 +240,7 @@ export default function DigitalForensicsPage() {
           <div className="grid grid-cols-3 gap-4">
 
             {/* Memory Acquisition */}
-            <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
+            <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
               <div className="flex items-center gap-2 mb-4">
                 <Database className="w-4 h-4 text-purple-400" />
                 <h3 className="text-white font-medium text-sm">Memory Acquisition</h3>
@@ -249,8 +249,8 @@ export default function DigitalForensicsPage() {
                 {([] as string[]).slice(0, 4).map(agent => {
                   const state = memAcquiring[agent] ?? 'idle'
                   return (
-                    <div key={agent} className="flex items-center justify-between py-1.5 px-2 rounded-lg bg-[#070d19] border border-falcon-border/60">
-                      <span className="text-xs text-falcon-muted font-mono truncate flex-1 mr-2">{agent}</span>
+                    <div key={agent} className="flex items-center justify-between py-1.5 px-2 rounded-lg bg-[#070d19] border border-[#1e2d42]/60">
+                      <span className="text-xs text-[#7d92b0] font-mono truncate flex-1 mr-2">{agent}</span>
                       {state === 'idle' && (
                         <button
                           onClick={() => acquireMemory(agent)}
@@ -279,25 +279,25 @@ export default function DigitalForensicsPage() {
             </div>
 
             {/* Disk Imaging */}
-            <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
+            <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
               <div className="flex items-center gap-2 mb-4">
                 <HardDrive className="w-4 h-4 text-blue-400" />
                 <h3 className="text-white font-medium text-sm">Disk Imaging</h3>
               </div>
               <div className="space-y-3">
                 <div>
-                  <label className="block text-xs text-falcon-muted mb-1.5">File Path / Drive</label>
+                  <label className="block text-xs text-[#7d92b0] mb-1.5">File Path / Drive</label>
                   <input
-                    className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-sm text-white placeholder-falcon-subtle focus:outline-hidden focus:border-falcon-red/60"
+                    className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-white placeholder-[#3d5068] focus:outline-hidden focus:border-[#e8002d]/60"
                     placeholder="/dev/sda or C:\\"
                     value={diskPath}
                     onChange={e => setDiskPath(e.target.value)}
                   />
                 </div>
                 <div>
-                  <label className="block text-xs text-falcon-muted mb-1.5">Target Agent</label>
+                  <label className="block text-xs text-[#7d92b0] mb-1.5">Target Agent</label>
                   <select
-                    className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-sm text-white focus:outline-hidden focus:border-falcon-red/60"
+                    className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-white focus:outline-hidden focus:border-[#e8002d]/60"
                     value={diskAgent ?? ''}
                     onChange={e => setDiskAgent(e.target.value)}
                   >
@@ -310,7 +310,7 @@ export default function DigitalForensicsPage() {
                   className={`w-full flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-medium transition-colors
                     ${diskState === 'done'
                       ? 'bg-green-900/40 text-green-300 border border-green-700/50 cursor-default'
-                      : 'bg-falcon-red hover:bg-[#c0001f] text-white disabled:opacity-50 disabled:cursor-not-allowed'
+                      : 'bg-[#e8002d] hover:bg-[#c0001f] text-white disabled:opacity-50 disabled:cursor-not-allowed'
                     }`}
                 >
                   {diskState === 'loading' && <Loader2 className="w-4 h-4 animate-spin" />}
@@ -323,7 +323,7 @@ export default function DigitalForensicsPage() {
             </div>
 
             {/* Log Collection */}
-            <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
+            <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
               <div className="flex items-center gap-2 mb-4">
                 <FileText className="w-4 h-4 text-cyan-400" />
                 <h3 className="text-white font-medium text-sm">Log Collection</h3>
@@ -331,28 +331,28 @@ export default function DigitalForensicsPage() {
               <div className="space-y-3">
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <label className="block text-xs text-falcon-muted mb-1.5">From</label>
+                    <label className="block text-xs text-[#7d92b0] mb-1.5">From</label>
                     <input
                       type="date"
-                      className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-2 py-2 text-xs text-white focus:outline-hidden focus:border-falcon-red/60"
+                      className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-2 py-2 text-xs text-white focus:outline-hidden focus:border-[#e8002d]/60"
                       value={logsFrom}
                       onChange={e => setLogsFrom(e.target.value)}
                     />
                   </div>
                   <div>
-                    <label className="block text-xs text-falcon-muted mb-1.5">To</label>
+                    <label className="block text-xs text-[#7d92b0] mb-1.5">To</label>
                     <input
                       type="date"
-                      className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-2 py-2 text-xs text-white focus:outline-hidden focus:border-falcon-red/60"
+                      className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-2 py-2 text-xs text-white focus:outline-hidden focus:border-[#e8002d]/60"
                       value={logsTo}
                       onChange={e => setLogsTo(e.target.value)}
                     />
                   </div>
                 </div>
                 <div>
-                  <label className="block text-xs text-falcon-muted mb-1.5">Target Agent</label>
+                  <label className="block text-xs text-[#7d92b0] mb-1.5">Target Agent</label>
                   <select
-                    className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-sm text-white focus:outline-hidden focus:border-falcon-red/60"
+                    className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-white focus:outline-hidden focus:border-[#e8002d]/60"
                     value={logsAgent ?? ''}
                     onChange={e => setLogsAgent(e.target.value)}
                   >
@@ -365,7 +365,7 @@ export default function DigitalForensicsPage() {
                   className={`w-full flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-medium transition-colors
                     ${logsState === 'done'
                       ? 'bg-green-900/40 text-green-300 border border-green-700/50 cursor-default'
-                      : 'bg-falcon-red hover:bg-[#c0001f] text-white disabled:opacity-50 disabled:cursor-not-allowed'
+                      : 'bg-[#e8002d] hover:bg-[#c0001f] text-white disabled:opacity-50 disabled:cursor-not-allowed'
                     }`}
                 >
                   {logsState === 'loading' && <Loader2 className="w-4 h-4 animate-spin" />}
@@ -382,12 +382,12 @@ export default function DigitalForensicsPage() {
         {/* Chain of Custody */}
         <section className="mb-8">
           <h2 className="text-white font-semibold text-lg mb-4">Chain of Custody</h2>
-          <div className="bg-falcon-surface rounded-xl border border-falcon-border overflow-hidden">
+          <div className="bg-[#0d1220] rounded-xl border border-[#1e2d42] overflow-hidden">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-falcon-border">
+                <tr className="border-b border-[#1e2d42]">
                   {['Evidence ID', 'Type', 'Agent / Host', 'Collected By', 'SHA256 Hash', 'Status', 'Timestamp'].map(h => (
-                    <th key={h} className="text-left px-4 py-3 text-xs text-falcon-muted font-medium whitespace-nowrap">{h}</th>
+                    <th key={h} className="text-left px-4 py-3 text-xs text-[#7d92b0] font-medium whitespace-nowrap">{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -396,7 +396,7 @@ export default function DigitalForensicsPage() {
                   const TypeIcon = evidenceTypeIcon(evd.type)
                   const StatusIcon = evidenceStatusIcon(evd.status)
                   return (
-                    <tr key={evd.id} className="border-b border-falcon-border/50 hover:bg-[#131d31]/50 transition-colors">
+                    <tr key={evd.id} className="border-b border-[#1e2d42]/50 hover:bg-[#131d31]/50 transition-colors">
                       <td className="px-4 py-3">
                         <span className="text-white font-mono text-xs font-bold">{evd.id}</span>
                       </td>
@@ -407,13 +407,13 @@ export default function DigitalForensicsPage() {
                         </span>
                       </td>
                       <td className="px-4 py-3">
-                        <span className="text-falcon-muted text-xs font-mono">{evd.host}</span>
+                        <span className="text-[#7d92b0] text-xs font-mono">{evd.host}</span>
                       </td>
                       <td className="px-4 py-3">
                         <span className="text-white text-xs">{evd.collected_by}</span>
                       </td>
                       <td className="px-4 py-3">
-                        <code className="text-falcon-muted text-xs font-mono bg-[#070d19] px-2 py-0.5 rounded-sm">
+                        <code className="text-[#7d92b0] text-xs font-mono bg-[#070d19] px-2 py-0.5 rounded-sm">
                           {evd.hash}
                         </code>
                       </td>
@@ -424,7 +424,7 @@ export default function DigitalForensicsPage() {
                         </span>
                       </td>
                       <td className="px-4 py-3">
-                        <span className="text-falcon-muted text-xs whitespace-nowrap">{fmtDateTime(evd.timestamp)}</span>
+                        <span className="text-[#7d92b0] text-xs whitespace-nowrap">{fmtDateTime(evd.timestamp)}</span>
                       </td>
                     </tr>
                   )
@@ -437,20 +437,20 @@ export default function DigitalForensicsPage() {
         {/* Timeline Reconstruction */}
         <section>
           <div className="flex items-center gap-2 mb-4">
-            <Clock className="w-5 h-5 text-falcon-red" />
+            <Clock className="w-5 h-5 text-[#e8002d]" />
             <h2 className="text-white font-semibold text-lg">Timeline Reconstruction</h2>
-            <span className="text-falcon-muted text-sm">— FOR-2026-001: Ransomware Incident</span>
+            <span className="text-[#7d92b0] text-sm">— FOR-2026-001: Ransomware Incident</span>
           </div>
-          <div className="bg-falcon-surface border border-falcon-border rounded-xl p-6">
+          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-6">
             <div className="relative">
               {/* Vertical line */}
-              <div className="absolute left-[11px] top-2 bottom-2 w-px bg-falcon-border" />
+              <div className="absolute left-[11px] top-2 bottom-2 w-px bg-[#1e2d42]" />
               <div className="space-y-6">
                 {([] as TimelineEvent[]).map((evt, idx) => (
                   <div key={idx} className="flex gap-4 relative">
                     {/* Dot */}
                     <div className={`w-6 h-6 rounded-full border-2 shrink-0 flex items-center justify-center z-10 ${timelineColor(evt.type)}`}>
-                      <div className="w-2 h-2 rounded-full bg-falcon-text/80" />
+                      <div className="w-2 h-2 rounded-full bg-[#e2e8f4]/80" />
                     </div>
                     {/* Content */}
                     <div className="flex-1 pb-1">
@@ -461,8 +461,8 @@ export default function DigitalForensicsPage() {
                             <span className={`text-xs font-medium ${timelineTextColor(evt.type)}`}>
                               {timelineTypeLabel(evt.type)}
                             </span>
-                            <span className="text-falcon-subtle text-xs">•</span>
-                            <span className="text-falcon-muted text-xs font-mono">
+                            <span className="text-[#3d5068] text-xs">•</span>
+                            <span className="text-[#7d92b0] text-xs font-mono">
                               {new Date(evt.time).toLocaleString('en-US', {
                                 month: '2-digit', day: '2-digit',
                                 hour: '2-digit', minute: '2-digit',

@@ -1,0 +1,63 @@
+-- 430: T1552.003 の重複ルールを 1 本に統合する
+--
+-- この技法は同じ検知を **4 本**持っていた:
+--
+--   Shell History Credential Search                 builtin          ← 残す
+--   Credential Search in Shell History              builtin          削除（本PR）
+--   Credential Harvesting from Shell or DB History  migration 386    無効化（本 migration）
+--   Shell History Credential Search (DB)            migration 350    無効化（本 migration）
+--
+-- ── なぜ 4 本になったか ──
+--
+-- 独立した 2 系統に、それぞれ後から気づかずに 2 本目が足された:
+--
+--   builtin 系   `Shell History Credential Search` と、その builtin-parity 行
+--                `Shell History Credential Search (DB)`（migration 350）
+--   後付け系     `Credential Search in Shell History`（builtin）と
+--                `Credential Harvesting from Shell or DB History`（migration 386, wave3）
+--
+-- `dedup.deduplicateByTechnique` は mitre_technique で束ねるため、スコアカードにも
+-- アラート一覧にも**どれか 1 本のタイトルで 1 行**としてしか現れない。つまり
+-- **4 本あること自体が観測できない**。
+--
+-- 実害は #746 で出た。4 本のうち 3 本を狭めて誤検知を消したつもりが、4 本目
+-- (350 の parity 行) を取りこぼしており、狭めた直後の計測 (CI run 31718937863) で
+-- **新規 6 件**として現れて初めて分かった。同じ条件を 4 箇所で歩調を合わせて
+-- 保守するのは無理があり、次に狭めるときも同じことが起きる。
+--
+-- ── 手順は 377 / 383 の前例に揃える ──
+--
+--   1. builtin を他 3 本の**真の上位集合**にする
+--   2. DB 行は DELETE ではなく enabled=false で反転（alerts.rule_id は
+--      ON DELETE SET NULL なので、消すと過去アラートとルールの紐付けが切れる）
+--   3. `db_rule_builtin_port_test.go` が「無効化した行が拾っていたイベントを
+--      builtin でも必ず拾う」ことを行ごとに固定する
+--   4. migration_coverage_test.go の relocatedToBuiltin に登録し、
+--      DB エンジン側では**鳴らないこと**を逆に固定する
+--
+-- ── 包含関係は 1 語ずつ突き合わせた（方針ではなく事実として）──
+--
+--   credential_terms   4 本とも逐語同一
+--   exfil_verbs        builtin が上位（削除する builtin は 'strings ' を欠く）
+--   condition          builtin は history_file のみを前提とし、削除する builtin は
+--                      grep/awk 等の tool を**追加で**要求していた → builtin が広い
+--   history_file       builtin が 2 語欠けていたので取り込んだ:
+--                        .history   ← Credential Search in Shell History（ksh/csh）
+--                        .dbshell   ← Credential Harvesting …（mongo シェル）
+--
+-- ── 所有権を api に寄せる根拠は 377 / 383 と同じ ──
+--
+-- AlertPipeline は追いつき済で稼働する一方、detection-engine は慢性的に consumer
+-- ラグを抱える（docs/検知ルールの二重管理とデプロイ.md）。同じ検知なら即応する
+-- api 側（builtin）を残す。
+--
+-- curate との関係: CurateService.RunRound / ReconcileQuarantined は
+-- source='sigmahq' の行しか UPDATE しない。ここで無効化するのは migration 由来
+-- (350 の builtin-parity / 386 の wave3) なので、次の curate ラウンドで
+-- 再有効化されることはない。
+
+UPDATE rules SET enabled = false, updated_at = now()
+WHERE name = 'Shell History Credential Search (DB)';
+
+UPDATE rules SET enabled = false, updated_at = now()
+WHERE name = 'Credential Harvesting from Shell or DB History';

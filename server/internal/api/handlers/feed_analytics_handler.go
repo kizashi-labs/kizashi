@@ -23,10 +23,7 @@ func NewFeedAnalyticsHandler(pool *pgxpool.Pool) *FeedAnalyticsHandler {
 }
 
 func (h *FeedAnalyticsHandler) tableExists(c *gin.Context) bool {
-	var ok bool
-	_ = h.pool.QueryRow(c.Request.Context(),
-		`SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name='feed_analytics')`).Scan(&ok)
-	return ok
+	return tableIsThere(c.Request.Context(), h.pool, "feed_analytics")
 }
 
 type feedAnalyticItem struct {
@@ -94,6 +91,10 @@ func (h *FeedAnalyticsHandler) List(c *gin.Context) {
 		f.LastUpdated = lastUpdated.Format(time.RFC3339)
 		feeds = append(feeds, f)
 	}
+	if err := rows.Err(); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to list feeds"})
+		return
+	}
 	if feeds == nil {
 		feeds = buildDefaultFeeds()
 	}
@@ -106,8 +107,10 @@ func (h *FeedAnalyticsHandler) Sync(c *gin.Context) {
 	id := c.Param("id")
 	ctx := c.Request.Context()
 	if h.tableExists(c) && isValidUUID(id) {
-		_, _ = h.pool.Exec(ctx,
-			`UPDATE feed_analytics SET last_updated=NOW() WHERE id=$1`, id)
+		if _, err := h.pool.Exec(ctx,
+			`UPDATE feed_analytics SET last_updated=NOW() WHERE id=$1`, id); !WriteOK(c, err) {
+			return
+		}
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "Sync triggered", "feed_id": id})
 }
@@ -117,7 +120,9 @@ func (h *FeedAnalyticsHandler) Sync(c *gin.Context) {
 func (h *FeedAnalyticsHandler) SyncAll(c *gin.Context) {
 	ctx := c.Request.Context()
 	if h.tableExists(c) {
-		_, _ = h.pool.Exec(ctx, `UPDATE feed_analytics SET last_updated=NOW()`)
+		if _, err := h.pool.Exec(ctx, `UPDATE feed_analytics SET last_updated=NOW()`); !WriteOK(c, err) {
+			return
+		}
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "All feeds sync triggered"})
 }
@@ -139,8 +144,10 @@ func (h *FeedAnalyticsHandler) UpdateStatus(c *gin.Context) {
 	}
 	ctx := c.Request.Context()
 	if h.tableExists(c) {
-		_, _ = h.pool.Exec(ctx,
-			`UPDATE feed_analytics SET status=$1 WHERE id=$2`, body.Status, id)
+		if _, err := h.pool.Exec(ctx,
+			`UPDATE feed_analytics SET status=$1 WHERE id=$2`, body.Status, id); !WriteOK(c, err) {
+			return
+		}
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "Status updated"})
 }

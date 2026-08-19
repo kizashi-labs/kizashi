@@ -5,6 +5,9 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { apiFetch } from '@/lib/api'
 import { Plus, X, Shield, AlertTriangle, Zap, Eye } from 'lucide-react'
 
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+import { PageSaveFailed } from '@/components/PageSaveFailed'
+
 // ── Types ──────────────────────────────────────────────────────────────────────
 
 type AssetType = 'honeypot' | 'honeytoken' | 'honeyfile' | 'honeycred'
@@ -73,9 +76,9 @@ export default function DeceptionTechnologyPage() {
 
   // ── Queries ──────────────────────────────────────────────────────────────────
 
-  const { data: stats, isLoading: statsLoading } = useQuery<DeceptionStats>({
+  const { data: stats = { total_assets: 0, active: 0, triggered: 0, total_events: 0 } as DeceptionStats, isLoading: statsLoading } = useQuery<DeceptionStats>({
     queryKey: ['deception-stats'],
-    queryFn: () => apiFetch<DeceptionStats>('/api/v1/admin/deception/stats').catch(() => ({ total_assets: 0, active: 0, triggered: 0, total_events: 0 } as DeceptionStats)),
+    queryFn: () => apiFetch<DeceptionStats>('/api/v1/admin/deception/stats'),
   })
 
   const { data: assetsData, isLoading: assetsLoading } = useQuery<{ assets: DeceptionAsset[] }>({
@@ -123,18 +126,20 @@ export default function DeceptionTechnologyPage() {
 
   return (
     <div className="min-h-screen bg-[#070d19] text-white p-6">
+      <PageDataUnavailable />
+      <PageSaveFailed className="mb-4" />
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Shield className="w-7 h-7 text-falcon-red" />
+            <Shield className="w-7 h-7 text-[#e8002d]" />
             Deception Technology
           </h1>
-          <p className="text-falcon-muted text-sm mt-0.5">Honeypots &amp; Honeytokens</p>
+          <p className="text-[#7d92b0] text-sm mt-0.5">Honeypots &amp; Honeytokens</p>
         </div>
         <button
           onClick={() => setShowDeployModal(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-falcon-red hover:bg-[#c0001f] rounded-lg text-sm font-medium transition-colors"
+          className="flex items-center gap-2 px-4 py-2 bg-[#e8002d] hover:bg-[#c0001f] rounded-lg text-sm font-medium transition-colors"
         >
           <Plus className="w-4 h-4" /> Deploy Asset
         </button>
@@ -148,8 +153,8 @@ export default function DeceptionTechnologyPage() {
           { label: 'Triggered', value: stats?.triggered ?? 0, color: 'text-orange-400' },
           { label: 'Total Events', value: stats?.total_events ?? 0, color: 'text-red-400' },
         ].map((s) => (
-          <div key={s.label} className="bg-falcon-surface border border-falcon-border rounded-xl p-4">
-            <p className="text-falcon-muted text-xs mb-1">{s.label}</p>
+          <div key={s.label} className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-4">
+            <p className="text-[#7d92b0] text-xs mb-1">{s.label}</p>
             <p className={`text-2xl font-bold ${s.color}`}>{statsLoading ? '…' : s.value}</p>
           </div>
         ))}
@@ -160,19 +165,19 @@ export default function DeceptionTechnologyPage() {
         <AlertTriangle className="w-5 h-5 text-red-400 shrink-0" />
         <p className="text-sm">
           <span className="text-red-400 font-bold">{intrusions24h} intrusion attempt{intrusions24h !== 1 ? 's' : ''}</span>
-          <span className="text-falcon-muted"> detected in last 24h across your deception assets</span>
+          <span className="text-[#7d92b0]"> detected in last 24h across your deception assets</span>
         </p>
         <Zap className="w-4 h-4 text-orange-400 ml-auto shrink-0" />
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 mb-4 bg-falcon-surface border border-falcon-border rounded-xl p-1 w-fit">
+      <div className="flex gap-1 mb-4 bg-[#0d1220] border border-[#1e2d42] rounded-xl p-1 w-fit">
         {(['assets', 'events'] as const).map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
             className={`px-4 py-2 rounded-lg text-sm font-medium capitalize transition-colors ${
-              activeTab === tab ? 'bg-falcon-red text-white' : 'text-falcon-muted hover:text-white'
+              activeTab === tab ? 'bg-[#e8002d] text-white' : 'text-[#7d92b0] hover:text-white'
             }`}
           >
             {tab === 'assets' ? 'Deception Assets' : 'Triggered Events'}
@@ -182,30 +187,30 @@ export default function DeceptionTechnologyPage() {
 
       {/* Assets Tab */}
       {activeTab === 'assets' && (
-        <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
+        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
           {assetsLoading ? (
-            <div className="p-8 text-center text-falcon-muted">Loading assets…</div>
+            <div className="p-8 text-center text-[#7d92b0]">Loading assets…</div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-falcon-border">
+                  <tr className="border-b border-[#1e2d42]">
                     {['Name', 'Type', 'Emulated Service', 'Port', 'Status', 'Triggers', 'Alert', 'Last Triggered', 'Actions'].map((h) => (
-                      <th key={h} className="text-left text-falcon-muted font-medium px-4 py-3 text-xs whitespace-nowrap">{h}</th>
+                      <th key={h} className="text-left text-[#7d92b0] font-medium px-4 py-3 text-xs whitespace-nowrap">{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {(assetsData?.assets ?? []).map((asset) => (
-                    <tr key={asset.id} className="border-b border-falcon-border last:border-0 hover:bg-falcon-card">
+                    <tr key={asset.id} className="border-b border-[#1e2d42] last:border-0 hover:bg-[#111827]">
                       <td className="px-4 py-3 text-white font-medium">{asset.name}</td>
                       <td className="px-4 py-3">
                         <span className={`px-2 py-0.5 rounded-sm text-xs font-medium capitalize ${TYPE_BADGE[asset.type]}`}>
                           {asset.type}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-falcon-muted">{asset.emulated_service}</td>
-                      <td className="px-4 py-3 text-falcon-muted font-mono text-xs">{asset.port || '—'}</td>
+                      <td className="px-4 py-3 text-[#7d92b0]">{asset.emulated_service}</td>
+                      <td className="px-4 py-3 text-[#7d92b0] font-mono text-xs">{asset.port || '—'}</td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
                           <span className={`w-2 h-2 rounded-full ${
@@ -214,7 +219,7 @@ export default function DeceptionTechnologyPage() {
                           }`} />
                           <span className={`text-xs capitalize ${
                             asset.status === 'active' ? 'text-green-400' :
-                            asset.status === 'triggered' ? 'text-red-400' : 'text-falcon-muted'
+                            asset.status === 'triggered' ? 'text-red-400' : 'text-[#7d92b0]'
                           }`}>{asset.status}</span>
                         </div>
                       </td>
@@ -223,10 +228,10 @@ export default function DeceptionTechnologyPage() {
                         {asset.alert_on_access ? (
                           <span className="px-2 py-0.5 rounded-sm text-xs bg-green-500/20 text-green-400">Yes</span>
                         ) : (
-                          <span className="px-2 py-0.5 rounded-sm text-xs bg-gray-500/20 text-falcon-muted">No</span>
+                          <span className="px-2 py-0.5 rounded-sm text-xs bg-gray-500/20 text-[#7d92b0]">No</span>
                         )}
                       </td>
-                      <td className="px-4 py-3 text-falcon-muted text-xs whitespace-nowrap">{formatDate(asset.last_triggered)}</td>
+                      <td className="px-4 py-3 text-[#7d92b0] text-xs whitespace-nowrap">{formatDate(asset.last_triggered)}</td>
                       <td className="px-4 py-3">
                         <button
                           onClick={() =>
@@ -235,9 +240,9 @@ export default function DeceptionTechnologyPage() {
                               status: asset.status === 'active' ? 'inactive' : 'active',
                             })
                           }
-                          className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
+                          className={`px-3 py-1 rounded-sm text-xs font-medium transition-colors ${
                             asset.status === 'active'
-                              ? 'bg-gray-500/20 text-falcon-muted hover:bg-gray-500/40'
+                              ? 'bg-gray-500/20 text-[#7d92b0] hover:bg-gray-500/40'
                               : 'bg-green-500/20 text-green-400 hover:bg-green-500/40'
                           }`}
                         >
@@ -255,24 +260,24 @@ export default function DeceptionTechnologyPage() {
 
       {/* Events Tab */}
       {activeTab === 'events' && (
-        <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
+        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
           {eventsLoading ? (
-            <div className="p-8 text-center text-falcon-muted">Loading events…</div>
+            <div className="p-8 text-center text-[#7d92b0]">Loading events…</div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-falcon-border">
+                  <tr className="border-b border-[#1e2d42]">
                     {['Asset Name', 'Attacker IP', 'Event Type', 'Alert Generated', 'Timestamp'].map((h) => (
-                      <th key={h} className="text-left text-falcon-muted font-medium px-4 py-3 text-xs">{h}</th>
+                      <th key={h} className="text-left text-[#7d92b0] font-medium px-4 py-3 text-xs">{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {(eventsData?.events ?? []).map((ev) => (
-                    <tr key={ev.id} className="border-b border-falcon-border last:border-0 hover:bg-falcon-card">
+                    <tr key={ev.id} className="border-b border-[#1e2d42] last:border-0 hover:bg-[#111827]">
                       <td className="px-4 py-3 text-white font-medium">{ev.asset_name}</td>
-                      <td className="px-4 py-3 text-falcon-muted font-mono text-xs">{ev.attacker_ip}</td>
+                      <td className="px-4 py-3 text-[#7d92b0] font-mono text-xs">{ev.attacker_ip}</td>
                       <td className="px-4 py-3">
                         <span className="px-2 py-0.5 rounded-sm text-xs bg-orange-500/20 text-orange-400">{ev.event_type}</span>
                       </td>
@@ -280,10 +285,10 @@ export default function DeceptionTechnologyPage() {
                         {ev.alert_generated ? (
                           <span className="px-2 py-0.5 rounded-sm text-xs bg-red-500/20 text-red-400">Yes</span>
                         ) : (
-                          <span className="px-2 py-0.5 rounded-sm text-xs bg-gray-500/20 text-falcon-muted">No</span>
+                          <span className="px-2 py-0.5 rounded-sm text-xs bg-gray-500/20 text-[#7d92b0]">No</span>
                         )}
                       </td>
-                      <td className="px-4 py-3 text-falcon-muted text-xs">{formatDate(ev.timestamp)}</td>
+                      <td className="px-4 py-3 text-[#7d92b0] text-xs">{formatDate(ev.timestamp)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -296,32 +301,32 @@ export default function DeceptionTechnologyPage() {
       {/* Deploy Modal */}
       {showDeployModal && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-          <div className="bg-falcon-surface border border-falcon-border rounded-2xl w-full max-w-md">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-falcon-border">
+          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-2xl w-full max-w-md">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-[#1e2d42]">
               <h2 className="text-white font-semibold flex items-center gap-2">
-                <Eye className="w-5 h-5 text-falcon-red" /> Deploy Deception Asset
+                <Eye className="w-5 h-5 text-[#e8002d]" /> Deploy Deception Asset
               </h2>
-              <button onClick={() => setShowDeployModal(false)} className="text-falcon-muted hover:text-white">
+              <button onClick={() => setShowDeployModal(false)} className="text-[#7d92b0] hover:text-white">
                 <X className="w-5 h-5" />
               </button>
             </div>
             <div className="px-6 py-4 space-y-4">
               <div>
-                <label className="block text-falcon-muted text-xs mb-1">Name</label>
+                <label className="block text-[#7d92b0] text-xs mb-1">Name</label>
                 <input
                   value={deployForm.name}
                   onChange={(e) => setDeployForm((f) => ({ ...f, name: e.target.value }))}
                   placeholder="e.g. FakePayroll-DB"
-                  className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-red"
+                  className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-[#e8002d]"
                 />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-falcon-muted text-xs mb-1">Type</label>
+                  <label className="block text-[#7d92b0] text-xs mb-1">Type</label>
                   <select
                     value={deployForm.type}
                     onChange={(e) => setDeployForm((f) => ({ ...f, type: e.target.value as AssetType }))}
-                    className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-red"
+                    className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-[#e8002d]"
                   >
                     {(['honeypot', 'honeytoken', 'honeyfile', 'honeycred'] as AssetType[]).map((t) => (
                       <option key={t} value={t}>{t}</option>
@@ -329,46 +334,46 @@ export default function DeceptionTechnologyPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-falcon-muted text-xs mb-1">Listen Port</label>
+                  <label className="block text-[#7d92b0] text-xs mb-1">Listen Port</label>
                   <input
                     value={deployForm.listen_port}
                     onChange={(e) => setDeployForm((f) => ({ ...f, listen_port: e.target.value }))}
                     placeholder="e.g. 8080"
                     type="number"
-                    className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-red"
+                    className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-[#e8002d]"
                   />
                 </div>
               </div>
               <div>
-                <label className="block text-falcon-muted text-xs mb-1">Emulated Service</label>
+                <label className="block text-[#7d92b0] text-xs mb-1">Emulated Service</label>
                 <input
                   value={deployForm.emulated_service}
                   onChange={(e) => setDeployForm((f) => ({ ...f, emulated_service: e.target.value }))}
                   placeholder="e.g. MySQL, SMB Share, LDAP"
-                  className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-red"
+                  className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-[#e8002d]"
                 />
               </div>
-              <div className="flex items-center justify-between bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2">
-                <span className="text-falcon-muted text-sm">Alert on Access</span>
+              <div className="flex items-center justify-between bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2">
+                <span className="text-[#7d92b0] text-sm">Alert on Access</span>
                 <button
                   onClick={() => setDeployForm((f) => ({ ...f, alert_on_access: !f.alert_on_access }))}
-                  className={`relative w-10 h-5 rounded-full transition-colors ${deployForm.alert_on_access ? 'bg-falcon-red' : 'bg-falcon-border'}`}
+                  className={`relative w-10 h-5 rounded-full transition-colors ${deployForm.alert_on_access ? 'bg-[#e8002d]' : 'bg-[#1e2d42]'}`}
                 >
-                  <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-falcon-text transition-transform ${deployForm.alert_on_access ? 'translate-x-5' : 'translate-x-0.5'}`} />
+                  <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-[#e2e8f4] transition-transform ${deployForm.alert_on_access ? 'translate-x-5' : 'translate-x-0.5'}`} />
                 </button>
               </div>
             </div>
-            <div className="px-6 py-4 border-t border-falcon-border flex gap-3 justify-end">
+            <div className="px-6 py-4 border-t border-[#1e2d42] flex gap-3 justify-end">
               <button
                 onClick={() => setShowDeployModal(false)}
-                className="px-4 py-2 rounded-lg border border-falcon-border text-falcon-muted hover:text-white text-sm transition-colors"
+                className="px-4 py-2 rounded-lg border border-[#1e2d42] text-[#7d92b0] hover:text-white text-sm transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={() => deployMutation.mutate(deployForm)}
                 disabled={!deployForm.name || !deployForm.emulated_service || deployMutation.isPending}
-                className="px-4 py-2 rounded-lg bg-falcon-red hover:bg-[#c0001f] disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium transition-colors"
+                className="px-4 py-2 rounded-lg bg-[#e8002d] hover:bg-[#c0001f] disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium transition-colors"
               >
                 {deployMutation.isPending ? 'Deploying…' : 'Deploy Asset'}
               </button>

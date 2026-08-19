@@ -88,6 +88,9 @@ func (h *SOCQueueHandler) WorkQueue(c *gin.Context) {
 				week = append(week, item)
 			}
 		}
+		if err := alertRows.Err(); err != nil {
+			slog.Warn("WorkQueue: alertRows の読み取りが途中で終わりました。この区画は不完全です", "error", err)
+		}
 	}
 
 	// ── インシデント (open/investigating/contained) ────────────────
@@ -120,6 +123,9 @@ func (h *SOCQueueHandler) WorkQueue(c *gin.Context) {
 			default:
 				week = append(week, item)
 			}
+		}
+		if err := incRows.Err(); err != nil {
+			slog.Warn("WorkQueue: incRows の読み取りが途中で終わりました。この区画は不完全です", "error", err)
 		}
 	}
 

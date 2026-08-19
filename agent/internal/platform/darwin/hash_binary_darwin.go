@@ -8,6 +8,7 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"io"
+	"log/slog"
 	"os"
 	"path/filepath"
 
@@ -23,6 +24,12 @@ func hashBinary(path string) collector.FileHashes {
 	}
 	f, err := os.Open(path)
 	if err != nil {
+		// 空のハッシュと「取れなかった」は、イベントに載ると同じ姿です。
+		// Windows / Linux と同じ形で、**3つ目のプラットフォームでした。**
+		// 片方だけ直すと、直っていない側が直った顔をします。
+		slog.Debug("ファイルのハッシュを取れませんでした。"+
+			"このイベントはハッシュ無しで送られ、ハッシュ IOC には当たりません",
+			"path", path, "error", err)
 		return collector.FileHashes{}
 	}
 	defer f.Close()
@@ -36,6 +43,12 @@ func hashBinary(path string) collector.FileHashes {
 	mw := io.MultiWriter(h1, h2, h3)
 
 	if _, err := io.Copy(mw, r); err != nil {
+		// 空のハッシュと「取れなかった」は、イベントに載ると同じ姿です。
+		// Windows / Linux と同じ形で、**3つ目のプラットフォームでした。**
+		// 片方だけ直すと、直っていない側が直った顔をします。
+		slog.Debug("ファイルのハッシュを取れませんでした。"+
+			"このイベントはハッシュ無しで送られ、ハッシュ IOC には当たりません",
+			"path", path, "error", err)
 		return collector.FileHashes{}
 	}
 

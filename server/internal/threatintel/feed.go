@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/edr-platform/server/internal/metrics"
 	"io"
 	"log/slog"
 	"net/http"
@@ -16,6 +17,8 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
+
+	"github.com/edr-platform/server/internal/tick"
 )
 
 // IOC represents an Indicator of Compromise.
@@ -157,15 +160,26 @@ func (m *FeedManager) FetchFeed(ctx context.Context, feedID string) (int, error)
 	feed.IOCCount += imported
 	m.mu.Unlock()
 
-	// Update in DB
+	// Update in DB.
+	//
+	// **記憶の側は上で進めてあります。** ここが書けないと、画面の
+	// 「最終取得」は止まったまま、IOC だけが増えていきます —— 外からは
+	// 「取り込みが止まっている」と同じ姿です。
+	//
+	// 報告先は `tick.Fail` です。周期の同期（`threatintel_periodic_sync`）
+	// から来たときはその回に落ち、**画面からの手動取得で呼ばれたときは
+	// ログだけ**になります（`ctx` に回が無いため）。
 	if m.pool != nil {
 		updateCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
-		_, _ = m.pool.Exec(updateCtx, `
+		if _, err := m.pool.Exec(updateCtx, `
 			UPDATE threat_intel_feeds
 			SET last_fetch = NOW(), ioc_count = ioc_count + $2, updated_at = NOW()
 			WHERE id = $1
-		`, feedID, imported)
+		`, feedID, imported); err != nil {
+			tick.Fail(ctx, err, "threatintel: 取得結果を記録できませんでした。画面の最終取得が止まって見えます",
+				"feed", feed.Name, "imported", imported)
+		}
 	}
 
 	slog.Info("threatintel: feed fetch complete", "feed", feed.Name, "imported", imported)
@@ -241,7 +255,7 @@ func (m *FeedManager) parseAndStoreIOCs(ctx context.Context, body []byte, feed *
 					expires_at = EXCLUDED.expires_at
 			`, ioc.ID, ioc.Type, ioc.Value, ioc.Confidence, ioc.Severity, ioc.Source, ioc.Tags, ioc.ExpiresAt)
 			if err != nil {
-				slog.Warn("threatintel: failed to persist IOC", "value", ioc.Value, "error", err)
+				tick.Fail(ctx, err, "threatintel: failed to persist IOC", "value", ioc.Value)
 			}
 		}
 		count++
@@ -359,48 +373,62 @@ func (m *FeedManager) UpdateFeed(id string, updates *Feed) (*Feed, error) {
 	if !ok {
 		return nil, fmt.Errorf("feed %s not found", id)
 	}
+	// **新しい値をまず作って、DB に書けてから記憶に当てます。**
+	//
+	// `existing` は map の中のポインタなので、先に書き換えると、DB への
+	// UPDATE が失敗しても記憶だけ新しい値になります —— **画面は変わった
+	// ように見えて、次の再起動で戻ります。**
+	name, url, apiKey := existing.Name, existing.URL, existing.APIKey
+	interval := existing.FetchIntervalMin
 	if updates.Name != "" {
-		existing.Name = updates.Name
+		name = updates.Name
 	}
 	if updates.URL != "" {
-		existing.URL = updates.URL
+		url = updates.URL
 	}
 	if updates.APIKey != "" {
-		existing.APIKey = updates.APIKey
+		apiKey = updates.APIKey
 	}
-	existing.Enabled = updates.Enabled
 	if updates.FetchIntervalMin > 0 {
-		existing.FetchIntervalMin = updates.FetchIntervalMin
+		interval = updates.FetchIntervalMin
 	}
 
 	if m.pool != nil {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
-		_, _ = m.pool.Exec(ctx, `
+		if _, err := m.pool.Exec(ctx, `
 			UPDATE threat_intel_feeds
 			SET name=$2, url=$3, api_key=$4, enabled=$5, fetch_interval_min=$6, updated_at=NOW()
 			WHERE id=$1
-		`, id, existing.Name, existing.URL, existing.APIKey, existing.Enabled, existing.FetchIntervalMin)
+		`, id, name, url, apiKey, updates.Enabled, interval); err != nil {
+			return nil, fmt.Errorf("フィードを更新できませんでした（再起動で戻ります）: %w", err)
+		}
 	}
+
+	existing.Name, existing.URL, existing.APIKey = name, url, apiKey
+	existing.Enabled = updates.Enabled
+	existing.FetchIntervalMin = interval
 	return existing, nil
 }
 
 // RemoveFeed removes a feed by ID.
 func (m *FeedManager) RemoveFeed(id string) error {
 	m.mu.Lock()
-	_, ok := m.feeds[id]
-	if !ok {
-		m.mu.Unlock()
+	defer m.mu.Unlock()
+	if _, ok := m.feeds[id]; !ok {
 		return fmt.Errorf("feed %s not found", id)
 	}
-	delete(m.feeds, id)
-	m.mu.Unlock()
 
+	// **DB を先に消します。** 記憶から先に消して DELETE を捨てると、
+	// **消したはずのフィードが次の再起動で戻ります。**
 	if m.pool != nil {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
-		_, _ = m.pool.Exec(ctx, `DELETE FROM threat_intel_feeds WHERE id=$1`, id)
+		if _, err := m.pool.Exec(ctx, `DELETE FROM threat_intel_feeds WHERE id=$1`, id); err != nil {
+			return fmt.Errorf("フィードを削除できませんでした（再起動で戻ります）: %w", err)
+		}
 	}
+	delete(m.feeds, id)
 	return nil
 }
 
@@ -413,32 +441,43 @@ func (m *FeedManager) RunPeriodicSync(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			m.mu.RLock()
-			now := time.Now()
-			toSync := make([]*Feed, 0)
-			for _, f := range m.feeds {
-				if !f.Enabled {
-					continue
-				}
-				if f.LastFetch.IsZero() || now.Sub(f.LastFetch) >= time.Duration(f.FetchIntervalMin)*time.Minute {
-					toSync = append(toSync, f)
-				}
-			}
-			m.mu.RUnlock()
-
-			for _, feed := range toSync {
-				go func(f *Feed) {
-					syncCtx, cancel := context.WithTimeout(ctx, 2*time.Minute)
-					defer cancel()
-					count, err := m.FetchFeed(syncCtx, f.ID)
-					if err != nil {
-						slog.Warn("threatintel: periodic sync failed", "feed", f.Name, "error", err)
-						return
-					}
-					slog.Info("threatintel: periodic sync complete", "feed", f.Name, "imported", count)
-				}(feed)
-			}
+			tick.Run(ctx, "threatintel_periodic_sync", m.syncDueFeeds)
 		}
+	}
+}
+
+// syncDueFeeds fetches every enabled feed whose interval has elapsed.
+//
+// **回ごとの仕事として切り出してあります。** `tick.Run` に渡せる形
+// （`func(context.Context)`）にしないと、回ったことも、途中で諦めたことも
+// 記録できません。
+func (m *FeedManager) syncDueFeeds(ctx context.Context) {
+	m.mu.RLock()
+	now := time.Now()
+	toSync := make([]*Feed, 0)
+	for _, f := range m.feeds {
+		if !f.Enabled {
+			continue
+		}
+		if f.LastFetch.IsZero() || now.Sub(f.LastFetch) >= time.Duration(f.FetchIntervalMin)*time.Minute {
+			toSync = append(toSync, f)
+		}
+	}
+	m.mu.RUnlock()
+
+	for _, feed := range toSync {
+		go func(f *Feed) {
+			syncCtx, cancel := context.WithTimeout(ctx, 2*time.Minute)
+			defer cancel()
+			count, err := m.FetchFeed(syncCtx, f.ID)
+			if err != nil {
+				// **回の失敗として数えます。** 取り込めなかったフィードは、
+				// 指標が0件のフィードと同じ姿になります。
+				tick.Fail(syncCtx, err, "threatintel: periodic sync failed", "feed", f.Name)
+				return
+			}
+			slog.Info("threatintel: periodic sync complete", "feed", f.Name, "imported", count)
+		}(feed)
 	}
 }
 
@@ -499,7 +538,7 @@ func (m *FeedManager) LoadFromDB(ctx context.Context) {
 		ORDER BY created_at
 	`)
 	if err != nil {
-		slog.Warn("threatintel: failed to load feeds from DB", "error", err)
+		metrics.BackgroundFailed("threatintel_feed_load", err, "threatintel: failed to load feeds from DB")
 		return
 	}
 	defer rows.Close()
@@ -514,6 +553,9 @@ func (m *FeedManager) LoadFromDB(ctx context.Context) {
 			m.mu.Unlock()
 		}
 	}
+	if err := rows.Err(); err != nil {
+		slog.Error("脅威フィード一覧の読み込みが途中で終わりました。メモリ上のフィード集合は不完全です", "error", err)
+	}
 
 	// Load IOCs
 	iocRows, err := m.pool.Query(ctx, `
@@ -523,7 +565,7 @@ func (m *FeedManager) LoadFromDB(ctx context.Context) {
 		LIMIT 100000
 	`)
 	if err != nil {
-		slog.Warn("threatintel: failed to load IOCs from DB", "error", err)
+		metrics.BackgroundFailed("threatintel_feed_load", err, "threatintel: failed to load IOCs from DB")
 		return
 	}
 	defer iocRows.Close()
@@ -537,6 +579,9 @@ func (m *FeedManager) LoadFromDB(ctx context.Context) {
 			m.iocs.Store(key, &iocCopy)
 			m.totalIOCs.Add(1)
 		}
+	}
+	if err := iocRows.Err(); err != nil {
+		slog.Error("IOCの読み込みが途中で終わりました。メモリ上のIOC集合は不完全で、読めなかったIOCは照合されません", "error", err)
 	}
 	slog.Info("threatintel: loaded from DB", "feeds", len(m.feeds), "iocs", m.totalIOCs.Load())
 }

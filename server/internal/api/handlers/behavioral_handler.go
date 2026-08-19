@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"errors"
 	"net/http"
 	"strconv"
 
@@ -24,6 +25,13 @@ func (h *BehavioralHandler) BuildBaseline(c *gin.Context) {
 
 	baseline, err := h.engine.BuildBaseline(c.Request.Context(), agentID, days)
 	if err != nil {
+		// **端末が無いことは、障害ではありません。** 以前はどちらも 500 と
+		// 「データベース操作に失敗しました」で、ID を打ち間違えた人は
+		// サーバが壊れたと読みます。
+		if errors.Is(err, behavioral.ErrAgentNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": dbErrMsg(err)})
 		return
 	}

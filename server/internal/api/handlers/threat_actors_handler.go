@@ -254,9 +254,5 @@ func nonNilStrs(s []string) []string {
 // tableExists reports whether a public table exists (used to degrade gracefully
 // before the migration has run).
 func tableExists(c *gin.Context, pool *pgxpool.Pool, table string) bool {
-	var exists bool
-	err := pool.QueryRow(c.Request.Context(),
-		`SELECT EXISTS (SELECT 1 FROM information_schema.tables
-		 WHERE table_schema='public' AND table_name=$1)`, table).Scan(&exists)
-	return err == nil && exists
+	return tableIsThere(c.Request.Context(), pool, table)
 }

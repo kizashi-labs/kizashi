@@ -33,8 +33,11 @@ func TestTopFalsePositiveRulesReturnsRows(t *testing.T) {
 	if err != nil {
 		t.Skipf("cannot connect to DATABASE_URL: %v", err)
 	}
-	// defer ではなく t.Cleanup。defer はテスト関数の return 時に走るため、
-	// その後に走る t.Cleanup の DELETE が閉じたプールに当たってしまう。
+	// t.Cleanup, not defer: cleanup functions run AFTER the test function
+	// returns, so a deferred Close has already happened by the time they run and
+	// every statement they issue fails with "closed pool" into a discarded error.
+	// Registering the Close first makes it run last (cleanups are LIFO), which is
+	// the order the data cleanups below need.
 	t.Cleanup(pool.Close)
 	if err := pool.Ping(ctx); err != nil {
 		t.Skipf("DB ping failed: %v", err)

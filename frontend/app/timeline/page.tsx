@@ -9,6 +9,8 @@ import {
   Monitor, Search, ChevronRight, Calendar, AlertTriangle,
 } from 'lucide-react'
 
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+
 // ── Types ──────────────────────────────────────────────────────
 
 type EventType = 'alert' | 'audit' | 'fim' | 'agent'
@@ -56,21 +58,21 @@ const TYPE_LABELS: Record<EventType, string> = {
 }
 
 const TYPE_BORDER: Record<EventType, string> = {
-  alert: 'border-l-falcon-red',
+  alert: 'border-l-[#e8002d]',
   audit: 'border-l-blue-500',
   fim: 'border-l-yellow-500',
   agent: 'border-l-green-500',
 }
 
 const TYPE_ICON_COLOR: Record<EventType, string> = {
-  alert: 'text-falcon-red bg-falcon-red/10',
+  alert: 'text-[#e8002d] bg-[#e8002d]/10',
   audit: 'text-blue-400 bg-blue-500/10',
   fim: 'text-yellow-400 bg-yellow-500/10',
   agent: 'text-green-400 bg-green-500/10',
 }
 
 function getSeverityColor(severity: number) {
-  if (severity >= 9) return 'text-falcon-red bg-falcon-red/10'
+  if (severity >= 9) return 'text-[#e8002d] bg-[#e8002d]/10'
   if (severity >= 7) return 'text-orange-400 bg-orange-500/10'
   if (severity >= 4) return 'text-yellow-400 bg-yellow-500/10'
   return 'text-green-400 bg-green-500/10'
@@ -129,12 +131,12 @@ function formatDateGroupLabel(dateKey: string): string {
 
 function SkeletonCard() {
   return (
-    <div className="flex gap-4 p-4 bg-falcon-surface border border-falcon-border border-l-4 border-l-falcon-border rounded-lg animate-pulse">
-      <div className="w-8 h-8 rounded-lg bg-falcon-border shrink-0" />
+    <div className="flex gap-4 p-4 bg-[#0d1220] border border-[#1e2d42] border-l-4 border-l-[#1e2d42] rounded-lg animate-pulse">
+      <div className="w-8 h-8 rounded-lg bg-[#1e2d42] shrink-0" />
       <div className="flex-1 space-y-2">
-        <div className="h-4 bg-falcon-border rounded-sm w-3/4" />
-        <div className="h-3 bg-falcon-border rounded-sm w-full" />
-        <div className="h-3 bg-falcon-border rounded-sm w-1/3" />
+        <div className="h-4 bg-[#1e2d42] rounded-sm w-3/4" />
+        <div className="h-3 bg-[#1e2d42] rounded-sm w-full" />
+        <div className="h-3 bg-[#1e2d42] rounded-sm w-1/3" />
       </div>
     </div>
   )
@@ -150,7 +152,7 @@ function EventCard({ event }: { event: TimelineEvent }) {
   return (
     <Link
       href={event.link}
-      className={`flex gap-3 p-4 bg-falcon-surface border border-falcon-border border-l-4 ${borderColor}
+      className={`flex gap-3 p-4 bg-[#0d1220] border border-[#1e2d42] border-l-4 ${borderColor}
                   rounded-lg hover:bg-[#0a1628] transition-colors group`}
     >
       {/* Icon */}
@@ -161,7 +163,7 @@ function EventCard({ event }: { event: TimelineEvent }) {
       {/* Content */}
       <div className="flex-1 min-w-0">
         <div className="flex items-start justify-between gap-2 mb-1">
-          <p className="text-sm font-medium text-falcon-text group-hover:text-white transition-colors truncate">
+          <p className="text-sm font-medium text-[#e2e8f4] group-hover:text-white transition-colors truncate">
             {event.title}
           </p>
           <div className="flex items-center gap-1.5 shrink-0">
@@ -170,11 +172,11 @@ function EventCard({ event }: { event: TimelineEvent }) {
                 {getSeverityLabel(event.severity)}
               </span>
             )}
-            <ChevronRight className="w-3.5 h-3.5 text-falcon-subtle group-hover:text-falcon-muted transition-colors" />
+            <ChevronRight className="w-3.5 h-3.5 text-[#3d5068] group-hover:text-[#7d92b0] transition-colors" />
           </div>
         </div>
 
-        <p className="text-xs text-falcon-muted mb-2 line-clamp-2">{event.detail}</p>
+        <p className="text-xs text-[#7d92b0] mb-2 line-clamp-2">{event.detail}</p>
 
         <div className="flex items-center gap-3">
           {/* Type badge */}
@@ -184,13 +186,13 @@ function EventCard({ event }: { event: TimelineEvent }) {
 
           {/* Agent badge */}
           {event.agent_id && (
-            <span className="text-[10px] px-2 py-0.5 rounded-sm bg-falcon-border text-falcon-muted font-mono truncate max-w-[120px]">
+            <span className="text-[10px] px-2 py-0.5 rounded-sm bg-[#1e2d42] text-[#7d92b0] font-mono truncate max-w-[120px]">
               {event.agent_id.slice(0, 8)}…
             </span>
           )}
 
           {/* Timestamp */}
-          <span className="text-[10px] text-falcon-subtle ml-auto shrink-0">
+          <span className="text-[10px] text-[#3d5068] ml-auto shrink-0">
             {formatTimestamp(event.timestamp)}
           </span>
         </div>
@@ -205,13 +207,13 @@ function DateGroupHeader({ label, count }: { label: string; count: number }) {
   return (
     <div className="flex items-center gap-3 my-4">
       <div className="flex items-center gap-2">
-        <div className="w-6 h-6 rounded-sm bg-falcon-border flex items-center justify-center shrink-0">
-          <Calendar className="w-3 h-3 text-falcon-muted" />
+        <div className="w-6 h-6 rounded-sm bg-[#1e2d42] flex items-center justify-center shrink-0">
+          <Calendar className="w-3 h-3 text-[#7d92b0]" />
         </div>
-        <span className="text-sm font-semibold text-falcon-text">{label}</span>
-        <span className="text-xs text-falcon-subtle">({count}件)</span>
+        <span className="text-sm font-semibold text-[#e2e8f4]">{label}</span>
+        <span className="text-xs text-[#3d5068]">({count}件)</span>
       </div>
-      <div className="flex-1 h-px bg-falcon-border" />
+      <div className="flex-1 h-px bg-[#1e2d42]" />
     </div>
   )
 }
@@ -292,23 +294,24 @@ export default function TimelinePage() {
 
   return (
     <div className="min-h-screen bg-[#070d19] p-6">
+      <PageDataUnavailable />
       <div className="max-w-4xl mx-auto">
 
         {/* Header */}
         <div className="mb-6">
           <div className="flex items-center gap-3 mb-1">
-            <div className="w-8 h-8 rounded-sm bg-falcon-red/10 border border-falcon-red/30 flex items-center justify-center">
-              <Activity className="w-4 h-4 text-falcon-red" />
+            <div className="w-8 h-8 rounded-sm bg-[#e8002d]/10 border border-[#e8002d]/30 flex items-center justify-center">
+              <Activity className="w-4 h-4 text-[#e8002d]" />
             </div>
             <h1 className="text-xl font-bold text-white">セキュリティタイムライン</h1>
           </div>
-          <p className="text-falcon-muted text-sm ml-11">
+          <p className="text-[#7d92b0] text-sm ml-11">
             アラート・監査・FIM・エージェントイベントの時系列ビュー
           </p>
         </div>
 
         {/* Filter Bar */}
-        <div className="bg-falcon-surface border border-falcon-border rounded-xl p-4 mb-6 space-y-3">
+        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-4 mb-6 space-y-3">
           {/* Type pills */}
           <div className="flex gap-2 flex-wrap">
             {FILTER_PILLS.map(pill => (
@@ -317,8 +320,8 @@ export default function TimelinePage() {
                 onClick={() => setActiveFilter(pill.value)}
                 className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
                   activeFilter === pill.value
-                    ? 'bg-falcon-red/15 border-falcon-red/40 text-falcon-red'
-                    : 'bg-[#070d19] border-falcon-border text-falcon-muted hover:border-falcon-muted/40 hover:text-falcon-text'
+                    ? 'bg-[#e8002d]/15 border-[#e8002d]/40 text-[#e8002d]'
+                    : 'bg-[#070d19] border-[#1e2d42] text-[#7d92b0] hover:border-[#7d92b0]/40 hover:text-[#e2e8f4]'
                 }`}
               >
                 {pill.label}
@@ -330,15 +333,13 @@ export default function TimelinePage() {
           <div className="flex gap-3 flex-wrap">
             {/* Search input */}
             <div className="relative flex-1 min-w-[200px]">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-falcon-subtle pointer-events-none" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#3d5068] pointer-events-none" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
                 placeholder="タイトル・詳細を検索..."
-                className="w-full bg-[#070d19] border border-falcon-border rounded-lg
-                           pl-9 pr-3 py-2 text-sm text-falcon-text placeholder-falcon-subtle
-                           focus:outline-hidden focus:border-falcon-red/50 transition-all"
+                className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg pl-9 pr-3 py-2 text-sm text-[#e2e8f4] placeholder-[#3d5068] focus:outline-hidden focus:border-[#e8002d]/50 transition-all"
               />
             </div>
 
@@ -348,13 +349,11 @@ export default function TimelinePage() {
                 type="date"
                 value={fromDate}
                 onChange={e => setFromDate(e.target.value)}
-                className="bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2
-                           text-sm text-falcon-text focus:outline-hidden focus:border-falcon-red/50
-                           transition-all scheme-dark"
+                className="bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-[#e2e8f4] focus:outline-hidden focus:border-[#e8002d]/50 transition-all [color-scheme:dark]"
               />
             </div>
 
-            <span className="self-center text-falcon-subtle text-sm">〜</span>
+            <span className="self-center text-[#3d5068] text-sm">〜</span>
 
             {/* Date to */}
             <div className="relative">
@@ -362,9 +361,7 @@ export default function TimelinePage() {
                 type="date"
                 value={toDate}
                 onChange={e => setToDate(e.target.value)}
-                className="bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2
-                           text-sm text-falcon-text focus:outline-hidden focus:border-falcon-red/50
-                           transition-all scheme-dark"
+                className="bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-[#e2e8f4] focus:outline-hidden focus:border-[#e8002d]/50 transition-all [color-scheme:dark]"
               />
             </div>
 
@@ -372,8 +369,7 @@ export default function TimelinePage() {
             {(fromDate || toDate) && (
               <button
                 onClick={() => { setFromDate(''); setToDate('') }}
-                className="px-3 py-2 rounded-lg text-xs text-falcon-muted hover:text-white
-                           bg-falcon-border hover:bg-falcon-border/80 transition-colors"
+                className="px-3 py-2 rounded-lg text-xs text-[#7d92b0] hover:text-white bg-[#1e2d42] hover:bg-[#1e2d42]/80 transition-colors"
               >
                 クリア
               </button>
@@ -384,16 +380,16 @@ export default function TimelinePage() {
         {/* Results meta */}
         {!isLoading && (
           <div className="flex items-center justify-between mb-3">
-            <p className="text-xs text-falcon-muted">
+            <p className="text-xs text-[#7d92b0]">
               <span className="text-white font-medium">{filteredEvents.length}</span> 件表示
               {total > filteredEvents.length && (
-                <span className="text-falcon-subtle"> / 全{total}件</span>
+                <span className="text-[#3d5068]"> / 全{total}件</span>
               )}
             </p>
             {(activeFilter !== 'all' || searchQuery) && (
               <button
                 onClick={() => { setActiveFilter('all'); setSearchQuery('') }}
-                className="text-xs text-falcon-subtle hover:text-falcon-muted transition-colors"
+                className="text-xs text-[#3d5068] hover:text-[#7d92b0] transition-colors"
               >
                 フィルターをクリア
               </button>
@@ -407,10 +403,10 @@ export default function TimelinePage() {
             {[1, 2, 3, 4, 5].map(i => <SkeletonCard key={i} />)}
           </div>
         ) : filteredEvents.length === 0 ? (
-          <div className="bg-falcon-surface border border-falcon-border rounded-xl p-12 text-center">
-            <AlertTriangle className="w-10 h-10 text-falcon-border mx-auto mb-3" />
-            <p className="text-sm font-medium text-falcon-muted mb-1">イベントが見つかりません</p>
-            <p className="text-xs text-falcon-subtle">フィルターや日付範囲を変更してください</p>
+          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-12 text-center">
+            <AlertTriangle className="w-10 h-10 text-[#1e2d42] mx-auto mb-3" />
+            <p className="text-sm font-medium text-[#7d92b0] mb-1">イベントが見つかりません</p>
+            <p className="text-xs text-[#3d5068]">フィルターや日付範囲を変更してください</p>
           </div>
         ) : (
           <div>
@@ -435,10 +431,7 @@ export default function TimelinePage() {
                 <button
                   onClick={handleLoadMore}
                   disabled={isFetching}
-                  className="px-6 py-2.5 rounded-lg bg-falcon-surface border border-falcon-border
-                             text-sm text-falcon-muted hover:text-white hover:border-falcon-muted/40
-                             transition-all disabled:opacity-50 disabled:cursor-not-allowed
-                             flex items-center gap-2 mx-auto"
+                  className="px-6 py-2.5 rounded-lg bg-[#0d1220] border border-[#1e2d42] text-sm text-[#7d92b0] hover:text-white hover:border-[#7d92b0]/40 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 mx-auto"
                 >
                   {isFetching ? (
                     <>
@@ -448,7 +441,7 @@ export default function TimelinePage() {
                   ) : (
                     <>
                       さらに読み込む
-                      <span className="text-xs text-falcon-subtle">({total - allEvents.length}件残り)</span>
+                      <span className="text-xs text-[#3d5068]">({total - allEvents.length}件残り)</span>
                     </>
                   )}
                 </button>

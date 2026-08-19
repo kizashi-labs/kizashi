@@ -30,13 +30,7 @@ type OnboardingStep struct {
 
 // tableExists checks whether a table exists in the public schema.
 func (h *OnboardingHandler) tableExists(ctx context.Context, table string) bool {
-	var exists bool
-	err := h.pool.QueryRow(ctx,
-		`SELECT EXISTS (
-			SELECT 1 FROM information_schema.tables
-			WHERE table_schema = 'public' AND table_name = $1
-		)`, table).Scan(&exists)
-	return err == nil && exists
+	return tableIsThere(ctx, h.pool, table)
 }
 
 // countRows returns true when the table has at least one row matching the optional WHERE clause.

@@ -85,7 +85,10 @@ func (h *PasswordPolicyHandler) Get(c *gin.Context) {
 			&p.MaxAgeDays, &p.MinAgeDays, &p.LockoutAttempts, &p.LockoutDurationMins, &p.IsActive,
 		)
 		if err != nil {
-			c.JSON(http.StatusOK, defaultPolicy())
+			// ポリシー未設定なら既定値で正しいですが、読めなかっただけの場合に
+			// 既定値を返すと、実際より緩い（あるいは厳しい）ポリシーが
+			// 「現在の設定」として表示されます。
+			ReadFailure(c, err, defaultPolicy())
 			return
 		}
 		c.JSON(http.StatusOK, p)
@@ -161,11 +164,13 @@ func (h *PasswordPolicyHandler) Update(c *gin.Context) {
 		// Log to audit_logs
 		userID, _ := c.Get("user_id")
 		userIDStr, _ := userID.(string)
-		_, _ = h.pool.Exec(ctx,
+		if _, err := h.pool.Exec(ctx,
 			`INSERT INTO audit_logs (user_id, action, ip_address, status_code)
-			 VALUES ($1, 'password_policy_update', $2, 200)`,
+				 VALUES ($1, 'password_policy_update', $2, 200)`,
 			userIDStr, c.ClientIP(),
-		)
+		); !WriteOK(c, err) {
+			return
+		}
 
 		h.Get(c)
 		return
@@ -253,7 +258,9 @@ func (h *PasswordPolicyHandler) ValidatePassword(c *gin.Context) {
 
 	policy, err := h.Store.Get(c.Request.Context())
 	if err != nil {
-		c.JSON(http.StatusOK, gin.H{"valid": true, "violations": []string{}})
+		// ポリシーを読めないことは「違反なし」ではありません。
+		// そのまま valid を返すと、規定を満たさないパスワードが通ります。
+		ReadFailure(c, err, gin.H{"valid": true, "violations": []string{}})
 		return
 	}
 
@@ -281,7 +288,7 @@ func (h *PasswordPolicyHandler) GetHistory(c *gin.Context) {
 		 LIMIT 100`,
 	)
 	if err != nil {
-		c.JSON(http.StatusOK, gin.H{"history": []interface{}{}, "total": 0})
+		ReadFailure(c, err, gin.H{"history": []interface{}{}, "total": 0})
 		return
 	}
 	defer rows.Close()
@@ -302,7 +309,9 @@ func (h *PasswordPolicyHandler) GetHistory(c *gin.Context) {
 		}
 	}
 	if err := rows.Err(); err != nil {
-		slog.Warn("row iteration error", "error", err)
+		slog.Error("rows.Err: 結果の読み出しが途中で失敗しました", "error", err)
+		ReadFailure(c, err, gin.H{"history": []interface{}{}, "total": 0})
+		return
 	}
 	if history == nil {
 		history = []HistoryEntry{}

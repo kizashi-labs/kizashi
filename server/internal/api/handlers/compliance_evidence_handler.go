@@ -70,7 +70,9 @@ func (h *ComplianceEvidenceHandler) ListTasks(c *gin.Context) {
 		tasks = append(tasks, t)
 	}
 	if err := rows.Err(); err != nil {
-		slog.Warn("row iteration error", "error", err)
+		slog.Error("rows.Err: 結果の読み出しが途中で失敗しました", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": dbErrMsg(err)})
+		return
 	}
 	if tasks == nil {
 		tasks = []Task{}
@@ -215,7 +217,9 @@ func (h *ComplianceEvidenceHandler) TriggerCollection(c *gin.Context) {
 	}
 
 	// Update last_collected on the task
-	_, _ = h.pool.Exec(ctx, `UPDATE compliance_evidence_tasks SET last_collected=NOW() WHERE id=$1`, taskID)
+	if _, err := h.pool.Exec(ctx, `UPDATE compliance_evidence_tasks SET last_collected=NOW() WHERE id=$1`, taskID); !WriteOK(c, err) {
+		return
+	}
 
 	c.JSON(http.StatusCreated, gin.H{"item": item})
 }
@@ -296,7 +300,9 @@ func (h *ComplianceEvidenceHandler) ListEvidence(c *gin.Context) {
 		items = append(items, item)
 	}
 	if err := rows.Err(); err != nil {
-		slog.Warn("row iteration error", "error", err)
+		slog.Error("rows.Err: 結果の読み出しが途中で失敗しました", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": dbErrMsg(err)})
+		return
 	}
 	if items == nil {
 		items = []EvidenceItem{}
@@ -368,7 +374,9 @@ func (h *ComplianceEvidenceHandler) GetStats(c *gin.Context) {
 		}
 	}
 	if err := frameworkRows.Err(); err != nil {
-		slog.Warn("row iteration error", "error", err)
+		slog.Error("rows.Err: 結果の読み出しが途中で失敗しました", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": dbErrMsg(err)})
+		return
 	}
 
 	// Evidence counts by status
@@ -389,15 +397,19 @@ func (h *ComplianceEvidenceHandler) GetStats(c *gin.Context) {
 		}
 	}
 	if err := statusRows.Err(); err != nil {
-		slog.Warn("row iteration error", "error", err)
+		slog.Error("rows.Err: 結果の読み出しが途中で失敗しました", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": dbErrMsg(err)})
+		return
 	}
 
 	// Expiring within 30 days
 	var expiringCount int
-	_ = h.pool.QueryRow(ctx, `
-		SELECT COUNT(*) FROM compliance_evidence_items
-		WHERE expires_at IS NOT NULL AND expires_at <= NOW() + INTERVAL '30 days' AND expires_at > NOW()
-	`).Scan(&expiringCount)
+	if !ReadOK(c, h.pool.QueryRow(ctx, `
+			SELECT COUNT(*) FROM compliance_evidence_items
+			WHERE expires_at IS NOT NULL AND expires_at <= NOW() + INTERVAL '30 days' AND expires_at > NOW()
+		`).Scan(&expiringCount)) {
+		return
+	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"by_framework":        byFramework,

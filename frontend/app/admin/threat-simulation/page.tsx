@@ -7,6 +7,7 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 
 import { apiFetch } from '@/lib/api'
+import { m } from '@/lib/mock'
 
 import {
 
@@ -20,6 +21,9 @@ import {
 
 
 
+
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+import { PageSaveFailed } from '@/components/PageSaveFailed'
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -137,7 +141,7 @@ const RUN_STATUS_STYLES: Record<string, string> = {
 
   failed:    'bg-red-900/40 text-red-300 border border-red-700/50',
 
-  pending:   'bg-falcon-raised text-[#8899aa] border border-falcon-border',
+  pending:   'bg-[#161f33] text-[#8899aa] border border-[#1e2d42]',
 
 }
 
@@ -239,7 +243,12 @@ function RunDetailPanel({ run, templates, onClose }: {
 
   const rate = total > 0 ? Math.round((run.detections / total) * 100) : 0
 
-  const tacticResults = buildMockTacticResults(run, templates)
+  // 以前はここが無条件に buildMockTacticResults でした。テクニック ID も
+  // 検知の可否も Math.random() で作られていて、開き直すたびに違う結果が
+  // 出ます。BAS の目的は「どのテクニックを取り逃したか」を知ることなので、
+  // これは目的そのものを外しています。サーバがテクニック単位の結果を
+  // 返すまでは、出さずに理由を書きます。
+  const tacticResults = m(buildMockTacticResults(run, templates))
 
 
 
@@ -249,13 +258,13 @@ function RunDetailPanel({ run, templates, onClose }: {
 
   return (
 
-    <div className="fixed inset-0 z-50 flex items-start justify-end bg-black/40 backdrop-blur-xs"
+    <div className="fixed inset-0 z-50 flex items-start justify-end bg-black/40 backdrop-blur-sm"
 
          onClick={onClose}>
 
       <div
 
-        className="h-full w-full max-w-xl bg-falcon-surface border-l border-falcon-border shadow-2xl overflow-y-auto"
+        className="h-full w-full max-w-xl bg-[#0d1220] border-l border-[#1e2d42] shadow-2xl overflow-y-auto"
 
         onClick={e => e.stopPropagation()}
 
@@ -263,17 +272,17 @@ function RunDetailPanel({ run, templates, onClose }: {
 
         {/* Header */}
 
-        <div className="sticky top-0 bg-falcon-surface border-b border-falcon-border px-6 py-4 flex items-start justify-between z-10">
+        <div className="sticky top-0 bg-[#0d1220] border-b border-[#1e2d42] px-6 py-4 flex items-start justify-between z-10">
 
           <div>
 
             <h2 className="text-white font-bold text-lg">{run.name}</h2>
 
-            <p className="text-falcon-muted text-sm mt-0.5">{fmtDateTime(run.started_at)}</p>
+            <p className="text-[#7d92b0] text-sm mt-0.5">{fmtDateTime(run.started_at)}</p>
 
           </div>
 
-          <button onClick={onClose} className="text-falcon-muted hover:text-white transition-colors mt-1">
+          <button onClick={onClose} className="text-[#7d92b0] hover:text-white transition-colors mt-1">
 
             <X className="w-5 h-5" />
 
@@ -297,7 +306,7 @@ function RunDetailPanel({ run, templates, onClose }: {
 
             {run.duration_seconds && (
 
-              <span className="text-xs text-falcon-muted">Duration: {fmtDuration(run.duration_seconds)}</span>
+              <span className="text-xs text-[#7d92b0]">Duration: {fmtDuration(run.duration_seconds)}</span>
 
             )}
 
@@ -307,13 +316,13 @@ function RunDetailPanel({ run, templates, onClose }: {
 
           {/* Detection Rate */}
 
-          <div className="bg-falcon-raised rounded-xl p-4">
+          <div className="bg-[#161f33] rounded-xl p-4">
 
             <div className="flex items-center justify-between mb-3">
 
               <div className="flex items-center gap-2">
 
-                <BarChart2 className="w-4 h-4 text-falcon-muted" />
+                <BarChart2 className="w-4 h-4 text-[#7d92b0]" />
 
                 <span className="text-sm font-medium text-white">Detection Rate</span>
 
@@ -323,7 +332,7 @@ function RunDetailPanel({ run, templates, onClose }: {
 
             </div>
 
-            <div className="w-full h-3 bg-falcon-border rounded-full overflow-hidden mb-3">
+            <div className="w-full h-3 bg-[#1e2d42] rounded-full overflow-hidden mb-3">
 
               <div className="h-full rounded-full transition-all" style={{ width: `${rate}%`, backgroundColor: rateColor }} />
 
@@ -337,7 +346,7 @@ function RunDetailPanel({ run, templates, onClose }: {
 
                 <span className="text-green-400 font-bold">{run.detections}</span>
 
-                <span className="text-falcon-muted">Detected</span>
+                <span className="text-[#7d92b0]">Detected</span>
 
               </div>
 
@@ -347,11 +356,11 @@ function RunDetailPanel({ run, templates, onClose }: {
 
                 <span className="text-red-400 font-bold">{run.missed}</span>
 
-                <span className="text-falcon-muted">Missed</span>
+                <span className="text-[#7d92b0]">Missed</span>
 
               </div>
 
-              <div className="ml-auto text-falcon-muted">{total} total techniques</div>
+              <div className="ml-auto text-[#7d92b0]">{total} total techniques</div>
 
             </div>
 
@@ -365,11 +374,17 @@ function RunDetailPanel({ run, templates, onClose }: {
 
             <h3 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
 
-              <Crosshair className="w-4 h-4 text-falcon-red" />
+              <Crosshair className="w-4 h-4 text-[#e8002d]" />
 
               MITRE ATT&CK Technique Breakdown
 
             </h3>
+
+            {tacticResults.length === 0 && (
+              <p className="text-xs text-[#7d92b0]">
+                テクニック単位の結果はサーバから返っていません。上の検知率は実行結果の合計です。
+              </p>
+            )}
 
             <div className="space-y-2">
 
@@ -383,13 +398,13 @@ function RunDetailPanel({ run, templates, onClose }: {
 
                 return (
 
-                  <div key={tr.tactic} className="bg-falcon-raised rounded-lg overflow-hidden">
+                  <div key={tr.tactic} className="bg-[#161f33] rounded-lg overflow-hidden">
 
                     <button
 
                       onClick={() => setExpandedTactic(isExpanded ? null : tr.tactic)}
 
-                      className="w-full flex items-center gap-3 px-4 py-3 hover:bg-falcon-hover transition-colors"
+                      className="w-full flex items-center gap-3 px-4 py-3 hover:bg-[#19253d] transition-colors"
 
                     >
 
@@ -405,7 +420,7 @@ function RunDetailPanel({ run, templates, onClose }: {
 
                         <span className="text-xs text-red-400">{tr.missed} miss</span>
 
-                        <div className="w-16 h-1.5 bg-falcon-border rounded-full overflow-hidden">
+                        <div className="w-16 h-1.5 bg-[#1e2d42] rounded-full overflow-hidden">
 
                           <div className="h-full rounded-full"
 
@@ -413,13 +428,13 @@ function RunDetailPanel({ run, templates, onClose }: {
 
                         </div>
 
-                        <span className="text-xs text-falcon-muted w-8 text-right">{tacticRate}%</span>
+                        <span className="text-xs text-[#7d92b0] w-8 text-right">{tacticRate}%</span>
 
                         {isExpanded
 
-                          ? <ChevronDown className="w-3.5 h-3.5 text-falcon-subtle" />
+                          ? <ChevronDown className="w-3.5 h-3.5 text-[#3d5068]" />
 
-                          : <ChevronRight className="w-3.5 h-3.5 text-falcon-subtle" />}
+                          : <ChevronRight className="w-3.5 h-3.5 text-[#3d5068]" />}
 
                       </div>
 
@@ -427,7 +442,7 @@ function RunDetailPanel({ run, templates, onClose }: {
 
                     {isExpanded && (
 
-                      <div className="px-4 pb-3 space-y-1.5 border-t border-falcon-border">
+                      <div className="px-4 pb-3 space-y-1.5 border-t border-[#1e2d42]">
 
                         {tr.techniques.map(tech => (
 
@@ -439,11 +454,11 @@ function RunDetailPanel({ run, templates, onClose }: {
 
                               : <AlertTriangle className="w-3.5 h-3.5 text-red-400 shrink-0" />}
 
-                            <span className="text-xs font-mono text-falcon-muted">{tech.id}</span>
+                            <span className="text-xs font-mono text-[#7d92b0]">{tech.id}</span>
 
-                            <span className="text-xs text-falcon-text">{tech.name}</span>
+                            <span className="text-xs text-[#e2e8f4]">{tech.name}</span>
 
-                            <span className={`ml-auto text-[10px] px-1.5 py-0.5 rounded font-medium ${
+                            <span className={`ml-auto text-[10px] px-1.5 py-0.5 rounded-sm font-medium ${
 
                               tech.detected
 
@@ -499,7 +514,7 @@ function StatCard({ label, value, icon: Icon, color = '#7d92b0' }: {
 
   return (
 
-    <div className="bg-falcon-surface border border-falcon-border rounded-lg p-4 flex items-center gap-4">
+    <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-4 flex items-center gap-4">
 
       <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0"
 
@@ -511,7 +526,7 @@ function StatCard({ label, value, icon: Icon, color = '#7d92b0' }: {
 
       <div>
 
-        <p className="text-falcon-muted text-xs">{label}</p>
+        <p className="text-[#7d92b0] text-xs">{label}</p>
 
         <p className="text-white text-xl font-bold">{value}</p>
 
@@ -577,11 +592,11 @@ function RunSimModal({ templates, onClose, onRun }: {
 
   return (
 
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
 
-      <div className="bg-falcon-surface border border-falcon-border rounded-xl w-full max-w-md">
+      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl w-full max-w-md">
 
-        <div className="flex items-center justify-between p-6 border-b border-falcon-border">
+        <div className="flex items-center justify-between p-6 border-b border-[#1e2d42]">
 
           <h3 className="text-white font-bold text-lg flex items-center gap-2">
 
@@ -591,7 +606,7 @@ function RunSimModal({ templates, onClose, onRun }: {
 
           </h3>
 
-          <button onClick={onClose} className="text-falcon-muted hover:text-white transition-colors">
+          <button onClick={onClose} className="text-[#7d92b0] hover:text-white transition-colors">
 
             <X className="w-5 h-5" />
 
@@ -605,7 +620,7 @@ function RunSimModal({ templates, onClose, onRun }: {
 
           <div>
 
-            <label className="block text-falcon-muted text-xs mb-1.5">Template <span className="text-falcon-red">*</span></label>
+            <label className="block text-[#7d92b0] text-xs mb-1.5">Template <span className="text-[#e8002d]">*</span></label>
 
             <select
 
@@ -613,9 +628,7 @@ function RunSimModal({ templates, onClose, onRun }: {
 
               onChange={e => setForm(f => ({ ...f, template_id: e.target.value }))}
 
-              className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm
-
-                         focus:outline-hidden focus:border-falcon-red/50"
+              className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-[#e8002d]/50"
 
             >
 
@@ -633,7 +646,7 @@ function RunSimModal({ templates, onClose, onRun }: {
 
           <div>
 
-            <label className="block text-falcon-muted text-xs mb-1.5">Run Name <span className="text-falcon-red">*</span></label>
+            <label className="block text-[#7d92b0] text-xs mb-1.5">Run Name <span className="text-[#e8002d]">*</span></label>
 
             <input
 
@@ -645,9 +658,7 @@ function RunSimModal({ templates, onClose, onRun }: {
 
               placeholder="e.g. Weekly APT29 Check"
 
-              className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm
-
-                         placeholder:text-falcon-subtle focus:outline-hidden focus:border-falcon-red/50"
+              className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm placeholder:text-[#3d5068] focus:outline-hidden focus:border-[#e8002d]/50"
 
             />
 
@@ -657,7 +668,7 @@ function RunSimModal({ templates, onClose, onRun }: {
 
           <div>
 
-            <label className="block text-falcon-muted text-xs mb-1.5">Target Agents</label>
+            <label className="block text-[#7d92b0] text-xs mb-1.5">Target Agents</label>
 
             <div className="flex gap-2 mb-2">
 
@@ -673,15 +684,13 @@ function RunSimModal({ templates, onClose, onRun }: {
 
                 placeholder="Agent ID (press Enter to add)"
 
-                className="flex-1 bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm
-
-                           placeholder:text-falcon-subtle focus:outline-hidden focus:border-falcon-red/50"
+                className="flex-1 bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm placeholder:text-[#3d5068] focus:outline-hidden focus:border-[#e8002d]/50"
 
               />
 
               <button onClick={addAgent}
 
-                className="px-3 py-2 bg-falcon-border hover:bg-[#2a3f5c] text-white rounded-lg text-sm transition-colors">
+                className="px-3 py-2 bg-[#1e2d42] hover:bg-[#2a3f5c] text-white rounded-lg text-sm transition-colors">
 
                 <Plus className="w-4 h-4" />
 
@@ -695,7 +704,7 @@ function RunSimModal({ templates, onClose, onRun }: {
 
                 {form.target_agents.map(a => (
 
-                  <span key={a} className="flex items-center gap-1 px-2 py-0.5 bg-falcon-border text-falcon-muted rounded-sm text-xs">
+                  <span key={a} className="flex items-center gap-1 px-2 py-0.5 bg-[#1e2d42] text-[#7d92b0] rounded-sm text-xs">
 
                     {a}
 
@@ -713,7 +722,7 @@ function RunSimModal({ templates, onClose, onRun }: {
 
             )}
 
-            <p className="text-falcon-subtle text-xs mt-1">Leave empty to run against all agents</p>
+            <p className="text-[#3d5068] text-xs mt-1">Leave empty to run against all agents</p>
 
           </div>
 
@@ -721,11 +730,11 @@ function RunSimModal({ templates, onClose, onRun }: {
 
 
 
-        <div className="flex gap-3 p-6 border-t border-falcon-border">
+        <div className="flex gap-3 p-6 border-t border-[#1e2d42]">
 
           <button onClick={onClose}
 
-            className="flex-1 px-4 py-2 border border-falcon-border text-falcon-muted rounded-lg text-sm hover:bg-falcon-hover transition-colors">
+            className="flex-1 px-4 py-2 border border-[#1e2d42] text-[#7d92b0] rounded-lg text-sm hover:bg-[#19253d] transition-colors">
 
             Cancel
 
@@ -737,9 +746,7 @@ function RunSimModal({ templates, onClose, onRun }: {
 
             disabled={!form.template_id || !form.name.trim()}
 
-            className="flex-1 px-4 py-2 bg-green-700 hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed
-
-                       text-white rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2">
+            className="flex-1 px-4 py-2 bg-green-700 hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2">
 
             <Play className="w-4 h-4" />
 
@@ -779,7 +786,7 @@ export default function ThreatSimulationPage() {
 
     queryKey: ['sim-stats'],
 
-    queryFn: () => apiFetch<SimStats>('/api/v1/admin/threat-simulation/stats').catch(() => ({ total_runs: 0, completed: 0, running: 0, avg_detection_rate: 0 } as SimStats)),
+    queryFn: () => apiFetch<SimStats>('/api/v1/admin/threat-simulation/stats'),
 
     staleTime: 30_000,
 
@@ -825,9 +832,7 @@ export default function ThreatSimulationPage() {
 
     mutationFn: (data: RunSimPayload) =>
 
-      apiFetch('/api/v1/admin/threat-simulation/runs', { method: 'POST', body: JSON.stringify(data) })
-
-        .catch(() => ({})),
+      apiFetch('/api/v1/admin/threat-simulation/runs', { method: 'POST', body: JSON.stringify(data) }),
 
     onSuccess: () => {
 
@@ -846,7 +851,9 @@ export default function ThreatSimulationPage() {
   return (
 
     <div className="min-h-screen bg-[#070d19] p-6">
+      <PageDataUnavailable />
 
+      <PageSaveFailed />
       {/* Header */}
 
       <div className="flex items-center justify-between mb-6">
@@ -855,13 +862,13 @@ export default function ThreatSimulationPage() {
 
           <h1 className="text-2xl font-bold text-white flex items-center gap-3">
 
-            <Crosshair className="w-7 h-7 text-falcon-red" />
+            <Crosshair className="w-7 h-7 text-[#e8002d]" />
 
             Breach & Attack Simulation
 
           </h1>
 
-          <p className="text-falcon-muted text-sm mt-1">Validate security controls with automated attack simulations</p>
+          <p className="text-[#7d92b0] text-sm mt-1">Validate security controls with automated attack simulations</p>
 
         </div>
 
@@ -869,7 +876,7 @@ export default function ThreatSimulationPage() {
 
           onClick={() => setShowRunModal(true)}
 
-          className="flex items-center gap-2 px-4 py-2 bg-falcon-red hover:bg-[#c0001f] text-white rounded-lg text-sm font-medium transition-colors"
+          className="flex items-center gap-2 px-4 py-2 bg-[#e8002d] hover:bg-[#c0001f] text-white rounded-lg text-sm font-medium transition-colors"
 
         >
 
@@ -901,7 +908,7 @@ export default function ThreatSimulationPage() {
 
       {/* Tabs */}
 
-      <div className="flex gap-1 bg-falcon-surface border border-falcon-border rounded-lg p-1 w-fit mb-6">
+      <div className="flex gap-1 bg-[#0d1220] border border-[#1e2d42] rounded-lg p-1 w-fit mb-6">
 
         {([['templates', 'Simulation Templates'], ['runs', 'Simulation Runs']] as const).map(([key, label]) => (
 
@@ -909,9 +916,9 @@ export default function ThreatSimulationPage() {
 
             onClick={() => setActiveTab(key)}
 
-            className={`px-4 py-2 rounded text-sm font-medium transition-colors ${
+            className={`px-4 py-2 rounded-sm text-sm font-medium transition-colors ${
 
-              activeTab === key ? 'bg-falcon-active text-white' : 'text-falcon-muted hover:text-white'
+              activeTab === key ? 'bg-[#1d2f4a] text-white' : 'text-[#7d92b0] hover:text-white'
 
             }`}>
 
@@ -929,13 +936,13 @@ export default function ThreatSimulationPage() {
 
       {activeTab === 'templates' && (
 
-        <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
+        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
 
           {templatesLoading ? (
 
             <div className="flex items-center justify-center py-16">
 
-              <RefreshCw className="w-6 h-6 text-falcon-muted animate-spin" />
+              <RefreshCw className="w-6 h-6 text-[#7d92b0] animate-spin" />
 
             </div>
 
@@ -945,11 +952,11 @@ export default function ThreatSimulationPage() {
 
               <thead>
 
-                <tr className="border-b border-falcon-border">
+                <tr className="border-b border-[#1e2d42]">
 
                   {['Name', 'Category', 'MITRE Tactics', 'Techniques', 'Enabled'].map(h => (
 
-                    <th key={h} className="px-4 py-3 text-left text-xs text-falcon-muted font-medium">{h}</th>
+                    <th key={h} className="px-4 py-3 text-left text-xs text-[#7d92b0] font-medium">{h}</th>
 
                   ))}
 
@@ -961,13 +968,13 @@ export default function ThreatSimulationPage() {
 
                 {templates.map(t => (
 
-                  <tr key={t.id} className="border-b border-falcon-border/50 hover:bg-falcon-hover/30 transition-colors">
+                  <tr key={t.id} className="border-b border-[#1e2d42]/50 hover:bg-[#19253d]/30 transition-colors">
 
                     <td className="px-4 py-3 text-white text-sm font-medium">{t.name}</td>
 
                     <td className="px-4 py-3">
 
-                      <span className="text-xs px-2 py-0.5 rounded-sm bg-falcon-border text-falcon-muted">{t.category}</span>
+                      <span className="text-xs px-2 py-0.5 rounded-sm bg-[#1e2d42] text-[#7d92b0]">{t.category}</span>
 
                     </td>
 
@@ -989,11 +996,11 @@ export default function ThreatSimulationPage() {
 
                     </td>
 
-                    <td className="px-4 py-3 text-falcon-muted text-sm">{t.techniques_count}</td>
+                    <td className="px-4 py-3 text-[#7d92b0] text-sm">{t.techniques_count}</td>
 
                     <td className="px-4 py-3">
 
-                      <span className={`text-xs px-2 py-0.5 rounded-full ${t.enabled ? 'bg-green-900/40 text-green-300 border border-green-700/50' : 'bg-falcon-raised text-[#8899aa] border border-falcon-border'}`}>
+                      <span className={`text-xs px-2 py-0.5 rounded-full ${t.enabled ? 'bg-green-900/40 text-green-300 border border-green-700/50' : 'bg-[#161f33] text-[#8899aa] border border-[#1e2d42]'}`}>
 
                         {t.enabled ? 'Enabled' : 'Disabled'}
 
@@ -1021,13 +1028,13 @@ export default function ThreatSimulationPage() {
 
       {activeTab === 'runs' && (
 
-        <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
+        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
 
           {runsLoading ? (
 
             <div className="flex items-center justify-center py-16">
 
-              <RefreshCw className="w-6 h-6 text-falcon-muted animate-spin" />
+              <RefreshCw className="w-6 h-6 text-[#7d92b0] animate-spin" />
 
             </div>
 
@@ -1037,11 +1044,11 @@ export default function ThreatSimulationPage() {
 
               <thead>
 
-                <tr className="border-b border-falcon-border">
+                <tr className="border-b border-[#1e2d42]">
 
                   {['Run Name', 'Status', 'Detections', 'Missed', 'Detection Rate', 'Started At', 'Duration'].map(h => (
 
-                    <th key={h} className="px-4 py-3 text-left text-xs text-falcon-muted font-medium">{h}</th>
+                    <th key={h} className="px-4 py-3 text-left text-xs text-[#7d92b0] font-medium">{h}</th>
 
                   ))}
 
@@ -1055,7 +1062,7 @@ export default function ThreatSimulationPage() {
 
                   <tr>
 
-                    <td colSpan={7} className="px-4 py-12 text-center text-falcon-muted text-sm">
+                    <td colSpan={7} className="px-4 py-12 text-center text-[#7d92b0] text-sm">
 
                       No simulation runs yet
 
@@ -1075,7 +1082,7 @@ export default function ThreatSimulationPage() {
 
                         onClick={() => setSelectedRun(r)}
 
-                        className="border-b border-falcon-border/50 hover:bg-falcon-hover/30 transition-colors cursor-pointer">
+                        className="border-b border-[#1e2d42]/50 hover:bg-[#19253d]/30 transition-colors cursor-pointer">
 
                       <td className="px-4 py-3 text-white text-sm font-medium">{r.name}</td>
 
@@ -1105,7 +1112,7 @@ export default function ThreatSimulationPage() {
 
                         <div className="flex items-center gap-2">
 
-                          <div className="w-16 h-1.5 bg-falcon-border rounded-full overflow-hidden">
+                          <div className="w-16 h-1.5 bg-[#1e2d42] rounded-full overflow-hidden">
 
                             <div className="h-full rounded-full" style={{
 
@@ -1117,15 +1124,15 @@ export default function ThreatSimulationPage() {
 
                           </div>
 
-                          <span className="text-falcon-muted text-xs">{rate}%</span>
+                          <span className="text-[#7d92b0] text-xs">{rate}%</span>
 
                         </div>
 
                       </td>
 
-                      <td className="px-4 py-3 text-falcon-muted text-sm">{fmtDateTime(r.started_at)}</td>
+                      <td className="px-4 py-3 text-[#7d92b0] text-sm">{fmtDateTime(r.started_at)}</td>
 
-                      <td className="px-4 py-3 text-falcon-muted text-sm">{fmtDuration(r.duration_seconds)}</td>
+                      <td className="px-4 py-3 text-[#7d92b0] text-sm">{fmtDuration(r.duration_seconds)}</td>
 
                     </tr>
 

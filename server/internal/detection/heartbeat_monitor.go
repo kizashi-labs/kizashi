@@ -7,6 +7,8 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+
+	"github.com/edr-platform/server/internal/tick"
 )
 
 // HeartbeatMonitor はエージェントのハートビートを監視し、
@@ -51,7 +53,7 @@ func NewHeartbeatMonitorWithConfig(pool *pgxpool.Pool, saver AlertSaver, timeout
 // コンテキストがキャンセルされるまでループします。
 func (m *HeartbeatMonitor) Run(ctx context.Context) {
 	// 起動直後に一度実行する
-	m.checkOnce(ctx)
+	tick.Run(ctx, "heartbeat_monitor", m.checkOnce)
 
 	ticker := time.NewTicker(m.interval)
 	defer ticker.Stop()
@@ -61,7 +63,7 @@ func (m *HeartbeatMonitor) Run(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			m.checkOnce(ctx)
+			tick.Run(ctx, "heartbeat_monitor", m.checkOnce)
 		}
 	}
 }
@@ -96,7 +98,7 @@ func (m *HeartbeatMonitor) checkOnce(ctx context.Context) {
 		  )
 	`, m.timeout)
 	if err != nil {
-		slog.Warn("ハートビート監視: エージェントクエリエラー", "error", err)
+		tick.FailComponent(ctx, "heartbeat_monitor", err, "ハートビート監視: エージェントクエリエラー")
 		return
 	}
 	defer rows.Close()
@@ -105,13 +107,13 @@ func (m *HeartbeatMonitor) checkOnce(ctx context.Context) {
 	for rows.Next() {
 		var a offlineAgent
 		if err := rows.Scan(&a.id, &a.hostname, &a.lastSeen); err != nil {
-			slog.Warn("ハートビート監視: 行スキャンエラー", "error", err)
+			tick.Fail(ctx, err, "ハートビート監視: 行スキャンエラー")
 			continue
 		}
 		offline = append(offline, a)
 	}
 	if err := rows.Err(); err != nil {
-		slog.Warn("ハートビート監視: 行イテレーションエラー", "error", err)
+		tick.Fail(ctx, err, "ハートビート監視: 行イテレーションエラー")
 	}
 
 	for _, agent := range offline {
@@ -139,11 +141,10 @@ func (m *HeartbeatMonitor) createOfflineAlert(ctx context.Context, agent offline
 	}
 
 	if err := m.alertSave.SaveAlert(ctx, alert); err != nil {
-		slog.Error("ハートビート監視: アラート保存に失敗しました",
+		tick.FailComponent(ctx, "heartbeat_monitor", err, "ハートビート監視: アラート保存に失敗しました",
 			"agent_id", agent.id,
 			"hostname", agent.hostname,
-			"error", err,
-		)
+			"error", err)
 		return
 	}
 

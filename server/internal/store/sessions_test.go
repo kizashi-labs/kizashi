@@ -216,12 +216,11 @@ func TestSessionIsActive_RevokedAndExpired(t *testing.T) {
 
 // ─── セッション IP アドレス正規化テスト ──────────────────────────────────────
 
-// normalizeIP は sessions.go の Create と同等の IP アドレスのフォールバック処理を再現する
+// normalizeIP は **本物を呼びます。**
+//
+// 以前ここには `Create` の置き換えを書き写したものが置いてありました。
 func normalizeIP(ip string) string {
-	if ip == "" {
-		return "0.0.0.0"
-	}
-	return ip
+	return sessionIPOrFallback(ip)
 }
 
 // TestNormalizeIP_EmptyStringFallsBack は空文字列が 0.0.0.0 にフォールバックすることを確認する

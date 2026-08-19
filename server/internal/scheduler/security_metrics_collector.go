@@ -34,7 +34,7 @@ func (c *SecurityMetricsCollector) Run(ctx context.Context) {
 	case <-ctx.Done():
 		return
 	case <-time.After(2 * time.Minute):
-		c.runOnce(ctx)
+		trackRun(ctx, "security_metrics_collector", c.runOnce)
 	}
 
 	ticker := time.NewTicker(c.interval)
@@ -44,7 +44,7 @@ func (c *SecurityMetricsCollector) Run(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			c.runOnce(ctx)
+			trackRun(ctx, "security_metrics_collector", c.runOnce)
 		}
 	}
 }
@@ -69,14 +69,14 @@ func (c *SecurityMetricsCollector) runOnce(ctx context.Context) {
 	for _, m := range metrics {
 		var v float64
 		if err := c.pool.QueryRow(ctx, m.query).Scan(&v); err != nil {
-			slog.Warn("SecurityMetricsCollector: 集計に失敗しました", "metric", m.name, "error", err)
+			fail(ctx, err, "SecurityMetricsCollector: 集計に失敗しました", "metric", m.name)
 			continue
 		}
 		if _, err := c.pool.Exec(ctx, `
 			INSERT INTO security_metrics_history (metric_name, metric_value, metric_unit)
 			VALUES ($1, $2, $3)
 		`, m.name, v, m.unit); err != nil {
-			slog.Warn("SecurityMetricsCollector: 記録に失敗しました", "metric", m.name, "error", err)
+			fail(ctx, err, "SecurityMetricsCollector: 記録に失敗しました", "metric", m.name)
 			continue
 		}
 		recorded++

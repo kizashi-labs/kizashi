@@ -3,8 +3,6 @@ package main
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"log/slog"
 	"net/http"
 	"os"
@@ -18,14 +16,16 @@ import (
 	"github.com/edr-platform/server/internal/detection"
 	detectionrules "github.com/edr-platform/server/internal/detection/rules"
 	"github.com/edr-platform/server/internal/health"
+	"github.com/edr-platform/server/internal/isolation"
 	"github.com/edr-platform/server/internal/metrics"
 	"github.com/edr-platform/server/internal/ml"
+	"github.com/edr-platform/server/internal/natsstream"
 	"github.com/edr-platform/server/internal/notification"
 	"github.com/edr-platform/server/internal/scheduler"
 	"github.com/edr-platform/server/internal/siem"
 	"github.com/edr-platform/server/internal/store"
+	"github.com/edr-platform/server/internal/tick"
 	"github.com/nats-io/nats.go"
-	"github.com/nats-io/nats.go/jetstream"
 )
 
 func main() {
@@ -67,7 +67,7 @@ func main() {
 	defer nc.Close()
 
 	// ─── Ensure NATS JetStream streams exist ──────────────────
-	if err := ensureStreams(nc); err != nil {
+	if err := natsstream.Ensure(context.Background(), nc); err != nil {
 		slog.Error("NATSストリームの初期化に失敗しました", "error", err)
 		os.Exit(1)
 	}
@@ -123,10 +123,81 @@ func main() {
 	// ─── Agent Commander ──────────────────────────────────────
 	commander := store.NewCommandStore(db, nc)
 
+	// ─── 隔離のゲートキーパー ─────────────────────────────────
+	// 隔離を実行できるのはこれだけ。安全弁（冷却期間・時間あたり上限・ドライラン）と
+	// response_actions への記録はここに集約されている。ルールベース・プレイブック・
+	// AI トリアージはいずれもこれを通る。
+	//   AUTO_ISOLATE_COOLDOWN       同じ端末を再隔離するまでの最短間隔（既定 30m）
+	//   AUTO_ISOLATE_HOURLY_BUDGET  1 時間あたりに隔離を許す台数（既定 3）
+	//   AUTO_ISOLATE_DRY_RUN        true なら隔離せず記録だけ（段階的に有効化する用）
+	isoCooldown := isolation.DefaultCooldown
+	if v := os.Getenv("AUTO_ISOLATE_COOLDOWN"); v != "" {
+		if d, err := time.ParseDuration(v); err == nil && d > 0 {
+			isoCooldown = d
+		} else {
+			slog.Warn("AUTO_ISOLATE_COOLDOWN の値が無効です。既定(30m)を使用します", "value", v)
+		}
+	}
+	isoBudget := isolation.DefaultHourlyBudget
+	if v := os.Getenv("AUTO_ISOLATE_HOURLY_BUDGET"); v != "" {
+		if n, err := strconv.Atoi(v); err == nil && n > 0 {
+			isoBudget = n
+		} else {
+			slog.Warn("AUTO_ISOLATE_HOURLY_BUDGET の値が無効です。既定(3)を使用します", "value", v)
+		}
+	}
+	isoDryRun := os.Getenv("AUTO_ISOLATE_DRY_RUN") == "true"
+	if isoDryRun {
+		slog.Warn("自動隔離はドライランです。隔離は実行されず、記録だけ残ります")
+	}
+	if !autoResponse {
+		slog.Warn("AUTO_RESPONSE_ENABLED=false のため、無人経路からの隔離は行いません")
+	}
+	// 除外の判定は Gatekeeper に一本化する。以前はエンジン側にも同じ検査があり、
+	// 「エンジンのほうが詳しい記録を残せる位置にある」と説明されていたが、これは
+	// 事実に反していた。エンジンの検査は slog.Warn を出して return するだけで
+	// response_actions には何も書かず、しかもエンジン側が先に効くため Gatekeeper の
+	// 記録つきの検査に到達しなかった。結果として「除外された端末では、隔離条件を
+	// 満たしたという事実が DB から復元できない」状態になっていた（2026-08-18 の
+	// 棚卸しで検出。docs/results/live-20260818-auto-isolate-rule-inventory.md §4-1）。
+	var autoIsolateExempt []string
+	for _, h := range strings.Split(os.Getenv("AUTO_ISOLATE_EXEMPT"), ",") {
+		if h = strings.TrimSpace(h); h != "" {
+			autoIsolateExempt = append(autoIsolateExempt, h)
+		}
+	}
+	if len(autoIsolateExempt) > 0 {
+		slog.Info("自動隔離の除外対象を設定しました", "entries", len(autoIsolateExempt),
+			"対象", autoIsolateExempt)
+	}
+	// ホスト名で指定できるようにするための解決手段。呼び出し側の記入に頼ると
+	// 記入し忘れた経路だけ除外が効かなくなる。cmd/api には最初からあったが
+	// こちらには無く、AUTO_ISOLATE_EXEMPT にホスト名を書いた場合、
+	// server-detect 側の除外は AI トリアージ・プレイブック経路で効いていなかった。
+	exemptAgentStore := store.NewAgentStore(db)
+	exemptResolver := func(ctx context.Context, agentID string) string {
+		if agentID == "" {
+			return ""
+		}
+		a, err := exemptAgentStore.GetAgentByID(ctx, agentID)
+		if err != nil || a == nil {
+			return ""
+		}
+		return a.Hostname
+	}
+	gatekeeper := isolation.New(commander, store.NewResponseActionStore(db), isolation.Config{
+		UnattendedEnabled: autoResponse,
+		Cooldown:          isoCooldown,
+		HourlyBudget:      isoBudget,
+		DryRun:            isoDryRun,
+		Exempt:            autoIsolateExempt,
+		HostnameResolver:  exemptResolver,
+	})
+
 	// ─── AI Agent ─────────────────────────────────────────────
 	var aiAgent *detection.AIAgent
 	if aiEnabled && claudeAPIKey != "" {
-		aiAgent = detection.NewAIAgent(claudeAPIKey, storeAdp, commander)
+		aiAgent = detection.NewAIAgent(claudeAPIKey, storeAdp, commander, gatekeeper)
 		aiAgent.SetModel(claudeModel)
 		slog.Info("Claude AIエージェントを有効化しました", "model", claudeModel)
 	} else if aiEnabled {
@@ -251,51 +322,38 @@ func main() {
 		}
 	}
 
-	// 自動隔離の安全弁。誤検知は無くならない前提で、被害の大きさを機械的に抑える。
-	//   AUTO_ISOLATE_COOLDOWN       同じ端末を再隔離するまでの最短間隔（既定 30m）
-	//   AUTO_ISOLATE_HOURLY_BUDGET  1 時間あたりに隔離を許す台数（既定 3）
-	//   AUTO_ISOLATE_DRY_RUN        true なら隔離せず記録だけ（段階的に有効化する用）
-	isoCooldown := 30 * time.Minute
-	if v := os.Getenv("AUTO_ISOLATE_COOLDOWN"); v != "" {
-		if d, err := time.ParseDuration(v); err == nil && d > 0 {
-			isoCooldown = d
-		} else {
-			slog.Warn("AUTO_ISOLATE_COOLDOWN の値が無効です。既定(30m)を使用します", "value", v)
-		}
-	}
-	isoBudget := 3
-	if v := os.Getenv("AUTO_ISOLATE_HOURLY_BUDGET"); v != "" {
-		if n, err := strconv.Atoi(v); err == nil && n > 0 {
-			isoBudget = n
-		} else {
-			slog.Warn("AUTO_ISOLATE_HOURLY_BUDGET の値が無効です。既定(3)を使用します", "value", v)
-		}
-	}
-	isoDryRun := os.Getenv("AUTO_ISOLATE_DRY_RUN") == "true"
-	if isoDryRun {
-		slog.Warn("自動隔離はドライランです。隔離は実行されず、記録だけ残ります")
-	}
+	// Hosts that must never be auto-isolated. Isolation cuts every connection except
+	// the EDR server, so isolating the box that RUNS the platform (or an operator's
+	// jump host) is an outage plus a lockout that needs out-of-band access to undo.
+	// Detection and alerting on these hosts are unaffected — only the response is.
+	//
+	// これは gatekeeper の安全弁（冷却期間・時間あたり上限・ドライラン、上部参照）とは
+	// 別の軸である。安全弁は「隔離の総量」を抑えるが、こちらは「この端末は何があっても
+	// 隔離しない」を表す。総量の上限に余裕があっても除外対象は隔離されない。
+	// autoIsolateExempt は gatekeeper の構築時に読み込み済み（上部参照）。
 
 	engineConfig := detection.EngineConfig{
 		AutoResponseEnabled:          autoResponse,
-		AutoIsolateCooldown:          isoCooldown,
-		AutoIsolateHourlyBudget:      isoBudget,
-		AutoIsolateDryRun:            isoDryRun,
 		AIAnalysisMinSeverity:        5,
 		AIAnalysisMinAnomalyScore:    0.6,
 		AIAnalysisConcurrency:        5,
 		AutoIsolateSeverityThreshold: autoIsolateThreshold,
+		GeoIPEnrichEnabled:           getEnv("GEOIP_ENRICH_ENABLED", "false") == "true",
+		UEBAAnomalyThreshold:         getEnvFloat("UEBA_ANOMALY_THRESHOLD", 0),
 	}
 
 	// ─── Playbook Runner ──────────────────────────────────────
-	playbookRunner := detection.NewPlaybookRunner(playbookStore, incidentStore, commander, dispatcher, autoResponse)
+	playbookRunner := detection.NewPlaybookRunner(playbookStore, incidentStore, alertStore, gatekeeper, dispatcher)
 
-	engine, err := detection.NewEngine(nc, storeAdp, aiAgent, commander, ruleEngine, dispatcher, playbookRunner, iocMatcher, suppressionMatcher, engineConfig)
+	engine, err := detection.NewEngine(nc, storeAdp, aiAgent, gatekeeper, ruleEngine, dispatcher, playbookRunner, iocMatcher, suppressionMatcher, engineConfig)
 	if err != nil {
 		slog.Error("検知エンジンの初期化に失敗しました", "error", err)
 		os.Exit(1)
 	}
 	engine.SetSuppressionHitCounter(store.NewSuppressionStore(db))
+	// 自分の封じ込め操作が端末のファイアウォールを変え、それをファイアウォール改変の
+	// ルールが検知する自己検知ループを止める。detection/self_remediation_suppression.go
+	engine.SetSelfRemediationSuppressor(detection.NewSelfRemediationSuppressor(store.NewResponseActionStore(db)))
 	engine.SetBehavioralEngine(ml.NewBehavioralEngine())
 
 	// Per-agent behavioral baseline (live unknown-process detection). Build
@@ -304,10 +362,12 @@ func main() {
 	// EDR_BASELINE_ALERTS (default on); independent of the API server's rebuilder.
 	baselineEngine := behavioral.NewEngine(pool)
 	go func() {
-		build := func() {
+		build := func(ctx context.Context) {
 			rows, err := pool.Query(ctx, `SELECT id::text FROM agents WHERE last_seen >= NOW() - INTERVAL '7 days' OR status = 'online'`)
 			if err != nil {
-				slog.Warn("ベースライン構築: エージェント一覧取得失敗", "error", err)
+				// **1つもベースラインを作れていません。** 未知プロセスの
+				// 検知は、古いベースラインか空のまま動き続けます。
+				tick.Fail(ctx, err, "ベースライン構築: エージェント一覧を取得できませんでした")
 				return
 			}
 			var ids []string
@@ -317,18 +377,30 @@ func main() {
 					ids = append(ids, id)
 				}
 			}
+			rowsErr := rows.Err()
 			rows.Close()
-			for _, id := range ids {
-				_, _ = baselineEngine.BuildBaseline(ctx, id, 14)
+			if rowsErr != nil {
+				// pgx は Scan が失敗した時点で結果セットを終えるので、
+				// **ここまでに読めた端末しかベースラインを作りません。**
+				tick.Fail(ctx, rowsErr, "ベースライン構築: エージェント一覧を読み切れませんでした",
+					"read", len(ids))
 			}
-			slog.Info("行動ベースライン構築完了", "agents", len(ids))
+			built := 0
+			for _, id := range ids {
+				if _, err := baselineEngine.BuildBaseline(ctx, id, 14); err != nil {
+					tick.Fail(ctx, err, "ベースラインを構築できませんでした", "agent_id", id)
+					continue
+				}
+				built++
+			}
+			slog.Info("行動ベースライン構築完了", "agents", len(ids), "built", built)
 		}
 		select {
 		case <-ctx.Done():
 			return
 		case <-time.After(45 * time.Second):
 		}
-		build()
+		tick.Run(ctx, "behavioral_baseline_builder", build)
 		t := time.NewTicker(6 * time.Hour)
 		defer t.Stop()
 		for {
@@ -336,7 +408,7 @@ func main() {
 			case <-ctx.Done():
 				return
 			case <-t.C:
-				build()
+				tick.Run(ctx, "behavioral_baseline_builder", build)
 			}
 		}
 	}()
@@ -546,58 +618,9 @@ func startRuleReloader(
 		case <-invalidateCh:
 			reload("rules.invalidate")
 		case <-ticker.C:
-			reload("periodic")
+			tick.Run(ctx, "detection_rule_reload", func(context.Context) { reload("periodic") })
 		}
 	}
-}
-
-func ensureStreams(nc *nats.Conn) error {
-	js, err := jetstream.New(nc)
-	if err != nil {
-		return err
-	}
-	ctx := context.Background()
-
-	streams := []struct {
-		name     string
-		subjects []string
-		maxAge   time.Duration
-	}{
-		{"EVENTS", []string{"events.>"}, 7 * 24 * time.Hour},
-		{"ALERTS", []string{"alerts.>"}, 30 * 24 * time.Hour},
-		{"COMMANDS", []string{"commands.>"}, 1 * time.Hour},
-	}
-
-	for _, s := range streams {
-		cfg := jetstream.StreamConfig{
-			Name:      s.name,
-			Subjects:  s.subjects,
-			Storage:   jetstream.FileStorage,
-			Retention: jetstream.LimitsPolicy,
-			MaxAge:    s.maxAge,
-			MaxBytes:  -1, // no per-stream limit; server manages storage
-			Replicas:  1,
-			// ingestion (internal/ingestion/handler.go) declares the same three
-			// streams. The two configs must stay identical, or whichever service
-			// starts second tries to mutate the first one's stream.
-			Duplicates: 5 * time.Minute,
-		}
-		_, err := js.CreateOrUpdateStream(ctx, cfg)
-		// CreateOrUpdateStream is Update-then-Create, so two services bootstrapping
-		// the same stream at once race: this one sees ErrStreamNotFound from the
-		// update, ingestion creates the stream in between, and the create leg comes
-		// back ErrStreamNameAlreadyInUse. That is not a failure — the stream we
-		// wanted now exists — but treating it as one crashed detection on startup
-		// and took the whole detection engine down whenever ingestion won the race.
-		if errors.Is(err, jetstream.ErrStreamNameAlreadyInUse) {
-			_, err = js.UpdateStream(ctx, cfg)
-		}
-		if err != nil {
-			return fmt.Errorf("stream %s: %w", s.name, err)
-		}
-		slog.Info("NATSストリームを確認/作成しました", "name", s.name)
-	}
-	return nil
 }
 
 func mustEnv(key string) string {
@@ -627,4 +650,19 @@ func getEnvInt(key string, fallback int) int {
 		return fallback
 	}
 	return n
+}
+
+// getEnvFloat reads a non-negative float env var (e.g. UEBA_ANOMALY_THRESHOLD, a
+// 0-100 risk score), returning fallback when unset or invalid.
+func getEnvFloat(key string, fallback float64) float64 {
+	v := os.Getenv(key)
+	if v == "" {
+		return fallback
+	}
+	f, err := strconv.ParseFloat(v, 64)
+	if err != nil || f < 0 {
+		slog.Warn("環境変数が不正な数値です。デフォルトを使用します", "key", key, "value", v, "default", fallback)
+		return fallback
+	}
+	return f
 }

@@ -390,22 +390,21 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
       onClick={onClose}
     >
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-falcon-bg/80 backdrop-blur-md" />
+      <div className="absolute inset-0 bg-[#080c14]/80 backdrop-blur-md" />
 
       {/* Modal */}
       <div
         ref={containerRef}
-        className="relative w-full max-w-2xl bg-falcon-surface border border-falcon-border
-                   rounded-lg shadow-2xl overflow-hidden animate-slide-in"
+        className="relative w-full max-w-2xl bg-[#0d1220] border border-[#1e2d42] rounded-lg shadow-2xl overflow-hidden animate-slide-in"
         onClick={e => e.stopPropagation()}
       >
         {/* ── Search Input ────────────────────────────────────── */}
-        <div className="flex items-center gap-3 px-4 py-3 border-b border-falcon-border">
+        <div className="flex items-center gap-3 px-4 py-3 border-b border-[#1e2d42]">
           <div className="shrink-0">
             {loading ? (
-              <Loader2 className="w-4 h-4 text-falcon-red animate-spin" />
+              <Loader2 className="w-4 h-4 text-[#e8002d] animate-spin" />
             ) : (
-              <Search className="w-4 h-4 text-falcon-subtle" />
+              <Search className="w-4 h-4 text-[#3d5068]" />
             )}
           </div>
           <input
@@ -414,21 +413,19 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
             name="command-search"
             autoComplete="off"
             placeholder="アラート、エンドポイント、インシデント、IOC を検索..."
-            className="flex-1 bg-transparent text-falcon-text placeholder-falcon-subtle
-                       text-sm outline-hidden font-medium"
+            className="flex-1 bg-transparent text-[#e2e8f4] placeholder-[#3d5068] text-sm outline-hidden font-medium"
           />
           <div className="flex items-center gap-2 shrink-0">
             {query && (
               <button
                 onClick={() => { if (inputRef.current) inputRef.current.value = ''; setQuery(''); setResults([]) }}
-                className="text-falcon-subtle hover:text-falcon-muted transition-colors"
+                className="text-[#3d5068] hover:text-[#7d92b0] transition-colors"
                 aria-label="クリア"
               >
                 <X className="w-3.5 h-3.5" />
               </button>
             )}
-            <kbd className="inline-flex items-center px-1.5 py-0.5 bg-falcon-raised
-                            border border-falcon-border rounded text-[10px] text-falcon-subtle font-mono">
+            <kbd className="inline-flex items-center px-1.5 py-0.5 bg-[#161f33] border border-[#1e2d42] rounded-sm text-[10px] text-[#3d5068] font-mono">
               ESC
             </kbd>
           </div>
@@ -443,10 +440,9 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
               {/* Recent alerts section */}
               {recentAlerts.length > 0 && (
                 <div>
-                  <div className="flex items-center gap-2 px-4 py-1.5 bg-falcon-raised/40
-                                  border-b border-falcon-border/50">
-                    <ShieldAlert className="w-3 h-3 text-falcon-red" />
-                    <span className="text-[10px] font-bold text-falcon-muted uppercase tracking-widest">
+                  <div className="flex items-center gap-2 px-4 py-1.5 bg-[#161f33]/40 border-b border-[#1e2d42]/50">
+                    <ShieldAlert className="w-3 h-3 text-[#e8002d]" />
+                    <span className="text-[10px] font-bold text-[#7d92b0] uppercase tracking-widest">
                       最近のアラート
                     </span>
                   </div>
@@ -457,22 +453,19 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
                       <button
                         key={alert.id}
                         onClick={() => navigate(`/alerts/${alert.id}`)}
-                        className="w-full flex items-center gap-3 px-4 py-2.5 text-left
-                                   hover:bg-falcon-hover transition-colors border-b
-                                   border-falcon-border/20 last:border-0 group"
+                        className="w-full flex items-center gap-3 px-4 py-2.5 text-left hover:bg-[#19253d] transition-colors border-b border-[#1e2d42]/20 last:border-0 group"
                       >
                         <ShieldAlert
                           className="w-4 h-4 shrink-0"
                           style={{ color: sevColor }}
                         />
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm text-falcon-text truncate font-medium">
+                          <p className="text-sm text-[#e2e8f4] truncate font-medium">
                             {alert.title}
                           </p>
                         </div>
                         <span
-                          className="text-[10px] font-bold font-mono px-1.5 py-0.5
-                                     rounded border shrink-0"
+                          className="text-[10px] font-bold font-mono px-1.5 py-0.5 rounded-sm border shrink-0"
                           style={{
                             color: sevColor,
                             borderColor: `${sevColor}40`,
@@ -482,8 +475,7 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
                           {sevLabel}
                         </span>
                         <CornerDownLeft
-                          className="w-3 h-3 text-falcon-subtle opacity-0 group-hover:opacity-100
-                                     transition-opacity shrink-0"
+                          className="w-3 h-3 text-[#3d5068] opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
                         />
                       </button>
                     )
@@ -494,15 +486,14 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
               {/* Recent Searches */}
               {recentSearches.length > 0 && (
                 <div>
-                  <div className="flex items-center gap-2 px-4 py-1.5 bg-falcon-raised/40
-                                  border-b border-falcon-border/50 mt-1">
-                    <Search className="w-3 h-3 text-falcon-subtle" />
-                    <span className="text-[10px] font-bold text-falcon-muted uppercase tracking-widest flex-1">
+                  <div className="flex items-center gap-2 px-4 py-1.5 bg-[#161f33]/40 border-b border-[#1e2d42]/50 mt-1">
+                    <Search className="w-3 h-3 text-[#3d5068]" />
+                    <span className="text-[10px] font-bold text-[#7d92b0] uppercase tracking-widest flex-1">
                       最近の検索
                     </span>
                     <button
                       onClick={() => { clearRecentSearches(); setRecentSearches([]) }}
-                      className="text-[10px] text-falcon-subtle hover:text-falcon-muted transition-colors flex items-center gap-1"
+                      className="text-[10px] text-[#3d5068] hover:text-[#7d92b0] transition-colors flex items-center gap-1"
                       title="履歴をすべて削除"
                     >
                       <Trash2 className="w-3 h-3" />
@@ -514,9 +505,7 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
                       <div key={s} className="flex items-center group/pill">
                         <button
                           onClick={() => { setQuery(s); if (inputRef.current) { inputRef.current.value = s; inputRef.current.focus() } }}
-                          className="text-[11px] px-2.5 py-1 rounded-l bg-falcon-raised border border-falcon-border
-                                     border-r-0 text-falcon-muted hover:text-falcon-text hover:border-falcon-subtle
-                                     hover:border-r-0 transition-colors"
+                          className="text-[11px] px-2.5 py-1 rounded-l bg-[#161f33] border border-[#1e2d42] border-r-0 text-[#7d92b0] hover:text-[#e2e8f4] hover:border-[#3d5068] hover:border-r-0 transition-colors"
                         >
                           {s}
                         </button>
@@ -525,8 +514,7 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
                             deleteRecentSearch(s)
                             setRecentSearches(getRecentSearches())
                           }}
-                          className="text-[11px] px-1.5 py-1 rounded-r bg-falcon-raised border border-falcon-border
-                                     text-falcon-subtle hover:text-falcon-red hover:border-falcon-subtle transition-colors"
+                          className="text-[11px] px-1.5 py-1 rounded-r bg-[#161f33] border border-[#1e2d42] text-[#3d5068] hover:text-[#e8002d] hover:border-[#3d5068] transition-colors"
                           title="削除"
                         >
                           <X className="w-2.5 h-2.5" />
@@ -539,30 +527,26 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
 
               {/* Quick navigation */}
               <div>
-                <div className="flex items-center gap-2 px-4 py-1.5 bg-falcon-raised/40
-                                border-b border-falcon-border/50 mt-1">
-                  <FileText className="w-3 h-3 text-falcon-subtle" />
-                  <span className="text-[10px] font-bold text-falcon-muted uppercase tracking-widest">
+                <div className="flex items-center gap-2 px-4 py-1.5 bg-[#161f33]/40 border-b border-[#1e2d42]/50 mt-1">
+                  <FileText className="w-3 h-3 text-[#3d5068]" />
+                  <span className="text-[10px] font-bold text-[#7d92b0] uppercase tracking-widest">
                     クイックナビゲーション
                   </span>
                 </div>
-                <div className="grid grid-cols-5 gap-0 divide-x divide-falcon-border/50">
+                <div className="grid grid-cols-5 gap-0 divide-x divide-[#1e2d42]/50">
                   {QUICK_NAV.map(item => {
                     const Icon = item.icon
                     return (
                       <button
                         key={item.href}
                         onClick={() => navigate(item.href)}
-                        className="flex flex-col items-center gap-1.5 px-3 py-3
-                                   hover:bg-falcon-hover transition-colors group"
+                        className="flex flex-col items-center gap-1.5 px-3 py-3 hover:bg-[#19253d] transition-colors group"
                       >
                         <Icon
-                          className="w-4 h-4 shrink-0 transition-transform
-                                     group-hover:scale-110"
+                          className="w-4 h-4 shrink-0 transition-transform group-hover:scale-110"
                           style={{ color: item.color }}
                         />
-                        <span className="text-[10px] text-falcon-muted group-hover:text-falcon-text
-                                         transition-colors text-center leading-tight">
+                        <span className="text-[10px] text-[#7d92b0] group-hover:text-[#e2e8f4] transition-colors text-center leading-tight">
                           {item.label}
                         </span>
                       </button>
@@ -576,17 +560,17 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
           {/* Loading spinner */}
           {query.length >= 2 && loading && (
             <div className="flex items-center justify-center py-12 gap-3">
-              <Loader2 className="w-5 h-5 text-falcon-red animate-spin" />
-              <span className="text-sm text-falcon-subtle">検索中...</span>
+              <Loader2 className="w-5 h-5 text-[#e8002d] animate-spin" />
+              <span className="text-sm text-[#3d5068]">検索中...</span>
             </div>
           )}
 
           {/* Empty state */}
           {query.length >= 2 && !loading && results.length === 0 && (
             <div className="px-4 py-14 text-center">
-              <Search className="w-8 h-8 text-falcon-border mx-auto mb-3" />
-              <p className="text-falcon-subtle text-sm">結果が見つかりません</p>
-              <p className="text-falcon-subtle text-xs mt-1 font-mono">「{query}」</p>
+              <Search className="w-8 h-8 text-[#1e2d42] mx-auto mb-3" />
+              <p className="text-[#3d5068] text-sm">結果が見つかりません</p>
+              <p className="text-[#3d5068] text-xs mt-1 font-mono">「{query}」</p>
             </div>
           )}
 
@@ -601,16 +585,15 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
                 return (
                   <div key={kind}>
                     {/* Group header */}
-                    <div className="flex items-center gap-2 px-4 py-1.5 bg-falcon-raised/50
-                                    border-b border-falcon-border/50 sticky top-0 z-10">
+                    <div className="flex items-center gap-2 px-4 py-1.5 bg-[#161f33]/50 border-b border-[#1e2d42]/50 sticky top-0 z-10">
                       <GroupIcon
                         className="w-3 h-3 shrink-0"
                         style={{ color: meta.color }}
                       />
-                      <span className="text-[10px] font-bold text-falcon-muted uppercase tracking-widest">
+                      <span className="text-[10px] font-bold text-[#7d92b0] uppercase tracking-widest">
                         {meta.label}
                       </span>
-                      <span className="text-[10px] text-falcon-subtle ml-auto font-mono">
+                      <span className="text-[10px] text-[#3d5068] ml-auto font-mono">
                         {items.length}
                       </span>
                     </div>
@@ -640,24 +623,23 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
 
         {/* ── Footer ──────────────────────────────────────────── */}
         {results.length > 0 && (
-          <div className="flex items-center gap-4 px-4 py-2 border-t border-falcon-border
-                          bg-falcon-raised/50 text-[10px] text-falcon-subtle">
+          <div className="flex items-center gap-4 px-4 py-2 border-t border-[#1e2d42] bg-[#161f33]/50 text-[10px] text-[#3d5068]">
             <span className="flex items-center gap-1">
-              <kbd className="font-mono bg-falcon-border px-1 rounded-sm">↑↓</kbd>
+              <kbd className="font-mono bg-[#1e2d42] px-1 rounded-sm">↑↓</kbd>
               移動
             </span>
             <span className="flex items-center gap-1">
-              <kbd className="font-mono bg-falcon-border px-1 rounded-sm">↵</kbd>
+              <kbd className="font-mono bg-[#1e2d42] px-1 rounded-sm">↵</kbd>
               開く
             </span>
             <span className="flex items-center gap-1">
-              <kbd className="font-mono bg-falcon-border px-1 rounded-sm">Esc</kbd>
+              <kbd className="font-mono bg-[#1e2d42] px-1 rounded-sm">Esc</kbd>
               閉じる
             </span>
-            <span className="ml-auto font-mono text-falcon-subtle">
+            <span className="ml-auto font-mono text-[#3d5068]">
               {results.length} 件
               {results.length > 0 && (
-                <span className="ml-2 text-falcon-border">
+                <span className="ml-2 text-[#1e2d42]">
                   {ORDER.filter(k => grouped[k]?.length > 0).map(k => `${GROUP_META[k].label} ${grouped[k].length}`).join(' · ')}
                 </span>
               )}
@@ -701,8 +683,8 @@ function ResultRow({ result, kind, meta, isSelected, onHover, onClick }: ResultR
       onClick={onClick}
       onMouseEnter={onHover}
       className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-colors
-                  border-b border-falcon-border/30 last:border-0 group ${
-        isSelected ? 'bg-falcon-active' : 'hover:bg-falcon-hover'
+                  border-b border-[#1e2d42]/30 last:border-0 group ${
+        isSelected ? 'bg-[#1d2f4a]' : 'hover:bg-[#19253d]'
       }`}
     >
       {/* Icon */}
@@ -710,9 +692,9 @@ function ResultRow({ result, kind, meta, isSelected, onHover, onClick }: ResultR
 
       {/* Text */}
       <div className="flex-1 min-w-0">
-        <p className="text-sm text-falcon-text truncate font-medium">{result.primary}</p>
+        <p className="text-sm text-[#e2e8f4] truncate font-medium">{result.primary}</p>
         {result.secondary && (
-          <p className="text-[11px] text-falcon-subtle truncate font-mono mt-0.5">
+          <p className="text-[11px] text-[#3d5068] truncate font-mono mt-0.5">
             {result.secondary}
           </p>
         )}
@@ -733,7 +715,7 @@ function ResultRow({ result, kind, meta, isSelected, onHover, onClick }: ResultR
           </span>
         )}
         {result.status && kind !== 'alert' && (
-          <span className="text-[10px] text-falcon-subtle bg-falcon-raised px-1.5 py-0.5 rounded-sm font-mono">
+          <span className="text-[10px] text-[#3d5068] bg-[#161f33] px-1.5 py-0.5 rounded-sm font-mono">
             {result.status}
           </span>
         )}
@@ -749,7 +731,7 @@ function ResultRow({ result, kind, meta, isSelected, onHover, onClick }: ResultR
         )}
         {/* Enter hint */}
         <span
-          className={`text-[9px] font-mono text-falcon-subtle transition-opacity ${
+          className={`text-[9px] font-mono text-[#3d5068] transition-opacity ${
             isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
           }`}
         >

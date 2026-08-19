@@ -16,6 +16,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/edr-platform/server/internal/metrics"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -331,20 +332,31 @@ func (d *Dispatcher) recordDelivery(webhookID, event, status string, statusCode 
 	if d.pool == nil {
 		return
 	}
+	// **配送そのものは終わっていて、残るのは記録だけです。**
+	// 呼び出し側はもう次へ進んでいるので（goroutine です）、報告先は
+	// 部品ごとの件数になります。落ちると、webhook の設定画面が
+	// 「一度も配送していない」と同じ姿になります。
 	go func() {
-		_, _ = d.pool.Exec(context.Background(), `
+		ctx := context.Background()
+		if _, err := d.pool.Exec(ctx, `
 			INSERT INTO webhook_deliveries (webhook_id, event, status, status_code, response_body, duration_ms)
 			VALUES ($1::uuid, $2, $3, $4, $5, $6)`,
 			webhookID, event, status, statusCode, responseBody, durationMS,
-		)
+		); err != nil {
+			metrics.BackgroundFailed("webhook_delivery_record", err,
+				"webhook の配送履歴を残せませんでした",
+				"webhook_id", webhookID, "event", event, "status", status)
+		}
+		column := "failure_count"
 		if status == "success" {
-			_, _ = d.pool.Exec(context.Background(),
-				"UPDATE webhook_configs SET delivery_count = delivery_count + 1, updated_at = NOW() WHERE id = $1::uuid",
-				webhookID)
-		} else {
-			_, _ = d.pool.Exec(context.Background(),
-				"UPDATE webhook_configs SET failure_count = failure_count + 1, updated_at = NOW() WHERE id = $1::uuid",
-				webhookID)
+			column = "delivery_count"
+		}
+		if _, err := d.pool.Exec(ctx,
+			"UPDATE webhook_configs SET "+column+" = "+column+" + 1, updated_at = NOW() WHERE id = $1::uuid",
+			webhookID); err != nil {
+			metrics.BackgroundFailed("webhook_delivery_record", err,
+				"webhook の配送件数を更新できませんでした",
+				"webhook_id", webhookID, "column", column)
 		}
 	}()
 }
@@ -354,12 +366,16 @@ func (d *Dispatcher) updateLastFired(webhookID, status string) {
 		return
 	}
 	go func() {
-		_, _ = d.pool.Exec(context.Background(), `
+		if _, err := d.pool.Exec(context.Background(), `
 			UPDATE webhook_configs
 			SET last_fired_at = NOW(), last_status = $2, updated_at = NOW()
 			WHERE id = $1::uuid`,
 			webhookID, status,
-		)
+		); err != nil {
+			metrics.BackgroundFailed("webhook_delivery_record", err,
+				"webhook の最終発火を記録できませんでした",
+				"webhook_id", webhookID, "status", status)
+		}
 	}()
 }
 

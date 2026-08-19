@@ -6,6 +6,9 @@ import { apiFetch, apiFetchList } from '@/lib/api'
 import { Database, Play, Download, Clock, CheckCircle, XCircle, Loader2, HardDrive, FileText, Zap } from 'lucide-react'
 
 
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+import { SaveFailed, saveErrorOf } from '@/lib/persist'
+
 // ─── 型定義 ──────────────────────────────────────────────────────────────────
 
 interface Dataset {
@@ -90,16 +93,18 @@ export default function SecurityDWPage() {
 
   const { data: datasets = [] } = useQuery<Dataset[]>({
     queryKey: ['dw-datasets'],
-    queryFn: () => apiFetchList<Dataset>('/api/v1/admin/dw/datasets').catch(() => []),
+    queryFn: () => apiFetchList<Dataset>('/api/v1/admin/dw/datasets'),
   })
 
   const { data: history = [] } = useQuery<QueryHistory[]>({
     queryKey: ['dw-query-history'],
-    queryFn: () => apiFetchList<QueryHistory>('/api/v1/admin/dw/queries').catch(() => []),
+    queryFn: () => apiFetchList<QueryHistory>('/api/v1/admin/dw/queries'),
   })
 
   const runQuery = useMutation({
-    mutationFn: () => apiFetch<QueryResult>('/api/v1/admin/dw/query', { method: 'POST', body: JSON.stringify({ query: queryText, dataset_id: selectedDataset?.id }) }).catch(() => null),
+    // .catch(() => null) が失敗を成功に変え、onSuccess が null をそのまま
+    // 結果として渡していました。クエリが実行できなかったことが伝わりません。
+    mutationFn: () => apiFetch<QueryResult>('/api/v1/admin/dw/query', { method: 'POST', body: JSON.stringify({ query: queryText, dataset_id: selectedDataset?.id }) }),
     onSuccess: (data) => setQueryResult(data),
   })
 
@@ -118,13 +123,15 @@ export default function SecurityDWPage() {
 
   return (
     <div className="min-h-screen bg-[#070d19] text-white p-6">
+      <PageDataUnavailable />
+      <SaveFailed error={saveErrorOf('クエリの実行', runQuery)} />
       {/* ヘッダー */}
       <div className="mb-6">
         <div className="flex items-center gap-3 mb-1">
-          <Database className="w-6 h-6 text-falcon-red" />
+          <Database className="w-6 h-6 text-[#e8002d]" />
           <h1 className="text-2xl font-bold">セキュリティデータウェアハウス</h1>
         </div>
-        <p className="text-falcon-muted text-sm">セキュリティデータの集中管理・分析クエリ実行</p>
+        <p className="text-[#7d92b0] text-sm">セキュリティデータの集中管理・分析クエリ実行</p>
       </div>
 
       {/* 統計行 */}
@@ -136,10 +143,10 @@ export default function SecurityDWPage() {
           { icon: <Zap className="w-4 h-4" />, label: 'クエリ/日', value: '47' },
           { icon: <Clock className="w-4 h-4" />, label: '平均クエリ時間', value: '1.8秒' },
         ].map((s, i) => (
-          <div key={i} className="bg-falcon-surface border border-falcon-border rounded-lg p-4 flex items-center gap-3">
-            <div className="text-falcon-red">{s.icon}</div>
+          <div key={i} className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-4 flex items-center gap-3">
+            <div className="text-[#e8002d]">{s.icon}</div>
             <div>
-              <p className="text-falcon-muted text-xs">{s.label}</p>
+              <p className="text-[#7d92b0] text-xs">{s.label}</p>
               <p className="text-white font-bold text-lg">{s.value}</p>
             </div>
           </div>
@@ -149,8 +156,8 @@ export default function SecurityDWPage() {
       {/* メイン2カラム */}
       <div className="flex gap-4 mb-6">
         {/* 左パネル: データセット一覧 (40%) */}
-        <div className="w-[40%] bg-falcon-surface border border-falcon-border rounded-lg p-4">
-          <h2 className="text-sm font-semibold text-falcon-muted uppercase tracking-wider mb-3">データセット一覧</h2>
+        <div className="w-[40%] bg-[#0d1220] border border-[#1e2d42] rounded-lg p-4">
+          <h2 className="text-sm font-semibold text-[#7d92b0] uppercase tracking-wider mb-3">データセット一覧</h2>
           <div className="space-y-3">
             {datasets.map(ds => {
               const badge = SOURCE_BADGE[ds.source_type]
@@ -159,7 +166,7 @@ export default function SecurityDWPage() {
                 <div
                   key={ds.id}
                   onClick={() => setSelectedDataset(ds)}
-                  className={`border rounded-lg p-3 cursor-pointer transition-colors ${isSelected ? 'border-falcon-red bg-falcon-red/5' : 'border-falcon-border hover:border-[#2e4060]'}`}
+                  className={`border rounded-lg p-3 cursor-pointer transition-colors ${isSelected ? 'border-[#e8002d] bg-[#e8002d]/5' : 'border-[#1e2d42] hover:border-[#2e4060]'}`}
                 >
                   <div className="flex items-start justify-between mb-2">
                     <span className="text-white font-medium text-sm">{ds.name}</span>
@@ -168,12 +175,12 @@ export default function SecurityDWPage() {
                     </div>
                   </div>
                   <span className={`text-xs px-2 py-0.5 rounded-full ${badge.cls}`}>{badge.label}</span>
-                  <div className="grid grid-cols-3 gap-2 mt-2 text-xs text-falcon-muted">
+                  <div className="grid grid-cols-3 gap-2 mt-2 text-xs text-[#7d92b0]">
                     <div><span className="block text-white font-medium">{formatRowCount(ds.row_count)}</span>レコード</div>
                     <div><span className="block text-white font-medium">{formatSize(ds.size_bytes)}</span>ストレージ</div>
                     <div><span className="block text-white font-medium">{ds.retention_days}日</span>保持期間</div>
                   </div>
-                  <p className="text-xs text-falcon-muted mt-1">最終取込: {fmtDate(ds.last_ingested_at)}</p>
+                  <p className="text-xs text-[#7d92b0] mt-1">最終取込: {fmtDate(ds.last_ingested_at)}</p>
                 </div>
               )
             })}
@@ -181,11 +188,11 @@ export default function SecurityDWPage() {
         </div>
 
         {/* 右パネル: クエリインターフェース (60%) */}
-        <div className="w-[60%] bg-falcon-surface border border-falcon-border rounded-lg p-4 flex flex-col gap-4">
+        <div className="w-[60%] bg-[#0d1220] border border-[#1e2d42] rounded-lg p-4 flex flex-col gap-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-falcon-muted uppercase tracking-wider">クエリ実行</h2>
+            <h2 className="text-sm font-semibold text-[#7d92b0] uppercase tracking-wider">クエリ実行</h2>
             {selectedDataset && (
-              <span className="text-xs text-falcon-muted bg-falcon-border px-2 py-1 rounded-sm">
+              <span className="text-xs text-[#7d92b0] bg-[#1e2d42] px-2 py-1 rounded-sm">
                 クエリ対象: <span className="text-white">{selectedDataset.name}</span>
               </span>
             )}
@@ -193,13 +200,13 @@ export default function SecurityDWPage() {
           <textarea
             value={queryText}
             onChange={e => setQueryText(e.target.value)}
-            className="w-full h-36 bg-[#070d19] border border-falcon-border rounded-lg p-3 text-white font-mono text-sm resize-none focus:outline-hidden focus:border-falcon-red/50"
+            className="w-full h-36 bg-[#070d19] border border-[#1e2d42] rounded-lg p-3 text-white font-mono text-sm resize-none focus:outline-hidden focus:border-[#e8002d]/50"
             spellCheck={false}
           />
           <button
             onClick={() => runQuery.mutate()}
             disabled={runQuery.isPending}
-            className="flex items-center gap-2 bg-falcon-red hover:bg-[#c0001f] disabled:opacity-50 text-white px-4 py-2 rounded-lg text-sm font-medium self-start transition-colors"
+            className="flex items-center gap-2 bg-[#e8002d] hover:bg-[#c0001f] disabled:opacity-50 text-white px-4 py-2 rounded-lg text-sm font-medium self-start transition-colors"
           >
             {runQuery.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
             クエリ実行
@@ -207,26 +214,26 @@ export default function SecurityDWPage() {
 
           {/* 結果エリア */}
           {queryResult && (
-            <div className="border border-falcon-border rounded-lg p-3">
+            <div className="border border-[#1e2d42] rounded-lg p-3">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex gap-4 text-sm">
-                  <span className="text-falcon-muted">返行数: <span className="text-white font-medium">{(queryResult.rows_returned ?? 0).toLocaleString()}</span></span>
-                  <span className="text-falcon-muted">実行時間: <span className="text-white font-medium">{queryResult.execution_ms}ms</span></span>
+                  <span className="text-[#7d92b0]">返行数: <span className="text-white font-medium">{(queryResult.rows_returned ?? 0).toLocaleString()}</span></span>
+                  <span className="text-[#7d92b0]">実行時間: <span className="text-white font-medium">{queryResult.execution_ms}ms</span></span>
                 </div>
-                <button onClick={downloadCSV} className="flex items-center gap-1.5 text-xs bg-falcon-border hover:bg-[#2e4060] px-3 py-1.5 rounded-sm text-falcon-muted hover:text-white transition-colors">
+                <button onClick={downloadCSV} className="flex items-center gap-1.5 text-xs bg-[#1e2d42] hover:bg-[#2e4060] px-3 py-1.5 rounded-sm text-[#7d92b0] hover:text-white transition-colors">
                   <Download className="w-3 h-3" /> CSVダウンロード
                 </button>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b border-falcon-border">
-                      {queryResult.columns.map(c => <th key={c} className="text-left text-falcon-muted font-medium pb-2 pr-4">{c}</th>)}
+                    <tr className="border-b border-[#1e2d42]">
+                      {queryResult.columns.map(c => <th key={c} className="text-left text-[#7d92b0] font-medium pb-2 pr-4">{c}</th>)}
                     </tr>
                   </thead>
                   <tbody>
                     {queryResult.rows.slice(0, 10).map((row, i) => (
-                      <tr key={i} className="border-b border-falcon-border/50">
+                      <tr key={i} className="border-b border-[#1e2d42]/50">
                         {queryResult.columns.map(c => <td key={c} className="py-1.5 pr-4 text-white">{String(row[c])}</td>)}
                       </tr>
                     ))}
@@ -239,13 +246,13 @@ export default function SecurityDWPage() {
       </div>
 
       {/* クエリ履歴 */}
-      <div className="bg-falcon-surface border border-falcon-border rounded-lg p-4">
-        <h2 className="text-sm font-semibold text-falcon-muted uppercase tracking-wider mb-3">クエリ履歴</h2>
+      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-4">
+        <h2 className="text-sm font-semibold text-[#7d92b0] uppercase tracking-wider mb-3">クエリ履歴</h2>
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-falcon-border">
+            <tr className="border-b border-[#1e2d42]">
               {['クエリ', 'ステータス', '返行数', '実行時間', '実行日時'].map(h => (
-                <th key={h} className="text-left text-falcon-muted font-medium pb-2 pr-4">{h}</th>
+                <th key={h} className="text-left text-[#7d92b0] font-medium pb-2 pr-4">{h}</th>
               ))}
             </tr>
           </thead>
@@ -253,12 +260,12 @@ export default function SecurityDWPage() {
             {history.map(q => {
               const badge = HISTORY_BADGE[q.status]
               return (
-                <tr key={q.id} className="border-b border-falcon-border/50 hover:bg-falcon-border/20 transition-colors">
+                <tr key={q.id} className="border-b border-[#1e2d42]/50 hover:bg-[#1e2d42]/20 transition-colors">
                   <td className="py-2 pr-4 text-white font-mono text-xs max-w-xs truncate">{q.query_text}</td>
                   <td className="py-2 pr-4"><span className={`text-xs px-2 py-0.5 rounded-full ${badge.cls}`}>{badge.label}</span></td>
-                  <td className="py-2 pr-4 text-falcon-muted">{q.rows_returned != null ? (q.rows_returned ?? 0).toLocaleString() : '—'}</td>
-                  <td className="py-2 pr-4 text-falcon-muted">{q.execution_ms != null ? `${q.execution_ms}ms` : '—'}</td>
-                  <td className="py-2 pr-4 text-falcon-muted">{fmtDate(q.executed_at)}</td>
+                  <td className="py-2 pr-4 text-[#7d92b0]">{q.rows_returned != null ? (q.rows_returned ?? 0).toLocaleString() : '—'}</td>
+                  <td className="py-2 pr-4 text-[#7d92b0]">{q.execution_ms != null ? `${q.execution_ms}ms` : '—'}</td>
+                  <td className="py-2 pr-4 text-[#7d92b0]">{fmtDate(q.executed_at)}</td>
                 </tr>
               )
             })}

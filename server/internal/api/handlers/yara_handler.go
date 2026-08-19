@@ -10,6 +10,7 @@ package handlers
 
 import (
 	"context"
+	"github.com/edr-platform/server/internal/metrics"
 	"log/slog"
 	"net/http"
 	"strconv"
@@ -373,17 +374,16 @@ func (h *YARAHandler) GetScanResults(c *gin.Context) {
 	ctx := c.Request.Context()
 
 	// Check table existence
-	var exists bool
-	_ = h.Pool.QueryRow(ctx, `SELECT EXISTS (
-		SELECT 1 FROM information_schema.tables WHERE table_name = 'yara_scan_results'
-	)`).Scan(&exists)
+	exists := tableIsThere(ctx, h.Pool, "yara_scan_results")
 	if !exists {
 		c.JSON(http.StatusOK, gin.H{"data": []interface{}{}, "total": 0})
 		return
 	}
 
 	var total int
-	_ = h.Pool.QueryRow(ctx, `SELECT COUNT(*) FROM yara_scan_results WHERE rule_id = $1`, ruleID).Scan(&total)
+	if !ReadOK(c, h.Pool.QueryRow(ctx, `SELECT COUNT(*) FROM yara_scan_results WHERE rule_id = $1`, ruleID).Scan(&total)) {
+		return
+	}
 
 	rows, err := h.Pool.Query(ctx,
 		`SELECT id, rule_id, agent_id, file_path, matched_strings, scanned_at
@@ -416,7 +416,9 @@ func (h *YARAHandler) GetScanResults(c *gin.Context) {
 		}
 	}
 	if err := rows.Err(); err != nil {
-		slog.Warn("row iteration error", "error", err)
+		slog.Error("rows.Err: 結果の読み出しが途中で失敗しました", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch scan results"})
+		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
@@ -459,6 +461,10 @@ func (h *YARAHandler) ReclassifyCategories(c *gin.Context) {
 		}
 		rules = append(rules, r)
 	}
+	if err := rows.Err(); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "ルール一覧の取得に失敗しました"})
+		return
+	}
 	rows.Close()
 
 	updated, unchanged := 0, 0
@@ -473,7 +479,7 @@ func (h *YARAHandler) ReclassifyCategories(c *gin.Context) {
 			newCat, r.id,
 		)
 		if err != nil {
-			slog.Warn("YARAカテゴリ再分類: 更新に失敗しました", "id", r.id, "error", err)
+			metrics.BackgroundFailed("yara_reclassify", err, "YARAカテゴリ再分類: 更新に失敗しました", "id", r.id)
 			continue
 		}
 		updated++
@@ -498,10 +504,7 @@ func (h *YARAHandler) GetStats(c *gin.Context) {
 	ctx := c.Request.Context()
 
 	// Check table existence
-	var exists bool
-	_ = h.Pool.QueryRow(ctx, `SELECT EXISTS (
-		SELECT 1 FROM information_schema.tables WHERE table_name = 'yara_rules'
-	)`).Scan(&exists)
+	exists := tableIsThere(ctx, h.Pool, "yara_rules")
 	if !exists {
 		c.JSON(http.StatusOK, gin.H{"categories": []interface{}{}, "total_rules": 0, "total_matches": 0})
 		return
@@ -534,7 +537,9 @@ func (h *YARAHandler) GetStats(c *gin.Context) {
 		}
 	}
 	if err := rows.Err(); err != nil {
-		slog.Warn("row iteration error", "error", err)
+		slog.Error("rows.Err: 結果の読み出しが途中で失敗しました", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch stats"})
+		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{

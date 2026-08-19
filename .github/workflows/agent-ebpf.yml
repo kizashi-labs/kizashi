@@ -18,34 +18,21 @@ name: Agent eBPF Build (Linux prevention/tamper)
 # most, and "the LSM build is stale" is invisible from the outside because the
 # file is present and installs fine.
 #
-# ┌─ TEMPORARY (2026-08-10) — Actions budget ────────────────────────────────┐
-# │ The intended trigger is `push` on main for agent/proto changes, which     │
-# │ bounds staleness to "one merge". The repository's Actions budget is       │
-# │ currently exhausted ("The job was not started because an Actions budget   │
-# │ is preventing further use"), so this runs WEEKLY instead: each run builds │
-# │ bpftool from source, so per-merge is the more expensive cadence.          │
-# │                                                                          │
-# │ Staleness is therefore bounded at 7 days rather than 1 merge. That is a   │
-# │ real regression against what this workflow exists to fix — it is not      │
-# │ dispatch-only again, but it is not per-merge either.                      │
-# │                                                                          │
-# │ TO REVERT once the budget is restored: delete the `schedule:` block below │
-# │ and uncomment the `push:` block. Nothing else changes.                    │
-# └──────────────────────────────────────────────────────────────────────────┘
+# Staleness is bounded at one merge: the workflow runs on every main push that
+# touches the agent or the proto. Between 2026-08-10 and 2026-08-14 it ran weekly
+# instead, as a temporary measure while the Actions budget was exhausted; the
+# budget is restored and the intended trigger is back. The weekly schedule is
+# NOT kept alongside it — a cron that fires on an already-current tree only
+# spends runner minutes rebuilding bpftool from source.
 on:
   workflow_dispatch: {}
 
-  # Weekly, Mondays 03:00 UTC (12:00 JST). Off-hours so it does not compete
-  # with interactive CI for runners.
-  schedule:
-    - cron: '0 3 * * 1'
-
-  # push:
-  #   branches: [main]
-  #   paths:
-  #     - 'agent/**'
-  #     - 'proto/**'
-  #     - '.github/workflows/agent-ebpf.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'agent/**'
+      - 'proto/**'
+      - '.github/workflows/agent-ebpf.yml'
 
 # ここは **打ち切らない**（cancel-in-progress: false）。
 #
@@ -126,6 +113,10 @@ jobs:
             -tags "ebpf prevention" -cc clang \
             -cflags "-O2 -g -target bpf -D__TARGET_ARCH_x86" \
             FilelessMonitor ../../../ebpf/fileless_monitor.bpf.c
+          GOPACKAGE=linux go run github.com/cilium/ebpf/cmd/bpf2go \
+            -tags ebpf -cc clang \
+            -cflags "-O2 -g -target bpf -D__TARGET_ARCH_x86" \
+            FileMonitor ../../../ebpf/file_monitor.bpf.c
           # HostIntegrityMonitor and TLSMonitor landed AFTER this workflow last
           # ran successfully (2026-07-20) and were never added here, so the
           # `ebpf prevention` build has been failing ever since with
@@ -140,7 +131,7 @@ jobs:
             -tags "ebpf prevention" -cc clang \
             -cflags "-O2 -g -target bpf -D__TARGET_ARCH_x86" \
             TLSMonitor ../../../ebpf/tls_monitor.bpf.c
-          ls -1 preventionlsm_bpf* tamperlsm_bpf* credaccesslsm_bpf* \
+          ls -1 preventionlsm_bpf* tamperlsm_bpf* credaccesslsm_bpf* filemonitor_bpf* \
                 networkmonitor_bpf* filelessmonitor_bpf* \
                 hostintegritymonitor_bpf* tlsmonitor_bpf*
 

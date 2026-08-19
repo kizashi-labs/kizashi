@@ -15,15 +15,38 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-func parseTimeParam(s string) *time.Time {
+// parseTimeParam reads an RFC3339 ?from / ?to bound.
+//
+// 読めない値は error にします。以前は nil を返していて、nil は「指定なし」
+// と同じ意味なので、期間の絞り込みだけが黙って消えます。聞かれたのとは
+// 違う質問に答えることになり、しかも広い方に外れます。CSV 書き出しでも
+// 同じ関数を使っているので、「3月17日から18日のアラート」として渡された
+// ファイルに、全期間の1万件が入ります。
+func parseTimeParam(s string) (*time.Time, error) {
 	if s == "" {
-		return nil
+		return nil, nil
 	}
 	t, err := time.Parse(time.RFC3339, s)
 	if err != nil {
-		return nil
+		return nil, fmt.Errorf("日時は RFC3339 形式で指定してください (例: 2026-03-17T10:00:00Z): %q", s)
 	}
-	return &t
+	return &t, nil
+}
+
+// timeRangeParams reads ?from and ?to, answering 400 and reporting false when
+// either is unreadable.
+func timeRangeParams(c *gin.Context) (from, to *time.Time, ok bool) {
+	from, err := parseTimeParam(c.Query("from"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return nil, nil, false
+	}
+	to, err = parseTimeParam(c.Query("to"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return nil, nil, false
+	}
+	return from, to, true
 }
 
 // AlertHandler provides alert management endpoints.
@@ -43,12 +66,7 @@ func NewAlertHandler(s *store.AlertStore, agentStore *store.AgentStore) *AlertHa
 func (h *AlertHandler) List(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	perPage, _ := strconv.Atoi(c.DefaultQuery("per_page", "20"))
-	if page < 1 {
-		page = 1
-	}
-	if perPage < 1 || perPage > 100 {
-		perPage = 20
-	}
+	page, perPage, offset := clampPageParams(page, perPage, 20, 100)
 
 	severityStr := c.Query("severity")
 	var severity int
@@ -72,6 +90,10 @@ func (h *AlertHandler) List(c *gin.Context) {
 		}
 	}
 
+	fromTime, toTime, ok := timeRangeParams(c)
+	if !ok {
+		return
+	}
 	filter := store.AlertFilter{
 		Status:         c.Query("status"),
 		AgentID:        c.Query("agent_id"),
@@ -80,11 +102,11 @@ func (h *AlertHandler) List(c *gin.Context) {
 		SeverityMax:    severityMax,
 		Search:         c.Query("search"),
 		MITRETech:      c.Query("mitre_technique"),
-		FromTime:       parseTimeParam(c.Query("from")),
-		ToTime:         parseTimeParam(c.Query("to")),
+		FromTime:       fromTime,
+		ToTime:         toTime,
 		AIInvestigated: c.Query("ai_investigated") == "true",
 		Limit:          perPage,
-		Offset:         (page - 1) * perPage,
+		Offset:         offset,
 	}
 
 	alerts, total, err := h.Store.ListAlerts(c.Request.Context(), filter)
@@ -251,11 +273,16 @@ func (h *AlertHandler) Graph(c *gin.Context) {
 			event_id::text,
 			COALESCE(raw_data->>'pid',''),
 			COALESCE(raw_data->>'ppid',''),
-			COALESCE(raw_data->>'image',''),
-			COALESCE(raw_data->>'cmdline',''),
-			COALESCE(raw_data->>'user',''),
+			COALESCE(raw_data->>'image_path',''),
+			COALESCE(raw_data->>'command_line',''),
+			COALESCE(raw_data->>'username',''),
 			COALESCE(raw_data->>'parent_image',''),
-			COALESCE((raw_data->>'is_suspicious')::boolean, false),
+			-- プロセスイベントに疑わしさの判定はありません。is_suspicious は
+			-- dns イベント専用 (DnsEvent の DGA/homograph 判定) で、ここでは
+			-- 常に NULL でした。無い判定を読むより、判定が無いことを
+			-- 明示します — 相関グラフのプロセスノードは文脈であり、
+			-- 強調表示の対象はアラート自身のノードです。
+			false,
 			"time"::text
 		FROM events
 		WHERE agent_id = $1::uuid
@@ -339,7 +366,9 @@ func (h *AlertHandler) Graph(c *gin.Context) {
 			COALESCE(raw_data->>'protocol','tcp'),
 			COALESCE(raw_data->>'pid',''),
 			COALESCE(raw_data->>'process_name',''),
-			COALESCE((raw_data->>'is_suspicious')::boolean, false),
+			-- ネットワークイベントでの「疑わしい」は threat_intel_matched です
+			-- (is_suspicious は dns 専用で、ここでは常に NULL でした)。
+			COALESCE((raw_data->>'threat_intel_matched')::boolean, false),
 			"time"::text
 		FROM events
 		WHERE agent_id = $1::uuid
@@ -410,7 +439,9 @@ func (h *AlertHandler) Graph(c *gin.Context) {
 			COALESCE(raw_data->>'path', raw_data->>'target_path',''),
 			COALESCE(raw_data->>'operation','write'),
 			COALESCE(raw_data->>'pid',''),
-			COALESCE((raw_data->>'is_suspicious')::boolean, false),
+			-- ファイルイベントでの「疑わしい」は yara_matched です
+			-- (is_suspicious は dns 専用で、ここでは常に NULL でした)。
+			COALESCE((raw_data->>'yara_matched')::boolean, false),
 			"time"::text
 		FROM events
 		WHERE agent_id = $1::uuid
@@ -576,7 +607,9 @@ func (h *AlertHandler) StatusHistory(c *gin.Context) {
 		}
 	}
 	if err := rows.Err(); err != nil {
-		slog.Warn("row iteration error", "error", err)
+		slog.Error("rows.Err: 結果の読み出しが途中で失敗しました", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "ステータス履歴の取得に失敗しました"})
+		return
 	}
 	if entries == nil {
 		entries = []HistoryEntry{}
@@ -695,7 +728,10 @@ func (h *AlertHandler) Dashboard(c *gin.Context) {
 	}
 
 	// Recent alerts
-	recentAlerts, _, _ := h.Store.ListAlerts(ctx, store.AlertFilter{Limit: 5, Offset: 0})
+	recentAlerts, _, err := h.Store.ListAlerts(ctx, store.AlertFilter{Limit: 5, Offset: 0})
+	if !ReadOK(c, err) {
+		return
+	}
 	if recentAlerts == nil {
 		recentAlerts = []*store.StoredAlert{}
 	}
@@ -735,7 +771,10 @@ func (h *AlertHandler) Dashboard(c *gin.Context) {
 	}
 
 	// Top threatened agents (past 7 days)
-	topAgents, _ := h.Store.TopThreatenedAgents(ctx, 5)
+	topAgents, err := h.Store.TopThreatenedAgents(ctx, 5)
+	if !ReadOK(c, err) {
+		return
+	}
 	if topAgents == nil {
 		topAgents = []store.TopAgent{}
 	}
@@ -757,7 +796,10 @@ func (h *AlertHandler) Dashboard(c *gin.Context) {
 	}
 
 	// Event timeline: hourly buckets for past 24h
-	eventTimeline := h.buildEventTimeline(ctx)
+	eventTimeline, err := h.buildEventTimeline(ctx)
+	if !ReadOK(c, err) {
+		return
+	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"agents":                agentSummary,
@@ -769,7 +811,12 @@ func (h *AlertHandler) Dashboard(c *gin.Context) {
 }
 
 // buildEventTimeline merges hourly event and alert counts for the past 24 hours.
-func (h *AlertHandler) buildEventTimeline(ctx context.Context) []map[string]any {
+// **失敗を空の時系列で返さないこと。**
+//
+// アラート件数の読み出しは `_` で捨てられていて、失敗すると
+// **「この24時間、アラートは0件」と同じグラフ**になりました。
+// 呼び出し側が答えられるよう、error を返します。
+func (h *AlertHandler) buildEventTimeline(ctx context.Context) ([]map[string]any, error) {
 	type point struct {
 		ProcessEvents int
 		FileEvents    int
@@ -819,7 +866,10 @@ func (h *AlertHandler) buildEventTimeline(ctx context.Context) []map[string]any 
 	}
 
 	// Merge in alert counts
-	alertBuckets, _ := h.Store.AlertTimeline(ctx, 24)
+	alertBuckets, err := h.Store.AlertTimeline(ctx, 24)
+	if err != nil && !absent(err) {
+		return nil, err
+	}
 	for _, b := range alertBuckets {
 		key := b.Bucket.UTC().Format(time.RFC3339)
 		if byBucket[key] == nil {
@@ -829,7 +879,7 @@ func (h *AlertHandler) buildEventTimeline(ctx context.Context) []map[string]any 
 	}
 
 	if len(byBucket) == 0 {
-		return []map[string]any{}
+		return []map[string]any{}, nil
 	}
 
 	// Sort and build response
@@ -857,7 +907,7 @@ func (h *AlertHandler) buildEventTimeline(ctx context.Context) []map[string]any 
 			"alert_count":    p.AlertCount,
 		})
 	}
-	return result
+	return result, nil
 }
 
 // Export streams filtered alerts as a UTF-8 CSV file.
@@ -866,13 +916,17 @@ func (h *AlertHandler) Export(c *gin.Context) {
 	severityStr := c.Query("severity")
 	severity, _ := strconv.Atoi(severityStr)
 
+	fromTime, toTime, ok := timeRangeParams(c)
+	if !ok {
+		return
+	}
 	filter := store.AlertFilter{
 		Status:   c.Query("status"),
 		AgentID:  c.Query("agent_id"),
 		Severity: severity,
 		Search:   c.Query("search"),
-		FromTime: parseTimeParam(c.Query("from")),
-		ToTime:   parseTimeParam(c.Query("to")),
+		FromTime: fromTime,
+		ToTime:   toTime,
 		Limit:    10000,
 		Offset:   0,
 	}
@@ -930,49 +984,17 @@ func csvField(s string) string {
 // GeoStats returns alert counts grouped by source country for threat map visualization.
 // GET /api/v1/alerts/geo-stats
 func (h *AlertHandler) GeoStats(c *gin.Context) {
-	if h.Pool == nil {
-		c.JSON(http.StatusOK, gin.H{"data": []any{}})
-		return
-	}
-
-	rows, err := h.Pool.Query(c.Request.Context(), `
-		SELECT
-			COALESCE(src_country, 'Unknown') AS country,
-			COUNT(*) AS cnt,
-			MAX(severity) AS max_sev
-		FROM alerts
-		WHERE created_at >= NOW() - INTERVAL '7 days'
-		  AND src_country IS NOT NULL AND src_country != ''
-		GROUP BY src_country
-		ORDER BY cnt DESC
-		LIMIT 20`)
-	if err != nil {
-		// Return empty on error — frontend shows mock data
-		c.JSON(http.StatusOK, gin.H{"data": []any{}})
-		return
-	}
-	defer rows.Close()
-
-	type geoRow struct {
-		Country string `json:"country"`
-		Count   int    `json:"count"`
-		MaxSev  int    `json:"max_severity"`
-	}
-	var results []geoRow
-	for rows.Next() {
-		var r geoRow
-		if err := rows.Scan(&r.Country, &r.Count, &r.MaxSev); err != nil {
-			continue
-		}
-		results = append(results, r)
-	}
-	if err := rows.Err(); err != nil {
-		slog.Warn("row iteration error", "error", err)
-	}
-	if results == nil {
-		results = []geoRow{}
-	}
-	c.JSON(http.StatusOK, gin.H{"data": results})
+	// alerts に src_country 列はありません。どのマイグレーションも作らず、
+	// エージェントも設定せず、サーバ側の GeoIP 付与はどこでも動いていません。
+	// この問い合わせは必ず 42703 で失敗します。
+	//
+	// 失敗として返すと、運用担当は復旧するものだと考えて再試行します。
+	// 実際には「まだ作られていない」ので、そう言います。
+	//
+	// ダッシュボードはこの失敗を受けて FALLBACK_GEO_THREATS — 中国142件、
+	// ロシア89件、北朝鮮54件 — を表示していました。発明された攻撃元です。
+	NotImplemented(c, "攻撃元の国別分布",
+		"alerts に国コードの列が無く、サーバ側の GeoIP 付与も未実装です")
 }
 
 // killChainStages はサイバーキルチェーンの段階を攻撃の進行順に並べたもの。
@@ -1031,7 +1053,7 @@ func (h *AlertHandler) KillChainStats(c *gin.Context) {
 		GROUP BY mitre_technique`)
 	if err != nil {
 		slog.Warn("alerts: kill-chain stats query failed", "error", err)
-		c.JSON(http.StatusOK, gin.H{"data": []any{}})
+		ReadFailure(c, err, gin.H{"data": []any{}})
 		return
 	}
 	defer rows.Close()
@@ -1051,7 +1073,9 @@ func (h *AlertHandler) KillChainStats(c *gin.Context) {
 		byStage[killChainStage(detection.TacticForTechnique(technique))] += cnt
 	}
 	if err := rows.Err(); err != nil {
-		slog.Warn("row iteration error", "error", err)
+		slog.Warn("alerts: kill-chain stats query failed", "error", err)
+		ReadFailure(c, err, gin.H{"data": []any{}})
+		return
 	}
 
 	// 段階は固定順で返す。件数順にすると図の並びが日によって変わる。
@@ -1121,7 +1145,9 @@ func (h *AlertHandler) MITREStats(c *gin.Context) {
 		techs = append(techs, t)
 	}
 	if err := rows.Err(); err != nil {
-		slog.Warn("MITREStats: row iteration error", "error", err)
+		slog.Error("rows.Err: 結果の読み出しが途中で失敗しました", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "MITRE統計の取得に失敗しました"})
+		return
 	}
 	if techs == nil {
 		techs = []techRow{}

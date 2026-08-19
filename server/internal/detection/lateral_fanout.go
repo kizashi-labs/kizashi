@@ -98,6 +98,23 @@ func (d *LateralFanoutScorer) Observe(agentID, dstIP string, dstPort int, now ti
 	}
 	st.lastAlert = nu
 	n := len(st.hosts)
+	// Count how many of the fanned-out destinations are internal (RFC1918/ULA).
+	// Internal-dominant fan-out is higher-confidence east-west lateral movement;
+	// external-dominant fan-out is more often benign admin/CI tooling reaching many
+	// external hosts. This adjusts severity and context WITHOUT dropping any host from
+	// the count, so cloud lateral movement (internal hosts on public IPs) is still
+	// caught at the base threshold.
+	internal := 0
+	for h := range st.hosts {
+		if !isExternalIP(h) {
+			internal++
+		}
+	}
+	severity := 7
+	scope := fmt.Sprintf("うち内部宛先 %d/%d", internal, n)
+	if internal*2 >= n {
+		severity = 8 // internal-dominant → stronger lateral-movement signal
+	}
 	svcs := make([]string, 0, len(st.ports))
 	for s := range st.ports {
 		svcs = append(svcs, s)
@@ -106,10 +123,12 @@ func (d *LateralFanoutScorer) Observe(agentID, dstIP string, dstPort int, now ti
 		RuleID:   "",
 		RuleName: "横展開の疑い: リモートサービスへの多数ホスト・ファンアウト",
 		RuleType: "heuristic",
-		Severity: 7,
+		// Severity is raised for an internal-dominant fan-out (see above); the title
+		// carries no observed values so the rule keeps a stable identity for dedup.
+		Severity: severity,
 		Title:    fmt.Sprintf("[HEURISTIC] 横展開の疑い: 単一ホストが%d分内に多数の異なるホストへリモートサービス接続", int(lateralWindow/time.Minute)),
-		Description: fmt.Sprintf("単一ホストが%d分以内に%d個の異なる宛先ホストへリモート管理ポート(%s)で接続。1台が多数ホストへ横に広がる=横展開の疑い(単発のリモートセッションを見る個別ルールが取りこぼす広がり)。",
-			int(lateralWindow/time.Minute), n, joinStrings(svcs)),
+		Description: fmt.Sprintf("単一ホストが%d分以内に%d個の異なる宛先ホストへリモート管理ポート(%s)で接続(%s)。1台が多数ホストへ横に広がる=横展開の疑い(単発のリモートセッションを見る個別ルールが取りこぼす広がり)。",
+			int(lateralWindow/time.Minute), n, joinStrings(svcs), scope),
 		MITRETags: []string{"T1021"},
 	}}
 }

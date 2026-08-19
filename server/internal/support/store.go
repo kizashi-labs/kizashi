@@ -2,6 +2,7 @@ package support
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -272,19 +273,21 @@ type Stats struct {
 // GetStats はステータス別チケット数を返す。
 func (s *Store) GetStats(ctx context.Context) (*Stats, error) {
 	st := &Stats{}
-	_ = s.pool.QueryRow(ctx, `
-		SELECT
-		  COUNT(*) FILTER (WHERE status = 'open')        AS open,
-		  COUNT(*) FILTER (WHERE status = 'in_progress') AS in_progress,
-		  COUNT(*) FILTER (WHERE status = 'resolved')    AS resolved,
-		  COUNT(*) FILTER (WHERE status = 'closed')      AS closed,
-		  COUNT(*) FILTER (WHERE priority = 'critical')  AS critical,
-		  COUNT(*) FILTER (WHERE priority = 'high')      AS high,
-		  COALESCE(AVG(EXTRACT(EPOCH FROM (resolved_at - created_at))/3600)
-		    FILTER (WHERE resolved_at IS NOT NULL), 0)   AS avg_resolve_hours
-		FROM support_tickets`,
+	if err := s.pool.QueryRow(ctx, `
+			SELECT
+			  COUNT(*) FILTER (WHERE status = 'open')        AS open,
+			  COUNT(*) FILTER (WHERE status = 'in_progress') AS in_progress,
+			  COUNT(*) FILTER (WHERE status = 'resolved')    AS resolved,
+			  COUNT(*) FILTER (WHERE status = 'closed')      AS closed,
+			  COUNT(*) FILTER (WHERE priority = 'critical')  AS critical,
+			  COUNT(*) FILTER (WHERE priority = 'high')      AS high,
+			  COALESCE(AVG(EXTRACT(EPOCH FROM (resolved_at - created_at))/3600)
+			    FILTER (WHERE resolved_at IS NOT NULL), 0)   AS avg_resolve_hours
+			FROM support_tickets`,
 	).Scan(&st.Open, &st.InProgress, &st.Resolved, &st.Closed,
-		&st.Critical, &st.High, &st.AvgResolveh)
+		&st.Critical, &st.High, &st.AvgResolveh); err != nil {
+		return nil, fmt.Errorf("数えられませんでした: %w", err)
+	}
 	return st, nil
 }
 

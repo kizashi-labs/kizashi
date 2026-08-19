@@ -3,6 +3,8 @@
 import { useState, useMemo, useCallback } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { apiFetch } from '@/lib/api'
+import { DataUnavailable } from '@/components/DataUnavailable'
+import { PageSaveFailed } from '@/components/PageSaveFailed'
 import {
   PieChart, Pie, Cell, Tooltip as ReTooltip, ResponsiveContainer,
   BarChart, Bar, XAxis, YAxis, CartesianGrid,
@@ -12,7 +14,7 @@ import {
   X, ExternalLink, ChevronLeft, ChevronRight, RefreshCw,
   CheckSquare, Square, Download, Ticket, Monitor,
 } from 'lucide-react'
-import { USE_MOCK, m } from '@/lib/mock'
+import { USE_MOCK } from '@/lib/mock'
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -128,12 +130,9 @@ const MOCK_CVE_DB: Record<string, { cve_id: string; cvss_score: number; severity
   git:        [{ cve_id: 'CVE-2023-23946', cvss_score: 6.5, severity: 'medium', fixed_version: '2.39.2' }],
 }
 
-// 呼び出し側でも USE_MOCK を見ているが、ここでも m() を通す。将来ガード無しの
-// 呼び出しが増えたときに、架空の CVE が本番の脆弱性一覧に混ざるのを防ぐ
-// （モック無効時は {} になり、ループが回らず null が返る）。
 function getMockCVEs(name: string) {
   const lower = name.toLowerCase()
-  for (const [key, entries] of Object.entries(m(MOCK_CVE_DB))) {
+  for (const [key, entries] of Object.entries(MOCK_CVE_DB)) {
     if (lower.includes(key)) return entries
   }
   return null
@@ -224,7 +223,7 @@ function StatusBadge({ status }: { status: string }) {
 function ChartTooltip({ active, payload, label }: { active?: boolean; payload?: { name: string; value: number }[]; label?: string }) {
   if (!active || !payload?.length) return null
   return (
-    <div className="bg-[#1a2640] border border-falcon-border rounded-lg px-3 py-2 text-xs shadow-xl">
+    <div className="bg-[#1a2640] border border-[#1e2d42] rounded-lg px-3 py-2 text-xs shadow-xl">
       {label && <p className="text-[#8899aa] mb-1">{label}</p>}
       {payload.map((p, i) => (
         <p key={i} className="text-white font-semibold">{p.name}: {p.value}</p>
@@ -247,10 +246,10 @@ function AffectedEndpointsModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70" onClick={onClose}>
       <div
-        className="bg-gray-800 border border-falcon-border rounded-xl shadow-2xl w-full max-w-md mx-4"
+        className="bg-gray-800 border border-[#1e2d42] rounded-xl shadow-2xl w-full max-w-md mx-4"
         onClick={e => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between px-5 py-4 border-b border-falcon-border">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-[#1e2d42]">
           <div className="flex items-center gap-2">
             <Monitor className="w-4 h-4 text-blue-400" />
             <span className="text-sm font-semibold text-white">影響エンドポイント</span>
@@ -259,7 +258,7 @@ function AffectedEndpointsModal({
             <X className="w-4 h-4" />
           </button>
         </div>
-        <div className="px-5 py-3 border-b border-falcon-border">
+        <div className="px-5 py-3 border-b border-[#1e2d42]">
           <span className="font-mono text-blue-400 text-sm font-semibold">{cveId}</span>
           <span className="ml-2 text-xs text-[#5a6a7a]">({hostnames.length} エンドポイント)</span>
         </div>
@@ -271,16 +270,16 @@ function AffectedEndpointsModal({
               {hostnames.map((h, i) => (
                 <li key={i} className="flex items-center gap-2 text-sm">
                   <Monitor className="w-3.5 h-3.5 text-[#5a6a7a] shrink-0" />
-                  <span className="font-mono text-falcon-text">{h}</span>
+                  <span className="font-mono text-[#e2e8f4]">{h}</span>
                 </li>
               ))}
             </ul>
           )}
         </div>
-        <div className="px-5 py-3 border-t border-falcon-border flex justify-end">
+        <div className="px-5 py-3 border-t border-[#1e2d42] flex justify-end">
           <button
             onClick={onClose}
-            className="px-4 py-1.5 text-sm text-[#8899aa] hover:text-white border border-falcon-border rounded-lg hover:border-[#2e3d52] transition-colors"
+            className="px-4 py-1.5 text-sm text-[#8899aa] hover:text-white border border-[#1e2d42] rounded-lg hover:border-[#2e3d52] transition-colors"
           >
             閉じる
           </button>
@@ -326,10 +325,10 @@ function CreateTicketModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70" onClick={onClose}>
       <div
-        className="bg-gray-800 border border-falcon-border rounded-xl shadow-2xl w-full max-w-lg mx-4"
+        className="bg-gray-800 border border-[#1e2d42] rounded-xl shadow-2xl w-full max-w-lg mx-4"
         onClick={e => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between px-5 py-4 border-b border-falcon-border">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-[#1e2d42]">
           <div className="flex items-center gap-2">
             <Ticket className="w-4 h-4 text-purple-400" />
             <span className="text-sm font-semibold text-white">チケット作成</span>
@@ -351,7 +350,7 @@ function CreateTicketModal({
                   className={`px-4 py-1.5 text-sm rounded-lg border transition-colors ${
                     form.system === sys
                       ? 'bg-blue-700 border-blue-600 text-white'
-                      : 'border-falcon-border text-[#8899aa] hover:border-[#2e3d52]'
+                      : 'border-[#1e2d42] text-[#8899aa] hover:border-[#2e3d52]'
                   }`}
                 >
                   {sys === 'jira' ? 'Jira' : 'ServiceNow'}
@@ -366,8 +365,7 @@ function CreateTicketModal({
             <input
               value={form.title}
               onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
-              className="w-full px-3 py-2 text-sm bg-falcon-bg border border-falcon-border rounded-lg text-white
-                         focus:outline-hidden focus:border-blue-500 transition-colors"
+              className="w-full px-3 py-2 text-sm bg-[#080c14] border border-[#1e2d42] rounded-lg text-white focus:outline-hidden focus:border-blue-500 transition-colors"
             />
           </div>
 
@@ -377,8 +375,7 @@ function CreateTicketModal({
             <select
               value={form.priority}
               onChange={e => setForm(f => ({ ...f, priority: e.target.value }))}
-              className="w-full px-3 py-2 text-sm bg-falcon-bg border border-falcon-border rounded-lg text-white
-                         focus:outline-hidden focus:border-blue-500 transition-colors"
+              className="w-full px-3 py-2 text-sm bg-[#080c14] border border-[#1e2d42] rounded-lg text-white focus:outline-hidden focus:border-blue-500 transition-colors"
             >
               {['Highest', 'High', 'Medium', 'Low', 'Lowest'].map(p => (
                 <option key={p} value={p} className="bg-gray-900">{p}</option>
@@ -393,8 +390,7 @@ function CreateTicketModal({
               value={form.assignee}
               onChange={e => setForm(f => ({ ...f, assignee: e.target.value }))}
               placeholder="担当者名またはメールアドレス"
-              className="w-full px-3 py-2 text-sm bg-falcon-bg border border-falcon-border rounded-lg text-white
-                         placeholder-[#5a6a7a] focus:outline-hidden focus:border-blue-500 transition-colors"
+              className="w-full px-3 py-2 text-sm bg-[#080c14] border border-[#1e2d42] rounded-lg text-white placeholder-[#5a6a7a] focus:outline-hidden focus:border-blue-500 transition-colors"
             />
           </div>
 
@@ -405,24 +401,22 @@ function CreateTicketModal({
               value={form.description}
               onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
               rows={4}
-              className="w-full px-3 py-2 text-sm bg-falcon-bg border border-falcon-border rounded-lg text-white
-                         focus:outline-hidden focus:border-blue-500 transition-colors resize-none font-mono"
+              className="w-full px-3 py-2 text-sm bg-[#080c14] border border-[#1e2d42] rounded-lg text-white focus:outline-hidden focus:border-blue-500 transition-colors resize-none font-mono"
             />
           </div>
         </div>
 
-        <div className="px-5 py-3 border-t border-falcon-border flex justify-end gap-2">
+        <div className="px-5 py-3 border-t border-[#1e2d42] flex justify-end gap-2">
           <button
             onClick={onClose}
-            className="px-4 py-1.5 text-sm text-[#8899aa] hover:text-white border border-falcon-border rounded-lg hover:border-[#2e3d52] transition-colors"
+            className="px-4 py-1.5 text-sm text-[#8899aa] hover:text-white border border-[#1e2d42] rounded-lg hover:border-[#2e3d52] transition-colors"
           >
             キャンセル
           </button>
           <button
             onClick={() => onSubmit(form)}
             disabled={isLoading || !form.title.trim()}
-            className="px-4 py-1.5 text-sm bg-purple-700 hover:bg-purple-600 text-white rounded-lg
-                       disabled:opacity-50 transition-colors flex items-center gap-1.5"
+            className="px-4 py-1.5 text-sm bg-purple-700 hover:bg-purple-600 text-white rounded-lg disabled:opacity-50 transition-colors flex items-center gap-1.5"
           >
             {isLoading ? (
               <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -469,7 +463,7 @@ function BulkActionsBar({
 
       {count > 0 && (
         <>
-          <div className="h-4 w-px bg-falcon-border" />
+          <div className="h-4 w-px bg-[#1e2d42]" />
 
           <span className="text-xs text-[#5a6a7a]">ステータス変更:</span>
           {[
@@ -481,19 +475,17 @@ function BulkActionsBar({
             <button
               key={opt.v}
               onClick={() => onBulkStatus(opt.v)}
-              className="px-2.5 py-1 text-xs rounded border border-falcon-border text-[#8899aa]
-                         hover:border-blue-600 hover:text-blue-300 transition-colors"
+              className="px-2.5 py-1 text-xs rounded-sm border border-[#1e2d42] text-[#8899aa] hover:border-blue-600 hover:text-blue-300 transition-colors"
             >
               {opt.l}
             </button>
           ))}
 
-          <div className="h-4 w-px bg-falcon-border" />
+          <div className="h-4 w-px bg-[#1e2d42]" />
 
           <button
             onClick={onExport}
-            className="flex items-center gap-1.5 px-2.5 py-1 text-xs rounded border border-falcon-border
-                       text-[#8899aa] hover:border-green-600 hover:text-green-300 transition-colors"
+            className="flex items-center gap-1.5 px-2.5 py-1 text-xs rounded-sm border border-[#1e2d42] text-[#8899aa] hover:border-green-600 hover:text-green-300 transition-colors"
           >
             <Download className="w-3 h-3" />
             エクスポート
@@ -529,7 +521,7 @@ export default function VulnerabilityDashboard() {
 
   // ── Data fetching ──────────────────────────────────────────────────────
 
-  const { data: inventoryData, isLoading: invLoading, refetch } = useQuery<{ data: SoftwareInventoryItem[] } | SoftwareInventoryItem[]>({
+  const { data: inventoryData, isLoading: invLoading, error: invError, refetch } = useQuery<{ data: SoftwareInventoryItem[] } | SoftwareInventoryItem[]>({
     queryKey: ['vuln-dashboard-inventory'],
     queryFn: () => apiFetch('/api/v1/software-inventory'),
     staleTime: 60_000,
@@ -556,14 +548,6 @@ export default function VulnerabilityDashboard() {
       apiFetch('/api/v1/software-inventory/bulk', {
         method: 'PATCH',
         body: JSON.stringify({ ids, status }),
-      }).catch(() => {
-        // Fallback: fire individual updates
-        return Promise.allSettled(
-          ids.map(id => apiFetch(`/api/v1/software-inventory/${id}`, {
-            method: 'PATCH',
-            body: JSON.stringify({ status }),
-          }))
-        )
       }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['vuln-dashboard-inventory'] })
@@ -578,7 +562,7 @@ export default function VulnerabilityDashboard() {
       apiFetch('/api/v1/soar/tickets', {
         method: 'POST',
         body: JSON.stringify(form),
-      }).catch(() => ({ ok: true, mock: true })),
+      }),
     onSuccess: () => {
       setTicketRow(null)
       alert('チケットを作成しました')
@@ -718,6 +702,11 @@ export default function VulnerabilityDashboard() {
     <div className="bg-gray-900 min-h-screen text-white">
       <div className="max-w-[1400px] mx-auto px-6 py-8 space-y-6">
 
+        {/* 下のカードは取得に失敗すると 0件 を表示します。
+            その 0 が「脆弱性なし」なのかどうかをここで言う。 */}
+        <DataUnavailable error={invError} what="ソフトウェアインベントリ" onRetry={refetch} />
+
+        <PageSaveFailed />
         {/* ── Header ─────────────────────────────────────────────────────── */}
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-center gap-3">
@@ -752,7 +741,7 @@ export default function VulnerabilityDashboard() {
         {/* ── Stats row ──────────────────────────────────────────────────── */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           {/* Total */}
-          <div className="bg-gray-800 border border-falcon-border rounded-xl p-4">
+          <div className="bg-gray-800 border border-[#1e2d42] rounded-xl p-4">
             <p className="text-xs text-[#5a6a7a] mb-1">総脆弱性数</p>
             <p className="text-3xl font-bold text-white">{stats.total}</p>
             <p className="text-xs text-[#5a6a7a] mt-0.5">全ステータス含む</p>
@@ -761,7 +750,7 @@ export default function VulnerabilityDashboard() {
           <button
             onClick={() => { setSeverityTab(severityTab === 'critical' ? 'all' : 'critical'); setPage(1) }}
             className={`bg-gray-800 border rounded-xl p-4 text-left transition-all hover:opacity-100 ${
-              severityTab === 'critical' ? 'ring-2 ring-red-500 border-red-700' : 'border-falcon-border opacity-80'
+              severityTab === 'critical' ? 'ring-2 ring-red-500 border-red-700' : 'border-[#1e2d42] opacity-80'
             }`}
           >
             <div className="flex items-center gap-1.5 mb-1">
@@ -775,7 +764,7 @@ export default function VulnerabilityDashboard() {
           <button
             onClick={() => { setSeverityTab(severityTab === 'high' ? 'all' : 'high'); setPage(1) }}
             className={`bg-gray-800 border rounded-xl p-4 text-left transition-all hover:opacity-100 ${
-              severityTab === 'high' ? 'ring-2 ring-orange-500 border-orange-700' : 'border-falcon-border opacity-80'
+              severityTab === 'high' ? 'ring-2 ring-orange-500 border-orange-700' : 'border-[#1e2d42] opacity-80'
             }`}
           >
             <div className="flex items-center gap-1.5 mb-1">
@@ -786,7 +775,7 @@ export default function VulnerabilityDashboard() {
             <p className="text-xs text-[#5a6a7a] mt-0.5">未対処</p>
           </button>
           {/* Unresolved */}
-          <div className="bg-gray-800 border border-falcon-border rounded-xl p-4">
+          <div className="bg-gray-800 border border-[#1e2d42] rounded-xl p-4">
             <p className="text-xs text-[#5a6a7a] mb-1">未対処</p>
             <p className="text-3xl font-bold text-white">{stats.unresolved}</p>
             <p className="text-xs text-[#5a6a7a] mt-0.5">open ステータス</p>
@@ -797,7 +786,7 @@ export default function VulnerabilityDashboard() {
         {allRows.length > 0 && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {/* Pie: severity distribution */}
-            <div className="bg-gray-800 border border-falcon-border rounded-xl p-5">
+            <div className="bg-gray-800 border border-[#1e2d42] rounded-xl p-5">
               <h2 className="text-sm font-semibold text-[#8899aa] mb-4">重大度別 CVE 分布</h2>
               <ResponsiveContainer width="100%" height={220}>
                 <PieChart>
@@ -834,7 +823,7 @@ export default function VulnerabilityDashboard() {
             </div>
 
             {/* Bar: top 10 vulnerable packages */}
-            <div className="bg-gray-800 border border-falcon-border rounded-xl p-5">
+            <div className="bg-gray-800 border border-[#1e2d42] rounded-xl p-5">
               <h2 className="text-sm font-semibold text-[#8899aa] mb-4">脆弱性の多いソフトウェア Top 10</h2>
               <ResponsiveContainer width="100%" height={240}>
                 <BarChart data={barData} layout="vertical" margin={{ top: 0, right: 16, bottom: 0, left: 0 }}>
@@ -850,7 +839,7 @@ export default function VulnerabilityDashboard() {
         )}
 
         {/* ── Severity Filter Tabs ───────────────────────────────────────── */}
-        <div className="bg-gray-800 border border-falcon-border rounded-xl p-3">
+        <div className="bg-gray-800 border border-[#1e2d42] rounded-xl p-3">
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-xs text-[#5a6a7a] mr-1">重大度フィルター:</span>
             {/* All tab */}
@@ -859,7 +848,7 @@ export default function VulnerabilityDashboard() {
               className={`px-3 py-1 text-xs rounded-lg border transition-colors ${
                 severityTab === 'all'
                   ? 'bg-gray-600 border-gray-500 text-white'
-                  : 'border-falcon-border text-[#8899aa] hover:border-[#2e3d52] hover:text-white'
+                  : 'border-[#1e2d42] text-[#8899aa] hover:border-[#2e3d52] hover:text-white'
               }`}
             >
               All
@@ -877,7 +866,7 @@ export default function VulnerabilityDashboard() {
                   key={sev}
                   onClick={() => { setSeverityTab(isActive ? 'all' : sev); setPage(1) }}
                   className={`px-3 py-1 text-xs rounded-lg border transition-colors flex items-center gap-1.5 ${
-                    isActive ? cfg.tabActive : 'border-falcon-border text-[#8899aa] hover:border-[#2e3d52] hover:text-white'
+                    isActive ? cfg.tabActive : 'border-[#1e2d42] text-[#8899aa] hover:border-[#2e3d52] hover:text-white'
                   }`}
                 >
                   {cfg.label}
@@ -893,7 +882,7 @@ export default function VulnerabilityDashboard() {
         </div>
 
         {/* ── Filter bar ─────────────────────────────────────────────────── */}
-        <div className="bg-gray-800 border border-falcon-border rounded-xl p-4">
+        <div className="bg-gray-800 border border-[#1e2d42] rounded-xl p-4">
           <div className="flex flex-wrap items-center gap-3">
             {/* Search */}
             <div className="relative flex-1 min-w-[200px]">
@@ -902,9 +891,7 @@ export default function VulnerabilityDashboard() {
                 value={search}
                 onChange={e => { setSearch(e.target.value); setPage(1) }}
                 placeholder="CVE ID またはパッケージ名で検索..."
-                className="w-full pl-9 pr-8 py-2 text-sm border border-falcon-border rounded-lg
-                           bg-falcon-bg text-white placeholder-[#5a6a7a]
-                           focus:outline-hidden focus:border-blue-500 transition-colors"
+                className="w-full pl-9 pr-8 py-2 text-sm border border-[#1e2d42] rounded-lg bg-[#080c14] text-white placeholder-[#5a6a7a] focus:outline-hidden focus:border-blue-500 transition-colors"
               />
               {search && (
                 <button
@@ -917,7 +904,7 @@ export default function VulnerabilityDashboard() {
             </div>
 
             {/* Patch Status filter */}
-            <div className="flex border border-falcon-border rounded-lg overflow-hidden text-xs">
+            <div className="flex border border-[#1e2d42] rounded-lg overflow-hidden text-xs">
               {[
                 { value: '',            label: 'すべて' },
                 { value: 'open',        label: '未対処' },
@@ -961,8 +948,8 @@ export default function VulnerabilityDashboard() {
         />
 
         {/* ── Main table ─────────────────────────────────────────────────── */}
-        <div className="bg-gray-800 border border-falcon-border rounded-xl overflow-hidden">
-          <div className="px-5 py-3 border-b border-falcon-border flex items-center justify-between">
+        <div className="bg-gray-800 border border-[#1e2d42] rounded-xl overflow-hidden">
+          <div className="px-5 py-3 border-b border-[#1e2d42] flex items-center justify-between">
             <h2 className="text-sm font-semibold text-white">デバイス別脆弱性</h2>
             <span className="text-xs text-[#5a6a7a]">
               {filtered.length} 件
@@ -987,7 +974,7 @@ export default function VulnerabilityDashboard() {
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-falcon-border text-xs text-[#8899aa] bg-[#0e1624]">
+                  <tr className="border-b border-[#1e2d42] text-xs text-[#8899aa] bg-[#0e1624]">
                     <th className="px-3 py-3 text-center w-8">
                       <button
                         onClick={() => {
@@ -1019,8 +1006,8 @@ export default function VulnerabilityDashboard() {
                   {pageRows.map(row => (
                     <tr
                       key={row.id}
-                      className={`border-b border-falcon-border/50 transition-colors ${
-                        selectedIds.has(row.id) ? 'bg-blue-900/10' : 'hover:bg-falcon-raised/40'
+                      className={`border-b border-[#1e2d42]/50 transition-colors ${
+                        selectedIds.has(row.id) ? 'bg-blue-900/10' : 'hover:bg-[#161f33]/40'
                       }`}
                     >
                       {/* Checkbox */}
@@ -1038,7 +1025,7 @@ export default function VulnerabilityDashboard() {
 
                       {/* Hostname */}
                       <td className="px-4 py-2.5">
-                        <span className="text-falcon-text text-xs font-mono">{row.hostname}</span>
+                        <span className="text-[#e2e8f4] text-xs font-mono">{row.hostname}</span>
                       </td>
 
                       {/* CVE ID */}
@@ -1064,7 +1051,7 @@ export default function VulnerabilityDashboard() {
                       </td>
 
                       {/* Package */}
-                      <td className="px-4 py-2.5 text-xs text-falcon-text">{row.name}</td>
+                      <td className="px-4 py-2.5 text-xs text-[#e2e8f4]">{row.name}</td>
 
                       {/* Version */}
                       <td className="px-4 py-2.5 font-mono text-xs text-[#8899aa]">{row.version}</td>
@@ -1087,7 +1074,7 @@ export default function VulnerabilityDashboard() {
                           <select
                             value={row.status}
                             onChange={e => statusMut.mutate({ id: row.id, status: e.target.value })}
-                            className={`text-[11px] font-medium rounded border px-1.5 py-0.5 bg-transparent cursor-pointer
+                            className={`text-[11px] font-medium rounded-sm border px-1.5 py-0.5 bg-transparent cursor-pointer
                               transition-colors appearance-none
                               ${STATUS_CONFIG[row.status]?.className ?? 'border-gray-600 text-gray-300'}`}
                           >
@@ -1154,11 +1141,11 @@ export default function VulnerabilityDashboard() {
 
           {/* Pagination */}
           {totalPages > 1 && (
-            <div className="flex items-center justify-center gap-2 px-5 py-3 border-t border-falcon-border">
+            <div className="flex items-center justify-center gap-2 px-5 py-3 border-t border-[#1e2d42]">
               <button
                 onClick={() => setPage(p => Math.max(1, p - 1))}
                 disabled={safePage === 1}
-                className="p-1.5 rounded-sm bg-[#0e1624] text-[#8899aa] hover:bg-falcon-hover disabled:opacity-30 transition-colors"
+                className="p-1.5 rounded-sm bg-[#0e1624] text-[#8899aa] hover:bg-[#19253d] disabled:opacity-30 transition-colors"
               >
                 <ChevronLeft className="w-4 h-4" />
               </button>
@@ -1175,10 +1162,10 @@ export default function VulnerabilityDashboard() {
                   <button
                     key={n}
                     onClick={() => setPage(n)}
-                    className={`w-8 h-7 text-xs rounded transition-colors ${
+                    className={`w-8 h-7 text-xs rounded-sm transition-colors ${
                       n === safePage
                         ? 'bg-blue-700 text-white font-semibold'
-                        : 'bg-[#0e1624] text-[#8899aa] hover:bg-falcon-hover'
+                        : 'bg-[#0e1624] text-[#8899aa] hover:bg-[#19253d]'
                     }`}
                   >
                     {n}
@@ -1188,7 +1175,7 @@ export default function VulnerabilityDashboard() {
               <button
                 onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                 disabled={safePage === totalPages}
-                className="p-1.5 rounded-sm bg-[#0e1624] text-[#8899aa] hover:bg-falcon-hover disabled:opacity-30 transition-colors"
+                className="p-1.5 rounded-sm bg-[#0e1624] text-[#8899aa] hover:bg-[#19253d] disabled:opacity-30 transition-colors"
               >
                 <ChevronRight className="w-4 h-4" />
               </button>

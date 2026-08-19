@@ -6,6 +6,8 @@ import { apiFetch } from '@/lib/api'
 import {
   Shield, RefreshCw, Plus, AlertTriangle, CheckCircle, Clock, X, Globe,
 } from 'lucide-react'
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+
 // ── Types ──────────────────────────────────────────────────────────────────────
 
 interface CertEntry {
@@ -85,7 +87,7 @@ function DaysBar({ days, status }: { days: number; status: CertEntry['status'] }
 
   return (
     <div className="flex items-center gap-2 min-w-[120px]">
-      <div className="flex-1 h-1.5 bg-falcon-border rounded-full overflow-hidden">
+      <div className="flex-1 h-1.5 bg-[#1e2d42] rounded-full overflow-hidden">
         <div
           className={`h-full rounded-full ${barColor}`}
           style={{ width: `${pct}%` }}
@@ -109,13 +111,7 @@ export default function CertMonitorPage() {
 
   const { data, isLoading, isFetching } = useQuery<CertResponse>({
     queryKey: ['certificates'],
-    queryFn: async () => {
-      try {
-        return await apiFetch<CertResponse>('/api/v1/admin/certificates')
-      } catch {
-        return { data: [], total: 0 } as CertResponse
-      }
-    },
+    queryFn: () => apiFetch<CertResponse>('/api/v1/admin/certificates'),
     staleTime: 60_000,
   })
 
@@ -166,6 +162,7 @@ export default function CertMonitorPage() {
 
   return (
     <div className="min-h-screen bg-[#070d19] text-white p-6">
+      <PageDataUnavailable />
       {/* ── Header ── */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
@@ -181,7 +178,7 @@ export default function CertMonitorPage() {
           <button
             onClick={() => queryClient.invalidateQueries({ queryKey: ['certificates'] })}
             disabled={isFetching}
-            className="flex items-center gap-2 px-3 py-2 rounded-lg border border-falcon-border bg-falcon-surface text-[#8899aa] hover:text-white hover:border-[#2a3f5f] transition-colors text-sm disabled:opacity-50"
+            className="flex items-center gap-2 px-3 py-2 rounded-lg border border-[#1e2d42] bg-[#0d1220] text-[#8899aa] hover:text-white hover:border-[#2a3f5f] transition-colors text-sm disabled:opacity-50"
           >
             <RefreshCw className={`w-4 h-4 ${isFetching ? 'animate-spin' : ''}`} />
             更新
@@ -208,7 +205,7 @@ export default function CertMonitorPage() {
 
       {/* ── Stats row ── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <div className="bg-falcon-surface border border-falcon-border rounded-xl p-4 flex items-center gap-3">
+        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-4 flex items-center gap-3">
           <div className="p-2 rounded-lg bg-blue-900/30">
             <Globe className="w-5 h-5 text-blue-400" />
           </div>
@@ -217,7 +214,7 @@ export default function CertMonitorPage() {
             <p className="text-2xl font-bold text-white">{stats.total}</p>
           </div>
         </div>
-        <div className="bg-falcon-surface border border-falcon-border rounded-xl p-4 flex items-center gap-3">
+        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-4 flex items-center gap-3">
           <div className="p-2 rounded-lg bg-green-900/30">
             <CheckCircle className="w-5 h-5 text-green-400" />
           </div>
@@ -226,7 +223,7 @@ export default function CertMonitorPage() {
             <p className="text-2xl font-bold text-green-300">{stats.valid}</p>
           </div>
         </div>
-        <div className="bg-falcon-surface border border-falcon-border rounded-xl p-4 flex items-center gap-3">
+        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-4 flex items-center gap-3">
           <div className="p-2 rounded-lg bg-orange-900/30">
             <Clock className="w-5 h-5 text-orange-400" />
           </div>
@@ -235,7 +232,7 @@ export default function CertMonitorPage() {
             <p className="text-2xl font-bold text-orange-300">{stats.expiring}</p>
           </div>
         </div>
-        <div className="bg-falcon-surface border border-falcon-border rounded-xl p-4 flex items-center gap-3">
+        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-4 flex items-center gap-3">
           <div className="p-2 rounded-lg bg-red-900/30">
             <AlertTriangle className="w-5 h-5 text-red-400" />
           </div>
@@ -247,11 +244,11 @@ export default function CertMonitorPage() {
       </div>
 
       {/* ── Certificate table ── */}
-      <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
+      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-falcon-border">
+              <tr className="border-b border-[#1e2d42]">
                 {[
                   'ドメイン', '発行者', '有効期限', '残り日数', 'ステータス', 'ポート', '最終確認',
                 ].map((h) => (
@@ -267,10 +264,10 @@ export default function CertMonitorPage() {
             <tbody>
               {isLoading ? (
                 Array.from({ length: 5 }).map((_, i) => (
-                  <tr key={i} className="border-b border-falcon-border/50">
+                  <tr key={i} className="border-b border-[#1e2d42]/50">
                     {Array.from({ length: 7 }).map((_, j) => (
                       <td key={j} className="px-4 py-3">
-                        <div className="h-4 bg-falcon-border rounded-sm animate-pulse w-24" />
+                        <div className="h-4 bg-[#1e2d42] rounded-sm animate-pulse w-24" />
                       </td>
                     ))}
                   </tr>
@@ -285,7 +282,7 @@ export default function CertMonitorPage() {
                 entries.map((cert) => (
                   <tr
                     key={cert.id}
-                    className="border-b border-falcon-border/50 hover:bg-[#0d1828]/60 transition-colors"
+                    className="border-b border-[#1e2d42]/50 hover:bg-[#0d1828]/60 transition-colors"
                   >
                     {/* Domain */}
                     <td className="px-4 py-3 font-mono text-white font-medium">
@@ -335,10 +332,10 @@ export default function CertMonitorPage() {
 
       {/* ── Add Certificate Modal ── */}
       {showAddModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs">
-          <div className="bg-falcon-surface border border-falcon-border rounded-xl w-full max-w-md mx-4 shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl w-full max-w-md mx-4 shadow-2xl">
             {/* Modal header */}
-            <div className="flex items-center justify-between px-5 py-4 border-b border-falcon-border">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-[#1e2d42]">
               <div className="flex items-center gap-2">
                 <Shield className="w-5 h-5 text-blue-400" />
                 <h2 className="text-base font-semibold text-white">証明書を追加</h2>
@@ -349,7 +346,7 @@ export default function CertMonitorPage() {
                   setForm({ domain: '', port: '443' })
                   setFormError('')
                 }}
-                className="p-1 rounded-sm hover:bg-falcon-border text-[#8899aa] hover:text-white transition-colors"
+                className="p-1 rounded-sm hover:bg-[#1e2d42] text-[#8899aa] hover:text-white transition-colors"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -373,7 +370,7 @@ export default function CertMonitorPage() {
                   placeholder="例: example.com"
                   value={form.domain}
                   onChange={(e) => setForm((f) => ({ ...f, domain: e.target.value }))}
-                  className="w-full px-3 py-2 bg-[#070d19] border border-falcon-border rounded-lg text-white placeholder-[#8899aa] text-sm focus:outline-hidden focus:border-blue-500 transition-colors"
+                  className="w-full px-3 py-2 bg-[#070d19] border border-[#1e2d42] rounded-lg text-white placeholder-[#8899aa] text-sm focus:outline-hidden focus:border-blue-500 transition-colors"
                 />
               </div>
 
@@ -388,7 +385,7 @@ export default function CertMonitorPage() {
                   max={65535}
                   value={form.port}
                   onChange={(e) => setForm((f) => ({ ...f, port: e.target.value }))}
-                  className="w-full px-3 py-2 bg-[#070d19] border border-falcon-border rounded-lg text-white placeholder-[#8899aa] text-sm focus:outline-hidden focus:border-blue-500 transition-colors"
+                  className="w-full px-3 py-2 bg-[#070d19] border border-[#1e2d42] rounded-lg text-white placeholder-[#8899aa] text-sm focus:outline-hidden focus:border-blue-500 transition-colors"
                 />
               </div>
 
@@ -400,7 +397,7 @@ export default function CertMonitorPage() {
                     setForm({ domain: '', port: '443' })
                     setFormError('')
                   }}
-                  className="px-4 py-2 rounded-lg border border-falcon-border text-[#8899aa] hover:text-white hover:border-[#2a3f5f] transition-colors text-sm"
+                  className="px-4 py-2 rounded-lg border border-[#1e2d42] text-[#8899aa] hover:text-white hover:border-[#2a3f5f] transition-colors text-sm"
                 >
                   キャンセル
                 </button>

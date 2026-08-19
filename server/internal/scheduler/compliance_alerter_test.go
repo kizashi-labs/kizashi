@@ -20,10 +20,11 @@ func TestComplianceAlerter_RaisesAndDedupes(t *testing.T) {
 	if err != nil {
 		t.Fatalf("pool: %v", err)
 	}
-	// pool.Close は defer ではなく t.Cleanup で閉じる。defer はテスト関数の
-	// return 時点で走るが、t.Cleanup はその後に走るため、defer にすると
-	// 後続の後片付け DELETE が「閉じたプール」に当たって全て失敗する。
-	// 先に登録しておけば LIFO により最後に閉じられる。
+	// t.Cleanup, not defer: cleanup functions run AFTER the test function
+	// returns, so a deferred Close has already happened by the time they run and
+	// every statement they issue fails with "closed pool" into a discarded error.
+	// Registering the Close first makes it run last (cleanups are LIFO), which is
+	// the order the data cleanups below need.
 	t.Cleanup(pool.Close)
 	ctx := context.Background()
 

@@ -52,11 +52,12 @@ func (c *captureSender) fimPaths() map[string]string {
 
 func newTestFIM(sender EventSender, rules []FIMRule) *FIMCollector {
 	return &FIMCollector{
-		sender:   sender,
-		agentID:  "test-agent",
-		rules:    rules,
-		interval: time.Hour,
-		hashes:   make(map[string]string),
+		sender:     sender,
+		agentID:    "test-agent",
+		rules:      rules,
+		interval:   time.Hour,
+		hashes:     make(map[string]string),
+		unreadable: make(map[string]struct{}),
 	}
 }
 

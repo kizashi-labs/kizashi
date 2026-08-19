@@ -37,6 +37,20 @@ const (
 	// ModeOff: the sensor is not running at all (disabled by config, or the
 	// platform has no implementation).
 	ModeOff Mode = "off"
+
+	// ModeFailed: the sensor was supposed to be running and could not start.
+	//
+	// **ModeOff とは別にしてあります。** off は選んだ結果で、failed は
+	// 望んだのに届かなかった結果です。Aggregate は off を無視します
+	// （設定の選択を劣化として数えないため）が、failed を無視すると
+	// **起動に失敗したセンサーが「無効にしてある」と同じ姿**になります。
+	//
+	// これが要るのは Windows の ETW センサー7本です。登録に失敗しても
+	// Start は nil を返して動き続けるので、サーバから見た端末は
+	// **何も起きていない端末とまったく同じ**でした。イベントが来ない、
+	// アラートも出ない、ハートビートは届く、画面は緑。
+	// 攻撃されていないことと、見えていないことの区別がつきません。
+	ModeFailed Mode = "failed"
 )
 
 // SensorState is one sensor's effective mode plus why it ended up there.
@@ -59,6 +73,21 @@ func Set(sensor string, mode Mode, reason string) {
 	mu.Lock()
 	defer mu.Unlock()
 	sensors[sensor] = SensorState{Sensor: sensor, Mode: mode, Reason: reason}
+}
+
+// Forget removes a sensor's entry.
+//
+// **失敗したまま登録が残ると、直っても赤いままです。** 一時的な理由で
+// 落ちるセンサーがあります —— FIM は権限やマウントの都合で読めなかった
+// ファイルを ModeFailed で登録しますが、それが解消したときに戻す口が
+// 無いと、その端末は永久に「見えていない面がある」と表示され続けます。
+//
+// **直らない赤は、赤でないのと同じです。** 見る人が無視するようになり、
+// 本当に落ちた端末がその中に埋もれます。
+func Forget(sensor string) {
+	mu.Lock()
+	defer mu.Unlock()
+	delete(sensors, sensor)
 }
 
 // Snapshot returns the recorded sensors ordered by name, for diagnostics.
@@ -96,6 +125,15 @@ func Aggregate() Mode {
 func aggregate(in map[string]SensorState) Mode {
 	if len(in) == 0 {
 		return ""
+	}
+	// **失敗がいちばん重い。** 1本でも起動できていないなら、
+	// 他が健全でもその端末には見えていない面があります。
+	// poll より前に見るのは、poll は「劣った手段で見えている」で、
+	// failed は「見えていない」だからです。
+	for _, s := range in {
+		if s.Mode == ModeFailed {
+			return ModeFailed
+		}
 	}
 	active := 0
 	for _, s := range in {

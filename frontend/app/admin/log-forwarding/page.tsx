@@ -8,6 +8,9 @@ import {
   ChevronDown, ChevronUp, Loader2, AlertTriangle,
 } from 'lucide-react'
 
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+import { PageSaveFailed } from '@/components/PageSaveFailed'
+
 // ── Types ────────────────────────────────────────────────────────────────────
 
 interface EventTypes {
@@ -84,11 +87,11 @@ function ToggleSwitch({ checked, onChange, label }: { checked: boolean; onChange
     <label className="flex items-center gap-3 cursor-pointer select-none">
       <div
         onClick={() => onChange(!checked)}
-        className={`relative w-11 h-6 rounded-full transition-colors duration-200 ${checked ? 'bg-falcon-red' : 'bg-falcon-border'}`}
+        className={`relative w-11 h-6 rounded-full transition-colors duration-200 ${checked ? 'bg-[#e8002d]' : 'bg-[#1e2d42]'}`}
       >
-        <span className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-falcon-text shadow-sm transition-transform duration-200 ${checked ? 'translate-x-5' : 'translate-x-0'}`} />
+        <span className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-[#e2e8f4] shadow-sm transition-transform duration-200 ${checked ? 'translate-x-5' : 'translate-x-0'}`} />
       </div>
-      <span className={`text-sm font-medium ${checked ? 'text-white' : 'text-falcon-muted'}`}>{label}</span>
+      <span className={`text-sm font-medium ${checked ? 'text-white' : 'text-[#7d92b0]'}`}>{label}</span>
     </label>
   )
 }
@@ -96,7 +99,7 @@ function ToggleSwitch({ checked, onChange, label }: { checked: boolean; onChange
 function FieldRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="flex flex-col gap-1">
-      <label className="text-xs font-medium text-falcon-muted uppercase tracking-wide">{label}</label>
+      <label className="text-xs font-medium text-[#7d92b0] uppercase tracking-wide">{label}</label>
       {children}
     </div>
   )
@@ -112,8 +115,7 @@ function TextInput({ value, onChange, placeholder, disabled }: {
       onChange={e => onChange(e.target.value)}
       placeholder={placeholder}
       disabled={disabled}
-      className="w-full bg-[#070d19] border border-falcon-border rounded px-3 py-2 text-sm text-falcon-text placeholder-falcon-subtle
-                 focus:outline-hidden focus:border-falcon-blue/60 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+      className="w-full bg-[#070d19] border border-[#1e2d42] rounded-sm px-3 py-2 text-sm text-[#e2e8f4] placeholder-[#3d5068] focus:outline-hidden focus:border-[#1a6bff]/60 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
     />
   )
 }
@@ -130,14 +132,13 @@ function PasswordInput({ value, onChange, placeholder, disabled }: {
         onChange={e => onChange(e.target.value)}
         placeholder={placeholder}
         disabled={disabled}
-        className="w-full bg-[#070d19] border border-falcon-border rounded px-3 py-2 pr-10 text-sm text-falcon-text placeholder-falcon-subtle
-                   focus:outline-hidden focus:border-falcon-blue/60 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+        className="w-full bg-[#070d19] border border-[#1e2d42] rounded-sm px-3 py-2 pr-10 text-sm text-[#e2e8f4] placeholder-[#3d5068] focus:outline-hidden focus:border-[#1a6bff]/60 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
       />
       <button
         type="button"
         onClick={() => setShow(s => !s)}
         disabled={disabled}
-        className="absolute right-3 top-1/2 -translate-y-1/2 text-falcon-muted hover:text-falcon-text disabled:opacity-40"
+        className="absolute right-3 top-1/2 -translate-y-1/2 text-[#7d92b0] hover:text-[#e2e8f4] disabled:opacity-40"
       >
         {show ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
       </button>
@@ -153,8 +154,7 @@ function SelectInput({ value, onChange, options, disabled }: {
       value={value}
       onChange={e => onChange(e.target.value)}
       disabled={disabled}
-      className="w-full bg-[#070d19] border border-falcon-border rounded px-3 py-2 text-sm text-falcon-text
-                 focus:outline-hidden focus:border-falcon-blue/60 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+      className="w-full bg-[#070d19] border border-[#1e2d42] rounded-sm px-3 py-2 text-sm text-[#e2e8f4] focus:outline-hidden focus:border-[#1a6bff]/60 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
     >
       {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
     </select>
@@ -179,9 +179,9 @@ function EventTypeCheckboxes({ value, onChange, disabled }: {
             checked={value[item.key]}
             disabled={disabled}
             onChange={e => onChange({ ...value, [item.key]: e.target.checked })}
-            className="w-4 h-4 accent-falcon-red disabled:opacity-40"
+            className="w-4 h-4 accent-[#e8002d] disabled:opacity-40"
           />
-          <span className={`text-sm ${disabled ? 'text-falcon-subtle' : 'text-falcon-muted'}`}>{item.label}</span>
+          <span className={`text-sm ${disabled ? 'text-[#3d5068]' : 'text-[#7d92b0]'}`}>{item.label}</span>
         </label>
       ))}
     </div>
@@ -193,10 +193,10 @@ function StatusIndicator({ destination, stats, lastTime }: {
 }) {
   if (!stats) return null
   return (
-    <div className="flex items-center gap-3 text-xs text-falcon-muted">
+    <div className="flex items-center gap-3 text-xs text-[#7d92b0]">
       <span className="flex items-center gap-1">
-        <Activity className="w-3.5 h-3.5 text-falcon-green" />
-        直近24h: <span className="text-falcon-text font-medium">{stats.toLocaleString()} 件</span>
+        <Activity className="w-3.5 h-3.5 text-[#00c853]" />
+        直近24h: <span className="text-[#e2e8f4] font-medium">{stats.toLocaleString()} 件</span>
       </span>
       {lastTime && (
         <span>最終転送: {new Date(lastTime).toLocaleTimeString('ja-JP')}</span>
@@ -217,12 +217,12 @@ function StatsPanel({ stats }: { stats: ForwardingStats }) {
   const max = Math.max(...destinations.map(d => d.value), 1)
 
   return (
-    <div className="bg-falcon-surface border border-falcon-border rounded-lg p-5 mt-6">
-      <h3 className="text-sm font-semibold text-falcon-text mb-4 flex items-center gap-2">
-        <Activity className="w-4 h-4 text-falcon-blue" />
+    <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-5 mt-6">
+      <h3 className="text-sm font-semibold text-[#e2e8f4] mb-4 flex items-center gap-2">
+        <Activity className="w-4 h-4 text-[#1a6bff]" />
         転送統計 (直近24時間)
-        <span className="ml-auto text-xs text-falcon-muted font-normal">
-          合計: <span className="text-falcon-text font-semibold">{(stats.total_24h ?? 0).toLocaleString()} 件</span>
+        <span className="ml-auto text-xs text-[#7d92b0] font-normal">
+          合計: <span className="text-[#e2e8f4] font-semibold">{(stats.total_24h ?? 0).toLocaleString()} 件</span>
         </span>
       </h3>
 
@@ -289,14 +289,13 @@ function TestButton({ destination, onTest }: { destination: string; onTest: () =
         type="button"
         onClick={run}
         disabled={loading}
-        className="flex items-center gap-2 px-4 py-2 rounded bg-falcon-border hover:bg-[#253750] text-falcon-muted hover:text-falcon-text
-                   text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed border border-falcon-border"
+        className="flex items-center gap-2 px-4 py-2 rounded-sm bg-[#1e2d42] hover:bg-[#253750] text-[#7d92b0] hover:text-[#e2e8f4] text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed border border-[#1e2d42]"
       >
         {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
         接続テスト
       </button>
       {result && (
-        <span className={`flex items-center gap-1.5 text-sm ${result.success ? 'text-falcon-green' : 'text-falcon-red'}`}>
+        <span className={`flex items-center gap-1.5 text-sm ${result.success ? 'text-[#00c853]' : 'text-[#e8002d]'}`}>
           {result.success
             ? <CheckCircle className="w-4 h-4" />
             : <XCircle className="w-4 h-4" />
@@ -322,18 +321,18 @@ function DestCard({
   const [collapsed, setCollapsed] = useState(false)
 
   return (
-    <div className={`bg-falcon-surface border rounded-lg overflow-hidden transition-colors ${enabled ? 'border-falcon-border' : 'border-falcon-border/50'}`}>
+    <div className={`bg-[#0d1220] border rounded-lg overflow-hidden transition-colors ${enabled ? 'border-[#1e2d42]' : 'border-[#1e2d42]/50'}`}>
       {/* Header */}
-      <div className="flex items-center gap-3 px-5 py-4 border-b border-falcon-border">
+      <div className="flex items-center gap-3 px-5 py-4 border-b border-[#1e2d42]">
         <div className="flex items-center gap-3 flex-1">
-          <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${enabled ? 'bg-falcon-red/10' : 'bg-falcon-border/50'}`}>
+          <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${enabled ? 'bg-[#e8002d]/10' : 'bg-[#1e2d42]/50'}`}>
             {icon}
           </div>
           <div>
-            <p className={`text-sm font-semibold ${enabled ? 'text-falcon-text' : 'text-falcon-muted'}`}>{title}</p>
+            <p className={`text-sm font-semibold ${enabled ? 'text-[#e2e8f4]' : 'text-[#7d92b0]'}`}>{title}</p>
             {statsValue !== undefined && statsValue > 0 && (
-              <p className="text-xs text-falcon-muted mt-0.5">
-                直近24h: <span className="text-falcon-green font-medium">{statsValue.toLocaleString()} 件転送済み</span>
+              <p className="text-xs text-[#7d92b0] mt-0.5">
+                直近24h: <span className="text-[#00c853] font-medium">{statsValue.toLocaleString()} 件転送済み</span>
                 {lastForwarded && <span className="ml-2">· {new Date(lastForwarded).toLocaleTimeString('ja-JP')}</span>}
               </p>
             )}
@@ -342,7 +341,7 @@ function DestCard({
         <ToggleSwitch checked={enabled} onChange={onToggle} label={enabled ? '有効' : '無効'} />
         <button
           onClick={() => setCollapsed(c => !c)}
-          className="p-1.5 rounded-sm hover:bg-falcon-border text-falcon-muted hover:text-falcon-text transition-colors"
+          className="p-1.5 rounded-sm hover:bg-[#1e2d42] text-[#7d92b0] hover:text-[#e2e8f4] transition-colors"
         >
           {collapsed ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
         </button>
@@ -376,20 +375,16 @@ export default function LogForwardingPage() {
   const { data: remoteConfig } = useQuery<ForwardingConfig>({
     queryKey: ['log-forwarding-config'],
     queryFn: async () => {
-      try {
-        const d = await apiFetch<ForwardingConfig>('/api/v1/admin/log-forwarding/config')
-        if (d && typeof d === 'object' && 'splunk' in d) { setConfig(d); return d }
-        return EMPTY_CONFIG
-      } catch { return EMPTY_CONFIG }
+      const d = await apiFetch<ForwardingConfig>('/api/v1/admin/log-forwarding/config')
+      if (d && typeof d === 'object' && 'splunk' in d) { setConfig(d); return d }
+      return EMPTY_CONFIG
     },
     staleTime: 60_000,
   })
 
   const { data: stats } = useQuery<ForwardingStats>({
     queryKey: ['log-forwarding-stats'],
-    queryFn: async () => {
-      try { return await apiFetch('/api/v1/admin/log-forwarding/stats') } catch { return EMPTY_STATS }
-    },
+    queryFn: () => apiFetch('/api/v1/admin/log-forwarding/stats'),
     refetchInterval: 30_000,
     staleTime: 20_000,
   })
@@ -403,7 +398,7 @@ export default function LogForwardingPage() {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(config),
-    }).catch(() => ({ success: true })),
+    }),
     onSuccess: () => {
       setSaveMsg('設定を保存しました')
       setTimeout(() => setSaveMsg(null), 3000)
@@ -415,18 +410,12 @@ export default function LogForwardingPage() {
   })
 
   const testConnection = async (destination: string): Promise<TestResult> => {
-    try {
-      return await apiFetch('/api/v1/admin/siem-connector/test', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ destination }),
-      })
-    } catch {
-      // Mock
-      await new Promise(r => setTimeout(r, 800 + Math.random() * 600))
-      const latency = Math.floor(30 + Math.random() * 120)
-      return { success: true, latency_ms: latency, message: '接続成功' }
-    }
+    return await apiFetch('/api/v1/admin/siem-connector/test', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ destination }),
+    })
+
   }
 
   const setSplunk = (patch: Partial<SplunkConfig>) => setConfig(c => ({ ...c, splunk: { ...c.splunk, ...patch } }))
@@ -440,18 +429,20 @@ export default function LogForwardingPage() {
   ].map(f => ({ label: f, value: f }))
 
   return (
-    <div className="min-h-screen bg-[#070d19] text-falcon-text">
+    <div className="min-h-screen bg-[#070d19] text-[#e2e8f4]">
+      <PageDataUnavailable />
+      <PageSaveFailed />
       <div className="max-w-4xl mx-auto px-6 py-8 space-y-8">
 
         {/* Header */}
         <div className="flex items-start justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-falcon-text tracking-tight">ログ転送設定</h1>
-            <p className="text-sm text-falcon-muted mt-1">外部SIEMへのアラート・イベントログの転送設定</p>
+            <h1 className="text-2xl font-bold text-[#e2e8f4] tracking-tight">ログ転送設定</h1>
+            <p className="text-sm text-[#7d92b0] mt-1">外部SIEMへのアラート・イベントログの転送設定</p>
           </div>
           <div className="flex items-center gap-3">
             {saveMsg && (
-              <span className={`text-sm flex items-center gap-1.5 ${saveMsg.includes('失敗') ? 'text-falcon-red' : 'text-falcon-green'}`}>
+              <span className={`text-sm flex items-center gap-1.5 ${saveMsg.includes('失敗') ? 'text-[#e8002d]' : 'text-[#00c853]'}`}>
                 {saveMsg.includes('失敗')
                   ? <AlertTriangle className="w-4 h-4" />
                   : <CheckCircle className="w-4 h-4" />
@@ -462,8 +453,7 @@ export default function LogForwardingPage() {
             <button
               onClick={() => saveMutation.mutate()}
               disabled={saveMutation.isPending}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-falcon-red hover:bg-[#c8001d]
-                         text-white text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
+              className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-[#e8002d] hover:bg-[#c8001d] text-white text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
             >
               {saveMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
               すべて保存
@@ -474,7 +464,7 @@ export default function LogForwardingPage() {
         {/* ── Splunk ── */}
         <DestCard
           title="Splunk HEC"
-          icon={<span className="text-falcon-red text-sm font-bold">SP</span>}
+          icon={<span className="text-[#e8002d] text-sm font-bold">SP</span>}
           enabled={config.splunk.enabled}
           onToggle={v => setSplunk({ enabled: v })}
           statsValue={displayStats.splunk}
@@ -552,7 +542,7 @@ export default function LogForwardingPage() {
               />
             </FieldRow>
           </div>
-          <div className="mt-5 pt-4 border-t border-falcon-border flex items-center gap-4">
+          <div className="mt-5 pt-4 border-t border-[#1e2d42] flex items-center gap-4">
             <TestButton destination="splunk" onTest={() => testConnection('splunk')} />
             {displayStats.splunk > 0 && (
               <StatusIndicator destination="Splunk" stats={displayStats.splunk} lastTime={displayStats.last_updated} />
@@ -563,7 +553,7 @@ export default function LogForwardingPage() {
         {/* ── Elastic ── */}
         <DestCard
           title="Elasticsearch"
-          icon={<span className="text-falcon-blue text-sm font-bold">ES</span>}
+          icon={<span className="text-[#1a6bff] text-sm font-bold">ES</span>}
           enabled={config.elastic.enabled}
           onToggle={v => setElastic({ enabled: v })}
           statsValue={displayStats.elastic}
@@ -611,7 +601,7 @@ export default function LogForwardingPage() {
               </FieldRow>
             </div>
           </div>
-          <div className="mt-5 pt-4 border-t border-falcon-border">
+          <div className="mt-5 pt-4 border-t border-[#1e2d42]">
             <TestButton destination="elastic" onTest={() => testConnection('elastic')} />
           </div>
         </DestCard>
@@ -663,7 +653,7 @@ export default function LogForwardingPage() {
               />
             </FieldRow>
           </div>
-          <div className="mt-5 pt-4 border-t border-falcon-border">
+          <div className="mt-5 pt-4 border-t border-[#1e2d42]">
             <TestButton destination="sentinel" onTest={() => testConnection('sentinel')} />
           </div>
         </DestCard>
@@ -726,7 +716,7 @@ export default function LogForwardingPage() {
               />
             </FieldRow>
           </div>
-          <div className="mt-5 pt-4 border-t border-falcon-border">
+          <div className="mt-5 pt-4 border-t border-[#1e2d42]">
             <TestButton destination="syslog" onTest={() => testConnection('syslog')} />
           </div>
         </DestCard>
@@ -739,8 +729,7 @@ export default function LogForwardingPage() {
           <button
             onClick={() => saveMutation.mutate()}
             disabled={saveMutation.isPending}
-            className="flex items-center gap-2 px-6 py-3 rounded-lg bg-falcon-red hover:bg-[#c8001d]
-                       text-white font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
+            className="flex items-center gap-2 px-6 py-3 rounded-lg bg-[#e8002d] hover:bg-[#c8001d] text-white font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
           >
             {saveMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
             すべて保存

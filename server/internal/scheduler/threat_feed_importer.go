@@ -43,13 +43,13 @@ func (t *ThreatFeedImporter) Run(ctx context.Context) {
 	ticker := time.NewTicker(6 * time.Hour)
 	defer ticker.Stop()
 	slog.Info("脅威フィードインポーターを起動しました")
-	t.importAll(ctx)
+	trackRun(ctx, "threat_feed_importer", t.importAll)
 	for {
 		select {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			t.importAll(ctx)
+			trackRun(ctx, "threat_feed_importer", t.importAll)
 		}
 	}
 }
@@ -59,8 +59,12 @@ func (t *ThreatFeedImporter) importAll(ctx context.Context) {
 	var exists bool
 	err := t.pool.QueryRow(ctx,
 		`SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name='threat_feeds')`).Scan(&exists)
-	if err != nil || !exists {
-		slog.Debug("threat_feedsテーブルが存在しません。インポートをスキップします")
+	if err != nil {
+		fail(ctx, err, "脅威フィード: threat_feeds テーブルの有無を確認できませんでした")
+		return
+	}
+	if !exists {
+		// 配備でこの機能を使っていないだけ。失敗ではありません。
 		return
 	}
 
@@ -73,7 +77,7 @@ func (t *ThreatFeedImporter) importAll(ctx context.Context) {
 		`SELECT id, name, url, COALESCE(format,'') FROM threat_feeds
 		 WHERE enabled = TRUE AND COALESCE(source_format,'') <> 'taxii21'`)
 	if err != nil {
-		slog.Warn("脅威フィードの取得に失敗しました", "error", err)
+		fail(ctx, err, "脅威フィードの取得に失敗しました")
 		return
 	}
 	defer rows.Close()
@@ -92,6 +96,9 @@ func (t *ThreatFeedImporter) importAll(ctx context.Context) {
 		}
 		feeds = append(feeds, f)
 	}
+	if err := rows.Err(); err != nil {
+		fail(ctx, err, "フィード一覧の走査が途中で終わりました。今回のパスで取り込まないフィードがあります")
+	}
 	rows.Close()
 
 	for _, feed := range feeds {
@@ -105,21 +112,21 @@ func (t *ThreatFeedImporter) importFeed(ctx context.Context, feedID, feedName, u
 	client := &http.Client{Timeout: 30 * time.Second}
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
-		slog.Error("フィードリクエストの作成に失敗しました", "feed", feedName, "error", err)
+		fail(ctx, err, "フィードリクエストの作成に失敗しました", "feed", feedName)
 		return
 	}
 	req.Header.Set("User-Agent", "EDR-Platform-ThreatFeedImporter/1.0")
 
 	resp, err := client.Do(req)
 	if err != nil {
-		slog.Error("フィードの取得に失敗しました", "feed", feedName, "error", err)
+		fail(ctx, err, "フィードの取得に失敗しました", "feed", feedName)
 		return
 	}
 	defer resp.Body.Close()
 
 	bodyBytes, err := io.ReadAll(io.LimitReader(resp.Body, 20*1024*1024))
 	if err != nil {
-		slog.Error("フィードの読み取りに失敗しました", "feed", feedName, "error", err)
+		fail(ctx, err, "フィードの読み取りに失敗しました", "feed", feedName)
 		return
 	}
 	body := string(bodyBytes)
@@ -131,7 +138,7 @@ func (t *ThreatFeedImporter) importFeed(ctx context.Context, feedID, feedName, u
 	if err := t.pool.QueryRow(ctx,
 		`SELECT EXISTS (SELECT 1 FROM information_schema.tables
 		  WHERE table_schema='public' AND table_name='threat_intel_iocs')`).Scan(&iocsExists); err != nil {
-		slog.Warn("IOC保存先テーブルの確認に失敗しました", "error", err)
+		fail(ctx, err, "IOC保存先テーブルの確認に失敗しました")
 	}
 
 	var count int
@@ -141,7 +148,7 @@ func (t *ThreatFeedImporter) importFeed(ctx context.Context, feedID, feedName, u
 	case "json":
 		count = t.importJSON(ctx, body, feedName, feedID, iocsExists)
 	case "stix":
-		count = t.countSTIXIndicators(body)
+		count = t.countSTIXIndicators(ctx, body)
 	default:
 		count = t.countLines(body)
 	}
@@ -197,7 +204,7 @@ func (t *ThreatFeedImporter) importCSV(ctx context.Context, body, source, feedID
 func (t *ThreatFeedImporter) importJSON(ctx context.Context, body, source, feedID string, doUpsert bool) int {
 	var items []map[string]interface{}
 	if err := json.Unmarshal([]byte(body), &items); err != nil {
-		slog.Warn("JSONフィードのパースに失敗しました", "source", source, "error", err)
+		fail(ctx, err, "JSONフィードのパースに失敗しました", "source", source)
 		return 0
 	}
 	count := 0
@@ -220,9 +227,10 @@ func (t *ThreatFeedImporter) importJSON(ctx context.Context, body, source, feedI
 	return count
 }
 
-func (t *ThreatFeedImporter) countSTIXIndicators(body string) int {
+func (t *ThreatFeedImporter) countSTIXIndicators(ctx context.Context, body string) int {
 	var bundle map[string]interface{}
 	if err := json.Unmarshal([]byte(body), &bundle); err != nil {
+		fail(ctx, err, "脅威フィード: STIX バンドルを読めないため0件として数えました")
 		return 0
 	}
 	objects, _ := bundle["objects"].([]interface{})
@@ -294,6 +302,6 @@ func (t *ThreatFeedImporter) upsertIOC(ctx context.Context, value, iocType, seve
 		 ON CONFLICT (ioc_type, value) DO NOTHING`,
 		iocType, value, iocSeverityToInt(severity), source, tags,
 	); err != nil {
-		slog.Warn("IOCの登録に失敗しました", "value", value, "source", source, "error", err)
+		fail(ctx, err, "IOCの登録に失敗しました", "value", value, "source", source)
 	}
 }

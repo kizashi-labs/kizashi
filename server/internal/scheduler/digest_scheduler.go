@@ -46,7 +46,7 @@ func (d *DigestScheduler) Run(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-time.After(time.Until(next)):
-			d.sendDailyDigest(ctx)
+			trackRun(ctx, "digest_scheduler", d.sendDailyDigest)
 		}
 	}
 }
@@ -54,11 +54,26 @@ func (d *DigestScheduler) Run(ctx context.Context) {
 func (d *DigestScheduler) sendDailyDigest(ctx context.Context) {
 	yesterday := time.Now().Add(-24 * time.Hour)
 
+	// **数えられなかった 0 を、そのまま日次ダイジェストに書いていました。**
+	// 「クリティカル 0件」は読んだ人にとって最も安心できる行で、
+	// 読めなかったこととは区別がつきません。数えられないなら送りません。
 	var newAlerts, criticalAlerts, openIncidents, onlineAgents int
-	_ = d.pool.QueryRow(ctx, `SELECT COUNT(*) FROM alerts WHERE created_at >= $1`, yesterday).Scan(&newAlerts)
-	_ = d.pool.QueryRow(ctx, `SELECT COUNT(*) FROM alerts WHERE severity >= 9 AND created_at >= $1`, yesterday).Scan(&criticalAlerts)
-	_ = d.pool.QueryRow(ctx, `SELECT COUNT(*) FROM incidents WHERE status='open'`).Scan(&openIncidents)
-	_ = d.pool.QueryRow(ctx, `SELECT COUNT(*) FROM agents WHERE status='online'`).Scan(&onlineAgents)
+	for _, c := range []struct {
+		what string
+		sql  string
+		args []any
+		into *int
+	}{
+		{"新規アラート", `SELECT COUNT(*) FROM alerts WHERE created_at >= $1`, []any{yesterday}, &newAlerts},
+		{"クリティカル", `SELECT COUNT(*) FROM alerts WHERE severity >= 9 AND created_at >= $1`, []any{yesterday}, &criticalAlerts},
+		{"未解決インシデント", `SELECT COUNT(*) FROM incidents WHERE status='open'`, nil, &openIncidents},
+		{"オンラインエージェント", `SELECT COUNT(*) FROM agents WHERE status='online'`, nil, &onlineAgents},
+	} {
+		if err := d.pool.QueryRow(ctx, c.sql, c.args...).Scan(c.into); err != nil {
+			fail(ctx, err, "日次ダイジェスト: 数えられないため送りません", "what", c.what)
+			return
+		}
+	}
 
 	subject := fmt.Sprintf("[EDR] 日次セキュリティダイジェスト - %s", time.Now().Format("2006-01-02"))
 
@@ -79,7 +94,7 @@ func (d *DigestScheduler) sendDailyDigest(ctx context.Context) {
 
 	for _, to := range d.recipients {
 		if err := d.sendEmail(ctx, to, subject, body.String()); err != nil {
-			slog.Error("ダイジェストメール送信失敗", "to", to, "error", err)
+			fail(ctx, err, "ダイジェストメール送信失敗", "to", to)
 		} else {
 			slog.Info("ダイジェストメール送信完了", "to", to)
 		}

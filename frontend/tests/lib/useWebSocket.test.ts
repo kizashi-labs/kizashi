@@ -25,7 +25,10 @@ class MockWebSocket {
   onerror: ((evt: Event) => void) | null = null
   send = vi.fn()
   close = vi.fn()
-  readyState = WebSocket.CONNECTING
+  // 型注釈が要ります。注釈が無いと `0` というリテラル型に狭まって、
+  // simulateOpen の代入が型エラーになります（テストを型検査の外に置いて
+  // いた間、誰も見ていませんでした）。
+  readyState: number = WebSocket.CONNECTING
 
   static OPEN = 1
 

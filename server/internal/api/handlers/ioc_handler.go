@@ -11,6 +11,26 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// IOC の深刻度は 1〜10。範囲外は既定に戻します。
+const (
+	iocSeverityMin     = 1
+	iocSeverityMax     = 10
+	defaultIOCSeverity = 7
+)
+
+// clampIOCSeverity は範囲外の深刻度を既定値に戻します。
+//
+// **切り出してあるのは、検査が本物を呼べるようにするためです。**
+// 同じ4行がこのファイルの中に2か所（Create と一括登録）あり、検査
+// ファイルには3つ目の写しが置いてありました。試されていたのは写しの
+// 方だけです。
+func clampIOCSeverity(s int) int {
+	if s < iocSeverityMin || s > iocSeverityMax {
+		return defaultIOCSeverity
+	}
+	return s
+}
+
 var (
 	reIPv4   = regexp.MustCompile(`^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$`)
 	reHash   = regexp.MustCompile(`^[0-9a-fA-F]{32}$|^[0-9a-fA-F]{40}$|^[0-9a-fA-F]{64}$`)
@@ -66,12 +86,7 @@ func (h *IOCHandler) publishInvalidate() {
 func (h *IOCHandler) List(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	perPage, _ := strconv.Atoi(c.DefaultQuery("per_page", "50"))
-	if page < 1 {
-		page = 1
-	}
-	if perPage < 1 || perPage > 200 {
-		perPage = 50
-	}
+	page, perPage, offset := clampPageParams(page, perPage, 50, 200)
 
 	activeOnly := c.Query("active") == "true"
 
@@ -80,7 +95,7 @@ func (h *IOCHandler) List(c *gin.Context) {
 		c.Query("type"),
 		c.Query("search"),
 		activeOnly,
-		perPage, (page-1)*perPage,
+		perPage, offset,
 	)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "IOC一覧の取得に失敗しました"})
@@ -108,9 +123,7 @@ func (h *IOCHandler) Create(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "type と value は必須です"})
 		return
 	}
-	if req.Severity < 1 || req.Severity > 10 {
-		req.Severity = 7
-	}
+	req.Severity = clampIOCSeverity(req.Severity)
 
 	userID, _ := c.Get("user_id")
 	uid, _ := userID.(string)
@@ -183,7 +196,7 @@ func (h *IOCHandler) Check(c *gin.Context) {
 	}
 	entry, err := h.Store.Check(c.Request.Context(), iocType, value)
 	if err != nil {
-		c.JSON(http.StatusOK, gin.H{"match": false})
+		ReadFailure(c, err, gin.H{"match": false})
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"match": true, "entry": entry})
@@ -222,10 +235,7 @@ func (h *IOCHandler) BulkImport(c *gin.Context) {
 		return
 	}
 
-	defaultSev := req.Severity
-	if defaultSev < 1 || defaultSev > 10 {
-		defaultSev = 7
-	}
+	defaultSev := clampIOCSeverity(req.Severity)
 
 	userID, _ := c.Get("user_id")
 	uid, _ := userID.(string)
@@ -316,7 +326,7 @@ func (h *IOCHandler) TopHits(c *gin.Context) {
 	hits, err := h.Store.TopHits(c.Request.Context(), 10)
 	if err != nil {
 		// Frontend falls back to mock data on empty response
-		c.JSON(http.StatusOK, gin.H{"hits": []interface{}{}})
+		ReadFailure(c, err, gin.H{"hits": []interface{}{}})
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"hits": hits})

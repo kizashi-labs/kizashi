@@ -15,7 +15,8 @@ type processStatRaw struct {
 	pid      int
 	name     string
 	cpuTotal uint64 // cumulative CPU time (kernel+user) in centiseconds
-	memKB    uint64 // working-set size in kB
+	memKB    uint64 // working-set size in kB (mem == memMeasured のときだけ)
+	mem      memState
 }
 
 var (
@@ -103,7 +104,10 @@ func readOneProcess(pid uint32, name string) (processStatRaw, bool) {
 	ret, _, _ := procGetProcessMemoryInfo.Call(uintptr(h), uintptr(unsafe.Pointer(&pmc)), uintptr(pmc.cb))
 	if ret != 0 {
 		st.memKB = uint64(pmc.workingSetSize) / 1024
+		st.mem = memMeasured
 	}
+	// 失敗したときは mem を触りません。**memState の零値は memUnknown です**
+	// —— 触り忘れたフィールドが「測った 0」になる向きには倒れません。
 	return st, true
 }
 

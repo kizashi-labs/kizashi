@@ -7,6 +7,8 @@ import {
   Globe, RefreshCw, AlertTriangle, Zap, Shield,
   Filter, ChevronDown, X, Activity, ArrowRight,
 } from 'lucide-react'
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+
 import { WorldMap } from '@/components/WorldMap'
 import { USE_MOCK, m } from '@/lib/mock'
 
@@ -236,11 +238,10 @@ function PulseDot({ source, heatmapMode, onClick }: {
         </>
       )}
       {/* Tooltip */}
-      <div className="absolute z-50 hidden group-hover:block bottom-full mb-2 left-1/2 -translate-x-1/2
-                      bg-falcon-surface border border-falcon-border rounded px-2 py-1.5 text-xs whitespace-nowrap pointer-events-none">
+      <div className="absolute z-50 hidden group-hover:block bottom-full mb-2 left-1/2 -translate-x-1/2 bg-[#0d1220] border border-[#1e2d42] rounded-sm px-2 py-1.5 text-xs whitespace-nowrap pointer-events-none">
         <p className="text-white font-semibold">{source.flag} {source.country}</p>
-        <p className="text-falcon-muted">{(source.threat_count ?? 0).toLocaleString()} 件</p>
-        <p className="text-falcon-muted">{threatTypeLabel(source.top_threat_type)}</p>
+        <p className="text-[#7d92b0]">{(source.threat_count ?? 0).toLocaleString()} 件</p>
+        <p className="text-[#7d92b0]">{threatTypeLabel(source.top_threat_type)}</p>
       </div>
     </div>
   )
@@ -320,7 +321,7 @@ function AttackSvgLines({ sources, heatmapMode }: { sources: ThreatSource[]; hea
 
 function SourcePopup({ source, onClose }: { source: ThreatSource; onClose: () => void }) {
   return (
-    <div className="absolute z-50 top-4 right-4 w-72 bg-falcon-surface border border-falcon-border rounded-lg p-4 shadow-2xl">
+    <div className="absolute z-50 top-4 right-4 w-72 bg-[#0d1220] border border-[#1e2d42] rounded-lg p-4 shadow-2xl">
       <div className="flex items-start justify-between mb-3">
         <div>
           <p className="text-white font-bold text-lg">{source.flag} {source.country}</p>
@@ -328,31 +329,31 @@ function SourcePopup({ source, onClose }: { source: ThreatSource; onClose: () =>
             {source.severity.toUpperCase()}
           </span>
         </div>
-        <button onClick={onClose} className="text-falcon-muted hover:text-white p-1">
+        <button onClick={onClose} className="text-[#7d92b0] hover:text-white p-1">
           <X className="w-4 h-4" />
         </button>
       </div>
       <div className="space-y-2 text-sm">
         <div className="flex justify-between">
-          <span className="text-falcon-muted">攻撃件数</span>
+          <span className="text-[#7d92b0]">攻撃件数</span>
           <span className="text-white font-bold">{(source.threat_count ?? 0).toLocaleString()}</span>
         </div>
         <div className="flex justify-between">
-          <span className="text-falcon-muted">主要脅威</span>
+          <span className="text-[#7d92b0]">主要脅威</span>
           <span className={`px-1.5 py-0.5 rounded-sm text-xs font-medium ${threatTypeBadge(source.top_threat_type)}`}>
             {threatTypeLabel(source.top_threat_type)}
           </span>
         </div>
         <div>
-          <p className="text-falcon-muted mb-1">ターゲットセクター</p>
+          <p className="text-[#7d92b0] mb-1">ターゲットセクター</p>
           <div className="flex flex-wrap gap-1">
             {source.targeted_sectors.map(s => (
-              <span key={s} className="px-2 py-0.5 rounded-sm bg-falcon-border text-falcon-muted text-xs">{s}</span>
+              <span key={s} className="px-2 py-0.5 rounded-sm bg-[#1e2d42] text-[#7d92b0] text-xs">{s}</span>
             ))}
           </div>
         </div>
         <div>
-          <p className="text-falcon-muted mb-1">主要ターゲット</p>
+          <p className="text-[#7d92b0] mb-1">主要ターゲット</p>
           <div className="flex gap-2">
             {source.top_targets.map(t => (
               <span key={t.country} className="text-sm">{t.flag} {t.country}</span>
@@ -419,26 +420,27 @@ export default function ThreatMapPage() {
 
   return (
     <div className="min-h-screen bg-[#070d19] p-6 space-y-6">
+      <PageDataUnavailable />
 
       {/* ── Header ── */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-falcon-surface border border-falcon-border flex items-center justify-center">
-            <Globe className="w-5 h-5 text-falcon-red" />
+          <div className="w-10 h-10 rounded-lg bg-[#0d1220] border border-[#1e2d42] flex items-center justify-center">
+            <Globe className="w-5 h-5 text-[#e8002d]" />
           </div>
           <div>
             <h1 className="text-white font-bold text-xl">脅威地図</h1>
-            <p className="text-falcon-muted text-sm">リアルタイム脅威マップ</p>
+            <p className="text-[#7d92b0] text-sm">リアルタイム脅威マップ</p>
           </div>
         </div>
         <div className="flex items-center gap-3">
           {/* Last refresh */}
-          <span className="text-falcon-muted text-xs">
+          <span className="text-[#7d92b0] text-xs">
             最終更新: {lastRefresh.toLocaleTimeString('ja-JP')}
           </span>
           <button
             onClick={handleRefresh}
-            className="flex items-center gap-2 px-3 py-1.5 bg-falcon-surface border border-falcon-border rounded-sm text-sm text-falcon-muted hover:text-white hover:border-falcon-muted/40 transition-colors"
+            className="flex items-center gap-2 px-3 py-1.5 bg-[#0d1220] border border-[#1e2d42] rounded-sm text-sm text-[#7d92b0] hover:text-white hover:border-[#7d92b0]/40 transition-colors"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
             更新
@@ -446,10 +448,10 @@ export default function ThreatMapPage() {
           {/* Heatmap toggle */}
           <button
             onClick={() => setHeatmapMode(prev => !prev)}
-            className={`flex items-center gap-2 px-3 py-1.5 rounded text-sm border transition-colors ${
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-sm text-sm border transition-colors ${
               heatmapMode
-                ? 'bg-falcon-red/20 border-falcon-red/50 text-falcon-red'
-                : 'bg-falcon-surface border-falcon-border text-falcon-muted hover:text-white'
+                ? 'bg-[#e8002d]/20 border-[#e8002d]/50 text-[#e8002d]'
+                : 'bg-[#0d1220] border-[#1e2d42] text-[#7d92b0] hover:text-white'
             }`}
           >
             <Activity className="w-3.5 h-3.5" />
@@ -461,19 +463,19 @@ export default function ThreatMapPage() {
       {/* ── Filters ── */}
       <div className="flex items-center gap-3 flex-wrap">
         <div className="flex items-center gap-2">
-          <Filter className="w-4 h-4 text-falcon-muted" />
-          <span className="text-falcon-muted text-sm">フィルター:</span>
+          <Filter className="w-4 h-4 text-[#7d92b0]" />
+          <span className="text-[#7d92b0] text-sm">フィルター:</span>
         </div>
         {/* Time range */}
-        <div className="flex items-center gap-1 bg-falcon-surface border border-falcon-border rounded-sm p-0.5">
+        <div className="flex items-center gap-1 bg-[#0d1220] border border-[#1e2d42] rounded-sm p-0.5">
           {TIME_RANGES.map(tr => (
             <button
               key={tr.value}
               onClick={() => setTimeRange(tr.value)}
-              className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
+              className={`px-3 py-1 rounded-sm text-xs font-medium transition-colors ${
                 timeRange === tr.value
-                  ? 'bg-falcon-red text-white'
-                  : 'text-falcon-muted hover:text-white'
+                  ? 'bg-[#e8002d] text-white'
+                  : 'text-[#7d92b0] hover:text-white'
               }`}
             >
               {tr.label}
@@ -484,7 +486,7 @@ export default function ThreatMapPage() {
         <select
           value={typeFilter}
           onChange={e => setTypeFilter(e.target.value as ThreatType | 'all')}
-          className="bg-falcon-surface border border-falcon-border text-falcon-muted text-sm rounded-sm px-3 py-1.5 focus:outline-hidden focus:border-falcon-muted/40"
+          className="bg-[#0d1220] border border-[#1e2d42] text-[#7d92b0] text-sm rounded-sm px-3 py-1.5 focus:outline-hidden focus:border-[#7d92b0]/40"
         >
           <option value="all">すべての脅威タイプ</option>
           {THREAT_TYPES.map(t => <option key={t} value={t}>{threatTypeLabel(t)}</option>)}
@@ -493,7 +495,7 @@ export default function ThreatMapPage() {
         <select
           value={severityFilter}
           onChange={e => setSeverityFilter(e.target.value as Severity | 'all')}
-          className="bg-falcon-surface border border-falcon-border text-falcon-muted text-sm rounded-sm px-3 py-1.5 focus:outline-hidden focus:border-falcon-muted/40"
+          className="bg-[#0d1220] border border-[#1e2d42] text-[#7d92b0] text-sm rounded-sm px-3 py-1.5 focus:outline-hidden focus:border-[#7d92b0]/40"
         >
           <option value="all">すべての深刻度</option>
           <option value="critical">クリティカル</option>
@@ -501,7 +503,7 @@ export default function ThreatMapPage() {
           <option value="medium">中</option>
           <option value="low">低</option>
         </select>
-        <span className="text-falcon-muted text-xs ml-auto">
+        <span className="text-[#7d92b0] text-xs ml-auto">
           表示中: {filteredSources.length} / {THREAT_SOURCES.length} ソース
         </span>
       </div>
@@ -510,7 +512,7 @@ export default function ThreatMapPage() {
       <div className="flex gap-4" style={{ height: 480 }}>
 
         {/* World Map */}
-        <div className="flex-1 relative bg-[#0a1020] border border-falcon-border rounded-lg overflow-hidden">
+        <div className="flex-1 relative bg-[#0a1020] border border-[#1e2d42] rounded-lg overflow-hidden">
           <WorldMap landFill="#0f1e30" borderStroke="#1e3550" borderWidth={0.4} />
           <AttackSvgLines sources={filteredSources} heatmapMode={heatmapMode} />
 
@@ -530,49 +532,49 @@ export default function ThreatMapPage() {
           )}
 
           {/* Legend */}
-          <div className="absolute bottom-3 left-3 bg-falcon-surface/90 border border-falcon-border rounded-sm p-2 text-xs space-y-1" style={{ zIndex: 10 }}>
-            <p className="text-falcon-muted font-medium mb-1.5">深刻度</p>
+          <div className="absolute bottom-3 left-3 bg-[#0d1220]/90 border border-[#1e2d42] rounded-sm p-2 text-xs space-y-1" style={{ zIndex: 10 }}>
+            <p className="text-[#7d92b0] font-medium mb-1.5">深刻度</p>
             {(['critical', 'high', 'medium', 'low'] as Severity[]).map(s => (
               <div key={s} className="flex items-center gap-2">
                 <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: severityColor(s) }} />
-                <span className="text-falcon-muted capitalize">{s === 'critical' ? 'クリティカル' : s === 'high' ? '高' : s === 'medium' ? '中' : '低'}</span>
+                <span className="text-[#7d92b0] capitalize">{s === 'critical' ? 'クリティカル' : s === 'high' ? '高' : s === 'medium' ? '中' : '低'}</span>
               </div>
             ))}
           </div>
 
           {/* Map label */}
-          <div className="absolute top-3 left-3 text-falcon-subtle text-[10px] font-mono" style={{ zIndex: 10 }}>
+          <div className="absolute top-3 left-3 text-[#3d5068] text-[10px] font-mono" style={{ zIndex: 10 }}>
             {heatmapMode ? 'ヒートマップモード' : 'リアルタイムモード'} · {filteredSources.length} 脅威ソース
           </div>
         </div>
 
         {/* Live Feed */}
-        <div className="w-72 bg-falcon-surface border border-falcon-border rounded-lg flex flex-col overflow-hidden">
-          <div className="px-3 py-2.5 border-b border-falcon-border flex items-center justify-between shrink-0">
+        <div className="w-72 bg-[#0d1220] border border-[#1e2d42] rounded-lg flex flex-col overflow-hidden">
+          <div className="px-3 py-2.5 border-b border-[#1e2d42] flex items-center justify-between shrink-0">
             <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-falcon-green animate-pulse" />
+              <div className="w-2 h-2 rounded-full bg-[#00c853] animate-pulse" />
               <span className="text-white font-medium text-sm">ライブ脅威フィード</span>
             </div>
-            <span className="text-falcon-muted text-xs">{liveEvents.length}件</span>
+            <span className="text-[#7d92b0] text-xs">{liveEvents.length}件</span>
           </div>
-          <div className="flex-1 overflow-y-auto divide-y divide-falcon-border">
+          <div className="flex-1 overflow-y-auto divide-y divide-[#1e2d42]">
             {liveEvents.map((event, idx) => (
               <div
                 key={event.id}
-                className={`px-3 py-2 text-xs transition-colors ${idx === 0 ? 'bg-falcon-red/5' : 'hover:bg-falcon-border/30'}`}
+                className={`px-3 py-2 text-xs transition-colors ${idx === 0 ? 'bg-[#e8002d]/5' : 'hover:bg-[#1e2d42]/30'}`}
               >
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-falcon-muted font-mono">{event.time}</span>
+                  <span className="text-[#7d92b0] font-mono">{event.time}</span>
                   <span className={`px-1.5 py-0.5 rounded-sm text-[10px] border ${severityBg(event.severity)}`}>
                     {event.severity === 'critical' ? 'CRIT' : event.severity.toUpperCase()}
                   </span>
                 </div>
                 <div className="flex items-center gap-1 text-white">
                   <span>{event.src_flag}</span>
-                  <span className="text-falcon-muted truncate max-w-[60px]">{event.src_country}</span>
-                  <ArrowRight className="w-3 h-3 text-falcon-red shrink-0" />
+                  <span className="text-[#7d92b0] truncate max-w-[60px]">{event.src_country}</span>
+                  <ArrowRight className="w-3 h-3 text-[#e8002d] shrink-0" />
                   <span>{event.dst_flag}</span>
-                  <span className="text-falcon-muted truncate max-w-[60px]">{event.dst_country}</span>
+                  <span className="text-[#7d92b0] truncate max-w-[60px]">{event.dst_country}</span>
                 </div>
                 <span className={`inline-block px-1.5 py-0.5 rounded-sm text-[10px] mt-1 ${threatTypeBadge(event.threat_type)}`}>
                   {threatTypeLabel(event.threat_type)}
@@ -585,63 +587,63 @@ export default function ThreatMapPage() {
 
       {/* ── Stats Row ── */}
       <div className="grid grid-cols-4 gap-4">
-        <div className="bg-falcon-surface border border-falcon-border rounded-lg p-4">
+        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-4">
           <div className="flex items-center gap-2 mb-2">
-            <Zap className="w-4 h-4 text-falcon-red" />
-            <span className="text-falcon-muted text-sm">本日の総攻撃数</span>
+            <Zap className="w-4 h-4 text-[#e8002d]" />
+            <span className="text-[#7d92b0] text-sm">本日の総攻撃数</span>
           </div>
           <p className="text-white font-bold text-2xl">{(stats.total_today ?? 0).toLocaleString()}</p>
           <p className="text-green-400 text-xs mt-1">↑ 昨日比 +12.4%</p>
         </div>
-        <div className="bg-falcon-surface border border-falcon-border rounded-lg p-4">
+        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-4">
           <div className="flex items-center gap-2 mb-2">
             <Globe className="w-4 h-4 text-orange-400" />
-            <span className="text-falcon-muted text-sm">主要攻撃元</span>
+            <span className="text-[#7d92b0] text-sm">主要攻撃元</span>
           </div>
           <p className="text-white font-bold text-2xl">🇨🇳 {stats.top_source}</p>
-          <p className="text-falcon-muted text-xs mt-1">14,872 件</p>
+          <p className="text-[#7d92b0] text-xs mt-1">14,872 件</p>
         </div>
-        <div className="bg-falcon-surface border border-falcon-border rounded-lg p-4">
+        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-4">
           <div className="flex items-center gap-2 mb-2">
             <AlertTriangle className="w-4 h-4 text-yellow-400" />
-            <span className="text-falcon-muted text-sm">主要脅威タイプ</span>
+            <span className="text-[#7d92b0] text-sm">主要脅威タイプ</span>
           </div>
           <p className="text-white font-bold text-2xl">{stats.top_type}</p>
-          <p className="text-falcon-muted text-xs mt-1">27.1% of total</p>
+          <p className="text-[#7d92b0] text-xs mt-1">27.1% of total</p>
         </div>
-        <div className="bg-falcon-surface border border-falcon-border rounded-lg p-4">
+        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-4">
           <div className="flex items-center gap-2 mb-2">
-            <Shield className="w-4 h-4 text-falcon-red" />
-            <span className="text-falcon-muted text-sm">クリティカルアラート</span>
+            <Shield className="w-4 h-4 text-[#e8002d]" />
+            <span className="text-[#7d92b0] text-sm">クリティカルアラート</span>
           </div>
           <p className="text-white font-bold text-2xl">{stats.critical_count}</p>
-          <p className="text-falcon-red text-xs mt-1 animate-pulse">● 対応必要</p>
+          <p className="text-[#e8002d] text-xs mt-1 animate-pulse">● 対応必要</p>
         </div>
       </div>
 
       {/* ── Source Table ── */}
-      <div className="bg-falcon-surface border border-falcon-border rounded-lg">
-        <div className="px-4 py-3 border-b border-falcon-border flex items-center justify-between">
+      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg">
+        <div className="px-4 py-3 border-b border-[#1e2d42] flex items-center justify-between">
           <h2 className="text-white font-semibold">脅威ソース詳細</h2>
-          <span className="text-falcon-muted text-sm">{filteredSources.length} 件</span>
+          <span className="text-[#7d92b0] text-sm">{filteredSources.length} 件</span>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-falcon-border">
-                <th className="text-left text-falcon-muted font-medium px-4 py-2.5">国</th>
-                <th className="text-right text-falcon-muted font-medium px-4 py-2.5">攻撃件数</th>
-                <th className="text-left text-falcon-muted font-medium px-4 py-2.5">主要脅威</th>
-                <th className="text-left text-falcon-muted font-medium px-4 py-2.5">深刻度</th>
-                <th className="text-left text-falcon-muted font-medium px-4 py-2.5">ターゲットセクター</th>
-                <th className="text-left text-falcon-muted font-medium px-4 py-2.5">主要ターゲット</th>
+              <tr className="border-b border-[#1e2d42]">
+                <th className="text-left text-[#7d92b0] font-medium px-4 py-2.5">国</th>
+                <th className="text-right text-[#7d92b0] font-medium px-4 py-2.5">攻撃件数</th>
+                <th className="text-left text-[#7d92b0] font-medium px-4 py-2.5">主要脅威</th>
+                <th className="text-left text-[#7d92b0] font-medium px-4 py-2.5">深刻度</th>
+                <th className="text-left text-[#7d92b0] font-medium px-4 py-2.5">ターゲットセクター</th>
+                <th className="text-left text-[#7d92b0] font-medium px-4 py-2.5">主要ターゲット</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-falcon-border">
+            <tbody className="divide-y divide-[#1e2d42]">
               {filteredSources.sort((a, b) => b.threat_count - a.threat_count).map(src => (
                 <tr
                   key={src.id}
-                  className="hover:bg-falcon-border/30 cursor-pointer transition-colors"
+                  className="hover:bg-[#1e2d42]/30 cursor-pointer transition-colors"
                   onClick={() => setSelectedSource(src)}
                 >
                   <td className="px-4 py-2.5 text-white font-medium">
@@ -663,14 +665,14 @@ export default function ThreatMapPage() {
                   <td className="px-4 py-2.5">
                     <div className="flex gap-1 flex-wrap">
                       {src.targeted_sectors.slice(0, 2).map(s => (
-                        <span key={s} className="px-1.5 py-0.5 rounded-sm bg-falcon-border text-falcon-muted text-xs">{s}</span>
+                        <span key={s} className="px-1.5 py-0.5 rounded-sm bg-[#1e2d42] text-[#7d92b0] text-xs">{s}</span>
                       ))}
                       {src.targeted_sectors.length > 2 && (
-                        <span className="text-falcon-muted text-xs">+{src.targeted_sectors.length - 2}</span>
+                        <span className="text-[#7d92b0] text-xs">+{src.targeted_sectors.length - 2}</span>
                       )}
                     </div>
                   </td>
-                  <td className="px-4 py-2.5 text-falcon-muted text-xs">
+                  <td className="px-4 py-2.5 text-[#7d92b0] text-xs">
                     {src.top_targets.map(t => t.flag).join(' ')}
                   </td>
                 </tr>

@@ -2,6 +2,7 @@ package store
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -55,6 +56,10 @@ func (s *SoftwareInventoryStore) ListByAgent(ctx context.Context, agentID string
 		}
 		items = append(items, sw)
 	}
+	// 部分結果を完全な一覧として返さない（scan_truncation_guard_test.go 参照）
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
 	if items == nil {
 		items = []*SoftwareEntry{}
 	}
@@ -92,6 +97,10 @@ func (s *SoftwareInventoryStore) SearchAcrossAgents(ctx context.Context, q strin
 		}
 		items = append(items, sw)
 	}
+	// 部分結果を完全な一覧として返さない（scan_truncation_guard_test.go 参照）
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
 	if items == nil {
 		items = []*SoftwareEntry{}
 	}
@@ -105,6 +114,26 @@ func (s *SoftwareInventoryStore) UpsertBatch(ctx context.Context, agentID string
 		return err
 	}
 	defer tx.Rollback(ctx)
+
+	// Record what this report contains. The refresh below is destructive — every
+	// row for the agent is deleted and re-inserted — so without a snapshot there
+	// is nothing left of yesterday to compare tomorrow's report against, and the
+	// software diff endpoint can only ever answer "nothing changed".
+	//
+	// Inside the transaction on purpose: a snapshot that survived a failed
+	// refresh would describe an inventory the database does not hold. Its
+	// position relative to the DELETE is immaterial — the contents come from
+	// items, not from the rows being replaced.
+	snapshot := make([]SoftwareItem, 0, len(items))
+	for _, sw := range items {
+		if sw == nil {
+			continue
+		}
+		snapshot = append(snapshot, SoftwareItem{Name: sw.Name, Version: sw.Version})
+	}
+	if err := RecordSoftwareSnapshot(ctx, tx, agentID, snapshot); err != nil {
+		return err
+	}
 
 	// Remove old entries for this agent
 	if _, err := tx.Exec(ctx,
@@ -122,7 +151,10 @@ func (s *SoftwareInventoryStore) UpsertBatch(ctx context.Context, agentID string
 			SET vendor=$4, install_date=$5, install_path=$6, reported_at=NOW()`,
 			agentID, sw.Name, sw.Version, sw.Vendor, sw.InstallDate, sw.InstallPath,
 		); err != nil {
-			continue
+			// 入らなかった行を飛ばして Commit すると、この関数は成功を
+			// 返します。ソフトウェア一覧は脆弱性の突き合わせ元なので、
+			// 入らなかった分だけ「入っていないソフト」になります。
+			return fmt.Errorf("ソフトウェア %s %s を記録できませんでした: %w", sw.Name, sw.Version, err)
 		}
 	}
 	return tx.Commit(ctx)

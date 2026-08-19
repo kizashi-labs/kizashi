@@ -86,6 +86,10 @@ func (h *DataRetentionHandler) ListPolicies(c *gin.Context) {
 		}
 		prs = append(prs, p)
 	}
+	if err := rows.Err(); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": dbErrMsg(err)})
+		return
+	}
 	rows.Close()
 
 	for _, p := range prs {
@@ -94,7 +98,9 @@ func (h *DataRetentionHandler) ListPolicies(c *gin.Context) {
 			continue
 		}
 		var count int64
-		_ = h.pool.QueryRow(ctx, fmt.Sprintf(`SELECT COUNT(*) FROM %s`, spec.table)).Scan(&count)
+		if !ReadOK(c, h.pool.QueryRow(ctx, fmt.Sprintf(`SELECT COUNT(*) FROM %s`, spec.table)).Scan(&count)) {
+			return
+		}
 		sizeBytes := h.relationSizeBytes(c, spec.table)
 
 		entry := gin.H{
@@ -192,7 +198,9 @@ func (h *DataRetentionHandler) PurgePreview(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": dbErrMsg(err)})
 		return
 	}
-	_ = h.pool.QueryRow(ctx, fmt.Sprintf(`SELECT COUNT(*) FROM %s`, spec.table)).Scan(&total)
+	if !ReadOK(c, h.pool.QueryRow(ctx, fmt.Sprintf(`SELECT COUNT(*) FROM %s`, spec.table)).Scan(&total)) {
+		return
+	}
 	sizeBytes := h.relationSizeBytes(c, spec.table)
 
 	sizeMB := int64(0)
@@ -222,7 +230,9 @@ func (h *DataRetentionHandler) Purge(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": dbErrMsg(err)})
 		return
 	}
-	_, _ = h.pool.Exec(c.Request.Context(),
-		`UPDATE data_retention_policies SET last_purge=NOW(), updated_at=NOW() WHERE type=$1`, req.Type)
+	if _, err := h.pool.Exec(c.Request.Context(),
+		`UPDATE data_retention_policies SET last_purge=NOW(), updated_at=NOW() WHERE type=$1`, req.Type); !WriteOK(c, err) {
+		return
+	}
 	c.JSON(http.StatusOK, gin.H{"deleted": ct.RowsAffected(), "type": req.Type})
 }

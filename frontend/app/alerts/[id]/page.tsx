@@ -26,6 +26,9 @@ import {
   UserCircle,
 } from 'lucide-react'
 
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+import { PageSaveFailed } from '@/components/PageSaveFailed'
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface AlertDetail {
@@ -48,6 +51,9 @@ interface AlertDetail {
   ioc_matches?: { type: string; value: string; threat_level: string }[]
   related_alert_ids?: string[]
   raw_event?: Record<string, unknown>
+  // 生イベントを出せなかったときに、サーバが理由を入れてきます。
+  // raw_event が空であることと、出せなかったことは別です。
+  raw_event_unavailable?: string
 }
 
 interface AlertComment {
@@ -77,13 +83,6 @@ interface TimelineEvent {
 
 // ─── Mock data ────────────────────────────────────────────────────────────────
 
-function makeMockTimeline(): TimelineEvent[] {
-  return Array.from({ length: 24 }, (_, h) => ({
-    hour: h,
-    alertCount: h >= 13 && h <= 15 ? Math.floor(Math.random() * 3) + 1 : 0,
-    eventCount: Math.floor(Math.random() * 500) + 50,
-  }))
-}
 
 const MOCK_ALERT: AlertDetail = {
   id: 'mock-001',
@@ -187,7 +186,7 @@ function TimelineBarChart({
               {/* Activity background bar */}
               {activityH > 0 && (
                 <div
-                  className="absolute bottom-0 left-0 right-0 bg-falcon-border rounded-t-sm"
+                  className="absolute bottom-0 left-0 right-0 bg-[#1e2d42] rounded-t-sm"
                   style={{ height: `${activityH}%` }}
                 />
               )}
@@ -223,20 +222,20 @@ function PageSkeleton() {
   return (
     <div className="min-h-screen bg-[#070d19] p-6 space-y-6 animate-pulse">
       <div className="flex items-center gap-3">
-        <div className="w-8 h-8 bg-falcon-border rounded-lg" />
-        <div className="h-4 w-40 bg-falcon-border rounded-sm" />
-        <div className="h-4 w-2 bg-falcon-border rounded-sm" />
-        <div className="h-4 w-48 bg-falcon-border rounded-sm" />
+        <div className="w-8 h-8 bg-[#1e2d42] rounded-lg" />
+        <div className="h-4 w-40 bg-[#1e2d42] rounded-sm" />
+        <div className="h-4 w-2 bg-[#1e2d42] rounded-sm" />
+        <div className="h-4 w-48 bg-[#1e2d42] rounded-sm" />
       </div>
-      <div className="h-32 bg-falcon-surface rounded-xl border border-falcon-border" />
+      <div className="h-32 bg-[#0d1220] rounded-xl border border-[#1e2d42]" />
       <div className="grid grid-cols-3 gap-6">
         <div className="col-span-2 space-y-4">
-          <div className="h-40 bg-falcon-surface rounded-xl border border-falcon-border" />
-          <div className="h-36 bg-falcon-surface rounded-xl border border-falcon-border" />
+          <div className="h-40 bg-[#0d1220] rounded-xl border border-[#1e2d42]" />
+          <div className="h-36 bg-[#0d1220] rounded-xl border border-[#1e2d42]" />
         </div>
         <div className="space-y-4">
-          <div className="h-44 bg-falcon-surface rounded-xl border border-falcon-border" />
-          <div className="h-28 bg-falcon-surface rounded-xl border border-falcon-border" />
+          <div className="h-44 bg-[#0d1220] rounded-xl border border-[#1e2d42]" />
+          <div className="h-28 bg-[#0d1220] rounded-xl border border-[#1e2d42]" />
         </div>
       </div>
     </div>
@@ -323,13 +322,7 @@ export default function AlertDetailPage() {
   // ── Comments query ──
   const { data: comments = [] } = useQuery<AlertComment[]>({
     queryKey: ['alert-comments', id],
-    queryFn: async () => {
-      try {
-        return await apiFetchList<AlertComment>(`/api/v1/alerts/${id}/comments`)
-      } catch {
-        return []
-      }
-    },
+    queryFn: () => apiFetchList<AlertComment>(`/api/v1/alerts/${id}/comments`),
     enabled: !!id,
   })
 
@@ -455,7 +448,7 @@ export default function AlertDetailPage() {
           <p className="text-white font-medium">アラートの読み込みに失敗しました</p>
           <button
             onClick={() => router.push('/alerts')}
-            className="px-4 py-2 text-sm bg-falcon-surface border border-falcon-border text-[#c9d6e8] rounded-lg hover:bg-falcon-card transition-colors"
+            className="px-4 py-2 text-sm bg-[#0d1220] border border-[#1e2d42] text-[#c9d6e8] rounded-lg hover:bg-[#111827] transition-colors"
           >
             アラート一覧に戻る
           </button>
@@ -490,15 +483,15 @@ export default function AlertDetailPage() {
 
   return (
     <div className="min-h-screen bg-[#070d19]">
-      <div className="max-w-(--breakpoint-xl) mx-auto p-6 space-y-6">
+      <PageDataUnavailable />
+      <PageSaveFailed className="mb-4" />
+      <div className="max-w-screen-xl mx-auto p-6 space-y-6">
 
         {/* Breadcrumb + back button */}
         <div className="flex items-center gap-3 flex-wrap">
           <button
             onClick={() => router.push('/alerts')}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-falcon-muted bg-falcon-surface
-                       border border-falcon-border rounded-lg hover:bg-falcon-card hover:text-[#c9d6e8]
-                       transition-colors shrink-0"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-[#7d92b0] bg-[#0d1220] border border-[#1e2d42] rounded-lg hover:bg-[#111827] hover:text-[#c9d6e8] transition-colors shrink-0"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
             戻る
@@ -516,7 +509,7 @@ export default function AlertDetailPage() {
         </div>
 
         {/* Header card */}
-        <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5 space-y-4">
+        <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5 space-y-4">
           {/* Title row */}
           <div className="flex items-start gap-3 flex-wrap">
             <span
@@ -529,14 +522,14 @@ export default function AlertDetailPage() {
           </div>
 
           {alert.description && (
-            <p className="text-sm text-falcon-muted leading-relaxed">{alert.description}</p>
+            <p className="text-sm text-[#7d92b0] leading-relaxed">{alert.description}</p>
           )}
 
           {/* Meta badges row */}
           <div className="flex flex-wrap items-center gap-2">
             {/* Hostname */}
             {displayHostname !== '—' && (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs bg-[#070d19] border border-falcon-border text-[#c9d6e8]">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs bg-[#070d19] border border-[#1e2d42] text-[#c9d6e8]">
                 <Activity className="w-3 h-3 text-cyan-400" />
                 {displayHostname}
               </span>
@@ -544,7 +537,7 @@ export default function AlertDetailPage() {
 
             {/* Process from raw_event */}
             {!!alert.raw_event?.image_path && (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs bg-[#070d19] border border-falcon-border text-[#c9d6e8] font-mono">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs bg-[#070d19] border border-[#1e2d42] text-[#c9d6e8] font-mono">
                 <Terminal className="w-3 h-3 text-green-400" />
                 {String(alert.raw_event.image_path).split('\\').pop()}
                 {alert.raw_event.pid ? ` (PID: ${alert.raw_event.pid})` : ''}
@@ -553,7 +546,7 @@ export default function AlertDetailPage() {
 
             {/* Rule */}
             {displayRuleName !== '—' && (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs bg-[#070d19] border border-falcon-border text-[#c9d6e8]">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs bg-[#070d19] border border-[#1e2d42] text-[#c9d6e8]">
                 <Shield className="w-3 h-3 text-purple-400" />
                 {displayRuleName}
               </span>
@@ -578,7 +571,7 @@ export default function AlertDetailPage() {
           </div>
 
           {/* Status selector */}
-          <div className="flex items-center gap-3 pt-1 border-t border-falcon-border">
+          <div className="flex items-center gap-3 pt-1 border-t border-[#1e2d42]">
             <span className="text-xs text-[#4a6080]">ステータス:</span>
             <div className="flex gap-2 flex-wrap">
               {STATUS_OPTIONS.map(opt => (
@@ -589,7 +582,7 @@ export default function AlertDetailPage() {
                   className={`px-3 py-1 text-xs font-medium rounded-full border transition-all
                     ${alert.status === opt.value
                       ? `${opt.cls} ring-1 ring-white/20`
-                      : 'bg-transparent border-falcon-border text-falcon-muted hover:border-[#2d4060] hover:text-[#c9d6e8]'
+                      : 'bg-transparent border-[#1e2d42] text-[#7d92b0] hover:border-[#2d4060] hover:text-[#c9d6e8]'
                     } disabled:cursor-not-allowed`}
                 >
                   {opt.label}
@@ -620,8 +613,8 @@ export default function AlertDetailPage() {
 
         {/* Incident creation modal */}
         {showIncidentModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs">
-            <div className="bg-falcon-surface border border-falcon-border rounded-xl p-6 w-full max-w-md shadow-xl">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+            <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-6 w-full max-w-md shadow-xl">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-base font-semibold text-white flex items-center gap-2">
                   <FolderOpen className="w-4 h-4 text-orange-400" />
@@ -633,21 +626,21 @@ export default function AlertDetailPage() {
               </div>
               <div className="space-y-3">
                 <div>
-                  <label className="text-xs text-falcon-muted mb-1 block">タイトル</label>
+                  <label className="text-xs text-[#7d92b0] mb-1 block">タイトル</label>
                   <input
                     type="text"
                     value={incidentTitle}
                     onChange={e => setIncidentTitle(e.target.value)}
-                    className="w-full px-3 py-2 text-sm bg-[#070d19] border border-falcon-border rounded-lg text-[#c9d6e8] focus:outline-hidden focus:border-cyan-700/60"
+                    className="w-full px-3 py-2 text-sm bg-[#070d19] border border-[#1e2d42] rounded-lg text-[#c9d6e8] focus:outline-hidden focus:border-cyan-700/60"
                   />
                 </div>
                 <div>
-                  <label className="text-xs text-falcon-muted mb-1 block">説明</label>
+                  <label className="text-xs text-[#7d92b0] mb-1 block">説明</label>
                   <textarea
                     value={incidentDesc}
                     onChange={e => setIncidentDesc(e.target.value)}
                     rows={3}
-                    className="w-full px-3 py-2 text-sm bg-[#070d19] border border-falcon-border rounded-lg text-[#c9d6e8] focus:outline-hidden focus:border-cyan-700/60 resize-none"
+                    className="w-full px-3 py-2 text-sm bg-[#070d19] border border-[#1e2d42] rounded-lg text-[#c9d6e8] focus:outline-hidden focus:border-cyan-700/60 resize-none"
                   />
                 </div>
                 {createIncidentMutation.isError && (
@@ -656,7 +649,7 @@ export default function AlertDetailPage() {
                 <div className="flex gap-2 pt-1">
                   <button
                     onClick={() => setShowIncidentModal(false)}
-                    className="flex-1 px-3 py-2 text-sm border border-falcon-border text-falcon-muted rounded-lg hover:bg-falcon-card transition-colors"
+                    className="flex-1 px-3 py-2 text-sm border border-[#1e2d42] text-[#7d92b0] rounded-lg hover:bg-[#111827] transition-colors"
                   >
                     キャンセル
                   </button>
@@ -680,7 +673,7 @@ export default function AlertDetailPage() {
           <div className="lg:col-span-2 space-y-6">
 
             {/* 24h Event Timeline */}
-            <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
+            <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
               <h2 className="text-sm font-semibold text-cyan-400 mb-4 flex items-center gap-2">
                 <Activity className="w-4 h-4" />
                 24時間イベントタイムライン
@@ -697,7 +690,7 @@ export default function AlertDetailPage() {
 
             {/* MITRE ATT&CK */}
             {(mitreTactics.length > 0 || mitreTechniques.length > 0) && (
-              <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
+              <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
                 <h2 className="text-sm font-semibold text-cyan-400 mb-4 flex items-center gap-2">
                   <Shield className="w-4 h-4" />
                   MITRE ATT&CK
@@ -713,9 +706,7 @@ export default function AlertDetailPage() {
                           href={`https://attack.mitre.org/tactics/${tactic.toLowerCase().replace(/\s+/g, '-')}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium
-                                     bg-purple-900/30 text-purple-300 border border-purple-700/50
-                                     hover:bg-purple-900/50 transition-colors"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-purple-900/30 text-purple-300 border border-purple-700/50 hover:bg-purple-900/50 transition-colors"
                         >
                           {tactic}
                           <ExternalLink className="w-2.5 h-2.5 opacity-60" />
@@ -741,9 +732,7 @@ export default function AlertDetailPage() {
                             }
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-mono
-                                       bg-indigo-900/30 text-indigo-300 border border-indigo-700/50
-                                       hover:bg-indigo-900/50 transition-colors"
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-sm text-xs font-mono bg-indigo-900/30 text-indigo-300 border border-indigo-700/50 hover:bg-indigo-900/50 transition-colors"
                           >
                             {tech}
                             <ExternalLink className="w-2.5 h-2.5 opacity-60" />
@@ -762,7 +751,7 @@ export default function AlertDetailPage() {
           <div className="space-y-6">
 
             {/* Assignee */}
-            <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
+            <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
               <h2 className="text-sm font-semibold text-cyan-400 mb-3 flex items-center gap-2">
                 <Fingerprint className="w-4 h-4" />
                 担当者
@@ -773,7 +762,7 @@ export default function AlertDetailPage() {
                 </span>
                 {canWrite && <button
                   onClick={() => setShowAssignSelect(v => !v)}
-                  className="px-2.5 py-1 text-xs rounded-lg bg-falcon-card border border-falcon-border text-falcon-muted hover:text-cyan-300 hover:border-cyan-700/60 transition-colors"
+                  className="px-2.5 py-1 text-xs rounded-lg bg-[#111827] border border-[#1e2d42] text-[#7d92b0] hover:text-cyan-300 hover:border-cyan-700/60 transition-colors"
                 >
                   {alert.assigned_to ? '変更' : '割り当て'}
                 </button>}
@@ -781,7 +770,7 @@ export default function AlertDetailPage() {
               {showAssignSelect && (
                 <div className="mt-3 space-y-1">
                   <select
-                    className="w-full px-3 py-2 text-sm bg-[#070d19] border border-falcon-border rounded-lg text-[#c9d6e8] focus:outline-hidden focus:border-cyan-700/60"
+                    className="w-full px-3 py-2 text-sm bg-[#070d19] border border-[#1e2d42] rounded-lg text-[#c9d6e8] focus:outline-hidden focus:border-cyan-700/60"
                     defaultValue={alert.assigned_to ?? ''}
                     onChange={e => assignMutation.mutate(e.target.value || null)}
                     disabled={assignMutation.isPending}
@@ -793,15 +782,15 @@ export default function AlertDetailPage() {
                   </select>
                   <button
                     onClick={() => setShowAssignSelect(false)}
-                    className="text-xs text-[#4a6080] hover:text-falcon-muted"
+                    className="text-xs text-[#4a6080] hover:text-[#7d92b0]"
                   >キャンセル</button>
                 </div>
               )}
             </div>
 
             {/* IOC Matches */}
-            <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
-              <div className="px-5 py-3 border-b border-falcon-border flex items-center gap-2">
+            <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
+              <div className="px-5 py-3 border-b border-[#1e2d42] flex items-center gap-2">
                 <Fingerprint className="w-4 h-4 text-cyan-400" />
                 <h2 className="text-sm font-semibold text-cyan-400">IOC マッチ</h2>
                 {iocMatches.length > 0 && (
@@ -816,12 +805,12 @@ export default function AlertDetailPage() {
                   IOCマッチなし
                 </div>
               ) : (
-                <div className="divide-y divide-falcon-border">
+                <div className="divide-y divide-[#1e2d42]">
                   {iocMatches.map((ioc, i) => (
-                    <div key={i} className="px-4 py-3 flex items-start gap-3 group hover:bg-falcon-card transition-colors">
+                    <div key={i} className="px-4 py-3 flex items-start gap-3 group hover:bg-[#111827] transition-colors">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
-                          <span className="text-[10px] font-bold uppercase tracking-wide text-falcon-muted">
+                          <span className="text-[10px] font-bold uppercase tracking-wide text-[#7d92b0]">
                             {ioc.type}
                           </span>
                           <span className={`px-1.5 py-0.5 rounded-sm text-[9px] font-bold uppercase ${getThreatLevelColor(ioc.threat_level)}`}>
@@ -832,10 +821,10 @@ export default function AlertDetailPage() {
                       </div>
                       <button
                         onClick={() => copyToClipboard(ioc.value, `ioc-${i}`)}
-                        className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-sm hover:bg-falcon-border"
+                        className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-sm hover:bg-[#1e2d42]"
                         title="コピー"
                       >
-                        <Copy className={`w-3.5 h-3.5 ${copiedId === `ioc-${i}` ? 'text-green-400' : 'text-falcon-muted'}`} />
+                        <Copy className={`w-3.5 h-3.5 ${copiedId === `ioc-${i}` ? 'text-green-400' : 'text-[#7d92b0]'}`} />
                       </button>
                     </div>
                   ))}
@@ -844,7 +833,7 @@ export default function AlertDetailPage() {
             </div>
 
             {/* Related Alerts */}
-            <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
+            <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
               <h2 className="text-sm font-semibold text-cyan-400 mb-3 flex items-center gap-2">
                 <AlertTriangle className="w-4 h-4" />
                 関連アラート
@@ -858,9 +847,7 @@ export default function AlertDetailPage() {
                     <a
                       key={relId}
                       href={`/alerts/${relId}`}
-                      className="inline-flex items-center gap-1 px-2.5 py-1 text-xs rounded-full
-                                 bg-[#070d19] border border-falcon-border text-falcon-muted
-                                 hover:border-cyan-700/60 hover:text-cyan-300 transition-colors font-mono"
+                      className="inline-flex items-center gap-1 px-2.5 py-1 text-xs rounded-full bg-[#070d19] border border-[#1e2d42] text-[#7d92b0] hover:border-cyan-700/60 hover:text-cyan-300 transition-colors font-mono"
                     >
                       {relId}
                       <ExternalLink className="w-2.5 h-2.5 opacity-50" />
@@ -878,11 +865,11 @@ export default function AlertDetailPage() {
               ].sort((a, b) => new Date(a.ts).getTime() - new Date(b.ts).getTime())
 
               return (
-                <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5 space-y-4">
+                <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5 space-y-4">
                   <h2 className="text-sm font-semibold text-[#c9d6e8] flex items-center gap-2">
                     <Activity className="w-4 h-4 text-cyan-400" />
                     アクティビティログ
-                    <span className="ml-1 px-1.5 py-0.5 text-xs rounded-full bg-falcon-border text-falcon-muted">
+                    <span className="ml-1 px-1.5 py-0.5 text-xs rounded-full bg-[#1e2d42] text-[#7d92b0]">
                       {activityItems.length}
                     </span>
                   </h2>
@@ -892,7 +879,7 @@ export default function AlertDetailPage() {
                   ) : (
                     <div className="relative">
                       {/* Vertical line */}
-                      <div className="absolute left-3 top-2 bottom-2 w-px bg-falcon-border" />
+                      <div className="absolute left-3 top-2 bottom-2 w-px bg-[#1e2d42]" />
                       <div className="space-y-4 pl-8">
                         {activityItems.map((item, idx) => {
                           if (item.kind === 'status') {
@@ -900,20 +887,20 @@ export default function AlertDetailPage() {
                             const isFirst = e.from_status === null
                             return (
                               <div key={`s-${e.id}`} className="relative">
-                                <div className="absolute -left-5 top-1 w-2.5 h-2.5 rounded-full bg-falcon-blue border-2 border-falcon-surface z-10" />
-                                <div className="bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2">
+                                <div className="absolute -left-5 top-1 w-2.5 h-2.5 rounded-full bg-[#1a6bff] border-2 border-[#0d1220] z-10" />
+                                <div className="bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2">
                                   <div className="flex items-center justify-between gap-2 flex-wrap">
                                     <div className="flex items-center gap-1.5 text-xs">
-                                      <GitCommitHorizontal className="w-3.5 h-3.5 text-falcon-blue" />
+                                      <GitCommitHorizontal className="w-3.5 h-3.5 text-[#1a6bff]" />
                                       {isFirst ? (
-                                        <span className="text-falcon-muted">
+                                        <span className="text-[#7d92b0]">
                                           アラート作成 — ステータス:
                                           <span className="ml-1 font-medium text-[#c9d6e8]">
                                             {STATUS_LABEL[e.to_status] ?? e.to_status}
                                           </span>
                                         </span>
                                       ) : (
-                                        <span className="text-falcon-muted">
+                                        <span className="text-[#7d92b0]">
                                           ステータス変更:
                                           <span className="mx-1 font-medium text-[#c9d6e8]">
                                             {STATUS_LABEL[e.from_status!] ?? e.from_status}
@@ -942,10 +929,10 @@ export default function AlertDetailPage() {
                             const c = item.comment
                             return (
                               <div key={`c-${c.id}`} className="relative">
-                                <div className="absolute -left-5 top-1 w-2.5 h-2.5 rounded-full bg-[#2d4a6e] border-2 border-falcon-surface z-10" />
-                                <div className="bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2">
+                                <div className="absolute -left-5 top-1 w-2.5 h-2.5 rounded-full bg-[#2d4a6e] border-2 border-[#0d1220] z-10" />
+                                <div className="bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2">
                                   <div className="flex items-center justify-between mb-1">
-                                    <span className="flex items-center gap-1.5 text-xs text-falcon-muted">
+                                    <span className="flex items-center gap-1.5 text-xs text-[#7d92b0]">
                                       <MessageSquare className="w-3.5 h-3.5 text-[#4a8fc0]" />
                                       {c.user_name || 'ユーザー'}
                                     </span>
@@ -965,7 +952,7 @@ export default function AlertDetailPage() {
 
                   {/* Comment input (admin/analyst only) */}
                   {canWrite && (
-                    <div className="flex gap-2 pt-2 border-t border-falcon-border">
+                    <div className="flex gap-2 pt-2 border-t border-[#1e2d42]">
                       <input
                         type="text"
                         value={commentText}
@@ -977,7 +964,7 @@ export default function AlertDetailPage() {
                           }
                         }}
                         placeholder="コメントを入力… (Enterで送信)"
-                        className="flex-1 px-3 py-2 text-sm bg-[#070d19] border border-falcon-border rounded-lg text-[#c9d6e8] placeholder-[#4a6080] focus:outline-hidden focus:border-cyan-700/60"
+                        className="flex-1 px-3 py-2 text-sm bg-[#070d19] border border-[#1e2d42] rounded-lg text-[#c9d6e8] placeholder-[#4a6080] focus:outline-hidden focus:border-cyan-700/60"
                       />
                       <button
                         onClick={() => commentText.trim() && addCommentMutation.mutate(commentText.trim())}
@@ -994,7 +981,7 @@ export default function AlertDetailPage() {
 
             {/* プロセスツリー (raw_event にプロセス情報がある場合のみ表示) */}
             {!!(alert.raw_event && (alert.raw_event.image_path || alert.raw_event.process_name)) && (
-              <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
+              <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
                 <h3 className="text-sm font-semibold text-[#c9d6e8] flex items-center gap-2 mb-4">
                   <Terminal className="w-4 h-4 text-green-400" />
                   プロセスツリー
@@ -1015,9 +1002,9 @@ export default function AlertDetailPage() {
                   )}
                   {/* 親プロセス */}
                   {!!(alert.raw_event!.parent_image || alert.raw_event!.parent_pid) && (
-                    <div className="flex items-center gap-2 text-falcon-muted">
+                    <div className="flex items-center gap-2 text-[#7d92b0]">
                       <span className="w-4 text-[#2d4060]">└─</span>
-                      <span className="text-falcon-muted">◆</span>
+                      <span className="text-[#7d92b0]">◆</span>
                       <span className="truncate max-w-xs">
                         {String(alert.raw_event!.parent_image ?? '').split('\\').pop() || '—'}
                       </span>
@@ -1044,7 +1031,7 @@ export default function AlertDetailPage() {
                         )}
                       </div>
                       {!!(alert.raw_event!.command_line || alert.raw_event!.cmd_line) && (
-                        <p className="text-falcon-muted mt-1 break-all text-[10px] leading-relaxed">
+                        <p className="text-[#7d92b0] mt-1 break-all text-[10px] leading-relaxed">
                           {String(alert.raw_event!.command_line ?? alert.raw_event!.cmd_line)}
                         </p>
                       )}
@@ -1052,7 +1039,7 @@ export default function AlertDetailPage() {
                   </div>
                   {/* 子プロセス */}
                   {!!alert.raw_event!.child_image && (
-                    <div className="flex items-center gap-2 text-falcon-muted ml-8">
+                    <div className="flex items-center gap-2 text-[#7d92b0] ml-8">
                       <span className="text-[#2d4060]">└─</span>
                       <span>◆</span>
                       <span className="truncate max-w-xs">
@@ -1068,10 +1055,10 @@ export default function AlertDetailPage() {
             )}
 
             {/* Raw Event JSON (collapsible) */}
-            <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
+            <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
               <button
                 onClick={() => setRawExpanded(v => !v)}
-                className="w-full px-5 py-3 flex items-center gap-2 text-sm font-semibold text-cyan-400 hover:bg-falcon-card transition-colors"
+                className="w-full px-5 py-3 flex items-center gap-2 text-sm font-semibold text-cyan-400 hover:bg-[#111827] transition-colors"
               >
                 <Terminal className="w-4 h-4" />
                 Raw Event JSON
@@ -1084,13 +1071,27 @@ export default function AlertDetailPage() {
               </button>
 
               {rawExpanded && (
-                <div className="border-t border-falcon-border relative">
+                <div className="border-t border-[#1e2d42] relative">
+                  {/* サーバが生イベントを出せなかったとき、その理由をここに出します。
+                      黙って落とすと「もともと生イベントの無い検知」と区別がつかず、
+                      鍵の設定ミスに何週間も気づきません。 */}
+                  {!!alert.raw_event_unavailable && (
+                    <div className="m-3 px-3 py-2 rounded-sm border border-amber-500/40 bg-amber-500/10 text-[12px] text-amber-300 flex items-start gap-2">
+                      <AlertTriangle className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+                      <span>
+                        {alert.raw_event_unavailable}
+                        <span className="block text-amber-400/70 mt-0.5">
+                          下に出ているのはアラートの要約です。生イベントそのものではありません。
+                        </span>
+                      </span>
+                    </div>
+                  )}
                   <button
                     onClick={() => copyToClipboard(JSON.stringify(rawEventData, null, 2), 'raw')}
-                    className="absolute top-2 right-2 p-1.5 rounded-sm bg-falcon-border hover:bg-[#2d3f55] transition-colors z-10"
+                    className="absolute top-2 right-2 p-1.5 rounded-sm bg-[#1e2d42] hover:bg-[#2d3f55] transition-colors z-10"
                     title="JSONをコピー"
                   >
-                    <Copy className={`w-3.5 h-3.5 ${copiedId === 'raw' ? 'text-green-400' : 'text-falcon-muted'}`} />
+                    <Copy className={`w-3.5 h-3.5 ${copiedId === 'raw' ? 'text-green-400' : 'text-[#7d92b0]'}`} />
                   </button>
                   <pre className="p-4 text-[11px] text-green-300 font-mono overflow-auto max-h-64 whitespace-pre leading-relaxed">
                     {JSON.stringify(rawEventData, null, 2)}

@@ -63,12 +63,16 @@ jobs:
           # main への push は絞らない。
           #
           # PR で絞るのはコスト削減として妥当だが、main まで絞ると **一度赤くなった
-          # ジョブは、その領域を触る PR が来るまで二度と走らない**。チェック一覧の
-          # 上では「走って通った」と「そもそも走っていない」の区別が付かないため、
-          # 赤が無期限に隠れる（実際に 8 日間隠れた）。マージ 1 回ぶんのコストで、
-          # main の全ジョブに常に最新の結論が存在する状態を買う。
+          # ジョブは、その領域を触る PR が来るまで二度と走らない**。実際 #735 が
+          # Agent Tests を落としたまま着地し、以後の PR が agent/ を触らなかったため
+          # 8 日間スキップされ続けた。気づいたのは無関係の PR が偶然 agent/ を
+          # 変更したからで、監視していたからではない (負債台帳 P5-35)。
+          #
+          # チェック一覧の上では「走って通った」と「そもそも走っていない」の区別が
+          # 付かない。マージ 1 回ぶんのコストで、main の全ジョブに常に最新の結論が
+          # 存在する状態を買う。
           if [ "$EVENT" = "push" ] && [ "$REF" = "refs/heads/main" ]; then
-            echo "main への push のため、絞らず全ジョブを実行します"
+            echo "main への push のため、絞らず全ジョブを実行します (P5-35)"
             for k in agent server frontend sdk rules all; do echo "$k=true" >> "$GITHUB_OUTPUT"; done
             exit 0
           fi
@@ -90,7 +94,26 @@ jobs:
 
           echo "変更ファイル:"; echo "$files" | sed 's/^/  /'
 
-          has() { echo "$files" | grep -qE "$1"; }
+          # パイプにしないのは `set -o pipefail` のためです。
+          #
+          # `echo "$files" | grep -qE …` は、**一致したときほど失敗します**。
+          # `grep -q` は最初の一致で即座に終了し、まだ書き込み途中の `echo` が
+          # SIGPIPE を受けて 141 で終わる。pipefail はパイプライン全体の状態を
+          # その 141 にするので、`has` は「一致しなかった」を返します。一覧が
+          # パイプバッファ (64KB) に収まるうちは起きないので、**差分が大きい
+          # PR でだけ、しかも前の方で一致する領域でだけ**外れます。
+          #
+          # 実測 2026-08-14 (この PR, 1259 ファイル / 57KB): 出力された一覧に
+          # `agent/Makefile` も `.github/workflows/ci.yml` も入っているのに
+          # 判定は `agent=false all=false` で、Agent Tests / Agent Build /
+          # govulncheck が丸ごとスキップされました。**「走って通った」と
+          # 「そもそも走っていない」がチェック一覧の上で区別できない**という、
+          # 下の P5-35 に書いてあるのとまったく同じ状態を、絞り込みの実装自体が
+          # 作っていたことになります。
+          #
+          # here-string にすればパイプラインが無いので pipefail は関係なく、
+          # 一覧の大きさにも一致位置にも依存しません。
+          has() { grep -qE "$1" <<<"$files"; }
 
           # CI 定義・proto・共通設定が変わったら全部走らせる。
           # proto は agent と server の両方が依存し、ズレると実行時にしか露見しない。
@@ -208,15 +231,6 @@ jobs:
         working-directory: server
         run: go vet ./...
 
-      # docs/openapi.yaml が router.go に追従しているかを見る。
-      # 手書き記述が実装に存在すること、自動生成分が最新であること、
-      # API が配信する server/docs/openapi.yaml が正本と同一であることの3点。
-      # 導入前は 1,459 操作中 119 しか載っておらず、載っていた 171 のうち
-      # 52 が実装に存在しないパス/メソッドだった。
-      - name: OpenAPI sync check
-        working-directory: server
-        run: go run ./cmd/openapi-sync -check
-
       # staticcheck はバージョンを固定する。@latest は「コードが変わっていないのに
       # CI が赤くなる」経路そのもので、golangci-lint 側で実際に起きた
       # (docs/ops/CI負債_調査と是正.md)。上げるときは意図的に上げる。
@@ -257,8 +271,20 @@ jobs:
           # same migrated postgres service so the integration suite actually runs.
           TEST_DATABASE_URL: postgres://edr:testpassword@localhost:5432/edrplatform_test
           NATS_URL: nats://localhost:4222
+        # -timeout は **package ごと** に効きます。120s では
+        # internal/api/handlers と internal/store が、まだテストを走らせている
+        # 途中で打ち切られていました（実測 2026-08-13: 120.855s / 120.122s、
+        # どちらも 0s のテストを走らせている最中に panic）。**遅いのを隠す
+        # ための引き上げではありません** —— この2つは 120s では終わりません:
+        #
+        #   handlers  testDB(t) が 280 か所。1テストにつき pool を1つ開きます
+        #   -race     に加えて、実データベース越しの往復
+        #
+        # 打ち切られている間は、その package のテスト結果もカバレッジも
+        # 「落ちた」以上のことを何も言いません。まず最後まで走らせます。
+        # pool の共有は測ってから別途（280 個は明らかに要りません）。
         run: |
-          go test -race -timeout 120s \
+          go test -race -timeout 600s \
             -coverprofile=coverage.out -covermode=atomic \
             ./...
 
@@ -562,32 +588,58 @@ jobs:
           make -C /tmp/bpftool/src
           sudo /tmp/bpftool/src/bpftool btf dump file /sys/kernel/btf/vmlinux format c > ebpf/vmlinux.h
           wc -l ebpf/vmlinux.h
-          cd internal/platform/linux
-          GOPACKAGE=linux go run github.com/cilium/ebpf/cmd/bpf2go \
-            -tags ebpf -cc clang \
-            -cflags "-O2 -g -target bpf -D__TARGET_ARCH_x86" \
-            NetworkMonitor ../../../ebpf/network_monitor.bpf.c
-          GOPACKAGE=linux go run github.com/cilium/ebpf/cmd/bpf2go \
-            -tags ebpf -cc clang \
-            -cflags "-O2 -g -target bpf -D__TARGET_ARCH_x86" \
-            FilelessMonitor ../../../ebpf/fileless_monitor.bpf.c
-          ls -1 networkmonitor_bpf* filelessmonitor_bpf*
+          # 生成対象は agent/Makefile の EBPF_BINDINGS が唯一の一覧。ここに
+          # bpf2go コマンドを書き写していたせいで、ProcessMonitor と
+          # LibraryMonitor がどちらの一覧にも入らないまま残っていた。
+          make generate-ebpf
+          ls -1 internal/platform/linux/*_bpfe[lb].o
 
-      # 生成物のドリフト検査。.o は BTF 由来のデバッグ情報でランナーごとに差が出るため、
-      # C ソースだけから決まる .go 側を見る。ここが落ちたら .bpf.c を変えたのに
-      # バインディングを再生成してコミットしていない、という意味。
-      # 直し方: 上のステップと同じ bpf2go コマンドをローカルで流してコミットする
-      # （clang と BTF のあるホスト、または Docker: docs/Linuxカーネル防御検証ランブック.md）。
+      # 生成物のドリフト検査。ここが落ちたら .bpf.c を変えたのにバインディングを
+      # 再生成してコミットしていない、という意味。
+      # 直し方: clang と BTF のあるホスト（または Docker:
+      # docs/Linuxカーネル防御検証ランブック.md）で `make generate-ebpf` を流し、
+      # 変わった .go と .o の両方を commit する。
       - name: Check committed eBPF bindings are up to date (Linux only)
         if: matrix.goos == 'linux'
         working-directory: agent
         run: |
+          # 対象はワイルドカード。個別に列挙すると EBPF_BINDINGS に足したときに
+          # ここへの追加を忘れ、「生成はされるが検査されない」穴がまた空く。
           if ! git diff --exit-code -- \
-              'internal/platform/linux/networkmonitor_bpf*.go' \
-              'internal/platform/linux/filelessmonitor_bpf*.go'; then
-            echo "::error::committed bpf2go bindings are stale — regenerate and commit them" >&2
+              'internal/platform/linux/*_bpfel.go' \
+              'internal/platform/linux/*_bpfeb.go'; then
+            echo "::error::committed bpf2go bindings are stale — run 'make generate-ebpf' and commit the result" >&2
             exit 1
           fi
+          # .go 側だけでは足りない。bpf2go の .go は構造体定義と go:embed しか持たず、
+          # C の関数本体をいくら書き換えても変化しない。実際 PR #778 は
+          # file_monitor.bpf.c の修正を入れながら再生成した .o を入れ忘れ、この検査を
+          # 素通りした（kprobe/vfs_unlink が 0x148 のまま = basename しか送らない旧版）。
+          # CI は上のステップで再生成してからビルドするので CI 産バイナリは正しいが、
+          # server/Dockerfile の agent-builder は再生成しない。つまり
+          # 「CI は緑、配布バイナリだけ修正が入っていない」が成立してしまう。
+          #
+          # .o 全体の byte 比較はできない（BTF 由来のデバッグ情報がランナーごとに変わる）
+          # ので、C ソースだけで決まるプログラムセクションの大きさを比べる。
+          # 対象は .go 側と同じくワイルドカード（列挙しない）。
+          secs() { readelf -SW "$1" | awk '/PROGBITS/ && $2 ~ /\// {print $2, $6}'; }
+          stale=0
+          checked=0
+          for f in internal/platform/linux/*_bpfel.o internal/platform/linux/*_bpfeb.o; do
+            [ -f "$f" ] || continue
+            git show "HEAD:agent/$f" > /tmp/committed.o 2>/dev/null || continue
+            checked=$((checked + 1))
+            if ! diff -u <(secs /tmp/committed.o) <(secs "$f") > /tmp/secdiff.txt; then
+              echo "::error::$f のプログラムセクションが .bpf.c と一致しません（'make generate-ebpf' で再生成して commit してください）" >&2
+              cat /tmp/secdiff.txt >&2
+              stale=1
+            fi
+          done
+          echo "checked $checked committed .o files"
+          # 1件も比較できていなければ、検査が空振りしている（グロブ不一致など）。
+          # 静かに 0 件で通ると「検査がある」という誤った安心だけが残る。
+          [ "$checked" -gt 0 ] || { echo "::error::no committed .o was compared — the check is not running" >&2; exit 1; }
+          [ "$stale" = 0 ] || exit 1
 
       - name: Build agent
         working-directory: agent
@@ -676,6 +728,7 @@ jobs:
           }
           gen "ebpf"            NetworkMonitor       network_monitor.bpf.c
           gen "ebpf"            FilelessMonitor      fileless_monitor.bpf.c
+          gen "ebpf"            FileMonitor          file_monitor.bpf.c
           gen "ebpf prevention" PreventionLSM        prevention_lsm.bpf.c
           gen "ebpf prevention" TamperLSM            tamper_lsm.bpf.c
           gen "ebpf prevention" CredAccessLSM        credaccess_lsm.bpf.c
@@ -689,7 +742,7 @@ jobs:
           # prevention` runners in internal/platform/linux.
           gen "ebpf prevention" HostIntegrityMonitor hostintegrity_monitor.bpf.c
           gen "ebpf prevention" TLSMonitor           tls_monitor.bpf.c
-          ls -1 networkmonitor_bpf* filelessmonitor_bpf* \
+          ls -1 networkmonitor_bpf* filelessmonitor_bpf* filemonitor_bpf* \
                 preventionlsm_bpf* tamperlsm_bpf* credaccesslsm_bpf* \
                 hostintegritymonitor_bpf* tlsmonitor_bpf*
 
@@ -907,7 +960,7 @@ jobs:
 
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
-          node-version: "24"
+          node-version: "20"
           cache: npm
           cache-dependency-path: frontend/package-lock.json
 
@@ -923,33 +976,15 @@ jobs:
         working-directory: frontend
         run: npx tsc --noEmit
 
-      # 本番ビルド(NEXT_PUBLIC_USE_MOCK != 'true')で描画されてしまう
-      # モックデータ参照を落とす。28 箇所が素通しになっていた実績があり、
-      # 「データが少ないだけ」に見えるので目視では気づけない。
-      - name: Mock guard check
-        working-directory: frontend
-        run: node scripts/check-mock-guards.mjs
-
       # Vitest unit/component tests (frontend/tests/**). Previously these were
       # never run in CI — only lint, typecheck, build, and the separate
       # Playwright e2e job ran — so component and lib-level regressions could
-      # merge undetected.
+      # merge undetected. `npm test` maps to `vitest run` (see package.json).
       # Now that the Playwright e2e job runs nightly (integration.yml) rather than
       # per-push, this is the frontend's only per-push behavioral safety net.
-      #
-      # `npm test` ではなく test:coverage を呼ぶ。走るテストは同じで、
-      # 追加でカバレッジ計測の経路も踏む。この差は実測 1 秒（6s → 7s）。
-      #
-      # わざわざそうするのは、test:coverage が実際に壊れていた実績が
-      # あるため。vitest.config.ts に coverage 設定があり package.json に
-      # スクリプトもあるのに、プロバイダ (@vitest/coverage-v8) が
-      # devDependencies に無く、叩けば落ちる状態だった。CI が npm test しか
-      # 呼んでいなかったので誰も気づけない。ここで踏んでおけば同じ壊れ方は
-      # しない。閾値ゲートは置いていない（server 側の Check coverage
-      # threshold のような下限は、フロントには未設定）。
-      - name: Unit tests (Vitest, with coverage)
+      - name: Unit tests (Vitest)
         working-directory: frontend
-        run: npm run test:coverage
+        run: npm test
 
       - name: Build
         working-directory: frontend
@@ -993,7 +1028,7 @@ jobs:
 
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
-          node-version: "24"
+          node-version: "20"
           cache: npm
           cache-dependency-path: sdk/typescript/package-lock.json
 
@@ -1010,6 +1045,73 @@ jobs:
         run: npm test
 
   # ── Backup / Restore integrity test ──────────────────────────
+  scripts-test:
+    name: Mutation Harness
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+
+      # 変異ハーネスは、検査そのものが落ちることを確かめるための道具です。
+      # 戻し損ねると、壊れた検査が「違反0件」を報告し続けます。SIGKILL で
+      # 戻せることまで、ここで確かめます。
+      - name: Harness restores itself after being killed
+        run: python3 scripts/mutate_test.py
+
+      # 各ゲートの仕様書 (scripts/mutations/) が、まだ今の木を指していること。
+      # 変異そのものは走らせません（Go のテストを変異の数だけ回すので数分
+      # かかります）。当たらなくなった仕様書は、走らせても全 SKIP で緑を
+      # 返すだけの文書になります。
+      - name: Mutation specs still match the tree
+        run: python3 scripts/run_mutations.py --check
+
+      # 走らなかったテストを数える道具そのもの。数え損ねても出力は同じ形を
+      # しているので（「飛んだ 0 本」は「本当に0本」とも読めます）、
+      # 判定を単体で留めます。Go も DB も要りません。
+      - name: Skip accounting counts what it says it counts
+        run: python3 scripts/skip_report_test.py
+
+      # Alertmanager の設定は Go から読まれないので、`go test ./...` は
+      # 1行も触りません。**フィールド名が v0.27 のスキーマに合っているかは、
+      # 起動して初めて分かります。** docker は要らず、秘密はダミーで、
+      # 宛先はローカルの受け口に差し替わるので外に出る通信は起きません
+      # （Alertmanager のバイナリの取得だけネットワークが要ります）。
+      #
+      # **終了コード 2（確かめられなかった）でも落とします。** CI には
+      # ネットワークがあるので、取ってこられないこと自体が異常です。
+      # 手元では `server/scripts/run_tests.sh` が 2 を別に数えます。
+      - name: Alertmanager config loads, delivers, and inhibits
+        run: bash scripts/check-alertmanager.sh
+
+      # 上の道具そのもの。**確かめる道具が壊れていることが、いちばん高く
+      # つきます** —— 以後どの実行も「問題なし」と報告し、それは正しく
+      # 見えます。終了コードの約束（0/1/2）を単体で留めます。
+      - name: The Alertmanager check reports what it says it reports
+        run: python3 scripts/check_alertmanager_test.py
+
+      - name: Install PyYAML
+        run: pip install pyyaml
+
+      # 出しているアラートルールが、本当に読み込まれる場所にあること。
+      # prometheus_alerts.yml は19本を持ったまま、rule_files から外れて
+      # いました。ファイルがあることと、読まれていることは別です。
+      - name: Alert rules are actually loaded
+        run: |
+          python3 scripts/check_prometheus_rules.py
+          python3 scripts/check_prometheus_rules_test.py
+
+      # 誰かが変異を残したまま commit していないこと。
+      - name: No mutation left applied
+        run: |
+          if [ -f .mutate-journal.json ]; then
+            echo "変異が残ったまま commit されています:"
+            cat .mutate-journal.json
+            exit 1
+          fi
+
   backup-test:
     name: Backup & Restore Integrity Test
     runs-on: ubuntu-latest

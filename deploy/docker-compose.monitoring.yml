@@ -54,6 +54,64 @@ services:
       com.edr.component: "monitoring"
       com.edr.service: "prometheus"
 
+  # ─── Alertmanager ────────────────────────────────────────────────────────
+  #
+  # これが無いあいだ、31本のアラートは評価され、発火し、Prometheus の画面に
+  # 赤く出て、そこで終わっていました。**ルールを書くことと、誰かに届くことは
+  # 別です。**
+  #
+  # 宛先はリポジトリに置きません。環境変数を起動時にファイルへ落とし、
+  # 設定側は api_url_file / routing_key_file で読みます（Alertmanager は
+  # 設定ファイル内で環境変数を展開しないため）。
+  alertmanager:
+    image: prom/alertmanager:v0.27.0
+    restart: unless-stopped
+    # 秘密を tmpfs に書いてから起動します。イメージのディスクには残りません。
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        set -e
+        mkdir -p /etc/alertmanager/secrets
+        if [ -z "$${ALERT_SLACK_WEBHOOK_URL}" ]; then
+          echo "ALERT_SLACK_WEBHOOK_URL が未設定です。" \
+               "この状態で起動すると、アラートはどこにも行きません。" >&2
+          exit 1
+        fi
+        printf '%s' "$${ALERT_SLACK_WEBHOOK_URL}" > /etc/alertmanager/secrets/slack_webhook_url
+        printf '%s' "$${ALERT_PAGERDUTY_KEY}" > /etc/alertmanager/secrets/pagerduty_key
+        chmod 600 /etc/alertmanager/secrets/*
+        exec /bin/alertmanager \
+          --config.file=/etc/alertmanager/alertmanager.yml \
+          --storage.path=/alertmanager \
+          --web.external-url=$${ALERT_EXTERNAL_URL:-http://localhost:9093}
+    environment:
+      ALERT_SLACK_WEBHOOK_URL: ${ALERT_SLACK_WEBHOOK_URL:-}
+      ALERT_PAGERDUTY_KEY: ${ALERT_PAGERDUTY_KEY:-}
+      ALERT_EXTERNAL_URL: ${ALERT_EXTERNAL_URL:-http://localhost:9093}
+    ports:
+      - "9093:9093"
+    volumes:
+      - ./alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - alertmanager_data:/alertmanager
+    tmpfs:
+      - /etc/alertmanager/secrets:mode=700
+    networks:
+      - monitoring
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:9093/-/healthy || exit 1"]
+      interval: 30s
+      timeout: 10s
+      start_period: 15s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+    labels:
+      com.edr.component: "monitoring"
+      com.edr.service: "alertmanager"
+
   # ─── Grafana ─────────────────────────────────────────────────────────────
   grafana:
     image: grafana/grafana:10.4.2
@@ -137,6 +195,8 @@ networks:
 # ─── Volumes ──────────────────────────────────────────────────────────────────
 volumes:
   prometheus_data:
+    driver: local
+  alertmanager_data:
     driver: local
   grafana_data:
     driver: local

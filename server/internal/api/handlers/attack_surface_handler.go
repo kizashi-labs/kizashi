@@ -250,10 +250,14 @@ func (h *AttackSurfaceHandler) GetStats(c *gin.Context) {
 	}
 
 	var newAssets int
-	_ = h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM attack_surface_assets WHERE first_seen >= NOW() - INTERVAL '7 days'`).Scan(&newAssets)
+	if !ReadOK(c, h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM attack_surface_assets WHERE first_seen >= NOW() - INTERVAL '7 days'`).Scan(&newAssets)) {
+		return
+	}
 
 	var total int
-	_ = h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM attack_surface_assets`).Scan(&total)
+	if !ReadOK(c, h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM attack_surface_assets`).Scan(&total)) {
+		return
+	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"total":           total,
@@ -324,11 +328,13 @@ func (h *AttackSurfaceHandler) StartScan(c *gin.Context) {
 		return
 	}
 
-	_, _ = h.pool.Exec(ctx, `
-		UPDATE attack_surface_scans
-		SET status = 'completed', assets_found = 0, new_assets = 0, completed_at = NOW()
-		WHERE id = $1`,
-		id)
+	if _, err := h.pool.Exec(ctx, `
+			UPDATE attack_surface_scans
+			SET status = 'completed', assets_found = 0, new_assets = 0, completed_at = NOW()
+			WHERE id = $1`,
+		id); !WriteOK(c, err) {
+		return
+	}
 
 	c.JSON(http.StatusCreated, gin.H{"id": id, "status": "running"})
 }

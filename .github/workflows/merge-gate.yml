@@ -174,7 +174,11 @@ jobs:
 
             for f in $files; do
               num="$(basename "$f" | sed 's|_.*||')"
-              if echo "$main_nums" | grep -qx "$num"; then
+              # here-string にするのは ci.yml と同じ理由です (pipefail + `grep -q`
+              # の SIGPIPE で、**一致したときに「一致しなかった」を返す**)。
+              # main_nums は今は小さいので実害は出ていませんが、番号が増えれば
+              # 「衝突しているのに衝突していないと言う」門になります。
+              if grep -qx "$num" <<<"$main_nums"; then
                 echo "::${level}::PR #$pr が追加する $(basename "$f") の番号 $num は、すでに main にあります。マージすると main が赤くなります。"
                 collisions=$((collisions + 1))
               fi

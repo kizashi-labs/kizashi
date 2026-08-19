@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/tls"
+	"errors"
 	"fmt"
 	"github.com/edr-platform/server/internal/mailhdr"
 	"log/slog"
@@ -13,6 +14,8 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+
+	"github.com/jackc/pgx/v5"
 )
 
 // notifyThresholds are the days-before-expiry milestones at which emails are sent.
@@ -44,9 +47,9 @@ func (n *LicenseExpiryNotifier) Run(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-timer.C:
-			n.check(ctx)
+			trackRun(ctx, "license_expiry_notifier", n.check)
 		case <-ticker.C:
-			n.check(ctx)
+			trackRun(ctx, "license_expiry_notifier", n.check)
 		}
 	}
 }
@@ -58,7 +61,10 @@ func (n *LicenseExpiryNotifier) check(ctx context.Context) {
 		`SELECT organization_name, plan, expires_at FROM license_info WHERE id = 1`,
 	).Scan(&orgName, &plan, &expiresAt)
 	if err != nil {
-		slog.Debug("ライセンス期限チェック: license_info 読み込み失敗", "error", err)
+		if errors.Is(err, pgx.ErrNoRows) {
+			return // ライセンス行がまだ無いだけ。失敗ではありません。
+		}
+		fail(ctx, err, "ライセンス期限チェック: license_info 読み込み失敗")
 		return
 	}
 
@@ -88,23 +94,11 @@ func (n *LicenseExpiryNotifier) sendNotification(
 		return
 	}
 
-	rows, err := n.pool.Query(ctx,
-		`SELECT email FROM users WHERE role = 'admin' AND email IS NOT NULL AND email <> '' AND active = true`,
-	)
+	recipients, err := adminRecipients(ctx, n.pool)
 	if err != nil {
-		slog.Warn("ライセンス期限通知: 管理者メール取得失敗", "error", err)
+		fail(ctx, err, "ライセンス期限通知: 管理者メール取得失敗")
 		return
 	}
-	defer rows.Close()
-
-	var recipients []string
-	for rows.Next() {
-		var email string
-		if err := rows.Scan(&email); err == nil && email != "" {
-			recipients = append(recipients, email)
-		}
-	}
-	rows.Close()
 
 	if len(recipients) == 0 {
 		slog.Info("ライセンス期限通知: 管理者メールアドレスが見つかりません")
@@ -114,7 +108,7 @@ func (n *LicenseExpiryNotifier) sendNotification(
 	subject, body := buildLicenseExpiryEmail(orgName, plan, expiresAt, daysLeft)
 	for _, to := range recipients {
 		if err := sendLicenseSMTP(smtpHost, to, subject, body); err != nil {
-			slog.Warn("ライセンス期限通知メール送信失敗", "to", to, "error", err)
+			fail(ctx, err, "ライセンス期限通知メール送信失敗", "to", to)
 		} else {
 			slog.Info("ライセンス期限通知メールを送信しました", "to", to, "days_left", daysLeft)
 		}
@@ -179,7 +173,7 @@ func (n *LicenseExpiryNotifier) createAlert(
 		title, description, severity,
 	).Scan(&alertID)
 	if err != nil {
-		slog.Warn("ライセンス期限アラート作成失敗", "error", err)
+		fail(ctx, err, "ライセンス期限アラート作成失敗")
 		return
 	}
 	slog.Info("ライセンス期限アラートを作成しました", "alert_id", alertID, "days_left", daysLeft)

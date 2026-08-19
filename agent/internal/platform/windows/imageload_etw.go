@@ -61,7 +61,7 @@ func (c *ETWImageLoadCollector) Start(ctx context.Context, out chan<- collector.
 	c.verifyCh = make(chan collector.ImageLoadEvent, 4096)
 	go c.verifyWorker(ctx)
 	if err := c.startETW(ctx); err != nil {
-		slog.Warn("ETWイメージロード監視を開始できませんでした", "error", err)
+		etwSensorFailed(sensorETWImageLoad, err)
 		return nil
 	}
 	slog.Info("ETWイメージロード監視を開始しました (Microsoft-Windows-Kernel-Process, IMAGE)")

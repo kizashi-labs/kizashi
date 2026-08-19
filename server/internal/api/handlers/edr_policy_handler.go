@@ -21,12 +21,7 @@ func NewEDRPolicyHandler(pool *pgxpool.Pool) *EDRPolicyHandler {
 }
 
 func (h *EDRPolicyHandler) tableExists(c *gin.Context, name string) bool {
-	var exists bool
-	_ = h.pool.QueryRow(c.Request.Context(),
-		`SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name=$1)`,
-		name,
-	).Scan(&exists)
-	return exists
+	return tableIsThere(c.Request.Context(), h.pool, name)
 }
 
 type edrPolicy struct {
@@ -85,7 +80,9 @@ func (h *EDRPolicyHandler) List(c *gin.Context) {
 		policies = append(policies, p)
 	}
 	if err := rows.Err(); err != nil {
-		slog.Warn("row iteration error", "error", err)
+		slog.Error("rows.Err: 結果の読み出しが途中で失敗しました", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "ポリシーの取得に失敗しました"})
+		return
 	}
 	if policies == nil {
 		policies = []edrPolicy{}
@@ -116,7 +113,12 @@ func (h *EDRPolicyHandler) Get(c *gin.Context) {
 	}
 
 	// Include assignments
-	assignments := h.getAssignments(c, id)
+	assignments, err := h.getAssignments(c, id)
+	if err != nil {
+		slog.Error("edr_policies: 割り当てを読めませんでした", "policy", id, "error", err)
+		ReadFailure(c, err, gin.H{"policy": p, "assignments": []edrPolicyAssignment{}})
+		return
+	}
 	c.JSON(http.StatusOK, gin.H{"policy": p, "assignments": assignments})
 }
 
@@ -215,7 +217,8 @@ func (h *EDRPolicyHandler) Update(c *gin.Context) {
 func (h *EDRPolicyHandler) Delete(c *gin.Context) {
 	id := c.Param("id")
 	if !h.tableExists(c, "edr_policies") {
-		c.JSON(http.StatusOK, gin.H{"message": "削除しました"})
+		// **「削除しました」と答えていました。** 1行も消していません。
+		FeatureNotInstalled(c, "EDR ポリシーの削除")
 		return
 	}
 	_, err := h.pool.Exec(c.Request.Context(), "DELETE FROM edr_policies WHERE id = $1", id)
@@ -321,24 +324,36 @@ func (h *EDRPolicyHandler) AssignToAgent(c *gin.Context) {
 // GetAssignments handles GET /admin/edr-policies/:id/assignments
 func (h *EDRPolicyHandler) GetAssignments(c *gin.Context) {
 	id := c.Param("id")
-	assignments := h.getAssignments(c, id)
+	assignments, err := h.getAssignments(c, id)
+	if err != nil {
+		slog.Error("edr_policies: 割り当てを読めませんでした", "policy", id, "error", err)
+		ReadFailure(c, err, gin.H{"assignments": []edrPolicyAssignment{}, "count": 0})
+		return
+	}
 	c.JSON(http.StatusOK, gin.H{"assignments": assignments, "count": len(assignments)})
 }
 
-func (h *EDRPolicyHandler) getAssignments(c *gin.Context, policyID string) []edrPolicyAssignment {
+// getAssignments reads which agents and groups this policy is applied to.
+//
+// 読めなかったときは error を返します。以前は空のスライスを返していて、
+// 呼び出し側はそれを 200 で返すので、画面には「割り当て 0件」と出ます。
+// 実際には500台に配られているかもしれません。「どこにも当たっていない
+// ポリシー」に見えるので、消してよいものとして扱われます。
+func (h *EDRPolicyHandler) getAssignments(c *gin.Context, policyID string) ([]edrPolicyAssignment, error) {
 	if !h.tableExists(c, "edr_policy_assignments") {
-		return []edrPolicyAssignment{}
+		// 本当にテーブルが無い = まだ1件も割り当てていない。0件は事実です。
+		return []edrPolicyAssignment{}, nil
 	}
 	rows, err := h.pool.Query(c.Request.Context(), `
 		SELECT id, policy_id, agent_id::text, group_id::text, assigned_at, assigned_by::text
 		FROM edr_policy_assignments WHERE policy_id = $1
 		ORDER BY assigned_at DESC`, policyID)
 	if err != nil {
-		return []edrPolicyAssignment{}
+		return nil, err
 	}
 	defer rows.Close()
 
-	var assignments []edrPolicyAssignment
+	assignments := []edrPolicyAssignment{}
 	for rows.Next() {
 		a := edrPolicyAssignment{}
 		if err := rows.Scan(&a.ID, &a.PolicyID, &a.AgentID, &a.GroupID, &a.AssignedAt, &a.AssignedBy); err != nil {
@@ -347,10 +362,7 @@ func (h *EDRPolicyHandler) getAssignments(c *gin.Context, policyID string) []edr
 		assignments = append(assignments, a)
 	}
 	if err := rows.Err(); err != nil {
-		slog.Warn("row iteration error", "error", err)
+		return nil, err
 	}
-	if assignments == nil {
-		assignments = []edrPolicyAssignment{}
-	}
-	return assignments
+	return assignments, nil
 }

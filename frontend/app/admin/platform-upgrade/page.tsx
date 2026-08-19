@@ -10,6 +10,8 @@ import {
 } from 'lucide-react'
 
 
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type UpgradeType   = 'patch' | 'minor' | 'major'
@@ -169,16 +171,16 @@ function ScheduleModal({ upgrades, onClose, onSchedule }: {
 
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-      <div className="bg-falcon-surface border border-falcon-border rounded-xl w-full max-w-md">
-        <div className="flex items-center justify-between p-4 border-b border-falcon-border">
+      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl w-full max-w-md">
+        <div className="flex items-center justify-between p-4 border-b border-[#1e2d42]">
           <h3 className="text-white font-semibold">アップグレードのスケジュール</h3>
-          <button onClick={onClose} className="text-falcon-muted hover:text-white"><X className="w-5 h-5" /></button>
+          <button onClick={onClose} className="text-[#7d92b0] hover:text-white"><X className="w-5 h-5" /></button>
         </div>
         <div className="p-4 space-y-3">
           <div>
-            <label className="block text-falcon-muted text-xs mb-1">バージョン</label>
+            <label className="block text-[#7d92b0] text-xs mb-1">バージョン</label>
             <select value={form.version} onChange={e => handle('version', e.target.value)}
-              className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-red">
+              className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-[#e8002d]">
               {upgrades.map(u => (
                 <option key={u.version} value={u.version}>v{u.version} ({u.type})</option>
               ))}
@@ -186,20 +188,20 @@ function ScheduleModal({ upgrades, onClose, onSchedule }: {
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-falcon-muted text-xs mb-1">実施日</label>
+              <label className="block text-[#7d92b0] text-xs mb-1">実施日</label>
               <input type="date" value={form.date} onChange={e => handle('date', e.target.value)}
-                className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-red" />
+                className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-[#e8002d]" />
             </div>
             <div>
-              <label className="block text-falcon-muted text-xs mb-1">実施時刻</label>
+              <label className="block text-[#7d92b0] text-xs mb-1">実施時刻</label>
               <input type="time" value={form.time} onChange={e => handle('time', e.target.value)}
-                className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-red" />
+                className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-[#e8002d]" />
             </div>
           </div>
           <div>
-            <label className="block text-falcon-muted text-xs mb-1">メンテナンス時間 (分)</label>
+            <label className="block text-[#7d92b0] text-xs mb-1">メンテナンス時間 (分)</label>
             <input type="number" value={form.maintenance_window} onChange={e => handle('maintenance_window', parseInt(e.target.value))}
-              className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-red" />
+              className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-[#e8002d]" />
           </div>
           <div className="space-y-2">
             {[
@@ -210,25 +212,25 @@ function ScheduleModal({ upgrades, onClose, onSchedule }: {
                 <button
                   type="button"
                   onClick={() => handle(toggle.key, !(form as Record<string, unknown>)[toggle.key])}
-                  className={`w-10 h-5 rounded-full transition-colors relative ${(form as Record<string, unknown>)[toggle.key] ? 'bg-falcon-red' : 'bg-falcon-border'}`}
+                  className={`w-10 h-5 rounded-full transition-colors relative ${(form as Record<string, unknown>)[toggle.key] ? 'bg-[#e8002d]' : 'bg-[#1e2d42]'}`}
                 >
-                  <span className={`absolute top-0.5 w-4 h-4 bg-falcon-text rounded-full transition-transform ${(form as Record<string, unknown>)[toggle.key] ? 'translate-x-5' : 'translate-x-0.5'}`} />
+                  <span className={`absolute top-0.5 w-4 h-4 bg-[#e2e8f4] rounded-full transition-transform ${(form as Record<string, unknown>)[toggle.key] ? 'translate-x-5' : 'translate-x-0.5'}`} />
                 </button>
-                <span className="text-falcon-muted text-sm">{toggle.label}</span>
+                <span className="text-[#7d92b0] text-sm">{toggle.label}</span>
               </label>
             ))}
           </div>
           <div>
-            <label className="block text-falcon-muted text-xs mb-1">メモ</label>
+            <label className="block text-[#7d92b0] text-xs mb-1">メモ</label>
             <textarea value={form.notes} onChange={e => handle('notes', e.target.value)} rows={2}
-              className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-red resize-none" />
+              className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-[#e8002d] resize-none" />
           </div>
         </div>
-        <div className="flex justify-end gap-2 p-4 border-t border-falcon-border">
-          <button onClick={onClose} className="px-4 py-2 rounded-lg border border-falcon-border text-falcon-muted hover:text-white text-sm">キャンセル</button>
+        <div className="flex justify-end gap-2 p-4 border-t border-[#1e2d42]">
+          <button onClick={onClose} className="px-4 py-2 rounded-lg border border-[#1e2d42] text-[#7d92b0] hover:text-white text-sm">キャンセル</button>
           <button
             onClick={() => onSchedule({ version: form.version, scheduled_at: `${form.date} ${form.time}`, maintenance_window: form.maintenance_window, notify_users: form.notify_users, auto_rollback: form.auto_rollback })}
-            className="px-4 py-2 rounded-lg bg-falcon-red text-white text-sm font-medium hover:bg-[#cc0027] transition-colors"
+            className="px-4 py-2 rounded-lg bg-[#e8002d] text-white text-sm font-medium hover:bg-[#cc0027] transition-colors"
           >
             スケジュール登録
           </button>
@@ -252,27 +254,27 @@ export default function PlatformUpgradePage() {
   const EMPTY_CURRENT: CurrentVersion = { version: '', build_date: '', components: [] }
   const { data: currentVer = EMPTY_CURRENT, refetch: refetchCurrent } = useQuery<CurrentVersion>({
     queryKey: ['platform-version'],
-    queryFn: () => apiFetch<CurrentVersion>('/api/v1/admin/platform/version').catch(() => EMPTY_CURRENT),
+    queryFn: () => apiFetch<CurrentVersion>('/api/v1/admin/platform/version'),
   })
 
   const { data: upgrades = [] } = useQuery<AvailableUpgrade[]>({
     queryKey: ['platform-upgrades'],
-    queryFn: () => apiFetchList<AvailableUpgrade>('/api/v1/admin/platform/upgrades').catch(() => []),
+    queryFn: () => apiFetchList<AvailableUpgrade>('/api/v1/admin/platform/upgrades'),
   })
 
   const { data: scheduled = [] } = useQuery<ScheduledUpgrade[]>({
     queryKey: ['platform-scheduled'],
-    queryFn: () => apiFetchList<ScheduledUpgrade>('/api/v1/admin/platform/upgrades/schedule').catch(() => []),
+    queryFn: () => apiFetchList<ScheduledUpgrade>('/api/v1/admin/platform/upgrades/schedule'),
   })
 
   const { data: history = [] } = useQuery<UpgradeHistory[]>({
     queryKey: ['platform-history'],
-    queryFn: () => apiFetchList<UpgradeHistory>('/api/v1/admin/platform/upgrade-history').catch(() => []),
+    queryFn: () => apiFetchList<UpgradeHistory>('/api/v1/admin/platform/upgrade-history'),
   })
 
   const { data: agentDist = [] } = useQuery<AgentVersionDist[]>({
     queryKey: ['platform-agent-dist'],
-    queryFn: () => apiFetchList<AgentVersionDist>('/api/v1/admin/platform/agent-versions').catch(() => []),
+    queryFn: () => apiFetchList<AgentVersionDist>('/api/v1/admin/platform/agent-versions'),
   })
 
   const scheduleMutation = useMutation({
@@ -294,45 +296,46 @@ export default function PlatformUpgradePage() {
 
   return (
     <div className="min-h-screen bg-[#070d19] p-6 space-y-6">
+      <PageDataUnavailable />
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="p-2 rounded-lg bg-falcon-surface border border-falcon-border">
-            <ArrowUpCircle className="w-6 h-6 text-falcon-red" />
+          <div className="p-2 rounded-lg bg-[#0d1220] border border-[#1e2d42]">
+            <ArrowUpCircle className="w-6 h-6 text-[#e8002d]" />
           </div>
           <div>
             <h1 className="text-2xl font-bold text-white">プラットフォームアップグレード管理</h1>
-            <p className="text-sm text-falcon-muted mt-0.5">バージョン管理・スケジュール・ロールバック</p>
+            <p className="text-sm text-[#7d92b0] mt-0.5">バージョン管理・スケジュール・ロールバック</p>
           </div>
         </div>
         <button
           onClick={() => refetchCurrent()}
-          className="flex items-center gap-2 px-3 py-2 rounded-lg bg-falcon-surface border border-falcon-border text-falcon-muted hover:text-white hover:border-falcon-red transition-colors text-sm"
+          className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#0d1220] border border-[#1e2d42] text-[#7d92b0] hover:text-white hover:border-[#e8002d] transition-colors text-sm"
         >
           <RefreshCw className="w-4 h-4" />更新
         </button>
       </div>
 
       {/* Current Version Card */}
-      <div className="bg-falcon-surface border border-falcon-border rounded-xl p-6">
+      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-6">
         <h2 className="text-lg font-semibold text-white mb-4">現在のバージョン</h2>
         <div className="flex items-start gap-8 flex-wrap">
           <div>
-            <p className="text-falcon-muted text-xs mb-1">バージョン</p>
+            <p className="text-[#7d92b0] text-xs mb-1">バージョン</p>
             <p className="text-4xl font-bold text-white">{currentVer.version ? `v${currentVer.version}` : '—'}</p>
           </div>
           <div>
-            <p className="text-falcon-muted text-xs mb-1">ビルド日</p>
+            <p className="text-[#7d92b0] text-xs mb-1">ビルド日</p>
             <p className="text-white font-medium">{currentVer.build_date}</p>
           </div>
           <div className="flex-1 min-w-[300px]">
-            <p className="text-falcon-muted text-xs mb-2">コンポーネント</p>
+            <p className="text-[#7d92b0] text-xs mb-2">コンポーネント</p>
             <div className="grid grid-cols-2 gap-2">
               {currentVer.components.map(comp => (
                 <div key={comp.name} className="flex items-center justify-between bg-[#070d19] rounded-lg px-3 py-2">
                   <div>
                     <p className="text-white text-sm font-medium">{comp.name}</p>
-                    <p className="text-falcon-muted text-xs">{!comp.version || comp.version === '—' || comp.version === '未設定' ? (comp.version || '—') : `v${comp.version}`}</p>
+                    <p className="text-[#7d92b0] text-xs">{!comp.version || comp.version === '—' || comp.version === '未設定' ? (comp.version || '—') : `v${comp.version}`}</p>
                   </div>
                   <ComponentStatusBadge status={comp.status} />
                 </div>
@@ -343,11 +346,11 @@ export default function PlatformUpgradePage() {
       </div>
 
       {/* Available Updates */}
-      <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
-        <div className="p-4 border-b border-falcon-border">
+      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
+        <div className="p-4 border-b border-[#1e2d42]">
           <h2 className="text-lg font-semibold text-white">利用可能なアップデート</h2>
         </div>
-        <div className="divide-y divide-falcon-border">
+        <div className="divide-y divide-[#1e2d42]">
           {upgrades.map(upg => (
             <div key={upg.id} className="p-4">
               <div className="flex items-start justify-between gap-4">
@@ -355,15 +358,15 @@ export default function PlatformUpgradePage() {
                   <div className="flex items-center gap-3 mb-2 flex-wrap">
                     <span className="text-white font-bold text-lg">v{upg.version}</span>
                     <TypeBadge type={upg.type} />
-                    <span className="text-falcon-muted text-sm">{upg.release_date} リリース</span>
-                    <span className="text-falcon-muted text-sm">{upg.size_mb} MB</span>
+                    <span className="text-[#7d92b0] text-sm">{upg.release_date} リリース</span>
+                    <span className="text-[#7d92b0] text-sm">{upg.size_mb} MB</span>
                   </div>
-                  <p className="text-falcon-muted text-sm">{upg.changelog_summary}</p>
+                  <p className="text-[#7d92b0] text-sm">{upg.changelog_summary}</p>
                   {expandedChangelog === upg.id && (
-                    <ul className="mt-3 space-y-1.5 pl-4 border-l border-falcon-border">
+                    <ul className="mt-3 space-y-1.5 pl-4 border-l border-[#1e2d42]">
                       {upg.changelog_details.map((item, i) => (
-                        <li key={i} className="text-falcon-muted text-sm flex items-start gap-2">
-                          <span className="text-falcon-red mt-1 shrink-0">•</span>
+                        <li key={i} className="text-[#7d92b0] text-sm flex items-start gap-2">
+                          <span className="text-[#e8002d] mt-1 shrink-0">•</span>
                           <span>{item}</span>
                         </li>
                       ))}
@@ -373,13 +376,13 @@ export default function PlatformUpgradePage() {
                 <div className="flex items-center gap-2 shrink-0">
                   <button
                     onClick={() => setExpandedChangelog(expandedChangelog === upg.id ? null : upg.id)}
-                    className="px-3 py-1.5 rounded-lg border border-falcon-border text-falcon-muted hover:text-white text-xs transition-colors flex items-center gap-1"
+                    className="px-3 py-1.5 rounded-lg border border-[#1e2d42] text-[#7d92b0] hover:text-white text-xs transition-colors flex items-center gap-1"
                   >
                     詳細 {expandedChangelog === upg.id ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
                   </button>
                   <button
                     onClick={() => setShowSchedule(true)}
-                    className="px-3 py-1.5 rounded-lg bg-falcon-red text-white text-xs font-medium hover:bg-[#cc0027] transition-colors"
+                    className="px-3 py-1.5 rounded-lg bg-[#e8002d] text-white text-xs font-medium hover:bg-[#cc0027] transition-colors"
                   >
                     スケジュール
                   </button>
@@ -391,20 +394,20 @@ export default function PlatformUpgradePage() {
       </div>
 
       {/* Pre-upgrade Checklist */}
-      <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
+      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
         <button
           onClick={() => setChecklistExpanded(prev => !prev)}
           className="w-full flex items-center justify-between p-4 hover:bg-[#070d19] transition-colors"
         >
           <div className="flex items-center gap-2">
-            <CheckSquare className="w-5 h-5 text-falcon-red" />
+            <CheckSquare className="w-5 h-5 text-[#e8002d]" />
             <h2 className="text-lg font-semibold text-white">アップグレード前チェックリスト</h2>
             {allChecked && <span className="text-xs bg-green-500/20 text-green-400 px-2 py-0.5 rounded-full">全完了</span>}
           </div>
-          {checklistExpanded ? <ChevronUp className="w-5 h-5 text-falcon-muted" /> : <ChevronDown className="w-5 h-5 text-falcon-muted" />}
+          {checklistExpanded ? <ChevronUp className="w-5 h-5 text-[#7d92b0]" /> : <ChevronDown className="w-5 h-5 text-[#7d92b0]" />}
         </button>
         {checklistExpanded && (
-          <div className="border-t border-falcon-border divide-y divide-falcon-border">
+          <div className="border-t border-[#1e2d42] divide-y divide-[#1e2d42]">
             {CHECKLIST_ITEMS.map(item => (
               <div
                 key={item.id}
@@ -413,11 +416,11 @@ export default function PlatformUpgradePage() {
               >
                 {checkedItems[item.id]
                   ? <CheckSquare className="w-5 h-5 text-green-400 shrink-0 mt-0.5" />
-                  : <Square className="w-5 h-5 text-falcon-muted shrink-0 mt-0.5" />
+                  : <Square className="w-5 h-5 text-[#7d92b0] shrink-0 mt-0.5" />
                 }
                 <div>
                   <p className={`text-sm font-medium ${checkedItems[item.id] ? 'text-green-400 line-through' : 'text-white'}`}>{item.label}</p>
-                  <p className="text-xs text-falcon-muted mt-0.5">{item.desc}</p>
+                  <p className="text-xs text-[#7d92b0] mt-0.5">{item.desc}</p>
                 </div>
               </div>
             ))}
@@ -426,39 +429,39 @@ export default function PlatformUpgradePage() {
       </div>
 
       {/* Upgrade Schedule */}
-      <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
-        <div className="flex items-center justify-between p-4 border-b border-falcon-border">
+      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
+        <div className="flex items-center justify-between p-4 border-b border-[#1e2d42]">
           <h2 className="text-lg font-semibold text-white">アップグレードスケジュール</h2>
           <button onClick={() => setShowSchedule(true)}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-falcon-red text-white text-sm font-medium hover:bg-[#cc0027] transition-colors">
+            className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#e8002d] text-white text-sm font-medium hover:bg-[#cc0027] transition-colors">
             <ArrowUpCircle className="w-4 h-4" />スケジュール追加
           </button>
         </div>
         {scheduled.length === 0 ? (
-          <div className="p-8 text-center text-falcon-muted text-sm">スケジュールされたアップグレードはありません</div>
+          <div className="p-8 text-center text-[#7d92b0] text-sm">スケジュールされたアップグレードはありません</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-falcon-border">
+                <tr className="border-b border-[#1e2d42]">
                   {['バージョン', '予定日時', 'ステータス', 'メンテナンス時間', 'ロールバック', 'メモ'].map(h => (
-                    <th key={h} className="text-left px-4 py-3 text-falcon-muted text-xs font-medium uppercase whitespace-nowrap">{h}</th>
+                    <th key={h} className="text-left px-4 py-3 text-[#7d92b0] text-xs font-medium uppercase whitespace-nowrap">{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {scheduled.map(s => (
-                  <tr key={s.id} className="border-b border-falcon-border hover:bg-[#070d19] transition-colors">
+                  <tr key={s.id} className="border-b border-[#1e2d42] hover:bg-[#070d19] transition-colors">
                     <td className="px-4 py-3 text-white font-medium text-sm">v{s.version}</td>
-                    <td className="px-4 py-3 text-falcon-muted text-sm whitespace-nowrap">{s.scheduled_at}</td>
+                    <td className="px-4 py-3 text-[#7d92b0] text-sm whitespace-nowrap">{s.scheduled_at}</td>
                     <td className="px-4 py-3"><StatusBadge status={s.status} /></td>
-                    <td className="px-4 py-3 text-falcon-muted text-sm">{s.maintenance_window}分</td>
+                    <td className="px-4 py-3 text-[#7d92b0] text-sm">{s.maintenance_window}分</td>
                     <td className="px-4 py-3">
-                      <span className={`text-xs font-medium ${s.rollback_available ? 'text-green-400' : 'text-falcon-muted'}`}>
+                      <span className={`text-xs font-medium ${s.rollback_available ? 'text-green-400' : 'text-[#7d92b0]'}`}>
                         {s.rollback_available ? '有効' : '無効'}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-falcon-muted text-sm">{s.notes}</td>
+                    <td className="px-4 py-3 text-[#7d92b0] text-sm">{s.notes}</td>
                   </tr>
                 ))}
               </tbody>
@@ -468,8 +471,8 @@ export default function PlatformUpgradePage() {
       </div>
 
       {/* Upgrade History */}
-      <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
-        <div className="flex items-center justify-between p-4 border-b border-falcon-border">
+      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
+        <div className="flex items-center justify-between p-4 border-b border-[#1e2d42]">
           <h2 className="text-lg font-semibold text-white">アップグレード履歴</h2>
           {lastCompleted && (
             <button
@@ -483,21 +486,21 @@ export default function PlatformUpgradePage() {
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-falcon-border">
+              <tr className="border-b border-[#1e2d42]">
                 {['バージョン', '開始日時', '完了日時', '所要時間', 'ステータス', 'デプロイ担当'].map(h => (
-                  <th key={h} className="text-left px-4 py-3 text-falcon-muted text-xs font-medium uppercase whitespace-nowrap">{h}</th>
+                  <th key={h} className="text-left px-4 py-3 text-[#7d92b0] text-xs font-medium uppercase whitespace-nowrap">{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {history.map(h => (
-                <tr key={h.id} className="border-b border-falcon-border hover:bg-[#070d19] transition-colors">
+                <tr key={h.id} className="border-b border-[#1e2d42] hover:bg-[#070d19] transition-colors">
                   <td className="px-4 py-3 text-white font-medium text-sm">v{h.version}</td>
-                  <td className="px-4 py-3 text-falcon-muted text-sm whitespace-nowrap">{h.started_at}</td>
-                  <td className="px-4 py-3 text-falcon-muted text-sm whitespace-nowrap">{h.completed_at}</td>
-                  <td className="px-4 py-3 text-falcon-muted text-sm">{h.duration_min}分</td>
+                  <td className="px-4 py-3 text-[#7d92b0] text-sm whitespace-nowrap">{h.started_at}</td>
+                  <td className="px-4 py-3 text-[#7d92b0] text-sm whitespace-nowrap">{h.completed_at}</td>
+                  <td className="px-4 py-3 text-[#7d92b0] text-sm">{h.duration_min}分</td>
                   <td className="px-4 py-3"><StatusBadge status={h.status} /></td>
-                  <td className="px-4 py-3 text-falcon-muted text-sm">{h.deployed_by}</td>
+                  <td className="px-4 py-3 text-[#7d92b0] text-sm">{h.deployed_by}</td>
                 </tr>
               ))}
             </tbody>
@@ -506,35 +509,35 @@ export default function PlatformUpgradePage() {
       </div>
 
       {/* Agent Version Distribution */}
-      <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
-        <div className="p-4 border-b border-falcon-border">
+      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
+        <div className="p-4 border-b border-[#1e2d42]">
           <div className="flex items-center gap-2">
-            <Cpu className="w-5 h-5 text-falcon-red" />
+            <Cpu className="w-5 h-5 text-[#e8002d]" />
             <h2 className="text-lg font-semibold text-white">エージェントバージョン分布</h2>
           </div>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-falcon-border">
+              <tr className="border-b border-[#1e2d42]">
                 {['バージョン', '台数', '全体比率', '分布', ''].map(h => (
-                  <th key={h} className="text-left px-4 py-3 text-falcon-muted text-xs font-medium uppercase">{h}</th>
+                  <th key={h} className="text-left px-4 py-3 text-[#7d92b0] text-xs font-medium uppercase">{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {agentDist.map(a => (
-                <tr key={a.version} className="border-b border-falcon-border hover:bg-[#070d19] transition-colors">
+                <tr key={a.version} className="border-b border-[#1e2d42] hover:bg-[#070d19] transition-colors">
                   <td className="px-4 py-3">
                     <span className="text-white font-medium text-sm">v{a.version}</span>
                     {a.version === currentVer.version && (
                       <span className="ml-2 text-xs bg-green-500/20 text-green-400 px-1.5 py-0.5 rounded-sm">最新</span>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-falcon-muted text-sm">{(a.count ?? 0).toLocaleString()}台</td>
-                  <td className="px-4 py-3 text-falcon-muted text-sm">{a.pct.toFixed(1)}%</td>
+                  <td className="px-4 py-3 text-[#7d92b0] text-sm">{(a.count ?? 0).toLocaleString()}台</td>
+                  <td className="px-4 py-3 text-[#7d92b0] text-sm">{a.pct.toFixed(1)}%</td>
                   <td className="px-4 py-3 min-w-[160px]">
-                    <div className="h-2 bg-falcon-border rounded-full overflow-hidden">
+                    <div className="h-2 bg-[#1e2d42] rounded-full overflow-hidden">
                       <div
                         className="h-full rounded-full transition-all"
                         style={{
@@ -546,7 +549,7 @@ export default function PlatformUpgradePage() {
                   </td>
                   <td className="px-4 py-3">
                     {a.version !== currentVer.version && (
-                      <button className="flex items-center gap-1 text-xs text-falcon-muted hover:text-white border border-falcon-border hover:border-falcon-red px-2 py-1 rounded-sm transition-colors">
+                      <button className="flex items-center gap-1 text-xs text-[#7d92b0] hover:text-white border border-[#1e2d42] hover:border-[#e8002d] px-2 py-1 rounded-sm transition-colors">
                         <Download className="w-3 h-3" />強制アップデート
                       </button>
                     )}
@@ -570,15 +573,15 @@ export default function PlatformUpgradePage() {
       {/* Rollback Confirm */}
       {rollbackConfirm && lastCompleted && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-          <div className="bg-falcon-surface border border-falcon-border rounded-xl w-full max-w-sm">
-            <div className="p-4 border-b border-falcon-border">
+          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl w-full max-w-sm">
+            <div className="p-4 border-b border-[#1e2d42]">
               <div className="flex items-center gap-2">
                 <AlertTriangle className="w-5 h-5 text-orange-400" />
                 <h3 className="text-white font-semibold">ロールバックの確認</h3>
               </div>
             </div>
             <div className="p-4">
-              <p className="text-falcon-muted text-sm">
+              <p className="text-[#7d92b0] text-sm">
                 バージョン <span className="text-white font-medium">v{lastCompleted.version}</span> へロールバックしますか？<br /><br />
                 この操作により現在のバージョン <span className="text-white font-medium">v{currentVer.version}</span> から前バージョンに戻ります。
               </p>
@@ -586,8 +589,8 @@ export default function PlatformUpgradePage() {
                 <p className="text-orange-400 text-xs">ロールバック中はサービスが一時停止します</p>
               </div>
             </div>
-            <div className="flex justify-end gap-2 p-4 border-t border-falcon-border">
-              <button onClick={() => setRollbackConfirm(false)} className="px-4 py-2 rounded-lg border border-falcon-border text-falcon-muted hover:text-white text-sm">キャンセル</button>
+            <div className="flex justify-end gap-2 p-4 border-t border-[#1e2d42]">
+              <button onClick={() => setRollbackConfirm(false)} className="px-4 py-2 rounded-lg border border-[#1e2d42] text-[#7d92b0] hover:text-white text-sm">キャンセル</button>
               <button onClick={() => setRollbackConfirm(false)} className="px-4 py-2 rounded-lg bg-orange-500 text-white text-sm font-semibold hover:bg-orange-400 transition-colors flex items-center gap-2">
                 <RotateCcw className="w-4 h-4" />ロールバック実行
               </button>

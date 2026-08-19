@@ -25,10 +25,7 @@ func NewKnowledgeBaseHandler(pool *pgxpool.Pool) *KnowledgeBaseHandler {
 }
 
 func (h *KnowledgeBaseHandler) tableExists(c *gin.Context) bool {
-	var exists bool
-	_ = h.pool.QueryRow(c.Request.Context(),
-		`SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name='kb_articles')`).Scan(&exists)
-	return exists
+	return tableIsThere(c.Request.Context(), h.pool, "kb_articles")
 }
 
 func generateSlug(title string) string {
@@ -86,13 +83,7 @@ func (h *KnowledgeBaseHandler) List(c *gin.Context) {
 
 	limit, _ := strconv.Atoi(c.DefaultQuery("per_page", "50"))
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
-	if page < 1 {
-		page = 1
-	}
-	if limit < 1 || limit > 200 {
-		limit = 50
-	}
-	offset := (page - 1) * limit
+	page, limit, offset := clampPageParams(page, limit, 50, 200)
 
 	isAdmin := isAdminFromCtx(c)
 
@@ -119,7 +110,9 @@ func (h *KnowledgeBaseHandler) List(c *gin.Context) {
 	copy(countArgs, args)
 
 	var total int
-	_ = h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM kb_articles`+where, countArgs...).Scan(&total)
+	if !ReadOK(c, h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM kb_articles`+where, countArgs...).Scan(&total)) {
+		return
+	}
 
 	args = append(args, limit, offset)
 	query := `SELECT ` + kbSelectCols + ` FROM kb_articles` + where +
@@ -140,7 +133,9 @@ func (h *KnowledgeBaseHandler) List(c *gin.Context) {
 		}
 	}
 	if err := rows.Err(); err != nil {
-		slog.Warn("row iteration error", "error", err)
+		slog.Error("rows.Err: 結果の読み出しが途中で失敗しました", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to list articles"})
+		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{"articles": articles, "total": total, "page": page, "per_page": limit})
@@ -210,7 +205,9 @@ func (h *KnowledgeBaseHandler) Search(c *gin.Context) {
 		}
 	}
 	if err := rows.Err(); err != nil {
-		slog.Warn("row iteration error", "error", err)
+		slog.Error("rows.Err: 結果の読み出しが途中で失敗しました", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "search failed"})
+		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{"articles": results, "total": len(results), "query": q})
@@ -237,7 +234,9 @@ func (h *KnowledgeBaseHandler) Get(c *gin.Context) {
 	}
 
 	// Increment view count
-	_, _ = h.pool.Exec(ctx, `UPDATE kb_articles SET view_count=view_count+1, updated_at=NOW() WHERE id=$1`, id)
+	if _, err := h.pool.Exec(ctx, `UPDATE kb_articles SET view_count=view_count+1, updated_at=NOW() WHERE id=$1`, id); !WriteOK(c, err) {
+		return
+	}
 	a.ViewCount++
 
 	c.JSON(http.StatusOK, gin.H{"article": a})
@@ -263,7 +262,9 @@ func (h *KnowledgeBaseHandler) GetBySlug(c *gin.Context) {
 		return
 	}
 
-	_, _ = h.pool.Exec(ctx, `UPDATE kb_articles SET view_count=view_count+1, updated_at=NOW() WHERE id=$1`, a.ID)
+	if _, err := h.pool.Exec(ctx, `UPDATE kb_articles SET view_count=view_count+1, updated_at=NOW() WHERE id=$1`, a.ID); !WriteOK(c, err) {
+		return
+	}
 	a.ViewCount++
 
 	c.JSON(http.StatusOK, gin.H{"article": a})
@@ -302,7 +303,9 @@ func (h *KnowledgeBaseHandler) Create(c *gin.Context) {
 	slug := generateSlug(body.Title)
 	// Ensure slug uniqueness by appending timestamp if needed
 	var count int
-	_ = h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM kb_articles WHERE slug=$1`, slug).Scan(&count)
+	if !ReadOK(c, h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM kb_articles WHERE slug=$1`, slug).Scan(&count)) {
+		return
+	}
 	if count > 0 {
 		slug = slug + "-" + strconv.FormatInt(time.Now().UnixMilli(), 36)
 		// Remove non-ASCII
@@ -430,7 +433,9 @@ func (h *KnowledgeBaseHandler) GetStats(c *gin.Context) {
 	ctx := c.Request.Context()
 
 	var total, published int
-	_ = h.pool.QueryRow(ctx, `SELECT COUNT(*), SUM(CASE WHEN published THEN 1 ELSE 0 END) FROM kb_articles`).Scan(&total, &published)
+	if !ReadOK(c, h.pool.QueryRow(ctx, `SELECT COUNT(*), COALESCE(SUM(CASE WHEN published THEN 1 ELSE 0 END), 0) FROM kb_articles`).Scan(&total, &published)) {
+		return
+	}
 
 	// By category
 	catRows, err := h.pool.Query(ctx, `SELECT category, COUNT(*) FROM kb_articles GROUP BY category ORDER BY category`)

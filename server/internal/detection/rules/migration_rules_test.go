@@ -70,6 +70,61 @@ var insertHeaderRe = regexp.MustCompile(`(?is)INSERT\s+INTO\s+rules\s*\(([^)]*)\
 // content — the same start-too-early failure dollarBody describes, one clause up.
 var updateContentRe = regexp.MustCompile(`(?is)UPDATE\s+rules\s+SET\s+([^$;]*?)content\s*=\s*\$\$` + dollarBody + `\$\$([^;]*?)WHERE\s+name\s*=\s*'([^']*)'`)
 
+// updateContentNamedRe matches the OPENING of a named-dollar-quote content
+// rewrite: `UPDATE rules SET … content = $SIGMA$`.
+//
+// Migrations do not only use `$$`. The Sigma bodies are written with a NAMED tag
+// (`$SIGMA$…$SIGMA$`, and `$SEQ$` for the sequence rules) because the YAML itself
+// contains `$$`-hostile text. updateContentRe above is `$$`-only, so every one of
+// those statements was invisible to the extractor — 14 of them across migrations
+// 315/324/325/326/329/340/371/372. The harness then locked each rule's ORIGINAL
+// insert text while production ran the corrected one, which is precisely the drift
+// this file exists to eliminate. TestEveryUpdateRulesStatementIsUnderstood is what
+// surfaced it.
+//
+// Only the opening tag is matched here. RE2 has no backreferences, so the closing
+// `$TAG$` cannot be expressed in the same pattern; applyNamedContentUpdates scans
+// forward for it. The tag must be non-empty ([A-Za-z_]+) so this never overlaps
+// updateContentRe's `$$` form and double-claims a statement in the gate.
+var updateContentNamedRe = regexp.MustCompile(`(?is)UPDATE\s+rules\s+SET\s+[^$;]*?content\s*=\s*\$([A-Za-z_]+)\$`)
+
+// updateNamedTargetRe pulls the rule name out of the tail of such a statement.
+var updateNamedTargetRe = regexp.MustCompile(`(?is)WHERE\s+name\s*=\s*'([^']*)'`)
+
+// applyNamedContentUpdates is the named-tag counterpart of the `$$` handling in
+// applyContentUpdates. Written as a forward scan rather than a regex for the
+// backreference reason above.
+func applyNamedContentUpdates(rules []*DetectionRule, sql string) {
+	if !touchesRulesTable(sql) {
+		return
+	}
+	for _, loc := range updateContentNamedRe.FindAllStringSubmatchIndex(sql, -1) {
+		closeTag := "$" + sql[loc[2]:loc[3]] + "$"
+		body := sql[loc[1]:]
+		end := strings.Index(body, closeTag)
+		if end < 0 {
+			continue // unterminated dollar quote; leave the rule as inserted
+		}
+		content := body[:end]
+		// The name lives in this statement's tail. Stop at the terminator so a
+		// WHERE from the NEXT statement cannot be picked up — the same
+		// start-too-early hazard dollarBody describes for the `$$` form.
+		tail := body[end+len(closeTag):]
+		if semi := strings.Index(tail, ";"); semi >= 0 {
+			tail = tail[:semi]
+		}
+		nm := updateNamedTargetRe.FindStringSubmatch(tail)
+		if nm == nil {
+			continue
+		}
+		for _, r := range rules {
+			if r.Name == nm[1] {
+				r.Content = content
+			}
+		}
+	}
+}
+
 // dollarBody is the interior of a `$$…$$` literal, written so it can never cross
 // its own closing delimiter.
 //
@@ -101,7 +156,13 @@ const dollarBody = `((?:[^$]|\$[^$])*)`
 // This shape was invisible before: the harness reported "Test Custom Rule" as
 // enabled while migration 313 had disabled it, precisely because no pattern
 // covered a content-less UPDATE.
-var updateFieldsRe = regexp.MustCompile(`(?is)UPDATE\s+rules\s+SET\s+([^$;]*?)WHERE\s+name\s*=\s*'([^']*)'`)
+// The name predicate is accepted after AND as well as directly after WHERE.
+// Migration 326 disables a superseded rule with
+// `WHERE type = 'sigma' AND name = '…' AND enabled = TRUE`, and a WHERE-only
+// pattern skipped it — the harness kept the rule enabled while production
+// disabled it. Group 1 still excludes `;` and `$`, so widening the keyword
+// cannot reach across a statement terminator or into a dollar-quoted body.
+var updateFieldsRe = regexp.MustCompile(`(?is)UPDATE\s+rules\s+SET\s+([^$;]*?)(?:WHERE|AND)\s+name\s*=\s*'([^']*)'`)
 
 // The same two shapes keyed by id instead of name. Migrations use both.
 var (
@@ -254,6 +315,7 @@ func applyContentUpdates(rules []*DetectionRule, sql string) {
 	if !touchesRulesTable(sql) {
 		return
 	}
+	applyNamedContentUpdates(rules, sql)
 	for _, m := range updateContentRe.FindAllStringSubmatch(sql, -1) {
 		assigns, content, name := m[1]+" "+m[3], m[2], m[4]
 		for _, r := range rules {
@@ -732,7 +794,7 @@ func TestEveryUpdateRulesStatementIsUnderstood(t *testing.T) {
 		}
 		claimed := map[int]bool{}
 		for _, re := range []*regexp.Regexp{
-			updateContentRe, updateContentByIDRe, updateContentLikeRe, updateContentInRe,
+			updateContentRe, updateContentNamedRe, updateContentByIDRe, updateContentLikeRe, updateContentInRe,
 			updateFieldsRe, updateFieldsByIDRe, updateFieldsByContentRe,
 			updateReplaceRe, updateReplaceLikeRe,
 		} {
@@ -829,7 +891,7 @@ func TestUpdateGateIsASupersetOfEveryPattern(t *testing.T) {
 		t.Fatalf("glob migrations: %v", err)
 	}
 	patterns := []*regexp.Regexp{
-		updateContentRe, updateContentByIDRe, updateContentLikeRe, updateContentInRe,
+		updateContentRe, updateContentNamedRe, updateContentByIDRe, updateContentLikeRe, updateContentInRe,
 		updateFieldsRe, updateFieldsByIDRe, updateFieldsByContentRe,
 		updateReplaceRe, updateReplaceLikeRe,
 		updateStmtStartRe,

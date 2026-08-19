@@ -154,35 +154,40 @@ func TestFIMRuleFilter_EnabledPointer(t *testing.T) {
 	}
 }
 
-// TestFIMRuleFilter_LimitClamped は Limit が 0 以下のとき 100 にクランプされることを確認する
+// 1ページの件数の切り詰め。**本物を呼びます。**
+//
+// 以前ここには `applyLimitDefaults` という写しが検査の中に置かれ、
+// それを試していました。0 を通すと 0 件返り、FIM の設定画面では
+// **「監視ルールが1本も無い」と見分けが付きません** —— 監視されて
+// いないように見えて、実際には監視されています（逆も同じです）。
 func TestFIMRuleFilter_LimitClamped(t *testing.T) {
-	// fim_rules.go の List 内のロジックを再現する
-	applyLimitDefaults := func(f FIMRuleFilter) FIMRuleFilter {
-		if f.Limit <= 0 {
-			f.Limit = 100
+	for _, tc := range []struct{ in, want int }{
+		{0, 100}, {-1, 100}, {50, 50}, {500, 500}, {5000, 500},
+	} {
+		if got := clampFIMRuleLimit(tc.in); got != tc.want {
+			t.Errorf("clampFIMRuleLimit(%d) = %d, want %d", tc.in, got, tc.want)
 		}
-		if f.Limit > 500 {
-			f.Limit = 500
-		}
-		return f
+	}
+}
+
+// WHERE 句の組み立て。**写しには入っていませんでした。**
+//
+// `Enabled` は `*bool` です —— **nil（指定なし）と false（無効なものだけ）
+// は別です。** 取り違えると、絞り込みなしの一覧が「無効なルールだけ」に
+// なります。
+func TestFIMRuleWhereDistinguishesNilFromFalse(t *testing.T) {
+	where, args := fimRuleListWhere(FIMRuleFilter{})
+	if strings.Contains(where, "enabled") || len(args) != 0 {
+		t.Errorf("指定なしで enabled の条件が入っています: %q %v", where, args)
 	}
 
-	// Limit=0 → 100
-	f := applyLimitDefaults(FIMRuleFilter{Limit: 0})
-	if f.Limit != 100 {
-		t.Errorf("Limit=0 のデフォルト = %d, want 100", f.Limit)
+	no := false
+	where, args = fimRuleListWhere(FIMRuleFilter{Enabled: &no})
+	if !strings.Contains(where, "enabled = $1") {
+		t.Errorf("enabled=false の条件が入っていません: %q", where)
 	}
-
-	// Limit=-1 → 100
-	f = applyLimitDefaults(FIMRuleFilter{Limit: -1})
-	if f.Limit != 100 {
-		t.Errorf("Limit=-1 のデフォルト = %d, want 100", f.Limit)
-	}
-
-	// Limit=50 → 変更なし
-	f = applyLimitDefaults(FIMRuleFilter{Limit: 50})
-	if f.Limit != 50 {
-		t.Errorf("Limit=50 は変更されないはず: got %d", f.Limit)
+	if len(args) != 1 || args[0] != false {
+		t.Errorf("args = %v, want [false]", args)
 	}
 }
 

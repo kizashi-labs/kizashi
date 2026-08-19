@@ -66,7 +66,7 @@ func (c *ETWPipeCollector) Start(ctx context.Context, agentID string, sender col
 	}
 	ctx, c.cancel = context.WithCancel(ctx)
 	if err := c.startETW(ctx); err != nil {
-		slog.Warn("ETW名前付きパイプ監視を開始できませんでした", "error", err)
+		etwSensorFailed(sensorETWPipe, err)
 		return nil
 	}
 	slog.Info("ETW名前付きパイプ監視を開始しました (Microsoft-Windows-Kernel-File, Create)")

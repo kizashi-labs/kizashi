@@ -60,6 +60,9 @@ func (s *TenantRoleStore) List(ctx context.Context, tenantID string) ([]TenantRo
 		}
 		result = append(result, r)
 	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
 	if result == nil {
 		result = []TenantRole{}
 	}
@@ -131,8 +134,7 @@ func (s *TenantRoleStore) Delete(ctx context.Context, tenantID, userID string) e
 // HasRole は指定ユーザーが指定テナントで requiredRole 以上のロールを持つか確認します。
 // ロール順序: tenant_admin > analyst > viewer
 func (s *TenantRoleStore) HasRole(ctx context.Context, tenantID, userID, requiredRole string) (bool, error) {
-	requiredWeight, ok := roleWeight[requiredRole]
-	if !ok {
+	if _, ok := roleWeight[requiredRole]; !ok {
 		return false, fmt.Errorf("不明なロール: %s", requiredRole)
 	}
 
@@ -150,10 +152,37 @@ func (s *TenantRoleStore) HasRole(ctx context.Context, tenantID, userID, require
 		return false, fmt.Errorf("ロールの確認に失敗しました: %w", err)
 	}
 
-	currentWeight, ok := roleWeight[currentRole]
-	if !ok {
+	if _, ok := roleWeight[currentRole]; !ok {
 		return false, fmt.Errorf("データベースに不明なロールが格納されています: %s", currentRole)
 	}
 
-	return currentWeight >= requiredWeight, nil
+	return roleAtLeast(currentRole, requiredRole), nil
+}
+
+// roleAtLeast reports whether currentRole is at least as strong as requiredRole.
+//
+// **公開していないのは、`TestStoreSymbolsAreReachable` の言うとおりです。**
+// 外から呼ぶ人はいません —— `HasRole` からしか使わないので、公開すると
+// 「検査からしか呼ばれない公開関数」が1つ増えます。
+//
+// **切り出してあるのは、検査が本物を呼べるようにするためです。**
+// 以前この比較は HasRole の中にだけあり、DB が要るので検査から呼べません
+// でした。検査ファイルには `hasRolePure` という**同じ比較の写し**が置いて
+// あり、そちらだけが試されていました。
+//
+// 測りました (2026-08-11): `>=` を `<=` に変えても、**落ちる検査は
+// ありません。** viewer が tenant_admin の要件を満たし、tenant_admin が
+// 満たさなくなる —— 権限判定がまるごと反転しても緑のままです。
+//
+// 知らないロールは false です。**「分からない」を「強い」に倒しません。**
+func roleAtLeast(currentRole, requiredRole string) bool {
+	requiredWeight, ok := roleWeight[requiredRole]
+	if !ok {
+		return false
+	}
+	currentWeight, ok := roleWeight[currentRole]
+	if !ok {
+		return false
+	}
+	return currentWeight >= requiredWeight
 }

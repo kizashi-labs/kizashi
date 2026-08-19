@@ -8,6 +8,9 @@ import {
   Target, Calendar, Shield, Users, ChevronRight,
   Search, X, Crosshair,
 } from 'lucide-react'
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+import { PageSaveFailed } from '@/components/PageSaveFailed'
+
 import { apiFetch } from '@/lib/api'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -101,11 +104,11 @@ function CampaignModal({ initial, onClose, onSave, saving }: ModalProps) {
   }
 
   const inputCls = 'w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm ' +
-    'placeholder-gray-500 focus:outline-hidden focus:border-blue-500 transition-colors'
+    'placeholder-gray-500 focus:outline-none focus:border-blue-500 transition-colors'
   const labelCls = 'block text-xs font-medium text-gray-400 mb-1'
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
       <div className="bg-gray-900 border border-gray-700 rounded-2xl w-full max-w-xl mx-4 shadow-2xl">
         {/* Modal header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-800">
@@ -328,10 +331,12 @@ export default function CampaignsPage() {
   // ── Render ───────────────────────────────────────────────────────────────────
 
   const selectCls = 'bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-gray-300 text-sm ' +
-    'focus:outline-hidden focus:border-blue-500 transition-colors'
+    'focus:outline-none focus:border-blue-500 transition-colors'
 
   return (
     <div className="p-6 space-y-6 min-h-screen bg-gray-900">
+      <PageDataUnavailable />
+      <PageSaveFailed className="mb-4" />
 
       {/* ── Header ── */}
       <div className="flex items-start justify-between flex-wrap gap-4">
@@ -347,8 +352,7 @@ export default function CampaignsPage() {
         {canWrite && (
           <button
             onClick={() => setModal({ ...EMPTY_FORM })}
-            className="flex items-center gap-2 px-4 py-2 bg-rose-600 hover:bg-rose-500
-                       text-white text-sm font-medium rounded-xl transition-colors shadow-lg shadow-rose-900/30"
+            className="flex items-center gap-2 px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white text-sm font-medium rounded-xl transition-colors shadow-lg shadow-rose-900/30"
           >
             <Plus className="w-4 h-4" />
             新しいキャンペーン
@@ -386,8 +390,7 @@ export default function CampaignsPage() {
             placeholder="名前・脅威アクターで検索..."
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="w-full pl-8 pr-3 py-1.5 bg-gray-800 border border-gray-700 rounded-lg text-white
-                       text-sm placeholder-gray-500 focus:outline-hidden focus:border-blue-500 transition-colors"
+            className="w-full pl-8 pr-3 py-1.5 bg-gray-800 border border-gray-700 rounded-lg text-white text-sm placeholder-gray-500 focus:outline-hidden focus:border-blue-500 transition-colors"
           />
           {search && (
             <button onClick={() => setSearch('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white">
@@ -527,8 +530,7 @@ export default function CampaignsPage() {
                     {techs.slice(0, 6).map(t => (
                       <span
                         key={t}
-                        className="flex items-center gap-0.5 text-[10px] px-1.5 py-0.5
-                                   bg-purple-900/30 text-purple-300 border border-purple-700/40 rounded font-mono"
+                        className="flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 bg-purple-900/30 text-purple-300 border border-purple-700/40 rounded-sm font-mono"
                       >
                         <Crosshair className="w-2.5 h-2.5" />{t}
                       </span>
@@ -563,7 +565,7 @@ export default function CampaignsPage() {
 
       {/* ── Delete confirm dialog ── */}
       {deleteId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
           <div className="bg-gray-900 border border-gray-700 rounded-2xl w-full max-w-sm mx-4 p-6 shadow-2xl">
             <div className="flex items-center gap-3 mb-3">
               <div className="w-9 h-9 bg-red-900/40 rounded-lg flex items-center justify-center">

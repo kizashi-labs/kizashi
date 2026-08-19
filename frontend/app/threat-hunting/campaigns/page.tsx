@@ -7,6 +7,8 @@ import {
   Target, Search, AlertTriangle, CheckCircle, Pause,
   Clock, ChevronDown, ChevronRight, Plus, User,
 } from 'lucide-react'
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+
 import { USE_MOCK, m } from '@/lib/mock'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -157,8 +159,8 @@ const tacticColor: Record<string, string> = {
 
 function AnalystAvatar({ initials }: { initials: string }) {
   return (
-    <div className="w-6 h-6 rounded-full bg-falcon-red/20 border border-falcon-red/40 flex items-center justify-center">
-      <span className="text-[10px] font-bold text-falcon-red">{initials}</span>
+    <div className="w-6 h-6 rounded-full bg-[#e8002d]/20 border border-[#e8002d]/40 flex items-center justify-center">
+      <span className="text-[10px] font-bold text-[#e8002d]">{initials}</span>
     </div>
   )
 }
@@ -176,7 +178,7 @@ function CampaignDetail({ campaign }: { campaign: Campaign }) {
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="p-5 border-b border-falcon-border">
+      <div className="p-5 border-b border-[#1e2d42]">
         <div className="flex items-start justify-between gap-3 mb-3">
           <h2 className="text-lg font-bold text-white leading-tight">{campaign.name}</h2>
           <div className="flex items-center gap-2 shrink-0">
@@ -187,7 +189,7 @@ function CampaignDetail({ campaign }: { campaign: Campaign }) {
         <div className="flex flex-wrap gap-2">
           <span className={`px-2 py-0.5 rounded-sm text-xs font-medium ${tc}`}>{campaign.tactic}</span>
           {campaign.techniques.map(t => (
-            <span key={t} className="px-2 py-0.5 bg-[#070d19] border border-falcon-border text-falcon-muted rounded-sm text-xs font-mono">{t}</span>
+            <span key={t} className="px-2 py-0.5 bg-[#070d19] border border-[#1e2d42] text-[#7d92b0] rounded-sm text-xs font-mono">{t}</span>
           ))}
         </div>
       </div>
@@ -195,27 +197,27 @@ function CampaignDetail({ campaign }: { campaign: Campaign }) {
       <div className="flex-1 overflow-y-auto p-5 space-y-5">
         {/* Hypothesis */}
         <div>
-          <div className="text-falcon-muted text-xs font-medium uppercase tracking-wider mb-2">仮説</div>
-          <blockquote className="border-l-2 border-falcon-red pl-4 text-sm text-falcon-muted italic leading-relaxed">
+          <div className="text-[#7d92b0] text-xs font-medium uppercase tracking-wider mb-2">仮説</div>
+          <blockquote className="border-l-2 border-[#e8002d] pl-4 text-sm text-[#7d92b0] italic leading-relaxed">
             {campaign.hypothesis}
           </blockquote>
         </div>
 
         {/* Progress */}
         <div>
-          <div className="text-falcon-muted text-xs font-medium uppercase tracking-wider mb-3">進捗</div>
+          <div className="text-[#7d92b0] text-xs font-medium uppercase tracking-wider mb-3">進捗</div>
           <div className="grid grid-cols-3 gap-3">
-            <div className="bg-[#070d19] border border-falcon-border rounded-lg p-3 text-center">
+            <div className="bg-[#070d19] border border-[#1e2d42] rounded-lg p-3 text-center">
               <div className="text-2xl font-bold text-white">{campaign.hosts_investigated}</div>
-              <div className="text-falcon-muted text-xs mt-1">調査ホスト数</div>
+              <div className="text-[#7d92b0] text-xs mt-1">調査ホスト数</div>
             </div>
-            <div className="bg-[#070d19] border border-falcon-border rounded-lg p-3 text-center">
-              <div className="text-2xl font-bold text-falcon-red">{campaign.iocs_discovered}</div>
-              <div className="text-falcon-muted text-xs mt-1">発見IOC</div>
+            <div className="bg-[#070d19] border border-[#1e2d42] rounded-lg p-3 text-center">
+              <div className="text-2xl font-bold text-[#e8002d]">{campaign.iocs_discovered}</div>
+              <div className="text-[#7d92b0] text-xs mt-1">発見IOC</div>
             </div>
-            <div className="bg-[#070d19] border border-falcon-border rounded-lg p-3 text-center">
+            <div className="bg-[#070d19] border border-[#1e2d42] rounded-lg p-3 text-center">
               <div className="text-2xl font-bold text-white">{campaign.days_running}</div>
-              <div className="text-falcon-muted text-xs mt-1">経過日数</div>
+              <div className="text-[#7d92b0] text-xs mt-1">経過日数</div>
             </div>
           </div>
         </div>
@@ -223,22 +225,22 @@ function CampaignDetail({ campaign }: { campaign: Campaign }) {
         {/* Queries */}
         {campaign.queries.length > 0 && (
           <div>
-            <div className="text-falcon-muted text-xs font-medium uppercase tracking-wider mb-2">ハントクエリ</div>
+            <div className="text-[#7d92b0] text-xs font-medium uppercase tracking-wider mb-2">ハントクエリ</div>
             <div className="space-y-2">
               {campaign.queries.map(q => (
-                <div key={q.id} className="bg-[#070d19] border border-falcon-border rounded-lg overflow-hidden">
+                <div key={q.id} className="bg-[#070d19] border border-[#1e2d42] rounded-lg overflow-hidden">
                   <button
                     onClick={() => setExpandedQuery(expandedQuery === q.id ? null : q.id)}
-                    className="w-full flex items-center justify-between px-3 py-2 hover:bg-falcon-surface transition-colors"
+                    className="w-full flex items-center justify-between px-3 py-2 hover:bg-[#0d1220] transition-colors"
                   >
                     <div className="flex items-center gap-2">
-                      {expandedQuery === q.id ? <ChevronDown size={12} className="text-falcon-muted" /> : <ChevronRight size={12} className="text-falcon-muted" />}
+                      {expandedQuery === q.id ? <ChevronDown size={12} className="text-[#7d92b0]" /> : <ChevronRight size={12} className="text-[#7d92b0]" />}
                       <span className="text-sm text-white">{q.name}</span>
                     </div>
-                    <span className="text-xs text-falcon-red font-medium">{q.hits} ヒット</span>
+                    <span className="text-xs text-[#e8002d] font-medium">{q.hits} ヒット</span>
                   </button>
                   {expandedQuery === q.id && (
-                    <div className="px-3 pb-2 border-t border-falcon-border">
+                    <div className="px-3 pb-2 border-t border-[#1e2d42]">
                       <code className="text-xs text-green-400 font-mono break-all">{q.query}</code>
                     </div>
                   )}
@@ -251,20 +253,20 @@ function CampaignDetail({ campaign }: { campaign: Campaign }) {
         {/* Findings Timeline */}
         {campaign.findings.length > 0 && (
           <div>
-            <div className="text-falcon-muted text-xs font-medium uppercase tracking-wider mb-3">タイムライン</div>
+            <div className="text-[#7d92b0] text-xs font-medium uppercase tracking-wider mb-3">タイムライン</div>
             <div className="relative pl-4 space-y-3">
-              <div className="absolute left-[7px] top-2 bottom-2 w-px bg-falcon-border" />
+              <div className="absolute left-[7px] top-2 bottom-2 w-px bg-[#1e2d42]" />
               {campaign.findings.map(f => {
                 const sv = severityConfig[f.severity]
                 return (
                   <div key={f.id} className="relative flex items-start gap-3">
-                    <div className="absolute -left-4 top-1.5 w-2 h-2 rounded-full bg-falcon-red border border-[#070d19]" />
+                    <div className="absolute -left-4 top-1.5 w-2 h-2 rounded-full bg-[#e8002d] border border-[#070d19]" />
                     <div className="ml-2 flex-1">
                       <div className="flex items-center gap-2 mb-0.5">
-                        <span className="text-xs text-falcon-muted">{f.time}</span>
+                        <span className="text-xs text-[#7d92b0]">{f.time}</span>
                         <span className={`px-1.5 py-0.5 rounded-sm text-xs font-medium ${sv.cls}`}>{sv.label}</span>
                       </div>
-                      <div className="text-sm text-falcon-muted">{f.description}</div>
+                      <div className="text-sm text-[#7d92b0]">{f.description}</div>
                     </div>
                   </div>
                 )
@@ -276,22 +278,22 @@ function CampaignDetail({ campaign }: { campaign: Campaign }) {
         {/* Notes */}
         <div>
           <div className="flex items-center justify-between mb-2">
-            <div className="text-falcon-muted text-xs font-medium uppercase tracking-wider">メモ</div>
+            <div className="text-[#7d92b0] text-xs font-medium uppercase tracking-wider">メモ</div>
             <button
               onClick={() => setShowNoteInput(v => !v)}
-              className="flex items-center gap-1 text-xs text-falcon-muted hover:text-white"
+              className="flex items-center gap-1 text-xs text-[#7d92b0] hover:text-white"
             >
               <Plus size={11} /> メモ追加
             </button>
           </div>
           {note && (
-            <div className="p-3 bg-[#070d19] border border-falcon-border rounded-lg text-sm text-falcon-muted">{note}</div>
+            <div className="p-3 bg-[#070d19] border border-[#1e2d42] rounded-lg text-sm text-[#7d92b0]">{note}</div>
           )}
           {showNoteInput && (
             <div className="mt-2">
               <textarea
                 rows={3}
-                className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-sm text-white focus:outline-hidden focus:border-falcon-red resize-none"
+                className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-white focus:outline-hidden focus:border-[#e8002d] resize-none"
                 placeholder="メモを入力..."
                 value={note}
                 onChange={e => setNote(e.target.value)}
@@ -299,7 +301,7 @@ function CampaignDetail({ campaign }: { campaign: Campaign }) {
               <div className="flex justify-end mt-1">
                 <button
                   onClick={() => setShowNoteInput(false)}
-                  className="px-3 py-1 bg-falcon-red text-white text-xs rounded-sm hover:bg-red-600"
+                  className="px-3 py-1 bg-[#e8002d] text-white text-xs rounded-sm hover:bg-red-600"
                 >
                   保存
                 </button>
@@ -311,7 +313,7 @@ function CampaignDetail({ campaign }: { campaign: Campaign }) {
 
       {/* Action Buttons */}
       {(campaign.status === 'active' || campaign.status === 'planning') && (
-        <div className="p-4 border-t border-falcon-border flex gap-2">
+        <div className="p-4 border-t border-[#1e2d42] flex gap-2">
           <button className="flex-1 flex items-center justify-center gap-2 py-2 bg-green-800 text-green-200 rounded-lg text-sm font-medium hover:bg-green-700 transition-colors">
             <CheckCircle size={14} />
             完了
@@ -334,11 +336,11 @@ export default function ThreatHuntingCampaignsPage() {
   const { data: campaigns = m(MOCK_CAMPAIGNS) } = useQuery<Campaign[]>({
     queryKey: ['hunting-campaigns'],
     queryFn: () =>
-      apiFetchList<Campaign>('/api/v1/threat-hunting/campaigns').catch(() => m(MOCK_CAMPAIGNS)),
+      apiFetchList<Campaign>('/api/v1/threat-hunting/campaigns'),
   })
 
   const stats = [
-    { label: '総キャンペーン', value: 18, icon: <Target size={16} className="text-falcon-red" /> },
+    { label: '総キャンペーン', value: 18, icon: <Target size={16} className="text-[#e8002d]" /> },
     { label: 'アクティブ', value: 3, icon: <Search size={16} className="text-blue-400" /> },
     { label: '完了', value: 12, icon: <CheckCircle size={16} className="text-green-400" /> },
     { label: '発見IOC', value: 89, icon: <AlertTriangle size={16} className="text-yellow-400" /> },
@@ -346,20 +348,21 @@ export default function ThreatHuntingCampaignsPage() {
 
   return (
     <div className="min-h-screen bg-[#070d19] p-6">
+      <PageDataUnavailable />
       {/* Header */}
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-white">脅威ハンティングキャンペーン</h1>
-        <p className="text-falcon-muted text-sm mt-1">Threat Hunting Campaigns</p>
+        <p className="text-[#7d92b0] text-sm mt-1">Threat Hunting Campaigns</p>
       </div>
 
       {/* Stats */}
       <div className="grid grid-cols-4 gap-4 mb-6">
         {stats.map(s => (
-          <div key={s.label} className="bg-falcon-surface border border-falcon-border rounded-lg p-4 flex items-center gap-3">
+          <div key={s.label} className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-4 flex items-center gap-3">
             <div className="p-2 bg-[#070d19] rounded-lg">{s.icon}</div>
             <div>
               <div className="text-2xl font-bold text-white">{s.value}</div>
-              <div className="text-falcon-muted text-xs">{s.label}</div>
+              <div className="text-[#7d92b0] text-xs">{s.label}</div>
             </div>
           </div>
         ))}
@@ -368,10 +371,10 @@ export default function ThreatHuntingCampaignsPage() {
       {/* Main Layout */}
       <div className="flex gap-4" style={{ height: 'calc(100vh - 260px)' }}>
         {/* Left — Campaign List */}
-        <div className="w-[35%] bg-falcon-surface border border-falcon-border rounded-lg overflow-hidden flex flex-col">
-          <div className="p-4 border-b border-falcon-border flex items-center justify-between">
+        <div className="w-[35%] bg-[#0d1220] border border-[#1e2d42] rounded-lg overflow-hidden flex flex-col">
+          <div className="p-4 border-b border-[#1e2d42] flex items-center justify-between">
             <span className="text-white font-medium">キャンペーン一覧</span>
-            <button className="flex items-center gap-1 px-2.5 py-1 bg-falcon-red text-white rounded-sm text-xs hover:bg-red-600">
+            <button className="flex items-center gap-1 px-2.5 py-1 bg-[#e8002d] text-white rounded-sm text-xs hover:bg-red-600">
               <Plus size={11} />
               新規
             </button>
@@ -385,7 +388,7 @@ export default function ThreatHuntingCampaignsPage() {
                 <div
                   key={c.id}
                   onClick={() => setSelectedCampaign(c)}
-                  className={`p-4 border-b border-falcon-border cursor-pointer hover:bg-[#070d19] transition-colors ${isSelected ? 'bg-[#0a1628] border-l-2 border-l-falcon-red' : ''}`}
+                  className={`p-4 border-b border-[#1e2d42] cursor-pointer hover:bg-[#070d19] transition-colors ${isSelected ? 'bg-[#0a1628] border-l-2 border-l-[#e8002d]' : ''}`}
                 >
                   <div className="flex items-start justify-between gap-2 mb-2">
                     <div className="font-medium text-white text-sm leading-tight">{c.name}</div>
@@ -396,8 +399,8 @@ export default function ThreatHuntingCampaignsPage() {
                     <span className={`px-1.5 py-0.5 rounded-full text-xs font-medium ${st.cls}`}>{st.label}</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1 text-xs text-falcon-muted">
-                      <AlertTriangle size={10} className="text-falcon-red" />
+                    <div className="flex items-center gap-1 text-xs text-[#7d92b0]">
+                      <AlertTriangle size={10} className="text-[#e8002d]" />
                       <span>{c.iocs_discovered} IOC</span>
                     </div>
                     <div className="flex items-center -space-x-1">
@@ -413,11 +416,11 @@ export default function ThreatHuntingCampaignsPage() {
         </div>
 
         {/* Right — Detail */}
-        <div className="flex-1 bg-falcon-surface border border-falcon-border rounded-lg overflow-hidden">
+        <div className="flex-1 bg-[#0d1220] border border-[#1e2d42] rounded-lg overflow-hidden">
           {selectedCampaign
             ? <CampaignDetail campaign={selectedCampaign} />
             : (
-              <div className="flex items-center justify-center h-full text-falcon-muted">
+              <div className="flex items-center justify-center h-full text-[#7d92b0]">
                 キャンペーンを選択してください
               </div>
             )

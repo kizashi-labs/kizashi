@@ -10,6 +10,8 @@ import (
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/edr-platform/server/internal/tick"
 )
 
 // ElasticsearchShipper forwards events/alerts to an Elasticsearch cluster.
@@ -77,7 +79,7 @@ func (s *ElasticsearchShipper) Flush(ctx context.Context) {
 	url := s.url + "/_bulk"
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, &body)
 	if err != nil {
-		slog.Error("ES bulk リクエスト作成失敗", "error", err)
+		tick.FailComponent(ctx, "es_shipper", err, "ES bulk リクエスト作成失敗")
 		return
 	}
 	req.Header.Set("Content-Type", "application/x-ndjson")
@@ -87,13 +89,19 @@ func (s *ElasticsearchShipper) Flush(ctx context.Context) {
 
 	resp, err := s.client.Do(req)
 	if err != nil {
-		slog.Error("ES bulk 送信失敗", "error", err, "docs", len(docs))
+		tick.FailComponent(ctx, "es_shipper", err, "ES bulk 送信失敗", "docs", len(docs))
 		return
 	}
 	defer resp.Body.Close()
 	respBody, _ := io.ReadAll(resp.Body)
 	if resp.StatusCode >= 400 {
-		slog.Error("ES bulk エラーレスポンス", "status", resp.StatusCode, "body", string(respBody[:minInt(200, len(respBody))]))
+		// **ES が受け取らなかった文書は、そこで消えます。**
+		// 送信そのものは成功しているので、ログ以外に跡が残りません。
+		tick.FailComponent(ctx, "es_shipper",
+			fmt.Errorf("ES が status %d を返しました", resp.StatusCode),
+			"ES bulk エラーレスポンス",
+			"status", resp.StatusCode,
+			"body", string(respBody[:minInt(200, len(respBody))]))
 	} else {
 		slog.Info("ES bulk 送信完了", "docs", len(docs), "status", resp.StatusCode)
 	}
@@ -114,7 +122,7 @@ func (s *ElasticsearchShipper) Run(ctx context.Context) {
 			s.Flush(context.Background())
 			return
 		case <-ticker.C:
-			s.Flush(ctx)
+			tick.Run(ctx, "elasticsearch_shipper", func(ctx context.Context) { s.Flush(ctx) })
 		}
 	}
 }

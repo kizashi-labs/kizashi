@@ -107,7 +107,7 @@ func (h *UserManagementHandler) ListUsers(c *gin.Context) {
 		search, role, limit, offset)
 	if err != nil {
 		slog.Warn("user list query failed", "error", err)
-		c.JSON(http.StatusOK, gin.H{"users": []adminUserRow{}, "total": 0})
+		ReadFailure(c, err, gin.H{"users": []adminUserRow{}, "total": 0})
 		return
 	}
 	defer rows.Close()
@@ -125,19 +125,23 @@ func (h *UserManagementHandler) ListUsers(c *gin.Context) {
 		users = append(users, u)
 	}
 	if err := rows.Err(); err != nil {
-		slog.Warn("row iteration error", "error", err)
+		slog.Warn("user list query failed", "error", err)
+		ReadFailure(c, err, gin.H{"users": []adminUserRow{}, "total": 0})
+		return
 	}
 	if users == nil {
 		users = []adminUserRow{}
 	}
 
 	var total int
-	_ = h.pool.QueryRow(c.Request.Context(),
+	if !ReadOK(c, h.pool.QueryRow(c.Request.Context(),
 		`SELECT COUNT(*) FROM users
-		 WHERE ($1 = '' OR email ILIKE '%' || $1 || '%' OR COALESCE(full_name,'') ILIKE '%' || $1 || '%')
-		   AND ($2 = '' OR role = $2)`,
+			 WHERE ($1 = '' OR email ILIKE '%' || $1 || '%' OR COALESCE(full_name,'') ILIKE '%' || $1 || '%')
+			   AND ($2 = '' OR role = $2)`,
 		search, role,
-	).Scan(&total)
+	).Scan(&total)) {
+		return
+	}
 
 	c.JSON(http.StatusOK, gin.H{"users": users, "total": total})
 }
@@ -414,7 +418,7 @@ func (h *UserManagementHandler) GetStats(c *gin.Context) {
 	)
 	if err != nil {
 		slog.Warn("user stats query failed", "error", err)
-		c.JSON(http.StatusOK, statsResult{})
+		ReadFailure(c, err, statsResult{})
 		return
 	}
 	c.JSON(http.StatusOK, stats)

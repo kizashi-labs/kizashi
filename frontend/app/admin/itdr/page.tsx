@@ -10,6 +10,9 @@ import { apiFetch } from '@/lib/api'
 
 
 
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+import { PageSaveFailed } from '@/components/PageSaveFailed'
+
 function fmtTime(iso: string) { return new Date(iso).toLocaleString('ja-JP', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) }
 
 
@@ -84,7 +87,17 @@ export default function ITDRPage() {
 
     queryKey: ['itdr-incidents'],
 
-    queryFn: () => apiFetch<any[]>('/api/itdr/incidents').catch(() => []),
+    // **宛先が違いました**（実測 2026-08-12）。サーバは
+    // `/api/v1/admin/itdr/incidents` に出しています —— `/api/itdr/…` は
+    // どのルートにも当たらず、この画面は 404 を空配列にして
+    // 「インシデント0件」を出していました。
+    //
+    // 応答は `{incidents: [...], total}` です。`apiFetchList` は
+    // `incidents` という鍵を知らないので、**見つからないと黙って []**
+    // を返します —— ここは中身を名指しで取り出します。
+    queryFn: () =>
+      apiFetch<{ incidents?: any[] }>('/api/v1/admin/itdr/incidents')
+        .then(r => r.incidents ?? []),
 
   })
 
@@ -92,7 +105,10 @@ export default function ITDRPage() {
 
     queryKey: ['itdr-users'],
 
-    queryFn: () => apiFetch<any[]>('/api/itdr/users/risky').catch(() => []),
+    // 名前も違いました: サーバ側は `risky-users` です。
+    queryFn: () =>
+      apiFetch<{ users?: any[] }>('/api/v1/admin/itdr/risky-users')
+        .then(r => r.users ?? []),
 
   })
 
@@ -100,13 +116,15 @@ export default function ITDRPage() {
 
     queryKey: ['itdr-rules'],
 
-    queryFn: () => apiFetch<any[]>('/api/itdr/rules').catch(() => []),
+    queryFn: () =>
+      apiFetch<{ rules?: any[] }>('/api/v1/admin/itdr/rules')
+        .then(r => r.rules ?? []),
 
   })
 
   const investigateMutation = useMutation({
 
-    mutationFn: (id: string) => apiFetch(`/api/itdr/incidents/${id}/investigate`, { method: 'POST' }).catch(() => ({})),
+    mutationFn: (id: string) => apiFetch(`/api/itdr/incidents/${id}/investigate`, { method: 'POST' }),
 
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['itdr-incidents'] }); setSelectedIncident(null) },
 
@@ -114,7 +132,7 @@ export default function ITDRPage() {
 
   const fpMutation = useMutation({
 
-    mutationFn: (id: string) => apiFetch(`/api/itdr/incidents/${id}/false-positive`, { method: 'POST' }).catch(() => ({})),
+    mutationFn: (id: string) => apiFetch(`/api/itdr/incidents/${id}/false-positive`, { method: 'POST' }),
 
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['itdr-incidents'] }); setSelectedIncident(null) },
 
@@ -122,7 +140,7 @@ export default function ITDRPage() {
 
   const lockMutation = useMutation({
 
-    mutationFn: (id: string) => apiFetch(`/api/itdr/users/${id}/lock`, { method: 'POST' }).catch(() => ({})),
+    mutationFn: (id: string) => apiFetch(`/api/itdr/users/${id}/lock`, { method: 'POST' }),
 
   })
 
@@ -151,10 +169,12 @@ export default function ITDRPage() {
   return (
 
     <div className="min-h-screen bg-[#070d19] text-white p-6">
+      <PageDataUnavailable />
 
-      <h1 className="text-2xl font-bold mb-1">アイデンティティ脅威検知 <span className="text-falcon-muted text-base font-normal">(ITDR)</span></h1>
+      <PageSaveFailed />
+      <h1 className="text-2xl font-bold mb-1">アイデンティティ脅威検知 <span className="text-[#7d92b0] text-base font-normal">(ITDR)</span></h1>
 
-      <p className="text-falcon-muted text-sm mb-6">ユーザーアイデンティティへの脅威検知・リスク評価・対応</p>
+      <p className="text-[#7d92b0] text-sm mb-6">ユーザーアイデンティティへの脅威検知・リスク評価・対応</p>
 
 
 
@@ -164,11 +184,11 @@ export default function ITDRPage() {
 
         {STATS.map(s => (
 
-          <div key={s.label} className="bg-falcon-surface border border-falcon-border rounded-lg p-4">
+          <div key={s.label} className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-4">
 
             <div className={`text-2xl font-bold ${s.red ? 'text-red-400' : s.orange ? 'text-orange-400' : 'text-white'}`}>{s.value}</div>
 
-            <div className="text-falcon-muted text-xs mt-1">{s.label}</div>
+            <div className="text-[#7d92b0] text-xs mt-1">{s.label}</div>
 
           </div>
 
@@ -180,13 +200,13 @@ export default function ITDRPage() {
 
       {/* Tabs */}
 
-      <div className="flex gap-1 mb-6 border-b border-falcon-border">
+      <div className="flex gap-1 mb-6 border-b border-[#1e2d42]">
 
         {[['incidents','インシデント'],['users','リスクユーザー'],['rules','検知ルール']].map(([key,label]) => (
 
           <button key={key} onClick={() => setTab(key as typeof tab)}
 
-            className={`px-5 py-2.5 text-sm font-medium transition-colors ${tab === key ? 'border-b-2 border-falcon-red text-white' : 'text-falcon-muted hover:text-white'}`}>
+            className={`px-5 py-2.5 text-sm font-medium transition-colors ${tab === key ? 'border-b-2 border-[#e8002d] text-white' : 'text-[#7d92b0] hover:text-white'}`}>
 
             {label}
 
@@ -212,23 +232,23 @@ export default function ITDRPage() {
 
                 <button key={s} onClick={() => setStatusFilter(s)}
 
-                  className={`px-3 py-1.5 text-xs rounded-sm transition-colors ${statusFilter === s ? 'bg-falcon-border text-white' : 'text-falcon-muted hover:text-white border border-falcon-border'}`}>{s}</button>
+                  className={`px-3 py-1.5 text-xs rounded-sm transition-colors ${statusFilter === s ? 'bg-[#1e2d42] text-white' : 'text-[#7d92b0] hover:text-white border border-[#1e2d42]'}`}>{s}</button>
 
               ))}
 
-              <span className="text-falcon-muted text-sm self-center ml-2">{filteredIncidents.length} 件</span>
+              <span className="text-[#7d92b0] text-sm self-center ml-2">{filteredIncidents.length} 件</span>
 
             </div>
 
-            <div className="bg-falcon-surface border border-falcon-border rounded-lg overflow-hidden">
+            <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg overflow-hidden">
 
               <table className="w-full text-sm">
 
-                <thead><tr className="border-b border-falcon-border">
+                <thead><tr className="border-b border-[#1e2d42]">
 
                   {['検知時刻','ユーザー名','脅威カテゴリ','リスクスコア','深刻度','ステータス','インジケーター'].map(h => (
 
-                    <th key={h} className="text-left text-falcon-muted text-xs font-medium px-3 py-3">{h}</th>
+                    <th key={h} className="text-left text-[#7d92b0] text-xs font-medium px-3 py-3">{h}</th>
 
                   ))}
 
@@ -244,9 +264,9 @@ export default function ITDRPage() {
 
                       <tr key={inc.id} onClick={() => setSelectedIncident(selectedIncident === inc.id ? null : inc.id)}
 
-                        className={`border-b border-falcon-border hover:bg-falcon-border/30 cursor-pointer transition-colors ${selectedIncident === inc.id ? 'bg-falcon-border/40' : ''}`}>
+                        className={`border-b border-[#1e2d42] hover:bg-[#1e2d42]/30 cursor-pointer transition-colors ${selectedIncident === inc.id ? 'bg-[#1e2d42]/40' : ''}`}>
 
-                        <td className="px-3 py-3 text-falcon-muted text-xs whitespace-nowrap">{fmtTime(inc.detected_at)}</td>
+                        <td className="px-3 py-3 text-[#7d92b0] text-xs whitespace-nowrap">{fmtTime(inc.detected_at)}</td>
 
                         <td className="px-3 py-3 font-medium text-xs">{inc.username}</td>
 
@@ -272,11 +292,11 @@ export default function ITDRPage() {
 
                             {inc.indicators.slice(0,2).map((ind: any) => (
 
-                              <span key={ind} className="bg-falcon-border text-falcon-muted text-xs px-1.5 py-0.5 rounded-sm">{ind}</span>
+                              <span key={ind} className="bg-[#1e2d42] text-[#7d92b0] text-xs px-1.5 py-0.5 rounded-sm">{ind}</span>
 
                             ))}
 
-                            {inc.indicators.length > 2 && <span className="text-falcon-muted text-xs">+{inc.indicators.length - 2}</span>}
+                            {inc.indicators.length > 2 && <span className="text-[#7d92b0] text-xs">+{inc.indicators.length - 2}</span>}
 
                           </div>
 
@@ -302,21 +322,21 @@ export default function ITDRPage() {
 
           {selectedInc && (
 
-            <div className="w-72 bg-falcon-surface border border-falcon-border rounded-lg p-4 shrink-0 self-start">
+            <div className="w-72 bg-[#0d1220] border border-[#1e2d42] rounded-lg p-4 shrink-0 self-start">
 
               <div className="flex items-center justify-between mb-3">
 
                 <h3 className="font-semibold text-sm">インシデント詳細</h3>
 
-                <button onClick={() => setSelectedIncident(null)} className="text-falcon-muted hover:text-white text-lg">×</button>
+                <button onClick={() => setSelectedIncident(null)} className="text-[#7d92b0] hover:text-white text-lg">×</button>
 
               </div>
 
-              <div className="text-xs text-falcon-muted mb-1">ユーザー</div>
+              <div className="text-xs text-[#7d92b0] mb-1">ユーザー</div>
 
               <div className="font-medium text-sm mb-3">{selectedInc.username}</div>
 
-              <div className="text-xs text-falcon-muted mb-2">インジケーター</div>
+              <div className="text-xs text-[#7d92b0] mb-2">インジケーター</div>
 
               <ul className="space-y-1 mb-4">
 
@@ -324,7 +344,7 @@ export default function ITDRPage() {
 
                   <li key={ind} className="flex items-start gap-2 text-xs">
 
-                    <span className="text-falcon-red mt-0.5">•</span>{ind}
+                    <span className="text-[#e8002d] mt-0.5">•</span>{ind}
 
                   </li>
 
@@ -332,13 +352,13 @@ export default function ITDRPage() {
 
               </ul>
 
-              <div className="text-xs text-falcon-muted mb-2">タイムライン</div>
+              <div className="text-xs text-[#7d92b0] mb-2">タイムライン</div>
 
               <ul className="space-y-1 mb-5">
 
                 {selectedInc.timeline.map((t: any) => (
 
-                  <li key={t} className="text-xs text-falcon-muted flex gap-2">
+                  <li key={t} className="text-xs text-[#7d92b0] flex gap-2">
 
                     <span className="text-blue-400">→</span>{t}
 
@@ -352,11 +372,11 @@ export default function ITDRPage() {
 
                 <button onClick={() => investigateMutation.mutate(selectedInc.id)}
 
-                  className="flex-1 py-1.5 bg-falcon-red text-white text-xs rounded-sm hover:bg-[#c0001f]">調査開始</button>
+                  className="flex-1 py-1.5 bg-[#e8002d] text-white text-xs rounded-sm hover:bg-[#c0001f]">調査開始</button>
 
                 <button onClick={() => fpMutation.mutate(selectedInc.id)}
 
-                  className="flex-1 py-1.5 border border-falcon-border text-falcon-muted text-xs rounded-sm hover:text-white">偽陽性</button>
+                  className="flex-1 py-1.5 border border-[#1e2d42] text-[#7d92b0] text-xs rounded-sm hover:text-white">偽陽性</button>
 
               </div>
 
@@ -378,13 +398,13 @@ export default function ITDRPage() {
 
           <div className="flex items-center gap-3 mb-4">
 
-            <span className="text-falcon-muted text-sm">並べ替え:</span>
+            <span className="text-[#7d92b0] text-sm">並べ替え:</span>
 
             {[['risk','リスクスコア順'],['privileged','特権アカウント'],['recent','最近の活動']].map(([k,l]) => (
 
               <button key={k} onClick={() => setUserSort(k)}
 
-                className={`px-3 py-1.5 text-xs rounded-sm ${userSort === k ? 'bg-falcon-border text-white' : 'text-falcon-muted hover:text-white'}`}>{l}</button>
+                className={`px-3 py-1.5 text-xs rounded-sm ${userSort === k ? 'bg-[#1e2d42] text-white' : 'text-[#7d92b0] hover:text-white'}`}>{l}</button>
 
             ))}
 
@@ -394,7 +414,7 @@ export default function ITDRPage() {
 
             {sortedUsers.map(u => (
 
-              <div key={u.id} className={`bg-falcon-surface border-2 ${RISK_BORDER[u.risk_level]} rounded-lg p-5`}>
+              <div key={u.id} className={`bg-[#0d1220] border-2 ${RISK_BORDER[u.risk_level]} rounded-lg p-5`}>
 
                 <div className="flex items-start justify-between mb-3">
 
@@ -440,7 +460,7 @@ export default function ITDRPage() {
 
                   {u.risk_factors.map((f: any) => (
 
-                    <span key={f} className="bg-falcon-border text-falcon-muted text-xs px-2 py-0.5 rounded-sm">{f}</span>
+                    <span key={f} className="bg-[#1e2d42] text-[#7d92b0] text-xs px-2 py-0.5 rounded-sm">{f}</span>
 
                   ))}
 
@@ -448,7 +468,7 @@ export default function ITDRPage() {
 
                 <div className="flex gap-2">
 
-                  <button className="flex-1 py-1.5 border border-falcon-border text-falcon-muted text-xs rounded-sm hover:text-white">詳細</button>
+                  <button className="flex-1 py-1.5 border border-[#1e2d42] text-[#7d92b0] text-xs rounded-sm hover:text-white">詳細</button>
 
                   <button onClick={() => lockMutation.mutate(u.id)}
 
@@ -480,19 +500,19 @@ export default function ITDRPage() {
 
           <div className="flex justify-end mb-4">
 
-            <button className="px-3 py-1.5 bg-falcon-red text-white text-xs rounded-sm hover:bg-[#c0001f]">+ 新規ルール</button>
+            <button className="px-3 py-1.5 bg-[#e8002d] text-white text-xs rounded-sm hover:bg-[#c0001f]">+ 新規ルール</button>
 
           </div>
 
-          <div className="bg-falcon-surface border border-falcon-border rounded-lg overflow-hidden">
+          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-lg overflow-hidden">
 
             <table className="w-full text-sm">
 
-              <thead><tr className="border-b border-falcon-border">
+              <thead><tr className="border-b border-[#1e2d42]">
 
                 {['ルール名','脅威カテゴリ','深刻度','MITREテクニック','有効','ヒット数'].map(h => (
 
-                  <th key={h} className="text-left text-falcon-muted text-xs font-medium px-3 py-3">{h}</th>
+                  <th key={h} className="text-left text-[#7d92b0] text-xs font-medium px-3 py-3">{h}</th>
 
                 ))}
 
@@ -506,7 +526,7 @@ export default function ITDRPage() {
 
                   return (
 
-                    <tr key={r.id} className="border-b border-falcon-border hover:bg-falcon-border/20">
+                    <tr key={r.id} className="border-b border-[#1e2d42] hover:bg-[#1e2d42]/20">
 
                       <td className="px-3 py-3 font-medium text-sm">{r.name}</td>
 
@@ -534,9 +554,9 @@ export default function ITDRPage() {
 
                       <td className="px-3 py-3">
 
-                        <div className={`w-10 h-5 rounded-full ${r.enabled ? 'bg-green-600' : 'bg-falcon-border'}`}>
+                        <div className={`w-10 h-5 rounded-full ${r.enabled ? 'bg-green-600' : 'bg-[#1e2d42]'}`}>
 
-                          <div className={`w-4 h-4 rounded-full bg-falcon-text m-0.5 transition-transform ${r.enabled ? 'translate-x-5' : ''}`}/>
+                          <div className={`w-4 h-4 rounded-full bg-[#e2e8f4] m-0.5 transition-transform ${r.enabled ? 'translate-x-5' : ''}`}/>
 
                         </div>
 

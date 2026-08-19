@@ -22,24 +22,15 @@ func NewGDPRHandler(pool *pgxpool.Pool) *GDPRHandler {
 }
 
 func (h *GDPRHandler) subjectsTableExists(c *gin.Context) bool {
-	var exists bool
-	_ = h.pool.QueryRow(c.Request.Context(),
-		`SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name='data_subjects')`).Scan(&exists)
-	return exists
+	return tableIsThere(c.Request.Context(), h.pool, "data_subjects")
 }
 
 func (h *GDPRHandler) dsarTableExists(c *gin.Context) bool {
-	var exists bool
-	_ = h.pool.QueryRow(c.Request.Context(),
-		`SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name='dsar_requests')`).Scan(&exists)
-	return exists
+	return tableIsThere(c.Request.Context(), h.pool, "dsar_requests")
 }
 
 func (h *GDPRHandler) incidentsTableExists(c *gin.Context) bool {
-	var exists bool
-	_ = h.pool.QueryRow(c.Request.Context(),
-		`SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name='privacy_incidents')`).Scan(&exists)
-	return exists
+	return tableIsThere(c.Request.Context(), h.pool, "privacy_incidents")
 }
 
 // ─── Data Subjects ───────────────────────────────────────────────────────────
@@ -70,13 +61,7 @@ func (h *GDPRHandler) ListSubjects(c *gin.Context) {
 
 	limit, _ := strconv.Atoi(c.DefaultQuery("per_page", "50"))
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
-	if page < 1 {
-		page = 1
-	}
-	if limit < 1 || limit > 200 {
-		limit = 50
-	}
-	offset := (page - 1) * limit
+	page, limit, offset := clampPageParams(page, limit, 50, 200)
 
 	where := " WHERE 1=1"
 	args := []interface{}{}
@@ -98,7 +83,9 @@ func (h *GDPRHandler) ListSubjects(c *gin.Context) {
 	copy(countArgs, args)
 
 	var total int
-	_ = h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM data_subjects`+where, countArgs...).Scan(&total)
+	if !ReadOK(c, h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM data_subjects`+where, countArgs...).Scan(&total)) {
+		return
+	}
 
 	args = append(args, limit, offset)
 	query := `SELECT id, subject_type, email, name, data_categories, consent_given, consent_date,
@@ -272,13 +259,7 @@ func (h *GDPRHandler) ListPrivacyIncidents(c *gin.Context) {
 
 	limit, _ := strconv.Atoi(c.DefaultQuery("per_page", "50"))
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
-	if page < 1 {
-		page = 1
-	}
-	if limit < 1 || limit > 200 {
-		limit = 50
-	}
-	offset := (page - 1) * limit
+	page, limit, offset := clampPageParams(page, limit, 50, 200)
 
 	where := " WHERE 1=1"
 	args := []interface{}{}
@@ -294,7 +275,9 @@ func (h *GDPRHandler) ListPrivacyIncidents(c *gin.Context) {
 	copy(countArgs, args)
 
 	var total int
-	_ = h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM privacy_incidents`+where, countArgs...).Scan(&total)
+	if !ReadOK(c, h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM privacy_incidents`+where, countArgs...).Scan(&total)) {
+		return
+	}
 
 	args = append(args, limit, offset)
 	query := `SELECT id, incident_type, description, affected_subjects_count, data_categories,
@@ -456,13 +439,7 @@ func (h *GDPRHandler) ListDSARs(c *gin.Context) {
 
 	limit, _ := strconv.Atoi(c.DefaultQuery("per_page", "50"))
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
-	if page < 1 {
-		page = 1
-	}
-	if limit < 1 || limit > 200 {
-		limit = 50
-	}
-	offset := (page - 1) * limit
+	page, limit, offset := clampPageParams(page, limit, 50, 200)
 
 	where := " WHERE 1=1"
 	args := []interface{}{}
@@ -478,7 +455,9 @@ func (h *GDPRHandler) ListDSARs(c *gin.Context) {
 	copy(countArgs, args)
 
 	var total int
-	_ = h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM dsar_requests`+where, countArgs...).Scan(&total)
+	if !ReadOK(c, h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM dsar_requests`+where, countArgs...).Scan(&total)) {
+		return
+	}
 
 	args = append(args, limit, offset)
 	query := `SELECT id, request_type, subject_email, subject_name, status,
@@ -586,21 +565,29 @@ func (h *GDPRHandler) GetStats(c *gin.Context) {
 
 	var totalSubjects int
 	if h.subjectsTableExists(c) {
-		_ = h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM data_subjects`).Scan(&totalSubjects)
+		if !ReadOK(c, h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM data_subjects`).Scan(&totalSubjects)) {
+			return
+		}
 	}
 
 	var activeDSARs, overdueDSARs int
 	if h.dsarTableExists(c) {
-		_ = h.pool.QueryRow(ctx,
-			`SELECT COUNT(*) FROM dsar_requests WHERE status != 'completed'`).Scan(&activeDSARs)
-		_ = h.pool.QueryRow(ctx,
-			`SELECT COUNT(*) FROM dsar_requests WHERE status != 'completed' AND due_date < CURRENT_DATE`).Scan(&overdueDSARs)
+		if !ReadOK(c, h.pool.QueryRow(ctx,
+			`SELECT COUNT(*) FROM dsar_requests WHERE status != 'completed'`).Scan(&activeDSARs)) {
+			return
+		}
+		if !ReadOK(c, h.pool.QueryRow(ctx,
+			`SELECT COUNT(*) FROM dsar_requests WHERE status != 'completed' AND due_date < CURRENT_DATE`).Scan(&overdueDSARs)) {
+			return
+		}
 	}
 
 	var openIncidents int
 	if h.incidentsTableExists(c) {
-		_ = h.pool.QueryRow(ctx,
-			`SELECT COUNT(*) FROM privacy_incidents WHERE status='open'`).Scan(&openIncidents)
+		if !ReadOK(c, h.pool.QueryRow(ctx,
+			`SELECT COUNT(*) FROM privacy_incidents WHERE status='open'`).Scan(&openIncidents)) {
+			return
+		}
 	}
 
 	// Data categories distribution from subjects

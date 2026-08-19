@@ -22,10 +22,7 @@ func NewCloudPostureHandler(pool *pgxpool.Pool) *CloudPostureHandler {
 }
 
 func (h *CloudPostureHandler) tableExists(c *gin.Context, name string) bool {
-	var ok bool
-	_ = h.pool.QueryRow(c.Request.Context(),
-		`SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name=$1)`, name).Scan(&ok)
-	return ok
+	return tableIsThere(c.Request.Context(), h.pool, name)
 }
 
 type cloudPostureResponse struct {
@@ -277,4 +274,59 @@ func (h *CloudPostureHandler) TriggerScan(c *gin.Context) {
 		"code":                "cspm_scanner_not_implemented",
 		"accounts_configured": accounts,
 	})
+}
+
+// ── どの表から、どの列で読むか ────────────────────────────────────────────
+
+// postureSource は、姿勢管理の数字をどの表のどの列から取るかを持ちます。
+//
+// **表を差し替えるだけでは足りません。** cspm_findings と
+// cloud_misconfigurations は、同じことを別の列名で持っています。
+type postureSource struct {
+	from         string // FROM 句（結合を含みます）
+	provider     string // クラウド事業者の列
+	severity     string
+	status       string
+	resourceType string
+	resourceID   string
+	finding      string // 見出しになる一文
+	region       string
+}
+
+// cloudPostureSource は、在る方の表に合わせた読み方を返します。
+//
+// 判定を関数に出しているのは、**この環境に PostgreSQL が無く、実行では
+// 一度も確かめられないから**です。列名の対応そのものを検査で留めます。
+func cloudPostureSource(exists func(string) bool) postureSource {
+	switch {
+	case exists("cspm_findings"):
+		// provider は findings 側にありません。account 経由で辿ります。
+		return postureSource{
+			from: `cspm_findings f JOIN cspm_accounts a ON a.id = f.account_id`,
+			// cloud_provider は 'aws'/'azure'/'gcp'/'alibaba' で、
+			// クエリ引数の綴りと同じです。
+			provider:     "a.cloud_provider",
+			severity:     "f.severity",
+			status:       "f.status",
+			resourceType: "COALESCE(f.resource_type,'unknown')",
+			resourceID:   "COALESCE(f.resource_id,'')",
+			// `finding` 列はありません。見出しは check_name です。
+			finding: "COALESCE(NULLIF(f.check_name,''), f.description, '')",
+			region:  "COALESCE(f.region,'global')",
+		}
+	case exists("cloud_misconfigurations"):
+		return postureSource{
+			from:     `cloud_misconfigurations`,
+			provider: "provider",
+			severity: "severity",
+			status:   "status",
+			// resource_type / resource_id はありません。ワークロードが
+			// いちばん近い単位です。
+			resourceType: "COALESCE(NULLIF(issue_type,''),'unknown')",
+			resourceID:   "COALESCE(NULLIF(workload_name,''), workload_id, '')",
+			finding:      "COALESCE(NULLIF(description,''), issue_type, '')",
+			region:       "COALESCE(region,'global')",
+		}
+	}
+	return postureSource{}
 }

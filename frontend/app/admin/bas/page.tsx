@@ -10,6 +10,9 @@ import {
   Filter
 } from 'lucide-react'
 
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+import { usePersist, SaveFailed } from '@/lib/persist'
+
 // ── Types ─────────────────────────────────────────────────────────
 
 type ScenarioType = 'malware' | 'phishing' | 'lateral_movement' | 'exfiltration' | 'ransomware' | 'c2'
@@ -119,22 +122,22 @@ function ScenarioFormModal({ onClose, onSave }: { onClose: () => void; onSave: (
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-      <div className="bg-falcon-surface border border-falcon-border rounded-xl w-full max-w-2xl p-6 max-h-[90vh] overflow-y-auto">
+      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl w-full max-w-2xl p-6 max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-white font-semibold text-lg">シナリオ追加</h2>
-          <button onClick={onClose} className="text-falcon-muted hover:text-white"><X className="w-5 h-5" /></button>
+          <button onClick={onClose} className="text-[#7d92b0] hover:text-white"><X className="w-5 h-5" /></button>
         </div>
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="text-xs text-falcon-muted mb-1 block">シナリオ名</label>
+              <label className="text-xs text-[#7d92b0] mb-1 block">シナリオ名</label>
               <input value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))}
-                className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-sm text-white focus:outline-hidden focus:border-falcon-red/50" />
+                className="w-full bg-[#070d19] border border-[#1e2d42] rounded-sm px-3 py-2 text-sm text-white focus:outline-hidden focus:border-[#e8002d]/50" />
             </div>
             <div>
-              <label className="text-xs text-falcon-muted mb-1 block">シナリオタイプ</label>
+              <label className="text-xs text-[#7d92b0] mb-1 block">シナリオタイプ</label>
               <select value={form.scenario_type} onChange={e => setForm(p => ({ ...p, scenario_type: e.target.value as ScenarioType }))}
-                className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-sm text-white focus:outline-hidden">
+                className="w-full bg-[#070d19] border border-[#1e2d42] rounded-sm px-3 py-2 text-sm text-white focus:outline-hidden">
                 {(Object.keys(SCENARIO_TYPE_CONFIG) as ScenarioType[]).map(t => (
                   <option key={t} value={t}>{SCENARIO_TYPE_CONFIG[t].label}</option>
                 ))}
@@ -142,52 +145,52 @@ function ScenarioFormModal({ onClose, onSave }: { onClose: () => void; onSave: (
             </div>
           </div>
           <div>
-            <label className="text-xs text-falcon-muted mb-1 block">説明</label>
+            <label className="text-xs text-[#7d92b0] mb-1 block">説明</label>
             <textarea value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))}
-              rows={2} className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-sm text-white focus:outline-hidden resize-none" />
+              rows={2} className="w-full bg-[#070d19] border border-[#1e2d42] rounded-sm px-3 py-2 text-sm text-white focus:outline-hidden resize-none" />
           </div>
           <div>
-            <label className="text-xs text-falcon-muted mb-2 block">MITRE タクティクス (複数選択)</label>
+            <label className="text-xs text-[#7d92b0] mb-2 block">MITRE タクティクス (複数選択)</label>
             <div className="flex flex-wrap gap-2">
               {ALL_MITRE_TACTICS.map(t => (
                 <button key={t} onClick={() => toggleTactic(t)}
-                  className={`text-xs px-2 py-1 rounded-full border transition-colors ${form.mitre_tactics.includes(t) ? 'bg-falcon-red/20 border-falcon-red/50 text-falcon-red' : 'border-falcon-border text-falcon-muted hover:border-falcon-muted/40'}`}>
+                  className={`text-xs px-2 py-1 rounded-full border transition-colors ${form.mitre_tactics.includes(t) ? 'bg-[#e8002d]/20 border-[#e8002d]/50 text-[#e8002d]' : 'border-[#1e2d42] text-[#7d92b0] hover:border-[#7d92b0]/40'}`}>
                   {t}
                 </button>
               ))}
             </div>
           </div>
           <div>
-            <label className="text-xs text-falcon-muted mb-1 block">MITRE テクニック (カンマ区切り)</label>
+            <label className="text-xs text-[#7d92b0] mb-1 block">MITRE テクニック (カンマ区切り)</label>
             <input value={form.mitre_techniques} onChange={e => setForm(p => ({ ...p, mitre_techniques: e.target.value }))}
               placeholder="T1566.001, T1059.005..."
-              className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-sm text-white focus:outline-hidden font-mono" />
+              className="w-full bg-[#070d19] border border-[#1e2d42] rounded-sm px-3 py-2 text-sm text-white focus:outline-hidden font-mono" />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="text-xs text-falcon-muted mb-1 block">難易度</label>
+              <label className="text-xs text-[#7d92b0] mb-1 block">難易度</label>
               <select value={form.difficulty} onChange={e => setForm(p => ({ ...p, difficulty: e.target.value as Difficulty }))}
-                className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-sm text-white focus:outline-hidden">
+                className="w-full bg-[#070d19] border border-[#1e2d42] rounded-sm px-3 py-2 text-sm text-white focus:outline-hidden">
                 {(Object.keys(DIFFICULTY_CONFIG) as Difficulty[]).map(d => (
                   <option key={d} value={d}>{DIFFICULTY_CONFIG[d].label}</option>
                 ))}
               </select>
             </div>
             <div>
-              <label className="text-xs text-falcon-muted mb-1 block">推定時間 (分)</label>
+              <label className="text-xs text-[#7d92b0] mb-1 block">推定時間 (分)</label>
               <input type="number" min={1} max={120} value={form.estimated_duration_min} onChange={e => setForm(p => ({ ...p, estimated_duration_min: Number(e.target.value) }))}
-                className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-sm text-white focus:outline-hidden" />
+                className="w-full bg-[#070d19] border border-[#1e2d42] rounded-sm px-3 py-2 text-sm text-white focus:outline-hidden" />
             </div>
           </div>
         </div>
         <div className="flex gap-3 mt-6">
-          <button onClick={onClose} className="flex-1 py-2 rounded-sm border border-falcon-border text-falcon-muted hover:text-white text-sm transition-colors">キャンセル</button>
+          <button onClick={onClose} className="flex-1 py-2 rounded-sm border border-[#1e2d42] text-[#7d92b0] hover:text-white text-sm transition-colors">キャンセル</button>
           <button onClick={() => {
             if (form.name) {
               onSave({ ...form, mitre_techniques: form.mitre_techniques.split(',').map(t => t.trim()).filter(Boolean) })
               onClose()
             }
-          }} className="flex-1 py-2 rounded-sm bg-falcon-red text-white text-sm font-medium hover:bg-[#c8001e] transition-colors">保存</button>
+          }} className="flex-1 py-2 rounded-sm bg-[#e8002d] text-white text-sm font-medium hover:bg-[#c8001e] transition-colors">保存</button>
         </div>
       </div>
     </div>
@@ -202,36 +205,49 @@ function RunModal({ scenario, onClose }: { scenario: BASScenario; onClose: () =>
   const [running, setRunning] = useState(false)
   const [progress, setProgress] = useState<'pending' | 'running' | 'done'>('pending')
   const [result, setResult] = useState<BASRun | null>(null)
+  const [runError, setRunError] = useState<string | null>(null)
   const stc = SCENARIO_TYPE_CONFIG[scenario.scenario_type]
 
+  // 実行の失敗を捨てたうえで3秒待ち、「検知率75% / 防御率65% / 10手のうち
+  // 7手を検知」という結果を組み立てて表示していました。すべて固定値です。
+  // 攻撃シミュレーションの結果は検知態勢の評価そのもので、この数字は
+  // 経営向けの報告にそのまま載ります。サーバの返した結果だけを出します。
   const handleRun = async () => {
     if (!confirmed) return
     setRunning(true)
     setProgress('running')
+    setRunError(null)
     const scope = scopeInput.split('\n').map(s => s.trim()).filter(Boolean)
     try {
-      await apiFetch('/api/v1/admin/bas/runs', { method: 'POST', body: JSON.stringify({ scenario_id: scenario.id, target_scope: scope }) })
-    } catch {}
-    setTimeout(() => {
+      const run = await apiFetch<BASRun>('/api/v1/admin/bas/runs', {
+        method: 'POST',
+        body: JSON.stringify({ scenario_id: scenario.id, target_scope: scope }),
+      })
+      setResult(run)
       setProgress('done')
-      setResult({ id: String(Date.now()), scenario_id: scenario.id, scenario_name: scenario.name, started_at: new Date().toISOString(), completed_at: new Date().toISOString(), duration_s: scenario.estimated_duration_min * 60, status: 'completed', detection_rate: 75, prevention_rate: 65, total_steps: 10, detected_steps: 7, prevented_steps: 6, target_scope: scope, findings: ['シミュレーション完了', '検知結果を確認してください'], step_results: [] })
-    }, 3000)
+    } catch (e) {
+      setRunError(e instanceof Error ? e.message : '不明なエラー')
+      setProgress('pending')
+    } finally {
+      setRunning(false)
+    }
   }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-      <div className="bg-falcon-surface border border-falcon-border rounded-xl w-full max-w-lg p-6">
+      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl w-full max-w-lg p-6">
         <div className="flex items-center justify-between mb-5">
           <h2 className="text-white font-semibold text-lg">シナリオ実行</h2>
-          <button onClick={onClose} className="text-falcon-muted hover:text-white"><X className="w-5 h-5" /></button>
+          <button onClick={onClose} className="text-[#7d92b0] hover:text-white"><X className="w-5 h-5" /></button>
         </div>
-        <div className="p-3 bg-[#070d19] rounded-lg border border-falcon-border mb-4">
+        <SaveFailed error={runError && `シミュレーションを実行できませんでした: ${runError}`} />
+        <div className="p-3 bg-[#070d19] rounded-lg border border-[#1e2d42] mb-4">
           <div className="flex items-center gap-2 mb-1">
             <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${stc.bg} ${stc.text}`}>{stc.label}</span>
             <span className={`text-xs font-bold ${DIFFICULTY_CONFIG[scenario.difficulty].color}`}>{DIFFICULTY_CONFIG[scenario.difficulty].label}</span>
           </div>
           <p className="text-white font-medium text-sm">{scenario.name}</p>
-          <p className="text-falcon-muted text-xs mt-0.5">推定時間: {scenario.estimated_duration_min}分</p>
+          <p className="text-[#7d92b0] text-xs mt-0.5">推定時間: {scenario.estimated_duration_min}分</p>
         </div>
         {progress === 'pending' && (
           <>
@@ -240,19 +256,19 @@ function RunModal({ scenario, onClose }: { scenario: BASScenario; onClose: () =>
               <p className="text-xs text-yellow-300">シミュレーションは安全な隔離環境で実行されます。本番データには影響しません。</p>
             </div>
             <div className="mb-4">
-              <label className="text-xs text-falcon-muted mb-1 block">ターゲットスコープ (ホスト名/IP、1行1件)</label>
+              <label className="text-xs text-[#7d92b0] mb-1 block">ターゲットスコープ (ホスト名/IP、1行1件)</label>
               <textarea value={scopeInput} onChange={e => setScopeInput(e.target.value)}
                 rows={3} placeholder="workstation-01&#10;192.168.1.100"
-                className="w-full bg-[#070d19] border border-falcon-border rounded-sm px-3 py-2 text-sm text-white focus:outline-hidden resize-none font-mono" />
+                className="w-full bg-[#070d19] border border-[#1e2d42] rounded-sm px-3 py-2 text-sm text-white focus:outline-hidden resize-none font-mono" />
             </div>
-            <label className="flex items-center gap-2 text-sm text-falcon-muted cursor-pointer mb-5">
-              <input type="checkbox" checked={confirmed} onChange={e => setConfirmed(e.target.checked)} className="accent-falcon-red" />
+            <label className="flex items-center gap-2 text-sm text-[#7d92b0] cursor-pointer mb-5">
+              <input type="checkbox" checked={confirmed} onChange={e => setConfirmed(e.target.checked)} className="accent-[#e8002d]" />
               シミュレーション実行内容を確認し、同意します
             </label>
             <div className="flex gap-3">
-              <button onClick={onClose} className="flex-1 py-2 rounded-sm border border-falcon-border text-falcon-muted hover:text-white text-sm transition-colors">キャンセル</button>
+              <button onClick={onClose} className="flex-1 py-2 rounded-sm border border-[#1e2d42] text-[#7d92b0] hover:text-white text-sm transition-colors">キャンセル</button>
               <button onClick={handleRun} disabled={!confirmed}
-                className="flex-1 py-2 rounded-sm bg-falcon-red text-white text-sm font-medium hover:bg-[#c8001e] transition-colors disabled:opacity-40 flex items-center justify-center gap-2">
+                className="flex-1 py-2 rounded-sm bg-[#e8002d] text-white text-sm font-medium hover:bg-[#c8001e] transition-colors disabled:opacity-40 flex items-center justify-center gap-2">
                 <Play className="w-4 h-4" /> 実行開始
               </button>
             </div>
@@ -262,7 +278,7 @@ function RunModal({ scenario, onClose }: { scenario: BASScenario; onClose: () =>
           <div className="text-center py-8">
             <RefreshCw className="w-10 h-10 text-blue-400 animate-spin mx-auto mb-3" />
             <p className="text-white font-medium mb-1">シナリオ実行中...</p>
-            <p className="text-falcon-muted text-sm">結果を収集しています。しばらくお待ちください。</p>
+            <p className="text-[#7d92b0] text-sm">結果を収集しています。しばらくお待ちください。</p>
           </div>
         )}
         {progress === 'done' && result && (
@@ -272,23 +288,23 @@ function RunModal({ scenario, onClose }: { scenario: BASScenario; onClose: () =>
               <p className="text-white font-medium">シナリオ完了</p>
             </div>
             <div className="grid grid-cols-2 gap-3 mb-4">
-              <div className="p-3 bg-[#070d19] rounded-lg border border-falcon-border">
-                <p className="text-xs text-falcon-muted mb-1">検知率</p>
+              <div className="p-3 bg-[#070d19] rounded-lg border border-[#1e2d42]">
+                <p className="text-xs text-[#7d92b0] mb-1">検知率</p>
                 <p className={`text-2xl font-bold ${rateText(result.detection_rate)}`}>{result.detection_rate}%</p>
               </div>
-              <div className="p-3 bg-[#070d19] rounded-lg border border-falcon-border">
-                <p className="text-xs text-falcon-muted mb-1">防止率</p>
+              <div className="p-3 bg-[#070d19] rounded-lg border border-[#1e2d42]">
+                <p className="text-xs text-[#7d92b0] mb-1">防止率</p>
                 <p className={`text-2xl font-bold ${rateText(result.prevention_rate)}`}>{result.prevention_rate}%</p>
               </div>
             </div>
             <ul className="space-y-1 mb-4">
               {result.findings.map((f, i) => (
-                <li key={i} className="flex items-start gap-2 text-xs text-falcon-muted">
-                  <span className="text-falcon-red mt-0.5">•</span> {f}
+                <li key={i} className="flex items-start gap-2 text-xs text-[#7d92b0]">
+                  <span className="text-[#e8002d] mt-0.5">•</span> {f}
                 </li>
               ))}
             </ul>
-            <button onClick={onClose} className="w-full py-2 rounded-sm bg-falcon-border text-white text-sm hover:bg-[#2a3f5a] transition-colors">閉じる</button>
+            <button onClick={onClose} className="w-full py-2 rounded-sm bg-[#1e2d42] text-white text-sm hover:bg-[#2a3f5a] transition-colors">閉じる</button>
           </div>
         )}
       </div>
@@ -302,13 +318,13 @@ function RunDetailModal({ run, onClose }: { run: BASRun; onClose: () => void }) 
   const sc = RUN_STATUS_CONFIG[run.status]
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-      <div className="bg-falcon-surface border border-falcon-border rounded-xl w-full max-w-2xl p-6 max-h-[90vh] overflow-y-auto">
+      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl w-full max-w-2xl p-6 max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-5">
           <div>
             <h2 className="text-white font-semibold text-lg">{run.scenario_name}</h2>
-            <p className="text-falcon-muted text-xs mt-0.5">{fmt(run.started_at)}</p>
+            <p className="text-[#7d92b0] text-xs mt-0.5">{fmt(run.started_at)}</p>
           </div>
-          <button onClick={onClose} className="text-falcon-muted hover:text-white"><X className="w-5 h-5" /></button>
+          <button onClick={onClose} className="text-[#7d92b0] hover:text-white"><X className="w-5 h-5" /></button>
         </div>
         <div className="grid grid-cols-4 gap-3 mb-5">
           {[
@@ -317,29 +333,29 @@ function RunDetailModal({ run, onClose }: { run: BASRun; onClose: () => void }) 
             { label: '防止率', value: <span className={`font-bold ${rateText(run.prevention_rate)}`}>{run.prevention_rate}%</span> },
             { label: '所要時間', value: <span className="text-white text-sm">{fmtDuration(run.duration_s)}</span> },
           ].map(c => (
-            <div key={c.label} className="p-3 bg-[#070d19] rounded-lg border border-falcon-border">
-              <p className="text-xs text-falcon-muted mb-1">{c.label}</p>
+            <div key={c.label} className="p-3 bg-[#070d19] rounded-lg border border-[#1e2d42]">
+              <p className="text-xs text-[#7d92b0] mb-1">{c.label}</p>
               <div className="text-sm">{c.value}</div>
             </div>
           ))}
         </div>
         {run.target_scope.length > 0 && (
           <div className="mb-4">
-            <p className="text-xs text-falcon-muted mb-2 uppercase tracking-wider font-medium">ターゲット</p>
+            <p className="text-xs text-[#7d92b0] mb-2 uppercase tracking-wider font-medium">ターゲット</p>
             <div className="flex flex-wrap gap-2">
               {run.target_scope.map(s => (
-                <span key={s} className="text-xs font-mono bg-[#070d19] border border-falcon-border px-2 py-1 rounded-sm text-falcon-text">{s}</span>
+                <span key={s} className="text-xs font-mono bg-[#070d19] border border-[#1e2d42] px-2 py-1 rounded-sm text-[#e2e8f4]">{s}</span>
               ))}
             </div>
           </div>
         )}
         {run.findings.length > 0 && (
           <div className="mb-4">
-            <p className="text-xs text-falcon-muted mb-2 uppercase tracking-wider font-medium">フィンディング</p>
+            <p className="text-xs text-[#7d92b0] mb-2 uppercase tracking-wider font-medium">フィンディング</p>
             <ul className="space-y-1.5">
               {run.findings.map((f, i) => (
-                <li key={i} className="flex items-start gap-2 text-sm text-falcon-text">
-                  <span className="text-falcon-red mt-0.5 shrink-0">•</span>{f}
+                <li key={i} className="flex items-start gap-2 text-sm text-[#e2e8f4]">
+                  <span className="text-[#e8002d] mt-0.5 shrink-0">•</span>{f}
                 </li>
               ))}
             </ul>
@@ -347,13 +363,13 @@ function RunDetailModal({ run, onClose }: { run: BASRun; onClose: () => void }) 
         )}
         {run.step_results.length > 0 && (
           <div>
-            <p className="text-xs text-falcon-muted mb-2 uppercase tracking-wider font-medium">ステップ別結果</p>
+            <p className="text-xs text-[#7d92b0] mb-2 uppercase tracking-wider font-medium">ステップ別結果</p>
             <div className="space-y-2">
               {run.step_results.map((s, i) => (
-                <div key={s.step_id} className="flex items-center gap-3 p-3 bg-[#070d19] rounded-lg border border-falcon-border">
-                  <span className="text-xs text-falcon-subtle font-mono w-4 shrink-0">{i + 1}</span>
-                  <p className="flex-1 text-sm text-falcon-text">{s.description}</p>
-                  <span className="text-xs font-mono text-falcon-muted">{s.technique}</span>
+                <div key={s.step_id} className="flex items-center gap-3 p-3 bg-[#070d19] rounded-lg border border-[#1e2d42]">
+                  <span className="text-xs text-[#3d5068] font-mono w-4 shrink-0">{i + 1}</span>
+                  <p className="flex-1 text-sm text-[#e2e8f4]">{s.description}</p>
+                  <span className="text-xs font-mono text-[#7d92b0]">{s.technique}</span>
                   <span className={`text-xs px-1.5 py-0.5 rounded-sm font-medium ${s.detected ? 'bg-green-900/40 text-green-300' : 'bg-red-900/30 text-red-400'}`}>
                     {s.detected ? '検知' : '未検知'}
                   </span>
@@ -366,9 +382,9 @@ function RunDetailModal({ run, onClose }: { run: BASRun; onClose: () => void }) 
             </div>
           </div>
         )}
-        <div className="mt-5 p-3 bg-[#070d19] rounded-lg border border-falcon-border">
-          <p className="text-xs text-falcon-muted mb-1 font-medium">総合評価</p>
-          <p className="text-sm text-falcon-text">
+        <div className="mt-5 p-3 bg-[#070d19] rounded-lg border border-[#1e2d42]">
+          <p className="text-xs text-[#7d92b0] mb-1 font-medium">総合評価</p>
+          <p className="text-sm text-[#e2e8f4]">
             {run.detection_rate >= 80 ? '検知能力は良好です。さらなる向上のため防止設定を見直してください。' :
               run.detection_rate >= 60 ? '一部のテクニックが未検知です。検知ルールの追加を推奨します。' :
               '検知率が低いです。ルールセットの大幅な見直しが必要です。'}
@@ -384,6 +400,7 @@ function RunDetailModal({ run, onClose }: { run: BASRun; onClose: () => void }) 
 export default function BASPage() {
   const [tab, setTab] = useState<'scenarios' | 'runs'>('scenarios')
   const [localScenarios, setLocalScenarios] = useState<BASScenario[]>([])
+  const { persist, saveError } = usePersist()
   const [localRuns] = useState<BASRun[]>([])
   const [showAddScenario, setShowAddScenario] = useState(false)
   const [runScenario, setRunScenario] = useState<BASScenario | null>(null)
@@ -404,16 +421,20 @@ export default function BASPage() {
     onError: () => {},
   } as any)
 
+  // 保存の失敗を捨ててから画面を進めていました。
+  // /api/v1/admin/bas/* にはサーバ側のルートがありません。
   const handleToggleScenario = async (s: BASScenario) => {
-    try { await apiFetch(`/api/v1/admin/bas/scenarios/${s.id}/toggle`, { method: 'POST' }) } catch {}
-    setLocalScenarios(prev => prev.map(x => x.id === s.id ? { ...x, is_active: !x.is_active } : x))
+    if (await persist(`シナリオ「${s.name}」の有効/無効`, `/api/v1/admin/bas/scenarios/${s.id}/toggle`, { method: 'POST' })) {
+      setLocalScenarios(prev => prev.map(x => x.id === s.id ? { ...x, is_active: !x.is_active } : x))
+    }
   }
 
-  const handleAddScenario = (form: Omit<BASScenario, 'id' | 'created_at'>) => {
+  const handleAddScenario = async (form: Omit<BASScenario, 'id' | 'created_at'>) => {
     const newS: BASScenario = { ...form, id: String(Date.now()), created_at: new Date().toISOString() }
-    try { apiFetch('/api/v1/admin/bas/scenarios', { method: 'POST', body: JSON.stringify(form) }) } catch {}
-    setLocalScenarios(prev => [...prev, newS])
-    showToast(`シナリオ「${form.name}」を追加しました`)
+    if (await persist(`シナリオ「${form.name}」`, '/api/v1/admin/bas/scenarios', { method: 'POST', body: JSON.stringify(form) })) {
+      setLocalScenarios(prev => [...prev, newS])
+      showToast(`シナリオ「${form.name}」を追加しました`)
+    }
   }
 
   // Stats
@@ -430,15 +451,17 @@ export default function BASPage() {
 
   return (
     <div className="min-h-screen bg-[#070d19] p-6">
+      <PageDataUnavailable />
+      <SaveFailed error={saveError} />
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-linear-to-br from-falcon-red to-falcon-red-dark flex items-center justify-center">
+          <div className="w-10 h-10 rounded-lg bg-linear-to-br from-[#e8002d] to-[#a80020] flex items-center justify-center">
             <Target className="w-5 h-5 text-white" />
           </div>
           <div>
             <h1 className="text-white text-2xl font-bold">侵害・攻撃シミュレーション (BAS)</h1>
-            <p className="text-falcon-muted text-sm">セキュリティ制御のシミュレーション検証</p>
+            <p className="text-[#7d92b0] text-sm">セキュリティ制御のシミュレーション検証</p>
           </div>
         </div>
       </div>
@@ -457,8 +480,8 @@ export default function BASPage() {
           { label: '平均検知率', value: `${avgDetection}%`, color: rateText(avgDetection) },
           { label: '平均防止率', value: `${avgPrevention}%`, color: rateText(avgPrevention) },
         ].map(c => (
-          <div key={c.label} className="bg-falcon-surface border border-falcon-border rounded-xl p-4">
-            <p className="text-xs text-falcon-muted mb-2">{c.label}</p>
+          <div key={c.label} className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-4">
+            <p className="text-xs text-[#7d92b0] mb-2">{c.label}</p>
             <p className={`text-2xl font-bold ${c.color}`}>{c.value}</p>
           </div>
         ))}
@@ -468,7 +491,7 @@ export default function BASPage() {
       <div className="flex gap-2 mb-6">
         {[{ key: 'scenarios', label: 'シナリオ' }, { key: 'runs', label: '実行結果' }].map(t => (
           <button key={t.key} onClick={() => setTab(t.key as any)}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${tab === t.key ? 'bg-falcon-red text-white' : 'bg-falcon-surface border border-falcon-border text-falcon-muted hover:text-white'}`}>
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${tab === t.key ? 'bg-[#e8002d] text-white' : 'bg-[#0d1220] border border-[#1e2d42] text-[#7d92b0] hover:text-white'}`}>
             {t.label}
           </button>
         ))}
@@ -478,9 +501,9 @@ export default function BASPage() {
       {tab === 'scenarios' && (
         <div>
           <div className="flex items-center justify-between mb-4">
-            <p className="text-falcon-muted text-sm">{localScenarios.length} シナリオ</p>
+            <p className="text-[#7d92b0] text-sm">{localScenarios.length} シナリオ</p>
             <button onClick={() => setShowAddScenario(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-falcon-red text-white rounded-lg text-sm font-medium hover:bg-[#c8001e] transition-colors">
+              className="flex items-center gap-2 px-4 py-2 bg-[#e8002d] text-white rounded-lg text-sm font-medium hover:bg-[#c8001e] transition-colors">
               <Plus className="w-4 h-4" /> シナリオ追加
             </button>
           </div>
@@ -489,29 +512,29 @@ export default function BASPage() {
               const stc = SCENARIO_TYPE_CONFIG[s.scenario_type]
               const dc = DIFFICULTY_CONFIG[s.difficulty]
               return (
-                <div key={s.id} className={`bg-falcon-surface border rounded-xl p-4 transition-colors ${s.is_active ? 'border-falcon-border' : 'border-falcon-border opacity-60'}`}>
+                <div key={s.id} className={`bg-[#0d1220] border rounded-xl p-4 transition-colors ${s.is_active ? 'border-[#1e2d42]' : 'border-[#1e2d42] opacity-60'}`}>
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${stc.bg} ${stc.text}`}>{stc.label}</span>
                       <span className={`text-xs font-bold ${dc.color}`}>{dc.label}</span>
                     </div>
                     <button onClick={() => handleToggleScenario(s)}>
-                      {s.is_active ? <ToggleRight className="w-5 h-5 text-green-400" /> : <ToggleLeft className="w-5 h-5 text-falcon-subtle" />}
+                      {s.is_active ? <ToggleRight className="w-5 h-5 text-green-400" /> : <ToggleLeft className="w-5 h-5 text-[#3d5068]" />}
                     </button>
                   </div>
                   <p className="text-white font-medium text-sm mb-1">{s.name}</p>
-                  <p className="text-falcon-muted text-xs mb-3 line-clamp-2">{s.description}</p>
+                  <p className="text-[#7d92b0] text-xs mb-3 line-clamp-2">{s.description}</p>
                   <div className="flex flex-wrap gap-1 mb-3">
                     {s.mitre_tactics.map(t => (
-                      <span key={t} className="text-[10px] px-1.5 py-0.5 rounded-sm bg-falcon-border text-falcon-muted border border-[#2a3f5a]">{t}</span>
+                      <span key={t} className="text-[10px] px-1.5 py-0.5 rounded-sm bg-[#1e2d42] text-[#7d92b0] border border-[#2a3f5a]">{t}</span>
                     ))}
                   </div>
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1 text-xs text-falcon-muted">
+                    <div className="flex items-center gap-1 text-xs text-[#7d92b0]">
                       <Clock className="w-3 h-3" /> {s.estimated_duration_min}分
                     </div>
                     <button onClick={() => setRunScenario(s)}
-                      className="flex items-center gap-1.5 px-3 py-1.5 bg-falcon-red/20 border border-falcon-red/40 text-falcon-red rounded-sm text-xs font-medium hover:bg-falcon-red/30 transition-colors">
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-[#e8002d]/20 border border-[#e8002d]/40 text-[#e8002d] rounded-sm text-xs font-medium hover:bg-[#e8002d]/30 transition-colors">
                       <Play className="w-3 h-3" /> 実行
                     </button>
                   </div>
@@ -526,12 +549,12 @@ export default function BASPage() {
       {tab === 'runs' && (
         <div>
           {/* Runs Table */}
-          <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden mb-6">
+          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden mb-6">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-falcon-border">
+                <tr className="border-b border-[#1e2d42]">
                   {['シナリオ', '開始時刻', '所要時間', 'ステータス', '検知率', '防止率', 'ステップ', '操作'].map(h => (
-                    <th key={h} className="text-left text-xs text-falcon-muted font-medium px-4 py-3">{h}</th>
+                    <th key={h} className="text-left text-xs text-[#7d92b0] font-medium px-4 py-3">{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -539,38 +562,38 @@ export default function BASPage() {
                 {localRuns.map(run => {
                   const sc = RUN_STATUS_CONFIG[run.status]
                   return (
-                    <tr key={run.id} className="border-b border-falcon-border/50 hover:bg-[#070d19]/50 transition-colors">
+                    <tr key={run.id} className="border-b border-[#1e2d42]/50 hover:bg-[#070d19]/50 transition-colors">
                       <td className="px-4 py-3">
                         <p className="text-white text-sm font-medium truncate max-w-[160px]" title={run.scenario_name}>{run.scenario_name}</p>
                       </td>
-                      <td className="px-4 py-3 text-xs text-falcon-muted whitespace-nowrap">{fmt(run.started_at)}</td>
-                      <td className="px-4 py-3 text-xs text-falcon-muted">{fmtDuration(run.duration_s)}</td>
+                      <td className="px-4 py-3 text-xs text-[#7d92b0] whitespace-nowrap">{fmt(run.started_at)}</td>
+                      <td className="px-4 py-3 text-xs text-[#7d92b0]">{fmtDuration(run.duration_s)}</td>
                       <td className="px-4 py-3">
                         <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${sc.bg} ${sc.text} ${sc.pulse ? 'animate-pulse' : ''}`}>{sc.label}</span>
                       </td>
                       <td className="px-4 py-3 min-w-[100px]">
                         {run.status === 'completed' ? (
                           <div className="flex items-center gap-2">
-                            <div className="flex-1 h-1.5 bg-falcon-border rounded-full overflow-hidden">
+                            <div className="flex-1 h-1.5 bg-[#1e2d42] rounded-full overflow-hidden">
                               <div className={`h-full rounded-full ${rateColor(run.detection_rate)}`} style={{ width: `${run.detection_rate}%` }} />
                             </div>
                             <span className={`text-xs font-bold ${rateText(run.detection_rate)}`}>{run.detection_rate}%</span>
                           </div>
-                        ) : <span className="text-xs text-falcon-subtle">—</span>}
+                        ) : <span className="text-xs text-[#3d5068]">—</span>}
                       </td>
                       <td className="px-4 py-3 min-w-[100px]">
                         {run.status === 'completed' ? (
                           <div className="flex items-center gap-2">
-                            <div className="flex-1 h-1.5 bg-falcon-border rounded-full overflow-hidden">
+                            <div className="flex-1 h-1.5 bg-[#1e2d42] rounded-full overflow-hidden">
                               <div className={`h-full rounded-full ${rateColor(run.prevention_rate)}`} style={{ width: `${run.prevention_rate}%` }} />
                             </div>
                             <span className={`text-xs font-bold ${rateText(run.prevention_rate)}`}>{run.prevention_rate}%</span>
                           </div>
-                        ) : <span className="text-xs text-falcon-subtle">—</span>}
+                        ) : <span className="text-xs text-[#3d5068]">—</span>}
                       </td>
-                      <td className="px-4 py-3 text-xs text-falcon-muted">{run.detected_steps}/{run.total_steps}</td>
+                      <td className="px-4 py-3 text-xs text-[#7d92b0]">{run.detected_steps}/{run.total_steps}</td>
                       <td className="px-4 py-3">
-                        <button onClick={() => setDetailRun(run)} className="text-falcon-muted hover:text-white transition-colors">
+                        <button onClick={() => setDetailRun(run)} className="text-[#7d92b0] hover:text-white transition-colors">
                           <Eye className="w-4 h-4" />
                         </button>
                       </td>
@@ -584,14 +607,14 @@ export default function BASPage() {
           {/* Statistics */}
           <div className="grid grid-cols-2 gap-4">
             {/* Detection Trend */}
-            <div className="bg-falcon-surface border border-falcon-border rounded-xl p-4">
-              <p className="text-xs text-falcon-muted mb-3 font-medium uppercase tracking-wider flex items-center gap-2">
+            <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-4">
+              <p className="text-xs text-[#7d92b0] mb-3 font-medium uppercase tracking-wider flex items-center gap-2">
                 <TrendingUp className="w-3.5 h-3.5" /> 検知率トレンド (直近{trendRuns.length}件)
               </p>
               <div className="flex items-end gap-2 h-20">
                 {trendRuns.map((r, i) => (
                   <div key={r.id} className="flex-1 flex flex-col items-center gap-1">
-                    <span className="text-[9px] text-falcon-muted">{r.detection_rate}%</span>
+                    <span className="text-[9px] text-[#7d92b0]">{r.detection_rate}%</span>
                     <div className={`w-full rounded-t ${rateColor(r.detection_rate)}`} style={{ height: `${(r.detection_rate / 100) * 56}px` }} />
                   </div>
                 ))}
@@ -599,15 +622,15 @@ export default function BASPage() {
             </div>
 
             {/* Gap Analysis */}
-            <div className="bg-falcon-surface border border-falcon-border rounded-xl p-4">
-              <p className="text-xs text-falcon-muted mb-3 font-medium uppercase tracking-wider flex items-center gap-2">
+            <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-4">
+              <p className="text-xs text-[#7d92b0] mb-3 font-medium uppercase tracking-wider flex items-center gap-2">
                 <BarChart3 className="w-3.5 h-3.5" /> タクティクス別検知率 (低い順)
               </p>
               <div className="space-y-2">
                 {tacticGaps.map(g => (
                   <div key={g.tactic} className="flex items-center gap-3">
-                    <span className="text-xs text-falcon-muted w-28 truncate shrink-0">{g.tactic}</span>
-                    <div className="flex-1 h-2 bg-falcon-border rounded-full overflow-hidden">
+                    <span className="text-xs text-[#7d92b0] w-28 truncate shrink-0">{g.tactic}</span>
+                    <div className="flex-1 h-2 bg-[#1e2d42] rounded-full overflow-hidden">
                       <div className={`h-full rounded-full ${rateColor(g.rate)}`} style={{ width: `${g.rate}%` }} />
                     </div>
                     <span className={`text-xs font-bold ${rateText(g.rate)} w-10 text-right`}>{g.rate}%</span>
@@ -625,10 +648,10 @@ export default function BASPage() {
       {detailRun && <RunDetailModal run={detailRun} onClose={() => setDetailRun(null)} />}
 
       {toast && (
-        <div className="fixed bottom-6 right-6 z-50 max-w-sm bg-falcon-surface border border-green-500/50 rounded-lg p-4 shadow-xl flex items-center gap-3">
+        <div className="fixed bottom-6 right-6 z-50 max-w-sm bg-[#0d1220] border border-green-500/50 rounded-lg p-4 shadow-xl flex items-center gap-3">
           <CheckCircle className="w-4 h-4 text-green-400 shrink-0" />
-          <p className="text-sm text-falcon-text flex-1">{toast}</p>
-          <button onClick={() => setToast(null)} className="text-falcon-muted hover:text-white"><X className="w-4 h-4" /></button>
+          <p className="text-sm text-[#e2e8f4] flex-1">{toast}</p>
+          <button onClick={() => setToast(null)} className="text-[#7d92b0] hover:text-white"><X className="w-4 h-4" /></button>
         </div>
       )}
     </div>

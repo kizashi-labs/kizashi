@@ -92,47 +92,65 @@ func (h *ComplianceHandler) Summary(c *gin.Context) {
 
 	if h.Pool != nil {
 		// Agents
-		_ = h.Pool.QueryRow(ctx, `SELECT COUNT(*), COUNT(*) FILTER (WHERE status='online') FROM agents`).
-			Scan(&totalAgents, &onlineAgents)
+		if !ReadOK(c, h.Pool.QueryRow(ctx, `SELECT COUNT(*), COUNT(*) FILTER (WHERE status='online') FROM agents`).
+			Scan(&totalAgents, &onlineAgents)) {
+			return
+		}
 
 		// Rules
-		_ = h.Pool.QueryRow(ctx, `SELECT COUNT(*), COUNT(*) FILTER (WHERE enabled) FROM rules`).
-			Scan(&totalRules, &enabledRules)
+		if !ReadOK(c, h.Pool.QueryRow(ctx, `SELECT COUNT(*), COUNT(*) FILTER (WHERE enabled) FROM rules`).
+			Scan(&totalRules, &enabledRules)) {
+			return
+		}
 
 		// Alerts
-		_ = h.Pool.QueryRow(ctx, `
-			SELECT COUNT(*),
-				COUNT(*) FILTER (WHERE severity=4 AND status NOT IN ('resolved','false_positive')),
-				COUNT(*) FILTER (WHERE status='resolved' AND created_at >= NOW()-INTERVAL '30 days')
-			FROM alerts`).
-			Scan(&totalAlerts, &openCritical, &resolvedLast30d)
+		if !ReadOK(c, h.Pool.QueryRow(ctx, `
+				SELECT COUNT(*),
+					COUNT(*) FILTER (WHERE severity=4 AND status NOT IN ('resolved','false_positive')),
+					COUNT(*) FILTER (WHERE status='resolved' AND created_at >= NOW()-INTERVAL '30 days')
+				FROM alerts`).
+			Scan(&totalAlerts, &openCritical, &resolvedLast30d)) {
+			return
+		}
 
 		// Alert resolution time (hours, last 30d)
-		_ = h.Pool.QueryRow(ctx, `
-			SELECT COALESCE(AVG(EXTRACT(EPOCH FROM (updated_at - created_at))/3600), 0)
-			FROM alerts
-			WHERE status = 'resolved'
-			  AND created_at >= NOW() - INTERVAL '30 days'`).
-			Scan(&avgResolutionHrs)
+		if !ReadOK(c, h.Pool.QueryRow(ctx, `
+				SELECT COALESCE(AVG(EXTRACT(EPOCH FROM (updated_at - created_at))/3600), 0)
+				FROM alerts
+				WHERE status = 'resolved'
+				  AND created_at >= NOW() - INTERVAL '30 days'`).
+			Scan(&avgResolutionHrs)) {
+			return
+		}
 
 		// Vulnerabilities
-		_ = h.Pool.QueryRow(ctx, `
-			SELECT COUNT(*),
-				COUNT(*) FILTER (WHERE severity='critical' AND status='open'),
-				COUNT(*) FILTER (WHERE severity='high' AND status='open')
-			FROM vulnerabilities`).
-			Scan(&totalVulns, &criticalVulns, &highVulns)
+		if !ReadOK(c, h.Pool.QueryRow(ctx, `
+				SELECT COUNT(*),
+					COUNT(*) FILTER (WHERE severity='critical' AND status='open'),
+					COUNT(*) FILTER (WHERE severity='high' AND status='open')
+				FROM vulnerabilities`).
+			Scan(&totalVulns, &criticalVulns, &highVulns)) {
+			return
+		}
 
 		// IOCs
-		_ = h.Pool.QueryRow(ctx, `SELECT COUNT(*) FROM ioc_entries WHERE is_active`).Scan(&totalIOC)
+		if !ReadOK(c, h.Pool.QueryRow(ctx, `SELECT COUNT(*) FROM ioc_entries WHERE is_active`).Scan(&totalIOC)) {
+			return
+		}
 
 		// Playbooks
-		_ = h.Pool.QueryRow(ctx, `SELECT COUNT(*), COUNT(*) FILTER (WHERE is_active) FROM playbooks`).
-			Scan(&totalPlaybooks, &enabledPlaybooks)
+		// playbooks の有効フラグは is_active です。enabled という列は無く、この文が
+		// 42703 で拒否されていたため、プレイブック数は常に 0 でした。
+		if !ReadOK(c, h.Pool.QueryRow(ctx, `SELECT COUNT(*), COUNT(*) FILTER (WHERE is_active) FROM playbooks`).
+			Scan(&totalPlaybooks, &enabledPlaybooks)) {
+			return
+		}
 
 		// Incidents (shows incident management maturity)
-		_ = h.Pool.QueryRow(ctx, `SELECT COUNT(*) FROM incidents WHERE created_at >= NOW()-INTERVAL '30 days'`).
-			Scan(&incidentsCreated)
+		if !ReadOK(c, h.Pool.QueryRow(ctx, `SELECT COUNT(*) FROM incidents WHERE created_at >= NOW()-INTERVAL '30 days'`).
+			Scan(&incidentsCreated)) {
+			return
+		}
 	}
 
 	// ── Helper to clamp score ───────────────────────────────
@@ -422,8 +440,10 @@ func (h *ComplianceHandler) Summary(c *gin.Context) {
 	// Count distinct MITRE techniques that appear in alerts
 	var coveredTechniques int
 	if h.Pool != nil {
-		_ = h.Pool.QueryRow(ctx, `SELECT COUNT(DISTINCT mitre_technique) FROM alerts WHERE mitre_technique IS NOT NULL AND mitre_technique <> ''`).
-			Scan(&coveredTechniques)
+		if !ReadOK(c, h.Pool.QueryRow(ctx, `SELECT COUNT(DISTINCT mitre_technique) FROM alerts WHERE mitre_technique IS NOT NULL AND mitre_technique <> ''`).
+			Scan(&coveredTechniques)) {
+			return
+		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{
@@ -594,7 +614,9 @@ func (h *ComplianceHandler) CISControls(c *gin.Context) {
 	categoryRuleCounts := make(map[string]int)
 	var totalRules int
 	if h.Pool != nil {
-		_ = h.Pool.QueryRow(ctx, `SELECT COUNT(*) FROM rules WHERE enabled`).Scan(&totalRules)
+		if !ReadOK(c, h.Pool.QueryRow(ctx, `SELECT COUNT(*) FROM rules WHERE enabled`).Scan(&totalRules)) {
+			return
+		}
 		rows, err := h.Pool.Query(ctx,
 			`SELECT COALESCE(type, 'general'), COUNT(*) FROM rules WHERE enabled GROUP BY type`)
 		if err == nil {
@@ -710,12 +732,18 @@ func (h *ComplianceHandler) NISTFramework(c *gin.Context) {
 	var onlineAgents, totalAgents int
 
 	if h.Pool != nil {
-		_ = h.Pool.QueryRow(ctx, `SELECT COUNT(*), COUNT(*) FILTER (WHERE enabled) FROM rules`).
-			Scan(&totalRules, &enabledRules)
-		_ = h.Pool.QueryRow(ctx, `SELECT COUNT(*), COUNT(*) FILTER (WHERE status='resolved') FROM alerts`).
-			Scan(&totalAlerts, &resolvedAlerts)
-		_ = h.Pool.QueryRow(ctx, `SELECT COUNT(*), COUNT(*) FILTER (WHERE status='online') FROM agents`).
-			Scan(&totalAgents, &onlineAgents)
+		if !ReadOK(c, h.Pool.QueryRow(ctx, `SELECT COUNT(*), COUNT(*) FILTER (WHERE enabled) FROM rules`).
+			Scan(&totalRules, &enabledRules)) {
+			return
+		}
+		if !ReadOK(c, h.Pool.QueryRow(ctx, `SELECT COUNT(*), COUNT(*) FILTER (WHERE status='resolved') FROM alerts`).
+			Scan(&totalAlerts, &resolvedAlerts)) {
+			return
+		}
+		if !ReadOK(c, h.Pool.QueryRow(ctx, `SELECT COUNT(*), COUNT(*) FILTER (WHERE status='online') FROM agents`).
+			Scan(&totalAgents, &onlineAgents)) {
+			return
+		}
 	}
 
 	clamp := func(v int) int {

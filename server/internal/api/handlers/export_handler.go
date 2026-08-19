@@ -4,6 +4,8 @@ import (
 	"encoding/csv"
 	"encoding/json"
 	"fmt"
+	tenantcrypto "github.com/edr-platform/server/internal/crypto"
+	"github.com/edr-platform/server/internal/store"
 	"log/slog"
 	"net/http"
 	"strings"
@@ -15,7 +17,19 @@ import (
 
 // ExportHandler provides a unified export endpoint for all data types.
 type ExportHandler struct {
-	pool *pgxpool.Pool
+	pool      *pgxpool.Pool
+	encryptor *tenantcrypto.Encryptor
+}
+
+// WithEncryptor attaches the tenant Encryptor so encrypted raw_event values can
+// be decrypted on the way out.
+//
+// 付けないと、暗号化を有効にした瞬間に CSV へ ciphertext が出ます。
+// 空にするのも同じくらい悪いので（「生データが無かった」に見えます）、
+// 復号できないときは、そうと分かる印を書きます。
+func (h *ExportHandler) WithEncryptor(enc *tenantcrypto.Encryptor) *ExportHandler {
+	h.encryptor = enc
+	return h
 }
 
 // NewExportHandler creates a new ExportHandler.
@@ -39,13 +53,67 @@ type exportTypeMeta struct {
 	table      string
 	timeColumn string
 	allColumns []string
+	// where is an extra predicate ANDed into every query for this type. It
+	// exists because process and network telemetry are rows of `events`
+	// distinguished by event_type, not tables of their own.
+	where string
+	// joins is appended after the FROM table. It exists so a column the export
+	// centre offers can come from a related table — an agent hostname is what
+	// an operator recognises, and it lives on agents, not on the row itself.
+	joins string
+	// columnExpr maps an exported column name to the SQL that produces it.
+	// A name absent here is qualified with the table name. Values here are
+	// trusted SQL fragments written in this file — never anything from a
+	// request. Request columns are whitelisted against allColumns before being
+	// looked up.
+	columnExpr map[string]string
 }
 
+// exprFor returns the SQL producing one exported column.
+//
+// Unmapped names are qualified with the table, because once a type carries a
+// join a bare `id` or `created_at` is ambiguous and Postgres rejects it.
+func (m exportTypeMeta) exprFor(column string) string {
+	if e, ok := m.columnExpr[column]; ok {
+		return e
+	}
+	return m.table + "." + column
+}
+
+// exportTypes is the server's view of what can be exported.
+//
+// The export centre offers a column list per type and the server drops any key
+// it does not recognise — silently, because an unknown key is skipped rather
+// than refused. 29 of the columns the page offered were not in these lists, so
+// ticking those boxes produced a file without them and no indication why. The
+// names below cover what the page offers; each maps to where the data actually
+// lives, which is often a differently-named column or a joined table.
 var exportTypes = map[string]exportTypeMeta{
 	"alerts": {
 		table:      "alerts",
 		timeColumn: "created_at",
-		allColumns: []string{"id", "title", "severity", "status", "agent_id", "created_at", "updated_at"},
+		joins: "LEFT JOIN agents ag ON ag.id = alerts.agent_id " +
+			"LEFT JOIN rules r ON r.id = alerts.rule_id " +
+			"LEFT JOIN users u ON u.id = alerts.assigned_to",
+		allColumns: []string{
+			"id", "title", "severity", "status", "agent_id", "agent_hostname",
+			"rule_name", "description", "mitre_attack", "assignee",
+			"resolved_at", "raw_data", "created_at", "updated_at",
+		},
+		columnExpr: map[string]string{
+			"agent_hostname": "ag.hostname",
+			// Most alerts carry no rule_id — the pipeline that raises them does
+			// not set one — so this is empty far more often than not. A LEFT
+			// JOIN says that honestly rather than dropping those rows.
+			"rule_name":    "r.name",
+			"mitre_attack": "alerts.mitre_technique",
+			// assigned_to is a users.id. Exporting the uuid would satisfy the
+			// column name and tell the reader nothing, so the email is what
+			// leaves the building — the same reason agent_hostname is joined
+			// rather than exporting agent_id twice.
+			"assignee": "u.email",
+			"raw_data": "alerts.raw_event",
+		},
 	},
 	// 以下の列名は実スキーマ (migration 001 / 002 / 016) に合わせてある。
 	// 誤った列名を並べると SELECT が実行時に落ち、該当タイプのエクスポートが
@@ -53,28 +121,106 @@ var exportTypes = map[string]exportTypeMeta{
 	"events": {
 		table:      "events",
 		timeColumn: "time",
-		allColumns: []string{"event_id", "event_type", "agent_id", "time", "raw_data"},
+		joins:      "LEFT JOIN agents ag ON ag.id = events.agent_id",
+		allColumns: []string{
+			"id", "event_id", "event_type", "agent_id", "agent_hostname",
+			"severity", "process_name", "process_path", "pid", "user",
+			"details", "time", "timestamp", "raw_data",
+		},
+		columnExpr: map[string]string{
+			"id":             "events.event_id",
+			"timestamp":      "events.time",
+			"agent_hostname": "ag.hostname",
+			"process_name":   "events.raw_data->>'process_name'",
+			"process_path":   "events.raw_data->>'image_path'",
+			"pid":            "events.raw_data->>'pid'",
+			"user":           "events.raw_data->>'username'",
+			"details":        "events.raw_data",
+		},
 	},
 	"agents": {
 		table:      "agents",
 		timeColumn: "last_seen",
-		allColumns: []string{"id", "hostname", "os_type", "agent_version", "status", "last_seen", "ip_addresses"},
+		joins:      "LEFT JOIN agent_groups g ON g.id = agents.group_id",
+		allColumns: []string{
+			"id", "hostname", "os", "os_type", "os_version", "version",
+			"agent_version", "status", "ip_address", "ip_addresses", "groups",
+			"tags", "enrolled_at", "last_seen",
+		},
+		columnExpr: map[string]string{
+			"os":         "agents.os_type",
+			"version":    "agents.agent_version",
+			"ip_address": "agents.ip_addresses",
+			"groups":     "g.name",
+		},
 	},
 	"audit_logs": {
 		table:      "audit_logs",
 		timeColumn: "created_at",
-		allColumns: []string{"id", "user_id", "action", "resource_id", "details", "created_at"},
+		allColumns: []string{
+			"id", "user_id", "user", "action", "resource_id", "status",
+			"ip_address", "user_agent", "details", "timestamp", "created_at",
+		},
+		columnExpr: map[string]string{
+			"user":   "audit_logs.user_email",
+			"status": "audit_logs.status_code",
+		},
 	},
+	// network と processes は events の行であってテーブルではない。
+	//
+	// This used to name a process_events table, which no migration creates, and
+	// a network_connections table which does exist but which no code in this
+	// repository ever inserts into — the only writer is a test fixture. Both
+	// exports were therefore incapable of producing a row: one failed its
+	// existence probe and wrote an empty file, the other passed the probe and
+	// queried an empty table, which looks the same to whoever asked for it.
+	//
+	// The telemetry is in `events`, written by the ingestion path, keyed by
+	// event_type with the payload in raw_data. The field names below are the
+	// ones internal/ingestion actually writes — see normalizeEvent.
 	"network_connections": {
-		// network_connections には id 列が無く、時刻列は time。
-		table:      "network_connections",
+		table:      "events",
 		timeColumn: "time",
-		allColumns: []string{"agent_id", "src_ip", "dst_ip", "dst_port", "protocol", "bytes_sent", "bytes_recv", "time"},
+		where:      "event_type = 'network'",
+		joins:      "LEFT JOIN agents ag ON ag.id = events.agent_id",
+		allColumns: []string{
+			"agent_id", "agent_hostname", "src_ip", "src_port", "dst_ip", "dst_port",
+			"protocol", "direction", "process_name", "bytes_sent", "bytes_recv", "time",
+		},
+		columnExpr: map[string]string{
+			"agent_hostname": "ag.hostname",
+			"src_ip":         "events.raw_data->>'src_ip'",
+			"src_port":       "events.raw_data->>'src_port'",
+			"dst_ip":         "events.raw_data->>'dst_ip'",
+			"dst_port":       "events.raw_data->>'dst_port'",
+			"protocol":       "events.raw_data->>'protocol'",
+			"direction":      "events.raw_data->>'direction'",
+			"process_name":   "events.raw_data->>'process_name'",
+			"bytes_sent":     "events.raw_data->>'bytes_sent'",
+			"bytes_recv":     "events.raw_data->>'bytes_recv'",
+		},
 	},
 	"processes": {
-		table:      "process_events",
-		timeColumn: "timestamp",
-		allColumns: []string{"id", "agent_id", "process_name", "pid", "ppid", "cmdline", "timestamp"},
+		table:      "events",
+		timeColumn: "time",
+		where:      "event_type = 'process'",
+		joins:      "LEFT JOIN agents ag ON ag.id = events.agent_id",
+		allColumns: []string{
+			"agent_id", "agent_hostname", "process_name", "image_path", "pid", "ppid",
+			"username", "command_line", "action", "sha256", "md5", "time",
+		},
+		columnExpr: map[string]string{
+			"agent_hostname": "ag.hostname",
+			"process_name":   "events.raw_data->>'process_name'",
+			"image_path":     "events.raw_data->>'image_path'",
+			"pid":            "events.raw_data->>'pid'",
+			"ppid":           "events.raw_data->>'ppid'",
+			"username":       "events.raw_data->>'username'",
+			"command_line":   "events.raw_data->>'command_line'",
+			"action":         "events.raw_data->>'action'",
+			"sha256":         "events.raw_data->>'sha256'",
+			"md5":            "events.raw_data->>'md5'",
+		},
 	},
 }
 
@@ -159,56 +305,7 @@ func (h *ExportHandler) Export(c *gin.Context) {
 		return
 	}
 
-	// Build query
-	args := []interface{}{}
-	argIdx := 1
-
-	// Column list — every column is cast to text so CSV/JSON writing is uniform.
-	colExprs := make([]string, len(columns))
-	for i, col := range columns {
-		colExprs[i] = fmt.Sprintf("COALESCE(%s::text, '')", col)
-	}
-	selectCols := strings.Join(colExprs, ", ")
-
-	where := "WHERE 1=1"
-
-	// Date range filter
-	if !req.From.IsZero() {
-		where += fmt.Sprintf(" AND %s >= $%d", meta.timeColumn, argIdx)
-		args = append(args, req.From)
-		argIdx++
-	}
-	if !req.To.IsZero() {
-		where += fmt.Sprintf(" AND %s <= $%d", meta.timeColumn, argIdx)
-		args = append(args, req.To)
-		argIdx++
-	}
-
-	// Optional filters
-	for key, val := range req.Filters {
-		// Whitelist filter keys against the allowed columns to prevent injection
-		allowed := false
-		for _, c := range meta.allColumns {
-			if c == key {
-				allowed = true
-				break
-			}
-		}
-		if !allowed {
-			continue
-		}
-		where += fmt.Sprintf(" AND %s = $%d", key, argIdx)
-		args = append(args, val)
-		argIdx++
-	}
-
-	// Limit arg
-	args = append(args, limit)
-
-	query := fmt.Sprintf(
-		`SELECT %s FROM %s %s ORDER BY %s DESC LIMIT $%d`,
-		selectCols, meta.table, where, meta.timeColumn, argIdx,
-	)
+	query, args := buildExportQuery(meta, columns, req.From, req.To, req.Filters, limit)
 
 	rows, err := h.pool.Query(c.Request.Context(), query, args...)
 	if err != nil {
@@ -233,7 +330,7 @@ func (h *ExportHandler) Export(c *gin.Context) {
 			if v == nil {
 				row[i] = ""
 			} else if s, ok := v.(string); ok {
-				row[i] = s
+				row[i] = h.exportValue(c, s)
 			} else {
 				row[i] = fmt.Sprintf("%v", v)
 			}
@@ -241,7 +338,11 @@ func (h *ExportHandler) Export(c *gin.Context) {
 		records = append(records, row)
 	}
 	if err := rows.Err(); err != nil {
-		slog.Warn("row iteration error", "error", err)
+		// **利用者が明示的に「書き出す」と押した経路です。**
+		// 途中までのファイルを 200 で渡すと、それが全件だと読まれます。
+		slog.Error("export: rows.Err", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "読み出しが途中で失敗しました。書き出しは中止します"})
+		return
 	}
 
 	ts := time.Now().UTC().Format("20060102_150405")
@@ -285,6 +386,26 @@ func (h *ExportHandler) Export(c *gin.Context) {
 			"exported_at": time.Now().UTC().Format(time.RFC3339),
 		})
 	}
+}
+
+// exportValue turns a stored cell into what leaves the building.
+//
+// 暗号化された raw_event は、そのまま出すと ciphertext が CSV に載ります。
+// 空にすると「生データが無かった」に見えます。**どちらも嘘なので、
+// 復号するか、復号できなかったと書くかのどちらかにします。**
+func (h *ExportHandler) exportValue(c *gin.Context, v string) string {
+	if !store.IsEncryptedRawEvent(v) {
+		return v
+	}
+	tenantID, _ := c.Get("tenant_id")
+	tenant, _ := tenantID.(string)
+	plain, err := store.DecodeRawEvent(c.Request.Context(), h.encryptor, tenant, &v)
+	if err != nil {
+		slog.Error("export: raw_event を復号できませんでした。"+
+			"この行の生データは出力されません", "tenant", tenant, "error", err)
+		return "[復号できませんでした]"
+	}
+	return string(plain)
 }
 
 // writeEmptyExport sends a graceful empty response when the table does not exist.
@@ -337,9 +458,11 @@ func (h *ExportHandler) GetExportStatus(c *gin.Context) {
 		item.Available = true
 
 		var count int64
-		_ = h.pool.QueryRow(c.Request.Context(),
+		if !ReadOK(c, h.pool.QueryRow(c.Request.Context(),
 			fmt.Sprintf("SELECT COUNT(*) FROM %s", meta.table),
-		).Scan(&count)
+		).Scan(&count)) {
+			return
+		}
 		item.RecordCount = count
 		items = append(items, item)
 	}
@@ -350,4 +473,72 @@ func (h *ExportHandler) GetExportStatus(c *gin.Context) {
 		"formats":      []string{"csv", "json", "ndjson"},
 		"checked_at":   time.Now().UTC().Format(time.RFC3339),
 	})
+}
+
+// buildExportQuery assembles the SELECT for one export request.
+//
+// It is a function rather than inline handler code so the contract test can
+// execute the query this actually builds. When the test built its own copy, a
+// handler that stopped applying meta.where still passed.
+func buildExportQuery(
+	meta exportTypeMeta,
+	columns []string,
+	from, to time.Time,
+	filters map[string]string,
+	limit int,
+) (string, []interface{}) {
+	args := []interface{}{}
+	argIdx := 1
+
+	// Column list — every column is cast to text so CSV/JSON writing is uniform.
+	colExprs := make([]string, len(columns))
+	for i, col := range columns {
+		colExprs[i] = fmt.Sprintf("COALESCE((%s)::text, '')", meta.exprFor(col))
+	}
+	selectCols := strings.Join(colExprs, ", ")
+
+	where := "WHERE 1=1"
+	// Types that are rows of `events` rather than tables of their own carry
+	// their event_type predicate here.
+	if meta.where != "" {
+		where += " AND " + meta.where
+	}
+
+	// Date range filter. The time column goes through exprFor like any other,
+	// so it stays unambiguous once a type carries a join.
+	timeExpr := meta.exprFor(meta.timeColumn)
+	if !from.IsZero() {
+		where += fmt.Sprintf(" AND %s >= $%d", timeExpr, argIdx)
+		args = append(args, from)
+		argIdx++
+	}
+	if !to.IsZero() {
+		where += fmt.Sprintf(" AND %s <= $%d", timeExpr, argIdx)
+		args = append(args, to)
+		argIdx++
+	}
+
+	// Optional filters
+	for key, val := range filters {
+		// Whitelist filter keys against the allowed columns to prevent injection
+		allowed := false
+		for _, c := range meta.allColumns {
+			if c == key {
+				allowed = true
+				break
+			}
+		}
+		if !allowed {
+			continue
+		}
+		where += fmt.Sprintf(" AND (%s) = $%d", meta.exprFor(key), argIdx)
+		args = append(args, val)
+		argIdx++
+	}
+
+	args = append(args, limit)
+	return fmt.Sprintf(
+		`SELECT %s FROM %s %s %s ORDER BY %s DESC LIMIT $%d`,
+		selectCols, meta.table, meta.joins, where, timeExpr, argIdx,
+	), args
 }

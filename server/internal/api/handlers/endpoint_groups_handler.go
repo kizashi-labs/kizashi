@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"net"
 	"net/http"
 	"strings"
@@ -70,10 +71,16 @@ func ruleCondition(r egMembershipRule, argIdx int) (string, []any) {
 
 // evaluateMembers returns the agents matching ALL rules (AND). No rules → no
 // members (a group without rules is an empty shell, not "everything").
-func (h *EndpointGroupsHandler) evaluateMembers(ctx context.Context, rules []egMembershipRule) []gin.H {
+//
+// 読めなかったときは error を返します。以前は、そこまでに読めた分だけを
+// 返していました。グループは EDR ポリシーの適用先なので、「このグループは
+// 12台」という表示は「12台に配られている」と読まれます。クエリが途中で
+// 失敗すれば、その数は本当の台数と何の関係もありません。多い方に外れるか
+// 少ない方に外れるかも分かりません。
+func (h *EndpointGroupsHandler) evaluateMembers(ctx context.Context, rules []egMembershipRule) ([]gin.H, error) {
 	members := []gin.H{}
 	if len(rules) == 0 {
-		return members
+		return members, nil
 	}
 	conds := []string{}
 	args := []any{}
@@ -86,7 +93,7 @@ func (h *EndpointGroupsHandler) evaluateMembers(ctx context.Context, rules []egM
 		args = append(args, a...)
 	}
 	if len(conds) == 0 {
-		return members
+		return members, nil
 	}
 	query := fmt.Sprintf(`
 		SELECT a.id::text, a.hostname, a.os_type,
@@ -98,7 +105,7 @@ func (h *EndpointGroupsHandler) evaluateMembers(ctx context.Context, rules []egM
 		LIMIT 500`, strings.Join(conds, " AND "))
 	rows, err := h.pool.Query(ctx, query, args...)
 	if err != nil {
-		return members
+		return nil, err
 	}
 	defer rows.Close()
 	for rows.Next() {
@@ -122,7 +129,10 @@ func (h *EndpointGroupsHandler) evaluateMembers(ctx context.Context, rules []egM
 			"ip_address": ip, "last_seen": lastSeenStr, "status": status,
 		})
 	}
-	return members
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return members, nil
 }
 
 // List returns all groups with live membership.
@@ -153,6 +163,11 @@ func (h *EndpointGroupsHandler) List(c *gin.Context) {
 		}
 		grs = append(grs, g)
 	}
+	if err := rows.Err(); err != nil {
+		slog.Warn("List: 結果セットの読み取りが途中で終わりました。応答は不完全です", "error", err)
+		c.JSON(http.StatusOK, gin.H{"groups": groups})
+		return
+	}
 	rows.Close()
 
 	for _, g := range grs {
@@ -166,7 +181,12 @@ func (h *EndpointGroupsHandler) List(c *gin.Context) {
 		if policies == nil {
 			policies = []egPolicyRef{}
 		}
-		endpoints := h.evaluateMembers(ctx, rules)
+		endpoints, err := h.evaluateMembers(ctx, rules)
+		if err != nil {
+			// 所属端末を取りこぼすと、グループが実際より小さく見える。
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "データの取得に失敗しました"})
+			return
+		}
 		groups = append(groups, gin.H{
 			"id":             g.id,
 			"name":           g.name,

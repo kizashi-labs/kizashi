@@ -63,7 +63,9 @@ func (h *ShiftHandler) List(c *gin.Context) {
 		}
 	}
 	if err := rows.Err(); err != nil {
-		slog.Warn("row iteration error", "error", err)
+		slog.Error("rows.Err: 結果の読み出しが途中で失敗しました", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to list shifts"})
+		return
 	}
 	c.JSON(http.StatusOK, gin.H{"data": shifts})
 }
@@ -100,12 +102,16 @@ func (h *ShiftHandler) StartShift(c *gin.Context) {
 
 	// Compute metrics from DB
 	var openAlertsCount, openIncidentsCount int
-	_ = h.pool.QueryRow(ctx,
+	if !ReadOK(c, h.pool.QueryRow(ctx,
 		`SELECT COUNT(*) FROM alerts WHERE status NOT IN ('resolved', 'closed')`).
-		Scan(&openAlertsCount)
-	_ = h.pool.QueryRow(ctx,
+		Scan(&openAlertsCount)) {
+		return
+	}
+	if !ReadOK(c, h.pool.QueryRow(ctx,
 		`SELECT COUNT(*) FROM incidents WHERE status NOT IN ('resolved', 'closed')`).
-		Scan(&openIncidentsCount)
+		Scan(&openIncidentsCount)) {
+		return
+	}
 
 	metrics := map[string]interface{}{
 		"open_alerts":    openAlertsCount,
@@ -155,16 +161,22 @@ func (h *ShiftHandler) EndShift(c *gin.Context) {
 	// Compute metrics from DB
 	var alertsResolved, incidentsClosed, ticketsCreated int
 	today := time.Now().UTC().Truncate(24 * time.Hour)
-	_ = h.pool.QueryRow(ctx,
+	if !ReadOK(c, h.pool.QueryRow(ctx,
 		`SELECT COUNT(*) FROM alerts WHERE status IN ('resolved', 'closed') AND updated_at >= $1`,
-		today).Scan(&alertsResolved)
-	_ = h.pool.QueryRow(ctx,
+		today).Scan(&alertsResolved)) {
+		return
+	}
+	if !ReadOK(c, h.pool.QueryRow(ctx,
 		`SELECT COUNT(*) FROM incidents WHERE status IN ('resolved', 'closed') AND updated_at >= $1`,
-		today).Scan(&incidentsClosed)
+		today).Scan(&incidentsClosed)) {
+		return
+	}
 	// Try soc_tickets if it exists, fall through silently
-	_ = h.pool.QueryRow(ctx,
+	if !ReadOK(c, h.pool.QueryRow(ctx,
 		`SELECT COUNT(*) FROM soc_tickets WHERE created_at >= $1`,
-		today).Scan(&ticketsCreated)
+		today).Scan(&ticketsCreated)) {
+		return
+	}
 
 	metrics := map[string]interface{}{
 		"alerts_resolved":  alertsResolved,
@@ -245,26 +257,32 @@ func (h *ShiftHandler) GetStats(c *gin.Context) {
 	ctx := c.Request.Context()
 
 	var avgDurationMinutes float64
-	_ = h.pool.QueryRow(ctx,
+	if !ReadOK(c, h.pool.QueryRow(ctx,
 		`SELECT COALESCE(AVG(EXTRACT(EPOCH FROM (end_time - start_time)) / 60), 0)
-		 FROM soc_shifts WHERE status = 'completed' AND end_time IS NOT NULL`).
-		Scan(&avgDurationMinutes)
+			 FROM soc_shifts WHERE status = 'completed' AND end_time IS NOT NULL`).
+		Scan(&avgDurationMinutes)) {
+		return
+	}
 
 	var totalShiftsThisMonth int
-	_ = h.pool.QueryRow(ctx,
+	if !ReadOK(c, h.pool.QueryRow(ctx,
 		`SELECT COUNT(*) FROM soc_shifts
-		 WHERE shift_date >= DATE_TRUNC('month', NOW())`).Scan(&totalShiftsThisMonth)
+			 WHERE shift_date >= DATE_TRUNC('month', NOW())`).Scan(&totalShiftsThisMonth)) {
+		return
+	}
 
 	type AnalystStat struct {
 		LeadAnalystID string `json:"lead_analyst_id"`
 		ShiftCount    int    `json:"shift_count"`
 	}
 	var mostActive AnalystStat
-	_ = h.pool.QueryRow(ctx,
+	if !ReadOK(c, h.pool.QueryRow(ctx,
 		`SELECT COALESCE(lead_analyst_id::text, ''), COUNT(*) as cnt
-		 FROM soc_shifts WHERE lead_analyst_id IS NOT NULL
-		 GROUP BY lead_analyst_id ORDER BY cnt DESC LIMIT 1`).
-		Scan(&mostActive.LeadAnalystID, &mostActive.ShiftCount)
+			 FROM soc_shifts WHERE lead_analyst_id IS NOT NULL
+			 GROUP BY lead_analyst_id ORDER BY cnt DESC LIMIT 1`).
+		Scan(&mostActive.LeadAnalystID, &mostActive.ShiftCount)) {
+		return
+	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"avg_shift_duration_minutes": avgDurationMinutes,

@@ -3,12 +3,14 @@
 import React, { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { apiFetch } from '@/lib/api'
+import { DataUnavailable } from '@/components/DataUnavailable'
 import { useCanWrite } from '@/lib/auth'
 import { useRouter } from 'next/navigation'
 import {
   Siren, Plus, X, ChevronRight, Search, Download,
   LayoutList, Columns, Layers, RefreshCw,
 } from 'lucide-react'
+import { PageSaveFailed } from '@/components/PageSaveFailed'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -56,7 +58,7 @@ const STATUS_COLORS: Record<string, string> = {
   investigating: 'bg-orange-900/50 text-orange-300',
   contained: 'bg-yellow-900/50 text-yellow-300',
   resolved: 'bg-green-900/50 text-green-300',
-  closed: 'bg-falcon-raised text-[#8899aa]',
+  closed: 'bg-[#161f33] text-[#8899aa]',
 }
 
 // Kanban board columns (4 main statuses)
@@ -173,10 +175,10 @@ function SLAIndicator({ severity, createdAt }: { severity: number; createdAt: st
   return (
     <div className="mt-2">
       <div className="flex items-center justify-between mb-0.5">
-        <span className="text-[9px] text-falcon-subtle">SLA</span>
+        <span className="text-[9px] text-[#3d5068]">SLA</span>
         <span className={`text-[9px] font-medium ${textColor}`}>{label}</span>
       </div>
-      <div className="h-1 bg-falcon-border rounded-full overflow-hidden">
+      <div className="h-1 bg-[#1e2d42] rounded-full overflow-hidden">
         <div
           className={`h-full rounded-full transition-all ${barColor}`}
           style={{ width: `${pct}%` }}
@@ -202,8 +204,7 @@ function KanbanCard({ incident, onDragStart, onClick }: KanbanCardProps) {
       draggable
       onDragStart={onDragStart}
       onClick={onClick}
-      className="bg-falcon-surface border border-falcon-border rounded-lg p-3 cursor-grab active:cursor-grabbing
-                 hover:border-[#2d4060] transition-all select-none group"
+      className="bg-[#0d1220] border border-[#1e2d42] rounded-lg p-3 cursor-grab active:cursor-grabbing hover:border-[#2d4060] transition-all select-none group"
     >
       {/* Title */}
       <p className="text-sm font-medium text-white leading-snug line-clamp-2 mb-2 group-hover:text-blue-100 transition-colors">
@@ -220,8 +221,8 @@ function KanbanCard({ incident, onDragStart, onClick }: KanbanCardProps) {
       {/* Meta info */}
       <div className="space-y-1">
         {incident.assigned_to_name && (
-          <div className="flex items-center gap-1.5 text-[11px] text-falcon-muted">
-            <span className="w-4 h-4 rounded-full bg-falcon-border flex items-center justify-center text-[9px] font-bold text-white shrink-0">
+          <div className="flex items-center gap-1.5 text-[11px] text-[#7d92b0]">
+            <span className="w-4 h-4 rounded-full bg-[#1e2d42] flex items-center justify-center text-[9px] font-bold text-white shrink-0">
               {incident.assigned_to_name.charAt(0).toUpperCase()}
             </span>
             <span className="truncate">{incident.assigned_to_name}</span>
@@ -265,7 +266,7 @@ function KanbanColumn({
 }: KanbanColumnProps) {
   return (
     <div
-      className={`flex flex-col min-w-[240px] flex-1 rounded-xl border border-falcon-border border-t-4 ${col.borderColor}
+      className={`flex flex-col min-w-[240px] flex-1 rounded-xl border border-[#1e2d42] border-t-4 ${col.borderColor}
                   transition-colors ${isDragOver ? 'bg-[#0d1a2d] border-[#2d4060]' : 'bg-[#070d19]'}`}
       onDragOver={(e) => { e.preventDefault(); setDragOverCol(col.status) }}
       onDragLeave={() => setDragOverCol(null)}
@@ -285,8 +286,8 @@ function KanbanColumn({
           <div className={`flex items-center justify-center h-20 rounded-lg border border-dashed
                            transition-colors text-xs
                            ${isDragOver
-                             ? 'border-[#4a6080] text-falcon-muted bg-[#0d1a2d]'
-                             : 'border-falcon-border text-[#3a4a5a]'}`}>
+                             ? 'border-[#4a6080] text-[#7d92b0] bg-[#0d1a2d]'
+                             : 'border-[#1e2d42] text-[#3a4a5a]'}`}>
             {isDragOver ? 'Drop here' : 'No incidents'}
           </div>
         )}
@@ -413,7 +414,7 @@ export default function IncidentsPage() {
   // Data fetching
   // ---------------------------------------------------------------------------
 
-  const { data, isLoading } = useQuery<IncidentResponse>({
+  const { data, isLoading, error, refetch } = useQuery<IncidentResponse>({
     queryKey: ['incidents', statusFilter, page],
     queryFn: () => {
       const params = new URLSearchParams()
@@ -511,6 +512,7 @@ export default function IncidentsPage() {
 
   return (
     <div className="p-6 min-h-screen bg-[#070d19]">
+      <PageSaveFailed className="mb-4" />
       <div className={viewMode === 'board' ? 'max-w-full' : 'max-w-5xl mx-auto'}>
 
         {/* ------------------------------------------------------------------ */}
@@ -520,7 +522,7 @@ export default function IncidentsPage() {
           <div className="flex items-center gap-3">
             <Siren className="text-red-400" size={24} />
             <h1 className="text-2xl font-bold text-white">インシデント管理</h1>
-            <span className="text-sm text-falcon-muted">({data?.total ?? 0}件)</span>
+            <span className="text-sm text-[#7d92b0]">({data?.total ?? 0}件)</span>
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
@@ -531,7 +533,7 @@ export default function IncidentsPage() {
                 className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm transition-colors ${
                   swimlanes
                     ? 'bg-indigo-600 text-white'
-                    : 'bg-falcon-surface border border-falcon-border text-falcon-muted hover:text-white'
+                    : 'bg-[#0d1220] border border-[#1e2d42] text-[#7d92b0] hover:text-white'
                 }`}
                 title="Toggle swimlanes by severity"
               >
@@ -541,13 +543,13 @@ export default function IncidentsPage() {
             )}
 
             {/* List / Board toggle */}
-            <div className="flex bg-falcon-surface border border-falcon-border rounded-lg overflow-hidden">
+            <div className="flex bg-[#0d1220] border border-[#1e2d42] rounded-lg overflow-hidden">
               <button
                 onClick={() => setViewMode('list')}
                 className={`flex items-center gap-1.5 px-3 py-2 text-sm transition-colors ${
                   viewMode === 'list'
-                    ? 'bg-falcon-red text-white'
-                    : 'text-falcon-muted hover:text-white'
+                    ? 'bg-[#e8002d] text-white'
+                    : 'text-[#7d92b0] hover:text-white'
                 }`}
               >
                 <LayoutList size={14} />
@@ -557,8 +559,8 @@ export default function IncidentsPage() {
                 onClick={() => setViewMode('board')}
                 className={`flex items-center gap-1.5 px-3 py-2 text-sm transition-colors ${
                   viewMode === 'board'
-                    ? 'bg-falcon-red text-white'
-                    : 'text-falcon-muted hover:text-white'
+                    ? 'bg-[#e8002d] text-white'
+                    : 'text-[#7d92b0] hover:text-white'
                 }`}
               >
                 <Columns size={14} />
@@ -571,8 +573,7 @@ export default function IncidentsPage() {
                 qc.invalidateQueries({ queryKey: ['incidents'] })
                 qc.invalidateQueries({ queryKey: ['incidents-board'] })
               }}
-              className="flex items-center gap-1.5 px-3 py-2 bg-falcon-surface border border-falcon-border
-                         hover:bg-falcon-active text-falcon-muted text-sm rounded-lg transition-colors"
+              className="flex items-center gap-1.5 px-3 py-2 bg-[#0d1220] border border-[#1e2d42] hover:bg-[#1d2f4a] text-[#7d92b0] text-sm rounded-lg transition-colors"
               title="更新"
             >
               <RefreshCw size={14} />
@@ -582,8 +583,7 @@ export default function IncidentsPage() {
             <button
               onClick={exportCSV}
               disabled={allListIncidents.length === 0}
-              className="flex items-center gap-1.5 px-3 py-2 bg-falcon-surface border border-falcon-border
-                         hover:bg-falcon-active text-falcon-muted text-sm rounded-lg transition-colors disabled:opacity-40"
+              className="flex items-center gap-1.5 px-3 py-2 bg-[#0d1220] border border-[#1e2d42] hover:bg-[#1d2f4a] text-[#7d92b0] text-sm rounded-lg transition-colors disabled:opacity-40"
             >
               <Download size={14} />
               CSV
@@ -592,7 +592,7 @@ export default function IncidentsPage() {
             {canWrite && (
               <button
                 onClick={() => setShowForm(v => !v)}
-                className="flex items-center gap-2 bg-falcon-red hover:bg-[#b5001e] px-4 py-2 rounded-lg text-sm font-medium text-white"
+                className="flex items-center gap-2 bg-[#e8002d] hover:bg-[#b5001e] px-4 py-2 rounded-lg text-sm font-medium text-white"
               >
                 <Plus size={16} />
                 新規インシデント
@@ -601,57 +601,57 @@ export default function IncidentsPage() {
           </div>
         </div>
 
+        {/* 上の見出しは取得に失敗すると (0件) と表示します。
+            その 0 が事実かどうかをここで言う。 */}
+        <DataUnavailable error={error} what="インシデント" onRetry={refetch} className="mb-6" />
+
         {/* ------------------------------------------------------------------ */}
         {/* Create Form                                                          */}
         {/* ------------------------------------------------------------------ */}
         {canWrite && showForm && (
-          <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5 mb-6">
+          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5 mb-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="font-semibold text-red-400">新しいインシデント</h2>
-              <button onClick={() => setShowForm(false)} className="text-falcon-muted hover:text-white">
+              <button onClick={() => setShowForm(false)} className="text-[#7d92b0] hover:text-white">
                 <X size={18} />
               </button>
             </div>
             <form onSubmit={handleCreate} className="space-y-4">
               <div>
-                <label className="block text-xs text-falcon-muted mb-1">タイトル *</label>
+                <label className="block text-xs text-[#7d92b0] mb-1">タイトル *</label>
                 <input
                   required
                   value={form.title}
                   onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
-                  className="w-full bg-falcon-raised border border-falcon-border rounded px-3 py-2 text-sm text-white
-                             focus:outline-hidden focus:border-falcon-red"
+                  className="w-full bg-[#161f33] border border-[#1e2d42] rounded-sm px-3 py-2 text-sm text-white focus:outline-hidden focus:border-[#e8002d]"
                   placeholder="例: ランサムウェア感染疑い"
                 />
               </div>
               <div>
-                <label className="block text-xs text-falcon-muted mb-1">説明</label>
+                <label className="block text-xs text-[#7d92b0] mb-1">説明</label>
                 <textarea
                   value={form.description}
                   onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-                  className="w-full bg-falcon-raised border border-falcon-border rounded px-3 py-2 text-sm h-20 resize-none text-white
-                             focus:outline-hidden focus:border-falcon-red"
+                  className="w-full bg-[#161f33] border border-[#1e2d42] rounded-sm px-3 py-2 text-sm h-20 resize-none text-white focus:outline-hidden focus:border-[#e8002d]"
                   placeholder="インシデントの詳細"
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs text-falcon-muted mb-1">重大度 (1-10)</label>
+                  <label className="block text-xs text-[#7d92b0] mb-1">重大度 (1-10)</label>
                   <input
                     type="number" min={1} max={10}
                     value={form.severity}
                     onChange={e => setForm(f => ({ ...f, severity: parseInt(e.target.value) || 7 }))}
-                    className="w-full bg-falcon-raised border border-falcon-border rounded px-3 py-2 text-sm text-white
-                               focus:outline-hidden focus:border-falcon-red"
+                    className="w-full bg-[#161f33] border border-[#1e2d42] rounded-sm px-3 py-2 text-sm text-white focus:outline-hidden focus:border-[#e8002d]"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs text-falcon-muted mb-1">ステータス</label>
+                  <label className="block text-xs text-[#7d92b0] mb-1">ステータス</label>
                   <select
                     value={form.status}
                     onChange={e => setForm(f => ({ ...f, status: e.target.value }))}
-                    className="w-full bg-falcon-raised border border-falcon-border rounded px-3 py-2 text-sm text-white
-                               focus:outline-hidden focus:border-falcon-red"
+                    className="w-full bg-[#161f33] border border-[#1e2d42] rounded-sm px-3 py-2 text-sm text-white focus:outline-hidden focus:border-[#e8002d]"
                   >
                     {STATUS_OPTIONS.slice(1).map(s => (
                       <option key={s} value={s}>{STATUS_LABELS[s]}</option>
@@ -666,14 +666,14 @@ export default function IncidentsPage() {
                 <button
                   type="submit"
                   disabled={createMutation.isPending}
-                  className="bg-falcon-red hover:bg-[#b5001e] disabled:opacity-50 px-5 py-2 rounded-lg text-sm font-medium text-white"
+                  className="bg-[#e8002d] hover:bg-[#b5001e] disabled:opacity-50 px-5 py-2 rounded-lg text-sm font-medium text-white"
                 >
                   {createMutation.isPending ? '作成中...' : '作成'}
                 </button>
                 <button
                   type="button"
                   onClick={() => setShowForm(false)}
-                  className="text-falcon-muted hover:text-white text-sm px-3"
+                  className="text-[#7d92b0] hover:text-white text-sm px-3"
                 >
                   キャンセル
                 </button>
@@ -695,26 +695,24 @@ export default function IncidentsPage() {
                   value={search}
                   onChange={e => setSearch(e.target.value)}
                   placeholder="タイトルで検索..."
-                  className="pl-8 pr-3 py-1.5 text-sm border border-falcon-border rounded-lg
-                             bg-falcon-surface text-white placeholder-[#5a6a7a] w-52
-                             focus:outline-hidden focus:border-falcon-red"
+                  className="pl-8 pr-3 py-1.5 text-sm border border-[#1e2d42] rounded-lg bg-[#0d1220] text-white placeholder-[#5a6a7a] w-52 focus:outline-hidden focus:border-[#e8002d]"
                 />
               </div>
               {search && (
                 <button
                   onClick={() => setSearch('')}
-                  className="flex items-center gap-1 text-xs text-falcon-muted hover:text-white px-2 py-1.5 rounded-lg hover:bg-falcon-surface transition-colors"
+                  className="flex items-center gap-1 text-xs text-[#7d92b0] hover:text-white px-2 py-1.5 rounded-lg hover:bg-[#0d1220] transition-colors"
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>
               )}
               {updateMutation.isPending && (
-                <span className="text-xs text-falcon-muted animate-pulse">Moving...</span>
+                <span className="text-xs text-[#7d92b0] animate-pulse">Moving...</span>
               )}
             </div>
 
             {isLoading && boardIncidents.length === 0 ? (
-              <div className="text-center py-16 text-falcon-muted">読み込み中...</div>
+              <div className="text-center py-16 text-[#7d92b0]">読み込み中...</div>
             ) : (
               <KanbanBoard
                 incidents={search
@@ -754,15 +752,13 @@ export default function IncidentsPage() {
                   value={search}
                   onChange={e => setSearch(e.target.value)}
                   placeholder="タイトルで検索..."
-                  className="pl-8 pr-3 py-1.5 text-sm border border-falcon-border rounded-lg
-                             bg-falcon-surface text-white placeholder-[#5a6a7a] w-52
-                             focus:outline-hidden focus:border-falcon-red"
+                  className="pl-8 pr-3 py-1.5 text-sm border border-[#1e2d42] rounded-lg bg-[#0d1220] text-white placeholder-[#5a6a7a] w-52 focus:outline-hidden focus:border-[#e8002d]"
                 />
               </div>
               {search && (
                 <button
                   onClick={() => setSearch('')}
-                  className="flex items-center gap-1 text-xs text-falcon-muted hover:text-white px-2 py-1.5 rounded-lg hover:bg-falcon-surface transition-colors"
+                  className="flex items-center gap-1 text-xs text-[#7d92b0] hover:text-white px-2 py-1.5 rounded-lg hover:bg-[#0d1220] transition-colors"
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>
@@ -777,8 +773,8 @@ export default function IncidentsPage() {
                   onClick={() => { setStatusFilter(s); setPage(1) }}
                   className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
                     statusFilter === s
-                      ? 'bg-falcon-red text-white'
-                      : 'bg-falcon-surface border border-falcon-border text-falcon-muted hover:text-white'
+                      ? 'bg-[#e8002d] text-white'
+                      : 'bg-[#0d1220] border border-[#1e2d42] text-[#7d92b0] hover:text-white'
                   }`}
                 >
                   {STATUS_LABELS[s]}
@@ -788,7 +784,7 @@ export default function IncidentsPage() {
 
             {/* Incident List */}
             {isLoading ? (
-              <div className="text-center py-12 text-falcon-muted">読み込み中...</div>
+              <div className="text-center py-12 text-[#7d92b0]">読み込み中...</div>
             ) : allListIncidents.length === 0 ? (
               <div className="text-center py-12 text-[#5a6a7a]">
                 <Siren size={48} className="mx-auto mb-3 opacity-30" />
@@ -800,7 +796,7 @@ export default function IncidentsPage() {
                   <div
                     key={inc.id}
                     onClick={() => router.push(`/incidents/${inc.id}`)}
-                    className={`bg-falcon-surface border rounded-xl p-4 cursor-pointer hover:border-[#2d4060]
+                    className={`bg-[#0d1220] border rounded-xl p-4 cursor-pointer hover:border-[#2d4060]
                                 transition-all flex items-center gap-4 ${severityBg(inc.severity)}`}
                   >
                     {/* Severity Score */}
@@ -812,12 +808,12 @@ export default function IncidentsPage() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
                         <span className="font-semibold truncate text-white">{inc.title}</span>
-                        <span className={`text-xs px-2 py-0.5 rounded-full whitespace-nowrap ${STATUS_COLORS[inc.status] ?? 'bg-falcon-raised text-falcon-muted'}`}>
+                        <span className={`text-xs px-2 py-0.5 rounded-full whitespace-nowrap ${STATUS_COLORS[inc.status] ?? 'bg-[#161f33] text-[#7d92b0]'}`}>
                           {STATUS_LABELS[inc.status] ?? inc.status}
                         </span>
                       </div>
                       {inc.description && (
-                        <p className="text-xs text-falcon-muted truncate">{inc.description}</p>
+                        <p className="text-xs text-[#7d92b0] truncate">{inc.description}</p>
                       )}
                       <div className="flex gap-4 mt-1 text-xs text-[#5a6a7a]">
                         <span>アラート: {inc.alert_count}件</span>
@@ -838,19 +834,17 @@ export default function IncidentsPage() {
                 <button
                   disabled={page <= 1}
                   onClick={() => setPage(p => p - 1)}
-                  className="px-4 py-2 bg-falcon-surface border border-falcon-border rounded-lg text-sm
-                             disabled:opacity-40 hover:bg-falcon-active text-white"
+                  className="px-4 py-2 bg-[#0d1220] border border-[#1e2d42] rounded-lg text-sm disabled:opacity-40 hover:bg-[#1d2f4a] text-white"
                 >
                   前へ
                 </button>
-                <span className="px-4 py-2 text-sm text-falcon-muted">
+                <span className="px-4 py-2 text-sm text-[#7d92b0]">
                   {page} / {Math.ceil((data?.total ?? 0) / 20)}
                 </span>
                 <button
                   disabled={!data?.has_more}
                   onClick={() => setPage(p => p + 1)}
-                  className="px-4 py-2 bg-falcon-surface border border-falcon-border rounded-lg text-sm
-                             disabled:opacity-40 hover:bg-falcon-active text-white"
+                  className="px-4 py-2 bg-[#0d1220] border border-[#1e2d42] rounded-lg text-sm disabled:opacity-40 hover:bg-[#1d2f4a] text-white"
                 >
                   次へ
                 </button>

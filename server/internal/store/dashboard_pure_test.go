@@ -2,7 +2,6 @@ package store
 
 import (
 	"encoding/json"
-	"strings"
 	"testing"
 	"time"
 )
@@ -196,35 +195,13 @@ func TestDashboardLayout_WidgetSizeValidation(t *testing.T) {
 
 // ─── ダッシュボード WHERE 句ビルダーテスト ─────────────────────────────────────
 
-// buildDashboardFilter はダッシュボードクエリフィルターを構築するヘルパー（テスト専用）
-func buildDashboardFilter(userID string) (string, []interface{}) {
-	where := "WHERE 1=1"
-	var args []interface{}
-	if userID != "" {
-		where += " AND user_id = $1"
-		args = append(args, userID)
-	}
-	return where, args
-}
-
-// TestBuildDashboardFilter_WithUserID は userID フィルターが正しく追加されることを確認する
-func TestBuildDashboardFilter_WithUserID(t *testing.T) {
-	where, args := buildDashboardFilter("user-001")
-	if !strings.Contains(where, "user_id") {
-		t.Errorf("user_id 条件が含まれるべき: %q", where)
-	}
-	if len(args) != 1 || args[0] != "user-001" {
-		t.Errorf("args = %v, want [user-001]", args)
-	}
-}
-
-// TestBuildDashboardFilter_EmptyUserID は空の userID がフィルターなしになることを確認する
-func TestBuildDashboardFilter_EmptyUserID(t *testing.T) {
-	where, args := buildDashboardFilter("")
-	if where != "WHERE 1=1" {
-		t.Errorf("空の userID は \"WHERE 1=1\" のはず: got %q", where)
-	}
-	if len(args) != 0 {
-		t.Errorf("空の userID は引数なしのはず: got %v", args)
-	}
-}
+// ダッシュボードの絞り込みには、**製品側に対応する組み立てがありません。**
+//
+// ここには `buildDashboardFilter` という「WHERE 1=1 + user_id」の
+// ヘルパーが置いてあり、それ自身を試していました。`dashboard.go` を
+// 探しても、その形の組み立ては見つかりません —— **製品にない約束を
+// 確かめていた**ことになります。
+//
+// 消すだけにします。**繋ぐ先がないものを繋いだふりはしません。**
+// ダッシュボードの利用者ごとの絞り込みが要るなら、それは製品側に
+// 足す話で、判断待ちの一覧に書いてあります。

@@ -30,6 +30,7 @@ func getJSON(t *testing.T, target string, h gin.HandlerFunc) (int, map[string]an
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
 	c.Request = httptest.NewRequest(http.MethodGet, target, nil)
+	stubAuthContext(c)
 	h(c)
 
 	var resp map[string]any
@@ -172,10 +173,19 @@ func TestSoftwareDiffHandler_ReadOnlyEndpoints(t *testing.T) {
 	pool := testPool(t)
 	h := handlers.NewSoftwareDiffHandler(pool)
 
+	// 実際の経路は /endpoints/:id/software/diffs で、ハンドラは
+	// `c.Param("id")` を agent_id として使います。**param を渡さずに
+	// 呼ぶと、空文字が uuid として解釈できず必ず 500 になります** ——
+	// ハンドラではなく、呼び方の問題でした。
 	t.Run("GetDiffs", func(t *testing.T) {
-		code, resp := getJSON(t, "/api/v1/software/diffs", h.GetDiffs)
+		code, body := callWithParams(t,
+			"/api/v1/endpoints/"+stubAgentID+"/software/diffs",
+			gin.Params{{Key: "id", Value: stubAgentID}}, h.GetDiffs)
 		if code != http.StatusOK {
-			t.Fatalf("status = %d, want 200 (body: %v)", code, resp)
+			t.Fatalf("status = %d, want 200 (body: %s)", code, truncate(body, 400))
 		}
 	})
 }
+
+// stubAgentID — 実在しなくてよいが、uuid として解釈できる必要があります。
+const stubAgentID = "00000000-0000-0000-0000-0000000000aa"

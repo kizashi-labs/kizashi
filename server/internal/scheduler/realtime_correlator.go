@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/edr-platform/server/internal/detection"
+	"github.com/edr-platform/server/internal/metrics"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/nats-io/nats.go"
 )
@@ -66,7 +67,7 @@ func (r *RealtimeCorrelator) Run(ctx context.Context) {
 	slog.Info("リアルタイム相関エンジンを開始しました")
 
 	// Load initial rules
-	r.loadRules(ctx)
+	trackRun(ctx, "realtime_correlator", r.loadRules)
 
 	// Subscribe to NATS alerts.new if nc is available
 	var sub *nats.Subscription
@@ -76,7 +77,7 @@ func (r *RealtimeCorrelator) Run(ctx context.Context) {
 			r.handleAlertMessage(ctx, msg.Data)
 		})
 		if err != nil {
-			slog.Warn("alerts.newへのサブスクリプションに失敗しました", "error", err)
+			fail(ctx, err, "alerts.newへのサブスクリプションに失敗しました")
 		} else {
 			slog.Info("NATS alerts.newサブジェクトを購読しました")
 			defer sub.Unsubscribe()
@@ -93,7 +94,7 @@ func (r *RealtimeCorrelator) Run(ctx context.Context) {
 			slog.Info("リアルタイム相関エンジンを停止しました")
 			return
 		case <-ticker.C:
-			r.loadRules(ctx)
+			trackRun(ctx, "realtime_correlator", r.loadRules)
 		}
 	}
 }
@@ -105,7 +106,11 @@ func (r *RealtimeCorrelator) loadRules(ctx context.Context) {
 	err := r.pool.QueryRow(ctx, `SELECT EXISTS (
 		SELECT 1 FROM information_schema.tables WHERE table_name = 'correlation_rules'
 	)`).Scan(&exists)
-	if err != nil || !exists {
+	if err != nil {
+		fail(ctx, err, "リアルタイム相関: ルール表の有無を確認できませんでした。ルールは1件も読み込まれません")
+		return
+	}
+	if !exists {
 		return
 	}
 
@@ -116,7 +121,7 @@ func (r *RealtimeCorrelator) loadRules(ctx context.Context) {
 		 WHERE enabled = TRUE`,
 	)
 	if err != nil {
-		slog.Warn("相関ルールの読み込みに失敗しました", "error", err)
+		fail(ctx, err, "相関ルールの読み込みに失敗しました")
 		return
 	}
 	defer rows.Close()
@@ -134,6 +139,10 @@ func (r *RealtimeCorrelator) loadRules(ctx context.Context) {
 			rules = append(rules, rule)
 		}
 	}
+	if err := rows.Err(); err != nil {
+		fail(ctx, err, "相関ルールを読み切れませんでした。切り詰められたルール集合を入れ替えると、検知が黙って減ります。前回のルールを保持し、次回の再読み込みでやり直します")
+		return
+	}
 
 	r.mu.Lock()
 	r.rules = rules
@@ -146,6 +155,14 @@ func (r *RealtimeCorrelator) loadRules(ctx context.Context) {
 func (r *RealtimeCorrelator) handleAlertMessage(ctx context.Context, data []byte) {
 	var payload map[string]interface{}
 	if err := json.Unmarshal(data, &payload); err != nil {
+		// このアラートは相関に載りません。相関は複数のアラートをまたいで
+		// インシデントに昇格させる経路なので、落ちた1件は「相関しなかった」
+		// ではなく「見ていない」です。
+		// **ここは回の中ではありません** —— NATS の購読コールバックで、
+		// 1通ごとに呼ばれます。`fail` は記録先が無いので静かに終わります。
+		// 部品ごとの件数（edr_background_failures_total）なら外に出ます。
+		metrics.BackgroundFailed("realtime_correlator", err,
+			"相関: アラートのメッセージを解釈できず、相関に載せませんでした")
 		return
 	}
 
@@ -252,7 +269,7 @@ func (r *RealtimeCorrelator) createCorrelatedAlert(
 		agentID, rule.AlertTitle, description, rule.AlertSeverity,
 	).Scan(&alertID)
 	if err != nil {
-		slog.Warn("相関アラートの作成に失敗しました", "rule", rule.Name, "error", err)
+		fail(ctx, err, "相関アラートの作成に失敗しました", "rule", rule.Name)
 		return
 	}
 
@@ -270,7 +287,7 @@ func (r *RealtimeCorrelator) createCorrelatedAlert(
 			"ioc_matches": len(iocMatches),
 		})
 		if err := r.nc.Publish("alerts.correlated", payload); err != nil {
-			slog.Warn("alerts.correlatedの公開に失敗しました", "error", err)
+			fail(ctx, err, "alerts.correlatedの公開に失敗しました")
 		}
 	}
 }

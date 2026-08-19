@@ -10,6 +10,9 @@ import {
 } from 'lucide-react'
 
 
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+import { usePersist, SaveFailed, saveErrorOf } from '@/lib/persist'
+
 // ── Types ──────────────────────────────────────────────────────────────────────
 
 type EntityType = 'ip' | 'domain' | 'hash' | 'hostname' | 'username' | 'process'
@@ -106,6 +109,7 @@ function AddEntryModal({ onClose, onSuccess }: AddEntryModalProps) {
     expires_at: '',
   })
   const [saving, setSaving] = useState(false)
+  const { persist, saveError } = usePersist()
   const [error, setError] = useState('')
 
   async function handleSubmit(e: React.FormEvent) {
@@ -113,22 +117,23 @@ function AddEntryModal({ onClose, onSuccess }: AddEntryModalProps) {
     if (!form.value || !form.label) { setError('エンティティの値とラベルは必須です。'); return }
     setSaving(true)
     setError('')
-    try {
-      await apiFetch('/api/v1/admin/watchlist', {
-        method: 'POST',
-        body: JSON.stringify({
-          ...form,
-          tags: form.tags.split(',').map(t => t.trim()).filter(Boolean),
-          expires_at: form.expires_at || undefined,
-        }),
-      })
-    } catch { /* ignore */ }
+    // 監視リストへの登録。保存できなくても登録できたように見えるので、
+    // 見張っているつもりのエンティティが見張られません。
+    const ok = await persist('監視リストへの登録', '/api/v1/admin/watchlist', {
+      method: 'POST',
+      body: JSON.stringify({
+        ...form,
+        tags: form.tags.split(',').map(t => t.trim()).filter(Boolean),
+        expires_at: form.expires_at || undefined,
+      }),
+    })
     setSaving(false)
+    if (!ok) return
     onSuccess()
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
       <div className="bg-zinc-900 border border-zinc-700 rounded-xl shadow-2xl w-full max-w-lg mx-4">
         <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-700">
           <h2 className="text-lg font-semibold text-zinc-100">ウォッチリストエントリ追加</h2>
@@ -136,6 +141,7 @@ function AddEntryModal({ onClose, onSuccess }: AddEntryModalProps) {
         </div>
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           {error && <div className="text-red-400 text-sm bg-red-900/20 border border-red-700/40 rounded-sm px-3 py-2">{error}</div>}
+          <SaveFailed error={saveError} />
 
           <div className="grid grid-cols-2 gap-4">
             <div>
@@ -220,20 +226,16 @@ export default function WatchlistPage() {
 
   const { data: entries = [] } = useQuery<WatchlistEntry[]>({
     queryKey: ['admin-watchlist'],
-    queryFn: async () => {
-      try { return await apiFetchList<WatchlistEntry>('/api/v1/admin/watchlist') } catch { return [] }
-    },
+    queryFn: () => apiFetchList<WatchlistEntry>('/api/v1/admin/watchlist'),
   })
 
   const { data: stats = EMPTY_WATCHLIST_STATS } = useQuery<WatchlistStats>({
     queryKey: ['admin-watchlist-stats'],
-    queryFn: async () => {
-      try { return await apiFetch('/api/v1/admin/watchlist/stats') } catch { return EMPTY_WATCHLIST_STATS }
-    },
+    queryFn: () => apiFetch('/api/v1/admin/watchlist/stats'),
   })
 
   const deleteMut = useMutation({
-    mutationFn: (id: string) => apiFetch(`/api/v1/admin/watchlist/${id}`, { method: 'DELETE' }).catch(() => {}),
+    mutationFn: (id: string) => apiFetch(`/api/v1/admin/watchlist/${id}`, { method: 'DELETE' }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-watchlist'] }),
   })
 
@@ -271,6 +273,8 @@ export default function WatchlistPage() {
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100 p-6">
+      <PageDataUnavailable />
+      <SaveFailed error={saveErrorOf('監視リスト', deleteMut)} />
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">

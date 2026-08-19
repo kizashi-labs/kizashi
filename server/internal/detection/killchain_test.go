@@ -9,11 +9,13 @@ func TestKillChainScorer_FiresOnMultiStage(t *testing.T) {
 	k := newKillChainScorer()
 	base := time.Unix(1_700_000_000, 0)
 	// Feed a realistic intrusion: discovery, execution, credential-access,
-	// exfiltration — 4 distinct tactics within the window.
+	// lateral-movement, exfiltration — chainMinTactics(5) distinct tactics within
+	// the window.
 	seq := [][]string{
 		{"T1082"},     // discovery
 		{"T1059.004"}, // execution
 		{"T1003"},     // credential-access
+		{"T1021"},     // lateral-movement
 		{"T1048"},     // exfiltration
 	}
 	var fired int
@@ -25,15 +27,16 @@ func TestKillChainScorer_FiresOnMultiStage(t *testing.T) {
 		}
 	}
 	if fired != 1 {
-		t.Fatalf("expected exactly 1 kill-chain alert after 4 tactics, got %d", fired)
+		t.Fatalf("expected exactly 1 kill-chain alert after 5 tactics, got %d", fired)
 	}
 }
 
 func TestKillChainScorer_NoFireBelowThreshold(t *testing.T) {
 	k := newKillChainScorer()
 	base := time.Unix(1_700_000_000, 0)
-	// Only 3 distinct tactics — below chainMinTactics(4).
-	for i, tags := range [][]string{{"T1082"}, {"T1057"}, {"T1059"}} {
+	// Only 4 distinct tactics — below chainMinTactics(5). Four used to fire; the
+	// FP soak showed benign developer workstations reach four routinely.
+	for i, tags := range [][]string{{"T1082"}, {"T1059"}, {"T1003"}, {"T1048"}} {
 		if m := k.Observe("agent1", tags, base.Add(time.Duration(i)*time.Minute)); len(m) > 0 {
 			t.Fatalf("fired with only %d tactics", i+1)
 		}
@@ -125,24 +128,62 @@ func TestTacticForTechnique_ExpandedCoverage(t *testing.T) {
 
 // TestKillChainScorer_NewlyMappedTechniquesCorrelate proves that an intrusion
 // built from techniques that were previously UNMAPPED (and thus invisible to the
-// kill-chain aggregator) now crosses the 4-distinct-tactic threshold and fires.
+// kill-chain aggregator) now crosses the distinct-tactic threshold and fires.
 func TestKillChainScorer_NewlyMappedTechniquesCorrelate(t *testing.T) {
 	k := newKillChainScorer()
 	base := time.Unix(1_700_000_000, 0)
 	// audio capture (collection) → network sniffing (credential-access) →
-	// protocol tunneling (C2) → resource hijacking (impact): 4 tactics, all from
-	// techniques added in the ⑤ expansion.
+	// protocol tunneling (C2) → resource hijacking (impact) → screen capture
+	// (collection is already counted, so add discovery): chainMinTactics(5)
+	// tactics, all from techniques added in the ⑤ expansion.
 	seq := [][]string{
 		{"T1123"}, // collection
 		{"T1040"}, // credential-access
 		{"T1572"}, // command-and-control
 		{"T1496"}, // impact
+		{"T1082"}, // discovery
 	}
 	var fired int
 	for i, tags := range seq {
 		fired += len(k.Observe("agentX", tags, base.Add(time.Duration(i)*time.Minute)))
 	}
 	if fired != 1 {
-		t.Fatalf("newly-mapped 4-tactic chain should fire exactly 1 alert, got %d", fired)
+		t.Fatalf("newly-mapped 5-tactic chain should fire exactly 1 alert, got %d", fired)
+	}
+}
+
+// TestKillChainScorer_FourTacticsDoNotFire pins the 2026-08-04 threshold raise.
+//
+// This scorer folds in every other match's MITRE tags, so its false positives are
+// the other rules' false positives, summed. The FP soak measured it at 7,199.94
+// /1000 hosts/day across 9 of 20 hosts and 4 of 5 profiles — the widest spread in
+// the gate. The sequence below is what a developer workstation produces doing its
+// job: `docker build` (execution + discovery), SSH key handling (credential-access
+// + persistence). Four tactics, no attack.
+//
+// The raise is safe for detection rate because this alert carries MITRETags
+// {"TA0000"}, a correlation marker rather than a technique, so it credits nothing
+// in the ATT&CK measurement. Lowering the floor back to four would reintroduce the
+// false positives without recovering any technique coverage.
+func TestKillChainScorer_FourTacticsDoNotFire(t *testing.T) {
+	k := newKillChainScorer()
+	base := time.Unix(1_700_000_000, 0)
+	benignDevWorkstation := [][]string{
+		{"T1609"},     // container administration command → execution
+		{"T1613"},     // container and resource discovery → discovery
+		{"T1552.004"}, // private key file access → credential-access
+		{"T1098.004"}, // ssh authorized_keys → persistence
+	}
+	for i, tags := range benignDevWorkstation {
+		if m := k.Observe("dev-1", tags, base.Add(time.Duration(i)*time.Minute)); len(m) > 0 {
+			t.Fatalf("開発端末の通常業務 (docker build + SSH鍵操作) が %d 戦術で発火しました。"+
+				"この4戦術の組み合わせは FPソークで9ホストに出ていたもので、攻撃ではありません",
+				i+1)
+		}
+	}
+	// A fifth, unrelated tactic completes the chain and does fire — the rule is
+	// tightened, not disabled.
+	if m := k.Observe("dev-1", []string{"T1486"}, base.Add(5*time.Minute)); len(m) == 0 {
+		t.Error("5戦術目 (impact) でも発火しませんでした。閾値を上げすぎて相関が死んでいます")
 	}
 }

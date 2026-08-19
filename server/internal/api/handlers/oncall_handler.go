@@ -121,7 +121,9 @@ func (h *OnCallHandler) ListIntegrations(c *gin.Context) {
 		result = append(result, it)
 	}
 	if err := rows.Err(); err != nil {
-		slog.Warn("row iteration error", "error", err)
+		slog.Error("rows.Err: 結果の読み出しが途中で失敗しました", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "取得に失敗しました"})
+		return
 	}
 	if result == nil {
 		result = []oncallIntegration{}
@@ -418,14 +420,18 @@ func (h *OnCallHandler) TestIntegration(c *gin.Context) {
 	responseCode, _ := sendProviderAlert(c.Request.Context(), provider, integrationKey, summary, severity)
 
 	dedupKey := fmt.Sprintf("test-%s-%d", id, time.Now().UnixNano())
-	_, _ = h.pool.Exec(c.Request.Context(),
+	if _, err := h.pool.Exec(c.Request.Context(),
 		`INSERT INTO oncall_events (integration_id, event_type, dedup_key, summary, severity, status, response_code)
-		 VALUES ($1, 'test', $2, $3, $4, 'sent', $5)`,
-		id, dedupKey, summary, severity, responseCode)
+			 VALUES ($1, 'test', $2, $3, $4, 'sent', $5)`,
+		id, dedupKey, summary, severity, responseCode); !WriteOK(c, err) {
+		return
+	}
 
-	_, _ = h.pool.Exec(c.Request.Context(),
+	if _, err := h.pool.Exec(c.Request.Context(),
 		`UPDATE oncall_integrations SET events_sent = events_sent + 1, last_event_at = NOW(), updated_at = NOW()
-		 WHERE id = $1`, id)
+			 WHERE id = $1`, id); !WriteOK(c, err) {
+		return
+	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"success":       true,
@@ -461,7 +467,9 @@ func (h *OnCallHandler) GetEvents(c *gin.Context) {
 		events = append(events, ev)
 	}
 	if err := rows.Err(); err != nil {
-		slog.Warn("row iteration error", "error", err)
+		slog.Error("rows.Err: 結果の読み出しが途中で失敗しました", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "取得に失敗しました"})
+		return
 	}
 	if events == nil {
 		events = []oncallEvent{}
@@ -518,18 +526,24 @@ func (h *OnCallHandler) TriggerAlert(c *gin.Context) {
 		responseCode, _ := sendProviderAlert(c.Request.Context(), provider, key, req.Summary, req.Severity)
 		dedupKey := fmt.Sprintf("alert-%s-%d", intID, time.Now().UnixNano())
 
-		_, _ = h.pool.Exec(c.Request.Context(),
+		if _, err := h.pool.Exec(c.Request.Context(),
 			`INSERT INTO oncall_events (integration_id, alert_id, event_type, dedup_key, summary, severity, status, response_code)
-			 VALUES ($1, $2, 'trigger', $3, $4, $5, 'sent', $6)`,
-			intID, req.AlertID, dedupKey, req.Summary, req.Severity, responseCode)
+				 VALUES ($1, $2, 'trigger', $3, $4, $5, 'sent', $6)`,
+			intID, req.AlertID, dedupKey, req.Summary, req.Severity, responseCode); !WriteOK(c, err) {
+			return
+		}
 
-		_, _ = h.pool.Exec(c.Request.Context(),
+		if _, err := h.pool.Exec(c.Request.Context(),
 			`UPDATE oncall_integrations SET events_sent = events_sent + 1, last_event_at = NOW(), updated_at = NOW()
-			 WHERE id = $1`, intID)
+				 WHERE id = $1`, intID); !WriteOK(c, err) {
+			return
+		}
 		triggered++
 	}
 	if err := rows.Err(); err != nil {
-		slog.Warn("row iteration error", "error", err)
+		slog.Error("rows.Err: 結果の読み出しが途中で失敗しました", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "統合の取得に失敗しました"})
+		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{"triggered": triggered, "message": "アラートをトリガーしました"})

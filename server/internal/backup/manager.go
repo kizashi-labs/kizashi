@@ -135,10 +135,12 @@ func (m *Manager) CreateBackup(ctx context.Context) (*BackupManifest, []byte, er
 	for _, exp := range exports {
 		rows, err := m.pool.Query(ctx, exp.query)
 		if err != nil {
-			slog.Warn("backup: skipping table due to query error",
-				"table", exp.name, "error", err)
-			bd.Manifest.RecordCount[exp.name] = 0
-			continue
+			// 以前はここで RecordCount[table] = 0 を書いて次のテーブルに
+			// 進んでいました。マニフェストには「yara_rules: 0件」と残り、
+			// 完了として保存されます。あとでそれを見た人には、ルールが
+			// 1本も無かった時点のバックアップに見えます。復元すれば、
+			// 実際にそうなります。
+			return nil, nil, fmt.Errorf("バックアップ中止: %s を読み出せませんでした: %w", exp.name, err)
 		}
 
 		var records []map[string]any
@@ -146,13 +148,19 @@ func (m *Manager) CreateBackup(ctx context.Context) (*BackupManifest, []byte, er
 		for rows.Next() {
 			vals, err := rows.Values()
 			if err != nil {
-				continue
+				rows.Close()
+				// 1行だけ抜けたバックアップは、件数も含めて整合して
+				// 見えます。抜けたことに気づく機会がありません。
+				return nil, nil, fmt.Errorf("バックアップ中止: %s の行を読めませんでした: %w", exp.name, err)
 			}
 			row := make(map[string]any, len(fields))
 			for i, f := range fields {
 				row[string(f.Name)] = vals[i]
 			}
 			records = append(records, row)
+		}
+		if err := rows.Err(); err != nil {
+			return nil, nil, err
 		}
 		rows.Close()
 
@@ -164,7 +172,7 @@ func (m *Manager) CreateBackup(ctx context.Context) (*BackupManifest, []byte, er
 		bd.Manifest.Tables = append(bd.Manifest.Tables, exp.name)
 	}
 
-	bd.Manifest.Status = "completed"
+	bd.Manifest.Status = StatusCompleted
 
 	raw, err := json.MarshalIndent(bd, "", "  ")
 	if err != nil {
@@ -178,12 +186,13 @@ func (m *Manager) CreateBackup(ctx context.Context) (*BackupManifest, []byte, er
 		var id string
 		dbErr := m.pool.QueryRow(ctx, `
 			INSERT INTO backup_manifests (version, tables, record_count, size_bytes, status)
-			VALUES ($1, $2, $3::jsonb, $4, 'completed')
+			VALUES ($1, $2, $3::jsonb, $4, $5)
 			RETURNING id`,
 			bd.Manifest.Version,
 			bd.Manifest.Tables,
 			string(rcJSON),
 			bd.Manifest.SizeBytes,
+			StatusCompleted,
 		).Scan(&id)
 		if dbErr == nil {
 			bd.Manifest.ID = id
@@ -301,6 +310,10 @@ func (m *Manager) ListBackups(ctx context.Context) ([]*BackupManifest, error) {
 		}
 		manifests = append(manifests, &m)
 	}
+	// 部分結果を完全な一覧として返さない（scan_truncation_guard_test.go 参照）
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
 	if manifests == nil {
 		manifests = []*BackupManifest{}
 	}
@@ -335,7 +348,7 @@ func (m *Manager) upsertJSON(ctx context.Context, table string, records []map[st
 		slog.Warn("backup restore: テーブルがホワイトリストにありません", "table", table)
 		return 0, fmt.Sprintf("テーブル %q はリストアが許可されていません", table)
 	}
-	n := 0
+	n, skipped := 0, 0
 	for _, row := range records {
 		id, ok := row["id"]
 		if !ok {
@@ -343,6 +356,8 @@ func (m *Manager) upsertJSON(ctx context.Context, table string, records []map[st
 		}
 		rowJSON, err := json.Marshal(row)
 		if err != nil {
+			slog.Error("backup restore: 行を JSON にできませんでした", "table", table, "id", id, "error", err)
+			skipped++
 			continue
 		}
 		// Use PostgreSQL's jsonb INSERT … ON CONFLICT DO NOTHING pattern.
@@ -352,10 +367,18 @@ func (m *Manager) upsertJSON(ctx context.Context, table string, records []map[st
 			string(rowJSON),
 		)
 		if err != nil {
-			slog.Debug("backup restore: skipping row", "table", table, "id", id, "error", err)
+			slog.Error("backup restore: 行を復元できませんでした", "table", table, "id", id, "error", err)
+			skipped++
 			continue
 		}
 		n++
+	}
+	if skipped > 0 {
+		// 戻り値の文字列は呼び出し側が警告として上げます。以前は空文字
+		// でした。復元は「n件復元しました」とだけ言い、入らなかった行は
+		// どこにも出ません。復元後のデータが元と違うことに、次に困るまで
+		// 気づけません。
+		return n, fmt.Sprintf("%s: %d件を復元できませんでした（%d件は復元済み）", table, skipped, n)
 	}
 	return n, ""
 }

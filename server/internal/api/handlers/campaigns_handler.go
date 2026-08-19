@@ -447,8 +447,7 @@ func (h *CampaignsHandler) List(c *gin.Context) {
 	}
 
 	// Also include user-created campaigns from threat_campaigns table.
-	var tcExists bool
-	_ = h.Pool.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name='threat_campaigns')`).Scan(&tcExists)
+	tcExists := tableIsThere(ctx, h.Pool, "threat_campaigns")
 	if tcExists {
 		rows4, err4 := h.Pool.Query(ctx, `
 			SELECT id::text, name, COALESCE(description,''), COALESCE(threat_actor,''),
@@ -479,6 +478,9 @@ func (h *CampaignsHandler) List(c *gin.Context) {
 					}
 					dedupd = append(dedupd, camp)
 				}
+			}
+			if err := rows4.Err(); err != nil {
+				slog.Warn("List: rows4 の読み取りが途中で終わりました。この区画は不完全です", "error", err)
 			}
 		}
 	}
@@ -512,10 +514,11 @@ func (h *CampaignsHandler) Create(c *gin.Context) {
 	}
 
 	ctx := c.Request.Context()
-	var tcExists bool
-	_ = h.Pool.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name='threat_campaigns')`).Scan(&tcExists)
+	tcExists := tableIsThere(ctx, h.Pool, "threat_campaigns")
 	if !tcExists {
-		c.JSON(http.StatusOK, gin.H{"id": generateShortID(), "name": in.Name, "message": "created"})
+		// **でっち上げた id を返していました。** 画面はそれを「作成済みの
+		// 1件」として持ち、一覧には出ません。
+		FeatureNotInstalled(c, "キャンペーンの作成")
 		return
 	}
 
@@ -550,10 +553,9 @@ func (h *CampaignsHandler) Update(c *gin.Context) {
 	}
 
 	ctx := c.Request.Context()
-	var tcExists bool
-	_ = h.Pool.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name='threat_campaigns')`).Scan(&tcExists)
+	tcExists := tableIsThere(ctx, h.Pool, "threat_campaigns")
 	if !tcExists {
-		c.JSON(http.StatusOK, gin.H{"message": "updated"})
+		FeatureNotInstalled(c, "キャンペーンの更新")
 		return
 	}
 
@@ -595,8 +597,7 @@ func (h *CampaignsHandler) Update(c *gin.Context) {
 func (h *CampaignsHandler) Delete(c *gin.Context) {
 	id := c.Param("id")
 	ctx := c.Request.Context()
-	var tcExists bool
-	_ = h.Pool.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name='threat_campaigns')`).Scan(&tcExists)
+	tcExists := tableIsThere(ctx, h.Pool, "threat_campaigns")
 	if tcExists {
 		tag, err := h.Pool.Exec(ctx, `DELETE FROM threat_campaigns WHERE id=$1`, id)
 		if err != nil {

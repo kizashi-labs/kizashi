@@ -84,6 +84,92 @@ func BenchmarkRuleEngineEvaluate(b *testing.B) {
 	}
 }
 
+// BenchmarkRuleEngineEvaluate_LogsourceIndex は logsource インデックス
+// (logsource_index.go)の効果を、**検証環境の実分布に近いルール構成**で測る。
+//
+// 実測(2026-08-05, enabled=true の 2,341 ルール):
+//
+//	process_creation 1,624 / registry_set 207 / ps_script 162 / image_load 103 /
+//	network_connection 54 / (category 抽出不可) 47 / registry_event 33 /
+//	ps_module 33 / file_event 22 / dns_query 22 / registry_delete 10 /
+//	create_remote_thread 9
+//
+// この構成で image_load / file / dns のイベントを流すと、種別の合わない
+// 数千ルールが評価対象から外れる。逆に process イベントは
+// (コマンドライン系 + create_remote_thread を含むため)ほとんど絞れない。
+// 全体の効果はイベント分布との掛け算で決まるので、両方を測って差を見る。
+func BenchmarkRuleEngineEvaluate_LogsourceIndex(b *testing.B) {
+	dist := []struct {
+		category string
+		n        int
+	}{
+		{"process_creation", 1624}, {"registry_set", 207}, {"ps_script", 162},
+		{"image_load", 103}, {"network_connection", 54}, {"registry_event", 33},
+		{"ps_module", 33}, {"file_event", 22}, {"dns_query", 22},
+		{"registry_delete", 10}, {"create_remote_thread", 9}, {"", 47},
+	}
+	rules := make([]*DetectionRule, 0, 2326)
+	i := 0
+	for _, d := range dist {
+		for k := 0; k < d.n; k++ {
+			r := benchRule(i)
+			if d.category != "" {
+				r.Content = fmt.Sprintf(`
+title: bench %d
+logsource:
+  category: %s
+detection:
+  sel:
+    Image|endswith: '\bench_nonexistent_%d.exe'
+  condition: sel
+`, i, d.category, i)
+			} else {
+				r.Content = fmt.Sprintf(`
+title: bench %d
+detection:
+  sel:
+    Image|endswith: '\bench_nonexistent_%d.exe'
+  condition: sel
+`, i, i)
+			}
+			rules = append(rules, r)
+			i++
+		}
+	}
+
+	events := map[string]map[string]interface{}{
+		"image_load": {"type": "image_load", "agent_id": "h", "platform": "windows",
+			"ImageLoaded": `C:\Windows\System32\ntdll.dll`, "Image": `C:\Windows\System32\svchost.exe`},
+		"file": {"type": "file", "agent_id": "h", "platform": "windows",
+			"TargetFilename": `C:\Users\u\Documents\report.docx`},
+		"dns": {"type": "dns", "agent_id": "h", "platform": "windows", "QueryName": "www.example.com"},
+		"process": {"type": "process", "agent_id": "h", "platform": "windows",
+			"Image": `C:\Windows\System32\svchost.exe`, "CommandLine": `svchost.exe -k netsvcs`},
+	}
+
+	for _, on := range []bool{false, true} {
+		label := "index_off"
+		if on {
+			label = "index_on"
+		}
+		for et, evt := range events {
+			b.Run(label+"/"+et, func(b *testing.B) {
+				e := NewRuleEngine()
+				e.LoadRules(rules)
+				e.SetLogsourceIndex(on)
+				ctx := context.Background()
+				b.ReportAllocs()
+				b.ResetTimer()
+				for i := 0; i < b.N; i++ {
+					if _, err := e.Evaluate(ctx, evt); err != nil {
+						b.Fatalf("Evaluate: %v", err)
+					}
+				}
+			})
+		}
+	}
+}
+
 // BenchmarkRuleEngineEvaluate_PlatformGate は、プラットフォームゲート(#654 で
 // 実効化された)が評価をどれだけ削るかを測る。windows ルールに linux イベントを
 // 当てると全件が gate で落ちるので、「ゲートが効いたときの下限コスト」が出る。

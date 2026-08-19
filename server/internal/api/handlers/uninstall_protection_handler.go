@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"crypto/pbkdf2"
 	"crypto/rand"
 	"crypto/sha256"
@@ -56,16 +57,65 @@ func NewUninstallProtectionHandler(s *store.UninstallProtectionStore) *Uninstall
 	return &UninstallProtectionHandler{store: s}
 }
 
+// tenantScope resolves the tenant for a request and returns a context that
+// carries it.
+//
+// **返す context が肝心です。** uninstall_guards / uninstall_attempts の RLS
+// からは「app.tenant_id が未設定なら全テナント可」の抜け道を落としました
+// (migration 446)。抜け道が無くなった以上、この2表を触る接続は必ず
+// `app.tenant_id` を持っていなければならず、それを張るのは
+// `store.Connect` の PrepareConn です —— **見ているのは ctx だけ**なので、
+// gin の `c.Get("tenant_id")` に入っているだけでは張られません。
+//
+// tenantMiddleware は JWT にテナントがあるときだけ ctx に入れます。
+// **単一テナント配備の JWT はテナントを持たない**ので、そこが素通りして
+// いました。tenantOf が既定テナントに落としていた値を、そのまま ctx にも
+// 載せます。載せないと、抜け道を外した瞬間に管理コンソールの
+// アンインストール保護が 0 件になります。
+func tenantScope(c *gin.Context) (string, context.Context) {
+	tid := DefaultTenantID
+	if v, ok := c.Get("tenant_id"); ok {
+		if s, _ := v.(string); s != "" {
+			tid = s
+		}
+	}
+	return tid, context.WithValue(requestCtx(c), store.TenantContextKey{}, tid)
+}
+
+// requestCtx — `c.Request` が nil でも落ちない ctx。
+//
+// **gin.Context は Request 無しでも作れます。** `gin.CreateTestContext`
+// が返すのがその形で、`tenantOf` の検査（テナントの解決だけを見るもの）は
+// Request を付けません。`c.Request.Context()` を直に書くと、**解決の
+// 仕方を変えただけでその検査が nil 参照で落ちます** —— 実際に落ちました。
+func requestCtx(c *gin.Context) context.Context {
+	if c.Request == nil {
+		return context.Background()
+	}
+	return c.Request.Context()
+}
+
 // tenantOf resolves the tenant for a request, falling back to the default
 // tenant in single-tenant deployments — the same convention as the rest of the
 // API (see AgentHandler.ensureAgentInTenant).
 func tenantOf(c *gin.Context) string {
-	if v, ok := c.Get("tenant_id"); ok {
-		if s, _ := v.(string); s != "" {
-			return s
-		}
+	tid, _ := tenantScope(c)
+	return tid
+}
+
+// agentTenantScope resolves the tenant from the agent's own row, for the
+// agent-facing endpoints that carry no JWT.
+//
+// 端末は名乗りませんが、端末の行がテナントを持っています。引けなかった
+// ときの落とし先は呼び出し側で決めます —— 記録は落とせないので既定
+// テナントへ、配布は送らないのが安全なので nil へ、と向きが逆だからです。
+func (h *UninstallProtectionHandler) agentTenantScope(c *gin.Context, agentID string) (string, context.Context, error) {
+	ctx := requestCtx(c)
+	tid, err := h.store.TenantOfAgent(ctx, agentID)
+	if err != nil {
+		return "", ctx, err
 	}
-	return DefaultTenantID
+	return tid, context.WithValue(ctx, store.TenantContextKey{}, tid), nil
 }
 
 // uninstallStatusResponse is what the console shows. It deliberately carries no
@@ -82,7 +132,8 @@ type uninstallStatusResponse struct {
 // GetStatus reports whether an uninstall password is configured.
 // GET /api/v1/admin/uninstall-protection
 func (h *UninstallProtectionHandler) GetStatus(c *gin.Context) {
-	g, err := h.store.GetGuard(c.Request.Context(), tenantOf(c))
+	tenantID, ctx := tenantScope(c)
+	g, err := h.store.GetGuard(ctx, tenantID)
 	if errors.Is(err, store.ErrNoUninstallGuard) {
 		c.JSON(http.StatusOK, uninstallStatusResponse{Configured: false})
 		return
@@ -150,8 +201,9 @@ func (h *UninstallProtectionHandler) SetPassword(c *gin.Context) {
 	actor, _ := c.Get("username")
 	actorStr, _ := actor.(string)
 
+	tenantID, ctx := tenantScope(c)
 	g := &store.UninstallGuard{
-		TenantID:   tenantOf(c),
+		TenantID:   tenantID,
 		Version:    uninstallKDFVersion,
 		Algorithm:  uninstallKDFAlgorithm,
 		Iterations: uninstallKDFIterations,
@@ -159,7 +211,7 @@ func (h *UninstallProtectionHandler) SetPassword(c *gin.Context) {
 		DigestB64:  base64.StdEncoding.EncodeToString(digest),
 		UpdatedBy:  actorStr,
 	}
-	if err := h.store.SetGuard(c.Request.Context(), g); err != nil {
+	if err := h.store.SetGuard(ctx, g); err != nil {
 		slog.Error("[uninstall] 保護設定の保存に失敗", "error", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "パスワードを設定できませんでした"})
 		return
@@ -179,8 +231,8 @@ func (h *UninstallProtectionHandler) SetPassword(c *gin.Context) {
 // unprotected uninstalls.
 // DELETE /api/v1/admin/uninstall-protection
 func (h *UninstallProtectionHandler) ClearPassword(c *gin.Context) {
-	tenantID := tenantOf(c)
-	if err := h.store.ClearGuard(c.Request.Context(), tenantID); err != nil {
+	tenantID, ctx := tenantScope(c)
+	if err := h.store.ClearGuard(ctx, tenantID); err != nil {
 		slog.Error("[uninstall] 保護設定の削除に失敗", "error", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "設定を削除できませんでした"})
 		return
@@ -206,7 +258,8 @@ func (h *UninstallProtectionHandler) ListAttempts(c *gin.Context) {
 	deniedOnly := c.Query("denied_only") == "true"
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "100"))
 
-	attempts, err := h.store.ListAttempts(c.Request.Context(), tenantOf(c), deniedOnly, limit)
+	tenantID, ctx := tenantScope(c)
+	attempts, err := h.store.ListAttempts(ctx, tenantID, deniedOnly, limit)
 	if err != nil {
 		slog.Error("[uninstall] 試行履歴の取得に失敗", "error", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "履歴を取得できませんでした"})
@@ -253,14 +306,23 @@ func (h *UninstallProtectionHandler) ReportAttempt(c *gin.Context) {
 		occurred = time.Now().UTC()
 	}
 
+	// 端末の行からテナントを引きます。引けないとき（削除済み・未登録の端末
+	// からの通報）は既定テナントへ落とします —— **記録そのものを落とすのは
+	// いちばん悪い答えです。** この経路が存在する理由が「攻撃者が解体して
+	// いる最中の端末からの通報」だからです。
+	tenantID, ctx, err := h.agentTenantScope(c, agentID)
+	if err != nil {
+		tenantID, ctx = tenantScope(c)
+	}
+
 	attempt := &store.UninstallAttempt{
-		TenantID:   tenantOf(c),
+		TenantID:   tenantID,
 		AgentID:    agentID,
 		Hostname:   req.Hostname,
 		Authorised: req.Authorised,
 		OccurredAt: occurred,
 	}
-	if err := h.store.RecordAttempt(c.Request.Context(), attempt); err != nil {
+	if err := h.store.RecordAttempt(ctx, attempt); err != nil {
 		slog.Error("[uninstall] 試行の記録に失敗", "error", err, "agent_id", agentID)
 		// Still 200: the agent cannot act on a failure here, and a non-2xx would
 		// only make it log a second error about a report it cannot retry.
@@ -287,7 +349,25 @@ func (h *UninstallProtectionHandler) ReportAttempt(c *gin.Context) {
 // it can be logged — and a nil result means only "send nothing this time".
 // An agent that receives nothing simply keeps the guard it already has.
 func (h *UninstallProtectionHandler) GuardMaterialForHeartbeat(c *gin.Context) map[string]any {
-	g, err := h.store.GetGuard(c.Request.Context(), tenantOf(c))
+	// ハートビートは認証なしなので、テナントは端末の行から引きます。
+	// **引けなければ何も送りません。** 既定テナントに落とすと、素性の
+	// 分からない相手に既定テナントの保護材料を配ることになります。
+	// 送らないのは無害です —— 端末は手元の設定を持ち続けます
+	// （gRPC 側 cmd/ingestion/main.go と同じ判断）。
+	//
+	// 登録済みの端末は必ず引けます。`agents.tenant_id` は migration 244 で
+	// 既定テナントの DEFAULT が付き、NULL の行も backfill 済みです。
+	// **引けないのは「行が無い」ときだけ** —— 誰だか分からない相手です。
+	tenantID, ctx, err := h.agentTenantScope(c, c.Param("id"))
+	if err != nil {
+		if !errors.Is(err, store.ErrAgentTenantUnknown) {
+			slog.Warn("[uninstall] 端末のテナントを引けませんでした（今回は送出せず継続）",
+				"agent", c.Param("id"), "error", err)
+		}
+		return nil
+	}
+
+	g, err := h.store.GetGuard(ctx, tenantID)
 	if errors.Is(err, store.ErrNoUninstallGuard) {
 		return nil
 	}

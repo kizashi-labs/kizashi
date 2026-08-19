@@ -5,6 +5,20 @@ import (
 	"fmt"
 )
 
+// liveResponseSubject builds the NATS subject the agent's live-response
+// start command is published on.
+//
+// **受け取る側は `cmd/ingestion` の `commands.*.live_response_start` です。**
+// 文字列が2箇所にあり、片方だけ変えると**購読が外れます** —— ライブ
+// レスポンスの開始要求が届かなくなり、画面からは「エージェントが
+// 応答しない」と同じ姿になります。
+//
+// 検査ファイルにはこの組み立ての写しが置いてありました。写しを試しても、
+// こちらは無傷のまま壊せます。
+func liveResponseSubject(agentID string) string {
+	return "commands." + agentID + ".live_response_start"
+}
+
 // LiveResponseStartPayload is embedded in the live_response_start command payload.
 // It is sent to the agent via the collect_artifact command (type=LOGS) as a carrier,
 // with the JSON encoded in the target field.
@@ -29,5 +43,5 @@ func (s *CommandStore) EnqueueLiveResponseStart(agentID, sessionID, token, callb
 	if err != nil {
 		return fmt.Errorf("marshal live_response_start: %w", err)
 	}
-	return s.nc.Publish("commands."+agentID+".live_response_start", data)
+	return s.nc.Publish(liveResponseSubject(agentID), data)
 }

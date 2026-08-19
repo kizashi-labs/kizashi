@@ -23,6 +23,12 @@
 //	rule source is tracked as 案A in the dual-management doc.
 package detection
 
+import (
+	"fmt"
+	"log/slog"
+	"strings"
+)
+
 // builtinSigmaRules is the list of YAML Sigma rules shipped with the platform.
 // Keep each rule as a separate string so they can be compiled independently;
 // a compile error in one rule does not block the others.
@@ -2094,9 +2100,56 @@ falsepositives:
 `,
 
 	// ── T1552.003 – Bash/Shell History Credential Search ──────────
+	//
+	// 2026-08-13 に条件を狭めている。旧版は `condition: history_file` **のみ**で、
+	// コマンドラインに `.bash_history` 等が含まれれば無条件に発火した。
+	//
+	// FP ソークで **10 件 / 5999.94 件（1000ホスト/日）** を出し、Sigma ルール中で
+	// 最多タイ（`疑わしいPowerShell実行` と並ぶ）だった。鳴っていたのは
+	//
+	//     grep -n docker  /home/<user>/.bash_history
+	//     grep -n kubectl /Users/<user>/.zsh_history
+	//     grep docker     /Users/<user>/.zsh_history
+	//
+	// ——「前に叩いたあのコマンド何だっけ」という日常操作である。
+	//
+	// **履歴を読むこと自体は攻撃ではない。** T1552.003 が指すのは履歴から*資格情報を
+	// 収穫する*ことなので、識別子は「何を検索したか」と「ファイルをどこへ持ち出すか」
+	// にある。固定されている攻撃ケース 4 件はいずれも資格情報の語を含み
+	// (attack_coverage_test.go:175 / migration_parity_test.go:287 /
+	// linux_builtins_test.go:70 / dark_technique_wave3_test.go:33)、上の良性 3 件は
+	// いずれも含まない。そこが分かれ目である。
+	//
+	// cat / less / grep 自体は発火側に置かない。閲覧は正常業務であり、
+	// linux_measurement_rules_test.go:122 が `cat ~/.bash_history` を**良性の対照**
+	// として既に固定している——コードベースの既存判断とも揃う。
+	//
+	// ── 4 本 → 1 本に統合した（2026-08-14, migration 430）──
+	//
+	// この技法はかつて**同じ検知を 4 本**持っていた:
+	//
+	//     Shell History Credential Search                 builtin      ← 本ルール
+	//     Credential Search in Shell History              builtin      削除
+	//     Credential Harvesting from Shell or DB History  migration 386  無効化
+	//     Shell History Credential Search (DB)            migration 350  無効化
+	//
+	// 独立した 2 系統（builtin と、その builtin-parity 行）に、それぞれ後から
+	// 気づかずに 2 本目が足された結果である。技法 dedup が 1 行にまとめるので
+	// **4 本あること自体が見えず**、#746 で狭めたときは 4 本目を取りこぼして
+	// 誤検知が残った。同じ条件を 4 箇所で歩調を合わせて保守するのは無理がある。
+	//
+	// 統合にあたり、本ルールが他 3 本の**真の上位集合**になるよう
+	// `.history`（旧 `Credential Search in Shell History`）と
+	// `.dbshell`（旧 migration 386）を取り込んである。用語集合と exfil_verbs は
+	// 元から本ルールが上位で、条件も本ルールの方が広い（削除した builtin は
+	// grep/awk 等の `tool` を追加で要求していた）。
+	//
+	// 手順は migration 377 / 383 の前例に揃えてある——DB 行は削除ではなく
+	// enabled=false で反転させ、`db_rule_builtin_port_test.go` が
+	// 「無効化した行が拾っていたイベントを builtin でも必ず拾う」ことを固定する。
 	`
 title: Shell History Credential Search
-description: Detects reading or searching of shell and client history files (.bash_history, .zsh_history, .mysql_history, .psql_history) that frequently contain plaintext credentials, tokens, and connection strings.
+description: Detects harvesting of credentials from shell and client history files — searching them for secret-bearing terms, or copying them off the host. Reading one's own history is ordinary recall and is deliberately NOT matched; the signal is the search term or the exfiltration verb, not the file access.
 status: stable
 level: medium
 tags:
@@ -2114,9 +2167,41 @@ detection:
       - ".mysql_history"
       - ".psql_history"
       - ".rediscli_history"
-  condition: history_file
+      # 統合で取り込んだ 2 語。".history" は削除した builtin
+      # "Credential Search in Shell History" 由来（ksh/csh の ~/.history）、
+      # ".dbshell" は無効化した migration 386 の行由来（mongo シェル）。
+      # どちらも "_history" とは別語なので既存の 6 語とは重ならない。
+      - ".history"
+      - ".dbshell"
+  credential_terms:
+    CommandLine|contains:
+      - "pass"
+      - "token"
+      - "secret"
+      - "credential"
+      - "api_key"
+      - "apikey"
+      - "api-key"
+      - "access_key"
+      - "accesskey"
+      - "aws_"
+      - "private_key"
+      - "id_rsa"
+      - "bearer"
+      - "authorization"
+  exfil_verbs:
+    CommandLine|contains:
+      - "base64"
+      - "strings "
+      - "cp "
+      - "mv "
+      - "tar "
+      - "curl"
+      - "wget"
+      - "nc -"
+  condition: history_file and (credential_terms or exfil_verbs)
 falsepositives:
-  - A user legitimately inspecting their own shell history
+  - An administrator auditing history files for leaked secrets as part of a cleanup
 `,
 
 	// ── T1490 – Inhibit Recovery via wbadmin ──────────────────────
@@ -3654,6 +3739,53 @@ detection:
 falsepositives:
   - Rare legitimate use of runas /netonly by administrators
 `,
+
+	// ── T1134.005 – SID-History Injection (Security 4765/4766) ──
+	//
+	// このルールは 2026-08-14 まで**入れられなかった**。第 1 波(migration 384)の
+	// 候補 6 件のうち唯一外したのがこれで、理由はルールの書き方ではなく
+	// **値がワイヤに乗っていなかった**ことにある:
+	//
+	//   1. agent の購読述語が EventID=4624/4625/4634/4672 だけで 4765/4766 を含まない
+	//   2. auth_parse.go の switch が未知の EventID を default で捨てる
+	//   3. 決定的なのは AuthEvent がワイヤ上に EventID を持たなかったこと
+	//
+	// 「フィールド解決の検査は通るが値が永久に来ない」——最も見つけにくい壊れ方で、
+	// ルールだけ先に入れると「検査は緑・永久に不発火」が 1 件増える。P5-5 / P5-7 で
+	// 繰り返し潰してきた形なので入れなかった。本 PR で 1〜3 をすべて塞いだ。
+	//
+	// ★ 既存の T1134.005 ルール(`SID-History Injection via Offensive Tooling`,
+	// migration 384)との違いは**見ている層**である。あちらは mimikatz の `sid::` や
+	// DCShadow のコマンドラインを見るので、**ツールを使わない付与**——DCShadow の
+	// レプリケーション経路や、正規 API / PowerShell 経由の付与——は素通りする。
+	// 4765/4766 は結果そのものを見るので、経路に依存しない。
+	//
+	// 正常系でこれが出るのはドメイン移行(ADMT)のときだけで、しかも移行期間に
+	// 限られる。ログオン系の EventID と違って常時発生する土台を持たないため、
+	// EventID を Sigma に開ける許可リストに入れられた
+	// (alert_pipeline.go の sigmaExposedAuthEventIDs を参照)。
+	`
+title: SID-History Added to Account (Security Event 4765/4766)
+description: Detects a SID being grafted onto an account's sIDHistory attribute, which grants that account the privileges of the added SID without any group membership change. Attackers use it to persist elevated or cross-domain access; the only routine source is a domain migration. Unlike the tooling rule for this technique it matches the result rather than the tool, so DCShadow and API-driven grafting are covered too.
+status: stable
+level: high
+tags:
+  - attack.t1134.005
+  - attack.privilege_escalation
+  - attack.defense_evasion
+logsource:
+  product: windows
+  service: security
+detection:
+  selection:
+    EventID:
+      - '4765'
+      - '4766'
+  condition: selection
+falsepositives:
+  - An Active Directory domain migration (ADMT) legitimately adding SID history to migrated accounts
+`,
+
 	// ── T1496 – Resource Hijacking (Cryptomining) ──────────────
 	`
 title: Cryptocurrency Mining (Resource Hijacking)
@@ -7536,9 +7668,29 @@ detection:
       - ' /s'
       - ' -r'
       - ' -s'
-  condition: tool and action
+  # 2026-08-13 追加。タイトルは Forced なのに、条件が強制を要求していなかった。
+  #
+  # 同じ技法の migration 385 (Forced System Shutdown or Reboot) は最初から
+  # sel_shutdown and sel_forced で、Unix 側 (migration 386 → 428) も本 PR で
+  # 揃えた。ここだけが「あらゆる shutdown /r」で鳴る状態だった。
+  #
+  # FP ソークでは 0 件だが、それはプロファイルが shutdown.exe を実行しないため
+  # であって精度が高いからではない。実フリートでは Windows Update の再起動が
+  # 毎月全台で鳴る。falsepositives 節が "Administrators or patch cycles rebooting
+  # hosts intentionally" と自認していたとおりである。
+  #
+  # 破壊的マルウェアは後片付けを飛ばすために /f と /t 0 を使い、管理者は逆に
+  # 猶予を置く。そこが分かれ目である。ATT&CK の固定ケース
+  # (attack_coverage_test.go:134,138) は shutdown /r /f /t 0 なので緑のまま。
+  forced:
+    CommandLine|contains:
+      - ' /f'
+      - ' -f'
+      - ' /t 0'
+      - ' -t 0'
+  condition: tool and action and forced
 falsepositives:
-  - Administrators or patch cycles rebooting hosts intentionally
+  - An administrator force-rebooting an unresponsive host
 `,
 
 	// ── T1570 – Lateral Tool Transfer to Admin Share ──────────
@@ -7572,9 +7724,41 @@ falsepositives:
 `,
 
 	// ── T1497 – Virtualization/Sandbox Evasion (hardware query) ─
+	//
+	// 2026-08-13 に条件を狭めている。旧条件は `tool and query` で、**WMI クラス名
+	// だけ**を見ていた（computersystem / bios / baseboard）。
+	//
+	// FP ソークで `it-admin` に 2 件出ていた。鳴っていたのは
+	//
+	//     wmic /node:wks-NNNN computersystem get name,domain
+	//
+	// で、資産管理がホスト名とドメインを引く日常操作である。
+	//
+	// **分かれ目はクラスではなくプロパティにある。** 同じ computersystem クラスでも、
+	//
+	//     get name,domain   → ホスト名と AD ドメイン。仮想化の情報はゼロ
+	//     get model         → "VMware Virtual Platform" 等、**ハイパーバイザが露出する**
+	//
+	// T1497 が指すのは後者——ハードウェアの正体を見て解析環境かどうかを判定する
+	// 行為——なので、`revealing_property` を要求する形にした。ATT&CK スコアカードの
+	// T1497/Windows ケース（attack_coverage_test.go:73 の `wmic computersystem get
+	// model`）はプロパティ側に当たるので緑のまま、上の良性は静かになる。
+	//
+	// macOS 側（`macOS Virtualization/Sandbox Discovery`）と同じ構造の是正だが、
+	// 打ち手は違う。あちらは精密な姉妹ルールが既にあったのでセレクタごと入れ替えた。
+	// こちらは Windows の T1497 がこの 1 本しか無く（技法で横断検索して確認済み）、
+	// 素のプローブを拾う先が他に無いため、**プロパティで絞る**方を選んだ。
+	//
+	// csproduct は当初「既知の穴」として残していたが、2026-08-14 に class へ足した
+	// （実測できる体制ができたため）。`wmic csproduct get name` は name が汎用すぎて
+	// 足せないので取りこぼしとして残る——足すと #753 で消した
+	// `computersystem get name,domain` の誤検知が戻る。
+	//
+	// `wmic path win32_videocontroller get name | findstr VMware` のようにクラスが
+	// 別で findstr 側にベンダ名が出る形は vmvendor 枝で拾える。
 	`
 title: Virtualization or Sandbox Discovery via WMIC Hardware Query
-description: Detects WMIC hardware/BIOS/baseboard queries commonly used by malware to detect a virtualized or sandbox environment (VMware/VirtualBox/QEMU artifacts) before detonating.
+description: Detects WMIC queries that read virtualization-revealing hardware properties (model, manufacturer, serial, baseboard product) or filter hardware output for hypervisor vendor strings — used by malware to identify a VM or sandbox before detonating. Queries that read non-revealing properties such as name/domain are ordinary asset inventory and are deliberately NOT matched.
 status: stable
 level: low
 tags:
@@ -7587,15 +7771,54 @@ logsource:
 detection:
   tool:
     Image|endswith: \WMIC.exe
-  query:
+  class:
     CommandLine|contains:
       - computersystem
       - win32_computersystem
       - bios
       - baseboard
-  condition: tool and query
+      # csproduct は #753 で「既知の穴」として残していた分。VM 判定の定番
+      # (wmic csproduct get uuid) だが、クラスを足すと誤検知の余地も増えるため
+      # 実測なしには広げないと決めていた。FP ソークで測れる体制ができたので入れる。
+      #
+      # it-admin の実コマンド (computersystem get name,domain / qfe list brief /
+      # product get name,version / service where started=true ...) はいずれも
+      # csproduct を含まないので、この追加では鳴らない。
+      - csproduct
+  revealing_property:
+    CommandLine|contains:
+      - model
+      - manufacturer
+      - serialnumber
+      # 先頭の空白は必須。単に product と書くと **csproduct 自身に当たってしまい**、
+      # クラス側で csproduct を足した瞬間に「csproduct を含む全コマンドが発火する」
+      # 状態になる (wmic csproduct get name も鳴る)。プロパティで絞るという
+      # このルールの設計が、部分文字列の衝突だけで無効化される。
+      # 本来の意図は baseboard get product ("VirtualBox" 等) を拾うことなので、
+      # 語の直前に空白を要求する。
+      - ' product'
+      - smbiosbiosversion
+      - uuid
+      # csproduct 固有の露出プロパティ。identifyingnumber は VM のシリアル、
+      # vendor は "VMware, Inc." 等をそのまま返す。
+      #
+      # なお csproduct get name も VM 名を露出するが、name は汎用すぎるため足さない
+      # ——足すと computersystem get name,domain が再び鳴り、#753 で消した誤検知が
+      # 戻る。取りこぼしとして残す方を選ぶ。
+      - identifyingnumber
+      - vendor
+  vmvendor:
+    CommandLine|contains:
+      - vmware
+      - virtualbox
+      - vbox
+      - qemu
+      - parallels
+      - innotek
+      - hyper-v
+  condition: tool and ((class and revealing_property) or vmvendor)
 falsepositives:
-  - Legitimate inventory/asset-management scripts querying hardware
+  - Asset-management tooling that specifically collects hardware model or serial for inventory
 `,
 
 	// ── T1112 – Modify Registry: security tooling (registry_set) ─
@@ -7785,37 +8008,6 @@ detection:
   condition: scanner or nc_sweep
 falsepositives:
   - Authorised vulnerability scanning or network inventory
-`,
-
-	// ── Linux T1552.003 – Credentials in Bash History ──────────
-	`
-title: Credential Search in Shell History
-description: Detects grep/awk searches over shell history files (.bash_history/.zsh_history) — attackers harvest passwords, tokens and keys accidentally typed into the shell.
-status: stable
-level: medium
-tags:
-  - attack.t1552.003
-  - attack.credential_access
-logsource:
-  product: linux
-  category: process_creation
-detection:
-  tool:
-    CommandLine|contains:
-      - grep
-      - egrep
-      - rg
-      - awk
-      - strings
-  history:
-    CommandLine|contains:
-      - .bash_history
-      - .zsh_history
-      - .sh_history
-      - .history
-  condition: tool and history
-falsepositives:
-  - Users legitimately searching their own shell history
 `,
 
 	// ── macOS T1497 – Virtualization/Sandbox Discovery ─────────
@@ -9462,18 +9654,58 @@ falsepositives:
 `,
 }
 
-// LoadBuiltinRules loads the compiled built-in Sigma rules into the given evaluator.
-// Errors are logged but do not abort loading of remaining rules.
+// LoadBuiltinRules loads the compiled built-in Sigma rules into the given
+// evaluator and returns how many loaded. A rule that fails to load does not
+// abort the rest.
+//
+// The failures used to go into `_ = err` under a comment saying "counts are
+// returned" — only the success count was returned, so a builtin that stopped
+// compiling would reduce the coverage of server-api's entire Sigma layer (this
+// file is that layer; the DB rules are evaluated by server-detect) and the only
+// trace would be a smaller number in a log line nobody diffs. All 302 load
+// today; TestEveryBuiltinSigmaRuleLoads keeps it that way, and the failures are
+// named here for the case where someone runs a modified build.
 func LoadBuiltinRules(e *SigmaEvaluator) int {
+	loaded, failures := loadSigmaRuleSet(e, builtinSigmaRules)
+	for _, f := range failures {
+		slog.Error("組み込みSigmaルールを読み込めませんでした(検知に使われません)", "rule", f)
+	}
+	if len(failures) > 0 {
+		slog.Error("組み込みSigmaルールの一部が無効です",
+			"loaded", loaded, "total", len(builtinSigmaRules), "failed", len(failures))
+	}
+	return loaded
+}
+
+// loadSigmaRuleSet is the body, taking the rule list so a test can hand it one
+// that contains a rule known to be broken. Asserting on the count returned for
+// builtinSigmaRules alone cannot tell `return loaded` from
+// `return len(rules)` — both are right when every rule loads, which is the only
+// state the real list is ever in.
+func loadSigmaRuleSet(e *SigmaEvaluator, rules []string) (int, []string) {
 	loaded := 0
-	for _, yaml := range builtinSigmaRules {
-		if err := e.LoadRule(yaml); err != nil {
-			// Log at debug level; some rules require specific log-source fields
-			// that won't fire in all deployments — that is expected.
-			_ = err // caller can ignore; counts are returned
+	var failures []string
+	for i, ruleYAML := range rules {
+		if err := e.LoadRule(ruleYAML); err != nil {
+			// Returned rather than only logged. A log line is not something a
+			// test can hold on to, so "the failure is reported" and "the
+			// failure is swallowed" looked the same from the outside — which
+			// is the shape this whole change is about.
+			failures = append(failures, fmt.Sprintf("#%d %s: %v", i, builtinRuleTitle(ruleYAML), err))
 			continue
 		}
 		loaded++
 	}
-	return loaded
+	return loaded, failures
+}
+
+// builtinRuleTitle pulls the `title:` line out of a rule so a failure can name
+// which rule went dark rather than only its position in the slice.
+func builtinRuleTitle(ruleYAML string) string {
+	for _, line := range strings.Split(ruleYAML, "\n") {
+		if t, ok := strings.CutPrefix(strings.TrimSpace(line), "title:"); ok {
+			return strings.TrimSpace(t)
+		}
+	}
+	return "(title 不明)"
 }

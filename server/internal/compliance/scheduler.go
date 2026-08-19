@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/edr-platform/server/internal/tick"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -28,6 +29,11 @@ func (s *Scheduler) Start(ctx context.Context) {
 
 // run is the main scheduler loop. It sleeps until 02:00 UTC, then evaluates
 // all agents against every configured framework.
+//
+// **一日一回しか回らないので、止まっても気づけません。** 間隔が一定でない
+// 周期なので `time.NewTicker` ではなく `time.After(time.Until(next))` で
+// 待っており、`internal/tick` の走査は `time.NewTicker` しか見ていなかった
+// ため、**このワーカーだけが丸ごと外れていました**（実測 2026-08-12）。
 func (s *Scheduler) run(ctx context.Context) {
 	slog.Info("compliance scheduler: started")
 	for {
@@ -39,7 +45,7 @@ func (s *Scheduler) run(ctx context.Context) {
 			slog.Info("compliance scheduler: stopped")
 			return
 		case <-time.After(time.Until(next)):
-			s.runEvaluation(ctx)
+			tick.Run(ctx, "compliance_scheduler", s.runEvaluation)
 		}
 	}
 }
@@ -54,8 +60,8 @@ func (s *Scheduler) runEvaluation(parentCtx context.Context) {
 		slog.Info("compliance scheduler: evaluating framework", "framework", fw)
 		reports, err := s.evaluator.EvaluateAll(ctx, fw)
 		if err != nil {
-			slog.Error("compliance scheduler: evaluation error",
-				"framework", fw, "error", err)
+			tick.FailComponent(ctx, "compliance_scheduler", err, "compliance scheduler: evaluation error",
+				"framework", fw)
 			continue
 		}
 		slog.Info("compliance scheduler: framework evaluation complete",

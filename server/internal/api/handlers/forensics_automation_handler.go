@@ -17,8 +17,7 @@ func NewForensicsAutomationHandler(pool *pgxpool.Pool) *ForensicsAutomationHandl
 
 func (h *ForensicsAutomationHandler) ListJobs(c *gin.Context) {
 	ctx := c.Request.Context()
-	var exists bool
-	_ = h.pool.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM pg_tables WHERE schemaname='public' AND tablename='forensics_automation_jobs')`).Scan(&exists)
+	exists := tableIsThere(ctx, h.pool, "forensics_automation_jobs")
 	if !exists {
 		c.JSON(http.StatusOK, gin.H{"jobs": []interface{}{}, "total": 0})
 		return
@@ -56,7 +55,9 @@ func (h *ForensicsAutomationHandler) ListJobs(c *gin.Context) {
 		jobs = append(jobs, job)
 	}
 	if err := rows.Err(); err != nil {
-		slog.Warn("row iteration error", "error", err)
+		slog.Error("rows.Err: 結果の読み出しが途中で失敗しました", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "データの取得に失敗しました"})
+		return
 	}
 	if jobs == nil {
 		jobs = []gin.H{}
@@ -68,8 +69,7 @@ func (h *ForensicsAutomationHandler) GetJob(c *gin.Context) {
 	id := c.Param("id")
 	ctx := c.Request.Context()
 
-	var exists bool
-	_ = h.pool.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM pg_tables WHERE schemaname='public' AND tablename='forensics_automation_jobs')`).Scan(&exists)
+	exists := tableIsThere(ctx, h.pool, "forensics_automation_jobs")
 	if !exists {
 		c.JSON(http.StatusNotFound, gin.H{"error": "ジョブが見つかりません"})
 		return
@@ -158,8 +158,7 @@ func (h *ForensicsAutomationHandler) GetEvidence(c *gin.Context) {
 	jobID := c.Param("id")
 	ctx := c.Request.Context()
 
-	var exists bool
-	_ = h.pool.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM pg_tables WHERE schemaname='public' AND tablename='forensics_evidence_items')`).Scan(&exists)
+	exists := tableIsThere(ctx, h.pool, "forensics_evidence_items")
 	if !exists {
 		c.JSON(http.StatusOK, gin.H{"evidence": []interface{}{}, "total": 0})
 		return
@@ -194,7 +193,9 @@ func (h *ForensicsAutomationHandler) GetEvidence(c *gin.Context) {
 		})
 	}
 	if err := rows.Err(); err != nil {
-		slog.Warn("row iteration error", "error", err)
+		slog.Error("rows.Err: 結果の読み出しが途中で失敗しました", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "データの取得に失敗しました"})
+		return
 	}
 	if items == nil {
 		items = []gin.H{}
@@ -205,19 +206,26 @@ func (h *ForensicsAutomationHandler) GetEvidence(c *gin.Context) {
 func (h *ForensicsAutomationHandler) GetStats(c *gin.Context) {
 	ctx := c.Request.Context()
 
-	var jobsExists, evidenceExists bool
-	_ = h.pool.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM pg_tables WHERE schemaname='public' AND tablename='forensics_automation_jobs')`).Scan(&jobsExists)
-	_ = h.pool.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM pg_tables WHERE schemaname='public' AND tablename='forensics_evidence_items')`).Scan(&evidenceExists)
+	jobsExists := tableIsThere(ctx, h.pool, "forensics_automation_jobs")
+	evidenceExists := tableIsThere(ctx, h.pool, "forensics_evidence_items")
 
 	var totalJobs, activeJobs, completedToday int
 	var totalEvidence int
 	if jobsExists {
-		_ = h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM forensics_automation_jobs`).Scan(&totalJobs)
-		_ = h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM forensics_automation_jobs WHERE status = 'running'`).Scan(&activeJobs)
-		_ = h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM forensics_automation_jobs WHERE status = 'completed' AND DATE(completed_at) = CURRENT_DATE`).Scan(&completedToday)
+		if !ReadOK(c, h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM forensics_automation_jobs`).Scan(&totalJobs)) {
+			return
+		}
+		if !ReadOK(c, h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM forensics_automation_jobs WHERE status = 'running'`).Scan(&activeJobs)) {
+			return
+		}
+		if !ReadOK(c, h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM forensics_automation_jobs WHERE status = 'completed' AND DATE(completed_at) = CURRENT_DATE`).Scan(&completedToday)) {
+			return
+		}
 	}
 	if evidenceExists {
-		_ = h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM forensics_evidence_items`).Scan(&totalEvidence)
+		if !ReadOK(c, h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM forensics_evidence_items`).Scan(&totalEvidence)) {
+			return
+		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{

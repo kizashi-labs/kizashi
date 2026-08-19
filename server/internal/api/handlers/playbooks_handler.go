@@ -7,6 +7,18 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// validatePlaybookActionCount はアクション0件を弾きます。空文字は「問題なし」。
+//
+// **切り出してあるのは、検査が本物を呼べるようにするためです。**
+// 検査ファイルに同じ判定の写しが置いてあり、そちらだけが試されて
+// いました。
+func validatePlaybookActionCount(count int) string {
+	if count == 0 {
+		return "1つ以上のアクションが必要です"
+	}
+	return ""
+}
+
 // PlaybookHandler provides response playbook endpoints.
 type PlaybookHandler struct {
 	Store *store.PlaybookStore
@@ -39,7 +51,9 @@ func (h *PlaybookHandler) Get(c *gin.Context) {
 	}
 	runs, err := h.Store.ListRuns(c.Request.Context(), id, 20)
 	if err != nil {
-		runs = []*store.PlaybookRun{}
+		// 実行履歴が空だと「一度も動いていない」と読めます。
+		ReadFailure(c, err, gin.H{"playbook": pb, "runs": []any{}})
+		return
 	}
 	c.JSON(http.StatusOK, gin.H{"playbook": pb, "runs": runs})
 }
@@ -58,8 +72,8 @@ func (h *PlaybookHandler) Create(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "name と actions は必須です"})
 		return
 	}
-	if len(req.Actions) == 0 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "1つ以上のアクションが必要です"})
+	if msg := validatePlaybookActionCount(len(req.Actions)); msg != "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
 		return
 	}
 

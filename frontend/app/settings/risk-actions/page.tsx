@@ -17,6 +17,9 @@ import {
   Pencil,
 } from 'lucide-react';
 
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+import { PageSaveFailed } from '@/components/PageSaveFailed'
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type ActionType = 'isolate' | 'alert_only';
@@ -103,7 +106,7 @@ function SliderField({
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
-        <label className="text-xs text-falcon-muted">閾値スコア</label>
+        <label className="text-xs text-[#7d92b0]">閾値スコア</label>
         <span
           className="text-sm font-mono font-bold tabular-nums"
           style={{ color: trackColor }}
@@ -118,13 +121,7 @@ function SliderField({
         step={1}
         value={value}
         onChange={(e) => onChange(Number(e.target.value))}
-        className="w-full h-1.5 bg-falcon-border rounded-full appearance-none cursor-pointer
-                   [&::-webkit-slider-thumb]:appearance-none
-                   [&::-webkit-slider-thumb]:w-4
-                   [&::-webkit-slider-thumb]:h-4
-                   [&::-webkit-slider-thumb]:rounded-full
-                   [&::-webkit-slider-thumb]:bg-falcon-blue
-                   [&::-webkit-slider-thumb]:cursor-pointer"
+        className="w-full h-1.5 bg-[#1e2d42] rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#1a6bff] [&::-webkit-slider-thumb]:cursor-pointer"
       />
       <div className="flex justify-between text-[#3a4d66] text-xs">
         <span>1</span>
@@ -165,17 +162,17 @@ function RuleFormModal({
     setForm((f) => ({ ...f, [k]: v }));
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs">
-      <div className="bg-falcon-card border border-falcon-border rounded-xl p-6 w-full max-w-md mx-4 shadow-2xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+      <div className="bg-[#111827] border border-[#1e2d42] rounded-xl p-6 w-full max-w-md mx-4 shadow-2xl">
         {/* Header */}
         <div className="flex items-center justify-between mb-5">
-          <h2 className="text-sm font-semibold text-falcon-text flex items-center gap-2">
+          <h2 className="text-sm font-semibold text-[#e2e8f4] flex items-center gap-2">
             <Zap className="w-4 h-4 text-yellow-400" />
             {title}
           </h2>
           <button
             onClick={onClose}
-            className="text-falcon-muted hover:text-falcon-text transition-colors"
+            className="text-[#7d92b0] hover:text-[#e2e8f4] transition-colors"
           >
             <X className="w-4 h-4" />
           </button>
@@ -184,7 +181,7 @@ function RuleFormModal({
         <div className="space-y-5">
           {/* Name */}
           <div>
-            <label className="block text-xs text-falcon-muted mb-1.5">
+            <label className="block text-xs text-[#7d92b0] mb-1.5">
               ルール名 <span className="text-red-400">*</span>
             </label>
             <input
@@ -193,22 +190,21 @@ function RuleFormModal({
               onChange={(e) => set('name', e.target.value)}
               placeholder="高リスク自動隔離"
               autoComplete="off"
-              className="w-full px-3 py-2 bg-falcon-bg border border-falcon-border rounded-lg text-sm
-                         text-falcon-text placeholder-[#3a4d66] focus:outline-hidden focus:border-blue-500"
+              className="w-full px-3 py-2 bg-[#080c14] border border-[#1e2d42] rounded-lg text-sm text-[#e2e8f4] placeholder-[#3a4d66] focus:outline-hidden focus:border-blue-500"
             />
           </div>
 
           {/* Threshold Slider */}
-          <div className="bg-falcon-bg border border-falcon-border rounded-lg p-4">
+          <div className="bg-[#080c14] border border-[#1e2d42] rounded-lg p-4">
             <SliderField value={form.threshold} onChange={(v) => set('threshold', v)} />
-            <p className="text-xs text-falcon-muted mt-3">
-              リスクスコアが <span className="text-falcon-text font-mono">{form.threshold}</span> 以上のエンドポイントに対してアクションを実行します
+            <p className="text-xs text-[#7d92b0] mt-3">
+              リスクスコアが <span className="text-[#e2e8f4] font-mono">{form.threshold}</span> 以上のエンドポイントに対してアクションを実行します
             </p>
           </div>
 
           {/* Action Selector */}
           <div>
-            <label className="block text-xs text-falcon-muted mb-2">アクション</label>
+            <label className="block text-xs text-[#7d92b0] mb-2">アクション</label>
             <div className="grid grid-cols-2 gap-3">
               {(['alert_only', 'isolate'] as ActionType[]).map((a) => (
                 <button
@@ -220,7 +216,7 @@ function RuleFormModal({
                       ? a === 'isolate'
                         ? 'bg-red-500/20 border-red-500/50 text-red-300'
                         : 'bg-yellow-500/20 border-yellow-500/50 text-yellow-300'
-                      : 'bg-[#0d1525] border-falcon-border text-falcon-muted hover:border-[#2a3d5a]'
+                      : 'bg-[#0d1525] border-[#1e2d42] text-[#7d92b0] hover:border-[#2a3d5a]'
                     }`}
                 >
                   {a === 'isolate' ? (
@@ -243,8 +239,8 @@ function RuleFormModal({
           {/* Enable Toggle */}
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-falcon-text">有効化</p>
-              <p className="text-xs text-falcon-muted mt-0.5">このルールを有効にします</p>
+              <p className="text-sm text-[#e2e8f4]">有効化</p>
+              <p className="text-xs text-[#7d92b0] mt-0.5">このルールを有効にします</p>
             </div>
             <button
               type="button"
@@ -271,15 +267,14 @@ function RuleFormModal({
         <div className="flex gap-3 mt-6">
           <button
             onClick={onClose}
-            className="flex-1 px-4 py-2 bg-falcon-border hover:bg-[#253550] text-falcon-text text-sm rounded-lg transition-colors"
+            className="flex-1 px-4 py-2 bg-[#1e2d42] hover:bg-[#253550] text-[#e2e8f4] text-sm rounded-lg transition-colors"
           >
             キャンセル
           </button>
           <button
             onClick={handleSubmit}
             disabled={isPending}
-            className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50
-                       text-white text-sm rounded-lg transition-colors flex items-center justify-center gap-2"
+            className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm rounded-lg transition-colors flex items-center justify-center gap-2"
           >
             {isPending ? (
               <Loader2 className="w-4 h-4 animate-spin" />
@@ -308,31 +303,30 @@ function DeleteConfirmDialog({
   isPending: boolean;
 }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs">
-      <div className="bg-falcon-card border border-red-500/30 rounded-xl p-6 w-full max-w-sm mx-4 shadow-2xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+      <div className="bg-[#111827] border border-red-500/30 rounded-xl p-6 w-full max-w-sm mx-4 shadow-2xl">
         <div className="flex items-start gap-3 mb-4">
           <div className="p-2 bg-red-500/10 rounded-lg border border-red-500/20 shrink-0">
             <Trash2 className="w-4 h-4 text-red-400" />
           </div>
           <div>
-            <h2 className="text-sm font-semibold text-falcon-text">ルールを削除</h2>
-            <p className="text-xs text-falcon-muted mt-1">
-              <span className="text-falcon-text font-medium">{ruleName}</span> を削除しますか？この操作は元に戻せません。
+            <h2 className="text-sm font-semibold text-[#e2e8f4]">ルールを削除</h2>
+            <p className="text-xs text-[#7d92b0] mt-1">
+              <span className="text-[#e2e8f4] font-medium">{ruleName}</span> を削除しますか？この操作は元に戻せません。
             </p>
           </div>
         </div>
         <div className="flex gap-3">
           <button
             onClick={onCancel}
-            className="flex-1 px-4 py-2 bg-falcon-border hover:bg-[#253550] text-falcon-text text-sm rounded-lg transition-colors"
+            className="flex-1 px-4 py-2 bg-[#1e2d42] hover:bg-[#253550] text-[#e2e8f4] text-sm rounded-lg transition-colors"
           >
             キャンセル
           </button>
           <button
             onClick={onConfirm}
             disabled={isPending}
-            className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 disabled:opacity-50
-                       text-white text-sm rounded-lg transition-colors flex items-center justify-center gap-2"
+            className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white text-sm rounded-lg transition-colors flex items-center justify-center gap-2"
           >
             {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
             削除
@@ -361,7 +355,7 @@ function RuleCard({
       className={`bg-[#0d1525] border rounded-xl px-5 py-4 transition-colors
         ${rule.action === 'isolate'
           ? 'border-red-500/20 hover:border-red-500/40'
-          : 'border-falcon-border hover:border-[#2a3d5a]'
+          : 'border-[#1e2d42] hover:border-[#2a3d5a]'
         }
         ${!rule.enabled ? 'opacity-60' : ''}
       `}
@@ -369,12 +363,12 @@ function RuleCard({
       <div className="flex items-start justify-between gap-3">
         {/* Left: info */}
         <div className="min-w-0 space-y-2">
-          <p className="text-sm font-medium text-falcon-text truncate">{rule.name}</p>
+          <p className="text-sm font-medium text-[#e2e8f4] truncate">{rule.name}</p>
           <div className="flex items-center gap-2 flex-wrap">
             <ThresholdBadge value={rule.threshold} />
             <ActionBadge action={rule.action} />
             {!rule.enabled && (
-              <span className="text-xs px-2 py-0.5 rounded-full border bg-falcon-border text-falcon-muted border-[#2a3d5a]">
+              <span className="text-xs px-2 py-0.5 rounded-full border bg-[#1e2d42] text-[#7d92b0] border-[#2a3d5a]">
                 無効
               </span>
             )}
@@ -390,7 +384,7 @@ function RuleCard({
           <button
             onClick={() => onToggle(rule.id)}
             title={rule.enabled ? '無効化' : '有効化'}
-            className="p-1.5 text-falcon-muted hover:text-falcon-text transition-colors"
+            className="p-1.5 text-[#7d92b0] hover:text-[#e2e8f4] transition-colors"
           >
             {rule.enabled ? (
               <ToggleRight className="w-5 h-5 text-blue-400" />
@@ -402,7 +396,7 @@ function RuleCard({
           <button
             onClick={() => onEdit(rule)}
             title="編集"
-            className="p-1.5 text-falcon-muted hover:text-blue-400 transition-colors rounded-lg hover:bg-blue-900/20"
+            className="p-1.5 text-[#7d92b0] hover:text-blue-400 transition-colors rounded-lg hover:bg-blue-900/20"
           >
             <Pencil className="w-4 h-4" />
           </button>
@@ -410,7 +404,7 @@ function RuleCard({
           <button
             onClick={() => onDelete(rule)}
             title="削除"
-            className="p-1.5 text-falcon-muted hover:text-red-400 transition-colors rounded-lg hover:bg-red-900/20"
+            className="p-1.5 text-[#7d92b0] hover:text-red-400 transition-colors rounded-lg hover:bg-red-900/20"
           >
             <Trash2 className="w-4 h-4" />
           </button>
@@ -497,7 +491,9 @@ export default function RiskActionsPage() {
   // ─── Render ──────────────────────────────────────────────────────────────────
 
   return (
-    <div className="min-h-screen bg-falcon-bg text-falcon-text">
+    <div className="min-h-screen bg-[#080c14] text-[#e2e8f4]">
+      <PageDataUnavailable />
+      <PageSaveFailed className="mb-4" />
       <div className="max-w-4xl mx-auto px-6 py-8">
 
         {/* Header */}
@@ -507,8 +503,8 @@ export default function RiskActionsPage() {
               <Zap className="w-5 h-5 text-red-400" />
             </div>
             <div>
-              <h1 className="text-xl font-semibold text-falcon-text">リスクスコア自動アクション</h1>
-              <p className="text-sm text-falcon-muted mt-0.5">
+              <h1 className="text-xl font-semibold text-[#e2e8f4]">リスクスコア自動アクション</h1>
+              <p className="text-sm text-[#7d92b0] mt-0.5">
                 リスクスコアの閾値に応じた自動アクションルールを設定します
               </p>
             </div>
@@ -533,16 +529,16 @@ export default function RiskActionsPage() {
 
         {/* Stats */}
         <div className="grid grid-cols-3 gap-4 mb-8">
-          <div className="bg-[#0d1525] border border-falcon-border rounded-xl px-5 py-4">
-            <p className="text-xs text-falcon-muted mb-1">総ルール数</p>
-            <p className="text-2xl font-bold text-falcon-text">{rules.length}</p>
+          <div className="bg-[#0d1525] border border-[#1e2d42] rounded-xl px-5 py-4">
+            <p className="text-xs text-[#7d92b0] mb-1">総ルール数</p>
+            <p className="text-2xl font-bold text-[#e2e8f4]">{rules.length}</p>
           </div>
-          <div className="bg-[#0d1525] border border-falcon-border rounded-xl px-5 py-4">
-            <p className="text-xs text-falcon-muted mb-1">有効</p>
+          <div className="bg-[#0d1525] border border-[#1e2d42] rounded-xl px-5 py-4">
+            <p className="text-xs text-[#7d92b0] mb-1">有効</p>
             <p className="text-2xl font-bold text-green-400">{enabledCount}</p>
           </div>
-          <div className="bg-[#0d1525] border border-falcon-border rounded-xl px-5 py-4">
-            <p className="text-xs text-falcon-muted mb-1">自動隔離ルール</p>
+          <div className="bg-[#0d1525] border border-[#1e2d42] rounded-xl px-5 py-4">
+            <p className="text-xs text-[#7d92b0] mb-1">自動隔離ルール</p>
             <p className="text-2xl font-bold text-red-400">{isolateCount}</p>
           </div>
         </div>
@@ -556,12 +552,12 @@ export default function RiskActionsPage() {
 
         {/* Empty State */}
         {!isLoading && rules.length === 0 && (
-          <div className="bg-[#0d1525] border border-falcon-border rounded-xl flex flex-col items-center justify-center py-16 text-center">
-            <div className="p-3 bg-falcon-border rounded-full mb-4">
-              <Zap className="w-6 h-6 text-falcon-muted" />
+          <div className="bg-[#0d1525] border border-[#1e2d42] rounded-xl flex flex-col items-center justify-center py-16 text-center">
+            <div className="p-3 bg-[#1e2d42] rounded-full mb-4">
+              <Zap className="w-6 h-6 text-[#7d92b0]" />
             </div>
-            <p className="text-sm text-falcon-text font-medium">自動アクションルールがありません</p>
-            <p className="text-xs text-falcon-muted mt-1 max-w-xs">
+            <p className="text-sm text-[#e2e8f4] font-medium">自動アクションルールがありません</p>
+            <p className="text-xs text-[#7d92b0] mt-1 max-w-xs">
               「新規ルール」ボタンからリスクスコアに基づく自動アクションルールを作成してください
             </p>
             <button

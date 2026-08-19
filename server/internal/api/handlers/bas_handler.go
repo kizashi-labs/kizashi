@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/edr-platform/server/internal/metrics"
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -23,19 +24,11 @@ func NewBASHandler(pool *pgxpool.Pool) *BASHandler {
 }
 
 func (h *BASHandler) checkScenariosTable(c *gin.Context) bool {
-	ctx := c.Request.Context()
-	var exists bool
-	err := h.pool.QueryRow(ctx,
-		`SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name='bas_scenarios')`).Scan(&exists)
-	return err == nil && exists
+	return tableIsThere(c.Request.Context(), h.pool, "bas_scenarios")
 }
 
 func (h *BASHandler) checkRunsTable(c *gin.Context) bool {
-	ctx := c.Request.Context()
-	var exists bool
-	err := h.pool.QueryRow(ctx,
-		`SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name='bas_runs')`).Scan(&exists)
-	return err == nil && exists
+	return tableIsThere(c.Request.Context(), h.pool, "bas_runs")
 }
 
 // ListScenarios returns all BAS scenarios.
@@ -78,7 +71,9 @@ func (h *BASHandler) ListScenarios(c *gin.Context) {
 		scenarios = append(scenarios, s)
 	}
 	if err := rows.Err(); err != nil {
-		slog.Warn("row iteration error", "error", err)
+		slog.Error("rows.Err: 結果の読み出しが途中で失敗しました", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": dbErrMsg(err)})
+		return
 	}
 	if scenarios == nil {
 		scenarios = []Scenario{}
@@ -265,7 +260,9 @@ func (h *BASHandler) ListRuns(c *gin.Context) {
 		runs = append(runs, r)
 	}
 	if err := rows.Err(); err != nil {
-		slog.Warn("row iteration error", "error", err)
+		slog.Error("rows.Err: 結果の読み出しが途中で失敗しました", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": dbErrMsg(err)})
+		return
 	}
 	if runs == nil {
 		runs = []Run{}
@@ -310,14 +307,24 @@ func (h *BASHandler) StartRun(c *gin.Context) {
 	c.JSON(http.StatusCreated, gin.H{"id": runID, "status": "pending"})
 }
 
+// simulateRun finishes a BAS run.
+//
+// **201 を返したあとの goroutine です。** 呼び出し側はもう応答を受け
+// 取っているので、報告先は部品ごとの件数になります。落ちると、
+// **その実行は `pending` のまま残ります** —— 画面では「実行中」が
+// 永久に続きます。
 func (h *BASHandler) simulateRun(ctx context.Context, runID string) {
 	now := time.Now().UTC()
-	_, _ = h.pool.Exec(ctx,
+	if _, err := h.pool.Exec(ctx,
 		`UPDATE bas_runs SET status='completed', started_at=$2, completed_at=$2,
 		  detection_rate=0, prevention_rate=0,
 		  steps_total=0, steps_detected=0, steps_prevented=0
 		 WHERE id=$1`,
-		runID, now)
+		runID, now); err != nil {
+		metrics.BackgroundFailed("bas_run", err,
+			"BAS 実行の完了を記録できませんでした。この実行は pending のまま残ります",
+			"run_id", runID)
+	}
 }
 
 // GetRun returns a single BAS run by ID.
@@ -415,10 +422,12 @@ func (h *BASHandler) GetStats(c *gin.Context) {
 	}
 	// Avg detection/prevention rates
 	var avgDetection, avgPrevention float64
-	_ = h.pool.QueryRow(ctx,
+	if !ReadOK(c, h.pool.QueryRow(ctx,
 		`SELECT COALESCE(AVG(detection_rate),0), COALESCE(AVG(prevention_rate),0)
-		 FROM bas_runs WHERE status='completed'`,
-	).Scan(&avgDetection, &avgPrevention)
+			 FROM bas_runs WHERE status='completed'`,
+	).Scan(&avgDetection, &avgPrevention)) {
+		return
+	}
 	// Top scenarios by run count
 	type TopScenario struct {
 		ScenarioID string  `json:"scenario_id"`

@@ -126,18 +126,26 @@ func (h *PDFReportHandler) GenerateHTML(c *gin.Context) {
 	}
 
 	// Fetch stats
-	_ = h.pool.QueryRow(c.Request.Context(),
+	if !ReadOK(c, h.pool.QueryRow(c.Request.Context(),
 		`SELECT COUNT(*) FROM alerts WHERE created_at >= NOW() - ($1 || ' ')::INTERVAL`, interval,
-	).Scan(&data.TotalAlerts)
-	_ = h.pool.QueryRow(c.Request.Context(),
+	).Scan(&data.TotalAlerts)) {
+		return
+	}
+	if !ReadOK(c, h.pool.QueryRow(c.Request.Context(),
 		`SELECT COUNT(*) FROM alerts WHERE severity >= 9 AND created_at >= NOW() - ($1 || ' ')::INTERVAL`, interval,
-	).Scan(&data.CriticalAlerts)
-	_ = h.pool.QueryRow(c.Request.Context(),
+	).Scan(&data.CriticalAlerts)) {
+		return
+	}
+	if !ReadOK(c, h.pool.QueryRow(c.Request.Context(),
 		`SELECT COUNT(*) FROM alerts WHERE status='open'`,
-	).Scan(&data.OpenAlerts)
-	_ = h.pool.QueryRow(c.Request.Context(),
+	).Scan(&data.OpenAlerts)) {
+		return
+	}
+	if !ReadOK(c, h.pool.QueryRow(c.Request.Context(),
 		`SELECT COUNT(*) FROM agents WHERE status='online'`,
-	).Scan(&data.OnlineAgents)
+	).Scan(&data.OnlineAgents)) {
+		return
+	}
 
 	// Fetch recent alerts
 	rows, err := h.pool.Query(c.Request.Context(),
@@ -156,6 +164,14 @@ func (h *PDFReportHandler) GenerateHTML(c *gin.Context) {
 			}
 		}
 		if err := rows.Err(); err != nil {
+			// **ここは応答しません。** このハンドラはクエリが失敗しても
+			// 応答せずに先へ進みます（欠けた節を空にしてページを組み立て
+			// ます）。ここで 500 を書くと二重応答になります ——
+			// `rows_err_policy_test.go` がその規則を留めています。
+			//
+			// つまり **PDF レポートは今も、途中までの数字で作られます。**
+			// 直すなら「読めなかった節を空欄ではなく『取得できず』と
+			// 印刷する」形で、それは版面の話なので判断待ちに置きました。
 			slog.Warn("row iteration error", "error", err)
 		}
 	}

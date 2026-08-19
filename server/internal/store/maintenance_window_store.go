@@ -78,6 +78,10 @@ func (s *MaintenanceWindowStore) List(ctx context.Context) ([]*MaintenanceWindow
 		}
 		windows = append(windows, w)
 	}
+	// 部分結果を完全な一覧として返さない（scan_truncation_guard_test.go 参照）
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
 	if windows == nil {
 		windows = []*MaintenanceWindow{}
 	}
@@ -298,6 +302,10 @@ func (s *MaintenanceWindowStore) ListActive(ctx context.Context) ([]*Maintenance
 			w.AffectedGroups = []string{}
 		}
 		windows = append(windows, w)
+	}
+	// 部分結果を完全な一覧として返さない（scan_truncation_guard_test.go 参照）
+	if err := rows.Err(); err != nil {
+		return nil, err
 	}
 	if windows == nil {
 		windows = []*MaintenanceWindow{}

@@ -10,6 +10,9 @@ import {
   RefreshCw, BarChart2, PiggyBank, Wallet, Receipt,
 } from 'lucide-react'
 
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+import { PageSaveFailed } from '@/components/PageSaveFailed'
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type BudgetCategory = 'tools' | 'personnel' | 'training' | 'incident_response' | 'compliance'
@@ -47,7 +50,7 @@ const CATEGORY_STYLES: Record<BudgetCategory, { label: string; cls: string; colo
   tools:             { label: 'ツール',       cls: 'bg-blue-500/20 text-blue-400 border-blue-500/30',    color: '#3b82f6' },
   personnel:         { label: '人件費',       cls: 'bg-purple-500/20 text-purple-400 border-purple-500/30', color: '#a855f7' },
   training:          { label: 'トレーニング', cls: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30', color: '#eab308' },
-  incident_response: { label: 'IR',           cls: 'bg-red-500/20 text-falcon-red border-red-500/30',     color: '#e8002d' },
+  incident_response: { label: 'IR',           cls: 'bg-red-500/20 text-[#e8002d] border-red-500/30',     color: '#e8002d' },
   compliance:        { label: 'コンプライアンス', cls: 'bg-green-500/20 text-green-400 border-green-500/30', color: '#22c55e' },
 }
 
@@ -96,7 +99,7 @@ function CircularProgress({ value, max, label, sublabel }: { value: number; max:
         </div>
       </div>
       <p className="text-xs text-white font-medium mt-2">{label}</p>
-      <p className="text-xs text-falcon-muted mt-0.5">{sublabel}</p>
+      <p className="text-xs text-[#7d92b0] mt-0.5">{sublabel}</p>
     </div>
   )
 }
@@ -116,9 +119,9 @@ function CategoryChart({ items }: { items: BudgetItem[] }) {
   const maxVal = Math.max(...totals.map(t => t.allocated))
 
   return (
-    <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
+    <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
       <h3 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
-        <BarChart2 className="w-4 h-4 text-falcon-red" />
+        <BarChart2 className="w-4 h-4 text-[#e8002d]" />
         カテゴリ別予算
       </h3>
       <div className="space-y-4">
@@ -132,13 +135,13 @@ function CategoryChart({ items }: { items: BudgetItem[] }) {
                 <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs border font-medium ${CATEGORY_STYLES[cat].cls}`}>
                   {CATEGORY_STYLES[cat].label}
                 </span>
-                <div className="flex items-center gap-3 text-xs text-falcon-muted">
+                <div className="flex items-center gap-3 text-xs text-[#7d92b0]">
                   <span>予算: {formatYen(allocated)}</span>
                   <span className="text-white font-medium">使用: {formatYen(spent)}</span>
                   <span style={{ color: utilizationColor(utilPct) }}>{utilPct.toFixed(0)}%</span>
                 </div>
               </div>
-              <div className="relative h-5 bg-[#070d19] rounded-full overflow-hidden border border-falcon-border">
+              <div className="relative h-5 bg-[#070d19] rounded-full overflow-hidden border border-[#1e2d42]">
                 {/* Allocated bar */}
                 <div
                   className="absolute top-0 left-0 h-full rounded-full opacity-20"
@@ -157,11 +160,11 @@ function CategoryChart({ items }: { items: BudgetItem[] }) {
       <div className="flex items-center gap-4 mt-4">
         <div className="flex items-center gap-1.5">
           <div className="w-3 h-3 rounded-xs bg-[#3b82f6] opacity-30" />
-          <span className="text-xs text-falcon-muted">予算額</span>
+          <span className="text-xs text-[#7d92b0]">予算額</span>
         </div>
         <div className="flex items-center gap-1.5">
           <div className="w-3 h-3 rounded-xs bg-[#3b82f6]" />
-          <span className="text-xs text-falcon-muted">使用済み</span>
+          <span className="text-xs text-[#7d92b0]">使用済み</span>
         </div>
       </div>
     </div>
@@ -190,30 +193,30 @@ function ItemModal({ item, year, onClose, onSave, saving }: ItemModalProps) {
   const set = (k: string, v: unknown) => setForm(f => ({ ...f, [k]: v }))
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs">
-      <div className="bg-falcon-surface border border-falcon-border rounded-xl w-full max-w-lg mx-4 shadow-2xl">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-falcon-border">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl w-full max-w-lg mx-4 shadow-2xl">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[#1e2d42]">
           <h2 className="text-white font-semibold">{item ? '予算項目編集' : '新規予算項目'}</h2>
-          <button onClick={onClose} className="text-falcon-muted hover:text-white"><X className="w-5 h-5" /></button>
+          <button onClick={onClose} className="text-[#7d92b0] hover:text-white"><X className="w-5 h-5" /></button>
         </div>
         <div className="px-6 py-5 space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs text-falcon-muted mb-1.5">会計年度</label>
+              <label className="block text-xs text-[#7d92b0] mb-1.5">会計年度</label>
               <select
                 value={form.fiscal_year}
                 onChange={e => set('fiscal_year', parseInt(e.target.value))}
-                className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-red/50"
+                className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-[#e8002d]/50"
               >
                 {YEARS.map(y => <option key={y} value={y}>{y}年度</option>)}
               </select>
             </div>
             <div>
-              <label className="block text-xs text-falcon-muted mb-1.5">カテゴリ</label>
+              <label className="block text-xs text-[#7d92b0] mb-1.5">カテゴリ</label>
               <select
                 value={form.category}
                 onChange={e => set('category', e.target.value)}
-                className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-red/50"
+                className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-[#e8002d]/50"
               >
                 {(Object.entries(CATEGORY_STYLES) as [BudgetCategory, { label: string }][]).map(([k, v]) => (
                   <option key={k} value={k}>{v.label}</option>
@@ -222,51 +225,51 @@ function ItemModal({ item, year, onClose, onSave, saving }: ItemModalProps) {
             </div>
           </div>
           <div>
-            <label className="block text-xs text-falcon-muted mb-1.5">項目名 *</label>
+            <label className="block text-xs text-[#7d92b0] mb-1.5">項目名 *</label>
             <input
               value={form.name}
               onChange={e => set('name', e.target.value)}
-              className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-red/50"
+              className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-[#e8002d]/50"
               placeholder="Kizashi ライセンス"
             />
           </div>
           <div>
-            <label className="block text-xs text-falcon-muted mb-1.5">ベンダー</label>
+            <label className="block text-xs text-[#7d92b0] mb-1.5">ベンダー</label>
             <input
               value={form.vendor}
               onChange={e => set('vendor', e.target.value)}
-              className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-red/50"
+              className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-[#e8002d]/50"
               placeholder="CrowdStrike"
             />
           </div>
           <div>
-            <label className="block text-xs text-falcon-muted mb-1.5">予算額 (円) *</label>
+            <label className="block text-xs text-[#7d92b0] mb-1.5">予算額 (円) *</label>
             <input
               type="number"
               value={form.allocated}
               onChange={e => set('allocated', parseInt(e.target.value) || 0)}
-              className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-red/50"
+              className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-[#e8002d]/50"
               placeholder="10000000"
             />
           </div>
           <div>
-            <label className="block text-xs text-falcon-muted mb-1.5">メモ</label>
+            <label className="block text-xs text-[#7d92b0] mb-1.5">メモ</label>
             <textarea
               value={form.notes}
               onChange={e => set('notes', e.target.value)}
               rows={2}
-              className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-red/50 resize-none"
+              className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-[#e8002d]/50 resize-none"
             />
           </div>
         </div>
-        <div className="flex justify-end gap-3 px-6 py-4 border-t border-falcon-border">
-          <button onClick={onClose} className="px-4 py-2 rounded-lg border border-falcon-border text-falcon-muted hover:text-white text-sm transition-colors">
+        <div className="flex justify-end gap-3 px-6 py-4 border-t border-[#1e2d42]">
+          <button onClick={onClose} className="px-4 py-2 rounded-lg border border-[#1e2d42] text-[#7d92b0] hover:text-white text-sm transition-colors">
             キャンセル
           </button>
           <button
             onClick={() => onSave(form)}
             disabled={saving || !form.name}
-            className="px-4 py-2 rounded-lg bg-falcon-red hover:bg-[#c0001f] text-white text-sm font-medium transition-colors disabled:opacity-50 flex items-center gap-2"
+            className="px-4 py-2 rounded-lg bg-[#e8002d] hover:bg-[#c0001f] text-white text-sm font-medium transition-colors disabled:opacity-50 flex items-center gap-2"
           >
             {saving && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
             保存
@@ -291,52 +294,52 @@ function TransactionModal({ item, onClose, onSave, saving }: TxModalProps) {
   const set = (k: string, v: unknown) => setForm(f => ({ ...f, [k]: v }))
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs">
-      <div className="bg-falcon-surface border border-falcon-border rounded-xl w-full max-w-md mx-4 shadow-2xl">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-falcon-border">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl w-full max-w-md mx-4 shadow-2xl">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[#1e2d42]">
           <div>
             <h2 className="text-white font-semibold">取引追加</h2>
-            <p className="text-xs text-falcon-muted mt-0.5">{item.name}</p>
+            <p className="text-xs text-[#7d92b0] mt-0.5">{item.name}</p>
           </div>
-          <button onClick={onClose} className="text-falcon-muted hover:text-white"><X className="w-5 h-5" /></button>
+          <button onClick={onClose} className="text-[#7d92b0] hover:text-white"><X className="w-5 h-5" /></button>
         </div>
         <div className="px-6 py-5 space-y-4">
           <div>
-            <label className="block text-xs text-falcon-muted mb-1.5">金額 (円) *</label>
+            <label className="block text-xs text-[#7d92b0] mb-1.5">金額 (円) *</label>
             <input
               type="number"
               value={form.amount}
               onChange={e => set('amount', parseInt(e.target.value) || 0)}
-              className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-red/50"
+              className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-[#e8002d]/50"
             />
           </div>
           <div>
-            <label className="block text-xs text-falcon-muted mb-1.5">説明 *</label>
+            <label className="block text-xs text-[#7d92b0] mb-1.5">説明 *</label>
             <input
               value={form.description}
               onChange={e => set('description', e.target.value)}
-              className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-red/50"
+              className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-[#e8002d]/50"
               placeholder="Q1ライセンス費用"
             />
           </div>
           <div>
-            <label className="block text-xs text-falcon-muted mb-1.5">日付</label>
+            <label className="block text-xs text-[#7d92b0] mb-1.5">日付</label>
             <input
               type="date"
               value={form.date}
               onChange={e => set('date', e.target.value)}
-              className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-red/50"
+              className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-[#e8002d]/50"
             />
           </div>
         </div>
-        <div className="flex justify-end gap-3 px-6 py-4 border-t border-falcon-border">
-          <button onClick={onClose} className="px-4 py-2 rounded-lg border border-falcon-border text-falcon-muted hover:text-white text-sm transition-colors">
+        <div className="flex justify-end gap-3 px-6 py-4 border-t border-[#1e2d42]">
+          <button onClick={onClose} className="px-4 py-2 rounded-lg border border-[#1e2d42] text-[#7d92b0] hover:text-white text-sm transition-colors">
             キャンセル
           </button>
           <button
             onClick={() => onSave(form)}
             disabled={saving || !form.description || !form.amount}
-            className="px-4 py-2 rounded-lg bg-falcon-red hover:bg-[#c0001f] text-white text-sm font-medium transition-colors disabled:opacity-50 flex items-center gap-2"
+            className="px-4 py-2 rounded-lg bg-[#e8002d] hover:bg-[#c0001f] text-white text-sm font-medium transition-colors disabled:opacity-50 flex items-center gap-2"
           >
             {saving && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
             追加
@@ -357,37 +360,37 @@ function RoiSection({ summary }: { summary: BudgetSummary }) {
   const roi = ((costAvoided - summary.total_spent) / summary.total_spent) * 100
 
   return (
-    <div className="bg-falcon-surface border border-falcon-border rounded-xl p-5">
+    <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-5">
       <h3 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
         <TrendingUp className="w-4 h-4 text-green-400" />
         セキュリティ投資ROI
       </h3>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-        <div className="bg-[#070d19] border border-falcon-border rounded-lg p-3">
-          <p className="text-xs text-falcon-muted mb-1">回避インシデント数</p>
+        <div className="bg-[#070d19] border border-[#1e2d42] rounded-lg p-3">
+          <p className="text-xs text-[#7d92b0] mb-1">回避インシデント数</p>
           <p className="text-xl font-bold text-white">{avoidedIncidents}</p>
-          <p className="text-xs text-falcon-muted mt-0.5">件/年</p>
+          <p className="text-xs text-[#7d92b0] mt-0.5">件/年</p>
         </div>
-        <div className="bg-[#070d19] border border-falcon-border rounded-lg p-3">
-          <p className="text-xs text-falcon-muted mb-1">回避コスト (推定)</p>
+        <div className="bg-[#070d19] border border-[#1e2d42] rounded-lg p-3">
+          <p className="text-xs text-[#7d92b0] mb-1">回避コスト (推定)</p>
           <p className="text-xl font-bold text-green-400">{formatYen(costAvoided)}</p>
-          <p className="text-xs text-falcon-muted mt-0.5">@ {formatYen(avgIncidentCost)}/件</p>
+          <p className="text-xs text-[#7d92b0] mt-0.5">@ {formatYen(avgIncidentCost)}/件</p>
         </div>
-        <div className="bg-[#070d19] border border-falcon-border rounded-lg p-3">
-          <p className="text-xs text-falcon-muted mb-1">検知時間短縮</p>
+        <div className="bg-[#070d19] border border-[#1e2d42] rounded-lg p-3">
+          <p className="text-xs text-[#7d92b0] mb-1">検知時間短縮</p>
           <p className="text-xl font-bold text-blue-400">{detectionTimeSaved}h</p>
-          <p className="text-xs text-falcon-muted mt-0.5">MTTR削減</p>
+          <p className="text-xs text-[#7d92b0] mt-0.5">MTTR削減</p>
         </div>
-        <div className="bg-[#070d19] border border-falcon-border rounded-lg p-3">
-          <p className="text-xs text-falcon-muted mb-1">投資ROI</p>
+        <div className="bg-[#070d19] border border-[#1e2d42] rounded-lg p-3">
+          <p className="text-xs text-[#7d92b0] mb-1">投資ROI</p>
           <p className="text-xl font-bold" style={{ color: roi > 0 ? '#22c55e' : '#e8002d' }}>
             {roi > 0 ? '+' : ''}{roi.toFixed(0)}%
           </p>
-          <p className="text-xs text-falcon-muted mt-0.5">(回避コスト - 予算) / 予算</p>
+          <p className="text-xs text-[#7d92b0] mt-0.5">(回避コスト - 予算) / 予算</p>
         </div>
       </div>
-      <div className="bg-[#070d19] border border-falcon-border rounded-lg p-3 text-xs text-falcon-muted">
-        <p className="font-medium text-falcon-text mb-1">ROI計算式</p>
+      <div className="bg-[#070d19] border border-[#1e2d42] rounded-lg p-3 text-xs text-[#7d92b0]">
+        <p className="font-medium text-[#e2e8f4] mb-1">ROI計算式</p>
         <code className="font-mono text-green-400">
           ROI = (回避インシデントコスト合計 - セキュリティ予算) ÷ セキュリティ予算 × 100
         </code>
@@ -414,27 +417,21 @@ export default function SecurityBudgetPage() {
   const { data, isLoading } = useQuery<BudgetSummary>({
     queryKey: ['security-budget', year],
     queryFn: async () => {
-      try {
-        const res = await apiFetch<BudgetSummary>(`/api/v1/admin/security-budget?year=${year}`)
-        return (res && 'total_allocated' in (res as any)) ? res as BudgetSummary : EMPTY_BUDGET(year)
-      } catch {
-        return EMPTY_BUDGET(year)
-      }
+      const res = await apiFetch<BudgetSummary>(`/api/v1/admin/security-budget?year=${year}`)
+      return (res && 'total_allocated' in (res as any)) ? res as BudgetSummary : EMPTY_BUDGET(year)
     },
   })
 
   const saveItemMutation = useMutation({
     mutationFn: async (payload: { id?: string; data: Partial<BudgetItem> }) => {
-      try {
-        if (payload.id) {
-          return await apiFetch(`/api/v1/admin/security-budget/${payload.id}`, {
-            method: 'PUT', body: JSON.stringify(payload.data),
-          })
-        }
-        return await apiFetch('/api/v1/admin/security-budget', {
-          method: 'POST', body: JSON.stringify(payload.data),
+      if (payload.id) {
+        return await apiFetch(`/api/v1/admin/security-budget/${payload.id}`, {
+          method: 'PUT', body: JSON.stringify(payload.data),
         })
-      } catch { return { ...payload.data, id: payload.id ?? `b-${Date.now()}` } }
+      }
+      return await apiFetch('/api/v1/admin/security-budget', {
+        method: 'POST', body: JSON.stringify(payload.data),
+      })
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['security-budget'] })
@@ -445,18 +442,16 @@ export default function SecurityBudgetPage() {
 
   const deleteItemMutation = useMutation({
     mutationFn: async (id: string) => {
-      try { return await apiFetch(`/api/v1/admin/security-budget/${id}`, { method: 'DELETE' }) } catch { return null }
+      return await apiFetch(`/api/v1/admin/security-budget/${id}`, { method: 'DELETE' })
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['security-budget'] }),
   })
 
   const addTxMutation = useMutation({
     mutationFn: async (payload: { itemId: string; tx: { amount: number; description: string; date: string } }) => {
-      try {
-        return await apiFetch(`/api/v1/admin/security-budget/${payload.itemId}/transactions`, {
-          method: 'POST', body: JSON.stringify(payload.tx),
-        })
-      } catch { return null }
+      return await apiFetch(`/api/v1/admin/security-budget/${payload.itemId}/transactions`, {
+        method: 'POST', body: JSON.stringify(payload.tx),
+      })
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['security-budget'] })
@@ -470,25 +465,27 @@ export default function SecurityBudgetPage() {
 
   return (
     <div className="min-h-screen bg-[#070d19] p-6">
+      <PageDataUnavailable />
+      <PageSaveFailed />
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-lg bg-falcon-red/20 border border-falcon-red/30 flex items-center justify-center">
-            <DollarSign className="w-5 h-5 text-falcon-red" />
+          <div className="w-9 h-9 rounded-lg bg-[#e8002d]/20 border border-[#e8002d]/30 flex items-center justify-center">
+            <DollarSign className="w-5 h-5 text-[#e8002d]" />
           </div>
           <div>
             <h1 className="text-2xl font-bold text-white">セキュリティ予算管理</h1>
-            <p className="text-sm text-falcon-muted">予算配分・支出追跡・ROI分析</p>
+            <p className="text-sm text-[#7d92b0]">予算配分・支出追跡・ROI分析</p>
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1 bg-falcon-surface border border-falcon-border rounded-lg p-1">
+          <div className="flex items-center gap-1 bg-[#0d1220] border border-[#1e2d42] rounded-lg p-1">
             {YEARS.map(y => (
               <button
                 key={y}
                 onClick={() => setYear(y)}
-                className={`px-3 py-1.5 rounded text-sm font-medium transition-all ${
-                  year === y ? 'bg-falcon-red text-white' : 'text-falcon-muted hover:text-white'
+                className={`px-3 py-1.5 rounded-sm text-sm font-medium transition-all ${
+                  year === y ? 'bg-[#e8002d] text-white' : 'text-[#7d92b0] hover:text-white'
                 }`}
               >
                 {y}年度
@@ -497,7 +494,7 @@ export default function SecurityBudgetPage() {
           </div>
           <button
             onClick={() => { setEditItem(null); setShowItemModal(true) }}
-            className="flex items-center gap-2 px-3 py-2 rounded-lg bg-falcon-red hover:bg-[#c0001f] text-white text-sm font-medium transition-colors"
+            className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#e8002d] hover:bg-[#c0001f] text-white text-sm font-medium transition-colors"
           >
             <Plus className="w-4 h-4" />
             予算追加
@@ -507,37 +504,37 @@ export default function SecurityBudgetPage() {
 
       {isLoading ? (
         <div className="flex items-center justify-center h-48">
-          <Loader2 className="w-6 h-6 animate-spin text-falcon-muted" />
+          <Loader2 className="w-6 h-6 animate-spin text-[#7d92b0]" />
         </div>
       ) : (
         <div className="space-y-6">
           {/* KPI Row */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="bg-falcon-surface border border-falcon-border rounded-xl p-4">
+            <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-4">
               <div className="flex items-center gap-2 mb-2">
                 <Wallet className="w-4 h-4 text-blue-400" />
-                <span className="text-xs text-falcon-muted">総予算</span>
+                <span className="text-xs text-[#7d92b0]">総予算</span>
               </div>
               <p className="text-2xl font-bold text-white">{formatYen(summary.total_allocated)}</p>
-              <p className="text-xs text-falcon-muted mt-1">{formatYenFull(summary.total_allocated)}</p>
+              <p className="text-xs text-[#7d92b0] mt-1">{formatYenFull(summary.total_allocated)}</p>
             </div>
-            <div className="bg-falcon-surface border border-falcon-border rounded-xl p-4">
+            <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-4">
               <div className="flex items-center gap-2 mb-2">
                 <Receipt className="w-4 h-4 text-yellow-400" />
-                <span className="text-xs text-falcon-muted">使用済み</span>
+                <span className="text-xs text-[#7d92b0]">使用済み</span>
               </div>
               <p className="text-2xl font-bold text-white">{formatYen(summary.total_spent)}</p>
-              <p className="text-xs text-falcon-muted mt-1">{formatYenFull(summary.total_spent)}</p>
+              <p className="text-xs text-[#7d92b0] mt-1">{formatYenFull(summary.total_spent)}</p>
             </div>
-            <div className="bg-falcon-surface border border-falcon-border rounded-xl p-4">
+            <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-4">
               <div className="flex items-center gap-2 mb-2">
                 <PiggyBank className="w-4 h-4 text-green-400" />
-                <span className="text-xs text-falcon-muted">残予算</span>
+                <span className="text-xs text-[#7d92b0]">残予算</span>
               </div>
               <p className="text-2xl font-bold text-green-400">{formatYen(totalRemaining)}</p>
-              <p className="text-xs text-falcon-muted mt-1">{formatYenFull(totalRemaining)}</p>
+              <p className="text-xs text-[#7d92b0] mt-1">{formatYenFull(totalRemaining)}</p>
             </div>
-            <div className="bg-falcon-surface border border-falcon-border rounded-xl p-4 flex items-center justify-center">
+            <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl p-4 flex items-center justify-center">
               <CircularProgress
                 value={summary.total_spent}
                 max={summary.total_allocated}
@@ -551,21 +548,21 @@ export default function SecurityBudgetPage() {
           <CategoryChart items={summary.items} />
 
           {/* Budget Items Table */}
-          <div className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden">
-            <div className="px-4 py-3 border-b border-falcon-border flex items-center justify-between">
+          <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden">
+            <div className="px-4 py-3 border-b border-[#1e2d42] flex items-center justify-between">
               <h3 className="text-sm font-semibold text-white">予算項目一覧</h3>
-              <span className="text-xs text-falcon-muted">{summary.items.length} 項目</span>
+              <span className="text-xs text-[#7d92b0]">{summary.items.length} 項目</span>
             </div>
             <table className="w-full">
               <thead>
-                <tr className="border-b border-falcon-border">
-                  <th className="text-left text-xs text-falcon-muted font-medium px-4 py-3">カテゴリ/名称</th>
-                  <th className="text-left text-xs text-falcon-muted font-medium px-4 py-3">ベンダー</th>
-                  <th className="text-right text-xs text-falcon-muted font-medium px-4 py-3">予算額</th>
-                  <th className="text-right text-xs text-falcon-muted font-medium px-4 py-3">使用済み</th>
-                  <th className="text-right text-xs text-falcon-muted font-medium px-4 py-3">残額</th>
-                  <th className="text-left text-xs text-falcon-muted font-medium px-4 py-3 w-36">消化率</th>
-                  <th className="text-right text-xs text-falcon-muted font-medium px-4 py-3">操作</th>
+                <tr className="border-b border-[#1e2d42]">
+                  <th className="text-left text-xs text-[#7d92b0] font-medium px-4 py-3">カテゴリ/名称</th>
+                  <th className="text-left text-xs text-[#7d92b0] font-medium px-4 py-3">ベンダー</th>
+                  <th className="text-right text-xs text-[#7d92b0] font-medium px-4 py-3">予算額</th>
+                  <th className="text-right text-xs text-[#7d92b0] font-medium px-4 py-3">使用済み</th>
+                  <th className="text-right text-xs text-[#7d92b0] font-medium px-4 py-3">残額</th>
+                  <th className="text-left text-xs text-[#7d92b0] font-medium px-4 py-3 w-36">消化率</th>
+                  <th className="text-right text-xs text-[#7d92b0] font-medium px-4 py-3">操作</th>
                 </tr>
               </thead>
               <tbody>
@@ -575,7 +572,7 @@ export default function SecurityBudgetPage() {
                   const txExpanded = expandedTx.has(item.id)
                   return (
                     <>
-                      <tr key={item.id} className="border-b border-falcon-border/60 hover:bg-[#070d19]/50 transition-colors">
+                      <tr key={item.id} className="border-b border-[#1e2d42]/60 hover:bg-[#070d19]/50 transition-colors">
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2">
                             <button
@@ -584,7 +581,7 @@ export default function SecurityBudgetPage() {
                                 n.has(item.id) ? n.delete(item.id) : n.add(item.id)
                                 return n
                               })}
-                              className="text-falcon-subtle hover:text-falcon-muted transition-colors"
+                              className="text-[#3d5068] hover:text-[#7d92b0] transition-colors"
                             >
                               {txExpanded ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
                             </button>
@@ -596,7 +593,7 @@ export default function SecurityBudgetPage() {
                             </div>
                           </div>
                         </td>
-                        <td className="px-4 py-3 text-sm text-falcon-muted">{item.vendor}</td>
+                        <td className="px-4 py-3 text-sm text-[#7d92b0]">{item.vendor}</td>
                         <td className="px-4 py-3 text-right text-sm text-white font-mono">{formatYenFull(item.allocated)}</td>
                         <td className="px-4 py-3 text-right text-sm text-white font-mono">{formatYenFull(item.spent)}</td>
                         <td className="px-4 py-3 text-right text-sm font-mono" style={{ color: rem >= 0 ? '#22c55e' : '#e8002d' }}>
@@ -619,21 +616,21 @@ export default function SecurityBudgetPage() {
                           <div className="flex items-center justify-end gap-1.5">
                             <button
                               onClick={() => setTxItem(item)}
-                              className="p-1.5 rounded-sm hover:bg-green-500/10 text-falcon-muted hover:text-green-400 transition-colors"
+                              className="p-1.5 rounded-sm hover:bg-green-500/10 text-[#7d92b0] hover:text-green-400 transition-colors"
                               title="取引追加"
                             >
                               <Plus className="w-3.5 h-3.5" />
                             </button>
                             <button
                               onClick={() => { setEditItem(item); setShowItemModal(true) }}
-                              className="p-1.5 rounded-sm hover:bg-falcon-border text-falcon-muted hover:text-white transition-colors"
+                              className="p-1.5 rounded-sm hover:bg-[#1e2d42] text-[#7d92b0] hover:text-white transition-colors"
                               title="編集"
                             >
                               <Pencil className="w-3.5 h-3.5" />
                             </button>
                             <button
                               onClick={() => { if (confirm(`"${item.name}" を削除しますか？`)) deleteItemMutation.mutate(item.id) }}
-                              className="p-1.5 rounded-sm hover:bg-red-500/10 text-falcon-muted hover:text-falcon-red transition-colors"
+                              className="p-1.5 rounded-sm hover:bg-red-500/10 text-[#7d92b0] hover:text-[#e8002d] transition-colors"
                               title="削除"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
@@ -642,23 +639,23 @@ export default function SecurityBudgetPage() {
                         </td>
                       </tr>
                       {txExpanded && item.transactions && item.transactions.length > 0 && (
-                        <tr key={`${item.id}-tx`} className="border-b border-falcon-border/40">
+                        <tr key={`${item.id}-tx`} className="border-b border-[#1e2d42]/40">
                           <td colSpan={7} className="px-4 py-0">
-                            <div className="ml-8 my-2 rounded-lg border border-falcon-border overflow-hidden bg-[#070d19]/40">
+                            <div className="ml-8 my-2 rounded-lg border border-[#1e2d42] overflow-hidden bg-[#070d19]/40">
                               <table className="w-full">
                                 <thead>
-                                  <tr className="border-b border-falcon-border">
-                                    <th className="text-left text-xs text-falcon-muted font-medium px-3 py-2">説明</th>
-                                    <th className="text-right text-xs text-falcon-muted font-medium px-3 py-2">金額</th>
-                                    <th className="text-right text-xs text-falcon-muted font-medium px-3 py-2">日付</th>
+                                  <tr className="border-b border-[#1e2d42]">
+                                    <th className="text-left text-xs text-[#7d92b0] font-medium px-3 py-2">説明</th>
+                                    <th className="text-right text-xs text-[#7d92b0] font-medium px-3 py-2">金額</th>
+                                    <th className="text-right text-xs text-[#7d92b0] font-medium px-3 py-2">日付</th>
                                   </tr>
                                 </thead>
                                 <tbody>
                                   {item.transactions.map(tx => (
-                                    <tr key={tx.id} className="border-b border-falcon-border/30 last:border-0">
-                                      <td className="px-3 py-1.5 text-xs text-falcon-muted">{tx.description}</td>
+                                    <tr key={tx.id} className="border-b border-[#1e2d42]/30 last:border-0">
+                                      <td className="px-3 py-1.5 text-xs text-[#7d92b0]">{tx.description}</td>
                                       <td className="px-3 py-1.5 text-xs text-white font-mono text-right">{formatYenFull(tx.amount)}</td>
-                                      <td className="px-3 py-1.5 text-xs text-falcon-muted text-right">{tx.date}</td>
+                                      <td className="px-3 py-1.5 text-xs text-[#7d92b0] text-right">{tx.date}</td>
                                     </tr>
                                   ))}
                                 </tbody>

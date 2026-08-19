@@ -18,6 +18,8 @@ import {
   ChevronDown,
 } from 'lucide-react'
 
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface UserDetail {
@@ -312,23 +314,21 @@ export default function UserActivityPage() {
 
   return (
     <div className="min-h-screen bg-gray-900">
-      <div className="max-w-(--breakpoint-xl) mx-auto p-6 space-y-6">
+      <PageDataUnavailable />
+      <div className="max-w-screen-xl mx-auto p-6 space-y-6">
 
         {/* ── Header ─────────────────────────────────────────────── */}
         <div className="flex items-center gap-3 flex-wrap">
           <button
             onClick={() => router.push('/admin/users')}
-            className="flex items-center gap-1.5 px-3 py-2 text-sm text-gray-400 bg-gray-800
-                       border border-gray-700 rounded-lg hover:bg-gray-700 hover:text-gray-200
-                       transition-colors shrink-0"
+            className="flex items-center gap-1.5 px-3 py-2 text-sm text-gray-400 bg-gray-800 border border-gray-700 rounded-lg hover:bg-gray-700 hover:text-gray-200 transition-colors shrink-0"
           >
             <ArrowLeft className="w-4 h-4" />
             ユーザー管理
           </button>
 
           <div className="flex items-center gap-3 min-w-0">
-            <div className="w-9 h-9 rounded-full bg-blue-900/40 border border-blue-700/50
-                            flex items-center justify-center shrink-0">
+            <div className="w-9 h-9 rounded-full bg-blue-900/40 border border-blue-700/50 flex items-center justify-center shrink-0">
               <User className="w-5 h-5 text-blue-400" />
             </div>
             <div className="min-w-0">
@@ -443,9 +443,7 @@ export default function UserActivityPage() {
                 <div className="flex justify-center pt-2">
                   <button
                     onClick={() => setVisibleCount(c => c + 20)}
-                    className="flex items-center gap-2 px-5 py-2 text-sm text-gray-400
-                               bg-gray-700 hover:bg-gray-600 border border-gray-600
-                               rounded-lg transition-colors hover:text-gray-200"
+                    className="flex items-center gap-2 px-5 py-2 text-sm text-gray-400 bg-gray-700 hover:bg-gray-600 border border-gray-600 rounded-lg transition-colors hover:text-gray-200"
                   >
                     <ChevronDown className="w-4 h-4" />
                     もっと見る ({filteredLogs.length - visibleCount}件)

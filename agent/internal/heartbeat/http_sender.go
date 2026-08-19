@@ -53,14 +53,15 @@ func (f *FallbackSender) SendHeartbeat(ctx context.Context, req *HeartbeatReques
 
 func (s *HTTPSender) SendHeartbeat(ctx context.Context, req *HeartbeatRequest) (*HeartbeatResponse, error) {
 	body, err := json.Marshal(map[string]interface{}{
-		"hostname":        req.Hostname,
-		"ip_addresses":    req.IPAddresses,
-		"agent_version":   req.AgentVersion,
-		"os_type":         req.OSType,
-		"os_version":      req.OSVersion,
-		"status":          req.Status,
-		"protection_mode": req.ProtectionMode,
-		"telemetry_mode":  req.TelemetryMode,
+		"hostname":         req.Hostname,
+		"ip_addresses":     req.IPAddresses,
+		"agent_version":    req.AgentVersion,
+		"os_type":          req.OSType,
+		"os_version":       req.OSVersion,
+		"status":           req.Status,
+		"protection_mode":  req.ProtectionMode,
+		"telemetry_mode":   req.TelemetryMode,
+		"telemetry_detail": req.TelemetryDetail,
 	})
 	if err != nil {
 		return nil, err
@@ -85,6 +86,7 @@ func (s *HTTPSender) SendHeartbeat(ctx context.Context, req *HeartbeatRequest) (
 
 	var hbResp struct {
 		ShouldUnisolate bool                    `json:"should_unisolate"`
+		ShouldIsolate   bool                    `json:"should_isolate"`
 		UninstallGuard  *UninstallGuardMaterial `json:"uninstall_guard"`
 	}
 	// Best-effort decode — ignore errors (older servers won't have this field).
@@ -92,6 +94,7 @@ func (s *HTTPSender) SendHeartbeat(ctx context.Context, req *HeartbeatRequest) (
 
 	return &HeartbeatResponse{
 		ShouldUnisolate: hbResp.ShouldUnisolate,
+		ShouldIsolate:   hbResp.ShouldIsolate,
 		UninstallGuard:  hbResp.UninstallGuard,
 	}, nil
 }

@@ -3,6 +3,7 @@ package investigation
 import (
 	"encoding/json"
 	"fmt"
+	"sort"
 	"strings"
 
 	"golang.org/x/text/cases"
@@ -246,20 +247,64 @@ SOCアナリストが取るべき次のステップを優先度順にリスト�
 
 // extractRelevantFields returns a human-readable one-line summary of the most
 // important fields for a given event type.
-func extractRelevantFields(evType string, m map[string]interface{}) string {
-	str := func(key string) string {
-		if v, ok := m[key]; ok {
-			return fmt.Sprintf("%v", v)
+// summaryValue returns the first of keys present in m with a non-empty value.
+//
+// The event payloads come from internal/ingestion.normalizeEventData. Several
+// of the names read here were not names it produces, and a missing key yields
+// nil rather than an error, so the model was handed a summary that looked
+// complete and was not: a process event summarised as "pid=4242" and nothing
+// else. Listing the accepted spellings at each site is what keeps the two ends
+// in step.
+func summaryValue(m map[string]interface{}, keys ...string) string {
+	for _, k := range keys {
+		v, ok := m[k]
+		if !ok || v == nil {
+			continue
 		}
-		return ""
+		if s := strings.TrimSpace(fmt.Sprintf("%v", v)); s != "" && s != "<nil>" {
+			return s
+		}
 	}
+	return ""
+}
+
+// summaryTruncate shortens a value and says that it did. Silently cutting a
+// command line would let the model reason about a command that appears to end
+// where it does not.
+func summaryTruncate(s string, max int) string {
+	if len(s) <= max {
+		return s
+	}
+	return s[:max] + "…(truncated)"
+}
+
+// summaryDuplicateKeys are names ingestion writes purely so the Sigma alias
+// layer can find a value under its Sysmon spelling. They repeat the snake_case
+// key next to them, so emitting both spends one of the generic branch's slots
+// restating the previous field.
+var summaryDuplicateKeys = map[string]bool{
+	"keyPath":   true,
+	"valueName": true,
+	"valueData": true,
+}
+
+// genericSummaryLimit bounds the generic branch. The prompt carries up to ten
+// events per type, so an unbounded summary lets one wide event crowd the rest
+// of the timeline out of the model's context.
+const genericSummaryLimit = 8
+
+// summaryValueLimit bounds a single value in the generic branch.
+const summaryValueLimit = 120
+
+func extractRelevantFields(evType string, m map[string]interface{}) string {
+	str := func(keys ...string) string { return summaryValue(m, keys...) }
 
 	switch evType {
 	case "process":
-		image := str("image")
-		cmd := str("cmdline")
+		image := str("image_path", "image", "process_name")
+		cmd := str("command_line", "cmdline")
 		pid := str("pid")
-		user := str("user")
+		user := str("username", "user")
 		parts := []string{}
 		if image != "" {
 			parts = append(parts, "image="+image)
@@ -270,8 +315,12 @@ func extractRelevantFields(evType string, m map[string]interface{}) string {
 		if user != "" {
 			parts = append(parts, "user="+user)
 		}
-		if cmd != "" && len(cmd) < 120 {
-			parts = append(parts, "cmd="+cmd)
+		// Truncated, not dropped. The old guard hid any command line of 120
+		// characters or more, so the more heavily encoded a command was — the
+		// reason the alert exists — the more certain it was to be withheld from
+		// the model.
+		if cmd != "" {
+			parts = append(parts, "cmd="+summaryTruncate(cmd, 300))
 		}
 		return strings.Join(parts, " | ")
 
@@ -297,12 +346,9 @@ func extractRelevantFields(evType string, m map[string]interface{}) string {
 		return strings.Join(parts, " | ")
 
 	case "file":
-		path := str("path")
-		if path == "" {
-			path = str("target_path")
-		}
-		op := str("operation")
-		hash := str("sha256")
+		path := str("path", "file_path", "target_path", "old_path")
+		op := str("operation", "action")
+		hash := str("sha256", "sha1", "md5")
 		parts := []string{}
 		if op != "" {
 			parts = append(parts, "op="+op)
@@ -316,27 +362,47 @@ func extractRelevantFields(evType string, m map[string]interface{}) string {
 		return strings.Join(parts, " | ")
 
 	case "dns":
-		query := str("query")
-		resp := str("response")
+		query := str("query", "domain")
+		// Ingestion writes the resolved addresses as "answers"; nothing writes
+		// "response", so the address a suspicious domain resolved to never
+		// reached the model and it could not connect the lookup to the outbound
+		// connection beside it in the same timeline.
+		resp := str("answers", "response")
 		parts := []string{}
 		if query != "" {
 			parts = append(parts, "query="+query)
 		}
 		if resp != "" {
-			parts = append(parts, "response="+resp)
+			parts = append(parts, "answers="+resp)
 		}
 		return strings.Join(parts, " | ")
 
 	default:
-		// Generic: emit up to 5 key=value pairs.
+		// Registry, auth, image_load and script all land here. This used to take
+		// five keys in Go's map order, so the same event summarised twice gave
+		// different fields: measured on one registry persistence event, six calls
+		// produced five distinct summaries, some without the Run key and some
+		// without the payload path. Sorting makes the model's input a function of
+		// the event rather than of the runtime.
+		keys := make([]string, 0, len(m))
+		for k := range m {
+			if summaryDuplicateKeys[k] {
+				continue
+			}
+			keys = append(keys, k)
+		}
+		sort.Strings(keys)
+
 		parts := []string{}
-		count := 0
-		for k, v := range m {
-			if count >= 5 {
+		for _, k := range keys {
+			if len(parts) >= genericSummaryLimit {
 				break
 			}
-			parts = append(parts, fmt.Sprintf("%s=%v", k, v))
-			count++
+			v := summaryValue(m, k)
+			if v == "" {
+				continue
+			}
+			parts = append(parts, k+"="+summaryTruncate(v, summaryValueLimit))
 		}
 		return strings.Join(parts, " | ")
 	}

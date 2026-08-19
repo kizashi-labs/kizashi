@@ -9,6 +9,8 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/nats-io/nats.go"
+
+	"github.com/edr-platform/server/internal/store"
 )
 
 // AlertDigestSender sends periodic alert digest summaries via NATS.
@@ -38,11 +40,11 @@ func (s *AlertDigestSender) Run(ctx context.Context) {
 
 			// Daily digest: fires at 23:00 UTC (= 08:00 JST)
 			if h == 23 {
-				s.sendDailyDigest(ctx)
+				trackRun(ctx, "alert_digest_sender", s.sendDailyDigest)
 			}
 			// Weekly digest: fires on Sunday 23:00 UTC (= Monday 08:00 JST)
 			if wd == time.Sunday && h == 23 {
-				s.sendWeeklyDigest(ctx)
+				trackRun(ctx, "alert_digest_sender", s.sendWeeklyDigest)
 			}
 		}
 	}
@@ -50,13 +52,7 @@ func (s *AlertDigestSender) Run(ctx context.Context) {
 
 // alertsTableExists checks if the alerts table exists.
 func (s *AlertDigestSender) alertsTableExists(ctx context.Context) bool {
-	var exists bool
-	err := s.pool.QueryRow(ctx,
-		`SELECT EXISTS (
-			SELECT 1 FROM information_schema.tables
-			WHERE table_schema = 'public' AND table_name = 'alerts'
-		)`).Scan(&exists)
-	return err == nil && exists
+	return store.TableIsThere(ctx, s.pool, "alerts")
 }
 
 type digestAgentEntry struct {
@@ -87,15 +83,24 @@ func (s *AlertDigestSender) buildDigest(ctx context.Context, period string, sinc
 	}
 
 	// Count alerts by severity bucket
+	// **数えられなかった 0 を、そのままダイジェストに書いていました。**
+	// 「Critical 0件」は読んだ人にとって最も安心できる行で、読めなかった
+	// こととは区別がつきません。数えられないなら組み立てません。
 	var critical, high, medium, low int
-	_ = s.pool.QueryRow(ctx,
-		`SELECT COUNT(*) FROM alerts WHERE created_at >= $1 AND severity >= 9`, since).Scan(&critical)
-	_ = s.pool.QueryRow(ctx,
-		`SELECT COUNT(*) FROM alerts WHERE created_at >= $1 AND severity >= 7 AND severity < 9`, since).Scan(&high)
-	_ = s.pool.QueryRow(ctx,
-		`SELECT COUNT(*) FROM alerts WHERE created_at >= $1 AND severity >= 5 AND severity < 7`, since).Scan(&medium)
-	_ = s.pool.QueryRow(ctx,
-		`SELECT COUNT(*) FROM alerts WHERE created_at >= $1 AND severity < 5`, since).Scan(&low)
+	for _, c := range []struct {
+		what string
+		sql  string
+		into *int
+	}{
+		{"critical", `SELECT COUNT(*) FROM alerts WHERE created_at >= $1 AND severity >= 9`, &critical},
+		{"high", `SELECT COUNT(*) FROM alerts WHERE created_at >= $1 AND severity >= 7 AND severity < 9`, &high},
+		{"medium", `SELECT COUNT(*) FROM alerts WHERE created_at >= $1 AND severity >= 5 AND severity < 7`, &medium},
+		{"low", `SELECT COUNT(*) FROM alerts WHERE created_at >= $1 AND severity < 5`, &low},
+	} {
+		if err := s.pool.QueryRow(ctx, c.sql, since).Scan(c.into); err != nil {
+			return nil, fmt.Errorf("%s のアラート数を数えられません: %w", c.what, err)
+		}
+	}
 
 	total := critical + high + medium + low
 
@@ -115,6 +120,9 @@ func (s *AlertDigestSender) buildDigest(ctx context.Context, period string, sinc
 			if scanErr := rows.Scan(&e.AgentID, &e.Count); scanErr == nil {
 				topAgents = append(topAgents, e)
 			}
+		}
+		if err := rows.Err(); err != nil {
+			return nil, fmt.Errorf("トップエージェントの走査に失敗しました: %w", err)
 		}
 	}
 	if topAgents == nil {
@@ -137,6 +145,9 @@ func (s *AlertDigestSender) buildDigest(ctx context.Context, period string, sinc
 			if scanErr := rows2.Scan(&e.Title, &e.Count); scanErr == nil {
 				topAlerts = append(topAlerts, e)
 			}
+		}
+		if err := rows2.Err(); err != nil {
+			return nil, fmt.Errorf("トップアラート種別の走査に失敗しました: %w", err)
 		}
 	}
 	if topAlerts == nil {
@@ -182,7 +193,7 @@ func (s *AlertDigestSender) recordRun(ctx context.Context, period string, totalA
 	if _, err := s.pool.Exec(ctx, `
 		INSERT INTO alert_digest_runs (type, recipients_count, total_alerts, status)
 		VALUES ($1, $2, $3, $4)`, period, recipients, totalAlerts, status); err != nil {
-		slog.Warn("ダイジェスト実行履歴の記録に失敗しました", "error", err)
+		fail(ctx, err, "ダイジェスト実行履歴の記録に失敗しました")
 	}
 }
 
@@ -190,7 +201,7 @@ func (s *AlertDigestSender) sendDailyDigest(ctx context.Context) {
 	since := time.Now().UTC().Add(-24 * time.Hour)
 	payload, err := s.buildDigest(ctx, "daily", since)
 	if err != nil {
-		slog.Warn("日次ダイジェスト: データ取得に失敗しました", "error", err)
+		fail(ctx, err, "日次ダイジェスト: データ取得に失敗しました")
 		s.recordRun(ctx, "daily", 0, "failed")
 		return
 	}
@@ -206,7 +217,7 @@ func (s *AlertDigestSender) sendDailyDigest(ctx context.Context) {
 	if s.nc != nil {
 		data, _ := json.Marshal(payload)
 		if pubErr := s.nc.Publish("digest.daily", data); pubErr != nil {
-			slog.Warn("digest.daily NATSパブリッシュに失敗しました", "error", pubErr)
+			fail(ctx, pubErr, "digest.daily NATSパブリッシュに失敗しました")
 		}
 	}
 }
@@ -215,7 +226,7 @@ func (s *AlertDigestSender) sendWeeklyDigest(ctx context.Context) {
 	since := time.Now().UTC().Add(-7 * 24 * time.Hour)
 	payload, err := s.buildDigest(ctx, "weekly", since)
 	if err != nil {
-		slog.Warn("週次ダイジェスト: データ取得に失敗しました", "error", err)
+		fail(ctx, err, "週次ダイジェスト: データ取得に失敗しました")
 		s.recordRun(ctx, "weekly", 0, "failed")
 		return
 	}
@@ -231,7 +242,7 @@ func (s *AlertDigestSender) sendWeeklyDigest(ctx context.Context) {
 	if s.nc != nil {
 		data, _ := json.Marshal(payload)
 		if pubErr := s.nc.Publish("digest.weekly", data); pubErr != nil {
-			slog.Warn("digest.weekly NATSパブリッシュに失敗しました", "error", pubErr)
+			fail(ctx, pubErr, "digest.weekly NATSパブリッシュに失敗しました")
 		}
 	}
 }

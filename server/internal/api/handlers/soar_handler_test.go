@@ -64,12 +64,18 @@ func TestMaskConfig(t *testing.T) {
 		}
 	})
 
-	t.Run("不正なJSONは空mapを返す", func(t *testing.T) {
+	// 以前は「不正なJSONは空mapを返す」でした。空の設定は「この連携は未設定」
+	// と読めます。設定済みの連携が未設定に見えると、入れ直そうとした人が
+	// 既にある接続先を上書きします。読めなかったと書いて返します。
+	t.Run("不正なJSONは読めなかったと書いて返す", func(t *testing.T) {
 		raw := json.RawMessage(`not valid json`)
 		result := maskConfig(raw)
 
-		if len(result) != 0 {
-			t.Errorf("invalid JSON should return empty map, got: %v", result)
+		if result["_unreadable"] != true {
+			t.Errorf("読めなかったことが示されていません: %v", result)
+		}
+		if result["_error"] == nil || result["_error"] == "" {
+			t.Errorf("理由がありません: %v", result)
 		}
 	})
 

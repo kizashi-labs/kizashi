@@ -48,6 +48,41 @@ func NewUninstallProtectionStore(pool *pgxpool.Pool) *UninstallProtectionStore {
 	return &UninstallProtectionStore{pool: pool}
 }
 
+// ErrAgentTenantUnknown means the agent is not registered (or carries no
+// tenant), so no tenant can be pinned for it.
+var ErrAgentTenantUnknown = errors.New("agent has no known tenant")
+
+// TenantOfAgent returns the tenant the agent belongs to.
+//
+// **エージェント向けの経路はテナントを名乗りません。** ハートビートも
+// アンインストール試行の通報も認証なしで、名乗るのは利用者ではなく端末
+// です。それでもテナントは決まります —— 端末の行が持っているからです。
+// ここで引いて `app.tenant_id` に張ることで、uninstall_guards /
+// uninstall_attempts の RLS から「未設定なら全テナント可」の抜け道を
+// 落とせます。
+//
+// agents 側の方針は抜け道を残したままなので、この引き当て自体は
+// テナント未設定の接続でも通ります。
+func (s *UninstallProtectionStore) TenantOfAgent(ctx context.Context, agentID string) (string, error) {
+	if agentID == "" {
+		return "", ErrAgentTenantUnknown
+	}
+	var tenantID string
+	err := s.pool.QueryRow(ctx,
+		`SELECT COALESCE(tenant_id::text, '') FROM agents WHERE id = $1::uuid`,
+		agentID).Scan(&tenantID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return "", ErrAgentTenantUnknown
+	}
+	if err != nil {
+		return "", fmt.Errorf("tenant of agent: %w", err)
+	}
+	if tenantID == "" {
+		return "", ErrAgentTenantUnknown
+	}
+	return tenantID, nil
+}
+
 // GetGuard returns the tenant's guard material, or ErrNoUninstallGuard when the
 // tenant has not set a password.
 //

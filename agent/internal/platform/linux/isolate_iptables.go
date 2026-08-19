@@ -29,6 +29,12 @@ type IPTablesIsolationManager struct {
 	edrServerIP string
 	useNFTables bool
 	allowSSH    bool
+
+	// run and runOut execute a firewall command. They exist so the startup
+	// reconciliation below can be tested without a real firewall — the property
+	// worth pinning is the exact argv, which cannot be checked by shelling out.
+	run    func(name string, args ...string) error
+	runOut func(name string, args ...string) ([]byte, error)
 }
 
 func NewIPTablesIsolationManager(edrServerIP string) *IPTablesIsolationManager {
@@ -40,15 +46,66 @@ func NewIPTablesIsolationManager(edrServerIP string) *IPTablesIsolationManager {
 		edrServerIP: edrServerIP,
 		useNFTables: isNFTablesAvailable(),
 		allowSSH:    os.Getenv("EDR_ISOLATION_ALLOW_SSH") == "true",
+		run:         runCommand,
+		runOut: func(name string, args ...string) ([]byte, error) {
+			return exec.Command(name, args...).CombinedOutput()
+		},
 	}
 	// Sync in-memory state with actual firewall state on startup.
 	// Without this, a restarted agent incorrectly reports status=online
 	// while isolation rules are still active.
 	m.isolated = m.detectIsolationState()
 	if m.isolated {
-		slog.Warn("起動時に隔離ルールが検出されました。サーバーの指示に従い解除します")
+		slog.Warn("起動時に隔離ルールが検出されました。解除はサーバーからの指示を待ちます")
+		m.reconcileSSHAccess()
 	}
 	return m
+}
+
+// reconcileSSHAccess brings an already-applied isolation chain in line with the
+// current EDR_ISOLATION_ALLOW_SSH setting.
+//
+// allowSSH is read once, at construction, and is otherwise consulted only while
+// BUILDING the chain. So a chain applied before the setting was turned on keeps
+// dropping tcp/22 for as long as the isolation lasts, and restarting the agent
+// does not change that — the startup path used to merely log that the server
+// would handle it, which is exactly backwards: an operator turns this setting on
+// *because* they can no longer reach the host, restarts the agent, and nothing
+// happens. Worse, on a host that runs the EDR server itself in a container the
+// server's unisolate command may never arrive, because the whitelisted server
+// address does not match the post-DNAT container IP the OUTPUT filter sees.
+//
+// Releasing on startup is not an acceptable alternative: a compromised host
+// could then restore its own connectivity just by killing the agent. So the
+// chain is repaired in place instead — the accept rule is inserted at the top,
+// ahead of the chain's trailing DROP, and nothing else about the isolation is
+// weakened.
+func (m *IPTablesIsolationManager) reconcileSSHAccess() {
+	if !m.allowSSH {
+		return
+	}
+	if m.useNFTables {
+		out, err := m.runOut("nft", "list", "chain", "inet", "edr_isolate", "input")
+		if err == nil && strings.Contains(string(out), "tcp dport 22 accept") {
+			return
+		}
+		if err := m.run("nft", "insert", "rule", "inet", "edr_isolate", "input",
+			"tcp", "dport", "22", "accept"); err != nil {
+			slog.Error("既存の隔離ルールへのSSH許可追加に失敗しました", "error", err)
+			return
+		}
+	} else {
+		sshRule := []string{"EDR_ISOLATE", "-p", "tcp", "--dport", "22", "-j", "ACCEPT"}
+		if err := m.run("iptables", append([]string{"-C"}, sshRule...)...); err == nil {
+			return // already allowed
+		}
+		// -I ... 1 puts the accept ahead of the trailing DROP; -A would land after it.
+		if err := m.run("iptables", append([]string{"-I", "EDR_ISOLATE", "1"}, sshRule[1:]...)...); err != nil {
+			slog.Error("既存の隔離ルールへのSSH許可追加に失敗しました", "error", err)
+			return
+		}
+	}
+	slog.Warn("EDR_ISOLATION_ALLOW_SSH=true のため、適用済みの隔離チェーンにSSH許可を追加しました")
 }
 
 // detectIsolationState checks whether isolation rules are currently active on the host.
@@ -255,7 +312,12 @@ func isNFTablesAvailable() bool {
 	return exec.Command("nft", "--version").Run() == nil
 }
 
-func runCommand(name string, args ...string) error {
+// runCommand is a variable so tests can observe the order in which the
+// quarantine path shells out. The ordering is the thing that broke — the hash
+// was taken after the file had been made unreadable — and it cannot be checked
+// by running the real commands as root, because root reads a mode-000 file
+// happily.
+var runCommand = func(name string, args ...string) error {
 	out, err := exec.Command(name, args...).CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("%s %v: %w (output: %s)", name, args, err, string(out))
@@ -324,6 +386,23 @@ func (q *LinuxFileQuarantine) Quarantine(path string) (string, error) {
 		return "", fmt.Errorf("move to quarantine: %w", err)
 	}
 
+	// Hash the sample while it is still readable.
+	//
+	// This used to run after the chmod below, and computeLinuxHashes answers an
+	// unreadable file with an empty FileHashes{} and no error, so the quarantine
+	// entry was written with no hash at all and Quarantine still reported
+	// success. Root bypasses mode 000, which is why it works wherever the agent
+	// runs privileged and nowhere else. Verified directly: the same open()
+	// succeeds at euid 0 and returns "permission denied" at euid 65534.
+	//
+	// The hash is the sample's identity — without it a responder cannot look the
+	// file up, correlate it across endpoints, or prove which file was taken.
+	hashes := computeLinuxHashes(destPath)
+	if hashes.SHA256 == "" {
+		slog.Warn("隔離ファイルのハッシュを取得できませんでした。検体の同定ができません",
+			"quarantine_id", id, "original_path", path)
+	}
+
 	// Strip all permissions (chmod 000) - prevents accidental execution
 	if err := runCommand("chmod", "000", destPath); err != nil {
 		return "", fmt.Errorf("chmod quarantine file: %w", err)
@@ -332,7 +411,6 @@ func (q *LinuxFileQuarantine) Quarantine(path string) (string, error) {
 	// Change ownership to root
 	_ = runCommand("chown", "root:root", destPath)
 
-	hashes := computeLinuxHashes(destPath)
 	q.index[id] = &collector.QuarantinedFile{
 		ID:           id,
 		OriginalPath: path,

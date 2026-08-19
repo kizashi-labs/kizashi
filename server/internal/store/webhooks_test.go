@@ -1,7 +1,6 @@
 package store
 
 import (
-	"strings"
 	"testing"
 	"time"
 )
@@ -136,92 +135,18 @@ func TestWebhookTarget_LastStatusCodes(t *testing.T) {
 
 // ─── Webhook イベントタイプ検証ロジックテスト ─────────────────────────────────
 
-// isValidWebhookEvent はイベントタイプが既知のものか検証するヘルパー（テスト専用）
-// webhooks.go の ListEnabledForEvent が受け入れるイベントタイプを定義する
-func isValidWebhookEvent(event string) bool {
-	validEvents := map[string]bool{
-		"alert.created":    true,
-		"alert.resolved":   true,
-		"alert.any":        true,
-		"agent.offline":    true,
-		"agent.online":     true,
-		"incident.created": true,
-		"incident.closed":  true,
-		"ioc.matched":      true,
-	}
-	return validEvents[event]
-}
-
-// TestWebhookEvent_KnownTypes は既知のイベントタイプが有効と判定されることを確認する
-func TestWebhookEvent_KnownTypes(t *testing.T) {
-	knownEvents := []string{
-		"alert.created",
-		"alert.resolved",
-		"alert.any",
-		"agent.offline",
-		"agent.online",
-		"incident.created",
-		"incident.closed",
-		"ioc.matched",
-	}
-	for _, ev := range knownEvents {
-		if !isValidWebhookEvent(ev) {
-			t.Errorf("既知のイベント %q は有効と判定されるべき", ev)
-		}
-	}
-}
-
-// TestWebhookEvent_UnknownTypesAreInvalid は不明なイベントタイプが無効と判定されることを確認する
-func TestWebhookEvent_UnknownTypesAreInvalid(t *testing.T) {
-	unknownEvents := []string{
-		"",
-		"unknown.event",
-		"ALERT.CREATED",
-		"alert",
-		"alert.",
-		"random_string",
-	}
-	for _, ev := range unknownEvents {
-		if isValidWebhookEvent(ev) {
-			t.Errorf("不明なイベント %q は無効と判定されるべき", ev)
-		}
-	}
-}
-
-// TestWebhookEvent_AlertAnyIsWildcard は "alert.any" がワイルドカードとして機能することを確認する
-// ListEnabledForEvent の SQL では 'alert.any' = ANY(events) でワイルドカード登録を表現する
-func TestWebhookEvent_AlertAnyIsWildcard(t *testing.T) {
-	// "alert.any" を持つ Webhook はすべてのアラートイベントを受け取る
-	wt := WebhookTarget{
-		Events:  []string{"alert.any"},
-		Enabled: true,
-	}
-	hasWildcard := false
-	for _, ev := range wt.Events {
-		if ev == "alert.any" {
-			hasWildcard = true
-			break
-		}
-	}
-	if !hasWildcard {
-		t.Error("Events に \"alert.any\" が含まれるべき")
-	}
-}
-
-// TestWebhookTarget_URLFormat は URL フォーマットの基本的な検証を確認する
-func TestWebhookTarget_URLFormat(t *testing.T) {
-	validURLs := []string{
-		"https://example.com/webhook",
-		"http://internal.company.local/hooks",
-		"https://hooks.slack.com/services/T000/B000/xxxx",
-	}
-	for _, url := range validURLs {
-		wt := WebhookTarget{URL: url}
-		if !strings.HasPrefix(wt.URL, "http://") && !strings.HasPrefix(wt.URL, "https://") {
-			t.Errorf("URL %q は http:// または https:// で始まるべき", wt.URL)
-		}
-	}
-}
+// webhook のイベント名は、**送る側が唯一の出どころ**です。
+//
+// ここには `isValidWebhookEvent` という一覧が置いてありましたが、
+// `alert.created` / `alert.resolved` / `incident.closed` / `ioc.matched` /
+// `agent.online` を含み、**送られるものとも、画面が出すものとも一致して
+// いませんでした** —— 誰とも合わない3つ目の一覧です。
+//
+// 本物は `internal/notification` の `EmittedWebhookEvents` で、画面の
+// 選択肢と揃っていることを `TestTheConsoleOffersOnlyEventsThatAreSent` が
+// 確かめます。
+//
+// **ここで消したのは一覧だけで、検査は増えています。**
 
 // ─── Webhook 有効/無効状態テスト ─────────────────────────────────────────────
 

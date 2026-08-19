@@ -114,6 +114,9 @@ func (s *ProcessBlockRuleStore) List(ctx context.Context, f ProcessBlockRuleFilt
 		}
 		rules = append(rules, r)
 	}
+	if err := rows.Err(); err != nil {
+		return nil, 0, err
+	}
 	if rules == nil {
 		rules = []*ProcessBlockRule{}
 	}
@@ -272,6 +275,9 @@ func (s *ProcessBlockRuleStore) ListForAgent(ctx context.Context, agentID string
 			continue
 		}
 		rules = append(rules, r)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
 	}
 	if rules == nil {
 		rules = []*ProcessBlockRule{}

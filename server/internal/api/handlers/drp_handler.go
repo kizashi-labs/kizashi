@@ -2,73 +2,75 @@ package handlers
 
 import (
 	"net/http"
-	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
+// DRP（デジタルリスク保護 / ダークウェブ監視）の宛先です。
+//
+// **中身がありません。** ここは DB も外部の購読も1度も見ず、その場で
+// 作った監視と検出を 200 で返していました（実測 2026-08-12）:
+//
+//	{"title": "企業メールアドレスがダークウェブデータベースで発見",
+//	 "source": "darkweb_forum", "severity": "critical",
+//	 "status": "investigating", "found_at": time.Now().Add(-2 * time.Hour)}
+//
+//	{"title": "GitHubにハードコードされた認証情報を発見",
+//	 "source": "github", "severity": "critical", "status": "mitigated"}
+//
+// **「2時間前に認証情報の漏洩を検出、調査中」は、対応を始めさせる形**
+// です。漏れていない認証情報の失効作業が走ります。しかも
+// `status: "investigating"` は、**誰かが既に見ていることまで**
+// 示しています。
+//
+// `CreateMonitor` は受け取った JSON に `id` を足して 201 を返し、
+// `UpdateFinding` は受け取った JSON に `updated_at` を足して 200 を
+// 返します —— **どちらも保存しません。** 作った監視は次の画面に
+// ありません。
+//
+// いまは 501 を返します。約束は `not_implemented_test.go` にあります:
+//
+//	200 + []  まだ何も起きていない（待てばよい）
+//	500       読めなかった（もう一度試す価値がある）
+//	501       これを作るものが無い（待っても変わらない）
+//
+// 作るとしたら、まず購読する情報源（漏洩データベース、フォーラム、
+// ドメイン登録）を決めるところからです。
 type DRPHandler struct{ pool *pgxpool.Pool }
 
 func NewDRPHandler(pool *pgxpool.Pool) *DRPHandler { return &DRPHandler{pool: pool} }
 
-func (h *DRPHandler) ListMonitors(c *gin.Context) {
-	monitors := []gin.H{
-		{"id": uuid.New(), "name": "ブランド保護モニタリング", "monitor_type": "brand", "enabled": true, "findings_count": 12, "keywords": []string{"FalconEDR", "Falcon Security"}, "last_scanned_at": time.Now().Add(-1 * time.Hour)},
-		{"id": uuid.New(), "name": "クレデンシャル漏洩検知", "monitor_type": "credential", "enabled": true, "findings_count": 3, "domains": []string{"example.com"}, "last_scanned_at": time.Now().Add(-30 * time.Minute)},
-		{"id": uuid.New(), "name": "ダークウェブ監視", "monitor_type": "dark_web", "enabled": true, "findings_count": 7, "keywords": []string{"example.com", "admin@example.com"}, "last_scanned_at": time.Now().Add(-2 * time.Hour)},
-		{"id": uuid.New(), "name": "ドメイン詐称検知", "monitor_type": "domain", "enabled": true, "findings_count": 5, "domains": []string{"example.com"}, "last_scanned_at": time.Now().Add(-3 * time.Hour)},
-		{"id": uuid.New(), "name": "データ漏洩検知", "monitor_type": "data_leak", "enabled": true, "findings_count": 2, "keywords": []string{"confidential", "internal"}, "last_scanned_at": time.Now().Add(-4 * time.Hour)},
-	}
-	c.JSON(http.StatusOK, gin.H{"monitors": monitors, "total": len(monitors)})
+// drpUnimplemented answers every DRP call the same way.
+//
+// **1つにまとめてあるのは、片方だけ作り物に戻せないようにするため**
+// です。
+func drpUnimplemented(c *gin.Context, what string) {
+	c.JSON(http.StatusNotImplemented, gin.H{
+		"error": "DRP（デジタルリスク保護）は未実装です。" + what +
+			"を作る仕組みがサーバにありません",
+		"unimplemented": true,
+	})
 }
 
+func (h *DRPHandler) ListMonitors(c *gin.Context) {
+	drpUnimplemented(c, "監視の一覧")
+}
+
+// CreateMonitor echoed the request back with an id and stored nothing.
 func (h *DRPHandler) CreateMonitor(c *gin.Context) {
-	var req gin.H
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request"})
-		return
-	}
-	req["id"] = uuid.New()
-	req["findings_count"] = 0
-	req["created_at"] = time.Now()
-	c.JSON(http.StatusCreated, req)
+	drpUnimplemented(c, "監視の登録")
 }
 
 func (h *DRPHandler) ListFindings(c *gin.Context) {
-	findings := []gin.H{
-		{"id": uuid.New(), "monitor_name": "クレデンシャル漏洩検知", "title": "企業メールアドレスがダークウェブデータベースで発見", "source": "darkweb_forum", "severity": "critical", "status": "investigating", "found_at": time.Now().Add(-2 * time.Hour)},
-		{"id": uuid.New(), "monitor_name": "ブランド保護モニタリング", "title": "フィッシングサイトでのブランド悪用を検出", "source": "phishing_db", "severity": "high", "status": "open", "found_at": time.Now().Add(-4 * time.Hour)},
-		{"id": uuid.New(), "monitor_name": "ドメイン詐称検知", "title": "類似ドメイン登録を検出: examp1e.com", "source": "domain_monitor", "severity": "high", "status": "open", "found_at": time.Now().Add(-6 * time.Hour)},
-		{"id": uuid.New(), "monitor_name": "データ漏洩検知", "title": "GitHubにハードコードされた認証情報を発見", "source": "github", "severity": "critical", "status": "mitigated", "found_at": time.Now().Add(-1 * 24 * time.Hour)},
-	}
-	c.JSON(http.StatusOK, gin.H{"findings": findings, "total": len(findings)})
+	drpUnimplemented(c, "漏洩・詐称の検出")
 }
 
+// UpdateFinding echoed the request back with a timestamp and stored nothing.
 func (h *DRPHandler) UpdateFinding(c *gin.Context) {
-	id := c.Param("id")
-	var req gin.H
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request"})
-		return
-	}
-	req["id"] = id
-	req["updated_at"] = time.Now()
-	c.JSON(http.StatusOK, req)
+	drpUnimplemented(c, "検出の状態")
 }
 
 func (h *DRPHandler) GetStats(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{
-		"total_monitors": 5, "active_monitors": 5,
-		"total_findings": 29, "open": 12, "investigating": 8, "mitigated": 7, "false_positive": 2,
-		"critical_findings": 5, "high_findings": 12,
-		"by_type": []gin.H{
-			{"type": "brand", "count": 12},
-			{"type": "credential", "count": 3},
-			{"type": "dark_web", "count": 7},
-			{"type": "domain", "count": 5},
-			{"type": "data_leak", "count": 2},
-		},
-	})
+	drpUnimplemented(c, "検出の集計")
 }

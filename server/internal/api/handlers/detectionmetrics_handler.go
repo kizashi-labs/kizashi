@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"log/slog"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -63,7 +64,13 @@ func (h *DetectionMetricsHandler) GetTrend(c *gin.Context) {
 		period = "30d"
 	}
 
-	trend := h.tracker.GetTrend(c.Request.Context(), period)
+	trend, err := h.tracker.GetTrend(c.Request.Context(), period)
+	if err != nil {
+		slog.Error("detection_metrics: 検知件数の推移を読めませんでした",
+			"period", period, "error", err)
+		ReadFailure(c, err, gin.H{"period": period, "trend": []any{}, "count": 0})
+		return
+	}
 	c.JSON(http.StatusOK, gin.H{
 		"period": period,
 		"trend":  trend,

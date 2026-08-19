@@ -76,7 +76,9 @@ func (h *LogAnalysisHandler) ListParseRules(c *gin.Context) {
 		rules = append(rules, r)
 	}
 	if err := rows.Err(); err != nil {
-		slog.Warn("row iteration error", "error", err)
+		slog.Error("rows.Err: 結果の読み出しが途中で失敗しました", "error", err)
+		response.InternalError(c, "failed to list parse rules")
+		return
 	}
 	if rules == nil {
 		rules = []logParseRule{}
@@ -268,7 +270,9 @@ func (h *LogAnalysisHandler) ListJobs(c *gin.Context) {
 		jobs = append(jobs, j)
 	}
 	if err := rows.Err(); err != nil {
-		slog.Warn("row iteration error", "error", err)
+		slog.Error("rows.Err: 結果の読み出しが途中で失敗しました", "error", err)
+		response.InternalError(c, "failed to list jobs")
+		return
 	}
 	if jobs == nil {
 		jobs = []logAnalysisJob{}
@@ -328,12 +332,7 @@ func (h *LogAnalysisHandler) CreateJob(c *gin.Context) {
 
 		// Count matching audit log entries (keyword search in action or details).
 		var resultCount int
-		var tableExists bool
-		if err := pool.QueryRow(bgCtx,
-			`SELECT EXISTS(SELECT 1 FROM pg_tables WHERE schemaname='public' AND tablename='audit_logs')`).
-			Scan(&tableExists); err != nil {
-			slog.Warn("log_analysis: audit_logs テーブル確認に失敗しました", "job_id", jobID, "error", err)
-		}
+		tableExists := tableIsThere(bgCtx, pool, "audit_logs")
 
 		if tableExists {
 			if err := pool.QueryRow(bgCtx,

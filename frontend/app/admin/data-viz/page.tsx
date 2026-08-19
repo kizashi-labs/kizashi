@@ -3,12 +3,16 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { apiFetch } from '@/lib/api'
+import { USE_MOCK } from '@/lib/mock'
 import { displayUser } from '@/lib/display-user'
 import {
   PieChart, Plus, X, Pencil, Trash2, Save, BarChart2,
   TrendingUp, TrendingDown, Minus, AlertTriangle, CheckCircle,
   LayoutTemplate, Clock, Eye, ChevronDown, GripVertical, Maximize2,
 } from 'lucide-react'
+
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+import { SaveFailed, saveErrorOf } from '@/lib/persist'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -127,7 +131,7 @@ function KPIWidget({ widget }: { widget: Widget }) {
   const trendPct = (Math.random() * 20 + 1).toFixed(1)
   return (
     <div className="flex flex-col justify-between h-full p-1">
-      <p className="text-xs text-falcon-muted truncate">{widget.title}</p>
+      <p className="text-xs text-[#7d92b0] truncate">{widget.title}</p>
       <div>
         <p className={`text-3xl font-bold ${cs.text}`}>{value.toLocaleString()}</p>
         <div className={`flex items-center gap-1 mt-1 text-xs ${trend === 'up' ? 'text-green-400' : 'text-red-400'}`}>
@@ -145,12 +149,12 @@ function BarWidget({ widget }: { widget: Widget }) {
   const max = Math.max(...bars.map(b => b.value))
   return (
     <div className="flex flex-col h-full p-1">
-      <p className="text-xs text-falcon-muted mb-2 truncate">{widget.title}</p>
+      <p className="text-xs text-[#7d92b0] mb-2 truncate">{widget.title}</p>
       <div className="flex items-end gap-1.5 flex-1">
         {bars.map(b => (
           <div key={b.label} className="flex-1 flex flex-col items-center gap-0.5">
             <div className="w-full rounded-t" style={{ height: `${(b.value / max) * 100}%`, backgroundColor: cs.primary, opacity: 0.8, minHeight: 4 }} />
-            <span className="text-[9px] text-falcon-subtle">{b.label}</span>
+            <span className="text-[9px] text-[#3d5068]">{b.label}</span>
           </div>
         ))}
       </div>
@@ -168,7 +172,7 @@ function LineWidget({ widget }: { widget: Widget }) {
   const svgPoints = points.map(p => `${(p.x / (points.length - 1)) * w},${h - ((p.y - minY) / rangeY) * h}`).join(' ')
   return (
     <div className="flex flex-col h-full p-1">
-      <p className="text-xs text-falcon-muted mb-2 truncate">{widget.title}</p>
+      <p className="text-xs text-[#7d92b0] mb-2 truncate">{widget.title}</p>
       <div className="flex-1 flex items-center">
         <svg width="100%" height="100%" viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none">
           <defs>
@@ -205,14 +209,14 @@ function PieWidget({ widget }: { widget: Widget }) {
   return (
     <div className="flex items-center gap-4 h-full p-1">
       <div>
-        <p className="text-xs text-falcon-muted mb-2 truncate">{widget.title}</p>
+        <p className="text-xs text-[#7d92b0] mb-2 truncate">{widget.title}</p>
         <div className="w-16 h-16 rounded-full shrink-0" style={{ background: `conic-gradient(${gradient})` }} />
       </div>
       <div className="space-y-1 flex-1 min-w-0">
         {segments.map(s => (
           <div key={s.label} className="flex items-center gap-1.5">
             <div className="w-2 h-2 rounded-xs shrink-0" style={{ backgroundColor: s.color }} />
-            <span className="text-xs text-falcon-muted truncate flex-1">{s.label}</span>
+            <span className="text-xs text-[#7d92b0] truncate flex-1">{s.label}</span>
             <span className="text-xs text-white font-mono">{s.pct}%</span>
           </div>
         ))}
@@ -231,22 +235,22 @@ function TableWidget({ widget }: { widget: Widget }) {
   const sevColor: Record<string, string> = { Critical: 'text-red-400', High: 'text-orange-400', Medium: 'text-amber-400' }
   return (
     <div className="flex flex-col h-full p-1">
-      <p className="text-xs text-falcon-muted mb-2 truncate">{widget.title}</p>
+      <p className="text-xs text-[#7d92b0] mb-2 truncate">{widget.title}</p>
       <div className="overflow-hidden flex-1">
         <table className="w-full text-xs">
-          <thead><tr className="border-b border-falcon-border">
-            <th className="text-left text-falcon-subtle pb-1 font-medium">ID</th>
-            <th className="text-left text-falcon-subtle pb-1 font-medium">深刻度</th>
-            <th className="text-left text-falcon-subtle pb-1 font-medium">ホスト</th>
-            <th className="text-left text-falcon-subtle pb-1 font-medium">経過</th>
+          <thead><tr className="border-b border-[#1e2d42]">
+            <th className="text-left text-[#3d5068] pb-1 font-medium">ID</th>
+            <th className="text-left text-[#3d5068] pb-1 font-medium">深刻度</th>
+            <th className="text-left text-[#3d5068] pb-1 font-medium">ホスト</th>
+            <th className="text-left text-[#3d5068] pb-1 font-medium">経過</th>
           </tr></thead>
           <tbody>
             {rows.map(r => (
-              <tr key={r.name} className="border-b border-falcon-border/30">
-                <td className="py-1 font-mono text-falcon-text text-[10px]">{r.name}</td>
+              <tr key={r.name} className="border-b border-[#1e2d42]/30">
+                <td className="py-1 font-mono text-[#e2e8f4] text-[10px]">{r.name}</td>
                 <td className={`py-1 ${sevColor[r.sev]}`}>{r.sev}</td>
-                <td className="py-1 text-falcon-muted">{r.host}</td>
-                <td className="py-1 text-falcon-muted">{r.age}</td>
+                <td className="py-1 text-[#7d92b0]">{r.host}</td>
+                <td className="py-1 text-[#7d92b0]">{r.age}</td>
               </tr>
             ))}
           </tbody>
@@ -261,10 +265,10 @@ function HeatmapWidget({ widget }: { widget: Widget }) {
   const days = ['月', '火', '水', '木', '金', '土', '日']
   return (
     <div className="flex flex-col h-full p-1">
-      <p className="text-xs text-falcon-muted mb-2 truncate">{widget.title}</p>
+      <p className="text-xs text-[#7d92b0] mb-2 truncate">{widget.title}</p>
       <div className="flex gap-0.5 flex-1 overflow-hidden">
         <div className="flex flex-col justify-around pr-1">
-          {days.map(d => <span key={d} className="text-[8px] text-falcon-subtle">{d}</span>)}
+          {days.map(d => <span key={d} className="text-[8px] text-[#3d5068]">{d}</span>)}
         </div>
         <div className="flex gap-0.5 flex-1 overflow-x-auto">
           {hours.map(h => (
@@ -299,7 +303,7 @@ function GaugeWidget({ widget }: { widget: Widget }) {
   }
   return (
     <div className="flex flex-col items-center justify-center h-full p-1">
-      <p className="text-xs text-falcon-muted mb-1 truncate">{widget.title}</p>
+      <p className="text-xs text-[#7d92b0] mb-1 truncate">{widget.title}</p>
       <svg width={120} height={90} viewBox="0 0 120 90">
         <path d={arcPath(startAngle, sweepAngle)} fill="none" stroke="#1e2d42" strokeWidth={8} strokeLinecap="round" />
         <path d={arcPath(startAngle, (pct / 100) * sweepAngle)} fill="none" stroke={cs.primary} strokeWidth={8} strokeLinecap="round" />
@@ -320,14 +324,14 @@ function AlertListWidget({ widget }: { widget: Widget }) {
   const sevColor: Record<string, string> = { critical: 'bg-red-500', high: 'bg-orange-500', medium: 'bg-amber-500', low: 'bg-blue-500' }
   return (
     <div className="flex flex-col h-full p-1">
-      <p className="text-xs text-falcon-muted mb-2 truncate">{widget.title}</p>
+      <p className="text-xs text-[#7d92b0] mb-2 truncate">{widget.title}</p>
       <div className="space-y-1.5 flex-1 overflow-hidden">
         {alerts.map(a => (
-          <div key={a.id} className="flex items-center gap-2 p-1.5 rounded-sm bg-[#070d19] border border-falcon-border">
+          <div key={a.id} className="flex items-center gap-2 p-1.5 rounded-sm bg-[#070d19] border border-[#1e2d42]">
             <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${sevColor[a.severity]}`} />
-            <span className="text-xs text-falcon-text flex-1 truncate">{a.title}</span>
-            <span className="text-[10px] text-falcon-subtle shrink-0">{a.host}</span>
-            <span className="text-[10px] text-falcon-subtle shrink-0">{a.time}</span>
+            <span className="text-xs text-[#e2e8f4] flex-1 truncate">{a.title}</span>
+            <span className="text-[10px] text-[#3d5068] shrink-0">{a.host}</span>
+            <span className="text-[10px] text-[#3d5068] shrink-0">{a.time}</span>
           </div>
         ))}
       </div>
@@ -335,7 +339,27 @@ function AlertListWidget({ widget }: { widget: Widget }) {
   )
 }
 
+// ウィジェットの中身。
+//
+// 下の各ウィジェットは値を Math.random() で作っています。ダッシュボードは
+// サーバに保存され、開くたびに違う数字が出ます。KPI もゲージも、指標として
+// 読める形で置かれているので、見た人は測った値だと受け取ります。
+//
+// どの指標をどのAPIから引くかは決まっていないので（保存されるのはレイアウト
+// だけです）、ここでは数字を出しません。レイアウトの確認は USE_MOCK で
+// できます。
 function WidgetRenderer({ widget }: { widget: Widget }) {
+  if (!USE_MOCK) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full p-2 text-center">
+        <p className="text-xs text-[#7d92b0] truncate w-full">{widget.title}</p>
+        <p className="text-2xl font-bold text-[#3d5068] mt-1">—</p>
+        <p className="text-[10px] text-[#3d5068] mt-1">
+          {widget.metric || 'この指標'} のデータ源が接続されていません
+        </p>
+      </div>
+    )
+  }
   switch (widget.type) {
     case 'kpi': return <KPIWidget widget={widget} />
     case 'bar': return <BarWidget widget={widget} />
@@ -385,66 +409,66 @@ function WidgetPickerModal({
   const metrics = METRIC_OPTIONS[form.data_source]
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs">
-      <div className="bg-falcon-surface border border-falcon-border rounded-xl w-full max-w-lg mx-4 shadow-2xl max-h-[90vh] flex flex-col">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-falcon-border shrink-0">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl w-full max-w-lg mx-4 shadow-2xl max-h-[90vh] flex flex-col">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[#1e2d42] shrink-0">
           <h2 className="text-white font-semibold">{initial?.id ? 'ウィジェットを編集' : 'ウィジェットを追加'}</h2>
-          <button onClick={onClose} className="text-falcon-muted hover:text-white"><X className="w-5 h-5" /></button>
+          <button onClick={onClose} className="text-[#7d92b0] hover:text-white"><X className="w-5 h-5" /></button>
         </div>
         <div className="overflow-y-auto px-6 py-5 space-y-4 flex-1">
           <div>
-            <label className="block text-xs text-falcon-muted mb-1">ウィジェットタイプ</label>
+            <label className="block text-xs text-[#7d92b0] mb-1">ウィジェットタイプ</label>
             <div className="grid grid-cols-4 gap-2">
               {WIDGET_TYPES.map(wt => (
                 <button key={wt.value} onClick={() => set('type', wt.value)}
-                  className={`py-2 px-2 rounded-lg border text-xs font-medium transition-all ${form.type === wt.value ? 'bg-falcon-red/20 border-falcon-red/50 text-falcon-red' : 'border-falcon-border text-falcon-muted hover:text-white'}`}>
+                  className={`py-2 px-2 rounded-lg border text-xs font-medium transition-all ${form.type === wt.value ? 'bg-[#e8002d]/20 border-[#e8002d]/50 text-[#e8002d]' : 'border-[#1e2d42] text-[#7d92b0] hover:text-white'}`}>
                   {wt.label}
                 </button>
               ))}
             </div>
           </div>
           <div>
-            <label className="block text-xs text-falcon-muted mb-1">タイトル</label>
+            <label className="block text-xs text-[#7d92b0] mb-1">タイトル</label>
             <input value={form.title} onChange={e => set('title', e.target.value)}
               placeholder="ウィジェットのタイトル"
-              className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-red/50" />
+              className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-[#e8002d]/50" />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs text-falcon-muted mb-1">データソース</label>
+              <label className="block text-xs text-[#7d92b0] mb-1">データソース</label>
               <select value={form.data_source} onChange={e => { set('data_source', e.target.value as DataSource); set('metric', METRIC_OPTIONS[e.target.value as DataSource][0].value) }}
-                className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-red/50">
+                className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-[#e8002d]/50">
                 {(['alerts', 'incidents', 'endpoints', 'vulnerabilities', 'compliance', 'metrics'] as const).map(s => (
                   <option key={s} value={s}>{s}</option>
                 ))}
               </select>
             </div>
             <div>
-              <label className="block text-xs text-falcon-muted mb-1">メトリクス</label>
+              <label className="block text-xs text-[#7d92b0] mb-1">メトリクス</label>
               <select value={form.metric} onChange={e => set('metric', e.target.value)}
-                className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-red/50">
+                className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-[#e8002d]/50">
                 {metrics.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
               </select>
             </div>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs text-falcon-muted mb-1">集計方法</label>
+              <label className="block text-xs text-[#7d92b0] mb-1">集計方法</label>
               <select value={form.aggregation} onChange={e => set('aggregation', e.target.value as Aggregation)}
-                className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-red/50">
+                className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-[#e8002d]/50">
                 {(['count', 'sum', 'avg', 'max', 'min', 'rate'] as const).map(a => <option key={a} value={a}>{a}</option>)}
               </select>
             </div>
             <div>
-              <label className="block text-xs text-falcon-muted mb-1">期間</label>
+              <label className="block text-xs text-[#7d92b0] mb-1">期間</label>
               <select value={form.time_range} onChange={e => set('time_range', e.target.value as TimeRange)}
-                className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-red/50">
+                className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-[#e8002d]/50">
                 {(['1h', '6h', '24h', '7d', '30d'] as const).map(t => <option key={t} value={t}>{t}</option>)}
               </select>
             </div>
           </div>
           <div>
-            <label className="block text-xs text-falcon-muted mb-1">カラースキーム</label>
+            <label className="block text-xs text-[#7d92b0] mb-1">カラースキーム</label>
             <div className="flex gap-2">
               {(Object.keys(COLOR_SCHEMES) as ColorScheme[]).map(c => (
                 <button key={c} onClick={() => set('color_scheme', c)}
@@ -455,25 +479,25 @@ function WidgetPickerModal({
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs text-falcon-muted mb-1">幅 (列数)</label>
+              <label className="block text-xs text-[#7d92b0] mb-1">幅 (列数)</label>
               <select value={form.w} onChange={e => set('w', Number(e.target.value))}
-                className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-red/50">
+                className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-[#e8002d]/50">
                 {[1, 2, 3].map(n => <option key={n} value={n}>{n}</option>)}
               </select>
             </div>
             <div>
-              <label className="block text-xs text-falcon-muted mb-1">高さ (行数)</label>
+              <label className="block text-xs text-[#7d92b0] mb-1">高さ (行数)</label>
               <select value={form.h} onChange={e => set('h', Number(e.target.value))}
-                className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-red/50">
+                className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-[#e8002d]/50">
                 {[1, 2, 3, 4].map(n => <option key={n} value={n}>{n}</option>)}
               </select>
             </div>
           </div>
         </div>
-        <div className="px-6 py-4 border-t border-falcon-border flex justify-end gap-3 shrink-0">
-          <button onClick={onClose} className="px-4 py-2 rounded-lg border border-falcon-border text-falcon-muted hover:text-white text-sm transition-colors">キャンセル</button>
+        <div className="px-6 py-4 border-t border-[#1e2d42] flex justify-end gap-3 shrink-0">
+          <button onClick={onClose} className="px-4 py-2 rounded-lg border border-[#1e2d42] text-[#7d92b0] hover:text-white text-sm transition-colors">キャンセル</button>
           <button onClick={() => onSave(form)} disabled={!form.title.trim()}
-            className="px-4 py-2 rounded-lg bg-falcon-red text-white hover:bg-[#c8001f] text-sm transition-colors disabled:opacity-50">
+            className="px-4 py-2 rounded-lg bg-[#e8002d] text-white hover:bg-[#c8001f] text-sm transition-colors disabled:opacity-50">
             {initial?.id ? '更新' : '追加'}
           </button>
         </div>
@@ -486,20 +510,20 @@ function WidgetPickerModal({
 
 function TemplatePicker({ onClose, onSelect }: { onClose: () => void; onSelect: (tplId: string) => void }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs">
-      <div className="bg-falcon-surface border border-falcon-border rounded-xl w-full max-w-lg mx-4 shadow-2xl">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-falcon-border">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl w-full max-w-lg mx-4 shadow-2xl">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[#1e2d42]">
           <h2 className="text-white font-semibold">テンプレートから開始</h2>
-          <button onClick={onClose} className="text-falcon-muted hover:text-white"><X className="w-5 h-5" /></button>
+          <button onClick={onClose} className="text-[#7d92b0] hover:text-white"><X className="w-5 h-5" /></button>
         </div>
         <div className="px-6 py-5 space-y-3">
           {DASHBOARD_TEMPLATES.map(tpl => (
             <button key={tpl.id} onClick={() => onSelect(tpl.id)}
-              className="w-full flex items-center gap-4 p-4 bg-[#070d19] border border-falcon-border rounded-lg hover:border-[#2a3f5e] transition-colors text-left">
+              className="w-full flex items-center gap-4 p-4 bg-[#070d19] border border-[#1e2d42] rounded-lg hover:border-[#2a3f5e] transition-colors text-left">
               <span className="text-2xl">{tpl.icon}</span>
               <div>
                 <p className="text-white font-medium text-sm">{tpl.name}</p>
-                <p className="text-xs text-falcon-muted mt-0.5">{tpl.description}</p>
+                <p className="text-xs text-[#7d92b0] mt-0.5">{tpl.description}</p>
               </div>
             </button>
           ))}
@@ -552,23 +576,23 @@ function DashboardEditor({
   return (
     <div className="min-h-screen bg-[#070d19] flex flex-col">
       {toast && (
-        <div className="fixed top-6 right-6 z-50 bg-falcon-surface border border-green-500/40 text-green-400 px-4 py-3 rounded-lg shadow-2xl text-sm flex items-center gap-2">
+        <div className="fixed top-6 right-6 z-50 bg-[#0d1220] border border-green-500/40 text-green-400 px-4 py-3 rounded-lg shadow-2xl text-sm flex items-center gap-2">
           <CheckCircle className="w-4 h-4" /> {toast}
         </div>
       )}
       {/* Editor Header */}
-      <div className="flex items-center gap-4 px-6 py-4 border-b border-falcon-border bg-falcon-surface shrink-0">
-        <button onClick={onClose} className="text-falcon-muted hover:text-white transition-colors">
+      <div className="flex items-center gap-4 px-6 py-4 border-b border-[#1e2d42] bg-[#0d1220] shrink-0">
+        <button onClick={onClose} className="text-[#7d92b0] hover:text-white transition-colors">
           <X className="w-5 h-5" />
         </button>
         <input value={name} onChange={e => setName(e.target.value)}
-          className="flex-1 bg-transparent text-white font-semibold text-lg focus:outline-hidden border-b border-transparent focus:border-falcon-red/40 pb-0.5" />
+          className="flex-1 bg-transparent text-white font-semibold text-lg focus:outline-hidden border-b border-transparent focus:border-[#e8002d]/40 pb-0.5" />
         <button onClick={() => setPickerOpen(true)}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg border border-falcon-border text-falcon-muted hover:text-white text-sm transition-colors">
+          className="flex items-center gap-2 px-4 py-2 rounded-lg border border-[#1e2d42] text-[#7d92b0] hover:text-white text-sm transition-colors">
           <Plus className="w-4 h-4" /> ウィジェット追加
         </button>
         <button onClick={() => onSave({ ...dashboard, name, widgets, widget_count: widgets.length, last_updated: new Date().toISOString() })}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-falcon-red text-white hover:bg-[#c8001f] text-sm transition-colors">
+          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#e8002d] text-white hover:bg-[#c8001f] text-sm transition-colors">
           <Save className="w-4 h-4" /> 保存
         </button>
       </div>
@@ -576,11 +600,11 @@ function DashboardEditor({
       {/* Canvas */}
       <div className="flex-1 overflow-auto p-6">
         {widgets.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-64 text-falcon-subtle">
+          <div className="flex flex-col items-center justify-center h-64 text-[#3d5068]">
             <LayoutTemplate className="w-12 h-12 mb-4" />
             <p className="text-sm">ウィジェットを追加してダッシュボードを構築してください</p>
             <button onClick={() => setPickerOpen(true)}
-              className="mt-4 flex items-center gap-2 px-4 py-2 rounded-lg bg-falcon-red/20 border border-falcon-red/30 text-falcon-red text-sm hover:bg-falcon-red/30 transition-colors">
+              className="mt-4 flex items-center gap-2 px-4 py-2 rounded-lg bg-[#e8002d]/20 border border-[#e8002d]/30 text-[#e8002d] text-sm hover:bg-[#e8002d]/30 transition-colors">
               <Plus className="w-4 h-4" /> ウィジェットを追加
             </button>
           </div>
@@ -588,26 +612,26 @@ function DashboardEditor({
           <div className="grid grid-cols-3 gap-4 auto-rows-min">
             {widgets.map(w => (
               <div key={w.id}
-                className="bg-falcon-surface border border-falcon-border rounded-xl hover:border-[#2a3f5e] transition-colors relative group overflow-hidden"
+                className="bg-[#0d1220] border border-[#1e2d42] rounded-xl hover:border-[#2a3f5e] transition-colors relative group overflow-hidden"
                 style={{ gridColumn: `span ${Math.min(w.w, 3)}`, minHeight: CELL_H * w.h + (w.h - 1) * 16 }}>
                 {/* Widget toolbar */}
                 <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
                   <button onClick={() => setEditWidget(w)}
-                    className="p-1.5 rounded-sm bg-falcon-surface border border-falcon-border text-falcon-muted hover:text-white transition-colors">
+                    className="p-1.5 rounded-sm bg-[#0d1220] border border-[#1e2d42] text-[#7d92b0] hover:text-white transition-colors">
                     <Pencil className="w-3 h-3" />
                   </button>
                   <button onClick={() => deleteWidget(w.id)}
-                    className="p-1.5 rounded-sm bg-falcon-surface border border-falcon-border text-falcon-muted hover:text-red-400 transition-colors">
+                    className="p-1.5 rounded-sm bg-[#0d1220] border border-[#1e2d42] text-[#7d92b0] hover:text-red-400 transition-colors">
                     <Trash2 className="w-3 h-3" />
                   </button>
                 </div>
                 {/* Drag handle */}
                 <div className="absolute top-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity cursor-grab">
-                  <GripVertical className="w-3.5 h-3.5 text-falcon-subtle" />
+                  <GripVertical className="w-3.5 h-3.5 text-[#3d5068]" />
                 </div>
                 {/* Resize handle */}
                 <div className="absolute bottom-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity cursor-se-resize">
-                  <Maximize2 className="w-3 h-3 text-falcon-subtle" />
+                  <Maximize2 className="w-3 h-3 text-[#3d5068]" />
                 </div>
                 <div className="h-full p-4">
                   <WidgetRenderer widget={w} />
@@ -641,16 +665,19 @@ export default function DataVizPage() {
     queryFn: () => apiFetch('/api/v1/admin/dashboards'),
   })
 
+  // .catch(() => d) / .catch(() => null) が失敗を成功に変えるので、
+  // 「ダッシュボードを保存しました」は保存できなかったときにも出ます。
+  // /api/v1/admin/dashboards にはサーバ側のルートがありません。
   const saveMutation = useMutation({
     mutationFn: (d: Dashboard) =>
       d.id.startsWith('new')
-        ? apiFetch('/api/v1/admin/dashboards', { method: 'POST', body: JSON.stringify(d) }).catch(() => d)
-        : apiFetch(`/api/v1/admin/dashboards/${d.id}`, { method: 'PUT', body: JSON.stringify(d) }).catch(() => d),
+        ? apiFetch('/api/v1/admin/dashboards', { method: 'POST', body: JSON.stringify(d) })
+        : apiFetch(`/api/v1/admin/dashboards/${d.id}`, { method: 'PUT', body: JSON.stringify(d) }),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['dashboards'] }); showToast('ダッシュボードを保存しました') },
   })
 
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => apiFetch(`/api/v1/admin/dashboards/${id}`, { method: 'DELETE' }).catch(() => null),
+    mutationFn: (id: string) => apiFetch(`/api/v1/admin/dashboards/${id}`, { method: 'DELETE' }),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['dashboards'] }); showToast('削除しました') },
   })
 
@@ -697,8 +724,10 @@ export default function DataVizPage() {
 
   return (
     <div className="min-h-screen bg-[#070d19] p-6 space-y-6">
+      <PageDataUnavailable />
+      <SaveFailed error={saveErrorOf('ダッシュボード', saveMutation, deleteMutation)} />
       {toast && (
-        <div className="fixed top-6 right-6 z-50 bg-falcon-surface border border-green-500/40 text-green-400 px-4 py-3 rounded-lg shadow-2xl text-sm flex items-center gap-2">
+        <div className="fixed top-6 right-6 z-50 bg-[#0d1220] border border-green-500/40 text-green-400 px-4 py-3 rounded-lg shadow-2xl text-sm flex items-center gap-2">
           <CheckCircle className="w-4 h-4" /> {toast}
         </div>
       )}
@@ -706,21 +735,21 @@ export default function DataVizPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-linear-to-br from-falcon-red to-falcon-red-dark flex items-center justify-center">
+          <div className="w-10 h-10 rounded-lg bg-linear-to-br from-[#e8002d] to-[#a80020] flex items-center justify-center">
             <PieChart className="w-5 h-5 text-white" />
           </div>
           <div>
             <h1 className="text-xl font-bold text-white">データビジュアライゼーション</h1>
-            <p className="text-xs text-falcon-muted mt-0.5">カスタムダッシュボードビルダー</p>
+            <p className="text-xs text-[#7d92b0] mt-0.5">カスタムダッシュボードビルダー</p>
           </div>
         </div>
         <div className="flex gap-3">
           <button onClick={() => setShowTemplate(true)}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg border border-falcon-border text-falcon-muted hover:text-white text-sm transition-colors">
+            className="flex items-center gap-2 px-4 py-2 rounded-lg border border-[#1e2d42] text-[#7d92b0] hover:text-white text-sm transition-colors">
             <LayoutTemplate className="w-4 h-4" /> テンプレート
           </button>
           <button onClick={() => setShowNewForm(v => !v)}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-falcon-red text-white hover:bg-[#c8001f] text-sm transition-colors">
+            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#e8002d] text-white hover:bg-[#c8001f] text-sm transition-colors">
             <Plus className="w-4 h-4" /> 新規ダッシュボード
           </button>
         </div>
@@ -728,15 +757,15 @@ export default function DataVizPage() {
 
       {/* New dashboard inline form */}
       {showNewForm && (
-        <div className="flex items-center gap-3 p-4 bg-falcon-surface border border-falcon-border rounded-xl">
+        <div className="flex items-center gap-3 p-4 bg-[#0d1220] border border-[#1e2d42] rounded-xl">
           <input value={newDashName} onChange={e => setNewDashName(e.target.value)}
             placeholder="ダッシュボード名を入力..."
-            className="flex-1 bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-falcon-red/50" />
+            className="flex-1 bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-white text-sm focus:outline-hidden focus:border-[#e8002d]/50" />
           <button onClick={handleNewDashboard}
-            className="px-4 py-2 rounded-lg bg-falcon-red text-white hover:bg-[#c8001f] text-sm transition-colors">
+            className="px-4 py-2 rounded-lg bg-[#e8002d] text-white hover:bg-[#c8001f] text-sm transition-colors">
             作成して編集
           </button>
-          <button onClick={() => setShowNewForm(false)} className="text-falcon-muted hover:text-white">
+          <button onClick={() => setShowNewForm(false)} className="text-[#7d92b0] hover:text-white">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -745,28 +774,28 @@ export default function DataVizPage() {
       {/* Dashboard Gallery */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
         {dashboards.map(dash => (
-          <div key={dash.id} className="bg-falcon-surface border border-falcon-border rounded-xl overflow-hidden hover:border-[#2a3f5e] transition-colors group">
+          <div key={dash.id} className="bg-[#0d1220] border border-[#1e2d42] rounded-xl overflow-hidden hover:border-[#2a3f5e] transition-colors group">
             {/* Thumbnail */}
-            <div className="relative h-32 bg-[#070d19] border-b border-falcon-border overflow-hidden">
+            <div className="relative h-32 bg-[#070d19] border-b border-[#1e2d42] overflow-hidden">
               <div className="absolute inset-0 grid grid-cols-3 grid-rows-3 gap-1 p-2 opacity-60">
                 {dash.widgets.slice(0, 6).map((w, i) => {
                   const cs = COLOR_SCHEMES[w.color_scheme]
                   return (
-                    <div key={i} className={`${cs.bg} rounded-sm border border-falcon-border flex items-center justify-center`}
+                    <div key={i} className={`${cs.bg} rounded-sm border border-[#1e2d42] flex items-center justify-center`}
                       style={{ gridColumn: `span ${Math.min(w.w, 3)}` }}>
                       <div className="w-4 h-4 rounded-xs" style={{ backgroundColor: cs.primary, opacity: 0.5 }} />
                     </div>
                   )
                 })}
               </div>
-              <div className="absolute inset-0 bg-linear-to-t from-falcon-surface to-transparent opacity-0 group-hover:opacity-60 transition-opacity" />
+              <div className="absolute inset-0 bg-linear-to-t from-[#0d1220] to-transparent opacity-0 group-hover:opacity-60 transition-opacity" />
               <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity gap-3">
                 <button onClick={() => setEditingDash(dash)}
-                  className="p-2 rounded-lg bg-falcon-surface border border-falcon-border text-falcon-muted hover:text-white transition-colors">
+                  className="p-2 rounded-lg bg-[#0d1220] border border-[#1e2d42] text-[#7d92b0] hover:text-white transition-colors">
                   <Eye className="w-4 h-4" />
                 </button>
                 <button onClick={() => setEditingDash(dash)}
-                  className="p-2 rounded-lg bg-falcon-surface border border-falcon-border text-falcon-muted hover:text-white transition-colors">
+                  className="p-2 rounded-lg bg-[#0d1220] border border-[#1e2d42] text-[#7d92b0] hover:text-white transition-colors">
                   <Pencil className="w-4 h-4" />
                 </button>
               </div>
@@ -775,26 +804,26 @@ export default function DataVizPage() {
             <div className="p-4">
               <h3 className="text-white font-semibold text-sm truncate">{dash.name}</h3>
               <div className="flex items-center gap-2 mt-1.5">
-                <span className="text-xs text-falcon-muted">{displayUser(dash.created_by)}</span>
-                <span className="w-1 h-1 rounded-full bg-falcon-subtle" />
-                <span className="text-xs text-falcon-muted flex items-center gap-1">
+                <span className="text-xs text-[#7d92b0]">{displayUser(dash.created_by)}</span>
+                <span className="w-1 h-1 rounded-full bg-[#3d5068]" />
+                <span className="text-xs text-[#7d92b0] flex items-center gap-1">
                   <Clock className="w-3 h-3" />
                   {new Date(dash.last_updated).toLocaleDateString('ja-JP')}
                 </span>
-                <span className="w-1 h-1 rounded-full bg-falcon-subtle" />
-                <span className="text-xs text-falcon-muted">{dash.widget_count}個</span>
+                <span className="w-1 h-1 rounded-full bg-[#3d5068]" />
+                <span className="text-xs text-[#7d92b0]">{dash.widget_count}個</span>
               </div>
               <div className="flex gap-2 mt-3">
                 <button onClick={() => setEditingDash(dash)}
-                  className="flex-1 py-1.5 rounded-lg bg-falcon-red/20 border border-falcon-red/30 text-falcon-red hover:bg-falcon-red/30 text-xs font-medium transition-colors">
+                  className="flex-1 py-1.5 rounded-lg bg-[#e8002d]/20 border border-[#e8002d]/30 text-[#e8002d] hover:bg-[#e8002d]/30 text-xs font-medium transition-colors">
                   開く
                 </button>
                 <button onClick={() => setEditingDash(dash)}
-                  className="flex-1 py-1.5 rounded-lg border border-falcon-border text-falcon-muted hover:text-white text-xs font-medium transition-colors flex items-center justify-center gap-1">
+                  className="flex-1 py-1.5 rounded-lg border border-[#1e2d42] text-[#7d92b0] hover:text-white text-xs font-medium transition-colors flex items-center justify-center gap-1">
                   <Pencil className="w-3 h-3" /> 編集
                 </button>
                 <button onClick={() => deleteMutation.mutate(dash.id)}
-                  className="py-1.5 px-3 rounded-lg border border-falcon-border text-falcon-muted hover:text-red-400 text-xs transition-colors">
+                  className="py-1.5 px-3 rounded-lg border border-[#1e2d42] text-[#7d92b0] hover:text-red-400 text-xs transition-colors">
                   <Trash2 className="w-3 h-3" />
                 </button>
               </div>

@@ -114,11 +114,6 @@ func (s *Store) Remove(ctx context.Context, id string) error {
 
 // List returns paginated entries, optionally filtered by entity type.
 func (s *Store) List(ctx context.Context, entityType string) ([]*WatchlistEntry, int, error) {
-	var (
-		rows interface{ Next() bool }
-		err  error
-	)
-
 	query := `SELECT id, entity_type, entity_value, label, reason, priority, added_by,
 	                 tags, hit_count, last_hit, enabled, expires_at, created_at
 	          FROM watchlist`
@@ -136,10 +131,12 @@ func (s *Store) List(ctx context.Context, entityType string) ([]*WatchlistEntry,
 		return nil, 0, err
 	}
 	defer pgRows.Close()
-	rows = pgRows
 
+	// 以前ここには interface{ Next() bool } という無名インターフェースを挟んで
+	// いました。Next() しか持たないので、結果セットが終わったのか壊れたのかを
+	// 誰も尋ねられません。pgx.Rows をそのまま使います。
 	var entries []*WatchlistEntry
-	for rows.Next() {
+	for pgRows.Next() {
 		e := &WatchlistEntry{}
 		if scanErr := pgRows.Scan(
 			&e.ID, &e.EntityType, &e.EntityValue, &e.Label, &e.Reason,
@@ -149,6 +146,11 @@ func (s *Store) List(ctx context.Context, entityType string) ([]*WatchlistEntry,
 			continue
 		}
 		entries = append(entries, e)
+	}
+	// total は len(entries) なので、切り詰められた読み取りは件数まで小さく
+	// 報告します。「17件中17件」と表示されて、実際は40件あります。
+	if err := pgRows.Err(); err != nil {
+		return nil, 0, err
 	}
 	return entries, len(entries), nil
 }
@@ -223,6 +225,10 @@ func (s *Store) LoadCache(ctx context.Context) error {
 		s.cache.Store(cacheKey{e.EntityType, e.EntityValue}, e)
 		count++
 	}
+	// 部分結果を完全な一覧として返さない（scan_truncation_guard_test.go 参照）
+	if err := rows.Err(); err != nil {
+		return err
+	}
 	slog.Info("watchlist: cache loaded", "entries", count)
 	return nil
 }
@@ -242,6 +248,9 @@ func (s *Store) GetStats(ctx context.Context) WatchlistStats {
 				stats.ByType[t] = cnt
 				stats.Total += cnt
 			}
+		}
+		if err := rows.Err(); err != nil {
+			slog.Error("ウォッチリスト統計の集計が途中で終わりました。件数は実際より小さく出ます", "error", err)
 		}
 	}
 

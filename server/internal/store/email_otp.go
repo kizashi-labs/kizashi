@@ -91,6 +91,10 @@ func (s *EmailOTPStore) Verify(ctx context.Context, userID, code, purpose string
 		}
 		candidates = append(candidates, r)
 	}
+	// 部分結果を完全な一覧として返さない（scan_truncation_guard_test.go 参照）
+	if err := rows.Err(); err != nil {
+		return err
+	}
 	rows.Close()
 
 	if len(candidates) == 0 {

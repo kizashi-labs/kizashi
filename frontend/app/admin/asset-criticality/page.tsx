@@ -2,12 +2,15 @@
 
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { apiFetch } from '@/lib/api'
+import { apiFetch, apiFetchList } from '@/lib/api'
 import {
-  Gauge, RefreshCw, X, ChevronDown, ChevronRight,
+  Gauge, X, ChevronDown, ChevronRight,
   Monitor, Server, Laptop, AlertTriangle, Shield,
-  CheckCircle, SlidersHorizontal, Info, Calculator,
+  CheckCircle, SlidersHorizontal, Info, Calculator, RotateCcw,
 } from 'lucide-react'
+
+import { PageDataUnavailable } from '@/components/PageDataUnavailable'
+import { PageSaveFailed } from '@/components/PageSaveFailed'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -36,9 +39,13 @@ interface AssetCriticality {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
+// 区切りはサーバの `scoreTier`（server/internal/api/handlers/
+// asset_criticality_handler.go）と同じにしてあります。ここだけ 80/60 に
+// なっていたので、**上書きダイアログの予告と、保存後に一覧が出す段が
+// 食い違っていました**（82点は「Critical」と予告して「High」で並ぶ）。
 const getTier = (score: number): Tier => {
-  if (score >= 80) return 'critical'
-  if (score >= 60) return 'high'
+  if (score >= 85) return 'critical'
+  if (score >= 65) return 'high'
   if (score >= 40) return 'medium'
   return 'low'
 }
@@ -76,14 +83,14 @@ function OverrideModal({
   const tc = tierConfig[tier]
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs">
-      <div className="bg-falcon-surface border border-falcon-border rounded-xl w-[480px] shadow-2xl">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-falcon-border">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+      <div className="bg-[#0d1220] border border-[#1e2d42] rounded-xl w-[480px] shadow-2xl">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[#1e2d42]">
           <div>
             <h3 className="text-white font-semibold">スコア手動設定</h3>
-            <p className="text-xs text-falcon-muted mt-0.5">{asset.hostname}</p>
+            <p className="text-xs text-[#7d92b0] mt-0.5">{asset.hostname}</p>
           </div>
-          <button onClick={onClose} className="text-falcon-muted hover:text-white transition-colors">
+          <button onClick={onClose} className="text-[#7d92b0] hover:text-white transition-colors">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -92,7 +99,7 @@ function OverrideModal({
           {/* Score slider */}
           <div>
             <div className="flex items-center justify-between mb-2">
-              <label className="text-xs text-falcon-muted">重要度スコア (0-100)</label>
+              <label className="text-xs text-[#7d92b0]">重要度スコア (0-100)</label>
               <div className="flex items-center gap-2">
                 <span className={`text-2xl font-bold ${tc.scoreColor}`}>{score}</span>
                 <span className={`text-xs px-2 py-0.5 rounded-sm border ${tc.cls}`}>{tc.label}</span>
@@ -102,10 +109,10 @@ function OverrideModal({
               type="range" min={0} max={100}
               value={score}
               onChange={e => setScore(Number(e.target.value))}
-              className="w-full accent-falcon-red"
+              className="w-full accent-[#e8002d]"
             />
             {/* Score bar preview */}
-            <div className="mt-2 h-2 bg-[#070d19] rounded-full overflow-hidden border border-falcon-border">
+            <div className="mt-2 h-2 bg-[#070d19] rounded-full overflow-hidden border border-[#1e2d42]">
               <div
                 className={`h-full rounded-full transition-all duration-300 ${tc.barColor}`}
                 style={{ width: `${score}%` }}
@@ -115,9 +122,9 @@ function OverrideModal({
 
           {/* Reason */}
           <div>
-            <label className="block text-xs text-falcon-muted mb-1.5">設定理由</label>
+            <label className="block text-xs text-[#7d92b0] mb-1.5">設定理由</label>
             <textarea
-              className="w-full bg-[#070d19] border border-falcon-border rounded-lg px-3 py-2 text-sm text-white focus:outline-hidden focus:border-falcon-blue/60 resize-none"
+              className="w-full bg-[#070d19] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-white focus:outline-hidden focus:border-[#1a6bff]/60 resize-none"
               rows={3}
               value={reason}
               onChange={e => setReason(e.target.value)}
@@ -126,8 +133,8 @@ function OverrideModal({
           </div>
 
           {/* Tier thresholds reference */}
-          <div className="bg-[#070d19] rounded-lg p-3 border border-falcon-border">
-            <p className="text-xs text-falcon-muted mb-2 font-medium">スコア閾値</p>
+          <div className="bg-[#070d19] rounded-lg p-3 border border-[#1e2d42]">
+            <p className="text-xs text-[#7d92b0] mb-2 font-medium">スコア閾値</p>
             <div className="grid grid-cols-4 gap-2 text-xs">
               {(['critical', 'high', 'medium', 'low'] as Tier[]).map(t => (
                 <div key={t} className={`rounded-sm px-2 py-1 border text-center ${tierConfig[t].cls} ${getTier(score) === t ? 'ring-1 ring-white/20' : ''}`}>
@@ -141,16 +148,16 @@ function OverrideModal({
           </div>
         </div>
 
-        <div className="flex justify-end gap-3 px-6 py-4 border-t border-falcon-border">
+        <div className="flex justify-end gap-3 px-6 py-4 border-t border-[#1e2d42]">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-sm text-falcon-muted hover:text-white border border-falcon-border rounded-lg transition-colors"
+            className="px-4 py-2 text-sm text-[#7d92b0] hover:text-white border border-[#1e2d42] rounded-lg transition-colors"
           >
             キャンセル
           </button>
           <button
             onClick={() => onSave(score, reason)}
-            className="px-4 py-2 text-sm bg-falcon-red hover:bg-[#c0001f] text-white rounded-lg transition-colors"
+            className="px-4 py-2 text-sm bg-[#e8002d] hover:bg-[#c0001f] text-white rounded-lg transition-colors"
           >
             設定を保存
           </button>
@@ -165,9 +172,13 @@ function OverrideModal({
 function AssetRow({
   asset,
   onOverride,
+  onClearOverride,
+  clearing,
 }: {
   asset: AssetCriticality
   onOverride: (asset: AssetCriticality) => void
+  onClearOverride: (asset: AssetCriticality) => void
+  clearing: boolean
 }) {
   const [expanded, setExpanded] = useState(false)
   const tc = tierConfig[asset.tier]
@@ -175,16 +186,16 @@ function AssetRow({
 
   return (
     <>
-      <tr className="border-b border-falcon-border/50 hover:bg-[#131d31]/50 transition-colors">
+      <tr className="border-b border-[#1e2d42]/50 hover:bg-[#131d31]/50 transition-colors">
         {/* Hostname */}
         <td className="px-4 py-3">
           <div className="flex items-center gap-2">
-            <OsIcon className="w-4 h-4 text-falcon-subtle shrink-0" />
+            <OsIcon className="w-4 h-4 text-[#3d5068] shrink-0" />
             <div>
               <div className="flex items-center gap-2">
                 <span className="text-white font-medium text-sm">{asset.hostname}</span>
                 {!asset.is_online && (
-                  <span className="text-[10px] text-falcon-subtle border border-falcon-border px-1.5 py-0.5 rounded-sm">OFFLINE</span>
+                  <span className="text-[10px] text-[#3d5068] border border-[#1e2d42] px-1.5 py-0.5 rounded-sm">OFFLINE</span>
                 )}
                 {asset.is_online && (
                   <span className="w-1.5 h-1.5 rounded-full bg-green-400 inline-block" />
@@ -196,7 +207,7 @@ function AssetRow({
 
         {/* OS */}
         <td className="px-4 py-3">
-          <span className="text-xs text-falcon-muted bg-[#070d19] border border-falcon-border px-2 py-0.5 rounded-sm">
+          <span className="text-xs text-[#7d92b0] bg-[#070d19] border border-[#1e2d42] px-2 py-0.5 rounded-sm">
             {asset.os}
           </span>
         </td>
@@ -206,7 +217,7 @@ function AssetRow({
           <div className="flex items-center gap-3">
             <span className={`text-2xl font-bold ${tc.scoreColor}`}>{asset.criticality_score}</span>
             <div className="flex-1 min-w-[80px]">
-              <div className="h-1.5 bg-[#070d19] rounded-full overflow-hidden border border-falcon-border">
+              <div className="h-1.5 bg-[#070d19] rounded-full overflow-hidden border border-[#1e2d42]">
                 <div
                   className={`h-full rounded-full ${tc.barColor} transition-all duration-500`}
                   style={{ width: `${asset.criticality_score}%` }}
@@ -227,7 +238,7 @@ function AssetRow({
         <td className="px-4 py-3">
           <button
             onClick={() => setExpanded(e => !e)}
-            className="flex items-center gap-1 text-xs text-falcon-muted hover:text-white transition-colors"
+            className="flex items-center gap-1 text-xs text-[#7d92b0] hover:text-white transition-colors"
           >
             {expanded ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
             {asset.factors.length} 要因
@@ -242,24 +253,40 @@ function AssetRow({
               手動設定
             </span>
           ) : (
-            <span className="text-xs text-falcon-subtle">自動</span>
+            <span className="text-xs text-[#3d5068]">自動</span>
           )}
         </td>
 
         {/* Last Calculated */}
-        <td className="px-4 py-3 text-xs text-falcon-muted whitespace-nowrap">
+        <td className="px-4 py-3 text-xs text-[#7d92b0] whitespace-nowrap">
           {fmtDate(asset.last_calculated)}
         </td>
 
         {/* Actions */}
         <td className="px-4 py-3">
-          <button
-            onClick={() => onOverride(asset)}
-            className="flex items-center gap-1.5 text-xs px-3 py-1.5 bg-[#131d31] border border-falcon-border hover:border-falcon-muted/40 text-falcon-muted hover:text-white rounded-lg transition-colors"
-          >
-            <SlidersHorizontal className="w-3 h-3" />
-            スコア設定
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => onOverride(asset)}
+              className="flex items-center gap-1.5 text-xs px-3 py-1.5 bg-[#131d31] border border-[#1e2d42] hover:border-[#7d92b0]/40 text-[#7d92b0] hover:text-white rounded-lg transition-colors"
+            >
+              <SlidersHorizontal className="w-3 h-3" />
+              スコア設定
+            </button>
+            {/* **手動にしたあと、自動計算に戻す方法がありませんでした。**
+                手動が効くようになるまでは「次の表示で勝手に戻る」形でしたが、
+                それは解除ではなく機能していなかっただけです。 */}
+            {asset.manual_override && (
+              <button
+                onClick={() => onClearOverride(asset)}
+                disabled={clearing}
+                title="手動設定を外して、自動計算のスコアに戻します"
+                className="flex items-center gap-1.5 text-xs px-3 py-1.5 bg-[#131d31] border border-[#1e2d42] hover:border-[#7d92b0]/40 text-[#7d92b0] hover:text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <RotateCcw className={`w-3 h-3 ${clearing ? 'animate-spin' : ''}`} />
+                自動に戻す
+              </button>
+            )}
+          </div>
         </td>
       </tr>
 
@@ -269,14 +296,14 @@ function AssetRow({
           <td colSpan={8} className="px-8 py-3">
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
               {asset.factors.map((f, i) => (
-                <div key={i} className="bg-falcon-surface rounded-lg px-3 py-2 border border-falcon-border">
+                <div key={i} className="bg-[#0d1220] rounded-lg px-3 py-2 border border-[#1e2d42]">
                   <div className="flex items-center justify-between mb-1">
-                    <span className="text-xs text-falcon-muted font-medium">{f.name}</span>
-                    <span className={`text-sm font-bold ${f.impact > 0 ? 'text-green-400' : f.impact < 0 ? 'text-red-400' : 'text-falcon-subtle'}`}>
+                    <span className="text-xs text-[#7d92b0] font-medium">{f.name}</span>
+                    <span className={`text-sm font-bold ${f.impact > 0 ? 'text-green-400' : f.impact < 0 ? 'text-red-400' : 'text-[#3d5068]'}`}>
                       {f.impact > 0 ? `+${f.impact}` : f.impact}
                     </span>
                   </div>
-                  <p className="text-[10px] text-falcon-subtle">{f.description}</p>
+                  <p className="text-[10px] text-[#3d5068]">{f.description}</p>
                 </div>
               ))}
             </div>
@@ -304,20 +331,24 @@ export default function AssetCriticalityPage() {
 
   // ── Queries ──────────────────────────────────────────────────
 
+  // apiFetchList を使うのは、サーバが `{data, total}` で返すからです
+  // （この配置の他の一覧と同じ形）。**上限に当たったかどうかを応答に
+  // 載せるには、裸の配列では足りません。**
   const { data: assets = [], isLoading } = useQuery<AssetCriticality[]>({
     queryKey: ['asset-criticality'],
-    queryFn: () => apiFetch('/api/v1/endpoints/criticality'),
+    queryFn: () => apiFetchList<AssetCriticality>('/api/v1/endpoints/criticality'),
     staleTime: 30_000,
     retry: false,
   })
 
   // ── Mutations ────────────────────────────────────────────────
 
-  const bulkCalc = useMutation({
-    mutationFn: () =>
-      apiFetch('/api/v1/endpoints/criticality/bulk', { method: 'POST' }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['asset-criticality'] }),
-  })
+  // **「一括計算」ボタンは外しました。**
+  //
+  // 計算値を保存しなくなったので、`POST /endpoints/criticality/bulk` は
+  // `GET /endpoints/criticality` と同じものを返します —— 一覧を開くたびに
+  // 計算しているので、押しても変わるものがありません。**何も変わらない
+  // ボタンは、押した人に「更新された」と思わせます。**
 
   const setManualScore = useMutation({
     mutationFn: ({ id, score, reason }: { id: string; score: number; reason: string }) =>
@@ -330,6 +361,17 @@ export default function AssetCriticalityPage() {
       setOverrideAsset(undefined)
     },
     onError: () => setOverrideAsset(undefined),
+  })
+
+  // **手動設定を外して、自動計算に戻します。**
+  //
+  // 行を消すだけです（`DELETE /endpoints/:id/criticality`）。応答には
+  // 戻った先の点数が入っていますが、一覧はどのみち取り直すので、
+  // ここでは無効化だけします。
+  const clearManualScore = useMutation({
+    mutationFn: (id: string) =>
+      apiFetch(`/api/v1/endpoints/${id}/criticality`, { method: 'DELETE' }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['asset-criticality'] }),
   })
 
   // ── Derived ──────────────────────────────────────────────────
@@ -355,17 +397,19 @@ export default function AssetCriticalityPage() {
 
   return (
     <div className="min-h-screen bg-[#070d19] text-white">
+      <PageDataUnavailable />
+      <PageSaveFailed className="mb-4" />
       <div className="max-w-[1400px] mx-auto px-6 py-6">
 
         {/* ── Header ── */}
         <div className="mb-6">
           <div className="flex items-center gap-3 mb-1">
-            <div className="w-8 h-8 rounded-lg bg-linear-to-br from-falcon-blue to-[#0044cc] flex items-center justify-center shadow-lg">
+            <div className="w-8 h-8 rounded-lg bg-linear-to-br from-[#1a6bff] to-[#0044cc] flex items-center justify-center shadow-lg">
               <Gauge className="w-4 h-4 text-white" />
             </div>
             <h1 className="text-2xl font-bold text-white">アセット重要度スコアリング</h1>
           </div>
-          <p className="text-falcon-muted text-sm ml-11">
+          <p className="text-[#7d92b0] text-sm ml-11">
             エンドポイントのビジネス重要度を自動算出・管理します
           </p>
         </div>
@@ -383,30 +427,30 @@ export default function AssetCriticalityPage() {
               <button
                 key={s.key}
                 onClick={() => setFilterTier(filterTier === s.key ? '' : s.key)}
-                className={`rounded-xl p-4 border bg-falcon-surface text-left transition-all
-                  ${filterTier === s.key ? `border-[${s.key === 'critical' ? '#e8002d' : '#1a6bff'}]/50 ring-1 ring-falcon-blue/30` : 'border-falcon-border hover:border-[#2a3f5a]'}`}
+                className={`rounded-xl p-4 border bg-[#0d1220] text-left transition-all
+                  ${filterTier === s.key ? `border-[${s.key === 'critical' ? '#e8002d' : '#1a6bff'}]/50 ring-1 ring-[#1a6bff]/30` : 'border-[#1e2d42] hover:border-[#2a3f5a]'}`}
               >
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs text-falcon-muted">{s.label}</span>
+                  <span className="text-xs text-[#7d92b0]">{s.label}</span>
                   <s.icon className={`w-4 h-4 ${tc.scoreColor}`} />
                 </div>
                 <p className={`text-3xl font-bold ${tc.scoreColor}`}>{stats[s.key]}</p>
-                <p className="text-xs text-falcon-subtle mt-1">エンドポイント</p>
+                <p className="text-xs text-[#3d5068] mt-1">エンドポイント</p>
               </button>
             )
           })}
         </div>
 
         {/* ── Tabs ── */}
-        <div className="flex gap-1 mb-5 border-b border-falcon-border">
+        <div className="flex gap-1 mb-5 border-b border-[#1e2d42]">
           {([['list', '重要度一覧'], ['config', 'スコア設定']] as const).map(([k, label]) => (
             <button
               key={k}
               onClick={() => setActiveTab(k)}
               className={`px-5 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px
                 ${activeTab === k
-                  ? 'border-falcon-red text-white'
-                  : 'border-transparent text-falcon-muted hover:text-white'
+                  ? 'border-[#e8002d] text-white'
+                  : 'border-transparent text-[#7d92b0] hover:text-white'
                 }`}
             >
               {label}
@@ -422,9 +466,9 @@ export default function AssetCriticalityPage() {
               <div className="flex items-center gap-3 flex-1">
                 {/* Search */}
                 <div className="relative max-w-[280px]">
-                  <Monitor className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-falcon-subtle" />
+                  <Monitor className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#3d5068]" />
                   <input
-                    className="w-full bg-falcon-surface border border-falcon-border rounded-lg pl-8 pr-3 py-2 text-sm text-white placeholder-falcon-subtle focus:outline-hidden focus:border-falcon-blue/60"
+                    className="w-full bg-[#0d1220] border border-[#1e2d42] rounded-lg pl-8 pr-3 py-2 text-sm text-white placeholder-[#3d5068] focus:outline-hidden focus:border-[#1a6bff]/60"
                     placeholder="ホスト名で検索..."
                     value={searchHost}
                     onChange={e => setSearchHost(e.target.value)}
@@ -433,7 +477,7 @@ export default function AssetCriticalityPage() {
 
                 {/* Tier filter */}
                 <select
-                  className="bg-falcon-surface border border-falcon-border rounded-lg px-3 py-2 text-sm text-white focus:outline-hidden focus:border-falcon-blue/60"
+                  className="bg-[#0d1220] border border-[#1e2d42] rounded-lg px-3 py-2 text-sm text-white focus:outline-hidden focus:border-[#1a6bff]/60"
                   value={filterTier}
                   onChange={e => setFilterTier(e.target.value as Tier | '')}
                 >
@@ -444,26 +488,16 @@ export default function AssetCriticalityPage() {
                   <option value="low">Low</option>
                 </select>
 
-                <span className="text-xs text-falcon-subtle">{filteredAssets.length} / {displayAssets.length} 件</span>
+                <span className="text-xs text-[#3d5068]">{filteredAssets.length} / {displayAssets.length} 件</span>
               </div>
-
-              {/* Bulk calculate */}
-              <button
-                onClick={() => bulkCalc.mutate()}
-                disabled={bulkCalc.isPending}
-                className="flex items-center gap-2 px-4 py-2 bg-falcon-blue hover:bg-[#1559d4] disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors"
-              >
-                <Calculator className={`w-4 h-4 ${bulkCalc.isPending ? 'animate-spin' : ''}`} />
-                {bulkCalc.isPending ? '計算中...' : '一括計算'}
-              </button>
             </div>
 
-            <div className="bg-falcon-surface rounded-xl border border-falcon-border overflow-hidden">
+            <div className="bg-[#0d1220] rounded-xl border border-[#1e2d42] overflow-hidden">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-falcon-border">
+                  <tr className="border-b border-[#1e2d42]">
                     {['ホスト名', 'OS', 'スコア', 'ティア', 'スコア要因', '設定方法', '最終計算', '操作'].map(h => (
-                      <th key={h} className="text-left px-4 py-3 text-xs text-falcon-muted font-medium">{h}</th>
+                      <th key={h} className="text-left px-4 py-3 text-xs text-[#7d92b0] font-medium">{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -473,12 +507,14 @@ export default function AssetCriticalityPage() {
                       key={asset.id}
                       asset={asset}
                       onOverride={setOverrideAsset}
+                      onClearOverride={a => clearManualScore.mutate(a.id)}
+                      clearing={clearManualScore.isPending && clearManualScore.variables === asset.id}
                     />
                   ))}
                   {filteredAssets.length === 0 && (
                     <tr>
-                      <td colSpan={8} className="px-4 py-10 text-center text-falcon-subtle">
-                        <Monitor className="w-8 h-8 mx-auto mb-2 text-falcon-border" />
+                      <td colSpan={8} className="px-4 py-10 text-center text-[#3d5068]">
+                        <Monitor className="w-8 h-8 mx-auto mb-2 text-[#1e2d42]" />
                         <p>条件に一致するアセットはありません</p>
                       </td>
                     </tr>
@@ -493,28 +529,28 @@ export default function AssetCriticalityPage() {
         {activeTab === 'config' && (
           <div className="max-w-3xl space-y-6">
             {/* Algorithm explanation */}
-            <div className="bg-falcon-surface rounded-xl border border-falcon-border p-6">
+            <div className="bg-[#0d1220] rounded-xl border border-[#1e2d42] p-6">
               <div className="flex items-center gap-2 mb-4">
-                <Calculator className="w-5 h-5 text-falcon-blue" />
+                <Calculator className="w-5 h-5 text-[#1a6bff]" />
                 <h2 className="text-white font-semibold">スコアリングアルゴリズム</h2>
               </div>
-              <p className="text-sm text-falcon-muted leading-relaxed mb-4">
+              <p className="text-sm text-[#7d92b0] leading-relaxed mb-4">
                 アセット重要度スコアは、複数の要因を組み合わせて 0〜100 点で算出します。
                 各エンドポイントはベーススコアからスタートし、環境・状態に応じた加算・減算が適用されます。
                 スコアは定期的に自動再計算されますが、管理者が手動でオーバーライドすることも可能です。
               </p>
-              <div className="bg-[#070d19] rounded-lg p-4 border border-falcon-border font-mono text-sm">
-                <p className="text-falcon-muted">スコア計算式:</p>
+              <div className="bg-[#070d19] rounded-lg p-4 border border-[#1e2d42] font-mono text-sm">
+                <p className="text-[#7d92b0]">スコア計算式:</p>
                 <p className="text-white mt-1">
-                  Score = ベーススコア + Σ(適用要因) <span className="text-falcon-subtle">(0〜100 にクリップ)</span>
+                  Score = ベーススコア + Σ(適用要因) <span className="text-[#3d5068]">(0〜100 にクリップ)</span>
                 </p>
               </div>
             </div>
 
             {/* Factor weights */}
-            <div className="bg-falcon-surface rounded-xl border border-falcon-border p-6">
+            <div className="bg-[#0d1220] rounded-xl border border-[#1e2d42] p-6">
               <div className="flex items-center gap-2 mb-4">
-                <SlidersHorizontal className="w-5 h-5 text-falcon-blue" />
+                <SlidersHorizontal className="w-5 h-5 text-[#1a6bff]" />
                 <h2 className="text-white font-semibold">要因ウェイト設定</h2>
               </div>
 
@@ -526,7 +562,7 @@ export default function AssetCriticalityPage() {
                   { name: '高脆弱性', impact: 10, color: 'text-yellow-400', barColor: 'bg-yellow-500', description: 'CVSSスコア 7.0以上の未修正脆弱性が存在する場合に加算。', sign: '+' },
                   { name: 'オフラインペナルティ', impact: 10, color: 'text-red-400', barColor: 'bg-red-500', description: 'エンドポイントがオフラインまたは長時間未接続の場合に減算。可視性の低下を反映。', sign: '-' },
                 ].map(f => (
-                  <div key={f.name} className="flex items-start gap-4 p-3 bg-[#070d19] rounded-lg border border-falcon-border">
+                  <div key={f.name} className="flex items-start gap-4 p-3 bg-[#070d19] rounded-lg border border-[#1e2d42]">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-3 mb-1">
                         <span className="text-sm text-white font-medium">{f.name}</span>
@@ -534,10 +570,10 @@ export default function AssetCriticalityPage() {
                           {f.sign}{f.impact}点
                         </span>
                       </div>
-                      <p className="text-xs text-falcon-subtle">{f.description}</p>
+                      <p className="text-xs text-[#3d5068]">{f.description}</p>
                     </div>
                     <div className="w-24 shrink-0 mt-2">
-                      <div className="h-1.5 bg-falcon-border rounded-full overflow-hidden">
+                      <div className="h-1.5 bg-[#1e2d42] rounded-full overflow-hidden">
                         <div
                           className={`h-full rounded-full ${f.barColor}`}
                           style={{ width: `${(f.impact / 50) * 100}%` }}
@@ -548,10 +584,10 @@ export default function AssetCriticalityPage() {
                 ))}
               </div>
 
-              <div className="mt-4 p-3 bg-falcon-blue/5 border border-falcon-blue/20 rounded-lg">
+              <div className="mt-4 p-3 bg-[#1a6bff]/5 border border-[#1a6bff]/20 rounded-lg">
                 <div className="flex items-start gap-2">
-                  <Info className="w-4 h-4 text-falcon-blue shrink-0 mt-0.5" />
-                  <p className="text-xs text-falcon-muted">
+                  <Info className="w-4 h-4 text-[#1a6bff] shrink-0 mt-0.5" />
+                  <p className="text-xs text-[#7d92b0]">
                     上記の要因ウェイトは現在表示専用です。将来のバージョンで管理者によるカスタマイズが可能になります。
                     手動スコア設定は「重要度一覧」タブから各エンドポイントの「スコア設定」ボタンで行えます。
                   </p>
@@ -560,9 +596,9 @@ export default function AssetCriticalityPage() {
             </div>
 
             {/* Tier thresholds */}
-            <div className="bg-falcon-surface rounded-xl border border-falcon-border p-6">
+            <div className="bg-[#0d1220] rounded-xl border border-[#1e2d42] p-6">
               <div className="flex items-center gap-2 mb-4">
-                <Gauge className="w-5 h-5 text-falcon-blue" />
+                <Gauge className="w-5 h-5 text-[#1a6bff]" />
                 <h2 className="text-white font-semibold">ティア閾値</h2>
               </div>
 
@@ -575,14 +611,14 @@ export default function AssetCriticalityPage() {
                 ] as const).map(t => {
                   const tc = tierConfig[t.tier]
                   return (
-                    <div key={t.tier} className={`rounded-lg p-4 border ${tc.cls.split(' ').slice(0, 2).join(' ')} bg-[#070d19]`}>
+                    <div key={t.tier} className={`rounded-lg p-4 border ${tc.cls.split(' ').slice(0, 2).join(' ')} border-opacity-30 bg-[#070d19]`}>
                       <div className="flex items-center justify-between mb-2">
                         <span className={`text-sm font-bold ${tc.scoreColor}`}>{t.label}</span>
-                        <code className="text-xs font-mono text-falcon-muted bg-falcon-surface px-2 py-0.5 rounded-sm border border-falcon-border">
+                        <code className="text-xs font-mono text-[#7d92b0] bg-[#0d1220] px-2 py-0.5 rounded-sm border border-[#1e2d42]">
                           {t.range}
                         </code>
                       </div>
-                      <p className="text-xs text-falcon-subtle leading-relaxed">{t.desc}</p>
+                      <p className="text-xs text-[#3d5068] leading-relaxed">{t.desc}</p>
                     </div>
                   )
                 })}
