@@ -13,6 +13,7 @@ groups:
           summary: "EDR API が停止しています"
           description: "{{ $labels.instance }} への接続が 1 分以上失敗しています。"
 
+          runbook_url: "https://github.com/kizashi-labs/kizashi/blob/main/docs/ops/%E7%9B%A3%E8%A6%96%E3%83%A9%E3%83%B3%E3%83%96%E3%83%83%E3%82%AF.md#edrapidown"
       # EDRApiHighErrorRate はここにありました。rules/edr-alerts.yml の
       # EDRHighAPIErrorRate と、閾値 (5xx > 5%)・for (3m) が同じで、
       # severity だけが warning と critical に割れていました。
@@ -51,6 +52,7 @@ groups:
           summary: "EDR API へのリクエスト数が急増しています"
           description: "リクエスト数が {{ $value | humanize }}/s に達しています。DDoS の可能性があります。"
 
+          runbook_url: "https://github.com/kizashi-labs/kizashi/blob/main/docs/ops/%E7%9B%A3%E8%A6%96%E3%83%A9%E3%83%B3%E3%83%96%E3%83%83%E3%82%AF.md#edrapihighrequestrate"
   # ──────────────────────────────────────────────
   # PostgreSQL / TimescaleDB
   # ──────────────────────────────────────────────
@@ -77,6 +79,7 @@ groups:
           summary: "PostgreSQL 接続数が上限に近づいています"
           description: "接続使用率が {{ $value | humanizePercentage }} です (閾値: 80%)。"
 
+          runbook_url: "https://github.com/kizashi-labs/kizashi/blob/main/docs/ops/%E7%9B%A3%E8%A6%96%E3%83%A9%E3%83%B3%E3%83%96%E3%83%83%E3%82%AF.md#postgreshighconnections"
       - alert: PostgresDiskUsageHigh
         expr: |
           (1 - (node_filesystem_avail_bytes{mountpoint="/var/lib/postgresql"}
@@ -88,6 +91,7 @@ groups:
           summary: "PostgreSQL ディスク使用量が高くなっています"
           description: "ディスク使用率が {{ $value | humanizePercentage }} です (閾値: 80%)。"
 
+          runbook_url: "https://github.com/kizashi-labs/kizashi/blob/main/docs/ops/%E7%9B%A3%E8%A6%96%E3%83%A9%E3%83%B3%E3%83%96%E3%83%83%E3%82%AF.md#postgresdiskusagehigh"
   # ──────────────────────────────────────────────
   # NATS メッセージング
   # ──────────────────────────────────────────────
@@ -102,6 +106,7 @@ groups:
           summary: "NATS が停止しています"
           description: "NATS メッセージングサービスが停止しています。検知エンジンが機能しません。"
 
+          runbook_url: "https://github.com/kizashi-labs/kizashi/blob/main/docs/ops/%E7%9B%A3%E8%A6%96%E3%83%A9%E3%83%B3%E3%83%96%E3%83%83%E3%82%AF.md#natsdown"
       - alert: NATSSlowConsumers
         expr: nats_slow_consumer_count > 10
         for: 5m
@@ -111,6 +116,7 @@ groups:
           summary: "NATS のスロウコンシューマーが増加しています"
           description: "スロウコンシューマー数: {{ $value }}。処理が追いついていません。"
 
+          runbook_url: "https://github.com/kizashi-labs/kizashi/blob/main/docs/ops/%E7%9B%A3%E8%A6%96%E3%83%A9%E3%83%B3%E3%83%96%E3%83%83%E3%82%AF.md#natsslowconsumers"
   # ──────────────────────────────────────────────
   # ホストシステムリソース
   # ──────────────────────────────────────────────
@@ -127,6 +133,7 @@ groups:
           summary: "CPU 使用率が高くなっています"
           description: "CPU 使用率: {{ $value }}% (閾値: 85%)。"
 
+          runbook_url: "https://github.com/kizashi-labs/kizashi/blob/main/docs/ops/%E7%9B%A3%E8%A6%96%E3%83%A9%E3%83%B3%E3%83%96%E3%83%83%E3%82%AF.md#highcpuusage"
       - alert: HighMemoryUsage
         expr: |
           (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) > 0.9
@@ -137,6 +144,7 @@ groups:
           summary: "メモリ使用率が高くなっています"
           description: "メモリ使用率: {{ $value | humanizePercentage }} (閾値: 90%)。"
 
+          runbook_url: "https://github.com/kizashi-labs/kizashi/blob/main/docs/ops/%E7%9B%A3%E8%A6%96%E3%83%A9%E3%83%B3%E3%83%96%E3%83%83%E3%82%AF.md#highmemoryusage"
       - alert: DiskSpaceLow
         expr: |
           (1 - (node_filesystem_avail_bytes{fstype!="tmpfs"}
@@ -148,6 +156,7 @@ groups:
           summary: "ディスク空き容量が少なくなっています"
           description: "{{ $labels.mountpoint }} の使用率: {{ $value | humanizePercentage }} (閾値: 85%)。"
 
+          runbook_url: "https://github.com/kizashi-labs/kizashi/blob/main/docs/ops/%E7%9B%A3%E8%A6%96%E3%83%A9%E3%83%B3%E3%83%96%E3%83%83%E3%82%AF.md#diskspacelow"
   # ──────────────────────────────────────────────
   # セキュリティ関連
   # ──────────────────────────────────────────────
@@ -172,6 +181,7 @@ groups:
           summary: "アラート件数が急増しています"
           description: "過去 1 時間で {{ $value }} 件のアラートが発生しました。インシデントの可能性があります。"
 
+          runbook_url: "https://github.com/kizashi-labs/kizashi/blob/main/docs/ops/%E7%9B%A3%E8%A6%96%E3%83%A9%E3%83%B3%E3%83%96%E3%83%83%E3%82%AF.md#highalertvolume"
       # edr_alerts_open_total は存在しないメトリクスだった (誰も emit していない)。
       # 実在する edr_open_alerts_critical に是正。存在しないメトリクスを参照する
       # ルールは永久に沈黙し、健全な状態と外形が同じになる。
@@ -185,6 +195,7 @@ groups:
           summary: "未対応のクリティカルアラートが多数あります"
           description: "未対応のクリティカルアラート: {{ $value }} 件。即時対応が必要です。"
 
+          runbook_url: "https://github.com/kizashi-labs/kizashi/blob/main/docs/ops/%E7%9B%A3%E8%A6%96%E3%83%A9%E3%83%B3%E3%83%96%E3%83%83%E3%82%AF.md#criticalalertsunacknowledged"
       # edr_agents_offline_total も同様に存在しなかった。'inactive' (退役ホスト) は
       # 意図的に除外している — P5-10 で inactive を offline 扱いした読み出し側が
       # 退役機のアラートを無限に出した。
@@ -198,6 +209,7 @@ groups:
           summary: "オフラインのエージェントがあります"
           description: "{{ $value }} 台のエージェントが 15 分以上オフラインです。"
 
+          runbook_url: "https://github.com/kizashi-labs/kizashi/blob/main/docs/ops/%E7%9B%A3%E8%A6%96%E3%83%A9%E3%83%B3%E3%83%96%E3%83%83%E3%82%AF.md#agentoffline"
   # ──────────────────────────────────────────────
   # 検知パイプライン (server-detect)
   # ──────────────────────────────────────────────
@@ -288,3 +300,5 @@ groups:
           description: >-
             JetStream の未配信メッセージが {{ $value }} 件。実質的に検知が機能していません。
             イベントノイズの削減か consumer のスケールアウトが必要です。
+
+          runbook_url: "https://github.com/kizashi-labs/kizashi/blob/main/docs/ops/%E7%9B%A3%E8%A6%96%E3%83%A9%E3%83%B3%E3%83%96%E3%83%83%E3%82%AF.md#edrdetectionconsumerlagcritical"
