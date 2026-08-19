@@ -19,7 +19,7 @@ import {
   Link,
   Phone,
   Mail,
-  Slack,
+  Hash,
   AlertTriangle,
   Users,
   ArrowUpCircle,
@@ -1369,7 +1369,7 @@ type CommType = (typeof COMM_TYPES)[number]
 function commTypeIcon(t: string) {
   switch (t) {
     case 'Email': return <Mail size={14} className="text-blue-400" />
-    case 'Slack': return <Slack size={14} className="text-purple-400" />
+    case 'Slack': return <Hash size={14} className="text-purple-400" />
     case 'Call':  return <Phone size={14} className="text-green-400" />
     default:      return <MessageSquare size={14} className="text-[#7d92b0]" />
   }

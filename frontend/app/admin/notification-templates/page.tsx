@@ -3,7 +3,11 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { apiFetch } from '@/lib/api'
-import { Bell, Mail, Slack, Plus, Pencil, Trash2, X, Eye, Save, Copy } from 'lucide-react'
+// lucide v1 はブランドアイコンを1つも持ちません（Slack も Github も、
+// 商標の都合で 0.x から削除されました）。Slack のチャンネルは `#name` なので
+// Hash を当てています。**lucide から Slack を import し直さないでください** ——
+// 在りません。
+import { Bell, Mail, Hash, Plus, Pencil, Trash2, X, Eye, Save, Copy } from 'lucide-react'
 
 import { PageDataUnavailable } from '@/components/PageDataUnavailable'
 
@@ -237,7 +241,7 @@ export default function NotificationTemplatesPage() {
                 : 'text-[#7d92b0] hover:text-[#e2e8f4]'
             }`}
           >
-            {tab === 'email' ? <Mail className="w-4 h-4" /> : <Slack className="w-4 h-4" />}
+            {tab === 'email' ? <Mail className="w-4 h-4" /> : <Hash className="w-4 h-4" />}
             {tab === 'email' ? 'メールテンプレート' : 'Slackテンプレート'}
             <span className="text-xs px-1.5 py-0.5 rounded-sm bg-[#0d1220] border border-[#1e2d42] text-[#7d92b0]">
               {templates.filter(t => t.type === tab).length}
@@ -387,7 +391,7 @@ export default function NotificationTemplatesPage() {
                   <div className="flex items-center gap-2 px-3 py-2">
                     {activeTab === 'email'
                       ? <><Mail className="w-4 h-4 text-blue-400" /><span className="text-sm text-[#e2e8f4]">メール</span></>
-                      : <><Slack className="w-4 h-4 text-green-400" /><span className="text-sm text-[#e2e8f4]">Slack</span></>
+                      : <><Hash className="w-4 h-4 text-green-400" /><span className="text-sm text-[#e2e8f4]">Slack</span></>
                     }
                   </div>
                 </div>
