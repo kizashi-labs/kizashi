@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { readFileSync, readdirSync, statSync, existsSync } from 'fs'
 import { join } from 'path'
-import { serverRoutes, frontendCalls, isUnrouted, ceilingProblem } from './server-routes.test'
+import { serverRoutes, frontendCalls, isUnrouted, ceilingProblem } from './route-scan'
 
 // A screen every one of whose API calls has no route must say so.
 //

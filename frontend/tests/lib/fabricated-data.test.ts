@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { readFileSync, readdirSync, statSync } from 'fs'
 import { join } from 'path'
 import { blankNoise } from './blank-noise'
-import { mockDeclSpans, guardedByUseMock } from './mock-leak.test'
+import { mockDeclSpans, guardedByUseMock } from './mock-scan'
 
 // The SOC dashboard had two widgets that had never shown real data.
 //
