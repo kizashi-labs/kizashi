@@ -52,7 +52,9 @@ from mutate import Harness  # noqa: E402
 
 US = 'server/internal/store/users.go'
 WD = 'server/internal/webhooks/dispatcher.go'
-SE = 'server/internal/suppression/engine.go'
+# `internal/suppression` は上流で撤去され、`internal/detection` に
+# 統合されました（#74）。
+DE = 'server/internal/detection/engine.go'
 LR = 'server/internal/store/live_response.go'
 BH = 'server/internal/api/handlers/bas_handler.go'
 BF = 'server/internal/tick/background_failed_test.go'
@@ -87,13 +89,14 @@ CASES = [
          '\t\t\t_ = metrics.BackgroundFailed\n',
      '**ロックアウトの計数**が黙って捨てられる（元の実装。総当たりに'
      '対する防御が、効いていないことに気づけません）'),
-    (SE, '\tif _, err := e.pool.Exec(ctx,\n'
-         '\t\t`UPDATE suppression_rules SET hit_count = hit_count + 1, updated_at = NOW() WHERE id = $1`, id); err != nil {\n'
+    # 上流の「抑制の一本化」で、書き込みは store.SuppressionStore.IncrHitCount へ
+    # 移り、**誤りを握りつぶさず返す**形になりました。握りつぶせる場所は
+    # 呼び出し側に移っています。同じ文言・同じ metrics.BackgroundFailed です。
+    (DE, '\tif err := e.suppressionHit.IncrHitCount(ctx, ruleID); err != nil {\n'
          '\t\tmetrics.BackgroundFailed("suppression_hit_count", err,\n'
          '\t\t\t"抑制ルールのヒット数を更新できませんでした。効いているルールが0件に見えます",\n'
-         '\t\t\t"rule_id", id)\n\t}',
-         '\t_, _ = e.pool.Exec(ctx,\n'
-         '\t\t`UPDATE suppression_rules SET hit_count = hit_count + 1, updated_at = NOW() WHERE id = $1`, id)\n'
+         '\t\t\t"rule_id", ruleID)\n\t}',
+         '\t_ = e.suppressionHit.IncrHitCount(ctx, ruleID)\n'
          '\t_ = metrics.BackgroundFailed',
      '抑制ルールのヒット数が黙って捨てられる（**効いているルールが'
      '0件に見えます**）'),
