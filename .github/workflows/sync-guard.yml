@@ -82,6 +82,13 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
+          if [ -z "$HEAD_SHA" ]; then
+            echo "HEAD_SHA が空です。**workflow_dispatch では PR の木を取れません。**"
+            echo "ref の無い tarball は既定ブランチを返すので、この検査は main を見て"
+            echo "「配布物はすべて残っています」と緑を返します —— **それは嘘です。**"
+            echo "PR で確かめたいなら、その PR を閉じて開き直してください（reopened で走ります）。"
+            exit 1
+          fi
           curl --fail --silent --show-error --location \
             --header "Authorization: Bearer $GH_TOKEN" \
             --header "Accept: application/vnd.github+json" \

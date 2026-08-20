@@ -261,31 +261,25 @@ GUARD_ALLOWED_RUNS = {
     'python3 scripts/sync_guard.py head.tar.gz',
     # PR head を書庫のまま取る。**展開しません。** 宛先は base 側が決めた
     # 固定名で、PR 側の値は URL の SHA にしか入りません。
-    'curl --fail --silent --show-error --location'
-    ' --header "Authorization: Bearer $GH_TOKEN"'
-    ' --header "Accept: application/vnd.github+json"'
-    ' "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/tarball/$HEAD_SHA"'
-    ' --output head.tar.gz',
-
-    # ── 移行中。**上の形は次の PR で消します** ────────────────────
     #
-    # `workflow_dispatch` では `github.event.pull_request.head.sha` が空に
-    # なり、ref の無い tarball は既定ブランチを返します —— この検査が
-    # main を見て「配布物はすべて残っています」と緑を返す、いちばん質の
-    # 悪い形です。空 SHA を弾く枝を足して塞ぎます。
+    # **先頭の空 SHA 検査を外さないでください。** `workflow_dispatch` では
+    # `github.event.pull_request.head.sha` が空になり、**ref の無い tarball は
+    # 既定ブランチを返します** —— この検査が main を見て「配布物はすべて
+    # 残っています」と緑を返す、いちばん質の悪い形になります。手で回した人は
+    # 確かめたつもりで、PR の木を一度も見ていません。
     #
-    # **ガード自身の `run:` は 1 つの PR では変えられません。** この検査は
-    # base（main）の版で走るので、main の一覧に無い形は「許していない
-    # run:」で落ちます。**それは正しい挙動です** —— この workflow は base
-    # の権限で走るので、書き換えが黙って入るほうが危ない。
+    # ## この形を変えるときは 2 つの PR が要ります
     #
-    # なので 2 段で入れます:
+    # この検査は base（main）の版で走るので、**main の一覧に無い形は
+    # 「許していない run:」で落ちます。** #89 の 1 回目が実際にそうなりました。
+    # **それは正しい挙動です** —— この workflow は base の権限で走るので、
+    # 書き換えが黙って入るほうが危ない。
     #
-    #	1. （この PR）新しい形を**先に**一覧へ足す。workflow は触らない
-    #	2. （次の PR）workflow を新しい形にし、**古い形を一覧から消す**
+    #	1. 新しい形を**先に**この一覧へ足す。workflow は触らない（#89）
+    #	2. workflow を新しい形にし、**古い形をこの一覧から消す**（#90）
     #
-    # **2 を必ず行ってください。** 両方許したままだと、空 SHA を弾く枝を
-    # 消しても落ちません —— 塞いだはずの穴が、静かに開いたままになります。
+    # **2 で古い形を消さないと、空 SHA を弾く枝を消しても落ちません** ——
+    # 塞いだはずの穴が、静かに開いたままになります。
     'if [ -z "$HEAD_SHA" ]; then'
     ' echo "HEAD_SHA が空です。**workflow_dispatch では PR の木を取れません。**"'
     ' echo "ref の無い tarball は既定ブランチを返すので、この検査は main を見て"'
