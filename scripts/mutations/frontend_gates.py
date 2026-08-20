@@ -38,9 +38,9 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from mutate import Harness  # noqa: E402
 
 BN = 'frontend/tests/lib/blank-noise.ts'
+CS = 'frontend/tests/lib/catch-scan.ts'
 RF = 'frontend/tests/lib/raw-fetch.test.ts'
 MF = 'frontend/tests/lib/mutation-failure-surface.test.ts'
-SR = 'frontend/tests/lib/swallowed-reads.test.ts'
 SW = 'frontend/tests/lib/silent-writes.test.ts'
 
 CASES = [
@@ -81,11 +81,11 @@ CASES = [
      'コメントの中の onError を、手段として数える'),
 
     # ── 読み取りの失敗 ─────────────────────────────────────────────────────
-    (SR, 'const SWALLOWED_READ_CEILING = 3', 'const SWALLOWED_READ_CEILING = 30',
+    (CS, 'const SWALLOWED_READ_CEILING = 3', 'const SWALLOWED_READ_CEILING = 30',
      '読み取りを握りつぶす箇所の上限を上げる'),
-    (SR, 'const SWALLOWED_READ_CEILING = 3', 'const SWALLOWED_READ_CEILING = 0',
+    (CS, 'const SWALLOWED_READ_CEILING = 3', 'const SWALLOWED_READ_CEILING = 0',
      '上限が実測を下回っても言わなくなる、の逆確認'),
-    (SR, "  'app/status/page.tsx':\n    'サービス状態ページ。読めなかったこと自体がこの画面の出力です — ' +",
+    (CS, "  'app/status/page.tsx':\n    'サービス状態ページ。読めなかったこと自体がこの画面の出力です — ' +",
          "  'app/status/page.tsx.gone':\n    'サービス状態ページ。読めなかったこと自体がこの画面の出力です — ' +",
      '理由が、もう存在しないファイルを指している'),
 

@@ -49,6 +49,8 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from mutate import Harness  # noqa: E402
 
 SRO = 'frontend/tests/lib/server-routes.test.ts'
+RS = 'frontend/tests/lib/route-scan.ts'
+MS = 'frontend/tests/lib/mock-scan.ts'
 ML = 'frontend/tests/lib/mock-leak.test.ts'
 FD = 'frontend/tests/lib/fabricated-data.test.ts'
 BP = 'frontend/tests/lib/backend-pending-coverage.test.ts'
@@ -61,7 +63,7 @@ CASES = [
     # **`apiFetch<{ … }>(…)` の形を1件も拾っていませんでした。**
     # 型引数から `{` を除いていたためで、実測 154 件 / 90 file が判定の
     # 外にありました。**見えない呼び出しは、宛先が無くても数に出ません。**
-    (SRO, '{ re: /\\bapiFetch(?:List)?\\s*(?:<[^()]*?>)?\\s*\\(/g, pathArg: 0 },',
+    (RS, '{ re: /\\bapiFetch(?:List)?\\s*(?:<[^()]*?>)?\\s*\\(/g, pathArg: 0 },',
           '{ re: /\\bapiFetch(?:List)?\\s*(?:<[^;{]*?>)?\\s*\\(/g, pathArg: 0 },',
      '**型引数に object を書いた呼び出しを見なくなる**（元の姿。'
      '154 件が判定の外に出ます）'),
@@ -82,8 +84,8 @@ CASES = [
     (SRO, "    for (const m of src.matchAll(/\\bapi\\.(get|post|put|patch|delete)(?:<[^>]*>)?\\(\\s*[`'\"]([^`'\"]+)[`'\"]/g)) {",
           '    for (const m of [] as RegExpMatchArray[]) {',
      '**mobile の呼び出しを見なくなる**'),
-    (SRO, '  mobile: 5,\n', '  mobile: 0,\n',
-     'mobile の床を 0 にする（消えても言わなくなります）'),
+    # 公開版に `mobile/` がありません。床の項目そのものが無いので
+    # 「mobile の床を 0 にする」は当たりようがなく、外しました。
     (SRO, "    for (const k of Object.keys(out)) if (c.where.startsWith(k)) out[k]++",
           '    void c',
      '**配布物ごとに数え分けなくなる**（どの配布物も 0 本と答えます）'),
@@ -98,7 +100,7 @@ CASES = [
     # `/taxii2` も出しているので、**版のついていない宛先は、間違って
     # いても数に出ません**でした。17 件出て、うち 13 件は本当に
     # ルートがありません（ITDR の読み取り3本は書き間違いでした）。
-    (SRO, "      if (!literal.startsWith('/')) continue",
+    (RS, "      if (!literal.startsWith('/')) continue",
           '      if (!literal.startsWith(API_PREFIX)) continue',
      '**版のついていない宛先を見なくなる**（元の姿。`/api/itdr/…` も'
      '`/api/nta/…` も、間違っていることが数に出ません）'),
@@ -109,9 +111,9 @@ CASES = [
     # （`ep` は `/endpoints` と `/admin/edr-policies`）。union すると
     # 存在しない経路が生まれ、`:id` は1 segment に何でも当たるので、
     # **無い宛先が「サーバにある」として数から消えます。**
-    (SRO, '      const d = local[local.length - 1]', '      const d = local[0]',
+    (RS, '      const d = local[local.length - 1]', '      const d = local[0]',
      '**いちばん遠い宣言**で解決する（別の幻が生まれます）'),
-    (SRO, '    const local = (perSource[i].get(name) ?? []).filter(d => d.at < at)',
+    (RS, '    const local = (perSource[i].get(name) ?? []).filter(d => d.at < at)',
           '    const local: Decl[] = []',
      '**file ごとの表を使わなくなる**（元の姿。19 個の変数が'
      '幻の経路を作ります）'),
@@ -155,7 +157,7 @@ CASES = [
     # クエリを組み立てる入れ子の内側を「最後の補間」と読んでいたので、
     # **動いている 2 件が `…/items:p` という存在しない経路**として
     # 報告されていました。
-    (SRO, "    if (quote === '`' && src[i] === '$' && src[i + 1] === '{') { interp++; i++; continue }\n",
+    (RS, "    if (quote === '`' && src[i] === '$' && src[i + 1] === '{') { interp++; i++; continue }\n",
           '',
      '**入れ子のテンプレートで literal を切る**（元の姿。補間の途中で'
      '終わる literal が、存在しない経路として報告されます）'),
@@ -178,9 +180,9 @@ CASES = [
     #
     # **サイドバーの 292 項目のうち 60 が準備中**です（実測 2026-08-12）。
     # 印が無ければ、動く 232 と見分けがつきません。
-    (BP, '  const NAV_PENDING = 59', '  const NAV_PENDING = 300',
+    (BP, 'const NAV_PENDING = 60', '  const NAV_PENDING = 300',
      'サイドバーに出ている準備中の上限を上げる'),
-    (BP, '  const NAV_PENDING = 59', '  const NAV_PENDING = 10',
+    (BP, 'const NAV_PENDING = 60', '  const NAV_PENDING = 10',
      '上限が実測を下回っても言わなくなる、の逆確認（サイドバー）'),
     (SB, '              const pending = isBackendPending(href)',
          '              const pending = false',
@@ -188,32 +190,32 @@ CASES = [
      '同じ顔で並びます）'),
 
     # ── 宛先の上限 ─────────────────────────────────────────────────────────
-    (SRO, 'const UNROUTED_READ_CEILING = 129', 'const UNROUTED_READ_CEILING = 300',
+    (SRO, 'const UNROUTED_READ_CEILING = 133', 'const UNROUTED_READ_CEILING = 300',
      'ルートの無い読み取りの上限を上げる'),
-    (SRO, 'const UNROUTED_READ_CEILING = 129', 'const UNROUTED_READ_CEILING = 50',
+    (SRO, 'const UNROUTED_READ_CEILING = 133', 'const UNROUTED_READ_CEILING = 50',
      '上限が実測を下回っても言わなくなる、の逆確認（読み取り）'),
-    (SRO, 'const UNROUTED_WRITE_CEILING = 158', 'const UNROUTED_WRITE_CEILING = 400',
+    (SRO, 'const UNROUTED_WRITE_CEILING = 163', 'const UNROUTED_WRITE_CEILING = 400',
      'ルートの無い書き込みの上限を上げる'),
 
     # ── 走査の広さ（狭めると件数は「下がる」）──────────────────────────
-    (SRO, '  { re: /(?<![.\\w])fetch\\s*\\(/g, pathArg: 0 },\n', '',
+    (RS, '  { re: /(?<![.\\w])fetch\\s*\\(/g, pathArg: 0 },\n', '',
      '素の fetch を宛先の判定から外す'),
-    (SRO, '  { re: /\\bpersist\\s*\\(/g, pathArg: 1 },\n', '',
+    (RS, '  { re: /\\bpersist\\s*\\(/g, pathArg: 1 },\n', '',
      'persist を宛先の判定から外す'),
-    (SRO, '  return call.paths.every(p => !hasRoute(call.method, p, routes))',
+    (RS, '  return call.paths.every(p => !hasRoute(call.method, p, routes))',
           '  return call.paths.some(p => !hasRoute(call.method, p, routes))',
      '候補パスが1つでも無ければ「宛先が無い」に数える'),
-    (SRO, '    if (matchesRoute(entry.slice(sp + 1), bare)) return true',
+    (RS, '    if (matchesRoute(entry.slice(sp + 1), bare)) return true',
           '',
      ':id を含むルートに当たらなくなる（全部「宛先が無い」になる）'),
-    (SRO, '  if (entry.slice(0, sp) !== method) continue',
+    (RS, '  if (entry.slice(0, sp) !== method) continue',
           '  if (false) continue',
      'メソッドを見ずに、パスさえ合えば宛先があることにする'),
 
     # ── モック漏れ ─────────────────────────────────────────────────────────
-    (ML, 'const MOCK_LEAK_CEILING = 0', 'const MOCK_LEAK_CEILING = 10',
+    (MS, 'const MOCK_LEAK_CEILING = 0', 'const MOCK_LEAK_CEILING = 10',
      'モック漏れの上限を0から上げる'),
-    (ML, 'export function guardedByUseMock(clean: string, at: number, levels = 4): boolean {',
+    (MS, 'export function guardedByUseMock(clean: string, at: number, levels = 4): boolean {',
          'export function guardedByUseMock(clean: string, at: number, levels = 0): boolean {',
      '囲みを1段も遡らなくなる（USE_MOCK の外側の守りが見えなくなる）'),
 

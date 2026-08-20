@@ -100,7 +100,7 @@ WRITE_CASES = [
     (R, 'func isKnownWriteCategory(s string) bool {\n\tswitch s {',
         'func isKnownWriteCategory(s string) bool {\n\treturn true\n\tswitch s {',
      '自由文の分類を通す（**「あとで見る」が理由になります**）'),
-    (R, 'const discardedWriteFuncs = 1', 'const discardedWriteFuncs = 0',
+    (R, 'const discardedWriteFuncs = 0', 'const discardedWriteFuncs = 0',
      '分類の件数を留めなくなる'),
     (R, '\tcatRestart:  0,', '\tcatRestart:  1,',
      '**分類を寄せる**（`covered` の1件を `restart` に数えたことにする。'

@@ -256,6 +256,16 @@ print("ワークフローファイルはすべて読み込み可能です")
 WFLINT
 fi
 
+# ── ラチェット再較正の道具 ───────────────────────────────────────
+# scripts/recalibrate_ratchets.py は固定値を書き換えます。**壊れたまま
+# 動くと、劣化を記録して緑にするだけの装置になります。** 道具の判定を
+# 単体で留めます（Go も DB も要りません）。
+if have python3; then
+  run "ratchet-recalibrator" . python3 scripts/recalibrate_ratchets_test.py
+else
+  skip "ratchet-recalibrator" "python3 が PATH にありません"
+fi
+
 # ── server ───────────────────────────────────────────────────────
 if wants server; then
   section "server (Go)"
