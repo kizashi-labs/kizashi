@@ -104,6 +104,13 @@ jobs:
         run: python3 scripts/sync_guard_test.py
       - name: fetch
         run: |
+          if [ -z "$HEAD_SHA" ]; then
+            echo "HEAD_SHA が空です。**workflow_dispatch では PR の木を取れません。**"
+            echo "ref の無い tarball は既定ブランチを返すので、この検査は main を見て"
+            echo "「配布物はすべて残っています」と緑を返します —— **それは嘘です。**"
+            echo "PR で確かめたいなら、その PR を閉じて開き直してください（reopened で走ります）。"
+            exit 1
+          fi
           curl --fail --silent --show-error --location \\
             --header "Authorization: Bearer $GH_TOKEN" \\
             --header "Accept: application/vnd.github+json" \\
@@ -319,6 +326,30 @@ class TestTheGuardDoesNotRunPrCode(GuardCase):
     def test_a_changed_run_fires(self):
         self._guard(GUARD_YML.replace('python3 scripts/sync_guard.py head.tar.gz',
                                       'bash head/scripts/run.sh'))
+        self.assertFires('許していない run:')
+
+    def test_dropping_the_empty_sha_branch_fires(self):
+        """**空 SHA を弾く枝を外すと、この検査は嘘の緑を返します。**
+
+        `workflow_dispatch` では `github.event.pull_request.head.sha` が
+        空になり、**ref の無い tarball は既定ブランチを返します** ——
+        ガードが main を見て「配布物はすべて残っています」と報告します。
+        手で回した人は確かめたつもりで、PR の木を一度も見ていません。
+
+        **落ちるより悪い形なので、枝を消したら落とします。**
+        """
+        stripped = GUARD_YML
+        for line in GUARD_YML.splitlines(keepends=True):
+            s = line.strip()
+            if (s.startswith('if [ -z "$HEAD_SHA" ]')
+                    or s.startswith('echo "HEAD_SHA')
+                    or s.startswith('echo "ref の無い')
+                    or s.startswith('echo "「配布物')
+                    or s.startswith('echo "PR で')
+                    or s == 'exit 1' or s == 'fi'):
+                stripped = stripped.replace(line, '')
+        self.assertNotIn('HEAD_SHA" ]', stripped, '枝が残っています')
+        self._guard(stripped)
         self.assertFires('許していない run:')
 
     def test_extracting_the_archive_fires(self):
