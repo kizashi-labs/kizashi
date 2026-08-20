@@ -291,6 +291,26 @@ jobs:
             -coverprofile=coverage.out -covermode=atomic \
             ./...
 
+      # RLS を fail-closed にしたときに何が起きるかを、**落とす前に**測る。
+      #
+      # 4 表 (agents / alerts / incidents / users) の RLS には、まだ
+      # 「app.tenant_id が未設定なら全行」の抜け道が残っている。落とすと、
+      # テナントも名乗りも持たない接続は 0 行になる。**壊れる向きが
+      # 「静かに 0 行」**なので、落としてから気づくのでは遅い。
+      #
+      # この検査は方針を厳格版に差し替えて 2 テナントで実測し、必ず戻す。
+      # **DB を専有する**ので、上の `go test ./...`（package を並列に
+      # 走らせる）とは混ぜられない —— 混ぜると他 package が巻き添えで
+      # 落ちて不安定になり、不安定な検査は無視され、無視される検査は
+      # 消える。だから別の step で、その package だけを走らせる。
+      - name: RLS fail-closed rehearsal (exclusive database)
+        working-directory: server
+        env:
+          TEST_DATABASE_URL: postgres://edr:testpassword@localhost:5432/edrplatform_test
+          RLS_FAILCLOSED: "1"
+        run: |
+          go test -timeout 180s ./internal/store/ -run 'FailClosed|StrictSwap|AppRoleExists' -v
+
       # Synthetic-injection E2E: drives crafted events through the real
       # AlertPipeline → real Postgres INSERT path and asserts an alert row lands.
       # Tagged `integration` so it is excluded from the unit step above; it needs

@@ -92,15 +92,59 @@ gin は `http.ListenAndServe` を `BaseContext` 無しで呼ぶので、
   （`/ws/*` は `notification.Hub` が DB に触らない、`track` は
   `phishing_recipients`、`taxii` は `ioc_entries`、ほか静的応答）
 
-### まだ落とせません — 残っているのは 1 つ
+### 「残り 1 つ」も間違いでした
 
-**単一テナント配備の JWT は `tenant_id` を持ちません。**
-`tenantMiddleware` を張っても `app.tenant_id` は空のままで、
-エスケープ節に落ちます（`protected` も同じ状態です）。
+いったん「単一テナント配備の JWT は `tenant_id` を持たない」と書きましたが、
+**測ったら違いました。** トークンを出す 4 経路（login / admin / MFA 検証 /
+メール MFA）はすべて、すでに既定テナントへ落としています。テナントを
+持たないのは pre-auth トークンだけで、middleware が `/auth/mfa/verify`
+以外を拒みます（そこは公開経路で `sysAccess` 済み）。
 
-塞ぐには、テナントが無いときに**既定テナントへ落とす**必要があります。
-migration 446 が `uninstall_protection` の 2 表でやったのと同じ手当てを
-4 表ぶん行うことになり、**これは挙動の変更です。** 先に測ってください。
+**本当の穴は、要求から離れる仕事にありました。** ハンドラが `go func()` で
+続きを走らせるとき `context.Background()` から ctx を作るので、そこで
+テナントが落ちます。handlers の 17 か所を読んで、4 表に触るのは 2 か所
+（`asset_discovery_handler.StartScan` と `reports_handler.generateReport`）。
+**これは fail-closed 化を待つ話ではなく、現に漏れていました** —— テナント
+A のレポートに B のアラートが入る形です。`store.WithTenant` で直し、
+`background_tenant_ledger_test.go` が 17 か所を留めています。
+
+### 落とした世界は、もう測ってあります
+
+`internal/store/two_tenant_failclosed_test.go` が、**方針を厳格版に
+差し替えて 2 テナントで実測**し、必ず元に戻します。差し替える文字列は
+次の migration で入れる形と同じなので、**ここが緑なら、その migration は
+一度実物で走ったことになります。**
+
+| 接続 | 期待 | 結果 |
+| --- | --- | --- |
+| テナント A / B | 自分の行だけ（両方向） | ✅ |
+| 名乗り (`system`) | 両方見える | ✅ |
+| 素の ctx | **0 行** | ✅ |
+| 素の ctx で書き込み | RLS が拒む | ✅ |
+| 接続の使い回し | 前のテナントが残らない | ✅ |
+
+**DB を専有する**ので `RLS_FAILCLOSED=1` を付けた専用の実行でだけ走ります
+—— `go test ./...` は package を並列に走らせるため、混ぜると他 package が
+巻き添えで落ちて不安定になります。**不安定な検査は無視され、無視される
+検査は消えます。** ci.yml の `RLS fail-closed rehearsal` と verify.sh の
+同名の節が呼びます。
+
+空振りでないことも確かめてあります。差し替えをやめると「素の ctx に行が
+見えている」で落ち、`SET ROLE edr_app` をやめると（スーパーユーザは RLS を
+素通りするので）「A から B が見えている」で落ちます。
+
+### 落とすときに残る判断
+
+機構としては揃いました。残るのは**配備の判断**です。エスケープ節を落とすと、
+`app.tenant_id` を張らずに 4 表へ届く経路が 0 行になります。いまの木では
+そういう経路は見つかっていません（2 つの台帳が留めています）が、
+**台帳は「気づける」であって「網羅した」ではありません** —— 走査は
+router.go と handlers を見るだけで、store を何段も経由した先までは
+追えていません。
+
+段階を踏むなら、`agents` 1 表だけ先に落として様子を見るのが安全です。
+検知パイプラインが最も強く依存する表なので、**壊れるならいちばん早く
+分かります。**
 
 ---
 
