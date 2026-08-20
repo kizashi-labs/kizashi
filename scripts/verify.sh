@@ -203,6 +203,7 @@ import glob, re, sys, yaml
 
 PIPE_GREP_Q = re.compile(r"\|\s*grep\b[^|&;]*\s-[A-Za-z]*q")
 problems = []
+job_timeouts = step_timeouts = 0
 for path in sorted(glob.glob(".github/workflows/*.yml") +
                    glob.glob(".github/workflows/*.yaml")):
     try:
@@ -224,9 +225,11 @@ for path in sorted(glob.glob(".github/workflows/*.yml") +
         if "timeout-minutes" not in job:
             problems.append("%s / %s: timeout-minutes がありません（既定は 6 時間）"
                             % (path, job_name))
-        elif isinstance(job["timeout-minutes"], int) and job["timeout-minutes"] > 60:
-            problems.append("%s / %s: timeout-minutes が %d 分です。**ハングを上限の引き上げで直さないでください**"
-                            % (path, job_name, job["timeout-minutes"]))
+        else:
+            job_timeouts += 1
+            if isinstance(job["timeout-minutes"], int) and job["timeout-minutes"] > 60:
+                problems.append("%s / %s: timeout-minutes が %d 分です。**ハングを上限の引き上げで直さないでください**"
+                                % (path, job_name, job["timeout-minutes"]))
         steps = job.get("steps")
         if not isinstance(steps, list) or not steps:
             problems.append("%s / %s: steps がありません" % (path, job_name)); continue
@@ -234,6 +237,8 @@ for path in sorted(glob.glob(".github/workflows/*.yml") +
             if not isinstance(step, dict):
                 problems.append("%s / %s / step[%d]: ステップがマップではありません"
                                 % (path, job_name, i)); continue
+            if "timeout-minutes" in step:
+                step_timeouts += 1
             if "run" not in step and "uses" not in step:
                 problems.append("%s / %s / step[%d] (%s): run: も uses: もありません"
                                 % (path, job_name, i, step.get("name", "名前なし")))
@@ -248,6 +253,29 @@ for path in sorted(glob.glob(".github/workflows/*.yml") +
                             "パイプの右辺に置いています → %s"
                             % (path, job_name, i, step.get("name", "名前なし"),
                                line.strip()))
+# 本流へ渡す一覧の数が実物と合っていること。**この数は一度腐りました** ——
+# 引き継ぎに「47 件」と書いたあと sync-guard.yml が 2 件足し、メモだけが
+# 残りました。渡された側は古い数を写して、その差だけ黙って落とします。
+HANDOVER = "docs/ci/同期の受け側ガードと本流への反映.md"
+try:
+    handover = open(HANDOVER, encoding="utf-8").read()
+except FileNotFoundError:
+    problems.append("%s がありません。**本流へ何を渡すかが、リポジトリの"
+                    "どこにも残っていない状態です**" % HANDOVER)
+else:
+    want = re.search(r"job (\d+) \+ step (\d+) ＝ (\d+) 件", handover)
+    if not want:
+        problems.append("%s に「job N + step N ＝ N 件」の行がありません。"
+                        "書き方を変えたなら、この検査も一緒に直してください" % HANDOVER)
+    else:
+        said = tuple(int(g) for g in want.groups())
+        got = (job_timeouts, step_timeouts, job_timeouts + step_timeouts)
+        if said != got:
+            problems.append("%s は job %d + step %d ＝ %d 件と書いていますが、"
+                            "実物は job %d + step %d ＝ %d 件です。"
+                            "**文書のほうを実物に合わせてください**"
+                            % ((HANDOVER,) + said + got))
+
 if problems:
     for p in problems:
         print("  - " + p)
