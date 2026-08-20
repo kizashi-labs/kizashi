@@ -65,8 +65,9 @@ func strictPolicy(table string) string {
 //
 // 表を落とすたびに、ここに足してください。
 var alreadyFailClosed = map[string]bool{
-	"agents": true, // migration 451
-	"alerts": true, // migration 453
+	"agents":    true, // migration 451
+	"alerts":    true, // migration 453
+	"incidents": true, // migration 454
 }
 
 // restorePolicy は「その表の、migration が定めるいまの形」。**戻し先です。**
