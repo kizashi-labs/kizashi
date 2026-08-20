@@ -48,6 +48,7 @@ jobs:
   build-ebpf:
     name: Build edr-agent-linux-amd64-ebpf
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     permissions:
       contents: write # to commit the binary to downloads/
     steps:
@@ -71,6 +72,7 @@ jobs:
           cache-dependency-path: agent/go.sum
 
       - name: Install eBPF toolchain (clang + bpftool from source)
+        timeout-minutes: 10
         run: |
           sudo apt-get update
           sudo apt-get install -y clang llvm libbpf-dev libelf-dev zlib1g-dev pkg-config gcc make git
@@ -165,7 +167,14 @@ jobs:
           # later attempt failing worse. "Last build wins" is the semantics we want.
           # The downloaded artifact lives outside downloads/ and is untracked, so a
           # reset doesn't destroy it and we can simply re-copy each attempt.
+          #
+          # **downloads/ は .gitignore に入っているので、クローン直後には
+          # 存在しません。** 下の cp は `bash -e` の下で即座に失敗し、
+          # このワークフローは 4 回走って 4 回ともここで落ちていました
+          # （ビルド自体は毎回成功していて、最後の1手だけが通っていない）。
+          # `git reset --hard` を挟む再試行でも消えるので、ループの中で作ります。
           for i in 1 2 3 4 5; do
+            mkdir -p downloads
             cp agent/edr-agent-linux-amd64-ebpf downloads/edr-agent-linux-amd64-ebpf
             sha256sum downloads/edr-agent-linux-amd64-ebpf | awk '{print $1}' > downloads/edr-agent-linux-amd64-ebpf.sha256
             git add -f downloads/edr-agent-linux-amd64-ebpf downloads/edr-agent-linux-amd64-ebpf.sha256

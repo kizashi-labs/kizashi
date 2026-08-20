@@ -42,6 +42,7 @@ jobs:
   linux-prevention:
     name: Linux — build & test with "ebpf prevention"
     runs-on: ubuntu-latest
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
@@ -54,6 +55,7 @@ jobs:
       # the vmlinux.h only has to describe *a* recent kernel for the compile to
       # succeed — the runner's own BTF is used because it is already there.
       - name: Generate eBPF bindings (report-only + prevention LSM)
+        timeout-minutes: 10
         working-directory: agent
         run: |
           sudo apt-get update
@@ -100,6 +102,7 @@ jobs:
   macos-esf:
     name: macOS — native ESF compile
     runs-on: macos-14
+    timeout-minutes: 20
     if: inputs.include_macos
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
