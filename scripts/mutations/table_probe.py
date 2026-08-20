@@ -98,7 +98,7 @@ CASES = [
      '理由の宛先が消えても気づかなくなる'),
 
     # ── 理由つきで外した件数 ─────────────────────────────────────────────
-    (A, '\tconst want = 42', '\tconst want = 100',
+    (A, '\tconst want = 36', '\tconst want = 100',
      '理由つきで外した件数を実測から引き離す'),
     (A, '\t"store/table_probe.go:ProbeAnswer": "(c) 確認の失敗を「無い」に" +\n'
         '\t\t"倒さないための true です。失敗そのものは slog.Warn に出し、" +\n'

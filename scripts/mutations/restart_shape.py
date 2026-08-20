@@ -155,7 +155,7 @@ COUNT_CASES = [
          '\t\t\treturn\n\t\t}\n\t\tverified = ok',
          '\t\tverified, _ = h.Users.UseBackupCode(c.Request.Context(), userID, req.Code)',
      '呼び出し側が error を捨てる（**store が直っても、ここで元に戻ります**）'),
-    (W, 'const discardedWritesTotal = 1', 'const discardedWritesTotal = 37',
+    (W, 'const discardedWritesTotal = 0', 'const discardedWritesTotal = 37',
      '直した 11 か所を、まだ捨てていることにする'),
 
     # ── 呼び出し側 ───────────────────────────────────────────────────────

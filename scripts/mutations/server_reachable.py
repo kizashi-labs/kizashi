@@ -31,9 +31,9 @@ AL = 'server/internal/store/alerts.go'
 
 CASES = [
     # ── 上限と理由リスト ───────────────────────────────────────────────────
-    (RT, 'const testOnlyCeiling = 16', '\tconst testOnlyCeiling = 50',
+    (RT, 'const testOnlyCeiling = 29', '\tconst testOnlyCeiling = 50',
      'テストからしか呼ばれない関数の上限を上げる'),
-    (RT, 'const testOnlyCeiling = 16', '\tconst testOnlyCeiling = 5',
+    (RT, 'const testOnlyCeiling = 29', '\tconst testOnlyCeiling = 5',
      '上限が実測を下回っても言わなくなる、の逆確認'),
     # 理由リストは両方向に効きます。実在しない関数を指す項目は、
     # 「誰も呼ばない」を1件ぶん静かに消します。逆に、繋いだあとも残った

@@ -1093,6 +1093,13 @@ jobs:
       - name: Skip accounting counts what it says it counts
         run: python3 scripts/skip_report_test.py
 
+      # ラチェットの固定値を実測に合わせて**下げる**道具そのもの。
+      # **壊れたまま動くと、劣化を記録して緑にするだけの装置になります。**
+      # 上げ方向を埋めないこと、落ちているのに 0 を返さないことを留めます
+      # （作っている途中で実際に 0 を返しました）。
+      - name: The ratchet recalibrator only lowers
+        run: python3 scripts/recalibrate_ratchets_test.py
+
       # Alertmanager の設定は Go から読まれないので、`go test ./...` は
       # 1行も触りません。**フィールド名が v0.27 のスキーマに合っているかは、
       # 起動して初めて分かります。** docker は要らず、秘密はダミーで、

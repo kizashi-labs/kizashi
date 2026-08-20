@@ -150,7 +150,7 @@ CASES = [
      'file」と同じ扱いになります**）'),
 
     # ── 分類の側の数 ─────────────────────────────────────────────────────
-    (W, 'const discardedWritesTotal = 1', 'const discardedWritesTotal = 44',
+    (W, 'const discardedWritesTotal = 0', 'const discardedWritesTotal = 44',
      '直した 7 か所を、まだ捨てていることにする'),
 ]
 
