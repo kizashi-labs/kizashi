@@ -693,40 +693,9 @@ class KizashiEDRClient:
         api_key: str,
         timeout: int = 30,
     ) -> None:
-        # **`urllib` は file:// も ftp:// も開きます。** base_url が設定
-        # ファイルや環境変数から来る配置では、`file:///etc/passwd` を渡すと
-        # 「API の応答」としてローカルのファイルが返ります。**呼び出し側は
-        # HTTP しか起きないと思って書いています。**
-        #
-        # 入口で弾くだけにせず、下の `_opener` から file/ftp のハンドラ
-        # そのものを外しています。検査は書き換えられますが、持っていない
-        # ハンドラは呼べません。
-        scheme = urllib.parse.urlsplit(base_url).scheme.lower()
-        if scheme not in ("http", "https"):
-            raise ValueError(
-                "base_url は http:// か https:// で始まる必要があります"
-                f"（受け取ったのは {base_url!r}）。urllib は file:// も開くため、"
-                "ここを通すとローカルのファイルが API の応答として返ります"
-            )
-
         self._base_url = base_url.rstrip("/")
         self._api_key = api_key
         self._timeout = timeout
-
-        # 既定のグローバル opener を使いません。**あちらは file/ftp を含み、
-        # 誰でも `urllib.request.install_opener` で差し替えられます。**
-        self._opener = urllib.request.build_opener(
-            urllib.request.HTTPHandler(),
-            urllib.request.HTTPSHandler(),
-            urllib.request.HTTPRedirectHandler(),
-            urllib.request.HTTPErrorProcessor(),
-        )
-        self._opener.handlers = [
-            h for h in self._opener.handlers
-            if not isinstance(
-                h, (urllib.request.FileHandler, urllib.request.FTPHandler)
-            )
-        ]
 
         # Resource namespaces
         self.alerts = _AlertsResource(self)
@@ -781,9 +750,7 @@ class KizashiEDRClient:
         req.add_header("Accept", "application/json")
 
         try:
-            # `urllib.request.urlopen` ではなく、file/ftp を外した自前の
-            # opener を使います（`__init__` を参照）。
-            with self._opener.open(req, timeout=self._timeout) as resp:
+            with urllib.request.urlopen(req, timeout=self._timeout) as resp:
                 raw = resp.read()
                 if not raw:
                     return {}

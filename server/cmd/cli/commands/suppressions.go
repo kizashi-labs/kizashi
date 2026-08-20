@@ -32,12 +32,22 @@ import (
 //
 // 読み取り専用である。何を消すかの判断は人が持つ。
 
+// **キーはエンジンが読むものと同じでなければならない。** ここに無いキーは
+// この構造体でゼロ値になり、toDetectionRule がそれをエンジンの型に写すので、
+// **CLI だけが「条件が 1 つ少ないルール」を判定する**ことになる。
+// 絞り込みが 1 つ消えれば判定は広い方に外れるのではなく狭い方に外れる——
+// 「CLI は narrow と言うのにエンジンは wide と言う」であり、このコマンドの
+// 存在理由（判定を 1 箇所にする）を無効にする。
+// 読み手の一覧 = internal/detection/suppression_loader.go の SELECT。
 type suppressionCondition struct {
 	RuleName       string `json:"rule_name,omitempty"`
 	Hostname       string `json:"hostname,omitempty"`
+	HostnameRegex  string `json:"hostname_regex,omitempty"`
 	SeverityMax    int    `json:"severity_max,omitempty"`
 	MITRETechnique string `json:"mitre_technique,omitempty"`
 	AgentID        string `json:"agent_id,omitempty"`
+	CommandLine    string `json:"command_line_contains,omitempty"`
+	ParentProcess  string `json:"parent_process,omitempty"`
 }
 
 type suppressionRule struct {
@@ -62,9 +72,12 @@ func (r suppressionRule) toDetectionRule() detection.SuppressionRule {
 		Name:           r.Name,
 		RuleName:       r.Conditions.RuleName,
 		Hostname:       r.Conditions.Hostname,
+		HostnameRegex:  r.Conditions.HostnameRegex,
 		SeverityMax:    r.Conditions.SeverityMax,
 		MITRETechnique: r.Conditions.MITRETechnique,
 		AgentID:        r.Conditions.AgentID,
+		CommandLine:    r.Conditions.CommandLine,
+		ParentProcess:  r.Conditions.ParentProcess,
 	}
 }
 

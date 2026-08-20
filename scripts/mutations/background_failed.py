@@ -83,9 +83,9 @@ CASES = [
     (W, 'const minTrackedWorkerNames = 120', 'const minTrackedWorkerNames = 0',
      '到達した関数の床を 0 に落とす'),
 
-    (T, 'backgroundFailedCount = 69', 'backgroundFailedCount = 500',
+    (T, 'backgroundFailedCount = 76', 'backgroundFailedCount = 500',
      '箇所の数を留めなくなる'),
-    (T, 'backgroundFailedFuncs = 55', 'backgroundFailedFuncs = 500',
+    (T, 'backgroundFailedFuncs = 61', 'backgroundFailedFuncs = 500',
      '宛先の数を留めなくなる'),
     (T, '\treturn m[key] == ""\n', '\treturn false\n',
      '分類の無い箇所を1件も挙げなくなる（**新しい呼び出しが黙って'

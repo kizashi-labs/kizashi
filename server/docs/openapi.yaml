@@ -8816,6 +8816,72 @@ paths:
       responses:
         "200": { $ref: "#/components/responses/Undocumented" }
 
+  /api/v1/admin/platform/agent-versions:
+    get:
+      tags: [admin]
+      summary: GET /api/v1/admin/platform/agent-versions
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: getAdminPlatformAgentVersions
+      x-generated: true
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+
+  /api/v1/admin/platform/upgrade-history:
+    get:
+      tags: [admin]
+      summary: GET /api/v1/admin/platform/upgrade-history
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: getAdminPlatformUpgradeHistory
+      x-generated: true
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+
+  /api/v1/admin/platform/upgrades:
+    get:
+      tags: [admin]
+      summary: GET /api/v1/admin/platform/upgrades
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: getAdminPlatformUpgrades
+      x-generated: true
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+    post:
+      tags: [admin]
+      summary: POST /api/v1/admin/platform/upgrades
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: postAdminPlatformUpgrades
+      x-generated: true
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+
+  /api/v1/admin/platform/upgrades/schedule:
+    get:
+      tags: [admin]
+      summary: GET /api/v1/admin/platform/upgrades/schedule
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: getAdminPlatformUpgradesSchedule
+      x-generated: true
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+    post:
+      tags: [admin]
+      summary: POST /api/v1/admin/platform/upgrades/schedule
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: postAdminPlatformUpgradesSchedule
+      x-generated: true
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+
+  /api/v1/admin/platform/version:
+    get:
+      tags: [admin]
+      summary: GET /api/v1/admin/platform/version
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: getAdminPlatformVersion
+      x-generated: true
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+
   /api/v1/admin/predictive/accuracy:
     get:
       tags: [admin]
@@ -8986,6 +9052,108 @@ paths:
       summary: GET /api/v1/admin/ransomware/stats
       description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
       operationId: getAdminRansomwareStats
+      x-generated: true
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+
+  /api/v1/admin/remediation/exclusions:
+    get:
+      tags: [admin]
+      summary: GET /api/v1/admin/remediation/exclusions
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: getAdminRemediationExclusions
+      x-generated: true
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+    post:
+      tags: [admin]
+      summary: POST /api/v1/admin/remediation/exclusions
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: postAdminRemediationExclusions
+      x-generated: true
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+
+  /api/v1/admin/remediation/exclusions/{id}:
+    delete:
+      tags: [admin]
+      summary: DELETE /api/v1/admin/remediation/exclusions/{id}
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: deleteAdminRemediationExclusionsId
+      x-generated: true
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+
+  /api/v1/admin/remediation/executions/{id}/approve:
+    post:
+      tags: [admin]
+      summary: POST /api/v1/admin/remediation/executions/{id}/approve
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: postAdminRemediationExecutionsIdApprove
+      x-generated: true
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+
+  /api/v1/admin/remediation/logs:
+    get:
+      tags: [admin]
+      summary: GET /api/v1/admin/remediation/logs
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: getAdminRemediationLogs
+      x-generated: true
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+
+  /api/v1/admin/remediation/pending-rollbacks:
+    get:
+      tags: [admin]
+      summary: GET /api/v1/admin/remediation/pending-rollbacks
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: getAdminRemediationPendingRollbacks
+      x-generated: true
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+
+  /api/v1/admin/remediation/rules:
+    get:
+      tags: [admin]
+      summary: GET /api/v1/admin/remediation/rules
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: getAdminRemediationRules
+      x-generated: true
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+    post:
+      tags: [admin]
+      summary: POST /api/v1/admin/remediation/rules
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: postAdminRemediationRules
+      x-generated: true
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+
+  /api/v1/admin/remediation/rules/{id}/enable:
+    put:
+      tags: [admin]
+      summary: PUT /api/v1/admin/remediation/rules/{id}/enable
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: putAdminRemediationRulesIdEnable
+      x-generated: true
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+
+  /api/v1/admin/remediation/test:
+    post:
+      tags: [admin]
+      summary: POST /api/v1/admin/remediation/test
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: postAdminRemediationTest
       x-generated: true
       responses:
         "200": { $ref: "#/components/responses/Undocumented" }
@@ -15854,6 +16022,66 @@ paths:
       summary: GET /api/v1/threat-intel/apt-campaigns
       description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
       operationId: getThreatIntelAptCampaigns
+      x-generated: true
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+
+  /api/v1/threat-intel/darkweb/findings:
+    get:
+      tags: [threat-intel]
+      summary: GET /api/v1/threat-intel/darkweb/findings
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: getThreatIntelDarkwebFindings
+      x-generated: true
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+
+  /api/v1/threat-intel/darkweb/monitors:
+    get:
+      tags: [threat-intel]
+      summary: GET /api/v1/threat-intel/darkweb/monitors
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: getThreatIntelDarkwebMonitors
+      x-generated: true
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+    post:
+      tags: [threat-intel]
+      summary: POST /api/v1/threat-intel/darkweb/monitors
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: postThreatIntelDarkwebMonitors
+      x-generated: true
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+
+  /api/v1/threat-intel/darkweb/monitors/{id}:
+    delete:
+      tags: [threat-intel]
+      summary: DELETE /api/v1/threat-intel/darkweb/monitors/{id}
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: deleteThreatIntelDarkwebMonitorsId
+      x-generated: true
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+
+  /api/v1/threat-intel/darkweb/sites:
+    get:
+      tags: [threat-intel]
+      summary: GET /api/v1/threat-intel/darkweb/sites
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: getThreatIntelDarkwebSites
+      x-generated: true
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+
+  /api/v1/threat-intel/darkweb/status:
+    get:
+      tags: [threat-intel]
+      summary: GET /api/v1/threat-intel/darkweb/status
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: getThreatIntelDarkwebStatus
       x-generated: true
       responses:
         "200": { $ref: "#/components/responses/Undocumented" }

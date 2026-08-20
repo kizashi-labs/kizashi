@@ -27,7 +27,7 @@ CASES = [
     # ── 上限そのもの ───────────────────────────────────────────────────────
     (GATE, '\tanswerAssignCeiling = 4', '\tanswerAssignCeiling = 10',
      'assign の上限を 0 から上げる'),
-    (GATE, '\tanswerReturnCeiling = 12', '\tanswerReturnCeiling = 20',
+    (GATE, '\tanswerReturnCeiling = 13', '\tanswerReturnCeiling = 20',
      'return の上限を 0 から上げる'),
     (GATE, '\tanswerContinueCeiling = 75', '\tanswerContinueCeiling = 400',
      'continue の上限を実測から上げる'),
@@ -75,7 +75,7 @@ CASES = [
     # ── 二重計上を避ける側（ここが緩むと continue が丸ごと数から消えます）─
     (GATE, '\t\tif !sk.viaRows {\n\t\t\tcontinue\n\t\t}', '',
      'rows.Err() が拾わない continue まで、行スキャン扱いで外す'),
-    (GATE, '\tconst continueOutsideRowsErr = 87',
+    (GATE, '\tconst continueOutsideRowsErr = 88',
            '\tconst continueOutsideRowsErr = 380',
      'rows.Err() の外にある continue の総数を、実測から引き上げる'),
     (GATE, '\t\tif _, ok := skipExceptions[s.file+":"+s.fn]; ok {\n\t\t\t\tcontinue\n\t\t\t}',

@@ -48,6 +48,7 @@ func (l *PoolSuppressionLoader) ListActiveSuppressions(ctx context.Context) ([]S
 		SELECT id::text, name,
 		       COALESCE(conditions->>'rule_name', ''),
 		       COALESCE(conditions->>'hostname', ''),
+		       COALESCE(conditions->>'hostname_regex', ''),
 		       COALESCE((conditions->>'severity_max')::int, 0),
 		       COALESCE(conditions->>'mitre_technique', ''),
 		       COALESCE(conditions->>'agent_id', ''),
@@ -68,7 +69,7 @@ func (l *PoolSuppressionLoader) ListActiveSuppressions(ctx context.Context) ([]S
 		var r SuppressionRule
 		if err := rows.Scan(
 			&r.ID, &r.Name,
-			&r.RuleName, &r.Hostname, &r.SeverityMax,
+			&r.RuleName, &r.Hostname, &r.HostnameRegex, &r.SeverityMax,
 			&r.MITRETechnique, &r.AgentID,
 			&r.CommandLine, &r.ParentProcess,
 			&r.ExpiresAt,

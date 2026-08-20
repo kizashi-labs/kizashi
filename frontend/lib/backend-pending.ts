@@ -53,6 +53,8 @@ export function matchesRoute(pattern: string, pathname: string): boolean {
 // routes is not a page with routes.
 // tests/lib/backend-pending-coverage.test.ts keeps that from recurring.
 export const BACKEND_PENDING_ROUTES = new Set<string>([
+  '/admin/integrations/ldap',
+  '/admin/uninstall-protection',
   '/admin/agent-performance',
   '/admin/arch-review',
   '/admin/users/[id]/activity',
@@ -84,8 +86,6 @@ export const BACKEND_PENDING_ROUTES = new Set<string>([
   // 出していました。** （この註に経路を引用符で書かないこと ——
   // 判定はこの Set の範囲にある引用符付きの文字列を全部拾います）
   '/admin/identity-risk',
-  '/admin/integrations/ldap',
-  '/admin/uninstall-protection',
   '/admin/log-forwarding',
   '/admin/marketplace',
   '/admin/maturity-model',
@@ -174,6 +174,9 @@ export const BACKEND_PENDING_ROUTES = new Set<string>([
 
 // Pages that work overall but contain sections whose APIs are pending.
 export const PARTIAL_PENDING_ROUTES = new Set<string>([
+  '/admin/alerts/[id]',  // 1/5 (POST /api/v1/ai/analyze-alert)
+  '/rules',  // 1/7 (POST /api/v1/rules/ai-generate)
+  '/auth/sso',
   // 2026-08-12: 25 本中 9 本が届きません。**4つのタブが丸ごと**です ——
   // 連絡記録（comms）・エスカレーション・対応者・事後検証。どれも
   // サーバに handler がありません（`incidents` にあるのは notes・
@@ -210,8 +213,6 @@ export const PARTIAL_PENDING_ROUTES = new Set<string>([
   // ここから外してください —— `backend-pending-coverage.test.ts` が
   // 「一部だけ届かない画面」を **0 で留めています**。
   '/admin/ai-triage',                 // 2/11
-  '/admin/alerts/[id]',               // 1/5 (POST /api/v1/ai/analyze-alert)
-  '/rules',                           // 1/7 (POST /api/v1/rules/ai-generate)
   '/admin/backups',                   // 1/4
   '/admin/bas',                       // 1/5
   '/admin/compliance-auto',           // 1/4
@@ -232,7 +233,6 @@ export const PARTIAL_PENDING_ROUTES = new Set<string>([
   '/admin/siem-integration',          // 1/4
   '/admin/users',                     // 3/11
   '/admin/version',                   // 1/2
-  '/auth/sso',
   '/agent-health',                    // 1/3
   '/agents/[id]/config',              // 1/5
   '/dark-web',                        // 1/5

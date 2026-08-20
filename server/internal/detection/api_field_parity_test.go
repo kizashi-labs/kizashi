@@ -160,31 +160,59 @@ func TestLSASSDumpRuleFiresInAPIEvaluatorViaAccessMask(t *testing.T) {
 		t.Fatalf("load rule from %s: %v", blk.file, err)
 	}
 
-	// Shape emitted by agent/internal/collector/credential_access.go and flattened
-	// by ingestion (handler.go, the {target_pid, target_image, source_pid,
-	// source_image, access_mask, ...} payload).
-	event := map[string]interface{}{
-		"type":         "credential_access",
-		"target_image": `C:\Windows\System32\lsass.exe`,
-		"target_pid":   float64(760),
-		"source_image": `C:\Users\v\mimikatz.exe`,
-		"source_pid":   float64(4242),
-		"access_mask":  "0x1410",
-	}
-	addPipelineSigmaAliases(event)
-
-	if got, ok := event["GrantedAccess"]; !ok || got != "0x1410" {
-		t.Fatalf("access_mask did not alias to GrantedAccess (got %v, present=%v) — "+
-			"the alias in addPipelineSigmaAliases is gone or renamed", got, ok)
-	}
-
-	for _, m := range ev.EvaluateEvent(event) {
-		if m.RuleTitle == "LSASS ダンプ" {
-			return
+	// この関数はもともと target_image にフルパスを置き、「これがセンサの出す形だ」と
+	// 書いたうえで発火を断言していた。実測すると **その形は出ていない**。
+	// agent/internal/collector/credential_access.go は target_image を basename
+	// ("lsass.exe") で出す設計で、コメントにもそう書いてある。検証EC2の実DBでも
+	// 40 日間の値は "lsass.exe"（9 文字）のみだった。
+	//
+	// つまりフルパスで緑になっていたのは false green で、このルールは production で
+	// 一度も発火していない（全期間 0 件）。ここでは両方の形を並べ、どこまでが効いて
+	// いてどこから効かないのかを固定する。
+	fires := func(t *testing.T, targetImage string) bool {
+		t.Helper()
+		event := map[string]interface{}{
+			"type":         "credential_access",
+			"target_image": targetImage,
+			"target_pid":   float64(760),
+			"source_image": `C:\Users\v\mimikatz.exe`,
+			"source_pid":   float64(4242),
+			"access_mask":  "0x1410",
 		}
+		addPipelineSigmaAliases(event)
+		if got, ok := event["GrantedAccess"]; !ok || got != "0x1410" {
+			t.Fatalf("access_mask did not alias to GrantedAccess (got %v, present=%v) — "+
+				"the alias in addPipelineSigmaAliases is gone or renamed", got, ok)
+		}
+		for _, m := range ev.EvaluateEvent(event) {
+			if m.RuleTitle == "LSASS ダンプ" {
+				return true
+			}
+		}
+		return false
 	}
-	t.Error(`"LSASS ダンプ" did not fire on an LSASS handle-open with GrantedAccess 0x1410. ` +
-		"The rule ANDs TargetImage with GrantedAccess, so losing either alias makes it " +
-		"permanently inert in server-api while server-detect still matches it — a gap that " +
-		"is invisible from the alert stream because the other engine covers it late.")
+
+	// ルールの論理と access_mask→GrantedAccess のエイリアスは健全である。パスさえ
+	// 揃えば当たる、というのがこの断言。
+	if !fires(t, `C:\Windows\System32\lsass.exe`) {
+		t.Error(`"LSASS ダンプ" did not fire on an LSASS handle-open with GrantedAccess 0x1410. ` +
+			"The rule ANDs TargetImage with GrantedAccess, so losing either alias makes it " +
+			"permanently inert in server-api while server-detect still matches it — a gap that " +
+			"is invisible from the alert stream because the other engine covers it late.")
+	}
+
+	// センサが実際に出す形（basename）。TargetImage は Image / ParentImage と違って
+	// basename 正規化の対象に入っていないため、endswith の照合に一致しない。
+	//
+	// この断言が落ちたなら、TargetImage を addPipelineSigmaAliases の正規化対象に
+	// 加えたということである。その場合はまず
+	// docs/results/live-20260818-jp-duplicate-rules-inert.md を読むこと——このルールを
+	// 到達可能にすると Windows Defender (MsMpEng.exe) の LSASS アクセスで発火する。
+	// migration 448 で enabled=false / auto_isolate=false にしてあるのはそのためで、
+	// 正規化を入れる側はここを戻す前に発信元の絞り込みが要る。
+	if fires(t, "lsass.exe") {
+		t.Error("basename の target_image で LSASS ダンプ が発火した。TargetImage の " +
+			"basename 正規化が入ったなら、migration 448 の意図（Defender の LSASS " +
+			"アクセスで自動隔離される）を確認してからこの断言を更新すること")
+	}
 }

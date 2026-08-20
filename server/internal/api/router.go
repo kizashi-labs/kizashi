@@ -4770,12 +4770,10 @@ func (s *Server) registerRoutes() {
 				e.LastChecked = lastChecked.UTC().Format(time.RFC3339)
 				list = append(list, e)
 			}
-			// pgx v5 は Scan が失敗した時点で Rows を fatal 化して閉じます。
-			// 上の continue は「その行を飛ばす」ではなく「以降を全部捨てる」
-			// 動作なので、確認しないと**期限切れ間近の証明書が一覧から
-			// 静かに落ちます。**
+			// 部分結果を完全な一覧として返さない（handlers/rows_guard.go 参照）
 			if err := rows.Err(); err != nil {
-				handlers.ReadFailure(c, err, gin.H{"data": []CertEntry{}, "total": 0})
+				slog.Error("証明書一覧の走査に失敗しました", "error", err)
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "データの取得に失敗しました"})
 				return
 			}
 			if list == nil {
@@ -5759,10 +5757,10 @@ func (s *Server) savedSearchListHandler() gin.HandlerFunc {
 			}
 			items = append(items, ss)
 		}
-		// Scan 失敗以降の行は pgx v5 が捨てます。確認しないと、保存した
-		// 検索が**消えたように見えて 200 が返ります。**
+		// 部分結果を完全な一覧として返さない（handlers/rows_guard.go 参照）
 		if err := rows.Err(); err != nil {
-			handlers.ReadFailure(c, err, gin.H{"items": []interface{}{}})
+			slog.Error("保存済み検索の走査に失敗しました", "error", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "データの取得に失敗しました"})
 			return
 		}
 		if items == nil {

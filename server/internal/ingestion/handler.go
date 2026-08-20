@@ -201,10 +201,61 @@ func (s *Server) ListenAndServe(ctx context.Context, addr string) error {
 
 // EventStream is the main bidirectional streaming RPC.
 // Agents send event batches up; the server sends commands down.
+// errNonUUIDAgentID is returned to an agent whose identifier cannot be stored.
+//
+// agents.id and events.agent_id are uuid columns, so a non-UUID identifier
+// fails at INSERT with SQLSTATE 22P02 — but only after the batch has been
+// published to NATS. Detection then evaluates the events and raises alerts for
+// an endpoint whose telemetry is discarded and which never appears in the
+// console, because its registration failed the same way.
+//
+// A verification host ran like that for four days: 636,051 error lines, every
+// event dropped, "Suspicious Read of /etc/shadow" firing every minute and
+// failing to save every minute, and nothing in the endpoint list to explain
+// any of it. The console showed a fleet that did not include it.
+//
+// Rejecting at the edge cannot break a working deployment: an identifier that
+// is not a UUID has never been storable, so anything sending one is already
+// wholly non-functional. It only changes silent loss into an error the agent
+// can log and an operator can act on.
+func validAgentID(id string) bool {
+	_, err := uuid.Parse(id)
+	return err == nil
+}
+
+// rejectNonUUIDAgentID builds the gRPC error, naming the offending value so the
+// fix (edit the agent's config id) is obvious from a single line.
+//
+// It deliberately does not emit a metric or a log of its own. This is a
+// per-request client error, not a component failure: metrics.BackgroundFailed
+// answers "did this background worker break", and the honest answer here is no
+// — the server is working exactly as intended and the caller is being told so.
+//
+// Nor does it log. Heartbeat and GetConfig arrive on an interval, so a line per
+// rejection reproduces the very flood this change exists to stop: the incident
+// that prompted it was 636,051 log lines from one misconfigured agent. The
+// rejection is returned to the caller, which is where it can be acted on.
+// EventStream logs once per connection attempt (see below) because that is
+// bounded by reconnects rather than by a timer.
+func rejectNonUUIDAgentID(agentID string) error {
+	return status.Errorf(codes.InvalidArgument,
+		"agent ID %q is not a UUID; events and registration for it cannot be stored "+
+			"(agents.id and events.agent_id are uuid columns). Set a UUID as the agent's id.",
+		agentID)
+}
+
 func (s *Server) EventStream(stream v1.IngestionService_EventStreamServer) error {
 	agentID := extractAgentIDFromCert(stream.Context())
 	if agentID == "" {
 		return status.Error(codes.Unauthenticated, "agent ID not found in certificate CN")
+	}
+	if !validAgentID(agentID) {
+		// Once per connection attempt, not per event: enough for an operator to
+		// find the offending host, without the per-interval flood.
+		slog.Warn("エージェントIDがUUIDではないため接続を拒否しました",
+			"agent_id", agentID,
+			"hint", "エージェントの config の id を UUID にしてください")
+		return rejectNonUUIDAgentID(agentID)
 	}
 
 	// Populate hostname cache from DB if not already known
@@ -360,6 +411,9 @@ func parseCertNotAfter(certPEM string) (time.Time, error) {
 // Heartbeat processes agent health reports.
 func (s *Server) Heartbeat(ctx context.Context, req *v1.HeartbeatRequest) (*v1.HeartbeatResponse, error) {
 	agentID := req.GetAgentId()
+	if !validAgentID(agentID) {
+		return nil, rejectNonUUIDAgentID(agentID)
+	}
 
 	// Advertise EventStream keepalive support on this unary reply. Heartbeat lands
 	// even when the bidi stream is half-open, so this is how the agent learns to arm
@@ -486,6 +540,9 @@ func (s *Server) Heartbeat(ctx context.Context, req *v1.HeartbeatRequest) (*v1.H
 
 // GetConfig returns the current agent configuration.
 func (s *Server) GetConfig(ctx context.Context, req *v1.ConfigRequest) (*v1.AgentConfig, error) {
+	if !validAgentID(req.GetAgentId()) {
+		return nil, rejectNonUUIDAgentID(req.GetAgentId())
+	}
 	// Return default collection config; per-agent policies can be added later
 	return &v1.AgentConfig{
 		Version: 1,

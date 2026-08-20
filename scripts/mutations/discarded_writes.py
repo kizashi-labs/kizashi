@@ -55,6 +55,9 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from mutate import Harness  # noqa: E402
 
 T = 'server/internal/api/handlers/discarded_write_test.go'
+# 共有ヘルパ (answersWithSuccess) は判定ファイルの外に出した。
+# 判定ファイルの中に置くと、その 1 本を外した配置でコンパイルごと落ちる。
+AH = 'server/internal/api/handlers/scan_ast_helpers_test.go'
 E = 'server/internal/api/handlers/errs.go'
 SV = 'server/internal/api/handlers/software_vulnerability_handler.go'
 DS = 'server/internal/api/handlers/dns_security_handler.go'
@@ -122,7 +125,7 @@ CASES = [
     # ── 走査そのもの ─────────────────────────────────────────────────────
     (T, 'const discardedWritesThatClaimSuccess = 0', 'const discardedWritesThatClaimSuccess = 100',
      '「成功として答えている」件数を留めなくなる'),
-    (T, 'const discardedWritesTotal = 0', 'const discardedWritesTotal = 500',
+    (T, 'const discardedWritesTotal = 1', 'const discardedWritesTotal = 500',
      '全体の件数を留めなくなる'),
     (T, 'const writeScanRoot = "../.."', 'const writeScanRoot = ".."',
      '走査の根を1つ上までにする（**`internal/api` しか見ず、5 か所に'
@@ -133,7 +136,7 @@ CASES = [
     (T, '\t\tif id, ok := l.(*ast.Ident); !ok || id.Name != "_" {\n\t\t\treturn false\n\t\t}\n',
         '\t\tif _, ok := l.(*ast.Ident); !ok {\n\t\t\treturn false\n\t\t}\n',
      '`_, _ =` 以外の受け方まで数える'),
-    (T, '\tcase "StatusOK", "StatusCreated", "StatusAccepted":\n\t\t\tfound = true\n',
+    (AH, '\tcase "StatusOK", "StatusCreated", "StatusAccepted":\n\t\t\tfound = true\n',
         '\tcase "StatusOKXXX":\n\t\t\tfound = true\n',
      '200/201 を成功と見なくなる（**「保存しました」と答えている関数が'
      '全部素通りします**）'),

@@ -1,3 +1,18 @@
+-- ── 2026-08-18 訂正 ────────────────────────────────────────────────────────
+-- **この migration を書いた時点で hostname_regex を読むコードはありませんでした。**
+-- 抑制ルールの読み手 (internal/detection/suppression_loader.go) が読むのは
+-- conditions->>'hostname'（部分一致）だけで、hostname_regex はどの Go コードからも
+-- 参照されていませんでした。つまりこのテンプレートは実際には
+-- 「rule_name だけを条件に持つルール」として評価され、下の説明どおりに
+-- is_active=TRUE にすると **ホストの絞り込みが一切効かず、prod を含む全ホストで
+-- 該当ルールが抑制されます**。既定が is_active=FALSE だったため実害は出ていません。
+--
+-- 2026-08-18 に hostname_regex を実装したので、以下の記述はそのまま正しくなりました
+-- （Go の RE2。コンパイルできない式は一致しない＝抑制しない方向に倒します）。
+-- seed した conditions は変更不要です——キーはもともと正しく、読み手が無かった
+-- だけなので、実装が追いついた時点で意図どおりに効きます。
+-- ───────────────────────────────────────────────────────────────────────────
+
 -- 330: dual-use ルールの環境依存チューニング用「オプトイン」抑制テンプレート。
 --
 -- 2026-07-13 の FP 調査で、Container Administration Command Execution(T1609,
@@ -5,8 +20,8 @@
 -- コマンドラインで区別不能な純粋 dual-use と判明。ルール自体は本番ホストでは有効な
 -- シグナルなので残すが、コンテナ/CI/ビルド専用フリートでは純ノイズになる。
 --
--- ライブ検知(RuleEngine)の SuppressionMatcher は rule_name × hostname_regex で
--- アラートを抑制できる(hostname_regex は migration 同時期に追加)。本 migration は
+-- ライブ検知の SuppressionMatcher は rule_name × hostname_regex で
+-- アラートを抑制できる(hostname_regex の実装は 2026-08-18。上の訂正を参照)。本 migration は
 -- その「環境スコープ抑制」の**オプトイン雛形**を seed する:
 --   - is_active=FALSE(既定で無効)。運用者が hostname_regex を自組織のフリート命名に
 --     合わせて調整し、is_active=TRUE にして初めて有効化される(誤って全ホスト抑制しない)。

@@ -38,7 +38,6 @@ jobs:
   changes:
     name: Changed areas
     runs-on: ubuntu-latest
-    timeout-minutes: 5
     outputs:
       agent:    ${{ steps.filter.outputs.agent }}
       server:   ${{ steps.filter.outputs.server }}
@@ -162,7 +161,6 @@ jobs:
     needs: changes
     if: needs.changes.outputs.server == 'true' || needs.changes.outputs.all == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 30
     # カバレッジの表を PR にコメントするので pull-requests: write が要る
     # （旧 coverage.yml から移設。下の「Post coverage comment on PR」を参照）。
     # ジョブ単位で付ける。トップレベルに置くと他のジョブの既定権限まで
@@ -237,7 +235,6 @@ jobs:
       # CI が赤くなる」経路そのもので、golangci-lint 側で実際に起きた
       # (docs/ops/CI負債_調査と是正.md)。上げるときは意図的に上げる。
       - name: staticcheck
-        timeout-minutes: 10
         working-directory: server
         run: |
           go install honnef.co/go/tools/cmd/staticcheck@v0.7.0
@@ -518,7 +515,6 @@ jobs:
     needs: changes
     if: needs.changes.outputs.rules == 'true' || needs.changes.outputs.all == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
@@ -529,7 +525,6 @@ jobs:
           cache-dependency-path: server/go.sum
 
       - name: Install yara CLI
-        timeout-minutes: 10
         run: sudo apt-get update -qq && sudo apt-get install -y -qq yara
 
       - name: Validate rules/sigma and rules/yara
@@ -542,7 +537,6 @@ jobs:
     needs: changes
     if: needs.changes.outputs.agent == 'true' || needs.changes.outputs.all == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 20
     strategy:
       matrix:
         include:
@@ -584,7 +578,6 @@ jobs:
       # with no LSM/enforcement hooks, so neither belongs behind the "prevention"
       # tag. One bpftool build serves both.
       - name: Generate report-only eBPF bindings (Linux only)
-        timeout-minutes: 10
         if: matrix.goos == 'linux'
         working-directory: agent
         run: |
@@ -682,7 +675,6 @@ jobs:
     needs: changes
     if: needs.changes.outputs.agent == 'true' || needs.changes.outputs.all == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 45
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
@@ -719,7 +711,6 @@ jobs:
       # a few seconds of clang each; the expensive part (building bpftool from
       # source to dump the runner's BTF) is already paid for above and reused.
       - name: Generate eBPF bindings (report-only + prevention LSM)
-        timeout-minutes: 10
         working-directory: agent
         run: |
           sudo apt-get update
@@ -776,7 +767,6 @@ jobs:
       # バージョンは server ジョブと同じ v0.7.0 に固定する。2つのジョブが別々の
       # staticcheck を使うと、同じコードが片方だけ赤くなる状態が起こり得る。
       - name: staticcheck
-        timeout-minutes: 10
         working-directory: agent
         run: |
           go install honnef.co/go/tools/cmd/staticcheck@v0.7.0
@@ -898,12 +888,10 @@ jobs:
     needs: changes
     if: needs.changes.outputs.server == 'true' || needs.changes.outputs.all == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Set up Go
-        timeout-minutes: 10
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
         with:
           go-version-file: server/go.mod
@@ -925,7 +913,6 @@ jobs:
       # run: の中の go install ...@vX.Y.Z は自動更新されない (staticcheck の
       # v0.7.0 も同様)。上げるのは手動。放置すると解析エンジンだけが古びる。
       - name: Install govulncheck
-        timeout-minutes: 10
         run: go install golang.org/x/vuln/cmd/govulncheck@v1.6.0
 
       - name: govulncheck
@@ -942,7 +929,6 @@ jobs:
     needs: changes
     if: needs.changes.outputs.agent == 'true' || needs.changes.outputs.all == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
@@ -957,7 +943,6 @@ jobs:
       # agent 側にも入れた時と同じ理由)。固定の意味は server-vulncheck の
       # コメントを参照。
       - name: Install govulncheck
-        timeout-minutes: 10
         run: go install golang.org/x/vuln/cmd/govulncheck@v1.6.0
 
       - name: govulncheck
@@ -970,7 +955,6 @@ jobs:
     needs: changes
     if: needs.changes.outputs.frontend == 'true' || needs.changes.outputs.all == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 40
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
@@ -1026,7 +1010,6 @@ jobs:
     needs: changes
     if: needs.changes.outputs.sdk == 'true' || needs.changes.outputs.all == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
@@ -1036,7 +1019,6 @@ jobs:
           python-version: "3.11"
 
       - name: Install Python SDK dev dependencies
-        timeout-minutes: 10
         working-directory: sdk/python
         run: pip install -r requirements-dev.txt
 
@@ -1066,7 +1048,6 @@ jobs:
   scripts-test:
     name: Mutation Harness
     runs-on: ubuntu-latest
-    timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
@@ -1112,7 +1093,6 @@ jobs:
         run: python3 scripts/check_alertmanager_test.py
 
       - name: Install PyYAML
-        timeout-minutes: 10
         run: pip install pyyaml
 
       # 出しているアラートルールが、本当に読み込まれる場所にあること。
@@ -1135,7 +1115,6 @@ jobs:
   backup-test:
     name: Backup & Restore Integrity Test
     runs-on: ubuntu-latest
-    timeout-minutes: 15
     services:
       postgres:
         image: postgres:15

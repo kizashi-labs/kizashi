@@ -281,17 +281,16 @@ export default function CloudMonitoringPage() {
                             <span className="ml-1 text-gray-600 text-xs">(サービスアカウントキーファイルの内容)</span>
                           )}
                         </label>
+                        {/* placeholder に見本の JSON を置くと、秘密情報スキャナ
+                            (Semgrep / Trivy) が実物のサービスアカウント鍵として
+                            検出します。形は文章で示し、鍵そのものの形は書きません。 */}
                         {field === 'service_account_json' ? (
                           <textarea
                             value={form.config[field] ?? ''}
                             onChange={e => setForm(f => ({...f, config: {...f.config, [field]: e.target.value}}))}
                             rows={6}
                             className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-gray-200 text-sm font-mono resize-y"
-                            // GCP のキーファイルそのものの形を書くと、Trivy と
-                            // Semgrep の秘密検知が**入力欄の見本を鍵として拾います**。
-                            // 見本の中身に鍵はありませんが、走査は中身を見ないので
-                            // 抑止の注記を足すしかなくなります。形の説明で足ります。
-                            placeholder={'GCP のサービスアカウントキー（JSON）を貼り付けてください'}
+                            placeholder={'GCP サービスアカウントの JSON キーを貼り付けてください（コンソールでダウンロードしたファイルの中身をそのまま）'}
                           />
                         ) : (
                           <input

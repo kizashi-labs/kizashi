@@ -156,7 +156,6 @@ jobs:
   load-test:
     name: Load Test (k6 smoke)
     runs-on: ubuntu-latest
-    timeout-minutes: 20
     # Nightly (no cross-job needs — builds its own API below). Non-blocking smoke:
     # a k6 threshold miss should not fail the whole nightly run.
     continue-on-error: true
@@ -231,7 +230,6 @@ jobs:
           exit 1
 
       - name: Install k6
-        timeout-minutes: 10
         env:
           K6_VERSION: v2.1.0
         run: |

@@ -196,16 +196,16 @@ func (m *Manager) GetUsage(ctx context.Context) (*UsageSummary, error) {
 	}
 	// 実数だけは返す。上限が無いので割合は常に 0。
 	//
-	// **読めなかった 0 を、本当の 0 として返さないこと。** 上限が無い版
-	// なので数え損ねても誰も止まりませんが、画面には「稼働 0 台」と出ます。
-	// 0 台と読めなかったのは、見た目が同じで意味が逆です。
+	// 数えられなかったことと 0 台であることを同じ値で返さない。0 は
+	// 「まだ1台も使っていない」と読めるので、読めなかった回だけコンソールに
+	// 「0台」と出て、それが本当かどうかを誰も見分けられなくなる。
 	if err := m.pool.QueryRow(ctx,
 		`SELECT COUNT(*) FROM agents WHERE status != 'offline'`).Scan(&s.AgentsActive); err != nil {
-		return nil, fmt.Errorf("稼働エージェント数の集計: %w", err)
+		return nil, fmt.Errorf("license: エージェント数を数えられませんでした: %w", err)
 	}
 	if err := m.pool.QueryRow(ctx,
 		`SELECT COUNT(*) FROM users WHERE is_active = true`).Scan(&s.UsersActive); err != nil {
-		return nil, fmt.Errorf("有効ユーザー数の集計: %w", err)
+		return nil, fmt.Errorf("license: ユーザー数を数えられませんでした: %w", err)
 	}
 	return s, nil
 }
