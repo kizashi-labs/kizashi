@@ -95,7 +95,7 @@ import {
 // 理由つきで登録してある。** 宛先が実装されればあちらが「もう死んで
 // いません」と落ちるので、この +1 も一緒に見直される。
 const UNROUTED_READ_CEILING = 133
-const UNROUTED_WRITE_CEILING = 163
+const UNROUTED_WRITE_CEILING = 162
 
 describe('サーバに無い宛先', () => {
   const goFiles = existsSync(API_DIR) ? filesUnder(API_DIR, ['.go']) : []
