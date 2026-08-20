@@ -64,9 +64,27 @@ type Pack struct {
 // here on purpose: a pack that violates one should be rejected by name at load
 // time, not by SQLSTATE 23514 partway through a transaction.
 var (
-	validTypes     = map[string]bool{"sigma": true, "yara": true, "behavioral": true}
-	validPlatforms = map[string]bool{"windows": true, "linux": true, "darwin": true}
-	validSources   = map[string]bool{
+	validTypes = map[string]bool{"sigma": true, "yara": true, "behavioral": true}
+
+	// The spellings the detection engine canonicalises, not a tidier subset of
+	// them. rules.platform carries no CHECK constraint and the seeded content
+	// uses several: 269 windows, 227 linux, 159 macos, 2 darwin. The engine's
+	// canonPlatform folds macos/darwin/osx/macosx/mac together, so all of those
+	// match the same hosts.
+	//
+	// Accepting a narrower set here would reject content that the engine
+	// evaluates correctly — which is what happened on the first export: 159
+	// working macOS rules were refused for spelling "macos" instead of
+	// "darwin". A validator stricter than the thing it guards does not make the
+	// system safer, it just makes valid content unshippable.
+	//
+	// TestPlatformVocabularyMatchesEngine keeps this in step with canonPlatform.
+	validPlatforms = map[string]bool{
+		"windows": true, "win": true,
+		"linux": true,
+		"macos": true, "darwin": true, "osx": true, "macosx": true, "mac": true,
+	}
+	validSources = map[string]bool{
 		"community": true, "custom": true, "threat-intel": true,
 		"ai-generated": true, "builtin": true, "sigmahq": true, "builtin-parity": true,
 	}

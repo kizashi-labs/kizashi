@@ -112,7 +112,7 @@ CASES = [
     # ── 件数 ─────────────────────────────────────────────────────────────
     (T, 'const discardedStoreErrors = 0', 'const discardedStoreErrors = 100',
      '件数を留めなくなる'),
-    (BF, '\tbackgroundFailedCount = 76', '\tbackgroundFailedCount = 500',
+    (BF, '\tbackgroundFailedCount = 75', '\tbackgroundFailedCount = 500',
      '`metrics.BackgroundFailed` の件数を留めなくなる'),
 ]
 

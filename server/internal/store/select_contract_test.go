@@ -107,6 +107,7 @@ var environmentDependentSelects = map[string]string{
 	"internal/api/handlers/data_retention_handler.go: [42883] function hypertable_size(regclass) does not exist": "TimescaleDB の関数。CI の timescaledb イメージには存在します",
 	"internal/api/handlers/system_handler.go: [42P01] relation \"pg_stat_statements\" does not exist":            "任意の拡張。未導入の環境があるのは想定内で、呼び出し側も存在確認をしています",
 	"internal/store/migrate.go: [42P01] relation \"schema_migrations\" does not exist":                           "マイグレーションランナー自身が直前に CREATE します",
+	"internal/store/system_updates_store.go: [42P01] relation \"schema_migrations\" does not exist":              "同じ表を読みます。migration ファイルではなくランナーが CREATE するので、ファイルから組んだスキーマには現れません。読めなかった場合は updater 側が「スキーマは動いていない」と決めつけず、ロールバックを部分的として扱います",
 }
 
 // knownBrokenSelects are the statements that disagree with the migrated schema.

@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"errors"
 	"log/slog"
 	"net/http"
 	"strconv"
@@ -55,7 +56,7 @@ func (h *SuppressionHandler) Create(c *gin.Context) {
 		Description string                      `json:"description"`
 		Conditions  store.SuppressionConditions `json:"conditions"`
 		DurationH   int                         `json:"duration_h"`
-		IsActive    bool                        `json:"is_active"`
+		IsActive    *bool                       `json:"is_active"`
 		ExpiresAt   *string                     `json:"expires_at"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -71,18 +72,29 @@ func (h *SuppressionHandler) Create(c *gin.Context) {
 		Description: req.Description,
 		Conditions:  req.Conditions,
 		DurationH:   req.DurationH,
-		IsActive:    req.IsActive,
+		IsActive:    true, // 省略時は有効
 		CreatedBy:   &uid,
 	}
-	if !req.IsActive {
-		r.IsActive = true // default active on create
+	// **省略と false を区別する。** bool のままだと未指定の false と
+	// 「無効なルールとして作る」が同じ値になり、後者を前者として扱って
+	// 必ず有効にしていた —— 無効のつもりで作ったルールが即座に
+	// アラートを落とし始める。
+	if req.IsActive != nil {
+		r.IsActive = *req.IsActive
 	}
 
-	// Parse optional expires_at
+	// Parse optional expires_at.
+	//
+	// **解釈できない期限を無期限として受け入れない。** 以前はパース失敗を
+	// 捨てていたので、期限付きのつもりで作ったルールが無期限で残り、
+	// 止めたはずの日を過ぎてもアラートを落とし続けた。
 	if req.ExpiresAt != nil && *req.ExpiresAt != "" {
-		if t, err := time.Parse(time.RFC3339, *req.ExpiresAt); err == nil {
-			r.ExpiresAt = &t
+		t, err := time.Parse(time.RFC3339, *req.ExpiresAt)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "expires_at は RFC3339 形式で指定してください"})
+			return
 		}
+		r.ExpiresAt = &t
 	}
 
 	if err := h.Store.Insert(c.Request.Context(), r); err != nil {
@@ -91,6 +103,101 @@ func (h *SuppressionHandler) Create(c *gin.Context) {
 	}
 	h.publishInvalidate()
 	c.JSON(http.StatusCreated, gin.H{"message": "抑制ルールを作成しました"})
+}
+
+// resolveActiveFlag decides the on/off value from the two spellings a request
+// may carry, and reports whether either was present.
+//
+// **旗の名前が2つあります。** DB の列は is_active と enabled の2つで、
+// コンソールは以前 `{"enabled": …}` を送っていました。読み手は is_active
+// しか見ないので、bool のゼロ値 false が入り、**「有効にする」を押すと
+// 無効になっていました**（しかも「更新しました」と表示されます）。
+//
+// 画面側は is_active を送るよう直しましたが、**サーバ側でも両方を受けます。**
+// この API は SDK / edr-cli / 顧客のスクリプトからも呼ばれ、そちらは
+// 画面と同時には直りません。
+//
+// ポインタで受けるのは **「省略された」と「明示的に false」を区別する**
+// ためです。bool で受けると両者が同じ値になり、省略を無効化と読みます。
+func resolveActiveFlag(isActive, enabled *bool) (value bool, present bool) {
+	if isActive != nil {
+		return *isActive, true
+	}
+	if enabled != nil {
+		return *enabled, true
+	}
+	return false, false
+}
+
+// Update replaces an existing suppression rule.
+// PUT /api/v1/suppressions/:id
+//
+// **conditions は送られた内容で丸ごと置き換わる。** 部分更新にすると
+// 「条件を消した」と「送り手がそのキーを知らない」が区別できない。
+// 画面は編集後の条件をすべて送ること。
+func (h *SuppressionHandler) Update(c *gin.Context) {
+	id := c.Param("id")
+	var req struct {
+		Name        string                      `json:"name"        binding:"required"`
+		Description string                      `json:"description"`
+		Conditions  store.SuppressionConditions `json:"conditions"`
+		DurationH   int                         `json:"duration_h"`
+		IsActive    *bool                       `json:"is_active"`
+		Enabled     *bool                       `json:"enabled"`
+		ExpiresAt   *string                     `json:"expires_at"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "name は必須です"})
+		return
+	}
+
+	// **省略された旗は「現在値」です。「有効」ではありません。**
+	// 既定を true にすると、無効にしてあったルールを名前だけ直して保存した
+	// 瞬間に有効化します。運用者は何も有効化していないつもりなので、
+	// 抑制が突然効き始めた理由が分かりません。
+	active, present := resolveActiveFlag(req.IsActive, req.Enabled)
+	if !present {
+		cur, err := h.Store.GetIsActive(c.Request.Context(), id)
+		if err != nil {
+			if errors.Is(err, store.ErrSuppressionNotFound) {
+				c.JSON(http.StatusNotFound, gin.H{"error": "抑制ルールが見つかりません"})
+				return
+			}
+			slog.Warn("suppressions: read current state failed", "id", id, "error", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "抑制ルールの更新に失敗しました"})
+			return
+		}
+		active = cur
+	}
+
+	r := &store.SuppressionRule{
+		ID:          id,
+		Name:        req.Name,
+		Description: req.Description,
+		Conditions:  req.Conditions,
+		DurationH:   req.DurationH,
+		IsActive:    active,
+	}
+	if req.ExpiresAt != nil && *req.ExpiresAt != "" {
+		t, err := time.Parse(time.RFC3339, *req.ExpiresAt)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "expires_at は RFC3339 形式で指定してください"})
+			return
+		}
+		r.ExpiresAt = &t
+	}
+
+	if err := h.Store.Update(c.Request.Context(), r); err != nil {
+		if errors.Is(err, store.ErrSuppressionNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "抑制ルールが見つかりません"})
+			return
+		}
+		slog.Warn("suppressions: update failed", "id", id, "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "抑制ルールの更新に失敗しました"})
+		return
+	}
+	h.publishInvalidate()
+	c.JSON(http.StatusOK, gin.H{"message": "抑制ルールを更新しました", "id": id})
 }
 
 // Delete removes a suppression rule.
@@ -109,19 +216,27 @@ func (h *SuppressionHandler) Delete(c *gin.Context) {
 // PUT /api/v1/suppressions/:id/toggle
 func (h *SuppressionHandler) Toggle(c *gin.Context) {
 	id := c.Param("id")
+	// 旗の名前は2つあります（resolveActiveFlag の注記を参照）。
+	// どちらも無ければ 400 —— **どちらの旗も分からないまま無効化しない。**
 	var req struct {
-		IsActive bool `json:"is_active"`
+		IsActive *bool `json:"is_active"`
+		Enabled  *bool `json:"enabled"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "無効なリクエストです"})
 		return
 	}
-	if err := h.Store.SetActive(c.Request.Context(), id, req.IsActive); err != nil {
+	active, present := resolveActiveFlag(req.IsActive, req.Enabled)
+	if !present {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "is_active または enabled が必要です"})
+		return
+	}
+	if err := h.Store.SetActive(c.Request.Context(), id, active); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "抑制ルールの更新に失敗しました"})
 		return
 	}
 	h.publishInvalidate()
-	c.JSON(http.StatusOK, gin.H{"message": "抑制ルールを更新しました", "id": id, "is_active": req.IsActive})
+	c.JSON(http.StatusOK, gin.H{"message": "抑制ルールを更新しました", "id": id, "is_active": active})
 }
 
 // SuppressCandidate represents a frequently repeating alert that may be a suppression candidate.

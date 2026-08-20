@@ -171,8 +171,14 @@ services:
       # 一時credentialを使う場合のみ。
       AWS_SESSION_TOKEN: ${AWS_SESSION_TOKEN:-}
       BILLING_GRACE_PERIOD_DAYS: ${BILLING_GRACE_PERIOD_DAYS:-30}
+      # 検知ルールはマイグレーションではなくパックで入る。同梱しているのは
+      # rulepacks/baseline.json（Go に埋め込まれた builtin と同じ内容）で、
+      # これが無いと server-detect は DB のルールしか読まないため何も評価しない。
+      # パックが1つも無くても起動は失敗しない（server/internal/rulepack 参照）。
+      EDR_RULEPACK_DIR: ${EDR_RULEPACK_DIR:-/rulepacks}
     volumes:
       - certs_data:/certs
+      - ./rulepacks:/rulepacks:ro
     ports:
       - "${API_PORT:-8080}:8080"
       - "${GRPC_PORT:-9090}:9090"

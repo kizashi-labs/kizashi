@@ -29,13 +29,59 @@ import (
 // the rule should run. An operator who disables a pack rule by hand will see it
 // re-enabled on the next load; quarantine (which pack loading does not touch)
 // is the durable way to hold a rule down.
+//
+// # Adoption
+//
+// Rules used to arrive as INSERT statements in migrations, so every existing
+// deployment already holds rows with pack_key IS NULL. Inserting the pack's
+// copy alongside them would leave two rows with the same name — one the pack
+// maintains and one nothing does — and both would be evaluated. The duplicate
+// would be invisible except as alerts firing twice.
+//
+// So a pack claims the migration's row rather than shadowing it: if exactly one
+// unclaimed row carries this name, it becomes the pack's, keeping its id and
+// therefore every alert that references it.
+//
+// An ambiguous name is an error, not a guess. rules has no unique constraint on
+// name and does contain duplicates; picking one arbitrarily would leave the
+// other orphaned and still firing.
 func (s *RuleStore) UpsertPackRule(ctx context.Context, packKey string, r rulepack.Rule) (bool, error) {
 	if packKey == "" {
 		return false, fmt.Errorf("pack key is empty")
 	}
 
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return false, fmt.Errorf("begin: %w", err)
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+
+	// Refuse before writing anything if the name cannot identify one row.
+	var unclaimed int
+	if err := tx.QueryRow(ctx,
+		`SELECT count(*) FROM rules WHERE pack_key IS NULL AND name = $1`, r.Name).
+		Scan(&unclaimed); err != nil {
+		return false, fmt.Errorf("count unclaimed rules named %q: %w", r.Name, err)
+	}
+	if unclaimed > 1 {
+		return false, fmt.Errorf("%d rules already exist named %q with no pack, so the pack "+
+			"cannot tell which one it replaces; resolve the duplicate before loading",
+			unclaimed, r.Name)
+	}
+
+	// Claim the migration's row, unless this pack already owns one.
+	claimTag, err := tx.Exec(ctx, `
+		UPDATE rules SET pack_key = $1
+		WHERE pack_key IS NULL AND name = $2
+		  AND NOT EXISTS (SELECT 1 FROM rules WHERE pack_key = $1)
+	`, packKey, r.Name)
+	if err != nil {
+		return false, fmt.Errorf("adopt existing rule %q: %w", r.Name, err)
+	}
+	claimed := claimTag.RowsAffected() > 0
+
 	var inserted bool
-	err := s.pool.QueryRow(ctx, `
+	err = tx.QueryRow(ctx, `
 		INSERT INTO rules (
 			pack_key, name, type, platform, severity, content,
 			description, source, mitre_tags, ref_links, tags,
@@ -76,5 +122,11 @@ func (s *RuleStore) UpsertPackRule(ctx context.Context, packKey string, r rulepa
 	if err != nil {
 		return false, fmt.Errorf("upsert pack rule %q: %w", packKey, err)
 	}
-	return inserted, nil
+
+	if err := tx.Commit(ctx); err != nil {
+		return false, fmt.Errorf("commit: %w", err)
+	}
+	// A claimed row already existed, so it is an update even though this pack
+	// had not seen it before. "Inserted" counts rules that were not there.
+	return inserted && !claimed, nil
 }

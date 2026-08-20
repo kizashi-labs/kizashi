@@ -1974,17 +1974,55 @@ paths:
               required: [name, conditions]
               properties:
                 name: { type: string }
+                description: { type: string }
                 conditions:
-                  type: object
-                  description: 抑制条件 (JSONフィルタ)
-                duration_seconds:
+                  $ref: "#/components/schemas/SuppressionConditions"
+                duration_h:
                   type: integer
-                  description: 抑制期間(秒) 0=無期限
-                  default: 0
+                  description: 抑制期間(時間)
+                  default: 24
+                is_active:
+                  type: boolean
+                  description: 省略時は有効
+                expires_at:
+                  type: string
+                  format: date-time
+                  description: RFC3339。解釈できない値は 400
       responses:
         "201": { description: 作成成功 }
         "400": { $ref: "#/components/responses/BadRequest" }
   /api/v1/suppressions/{id}:
+    put:
+      operationId: updateSuppression
+      tags: [rules]
+      summary: 抑制ルール更新
+      parameters:
+        - $ref: "#/components/parameters/ID"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name: { type: string }
+                description: { type: string }
+                conditions:
+                  $ref: "#/components/schemas/SuppressionConditions"
+                duration_h:
+                  type: integer
+                  description: 0 は未指定として既存値を保つ
+                is_active:
+                  type: boolean
+                  description: 省略時は有効
+                expires_at:
+                  type: string
+                  format: date-time
+      responses:
+        "200": { description: 更新成功 }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "404": { $ref: "#/components/responses/NotFound" }
     delete:
       operationId: deleteSuppression
       tags: [rules]
@@ -4014,12 +4052,210 @@ paths:
       responses:
         "200": { $ref: "#/components/responses/Undocumented" }
 
+  /api/v1/admin/agent-update/pending:
+    get:
+      tags: [admin]
+      summary: GET /api/v1/admin/agent-update/pending
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: getAdminAgentUpdatePending
+      x-generated: true
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+
+  /api/v1/admin/agent-update/policy:
+    get:
+      tags: [admin]
+      summary: GET /api/v1/admin/agent-update/policy
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: getAdminAgentUpdatePolicy
+      x-generated: true
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+    put:
+      tags: [admin]
+      summary: PUT /api/v1/admin/agent-update/policy
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: putAdminAgentUpdatePolicy
+      x-generated: true
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+
+  /api/v1/admin/agent-update/rollout-stats:
+    get:
+      tags: [admin]
+      summary: GET /api/v1/admin/agent-update/rollout-stats
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: getAdminAgentUpdateRolloutStats
+      x-generated: true
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+
+  /api/v1/admin/agent-update/trigger:
+    post:
+      tags: [admin]
+      summary: POST /api/v1/admin/agent-update/trigger
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: postAdminAgentUpdateTrigger
+      x-generated: true
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+
+  /api/v1/admin/agent-update/trigger-all:
+    post:
+      tags: [admin]
+      summary: POST /api/v1/admin/agent-update/trigger-all
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: postAdminAgentUpdateTriggerAll
+      x-generated: true
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+
+  /api/v1/admin/agent-update/versions:
+    get:
+      tags: [admin]
+      summary: GET /api/v1/admin/agent-update/versions
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: getAdminAgentUpdateVersions
+      x-generated: true
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+    post:
+      tags: [admin]
+      summary: POST /api/v1/admin/agent-update/versions
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: postAdminAgentUpdateVersions
+      x-generated: true
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+
   /api/v1/admin/ai-investigation/mode:
     get:
       tags: [admin]
       summary: GET /api/v1/admin/ai-investigation/mode
       description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
       operationId: getAdminAiInvestigationMode
+      x-generated: true
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+
+  /api/v1/admin/ai-triage/decisions:
+    get:
+      tags: [admin]
+      summary: GET /api/v1/admin/ai-triage/decisions
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: getAdminAiTriageDecisions
+      x-generated: true
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+
+  /api/v1/admin/ai-triage/decisions/stats:
+    get:
+      tags: [admin]
+      summary: GET /api/v1/admin/ai-triage/decisions/stats
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: getAdminAiTriageDecisionsStats
+      x-generated: true
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+
+  /api/v1/admin/ai-triage/results:
+    get:
+      tags: [admin]
+      summary: GET /api/v1/admin/ai-triage/results
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: getAdminAiTriageResults
+      x-generated: true
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+
+  /api/v1/admin/ai-triage/rules:
+    get:
+      tags: [admin]
+      summary: GET /api/v1/admin/ai-triage/rules
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: getAdminAiTriageRules
+      x-generated: true
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+    post:
+      tags: [admin]
+      summary: POST /api/v1/admin/ai-triage/rules
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: postAdminAiTriageRules
+      x-generated: true
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+
+  /api/v1/admin/ai-triage/rules/{id}:
+    put:
+      tags: [admin]
+      summary: PUT /api/v1/admin/ai-triage/rules/{id}
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: putAdminAiTriageRulesId
+      x-generated: true
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+    delete:
+      tags: [admin]
+      summary: DELETE /api/v1/admin/ai-triage/rules/{id}
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: deleteAdminAiTriageRulesId
+      x-generated: true
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+
+  /api/v1/admin/ai-triage/rules/{id}/toggle:
+    post:
+      tags: [admin]
+      summary: POST /api/v1/admin/ai-triage/rules/{id}/toggle
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: postAdminAiTriageRulesIdToggle
+      x-generated: true
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+
+  /api/v1/admin/ai-triage/stats:
+    get:
+      tags: [admin]
+      summary: GET /api/v1/admin/ai-triage/stats
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: getAdminAiTriageStats
+      x-generated: true
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+
+  /api/v1/admin/ai-triage/triage:
+    post:
+      tags: [admin]
+      summary: POST /api/v1/admin/ai-triage/triage
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: postAdminAiTriageTriage
+      x-generated: true
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+
+  /api/v1/admin/ai-usage:
+    get:
+      tags: [admin]
+      summary: GET /api/v1/admin/ai-usage
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: getAdminAiUsage
+      x-generated: true
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+
+  /api/v1/admin/ai-usage/export:
+    get:
+      tags: [admin]
+      summary: GET /api/v1/admin/ai-usage/export
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: getAdminAiUsageExport
       x-generated: true
       responses:
         "200": { $ref: "#/components/responses/Undocumented" }
@@ -4712,6 +4948,16 @@ paths:
       summary: GET /api/v1/admin/bas/stats
       description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
       operationId: getAdminBasStats
+      x-generated: true
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+
+  /api/v1/admin/billing/dashboard:
+    get:
+      tags: [admin]
+      summary: GET /api/v1/admin/billing/dashboard
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: getAdminBillingDashboard
       x-generated: true
       responses:
         "200": { $ref: "#/components/responses/Undocumented" }
@@ -5849,6 +6095,18 @@ paths:
       description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
       operationId: getAdminCspmEnhancedAccounts
       x-generated: true
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+
+  /api/v1/admin/cspm-enhanced/accounts/{id}/credentials:
+    put:
+      tags: [admin]
+      summary: PUT /api/v1/admin/cspm-enhanced/accounts/{id}/credentials
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: putAdminCspmEnhancedAccountsIdCredentials
+      x-generated: true
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
       responses:
         "200": { $ref: "#/components/responses/Undocumented" }
 
@@ -7264,6 +7522,74 @@ paths:
       responses:
         "200": { $ref: "#/components/responses/Undocumented" }
 
+  /api/v1/admin/identity/config:
+    get:
+      tags: [admin]
+      summary: GET /api/v1/admin/identity/config
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: getAdminIdentityConfig
+      x-generated: true
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+    put:
+      tags: [admin]
+      summary: PUT /api/v1/admin/identity/config
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: putAdminIdentityConfig
+      x-generated: true
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+
+  /api/v1/admin/identity/kerberoasting:
+    get:
+      tags: [admin]
+      summary: GET /api/v1/admin/identity/kerberoasting
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: getAdminIdentityKerberoasting
+      x-generated: true
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+
+  /api/v1/admin/identity/password-spray:
+    get:
+      tags: [admin]
+      summary: GET /api/v1/admin/identity/password-spray
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: getAdminIdentityPasswordSpray
+      x-generated: true
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+
+  /api/v1/admin/identity/sync:
+    post:
+      tags: [admin]
+      summary: POST /api/v1/admin/identity/sync
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: postAdminIdentitySync
+      x-generated: true
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+
+  /api/v1/admin/identity/test:
+    post:
+      tags: [admin]
+      summary: POST /api/v1/admin/identity/test
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: postAdminIdentityTest
+      x-generated: true
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+
+  /api/v1/admin/identity/users:
+    get:
+      tags: [admin]
+      summary: GET /api/v1/admin/identity/users
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: getAdminIdentityUsers
+      x-generated: true
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+
   /api/v1/admin/incident-drills:
     get:
       tags: [admin]
@@ -7712,6 +8038,102 @@ paths:
       responses:
         "200": { $ref: "#/components/responses/Undocumented" }
 
+  /api/v1/admin/ldap:
+    get:
+      tags: [admin]
+      summary: GET /api/v1/admin/ldap
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: getAdminLdap
+      x-generated: true
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+    put:
+      tags: [admin]
+      summary: PUT /api/v1/admin/ldap
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: putAdminLdap
+      x-generated: true
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+
+  /api/v1/admin/ldap/sync:
+    post:
+      tags: [admin]
+      summary: POST /api/v1/admin/ldap/sync
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: postAdminLdapSync
+      x-generated: true
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+
+  /api/v1/admin/ldap/test:
+    post:
+      tags: [admin]
+      summary: POST /api/v1/admin/ldap/test
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: postAdminLdapTest
+      x-generated: true
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+
+  /api/v1/admin/license:
+    get:
+      tags: [admin]
+      summary: GET /api/v1/admin/license
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: getAdminLicense
+      x-generated: true
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+
+  /api/v1/admin/license/activate:
+    post:
+      tags: [admin]
+      summary: POST /api/v1/admin/license/activate
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: postAdminLicenseActivate
+      x-generated: true
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+
+  /api/v1/admin/license/ai-optin:
+    get:
+      tags: [admin]
+      summary: GET /api/v1/admin/license/ai-optin
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: getAdminLicenseAiOptin
+      x-generated: true
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+    put:
+      tags: [admin]
+      summary: PUT /api/v1/admin/license/ai-optin
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: putAdminLicenseAiOptin
+      x-generated: true
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+
+  /api/v1/admin/license/reset:
+    post:
+      tags: [admin]
+      summary: POST /api/v1/admin/license/reset
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: postAdminLicenseReset
+      x-generated: true
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+
+  /api/v1/admin/license/usage:
+    get:
+      tags: [admin]
+      summary: GET /api/v1/admin/license/usage
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: getAdminLicenseUsage
+      x-generated: true
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+
   /api/v1/admin/log-analysis/jobs:
     get:
       tags: [admin]
@@ -7890,6 +8312,218 @@ paths:
       summary: DELETE /api/v1/admin/maintenance-windows/{id}
       description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
       operationId: deleteAdminMaintenanceWindowsId
+      x-generated: true
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+
+  /api/v1/admin/mdm/apps:
+    get:
+      tags: [admin]
+      summary: GET /api/v1/admin/mdm/apps
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: getAdminMdmApps
+      x-generated: true
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+    post:
+      tags: [admin]
+      summary: POST /api/v1/admin/mdm/apps
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: postAdminMdmApps
+      x-generated: true
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+
+  /api/v1/admin/mdm/apps/{id}:
+    delete:
+      tags: [admin]
+      summary: DELETE /api/v1/admin/mdm/apps/{id}
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: deleteAdminMdmAppsId
+      x-generated: true
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+
+  /api/v1/admin/mdm/apps/{id}/assign:
+    post:
+      tags: [admin]
+      summary: POST /api/v1/admin/mdm/apps/{id}/assign
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: postAdminMdmAppsIdAssign
+      x-generated: true
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+
+  /api/v1/admin/mdm/commands:
+    get:
+      tags: [admin]
+      summary: GET /api/v1/admin/mdm/commands
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: getAdminMdmCommands
+      x-generated: true
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+    post:
+      tags: [admin]
+      summary: POST /api/v1/admin/mdm/commands
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: postAdminMdmCommands
+      x-generated: true
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+
+  /api/v1/admin/mdm/commands/{id}/cancel:
+    post:
+      tags: [admin]
+      summary: POST /api/v1/admin/mdm/commands/{id}/cancel
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: postAdminMdmCommandsIdCancel
+      x-generated: true
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+
+  /api/v1/admin/mdm/commands/{id}/push:
+    post:
+      tags: [admin]
+      summary: POST /api/v1/admin/mdm/commands/{id}/push
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: postAdminMdmCommandsIdPush
+      x-generated: true
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+
+  /api/v1/admin/mdm/commands/{id}/refresh-status:
+    post:
+      tags: [admin]
+      summary: POST /api/v1/admin/mdm/commands/{id}/refresh-status
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: postAdminMdmCommandsIdRefreshStatus
+      x-generated: true
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+
+  /api/v1/admin/mdm/enrollment-tokens:
+    get:
+      tags: [admin]
+      summary: GET /api/v1/admin/mdm/enrollment-tokens
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: getAdminMdmEnrollmentTokens
+      x-generated: true
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+    post:
+      tags: [admin]
+      summary: POST /api/v1/admin/mdm/enrollment-tokens
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: postAdminMdmEnrollmentTokens
+      x-generated: true
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+
+  /api/v1/admin/mdm/integrations:
+    get:
+      tags: [admin]
+      summary: GET /api/v1/admin/mdm/integrations
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: getAdminMdmIntegrations
+      x-generated: true
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+
+  /api/v1/admin/mdm/integrations/{type}:
+    patch:
+      tags: [admin]
+      summary: PATCH /api/v1/admin/mdm/integrations/{type}
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: patchAdminMdmIntegrationsType
+      x-generated: true
+      parameters:
+        - { name: type, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+
+  /api/v1/admin/mdm/integrations/{type}/credentials:
+    post:
+      tags: [admin]
+      summary: POST /api/v1/admin/mdm/integrations/{type}/credentials
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: postAdminMdmIntegrationsTypeCredentials
+      x-generated: true
+      parameters:
+        - { name: type, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+
+  /api/v1/admin/mdm/integrations/{type}/sync:
+    post:
+      tags: [admin]
+      summary: POST /api/v1/admin/mdm/integrations/{type}/sync
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: postAdminMdmIntegrationsTypeSync
+      x-generated: true
+      parameters:
+        - { name: type, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+
+  /api/v1/admin/mdm/profiles:
+    get:
+      tags: [admin]
+      summary: GET /api/v1/admin/mdm/profiles
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: getAdminMdmProfiles
+      x-generated: true
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+    post:
+      tags: [admin]
+      summary: POST /api/v1/admin/mdm/profiles
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: postAdminMdmProfiles
+      x-generated: true
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+
+  /api/v1/admin/mdm/profiles/{id}:
+    patch:
+      tags: [admin]
+      summary: PATCH /api/v1/admin/mdm/profiles/{id}
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: patchAdminMdmProfilesId
+      x-generated: true
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+    delete:
+      tags: [admin]
+      summary: DELETE /api/v1/admin/mdm/profiles/{id}
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: deleteAdminMdmProfilesId
+      x-generated: true
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+
+  /api/v1/admin/mdm/profiles/{id}/assign:
+    post:
+      tags: [admin]
+      summary: POST /api/v1/admin/mdm/profiles/{id}/assign
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: postAdminMdmProfilesIdAssign
       x-generated: true
       parameters:
         - { name: id, in: path, required: true, schema: { type: string } }
@@ -8087,6 +8721,60 @@ paths:
       description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
       operationId: getAdminMlUebaScores
       x-generated: true
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+
+  /api/v1/admin/mobile-devices:
+    get:
+      tags: [admin]
+      summary: GET /api/v1/admin/mobile-devices
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: getAdminMobileDevices
+      x-generated: true
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+
+  /api/v1/admin/mobile-devices/enroll:
+    post:
+      tags: [admin]
+      summary: POST /api/v1/admin/mobile-devices/enroll
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: postAdminMobileDevicesEnroll
+      x-generated: true
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+
+  /api/v1/admin/mobile-devices/stats:
+    get:
+      tags: [admin]
+      summary: GET /api/v1/admin/mobile-devices/stats
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: getAdminMobileDevicesStats
+      x-generated: true
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+
+  /api/v1/admin/mobile-devices/{id}:
+    get:
+      tags: [admin]
+      summary: GET /api/v1/admin/mobile-devices/{id}
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: getAdminMobileDevicesId
+      x-generated: true
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+
+  /api/v1/admin/mobile-devices/{id}/compliance:
+    patch:
+      tags: [admin]
+      summary: PATCH /api/v1/admin/mobile-devices/{id}/compliance
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: patchAdminMobileDevicesIdCompliance
+      x-generated: true
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
       responses:
         "200": { $ref: "#/components/responses/Undocumented" }
 
@@ -9818,6 +10506,58 @@ paths:
       responses:
         "200": { $ref: "#/components/responses/Undocumented" }
 
+  /api/v1/admin/sso:
+    get:
+      tags: [admin]
+      summary: GET /api/v1/admin/sso
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: getAdminSso
+      x-generated: true
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+    post:
+      tags: [admin]
+      summary: POST /api/v1/admin/sso
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: postAdminSso
+      x-generated: true
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+
+  /api/v1/admin/sso/{id}:
+    put:
+      tags: [admin]
+      summary: PUT /api/v1/admin/sso/{id}
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: putAdminSsoId
+      x-generated: true
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+    delete:
+      tags: [admin]
+      summary: DELETE /api/v1/admin/sso/{id}
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: deleteAdminSsoId
+      x-generated: true
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+
+  /api/v1/admin/sso/{id}/test:
+    post:
+      tags: [admin]
+      summary: POST /api/v1/admin/sso/{id}/test
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: postAdminSsoIdTest
+      x-generated: true
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+
   /api/v1/admin/supply-chain/incidents:
     get:
       tags: [admin]
@@ -9880,140 +10620,6 @@ paths:
       responses:
         "200": { $ref: "#/components/responses/Undocumented" }
 
-  /api/v1/admin/suppression-rules:
-    get:
-      tags: [admin]
-      summary: GET /api/v1/admin/suppression-rules
-      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
-      operationId: getAdminSuppressionRules
-      x-generated: true
-      responses:
-        "200": { $ref: "#/components/responses/Undocumented" }
-    post:
-      tags: [admin]
-      summary: POST /api/v1/admin/suppression-rules
-      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
-      operationId: postAdminSuppressionRules
-      x-generated: true
-      responses:
-        "200": { $ref: "#/components/responses/Undocumented" }
-
-  /api/v1/admin/suppression-rules/{id}:
-    get:
-      tags: [admin]
-      summary: GET /api/v1/admin/suppression-rules/{id}
-      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
-      operationId: getAdminSuppressionRulesId
-      x-generated: true
-      parameters:
-        - { name: id, in: path, required: true, schema: { type: string } }
-      responses:
-        "200": { $ref: "#/components/responses/Undocumented" }
-    put:
-      tags: [admin]
-      summary: PUT /api/v1/admin/suppression-rules/{id}
-      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
-      operationId: putAdminSuppressionRulesId
-      x-generated: true
-      parameters:
-        - { name: id, in: path, required: true, schema: { type: string } }
-      responses:
-        "200": { $ref: "#/components/responses/Undocumented" }
-    delete:
-      tags: [admin]
-      summary: DELETE /api/v1/admin/suppression-rules/{id}
-      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
-      operationId: deleteAdminSuppressionRulesId
-      x-generated: true
-      parameters:
-        - { name: id, in: path, required: true, schema: { type: string } }
-      responses:
-        "200": { $ref: "#/components/responses/Undocumented" }
-
-  /api/v1/admin/suppression-rules/{id}/toggle:
-    post:
-      tags: [admin]
-      summary: POST /api/v1/admin/suppression-rules/{id}/toggle
-      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
-      operationId: postAdminSuppressionRulesIdToggle
-      x-generated: true
-      parameters:
-        - { name: id, in: path, required: true, schema: { type: string } }
-      responses:
-        "200": { $ref: "#/components/responses/Undocumented" }
-
-  /api/v1/admin/suppression/rules:
-    get:
-      tags: [admin]
-      summary: GET /api/v1/admin/suppression/rules
-      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
-      operationId: getAdminSuppressionRules2
-      x-generated: true
-      responses:
-        "200": { $ref: "#/components/responses/Undocumented" }
-    post:
-      tags: [admin]
-      summary: POST /api/v1/admin/suppression/rules
-      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
-      operationId: postAdminSuppressionRules2
-      x-generated: true
-      responses:
-        "200": { $ref: "#/components/responses/Undocumented" }
-
-  /api/v1/admin/suppression/rules/{id}:
-    put:
-      tags: [admin]
-      summary: PUT /api/v1/admin/suppression/rules/{id}
-      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
-      operationId: putAdminSuppressionRulesId2
-      x-generated: true
-      parameters:
-        - { name: id, in: path, required: true, schema: { type: string } }
-      responses:
-        "200": { $ref: "#/components/responses/Undocumented" }
-    delete:
-      tags: [admin]
-      summary: DELETE /api/v1/admin/suppression/rules/{id}
-      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
-      operationId: deleteAdminSuppressionRulesId2
-      x-generated: true
-      parameters:
-        - { name: id, in: path, required: true, schema: { type: string } }
-      responses:
-        "200": { $ref: "#/components/responses/Undocumented" }
-
-  /api/v1/admin/suppression/rules/{id}/toggle:
-    put:
-      tags: [admin]
-      summary: PUT /api/v1/admin/suppression/rules/{id}/toggle
-      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
-      operationId: putAdminSuppressionRulesIdToggle
-      x-generated: true
-      parameters:
-        - { name: id, in: path, required: true, schema: { type: string } }
-      responses:
-        "200": { $ref: "#/components/responses/Undocumented" }
-
-  /api/v1/admin/suppression/stats:
-    get:
-      tags: [admin]
-      summary: GET /api/v1/admin/suppression/stats
-      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
-      operationId: getAdminSuppressionStats
-      x-generated: true
-      responses:
-        "200": { $ref: "#/components/responses/Undocumented" }
-
-  /api/v1/admin/suppression/test:
-    post:
-      tags: [admin]
-      summary: POST /api/v1/admin/suppression/test
-      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
-      operationId: postAdminSuppressionTest
-      x-generated: true
-      responses:
-        "200": { $ref: "#/components/responses/Undocumented" }
-
   /api/v1/admin/system-settings/maintenance:
     get:
       tags: [admin]
@@ -10033,6 +10639,78 @@ paths:
       x-generated: true
       parameters:
         - { name: key, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+
+  /api/v1/admin/system-updates:
+    get:
+      tags: [admin]
+      summary: GET /api/v1/admin/system-updates
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: getAdminSystemUpdates
+      x-generated: true
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+
+  /api/v1/admin/system-updates/check:
+    post:
+      tags: [admin]
+      summary: POST /api/v1/admin/system-updates/check
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: postAdminSystemUpdatesCheck
+      x-generated: true
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+
+  /api/v1/admin/system-updates/current:
+    get:
+      tags: [admin]
+      summary: GET /api/v1/admin/system-updates/current
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: getAdminSystemUpdatesCurrent
+      x-generated: true
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+
+  /api/v1/admin/system-updates/settings:
+    get:
+      tags: [admin]
+      summary: GET /api/v1/admin/system-updates/settings
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: getAdminSystemUpdatesSettings
+      x-generated: true
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+    put:
+      tags: [admin]
+      summary: PUT /api/v1/admin/system-updates/settings
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: putAdminSystemUpdatesSettings
+      x-generated: true
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+
+  /api/v1/admin/system-updates/{id}/approve:
+    post:
+      tags: [admin]
+      summary: POST /api/v1/admin/system-updates/{id}/approve
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: postAdminSystemUpdatesIdApprove
+      x-generated: true
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+
+  /api/v1/admin/system-updates/{id}/cancel:
+    post:
+      tags: [admin]
+      summary: POST /api/v1/admin/system-updates/{id}/cancel
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: postAdminSystemUpdatesIdCancel
+      x-generated: true
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
       responses:
         "200": { $ref: "#/components/responses/Undocumented" }
 
@@ -10443,6 +11121,42 @@ paths:
       x-generated: true
       parameters:
         - { name: username, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+
+  /api/v1/admin/uninstall-protection:
+    get:
+      tags: [admin]
+      summary: GET /api/v1/admin/uninstall-protection
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: getAdminUninstallProtection
+      x-generated: true
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+    post:
+      tags: [admin]
+      summary: POST /api/v1/admin/uninstall-protection
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: postAdminUninstallProtection
+      x-generated: true
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+    delete:
+      tags: [admin]
+      summary: DELETE /api/v1/admin/uninstall-protection
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: deleteAdminUninstallProtection
+      x-generated: true
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+
+  /api/v1/admin/uninstall-protection/attempts:
+    get:
+      tags: [admin]
+      summary: GET /api/v1/admin/uninstall-protection/attempts
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: getAdminUninstallProtectionAttempts
+      x-generated: true
       responses:
         "200": { $ref: "#/components/responses/Undocumented" }
 
@@ -10916,6 +11630,16 @@ paths:
       responses:
         "200": { $ref: "#/components/responses/Undocumented" }
 
+  /api/v1/agents/update:
+    post:
+      tags: [agents]
+      summary: POST /api/v1/agents/update
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: postAgentsUpdate
+      x-generated: true
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+
   /api/v1/agents/{id}/attack-timeline:
     get:
       tags: [agents]
@@ -11363,6 +12087,32 @@ paths:
       responses:
         "200": { $ref: "#/components/responses/Undocumented" }
 
+  /api/v1/agents/{id}/uninstall-attempt:
+    post:
+      tags: [agents]
+      summary: POST /api/v1/agents/{id}/uninstall-attempt
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: postAgentsIdUninstallAttempt
+      x-generated: true
+      security: []
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+
+  /api/v1/agents/{id}/update-check:
+    get:
+      tags: [agents]
+      summary: GET /api/v1/agents/{id}/update-check
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: getAgentsIdUpdateCheck
+      x-generated: true
+      security: []
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+
   /api/v1/agents/{id}/yara-rules:
     get:
       tags: [agents]
@@ -11373,6 +12123,46 @@ paths:
       security: []
       parameters:
         - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+
+  /api/v1/ai/analyze-alert:
+    post:
+      tags: [ai]
+      summary: POST /api/v1/ai/analyze-alert
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: postAiAnalyzeAlert
+      x-generated: true
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+
+  /api/v1/ai/chat:
+    post:
+      tags: [ai]
+      summary: POST /api/v1/ai/chat
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: postAiChat
+      x-generated: true
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+
+  /api/v1/ai/explain-event:
+    post:
+      tags: [ai]
+      summary: POST /api/v1/ai/explain-event
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: postAiExplainEvent
+      x-generated: true
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+
+  /api/v1/ai/recommend-response:
+    post:
+      tags: [ai]
+      summary: POST /api/v1/ai/recommend-response
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: postAiRecommendResponse
+      x-generated: true
       responses:
         "200": { $ref: "#/components/responses/Undocumented" }
 
@@ -11456,12 +12246,36 @@ paths:
       responses:
         "200": { $ref: "#/components/responses/Undocumented" }
 
+  /api/v1/alerts/{id}/analyze:
+    post:
+      tags: [alerts]
+      summary: POST /api/v1/alerts/{id}/analyze
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: postAlertsIdAnalyze
+      x-generated: true
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+
   /api/v1/alerts/{id}/assign:
     put:
       tags: [alerts]
       summary: PUT /api/v1/alerts/{id}/assign
       description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
       operationId: putAlertsIdAssign
+      x-generated: true
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+
+  /api/v1/alerts/{id}/chat:
+    post:
+      tags: [alerts]
+      summary: POST /api/v1/alerts/{id}/chat
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: postAlertsIdChat
       x-generated: true
       parameters:
         - { name: id, in: path, required: true, schema: { type: string } }
@@ -11693,6 +12507,28 @@ paths:
       responses:
         "200": { $ref: "#/components/responses/Undocumented" }
 
+  /api/v1/auth/oidc/callback:
+    get:
+      tags: [auth]
+      summary: GET /api/v1/auth/oidc/callback
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: getAuthOidcCallback
+      x-generated: true
+      security: []
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+
+  /api/v1/auth/oidc/login:
+    get:
+      tags: [auth]
+      summary: GET /api/v1/auth/oidc/login
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: getAuthOidcLogin
+      x-generated: true
+      security: []
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+
   /api/v1/auth/password-policy/validate:
     post:
       tags: [auth]
@@ -11774,6 +12610,28 @@ paths:
       responses:
         "200": { $ref: "#/components/responses/Undocumented" }
 
+  /api/v1/auth/sso/callback:
+    post:
+      tags: [auth]
+      summary: POST /api/v1/auth/sso/callback
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: postAuthSsoCallback
+      x-generated: true
+      security: []
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+
+  /api/v1/auth/sso/providers:
+    get:
+      tags: [auth]
+      summary: GET /api/v1/auth/sso/providers
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: getAuthSsoProviders
+      x-generated: true
+      security: []
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+
   /api/v1/auto-response:
     get:
       tags: [auto-response]
@@ -11845,6 +12703,26 @@ paths:
       x-generated: true
       parameters:
         - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+
+  /api/v1/billing/checkout:
+    post:
+      tags: [billing]
+      summary: POST /api/v1/billing/checkout
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: postBillingCheckout
+      x-generated: true
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+
+  /api/v1/billing/portal:
+    post:
+      tags: [billing]
+      summary: POST /api/v1/billing/portal
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: postBillingPortal
+      x-generated: true
       responses:
         "200": { $ref: "#/components/responses/Undocumented" }
 
@@ -11988,6 +12866,16 @@ paths:
       summary: GET /api/v1/cloud-workload/threats
       description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
       operationId: getCloudWorkloadThreats
+      x-generated: true
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+
+  /api/v1/cloud/findings/import:
+    post:
+      tags: [cloud]
+      summary: POST /api/v1/cloud/findings/import
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: postCloudFindingsImport
       x-generated: true
       responses:
         "200": { $ref: "#/components/responses/Undocumented" }
@@ -13493,6 +14381,39 @@ paths:
       responses:
         "200": { $ref: "#/components/responses/Undocumented" }
 
+  /api/v1/ingest/mobile-apps:
+    post:
+      tags: [ingest]
+      summary: POST /api/v1/ingest/mobile-apps
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: postIngestMobileApps
+      x-generated: true
+      security: []
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+
+  /api/v1/ingest/mobile-network:
+    post:
+      tags: [ingest]
+      summary: POST /api/v1/ingest/mobile-network
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: postIngestMobileNetwork
+      x-generated: true
+      security: []
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+
+  /api/v1/ingest/mobile-verdict:
+    post:
+      tags: [ingest]
+      summary: POST /api/v1/ingest/mobile-verdict
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: postIngestMobileVerdict
+      x-generated: true
+      security: []
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+
   /api/v1/ingest/wazuh:
     post:
       tags: [ingest]
@@ -13859,6 +14780,16 @@ paths:
       responses:
         "200": { $ref: "#/components/responses/Undocumented" }
 
+  /api/v1/license:
+    get:
+      tags: [license]
+      summary: GET /api/v1/license
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: getLicense
+      x-generated: true
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+
   /api/v1/live-response/output:
     post:
       tags: [live-response]
@@ -13890,6 +14821,72 @@ paths:
       x-generated: true
       parameters:
         - { name: agentId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+
+  /api/v1/mdm/enroll/{token}/android:
+    get:
+      tags: [mdm]
+      summary: GET /api/v1/mdm/enroll/{token}/android
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: getMdmEnrollTokenAndroid
+      x-generated: true
+      security: []
+      parameters:
+        - { name: token, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+
+  /api/v1/mdm/enroll/{token}/profile.mobileconfig:
+    get:
+      tags: [mdm]
+      summary: GET /api/v1/mdm/enroll/{token}/profile.mobileconfig
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: getMdmEnrollTokenProfileMobileconfig
+      x-generated: true
+      security: []
+      parameters:
+        - { name: token, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+
+  /api/v1/mdm/ios/checkin:
+    post:
+      tags: [mdm]
+      summary: POST /api/v1/mdm/ios/checkin
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: postMdmIosCheckin
+      x-generated: true
+      security: []
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+    put:
+      tags: [mdm]
+      summary: PUT /api/v1/mdm/ios/checkin
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: putMdmIosCheckin
+      x-generated: true
+      security: []
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+
+  /api/v1/mdm/ios/server:
+    post:
+      tags: [mdm]
+      summary: POST /api/v1/mdm/ios/server
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: postMdmIosServer
+      x-generated: true
+      security: []
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+    put:
+      tags: [mdm]
+      summary: PUT /api/v1/mdm/ios/server
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: putMdmIosServer
+      x-generated: true
+      security: []
       responses:
         "200": { $ref: "#/components/responses/Undocumented" }
 
@@ -13979,6 +14976,16 @@ paths:
       summary: GET /api/v1/metrics/top-agents
       description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
       operationId: getMetricsTopAgents
+      x-generated: true
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+
+  /api/v1/mobile/push-token:
+    post:
+      tags: [mobile]
+      summary: POST /api/v1/mobile/push-token
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: postMobilePushToken
       x-generated: true
       responses:
         "200": { $ref: "#/components/responses/Undocumented" }
@@ -15136,6 +16143,16 @@ paths:
       responses:
         "200": { $ref: "#/components/responses/Undocumented" }
 
+  /api/v1/rules/ai-generate:
+    post:
+      tags: [rules]
+      summary: POST /api/v1/rules/ai-generate
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: postRulesAiGenerate
+      x-generated: true
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+
   /api/v1/rules/counts:
     get:
       tags: [rules]
@@ -15487,6 +16504,50 @@ paths:
       x-generated: true
       parameters:
         - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+
+  /api/v1/signup:
+    post:
+      tags: [signup]
+      summary: POST /api/v1/signup
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: postSignup
+      x-generated: true
+      security: []
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+
+  /api/v1/signup/create-checkout:
+    post:
+      tags: [signup]
+      summary: POST /api/v1/signup/create-checkout
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: postSignupCreateCheckout
+      x-generated: true
+      security: []
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+
+  /api/v1/signup/status:
+    get:
+      tags: [signup]
+      summary: GET /api/v1/signup/status
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: getSignupStatus
+      x-generated: true
+      security: []
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+
+  /api/v1/signup/verify-email:
+    post:
+      tags: [signup]
+      summary: POST /api/v1/signup/verify-email
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: postSignupVerifyEmail
+      x-generated: true
+      security: []
       responses:
         "200": { $ref: "#/components/responses/Undocumented" }
 
@@ -16614,6 +17675,17 @@ paths:
       responses:
         "200": { $ref: "#/components/responses/Undocumented" }
 
+  /api/v1/webhooks/stripe:
+    post:
+      tags: [webhooks]
+      summary: POST /api/v1/webhooks/stripe
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: postWebhooksStripe
+      x-generated: true
+      security: []
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
+
   /api/v1/webhooks/{id}:
     put:
       tags: [webhooks]
@@ -17205,6 +18277,17 @@ paths:
         - { name: id, in: path, required: true, schema: { type: string } }
       responses:
         "200": { $ref: "#/components/responses/Undocumented" }
+
+  /ws/billing:
+    get:
+      tags: [other]
+      summary: GET /ws/billing
+      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
+      operationId: getWsBilling
+      x-generated: true
+      security: []
+      responses:
+        "200": { $ref: "#/components/responses/Undocumented" }
 components:
   securitySchemes:
     BearerAuth:
@@ -17280,6 +18363,43 @@ components:
               - $ref: "#/components/schemas/AgentLimitReachedError"
 
   schemas:
+    SuppressionConditions:
+      type: object
+      description: |
+        抑制条件。書かれた条件すべてに一致したアラートだけを抑制する (AND)。
+        一致の仕方は条件ごとに違う (`server/internal/detection/suppression_matcher.go`)。
+
+        条件がひとつも無いルール、および書かれた条件が全て「絞り込みにならない」
+        ルール (`severity_max: 10`、`mitre_technique: "T"` など) は catch-all として
+        **検知エンジンが適用を拒む** (`ClassifySuppression`)。保存自体は成功するので、
+        API 利用者は条件を1つ以上指定すること。
+
+        更新 (PUT) では conditions は列ごと置き換わる。編集後の条件を丸ごと送ること。
+      properties:
+        rule_name:
+          type: string
+          description: 検知ルール名の部分一致 (大文字小文字を区別しない)
+        hostname:
+          type: string
+          description: ホスト名の部分一致 (大文字小文字を区別しない)
+        agent_id:
+          type: string
+          description: エージェントIDの完全一致
+        mitre_technique:
+          type: string
+          description: MITRE 技法の前方一致 (T1059 は T1059.001 にも当たる)
+        severity_max:
+          type: integer
+          minimum: 1
+          maximum: 10
+          description: この値以下の重大度だけを抑制。10 は上限そのもので何も絞れない
+        command_line_contains:
+          type: string
+          description: コマンドラインの部分一致。8文字未満は絞り込みとみなされない
+        parent_process:
+          type: string
+          description: 親プロセス画像パスの後方一致
+
     Tenant:
       type: object
       properties:

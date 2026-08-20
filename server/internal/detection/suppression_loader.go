@@ -32,11 +32,17 @@ func NewPoolSuppressionLoader(pool *pgxpool.Pool) *PoolSuppressionLoader {
 // non-expired suppression rule for the in-memory cache.
 // ListActiveSuppressions returns the rules that actually suppress alerts.
 //
-// **フラグは 2 つある。** is_active は画面の一覧が、enabled は
-// internal/suppression.Engine の API が書く。どちらも既定は TRUE なので、
-// 片方だけ見ると、もう片方で off にしたルールが適用され続ける。
+// **フラグは 2 つある。** いまは store.SuppressionStore が両方に同じ値を
+// 書くので、新しく作られる行では一致する。**それでも両方を見る。**
+//
+// enabled を書いていたもう 1 つの API (internal/suppression.Engine) は
+// 撤去したが、**その API が残したデータは消えない。** is_active が TRUE の
+// まま enabled=false になっている行が残り得る。
 // 実測 (2026-08-11): enabled=false の 1 件が、is_active だけを見る
 // 問い合わせでは 1 件として返っていた。
+//
+// **書き手が 1 つになったからといって、この条件を外してはいけない。**
+// 外すとそういう行が一斉に抑制を再開する。
 //
 // どちらか一方でも off なら抑制しない。**抑制しない方向に倒す** ——
 // 余計に届いたアラートは消せるが、落ちたアラートは戻らない。

@@ -1,3 +1,19 @@
+--
+-- ─── 公開版向けの差し替え（scripts/public-snapshot/overlay） ──────────────
+--
+-- 本流の同名ファイルは、スキーマ変更のあとに検知ルールの INSERT が続く。
+-- 公開版は検知コンテンツをパックで配るので、**スキーマ変更だけを残し、
+-- INSERT を落とした版**がこれ。
+--
+-- ファイルごと除外できないのは、events_event_type_check の付け替えなど
+-- スキーマ側が公開版でも必要なため。番号とファイル名は本流と同一にする
+-- （schema_migrations は version としてファイル名を持つので、名前を変えると
+-- 適用済みの環境で再実行される）。
+--
+-- 落としたルールは rulepacks/ に入っている。公開版に同梱されるのは
+-- baseline.json のみ。
+--
+
 -- 370: allow 'wmi_activity' in events.event_type, and add the WMI event-subscription
 -- persistence rule that consumes it.
 --
@@ -88,31 +104,3 @@ $migration$;
 -- same reasoning applied to the LOLBin rules in #592, and giving them distinct
 -- names is what keeps the DB-rule extractor from silently overwriting one with
 -- the other (it identifies rules by name).
-INSERT INTO rules (name, type, platform, severity, content, source, mitre_tags, description, enabled)
-SELECT 'WMI Event Subscription Registered (ETW)', 'sigma', ARRAY['windows'], 8,
-$$
-title: WMI Event Subscription Registered (ETW)
-description: Detects registration of a WMI event subscription whose consumer executes code (CommandLineEventConsumer / ActiveScriptEventConsumer). Fileless persistence that survives reboot and leaves no parent process linking back to WMI (T1546.003). Keyed on the executing consumer types, because subscriptions themselves are routine for management tooling.
-status: stable
-level: high
-tags:
-  - attack.t1546.003
-  - attack.persistence
-  - attack.privilege_escalation
-logsource:
-  category: wmi_event
-  product: windows
-detection:
-  selection:
-    event_type: WmiBindingEvent
-  executing_consumer:
-    consumer|contains:
-      - "CommandLineEventConsumer"
-      - "ActiveScriptEventConsumer"
-  condition: selection and executing_consumer
-falsepositives:
-  - Management suites that legitimately register command-line consumers
-$$,
-'builtin-parity', ARRAY['T1546.003'],
-'WMI event-subscription persistence observed from the WMI subsystem (ETW 5861), complementing the wmic command-line rule in 329', true
-WHERE NOT EXISTS (SELECT 1 FROM rules WHERE name = 'WMI Event Subscription Registered (ETW)');

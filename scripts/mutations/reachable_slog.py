@@ -110,13 +110,13 @@ CASES = [
          '\t"cloud/poller.go:poll": "直したのに理由が残っています",\n\t// \n',
      '直した箇所の理由が一覧に残っても気づかなくなる（**次に同じ形が'
      '生えたときに黙って通ります**）'),
-    (AW, '\tconst want = 42', '\tconst want = 43',
+    (AW, '\tconst want = 41', '\tconst want = 43',
      '理由つきで外した件数を実測から引き離す'),
 
     # ── 走査そのもの ─────────────────────────────────────────────────────
     (W, 'const reachableSlogErrorSites = 3', 'const reachableSlogErrorSites = 100',
      '件数を留めなくなる'),
-    (W, 'const reachableSlogWarnSites = 25', 'const reachableSlogWarnSites = 100',
+    (W, 'const reachableSlogWarnSites = 26', 'const reachableSlogWarnSites = 100',
      '`Warn` の件数を留めなくなる'),
     (W, 'const silentErrorBranchSites = 28', 'const silentErrorBranchSites = 100',
      '**黙って捨てた error** の件数を留めなくなる'),

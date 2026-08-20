@@ -3,9 +3,11 @@ package store
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"time"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -53,6 +55,13 @@ type SuppressionRule struct {
 	CreatedAt     time.Time             `json:"created_at"`
 	UpdatedAt     time.Time             `json:"updated_at"`
 }
+
+// ErrSuppressionNotFound is returned when the target rule does not exist.
+//
+// **消えたルールへの更新を成功として返さない。** 抑制ルールの編集画面で
+// 保存が通ったように見えて何も変わらないと、運用者は「保存した条件で
+// 抑制されている」と信じたまま次の判断をする。
+var ErrSuppressionNotFound = errors.New("suppression rule not found")
 
 // SuppressionStore handles suppression rule persistence.
 type SuppressionStore struct {
@@ -117,9 +126,9 @@ func (s *SuppressionStore) Insert(ctx context.Context, r *SuppressionRule) error
 		return err
 	}
 	_, err = s.pool.Exec(ctx, `
-		-- **両方の旗に同じ値を書きます**（internal/suppression/engine.go の
-		-- 同じ注記を参照）。片方だけ書くと、書かなかった側の既定 (TRUE) が
-		-- 残り、無効にしたつもりのルールが適用され続けます。
+		-- **両方の旗に同じ値を書きます**（SetActive の注記を参照）。
+		-- 片方だけ書くと、書かなかった側の既定 (TRUE) が残り、
+		-- 無効にしたつもりのルールが適用され続けます。
 		INSERT INTO suppression_rules
 		  (name, description, conditions, duration_h, is_active, enabled, created_by, expires_at)
 		VALUES ($1, $2, $3, $4, $5, $5, $6::uuid, $7)`,
@@ -127,6 +136,22 @@ func (s *SuppressionStore) Insert(ctx context.Context, r *SuppressionRule) error
 		r.IsActive, nilIfEmpty(r.CreatedBy), r.ExpiresAt,
 	)
 	return err
+}
+
+// GetIsActive returns the rule's current on/off value.
+//
+// **省略された旗を「有効」と読まないために要ります。** 更新要求に
+// is_active が無いとき、既定を true にすると、**無効にしてあったルールを
+// 名前だけ直して保存した瞬間に有効化します**。運用者は何も有効化していない
+// つもりなので、抑制が突然効き始めた理由が分かりません。
+func (s *SuppressionStore) GetIsActive(ctx context.Context, id string) (bool, error) {
+	var active bool
+	err := s.pool.QueryRow(ctx,
+		"SELECT is_active FROM suppression_rules WHERE id = $1", id).Scan(&active)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return false, ErrSuppressionNotFound
+	}
+	return active, err
 }
 
 // Delete removes a suppression rule.
@@ -155,13 +180,55 @@ func (s *SuppressionStore) IncrHitCount(ctx context.Context, id string) error {
 
 // SetActive toggles a rule's active flags.
 //
-// **旗は2つあります。** is_active はここが、enabled は
-// internal/suppression.Engine が書きます。ここで is_active だけ落とすと、
-// Engine 側から見ると有効なままです。**両方に同じ値を書きます。**
+// **旗は2つあります。** 列が is_active と enabled の2つあり、いまは
+// ここが両方に同じ値を書く唯一の書き手です。
+//
+// もう 1 つの書き手 (internal/suppression.Engine) は撤去しましたが、
+// **その API が残したデータは消えません。** 読み手
+// (detection.PoolSuppressionLoader) が両方 TRUE を要求するのはそのためで、
+// ここで片方だけ落とすと、もう片方の既定 (TRUE) が残ります。
+// **両方に同じ値を書きます。**
 func (s *SuppressionStore) SetActive(ctx context.Context, id string, active bool) error {
 	_, err := s.pool.Exec(ctx,
 		"UPDATE suppression_rules SET is_active=$2, enabled=$2, updated_at=NOW() WHERE id=$1",
 		id, active,
 	)
 	return err
+}
+
+// Update replaces the editable fields of an existing rule.
+//
+// **conditions は列ごと置き換える。** 部分更新にすると「画面から条件を1つ
+// 消した」と「画面がそのキーを知らないので送らなかった」が区別できず、
+// 消したはずの条件が残る。抑制ルールで条件が残る方向の間違いは、
+// **消えたままのアラート**として現れ、攻撃されていないことと見分けがつかない。
+// 呼び出し側は編集後の条件を丸ごと渡すこと。
+//
+// duration_h だけは 0 を「未指定」として既存値を残す。0 時間の抑制は
+// 意味を成さず、送り手が持っていないだけの値で既存設定を潰さないため。
+//
+// 旗は Insert / SetActive と同じく2つに同じ値を書く（is_active と enabled）。
+// 片方だけ書くと、書かなかった側の既定 TRUE が残る。
+func (s *SuppressionStore) Update(ctx context.Context, r *SuppressionRule) error {
+	condJSON, err := json.Marshal(r.Conditions)
+	if err != nil {
+		return err
+	}
+	result, err := s.pool.Exec(ctx, `
+		UPDATE suppression_rules
+		   SET name = $2, description = $3, conditions = $4,
+		       duration_h = COALESCE(NULLIF($5, 0), duration_h),
+		       is_active = $6, enabled = $6,
+		       expires_at = $7, updated_at = NOW()
+		 WHERE id = $1`,
+		r.ID, r.Name, r.Description, string(condJSON),
+		r.DurationH, r.IsActive, r.ExpiresAt,
+	)
+	if err != nil {
+		return err
+	}
+	if result.RowsAffected() == 0 {
+		return ErrSuppressionNotFound
+	}
+	return nil
 }

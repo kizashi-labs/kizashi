@@ -140,6 +140,12 @@ var informationSchemaReasons = map[string]string{
 		"入口なので、確認できなかったことを呼び出し側が知る必要があります。",
 	"api/handlers/predictive_analytics_handler.go:fetchStats": "確認に失敗したら " +
 		"`fmt.Errorf` で包んで返します。",
+	"updater/applier.go:dumpRoleBlocked": "テーブルの有無ではなく、**ダンプ用ロールが RLS を" +
+		"迂回できるか**を見ています。`tableIsThere` は bool しか返さないので、" +
+		"ここが必要とする3つの結果（迂回できる／できない／確認自体ができなかった）を" +
+		"表せません。**倒していません** —— 確認できなかった場合は " +
+		"`tick.Fail` で報告したうえで先へ進め、pg_dump 自身に答えさせます" +
+		"（pipefail が入ったので、その失敗はもう握り潰されません）。",
 
 	// ── 以下は、確認の失敗を `fail(ctx, err, ...)` か `error` で
 	//    **報告している**ものです。`TableIsThere` は Warn を出すだけなので、

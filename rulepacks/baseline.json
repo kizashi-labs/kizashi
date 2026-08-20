@@ -1,0 +1,2298 @@
+{
+  "name": "baseline",
+  "version": "2026.08",
+  "description": "Parity copies of the rules compiled into the binary, so server-detect evaluates the same baseline as server-api. Ships in every edition.",
+  "rules": [
+    {
+      "name": "Linux 復旧阻害の疑い(スナップショット/バックアップ破壊)",
+      "type": "behavioral",
+      "platform": [
+        "linux"
+      ],
+      "severity": 3,
+      "content": "\n# Linux でのバックアップ/スナップショット破壊を単発で検知(T1490)。\n# 単独では低 severity。ransomCorr の recovery_inhibit 軸への入力として機能し、\n# 暗号化バースト(mass_modify)と併発したときに複合アラートへ昇格する。\nwindow: 10m\nthreshold: 1\ncooldown: 30m\nevent_type: process\nfield: commandLine\nvalue_any: btrfs subvolume delete, zfs destroy, lvremove, snapper delete, timeshift --delete, restic forget, restic prune, borg delete, borg prune, rm -rf /var/backups, rm -rf /.snapshots, rm -rf /backup, virsh snapshot-delete, rbd snap purge, rbd snap rm, rsnapshot delete, wipefs -a\ngroup_by: agent_id\n",
+      "description": "Linux のスナップショット/バックアップ破壊を検知。単独では低 severity で、ランサムウェア相関(ransomCorr)の復旧妨害軸への入力として働く。",
+      "source": "builtin",
+      "mitre_tags": [
+        "T1490"
+      ],
+      "enabled": true
+    },
+    {
+      "name": "AD CS Certificate Abuse (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 8,
+      "content": "title: AD CS Certificate Abuse (DB)\ndescription: Detects Active Directory Certificate Services abuse via Certipy (requesting, forging, or relaying certificates for authentication and privilege escalation, ESC1-16), a common modern path to Domain Admin.\nstatus: stable\nlevel: high\ntags:\n  - attack.t1649\n  - attack.credential_access\nlogsource:\n  category: process_creation\ndetection:\n  certipy:\n    CommandLine|contains: \"certipy\"\n  condition: certipy\nfalsepositives:\n  - Authorised AD CS security assessments using Certipy\n",
+      "description": "Two-engine parity: AD CS certificate abuse via Certipy",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1649"
+      ],
+      "enabled": true
+    },
+    {
+      "name": "AS-REP Roasting (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 8,
+      "content": "title: AS-REP Roasting (DB)\ndescription: Detects AS-REP roasting via PowerShell (Invoke-ASREPRoast/Get-ASREPHash), enumeration of pre-auth-disabled accounts (DONT_REQ_PREAUTH/PreauthNotRequired), or the Impacket GetNPUsers tool, yielding crackable AS-REP hashes without prior domain credentials.\nstatus: stable\nlevel: high\ntags:\n  - attack.t1558.004\n  - attack.credential_access\nlogsource:\n  category: process_creation\ndetection:\n  tools:\n    CommandLine|contains:\n      - \"Invoke-ASREPRoast\"\n      - \"Get-ASREPHash\"\n      - \"ASREPRoast\"\n      - \"GetNPUsers\"\n      - \"DONT_REQ_PREAUTH\"\n      - \"PreauthNotRequired\"\n  condition: tools\nfalsepositives:\n  - Authorised AD security assessments enumerating pre-auth settings\n",
+      "description": "Two-engine parity: AS-REP roasting incl. Impacket GetNPUsers",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1558.004"
+      ],
+      "enabled": true
+    },
+    {
+      "name": "Access Token Manipulation (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 7,
+      "content": "title: Access Token Manipulation (DB)\ndescription: Detects token theft/impersonation tradecraft — Invoke-TokenManipulation, incognito, runas /netonly, getsystem, token-duplication APIs.\nstatus: stable\nlevel: high\ntags:\n  - attack.t1134\n  - attack.privilege_escalation\n  - attack.defense_evasion\nlogsource:\n  category: process_creation\ndetection:\n  selection:\n    CommandLine|contains:\n      - \"Invoke-TokenManipulation\"\n      - \" incognito\"\n      - \"runas /netonly\"\n      - \"getsystem\"\n      - \"steal_token\"\n      - \"make_token\"\n      - \"ImpersonateLoggedOnUser\"\n      - \"DuplicateTokenEx\"\n  condition: selection\nfalsepositives:\n  - Rare legitimate use of runas /netonly by administrators\n",
+      "description": "Two-engine parity: access token manipulation",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1134"
+      ],
+      "enabled": true
+    },
+    {
+      "name": "Account Access Removal (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 8,
+      "content": "title: Account Access Removal (DB)\ndescription: Detects deletion/disabling of accounts (net user /delete, /active:no, Remove/Disable-AD/LocalUser) to lock out legitimate users during impact.\nstatus: stable\nlevel: high\ntags:\n  - attack.t1531\n  - attack.impact\nlogsource:\n  category: process_creation\ndetection:\n  netuser:\n    CommandLine|contains|all:\n      - \"net user\"\n      - \"/delete\"\n  disable:\n    CommandLine|contains:\n      - \"/active:no\"\n      - \"Disable-ADAccount\"\n      - \"Remove-ADUser\"\n      - \"Remove-LocalUser\"\n  condition: netuser or disable\nfalsepositives:\n  - Routine deprovisioning of departed users\n",
+      "description": "Two-engine parity: account access removal",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1531"
+      ],
+      "enabled": true
+    },
+    {
+      "name": "Additional Cloud Credentials (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 7,
+      "content": "title: Additional Cloud Credentials (DB)\ndescription: Detects attaching new long-lived credentials to a cloud identity for persistence (aws iam create-access-key / create-login-profile, az ad app|sp credential reset, gcloud iam service-accounts keys create), so the attacker retains access even if the initial credential is revoked.\nstatus: stable\nlevel: high\ntags:\n  - attack.t1098.001\n  - attack.persistence\nlogsource:\n  category: process_creation\ndetection:\n  aws_key:\n    CommandLine|contains:\n      - \"iam create-access-key\"\n      - \"iam create-login-profile\"\n  az_cred:\n    CommandLine|contains|all:\n      - \"az ad\"\n      - \"credential\"\n    CommandLine|contains: \"reset\"\n  gcloud_key:\n    CommandLine|contains: \"service-accounts keys create\"\n  condition: aws_key or az_cred or gcloud_key\nfalsepositives:\n  - Legitimate key rotation by cloud administrators or IaC\n",
+      "description": "Two-engine parity: additional cloud credentials for persistence",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1098.001"
+      ],
+      "enabled": true
+    },
+    {
+      "name": "Additional Cloud Roles (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 7,
+      "content": "title: Additional Cloud Roles (DB)\ndescription: Detects granting elevated permissions to a cloud identity (aws iam attach-user-policy / attach-role-policy / put-user-policy / add-user-to-group, az role assignment create, gcloud add-iam-policy-binding), used for privilege escalation and persistence.\nstatus: stable\nlevel: high\ntags:\n  - attack.t1098.003\n  - attack.privilege_escalation\n  - attack.persistence\nlogsource:\n  category: process_creation\ndetection:\n  aws_grant:\n    CommandLine|contains:\n      - \"iam attach-user-policy\"\n      - \"iam attach-role-policy\"\n      - \"iam put-user-policy\"\n      - \"iam add-user-to-group\"\n  az_grant:\n    CommandLine|contains: \"role assignment create\"\n  gcloud_grant:\n    CommandLine|contains: \"add-iam-policy-binding\"\n  condition: aws_grant or az_grant or gcloud_grant\nfalsepositives:\n  - Cloud administrators or IaC assigning roles\n",
+      "description": "Two-engine parity: additional cloud roles for privilege escalation",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1098.003"
+      ],
+      "enabled": true
+    },
+    {
+      "name": "AppInit DLLs Persistence (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 7,
+      "content": "title: AppInit DLLs Persistence (DB)\ndescription: Detects setting the AppInit_DLLs or LoadAppInit_DLLs registry values, which force every user-mode process that loads user32.dll to also load an attacker DLL, a stealthy system-wide persistence and privilege-escalation foothold.\nstatus: stable\nlevel: high\ntags:\n  - attack.t1546.001\n  - attack.persistence\n  - attack.privilege_escalation\nlogsource:\n  category: process_creation\ndetection:\n  appinit:\n    CommandLine|contains:\n      - \"AppInit_DLLs\"\n      - \"LoadAppInit_DLLs\"\n  condition: appinit\nfalsepositives:\n  - Rare legacy software that legitimately registers an AppInit DLL\n",
+      "description": "Two-engine parity: AppInit DLLs persistence",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1546.001"
+      ],
+      "enabled": true
+    },
+    {
+      "name": "At Job Scheduling (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 6,
+      "content": "title: At Job Scheduling (DB)\ndescription: Detects use of the legacy at.exe scheduler to run an executable, batch file, or command interpreter, an older execution/persistence technique that predates schtasks and is often used to evade task-based monitoring.\nstatus: stable\nlevel: medium\ntags:\n  - attack.t1053.002\n  - attack.execution\n  - attack.persistence\nlogsource:\n  category: process_creation\ndetection:\n  at_job:\n    CommandLine|contains|all:\n      - \"at.exe\"\n    CommandLine|contains:\n      - \".exe\"\n      - \".bat\"\n      - \"cmd\"\n      - \"powershell\"\n  condition: at_job\nfalsepositives:\n  - Legacy administration scripts still using at\n",
+      "description": "Two-engine parity: at.exe legacy job scheduling",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1053.002"
+      ],
+      "enabled": true
+    },
+    {
+      "name": "Audio Capture (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 6,
+      "content": "title: Audio Capture (DB)\ndescription: Detects microphone/audio capture via recording APIs (waveInOpen, Get-AudioDevice, Windows.Media.Capture) or ffmpeg with an audio input device, used to eavesdrop on a target.\nstatus: stable\nlevel: medium\ntags:\n  - attack.t1123\n  - attack.collection\nlogsource:\n  category: process_creation\ndetection:\n  api:\n    CommandLine|contains:\n      - \"waveInOpen\"\n      - \"Get-AudioDevice\"\n      - \"Windows.Media.Capture\"\n  ffmpeg:\n    CommandLine|contains|all:\n      - \"ffmpeg\"\n      - \"audio=\"\n  condition: api or ffmpeg\nfalsepositives:\n  - Legitimate audio/conferencing software\n",
+      "description": "Two-engine parity: audio capture / eavesdropping",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1123"
+      ],
+      "enabled": true
+    },
+    {
+      "name": "BITS Jobs Abuse (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 6,
+      "content": "title: BITS Jobs Abuse (DB)\ndescription: Detects bitsadmin or PowerShell BITS transfers used to download payloads or persist via a notify command line, a stealthy living-off-the-land technique (bitsadmin /transfer /addfile /setnotifycmdline, Start-BitsTransfer, Import-Module BitsTransfer).\nstatus: stable\nlevel: medium\ntags:\n  - attack.t1197\n  - attack.defense_evasion\n  - attack.persistence\nlogsource:\n  category: process_creation\ndetection:\n  bitsadmin:\n    CommandLine|contains|all:\n      - \"bitsadmin\"\n    CommandLine|contains:\n      - \"/transfer\"\n      - \"/create\"\n      - \"/addfile\"\n      - \"/setnotifycmdline\"\n  ps_bits:\n    CommandLine|contains:\n      - \"Start-BitsTransfer\"\n      - \"Import-Module BitsTransfer\"\n  condition: bitsadmin or ps_bits\nfalsepositives:\n  - Legitimate software updaters that use BITS\n",
+      "description": "Two-engine parity: BITS jobs download/persistence abuse",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1197"
+      ],
+      "enabled": true
+    },
+    {
+      "name": "Bootloader or Boot Configuration Tampering (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 8,
+      "content": "title: Bootloader or Boot Configuration Tampering (DB)\ndescription: Detects modification of boot configuration/bootloader (bcdedit safeboot/recovery, GRUB rewrite) for bootkit persistence or recovery disablement.\nstatus: stable\nlevel: high\ntags:\n  - attack.t1542.003\n  - attack.persistence\nlogsource:\n  category: process_creation\ndetection:\n  bcdedit:\n    CommandLine|contains|all:\n      - \"bcdedit\"\n    CommandLine|contains:\n      - \"safeboot\"\n      - \"bootstatuspolicy\"\n      - \"recoveryenabled\"\n      - \"/set\"\n  grub:\n    CommandLine|contains:\n      - \"grub-install\"\n      - \"grub-mkconfig\"\n      - \"/boot/grub\"\n      - \"update-grub\"\n  condition: bcdedit or grub\nfalsepositives:\n  - Legitimate OS/boot maintenance by administrators\n",
+      "description": "Two-engine parity: bootloader/boot configuration tampering",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1542.003"
+      ],
+      "enabled": true
+    },
+    {
+      "name": "Browser Cookie or Login Database Access (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 7,
+      "content": "title: Browser Cookie or Login Database Access (DB)\ndescription: Detects copying/reading a browser cookie/credential database (Chrome Login Data, Firefox cookies.sqlite/logins.json) to steal session tokens and saved passwords.\nstatus: experimental\nlevel: high\ntags:\n  - attack.t1539\n  - attack.credential_access\nlogsource:\n  category: process_creation\ndetection:\n  store:\n    CommandLine|contains:\n      - \"Login Data\"\n      - \"cookies.sqlite\"\n      - \"logins.json\"\n  tool:\n    CommandLine|contains:\n      - \"copy\"\n      - \"xcopy\"\n      - \"robocopy\"\n      - \"esentutl\"\n      - \"sqlite3\"\n      - \"cat \"\n      - \"cp \"\n      - \"type \"\n  condition: store and tool\nfalsepositives:\n  - Backup software touching browser profiles\n",
+      "description": "Two-engine parity: browser cookie/login database access",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1539"
+      ],
+      "enabled": true
+    },
+    {
+      "name": "C2 over Legitimate Web Service (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 7,
+      "content": "title: C2 over Legitimate Web Service (DB)\ndescription: Detects command-and-control or data staging through legitimate web services used as dead-drop resolvers (pastebin raw, raw/gist githubusercontent, Telegram bot API, Discord/Slack webhooks, transfer.sh, anonfiles), which blend with normal HTTPS traffic.\nstatus: stable\nlevel: high\ntags:\n  - attack.t1102\n  - attack.command_and_control\nlogsource:\n  category: process_creation\ndetection:\n  service:\n    CommandLine|contains:\n      - \"pastebin.com/raw\"\n      - \"raw.githubusercontent.com\"\n      - \"gist.githubusercontent.com\"\n      - \"api.telegram.org/bot\"\n      - \"discord.com/api/webhooks\"\n      - \"discordapp.com/api/webhooks\"\n      - \"hooks.slack.com/services\"\n      - \"transfer.sh\"\n      - \"anonfiles\"\n  condition: service\nfalsepositives:\n  - CI/CD or automation legitimately fetching from raw GitHub / pastebin\n",
+      "description": "Two-engine parity: C2 over legitimate web service (dead-drop)",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1102"
+      ],
+      "enabled": true
+    },
+    {
+      "name": "CMSTP Proxy Execution (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 7,
+      "content": "title: CMSTP Proxy Execution (DB)\ndescription: Detects cmstp.exe installing an INF connection-manager profile SILENTLY (/s or /ns), the form abused to proxy-execute code and bypass application control / UAC. Plain profile installation always carries .inf, so .inf alone does not discriminate.\nstatus: stable\nlevel: high\ntags:\n  - attack.t1218.003\n  - attack.defense_evasion\nlogsource:\n  category: process_creation\ndetection:\n  cmstp:\n    CommandLine|contains|all:\n      - \"cmstp\"\n    CommandLine|contains:\n      - \"/s\"\n      - \"/ns\"\n  condition: cmstp\nfalsepositives:\n  - Silent connection-manager deployment by a management system\n",
+      "description": "Two-engine parity: CMSTP INF proxy execution",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1218.003"
+      ],
+      "enabled": true
+    },
+    {
+      "name": "Cached Domain Credentials Dump (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 8,
+      "content": "title: Cached Domain Credentials Dump (DB)\ndescription: Detects tools/commands that extract MSCache/DCC2 cached domain credentials (cachedump, gsecdump, mimikatz lsadump::cache), crackable offline for domain passwords.\nstatus: stable\nlevel: high\ntags:\n  - attack.t1003.005\n  - attack.credential_access\nlogsource:\n  category: process_creation\ndetection:\n  tools:\n    CommandLine|contains:\n      - \"cachedump\"\n      - \"gsecdump\"\n      - \"lsadump::cache\"\n  condition: tools\nfalsepositives:\n  - None expected\n",
+      "description": "Two-engine parity: cached domain credentials (DCC2) dump",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1003.005"
+      ],
+      "enabled": true
+    },
+    {
+      "name": "CertUtil Local Encode/Decode (DB)",
+      "type": "sigma",
+      "platform": [
+        "windows"
+      ],
+      "severity": 5,
+      "content": "title: CertUtil Local Encode/Decode (DB)\ndescription: Detects certutil performing a local encode/decode transform with no download option present. Commonly used to reconstitute a payload staged in text form to evade content inspection. Certificate-format conversion is excluded.\nstatus: stable\nlevel: medium\ntags:\n  - attack.t1140\n  - attack.defense_evasion\nlogsource:\n  category: process_creation\ndetection:\n  selection:\n    CommandLine|contains|all:\n      - \"certutil\"\n    CommandLine|contains:\n      - \"-decode\"\n      - \"-encode\"\n      - \"-decodehex\"\n      - \"/decode\"\n      - \"/encode\"\n      - \"/decodehex\"\n  download:\n    CommandLine|contains:\n      - \"-urlcache\"\n      - \"-verifyctl\"\n      - \"/urlcache\"\n      - \"/verifyctl\"\n  certconv:\n    CommandLine|contains:\n      - \".cer\"\n      - \".crt\"\n      - \".der\"\n      - \".pfx\"\n      - \".p7b\"\n  condition: selection and not download and not certconv\nfalsepositives:\n  - Payload staging that deliberately names its output with a certificate extension\n",
+      "description": "Two-engine parity: certutil local decode/encode (T1140), split out of the T1105 ingress rule",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1140"
+      ],
+      "enabled": true
+    },
+    {
+      "name": "Clear Command History (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 5,
+      "content": "title: Clear Command History (DB)\ndescription: Detects clearing/disabling of shell command history (history -c, unset HISTFILE, redirecting ~/.bash_history to /dev/null).\nstatus: stable\nlevel: medium\ntags:\n  - attack.t1070.003\n  - attack.defense_evasion\nlogsource:\n  category: process_creation\ndetection:\n  selection:\n    CommandLine|contains:\n      - \"history -c\"\n      - \"unset HISTFILE\"\n      - \"HISTFILE=/dev/null\"\n      - \"HISTSIZE=0\"\n      - \"rm ~/.bash_history\"\n      - \"rm -f ~/.bash_history\"\n      - \"ln -sf /dev/null ~/.bash_history\"\n      - \"truncate -s0 ~/.bash_history\"\n  condition: selection\nfalsepositives:\n  - Rare; users seldom wipe history deliberately\n",
+      "description": "Two-engine parity: clear shell command history",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1070.003"
+      ],
+      "enabled": true
+    },
+    {
+      "name": "Clear Windows Event Logs (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 8,
+      "content": "title: Clear Windows Event Logs (DB)\nstatus: stable\nlevel: high\ntags:\n  - attack.t1070.001\n  - attack.defense_evasion\nlogsource:\n  category: process_creation\ndetection:\n  wevtutil_cl:\n    CommandLine|contains|all:\n      - \"wevtutil\"\n      - \"cl\"\n  ps_clear:\n    CommandLine|contains: \"Clear-EventLog\"\n  condition: wevtutil_cl or ps_clear\nfalsepositives:\n  - Legitimate log management automation\n",
+      "description": "Two-engine parity: Windows event log clearing (wevtutil/Clear-EventLog)",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1070.001"
+      ],
+      "enabled": true
+    },
+    {
+      "name": "Clipboard Data Collection (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 5,
+      "content": "title: Clipboard Data Collection (DB)\ndescription: Detects programmatic reading of the clipboard (Get-Clipboard, System.Windows.Forms.Clipboard, Windows.Clipboard GetText), used to steal copied secrets such as passwords and cryptocurrency addresses.\nstatus: stable\nlevel: medium\ntags:\n  - attack.t1115\n  - attack.collection\nlogsource:\n  category: process_creation\ndetection:\n  clip:\n    CommandLine|contains:\n      - \"Get-Clipboard\"\n      - \"System.Windows.Forms.Clipboard\"\n      - \"Windows.Clipboard]::GetText\"\n  condition: clip\nfalsepositives:\n  - Clipboard-manager utilities or legitimate automation reading the clipboard\n",
+      "description": "Two-engine parity: clipboard data collection",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1115"
+      ],
+      "enabled": true
+    },
+    {
+      "name": "Cloud Account Creation (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 7,
+      "content": "title: Cloud Account Creation (DB)\ndescription: Detects creation of cloud identities for persistence — aws iam create-user / create-login-profile, az ad user|sp|app create, gcloud iam service-accounts create — establishing durable attacker-controlled access after cloud compromise.\nstatus: stable\nlevel: high\ntags:\n  - attack.t1136.003\n  - attack.persistence\nlogsource:\n  category: process_creation\ndetection:\n  aws_create:\n    CommandLine|contains:\n      - \"iam create-user\"\n      - \"iam create-login-profile\"\n  az_create:\n    CommandLine|contains|all:\n      - \"az ad\"\n      - \"create\"\n    CommandLine|contains:\n      - \"user\"\n      - \"sp\"\n      - \"app\"\n  gcloud_create:\n    CommandLine|contains: \"iam service-accounts create\"\n  condition: aws_create or az_create or gcloud_create\nfalsepositives:\n  - Cloud administrators or IaC provisioning new identities\n",
+      "description": "Two-engine parity: cloud account creation for persistence",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1136.003"
+      ],
+      "enabled": true
+    },
+    {
+      "name": "Cloud Compute Infrastructure Modification (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 7,
+      "content": "title: Cloud Compute Infrastructure Modification (DB)\ndescription: Detects abuse of cloud compute APIs for data theft or persistence — creating and sharing disk snapshots to an attacker-controlled account (aws ec2 create-snapshot / modify-snapshot-attribute, az snapshot create, gcloud compute disks snapshot) or modifying instance attributes.\nstatus: stable\nlevel: high\ntags:\n  - attack.t1578\n  - attack.defense_evasion\nlogsource:\n  category: process_creation\ndetection:\n  aws_snapshot_share:\n    CommandLine|contains:\n      - \"modify-snapshot-attribute\"\n      - \"modify-image-attribute\"\n  aws_snapshot_create:\n    CommandLine|contains: \"ec2 create-snapshot\"\n  aws_instance_modify:\n    CommandLine|contains: \"modify-instance-attribute\"\n  az_snapshot:\n    CommandLine|contains|all:\n      - \"az snapshot\"\n      - \"create\"\n  gcloud_snapshot:\n    CommandLine|contains|all:\n      - \"compute disks snapshot\"\n  condition: aws_snapshot_share or aws_snapshot_create or aws_instance_modify or az_snapshot or gcloud_snapshot\nfalsepositives:\n  - Backup automation creating snapshots (sharing snapshots externally is the higher-signal case)\n",
+      "description": "Two-engine parity: cloud compute infrastructure modification / snapshot exfil",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1578"
+      ],
+      "enabled": true
+    },
+    {
+      "name": "Cloud Firewall Opening (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 8,
+      "content": "title: Cloud Firewall Opening (DB)\ndescription: Detects opening cloud network controls to the internet for attacker access or persistence (aws ec2 authorize-security-group-ingress with 0.0.0.0/0, az network nsg rule create allow-any, gcloud compute firewall-rules create allowing 0.0.0.0/0).\nstatus: stable\nlevel: high\ntags:\n  - attack.t1562.007\n  - attack.defense_evasion\nlogsource:\n  category: process_creation\ndetection:\n  aws_sg:\n    CommandLine|contains|all:\n      - \"ec2 authorize-security-group-ingress\"\n      - \"0.0.0.0/0\"\n  az_nsg:\n    CommandLine|contains|all:\n      - \"network nsg rule create\"\n      - \"0.0.0.0/0\"\n  gcloud_fw:\n    CommandLine|contains|all:\n      - \"compute firewall-rules create\"\n      - \"0.0.0.0/0\"\n  condition: aws_sg or az_nsg or gcloud_fw\nfalsepositives:\n  - Administrators intentionally exposing a service (should be reviewed)\n",
+      "description": "Two-engine parity: cloud firewall opening to the internet",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1562.007"
+      ],
+      "enabled": true
+    },
+    {
+      "name": "Cloud Infrastructure Discovery (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 4,
+      "content": "title: Cloud Infrastructure Discovery (DB)\ndescription: Detects enumeration of cloud compute and network infrastructure via cloud CLIs (aws ec2 describe-instances/security-groups/vpcs, az vm/network list, gcloud compute list), used to map lateral-movement and pivot targets after cloud access.\nstatus: stable\nlevel: low\ntags:\n  - attack.t1580\n  - attack.discovery\nlogsource:\n  category: process_creation\ndetection:\n  aws_infra:\n    CommandLine|contains:\n      - \"ec2 describe-instances\"\n      - \"ec2 describe-security-groups\"\n      - \"ec2 describe-vpcs\"\n      - \"ec2 describe-subnets\"\n      - \"rds describe-db-instances\"\n  az_infra:\n    CommandLine|contains|all:\n      - \"az \"\n    CommandLine|contains:\n      - \"vm list\"\n      - \"network nic list\"\n      - \"network vnet list\"\n  gcloud_infra:\n    CommandLine|contains|all:\n      - \"gcloud compute\"\n      - \"list\"\n  condition: aws_infra or az_infra or gcloud_infra\nfalsepositives:\n  - DevOps / IaC tooling inventorying cloud resources\n",
+      "description": "Two-engine parity: cloud infrastructure discovery via cloud CLIs",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1580"
+      ],
+      "enabled": true
+    },
+    {
+      "name": "Cloud Instance Metadata Service Access (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 7,
+      "content": "title: Cloud Instance Metadata Service Access (DB)\ndescription: Detects a process querying the cloud instance metadata service (169.254.169.254 / metadata.google.internal / computeMetadata / Metadata-Flavor header), commonly abused to steal instance credentials and role tokens via SSRF or on-host access.\nstatus: stable\nlevel: high\ntags:\n  - attack.t1552.005\n  - attack.credential_access\nlogsource:\n  category: process_creation\ndetection:\n  metadata_endpoint:\n    CommandLine|contains:\n      - \"169.254.169.254\"\n      - \"metadata.google.internal\"\n      - \"100.100.100.200\"\n      - \"/latest/meta-data\"\n      - \"/computeMetadata/\"\n      - \"Metadata-Flavor\"\n  condition: metadata_endpoint\nfalsepositives:\n  - Legitimate cloud-init / instance bootstrap tooling\n",
+      "description": "Two-engine parity: cloud instance metadata credential theft",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1552.005"
+      ],
+      "enabled": true
+    },
+    {
+      "name": "Cloud Logging Tampering (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 8,
+      "content": "title: Cloud Logging Tampering (DB)\ndescription: Detects disabling or deleting cloud audit/threat logging to blind defenders (aws cloudtrail stop-logging/delete-trail, aws guardduty delete-detector, gcloud logging sinks delete), an early defense-evasion step after cloud compromise.\nstatus: stable\nlevel: high\ntags:\n  - attack.t1562.008\n  - attack.defense_evasion\nlogsource:\n  category: process_creation\ndetection:\n  aws_trail:\n    CommandLine|contains:\n      - \"cloudtrail stop-logging\"\n      - \"cloudtrail delete-trail\"\n      - \"guardduty delete-detector\"\n  gcloud_sink:\n    CommandLine|contains|all:\n      - \"logging sinks\"\n      - \"delete\"\n  condition: aws_trail or gcloud_sink\nfalsepositives:\n  - Rare; cloud administrators decommissioning logging (should be change-controlled)\n",
+      "description": "Two-engine parity: cloud audit/threat logging tampering",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1562.008"
+      ],
+      "enabled": true
+    },
+    {
+      "name": "Cloud Service and IAM Discovery (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 6,
+      "content": "title: Cloud Service and IAM Discovery (DB)\ndescription: Detects enumeration of cloud identity, organization, and service configuration via cloud CLIs (aws sts get-caller-identity, aws iam/organizations list, gcloud iam/projects list), a common first step after cloud credential compromise.\nstatus: stable\nlevel: medium\ntags:\n  - attack.t1526\n  - attack.discovery\nlogsource:\n  category: process_creation\ndetection:\n  aws_identity:\n    CommandLine|contains:\n      - \"sts get-caller-identity\"\n      - \"iam list-users\"\n      - \"iam list-roles\"\n      - \"organizations list-accounts\"\n      - \"organizations describe-organization\"\n  gcloud_identity:\n    CommandLine|contains:\n      - \"iam service-accounts\"\n      - \"projects get-iam-policy\"\n      - \"organizations list\"\n  condition: aws_identity or gcloud_identity\nfalsepositives:\n  - Cloud administrators or IaC tooling auditing identity and org structure\n",
+      "description": "Two-engine parity: cloud service/IAM discovery via cloud CLIs",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1526"
+      ],
+      "enabled": true
+    },
+    {
+      "name": "Cloud Storage Object Discovery (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 4,
+      "content": "title: Cloud Storage Object Discovery (DB)\ndescription: Detects enumeration of cloud object storage buckets and objects (aws s3 ls / s3api list-buckets / list-objects, az storage container/blob list, gsutil ls, gcloud storage ls), used to locate data for collection and exfiltration.\nstatus: stable\nlevel: low\ntags:\n  - attack.t1619\n  - attack.discovery\nlogsource:\n  category: process_creation\ndetection:\n  aws_s3:\n    CommandLine|contains:\n      - \"s3 ls\"\n      - \"s3api list-buckets\"\n      - \"s3api list-objects\"\n  az_storage:\n    CommandLine|contains|all:\n      - \"az storage\"\n      - \"list\"\n  gcp_storage:\n    CommandLine|contains:\n      - \"gsutil ls\"\n      - \"gcloud storage ls\"\n  condition: aws_s3 or az_storage or gcp_storage\nfalsepositives:\n  - Backup / data-pipeline jobs listing buckets\n",
+      "description": "Two-engine parity: cloud storage object discovery",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1619"
+      ],
+      "enabled": true
+    },
+    {
+      "name": "Compile After Delivery (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 5,
+      "content": "title: Compile After Delivery (DB)\ndescription: Detects on-host compilation by gcc/g++/clang/csc from a temporary directory — building payloads on the victim to evade signature detection.\nstatus: experimental\nlevel: medium\ntags:\n  - attack.t1027.004\n  - attack.defense_evasion\nlogsource:\n  category: process_creation\ndetection:\n  compiler:\n    CommandLine|contains:\n      - \"gcc\"\n      - \"g++\"\n      - \"clang\"\n      - \"csc.exe\"\n  temp_src:\n    CommandLine|contains:\n      - \"/tmp/\"\n      - \"/dev/shm/\"\n      - \"/var/tmp/\"\n  condition: compiler and temp_src\nfalsepositives:\n  - Build systems that compile in temporary directories\n",
+      "description": "Two-engine parity: compile after delivery (compiler in temp dir)",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1027.004"
+      ],
+      "enabled": true
+    },
+    {
+      "name": "Compiled HTML Help Remote Execution (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 7,
+      "content": "title: Compiled HTML Help Remote Execution (DB)\ndescription: Detects hh.exe (Compiled HTML Help) fetching a .chm from a remote URL, a LOLBin proxy-execution technique that runs script embedded in the help file through a signed Microsoft binary.\nstatus: stable\nlevel: high\ntags:\n  - attack.t1218.001\n  - attack.defense_evasion\nlogsource:\n  category: process_creation\ndetection:\n  hh_remote:\n    CommandLine|contains|all:\n      - \"hh.exe\"\n    CommandLine|contains:\n      - \"http://\"\n      - \"https://\"\n      - \"ftp://\"\n  condition: hh_remote\nfalsepositives:\n  - Rare; hh.exe normally opens local .chm help files\n",
+      "description": "Two-engine parity: compiled HTML help (hh.exe) remote execution",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1218.001"
+      ],
+      "enabled": true
+    },
+    {
+      "name": "Container Administration Command (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 4,
+      "content": "title: Container Administration Command (DB)\ndescription: Detects entering a running container via kubectl/docker/podman/crictl exec, used to run commands inside containers, including by attackers who have compromised the orchestration plane.\nstatus: experimental\nlevel: low\ntags:\n  - attack.t1609\n  - attack.execution\nlogsource:\n  category: process_creation\ndetection:\n  exec_into:\n    CommandLine|contains|all:\n      - \" exec \"\n    CommandLine|contains:\n      - \"kubectl\"\n      - \"docker\"\n      - \"podman\"\n      - \"crictl\"\n  condition: exec_into\nfalsepositives:\n  - Legitimate operator or CI access into containers\n",
+      "description": "Two-engine parity: container administration command (exec)",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1609"
+      ],
+      "enabled": false
+    },
+    {
+      "name": "Container Escape to Host (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 8,
+      "content": "title: Container Escape to Host (DB)\ndescription: Detects container-breakout tradecraft — entering host namespaces via nsenter --target 1, or abusing runc /proc/self/exe overwrite (CVE-2019-5736), cgroup release_agent escape, unshare, or cap_sys_admin to reach the host from inside a container.\nstatus: stable\nlevel: high\ntags:\n  - attack.t1611\n  - attack.privilege_escalation\nlogsource:\n  category: process_creation\ndetection:\n  nsenter:\n    CommandLine|contains|all:\n      - \"nsenter\"\n    CommandLine|contains:\n      - \"--target 1\"\n      - \"-t 1\"\n  breakout:\n    CommandLine|contains:\n      - \"/proc/1/root\"\n      - \"unshare -r\"\n      - \"cap_sys_admin\"\n      - \"/proc/self/exe\"\n      - \"release_agent\"\n  condition: nsenter or breakout\nfalsepositives:\n  - Legitimate privileged container operations by platform admins\n",
+      "description": "Two-engine parity: container escape to host (nsenter/runc/cgroup)",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1611"
+      ],
+      "enabled": true
+    },
+    {
+      "name": "Container Image Build on Host (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 5,
+      "content": "title: Container Image Build on Host (DB)\ndescription: Detects building a container image directly on a host (docker/podman/nerdctl build, buildah bud/build, kaniko executor). Adversaries build malicious images locally to bypass registry-side image scanning and admission controls before deploying them.\nstatus: stable\nlevel: medium\ntags:\n  - attack.t1612\n  - attack.defense_evasion\nlogsource:\n  category: process_creation\ndetection:\n  buildah_kaniko:\n    CommandLine|contains:\n      - \"buildah bud\"\n      - \"buildah build\"\n      - \"/kaniko/executor\"\n      - \"kaniko-project\"\n  docker_build:\n    CommandLine|contains|all:\n      - \"docker\"\n      - \" build\"\n  podman_build:\n    CommandLine|contains|all:\n      - \"podman\"\n      - \" build\"\n  nerdctl_build:\n    CommandLine|contains|all:\n      - \"nerdctl\"\n      - \" build\"\n  condition: buildah_kaniko or docker_build or podman_build or nerdctl_build\nfalsepositives:\n  - Legitimate CI/CD image builds on build agents\n",
+      "description": "Two-engine parity: container image build on host (scan bypass)",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1612"
+      ],
+      "enabled": false
+    },
+    {
+      "name": "Control Panel Item Proxy Execution (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 6,
+      "content": "title: Control Panel Item Proxy Execution (DB)\ndescription: Detects control.exe launching a .cpl or rundll32 shell32.dll,Control_RunDLL — proxy execution via Control Panel items.\nstatus: stable\nlevel: medium\ntags:\n  - attack.t1218.002\n  - attack.defense_evasion\nlogsource:\n  category: process_creation\ndetection:\n  control_cpl:\n    CommandLine|contains|all:\n      - \"control\"\n      - \".cpl\"\n  rundll_control:\n    CommandLine|contains: \"Control_RunDLL\"\n  condition: control_cpl or rundll_control\nfalsepositives:\n  - Legitimate Control Panel applets launched from System32\n",
+      "description": "Two-engine parity: Control Panel item proxy execution (control .cpl / Control_RunDLL)",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1218.002"
+      ],
+      "enabled": true
+    },
+    {
+      "name": "Credentials In Files Search (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 6,
+      "content": "title: Credentials In Files Search (DB)\ndescription: Detects findstr/grep recursively searching files for password/credential keywords (unsecured-credentials discovery).\nstatus: stable\nlevel: medium\ntags:\n  - attack.t1552.001\n  - attack.credential_access\n  - attack.discovery\nlogsource:\n  category: process_creation\ndetection:\n  tool:\n    CommandLine|contains:\n      - \"findstr\"\n      - \"grep\"\n  keyword:\n    CommandLine|contains:\n      - \"password\"\n      - \"passwd\"\n      - \"credential\"\n      - \"secret\"\n      - \"apikey\"\n      - \"api_key\"\n      - \"connectionstring\"\n  recursive:\n    CommandLine|contains:\n      - \"/s\"\n      - \"/si\"\n      - \"-r\"\n      - \"--recursive\"\n  condition: tool and keyword and recursive\nfalsepositives:\n  - Administrators or developers legitimately searching configuration files\n",
+      "description": "Two-engine parity: credentials in files search (findstr/grep recursive)",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1552.001"
+      ],
+      "enabled": true
+    },
+    {
+      "name": "Cryptocurrency Mining (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 7,
+      "content": "title: Cryptocurrency Mining (DB)\ndescription: Detects coin-mining software or mining-pool connection patterns (stratum protocol, donate-level) — resource-hijacking impact.\nstatus: stable\nlevel: high\ntags:\n  - attack.t1496\n  - attack.impact\nlogsource:\n  category: process_creation\ndetection:\n  tool:\n    CommandLine|contains:\n      - \"xmrig\"\n      - \"minerd\"\n      - \"cpuminer\"\n      - \"xmr-stak\"\n      - \"nbminer\"\n      - \"phoenixminer\"\n  cmd:\n    CommandLine|contains:\n      - \"stratum+tcp\"\n      - \"stratum+ssl\"\n      - \"--donate-level\"\n      - \"--cpu-priority\"\n      - \"nicehash\"\n      - \"nanopool\"\n  condition: tool or cmd\nfalsepositives:\n  - Sanctioned mining on dedicated hardware\n",
+      "description": "Two-engine parity: cryptocurrency mining (resource hijacking)",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1496"
+      ],
+      "enabled": true
+    },
+    {
+      "name": "DCOM Lateral Movement (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 7,
+      "content": "title: DCOM Lateral Movement (DB)\ndescription: Detects lateral movement via DCOM objects (MMC20.Application, ShellWindows, ShellBrowserWindow) or DDE, instantiated by CLSID/ProgID to execute code on a remote host through a trusted COM server.\nstatus: stable\nlevel: high\ntags:\n  - attack.t1021.003\n  - attack.lateral_movement\nlogsource:\n  category: process_creation\ndetection:\n  com:\n    CommandLine|contains:\n      - \"MMC20.Application\"\n      - \"ShellWindows\"\n      - \"ShellBrowserWindow\"\n      - \"GetTypeFromProgID\"\n      - \"9BA05972-F6A8-11CF\"\n      - \"C08AFD90-F2A1-11D1\"\n  dde:\n    CommandLine|contains: \"DDEInitiate\"\n  condition: com or dde\nfalsepositives:\n  - Rare legitimate administrative COM automation\n",
+      "description": "Two-engine parity: DCOM lateral movement",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1021.003"
+      ],
+      "enabled": true
+    },
+    {
+      "name": "DCSync Credential Replication (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 9,
+      "content": "title: DCSync Credential Replication (DB)\nstatus: stable\nlevel: critical\ntags:\n  - attack.t1003.006\n  - attack.credential_access\nlogsource:\n  category: process_creation\ndetection:\n  dcsync:\n    CommandLine|contains:\n      - \"lsadump::dcsync\"\n      - \"/dcsync\"\n      - \"Invoke-DCSync\"\n      - \"-just-dc\"\n      - \"--just-dc\"\n  condition: dcsync\nfalsepositives:\n  - None expected; DCSync from a non-DC host is essentially always malicious\n",
+      "description": "Two-engine parity: DCSync (DRSUAPI) credential replication",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1003.006"
+      ],
+      "enabled": true
+    },
+    {
+      "name": "DNS Tunneling and C2 (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 8,
+      "content": "title: DNS Tunneling and C2 (DB)\ndescription: Detects DNS-based C2/exfiltration tooling (dnscat2, iodine, dns2tcp, dnsteal, DNSExfiltrator) smuggling data inside DNS queries.\nstatus: stable\nlevel: high\ntags:\n  - attack.t1071.004\n  - attack.command_and_control\n  - attack.exfiltration\nlogsource:\n  category: process_creation\ndetection:\n  selection:\n    CommandLine|contains:\n      - \"dnscat\"\n      - \"iodine\"\n      - \"dns2tcp\"\n      - \"dnsteal\"\n      - \"DNSExfiltrator\"\n      - \"Invoke-DnsExfil\"\n  condition: selection\nfalsepositives:\n  - Rare; the named tools are not used by legitimate software\n",
+      "description": "Two-engine parity: DNS tunneling and C2",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1071.004"
+      ],
+      "enabled": true
+    },
+    {
+      "name": "Data Destruction via Wiping Utility (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 8,
+      "content": "title: Data Destruction via Wiping Utility (DB)\ndescription: Detects secure-wipe/data-destruction tooling overwriting files or free space (cipher /w, sdelete, shred).\nstatus: stable\nlevel: high\ntags:\n  - attack.t1485\n  - attack.impact\nlogsource:\n  category: process_creation\ndetection:\n  cipher:\n    CommandLine|contains|all:\n      - \"cipher\"\n      - \"/w\"\n  sdelete:\n    CommandLine|contains: \"sdelete\"\n  shred:\n    CommandLine|contains:\n      - \"shred -\"\n      - \"shred --\"\n  condition: cipher or sdelete or shred\nfalsepositives:\n  - Authorised secure deletion of sensitive data\n",
+      "description": "Two-engine parity: data destruction via wiping utility",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1485"
+      ],
+      "enabled": true
+    },
+    {
+      "name": "Data Staged in Password-Protected Archive (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 6,
+      "content": "title: Data Staged in Password-Protected Archive (DB)\ndescription: Detects rar/7z creating password-protected archives — staging data before exfiltration.\nstatus: stable\nlevel: medium\ntags:\n  - attack.t1560.001\n  - attack.collection\nlogsource:\n  category: process_creation\ndetection:\n  tool:\n    CommandLine|contains:\n      - \"rar\"\n      - \"7z\"\n  protect:\n    CommandLine|contains:\n      - \" -hp\"\n      - \" -p\"\n      - \"-hp\"\n  condition: tool and protect\nfalsepositives:\n  - Legitimate password-protected backups\n",
+      "description": "Two-engine parity: data staged in password-protected archive (rar/7z)",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1560.001"
+      ],
+      "enabled": true
+    },
+    {
+      "name": "Deobfuscate Decode via Base64 (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 5,
+      "content": "title: Deobfuscate Decode via Base64 (DB)\ndescription: Detects base64 decode piped to a shell (base64 -d / --decode / | base64) — command obfuscation and payload expansion.\nstatus: stable\nlevel: medium\ntags:\n  - attack.t1140\n  - attack.defense_evasion\nlogsource:\n  category: process_creation\ndetection:\n  selection:\n    CommandLine|contains:\n      - \"base64 -d\"\n      - \"base64 --decode\"\n      - \"| base64\"\n  condition: selection\nfalsepositives:\n  - Legitimate deployment scripts\n",
+      "description": "Two-engine parity: deobfuscate/decode via base64",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1140"
+      ],
+      "enabled": true
+    },
+    {
+      "name": "Disk Wipe or Destruction (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 9,
+      "content": "title: Disk Wipe or Destruction (DB)\ndescription: Detects destructive disk operations — Clear-Disk, raw physical-drive writes, diskpart clean, or multi-pass format — rendering systems unrecoverable.\nstatus: stable\nlevel: critical\ntags:\n  - attack.t1561\n  - attack.impact\nlogsource:\n  category: process_creation\ndetection:\n  clear:\n    CommandLine|contains:\n      - \"Clear-Disk\"\n      - \"PHYSICALDRIVE\"\n  diskpart:\n    CommandLine|contains|all:\n      - \"diskpart\"\n      - \"clean\"\n  format:\n    CommandLine|contains|all:\n      - \"format.com\"\n      - \"/p:\"\n  condition: clear or diskpart or format\nfalsepositives:\n  - Authorised disk provisioning or secure decommissioning\n",
+      "description": "Two-engine parity: disk wipe or destruction",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1561"
+      ],
+      "enabled": true
+    },
+    {
+      "name": "Domain Account Creation (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 7,
+      "content": "title: Domain Account Creation (DB)\ndescription: Detects creation of a new domain account via net.exe (net user with /add and /domain), a common persistence and backdoor-account technique after domain compromise.\nstatus: stable\nlevel: high\ntags:\n  - attack.t1136.002\n  - attack.persistence\nlogsource:\n  category: process_creation\ndetection:\n  net_user_add:\n    CommandLine|contains|all:\n      - \"user\"\n      - \"/add\"\n      - \"/domain\"\n  condition: net_user_add\nfalsepositives:\n  - Legitimate domain administration\n",
+      "description": "Two-engine parity: domain account creation via net.exe",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1136.002"
+      ],
+      "enabled": true
+    },
+    {
+      "name": "Domain Account Discovery (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 5,
+      "content": "title: Domain Account Discovery (DB)\ndescription: Detects enumeration of Active Directory user accounts via net.exe, dsquery, PowerView/AD cmdlets, BloodHound/SharpHound, or direct ADSI/LDAP search (adsisearcher/DirectorySearcher), used to map targets before privilege escalation.\nstatus: stable\nlevel: medium\ntags:\n  - attack.t1087.002\n  - attack.discovery\nlogsource:\n  category: process_creation\ndetection:\n  net_user_domain:\n    CommandLine|contains|all:\n      - \"net\"\n      - \" user \"\n      - \"/domain\"\n  tools:\n    CommandLine|contains:\n      - \"dsquery user\"\n      - \"Get-ADUser\"\n      - \"Get-DomainUser\"\n      - \"Invoke-BloodHound\"\n      - \"SharpHound\"\n      - \"adsisearcher\"\n      - \"DirectorySearcher\"\n  condition: net_user_domain or tools\nfalsepositives:\n  - Help-desk or identity-management tooling enumerating directory users\n",
+      "description": "Two-engine parity: domain account discovery incl. ADSI/BloodHound",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1087.002"
+      ],
+      "enabled": false
+    },
+    {
+      "name": "Domain Group Discovery (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 5,
+      "content": "title: Domain Group Discovery (DB)\ndescription: Detects enumeration of AD groups and privileged membership (net group /domain, Get-ADGroupMember, PowerView Get-DomainGroup, dsquery group) to locate Domain/Enterprise Admins.\nstatus: stable\nlevel: medium\ntags:\n  - attack.t1069.002\n  - attack.discovery\nlogsource:\n  category: process_creation\ndetection:\n  net_group_domain:\n    CommandLine|contains|all:\n      - \"net group\"\n      - \"/domain\"\n  net_group_privileged:\n    CommandLine|contains:\n      - \"domain admins\"\n      - \"enterprise admins\"\n      - \"domain controllers\"\n  dsquery_group:\n    CommandLine|contains: \"dsquery group\"\n  powerview_group:\n    CommandLine|contains:\n      - \"Get-ADGroupMember\"\n      - \"Get-DomainGroup\"\n      - \"Get-NetGroupMember\"\n  adsi_group:\n    CommandLine|contains|all:\n      - \"DirectoryServices\"\n    CommandLine|contains:\n      - \"objectClass=group\"\n      - \"objectCategory=group\"\n  adsi_group2:\n    CommandLine|contains|all:\n      - \"adsisearcher\"\n    CommandLine|contains:\n      - \"objectClass=group\"\n      - \"objectCategory=group\"\n  condition: net_group_domain or net_group_privileged or dsquery_group or powerview_group or adsi_group or adsi_group2\nfalsepositives:\n  - Administrators auditing privileged group membership\n",
+      "description": "Two-engine parity: domain group discovery",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1069.002"
+      ],
+      "enabled": false
+    },
+    {
+      "name": "Domain Trust Discovery (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 5,
+      "content": "title: Domain Trust Discovery (DB)\ndescription: Detects enumeration of AD domain trusts (nltest /domain_trusts, dsquery trustedDomain, PowerView Get-DomainTrust) — precursor to cross-domain movement.\nstatus: stable\nlevel: medium\ntags:\n  - attack.t1482\n  - attack.discovery\nlogsource:\n  category: process_creation\ndetection:\n  nltest_trust:\n    CommandLine|contains:\n      - \"/domain_trusts\"\n      - \"/trusted_domains\"\n  dsquery_trust:\n    CommandLine|contains: \"objectClass=trustedDomain\"\n  powerview_trust:\n    CommandLine|contains:\n      - \"Get-ADTrust\"\n      - \"Get-DomainTrust\"\n      - \"Get-NetDomainTrust\"\n      - \"GetAllTrustRelationships\"\n  condition: nltest_trust or dsquery_trust or powerview_trust\nfalsepositives:\n  - Domain administrators auditing trust relationships\n",
+      "description": "Two-engine parity: domain trust discovery",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1482"
+      ],
+      "enabled": true
+    },
+    {
+      "name": "Email Forwarding Rule (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 7,
+      "content": "title: Email Forwarding Rule (DB)\ndescription: Detects creation of mail forwarding/redirection rules used to silently exfiltrate a victim mailbox — Exchange/M365 New-InboxRule with ForwardTo/RedirectTo, Set-Mailbox ForwardingSMTPAddress, or New-TransportRule with BlindCopyTo.\nstatus: stable\nlevel: high\ntags:\n  - attack.t1114.003\n  - attack.collection\n  - attack.exfiltration\nlogsource:\n  category: process_creation\ndetection:\n  inbox_rule:\n    CommandLine|contains|all:\n      - \"New-InboxRule\"\n    CommandLine|contains:\n      - \"-ForwardTo\"\n      - \"-ForwardAsAttachmentTo\"\n      - \"-RedirectTo\"\n  mailbox_fwd:\n    CommandLine|contains:\n      - \"ForwardingSMTPAddress\"\n      - \"DeliverToMailboxAndForward\"\n  transport_rule:\n    CommandLine|contains|all:\n      - \"New-TransportRule\"\n    CommandLine|contains:\n      - \"BlindCopyTo\"\n      - \"RedirectMessageTo\"\n  condition: inbox_rule or mailbox_fwd or transport_rule\nfalsepositives:\n  - Users legitimately configuring mail forwarding (review destination domain)\n",
+      "description": "Two-engine parity: email forwarding rule for silent exfiltration",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1114.003"
+      ],
+      "enabled": true
+    },
+    {
+      "name": "Exfiltration Over Alternative Protocol (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 6,
+      "content": "title: Exfiltration Over Alternative Protocol (DB)\ndescription: Detects file-upload invocations of transfer tools to a remote host (curl -T/--upload-file, wget --post-file, tftp put, Invoke-WebRequest -InFile).\nstatus: experimental\nlevel: medium\ntags:\n  - attack.t1048\n  - attack.exfiltration\nlogsource:\n  category: process_creation\ndetection:\n  curl:\n    CommandLine|contains|all:\n      - \"curl\"\n    CommandLine|contains:\n      - \" -T \"\n      - \"--upload-file\"\n      - \"--data-binary @\"\n      - \"--data @\"\n  wget:\n    CommandLine|contains|all:\n      - \"wget\"\n    CommandLine|contains:\n      - \"--post-file\"\n      - \"--body-file\"\n  tftp:\n    CommandLine|contains|all:\n      - \"tftp\"\n      - \"put\"\n  psupload:\n    CommandLine|contains|all:\n      - \"invoke-webrequest\"\n      - \"-infile\"\n  condition: curl or wget or tftp or psupload\nfalsepositives:\n  - Legitimate scripted uploads or backups using curl/wget\n",
+      "description": "Two-engine parity: exfiltration over alternative protocol",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1048"
+      ],
+      "enabled": true
+    },
+    {
+      "name": "Exfiltration to Cloud Storage (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 8,
+      "content": "title: Exfiltration to Cloud Storage (DB)\ndescription: Detects rclone or MEGAcmd copying/syncing data to cloud storage backends (rclone copy/sync with transfer flags, MEGAcmd/mega-put/megatools), the dominant exfiltration tooling in ransomware intrusions. Keys on command-line syntax so a renamed rclone binary is still caught.\nstatus: stable\nlevel: high\ntags:\n  - attack.t1567.002\n  - attack.exfiltration\nlogsource:\n  category: process_creation\ndetection:\n  rclone_cmd:\n    CommandLine|contains|all:\n      - \"rclone\"\n    CommandLine|contains:\n      - \"copy\"\n      - \"sync\"\n      - \":b2\"\n      - \":s3\"\n      - \"--transfers\"\n      - \"--multi-thread\"\n  mega_tools:\n    CommandLine|contains:\n      - \"megatools\"\n      - \"mega-put\"\n      - \"MEGAcmd\"\n      - \"mega-cmd\"\n      - \"megacmdserver\"\n  condition: rclone_cmd or mega_tools\nfalsepositives:\n  - Sanctioned backup workflows that use rclone or MEGA\n",
+      "description": "Two-engine parity: cloud-storage exfiltration via rclone/MEGAcmd",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1567.002"
+      ],
+      "enabled": true
+    },
+    {
+      "name": "FTP TFTP Exfiltration Channel (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 6,
+      "content": "title: FTP TFTP Exfiltration Channel (DB)\ndescription: Detects scripted FTP/TFTP uploads used as an exfiltration channel (ftp with an -s script file, tftp put, curl -T to an ftp URL, WinSCP/pscp scripted transfer).\nstatus: stable\nlevel: medium\ntags:\n  - attack.t1071.002\n  - attack.exfiltration\nlogsource:\n  category: process_creation\ndetection:\n  ftp_scripted:\n    CommandLine|contains:\n      - \"ftp -s:\"\n      - \"ftp -n -s\"\n  tftp_put:\n    CommandLine|contains|all:\n      - \"tftp\"\n      - \" put \"\n  curl_ftp_upload:\n    CommandLine|contains|all:\n      - \"ftp://\"\n      - \"-T \"\n  winscp_pscp:\n    CommandLine|contains:\n      - \"winscp.com /command\"\n      - \"winscp.exe /command\"\n      - \"pscp -\"\n  condition: ftp_scripted or tftp_put or curl_ftp_upload or winscp_pscp\nfalsepositives:\n  - Legitimate scripted FTP/SFTP backups or deployments\n",
+      "description": "Two-engine parity: FTP/TFTP exfiltration channel",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1071.002"
+      ],
+      "enabled": true
+    },
+    {
+      "name": "File and Directory Permissions Modification (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 6,
+      "content": "title: File and Directory Permissions Modification (DB)\ndescription: Detects icacls granting broad access (Everyone / S-1-1-0) or takeown seizing ownership — common in ransomware staging and attacker-controlled file setup.\nstatus: stable\nlevel: medium\ntags:\n  - attack.t1222.001\n  - attack.defense_evasion\nlogsource:\n  category: process_creation\ndetection:\n  icacls:\n    CommandLine|contains:\n      - \"/grant Everyone\"\n      - \"/grant *S-1-1-0\"\n      - \"/grant:r everyone\"\n      - \"/T /C /grant\"\n  takeown:\n    CommandLine|contains|all:\n      - \"takeown\"\n      - \"/f\"\n  condition: icacls or takeown\nfalsepositives:\n  - Administrative ACL maintenance scripts\n",
+      "description": "Two-engine parity: broad file permission change via icacls/takeown",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1222.001"
+      ],
+      "enabled": true
+    },
+    {
+      "name": "Golden or Silver Ticket Forging (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 9,
+      "content": "title: Golden or Silver Ticket Forging (DB)\ndescription: Detects Kerberos golden/silver ticket forging via Rubeus golden/silver subcommands, Impacket ticketer, or krbtgt/service hash injection (kerberos::golden, /krbtgt:), used for durable domain persistence and privilege escalation to Domain Admin.\nstatus: stable\nlevel: critical\ntags:\n  - attack.t1558.001\n  - attack.credential_access\nlogsource:\n  category: process_creation\ndetection:\n  rubeus_golden:\n    CommandLine|contains|all:\n      - \"rubeus\"\n      - \"golden\"\n  rubeus_silver:\n    CommandLine|contains|all:\n      - \"rubeus\"\n      - \"silver\"\n  krbtgt_hash:\n    CommandLine|contains:\n      - \"/krbtgt:\"\n      - \"kerberos::golden\"\n  impacket_ticketer:\n    CommandLine|contains:\n      - \"ticketer.py\"\n      - \"ticketer \"\n  condition: rubeus_golden or rubeus_silver or krbtgt_hash or impacket_ticketer\nfalsepositives:\n  - Authorised AD security assessments forging test tickets\n",
+      "description": "Two-engine parity: golden/silver ticket forging (Rubeus/Impacket)",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1558.001"
+      ],
+      "enabled": true
+    },
+    {
+      "name": "Group Policy Discovery (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 5,
+      "content": "title: Group Policy Discovery (DB)\ndescription: Detects enumeration of Active Directory Group Policy via gpresult, the GroupPolicy PowerShell cmdlets (Get-GPO/Get-GPOReport/Get-GPResultantSetOfPolicy), or PowerView GPO functions, used to find privilege-escalation and lateral-movement opportunities.\nstatus: stable\nlevel: medium\ntags:\n  - attack.t1615\n  - attack.discovery\nlogsource:\n  category: process_creation\ndetection:\n  gpresult:\n    CommandLine|contains: \"gpresult\"\n  gpo_cmdlets:\n    CommandLine|contains:\n      - \"Get-GPO\"\n      - \"Get-GPOReport\"\n      - \"Get-GPResultantSetOfPolicy\"\n  powerview_gpo:\n    CommandLine|contains:\n      - \"Get-DomainGPO\"\n      - \"Get-NetGPO\"\n      - \"Get-DomainGPOLocalGroup\"\n      - \"Get-DomainGPOUserLocalGroupMapping\"\n  condition: gpresult or gpo_cmdlets or powerview_gpo\nfalsepositives:\n  - Administrators auditing Group Policy\n",
+      "description": "Two-engine parity: Group Policy discovery",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1615"
+      ],
+      "enabled": true
+    },
+    {
+      "name": "Group Policy Preferences Password (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 8,
+      "content": "title: Group Policy Preferences Password (DB)\ndescription: Detects retrieval of Group Policy Preferences credentials by searching SYSVOL for the cpassword attribute or running Get-GPPPassword, which yields AES-decryptable domain passwords.\nstatus: stable\nlevel: high\ntags:\n  - attack.t1552.006\n  - attack.credential_access\nlogsource:\n  category: process_creation\ndetection:\n  gpp:\n    CommandLine|contains:\n      - \"cpassword\"\n      - \"Get-GPPPassword\"\n  condition: gpp\nfalsepositives:\n  - Rare legitimate GPP auditing\n",
+      "description": "Two-engine parity: Group Policy Preferences password retrieval",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1552.006"
+      ],
+      "enabled": true
+    },
+    {
+      "name": "Hidden File or Directory via attrib (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 5,
+      "content": "title: Hidden File or Directory via attrib (DB)\ndescription: Detects attrib.exe setting hidden+system attributes to conceal malicious files/directories.\nstatus: stable\nlevel: medium\ntags:\n  - attack.t1564.001\n  - attack.defense_evasion\nlogsource:\n  category: process_creation\ndetection:\n  selection:\n    CommandLine|contains|all:\n      - \"attrib\"\n      - \"+h\"\n      - \"+s\"\n  condition: selection\nfalsepositives:\n  - Some installers mark configuration files hidden+system\n",
+      "description": "Two-engine parity: hidden file/directory via attrib",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1564.001"
+      ],
+      "enabled": true
+    },
+    {
+      "name": "Hidden Window Execution (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 5,
+      "content": "title: Hidden Window Execution (DB)\ndescription: Detects PowerShell launched with a hidden window (-w hidden / -WindowStyle Hidden / -w 1) to conceal interactive execution from the user, a common defense-evasion wrapper around a malicious payload.\nstatus: stable\nlevel: medium\ntags:\n  - attack.t1564.003\n  - attack.defense_evasion\nlogsource:\n  category: process_creation\ndetection:\n  hidden:\n    CommandLine|contains:\n      - \" -w hidden\"\n      - \" -w 1 \"\n      - \"-windowstyle hidden\"\n      - \"-windowstyle 1\"\n  condition: hidden\nfalsepositives:\n  - Some legitimate maintenance scripts run hidden\n",
+      "description": "Two-engine parity: hidden window execution",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1564.003"
+      ],
+      "enabled": true
+    },
+    {
+      "name": "Image File Execution Options Debugger (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 7,
+      "content": "title: Image File Execution Options Debugger (DB)\ndescription: Detects setting a Debugger value under Image File Execution Options, hijacking execution of a target program (e.g. sethc.exe, an accessibility binary) for persistence or privilege escalation.\nstatus: stable\nlevel: high\ntags:\n  - attack.t1546.012\n  - attack.persistence\n  - attack.privilege_escalation\nlogsource:\n  category: process_creation\ndetection:\n  ifeo:\n    CommandLine|contains|all:\n      - \"Image File Execution Options\"\n      - \"Debugger\"\n  condition: ifeo\nfalsepositives:\n  - GFlags or debugging tools configuring a debugger intentionally\n",
+      "description": "Two-engine parity: IFEO Debugger hijack persistence",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1546.012"
+      ],
+      "enabled": true
+    },
+    {
+      "name": "Indirect Command Execution (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 6,
+      "content": "title: Indirect Command Execution (DB)\ndescription: Detects forfiles/pcalua/scriptrunner launching a shell or executable — indirect execution that breaks the expected parent-child chain.\nstatus: stable\nlevel: medium\ntags:\n  - attack.t1202\n  - attack.defense_evasion\nlogsource:\n  category: process_creation\ndetection:\n  tool:\n    CommandLine|contains:\n      - \"forfiles\"\n      - \"pcalua\"\n      - \"scriptrunner\"\n  payload:\n    CommandLine|contains:\n      - \"cmd\"\n      - \"powershell\"\n      - \".exe\"\n      - \".bat\"\n      - \".vbs\"\n  condition: tool and payload\nfalsepositives:\n  - Legitimate maintenance scripts using forfiles\n",
+      "description": "Two-engine parity: indirect command execution (forfiles/pcalua/scriptrunner)",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1202"
+      ],
+      "enabled": true
+    },
+    {
+      "name": "Ingress Tool Transfer via LOLBin (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 7,
+      "content": "title: Ingress Tool Transfer via LOLBin (DB)\ndescription: Detects certutil or bitsadmin abused to download/stage payloads (LOLBin ingress tool transfer). Scoped to the options that actually cause a network fetch; -decode/-encode/-decodehex are purely local transforms and live in the T1140 rule below.\nstatus: stable\nlevel: high\ntags:\n  - attack.t1105\n  - attack.command_and_control\nlogsource:\n  category: process_creation\ndetection:\n  certutil:\n    CommandLine|contains|all:\n      - \"certutil\"\n    CommandLine|contains:\n      - \"-urlcache\"\n      - \"-verifyctl\"\n      - \"-split\"\n      - \"/urlcache\"\n      - \"/verifyctl\"\n      - \"/split\"\n  bitsadmin:\n    CommandLine|contains|all:\n      - \"bitsadmin\"\n      - \"/transfer\"\n  condition: certutil or bitsadmin\nfalsepositives:\n  - Legitimate certificate management or Windows Update / software distribution\n",
+      "description": "Two-engine parity: ingress tool transfer (certutil/bitsadmin LOLBin download)",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1105"
+      ],
+      "enabled": true
+    },
+    {
+      "name": "Inhibit System Recovery (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 9,
+      "content": "title: Inhibit System Recovery (DB)\nstatus: stable\nlevel: critical\ntags:\n  - attack.t1490\n  - attack.impact\nlogsource:\n  category: process_creation\ndetection:\n  shadow_delete:\n    CommandLine|contains:\n      - \"delete shadows\"\n      - \"shadowcopy delete\"\n      - \"resize shadowstorage\"\n  bcdedit_recovery:\n    CommandLine|contains:\n      - \"recoveryenabled no\"\n      - \"bootstatuspolicy ignoreallfailures\"\n  ps_wmi_obj:\n    CommandLine|contains: \"Win32_ShadowCopy\"\n  ps_wmi_del:\n    CommandLine|contains:\n      - \"Remove-WmiObject\"\n      - \"Remove-CimInstance\"\n      - \".Delete(\"\n      - \"Delete()\"\n  wbadmin_delete:\n    CommandLine|contains|all:\n      - \"wbadmin\"\n      - \"delete\"\n  condition: shadow_delete or bcdedit_recovery or (ps_wmi_obj and ps_wmi_del) or wbadmin_delete\nfalsepositives:\n  - Legitimate backup software maintenance\n",
+      "description": "Two-engine parity: inhibit system recovery (shadow/backup/BCD destruction)",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1490"
+      ],
+      "enabled": true
+    },
+    {
+      "name": "InstallUtil Proxy Execution (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 6,
+      "content": "title: InstallUtil Proxy Execution (DB)\ndescription: Detects InstallUtil invoked with output-suppressing options, the form used to proxy-execute a .NET assembly while hiding its output. A bare /u is an ordinary service uninstall and does not discriminate.\nstatus: stable\nlevel: medium\ntags:\n  - attack.t1218.004\n  - attack.defense_evasion\nlogsource:\n  category: process_creation\ndetection:\n  installutil:\n    CommandLine|contains|all:\n      - \"installutil\"\n    CommandLine|contains:\n      - \"/logfile=\"\n      - \"/logtoconsole=false\"\n  condition: installutil\nfalsepositives:\n  - Installer tooling that suppresses log output deliberately\n",
+      "description": "Two-engine parity: InstallUtil LOLBin proxy execution",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1218.004"
+      ],
+      "enabled": true
+    },
+    {
+      "name": "Internal Proxy via netsh portproxy (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 7,
+      "content": "title: Internal Proxy via netsh portproxy (DB)\ndescription: Detects creation of a netsh portproxy rule to relay/pivot traffic through a compromised host (C2 internal proxy).\nstatus: stable\nlevel: high\ntags:\n  - attack.t1090.001\n  - attack.command_and_control\nlogsource:\n  category: process_creation\ndetection:\n  selection:\n    CommandLine|contains|all:\n      - \"netsh\"\n      - \"portproxy\"\n      - \"add\"\n  condition: selection\nfalsepositives:\n  - Rare legitimate port-forwarding configured by administrators\n",
+      "description": "Two-engine parity: internal proxy via netsh portproxy",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1090.001"
+      ],
+      "enabled": true
+    },
+    {
+      "name": "Kerberoasting (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 8,
+      "content": "title: Kerberoasting (DB)\nstatus: stable\nlevel: high\ntags:\n  - attack.t1558.003\n  - attack.credential_access\nlogsource:\n  category: process_creation\ndetection:\n  kerberoast:\n    CommandLine|contains:\n      - \"rubeus\"\n      - \"kerberoast\"\n      - \"asreproast\"\n      - \"/tgtdeleg\"\n      - \".kirbi\"\n      - \"GetUserSPNs\"\n  condition: kerberoast\nfalsepositives:\n  - Authorised red-team / AD security assessments\n",
+      "description": "Two-engine parity: Kerberoasting (Rubeus/GetUserSPNs) SPN ticket abuse",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1558.003"
+      ],
+      "enabled": true
+    },
+    {
+      "name": "Kubernetes Service Account Token Access (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 7,
+      "content": "title: Kubernetes Service Account Token Access (DB)\ndescription: Detects reading of the in-pod Kubernetes service-account token or kubelet credentials (serviceaccount token path, kubelet PKI, admin.conf, kubelet.conf), used to escalate from a compromised container to the cluster API.\nstatus: stable\nlevel: high\ntags:\n  - attack.t1552.007\n  - attack.credential_access\nlogsource:\n  category: process_creation\ndetection:\n  token_path:\n    CommandLine|contains:\n      - \"/var/run/secrets/kubernetes.io/serviceaccount\"\n      - \"/var/lib/kubelet/pki\"\n      - \"/etc/kubernetes/admin.conf\"\n      - \"serviceaccount/token\"\n      - \"kubelet.conf\"\n  condition: token_path\nfalsepositives:\n  - In-cluster tooling reading its own service-account token\n",
+      "description": "Two-engine parity: Kubernetes service-account token theft",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1552.007"
+      ],
+      "enabled": true
+    },
+    {
+      "name": "LLMNR NBT-NS Poisoning and NTLM Relay (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 8,
+      "content": "title: LLMNR NBT-NS Poisoning and NTLM Relay (DB)\ndescription: Detects LLMNR/NBT-NS/mDNS poisoning and NTLM credential-relay tooling (Responder, Inveigh, Impacket ntlmrelayx, mitm6) used to capture NetNTLM hashes and relay authentication on the local network, a common first foothold in AD intrusions.\nstatus: stable\nlevel: high\ntags:\n  - attack.t1557.001\n  - attack.credential_access\nlogsource:\n  category: process_creation\ndetection:\n  tools:\n    CommandLine|contains:\n      - \"Invoke-Inveigh\"\n      - \"Inveigh.ps1\"\n      - \"Inveigh.exe\"\n      - \"responder.py\"\n      - \"Responder.py\"\n      - \"ntlmrelayx\"\n      - \"mitm6\"\n  condition: tools\nfalsepositives:\n  - Authorised network security assessments\n",
+      "description": "Two-engine parity: LLMNR/NBT-NS poisoning and NTLM relay tooling",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1557.001"
+      ],
+      "enabled": true
+    },
+    {
+      "name": "LSA Secrets Dump (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 8,
+      "content": "title: LSA Secrets Dump (DB)\ndescription: Detects dumping of LSA secrets (service account passwords, cached secrets) via saving the HKLM\\SECURITY registry hive or mimikatz lsadump::secrets, for offline credential extraction.\nstatus: stable\nlevel: high\ntags:\n  - attack.t1003.004\n  - attack.credential_access\nlogsource:\n  category: process_creation\ndetection:\n  reg_save:\n    CommandLine|contains|all:\n      - \"save\"\n      - \"HKLM\"\n      - \"SECURITY\"\n  lsadump_secrets:\n    CommandLine|contains: \"lsadump::secrets\"\n  condition: reg_save or lsadump_secrets\nfalsepositives:\n  - Rare legitimate backup of registry hives\n",
+      "description": "Two-engine parity: LSA secrets dump (SECURITY hive / lsadump)",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1003.004"
+      ],
+      "enabled": true
+    },
+    {
+      "name": "LSASS Memory Dump (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 9,
+      "content": "title: LSASS Memory Dump (DB)\nstatus: stable\nlevel: critical\ntags:\n  - attack.t1003.001\n  - attack.credential_access\nlogsource:\n  category: process_creation\ndetection:\n  tools:\n    CommandLine|contains:\n      - \"nanodump\"\n      - \"dumpert\"\n      - \"handlekatz\"\n      - \"Out-Minidump\"\n      - \"pypykatz\"\n      - \"lsassy\"\n      - \"safetykatz\"\n      - \"Invoke-Mimikatz\"\n  comsvcs_dll:\n    CommandLine|contains: \"comsvcs\"\n  comsvcs_method:\n    CommandLine|contains:\n      - \"MiniDump\"\n      - \"#24\"\n  procdump:\n    CommandLine|contains|all:\n      - \"procdump\"\n      - \"lsass\"\n  condition: tools or (comsvcs_dll and comsvcs_method) or procdump\nfalsepositives:\n  - Authorised crash-dump collection of lsass for debugging\n",
+      "description": "Two-engine parity: LSASS memory dump (comsvcs/tools/ProcDump)",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1003.001"
+      ],
+      "enabled": true
+    },
+    {
+      "name": "Linux Shadow File Credential Dump (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 8,
+      "content": "title: Linux Shadow File Credential Dump (DB)\ndescription: Detects reading/copying of /etc/shadow or unshadow combining passwd+shadow for offline cracking.\nstatus: stable\nlevel: high\ntags:\n  - attack.t1003.008\n  - attack.credential_access\nlogsource:\n  category: process_creation\ndetection:\n  selection:\n    CommandLine|contains:\n      - \"cat /etc/shadow\"\n      - \"cp /etc/shadow\"\n      - \"/etc/shadow /tmp\"\n      - \"unshadow\"\n      - \"cat /etc/gshadow\"\n  condition: selection\nfalsepositives:\n  - Authorised account-management tooling\n",
+      "description": "Two-engine parity: /etc/shadow credential dump",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1003.008"
+      ],
+      "enabled": true
+    },
+    {
+      "name": "Local Account and Admin Group Manipulation (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 7,
+      "content": "title: Local Account and Admin Group Manipulation (DB)\ndescription: Detects local account creation (net user /add) or addition of an account to the local Administrators group (net localgroup administrators /add).\nstatus: stable\nlevel: high\ntags:\n  - attack.t1136.001\n  - attack.t1098\n  - attack.persistence\n  - attack.privilege_escalation\nlogsource:\n  category: process_creation\ndetection:\n  net_user:\n    CommandLine|contains|all:\n      - \"net user\"\n      - \"/add\"\n  net_localadmin:\n    CommandLine|contains|all:\n      - \"localgroup\"\n      - \"/add\"\n    CommandLine|contains:\n      - \"administ\"\n  condition: net_user or net_localadmin\nfalsepositives:\n  - Legitimate account provisioning or group management by IT\n",
+      "description": "Two-engine parity: local account creation / admin group addition via net.exe",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1136.001",
+        "T1098"
+      ],
+      "enabled": true
+    },
+    {
+      "name": "Local Email Store Collection (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 6,
+      "content": "title: Local Email Store Collection (DB)\ndescription: Detects access to local email stores (Outlook .pst/.ost, Unix .mbox, Outlook Files directory) for mailbox theft, a common collection step before exfiltration.\nstatus: stable\nlevel: medium\ntags:\n  - attack.t1114.001\n  - attack.collection\nlogsource:\n  category: process_creation\ndetection:\n  mailstore:\n    CommandLine|contains:\n      - \".pst\"\n      - \".ost\"\n      - \".mbox\"\n      - \"Outlook Files\"\n  condition: mailstore\nfalsepositives:\n  - Backup or migration tooling copying mail stores\n",
+      "description": "Two-engine parity: local email store collection",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1114.001"
+      ],
+      "enabled": true
+    },
+    {
+      "name": "Logon Script Persistence (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 7,
+      "content": "title: Logon Script Persistence (DB)\ndescription: Detects setting the UserInitMprLogonScript registry value under the user Environment key, which runs an attacker-specified script at every interactive logon, a classic user-scoped persistence mechanism.\nstatus: stable\nlevel: high\ntags:\n  - attack.t1037.001\n  - attack.persistence\n  - attack.privilege_escalation\nlogsource:\n  category: process_creation\ndetection:\n  logon_script:\n    CommandLine|contains: \"UserInitMprLogonScript\"\n  condition: logon_script\nfalsepositives:\n  - Rare legitimate logon-script configuration by administrators\n",
+      "description": "Two-engine parity: logon script persistence (UserInitMprLogonScript)",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1037.001"
+      ],
+      "enabled": true
+    },
+    {
+      "name": "Mail Protocol Exfiltration (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 6,
+      "content": "title: Mail Protocol Exfiltration (DB)\ndescription: Detects sending data out as email attachments via command-line mailers (PowerShell Send-MailMessage with an attachment, swaks --attach, sendemail -a, or curl to an smtp/smtps server), used to exfiltrate over a mail protocol.\nstatus: stable\nlevel: medium\ntags:\n  - attack.t1071.003\n  - attack.exfiltration\nlogsource:\n  category: process_creation\ndetection:\n  ps_sendmail:\n    CommandLine|contains|all:\n      - \"Send-MailMessage\"\n      - \"-Attachment\"\n  swaks:\n    CommandLine|contains|all:\n      - \"swaks\"\n      - \"--attach\"\n  sendemail:\n    CommandLine|contains|all:\n      - \"sendemail\"\n      - \" -a \"\n  curl_smtp:\n    CommandLine|contains:\n      - \"curl smtp://\"\n      - \"curl smtps://\"\n      - \"--mail-from\"\n  condition: ps_sendmail or swaks or sendemail or curl_smtp\nfalsepositives:\n  - Monitoring or backup scripts emailing reports with attachments\n",
+      "description": "Two-engine parity: mail protocol exfiltration",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1071.003"
+      ],
+      "enabled": true
+    },
+    {
+      "name": "Mark-of-the-Web Bypass (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 6,
+      "content": "title: Mark-of-the-Web Bypass (DB)\ndescription: Detects removal of the Mark-of-the-Web to bypass SmartScreen/protected-view warnings on downloaded files (PowerShell Unblock-File, deleting the Zone.Identifier alternate data stream, or sysinternals streams -d).\nstatus: stable\nlevel: medium\ntags:\n  - attack.t1553.005\n  - attack.defense_evasion\nlogsource:\n  category: process_creation\ndetection:\n  motw:\n    CommandLine|contains:\n      - \"Unblock-File\"\n      - \":Zone.Identifier\"\n      - \"streams -d\"\n  condition: motw\nfalsepositives:\n  - Users legitimately unblocking a trusted downloaded file\n",
+      "description": "Two-engine parity: Mark-of-the-Web bypass",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1553.005"
+      ],
+      "enabled": true
+    },
+    {
+      "name": "Mavinject Process Injection (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 8,
+      "content": "title: Mavinject Process Injection (DB)\ndescription: Detects mavinject.exe injecting a DLL into a running process (INJECTRUNNING) — a LOLBin injection technique.\nstatus: stable\nlevel: high\ntags:\n  - attack.t1055.001\n  - attack.defense_evasion\n  - attack.privilege_escalation\nlogsource:\n  category: process_creation\ndetection:\n  selection:\n    CommandLine|contains|all:\n      - \"mavinject\"\n      - \"INJECTRUNNING\"\n  condition: selection\nfalsepositives:\n  - None expected outside App-V environments\n",
+      "description": "Two-engine parity: mavinject process injection",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1055.001"
+      ],
+      "enabled": true
+    },
+    {
+      "name": "Mshta Proxy Execution (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 7,
+      "content": "title: Mshta Proxy Execution (DB)\nstatus: stable\nlevel: high\ntags:\n  - attack.t1218.005\n  - attack.defense_evasion\nlogsource:\n  category: process_creation\ndetection:\n  mshta:\n    CommandLine|contains|all:\n      - \"mshta\"\n    CommandLine|contains:\n      - \"http\"\n      - \"vbscript\"\n      - \"javascript\"\n      - \".hta\"\n      - \"about:\"\n  condition: mshta\nfalsepositives:\n  - Legacy HTA-based line-of-business applications\n",
+      "description": "Two-engine parity: mshta remote/scripted proxy execution",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1218.005"
+      ],
+      "enabled": true
+    },
+    {
+      "name": "Msiexec Remote MSI Execution (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 7,
+      "content": "title: Msiexec Remote MSI Execution (DB)\ndescription: Detects msiexec installing a package directly from a remote URL, a LOLBin proxy-execution and download technique that fetches and runs an attacker-hosted MSI through a signed Microsoft binary.\nstatus: stable\nlevel: high\ntags:\n  - attack.t1218.007\n  - attack.defense_evasion\nlogsource:\n  category: process_creation\ndetection:\n  msiexec_remote:\n    CommandLine|contains|all:\n      - \"msiexec\"\n    CommandLine|contains:\n      - \"http://\"\n      - \"https://\"\n      - \"ftp://\"\n  condition: msiexec_remote\nfalsepositives:\n  - Enterprise software deployment from trusted internal URLs\n",
+      "description": "Two-engine parity: msiexec remote MSI proxy execution",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1218.007"
+      ],
+      "enabled": true
+    },
+    {
+      "name": "NTDS.dit Extraction (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 9,
+      "content": "title: NTDS.dit Extraction (DB)\ndescription: Detects extraction of the Active Directory database (NTDS.dit) for offline credential theft via ntdsutil IFM/create full or direct reference to the ntds.dit file.\nstatus: stable\nlevel: critical\ntags:\n  - attack.t1003.003\n  - attack.credential_access\nlogsource:\n  category: process_creation\ndetection:\n  ntdsutil:\n    CommandLine|contains|all:\n      - \"ntdsutil\"\n    CommandLine|contains:\n      - \"ifm\"\n      - \"create full\"\n  ntdsdit:\n    CommandLine|contains: \"ntds.dit\"\n  condition: ntdsutil or ntdsdit\nfalsepositives:\n  - Authorised domain controller backups\n",
+      "description": "Two-engine parity: NTDS.dit AD database extraction",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1003.003"
+      ],
+      "enabled": true
+    },
+    {
+      "name": "NTFS Alternate Data Stream Manipulation (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 6,
+      "content": "title: NTFS Alternate Data Stream Manipulation (DB)\ndescription: Detects reading or writing NTFS alternate data streams (-Stream parameter, :$DATA / ::$DATA), used to hide payloads and executables inside a file's alternate streams to evade detection.\nstatus: stable\nlevel: medium\ntags:\n  - attack.t1564.004\n  - attack.defense_evasion\nlogsource:\n  category: process_creation\ndetection:\n  ads:\n    CommandLine|contains:\n      - \" -Stream \"\n      - \":$DATA\"\n      - \"::$DATA\"\n  condition: ads\nfalsepositives:\n  - Rare legitimate use of alternate data streams\n",
+      "description": "Two-engine parity: NTFS alternate data stream manipulation",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1564.004"
+      ],
+      "enabled": true
+    },
+    {
+      "name": "Netcat Reverse Shell or Relay (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 7,
+      "content": "title: Netcat Reverse Shell or Relay (DB)\ndescription: Detects netcat/ncat used for reverse shells or port forwarding — non-application-layer C2.\nstatus: stable\nlevel: high\ntags:\n  - attack.t1095\n  - attack.command_and_control\nlogsource:\n  category: process_creation\ndetection:\n  explicit_tool:\n    CommandLine|contains:\n      - \"ncat\"\n      - \"netcat\"\n      - \"nc.traditional\"\n  nc_flags:\n    CommandLine|contains|all:\n      - \"nc \"\n    CommandLine|contains:\n      - \" -e \"\n      - \" -e/\"\n      - \"-lvp\"\n      - \"-lnvp\"\n      - \"-nvlp\"\n      - \"-lp \"\n  condition: explicit_tool or nc_flags\nfalsepositives:\n  - Authorised network debugging\n",
+      "description": "Two-engine parity: netcat reverse shell or relay",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1095"
+      ],
+      "enabled": true
+    },
+    {
+      "name": "Network Service Scanning (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 5,
+      "content": "title: Network Service Scanning (DB)\ndescription: Detects active network service/port scanning (nmap/masscan/zmap/rustscan, nc -z) used for recon and lateral-movement targeting.\nstatus: stable\nlevel: medium\ntags:\n  - attack.t1046\n  - attack.discovery\nlogsource:\n  category: process_creation\ndetection:\n  scanners:\n    CommandLine|contains:\n      - \"nmap\"\n      - \"masscan\"\n      - \"zmap\"\n      - \"rustscan\"\n  ncscan:\n    CommandLine|contains|all:\n      - \"nc \"\n      - \"-z\"\n  condition: scanners or ncscan\nfalsepositives:\n  - Authorised vulnerability scanning / asset inventory\n",
+      "description": "Two-engine parity: network service scanning",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1046"
+      ],
+      "enabled": true
+    },
+    {
+      "name": "Network Share Discovery (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 5,
+      "content": "title: Network Share Discovery (DB)\ndescription: Detects enumeration of network shares (net share, Get-SmbShare, Get-WmiObject Win32_Share, PowerView Invoke-ShareFinder/Find-DomainShare) to locate data and footholds.\nstatus: stable\nlevel: medium\ntags:\n  - attack.t1135\n  - attack.discovery\nlogsource:\n  category: process_creation\ndetection:\n  net_share:\n    CommandLine|contains: \"net share\"\n  smb_share_ps:\n    CommandLine|contains:\n      - \"Get-SmbShare\"\n      - \"Get-WmiObject Win32_Share\"\n      - \"Get-CimInstance Win32_Share\"\n  powerview_share:\n    CommandLine|contains:\n      - \"Invoke-ShareFinder\"\n      - \"Find-DomainShare\"\n      - \"Find-InterestingDomainShareFile\"\n  condition: net_share or smb_share_ps or powerview_share\nfalsepositives:\n  - Administrators auditing share exposure\n",
+      "description": "Two-engine parity: network share discovery",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1135"
+      ],
+      "enabled": false
+    },
+    {
+      "name": "Odbcconf Proxy Execution (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 7,
+      "content": "title: Odbcconf Proxy Execution (DB)\ndescription: Detects odbcconf.exe loading a DLL via REGSVR (LOLBin proxy execution). /a and .dll appear in every ordinary CONFIGSYSDSN invocation, so REGSVR is the only discriminating token.\nstatus: stable\nlevel: high\ntags:\n  - attack.t1218.008\n  - attack.defense_evasion\nlogsource:\n  category: process_creation\ndetection:\n  odbcconf:\n    CommandLine|contains|all:\n      - \"odbcconf\"\n    CommandLine|contains:\n      - \"regsvr\"\n  condition: odbcconf\nfalsepositives:\n  - Rare legitimate driver registration through REGSVR\n",
+      "description": "Two-engine parity: odbcconf DLL proxy execution via REGSVR",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1218.008"
+      ],
+      "enabled": true
+    },
+    {
+      "name": "Pass-the-Hash (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 8,
+      "content": "title: Pass-the-Hash (DB)\ndescription: Detects pass-the-hash lateral movement — Invoke-TheHash, CrackMapExec/NetExec hash auth, Impacket -hashes, pth-winexe, mimikatz sekurlsa::pth.\nstatus: stable\nlevel: high\ntags:\n  - attack.t1550.002\n  - attack.lateral_movement\n  - attack.credential_access\nlogsource:\n  category: process_creation\ndetection:\n  mimikatz_pth:\n    CommandLine|contains: \"sekurlsa::pth\"\n  invoke_thehash:\n    CommandLine|contains:\n      - \"Invoke-SMBExec\"\n      - \"Invoke-WMIExec\"\n      - \"Invoke-TheHash\"\n      - \"Invoke-SMBClient\"\n  cme_hash:\n    CommandLine|contains|all:\n      - \"crackmapexec\"\n      - \"-H \"\n  netexec_hash:\n    CommandLine|contains|all:\n      - \"nxc \"\n      - \"-H \"\n  impacket_hashes:\n    CommandLine|contains: \"-hashes \"\n  pth_toolkit:\n    CommandLine|contains:\n      - \"pth-winexe\"\n      - \"pth-smbclient\"\n  condition: mimikatz_pth or invoke_thehash or cme_hash or netexec_hash or impacket_hashes or pth_toolkit\nfalsepositives:\n  - Authorised red-team / lateral-movement assessments\n",
+      "description": "Two-engine parity: pass-the-hash lateral movement",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1550.002"
+      ],
+      "enabled": true
+    },
+    {
+      "name": "Pass-the-Ticket (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 8,
+      "content": "title: Pass-the-Ticket (DB)\ndescription: Detects Kerberos ticket injection/reuse (kerberos::ptt, .kirbi files, Rubeus /ptt or asktgt/tgtdeleg) used to authenticate as another principal without their password, a common lateral-movement technique.\nstatus: stable\nlevel: high\ntags:\n  - attack.t1550.003\n  - attack.lateral_movement\n  - attack.credential_access\nlogsource:\n  category: process_creation\ndetection:\n  ptt:\n    CommandLine|contains:\n      - \"kerberos::ptt\"\n      - \".kirbi\"\n      - \" /ptt\"\n      - \"ptt /ticket\"\n      - \"asktgt\"\n      - \"tgtdeleg\"\n  condition: ptt\nfalsepositives:\n  - Authorised red-team / AD security assessments\n",
+      "description": "Two-engine parity: Pass-the-Ticket (Kerberos ticket injection)",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1550.003"
+      ],
+      "enabled": true
+    },
+    {
+      "name": "Password Manager Vault Access (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 8,
+      "content": "title: Password Manager Vault Access (DB)\ndescription: Detects access to password-manager vault files (KeePass .kdbx, 1Password, Bitwarden, KeePassXC) — high-value credential theft.\nstatus: stable\nlevel: high\ntags:\n  - attack.t1555.005\n  - attack.credential_access\nlogsource:\n  category: process_creation\ndetection:\n  reader:\n    CommandLine|contains:\n      - \"cat \"\n      - \"cp \"\n      - \"curl\"\n      - \"powershell\"\n      - \"python\"\n      - \"strings\"\n  vault:\n    CommandLine|contains:\n      - \".kdbx\"\n      - \".kdb\"\n      - \"1Password\"\n      - \"Bitwarden\"\n      - \".opvault\"\n      - \"keepass\"\n      - \"keepassxc\"\n  condition: reader and vault\nfalsepositives:\n  - Backup or sync software touching password databases\n",
+      "description": "Two-engine parity: password manager vault access",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1555.005"
+      ],
+      "enabled": true
+    },
+    {
+      "name": "Password Policy Discovery (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 4,
+      "content": "title: Password Policy Discovery (DB)\ndescription: Detects reading the system password policy or per-account aging (login.defs, chage -l, passwd -S, net accounts) to tune spray/brute-force and avoid lockout.\nstatus: stable\nlevel: low\ntags:\n  - attack.t1201\n  - attack.discovery\nlogsource:\n  category: process_creation\ndetection:\n  selection:\n    CommandLine|contains:\n      - \"/etc/login.defs\"\n      - \"/etc/security/pwquality\"\n      - \"chage -l\"\n      - \"passwd -S\"\n      - \"passwd --status\"\n      - \"pwpolicy -getaccountpolicies\"\n      - \"net accounts\"\n  condition: selection\nfalsepositives:\n  - Configuration management reading password policy\n",
+      "description": "Two-engine parity: password policy discovery",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1201"
+      ],
+      "enabled": true
+    },
+    {
+      "name": "Pkexec Exploitation PwnKit (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 9,
+      "content": "title: Pkexec Exploitation PwnKit (DB)\ndescription: Detects pkexec privilege-escalation exploitation patterns (PwnKit CVE-2021-4034) via GCONV_PATH/CHARSET/GIO_USE_VFS.\nstatus: stable\nlevel: critical\ntags:\n  - attack.t1068\n  - attack.privilege_escalation\nlogsource:\n  category: process_creation\ndetection:\n  pkexec:\n    CommandLine|contains|all:\n      - \"pkexec\"\n    CommandLine|contains:\n      - \"GCONV_PATH\"\n      - \"CHARSET\"\n      - \"GIO_USE_VFS\"\n  condition: pkexec\nfalsepositives:\n  - Unlikely in production; high-confidence indicator\n",
+      "description": "Two-engine parity: pkexec PwnKit exploitation (CVE-2021-4034)",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1068"
+      ],
+      "enabled": true
+    },
+    {
+      "name": "PowerShell Web Download Cradle (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 7,
+      "content": "title: PowerShell Web Download Cradle (DB)\ndescription: Detects PowerShell downloading and executing remote content (download cradle) via WebClient/Invoke-* methods.\nstatus: stable\nlevel: high\ntags:\n  - attack.t1071.001\n  - attack.command_and_control\n  - attack.execution\nlogsource:\n  category: process_creation\ndetection:\n  selection:\n    CommandLine|contains:\n      - \"downloadstring\"\n      - \"downloadfile\"\n      - \"downloaddata\"\n      - \"net.webclient\"\n      - \"invoke-restmethod\"\n      - \"openread\"\n      - \"start-bitstransfer\"\n  condition: selection\nfalsepositives:\n  - Legitimate administrative scripts fetching resources\n",
+      "description": "Two-engine parity: PowerShell web download cradle",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1071.001"
+      ],
+      "enabled": true
+    },
+    {
+      "name": "Private Key Harvesting (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 6,
+      "content": "title: Private Key Harvesting (DB)\ndescription: Detects recursive search/collection of private key material (id_rsa, .ppk, .pem, .pfx) — unsecured-credentials harvesting.\nstatus: stable\nlevel: medium\ntags:\n  - attack.t1552.004\n  - attack.credential_access\nlogsource:\n  category: process_creation\ndetection:\n  harvest:\n    CommandLine|contains:\n      - \"dir /s\"\n      - \"-recurse\"\n      - \"Get-ChildItem\"\n      - \"findstr\"\n      - \"ls -r\"\n      - \"find /\"\n  keyfile:\n    CommandLine|contains:\n      - \"id_rsa\"\n      - \"id_dsa\"\n      - \"id_ecdsa\"\n      - \".ppk\"\n      - \".pem\"\n      - \".pfx\"\n  condition: harvest and keyfile\nfalsepositives:\n  - DevOps/CI scripts inventorying certificates or keys\n",
+      "description": "Two-engine parity: private key harvesting (recursive search x key file)",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1552.004"
+      ],
+      "enabled": true
+    },
+    {
+      "name": "Privileged Container Deployment (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 7,
+      "content": "title: Privileged Container Deployment (DB)\ndescription: Detects launching a container with host-escape options (--privileged, host PID/network namespace, host-root bind mount, or the docker socket), a common container breakout and host-compromise setup.\nstatus: stable\nlevel: high\ntags:\n  - attack.t1610\n  - attack.execution\n  - attack.privilege_escalation\nlogsource:\n  category: process_creation\ndetection:\n  privileged_run:\n    CommandLine|contains|all:\n      - \" run \"\n    CommandLine|contains:\n      - \"--privileged\"\n      - \"--pid=host\"\n      - \"--net=host\"\n      - \"-v /:/\"\n      - \"--volume=/:/\"\n      - \"/var/run/docker.sock\"\n  condition: privileged_run\nfalsepositives:\n  - Legitimate privileged containers (CI runners, monitoring/security agents)\n",
+      "description": "Two-engine parity: privileged/host-namespace container deployment",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1610"
+      ],
+      "enabled": true
+    },
+    {
+      "name": "Process Memory Credential Access via proc (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 8,
+      "content": "title: Process Memory Credential Access via proc (DB)\ndescription: Detects reading another process memory through /proc/<pid>/mem or maps with dd/cat/gdb/gcore — scraping credentials from memory.\nstatus: stable\nlevel: high\ntags:\n  - attack.t1003.007\n  - attack.credential_access\nlogsource:\n  category: process_creation\ndetection:\n  reader:\n    CommandLine|contains:\n      - \"dd \"\n      - \"cat \"\n      - \"gdb\"\n      - \"gcore\"\n  proc_mem:\n    CommandLine|contains: \"/proc/\"\n  region:\n    CommandLine|contains:\n      - \"/mem\"\n      - \"/maps\"\n  condition: reader and proc_mem and region\nfalsepositives:\n  - Debugging or memory-forensics tooling\n",
+      "description": "Two-engine parity: process memory credential access via /proc",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1003.007"
+      ],
+      "enabled": true
+    },
+    {
+      "name": "Protocol Tunneling Tool Execution (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 6,
+      "content": "title: Protocol Tunneling Tool Execution (DB)\ndescription: Detects known tunneling/port-forwarding utilities (ngrok, chisel client/server, frp frpc/frps, plink reverse/local/dynamic forwarding) used for C2 or network pivoting to reach otherwise unreachable internal hosts.\nstatus: stable\nlevel: medium\ntags:\n  - attack.t1572\n  - attack.command_and_control\nlogsource:\n  category: process_creation\ndetection:\n  ngrok:\n    CommandLine|contains: \"ngrok\"\n  chisel:\n    CommandLine|contains|all:\n      - \"chisel\"\n    CommandLine|contains:\n      - \"client\"\n      - \"server\"\n  frp:\n    CommandLine|contains:\n      - \"frpc\"\n      - \"frps\"\n  plink:\n    CommandLine|contains|all:\n      - \"plink\"\n    CommandLine|contains:\n      - \" -R\"\n      - \" -L\"\n      - \" -D\"\n  condition: ngrok or chisel or frp or plink\nfalsepositives:\n  - Authorised remote-access or debugging tunnels\n",
+      "description": "Two-engine parity: protocol tunneling tools (ngrok/chisel/frp/plink)",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1572"
+      ],
+      "enabled": true
+    },
+    {
+      "name": "PsExec Service Execution (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 7,
+      "content": "title: PsExec Service Execution (DB)\ndescription: Detects PsExec service execution (PSEXESVC service or the psexec client with -accepteula), commonly used for remote command execution and lateral movement.\nstatus: stable\nlevel: high\ntags:\n  - attack.t1569.002\n  - attack.execution\n  - attack.lateral_movement\nlogsource:\n  category: process_creation\ndetection:\n  psexec:\n    CommandLine|contains:\n      - \"PSEXESVC\"\n      - \"psexec \"\n      - \"psexec.exe\"\n      - \"paexec\"\n  condition: psexec\nfalsepositives:\n  - Legitimate administrative use of PsExec\n",
+      "description": "Two-engine parity: PsExec service execution",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1569.002"
+      ],
+      "enabled": true
+    },
+    {
+      "name": "Reflective Code Loading (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 8,
+      "content": "title: Reflective Code Loading (DB)\ndescription: Detects loading code directly into memory (reflective .NET assembly load) bypassing on-disk AV inspection.\nstatus: stable\nlevel: high\ntags:\n  - attack.t1620\n  - attack.defense_evasion\nlogsource:\n  category: process_creation\ndetection:\n  selection:\n    CommandLine|contains:\n      - \"[Reflection.Assembly]::Load\"\n      - \"[System.Reflection.Assembly]::Load\"\n      - \"Assembly]::Load(\"\n      - \"System.Reflection.Assembly]::LoadWithPartialName\"\n      - \"[AppDomain]::CurrentDomain.Load\"\n      - \"InvokeReturnAsIs\"\n  condition: selection\nfalsepositives:\n  - Some .NET developer / build automation\n",
+      "description": "Two-engine parity: reflective code loading (in-memory assembly)",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1620"
+      ],
+      "enabled": true
+    },
+    {
+      "name": "Registry Credential Hunting (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 6,
+      "content": "title: Registry Credential Hunting (DB)\ndescription: Detects reg query /f password or PowerShell Get-ItemProperty searching the registry for stored credentials.\nstatus: stable\nlevel: medium\ntags:\n  - attack.t1552.002\n  - attack.credential_access\nlogsource:\n  category: process_creation\ndetection:\n  reg_search:\n    CommandLine|contains|all:\n      - \"query\"\n      - \"/f\"\n    CommandLine|contains:\n      - \"password\"\n      - \"passwd\"\n      - \"pwd\"\n      - \"credential\"\n  ps_search:\n    CommandLine|contains|all:\n      - \"Get-ItemProperty\"\n      - \"password\"\n  condition: reg_search or ps_search\nfalsepositives:\n  - Administrators auditing for plaintext passwords in the registry\n",
+      "description": "Two-engine parity: registry credential hunting (reg query /f password)",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1552.002"
+      ],
+      "enabled": true
+    },
+    {
+      "name": "Regsvcs Regasm Proxy Execution (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 6,
+      "content": "title: Regsvcs Regasm Proxy Execution (DB)\ndescription: Detects regsvcs.exe or regasm.exe used to proxy-execute code in a .NET assembly via its registration hooks, bypassing application control through a signed Microsoft binary.\nstatus: stable\nlevel: medium\ntags:\n  - attack.t1218.009\n  - attack.defense_evasion\nlogsource:\n  category: process_creation\ndetection:\n  regsvcs_regasm:\n    CommandLine|contains:\n      - \"regsvcs.exe\"\n      - \"regasm.exe\"\n  condition: regsvcs_regasm\nfalsepositives:\n  - Legitimate .NET assembly registration by developers or installers\n",
+      "description": "Two-engine parity: Regsvcs/Regasm LOLBin proxy execution",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1218.009"
+      ],
+      "enabled": true
+    },
+    {
+      "name": "Regsvr32 Scriptlet Proxy Execution (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 7,
+      "content": "title: Regsvr32 Scriptlet Proxy Execution (DB)\nstatus: stable\nlevel: high\ntags:\n  - attack.t1218.010\n  - attack.defense_evasion\nlogsource:\n  category: process_creation\ndetection:\n  regsvr32:\n    CommandLine|contains|all:\n      - \"regsvr32\"\n    CommandLine|contains:\n      - \"scrobj.dll\"\n      - \"/i:http\"\n      - \"/i:ftp\"\n      - \".sct\"\n  condition: regsvr32\nfalsepositives:\n  - Rare legitimate COM registration of remote scriptlets\n",
+      "description": "Two-engine parity: regsvr32 squiblydoo/scriptlet proxy execution",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1218.010"
+      ],
+      "enabled": true
+    },
+    {
+      "name": "Remote Access Software Execution (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 6,
+      "content": "title: Remote Access Software Execution (DB)\ndescription: Detects execution of remote-access/RMM tools frequently abused for hands-on-keyboard access and ransomware staging (AnyDesk, TeamViewer, ScreenConnect, Atera, Splashtop, Ammyy, AnyViewer).\nstatus: stable\nlevel: medium\ntags:\n  - attack.t1219\n  - attack.command_and_control\nlogsource:\n  category: process_creation\ndetection:\n  rmm:\n    CommandLine|contains:\n      - \"anydesk\"\n      - \"teamviewer\"\n      - \"screenconnect\"\n      - \"ateragent\"\n      - \"splashtop\"\n      - \"ammyy\"\n      - \"anyviewer\"\n  condition: rmm\nfalsepositives:\n  - Organisations that legitimately use these tools for IT support\n",
+      "description": "Two-engine parity: remote access / RMM software execution",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1219"
+      ],
+      "enabled": true
+    },
+    {
+      "name": "Remote System Discovery (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 5,
+      "content": "title: Remote System Discovery (DB)\ndescription: Detects enumeration of remote hosts and domain controllers (nltest /dclist, net view /domain, dsquery computer, PowerView Get-*Computer, ADSI) to select lateral-movement targets.\nstatus: stable\nlevel: medium\ntags:\n  - attack.t1018\n  - attack.discovery\nlogsource:\n  category: process_creation\ndetection:\n  nltest_dc:\n    CommandLine|contains:\n      - \"/dclist\"\n      - \"/dsgetdc\"\n  net_view_domain:\n    CommandLine|contains|all:\n      - \"net view\"\n      - \"/domain\"\n  net_view_all:\n    CommandLine|contains: \"net view /all\"\n  dsquery_computer:\n    CommandLine|contains: \"dsquery computer\"\n  powerview_computer:\n    CommandLine|contains:\n      - \"Get-ADComputer\"\n      - \"Get-DomainComputer\"\n      - \"Get-NetComputer\"\n  adsi_computer:\n    CommandLine|contains|all:\n      - \"DirectoryServices\"\n    CommandLine|contains:\n      - \"objectClass=computer\"\n      - \"objectCategory=computer\"\n  adsi_computer2:\n    CommandLine|contains|all:\n      - \"adsisearcher\"\n    CommandLine|contains:\n      - \"objectClass=computer\"\n      - \"objectCategory=computer\"\n  condition: nltest_dc or net_view_domain or net_view_all or dsquery_computer or powerview_computer or adsi_computer or adsi_computer2\nfalsepositives:\n  - Administrators enumerating domain hosts or locating domain controllers\n",
+      "description": "Two-engine parity: remote system and DC discovery",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1018"
+      ],
+      "enabled": false
+    },
+    {
+      "name": "Removable Media Replication (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 5,
+      "content": "title: Removable Media Replication (DB)\ndescription: Detects staging of an autorun.inf payload used to spread across USB/removable-media-connected hosts.\nstatus: stable\nlevel: medium\ntags:\n  - attack.t1091\n  - attack.lateral_movement\nlogsource:\n  category: process_creation\ndetection:\n  autorun:\n    CommandLine|contains: \"autorun.inf\"\n  condition: autorun\nfalsepositives:\n  - Rare; autorun.inf authoring is uncommon on modern systems\n",
+      "description": "Two-engine parity: removable media replication (autorun.inf)",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1091"
+      ],
+      "enabled": true
+    },
+    {
+      "name": "Rogue Domain Controller DCShadow (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 9,
+      "content": "title: Rogue Domain Controller DCShadow (DB)\ndescription: Detects DCShadow — registering a rogue domain controller to push malicious directory replication (stealthy AD persistence/tampering).\nstatus: stable\nlevel: critical\ntags:\n  - attack.t1207\n  - attack.defense_evasion\nlogsource:\n  category: process_creation\ndetection:\n  selection:\n    CommandLine|contains:\n      - \"dcshadow\"\n      - \"!+ stealth\"\n      - \"/object:\"\n  condition: selection\nfalsepositives:\n  - Extremely rare; DCShadow has no legitimate use\n",
+      "description": "Two-engine parity: rogue domain controller (DCShadow)",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1207"
+      ],
+      "enabled": true
+    },
+    {
+      "name": "Root Certificate Installation (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 7,
+      "content": "title: Root Certificate Installation (DB)\ndescription: Detects certutil -addstore into the Root/AuthRoot trust store — enabling AiTM interception or trust of malicious code-signing certificates.\nstatus: stable\nlevel: high\ntags:\n  - attack.t1553.004\n  - attack.defense_evasion\nlogsource:\n  category: process_creation\ndetection:\n  certutil:\n    CommandLine|contains|all:\n      - \"certutil\"\n      - \"-addstore\"\n    CommandLine|contains:\n      - \"root\"\n      - \"authroot\"\n  condition: certutil\nfalsepositives:\n  - Enterprise PKI deployment of internal root/intermediate certificates\n",
+      "description": "Two-engine parity: root certificate installation via certutil -addstore",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1553.004"
+      ],
+      "enabled": true
+    },
+    {
+      "name": "Rundll32 Proxy Execution (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 6,
+      "content": "title: Rundll32 Proxy Execution (DB)\nstatus: stable\nlevel: medium\ntags:\n  - attack.t1218.011\n  - attack.defense_evasion\nlogsource:\n  category: process_creation\ndetection:\n  rundll32:\n    CommandLine|contains|all:\n      - \"rundll32\"\n    CommandLine|contains:\n      - \"javascript\"\n      - \"vbscript\"\n      - \"mshtml\"\n      - \"url.dll,OpenURL\"\n      - \"url.dll,FileProtocolHandler\"\n      - \"advpack.dll,LaunchINFSection\"\n      - \"pcwutl.dll,LaunchApplication\"\n      - \"zipfldr.dll,RouteTheCall\"\n      - \"shell32.dll,ShellExec_RunDLL\"\n  condition: rundll32\nfalsepositives:\n  - Rare legitimate rundll32 script or LOLBin export invocation\n",
+      "description": "Two-engine parity: rundll32 script/LOLBin-export proxy execution",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1218.011"
+      ],
+      "enabled": true
+    },
+    {
+      "name": "SAM Hive Dump (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 8,
+      "content": "title: SAM Hive Dump (DB)\nstatus: stable\nlevel: high\ntags:\n  - attack.t1003.002\n  - attack.credential_access\nlogsource:\n  category: process_creation\ndetection:\n  sam_save:\n    CommandLine|contains|all:\n      - \"save\"\n      - \"HKLM\"\n      - \"SAM\"\n  condition: sam_save\nfalsepositives:\n  - Rare legitimate backup of registry hives\n",
+      "description": "Two-engine parity: SAM registry hive dump for credential access",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1003.002"
+      ],
+      "enabled": true
+    },
+    {
+      "name": "SSH Lateral Movement with Inline Credentials (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 6,
+      "content": "title: SSH Lateral Movement with Inline Credentials (DB)\ndescription: Detects scripted SSH with the password supplied on the command line (plink -pw, sshpass -p) — a hallmark of credentialed lateral movement.\nstatus: stable\nlevel: medium\ntags:\n  - attack.t1021.004\n  - attack.lateral_movement\nlogsource:\n  category: process_creation\ndetection:\n  plink:\n    CommandLine|contains|all:\n      - \"plink\"\n      - \" -pw \"\n  sshpass:\n    CommandLine|contains|all:\n      - \"sshpass\"\n      - \" -p \"\n  condition: plink or sshpass\nfalsepositives:\n  - Legitimate automation that embeds SSH credentials (discouraged)\n",
+      "description": "Two-engine parity: SSH lateral movement with inline credentials (plink/sshpass)",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1021.004"
+      ],
+      "enabled": true
+    },
+    {
+      "name": "SUID and Capability Enumeration (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 5,
+      "content": "title: SUID and Capability Enumeration (DB)\ndescription: Detects enumeration of setuid/setgid binaries or file capabilities (find -perm -4000, getcap -r) — standard recon before Linux privilege escalation.\nstatus: stable\nlevel: medium\ntags:\n  - attack.t1548.001\n  - attack.privilege_escalation\nlogsource:\n  category: process_creation\ndetection:\n  find_suid:\n    CommandLine|contains:\n      - \"-perm -4000\"\n      - \"-perm -2000\"\n      - \"-perm -6000\"\n      - \"-perm -u=s\"\n      - \"-perm -g=s\"\n      - \"-perm /4000\"\n      - \"-perm /6000\"\n  getcap:\n    CommandLine|contains:\n      - \"getcap -r\"\n      - \"getcap -a\"\n  condition: find_suid or getcap\nfalsepositives:\n  - Security auditing / hardening scans\n",
+      "description": "Two-engine parity: SUID/capability enumeration (find -perm / getcap)",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1548.001"
+      ],
+      "enabled": true
+    },
+    {
+      "name": "Scheduled Task Creation (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 6,
+      "content": "title: Scheduled Task Creation (DB)\ndescription: Detects scheduled task creation via schtasks /create or PowerShell Register-ScheduledTask (persistence/execution).\nstatus: stable\nlevel: medium\ntags:\n  - attack.t1053.005\n  - attack.persistence\n  - attack.execution\nlogsource:\n  category: process_creation\ndetection:\n  schtasks:\n    CommandLine|contains|all:\n      - \"schtasks\"\n      - \"/create\"\n  ps_register:\n    CommandLine|contains: \"Register-ScheduledTask\"\n  condition: schtasks or ps_register\nfalsepositives:\n  - Legitimate administrative or software-installer scheduled tasks\n",
+      "description": "Two-engine parity: scheduled task creation (schtasks / Register-ScheduledTask)",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1053.005"
+      ],
+      "enabled": true
+    },
+    {
+      "name": "Screen Capture (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 7,
+      "content": "title: Screen Capture (DB)\ndescription: Detects screen capture via the .NET Graphics.CopyFromScreen API or nircmd savescreenshot LOLBin.\nstatus: stable\nlevel: high\ntags:\n  - attack.t1113\n  - attack.collection\nlogsource:\n  category: process_creation\ndetection:\n  api:\n    CommandLine|contains: \"CopyFromScreen\"\n  nircmd:\n    CommandLine|contains|all:\n      - \"nircmd\"\n      - \"savescreenshot\"\n  condition: api or nircmd\nfalsepositives:\n  - Legitimate screenshot/remote-support tooling\n",
+      "description": "Two-engine parity: screen capture (CopyFromScreen / nircmd)",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1113"
+      ],
+      "enabled": true
+    },
+    {
+      "name": "Security Software Discovery (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 4,
+      "content": "title: Security Software Discovery (DB)\ndescription: Detects enumeration of host EDR/AV/audit tooling by name — fingerprinting defenses before evasion.\nstatus: stable\nlevel: low\ntags:\n  - attack.t1518.001\n  - attack.discovery\nlogsource:\n  category: process_creation\ndetection:\n  selection:\n    CommandLine|contains:\n      - \"falcon-sensor\"\n      - \"crowdstrike\"\n      - \"sentinelone\"\n      - \"carbon-black\"\n      - \"cbagent\"\n      - \"osqueryd\"\n      - \"clamscan\"\n      - \"wazuh\"\n      - \"ossec\"\n  condition: selection\nfalsepositives:\n  - Monitoring agents performing self health-checks\n",
+      "description": "Two-engine parity: security software discovery",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1518.001"
+      ],
+      "enabled": true
+    },
+    {
+      "name": "Security or Backup Service Tampering (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 8,
+      "content": "title: Security or Backup Service Tampering (DB)\ndescription: Detects stopping/deleting/disabling of antivirus, EDR or backup services (common ransomware pre-encryption step).\nstatus: stable\nlevel: high\ntags:\n  - attack.t1489\n  - attack.impact\nlogsource:\n  category: process_creation\ndetection:\n  action:\n    CommandLine|contains:\n      - \"stop\"\n      - \"delete\"\n      - \"disabled\"\n      - \"config\"\n  target:\n    CommandLine|contains:\n      - \"defender\"\n      - \"windefend\"\n      - \" sense\"\n      - \"sophos\"\n      - \"crowdstrike\"\n      - \"csagent\"\n      - \"carbonblack\"\n      - \"mcafee\"\n      - \"symantec\"\n      - \"sentinel\"\n      - \"veeam\"\n      - \"backupexec\"\n      - \"sqlwriter\"\n  condition: action and target\nfalsepositives:\n  - Authorised maintenance of security/backup agents\n",
+      "description": "Two-engine parity: security/backup service tampering (AV/EDR/backup stop)",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1489"
+      ],
+      "enabled": true
+    },
+    {
+      "name": "Setuid Setgid Permission Modification (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 6,
+      "content": "title: Setuid Setgid Permission Modification (DB)\ndescription: Detects chmod setting the setuid/setgid bit (u+s, 4755, ...) — privilege escalation and persistence.\nstatus: experimental\nlevel: medium\ntags:\n  - attack.t1222.002\n  - attack.defense_evasion\n  - attack.privilege_escalation\nlogsource:\n  category: process_creation\ndetection:\n  selection:\n    CommandLine|contains|all:\n      - \"chmod\"\n    CommandLine|contains:\n      - \" u+s\"\n      - \" g+s\"\n      - \" +s\"\n      - \" 4755\"\n      - \" 4777\"\n      - \" 2755\"\n      - \" 6755\"\n  condition: selection\nfalsepositives:\n  - Package or build scripts setting setuid on legitimate binaries\n",
+      "description": "Two-engine parity: setuid/setgid permission modification via chmod",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1222.002"
+      ],
+      "enabled": true
+    },
+    {
+      "name": "Shell History Credential Search (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 5,
+      "content": "title: Shell History Credential Search (DB)\ndescription: Detects harvesting of credentials from shell and client history files — searching them for secret-bearing terms, or copying them off the host. Reading one's own history is ordinary recall and is deliberately NOT matched.\nstatus: stable\nlevel: medium\ntags:\n  - attack.t1552.003\n  - attack.credential_access\nlogsource:\n  category: process_creation\ndetection:\n  history_file:\n    CommandLine|contains:\n      - \".bash_history\"\n      - \".zsh_history\"\n      - \".sh_history\"\n      - \".mysql_history\"\n      - \".psql_history\"\n      - \".rediscli_history\"\n  credential_terms:\n    CommandLine|contains:\n      - \"pass\"\n      - \"token\"\n      - \"secret\"\n      - \"credential\"\n      - \"api_key\"\n      - \"apikey\"\n      - \"api-key\"\n      - \"access_key\"\n      - \"accesskey\"\n      - \"aws_\"\n      - \"private_key\"\n      - \"id_rsa\"\n      - \"bearer\"\n      - \"authorization\"\n  exfil_verbs:\n    CommandLine|contains:\n      - \"base64\"\n      - \"strings \"\n      - \"cp \"\n      - \"mv \"\n      - \"tar \"\n      - \"curl\"\n      - \"wget\"\n      - \"nc -\"\n  condition: history_file and (credential_terms or exfil_verbs)\nfalsepositives:\n  - An administrator auditing history files for leaked secrets as part of a cleanup\n",
+      "description": "Two-engine parity: shell history credential search",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1552.003"
+      ],
+      "enabled": false
+    },
+    {
+      "name": "Signed Script Proxy Execution (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 7,
+      "content": "title: Signed Script Proxy Execution (DB)\ndescription: Detects abuse of the signed PubPrn.vbs script or a \"script:\" scriptlet moniker to proxy remote code past application control.\nstatus: stable\nlevel: high\ntags:\n  - attack.t1216.001\n  - attack.defense_evasion\nlogsource:\n  category: process_creation\ndetection:\n  pubprn:\n    CommandLine|contains: \"pubprn.vbs\"\n  scriptlet:\n    CommandLine|contains:\n      - \"script:http\"\n      - \"script:https\"\n  condition: pubprn or scriptlet\nfalsepositives:\n  - Rare legitimate printer-provisioning automation using PubPrn\n",
+      "description": "Two-engine parity: signed script proxy execution (PubPrn / scriptlet moniker)",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1216.001"
+      ],
+      "enabled": true
+    },
+    {
+      "name": "Software Packing via UPX (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 5,
+      "content": "title: Software Packing via UPX (DB)\ndescription: Detects use of the UPX packer to compress/obfuscate an executable (upx -o output, upx --best, upx.exe), used to evade static/signature-based detection.\nstatus: stable\nlevel: medium\ntags:\n  - attack.t1027.002\n  - attack.defense_evasion\nlogsource:\n  category: process_creation\ndetection:\n  upx:\n    CommandLine|contains:\n      - \"upx \"\n      - \"upx.exe\"\n      - \"upx -d\"\n      - \"upx --best\"\n      - \"upx -o\"\n  condition: upx\nfalsepositives:\n  - Legitimate developers packing their own release binaries\n",
+      "description": "Two-engine parity: software packing via UPX",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1027.002"
+      ],
+      "enabled": true
+    },
+    {
+      "name": "Sudo Shell Escape GTFOBins (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 8,
+      "content": "title: Sudo Shell Escape GTFOBins (DB)\ndescription: Detects abuse of sudo-permitted binaries to spawn a privileged shell (GTFOBins) — editors, find -exec, interpreters, or preserve-privilege shells.\nstatus: stable\nlevel: high\ntags:\n  - attack.t1548.003\n  - attack.privilege_escalation\n  - attack.defense_evasion\nlogsource:\n  category: process_creation\ndetection:\n  selection:\n    CommandLine|contains:\n      - \"sudo vim -c\"\n      - \"sudo vi -c\"\n      - \"sudo nmap --interactive\"\n      - \"sudo find / -exec\"\n      - \"sudo find . -exec\"\n      - \"sudo awk 'BEGIN\"\n      - \"sudo python -c\"\n      - \"sudo perl -e\"\n      - \"/bin/sh -p\"\n      - \"/bin/bash -p\"\n      - \"sudo env \"\n      - \"sudo gdb\"\n      - \"sudo less \"\n      - \"sudo more \"\n      - \"sudo man \"\n      - \"sudo ftp\"\n      - \"sudo ed \"\n      - \"sudo vim.tiny\"\n      - \"--checkpoint-action=exec\"\n  condition: selection\nfalsepositives:\n  - Rare legitimate administrative one-liners\n",
+      "description": "Two-engine parity: sudo shell escape via GTFOBins",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1548.003"
+      ],
+      "enabled": true
+    },
+    {
+      "name": "System Location and Timezone Discovery (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 4,
+      "content": "title: System Location and Timezone Discovery (DB)\ndescription: Detects discovery of host timezone/locale (timedatectl, /etc/timezone, systemsetup -gettimezone, tzutil) to fingerprint victim geography.\nstatus: stable\nlevel: low\ntags:\n  - attack.t1614.001\n  - attack.discovery\nlogsource:\n  category: process_creation\ndetection:\n  selection:\n    CommandLine|contains:\n      - \"timedatectl\"\n      - \"/etc/timezone\"\n      - \"/etc/localtime\"\n      - \"systemsetup -gettimezone\"\n      - \"systemsetup -getnetworktimeserver\"\n      - \"tzutil\"\n  condition: selection\nfalsepositives:\n  - Time-synchronization / provisioning tooling\n",
+      "description": "Two-engine parity: system location and timezone discovery",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1614.001"
+      ],
+      "enabled": true
+    },
+    {
+      "name": "Tor Anonymity Client Execution (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 6,
+      "content": "title: Tor Anonymity Client Execution (DB)\ndescription: Detects execution of the Tor client or references to .onion services — anonymized C2/exfiltration.\nstatus: stable\nlevel: medium\ntags:\n  - attack.t1090.003\n  - attack.command_and_control\nlogsource:\n  category: process_creation\ndetection:\n  onion:\n    CommandLine|contains: \".onion\"\n  tor_binary:\n    CommandLine|contains:\n      - \"tor.exe\"\n      - \"tor-browser\"\n      - \"torbrowser\"\n  condition: onion or tor_binary\nfalsepositives:\n  - Privacy-conscious users intentionally running Tor\n",
+      "description": "Two-engine parity: Tor anonymity client / .onion",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1090.003"
+      ],
+      "enabled": true
+    },
+    {
+      "name": "VNC Remote Access Tool Execution (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 5,
+      "content": "title: VNC Remote Access Tool Execution (DB)\ndescription: Detects VNC clients/servers used for interactive remote control (vncviewer/tvnviewer/winvnc/tvnserver/vncserver).\nstatus: experimental\nlevel: medium\ntags:\n  - attack.t1021.005\n  - attack.lateral_movement\nlogsource:\n  category: process_creation\ndetection:\n  selection:\n    CommandLine|contains:\n      - \"vncviewer\"\n      - \"tvnviewer\"\n      - \"winvnc\"\n      - \"tvnserver\"\n      - \"vncserver\"\n  condition: selection\nfalsepositives:\n  - Sanctioned VNC-based remote administration\n",
+      "description": "Two-engine parity: VNC remote access tool execution",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1021.005"
+      ],
+      "enabled": true
+    },
+    {
+      "name": "Verclsid COM Proxy Execution (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 7,
+      "content": "title: Verclsid COM Proxy Execution (DB)\ndescription: Detects verclsid.exe /S /C validating (and thereby executing) a COM/shell object — signed LOLBin proxy execution.\nstatus: stable\nlevel: high\ntags:\n  - attack.t1218.012\n  - attack.defense_evasion\nlogsource:\n  category: process_creation\ndetection:\n  verclsid:\n    CommandLine|contains|all:\n      - \"verclsid\"\n      - \"/S\"\n      - \"/C\"\n  condition: verclsid\nfalsepositives:\n  - Rare legitimate shell extension validation\n",
+      "description": "Two-engine parity: verclsid COM object proxy execution (/S /C)",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1218.012"
+      ],
+      "enabled": true
+    },
+    {
+      "name": "WMI Event Subscription Persistence (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 8,
+      "content": "title: WMI Event Subscription Persistence (DB)\ndescription: Detects creation of a WMI permanent event subscription for persistence (__EventFilter, __EventConsumer, __FilterToConsumerBinding, ActiveScript/CommandLine event consumers, Register-WmiEvent/Register-CimIndicationEvent), which runs attacker code on a trigger and survives reboot.\nstatus: stable\nlevel: high\ntags:\n  - attack.t1546.003\n  - attack.persistence\n  - attack.privilege_escalation\nlogsource:\n  category: process_creation\ndetection:\n  wmi_sub:\n    CommandLine|contains:\n      - \"__EventConsumer\"\n      - \"__EventFilter\"\n      - \"__FilterToConsumerBinding\"\n      - \"ActiveScriptEventConsumer\"\n      - \"CommandLineEventConsumer\"\n      - \"Register-WmiEvent\"\n      - \"Register-CimIndicationEvent\"\n  condition: wmi_sub\nfalsepositives:\n  - Legitimate management software using WMI subscriptions (rare)\n",
+      "description": "Two-engine parity: WMI event subscription persistence",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1546.003"
+      ],
+      "enabled": true
+    },
+    {
+      "name": "WMI Event Subscription Registered (ETW)",
+      "type": "sigma",
+      "platform": [
+        "windows"
+      ],
+      "severity": 8,
+      "content": "\ntitle: WMI Event Subscription Registered (ETW)\ndescription: Detects registration of a WMI event subscription whose consumer executes code (CommandLineEventConsumer / ActiveScriptEventConsumer). Fileless persistence that survives reboot and leaves no parent process linking back to WMI (T1546.003). Keyed on the executing consumer types, because subscriptions themselves are routine for management tooling.\nstatus: stable\nlevel: high\ntags:\n  - attack.t1546.003\n  - attack.persistence\n  - attack.privilege_escalation\nlogsource:\n  category: wmi_event\n  product: windows\ndetection:\n  selection:\n    event_type: WmiBindingEvent\n  executing_consumer:\n    consumer|contains:\n      - \"CommandLineEventConsumer\"\n      - \"ActiveScriptEventConsumer\"\n  condition: selection and executing_consumer\nfalsepositives:\n  - Management suites that legitimately register command-line consumers\n",
+      "description": "WMI event-subscription persistence observed from the WMI subsystem (ETW 5861), complementing the wmic command-line rule in 329",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1546.003"
+      ],
+      "enabled": true
+    },
+    {
+      "name": "WMIC Process Call Create (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 7,
+      "content": "title: WMIC Process Call Create (DB)\ndescription: Detects wmic spawning processes via \"process call create\" — execution and lateral movement.\nstatus: stable\nlevel: high\ntags:\n  - attack.t1047\n  - attack.execution\nlogsource:\n  category: process_creation\ndetection:\n  selection:\n    CommandLine|contains|all:\n      - \"wmic\"\n      - \"process\"\n      - \"call\"\n      - \"create\"\n  condition: selection\nfalsepositives:\n  - Legitimate administrative WMI scripting\n",
+      "description": "Two-engine parity: WMIC process call create (execution/lateral movement)",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1047"
+      ],
+      "enabled": true
+    },
+    {
+      "name": "WinRM Lateral Movement (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 6,
+      "content": "title: WinRM Lateral Movement (DB)\ndescription: Detects remote command execution over WinRM — winrs, PowerShell remoting (Enter-PSSession/New-PSSession), or evil-winrm.\nstatus: stable\nlevel: medium\ntags:\n  - attack.t1021.006\n  - attack.lateral_movement\nlogsource:\n  category: process_creation\ndetection:\n  winrs:\n    CommandLine|contains: \"winrs\"\n  pssession:\n    CommandLine|contains:\n      - \"Enter-PSSession\"\n      - \"New-PSSession\"\n  evil_winrm:\n    CommandLine|contains: \"evil-winrm\"\n  condition: winrs or pssession or evil_winrm\nfalsepositives:\n  - Administrators using PowerShell remoting / winrs for management\n",
+      "description": "Two-engine parity: WinRM lateral movement (winrs / PS remoting / evil-winrm)",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1021.006"
+      ],
+      "enabled": false
+    },
+    {
+      "name": "Windows Credential Manager Access (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 6,
+      "content": "title: Windows Credential Manager Access (DB)\ndescription: Detects enumeration/harvesting of stored credentials via cmdkey /list or vaultcmd /list, used to pull cached credentials from the Windows Credential Manager / vault.\nstatus: stable\nlevel: medium\ntags:\n  - attack.t1555.004\n  - attack.credential_access\nlogsource:\n  category: process_creation\ndetection:\n  cmdkey:\n    CommandLine|contains|all:\n      - \"cmdkey\"\n      - \"/list\"\n  vaultcmd:\n    CommandLine|contains|all:\n      - \"vaultcmd\"\n    CommandLine|contains:\n      - \"/list\"\n      - \"/listcreds\"\n  condition: cmdkey or vaultcmd\nfalsepositives:\n  - Administrators auditing stored credentials\n",
+      "description": "Two-engine parity: Windows Credential Manager harvesting",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1555.004"
+      ],
+      "enabled": true
+    },
+    {
+      "name": "Windows Defender Tampering (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 9,
+      "content": "title: Windows Defender Tampering (DB)\nstatus: stable\nlevel: critical\ntags:\n  - attack.t1562.001\n  - attack.defense_evasion\nlogsource:\n  category: process_creation\ndetection:\n  setmp:\n    CommandLine|contains: \"Set-MpPreference\"\n  addmp:\n    CommandLine|contains: \"Add-MpPreference\"\n  mp_evasion:\n    CommandLine|contains:\n      - \"-Disable\"\n      - \"-ExclusionPath\"\n      - \"-ExclusionProcess\"\n      - \"-ExclusionExtension\"\n      - \"-MAPSReporting Disabled\"\n      - \"-SubmitSamplesConsent NeverSend\"\n  svc_name:\n    CommandLine|contains:\n      - \"windefend\"\n      - \"wdnissvc\"\n      - \" sense\"\n      - \"wdboot\"\n      - \"wscsvc\"\n  svc_verb:\n    CommandLine|contains:\n      - \"net stop\"\n      - \"sc stop\"\n      - \"sc.exe stop\"\n      - \"Stop-Service\"\n      - \"sc config\"\n      - \"sc.exe config\"\n  mpcmdrun:\n    CommandLine|contains: \"MpCmdRun\"\n  removedef:\n    CommandLine|contains: \"RemoveDefinitions\"\n  condition: ((setmp or addmp) and mp_evasion) or (svc_name and svc_verb) or (mpcmdrun and removedef)\nfalsepositives:\n  - Authorised AV administration / security testing\n",
+      "description": "Two-engine parity: Windows Defender tampering (exclusion/service/MpCmdRun)",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1562.001"
+      ],
+      "enabled": true
+    },
+    {
+      "name": "Windows Event Logging Disabled (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 8,
+      "content": "title: Windows Event Logging Disabled (DB)\ndescription: Detects disabling Windows auditing/event logging — auditpol disabling categories, wevtutil sl /e:false, or stopping the EventLog service.\nstatus: stable\nlevel: high\ntags:\n  - attack.t1562.002\n  - attack.defense_evasion\nlogsource:\n  category: process_creation\ndetection:\n  auditpol:\n    CommandLine|contains|all:\n      - \"auditpol\"\n    CommandLine|contains:\n      - \"/success:disable\"\n      - \"/failure:disable\"\n  wevtutil:\n    CommandLine|contains|all:\n      - \"wevtutil\"\n      - \"sl\"\n      - \"/e:false\"\n  service:\n    CommandLine|contains:\n      - \"stop-service eventlog\"\n      - \"sc stop eventlog\"\n      - \"stop-service -name eventlog\"\n  condition: auditpol or wevtutil or service\nfalsepositives:\n  - Authorised audit-policy maintenance\n",
+      "description": "Two-engine parity: Windows event logging disabled (auditpol / wevtutil / EventLog stop)",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1562.002"
+      ],
+      "enabled": true
+    },
+    {
+      "name": "Windows Firewall Disabled (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 8,
+      "content": "title: Windows Firewall Disabled (DB)\nstatus: stable\nlevel: high\ntags:\n  - attack.t1562.004\n  - attack.defense_evasion\nlogsource:\n  category: process_creation\ndetection:\n  netsh_off:\n    CommandLine|contains|all:\n      - \"advfirewall\"\n      - \"allprofiles\"\n      - \"state off\"\n  condition: netsh_off\nfalsepositives:\n  - Authorised network configuration changes\n",
+      "description": "Two-engine parity: Windows firewall disabled via netsh advfirewall",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1562.004"
+      ],
+      "enabled": true
+    },
+    {
+      "name": "Windows Service Creation (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 7,
+      "content": "title: Windows Service Creation (DB)\ndescription: Detects new Windows service creation via sc create binPath= or PowerShell New-Service (persistence/privilege escalation).\nstatus: stable\nlevel: high\ntags:\n  - attack.t1543.003\n  - attack.persistence\n  - attack.privilege_escalation\nlogsource:\n  category: process_creation\ndetection:\n  sc:\n    CommandLine|contains|all:\n      - \"create\"\n      - \"binpath\"\n  ps_newservice:\n    CommandLine|contains: \"New-Service\"\n  condition: sc or ps_newservice\nfalsepositives:\n  - Legitimate software installation\n",
+      "description": "Two-engine parity: Windows service creation (sc binPath / New-Service)",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1543.003"
+      ],
+      "enabled": true
+    },
+    {
+      "name": "XSL Script Processing Proxy Execution (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 6,
+      "content": "title: XSL Script Processing Proxy Execution (DB)\ndescription: Detects code execution through XSL stylesheets via msxsl.exe or wmic with a /format:*.xsl payload, bypassing application control by running script inside a signed processor.\nstatus: stable\nlevel: medium\ntags:\n  - attack.t1220\n  - attack.defense_evasion\nlogsource:\n  category: process_creation\ndetection:\n  msxsl:\n    CommandLine|contains: \"msxsl\"\n  wmic_xsl:\n    CommandLine|contains|all:\n      - \"wmic\"\n      - \".xsl\"\n  condition: msxsl or wmic_xsl\nfalsepositives:\n  - Rare legitimate XSLT transformation tooling\n",
+      "description": "Two-engine parity: XSL script processing proxy execution",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1220"
+      ],
+      "enabled": true
+    },
+    {
+      "name": "macOS Emond Rule Persistence (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 8,
+      "content": "title: macOS Emond Rule Persistence (DB)\ndescription: Detects creation of an Event Monitor (emond) rule plist — an under-watched macOS persistence mechanism.\nstatus: stable\nlevel: high\ntags:\n  - attack.t1546.014\n  - attack.persistence\nlogsource:\n  category: process_creation\ndetection:\n  selection:\n    CommandLine|contains:\n      - \"/etc/emond.d/rules\"\n      - \"/private/var/db/emondClients\"\n      - \"emond.d/rules\"\n  condition: selection\nfalsepositives:\n  - Essentially none; emond is deprecated and rarely used legitimately\n",
+      "description": "Two-engine parity: macOS emond rule persistence",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1546.014"
+      ],
+      "enabled": true
+    },
+    {
+      "name": "macOS Gatekeeper Bypass (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 7,
+      "content": "title: macOS Gatekeeper Bypass (DB)\ndescription: Detects disabling Gatekeeper (spctl --master-disable) or stripping com.apple.quarantine (xattr) to run unsigned/downloaded code.\nstatus: stable\nlevel: high\ntags:\n  - attack.t1553.001\n  - attack.defense_evasion\nlogsource:\n  category: process_creation\ndetection:\n  spctl:\n    CommandLine|contains|all:\n      - \"spctl\"\n    CommandLine|contains:\n      - \"--master-disable\"\n      - \"--global-disable\"\n  xattr:\n    CommandLine|contains|all:\n      - \"xattr\"\n      - \"com.apple.quarantine\"\n  condition: spctl or xattr\nfalsepositives:\n  - Developers clearing quarantine on their own builds\n",
+      "description": "Two-engine parity: macOS Gatekeeper bypass",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1553.001"
+      ],
+      "enabled": true
+    },
+    {
+      "name": "macOS Keychain Credential Access (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 8,
+      "content": "title: macOS Keychain Credential Access (DB)\ndescription: Detects dumping/extracting credentials from the macOS keychain via the security tool.\nstatus: stable\nlevel: high\ntags:\n  - attack.t1555.001\n  - attack.credential_access\nlogsource:\n  category: process_creation\ndetection:\n  selection:\n    CommandLine|contains|all:\n      - \"security\"\n    CommandLine|contains:\n      - \"dump-keychain\"\n      - \"find-generic-password\"\n      - \"find-internet-password\"\n  condition: selection\nfalsepositives:\n  - Administrative credential retrieval\n",
+      "description": "Two-engine parity: macOS keychain credential access via security tool",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1555.001"
+      ],
+      "enabled": true
+    },
+    {
+      "name": "macOS Launch Agent Daemon Persistence (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 8,
+      "content": "title: macOS Launch Agent Daemon Persistence (DB)\ndescription: Detects launchd persistence — launchctl loading/bootstrapping a service or writing a plist into LaunchAgents/LaunchDaemons.\nstatus: stable\nlevel: high\ntags:\n  - attack.t1543.001\n  - attack.t1547.011\n  - attack.persistence\nlogsource:\n  category: process_creation\ndetection:\n  launchctl:\n    CommandLine|contains|all:\n      - \"launchctl\"\n    CommandLine|contains:\n      - \"LaunchDaemons\"\n      - \"LaunchAgents\"\n      - \"bootstrap\"\n      - \"load -w\"\n  pw_tool:\n    CommandLine|contains:\n      - \"tee\"\n      - \"cp\"\n      - \"mv\"\n  pw_path:\n    CommandLine|contains:\n      - \"/Library/LaunchDaemons/\"\n      - \"/Library/LaunchAgents/\"\n  condition: launchctl or (pw_tool and pw_path)\nfalsepositives:\n  - Installers registering legitimate launch services\n",
+      "description": "Two-engine parity: macOS launch agent/daemon persistence",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1543.001",
+        "T1547.011"
+      ],
+      "enabled": true
+    },
+    {
+      "name": "macOS Login Item Persistence (DB)",
+      "type": "sigma",
+      "platform": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "severity": 5,
+      "content": "title: macOS Login Item Persistence (DB)\ndescription: Detects creation of a Login Item via AppleScript (System Events make login item) — user-scope persistence.\nstatus: stable\nlevel: medium\ntags:\n  - attack.t1547.015\n  - attack.persistence\nlogsource:\n  category: process_creation\ndetection:\n  selection:\n    CommandLine|contains|all:\n      - \"osascript\"\n    CommandLine|contains:\n      - \"login item\"\n      - \"make login item\"\n      - \"make new login item\"\n  condition: selection\nfalsepositives:\n  - Apps legitimately registering a login item\n",
+      "description": "Two-engine parity: macOS login item persistence",
+      "source": "builtin-parity",
+      "mitre_tags": [
+        "T1547.015"
+      ],
+      "enabled": true
+    }
+  ]
+}

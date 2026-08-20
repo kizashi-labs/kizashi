@@ -426,12 +426,12 @@ const endpointGroups: EndpointGroup[] = [
       {
         method: 'POST',
         path: '/api/v1/suppressions',
-        description: '抑制ルールを登録し、条件に合致するアラートを今後抑制します。アラート単位ではなく条件（conditions）で定義するリソースです。抑制候補の提示は GET /api/v1/suppressions/candidates、一覧は GET /api/v1/suppressions、有効/無効の切替は PUT /api/v1/suppressions/:id/toggle です。',
+        description: '抑制ルールを登録し、条件に合致するアラートを今後抑制します。アラート単位ではなく条件（conditions）で定義するリソースです。抑制候補の提示は GET /api/v1/suppressions/candidates、一覧は GET /api/v1/suppressions、有効/無効の切替は PUT /api/v1/suppressions/:id/toggle、内容の更新は PUT /api/v1/suppressions/:id です。更新では conditions が丸ごと置き換わるので、編集後の条件をすべて送ってください。条件がひとつも無いルールは全アラートに当たるため検知エンジンが適用しません。',
         parameters: [],
         requestBody: JSON.stringify({
           name: 'テスト環境の既知アクティビティ',
           description: 'ステージング環境の定常スキャンを抑制',
-          conditions: { rule_name: 'Suspicious PowerShell', hostname: 'STG-*' },
+          conditions: { rule_name: 'Suspicious PowerShell', hostname: 'stg-' },
           duration_h: 720,
           is_active: true
         }, null, 2),

@@ -69,8 +69,8 @@ documents, so you can see what exists even if you cannot read it.
 Three independent evaluation paths run against the same event stream:
 
 1. **Built-in Sigma rules** (Go, compiled into the API service) — MITRE ATT&CK mapped
-2. **Database Sigma rules** (`rules` table, seeded by migrations) — editable at runtime,
-   reloaded automatically or on demand
+2. **Database Sigma rules** (`rules` table, loaded from `rulepacks/`) — editable at
+   runtime, reloaded automatically or on demand
 3. **Stateful detectors** — port scanning, DNS tunnelling and beaconing, credential
    access, lateral movement, ransomware file-burst correlation, kill-chain
    correlation. These are fed flattened events directly and are neither Sigma nor
@@ -82,6 +82,23 @@ an Isolation Forest anomaly model, and process ancestry analysis.
 Duplicate alerts across paths are merged by MITRE technique. See
 [`docs/検知ルールの二重管理とデプロイ.md`](docs/検知ルールの二重管理とデプロイ.md) for how the two engines differ —
 this matters when a rule you edited does not fire.
+
+### What ships in `rulepacks/`
+
+This edition includes **`baseline.json` (135 rules)** — the same detections that are
+compiled into the API binary, in the form the detection engine reads. Both matter:
+the API service evaluates the compiled copies, while `server-detect` only ever reads
+the `rules` table, so without the pack that engine would evaluate nothing at all.
+
+Packs are loaded at startup from `EDR_RULEPACK_DIR` and upserted into the `rules`
+table, where they behave like any other rule: editable, disableable, reloadable. You
+can add your own — the format is documented in
+[`server/internal/rulepack`](server/internal/rulepack).
+
+**Not included:** the curated and custom rule packs, and the automatic SigmaHQ
+synchronisation that keeps them current. Detection content ages; keeping it fresh is
+part of the commercial edition. Nothing stops you writing your own rules or importing
+SigmaHQ yourself — the engine is complete and the format is standard Sigma.
 
 ## Response
 
@@ -437,6 +454,11 @@ Windows のカーネルドライバと Linux の eBPF LSM フックが含まれ�
 企業向け SSO（SAML/OIDC/LDAP）、MDM・モバイル脅威検知、AI 支援トリアージ／調査、
 SigmaHQ ルールの自動同期、アップデート配信、課金・ライセンス管理、商用サポート。
 これらは商用版で提供します。
+
+**検知コンテンツ**も同様です。同梱しているのは `rulepacks/baseline.json`（135件、
+バイナリに埋め込まれている検知と同じ内容）で、キュレーション済みルールパックと
+その自動同期は商用版に含まれます。**エンジンは完全なので、独自ルールの作成も
+SigmaHQ の取り込みも自分でできます** —— 形式は標準の Sigma です。
 
 コンプライアンス自動評価・スコアカード、CSPM・クラウドランタイム、XDR、SIEM 連携、
 デセプションは**この公開版に含まれています**。
