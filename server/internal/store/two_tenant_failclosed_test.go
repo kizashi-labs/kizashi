@@ -68,6 +68,7 @@ var alreadyFailClosed = map[string]bool{
 	"agents":    true, // migration 451
 	"alerts":    true, // migration 453
 	"incidents": true, // migration 454
+	"users":     true, // migration 455
 }
 
 // restorePolicy は「その表の、migration が定めるいまの形」。**戻し先です。**

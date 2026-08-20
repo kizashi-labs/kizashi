@@ -5180,9 +5180,27 @@ func authMiddleware(jwtSecret string, blocklist *auth.TokenBlocklist, userCache 
 			return
 		}
 
+		// **認証はテナントが決まる前に走ります。** 鶏と卵で、誰なのかを
+		// `users` に聞くまでテナントは分かりません。
+		//
+		// ここは 2 か所とも `users` に届きます:
+		//
+		//	FindByKey        `LEFT JOIN users` で鍵の持ち主のテナントを引く
+		//	userCache.IsActive  `SELECT is_active FROM users WHERE id = $1`
+		//
+		// **`users` の抜け道を落とすと、この 2 本がテナント無しで 0 行に
+		// なります。** そして `IsActive` は行が無いことを「削除された利用者」
+		// と読むので（`pgx.ErrNoRows` → false）、**認証済みの要求が全部
+		// 「アカウントが無効化されています」で弾かれ、ログには実在しない
+		// 削除ユーザーを探させる誤診が残ります。**
+		//
+		// **`authCtx` は要求の ctx に戻しません。** 戻すと、この先の
+		// ハンドラ全部が全テナントで走ります。ここで使うのは認証の 2 本だけ。
+		authCtx := store.WithSystemAccess(c.Request.Context())
+
 		// API key auth: tokens starting with "edr_" are API keys, not JWTs.
 		if len(tokenStr) > 4 && tokenStr[:4] == "edr_" && apiKeyStore != nil {
-			apiKey, err := apiKeyStore.FindByKey(c.Request.Context(), tokenStr)
+			apiKey, err := apiKeyStore.FindByKey(authCtx, tokenStr)
 			if err != nil {
 				c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "無効なAPIキーです"})
 				return
@@ -5228,7 +5246,7 @@ func authMiddleware(jwtSecret string, blocklist *auth.TokenBlocklist, userCache 
 
 		// Check user active status (account deactivation takes effect within ~5 min)
 		if userCache != nil && claims.UserID != "admin" {
-			if !userCache.IsActive(c.Request.Context(), claims.UserID) {
+			if !userCache.IsActive(authCtx, claims.UserID) {
 				c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "アカウントが無効化されています"})
 				return
 			}

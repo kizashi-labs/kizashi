@@ -1,0 +1,63 @@
+-- users の RLS から「テナント未設定なら全テナント可」を外す
+--
+-- **4 表の最後です**（agents / 451、alerts / 453、incidents / 454）。
+-- これで `app.tenant_id` が空の接続は、4 表のどれも読めません。
+--
+-- ## この表だけ形が違いました
+--
+-- 他の 3 表は、テナントが決まったあとで読み書きします。users は違います
+-- —— **誰なのかを users に聞くまで、テナントは決まりません。** 鶏と卵です。
+--
+-- テナントが決まる前に users に届く経路は 2 種類ありました:
+--
+--   公開の 5 グループ   login / invite / password-reset / email-MFA /
+--                       email-verification。**PR #79 で `sysAccess` を
+--                       張り終えています。**
+--   authMiddleware      すべての認証済み要求の内側で 2 回。ここが残って
+--                       いました。
+--
+-- 後者を落とすと、壊れ方が 2 本とも違う向きに悪くなります:
+--
+--   UserCache.IsActive  行が無い → 「削除された利用者」と読む
+--                       → **認証済みの要求が全部 401 になります。**
+--                       ログには実在しない削除ユーザーを探させる誤診が
+--                       残ります。
+--   FindByKey           `LEFT JOIN users` の側だけが落ちる。`api_keys`
+--                       に RLS は無いので**鍵は引けたまま、テナントだけが
+--                       静かに消えます** → すでに fail-closed な 3 表が
+--                       0 行。要求は 200 を返し、中身だけが空になります。
+--
+-- どちらも `authMiddleware` の中で `store.WithSystemAccess` を張って
+-- 塞ぎました。**名乗った ctx は要求には戻していません** —— 戻すと、
+-- この先のハンドラ全部が全テナントで走ります。
+--
+-- ## 確かめたこと
+--
+-- `internal/store/users_failclosed_auth_test.go` が、厳格版に差し替えた
+-- 実 DB で 4 通り測ります。名乗った接続では利用者も鍵のテナントも引けること、
+-- **素の接続では上の 2 つの壊れ方が実際に起きること**の両方です。
+-- 片側だけだと、名乗りが外れても緑のままになります。
+--
+-- 配線が外れていないことは
+-- `internal/api/system_access_ledger_test.go` の
+-- `TestAuthMiddlewareClaimsOnlyForTheTwoUserLookups` が留めます。
+--
+-- ## 戻し方
+--
+--   DROP POLICY IF EXISTS users_tenant_isolation ON users;
+--   CREATE POLICY users_tenant_isolation ON users
+--       USING (tenant_id::text = current_setting('app.tenant_id', TRUE)
+--              OR current_setting('app.tenant_id', TRUE) = 'system'
+--              OR current_setting('app.tenant_id', TRUE) IS NULL
+--              OR current_setting('app.tenant_id', TRUE) = '');
+--
+-- **戻したら permissiveWhenUnset に users を書き戻し、
+-- two_tenant_failclosed_test.go の alreadyFailClosed からも外してください。**
+-- 4 表とも落ちたので permissiveWhenUnset は空になっています。
+--
+-- WITH CHECK は書きません（USING がそのまま WITH CHECK になります）。
+
+DROP POLICY IF EXISTS users_tenant_isolation ON users;
+CREATE POLICY users_tenant_isolation ON users
+    USING (tenant_id::text = current_setting('app.tenant_id', TRUE)
+           OR current_setting('app.tenant_id', TRUE) = 'system');
