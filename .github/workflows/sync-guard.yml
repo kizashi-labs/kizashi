@@ -21,33 +21,26 @@ name: Sync Guard
 # `pull_request` や `push` で走らせると、PR が定義を消した時点で一緒に
 # 消える —— #70 で起きたのがそれで、同じ形にすると同じ穴が空く。
 #
-# ## PR のコードは1行も実行しない
+# ## PR の木は checkout しない。ディスクにも置かない
 #
-# `pull_request_target` は base の権限で走るので、PR のコードを実行すると
-# そのまま乗っ取られる。ここは head/ を**読むだけ**で、
+# `pull_request_target` は base の権限で走るので、PR のコードを1行でも
+# 実行するとそのまま乗っ取られる。よくある助言は「head を checkout して
+# よいが、ビルドやインストールを走らせないよう監査すること」。
+# **監査は約束で、約束は腐る。** 半年後に誰かが `npm ci` を足したときに
+# 気づく仕組みが無ければ、その監査は「昔は安全でした」の記録になる。
 #
-#   - 走らせるのは base 側の scripts/sync_guard.py
-#   - head/ の中身は yaml.safe_load と文字列検索でしか触らない
-#   - head/ の checkout は persist-credentials: false
-#   - setup / install も base の木に対してだけ行う
+# なので約束にしない。**形のほうを変えてある。**
 #
-# **head/ の中の run: や uses: を実行する step を、ここに足さないこと。**
+#   - head は checkout しない。書庫（tarball）のまま取る
+#   - **展開もしない。PR のファイルは1つもディスクに落ちない**
+#   - sync_guard.py が `tarfile` で読むだけ。実行される経路が存在しない
+#   - 木として無いので、あとから足した action が（`setup-node` の cache の
+#     ように）勝手に見つけて触ることもない
 #
-# ## 抑止コメントについて
-#
-# Semgrep の `pull-request-target-code-checkout` は、この形（head を
-# checkout する pull_request_target）を必ず指摘する。指摘の本文は
-# 「実行していないことを監査してください」で、監査そのものは正しい。
-#
-# **ただし監査は約束で、約束は腐る。** 半年後に誰かが `npm ci` を足した
-# ときに気づく仕組みが無ければ、下の nosemgrep は「昔は安全でした」の
-# 記録になる。だから約束を検査にした ——
-# `scripts/sync_guard.py` の `GUARD_ALLOWED_RUNS` が、この file の
-# `run:` を**そのままの文字列で**留めている。1文字でも変わると落ちる。
-# permissions が広がっても、checkout から persist-credentials: false が
-# 消えても、working-directory が head/ を指しても落ちる。
-#
-# **抑止するのは指摘であって、確認ではない。**
+# 残る約束は検査になっている。`scripts/sync_guard.py` の
+# `GUARD_ALLOWED_RUNS` が、この file の `run:` を**語そのままで**留める。
+# permissions が広がっても、checkout が PR の ref を指しても、
+# working-directory が付いても落ちる。
 
 on:
   pull_request_target:
@@ -68,18 +61,6 @@ jobs:
         with:
           persist-credentials: false
 
-      # PR head。**読むだけ。実行しない。**
-      # 実行していないことは scripts/sync_guard.py の GUARD_ALLOWED_RUNS が
-      # 留めている（この file の run: を文字列そのままで固定している）。
-      # nosemgrep: yaml.github-actions.security.pull-request-target-code-checkout.pull-request-target-code-checkout
-      - name: Check out the PR head into head/ (read only)
-        # nosemgrep: yaml.github-actions.security.pull-request-target-code-checkout.pull-request-target-code-checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-        with:
-          ref: ${{ github.event.pull_request.head.sha }}
-          path: head
-          persist-credentials: false # nosemgrep: yaml.github-actions.security.pull-request-target-code-checkout.pull-request-target-code-checkout
-
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
         with:
           python-version: '3.12'
@@ -94,5 +75,18 @@ jobs:
       - name: The guard still fails on a tree that dropped something
         run: python3 scripts/sync_guard_test.py
 
+      # PR head を書庫のまま取る。**展開しない。**
+      # 宛先は base 側が決めた固定名で、PR 側の値が入るのは URL の SHA だけ。
+      - name: Fetch the PR head as an archive (never extracted)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          curl --fail --silent --show-error --location \
+            --header "Authorization: Bearer $GH_TOKEN" \
+            --header "Accept: application/vnd.github+json" \
+            "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/tarball/$HEAD_SHA" \
+            --output head.tar.gz
+
       - name: The PR head still carries everything
-        run: python3 scripts/sync_guard.py head
+        run: python3 scripts/sync_guard.py head.tar.gz

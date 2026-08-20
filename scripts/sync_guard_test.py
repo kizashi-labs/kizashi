@@ -16,6 +16,7 @@ from __future__ import annotations
 import os
 import shutil
 import sys
+import tarfile
 import tempfile
 import unittest
 
@@ -95,19 +96,20 @@ jobs:
       - uses: actions/checkout@aaa
         with:
           persist-credentials: false
-      - name: head
-        uses: actions/checkout@aaa
-        with:
-          ref: sha
-          path: head
-          persist-credentials: false
       - name: Install PyYAML
         timeout-minutes: 10
         run: pip install pyyaml
       - name: self
         run: python3 scripts/sync_guard_test.py
+      - name: fetch
+        run: |
+          curl --fail --silent --show-error --location \\
+            --header "Authorization: Bearer $GH_TOKEN" \\
+            --header "Accept: application/vnd.github+json" \\
+            "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/tarball/$HEAD_SHA" \\
+            --output head.tar.gz
       - name: check
-        run: python3 scripts/sync_guard.py head
+        run: python3 scripts/sync_guard.py head.tar.gz
 """
 
 
@@ -139,15 +141,16 @@ class GuardCase(unittest.TestCase):
         build_clean(self.root)
 
     def problems(self) -> list[str]:
+        tree = G.DirTree(self.root)
         out: list[str] = []
         for fn in (G.job_timeouts, G.step_timeouts, G.ebpf_mkdir,
                    G.guard_is_inert):
-            out += fn(self.root)
-        out += G.markers(self.root, G.WORKFLOW_LINT, G.WORKFLOW_LINT_MARKERS, '')
-        out += G.markers(self.root, G.VERIFY, G.VERIFY_MARKERS, '')
-        out += G.files_exist(self.root, G.RATCHETS, '')
-        out += G.files_exist(self.root, G.RECALIBRATORS, '')
-        out += G.files_exist(self.root, G.SELF, '')
+            out += fn(tree)
+        out += G.markers(tree, G.WORKFLOW_LINT, G.WORKFLOW_LINT_MARKERS, '')
+        out += G.markers(tree, G.VERIFY, G.VERIFY_MARKERS, '')
+        out += G.files_exist(tree, G.RATCHETS, '')
+        out += G.files_exist(tree, G.RECALIBRATORS, '')
+        out += G.files_exist(tree, G.SELF, '')
         return out
 
     def assertFires(self, needle: str) -> None:
@@ -194,7 +197,7 @@ class TestStepTimeouts(GuardCase):
     def test_more_than_the_floor_is_fine(self):
         """**足す向きは止めません。** 上限を増やすのは劣化ではありません。"""
         write(self.root, '.github/workflows/ci.yml', workflow('ci', 30, 12))
-        self.assertEqual(G.step_timeouts(self.root), [])
+        self.assertEqual(G.step_timeouts(G.DirTree(self.root)), [])
 
 
 class TestTheCheckItself(GuardCase):
@@ -271,7 +274,7 @@ class TestTheEbpfMkdir(GuardCase):
         触れているので、注釈行を飛ばさないと「reset のほうが先にある」と
         読めます。作っている途中で実際にここで落ちました。
         """
-        self.assertEqual(G.ebpf_mkdir(self.root), [])
+        self.assertEqual(G.ebpf_mkdir(G.DirTree(self.root)), [])
         with open(os.path.join(self.root, '.github/workflows/agent-ebpf.yml'),
                   encoding='utf-8') as fh:
             before_the_loop = fh.read().split('for i in')[0]
@@ -297,7 +300,7 @@ class TestTheGuardDoesNotRunPrCode(GuardCase):
         write(self.root, G.GUARD_WORKFLOW, text)
 
     def test_the_written_workflow_is_inert(self):
-        self.assertEqual(G.guard_is_inert(self.root), [])
+        self.assertEqual(G.guard_is_inert(G.DirTree(self.root)), [])
 
     def test_an_extra_run_fires(self):
         """**ここが要です。** 足された命令は、必ず一度読まれること。"""
@@ -305,9 +308,37 @@ class TestTheGuardDoesNotRunPrCode(GuardCase):
         self.assertFires('許していない run:')
 
     def test_a_changed_run_fires(self):
-        self._guard(GUARD_YML.replace('python3 scripts/sync_guard.py head',
+        self._guard(GUARD_YML.replace('python3 scripts/sync_guard.py head.tar.gz',
                                       'bash head/scripts/run.sh'))
         self.assertFires('許していない run:')
+
+    def test_extracting_the_archive_fires(self):
+        """**展開した時点で、PR のファイルがディスクに落ちます。**"""
+        self._guard(GUARD_YML.replace(
+            '      - name: check\n',
+            '      - name: extract\n        run: tar -xzf head.tar.gz\n'
+            '      - name: check\n'))
+        self.assertFires('許していない run:')
+
+    def test_checking_out_the_pr_head_fires(self):
+        """Semgrep の pull-request-target-code-checkout が指す形そのもの。"""
+        self._guard(GUARD_YML.replace(
+            '      - uses: actions/checkout@aaa\n        with:\n'
+            '          persist-credentials: false\n',
+            '      - uses: actions/checkout@aaa\n        with:\n'
+            '          persist-credentials: false\n'
+            '      - name: head\n        uses: actions/checkout@aaa\n'
+            '        with:\n'
+            '          ref: ${{ github.event.pull_request.head.sha }}\n'
+            '          path: head\n'
+            '          persist-credentials: false\n'))
+        self.assertFires('PR の木を checkout')
+
+    def test_whitespace_alone_does_not_fire(self):
+        """**空白で鳴る検査は消されます。** 語が同じなら通すこと。"""
+        self._guard(GUARD_YML.replace('        run: pip install pyyaml',
+                                      '        run: |\n          pip  install   pyyaml'))
+        self.assertEqual(G.guard_is_inert(G.DirTree(self.root)), [])
 
     def test_widened_permissions_fire(self):
         self._guard(GUARD_YML.replace('  contents: read',
@@ -328,17 +359,59 @@ class TestTheGuardDoesNotRunPrCode(GuardCase):
         self.assertFires('working-directory があります')
 
     def test_a_checkout_that_keeps_credentials_fires(self):
-        self._guard(GUARD_YML.replace('          ref: sha\n'
-                                      '          path: head\n'
+        self._guard(GUARD_YML.replace('        with:\n'
                                       '          persist-credentials: false\n',
-                                      '          ref: sha\n'
-                                      '          path: head\n'))
+                                      '\n'))
         self.assertFires('persist-credentials: false がありません')
 
-    def test_dropping_the_head_checkout_fires(self):
+    def test_dropping_the_head_read_fires(self):
         """**PR の木を読まない検査は、何も見ていません。**"""
-        self._guard(GUARD_YML.replace('          path: head\n', ''))
-        self.assertFires('head/ への checkout がありません')
+        self._guard(GUARD_YML.replace(
+            '      - name: check\n'
+            '        run: python3 scripts/sync_guard.py head.tar.gz\n', ''))
+        self.assertFires('を読む step がありません')
+
+
+class TestTheArchive(GuardCase):
+    """書庫のまま読めること。**CI が渡すのはこちらです。**
+
+    ディレクトリでしか試していないと、CI では「何も見ずに緑」になる
+    経路が残ります —— このリポジトリが潰そうとしている形そのものです。
+    """
+
+    def _archive(self) -> str:
+        # GitHub の tarball と同じく、`owner-repo-sha/` を頭に付けます。
+        path = os.path.join(self.root, '..',
+                            os.path.basename(self.root) + '.tar.gz')
+        path = os.path.abspath(path)
+        self.addCleanup(lambda: os.path.exists(path) and os.unlink(path))
+        with tarfile.open(path, 'w:gz') as tf:
+            tf.add(self.root, arcname='kizashi-labs-kizashi-abc1234')
+        return path
+
+    def test_a_clean_archive_passes(self):
+        tree = G.open_tree(self._archive())
+        self.assertIsNotNone(tree)
+        self.assertEqual(G.job_timeouts(tree), [])
+        self.assertEqual(G.files_exist(tree, G.RATCHETS, ''), [])
+        self.assertEqual(G.guard_is_inert(tree), [])
+
+    def test_a_dirty_archive_fires(self):
+        os.unlink(os.path.join(self.root, G.RATCHETS[0]))
+        tree = G.open_tree(self._archive())
+        self.assertTrue(G.files_exist(tree, G.RATCHETS, ''))
+
+    def test_the_prefix_is_stripped(self):
+        """先頭の1段を落とし損ねると、**全ファイルが「消えた」になります。**"""
+        tree = G.open_tree(self._archive())
+        self.assertTrue(tree.exists(G.VERIFY))
+        self.assertIn('section "workflows"', tree.read(G.VERIFY))
+
+    def test_a_file_that_is_not_an_archive_is_not_silently_accepted(self):
+        bad = os.path.join(self.root, 'broken.tar.gz')
+        with open(bad, 'w', encoding='utf-8') as fh:
+            fh.write('これは書庫ではありません')
+        self.assertIsNone(G.open_tree(bad))
 
 
 class TestTheExitCode(GuardCase):
