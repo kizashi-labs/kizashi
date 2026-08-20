@@ -1,0 +1,78 @@
+name: Sync Guard
+
+# 同期が配布物を削っていないことを、**受け取る側で**確かめる。
+#
+# このリポジトリは本流のスナップショットで、生成のたびに木がまるごと
+# 差し替わる。生成側が何かを落とすと、**その PR は緑のまま入る。**
+# 実例が 2 度ある:
+#
+#   #67  ジョブの timeout-minutes 47 件と、欠落を落とす検査を入れた
+#   #70  同期が 47 件を全部消し、**同時に検査そのものも消した**
+#   #73  戻した
+#
+# #70 のとき「timeout-minutes がありません」と怒る側はもういなかったので、
+# PR は 22/22 緑で通った。**検査が自分と一緒に消えるので、検査は自分を
+# 守れない。**
+#
+# ## なぜ pull_request_target なのか
+#
+# **`pull_request_target` は base 側（main）のワークフロー定義で走る。**
+# PR がこのファイルを消しても、走るのは main にある版になる。
+# `pull_request` や `push` で走らせると、PR が定義を消した時点で一緒に
+# 消える —— #70 で起きたのがそれで、同じ形にすると同じ穴が空く。
+#
+# ## PR のコードは1行も実行しない
+#
+# `pull_request_target` は base の権限で走るので、PR のコードを実行すると
+# そのまま乗っ取られる。ここは head/ を**読むだけ**で、
+#
+#   - 走らせるのは base 側の scripts/sync_guard.py
+#   - head/ の中身は yaml.safe_load と文字列検索でしか触らない
+#   - head/ の checkout は persist-credentials: false
+#   - setup / install も base の木に対してだけ行う
+#
+# **head/ の中の run: や uses: を実行する step を、ここに足さないこと。**
+
+on:
+  pull_request_target:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  distribution:
+    name: The sync did not drop anything
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      # base 側（main）。**この検査自身のコードはこちらから来る。**
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      # PR head。**読むだけ。実行しない。**
+      - name: Check out the PR head into head/ (read only)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: head
+          persist-credentials: false
+
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: '3.12'
+
+      - name: Install PyYAML
+        timeout-minutes: 10
+        run: pip install pyyaml
+
+      # この検査そのものが壊れていないこと。**確かめる道具が壊れている
+      # ことが、いちばん高くつく** —— 以後どの同期も「配布物はすべて
+      # 残っています」と報告し、それは正しく見える。
+      - name: The guard still fails on a tree that dropped something
+        run: python3 scripts/sync_guard_test.py
+
+      - name: The PR head still carries everything
+        run: python3 scripts/sync_guard.py head

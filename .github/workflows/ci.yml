@@ -1122,6 +1122,18 @@ jobs:
         timeout-minutes: 10
         run: pip install pyyaml
 
+      # 同期の取りこぼしを見張る側そのもの。**これが黙って通るように
+      # なると、以後どの同期も「配布物はすべて残っています」と報告し、
+      # それは正しく見えます。** 汚した木を渡して、必ず落ちることを
+      # 留めます。
+      #
+      # 判定を当てるのは sync-guard.yml のほうです（`pull_request_target`
+      # で **base 側の定義**で走るので、PR がそれを消しても止まりません）。
+      # ここはその道具の単体テストだけを走らせます —— この job は PR の
+      # 木で走るので、消されたら一緒に消えます。
+      - name: The sync guard fails on a tree that dropped something
+        run: python3 scripts/sync_guard_test.py
+
       # 出しているアラートルールが、本当に読み込まれる場所にあること。
       # prometheus_alerts.yml は19本を持ったまま、rule_files から外れて
       # いました。ファイルがあることと、読まれていることは別です。
