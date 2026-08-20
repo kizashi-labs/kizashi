@@ -42,7 +42,7 @@ var (
 // 参照が許されている場所。**ここ以外から参照が増えたら落とします。**
 var allowedAlertSuppressionRefs = map[string]string{
 	"migrations/083_alert_suppression_rules.sql": "表の定義（廃止済み・DROP はしていない）",
-	"migrations/450_suppression_single_path.sql": "実働の表への移送",
+	"migrations/456_suppression_single_path.sql": "実働の表への移送",
 }
 
 func TestTheRetiredSuppressionTableHasNoReaderAndNoWriter(t *testing.T) {
