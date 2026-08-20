@@ -789,9 +789,23 @@ func (s *Server) registerRoutes() {
 	api := s.router.Group("/api/v1")
 
 	// ─── Public Routes ────────────────────────────────────────
+	//
+	// **認証前の経路は、テナントが決まる前に走ります**（鶏と卵）。いまは
+	// RLS のエスケープ節（`app.tenant_id` が未設定なら全行）がこれらを
+	// 通していますが、**それは「設定し忘れた接続」も同じように通します。**
+	// 名乗りに変えて、全テナントを見るのがどの経路なのかを残します
+	// （migration 450 / system_access_ledger_test.go）。
+	//
+	// 張るのは **4 表 (agents / alerts / incidents / users) に触る経路だけ**
+	// です。触らない経路（health / metrics / docs / installer など）には
+	// 張りません —— 要らない権利を配ると、名乗りが既定に戻ります。
+	sysAccess := mw.SystemAccessMiddleware()
+
 	auth := api.Group("/auth")
 	auth.Use(s.rateLimiter.Middleware())
 	auth.Use(mw.StrictRateLimit())
+	// users を引きます。**テナントは利用者を引いて初めて決まります。**
+	auth.Use(sysAccess)
 	{
 		auth.POST("/login", s.handlers.auth.Login)
 		auth.POST("/refresh", s.handlers.auth.Refresh)
@@ -807,6 +821,7 @@ func (s *Server) registerRoutes() {
 	if s.handlers.invitations != nil {
 		invitePublic := api.Group("/auth/invite")
 		invitePublic.Use(s.rateLimiter.Middleware())
+		invitePublic.Use(sysAccess) // users（招待の宛先を作ります）
 		{
 			invitePublic.GET("/info", s.handlers.invitations.Info)
 			invitePublic.POST("/accept", s.handlers.invitations.Accept)
@@ -1425,6 +1440,7 @@ func (s *Server) registerRoutes() {
 		}
 		// Agent-facing endpoints — token auth only, no JWT
 		lrAgent := api.Group("/live-response")
+		lrAgent.Use(sysAccess) // agents（端末は名乗りますが、テナントは名乗りません）
 		{
 			lrAgent.GET("/poll", s.handlers.liveResponse.AgentPoll)
 			lrAgent.POST("/output", s.handlers.liveResponse.AgentOutput)
@@ -1682,6 +1698,7 @@ func (s *Server) registerRoutes() {
 	if s.handlers.passwordReset != nil {
 		pwReset := api.Group("/auth/password-reset")
 		pwReset.Use(s.rateLimiter.Middleware())
+		pwReset.Use(sysAccess) // users（メールアドレスから利用者を引きます）
 		{
 			pwReset.POST("/request", s.handlers.passwordReset.RequestReset)
 			pwReset.POST("/confirm", s.handlers.passwordReset.ConfirmReset)
@@ -1692,6 +1709,7 @@ func (s *Server) registerRoutes() {
 	if s.handlers.emailMFA != nil {
 		emailMFAPublic := api.Group("/auth/mfa/email")
 		emailMFAPublic.Use(s.rateLimiter.Middleware())
+		emailMFAPublic.Use(sysAccess) // users（ログインの途中で、まだテナントが決まっていません）
 		{
 			emailMFAPublic.POST("/send", s.handlers.emailMFA.SendOTP)
 			emailMFAPublic.POST("/verify", s.handlers.emailMFA.VerifyOTP)
@@ -1920,23 +1938,24 @@ func (s *Server) registerRoutes() {
 	// Ingest endpoints (public, token-auth only)
 	if s.handlers.ingest != nil {
 		ingestGroup := api.Group("/ingest")
+		ingestGroup.Use(sysAccess) // agents / alerts（外部の取り込み。トークン認証のみ）
 		ingestGroup.POST("/wazuh", s.handlers.ingest.WazuhAlert)
 		ingestGroup.GET("/wazuh/status", s.handlers.ingest.WazuhStatus)
 	}
 
 	// Agent heartbeat — public endpoint, no JWT required (agent-facing)
-	api.POST("/agents/:id/heartbeat", s.handlers.agents.Heartbeat)
+	api.POST("/agents/:id/heartbeat", sysAccess, s.handlers.agents.Heartbeat)
 
 	// Agent software inventory report — public endpoint, no JWT required (agent-facing)
 	if s.handlers.software != nil {
-		api.POST("/agents/:id/software/report", s.handlers.software.Report)
+		api.POST("/agents/:id/software/report", sysAccess, s.handlers.software.Report)
 	}
 
 	// Agent disk-encryption status report — public endpoint, no JWT required (agent-facing).
 	// Persists one row per agent into endpoint_encryption (upsert); the compliance
 	// scorer's PR.DS-1 (data-at-rest protection) control counts these rows.
 	if s.pool != nil {
-		api.POST("/agents/:id/encryption/report", func(c *gin.Context) {
+		api.POST("/agents/:id/encryption/report", sysAccess, func(c *gin.Context) {
 			agentID := c.Param("id")
 			var req struct {
 				Encrypted bool   `json:"encrypted"`
@@ -1968,7 +1987,7 @@ func (s *Server) registerRoutes() {
 	// definitions as checks JSONB), plus one per-agent hardening_assessments row
 	// carrying the score and the per-check results as findings JSONB.
 	if s.pool != nil {
-		api.POST("/agents/:id/hardening/report", func(c *gin.Context) {
+		api.POST("/agents/:id/hardening/report", sysAccess, func(c *gin.Context) {
 			agentID := c.Param("id")
 			var req struct {
 				Benchmark string `json:"benchmark"`
@@ -2069,16 +2088,16 @@ func (s *Server) registerRoutes() {
 	// The agent polls this to load enabled YARA rules into its scanner (the
 	// JWT-protected /yara-rules/enabled is for the UI, not reachable by agents).
 	if s.handlers.yaraRules != nil {
-		api.GET("/agents/:id/yara-rules", s.handlers.yaraRules.AgentEnabledRules)
+		api.GET("/agents/:id/yara-rules", sysAccess, s.handlers.yaraRules.AgentEnabledRules)
 	}
 
 	// Agent scan results report — public endpoint, no JWT required (agent-facing)
-	api.POST("/agents/:id/scan-results", s.handlers.agents.ReportScanResults)
+	api.POST("/agents/:id/scan-results", sysAccess, s.handlers.agents.ReportScanResults)
 
 	// Agent quarantine completion report — public endpoint (agent-facing).
 	// The protected /quarantine POST is for human/UI callers; the agent
 	// posts here so it can authenticate via mTLS / agent-id without a JWT.
-	api.POST("/agents/:id/quarantine-result", s.handlers.agents.ReportQuarantineResult)
+	api.POST("/agents/:id/quarantine-result", sysAccess, s.handlers.agents.ReportQuarantineResult)
 
 	// Health check (unauthenticated)
 	s.router.GET("/health", func(c *gin.Context) {
@@ -2361,6 +2380,7 @@ func (s *Server) registerRoutes() {
 	if s.handlers.EmailVerify != nil {
 		// Public: token confirm (linked from email)
 		evPublic := api.Group("/auth/email-verification")
+		evPublic.Use(sysAccess) // users（確認トークンから利用者を引きます）
 		evPublic.POST("/confirm", s.handlers.EmailVerify.ConfirmVerification)
 
 		// Protected: send verification email and check status
@@ -2536,7 +2556,7 @@ func (s *Server) registerRoutes() {
 
 	// ─── Log Ingestion (public, token-based auth) ─────────────────────────
 	if s.handlers.LogIngestion != nil {
-		api.POST("/ingest/:source_name", s.handlers.LogIngestion.Ingest)
+		api.POST("/ingest/:source_name", sysAccess, s.handlers.LogIngestion.Ingest)
 
 		// Admin log-source management (requires JWT auth)
 		adminLogSources := protected.Group("/admin/log-sources")
@@ -3156,7 +3176,7 @@ func (s *Server) registerRoutes() {
 	// Agent Auto-Enrollment (Task #452)
 	if s.handlers.Enrollment != nil {
 		// Public enrollment request endpoint — guarded by agent limit.
-		api.POST("/enrollment/request", apimw.EnforceAgentLimit(s.licMgr), s.handlers.Enrollment.RequestEnrollment)
+		api.POST("/enrollment/request", sysAccess, apimw.EnforceAgentLimit(s.licMgr), s.handlers.Enrollment.RequestEnrollment)
 		// Admin enrollment management
 		enrollAdmin := protected.Group("/admin/enrollment")
 		enrollAdmin.Use(adminMiddleware())

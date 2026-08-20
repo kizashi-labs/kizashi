@@ -54,6 +54,13 @@ var rlsTables = map[string]string{
 
 // permissiveWhenUnset は「app.tenant_id が未設定なら全行」の抜け道を持つ
 // テーブルです。**空にできていないのは事実なので、数ではなく名前で残します。**
+//
+// **落とす下ごしらえは入りました**（migration 450）。全テナント権が要る
+// 経路は `store.WithSystemAccess` で名乗るようになり、方針にも
+// `= 'system'` の項があります。落とせないのは、公開経路のうち 6 件が
+// **4 表に触るかどうか未判定**だからです —— 落とすと、触っていた場合に
+// 0 行で静かに壊れます。一覧は internal/api/system_access_ledger_test.go の
+// `undecidedPublicRoutes` にあります。**それが空になったら落とせます。**
 var permissiveWhenUnset = map[string]string{
 	"agents":    "取り込みと対応系がテナント無しで繋ぎます",
 	"alerts":    "検知エンジンとアラートパイプラインがテナント無しで繋ぎます",
@@ -175,6 +182,18 @@ func TestRLSPoliciesMatchWhatWeRecorded(t *testing.T) {
 		if !permissive && recorded {
 			t.Errorf("%s は抜け道を持たなくなりました。"+
 				"permissiveWhenUnset から消してください", table)
+		}
+
+		// 抜け道を持つ表は、**名乗りの項も持っていること**（migration 450）。
+		//
+		// 抜け道を落とすとき、名乗りの項が無い表は**そのまま 0 行**に
+		// なります。落とす側と受ける側は別の migration なので、片方だけ
+		// 入った状態が実在します。ここが落ちるのは「まだ落とせない」の
+		// 合図です。
+		if recorded && !strings.Contains(p.qual, "'system'") {
+			t.Errorf("%s は抜け道を持ちますが、名乗り（`= 'system'`）の項が"+
+				"ありません。**この表だけ、抜け道を落とした瞬間に系が"+
+				"0 行になります**:\n  %s", table, p.qual)
 		}
 	}
 

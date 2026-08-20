@@ -44,10 +44,45 @@ func TenantFromContext(ctx context.Context) string {
 // 失敗します**（`(false, nil)` だと黙って別の接続で retry するので、
 // 恒久的な失敗のときに「too many failed attempts」まで回ります）。
 // **絞り込めない接続を配るより、その要求を失敗させる方が安全です。**
+//
+// **全テナントは名乗った接続だけです。** `WithSystemAccess` を通った
+// ctx は `app.tenant_id` に `SystemTenant` を置きます。テナントを持つ
+// ctx が優先し、両方あるのは配線の誤りなので落とします —— 黙って
+// どちらかを選ぶと、選ばれなかった側の意図がどこにも残りません。
 func prepareConnForTenant(ctx context.Context, c *pgx.Conn) (bool, error) {
-	if tid := TenantFromContext(ctx); tid != "" {
+	tid := TenantFromContext(ctx)
+	sys := systemAccessFromContext(ctx)
+
+	// **外から来た文字列が `system` を名乗れないこと。** JWT の
+	// `tenant_id` はここに来ます。tenant_id は uuid 列なので
+	// `tenant_id::text` が `system` に一致することはなく、通しても
+	// 行は見えませんが、**方針に足した項が「一致した」側に倒れます。**
+	if tid == SystemTenant {
+		return false, fmt.Errorf(
+			"テナント %q は名乗れません。全テナントは store.WithSystemAccess でだけ張ります", tid)
+	}
+
+	// **両方立っていたら、テナントが勝ちます。** 誤りではなく、正しい形です。
+	//
+	// 「広く始めて、決まったら狭める」経路が実在します:
+	//
+	//	cmd/ingestion            端末からテナントを引いて ctx に載せ直す
+	//	uninstall_protection     tenantScope が既定テナントに落として載せる
+	//
+	// どちらも全テナントの ctx から派生して、引けたテナントを重ねます。
+	// ここを誤りとして落とすと、**アンインストール保護の配布が止まります**
+	// —— 作っている途中で実際にそう書いて、この 2 経路で壊しました。
+	//
+	// 狭める向きは常に安全です。危ないのは逆向き（テナントの ctx を
+	// 全テナントで上書きする）で、そちらはこの分岐で起こりません。
+	switch {
+	case tid != "":
 		if _, err := c.Exec(ctx, "SELECT set_config('app.tenant_id', $1, false)", tid); err != nil {
 			return false, fmt.Errorf("テナントを設定できない接続は使えません: %w", err)
+		}
+	case sys:
+		if _, err := c.Exec(ctx, "SELECT set_config('app.tenant_id', $1, false)", SystemTenant); err != nil {
+			return false, fmt.Errorf("全テナントを名乗れない接続は使えません: %w", err)
 		}
 	}
 	return true, nil

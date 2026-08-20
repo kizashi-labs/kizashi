@@ -43,9 +43,15 @@ func main() {
 
 	// ─── Database ─────────────────────────────────────────────
 	// Prefer the non-superuser edr_app runtime role when APP_DATABASE_URL is
-	// set (RLS tenant isolation — migration 325). The detection engine sets no
-	// app.tenant_id, so the RLS escape clause grants it cross-tenant access as
-	// intended. Falls back to DATABASE_URL when unset.
+	// set (RLS tenant isolation — migration 325). Falls back to DATABASE_URL
+	// when unset.
+	//
+	// 検知エンジンは全テナントのイベントを突き合わせるので、**全テナントを
+	// 名乗ります**（migration 450）。以前は「app.tenant_id を張らないので
+	// エスケープ節が通す」形でした —— **設定し忘れと同じ形**だったので、
+	// 名乗る側に変えています。挙動は変わりません（抜け道はまだ残って
+	// います）。
+	ctx = store.WithSystemAccess(ctx)
 	appDBURL := getEnv("APP_DATABASE_URL", dbURL)
 	db, err := store.Connect(ctx, appDBURL)
 	if err != nil {
