@@ -384,6 +384,19 @@ if wants server; then
         env ${NATS_ENV[@]+"${NATS_ENV[@]}"} \
         go test -tags integration -race -timeout 120s ./internal/detection/...
 
+      # ci.yml の「RLS fail-closed rehearsal」。4 表の RLS には
+      # 「app.tenant_id が未設定なら全行」の抜け道がまだ残っている。落とすと、
+      # テナントも名乗りも持たない接続は 0 行になる。**壊れる向きが
+      # 「静かに 0 行」**なので、落とす前に測る。
+      #
+      # 方針を厳格版に差し替えて 2 テナントで実測し、必ず戻す。**DB を
+      # 専有する**ので上の `go test ./...`（package を並列に走らせる）とは
+      # 混ぜられない —— 混ぜると他 package が巻き添えで落ちて不安定になり、
+      # 不安定な検査は無視され、無視される検査は消える。別に走らせる。
+      gorun "RLS fail-closed rehearsal（DB を専有）" server \
+        env "TEST_DATABASE_URL=$TEST_DB_URL" "RLS_FAILCLOSED=1" \
+        go test -timeout 180s ./internal/store/ -run 'FailClosed|StrictSwap|AppRoleExists'
+
       gorun "カバレッジ下限 ${SERVER_COVERAGE_MIN}%" server bash -c "
         pct=\$(go tool cover -func=coverage.out | awk '/^total:/{print \$3}' | tr -d '%')
         echo \"total: \${pct}%\"
@@ -392,6 +405,7 @@ if wants server; then
       skip "migrations の適用"                  "DATABASE_URL 未設定 / DB に接続できません"
       skip "go test (race, coverage)"           "DATABASE_URL 未設定 / DB に接続できません"
       skip "Synthetic injection E2E (integration)" "DATABASE_URL 未設定 / DB に接続できません"
+      skip "RLS fail-closed rehearsal（DB を専有）" "DATABASE_URL 未設定 / DB に接続できません"
       skip "カバレッジ下限 ${SERVER_COVERAGE_MIN}%" "テストを実行していないため"
     fi
 
