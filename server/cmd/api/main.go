@@ -75,6 +75,19 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
+	// このプロセスの ctx は、**背景の仕事だけ**が使います。検知・相関・
+	// 保持削除・集計・通知はテナントを跨ぐので、全テナントを名乗ります。
+	//
+	// **HTTP の要求はここを継ぎません。** gin は `http.ListenAndServe` を
+	// BaseContext 無しで呼ぶので、要求ごとの ctx は `context.Background()`
+	// から生えます。認証前の経路に全テナントが要るぶんは、router 側で
+	// 経路ごとに張ります（internal/api/system_access_ledger_test.go が
+	// その一覧を留めます）。
+	//
+	// 名乗らないと、抜け道を落としたあと**背景の仕事が全部 0 行**に
+	// なります。いまは抜け道が残っているので挙動は変わりません。
+	ctx = store.WithSystemAccess(ctx)
+
 	// ─── OpenTelemetry Tracing ────────────────────────────────
 	shutdown, err := telemetry.InitTracer(ctx, "edr-api")
 	if err != nil {

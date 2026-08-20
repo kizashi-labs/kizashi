@@ -180,7 +180,7 @@ CASES = [
      '`slog.X(…)` を1つも見つけなくなる（**0件を検査して緑**）'),
     (T, 'const minBareLogAndReturnSites = 20', 'const minBareLogAndReturnSites = 0',
      '走査の床を 0 に落とす'),
-    (T, 'const bareLogAndReturnSiteCount = 33', 'const bareLogAndReturnSiteCount = 100',
+    (T, 'const bareLogAndReturnSiteCount = 31', 'const bareLogAndReturnSiteCount = 100',
      '件数を留めなくなる（**同じ関数に増やした分が、鍵の検査では'
      '見えません**）'),
     (T, '\treturn reasons[s.key()] == ""\n', '\treturn false\n',

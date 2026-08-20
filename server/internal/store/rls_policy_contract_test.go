@@ -16,27 +16,40 @@ import (
 // いま有効なのは4テーブル（agents / alerts / incidents / users）で、
 // **4つとも FORCE 付き**なので所有者ロールでも効きます。
 //
-// ただし4つとも、同じ抜け道を持っています:
+// **agents (451) / alerts (453) / incidents (454) はもう抜け道を
+// 持ちません。** 残るのは users だけで、そこにはまだこの形があります:
 //
 //	current_setting('app.tenant_id', true) IS NULL
 //	OR current_setting('app.tenant_id', true) = ''
 //
-// **「テナントが設定されていなければ全テナント可」です。**
-// これは意図された抜け道で、テナントを持たない系（取り込み、検知エンジン、
-// スケジューラ、マイグレーション）が全行を見るために要ります。
+// **「テナントが設定されていなければ全テナント可」です。** 意図した
+// 抜け道でしたが、**「設定し忘れた接続」と「全テナントを見る権利のある
+// 接続」が同じ形**になります。実際に一度漏れました —— APIキー認証が
+// `tenant_id` に空文字を置き、鍵1本であらゆるテナントの行に届いていました。
 //
-// 問題は、HTTP の経路もここに落ちられたことでした。APIキー認証が
-// `tenant_id` に空文字を置き、`TenantMiddleware` は空を ctx に入れないので
-// `app.tenant_id` は未設定のまま —— **鍵1本であらゆるテナントの行に
-// 届いていました。** 鍵に持ち主のテナントを持たせて塞ぎました。
+// 代わりに置いたのが**名乗り**です（migration 450）。全テナントが要る
+// 接続は `store.WithSystemAccess` で `app.tenant_id = 'system'` を張ります。
+// 忘れた接続は、抜け道を落とした表では 0 行になります。
 //
-// 抜け道そのものは残っています。**塞ぐには、系と HTTP を別の DB ロールに
-// 分ける必要があります**（HTTP 側を非所有者・非 BYPASSRLS で繋ぐ）。
-// 配備の話なので判断待ちの一覧に置きました。
+// 落とすのは 1 表ずつです。**壊れる向きが「静かに 0 行」**なので、
+// 4 表を一度に落とすと切り分けられません。順番は、agents（検知
+// パイプラインが最も強く依存する）→ alerts（系が絶えず書き込む）→
+// incidents（相関エンジンが書く。形は前の 2 つと同じ）→ users
+// （**認証がテナントを決める前に引く**ので、単独で見る）としました。
 //
 // この検査は、いまの姿を写して固定します。テーブルが増えたとき、
 // 方針が消えたとき、FORCE が外れたときに落ちます。**抜け道の是非では
 // なく、それが黙って広がらないことを見ています。**
+
+// needsSystemClaim は「名乗り (`= 'system'`) が要る表」です。
+//
+// **抜け道の有無とは別の話です。** 抜け道を落とした表は、名乗りが
+// 無ければ背景の仕事（検知・相関・保持削除・集計）がそこで 0 行に
+// なります。落とす前の表でも、落とした瞬間に同じことが起きます。
+// **どちらの状態でも要るので、4 表すべてで見ます。**
+var needsSystemClaim = map[string]bool{
+	"agents": true, "alerts": true, "incidents": true, "users": true,
+}
 
 // rlsTables は RLS を有効にしているテーブルと、その理由です。
 var rlsTables = map[string]string{
@@ -54,11 +67,44 @@ var rlsTables = map[string]string{
 
 // permissiveWhenUnset は「app.tenant_id が未設定なら全行」の抜け道を持つ
 // テーブルです。**空にできていないのは事実なので、数ではなく名前で残します。**
+//
+// **4 表とも落とし終わりました** (451 / 453 / 454 / 455)。
+// 新しく抜け道を持つ表が増えたときは、同じ手順を踏んでください:
+//
+//  1. `two_tenant_failclosed_test.go` の演習で、落とした世界を先に測る
+//  2. 木全体を `-count=1` で走らせる（**結果キャッシュに注意** ——
+//     DB の状態は go test の入力に入らないので、前の成功が再利用されます）
+//  3. 落ちたのが台帳だけなら、台帳を更新して落とす
+//  4. `alreadyFailClosed` にその表を足す —— **足し忘れると、演習の
+//     後始末が抜け道を復活させます**
+//
+// 落ちたのは agents で台帳 2 件、alerts と incidents で 1 件ずつ、
+// users で 1 件でした。
+//
+// **users だけは、落とす前に配線が 1 か所足りませんでした。**
+// `authMiddleware` の中の 2 本（`FindByKey` と `UserCache.IsActive`）が
+// テナントも名乗りも持たないまま users に届いていました。木を走らせても
+// 出ません —— 検査の接続主体がスーパーユーザで、RLS を素通りするからです。
+// `users_failclosed_auth_test.go` が `SET ROLE edr_app` の側で測ります。
+//
+// **読みだけ確かめて落とさないでください。** alerts のとき、名乗った接続が
+// そもそも書けなくなっていた（`'system'::uuid` が不正）ことが分かりました
+// —— #77 で入れた回帰で、migration 452 で直しました。読みの検査だけでは
+// 出ません。`system_claim_insert_test.go` が書きの側を持ちます。
 var permissiveWhenUnset = map[string]string{
-	"agents":    "取り込みと対応系がテナント無しで繋ぎます",
-	"alerts":    "検知エンジンとアラートパイプラインがテナント無しで繋ぎます",
-	"incidents": "相関エンジンがテナント無しで繋ぎます",
-	"users":     "認証がテナントを決める前に利用者を引きます（鶏と卵）",
+	// **4 表とも落ちました** —— agents (451) / alerts (453) /
+	// incidents (454) / users (455)。ここに 4 表の名前はもうありません。
+	//
+	// **空になったからといって、この一覧を消さないでください。** 消すと、
+	// 抜け道を持つ表が新しく増えたときに書く場所が無くなります。
+	// `TestRLSPoliciesMatchWhatWeRecorded` は両方向に落ちます ——
+	// 一覧に無い表が抜け道を持っていても、一覧に在る表が持たなくなっても。
+	//
+	// users がいちばん形が違いました。**認証はテナントを決める前に利用者を
+	// 引きます**（鶏と卵）。公開の 5 経路は #79 で `sysAccess` を張って
+	// ありましたが、`authMiddleware` の内側にあと 2 本残っていました
+	// （`FindByKey` と `UserCache.IsActive`）。詳しくは migration 455 に
+	// 書いてあります。
 
 	// uninstall_guards / uninstall_attempts は **もう抜け道を持ちません**
 	// (migration 446)。379 は agents / alerts と同じ形で作りましたが、
@@ -176,6 +222,18 @@ func TestRLSPoliciesMatchWhatWeRecorded(t *testing.T) {
 			t.Errorf("%s は抜け道を持たなくなりました。"+
 				"permissiveWhenUnset から消してください", table)
 		}
+
+		// 抜け道を持つ表は、**名乗りの項も持っていること**（migration 450）。
+		//
+		// 抜け道を落とすとき、名乗りの項が無い表は**そのまま 0 行**に
+		// なります。落とす側と受ける側は別の migration なので、片方だけ
+		// 入った状態が実在します。ここが落ちるのは「まだ落とせない」の
+		// 合図です。
+		if needsSystemClaim[table] && !strings.Contains(p.qual, "'system'") {
+			t.Errorf("%s は抜け道を持ちますが、名乗り（`= 'system'`）の項が"+
+				"ありません。**この表だけ、抜け道を落とした瞬間に系が"+
+				"0 行になります**:\n  %s", table, p.qual)
+		}
 	}
 
 	for table := range rlsTables {
@@ -241,12 +299,16 @@ func TestRLSSeparatesTenantsUnderTheAppRole(t *testing.T) {
 	}
 }
 
-// テナントを設定しない接続は、全部見えること —— 抜け道が実在することの確認。
+// テナントを設定しない接続が、agents では **0 行**になること。
 //
-// **これは「良い」ではなく「いまこうなっている」の記録です。** 取り込み・
-// 検知・スケジューラはテナントを持たずに繋ぐので、これに依存しています。
-// HTTP の経路がここに落ちないことは、鍵にテナントを持たせて別途担保しました。
-func TestSystemPathsWithoutATenantSeeEverything(t *testing.T) {
+// **これが fail-closed です**（migration 451）。以前ここは「全部見える」を
+// 記録していました —— 抜け道が実在することの写しで、「良い」ではなく
+// 「いまこうなっている」の記録でした。落としたので、向きが逆になります。
+//
+// 取り込み・検知・スケジューラは `store.WithSystemAccess` で名乗るように
+// なったので、この 0 行に当たりません。**当たるとしたら、それは名乗り
+// 忘れです** —— 忘れたら見えない、が新しい既定です。
+func TestAnUnsetConnectionSeesNoAgents(t *testing.T) {
 	pool := rlsPool(t)
 	ctx := context.Background()
 
@@ -269,10 +331,27 @@ func TestSystemPathsWithoutATenantSeeEverything(t *testing.T) {
 		[]string{agentA, agentB}).Scan(&n); err != nil {
 		t.Fatalf("読めません: %v", err)
 	}
+	if n != 0 {
+		t.Errorf("テナントも名乗りも無い接続に agents が %d 件見えています"+
+			"（0 件のはず）。**migration 451 の抜け道除去が効いていません** —— "+
+			"「設定し忘れ」と「全テナントを見る権利」がまた同じ形です", n)
+	}
+
+	// **行が実在することも確かめます。** 種まきが効いていなくても
+	// 「0 件だから合格」になってしまうので、名乗った接続から見えることを
+	// 見ます —— 何も無い机を見て「散らかっていない」と言わないために。
+	if _, err := conn.Exec(ctx,
+		`SELECT set_config('app.tenant_id', 'system', false)`); err != nil {
+		t.Fatalf("名乗れません: %v", err)
+	}
+	if err := conn.QueryRow(ctx,
+		`SELECT count(*) FROM agents WHERE id = ANY($1::uuid[])`,
+		[]string{agentA, agentB}).Scan(&n); err != nil {
+		t.Fatalf("読めません: %v", err)
+	}
 	if n != 2 {
-		t.Errorf("テナント未設定で %d 件しか見えません（2件のはず）。"+
-			"抜け道が塞がったのなら、系のプロセス（取り込み・検知）が"+
-			"動くかを先に確かめて、permissiveWhenUnset を更新してください", n)
+		t.Fatalf("名乗った接続からも %d 件しか見えません（2件のはず）。"+
+			"**種まきが効いていないので、この検査は何も測れていません**", n)
 	}
 }
 

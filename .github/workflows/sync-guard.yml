@@ -1,0 +1,99 @@
+name: Sync Guard
+
+# 同期が配布物を削っていないことを、**受け取る側で**確かめる。
+#
+# このリポジトリは本流のスナップショットで、生成のたびに木がまるごと
+# 差し替わる。生成側が何かを落とすと、**その PR は緑のまま入る。**
+# 実例が 2 度ある:
+#
+#   #67  ジョブの timeout-minutes 47 件と、欠落を落とす検査を入れた
+#   #70  同期が 47 件を全部消し、**同時に検査そのものも消した**
+#   #73  戻した
+#
+# #70 のとき「timeout-minutes がありません」と怒る側はもういなかったので、
+# PR は 22/22 緑で通った。**検査が自分と一緒に消えるので、検査は自分を
+# 守れない。**
+#
+# ## なぜ pull_request_target なのか
+#
+# **`pull_request_target` は base 側（main）のワークフロー定義で走る。**
+# PR がこのファイルを消しても、走るのは main にある版になる。
+# `pull_request` や `push` で走らせると、PR が定義を消した時点で一緒に
+# 消える —— #70 で起きたのがそれで、同じ形にすると同じ穴が空く。
+#
+# ## PR の木は checkout しない。ディスクにも置かない
+#
+# `pull_request_target` は base の権限で走るので、PR のコードを1行でも
+# 実行するとそのまま乗っ取られる。よくある助言は「head を checkout して
+# よいが、ビルドやインストールを走らせないよう監査すること」。
+# **監査は約束で、約束は腐る。** 半年後に誰かが `npm ci` を足したときに
+# 気づく仕組みが無ければ、その監査は「昔は安全でした」の記録になる。
+#
+# なので約束にしない。**形のほうを変えてある。**
+#
+#   - head は checkout しない。書庫（tarball）のまま取る
+#   - **展開もしない。PR のファイルは1つもディスクに落ちない**
+#   - sync_guard.py が `tarfile` で読むだけ。実行される経路が存在しない
+#   - 木として無いので、あとから足した action が（`setup-node` の cache の
+#     ように）勝手に見つけて触ることもない
+#
+# 残る約束は検査になっている。`scripts/sync_guard.py` の
+# `GUARD_ALLOWED_RUNS` が、この file の `run:` を**語そのままで**留める。
+# permissions が広がっても、checkout が PR の ref を指しても、
+# working-directory が付いても落ちる。
+
+on:
+  pull_request_target:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  distribution:
+    name: The sync did not drop anything
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      # base 側（main）。**この検査自身のコードはこちらから来る。**
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: '3.12'
+
+      - name: Install PyYAML
+        timeout-minutes: 10
+        run: pip install pyyaml
+
+      # この検査そのものが壊れていないこと。**確かめる道具が壊れている
+      # ことが、いちばん高くつく** —— 以後どの同期も「配布物はすべて
+      # 残っています」と報告し、それは正しく見える。
+      - name: The guard still fails on a tree that dropped something
+        run: python3 scripts/sync_guard_test.py
+
+      # PR head を書庫のまま取る。**展開しない。**
+      # 宛先は base 側が決めた固定名で、PR 側の値が入るのは URL の SHA だけ。
+      - name: Fetch the PR head as an archive (never extracted)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          if [ -z "$HEAD_SHA" ]; then
+            echo "HEAD_SHA が空です。**workflow_dispatch では PR の木を取れません。**"
+            echo "ref の無い tarball は既定ブランチを返すので、この検査は main を見て"
+            echo "「配布物はすべて残っています」と緑を返します —— **それは嘘です。**"
+            echo "PR で確かめたいなら、その PR を閉じて開き直してください（reopened で走ります）。"
+            exit 1
+          fi
+          curl --fail --silent --show-error --location \
+            --header "Authorization: Bearer $GH_TOKEN" \
+            --header "Accept: application/vnd.github+json" \
+            "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/tarball/$HEAD_SHA" \
+            --output head.tar.gz
+
+      - name: The PR head still carries everything
+        run: python3 scripts/sync_guard.py head.tar.gz

@@ -4,6 +4,7 @@
 対象:
   server/internal/store/users.go
   server/internal/webhooks/dispatcher.go
+  server/internal/suppression/engine.go
   server/internal/store/live_response.go
   server/internal/api/handlers/bas_handler.go
   server/internal/tick/background_failed_test.go
@@ -51,6 +52,7 @@ from mutate import Harness  # noqa: E402
 
 US = 'server/internal/store/users.go'
 WD = 'server/internal/webhooks/dispatcher.go'
+SE = 'server/internal/suppression/engine.go'
 LR = 'server/internal/store/live_response.go'
 BH = 'server/internal/api/handlers/bas_handler.go'
 BF = 'server/internal/tick/background_failed_test.go'
@@ -85,6 +87,16 @@ CASES = [
          '\t\t\t_ = metrics.BackgroundFailed\n',
      '**ロックアウトの計数**が黙って捨てられる（元の実装。総当たりに'
      '対する防御が、効いていないことに気づけません）'),
+    (SE, '\tif _, err := e.pool.Exec(ctx,\n'
+         '\t\t`UPDATE suppression_rules SET hit_count = hit_count + 1, updated_at = NOW() WHERE id = $1`, id); err != nil {\n'
+         '\t\tmetrics.BackgroundFailed("suppression_hit_count", err,\n'
+         '\t\t\t"抑制ルールのヒット数を更新できませんでした。効いているルールが0件に見えます",\n'
+         '\t\t\t"rule_id", id)\n\t}',
+         '\t_, _ = e.pool.Exec(ctx,\n'
+         '\t\t`UPDATE suppression_rules SET hit_count = hit_count + 1, updated_at = NOW() WHERE id = $1`, id)\n'
+         '\t_ = metrics.BackgroundFailed',
+     '抑制ルールのヒット数が黙って捨てられる（**効いているルールが'
+     '0件に見えます**）'),
 
     (BH, """\tif _, err := h.pool.Exec(ctx,
 \t\t`UPDATE bas_runs SET status='completed', started_at=$2, completed_at=$2,
@@ -128,7 +140,7 @@ CASES = [
     (BF, '\tcase catStartup, catPerReq, catPerEvent, catReturns, catMechanism, catUntracked:',
          '\tcase catStartup, catPerReq, catPerEvent, catReturns, catMechanism, catUntracked, "":',
      '空の分類を通す（**分類しなくても緑になります**）'),
-    (BF, '\tbackgroundFailedCount = 75', '\tbackgroundFailedCount = 100',
+    (BF, '\tbackgroundFailedCount = 69', '\tbackgroundFailedCount = 100',
      '件数を留めなくなる'),
     (BF, '\tcatUntracked: 0,', '\tcatUntracked: 5,',
      '`未追跡` の 0 を留めなくなる（**包んでいない周期処理があっても'
@@ -155,7 +167,7 @@ CASES = [
      'コメントの落とし方を壊す'),
 
     # ── 捨てている書き込みの件数 ─────────────────────────────────────────
-    (DW, 'const discardedWritesTotal = 1', 'const discardedWritesTotal = 26',
+    (DW, 'const discardedWritesTotal = 0', 'const discardedWritesTotal = 26',
      '直した 10 か所を、まだ捨てていることにする'),
 ]
 

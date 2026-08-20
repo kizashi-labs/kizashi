@@ -190,14 +190,14 @@ HANDLER_CASES = [
      '通ります）'),
 
     # ── 件数と分類 ───────────────────────────────────────────────────────
-    (DW, 'const discardedWritesTotal = 1', 'const discardedWritesTotal = 100',
+    (DW, 'const discardedWritesTotal = 0', 'const discardedWritesTotal = 100',
      '捨てている書き込みの数を留めなくなる'),
     (DW, '\tconst floor = 2000', '\tconst floor = 0',
      '**走査が届いているかの床を 0 にする**（どんな走査も「届いた」と'
      '言います）'),
     (DR, '\tcatRestart:  0,', '\tcatRestart:  6,',
      '**記憶とDBの食い違いを 6 件まで許す**（0 が規則です）'),
-    (DR, 'const discardedWriteFuncs = 1', 'const discardedWriteFuncs = 7',
+    (DR, 'const discardedWriteFuncs = 0', 'const discardedWriteFuncs = 7',
      '分類の数を留めなくなる'),
 ]
 
@@ -251,7 +251,7 @@ SIEM_LDAP_CASES = [
 ]
 
 BF_CASES = [
-    (BF, '\tbackgroundFailedCount = 75', '\tbackgroundFailedCount = 500',
+    (BF, '\tbackgroundFailedCount = 69', '\tbackgroundFailedCount = 500',
      '`metrics.BackgroundFailed` の件数を留めなくなる'),
     (BF, '\t"api/handlers/ingest_handler.go:upsertAgent": catPerReq,\n', '',
      '新しい報告先の分類を消す'),

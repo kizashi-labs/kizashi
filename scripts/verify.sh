@@ -16,9 +16,10 @@
 # 関係なく push 前に同じ結論を得られる。
 #
 # ── 追従の義務 ──────────────────────────────────────────────────
-# ここは .github/workflows/ の ci.yml・merge-gate.yml・security.yml を 1:1 で
-# 写したもの。**あちらのジョブやステップを足し引きしたら、ここも合わせて
-# 直すこと。** 片方だけ変わると「ローカルで緑なのに CI で落ちる」、あるいは
+# ここは .github/workflows/ の ci.yml・merge-gate.yml・security.yml・
+# workflow-lint.yml・sync-guard.yml を 1:1 で写したもの。**あちらのジョブやステップを
+# 足し引きしたら、ここも合わせて直すこと。** 片方だけ変わると「ローカルで
+# 緑なのに CI で落ちる」、あるいは
 # もっと悪い「ローカルで緑だが、CI にしか無い検査を通していない」状態に
 # なる。ci.yml 側の changes ジョブにも同じ注意書きを置いてある。
 #
@@ -186,6 +187,130 @@ wants() { [[ " ${AREAS[*]} " == *" $1 "* ]]; }
 printf '%sCI ローカル再現%s  mode=%s  areas=%s\n' "$C_BLD" "$C_OFF" "$MODE" "${AREAS[*]}"
 printf '%s%s%s\n' "$C_DIM" "$(git log --oneline -1)" "$C_OFF"
 
+# ── workflows ────────────────────────────────────────────────────
+# workflow-lint.yml の写し。**領域に関係なく毎回走らせます** ——
+# ここが落ちるとジョブが1つも作られず、PR のチェック一覧では「失敗した CI」
+# ではなく「CI が無い」状態で並びます。**他が緑のままなので、通っているように
+# 読めます。** 速い検査なので毎回でよいものです。
+section "workflows"
+if ! have python3; then
+  skip "workflow-lint" "python3 が PATH にありません"
+elif ! python3 -c 'import yaml' 2>/dev/null; then
+  skip "workflow-lint" "PyYAML がありません（pip install pyyaml）"
+else
+  run "workflow-lint" . python3 - <<'WFLINT'
+import glob, re, sys, yaml
+
+PIPE_GREP_Q = re.compile(r"\|\s*grep\b[^|&;]*\s-[A-Za-z]*q")
+problems = []
+job_timeouts = step_timeouts = 0
+for path in sorted(glob.glob(".github/workflows/*.yml") +
+                   glob.glob(".github/workflows/*.yaml")):
+    try:
+        doc = yaml.safe_load(open(path, encoding="utf-8"))
+    except Exception as e:
+        problems.append("%s: YAML として読めません: %s" % (path, e)); continue
+    if not isinstance(doc, dict):
+        problems.append("%s: トップレベルがマップではありません" % path); continue
+    jobs = doc.get("jobs")
+    if not isinstance(jobs, dict) or not jobs:
+        problems.append("%s: jobs がありません" % path); continue
+    for job_name, job in jobs.items():
+        if not isinstance(job, dict):
+            problems.append("%s / %s: ジョブがマップではありません" % (path, job_name)); continue
+        if "uses" in job:
+            continue
+        # timeout-minutes が無いジョブは既定の 6 時間まで走ります。実測で
+        # 2 回起きています（360.3 分 / 111.2 分、どちらも apt の停止）。
+        if "timeout-minutes" not in job:
+            problems.append("%s / %s: timeout-minutes がありません（既定は 6 時間）"
+                            % (path, job_name))
+        else:
+            job_timeouts += 1
+            if isinstance(job["timeout-minutes"], int) and job["timeout-minutes"] > 60:
+                problems.append("%s / %s: timeout-minutes が %d 分です。**ハングを上限の引き上げで直さないでください**"
+                                % (path, job_name, job["timeout-minutes"]))
+        steps = job.get("steps")
+        if not isinstance(steps, list) or not steps:
+            problems.append("%s / %s: steps がありません" % (path, job_name)); continue
+        for i, step in enumerate(steps):
+            if not isinstance(step, dict):
+                problems.append("%s / %s / step[%d]: ステップがマップではありません"
+                                % (path, job_name, i)); continue
+            if "timeout-minutes" in step:
+                step_timeouts += 1
+            if "run" not in step and "uses" not in step:
+                problems.append("%s / %s / step[%d] (%s): run: も uses: もありません"
+                                % (path, job_name, i, step.get("name", "名前なし")))
+            script = step.get("run")
+            if isinstance(script, str) and "pipefail" in script:
+                for line in script.splitlines():
+                    if line.lstrip().startswith("#"):
+                        continue
+                    if PIPE_GREP_Q.search(line):
+                        problems.append(
+                            "%s / %s / step[%d] (%s): pipefail のもとで `grep -q` を"
+                            "パイプの右辺に置いています → %s"
+                            % (path, job_name, i, step.get("name", "名前なし"),
+                               line.strip()))
+# 本流へ渡す一覧の数が実物と合っていること。**この数は一度腐りました** ——
+# 引き継ぎに「47 件」と書いたあと sync-guard.yml が 2 件足し、メモだけが
+# 残りました。渡された側は古い数を写して、その差だけ黙って落とします。
+HANDOVER = "docs/ci/本流へ渡す作業一覧.md"
+try:
+    handover = open(HANDOVER, encoding="utf-8").read()
+except FileNotFoundError:
+    problems.append("%s がありません。**本流へ何を渡すかが、リポジトリの"
+                    "どこにも残っていない状態です**" % HANDOVER)
+else:
+    want = re.search(r"job (\d+) \+ step (\d+) ＝ (\d+) 件", handover)
+    if not want:
+        problems.append("%s に「job N + step N ＝ N 件」の行がありません。"
+                        "書き方を変えたなら、この検査も一緒に直してください" % HANDOVER)
+    else:
+        said = tuple(int(g) for g in want.groups())
+        got = (job_timeouts, step_timeouts, job_timeouts + step_timeouts)
+        if said != got:
+            problems.append("%s は job %d + step %d ＝ %d 件と書いていますが、"
+                            "実物は job %d + step %d ＝ %d 件です。"
+                            "**文書のほうを実物に合わせてください**"
+                            % ((HANDOVER,) + said + got))
+
+if problems:
+    for p in problems:
+        print("  - " + p)
+    sys.exit(1)
+print("ワークフローファイルはすべて読み込み可能です")
+WFLINT
+fi
+
+# ── 同期の取りこぼし ─────────────────────────────────────────────
+# **消えても CI が緑のままになるもの**を名前で留めます。#67 で入れた
+# timeout-minutes 47 件は #70 の同期が全部消し、**同時に欠落を落とす検査
+# そのものも消した**ので、PR は 22/22 緑で通りました（#73 で戻した）。
+#
+# CI では `.github/workflows/sync-guard.yml` が `pull_request_target` で
+# 走ります —— **base 側の定義で走るので、PR がこれを消しても止まりません。**
+# ここは同じ判定を作業木に当てるだけの写しです。
+if ! have python3; then
+  skip "sync-guard" "python3 が PATH にありません"
+elif ! python3 -c 'import yaml' 2>/dev/null; then
+  skip "sync-guard" "PyYAML がありません（pip install pyyaml）"
+else
+  run "sync-guard" . python3 scripts/sync_guard.py .
+  run "sync-guard 自身" . python3 scripts/sync_guard_test.py
+fi
+
+# ── ラチェット再較正の道具 ───────────────────────────────────────
+# scripts/recalibrate_ratchets.py は固定値を書き換えます。**壊れたまま
+# 動くと、劣化を記録して緑にするだけの装置になります。** 道具の判定を
+# 単体で留めます（Go も DB も要りません）。
+if have python3; then
+  run "ratchet-recalibrator" . python3 scripts/recalibrate_ratchets_test.py
+else
+  skip "ratchet-recalibrator" "python3 が PATH にありません"
+fi
+
 # ── server ───────────────────────────────────────────────────────
 if wants server; then
   section "server (Go)"
@@ -287,6 +412,19 @@ if wants server; then
         env ${NATS_ENV[@]+"${NATS_ENV[@]}"} \
         go test -tags integration -race -timeout 120s ./internal/detection/...
 
+      # ci.yml の「RLS fail-closed rehearsal」。4 表の RLS には
+      # 「app.tenant_id が未設定なら全行」の抜け道がまだ残っている。落とすと、
+      # テナントも名乗りも持たない接続は 0 行になる。**壊れる向きが
+      # 「静かに 0 行」**なので、落とす前に測る。
+      #
+      # 方針を厳格版に差し替えて 2 テナントで実測し、必ず戻す。**DB を
+      # 専有する**ので上の `go test ./...`（package を並列に走らせる）とは
+      # 混ぜられない —— 混ぜると他 package が巻き添えで落ちて不安定になり、
+      # 不安定な検査は無視され、無視される検査は消える。別に走らせる。
+      gorun "RLS fail-closed rehearsal（DB を専有）" server \
+        env "TEST_DATABASE_URL=$TEST_DB_URL" "RLS_FAILCLOSED=1" \
+        go test -timeout 180s ./internal/store/ -run 'FailClosed|StrictSwap|AppRoleExists'
+
       gorun "カバレッジ下限 ${SERVER_COVERAGE_MIN}%" server bash -c "
         pct=\$(go tool cover -func=coverage.out | awk '/^total:/{print \$3}' | tr -d '%')
         echo \"total: \${pct}%\"
@@ -295,6 +433,7 @@ if wants server; then
       skip "migrations の適用"                  "DATABASE_URL 未設定 / DB に接続できません"
       skip "go test (race, coverage)"           "DATABASE_URL 未設定 / DB に接続できません"
       skip "Synthetic injection E2E (integration)" "DATABASE_URL 未設定 / DB に接続できません"
+      skip "RLS fail-closed rehearsal（DB を専有）" "DATABASE_URL 未設定 / DB に接続できません"
       skip "カバレッジ下限 ${SERVER_COVERAGE_MIN}%" "テストを実行していないため"
     fi
 

@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"fmt"
+	"github.com/edr-platform/server/internal/store"
 	"log/slog"
 	"net/http"
 	"strconv"
@@ -209,8 +210,15 @@ func (h *AssetDiscoveryHandler) StartScan(c *gin.Context) {
 	// Background scan: upsert agents whose IPs match the subnet, then count results.
 	pool := h.pool
 	subnet := body.Subnet
+	// **要求のテナントを持っていきます。** 下の goroutine は
+	// `context.Background()` から ctx を作るので（要求の ctx は応答を
+	// 返した時点で切れます）、何もしないとテナントが落ちます。落ちた
+	// 接続は RLS のエスケープ節に拾われて**全テナントの `agents` を
+	// 数えます** —— テナント A が始めた探索が B の端末を見ます。
+	tenantID := store.TenantFromContext(c.Request.Context())
 	go func() {
-		bgCtx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+		bgCtx, cancel := context.WithTimeout(
+			store.WithTenant(context.Background(), tenantID), 5*time.Minute)
 		defer cancel()
 
 		newAssets := 0

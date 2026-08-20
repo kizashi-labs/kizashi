@@ -1,0 +1,593 @@
+#!/usr/bin/env python3
+"""sync_guard.py の判定そのものを留める。
+
+**この検査は、他の検査が消えたことを見張る最後の一枚です。** これが
+黙って通るようになると、以後どの同期も「配布物はすべて残っています」と
+報告し、それは正しく見えます。**確かめる道具が壊れていることが、
+いちばん高くつきます。**
+
+木がきれいなあいだ、落ちる枝は一度も通りません。汚した木を作って
+渡さないと確かめられないので、ここでは最小の木を組み立てます。
+
+`python3 scripts/sync_guard_test.py` で走ります。
+"""
+from __future__ import annotations
+
+import os
+import shutil
+import sys
+import tarfile
+import tempfile
+import unittest
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+REPO = os.path.dirname(HERE)
+sys.path.insert(0, HERE)
+
+import sync_guard as G  # noqa: E402
+
+
+def write(root: str, rel: str, text: str) -> None:
+    path = os.path.join(root, rel)
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, 'w', encoding='utf-8') as fh:
+        fh.write(text)
+
+
+def workflow(job: str, timeout: int | None, timed_steps: int,
+             extra: str = '') -> str:
+    """1 ジョブのワークフロー。`timed_steps` 本だけ step 側にも上限を置く。"""
+    head = f'name: T\non:\n  push:\njobs:\n  {job}:\n    runs-on: ubuntu-latest\n'
+    if timeout is not None:
+        head += f'    timeout-minutes: {timeout}\n'
+    head += '    steps:\n'
+    for i in range(timed_steps):
+        head += (f'      - name: fetch {i}\n        timeout-minutes: 10\n'
+                 f'        run: echo {i}\n')
+    head += '      - name: work\n        run: echo work\n'
+    return head + extra
+
+
+EBPF_RUN = """      - name: Commit binary to downloads/
+        run: |
+          # `git reset --hard` を挟む再試行でも消えるので、ループの中で作ります。
+          for i in 1 2 3 4 5; do
+            mkdir -p downloads
+            cp agent/x downloads/x
+            git commit -m x && break
+            git fetch origin main
+            git reset --hard origin/main
+          done
+"""
+
+LINT_RUN = """      - name: Validate
+        run: |
+          python3 - <<'PY'
+          if "timeout-minutes" not in job:
+              problems.append("...")
+          else:
+              t = job["timeout-minutes"]
+              if t > 60:
+                  problems.append("...")
+          PY
+"""
+
+VERIFY_SH = """#!/usr/bin/env bash
+section "workflows"
+python3 - <<'WFLINT'
+if "timeout-minutes" not in job:
+    problems.append("...")
+elif job["timeout-minutes"] > 60:
+    problems.append("...")
+WFLINT
+"""
+
+
+GUARD_YML = """name: Sync Guard
+on:
+  pull_request_target:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  distribution:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@aaa
+        with:
+          persist-credentials: false
+      - name: Install PyYAML
+        timeout-minutes: 10
+        run: pip install pyyaml
+      - name: self
+        run: python3 scripts/sync_guard_test.py
+      - name: fetch
+        run: |
+          if [ -z "$HEAD_SHA" ]; then
+            echo "HEAD_SHA が空です。**workflow_dispatch では PR の木を取れません。**"
+            echo "ref の無い tarball は既定ブランチを返すので、この検査は main を見て"
+            echo "「配布物はすべて残っています」と緑を返します —— **それは嘘です。**"
+            echo "PR で確かめたいなら、その PR を閉じて開き直してください（reopened で走ります）。"
+            exit 1
+          fi
+          curl --fail --silent --show-error --location \\
+            --header "Authorization: Bearer $GH_TOKEN" \\
+            --header "Accept: application/vnd.github+json" \\
+            "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/tarball/$HEAD_SHA" \\
+            --output head.tar.gz
+      - name: check
+        run: python3 scripts/sync_guard.py head.tar.gz
+"""
+
+
+def build_clean(root: str) -> None:
+    """すべての約束を満たす最小の木。"""
+    write(root, '.github/workflows/workflow-lint.yml',
+          'name: L\non:\n  push:\njobs:\n  lint:\n'
+          '    runs-on: ubuntu-latest\n    timeout-minutes: 10\n'
+          '    steps:\n' + LINT_RUN)
+    write(root, '.github/workflows/agent-ebpf.yml',
+          workflow('build-ebpf', 20, G.STEP_TIMEOUT_FLOOR[
+              '.github/workflows/agent-ebpf.yml'], EBPF_RUN))
+    write(root, G.GUARD_WORKFLOW, GUARD_YML)
+    for rel, floor in G.STEP_TIMEOUT_FLOOR.items():
+        if rel.endswith('agent-ebpf.yml') or rel == G.GUARD_WORKFLOW:
+            continue
+        write(root, rel, workflow(os.path.basename(rel)[:-4], 30, floor))
+    write(root, G.VERIFY, VERIFY_SH)
+    for rel in G.RATCHETS + G.RECALIBRATORS + G.SELF:
+        # .yml は上の STEP_TIMEOUT_FLOOR の輪で、上限つきに作ってあります。
+        if rel.endswith('.yml'):
+            continue
+        if rel in G.RATCHETS:
+            # **ラチェットは中身ごと写します。** 固定値を main と比べる節が
+            # あるので、スタブで済ませると「固定値が全部消えた」になります。
+            # 写した木は main と同じ値なので、きれいな木では何も鳴りません。
+            with open(os.path.join(REPO, rel), encoding='utf-8') as fh:
+                write(root, rel, fh.read())
+            continue
+        write(root, rel, '// 中身は見ていません\n')
+
+
+class GuardCase(unittest.TestCase):
+    def setUp(self) -> None:
+        self.root = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, self.root, True)
+        build_clean(self.root)
+
+    def problems(self) -> list[str]:
+        tree = G.DirTree(self.root)
+        out: list[str] = []
+        for fn in (G.job_timeouts, G.step_timeouts, G.ebpf_mkdir,
+                   G.guard_is_inert):
+            out += fn(tree)
+        out += G.markers(tree, G.WORKFLOW_LINT, G.WORKFLOW_LINT_MARKERS, '')
+        out += G.markers(tree, G.VERIFY, G.VERIFY_MARKERS, '')
+        out += G.files_exist(tree, G.RATCHETS, '')
+        out += G.files_exist(tree, G.RECALIBRATORS, '')
+        out += G.files_exist(tree, G.SELF, '')
+        return out
+
+    def assertFires(self, needle: str) -> None:
+        found = self.problems()
+        self.assertTrue(found, '**汚した木が通りました。**')
+        self.assertTrue(any(needle in p for p in found),
+                        f'{needle!r} を含む指摘がありません: {found}')
+
+
+class TestTheCleanTreePasses(GuardCase):
+    def test_nothing_is_reported(self):
+        """**ここが落ちると、以後どの汚れも「1 件」に埋もれます。**"""
+        self.assertEqual(self.problems(), [])
+
+
+class TestJobTimeouts(GuardCase):
+    def test_a_removed_job_timeout_fires(self):
+        write(self.root, '.github/workflows/ci.yml', workflow('ci', None, 10))
+        self.assertFires('timeout-minutes が消えています')
+
+    def test_a_raised_ceiling_fires(self):
+        write(self.root, '.github/workflows/ci.yml', workflow('ci', 90, 10))
+        self.assertFires('90 分です')
+
+    def test_an_empty_workflow_directory_fires(self):
+        """**「ワークフローが無い」は「全部緑」に見えます。**"""
+        shutil.rmtree(os.path.join(self.root, '.github/workflows'))
+        self.assertFires('.github/workflows/')
+
+    def test_broken_yaml_fires(self):
+        write(self.root, '.github/workflows/ci.yml', 'jobs:\n  - [unclosed\n')
+        self.assertFires('ci.yml')
+
+
+class TestStepTimeouts(GuardCase):
+    def test_wholesale_removal_fires(self):
+        write(self.root, '.github/workflows/ci.yml', workflow('ci', 30, 0))
+        self.assertFires('10 本から 0 本')
+
+    def test_one_missing_step_fires(self):
+        write(self.root, '.github/workflows/ci.yml', workflow('ci', 30, 9))
+        self.assertFires('10 本から 9 本')
+
+    def test_more_than_the_floor_is_fine(self):
+        """**足す向きは止めません。** 上限を増やすのは劣化ではありません。"""
+        write(self.root, '.github/workflows/ci.yml', workflow('ci', 30, 12))
+        self.assertEqual(G.step_timeouts(G.DirTree(self.root)), [])
+
+
+class TestTheCheckItself(GuardCase):
+    def test_a_deleted_workflow_lint_fires(self):
+        os.unlink(os.path.join(self.root, G.WORKFLOW_LINT))
+        self.assertFires('workflow-lint.yml が消えています')
+
+    def test_a_gutted_workflow_lint_fires(self):
+        """**ファイルがあることと、判定が残っていることは別です。**
+
+        #70 は workflow-lint.yml を残したまま、中の 28 行だけを消しました。
+        """
+        write(self.root, G.WORKFLOW_LINT,
+              'name: L\non:\n  push:\njobs:\n  lint:\n'
+              '    runs-on: ubuntu-latest\n    timeout-minutes: 10\n'
+              '    steps:\n      - run: echo ok\n')
+        self.assertFires('timeout-minutes の欠落を落とす枝')
+
+    def test_a_gutted_verify_sh_fires(self):
+        write(self.root, G.VERIFY, '#!/usr/bin/env bash\necho ok\n')
+        self.assertFires('workflow-lint の写し')
+
+
+class TestTheRatchets(GuardCase):
+    def test_a_deleted_ratchet_fires(self):
+        os.unlink(os.path.join(self.root, G.RATCHETS[0]))
+        self.assertFires(G.RATCHETS[0])
+
+    def test_a_deleted_recalibrator_fires(self):
+        os.unlink(os.path.join(self.root, G.RECALIBRATORS[0]))
+        self.assertFires(G.RECALIBRATORS[0])
+
+    def test_a_deleted_guard_fires(self):
+        """**自分が消されたことを、消された回の PR に出すこと。**
+
+        base 側で走るのでその実行は止まりません。止まるのは次の PR で、
+        そのときにはもう誰も見ていません。
+        """
+        os.unlink(os.path.join(self.root, 'scripts/sync_guard.py'))
+        self.assertFires('scripts/sync_guard.py')
+
+    def test_a_deleted_guard_workflow_fires(self):
+        os.unlink(os.path.join(self.root, '.github/workflows/sync-guard.yml'))
+        self.assertFires('sync-guard.yml')
+
+    def test_all_sixteen_are_named(self):
+        """**数ではなく名前で留めます。** 数だと入れ替わりが通ります。"""
+        self.assertEqual(len(G.RATCHETS), 16)
+        self.assertEqual(len(set(G.RATCHETS)), 16)
+
+
+class TestTheEbpfMkdir(GuardCase):
+    def _ebpf(self, run_body: str) -> None:
+        write(self.root, '.github/workflows/agent-ebpf.yml',
+              workflow('build-ebpf', 20, 1, run_body))
+
+    def test_a_removed_mkdir_fires(self):
+        self._ebpf(EBPF_RUN.replace('            mkdir -p downloads\n', ''))
+        self.assertFires('`mkdir -p downloads` が消えています')
+
+    def test_a_mkdir_outside_the_loop_fires(self):
+        """**ループの外に出すと、2 回目以降の cp が落ちます。**"""
+        body = EBPF_RUN.replace('            mkdir -p downloads\n', '')
+        body = body.replace('          for i in 1 2 3 4 5; do',
+                            '          mkdir -p downloads\n'
+                            '          for i in 1 2 3 4 5; do')
+        self._ebpf(body)
+        self.assertFires('再試行ループの外にあります')
+
+    def test_a_comment_naming_the_reset_does_not_fire(self):
+        """**注釈を数えると、直した場所ほど怒られます。**
+
+        ループの中に置いた理由を書いた注釈が `git reset --hard` に
+        触れているので、注釈行を飛ばさないと「reset のほうが先にある」と
+        読めます。作っている途中で実際にここで落ちました。
+        """
+        self.assertEqual(G.ebpf_mkdir(G.DirTree(self.root)), [])
+        with open(os.path.join(self.root, '.github/workflows/agent-ebpf.yml'),
+                  encoding='utf-8') as fh:
+            before_the_loop = fh.read().split('for i in')[0]
+        # 注釈が本当にループより前で reset に触れていること。**ここが
+        # 空だと、上の 1 行は何も確かめていません。**
+        self.assertIn('git reset --hard', before_the_loop)
+
+    def test_a_missing_step_fires(self):
+        self._ebpf('')
+        self.assertFires('の step がありません')
+
+
+class TestTheGuardDoesNotRunPrCode(GuardCase):
+    """**`pull_request_target` は base の権限で走ります。**
+
+    PR のコードを1行でも実行したら、そのまま乗っ取られます。Semgrep の
+    指摘は「実行していないことを監査してください」で、監査そのものは
+    正しい —— **ただし監査は約束で、約束は腐ります。** 半年後に誰かが
+    `npm ci` を足したときに落ちる形で留めます。
+    """
+
+    def _guard(self, text: str) -> None:
+        write(self.root, G.GUARD_WORKFLOW, text)
+
+    def test_the_written_workflow_is_inert(self):
+        self.assertEqual(G.guard_is_inert(G.DirTree(self.root)), [])
+
+    def test_an_extra_run_fires(self):
+        """**ここが要です。** 足された命令は、必ず一度読まれること。"""
+        self._guard(GUARD_YML + '      - name: build\n        run: npm ci\n')
+        self.assertFires('許していない run:')
+
+    def test_a_changed_run_fires(self):
+        self._guard(GUARD_YML.replace('python3 scripts/sync_guard.py head.tar.gz',
+                                      'bash head/scripts/run.sh'))
+        self.assertFires('許していない run:')
+
+    def test_dropping_the_empty_sha_branch_fires(self):
+        """**空 SHA を弾く枝を外すと、この検査は嘘の緑を返します。**
+
+        `workflow_dispatch` では `github.event.pull_request.head.sha` が
+        空になり、**ref の無い tarball は既定ブランチを返します** ——
+        ガードが main を見て「配布物はすべて残っています」と報告します。
+        手で回した人は確かめたつもりで、PR の木を一度も見ていません。
+
+        **落ちるより悪い形なので、枝を消したら落とします。**
+        """
+        stripped = GUARD_YML
+        for line in GUARD_YML.splitlines(keepends=True):
+            s = line.strip()
+            if (s.startswith('if [ -z "$HEAD_SHA" ]')
+                    or s.startswith('echo "HEAD_SHA')
+                    or s.startswith('echo "ref の無い')
+                    or s.startswith('echo "「配布物')
+                    or s.startswith('echo "PR で')
+                    or s == 'exit 1' or s == 'fi'):
+                stripped = stripped.replace(line, '')
+        self.assertNotIn('HEAD_SHA" ]', stripped, '枝が残っています')
+        self._guard(stripped)
+        self.assertFires('許していない run:')
+
+    def test_extracting_the_archive_fires(self):
+        """**展開した時点で、PR のファイルがディスクに落ちます。**"""
+        self._guard(GUARD_YML.replace(
+            '      - name: check\n',
+            '      - name: extract\n        run: tar -xzf head.tar.gz\n'
+            '      - name: check\n'))
+        self.assertFires('許していない run:')
+
+    def test_checking_out_the_pr_head_fires(self):
+        """Semgrep の pull-request-target-code-checkout が指す形そのもの。"""
+        self._guard(GUARD_YML.replace(
+            '      - uses: actions/checkout@aaa\n        with:\n'
+            '          persist-credentials: false\n',
+            '      - uses: actions/checkout@aaa\n        with:\n'
+            '          persist-credentials: false\n'
+            '      - name: head\n        uses: actions/checkout@aaa\n'
+            '        with:\n'
+            '          ref: ${{ github.event.pull_request.head.sha }}\n'
+            '          path: head\n'
+            '          persist-credentials: false\n'))
+        self.assertFires('PR の木を checkout')
+
+    def test_whitespace_alone_does_not_fire(self):
+        """**空白で鳴る検査は消されます。** 語が同じなら通すこと。"""
+        self._guard(GUARD_YML.replace('        run: pip install pyyaml',
+                                      '        run: |\n          pip  install   pyyaml'))
+        self.assertEqual(G.guard_is_inert(G.DirTree(self.root)), [])
+
+    def test_widened_permissions_fire(self):
+        self._guard(GUARD_YML.replace('  contents: read',
+                                      '  contents: write'))
+        self.assertFires('permissions が')
+
+    def test_a_local_action_fires(self):
+        self._guard(GUARD_YML.replace('      - name: self\n'
+                                      '        run: python3 scripts/sync_guard_test.py\n',
+                                      '      - name: self\n'
+                                      '        uses: ./head/.github/actions/x\n'))
+        self.assertFires('uses が木の中を指しています')
+
+    def test_a_working_directory_in_head_fires(self):
+        self._guard(GUARD_YML.replace('      - name: check\n',
+                                      '      - name: check\n'
+                                      '        working-directory: head\n'))
+        self.assertFires('working-directory があります')
+
+    def test_a_checkout_that_keeps_credentials_fires(self):
+        self._guard(GUARD_YML.replace('        with:\n'
+                                      '          persist-credentials: false\n',
+                                      '\n'))
+        self.assertFires('persist-credentials: false がありません')
+
+    def test_dropping_the_head_read_fires(self):
+        """**PR の木を読まない検査は、何も見ていません。**"""
+        self._guard(GUARD_YML.replace(
+            '      - name: check\n'
+            '        run: python3 scripts/sync_guard.py head.tar.gz\n', ''))
+        self.assertFires('を読む step がありません')
+
+
+class TestTheArchive(GuardCase):
+    """書庫のまま読めること。**CI が渡すのはこちらです。**
+
+    ディレクトリでしか試していないと、CI では「何も見ずに緑」になる
+    経路が残ります —— このリポジトリが潰そうとしている形そのものです。
+    """
+
+    def _archive(self) -> str:
+        # GitHub の tarball と同じく、`owner-repo-sha/` を頭に付けます。
+        path = os.path.join(self.root, '..',
+                            os.path.basename(self.root) + '.tar.gz')
+        path = os.path.abspath(path)
+        self.addCleanup(lambda: os.path.exists(path) and os.unlink(path))
+        with tarfile.open(path, 'w:gz') as tf:
+            tf.add(self.root, arcname='kizashi-labs-kizashi-abc1234')
+        return path
+
+    def test_a_clean_archive_passes(self):
+        tree = G.open_tree(self._archive())
+        self.assertIsNotNone(tree)
+        self.assertEqual(G.job_timeouts(tree), [])
+        self.assertEqual(G.files_exist(tree, G.RATCHETS, ''), [])
+        self.assertEqual(G.guard_is_inert(tree), [])
+
+    def test_a_dirty_archive_fires(self):
+        os.unlink(os.path.join(self.root, G.RATCHETS[0]))
+        tree = G.open_tree(self._archive())
+        self.assertTrue(G.files_exist(tree, G.RATCHETS, ''))
+
+    def test_the_prefix_is_stripped(self):
+        """先頭の1段を落とし損ねると、**全ファイルが「消えた」になります。**"""
+        tree = G.open_tree(self._archive())
+        self.assertTrue(tree.exists(G.VERIFY))
+        self.assertIn('section "workflows"', tree.read(G.VERIFY))
+
+    def test_a_file_that_is_not_an_archive_is_not_silently_accepted(self):
+        bad = os.path.join(self.root, 'broken.tar.gz')
+        with open(bad, 'w', encoding='utf-8') as fh:
+            fh.write('これは書庫ではありません')
+        self.assertIsNone(G.open_tree(bad))
+
+
+CEILING = ('server/internal/store/reachable_test.go', 'testOnlyCeiling')
+FLOOR = ('server/internal/tick/tracked_workers_test.go', 'minTrackedWorkerNames')
+EXACT = ('server/internal/tick/background_failed_test.go', 'backgroundFailedCount')
+
+
+class TestTheRatchetValues(GuardCase):
+    """**ファイルが残っていても、中の数が緩めば同じことです。**
+
+    緩む向きだけを鳴らします。実数一致（`!=`）のものはずれた瞬間に検査
+    自身が落ちるので、ここで鳴らすと正当な更新のたびに赤くなります ——
+    **鳴る検査は消されます。**
+    """
+
+    def move(self, spec: tuple[str, str], delta: int) -> None:
+        rel, name = spec
+        path = os.path.join(self.root, rel)
+        with open(path, encoding='utf-8') as fh:
+            src = fh.read()
+        out, hit = [], False
+        for line in src.splitlines(keepends=True):
+            m = G.RATCHET_DECL.match(line)
+            if not hit and m and m.group(1) == name:
+                out.append(line.replace(m.group(2), str(int(m.group(2)) + delta), 1))
+                hit = True
+                continue
+            out.append(line)
+        self.assertTrue(hit, f'{name} の宣言が {rel} に見つかりません')
+        with open(path, 'w', encoding='utf-8') as fh:
+            fh.write(''.join(out))
+
+    def limits(self) -> list[str]:
+        return G.ratchet_limits(G.DirTree(self.root), G.DirTree(REPO))
+
+    def test_a_clean_tree_is_quiet(self):
+        self.assertEqual(self.limits(), [])
+
+    def test_a_raised_ceiling_fires(self):
+        self.move(CEILING, +1)
+        self.assertTrue(any(CEILING[1] in p for p in self.limits()))
+
+    def test_a_lowered_ceiling_is_quiet(self):
+        """**締めるほうは鳴らしません。** それが較正です。"""
+        self.move(CEILING, -1)
+        self.assertEqual(self.limits(), [])
+
+    def test_a_lowered_floor_fires(self):
+        self.move(FLOOR, -1)
+        self.assertTrue(any(FLOOR[1] in p for p in self.limits()))
+
+    def test_a_raised_floor_is_quiet(self):
+        self.move(FLOOR, +1)
+        self.assertEqual(self.limits(), [])
+
+    def test_an_exact_count_is_quiet_in_both_directions(self):
+        """`!=` で留めているものは、**ずれた瞬間にその検査が落ちます。**"""
+        self.move(EXACT, +1)
+        self.assertEqual(self.limits(), [])
+        self.move(EXACT, -2)
+        self.assertEqual(self.limits(), [])
+
+    def test_a_removed_constant_fires(self):
+        """**ファイルは残したまま、固定値だけ消す**形。files_exist は黙ります。"""
+        rel, name = CEILING
+        path = os.path.join(self.root, rel)
+        with open(path, encoding='utf-8') as fh:
+            src = fh.read()
+        kept = [ln for ln in src.splitlines(keepends=True)
+                if not (G.RATCHET_DECL.match(ln)
+                        and G.RATCHET_DECL.match(ln).group(1) == name)]
+        with open(path, 'w', encoding='utf-8') as fh:
+            fh.write(''.join(kept))
+        self.assertEqual(G.files_exist(G.DirTree(self.root), G.RATCHETS, ''), [])
+        self.assertTrue(any(name in p for p in self.limits()))
+
+    def test_an_unclassified_constant_fires(self):
+        """**既定は「見逃す」ではありません。** 分類の無い固定値は守られません。"""
+        rel = CEILING[0]
+        path = os.path.join(self.root, rel)
+        with open(path, 'a', encoding='utf-8') as fh:
+            fh.write('\nconst someNewRatchet = 5\n')
+        self.assertTrue(any('someNewRatchet' in p for p in self.limits()))
+
+    def test_every_constant_in_the_real_tree_is_classified(self):
+        """**表が腐っていないこと。** 実物にあって表に無い名前は 1 つも無い。
+
+        ここが落ちたら、`RATCHET_LIMITS` にその名前を足してください。
+        判定を読んで `ceiling` / `floor` / `exact` / `local` を決めます ——
+        **名前から推測しないでください。** 向きを取り違えると、
+        捕まえるべき退行だけを黙って通します。
+        """
+        missing = []
+        base = G.DirTree(REPO)
+        for rel in G.RATCHETS:
+            src = base.read(rel)
+            self.assertIsNotNone(src, f'{rel} が読めません')
+            for name in G.ratchet_decls(src):
+                if (rel, name) not in G.RATCHET_LIMITS:
+                    missing.append(f'{rel}: {name}')
+        self.assertEqual(missing, [], '分類されていない固定値があります')
+
+    def test_the_table_names_nothing_that_vanished(self):
+        """表にあって実物に無い名前も落とします。**片方向だけだと腐ります。**"""
+        base = G.DirTree(REPO)
+        real = {(rel, name) for rel in G.RATCHETS
+                for name in G.ratchet_decls(base.read(rel) or '')}
+        stale = sorted(f'{rel}: {name}' for rel, name in G.RATCHET_LIMITS
+                       if (rel, name) not in real)
+        self.assertEqual(stale, [], 'RATCHET_LIMITS に、実物に無い名前が残っています')
+
+
+class TestTheExitCode(GuardCase):
+    """**約束は終了コードです。** 出力が正しくても 0 を返したら通ります。"""
+
+    def _main(self, root: str) -> int:
+        argv, out = sys.argv, sys.stdout
+        sys.argv = ['sync_guard.py', root]
+        sys.stdout = open(os.devnull, 'w')
+        try:
+            return G.main()
+        finally:
+            sys.stdout.close()
+            sys.argv, sys.stdout = argv, out
+
+    def test_clean_is_zero(self):
+        self.assertEqual(self._main(self.root), 0)
+
+    def test_dirty_is_one(self):
+        os.unlink(os.path.join(self.root, G.RATCHETS[0]))
+        self.assertEqual(self._main(self.root), 1)
+
+    def test_a_missing_tree_is_one(self):
+        """**渡した木が無いときに 0 を返すと、CI は毎回緑になります。**"""
+        self.assertEqual(self._main(os.path.join(self.root, 'nope')), 1)
+
+
+if __name__ == '__main__':
+    unittest.main(verbosity=2)

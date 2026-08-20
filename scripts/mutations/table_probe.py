@@ -98,7 +98,7 @@ CASES = [
      '理由の宛先が消えても気づかなくなる'),
 
     # ── 理由つきで外した件数 ─────────────────────────────────────────────
-    (A, '\tconst want = 41', '\tconst want = 100',
+    (A, '\tconst want = 36', '\tconst want = 100',
      '理由つきで外した件数を実測から引き離す'),
     (A, '\t"store/table_probe.go:ProbeAnswer": "(c) 確認の失敗を「無い」に" +\n'
         '\t\t"倒さないための true です。失敗そのものは slog.Warn に出し、" +\n'
@@ -109,12 +109,17 @@ CASES = [
 ]
 
 # ── handlers の外（scheduler / reports / detection / suppression / ldap） ──
+SUP = 'server/internal/suppression/engine.go'
 AD = 'server/internal/detection/anomaly_detector.go'
 RS = 'server/internal/reports/scheduler.go'
 PT = 'server/internal/processtree/builder.go'
 DM = 'server/internal/detectionmetrics/tracker.go'
 
 CASES += [
+    (SUP, '\t\tslog.Error("suppression: ルールの走査が途中で失敗しました", "error", err)\n\t\treturn err\n',
+          '\t\tslog.Warn("suppression: ルールの走査に失敗しました", "error", err)\n',
+     '抑制ルールの読み込みが、途中までのルールで置き換えて成功を返す'
+     '（**元の実装**）'),
     (AD, '\t\tslog.Error("anomaly_detector: ベースラインの読み出しが途中で失敗しました", "error", err)\n\t\treturn err\n',
          '\t\tslog.Warn("anomaly_detector: row iteration error", "error", err)\n',
      'ベースラインの読み込みが、途中までで「読み込めました」と答える'
@@ -156,7 +161,7 @@ HARNESS = Harness(
     cwd='server',
 )
 
-OUTSIDE = {AD, RS, PT, DM}
+OUTSIDE = {SUP, AD, RS, PT, DM}
 INSIDE_CASES = [c for c in CASES if c[0] not in OUTSIDE]
 OUTSIDE_CASES = [c for c in CASES if c[0] in OUTSIDE]
 

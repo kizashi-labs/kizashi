@@ -31,6 +31,7 @@ jobs:
   lint:
     name: Workflow files are loadable
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
@@ -51,6 +52,7 @@ jobs:
                       yield line
 
           problems = []
+          job_timeouts = step_timeouts = 0
           for path in sorted(glob.glob(".github/workflows/*.yml") +
                              glob.glob(".github/workflows/*.yaml")):
               try:
@@ -73,6 +75,34 @@ jobs:
                       continue
                   if "uses" in job:      # reusable workflow call: steps を持たない
                       continue
+
+                  # timeout-minutes が無いジョブは、GitHub の既定 6 時間まで
+                  # 走り続けます。**実際に 2 回起きています**（実測、直近 200 runs）:
+                  #
+                  #   agent-build (linux/amd64/ebpf)  中央 1.7 分 → 一度 360.3 分
+                  #                                   （＝ 6 時間の上限に当たって停止）
+                  #   rules-validate                  中央 1.2 分 → 一度 111.2 分
+                  #
+                  # どちらも apt-get の取得で止まっていました。**落ちないので
+                  # 誰も気づかず、予算だけが減ります。** 数字は実測の最大に
+                  # 余裕を足したもので、遅い日を殺さず、ハングは早く切ります。
+                  if "timeout-minutes" not in job:
+                      problems.append(
+                          "%s / %s: timeout-minutes がありません。"
+                          "**GitHub の既定は 6 時間です。** 取得で止まったジョブは"
+                          "落ちも進みもせず、予算だけを使い切ります"
+                          % (path, job_name))
+                  else:
+                      job_timeouts += 1
+                      t = job["timeout-minutes"]
+                      if isinstance(t, int) and t > 60:
+                          problems.append(
+                              "%s / %s: timeout-minutes が %d 分です。"
+                              "ここに 1 時間を超えるジョブはありません。"
+                              "**ハングを上限の引き上げで直さないでください** —— "
+                              "遅くなった理由を先に見てください"
+                              % (path, job_name, t))
+
                   steps = job.get("steps")
                   if not isinstance(steps, list) or not steps:
                       problems.append("%s / %s: steps がありません" % (path, job_name))
@@ -82,6 +112,8 @@ jobs:
                           problems.append("%s / %s / step[%d]: ステップがマップではありません"
                                           % (path, job_name, i))
                           continue
+                      if "timeout-minutes" in step:
+                          step_timeouts += 1
                       if "run" not in step and "uses" not in step:
                           problems.append(
                               "%s / %s / step[%d] (%s): run: も uses: もありません。"
@@ -103,6 +135,42 @@ jobs:
                                   "パイプラインが無くなり、大きさに依存しません"
                                   % (path, job_name, i, step.get("name", "名前なし"),
                                      line.strip()))
+
+          # 本流へ渡す一覧に書いてある数が、実物と合っていること。
+          #
+          # **この数は一度腐りました。** 引き継ぎのメモに「47 件」と書いた
+          # あと sync-guard.yml が job 1 + step 1 を足し、メモだけが 47 の
+          # まま残りました。渡された側は 47 を写して 2 件落とします ——
+          # **落ちるのは、いちばん新しく足した検査です。**
+          #
+          # 文書の数は、書いた瞬間だけ正しい。ここで留めます。
+          HANDOVER = "docs/ci/本流へ渡す作業一覧.md"
+          try:
+              handover = open(HANDOVER, encoding="utf-8").read()
+          except FileNotFoundError:
+              problems.append(
+                  "%s がありません。**本流へ何を渡すかが、リポジトリのどこにも"
+                  "残っていない状態です。** 同期が配布物を落としたとき、"
+                  "受け側のガードは「消えた」と言えますが、"
+                  "「何を戻せばいいか」は言えません" % HANDOVER)
+          else:
+              want = re.search(r"job (\d+) \+ step (\d+) ＝ (\d+) 件", handover)
+              if not want:
+                  problems.append(
+                      "%s に「job N + step N ＝ N 件」の行がありません。"
+                      "**数を留められなくなります** —— 書き方を変えたなら、"
+                      "この検査の正規表現も一緒に直してください" % HANDOVER)
+              else:
+                  said = tuple(int(g) for g in want.groups())
+                  got = (job_timeouts, step_timeouts, job_timeouts + step_timeouts)
+                  if said != got:
+                      problems.append(
+                          "%s は job %d + step %d ＝ %d 件と書いていますが、"
+                          "実物は job %d + step %d ＝ %d 件です。"
+                          "**文書のほうを実物に合わせてください** —— "
+                          "本流はこの表を写します。古い数を写すと、"
+                          "差の分だけ黙って落ちます"
+                          % ((HANDOVER,) + said + got))
 
           if problems:
               print("ワークフローファイルに問題があります:\n")
