@@ -134,6 +134,85 @@ RATCHETS = [
     'server/internal/tick/tracked_workers_test.go',
 ]
 
+# ── 4-b. ラチェットの固定値が緩んでいないか ───────────────────────
+#
+# **ファイルが残っていても、中の数が緩めば同じことです。**
+#
+# 引き継ぎには「生成器が較正の道具を呼んでいるかは受け側から見えない」と
+# 書いてありました。呼んだかどうかは確かに見えませんが、**呼ばれなかった
+# 結果は見えます** —— 固定値が main と違う値で戻ってきます。
+#
+# ## 3 種類あって、守るのは 2 つだけ
+#
+# 実物の判定を読んで分けました。
+#
+#	ceiling  `if got > N` の形。**N が増えると緩みます**
+#	floor    `if got < N` の形。**N が減ると緩みます**
+#	exact    `if got != N` の形。**緩む向きがありません** ——
+#	         ずれた瞬間にその検査自身が落ちるので、ここでは見ません
+#	local    ラチェットではない局所変数（`n` や `want`）
+#
+# **exact を守らないのは手抜きではありません。** 静かに壊れないものを
+# ここで鳴らすと、正当な更新のたびに赤くなります。**鳴る検査は消されます。**
+#
+# ## 知らない名前は落とします
+#
+# 表に無い固定値が出てきたら「分類してください」で落とします。既定を
+# 「見逃す」にすると、**新しいラチェットは黙って守られないまま**になり、
+# それは表を作った意味を消します。
+RATCHET_LIMITS = {
+    # ── frontend ──
+    ('frontend/tests/lib/backend-pending-coverage.test.ts', 'ANNOUNCED_BUT_ALIVE_CEILING'): 'ceiling',
+    ('frontend/tests/lib/backend-pending-coverage.test.ts', 'PARTLY_DEAD_CEILING'): 'ceiling',
+    ('frontend/tests/lib/backend-pending-coverage.test.ts', 'NAV_PENDING'): 'ceiling',
+    ('frontend/tests/lib/login-clients.test.ts', 'LOGIN_CLIENT_FLOOR'): 'floor',
+    ('frontend/tests/lib/mutation-failure-surface.test.ts', 'NAKED_MUTATION_CEILING'): 'ceiling',
+    ('frontend/tests/lib/server-routes.test.ts', 'UNROUTED_READ_CEILING'): 'ceiling',
+    ('frontend/tests/lib/server-routes.test.ts', 'UNROUTED_WRITE_CEILING'): 'ceiling',
+    ('frontend/tests/lib/silent-writes.test.ts', 'SILENT_WRITE_CEILING'): 'ceiling',
+
+    # ── server: handlers ──
+    ('server/internal/api/handlers/answered_with_a_value_test.go', 'answerNilErrCeiling'): 'ceiling',
+    ('server/internal/api/handlers/answered_with_a_value_test.go', 'answerAssignCeiling'): 'ceiling',
+    ('server/internal/api/handlers/answered_with_a_value_test.go', 'answerReturnCeiling'): 'ceiling',
+    ('server/internal/api/handlers/answered_with_a_value_test.go', 'answerContinueCeiling'): 'ceiling',
+    ('server/internal/api/handlers/answered_with_a_value_test.go', 'answerBreakCeiling'): 'ceiling',
+    ('server/internal/api/handlers/answered_with_a_value_test.go', 'continueOutsideRowsErr'): 'exact',
+    ('server/internal/api/handlers/answered_with_a_value_test.go', 'n'): 'local',
+    ('server/internal/api/handlers/answered_with_a_value_test.go', 'want'): 'local',
+    ('server/internal/api/handlers/discarded_read_test.go', 'discardedHandlerReads'): 'exact',
+    ('server/internal/api/handlers/discarded_read_test.go', 'discardedHandlerReadsShown'): 'exact',
+    ('server/internal/api/handlers/discarded_read_test.go', 'discardedHandlerReadsAggregate'): 'exact',
+    ('server/internal/api/handlers/discarded_write_reasons_test.go', 'discardedWriteFuncs'): 'exact',
+    ('server/internal/api/handlers/discarded_write_test.go', 'discardedWritesThatClaimSuccess'): 'exact',
+    # `> N` と `< N` の両方で落とすので、緩む向きがありません。
+    ('server/internal/api/handlers/discarded_write_test.go', 'discardedWritesTotal'): 'exact',
+    ('server/internal/api/handlers/discarded_write_test.go', 'floor'): 'floor',
+    ('server/internal/api/handlers/skipped_row_test.go', 'silentSkipCeiling'): 'ceiling',
+
+    # ── server: scheduler / store / tick ──
+    ('server/internal/scheduler/bare_log_and_return_test.go', 'minBareLogAndReturnSites'): 'floor',
+    ('server/internal/scheduler/bare_log_and_return_test.go', 'bareLogAndReturnSiteCount'): 'exact',
+    ('server/internal/store/reachable_test.go', 'testOnlyCeiling'): 'ceiling',
+    ('server/internal/tick/background_failed_test.go', 'backgroundFailedCount'): 'exact',
+    ('server/internal/tick/background_failed_test.go', 'backgroundFailedFuncs'): 'exact',
+    ('server/internal/tick/tracked_workers_test.go', 'minUntrackedCandidates'): 'floor',
+    ('server/internal/tick/tracked_workers_test.go', 'minTrackedWorkerNames'): 'floor',
+    ('server/internal/tick/tracked_workers_test.go', 'minMatchedWorkerDecls'): 'floor',
+    # 探索の深さ。**下げると走査が狭まります** —— 見つかる名前が減るので
+    # 上の floor 3 本が受け止めますが、狭まったこと自体をここで言います。
+    ('server/internal/tick/tracked_workers_test.go', 'trackedCallDepth'): 'floor',
+    ('server/internal/tick/tracked_workers_test.go', 'reachableSlogErrorSites'): 'exact',
+    ('server/internal/tick/tracked_workers_test.go', 'reachableSlogWarnSites'): 'exact',
+    ('server/internal/tick/tracked_workers_test.go', 'silentErrorBranchSites'): 'exact',
+    ('server/internal/tick/tracked_workers_test.go', 'reachableDiscardedWriteSites'): 'exact',
+}
+
+# `const X = 12` / `export const X: number = 12` / Go の `X = 12`。
+RATCHET_DECL = re.compile(
+    r'^\s*(?:(?:export\s+)?const\s+)?([A-Za-z_][A-Za-z0-9_]*)'
+    r'(?:\s*:\s*number)?\s*=\s*(\d+)\s*(?://.*)?$', re.M)
+
 # ── 5. 較正の道具 ─────────────────────────────────────────────────
 # これが無いと、ラチェット 16 本を戻しておく理由（負担を自動で消せる）
 # が無くなります。**道具が消えると、次の同期でラチェットがまた外れます。**
@@ -371,6 +450,65 @@ def files_exist(tree, rels: list[str], why: str) -> list[str]:
             for rel in rels if not tree.exists(rel)]
 
 
+def ratchet_decls(src: str) -> dict[str, int]:
+    return {m.group(1): int(m.group(2)) for m in RATCHET_DECL.finditer(src)}
+
+
+def ratchet_limits(tree, base) -> list[str]:
+    """ラチェットの固定値が、base より緩んでいないこと。
+
+    **比べる相手は main（base 側）です。** この検査は base の定義で走って
+    いるので、main の木はそこにあります。head は書庫のまま読みます。
+
+    緩む向きだけを見ます（上限は増える、下限は減る）。実数一致のものは
+    ずれた瞬間に検査自身が落ちるので、**ここで鳴らすと正当な更新のたびに
+    赤くなります。鳴る検査は消されます。**
+    """
+    problems: list[str] = []
+    for rel in RATCHETS:
+        head_src = tree.read(rel)
+        base_src = base.read(rel)
+        if base_src is None:
+            # main に無いなら比べる相手がいません。**消えたことは
+            # files_exist が言うので、ここでは黙ります。**
+            continue
+        if head_src is None:
+            continue
+        head = ratchet_decls(head_src)
+        old = ratchet_decls(base_src)
+
+        for name in sorted(set(old) | set(head)):
+            kind = RATCHET_LIMITS.get((rel, name))
+            if kind is None:
+                problems.append(
+                    f'{rel}: {name} を RATCHET_LIMITS に分類してください'
+                    f'（ceiling / floor / exact / local）。**分類が無い固定値は'
+                    f'守られません。**')
+                continue
+            if kind in ('exact', 'local'):
+                continue
+            if name not in head:
+                problems.append(
+                    f'{rel}: {name} が消えています（main では {old[name]}）。'
+                    f'**ファイルは残っていますが、この固定値は無くなりました。**')
+                continue
+            if name not in old:
+                continue
+            was, now = old[name], head[name]
+            if kind == 'ceiling' and now > was:
+                problems.append(
+                    f'{rel}: {name} が {was} → {now} に**上がっています**（上限）。'
+                    f'上限が上がると、増えた分は黙って通ります。'
+                    f'較正なら scripts/recalibrate_ratchets.py --apply が'
+                    f'下げる側にしか動かしません —— **上げたのは較正では'
+                    f'ありません。**')
+            if kind == 'floor' and now < was:
+                problems.append(
+                    f'{rel}: {name} が {was} → {now} に**下がっています**（下限）。'
+                    f'下限が下がると、減った分は黙って通ります。')
+    return problems
+
+
 def ebpf_mkdir(tree) -> list[str]:
     """`mkdir -p downloads` が、再試行ループの中にあること。"""
     src = tree.read(EBPF)
@@ -511,6 +649,12 @@ def main() -> int:
         return 1
     root = tree.label
 
+    # 比べる相手は **この道具が置かれている木**です。`pull_request_target`
+    # で走るので、それは main（base 側）になります。**引数を増やしません**
+    # —— ワークフローの `run:` は GUARD_ALLOWED_RUNS が語そのままで留めて
+    # いるので、呼び方を変えると、この検査は自分の変更で落ちます。
+    base = DirTree(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
     sections = [
         ('ジョブの上限', job_timeouts(tree)),
         ('取得する step の上限', step_timeouts(tree)),
@@ -530,6 +674,7 @@ def main() -> int:
             '走らない検査は何も報告しません。'
             '較正が要るなら scripts/recalibrate_ratchets.py を'
             '呼んでください（外す理由にはなりません）')),
+        ('ラチェットの固定値', ratchet_limits(tree, base)),
         ('この検査が PR のコードを実行しないこと', guard_is_inert(tree)),
         ('この検査そのもの', files_exist(
             tree, SELF,

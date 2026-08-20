@@ -21,6 +21,7 @@ import tempfile
 import unittest
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+REPO = os.path.dirname(HERE)
 sys.path.insert(0, HERE)
 
 import sync_guard as G  # noqa: E402
@@ -130,8 +131,16 @@ def build_clean(root: str) -> None:
     write(root, G.VERIFY, VERIFY_SH)
     for rel in G.RATCHETS + G.RECALIBRATORS + G.SELF:
         # .yml は上の STEP_TIMEOUT_FLOOR の輪で、上限つきに作ってあります。
-        if not rel.endswith('.yml'):
-            write(root, rel, '// 中身は見ていません\n')
+        if rel.endswith('.yml'):
+            continue
+        if rel in G.RATCHETS:
+            # **ラチェットは中身ごと写します。** 固定値を main と比べる節が
+            # あるので、スタブで済ませると「固定値が全部消えた」になります。
+            # 写した木は main と同じ値なので、きれいな木では何も鳴りません。
+            with open(os.path.join(REPO, rel), encoding='utf-8') as fh:
+                write(root, rel, fh.read())
+            continue
+        write(root, rel, '// 中身は見ていません\n')
 
 
 class GuardCase(unittest.TestCase):
@@ -412,6 +421,116 @@ class TestTheArchive(GuardCase):
         with open(bad, 'w', encoding='utf-8') as fh:
             fh.write('これは書庫ではありません')
         self.assertIsNone(G.open_tree(bad))
+
+
+CEILING = ('server/internal/store/reachable_test.go', 'testOnlyCeiling')
+FLOOR = ('server/internal/tick/tracked_workers_test.go', 'minTrackedWorkerNames')
+EXACT = ('server/internal/tick/background_failed_test.go', 'backgroundFailedCount')
+
+
+class TestTheRatchetValues(GuardCase):
+    """**ファイルが残っていても、中の数が緩めば同じことです。**
+
+    緩む向きだけを鳴らします。実数一致（`!=`）のものはずれた瞬間に検査
+    自身が落ちるので、ここで鳴らすと正当な更新のたびに赤くなります ——
+    **鳴る検査は消されます。**
+    """
+
+    def move(self, spec: tuple[str, str], delta: int) -> None:
+        rel, name = spec
+        path = os.path.join(self.root, rel)
+        with open(path, encoding='utf-8') as fh:
+            src = fh.read()
+        out, hit = [], False
+        for line in src.splitlines(keepends=True):
+            m = G.RATCHET_DECL.match(line)
+            if not hit and m and m.group(1) == name:
+                out.append(line.replace(m.group(2), str(int(m.group(2)) + delta), 1))
+                hit = True
+                continue
+            out.append(line)
+        self.assertTrue(hit, f'{name} の宣言が {rel} に見つかりません')
+        with open(path, 'w', encoding='utf-8') as fh:
+            fh.write(''.join(out))
+
+    def limits(self) -> list[str]:
+        return G.ratchet_limits(G.DirTree(self.root), G.DirTree(REPO))
+
+    def test_a_clean_tree_is_quiet(self):
+        self.assertEqual(self.limits(), [])
+
+    def test_a_raised_ceiling_fires(self):
+        self.move(CEILING, +1)
+        self.assertTrue(any(CEILING[1] in p for p in self.limits()))
+
+    def test_a_lowered_ceiling_is_quiet(self):
+        """**締めるほうは鳴らしません。** それが較正です。"""
+        self.move(CEILING, -1)
+        self.assertEqual(self.limits(), [])
+
+    def test_a_lowered_floor_fires(self):
+        self.move(FLOOR, -1)
+        self.assertTrue(any(FLOOR[1] in p for p in self.limits()))
+
+    def test_a_raised_floor_is_quiet(self):
+        self.move(FLOOR, +1)
+        self.assertEqual(self.limits(), [])
+
+    def test_an_exact_count_is_quiet_in_both_directions(self):
+        """`!=` で留めているものは、**ずれた瞬間にその検査が落ちます。**"""
+        self.move(EXACT, +1)
+        self.assertEqual(self.limits(), [])
+        self.move(EXACT, -2)
+        self.assertEqual(self.limits(), [])
+
+    def test_a_removed_constant_fires(self):
+        """**ファイルは残したまま、固定値だけ消す**形。files_exist は黙ります。"""
+        rel, name = CEILING
+        path = os.path.join(self.root, rel)
+        with open(path, encoding='utf-8') as fh:
+            src = fh.read()
+        kept = [ln for ln in src.splitlines(keepends=True)
+                if not (G.RATCHET_DECL.match(ln)
+                        and G.RATCHET_DECL.match(ln).group(1) == name)]
+        with open(path, 'w', encoding='utf-8') as fh:
+            fh.write(''.join(kept))
+        self.assertEqual(G.files_exist(G.DirTree(self.root), G.RATCHETS, ''), [])
+        self.assertTrue(any(name in p for p in self.limits()))
+
+    def test_an_unclassified_constant_fires(self):
+        """**既定は「見逃す」ではありません。** 分類の無い固定値は守られません。"""
+        rel = CEILING[0]
+        path = os.path.join(self.root, rel)
+        with open(path, 'a', encoding='utf-8') as fh:
+            fh.write('\nconst someNewRatchet = 5\n')
+        self.assertTrue(any('someNewRatchet' in p for p in self.limits()))
+
+    def test_every_constant_in_the_real_tree_is_classified(self):
+        """**表が腐っていないこと。** 実物にあって表に無い名前は 1 つも無い。
+
+        ここが落ちたら、`RATCHET_LIMITS` にその名前を足してください。
+        判定を読んで `ceiling` / `floor` / `exact` / `local` を決めます ——
+        **名前から推測しないでください。** 向きを取り違えると、
+        捕まえるべき退行だけを黙って通します。
+        """
+        missing = []
+        base = G.DirTree(REPO)
+        for rel in G.RATCHETS:
+            src = base.read(rel)
+            self.assertIsNotNone(src, f'{rel} が読めません')
+            for name in G.ratchet_decls(src):
+                if (rel, name) not in G.RATCHET_LIMITS:
+                    missing.append(f'{rel}: {name}')
+        self.assertEqual(missing, [], '分類されていない固定値があります')
+
+    def test_the_table_names_nothing_that_vanished(self):
+        """表にあって実物に無い名前も落とします。**片方向だけだと腐ります。**"""
+        base = G.DirTree(REPO)
+        real = {(rel, name) for rel in G.RATCHETS
+                for name in G.ratchet_decls(base.read(rel) or '')}
+        stale = sorted(f'{rel}: {name}' for rel, name in G.RATCHET_LIMITS
+                       if (rel, name) not in real)
+        self.assertEqual(stale, [], 'RATCHET_LIMITS に、実物に無い名前が残っています')
 
 
 class TestTheExitCode(GuardCase):
