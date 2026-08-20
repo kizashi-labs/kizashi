@@ -1,8 +1,65 @@
 # RLS エスケープ節 fail-closed 化 — フェーズ分割設計
 
-> **状態**: 設計のみ(未実装)。本体は大規模改修のため専用フェーズで実施する。
+> **状態**: **下ごしらえまで実装済み。** 方式はロール分割から「名乗り」に
+> 変えた（下の「7. 方式の変更」）。残るのは公開経路 6 件の判定だけ。
 > **前提**: [マルチテナント分離ハードニング.md](マルチテナント分離ハードニング.md) の手順1/2 + migration 324-328 が適用済みであること。
 > **重大度**: 中(残余リスクの解消。手順1/2 と多層防御で主要な BOLA は既に緩和済み)。
+
+---
+
+## 7. 方式の変更 — ロール分割ではなく「名乗り」(migration 450)
+
+**下の 3 章〜6 章はロール分割 (`edr_worker`) の設計です。測った結果、
+この配備では効かないことが分かったので採りませんでした。**
+
+- 既定の配備は **DSN が 1 本**です（`APP_DATABASE_URL` は未設定で
+  `DATABASE_URL` にフォールバック。このリポジトリの docs 自身が
+  「未実施だとテナント分離は無効のまま」と書いています）。
+  4 表は **FORCE RLS** なので所有者 `edr` も方針の対象ですが、
+  **API と系が同じロールで繋ぐ配備では、ロール別方針は両者を
+  区別できません。**
+- CI の Postgres も所有者 `edr` の 1 本です。つまり
+  **ロール案は CI で一度も実行されません。**
+
+採った形は、方針の中で「全テナントを見る」と**名乗らせる**ものです:
+
+```sql
+-- いま (migration 450): 名乗りの項を足しただけ。挙動は変わっていない
+USING (tenant_id::text = current_setting('app.tenant_id', TRUE)
+       OR current_setting('app.tenant_id', TRUE) = 'system'
+       OR current_setting('app.tenant_id', TRUE) IS NULL   -- ← 落とす
+       OR current_setting('app.tenant_id', TRUE) = '')     -- ← 落とす
+```
+
+配線の手間はロール案と同じで、違うのは**配備側に何を要求するか**です。
+名乗りは新しいロールも 2 本目の DSN も要らず、いまの 1 本 DSN の配備で
+そのまま効き、CI でも実行されます。ロール分割と併用もできます
+（多層防御としては上乗せになります）。
+
+### 実装済み
+
+| 何を | どこに |
+| --- | --- |
+| 名乗りの仕組み | `store.WithSystemAccess` / `store.SystemTenant` |
+| 外から `system` を名乗れないこと | `store.prepareConnForTenant`（JWT の tenant_id はここに来ます） |
+| 方針への項の追加 | migration 450（**挙動は変わりません**） |
+| 背景ワーカ 33 本 | `cmd/{api,ingestion,detection}` の**プロセス ctx 1 か所ずつ**。設計書が「約35本の配線」と見積もっていた部分は、ctx が 1 本なので 3 か所で覆えました |
+| 認証前の HTTP 経路 16 件 | `mw.SystemAccessMiddleware()` を group / 経路ごとに |
+| 台帳 | `internal/api/system_access_ledger_test.go` |
+
+`cmd/api` のプロセス ctx を包んでも HTTP 要求には伝わりません ——
+gin は `http.ListenAndServe` を `BaseContext` 無しで呼ぶので、
+要求ごとの ctx は `context.Background()` から生えます。
+
+### 残っているのは 1 つだけ
+
+公開経路のうち **6 件が、4 表に触るかどうか未判定**です
+(`undecidedPublicRoutes`)。落とすと、触っていた場合に 0 行で静かに
+壊れます。**この一覧が空になったら、エスケープ節を落とせます。**
+
+判定できていない理由は、gin の group 変数が関数をまたいで同じ名前で
+使われていて（`dw` が 2 か所、`v1` / `taxii` も）、素朴な走査が誤判定
+するためです。1 件ずつハンドラを読む必要があります。
 
 ---
 
